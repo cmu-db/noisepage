@@ -432,7 +432,6 @@ class NewOrder {
     // for each item in order
     uint32_t ol_number = 1;
     for (const auto &item : args.items) {
-
       // Look up I_ID in index
       const auto item_key_pr_initializer = db->item_index_->GetProjectedRowInitializer();
       auto *const item_key = item_key_pr_initializer.InitializeRow(worker->item_key_buffer);
@@ -554,6 +553,7 @@ class NewOrder {
       *reinterpret_cast<int32_t *>(order_line_key->AccessForceNotNull(ol_w_id_key_pr_offset)) = args.w_id;
       *reinterpret_cast<int32_t *>(order_line_key->AccessForceNotNull(ol_d_id_key_pr_offset)) = args.d_id;
       *reinterpret_cast<int32_t *>(order_line_key->AccessForceNotNull(ol_o_id_key_pr_offset)) = d_next_o_id;
+      TERRIER_ASSERT(ol_number <= 15, "There should be at least 1 Order Line item, but no more than 15.");
       *reinterpret_cast<int32_t *>(order_line_key->AccessForceNotNull(ol_number_key_pr_offset)) = ol_number;
 
       index_insert_result = db->order_line_index_->ConditionalInsert(*order_line_key, order_line_slot,
