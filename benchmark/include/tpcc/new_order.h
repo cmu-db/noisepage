@@ -430,8 +430,8 @@ class NewOrder {
     // TODO(Matt): need to undo this if the transaction aborts
 
     // for each item in order
+    uint32_t ol_number = 1;
     for (const auto &item : args.items) {
-      uint32_t ol_number = 1;
 
       // Look up I_ID in index
       const auto item_key_pr_initializer = db->item_index_->GetProjectedRowInitializer();
