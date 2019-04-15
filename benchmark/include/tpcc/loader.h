@@ -137,7 +137,7 @@ struct Loader {
         // insert in index
         const auto *const item_key = BuildItemKey(i_id + 1, worker->item_key_buffer, item_key_pr_initializer,
                                                   item_key_pr_map, db->item_key_schema_);
-        bool index_insert_result UNUSED_ATTRIBUTE =
+        bool UNUSED_ATTRIBUTE index_insert_result =
             db->item_index_->ConditionalInsert(*item_key, item_slot, [](const storage::TupleSlot &) { return false; });
         TERRIER_ASSERT(index_insert_result, "Item index insertion failed.");
       }
@@ -155,7 +155,7 @@ struct Loader {
       const auto *const warehouse_key =
           BuildWarehouseKey(w_id + 1, worker->warehouse_key_buffer, warehouse_key_pr_initializer, warehouse_key_pr_map,
                             db->warehouse_key_schema_);
-      bool index_insert_result = db->warehouse_index_->ConditionalInsert(
+      bool UNUSED_ATTRIBUTE index_insert_result = db->warehouse_index_->ConditionalInsert(
           *warehouse_key, warehouse_slot, [](const storage::TupleSlot &) { return false; });
       TERRIER_ASSERT(index_insert_result, "Warehouse index insertion failed.");
 

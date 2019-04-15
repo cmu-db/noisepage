@@ -224,7 +224,8 @@ class Payment {
 
     // Select W_NAME, W_STREET_1, W_STREET_2, W_CITY, W_STATE, W_ZIP, W_YTD in table
     auto *const warehouse_select_tuple = warehouse_select_pr_initializer.InitializeRow(worker->warehouse_tuple_buffer);
-    bool select_result = db->warehouse_table_->Select(txn, index_scan_results[0], warehouse_select_tuple);
+    bool UNUSED_ATTRIBUTE select_result =
+        db->warehouse_table_->Select(txn, index_scan_results[0], warehouse_select_tuple);
     TERRIER_ASSERT(select_result, "Warehouse table doesn't change. All lookups should succeed.");
     const auto w_name =
         *reinterpret_cast<storage::VarlenEntry *>(warehouse_select_tuple->AccessWithNullCheck(w_name_select_pr_offset));
