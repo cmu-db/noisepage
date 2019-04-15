@@ -101,8 +101,8 @@ struct TransactionArgs {
     bool remote;
   };
 
-  int32_t w_id;                     // NewOrder, Payment, Order Status
-  int32_t d_id;                     // NewOrder, Payment, Order Status
+  int32_t w_id;                     // NewOrder, Payment, Order Status, Delivery, StockLevel
+  int32_t d_id;                     // NewOrder, Payment, Order Status, StockLevel
   int32_t c_id;                     // NewOrder, Payment, Order Status
   int32_t ol_cnt;                   // NewOrder
   uint8_t rbk;                      // NewOrder
@@ -118,6 +118,7 @@ struct TransactionArgs {
   uint64_t h_date;                  // Payment
   int32_t o_carrier_id;             // Delivery
   uint64_t ol_delivery_d;           // Delivery
+  int16_t s_quantity_threshold;     // StockLevel
 };
 
 // 2.4.1
@@ -224,6 +225,9 @@ TransactionArgs BuildStockLevelArgs(Random *const generator, const int32_t w_id,
   TERRIER_ASSERT(w_id >= 1 && static_cast<uint32_t>(w_id) <= num_warehouses, "Invalid w_id.");
   TransactionArgs args;
   args.type = TransactionType::StockLevel;
+  args.w_id = w_id;
+  args.d_id = Util::RandomWithin<int32_t>(1, 10, 0, generator);  // specification doesn't specify computing this
+  args.s_quantity_threshold = Util::RandomWithin<int16_t>(10, 20, 0, generator);
   return args;
 }
 
