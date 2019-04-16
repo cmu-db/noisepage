@@ -67,7 +67,7 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
    */
   SeqScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                   std::shared_ptr<OutputSchema> output_schema,
-                  std::unique_ptr<const parser::AbstractExpression> predicate, bool is_for_update, bool is_parallel,
+                  std::shared_ptr<const parser::AbstractExpression> predicate, bool is_for_update, bool is_parallel,
                   catalog::db_oid_t database_oid, catalog::table_oid_t table_oid)
       : AbstractScanPlanNode(std::move(children), std::move(output_schema), std::move(predicate), is_for_update,
                              is_parallel, database_oid),

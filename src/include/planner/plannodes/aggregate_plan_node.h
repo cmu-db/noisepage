@@ -32,7 +32,7 @@ class AggregatePlanNode : public AbstractPlanNode {
      * @param expr pointer to aggregate expression
      * @param distinct distinct flag
      */
-    AggregateTerm(parser::ExpressionType aggregate_type, std::unique_ptr<const parser::AbstractExpression> &&expr,
+    AggregateTerm(parser::ExpressionType aggregate_type, std::shared_ptr<const parser::AbstractExpression> &&expr,
                   bool distinct)
         : aggregate_type_(aggregate_type), expression_(std::move(expr)), distinct_(distinct) {}
 
@@ -62,7 +62,7 @@ class AggregatePlanNode : public AbstractPlanNode {
     /**
      * Aggregate expression
      */
-    std::unique_ptr<const parser::AbstractExpression> expression_;
+    std::shared_ptr<const parser::AbstractExpression> expression_;
     /**
      * Distinct flag for aggragate term (example COUNT(distinct order))
      */
@@ -94,7 +94,7 @@ class AggregatePlanNode : public AbstractPlanNode {
      * @param predicate having clause predicate to use for aggregate term
      * @return builder object
      */
-    Builder &SetHavingClausePredicate(std::unique_ptr<const parser::AbstractExpression> predicate) {
+    Builder &SetHavingClausePredicate(std::shared_ptr<const parser::AbstractExpression> predicate) {
       having_clause_predicate_ = std::move(predicate);
       return *this;
     }
@@ -122,7 +122,7 @@ class AggregatePlanNode : public AbstractPlanNode {
     /**
      * Predicate for having clause if it exists
      */
-    std::unique_ptr<const parser::AbstractExpression> having_clause_predicate_;
+    std::shared_ptr<const parser::AbstractExpression> having_clause_predicate_;
     /**
      * List of aggregate terms for aggregation
      */
@@ -143,7 +143,7 @@ class AggregatePlanNode : public AbstractPlanNode {
    */
   AggregatePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                     std::shared_ptr<OutputSchema> output_schema,
-                    std::unique_ptr<const parser::AbstractExpression> having_clause_predicate,
+                    std::shared_ptr<const parser::AbstractExpression> having_clause_predicate,
                     std::vector<AggregateTerm> aggregate_terms, AggregateStrategyType aggregate_strategy)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         having_clause_predicate_(std::move(having_clause_predicate)),
@@ -165,7 +165,7 @@ class AggregatePlanNode : public AbstractPlanNode {
   /**
    * @return pointer to predicate for having clause
    */
-  const std::unique_ptr<const parser::AbstractExpression> &GetHavingClausePredicate() const {
+  const std::shared_ptr<const parser::AbstractExpression> &GetHavingClausePredicate() const {
     return having_clause_predicate_;
   }
 
@@ -199,7 +199,7 @@ class AggregatePlanNode : public AbstractPlanNode {
   common::hash_t HashAggregateTerms(const std::vector<AggregatePlanNode::AggregateTerm> &agg_terms) const;
 
  private:
-  std::unique_ptr<const parser::AbstractExpression> having_clause_predicate_;
+  std::shared_ptr<const parser::AbstractExpression> having_clause_predicate_;
   const std::vector<AggregateTerm> aggregate_terms_;
   const AggregateStrategyType aggregate_strategy_;
 

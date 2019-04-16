@@ -119,7 +119,7 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
    */
   CSVScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                   std::shared_ptr<OutputSchema> output_schema,
-                  std::unique_ptr<const parser::AbstractExpression> predicate, bool is_for_update, bool is_parallel,
+                  std::shared_ptr<const parser::AbstractExpression> predicate, bool is_for_update, bool is_parallel,
                   catalog::db_oid_t database_oid, std::string file_name, char delimiter, char quote, char escape,
                   std::string null_string)
       : AbstractScanPlanNode(std::move(children), std::move(output_schema), std::move(predicate), is_for_update,

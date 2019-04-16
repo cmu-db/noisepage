@@ -6,8 +6,6 @@
 #include <vector>
 #include "planner/plannodes/abstract_join_plan_node.h"
 
-// TODO(Gus,Wen): Do we need left and right keys, or is this something you can figure out from the predicate?
-
 namespace terrier::planner {
 
 /**
@@ -33,8 +31,8 @@ class HashJoinPlanNode : public AbstractJoinPlanNode {
      * @param key key to add to left hash keys
      * @return builder object
      */
-    Builder &AddLeftHashKey(parser::AbstractExpression *key) {
-      left_hash_keys_.push_back(key);
+    Builder &AddLeftHashKey(std::shared_ptr<parser::AbstractExpression> key) {
+      left_hash_keys_.emplace_back(std::move(key));
       return *this;
     }
 
@@ -42,8 +40,8 @@ class HashJoinPlanNode : public AbstractJoinPlanNode {
      * @param key key to add to right hash keys
      * @return builder object
      */
-    Builder &AddRightHashKey(parser::AbstractExpression *key) {
-      right_hash_keys_.push_back(key);
+    Builder &AddRightHashKey(std::shared_ptr<parser::AbstractExpression> key) {
+      right_hash_keys_.emplace_back(std::move(key));
       return *this;
     }
 
@@ -70,11 +68,11 @@ class HashJoinPlanNode : public AbstractJoinPlanNode {
     /**
      * left side hash keys
      */
-    std::vector<parser::AbstractExpression *> left_hash_keys_;
+    std::vector<std::shared_ptr<parser::AbstractExpression>> left_hash_keys_;
     /**
      * right side hash keys
      */
-    std::vector<parser::AbstractExpression *> right_hash_keys_;
+    std::vector<std::shared_ptr<parser::AbstractExpression>> right_hash_keys_;
     /**
      * if bloom filter should be built
      */
@@ -93,9 +91,9 @@ class HashJoinPlanNode : public AbstractJoinPlanNode {
    */
   HashJoinPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                    std::shared_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
-                   std::unique_ptr<const parser::AbstractExpression> predicate,
-                   std::vector<parser::AbstractExpression *> left_hash_keys,
-                   std::vector<parser::AbstractExpression *> right_hash_keys, bool build_bloomfilter)
+                   std::shared_ptr<const parser::AbstractExpression> predicate,
+                   std::vector<std::shared_ptr<parser::AbstractExpression>> left_hash_keys,
+                   std::vector<std::shared_ptr<parser::AbstractExpression>> right_hash_keys, bool build_bloomfilter)
       : AbstractJoinPlanNode(std::move(children), std::move(output_schema), join_type, std::move(predicate)),
         left_hash_keys_(std::move(left_hash_keys)),
         right_hash_keys_(std::move(right_hash_keys)) {}
@@ -114,12 +112,12 @@ class HashJoinPlanNode : public AbstractJoinPlanNode {
   /**
    * @return left side hash keys
    */
-  const std::vector<parser::AbstractExpression *> &GetLeftHashKeys() const { return left_hash_keys_; }
+  const std::vector<std::shared_ptr<parser::AbstractExpression>> &GetLeftHashKeys() const { return left_hash_keys_; }
 
   /**
    * @return right side hash keys
    */
-  const std::vector<parser::AbstractExpression *> &GetRightHashKeys() const { return right_hash_keys_; }
+  const std::vector<std::shared_ptr<parser::AbstractExpression>> &GetRightHashKeys() const { return right_hash_keys_; }
 
   /**
    * @return the hashed value of this plan node
@@ -130,8 +128,8 @@ class HashJoinPlanNode : public AbstractJoinPlanNode {
 
  private:
   // The left and right expressions that constitute the join keys
-  const std::vector<parser::AbstractExpression *> left_hash_keys_;
-  const std::vector<parser::AbstractExpression *> right_hash_keys_;
+  const std::vector<std::shared_ptr<parser::AbstractExpression>> left_hash_keys_;
+  const std::vector<std::shared_ptr<parser::AbstractExpression>> right_hash_keys_;
 
   // Flag indicating whether we build a bloom filter
   bool build_bloomfilter_;
