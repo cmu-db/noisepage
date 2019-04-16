@@ -127,6 +127,7 @@ class NewOrder {
 
   std::vector<StockSelectPROffsets> stock_select_pr_offsets;
   std::vector<std::pair<storage::ProjectedRowInitializer, storage::ProjectionMap>> stock_select_initializers;
+  std::vector<OrderLineIndexInserts> order_line_index_inserts_;
 
  public:
   explicit NewOrder(const Database *const db)
@@ -299,16 +300,17 @@ class NewOrder {
            static_cast<uint8_t>(stock_select_initializers[d_id].second.at(s_remote_cnt_oid)),
            static_cast<uint8_t>(stock_select_initializers[d_id].second.at(s_data_oid))});
     }
+
+    order_line_index_inserts_.reserve(15);
   }
 
   // 2.4.2
   template <class Random>
   bool Execute(transaction::TransactionManager *const txn_manager, Random *const generator, Database *const db,
-               Worker *const worker, const TransactionArgs &args) const {
+               Worker *const worker, const TransactionArgs &args) {
     TERRIER_ASSERT(args.type == TransactionType::NewOrder, "Wrong transaction type.");
 
-    std::vector<OrderLineIndexInserts> order_line_index_inserts;
-    order_line_index_inserts.reserve(args.items.size());
+    order_line_index_inserts_.clear();
 
     double total_amount = 0;
 
@@ -519,13 +521,13 @@ class NewOrder {
       const auto order_line_slot = db->order_line_table_->Insert(txn, *order_line_insert_tuple);
 
       TERRIER_ASSERT(ol_number <= 15, "There should be at least 1 Order Line item, but no more than 15.");
-      order_line_index_inserts.push_back({d_next_o_id, args.d_id, args.w_id, ol_number, order_line_slot});
+      order_line_index_inserts_.push_back({d_next_o_id, args.d_id, args.w_id, ol_number, order_line_slot});
 
       ol_number++;
       total_amount += ol_amount;
     }
 
-    TERRIER_ASSERT(order_line_index_inserts.size() == args.items.size(),
+    TERRIER_ASSERT(order_line_index_inserts_.size() == args.items.size(),
                    "Didn't generate Order Line index inserts for every item.");
 
     // Do all index insertions now that transaction is guaranteed to commit
@@ -567,7 +569,7 @@ class NewOrder {
     TERRIER_ASSERT(index_insert_result, "Order secondary index insertion failed.");
 
     // insert in Order Line index
-    for (const auto &ol_item : order_line_index_inserts) {
+    for (const auto &ol_item : order_line_index_inserts_) {
       const auto order_line_key_pr_initializer = db->order_line_index_->GetProjectedRowInitializer();
       auto *const order_line_key = order_line_key_pr_initializer.InitializeRow(worker->order_line_key_buffer);
 
