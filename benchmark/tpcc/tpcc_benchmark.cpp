@@ -59,15 +59,15 @@ class TPCCBenchmark : public benchmark::Fixture {
   std::default_random_engine generator_;
   storage::LogManager *log_manager_ = nullptr;
 
-  const bool only_count_new_order_ = true;
-  const uint32_t num_threads_ = 4;
+  const bool only_count_new_order_ = false;
+  const int8_t num_threads_ = 4;
   const uint32_t num_precomputed_txns_per_worker_ = 100000;
   const uint32_t w_payment = 43;
   const uint32_t w_delivery = 4;
   const uint32_t w_order_status = 4;
   const uint32_t w_stock_level = 4;
 
-  common::WorkerPool thread_pool_{num_threads_, {}};
+  common::WorkerPool thread_pool_{static_cast<uint32_t>(num_threads_), {}};
 
  private:
   std::thread log_thread_;
@@ -114,7 +114,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, Basic)(benchmark::State &state) {
 
   tpcc::Deck deck(w_payment, w_order_status, w_delivery, w_stock_level);
 
-  for (uint32_t warehouse_id = 1; warehouse_id <= num_threads_; warehouse_id++) {
+  for (int8_t warehouse_id = 1; warehouse_id <= num_threads_; warehouse_id++) {
     std::vector<tpcc::TransactionArgs> txns;
     txns.reserve(num_precomputed_txns_per_worker_);
     for (uint32_t i = 0; i < num_precomputed_txns_per_worker_; i++) {
@@ -157,6 +157,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, Basic)(benchmark::State &state) {
     //    log_manager_->Process();  // log all of the Inserts from table creation
     StartGC(&txn_manager);
     //    StartLogging();
+    std::this_thread::sleep_for(std::chrono::seconds(1));  // Let GC clean up
 
     // define the TPCC workload
     auto tpcc_workload = [&](uint32_t worker_id) {

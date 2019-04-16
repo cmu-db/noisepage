@@ -28,7 +28,7 @@ struct Loader {
 
     // TODO(WAN): I have a stashed multi-threaded loading commit, but that might actually be slower. Punt.
     const auto *worker = &workers[0];
-    const auto num_warehouses = static_cast<uint32_t>(workers.size());
+    const auto num_warehouses = static_cast<int8_t>(workers.size());
 
     // Item tuple
     const auto item_tuple_col_oids = Util::AllColOidsForSchema(db->item_schema_);
@@ -126,7 +126,7 @@ struct Loader {
       }
       std::shuffle(item_original.begin(), item_original.end(), *generator);
 
-      for (uint32_t i_id = 0; i_id < 100000; i_id++) {
+      for (int32_t i_id = 0; i_id < 100000; i_id++) {
         // 100,000 rows in the ITEM table
         // insert in table
         const auto *const item_tuple =
@@ -143,7 +143,7 @@ struct Loader {
       }
     }
 
-    for (uint32_t w_id = 0; w_id < num_warehouses; w_id++) {
+    for (int8_t w_id = 0; w_id < num_warehouses; w_id++) {
       // 1 row in the WAREHOUSE table for each configured warehouse
       // insert in table
       const auto *const warehouse_tuple =
@@ -163,12 +163,12 @@ struct Loader {
         // generate booleans to represent ORIGINAL for stock. 10% are ORIGINAL (true), and then shuffled
         std::vector<bool> stock_original;
         stock_original.reserve(100000);
-        for (uint32_t i_id = 0; i_id < 100000; i_id++) {
+        for (int32_t i_id = 0; i_id < 100000; i_id++) {
           stock_original.emplace_back(i_id < 10000);
         }
         std::shuffle(stock_original.begin(), stock_original.end(), *generator);
 
-        for (uint32_t s_i_id = 0; s_i_id < 100000; s_i_id++) {
+        for (int32_t s_i_id = 0; s_i_id < 100000; s_i_id++) {
           // For each row in the WAREHOUSE table:
           // 100,000 rows in the STOCK table
 
@@ -188,7 +188,7 @@ struct Loader {
         }
       }
 
-      for (uint32_t d_id = 0; d_id < 10; d_id++) {
+      for (int8_t d_id = 0; d_id < 10; d_id++) {
         // For each row in the WAREHOUSE table:
         // 10 rows in the DISTRICT table
 
@@ -207,19 +207,19 @@ struct Loader {
         TERRIER_ASSERT(index_insert_result, "District index insertion failed.");
 
         // O_C_ID selected sequentially from a random permutation of [1 .. 3,000] for Order table
-        std::vector<uint32_t> o_c_ids;
+        std::vector<int32_t> o_c_ids;
         o_c_ids.reserve(3000);
         // generate booleans to represent GC or BC for customers. 90% are GC (true), and then shuffled
         std::vector<bool> c_credit;
         c_credit.reserve(3000);
-        for (uint32_t c_id = 0; c_id < 3000; c_id++) {
+        for (int32_t c_id = 0; c_id < 3000; c_id++) {
           c_credit.emplace_back(c_id < 3000 / 10);
           o_c_ids.emplace_back(c_id + 1);
         }
         std::shuffle(c_credit.begin(), c_credit.end(), *generator);
         std::shuffle(o_c_ids.begin(), o_c_ids.end(), *generator);
 
-        for (uint32_t c_id = 0; c_id < 3000; c_id++) {
+        for (int32_t c_id = 0; c_id < 3000; c_id++) {
           // For each row in the DISTRICT table:
           // 3,000 rows in the CUSTOMER table
 
@@ -402,7 +402,7 @@ struct Loader {
   }
 
   template <class Random>
-  static storage::ProjectedRow *BuildWarehouseTuple(const int32_t w_id, byte *const buffer,
+  static storage::ProjectedRow *BuildWarehouseTuple(const int8_t w_id, byte *const buffer,
                                                     const storage::ProjectedRowInitializer &pr_initializer,
                                                     const storage::ProjectionMap &projection_map,
                                                     const catalog::Schema &schema, Random *const generator) {
@@ -462,7 +462,7 @@ struct Loader {
   }
 
   static storage::ProjectedRow *BuildWarehouseKey(
-      const int32_t w_id, byte *const buffer, const storage::ProjectedRowInitializer &pr_initializer,
+      const int8_t w_id, byte *const buffer, const storage::ProjectedRowInitializer &pr_initializer,
       const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &pr_map,
       const storage::index::IndexKeySchema &schema) {
     TERRIER_ASSERT(w_id >= 1, "Invalid w_id.");
@@ -481,7 +481,7 @@ struct Loader {
   }
 
   template <class Random>
-  static storage::ProjectedRow *BuildStockTuple(const int32_t s_i_id, const int32_t w_id, const bool original,
+  static storage::ProjectedRow *BuildStockTuple(const int32_t s_i_id, const int8_t w_id, const bool original,
                                                 byte *const buffer,
                                                 const storage::ProjectedRowInitializer &pr_initializer,
                                                 const storage::ProjectionMap &projection_map,
@@ -500,7 +500,7 @@ struct Loader {
 
     // S_W_ID = W_ID
     TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "S_W_ID", "Wrong attribute.");
-    Util::SetTupleAttribute<int32_t>(schema, col_offset++, projection_map, pr, w_id);
+    Util::SetTupleAttribute<int8_t>(schema, col_offset++, projection_map, pr, w_id);
 
     // S_QUANTITY random within [10 .. 100]
     TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "S_QUANTITY", "Wrong attribute.");
@@ -585,7 +585,7 @@ struct Loader {
     return pr;
   }
 
-  static storage::ProjectedRow *BuildStockKey(const int32_t s_i_id, const int32_t w_id, byte *const buffer,
+  static storage::ProjectedRow *BuildStockKey(const int32_t s_i_id, const int8_t w_id, byte *const buffer,
                                               const storage::ProjectedRowInitializer &pr_initializer,
                                               const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &pr_map,
                                               const storage::index::IndexKeySchema &schema) {
@@ -607,7 +607,7 @@ struct Loader {
   }
 
   template <class Random>
-  static storage::ProjectedRow *BuildDistrictTuple(const int32_t d_id, const int32_t w_id, byte *const buffer,
+  static storage::ProjectedRow *BuildDistrictTuple(const int8_t d_id, const int8_t w_id, byte *const buffer,
                                                    const storage::ProjectedRowInitializer &pr_initializer,
                                                    const storage::ProjectionMap &projection_map,
                                                    const catalog::Schema &schema, Random *const generator) {
@@ -621,11 +621,11 @@ struct Loader {
 
     // D_ID unique within [10]
     TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "D_ID", "Wrong attribute.");
-    Util::SetTupleAttribute<int32_t>(schema, col_offset++, projection_map, pr, d_id);
+    Util::SetTupleAttribute<int8_t>(schema, col_offset++, projection_map, pr, d_id);
 
     // D_W_ID = W_ID
     TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "D_W_ID", "Wrong attribute.");
-    Util::SetTupleAttribute<int32_t>(schema, col_offset++, projection_map, pr, w_id);
+    Util::SetTupleAttribute<int8_t>(schema, col_offset++, projection_map, pr, w_id);
 
     // D_NAME random a-string [6 .. 10]
     TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "D_NAME", "Wrong attribute.");
@@ -675,7 +675,7 @@ struct Loader {
     return pr;
   }
 
-  static storage::ProjectedRow *BuildDistrictKey(const int32_t d_id, const int32_t w_id, byte *const buffer,
+  static storage::ProjectedRow *BuildDistrictKey(const int8_t d_id, const int8_t w_id, byte *const buffer,
                                                  const storage::ProjectedRowInitializer &pr_initializer,
                                                  const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &pr_map,
                                                  const storage::index::IndexKeySchema &schema) {
@@ -697,7 +697,7 @@ struct Loader {
   }
 
   template <class Random>
-  static storage::ProjectedRow *BuildCustomerTuple(const int32_t c_id, const int32_t d_id, const int32_t w_id,
+  static storage::ProjectedRow *BuildCustomerTuple(const int32_t c_id, const int8_t d_id, const int8_t w_id,
                                                    const bool good_credit, byte *const buffer,
                                                    const storage::ProjectedRowInitializer &pr_initializer,
                                                    const storage::ProjectionMap &projection_map,
@@ -717,11 +717,11 @@ struct Loader {
 
     // C_D_ID = D_ID
     TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "C_D_ID", "Wrong attribute.");
-    Util::SetTupleAttribute<int32_t>(schema, col_offset++, projection_map, pr, d_id);
+    Util::SetTupleAttribute<int8_t>(schema, col_offset++, projection_map, pr, d_id);
 
     // C_W_ID = D_W_ID
     TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "C_W_ID", "Wrong attribute.");
-    Util::SetTupleAttribute<int32_t>(schema, col_offset++, projection_map, pr, w_id);
+    Util::SetTupleAttribute<int8_t>(schema, col_offset++, projection_map, pr, w_id);
 
     // C_FIRST random a-string [8 .. 16]
     TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "C_FIRST", "Wrong attribute.");
@@ -830,7 +830,7 @@ struct Loader {
     return pr;
   }
 
-  static storage::ProjectedRow *BuildCustomerKey(const int32_t c_id, const int32_t d_id, const int32_t w_id,
+  static storage::ProjectedRow *BuildCustomerKey(const int32_t c_id, const int8_t d_id, const int8_t w_id,
                                                  byte *const buffer,
                                                  const storage::ProjectedRowInitializer &pr_initializer,
                                                  const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &pr_map,
@@ -855,7 +855,7 @@ struct Loader {
   }
 
   static storage::ProjectedRow *BuildCustomerNameKey(
-      const storage::VarlenEntry &c_last, const int32_t d_id, const int32_t w_id, byte *const buffer,
+      const storage::VarlenEntry &c_last, const int8_t d_id, const int8_t w_id, byte *const buffer,
       const storage::ProjectedRowInitializer &pr_initializer,
       const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &pr_map,
       const storage::index::IndexKeySchema &schema) {
@@ -878,7 +878,7 @@ struct Loader {
   }
 
   template <class Random>
-  static storage::ProjectedRow *BuildHistoryTuple(const int32_t c_id, const int32_t d_id, const int32_t w_id,
+  static storage::ProjectedRow *BuildHistoryTuple(const int32_t c_id, const int8_t d_id, const int8_t w_id,
                                                   byte *const buffer,
                                                   const storage::ProjectedRowInitializer &pr_initializer,
                                                   const storage::ProjectionMap &projection_map,
@@ -898,19 +898,19 @@ struct Loader {
 
     // H_C_D_ID = D_ID
     TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "H_C_D_ID", "Wrong attribute.");
-    Util::SetTupleAttribute<int32_t>(schema, col_offset++, projection_map, pr, d_id);
+    Util::SetTupleAttribute<int8_t>(schema, col_offset++, projection_map, pr, d_id);
 
     // H_C_W_ID = W_ID
     TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "H_C_W_ID", "Wrong attribute.");
-    Util::SetTupleAttribute<int32_t>(schema, col_offset++, projection_map, pr, w_id);
+    Util::SetTupleAttribute<int8_t>(schema, col_offset++, projection_map, pr, w_id);
 
     // H_D_ID = D_ID
     TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "H_D_ID", "Wrong attribute.");
-    Util::SetTupleAttribute<int32_t>(schema, col_offset++, projection_map, pr, d_id);
+    Util::SetTupleAttribute<int8_t>(schema, col_offset++, projection_map, pr, d_id);
 
     // H_W_ID = W_ID
     TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "H_W_ID", "Wrong attribute.");
-    Util::SetTupleAttribute<int32_t>(schema, col_offset++, projection_map, pr, w_id);
+    Util::SetTupleAttribute<int8_t>(schema, col_offset++, projection_map, pr, w_id);
 
     // H_DATE current date and time
     TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "H_DATE", "Wrong attribute.");
@@ -930,7 +930,7 @@ struct Loader {
     return pr;
   }
 
-  static storage::ProjectedRow *BuildNewOrderTuple(const int32_t o_id, const int32_t d_id, const int32_t w_id,
+  static storage::ProjectedRow *BuildNewOrderTuple(const int32_t o_id, const int8_t d_id, const int8_t w_id,
                                                    byte *const buffer,
                                                    const storage::ProjectedRowInitializer &pr_initializer,
                                                    const storage::ProjectionMap &projection_map,
@@ -950,18 +950,18 @@ struct Loader {
 
     // NO_D_ID = D_ID
     TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "NO_D_ID", "Wrong attribute.");
-    Util::SetTupleAttribute<int32_t>(schema, col_offset++, projection_map, pr, d_id);
+    Util::SetTupleAttribute<int8_t>(schema, col_offset++, projection_map, pr, d_id);
 
     // NO_W_ID = W_ID
     TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "NO_W_ID", "Wrong attribute.");
-    Util::SetTupleAttribute<int32_t>(schema, col_offset++, projection_map, pr, w_id);
+    Util::SetTupleAttribute<int8_t>(schema, col_offset++, projection_map, pr, w_id);
 
     TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for New Order tuple.");
 
     return pr;
   }
 
-  static storage::ProjectedRow *BuildNewOrderKey(const int32_t o_id, const int32_t d_id, const int32_t w_id,
+  static storage::ProjectedRow *BuildNewOrderKey(const int32_t o_id, const int8_t d_id, const int8_t w_id,
                                                  byte *const buffer,
                                                  const storage::ProjectedRowInitializer &pr_initializer,
                                                  const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &pr_map,
@@ -992,9 +992,8 @@ struct Loader {
   };
 
   template <class Random>
-  static OrderTupleResults BuildOrderTuple(const int32_t o_id, const int32_t c_id, const int32_t d_id,
-                                           const int32_t w_id, byte *const buffer,
-                                           const storage::ProjectedRowInitializer &pr_initializer,
+  static OrderTupleResults BuildOrderTuple(const int32_t o_id, const int32_t c_id, const int8_t d_id, const int8_t w_id,
+                                           byte *const buffer, const storage::ProjectedRowInitializer &pr_initializer,
                                            const storage::ProjectionMap &projection_map, const catalog::Schema &schema,
                                            Random *const generator) {
     TERRIER_ASSERT(o_id >= 1 && o_id <= 3000, "Invalid o_id.");
@@ -1013,11 +1012,11 @@ struct Loader {
 
     // O_D_ID = D_ID
     TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "O_D_ID", "Wrong attribute.");
-    Util::SetTupleAttribute<int32_t>(schema, col_offset++, projection_map, pr, d_id);
+    Util::SetTupleAttribute<int8_t>(schema, col_offset++, projection_map, pr, d_id);
 
     // O_W_ID = W_ID
     TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "O_W_ID", "Wrong attribute.");
-    Util::SetTupleAttribute<int32_t>(schema, col_offset++, projection_map, pr, w_id);
+    Util::SetTupleAttribute<int8_t>(schema, col_offset++, projection_map, pr, w_id);
 
     // O_C_ID selected sequentially from a random permutation of [1 .. 3,000]
     TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "O_C_ID", "Wrong attribute.");
@@ -1034,26 +1033,26 @@ struct Loader {
     const auto attr_offset = projection_map.at(col_oid);
     if (o_id < 2101) {
       auto *const attr = pr->AccessForceNotNull(attr_offset);
-      *reinterpret_cast<int32_t *>(attr) = Util::RandomWithin<int32_t>(1, 10, 0, generator);
+      *reinterpret_cast<int8_t *>(attr) = Util::RandomWithin<int8_t>(1, 10, 0, generator);
     } else {
       pr->SetNull(attr_offset);
     }
 
     // O_OL_CNT random within [5 .. 15]
     TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "O_OL_CNT", "Wrong attribute.");
-    const auto ol_cnt = Util::RandomWithin<int32_t>(5, 15, 0, generator);
-    Util::SetTupleAttribute<int32_t>(schema, col_offset++, projection_map, pr, ol_cnt);
+    const auto ol_cnt = Util::RandomWithin<int8_t>(5, 15, 0, generator);
+    Util::SetTupleAttribute<int8_t>(schema, col_offset++, projection_map, pr, ol_cnt);
 
     // O_ALL_LOCAL = 1
     TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "O_ALL_LOCAL", "Wrong attribute.");
-    Util::SetTupleAttribute<int32_t>(schema, col_offset++, projection_map, pr, 1);
+    Util::SetTupleAttribute<int8_t>(schema, col_offset++, projection_map, pr, 1);
 
     TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for Order tuple.");
 
     return {pr, entry_d, static_cast<int8_t>(ol_cnt)};
   }
 
-  static storage::ProjectedRow *BuildOrderKey(const int32_t o_id, const int32_t d_id, const int32_t w_id,
+  static storage::ProjectedRow *BuildOrderKey(const int32_t o_id, const int8_t d_id, const int8_t w_id,
                                               byte *const buffer,
                                               const storage::ProjectedRowInitializer &pr_initializer,
                                               const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &pr_map,
@@ -1078,7 +1077,7 @@ struct Loader {
   }
 
   static storage::ProjectedRow *BuildOrderSecondaryKey(
-      const int32_t o_id, const int32_t c_id, const int32_t d_id, const int32_t w_id, byte *const buffer,
+      const int32_t o_id, const int32_t c_id, const int8_t d_id, const int8_t w_id, byte *const buffer,
       const storage::ProjectedRowInitializer &pr_initializer,
       const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &pr_map,
       const storage::index::IndexKeySchema &schema) {
@@ -1104,8 +1103,8 @@ struct Loader {
   }
 
   template <class Random>
-  static storage::ProjectedRow *BuildOrderLineTuple(const int32_t o_id, const int32_t d_id, const int32_t w_id,
-                                                    const int32_t ol_number, const uint64_t o_entry_d,
+  static storage::ProjectedRow *BuildOrderLineTuple(const int32_t o_id, const int8_t d_id, const int8_t w_id,
+                                                    const int8_t ol_number, const uint64_t o_entry_d,
                                                     byte *const buffer,
                                                     const storage::ProjectedRowInitializer &pr_initializer,
                                                     const storage::ProjectionMap &projection_map,
@@ -1125,15 +1124,15 @@ struct Loader {
 
     // OL_D_ID = D_ID
     TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "OL_D_ID", "Wrong attribute.");
-    Util::SetTupleAttribute<int32_t>(schema, col_offset++, projection_map, pr, d_id);
+    Util::SetTupleAttribute<int8_t>(schema, col_offset++, projection_map, pr, d_id);
 
     // OL_W_ID = W_ID
     TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "OL_W_ID", "Wrong attribute.");
-    Util::SetTupleAttribute<int32_t>(schema, col_offset++, projection_map, pr, w_id);
+    Util::SetTupleAttribute<int8_t>(schema, col_offset++, projection_map, pr, w_id);
 
     // OL_NUMBER unique within [O_OL_CNT]
     TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "OL_NUMBER", "Wrong attribute.");
-    Util::SetTupleAttribute<int32_t>(schema, col_offset++, projection_map, pr, ol_number);
+    Util::SetTupleAttribute<int8_t>(schema, col_offset++, projection_map, pr, ol_number);
 
     // OL_I_ID random within [1 .. 100,000]
     TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "OL_I_ID", "Wrong attribute.");
@@ -1142,7 +1141,7 @@ struct Loader {
 
     // OL_SUPPLY_W_ID = W_ID
     TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "OL_SUPPLY_W_ID", "Wrong attribute.");
-    Util::SetTupleAttribute<int32_t>(schema, col_offset++, projection_map, pr, w_id);
+    Util::SetTupleAttribute<int8_t>(schema, col_offset++, projection_map, pr, w_id);
 
     // OL_DELIVERY_D = O_ENTRY_D if OL_O_ID < 2,101, null otherwise
     TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "OL_DELIVERY_D", "Wrong attribute.");
@@ -1157,7 +1156,7 @@ struct Loader {
 
     // OL_QUANTITY = 5
     TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "OL_QUANTITY", "Wrong attribute.");
-    Util::SetTupleAttribute<int32_t>(schema, col_offset++, projection_map, pr, 5);
+    Util::SetTupleAttribute<int8_t>(schema, col_offset++, projection_map, pr, 5);
 
     // OL_AMOUNT = 0.00 if OL_O_ID < 2,101, random within [0.01 .. 9,999.99] otherwise
     TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "OL_AMOUNT", "Wrong attribute.");
@@ -1179,7 +1178,7 @@ struct Loader {
   }
 
   static storage::ProjectedRow *BuildOrderLineKey(
-      const int32_t o_id, const int32_t d_id, const int32_t w_id, const int32_t ol_number, byte *const buffer,
+      const int32_t o_id, const int8_t d_id, const int8_t w_id, const int8_t ol_number, byte *const buffer,
       const storage::ProjectedRowInitializer &pr_initializer,
       const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &pr_map,
       const storage::index::IndexKeySchema &schema) {

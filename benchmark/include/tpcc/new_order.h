@@ -28,9 +28,9 @@ class NewOrder {
 
   struct OrderLineIndexInserts {
     const int32_t o_id;
-    const int32_t d_id;
-    const int32_t w_id;
-    const int32_t ol_number;
+    const int8_t d_id;
+    const int8_t w_id;
+    const int8_t ol_number;
     storage::TupleSlot slot;
   };
 
@@ -318,7 +318,7 @@ class NewOrder {
     const auto warehouse_key_pr_initializer = db->warehouse_index_->GetProjectedRowInitializer();
     auto *const warehouse_key = warehouse_key_pr_initializer.InitializeRow(worker->warehouse_key_buffer);
 
-    *reinterpret_cast<int32_t *>(warehouse_key->AccessForceNotNull(0)) = args.w_id;
+    *reinterpret_cast<int8_t *>(warehouse_key->AccessForceNotNull(0)) = args.w_id;
 
     std::vector<storage::TupleSlot> index_scan_results;
     db->warehouse_index_->ScanKey(*warehouse_key, &index_scan_results);
@@ -335,8 +335,8 @@ class NewOrder {
     const auto district_key_pr_initializer = db->district_index_->GetProjectedRowInitializer();
     auto *const district_key = district_key_pr_initializer.InitializeRow(worker->district_key_buffer);
 
-    *reinterpret_cast<int32_t *>(district_key->AccessForceNotNull(d_id_key_pr_offset)) = args.d_id;
-    *reinterpret_cast<int32_t *>(district_key->AccessForceNotNull(d_w_id_key_pr_offset)) = args.w_id;
+    *reinterpret_cast<int8_t *>(district_key->AccessForceNotNull(d_id_key_pr_offset)) = args.d_id;
+    *reinterpret_cast<int8_t *>(district_key->AccessForceNotNull(d_w_id_key_pr_offset)) = args.w_id;
 
     index_scan_results.clear();
     db->district_index_->ScanKey(*district_key, &index_scan_results);
@@ -363,8 +363,8 @@ class NewOrder {
     auto *const customer_key = customer_key_pr_initializer.InitializeRow(worker->customer_key_buffer);
 
     *reinterpret_cast<int32_t *>(customer_key->AccessForceNotNull(c_id_key_pr_offset)) = args.c_id;
-    *reinterpret_cast<int32_t *>(customer_key->AccessForceNotNull(c_d_id_key_pr_offset)) = args.d_id;
-    *reinterpret_cast<int32_t *>(customer_key->AccessForceNotNull(c_w_id_key_pr_offset)) = args.w_id;
+    *reinterpret_cast<int8_t *>(customer_key->AccessForceNotNull(c_d_id_key_pr_offset)) = args.d_id;
+    *reinterpret_cast<int8_t *>(customer_key->AccessForceNotNull(c_w_id_key_pr_offset)) = args.w_id;
 
     index_scan_results.clear();
     db->customer_index_->ScanKey(*customer_key, &index_scan_results);
@@ -381,8 +381,8 @@ class NewOrder {
     auto *const new_order_insert_tuple = new_order_insert_pr_initializer.InitializeRow(worker->new_order_key_buffer);
 
     *reinterpret_cast<int32_t *>(new_order_insert_tuple->AccessForceNotNull(no_o_id_insert_pr_offset)) = d_next_o_id;
-    *reinterpret_cast<int32_t *>(new_order_insert_tuple->AccessForceNotNull(no_d_id_insert_pr_offset)) = args.d_id;
-    *reinterpret_cast<int32_t *>(new_order_insert_tuple->AccessForceNotNull(no_w_id_insert_pr_offset)) = args.w_id;
+    *reinterpret_cast<int8_t *>(new_order_insert_tuple->AccessForceNotNull(no_d_id_insert_pr_offset)) = args.d_id;
+    *reinterpret_cast<int8_t *>(new_order_insert_tuple->AccessForceNotNull(no_w_id_insert_pr_offset)) = args.w_id;
 
     const auto new_order_slot = db->new_order_table_->Insert(txn, *new_order_insert_tuple);
 
@@ -390,19 +390,19 @@ class NewOrder {
     auto *const order_insert_tuple = order_insert_pr_initializer.InitializeRow(worker->order_tuple_buffer);
 
     *reinterpret_cast<int32_t *>(order_insert_tuple->AccessForceNotNull(o_id_insert_pr_offset)) = d_next_o_id;
-    *reinterpret_cast<int32_t *>(order_insert_tuple->AccessForceNotNull(o_d_id_insert_pr_offset)) = args.d_id;
-    *reinterpret_cast<int32_t *>(order_insert_tuple->AccessForceNotNull(o_w_id_insert_pr_offset)) = args.w_id;
+    *reinterpret_cast<int8_t *>(order_insert_tuple->AccessForceNotNull(o_d_id_insert_pr_offset)) = args.d_id;
+    *reinterpret_cast<int8_t *>(order_insert_tuple->AccessForceNotNull(o_w_id_insert_pr_offset)) = args.w_id;
     *reinterpret_cast<int32_t *>(order_insert_tuple->AccessForceNotNull(o_c_id_insert_pr_offset)) = args.c_id;
     *reinterpret_cast<uint64_t *>(order_insert_tuple->AccessForceNotNull(o_entry_d_insert_pr_offset)) = args.o_entry_d;
     order_insert_tuple->SetNull(o_carrier_id_insert_pr_offset);
-    *reinterpret_cast<int32_t *>(order_insert_tuple->AccessForceNotNull(o_ol_cnt_insert_pr_offset)) = args.ol_cnt;
-    *reinterpret_cast<int32_t *>(order_insert_tuple->AccessForceNotNull(o_all_local_insert_pr_offset)) =
+    *reinterpret_cast<int8_t *>(order_insert_tuple->AccessForceNotNull(o_ol_cnt_insert_pr_offset)) = args.ol_cnt;
+    *reinterpret_cast<int8_t *>(order_insert_tuple->AccessForceNotNull(o_all_local_insert_pr_offset)) =
         args.o_all_local;
 
     const auto order_slot = db->order_table_->Insert(txn, *order_insert_tuple);
 
     // for each item in order
-    int32_t ol_number = 1;
+    int8_t ol_number = 1;
     for (const auto &item : args.items) {
       // Look up I_ID in index
       const auto item_key_pr_initializer = db->item_index_->GetProjectedRowInitializer();
@@ -433,7 +433,7 @@ class NewOrder {
       auto *const stock_key = stock_key_pr_initializer.InitializeRow(worker->stock_key_buffer);
 
       *reinterpret_cast<int32_t *>(stock_key->AccessForceNotNull(s_i_id_key_pr_offset)) = item.ol_i_id;
-      *reinterpret_cast<int32_t *>(stock_key->AccessForceNotNull(s_w_id_key_pr_offset)) = item.ol_supply_w_id;
+      *reinterpret_cast<int8_t *>(stock_key->AccessForceNotNull(s_w_id_key_pr_offset)) = item.ol_supply_w_id;
 
       index_scan_results.clear();
       db->stock_index_->ScanKey(*stock_key, &index_scan_results);
@@ -491,15 +491,15 @@ class NewOrder {
           order_line_insert_pr_initializer.InitializeRow(worker->order_line_tuple_buffer);
 
       *reinterpret_cast<int32_t *>(order_line_insert_tuple->AccessForceNotNull(ol_o_id_insert_pr_offset)) = d_next_o_id;
-      *reinterpret_cast<int32_t *>(order_line_insert_tuple->AccessForceNotNull(ol_d_id_insert_pr_offset)) = args.d_id;
-      *reinterpret_cast<int32_t *>(order_line_insert_tuple->AccessForceNotNull(ol_w_id_insert_pr_offset)) = args.w_id;
-      *reinterpret_cast<int32_t *>(order_line_insert_tuple->AccessForceNotNull(ol_number_insert_pr_offset)) = ol_number;
+      *reinterpret_cast<int8_t *>(order_line_insert_tuple->AccessForceNotNull(ol_d_id_insert_pr_offset)) = args.d_id;
+      *reinterpret_cast<int8_t *>(order_line_insert_tuple->AccessForceNotNull(ol_w_id_insert_pr_offset)) = args.w_id;
+      *reinterpret_cast<int8_t *>(order_line_insert_tuple->AccessForceNotNull(ol_number_insert_pr_offset)) = ol_number;
       *reinterpret_cast<int32_t *>(order_line_insert_tuple->AccessForceNotNull(ol_i_id_insert_pr_offset)) =
           item.ol_i_id;
-      *reinterpret_cast<int32_t *>(order_line_insert_tuple->AccessForceNotNull(ol_supply_w_id_insert_pr_offset)) =
+      *reinterpret_cast<int8_t *>(order_line_insert_tuple->AccessForceNotNull(ol_supply_w_id_insert_pr_offset)) =
           item.ol_supply_w_id;
       order_line_insert_tuple->SetNull(ol_delivery_d_insert_pr_offset);
-      *reinterpret_cast<int32_t *>(order_line_insert_tuple->AccessForceNotNull(ol_quantity_insert_pr_offset)) =
+      *reinterpret_cast<int8_t *>(order_line_insert_tuple->AccessForceNotNull(ol_quantity_insert_pr_offset)) =
           item.ol_quantity;
       *reinterpret_cast<double *>(order_line_insert_tuple->AccessForceNotNull(ol_amount_insert_pr_offset)) =
           item.ol_quantity * i_price;
@@ -534,8 +534,8 @@ class NewOrder {
     auto *const new_order_key = new_order_key_pr_initializer.InitializeRow(worker->new_order_key_buffer);
 
     *reinterpret_cast<int32_t *>(new_order_key->AccessForceNotNull(no_o_id_key_pr_offset)) = d_next_o_id;
-    *reinterpret_cast<int32_t *>(new_order_key->AccessForceNotNull(no_d_id_key_pr_offset)) = args.d_id;
-    *reinterpret_cast<int32_t *>(new_order_key->AccessForceNotNull(no_w_id_key_pr_offset)) = args.w_id;
+    *reinterpret_cast<int8_t *>(new_order_key->AccessForceNotNull(no_d_id_key_pr_offset)) = args.d_id;
+    *reinterpret_cast<int8_t *>(new_order_key->AccessForceNotNull(no_w_id_key_pr_offset)) = args.w_id;
 
     bool UNUSED_ATTRIBUTE index_insert_result = db->new_order_index_->ConditionalInsert(
         *new_order_key, new_order_slot, [](const storage::TupleSlot &) { return false; });
@@ -546,8 +546,8 @@ class NewOrder {
     auto *const order_key = order_key_pr_initializer.InitializeRow(worker->order_key_buffer);
 
     *reinterpret_cast<int32_t *>(order_key->AccessForceNotNull(o_id_key_pr_offset)) = d_next_o_id;
-    *reinterpret_cast<int32_t *>(order_key->AccessForceNotNull(o_d_id_key_pr_offset)) = args.d_id;
-    *reinterpret_cast<int32_t *>(order_key->AccessForceNotNull(o_w_id_key_pr_offset)) = args.w_id;
+    *reinterpret_cast<int8_t *>(order_key->AccessForceNotNull(o_d_id_key_pr_offset)) = args.d_id;
+    *reinterpret_cast<int8_t *>(order_key->AccessForceNotNull(o_w_id_key_pr_offset)) = args.w_id;
 
     index_insert_result =
         db->order_index_->ConditionalInsert(*order_key, order_slot, [](const storage::TupleSlot &) { return false; });
@@ -559,8 +559,8 @@ class NewOrder {
         order_secondary_key_pr_initializer.InitializeRow(worker->order_secondary_key_buffer);
 
     *reinterpret_cast<int32_t *>(order_secondary_key->AccessForceNotNull(o_id_secondary_key_pr_offset)) = d_next_o_id;
-    *reinterpret_cast<int32_t *>(order_secondary_key->AccessForceNotNull(o_d_id_secondary_key_pr_offset)) = args.d_id;
-    *reinterpret_cast<int32_t *>(order_secondary_key->AccessForceNotNull(o_w_id_secondary_key_pr_offset)) = args.w_id;
+    *reinterpret_cast<int8_t *>(order_secondary_key->AccessForceNotNull(o_d_id_secondary_key_pr_offset)) = args.d_id;
+    *reinterpret_cast<int8_t *>(order_secondary_key->AccessForceNotNull(o_w_id_secondary_key_pr_offset)) = args.w_id;
     *reinterpret_cast<int32_t *>(order_secondary_key->AccessForceNotNull(o_c_id_secondary_key_pr_offset)) = args.c_id;
 
     index_insert_result = db->order_secondary_index_->Insert(*order_secondary_key, order_slot);
@@ -571,8 +571,8 @@ class NewOrder {
       const auto order_line_key_pr_initializer = db->order_line_index_->GetProjectedRowInitializer();
       auto *const order_line_key = order_line_key_pr_initializer.InitializeRow(worker->order_line_key_buffer);
 
-      *reinterpret_cast<int32_t *>(order_line_key->AccessForceNotNull(ol_w_id_key_pr_offset)) = ol_item.w_id;
-      *reinterpret_cast<int32_t *>(order_line_key->AccessForceNotNull(ol_d_id_key_pr_offset)) = ol_item.d_id;
+      *reinterpret_cast<int8_t *>(order_line_key->AccessForceNotNull(ol_w_id_key_pr_offset)) = ol_item.w_id;
+      *reinterpret_cast<int8_t *>(order_line_key->AccessForceNotNull(ol_d_id_key_pr_offset)) = ol_item.d_id;
       *reinterpret_cast<int32_t *>(order_line_key->AccessForceNotNull(ol_o_id_key_pr_offset)) = ol_item.o_id;
       *reinterpret_cast<int32_t *>(order_line_key->AccessForceNotNull(ol_number_key_pr_offset)) = ol_item.ol_number;
 
