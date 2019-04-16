@@ -213,8 +213,7 @@ class OrderStatus {
         args.w_id;
     *reinterpret_cast<int32_t *>(order_secondary_low_key->AccessForceNotNull(o_c_id_secondary_key_pr_offset)) = c_id;
 
-    *reinterpret_cast<int32_t *>(order_secondary_high_key->AccessForceNotNull(o_id_secondary_key_pr_offset)) =
-        10000000;
+    *reinterpret_cast<int32_t *>(order_secondary_high_key->AccessForceNotNull(o_id_secondary_key_pr_offset)) = 10000000;
     *reinterpret_cast<int8_t *>(order_secondary_high_key->AccessForceNotNull(o_d_id_secondary_key_pr_offset)) =
         args.d_id;
     *reinterpret_cast<int8_t *>(order_secondary_high_key->AccessForceNotNull(o_w_id_secondary_key_pr_offset)) =
@@ -226,12 +225,11 @@ class OrderStatus {
     TERRIER_ASSERT(!index_scan_results.empty(),
                    "Order index lookup failed. There should always be at least one order for each customer.");
 
-    // Select O_ID, O_ENTRY_D, O_CARRIER_ID from table
+    // Select O_ID, O_ENTRY_D, O_CARRIER_ID from table for largest key (back of vector)
     auto *const order_select_tuple = order_select_pr_initializer.InitializeRow(worker->order_tuple_buffer);
-    for (auto reverse_it = index_scan_results.rbegin(); reverse_it != index_scan_results.rend(); reverse_it++) {
-      select_result = db->order_table_->Select(txn, *reverse_it, order_select_tuple);
-      if (select_result) break;  // It can fail if the index scan results in uncommitted TupleSlots
-    }
+    select_result = db->order_table_->Select(txn, index_scan_results.back(), order_select_tuple);
+    TERRIER_ASSERT(select_result,
+                   "Order select failed. This assertion assumes 1:1 mapping between warehouse and workers.");
 
     const auto o_id = *reinterpret_cast<int32_t *>(order_select_tuple->AccessWithNullCheck(o_id_select_pr_offset));
 
