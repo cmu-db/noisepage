@@ -31,8 +31,7 @@ class NewOrder {
     const int8_t d_id;
     const int8_t w_id;
     const int8_t ol_number;
-    const storage::TupleSlot slot;
-    byte *const varlen_buffer;
+    storage::TupleSlot slot;
   };
 
   const storage::ProjectedRowInitializer warehouse_select_pr_initializer;
@@ -507,15 +506,14 @@ class NewOrder {
       *reinterpret_cast<double *>(order_line_insert_tuple->AccessForceNotNull(ol_amount_insert_pr_offset)) =
           item.ol_quantity * i_price;
 
-      byte *varlen_buffer = nullptr;
       if (s_dist_xx.Size() <= storage::VarlenEntry::InlineThreshold()) {
         *reinterpret_cast<storage::VarlenEntry *>(
             order_line_insert_tuple->AccessForceNotNull(ol_dist_info_insert_pr_offset)) = s_dist_xx;
 
       } else {
-        varlen_buffer = common::AllocationUtil::AllocateAligned(s_dist_xx.Size());
-        std::memcpy(varlen_buffer, s_dist_xx.Content(), s_dist_xx.Size());
-        const auto varlen_entry = storage::VarlenEntry::Create(varlen_buffer, s_dist_xx.Size(), true);
+        auto *const varlen = common::AllocationUtil::AllocateAligned(s_dist_xx.Size());
+        std::memcpy(varlen, s_dist_xx.Content(), s_dist_xx.Size());
+        const auto varlen_entry = storage::VarlenEntry::Create(varlen, s_dist_xx.Size(), true);
         *reinterpret_cast<storage::VarlenEntry *>(
             order_line_insert_tuple->AccessForceNotNull(ol_dist_info_insert_pr_offset)) = varlen_entry;
       }
@@ -523,8 +521,7 @@ class NewOrder {
       const auto order_line_slot = db->order_line_table_->Insert(txn, *order_line_insert_tuple);
 
       TERRIER_ASSERT(ol_number <= 15, "There should be at least 1 Order Line item, but no more than 15.");
-      order_line_index_inserts_.push_back(
-          {d_next_o_id, args.d_id, args.w_id, ol_number, order_line_slot, varlen_buffer});
+      order_line_index_inserts_.push_back({d_next_o_id, args.d_id, args.w_id, ol_number, order_line_slot});
 
       ol_number++;
       total_amount += ol_amount;
@@ -584,8 +581,6 @@ class NewOrder {
       index_insert_result = db->order_line_index_->ConditionalInsert(*order_line_key, ol_item.slot,
                                                                      [](const storage::TupleSlot &) { return false; });
       TERRIER_ASSERT(index_insert_result, "Order Line index insertion failed.");
-
-      delete[] ol_item.varlen_buffer;
     }
 
     txn_manager->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
