@@ -26,7 +26,9 @@ namespace terrier::storage {
 #define NUM_RESERVED_COLUMNS 1u
 
 STRONG_TYPEDEF(col_id_t, uint16_t);
-STRONG_TYPEDEF(layout_version_t, uint32_t);
+STRONG_TYPEDEF(layout_version_t, uint16_t);
+
+class DataTable;
 
 /**
  * A block is a chunk of memory used for storage. It does not have any meaning
@@ -36,6 +38,16 @@ STRONG_TYPEDEF(layout_version_t, uint32_t);
  * @warning If you change the layout please also change the way header sizes are computed in block layout!
  */
 struct alignas(common::Constants::BLOCK_SIZE) RawBlock {
+  /**
+   * Data Table for this RawBlock. This is used by indexes and GC to get back to the DataTable given only a TupleSlot
+   */
+  DataTable *data_table_;
+
+  /**
+   * Padding for flags or whatever we may want in the future.
+   */
+  uint16_t padding_;
+
   /**
    * Layout version.
    */
@@ -55,7 +67,8 @@ struct alignas(common::Constants::BLOCK_SIZE) RawBlock {
   /**
    * Contents of the raw block.
    */
-  byte content_[common::Constants::BLOCK_SIZE - 2 * sizeof(uint32_t) - sizeof(BlockAccessController)];
+  byte content_[common::Constants::BLOCK_SIZE - sizeof(uintptr_t) - sizeof(layout_version_t) - sizeof(uint32_t) -
+                sizeof(BlockAccessController)];
   // A Block needs to always be aligned to 1 MB, so we can get free bytes to
   // store offsets within a block in ine 8-byte word.
 };

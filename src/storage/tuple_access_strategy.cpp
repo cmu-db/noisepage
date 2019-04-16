@@ -21,6 +21,15 @@ TupleAccessStrategy::TupleAccessStrategy(BlockLayout layout)
   }
 }
 
+void TupleAccessStrategy::InitializeRawBlockForDataTable(storage::DataTable *const data_table, RawBlock *const raw,
+                                                         const layout_version_t layout_version) const {
+  TERRIER_ASSERT(data_table != nullptr,
+                 "This should probably only be called from the DataTable with 'this' as an argument.");
+  // Intentional unsafe cast
+  raw->data_table_ = data_table;
+  InitializeRawBlock(raw, layout_version);
+}
+
 void TupleAccessStrategy::InitializeRawBlock(RawBlock *const raw, const layout_version_t layout_version) const {
   // Intentional unsafe cast
   raw->layout_version_ = layout_version;
