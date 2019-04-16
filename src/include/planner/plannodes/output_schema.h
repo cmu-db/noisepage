@@ -157,7 +157,7 @@ class OutputSchema {
                         std::vector<DirectMap> direct_map_list = std::vector<DirectMap>())
       : columns_(std::move(columns)), targets_(std::move(targets)), direct_map_list_(std::move(direct_map_list)) {
     TERRIER_ASSERT(!columns_.empty() && columns_.size() <= common::Constants::MAX_COL,
-                   "Number of columns must be between 1 and 32767.");
+                   "Number of columns must be between 1 and MAX_COL.");
   }
 
   /**
