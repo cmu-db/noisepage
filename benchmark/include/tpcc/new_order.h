@@ -574,7 +574,7 @@ class NewOrder {
       *reinterpret_cast<int8_t *>(order_line_key->AccessForceNotNull(ol_w_id_key_pr_offset)) = ol_item.w_id;
       *reinterpret_cast<int8_t *>(order_line_key->AccessForceNotNull(ol_d_id_key_pr_offset)) = ol_item.d_id;
       *reinterpret_cast<int32_t *>(order_line_key->AccessForceNotNull(ol_o_id_key_pr_offset)) = ol_item.o_id;
-      *reinterpret_cast<int32_t *>(order_line_key->AccessForceNotNull(ol_number_key_pr_offset)) = ol_item.ol_number;
+      *reinterpret_cast<int8_t *>(order_line_key->AccessForceNotNull(ol_number_key_pr_offset)) = ol_item.ol_number;
 
       index_insert_result = db->order_line_index_->ConditionalInsert(*order_line_key, ol_item.slot,
                                                                      [](const storage::TupleSlot &) { return false; });
