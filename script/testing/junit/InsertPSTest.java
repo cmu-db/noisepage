@@ -166,11 +166,10 @@ public class InsertPSTest extends PLTestBase {
         pstmt.executeBatch();
 
 	getResultsPS();
-	// shouldn't the default be null?
         rs.next();
 	checkRow(rs,
-		 new String [] {"c1", "c2", "c3"},
-		 new int [] {1, 0, 3});
+		 new String [] {"c1", "c3"},
+		 new int [] {1, 3});
         assertNoMoreRows(rs);
     }
 
@@ -386,15 +385,14 @@ public class InsertPSTest extends PLTestBase {
         pstmt.executeBatch();
 
 	getResultsPS();
-	// shouldn't the default be null?
         rs.next();
 	checkRow(rs,
-		 new String [] {"c1", "c2", "c3"},
-		 new int [] {1, 0, 3});
+		 new String [] {"c1", "c3"},
+		 new int [] {1, 3});
         rs.next();
 	checkRow(rs,
-		 new String [] {"c1", "c2", "c3"},
-		 new int [] {11, 0, 13});
+		 new String [] {"c1", "c3"},
+		 new int [] {11, 13});
         assertNoMoreRows(rs);
     }
 }

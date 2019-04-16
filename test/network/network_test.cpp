@@ -32,7 +32,7 @@ class FakeTrafficCop : public traffic_cop::TrafficCop {
     callback(empty_set, out);
   }
   traffic_cop::Statement Parse(const std::string &query, const std::vector<PostgresValueType> &param_types) override {
-    return traffic_cop::Statement(nullptr, std::vector<type::TypeId>());
+    return traffic_cop::Statement(nullptr, std::vector<PostgresValueType>());
   }
   traffic_cop::Portal Bind(const traffic_cop::Statement &stmt,
                            const std::shared_ptr<std::vector<type::TransientValue>> &params) override {
