@@ -19,8 +19,7 @@ namespace terrier::planner {
 class PlanNodeTest : public TerrierTest {
  public:
   static std::shared_ptr<OutputSchema> BuildOneColumnSchema(std::string name, const type::TypeId type,
-                                                                     const bool nullable,
-                                                                     const catalog::col_oid_t oid) {
+                                                            const bool nullable, const catalog::col_oid_t oid) {
     OutputSchema::Column col(std::move(name), type, nullable, oid);
     std::vector<OutputSchema::Column> cols;
     cols.push_back(col);

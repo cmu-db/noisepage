@@ -58,7 +58,7 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
      * @param function_param_types Function parameter types passed to the UDF
      * @return builder object
      */
-    Builder &SetFunctionParamTypes(std::vector<parser::Parameter::DataType> &&function_param_types) {
+    Builder &SetFunctionParamTypes(std::vector<parser::BaseFunctionParameter::DataType> &&function_param_types) {
       function_param_types_ = std::move(function_param_types);
       return *this;
     }
@@ -94,7 +94,7 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
      * @param return_type return type of the UDF
      * @return builder object
      */
-    Builder &SetReturnType(parser::Parameter::DataType return_type) {
+    Builder &SetReturnType(parser::BaseFunctionParameter::DataType return_type) {
       return_type_ = return_type;
       return *this;
     }
@@ -159,7 +159,7 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
     /**
      * Function parameter types passed to the UDF
      */
-    std::vector<parser::Parameter::DataType> function_param_types_;
+    std::vector<parser::BaseFunctionParameter::DataType> function_param_types_;
 
     /**
      * Query string/ function body of the UDF
@@ -179,7 +179,7 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
     /**
      * Return type of the UDF
      */
-    parser::Parameter::DataType return_type_;
+    parser::BaseFunctionParameter::DataType return_type_;
 
     /**
      * Number of parameters
@@ -204,9 +204,9 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
   CreateFunctionPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                          std::shared_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
                          parser::PLType language, std::vector<std::string> &&function_param_names,
-                         std::vector<parser::Parameter::DataType> &&function_param_types,
+                         std::vector<parser::BaseFunctionParameter::DataType> &&function_param_types,
                          std::vector<std::string> &&function_body, bool is_replace, std::string function_name,
-                         parser::Parameter::DataType return_type, int param_count)
+                         parser::BaseFunctionParameter::DataType return_type, int param_count)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         database_oid_(database_oid),
         language_(language),
@@ -252,12 +252,14 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
   /**
    * @return parameter types of the user defined function
    */
-  std::vector<parser::Parameter::DataType> GetFunctionParameterTypes() const { return function_param_types_; }
+  std::vector<parser::BaseFunctionParameter::DataType> GetFunctionParameterTypes() const {
+    return function_param_types_;
+  }
 
   /**
    * @return return type of the user defined function
    */
-  parser::Parameter::DataType GetReturnType() const { return return_type_; }
+  parser::BaseFunctionParameter::DataType GetReturnType() const { return return_type_; }
 
   /**
    * @return whether the definition of the user defined function needs to be replaced
@@ -295,7 +297,7 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
   /**
    * Function parameter types passed to the UDF
    */
-  std::vector<parser::Parameter::DataType> function_param_types_;
+  std::vector<parser::BaseFunctionParameter::DataType> function_param_types_;
 
   /**
    * Query string/ function body of the UDF
@@ -315,7 +317,7 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
   /**
    * Return type of the UDF
    */
-  parser::Parameter::DataType return_type_;
+  parser::BaseFunctionParameter::DataType return_type_;
 
   /**
    * Number of parameters
