@@ -123,7 +123,7 @@ struct TransactionArgs {
 
 // 2.4.1
 template <class Random>
-TransactionArgs BuildNewOrderArgs(Random *const generator, const int8_t w_id, const uint32_t num_warehouses) {
+TransactionArgs BuildNewOrderArgs(Random *const generator, const int8_t w_id, const int8_t num_warehouses) {
   TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses, "Invalid w_id.");
   TransactionArgs args;
   args.type = TransactionType::NewOrder;
@@ -161,7 +161,7 @@ TransactionArgs BuildNewOrderArgs(Random *const generator, const int8_t w_id, co
 
 // 2.5.1
 template <class Random>
-TransactionArgs BuildPaymentArgs(Random *const generator, const int8_t w_id, const uint32_t num_warehouses) {
+TransactionArgs BuildPaymentArgs(Random *const generator, const int8_t w_id, const int8_t num_warehouses) {
   TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses, "Invalid w_id.");
   TransactionArgs args;
   args.type = TransactionType::Payment;
@@ -193,7 +193,7 @@ TransactionArgs BuildPaymentArgs(Random *const generator, const int8_t w_id, con
 }
 
 template <class Random>
-TransactionArgs BuildOrderStatusArgs(Random *const generator, const int8_t w_id, const uint32_t num_warehouses) {
+TransactionArgs BuildOrderStatusArgs(Random *const generator, const int8_t w_id, const int8_t num_warehouses) {
   TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses, "Invalid w_id.");
   TransactionArgs args;
   args.type = TransactionType::OrderStatus;

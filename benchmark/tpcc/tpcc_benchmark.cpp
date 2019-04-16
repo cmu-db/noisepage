@@ -149,7 +149,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, Basic)(benchmark::State &state) {
 
     // prepare the workers
     workers.clear();
-    for (uint32_t i = 0; i < num_threads_; i++) {
+    for (int8_t i = 0; i < num_threads_; i++) {
       workers.emplace_back(tpcc_db);
     }
 
