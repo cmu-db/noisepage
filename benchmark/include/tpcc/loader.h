@@ -302,16 +302,16 @@ struct Loader {
           for (int8_t ol_number = 0; ol_number < order_results.o_ol_cnt; ol_number++) {
             // insert in table
             const auto *const order_line_tuple = BuildOrderLineTuple(
-                o_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), ol_number + 1,
-                order_results.o_entry_d, worker->order_line_tuple_buffer, order_line_tuple_pr_initializer,
-                order_line_tuple_pr_map, db->order_line_schema_, generator);
+                o_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1),
+                static_cast<int8_t>(ol_number + 1), order_results.o_entry_d, worker->order_line_tuple_buffer,
+                order_line_tuple_pr_initializer, order_line_tuple_pr_map, db->order_line_schema_, generator);
             const auto order_line_slot = db->order_line_table_->Insert(txn, *order_line_tuple);
 
             // insert in index
             const auto *const order_line_key =
-                BuildOrderLineKey(o_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), ol_number + 1,
-                                  worker->order_line_key_buffer, order_line_key_pr_initializer, order_line_key_pr_map,
-                                  db->order_line_key_schema_);
+                BuildOrderLineKey(o_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1),
+                                  static_cast<int8_t>(ol_number + 1), worker->order_line_key_buffer,
+                                  order_line_key_pr_initializer, order_line_key_pr_map, db->order_line_key_schema_);
             index_insert_result = db->order_line_index_->ConditionalInsert(
                 *order_line_key, order_line_slot, [](const storage::TupleSlot &) { return false; });
             TERRIER_ASSERT(index_insert_result, "Order Line index insertion failed.");

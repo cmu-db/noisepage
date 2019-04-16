@@ -227,7 +227,7 @@ TransactionArgs BuildStockLevelArgs(Random *const generator, const int8_t w_id, 
   args.type = TransactionType::StockLevel;
   args.w_id = w_id;
   args.d_id = Util::RandomWithin<int8_t>(1, 10, 0, generator);  // specification doesn't specify computing this
-  args.s_quantity_threshold = Util::RandomWithin<int16_t>(10, 20, 0, generator);
+  args.s_quantity_threshold = Util::RandomWithin<int8_t>(10, 20, 0, generator);
   return args;
 }
 
