@@ -15,6 +15,10 @@ class TransactionManager;
 
 namespace terrier::storage {
 
+namespace index {
+class Index;
+}
+
 // clang-format off
 #define DataTableCounterMembers(f) \
   f(uint64_t, NumSelect) \
@@ -212,6 +216,8 @@ class DataTable {
   friend class GarbageCollector;
   // The TransactionManager needs to modify VersionPtrs when rolling back aborts
   friend class transaction::TransactionManager;
+  // The Index wrapper needs access to VisibleToTxn
+  friend class index::Index;
 
   BlockStore *const block_store_;
   const layout_version_t layout_version_;
@@ -262,5 +268,7 @@ class DataTable {
   void NewBlock(RawBlock *expected_val);
 
   void DeallocateVarlensOnShutdown(RawBlock *block);
+
+  bool VisibleToTxn(const transaction::TransactionContext &txn, TupleSlot slot) const;
 };
 }  // namespace terrier::storage
