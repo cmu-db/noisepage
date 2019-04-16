@@ -60,6 +60,9 @@ class CheckpointManager {
    *                 * store projected columns directly to disk
    *                 * use a batch of ProjectedRows as buffer
    *                 * support morsel
+   *
+   * TODO(Mengyang): Currently we require a schema passed in, but this is wrong especially with multi-version schema.
+   *  This is no longer required once the catalog is merged, since we can get the schema of a table from the catalog.
    */
   void Checkpoint(const SqlTable &table, const catalog::Schema &schema);
 
