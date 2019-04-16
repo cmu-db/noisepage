@@ -428,7 +428,7 @@ class RandomSqlTableTestObject {
     return {type::TypeId::INTEGER};
   }
 
-  storage::RecordBufferSegmentPool buffer_pool_{100, 100};
+  storage::RecordBufferSegmentPool buffer_pool_{10000, 10000};
   transaction::TransactionManager txn_manager_ = {&buffer_pool_, true, LOGGING_DISABLED};
 
   storage::BlockStore block_store_{10000, 10000};

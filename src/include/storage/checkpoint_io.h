@@ -13,7 +13,7 @@ namespace terrier::storage {
  * The header of a page in the checkpoint file.
  */
 // TODO(Zhaozhe, Mengyang): More fields can be added to header
-class CheckpointFilePage {
+class PACKED CheckpointFilePage {
  public:
   /**
    * Initialize a given page
@@ -22,7 +22,9 @@ class CheckpointFilePage {
   static void Initialize(CheckpointFilePage *page) {
     // TODO(mengyang): support non-trivial initialization
     page->checksum_ = 0;
-    page->table_oid_ = catalog::table_oid_t(0);
+    page->table_oid_ = 0;
+    page->version_ = 0;
+    page->flags_ = 0;
   }
 
   /**
@@ -41,13 +43,13 @@ class CheckpointFilePage {
    * Get the oid of the table whose rows are stored in this page.
    * @return oid of the table.
    */
-  catalog::table_oid_t GetTableOid() { return table_oid_; }
+  catalog::table_oid_t GetTableOid() { return catalog::table_oid_t(table_oid_); }
 
   /**
    * Set the oid of the table whose rows are stored in this page.
    * @param oid of the table.
    */
-  void SetTableOid(catalog::table_oid_t oid) { table_oid_ = oid; }
+  void SetTableOid(catalog::table_oid_t oid) { table_oid_ = !oid; }
 
   /**
    * Get the pointer to the first row in this page.
@@ -57,8 +59,17 @@ class CheckpointFilePage {
 
  private:
   uint32_t checksum_;
-  catalog::table_oid_t table_oid_;
+  // Note: use uint32_t instead of table_oid_t, because table_oid_t is not POD so that
+  // we cannot use PACKED in this class.
+  uint32_t table_oid_;
+  uint32_t version_; // version of the schema(useful with schema change)
+  uint32_t flags_;
   byte varlen_contents_[0];
+
+  common::RawBitmap &Bitmap() { return *reinterpret_cast<common::RawBitmap *>(&flags_); }
+
+  const common::RawBitmap &Bitmap() const { return *reinterpret_cast<const common::RawBitmap *>(&flags_); }
+
 };
 
 /**
@@ -137,6 +148,7 @@ class BufferedTupleWriter {
       // If the buffer has no contents, just return
       return;
     }
+    AlignBufferOffset<uint64_t >();
     if (block_size_ - page_offset_ > sizeof(uint32_t)) {
       // append a zero to the last record, so that during recovery it can be recognized as the end
       memset(buffer_ + page_offset_, 0, sizeof(uint32_t));
@@ -182,7 +194,9 @@ class BufferedTupleReader {
       return false;
     }
     TERRIER_ASSERT(size == block_size_, "Incomplete Checkpoint Page");
-    page_offset_ += static_cast<uint32_t>(sizeof(CheckpointFilePage));
+    page_count_++;
+    page_offset_ = static_cast<uint32_t>(sizeof(CheckpointFilePage));
+    AlignBufferOffset<uint64_t>();
     return true;
   }
 
@@ -243,6 +257,7 @@ class BufferedTupleReader {
   int in_;
   uint32_t block_size_ = CHECKPOINT_BLOCK_SIZE;
   uint32_t page_offset_ = 0;
+  uint32_t page_count_ = 0;
   byte *buffer_;
 
   template <class T>
