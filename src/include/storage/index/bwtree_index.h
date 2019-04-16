@@ -75,7 +75,8 @@ class BwTreeIndex final : public Index {
     bwtree_->GetValue(index_key, *value_list);
   }
 
-  void Scan(const ProjectedRow &low_key, const ProjectedRow &high_key, std::vector<TupleSlot> *value_list) final {
+  void ScanAscending(const ProjectedRow &low_key, const ProjectedRow &high_key,
+                     std::vector<TupleSlot> *value_list) final {
     TERRIER_ASSERT(
         value_list->empty(),
         "Result set should begin empty. This can be changed in the future if index scan behavior requires it.");
@@ -83,9 +84,66 @@ class BwTreeIndex final : public Index {
     index_low_key.SetFromProjectedRow(low_key, metadata_);
     index_high_key.SetFromProjectedRow(high_key, metadata_);
 
-    for (auto scan_itr = bwtree_->Begin(index_low_key);
-         !scan_itr.IsEnd() && (bwtree_->KeyCmpLessEqual(scan_itr->first, index_high_key)); scan_itr++) {
+    auto scan_itr = bwtree_->Begin(index_low_key);
+    while (!scan_itr.IsEnd() && (bwtree_->KeyCmpLessEqual(scan_itr->first, index_high_key))) {
       value_list->emplace_back(scan_itr->second);
+      scan_itr++;
+    }
+  }
+
+  void ScanDescending(const ProjectedRow &low_key, const ProjectedRow &high_key,
+                      std::vector<TupleSlot> *value_list) final {
+    TERRIER_ASSERT(
+        value_list->empty(),
+        "Result set should begin empty. This can be changed in the future if index scan behavior requires it.");
+    KeyType index_low_key, index_high_key;
+    index_low_key.SetFromProjectedRow(low_key, metadata_);
+    index_high_key.SetFromProjectedRow(high_key, metadata_);
+
+    auto scan_itr = bwtree_->Begin(index_high_key);
+    if (scan_itr.IsEnd() || bwtree_->KeyCmpGreater(scan_itr->first, index_high_key)) scan_itr--;
+
+    while (!scan_itr.IsREnd() && (bwtree_->KeyCmpGreaterEqual(scan_itr->first, index_low_key))) {
+      value_list->emplace_back(scan_itr->second);
+      scan_itr--;
+    }
+  }
+
+  void ScanLimitAscending(const ProjectedRow &low_key, const ProjectedRow &high_key, std::vector<TupleSlot> *value_list,
+                          const uint32_t limit) final {
+    TERRIER_ASSERT(
+        value_list->empty(),
+        "Result set should begin empty. This can be changed in the future if index scan behavior requires it.");
+    TERRIER_ASSERT(limit > 0, "Limit must be greater than 0.");
+    KeyType index_low_key, index_high_key;
+    index_low_key.SetFromProjectedRow(low_key, metadata_);
+    index_high_key.SetFromProjectedRow(high_key, metadata_);
+
+    auto scan_itr = bwtree_->Begin(index_low_key);
+    while (value_list->size() < limit && !scan_itr.IsEnd() &&
+           (bwtree_->KeyCmpLessEqual(scan_itr->first, index_high_key))) {
+      value_list->emplace_back(scan_itr->second);
+      scan_itr++;
+    }
+  }
+
+  void ScanLimitDescending(const ProjectedRow &low_key, const ProjectedRow &high_key,
+                           std::vector<TupleSlot> *value_list, const uint32_t limit) final {
+    TERRIER_ASSERT(
+        value_list->empty(),
+        "Result set should begin empty. This can be changed in the future if index scan behavior requires it.");
+    TERRIER_ASSERT(limit > 0, "Limit must be greater than 0.");
+    KeyType index_low_key, index_high_key;
+    index_low_key.SetFromProjectedRow(low_key, metadata_);
+    index_high_key.SetFromProjectedRow(high_key, metadata_);
+
+    auto scan_itr = bwtree_->Begin(index_high_key);
+    if (scan_itr.IsEnd() || bwtree_->KeyCmpGreater(scan_itr->first, index_high_key)) scan_itr--;
+
+    while (value_list->size() < limit && !scan_itr.IsREnd() &&
+           (bwtree_->KeyCmpGreaterEqual(scan_itr->first, index_low_key))) {
+      value_list->emplace_back(scan_itr->second);
+      scan_itr--;
     }
   }
 };

@@ -89,7 +89,37 @@ class Index {
    * @param high_key the key to end at
    * @param[out] value_list the values associated with the keys
    */
-  virtual void Scan(const ProjectedRow &low_key, const ProjectedRow &high_key, std::vector<TupleSlot> *value_list) = 0;
+  virtual void ScanAscending(const ProjectedRow &low_key, const ProjectedRow &high_key,
+                             std::vector<TupleSlot> *value_list) = 0;
+
+  /**
+   * Finds all the values between the given keys in our index.
+   * @param low_key the key to end at
+   * @param high_key the key to start at
+   * @param[out] value_list the values associated with the keys
+   */
+  virtual void ScanDescending(const ProjectedRow &low_key, const ProjectedRow &high_key,
+                              std::vector<TupleSlot> *value_list) = 0;
+
+  /**
+   * Finds all the values between the given keys in our index.
+   * @param low_key the key to start at
+   * @param high_key the key to end at
+   * @param[out] value_list the values associated with the keys
+   * @param limit upper bound of number of values to return
+   */
+  virtual void ScanLimitAscending(const ProjectedRow &low_key, const ProjectedRow &high_key,
+                                  std::vector<TupleSlot> *value_list, uint32_t limit) = 0;
+
+  /**
+   * Finds all the values between the given keys in our index.
+   * @param low_key the key to end at
+   * @param high_key the key to start at
+   * @param[out] value_list the values associated with the keys
+   * @param limit upper bound of number of values to return
+   */
+  virtual void ScanLimitDescending(const ProjectedRow &low_key, const ProjectedRow &high_key,
+                                   std::vector<TupleSlot> *value_list, uint32_t limit) = 0;
 
   /**
    * @return type of this index
