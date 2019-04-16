@@ -243,6 +243,7 @@ class DataTable {
   template <class RowType>
   bool SelectIntoBuffer(transaction::TransactionContext *txn, TupleSlot slot, RowType *out_buffer) const;
 
+  void InsertInto(transaction::TransactionContext *txn, const ProjectedRow &redo, TupleSlot dest);
   // Atomically read out the version pointer value.
   UndoRecord *AtomicallyReadVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor) const;
 
