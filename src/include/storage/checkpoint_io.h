@@ -105,7 +105,8 @@ class BufferedTupleWriter {
   }
 
   /**
-   * Serialize a tuple into the checkpoint file (buffer).
+   * Serialize a tuple into the checkpoint file (buffer). The buffer will be persisted to the disk, if the remaining
+   * size of the buffer is  not enough for this row.
    * @param row to be serialized
    * @param schema schema of the row
    * @param pr projection map of the schema.
