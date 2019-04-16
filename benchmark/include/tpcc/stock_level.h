@@ -102,7 +102,8 @@ class StockLevel {
 
     index_scan_results.clear();
     db->order_line_index_->Scan(*order_line_key_lo, *order_line_key_hi, &index_scan_results);
-    // TODO(WAN): what should this assert be?
+    TERRIER_ASSERT(index_scan_results.size() >= 100 && index_scan_results.size() <= 300,
+                   "ol_number can be between 5 and 15, and we're looking up 20 previous orders.");
 
     // Select matching S_I_ID and S_W_ID with S_QUANTITY lower than threshold.
     // Aggregate quantity counts, report number of items with count < threshold.
