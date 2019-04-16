@@ -133,31 +133,34 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const Pr
     if (block != nullptr && accessor_.Allocate(block, &result)) break;
     NewBlock(block);
   }
+  InsertInto(txn, redo, result);
+  data_table_counter_.IncrementNumInsert(1);
+  return result;
+}
+
+void DataTable::InsertInto(transaction::TransactionContext *txn, const ProjectedRow &redo, TupleSlot dest) {
+  TERRIER_ASSERT(accessor_.Allocated(dest), "destination slot must already be allocated");
+  TERRIER_ASSERT(accessor_.IsNull(dest, VERSION_POINTER_COLUMN_ID),
+                 "The slot needs to be logically deleted to every running transaction");
   // At this point, sequential scan down the block can still see this, except it thinks it is logically deleted if we 0
   // the primary key column
-  UndoRecord *undo = txn->UndoRecordForInsert(this, result);
-
-  // Update the version pointer atomically so that a sequential scan will not see inconsistent version pointer, which
-  // may result in a segfault
-  AtomicallyWriteVersionPtr(result, accessor_, undo);
-
+  UndoRecord *undo = txn->UndoRecordForInsert(this, dest);
+  AtomicallyWriteVersionPtr(dest, accessor_, undo);
   // Set the logically deleted bit to present as the undo record is ready
-  accessor_.AccessForceNotNull(result, VERSION_POINTER_COLUMN_ID);
-
+  accessor_.AccessForceNotNull(dest, VERSION_POINTER_COLUMN_ID);
   // Update in place with the new value.
   for (uint16_t i = 0; i < redo.NumColumns(); i++) {
     TERRIER_ASSERT(redo.ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,
                    "Insert buffer should not change the version pointer column.");
-    StorageUtil::CopyAttrFromProjection(accessor_, result, redo, i);
+    StorageUtil::CopyAttrFromProjection(accessor_, dest, redo, i);
   }
-
-  data_table_counter_.IncrementNumInsert(1);
-  return result;
 }
 
 bool DataTable::Delete(transaction::TransactionContext *const txn, const TupleSlot slot) {
   data_table_counter_.IncrementNumDelete(1);
   // Create a redo
+  // TODO(Tianyu): Is it better to be consistent with the StageWrite behavior where we have caller explicitly
+  // call StageDelete before calling Delete?
   txn->StageDelete(this, slot);
   UndoRecord *const undo = txn->UndoRecordForDelete(this, slot);
   UndoRecord *version_ptr;
@@ -231,6 +234,9 @@ bool DataTable::SelectIntoBuffer(transaction::TransactionContext *const txn, con
         break;
       case DeltaRecordType::DELETE:
         visible = true;
+        break;
+      default:
+        throw std::runtime_error("unexpected delta record type");
     }
     // TODO(Matt): This logic might need revisiting if we start recycling slots and a chain can have a delete later in
     // the chain than an insert.

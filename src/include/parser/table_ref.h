@@ -4,10 +4,11 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "common/json.h"
 #include "common/sql_node_visitor.h"
 #include "expression/abstract_expression.h"
 #include "parser/parser_defs.h"
-#include "parser/sql_statement.h"
+#include "parser/select_statement.h"
 
 namespace terrier {
 namespace parser {
@@ -28,6 +29,11 @@ class JoinDefinition {
   JoinDefinition(JoinType type, std::shared_ptr<TableRef> left, std::shared_ptr<TableRef> right,
                  std::shared_ptr<AbstractExpression> condition)
       : type_(type), left_(std::move(left)), right_(std::move(right)), condition_(std::move(condition)) {}
+
+  /**
+   * Default constructor used for deserialization
+   */
+  JoinDefinition() = default;
 
   // TODO(WAN): not a SQLStatement?
   /**
@@ -55,19 +61,36 @@ class JoinDefinition {
    */
   std::shared_ptr<AbstractExpression> GetJoinCondition() { return condition_; }
 
+  /**
+   * @return JoinDefinition serialized to json
+   */
+  nlohmann::json ToJson() const;
+
+  /**
+   * @param j json to deserialize
+   */
+  void FromJson(const nlohmann::json &j);
+
  private:
-  const JoinType type_;
-  const std::shared_ptr<TableRef> left_;
-  const std::shared_ptr<TableRef> right_;
-  const std::shared_ptr<AbstractExpression> condition_;
+  JoinType type_;
+  std::shared_ptr<TableRef> left_;
+  std::shared_ptr<TableRef> right_;
+  std::shared_ptr<AbstractExpression> condition_;
 };
+
+DEFINE_JSON_DECLARATIONS(JoinDefinition);
 
 /**
  * Holds references to tables, either via table names or a select statement.
  */
-struct TableRef {
+class TableRef {
  public:
   // TODO(WAN): was and is still a mess
+
+  /**
+   * Default constructor used for deserialization
+   */
+  TableRef() = default;
 
   /**
    * @param alias alias for table ref
@@ -174,17 +197,28 @@ struct TableRef {
    */
   std::shared_ptr<JoinDefinition> GetJoin() { return join_; }
 
+  /**
+   * @return TableRef serialized to json
+   */
+  nlohmann::json ToJson() const;
+  /**
+   * @param j json to deserialize
+   */
+  void FromJson(const nlohmann::json &j);
+
  private:
-  const TableReferenceType type_;
-  const std::string alias_;
-  const std::shared_ptr<TableInfo> table_info_;
+  TableReferenceType type_;
+  std::string alias_;
+  std::shared_ptr<TableInfo> table_info_;
 
-  const std::shared_ptr<SelectStatement> select_;
+  std::shared_ptr<SelectStatement> select_;
 
-  const std::vector<std::shared_ptr<TableRef>> list_;
+  std::vector<std::shared_ptr<TableRef>> list_;
 
-  const std::shared_ptr<JoinDefinition> join_;
+  std::shared_ptr<JoinDefinition> join_;
 };
+
+DEFINE_JSON_DECLARATIONS(TableRef);
 
 }  // namespace parser
 }  // namespace terrier
