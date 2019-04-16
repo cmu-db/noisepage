@@ -22,7 +22,7 @@ Only server side of the protocol is covered.
 Packets supported
 -----------------
 -> From PSQL to Server
-	* StartupMessage (F)
+	* StartupMessage
 	* Query (Q) 
 	* Sync (S)
 	* Bind (P)
