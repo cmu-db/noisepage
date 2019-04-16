@@ -59,7 +59,7 @@ class TPCCBenchmark : public benchmark::Fixture {
   std::default_random_engine generator_;
   storage::LogManager *log_manager_ = nullptr;
 
-  const bool only_count_new_order_ = true;
+  const bool only_count_new_order_ = false;
   const uint32_t num_threads_ = 4;
   const uint32_t num_precomputed_txns_per_worker_ = 100000;
   const uint32_t w_payment = 43;

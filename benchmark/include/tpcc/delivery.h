@@ -145,7 +145,7 @@ class Delivery {
       *reinterpret_cast<int32_t *>(new_order_key_hi->AccessForceNotNull(no_d_id_key_pr_offset)) = d_id;
       *reinterpret_cast<int32_t *>(new_order_key_hi->AccessForceNotNull(no_o_id_key_pr_offset)) = 10000000;  // max O_ID
 
-      db->new_order_index_->Scan(*new_order_key_lo, *new_order_key_hi, &index_scan_results);
+      db->new_order_index_->ScanLimit(*new_order_key_lo, *new_order_key_hi, &index_scan_results, 1);
       // If no matching row is found, then the delivery is skipped
       if (index_scan_results.empty()) {
         continue;
