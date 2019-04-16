@@ -19,7 +19,7 @@ struct CheckpointTests : public TerrierTest {};
 
 // NOLINTNEXTLINE
 TEST_F(CheckpointTests, SimpleCheckpointRecoveryNoVarlen) {
-  const uint32_t num_rows = 103;
+  const uint32_t num_rows = 1000;
   const uint32_t num_columns = 3;
   int magic_seed = 13523;
   // initialize test
@@ -81,7 +81,7 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryNoVarlen) {
 
 // NOLINTNEXTLINE
 TEST_F(CheckpointTests, SimpleCheckpointRecoveryWithVarlen) {
-  const uint32_t num_rows = 103;
+  const uint32_t num_rows = 1000;
   const uint32_t num_columns = 3;
   int magic_seed = 13523777;
   // initialize test
