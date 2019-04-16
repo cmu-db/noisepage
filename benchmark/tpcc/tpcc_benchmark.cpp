@@ -160,7 +160,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, Basic)(benchmark::State &state) {
     std::this_thread::sleep_for(std::chrono::seconds(1));  // Let GC clean up
 
     // define the TPCC workload
-    auto tpcc_workload = [&](uint32_t worker_id) {
+    auto tpcc_workload = [&](int8_t worker_id) {
       auto new_order = tpcc::NewOrder(tpcc_db);
       auto payment = tpcc::Payment(tpcc_db);
       auto order_status = tpcc::OrderStatus(tpcc_db);
@@ -200,7 +200,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, Basic)(benchmark::State &state) {
     uint64_t elapsed_ms;
     {
       common::ScopedTimer timer(&elapsed_ms);
-      for (uint32_t i = 0; i < num_threads_; i++) {
+      for (int8_t i = 0; i < num_threads_; i++) {
         thread_pool_.SubmitTask([i, &tpcc_workload] { tpcc_workload(i); });
       }
       thread_pool_.WaitUntilAllFinished();

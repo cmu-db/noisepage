@@ -147,14 +147,14 @@ struct Loader {
       // 1 row in the WAREHOUSE table for each configured warehouse
       // insert in table
       const auto *const warehouse_tuple =
-          BuildWarehouseTuple(w_id + 1, worker->warehouse_tuple_buffer, warehouse_tuple_pr_initializer,
-                              warehouse_tuple_pr_map, db->warehouse_schema_, generator);
+          BuildWarehouseTuple(static_cast<int8_t>(w_id + 1), worker->warehouse_tuple_buffer,
+                              warehouse_tuple_pr_initializer, warehouse_tuple_pr_map, db->warehouse_schema_, generator);
       const auto warehouse_slot = db->warehouse_table_->Insert(txn, *warehouse_tuple);
 
       // insert in index
       const auto *const warehouse_key =
-          BuildWarehouseKey(w_id + 1, worker->warehouse_key_buffer, warehouse_key_pr_initializer, warehouse_key_pr_map,
-                            db->warehouse_key_schema_);
+          BuildWarehouseKey(static_cast<int8_t>(w_id + 1), worker->warehouse_key_buffer, warehouse_key_pr_initializer,
+                            warehouse_key_pr_map, db->warehouse_key_schema_);
       bool UNUSED_ATTRIBUTE index_insert_result = db->warehouse_index_->ConditionalInsert(
           *warehouse_key, warehouse_slot, [](const storage::TupleSlot &) { return false; });
       TERRIER_ASSERT(index_insert_result, "Warehouse index insertion failed.");
@@ -173,15 +173,15 @@ struct Loader {
           // 100,000 rows in the STOCK table
 
           // insert in table
-          const auto *const stock_tuple =
-              BuildStockTuple(s_i_id + 1, w_id + 1, stock_original[s_i_id], worker->stock_tuple_buffer,
-                              stock_tuple_pr_initializer, stock_tuple_pr_map, db->stock_schema_, generator);
+          const auto *const stock_tuple = BuildStockTuple(
+              s_i_id + 1, static_cast<int8_t>(w_id + 1), stock_original[s_i_id], worker->stock_tuple_buffer,
+              stock_tuple_pr_initializer, stock_tuple_pr_map, db->stock_schema_, generator);
           const auto stock_slot = db->stock_table_->Insert(txn, *stock_tuple);
 
           // insert in index
           const auto *const stock_key =
-              BuildStockKey(s_i_id + 1, w_id + 1, worker->stock_key_buffer, stock_key_pr_initializer, stock_key_pr_map,
-                            db->stock_key_schema_);
+              BuildStockKey(s_i_id + 1, static_cast<int8_t>(w_id + 1), worker->stock_key_buffer,
+                            stock_key_pr_initializer, stock_key_pr_map, db->stock_key_schema_);
           index_insert_result = db->stock_index_->ConditionalInsert(*stock_key, stock_slot,
                                                                     [](const storage::TupleSlot &) { return false; });
           TERRIER_ASSERT(index_insert_result, "Stock index insertion failed.");
@@ -193,15 +193,15 @@ struct Loader {
         // 10 rows in the DISTRICT table
 
         // insert in table
-        const auto *const district_tuple =
-            BuildDistrictTuple(d_id + 1, w_id + 1, worker->district_tuple_buffer, district_tuple_pr_initializer,
-                               district_tuple_pr_map, db->district_schema_, generator);
+        const auto *const district_tuple = BuildDistrictTuple(
+            static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), worker->district_tuple_buffer,
+            district_tuple_pr_initializer, district_tuple_pr_map, db->district_schema_, generator);
         const auto district_slot = db->district_table_->Insert(txn, *district_tuple);
 
         // insert in index
         const auto *const district_key =
-            BuildDistrictKey(d_id + 1, w_id + 1, worker->district_key_buffer, district_key_pr_initializer,
-                             district_key_pr_map, db->district_key_schema_);
+            BuildDistrictKey(static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), worker->district_key_buffer,
+                             district_key_pr_initializer, district_key_pr_map, db->district_key_schema_);
         index_insert_result = db->district_index_->ConditionalInsert(*district_key, district_slot,
                                                                      [](const storage::TupleSlot &) { return false; });
         TERRIER_ASSERT(index_insert_result, "District index insertion failed.");
@@ -225,14 +225,15 @@ struct Loader {
 
           // insert in table
           const auto *const customer_tuple =
-              BuildCustomerTuple(c_id + 1, d_id + 1, w_id + 1, c_credit[c_id], worker->customer_tuple_buffer,
-                                 customer_tuple_pr_initializer, customer_tuple_pr_map, db->customer_schema_, generator);
+              BuildCustomerTuple(c_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), c_credit[c_id],
+                                 worker->customer_tuple_buffer, customer_tuple_pr_initializer, customer_tuple_pr_map,
+                                 db->customer_schema_, generator);
           const auto customer_slot = db->customer_table_->Insert(txn, *customer_tuple);
 
           // insert in index
-          const auto *const customer_key =
-              BuildCustomerKey(c_id + 1, d_id + 1, w_id + 1, worker->customer_key_buffer, customer_key_pr_initializer,
-                               customer_key_pr_map, db->customer_key_schema_);
+          const auto *const customer_key = BuildCustomerKey(
+              c_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), worker->customer_key_buffer,
+              customer_key_pr_initializer, customer_key_pr_map, db->customer_key_schema_);
           index_insert_result = db->customer_index_->ConditionalInsert(
               *customer_key, customer_slot, [](const storage::TupleSlot &) { return false; });
           TERRIER_ASSERT(index_insert_result, "Customer index insertion failed.");
@@ -244,17 +245,19 @@ struct Loader {
 
           storage::ProjectedRow *customer_name_key = nullptr;
           if (c_last_tuple.Size() <= storage::VarlenEntry::InlineThreshold()) {
-            customer_name_key = BuildCustomerNameKey(c_last_tuple, d_id + 1, w_id + 1, worker->customer_name_key_buffer,
-                                                     customer_name_key_pr_initializer, customer_name_key_pr_map,
-                                                     db->customer_name_key_schema_);
+            customer_name_key =
+                BuildCustomerNameKey(c_last_tuple, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1),
+                                     worker->customer_name_key_buffer, customer_name_key_pr_initializer,
+                                     customer_name_key_pr_map, db->customer_name_key_schema_);
           } else {
             std::memcpy(worker->customer_name_varlen_buffer, c_last_tuple.Content(), c_last_tuple.Size());
             const auto c_last_key =
                 storage::VarlenEntry::Create(worker->customer_name_varlen_buffer, c_last_tuple.Size(), false);
 
-            customer_name_key = BuildCustomerNameKey(c_last_key, d_id + 1, w_id + 1, worker->customer_name_key_buffer,
-                                                     customer_name_key_pr_initializer, customer_name_key_pr_map,
-                                                     db->customer_name_key_schema_);
+            customer_name_key =
+                BuildCustomerNameKey(c_last_key, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1),
+                                     worker->customer_name_key_buffer, customer_name_key_pr_initializer,
+                                     customer_name_key_pr_map, db->customer_name_key_schema_);
           }
 
           index_insert_result = db->customer_name_index_->Insert(*customer_name_key, customer_slot);
@@ -262,32 +265,34 @@ struct Loader {
 
           // For each row in the CUSTOMER table:
           // 1 row in the HISTORY table
-          db->history_table_->Insert(txn, *BuildHistoryTuple(c_id + 1, d_id + 1, w_id + 1, worker->history_tuple_buffer,
-                                                             history_tuple_pr_initializer, history_tuple_pr_map,
-                                                             db->history_schema_, generator));
+          db->history_table_->Insert(
+              txn, *BuildHistoryTuple(c_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1),
+                                      worker->history_tuple_buffer, history_tuple_pr_initializer, history_tuple_pr_map,
+                                      db->history_schema_, generator));
 
           // For each row in the DISTRICT table:
           // 3,000 rows in the ORDER table
 
           // insert in table
           const auto o_id = c_id;
-          const auto order_results =
-              BuildOrderTuple(o_id + 1, o_c_ids[c_id], d_id + 1, w_id + 1, worker->order_tuple_buffer,
-                              order_tuple_pr_initializer, order_tuple_pr_map, db->order_schema_, generator);
+          const auto order_results = BuildOrderTuple(
+              o_id + 1, o_c_ids[c_id], static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1),
+              worker->order_tuple_buffer, order_tuple_pr_initializer, order_tuple_pr_map, db->order_schema_, generator);
           const auto order_slot = db->order_table_->Insert(txn, *(order_results.pr));
 
           // insert in index
-          const auto *const order_key =
-              BuildOrderKey(o_id + 1, d_id + 1, w_id + 1, worker->order_key_buffer, order_key_pr_initializer,
-                            order_key_pr_map, db->order_key_schema_);
+          const auto *const order_key = BuildOrderKey(
+              o_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), worker->order_key_buffer,
+              order_key_pr_initializer, order_key_pr_map, db->order_key_schema_);
           index_insert_result = db->order_index_->ConditionalInsert(*order_key, order_slot,
                                                                     [](const storage::TupleSlot &) { return false; });
           TERRIER_ASSERT(index_insert_result, "Order index insertion failed.");
 
           // insert in secondary index
           const auto *const order_secondary_key = BuildOrderSecondaryKey(
-              o_id + 1, o_c_ids[c_id], d_id + 1, w_id + 1, worker->order_secondary_key_buffer,
-              order_secondary_key_pr_initializer, order_secondary_key_pr_map, db->order_secondary_key_schema_);
+              o_id + 1, o_c_ids[c_id], static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1),
+              worker->order_secondary_key_buffer, order_secondary_key_pr_initializer, order_secondary_key_pr_map,
+              db->order_secondary_key_schema_);
           index_insert_result = db->order_secondary_index_->Insert(*order_secondary_key, order_slot);
           TERRIER_ASSERT(index_insert_result, "Order secondary index insertion failed.");
 
@@ -297,14 +302,16 @@ struct Loader {
           for (int8_t ol_number = 0; ol_number < order_results.o_ol_cnt; ol_number++) {
             // insert in table
             const auto *const order_line_tuple = BuildOrderLineTuple(
-                o_id + 1, d_id + 1, w_id + 1, ol_number + 1, order_results.o_entry_d, worker->order_line_tuple_buffer,
-                order_line_tuple_pr_initializer, order_line_tuple_pr_map, db->order_line_schema_, generator);
+                o_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), ol_number + 1,
+                order_results.o_entry_d, worker->order_line_tuple_buffer, order_line_tuple_pr_initializer,
+                order_line_tuple_pr_map, db->order_line_schema_, generator);
             const auto order_line_slot = db->order_line_table_->Insert(txn, *order_line_tuple);
 
             // insert in index
             const auto *const order_line_key =
-                BuildOrderLineKey(o_id + 1, d_id + 1, w_id + 1, ol_number + 1, worker->order_line_key_buffer,
-                                  order_line_key_pr_initializer, order_line_key_pr_map, db->order_line_key_schema_);
+                BuildOrderLineKey(o_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), ol_number + 1,
+                                  worker->order_line_key_buffer, order_line_key_pr_initializer, order_line_key_pr_map,
+                                  db->order_line_key_schema_);
             index_insert_result = db->order_line_index_->ConditionalInsert(
                 *order_line_key, order_line_slot, [](const storage::TupleSlot &) { return false; });
             TERRIER_ASSERT(index_insert_result, "Order Line index insertion failed.");
@@ -315,15 +322,15 @@ struct Loader {
           // (i.e., with NO_O_ID between 2,101 and 3,000)
           if (o_id + 1 >= 2101) {
             // insert in table
-            const auto *const new_order_tuple =
-                BuildNewOrderTuple(o_id + 1, d_id + 1, w_id + 1, worker->new_order_tuple_buffer,
-                                   new_order_tuple_pr_initializer, new_order_tuple_pr_map, db->new_order_schema_);
+            const auto *const new_order_tuple = BuildNewOrderTuple(
+                o_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), worker->new_order_tuple_buffer,
+                new_order_tuple_pr_initializer, new_order_tuple_pr_map, db->new_order_schema_);
             const auto new_order_slot = db->new_order_table_->Insert(txn, *new_order_tuple);
 
             // insert in index
-            const auto *const new_order_key =
-                BuildNewOrderKey(o_id + 1, d_id + 1, w_id + 1, worker->new_order_key_buffer,
-                                 new_order_key_pr_initializer, new_order_key_pr_map, db->new_order_key_schema_);
+            const auto *const new_order_key = BuildNewOrderKey(
+                o_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), worker->new_order_key_buffer,
+                new_order_key_pr_initializer, new_order_key_pr_map, db->new_order_key_schema_);
             index_insert_result = db->new_order_index_->ConditionalInsert(
                 *new_order_key, new_order_slot, [](const storage::TupleSlot &) { return false; });
             TERRIER_ASSERT(index_insert_result, "New Order index insertion failed.");
