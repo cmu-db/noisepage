@@ -300,7 +300,7 @@ void DataTable::NewBlock(RawBlock *expected_val) {
   // Want to stop early if another thread is already getting a new block
   if (expected_val != insertion_head_) return;
   RawBlock *new_block = block_store_->Get();
-  accessor_.InitializeRawBlock(new_block, layout_version_);
+  accessor_.InitializeRawBlockForDataTable(this, new_block, layout_version_);
   blocks_.push_back(new_block);
   insertion_head_ = new_block;
   data_table_counter_.IncrementNumNewBlock(1);
