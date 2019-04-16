@@ -7,8 +7,8 @@
 
 namespace terrier::storage {
 
-// TODO(Tianyu): Can use to specify cases where we don't concat per-block in the future (e.g. no need to put
-//  blob into Arrow)
+// TODO(Tianyu): In this future, there can be situations where varlen fields should not be gathered
+// compressed (e.g, blob). Can add a flag here to handle that.
 /**
  * Type of Arrow column
  */
@@ -27,7 +27,7 @@ class ArrowVarlenColumn {
 
   /**
    * Constructs a new arrow varlen column object
-   * @param values_length size of the values buffer, in bytes
+   * @param values_length length of the values array
    * @param offsets_length number of elements in the offsets array
    */
   ArrowVarlenColumn(uint32_t values_length, uint32_t offsets_length)
