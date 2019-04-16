@@ -65,8 +65,8 @@ class DeletePlanNode : public AbstractPlanNode {
      * Build the delete plan node
      * @return plan node
      */
-    std::unique_ptr<DeletePlanNode> Build() {
-      return std::unique_ptr<DeletePlanNode>(new DeletePlanNode(
+    std::shared_ptr<DeletePlanNode> Build() {
+      return std::shared_ptr<DeletePlanNode>(new DeletePlanNode(
           std::move(children_), std::move(output_schema_), database_oid_, table_oid_, std::move(delete_condition_)));
     }
 
@@ -94,7 +94,7 @@ class DeletePlanNode : public AbstractPlanNode {
    * @param table_oid the OID of the target SQL table
    * @param delete_condition expression of delete condition
    */
-  DeletePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
+  DeletePlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
                  catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
                  std::shared_ptr<parser::AbstractExpression> delete_condition)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),

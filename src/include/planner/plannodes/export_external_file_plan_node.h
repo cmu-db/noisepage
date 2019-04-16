@@ -71,8 +71,8 @@ class ExportExternalFilePlanNode : public AbstractPlanNode {
      * Build the export external file scan plan node
      * @return plan node
      */
-    std::unique_ptr<ExportExternalFilePlanNode> Build() {
-      return std::unique_ptr<ExportExternalFilePlanNode>(
+    std::shared_ptr<ExportExternalFilePlanNode> Build() {
+      return std::shared_ptr<ExportExternalFilePlanNode>(
           new ExportExternalFilePlanNode(std::move(children_), file_name_, delimiter_, quote_, escape_));
     }
 
@@ -103,7 +103,7 @@ class ExportExternalFilePlanNode : public AbstractPlanNode {
    * @param quote quote character
    * @param escape escape character
    */
-  explicit ExportExternalFilePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::string file_name,
+  explicit ExportExternalFilePlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children, std::string file_name,
                                       char delimiter, char quote, char escape)
       : AbstractPlanNode(std::move(children), nullptr),
         file_name_(std::move(file_name)),

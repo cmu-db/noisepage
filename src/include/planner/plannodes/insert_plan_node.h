@@ -80,8 +80,8 @@ class InsertPlanNode : public AbstractPlanNode {
      * Build the delete plan node
      * @return plan node
      */
-    std::unique_ptr<InsertPlanNode> Build() {
-      return std::unique_ptr<InsertPlanNode>(new InsertPlanNode(std::move(children_), std::move(output_schema_),
+    std::shared_ptr<InsertPlanNode> Build() {
+      return std::shared_ptr<InsertPlanNode>(new InsertPlanNode(std::move(children_), std::move(output_schema_),
                                                                 database_oid_, table_oid_, std::move(values_),
                                                                 std::move(parameter_info_), bulk_insert_count_));
     }
@@ -124,7 +124,7 @@ class InsertPlanNode : public AbstractPlanNode {
    * @param parameter_info parameters information
    * @param bulk_insert_count the number of times to insert
    */
-  InsertPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
+  InsertPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
                  catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
                  std::vector<type::TransientValue> &&values,
                  std::vector<std::tuple<uint32_t, uint32_t, uint32_t>> &&parameter_info, uint32_t bulk_insert_count)

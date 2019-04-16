@@ -68,8 +68,8 @@ class DropViewPlanNode : public AbstractPlanNode {
      * Build the drop view plan node
      * @return plan node
      */
-    std::unique_ptr<DropViewPlanNode> Build() {
-      return std::unique_ptr<DropViewPlanNode>(
+    std::shared_ptr<DropViewPlanNode> Build() {
+      return std::shared_ptr<DropViewPlanNode>(
           new DropViewPlanNode(std::move(children_), std::move(output_schema_), database_oid_, view_oid_, if_exists_));
     }
 
@@ -97,7 +97,7 @@ class DropViewPlanNode : public AbstractPlanNode {
    * @param database_oid OID of the database
    * @param view_oid OID of the view to drop
    */
-  DropViewPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+  DropViewPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
                    std::shared_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
                    catalog::view_oid_t view_oid, bool if_exists)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),

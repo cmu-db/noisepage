@@ -42,8 +42,8 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
      * Build the sequential scan plan node
      * @return plan node
      */
-    std::unique_ptr<SeqScanPlanNode> Build() {
-      return std::unique_ptr<SeqScanPlanNode>(new SeqScanPlanNode(std::move(children_), std::move(output_schema_),
+    std::shared_ptr<SeqScanPlanNode> Build() {
+      return std::shared_ptr<SeqScanPlanNode>(new SeqScanPlanNode(std::move(children_), std::move(output_schema_),
                                                                   std::move(scan_predicate_), is_for_update_,
                                                                   is_parallel_, database_oid_, table_oid_));
     }
@@ -65,7 +65,7 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
    * @param database_oid database oid for scan
    * @param table_oid OID for table to scan
    */
-  SeqScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+  SeqScanPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
                   std::shared_ptr<OutputSchema> output_schema,
                   std::shared_ptr<const parser::AbstractExpression> predicate, bool is_for_update, bool is_parallel,
                   catalog::db_oid_t database_oid, catalog::table_oid_t table_oid)

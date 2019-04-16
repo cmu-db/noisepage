@@ -58,8 +58,8 @@ class HashJoinPlanNode : public AbstractJoinPlanNode {
      * Build the hash join plan node
      * @return plan node
      */
-    std::unique_ptr<HashJoinPlanNode> Build() {
-      return std::unique_ptr<HashJoinPlanNode>(
+    std::shared_ptr<HashJoinPlanNode> Build() {
+      return std::shared_ptr<HashJoinPlanNode>(
           new HashJoinPlanNode(std::move(children_), std::move(output_schema_), join_type_, std::move(join_predicate_),
                                left_hash_keys_, right_hash_keys_, build_bloomfilter_));
     }
@@ -89,7 +89,7 @@ class HashJoinPlanNode : public AbstractJoinPlanNode {
    * @param right_hash_keys right side keys to be hashed on
    * @param build_bloomfilter flag whether to build a bloom filter
    */
-  HashJoinPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+  HashJoinPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
                    std::shared_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
                    std::shared_ptr<const parser::AbstractExpression> predicate,
                    std::vector<std::shared_ptr<parser::AbstractExpression>> left_hash_keys,

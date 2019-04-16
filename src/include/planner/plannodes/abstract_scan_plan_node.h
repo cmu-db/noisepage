@@ -86,7 +86,7 @@ class AbstractScanPlanNode : public AbstractPlanNode {
    * @param is_parallel parallel scan flag
    * @param database_oid database oid for scan
    */
-  AbstractScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+  AbstractScanPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
                        std::shared_ptr<OutputSchema> output_schema,
                        std::shared_ptr<const parser::AbstractExpression> predicate, bool is_for_update,
                        bool is_parallel, catalog::db_oid_t database_oid)

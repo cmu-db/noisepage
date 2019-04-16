@@ -68,8 +68,8 @@ class DropTriggerPlanNode : public AbstractPlanNode {
      * Build the drop trigger plan node
      * @return plan node
      */
-    std::unique_ptr<DropTriggerPlanNode> Build() {
-      return std::unique_ptr<DropTriggerPlanNode>(new DropTriggerPlanNode(
+    std::shared_ptr<DropTriggerPlanNode> Build() {
+      return std::shared_ptr<DropTriggerPlanNode>(new DropTriggerPlanNode(
           std::move(children_), std::move(output_schema_), database_oid_, trigger_oid_, if_exists_));
     }
 
@@ -97,7 +97,7 @@ class DropTriggerPlanNode : public AbstractPlanNode {
    * @param database_oid OID of the database
    * @param trigger_oid OID of the trigger to drop
    */
-  DropTriggerPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+  DropTriggerPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
                       std::shared_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
                       catalog::trigger_oid_t trigger_oid, bool if_exists)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),

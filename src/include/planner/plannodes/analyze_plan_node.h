@@ -57,8 +57,8 @@ class AnalyzePlanNode : public AbstractPlanNode {
      * Build the analyze plan node
      * @return plan node
      */
-    std::unique_ptr<AnalyzePlanNode> Build() {
-      return std::unique_ptr<AnalyzePlanNode>(new AnalyzePlanNode(std::move(children_), std::move(output_schema_),
+    std::shared_ptr<AnalyzePlanNode> Build() {
+      return std::shared_ptr<AnalyzePlanNode>(new AnalyzePlanNode(std::move(children_), std::move(output_schema_),
                                                                   database_oid_, table_oid_, std::move(column_oids_)));
     }
 
@@ -87,7 +87,7 @@ class AnalyzePlanNode : public AbstractPlanNode {
    * @param table_oid OID of the target SQL table
    * @param column_oids OIDs of the columns of the target table
    */
-  AnalyzePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+  AnalyzePlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
                   std::shared_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
                   catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&column_oids)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),

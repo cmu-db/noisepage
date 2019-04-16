@@ -129,8 +129,8 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
      * Build the create trigger plan node
      * @return plan node
      */
-    std::unique_ptr<CreateTriggerPlanNode> Build() {
-      return std::unique_ptr<CreateTriggerPlanNode>(
+    std::shared_ptr<CreateTriggerPlanNode> Build() {
+      return std::shared_ptr<CreateTriggerPlanNode>(
           new CreateTriggerPlanNode(std::move(children_), std::move(output_schema_), database_oid_, table_oid_,
                                     std::move(trigger_name_), std::move(trigger_funcnames_), std::move(trigger_args_),
                                     std::move(trigger_columns_), std::move(trigger_when_), trigger_type_));
@@ -191,7 +191,7 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
    * @param trigger_when trigger when clause
    * @param trigger_type trigger type, i.e. information about row, timing, events, access by pg_trigger
    */
-  CreateTriggerPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+  CreateTriggerPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
                         std::shared_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
                         catalog::table_oid_t table_oid, std::string trigger_name,
                         std::vector<std::string> &&trigger_funcnames, std::vector<std::string> &&trigger_args,

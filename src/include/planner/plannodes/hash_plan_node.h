@@ -42,8 +42,8 @@ class HashPlanNode : public AbstractPlanNode {
      * Build the Hash plan node
      * @return plan node
      */
-    std::unique_ptr<HashPlanNode> Build() {
-      return std::unique_ptr<HashPlanNode>(
+    std::shared_ptr<HashPlanNode> Build() {
+      return std::shared_ptr<HashPlanNode>(
           new HashPlanNode(std::move(children_), std::move(output_schema_), std::move(hash_keys_)));
     }
 
@@ -60,7 +60,7 @@ class HashPlanNode : public AbstractPlanNode {
    * @param output_schema Schema representing the structure of the output of this plan node
    * @param hash_keys keys to be hashed on
    */
-  HashPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
+  HashPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
                std::vector<std::shared_ptr<const parser::AbstractExpression>> hash_keys)
       : AbstractPlanNode(std::move(children), std::move(output_schema)), hash_keys_(std::move(hash_keys)) {}
 

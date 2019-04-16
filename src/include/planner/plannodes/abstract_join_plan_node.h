@@ -56,7 +56,7 @@ class AbstractJoinPlanNode : public AbstractPlanNode {
    * @param join_type logical join type
    * @param predicate join predicate
    */
-  AbstractJoinPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+  AbstractJoinPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
                        std::shared_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
                        std::shared_ptr<const parser::AbstractExpression> predicate)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),

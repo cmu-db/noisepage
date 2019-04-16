@@ -79,8 +79,8 @@ class CreateViewPlanNode : public AbstractPlanNode {
      * Build the create view plan node
      * @return plan node
      */
-    std::unique_ptr<CreateViewPlanNode> Build() {
-      return std::unique_ptr<CreateViewPlanNode>(new CreateViewPlanNode(std::move(children_), std::move(output_schema_),
+    std::shared_ptr<CreateViewPlanNode> Build() {
+      return std::shared_ptr<CreateViewPlanNode>(new CreateViewPlanNode(std::move(children_), std::move(output_schema_),
                                                                         database_oid_, namespace_oid_,
                                                                         std::move(view_name_), std::move(view_query_)));
     }
@@ -116,7 +116,7 @@ class CreateViewPlanNode : public AbstractPlanNode {
    * @param view_name  view name
    * @param view_query view query
    */
-  CreateViewPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+  CreateViewPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
                      std::shared_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
                      catalog::namespace_oid_t namespace_oid, std::string view_name,
                      std::shared_ptr<parser::SelectStatement> view_query)

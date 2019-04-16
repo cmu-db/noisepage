@@ -29,8 +29,8 @@ class NestedLoopJoinPlanNode : public AbstractJoinPlanNode {
      * Build the nested loop join plan node
      * @return plan node
      */
-    std::unique_ptr<NestedLoopJoinPlanNode> Build() {
-      return std::unique_ptr<NestedLoopJoinPlanNode>(new NestedLoopJoinPlanNode(
+    std::shared_ptr<NestedLoopJoinPlanNode> Build() {
+      return std::shared_ptr<NestedLoopJoinPlanNode>(new NestedLoopJoinPlanNode(
           std::move(children_), std::move(output_schema_), join_type_, std::move(join_predicate_)));
     }
   };
@@ -42,7 +42,7 @@ class NestedLoopJoinPlanNode : public AbstractJoinPlanNode {
    * @param join_type logical join type
    * @param predicate join predicate
    */
-  NestedLoopJoinPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+  NestedLoopJoinPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
                          std::shared_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
                          std::shared_ptr<const parser::AbstractExpression> predicate)
       : AbstractJoinPlanNode(std::move(children), std::move(output_schema), join_type, std::move(predicate)) {}

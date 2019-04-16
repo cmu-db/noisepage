@@ -112,8 +112,8 @@ class AggregatePlanNode : public AbstractPlanNode {
      * Build the aggregate plan node
      * @return plan node
      */
-    std::unique_ptr<AggregatePlanNode> Build() {
-      return std::unique_ptr<AggregatePlanNode>(
+    std::shared_ptr<AggregatePlanNode> Build() {
+      return std::shared_ptr<AggregatePlanNode>(
           new AggregatePlanNode(std::move(children_), std::move(output_schema_), std::move(having_clause_predicate_),
                                 std::move(aggregate_terms_), aggregate_strategy_));
     }
@@ -141,7 +141,7 @@ class AggregatePlanNode : public AbstractPlanNode {
    * @param aggregate_terms vector of aggregate terms for the aggregation
    * @param aggregate_strategy aggregation strategy to be used
    */
-  AggregatePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+  AggregatePlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
                     std::shared_ptr<OutputSchema> output_schema,
                     std::shared_ptr<const parser::AbstractExpression> having_clause_predicate,
                     std::vector<AggregateTerm> aggregate_terms, AggregateStrategyType aggregate_strategy)

@@ -33,7 +33,7 @@ class AbstractPlanNode {
      * @param child child to be added
      * @return builder object
      */
-    ConcreteType &AddChild(std::unique_ptr<AbstractPlanNode> child) {
+    ConcreteType &AddChild(std::shared_ptr<AbstractPlanNode> child) {
       children_.emplace_back(std::move(child));
       return *dynamic_cast<ConcreteType *>(this);
     }
@@ -51,7 +51,7 @@ class AbstractPlanNode {
     /**
      * child plans
      */
-    std::vector<std::unique_ptr<AbstractPlanNode>> children_;
+    std::vector<std::shared_ptr<AbstractPlanNode>> children_;
     /**
      * schema describing output of the node
      */
@@ -63,7 +63,7 @@ class AbstractPlanNode {
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
    */
-  explicit AbstractPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+  explicit AbstractPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
                             std::shared_ptr<OutputSchema> output_schema)
       : children_(std::move(children)), output_schema_(std::move(output_schema)) {}
 
@@ -82,7 +82,7 @@ class AbstractPlanNode {
   /**
    * @return child plan nodes
    */
-  const std::vector<std::unique_ptr<AbstractPlanNode>> &GetChildren() const { return children_; }
+  const std::vector<std::shared_ptr<AbstractPlanNode>> &GetChildren() const { return children_; }
 
   /**
    * @return number of children
@@ -175,7 +175,7 @@ class AbstractPlanNode {
   bool operator!=(const AbstractPlanNode &rhs) const { return !(*this == rhs); }
 
  private:
-  std::vector<std::unique_ptr<AbstractPlanNode>> children_;
+  std::vector<std::shared_ptr<AbstractPlanNode>> children_;
   std::shared_ptr<OutputSchema> output_schema_;
 
  public:
@@ -187,7 +187,7 @@ class AbstractPlanNode {
 
 //// JSON library interface. Do not modify.
 // DEFINE_JSON_DECLARATIONS(AbstractPlanNode);
-// std::unique_ptr<AbstractPlanNode> DeserializePlanNode(const nlohmann::json &json);
+// std::shared_ptr<AbstractPlanNode> DeserializePlanNode(const nlohmann::json &json);
 
 }  // namespace terrier::planner
 

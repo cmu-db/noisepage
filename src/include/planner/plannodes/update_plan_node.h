@@ -59,8 +59,8 @@ class UpdatePlanNode : public AbstractPlanNode {
      * Build the delete plan node
      * @return plan node
      */
-    std::unique_ptr<UpdatePlanNode> Build() {
-      return std::unique_ptr<UpdatePlanNode>(new UpdatePlanNode(std::move(children_), std::move(output_schema_),
+    std::shared_ptr<UpdatePlanNode> Build() {
+      return std::shared_ptr<UpdatePlanNode>(new UpdatePlanNode(std::move(children_), std::move(output_schema_),
                                                                 database_oid_, table_oid_, update_primary_key_));
     }
 
@@ -89,7 +89,7 @@ class UpdatePlanNode : public AbstractPlanNode {
    * @param table_oid OID of the target SQL table
    * @param update_primary_key whether to update primary key
    */
-  UpdatePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
+  UpdatePlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
                  catalog::db_oid_t database_oid, catalog::table_oid_t table_oid, bool update_primary_key)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         database_oid_(database_oid),

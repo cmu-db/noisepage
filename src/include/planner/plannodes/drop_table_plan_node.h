@@ -68,8 +68,8 @@ class DropTablePlanNode : public AbstractPlanNode {
      * Build the drop table plan node
      * @return plan node
      */
-    std::unique_ptr<DropTablePlanNode> Build() {
-      return std::unique_ptr<DropTablePlanNode>(new DropTablePlanNode(std::move(children_), std::move(output_schema_),
+    std::shared_ptr<DropTablePlanNode> Build() {
+      return std::shared_ptr<DropTablePlanNode>(new DropTablePlanNode(std::move(children_), std::move(output_schema_),
                                                                       database_oid_, table_oid_, if_exists_));
     }
 
@@ -97,7 +97,7 @@ class DropTablePlanNode : public AbstractPlanNode {
    * @param database_oid OID of the database
    * @param table_oid OID of the table to drop
    */
-  DropTablePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+  DropTablePlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
                     std::shared_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
                     catalog::table_oid_t table_oid, bool if_exists)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),

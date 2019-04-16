@@ -529,8 +529,8 @@ class CreateTablePlanNode : public AbstractPlanNode {
      * Build the create table plan node
      * @return plan node
      */
-    std::unique_ptr<CreateTablePlanNode> Build() {
-      return std::unique_ptr<CreateTablePlanNode>(new CreateTablePlanNode(
+    std::shared_ptr<CreateTablePlanNode> Build() {
+      return std::shared_ptr<CreateTablePlanNode>(new CreateTablePlanNode(
           std::move(children_), std::move(output_schema_), database_oid_, namespace_oid_, std::move(table_name_),
           std::move(table_schema_), has_primary_key_, std::move(primary_key_), std::move(foreign_keys_),
           std::move(con_uniques_), std::move(con_checks_)));
@@ -598,7 +598,7 @@ class CreateTablePlanNode : public AbstractPlanNode {
    * @param con_uniques unique constraints
    * @param con_checks check constraints
    */
-  CreateTablePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+  CreateTablePlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
                       std::shared_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
                       catalog::namespace_oid_t namespace_oid, std::string table_name,
                       std::shared_ptr<catalog::Schema> table_schema, bool has_primary_key, PrimaryKeyInfo primary_key,
