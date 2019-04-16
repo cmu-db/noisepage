@@ -81,20 +81,6 @@ TEST_F(TrafficCopTests, RoundTripTest) {
   StopServer();
 }
 
-//NOLINTNEXTLINE
-TEST_F(TrafficCopTests, ExtendedQueryTest){
-  StartServer();
-  try{
-    pqxx::connection connection(
-        fmt::format("host=127.0.0.1 port={0} user=postgres sslmode=disable application_name=psql", port));
-
-
-
-  } catch(const std::exception &e) {
-
-  }
-}
-
 // NOLINTNEXTLINE
 TEST_F(TrafficCopTests, ManualExtendedQueryTest) {
   StartServer();
@@ -131,7 +117,7 @@ TEST_F(TrafficCopTests, ManualExtendedQueryTest) {
     writer.WriteBindCommand(portal_name, stmt_name, {}, {&param1}, {});
     io_socket->FlushAllWrites();
     ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::BIND_COMPLETE);
-    
+
     writer.WriteDescribeCommand(network::DescribeCommandObjectType::PORTAL, "test_portal");
     io_socket->FlushAllWrites();
     ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::ROW_DESCRIPTION);
@@ -139,7 +125,7 @@ TEST_F(TrafficCopTests, ManualExtendedQueryTest) {
     writer.WriteExecuteCommand(portal_name, 0);
     io_socket->FlushAllWrites();
     ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::DATA_ROW);
-    
+
     writer.WriteSyncCommand();
     io_socket->FlushAllWrites();
     ReadUntilReadyOrClose(io_socket);

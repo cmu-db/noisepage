@@ -321,14 +321,13 @@ class PostgresPacketWriter {
   /**
    * Writes a no-data response
    */
-  void WriteNoData(){BeginPacket(NetworkMessageType::NO_DATA_RESPONSE).EndPacket();}
+  void WriteNoData() { BeginPacket(NetworkMessageType::NO_DATA_RESPONSE).EndPacket(); }
 
-  void WriteParameterDescription(const std::vector<PostgresValueType> &param_types){
+  void WriteParameterDescription(const std::vector<PostgresValueType> &param_types) {
     BeginPacket(NetworkMessageType::PARAMETER_DESCRIPTION);
     AppendValue<int16_t>(static_cast<int16_t>(param_types.size()));
 
-    for(auto &type : param_types)
-      AppendValue<int32_t>(static_cast<int32_t>(type));
+    for (auto &type : param_types) AppendValue<int32_t>(static_cast<int32_t>(type));
 
     EndPacket();
   }

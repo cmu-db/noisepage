@@ -3,7 +3,6 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include <traffic_cop/sqlite.h>
 
 #include "loggers/main_logger.h"
 #include "network/network_defs.h"
@@ -61,10 +60,9 @@ int SqliteEngine::StoreResults(void *result_set_void, int elem_count, char **val
 }
 
 sqlite3_stmt *SqliteEngine::PrepareStatement(std::string query) {
-
   // Replace "$" to "?"
-  for(char &c : query)
-    if(c == '$') c = '?';
+  for (char &c : query)
+    if (c == '$') c = '?';
 
   sqlite3_stmt *stmt;
   int error_code = sqlite3_prepare_v2(sqlite_db_, query.c_str(), -1, &stmt, nullptr);
@@ -92,14 +90,10 @@ void SqliteEngine::Bind(sqlite3_stmt *stmt, const std::shared_ptr<std::vector<ty
       const char *varchar_value = TransientValuePeeker::PeekVarChar(params[i]);
       res = sqlite3_bind_text(stmt, i + 1, varchar_value, -1, SQLITE_STATIC);
       delete[] varchar_value;
-    }
-    else if(type == TypeId::TIMESTAMP)
-    {
+    } else if (type == TypeId::TIMESTAMP) {
       auto value = static_cast<int64_t>(!TransientValuePeeker::PeekTimestamp(params[i]));
-      res = sqlite3_bind_int64(stmt, i+1, value);
-    }
-
-    else {
+      res = sqlite3_bind_int64(stmt, i + 1, value);
+    } else {
       LOG_ERROR("Unsupported type: {0}", static_cast<int>(type));
       res = 0;
     }
@@ -123,7 +117,7 @@ std::vector<std::string> SqliteEngine::DescribeColumns(sqlite3_stmt *stmt) {
 ResultSet SqliteEngine::Execute(sqlite3_stmt *stmt) {
   ResultSet result_set;
   result_set.column_names_ = DescribeColumns(stmt);
-  int column_cnt = static_cast<int>(result_set.column_names_.size());
+  auto column_cnt = static_cast<int>(result_set.column_names_.size());
 
   int result_code = sqlite3_step(stmt);
 
@@ -132,7 +126,7 @@ ResultSet SqliteEngine::Execute(sqlite3_stmt *stmt) {
     for (int i = 0; i < column_cnt; i++) {
       const unsigned char *result_cstring = sqlite3_column_text(stmt, i);
       std::string result_str;
-      if(result_cstring == nullptr)
+      if (result_cstring == nullptr)
         result_str = "NULL";
       else
         result_str = std::string(reinterpret_cast<const char *>(result_cstring));
@@ -148,6 +142,5 @@ ResultSet SqliteEngine::Execute(sqlite3_stmt *stmt) {
 
   return result_set;
 }
-
 
 }  // namespace terrier::traffic_cop

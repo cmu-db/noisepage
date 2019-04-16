@@ -1,9 +1,9 @@
+#include "network/postgres_network_commands.h"
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 #include "network/postgres_protocol_interpreter.h"
-#include "network/postgres_network_commands.h"
 #include "network/terrier_server.h"
 #include "traffic_cop/portal.h"
 #include "traffic_cop/traffic_cop.h"
@@ -12,7 +12,7 @@
 
 namespace terrier::network {
 
-void LogAndWriteErrorMsg(const std::string &msg, PostgresPacketWriter *out){
+void LogAndWriteErrorMsg(const std::string &msg, PostgresPacketWriter *out) {
   NETWORK_LOG_ERROR(msg);
   out->WriteSingleErrorResponse(NetworkMessageType::HUMAN_READABLE_ERROR, msg);
 }
@@ -59,7 +59,7 @@ Transition ParseCommand::Exec(PostgresProtocolInterpreter *interpreter, Postgres
   NETWORK_LOG_TRACE("ParseCommand: {0}", query);
   auto num_params = in_.ReadValue<uint16_t>();
   std::vector<PostgresValueType> param_types;
-  for (uint16_t i=0; i<num_params; i++) {
+  for (uint16_t i = 0; i < num_params; i++) {
     auto oid = in_.ReadValue<int32_t>();
     param_types.push_back(static_cast<PostgresValueType>(oid));
   }
@@ -163,22 +163,17 @@ Transition BindCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresP
       in_.Read(len, buf);
       params->push_back(TransientValueFactory::GetVarChar(buf));
 
-    }
-
-    else if (type == TypeId::TIMESTAMP) {
+    } else if (type == TypeId::TIMESTAMP) {
       type::timestamp_t timestamp;
-      if(is_binary[i] == 0)
-      {
+      if (is_binary[i] == 0) {
         char buf[len];
         in_.Read(len, buf);
         timestamp = type::timestamp_t(std::stoull(buf));
-      } else
-      {
+      } else {
         timestamp = type::timestamp_t(in_.ReadValue<uint64_t>());
       }
       params->push_back(TransientValueFactory::GetTimestamp(timestamp));
-    }
-    else {
+    } else {
       string error_msg =
           fmt::format("Param type {0} is not implemented yet", static_cast<int>(statement->param_types_[i]));
 
@@ -201,9 +196,9 @@ Transition DescribeCommand::Exec(PostgresProtocolInterpreter *interpreter, Postg
   NETWORK_LOG_TRACE("Describe query: type = {0}, name = {1}", static_cast<char>(type), name.c_str());
   std::vector<std::string> column_names;
 
-  if(type == DescribeCommandObjectType::STATEMENT){
+  if (type == DescribeCommandObjectType::STATEMENT) {
     auto p_statement = connection->statements.find(name);
-    if(p_statement == connection->statements.end()) {
+    if (p_statement == connection->statements.end()) {
       std::string error_msg = fmt::format("There is no statement with name {0}", name);
       LogAndWriteErrorMsg(error_msg, out);
       return Transition::PROCEED;
@@ -213,24 +208,22 @@ Transition DescribeCommand::Exec(PostgresProtocolInterpreter *interpreter, Postg
 
     column_names = t_cop->DescribeColumns(statement);
 
-  }
-  else if(type == DescribeCommandObjectType::PORTAL){
+  } else if (type == DescribeCommandObjectType::PORTAL) {
     auto p_portal = connection->portals.find(name);
-    if(p_portal == connection->portals.end()){
+    if (p_portal == connection->portals.end()) {
       std::string error_msg = fmt::format("There is no portal with name {0}", name);
       LogAndWriteErrorMsg(error_msg, out);
       return Transition::PROCEED;
     }
 
     column_names = t_cop->DescribeColumns(p_portal->second);
-  }
-  else {
+  } else {
     std::string error_msg = fmt::format("Wrong type: {0}, should be either 'S' or 'P'.", static_cast<char>(type));
     LogAndWriteErrorMsg(error_msg, out);
     return Transition::PROCEED;
   }
 
-  if(column_names.empty())
+  if (column_names.empty())
     out->WriteNoData();
   else
     out->WriteRowDescription(column_names);
@@ -252,7 +245,7 @@ Transition ExecuteCommand::Exec(PostgresProtocolInterpreter *interpreter, Postgr
   }
 
   traffic_cop::ResultSet result = t_cop->Execute(&(p_portal->second));
-  for(const auto &row : result.rows_) out->WriteDataRow(row);
+  for (const auto &row : result.rows_) out->WriteDataRow(row);
 
   out->WriteCommandComplete("");
   return Transition::PROCEED;

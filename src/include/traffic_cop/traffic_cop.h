@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <vector>
+#include <string>
 #include "network/postgres_protocol_utils.h"
 #include "traffic_cop/portal.h"
 #include "traffic_cop/sqlite.h"
@@ -46,10 +47,19 @@ class TrafficCop {
    */
   virtual Portal Bind(const Statement &stmt, const std::shared_ptr<std::vector<type::TransientValue>> &params);
 
+  /**
+   * Return descriptions of columns.
+   * @param stmt
+   * @return
+   */
   virtual std::vector<std::string> DescribeColumns(const Statement &stmt);
 
+  /**
+   * Return descriptions of columns.
+   * @param stmt
+   * @return
+   */
   virtual std::vector<std::string> DescribeColumns(const Portal &portal);
-
 
   /**
    * Execute a portal.

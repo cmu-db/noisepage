@@ -3,6 +3,7 @@
 #include <functional>
 #include <memory>
 #include <vector>
+#include <string>
 #include "network/postgres_protocol_utils.h"
 #include "traffic_cop/result_set.h"
 #include "type/transient_value.h"
@@ -42,6 +43,11 @@ class SqliteEngine {
    */
   void Bind(sqlite3_stmt *stmt, const std::shared_ptr<std::vector<type::TransientValue>> &p_params);
 
+  /**
+   * Return the description of the columns.
+   * @param stmt
+   * @return
+   */
   std::vector<std::string> DescribeColumns(sqlite3_stmt *stmt);
 
   /**

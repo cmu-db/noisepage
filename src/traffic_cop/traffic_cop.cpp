@@ -2,7 +2,7 @@
 #include <util/test_harness.h>
 #include <memory>
 #include <vector>
-#include <traffic_cop/traffic_cop.h>
+#include <string>
 
 #include "network/postgres_protocol_utils.h"
 #include "traffic_cop/traffic_cop.h"
@@ -36,7 +36,6 @@ std::vector<std::string> TrafficCop::DescribeColumns(const Statement &stmt) {
 std::vector<std::string> TrafficCop::DescribeColumns(const Portal &portal) {
   return sqlite_engine.DescribeColumns(portal.sqlite_stmt_);
 }
-
 
 ResultSet TrafficCop::Execute(Portal *portal) {
   sqlite_engine.Bind(portal->sqlite_stmt_, portal->params);
