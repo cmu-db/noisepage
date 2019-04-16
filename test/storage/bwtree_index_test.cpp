@@ -1197,7 +1197,7 @@ TEST_F(BwTreeIndexTests, GenericKeyNonInlineVarlenComparisons) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, BasicScan) {
+TEST_F(BwTreeIndexTests, ScanAscending) {
   IndexKeySchema key_schema;
   key_schema.emplace_back(catalog::indexkeycol_oid_t(0), type::TypeId::INTEGER, false);
 
@@ -1227,7 +1227,7 @@ TEST_F(BwTreeIndexTests, BasicScan) {
   *reinterpret_cast<uint32_t *>(low_key_pr->AccessForceNotNull(0)) = 10;
   *reinterpret_cast<uint32_t *>(high_key_pr->AccessForceNotNull(0)) = 20;
   results.clear();
-  index->Scan(*low_key_pr, *high_key_pr, &results);
+  index->ScanAscending(*low_key_pr, *high_key_pr, &results);
   EXPECT_EQ(results.size(), 6);  // 10, 12, 14, 16, 18, 20
   uint32_t j = 0;
   for (uint32_t i = 10; i <= 20; i += 2) {
@@ -1240,7 +1240,7 @@ TEST_F(BwTreeIndexTests, BasicScan) {
   *reinterpret_cast<uint32_t *>(low_key_pr->AccessForceNotNull(0)) = 11;
   *reinterpret_cast<uint32_t *>(high_key_pr->AccessForceNotNull(0)) = 20;
   results.clear();
-  index->Scan(*low_key_pr, *high_key_pr, &results);
+  index->ScanAscending(*low_key_pr, *high_key_pr, &results);
   EXPECT_EQ(results.size(), 5);  // 12, 14, 16, 18, 20
   j = 0;
   for (uint32_t i = 12; i <= 20; i += 2) {
@@ -1252,10 +1252,319 @@ TEST_F(BwTreeIndexTests, BasicScan) {
   *reinterpret_cast<uint32_t *>(low_key_pr->AccessForceNotNull(0)) = 10;
   *reinterpret_cast<uint32_t *>(high_key_pr->AccessForceNotNull(0)) = 19;
   results.clear();
-  index->Scan(*low_key_pr, *high_key_pr, &results);
+  index->ScanAscending(*low_key_pr, *high_key_pr, &results);
   EXPECT_EQ(results.size(), 5);  // 10, 12, 14, 16, 18
   j = 0;
   for (uint32_t i = 10; i <= 18; i += 2) {
+    storage::TupleSlot index_value = results.at(j);
+    EXPECT_EQ(*reinterpret_cast<uint64_t *>(&index_value), i - 1);
+    j++;
+  }
+
+  *reinterpret_cast<uint32_t *>(low_key_pr->AccessForceNotNull(0)) = 0;
+  *reinterpret_cast<uint32_t *>(high_key_pr->AccessForceNotNull(0)) = 10;
+  results.clear();
+  index->ScanAscending(*low_key_pr, *high_key_pr, &results);
+  EXPECT_EQ(results.size(), 5);  // 2, 4, 6, 8, 10
+  j = 0;
+  for (uint32_t i = 2; i <= 10; i += 2) {
+    storage::TupleSlot index_value = results.at(j);
+    EXPECT_EQ(*reinterpret_cast<uint64_t *>(&index_value), i - 1);
+    j++;
+  }
+
+  *reinterpret_cast<uint32_t *>(low_key_pr->AccessForceNotNull(0)) = 90;
+  *reinterpret_cast<uint32_t *>(high_key_pr->AccessForceNotNull(0)) = 200;
+  results.clear();
+  index->ScanAscending(*low_key_pr, *high_key_pr, &results);
+  EXPECT_EQ(results.size(), 6);  // 90, 92, 94, 96, 98, 100
+  j = 0;
+  for (uint32_t i = 90; i <= 100; i += 2) {
+    storage::TupleSlot index_value = results.at(j);
+    EXPECT_EQ(*reinterpret_cast<uint64_t *>(&index_value), i - 1);
+    j++;
+  }
+
+  delete[] insert_buffer;
+  delete[] low_key_buffer;
+  delete[] high_key_buffer;
+  delete index;
+}
+
+// NOLINTNEXTLINE
+TEST_F(BwTreeIndexTests, ScanDescending) {
+  IndexKeySchema key_schema;
+  key_schema.emplace_back(catalog::indexkeycol_oid_t(0), type::TypeId::INTEGER, false);
+
+  IndexBuilder builder;
+  builder.SetConstraintType(ConstraintType::DEFAULT).SetKeySchema(key_schema).SetOid(catalog::index_oid_t(1));
+  auto *index = builder.Build();
+
+  const auto &initializer = index->GetProjectedRowInitializer();
+  auto *const insert_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+  auto *const insert_pr = initializer.InitializeRow(insert_buffer);
+
+  for (uint32_t i = 1; i <= 50; i++) {
+    const uint32_t key = i * 2;
+    *reinterpret_cast<uint32_t *>(insert_pr->AccessForceNotNull(0)) = key;
+    storage::TupleSlot index_value;
+    *reinterpret_cast<uint64_t *>(&index_value) = key - 1;
+    index->Insert(*insert_pr, index_value);
+  }
+
+  std::vector<storage::TupleSlot> results;
+
+  auto *const low_key_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+  auto *const low_key_pr = initializer.InitializeRow(low_key_buffer);
+  auto *const high_key_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+  auto *const high_key_pr = initializer.InitializeRow(high_key_buffer);
+
+  *reinterpret_cast<uint32_t *>(low_key_pr->AccessForceNotNull(0)) = 10;
+  *reinterpret_cast<uint32_t *>(high_key_pr->AccessForceNotNull(0)) = 20;
+  results.clear();
+  index->ScanDescending(*low_key_pr, *high_key_pr, &results);
+  EXPECT_EQ(results.size(), 6);  // 20, 18, 16, 14, 12, 10
+  uint32_t j = 0;
+  for (uint32_t i = 20; i >= 10; i -= 2) {
+    storage::TupleSlot index_value = results.at(j);
+    EXPECT_EQ(*reinterpret_cast<uint64_t *>(&index_value), i - 1);
+    j++;
+  }
+
+  results.clear();
+  *reinterpret_cast<uint32_t *>(low_key_pr->AccessForceNotNull(0)) = 11;
+  *reinterpret_cast<uint32_t *>(high_key_pr->AccessForceNotNull(0)) = 20;
+  results.clear();
+  index->ScanDescending(*low_key_pr, *high_key_pr, &results);
+  EXPECT_EQ(results.size(), 5);  // 20, 18, 16, 14, 12
+  j = 0;
+  for (uint32_t i = 20; i >= 12; i -= 2) {
+    storage::TupleSlot index_value = results.at(j);
+    EXPECT_EQ(*reinterpret_cast<uint64_t *>(&index_value), i - 1);
+    j++;
+  }
+
+  *reinterpret_cast<uint32_t *>(low_key_pr->AccessForceNotNull(0)) = 10;
+  *reinterpret_cast<uint32_t *>(high_key_pr->AccessForceNotNull(0)) = 19;
+  results.clear();
+  index->ScanDescending(*low_key_pr, *high_key_pr, &results);
+  EXPECT_EQ(results.size(), 5);  // 18, 16, 14, 12, 10
+  j = 0;
+  for (uint32_t i = 18; i >= 10; i -= 2) {
+    storage::TupleSlot index_value = results.at(j);
+    EXPECT_EQ(*reinterpret_cast<uint64_t *>(&index_value), i - 1);
+    j++;
+  }
+
+  *reinterpret_cast<uint32_t *>(low_key_pr->AccessForceNotNull(0)) = 0;
+  *reinterpret_cast<uint32_t *>(high_key_pr->AccessForceNotNull(0)) = 10;
+  results.clear();
+  index->ScanDescending(*low_key_pr, *high_key_pr, &results);
+  EXPECT_EQ(results.size(), 5);  // 10, 8, 6, 4, 2
+  j = 0;
+  for (uint32_t i = 10; i >= 2; i -= 2) {
+    storage::TupleSlot index_value = results.at(j);
+    EXPECT_EQ(*reinterpret_cast<uint64_t *>(&index_value), i - 1);
+    j++;
+  }
+
+  *reinterpret_cast<uint32_t *>(low_key_pr->AccessForceNotNull(0)) = 90;
+  *reinterpret_cast<uint32_t *>(high_key_pr->AccessForceNotNull(0)) = 200;
+  results.clear();
+  index->ScanDescending(*low_key_pr, *high_key_pr, &results);
+  EXPECT_EQ(results.size(), 6);  // 100, 98, 96, 94, 92, 90
+  j = 0;
+  for (uint32_t i = 100; i >= 90; i -= 2) {
+    storage::TupleSlot index_value = results.at(j);
+    EXPECT_EQ(*reinterpret_cast<uint64_t *>(&index_value), i - 1);
+    j++;
+  }
+
+  delete[] insert_buffer;
+  delete[] low_key_buffer;
+  delete[] high_key_buffer;
+  delete index;
+}
+
+// NOLINTNEXTLINE
+TEST_F(BwTreeIndexTests, ScanLimitAscending) {
+  IndexKeySchema key_schema;
+  key_schema.emplace_back(catalog::indexkeycol_oid_t(0), type::TypeId::INTEGER, false);
+
+  IndexBuilder builder;
+  builder.SetConstraintType(ConstraintType::DEFAULT).SetKeySchema(key_schema).SetOid(catalog::index_oid_t(1));
+  auto *index = builder.Build();
+
+  const auto &initializer = index->GetProjectedRowInitializer();
+  auto *const insert_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+  auto *const insert_pr = initializer.InitializeRow(insert_buffer);
+
+  for (uint32_t i = 1; i <= 50; i++) {
+    const uint32_t key = i * 2;
+    *reinterpret_cast<uint32_t *>(insert_pr->AccessForceNotNull(0)) = key;
+    storage::TupleSlot index_value;
+    *reinterpret_cast<uint64_t *>(&index_value) = key - 1;
+    index->Insert(*insert_pr, index_value);
+  }
+
+  std::vector<storage::TupleSlot> results;
+
+  auto *const low_key_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+  auto *const low_key_pr = initializer.InitializeRow(low_key_buffer);
+  auto *const high_key_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+  auto *const high_key_pr = initializer.InitializeRow(high_key_buffer);
+
+  *reinterpret_cast<uint32_t *>(low_key_pr->AccessForceNotNull(0)) = 10;
+  *reinterpret_cast<uint32_t *>(high_key_pr->AccessForceNotNull(0)) = 20;
+  results.clear();
+  index->ScanLimitAscending(*low_key_pr, *high_key_pr, &results, 4);
+  EXPECT_EQ(results.size(), 4);  // 10, 12, 14, 16
+  uint32_t j = 0;
+  for (uint32_t i = 10; i <= 16; i += 2) {
+    storage::TupleSlot index_value = results.at(j);
+    EXPECT_EQ(*reinterpret_cast<uint64_t *>(&index_value), i - 1);
+    j++;
+  }
+
+  results.clear();
+  *reinterpret_cast<uint32_t *>(low_key_pr->AccessForceNotNull(0)) = 11;
+  *reinterpret_cast<uint32_t *>(high_key_pr->AccessForceNotNull(0)) = 20;
+  results.clear();
+  index->ScanLimitAscending(*low_key_pr, *high_key_pr, &results, 4);
+  EXPECT_EQ(results.size(), 4);  // 12, 14, 16, 18
+  j = 0;
+  for (uint32_t i = 12; i <= 18; i += 2) {
+    storage::TupleSlot index_value = results.at(j);
+    EXPECT_EQ(*reinterpret_cast<uint64_t *>(&index_value), i - 1);
+    j++;
+  }
+
+  *reinterpret_cast<uint32_t *>(low_key_pr->AccessForceNotNull(0)) = 10;
+  *reinterpret_cast<uint32_t *>(high_key_pr->AccessForceNotNull(0)) = 19;
+  results.clear();
+  index->ScanLimitAscending(*low_key_pr, *high_key_pr, &results, 4);
+  EXPECT_EQ(results.size(), 4);  // 10, 12, 14, 16
+  j = 0;
+  for (uint32_t i = 10; i <= 16; i += 2) {
+    storage::TupleSlot index_value = results.at(j);
+    EXPECT_EQ(*reinterpret_cast<uint64_t *>(&index_value), i - 1);
+    j++;
+  }
+
+  *reinterpret_cast<uint32_t *>(low_key_pr->AccessForceNotNull(0)) = 0;
+  *reinterpret_cast<uint32_t *>(high_key_pr->AccessForceNotNull(0)) = 10;
+  results.clear();
+  index->ScanLimitAscending(*low_key_pr, *high_key_pr, &results, 4);
+  EXPECT_EQ(results.size(), 4);  // 2, 4, 6, 8
+  j = 0;
+  for (uint32_t i = 2; i <= 8; i += 2) {
+    storage::TupleSlot index_value = results.at(j);
+    EXPECT_EQ(*reinterpret_cast<uint64_t *>(&index_value), i - 1);
+    j++;
+  }
+
+  *reinterpret_cast<uint32_t *>(low_key_pr->AccessForceNotNull(0)) = 90;
+  *reinterpret_cast<uint32_t *>(high_key_pr->AccessForceNotNull(0)) = 200;
+  results.clear();
+  index->ScanLimitAscending(*low_key_pr, *high_key_pr, &results, 4);
+  EXPECT_EQ(results.size(), 4);  // 90, 92, 94, 96
+  j = 0;
+  for (uint32_t i = 90; i <= 96; i += 2) {
+    storage::TupleSlot index_value = results.at(j);
+    EXPECT_EQ(*reinterpret_cast<uint64_t *>(&index_value), i - 1);
+    j++;
+  }
+
+  delete[] insert_buffer;
+  delete[] low_key_buffer;
+  delete[] high_key_buffer;
+  delete index;
+}
+
+// NOLINTNEXTLINE
+TEST_F(BwTreeIndexTests, ScanLimitDescending) {
+  IndexKeySchema key_schema;
+  key_schema.emplace_back(catalog::indexkeycol_oid_t(0), type::TypeId::INTEGER, false);
+
+  IndexBuilder builder;
+  builder.SetConstraintType(ConstraintType::DEFAULT).SetKeySchema(key_schema).SetOid(catalog::index_oid_t(1));
+  auto *index = builder.Build();
+
+  const auto &initializer = index->GetProjectedRowInitializer();
+  auto *const insert_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+  auto *const insert_pr = initializer.InitializeRow(insert_buffer);
+
+  for (uint32_t i = 1; i <= 50; i++) {
+    const uint32_t key = i * 2;
+    *reinterpret_cast<uint32_t *>(insert_pr->AccessForceNotNull(0)) = key;
+    storage::TupleSlot index_value;
+    *reinterpret_cast<uint64_t *>(&index_value) = key - 1;
+    index->Insert(*insert_pr, index_value);
+  }
+
+  std::vector<storage::TupleSlot> results;
+
+  auto *const low_key_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+  auto *const low_key_pr = initializer.InitializeRow(low_key_buffer);
+  auto *const high_key_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+  auto *const high_key_pr = initializer.InitializeRow(high_key_buffer);
+
+  *reinterpret_cast<uint32_t *>(low_key_pr->AccessForceNotNull(0)) = 10;
+  *reinterpret_cast<uint32_t *>(high_key_pr->AccessForceNotNull(0)) = 20;
+  results.clear();
+  index->ScanLimitDescending(*low_key_pr, *high_key_pr, &results, 4);
+  EXPECT_EQ(results.size(), 4);  // 20, 18, 16, 14
+  uint32_t j = 0;
+  for (uint32_t i = 20; i >= 14; i -= 2) {
+    storage::TupleSlot index_value = results.at(j);
+    EXPECT_EQ(*reinterpret_cast<uint64_t *>(&index_value), i - 1);
+    j++;
+  }
+
+  results.clear();
+  *reinterpret_cast<uint32_t *>(low_key_pr->AccessForceNotNull(0)) = 11;
+  *reinterpret_cast<uint32_t *>(high_key_pr->AccessForceNotNull(0)) = 20;
+  results.clear();
+  index->ScanLimitDescending(*low_key_pr, *high_key_pr, &results, 4);
+  EXPECT_EQ(results.size(), 4);  // 20, 18, 16, 14
+  j = 0;
+  for (uint32_t i = 20; i >= 14; i -= 2) {
+    storage::TupleSlot index_value = results.at(j);
+    EXPECT_EQ(*reinterpret_cast<uint64_t *>(&index_value), i - 1);
+    j++;
+  }
+
+  *reinterpret_cast<uint32_t *>(low_key_pr->AccessForceNotNull(0)) = 10;
+  *reinterpret_cast<uint32_t *>(high_key_pr->AccessForceNotNull(0)) = 19;
+  results.clear();
+  index->ScanLimitDescending(*low_key_pr, *high_key_pr, &results, 4);
+  EXPECT_EQ(results.size(), 4);  // 18, 16, 14, 12
+  j = 0;
+  for (uint32_t i = 18; i >= 12; i -= 2) {
+    storage::TupleSlot index_value = results.at(j);
+    EXPECT_EQ(*reinterpret_cast<uint64_t *>(&index_value), i - 1);
+    j++;
+  }
+
+  *reinterpret_cast<uint32_t *>(low_key_pr->AccessForceNotNull(0)) = 0;
+  *reinterpret_cast<uint32_t *>(high_key_pr->AccessForceNotNull(0)) = 10;
+  results.clear();
+  index->ScanLimitDescending(*low_key_pr, *high_key_pr, &results, 4);
+  EXPECT_EQ(results.size(), 4);  // 10, 8, 6, 4
+  j = 0;
+  for (uint32_t i = 10; i >= 4; i -= 2) {
+    storage::TupleSlot index_value = results.at(j);
+    EXPECT_EQ(*reinterpret_cast<uint64_t *>(&index_value), i - 1);
+    j++;
+  }
+
+  *reinterpret_cast<uint32_t *>(low_key_pr->AccessForceNotNull(0)) = 90;
+  *reinterpret_cast<uint32_t *>(high_key_pr->AccessForceNotNull(0)) = 200;
+  results.clear();
+  index->ScanLimitDescending(*low_key_pr, *high_key_pr, &results, 4);
+  EXPECT_EQ(results.size(), 4);  // 100, 98, 96, 94
+  j = 0;
+  for (uint32_t i = 100; i >= 94; i -= 2) {
     storage::TupleSlot index_value = results.at(j);
     EXPECT_EQ(*reinterpret_cast<uint64_t *>(&index_value), i - 1);
     j++;
