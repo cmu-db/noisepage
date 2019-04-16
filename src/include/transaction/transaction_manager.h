@@ -75,6 +75,21 @@ class TransactionManager {
    */
   TransactionQueue CompletedTransactionsForGC();
 
+  /**
+   * Adds the action to a buffered list of deferred actions.  This action will
+   * be triggered no sooner than when the epoch (timestamp of oldest running
+   * transaction) is more recent than the time this function was called.
+   * @param action functional implementation of the action that is deferred
+   */
+  void DeferAction(Action a);
+
+  /**
+   * Transfers the buffered list of deferred actions to the GC for eventual
+   * execution.
+   * @return the deferred actions
+   */
+  ActionQueue DeferredActionsForGC();
+
  private:
   storage::RecordBufferSegmentPool *buffer_pool_;
   // TODO(Tianyu): Timestamp generation needs to be more efficient (batches)
@@ -91,6 +106,9 @@ class TransactionManager {
   bool gc_enabled_ = false;
   TransactionQueue completed_txns_;
   storage::LogManager *const log_manager_;
+
+  ActionQueue deferred_actions_;
+  mutable common::SpinLatch deferred_actions_latch_;
 
   timestamp_t ReadOnlyCommitCriticalSection(TransactionContext *txn, transaction::callback_fn callback,
                                             void *callback_arg);

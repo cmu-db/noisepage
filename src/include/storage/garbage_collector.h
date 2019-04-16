@@ -51,6 +51,11 @@ class GarbageCollector {
    */
   uint32_t ProcessUnlinkQueue();
 
+  /**
+   * Process deferred actions
+   */
+  void ProcessDeferredActions();
+
   void ReclaimSlotIfDeleted(UndoRecord *undo_record) const;
 
   void ReclaimBufferIfVarlen(transaction::TransactionContext *txn, UndoRecord *undo_record) const;
@@ -64,6 +69,8 @@ class GarbageCollector {
   transaction::TransactionQueue txns_to_deallocate_;
   // queue of txns that need to be unlinked
   transaction::TransactionQueue txns_to_unlink_;
+  // queue of unexecuted deferred actions
+  transaction::ActionQueue deferred_actions_;
 };
 
 }  // namespace terrier::storage

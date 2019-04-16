@@ -37,7 +37,7 @@ class RandomDataTableTestObject {
     StorageTestUtil::PopulateRandomRow(redo, layout_, null_bias_, generator);
 
     // generate a txn with an UndoRecord to populate on Insert
-    auto *txn = new transaction::TransactionContext(timestamp, timestamp, buffer_pool, LOGGING_DISABLED);
+    auto *txn = new transaction::TransactionContext(timestamp, timestamp, buffer_pool, LOGGING_DISABLED, nullptr);
     loose_txns_.push_back(txn);
 
     storage::TupleSlot slot = table_.Insert(txn, *redo);
@@ -81,7 +81,7 @@ class RandomDataTableTestObject {
     StorageTestUtil::PopulateRandomRow(update, layout_, null_bias_, generator);
 
     // generate a txn with an UndoRecord to populate on Insert
-    auto *txn = new transaction::TransactionContext(timestamp, timestamp, buffer_pool, LOGGING_DISABLED);
+    auto *txn = new transaction::TransactionContext(timestamp, timestamp, buffer_pool, LOGGING_DISABLED, nullptr);
     loose_txns_.push_back(txn);
 
     bool result = table_.Update(txn, slot, *update);
@@ -122,7 +122,7 @@ class RandomDataTableTestObject {
   storage::ProjectedRow *SelectIntoBuffer(const storage::TupleSlot slot, const transaction::timestamp_t timestamp,
                                           storage::RecordBufferSegmentPool *buffer_pool) {
     // generate a txn with an UndoRecord to populate on Insert
-    auto *txn = new transaction::TransactionContext(timestamp, timestamp, buffer_pool, LOGGING_DISABLED);
+    auto *txn = new transaction::TransactionContext(timestamp, timestamp, buffer_pool, LOGGING_DISABLED, nullptr);
     loose_txns_.push_back(txn);
 
     // generate a redo ProjectedRow for Select
@@ -133,7 +133,7 @@ class RandomDataTableTestObject {
 
   void Scan(storage::DataTable::SlotIterator *begin, const transaction::timestamp_t timestamp,
             storage::ProjectedColumns *buffer, storage::RecordBufferSegmentPool *buffer_pool) {
-    auto *txn = new transaction::TransactionContext(timestamp, timestamp, buffer_pool, LOGGING_DISABLED);
+    auto *txn = new transaction::TransactionContext(timestamp, timestamp, buffer_pool, LOGGING_DISABLED, nullptr);
     loose_txns_.push_back(txn);
     table_.Scan(txn, begin, buffer);
   }
@@ -297,7 +297,7 @@ TEST_F(DataTableTests, InsertNoWrap) {
     storage::RawBlock *block = nullptr;
     // fill the block. bypass the test object to be more efficient with buffers
     transaction::timestamp_t timestamp(0);
-    auto *txn = new transaction::TransactionContext(timestamp, timestamp, &buffer_pool_, LOGGING_DISABLED);
+    auto *txn = new transaction::TransactionContext(timestamp, timestamp, &buffer_pool_, LOGGING_DISABLED, nullptr);
     for (uint32_t i = 0; i < tested.Layout().NumSlots(); i++) {
       storage::RawBlock *inserted_block = tested.InsertRandomTuple(txn, &generator_, &buffer_pool_).GetBlock();
       if (block == nullptr) block = inserted_block;

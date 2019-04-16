@@ -32,8 +32,11 @@ class TransactionContext {
    * @param log_manager pointer to log manager in the system, or nullptr, if logging is disabled
    */
   TransactionContext(const timestamp_t start, const timestamp_t txn_id,
-                     storage::RecordBufferSegmentPool *const buffer_pool, storage::LogManager *const log_manager)
-      : start_time_(start), txn_id_(txn_id), undo_buffer_(buffer_pool), redo_buffer_(log_manager, buffer_pool) {}
+                     storage::RecordBufferSegmentPool *const buffer_pool, storage::LogManager *const log_manager,
+                     TransactionManager *txn_mgr)
+      : start_time_(start), txn_id_(txn_id), undo_buffer_(buffer_pool), redo_buffer_(log_manager, buffer_pool) {
+    txn_mgr_ = txn_mgr;
+  }
 
   ~TransactionContext() {
     for (const byte *ptr : loose_ptrs_) delete[] ptr;
@@ -116,6 +119,27 @@ class TransactionContext {
     storage::DeleteRecord::Initialize(redo_buffer_.NewEntry(size), start_time_, table, slot);
   }
 
+  /**
+   * Defers an action to be called if and only if the transaction aborts.  Actions executed LIFO.
+   * @param a the action to be executed
+   */
+  void RegisterAbortAction(Action const &a) { abort_actions_.push_front(a); }
+
+  /**
+   * Defers an action to be called if and only if the transaction commits.  Actions executed LIFO.
+   * @param a the action to be executed
+   */
+  void RegisterCommitAction(Action const &a) { commit_actions_.push_front(a); }
+
+  /**
+   * Get the transaction manager responsible for this context (should be singleton).
+   * @warning This should only be used to support dynamically generating deferred actions
+   *          at abort or commit.  We need to expose the transaction manager because that
+   *          is where the deferred actions queue exists.
+   * @return the transaction manager
+   */
+  TransactionManager *GetTransactionManager() { return txn_mgr_; }
+
  private:
   friend class storage::GarbageCollector;
   friend class TransactionManager;
@@ -127,6 +151,15 @@ class TransactionContext {
   // TODO(Tianyu): Maybe not so much of a good idea to do this. Make explicit queue in GC?
   //
   std::vector<const byte *> loose_ptrs_;
+
+  // These actions will be triggered (not deferred) at abort/commit.
+  std::forward_list<Action> abort_actions_;
+  std::forward_list<Action> commit_actions_;
+
+  // Need this reference because the transaction manager is center point for
+  // adding epoch trigger deferrals.
+  TransactionManager *txn_mgr_;
+
   // log manager will set this to be true when log records are processed (not necessarily flushed, but will not be read
   // again in the future), so it can be garbage-collected safely.
   bool log_processed_ = false;

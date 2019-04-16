@@ -1,6 +1,9 @@
 #pragma once
 
 #include <forward_list>
+#include <functional>
+#include <queue>
+#include <utility>
 #include "common/strong_typedef.h"
 namespace terrier::transaction {
 STRONG_TYPEDEF(timestamp_t, uint64_t);
@@ -14,4 +17,7 @@ class TransactionContext;
 // bottleneck.
 using TransactionQueue = std::forward_list<transaction::TransactionContext *>;
 using callback_fn = void (*)(void *);
+
+using Action = std::function<void()>;
+using ActionQueue = std::queue<std::pair<timestamp_t, Action>>;
 }  // namespace terrier::transaction
