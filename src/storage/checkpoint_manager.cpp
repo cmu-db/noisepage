@@ -4,38 +4,27 @@
 #define NUM_RESERVED_COLUMNS 1u
 
 namespace terrier::storage {
-void CheckpointManager::Checkpoint(const SqlTable &table, const BlockLayout &layout) {
-  std::vector<storage::col_id_t> all_col(layout.NumColumns() - NUM_RESERVED_COLUMNS);
-  // Add all of the column ids from the layout to the projection list
-  // 0 is version vector so we skip it
-  for (uint16_t col = NUM_RESERVED_COLUMNS; col < layout.NumColumns(); col++) {
-    all_col[col - NUM_RESERVED_COLUMNS] = storage::col_id_t(col);
+void CheckpointManager::Checkpoint(const SqlTable &table, const catalog::Schema &schema) {
+  std::vector<catalog::col_oid_t> all_col(schema.GetColumns().size());
+  uint16_t col_idx = 0;
+  for (const catalog::Schema::Column &column : schema.GetColumns()) {
+    all_col[col_idx] = column.GetOid();
+    col_idx++;
   }
 
-  // TODO(Mengyang): should calculate number of tuple to fit in buffer_size_
-  // now I only use a magic number here
-  uint32_t max_tuples = 10;
-
-  ProjectedColumnsInitializer column_initializer(layout, all_col, max_tuples);
-  auto *scan_buffer = common::AllocationUtil::AllocateAligned(column_initializer.ProjectedColumnsSize());
-  ProjectedColumns *columns = column_initializer.Initialize(scan_buffer);
-
-  ProjectedRowInitializer row_initializer = ProjectedRowInitializer::CreateProjectedRowInitializer(layout, all_col);
-  auto *redo_buffer = common::AllocationUtil::AllocateAligned(row_initializer.ProjectedRowSize());
-  ProjectedRow *row_buffer = row_initializer.InitializeRow(redo_buffer);
+  auto row_pair = table.InitializerForProjectedRow(all_col);
+  auto *redo_buffer = common::AllocationUtil::AllocateAligned(row_pair.first.ProjectedRowSize());
+  ProjectedRow *row_buffer = row_pair.first.InitializeRow(redo_buffer);
 
   auto it = table.begin();
   auto end = table.end();
   while (it != end) {
-    table.Scan(txn_, &it, columns);
-    uint32_t num_tuples = columns->NumTuples();
-    for (uint32_t off = 0; off < num_tuples; off++) {
-      ProjectedColumns::RowView row = columns->InterpretAsRow(layout, off);
-      out_.SerializeTuple(&row, row_buffer, layout);
+    if (table.Select(txn_, *it, row_buffer)) {
+      out_.SerializeTuple(row_buffer, schema, row_pair.second);
     }
+    it++;
   }
   out_.Persist();
-  delete[] scan_buffer;
   delete[] redo_buffer;
 }
 
@@ -68,8 +57,6 @@ void CheckpointManager::Recover(const char *log_file_path) {
         }
       }
       table->Insert(txn_, *row);
-      // TODO(mengyang): currently delete row here. this line should be deleted after alignment in checkpoint is done.
-      delete[] reinterpret_cast<byte *>(row);
     }
   }
 }

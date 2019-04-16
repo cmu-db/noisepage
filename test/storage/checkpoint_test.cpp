@@ -35,7 +35,7 @@ TEST_F(CheckpointTests, SimpleCheckpointNoVarlen) {
 
   transaction::TransactionContext *txn = txn_manager->BeginTransaction();
   manager.StartCheckpoint(txn);
-  manager.Checkpoint(*table, tested.GetLayout());
+  manager.Checkpoint(*table, *tested.GetSchema());
   manager.EndCheckpoint();
   txn_manager->Commit(txn, StorageTestUtil::EmptyCallback, nullptr);
   unlink(manager.GetCheckpointFilePath(txn).c_str());
@@ -60,7 +60,7 @@ TEST_F(CheckpointTests, SimpleCheckpointWithVarlen) {
 
   transaction::TransactionContext *txn = txn_manager->BeginTransaction();
   manager.StartCheckpoint(txn);
-  manager.Checkpoint(*table, tested.GetLayout());
+  manager.Checkpoint(*table, *tested.GetSchema());
   manager.EndCheckpoint();
   txn_manager->Commit(txn, StorageTestUtil::EmptyCallback, nullptr);
   unlink(manager.GetCheckpointFilePath(txn).c_str());
@@ -88,7 +88,7 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryNoVarlen) {
   // checkpoint
   transaction::TransactionContext *checkpoint_txn = txn_manager->BeginTransaction();
   manager.StartCheckpoint(checkpoint_txn);
-  manager.Checkpoint(*table, layout);
+  manager.Checkpoint(*table, *tested.GetSchema());
   manager.EndCheckpoint();
   txn_manager->Commit(checkpoint_txn, StorageTestUtil::EmptyCallback, nullptr);
   std::string checkpoint_path = manager.GetCheckpointFilePath(checkpoint_txn);
@@ -150,7 +150,7 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryWithVarlen) {
   // checkpoint
   transaction::TransactionContext *checkpoint_txn = txn_manager->BeginTransaction();
   manager.StartCheckpoint(checkpoint_txn);
-  manager.Checkpoint(*table, layout);
+  manager.Checkpoint(*table, *tested.GetSchema());
   manager.EndCheckpoint();
   txn_manager->Commit(checkpoint_txn, StorageTestUtil::EmptyCallback, nullptr);
   std::string checkpoint_path = manager.GetCheckpointFilePath(checkpoint_txn);

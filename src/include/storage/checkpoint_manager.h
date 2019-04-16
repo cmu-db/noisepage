@@ -61,7 +61,7 @@ class CheckpointManager {
    *                 * use a batch of ProjectedRows as buffer
    *                 * support morsel
    */
-  void Checkpoint(const SqlTable &table, const BlockLayout &layout);
+  void Checkpoint(const SqlTable &table, const catalog::Schema &schema);
 
   /**
    * Begin a recovery. This will clear all registered tables and layouts.
