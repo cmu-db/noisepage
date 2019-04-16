@@ -128,7 +128,7 @@ class Delivery {
 
     auto *const txn = txn_manager->BeginTransaction();
 
-    for (int32_t d_id = 1; d_id <= 10; d_id++) {
+    for (int8_t d_id = 1; d_id <= 10; d_id++) {
       std::vector<storage::TupleSlot> index_scan_results;
 
       // TODO(WAN): this should be ScanLimit() or something similar, just prototyping what needs to happen
@@ -137,12 +137,12 @@ class Delivery {
       auto *const new_order_key_lo = new_order_key_pr_initializer.InitializeRow(worker->new_order_key_buffer);
       auto *const new_order_key_hi = new_order_key_pr_initializer.InitializeRow(worker->new_order_tuple_buffer);
 
-      *reinterpret_cast<int32_t *>(new_order_key_lo->AccessForceNotNull(no_w_id_key_pr_offset)) = args.w_id;
-      *reinterpret_cast<int32_t *>(new_order_key_lo->AccessForceNotNull(no_d_id_key_pr_offset)) = d_id;
+      *reinterpret_cast<int8_t *>(new_order_key_lo->AccessForceNotNull(no_w_id_key_pr_offset)) = args.w_id;
+      *reinterpret_cast<int8_t *>(new_order_key_lo->AccessForceNotNull(no_d_id_key_pr_offset)) = d_id;
       *reinterpret_cast<int32_t *>(new_order_key_lo->AccessForceNotNull(no_o_id_key_pr_offset)) = 1;
 
-      *reinterpret_cast<int32_t *>(new_order_key_hi->AccessForceNotNull(no_w_id_key_pr_offset)) = args.w_id;
-      *reinterpret_cast<int32_t *>(new_order_key_hi->AccessForceNotNull(no_d_id_key_pr_offset)) = d_id;
+      *reinterpret_cast<int8_t *>(new_order_key_hi->AccessForceNotNull(no_w_id_key_pr_offset)) = args.w_id;
+      *reinterpret_cast<int8_t *>(new_order_key_hi->AccessForceNotNull(no_d_id_key_pr_offset)) = d_id;
       *reinterpret_cast<int32_t *>(new_order_key_hi->AccessForceNotNull(no_o_id_key_pr_offset)) = 10000000;  // max O_ID
 
       db->new_order_index_->ScanLimit(*new_order_key_lo, *new_order_key_hi, &index_scan_results, 1);
@@ -167,8 +167,8 @@ class Delivery {
       // Delete the index entry
       auto *const new_order_delete_key = new_order_key_pr_initializer.InitializeRow(worker->new_order_key_buffer);
 
-      *reinterpret_cast<int32_t *>(new_order_delete_key->AccessForceNotNull(no_w_id_key_pr_offset)) = args.w_id;
-      *reinterpret_cast<int32_t *>(new_order_delete_key->AccessForceNotNull(no_d_id_key_pr_offset)) = d_id;
+      *reinterpret_cast<int8_t *>(new_order_delete_key->AccessForceNotNull(no_w_id_key_pr_offset)) = args.w_id;
+      *reinterpret_cast<int8_t *>(new_order_delete_key->AccessForceNotNull(no_d_id_key_pr_offset)) = d_id;
       *reinterpret_cast<int32_t *>(new_order_delete_key->AccessForceNotNull(no_o_id_key_pr_offset)) = no_o_id;
       delete_result = db->new_order_index_->Delete(*new_order_delete_key, new_order_slot);
       TERRIER_ASSERT(
@@ -179,8 +179,8 @@ class Delivery {
       const auto order_key_pr_initializer = db->order_index_->GetProjectedRowInitializer();
       auto *const order_key = order_key_pr_initializer.InitializeRow(worker->order_key_buffer);
 
-      *reinterpret_cast<int32_t *>(order_key->AccessForceNotNull(o_w_id_key_pr_offset)) = args.w_id;
-      *reinterpret_cast<int32_t *>(order_key->AccessForceNotNull(o_d_id_key_pr_offset)) = d_id;
+      *reinterpret_cast<int8_t *>(order_key->AccessForceNotNull(o_w_id_key_pr_offset)) = args.w_id;
+      *reinterpret_cast<int8_t *>(order_key->AccessForceNotNull(o_d_id_key_pr_offset)) = d_id;
       *reinterpret_cast<int32_t *>(order_key->AccessForceNotNull(o_id_key_pr_offset)) = no_o_id;
 
       index_scan_results.clear();
@@ -198,7 +198,7 @@ class Delivery {
 
       // update O_CARRIER_ID
       auto *order_update_tuple = order_update_pr_initializer.InitializeRow(worker->order_tuple_buffer);
-      *reinterpret_cast<int32_t *>(order_update_tuple->AccessForceNotNull(0)) = args.o_carrier_id;
+      *reinterpret_cast<int8_t *>(order_update_tuple->AccessForceNotNull(0)) = args.o_carrier_id;
       bool update_result UNUSED_ATTRIBUTE = db->order_table_->Update(txn, order_slot, *order_update_tuple);
       TERRIER_ASSERT(select_result,
                      "Order update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
@@ -208,15 +208,15 @@ class Delivery {
       auto *const order_line_key_lo = order_line_key_pr_initializer.InitializeRow(worker->order_line_key_buffer);
       auto *const order_line_key_hi = order_line_key_pr_initializer.InitializeRow(worker->order_line_tuple_buffer);
 
-      *reinterpret_cast<int32_t *>(order_line_key_lo->AccessForceNotNull(ol_w_id_key_pr_offset)) = args.w_id;
-      *reinterpret_cast<int32_t *>(order_line_key_lo->AccessForceNotNull(ol_d_id_key_pr_offset)) = d_id;
+      *reinterpret_cast<int8_t *>(order_line_key_lo->AccessForceNotNull(ol_w_id_key_pr_offset)) = args.w_id;
+      *reinterpret_cast<int8_t *>(order_line_key_lo->AccessForceNotNull(ol_d_id_key_pr_offset)) = d_id;
       *reinterpret_cast<int32_t *>(order_line_key_lo->AccessForceNotNull(ol_o_id_key_pr_offset)) = no_o_id;
-      *reinterpret_cast<int32_t *>(order_line_key_lo->AccessForceNotNull(ol_number_key_pr_offset)) = 1;
+      *reinterpret_cast<int8_t *>(order_line_key_lo->AccessForceNotNull(ol_number_key_pr_offset)) = 1;
 
-      *reinterpret_cast<int32_t *>(order_line_key_hi->AccessForceNotNull(ol_w_id_key_pr_offset)) = args.w_id;
-      *reinterpret_cast<int32_t *>(order_line_key_hi->AccessForceNotNull(ol_d_id_key_pr_offset)) = d_id;
+      *reinterpret_cast<int8_t *>(order_line_key_hi->AccessForceNotNull(ol_w_id_key_pr_offset)) = args.w_id;
+      *reinterpret_cast<int8_t *>(order_line_key_hi->AccessForceNotNull(ol_d_id_key_pr_offset)) = d_id;
       *reinterpret_cast<int32_t *>(order_line_key_hi->AccessForceNotNull(ol_o_id_key_pr_offset)) = no_o_id;
-      *reinterpret_cast<int32_t *>(order_line_key_hi->AccessForceNotNull(ol_number_key_pr_offset)) =
+      *reinterpret_cast<int8_t *>(order_line_key_hi->AccessForceNotNull(ol_number_key_pr_offset)) =
           15;  // max OL_NUMBER
 
       index_scan_results.clear();
@@ -245,8 +245,8 @@ class Delivery {
       const auto customer_key_pr_initializer = db->customer_index_->GetProjectedRowInitializer();
       auto *const customer_key = customer_key_pr_initializer.InitializeRow(worker->customer_key_buffer);
 
-      *reinterpret_cast<int32_t *>(customer_key->AccessForceNotNull(c_w_id_key_pr_offset)) = args.w_id;
-      *reinterpret_cast<int32_t *>(customer_key->AccessForceNotNull(c_d_id_key_pr_offset)) = d_id;
+      *reinterpret_cast<int8_t *>(customer_key->AccessForceNotNull(c_w_id_key_pr_offset)) = args.w_id;
+      *reinterpret_cast<int8_t *>(customer_key->AccessForceNotNull(c_d_id_key_pr_offset)) = d_id;
       *reinterpret_cast<int32_t *>(customer_key->AccessForceNotNull(c_id_key_pr_offset)) = o_c_id;
 
       // Increase C_BALANCE by OL_AMOUNT, increase C_DELIVERY_CNT

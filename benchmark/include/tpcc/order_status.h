@@ -149,8 +149,8 @@ class OrderStatus {
       auto *const customer_key = customer_key_pr_initializer.InitializeRow(worker->customer_key_buffer);
 
       *reinterpret_cast<int32_t *>(customer_key->AccessForceNotNull(c_id_key_pr_offset)) = args.c_id;
-      *reinterpret_cast<int32_t *>(customer_key->AccessForceNotNull(c_d_id_key_pr_offset)) = args.d_id;
-      *reinterpret_cast<int32_t *>(customer_key->AccessForceNotNull(c_w_id_key_pr_offset)) = args.w_id;
+      *reinterpret_cast<int8_t *>(customer_key->AccessForceNotNull(c_d_id_key_pr_offset)) = args.d_id;
+      *reinterpret_cast<int8_t *>(customer_key->AccessForceNotNull(c_w_id_key_pr_offset)) = args.w_id;
 
       index_scan_results.clear();
       db->customer_index_->ScanKey(*customer_key, &index_scan_results);
@@ -163,8 +163,8 @@ class OrderStatus {
 
       *reinterpret_cast<storage::VarlenEntry *>(customer_name_key->AccessForceNotNull(c_last_name_key_pr_offset)) =
           args.c_last;
-      *reinterpret_cast<int32_t *>(customer_name_key->AccessForceNotNull(c_d_id_name_key_pr_offset)) = args.d_id;
-      *reinterpret_cast<int32_t *>(customer_name_key->AccessForceNotNull(c_w_id_name_key_pr_offset)) = args.w_id;
+      *reinterpret_cast<int8_t *>(customer_name_key->AccessForceNotNull(c_d_id_name_key_pr_offset)) = args.d_id;
+      *reinterpret_cast<int8_t *>(customer_name_key->AccessForceNotNull(c_w_id_name_key_pr_offset)) = args.w_id;
 
       index_scan_results.clear();
       db->customer_name_index_->ScanKey(*customer_name_key, &index_scan_results);
@@ -207,16 +207,17 @@ class OrderStatus {
         order_secondary_key_pr_initializer.InitializeRow(worker->order_tuple_buffer);  // it's large enough
 
     *reinterpret_cast<int32_t *>(order_secondary_low_key->AccessForceNotNull(o_id_secondary_key_pr_offset)) = 1;
-    *reinterpret_cast<int32_t *>(order_secondary_low_key->AccessForceNotNull(o_d_id_secondary_key_pr_offset)) =
+    *reinterpret_cast<int8_t *>(order_secondary_low_key->AccessForceNotNull(o_d_id_secondary_key_pr_offset)) =
         args.d_id;
-    *reinterpret_cast<int32_t *>(order_secondary_low_key->AccessForceNotNull(o_w_id_secondary_key_pr_offset)) =
+    *reinterpret_cast<int8_t *>(order_secondary_low_key->AccessForceNotNull(o_w_id_secondary_key_pr_offset)) =
         args.w_id;
     *reinterpret_cast<int32_t *>(order_secondary_low_key->AccessForceNotNull(o_c_id_secondary_key_pr_offset)) = c_id;
 
-    *reinterpret_cast<int32_t *>(order_secondary_high_key->AccessForceNotNull(o_id_secondary_key_pr_offset)) = 10000000;
-    *reinterpret_cast<int32_t *>(order_secondary_high_key->AccessForceNotNull(o_d_id_secondary_key_pr_offset)) =
+    *reinterpret_cast<int32_t *>(order_secondary_high_key->AccessForceNotNull(o_id_secondary_key_pr_offset)) =
+        10000000;
+    *reinterpret_cast<int8_t *>(order_secondary_high_key->AccessForceNotNull(o_d_id_secondary_key_pr_offset)) =
         args.d_id;
-    *reinterpret_cast<int32_t *>(order_secondary_high_key->AccessForceNotNull(o_w_id_secondary_key_pr_offset)) =
+    *reinterpret_cast<int8_t *>(order_secondary_high_key->AccessForceNotNull(o_w_id_secondary_key_pr_offset)) =
         args.w_id;
     *reinterpret_cast<int32_t *>(order_secondary_high_key->AccessForceNotNull(o_c_id_secondary_key_pr_offset)) = c_id;
 
@@ -240,14 +241,14 @@ class OrderStatus {
     auto *const order_line_high_key =
         order_line_key_pr_initializer.InitializeRow(worker->order_line_tuple_buffer);  // it's large enough
 
-    *reinterpret_cast<int32_t *>(order_line_low_key->AccessForceNotNull(ol_number_key_pr_offset)) = 1;
-    *reinterpret_cast<int32_t *>(order_line_low_key->AccessForceNotNull(ol_d_id_key_pr_offset)) = args.d_id;
-    *reinterpret_cast<int32_t *>(order_line_low_key->AccessForceNotNull(ol_w_id_key_pr_offset)) = args.w_id;
+    *reinterpret_cast<int8_t *>(order_line_low_key->AccessForceNotNull(ol_number_key_pr_offset)) = 1;
+    *reinterpret_cast<int8_t *>(order_line_low_key->AccessForceNotNull(ol_d_id_key_pr_offset)) = args.d_id;
+    *reinterpret_cast<int8_t *>(order_line_low_key->AccessForceNotNull(ol_w_id_key_pr_offset)) = args.w_id;
     *reinterpret_cast<int32_t *>(order_line_low_key->AccessForceNotNull(ol_o_id_key_pr_offset)) = o_id;
 
-    *reinterpret_cast<int32_t *>(order_line_high_key->AccessForceNotNull(ol_number_key_pr_offset)) = 15;
-    *reinterpret_cast<int32_t *>(order_line_high_key->AccessForceNotNull(ol_d_id_key_pr_offset)) = args.d_id;
-    *reinterpret_cast<int32_t *>(order_line_high_key->AccessForceNotNull(ol_w_id_key_pr_offset)) = args.w_id;
+    *reinterpret_cast<int8_t *>(order_line_high_key->AccessForceNotNull(ol_number_key_pr_offset)) = 15;
+    *reinterpret_cast<int8_t *>(order_line_high_key->AccessForceNotNull(ol_d_id_key_pr_offset)) = args.d_id;
+    *reinterpret_cast<int8_t *>(order_line_high_key->AccessForceNotNull(ol_w_id_key_pr_offset)) = args.w_id;
     *reinterpret_cast<int32_t *>(order_line_high_key->AccessForceNotNull(ol_o_id_key_pr_offset)) = o_id;
 
     index_scan_results.clear();

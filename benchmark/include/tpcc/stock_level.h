@@ -71,8 +71,8 @@ class StockLevel {
     const auto district_key_pr_initializer = db->district_index_->GetProjectedRowInitializer();
     auto *const district_key = district_key_pr_initializer.InitializeRow(worker->district_key_buffer);
 
-    *reinterpret_cast<int32_t *>(district_key->AccessForceNotNull(d_id_key_pr_offset)) = args.d_id;
-    *reinterpret_cast<int32_t *>(district_key->AccessForceNotNull(d_w_id_key_pr_offset)) = args.w_id;
+    *reinterpret_cast<int8_t *>(district_key->AccessForceNotNull(d_id_key_pr_offset)) = args.d_id;
+    *reinterpret_cast<int8_t *>(district_key->AccessForceNotNull(d_w_id_key_pr_offset)) = args.w_id;
 
     index_scan_results.clear();
     db->district_index_->ScanKey(*district_key, &index_scan_results);
@@ -90,15 +90,15 @@ class StockLevel {
     auto *const order_line_key_lo = order_line_key_pr_initializer.InitializeRow(worker->order_line_key_buffer);
     auto *const order_line_key_hi = order_line_key_pr_initializer.InitializeRow(worker->order_line_tuple_buffer);
 
-    *reinterpret_cast<int32_t *>(order_line_key_lo->AccessForceNotNull(ol_w_id_key_pr_offset)) = args.w_id;
-    *reinterpret_cast<int32_t *>(order_line_key_lo->AccessForceNotNull(ol_d_id_key_pr_offset)) = args.d_id;
+    *reinterpret_cast<int8_t *>(order_line_key_lo->AccessForceNotNull(ol_w_id_key_pr_offset)) = args.w_id;
+    *reinterpret_cast<int8_t *>(order_line_key_lo->AccessForceNotNull(ol_d_id_key_pr_offset)) = args.d_id;
     *reinterpret_cast<int32_t *>(order_line_key_lo->AccessForceNotNull(ol_o_id_key_pr_offset)) = d_next_o_id - 20;
-    *reinterpret_cast<int32_t *>(order_line_key_lo->AccessForceNotNull(ol_number_key_pr_offset)) = 1;
+    *reinterpret_cast<int8_t *>(order_line_key_lo->AccessForceNotNull(ol_number_key_pr_offset)) = 1;
 
-    *reinterpret_cast<int32_t *>(order_line_key_hi->AccessForceNotNull(ol_w_id_key_pr_offset)) = args.w_id;
-    *reinterpret_cast<int32_t *>(order_line_key_hi->AccessForceNotNull(ol_d_id_key_pr_offset)) = args.d_id;
+    *reinterpret_cast<int8_t *>(order_line_key_hi->AccessForceNotNull(ol_w_id_key_pr_offset)) = args.w_id;
+    *reinterpret_cast<int8_t *>(order_line_key_hi->AccessForceNotNull(ol_d_id_key_pr_offset)) = args.d_id;
     *reinterpret_cast<int32_t *>(order_line_key_hi->AccessForceNotNull(ol_o_id_key_pr_offset)) = d_next_o_id - 1;
-    *reinterpret_cast<int32_t *>(order_line_key_hi->AccessForceNotNull(ol_number_key_pr_offset)) = 15;  // max OL_NUMBER
+    *reinterpret_cast<int8_t *>(order_line_key_hi->AccessForceNotNull(ol_number_key_pr_offset)) = 15;  // max OL_NUMBER
 
     index_scan_results.clear();
     db->order_line_index_->Scan(*order_line_key_lo, *order_line_key_hi, &index_scan_results);
@@ -118,7 +118,7 @@ class StockLevel {
 
       const auto stock_key_pr_initializer = db->stock_index_->GetProjectedRowInitializer();
       auto *const stock_key = stock_key_pr_initializer.InitializeRow(worker->stock_key_buffer);
-      *reinterpret_cast<int32_t *>(stock_key->AccessForceNotNull(s_w_id_key_pr_offset)) = args.w_id;
+      *reinterpret_cast<int8_t *>(stock_key->AccessForceNotNull(s_w_id_key_pr_offset)) = args.w_id;
       *reinterpret_cast<int32_t *>(stock_key->AccessForceNotNull(s_i_id_key_pr_offset)) = ol_i_id;
 
       std::vector<storage::TupleSlot> stock_index_scan_results;

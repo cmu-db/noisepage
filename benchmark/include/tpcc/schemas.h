@@ -48,7 +48,7 @@ struct Schemas {
     std::vector<catalog::Schema::Column> warehouse_columns;
     warehouse_columns.reserve(num_warehouse_cols);
 
-    warehouse_columns.emplace_back("W_ID", type::TypeId::INTEGER, false,  // 2*W
+    warehouse_columns.emplace_back("W_ID", type::TypeId::TINYINT, false,  // 2*W
                                    static_cast<catalog::col_oid_t>(static_cast<uint32_t>(++(*oid_counter))));
     warehouse_columns.emplace_back("W_NAME", type::TypeId::VARCHAR, 10, false,
                                    static_cast<catalog::col_oid_t>(static_cast<uint32_t>(++(*oid_counter))));
@@ -93,7 +93,7 @@ struct Schemas {
 
     stock_columns.emplace_back("S_I_ID", type::TypeId::INTEGER, false,  // 200,000
                                static_cast<catalog::col_oid_t>(static_cast<uint32_t>(++(*oid_counter))));
-    stock_columns.emplace_back("S_W_ID", type::TypeId::INTEGER, false,  // 2*W
+    stock_columns.emplace_back("S_W_ID", type::TypeId::TINYINT, false,  // 2*W
                                static_cast<catalog::col_oid_t>(static_cast<uint32_t>(++(*oid_counter))));
     stock_columns.emplace_back("S_QUANTITY", type::TypeId::SMALLINT, false,  // signed numeric(4)
                                static_cast<catalog::col_oid_t>(static_cast<uint32_t>(++(*oid_counter))));
@@ -151,9 +151,9 @@ struct Schemas {
     std::vector<catalog::Schema::Column> district_columns;
     district_columns.reserve(num_district_cols);
 
-    district_columns.emplace_back("D_ID", type::TypeId::INTEGER, false,  // 20
+    district_columns.emplace_back("D_ID", type::TypeId::TINYINT, false,  // 20
                                   static_cast<catalog::col_oid_t>(static_cast<uint32_t>(++(*oid_counter))));
-    district_columns.emplace_back("D_W_ID", type::TypeId::INTEGER, false,  // 2*W
+    district_columns.emplace_back("D_W_ID", type::TypeId::TINYINT, false,  // 2*W
                                   static_cast<catalog::col_oid_t>(static_cast<uint32_t>(++(*oid_counter))));
     district_columns.emplace_back("D_NAME", type::TypeId::VARCHAR, 10, false,
                                   static_cast<catalog::col_oid_t>(static_cast<uint32_t>(++(*oid_counter))));
@@ -202,9 +202,9 @@ struct Schemas {
 
     customer_columns.emplace_back("C_ID", type::TypeId::INTEGER, false,  // 96,000
                                   static_cast<catalog::col_oid_t>(static_cast<uint32_t>(++(*oid_counter))));
-    customer_columns.emplace_back("C_D_ID", type::TypeId::INTEGER, false,  // 20
+    customer_columns.emplace_back("C_D_ID", type::TypeId::TINYINT, false,  // 20
                                   static_cast<catalog::col_oid_t>(static_cast<uint32_t>(++(*oid_counter))));
-    customer_columns.emplace_back("C_W_ID", type::TypeId::INTEGER, false,  // 2*W
+    customer_columns.emplace_back("C_W_ID", type::TypeId::TINYINT, false,  // 2*W
                                   static_cast<catalog::col_oid_t>(static_cast<uint32_t>(++(*oid_counter))));
     customer_columns.emplace_back("C_FIRST", type::TypeId::VARCHAR, 16, false,
                                   static_cast<catalog::col_oid_t>(static_cast<uint32_t>(++(*oid_counter))));
@@ -295,13 +295,13 @@ struct Schemas {
 
     history_columns.emplace_back("H_C_ID", type::TypeId::INTEGER, false,  // 96,000
                                  static_cast<catalog::col_oid_t>(static_cast<uint32_t>(++(*oid_counter))));
-    history_columns.emplace_back("H_C_D_ID", type::TypeId::INTEGER, false,  // 20
+    history_columns.emplace_back("H_C_D_ID", type::TypeId::TINYINT, false,  // 20
                                  static_cast<catalog::col_oid_t>(static_cast<uint32_t>(++(*oid_counter))));
-    history_columns.emplace_back("H_C_W_ID", type::TypeId::INTEGER, false,  // 2*W
+    history_columns.emplace_back("H_C_W_ID", type::TypeId::TINYINT, false,  // 2*W
                                  static_cast<catalog::col_oid_t>(static_cast<uint32_t>(++(*oid_counter))));
-    history_columns.emplace_back("H_D_ID", type::TypeId::INTEGER, false,  // 20
+    history_columns.emplace_back("H_D_ID", type::TypeId::TINYINT, false,  // 20
                                  static_cast<catalog::col_oid_t>(static_cast<uint32_t>(++(*oid_counter))));
-    history_columns.emplace_back("H_W_ID", type::TypeId::INTEGER, false,  // 2*W
+    history_columns.emplace_back("H_W_ID", type::TypeId::TINYINT, false,  // 2*W
                                  static_cast<catalog::col_oid_t>(static_cast<uint32_t>(++(*oid_counter))));
     history_columns.emplace_back("H_DATE", type::TypeId::TIMESTAMP, false,
                                  static_cast<catalog::col_oid_t>(static_cast<uint32_t>(++(*oid_counter))));
@@ -321,9 +321,9 @@ struct Schemas {
 
     new_order_columns.emplace_back("NO_O_ID", type::TypeId::INTEGER, false,  // 10,000,000
                                    static_cast<catalog::col_oid_t>(static_cast<uint32_t>(++(*oid_counter))));
-    new_order_columns.emplace_back("NO_D_ID", type::TypeId::INTEGER, false,  // 20
+    new_order_columns.emplace_back("NO_D_ID", type::TypeId::TINYINT, false,  // 20
                                    static_cast<catalog::col_oid_t>(static_cast<uint32_t>(++(*oid_counter))));
-    new_order_columns.emplace_back("NO_W_ID", type::TypeId::INTEGER, false,  // 2*W
+    new_order_columns.emplace_back("NO_W_ID", type::TypeId::TINYINT, false,  // 2*W
                                    static_cast<catalog::col_oid_t>(static_cast<uint32_t>(++(*oid_counter))));
 
     TERRIER_ASSERT(new_order_columns.size() == num_new_order_cols, "Wrong number of columns for New Order schema.");
@@ -356,19 +356,19 @@ struct Schemas {
 
     order_columns.emplace_back("O_ID", type::TypeId::INTEGER, false,  // 10,000,000
                                static_cast<catalog::col_oid_t>(static_cast<uint32_t>(++(*oid_counter))));
-    order_columns.emplace_back("O_D_ID", type::TypeId::INTEGER, false,  // 20
+    order_columns.emplace_back("O_D_ID", type::TypeId::TINYINT, false,  // 20
                                static_cast<catalog::col_oid_t>(static_cast<uint32_t>(++(*oid_counter))));
-    order_columns.emplace_back("O_W_ID", type::TypeId::INTEGER, false,  // 2*W
+    order_columns.emplace_back("O_W_ID", type::TypeId::TINYINT, false,  // 2*W
                                static_cast<catalog::col_oid_t>(static_cast<uint32_t>(++(*oid_counter))));
     order_columns.emplace_back("O_C_ID", type::TypeId::INTEGER, false,  // 96,000
                                static_cast<catalog::col_oid_t>(static_cast<uint32_t>(++(*oid_counter))));
     order_columns.emplace_back("O_ENTRY_D", type::TypeId::TIMESTAMP, false,
                                static_cast<catalog::col_oid_t>(static_cast<uint32_t>(++(*oid_counter))));
-    order_columns.emplace_back("O_CARRIER_ID", type::TypeId::INTEGER, true,  // 10 or NULL
+    order_columns.emplace_back("O_CARRIER_ID", type::TypeId::TINYINT, true,  // 10 or NULL
                                static_cast<catalog::col_oid_t>(static_cast<uint32_t>(++(*oid_counter))));
-    order_columns.emplace_back("O_OL_CNT", type::TypeId::INTEGER, false,  // numeric(2)
+    order_columns.emplace_back("O_OL_CNT", type::TypeId::TINYINT, false,  // numeric(2)
                                static_cast<catalog::col_oid_t>(static_cast<uint32_t>(++(*oid_counter))));
-    order_columns.emplace_back("O_ALL_LOCAL", type::TypeId::INTEGER, false,  // numeric(1)
+    order_columns.emplace_back("O_ALL_LOCAL", type::TypeId::TINYINT, false,  // numeric(1)
                                static_cast<catalog::col_oid_t>(static_cast<uint32_t>(++(*oid_counter))));
 
     TERRIER_ASSERT(order_columns.size() == num_order_cols, "Wrong number of columns for Order schema.");
@@ -425,19 +425,19 @@ struct Schemas {
 
     order_line_columns.emplace_back("OL_O_ID", type::TypeId::INTEGER, false,  // 10,000,000
                                     static_cast<catalog::col_oid_t>(static_cast<uint32_t>(++(*oid_counter))));
-    order_line_columns.emplace_back("OL_D_ID", type::TypeId::INTEGER, false,  // 20
+    order_line_columns.emplace_back("OL_D_ID", type::TypeId::TINYINT, false,  // 20
                                     static_cast<catalog::col_oid_t>(static_cast<uint32_t>(++(*oid_counter))));
-    order_line_columns.emplace_back("OL_W_ID", type::TypeId::INTEGER, false,  // 2*W
+    order_line_columns.emplace_back("OL_W_ID", type::TypeId::TINYINT, false,  // 2*W
                                     static_cast<catalog::col_oid_t>(static_cast<uint32_t>(++(*oid_counter))));
-    order_line_columns.emplace_back("OL_NUMBER", type::TypeId::INTEGER, false,  // 15
+    order_line_columns.emplace_back("OL_NUMBER", type::TypeId::TINYINT, false,  // 15
                                     static_cast<catalog::col_oid_t>(static_cast<uint32_t>(++(*oid_counter))));
     order_line_columns.emplace_back("OL_I_ID", type::TypeId::INTEGER, false,  // 200,000
                                     static_cast<catalog::col_oid_t>(static_cast<uint32_t>(++(*oid_counter))));
-    order_line_columns.emplace_back("OL_SUPPLY_W_ID", type::TypeId::INTEGER, false,  // 2*W
+    order_line_columns.emplace_back("OL_SUPPLY_W_ID", type::TypeId::TINYINT, false,  // 2*W
                                     static_cast<catalog::col_oid_t>(static_cast<uint32_t>(++(*oid_counter))));
     order_line_columns.emplace_back("OL_DELIVERY_D", type::TypeId::TIMESTAMP, true,
                                     static_cast<catalog::col_oid_t>(static_cast<uint32_t>(++(*oid_counter))));
-    order_line_columns.emplace_back("OL_QUANTITY", type::TypeId::INTEGER, false,  // numeric(2)
+    order_line_columns.emplace_back("OL_QUANTITY", type::TypeId::TINYINT, false,  // numeric(2)
                                     static_cast<catalog::col_oid_t>(static_cast<uint32_t>(++(*oid_counter))));
     order_line_columns.emplace_back("OL_AMOUNT", type::TypeId::DECIMAL, false,  // signed numeric(6,2)
                                     static_cast<catalog::col_oid_t>(static_cast<uint32_t>(++(*oid_counter))));

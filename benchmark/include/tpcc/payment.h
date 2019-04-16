@@ -216,7 +216,7 @@ class Payment {
     const auto warehouse_key_pr_initializer = db->warehouse_index_->GetProjectedRowInitializer();
     auto *const warehouse_key = warehouse_key_pr_initializer.InitializeRow(worker->warehouse_key_buffer);
 
-    *reinterpret_cast<int32_t *>(warehouse_key->AccessForceNotNull(0)) = args.w_id;
+    *reinterpret_cast<int8_t *>(warehouse_key->AccessForceNotNull(0)) = args.w_id;
 
     std::vector<storage::TupleSlot> index_scan_results;
     db->warehouse_index_->ScanKey(*warehouse_key, &index_scan_results);
@@ -243,8 +243,8 @@ class Payment {
     const auto district_key_pr_initializer = db->district_index_->GetProjectedRowInitializer();
     auto *const district_key = district_key_pr_initializer.InitializeRow(worker->district_key_buffer);
 
-    *reinterpret_cast<int32_t *>(district_key->AccessForceNotNull(d_id_key_pr_offset)) = args.d_id;
-    *reinterpret_cast<int32_t *>(district_key->AccessForceNotNull(d_w_id_key_pr_offset)) = args.w_id;
+    *reinterpret_cast<int8_t *>(district_key->AccessForceNotNull(d_id_key_pr_offset)) = args.d_id;
+    *reinterpret_cast<int8_t *>(district_key->AccessForceNotNull(d_w_id_key_pr_offset)) = args.w_id;
 
     index_scan_results.clear();
     db->district_index_->ScanKey(*district_key, &index_scan_results);
@@ -272,8 +272,8 @@ class Payment {
       auto *const customer_key = customer_key_pr_initializer.InitializeRow(worker->customer_key_buffer);
 
       *reinterpret_cast<int32_t *>(customer_key->AccessForceNotNull(c_id_key_pr_offset)) = args.c_id;
-      *reinterpret_cast<int32_t *>(customer_key->AccessForceNotNull(c_d_id_key_pr_offset)) = args.d_id;
-      *reinterpret_cast<int32_t *>(customer_key->AccessForceNotNull(c_w_id_key_pr_offset)) = args.w_id;
+      *reinterpret_cast<int8_t *>(customer_key->AccessForceNotNull(c_d_id_key_pr_offset)) = args.d_id;
+      *reinterpret_cast<int8_t *>(customer_key->AccessForceNotNull(c_w_id_key_pr_offset)) = args.w_id;
 
       index_scan_results.clear();
       db->customer_index_->ScanKey(*customer_key, &index_scan_results);
@@ -286,8 +286,8 @@ class Payment {
 
       *reinterpret_cast<storage::VarlenEntry *>(customer_name_key->AccessForceNotNull(c_last_name_key_pr_offset)) =
           args.c_last;
-      *reinterpret_cast<int32_t *>(customer_name_key->AccessForceNotNull(c_d_id_name_key_pr_offset)) = args.d_id;
-      *reinterpret_cast<int32_t *>(customer_name_key->AccessForceNotNull(c_w_id_name_key_pr_offset)) = args.w_id;
+      *reinterpret_cast<int8_t *>(customer_name_key->AccessForceNotNull(c_d_id_name_key_pr_offset)) = args.d_id;
+      *reinterpret_cast<int8_t *>(customer_name_key->AccessForceNotNull(c_w_id_name_key_pr_offset)) = args.w_id;
 
       index_scan_results.clear();
       db->customer_name_index_->ScanKey(*customer_name_key, &index_scan_results);
@@ -378,10 +378,10 @@ class Payment {
     // Insert in History table
     auto *const history_insert_tuple = history_insert_pr_initializer.InitializeRow(worker->history_tuple_buffer);
     *reinterpret_cast<int32_t *>(history_insert_tuple->AccessForceNotNull(h_c_id_insert_pr_offset)) = c_id;
-    *reinterpret_cast<int32_t *>(history_insert_tuple->AccessForceNotNull(h_c_d_id_insert_pr_offset)) = args.c_d_id;
-    *reinterpret_cast<int32_t *>(history_insert_tuple->AccessForceNotNull(h_c_w_id_insert_pr_offset)) = args.c_w_id;
-    *reinterpret_cast<int32_t *>(history_insert_tuple->AccessForceNotNull(h_d_id_insert_pr_offset)) = args.d_id;
-    *reinterpret_cast<int32_t *>(history_insert_tuple->AccessForceNotNull(h_w_id_insert_pr_offset)) = args.w_id;
+    *reinterpret_cast<int8_t *>(history_insert_tuple->AccessForceNotNull(h_c_d_id_insert_pr_offset)) = args.c_d_id;
+    *reinterpret_cast<int8_t *>(history_insert_tuple->AccessForceNotNull(h_c_w_id_insert_pr_offset)) = args.c_w_id;
+    *reinterpret_cast<int8_t *>(history_insert_tuple->AccessForceNotNull(h_d_id_insert_pr_offset)) = args.d_id;
+    *reinterpret_cast<int8_t *>(history_insert_tuple->AccessForceNotNull(h_w_id_insert_pr_offset)) = args.w_id;
     *reinterpret_cast<uint64_t *>(history_insert_tuple->AccessForceNotNull(h_date_insert_pr_offset)) = args.h_date;
     *reinterpret_cast<double *>(history_insert_tuple->AccessForceNotNull(h_amount_insert_pr_offset)) = args.h_amount;
     *reinterpret_cast<storage::VarlenEntry *>(history_insert_tuple->AccessForceNotNull(h_data_insert_pr_offset)) =

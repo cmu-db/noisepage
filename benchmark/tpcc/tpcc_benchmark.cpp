@@ -60,14 +60,14 @@ class TPCCBenchmark : public benchmark::Fixture {
   storage::LogManager *log_manager_ = nullptr;
 
   const bool only_count_new_order_ = false;
-  const uint32_t num_threads_ = 4;
+  const int8_t num_threads_ = 4;
   const uint32_t num_precomputed_txns_per_worker_ = 100000;
   const uint32_t w_payment = 43;
   const uint32_t w_delivery = 4;
   const uint32_t w_order_status = 4;
   const uint32_t w_stock_level = 4;
 
-  common::WorkerPool thread_pool_{num_threads_, {}};
+  common::WorkerPool thread_pool_{static_cast<uint32_t>(num_threads_), {}};
 
  private:
   std::thread log_thread_;
@@ -114,7 +114,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, Basic)(benchmark::State &state) {
 
   tpcc::Deck deck(w_payment, w_order_status, w_delivery, w_stock_level);
 
-  for (uint32_t warehouse_id = 1; warehouse_id <= num_threads_; warehouse_id++) {
+  for (int8_t warehouse_id = 1; warehouse_id <= num_threads_; warehouse_id++) {
     std::vector<tpcc::TransactionArgs> txns;
     txns.reserve(num_precomputed_txns_per_worker_);
     for (uint32_t i = 0; i < num_precomputed_txns_per_worker_; i++) {
@@ -149,7 +149,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, Basic)(benchmark::State &state) {
 
     // prepare the workers
     workers.clear();
-    for (uint32_t i = 0; i < num_threads_; i++) {
+    for (int8_t i = 0; i < num_threads_; i++) {
       workers.emplace_back(tpcc_db);
     }
 
@@ -157,9 +157,10 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, Basic)(benchmark::State &state) {
     //    log_manager_->Process();  // log all of the Inserts from table creation
     StartGC(&txn_manager);
     //    StartLogging();
+    std::this_thread::sleep_for(std::chrono::seconds(1));  // Let GC clean up
 
     // define the TPCC workload
-    auto tpcc_workload = [&](uint32_t worker_id) {
+    auto tpcc_workload = [&](int8_t worker_id) {
       auto new_order = tpcc::NewOrder(tpcc_db);
       auto payment = tpcc::Payment(tpcc_db);
       auto order_status = tpcc::OrderStatus(tpcc_db);
@@ -199,7 +200,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, Basic)(benchmark::State &state) {
     uint64_t elapsed_ms;
     {
       common::ScopedTimer timer(&elapsed_ms);
-      for (uint32_t i = 0; i < num_threads_; i++) {
+      for (int8_t i = 0; i < num_threads_; i++) {
         thread_pool_.SubmitTask([i, &tpcc_workload] { tpcc_workload(i); });
       }
       thread_pool_.WaitUntilAllFinished();
