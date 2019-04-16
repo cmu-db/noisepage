@@ -75,12 +75,12 @@ class LimitPlanNode : public AbstractPlanNode {
                 size_t limit, size_t offset)
       : AbstractPlanNode(std::move(children), std::move(output_schema)), limit_(limit), offset_(offset) {}
 
+ public:
   /**
    * Constructor used for JSON serialization
    */
   LimitPlanNode() = default;
 
- public:
   /**
    * @return the type of this plan node
    */
@@ -103,8 +103,8 @@ class LimitPlanNode : public AbstractPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
-  //  nlohmann::json ToJson() const override;
-  //  void FromJson(const nlohmann::json &json) override;
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &json) override;
 
  private:
   /**
@@ -123,4 +123,7 @@ class LimitPlanNode : public AbstractPlanNode {
    */
   DISALLOW_COPY_AND_MOVE(LimitPlanNode);
 };
+
+DEFINE_JSON_DECLARATIONS(LimitPlanNode);
+
 }  // namespace terrier::planner

@@ -115,21 +115,21 @@ class AbstractPlanNode {
    */
   std::shared_ptr<OutputSchema> GetOutputSchema() const { return output_schema_; }
 
-  //  //===--------------------------------------------------------------------===//
-  //  // JSON Serialization/Deserialization
-  //  //===--------------------------------------------------------------------===//
-  //
-  //  /**
-  //   * Return the current plan node in JSON format.
-  //   * @return JSON representation of plan node
-  //   */
-  //  virtual nlohmann::json ToJson() const;
-  //
-  //  /**
-  //   * Populates the plan node with the information in the given JSON.
-  //   * Undefined behavior occurs if the JSON has a different PlanNodeType.
-  //   */
-  //  virtual void FromJson(const nlohmann::json &json);
+  //===--------------------------------------------------------------------===//
+  // JSON Serialization/Deserialization
+  //===--------------------------------------------------------------------===//
+
+  /**
+   * Return the current plan node in JSON format.
+   * @return JSON representation of plan node
+   */
+  virtual nlohmann::json ToJson() const;
+
+  /**
+   * Populates the plan node with the information in the given JSON.
+   * Undefined behavior occurs if the JSON has a different PlanNodeType.
+   */
+  virtual void FromJson(const nlohmann::json &json);
 
   //===--------------------------------------------------------------------===//
   // Utilities
@@ -185,9 +185,9 @@ class AbstractPlanNode {
   DISALLOW_COPY_AND_MOVE(AbstractPlanNode);
 };
 
-//// JSON library interface. Do not modify.
-// DEFINE_JSON_DECLARATIONS(AbstractPlanNode);
-// std::shared_ptr<AbstractPlanNode> DeserializePlanNode(const nlohmann::json &json);
+// JSON library interface. Do not modify.
+DEFINE_JSON_DECLARATIONS(AbstractPlanNode);
+std::shared_ptr<AbstractPlanNode> DeserializePlanNode(const nlohmann::json &json);
 
 }  // namespace terrier::planner
 
