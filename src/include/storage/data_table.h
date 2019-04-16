@@ -269,7 +269,15 @@ class DataTable {
   void NewBlock(RawBlock *expected_val);
 
   void DeallocateVarlensOnShutdown(RawBlock *block);
-
-  bool VisibleToTxn(const transaction::TransactionContext &txn, TupleSlot slot) const;
+  
+  /**
+   * Determine if a Tuple is visible (present and not deleted) to the given transaction. It's effectively Select's logic
+   * (follow a version chain if present) without the materialization. If the logic of Select changes, this should change
+   * with it and vice versa.
+   * @param txn the calling transaction
+   * @param slot the slot of the tuple to check visibility on
+   * @return true if tuple is visible to this txn, false otherwise
+   */
+  bool IsVisible(const transaction::TransactionContext &txn, TupleSlot slot) const;
 };
 }  // namespace terrier::storage
