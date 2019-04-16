@@ -1,13 +1,14 @@
-#include "network/postgres_network_commands.h"
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 #include "network/postgres_protocol_interpreter.h"
+#include "network/postgres_network_commands.h"
 #include "network/terrier_server.h"
 #include "traffic_cop/portal.h"
 #include "traffic_cop/traffic_cop.h"
 #include "type/transient_value_factory.h"
+#include "type/type_id.h"
 
 namespace terrier::network {
 
@@ -162,7 +163,22 @@ Transition BindCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresP
       in_.Read(len, buf);
       params->push_back(TransientValueFactory::GetVarChar(buf));
 
-    } else {
+    }
+
+    else if (type == TypeId::TIMESTAMP) {
+      type::timestamp_t timestamp;
+      if(is_binary[i] == 0)
+      {
+        char buf[len];
+        in_.Read(len, buf);
+        timestamp = type::timestamp_t(std::stoull(buf));
+      } else
+      {
+        timestamp = type::timestamp_t(in_.ReadValue<uint64_t>());
+      }
+      params->push_back(TransientValueFactory::GetTimestamp(timestamp));
+    }
+    else {
       string error_msg =
           fmt::format("Param type {0} is not implemented yet", static_cast<int>(statement->param_types_[i]));
 

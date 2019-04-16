@@ -24,14 +24,15 @@ public class InsertTPCCTest extends PLTestBase {
 
     private static final String SQL_CREATE_TABLE =
 	"CREATE TABLE oorder (" +
-	"o_w_id int NOT NULL PRIMARY KEY, " +
-	"o_d_id int NOT NULL PRIMARY KEY, " +
-	"o_id int NOT NULL PRIMARY KEY," +
+	"o_w_id int NOT NULL, " +
+	"o_d_id int NOT NULL, " +
+	"o_id int NOT NULL," +
 	"o_c_id int NOT NULL," +
 	"o_carrier_id int," +
 	"o_ol_cnt decimal NOT NULL," +
 	"o_all_local decimal NOT NULL," +
-	"o_entry_d timestamp NOT NULL);";
+	"o_entry_d timestamp NOT NULL, " +
+	"PRIMARY KEY (o_w_id, o_d_id, o_id));";
 
     private void InitDatabase() throws SQLException {
 	Statement stmt = conn.createStatement();

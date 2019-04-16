@@ -92,7 +92,14 @@ void SqliteEngine::Bind(sqlite3_stmt *stmt, const std::shared_ptr<std::vector<ty
       const char *varchar_value = TransientValuePeeker::PeekVarChar(params[i]);
       res = sqlite3_bind_text(stmt, i + 1, varchar_value, -1, SQLITE_STATIC);
       delete[] varchar_value;
-    } else {
+    }
+    else if(type == TypeId::TIMESTAMP)
+    {
+      auto value = static_cast<int64_t>(!TransientValuePeeker::PeekTimestamp(params[i]));
+      res = sqlite3_bind_int64(stmt, i+1, value);
+    }
+
+    else {
       LOG_ERROR("Unsupported type: {0}", static_cast<int>(type));
       res = 0;
     }
