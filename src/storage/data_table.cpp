@@ -314,7 +314,7 @@ void DataTable::DeallocateVarlensOnShutdown(RawBlock *block) {
   }
 }
 
-bool DataTable::VisibleToTxn(const transaction::TransactionContext &txn, const TupleSlot slot) const {
+bool DataTable::IsVisible(const transaction::TransactionContext &txn, const TupleSlot slot) const {
   UndoRecord *version_ptr;
   bool visible;
   do {
