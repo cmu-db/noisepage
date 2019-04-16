@@ -109,7 +109,7 @@ class BufferedTupleWriter {
    * size of the buffer is  not enough for this row.
    * @param row to be serialized
    * @param schema schema of the row
-   * @param pr projection map of the schema.
+   * @param proj_map projection map of the schema.
    */
   void SerializeTuple(ProjectedRow *row, const catalog::Schema &schema, const ProjectionMap &proj_map);
 
