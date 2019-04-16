@@ -128,7 +128,7 @@ class BufferedTupleWriter {
   void ResetBuffer() {
     CheckpointFilePage::Initialize(reinterpret_cast<CheckpointFilePage *>(buffer_));
     page_offset_ = sizeof(CheckpointFilePage);
-    AlignBufferOffset();
+    AlignBufferOffset<uint64_t>();  // align for ProjectedRow
   }
 
   void PersistBuffer() {
@@ -145,7 +145,10 @@ class BufferedTupleWriter {
     ResetBuffer();
   }
 
-  void AlignBufferOffset() { page_offset_ = (page_offset_ + 7) / 8 * 8; }
+  template <class T>
+  void AlignBufferOffset() {
+    page_offset_ = StorageUtil::PadUpToSize(alignof(T), page_offset_);
+  }
 };
 
 /**
@@ -189,7 +192,7 @@ class BufferedTupleReader {
    *         nullptr if an error happens or there is no other row in the page.
    */
   ProjectedRow *ReadNextRow() {
-    AlignBufferOffset();
+    AlignBufferOffset<uint64_t>();
     if (block_size_ - page_offset_ < sizeof(uint32_t)) {
       // definitely not enough to store another row in the page.
       return nullptr;
@@ -211,6 +214,7 @@ class BufferedTupleReader {
    * @return
    */
   uint32_t ReadNextVarlenSize() {
+    AlignBufferOffset<uint32_t>();
     uint32_t size = *reinterpret_cast<uint32_t *>(buffer_ + page_offset_);
     page_offset_ += static_cast<uint32_t>(sizeof(uint32_t));
     return size;
@@ -241,6 +245,10 @@ class BufferedTupleReader {
   uint32_t page_offset_ = 0;
   byte *buffer_;
 
-  void AlignBufferOffset() { page_offset_ = (page_offset_ + 7) / 8 * 8; }
+  template <class T>
+  void AlignBufferOffset() {
+    page_offset_ = StorageUtil::PadUpToSize(alignof(T), page_offset_);
+  }
 };
+
 }  // namespace terrier::storage

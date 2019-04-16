@@ -18,7 +18,9 @@ void BufferedTupleWriter::SerializeTuple(ProjectedRow *row, const catalog::Schem
       if (col_ptr != nullptr) {
         auto *entry = reinterpret_cast<const VarlenEntry *>(col_ptr);
         if (!entry->IsInlined()) {
-          varlen_size += entry->Size();
+          // counting the size of the varlens with padding.
+          varlen_size +=
+              StorageUtil::PadUpToSize(alignof(uint32_t), static_cast<uint32_t>(sizeof(uint32_t)) + entry->Size());
           varlen_entries.push_back(entry);
         }
       }
@@ -30,7 +32,7 @@ void BufferedTupleWriter::SerializeTuple(ProjectedRow *row, const catalog::Schem
   //  Currently we assume the size of a row is less than the size of page.
   TERRIER_ASSERT(row->Size() + varlen_size <= block_size_ - sizeof(CheckpointFilePage),
                  "row size should not be larger than page size.");
-  AlignBufferOffset();
+  AlignBufferOffset<uint64_t>();  // align for ProjectedRow
   if (page_offset_ + row->Size() + varlen_size > block_size_) {
     PersistBuffer();
   }
@@ -39,6 +41,7 @@ void BufferedTupleWriter::SerializeTuple(ProjectedRow *row, const catalog::Schem
   page_offset_ += row->Size();
 
   for (auto *entry : varlen_entries) {
+    AlignBufferOffset<uint32_t>();  // align for size field of varlen.
     uint32_t size = entry->Size();
     TERRIER_ASSERT(size > VarlenEntry::InlineThreshold(), "Small varlens should be inlined.");
     std::memcpy(buffer_ + page_offset_, &size, sizeof(size));
