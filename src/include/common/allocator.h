@@ -27,6 +27,17 @@ struct AllocationUtil {
     // maintainability nightmare.
     return reinterpret_cast<byte *>(new uint64_t[(byte_size + 7) / 8]);
   }
+
+  /**
+   * Allocates an array of elements that start at an 8-byte aligned address
+   * @tparam T type of element
+   * @param size number of elements to allocate
+   * @return allocated memory pointer
+   */
+  template <class T>
+  static T *AllocateAligned(uint32_t size) {
+    return reinterpret_cast<T *>(AllocateAligned(size * sizeof(T)));
+  }
 };
 
 /**
