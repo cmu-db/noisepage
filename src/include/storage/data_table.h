@@ -269,7 +269,7 @@ class DataTable {
   void NewBlock(RawBlock *expected_val);
 
   void DeallocateVarlensOnShutdown(RawBlock *block);
-  
+
   /**
    * Determine if a Tuple is visible (present and not deleted) to the given transaction. It's effectively Select's logic
    * (follow a version chain if present) without the materialization. If the logic of Select changes, this should change
