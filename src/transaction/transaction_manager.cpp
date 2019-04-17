@@ -45,7 +45,13 @@ void TransactionManager::LogCommit(TransactionContext *const txn, const timestam
 
 timestamp_t TransactionManager::ReadOnlyCommitCriticalSection(TransactionContext *const txn, const callback_fn callback,
                                                               void *const callback_arg) {
+  // TODO(John):
+  // This constraint is not inherent to the action framework.  If we want to allow read-only transactions to execute
+  // actions at commit, then we need to come to a decision about whether those actions need to be atomic with the
+  // commit timestampt or not.  If they need to be atomic, then we need to divide up the code path to have a conditional
+  // section when we have actions where we grab the commit latch, our commit timestamp, and then execute the actions.
   TERRIER_ASSERT(txn->commit_actions_.empty(), "Only updating transactions can have deferred actions");
+
   // No records to update. No commit will ever depend on us. We can do all the work outside of the critical section
   const timestamp_t commit_time = time_++;
   // TODO(Tianyu): Notice here that for a read-only transaction, it is necessary to communicate the commit with the
