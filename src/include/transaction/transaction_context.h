@@ -124,13 +124,13 @@ class TransactionContext {
    * Defers an action to be called if and only if the transaction aborts.  Actions executed LIFO.
    * @param a the action to be executed
    */
-  void RegisterAbortAction(Action const &a) { abort_actions_.push_front(a); }
+  void RegisterAbortAction(const Action &a) { abort_actions_.push_front(a); }
 
   /**
    * Defers an action to be called if and only if the transaction commits.  Actions executed LIFO.
    * @param a the action to be executed
    */
-  void RegisterCommitAction(Action const &a) { commit_actions_.push_front(a); }
+  void RegisterCommitAction(const Action &a) { commit_actions_.push_front(a); }
 
   /**
    * Get the transaction manager responsible for this context (should be singleton).

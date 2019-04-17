@@ -27,6 +27,8 @@ class DeferredActionsTest : public TerrierTest {
   storage::GarbageCollector gc_;
 };
 
+// Test that abort actions do not execute before the transaction aborts and that
+// commit actions are never executed.
 // NOLINTNEXTLINE
 TEST_F(DeferredActionsTest, AbortAction) {
   auto *txn = txn_mgr_.BeginTransaction();
@@ -45,6 +47,8 @@ TEST_F(DeferredActionsTest, AbortAction) {
   EXPECT_FALSE(committed);
 }
 
+// Test that commit actions are not executed before the transaction commits and
+// that abort actions are never executed.
 // NOLINTNEXTLINE
 TEST_F(DeferredActionsTest, CommitAction) {
   // Setup an entire database so that we can do a updating commit
@@ -97,6 +101,7 @@ TEST_F(DeferredActionsTest, CommitAction) {
   delete pri;
 }
 
+// Test that the GC performs available deferred actions when PerformGarbageCollection is called
 // NOLINTNEXTLINE
 TEST_F(DeferredActionsTest, SimpleDefer) {
   bool deferred = false;
@@ -109,6 +114,9 @@ TEST_F(DeferredActionsTest, SimpleDefer) {
   EXPECT_TRUE(deferred);
 }
 
+// Test that the GC correctly delays execution of deferred actions until the
+// epoch (oldest running transaction) is greater than or equal to the next
+// available timestamp when the action was deferred.
 // NOLINTNEXTLINE
 TEST_F(DeferredActionsTest, DelayedDefer) {
   auto *txn = txn_mgr_.BeginTransaction();
@@ -129,6 +137,8 @@ TEST_F(DeferredActionsTest, DelayedDefer) {
   EXPECT_TRUE(deferred);
 }
 
+// Test that a deferred action can successfully generate and insert another
+// deferred action (e.g. an "unlink" action could generate the paired "delete")
 // NOLINTNEXTLINE
 TEST_F(DeferredActionsTest, ChainedDefer) {
   bool defer1 = false;
@@ -153,6 +163,8 @@ TEST_F(DeferredActionsTest, ChainedDefer) {
   EXPECT_TRUE(defer2);
 }
 
+// Test that the transaction context's interface supports creating a deep deferral
+// chain that conditionally executes only on abort.
 // NOLINTNEXTLINE
 TEST_F(DeferredActionsTest, AbortBootstrapDefer) {
   auto *txn = txn_mgr_.BeginTransaction();
@@ -209,6 +221,8 @@ TEST_F(DeferredActionsTest, AbortBootstrapDefer) {
   EXPECT_TRUE(defer2);
 }
 
+// Test that the transaction context's interface supports creating a deep deferral
+// chain that conditionally executes only on commit.
 // NOLINTNEXTLINE
 TEST_F(DeferredActionsTest, CommitBootstrapDefer) {
   auto col_oid = catalog::col_oid_t(42);
