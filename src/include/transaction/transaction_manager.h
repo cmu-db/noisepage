@@ -79,7 +79,7 @@ class TransactionManager {
    * Adds the action to a buffered list of deferred actions.  This action will
    * be triggered no sooner than when the epoch (timestamp of oldest running
    * transaction) is more recent than the time this function was called.
-   * @param action functional implementation of the action that is deferred
+   * @param a functional implementation of the action that is deferred
    */
   void DeferAction(Action a);
 
