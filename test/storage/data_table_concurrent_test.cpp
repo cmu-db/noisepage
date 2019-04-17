@@ -114,7 +114,7 @@ TEST_F(DataTableConcurrentTests, ConcurrentInsert) {
       for (auto slot : fake_txn->InsertedTuples()) {
         storage::ProjectedRow *select_row = select_initializer.InitializeRow(select_buffer);
         tested.Select(fake_txn->GetTxn(), slot, select_row);
-        EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(layout, fake_txn->GetReferenceTuple(slot), select_row));
+        EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(layout, fake_txn->GetReferenceTuple(slot), select_row));
       }
     }
     delete[] select_buffer;
