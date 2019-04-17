@@ -10,6 +10,7 @@
 #include <utility>
 
 #include "common/macros.h"
+#include "common/json.h"
 
 namespace terrier::common {
 /*
@@ -50,7 +51,12 @@ namespace terrier::common {
   namespace tags {                            \
   struct name##_typedef_tag {};               \
   }                                           \
-  using name = ::terrier::common::StrongTypeAlias<tags::name##_typedef_tag, underlying_type>;
+  using name = ::terrier::common::StrongTypeAlias<tags::name##_typedef_tag, underlying_type>; \
+  namespace tags { \
+  inline void to_json(nlohmann::json &j, const name &c) { j = c.ToJson(); } /* NOLINT */  \
+  inline void from_json(const nlohmann::json &j, name &c) { c.FromJson(j); } /* NOLINT */ \
+  }
+
 
 /**
  * A StrongTypeAlias is the underlying implementation of STRONG_TYPEDEF.
@@ -199,6 +205,21 @@ class StrongTypeAlias {
    * @return modified output stream.
    */
   friend std::ostream &operator<<(std::ostream &os, const StrongTypeAlias &alias) { return os << alias.val_; }
+
+  /**
+ * @return underlying value serialized to json
+ */
+  nlohmann::json ToJson() const {
+    nlohmann::json j = val_;
+    return j;
+  }
+
+  /**
+   * @param j json to deserialize
+   */
+  void FromJson(const nlohmann::json &j) {
+    val_ = j.get<IntType>();
+  }
 
  private:
   IntType val_;

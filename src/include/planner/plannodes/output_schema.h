@@ -110,7 +110,7 @@ class OutputSchema {
       j["name"] = name_;
       j["type"] = type_;
       j["nullable"] = nullable_;
-      j["oid"] = static_cast<uint32_t>(oid_);
+      j["oid"] = oid_;
       return j;
     }
 
@@ -121,7 +121,7 @@ class OutputSchema {
       name_ = j.at("name").get<std::string>();
       type_ = j.at("type").get<type::TypeId>();
       nullable_ = j.at("nullable").get<bool>();
-      oid_ = catalog::col_oid_t(j.at("oid").get<uint32_t>());
+      oid_ = j.at("oid").get<catalog::col_oid_t>();
     }
 
    private:
