@@ -38,15 +38,22 @@ class BwTreeIndexTests : public TerrierTest {
       sql_table_->InitializerForProjectedRow({catalog::col_oid_t(0)}).first};
 
   // BwTreeIndex
-  IndexBuilder builder_;
-  Index *index_{(IndexBuilder().SetConstraintType(ConstraintType::DEFAULT).SetKeySchema(key_schema_).SetOid(catalog::index_oid_t(2))).Build()};
-  storage::ProjectedRowInitializer key_initializer_{index_->GetProjectedRowInitializer()};
-
+  Index *index_;
   transaction::TransactionManager txn_manager_{&buffer_pool_, false, LOGGING_DISABLED};
+
+  byte *insert_buffer_, *key_buffer_1_, *key_buffer_2_;
 
  protected:
   void SetUp() override {
     TerrierTest::SetUp();
+    index_ = (IndexBuilder()
+                  .SetConstraintType(ConstraintType::DEFAULT)
+                  .SetKeySchema(key_schema_)
+                  .SetOid(catalog::index_oid_t(2)))
+                 .Build();
+    insert_buffer_ = common::AllocationUtil::AllocateAligned(index_->GetProjectedRowInitializer().ProjectedRowSize());
+    key_buffer_1_ = common::AllocationUtil::AllocateAligned(index_->GetProjectedRowInitializer().ProjectedRowSize());
+    key_buffer_2_ = common::AllocationUtil::AllocateAligned(index_->GetProjectedRowInitializer().ProjectedRowSize());
   }
   void TearDown() override {
     delete sql_table_;
@@ -63,13 +70,12 @@ TEST_F(BwTreeIndexTests, ScanAscending) {
   // populate index with [0..20] even keys
   std::map<int32_t, storage::TupleSlot> reference;
   auto *const insert_txn = txn_manager_.BeginTransaction();
-  auto *const insert_buffer = common::AllocationUtil::AllocateAligned(key_initializer_.ProjectedRowSize());
   for (int32_t i = 0; i <= 20; i += 2) {
-    auto *const insert_tuple = tuple_initializer_.InitializeRow(insert_buffer);
+    auto *const insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
     *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = i;
     const auto tuple_slot = sql_table_->Insert(insert_txn, *insert_tuple);
 
-    auto *const insert_key = key_initializer_.InitializeRow(insert_buffer);
+    auto *const insert_key = index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
     *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = i;
     EXPECT_TRUE(index_->Insert(*insert_key, tuple_slot));
     reference[i] = tuple_slot;
@@ -80,10 +86,8 @@ TEST_F(BwTreeIndexTests, ScanAscending) {
 
   std::vector<storage::TupleSlot> results;
 
-  auto *const low_key_buffer = common::AllocationUtil::AllocateAligned(key_initializer_.ProjectedRowSize());
-  auto *const low_key_pr = key_initializer_.InitializeRow(low_key_buffer);
-  auto *const high_key_buffer = common::AllocationUtil::AllocateAligned(key_initializer_.ProjectedRowSize());
-  auto *const high_key_pr = key_initializer_.InitializeRow(high_key_buffer);
+  auto *const low_key_pr = index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
+  auto *const high_key_pr = index_->GetProjectedRowInitializer().InitializeRow(key_buffer_2_);
 
   // scan[8,12] should hit keys 8, 10, 12
   *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = 8;
@@ -128,9 +132,6 @@ TEST_F(BwTreeIndexTests, ScanAscending) {
   txn_manager_.Commit(scan_txn, TestCallbacks::EmptyCallback, nullptr);
 
   // Clean up
-  delete[] insert_buffer;
-  delete[] low_key_buffer;
-  delete[] high_key_buffer;
   delete insert_txn;
   delete scan_txn;
 }
@@ -144,13 +145,12 @@ TEST_F(BwTreeIndexTests, ScanDescending) {
   // populate index with [0..20] even keys
   std::map<int32_t, storage::TupleSlot> reference;
   auto *const insert_txn = txn_manager_.BeginTransaction();
-  auto *const insert_buffer = common::AllocationUtil::AllocateAligned(key_initializer_.ProjectedRowSize());
   for (int32_t i = 0; i <= 20; i += 2) {
-    auto *const insert_tuple = tuple_initializer_.InitializeRow(insert_buffer);
+    auto *const insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
     *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = i;
     const auto tuple_slot = sql_table_->Insert(insert_txn, *insert_tuple);
 
-    auto *const insert_key = key_initializer_.InitializeRow(insert_buffer);
+    auto *const insert_key = index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
     *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = i;
     EXPECT_TRUE(index_->Insert(*insert_key, tuple_slot));
     reference[i] = tuple_slot;
@@ -161,10 +161,8 @@ TEST_F(BwTreeIndexTests, ScanDescending) {
 
   std::vector<storage::TupleSlot> results;
 
-  auto *const low_key_buffer = common::AllocationUtil::AllocateAligned(key_initializer_.ProjectedRowSize());
-  auto *const low_key_pr = key_initializer_.InitializeRow(low_key_buffer);
-  auto *const high_key_buffer = common::AllocationUtil::AllocateAligned(key_initializer_.ProjectedRowSize());
-  auto *const high_key_pr = key_initializer_.InitializeRow(high_key_buffer);
+  auto *const low_key_pr = index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
+  auto *const high_key_pr = index_->GetProjectedRowInitializer().InitializeRow(key_buffer_2_);
 
   // scan[8,12] should hit keys 12, 10, 8
   *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = 8;
@@ -209,9 +207,6 @@ TEST_F(BwTreeIndexTests, ScanDescending) {
   txn_manager_.Commit(scan_txn, TestCallbacks::EmptyCallback, nullptr);
 
   // Clean up
-  delete[] insert_buffer;
-  delete[] low_key_buffer;
-  delete[] high_key_buffer;
   delete insert_txn;
   delete scan_txn;
 }
@@ -225,13 +220,12 @@ TEST_F(BwTreeIndexTests, ScanLimitAscending) {
   // populate index with [0..20] even keys
   std::map<int32_t, storage::TupleSlot> reference;
   auto *const insert_txn = txn_manager_.BeginTransaction();
-  auto *const insert_buffer = common::AllocationUtil::AllocateAligned(key_initializer_.ProjectedRowSize());
   for (int32_t i = 0; i <= 20; i += 2) {
-    auto *const insert_tuple = tuple_initializer_.InitializeRow(insert_buffer);
+    auto *const insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
     *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = i;
     const auto tuple_slot = sql_table_->Insert(insert_txn, *insert_tuple);
 
-    auto *const insert_key = key_initializer_.InitializeRow(insert_buffer);
+    auto *const insert_key = index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
     *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = i;
     EXPECT_TRUE(index_->Insert(*insert_key, tuple_slot));
     reference[i] = tuple_slot;
@@ -242,10 +236,8 @@ TEST_F(BwTreeIndexTests, ScanLimitAscending) {
 
   std::vector<storage::TupleSlot> results;
 
-  auto *const low_key_buffer = common::AllocationUtil::AllocateAligned(key_initializer_.ProjectedRowSize());
-  auto *const low_key_pr = key_initializer_.InitializeRow(low_key_buffer);
-  auto *const high_key_buffer = common::AllocationUtil::AllocateAligned(key_initializer_.ProjectedRowSize());
-  auto *const high_key_pr = key_initializer_.InitializeRow(high_key_buffer);
+  auto *const low_key_pr = index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
+  auto *const high_key_pr = index_->GetProjectedRowInitializer().InitializeRow(key_buffer_2_);
 
   // scan_limit[8,12] should hit keys 8, 10
   *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = 8;
@@ -286,9 +278,6 @@ TEST_F(BwTreeIndexTests, ScanLimitAscending) {
   txn_manager_.Commit(scan_txn, TestCallbacks::EmptyCallback, nullptr);
 
   // Clean up
-  delete[] insert_buffer;
-  delete[] low_key_buffer;
-  delete[] high_key_buffer;
   delete insert_txn;
   delete scan_txn;
 }
@@ -302,13 +291,12 @@ TEST_F(BwTreeIndexTests, ScanLimitDescending) {
   // populate index with [0..20] even keys
   std::map<int32_t, storage::TupleSlot> reference;
   auto *const insert_txn = txn_manager_.BeginTransaction();
-  auto *const insert_buffer = common::AllocationUtil::AllocateAligned(key_initializer_.ProjectedRowSize());
   for (int32_t i = 0; i <= 20; i += 2) {
-    auto *const insert_tuple = tuple_initializer_.InitializeRow(insert_buffer);
+    auto *const insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
     *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = i;
     const auto tuple_slot = sql_table_->Insert(insert_txn, *insert_tuple);
 
-    auto *const insert_key = key_initializer_.InitializeRow(insert_buffer);
+    auto *const insert_key = index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
     *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = i;
     EXPECT_TRUE(index_->Insert(*insert_key, tuple_slot));
     reference[i] = tuple_slot;
@@ -319,10 +307,8 @@ TEST_F(BwTreeIndexTests, ScanLimitDescending) {
 
   std::vector<storage::TupleSlot> results;
 
-  auto *const low_key_buffer = common::AllocationUtil::AllocateAligned(key_initializer_.ProjectedRowSize());
-  auto *const low_key_pr = key_initializer_.InitializeRow(low_key_buffer);
-  auto *const high_key_buffer = common::AllocationUtil::AllocateAligned(key_initializer_.ProjectedRowSize());
-  auto *const high_key_pr = key_initializer_.InitializeRow(high_key_buffer);
+  auto *const low_key_pr = index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
+  auto *const high_key_pr = index_->GetProjectedRowInitializer().InitializeRow(key_buffer_2_);
 
   // scan_limit[8,12] should hit keys 12, 10
   *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = 8;
@@ -363,9 +349,6 @@ TEST_F(BwTreeIndexTests, ScanLimitDescending) {
   txn_manager_.Commit(scan_txn, TestCallbacks::EmptyCallback, nullptr);
 
   // Clean up
-  delete[] insert_buffer;
-  delete[] low_key_buffer;
-  delete[] high_key_buffer;
   delete insert_txn;
   delete scan_txn;
 }
