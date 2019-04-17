@@ -44,7 +44,7 @@ Insert will always insert the passed in tuple into the DataTable of the schema v
     1. The expected schema version matches the actual schema version
         - The update will happen in place on the DataTable of the actual schema version
     2. The expected schema version doesn’t match the actual schema version but the update doesn’t touch any columns not in the actual schema version
-        - The update will happen in place on the DataTable of the expected schema version
+        - The update will happen in place on the DataTable of the actual schema version
     3. The expected schema version doesn’t match the actual schema version and the update touches not in the actual schema version. The following steps occur
         - Retrieve the tuple from the actual version DataTable
         - Transform the tuple to the expected version
