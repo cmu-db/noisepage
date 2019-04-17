@@ -254,28 +254,6 @@ class BwTreeKeyTests : public TerrierTest {
     index->ScanKey(*txn, *key, &results);
     EXPECT_TRUE(results.empty());
 
-    // 2. If primary key or unique index, 2 x Insert Unique -> Scan -> Delete -> Scan
-    switch (index->GetConstraintType()) {
-      case ConstraintType::UNIQUE: {
-        EXPECT_TRUE(index->InsertUnique(*txn, *key, tuple_slot));
-        EXPECT_FALSE(index->InsertUnique(*txn, *key, tuple_slot));
-
-        results.clear();
-        index->ScanKey(*txn, *key, &results);
-        EXPECT_TRUE(results.empty());
-        EXPECT_EQ(results.size(), 1);
-
-        EXPECT_TRUE(index->Delete(*key, tuple_slot));
-
-        results.clear();
-        index->ScanKey(*txn, *key, &results);
-        EXPECT_TRUE(results.empty());
-        EXPECT_EQ(results.size(), 0);
-      }
-      default:
-        break;
-    }
-
     txn_manager.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
 
     // Clean up
