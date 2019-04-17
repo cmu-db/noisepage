@@ -61,7 +61,7 @@ TEST_F(DeltaRecordTests, UndoChainAccess) {
       transaction::timestamp_t time = static_cast<transaction::timestamp_t>(timestamp_dist_(generator_));
       auto *record_buffer = common::AllocationUtil::AllocateAligned(storage::UndoRecord::Size(initializer));
       storage::UndoRecord *record =
-          storage::UndoRecord::InitializeUpdate(record_buffer, time, slot, &data_table, initializer);
+          storage::UndoRecord::InitializeUpdate(record_buffer, time, slot, &data_table, nullptr, initializer);
       // Chain the records
       if (i != 0) record_list.back()->Next() = record;
       record_list.push_back(record);
@@ -105,7 +105,8 @@ TEST_F(DeltaRecordTests, UndoGetProjectedRow) {
     uint32_t size = storage::UndoRecord::Size(*redo);
     transaction::timestamp_t time = static_cast<transaction::timestamp_t>(timestamp_dist_(generator_));
     auto *record_buffer = common::AllocationUtil::AllocateAligned(size);
-    storage::UndoRecord *record = storage::UndoRecord::InitializeUpdate(record_buffer, time, slot, &data_table, *redo);
+    storage::UndoRecord *record = storage::UndoRecord::InitializeUpdate(record_buffer, time, slot, &data_table,
+                                                                        nullptr, *redo);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(layout, record->Delta(), redo));
     delete[] redo_buffer;
     delete[] record_buffer;
