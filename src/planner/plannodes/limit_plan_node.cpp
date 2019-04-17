@@ -25,16 +25,16 @@ bool LimitPlanNode::operator==(const AbstractPlanNode &rhs) const {
 
 nlohmann::json LimitPlanNode::ToJson() const {
   nlohmann::json j = AbstractPlanNode::ToJson();
-  j["Limit"] = limit_;
-  j["Offset"] = offset_;
+  j["limit"] = limit_;
+  j["offset"] = offset_;
   return j;
 }
 
 void LimitPlanNode::FromJson(const nlohmann::json &j) {
-  TERRIER_ASSERT(GetPlanNodeType() == j.at("PlanNodeType").get<PlanNodeType>(), "Mismatching plan node types");
+  TERRIER_ASSERT(GetPlanNodeType() == j.at("plan_node_type").get<PlanNodeType>(), "Mismatching plan node types");
   AbstractPlanNode::FromJson(j);
-  limit_ = j.at("Limit").get<size_t>();
-  offset_ = j.at("Offset").get<size_t>();
+  limit_ = j.at("limit").get<size_t>();
+  offset_ = j.at("offset").get<size_t>();
 }
 
 }  // namespace terrier::planner

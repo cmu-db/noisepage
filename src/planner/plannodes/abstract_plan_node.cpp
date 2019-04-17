@@ -12,25 +12,30 @@ nlohmann::json AbstractPlanNode::ToJson() const {
   // TODO(Gus, Wen): Serialize output schema
 
   // Serialize Metadata
-  j["PlanNodeType"] = GetPlanNodeType();
+  j["plan_node_type"] = GetPlanNodeType();
   j["children"] = children_;
+  j["output_schema"] = output_schema_;
 
   return j;
 }
 
 void AbstractPlanNode::FromJson(const nlohmann::json &j) {
-  // TODO(Gus,Wen): Deserialize output schema
   // Deserialize children
   auto children_json = j.at("children").get<std::vector<nlohmann::json>>();
   for (const auto &child_json : children_json) {
     children_.push_back(DeserializePlanNode(child_json));
+  }
+  // Deserialize output schema
+  if (!j.at("output_schema").is_null()) {
+    output_schema_ = std::make_shared<OutputSchema>();
+    output_schema_->FromJson(j.at("output_schema"));
   }
 }
 
 std::shared_ptr<AbstractPlanNode> DeserializePlanNode(const nlohmann::json &json) {
   std::shared_ptr<AbstractPlanNode> plan_node;
 
-  auto plan_type = json["PlanNodeType"].get<PlanNodeType>();
+  auto plan_type = json.at("plan_node_type").get<PlanNodeType>();
   switch (plan_type) {
     case PlanNodeType::LIMIT: {
       // Not sure if this is the best way to do this
