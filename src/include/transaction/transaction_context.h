@@ -30,13 +30,13 @@ class TransactionContext {
    * @param txn_id the id of the transaction, should be larger than all start time and commit time
    * @param buffer_pool the buffer pool to draw this transaction's undo buffer from
    * @param log_manager pointer to log manager in the system, or nullptr, if logging is disabled
-   * @param txn_mgr pointer to transaction manager int the system (used for action framework)
+   * @param transaction_manager pointer to transaction manager in the system (used for action framework)
    */
   TransactionContext(const timestamp_t start, const timestamp_t txn_id,
                      storage::RecordBufferSegmentPool *const buffer_pool, storage::LogManager *const log_manager,
-                     TransactionManager *txn_mgr)
+                     TransactionManager *transaction_manager)
       : start_time_(start), txn_id_(txn_id), undo_buffer_(buffer_pool), redo_buffer_(log_manager, buffer_pool) {
-    txn_mgr_ = txn_mgr;
+    txn_mgr_ = transaction_manager;
   }
 
   ~TransactionContext() {
