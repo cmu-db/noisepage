@@ -60,8 +60,6 @@ uint32_t GarbageCollector::ProcessDeallocateQueue() {
       txns_to_deallocate_.pop_front();
       if (txn->log_processed_) {
         // If the log manager is already done with this transaction, it is safe to deallocate
-        // Deallocate Varlen pointers of the Undo Buffer
-        DeallocateVarlen(&txn->undo_buffer_);
         delete txn;
         txns_processed++;
       } else {
@@ -77,8 +75,6 @@ uint32_t GarbageCollector::ProcessDeallocateQueue() {
     while (!buffers_to_deallocate_.empty()) {
       buf = buffers_to_deallocate_.front();
       buffers_to_deallocate_.pop_front();
-      // Deallocate Varlen pointers of the Undo Buffer
-      DeallocateVarlen(buf);
       delete buf;
     }
   }
@@ -184,9 +180,10 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
 
 bool GarbageCollector::ProcessUndoRecord(UndoRecord *const undo_record,
                                          std::vector<transaction::timestamp_t> *const active_txns) {
+  transaction::TransactionContext *txn = undo_record->Transaction();
   DataTable *table = undo_record->Table();
   // If this UndoRecord has already been processed, we can skip it
-  if (table == nullptr) return true;
+  if (txn == nullptr) return true;
   const TupleSlot slot = undo_record->Slot();
   // Process this tuple only
   if (visited_slots_.insert(slot).second) {
@@ -195,8 +192,8 @@ bool GarbageCollector::ProcessUndoRecord(UndoRecord *const undo_record,
     ProcessTupleVersionChainHead(table, slot, active_txns);
   }
 
-  table = undo_record->Table();
-  return table == nullptr;
+  txn = undo_record->Transaction();
+  return txn == nullptr;
 }
 
 void GarbageCollector::ProcessTupleVersionChainHead(DataTable *const table, TupleSlot slot,
@@ -323,13 +320,12 @@ void GarbageCollector::ProcessTupleVersionChain(UndoRecord *const undo_record,
 }
 
 void GarbageCollector::UnlinkUndoRecordVersion(UndoRecord *const undo_record) {
-  DataTable *&table = undo_record->Table();
-  TERRIER_ASSERT(table != nullptr, "Table should not be NULL here");
+  transaction::TransactionContext *&txn = undo_record->Transaction();
+  TERRIER_ASSERT(txn != nullptr, "Table should not be NULL here");
   ReclaimSlotIfDeleted(undo_record);
-  // Add Varlen of the Undo record to the reclaim_varlen_map_ where it can be reclaimed later
-  MarkVarlenReclaimable(undo_record);
+  ReclaimVarlen(undo_record);
   // Mark the record as fully processed
-  table = nullptr;
+  txn = nullptr;
 }
 
 void GarbageCollector::ReclaimSlotIfDeleted(UndoRecord *undo_record) const {
@@ -441,42 +437,8 @@ UndoRecord *GarbageCollector::InitializeUndoRecord(const transaction::timestamp_
   result->timestamp_.store(timestamp);
   result->table_ = table;
   result->slot_ = slot;
+  result->txn_ = reinterpret_cast<transaction::TransactionContext *>((uintptr_t)-1);
   return result;
-}
-
-void GarbageCollector::MarkVarlenReclaimable(UndoRecord *undo_record) {
-  const TupleAccessStrategy &accessor = undo_record->Table()->accessor_;
-  const BlockLayout &layout = accessor.GetBlockLayout();
-  switch (undo_record->Type()) {
-    case DeltaRecordType::INSERT:
-      return;  // no possibility of outdated varlen to gc
-    case DeltaRecordType::DELETE:
-      // TODO(Tianyu): Potentially need to be more efficient than linear in column size?
-      for (uint16_t i = 0; i < layout.NumColumns(); i++) {
-        col_id_t col_id(i);
-        // Okay to include version vector, as it is never varlen
-        if (layout.IsVarlen(col_id)) {
-          auto *varlen = reinterpret_cast<VarlenEntry *>(accessor.AccessWithNullCheck(undo_record->Slot(), col_id));
-          if (varlen != nullptr && varlen->NeedReclaim()) {
-            // Add it to the varlen map to be reclaimed later
-            reclaim_varlen_map_[undo_record].push_front(varlen->Content());
-          }
-        }
-      }
-      break;
-    case DeltaRecordType::UPDATE:
-      // TODO(Tianyu): This might be a really bad idea for large deltas...
-      for (uint16_t i = 0; i < undo_record->Delta()->NumColumns(); i++) {
-        col_id_t col_id = undo_record->Delta()->ColumnIds()[i];
-        if (layout.IsVarlen(col_id)) {
-          auto *varlen = reinterpret_cast<VarlenEntry *>(undo_record->Delta()->AccessWithNullCheck(i));
-          if (varlen != nullptr && varlen->NeedReclaim()) {
-            // Add it to the varlen map to be reclaimed later
-            reclaim_varlen_map_[undo_record].push_front(varlen->Content());
-          }
-        }
-      }
-  }
 }
 
 void GarbageCollector::CopyVarlen(UndoRecord *undo_record) {
@@ -500,17 +462,56 @@ void GarbageCollector::CopyVarlen(UndoRecord *undo_record) {
   }
 }
 
-void GarbageCollector::DeallocateVarlen(UndoBuffer *undo_buffer) {
-  // Iterates through the undo buffers varlen pointers stored in the reclaim_varlen_map_ and frees them.
-  for (auto &undo_record : *undo_buffer) {
-    for (const byte *ptr : reclaim_varlen_map_[&undo_record]) {
-      delete[] ptr;
+void GarbageCollector::ReclaimVarlen(UndoRecord *const undo_record) const {
+  if (undo_record->Transaction() == reinterpret_cast<transaction::TransactionContext *>((uintptr_t)-1)) {
+    ReclaimBufferIfVarlenCompacted(undo_record);
+  } else {
+    ReclaimBufferIfVarlen(undo_record);
+  }
+}
+
+void GarbageCollector::ReclaimBufferIfVarlenCompacted(UndoRecord *const undo_record) const {
+  const TupleAccessStrategy &accessor = undo_record->Table()->accessor_;
+  const BlockLayout &layout = accessor.GetBlockLayout();
+  for (uint16_t i = 0; i < undo_record->Delta()->NumColumns(); i++) {
+    col_id_t col_id = undo_record->Delta()->ColumnIds()[i];
+    if (layout.IsVarlen(col_id)) {
+      auto *varlen = reinterpret_cast<VarlenEntry *>(undo_record->Delta()->AccessWithNullCheck(i));
+      if (varlen != nullptr && varlen->NeedReclaim()) delete[] varlen->Content();
     }
-    // Delete the entry from the map since all the varlen pointers of the undo record are reclaimed
-    if (reclaim_varlen_map_.find(&undo_record) != reclaim_varlen_map_.end()) {
-      reclaim_varlen_map_[&undo_record].clear();
-      reclaim_varlen_map_.erase(&undo_record);
-    }
+  }
+}
+
+void GarbageCollector::ReclaimBufferIfVarlen(UndoRecord *const undo_record) const {
+  transaction::TransactionContext *txn = undo_record->Transaction();
+  const TupleAccessStrategy &accessor = undo_record->Table()->accessor_;
+  const BlockLayout &layout = accessor.GetBlockLayout();
+  switch (undo_record->Type()) {
+    case DeltaRecordType::INSERT:
+      return;  // no possibility of outdated varlen to gc
+    case DeltaRecordType::DELETE:
+      // TODO(Tianyu): Potentially need to be more efficient than linear in column size?
+      for (uint16_t i = 0; i < layout.NumColumns(); i++) {
+        col_id_t col_id(i);
+        // Okay to include version vector, as it is never varlen
+        if (layout.IsVarlen(col_id)) {
+          auto *varlen = reinterpret_cast<VarlenEntry *>(accessor.AccessWithNullCheck(undo_record->Slot(), col_id));
+          if (varlen != nullptr && varlen->NeedReclaim()) txn->loose_ptrs_.push_back(varlen->Content());
+        }
+      }
+      break;
+    case DeltaRecordType::UPDATE:
+      // TODO(Tianyu): This might be a really bad idea for large deltas...
+      for (uint16_t i = 0; i < undo_record->Delta()->NumColumns(); i++) {
+        col_id_t col_id = undo_record->Delta()->ColumnIds()[i];
+        if (layout.IsVarlen(col_id)) {
+          auto *varlen = reinterpret_cast<VarlenEntry *>(undo_record->Delta()->AccessWithNullCheck(i));
+          if (varlen != nullptr && varlen->NeedReclaim()) txn->loose_ptrs_.push_back(varlen->Content());
+        }
+      }
+      break;
+    default:
+      throw std::runtime_error("unexpected delta record type");
   }
 }
 

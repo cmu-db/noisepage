@@ -160,18 +160,19 @@ class GarbageCollector {
    */
   UndoRecord *InitializeUndoRecord(transaction::timestamp_t timestamp, TupleSlot slot, DataTable *table);
 
-  /**
-   * Given the undo record,  mark all the varlen entries in the delta to be available for deallocation later
-   * @param undo_record the undo record whose varlen entries are to be marked for deallocation
-   */
-  void MarkVarlenReclaimable(UndoRecord *undo_record);
+  void ReclaimVarlen(UndoRecord *undo_record) const;
 
   /**
-   * Given the undo buffer, deallocate all the varlen entries contained in all the undo records in the undo buffer
+   * Given the undo buffer, deallocate all the varlen entries contained in the regular undo record
    * @param undo_buffer the undo buffer whose varlen entries are to deallocated
    */
-  void DeallocateVarlen(UndoBuffer *undo_buffer);
+  void ReclaimBufferIfVarlen(UndoRecord *undo_record) const;
 
+  /**
+   * Given the undo buffer, deallocate all the varlen entries contained in compacted undo record
+   * @param undo_buffer the undo buffer whose varlen entries are to deallocated
+   */
+  void ReclaimBufferIfVarlenCompacted(UndoRecord *undo_record) const;
   /**
    * Given the compacted undo record, duplicate all the varlens associated with it
    * @param undo_record the compacted undo record
