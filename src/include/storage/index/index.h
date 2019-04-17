@@ -91,6 +91,7 @@ class Index {
 
   /**
    * Finds all the values associated with the given key in our index.
+   * @param txn txn context for the calling txn, used for visibility checks
    * @param key the key to look for
    * @param[out] value_list the values associated with the key
    */
@@ -99,6 +100,7 @@ class Index {
 
   /**
    * Finds all the values between the given keys in our index.
+   * @param txn txn context for the calling txn, used for visibility checks
    * @param low_key the key to start at
    * @param high_key the key to end at
    * @param[out] value_list the values associated with the keys
@@ -108,6 +110,7 @@ class Index {
 
   /**
    * Finds all the values between the given keys in our index.
+   * @param txn txn context for the calling txn, used for visibility checks
    * @param low_key the key to end at
    * @param high_key the key to start at
    * @param[out] value_list the values associated with the keys
@@ -117,6 +120,7 @@ class Index {
 
   /**
    * Finds all the values between the given keys in our index.
+   * @param txn txn context for the calling txn, used for visibility checks
    * @param low_key the key to start at
    * @param high_key the key to end at
    * @param[out] value_list the values associated with the keys
@@ -127,6 +131,7 @@ class Index {
 
   /**
    * Finds all the values between the given keys in our index.
+   * @param txn txn context for the calling txn, used for visibility checks
    * @param low_key the key to end at
    * @param high_key the key to start at
    * @param[out] value_list the values associated with the keys
