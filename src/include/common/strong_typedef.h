@@ -9,8 +9,8 @@
 #include <type_traits>
 #include <utility>
 
-#include "common/macros.h"
 #include "common/json.h"
+#include "common/macros.h"
 
 namespace terrier::common {
 /*
@@ -47,16 +47,15 @@ namespace terrier::common {
  *
  * This works with all types of ints.
  */
-#define STRONG_TYPEDEF(name, underlying_type) \
-  namespace tags {                            \
-  struct name##_typedef_tag {};               \
-  }                                           \
+#define STRONG_TYPEDEF(name, underlying_type)                                                 \
+  namespace tags {                                                                            \
+  struct name##_typedef_tag {};                                                               \
+  }                                                                                           \
   using name = ::terrier::common::StrongTypeAlias<tags::name##_typedef_tag, underlying_type>; \
-  namespace tags { \
-  inline void to_json(nlohmann::json &j, const name &c) { j = c.ToJson(); } /* NOLINT */  \
-  inline void from_json(const nlohmann::json &j, name &c) { c.FromJson(j); } /* NOLINT */ \
+  namespace tags {                                                                            \
+  inline void to_json(nlohmann::json &j, const name &c) { j = c.ToJson(); }  /* NOLINT */     \
+  inline void from_json(const nlohmann::json &j, name &c) { c.FromJson(j); } /* NOLINT */     \
   }
-
 
 /**
  * A StrongTypeAlias is the underlying implementation of STRONG_TYPEDEF.
@@ -207,8 +206,8 @@ class StrongTypeAlias {
   friend std::ostream &operator<<(std::ostream &os, const StrongTypeAlias &alias) { return os << alias.val_; }
 
   /**
- * @return underlying value serialized to json
- */
+   * @return underlying value serialized to json
+   */
   nlohmann::json ToJson() const {
     nlohmann::json j = val_;
     return j;
@@ -217,9 +216,7 @@ class StrongTypeAlias {
   /**
    * @param j json to deserialize
    */
-  void FromJson(const nlohmann::json &j) {
-    val_ = j.get<IntType>();
-  }
+  void FromJson(const nlohmann::json &j) { val_ = j.get<IntType>(); }
 
  private:
   IntType val_;

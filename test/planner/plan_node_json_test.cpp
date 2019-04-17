@@ -1,7 +1,12 @@
+#include <memory>
+#include <utility>
+#include <vector>
+
 #include "parser/expression/comparison_expression.h"
 #include "parser/expression/conjunction_expression.h"
 #include "parser/expression/constant_value_expression.h"
 #include "parser/expression/tuple_value_expression.h"
+#include "planner/plannodes/limit_plan_node.h"
 #include "planner/plannodes/output_schema.h"
 #include "type/transient_value.h"
 #include "type/transient_value_factory.h"
@@ -11,8 +16,19 @@
 
 namespace terrier::planner {
 
+class PlanNodeJsonTest : public TerrierTest {
+ public:
+  static std::shared_ptr<OutputSchema> BuildDummyOutputSchema() {
+    OutputSchema::Column col("dummy_col", type::TypeId::INTEGER, true, catalog::col_oid_t(0));
+    std::vector<OutputSchema::Column> cols;
+    cols.push_back(col);
+    auto schema = std::make_shared<OutputSchema>(cols);
+    return schema;
+  }
+};
+
 // NOLINTNEXTLINE
-TEST(PlanNodeJsonTests, OutputSchemaJsonTest) {
+TEST(PlanNodeJsonTest, OutputSchemaJsonTest) {
   // Test Column serialization
   OutputSchema::Column col("col1", type::TypeId::BOOLEAN, false /* nullable */, catalog::col_oid_t(0));
   auto col_json = col.ToJson();
@@ -53,29 +69,21 @@ TEST(PlanNodeJsonTests, OutputSchemaJsonTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(PlanNodeJsonTests, BasicTest) {
-  EXPECT_TRUE(true);
-  //   Create Limit plan node
-  //    size_t limit = 10;
-  //    size_t offset = 10;
-  //    catalog::col_oid_t col_oid(0);
-  //    OutputSchema::Column column("test", type::TypeId::INTEGER, true, col_oid);
-  //    std::shared_ptr<OutputSchema> schema(new OutputSchema({column}));
-  //    std::unique_ptr<AbstractPlanNode> original_plan(new LimitPlanNode(schema, limit, offset));
-  //
-  //    // Serialize to Json
-  //    nlohmann::json json = dynamic_cast<AbstractPlanNode *>(original_plan.get())->ToJson();
-  //    EXPECT_FALSE(json.is_null());
-  //
-  //    auto deserialized_plan = DeserializePlanNode(json);
-  //    EXPECT_EQ(PlanNodeType::LIMIT, deserialized_plan->GetPlanNodeType());
-  //    EXPECT_EQ(*original_plan, *deserialized_plan);
-  //
-  //    auto limit_plan = static_cast<LimitPlanNode *>(deserialized_plan.get());
-  //    EXPECT_EQ(limit, limit_plan->GetLimit());
-  //    EXPECT_EQ(offset, limit_plan->GetOffset());
+TEST(PlanNodeJsonTest, LimitPlanNodeJsonTest) {
+  // Construct LimitPlanNode
+  LimitPlanNode::Builder builder;
+  auto plan_node =
+      builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema()).SetLimit(10).SetOffset(10).Build();
+
+  // Serialize to Json
+  auto json = plan_node->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize plan node
+  auto deserialized_plan = DeserializePlanNode(json);
+  EXPECT_TRUE(deserialized_plan != nullptr);
+  EXPECT_EQ(PlanNodeType::LIMIT, deserialized_plan->GetPlanNodeType());
+  auto limit_plan = std::dynamic_pointer_cast<LimitPlanNode>(deserialized_plan);
+  EXPECT_EQ(*plan_node, *limit_plan);
 }
-
-
-
 }  // namespace terrier::planner
