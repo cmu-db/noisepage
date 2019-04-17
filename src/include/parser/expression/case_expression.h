@@ -33,12 +33,33 @@ class CaseExpression : public AbstractExpression {
      * @return if the two are equal
      */
     bool operator==(const WhenClause &rhs) const { return *condition == *rhs.condition && *then == *rhs.then; }
+
     /**
      * Inequality check
      * @param rhs the other WhenClause to compare toz
      * @return if the two are not equal
      */
     bool operator!=(const WhenClause &rhs) const { return !operator==(rhs); }
+
+    /**
+     * Derived expressions should call this base method
+     * @return expression serialized to json
+     */
+    nlohmann::json ToJson() const {
+      nlohmann::json j;
+      j["condition"] = condition;
+      j["then"] = then;
+      return j;
+    }
+
+    /**
+     * Derived expressions should call this base method
+     * @param j json to deserialize
+     */
+    void FromJson(const nlohmann::json &j) {
+      condition = DeserializeExpression(j.at("condition"));
+      then = DeserializeExpression(j.at("then"));
+    }
   };
 
   /**
@@ -53,6 +74,11 @@ class CaseExpression : public AbstractExpression {
         when_clauses_(std::move(when_clauses)),
         default_expr_(std::move(default_expr)) {}
 
+  /**
+   * Default constructor for deserialization
+   */
+  CaseExpression() = default;
+
   common::hash_t Hash() const override {
     common::hash_t hash = AbstractExpression::Hash();
     for (auto &clause : when_clauses_) {
@@ -66,7 +92,7 @@ class CaseExpression : public AbstractExpression {
   }
 
   bool operator==(const AbstractExpression &rhs) const override {
-    if (GetExpressionType() != rhs.GetExpressionType()) return false;
+    if (!AbstractExpression::operator==(rhs)) return false;
     auto const &other = dynamic_cast<const CaseExpression &>(rhs);
     auto clause_size = GetWhenClauseSize();
     if (clause_size != other.GetWhenClauseSize()) return false;
@@ -81,7 +107,7 @@ class CaseExpression : public AbstractExpression {
     return (*default_exp == *other_default_exp);
   }
 
-  std::unique_ptr<AbstractExpression> Copy() const override { return std::make_unique<CaseExpression>(*this); }
+  std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<CaseExpression>(*this); }
 
   /**
    * @return the number of when clauses
@@ -111,9 +137,35 @@ class CaseExpression : public AbstractExpression {
    */
   std::shared_ptr<AbstractExpression> GetDefaultClause() const { return default_expr_; }
 
+  /**
+   * @return expression serialized to json
+   */
+  nlohmann::json ToJson() const override {
+    nlohmann::json j = AbstractExpression::ToJson();
+    std::vector<nlohmann::json> when_clauses_json;
+    for (const auto &when_clause : when_clauses_) {
+      when_clauses_json.push_back(when_clause.ToJson());
+    }
+    j["when_clauses"] = when_clauses_json;
+    j["default_expr"] = default_expr_;
+    return j;
+  }
+
+  /**
+   * @param j json to deserialize
+   */
+  void FromJson(const nlohmann::json &j) override {
+    AbstractExpression::FromJson(j);
+    when_clauses_ = j.at("when_clauses").get<std::vector<WhenClause>>();
+    default_expr_ = DeserializeExpression(j.at("default_expr"));
+  }
+
  private:
   std::vector<WhenClause> when_clauses_;
   std::shared_ptr<AbstractExpression> default_expr_;
 };
+
+DEFINE_JSON_DECLARATIONS(CaseExpression::WhenClause);
+DEFINE_JSON_DECLARATIONS(CaseExpression);
 
 }  // namespace terrier::parser
