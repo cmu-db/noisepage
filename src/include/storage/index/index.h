@@ -5,11 +5,13 @@
 #include <vector>
 #include "catalog/catalog_defs.h"
 #include "common/performance_counter.h"
+#include "storage/data_table.h"
 #include "storage/index/compact_ints_key.h"
 #include "storage/index/generic_key.h"
 #include "storage/index/index_defs.h"
 #include "storage/index/index_metadata.h"
 #include "storage/storage_defs.h"
+#include "transaction/transaction_context.h"
 
 namespace terrier::storage::index {
 
@@ -36,6 +38,17 @@ class Index {
    * Cached metadata that allows for performance optimizations in the index keys.
    */
   const IndexMetadata metadata_;
+
+  /**
+   * Determine if a Tuple is visible by asking the DataTable associated with the TupleSlot. Used for scans.
+   * @param txn the calling transaction
+   * @param slot the slot of the tuple to check visibility on
+   * @return true if tuple is visible to this txn, false otherwise
+   */
+  static bool IsVisible(const transaction::TransactionContext &txn, const TupleSlot slot) {
+    const auto *const data_table = slot.GetBlock()->data_table_;
+    return data_table->IsVisible(txn, slot);
+  }
 
   /**
    * Creates a new index wrapper.
@@ -81,7 +94,8 @@ class Index {
    * @param key the key to look for
    * @param[out] value_list the values associated with the key
    */
-  virtual void ScanKey(const ProjectedRow &key, std::vector<TupleSlot> *value_list) = 0;
+  virtual void ScanKey(const transaction::TransactionContext &txn, const ProjectedRow &key,
+                       std::vector<TupleSlot> *value_list) = 0;
 
   /**
    * Finds all the values between the given keys in our index.
@@ -89,8 +103,8 @@ class Index {
    * @param high_key the key to end at
    * @param[out] value_list the values associated with the keys
    */
-  virtual void ScanAscending(const ProjectedRow &low_key, const ProjectedRow &high_key,
-                             std::vector<TupleSlot> *value_list) = 0;
+  virtual void ScanAscending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
+                             const ProjectedRow &high_key, std::vector<TupleSlot> *value_list) = 0;
 
   /**
    * Finds all the values between the given keys in our index.
@@ -98,8 +112,8 @@ class Index {
    * @param high_key the key to start at
    * @param[out] value_list the values associated with the keys
    */
-  virtual void ScanDescending(const ProjectedRow &low_key, const ProjectedRow &high_key,
-                              std::vector<TupleSlot> *value_list) = 0;
+  virtual void ScanDescending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
+                              const ProjectedRow &high_key, std::vector<TupleSlot> *value_list) = 0;
 
   /**
    * Finds all the values between the given keys in our index.
@@ -108,8 +122,8 @@ class Index {
    * @param[out] value_list the values associated with the keys
    * @param limit upper bound of number of values to return
    */
-  virtual void ScanLimitAscending(const ProjectedRow &low_key, const ProjectedRow &high_key,
-                                  std::vector<TupleSlot> *value_list, uint32_t limit) = 0;
+  virtual void ScanLimitAscending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
+                                  const ProjectedRow &high_key, std::vector<TupleSlot> *value_list, uint32_t limit) = 0;
 
   /**
    * Finds all the values between the given keys in our index.
@@ -118,8 +132,9 @@ class Index {
    * @param[out] value_list the values associated with the keys
    * @param limit upper bound of number of values to return
    */
-  virtual void ScanLimitDescending(const ProjectedRow &low_key, const ProjectedRow &high_key,
-                                   std::vector<TupleSlot> *value_list, uint32_t limit) = 0;
+  virtual void ScanLimitDescending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
+                                   const ProjectedRow &high_key, std::vector<TupleSlot> *value_list,
+                                   uint32_t limit) = 0;
 
   /**
    * @return type of this index
