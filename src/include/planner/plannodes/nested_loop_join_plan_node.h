@@ -49,6 +49,11 @@ class NestedLoopJoinPlanNode : public AbstractJoinPlanNode {
 
  public:
   /**
+   * Default constructor used for deserialization
+   */
+  NestedLoopJoinPlanNode() = default;
+
+  /**
    * @return the type of this plan node
    */
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::NESTLOOP; }
@@ -59,6 +64,9 @@ class NestedLoopJoinPlanNode : public AbstractJoinPlanNode {
   common::hash_t Hash() const override;
 
   bool operator==(const AbstractPlanNode &rhs) const override;
+
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
 
  public:
   /**

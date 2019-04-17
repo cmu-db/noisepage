@@ -127,8 +127,9 @@ TEST(PlanNodeJsonTest, LimitPlanNodeJsonTest) {
   EXPECT_EQ(*plan_node, *limit_plan);
 }
 
+// NOLINTNEXTLINE
 TEST(PlanNodeJsonTest, IndexScanPlanNodeJsonTest) {
-  // Construct LimitPlanNode
+  // Construct IndexScanPlanNode
   IndexScanPlanNode::Builder builder;
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
                        .SetScanPredicate(PlanNodeJsonTest::BuildDummyPredicate())
@@ -148,5 +149,26 @@ TEST(PlanNodeJsonTest, IndexScanPlanNodeJsonTest) {
   EXPECT_EQ(PlanNodeType::INDEXSCAN, deserialized_plan->GetPlanNodeType());
   auto index_scan_plan = std::dynamic_pointer_cast<IndexScanPlanNode>(deserialized_plan);
   EXPECT_EQ(*plan_node, *index_scan_plan);
+}
+
+// NOLINTNEXTLINE
+TEST(PlanNodeJsonTest, NestedLoopJoinPlanNodeJoinTest) {
+  // Construct NestedLoopJoinPlanNode
+  NestedLoopJoinPlanNode::Builder builder;
+  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
+                       .SetJoinType(LogicalJoinType::INNER)
+                       .SetJoinPredicate(PlanNodeJsonTest::BuildDummyPredicate())
+                       .Build();
+
+  // Serialize to Json
+  auto json = plan_node->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize plan node
+  auto deserialized_plan = DeserializePlanNode(json);
+  EXPECT_TRUE(deserialized_plan != nullptr);
+  EXPECT_EQ(PlanNodeType::NESTLOOP, deserialized_plan->GetPlanNodeType());
+  auto nested_loop_join_plan = std::dynamic_pointer_cast<NestedLoopJoinPlanNode>(deserialized_plan);
+  EXPECT_EQ(*plan_node, *nested_loop_join_plan);
 }
 }  // namespace terrier::planner

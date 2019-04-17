@@ -65,10 +65,18 @@ class AbstractJoinPlanNode : public AbstractPlanNode {
 
  public:
   /**
+   * Default constructor used for deserialization
+   */
+  AbstractJoinPlanNode() = default;
+
+  /**
    * @return the hashed value of this plan node
    */
   common::hash_t Hash() const override;
   bool operator==(const AbstractPlanNode &rhs) const override;
+
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
 
   //===--------------------------------------------------------------------===//
   // Accessors

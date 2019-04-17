@@ -176,11 +176,11 @@ std::shared_ptr<AbstractPlanNode> DeserializePlanNode(const nlohmann::json &json
       plan_node = std::make_shared<LimitPlanNode>();
       break;
     }
-      //
-      //    case PlanNodeType::NESTLOOP: {
-      //      plan_node = std::make_shared<NestedLoopJoinPlanNode>();
-      //      break;
-      //    }
+
+    case PlanNodeType::NESTLOOP: {
+      plan_node = std::make_shared<NestedLoopJoinPlanNode>();
+      break;
+    }
       //
       //    case PlanNodeType::ORDERBY: {
       //      plan_node = std::make_shared<OrderByPlanNode>();

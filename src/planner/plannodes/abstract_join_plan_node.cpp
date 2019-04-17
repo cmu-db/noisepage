@@ -23,7 +23,7 @@ bool AbstractJoinPlanNode::operator==(const AbstractPlanNode &rhs) const {
     return false;
   }
 
-  return true;
+  return AbstractPlanNode::operator==(rhs);
 }
 
 common::hash_t AbstractJoinPlanNode::Hash() const {
@@ -38,6 +38,21 @@ common::hash_t AbstractJoinPlanNode::Hash() const {
   }
 
   return hash;
+}
+
+nlohmann::json AbstractJoinPlanNode::ToJson() const {
+  nlohmann::json j = AbstractPlanNode::ToJson();
+  j["join_type"] = join_type_;
+  j["join_predicate"] = join_predicate_;
+  return j;
+}
+
+void AbstractJoinPlanNode::FromJson(const nlohmann::json &j) {
+  AbstractPlanNode::FromJson(j);
+  join_type_ = j.at("join_type").get<LogicalJoinType>();
+  if (!j.at("join_predicate").is_null()) {
+    join_predicate_ = parser::DeserializeExpression(j.at("join_predicate"));
+  }
 }
 
 }  // namespace terrier::planner

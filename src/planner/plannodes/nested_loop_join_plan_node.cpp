@@ -30,4 +30,11 @@ bool NestedLoopJoinPlanNode::operator==(const AbstractPlanNode &rhs) const {
   return AbstractPlanNode::operator==(rhs);
 }
 
+nlohmann::json NestedLoopJoinPlanNode::ToJson() const {
+  nlohmann::json j = AbstractJoinPlanNode::ToJson();
+  return j;
+}
+
+void NestedLoopJoinPlanNode::FromJson(const nlohmann::json &j) { AbstractJoinPlanNode::FromJson(j); }
+
 }  // namespace terrier::planner
