@@ -66,9 +66,8 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
    * @param table_oid OID for table to scan
    */
   SeqScanPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
-                  std::shared_ptr<OutputSchema> output_schema,
-                  std::shared_ptr<const parser::AbstractExpression> predicate, bool is_for_update, bool is_parallel,
-                  catalog::db_oid_t database_oid, catalog::table_oid_t table_oid)
+                  std::shared_ptr<OutputSchema> output_schema, std::shared_ptr<parser::AbstractExpression> predicate,
+                  bool is_for_update, bool is_parallel, catalog::db_oid_t database_oid, catalog::table_oid_t table_oid)
       : AbstractScanPlanNode(std::move(children), std::move(output_schema), std::move(predicate), is_for_update,
                              is_parallel, database_oid),
         table_oid_(table_oid) {}

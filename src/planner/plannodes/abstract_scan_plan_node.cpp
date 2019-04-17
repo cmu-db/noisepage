@@ -47,4 +47,23 @@ common::hash_t AbstractScanPlanNode::Hash() const {
   return hash;
 }
 
+nlohmann::json AbstractScanPlanNode::ToJson() const {
+  nlohmann::json j = AbstractPlanNode::ToJson();
+  j["scan_predicate"] = scan_predicate_;
+  j["is_for_update"] = is_for_update_;
+  j["is_parallel"] = is_parallel_;
+  j["database_oid"] = database_oid_;
+  return j;
+}
+
+void AbstractScanPlanNode::FromJson(const nlohmann::json &j) {
+  AbstractPlanNode::FromJson(j);
+  if (!j.at("scan_predicate").is_null()) {
+    scan_predicate_ = parser::DeserializeExpression(j.at("scan_predicate"));
+  }
+  is_for_update_ = j.at("is_for_update").get<bool>();
+  is_parallel_ = j.at("is_parallel").get<bool>();
+  database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
+}
+
 }  // namespace terrier::planner

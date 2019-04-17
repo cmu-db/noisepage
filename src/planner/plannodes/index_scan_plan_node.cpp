@@ -36,4 +36,15 @@ bool IndexScanPlanNode::operator==(const AbstractPlanNode &rhs) const {
   return AbstractScanPlanNode::operator==(rhs) && AbstractPlanNode::operator==(rhs);
 }
 
+nlohmann::json IndexScanPlanNode::ToJson() const {
+  nlohmann::json j = AbstractScanPlanNode::ToJson();
+  j["index_oid"] = index_oid_;
+  return j;
+}
+
+void IndexScanPlanNode::FromJson(const nlohmann::json &j) {
+  AbstractScanPlanNode::FromJson(j);
+  index_oid_ = j.at("index_oid").get<catalog::index_oid_t>();
+}
+
 }  // namespace terrier::planner

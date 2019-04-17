@@ -129,7 +129,7 @@ class AbstractPlanNode {
    * Populates the plan node with the information in the given JSON.
    * Undefined behavior occurs if the JSON has a different PlanNodeType.
    */
-  virtual void FromJson(const nlohmann::json &json);
+  virtual void FromJson(const nlohmann::json &j);
 
   //===--------------------------------------------------------------------===//
   // Utilities

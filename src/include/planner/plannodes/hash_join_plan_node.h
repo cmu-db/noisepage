@@ -91,7 +91,7 @@ class HashJoinPlanNode : public AbstractJoinPlanNode {
    */
   HashJoinPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
                    std::shared_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
-                   std::shared_ptr<const parser::AbstractExpression> predicate,
+                   std::shared_ptr<parser::AbstractExpression> predicate,
                    std::vector<std::shared_ptr<parser::AbstractExpression>> left_hash_keys,
                    std::vector<std::shared_ptr<parser::AbstractExpression>> right_hash_keys, bool build_bloomfilter)
       : AbstractJoinPlanNode(std::move(children), std::move(output_schema), join_type, std::move(predicate)),

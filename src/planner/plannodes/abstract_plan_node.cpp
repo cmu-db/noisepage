@@ -62,155 +62,155 @@ std::shared_ptr<AbstractPlanNode> DeserializePlanNode(const nlohmann::json &json
 
   auto plan_type = json.at("plan_node_type").get<PlanNodeType>();
   switch (plan_type) {
-//    case PlanNodeType::AGGREGATE: {
-//      plan_node = std::make_shared<AggregatePlanNode>();
-//      break;
-//    }
-//
-//    case PlanNodeType::ANALYZE: {
-//      plan_node = std::make_shared<AnalyzePlanNode>();
-//      break;
-//    }
-//
-//    case PlanNodeType::CREATE_DATABASE: {
-//      plan_node = std::make_shared<CreateDatabasePlanNode>();
-//      break;
-//    }
-//
-//    case PlanNodeType::CREATE_FUNC: {
-//      plan_node = std::make_shared<CreateFunctionPlanNode>();
-//      break;
-//    }
-//
-//    case PlanNodeType::CREATE_INDEX: {
-//      plan_node = std::make_shared<CreateIndexPlanNode>();
-//      break;
-//    }
-//
-//    case PlanNodeType::CREATE_NAMESPACE: {
-//      plan_node = std::make_shared<CreateNamespacePlanNode>();
-//      break;
-//    }
-//
-//    case PlanNodeType::CREATE_TABLE: {
-//      plan_node = std::make_shared<CreateTablePlanNode>();
-//      break;
-//    }
-//
-//    case PlanNodeType::CREATE_TRIGGER: {
-//      plan_node = std::make_shared<CreateTriggerPlanNode>();
-//      break;
-//    }
-//
-//    case PlanNodeType::CREATE_VIEW: {
-//      plan_node = std::make_shared<CreateViewPlanNode>();
-//      break;
-//    }
-//
-//    case PlanNodeType::CSVSCAN: {
-//      plan_node = std::make_shared<CSVScanPlanNode>();
-//      break;
-//    }
-//
-//    case PlanNodeType::DELETE: {
-//      plan_node = std::make_shared<DeletePlanNode>();
-//      break;
-//    }
-//
-//    case PlanNodeType::DROP_DATABASE: {
-//      plan_node = std::make_shared<DropDatabasePlanNode>();
-//      break;
-//    }
-//
-//    case PlanNodeType::DROP_INDEX: {
-//      plan_node = std::make_shared<DropIndexPlanNode>();
-//      break;
-//    }
-//
-//    case PlanNodeType::DROP_NAMESPACE: {
-//      plan_node = std::make_shared<DropNamespacePlanNode>();
-//      break;
-//    }
-//
-//    case PlanNodeType::DROP_TABLE: {
-//      plan_node = std::make_shared<DropTablePlanNode>();
-//      break;
-//    }
-//
-//    case PlanNodeType::DROP_TRIGGER: {
-//      plan_node = std::make_shared<DropTriggerPlanNode>();
-//      break;
-//    }
-//
-//    case PlanNodeType::DROP_VIEW: {
-//      plan_node = std::make_shared<DropViewPlanNode>();
-//      break;
-//    }
-//
-//    case PlanNodeType::EXPORT_EXTERNAL_FILE: {
-//      plan_node = std::make_shared<ExportExternalFilePlanNode>();
-//      break;
-//    }
-//
-//    case PlanNodeType::HASHJOIN: {
-//      plan_node = std::make_shared<HashJoinPlanNode>();
-//      break;
-//    }
-//
-//    case PlanNodeType::HASH: {
-//      plan_node = std::make_shared<HashPlanNode>();
-//      break;
-//    }
-//
-//    case PlanNodeType::INDEXSCAN: {
-//      plan_node = std::make_shared<IndexScanPlanNode>();
-//      break;
-//    }
-//
-//    case PlanNodeType::INSERT: {
-//      plan_node = std::make_shared<InsertPlanNode>();
-//      break;
-//    }
+      //    case PlanNodeType::AGGREGATE: {
+      //      plan_node = std::make_shared<AggregatePlanNode>();
+      //      break;
+      //    }
+      //
+      //    case PlanNodeType::ANALYZE: {
+      //      plan_node = std::make_shared<AnalyzePlanNode>();
+      //      break;
+      //    }
+      //
+      //    case PlanNodeType::CREATE_DATABASE: {
+      //      plan_node = std::make_shared<CreateDatabasePlanNode>();
+      //      break;
+      //    }
+      //
+      //    case PlanNodeType::CREATE_FUNC: {
+      //      plan_node = std::make_shared<CreateFunctionPlanNode>();
+      //      break;
+      //    }
+      //
+      //    case PlanNodeType::CREATE_INDEX: {
+      //      plan_node = std::make_shared<CreateIndexPlanNode>();
+      //      break;
+      //    }
+      //
+      //    case PlanNodeType::CREATE_NAMESPACE: {
+      //      plan_node = std::make_shared<CreateNamespacePlanNode>();
+      //      break;
+      //    }
+      //
+      //    case PlanNodeType::CREATE_TABLE: {
+      //      plan_node = std::make_shared<CreateTablePlanNode>();
+      //      break;
+      //    }
+      //
+      //    case PlanNodeType::CREATE_TRIGGER: {
+      //      plan_node = std::make_shared<CreateTriggerPlanNode>();
+      //      break;
+      //    }
+      //
+      //    case PlanNodeType::CREATE_VIEW: {
+      //      plan_node = std::make_shared<CreateViewPlanNode>();
+      //      break;
+      //    }
+      //
+      //    case PlanNodeType::CSVSCAN: {
+      //      plan_node = std::make_shared<CSVScanPlanNode>();
+      //      break;
+      //    }
+      //
+      //    case PlanNodeType::DELETE: {
+      //      plan_node = std::make_shared<DeletePlanNode>();
+      //      break;
+      //    }
+      //
+      //    case PlanNodeType::DROP_DATABASE: {
+      //      plan_node = std::make_shared<DropDatabasePlanNode>();
+      //      break;
+      //    }
+      //
+      //    case PlanNodeType::DROP_INDEX: {
+      //      plan_node = std::make_shared<DropIndexPlanNode>();
+      //      break;
+      //    }
+      //
+      //    case PlanNodeType::DROP_NAMESPACE: {
+      //      plan_node = std::make_shared<DropNamespacePlanNode>();
+      //      break;
+      //    }
+      //
+      //    case PlanNodeType::DROP_TABLE: {
+      //      plan_node = std::make_shared<DropTablePlanNode>();
+      //      break;
+      //    }
+      //
+      //    case PlanNodeType::DROP_TRIGGER: {
+      //      plan_node = std::make_shared<DropTriggerPlanNode>();
+      //      break;
+      //    }
+      //
+      //    case PlanNodeType::DROP_VIEW: {
+      //      plan_node = std::make_shared<DropViewPlanNode>();
+      //      break;
+      //    }
+      //
+      //    case PlanNodeType::EXPORT_EXTERNAL_FILE: {
+      //      plan_node = std::make_shared<ExportExternalFilePlanNode>();
+      //      break;
+      //    }
+      //
+      //    case PlanNodeType::HASHJOIN: {
+      //      plan_node = std::make_shared<HashJoinPlanNode>();
+      //      break;
+      //    }
+      //
+      //    case PlanNodeType::HASH: {
+      //      plan_node = std::make_shared<HashPlanNode>();
+      //      break;
+      //    }
+      //
+    case PlanNodeType::INDEXSCAN: {
+      plan_node = std::make_shared<IndexScanPlanNode>();
+      break;
+    }
+      //
+      //    case PlanNodeType::INSERT: {
+      //      plan_node = std::make_shared<InsertPlanNode>();
+      //      break;
+      //    }
 
     case PlanNodeType::LIMIT: {
       plan_node = std::make_shared<LimitPlanNode>();
       break;
     }
-//
-//    case PlanNodeType::NESTLOOP: {
-//      plan_node = std::make_shared<NestedLoopJoinPlanNode>();
-//      break;
-//    }
-//
-//    case PlanNodeType::ORDERBY: {
-//      plan_node = std::make_shared<OrderByPlanNode>();
-//      break;
-//    }
-//
-//    case PlanNodeType::PROJECTION: {
-//      plan_node = std::make_shared<ProjectionPlanNode>();
-//      break;
-//    }
-//
-//    case PlanNodeType::RESULT: {
-//      plan_node = std::make_shared<ResultPlanNode>();
-//      break;
-//    }
-//
-//    case PlanNodeType::SEQSCAN: {
-//      plan_node = std::make_shared<SeqScanPlanNode>();
-//      break;
-//    }
-//
-//    case PlanNodeType::SETOP: {
-//      plan_node = std::make_shared<SetOpPlanNode>();
-//      break;
-//    }
-//
-//    case PlanNodeType::UPDATE: {
-//      plan_node = std::make_shared<UpdatePlanNode>();
-//      break;
-//    }
+      //
+      //    case PlanNodeType::NESTLOOP: {
+      //      plan_node = std::make_shared<NestedLoopJoinPlanNode>();
+      //      break;
+      //    }
+      //
+      //    case PlanNodeType::ORDERBY: {
+      //      plan_node = std::make_shared<OrderByPlanNode>();
+      //      break;
+      //    }
+      //
+      //    case PlanNodeType::PROJECTION: {
+      //      plan_node = std::make_shared<ProjectionPlanNode>();
+      //      break;
+      //    }
+      //
+      //    case PlanNodeType::RESULT: {
+      //      plan_node = std::make_shared<ResultPlanNode>();
+      //      break;
+      //    }
+      //
+      //    case PlanNodeType::SEQSCAN: {
+      //      plan_node = std::make_shared<SeqScanPlanNode>();
+      //      break;
+      //    }
+      //
+      //    case PlanNodeType::SETOP: {
+      //      plan_node = std::make_shared<SetOpPlanNode>();
+      //      break;
+      //    }
+      //
+      //    case PlanNodeType::UPDATE: {
+      //      plan_node = std::make_shared<UpdatePlanNode>();
+      //      break;
+      //    }
 
     default:
       throw std::runtime_error("Unknown plan node type during deserialization");

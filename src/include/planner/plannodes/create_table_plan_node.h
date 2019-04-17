@@ -514,8 +514,8 @@ class CreateTablePlanNode : public AbstractPlanNode {
       if (col->GetCheckExpression()->GetReturnValueType() == type::TypeId::BOOLEAN) {
         check_cols.push_back(col->GetColumnName());
 
-        const parser::ConstantValueExpression *const_expr_elem =
-            dynamic_cast<const parser::ConstantValueExpression *>(col->GetCheckExpression()->GetChild(1).get());
+        parser::ConstantValueExpression *const_expr_elem =
+            dynamic_cast<parser::ConstantValueExpression *>(col->GetCheckExpression()->GetChild(1).get());
         type::TransientValue tmp_value = const_expr_elem->GetValue();
 
         CheckInfo check_info(check_cols, "con_check", col->GetCheckExpression()->GetExpressionType(),

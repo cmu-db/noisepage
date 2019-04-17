@@ -73,14 +73,19 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
    * @param index_oid OID of index to be used in index scan
    */
   IndexScanPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
-                    std::shared_ptr<OutputSchema> output_schema,
-                    std::shared_ptr<const parser::AbstractExpression> predicate, bool is_for_update, bool is_parallel,
-                    catalog::db_oid_t database_oid, catalog::index_oid_t index_oid)
+                    std::shared_ptr<OutputSchema> output_schema, std::shared_ptr<parser::AbstractExpression> predicate,
+                    bool is_for_update, bool is_parallel, catalog::db_oid_t database_oid,
+                    catalog::index_oid_t index_oid)
       : AbstractScanPlanNode(std::move(children), std::move(output_schema), std::move(predicate), is_for_update,
                              is_parallel, database_oid),
         index_oid_(index_oid) {}
 
  public:
+  /**
+   * Default constructor used for deserialization
+   */
+  IndexScanPlanNode() = default;
+
   /**
    * @return index OID to be used for scan
    */
@@ -96,6 +101,9 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
    */
   common::hash_t Hash() const override;
   bool operator==(const AbstractPlanNode &rhs) const override;
+
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
 
  private:
   /**

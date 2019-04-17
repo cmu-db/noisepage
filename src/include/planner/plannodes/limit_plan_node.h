@@ -104,7 +104,7 @@ class LimitPlanNode : public AbstractPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
   nlohmann::json ToJson() const override;
-  void FromJson(const nlohmann::json &json) override;
+  void FromJson(const nlohmann::json &j) override;
 
  private:
   /**
