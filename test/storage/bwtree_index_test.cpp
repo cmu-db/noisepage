@@ -326,57 +326,84 @@ class BwTreeIndexTests : public TerrierTest {
    * 1. Scan -> Insert -> Scan -> Delete -> Scan
    * 2. If primary key or unique index, 2 x Conditional Insert -> Scan -> Delete -> Scan
    */
-  //  void BasicOps(Index *const index) {
-  //    // instantiate projected row and key
-  //    const auto &metadata = index->metadata_;
-  //    const auto &initializer = metadata.GetProjectedRowInitializer();
-  //    auto *key_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
-  //    auto *key = initializer.InitializeRow(key_buffer);
-  //
-  //    auto *ref = FillProjectedRow(metadata, key, &generator_);
-  //    delete[] ref;
-  //
-  //    // 1. Scan -> Insert -> Scan -> Delete -> Scan
-  //    std::vector<storage::TupleSlot> results;
-  //    index->ScanKey(*key, &results);
-  //    EXPECT_TRUE(results.empty());
-  //
-  //    EXPECT_TRUE(index->Insert(*key, storage::TupleSlot()));
-  //
-  //    index->ScanKey(*key, &results);
-  //    EXPECT_EQ(results.size(), 1);
-  //    EXPECT_EQ(results[0], storage::TupleSlot());
-  //
-  //    EXPECT_TRUE(index->Delete(*key, storage::TupleSlot()));
-  //
-  //    results.clear();
-  //    index->ScanKey(*key, &results);
-  //    EXPECT_TRUE(results.empty());
-  //
-  //    // 2. If primary key or unique index, 2 x Conditional Insert -> Scan -> Delete -> Scan
-  //    switch (index->GetConstraintType()) {
-  //      case ConstraintType::UNIQUE: {
-  //        EXPECT_TRUE(index->ConditionalInsert(*key, storage::TupleSlot(), [](const TupleSlot &) { return false; }));
-  //        EXPECT_TRUE(index->ConditionalInsert(*key, storage::TupleSlot(), [](const TupleSlot &) { return false; }));
-  //
-  //        results.clear();
-  //        index->ScanKey(*key, &results);
-  //        EXPECT_TRUE(results.empty());
-  //        EXPECT_EQ(results.size(), 2);
-  //
-  //        EXPECT_TRUE(index->Delete(*key, storage::TupleSlot()));
-  //
-  //        results.clear();
-  //        index->ScanKey(*key, &results);
-  //        EXPECT_TRUE(results.empty());
-  //        EXPECT_EQ(results.size(), 2);
-  //      }
-  //      default:
-  //        break;
-  //    }
-  //
-  //    delete[] key_buffer;
-  //  }
+  void BasicOps(Index *const index) {
+    // Create a table. Note that this schema does not match the index's randomly generated schema, and what we're
+    // inserting doesn't match either. We just need valid, visible TupleSlots to reference as values for all of the
+    // index keys.
+    storage::BlockStore block_store{100, 100};
+    storage::RecordBufferSegmentPool buffer_pool{10000, 10000};
+    std::vector<catalog::Schema::Column> columns;
+    columns.emplace_back("attribute", type::TypeId ::INTEGER, false, catalog::col_oid_t(0));
+    catalog::Schema schema{columns};
+    storage::SqlTable sql_table(&block_store, schema, catalog::table_oid_t(1));
+    const auto &tuple_initializer = sql_table.InitializerForProjectedRow({catalog::col_oid_t(0)}).first;
+
+    transaction::TransactionManager txn_manager(&buffer_pool, false, LOGGING_DISABLED);
+
+    // dummy tuple to insert for each key. We just need the visible TupleSlot
+    auto *const insert_buffer = common::AllocationUtil::AllocateAligned(tuple_initializer.ProjectedRowSize());
+    auto *const insert_tuple = tuple_initializer.InitializeRow(insert_buffer);
+    *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
+
+    auto *const txn = txn_manager.BeginTransaction();
+
+    // instantiate projected row and key
+    const auto &metadata = index->metadata_;
+    const auto &initializer = metadata.GetProjectedRowInitializer();
+    auto *key_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+    auto *key = initializer.InitializeRow(key_buffer);
+
+    auto *ref = FillProjectedRow(metadata, key, &generator_);
+    delete[] ref;
+
+    // 1. Scan -> Insert -> Scan -> Delete -> Scan
+    std::vector<storage::TupleSlot> results;
+    index->ScanKey(*txn, *key, &results);
+    EXPECT_TRUE(results.empty());
+
+    auto tuple_slot = sql_table.Insert(txn, *insert_tuple);
+
+    EXPECT_TRUE(index->Insert(*key, tuple_slot));
+
+    index->ScanKey(*txn, *key, &results);
+    EXPECT_EQ(results.size(), 1);
+    EXPECT_EQ(results[0], tuple_slot);
+
+    EXPECT_TRUE(index->Delete(*key, tuple_slot));
+
+    results.clear();
+    index->ScanKey(*txn, *key, &results);
+    EXPECT_TRUE(results.empty());
+
+    // 2. If primary key or unique index, 2 x Conditional Insert -> Scan -> Delete -> Scan
+    switch (index->GetConstraintType()) {
+      case ConstraintType::UNIQUE: {
+        EXPECT_TRUE(index->ConditionalInsert(*key, tuple_slot, [](const TupleSlot &) { return false; }));
+        EXPECT_TRUE(index->ConditionalInsert(*key, tuple_slot, [](const TupleSlot &) { return false; }));
+
+        results.clear();
+        index->ScanKey(*txn, *key, &results);
+        EXPECT_TRUE(results.empty());
+        EXPECT_EQ(results.size(), 2);
+
+        EXPECT_TRUE(index->Delete(*key, storage::TupleSlot()));
+
+        results.clear();
+        index->ScanKey(*txn, *key, &results);
+        EXPECT_TRUE(results.empty());
+        EXPECT_EQ(results.size(), 2);
+      }
+      default:
+        break;
+    }
+
+    txn_manager.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+
+    // Clean up
+    delete[] key_buffer;
+    delete[] insert_buffer;
+    delete txn;
+  }
 
   /**
    * Sets the generic key to contain the given string. If c_str is nullptr, the key is zeroed out.
@@ -867,7 +894,7 @@ TEST_F(BwTreeIndexTests, CompactIntsBuilderTest) {
     IndexBuilder builder;
     builder.SetConstraintType(ConstraintType::DEFAULT).SetKeySchema(key_schema).SetOid(catalog::index_oid_t(i));
     auto *index = builder.Build();
-    //    BasicOps(index); // TODO(Matt): fix me
+    BasicOps(index);
 
     delete index;
   }
@@ -888,7 +915,7 @@ TEST_F(BwTreeIndexTests, GenericKeyBuilderTest) {
     IndexBuilder builder;
     builder.SetConstraintType(ConstraintType::DEFAULT).SetKeySchema(key_schema).SetOid(catalog::index_oid_t(i));
     auto *index = builder.Build();
-    //    BasicOps(index); // TODO(Matt): fix me
+    BasicOps(index);
 
     delete index;
   }
@@ -1201,6 +1228,10 @@ TEST_F(BwTreeIndexTests, GenericKeyNonInlineVarlenComparisons) {
   delete[] pr_buffer;
 }
 
+/**
+ * Tests basic scan behavior using various windows to scan over (some out of of bounds of keyspace, some matching
+ * exactly, etc.)
+ */
 // NOLINTNEXTLINE
 TEST_F(BwTreeIndexTests, ScanAscending) {
   // Create a table
@@ -1298,6 +1329,10 @@ TEST_F(BwTreeIndexTests, ScanAscending) {
   delete scan_txn;
 }
 
+/**
+ * Tests basic scan behavior using various windows to scan over (some out of of bounds of keyspace, some matching
+ * exactly, etc.)
+ */
 // NOLINTNEXTLINE
 TEST_F(BwTreeIndexTests, ScanDescending) {
   // Create a table
@@ -1395,6 +1430,10 @@ TEST_F(BwTreeIndexTests, ScanDescending) {
   delete scan_txn;
 }
 
+/**
+ * Tests basic scan behavior using various windows to scan over (some out of of bounds of keyspace, some matching
+ * exactly, etc.)
+ */
 // NOLINTNEXTLINE
 TEST_F(BwTreeIndexTests, ScanLimitAscending) {
   // Create a table
@@ -1488,6 +1527,10 @@ TEST_F(BwTreeIndexTests, ScanLimitAscending) {
   delete scan_txn;
 }
 
+/**
+ * Tests basic scan behavior using various windows to scan over (some out of of bounds of keyspace, some matching
+ * exactly, etc.)
+ */
 // NOLINTNEXTLINE
 TEST_F(BwTreeIndexTests, ScanLimitDescending) {
   // Create a table
