@@ -213,7 +213,7 @@ class PACKED ProjectedColumns {
   uint32_t max_tuples_;
   uint32_t num_tuples_;
   uint16_t num_cols_;
-  uint16_t attr_ends_[4];
+  uint16_t attr_ends_[NUM_ATTR_BOUNDARIES];
   byte varlen_contents_[0];
 
   uint32_t *AttrValueOffsets() { return StorageUtil::AlignedPtr<uint32_t>(ColumnIds() + num_cols_); }
@@ -268,7 +268,7 @@ class ProjectedColumnsInitializer {
  private:
   uint32_t size_ = 0;
   uint32_t max_tuples_;
-  uint16_t attr_ends_[4];
+  uint16_t attr_ends_[NUM_ATTR_BOUNDARIES];
   std::vector<col_id_t> col_ids_;
   std::vector<uint32_t> offsets_;
 };

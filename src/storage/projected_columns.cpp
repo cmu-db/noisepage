@@ -8,10 +8,10 @@ namespace terrier::storage {
 const uint32_t ProjectedColumns::AttrSizeForColumn(uint16_t col_id) {
   TERRIER_ASSERT(col_id < num_cols_, "Cannot get size for out-of-bounds column");
   uint8_t shift;
-  for (shift = 0; shift < 4; shift++) {
+  for (shift = 0; shift < NUM_ATTR_BOUNDARIES; shift++) {
     if (col_id < attr_ends_[shift]) break;
   }
-  TERRIER_ASSERT(shift <= 4, "Out-of-bounds attribute size");
+  TERRIER_ASSERT(shift <= NUM_ATTR_BOUNDARIES, "Out-of-bounds attribute size");
   TERRIER_ASSERT(shift >= 0, "Out-of-bounds attribute size");
   return 16u >> shift;
 }
@@ -40,7 +40,7 @@ ProjectedColumnsInitializer::ProjectedColumnsInitializer(const BlockLayout &layo
   size_ += static_cast<uint32_t>(sizeof(TupleSlot) * max_tuples_);
 
   int attr_size_index = 0;
-  for (int attr : {0, 3}) attr_ends_[attr] = 0;
+  for (int attr : {0, NUM_ATTR_BOUNDARIES - 1}) attr_ends_[attr] = 0;
 
   for (uint32_t i = 0; i < col_ids_.size(); i++) {
     TERRIER_ASSERT(i < (1 << 15), "Out-of-bounds index");
@@ -51,12 +51,12 @@ ProjectedColumnsInitializer::ProjectedColumnsInitializer(const BlockLayout &layo
     TERRIER_ASSERT(attr_size <= (16 >> attr_size_index), "Out-of-order columns");
     TERRIER_ASSERT(attr_size <= 16 && attr_size > 0, "Unexpected attribute size");
     while (attr_size < (16 >> attr_size_index)) {
-      if (attr_size_index < 3) attr_ends_[attr_size_index + 1] = attr_ends_[attr_size_index];
+      if (attr_size_index < (NUM_ATTR_BOUNDARIES - 1)) attr_ends_[attr_size_index + 1] = attr_ends_[attr_size_index];
       attr_size_index++;
     }
     TERRIER_ASSERT(attr_size == (16 >> attr_size_index), "Non-power of two attribute size");
-    if (attr_size_index < 4) attr_ends_[attr_size_index]++;
-    TERRIER_ASSERT(attr_size_index == 4 || attr_ends_[attr_size_index] == i + 1,
+    if (attr_size_index < NUM_ATTR_BOUNDARIES) attr_ends_[attr_size_index]++;
+    TERRIER_ASSERT(attr_size_index == NUM_ATTR_BOUNDARIES || attr_ends_[attr_size_index] == i + 1,
                    "Inconsistent state on attribute bounds");
 
     // space needed to store the bitmap, padded up to 8 bytes
