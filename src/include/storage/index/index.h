@@ -79,15 +79,15 @@ class Index {
   virtual bool Delete(const ProjectedRow &tuple, TupleSlot location) = 0;
 
   /**
-   * Inserts a key-value pair only if the predicate fails on all existing values.
+   * Inserts a key-value pair only if any matching keys have TupleSlots that don't conflict
+   * @param txn txn context for the calling txn, used for visibility and write-write checks
    * @param tuple key
    * @param location value
-   * @param predicate predicate to check against all existing values
    * @return true if the value was inserted, false otherwise
    *         (either because value exists, or predicate returns true for one of the existing values)
    */
-  virtual bool ConditionalInsert(const ProjectedRow &tuple, TupleSlot location,
-                                 std::function<bool(const TupleSlot)> predicate) = 0;
+  virtual bool InsertUnique(const transaction::TransactionContext &txn, const ProjectedRow &tuple,
+                            TupleSlot location) = 0;
 
   /**
    * Finds all the values associated with the given key in our index.

@@ -17,7 +17,9 @@ namespace terrier::storage {
 
 namespace index {
 class Index;
-}
+template <typename KeyType>
+class BwTreeIndex;
+}  // namespace index
 
 // clang-format off
 #define DataTableCounterMembers(f) \
@@ -218,6 +220,8 @@ class DataTable {
   friend class transaction::TransactionManager;
   // The Index wrapper needs access to VisibleToTxn
   friend class index::Index;
+  template <typename KeyType>
+  friend class index::BwTreeIndex;
 
   BlockStore *const block_store_;
   const layout_version_t layout_version_;
@@ -252,7 +256,9 @@ class DataTable {
   void AtomicallyWriteVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor, UndoRecord *desired);
 
   // Checks for Snapshot Isolation conflicts, used by Update
-  bool HasConflict(UndoRecord *version_ptr, const transaction::TransactionContext *txn) const;
+  bool HasConflict(const transaction::TransactionContext &txn, UndoRecord *version_ptr) const;
+
+  bool HasConflict(const transaction::TransactionContext &txn, TupleSlot slot) const;
 
   // Performs a visibility check on the designated TupleSlot. Note that this does not traverse a version chain, so this
   // information alone is not enough to determine visibility of a tuple to a transaction. This should be used along with
