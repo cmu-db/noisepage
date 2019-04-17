@@ -27,7 +27,7 @@ class BwTreeIndexTests : public TerrierTest {
   storage::RecordBufferSegmentPool buffer_pool_{10000, 10000};
   const catalog::Schema table_schema_{
       catalog::Schema({{"attribute", type::TypeId::INTEGER, false, catalog::col_oid_t(0)}})};
-  const IndexKeySchema key_schema_{{catalog::indexkeycol_oid_t(0), type::TypeId::INTEGER, false}};
+  const IndexKeySchema key_schema_{{catalog::indexkeycol_oid_t(1), type::TypeId::INTEGER, false}};
 
  public:
   std::default_random_engine generator_;
