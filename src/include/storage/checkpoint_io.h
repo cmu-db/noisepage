@@ -55,7 +55,7 @@ class PACKED CheckpointFilePage {
    * Get the pointer to the first row in this page.
    * @return pointer to the first row.
    */
-  byte *GetPayload() { return varlen_contents_; }
+  byte *GetPayload() { return payload_; }
 
  private:
   uint32_t checksum_;
@@ -64,7 +64,7 @@ class PACKED CheckpointFilePage {
   uint32_t table_oid_;
   uint32_t version_;  // version of the schema(useful with schema change)
   uint32_t flags_;
-  byte varlen_contents_[0];
+  byte payload_[0];
 
   common::RawBitmap &Bitmap() { return *reinterpret_cast<common::RawBitmap *>(&flags_); }
 
