@@ -66,15 +66,23 @@ class BwTreeIndex final : public Index {
         value_list->empty(),
         "Result set should begin empty. This can be changed in the future if index scan behavior requires it.");
 
+    std::vector<TupleSlot> results;
+
     // Build search key
     KeyType index_key;
     index_key.SetFromProjectedRow(key, metadata_);
 
     // Perform lookup in BwTree
-    bwtree_->GetValue(index_key, *value_list);
+    bwtree_->GetValue(index_key, results);
 
     // Perform visibility check on result
-    if (!value_list->empty() && !IsVisible(txn, (*value_list)[0])) value_list->clear();
+    for (const auto &result : results) {
+      if (IsVisible(txn, result)) value_list->emplace_back(result);
+    }
+
+    TERRIER_ASSERT(GetConstraintType() == ConstraintType::DEFAULT ||
+                       (GetConstraintType() == ConstraintType::UNIQUE && value_list->size() <= 1),
+                   "Invalid number of results for unique index.");
   }
 
   void ScanAscending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
