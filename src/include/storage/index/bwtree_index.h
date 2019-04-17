@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <utility>
 #include <vector>
 #include "bwtree/bwtree.h"
@@ -39,15 +40,19 @@ class BwTreeIndex final : public Index {
     return bwtree_->Delete(index_key, location);
   }
 
-  bool ConditionalInsert(const ProjectedRow &tuple, const TupleSlot location,
-                         std::function<bool(const TupleSlot)> predicate) final {
+  bool InsertUnique(const transaction::TransactionContext &txn, const ProjectedRow &tuple,
+                    const TupleSlot location) final {
     TERRIER_ASSERT(GetConstraintType() == ConstraintType::UNIQUE,
                    "This Insert is designed for indexes with uniqueness constraints.");
     KeyType index_key;
     index_key.SetFromProjectedRow(tuple, metadata_);
     bool predicate_satisfied = false;
 
-    // predicate is set to nullptr if the predicate returns true for some value
+    auto predicate = [&](const TupleSlot slot) -> bool {
+      const auto *const data_table = slot.GetBlock()->data_table_;
+      return data_table->HasConflict(txn, slot) || data_table->IsVisible(txn, slot);
+    };
+
     const bool ret = bwtree_->ConditionalInsert(index_key, location, predicate, &predicate_satisfied);
 
     // if predicate is not satisfied then we know insertion succeeds

@@ -254,23 +254,23 @@ class BwTreeKeyTests : public TerrierTest {
     index->ScanKey(*txn, *key, &results);
     EXPECT_TRUE(results.empty());
 
-    // 2. If primary key or unique index, 2 x Conditional Insert -> Scan -> Delete -> Scan
+    // 2. If primary key or unique index, 2 x Insert Unique -> Scan -> Delete -> Scan
     switch (index->GetConstraintType()) {
       case ConstraintType::UNIQUE: {
-        EXPECT_TRUE(index->ConditionalInsert(*key, tuple_slot, [](const TupleSlot &) { return false; }));
-        EXPECT_TRUE(index->ConditionalInsert(*key, tuple_slot, [](const TupleSlot &) { return false; }));
+        EXPECT_TRUE(index->InsertUnique(*txn, *key, tuple_slot));
+        EXPECT_FALSE(index->InsertUnique(*txn, *key, tuple_slot));
 
         results.clear();
         index->ScanKey(*txn, *key, &results);
         EXPECT_TRUE(results.empty());
-        EXPECT_EQ(results.size(), 2);
+        EXPECT_EQ(results.size(), 1);
 
-        EXPECT_TRUE(index->Delete(*key, storage::TupleSlot()));
+        EXPECT_TRUE(index->Delete(*key, tuple_slot));
 
         results.clear();
         index->ScanKey(*txn, *key, &results);
         EXPECT_TRUE(results.empty());
-        EXPECT_EQ(results.size(), 2);
+        EXPECT_EQ(results.size(), 0);
       }
       default:
         break;

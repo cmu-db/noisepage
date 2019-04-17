@@ -88,7 +88,7 @@ bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSl
 
     // Since we disallow write-write conflicts, the version vector pointer is essentially an implicit
     // write lock on the tuple.
-    if (HasConflict(version_ptr, txn) || !Visible(slot, accessor_)) {
+    if (HasConflict(*txn, version_ptr) || !Visible(slot, accessor_)) {
       // Mark this UndoRecord as never installed by setting the table pointer to nullptr. This is inspected in the
       // TransactionManager's Rollback() and GC's Unlink logic
       undo->Table() = nullptr;
@@ -168,7 +168,7 @@ bool DataTable::Delete(transaction::TransactionContext *const txn, const TupleSl
     version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
     // Since we disallow write-write conflicts, the version vector pointer is essentially an implicit
     // write lock on the tuple.
-    if (HasConflict(version_ptr, txn) || !Visible(slot, accessor_)) {
+    if (HasConflict(*txn, version_ptr) || !Visible(slot, accessor_)) {
       // Mark this UndoRecord as never installed by setting the table pointer to nullptr. This is inspected in the
       // TransactionManager's Rollback() and GC's Unlink logic
       undo->Table() = nullptr;
@@ -271,11 +271,11 @@ bool DataTable::Visible(const TupleSlot slot, const TupleAccessStrategy &accesso
   return present && not_deleted;
 }
 
-bool DataTable::HasConflict(UndoRecord *const version_ptr, const transaction::TransactionContext *const txn) const {
+bool DataTable::HasConflict(const transaction::TransactionContext &txn, UndoRecord *const version_ptr) const {
   if (version_ptr == nullptr) return false;  // Nobody owns this tuple's write lock, no older version visible
   const transaction::timestamp_t version_timestamp = version_ptr->Timestamp().load();
-  const transaction::timestamp_t txn_id = txn->TxnId().load();
-  const transaction::timestamp_t start_time = txn->StartTime();
+  const transaction::timestamp_t txn_id = txn.TxnId().load();
+  const transaction::timestamp_t start_time = txn.StartTime();
   const bool owned_by_other_txn =
       (!transaction::TransactionUtil::Committed(version_timestamp) && version_timestamp != txn_id);
   const bool newer_committed_version = transaction::TransactionUtil::Committed(version_timestamp) &&
@@ -312,6 +312,20 @@ void DataTable::DeallocateVarlensOnShutdown(RawBlock *block) {
       if (entry != nullptr && entry->NeedReclaim()) delete[] entry->Content();
     }
   }
+}
+
+bool DataTable::HasConflict(const transaction::TransactionContext &txn, const TupleSlot slot) const {
+  const UndoRecord *const version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
+
+  if (version_ptr == nullptr) return false;  // Nobody owns this tuple's write lock, no older version visible
+  const transaction::timestamp_t version_timestamp = version_ptr->Timestamp().load();
+  const transaction::timestamp_t txn_id = txn.TxnId().load();
+  const transaction::timestamp_t start_time = txn.StartTime();
+  const bool owned_by_other_txn =
+      (!transaction::TransactionUtil::Committed(version_timestamp) && version_timestamp != txn_id);
+  const bool newer_committed_version = transaction::TransactionUtil::Committed(version_timestamp) &&
+                                       transaction::TransactionUtil::NewerThan(version_timestamp, start_time);
+  return owned_by_other_txn || newer_committed_version;
 }
 
 bool DataTable::IsVisible(const transaction::TransactionContext &txn, const TupleSlot slot) const {
