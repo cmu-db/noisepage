@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include "common/container/concurrent_map.h"
 #include "storage/projected_columns.h"
 #include "storage/projected_row.h"
 #include "storage/write_ahead_log/log_io.h"
@@ -8,6 +9,9 @@ namespace terrier::storage {
 // TODO(Zhaozhe): Should fetch block_size. Use magic number first.
 // The block size to output to disk every time
 #define CHECKPOINT_BLOCK_SIZE 4096
+// TODO(Yuning): Should allow setting number of pre-allocated buffers.
+// Use magic number before we have a setting manager.
+#define CHECKPOINT_BUF_NUM 10
 
 /**
  * The header of a page in the checkpoint file.
@@ -72,6 +76,78 @@ class PACKED CheckpointFilePage {
 };
 
 /**
+ * An async block writer will use a background thread to write blocks into
+ * checkpoint file asynchronously. Its design is very similar with that of
+ * the logger threads in SiloR. An async block writer will have some
+ * pre-allocated block buffers. Workers must first ask for a free block
+ * buffer. If there is no free block buffer now, it will be blocked until
+ * some free block buffer is available. In this way, the async block writer
+ * can give some back pressure on the worker to let it slow down if it is
+ * generating blocks too quickly. The worker then fills the block buffer
+ * and hand it back to the writer thread. The writer thread write it into
+ * the file and make the buffer available again.
+ */
+class AsyncBlockWriter {
+ public:
+  AsyncBlockWriter() = default;
+
+  /**
+   * Instantiate a new AsyncBlockWriter, open a new checkpoint file to write into.
+   * @param log_file_path path to the checkpoint file.
+   * @param buffer_num number of pre-allocated buffer
+   */
+  explicit AsyncBlockWriter(const char *log_file_path, int buffer_num) { Open(log_file_path, buffer_num); }
+
+  /**
+   * Open a file to write into
+   * @param log_file_path path to the checkpoint file.
+   * @param buffer_num number of pre-allocated buffer
+   */
+  void Open(const char *log_file_path, int buffer_num);
+
+  /**
+   * Ask for a free block buffer
+   * @return pointer to a free block buffer
+   */
+  byte *GetBuffer() {
+    byte *res;
+
+    // TODO(Yuning): Maybe use blocking queue?
+    while (!free_.Dequeue(&res)) {
+      // spin
+    }
+
+    return res;
+  }
+
+  /**
+   * Let the writer to write a buffer (async)
+   * @param buf the pointer to the buffer to be written
+   */
+  void WriteBuffer(byte *buf) {
+    TERRIER_ASSERT(buf != nullptr, "Buffer pointer should not be nullptr");
+    pending_.Enqueue(buf);
+  }
+
+  /**
+   * Wait all write done, close current file and release all the buffers.
+   */
+  void Close();
+
+ private:
+  int out_;  // fd of the output files
+  uint32_t block_size_;
+  common::ConcurrentQueue<byte *> free_; // free buffers
+  common::ConcurrentQueue<byte *> pending_; // buffers pending write
+  std::thread *writer_thread_; // writer thread
+
+  /**
+   * The writer thread
+   */
+  void RunWriter();
+};
+
+/**
  * A buffered tuple writer collects tuples into blocks, and output a block once a time.
  * The block size is fetched from database setting, and should be the page size.
  * layout:
@@ -95,9 +171,9 @@ class BufferedTupleWriter {
    * @param log_file_path path to the checkpoint file.
    */
   void Open(const char *log_file_path) {
-    out_ = PosixIoWrappers::Open(log_file_path, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
+    writer_.Open(log_file_path, CHECKPOINT_BUF_NUM);
     block_size_ = CHECKPOINT_BLOCK_SIZE;
-    buffer_ = new byte[block_size_]();
+    buffer_ = writer_.GetBuffer();
     ResetBuffer();
   }
 
@@ -110,7 +186,7 @@ class BufferedTupleWriter {
    * Close current file and release the buffer.
    */
   void Close() {
-    PosixIoWrappers::Close(out_);
+    writer_.Close();
     delete[] buffer_;
   }
 
@@ -130,7 +206,7 @@ class BufferedTupleWriter {
   CheckpointFilePage *GetPage() { return reinterpret_cast<CheckpointFilePage *>(buffer_); }
 
  private:
-  int out_;  // fd of the output files
+  AsyncBlockWriter writer_; // background writer
   uint32_t block_size_;
   uint32_t page_offset_ = 0;
   byte *buffer_ = nullptr;
@@ -152,7 +228,8 @@ class BufferedTupleWriter {
       // append a zero to the last record, so that during recovery it can be recognized as the end
       memset(buffer_ + page_offset_, 0, sizeof(uint32_t));
     }
-    PosixIoWrappers::WriteFully(out_, buffer_, block_size_);
+    writer_.WriteBuffer(buffer_);
+    buffer_ = writer_.GetBuffer();
     ResetBuffer();
   }
 
