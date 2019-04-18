@@ -113,7 +113,7 @@ void SqlTable::UpdateSchema(const catalog::Schema &schema) {
   for (const auto &column : schema.GetColumns()) {
     byte *default_value = column.GetDefault();
     uint8_t attr_size = column.GetAttrSize();
-    if (default_value) {
+    if (default_value != nullptr) {
       default_value_map[column.GetOid()] = {default_value, attr_size};
     }
   }
@@ -329,7 +329,7 @@ void SqlTable::Scan(transaction::TransactionContext *const txn, SqlTable::SlotIt
 
     // Fill in the matching default values for each of the rows
     // Since each row could have different columns unfilled, using RowView to iterate over ProjectedColumns
-    for (uint32_t row_idx=0; row_idx<filled; row_idx++) {
+    for (uint32_t row_idx = 0; row_idx < filled; row_idx++) {
       ProjectedColumns::RowView row = out_buffer->InterpretAsRow(curr_dt_version.layout, row_idx);
       for (auto col_oid_idx_pair : matching_cols) {
         auto col_oid = col_oid_idx_pair.first;

@@ -62,7 +62,7 @@ class Schema {
           oid_(oid) {
       // ASSUMPTION: The default_value passed in is of size attr_size_
       // Copy the passed in default value
-      if (default_value) {
+      if (default_value != nullptr) {
         default_ = new byte[attr_size_];
         std::memcpy(default_, default_value, attr_size_);
       } else {
@@ -103,7 +103,7 @@ class Schema {
     /**
      * @return default value for this column
      */
-    byte* GetDefault() const { return default_; }
+    byte *GetDefault() const { return default_; }
 
    private:
     /**
@@ -168,7 +168,6 @@ class Schema {
    * @return version number for this schema
    */
   const storage::layout_version_t GetVersion() const { return version_; }
-
 
  private:
   const storage::layout_version_t version_;

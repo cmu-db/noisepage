@@ -38,7 +38,7 @@ class SqlTableTestRW {
   }
 
   void AddColumn(transaction::TransactionContext *txn, std::string name, type::TypeId type, bool nullable,
-                 catalog::col_oid_t oid, byte* default_value) {
+                 catalog::col_oid_t oid, byte *default_value) {
     // update columns, schema and layout
     cols_.emplace_back(name, type, nullable, oid, default_value);
     delete schema_;
@@ -210,9 +210,9 @@ class SqlTableTestRW {
    * @param n an integer
    * @return byte array
    */
-  byte* intToByteArray(int n) {
-    byte *byteArray = new byte[sizeof(n)];
-    memcpy(byteArray,(const char *)&n,sizeof(n));
+  byte *intToByteArray(int n) {
+    auto byteArray = new byte[sizeof(n)];
+    memcpy(byteArray, reinterpret_cast<char *>(&n), sizeof(n));
     return byteArray;
   }
 
@@ -289,7 +289,7 @@ TEST_F(SqlTableTests, SelectTest) {
   int default_val = 42;
   // Add a new column with a default value
   table.AddColumn(txn, "new_col", type::TypeId::INTEGER, true, catalog::col_oid_t(2),
-      table.intToByteArray(default_val));
+                  table.intToByteArray(default_val));
 
   id = table.GetIntColInRow(txn, catalog::col_oid_t(0), row1_slot);
   EXPECT_EQ(100, id);
@@ -545,7 +545,7 @@ TEST_F(SqlTableTests, ScanTest) {
   // manually set the version of the transaction to be 1
   table.version_ = storage::layout_version_t(1);
   table.AddColumn(txn, "new_col", type::TypeId::INTEGER, true, catalog::col_oid_t(2),
-      table.intToByteArray(new_col_default_value));
+                  table.intToByteArray(new_col_default_value));
 
   // insert (300, 10002, 1729)
   table.StartInsertRow();
