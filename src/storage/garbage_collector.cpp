@@ -180,10 +180,9 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
 
 bool GarbageCollector::ProcessUndoRecord(UndoRecord *const undo_record,
                                          std::vector<transaction::timestamp_t> *const active_txns) {
-  transaction::TransactionContext *txn = undo_record->Transaction();
   DataTable *table = undo_record->Table();
   // If this UndoRecord has already been processed, we can skip it
-  if (txn == nullptr) return true;
+  if (undo_record->txnptr_.IsNull()) return true;
   const TupleSlot slot = undo_record->Slot();
   // Process this tuple only
   if (visited_slots_.insert(slot).second) {
@@ -192,8 +191,7 @@ bool GarbageCollector::ProcessUndoRecord(UndoRecord *const undo_record,
     ProcessTupleVersionChainHead(table, slot, active_txns);
   }
 
-  txn = undo_record->Transaction();
-  return txn == nullptr;
+  return undo_record->txnptr_.IsNull();
 }
 
 void GarbageCollector::ProcessTupleVersionChainHead(DataTable *const table, TupleSlot slot,
@@ -320,12 +318,11 @@ void GarbageCollector::ProcessTupleVersionChain(UndoRecord *const undo_record,
 }
 
 void GarbageCollector::UnlinkUndoRecordVersion(UndoRecord *const undo_record) {
-  transaction::TransactionContext *&txn = undo_record->Transaction();
-  TERRIER_ASSERT(txn != nullptr, "Table should not be NULL here");
+  TERRIER_ASSERT(!undo_record->txnptr_.IsNull(), "Table should not be NULL here");
   ReclaimSlotIfDeleted(undo_record);
   ReclaimVarlen(undo_record);
   // Mark the record as fully processed
-  txn = nullptr;
+  undo_record->txnptr_.Put(nullptr);
 }
 
 void GarbageCollector::ReclaimSlotIfDeleted(UndoRecord *undo_record) const {
@@ -437,7 +434,7 @@ UndoRecord *GarbageCollector::InitializeUndoRecord(const transaction::timestamp_
   result->timestamp_.store(timestamp);
   result->table_ = table;
   result->slot_ = slot;
-  result->txn_ = reinterpret_cast<transaction::TransactionContext *>((uintptr_t)-1);
+  result->txnptr_.Put(reinterpret_cast<transaction::TransactionContext *>((uintptr_t)-1));
   return result;
 }
 
@@ -463,7 +460,7 @@ void GarbageCollector::CopyVarlen(UndoRecord *undo_record) {
 }
 
 void GarbageCollector::ReclaimVarlen(UndoRecord *const undo_record) const {
-  if (undo_record->Transaction() == reinterpret_cast<transaction::TransactionContext *>((uintptr_t)-1)) {
+  if (undo_record->txnptr_.IsCompacted()) {
     ReclaimBufferIfVarlenCompacted(undo_record);
   } else {
     ReclaimBufferIfVarlen(undo_record);
@@ -483,7 +480,7 @@ void GarbageCollector::ReclaimBufferIfVarlenCompacted(UndoRecord *const undo_rec
 }
 
 void GarbageCollector::ReclaimBufferIfVarlen(UndoRecord *const undo_record) const {
-  transaction::TransactionContext *txn = undo_record->Transaction();
+  transaction::TransactionContext *txn = undo_record->txnptr_.Get();
   const TupleAccessStrategy &accessor = undo_record->Table()->accessor_;
   const BlockLayout &layout = accessor.GetBlockLayout();
   switch (undo_record->Type()) {
