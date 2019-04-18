@@ -39,17 +39,33 @@ class Schema {
           attr_size_(type::TypeUtil::GetTypeSize(type_)),
           nullable_(nullable),
           inlined_(true),
-          oid_(oid) {
-      if (attr_size_ == VARLEN_COLUMN) {
-        // this is a varlen attribute
-        // attr_size_ is actual size + high bit via GetTypeSize
-        inlined_ = false;
-      }
-      TERRIER_ASSERT(
-          attr_size_ == 1 || attr_size_ == 2 || attr_size_ == 4 || attr_size_ == 8 || attr_size_ == VARLEN_COLUMN,
-          "Attribute size must be 1, 2, 4, 8 or VARLEN_COLUMN bytes.");
-      TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
+          oid_(oid),
+          default_(nullptr) {
+      validateColumn();
     }
+
+    /**
+     * Instantiates a Column object, primary to be used for building a Schema object
+     * @param name column name
+     * @param type SQL type for this column
+     * @param nullable true if the column is nullable, false otherwise
+     * @param oid internal unique identifier for this column
+     * @param default_value default value for this column
+     */
+    Column(std::string name, const type::TypeId type, const bool nullable, const col_oid_t oid, byte *default_value)
+        : name_(std::move(name)),
+          type_(type),
+          attr_size_(type::TypeUtil::GetTypeSize(type_)),
+          nullable_(nullable),
+          inlined_(true),
+          oid_(oid) {
+      // Copy the passed in default value
+      // ASSUMPTION: The default_value passed in is of size attr_size_
+      default_ = new byte[attr_size_];
+      std::memcpy(default_, default_value, attr_size_);
+      validateColumn();
+    }
+
     /**
      * @return column name
      */
@@ -76,14 +92,28 @@ class Schema {
     col_oid_t GetOid() const { return oid_; }
 
    private:
+    /**
+     * Validate the attr_size_ and type of the column
+     */
+    void validateColumn() {
+      if (attr_size_ == VARLEN_COLUMN) {
+        // this is a varlen attribute
+        // attr_size_ is actual size + high bit via GetTypeSize
+        inlined_ = false;
+      }
+      TERRIER_ASSERT(
+          attr_size_ == 1 || attr_size_ == 2 || attr_size_ == 4 || attr_size_ == 8 || attr_size_ == VARLEN_COLUMN,
+          "Attribute size must be 1, 2, 4, 8 or VARLEN_COLUMN bytes.");
+      TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
+    }
+
     const std::string name_;
     const type::TypeId type_;
     uint8_t attr_size_;
     const bool nullable_;
     bool inlined_;
     const col_oid_t oid_;
-    // TODO(Matt): default value would go here
-    // Value default_;
+    byte *default_;
   };
 
   /**
