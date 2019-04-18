@@ -67,6 +67,11 @@ class Schema {
     }
 
     /**
+     * Free the memory allocated to default_ in the destructor
+     */
+    ~Column() { if (default_ != nullptr) free(default_); }
+
+    /**
      * @return column name
      */
     const std::string &GetName() const { return name_; }
@@ -90,6 +95,10 @@ class Schema {
      * @return internal unique identifier for this column
      */
     col_oid_t GetOid() const { return oid_; }
+    /**
+     * @return default value for this column
+     */
+    byte* GetDefault() const { return default_; }
 
    private:
     /**
@@ -154,6 +163,7 @@ class Schema {
    * @return version number for this schema
    */
   const storage::layout_version_t GetVersion() const { return version_; }
+
 
  private:
   const storage::layout_version_t version_;

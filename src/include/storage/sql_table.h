@@ -32,7 +32,8 @@ class SqlTable {
     BlockLayout layout;
     ColumnMap column_map;
     InverseColumnMap inverse_column_map;
-    // TODO(John): Add 'default_value_map' (dynamic) for col_oid->default_val
+    // TODO(Sai): Do we really need a defaultValueMap for every version? One for SqlTable should work?
+    DefaultValueMap default_value_map;
   };
 
   /**

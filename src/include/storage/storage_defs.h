@@ -168,6 +168,7 @@ using ColumnMap = std::unordered_map<catalog::col_oid_t, col_id_t>;
  */
 using InverseColumnMap = std::unordered_map<col_id_t, catalog::col_oid_t>;
 using ProjectionMap = std::unordered_map<catalog::col_oid_t, uint16_t>;
+using DefaultValueMap = std::unordered_map<catalog::col_oid_t, byte*>;
 
 /**
  * Denote whether a record modifies the logical delete column, used when DataTable inspects deltas

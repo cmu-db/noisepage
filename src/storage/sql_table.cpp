@@ -108,6 +108,15 @@ void SqlTable::UpdateSchema(const catalog::Schema &schema) {
     }
   }
 
+  // Populate the default value map
+  DefaultValueMap default_value_map;
+  for (const auto &column : schema.GetColumns()) {
+    byte *default_value = column.GetDefault();
+    if (default_value) {
+      default_value_map[column.GetOid()] = default_value;
+    }
+  }
+
   BlockLayout layout = storage::BlockLayout(attr_sizes);
 
   auto dt = new DataTable(block_store_, layout, schema.GetVersion());
@@ -117,7 +126,7 @@ void SqlTable::UpdateSchema(const catalog::Schema &schema) {
   // for this allocation is in the destructor for SqlTable.  clang-analyzer-cplusplus.NewDeleteLeaks identifies this
   // as a potential leak and throws an error incorrectly.
   // NOLINTNEXTLINE
-  tables_.Insert(schema.GetVersion(), {dt, layout, col_map, inv_col_map});
+  tables_.Insert(schema.GetVersion(), {dt, layout, col_map, inv_col_map, default_value_map});
 }
 
 bool SqlTable::Select(transaction::TransactionContext *const txn, const TupleSlot slot, ProjectedRow *const out_buffer,
