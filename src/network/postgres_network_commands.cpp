@@ -57,6 +57,11 @@ Transition ParseCommand::Exec(PostgresProtocolInterpreter *interpreter, Postgres
 
   std::string query = in_.ReadString();
   NETWORK_LOG_TRACE("ParseCommand: {0}", query);
+
+  // TODO(Weichen): This implementation does not strictly follow Postgres protocol.
+  // This param num here is just the number of params that the client wants to pre-specify types for.
+  // Should not use this as the number of parameters.
+  // Should rely on the table schema to determine the parameter type.
   auto num_params = in_.ReadValue<uint16_t>();
   std::vector<PostgresValueType> param_types;
   for (uint16_t i = 0; i < num_params; i++) {
@@ -64,6 +69,7 @@ Transition ParseCommand::Exec(PostgresProtocolInterpreter *interpreter, Postgres
     param_types.push_back(static_cast<PostgresValueType>(oid));
   }
 
+  // TODO(Weichen): Postgres protocol says that if a statement with that name exists, return error
   traffic_cop::Statement stmt = t_cop->Parse(query, param_types);
   connection->statements[stmt_name] = stmt;
 
@@ -182,6 +188,9 @@ Transition BindCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresP
     }
   }
 
+  // TODO(Weichen): Deal with requested response format. (text/binary)
+  // Now they are all text.
+
   traffic_cop::Portal portal = t_cop->Bind(*statement, params);
   connection->portals[portal_name] = portal;
 
@@ -217,6 +226,7 @@ Transition DescribeCommand::Exec(PostgresProtocolInterpreter *interpreter, Postg
     }
 
     column_names = t_cop->DescribeColumns(p_portal->second);
+
   } else {
     std::string error_msg = fmt::format("Wrong type: {0}, should be either 'S' or 'P'.", static_cast<char>(type));
     LogAndWriteErrorMsg(error_msg, out);

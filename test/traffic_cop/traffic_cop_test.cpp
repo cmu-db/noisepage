@@ -22,6 +22,7 @@ class TrafficCopTests : public TerrierTest {
   std::thread server_thread;
 
   void StartServer() {
+    network::network_logger->set_level(spdlog::level::trace);
     test_logger->set_level(spdlog::level::debug);
     spdlog::flush_every(std::chrono::seconds(1));
 
@@ -109,7 +110,7 @@ TEST_F(TrafficCopTests, ManualExtendedQueryTest) {
 
     ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PARSE_COMPLETE);
 
-    // Bind
+    // Bind, param1 = "100" expressed in vector form
     auto param1 = std::vector<char>({'1', '0', '0'});
 
     std::string portal_name = "test_portal";
@@ -137,12 +138,20 @@ TEST_F(TrafficCopTests, ManualExtendedQueryTest) {
   StopServer();
 }
 
+
+
+// -------------------------------------------------------------------------
+
 /*
- * This test is for debugging tests. It can be disabled when testing other components.
+ * The manual tests below are for debugging. They can be disabled when testing other components.
  * You can launch a Postgres backend and compare packets from terrier and from Postgres
  * to find if you have created correct packets.
  *
  * */
+
+
+
+
 // NOLINTNEXTLINE
 TEST_F(TrafficCopTests, ManualRoundTripTest) {
   StartServer();
@@ -164,6 +173,54 @@ TEST_F(TrafficCopTests, ManualRoundTripTest) {
     io_socket->FlushAllWrites();
     ReadUntilReadyOrClose(io_socket);
   } catch (const std::exception &e) {
+    TEST_LOG_ERROR("Exception occurred: {0}", e.what());
+    EXPECT_TRUE(false);
+  }
+
+  StopServer();
+}
+
+/**
+ * I disabled this test because pqxx sends PARSE query with num_params=0, but we are requiring the client to specify
+ * all param types in the PARSE query.
+ * Please use manual tests before this is supported.
+ */
+// NOLINTNEXTLINE
+TEST_F(TrafficCopTests, DISABLED_ExtendedQueryTest)
+{
+  StartServer();
+  try {
+    pqxx::connection connection(
+        fmt::format("host=127.0.0.1 port={0} user=postgres sslmode=disable application_name=psql", port));
+
+    pqxx::work txn(connection);
+    pqxx::result res;
+    connection.prepare("DROP TABLE IF EXISTS TableA");
+    res = txn.exec_prepared("");
+    connection.prepare("CREATE TABLE TableA (a_int INT PRIMARY KEY)");
+    res = txn.exec_prepared("");
+
+    connection.prepare("INSERT INTO TableA VALUES(114)");
+    res = txn.exec_prepared("");
+
+    connection.prepare("SELECT * from TableA where a_int = $1");
+    res = txn.exec_prepared("", 114);
+    EXPECT_EQ(1, res.size());
+
+    txn.commit();
+
+    /*
+    connection.prepare("SELECT * from TableA where a_dec = $1");
+    res = txn.exec_prepared("", 1919.81);
+    EXPECT_EQ(1, res.size());
+
+    connection.prepare("SELECT * from TableA where a_text = $1");
+    res = txn.exec_prepared("", "blacktea");
+    EXPECT_EQ(1, res.size());
+    */
+
+  } catch (const std::exception &e)
+  {
     TEST_LOG_ERROR("Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);
   }
