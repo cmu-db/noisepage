@@ -69,7 +69,7 @@ class Schema {
     /**
      * Free the memory allocated to default_ in the destructor
      */
-    ~Column() { if (default_ != nullptr) free(default_); }
+    ~Column() = default;
 
     /**
      * @return column name

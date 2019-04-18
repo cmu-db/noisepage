@@ -38,9 +38,9 @@ class SqlTableTestRW {
   }
 
   void AddColumn(transaction::TransactionContext *txn, std::string name, type::TypeId type, bool nullable,
-                 catalog::col_oid_t oid) {
+                 catalog::col_oid_t oid, byte* default_value) {
     // update columns, schema and layout
-    cols_.emplace_back(name, type, nullable, oid);
+    cols_.emplace_back(name, type, nullable, oid, default_value);
     delete schema_;
     delete layout_;
     schema_ = new catalog::Schema(cols_, next_version_++);
@@ -205,6 +205,17 @@ class SqlTableTestRW {
     }
   }
 
+  /**
+   * Convert an integer to byte array
+   * @param n an integer
+   * @return byte array
+   */
+  byte* intToByteArray(int n) {
+    byte *byteArray = new byte[sizeof(n)];
+    memcpy(byteArray,(const char *)&n,sizeof(n));
+    return byteArray;
+  }
+
  public:
   // This is a public field that transactions can set and read.
   // The purpose is to record the version for each transaction. In reality this information should be retrieved from
@@ -275,7 +286,10 @@ TEST_F(SqlTableTests, SelectTest) {
 
   // manually set the version of the transaction to be 1
   table.version_ = storage::layout_version_t(1);
-  table.AddColumn(txn, "new_col", type::TypeId::INTEGER, true, catalog::col_oid_t(2));
+  int default_val = 42;
+  // Add a new column with a default value
+  table.AddColumn(txn, "new_col", type::TypeId::INTEGER, true, catalog::col_oid_t(2),
+      table.intToByteArray(default_val));
 
   id = table.GetIntColInRow(txn, catalog::col_oid_t(0), row1_slot);
   EXPECT_EQ(100, id);
@@ -287,8 +301,11 @@ TEST_F(SqlTableTests, SelectTest) {
   datname = table.GetIntColInRow(txn, catalog::col_oid_t(1), row2_slot);
   EXPECT_EQ(10001, datname);
 
+  // The new_column should return the default_value for the old version slots
   uint32_t new_col = table.GetIntColInRow(txn, catalog::col_oid_t(2), row1_slot);
-  EXPECT_EQ(12345, new_col);
+  EXPECT_EQ(default_val, new_col);
+  new_col = table.GetIntColInRow(txn, catalog::col_oid_t(2), row2_slot);
+  EXPECT_EQ(default_val, new_col);
 
   txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
   delete txn;
@@ -313,7 +330,7 @@ TEST_F(SqlTableTests, InsertTest) {
 
   // manually set the version of the transaction to be 1
   table.version_ = storage::layout_version_t(1);
-  table.AddColumn(txn, "new_col", type::TypeId::INTEGER, true, catalog::col_oid_t(2));
+  table.AddColumn(txn, "new_col", type::TypeId::INTEGER, true, catalog::col_oid_t(2), nullptr);
 
   // insert (300, 10002, null)
   table.StartInsertRow();
@@ -368,7 +385,7 @@ TEST_F(SqlTableTests, DeleteTest) {
 
   // manually set the version of the transaction to be 1
   table.version_ = storage::layout_version_t(1);
-  table.AddColumn(txn, "new_col", type::TypeId::INTEGER, true, catalog::col_oid_t(2));
+  table.AddColumn(txn, "new_col", type::TypeId::INTEGER, true, catalog::col_oid_t(2), nullptr);
 
   // insert (300, 10002, null)
   table.StartInsertRow();
@@ -418,7 +435,7 @@ TEST_F(SqlTableTests, UpdateTest) {
 
   // manually set the version of the transaction to be 1
   table.version_ = storage::layout_version_t(1);
-  table.AddColumn(txn, "new_col", type::TypeId::INTEGER, true, catalog::col_oid_t(2));
+  table.AddColumn(txn, "new_col", type::TypeId::INTEGER, true, catalog::col_oid_t(2), nullptr);
 
   // insert (300, 10002, null)
   table.StartInsertRow();
@@ -526,7 +543,7 @@ TEST_F(SqlTableTests, ScanTest) {
 
   // manually set the version of the transaction to be 1
   table.version_ = storage::layout_version_t(1);
-  table.AddColumn(txn, "new_col", type::TypeId::INTEGER, true, catalog::col_oid_t(2));
+  table.AddColumn(txn, "new_col", type::TypeId::INTEGER, true, catalog::col_oid_t(2), nullptr);
 
   // insert (300, 10002, null)
   table.StartInsertRow();

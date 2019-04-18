@@ -112,8 +112,9 @@ void SqlTable::UpdateSchema(const catalog::Schema &schema) {
   DefaultValueMap default_value_map;
   for (const auto &column : schema.GetColumns()) {
     byte *default_value = column.GetDefault();
+    uint8_t attr_size = column.GetAttrSize();
     if (default_value) {
-      default_value_map[column.GetOid()] = default_value;
+      default_value_map[column.GetOid()] = {default_value, attr_size};
     }
   }
 
@@ -145,6 +146,7 @@ bool SqlTable::Select(transaction::TransactionContext *const txn, const TupleSlo
   }
 
   auto old_dt_version = tables_.Find(old_version_num)->second;
+  auto curr_dt_version = tables_.Find(version_num)->second;
 
   // The slot version is not the same as the version_num
   col_id_t original_column_ids[out_buffer->NumColumns()];
@@ -154,7 +156,20 @@ bool SqlTable::Select(transaction::TransactionContext *const txn, const TupleSlo
   bool result = old_dt_version.data_table->Select(txn, slot, out_buffer);
   std::memcpy(out_buffer->ColumnIds(), original_column_ids, sizeof(col_id_t) * out_buffer->NumColumns());
 
-  // TODO(Yashwanth): handle default values
+  // Get the DefaultValueMap visible to this transaction
+  DefaultValueMap default_val_map = curr_dt_version.default_value_map;
+
+  // Populate default values into the empty columns of the ProjectedRow (if any)
+  STORAGE_LOG_DEBUG("Loading default values")
+  for (uint16_t i = 0; i < out_buffer->NumColumns(); i++) {
+    catalog::col_oid_t col_oid = curr_dt_version.inverse_column_map.at(out_buffer->ColumnIds()[i]);
+    // Fill in the default value if the entry is not null and the col_oid is in the map
+    if (default_val_map.count(col_oid) > 0 && out_buffer->IsNull(i)) {
+      auto dv_pair = default_val_map.at(col_oid);
+      storage::StorageUtil::CopyWithNullCheck(dv_pair.first, out_buffer, dv_pair.second, i);
+    }
+  }
+
   return result;
 }
 
