@@ -171,4 +171,23 @@ TEST(PlanNodeJsonTest, NestedLoopJoinPlanNodeJoinTest) {
   auto nested_loop_join_plan = std::dynamic_pointer_cast<NestedLoopJoinPlanNode>(deserialized_plan);
   EXPECT_EQ(*plan_node, *nested_loop_join_plan);
 }
+
+// NOLINTNEXTLINE
+TEST(PlanNodeJsonTest, ProjectionPlanNodeJoinTest) {
+  // Construct ProjectionPlanNode
+  ProjectionPlanNode::Builder builder;
+  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema()).Build();
+
+  // Serialize to Json
+  auto json = plan_node->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize plan node
+  auto deserialized_plan = DeserializePlanNode(json);
+  EXPECT_TRUE(deserialized_plan != nullptr);
+  EXPECT_EQ(PlanNodeType::PROJECTION, deserialized_plan->GetPlanNodeType());
+  auto projection_plan = std::dynamic_pointer_cast<ProjectionPlanNode>(deserialized_plan);
+  EXPECT_EQ(*plan_node, *projection_plan);
+}
+
 }  // namespace terrier::planner

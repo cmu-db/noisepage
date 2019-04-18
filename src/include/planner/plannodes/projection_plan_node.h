@@ -46,6 +46,10 @@ class ProjectionPlanNode : public AbstractPlanNode {
 
  public:
   /**
+   * Default constructor used for deserialization
+   */
+  ProjectionPlanNode() = default;
+  /**
    * @return the type of this plan node
    */
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::PROJECTION; }
@@ -56,6 +60,9 @@ class ProjectionPlanNode : public AbstractPlanNode {
   common::hash_t Hash() const override;
 
   bool operator==(const AbstractPlanNode &rhs) const override;
+
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
 
  public:
   /**

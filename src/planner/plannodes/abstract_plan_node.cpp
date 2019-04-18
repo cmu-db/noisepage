@@ -187,10 +187,10 @@ std::shared_ptr<AbstractPlanNode> DeserializePlanNode(const nlohmann::json &json
       //      break;
       //    }
       //
-      //    case PlanNodeType::PROJECTION: {
-      //      plan_node = std::make_shared<ProjectionPlanNode>();
-      //      break;
-      //    }
+    case PlanNodeType::PROJECTION: {
+      plan_node = std::make_shared<ProjectionPlanNode>();
+      break;
+    }
       //
       //    case PlanNodeType::RESULT: {
       //      plan_node = std::make_shared<ResultPlanNode>();

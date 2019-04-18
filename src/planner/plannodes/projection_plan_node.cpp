@@ -22,4 +22,11 @@ bool ProjectionPlanNode::operator==(const AbstractPlanNode &rhs) const {
   return AbstractPlanNode::operator==(rhs);
 }
 
+nlohmann::json ProjectionPlanNode::ToJson() const {
+  nlohmann::json j = AbstractPlanNode::ToJson();
+  return j;
+}
+
+void ProjectionPlanNode::FromJson(const nlohmann::json &j) { AbstractPlanNode::FromJson(j); }
+
 }  // namespace terrier::planner
