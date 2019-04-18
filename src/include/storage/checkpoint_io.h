@@ -84,7 +84,7 @@ class PACKED CheckpointFilePage {
  * some free block buffer is available. In this way, the async block writer
  * can give some back pressure on the worker to let it slow down if it is
  * generating blocks too quickly. The worker then fills the block buffer
- * and hand it back to the writer thread. The writer thread write it into
+ * and hand it back to the writer thread. The writer thread writes it into
  * the file and make the buffer available again.
  */
 class AsyncBlockWriter {
@@ -121,7 +121,7 @@ class AsyncBlockWriter {
   }
 
   /**
-   * Let the writer to write a buffer (async)
+   * Let the writer write a buffer (async)
    * @param buf the pointer to the buffer to be written
    */
   void WriteBuffer(byte *buf) {
@@ -130,7 +130,7 @@ class AsyncBlockWriter {
   }
 
   /**
-   * Wait all write done, close current file and release all the buffers.
+   * Wait for all writes done, close current file and release all the buffers.
    */
   void Close();
 
@@ -171,9 +171,9 @@ class BufferedTupleWriter {
    * @param log_file_path path to the checkpoint file.
    */
   void Open(const char *log_file_path) {
-    writer_.Open(log_file_path, CHECKPOINT_BUF_NUM);
+    async_writer_.Open(log_file_path, CHECKPOINT_BUF_NUM);
     block_size_ = CHECKPOINT_BLOCK_SIZE;
-    buffer_ = writer_.GetBuffer();
+    buffer_ = async_writer_.GetBuffer();
     ResetBuffer();
   }
 
@@ -186,7 +186,7 @@ class BufferedTupleWriter {
    * Close current file and release the buffer.
    */
   void Close() {
-    writer_.Close();
+    async_writer_.Close();
     delete[] buffer_;
   }
 
@@ -206,7 +206,7 @@ class BufferedTupleWriter {
   CheckpointFilePage *GetPage() { return reinterpret_cast<CheckpointFilePage *>(buffer_); }
 
  private:
-  AsyncBlockWriter writer_; // background writer
+  AsyncBlockWriter async_writer_; // background writer
   uint32_t block_size_;
   uint32_t page_offset_ = 0;
   byte *buffer_ = nullptr;
@@ -228,8 +228,8 @@ class BufferedTupleWriter {
       // append a zero to the last record, so that during recovery it can be recognized as the end
       memset(buffer_ + page_offset_, 0, sizeof(uint32_t));
     }
-    writer_.WriteBuffer(buffer_);
-    buffer_ = writer_.GetBuffer();
+    async_writer_.WriteBuffer(buffer_);
+    buffer_ = async_writer_.GetBuffer();
     ResetBuffer();
   }
 
