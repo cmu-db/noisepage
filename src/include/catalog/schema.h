@@ -46,6 +46,7 @@ class Schema {
 
     /**
      * Instantiates a Column object, primary to be used for building a Schema object
+     * NOTE: Overloaded to avoid changing all Column initializations in the code
      * @param name column name
      * @param type SQL type for this column
      * @param nullable true if the column is nullable, false otherwise
@@ -59,10 +60,14 @@ class Schema {
           nullable_(nullable),
           inlined_(true),
           oid_(oid) {
-      // Copy the passed in default value
       // ASSUMPTION: The default_value passed in is of size attr_size_
-      default_ = new byte[attr_size_];
-      std::memcpy(default_, default_value, attr_size_);
+      // Copy the passed in default value
+      if (default_value) {
+        default_ = new byte[attr_size_];
+        std::memcpy(default_, default_value, attr_size_);
+      } else {
+        default_ = default_value;
+      }
       validateColumn();
     }
 
