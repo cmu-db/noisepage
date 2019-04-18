@@ -147,9 +147,9 @@ class AsyncBlockWriter {
  private:
   int out_;  // fd of the output files
   uint32_t block_size_;
-  common::ConcurrentQueue<byte *> free_; // free buffers
-  common::ConcurrentQueue<byte *> pending_; // buffers pending write
-  std::thread *writer_thread_; // writer thread
+  common::ConcurrentQueue<byte *> free_;     // free buffers
+  common::ConcurrentQueue<byte *> pending_;  // buffers pending write
+  std::thread *writer_thread_;               // writer thread
 
   /**
    * The writer thread
@@ -216,7 +216,7 @@ class BufferedTupleWriter {
   CheckpointFilePage *GetPage() { return reinterpret_cast<CheckpointFilePage *>(buffer_); }
 
  private:
-  AsyncBlockWriter async_writer_; // background writer
+  AsyncBlockWriter async_writer_;  // background writer
   uint32_t block_size_;
   uint32_t page_offset_ = 0;
   byte *buffer_ = nullptr;
