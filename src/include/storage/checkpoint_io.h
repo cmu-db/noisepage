@@ -130,6 +130,16 @@ class AsyncBlockWriter {
   }
 
   /**
+   * Return a buffer to the writer, make it available again
+   * without writing it
+   * @param buf the pointer to the buffer to be returned
+   */
+  void ReturnBuffer(byte *buf) {
+    TERRIER_ASSERT(buf != nullptr, "Buffer pointer should not be nullptr");
+    free_.Enqueue(buf);
+  }
+
+  /**
    * Wait for all writes done, close current file and release all the buffers.
    */
   void Close();
@@ -186,8 +196,8 @@ class BufferedTupleWriter {
    * Close current file and release the buffer.
    */
   void Close() {
+    async_writer_.ReturnBuffer(buffer_);
     async_writer_.Close();
-    delete[] buffer_;
   }
 
   /**
