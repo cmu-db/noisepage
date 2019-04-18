@@ -122,6 +122,8 @@ void SqlTable::UpdateSchema(const catalog::Schema &schema) {
 
 bool SqlTable::Select(transaction::TransactionContext *const txn, const TupleSlot slot, ProjectedRow *const out_buffer,
                       const ProjectionMap &pr_map, layout_version_t version_num) const {
+
+  TERRIER_ASSERT(slot.GetBlock() != nullptr, "Slot does not exist");
   STORAGE_LOG_DEBUG("slot version: {}, current version: {}", !slot.GetBlock()->layout_version_, !version_num);
 
   layout_version_t old_version_num = slot.GetBlock()->layout_version_;

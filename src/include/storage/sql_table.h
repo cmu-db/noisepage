@@ -113,20 +113,20 @@ class SqlTable {
      * through advancement of the DataTable iterator in SqlTable::Scan.
      */
     void AdvanceOnEndOfDatatable_() {
-      if (current_it_ == tables_->Find(curr_version_)->second.data_table->end()) {
+     TERRIER_ASSERT(curr_version_ <= txn_version_, "Current version must be older than transaction");
+     while (current_it_ == tables_->Find(curr_version_)->second.data_table->end()) {
         // layout_version_t is uint32_t so we need to protect against underflow.
         if (!curr_version_ == 0) {
           is_end_ = true;
           return;
         }
         curr_version_--;
-        TERRIER_ASSERT(curr_version_ < txn_version_, "Current version must be older than transaction");
         auto next_table = tables_->Find(curr_version_);
         if (next_table == tables_->CEnd()) {  // next_table does not exist (at end)
           is_end_ = true;
-        } else {  // next_table is valid
-          current_it_ = next_table->second.data_table->begin();
+          break;
         }
+        current_it_ = next_table->second.data_table->begin();
       }
     }
 
