@@ -506,6 +506,7 @@ TEST_F(SqlTableTests, UpdateTest) {
 TEST_F(SqlTableTests, ScanTest) {
   std::map<uint32_t, uint32_t> datname_map;
   std::map<uint32_t, uint32_t> new_col_map;
+  uint32_t new_col_default_value = 1729;
   std::map<uint32_t, bool> seen_map;
 
   datname_map[100] = 10000;
@@ -543,9 +544,10 @@ TEST_F(SqlTableTests, ScanTest) {
 
   // manually set the version of the transaction to be 1
   table.version_ = storage::layout_version_t(1);
-  table.AddColumn(txn, "new_col", type::TypeId::INTEGER, true, catalog::col_oid_t(2), nullptr);
+  table.AddColumn(txn, "new_col", type::TypeId::INTEGER, true, catalog::col_oid_t(2),
+      table.intToByteArray(new_col_default_value));
 
-  // insert (300, 10002, null)
+  // insert (300, 10002, 1729)
   table.StartInsertRow();
   table.SetIntColInRow(catalog::col_oid_t(0), 300);
   table.SetIntColInRow(catalog::col_oid_t(1), datname_map[300]);
@@ -587,10 +589,10 @@ TEST_F(SqlTableTests, ScanTest) {
   uint32_t datname = *reinterpret_cast<uint32_t *>(value);
   EXPECT_EQ(datname, datname_map[id]);
   value = row1.AccessWithNullCheck(pc_pair.second.at(catalog::col_oid_t(2)));
+  uint32_t new_col = *reinterpret_cast<uint32_t *>(value);
   if (id != 400) {
-    EXPECT_EQ(value, nullptr);
+    EXPECT_EQ(new_col, new_col_default_value);
   } else {
-    uint32_t new_col = *reinterpret_cast<uint32_t *>(value);
     EXPECT_EQ(new_col, new_col_map[id]);
   }
 
@@ -606,10 +608,10 @@ TEST_F(SqlTableTests, ScanTest) {
   datname = *reinterpret_cast<uint32_t *>(value);
   EXPECT_EQ(datname, datname_map[id]);
   value = row2.AccessWithNullCheck(pc_pair.second.at(catalog::col_oid_t(2)));
+  new_col = *reinterpret_cast<uint32_t *>(value);
   if (id != 400) {
-    EXPECT_EQ(value, nullptr);
+    EXPECT_EQ(new_col, new_col_default_value);
   } else {
-    uint32_t new_col = *reinterpret_cast<uint32_t *>(value);
     EXPECT_EQ(new_col, new_col_map[id]);
   }
 
@@ -630,10 +632,10 @@ TEST_F(SqlTableTests, ScanTest) {
   datname = *reinterpret_cast<uint32_t *>(value);
   EXPECT_EQ(datname, datname_map[id]);
   value = row3.AccessWithNullCheck(pc_pair.second.at(catalog::col_oid_t(2)));
+  new_col = *reinterpret_cast<uint32_t *>(value);
   if (id != 400) {
-    EXPECT_EQ(value, nullptr);
+    EXPECT_EQ(new_col, new_col_default_value);
   } else {
-    uint32_t new_col = *reinterpret_cast<uint32_t *>(value);
     EXPECT_EQ(new_col, new_col_map[id]);
   }
 
@@ -649,10 +651,10 @@ TEST_F(SqlTableTests, ScanTest) {
   datname = *reinterpret_cast<uint32_t *>(value);
   EXPECT_EQ(datname, datname_map[id]);
   value = row4.AccessWithNullCheck(pc_pair.second.at(catalog::col_oid_t(2)));
+  new_col = *reinterpret_cast<uint32_t *>(value);
   if (id != 400) {
-    EXPECT_EQ(value, nullptr);
+    EXPECT_EQ(new_col, new_col_default_value);
   } else {
-    uint32_t new_col = *reinterpret_cast<uint32_t *>(value);
     EXPECT_EQ(new_col, new_col_map[id]);
   }
 

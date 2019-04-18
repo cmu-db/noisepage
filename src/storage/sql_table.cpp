@@ -311,6 +311,36 @@ void SqlTable::Scan(transaction::TransactionContext *const txn, SqlTable::SlotIt
   uint32_t filled = out_buffer->NumTuples();
   std::memcpy(out_buffer->ColumnIds(), original_column_ids, sizeof(col_id_t) * out_buffer->NumColumns());
   out_buffer->SetNumTuples(filled);
+
+  // Populate the default values
+  if (filled > 0) {
+    // Since we are populating multiple tuples, calculate the columns matching with default value map
+    auto curr_dt_version = tables_.Find(version_num)->second;
+    DefaultValueMap default_val_map = curr_dt_version.default_value_map;
+    // Find out the columns which contain default values and their projection list index
+    std::vector<std::pair<catalog::col_oid_t, uint16_t>> matching_cols;
+    for (uint16_t i = 0; i < out_buffer->NumColumns(); i++) {
+      catalog::col_oid_t col_oid = curr_dt_version.inverse_column_map.at(out_buffer->ColumnIds()[i]);
+      // Fill in the default value if the entry is not null and the col_oid is in the map
+      if (default_val_map.count(col_oid) > 0) {
+        matching_cols.emplace_back(col_oid, i);
+      }
+    }
+
+    // Fill in the matching default values for each of the rows
+    // Since each row could have different columns unfilled, using RowView to iterate over ProjectedColumns
+    for (uint32_t row_idx=0; row_idx<filled; row_idx++) {
+      ProjectedColumns::RowView row = out_buffer->InterpretAsRow(curr_dt_version.layout, row_idx);
+      for (auto col_oid_idx_pair : matching_cols) {
+        auto col_oid = col_oid_idx_pair.first;
+        auto idx = col_oid_idx_pair.second;
+        if (row.IsNull(idx)) {
+          auto dv_pair = default_val_map.at(col_oid);
+          storage::StorageUtil::CopyWithNullCheck(dv_pair.first, &row, dv_pair.second, idx);
+        }
+      }
+    }
+  }
 }
 
 std::vector<col_id_t> SqlTable::ColIdsForOids(const std::vector<catalog::col_oid_t> &col_oids,
