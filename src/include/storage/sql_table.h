@@ -125,9 +125,8 @@ class SqlTable {
         if (next_table == tables_->CEnd()) {  // next_table does not exist (at end)
           is_end_ = true;
           break;
-        } else {  // next_table is valid
-          current_it_ = next_table->second.data_table->begin();
         }
+        current_it_ = next_table->second.data_table->begin();
       }
     }
 
