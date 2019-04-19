@@ -434,7 +434,7 @@ UndoRecord *GarbageCollector::InitializeUndoRecord(const transaction::timestamp_
   result->timestamp_.store(timestamp);
   result->table_ = table;
   result->slot_ = slot;
-  result->txnptr_.Put(reinterpret_cast<transaction::TransactionContext *>((uintptr_t)-1));
+  result->txnptr_.SetCompacted();
   return result;
 }
 

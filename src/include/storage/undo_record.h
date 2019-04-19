@@ -7,38 +7,36 @@ namespace terrier::storage {
 class DataTable;
 // Struct used for safely accessing the Transaction pointer stored in the Undo Record.
 struct TransactionPtr {
-    /*
-     * @return Transaction pointer to the transaction this undo record is part of 
-     * @warning This can be NULL if the undo record is unlinked or is a compacted record
-     */
-    transaction::TransactionContext *Get() {
-        if(txn_ != reinterpret_cast<transaction::TransactionContext *>(uintptr_t(-1))) {
-            return txn_;
-        }
-        return nullptr;
+  /*
+   * @return Transaction pointer to the transaction this undo record is part of
+   * @warning This can be NULL if the undo record is unlinked or is a compacted record
+   */
+  transaction::TransactionContext *Get() {
+    if (txn_ != reinterpret_cast<transaction::TransactionContext *>(uintptr_t(-1))) {
+      return txn_;
     }
-    /*
-     * @param txn Transaction pointer to be assigned to the undo record. 
-     */
-    void Put(transaction::TransactionContext *txn) {
-        txn_  = txn;
-    }
-    
-    /*
-     * @return if the Undo Record is compacted 
-     */
-    bool IsCompacted() {
-        return txn_ == reinterpret_cast<transaction::TransactionContext *>(uintptr_t(-1));
-    }
+    return nullptr;
+  }
+  /*
+   * @param txn Transaction pointer to be assigned to the undo record.
+   */
+  void Put(transaction::TransactionContext *txn) { txn_ = txn; }
+  /*
+   * Assigns transaction pointer to a special reserved value of -1 used only for compacted records.
+   */
+  void SetCompacted() { txn_ = reinterpret_cast<transaction::TransactionContext *>(-1); }
+  /*
+   * @return if the Undo Record is compacted
+   */
+  bool IsCompacted() { return txn_ == reinterpret_cast<transaction::TransactionContext *>(-1); }
 
-    /*
-     * @return if the transaction pointer is null
-     */
-    bool IsNull() {
-        return txn_ == nullptr;
-    }
-private:
-    transaction::TransactionContext *txn_;
+  /*
+   * @return if the transaction pointer is null
+   */
+  bool IsNull() { return txn_ == nullptr; }
+
+ private:
+  transaction::TransactionContext *txn_;
 };
 /**
  * Extension of a ProjectedRow that adds relevant information to be able to traverse the version chain and find the
