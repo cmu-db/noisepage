@@ -320,17 +320,8 @@ void DataTable::DeallocateVarlensOnShutdown(RawBlock *block) {
 }
 
 bool DataTable::HasConflict(const transaction::TransactionContext &txn, const TupleSlot slot) const {
-  const UndoRecord *const version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
-
-  if (version_ptr == nullptr) return false;  // Nobody owns this tuple's write lock, no older version visible
-  const transaction::timestamp_t version_timestamp = version_ptr->Timestamp().load();
-  const transaction::timestamp_t txn_id = txn.TxnId().load();
-  const transaction::timestamp_t start_time = txn.StartTime();
-  const bool owned_by_other_txn =
-      (!transaction::TransactionUtil::Committed(version_timestamp) && version_timestamp != txn_id);
-  const bool newer_committed_version = transaction::TransactionUtil::Committed(version_timestamp) &&
-                                       transaction::TransactionUtil::NewerThan(version_timestamp, start_time);
-  return owned_by_other_txn || newer_committed_version;
+  UndoRecord *const version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
+  return HasConflict(txn, version_ptr);
 }
 
 bool DataTable::IsVisible(const transaction::TransactionContext &txn, const TupleSlot slot) const {
