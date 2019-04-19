@@ -86,7 +86,7 @@ class Schema {
     }
 
     /**
-     * @return true if the attribute is inlined, false if it's a pointer to a varlen entry
+     * @return SQL type for this column
      */
     type::TypeId GetType() const { return type_; }
     /**
