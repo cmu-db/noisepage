@@ -357,4 +357,72 @@ TEST_F(BwTreeIndexTests, ScanLimitDescending) {
   txn_manager_.Commit(scan_txn, TestCallbacks::EmptyCallback, nullptr);
 }
 
+//    Txn #0 | Txn #1 | Txn #2 |
+//    --------------------------
+//    BEGIN  |        |        |
+//    W(X)   |        |        |
+//    R(X)   |        |        |
+//           | BEGIN  |        |
+//           | R(X)   |        |
+//    COMMIT |        |        |
+//           | R(X)   |        |
+//           | COMMIT |        |
+//           |        | BEGIN  |
+//           |        | R(X)   |
+//           |        | COMMIT |
+//
+// Txn #0 should only read Txn #0's version of X
+// Txn #1 should only read the previous version of X because its start time is before #0's commit
+// Txn #2 should only read Txn #0's version of X
+//
+// This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
+// NOLINTNEXTLINE
+TEST_F(BwTreeIndexTests, CommitInsert1) {
+  auto *txn0 = txn_manager_.BeginTransaction();
+  loose_txns_.push_back(txn0);
+
+  auto *const insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
+  *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
+  const auto tuple_slot = sql_table_->Insert(txn0, *insert_tuple);
+
+  auto *const insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
+  *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
+  EXPECT_TRUE(default_index_->Insert(*insert_key, tuple_slot));
+
+  std::vector<storage::TupleSlot> results;
+
+  auto *const scan_key_pr = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
+
+  *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15721;
+  default_index_->ScanKey(*txn0, *scan_key_pr, &results);
+  EXPECT_EQ(results.size(), 1);
+  EXPECT_EQ(tuple_slot, results[0]);
+  results.clear();
+
+  auto *txn1 = txn_manager_.BeginTransaction();
+  loose_txns_.push_back(txn1);
+
+  default_index_->ScanKey(*txn1, *scan_key_pr, &results);
+  EXPECT_EQ(results.size(), 0);
+  results.clear();
+
+  txn_manager_.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
+
+  default_index_->ScanKey(*txn1, *scan_key_pr, &results);
+  EXPECT_EQ(results.size(), 0);
+  results.clear();
+
+  txn_manager_.Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
+
+  auto *txn2 = txn_manager_.BeginTransaction();
+  loose_txns_.push_back(txn2);
+
+  default_index_->ScanKey(*txn2, *scan_key_pr, &results);
+  EXPECT_EQ(results.size(), 1);
+  EXPECT_EQ(tuple_slot, results[0]);
+  results.clear();
+
+  txn_manager_.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
+}
+
 }  // namespace terrier::storage::index
