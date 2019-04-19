@@ -206,10 +206,10 @@ std::shared_ptr<AbstractPlanNode> DeserializePlanNode(const nlohmann::json &json
       //      break;
       //    }
       //
-      //    case PlanNodeType::UPDATE: {
-      //      plan_node = std::make_shared<UpdatePlanNode>();
-      //      break;
-      //    }
+    case PlanNodeType::UPDATE: {
+      plan_node = std::make_shared<UpdatePlanNode>();
+      break;
+    }
 
     default:
       throw std::runtime_error("Unknown plan node type during deserialization");
