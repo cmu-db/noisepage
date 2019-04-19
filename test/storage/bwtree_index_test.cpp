@@ -42,6 +42,7 @@ class BwTreeIndexTests : public TerrierTest {
   transaction::TransactionManager txn_manager_{&buffer_pool_, false, LOGGING_DISABLED};
 
   byte *insert_buffer_, *key_buffer_1_, *key_buffer_2_;
+  std::vector<transaction::TransactionContext *> loose_txns_;
 
  protected:
   void SetUp() override {
@@ -64,6 +65,7 @@ class BwTreeIndexTests : public TerrierTest {
         common::AllocationUtil::AllocateAligned(default_index_->GetProjectedRowInitializer().ProjectedRowSize());
   }
   void TearDown() override {
+    for (auto ptr : loose_txns_) delete ptr;
     delete sql_table_;
     delete default_index_;
     delete unique_index_;
@@ -80,6 +82,7 @@ TEST_F(BwTreeIndexTests, ScanAscending) {
   // populate index with [0..20] even keys
   std::map<int32_t, storage::TupleSlot> reference;
   auto *const insert_txn = txn_manager_.BeginTransaction();
+  loose_txns_.push_back(insert_txn);
   for (int32_t i = 0; i <= 20; i += 2) {
     auto *const insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
     *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = i;
@@ -93,6 +96,7 @@ TEST_F(BwTreeIndexTests, ScanAscending) {
   txn_manager_.Commit(insert_txn, TestCallbacks::EmptyCallback, nullptr);
 
   auto *const scan_txn = txn_manager_.BeginTransaction();
+  loose_txns_.push_back(scan_txn);
 
   std::vector<storage::TupleSlot> results;
 
@@ -140,10 +144,6 @@ TEST_F(BwTreeIndexTests, ScanAscending) {
   results.clear();
 
   txn_manager_.Commit(scan_txn, TestCallbacks::EmptyCallback, nullptr);
-
-  // Clean up
-  delete insert_txn;
-  delete scan_txn;
 }
 
 /**
@@ -155,6 +155,7 @@ TEST_F(BwTreeIndexTests, ScanDescending) {
   // populate index with [0..20] even keys
   std::map<int32_t, storage::TupleSlot> reference;
   auto *const insert_txn = txn_manager_.BeginTransaction();
+  loose_txns_.push_back(insert_txn);
   for (int32_t i = 0; i <= 20; i += 2) {
     auto *const insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
     *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = i;
@@ -168,6 +169,7 @@ TEST_F(BwTreeIndexTests, ScanDescending) {
   txn_manager_.Commit(insert_txn, TestCallbacks::EmptyCallback, nullptr);
 
   auto *const scan_txn = txn_manager_.BeginTransaction();
+  loose_txns_.push_back(scan_txn);
 
   std::vector<storage::TupleSlot> results;
 
@@ -215,10 +217,6 @@ TEST_F(BwTreeIndexTests, ScanDescending) {
   results.clear();
 
   txn_manager_.Commit(scan_txn, TestCallbacks::EmptyCallback, nullptr);
-
-  // Clean up
-  delete insert_txn;
-  delete scan_txn;
 }
 
 /**
@@ -230,6 +228,7 @@ TEST_F(BwTreeIndexTests, ScanLimitAscending) {
   // populate index with [0..20] even keys
   std::map<int32_t, storage::TupleSlot> reference;
   auto *const insert_txn = txn_manager_.BeginTransaction();
+  loose_txns_.push_back(insert_txn);
   for (int32_t i = 0; i <= 20; i += 2) {
     auto *const insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
     *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = i;
@@ -243,6 +242,7 @@ TEST_F(BwTreeIndexTests, ScanLimitAscending) {
   txn_manager_.Commit(insert_txn, TestCallbacks::EmptyCallback, nullptr);
 
   auto *const scan_txn = txn_manager_.BeginTransaction();
+  loose_txns_.push_back(scan_txn);
 
   std::vector<storage::TupleSlot> results;
 
@@ -286,10 +286,6 @@ TEST_F(BwTreeIndexTests, ScanLimitAscending) {
   results.clear();
 
   txn_manager_.Commit(scan_txn, TestCallbacks::EmptyCallback, nullptr);
-
-  // Clean up
-  delete insert_txn;
-  delete scan_txn;
 }
 
 /**
@@ -301,6 +297,7 @@ TEST_F(BwTreeIndexTests, ScanLimitDescending) {
   // populate index with [0..20] even keys
   std::map<int32_t, storage::TupleSlot> reference;
   auto *const insert_txn = txn_manager_.BeginTransaction();
+  loose_txns_.push_back(insert_txn);
   for (int32_t i = 0; i <= 20; i += 2) {
     auto *const insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
     *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = i;
@@ -314,6 +311,7 @@ TEST_F(BwTreeIndexTests, ScanLimitDescending) {
   txn_manager_.Commit(insert_txn, TestCallbacks::EmptyCallback, nullptr);
 
   auto *const scan_txn = txn_manager_.BeginTransaction();
+  loose_txns_.push_back(scan_txn);
 
   std::vector<storage::TupleSlot> results;
 
@@ -357,10 +355,6 @@ TEST_F(BwTreeIndexTests, ScanLimitDescending) {
   results.clear();
 
   txn_manager_.Commit(scan_txn, TestCallbacks::EmptyCallback, nullptr);
-
-  // Clean up
-  delete insert_txn;
-  delete scan_txn;
 }
 
 }  // namespace terrier::storage::index
