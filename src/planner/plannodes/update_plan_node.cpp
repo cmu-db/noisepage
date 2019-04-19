@@ -41,4 +41,20 @@ bool UpdatePlanNode::operator==(const AbstractPlanNode &rhs) const {
   return AbstractPlanNode::operator==(rhs);
 }
 
+nlohmann::json UpdatePlanNode::ToJson() const {
+  nlohmann::json j = AbstractPlanNode::ToJson();
+  j["database_oid"] = database_oid_;
+  j["table_oid"] = table_oid_;
+  j["update_primary_key"] = update_primary_key_;
+  return j;
+}
+
+void UpdatePlanNode::FromJson(const nlohmann::json &j) {
+   TERRIER_ASSERT(GetPlanNodeType() == j.at("PlanNodeType").get<PlanNodeType>(), "Mismatching plan node types");
+   AbstractPlanNode::FromJson(j);
+   database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
+   table_oid_ = j.at("table_oid").get<catalog::table_oid_t>();
+   update_primary_key_ = j.at("update_primary_key").get<bool>();
+}
+
 }  // namespace terrier::planner
