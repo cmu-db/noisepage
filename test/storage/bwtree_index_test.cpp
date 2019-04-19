@@ -38,7 +38,7 @@ class BwTreeIndexTests : public TerrierTest {
       sql_table_->InitializerForProjectedRow({catalog::col_oid_t(0)}).first};
 
   // BwTreeIndex
-  Index *index_;
+  Index *default_index_, *unique_index_;
   transaction::TransactionManager txn_manager_{&buffer_pool_, false, LOGGING_DISABLED};
 
   byte *insert_buffer_, *key_buffer_1_, *key_buffer_2_;
@@ -46,17 +46,27 @@ class BwTreeIndexTests : public TerrierTest {
  protected:
   void SetUp() override {
     TerrierTest::SetUp();
-    index_ = (IndexBuilder()
-                  .SetConstraintType(ConstraintType::DEFAULT)
-                  .SetKeySchema(key_schema_)
-                  .SetOid(catalog::index_oid_t(2)))
-                 .Build();
-    insert_buffer_ = common::AllocationUtil::AllocateAligned(index_->GetProjectedRowInitializer().ProjectedRowSize());
-    key_buffer_1_ = common::AllocationUtil::AllocateAligned(index_->GetProjectedRowInitializer().ProjectedRowSize());
-    key_buffer_2_ = common::AllocationUtil::AllocateAligned(index_->GetProjectedRowInitializer().ProjectedRowSize());
+    unique_index_ = (IndexBuilder()
+                         .SetConstraintType(ConstraintType::UNIQUE)
+                         .SetKeySchema(key_schema_)
+                         .SetOid(catalog::index_oid_t(2)))
+                        .Build();
+    default_index_ = (IndexBuilder()
+                          .SetConstraintType(ConstraintType::DEFAULT)
+                          .SetKeySchema(key_schema_)
+                          .SetOid(catalog::index_oid_t(2)))
+                         .Build();
+    insert_buffer_ =
+        common::AllocationUtil::AllocateAligned(default_index_->GetProjectedRowInitializer().ProjectedRowSize());
+    key_buffer_1_ =
+        common::AllocationUtil::AllocateAligned(default_index_->GetProjectedRowInitializer().ProjectedRowSize());
+    key_buffer_2_ =
+        common::AllocationUtil::AllocateAligned(default_index_->GetProjectedRowInitializer().ProjectedRowSize());
   }
   void TearDown() override {
     delete sql_table_;
+    delete default_index_;
+    delete unique_index_;
     TerrierTest::TearDown();
   }
 };
@@ -75,9 +85,9 @@ TEST_F(BwTreeIndexTests, ScanAscending) {
     *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = i;
     const auto tuple_slot = sql_table_->Insert(insert_txn, *insert_tuple);
 
-    auto *const insert_key = index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
+    auto *const insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
     *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = i;
-    EXPECT_TRUE(index_->Insert(*insert_key, tuple_slot));
+    EXPECT_TRUE(default_index_->Insert(*insert_key, tuple_slot));
     reference[i] = tuple_slot;
   }
   txn_manager_.Commit(insert_txn, TestCallbacks::EmptyCallback, nullptr);
@@ -86,13 +96,13 @@ TEST_F(BwTreeIndexTests, ScanAscending) {
 
   std::vector<storage::TupleSlot> results;
 
-  auto *const low_key_pr = index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
-  auto *const high_key_pr = index_->GetProjectedRowInitializer().InitializeRow(key_buffer_2_);
+  auto *const low_key_pr = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
+  auto *const high_key_pr = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_2_);
 
   // scan[8,12] should hit keys 8, 10, 12
   *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = 8;
   *reinterpret_cast<int32_t *>(high_key_pr->AccessForceNotNull(0)) = 12;
-  index_->ScanAscending(*scan_txn, *low_key_pr, *high_key_pr, &results);
+  default_index_->ScanAscending(*scan_txn, *low_key_pr, *high_key_pr, &results);
   EXPECT_EQ(results.size(), 3);
   EXPECT_EQ(reference.at(8), results[0]);
   EXPECT_EQ(reference.at(10), results[1]);
@@ -102,7 +112,7 @@ TEST_F(BwTreeIndexTests, ScanAscending) {
   // scan[7,13] should hit keys 8, 10, 12
   *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = 7;
   *reinterpret_cast<int32_t *>(high_key_pr->AccessForceNotNull(0)) = 13;
-  index_->ScanAscending(*scan_txn, *low_key_pr, *high_key_pr, &results);
+  default_index_->ScanAscending(*scan_txn, *low_key_pr, *high_key_pr, &results);
   EXPECT_EQ(results.size(), 3);
   EXPECT_EQ(reference.at(8), results[0]);
   EXPECT_EQ(reference.at(10), results[1]);
@@ -112,7 +122,7 @@ TEST_F(BwTreeIndexTests, ScanAscending) {
   // scan[-1,5] should hit keys 0, 2, 4
   *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = -1;
   *reinterpret_cast<int32_t *>(high_key_pr->AccessForceNotNull(0)) = 5;
-  index_->ScanAscending(*scan_txn, *low_key_pr, *high_key_pr, &results);
+  default_index_->ScanAscending(*scan_txn, *low_key_pr, *high_key_pr, &results);
   EXPECT_EQ(results.size(), 3);
   EXPECT_EQ(reference.at(0), results[0]);
   EXPECT_EQ(reference.at(2), results[1]);
@@ -122,7 +132,7 @@ TEST_F(BwTreeIndexTests, ScanAscending) {
   // scan[15,21] should hit keys 16, 18, 20
   *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = 15;
   *reinterpret_cast<int32_t *>(high_key_pr->AccessForceNotNull(0)) = 21;
-  index_->ScanAscending(*scan_txn, *low_key_pr, *high_key_pr, &results);
+  default_index_->ScanAscending(*scan_txn, *low_key_pr, *high_key_pr, &results);
   EXPECT_EQ(results.size(), 3);
   EXPECT_EQ(reference.at(16), results[0]);
   EXPECT_EQ(reference.at(18), results[1]);
@@ -150,9 +160,9 @@ TEST_F(BwTreeIndexTests, ScanDescending) {
     *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = i;
     const auto tuple_slot = sql_table_->Insert(insert_txn, *insert_tuple);
 
-    auto *const insert_key = index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
+    auto *const insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
     *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = i;
-    EXPECT_TRUE(index_->Insert(*insert_key, tuple_slot));
+    EXPECT_TRUE(default_index_->Insert(*insert_key, tuple_slot));
     reference[i] = tuple_slot;
   }
   txn_manager_.Commit(insert_txn, TestCallbacks::EmptyCallback, nullptr);
@@ -161,13 +171,13 @@ TEST_F(BwTreeIndexTests, ScanDescending) {
 
   std::vector<storage::TupleSlot> results;
 
-  auto *const low_key_pr = index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
-  auto *const high_key_pr = index_->GetProjectedRowInitializer().InitializeRow(key_buffer_2_);
+  auto *const low_key_pr = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
+  auto *const high_key_pr = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_2_);
 
   // scan[8,12] should hit keys 12, 10, 8
   *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = 8;
   *reinterpret_cast<int32_t *>(high_key_pr->AccessForceNotNull(0)) = 12;
-  index_->ScanDescending(*scan_txn, *low_key_pr, *high_key_pr, &results);
+  default_index_->ScanDescending(*scan_txn, *low_key_pr, *high_key_pr, &results);
   EXPECT_EQ(results.size(), 3);
   EXPECT_EQ(reference.at(12), results[0]);
   EXPECT_EQ(reference.at(10), results[1]);
@@ -177,7 +187,7 @@ TEST_F(BwTreeIndexTests, ScanDescending) {
   // scan[7,13] should hit keys 12, 10, 8
   *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = 7;
   *reinterpret_cast<int32_t *>(high_key_pr->AccessForceNotNull(0)) = 13;
-  index_->ScanDescending(*scan_txn, *low_key_pr, *high_key_pr, &results);
+  default_index_->ScanDescending(*scan_txn, *low_key_pr, *high_key_pr, &results);
   EXPECT_EQ(results.size(), 3);
   EXPECT_EQ(reference.at(12), results[0]);
   EXPECT_EQ(reference.at(10), results[1]);
@@ -187,7 +197,7 @@ TEST_F(BwTreeIndexTests, ScanDescending) {
   // scan[-1,5] should hit keys 4, 2, 0
   *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = -1;
   *reinterpret_cast<int32_t *>(high_key_pr->AccessForceNotNull(0)) = 5;
-  index_->ScanDescending(*scan_txn, *low_key_pr, *high_key_pr, &results);
+  default_index_->ScanDescending(*scan_txn, *low_key_pr, *high_key_pr, &results);
   EXPECT_EQ(results.size(), 3);
   EXPECT_EQ(reference.at(4), results[0]);
   EXPECT_EQ(reference.at(2), results[1]);
@@ -197,7 +207,7 @@ TEST_F(BwTreeIndexTests, ScanDescending) {
   // scan[15,21] should hit keys 20, 18, 16
   *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = 15;
   *reinterpret_cast<int32_t *>(high_key_pr->AccessForceNotNull(0)) = 21;
-  index_->ScanDescending(*scan_txn, *low_key_pr, *high_key_pr, &results);
+  default_index_->ScanDescending(*scan_txn, *low_key_pr, *high_key_pr, &results);
   EXPECT_EQ(results.size(), 3);
   EXPECT_EQ(reference.at(20), results[0]);
   EXPECT_EQ(reference.at(18), results[1]);
@@ -225,9 +235,9 @@ TEST_F(BwTreeIndexTests, ScanLimitAscending) {
     *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = i;
     const auto tuple_slot = sql_table_->Insert(insert_txn, *insert_tuple);
 
-    auto *const insert_key = index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
+    auto *const insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
     *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = i;
-    EXPECT_TRUE(index_->Insert(*insert_key, tuple_slot));
+    EXPECT_TRUE(default_index_->Insert(*insert_key, tuple_slot));
     reference[i] = tuple_slot;
   }
   txn_manager_.Commit(insert_txn, TestCallbacks::EmptyCallback, nullptr);
@@ -236,13 +246,13 @@ TEST_F(BwTreeIndexTests, ScanLimitAscending) {
 
   std::vector<storage::TupleSlot> results;
 
-  auto *const low_key_pr = index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
-  auto *const high_key_pr = index_->GetProjectedRowInitializer().InitializeRow(key_buffer_2_);
+  auto *const low_key_pr = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
+  auto *const high_key_pr = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_2_);
 
   // scan_limit[8,12] should hit keys 8, 10
   *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = 8;
   *reinterpret_cast<int32_t *>(high_key_pr->AccessForceNotNull(0)) = 12;
-  index_->ScanLimitAscending(*scan_txn, *low_key_pr, *high_key_pr, &results, 2);
+  default_index_->ScanLimitAscending(*scan_txn, *low_key_pr, *high_key_pr, &results, 2);
   EXPECT_EQ(results.size(), 2);
   EXPECT_EQ(reference.at(8), results[0]);
   EXPECT_EQ(reference.at(10), results[1]);
@@ -251,7 +261,7 @@ TEST_F(BwTreeIndexTests, ScanLimitAscending) {
   // scan_limit[7,13] should hit keys 8, 10
   *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = 7;
   *reinterpret_cast<int32_t *>(high_key_pr->AccessForceNotNull(0)) = 13;
-  index_->ScanLimitAscending(*scan_txn, *low_key_pr, *high_key_pr, &results, 2);
+  default_index_->ScanLimitAscending(*scan_txn, *low_key_pr, *high_key_pr, &results, 2);
   EXPECT_EQ(results.size(), 2);
   EXPECT_EQ(reference.at(8), results[0]);
   EXPECT_EQ(reference.at(10), results[1]);
@@ -260,7 +270,7 @@ TEST_F(BwTreeIndexTests, ScanLimitAscending) {
   // scan_limit[-1,5] should hit keys 0, 2
   *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = -1;
   *reinterpret_cast<int32_t *>(high_key_pr->AccessForceNotNull(0)) = 5;
-  index_->ScanLimitAscending(*scan_txn, *low_key_pr, *high_key_pr, &results, 2);
+  default_index_->ScanLimitAscending(*scan_txn, *low_key_pr, *high_key_pr, &results, 2);
   EXPECT_EQ(results.size(), 2);
   EXPECT_EQ(reference.at(0), results[0]);
   EXPECT_EQ(reference.at(2), results[1]);
@@ -269,7 +279,7 @@ TEST_F(BwTreeIndexTests, ScanLimitAscending) {
   // scan_limit[15,21] should hit keys 16, 18
   *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = 15;
   *reinterpret_cast<int32_t *>(high_key_pr->AccessForceNotNull(0)) = 21;
-  index_->ScanLimitAscending(*scan_txn, *low_key_pr, *high_key_pr, &results, 2);
+  default_index_->ScanLimitAscending(*scan_txn, *low_key_pr, *high_key_pr, &results, 2);
   EXPECT_EQ(results.size(), 2);
   EXPECT_EQ(reference.at(16), results[0]);
   EXPECT_EQ(reference.at(18), results[1]);
@@ -296,9 +306,9 @@ TEST_F(BwTreeIndexTests, ScanLimitDescending) {
     *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = i;
     const auto tuple_slot = sql_table_->Insert(insert_txn, *insert_tuple);
 
-    auto *const insert_key = index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
+    auto *const insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
     *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = i;
-    EXPECT_TRUE(index_->Insert(*insert_key, tuple_slot));
+    EXPECT_TRUE(default_index_->Insert(*insert_key, tuple_slot));
     reference[i] = tuple_slot;
   }
   txn_manager_.Commit(insert_txn, TestCallbacks::EmptyCallback, nullptr);
@@ -307,13 +317,13 @@ TEST_F(BwTreeIndexTests, ScanLimitDescending) {
 
   std::vector<storage::TupleSlot> results;
 
-  auto *const low_key_pr = index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
-  auto *const high_key_pr = index_->GetProjectedRowInitializer().InitializeRow(key_buffer_2_);
+  auto *const low_key_pr = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
+  auto *const high_key_pr = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_2_);
 
   // scan_limit[8,12] should hit keys 12, 10
   *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = 8;
   *reinterpret_cast<int32_t *>(high_key_pr->AccessForceNotNull(0)) = 12;
-  index_->ScanLimitDescending(*scan_txn, *low_key_pr, *high_key_pr, &results, 2);
+  default_index_->ScanLimitDescending(*scan_txn, *low_key_pr, *high_key_pr, &results, 2);
   EXPECT_EQ(results.size(), 2);
   EXPECT_EQ(reference.at(12), results[0]);
   EXPECT_EQ(reference.at(10), results[1]);
@@ -322,7 +332,7 @@ TEST_F(BwTreeIndexTests, ScanLimitDescending) {
   // scan_limit[7,13] should hit keys 12, 10
   *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = 7;
   *reinterpret_cast<int32_t *>(high_key_pr->AccessForceNotNull(0)) = 13;
-  index_->ScanLimitDescending(*scan_txn, *low_key_pr, *high_key_pr, &results, 2);
+  default_index_->ScanLimitDescending(*scan_txn, *low_key_pr, *high_key_pr, &results, 2);
   EXPECT_EQ(results.size(), 2);
   EXPECT_EQ(reference.at(12), results[0]);
   EXPECT_EQ(reference.at(10), results[1]);
@@ -331,7 +341,7 @@ TEST_F(BwTreeIndexTests, ScanLimitDescending) {
   // scan_limit[-1,5] should hit keys 4, 2
   *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = -1;
   *reinterpret_cast<int32_t *>(high_key_pr->AccessForceNotNull(0)) = 5;
-  index_->ScanLimitDescending(*scan_txn, *low_key_pr, *high_key_pr, &results, 2);
+  default_index_->ScanLimitDescending(*scan_txn, *low_key_pr, *high_key_pr, &results, 2);
   EXPECT_EQ(results.size(), 2);
   EXPECT_EQ(reference.at(4), results[0]);
   EXPECT_EQ(reference.at(2), results[1]);
@@ -340,7 +350,7 @@ TEST_F(BwTreeIndexTests, ScanLimitDescending) {
   // scan_limit[15,21] should hit keys 20, 18
   *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = 15;
   *reinterpret_cast<int32_t *>(high_key_pr->AccessForceNotNull(0)) = 21;
-  index_->ScanLimitDescending(*scan_txn, *low_key_pr, *high_key_pr, &results, 2);
+  default_index_->ScanLimitDescending(*scan_txn, *low_key_pr, *high_key_pr, &results, 2);
   EXPECT_EQ(results.size(), 2);
   EXPECT_EQ(reference.at(20), results[0]);
   EXPECT_EQ(reference.at(18), results[1]);
