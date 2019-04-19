@@ -97,7 +97,7 @@ class UpdatePlanNode : public AbstractPlanNode {
         update_primary_key_(update_primary_key) {}
 
  public:
-  UpdatePlanNode() = delete;
+  UpdatePlanNode() = default;
 
   /**
    * @return OID of the database

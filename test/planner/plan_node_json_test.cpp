@@ -144,6 +144,28 @@ TEST(PlanNodeJsonTest, LimitPlanNodeJsonTest) {
 }
 
 // NOLINTNEXTLINE
+TEST(PlanNodeJsonTest, UpdatePlanNodeJsonTest) {
+  UpdatePlanNode::Builder builder;
+  auto plan_node =
+      builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
+      .SetDatabaseOid(catalog::db_oid_t(1000))
+      .SetTableOid(catalog::table_oid_t(200))
+      .SetUpdatePrimaryKey(true)
+      .Build();
+
+  // Serialize to Json
+  auto json = plan_node->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize plan node
+  auto deserialized_plan = DeserializePlanNode(json);
+  EXPECT_TRUE(deserialized_plan != nullptr);
+  EXPECT_EQ(PlanNodeType::UPDATE, deserialized_plan->GetPlanNodeType());
+  auto update_plan = std::dynamic_pointer_cast<UpdatePlanNode>(deserialized_plan);
+  EXPECT_EQ(*plan_node, *update_plan);
+}
+
+// NOLINTNEXTLINE
 TEST(PlanNodeJsonTest, IndexScanPlanNodeJsonTest) {
   // Construct IndexScanPlanNode
   IndexScanPlanNode::Builder builder;
