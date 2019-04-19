@@ -185,6 +185,9 @@ void GarbageCollector::ReclaimBufferIfVarlen(transaction::TransactionContext *co
           if (varlen != nullptr && varlen->NeedReclaim()) txn->loose_ptrs_.push_back(varlen->Content());
         }
       }
+      break;
+    default:
+      throw std::runtime_error("unexpected delta record type");
   }
 }
 }  // namespace terrier::storage

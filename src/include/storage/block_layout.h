@@ -13,7 +13,8 @@ namespace terrier::storage {
 /**
  * Stores metadata about the layout of a block.
  */
-struct BlockLayout {
+class BlockLayout {
+ public:
   // TODO(Tianyu): This seems to be here only to make SqlTable::DataTableVersion's copy constructor happy.
   BlockLayout() = default;
   /**
@@ -52,6 +53,18 @@ struct BlockLayout {
    */
   const std::vector<col_id_t> &Varlens() const { return varlens_; }
 
+  // TODO(Tianyu): Can probably store this like varlens to avoid computing every time.
+  // TODO(Tianyu): The old test code has a util function that does this. Now that we are including this in the codebase
+  // itself, we should replace the calls in test with this and delete that.
+  /**
+   * @return all the columns in the layout
+   */
+  std::vector<col_id_t> AllColumns() const {
+    std::vector<col_id_t> result;
+    for (uint16_t i = NUM_RESERVED_COLUMNS; i < attr_sizes_.size(); i++) result.emplace_back(i);
+    return result;
+  }
+
   /**
    * @return size, in bytes, of a full tuple in this block.
    */
@@ -76,13 +89,14 @@ struct BlockLayout {
 
   // Cached values so that we don't have to iterate through attr_sizes_ every time.
   uint32_t tuple_size_;
-  // static_header_size is everything in the header that is not the bitmap (dependent in the number of slots)
+  // static_header_size is everything in the header that is not dependent in the number of slots in the header
   uint32_t static_header_size_;
   uint32_t num_slots_;
   // header is everything up to the first column
   uint32_t header_size_;
 
   uint32_t ComputeTupleSize() const;
+  // static header is the size of header that does not depend on the number of slots in the block
   uint32_t ComputeStaticHeaderSize() const;
   uint32_t ComputeNumSlots() const;
   uint32_t ComputeHeaderSize() const;

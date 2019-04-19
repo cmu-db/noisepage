@@ -89,9 +89,9 @@ TEST_F(ParserTestBase, CreateFunctionTest) {
   auto stmt = reinterpret_cast<CreateFunctionStatement *>(stmts[0].get());
   auto func_params = stmt->GetFuncParameters();
   EXPECT_EQ(stmt->GetFuncName(), "increment");
-  EXPECT_EQ(stmt->GetFuncReturnType()->GetDataType(), Parameter::DataType::DOUBLE);
+  EXPECT_EQ(stmt->GetFuncReturnType()->GetDataType(), BaseFunctionParameter::DataType::DOUBLE);
   EXPECT_EQ(func_params[0]->GetParamName(), "i");
-  EXPECT_EQ(func_params[0]->GetDataType(), Parameter::DataType::DOUBLE);
+  EXPECT_EQ(func_params[0]->GetDataType(), BaseFunctionParameter::DataType::DOUBLE);
 
   query =
       "CREATE FUNCTION increment1 ("
@@ -104,11 +104,11 @@ TEST_F(ParserTestBase, CreateFunctionTest) {
   stmt = reinterpret_cast<CreateFunctionStatement *>(stmts[0].get());
   func_params = stmt->GetFuncParameters();
   EXPECT_EQ(stmt->GetFuncName(), "increment1");
-  EXPECT_EQ(stmt->GetFuncReturnType()->GetDataType(), Parameter::DataType::DOUBLE);
+  EXPECT_EQ(stmt->GetFuncReturnType()->GetDataType(), BaseFunctionParameter::DataType::DOUBLE);
   EXPECT_EQ(func_params[0]->GetParamName(), "i");
-  EXPECT_EQ(func_params[0]->GetDataType(), Parameter::DataType::DOUBLE);
+  EXPECT_EQ(func_params[0]->GetDataType(), BaseFunctionParameter::DataType::DOUBLE);
   EXPECT_EQ(func_params[1]->GetParamName(), "j");
-  EXPECT_EQ(func_params[1]->GetDataType(), Parameter::DataType::DOUBLE);
+  EXPECT_EQ(func_params[1]->GetDataType(), BaseFunctionParameter::DataType::DOUBLE);
 
   query =
       "CREATE OR REPLACE FUNCTION increment2 ("
@@ -121,11 +121,11 @@ TEST_F(ParserTestBase, CreateFunctionTest) {
   stmt = reinterpret_cast<CreateFunctionStatement *>(stmts[0].get());
   func_params = stmt->GetFuncParameters();
   EXPECT_EQ(stmt->GetFuncName(), "increment2");
-  EXPECT_EQ(stmt->GetFuncReturnType()->GetDataType(), Parameter::DataType::INT);
+  EXPECT_EQ(stmt->GetFuncReturnType()->GetDataType(), BaseFunctionParameter::DataType::INT);
   EXPECT_EQ(func_params[0]->GetParamName(), "i");
-  EXPECT_EQ(func_params[0]->GetDataType(), Parameter::DataType::INT);
+  EXPECT_EQ(func_params[0]->GetDataType(), BaseFunctionParameter::DataType::INT);
   EXPECT_EQ(func_params[1]->GetParamName(), "j");
-  EXPECT_EQ(func_params[1]->GetDataType(), Parameter::DataType::INT);
+  EXPECT_EQ(func_params[1]->GetDataType(), BaseFunctionParameter::DataType::INT);
 
   query =
       "CREATE OR REPLACE FUNCTION return_varchar ("
@@ -138,9 +138,9 @@ TEST_F(ParserTestBase, CreateFunctionTest) {
   stmt = reinterpret_cast<CreateFunctionStatement *>(stmts[0].get());
   func_params = stmt->GetFuncParameters();
   EXPECT_EQ(stmt->GetFuncName(), "return_varchar");
-  EXPECT_EQ(stmt->GetFuncReturnType()->GetDataType(), Parameter::DataType::VARCHAR);
+  EXPECT_EQ(stmt->GetFuncReturnType()->GetDataType(), BaseFunctionParameter::DataType::VARCHAR);
   EXPECT_EQ(func_params[0]->GetParamName(), "i");
-  EXPECT_EQ(func_params[0]->GetDataType(), Parameter::DataType::VARCHAR);
+  EXPECT_EQ(func_params[0]->GetDataType(), BaseFunctionParameter::DataType::VARCHAR);
 
   query =
       "CREATE OR REPLACE FUNCTION return_text ("
@@ -153,9 +153,9 @@ TEST_F(ParserTestBase, CreateFunctionTest) {
   stmt = reinterpret_cast<CreateFunctionStatement *>(stmts[0].get());
   func_params = stmt->GetFuncParameters();
   EXPECT_EQ(stmt->GetFuncName(), "return_text");
-  EXPECT_EQ(stmt->GetFuncReturnType()->GetDataType(), Parameter::DataType::TEXT);
+  EXPECT_EQ(stmt->GetFuncReturnType()->GetDataType(), BaseFunctionParameter::DataType::TEXT);
   EXPECT_EQ(func_params[0]->GetParamName(), "i");
-  EXPECT_EQ(func_params[0]->GetDataType(), Parameter::DataType::TEXT);
+  EXPECT_EQ(func_params[0]->GetDataType(), BaseFunctionParameter::DataType::TEXT);
 
   query =
       "CREATE OR REPLACE FUNCTION return_bool ("
@@ -168,9 +168,9 @@ TEST_F(ParserTestBase, CreateFunctionTest) {
   stmt = reinterpret_cast<CreateFunctionStatement *>(stmts[0].get());
   func_params = stmt->GetFuncParameters();
   EXPECT_EQ(stmt->GetFuncName(), "return_bool");
-  EXPECT_EQ(stmt->GetFuncReturnType()->GetDataType(), Parameter::DataType::BOOL);
+  EXPECT_EQ(stmt->GetFuncReturnType()->GetDataType(), BaseFunctionParameter::DataType::BOOL);
   EXPECT_EQ(func_params[0]->GetParamName(), "i");
-  EXPECT_EQ(func_params[0]->GetDataType(), Parameter::DataType::BOOL);
+  EXPECT_EQ(func_params[0]->GetDataType(), BaseFunctionParameter::DataType::BOOL);
 }
 
 // NOLINTNEXTLINE
