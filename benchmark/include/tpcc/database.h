@@ -16,6 +16,9 @@ class Schema;
 
 namespace terrier::tpcc {
 
+/*
+ * Contains all of the tables, indexes, and associated schemas for the TPC-C benchmark. Created by the Builder class.
+ */
 class Database {
  public:
   ~Database() {

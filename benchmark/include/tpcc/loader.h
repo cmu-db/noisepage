@@ -15,7 +15,9 @@
 
 namespace terrier::tpcc {
 
-// 4.3.3.1
+/**
+ * Loads the TPC-C tables and indexes according to section 4.3.3.1 of the specification
+ */
 struct Loader {
   Loader() = delete;
 
@@ -26,7 +28,6 @@ struct Loader {
     TERRIER_ASSERT(generator != nullptr, "Random number generator does not exist.");
     TERRIER_ASSERT(db != nullptr, "Database does not exist.");
 
-    // TODO(WAN): I have a stashed multi-threaded loading commit, but that might actually be slower. Punt.
     const auto *worker = &workers[0];
     const auto num_warehouses = static_cast<int8_t>(workers.size());
 
