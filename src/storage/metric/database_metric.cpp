@@ -4,7 +4,7 @@
 #include "catalog/catalog_defs.h"
 #include "transaction/transaction_manager.h"
 
-namespace terrier::stats {
+namespace terrier::storage::metric {
 
 void DatabaseMetricRawData::UpdateAndPersist(transaction::TransactionManager *const txn_manager) {
   auto txn = txn_manager->BeginTransaction();
@@ -15,4 +15,4 @@ void DatabaseMetricRawData::UpdateAndPersist(transaction::TransactionManager *co
   txn_manager->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
 }
 
-}  // namespace terrier::stats
+}  // namespace terrier::storage::metric

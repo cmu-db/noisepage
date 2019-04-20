@@ -16,7 +16,7 @@ namespace transaction {
 class TransactionContext;
 }  // namespace transaction
 
-namespace stats {
+namespace storage::metric {
 /**
  * @brief Interface representing a metric.
  * A metric is defined to be some piece of logic that processes events generated
@@ -306,5 +306,5 @@ class AbstractMetric : public Metric {
    */
   std::atomic<bool> safe_;
 };
-}  // namespace stats
+}  // namespace storage::metric
 }  // namespace terrier

@@ -11,7 +11,7 @@
 #include "storage/metric/abstract_raw_data.h"
 #include "storage/metric/thread_level_stats_collector.h"
 
-namespace terrier::stats {
+namespace terrier::storage::metric {
 
 /**
  * Background thread that periodically collects data from thread level collectors
@@ -50,6 +50,10 @@ class StatsAggregator {
    * Transaction manager of the system
    */
   transaction::TransactionManager *const txn_manager_;
+
+  /**
+   *
+   */
 };
 
-}  // namespace terrier::stats
+}  // namespace terrier::storage::stats

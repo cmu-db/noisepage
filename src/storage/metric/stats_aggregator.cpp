@@ -2,7 +2,7 @@
 #include <memory>
 #include <vector>
 
-namespace terrier::stats {
+namespace terrier::storage::metric {
 
 using RawDataCollect = std::vector<std::shared_ptr<AbstractRawData>>;
 RawDataCollect StatsAggregator::AggregateRawData() {
@@ -28,4 +28,4 @@ void StatsAggregator::Aggregate() {
   }
 }
 
-}  // namespace terrier::stats
+}  // namespace terrier::storage::metric

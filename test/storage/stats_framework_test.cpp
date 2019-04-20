@@ -15,9 +15,9 @@ class StatsFrameworkTests : public TerrierTest {};
  */
 // NOLINTNEXTLINE
 TEST_F(StatsFrameworkTests, BasicTest) {
-  auto stats_collector = stats::ThreadLevelStatsCollector();
-  stats::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTestNum(1);
-  stats::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTestNum(2);
+  auto stats_collector = storage::metric::ThreadLevelStatsCollector();
+  storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTestNum(1);
+  storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTestNum(2);
 
   EXPECT_EQ(TestingStatsUtil::AggregateTestCounts(), 3);
 }

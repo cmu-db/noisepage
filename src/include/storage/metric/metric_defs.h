@@ -3,7 +3,7 @@
 #include <utility>
 #include <vector>
 
-namespace terrier::stats {
+namespace terrier::storage::metric {
 /**
  * Metric types
  */
@@ -76,4 +76,4 @@ class EnumHash {
   }
 };
 
-}  // namespace terrier::stats
+}  // namespace terrier::storage::metric

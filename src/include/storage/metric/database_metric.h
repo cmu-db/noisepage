@@ -13,7 +13,7 @@ namespace transaction {
 class TransactionContext;
 }  // namespace transaction
 
-namespace stats {
+namespace storage::metric {
 
 /**
  * Raw data object for holding stats collected at the database level
@@ -93,5 +93,5 @@ class DatabaseMetric : public AbstractMetric<DatabaseMetricRawData> {
   }
 };
 
-}  // namespace stats
+}  // namespace storage::metric
 }  // namespace terrier

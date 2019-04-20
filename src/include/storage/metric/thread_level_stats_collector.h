@@ -16,7 +16,7 @@ namespace transaction {
 class TransactionContext;
 }  // namespace transaction
 
-namespace stats {
+namespace storage::metric {
 /**
  * @brief Class responsible for collecting raw data on a single thread.
  *
@@ -323,5 +323,5 @@ class ThreadLevelStatsCollector {
   static CollectorsMap collector_map_;
 };
 
-}  // namespace stats
+}  // namespace storage::metric
 }  // namespace terrier
