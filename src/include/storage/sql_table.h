@@ -39,7 +39,7 @@ class SqlTable {
    * @param oid unique identifier for this SqlTable
    */
   SqlTable(BlockStore *const store, const catalog::Schema &schema, const catalog::table_oid_t oid)
-      : block_store_(store), oid_(oid) {
+      : block_store_(store), oid_(oid), schema_(schema) {
     const auto layout_and_map = StorageUtil::BlockLayoutFromSchema(schema);
     table_ = {new DataTable(block_store_, layout_and_map.first, layout_version_t(0)), layout_and_map.first,
               layout_and_map.second};
@@ -49,6 +49,12 @@ class SqlTable {
    * Destructs a SqlTable, frees all its members.
    */
   ~SqlTable() { delete table_.data_table; }
+
+  /**
+   * Get the schema use of the SQL table
+   * @return the schema
+   */
+  catalog::Schema &GetSchema() { return schema_; }
 
   /**
    * Materializes a single tuple from the given slot, as visible at the timestamp of the calling txn.
@@ -100,7 +106,7 @@ class SqlTable {
    * Sequentially scans the table starting from the given iterator(inclusive) and materializes as many tuples as would
    * fit into the given buffer, as visible to the transaction given, according to the format described by the given
    * output buffer. The tuples materialized are guaranteed to be visible and valid, and the function makes best effort
-   * to fill the buffer, unless there are no more tuples. The given iterator is mutated to point to one slot passed the
+   * to fill the buffer, unless there are no more tuples. The given iterator is mutated to point to one slot past the
    * last slot scanned in the invocation.
    *
    * @param txn the calling transaction
@@ -178,6 +184,8 @@ class SqlTable {
  private:
   BlockStore *const block_store_;
   const catalog::table_oid_t oid_;
+
+  catalog::Schema schema_;
 
   // Eventually we'll support adding more tables when schema changes. For now we'll always access the one DataTable.
   DataTableVersion table_;

@@ -92,7 +92,7 @@ class Schema {
    */
   explicit Schema(std::vector<Column> columns) : columns_(std::move(columns)) {
     TERRIER_ASSERT(!columns_.empty() && columns_.size() <= common::Constants::MAX_COL,
-                   "Number of columns must be between 1 and 32767.");
+                   "Number of columns must be between 1 and MAX_COL.");
     for (uint32_t i = 0; i < columns_.size(); i++) {
       col_oid_to_offset[columns_[i].GetOid()] = i;
     }
@@ -113,6 +113,20 @@ class Schema {
     TERRIER_ASSERT(col_oid_to_offset.count(col_oid) > 0, "col_oid does not exist in this Schema");
     const uint32_t col_offset = col_oid_to_offset.at(col_oid);
     return columns_[col_offset];
+  }
+
+  /**
+   * @param name name of the Column to access
+   * @return description of the schema for a specific column
+   * @throw std::out_of_range if the column doesn't exist.
+   */
+  Column GetColumn(const std::string &name) const {
+    for (auto &c : columns_) {
+      if (c.GetName() == name) {
+        return c;
+      }
+    }
+    throw std::out_of_range("Column name doesn't exist");
   }
   /**
    * @return description of this SQL table's schema as a collection of Columns
