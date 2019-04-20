@@ -115,6 +115,7 @@ class StockLevel {
       select_result = db->order_line_table_->Select(txn, order_line_tuple_slot, order_line_select_tuple);
       TERRIER_ASSERT(select_result, "Order line index contained this.");
       const auto ol_i_id = *reinterpret_cast<int32_t *>(order_line_select_tuple->AccessForceNotNull(0));
+      if (item_counts.count(ol_i_id) > 0) continue;  // don't look up items we've already checked
 
       const auto stock_key_pr_initializer = db->stock_primary_index_->GetProjectedRowInitializer();
       auto *const stock_key = stock_key_pr_initializer.InitializeRow(worker->stock_key_buffer);
