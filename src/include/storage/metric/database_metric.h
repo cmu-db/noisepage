@@ -4,8 +4,11 @@
 #include <unordered_map>
 #include <utility>
 
+#include "catalog/catalog.h"
 #include "catalog/catalog_defs.h"
 #include "storage/metric/abstract_metric.h"
+#include "type/transient_value_factory.h"
+#include "type/transient_value_peeker.h"
 
 namespace terrier {
 
@@ -52,7 +55,7 @@ class DatabaseMetricRawData : public AbstractRawData {
    * to be garbage-collected after this method is called.
    * @param txn_manager transaction manager of the system
    */
-  void UpdateAndPersist(transaction::TransactionManager *txn_manager) override;
+  void UpdateAndPersist(transaction::TransactionManager *txn_manager, catalog::Catalog *catalog) override;
 
   /**
    * @return the type of the metric this object is holding the data for

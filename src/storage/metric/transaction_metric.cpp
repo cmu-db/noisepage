@@ -6,7 +6,7 @@
 
 namespace terrier::storage::metric {
 
-void TransactionMetricRawData::UpdateAndPersist(transaction::TransactionManager *const txn_manager) {
+void TransactionMetricRawData::UpdateAndPersist(transaction::TransactionManager *const txn_manager, catalog::Catalog *catalog) {
   auto txn = txn_manager->BeginTransaction();
 
   // TODO(Wen) find a way to store collected data
