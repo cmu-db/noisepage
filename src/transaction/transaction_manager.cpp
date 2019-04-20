@@ -180,9 +180,7 @@ timestamp_t TransactionManager::OldestTransactionStartTime() const {
 
 TransactionQueue TransactionManager::CompletedTransactionsForGC() {
   common::SpinLatch::ScopedSpinLatch guard(&curr_running_txns_latch_);
-  TransactionQueue hand_to_gc(std::move(completed_txns_));
-  TERRIER_ASSERT(completed_txns_.empty(), "TransactionManager's queue should now be empty.");
-  return hand_to_gc;
+  return std::move(completed_txns_);
 }
 
 void TransactionManager::DeferAction(Action a) {
@@ -192,9 +190,7 @@ void TransactionManager::DeferAction(Action a) {
 
 ActionQueue TransactionManager::DeferredActionsForGC() {
   common::SpinLatch::ScopedSpinLatch guard(&deferred_actions_latch_);
-  ActionQueue hand_to_gc(std::move(deferred_actions_));
-  TERRIER_ASSERT(deferred_actions_.empty(), "TransactionManager's queue should now be empty.");
-  return hand_to_gc;
+  return std::move(deferred_actions_);
 }
 
 void TransactionManager::Rollback(TransactionContext *txn, const storage::UndoRecord &record) const {
