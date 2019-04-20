@@ -91,6 +91,37 @@ class TransactionMetricRawData : public AbstractRawData {
    */
   MetricType GetMetricType() const override { return MetricType::TRANSACTION; }
 
+  /**
+   * @return the latency of the given transaction
+   */
+  uint64_t GetLatency(const transaction::TransactionContext *txn) { return data_[txn->TxnId().load()].latency_; }
+
+  /**
+   * @return the tuples read of the given transaction
+   */
+  uint64_t GetTupleRead(const transaction::TransactionContext *txn) { return data_[txn->TxnId().load()].tuple_read_; }
+
+  /**
+   * @return the tuples updated of the given transaction
+   */
+  uint64_t GetTupleUpdate(const transaction::TransactionContext *txn) {
+    return data_[txn->TxnId().load()].tuple_update_;
+  }
+
+  /**
+   * @return the tuples inserted of the given transaction
+   */
+  uint64_t GetTupleInsert(const transaction::TransactionContext *txn) {
+    return data_[txn->TxnId().load()].tuple_insert_;
+  }
+
+  /**
+   * @return the tuples deleted of the given transaction
+   */
+  uint64_t GetTupleDelete(const transaction::TransactionContext *txn) {
+    return data_[txn->TxnId().load()].tuple_delete_;
+  }
+
  private:
   /**
    * Collection of data related to a transaction
@@ -115,6 +146,12 @@ class TransactionMetricRawData : public AbstractRawData {
  */
 class TransactionMetric : public AbstractMetric<TransactionMetricRawData> {
  public:
+  /**
+   * @param txn transaction context of the beginning transaction
+   * @param database_oid OID of the database the transaction is running in
+   */
+  void OnTransactionBegin(const transaction::TransactionContext *txn) override { GetRawData()->SetTxnStart(txn); }
+
   /**
    * @param txn transaction context of the committing transaction
    * @param database_oid OID of the database the transaction is running in
