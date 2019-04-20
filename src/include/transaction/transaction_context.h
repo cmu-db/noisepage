@@ -35,9 +35,12 @@ class TransactionContext {
   TransactionContext(const timestamp_t start, const timestamp_t txn_id,
                      storage::RecordBufferSegmentPool *const buffer_pool, storage::LogManager *const log_manager,
                      TransactionManager *transaction_manager)
-      : start_time_(start), txn_id_(txn_id), undo_buffer_(buffer_pool), redo_buffer_(log_manager, buffer_pool) {
-    txn_mgr_ = transaction_manager;
-  }
+      : start_time_(start),
+        txn_id_(txn_id),
+        undo_buffer_(buffer_pool),
+        redo_buffer_(log_manager,
+        buffer_pool),
+        txn_mgr_(transaction_manager) {}
 
   ~TransactionContext() {
     for (const byte *ptr : loose_ptrs_) delete[] ptr;
