@@ -13,19 +13,16 @@ void CheckpointManager::Checkpoint(const SqlTable &table, const catalog::Schema 
   }
 
   auto row_pair = table.InitializerForProjectedRow(all_col);
-  auto *redo_buffer = common::AllocationUtil::AllocateAligned(row_pair.first.ProjectedRowSize());
-  ProjectedRow *row_buffer = row_pair.first.InitializeRow(redo_buffer);
-
-  auto it = table.begin();
-  auto end = table.end();
-  while (it != end) {
-    if (table.Select(txn_, *it, row_buffer)) {
+  auto *buffer = common::AllocationUtil::AllocateAligned(row_pair.first.ProjectedRowSize());
+  ProjectedRow *row_buffer = row_pair.first.InitializeRow(buffer);
+  
+  for (auto &slot : table) {
+    if (table.Select(txn_, slot, row_buffer)) {
       out_.SerializeTuple(row_buffer, schema, row_pair.second);
     }
-    it++;
   }
   out_.Persist();
-  delete[] redo_buffer;
+  delete[] buffer;
 }
 
 void CheckpointManager::Recover(const char *log_file_path) {
