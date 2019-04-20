@@ -1,5 +1,6 @@
 #pragma once
 
+#include <dirent.h>
 #include <string>
 #include <vector>
 #include "common/spin_latch.h"
@@ -22,15 +23,32 @@ class CheckpointManager {
   /**
    * Constructs a new CheckpointManager, writing its records out to the given file.
    */
-  explicit CheckpointManager(const char *log_file_path_prefix) : log_file_path_prefix_(log_file_path_prefix) {}
+  explicit CheckpointManager(const char *path_prefix) : checkpoint_file_path_prefix_(path_prefix) {}
 
   /**
-   * Start a new checkpoint with the given transaxtion context.
+   * Manages the lifecycle of a checkpoint. This should be the main entry for checkpointing, and should be protected
+   * inside a transaction.
+   * Table and schema are temporary, for test purposes only. They should be fetched from catalogs.
+   * @param txn
+   * @param table
+   * @param schema
+   */
+
+  void Process(transaction::TransactionContext *txn, const SqlTable &table, const catalog::Schema &schema) {
+    StartCheckpoint(txn);
+    // TODO(zhaozhes): This should actually iterate through all tables, using catalog information
+    Checkpoint(table, schema);
+    EndCheckpoint();
+  }
+
+  /**
+   * Start a new checkpoint with the given transaction context.
    * @param txn transaction context this checkpoint will be running under.
    */
   void StartCheckpoint(transaction::TransactionContext *txn) {
     txn_ = txn;
     out_.Open((GetCheckpointFilePath(txn)).c_str());
+    // TODO: persist catalog, get metadata for each table and prepare to checkpoint each table
   }
 
   /**
@@ -48,7 +66,38 @@ class CheckpointManager {
    * @return path to the checkpoint file.
    */
   std::string GetCheckpointFilePath(transaction::TransactionContext *txn) {
-    return log_file_path_prefix_ + std::to_string(!(txn->StartTime()));
+    return checkpoint_file_path_prefix_ + std::to_string(!(txn->StartTime()));
+  }
+
+  /**
+   * Get the most up to date checkpoint file name
+   * @return path to the latest checkpoint file (with largest transaction id)
+   */
+  std::string GetLatestCheckpointFilename() {
+    // TODO: checkpoint directory is currently hard-coded here
+    char const *path = ".";
+    std::string file_name = "";
+
+    DIR *dir;
+    struct dirent *ent;
+    if ((dir = opendir(path)) != NULL) {
+      /* print all the files and directories within directory */
+      while ((ent = readdir(dir)) != NULL) {
+        std::string candidate(ent->d_name);
+        if (candidate.find(checkpoint_file_path_prefix_) == 0) {
+          // A little hack here to compare the timestamp strings
+          if (candidate.length() > file_name.length() ||
+              (candidate.length() == file_name.length() && candidate > file_name)) {
+            file_name = candidate;
+          }
+        }
+      }
+      closedir(dir);
+    } else {
+      /* could not open directory */
+      throw std::runtime_error("cannot open checkpoint directory");
+    }
+    return file_name;
   }
 
   /**
@@ -96,7 +145,7 @@ class CheckpointManager {
   }
 
  private:
-  std::string log_file_path_prefix_;
+  std::string checkpoint_file_path_prefix_;
   BufferedTupleWriter out_;
   transaction::TransactionContext *txn_ = nullptr;
   std::vector<SqlTable *> tables_;
