@@ -50,10 +50,6 @@ class StatsAggregator {
    * Transaction manager of the system
    */
   transaction::TransactionManager *const txn_manager_;
-
-  /**
-   *
-   */
 };
 
 }  // namespace terrier::storage::stats
