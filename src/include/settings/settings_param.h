@@ -10,7 +10,7 @@ namespace terrier::settings {
  * are defined as enumerators.
  *
  * The enumerator list is defined by expanding the
- * _SETTING_ENUM_ part of macros defined in 
+ * _SETTING_ENUM_ part of macros defined in
  * settings_common.h
  */
 enum class Param {                     // NOLINT
@@ -23,7 +23,7 @@ enum class Param {                     // NOLINT
 /**
  * ParamInfo is the structure to hold settings information.
  */
-struct ParamInfo {
+class ParamInfo {
   /**
    * The constructor of ParamInfo
    * @param name setting name

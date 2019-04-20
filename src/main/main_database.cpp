@@ -35,7 +35,7 @@ int MainDatabase::start(int argc, char *argv[]) {
   terrier::transaction::TransactionContext *txn_ = txn_manager_.BeginTransaction();
   // create the (system) catalogs
   terrier::catalog::terrier_catalog = std::make_shared<terrier::catalog::Catalog>(&txn_manager_, txn_);
-  terrier::settings::SettingsManager settings_manager_(terrier::catalog::terrier_catalog, &txn_manager_);
+  terrier::settings::SettingsManager settings_manager_(terrier::catalog::terrier_catalog.get(), &txn_manager_);
   LOG_INFO("Initialization complete");
 
   terrier::network::TerrierServer terrier_server;

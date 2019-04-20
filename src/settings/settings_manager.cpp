@@ -21,8 +21,7 @@ using ValuePeeker = type::TransientValuePeeker;
 // Used for building temporary transactions
 void EmptyCallback(void * /*unused*/) {}
 
-SettingsManager::SettingsManager(const std::shared_ptr<catalog::Catalog> &catalog,
-                                 transaction::TransactionManager *txn_manager)
+SettingsManager::SettingsManager(catalog::Catalog *catalog, transaction::TransactionManager *txn_manager)
     : settings_handle_(catalog->GetSettingsHandle()), txn_manager_(txn_manager) {
   InitParams();
   InitializeCatalog();
@@ -77,7 +76,6 @@ void SettingsManager::InitializeCatalog() {
   }
 
   txn_manager_->Commit(txn, EmptyCallback, nullptr);
-  delete txn;
 }
 
 int32_t SettingsManager::GetInt(Param param) { return ValuePeeker::PeekInteger(GetValue(param)); }
@@ -118,36 +116,7 @@ void SettingsManager::SetString(Param param, const std::string_view &value) {
 }
 
 const std::string SettingsManager::GetInfo() {
-  /*
-  const uint32_t box_width = 72;
-  const std::string title = "PELOTON SETTINGS";
-
-  std::string info;
-  info.append(StringUtil::Format("%*s\n", box_width / 2 + title.length() / 2,
-                                 title.c_str()));
-  info.append(StringUtil::Repeat("=", box_width)).append("\n");
-
-  // clang-format off
-  info.append(StringUtil::Format("%34s:   %-34i\n", "Port", GetInt(Param::port)));
-  info.append(StringUtil::Format("%34s:   %-34s\n", "Socket Family", GetString(Param::socket_family).c_str()));
-  info.append(StringUtil::Format("%34s:   %-34s\n", "Statistics", GetInt(Param::stats_mode) ? "enabled" : "disabled"));
-  info.append(StringUtil::Format("%34s:   %-34i\n", "Max Connections", GetInt(Param::max_connections)));
-  info.append(StringUtil::Format("%34s:   %-34s\n", "Index Tuner", GetBool(Param::index_tuner) ? "enabled" :
-  "disabled")); info.append(StringUtil::Format("%34s:   %-34s\n", "Layout Tuner", GetBool(Param::layout_tuner) ?
-  "enabled" : "disabled")); info.append(StringUtil::Format("%34s:   (queue size %i, %i threads)\n", "Worker Pool",
-  GetInt(Param::monoqueue_task_queue_size), GetInt(Param::monoqueue_worker_pool_size)));
-  info.append(StringUtil::Format("%34s:   %-34s\n", "Parallel Query Execution", GetBool(Param::parallel_execution) ?
-  "enabled" : "disabled")); info.append(StringUtil::Format("%34s:   %-34i\n", "Min. Parallel Table Scan Size",
-  GetInt(Param::min_parallel_table_scan_size))); info.append(StringUtil::Format("%34s:   %-34s\n", "Code-generation",
-  GetBool(Param::codegen) ? "enabled" : "disabled")); info.append(StringUtil::Format("%34s:   %-34s\n", "Print IR
-  Statistics", GetBool(Param::print_ir_stats) ? "enabled" : "disabled")); info.append(StringUtil::Format("%34s:
-  %-34s\n", "Dump IR", GetBool(Param::dump_ir) ? "enabled" : "disabled")); info.append(StringUtil::Format("%34s:
-  %-34i\n", "Optimization Timeout", GetInt(Param::task_execution_timeout))); info.append(StringUtil::Format("%34s:
-  %-34i\n", "Number of GC threads", GetInt(Param::gc_num_threads)));
-  // clang-format on
-
-  return StringBoxUtil::Box(info);
-   */
+  // TODO(Yuze): Return the string representation of the param map.
   return "";
 }
 
@@ -170,7 +139,6 @@ void SettingsManager::SetValue(Param param, const type::TransientValue &value) {
   auto entry = settings_handle_.GetSettingsEntry(txn, param_info.name);
   entry->SetColumn(static_cast<int32_t>(Index::SETTING), value);
   txn_manager_->Commit(txn, EmptyCallback, nullptr);
-  delete txn;
 }
 
 bool SettingsManager::ValidateValue(const type::TransientValue &value, const type::TransientValue &min_value,

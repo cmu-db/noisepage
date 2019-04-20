@@ -38,7 +38,7 @@ class SettingsManager {
    * @param catalog a shared pointer to the system catalog
    * @param txn_manager a pointer to the transaction manager
    */
-  SettingsManager(const std::shared_ptr<catalog::Catalog> &catalog, transaction::TransactionManager *txn_manager);
+  SettingsManager(catalog::Catalog *catalog, transaction::TransactionManager *txn_manager);
 
   /**
    * Get the value of an integer setting
