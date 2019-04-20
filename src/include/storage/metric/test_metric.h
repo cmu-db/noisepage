@@ -1,5 +1,6 @@
 #pragma once
 
+#include "catalog/catalog.h"
 #include "storage/metric/abstract_metric.h"
 #include "storage/metric/abstract_raw_data.h"
 
@@ -31,7 +32,7 @@ class TestMetricRawData : public AbstractRawData {
    * to be garbage-collected after this method is called.
    * @param txn_manager transaction manager of the system
    */
-  void UpdateAndPersist(transaction::TransactionManager *txn_manager) override {}
+  void UpdateAndPersist(transaction::TransactionManager *txn_manager, catalog::Catalog *catalog) override {}
 
   /**
    * @return the type of the metric this object is holding the data for

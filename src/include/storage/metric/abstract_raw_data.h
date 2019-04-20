@@ -1,5 +1,6 @@
 #pragma once
 
+#include "catalog/catalog.h"
 #include "common/macros.h"
 #include "storage/metric/metric_defs.h"
 #include "transaction/transaction_manager.h"
@@ -35,7 +36,7 @@ class AbstractRawData {
    * to be garbage-collected after this method is called.
    * @param txn_manager transaction manager of the system
    */
-  virtual void UpdateAndPersist(transaction::TransactionManager *txn_manager) = 0;
+  virtual void UpdateAndPersist(transaction::TransactionManager *txn_manager, catalog::Catalog *catalog) = 0;
 
   /**
    * @return the type of the metric this object is holding the data for

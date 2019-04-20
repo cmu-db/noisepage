@@ -24,7 +24,7 @@ RawDataCollect StatsAggregator::AggregateRawData() {
 void StatsAggregator::Aggregate() {
   auto acc = AggregateRawData();
   for (auto &raw_data : acc) {
-    raw_data->UpdateAndPersist(txn_manager_);
+    raw_data->UpdateAndPersist(txn_manager_, catalog_);
   }
 }
 
