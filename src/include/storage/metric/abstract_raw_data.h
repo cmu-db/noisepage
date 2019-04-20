@@ -1,8 +1,8 @@
 #pragma once
 
-#include <transaction/transaction_manager.h>
+#include "transaction/transaction_manager.h"
 #include "common/macros.h"
-#include "stats/statistic_defs.h"
+#include "storage/metric/metric_defs.h"
 
 namespace terrier::stats {
 /**

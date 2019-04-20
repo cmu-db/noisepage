@@ -1,9 +1,9 @@
 #pragma once
 
 #include "gtest/gtest.h"
-#include "stats/statistic_defs.h"
-#include "stats/stats_aggregator.h"
-#include "stats/test_metric.h"
+#include "storage/metric/metric_defs.h"
+#include "storage/metric/stats_aggregator.h"
+#include "storage/metric/test_metric.h"
 
 namespace terrier {
 

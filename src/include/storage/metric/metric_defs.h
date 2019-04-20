@@ -9,29 +9,29 @@ namespace terrier::stats {
  */
 enum class MetricType {
   // Metric type is invalid
-  INVALID = 0,
+      INVALID = 0,
   // Metric to count a number
-  COUNTER = 1,
+      COUNTER = 1,
   // Access information, e.g., # tuples read, inserted, updated, deleted
-  ACCESS = 2,
+      ACCESS = 2,
   // Life time of a object
-  LIFETIME = 3,
+      LIFETIME = 3,
   // Statistics for a specific database
-  DATABASE = 4,
+      DATABASE = 4,
   // Statistics for a specific table
-  TABLE = 5,
+      TABLE = 5,
   // Statistics for a specific index
-  INDEX = 6,
+      INDEX = 6,
   // Latency of transactions
-  LATENCY = 7,
+      LATENCY = 7,
   // Timestamp, e.g., creation time of a table/index
-  TEMPORAL = 8,
+      TEMPORAL = 8,
   // Statistics for a specific table
-  QUERY = 9,
+      QUERY = 9,
   // Statistics for CPU
-  PROCESSOR = 10,
+      PROCESSOR = 10,
   // For testing
-  TEST = 11
+      TEST = 11
 };
 
 /**

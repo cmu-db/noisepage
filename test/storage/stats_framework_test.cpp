@@ -1,5 +1,5 @@
-#include "stats/stats_aggregator.h"
-#include "stats/thread_level_stats_collector.h"
+#include "storage/metric/stats_aggregator.h"
+#include "storage/metric/thread_level_stats_collector.h"
 #include "util/test_harness.h"
 #include "util/testing_stats_util.h"
 

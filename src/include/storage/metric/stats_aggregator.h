@@ -8,8 +8,8 @@
 #include <vector>
 
 #include "common/macros.h"
-#include "stats/abstract_raw_data.h"
-#include "stats/thread_level_stats_collector.h"
+#include "storage/metric/abstract_raw_data.h"
+#include "storage/metric/thread_level_stats_collector.h"
 
 namespace terrier::stats {
 

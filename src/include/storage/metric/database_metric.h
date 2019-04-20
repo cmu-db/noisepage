@@ -5,7 +5,7 @@
 #include <utility>
 
 #include "catalog/catalog_defs.h"
-#include "stats/abstract_metric.h"
+#include "storage/metric/abstract_metric.h"
 
 namespace terrier {
 

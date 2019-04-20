@@ -1,6 +1,6 @@
-#include "stats/database_metric.h"
-#include <stats/thread_level_stats_collector.h>
-#include <util/transaction_benchmark_util.h>
+#include "storage/metric/database_metric.h"
+#include "storage/metric/thread_level_stats_collector.h"
+#include "util/transaction_benchmark_util.h"
 #include "catalog/catalog_defs.h"
 #include "transaction/transaction_manager.h"
 
