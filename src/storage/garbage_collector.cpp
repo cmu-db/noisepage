@@ -1,6 +1,7 @@
 #include "storage/garbage_collector.h"
 #include <algorithm>
 #include <functional>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 #include "common/container/concurrent_queue.h"

@@ -67,7 +67,7 @@ class GarbageCollector {
    * @return true, if the undo record was unlinked
    */
   bool ProcessUndoRecord(UndoRecord *undo_record, std::vector<transaction::timestamp_t> *active_txns,
-      std::unordered_set<TupleSlot> *visited_slots);
+                         std::unordered_set<TupleSlot> *visited_slots);
 
   /**
    * Delete the slot corresponding to the unlinked undo record if the undo record was a DELETE
