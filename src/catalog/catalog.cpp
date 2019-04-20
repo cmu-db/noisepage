@@ -52,8 +52,10 @@ void Catalog::DeleteDatabase(transaction::TransactionContext *txn, const std::st
   name_map_.erase(oid);
 }
 
-table_oid_t Catalog::CreateTable(transaction::TransactionContext *txn, db_oid_t db_oid, const std::string &table_name,
-                                 const Schema &schema) {
+table_oid_t Catalog::CreateUserTable(transaction::TransactionContext *txn,
+                                     db_oid_t db_oid,
+                                     const std::string &table_name,
+                                     const Schema &schema) {
   auto db_handle = GetDatabaseHandle();
   auto table_handle = db_handle.GetNamespaceHandle(txn, db_oid).GetTableHandle(txn, "public");
 
@@ -69,12 +71,12 @@ table_oid_t Catalog::CreateTable(transaction::TransactionContext *txn, db_oid_t 
   return tbl_rw->Oid();
 }
 
-void Catalog::DeleteTable(transaction::TransactionContext *txn, db_oid_t db_oid, table_oid_t table_oid) {
+void Catalog::DeleteTable(transaction::TransactionContext *txn, db_oid_t db_oid, const std::string &table_name) {
   auto db_handle = GetDatabaseHandle();
+  auto table_oid = table_oid_t(name_map_[db_oid][table_name]);
 
   // remove entries from pg_attribute, if attrelid == table_oid
-  auto attr_handle = db_handle.GetAttributeHandle(txn, db_oid);
-  auto attr_table = GetDatabaseCatalog(db_oid, "pg_attribute");
+  auto attr_table = GetCatalogTable(db_oid, "pg_attribute");
   int32_t col_index = attr_table->ColNameToIndex("attrelid");
   auto it = attr_table->begin(txn);
   while (it != attr_table->end(txn)) {
@@ -95,8 +97,7 @@ void Catalog::DeleteTable(transaction::TransactionContext *txn, db_oid_t db_oid,
 
   // remove entries from pg_attrdef
   // adrelid == table oid (i.e. pg_class.oid).
-  auto attrdef_handle = db_handle.GetAttrDefHandle(txn, db_oid);
-  auto attrdef_table = GetDatabaseCatalog(db_oid, "pg_attrdef");
+  auto attrdef_table = GetCatalogTable(db_oid, "pg_attrdef");
   col_index = attrdef_table->ColNameToIndex("adrelid");
   auto attrdef_it = attrdef_table->begin(txn);
   while (attrdef_it != attrdef_table->end(txn)) {
@@ -117,8 +118,7 @@ void Catalog::DeleteTable(transaction::TransactionContext *txn, db_oid_t db_oid,
 
   // remove entries from pg_class
   // oid is col 0
-  auto class_handle = db_handle.GetClassHandle(txn, db_oid);
-  auto class_table = GetDatabaseCatalog(db_oid, "pg_class");
+  auto class_table = GetCatalogTable(db_oid, "pg_class");
   col_index = class_table->ColNameToIndex("oid");
   auto class_it = class_table->begin(txn);
   while (class_it != class_table->end(txn)) {
@@ -139,6 +139,10 @@ void Catalog::DeleteTable(transaction::TransactionContext *txn, db_oid_t db_oid,
     ++class_it;
   }
 
+  // delete from the maps
+  name_map_[db_oid].erase(table_name);
+  map_[db_oid].erase(table_oid);
+
   // TODO(pakhtar): drop table
 }
 
@@ -148,12 +152,12 @@ TablespaceHandle Catalog::GetTablespaceHandle() { return TablespaceHandle(this, 
 
 SettingsHandle Catalog::GetSettingsHandle() { return SettingsHandle(pg_settings_); }
 
-std::shared_ptr<catalog::SqlTableRW> Catalog::GetDatabaseCatalog(db_oid_t db_oid, table_oid_t table_oid) {
+std::shared_ptr<catalog::SqlTableRW> Catalog::GetCatalogTable(db_oid_t db_oid, table_oid_t table_oid) {
   return map_.at(db_oid).at(table_oid);
 }
 
-std::shared_ptr<catalog::SqlTableRW> Catalog::GetDatabaseCatalog(db_oid_t db_oid, const std::string &table_name) {
-  return GetDatabaseCatalog(db_oid, name_map_.at(db_oid).at(table_name));
+std::shared_ptr<catalog::SqlTableRW> Catalog::GetCatalogTable(db_oid_t db_oid, const std::string &table_name) {
+  return GetCatalogTable(db_oid, name_map_.at(db_oid).at(table_name));
 }
 
 uint32_t Catalog::GetNextOid() { return oid_++; }
@@ -268,9 +272,9 @@ void Catalog::BootstrapDatabase(transaction::TransactionContext *txn, db_oid_t d
   // Order: pg_attribute -> pg_namespace -> pg_class
   CreatePGAttribute(txn, db_oid);
   CreatePGNamespace(txn, db_oid);
-  CreatePGClass(txn, db_oid);
   CreatePGType(txn, db_oid);
   CreatePGAttrDef(txn, db_oid);
+  CreatePGClass(txn, db_oid);
 
   // add column information into pg_attribute, for the catalog tables just created
   // pg_database, pg_tablespace and pg_settings are global, but
@@ -323,8 +327,8 @@ void Catalog::CreatePGClass(transaction::TransactionContext *txn, db_oid_t db_oi
   // Insert pg_database
   // (namespace: catalog, tablespace: global)
   CATALOG_LOG_TRACE("Inserting pg_database into pg_class ...");
-  auto pg_db_tbl_p = reinterpret_cast<uint64_t>(GetDatabaseCatalog(db_oid, "pg_database").get());
-  auto pg_database_entry_oid = !GetDatabaseCatalog(db_oid, "pg_database")->Oid();
+  auto pg_db_tbl_p = reinterpret_cast<uint64_t>(GetCatalogTable(db_oid, "pg_database").get());
+  auto pg_database_entry_oid = !GetCatalogTable(db_oid, "pg_database")->Oid();
 
   class_handle.AddEntry(txn, pg_db_tbl_p, pg_database_entry_oid, "pg_database", pg_catalog_namespace_oid,
                         pg_global_ts_oid);
@@ -332,8 +336,8 @@ void Catalog::CreatePGClass(transaction::TransactionContext *txn, db_oid_t db_oi
   // Insert pg_tablespace
   // (namespace: catalog, tablespace: global)
   CATALOG_LOG_TRACE("Inserting pg_tablespace into pg_class ...");
-  auto pg_ts_tbl_p = reinterpret_cast<uint64_t>(GetDatabaseCatalog(db_oid, "pg_tablespace").get());
-  auto pg_tablespace_entry_oid = !GetDatabaseCatalog(db_oid, "pg_tablespace")->Oid();
+  auto pg_ts_tbl_p = reinterpret_cast<uint64_t>(GetCatalogTable(db_oid, "pg_tablespace").get());
+  auto pg_tablespace_entry_oid = !GetCatalogTable(db_oid, "pg_tablespace")->Oid();
 
   class_handle.AddEntry(txn, pg_ts_tbl_p, pg_tablespace_entry_oid, "pg_tablespace", pg_catalog_namespace_oid,
                         pg_global_ts_oid);
@@ -341,25 +345,40 @@ void Catalog::CreatePGClass(transaction::TransactionContext *txn, db_oid_t db_oi
   // Insert pg_namespace
   // (namespace: catalog, tablespace: default)
   CATALOG_LOG_TRACE("Inserting pg_namespace into pg_class ...");
-  auto pg_ns_tbl_p = reinterpret_cast<uint64_t>(GetDatabaseCatalog(db_oid, "pg_namespace").get());
-  auto pg_ns_entry_oid = !GetDatabaseCatalog(db_oid, "pg_namespace")->Oid();
+  auto pg_ns_tbl_p = reinterpret_cast<uint64_t>(GetCatalogTable(db_oid, "pg_namespace").get());
+  auto pg_ns_entry_oid = !GetCatalogTable(db_oid, "pg_namespace")->Oid();
 
   class_handle.AddEntry(txn, pg_ns_tbl_p, pg_ns_entry_oid, "pg_namespace", pg_catalog_namespace_oid, pg_default_ts_oid);
 
   // Insert pg_class
   // (namespace: catalog, tablespace: default)
-  auto pg_cls_tbl_p = reinterpret_cast<uint64_t>(GetDatabaseCatalog(db_oid, "pg_class").get());
-  auto pg_cls_entry_oid = !GetDatabaseCatalog(db_oid, "pg_class")->Oid();
+  auto pg_cls_tbl_p = reinterpret_cast<uint64_t>(GetCatalogTable(db_oid, "pg_class").get());
+  auto pg_cls_entry_oid = !GetCatalogTable(db_oid, "pg_class")->Oid();
 
   class_handle.AddEntry(txn, pg_cls_tbl_p, pg_cls_entry_oid, "pg_class", pg_catalog_namespace_oid, pg_default_ts_oid);
 
   // Insert pg_attribute
   // (namespace: catalog, tablespace: default)
-  auto pg_attr_tbl_p = reinterpret_cast<uint64_t>(GetDatabaseCatalog(db_oid, "pg_attribute").get());
-  auto pg_attr_entry_oid = !GetDatabaseCatalog(db_oid, "pg_attribute")->Oid();
+  auto pg_attr_tbl_p = reinterpret_cast<uint64_t>(GetCatalogTable(db_oid, "pg_attribute").get());
+  auto pg_attr_entry_oid = !GetCatalogTable(db_oid, "pg_attribute")->Oid();
 
   class_handle.AddEntry(txn, pg_attr_tbl_p, pg_attr_entry_oid, "pg_attribute", pg_catalog_namespace_oid,
                         pg_default_ts_oid);
+
+  // Insert pg_attrdef
+  // (namespace: catalog, tablespace: default)
+  auto pg_attrdef_tbl_p = reinterpret_cast<uint64_t>(GetCatalogTable(db_oid, "pg_attrdef").get());
+  auto pg_attrdef_entry_oid = !GetCatalogTable(db_oid, "pg_attrdef")->Oid();
+
+  class_handle.AddEntry(txn, pg_attrdef_tbl_p, pg_attrdef_entry_oid, "pg_attrdef", pg_catalog_namespace_oid,
+                        pg_default_ts_oid);
+
+  // Insert pg_type
+  // (namespace: catalog, tablespace: default)
+  auto pg_type_tbl_p = reinterpret_cast<uint64_t>(GetCatalogTable(db_oid, "pg_type").get());
+  auto pg_type_entry_oid = !GetCatalogTable(db_oid, "pg_type")->Oid();
+
+  class_handle.AddEntry(txn, pg_type_tbl_p, pg_type_entry_oid, "pg_type", pg_catalog_namespace_oid, pg_default_ts_oid);
 }
 
 void Catalog::CreatePGType(transaction::TransactionContext *txn, db_oid_t db_oid) {
@@ -398,7 +417,7 @@ void Catalog::DestroyDB(db_oid_t oid) {
   // Since we don't automatically free these tables, we need to free tables when we destroy the database
   auto txn = txn_manager_->BeginTransaction();
 
-  auto pg_class = GetDatabaseCatalog(oid, "pg_class");
+  auto pg_class = GetCatalogTable(oid, "pg_class");
   auto pg_class_ptr = pg_class->GetSqlTable();
 
   // save information needed for (later) reading and writing

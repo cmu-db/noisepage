@@ -50,9 +50,9 @@ TableHandle NamespaceHandle::GetTableHandle(transaction::TransactionContext *txn
   std::string pg_class("pg_class");
   std::string pg_namespace("pg_namespace");
   std::string pg_tablespace("pg_tablespace");
-  return TableHandle(catalog_, NameToOid(txn, nsp_name), catalog_->GetDatabaseCatalog(db_oid_, pg_class),
-                     catalog_->GetDatabaseCatalog(db_oid_, pg_namespace),
-                     catalog_->GetDatabaseCatalog(db_oid_, pg_tablespace));
+  return TableHandle(catalog_, NameToOid(txn, nsp_name), catalog_->GetCatalogTable(db_oid_, pg_class),
+                     catalog_->GetCatalogTable(db_oid_, pg_namespace),
+                     catalog_->GetCatalogTable(db_oid_, pg_tablespace));
 }
 
 void NamespaceHandle::AddEntry(transaction::TransactionContext *txn, const std::string &name) {

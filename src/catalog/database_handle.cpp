@@ -32,28 +32,28 @@ DatabaseHandle::DatabaseHandle(Catalog *catalog, std::shared_ptr<catalog::SqlTab
 
 ClassHandle DatabaseHandle::GetClassHandle(transaction::TransactionContext *txn, db_oid_t oid) {
   std::string pg_class("pg_class");
-  return ClassHandle(catalog_, catalog_->GetDatabaseCatalog(oid, pg_class));
+  return ClassHandle(catalog_, catalog_->GetCatalogTable(oid, pg_class));
 }
 
 NamespaceHandle DatabaseHandle::GetNamespaceHandle(transaction::TransactionContext *txn, db_oid_t oid) {
   std::string pg_namespace("pg_namespace");
-  return NamespaceHandle(catalog_, oid, catalog_->GetDatabaseCatalog(oid, pg_namespace));
+  return NamespaceHandle(catalog_, oid, catalog_->GetCatalogTable(oid, pg_namespace));
 }
 
 TypeHandle DatabaseHandle::GetTypeHandle(transaction::TransactionContext *txn, db_oid_t oid) {
-  return TypeHandle(catalog_, catalog_->GetDatabaseCatalog(oid, "pg_type"));
+  return TypeHandle(catalog_, catalog_->GetCatalogTable(oid, "pg_type"));
 }
 
 AttributeHandle DatabaseHandle::GetAttributeHandle(transaction::TransactionContext *txn, db_oid_t oid) {
-  return AttributeHandle(catalog_, catalog_->GetDatabaseCatalog(oid, "pg_attribute"));
+  return AttributeHandle(catalog_->GetCatalogTable(oid, "pg_attribute"));
 }
 
 AttrDefHandle DatabaseHandle::GetAttrDefHandle(transaction::TransactionContext *txn, db_oid_t oid) {
-  return AttrDefHandle(catalog_->GetDatabaseCatalog(oid, "pg_attrdef"));
+  return AttrDefHandle(catalog_->GetCatalogTable(oid, "pg_attrdef"));
 }
 
 std::shared_ptr<DatabaseEntry> DatabaseHandle::GetDatabaseEntry(transaction::TransactionContext *txn, db_oid_t oid) {
-  auto pg_database_rw = catalog_->GetDatabaseCatalog(oid, "pg_database");
+  auto pg_database_rw = catalog_->GetCatalogTable(oid, "pg_database");
 
   std::vector<type::TransientValue> search_vec;
   search_vec.push_back(type::TransientValueFactory::GetInteger(!oid));
@@ -64,7 +64,7 @@ std::shared_ptr<DatabaseEntry> DatabaseHandle::GetDatabaseEntry(transaction::Tra
 std::shared_ptr<DatabaseEntry> DatabaseHandle::GetDatabaseEntry(transaction::TransactionContext *txn,
                                                                 const std::string &db_name) {
   // we don't need to do this lookup. pg_database is global
-  // auto pg_database_rw = catalog_->GetDatabaseCatalog(DEFAULT_DATABASE_OID, "pg_database");
+  // auto pg_database_rw = catalog_->GetCatalogTable(DEFAULT_DATABASE_OID, "pg_database");
 
   // just use pg_database_
 
