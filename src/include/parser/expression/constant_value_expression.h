@@ -20,27 +20,55 @@ class ConstantValueExpression : public AbstractExpression {
   explicit ConstantValueExpression(const type::TransientValue &value)
       : AbstractExpression(ExpressionType::VALUE_CONSTANT, value.Type(), {}), value_(value) {}
 
+  /**
+   * Default constructor for deserialization
+   */
+  ConstantValueExpression() = default;
+
   common::hash_t Hash() const override {
     return common::HashUtil::CombineHashes(AbstractExpression::Hash(), value_.Hash());
   }
 
   bool operator==(const AbstractExpression &other) const override {
-    if (GetExpressionType() != other.GetExpressionType()) {
-      return false;
-    }
+    if (!AbstractExpression::operator==(other)) return false;
     auto const &const_expr = dynamic_cast<const ConstantValueExpression &>(other);
     return value_ == const_expr.GetValue();
   }
 
-  std::unique_ptr<AbstractExpression> Copy() const override { return std::make_unique<ConstantValueExpression>(*this); }
+  std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<ConstantValueExpression>(*this); }
 
   /**
    * @return the constant value stored in this expression
    */
   type::TransientValue GetValue() const { return value_; }
 
+  /**
+   * @return expression serialized to json
+   * @note ToJson is a private member of TransientValue, ConstantValueExpression can access it because it
+   * is a friend class of TransientValue.
+   * @see TransientValue for why ToJson is made private
+   */
+  nlohmann::json ToJson() const override {
+    nlohmann::json j = AbstractExpression::ToJson();
+    j["value"] = value_.ToJson();
+    return j;
+  }
+
+  /**
+   * @param j json to deserialize
+   * @note FromJson is a private member of TransientValue, ConstantValueExpression can access it because it
+   * is a friend class of TransientValue.
+   * @see TransientValue for why FromJson is made private
+   */
+  void FromJson(const nlohmann::json &j) override {
+    AbstractExpression::FromJson(j);
+    value_.FromJson(j.at("value"));
+  }
+
  private:
   type::TransientValue value_;
 };
+
+DEFINE_JSON_DECLARATIONS(ConstantValueExpression);
 
 }  // namespace terrier::parser

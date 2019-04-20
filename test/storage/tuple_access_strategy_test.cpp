@@ -139,14 +139,23 @@ TEST_F(TupleAccessStrategyTests, SimpleInsert) {
 }
 
 // This test generates randomized block layouts, and checks its layout to ensure
-// that the header, the column bitmaps, and the columns don't overlap, and don't
+// that the column bitmaps, and the columns don't overlap, and don't
 // go out of page boundary. (In other words, memory safe.)
 // NOLINTNEXTLINE
 TEST_F(TupleAccessStrategyTests, MemorySafety) {
   const uint32_t repeat = 100;
   std::default_random_engine generator;
   for (uint32_t i = 0; i < repeat; i++) {
-    storage::BlockLayout layout = StorageTestUtil::RandomLayoutNoVarlen(common::Constants::MAX_COL, &generator);
+    storage::BlockLayout layout;
+    if (i == 0) {
+      // Make sure we test the largest layout so that there is still at least one slot in a block.
+      std::vector<uint8_t> sizes;
+      for (uint32_t j = 0; j < common::Constants::MAX_COL; j++)
+        sizes.push_back(static_cast<uint8_t>(j == 0 ? 8 : VARLEN_COLUMN));
+      layout = storage::BlockLayout{sizes};
+    } else {
+      layout = StorageTestUtil::RandomLayoutWithVarlens(common::Constants::MAX_COL, &generator);
+    }
     storage::TupleAccessStrategy tested(layout);
     // here we don't need to 0-initialize the block because we only
     // test layout, not the content.
@@ -186,7 +195,7 @@ TEST_F(TupleAccessStrategyTests, Alignment) {
   std::default_random_engine generator;
   StorageTestUtil::CheckAlignment(raw_block_, common::Constants::BLOCK_SIZE);
   for (uint32_t i = 0; i < repeat; i++) {
-    storage::BlockLayout layout = StorageTestUtil::RandomLayoutNoVarlen(common::Constants::MAX_COL, &generator);
+    storage::BlockLayout layout = StorageTestUtil::RandomLayoutWithVarlens(common::Constants::MAX_COL, &generator);
     storage::TupleAccessStrategy tested(layout);
     // here we don't need to 0-initialize the block because we only
     // test layout, not the content.
@@ -194,7 +203,8 @@ TEST_F(TupleAccessStrategyTests, Alignment) {
 
     for (uint16_t i = 0; i < layout.NumColumns(); i++) {
       storage::col_id_t col_id(i);
-      StorageTestUtil::CheckAlignment(tested.ColumnStart(raw_block_, col_id), layout.AttrSize(col_id));
+      auto alignment = layout.AttrSize(col_id) > 8 ? 8 : layout.AttrSize(col_id);  // no need to align above 8 bytes
+      StorageTestUtil::CheckAlignment(tested.ColumnStart(raw_block_, col_id), alignment);
       StorageTestUtil::CheckAlignment(tested.ColumnNullBitmap(raw_block_, col_id), 8);
     }
   }
