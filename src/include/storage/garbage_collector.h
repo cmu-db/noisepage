@@ -66,7 +66,8 @@ class GarbageCollector {
    * @param active_txns list of timestamps of running transactions
    * @return true, if the undo record was unlinked
    */
-  bool ProcessUndoRecord(UndoRecord *undo_record, std::vector<transaction::timestamp_t> *active_txns);
+  bool ProcessUndoRecord(UndoRecord *undo_record, std::vector<transaction::timestamp_t> *active_txns,
+      std::unordered_set<TupleSlot> *visited_slots);
 
   /**
    * Delete the slot corresponding to the unlinked undo record if the undo record was a DELETE
@@ -201,7 +202,6 @@ class GarbageCollector {
   // list of varlen entries per undo record which need to be reclaimed
   std::unordered_map<storage::UndoRecord *, std::forward_list<const byte *> > reclaim_varlen_map_;
   // set of tuple slots which have already been visited in this GC run
-  std::unordered_set<TupleSlot> visited_slots_;
 };
 
 }  // namespace terrier::storage

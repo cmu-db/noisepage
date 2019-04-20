@@ -16,8 +16,6 @@
 namespace terrier::storage {
 
 std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
-  // Clear the visited slots
-  visited_slots_.clear();
   // Create the UndoBuffer for this GC run
   delta_record_compaction_buffer_ = new UndoBuffer(txn_manager_->buffer_pool_);
   // The compaction buffer is empty
@@ -103,6 +101,8 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
   // ensures that there is at least one timestamp in the vector (might be the time that the GC requested active_txns)
   TERRIER_ASSERT(!active_txns.empty(), "There should be at least one active txn timestamp for the GC!");
 
+  std::unordered_set<TupleSlot> visited_slots;
+
   // Process every transaction in the unlink queue
   while (!txns_to_unlink_.empty()) {
     txn = txns_to_unlink_.front();
@@ -121,7 +121,7 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
       // with an Interval GC approach
       bool all_unlinked = true;
       for (auto &undo_record : txn->undo_buffer_) {
-        all_unlinked = all_unlinked && ProcessUndoRecord(&undo_record, &active_txns);
+        all_unlinked = all_unlinked && ProcessUndoRecord(&undo_record, &active_txns, &visited_slots);
       }
       if (all_unlinked) {
         // We unlinked all of the UndoRecords for this txn, so we can add it to the deallocation queue
@@ -151,7 +151,7 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
       // with an Interval GC approach
       bool all_unlinked = true;
       for (auto &undo_record : *buf) {
-        all_unlinked = ProcessUndoRecord(&undo_record, &active_txns) && all_unlinked;
+        all_unlinked = ProcessUndoRecord(&undo_record, &active_txns, &visited_slots) && all_unlinked;
       }
       if (all_unlinked) {
         // We unlinked all of the UndoRecords for this compaction buffer, so we can add it to the deallocation queue
@@ -179,13 +179,14 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
 }
 
 bool GarbageCollector::ProcessUndoRecord(UndoRecord *const undo_record,
-                                         std::vector<transaction::timestamp_t> *const active_txns) {
+                                         std::vector<transaction::timestamp_t> *const active_txns,
+                                         std::unordered_set<TupleSlot> *visited_slots) {
   DataTable *table = undo_record->Table();
   // If this UndoRecord has already been processed, we can skip it
   if (undo_record->txnptr_.IsNull()) return true;
   const TupleSlot slot = undo_record->Slot();
   // Process this tuple only
-  if (visited_slots_.insert(slot).second) {
+  if (visited_slots->insert(slot).second) {
     // Perform interval gc for the entire version chain excluding the head of the chain
     ProcessTupleVersionChain(undo_record, active_txns);
     ProcessTupleVersionChainHead(table, slot, active_txns);
