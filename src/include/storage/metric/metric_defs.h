@@ -2,36 +2,26 @@
 
 #include <utility>
 #include <vector>
+#include "common/strong_typedef.h"
 
 namespace terrier::storage::metric {
+
 /**
  * Metric types
  */
 enum class MetricType {
   // Metric type is invalid
-      INVALID = 0,
-  // Metric to count a number
-      COUNTER = 1,
-  // Access information, e.g., # tuples read, inserted, updated, deleted
-      ACCESS = 2,
-  // Life time of a object
-      LIFETIME = 3,
+  INVALID = 0,
   // Statistics for a specific database
-      DATABASE = 4,
+  DATABASE = 1,
   // Statistics for a specific table
-      TABLE = 5,
+  TABLE = 2,
   // Statistics for a specific index
-      INDEX = 6,
-  // Latency of transactions
-      LATENCY = 7,
-  // Timestamp, e.g., creation time of a table/index
-      TEMPORAL = 8,
-  // Statistics for a specific table
-      QUERY = 9,
-  // Statistics for CPU
-      PROCESSOR = 10,
+  INDEX = 3,
+  // Statistics for a transaction
+  TRANSACTION = 4,
   // For testing
-      TEST = 11
+  TEST = 5
 };
 
 /**

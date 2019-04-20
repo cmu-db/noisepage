@@ -1,4 +1,4 @@
-#include "storage/metric/database_metric.h"
+#include "storage/metric/transaction_metric.h"
 #include "catalog/catalog_defs.h"
 #include "storage/metric/thread_level_stats_collector.h"
 #include "transaction/transaction_manager.h"
@@ -6,7 +6,7 @@
 
 namespace terrier::storage::metric {
 
-void DatabaseMetricRawData::UpdateAndPersist(transaction::TransactionManager *const txn_manager) {
+void TransactionMetricRawData::UpdateAndPersist(transaction::TransactionManager *const txn_manager) {
   auto txn = txn_manager->BeginTransaction();
 
   // TODO(Wen) find a way to store collected data
