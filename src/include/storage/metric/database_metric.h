@@ -5,7 +5,7 @@
 #include <utility>
 
 #include "catalog/catalog_defs.h"
-#include "stats/abstract_metric.h"
+#include "storage/metric/abstract_metric.h"
 
 namespace terrier {
 
@@ -41,8 +41,8 @@ namespace terrier {
                 for (auto &entry : other_db_metric->counters_) {
                     auto &this_counter = counters_[entry.first];
                     auto &other_counter = entry.second;
-                    this_counter.commit += other_counter.commit_cnt;
-                    this_counter.abort += other_counter.abort_cnt;
+                    this_counter.commit_cnt += other_counter.commit_cnt;
+                    this_counter.abort_cnt += other_counter.abort_cnt;
                 }
             }
 
