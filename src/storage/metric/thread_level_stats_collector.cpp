@@ -13,7 +13,9 @@ ThreadLevelStatsCollector::CollectorsMap ThreadLevelStatsCollector::collector_ma
 ThreadLevelStatsCollector::ThreadLevelStatsCollector() {
   collector_map_.Insert(std::this_thread::get_id(), this);
   RegisterMetric<DatabaseMetric>({StatsEventType::TXN_BEGIN, StatsEventType::TXN_COMMIT, StatsEventType::TXN_ABORT});
-  RegisterMetric<TransactionMetric>({});
+  RegisterMetric<TransactionMetric>({StatsEventType::TXN_BEGIN, StatsEventType::TXN_COMMIT, StatsEventType::TXN_ABORT,
+                                     StatsEventType::TUPLE_READ, StatsEventType::TUPLE_UPDATE,
+                                     StatsEventType::TUPLE_INSERT, StatsEventType::TUPLE_DELETE});
   RegisterMetric<TestMetric>({StatsEventType::TEST});
 }
 
