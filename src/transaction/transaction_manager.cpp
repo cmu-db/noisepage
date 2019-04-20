@@ -45,13 +45,6 @@ void TransactionManager::LogCommit(TransactionContext *const txn, const timestam
 
 timestamp_t TransactionManager::ReadOnlyCommitCriticalSection(TransactionContext *const txn, const callback_fn callback,
                                                               void *const callback_arg) {
-  // TODO(John):
-  // This constraint is not inherent to the action framework.  If we want to allow read-only transactions to execute
-  // actions at commit, then we need to come to a decision about whether those actions need to be atomic with the
-  // commit timestampt or not.  If they need to be atomic, then we need to divide up the code path to have a conditional
-  // section when we have actions where we grab the commit latch, our commit timestamp, and then execute the actions.
-  TERRIER_ASSERT(txn->commit_actions_.empty(), "Only updating transactions can have deferred actions");
-
   // No records to update. No commit will ever depend on us. We can do all the work outside of the critical section
   const timestamp_t commit_time = time_++;
   // TODO(Tianyu): Notice here that for a read-only transaction, it is necessary to communicate the commit with the
@@ -65,10 +58,6 @@ timestamp_t TransactionManager::UpdatingCommitCriticalSection(TransactionContext
                                                               void *const callback_arg) {
   common::SharedLatch::ScopedExclusiveLatch guard(&commit_latch_);
   const timestamp_t commit_time = time_++;
-  while (!txn->commit_actions_.empty()) {
-    txn->commit_actions_.front()();
-    txn->commit_actions_.pop_front();
-  }
 
   // TODO(Tianyu):
   // WARNING: This operation has to happen in the critical section to make sure that commits appear in serial order
@@ -98,6 +87,11 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
                                        void *callback_arg) {
   const timestamp_t result = txn->undo_buffer_.Empty() ? ReadOnlyCommitCriticalSection(txn, callback, callback_arg)
                                                        : UpdatingCommitCriticalSection(txn, callback, callback_arg);
+   while (!txn->commit_actions_.empty()) {
+    txn->commit_actions_.front()();
+    txn->commit_actions_.pop_front();
+  }
+
   {
     // In a critical section, remove this transaction from the table of running transactions
     common::SpinLatch::ScopedSpinLatch guard(&curr_running_txns_latch_);

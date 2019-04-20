@@ -131,6 +131,7 @@ class TransactionContext {
 
   /**
    * Defers an action to be called if and only if the transaction commits.  Actions executed LIFO.
+   * @warning these actions are run after commit and are not atomic with the commit itself
    * @param a the action to be executed
    */
   void RegisterCommitAction(const Action &a) { commit_actions_.push_front(a); }
