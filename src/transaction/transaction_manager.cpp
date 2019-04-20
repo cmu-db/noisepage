@@ -87,7 +87,7 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
                                        void *callback_arg) {
   const timestamp_t result = txn->undo_buffer_.Empty() ? ReadOnlyCommitCriticalSection(txn, callback, callback_arg)
                                                        : UpdatingCommitCriticalSection(txn, callback, callback_arg);
-   while (!txn->commit_actions_.empty()) {
+  while (!txn->commit_actions_.empty()) {
     txn->commit_actions_.front()();
     txn->commit_actions_.pop_front();
   }

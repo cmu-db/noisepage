@@ -38,8 +38,7 @@ class TransactionContext {
       : start_time_(start),
         txn_id_(txn_id),
         undo_buffer_(buffer_pool),
-        redo_buffer_(log_manager,
-        buffer_pool),
+        redo_buffer_(log_manager, buffer_pool),
         txn_mgr_(transaction_manager) {}
 
   ~TransactionContext() {
