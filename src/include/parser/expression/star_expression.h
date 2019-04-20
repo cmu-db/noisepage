@@ -17,10 +17,25 @@ class StarExpression : public AbstractExpression {
    */
   StarExpression() : AbstractExpression(ExpressionType::STAR, type::TypeId::INVALID, {}) {}
 
-  std::unique_ptr<AbstractExpression> Copy() const override {
+  std::shared_ptr<AbstractExpression> Copy() const override {
     // TODO(Tianyu): This really should be a singleton object
-    return std::make_unique<StarExpression>(*this);
+    return std::make_shared<StarExpression>(*this);
   }
+
+  /**
+   * @return expression serialized to json
+   */
+  nlohmann::json ToJson() const override {
+    nlohmann::json j = AbstractExpression::ToJson();
+    return j;
+  }
+
+  /**
+   * @param j json to deserialize
+   */
+  void FromJson(const nlohmann::json &j) override { AbstractExpression::FromJson(j); }
 };
+
+DEFINE_JSON_DECLARATIONS(StarExpression);
 
 }  // namespace terrier::parser

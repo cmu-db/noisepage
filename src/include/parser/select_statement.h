@@ -4,6 +4,7 @@
 #include <utility>
 #include <vector>
 
+#include "common/json.h"
 #include "common/sql_node_visitor.h"
 #include "parser/sql_statement.h"
 #include "parser/table_ref.h"
@@ -28,6 +29,11 @@ class OrderByDescription {
   OrderByDescription(std::vector<OrderType> types, std::vector<std::shared_ptr<AbstractExpression>> exprs)
       : types_(std::move(types)), exprs_(std::move(exprs)) {}
 
+  /**
+   * Default constructor for deserialization
+   */
+  OrderByDescription() = default;
+
   virtual ~OrderByDescription() = default;
 
   // TODO(WAN): no SQLStatement? maybe a Description base class?
@@ -46,10 +52,36 @@ class OrderByDescription {
    */
   std::vector<std::shared_ptr<AbstractExpression>> GetOrderByExpressions() { return exprs_; }
 
+  /**
+   * @return OrderByDescription serialized to json
+   */
+  nlohmann::json ToJson() const {
+    nlohmann::json j;
+    j["types"] = types_;
+    j["exprs"] = exprs_;
+    return j;
+  }
+
+  /**
+   * @param j json to deserialize
+   */
+  void FromJson(const nlohmann::json &j) {
+    // Deserialize types
+    types_ = j.at("types").get<std::vector<OrderType>>();
+
+    // Deserialize exprs
+    auto expressions = j.at("exprs").get<std::vector<nlohmann::json>>();
+    for (const auto &expr : expressions) {
+      exprs_.push_back(DeserializeExpression(expr));
+    }
+  }
+
  private:
-  const std::vector<OrderType> types_;
-  const std::vector<std::shared_ptr<AbstractExpression>> exprs_;
+  std::vector<OrderType> types_;
+  std::vector<std::shared_ptr<AbstractExpression>> exprs_;
 };
+
+DEFINE_JSON_DECLARATIONS(OrderByDescription);
 
 /**
  * Describes the limit clause in a SELECT statement.
@@ -71,6 +103,11 @@ class LimitDescription {
    */
   LimitDescription(int64_t limit, int64_t offset) : limit_(limit), offset_(offset) {}
 
+  /**
+   * Default constructor for deserialization
+   */
+  LimitDescription() = default;
+
   ~LimitDescription() = default;
 
   // TODO(WAN): not SQL statement?
@@ -89,10 +126,30 @@ class LimitDescription {
    */
   int64_t GetOffset() { return offset_; }
 
+  /**
+   * @return LimitDescription serialized to json
+   */
+  nlohmann::json ToJson() const {
+    nlohmann::json j;
+    j["limit"] = limit_;
+    j["offset"] = offset_;
+    return j;
+  }
+
+  /**
+   * @param j json to deserialize
+   */
+  void FromJson(const nlohmann::json &j) {
+    limit_ = j.at("limit").get<int64_t>();
+    offset_ = j.at("offset").get<int64_t>();
+  }
+
  private:
   int64_t limit_;
   int64_t offset_;
 };
+
+DEFINE_JSON_DECLARATIONS(LimitDescription);
 
 /**
  * Represents the sql "GROUP BY".
@@ -106,6 +163,11 @@ class GroupByDescription {
   GroupByDescription(std::vector<std::shared_ptr<AbstractExpression>> columns,
                      std::shared_ptr<AbstractExpression> having)
       : columns_(std::move(columns)), having_(std::move(having)) {}
+
+  /**
+   * Default constructor for deserialization
+   */
+  GroupByDescription() = default;
 
   // TODO(WAN): not a SQLStatement?
   /**
@@ -124,10 +186,38 @@ class GroupByDescription {
    */
   std::shared_ptr<AbstractExpression> GetHaving() { return having_; }
 
+  /**
+   * @return GroupDescription serialized to json
+   */
+  nlohmann::json ToJson() const {
+    nlohmann::json j;
+    j["columns"] = columns_;
+    j["having"] = having_;
+    return j;
+  }
+
+  /**
+   * @param j json to deserialize
+   */
+  void FromJson(const nlohmann::json &j) {
+    // Deserialize columns
+    auto column_expressions = j.at("columns").get<std::vector<nlohmann::json>>();
+    for (const auto &expr : column_expressions) {
+      columns_.push_back(DeserializeExpression(expr));
+    }
+
+    // Deserialize having
+    if (!j.at("having").is_null()) {
+      having_ = DeserializeExpression(j.at("having"));
+    }
+  }
+
  private:
-  const std::vector<std::shared_ptr<AbstractExpression>> columns_;
-  const std::shared_ptr<AbstractExpression> having_;
+  std::vector<std::shared_ptr<AbstractExpression>> columns_;
+  std::shared_ptr<AbstractExpression> having_;
 };
+
+DEFINE_JSON_DECLARATIONS(GroupByDescription);
 
 /**
  * Represents the sql "SELECT ..."
@@ -161,6 +251,11 @@ class SelectStatement : public SQLStatement {
         union_select_(nullptr) {}
 
   ~SelectStatement() override = default;
+
+  /**
+   * Default constructor for deserialization
+   */
+  SelectStatement() = default;
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
@@ -205,17 +300,28 @@ class SelectStatement : public SQLStatement {
    */
   void SetUnionSelect(std::shared_ptr<SelectStatement> select_stmt) { union_select_ = std::move(select_stmt); }
 
- private:
-  const std::vector<std::shared_ptr<AbstractExpression>> select_;
-  const bool select_distinct_;
-  const std::shared_ptr<TableRef> from_;
-  const std::shared_ptr<AbstractExpression> where_;
-  const std::shared_ptr<GroupByDescription> group_by_;
-  const std::shared_ptr<OrderByDescription> order_by_;
-  const std::shared_ptr<LimitDescription> limit_;
+  /**
+   * @return statement serialized to json
+   */
+  nlohmann::json ToJson() const override;
 
+  /**
+   * @param j json to deserialize
+   */
+  void FromJson(const nlohmann::json &j) override;
+
+ private:
+  std::vector<std::shared_ptr<AbstractExpression>> select_;
+  bool select_distinct_;
+  std::shared_ptr<TableRef> from_;
+  std::shared_ptr<AbstractExpression> where_;
+  std::shared_ptr<GroupByDescription> group_by_;
+  std::shared_ptr<OrderByDescription> order_by_;
+  std::shared_ptr<LimitDescription> limit_;
   std::shared_ptr<SelectStatement> union_select_;
 };
+
+DEFINE_JSON_DECLARATIONS(SelectStatement);
 
 }  // namespace parser
 }  // namespace terrier
