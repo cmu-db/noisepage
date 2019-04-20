@@ -202,6 +202,7 @@ class PACKED ProjectedColumns {
   }
 
   /**
+   * Returns the attribute size for the corresponding column
    * @param col_id the column ID within the projection we want the size for
    * @return the size (in bytes) of the attributes in this column
    */
