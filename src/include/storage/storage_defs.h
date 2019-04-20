@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <functional>
 #include <ostream>
+#include <string_view>  // NOLINT
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -250,6 +251,14 @@ class VarlenEntry {
    * @return pointer to the varlen entry contents.
    */
   const byte *Content() const { return IsInlined() ? prefix_ : content_; }
+
+  /**
+   * @return zero-copy view of the VarlenEntry as an immutable string that allows use with convenient STL functions
+   * @warning It is the programmer's responsibility to ensure that std::string_view does not outlive the VarlenEntry
+   */
+  std::string_view StringView() const {
+    return std::string_view(reinterpret_cast<const char *const>(Content()), Size());
+  }
 
  private:
   int32_t size_;                   // buffer reclaimable => sign bit is 0 or size <= InlineThreshold
