@@ -69,6 +69,16 @@ Transition ParseCommand::Exec(PostgresProtocolInterpreter *interpreter, Postgres
     param_types.push_back(static_cast<PostgresValueType>(oid));
   }
 
+
+  // Benchmark: Special case for no-op benchmark
+  if(query == ";")
+  {
+    connection->statements[stmt_name] = traffic_cop::Statement();
+    out->WriteParseComplete();
+    return Transition::PROCEED;
+  }
+
+
   // TODO(Weichen): Postgres protocol says that if a statement with that name exists, return error
   traffic_cop::Statement stmt = t_cop->Parse(query, param_types);
   connection->statements[stmt_name] = stmt;
@@ -191,6 +201,15 @@ Transition BindCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresP
   // TODO(Weichen): Deal with requested response format. (text/binary)
   // Now they are all text.
 
+
+  // Benchmark: Special case for no-op benchmark
+  if(statement->sqlite3_stmt_ == nullptr)
+  {
+    connection->portals[portal_name] = traffic_cop::Portal();
+    out->WriteBindComplete();
+    return Transition::PROCEED;
+  }
+
   traffic_cop::Portal portal = t_cop->Bind(*statement, params);
   connection->portals[portal_name] = portal;
 
@@ -215,7 +234,8 @@ Transition DescribeCommand::Exec(PostgresProtocolInterpreter *interpreter, Postg
     traffic_cop::Statement &statement = p_statement->second;
     out->WriteParameterDescription(statement.param_types_);
 
-    column_names = t_cop->DescribeColumns(statement);
+    if(statement.sqlite3_stmt_ != nullptr)
+      column_names = t_cop->DescribeColumns(statement);
 
   } else if (type == DescribeCommandObjectType::PORTAL) {
     auto p_portal = connection->portals.find(name);
@@ -224,8 +244,8 @@ Transition DescribeCommand::Exec(PostgresProtocolInterpreter *interpreter, Postg
       LogAndWriteErrorMsg(error_msg, out);
       return Transition::PROCEED;
     }
-
-    column_names = t_cop->DescribeColumns(p_portal->second);
+    if(p_portal->second.sqlite_stmt_ != nullptr)
+      column_names = t_cop->DescribeColumns(p_portal->second);
 
   } else {
     std::string error_msg = fmt::format("Wrong type: {0}, should be either 'S' or 'P'.", static_cast<char>(type));
@@ -253,6 +273,16 @@ Transition ExecuteCommand::Exec(PostgresProtocolInterpreter *interpreter, Postgr
     out->WriteSingleErrorResponse(NetworkMessageType::HUMAN_READABLE_ERROR, error_msg);
     return Transition::PROCEED;
   }
+
+
+  // Benchmark: Special case for no-op benchmark
+  if(p_portal->second.sqlite_stmt_ == nullptr)
+  {
+    //out->WriteEmptyQueryResponse();
+    out->WriteCommandComplete("");
+    return Transition::PROCEED;
+  }
+
 
   traffic_cop::ResultSet result = t_cop->Execute(&(p_portal->second));
   for (const auto &row : result.rows_) out->WriteDataRow(row);
