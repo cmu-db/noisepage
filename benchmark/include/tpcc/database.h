@@ -14,8 +14,6 @@ namespace terrier::catalog {
 class Schema;
 }
 
-// TODO(Matt): it seems many fields can be smaller than INTEGER
-
 namespace terrier::tpcc {
 
 class Database {

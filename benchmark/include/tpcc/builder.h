@@ -16,15 +16,15 @@ class Builder {
   explicit Builder(storage::BlockStore *const store) : store_(store), oid_counter_(0) {}
   Database *Build() {
     // generate all of the table schemas
-    auto item_schema = Schemas::BuildItemTupleSchema(&oid_counter_);
-    auto warehouse_schema = Schemas::BuildWarehouseTupleSchema(&oid_counter_);
-    auto stock_schema = Schemas::BuildStockTupleSchema(&oid_counter_);
-    auto district_schema = Schemas::BuildDistrictTupleSchema(&oid_counter_);
-    auto customer_schema = Schemas::BuildCustomerTupleSchema(&oid_counter_);
-    auto history_schema = Schemas::BuildHistoryTupleSchema(&oid_counter_);
-    auto new_order_schema = Schemas::BuildNewOrderTupleSchema(&oid_counter_);
-    auto order_schema = Schemas::BuildOrderTupleSchema(&oid_counter_);
-    auto order_line_schema = Schemas::BuildOrderLineTupleSchema(&oid_counter_);
+    auto item_schema = Schemas::BuildItemTableSchema(&oid_counter_);
+    auto warehouse_schema = Schemas::BuildWarehouseTableSchema(&oid_counter_);
+    auto stock_schema = Schemas::BuildStockTableSchema(&oid_counter_);
+    auto district_schema = Schemas::BuildDistrictTableSchema(&oid_counter_);
+    auto customer_schema = Schemas::BuildCustomerTableSchema(&oid_counter_);
+    auto history_schema = Schemas::BuildHistoryTableSchema(&oid_counter_);
+    auto new_order_schema = Schemas::BuildNewOrderTableSchema(&oid_counter_);
+    auto order_schema = Schemas::BuildOrderTableSchema(&oid_counter_);
+    auto order_line_schema = Schemas::BuildOrderLineTableSchema(&oid_counter_);
 
     // instantiate all of the tables
     auto *const item_table = new storage::SqlTable(
@@ -99,28 +99,29 @@ class Builder {
                         order_line_schema.GetColumn(4).GetType() == stock_schema.GetColumn(0).GetType()),
                    "Invalid schema configurations for I_ID.");
 
-    // generate all of the index key schemas
-    auto item_key_schema = Schemas::BuildItemKeySchema(item_schema, &oid_counter_);
-    auto warehouse_key_schema = Schemas::BuildWarehouseKeySchema(warehouse_schema, &oid_counter_);
-    auto stock_key_schema = Schemas::BuildStockKeySchema(stock_schema, &oid_counter_);
-    auto district_key_schema = Schemas::BuildDistrictKeySchema(district_schema, &oid_counter_);
-    auto customer_key_schema = Schemas::BuildCustomerKeySchema(customer_schema, &oid_counter_);
-    auto customer_name_key_schema = Schemas::BuildCustomerNameKeySchema(customer_schema, &oid_counter_);
-    auto new_order_key_schema = Schemas::BuildNewOrderKeySchema(new_order_schema, &oid_counter_);
-    auto order_key_schema = Schemas::BuildOrderKeySchema(order_schema, &oid_counter_);
-    auto order_secondary_key_schema = Schemas::BuildOrderSecondaryKeySchema(order_schema, &oid_counter_);
-    auto order_line_key_schema = Schemas::BuildOrderLineKeySchema(order_line_schema, &oid_counter_);
+    // generate all of the index schemas
+    auto warehouse_primary_index_schema = Schemas::BuildWarehousePrimaryIndexSchema(warehouse_schema, &oid_counter_);
+    auto district_primary_index_schema = Schemas::BuildDistrictPrimaryIndexSchema(district_schema, &oid_counter_);
+    auto customer_primary_index_schema = Schemas::BuildCustomerPrimaryIndexSchema(customer_schema, &oid_counter_);
+    auto customer_secondary_index_schema = Schemas::BuildCustomerSecondaryIndexSchema(customer_schema, &oid_counter_);
+    auto new_order_primary_index_schema = Schemas::BuildNewOrderPrimaryIndexSchema(new_order_schema, &oid_counter_);
+    auto order_primary_index_schema = Schemas::BuildOrderPrimaryIndexSchema(order_schema, &oid_counter_);
+    auto order_secondary_index_schema = Schemas::BuildOrderSecondaryIndexSchema(order_schema, &oid_counter_);
+    auto order_line_primary_index_schema = Schemas::BuildOrderLinePrimaryIndexSchema(order_line_schema, &oid_counter_);
+    auto item_primary_index_schema = Schemas::BuildItemPrimaryIndexSchema(item_schema, &oid_counter_);
+    auto stock_primary_index_schema = Schemas::BuildStockPrimaryIndexSchema(stock_schema, &oid_counter_);
 
-    auto *const item_index = BuildPrimaryIndex(item_key_schema);
-    auto *const warehouse_index = BuildPrimaryIndex(warehouse_key_schema);
-    auto *const stock_index = BuildPrimaryIndex(stock_key_schema);
-    auto *const district_index = BuildPrimaryIndex(district_key_schema);
-    auto *const customer_index = BuildPrimaryIndex(customer_key_schema);
-    auto *const customer_name_index = BuildSecondaryIndex(customer_name_key_schema);
-    auto *const new_order_index = BuildPrimaryIndex(new_order_key_schema);
-    auto *const order_index = BuildPrimaryIndex(order_key_schema);
-    auto *const order_secondary_index = BuildSecondaryIndex(order_secondary_key_schema);
-    auto *const order_line_index = BuildPrimaryIndex(order_line_key_schema);
+    // instantiate all of the indexes
+    auto *const warehouse_index = BuildPrimaryIndex(warehouse_primary_index_schema);
+    auto *const district_index = BuildPrimaryIndex(district_primary_index_schema);
+    auto *const customer_index = BuildPrimaryIndex(customer_primary_index_schema);
+    auto *const customer_secondary_index = BuildSecondaryIndex(customer_secondary_index_schema);
+    auto *const new_order_index = BuildPrimaryIndex(new_order_primary_index_schema);
+    auto *const order_index = BuildPrimaryIndex(order_primary_index_schema);
+    auto *const order_secondary_index = BuildSecondaryIndex(order_secondary_index_schema);
+    auto *const order_line_index = BuildPrimaryIndex(order_line_primary_index_schema);
+    auto *const item_index = BuildPrimaryIndex(item_primary_index_schema);
+    auto *const stock_index = BuildPrimaryIndex(stock_primary_index_schema);
 
     return new Database(item_schema, warehouse_schema, stock_schema, district_schema, customer_schema, history_schema,
                         new_order_schema, order_schema, order_line_schema,
@@ -128,12 +129,14 @@ class Builder {
                         item_table, warehouse_table, stock_table, district_table, customer_table, history_table,
                         new_order_table, order_table, order_line_table,
 
-                        item_key_schema, warehouse_key_schema, stock_key_schema, district_key_schema,
-                        customer_key_schema, customer_name_key_schema, new_order_key_schema, order_key_schema,
-                        order_secondary_key_schema, order_line_key_schema,
+                        item_primary_index_schema, warehouse_primary_index_schema, stock_primary_index_schema,
+                        district_primary_index_schema, customer_primary_index_schema, customer_secondary_index_schema,
+                        new_order_primary_index_schema, order_primary_index_schema, order_secondary_index_schema,
+                        order_line_primary_index_schema,
 
-                        item_index, warehouse_index, stock_index, district_index, customer_index, customer_name_index,
-                        new_order_index, order_index, order_secondary_index, order_line_index);
+                        item_index, warehouse_index, stock_index, district_index, customer_index,
+                        customer_secondary_index, new_order_index, order_index, order_secondary_index,
+                        order_line_index);
   }
 
  private:
@@ -153,6 +156,6 @@ class Builder {
   }
 
   storage::BlockStore *const store_;
-  uint64_t oid_counter_;
+  uint32_t oid_counter_;
 };
 }  // namespace terrier::tpcc
