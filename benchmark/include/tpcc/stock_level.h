@@ -37,25 +37,25 @@ class StockLevel {
       : district_select_pr_initializer(
             db->district_table_->InitializerForProjectedRow({db->district_schema_.GetColumn(10).GetOid()}).first),
         d_id_key_pr_offset(static_cast<uint8_t>(
-            db->district_index_->GetKeyOidToOffsetMap().at(db->district_key_schema_.at(1).GetOid()))),
+            db->district_primary_index_->GetKeyOidToOffsetMap().at(db->district_primary_index_schema_.at(1).GetOid()))),
         d_w_id_key_pr_offset(static_cast<uint8_t>(
-            db->district_index_->GetKeyOidToOffsetMap().at(db->district_key_schema_.at(0).GetOid()))),
+            db->district_primary_index_->GetKeyOidToOffsetMap().at(db->district_primary_index_schema_.at(0).GetOid()))),
         order_line_select_pr_initializer(
             db->order_line_table_->InitializerForProjectedRow({db->order_line_schema_.GetColumn(4).GetOid()}).first),
-        ol_o_id_key_pr_offset(static_cast<uint8_t>(
-            db->order_line_index_->GetKeyOidToOffsetMap().at(db->order_line_key_schema_.at(2).GetOid()))),
-        ol_d_id_key_pr_offset(static_cast<uint8_t>(
-            db->order_line_index_->GetKeyOidToOffsetMap().at(db->order_line_key_schema_.at(1).GetOid()))),
-        ol_w_id_key_pr_offset(static_cast<uint8_t>(
-            db->order_line_index_->GetKeyOidToOffsetMap().at(db->order_line_key_schema_.at(0).GetOid()))),
-        ol_number_key_pr_offset(static_cast<uint8_t>(
-            db->order_line_index_->GetKeyOidToOffsetMap().at(db->order_line_key_schema_.at(3).GetOid()))),
+        ol_o_id_key_pr_offset(static_cast<uint8_t>(db->order_line_primary_index_->GetKeyOidToOffsetMap().at(
+            db->order_line_primary_index_schema_.at(2).GetOid()))),
+        ol_d_id_key_pr_offset(static_cast<uint8_t>(db->order_line_primary_index_->GetKeyOidToOffsetMap().at(
+            db->order_line_primary_index_schema_.at(1).GetOid()))),
+        ol_w_id_key_pr_offset(static_cast<uint8_t>(db->order_line_primary_index_->GetKeyOidToOffsetMap().at(
+            db->order_line_primary_index_schema_.at(0).GetOid()))),
+        ol_number_key_pr_offset(static_cast<uint8_t>(db->order_line_primary_index_->GetKeyOidToOffsetMap().at(
+            db->order_line_primary_index_schema_.at(3).GetOid()))),
         stock_select_pr_initializer(
             db->stock_table_->InitializerForProjectedRow({db->stock_schema_.GetColumn(2).GetOid()}).first),
-        s_w_id_key_pr_offset(
-            static_cast<uint8_t>(db->stock_index_->GetKeyOidToOffsetMap().at(db->stock_key_schema_.at(0).GetOid()))),
-        s_i_id_key_pr_offset(
-            static_cast<uint8_t>(db->stock_index_->GetKeyOidToOffsetMap().at(db->stock_key_schema_.at(1).GetOid()))) {}
+        s_w_id_key_pr_offset(static_cast<uint8_t>(
+            db->stock_primary_index_->GetKeyOidToOffsetMap().at(db->stock_primary_index_schema_.at(0).GetOid()))),
+        s_i_id_key_pr_offset(static_cast<uint8_t>(
+            db->stock_primary_index_->GetKeyOidToOffsetMap().at(db->stock_primary_index_schema_.at(1).GetOid()))) {}
 
   // 2.4.2
   template <class Random>
@@ -68,14 +68,14 @@ class StockLevel {
     std::vector<storage::TupleSlot> index_scan_results;
 
     // Look up D_W_ID and D_ID, retrieve D_NEXT_O_ID
-    const auto district_key_pr_initializer = db->district_index_->GetProjectedRowInitializer();
+    const auto district_key_pr_initializer = db->district_primary_index_->GetProjectedRowInitializer();
     auto *const district_key = district_key_pr_initializer.InitializeRow(worker->district_key_buffer);
 
     *reinterpret_cast<int8_t *>(district_key->AccessForceNotNull(d_id_key_pr_offset)) = args.d_id;
     *reinterpret_cast<int8_t *>(district_key->AccessForceNotNull(d_w_id_key_pr_offset)) = args.w_id;
 
     index_scan_results.clear();
-    db->district_index_->ScanKey(*district_key, &index_scan_results);
+    db->district_primary_index_->ScanKey(*district_key, &index_scan_results);
     TERRIER_ASSERT(index_scan_results.size() == 1, "District index lookup failed.");
 
     auto *district_select_tuple = district_select_pr_initializer.InitializeRow(worker->district_tuple_buffer);
@@ -86,7 +86,7 @@ class StockLevel {
     const auto d_next_o_id = *reinterpret_cast<int32_t *>(district_select_tuple->AccessWithNullCheck(0));
 
     // Select all matching OL_W_ID and OL_D_ID and OL_O_ID in range [D_NEXT_O_ID - 20, D_NEXT_OID)
-    const auto order_line_key_pr_initializer = db->order_line_index_->GetProjectedRowInitializer();
+    const auto order_line_key_pr_initializer = db->order_line_primary_index_->GetProjectedRowInitializer();
     auto *const order_line_key_lo = order_line_key_pr_initializer.InitializeRow(worker->order_line_key_buffer);
     auto *const order_line_key_hi = order_line_key_pr_initializer.InitializeRow(worker->order_line_tuple_buffer);
 
@@ -101,7 +101,7 @@ class StockLevel {
     *reinterpret_cast<int8_t *>(order_line_key_hi->AccessForceNotNull(ol_number_key_pr_offset)) = 15;  // max OL_NUMBER
 
     index_scan_results.clear();
-    db->order_line_index_->Scan(*order_line_key_lo, *order_line_key_hi, &index_scan_results);
+    db->order_line_primary_index_->Scan(*order_line_key_lo, *order_line_key_hi, &index_scan_results);
     TERRIER_ASSERT(index_scan_results.size() >= 100 && index_scan_results.size() <= 300,
                    "ol_number can be between 5 and 15, and we're looking up 20 previous orders.");
 
@@ -116,14 +116,14 @@ class StockLevel {
       TERRIER_ASSERT(select_result, "Order line index contained this.");
       const auto ol_i_id = *reinterpret_cast<int32_t *>(order_line_select_tuple->AccessForceNotNull(0));
 
-      const auto stock_key_pr_initializer = db->stock_index_->GetProjectedRowInitializer();
+      const auto stock_key_pr_initializer = db->stock_primary_index_->GetProjectedRowInitializer();
       auto *const stock_key = stock_key_pr_initializer.InitializeRow(worker->stock_key_buffer);
       *reinterpret_cast<int8_t *>(stock_key->AccessForceNotNull(s_w_id_key_pr_offset)) = args.w_id;
       *reinterpret_cast<int32_t *>(stock_key->AccessForceNotNull(s_i_id_key_pr_offset)) = ol_i_id;
 
       std::vector<storage::TupleSlot> stock_index_scan_results;
       stock_index_scan_results.clear();
-      db->stock_index_->ScanKey(*stock_key, &stock_index_scan_results);
+      db->stock_primary_index_->ScanKey(*stock_key, &stock_index_scan_results);
       TERRIER_ASSERT(stock_index_scan_results.size() == 1, "Couldn't find a matching stock item.");
 
       auto *const stock_select_tuple = stock_select_pr_initializer.InitializeRow(worker->stock_tuple_buffer);

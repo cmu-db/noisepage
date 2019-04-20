@@ -34,27 +34,27 @@ struct Worker {
         order_line_tuple_buffer(common::AllocationUtil::AllocateAligned(
             db->order_line_table_->InitializerForProjectedRow(Util::AllColOidsForSchema(db->order_line_schema_))
                 .first.ProjectedRowSize())),
-        item_key_buffer(
-            common::AllocationUtil::AllocateAligned(db->item_index_->GetProjectedRowInitializer().ProjectedRowSize())),
+        item_key_buffer(common::AllocationUtil::AllocateAligned(
+            db->item_primary_index_->GetProjectedRowInitializer().ProjectedRowSize())),
         warehouse_key_buffer(common::AllocationUtil::AllocateAligned(
-            db->warehouse_index_->GetProjectedRowInitializer().ProjectedRowSize())),
-        stock_key_buffer(
-            common::AllocationUtil::AllocateAligned(db->stock_index_->GetProjectedRowInitializer().ProjectedRowSize())),
+            db->warehouse_primary_index_->GetProjectedRowInitializer().ProjectedRowSize())),
+        stock_key_buffer(common::AllocationUtil::AllocateAligned(
+            db->stock_primary_index_->GetProjectedRowInitializer().ProjectedRowSize())),
         district_key_buffer(common::AllocationUtil::AllocateAligned(
-            db->district_index_->GetProjectedRowInitializer().ProjectedRowSize())),
+            db->district_primary_index_->GetProjectedRowInitializer().ProjectedRowSize())),
         customer_key_buffer(common::AllocationUtil::AllocateAligned(
-            db->customer_index_->GetProjectedRowInitializer().ProjectedRowSize())),
+            db->customer_primary_index_->GetProjectedRowInitializer().ProjectedRowSize())),
         customer_name_key_buffer(common::AllocationUtil::AllocateAligned(
-            db->customer_name_index_->GetProjectedRowInitializer().ProjectedRowSize())),
+            db->customer_secondary_index_->GetProjectedRowInitializer().ProjectedRowSize())),
         customer_name_varlen_buffer(common::AllocationUtil::AllocateAligned(16)),
-        order_key_buffer(
-            common::AllocationUtil::AllocateAligned(db->order_index_->GetProjectedRowInitializer().ProjectedRowSize())),
+        order_key_buffer(common::AllocationUtil::AllocateAligned(
+            db->order_primary_index_->GetProjectedRowInitializer().ProjectedRowSize())),
         order_secondary_key_buffer(common::AllocationUtil::AllocateAligned(
             db->order_secondary_index_->GetProjectedRowInitializer().ProjectedRowSize())),
         new_order_key_buffer(common::AllocationUtil::AllocateAligned(
-            db->new_order_index_->GetProjectedRowInitializer().ProjectedRowSize())),
+            db->new_order_primary_index_->GetProjectedRowInitializer().ProjectedRowSize())),
         order_line_key_buffer(common::AllocationUtil::AllocateAligned(
-            db->order_line_index_->GetProjectedRowInitializer().ProjectedRowSize())) {}
+            db->order_line_primary_index_->GetProjectedRowInitializer().ProjectedRowSize())) {}
 
   ~Worker() {
     delete[] item_tuple_buffer;

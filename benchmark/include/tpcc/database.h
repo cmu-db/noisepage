@@ -29,16 +29,16 @@ class Database {
     delete order_table_;
     delete order_line_table_;
 
-    delete item_index_;
-    delete warehouse_index_;
-    delete stock_index_;
-    delete district_index_;
-    delete customer_index_;
-    delete customer_name_index_;
-    delete new_order_index_;
-    delete order_index_;
+    delete item_primary_index_;
+    delete warehouse_primary_index_;
+    delete stock_primary_index_;
+    delete district_primary_index_;
+    delete customer_primary_index_;
+    delete customer_secondary_index_;
+    delete new_order_primary_index_;
+    delete order_primary_index_;
     delete order_secondary_index_;
-    delete order_line_index_;
+    delete order_line_primary_index_;
   }
 
   const catalog::Schema item_schema_;
@@ -61,27 +61,27 @@ class Database {
   storage::SqlTable *const order_table_;
   storage::SqlTable *const order_line_table_;
 
-  const storage::index::IndexKeySchema item_key_schema_;
-  const storage::index::IndexKeySchema warehouse_key_schema_;
-  const storage::index::IndexKeySchema stock_key_schema_;
-  const storage::index::IndexKeySchema district_key_schema_;
-  const storage::index::IndexKeySchema customer_key_schema_;
-  const storage::index::IndexKeySchema customer_name_key_schema_;
-  const storage::index::IndexKeySchema new_order_key_schema_;
-  const storage::index::IndexKeySchema order_key_schema_;
-  const storage::index::IndexKeySchema order_secondary_key_schema_;
-  const storage::index::IndexKeySchema order_line_key_schema_;
+  const storage::index::IndexKeySchema item_primary_index_schema_;
+  const storage::index::IndexKeySchema warehouse_primary_index_schema_;
+  const storage::index::IndexKeySchema stock_primary_index_schema_;
+  const storage::index::IndexKeySchema district_primary_index_schema_;
+  const storage::index::IndexKeySchema customer_primary_index_schema_;
+  const storage::index::IndexKeySchema customer_secondary_index_schema_;
+  const storage::index::IndexKeySchema new_order_primary_index_schema_;
+  const storage::index::IndexKeySchema order_primary_index_schema_;
+  const storage::index::IndexKeySchema order_secondary_index_schema_;
+  const storage::index::IndexKeySchema order_line_primary_index_schema_;
 
-  storage::index::Index *const item_index_;
-  storage::index::Index *const warehouse_index_;
-  storage::index::Index *const stock_index_;
-  storage::index::Index *const district_index_;
-  storage::index::Index *const customer_index_;
-  storage::index::Index *const customer_name_index_;
-  storage::index::Index *const new_order_index_;
-  storage::index::Index *const order_index_;
+  storage::index::Index *const item_primary_index_;
+  storage::index::Index *const warehouse_primary_index_;
+  storage::index::Index *const stock_primary_index_;
+  storage::index::Index *const district_primary_index_;
+  storage::index::Index *const customer_primary_index_;
+  storage::index::Index *const customer_secondary_index_;
+  storage::index::Index *const new_order_primary_index_;
+  storage::index::Index *const order_primary_index_;
   storage::index::Index *const order_secondary_index_;
-  storage::index::Index *const order_line_index_;
+  storage::index::Index *const order_line_primary_index_;
 
  private:
   friend class Builder;
@@ -94,12 +94,16 @@ class Database {
            storage::SqlTable *const district, storage::SqlTable *const customer, storage::SqlTable *const history,
            storage::SqlTable *const new_order, storage::SqlTable *const order, storage::SqlTable *const order_line,
 
-           storage::index::IndexKeySchema item_key_schema, storage::index::IndexKeySchema warehouse_key_schema,
-           storage::index::IndexKeySchema stock_key_schema, storage::index::IndexKeySchema district_key_schema,
-           storage::index::IndexKeySchema customer_key_schema, storage::index::IndexKeySchema customer_name_key_schema,
-           storage::index::IndexKeySchema new_order_key_schema, storage::index::IndexKeySchema order_key_schema,
-           storage::index::IndexKeySchema order_secondary_key_schema,
-           storage::index::IndexKeySchema order_line_key_schema,
+           storage::index::IndexKeySchema item_primary_index_schema,
+           storage::index::IndexKeySchema warehouse_primary_index_schema,
+           storage::index::IndexKeySchema stock_primary_index_schema,
+           storage::index::IndexKeySchema district_primary_index_schema,
+           storage::index::IndexKeySchema customer_primary_index_schema,
+           storage::index::IndexKeySchema customer_secondary_index_schema,
+           storage::index::IndexKeySchema new_order_primary_index_schema,
+           storage::index::IndexKeySchema order_primary_index_schema,
+           storage::index::IndexKeySchema order_secondary_index_schema,
+           storage::index::IndexKeySchema order_line_primary_index_schema,
 
            storage::index::Index *const item_index, storage::index::Index *const warehouse_index,
            storage::index::Index *const stock_index, storage::index::Index *const district_index,
@@ -124,26 +128,26 @@ class Database {
         new_order_table_(new_order),
         order_table_(order),
         order_line_table_(order_line),
-        item_key_schema_(std::move(item_key_schema)),
-        warehouse_key_schema_(std::move(warehouse_key_schema)),
-        stock_key_schema_(std::move(stock_key_schema)),
-        district_key_schema_(std::move(district_key_schema)),
-        customer_key_schema_(std::move(customer_key_schema)),
-        customer_name_key_schema_(std::move(customer_name_key_schema)),
-        new_order_key_schema_(std::move(new_order_key_schema)),
-        order_key_schema_(std::move(order_key_schema)),
-        order_secondary_key_schema_(std::move(order_secondary_key_schema)),
-        order_line_key_schema_(std::move(order_line_key_schema)),
-        item_index_(item_index),
-        warehouse_index_(warehouse_index),
-        stock_index_(stock_index),
-        district_index_(district_index),
-        customer_index_(customer_index),
-        customer_name_index_(customer_name_index),
-        new_order_index_(new_order_index),
-        order_index_(order_index),
+        item_primary_index_schema_(std::move(item_primary_index_schema)),
+        warehouse_primary_index_schema_(std::move(warehouse_primary_index_schema)),
+        stock_primary_index_schema_(std::move(stock_primary_index_schema)),
+        district_primary_index_schema_(std::move(district_primary_index_schema)),
+        customer_primary_index_schema_(std::move(customer_primary_index_schema)),
+        customer_secondary_index_schema_(std::move(customer_secondary_index_schema)),
+        new_order_primary_index_schema_(std::move(new_order_primary_index_schema)),
+        order_primary_index_schema_(std::move(order_primary_index_schema)),
+        order_secondary_index_schema_(std::move(order_secondary_index_schema)),
+        order_line_primary_index_schema_(std::move(order_line_primary_index_schema)),
+        item_primary_index_(item_index),
+        warehouse_primary_index_(warehouse_index),
+        stock_primary_index_(stock_index),
+        district_primary_index_(district_index),
+        customer_primary_index_(customer_index),
+        customer_secondary_index_(customer_name_index),
+        new_order_primary_index_(new_order_index),
+        order_primary_index_(order_index),
         order_secondary_index_(order_secondary_index),
-        order_line_index_(order_line_index) {}
+        order_line_primary_index_(order_line_index) {}
 };
 
 }  // namespace terrier::tpcc

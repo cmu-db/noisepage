@@ -11,6 +11,9 @@
 
 namespace terrier::tpcc {
 
+/**
+ * Builds all of the tables and indexes for TPCC, and returns them in a Database object
+ */
 class Builder {
  public:
   explicit Builder(storage::BlockStore *const store) : store_(store), oid_counter_(0) {}

@@ -62,17 +62,17 @@ class OrderStatus {
  public:
   explicit OrderStatus(const Database *const db)
       : c_id_key_pr_offset(static_cast<uint8_t>(
-            db->customer_index_->GetKeyOidToOffsetMap().at(db->customer_key_schema_.at(2).GetOid()))),
+            db->customer_primary_index_->GetKeyOidToOffsetMap().at(db->customer_primary_index_schema_.at(2).GetOid()))),
         c_d_id_key_pr_offset(static_cast<uint8_t>(
-            db->customer_index_->GetKeyOidToOffsetMap().at(db->customer_key_schema_.at(1).GetOid()))),
+            db->customer_primary_index_->GetKeyOidToOffsetMap().at(db->customer_primary_index_schema_.at(1).GetOid()))),
         c_w_id_key_pr_offset(static_cast<uint8_t>(
-            db->customer_index_->GetKeyOidToOffsetMap().at(db->customer_key_schema_.at(0).GetOid()))),
-        c_last_name_key_pr_offset(static_cast<uint8_t>(
-            db->customer_name_index_->GetKeyOidToOffsetMap().at(db->customer_name_key_schema_.at(2).GetOid()))),
-        c_d_id_name_key_pr_offset(static_cast<uint8_t>(
-            db->customer_name_index_->GetKeyOidToOffsetMap().at(db->customer_name_key_schema_.at(1).GetOid()))),
-        c_w_id_name_key_pr_offset(static_cast<uint8_t>(
-            db->customer_name_index_->GetKeyOidToOffsetMap().at(db->customer_name_key_schema_.at(0).GetOid()))),
+            db->customer_primary_index_->GetKeyOidToOffsetMap().at(db->customer_primary_index_schema_.at(0).GetOid()))),
+        c_last_name_key_pr_offset(static_cast<uint8_t>(db->customer_secondary_index_->GetKeyOidToOffsetMap().at(
+            db->customer_secondary_index_schema_.at(2).GetOid()))),
+        c_d_id_name_key_pr_offset(static_cast<uint8_t>(db->customer_secondary_index_->GetKeyOidToOffsetMap().at(
+            db->customer_secondary_index_schema_.at(1).GetOid()))),
+        c_w_id_name_key_pr_offset(static_cast<uint8_t>(db->customer_secondary_index_->GetKeyOidToOffsetMap().at(
+            db->customer_secondary_index_schema_.at(0).GetOid()))),
 
         c_id_oid(db->customer_schema_.GetColumn(0).GetOid()),
         c_balance_oid(db->customer_schema_.GetColumn(16).GetOid()),
@@ -96,13 +96,13 @@ class OrderStatus {
         c_middle_select_pr_offset(static_cast<uint8_t>(customer_select_pr_map.at(c_middle_oid))),
         c_last_select_pr_offset(static_cast<uint8_t>(customer_select_pr_map.at(c_last_oid))),
         o_id_secondary_key_pr_offset(static_cast<uint8_t>(
-            db->order_secondary_index_->GetKeyOidToOffsetMap().at(db->order_secondary_key_schema_.at(3).GetOid()))),
+            db->order_secondary_index_->GetKeyOidToOffsetMap().at(db->order_secondary_index_schema_.at(3).GetOid()))),
         o_d_id_secondary_key_pr_offset(static_cast<uint8_t>(
-            db->order_secondary_index_->GetKeyOidToOffsetMap().at(db->order_secondary_key_schema_.at(1).GetOid()))),
+            db->order_secondary_index_->GetKeyOidToOffsetMap().at(db->order_secondary_index_schema_.at(1).GetOid()))),
         o_w_id_secondary_key_pr_offset(static_cast<uint8_t>(
-            db->order_secondary_index_->GetKeyOidToOffsetMap().at(db->order_secondary_key_schema_.at(0).GetOid()))),
+            db->order_secondary_index_->GetKeyOidToOffsetMap().at(db->order_secondary_index_schema_.at(0).GetOid()))),
         o_c_id_secondary_key_pr_offset(static_cast<uint8_t>(
-            db->order_secondary_index_->GetKeyOidToOffsetMap().at(db->order_secondary_key_schema_.at(2).GetOid()))),
+            db->order_secondary_index_->GetKeyOidToOffsetMap().at(db->order_secondary_index_schema_.at(2).GetOid()))),
         o_id_oid(db->order_schema_.GetColumn(0).GetOid()),
         o_entry_d_oid(db->order_schema_.GetColumn(4).GetOid()),
         o_carrier_id_oid(db->order_schema_.GetColumn(5).GetOid()),
@@ -111,14 +111,14 @@ class OrderStatus {
         order_select_pr_map(
             db->order_table_->InitializerForProjectedRow({o_id_oid, o_entry_d_oid, o_carrier_id_oid}).second),
         o_id_select_pr_offset(static_cast<uint8_t>(order_select_pr_map.at(o_id_oid))),
-        ol_o_id_key_pr_offset(static_cast<uint8_t>(
-            db->order_line_index_->GetKeyOidToOffsetMap().at(db->order_line_key_schema_.at(2).GetOid()))),
-        ol_d_id_key_pr_offset(static_cast<uint8_t>(
-            db->order_line_index_->GetKeyOidToOffsetMap().at(db->order_line_key_schema_.at(1).GetOid()))),
-        ol_w_id_key_pr_offset(static_cast<uint8_t>(
-            db->order_line_index_->GetKeyOidToOffsetMap().at(db->order_line_key_schema_.at(0).GetOid()))),
-        ol_number_key_pr_offset(static_cast<uint8_t>(
-            db->order_line_index_->GetKeyOidToOffsetMap().at(db->order_line_key_schema_.at(3).GetOid()))),
+        ol_o_id_key_pr_offset(static_cast<uint8_t>(db->order_line_primary_index_->GetKeyOidToOffsetMap().at(
+            db->order_line_primary_index_schema_.at(2).GetOid()))),
+        ol_d_id_key_pr_offset(static_cast<uint8_t>(db->order_line_primary_index_->GetKeyOidToOffsetMap().at(
+            db->order_line_primary_index_schema_.at(1).GetOid()))),
+        ol_w_id_key_pr_offset(static_cast<uint8_t>(db->order_line_primary_index_->GetKeyOidToOffsetMap().at(
+            db->order_line_primary_index_schema_.at(0).GetOid()))),
+        ol_number_key_pr_offset(static_cast<uint8_t>(db->order_line_primary_index_->GetKeyOidToOffsetMap().at(
+            db->order_line_primary_index_schema_.at(3).GetOid()))),
 
         ol_i_id_oid(db->order_line_schema_.GetColumn(4).GetOid()),
         ol_supply_w_id_oid(db->order_line_schema_.GetColumn(5).GetOid()),
@@ -145,7 +145,7 @@ class OrderStatus {
     std::vector<storage::TupleSlot> index_scan_results;
     if (!args.use_c_last) {
       // Look up C_ID, D_ID, W_ID in index
-      const auto customer_key_pr_initializer = db->customer_index_->GetProjectedRowInitializer();
+      const auto customer_key_pr_initializer = db->customer_primary_index_->GetProjectedRowInitializer();
       auto *const customer_key = customer_key_pr_initializer.InitializeRow(worker->customer_key_buffer);
 
       *reinterpret_cast<int32_t *>(customer_key->AccessForceNotNull(c_id_key_pr_offset)) = args.c_id;
@@ -153,12 +153,12 @@ class OrderStatus {
       *reinterpret_cast<int8_t *>(customer_key->AccessForceNotNull(c_w_id_key_pr_offset)) = args.w_id;
 
       index_scan_results.clear();
-      db->customer_index_->ScanKey(*customer_key, &index_scan_results);
+      db->customer_primary_index_->ScanKey(*customer_key, &index_scan_results);
       TERRIER_ASSERT(index_scan_results.size() == 1, "Customer index lookup failed.");
       customer_slot = index_scan_results[0];
     } else {
       // Look up C_LAST, D_ID, W_ID in index
-      const auto customer_name_key_pr_initializer = db->customer_name_index_->GetProjectedRowInitializer();
+      const auto customer_name_key_pr_initializer = db->customer_secondary_index_->GetProjectedRowInitializer();
       auto *const customer_name_key = customer_name_key_pr_initializer.InitializeRow(worker->customer_name_key_buffer);
 
       *reinterpret_cast<storage::VarlenEntry *>(customer_name_key->AccessForceNotNull(c_last_name_key_pr_offset)) =
@@ -167,7 +167,7 @@ class OrderStatus {
       *reinterpret_cast<int8_t *>(customer_name_key->AccessForceNotNull(c_w_id_name_key_pr_offset)) = args.w_id;
 
       index_scan_results.clear();
-      db->customer_name_index_->ScanKey(*customer_name_key, &index_scan_results);
+      db->customer_secondary_index_->ScanKey(*customer_name_key, &index_scan_results);
       TERRIER_ASSERT(!index_scan_results.empty(), "Customer Name index lookup failed.");
 
       if (index_scan_results.size() > 1) {
@@ -234,7 +234,7 @@ class OrderStatus {
     const auto o_id = *reinterpret_cast<int32_t *>(order_select_tuple->AccessWithNullCheck(o_id_select_pr_offset));
 
     // look up in Order Line index
-    const auto order_line_key_pr_initializer = db->order_line_index_->GetProjectedRowInitializer();
+    const auto order_line_key_pr_initializer = db->order_line_primary_index_->GetProjectedRowInitializer();
     auto *const order_line_low_key = order_line_key_pr_initializer.InitializeRow(worker->order_line_key_buffer);
     auto *const order_line_high_key =
         order_line_key_pr_initializer.InitializeRow(worker->order_line_tuple_buffer);  // it's large enough
@@ -250,7 +250,7 @@ class OrderStatus {
     *reinterpret_cast<int32_t *>(order_line_high_key->AccessForceNotNull(ol_o_id_key_pr_offset)) = o_id;
 
     index_scan_results.clear();
-    db->order_line_index_->Scan(*order_line_low_key, *order_line_high_key, &index_scan_results);
+    db->order_line_primary_index_->Scan(*order_line_low_key, *order_line_high_key, &index_scan_results);
 
     TERRIER_ASSERT(!index_scan_results.empty() && index_scan_results.size() <= 15,
                    "There should be at least 1 Order Line item, but no more than 15.");

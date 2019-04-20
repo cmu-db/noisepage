@@ -143,9 +143,9 @@ class NewOrder {
             db->district_table_->InitializerForProjectedRow({d_tax_oid, d_next_o_id_oid}).first),
         district_select_pr_map(db->district_table_->InitializerForProjectedRow({d_tax_oid, d_next_o_id_oid}).second),
         d_id_key_pr_offset(static_cast<uint8_t>(
-            db->district_index_->GetKeyOidToOffsetMap().at(db->district_key_schema_.at(1).GetOid()))),
+            db->district_primary_index_->GetKeyOidToOffsetMap().at(db->district_primary_index_schema_.at(1).GetOid()))),
         d_w_id_key_pr_offset(static_cast<uint8_t>(
-            db->district_index_->GetKeyOidToOffsetMap().at(db->district_key_schema_.at(0).GetOid()))),
+            db->district_primary_index_->GetKeyOidToOffsetMap().at(db->district_primary_index_schema_.at(0).GetOid()))),
         d_tax_select_pr_offset(static_cast<uint8_t>(district_select_pr_map.at(d_tax_oid))),
         d_next_o_id_select_pr_offset(static_cast<uint8_t>(district_select_pr_map.at(d_next_o_id_oid))),
         district_update_pr_initializer(db->district_table_->InitializerForProjectedRow({d_next_o_id_oid}).first),
@@ -160,11 +160,11 @@ class NewOrder {
             db->customer_table_->InitializerForProjectedRow({c_discount_oid, c_last_oid, c_credit_oid}).second),
         c_discount_select_pr_offset(static_cast<uint8_t>(customer_select_pr_map.at(c_discount_oid))),
         c_id_key_pr_offset(static_cast<uint8_t>(
-            db->customer_index_->GetKeyOidToOffsetMap().at(db->customer_key_schema_.at(2).GetOid()))),
+            db->customer_primary_index_->GetKeyOidToOffsetMap().at(db->customer_primary_index_schema_.at(2).GetOid()))),
         c_d_id_key_pr_offset(static_cast<uint8_t>(
-            db->customer_index_->GetKeyOidToOffsetMap().at(db->customer_key_schema_.at(1).GetOid()))),
+            db->customer_primary_index_->GetKeyOidToOffsetMap().at(db->customer_primary_index_schema_.at(1).GetOid()))),
         c_w_id_key_pr_offset(static_cast<uint8_t>(
-            db->customer_index_->GetKeyOidToOffsetMap().at(db->customer_key_schema_.at(0).GetOid()))),
+            db->customer_primary_index_->GetKeyOidToOffsetMap().at(db->customer_primary_index_schema_.at(0).GetOid()))),
 
         // New Order metadata
         new_order_insert_pr_initializer(
@@ -177,12 +177,12 @@ class NewOrder {
             static_cast<uint8_t>(new_order_insert_pr_map.at(db->new_order_schema_.GetColumn(1).GetOid()))),
         no_w_id_insert_pr_offset(
             static_cast<uint8_t>(new_order_insert_pr_map.at(db->new_order_schema_.GetColumn(2).GetOid()))),
-        no_o_id_key_pr_offset(static_cast<uint8_t>(
-            db->new_order_index_->GetKeyOidToOffsetMap().at(db->new_order_key_schema_.at(2).GetOid()))),
-        no_d_id_key_pr_offset(static_cast<uint8_t>(
-            db->new_order_index_->GetKeyOidToOffsetMap().at(db->new_order_key_schema_.at(1).GetOid()))),
-        no_w_id_key_pr_offset(static_cast<uint8_t>(
-            db->new_order_index_->GetKeyOidToOffsetMap().at(db->new_order_key_schema_.at(0).GetOid()))),
+        no_o_id_key_pr_offset(static_cast<uint8_t>(db->new_order_primary_index_->GetKeyOidToOffsetMap().at(
+            db->new_order_primary_index_schema_.at(2).GetOid()))),
+        no_d_id_key_pr_offset(static_cast<uint8_t>(db->new_order_primary_index_->GetKeyOidToOffsetMap().at(
+            db->new_order_primary_index_schema_.at(1).GetOid()))),
+        no_w_id_key_pr_offset(static_cast<uint8_t>(db->new_order_primary_index_->GetKeyOidToOffsetMap().at(
+            db->new_order_primary_index_schema_.at(0).GetOid()))),
 
         // Order metadata
         order_insert_pr_initializer(
@@ -201,20 +201,20 @@ class NewOrder {
             static_cast<uint8_t>(order_insert_pr_map.at(db->order_schema_.GetColumn(6).GetOid()))),
         o_all_local_insert_pr_offset(
             static_cast<uint8_t>(order_insert_pr_map.at(db->order_schema_.GetColumn(7).GetOid()))),
-        o_id_key_pr_offset(
-            static_cast<uint8_t>(db->order_index_->GetKeyOidToOffsetMap().at(db->order_key_schema_.at(2).GetOid()))),
-        o_d_id_key_pr_offset(
-            static_cast<uint8_t>(db->order_index_->GetKeyOidToOffsetMap().at(db->order_key_schema_.at(1).GetOid()))),
-        o_w_id_key_pr_offset(
-            static_cast<uint8_t>(db->order_index_->GetKeyOidToOffsetMap().at(db->order_key_schema_.at(0).GetOid()))),
+        o_id_key_pr_offset(static_cast<uint8_t>(
+            db->order_primary_index_->GetKeyOidToOffsetMap().at(db->order_primary_index_schema_.at(2).GetOid()))),
+        o_d_id_key_pr_offset(static_cast<uint8_t>(
+            db->order_primary_index_->GetKeyOidToOffsetMap().at(db->order_primary_index_schema_.at(1).GetOid()))),
+        o_w_id_key_pr_offset(static_cast<uint8_t>(
+            db->order_primary_index_->GetKeyOidToOffsetMap().at(db->order_primary_index_schema_.at(0).GetOid()))),
         o_id_secondary_key_pr_offset(static_cast<uint8_t>(
-            db->order_secondary_index_->GetKeyOidToOffsetMap().at(db->order_secondary_key_schema_.at(3).GetOid()))),
+            db->order_secondary_index_->GetKeyOidToOffsetMap().at(db->order_secondary_index_schema_.at(3).GetOid()))),
         o_d_id_secondary_key_pr_offset(static_cast<uint8_t>(
-            db->order_secondary_index_->GetKeyOidToOffsetMap().at(db->order_secondary_key_schema_.at(1).GetOid()))),
+            db->order_secondary_index_->GetKeyOidToOffsetMap().at(db->order_secondary_index_schema_.at(1).GetOid()))),
         o_w_id_secondary_key_pr_offset(static_cast<uint8_t>(
-            db->order_secondary_index_->GetKeyOidToOffsetMap().at(db->order_secondary_key_schema_.at(0).GetOid()))),
+            db->order_secondary_index_->GetKeyOidToOffsetMap().at(db->order_secondary_index_schema_.at(0).GetOid()))),
         o_c_id_secondary_key_pr_offset(static_cast<uint8_t>(
-            db->order_secondary_index_->GetKeyOidToOffsetMap().at(db->order_secondary_key_schema_.at(2).GetOid()))),
+            db->order_secondary_index_->GetKeyOidToOffsetMap().at(db->order_secondary_index_schema_.at(2).GetOid()))),
 
         // Item metadata
         i_price_oid(db->item_schema_.GetColumn(3).GetOid()),
@@ -243,10 +243,10 @@ class NewOrder {
         s_ytd_update_pr_offset(static_cast<uint8_t>(stock_update_pr_map.at(s_ytd_oid))),
         s_order_cnt_update_pr_offset(static_cast<uint8_t>(stock_update_pr_map.at(s_order_cnt_oid))),
         s_remote_cnt_update_pr_offset(static_cast<uint8_t>(stock_update_pr_map.at(s_remote_cnt_oid))),
-        s_i_id_key_pr_offset(
-            static_cast<uint8_t>(db->stock_index_->GetKeyOidToOffsetMap().at(db->stock_key_schema_.at(1).GetOid()))),
-        s_w_id_key_pr_offset(
-            static_cast<uint8_t>(db->stock_index_->GetKeyOidToOffsetMap().at(db->stock_key_schema_.at(0).GetOid()))),
+        s_i_id_key_pr_offset(static_cast<uint8_t>(
+            db->stock_primary_index_->GetKeyOidToOffsetMap().at(db->stock_primary_index_schema_.at(1).GetOid()))),
+        s_w_id_key_pr_offset(static_cast<uint8_t>(
+            db->stock_primary_index_->GetKeyOidToOffsetMap().at(db->stock_primary_index_schema_.at(0).GetOid()))),
 
         // Order Line metadata
         order_line_insert_pr_initializer(
@@ -274,14 +274,14 @@ class NewOrder {
             static_cast<uint8_t>(order_line_insert_pr_map.at(db->order_line_schema_.GetColumn(8).GetOid()))),
         ol_dist_info_insert_pr_offset(
             static_cast<uint8_t>(order_line_insert_pr_map.at(db->order_line_schema_.GetColumn(9).GetOid()))),
-        ol_o_id_key_pr_offset(static_cast<uint8_t>(
-            db->order_line_index_->GetKeyOidToOffsetMap().at(db->order_line_key_schema_.at(2).GetOid()))),
-        ol_d_id_key_pr_offset(static_cast<uint8_t>(
-            db->order_line_index_->GetKeyOidToOffsetMap().at(db->order_line_key_schema_.at(1).GetOid()))),
-        ol_w_id_key_pr_offset(static_cast<uint8_t>(
-            db->order_line_index_->GetKeyOidToOffsetMap().at(db->order_line_key_schema_.at(0).GetOid()))),
-        ol_number_key_pr_offset(static_cast<uint8_t>(
-            db->order_line_index_->GetKeyOidToOffsetMap().at(db->order_line_key_schema_.at(3).GetOid()))) {
+        ol_o_id_key_pr_offset(static_cast<uint8_t>(db->order_line_primary_index_->GetKeyOidToOffsetMap().at(
+            db->order_line_primary_index_schema_.at(2).GetOid()))),
+        ol_d_id_key_pr_offset(static_cast<uint8_t>(db->order_line_primary_index_->GetKeyOidToOffsetMap().at(
+            db->order_line_primary_index_schema_.at(1).GetOid()))),
+        ol_w_id_key_pr_offset(static_cast<uint8_t>(db->order_line_primary_index_->GetKeyOidToOffsetMap().at(
+            db->order_line_primary_index_schema_.at(0).GetOid()))),
+        ol_number_key_pr_offset(static_cast<uint8_t>(db->order_line_primary_index_->GetKeyOidToOffsetMap().at(
+            db->order_line_primary_index_schema_.at(3).GetOid()))) {
     stock_select_initializers.reserve(10);
     for (uint8_t d_id = 0; d_id < 10; d_id++) {
       const auto s_dist_xx_oid = db->stock_schema_.GetColumn(3 + d_id).GetOid();
@@ -317,13 +317,13 @@ class NewOrder {
     auto *const txn = txn_manager->BeginTransaction();
 
     // Look up W_ID in index
-    const auto warehouse_key_pr_initializer = db->warehouse_index_->GetProjectedRowInitializer();
+    const auto warehouse_key_pr_initializer = db->warehouse_primary_index_->GetProjectedRowInitializer();
     auto *const warehouse_key = warehouse_key_pr_initializer.InitializeRow(worker->warehouse_key_buffer);
 
     *reinterpret_cast<int8_t *>(warehouse_key->AccessForceNotNull(0)) = args.w_id;
 
     std::vector<storage::TupleSlot> index_scan_results;
-    db->warehouse_index_->ScanKey(*warehouse_key, &index_scan_results);
+    db->warehouse_primary_index_->ScanKey(*warehouse_key, &index_scan_results);
     TERRIER_ASSERT(index_scan_results.size() == 1, "Warehouse index lookup failed.");
 
     // Select W_TAX in table
@@ -334,14 +334,14 @@ class NewOrder {
     const auto w_tax = *reinterpret_cast<double *>(warehouse_select_tuple->AccessWithNullCheck(0));
 
     // Look up D_ID, W_ID in index
-    const auto district_key_pr_initializer = db->district_index_->GetProjectedRowInitializer();
+    const auto district_key_pr_initializer = db->district_primary_index_->GetProjectedRowInitializer();
     auto *const district_key = district_key_pr_initializer.InitializeRow(worker->district_key_buffer);
 
     *reinterpret_cast<int8_t *>(district_key->AccessForceNotNull(d_id_key_pr_offset)) = args.d_id;
     *reinterpret_cast<int8_t *>(district_key->AccessForceNotNull(d_w_id_key_pr_offset)) = args.w_id;
 
     index_scan_results.clear();
-    db->district_index_->ScanKey(*district_key, &index_scan_results);
+    db->district_primary_index_->ScanKey(*district_key, &index_scan_results);
     TERRIER_ASSERT(index_scan_results.size() == 1, "District index lookup failed.");
 
     // Select D_TAX, D_NEXT_O_ID in table
@@ -361,7 +361,7 @@ class NewOrder {
     TERRIER_ASSERT(result, "District update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
 
     // Look up C_ID, D_ID, W_ID in index
-    const auto customer_key_pr_initializer = db->customer_index_->GetProjectedRowInitializer();
+    const auto customer_key_pr_initializer = db->customer_primary_index_->GetProjectedRowInitializer();
     auto *const customer_key = customer_key_pr_initializer.InitializeRow(worker->customer_key_buffer);
 
     *reinterpret_cast<int32_t *>(customer_key->AccessForceNotNull(c_id_key_pr_offset)) = args.c_id;
@@ -369,7 +369,7 @@ class NewOrder {
     *reinterpret_cast<int8_t *>(customer_key->AccessForceNotNull(c_w_id_key_pr_offset)) = args.w_id;
 
     index_scan_results.clear();
-    db->customer_index_->ScanKey(*customer_key, &index_scan_results);
+    db->customer_primary_index_->ScanKey(*customer_key, &index_scan_results);
     TERRIER_ASSERT(index_scan_results.size() == 1, "Customer index lookup failed.");
 
     // Select C_DISCOUNT, C_LAST, and C_CREDIT in table
@@ -407,11 +407,11 @@ class NewOrder {
     int8_t ol_number = 1;
     for (const auto &item : args.items) {
       // Look up I_ID in index
-      const auto item_key_pr_initializer = db->item_index_->GetProjectedRowInitializer();
+      const auto item_key_pr_initializer = db->item_primary_index_->GetProjectedRowInitializer();
       auto *const item_key = item_key_pr_initializer.InitializeRow(worker->item_key_buffer);
       *reinterpret_cast<int32_t *>(item_key->AccessForceNotNull(0)) = item.ol_i_id;
       index_scan_results.clear();
-      db->item_index_->ScanKey(*item_key, &index_scan_results);
+      db->item_primary_index_->ScanKey(*item_key, &index_scan_results);
 
       if (index_scan_results.empty()) {
         TERRIER_ASSERT(item.ol_i_id == 8491138, "It's the unused value.");
@@ -431,14 +431,14 @@ class NewOrder {
           *reinterpret_cast<storage::VarlenEntry *>(item_select_tuple->AccessWithNullCheck(i_data_select_pr_offset));
 
       // Look up S_I_ID, S_W_ID in index
-      const auto stock_key_pr_initializer = db->stock_index_->GetProjectedRowInitializer();
+      const auto stock_key_pr_initializer = db->stock_primary_index_->GetProjectedRowInitializer();
       auto *const stock_key = stock_key_pr_initializer.InitializeRow(worker->stock_key_buffer);
 
       *reinterpret_cast<int32_t *>(stock_key->AccessForceNotNull(s_i_id_key_pr_offset)) = item.ol_i_id;
       *reinterpret_cast<int8_t *>(stock_key->AccessForceNotNull(s_w_id_key_pr_offset)) = item.ol_supply_w_id;
 
       index_scan_results.clear();
-      db->stock_index_->ScanKey(*stock_key, &index_scan_results);
+      db->stock_primary_index_->ScanKey(*stock_key, &index_scan_results);
       TERRIER_ASSERT(index_scan_results.size() == 1, "Stock index lookup failed.");
 
       // Select S_QUANTITY, S_DIST_xx (xx = args.d_id), S_YTD, S_ORDER_CNT, S_REMOTE_CNT, S_DATA in table
@@ -532,27 +532,27 @@ class NewOrder {
 
     // Do all index insertions now that transaction is guaranteed to commit
     // insert in New Order index
-    const auto new_order_key_pr_initializer = db->new_order_index_->GetProjectedRowInitializer();
+    const auto new_order_key_pr_initializer = db->new_order_primary_index_->GetProjectedRowInitializer();
     auto *const new_order_key = new_order_key_pr_initializer.InitializeRow(worker->new_order_key_buffer);
 
     *reinterpret_cast<int32_t *>(new_order_key->AccessForceNotNull(no_o_id_key_pr_offset)) = d_next_o_id;
     *reinterpret_cast<int8_t *>(new_order_key->AccessForceNotNull(no_d_id_key_pr_offset)) = args.d_id;
     *reinterpret_cast<int8_t *>(new_order_key->AccessForceNotNull(no_w_id_key_pr_offset)) = args.w_id;
 
-    bool UNUSED_ATTRIBUTE index_insert_result = db->new_order_index_->ConditionalInsert(
+    bool UNUSED_ATTRIBUTE index_insert_result = db->new_order_primary_index_->ConditionalInsert(
         *new_order_key, new_order_slot, [](const storage::TupleSlot &) { return false; });
     TERRIER_ASSERT(index_insert_result, "New Order index insertion failed.");
 
     // insert in Order index
-    const auto order_key_pr_initializer = db->order_index_->GetProjectedRowInitializer();
+    const auto order_key_pr_initializer = db->order_primary_index_->GetProjectedRowInitializer();
     auto *const order_key = order_key_pr_initializer.InitializeRow(worker->order_key_buffer);
 
     *reinterpret_cast<int32_t *>(order_key->AccessForceNotNull(o_id_key_pr_offset)) = d_next_o_id;
     *reinterpret_cast<int8_t *>(order_key->AccessForceNotNull(o_d_id_key_pr_offset)) = args.d_id;
     *reinterpret_cast<int8_t *>(order_key->AccessForceNotNull(o_w_id_key_pr_offset)) = args.w_id;
 
-    index_insert_result =
-        db->order_index_->ConditionalInsert(*order_key, order_slot, [](const storage::TupleSlot &) { return false; });
+    index_insert_result = db->order_primary_index_->ConditionalInsert(*order_key, order_slot,
+                                                                      [](const storage::TupleSlot &) { return false; });
     TERRIER_ASSERT(index_insert_result, "Order index insertion failed.");
 
     // insert in Order secondary index
@@ -570,7 +570,7 @@ class NewOrder {
 
     // insert in Order Line index
     for (const auto &ol_item : order_line_index_inserts_) {
-      const auto order_line_key_pr_initializer = db->order_line_index_->GetProjectedRowInitializer();
+      const auto order_line_key_pr_initializer = db->order_line_primary_index_->GetProjectedRowInitializer();
       auto *const order_line_key = order_line_key_pr_initializer.InitializeRow(worker->order_line_key_buffer);
 
       *reinterpret_cast<int8_t *>(order_line_key->AccessForceNotNull(ol_w_id_key_pr_offset)) = ol_item.w_id;
@@ -578,8 +578,8 @@ class NewOrder {
       *reinterpret_cast<int32_t *>(order_line_key->AccessForceNotNull(ol_o_id_key_pr_offset)) = ol_item.o_id;
       *reinterpret_cast<int8_t *>(order_line_key->AccessForceNotNull(ol_number_key_pr_offset)) = ol_item.ol_number;
 
-      index_insert_result = db->order_line_index_->ConditionalInsert(*order_line_key, ol_item.slot,
-                                                                     [](const storage::TupleSlot &) { return false; });
+      index_insert_result = db->order_line_primary_index_->ConditionalInsert(
+          *order_line_key, ol_item.slot, [](const storage::TupleSlot &) { return false; });
       TERRIER_ASSERT(index_insert_result, "Order Line index insertion failed.");
     }
 
