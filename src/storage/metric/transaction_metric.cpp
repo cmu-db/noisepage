@@ -7,6 +7,7 @@
 namespace terrier::storage::metric {
 
 void TransactionMetricRawData::UpdateAndPersist(transaction::TransactionManager *const txn_manager) {
+  TERRIER_ASSERT(txn_manager != nullptr, "Need a transaction manager to persist data.");
   auto txn = txn_manager->BeginTransaction();
 
   // TODO(Wen) find a way to store collected data

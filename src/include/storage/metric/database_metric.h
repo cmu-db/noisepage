@@ -93,9 +93,7 @@ class DatabaseMetric : public AbstractMetric<DatabaseMetricRawData> {
    * @param txn transaction context of the committing transaction
    * @param database_oid OID of the database the transaction is running in
    */
-  void
-  OnTransactionCommit(const transaction::TransactionContext *txn,
-                      catalog::db_oid_t database_oid) override {
+  void OnTransactionCommit(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid) override {
     GetRawData()->IncrementTxnCommitted(database_oid);
   }
 
@@ -104,9 +102,7 @@ class DatabaseMetric : public AbstractMetric<DatabaseMetricRawData> {
    * @param txn transaction context of the aborting transaction
    * @param database_oid OID of the database the transaction is running in
    */
-  void
-  OnTransactionAbort(const transaction::TransactionContext *txn,
-                     catalog::db_oid_t database_oid) override {
+  void OnTransactionAbort(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid) override {
     GetRawData()->IncrementTxnAborted(database_oid);
   }
 };
