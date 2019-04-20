@@ -24,13 +24,13 @@ class DatabaseMetricRawData : public AbstractRawData {
    * Increment the number of committed transaction by one
    * @param database_id OID of the database the transaction committed in
    */
-  void IncrementTxnCommitted(catalog::db_oid_t database_id) { counters_[database_id].first++; }
+  void IncrementTxnCommitted(catalog::db_oid_t database_id) { counters_[database_id].commit_cnt++; }
 
   /**
    * Increment the number of aborted transaction by one
    * @param database_id OID of the database the transaction aborted in
    */
-  void IncrementTxnAborted(catalog::db_oid_t database_id) { counters_[database_id].second++; }
+  void IncrementTxnAborted(catalog::db_oid_t database_id) { counters_[database_id].abort_cnt++; }
 
   /**
    * Aggregate collected data from another raw data object into this raw data object
@@ -41,8 +41,8 @@ class DatabaseMetricRawData : public AbstractRawData {
     for (auto &entry : other_db_metric->counters_) {
       auto &this_counter = counters_[entry.first];
       auto &other_counter = entry.second;
-      this_counter.first += other_counter.first;
-      this_counter.second += other_counter.second;
+      this_counter.commit_cnt += other_counter.commit_cnt;
+      this_counter.abort_cnt += other_counter.abort_cnt;
     }
   }
 
@@ -66,7 +66,11 @@ class DatabaseMetricRawData : public AbstractRawData {
    * First counter represents number of transactions committed and the second
    * one represents the number of transactions aborted.
    */
-  std::unordered_map<catalog::db_oid_t, std::pair<int64_t, int64_t>> counters_;
+  struct Counter {
+    uint64_t commit_cnt;
+    uint64_t abort_cnt;
+  };
+  std::unordered_map<catalog::db_oid_t, struct Counter> counters_;
 };
 
 /**
@@ -79,7 +83,9 @@ class DatabaseMetric : public AbstractMetric<DatabaseMetricRawData> {
    * @param txn transaction context of the committing transaction
    * @param database_oid OID of the database the transaction is running in
    */
-  void OnTransactionCommit(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid) override {
+  void
+  OnTransactionCommit(const transaction::TransactionContext *txn,
+                      catalog::db_oid_t database_oid) override {
     GetRawData()->IncrementTxnCommitted(database_oid);
   }
 
@@ -88,10 +94,11 @@ class DatabaseMetric : public AbstractMetric<DatabaseMetricRawData> {
    * @param txn transaction context of the aborting transaction
    * @param database_oid OID of the database the transaction is running in
    */
-  void OnTransactionAbort(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid) override {
+  void
+  OnTransactionAbort(const transaction::TransactionContext *txn,
+                     catalog::db_oid_t database_oid) override {
     GetRawData()->IncrementTxnAborted(database_oid);
   }
 };
-
 }  // namespace storage::metric
 }  // namespace terrier
