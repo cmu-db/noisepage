@@ -31,6 +31,7 @@ class TestMetricRawData : public AbstractRawData {
    * this RawData into internal SQL tables. Expect this object
    * to be garbage-collected after this method is called.
    * @param txn_manager transaction manager of the system
+   * @param catalog catalog of the system
    */
   void UpdateAndPersist(transaction::TransactionManager *txn_manager, catalog::Catalog *catalog) override {}
 
