@@ -1,5 +1,6 @@
 #include "storage/metric/database_metric.h"
 #include <random>
+#include <unordered_map>
 #include "storage/metric/stats_aggregator.h"
 #include "storage/metric/thread_level_stats_collector.h"
 #include "util/test_harness.h"
