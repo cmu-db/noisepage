@@ -12,15 +12,7 @@ common::hash_t ProjectionPlanNode::Hash() const {
   return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
 }
 
-bool ProjectionPlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
-
-  // auto &other = static_cast<const ProjectionPlanNode &>(rhs);
-
-  // TODO(Gus,Wen): Compare output schema
-
-  return AbstractPlanNode::operator==(rhs);
-}
+bool ProjectionPlanNode::operator==(const AbstractPlanNode &rhs) const { return AbstractPlanNode::operator==(rhs); }
 
 nlohmann::json ProjectionPlanNode::ToJson() const {
   nlohmann::json j = AbstractPlanNode::ToJson();
