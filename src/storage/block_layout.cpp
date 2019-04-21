@@ -34,7 +34,8 @@ uint32_t BlockLayout::ComputeTupleSize() const {
 
 uint32_t BlockLayout::ComputeStaticHeaderSize() const {
   auto unpadded_size = static_cast<uint32_t>(
-      sizeof(uintptr_t) + sizeof(layout_version_t) + sizeof(uint32_t)           // layout_version, insert_head
+      sizeof(uintptr_t) + sizeof(uint16_t) + sizeof(layout_version_t) +  // datatable pointer, padding, layout_version
+      sizeof(uint32_t)                                                   // insert_head
       + sizeof(BlockAccessController) + ArrowBlockMetadata::Size(NumColumns())  // access controller and metadata
       + NumColumns() * sizeof(uint32_t));                                       // attr_offsets
   return StorageUtil::PadUpToSize(sizeof(uint64_t), unpadded_size);
