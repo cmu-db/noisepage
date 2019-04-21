@@ -185,7 +185,7 @@ class UndoRecord {
                                       const ProjectedRowInitializer &initializer) {
     auto *result = reinterpret_cast<UndoRecord *>(head);
 
-    result->type_ = DeltaRecordType ::UPDATE;
+    result->type_ = DeltaRecordType::UPDATE;
     result->next_ = nullptr;
     result->timestamp_.store(timestamp);
     result->table_ = table;
@@ -214,7 +214,7 @@ class UndoRecord {
                                       const storage::ProjectedRow &redo) {
     auto *result = reinterpret_cast<UndoRecord *>(head);
 
-    result->type_ = DeltaRecordType ::UPDATE;
+    result->type_ = DeltaRecordType::UPDATE;
     result->next_ = nullptr;
     result->timestamp_.store(timestamp);
     result->table_ = table;

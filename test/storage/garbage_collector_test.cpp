@@ -102,7 +102,7 @@ TEST_F(GarbageCollectorTests, SingleInsert) {
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     // Nothing should be able to be GC'd yet because txn0 has not committed yet
     EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
@@ -147,7 +147,7 @@ TEST_F(GarbageCollectorTests, CommitInsert1) {
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     // Nothing should be able to be GC'd yet because txn0 has not committed yet
     EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
@@ -175,7 +175,7 @@ TEST_F(GarbageCollectorTests, CommitInsert1) {
 
     select_tuple = tested.SelectIntoBuffer(txn2, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
     txn_manager.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
 
     // Unlink the read-only transaction, and it shouldn't make it to the second invocation because it's read-only
@@ -204,7 +204,7 @@ TEST_F(GarbageCollectorTests, CommitInsert2) {
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     // Nothing should be able to be GC'd yet because txn0 has not committed yet
     EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
@@ -227,7 +227,7 @@ TEST_F(GarbageCollectorTests, CommitInsert2) {
 
     select_tuple = tested.SelectIntoBuffer(txn2, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
     txn_manager.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
 
     // Unlink the read-only transaction
@@ -252,7 +252,7 @@ TEST_F(GarbageCollectorTests, AbortInsert1) {
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     // Nothing should be able to be GC'd yet because txn0 has not committed yet
     EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
@@ -312,7 +312,7 @@ TEST_F(GarbageCollectorTests, AbortInsert2) {
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     // Nothing should be able to be GC'd yet because txn1 has not committed yet
     EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
@@ -376,7 +376,7 @@ TEST_F(GarbageCollectorTests, CommitUpdate1) {
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, update_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple));
 
     // Nothing should be able to be GC'd yet because txn0 has not committed yet
     EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
@@ -385,7 +385,7 @@ TEST_F(GarbageCollectorTests, CommitUpdate1) {
 
     select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     txn_manager.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
 
@@ -394,7 +394,7 @@ TEST_F(GarbageCollectorTests, CommitUpdate1) {
 
     select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     txn_manager.Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
 
@@ -407,7 +407,7 @@ TEST_F(GarbageCollectorTests, CommitUpdate1) {
 
     select_tuple = tested.SelectIntoBuffer(txn2, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, update_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple));
     txn_manager.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
 
     // Unlink the read-only transaction
@@ -451,11 +451,11 @@ TEST_F(GarbageCollectorTests, CommitUpdate2) {
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, update_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple));
 
     txn_manager.Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
 
@@ -464,7 +464,7 @@ TEST_F(GarbageCollectorTests, CommitUpdate2) {
 
     select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     txn_manager.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
 
@@ -477,7 +477,7 @@ TEST_F(GarbageCollectorTests, CommitUpdate2) {
 
     select_tuple = tested.SelectIntoBuffer(txn2, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, update_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple));
     txn_manager.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
 
     // Unlink the read-only transaction
@@ -516,7 +516,7 @@ TEST_F(GarbageCollectorTests, AbortUpdate1) {
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, update_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple));
 
     auto *txn1 = txn_manager.BeginTransaction();
 
@@ -525,7 +525,7 @@ TEST_F(GarbageCollectorTests, AbortUpdate1) {
 
     select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     txn_manager.Abort(txn0);
 
@@ -536,7 +536,7 @@ TEST_F(GarbageCollectorTests, AbortUpdate1) {
 
     select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     txn_manager.Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
 
@@ -549,7 +549,7 @@ TEST_F(GarbageCollectorTests, AbortUpdate1) {
 
     select_tuple = tested.SelectIntoBuffer(txn2, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
     txn_manager.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
 
     // Unlink the read-only transaction
@@ -590,11 +590,11 @@ TEST_F(GarbageCollectorTests, AbortUpdate2) {
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, update_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple));
 
     // Nothing should be able to be GC'd yet because txn1 has not committed yet
     EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
@@ -603,7 +603,7 @@ TEST_F(GarbageCollectorTests, AbortUpdate2) {
 
     select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     // Aborted transactions can be removed from the unlink queue immediately
     EXPECT_EQ(std::make_pair(0u, 1u), gc.PerformGarbageCollection());
@@ -621,7 +621,7 @@ TEST_F(GarbageCollectorTests, AbortUpdate2) {
 
     select_tuple = tested.SelectIntoBuffer(txn2, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
     txn_manager.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
 
     // Unlink the read-only transaction
@@ -648,7 +648,7 @@ TEST_F(GarbageCollectorTests, InsertUpdate1) {
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     // Nothing should be able to be GC'd yet because txn1 has not committed yet
     EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
@@ -772,7 +772,7 @@ TEST_F(GarbageCollectorTests, InterleavedOLAP) {
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn4, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, update_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple));
 
     auto *txn6 = txn_manager.BeginTransaction();
 
@@ -793,7 +793,7 @@ TEST_F(GarbageCollectorTests, InterleavedOLAP) {
 
     select_tuple = tested.SelectIntoBuffer(txn4, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, update_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple));
 
     txn_manager.Commit(txn4, TestCallbacks::EmptyCallback, nullptr);
     // Unlink txn 4
@@ -858,7 +858,7 @@ TEST_F(GarbageCollectorTests, TwoTupleOLAP) {
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn4, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, update_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple));
 
     tested.SelectIntoBuffer(txn0, slot2);
     EXPECT_FALSE(tested.select_result_);
@@ -886,7 +886,7 @@ TEST_F(GarbageCollectorTests, TwoTupleOLAP) {
 
     select_tuple = tested.SelectIntoBuffer(txn4, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, update_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple));
 
     tested.SelectIntoBuffer(txn0, slot2);
     EXPECT_FALSE(tested.select_result_);
@@ -970,7 +970,7 @@ TEST_F(GarbageCollectorTests, MultipleIntervalTest) {
 
     auto *select_tuple = tested.SelectIntoBuffer(txn2, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, update_tuple_e));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple_e));
 
     // T1
     auto *txn1 = txn_manager.BeginTransaction();
@@ -983,7 +983,7 @@ TEST_F(GarbageCollectorTests, MultipleIntervalTest) {
 
     select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, update_tuple_d));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple_d));
 
     // B
     auto *txn_b = txn_manager.BeginTransaction();
@@ -1009,11 +1009,11 @@ TEST_F(GarbageCollectorTests, MultipleIntervalTest) {
 
     select_tuple = tested.SelectIntoBuffer(txn2, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, update_tuple_e));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple_e));
 
     select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, update_tuple_d));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple_d));
 
     // A, B, C, E should be unlinked
     EXPECT_EQ(std::make_pair(0u, 4u), gc.PerformGarbageCollection());
@@ -1114,7 +1114,7 @@ TEST_F(GarbageCollectorTests, UncommittedIntervalTest) {
     // T1 should be able to read the correct version
     auto *select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, update_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple));
 
     txn_manager.Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
     // T1, E should be unlinked
@@ -1206,7 +1206,7 @@ TEST_F(GarbageCollectorTests, DeleteTest2) {
     // Active txn should see correct version
     auto *select_tuple = tested.SelectIntoBuffer(txn, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     // INSERT should be unlinked
     EXPECT_EQ(std::make_pair(0u, 1u), gc.PerformGarbageCollection());
@@ -1375,7 +1375,7 @@ TEST_F(GarbageCollectorTests, DeleteUpdateTest2) {
     // Active txn should see correct version
     auto *select_tuple = tested.SelectIntoBuffer(txn, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, update_tuple_1));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple_1));
 
     // INSERT, U1 should be unlinked
     EXPECT_EQ(std::make_pair(0u, 2u), gc.PerformGarbageCollection());
@@ -1438,7 +1438,7 @@ TEST_F(GarbageCollectorTests, DeleteUpdateTest3) {
     // Active txn should see correct version
     auto *select_tuple = tested.SelectIntoBuffer(txn, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, update_tuple_2));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple_2));
 
     // INSERT, U1, U2 should be unlinked
     EXPECT_EQ(std::make_pair(0u, 3u), gc.PerformGarbageCollection());

@@ -107,7 +107,7 @@ TEST_F(DeltaRecordTests, UndoGetProjectedRow) {
     auto *record_buffer = common::AllocationUtil::AllocateAligned(size);
     storage::UndoRecord *record =
         storage::UndoRecord::InitializeUpdate(record_buffer, time, slot, &data_table, nullptr, *redo);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(layout, record->Delta(), redo));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(layout, record->Delta(), redo));
     delete[] redo_buffer;
     delete[] record_buffer;
   }

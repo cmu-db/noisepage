@@ -22,7 +22,28 @@ class ConjunctionExpression : public AbstractExpression {
   ConjunctionExpression(const ExpressionType cmp_type, std::vector<std::shared_ptr<AbstractExpression>> &&children)
       : AbstractExpression(cmp_type, type::TypeId::BOOLEAN, std::move(children)) {}
 
-  std::unique_ptr<AbstractExpression> Copy() const override { return std::make_unique<ConjunctionExpression>(*this); }
+  /**
+   * Default constructor for deserialization
+   */
+  ConjunctionExpression() = default;
+
+  std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<ConjunctionExpression>(*this); }
+
+  /**
+   * @return expression serialized to json
+   */
+  nlohmann::json ToJson() const override {
+    nlohmann::json j = AbstractExpression::ToJson();
+
+    return j;
+  }
+
+  /**
+   * @param j json to deserialize
+   */
+  void FromJson(const nlohmann::json &j) override { AbstractExpression::FromJson(j); }
 };
+
+DEFINE_JSON_DECLARATIONS(ConjunctionExpression);
 
 }  // namespace terrier::parser
