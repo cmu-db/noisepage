@@ -300,7 +300,7 @@ void GarbageCollector::ProcessTupleVersionChain(UndoRecord *const undo_record,
     // Link the compacted record to the version chain.
     LinkCompactedUndoRecord(start_record, &curr, next, compacted_undo_record);
   } else if (interval_length == 1) {
-    if (active_txns_iter == active_txns->end()) {
+    if (transaction::TransactionUtil::NewerThan(active_txns->back(), curr->Timestamp().load())) {
       // Exited out of previous loop such that the last record is not visible to any transaction
       UnlinkUndoRecordVersion(start_record->Next());
       start_record->Next().store(nullptr);
@@ -334,12 +334,17 @@ void GarbageCollector::ReclaimSlotIfDeleted(UndoRecord *undo_record) const {
 void GarbageCollector::BeginCompaction(UndoRecord **start_record_ptr, UndoRecord *curr, UndoRecord *next,
                                        uint32_t *interval_length_ptr) {
   col_set_.clear();
-  // Compaction can only be done for a series of Update Undo Records
-  if (next->Type() == DeltaRecordType::UPDATE) {
-    *start_record_ptr = curr;
-    *interval_length_ptr = 1;
-    ProcessUndoRecordAttributes(next);
-  }
+  // Case 1: next is of type UPDATE
+  //         Standard undo record compaction begins
+  // Case 2: next is of type INSERT
+  //         This can only happen when a transaction is sandwiched between INSERT and another Delta record
+  //         INSERT is the last record in the version chain
+  // Case 3: next is of type DELETE
+  //         DELETE can only be the newest record in the version chain
+  TERRIER_ASSERT(next->Type() != DeltaRecordType::DELETE, "Delete cannot be compacted");
+  *start_record_ptr = curr;
+  *interval_length_ptr = 1;
+  ProcessUndoRecordAttributes(next);
 }
 
 void GarbageCollector::LinkCompactedUndoRecord(UndoRecord *start_record, UndoRecord **curr_ptr, UndoRecord *end_record,
