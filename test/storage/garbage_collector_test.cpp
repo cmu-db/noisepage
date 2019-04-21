@@ -914,7 +914,7 @@ TEST_F(GarbageCollectorTests, TwoTupleOLAP) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(GarbageCollectorTests, IntervalTest) {
+TEST_F(GarbageCollectorTests, MultipleIntervalTest) {
   /*
    * This tests that:
    * - All versions belonging compacted intervals get collected
@@ -947,7 +947,7 @@ TEST_F(GarbageCollectorTests, IntervalTest) {
     storage::TupleSlot slot = tested.table_.Insert(txn_insert, *insert_tuple);
     txn_manager.Commit(txn_insert, TestCallbacks::EmptyCallback, nullptr);
 
-    auto *select_tuple = tested.SelectIntoBuffer(txn3, slot);
+    tested.SelectIntoBuffer(txn3, slot);
     EXPECT_FALSE(tested.select_result_);
 
     // E
@@ -956,7 +956,7 @@ TEST_F(GarbageCollectorTests, IntervalTest) {
     tested.table_.Update(txn_e, slot, *update_tuple_e);
     txn_manager.Commit(txn_e, TestCallbacks::EmptyCallback, nullptr);
 
-    select_tuple = tested.SelectIntoBuffer(txn3, slot);
+    tested.SelectIntoBuffer(txn3, slot);
     EXPECT_FALSE(tested.select_result_);
 
     // T2
@@ -968,7 +968,7 @@ TEST_F(GarbageCollectorTests, IntervalTest) {
     tested.table_.Update(txn_d, slot, *update_tuple_d);
     txn_manager.Commit(txn_d, TestCallbacks::EmptyCallback, nullptr);
 
-    select_tuple = tested.SelectIntoBuffer(txn2, slot);
+    auto *select_tuple = tested.SelectIntoBuffer(txn2, slot);
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, update_tuple_e));
 
@@ -1004,7 +1004,7 @@ TEST_F(GarbageCollectorTests, IntervalTest) {
     txn_manager.Commit(txn_header, TestCallbacks::EmptyCallback, nullptr);
 
     // Currently running txns T1, T2 and T3 should see the correct versions
-    select_tuple = tested.SelectIntoBuffer(txn3, slot);
+    tested.SelectIntoBuffer(txn3, slot);
     EXPECT_FALSE(tested.select_result_);
 
     select_tuple = tested.SelectIntoBuffer(txn2, slot);
@@ -1072,7 +1072,7 @@ TEST_F(GarbageCollectorTests, UncommittedIntervalTest) {
     storage::TupleSlot slot = tested.table_.Insert(txn_insert, *insert_tuple);
     txn_manager.Commit(txn_insert, TestCallbacks::EmptyCallback, nullptr);
 
-    auto *select_tuple = tested.SelectIntoBuffer(txn2, slot);
+    tested.SelectIntoBuffer(txn2, slot);
     EXPECT_FALSE(tested.select_result_);
 
     // E
@@ -1087,7 +1087,7 @@ TEST_F(GarbageCollectorTests, UncommittedIntervalTest) {
     tested.table_.Update(txn_d, slot, *update_tuple_d);
     txn_manager.Commit(txn_d, TestCallbacks::EmptyCallback, nullptr);
 
-    select_tuple = tested.SelectIntoBuffer(txn2, slot);
+    tested.SelectIntoBuffer(txn2, slot);
     EXPECT_FALSE(tested.select_result_);
 
     // T1
@@ -1106,22 +1106,23 @@ TEST_F(GarbageCollectorTests, UncommittedIntervalTest) {
     EXPECT_EQ(std::make_pair(0u, 1u), gc.PerformGarbageCollection());
 
     // T2 (read only) should be unlinked and deallocated
-    // E and INSERT should be unlinked
+    // INSERT should be unlinked
+    // E should not be unlinked as it is the first committed undo record
     txn_manager.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
-    EXPECT_EQ(std::make_pair(0u, 3u), gc.PerformGarbageCollection());
+    EXPECT_EQ(std::make_pair(0u, 2u), gc.PerformGarbageCollection());
 
     // T1 should be able to read the correct version
-    select_tuple = tested.SelectIntoBuffer(txn1, slot);
+    auto *select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, update_tuple));
 
-    // T1 should be unlinked
-    // D, E, INSERT should be deallocated
+    // T1, E should be unlinked
+    // D, INSERT should be deallocated
     txn_manager.Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
-    EXPECT_EQ(std::make_pair(3u, 1u), gc.PerformGarbageCollection());
+    EXPECT_EQ(std::make_pair(2u, 2u), gc.PerformGarbageCollection());
 
-    // T1 should be deallocated
-    EXPECT_EQ(std::make_pair(1u, 0u), gc.PerformGarbageCollection());
+    // T1, E should be deallocated
+    EXPECT_EQ(std::make_pair(2u, 0u), gc.PerformGarbageCollection());
 
     // Nothing left to collect
     EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
