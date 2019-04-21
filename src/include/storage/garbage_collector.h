@@ -56,10 +56,6 @@ class GarbageCollector {
    */
   uint32_t ProcessUnlinkQueue();
 
-  bool ProcessUndoRecord(UndoRecord *undo_record, std::vector<transaction::timestamp_t> *active_txns);
-
-  void ReclaimSlotIfDeleted(UndoRecord *undo_record) const;
-
   /**
    * Given a UndoRecord that has been deemed safe to unlink by the GC, attempts to remove it from the version chain.
    * It's possible that this process will fail because the GC is conservative with conflicts. If the UndoRecord in the
@@ -67,15 +63,33 @@ class GarbageCollector {
    * expect this txn to be requeued and we'll try again on the next GC invocation, hopefully after the conflicting txn
    * is either committed or aborted.
    * @param undo_record UndoRecord to be unlinked
+   * @param active_txns list of timestamps of running transactions
+   * @return true, if the undo record was unlinked
    */
-  void UnlinkUndoRecord(UndoRecord *undo_record, std::vector<transaction::timestamp_t> *active_txns);
+  bool ProcessUndoRecord(UndoRecord *undo_record, std::vector<transaction::timestamp_t> *active_txns,
+                         std::unordered_set<TupleSlot> *visited_slots);
+
+  /**
+   * Delete the slot corresponding to the unlinked undo record if the undo record was a DELETE
+   * @param undo_record the unlinked undo record
+   */
+  void ReclaimSlotIfDeleted(UndoRecord *undo_record) const;
+
+  /**
+   * Given the data table and the tuple slot, try unlinking the version chain head for that tuple slot
+   * @param table data table
+   * @param slot tuple slot
+   * @param active_txns list of currently running active transactions
+   */
+  void ProcessTupleVersionChainHead(DataTable *table, TupleSlot slot,
+                                    std::vector<transaction::timestamp_t> *active_txns);
 
   /**
    * Given a version chain, perform interval gc on all versions except the head of the chain
-   * @param version_chain_head pointer to the head of the chain
+   * @param undo_record pointer to the head of the chain
    * @param active_txns vector containing all active transactions
    */
-  void UnlinkUndoRecordRestOfChain(UndoRecord *version_chain_head, std::vector<transaction::timestamp_t> *active_txns);
+  void ProcessTupleVersionChain(UndoRecord *undo_record, std::vector<transaction::timestamp_t> *active_txns);
 
   /**
    * Straight up unlink the undo_record and reclaim its space
@@ -147,32 +161,24 @@ class GarbageCollector {
    */
   UndoRecord *InitializeUndoRecord(transaction::timestamp_t timestamp, TupleSlot slot, DataTable *table);
 
-  /**
-   * Given the undo record,  mark all the varlen entries in the delta to be available for deallocation later
-   * @param undo_record the undo record whose varlen entries are to be marked for deallocation
-   */
-  void MarkVarlenReclaimable(UndoRecord *undo_record);
+  void ReclaimVarlen(UndoRecord *undo_record) const;
 
   /**
-   * Given the undo buffer, deallocate all the varlen entries contained in all the undo records in the undo buffer
+   * Given the undo buffer, deallocate all the varlen entries contained in the regular undo record
    * @param undo_buffer the undo buffer whose varlen entries are to deallocated
    */
-  void DeallocateVarlen(UndoBuffer *undo_buffer);
+  void ReclaimBufferIfVarlen(UndoRecord *undo_record) const;
 
+  /**
+   * Given the undo buffer, deallocate all the varlen entries contained in compacted undo record
+   * @param undo_buffer the undo buffer whose varlen entries are to deallocated
+   */
+  void ReclaimBufferIfVarlenCompacted(UndoRecord *undo_record) const;
   /**
    * Given the compacted undo record, duplicate all the varlens associated with it
    * @param undo_record the compacted undo record
    */
   void CopyVarlen(UndoRecord *undo_record);
-
-  /**
-   * Given the undo record to be linked to the version chain, safely link it to the given undo record
-   * @param curr the undo record which will point to the given undo record
-   * @param to_link the undo to be linked to the version chain
-   * @param slot the tuple slot corresponding to the tuple associated with the undo record
-   * @param table the table corresponding to the tuple associated with the undo record
-   */
-  void SwapwithSafeAbort(UndoRecord *curr, UndoRecord *to_link);
 
   // reference to the transaction manager class object
   transaction::TransactionManager *txn_manager_;
@@ -184,6 +190,9 @@ class GarbageCollector {
   transaction::TransactionQueue txns_to_unlink_;
   // Undo buffer to hold compacted undo records
   storage::UndoBuffer *delta_record_compaction_buffer_;
+  // Variable to mark that undo buffer to hold compacted undo records is empty so that it can be deallocated without
+  // unlinking
+  bool compaction_buffer_empty;
   // queue of undo buffers containing compacted undo records which are pending unlinking
   std::forward_list<storage::UndoBuffer *> buffers_to_unlink_;
   // queue of undo buffers containing compacted undo records which ahve been unlinked abd are pending deallocation
@@ -193,7 +202,6 @@ class GarbageCollector {
   // list of varlen entries per undo record which need to be reclaimed
   std::unordered_map<storage::UndoRecord *, std::forward_list<const byte *> > reclaim_varlen_map_;
   // set of tuple slots which have already been visited in this GC run
-  std::unordered_set<TupleSlot> visited_slots_;
 };
 
 }  // namespace terrier::storage

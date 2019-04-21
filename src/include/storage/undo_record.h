@@ -5,6 +5,39 @@
 
 namespace terrier::storage {
 class DataTable;
+// Struct used for safely accessing the Transaction pointer stored in the Undo Record.
+struct TransactionPtr {
+  /*
+   * @return Transaction pointer to the transaction this undo record is part of
+   * @warning This can be NULL if the undo record is unlinked or is a compacted record
+   */
+  transaction::TransactionContext *Get() {
+    if (txn_ != reinterpret_cast<transaction::TransactionContext *>(uintptr_t(-1))) {
+      return txn_;
+    }
+    return nullptr;
+  }
+  /*
+   * @param txn Transaction pointer to be assigned to the undo record.
+   */
+  void Put(transaction::TransactionContext *txn) { txn_ = txn; }
+  /*
+   * Assigns transaction pointer to a special reserved value of -1 used only for compacted records.
+   */
+  void SetCompacted() { txn_ = reinterpret_cast<transaction::TransactionContext *>(-1); }
+  /*
+   * @return if the Undo Record is compacted
+   */
+  bool IsCompacted() { return txn_ == reinterpret_cast<transaction::TransactionContext *>(-1); }
+
+  /*
+   * @return if the transaction pointer is null
+   */
+  bool IsNull() { return txn_ == nullptr; }
+
+ private:
+  transaction::TransactionContext *txn_;
+};
 /**
  * Extension of a ProjectedRow that adds relevant information to be able to traverse the version chain and find the
  * relevant tuple version:
@@ -99,16 +132,18 @@ class UndoRecord {
    * @param timestamp timestamp of the transaction that generated this UndoRecord
    * @param slot the TupleSlot this UndoRecord points to
    * @param table the DataTable this UndoRecord points to
+   * @param txn the transaction this UndoRecord belongs to
    * @return pointer to the initialized UndoRecord
    */
   static UndoRecord *InitializeInsert(byte *const head, const transaction::timestamp_t timestamp, const TupleSlot slot,
-                                      DataTable *const table) {
+                                      DataTable *const table, transaction::TransactionContext *const txn) {
     auto *result = reinterpret_cast<UndoRecord *>(head);
     result->type_ = DeltaRecordType::INSERT;
     result->next_ = nullptr;
     result->timestamp_.store(timestamp);
     result->table_ = table;
     result->slot_ = slot;
+    result->txnptr_.Put(txn);
     return result;
   }
 
@@ -119,16 +154,18 @@ class UndoRecord {
    * @param timestamp timestamp of the transaction that generated this UndoRecord
    * @param slot the TupleSlot this UndoRecord points to
    * @param table the DataTable this UndoRecord points to
+   * @param txn the transaction this UndoRecord belongs to
    * @return pointer to the initialized UndoRecord
    */
   static UndoRecord *InitializeDelete(byte *const head, const transaction::timestamp_t timestamp, const TupleSlot slot,
-                                      DataTable *const table) {
+                                      DataTable *const table, transaction::TransactionContext *const txn) {
     auto *result = reinterpret_cast<UndoRecord *>(head);
     result->type_ = DeltaRecordType::DELETE;
     result->next_ = nullptr;
     result->timestamp_.store(timestamp);
     result->table_ = table;
     result->slot_ = slot;
+    result->txnptr_.Put(txn);
     return result;
   }
 
@@ -139,11 +176,13 @@ class UndoRecord {
    * @param timestamp timestamp of the transaction that generated this UndoRecord
    * @param slot the TupleSlot this UndoRecord points to
    * @param table the DataTable this UndoRecord points to
+   * @param txn the transaction this UndoRecord belongs to
    * @param initializer the initializer to use for the embedded ProjectedRow
    * @return pointer to the initialized UndoRecord
    */
   static UndoRecord *InitializeUpdate(byte *const head, const transaction::timestamp_t timestamp, const TupleSlot slot,
-                                      DataTable *const table, const ProjectedRowInitializer &initializer) {
+                                      DataTable *const table, transaction::TransactionContext *const txn,
+                                      const ProjectedRowInitializer &initializer) {
     auto *result = reinterpret_cast<UndoRecord *>(head);
 
     result->type_ = DeltaRecordType ::UPDATE;
@@ -151,6 +190,7 @@ class UndoRecord {
     result->timestamp_.store(timestamp);
     result->table_ = table;
     result->slot_ = slot;
+    result->txnptr_.Put(txn);
 
     initializer.InitializeRow(result->varlen_contents_);
 
@@ -165,11 +205,13 @@ class UndoRecord {
    * @param timestamp timestamp of the transaction that generated this UndoRecord
    * @param slot the TupleSlot this UndoRecord points to
    * @param table the DataTable this UndoRecord points to
+   * @param txn the transaction this UndoRecord belongs to
    * @param redo the redo changes to be applied
    * @return pointer to the initialized UndoRecord
    */
   static UndoRecord *InitializeUpdate(byte *const head, const transaction::timestamp_t timestamp, const TupleSlot slot,
-                                      DataTable *const table, const storage::ProjectedRow &redo) {
+                                      DataTable *const table, transaction::TransactionContext *const txn,
+                                      const storage::ProjectedRow &redo) {
     auto *result = reinterpret_cast<UndoRecord *>(head);
 
     result->type_ = DeltaRecordType ::UPDATE;
@@ -177,6 +219,7 @@ class UndoRecord {
     result->timestamp_.store(timestamp);
     result->table_ = table;
     result->slot_ = slot;
+    result->txnptr_.Put(txn);
 
     ProjectedRow::CopyProjectedRowLayout(result->varlen_contents_, redo);
 
@@ -190,6 +233,7 @@ class UndoRecord {
   std::atomic<transaction::timestamp_t> timestamp_;
   DataTable *table_;
   TupleSlot slot_;
+  TransactionPtr txnptr_;
   // This needs to be aligned to 8 bytes to ensure the real size of UndoRecord (plus actual ProjectedRow) is also
   // a multiple of 8.
   uint64_t varlen_contents_[0];

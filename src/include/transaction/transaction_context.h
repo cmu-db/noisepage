@@ -62,7 +62,7 @@ class TransactionContext {
   storage::UndoRecord *UndoRecordForUpdate(storage::DataTable *const table, const storage::TupleSlot slot,
                                            const storage::ProjectedRow &redo) {
     const uint32_t size = storage::UndoRecord::Size(redo);
-    return storage::UndoRecord::InitializeUpdate(undo_buffer_.NewEntry(size), txn_id_.load(), slot, table, redo);
+    return storage::UndoRecord::InitializeUpdate(undo_buffer_.NewEntry(size), txn_id_.load(), slot, table, this, redo);
   }
 
   /**
@@ -73,7 +73,7 @@ class TransactionContext {
    */
   storage::UndoRecord *UndoRecordForInsert(storage::DataTable *const table, const storage::TupleSlot slot) {
     byte *result = undo_buffer_.NewEntry(sizeof(storage::UndoRecord));
-    return storage::UndoRecord::InitializeInsert(result, txn_id_.load(), slot, table);
+    return storage::UndoRecord::InitializeInsert(result, txn_id_.load(), slot, table, this);
   }
 
   /**
@@ -84,7 +84,7 @@ class TransactionContext {
    */
   storage::UndoRecord *UndoRecordForDelete(storage::DataTable *const table, const storage::TupleSlot slot) {
     byte *result = undo_buffer_.NewEntry(sizeof(storage::UndoRecord));
-    return storage::UndoRecord::InitializeDelete(result, txn_id_.load(), slot, table);
+    return storage::UndoRecord::InitializeDelete(result, txn_id_.load(), slot, table, this);
   }
 
   /**

@@ -1,6 +1,7 @@
 #pragma once
 #include <unordered_set>
 #include <utility>
+#include <vector>
 #include "common/shared_latch.h"
 #include "common/spin_latch.h"
 #include "common/strong_typedef.h"
@@ -52,7 +53,8 @@ class TransactionManager {
   void Abort(TransactionContext *txn);
 
   /**
-   * @return unordered_set of all active txns
+   * Return all active txns' timestamps. If there are no active txns then return the current timestamp.
+   * @return vector containing all active txns' timestamps
    */
   std::vector<timestamp_t> GetActiveTxns();
 

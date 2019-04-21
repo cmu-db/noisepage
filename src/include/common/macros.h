@@ -89,11 +89,15 @@
 
 // Macros to disable copying and moving
 #define DISALLOW_COPY(cname)     \
+  /* Delete copy constructor. */ \
   cname(const cname &) = delete; \
+  /* Delete copy assignment. */  \
   cname &operator=(const cname &) = delete;
 
-#define DISALLOW_MOVE(cname) \
-  cname(cname &&) = delete;  \
+#define DISALLOW_MOVE(cname)     \
+  /* Delete move constructor. */ \
+  cname(cname &&) = delete;      \
+  /* Delete move assignment. */  \
   cname &operator=(cname &&) = delete;
 
 /**
