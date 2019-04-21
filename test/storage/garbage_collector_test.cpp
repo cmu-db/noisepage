@@ -1018,20 +1018,20 @@ TEST_F(GarbageCollectorTests, MultipleIntervalTest) {
     // A, B, C, E should be unlinked
     EXPECT_EQ(std::make_pair(0u, 4u), gc.PerformGarbageCollection());
 
+    txn_manager.Commit(txn3, TestCallbacks::EmptyCallback, nullptr);
     // T3 (read only) should be unlinked and deallocated
     // INSERT should be unlinked
-    txn_manager.Commit(txn3, TestCallbacks::EmptyCallback, nullptr);
     EXPECT_EQ(std::make_pair(0u, 2u), gc.PerformGarbageCollection());
 
+    txn_manager.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
     // T2 (read only) should be unlinked and deallocated
     // D should be unlinked
-    txn_manager.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
     EXPECT_EQ(std::make_pair(0u, 2u), gc.PerformGarbageCollection());
 
+    txn_manager.Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
     // T1 (read only) should be unlinked and deallocated
     // HEADER should be unlinked
     // A, B, C, D, E, INSERT should be deallocated
-    txn_manager.Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
     EXPECT_EQ(std::make_pair(6u, 2u), gc.PerformGarbageCollection());
 
     // HEADER should be deallocated
@@ -1105,10 +1105,10 @@ TEST_F(GarbageCollectorTests, UncommittedIntervalTest) {
     // D should be unlinked
     EXPECT_EQ(std::make_pair(0u, 1u), gc.PerformGarbageCollection());
 
+    txn_manager.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
     // T2 (read only) should be unlinked and deallocated
     // INSERT should be unlinked
     // E should not be unlinked as it is the first committed undo record
-    txn_manager.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
     EXPECT_EQ(std::make_pair(0u, 2u), gc.PerformGarbageCollection());
 
     // T1 should be able to read the correct version
@@ -1116,9 +1116,9 @@ TEST_F(GarbageCollectorTests, UncommittedIntervalTest) {
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, update_tuple));
 
+    txn_manager.Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
     // T1, E should be unlinked
     // D, INSERT should be deallocated
-    txn_manager.Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
     EXPECT_EQ(std::make_pair(2u, 2u), gc.PerformGarbageCollection());
 
     // T1, E should be deallocated
