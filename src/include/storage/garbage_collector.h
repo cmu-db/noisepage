@@ -140,7 +140,7 @@ class GarbageCollector {
    * Given the undo record to be compacted in the first pass of GC, find all the columns contained in the delta
    * @param undo_record the undo record to be compacted in the first pass of GC
    */
-  void ProcessUndoRecordAttributes(UndoRecord *undo_record);
+  void ProcessUpdateUndoRecordAttributes(UndoRecord *undo_record);
 
   /**
    * Given the start and the end of the compaction interval after first GC pass, do a second pass and create the

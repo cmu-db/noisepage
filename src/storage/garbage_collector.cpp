@@ -344,7 +344,11 @@ void GarbageCollector::BeginCompaction(UndoRecord **start_record_ptr, UndoRecord
   TERRIER_ASSERT(next->Type() != DeltaRecordType::DELETE, "Delete cannot be compacted");
   *start_record_ptr = curr;
   *interval_length_ptr = 1;
-  ProcessUndoRecordAttributes(next);
+
+  // Compact only if it is an UPDATE record, so only process attributes if it is UPDATE
+  if (next->Type() == DeltaRecordType::UPDATE) {
+    ProcessUpdateUndoRecordAttributes(next);
+  }
 }
 
 void GarbageCollector::LinkCompactedUndoRecord(UndoRecord *start_record, UndoRecord **curr_ptr, UndoRecord *end_record,
@@ -367,7 +371,7 @@ void GarbageCollector::ReadUndoRecord(UndoRecord *start_record, UndoRecord *next
       // Update the interval length
       (*interval_length_ptr)++;
       // Process the Attributes to determine the attributes required for the compacted undo record
-      ProcessUndoRecordAttributes(next);
+      ProcessUpdateUndoRecordAttributes(next);
       // Mark the Record as unlinked
       UnlinkUndoRecordVersion(next);
       break;
@@ -386,7 +390,8 @@ void GarbageCollector::ReadUndoRecord(UndoRecord *start_record, UndoRecord *next
 
 void GarbageCollector::EndCompaction(uint32_t *interval_length_ptr) { *interval_length_ptr = 0; }
 
-void GarbageCollector::ProcessUndoRecordAttributes(UndoRecord *const undo_record) {
+void GarbageCollector::ProcessUpdateUndoRecordAttributes(UndoRecord *const undo_record) {
+  TERRIER_ASSERT(undo_record->Type() == DeltaRecordType::UPDATE, "Only process Update Delta Records here");
   for (uint16_t i = 0; i < undo_record->Delta()->NumColumns(); i++) {
     col_id_t col_id = undo_record->Delta()->ColumnIds()[i];
 
