@@ -96,31 +96,31 @@ class TransactionMetricRawData : public AbstractRawData {
   /**
    * @return the latency of the given transaction
    */
-  uint64_t GetLatency(const transaction::TransactionContext *txn) { return data_[txn->TxnId().load()].latency_; }
+  int64_t GetLatency(const transaction::TransactionContext *txn) { return data_[txn->TxnId().load()].latency_; }
 
   /**
    * @return the tuples read of the given transaction
    */
-  uint64_t GetTupleRead(const transaction::TransactionContext *txn) { return data_[txn->TxnId().load()].tuple_read_; }
+  int32_t GetTupleRead(const transaction::TransactionContext *txn) { return data_[txn->TxnId().load()].tuple_read_; }
 
   /**
    * @return the tuples updated of the given transaction
    */
-  uint64_t GetTupleUpdate(const transaction::TransactionContext *txn) {
+  int32_t GetTupleUpdate(const transaction::TransactionContext *txn) {
     return data_[txn->TxnId().load()].tuple_update_;
   }
 
   /**
    * @return the tuples inserted of the given transaction
    */
-  uint64_t GetTupleInsert(const transaction::TransactionContext *txn) {
+  int32_t GetTupleInsert(const transaction::TransactionContext *txn) {
     return data_[txn->TxnId().load()].tuple_insert_;
   }
 
   /**
    * @return the tuples deleted of the given transaction
    */
-  uint64_t GetTupleDelete(const transaction::TransactionContext *txn) {
+  int32_t GetTupleDelete(const transaction::TransactionContext *txn) {
     return data_[txn->TxnId().load()].tuple_delete_;
   }
 
@@ -130,11 +130,11 @@ class TransactionMetricRawData : public AbstractRawData {
    */
   struct TransactionData {
     std::chrono::high_resolution_clock::time_point start_;
-    uint64_t latency_;
-    uint32_t tuple_read_;
-    uint32_t tuple_insert_;
-    uint32_t tuple_delete_;
-    uint32_t tuple_update_;
+    int64_t latency_;
+    int32_t tuple_read_;
+    int32_t tuple_insert_;
+    int32_t tuple_delete_;
+    int32_t tuple_update_;
   };
 
   /**

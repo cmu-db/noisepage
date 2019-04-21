@@ -28,8 +28,8 @@ TEST_F(DatabaseMetricTests, BasicTest) {
 
     // transaction::TransactionManager txn_manager(&buffer_pool_, true, LOGGING_DISABLED);
     transaction::TransactionManager txn_manager(nullptr, false, LOGGING_DISABLED);
-    std::unordered_map<uint8_t, uint64_t> commit_map;
-    std::unordered_map<uint8_t, uint64_t> abort_map;
+    std::unordered_map<uint8_t, int32_t> commit_map;
+    std::unordered_map<uint8_t, int32_t> abort_map;
     for (uint8_t j = 0; j < num_databases_; j++) {
       commit_map[j] = 0;
       abort_map[j] = 0;

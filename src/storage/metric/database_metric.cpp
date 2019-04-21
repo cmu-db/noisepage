@@ -17,10 +17,10 @@ void DatabaseMetricRawData::UpdateAndPersist(transaction::TransactionManager *co
 
   for (auto &entry : counters_) {
     // one iteration per database
-    auto database_oid = static_cast<unsigned int>(entry.first);
+    auto database_oid = static_cast<int32_t>(static_cast<uint32_t>(entry.first));
     auto &counter = entry.second;
-    uint64_t commit_cnt = counter.commit_cnt;
-    uint64_t abort_cnt = counter.abort_cnt;
+    auto commit_cnt = counter.commit_cnt_;
+    auto abort_cnt = counter.abort_cnt_;
 
     std::vector<type::TransientValue> search_vec;
     search_vec.emplace_back(type::TransientValueFactory::GetInteger(database_oid));
@@ -34,8 +34,8 @@ void DatabaseMetricRawData::UpdateAndPersist(transaction::TransactionManager *co
       table->InsertRow(txn, row);
     } else {
       // update existing entry
-      int old_commit_cnt = type::TransientValuePeeker::PeekInteger(row[1]);
-      int old_abort_cnt = type::TransientValuePeeker::PeekInteger(row[2]);
+      auto old_commit_cnt = type::TransientValuePeeker::PeekInteger(row[1]);
+      auto old_abort_cnt = type::TransientValuePeeker::PeekInteger(row[2]);
       row.clear();
       row.emplace_back(type::TransientValueFactory::GetInteger(database_oid));
       row.emplace_back(type::TransientValueFactory::GetInteger(commit_cnt + old_commit_cnt));
