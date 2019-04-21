@@ -52,7 +52,7 @@ TEST_F(DatabaseMetricTests, BasicTest) {
       }
     }
 
-    storage::metric::StatsAggregator aggregator(&txn_manager);
+    storage::metric::StatsAggregator aggregator(&txn_manager, nullptr);
     auto result = aggregator.AggregateRawData();
     EXPECT_FALSE(result.empty());
 

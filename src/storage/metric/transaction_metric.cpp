@@ -2,7 +2,7 @@
 #include "catalog/catalog_defs.h"
 #include "storage/metric/thread_level_stats_collector.h"
 #include "transaction/transaction_manager.h"
-#include "util/transaction_benchmark_util.h"
+#include "util/transaction_test_util.h"
 
 namespace terrier::storage::metric {
 

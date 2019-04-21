@@ -2,7 +2,7 @@
 #include "catalog/catalog_defs.h"
 #include "storage/metric/thread_level_stats_collector.h"
 #include "transaction/transaction_manager.h"
-#include "util/transaction_benchmark_util.h"
+#include "util/transaction_test_util.h"
 
 namespace terrier::storage::metric {
 
@@ -17,7 +17,7 @@ void DatabaseMetricRawData::UpdateAndPersist(transaction::TransactionManager *co
 
   for (auto &entry : counters_) {
     // one iteration per database
-    unsigned int database_oid = static_cast<unsigned int>(entry.first);
+    auto database_oid = static_cast<unsigned int>(entry.first);
     auto &counter = entry.second;
     uint64_t commit_cnt = counter.commit_cnt;
     uint64_t abort_cnt = counter.abort_cnt;

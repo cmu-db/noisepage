@@ -80,8 +80,8 @@ class DatabaseMetricRawData : public AbstractRawData {
    * one represents the number of transactions aborted.
    */
   struct Counter {
-    uint64_t commit_cnt;
-    uint64_t abort_cnt;
+    uint32_t commit_cnt;
+    uint32_t abort_cnt;
   };
   std::unordered_map<catalog::db_oid_t, struct Counter> counters_;
 };

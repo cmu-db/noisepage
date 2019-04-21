@@ -28,4 +28,23 @@ void StatsAggregator::Aggregate() {
   }
 }
 
+void StatsAggregator::CreateDatabaseTable() {
+  auto txn = txn_manager_->BeginTransaction();
+  const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
+  auto db_handle = catalog_->GetDatabaseHandle();
+  auto table_handle = db_handle.GetNamespaceHandle(txn, terrier_oid).GetTableHandle(txn, "public");
+
+  // define schema
+  std::vector<catalog::Schema::Column> cols;
+  cols.emplace_back("id", type::TypeId::INTEGER, false, catalog::col_oid_t(catalog_->GetNextOid()));
+  cols.emplace_back("commit_num", type::TypeId::INTEGER, false, catalog::col_oid_t(catalog_->GetNextOid()));
+  cols.emplace_back("abort_num", type::TypeId::INTEGER, false, catalog::col_oid_t(catalog_->GetNextOid()));
+  catalog::Schema schema(cols);
+
+  // create table
+  auto table_ptr = table_handle.GetTable(txn, "database_metric_table");
+  if (table_ptr == nullptr) table_handle.CreateTable(txn, schema, "database_metric_table");
+  txn_manager_->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+}
+
 }  // namespace terrier::storage::metric
