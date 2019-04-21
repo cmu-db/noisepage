@@ -4,6 +4,54 @@
 
 namespace terrier::storage {
 
+void AsyncBlockWriter::Open(const char *log_file_path, int buffer_num) {
+  out_ = PosixIoWrappers::Open(log_file_path, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
+  block_size_ = CHECKPOINT_BLOCK_SIZE;
+
+  for (int i = 0; i < buffer_num; ++i) {
+    byte *buf = new byte[block_size_]();
+    free_.Enqueue(buf);
+  }
+
+  writer_thread_ = new std::thread(&AsyncBlockWriter::RunWriter, this);
+}
+
+void AsyncBlockWriter::Close() {
+  byte *buf;
+
+  // use a nullptr to notify writer thread to stop
+  pending_.Enqueue(nullptr);
+
+  writer_thread_->join();
+  delete writer_thread_;
+
+  PosixIoWrappers::Close(out_);
+
+  while (free_.Dequeue(&buf)) {
+    delete[] buf;
+  }
+}
+
+void AsyncBlockWriter::RunWriter() {
+  byte *buf;
+
+  // TODO(Yuning): Maybe use blocking queue?
+  while (!pending_.Dequeue(&buf)) {
+    // spin
+  }
+
+  while (buf) {
+    PosixIoWrappers::WriteFully(out_, buf, block_size_);
+
+    free_.Enqueue(buf);
+
+    // TODO(Yuning): Maybe use blocking queue?
+    while (!pending_.Dequeue(&buf)) {
+      // spin
+    }
+  }
+}
+
 void BufferedTupleWriter::SerializeTuple(ProjectedRow *row, const catalog::Schema &schema,
                                          const ProjectionMap &proj_map) {
   // find all varchars
@@ -34,7 +82,7 @@ void BufferedTupleWriter::SerializeTuple(ProjectedRow *row, const catalog::Schem
                  "row size should not be larger than page size.");
   AlignBufferOffset<uint64_t>();  // align for ProjectedRow
   if (page_offset_ + row->Size() + varlen_size > block_size_) {
-    PersistBuffer();
+    Persist();
   }
 
   std::memcpy(buffer_ + page_offset_, row, row->Size());
