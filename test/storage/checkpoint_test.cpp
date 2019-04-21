@@ -123,7 +123,8 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryNoSeparateThread) {
                       std::inserter(diff2, diff2.begin()));
   EXPECT_EQ(diff1.size(), 0);
   EXPECT_EQ(diff2.size(), 0);
-  //  UnlinkCheckpointFiles();
+  UnlinkCheckpointFiles();
+  delete txn;
   delete recovered_table;
   delete scan_txn;
   delete scan_txn_2;
