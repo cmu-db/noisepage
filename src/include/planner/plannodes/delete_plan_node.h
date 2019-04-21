@@ -102,7 +102,13 @@ class DeletePlanNode : public AbstractPlanNode {
         delete_condition_(std::move(delete_condition)) {}
 
  public:
-  DeletePlanNode() = delete;
+  /**
+   * Default constructor used for deserialization
+   */
+  DeletePlanNode() = default;
+
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
 
   /**
    * @return OID of the database

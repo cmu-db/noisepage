@@ -38,4 +38,20 @@ bool DropViewPlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   return AbstractPlanNode::operator==(rhs);
 }
+
+nlohmann::json DropViewPlanNode::ToJson() const {
+  nlohmann::json j = AbstractPlanNode::ToJson();
+  j["database_oid"] = database_oid_;
+  j["view_oid"] = view_oid_;
+  j["if_exists"] = if_exists_;
+  return j;
+}
+
+void DropViewPlanNode::FromJson(const nlohmann::json &j) {
+  AbstractPlanNode::FromJson(j);
+  database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
+  view_oid_ = j.at("view_oid").get<catalog::view_oid_t>();
+  if_exists_ = j.at("if_exists").get<bool>();
+}
+
 }  // namespace terrier::planner

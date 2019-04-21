@@ -106,7 +106,13 @@ class DropViewPlanNode : public AbstractPlanNode {
         if_exists_(if_exists) {}
 
  public:
-  DropViewPlanNode() = delete;
+  /**
+   * Default constructor for deserialization
+   */
+  DropViewPlanNode() = default;
+
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
 
   /**
    * @return the type of this plan node

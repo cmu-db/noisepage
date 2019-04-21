@@ -89,7 +89,13 @@ class DropDatabasePlanNode : public AbstractPlanNode {
         if_exists_(if_exists) {}
 
  public:
-  DropDatabasePlanNode() = delete;
+  /**
+   * Default constructor for deserialization
+   */
+  DropDatabasePlanNode() = default;
+
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
 
   /**
    * @return the type of this plan node

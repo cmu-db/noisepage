@@ -38,4 +38,20 @@ bool DropTablePlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   return AbstractPlanNode::operator==(rhs);
 }
+
+nlohmann::json DropTablePlanNode::ToJson() const {
+  nlohmann::json j = AbstractPlanNode::ToJson();
+  j["database_oid"] = database_oid_;
+  j["table_oid"] = table_oid_;
+  j["if_exists"] = if_exists_;
+  return j;
+}
+
+void DropTablePlanNode::FromJson(const nlohmann::json &j) {
+  AbstractPlanNode::FromJson(j);
+  database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
+  table_oid_ = j.at("table_oid").get<catalog::table_oid_t>();
+  if_exists_ = j.at("if_exists").get<bool>();
+}
+
 }  // namespace terrier::planner

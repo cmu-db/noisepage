@@ -38,4 +38,20 @@ bool DropIndexPlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   return AbstractPlanNode::operator==(rhs);
 }
+
+nlohmann::json DropIndexPlanNode::ToJson() const {
+  nlohmann::json j = AbstractPlanNode::ToJson();
+  j["database_oid"] = database_oid_;
+  j["index_oid"] = index_oid_;
+  j["if_exists"] = if_exists_;
+  return j;
+}
+
+void DropIndexPlanNode::FromJson(const nlohmann::json &j) {
+  AbstractPlanNode::FromJson(j);
+  database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
+  index_oid_ = j.at("index_oid").get<catalog::index_oid_t>();
+  if_exists_ = j.at("if_exists").get<bool>();
+}
+
 }  // namespace terrier::planner

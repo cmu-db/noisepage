@@ -106,7 +106,13 @@ class DropIndexPlanNode : public AbstractPlanNode {
         if_exists_(if_exists) {}
 
  public:
-  DropIndexPlanNode() = delete;
+  /**
+   * Default constructor for deserialization
+   */
+  DropIndexPlanNode() = default;
+
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
 
   /**
    * @return the type of this plan node

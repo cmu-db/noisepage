@@ -97,6 +97,49 @@ std::shared_ptr<AbstractPlanNode> DeserializePlanNode(const nlohmann::json &json
       plan_node = std::make_shared<CreateTriggerPlanNode>();
       break;
     }
+
+    case PlanNodeType::CREATE_VIEW: {
+      plan_node = std::make_shared<CreateViewPlanNode>();
+      break;
+    }
+
+    case PlanNodeType::CSVSCAN: {
+      plan_node = std::make_shared<CSVScanPlanNode>();
+      break;
+    }
+
+    case PlanNodeType::DELETE: {
+      plan_node = std::make_shared<DeletePlanNode>();
+      break;
+    }
+    case PlanNodeType::DROP_DATABASE: {
+      plan_node = std::make_shared<DropDatabasePlanNode>();
+      break;
+    }
+    case PlanNodeType::DROP_INDEX: {
+      plan_node = std::make_shared<DropIndexPlanNode>();
+      break;
+    }
+    case PlanNodeType::DROP_NAMESPACE: {
+      plan_node = std::make_shared<DropNamespacePlanNode>();
+      break;
+    }
+    case PlanNodeType::DROP_TABLE: {
+      plan_node = std::make_shared<DropTablePlanNode>();
+      break;
+    }
+    case PlanNodeType::DROP_TRIGGER: {
+      plan_node = std::make_shared<DropTriggerPlanNode>();
+      break;
+    }
+    case PlanNodeType::DROP_VIEW: {
+      plan_node = std::make_shared<DropViewPlanNode>();
+      break;
+    }
+    case PlanNodeType::CREATE_TRIGGER: {
+      plan_node = std::make_shared<CreateTriggerPlanNode>();
+      break;
+    }
     case PlanNodeType::CREATE_VIEW: {
       plan_node = std::make_shared<CreateViewPlanNode>();
       break;

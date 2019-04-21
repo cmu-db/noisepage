@@ -210,6 +210,476 @@ TEST(PlanNodeJsonTest, SeqScanPlanNodeJsonTest) {
   // Construct SeqScanPlanNode
   SeqScanPlanNode::Builder builder;
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
+      .SetScanPredicate(PlanNodeJsonTest::BuildDummyPredicate())
+      .SetIsParallelFlag(true)
+      .SetIsForUpdateFlag(false)
+      .SetDatabaseOid(catalog::db_oid_t(0))
+      .SetTableOid(catalog::table_oid_t(0))
+      .Build();
+
+  // Serialize to Json
+  auto json = plan_node->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize plan node
+  auto deserialized_plan = DeserializePlanNode(json);
+  EXPECT_TRUE(deserialized_plan != nullptr);
+  EXPECT_EQ(PlanNodeType::SEQSCAN, deserialized_plan->GetPlanNodeType());
+  auto seq_scan_plan = std::dynamic_pointer_cast<SeqScanPlanNode>(deserialized_plan);
+  EXPECT_EQ(*plan_node, *seq_scan_plan);
+}
+
+// NOLINTNEXTLINE
+TEST(PlanNodeJsonTest, OrderByPlanNodeJsonTest) {
+  // Construct OrderByPlanNode
+  OrderByPlanNode::Builder builder;
+  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
+      .AddSortKey(catalog::col_oid_t(0), OrderByOrderingType::ASC)
+      .AddSortKey(catalog::col_oid_t(1), OrderByOrderingType::DESC)
+      .SetLimit(10)
+      .SetOffset(10)
+      .Build();
+
+  // Serialize to Json
+  auto json = plan_node->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize plan node
+  auto deserialized_plan = DeserializePlanNode(json);
+  EXPECT_TRUE(deserialized_plan != nullptr);
+  EXPECT_EQ(PlanNodeType::ORDERBY, deserialized_plan->GetPlanNodeType());
+  auto order_by_plan = std::dynamic_pointer_cast<OrderByPlanNode>(deserialized_plan);
+  EXPECT_EQ(*plan_node, *order_by_plan);
+}
+
+// NOLINTNEXTLINE
+TEST(PlanNodeJsonTest, InsertPlanNodeJsonTest) {
+  // Construct InsertPlanNode
+  std::vector<type::TransientValue> values;
+  values.push_back(type::TransientValueFactory::GetInteger(0));
+  values.push_back(type::TransientValueFactory::GetBoolean(true));
+  std::vector<std::tuple<uint32_t, uint32_t, uint32_t>> parameter_info;
+  parameter_info.emplace_back(0, 1, 2);
+  parameter_info.emplace_back(3, 4, 5);
+  InsertPlanNode::Builder builder;
+  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
+      .SetDatabaseOid(catalog::db_oid_t(0))
+      .SetTableOid(catalog::table_oid_t(1))
+      .SetValues(std::move(values))
+      .SetParameterInfo(std::move(parameter_info))
+      .SetBulkInsertCount(1)
+      .Build();
+
+  // Serialize to Json
+  auto json = plan_node->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize plan node
+  auto deserialized_plan = DeserializePlanNode(json);
+  EXPECT_TRUE(deserialized_plan != nullptr);
+  EXPECT_EQ(PlanNodeType::INSERT, deserialized_plan->GetPlanNodeType());
+  auto insert_plan = std::dynamic_pointer_cast<InsertPlanNode>(deserialized_plan);
+  EXPECT_EQ(*plan_node, *insert_plan);
+}
+
+// NOLINTNEXTLINE
+TEST(PlanNodeJsonTest, ResultPlanNodeJsonTest) {
+  // Construct ResultPlanNode
+  ResultPlanNode::Builder builder;
+  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
+      .SetExpr(PlanNodeJsonTest::BuildDummyPredicate())
+      .Build();
+
+  // Serialize to Json
+  auto json = plan_node->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize plan node
+  auto deserialized_plan = DeserializePlanNode(json);
+  EXPECT_TRUE(deserialized_plan != nullptr);
+  EXPECT_EQ(PlanNodeType::RESULT, deserialized_plan->GetPlanNodeType());
+  auto result_plan = std::dynamic_pointer_cast<ResultPlanNode>(deserialized_plan);
+  EXPECT_EQ(*plan_node, *result_plan);
+}
+
+// NOLINTNEXTLINE
+TEST(PlanNodeJsonTest, HashPlanNodeJsonTest) {
+  // Construct HashPlanNode
+  HashPlanNode::Builder builder;
+  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
+      .AddHashKey(std::make_shared<parser::TupleValueExpression>("col1", "table1"))
+      .AddHashKey(std::make_shared<parser::TupleValueExpression>("col2", "table1"))
+      .AddChild(PlanNodeJsonTest::BuildDummySeqScanPlan())
+      .Build();
+
+  // Serialize to Json
+  auto json = plan_node->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize plan node
+  auto deserialized_plan = DeserializePlanNode(json);
+  EXPECT_TRUE(deserialized_plan != nullptr);
+  EXPECT_EQ(PlanNodeType::HASH, deserialized_plan->GetPlanNodeType());
+  auto hash_plan = std::dynamic_pointer_cast<HashPlanNode>(deserialized_plan);
+  EXPECT_EQ(*plan_node, *hash_plan);
+}
+
+// NOLINTNEXTLINE
+TEST(PlanNodeJsonTest, HashJoinPlanNodeJoinTest) {
+  // Construct HashJoinPlanNode
+  HashJoinPlanNode::Builder builder;
+  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
+      .SetJoinType(LogicalJoinType::INNER)
+      .SetJoinPredicate(PlanNodeJsonTest::BuildDummyPredicate())
+      .AddLeftHashKey(std::make_shared<parser::TupleValueExpression>("col1", "table1"))
+      .AddRightHashKey(std::make_shared<parser::TupleValueExpression>("col2", "table2"))
+      .SetBuildBloomFilterFlag(false)
+      .Build();
+
+  // Serialize to Json
+  auto json = plan_node->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize plan node
+  auto deserialized_plan = DeserializePlanNode(json);
+  EXPECT_TRUE(deserialized_plan != nullptr);
+  EXPECT_EQ(PlanNodeType::HASHJOIN, deserialized_plan->GetPlanNodeType());
+  auto hash_join_plan = std::dynamic_pointer_cast<HashJoinPlanNode>(deserialized_plan);
+  EXPECT_EQ(*plan_node, *hash_join_plan);
+}
+
+// NOLINTNEXTLINE
+TEST(PlanNodeJsonTest, CreateDatabasePlanNodeTest) {
+  // Construct CreateDatabasePlanNode
+  CreateDatabasePlanNode::Builder builder;
+  auto plan_node = builder.SetDatabaseName("test_db")
+      .Build();
+
+  // Serialize to Json
+  auto json = plan_node->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize plan node
+  auto deserialized_plan = DeserializePlanNode(json);
+  EXPECT_TRUE(deserialized_plan != nullptr);
+  EXPECT_EQ(PlanNodeType::CREATE_DATABASE, deserialized_plan->GetPlanNodeType());
+  auto create_database_plan = std::dynamic_pointer_cast<CreateDatabasePlanNode>(deserialized_plan);
+  EXPECT_EQ(*plan_node, *create_database_plan);
+}
+
+// NOLINTNEXTLINE
+TEST(PlanNodeJsonTest, CreateFunctionPlanNodeTest) {
+  // Construct CreateFunctionPlanNode
+  CreateFunctionPlanNode::Builder builder;
+  auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(1))
+      .SetLanguage(parser::PLType::PL_PGSQL)
+      .SetFunctionParamNames({"i"})
+      .SetFunctionParamTypes({parser::BaseFunctionParameter::DataType::INT})
+      .SetFunctionBody({"RETURN i+1;"})
+      .SetIsReplace(true)
+      .SetFunctionName("test_func")
+      .SetReturnType(parser::BaseFunctionParameter::DataType::INT)
+      .SetParamCount(1)
+      .Build();
+
+  // Serialize to Json
+  auto json = plan_node->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize plan node
+  auto deserialized_plan = DeserializePlanNode(json);
+  EXPECT_TRUE(deserialized_plan != nullptr);
+  EXPECT_EQ(PlanNodeType::CREATE_FUNC, deserialized_plan->GetPlanNodeType());
+  auto create_func_plan = std::dynamic_pointer_cast<CreateFunctionPlanNode>(deserialized_plan);
+  EXPECT_EQ(*plan_node, *create_func_plan);
+}
+
+// NOLINTNEXTLINE
+TEST(PlanNodeJsonTest, CreateIndexPlanNodeTest) {
+  // Construct CreateIndexPlanNode
+  CreateIndexPlanNode::Builder builder;
+  auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(1))
+      .SetTableOid(catalog::table_oid_t(2))
+      .SetIndexName("test_index")
+      .SetUniqueIndex(true)
+      .SetIndexAttrs({"a", "foo"})
+      .SetKeyAttrs({"a", "bar"})
+      .Build();
+
+  // Serialize to Json
+  auto json = plan_node->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize plan node
+  auto deserialized_plan = DeserializePlanNode(json);
+  EXPECT_TRUE(deserialized_plan != nullptr);
+  EXPECT_EQ(PlanNodeType::CREATE_INDEX, deserialized_plan->GetPlanNodeType());
+  auto create_index_plan = std::dynamic_pointer_cast<CreateIndexPlanNode>(deserialized_plan);
+  EXPECT_EQ(*plan_node, *create_index_plan);
+}
+
+// NOLINTNEXTLINE
+TEST(PlanNodeJsonTest, CreateNamespacePlanNodeTest) {
+  // Construct CreateNamespacePlanNode
+  CreateNamespacePlanNode::Builder builder;
+  auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(2))
+      .SetNamespaceName("test_namespace")
+      .Build();
+
+  // Serialize to Json
+  auto json = plan_node->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize plan node
+  auto deserialized_plan = DeserializePlanNode(json);
+  EXPECT_TRUE(deserialized_plan != nullptr);
+  EXPECT_EQ(PlanNodeType::CREATE_NAMESPACE, deserialized_plan->GetPlanNodeType());
+  auto create_namespace_plan = std::dynamic_pointer_cast<CreateNamespacePlanNode>(deserialized_plan);
+  EXPECT_EQ(*plan_node, *create_namespace_plan);
+}
+
+// NOLINTNEXTLINE
+TEST(PlanNodeJsonTest, CreateTriggerPlanNodeTest) {
+  // Construct CreateTriggerPlanNode
+  CreateTriggerPlanNode::Builder builder;
+  auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(2))
+      .SetTableOid(catalog::table_oid_t(3))
+      .SetTriggerName("test_trigger")
+      .SetTriggerFuncnames({"test_trigger_func"})
+      .SetTriggerArgs({"a", "b"})
+      .SetTriggerColumns({catalog::col_oid_t(0), catalog::col_oid_t(1)})
+      .SetTriggerWhen(PlanNodeJsonTest::BuildDummyPredicate())
+      .SetTriggerType(23)
+      .Build();
+
+  // Serialize to Json
+  auto json = plan_node->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize plan node
+  auto deserialized_plan = DeserializePlanNode(json);
+  EXPECT_TRUE(deserialized_plan != nullptr);
+  EXPECT_EQ(PlanNodeType::CREATE_TRIGGER, deserialized_plan->GetPlanNodeType());
+  auto create_trigger_plan = std::dynamic_pointer_cast<CreateTriggerPlanNode>(deserialized_plan);
+  EXPECT_EQ(*plan_node, *create_trigger_plan);
+}
+
+// NOLINTNEXTLINE
+TEST(PlanNodeJsonTest, CreateViewPlanNodeTest) {
+  // Construct CreateViewPlanNode
+  CreateViewPlanNode::Builder builder;
+  std::shared_ptr<parser::SelectStatement> select_stmt = std::make_shared<parser::SelectStatement>();
+  auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(2))
+      .SetNamespaceOid(catalog::namespace_oid_t(3))
+      .SetViewName("test_view")
+      .SetViewQuery(select_stmt)
+      .Build();
+
+  // Serialize to Json
+  auto json = plan_node->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize plan node
+  auto deserialized_plan = DeserializePlanNode(json);
+  EXPECT_TRUE(deserialized_plan != nullptr);
+  EXPECT_EQ(PlanNodeType::CREATE_VIEW, deserialized_plan->GetPlanNodeType());
+  auto create_view_plan = std::dynamic_pointer_cast<CreateViewPlanNode>(deserialized_plan);
+  EXPECT_EQ(*plan_node, *create_view_plan);
+}
+
+// NOLINTNEXTLINE
+TEST(PlanNodeJsonTest, CSVScanPlanNodeTest) {
+  // Construct CSVScanPlanNode
+  CSVScanPlanNode::Builder builder;
+  auto plan_node = builder.SetFileName("/dev/null")
+      .SetDelimiter(',')
+      .SetQuote('\'')
+      .SetEscape('`')
+      .SetNullString("")
+      .Build();
+
+  // Serialize to Json
+  auto json = plan_node->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize plan node
+  auto deserialized_plan = DeserializePlanNode(json);
+  EXPECT_TRUE(deserialized_plan != nullptr);
+  EXPECT_EQ(PlanNodeType::CSVSCAN, deserialized_plan->GetPlanNodeType());
+  auto csv_scan_plan = std::dynamic_pointer_cast<CSVScanPlanNode>(deserialized_plan);
+  EXPECT_EQ(*plan_node, *csv_scan_plan);
+}
+
+// NOLINTNEXTLINE
+TEST(PlanNodeJsonTest, DeletePlanNodeTest) {
+  // Construct DeletePlanNode
+  DeletePlanNode::Builder builder;
+  auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(1))
+                          .SetTableOid(catalog::table_oid_t(2))
+                          .SetDeleteCondition(PlanNodeJsonTest::BuildDummyPredicate())
+                          .Build();
+
+  // Serialize to Json
+  auto json = plan_node->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize plan node
+  auto deserialized_plan = DeserializePlanNode(json);
+  EXPECT_TRUE(deserialized_plan != nullptr);
+  EXPECT_EQ(PlanNodeType::DELETE, deserialized_plan->GetPlanNodeType());
+  auto delete_plan = std::dynamic_pointer_cast<DeletePlanNode>(deserialized_plan);
+  EXPECT_EQ(*plan_node, *delete_plan);
+}
+
+// NOLINTNEXTLINE
+TEST(PlanNodeJsonTest, DropDatabasePlanNodeTest) {
+  // Construct DropDatabasePlanNode
+  DropDatabasePlanNode::Builder builder;
+  auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(7))
+                          .SetIfExist(true)
+                          .Build();
+
+  // Serialize to Json
+  auto json = plan_node->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize plan node
+  auto deserialized_plan = DeserializePlanNode(json);
+  EXPECT_TRUE(deserialized_plan != nullptr);
+  EXPECT_EQ(PlanNodeType::DROP_DATABASE, deserialized_plan->GetPlanNodeType());
+  auto drop_database_plan = std::dynamic_pointer_cast<DropDatabasePlanNode>(deserialized_plan);
+  EXPECT_EQ(*plan_node, *drop_database_plan);
+}
+
+// NOLINTNEXTLINE
+TEST(PlanNodeJsonTest, DropIndexPlanNodeTest) {
+  // Construct DropIndexPlanNode
+  DropIndexPlanNode::Builder builder;
+  auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(7))
+                          .SetIndexOid(catalog::index_oid_t(8))
+                          .SetIfExist(true)
+                          .Build();
+
+  // Serialize to Json
+  auto json = plan_node->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize plan node
+  auto deserialized_plan = DeserializePlanNode(json);
+  EXPECT_TRUE(deserialized_plan != nullptr);
+  EXPECT_EQ(PlanNodeType::DROP_INDEX, deserialized_plan->GetPlanNodeType());
+  auto drop_index_plan = std::dynamic_pointer_cast<DropIndexPlanNode>(deserialized_plan);
+  EXPECT_EQ(*plan_node, *drop_index_plan);
+}
+
+// NOLINTNEXTLINE
+TEST(PlanNodeJsonTest, DropNamespacePlanNodeTest) {
+  // Construct DropNamespacePlanNode
+  DropNamespacePlanNode::Builder builder;
+  auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(8))
+                          .SetNamespaceOid(catalog::namespace_oid_t(9))
+                          .SetIfExist(true)
+                          .Build();
+
+  // Serialize to Json
+  auto json = plan_node->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize plan node
+  auto deserialized_plan = DeserializePlanNode(json);
+  EXPECT_TRUE(deserialized_plan != nullptr);
+  EXPECT_EQ(PlanNodeType::DROP_NAMESPACE, deserialized_plan->GetPlanNodeType());
+  auto drop_namespace_plan = std::dynamic_pointer_cast<DropNamespacePlanNode>(deserialized_plan);
+  EXPECT_EQ(*plan_node, *drop_namespace_plan);
+}
+
+// NOLINTNEXTLINE
+TEST(PlanNodeJsonTest, DropTablePlanNodeTest) {
+  // Construct DropTablePlanNode
+  DropTablePlanNode::Builder builder;
+  auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(9))
+                          .SetTableOid(catalog::table_oid_t(10))
+                          .SetIfExist(true)
+                          .Build();
+
+  // Serialize to Json
+  auto json = plan_node->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize plan node
+  auto deserialized_plan = DeserializePlanNode(json);
+  EXPECT_TRUE(deserialized_plan != nullptr);
+  EXPECT_EQ(PlanNodeType::DROP_TABLE, deserialized_plan->GetPlanNodeType());
+  auto drop_table_plan = std::dynamic_pointer_cast<DropTablePlanNode>(deserialized_plan);
+  EXPECT_EQ(*plan_node, *drop_table_plan);
+}
+
+// NOLINTNEXTLINE
+TEST(PlanNodeJsonTest, DropTriggerPlanNodeTest) {
+  // Construct DropTriggerPlanNode
+  DropTriggerPlanNode::Builder builder;
+  auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(10))
+                          .SetTriggerOid(catalog::trigger_oid_t(11))
+                          .SetIfExist(true)
+                          .Build();
+
+  // Serialize to Json
+  auto json = plan_node->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize plan node
+  auto deserialized_plan = DeserializePlanNode(json);
+  EXPECT_TRUE(deserialized_plan != nullptr);
+  EXPECT_EQ(PlanNodeType::DROP_TRIGGER, deserialized_plan->GetPlanNodeType());
+  auto drop_trigger_plan = std::dynamic_pointer_cast<DropTriggerPlanNode>(deserialized_plan);
+  EXPECT_EQ(*plan_node, *drop_trigger_plan);
+}
+
+// NOLINTNEXTLINE
+TEST(PlanNodeJsonTest, DropViewPlanNodeTest) {
+  // Construct DropViewPlanNode
+  DropViewPlanNode::Builder builder;
+  auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(11))
+                          .SetViewOid(catalog::view_oid_t(12))
+                          .SetIfExist(true)
+                          .Build();
+
+  // Serialize to Json
+  auto json = plan_node->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize plan node
+  auto deserialized_plan = DeserializePlanNode(json);
+  EXPECT_TRUE(deserialized_plan != nullptr);
+  EXPECT_EQ(PlanNodeType::DROP_VIEW, deserialized_plan->GetPlanNodeType());
+  auto drop_view_plan = std::dynamic_pointer_cast<DropViewPlanNode>(deserialized_plan);
+  EXPECT_EQ(*plan_node, *drop_view_plan);
+}
+
+
+// NOLINTNEXTLINE
+TEST(PlanNodeJsonTest, ProjectionPlanNodeJsonTest) {
+  // Construct ProjectionPlanNode
+  ProjectionPlanNode::Builder builder;
+  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema()).Build();
+
+  // Serialize to Json
+  auto json = plan_node->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize plan node
+  auto deserialized_plan = DeserializePlanNode(json);
+  EXPECT_TRUE(deserialized_plan != nullptr);
+  EXPECT_EQ(PlanNodeType::PROJECTION, deserialized_plan->GetPlanNodeType());
+  auto projection_plan = std::dynamic_pointer_cast<ProjectionPlanNode>(deserialized_plan);
+  EXPECT_EQ(*plan_node, *projection_plan);
+}
+
+// NOLINTNEXTLINE
+TEST(PlanNodeJsonTest, SeqScanPlanNodeJsonTest) {
+  // Construct SeqScanPlanNode
+  SeqScanPlanNode::Builder builder;
+  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
                        .SetScanPredicate(PlanNodeJsonTest::BuildDummyPredicate())
                        .SetIsParallelFlag(true)
                        .SetIsForUpdateFlag(false)
