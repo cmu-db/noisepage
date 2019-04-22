@@ -20,15 +20,7 @@ namespace terrier::tpcc {
  */
 class NewOrder {
  private:
-  struct StockSelectPROffsets {
-    const uint8_t s_quantity_select_pr_offset;
-    const uint8_t s_dist_xx_select_pr_offset;
-    const uint8_t s_ytd_select_pr_offset;
-    const uint8_t s_order_cnt_select_pr_offset;
-    const uint8_t s_remote_cnt_select_pr_offset;
-    const uint8_t s_data_select_pr_offset;
-  };
-
+  // Struct for deferred index inserts after New Order is guaranteed to commit
   struct OrderLineIndexInserts {
     const int32_t o_id;
     const int8_t d_id;
@@ -37,19 +29,21 @@ class NewOrder {
     storage::TupleSlot slot;
   };
 
+  // Warehouse metadata
   const storage::ProjectedRowInitializer warehouse_select_pr_initializer;
 
+  // District metadata
   const catalog::col_oid_t d_tax_oid;
   const catalog::col_oid_t d_next_o_id_oid;
   const storage::ProjectedRowInitializer district_select_pr_initializer;
   const storage::ProjectionMap district_select_pr_map;
-
   const uint8_t d_id_key_pr_offset;
   const uint8_t d_w_id_key_pr_offset;
   const uint8_t d_tax_select_pr_offset;
   const uint8_t d_next_o_id_select_pr_offset;
   const storage::ProjectedRowInitializer district_update_pr_initializer;
 
+  // Customer metadata
   const catalog::col_oid_t c_discount_oid;
   const catalog::col_oid_t c_last_oid;
   const catalog::col_oid_t c_credit_oid;
@@ -60,16 +54,17 @@ class NewOrder {
   const uint8_t c_d_id_key_pr_offset;
   const uint8_t c_w_id_key_pr_offset;
 
+  // New Order metadata
   const storage::ProjectedRowInitializer new_order_insert_pr_initializer;
   const storage::ProjectionMap new_order_insert_pr_map;
   const uint8_t no_o_id_insert_pr_offset;
   const uint8_t no_d_id_insert_pr_offset;
   const uint8_t no_w_id_insert_pr_offset;
-
   const uint8_t no_o_id_key_pr_offset;
   const uint8_t no_d_id_key_pr_offset;
   const uint8_t no_w_id_key_pr_offset;
 
+  // Order metadata
   const storage::ProjectedRowInitializer order_insert_pr_initializer;
   const storage::ProjectionMap order_insert_pr_map;
   const uint8_t o_id_insert_pr_offset;
@@ -80,7 +75,6 @@ class NewOrder {
   const uint8_t o_carrier_id_insert_pr_offset;
   const uint8_t o_ol_cnt_insert_pr_offset;
   const uint8_t o_all_local_insert_pr_offset;
-
   const uint8_t o_id_key_pr_offset;
   const uint8_t o_d_id_key_pr_offset;
   const uint8_t o_w_id_key_pr_offset;
@@ -89,6 +83,7 @@ class NewOrder {
   const uint8_t o_w_id_secondary_key_pr_offset;
   const uint8_t o_c_id_secondary_key_pr_offset;
 
+  // Item metadata
   const catalog::col_oid_t i_price_oid;
   const catalog::col_oid_t i_name_oid;
   const catalog::col_oid_t i_data_oid;
@@ -97,6 +92,15 @@ class NewOrder {
   const uint8_t i_price_select_pr_offset;
   const uint8_t i_data_select_pr_offset;
 
+  // Stock metadata
+  struct StockSelectPROffsets {
+    const uint8_t s_quantity_select_pr_offset;
+    const uint8_t s_dist_xx_select_pr_offset;
+    const uint8_t s_ytd_select_pr_offset;
+    const uint8_t s_order_cnt_select_pr_offset;
+    const uint8_t s_remote_cnt_select_pr_offset;
+    const uint8_t s_data_select_pr_offset;
+  };
   const catalog::col_oid_t s_quantity_oid;
   const catalog::col_oid_t s_ytd_oid;
   const catalog::col_oid_t s_order_cnt_oid;
@@ -110,7 +114,10 @@ class NewOrder {
   const uint8_t s_remote_cnt_update_pr_offset;
   const uint8_t s_i_id_key_pr_offset;
   const uint8_t s_w_id_key_pr_offset;
+  std::vector<StockSelectPROffsets> stock_select_pr_offsets;
+  std::vector<std::pair<storage::ProjectedRowInitializer, storage::ProjectionMap>> stock_select_initializers;
 
+  // Order Line metadata
   const storage::ProjectedRowInitializer order_line_insert_pr_initializer;
   const storage::ProjectionMap order_line_insert_pr_map;
   const uint8_t ol_o_id_insert_pr_offset;
@@ -128,8 +135,6 @@ class NewOrder {
   const uint8_t ol_w_id_key_pr_offset;
   const uint8_t ol_number_key_pr_offset;
 
-  std::vector<StockSelectPROffsets> stock_select_pr_offsets;
-  std::vector<std::pair<storage::ProjectedRowInitializer, storage::ProjectionMap>> stock_select_initializers;
   std::vector<OrderLineIndexInserts> order_line_index_inserts_;
 
  public:
@@ -285,13 +290,13 @@ class NewOrder {
             db->order_line_primary_index_schema_.at(0).GetOid()))),
         ol_number_key_pr_offset(static_cast<uint8_t>(db->order_line_primary_index_->GetKeyOidToOffsetMap().at(
             db->order_line_primary_index_schema_.at(3).GetOid()))) {
+    // Generate metadata for all 10 districts
     stock_select_initializers.reserve(10);
     for (uint8_t d_id = 0; d_id < 10; d_id++) {
       const auto s_dist_xx_oid = db->stock_schema_.GetColumn(3 + d_id).GetOid();
       stock_select_initializers.emplace_back((db->stock_table_->InitializerForProjectedRow(
           {s_quantity_oid, s_dist_xx_oid, s_ytd_oid, s_order_cnt_oid, s_remote_cnt_oid, s_data_oid})));
     }
-
     stock_select_pr_offsets.reserve(10);
     for (uint8_t d_id = 0; d_id < 10; d_id++) {
       const auto s_dist_xx_oid = db->stock_schema_.GetColumn(3 + d_id).GetOid();
@@ -304,6 +309,7 @@ class NewOrder {
            static_cast<uint8_t>(stock_select_initializers[d_id].second.at(s_data_oid))});
     }
 
+    // Can't have more than 15 items in the order, so reserve maximum
     order_line_index_inserts_.reserve(15);
   }
 
