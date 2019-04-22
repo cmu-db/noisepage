@@ -14,6 +14,9 @@
 
 namespace terrier::tpcc {
 
+/**
+ * Stock-Level transaction according to section 2.8.2 of the specification
+ */
 class StockLevel {
  private:
   const storage::ProjectedRowInitializer district_select_pr_initializer;

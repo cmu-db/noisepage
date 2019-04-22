@@ -15,6 +15,9 @@
 #include "transaction/transaction_manager.h"
 #include "util/transaction_benchmark_util.h"
 
+/**
+ * Delivery transaction according to section 2.5.2 of the specification
+ */
 namespace terrier::tpcc {
 
 class Payment {

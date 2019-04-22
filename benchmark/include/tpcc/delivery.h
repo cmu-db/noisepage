@@ -13,34 +13,37 @@
 
 namespace terrier::tpcc {
 
+/**
+ * Delivery transaction according to section 2.7.4 of the specification
+ */
 class Delivery {
  private:
+  // New Order metadata
   catalog::indexkeycol_oid_t no_o_id_key_oid;
   catalog::indexkeycol_oid_t no_d_id_key_oid;
   catalog::indexkeycol_oid_t no_w_id_key_oid;
-
   const storage::ProjectedRowInitializer new_order_pr_initializer;
   const uint8_t no_o_id_key_pr_offset;
   const uint8_t no_d_id_key_pr_offset;
   const uint8_t no_w_id_key_pr_offset;
 
+  // Order metadata
   catalog::indexkeycol_oid_t o_id_key_oid;
   catalog::indexkeycol_oid_t o_d_id_key_oid;
   catalog::indexkeycol_oid_t o_w_id_key_oid;
-
   const storage::ProjectedRowInitializer order_select_pr_initializer;
   const storage::ProjectedRowInitializer order_update_pr_initializer;
   const uint8_t o_id_key_pr_offset;
   const uint8_t o_d_id_key_pr_offset;
   const uint8_t o_w_id_key_pr_offset;
 
+  // Order Line metadata
   catalog::col_oid_t ol_amount_oid;
   catalog::col_oid_t ol_delivery_d_oid;
   catalog::indexkeycol_oid_t ol_o_id_key_oid;
   catalog::indexkeycol_oid_t ol_d_id_key_oid;
   catalog::indexkeycol_oid_t ol_w_id_key_oid;
   catalog::indexkeycol_oid_t ol_number_key_oid;
-
   const storage::ProjectedRowInitializer order_line_select_pr_initializer;
   const storage::ProjectedRowInitializer order_line_update_pr_initializer;
   const uint8_t ol_o_id_key_pr_offset;
@@ -48,12 +51,12 @@ class Delivery {
   const uint8_t ol_w_id_key_pr_offset;
   const uint8_t ol_number_key_pr_offset;
 
+  // Customer metadata
   catalog::col_oid_t c_balance_oid;
   catalog::col_oid_t c_delivery_cnt_oid;
   catalog::indexkeycol_oid_t c_id_key_oid;
   catalog::indexkeycol_oid_t c_d_id_key_oid;
   catalog::indexkeycol_oid_t c_w_id_key_oid;
-
   const storage::ProjectedRowInitializer customer_pr_initializer;
   const storage::ProjectionMap customer_pr_map;
   const uint8_t c_balance_pr_offset;
@@ -128,7 +131,6 @@ class Delivery {
 
   {}
 
-  // 2.4.2
   template <class Random>
   bool Execute(transaction::TransactionManager *const txn_manager, Random *const generator, Database *const db,
                Worker *const worker, const TransactionArgs &args) const {
@@ -139,7 +141,6 @@ class Delivery {
     for (int8_t d_id = 1; d_id <= 10; d_id++) {
       std::vector<storage::TupleSlot> index_scan_results;
 
-      // TODO(WAN): this should be ScanLimit() or something similar, just prototyping what needs to happen
       // Look up NO_W_ID and NO_D_ID, find the lowest NO_O_ID value
       const auto new_order_key_pr_initializer = db->new_order_primary_index_->GetProjectedRowInitializer();
       auto *const new_order_key_lo = new_order_key_pr_initializer.InitializeRow(worker->new_order_key_buffer);
@@ -167,12 +168,12 @@ class Delivery {
                      "that indexes are getting cleaned.");
       const auto no_o_id = *reinterpret_cast<int32_t *>(new_order_select_tuple->AccessWithNullCheck(0));
 
-      // Delete the corresponding new order table row
+      // Delete the corresponding New Order table row
       bool delete_result UNUSED_ATTRIBUTE = db->new_order_table_->Delete(txn, new_order_slot);
       TERRIER_ASSERT(delete_result,
                      "New Order delete failed. This assertion assumes 1:1 mapping between warehouse and workers.");
 
-      // Delete the index entry
+      // Delete the New Order index entry. Would need to defer this in a many:1 worker:warehouse scenario
       auto *const new_order_delete_key = new_order_key_pr_initializer.InitializeRow(worker->new_order_key_buffer);
 
       *reinterpret_cast<int8_t *>(new_order_delete_key->AccessForceNotNull(no_w_id_key_pr_offset)) = args.w_id;
@@ -260,20 +261,18 @@ class Delivery {
       // Increase C_BALANCE by OL_AMOUNT, increase C_DELIVERY_CNT
       index_scan_results.clear();
       db->customer_primary_index_->ScanKey(*customer_key, &index_scan_results);
-      TERRIER_ASSERT(!index_scan_results.empty(), "Customer index scan failed.");
+      TERRIER_ASSERT(index_scan_results.size() == 1, "Customer index scan failed.");
 
       auto *const customer_select_tuple = customer_pr_initializer.InitializeRow(worker->customer_tuple_buffer);
 
-      for (const auto &tuple_slot : index_scan_results) {
-        select_result = db->customer_table_->Select(txn, tuple_slot, customer_select_tuple);
-        TERRIER_ASSERT(select_result,
-                       "Customer select failed. This assertion assumes 1:1 mapping between warehouse and workers.");
-        *reinterpret_cast<double *>(customer_select_tuple->AccessForceNotNull(c_balance_pr_offset)) += ol_amount;
-        (*reinterpret_cast<int16_t *>(customer_select_tuple->AccessForceNotNull(c_delivery_cnt_pr_offset)))++;
-        update_result = db->customer_table_->Update(txn, tuple_slot, *customer_select_tuple);
-        TERRIER_ASSERT(update_result,
-                       "Customer update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
-      }
+      select_result = db->customer_table_->Select(txn, index_scan_results[0], customer_select_tuple);
+      TERRIER_ASSERT(select_result,
+                     "Customer select failed. This assertion assumes 1:1 mapping between warehouse and workers.");
+      *reinterpret_cast<double *>(customer_select_tuple->AccessForceNotNull(c_balance_pr_offset)) += ol_amount;
+      (*reinterpret_cast<int16_t *>(customer_select_tuple->AccessForceNotNull(c_delivery_cnt_pr_offset)))++;
+      update_result = db->customer_table_->Update(txn, index_scan_results[0], *customer_select_tuple);
+      TERRIER_ASSERT(update_result,
+                     "Customer update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
     }
 
     txn_manager->Commit(txn, TestCallbacks::EmptyCallback, nullptr);

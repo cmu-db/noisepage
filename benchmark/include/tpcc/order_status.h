@@ -15,6 +15,9 @@
 
 namespace terrier::tpcc {
 
+/**
+ * Order-Status transaction according to section 2.6.2 of the specification
+ */
 class OrderStatus {
  private:
   const uint8_t c_id_key_pr_offset;

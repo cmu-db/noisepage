@@ -15,6 +15,9 @@
 
 namespace terrier::tpcc {
 
+/**
+ * New-Order transaction according to section 2.4.2 of the specification
+ */
 class NewOrder {
  private:
   struct StockSelectPROffsets {
