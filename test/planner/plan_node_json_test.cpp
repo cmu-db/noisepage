@@ -268,4 +268,24 @@ TEST(PlanNodeJsonTest, InsertPlanNodeJsonTest) {
   EXPECT_EQ(*plan_node, *insert_plan);
 }
 
+// NOLINTNEXTLINE
+TEST(PlanNodeJsonTest, ResultPlanNodeJsonTest) {
+  // Construct ResultPlanNode
+  ResultPlanNode::Builder builder;
+  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
+                       .SetExpr(PlanNodeJsonTest::BuildDummyPredicate())
+                       .Build();
+
+  // Serialize to Json
+  auto json = plan_node->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize plan node
+  auto deserialized_plan = DeserializePlanNode(json);
+  EXPECT_TRUE(deserialized_plan != nullptr);
+  EXPECT_EQ(PlanNodeType::RESULT, deserialized_plan->GetPlanNodeType());
+  auto result_plan = std::dynamic_pointer_cast<ResultPlanNode>(deserialized_plan);
+  EXPECT_EQ(*plan_node, *result_plan);
+}
+
 }  // namespace terrier::planner

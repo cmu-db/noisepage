@@ -68,6 +68,11 @@ class ResultPlanNode : public AbstractPlanNode {
 
  public:
   /**
+   * Default constructor used for deserialization
+   */
+  ResultPlanNode() = default;
+
+  /**
    * @return the tuple in the storage layer
    */
   const std::shared_ptr<parser::AbstractExpression> GetExpression() const { return expr_; }
@@ -84,6 +89,9 @@ class ResultPlanNode : public AbstractPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
+
  private:
   /**
    * Expression used to derived the output tuple
@@ -96,5 +104,7 @@ class ResultPlanNode : public AbstractPlanNode {
    */
   DISALLOW_COPY_AND_MOVE(ResultPlanNode);
 };
+
+DEFINE_JSON_DECLARATIONS(ResultPlanNode);
 
 }  // namespace terrier::planner
