@@ -214,4 +214,27 @@ TEST(PlanNodeJsonTest, SeqScanPlanNodeJsonTest) {
   EXPECT_EQ(*plan_node, *seq_scan_plan);
 }
 
+// NOLINTNEXTLINE
+TEST(PlanNodeJsonTest, OrderByPlanNodeJsonTest) {
+  // Construct OrderByPlanNode
+  OrderByPlanNode::Builder builder;
+  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
+                       .AddSortKey(catalog::col_oid_t(0), OrderByOrderingType::ASC)
+                       .AddSortKey(catalog::col_oid_t(1), OrderByOrderingType::DESC)
+                       .SetLimit(10)
+                       .SetOffset(10)
+                       .Build();
+
+  // Serialize to Json
+  auto json = plan_node->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize plan node
+  auto deserialized_plan = DeserializePlanNode(json);
+  EXPECT_TRUE(deserialized_plan != nullptr);
+  EXPECT_EQ(PlanNodeType::ORDERBY, deserialized_plan->GetPlanNodeType());
+  auto order_by_plan = std::dynamic_pointer_cast<OrderByPlanNode>(deserialized_plan);
+  EXPECT_EQ(*plan_node, *order_by_plan);
+}
+
 }  // namespace terrier::planner
