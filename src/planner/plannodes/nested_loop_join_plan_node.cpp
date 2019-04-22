@@ -3,17 +3,13 @@
 
 namespace terrier::planner {
 
-common::hash_t NestedLoopJoinPlanNode::Hash() const {
-  return AbstractJoinPlanNode::Hash();
-}
+common::hash_t NestedLoopJoinPlanNode::Hash() const { return AbstractJoinPlanNode::Hash(); }
 
 bool NestedLoopJoinPlanNode::operator==(const AbstractPlanNode &rhs) const {
   return AbstractJoinPlanNode::operator==(rhs);
 }
 
-nlohmann::json NestedLoopJoinPlanNode::ToJson() const {
-  return AbstractJoinPlanNode::ToJson();
-}
+nlohmann::json NestedLoopJoinPlanNode::ToJson() const { return AbstractJoinPlanNode::ToJson(); }
 
 void NestedLoopJoinPlanNode::FromJson(const nlohmann::json &j) { AbstractJoinPlanNode::FromJson(j); }
 

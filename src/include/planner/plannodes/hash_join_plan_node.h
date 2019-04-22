@@ -100,7 +100,6 @@ class HashJoinPlanNode : public AbstractJoinPlanNode {
         build_bloomfilter_(build_bloomfilter) {}
 
  public:
-
   /**
    * Default constructor used for deserialization
    */

@@ -3,13 +3,9 @@
 
 namespace terrier::planner {
 
-common::hash_t SeqScanPlanNode::Hash() const {
-  return AbstractScanPlanNode::Hash();
-}
+common::hash_t SeqScanPlanNode::Hash() const { return AbstractScanPlanNode::Hash(); }
 
-bool SeqScanPlanNode::operator==(const AbstractPlanNode &rhs) const {
-  return AbstractScanPlanNode::operator==(rhs);
-}
+bool SeqScanPlanNode::operator==(const AbstractPlanNode &rhs) const { return AbstractScanPlanNode::operator==(rhs); }
 
 nlohmann::json SeqScanPlanNode::ToJson() const {
   nlohmann::json j = AbstractScanPlanNode::ToJson();

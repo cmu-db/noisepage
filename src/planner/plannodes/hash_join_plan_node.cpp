@@ -92,5 +92,4 @@ void HashJoinPlanNode::FromJson(const nlohmann::json &j) {
   build_bloomfilter_ = j.at("build_bloom_filter").get<bool>();
 }
 
-
 }  // namespace terrier::planner

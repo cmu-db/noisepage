@@ -21,7 +21,7 @@ bool CSVScanPlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   const auto &other = static_cast<const CSVScanPlanNode &>(rhs);
   return file_name_ == other.file_name_ && delimiter_ == other.delimiter_ && quote_ == other.quote_ &&
-          escape_ == other.escape_ && null_string_ == other.null_string_;
+         escape_ == other.escape_ && null_string_ == other.null_string_;
 }
 
 nlohmann::json CSVScanPlanNode::ToJson() const {
