@@ -48,7 +48,7 @@ class CheckpointManager {
   void StartCheckpoint(transaction::TransactionContext *txn) {
     txn_ = txn;
     out_.Open((GetCheckpointFilePath(txn)).c_str());
-    // TODO: persist catalog, get metadata for each table and prepare to checkpoint each table
+    // TODO(zhaozhes): persist catalog, get metadata for each table and prepare to checkpoint each table
   }
 
   /**
@@ -74,15 +74,15 @@ class CheckpointManager {
    * @return path to the latest checkpoint file (with largest transaction id)
    */
   std::string GetLatestCheckpointFilename() {
-    // TODO: checkpoint directory is currently hard-coded here
+    // TODO(zhaozhes): checkpoint directory is currently hard-coded here
     char const *path = ".";
-    std::string file_name = "";
+    std::string file_name;
 
     DIR *dir;
     struct dirent *ent;
-    if ((dir = opendir(path)) != NULL) {
+    if ((dir = opendir(path)) != nullptr) {
       /* print all the files and directories within directory */
-      while ((ent = readdir(dir)) != NULL) {
+      while ((ent = readdir(dir)) != nullptr) {
         std::string candidate(ent->d_name);
         if (candidate.find(checkpoint_file_path_prefix_) == 0) {
           // A little hack here to compare the timestamp strings

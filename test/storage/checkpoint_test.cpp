@@ -32,13 +32,13 @@ class CheckpointTests : public TerrierTest {
   }
 
   void UnlinkCheckpointFiles() {
-    // TODO: checkpoint directory is currently hard-coded here
+    // TODO(zhaozhes) : checkpoint directory is currently hard-coded here
     char const *path = ".";
     DIR *dir;
     struct dirent *ent;
-    if ((dir = opendir(path)) != NULL) {
+    if ((dir = opendir(path)) != nullptr) {
       /* print all the files and directories within directory */
-      while ((ent = readdir(dir)) != NULL) {
+      while ((ent = readdir(dir)) != nullptr) {
         std::string checkpoint_file(ent->d_name);
         if (checkpoint_file.find(CHECKPOINT_FILE_PREFIX) == 0) {
           unlink(checkpoint_file.c_str());

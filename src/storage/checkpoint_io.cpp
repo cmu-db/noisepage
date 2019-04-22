@@ -9,7 +9,7 @@ void AsyncBlockWriter::Open(const char *log_file_path, int buffer_num) {
   block_size_ = CHECKPOINT_BLOCK_SIZE;
 
   for (int i = 0; i < buffer_num; ++i) {
-    byte *buf = new byte[block_size_]();
+    auto *buf = new byte[block_size_]();
     free_.Enqueue(buf);
   }
 
@@ -40,7 +40,7 @@ void AsyncBlockWriter::RunWriter() {
     // spin
   }
 
-  while (buf) {
+  while (buf != nullptr) {
     PosixIoWrappers::WriteFully(out_, buf, block_size_);
 
     free_.Enqueue(buf);
