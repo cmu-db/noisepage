@@ -38,18 +38,18 @@ std::shared_ptr<SettingsEntry> SettingsHandle::GetSettingsEntry(transaction::Tra
   std::vector<type::TransientValue> search_vec, ret_row;
   search_vec.push_back(type::TransientValueFactory::GetInteger(!oid));
   ret_row = pg_settings_->FindRow(txn, search_vec);
-  return std::make_shared<SettingsEntry>(oid, pg_settings_.get(), std::move(ret_row));
+  return std::make_shared<SettingsEntry>(oid, pg_settings_, std::move(ret_row));
 }
 
-std::shared_ptr<catalog::SqlTableRW> SettingsHandle::Create(transaction::TransactionContext *txn, Catalog *catalog,
-                                                            db_oid_t db_oid, const std::string &name) {
-  std::shared_ptr<catalog::SqlTableRW> pg_settings;
+SqlTableRW *SettingsHandle::Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,
+                                   const std::string &name) {
+  catalog::SqlTableRW *pg_settings;
 
   // get an oid
   table_oid_t pg_settings_oid(catalog->GetNextOid());
 
   // uninitialized storage
-  pg_settings = std::make_shared<catalog::SqlTableRW>(pg_settings_oid);
+  pg_settings = new catalog::SqlTableRW(pg_settings_oid);
 
   // columns we use
   for (auto col : SettingsHandle::schema_cols_) {

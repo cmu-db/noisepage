@@ -53,6 +53,8 @@ struct SchemaCol {
  *
  */
 class Catalog {
+  void DeleteDatabaseTables();
+
  public:
   /**
    * Creates the (global) catalog object, and bootstraps.
@@ -126,7 +128,7 @@ class Catalog {
    * @return a pointer to the catalog
    * @throw out_of_range exception if either oid doesn't exist or the catalog doesn't exist.
    */
-  std::shared_ptr<catalog::SqlTableRW> GetCatalogTable(db_oid_t db_oid, table_oid_t table_oid);
+  SqlTableRW *GetCatalogTable(db_oid_t db_oid, table_oid_t table_oid);
 
   /**
    * Get a pointer to the storage table, by table_name.
@@ -137,7 +139,7 @@ class Catalog {
    * @return a pointer to the catalog
    * @throw out_of_range exception if either oid doesn't exist or the catalog doesn't exist.
    */
-  std::shared_ptr<catalog::SqlTableRW> GetCatalogTable(db_oid_t db_oid, const std::string &table_name);
+  SqlTableRW *GetCatalogTable(db_oid_t db_oid, const std::string &table_name);
 
   /**
    * The global counter for getting next oid. The return result should be converted into corresponding oid type
@@ -155,7 +157,23 @@ class Catalog {
   /*
    * Destructor
    */
-  ~Catalog() = default;
+  ~Catalog() {
+    // iterate over all databases
+    auto db_oid_map = map_.begin();
+    while (db_oid_map != map_.end()) {
+      db_oid_t db_oid = db_oid_map->first;
+      CATALOG_LOG_DEBUG("Deleting db_oid {}", !db_oid);
+      // delete all non-global tables
+      DeleteDatabaseTables(db_oid);
+      db_oid_map++;
+    }
+    // delete global tables
+    delete pg_database_;
+    delete pg_tablespace_;
+    delete pg_settings_;
+  }
+
+  // ~Catalog() = default;
 
   //  ~Catalog() {
   //    // destroy all DB
@@ -170,9 +188,8 @@ class Catalog {
    * @param name of the catalog
    * @param table_rw_p catalog storage table
    */
-  void AddToMaps(db_oid_t db_oid, table_oid_t table_oid, const std::string &name,
-                 std::shared_ptr<SqlTableRW> table_rw_p) {
-    map_[db_oid][table_oid] = std::move(table_rw_p);
+  void AddToMaps(db_oid_t db_oid, table_oid_t table_oid, const std::string &name, SqlTableRW *table_rw_p) {
+    map_[db_oid][table_oid] = table_rw_p;
     name_map_[db_oid][name] = table_oid;
   }
 
@@ -219,7 +236,7 @@ class Catalog {
    * @param cols - vector specifying the columns
    *
    */
-  void AddUnusedSchemaColumns(const std::shared_ptr<catalog::SqlTableRW> &db_p, const std::vector<SchemaCol> &cols);
+  void AddUnusedSchemaColumns(SqlTableRW *db_p, const std::vector<SchemaCol> &cols);
 
   /**
    * Bootstrap all the catalog tables so that new coming transactions can
@@ -297,6 +314,8 @@ class Catalog {
    */
   void CreatePGType(transaction::TransactionContext *txn, db_oid_t db_oid);
 
+  void DeleteDatabaseTables(db_oid_t db_oid);
+
   /**
    * TODO(pakhtar): needs changes.
    * For catalog shutdown.
@@ -308,12 +327,12 @@ class Catalog {
  private:
   transaction::TransactionManager *txn_manager_;
   // global catalogs
-  std::shared_ptr<catalog::SqlTableRW> pg_database_;
-  std::shared_ptr<catalog::SqlTableRW> pg_tablespace_;
-  std::shared_ptr<catalog::SqlTableRW> pg_settings_;
+  catalog::SqlTableRW *pg_database_;
+  catalog::SqlTableRW *pg_tablespace_;
+  catalog::SqlTableRW *pg_settings_;
 
   // map from (db_oid, catalog table_oid_t) to sql table rw wrapper
-  std::unordered_map<db_oid_t, std::unordered_map<table_oid_t, std::shared_ptr<catalog::SqlTableRW>>> map_;
+  std::unordered_map<db_oid_t, std::unordered_map<table_oid_t, catalog::SqlTableRW *>> map_;
   // map from (db_oid, catalog name) to table_oid
   std::unordered_map<db_oid_t, std::unordered_map<std::string, table_oid_t>> name_map_;
   // this oid serves as a global counter for different strong types of oid

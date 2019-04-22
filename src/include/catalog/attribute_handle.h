@@ -50,8 +50,7 @@ class AttributeHandle {
    * Construct an attribute handle
    * @param pg_attribute a pointer to pg_attribute sql table rw helper instance
    */
-  explicit AttributeHandle(std::shared_ptr<catalog::SqlTableRW> pg_attribute)
-      : pg_attribute_hrw_(std::move(pg_attribute)) {}
+  explicit AttributeHandle(SqlTableRW *pg_attribute) : pg_attribute_hrw_(pg_attribute) {}
 
   /**
    * Convert a attribute string to its oid representation
@@ -84,8 +83,8 @@ class AttributeHandle {
   /**
    * Create the storage table
    */
-  static std::shared_ptr<catalog::SqlTableRW> Create(transaction::TransactionContext *txn, Catalog *catalog,
-                                                     db_oid_t db_oid, const std::string &name);
+  static SqlTableRW *Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,
+                            const std::string &name);
 
   // start Debug methods
   /**
@@ -104,7 +103,7 @@ class AttributeHandle {
   static const std::vector<SchemaCol> unused_schema_cols_;
 
  private:
-  std::shared_ptr<catalog::SqlTableRW> pg_attribute_hrw_;
+  catalog::SqlTableRW *pg_attribute_hrw_;
 };
 
 }  // namespace terrier::catalog

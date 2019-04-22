@@ -27,7 +27,7 @@ std::shared_ptr<ClassEntry> ClassHandle::GetClassEntry(transaction::TransactionC
   std::vector<type::TransientValue> search_vec, ret_row;
   search_vec.push_back(type::TransientValueFactory::GetInteger(!oid));
   ret_row = pg_class_rw_->FindRow(txn, search_vec);
-  return std::make_shared<ClassEntry>(oid, pg_class_rw_.get(), std::move(ret_row));
+  return std::make_shared<ClassEntry>(oid, pg_class_rw_, std::move(ret_row));
 }
 
 std::shared_ptr<ClassEntry> ClassHandle::GetClassEntry(transaction::TransactionContext *txn, const char *name) {
@@ -37,7 +37,7 @@ std::shared_ptr<ClassEntry> ClassHandle::GetClassEntry(transaction::TransactionC
   search_vec.push_back(type::TransientValueFactory::GetVarChar(name));
   ret_row = pg_class_rw_->FindRow(txn, search_vec);
   col_oid_t oid(type::TransientValuePeeker::PeekInteger(ret_row[1]));
-  return std::make_shared<ClassEntry>(oid, pg_class_rw_.get(), std::move(ret_row));
+  return std::make_shared<ClassEntry>(oid, pg_class_rw_, std::move(ret_row));
 }
 
 void ClassHandle::AddEntry(transaction::TransactionContext *txn, const int64_t tbl_ptr, const int32_t entry_oid,
@@ -54,15 +54,15 @@ void ClassHandle::AddEntry(transaction::TransactionContext *txn, const int64_t t
   pg_class_rw_->InsertRow(txn, row);
 }
 
-std::shared_ptr<catalog::SqlTableRW> ClassHandle::Create(transaction::TransactionContext *txn, Catalog *catalog,
-                                                         db_oid_t db_oid, const std::string &name) {
-  std::shared_ptr<catalog::SqlTableRW> pg_class;
+SqlTableRW *ClassHandle::Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,
+                                const std::string &name) {
+  catalog::SqlTableRW *pg_class;
 
   // get an oid
   table_oid_t pg_class_oid(catalog->GetNextOid());
 
   // uninitialized storage
-  pg_class = std::make_shared<catalog::SqlTableRW>(pg_class_oid);
+  pg_class = new catalog::SqlTableRW(pg_class_oid);
 
   // columns we use
   for (auto col : ClassHandle::schema_cols_) {

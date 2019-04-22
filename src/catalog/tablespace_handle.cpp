@@ -25,7 +25,7 @@ std::shared_ptr<TablespaceEntry> TablespaceHandle::GetTablespaceEntry(transactio
   std::vector<type::TransientValue> search_vec, ret_row;
   search_vec.push_back(type::TransientValueFactory::GetInteger(!oid));
   ret_row = pg_tablespace_->FindRow(txn, search_vec);
-  return std::make_shared<TablespaceEntry>(oid, pg_tablespace_.get(), std::move(ret_row));
+  return std::make_shared<TablespaceEntry>(oid, pg_tablespace_, std::move(ret_row));
 }
 
 std::shared_ptr<TablespaceEntry> TablespaceHandle::GetTablespaceEntry(transaction::TransactionContext *txn,
@@ -35,7 +35,7 @@ std::shared_ptr<TablespaceEntry> TablespaceHandle::GetTablespaceEntry(transactio
   search_vec.push_back(type::TransientValueFactory::GetVarChar(name));
   ret_row = pg_tablespace_->FindRow(txn, search_vec);
   tablespace_oid_t oid(type::TransientValuePeeker::PeekInteger(ret_row[0]));
-  return std::make_shared<TablespaceEntry>(oid, pg_tablespace_.get(), std::move(ret_row));
+  return std::make_shared<TablespaceEntry>(oid, pg_tablespace_, std::move(ret_row));
 }
 
 void TablespaceHandle::AddEntry(transaction::TransactionContext *txn, const std::string &name) {
@@ -47,15 +47,14 @@ void TablespaceHandle::AddEntry(transaction::TransactionContext *txn, const std:
   pg_tablespace_->InsertRow(txn, row);
 }
 
-std::shared_ptr<catalog::SqlTableRW> TablespaceHandle::Create(Catalog *catalog, db_oid_t db_oid,
-                                                              const std::string &name) {
-  std::shared_ptr<catalog::SqlTableRW> storage_table;
+SqlTableRW *TablespaceHandle::Create(Catalog *catalog, db_oid_t db_oid, const std::string &name) {
+  catalog::SqlTableRW *storage_table;
 
   // get an oid
   table_oid_t storage_table_oid(catalog->GetNextOid());
 
   // uninitialized storage
-  storage_table = std::make_shared<catalog::SqlTableRW>(storage_table_oid);
+  storage_table = new catalog::SqlTableRW(storage_table_oid);
 
   // columns we use
   for (auto col : TablespaceHandle::schema_cols_) {

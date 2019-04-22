@@ -51,7 +51,7 @@ class AttrDefHandle {
    * Constructor
    * @param pg_attrdef a pointer to pg_attrdef sql table rw helper instance
    */
-  explicit AttrDefHandle(std::shared_ptr<catalog::SqlTableRW> pg_attrdef) : pg_attrdef_rw_(std::move(pg_attrdef)) {}
+  explicit AttrDefHandle(SqlTableRW *pg_attrdef) : pg_attrdef_rw_(pg_attrdef) {}
 
   /**
    * Create the storage table
@@ -61,8 +61,8 @@ class AttrDefHandle {
    * @param name catalog name
    * @return a shared pointer to the catalog table
    */
-  static std::shared_ptr<catalog::SqlTableRW> Create(transaction::TransactionContext *txn, Catalog *catalog,
-                                                     db_oid_t db_oid, const std::string &name);
+  static SqlTableRW *Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,
+                            const std::string &name);
 
   /**
    * Debug methods

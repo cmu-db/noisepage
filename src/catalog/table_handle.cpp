@@ -24,7 +24,7 @@ std::shared_ptr<TableEntry> TableHandle::GetTableEntry(transaction::TransactionC
   std::vector<type::TransientValue> row = pg_class_->FindRow(txn, search_vec);
   nsp_oid = namespace_oid_t(type::TransientValuePeeker::PeekInteger(row[3]));
   if (nsp_oid != nsp_oid_) return nullptr;
-  return std::make_shared<TableEntry>(oid, std::move(row), txn, pg_class_, pg_namespace_, pg_tablespace_);
+  return std::make_shared<TableEntry>(oid, std::move(row), txn, pg_namespace_, pg_tablespace_);
 }
 
 std::shared_ptr<TableEntry> TableHandle::GetTableEntry(transaction::TransactionContext *txn, const std::string &name) {

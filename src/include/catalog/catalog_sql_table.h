@@ -182,12 +182,24 @@ class SqlTableRW {
       col_oids_.emplace_back(c.GetOid());
     }
 
+    // temp
+    //    for (const auto &c : cols_) {
+    //      (void) c;
+    //      cols_.pop_back();
+    //    }
+
     // save information needed for (later) reading and writing
     // TODO(pakhtar): review to see if still needed, since we are using
     // projected columns
     auto row_pair = table_->InitializerForProjectedRow(col_oids_);
     pri_ = new storage::ProjectedRowInitializer(std::get<0>(row_pair));
     pr_map_ = new storage::ProjectionMap(std::get<1>(row_pair));
+
+    // temp
+    //    for (const auto &c : cols_) {
+    //      (void) c;
+    //      col_oids_.pop_back();
+    //    }
   }
 
   /**

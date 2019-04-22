@@ -52,8 +52,8 @@ class TablespaceHandle {
    * @param pg_tablespace a pointer to pg_tablespace
    * @param catalog pointer to the catalog class
    */
-  explicit TablespaceHandle(Catalog *catalog, std::shared_ptr<catalog::SqlTableRW> pg_tablespace)
-      : catalog_(catalog), pg_tablespace_(std::move(pg_tablespace)) {}
+  explicit TablespaceHandle(Catalog *catalog, SqlTableRW *pg_tablespace)
+      : catalog_(catalog), pg_tablespace_(pg_tablespace) {}
 
   /**
    * Get a tablespace entry for a given tablespace_oid. It's essentially equivalent to reading a
@@ -87,7 +87,7 @@ class TablespaceHandle {
   /**
    * Create the storage table
    */
-  static std::shared_ptr<catalog::SqlTableRW> Create(Catalog *catalog, db_oid_t db_oid, const std::string &name);
+  static SqlTableRW *Create(Catalog *catalog, db_oid_t db_oid, const std::string &name);
 
   /** Used schema columns */
   static const std::vector<SchemaCol> schema_cols_;
@@ -96,7 +96,7 @@ class TablespaceHandle {
 
  private:
   Catalog *catalog_;
-  std::shared_ptr<catalog::SqlTableRW> pg_tablespace_;
+  catalog::SqlTableRW *pg_tablespace_;
 };
 
 }  // namespace terrier::catalog

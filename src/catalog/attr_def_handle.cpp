@@ -26,15 +26,15 @@ std::shared_ptr<AttrDefEntry> AttrDefHandle::GetAttrDefEntry(transaction::Transa
   return std::make_shared<AttrDefEntry>(oid, pg_attrdef_rw_.get(), std::move(ret_row));
 }
 
-std::shared_ptr<catalog::SqlTableRW> AttrDefHandle::Create(transaction::TransactionContext *txn, Catalog *catalog,
-                                                           db_oid_t db_oid, const std::string &name) {
-  std::shared_ptr<catalog::SqlTableRW> pg_attrdef;
+SqlTableRW *AttrDefHandle::Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,
+                                  const std::string &name) {
+  catalog::SqlTableRW *pg_attrdef;
 
   // get an oid
   table_oid_t pg_attrdef_oid(catalog->GetNextOid());
 
   // uninitialized storage
-  pg_attrdef = std::make_shared<catalog::SqlTableRW>(pg_attrdef_oid);
+  pg_attrdef = new catalog::SqlTableRW(pg_attrdef_oid);
 
   // columns we use
   for (auto col : AttrDefHandle::schema_cols_) {

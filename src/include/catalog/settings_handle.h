@@ -47,7 +47,7 @@ class SettingsHandle {
    * Constructor
    * @param pg_settings a pointer to pg_settings sql table helper instance
    */
-  explicit SettingsHandle(std::shared_ptr<catalog::SqlTableRW> pg_settings) : pg_settings_(std::move(pg_settings)) {}
+  explicit SettingsHandle(SqlTableRW *pg_settings) : pg_settings_(pg_settings) {}
 
   /**
    * Create the storage table
@@ -57,8 +57,8 @@ class SettingsHandle {
    * @param name catalog name
    * @return a shared pointer to the catalog table
    */
-  static std::shared_ptr<catalog::SqlTableRW> Create(transaction::TransactionContext *txn, Catalog *catalog,
-                                                     db_oid_t db_oid, const std::string &name);
+  static SqlTableRW *Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,
+                            const std::string &name);
 
   /**
    * Insert a row
@@ -82,7 +82,7 @@ class SettingsHandle {
     ret_row = pg_settings_->FindRow(txn, search_vec);
 
     settings_oid_t oid(type::TransientValuePeeker::PeekInteger(ret_row[0]));
-    return std::make_shared<SettingsEntry>(oid, pg_settings_.get(), std::move(ret_row));
+    return std::make_shared<SettingsEntry>(oid, pg_settings_, std::move(ret_row));
   }
 
   /**
@@ -97,7 +97,7 @@ class SettingsHandle {
 
  private:
   // storage for this table
-  std::shared_ptr<catalog::SqlTableRW> pg_settings_;
+  catalog::SqlTableRW *pg_settings_;
 };
 
 }  // namespace terrier::catalog

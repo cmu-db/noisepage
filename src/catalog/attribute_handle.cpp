@@ -32,7 +32,7 @@ std::shared_ptr<AttributeEntry> AttributeHandle::GetAttributeEntry(transaction::
   search_vec.push_back(type::TransientValueFactory::GetInteger(!table_oid));
   ret_row = pg_attribute_hrw_->FindRow(txn, search_vec);
   col_oid_t oid(type::TransientValuePeeker::PeekInteger(ret_row[0]));
-  return std::make_shared<AttributeEntry>(oid, pg_attribute_hrw_.get(), std::move(ret_row));
+  return std::make_shared<AttributeEntry>(oid, pg_attribute_hrw_, std::move(ret_row));
 }
 
 std::shared_ptr<AttributeEntry> AttributeHandle::GetAttributeEntry(transaction::TransactionContext *txn,
@@ -46,18 +46,18 @@ std::shared_ptr<AttributeEntry> AttributeHandle::GetAttributeEntry(transaction::
     throw CATALOG_EXCEPTION("attribute doesn't exist");
   }
   col_oid_t oid(type::TransientValuePeeker::PeekInteger(ret_row[0]));
-  return std::make_shared<AttributeEntry>(oid, pg_attribute_hrw_.get(), std::move(ret_row));
+  return std::make_shared<AttributeEntry>(oid, pg_attribute_hrw_, std::move(ret_row));
 }
 
-std::shared_ptr<catalog::SqlTableRW> AttributeHandle::Create(transaction::TransactionContext *txn, Catalog *catalog,
-                                                             db_oid_t db_oid, const std::string &name) {
-  std::shared_ptr<catalog::SqlTableRW> pg_attr;
+SqlTableRW *AttributeHandle::Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,
+                                    const std::string &name) {
+  catalog::SqlTableRW *pg_attr;
 
   // get an oid
   table_oid_t pg_attr_oid(catalog->GetNextOid());
 
   // uninitialized storage
-  pg_attr = std::make_shared<catalog::SqlTableRW>(pg_attr_oid);
+  pg_attr = new catalog::SqlTableRW(pg_attr_oid);
 
   // columns we use
   for (auto col : AttributeHandle::schema_cols_) {

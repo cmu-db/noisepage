@@ -32,8 +32,7 @@ const std::vector<SchemaCol> TypeHandle::unused_schema_cols_ = {
     {29, "typdefault", type::TypeId::VARCHAR},   {30, "typacl", type::TypeId::VARCHAR},
 };
 
-TypeHandle::TypeHandle(Catalog *catalog, std::shared_ptr<catalog::SqlTableRW> pg_type)
-    : catalog_(catalog), pg_type_rw_(std::move(pg_type)) {}
+TypeHandle::TypeHandle(Catalog *catalog, SqlTableRW *pg_type) : catalog_(catalog), pg_type_rw_(pg_type) {}
 
 type_oid_t TypeHandle::TypeToOid(transaction::TransactionContext *txn, const std::string &type) {
   auto te = GetTypeEntry(txn, type);
@@ -44,7 +43,7 @@ std::shared_ptr<TypeEntry> TypeHandle::GetTypeEntry(transaction::TransactionCont
   std::vector<type::TransientValue> search_vec, ret_row;
   search_vec.push_back(type::TransientValueFactory::GetInteger(!oid));
   ret_row = pg_type_rw_->FindRow(txn, search_vec);
-  return std::make_shared<TypeEntry>(oid, pg_type_rw_.get(), std::move(ret_row));
+  return std::make_shared<TypeEntry>(oid, pg_type_rw_, std::move(ret_row));
 }
 
 std::shared_ptr<TypeEntry> TypeHandle::GetTypeEntry(transaction::TransactionContext *txn, const std::string &type) {
@@ -53,7 +52,7 @@ std::shared_ptr<TypeEntry> TypeHandle::GetTypeEntry(transaction::TransactionCont
   search_vec.push_back(type::TransientValueFactory::GetVarChar(type));
   ret_row = pg_type_rw_->FindRow(txn, search_vec);
   type_oid_t oid(type::TransientValuePeeker::PeekInteger(ret_row[0]));
-  return std::make_shared<TypeEntry>(oid, pg_type_rw_.get(), std::move(ret_row));
+  return std::make_shared<TypeEntry>(oid, pg_type_rw_, std::move(ret_row));
 }
 
 /*
@@ -68,7 +67,7 @@ std::shared_ptr<TypeEntry> TypeHandle::GetTypeEntry(transaction::TransactionCont
   search_vec.push_back(type::TransientValueFactory::GetCopy(type));
   ret_row = pg_type_rw_->FindRow(txn, search_vec);
   type_oid_t oid(type::TransientValuePeeker::PeekInteger(ret_row[0]));
-  return std::make_shared<TypeEntry>(oid, pg_type_rw_.get(), std::move(ret_row));
+  return std::make_shared<TypeEntry>(oid, pg_type_rw_, std::move(ret_row));
 }
 
 void TypeHandle::AddEntry(transaction::TransactionContext *txn, type_oid_t oid, const std::string &typname,
@@ -84,10 +83,10 @@ void TypeHandle::AddEntry(transaction::TransactionContext *txn, type_oid_t oid, 
   pg_type_rw_->InsertRow(txn, row);
 }
 
-std::shared_ptr<catalog::SqlTableRW> TypeHandle::Create(transaction::TransactionContext *txn, Catalog *catalog,
-                                                        db_oid_t db_oid, const std::string &name) {
+SqlTableRW *TypeHandle::Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,
+                               const std::string &name) {
   table_oid_t pg_type_oid(catalog->GetNextOid());
-  std::shared_ptr<catalog::SqlTableRW> pg_type = std::make_shared<catalog::SqlTableRW>(pg_type_oid);
+  auto pg_type = new catalog::SqlTableRW(pg_type_oid);
 
   // used columns
   for (auto col : schema_cols_) {

@@ -27,8 +27,8 @@ const std::vector<SchemaCol> DatabaseHandle::unused_schema_cols_ = {
  * Handle methods
  */
 
-DatabaseHandle::DatabaseHandle(Catalog *catalog, std::shared_ptr<catalog::SqlTableRW> pg_database)
-    : catalog_(catalog), pg_database_rw_(std::move(pg_database)) {}
+DatabaseHandle::DatabaseHandle(Catalog *catalog, SqlTableRW *pg_database)
+    : catalog_(catalog), pg_database_rw_(pg_database) {}
 
 ClassHandle DatabaseHandle::GetClassHandle(transaction::TransactionContext *txn, db_oid_t oid) {
   std::string pg_class("pg_class");
@@ -58,7 +58,7 @@ std::shared_ptr<DatabaseEntry> DatabaseHandle::GetDatabaseEntry(transaction::Tra
   std::vector<type::TransientValue> search_vec;
   search_vec.push_back(type::TransientValueFactory::GetInteger(!oid));
   auto row_vec = pg_database_rw->FindRow(txn, search_vec);
-  return std::make_shared<DatabaseEntry>(oid, pg_database_rw.get(), std::move(row_vec));
+  return std::make_shared<DatabaseEntry>(oid, pg_database_rw, std::move(row_vec));
 }
 
 std::shared_ptr<DatabaseEntry> DatabaseHandle::GetDatabaseEntry(transaction::TransactionContext *txn,
@@ -77,7 +77,7 @@ std::shared_ptr<DatabaseEntry> DatabaseHandle::GetDatabaseEntry(transaction::Tra
   }
   // specifying the oid is redundant. Eliminate?
   db_oid_t oid(type::TransientValuePeeker::PeekInteger(row_vec[0]));
-  return std::make_shared<DatabaseEntry>(oid, pg_database_rw_.get(), std::move(row_vec));
+  return std::make_shared<DatabaseEntry>(oid, pg_database_rw_, std::move(row_vec));
 }
 
 bool DatabaseHandle::DeleteEntry(transaction::TransactionContext *txn, const std::shared_ptr<DatabaseEntry> &entry) {

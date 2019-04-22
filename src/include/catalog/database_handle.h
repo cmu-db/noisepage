@@ -60,7 +60,7 @@ class DatabaseHandle {
    * @param catalog a pointer to the catalog object
    * @param pg_database the pointer to pg_database
    */
-  DatabaseHandle(Catalog *catalog, std::shared_ptr<catalog::SqlTableRW> pg_database);
+  DatabaseHandle(Catalog *catalog, SqlTableRW *pg_database);
 
   /**
    * Get a class handle for the database.
@@ -140,7 +140,7 @@ class DatabaseHandle {
   /**
    * pg_database SQL table
    */
-  std::shared_ptr<catalog::SqlTableRW> pg_database_rw_;
+  catalog::SqlTableRW *pg_database_rw_;
 };
 
 }  // namespace terrier::catalog

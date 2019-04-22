@@ -27,7 +27,7 @@ std::shared_ptr<NamespaceEntry> NamespaceHandle::GetNamespaceEntry(transaction::
   std::vector<type::TransientValue> search_vec, ret_row;
   search_vec.push_back(type::TransientValueFactory::GetInteger(!oid));
   ret_row = pg_namespace_hrw_->FindRow(txn, search_vec);
-  return std::make_shared<NamespaceEntry>(oid, pg_namespace_hrw_.get(), std::move(ret_row));
+  return std::make_shared<NamespaceEntry>(oid, pg_namespace_hrw_, std::move(ret_row));
 }
 
 std::shared_ptr<NamespaceEntry> NamespaceHandle::GetNamespaceEntry(transaction::TransactionContext *txn,
@@ -37,7 +37,7 @@ std::shared_ptr<NamespaceEntry> NamespaceHandle::GetNamespaceEntry(transaction::
   search_vec.push_back(type::TransientValueFactory::GetVarChar(name));
   ret_row = pg_namespace_hrw_->FindRow(txn, search_vec);
   namespace_oid_t oid(type::TransientValuePeeker::PeekInteger(ret_row[0]));
-  return std::make_shared<NamespaceEntry>(oid, pg_namespace_hrw_.get(), std::move(ret_row));
+  return std::make_shared<NamespaceEntry>(oid, pg_namespace_hrw_, std::move(ret_row));
 }
 
 namespace_oid_t NamespaceHandle::NameToOid(transaction::TransactionContext *txn, const std::string &name) {
@@ -64,15 +64,15 @@ void NamespaceHandle::AddEntry(transaction::TransactionContext *txn, const std::
   pg_namespace_hrw_->InsertRow(txn, row);
 }
 
-std::shared_ptr<catalog::SqlTableRW> NamespaceHandle::Create(transaction::TransactionContext *txn, Catalog *catalog,
-                                                             db_oid_t db_oid, const std::string &name) {
-  std::shared_ptr<catalog::SqlTableRW> storage_table;
+SqlTableRW *NamespaceHandle::Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,
+                                    const std::string &name) {
+  catalog::SqlTableRW *storage_table;
 
   // get an oid
   table_oid_t storage_table_oid(catalog->GetNextOid());
 
   // uninitialized storage
-  storage_table = std::make_shared<catalog::SqlTableRW>(storage_table_oid);
+  storage_table = new catalog::SqlTableRW(storage_table_oid);
 
   // columns we use
   for (auto col : NamespaceHandle::schema_cols_) {

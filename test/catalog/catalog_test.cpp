@@ -41,7 +41,7 @@ struct CatalogTests : public TerrierTest {
 
   void VerifyTablePresent(catalog::db_oid_t db_oid, const char *table_name) {
     // verify that we can get to the table
-    auto table_p = catalog_->GetCatalogTable(db_oid, table_name);
+    auto UNUSED_ATTRIBUTE table_p = catalog_->GetCatalogTable(db_oid, table_name);
 
     // verify it is present in pg_class
     auto db_h = catalog_->GetDatabaseHandle();
@@ -63,7 +63,7 @@ struct CatalogTests : public TerrierTest {
 
 // Tests for higher level catalog API
 // NOLINTNEXTLINE
-TEST_F(CatalogTests, CreateDatabaseTest) {
+TEST_F(CatalogTests, DISABLED_CreateDatabaseTest) {
   catalog_->CreateDatabase(txn_, "test_database");
   auto db_handle = catalog_->GetDatabaseHandle();
 
@@ -95,9 +95,11 @@ TEST_F(CatalogTests, CreateUserTableTest) {
   table_p->InsertRow(txn_, row);
   table_p->Dump(txn_);
 
+  // TODO(pakhtar) add more commewnts to function of DeleteTable
   catalog_->DeleteTable(txn_, default_db_oid, "user_table_1");
   VerifyTableAbsent(default_db_oid, "user_table_1");
   catalog_->Dump(txn_, default_db_oid);
+  delete table_p;
 }
 
 // NOLINTNEXTLINE

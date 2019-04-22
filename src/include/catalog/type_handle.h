@@ -39,7 +39,7 @@ class TypeHandle {
   /**
    * Construct a type handle. It keeps a pointer to the pg_type sql table.
    */
-  TypeHandle(Catalog *catalog, std::shared_ptr<catalog::SqlTableRW> pg_type);
+  TypeHandle(Catalog *catalog, SqlTableRW *pg_type);
 
   /**
    * Get the oid of a type given its name.
@@ -74,8 +74,8 @@ class TypeHandle {
   /**
    * Create storage table
    */
-  static std::shared_ptr<catalog::SqlTableRW> Create(transaction::TransactionContext *txn, Catalog *catalog,
-                                                     db_oid_t db_oid, const std::string &name);
+  static SqlTableRW *Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,
+                            const std::string &name);
 
   /**
    * Debug methods
@@ -92,7 +92,7 @@ class TypeHandle {
   // TODO(yeshengm): we have to add support for UDF in the future
  private:
   Catalog *catalog_;
-  std::shared_ptr<catalog::SqlTableRW> pg_type_rw_;
+  catalog::SqlTableRW *pg_type_rw_;
 };
 
 }  // namespace terrier::catalog

@@ -42,8 +42,8 @@ class NamespaceHandle {
    * @param oid the db oid of the underlying database
    * @param pg_namespace a pointer to pg_namespace sql table rw helper instance
    */
-  explicit NamespaceHandle(Catalog *catalog, db_oid_t oid, std::shared_ptr<catalog::SqlTableRW> pg_namespace)
-      : catalog_(catalog), db_oid_(oid), pg_namespace_hrw_(std::move(pg_namespace)) {}
+  explicit NamespaceHandle(Catalog *catalog, db_oid_t oid, SqlTableRW *pg_namespace)
+      : catalog_(catalog), db_oid_(oid), pg_namespace_hrw_(pg_namespace) {}
 
   /**
    * Convert a namespace string to its oid representation
@@ -92,8 +92,8 @@ class NamespaceHandle {
   /**
    * Create the storage table
    */
-  static std::shared_ptr<catalog::SqlTableRW> Create(transaction::TransactionContext *txn, Catalog *catalog,
-                                                     db_oid_t db_oid, const std::string &name);
+  static SqlTableRW *Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,
+                            const std::string &name);
 
   /**
    * Debug methods
@@ -109,7 +109,7 @@ class NamespaceHandle {
   Catalog *catalog_;
   // database parent of this namespace
   db_oid_t db_oid_;
-  std::shared_ptr<catalog::SqlTableRW> pg_namespace_hrw_;
+  catalog::SqlTableRW *pg_namespace_hrw_;
 };
 
 }  // namespace terrier::catalog

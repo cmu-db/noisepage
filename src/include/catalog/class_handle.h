@@ -71,8 +71,7 @@ class ClassHandle {
    * @param catalog the global catalog object
    * @param pg_class the pg_class sql table rw helper instance
    */
-  explicit ClassHandle(Catalog *catalog, std::shared_ptr<catalog::SqlTableRW> pg_class)
-      : catalog_(catalog), pg_class_rw_(std::move(pg_class)) {}
+  explicit ClassHandle(Catalog *catalog, SqlTableRW *pg_class) : catalog_(catalog), pg_class_rw_(pg_class) {}
 
   /**
    * Create the storage table
@@ -82,8 +81,8 @@ class ClassHandle {
    * @param name catalog name
    * @return a shared pointer to the catalog table
    */
-  static std::shared_ptr<catalog::SqlTableRW> Create(transaction::TransactionContext *txn, Catalog *catalog,
-                                                     db_oid_t db_oid, const std::string &name);
+  static SqlTableRW *Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,
+                            const std::string &name);
 
   /**
    * Delete an entry in ClassHandle
@@ -106,6 +105,6 @@ class ClassHandle {
   // database containing this table
   // db_oid_t db_oid_;
   // storage for this table
-  std::shared_ptr<catalog::SqlTableRW> pg_class_rw_;
+  catalog::SqlTableRW *pg_class_rw_;
 };
 }  // namespace terrier::catalog
