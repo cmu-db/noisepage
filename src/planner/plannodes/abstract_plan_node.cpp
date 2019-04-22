@@ -137,6 +137,80 @@ std::shared_ptr<AbstractPlanNode> DeserializePlanNode(const nlohmann::json &json
       break;
     }
 
+      //    case PlanNodeType::CREATE_DATABASE: {
+      //      plan_node = std::make_shared<CreateDatabasePlanNode>();
+      //      break;
+      //    }
+      //
+      //    case PlanNodeType::CREATE_FUNC: {
+      //      plan_node = std::make_shared<CreateFunctionPlanNode>();
+      //      break;
+      //    }
+      //
+      //    case PlanNodeType::CREATE_INDEX: {
+      //      plan_node = std::make_shared<CreateIndexPlanNode>();
+      //      break;
+      //    }
+      //
+      //    case PlanNodeType::CREATE_NAMESPACE: {
+      //      plan_node = std::make_shared<CreateNamespacePlanNode>();
+      //      break;
+      //    }
+      //
+    case PlanNodeType::CREATE_TABLE: {
+      plan_node = std::make_shared<CreateTablePlanNode>();
+      break;
+    }
+      //    case PlanNodeType::CREATE_TRIGGER: {
+      //      plan_node = std::make_shared<CreateTriggerPlanNode>();
+      //      break;
+      //    }
+      //
+      //    case PlanNodeType::CREATE_VIEW: {
+      //      plan_node = std::make_shared<CreateViewPlanNode>();
+      //      break;
+      //    }
+      //
+      //    case PlanNodeType::CSVSCAN: {
+      //      plan_node = std::make_shared<CSVScanPlanNode>();
+      //      break;
+      //    }
+      //
+      //    case PlanNodeType::DELETE: {
+      //      plan_node = std::make_shared<DeletePlanNode>();
+      //      break;
+      //    }
+      //
+      //    case PlanNodeType::DROP_DATABASE: {
+      //      plan_node = std::make_shared<DropDatabasePlanNode>();
+      //      break;
+      //    }
+      //
+      //    case PlanNodeType::DROP_INDEX: {
+      //      plan_node = std::make_shared<DropIndexPlanNode>();
+      //      break;
+      //    }
+      //
+      //    case PlanNodeType::DROP_NAMESPACE: {
+      //      plan_node = std::make_shared<DropNamespacePlanNode>();
+      //      break;
+      //    }
+      //
+      //    case PlanNodeType::DROP_TABLE: {
+      //      plan_node = std::make_shared<DropTablePlanNode>();
+      //      break;
+      //    }
+      //
+      //    case PlanNodeType::DROP_TRIGGER: {
+      //      plan_node = std::make_shared<DropTriggerPlanNode>();
+      //      break;
+      //    }
+      //
+      //    case PlanNodeType::DROP_VIEW: {
+      //      plan_node = std::make_shared<DropViewPlanNode>();
+      //      break;
+      //    }
+      //
       //    case PlanNodeType::EXPORT_EXTERNAL_FILE: {
       //      plan_node = std::make_shared<ExportExternalFilePlanNode>();
       //      break;

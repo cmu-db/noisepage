@@ -50,6 +50,7 @@ class Schema {
           "Attribute size must be 1, 2, 4, 8 or VARLEN_COLUMN bytes.");
       TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
     }
+
     /**
      * @return column name
      */
@@ -75,13 +76,38 @@ class Schema {
      */
     col_oid_t GetOid() const { return oid_; }
 
+    /**
+     * Default constructor for deserialization
+     */
+    Column() = default;
+
+    nlohmann::json ToJson() const {
+      nlohmann::json j;
+      j["name"] = name_;
+      j["type"] = type_;
+      j["attr_size"] = attr_size_;
+      j["nullable"] = nullable_;
+      j["inlined"] = inlined_;
+      j["oid"] = oid_;
+      return j;
+    }
+
+    void FromJson(const nlohmann::json &j) {
+      name_ = j.at("name").get<std::string>();
+      type_ = j.at("type").get<type::TypeId>();
+      attr_size_ = j.at("attr_size").get<uint8_t>();
+      nullable_ = j.at("nullable").get<bool>();
+      inlined_ = j.at("inlined").get<bool>();
+      oid_ = j.at("oid").get<col_oid_t>();
+    }
+
    private:
-    const std::string name_;
-    const type::TypeId type_;
+    std::string name_;
+    type::TypeId type_;
     uint8_t attr_size_;
-    const bool nullable_;
+    bool nullable_;
     bool inlined_;
-    const col_oid_t oid_;
+    col_oid_t oid_;
     // TODO(Matt): default value would go here
     // Value default_;
   };
@@ -119,8 +145,29 @@ class Schema {
    */
   const std::vector<Column> &GetColumns() const { return columns_; }
 
+  nlohmann::json ToJson() const {
+    // Only need to serialize columns_ because col_oid_to_offset is derived from columns_
+    nlohmann::json j;
+    j["columns"] = columns_;
+    return j;
+  }
+
+  void FromJson(const nlohmann::json &j) {
+    TERRIER_ASSERT(false, "Schema::FromJson should never be invoked directly; use DeserializeSchema");
+  }
+
+
+  std::shared_ptr<Schema> static DeserializeSchema(const nlohmann::json &j) {
+    std::vector<Schema::Column> columns = j.at("columns").get<std::vector<Schema::Column>>();
+    return std::make_shared<Schema>(columns);
+  }
+
  private:
   const std::vector<Column> columns_;
   std::unordered_map<col_oid_t, uint32_t> col_oid_to_offset;
 };
+
+DEFINE_JSON_DECLARATIONS(Schema::Column);
+DEFINE_JSON_DECLARATIONS(Schema);
+
 }  // namespace terrier::catalog

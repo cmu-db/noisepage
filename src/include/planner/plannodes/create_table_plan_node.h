@@ -26,6 +26,18 @@ struct PrimaryKeyInfo {
    */
   std::string constraint_name_;
 
+  nlohmann::json ToJson() const {
+    nlohmann::json j;
+    j["primary_key_cols"] = primary_key_cols_;
+    j["constraint_name"] = constraint_name_;
+    return j;
+  }
+
+  void FromJson(const nlohmann::json &j) {
+    primary_key_cols_ = j.at("primary_key_cols").get<std::vector<std::string>>();
+    constraint_name_ = j.at("constraint_name").get<std::string>();
+  }
+
   /**
    * @return the hashed value of this primary key info
    */
@@ -91,6 +103,26 @@ struct ForeignKeyInfo {
    * Delete action
    */
   parser::FKConstrActionType del_action_;
+
+  nlohmann::json ToJson() const {
+    nlohmann::json j;
+    j["foreign_key_sources"] = foreign_key_sources_;
+    j["foreign_key_sinks"] = foreign_key_sinks_;
+    j["sink_table_name"] = sink_table_name_;
+    j["constraint_name"] = constraint_name_;
+    j["upd_action"] = upd_action_;
+    j["del_action"] = del_action_;
+    return j;
+  }
+
+  void FromJson(const nlohmann::json &j) {
+    foreign_key_sources_ = j.at("foreign_key_sources").get<std::vector<std::string>>();
+    foreign_key_sinks_ = j.at("foreign_key_sinks").get<std::vector<std::string>>();
+    sink_table_name_ = j.at("sink_table_name").get<std::string>();
+    constraint_name_ = j.at("constraint_name").get<std::string>();
+    upd_action_ = j.at("upd_action").get<parser::FKConstrActionType>();
+    del_action_ = j.at("del_action").get<parser::FKConstrActionType>();
+  }
 
   /**
    * @return the hashed value of this foreign key info
@@ -167,6 +199,18 @@ struct UniqueInfo {
    */
   std::string constraint_name_;
 
+  nlohmann::json ToJson() const {
+    nlohmann::json j;
+    j["unique_cols"] = unique_cols_;
+    j["constraint_name"] = constraint_name_;
+    return j;
+  }
+
+  void FromJson(const nlohmann::json &j) {
+    unique_cols_ = j.at("unique_cols").get<std::vector<std::string>>();
+    constraint_name_ = j.at("constraint_name").get<std::string>();
+  }
+
   /**
    * @return the hashed value of this unique info
    */
@@ -225,6 +269,22 @@ struct CheckInfo {
    */
   type::TransientValue expr_value_;
 
+  nlohmann::json ToJson() const {
+    nlohmann::json j;
+    j["check_cols"] = check_cols_;
+    j["constraint_name"] = constraint_name_;
+    j["expr_type"] = expr_type_;
+    j["expr_value"] = expr_value_;
+    return j;
+  }
+
+  void FromJson(const nlohmann::json &j) {
+    check_cols_ = j.at("check_cols").get<std::vector<std::string>>();
+    constraint_name_ = j.at("constraint_name").get<std::string>();
+    expr_type_ = j.at("expr_type").get<parser::ExpressionType>();
+    expr_value_ = j.at("expr_value").get<type::TransientValue>();
+  }
+
   /**
    * CheckInfo constructor
    * @param check_cols name of the columns to be checked
@@ -238,6 +298,11 @@ struct CheckInfo {
         constraint_name_(std::move(constraint_name)),
         expr_type_(expr_type),
         expr_value_(std::move(expr_value)) {}
+
+  /**
+   * Default constructor for deserialization
+   */
+  CheckInfo() = default;
 
   /**
    * @return the hashed value of this check info
@@ -616,7 +681,13 @@ class CreateTablePlanNode : public AbstractPlanNode {
         con_checks_(std::move(con_checks)) {}
 
  public:
-  CreateTablePlanNode() = delete;
+  /**
+   * Default constructor for deserialization
+   */
+  CreateTablePlanNode() = default;
+
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
 
   /**
    * @return the type of this plan node
@@ -728,5 +799,10 @@ class CreateTablePlanNode : public AbstractPlanNode {
    */
   DISALLOW_COPY_AND_MOVE(CreateTablePlanNode);
 };
+
+DEFINE_JSON_DECLARATIONS(PrimaryKeyInfo);
+DEFINE_JSON_DECLARATIONS(ForeignKeyInfo);
+DEFINE_JSON_DECLARATIONS(UniqueInfo);
+DEFINE_JSON_DECLARATIONS(CheckInfo);
 
 }  // namespace terrier::planner
