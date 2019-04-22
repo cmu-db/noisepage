@@ -189,5 +189,5 @@ BENCHMARK_REGISTER_F(GarbageCollectorBenchmark, HighContention)
 BENCHMARK_REGISTER_F(GarbageCollectorBenchmark, LongRunningOLAP)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
-    ->MinTime(2);`
+    ->MinTime(2);
 }  // namespace terrier
