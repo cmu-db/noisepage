@@ -19,19 +19,20 @@ namespace terrier::tpcc {
  */
 class StockLevel {
  private:
+  // District metadata
   const storage::ProjectedRowInitializer district_select_pr_initializer;
   const uint8_t d_id_key_pr_offset;
   const uint8_t d_w_id_key_pr_offset;
 
+  // Order Line metadata
   const storage::ProjectedRowInitializer order_line_select_pr_initializer;
-
   const uint8_t ol_o_id_key_pr_offset;
   const uint8_t ol_d_id_key_pr_offset;
   const uint8_t ol_w_id_key_pr_offset;
   const uint8_t ol_number_key_pr_offset;
 
+  // Stock metadata
   const storage::ProjectedRowInitializer stock_select_pr_initializer;
-
   const uint8_t s_w_id_key_pr_offset;
   const uint8_t s_i_id_key_pr_offset;
 

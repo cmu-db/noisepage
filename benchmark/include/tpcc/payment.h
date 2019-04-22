@@ -22,6 +22,7 @@ namespace terrier::tpcc {
 
 class Payment {
  private:
+  // Warehouse metadata
   const catalog::col_oid_t w_name_oid;
   const catalog::col_oid_t w_street_1_oid;
   const catalog::col_oid_t w_street_2_oid;
@@ -35,9 +36,9 @@ class Payment {
   const uint8_t w_ytd_select_pr_offset;
   const storage::ProjectedRowInitializer warehouse_update_pr_initializer;
 
+  // District metadata
   const uint8_t d_id_key_pr_offset;
   const uint8_t d_w_id_key_pr_offset;
-
   const catalog::col_oid_t d_name_oid;
   const catalog::col_oid_t d_street_1_oid;
   const catalog::col_oid_t d_street_2_oid;
@@ -51,6 +52,7 @@ class Payment {
   const uint8_t d_ytd_select_pr_offset;
   const storage::ProjectedRowInitializer district_update_pr_initializer;
 
+  // Customer metadata
   const uint8_t c_id_key_pr_offset;
   const uint8_t c_d_id_key_pr_offset;
   const uint8_t c_w_id_key_pr_offset;
@@ -79,6 +81,7 @@ class Payment {
   const uint8_t c_payment_cnt_update_pr_offset;
   const storage::ProjectedRowInitializer c_data_pr_initializer;
 
+  // History metadata
   const storage::ProjectedRowInitializer history_insert_pr_initializer;
   const storage::ProjectionMap history_insert_pr_map;
   const uint8_t h_c_id_insert_pr_offset;

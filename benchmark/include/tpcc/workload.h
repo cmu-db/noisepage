@@ -13,7 +13,7 @@ enum class TransactionType : uint8_t { NewOrder, Payment, OrderStatus, Delivery,
 class Deck {
  public:
   /*
-   * Default deck suggested by TPCC specification.
+   * Default deck suggested by section 5.2.4.2 of the specification.
    */
   Deck() {
     cards.reserve(23);
@@ -91,6 +91,9 @@ class Deck {
   uint32_t card_idx = 0;
 };
 
+/**
+ * Contains the input arguments for all transaction types, but only args for the matching type are populated.
+ */
 struct TransactionArgs {
   TransactionType type;
 
@@ -192,6 +195,7 @@ TransactionArgs BuildPaymentArgs(Random *const generator, const int8_t w_id, con
   return args;
 }
 
+// 2.6.1
 template <class Random>
 TransactionArgs BuildOrderStatusArgs(Random *const generator, const int8_t w_id, const int8_t num_warehouses) {
   TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses, "Invalid w_id.");
@@ -209,6 +213,7 @@ TransactionArgs BuildOrderStatusArgs(Random *const generator, const int8_t w_id,
   return args;
 }
 
+// 2.7.1
 template <class Random>
 TransactionArgs BuildDeliveryArgs(Random *const generator, const int8_t w_id, const int8_t num_warehouses) {
   TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses, "Invalid w_id.");
@@ -220,6 +225,7 @@ TransactionArgs BuildDeliveryArgs(Random *const generator, const int8_t w_id, co
   return args;
 }
 
+// 2.8.1
 template <class Random>
 TransactionArgs BuildStockLevelArgs(Random *const generator, const int8_t w_id, const int8_t num_warehouses) {
   TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses, "Invalid w_id.");

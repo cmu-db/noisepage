@@ -20,6 +20,7 @@ namespace terrier::tpcc {
  */
 class OrderStatus {
  private:
+  // Customer metadata
   const uint8_t c_id_key_pr_offset;
   const uint8_t c_d_id_key_pr_offset;
   const uint8_t c_w_id_key_pr_offset;
@@ -40,6 +41,7 @@ class OrderStatus {
   const uint8_t c_middle_select_pr_offset;
   const uint8_t c_last_select_pr_offset;
 
+  // Order metadata
   const uint8_t o_id_secondary_key_pr_offset;
   const uint8_t o_d_id_secondary_key_pr_offset;
   const uint8_t o_w_id_secondary_key_pr_offset;
@@ -51,6 +53,7 @@ class OrderStatus {
   const storage::ProjectionMap order_select_pr_map;
   const uint8_t o_id_select_pr_offset;
 
+  // Order Line metadata
   const uint8_t ol_o_id_key_pr_offset;
   const uint8_t ol_d_id_key_pr_offset;
   const uint8_t ol_w_id_key_pr_offset;

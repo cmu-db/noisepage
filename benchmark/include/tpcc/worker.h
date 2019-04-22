@@ -5,6 +5,10 @@
 
 namespace terrier::tpcc {
 
+/**
+ * Worker contains buffers for each worker thread (running txns) to use for PRs for tables and indexes to avoid
+ * constantly allocating and freeing them within the transactions themselves
+ */
 struct Worker {
   explicit Worker(tpcc::Database *const db)
       : item_tuple_buffer(common::AllocationUtil::AllocateAligned(
