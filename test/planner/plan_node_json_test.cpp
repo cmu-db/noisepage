@@ -1,4 +1,5 @@
 #include <memory>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -235,6 +236,36 @@ TEST(PlanNodeJsonTest, OrderByPlanNodeJsonTest) {
   EXPECT_EQ(PlanNodeType::ORDERBY, deserialized_plan->GetPlanNodeType());
   auto order_by_plan = std::dynamic_pointer_cast<OrderByPlanNode>(deserialized_plan);
   EXPECT_EQ(*plan_node, *order_by_plan);
+}
+
+// NOLINTNEXTLINE
+TEST(PlanNodeJsonTest, InsertPlanNodeJsonTest) {
+  // Construct InsertPlanNode
+  std::vector<type::TransientValue> values;
+  values.push_back(type::TransientValueFactory::GetInteger(0));
+  values.push_back(type::TransientValueFactory::GetBoolean(true));
+  std::vector<std::tuple<uint32_t, uint32_t, uint32_t>> parameter_info;
+  parameter_info.emplace_back(0, 1, 2);
+  parameter_info.emplace_back(3, 4, 5);
+  InsertPlanNode::Builder builder;
+  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
+                       .SetDatabaseOid(catalog::db_oid_t(0))
+                       .SetTableOid(catalog::table_oid_t(1))
+                       .SetValues(std::move(values))
+                       .SetParameterInfo(std::move(parameter_info))
+                       .SetBulkInsertCount(1)
+                       .Build();
+
+  // Serialize to Json
+  auto json = plan_node->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize plan node
+  auto deserialized_plan = DeserializePlanNode(json);
+  EXPECT_TRUE(deserialized_plan != nullptr);
+  EXPECT_EQ(PlanNodeType::INSERT, deserialized_plan->GetPlanNodeType());
+  auto insert_plan = std::dynamic_pointer_cast<InsertPlanNode>(deserialized_plan);
+  EXPECT_EQ(*plan_node, *insert_plan);
 }
 
 }  // namespace terrier::planner

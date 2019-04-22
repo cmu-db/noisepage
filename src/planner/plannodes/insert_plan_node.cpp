@@ -1,11 +1,8 @@
 #include "planner/plannodes/insert_plan_node.h"
-#include <memory>
-#include <string>
-#include <utility>
+
+#include <tuple>
 #include <vector>
-#include "parser/expression/constant_value_expression.h"
 #include "storage/sql_table.h"
-#include "type/transient_value_factory.h"
 
 namespace terrier::planner {
 common::hash_t InsertPlanNode::Hash() const {
@@ -20,7 +17,9 @@ common::hash_t InsertPlanNode::Hash() const {
   auto table_oid = GetTableOid();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&table_oid));
 
-  // TODO(Gus,Wen) hash values
+  for (const auto &value : GetValues()) {
+    hash = common::HashUtil::CombineHashes(hash, value.Hash());
+  }
 
   // Hash parameter_info
   for (const auto parameter : parameter_info_) {
@@ -45,7 +44,8 @@ bool InsertPlanNode::operator==(const AbstractPlanNode &rhs) const {
   // Target table OID
   if (GetTableOid() != other.GetTableOid()) return false;
 
-  // TODO(Gus,Wen) compare values
+  // Values
+  if (GetValues() != other.GetValues()) return false;
 
   // Parameter info
   const auto &parameter_info = GetParameterInfo();
@@ -61,6 +61,25 @@ bool InsertPlanNode::operator==(const AbstractPlanNode &rhs) const {
   if (GetBulkInsertCount() != other.GetBulkInsertCount()) return false;
 
   return AbstractPlanNode::operator==(rhs);
+}
+
+nlohmann::json InsertPlanNode::ToJson() const {
+  nlohmann::json j = AbstractPlanNode::ToJson();
+  j["database_oid"] = database_oid_;
+  j["table_oid"] = table_oid_;
+  j["values"] = values_;
+  j["parameter_info"] = parameter_info_;
+  j["bulk_insert_count"] = bulk_insert_count_;
+  return j;
+}
+
+void InsertPlanNode::FromJson(const nlohmann::json &j) {
+  AbstractPlanNode::FromJson(j);
+  database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
+  table_oid_ = j.at("table_oid").get<catalog::table_oid_t>();
+  values_ = j.at("values").get<std::vector<type::TransientValue>>();
+  parameter_info_ = j.at("parameter_info").get<std::vector<std::tuple<uint32_t, uint32_t, uint32_t>>>();
+  bulk_insert_count_ = j.at("bulk_insert_count").get<uint32_t>();
 }
 
 }  // namespace terrier::planner

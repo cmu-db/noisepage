@@ -71,13 +71,13 @@ class InsertPlanNode : public AbstractPlanNode {
      * @param bulk_insert_count number of times to insert
      * @return builder object
      */
-    Builder &SetBulkInsertCOunt(uint32_t bulk_insert_count) {
+    Builder &SetBulkInsertCount(uint32_t bulk_insert_count) {
       bulk_insert_count_ = bulk_insert_count;
       return *this;
     }
 
     /**
-     * Build the delete plan node
+     * Build the insert plan node
      * @return plan node
      */
     std::shared_ptr<InsertPlanNode> Build() {
@@ -137,6 +137,10 @@ class InsertPlanNode : public AbstractPlanNode {
 
  public:
   /**
+   * Default constructor used for deserialization
+   */
+  InsertPlanNode() = default;
+  /**
    * @return the type of this plan node
    */
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::INSERT; }
@@ -151,7 +155,10 @@ class InsertPlanNode : public AbstractPlanNode {
    */
   catalog::table_oid_t GetTableOid() const { return table_oid_; }
 
-  // TODO(Gus,Wen) use transient value peeker to peek values
+  /**
+   * @return values to be inserted
+   */
+  const std::vector<type::TransientValue> &GetValues() const { return values_; }
 
   /**
    * @return the information of insert parameters
@@ -169,6 +176,9 @@ class InsertPlanNode : public AbstractPlanNode {
   common::hash_t Hash() const override;
 
   bool operator==(const AbstractPlanNode &rhs) const override;
+
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
 
  private:
   /**
@@ -192,7 +202,7 @@ class InsertPlanNode : public AbstractPlanNode {
   std::vector<std::tuple<uint32_t, uint32_t, uint32_t>> parameter_info_;
 
   /**
-   * name of time to insert
+   * number of times to insert
    */
   uint32_t bulk_insert_count_;
 
@@ -202,4 +212,7 @@ class InsertPlanNode : public AbstractPlanNode {
    */
   DISALLOW_COPY_AND_MOVE(InsertPlanNode);
 };
+
+DEFINE_JSON_DECLARATIONS(InsertPlanNode);
+
 }  // namespace terrier::planner
