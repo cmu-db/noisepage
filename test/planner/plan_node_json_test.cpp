@@ -192,7 +192,7 @@ TEST(PlanNodeJsonTest, ProjectionPlanNodeJsonTest) {
 
 // NOLINTNEXTLINE
 TEST(PlanNodeJsonTest, SeqScanPlanNodeJsonTest) {
-  // Construct IndexScanPlanNode
+  // Construct SeqScanPlanNode
   SeqScanPlanNode::Builder builder;
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
                        .SetScanPredicate(PlanNodeJsonTest::BuildDummyPredicate())
