@@ -50,6 +50,10 @@ class TPCCBenchmark : public benchmark::Fixture {
     delete gc_;
   }
 
+  void TearDown(const benchmark::State &state) final {
+    if (logging_enabled_) unlink(LOG_FILE_NAME);
+  }
+
   const uint64_t blockstore_size_limit_ =
       1000;  // May need to increase this if num_threads_ or num_precomputed_txns_per_worker_ are greatly increased
              // (table sizes grow with a bigger workload)
@@ -207,7 +211,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, Basic)(benchmark::State &state) {
       }
     };
 
-    // run the TPCC workload to completion
+    // run the TPCC workload to completion, timing the execution
     uint64_t elapsed_ms;
     {
       common::ScopedTimer timer(&elapsed_ms);
@@ -251,5 +255,5 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, Basic)(benchmark::State &state) {
   }
 }
 
-BENCHMARK_REGISTER_F(TPCCBenchmark, Basic)->Unit(benchmark::kMillisecond)->UseManualTime();
+BENCHMARK_REGISTER_F(TPCCBenchmark, Basic)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(10);
 }  // namespace terrier
