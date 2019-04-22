@@ -64,6 +64,10 @@ TEST_F(NamespaceHandleTests, CreateTest) {
   // verify correctly created
   auto namespace_entry_ptr = namespace_handle.GetNamespaceEntry(txn_, "test_namespace");
   EXPECT_EQ("test_namespace", namespace_entry_ptr->GetVarcharColumn("nspname"));
-  // EXPECT_EQ("test_namespace", type::TransientValuePeeker::PeekVarChar(namespace_entry_ptr->GetColumn(1)));
+
+  // test deletion
+  namespace_handle.DeleteEntry(txn_, namespace_entry_ptr);
+  namespace_entry_ptr = namespace_handle.GetNamespaceEntry(txn_, "test_namespace");
+  EXPECT_EQ(nullptr, namespace_entry_ptr);
 }
 }  // namespace terrier

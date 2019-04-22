@@ -84,7 +84,13 @@ TEST_F(CatalogTests, CreateUserTableTest) {
   cols.emplace_back("user_col_1", type::TypeId::INTEGER, false, catalog::col_oid_t(catalog_->GetNextOid()));
   catalog::Schema schema(cols);
 
-  auto tbl_oid = catalog_->CreateUserTable(txn_, default_db_oid, "user_table_1", schema);
+  // get the namespace oid
+  auto db_handle = catalog_->GetDatabaseHandle();
+  auto ns_handle = db_handle.GetNamespaceHandle(txn_, default_db_oid);
+  const std::string ns_public_st("public");
+  auto public_ns_oid = ns_handle.NameToOid(txn_, ns_public_st);
+
+  auto tbl_oid = catalog_->CreateUserTable(txn_, default_db_oid, public_ns_oid, "user_table_1", schema);
   VerifyTablePresent(default_db_oid, "user_table_1");
   catalog_->Dump(txn_, default_db_oid);
 
@@ -112,6 +118,22 @@ TEST_F(CatalogTests, DeleteDatabaseTest) {
 
   // delete it
   catalog_->DeleteDatabase(txn_, "test_database");
+}
+
+// NOLINTNEXTLINE
+TEST_F(CatalogTests, NamespaceTest) {
+  auto db_handle = catalog_->GetDatabaseHandle();
+  const catalog::db_oid_t default_db_oid(catalog::DEFAULT_DATABASE_OID);
+
+  auto ns_oid = catalog_->CreateNameSpace(txn_, default_db_oid, "test_namespace");
+  auto ns_handle = db_handle.GetNamespaceHandle(txn_, default_db_oid);
+  auto ns_entry = ns_handle.GetNamespaceEntry(txn_, "test_namespace");
+  EXPECT_NE(nullptr, ns_entry);
+  EXPECT_EQ("test_namespace", ns_entry->GetVarcharColumn("nspname"));
+
+  catalog_->DeleteNameSpace(txn_, default_db_oid, ns_oid);
+  ns_entry = ns_handle.GetNamespaceEntry(txn_, "test_namespace");
+  EXPECT_EQ(nullptr, ns_entry);
 }
 
 }  // namespace terrier

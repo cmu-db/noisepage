@@ -82,12 +82,27 @@ class NamespaceHandle {
   void AddEntry(transaction::TransactionContext *txn, const std::string &name);
 
   /**
+   * Delete an entry
+   * @param entry to delete
+   * @return true on success
+   */
+  bool DeleteEntry(transaction::TransactionContext *txn, const std::shared_ptr<NamespaceEntry> &entry);
+
+  /**
    * Get a table handle under the given namespace
    * @param txn the transaction context
    * @param nsp_name the namespace
    * @return a handle to all the tables under the namespace
    */
   TableHandle GetTableHandle(transaction::TransactionContext *txn, const std::string &nsp_name);
+
+  /**
+   * Get a table handle under the given namespace
+   * @param txn the transaction context
+   * @param ns_oid
+   * @return a handle to all the tables under the namespace
+   */
+  TableHandle GetTableHandle(transaction::TransactionContext *txn, namespace_oid_t ns_oid);
 
   /**
    * Create the storage table

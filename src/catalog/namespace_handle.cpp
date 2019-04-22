@@ -36,6 +36,9 @@ std::shared_ptr<NamespaceEntry> NamespaceHandle::GetNamespaceEntry(transaction::
   search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
   search_vec.push_back(type::TransientValueFactory::GetVarChar(name));
   ret_row = pg_namespace_hrw_->FindRow(txn, search_vec);
+  if (ret_row.empty()) {
+    return nullptr;
+  }
   namespace_oid_t oid(type::TransientValuePeeker::PeekInteger(ret_row[0]));
   return std::make_shared<NamespaceEntry>(oid, pg_namespace_hrw_, std::move(ret_row));
 }
@@ -46,11 +49,15 @@ namespace_oid_t NamespaceHandle::NameToOid(transaction::TransactionContext *txn,
 }
 
 TableHandle NamespaceHandle::GetTableHandle(transaction::TransactionContext *txn, const std::string &nsp_name) {
-  CATALOG_LOG_TRACE("Getting the table handle ...");
+  auto ns_oid = NameToOid(txn, nsp_name);
+  return GetTableHandle(txn, ns_oid);
+}
+
+TableHandle NamespaceHandle::GetTableHandle(transaction::TransactionContext *txn, namespace_oid_t ns_oid) {
   std::string pg_class("pg_class");
   std::string pg_namespace("pg_namespace");
   std::string pg_tablespace("pg_tablespace");
-  return TableHandle(catalog_, NameToOid(txn, nsp_name), catalog_->GetCatalogTable(db_oid_, pg_class),
+  return TableHandle(catalog_, ns_oid, catalog_->GetCatalogTable(db_oid_, pg_class),
                      catalog_->GetCatalogTable(db_oid_, pg_namespace),
                      catalog_->GetCatalogTable(db_oid_, pg_tablespace));
 }
@@ -62,6 +69,21 @@ void NamespaceHandle::AddEntry(transaction::TransactionContext *txn, const std::
   row.emplace_back(type::TransientValueFactory::GetVarChar(name));
   catalog_->SetUnusedColumns(&row, NamespaceHandle::unused_schema_cols_);
   pg_namespace_hrw_->InsertRow(txn, row);
+}
+
+bool NamespaceHandle::DeleteEntry(transaction::TransactionContext *txn, const std::shared_ptr<NamespaceEntry> &entry) {
+  std::vector<type::TransientValue> search_vec;
+  auto ns_oid_int = entry->GetIntegerColumn("oid");
+  // get the oid of this row
+  search_vec.emplace_back(type::TransientValueFactory::GetInteger(ns_oid_int));
+
+  // lookup and get back the projected column. Recover the tuple_slot
+  auto proj_col_p = pg_namespace_hrw_->FindRowProjCol(txn, search_vec);
+  auto tuple_slot_p = proj_col_p->TupleSlots();
+  // delete
+  bool status = pg_namespace_hrw_->GetSqlTable()->Delete(txn, *tuple_slot_p);
+  delete[] reinterpret_cast<byte *>(proj_col_p);
+  return status;
 }
 
 SqlTableRW *NamespaceHandle::Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,

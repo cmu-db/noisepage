@@ -46,14 +46,38 @@ void Catalog::DeleteDatabase(transaction::TransactionContext *txn, const std::st
   name_map_.erase(oid);
 }
 
-table_oid_t Catalog::CreateUserTable(transaction::TransactionContext *txn, db_oid_t db_oid,
+namespace_oid_t Catalog::CreateNameSpace(transaction::TransactionContext *txn, db_oid_t db_oid,
+                                         const std::string &name) {
+  auto db_handle = GetDatabaseHandle();
+  auto ns_handle = db_handle.GetNamespaceHandle(txn, db_oid);
+  auto ns_entry = ns_handle.GetNamespaceEntry(txn, name);
+  if (ns_entry == nullptr) {
+    ns_handle.AddEntry(txn, name);
+    ns_entry = ns_handle.GetNamespaceEntry(txn, name);
+  }
+  int32_t ns_oid_int = ns_entry->GetIntegerColumn("oid");
+  return namespace_oid_t(ns_oid_int);
+}
+
+void Catalog::DeleteNameSpace(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid) {
+  auto db_handle = GetDatabaseHandle();
+  auto ns_handle = db_handle.GetNamespaceHandle(txn, db_oid);
+
+  auto ns_entry = ns_handle.GetNamespaceEntry(txn, ns_oid);
+  if (ns_entry == nullptr) {
+    return;
+  }
+  ns_handle.DeleteEntry(txn, ns_entry);
+}
+
+table_oid_t Catalog::CreateUserTable(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid,
                                      const std::string &table_name, const Schema &schema) {
   auto db_handle = GetDatabaseHandle();
-  auto table_handle = db_handle.GetNamespaceHandle(txn, db_oid).GetTableHandle(txn, "public");
+  auto ns_handle = db_handle.GetNamespaceHandle(txn, db_oid);
+  auto table_handle = ns_handle.GetTableHandle(txn, ns_oid);
 
   // creates the storage table and adds to pg_class
   auto tbl_rw = table_handle.CreateTable(txn, schema, table_name);
-  // auto tbl_rw = std::shared_ptr<catalog::SqlTableRW>(raw_tbl_rw);
 
   // add to maps
   AddToMaps(db_oid, tbl_rw->Oid(), table_name, tbl_rw);
