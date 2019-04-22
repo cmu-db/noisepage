@@ -24,4 +24,23 @@ bool CSVScanPlanNode::operator==(const AbstractPlanNode &rhs) const {
           escape_ == other.escape_ && null_string_ == other.null_string_;
 }
 
+nlohmann::json CSVScanPlanNode::ToJson() const {
+  nlohmann::json j = AbstractScanPlanNode::ToJson();
+  j["file_name"] = file_name_;
+  j["delimiter"] = delimiter_;
+  j["quote"] = quote_;
+  j["escape"] = escape_;
+  j["null_string"] = null_string_;
+  return j;
+}
+
+void CSVScanPlanNode::FromJson(const nlohmann::json &j) {
+  AbstractScanPlanNode::FromJson(j);
+  file_name_ = j.at("file_name").get<std::string>();
+  delimiter_ = j.at("delimiter").get<char>();
+  quote_ = j.at("quote").get<char>();
+  escape_ = j.at("escape").get<char>();
+  null_string_ = j.at("null_string").get<std::string>();
+}
+
 }  // namespace terrier::planner

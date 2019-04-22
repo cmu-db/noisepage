@@ -67,7 +67,7 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
      * @param function_body query string/function body of the UDF
      * @return builder object
      */
-    Builder &SetColumnNames(std::vector<std::string> &&function_body) {
+    Builder &SetFunctionBody(std::vector<std::string> &&function_body) {
       function_body_ = std::move(function_body);
       return *this;
     }
@@ -219,6 +219,14 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
         param_count_(param_count) {}
 
  public:
+  /**
+   * Default constructor used for deserialization
+   */
+  CreateFunctionPlanNode() = default;
+
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
+
   /**
    * @return the type of this plan node
    */

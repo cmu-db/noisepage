@@ -90,7 +90,13 @@ class CreateNamespacePlanNode : public AbstractPlanNode {
       : AbstractPlanNode(std::move(children), std::move(output_schema)), namespace_name_(std::move(namespace_name)) {}
 
  public:
-  CreateNamespacePlanNode() = delete;
+  /**
+   * Default constructor for deserialization
+   */
+  CreateNamespacePlanNode() = default;
+
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
 
   /**
    * @return the type of this plan node

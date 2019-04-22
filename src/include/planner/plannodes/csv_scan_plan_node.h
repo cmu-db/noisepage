@@ -131,6 +131,14 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
 
  public:
   /**
+   * Default constructor for deserialization
+   */
+  CSVScanPlanNode() = default;
+
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
+
+  /**
    * @return the type of this plan node
    */
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::CSVSCAN; }
@@ -168,11 +176,11 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
  private:
-  const std::string file_name_;
+  std::string file_name_;
   char delimiter_;
   char quote_;
   char escape_;
-  const std::string null_string_;
+  std::string null_string_;
 
  public:
   /**

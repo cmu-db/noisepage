@@ -72,46 +72,39 @@ std::shared_ptr<AbstractPlanNode> DeserializePlanNode(const nlohmann::json &json
       //      break;
       //    }
       //
-      //    case PlanNodeType::CREATE_DATABASE: {
-      //      plan_node = std::make_shared<CreateDatabasePlanNode>();
-      //      break;
-      //    }
-      //
-      //    case PlanNodeType::CREATE_FUNC: {
-      //      plan_node = std::make_shared<CreateFunctionPlanNode>();
-      //      break;
-      //    }
-      //
-      //    case PlanNodeType::CREATE_INDEX: {
-      //      plan_node = std::make_shared<CreateIndexPlanNode>();
-      //      break;
-      //    }
-      //
-      //    case PlanNodeType::CREATE_NAMESPACE: {
-      //      plan_node = std::make_shared<CreateNamespacePlanNode>();
-      //      break;
-      //    }
-      //
+    case PlanNodeType::CREATE_DATABASE: {
+      plan_node = std::make_shared<CreateDatabasePlanNode>();
+      break;
+    }
+    case PlanNodeType::CREATE_FUNC: {
+      plan_node = std::make_shared<CreateFunctionPlanNode>();
+      break;
+    }
+    case PlanNodeType::CREATE_INDEX: {
+      plan_node = std::make_shared<CreateIndexPlanNode>();
+      break;
+    }
+    case PlanNodeType::CREATE_NAMESPACE: {
+      plan_node = std::make_shared<CreateNamespacePlanNode>();
+      break;
+    }
       //    case PlanNodeType::CREATE_TABLE: {
       //      plan_node = std::make_shared<CreateTablePlanNode>();
       //      break;
       //    }
       //
-      //    case PlanNodeType::CREATE_TRIGGER: {
-      //      plan_node = std::make_shared<CreateTriggerPlanNode>();
-      //      break;
-      //    }
-      //
-      //    case PlanNodeType::CREATE_VIEW: {
-      //      plan_node = std::make_shared<CreateViewPlanNode>();
-      //      break;
-      //    }
-      //
-      //    case PlanNodeType::CSVSCAN: {
-      //      plan_node = std::make_shared<CSVScanPlanNode>();
-      //      break;
-      //    }
-      //
+    case PlanNodeType::CREATE_TRIGGER: {
+      plan_node = std::make_shared<CreateTriggerPlanNode>();
+      break;
+    }
+    case PlanNodeType::CREATE_VIEW: {
+      plan_node = std::make_shared<CreateViewPlanNode>();
+      break;
+    }
+    case PlanNodeType::CSVSCAN: {
+      plan_node = std::make_shared<CSVScanPlanNode>();
+      break;
+    }
       //    case PlanNodeType::DELETE: {
       //      plan_node = std::make_shared<DeletePlanNode>();
       //      break;

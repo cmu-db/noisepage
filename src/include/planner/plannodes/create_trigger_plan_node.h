@@ -208,7 +208,13 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
         trigger_type_(trigger_type) {}
 
  public:
-  CreateTriggerPlanNode() = delete;
+  /**
+   * Default constructor for deserialization
+   */
+  CreateTriggerPlanNode() = default;
+
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
 
   /**
    * @return the type of this plan node

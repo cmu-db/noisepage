@@ -43,4 +43,25 @@ bool CreateViewPlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   return AbstractPlanNode::operator==(rhs);
 }
+
+nlohmann::json CreateViewPlanNode::ToJson() const {
+  nlohmann::json j = AbstractPlanNode::ToJson();
+  j["database_oid"] = database_oid_;
+  j["namespace_oid"] = namespace_oid_;
+  j["view_name"] = view_name_;
+  j["view_query"] = view_query_;
+  return j;
+}
+
+void CreateViewPlanNode::FromJson(const nlohmann::json &j) {
+  AbstractPlanNode::FromJson(j);
+  database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
+  namespace_oid_ = j.at("namespace_oid").get<catalog::namespace_oid_t>();
+  view_name_ = j.at("view_name").get<std::string>();
+  if (!j.at("view_query").is_null()) {
+    view_query_ = std::make_shared<parser::SelectStatement>();
+    view_query_->FromJson(j.at("view_query"));
+  }
+}
+
 }  // namespace terrier::planner

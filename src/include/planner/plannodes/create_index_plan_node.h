@@ -179,7 +179,13 @@ class CreateIndexPlanNode : public AbstractPlanNode {
         key_attrs_(std::move(key_attrs)) {}
 
  public:
-  CreateIndexPlanNode() = delete;
+  /**
+   * Default constructor for deserialization
+   */
+  CreateIndexPlanNode() = default;
+
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
 
   /**
    * @return the type of this plan node

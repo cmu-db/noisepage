@@ -102,4 +102,34 @@ bool CreateTriggerPlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   return AbstractPlanNode::operator==(rhs);
 }
+
+nlohmann::json CreateTriggerPlanNode::ToJson() const {
+  nlohmann::json j = AbstractPlanNode::ToJson();
+  j["database_oid"] = database_oid_;
+  j["table_oid"] = table_oid_;
+  j["trigger_name"] = trigger_name_;
+  j["trigger_funcnames"] = trigger_funcnames_;
+  j["trigger_args"] = trigger_args_;
+  j["trigger_columns"] = trigger_columns_;
+  j["trigger_when"] = trigger_when_;
+  j["trigger_type"] = trigger_type_;
+  return j;
+}
+
+void CreateTriggerPlanNode::FromJson(const nlohmann::json &j) {
+  AbstractPlanNode::FromJson(j);
+  database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
+  table_oid_ = j.at("table_oid").get<catalog::table_oid_t>();
+  trigger_name_ = j.at("trigger_name").get<std::string>();
+  trigger_funcnames_ = j.at("trigger_funcnames").get<std::vector<std::string>>();
+  trigger_args_ = j.at("trigger_args").get<std::vector<std::string>>();
+  trigger_columns_ = j.at("trigger_columns").get<std::vector<catalog::col_oid_t>>();
+
+  if (!j.at("trigger_when").is_null()) {
+    trigger_when_ = parser::DeserializeExpression(j.at("trigger_when"));
+  }
+
+  trigger_type_ = j.at("trigger_type").get<int16_t>();
+}
+
 }  // namespace terrier::planner

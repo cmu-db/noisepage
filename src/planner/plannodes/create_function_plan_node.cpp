@@ -104,4 +104,31 @@ bool CreateFunctionPlanNode::operator==(const AbstractPlanNode &rhs) const {
   return AbstractPlanNode::operator==(rhs);
 }
 
+nlohmann::json CreateFunctionPlanNode::ToJson() const {
+  nlohmann::json j = AbstractPlanNode::ToJson();
+  j["database_oid"] = database_oid_;
+  j["language"] = language_;
+  j["function_param_names"] = function_param_names_;
+  j["function_param_types"] = function_param_types_;
+  j["function_body"] = function_body_;
+  j["is_replace"] = is_replace_;
+  j["function_name"] = function_name_;
+  j["return_type"] = return_type_;
+  j["param_count"] = param_count_;
+  return j;
+}
+
+void CreateFunctionPlanNode::FromJson(const nlohmann::json &j) {
+  AbstractPlanNode::FromJson(j);
+  database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
+  language_ = j.at("language").get<parser::PLType>();
+  function_param_names_ = j.at("function_param_names").get<std::vector<std::string>>();
+  function_param_types_ = j.at("function_param_types").get<std::vector<parser::BaseFunctionParameter::DataType>>();
+  function_body_ = j.at("function_body").get<std::vector<std::string>>();
+  is_replace_ = j.at("is_replace").get<bool>();
+  function_name_ = j.at("function_name").get<std::string>();
+  return_type_ = j.at("return_type").get<parser::BaseFunctionParameter::DataType>();
+  param_count_ = j.at("param_count").get<int>();
+}
+
 }  // namespace terrier::planner

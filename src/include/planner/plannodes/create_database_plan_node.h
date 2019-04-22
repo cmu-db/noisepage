@@ -77,7 +77,14 @@ class CreateDatabasePlanNode : public AbstractPlanNode {
       : AbstractPlanNode(std::move(children), std::move(output_schema)), database_name_(std::move(database_name)) {}
 
  public:
-  CreateDatabasePlanNode() = delete;
+  /**
+   * Default constructor used for deserialization
+   */
+  CreateDatabasePlanNode() = default;
+
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
+
   /**
    * @return the type of this plan node
    */

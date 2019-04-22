@@ -125,7 +125,14 @@ class CreateViewPlanNode : public AbstractPlanNode {
         view_query_(std::move(view_query)) {}
 
  public:
-  CreateViewPlanNode() = delete;
+  /**
+   * Default constructor for deserialization
+   */
+  CreateViewPlanNode() = default;
+
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
+
   /**
    * @return OID of the database
    */
