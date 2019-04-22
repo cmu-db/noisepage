@@ -157,11 +157,11 @@ std::shared_ptr<AbstractPlanNode> DeserializePlanNode(const nlohmann::json &json
       //      break;
       //    }
       //
-      //    case PlanNodeType::HASH: {
-      //      plan_node = std::make_shared<HashPlanNode>();
-      //      break;
-      //    }
-      //
+    case PlanNodeType::HASH: {
+      plan_node = std::make_shared<HashPlanNode>();
+      break;
+    }
+
     case PlanNodeType::INDEXSCAN: {
       plan_node = std::make_shared<IndexScanPlanNode>();
       break;

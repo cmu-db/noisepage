@@ -34,6 +34,7 @@ class HashPlanNode : public AbstractPlanNode {
      * @return builder object
      */
     Builder &AddHashKey(std::shared_ptr<parser::AbstractExpression> key) {
+      TERRIER_ASSERT(key != nullptr, "Can't add nullptr key to HashPlanNode");
       hash_keys_.emplace_back(key);
       return *this;
     }
@@ -66,6 +67,11 @@ class HashPlanNode : public AbstractPlanNode {
 
  public:
   /**
+   * Default constructor used for deserialization
+   */
+  HashPlanNode() = default;
+
+  /**
    * @return the type of this plan node
    */
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::HASH; }
@@ -82,6 +88,9 @@ class HashPlanNode : public AbstractPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
+
  private:
   std::vector<std::shared_ptr<parser::AbstractExpression>> hash_keys_;
 
@@ -91,5 +100,7 @@ class HashPlanNode : public AbstractPlanNode {
    */
   DISALLOW_COPY_AND_MOVE(HashPlanNode);
 };
+
+DEFINE_JSON_DECLARATIONS(HashPlanNode);
 
 }  // namespace terrier::planner

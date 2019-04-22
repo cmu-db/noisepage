@@ -67,6 +67,20 @@ class PlanNodeJsonTest : public TerrierTest {
   static std::shared_ptr<parser::AbstractExpression> BuildDummyPredicate() {
     return std::make_shared<parser::ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true));
   }
+
+  /**
+   * Constructs a dummy SeqScanPlanNode to be used as a child for another plan
+   */
+  static std::shared_ptr<AbstractPlanNode> BuildDummySeqScanPlan() {
+    SeqScanPlanNode::Builder builder;
+    return builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
+        .SetScanPredicate(PlanNodeJsonTest::BuildDummyPredicate())
+        .SetIsParallelFlag(true)
+        .SetIsForUpdateFlag(false)
+        .SetDatabaseOid(catalog::db_oid_t(0))
+        .SetTableOid(catalog::table_oid_t(0))
+        .Build();
+  }
 };
 
 // NOLINTNEXTLINE
@@ -286,6 +300,28 @@ TEST(PlanNodeJsonTest, ResultPlanNodeJsonTest) {
   EXPECT_EQ(PlanNodeType::RESULT, deserialized_plan->GetPlanNodeType());
   auto result_plan = std::dynamic_pointer_cast<ResultPlanNode>(deserialized_plan);
   EXPECT_EQ(*plan_node, *result_plan);
+}
+
+// NOLINTNEXTLINE
+TEST(PlanNodeJsonTest, HashPlanNodeJsonTest) {
+  // Construct HashPlanNode
+  HashPlanNode::Builder builder;
+  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
+                       .AddHashKey(std::make_shared<parser::TupleValueExpression>("col1", "table1"))
+                       .AddHashKey(std::make_shared<parser::TupleValueExpression>("col2", "table1"))
+                       .AddChild(PlanNodeJsonTest::BuildDummySeqScanPlan())
+                       .Build();
+
+  // Serialize to Json
+  auto json = plan_node->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize plan node
+  auto deserialized_plan = DeserializePlanNode(json);
+  EXPECT_TRUE(deserialized_plan != nullptr);
+  EXPECT_EQ(PlanNodeType::HASH, deserialized_plan->GetPlanNodeType());
+  auto hash_plan = std::dynamic_pointer_cast<HashPlanNode>(deserialized_plan);
+  EXPECT_EQ(*plan_node, *hash_plan);
 }
 
 }  // namespace terrier::planner
