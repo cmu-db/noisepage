@@ -197,10 +197,10 @@ std::shared_ptr<AbstractPlanNode> DeserializePlanNode(const nlohmann::json &json
       //      break;
       //    }
       //
-      //    case PlanNodeType::SEQSCAN: {
-      //      plan_node = std::make_shared<SeqScanPlanNode>();
-      //      break;
-      //    }
+    case PlanNodeType::SEQSCAN: {
+      plan_node = std::make_shared<SeqScanPlanNode>();
+      break;
+    }
       //
       //    case PlanNodeType::SETOP: {
       //      plan_node = std::make_shared<SetOpPlanNode>();

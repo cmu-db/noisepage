@@ -74,6 +74,11 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
 
  public:
   /**
+   * Default constructor used for deserialization
+   */
+  SeqScanPlanNode() = default;
+
+  /**
    * @return the type of this plan node
    */
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::SEQSCAN; }
@@ -90,6 +95,9 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
+
  private:
   /**
    * OID for table being scanned
@@ -102,5 +110,7 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
    */
   DISALLOW_COPY_AND_MOVE(SeqScanPlanNode);
 };
+
+DEFINE_JSON_DECLARATIONS(SeqScanPlanNode);
 
 }  // namespace terrier::planner

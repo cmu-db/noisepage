@@ -173,7 +173,7 @@ TEST(PlanNodeJsonTest, NestedLoopJoinPlanNodeJoinTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(PlanNodeJsonTest, ProjectionPlanNodeJoinTest) {
+TEST(PlanNodeJsonTest, ProjectionPlanNodeJsonTest) {
   // Construct ProjectionPlanNode
   ProjectionPlanNode::Builder builder;
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema()).Build();
@@ -188,6 +188,30 @@ TEST(PlanNodeJsonTest, ProjectionPlanNodeJoinTest) {
   EXPECT_EQ(PlanNodeType::PROJECTION, deserialized_plan->GetPlanNodeType());
   auto projection_plan = std::dynamic_pointer_cast<ProjectionPlanNode>(deserialized_plan);
   EXPECT_EQ(*plan_node, *projection_plan);
+}
+
+// NOLINTNEXTLINE
+TEST(PlanNodeJsonTest, SeqScanPlanNodeJsonTest) {
+  // Construct IndexScanPlanNode
+  SeqScanPlanNode::Builder builder;
+  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
+                       .SetScanPredicate(PlanNodeJsonTest::BuildDummyPredicate())
+                       .SetIsParallelFlag(true)
+                       .SetIsForUpdateFlag(false)
+                       .SetDatabaseOid(catalog::db_oid_t(0))
+                       .SetTableOid(catalog::table_oid_t(0))
+                       .Build();
+
+  // Serialize to Json
+  auto json = plan_node->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize plan node
+  auto deserialized_plan = DeserializePlanNode(json);
+  EXPECT_TRUE(deserialized_plan != nullptr);
+  EXPECT_EQ(PlanNodeType::SEQSCAN, deserialized_plan->GetPlanNodeType());
+  auto seq_scan_plan = std::dynamic_pointer_cast<SeqScanPlanNode>(deserialized_plan);
+  EXPECT_EQ(*plan_node, *seq_scan_plan);
 }
 
 }  // namespace terrier::planner

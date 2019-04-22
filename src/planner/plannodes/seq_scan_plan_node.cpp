@@ -44,4 +44,15 @@ bool SeqScanPlanNode::operator==(const AbstractPlanNode &rhs) const {
   return AbstractScanPlanNode::operator==(rhs) && AbstractPlanNode::operator==(rhs);
 }
 
+nlohmann::json SeqScanPlanNode::ToJson() const {
+  nlohmann::json j = AbstractScanPlanNode::ToJson();
+  j["table_oid"] = table_oid_;
+  return j;
+}
+
+void SeqScanPlanNode::FromJson(const nlohmann::json &j) {
+  AbstractScanPlanNode::FromJson(j);
+  table_oid_ = j.at("table_oid").get<catalog::table_oid_t>();
+}
+
 }  // namespace terrier::planner
