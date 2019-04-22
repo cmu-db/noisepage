@@ -16,8 +16,10 @@ struct Constants {
    */
   static const uint32_t BUFFER_SEGMENT_SIZE = 1 << 12;
   /**
-   * Maximum number of columns a table is allowed to have.
+   * Maximum number of columns a table is allowed to have. It should be sufficiently small such that  if all
+   * columns are as large as they can be there is still at last one slot for every block.
    */
-  static const uint16_t MAX_COL = INT16_MAX;
+  // TODO(Tianyu): This number currently is obtained through empirical experiments.
+  static const uint16_t MAX_COL = 12500;
 };
 }  // namespace terrier::common

@@ -89,9 +89,9 @@ TEST_F(ParserTestBase, CreateFunctionTest) {
   auto stmt = reinterpret_cast<CreateFunctionStatement *>(stmts[0].get());
   auto func_params = stmt->GetFuncParameters();
   EXPECT_EQ(stmt->GetFuncName(), "increment");
-  EXPECT_EQ(stmt->GetFuncReturnType()->GetDataType(), Parameter::DataType::DOUBLE);
+  EXPECT_EQ(stmt->GetFuncReturnType()->GetDataType(), BaseFunctionParameter::DataType::DOUBLE);
   EXPECT_EQ(func_params[0]->GetParamName(), "i");
-  EXPECT_EQ(func_params[0]->GetDataType(), Parameter::DataType::DOUBLE);
+  EXPECT_EQ(func_params[0]->GetDataType(), BaseFunctionParameter::DataType::DOUBLE);
 
   query =
       "CREATE FUNCTION increment1 ("
@@ -104,11 +104,11 @@ TEST_F(ParserTestBase, CreateFunctionTest) {
   stmt = reinterpret_cast<CreateFunctionStatement *>(stmts[0].get());
   func_params = stmt->GetFuncParameters();
   EXPECT_EQ(stmt->GetFuncName(), "increment1");
-  EXPECT_EQ(stmt->GetFuncReturnType()->GetDataType(), Parameter::DataType::DOUBLE);
+  EXPECT_EQ(stmt->GetFuncReturnType()->GetDataType(), BaseFunctionParameter::DataType::DOUBLE);
   EXPECT_EQ(func_params[0]->GetParamName(), "i");
-  EXPECT_EQ(func_params[0]->GetDataType(), Parameter::DataType::DOUBLE);
+  EXPECT_EQ(func_params[0]->GetDataType(), BaseFunctionParameter::DataType::DOUBLE);
   EXPECT_EQ(func_params[1]->GetParamName(), "j");
-  EXPECT_EQ(func_params[1]->GetDataType(), Parameter::DataType::DOUBLE);
+  EXPECT_EQ(func_params[1]->GetDataType(), BaseFunctionParameter::DataType::DOUBLE);
 
   query =
       "CREATE OR REPLACE FUNCTION increment2 ("
@@ -121,11 +121,11 @@ TEST_F(ParserTestBase, CreateFunctionTest) {
   stmt = reinterpret_cast<CreateFunctionStatement *>(stmts[0].get());
   func_params = stmt->GetFuncParameters();
   EXPECT_EQ(stmt->GetFuncName(), "increment2");
-  EXPECT_EQ(stmt->GetFuncReturnType()->GetDataType(), Parameter::DataType::INT);
+  EXPECT_EQ(stmt->GetFuncReturnType()->GetDataType(), BaseFunctionParameter::DataType::INT);
   EXPECT_EQ(func_params[0]->GetParamName(), "i");
-  EXPECT_EQ(func_params[0]->GetDataType(), Parameter::DataType::INT);
+  EXPECT_EQ(func_params[0]->GetDataType(), BaseFunctionParameter::DataType::INT);
   EXPECT_EQ(func_params[1]->GetParamName(), "j");
-  EXPECT_EQ(func_params[1]->GetDataType(), Parameter::DataType::INT);
+  EXPECT_EQ(func_params[1]->GetDataType(), BaseFunctionParameter::DataType::INT);
 
   query =
       "CREATE OR REPLACE FUNCTION return_varchar ("
@@ -138,9 +138,9 @@ TEST_F(ParserTestBase, CreateFunctionTest) {
   stmt = reinterpret_cast<CreateFunctionStatement *>(stmts[0].get());
   func_params = stmt->GetFuncParameters();
   EXPECT_EQ(stmt->GetFuncName(), "return_varchar");
-  EXPECT_EQ(stmt->GetFuncReturnType()->GetDataType(), Parameter::DataType::VARCHAR);
+  EXPECT_EQ(stmt->GetFuncReturnType()->GetDataType(), BaseFunctionParameter::DataType::VARCHAR);
   EXPECT_EQ(func_params[0]->GetParamName(), "i");
-  EXPECT_EQ(func_params[0]->GetDataType(), Parameter::DataType::VARCHAR);
+  EXPECT_EQ(func_params[0]->GetDataType(), BaseFunctionParameter::DataType::VARCHAR);
 
   query =
       "CREATE OR REPLACE FUNCTION return_text ("
@@ -153,9 +153,9 @@ TEST_F(ParserTestBase, CreateFunctionTest) {
   stmt = reinterpret_cast<CreateFunctionStatement *>(stmts[0].get());
   func_params = stmt->GetFuncParameters();
   EXPECT_EQ(stmt->GetFuncName(), "return_text");
-  EXPECT_EQ(stmt->GetFuncReturnType()->GetDataType(), Parameter::DataType::TEXT);
+  EXPECT_EQ(stmt->GetFuncReturnType()->GetDataType(), BaseFunctionParameter::DataType::TEXT);
   EXPECT_EQ(func_params[0]->GetParamName(), "i");
-  EXPECT_EQ(func_params[0]->GetDataType(), Parameter::DataType::TEXT);
+  EXPECT_EQ(func_params[0]->GetDataType(), BaseFunctionParameter::DataType::TEXT);
 
   query =
       "CREATE OR REPLACE FUNCTION return_bool ("
@@ -168,9 +168,9 @@ TEST_F(ParserTestBase, CreateFunctionTest) {
   stmt = reinterpret_cast<CreateFunctionStatement *>(stmts[0].get());
   func_params = stmt->GetFuncParameters();
   EXPECT_EQ(stmt->GetFuncName(), "return_bool");
-  EXPECT_EQ(stmt->GetFuncReturnType()->GetDataType(), Parameter::DataType::BOOL);
+  EXPECT_EQ(stmt->GetFuncReturnType()->GetDataType(), BaseFunctionParameter::DataType::BOOL);
   EXPECT_EQ(func_params[0]->GetParamName(), "i");
-  EXPECT_EQ(func_params[0]->GetDataType(), Parameter::DataType::BOOL);
+  EXPECT_EQ(func_params[0]->GetDataType(), BaseFunctionParameter::DataType::BOOL);
 }
 
 // NOLINTNEXTLINE
@@ -1097,11 +1097,10 @@ TEST_F(ParserTestBase, OldStringUpdateTest) {
   auto value = update_clause->GetUpdateValue();
   EXPECT_EQ(value->GetExpressionType(), ExpressionType::VALUE_CONSTANT);
   auto value_expr = reinterpret_cast<ConstantValueExpression *>(value.get());
-  auto string_ptr = type::TransientValuePeeker::PeekVarChar(value_expr->GetValue());
-  EXPECT_EQ(0, strcmp("2016-11-15 15:07:37", string_ptr));
+  type::TransientValue tmp_value = value_expr->GetValue();
+  auto string_view = type::TransientValuePeeker::PeekVarChar(tmp_value);
+  EXPECT_EQ("2016-11-15 15:07:37", string_view);
   EXPECT_EQ(type::TypeId::VARCHAR, value_expr->GetReturnValueType());
-
-  delete[] string_ptr;
 }
 
 // NOLINTNEXTLINE
@@ -1316,9 +1315,8 @@ TEST_F(ParserTestBase, OldCreateViewTest) {
   auto right_child = view_query->GetSelectCondition()->GetChild(1);
   EXPECT_EQ(right_child->GetExpressionType(), ExpressionType::VALUE_CONSTANT);
   auto right_value = reinterpret_cast<ConstantValueExpression *>(right_child.get())->GetValue();
-  auto string_ptr = type::TransientValuePeeker::PeekVarChar(right_value);
-  EXPECT_EQ(0, strcmp("Comedy", string_ptr));
-  delete[] string_ptr;
+  auto string_view = type::TransientValuePeeker::PeekVarChar(right_value);
+  EXPECT_EQ("Comedy", string_view);
 }
 
 // NOLINTNEXTLINE
@@ -1638,9 +1636,9 @@ TEST_F(ParserTestBase, OldDateTypeTest) {
     EXPECT_EQ(type::TypeId::DATE, cast_expr->GetReturnValueType());
 
     auto const_expr = reinterpret_cast<ConstantValueExpression *>(cast_expr->GetChild(0).get());
-    auto string_ptr = type::TransientValuePeeker::PeekVarChar(const_expr->GetValue());
-    EXPECT_EQ(0, strcmp("2017-01-01", string_ptr));
-    delete[] string_ptr;
+    type::TransientValue tmp_value = const_expr->GetValue();
+    auto string_view = type::TransientValuePeeker::PeekVarChar(tmp_value);
+    EXPECT_EQ("2017-01-01", string_view);
   }
 
   {
@@ -1689,9 +1687,9 @@ TEST_F(ParserTestBase, OldTypeCastInExpressionTest) {
     EXPECT_EQ(type::TypeId::DATE, cast_expr->GetReturnValueType());
 
     auto const_expr = reinterpret_cast<ConstantValueExpression *>(cast_expr->GetChild(0).get());
-    auto string_ptr = type::TransientValuePeeker::PeekVarChar(const_expr->GetValue());
-    EXPECT_EQ(0, strcmp("2018-04-04", string_ptr));
-    delete[] string_ptr;
+    type::TransientValue tmp_value = const_expr->GetValue();
+    auto string_view = type::TransientValuePeeker::PeekVarChar(tmp_value);
+    EXPECT_EQ("2018-04-04", string_view);
   }
 
   {
@@ -1705,9 +1703,9 @@ TEST_F(ParserTestBase, OldTypeCastInExpressionTest) {
     EXPECT_EQ(type::TypeId::INTEGER, left_child->GetReturnValueType());
 
     auto value_expr = reinterpret_cast<ConstantValueExpression *>(left_child->GetChild(0).get());
-    auto string_ptr = type::TransientValuePeeker::PeekVarChar(value_expr->GetValue());
-    EXPECT_EQ(0, strcmp("12345", string_ptr));
-    delete[] string_ptr;
+    type::TransientValue tmp_value = value_expr->GetValue();
+    auto string_view = type::TransientValuePeeker::PeekVarChar(tmp_value);
+    EXPECT_EQ("12345", string_view);
 
     auto right_child = reinterpret_cast<ConstantValueExpression *>(column->GetChild(1).get());
     EXPECT_EQ(12, type::TransientValuePeeker::PeekInteger(right_child->GetValue()));
