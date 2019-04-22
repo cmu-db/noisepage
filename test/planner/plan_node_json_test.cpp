@@ -324,4 +324,28 @@ TEST(PlanNodeJsonTest, HashPlanNodeJsonTest) {
   EXPECT_EQ(*plan_node, *hash_plan);
 }
 
+// NOLINTNEXTLINE
+TEST(PlanNodeJsonTest, HashJoinPlanNodeJoinTest) {
+  // Construct HashJoinPlanNode
+  HashJoinPlanNode::Builder builder;
+  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
+      .SetJoinType(LogicalJoinType::INNER)
+      .SetJoinPredicate(PlanNodeJsonTest::BuildDummyPredicate())
+      .AddLeftHashKey(std::make_shared<parser::TupleValueExpression>("col1", "table1"))
+      .AddRightHashKey(std::make_shared<parser::TupleValueExpression>("col2", "table2"))
+      .SetBuildBloomFilterFlag(false)
+      .Build();
+
+  // Serialize to Json
+  auto json = plan_node->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize plan node
+  auto deserialized_plan = DeserializePlanNode(json);
+  EXPECT_TRUE(deserialized_plan != nullptr);
+  EXPECT_EQ(PlanNodeType::HASHJOIN, deserialized_plan->GetPlanNodeType());
+  auto hash_join_plan = std::dynamic_pointer_cast<HashJoinPlanNode>(deserialized_plan);
+  EXPECT_EQ(*plan_node, *hash_join_plan);
+}
+
 }  // namespace terrier::planner

@@ -153,6 +153,7 @@ class AbstractPlanNode {
    * @return true if plan node and its children are equal
    */
   virtual bool operator==(const AbstractPlanNode &rhs) const {
+    if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
     auto output_schema = GetOutputSchema();
     auto other_output_schema = rhs.GetOutputSchema();
     if ((output_schema == nullptr && other_output_schema != nullptr) ||

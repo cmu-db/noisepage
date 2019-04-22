@@ -96,9 +96,16 @@ class HashJoinPlanNode : public AbstractJoinPlanNode {
                    std::vector<std::shared_ptr<parser::AbstractExpression>> right_hash_keys, bool build_bloomfilter)
       : AbstractJoinPlanNode(std::move(children), std::move(output_schema), join_type, std::move(predicate)),
         left_hash_keys_(std::move(left_hash_keys)),
-        right_hash_keys_(std::move(right_hash_keys)) {}
+        right_hash_keys_(std::move(right_hash_keys)),
+        build_bloomfilter_(build_bloomfilter) {}
 
  public:
+
+  /**
+   * Default constructor used for deserialization
+   */
+  HashJoinPlanNode() = default;
+
   /**
    * @return the type of this plan node
    */
@@ -126,10 +133,13 @@ class HashJoinPlanNode : public AbstractJoinPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
+
  private:
   // The left and right expressions that constitute the join keys
-  const std::vector<std::shared_ptr<parser::AbstractExpression>> left_hash_keys_;
-  const std::vector<std::shared_ptr<parser::AbstractExpression>> right_hash_keys_;
+  std::vector<std::shared_ptr<parser::AbstractExpression>> left_hash_keys_;
+  std::vector<std::shared_ptr<parser::AbstractExpression>> right_hash_keys_;
 
   // Flag indicating whether we build a bloom filter
   bool build_bloomfilter_;
@@ -140,5 +150,7 @@ class HashJoinPlanNode : public AbstractJoinPlanNode {
    */
   DISALLOW_COPY_AND_MOVE(HashJoinPlanNode);
 };
+
+DEFINE_JSON_DECLARATIONS(HashJoinPlanNode);
 
 }  // namespace terrier::planner

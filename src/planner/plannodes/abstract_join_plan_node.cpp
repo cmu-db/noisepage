@@ -3,9 +3,7 @@
 namespace terrier::planner {
 
 bool AbstractJoinPlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (GetPlanNodeType() != rhs.GetPlanNodeType()) {
-    return false;
-  }
+  if (!AbstractPlanNode::operator==(rhs)) return false;
 
   // Check join type
   auto &other = dynamic_cast<const AbstractJoinPlanNode &>(rhs);
@@ -23,12 +21,11 @@ bool AbstractJoinPlanNode::operator==(const AbstractPlanNode &rhs) const {
     return false;
   }
 
-  return AbstractPlanNode::operator==(rhs);
+  return true;
 }
 
 common::hash_t AbstractJoinPlanNode::Hash() const {
-  auto type = GetPlanNodeType();
-  common::hash_t hash = common::HashUtil::Hash(&type);
+  common::hash_t hash = AbstractPlanNode::Hash();
 
   auto join_type = GetLogicalJoinType();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&join_type));

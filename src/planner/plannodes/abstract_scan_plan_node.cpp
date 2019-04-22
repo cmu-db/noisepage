@@ -3,9 +3,7 @@
 namespace terrier::planner {
 
 bool AbstractScanPlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (GetPlanNodeType() != rhs.GetPlanNodeType()) {
-    return false;
-  }
+  if (!AbstractPlanNode::operator==(rhs)) return false;
 
   // Check predicate
   auto &other = dynamic_cast<const AbstractScanPlanNode &>(rhs);
@@ -24,8 +22,7 @@ bool AbstractScanPlanNode::operator==(const AbstractPlanNode &rhs) const {
 }
 
 common::hash_t AbstractScanPlanNode::Hash() const {
-  auto type = GetPlanNodeType();
-  common::hash_t hash = common::HashUtil::Hash(&type);
+  common::hash_t hash = AbstractPlanNode::Hash();
 
   // Hash predicate
   if (GetScanPredicate() != nullptr) {
