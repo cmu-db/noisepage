@@ -226,6 +226,7 @@ class OrderStatus {
         args.w_id;
     *reinterpret_cast<int32_t *>(order_secondary_high_key->AccessForceNotNull(o_c_id_secondary_key_pr_offset)) = c_id;
 
+    // TODO(Matt): replace this with ScanLimitDescending(1) after #356 is merged
     index_scan_results.clear();
     db->order_secondary_index_->Scan(*order_secondary_low_key, *order_secondary_high_key, &index_scan_results);
     TERRIER_ASSERT(!index_scan_results.empty(),
