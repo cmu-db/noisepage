@@ -15,7 +15,7 @@ void CheckpointManager::Checkpoint(const SqlTable &table, const catalog::Schema 
   auto row_pair = table.InitializerForProjectedRow(all_col);
   auto *buffer = common::AllocationUtil::AllocateAligned(row_pair.first.ProjectedRowSize());
   ProjectedRow *row_buffer = row_pair.first.InitializeRow(buffer);
-  
+
   for (auto &slot : table) {
     if (table.Select(txn_, slot, row_buffer)) {
       out_.SerializeTuple(row_buffer, schema, row_pair.second);
