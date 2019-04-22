@@ -1,9 +1,9 @@
+#include "main/db_main.h"
 #include <memory>
 #include "loggers/index_logger.h"
 #include "loggers/parser_logger.h"
 #include "loggers/storage_logger.h"
 #include "loggers/transaction_logger.h"
-#include "main/db_main.h"
 
 namespace terrier {
 
@@ -27,7 +27,7 @@ void DBMain::InitLoggers() {
   LOG_TRACE("Logger initialization complete");
 }
 
-void DBMain::Init(int argc, char **argv) {
+void DBMain::Init() {
   InitLoggers();
 
   // TODO(Weichen): init settings manager

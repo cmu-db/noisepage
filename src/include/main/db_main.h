@@ -1,8 +1,10 @@
 #pragma once
-#include <utility>
 #include <memory>
+#include <utility>
 #include "common/stat_registry.h"
 #include "network/terrier_server.h"
+#include "settings/settings_param.h"
+#include "type/transient_value_factory.h"
 
 namespace terrier {
 
@@ -14,6 +16,12 @@ namespace terrier {
 class DBMain {
  public:
   /**
+   * The constructor of DBMain
+   * @param param_map a map stores setting values
+   */
+  DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_map) : param_map_(std::move(param_map)) {}
+
+  /**
    * This function boots the backend components.
    * It initializes the following components in the following order:
    *    SettingsManager
@@ -23,7 +31,7 @@ class DBMain {
    *    Logging
    *    Stats
    */
-  void Init(int argc, char **argv);
+  void Init();
 
   /**
    * Boots the traffic cop and networking layer, starts the server loop.
@@ -42,6 +50,7 @@ class DBMain {
  private:
   // friend class SettingsManager
   std::shared_ptr<common::StatisticsRegistry> main_stat_reg_;
+  std::unordered_map<settings::Param, settings::ParamInfo> param_map_;
   network::TerrierServer terrier_server_;
 
   /**
