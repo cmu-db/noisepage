@@ -32,7 +32,10 @@ class SqlTableRW {
    * @param oid for the column
    */
   void DefineColumn(std::string name, type::TypeId type, bool nullable, catalog::col_oid_t oid) {
-    cols_.emplace_back(name, type, nullable, oid);
+    if (type != type::TypeId::VARCHAR && type != type::TypeId::VARBINARY)
+      cols_.emplace_back(name, type, nullable, oid);
+    else
+      cols_.emplace_back(name, type, 255, nullable, oid);
   }
 
   /**
