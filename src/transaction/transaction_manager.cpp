@@ -4,21 +4,33 @@
 
 namespace terrier::transaction {
 TransactionContext *TransactionManager::BeginTransaction() {
-  // This latch has to also protect addition of this transaction to the running transaction table. Otherwise,
-  // the thread might get scheduled out while other transactions commit, and the GC will deallocate their version
-  // chain which may be needed for this transaction, assuming that this transaction does not exist.
-  common::SharedLatch::ScopedSharedLatch guard(&commit_latch_);
-  timestamp_t start_time = time_++;
+  TransactionContext *result;
+  {
+    // There is a three-way race that needs to be prevented.  Specifically, we
+    // cannot allow both a transaction to commit and the GC to poll for the
+    // oldest running transaction in between this transaction acquiring its
+    // begin timestamp and getting inserted into the current running
+    // transactions list.  This latch should have less contention than the
+    // commit latch under heavy write loads.
+    common::SpinLatch::ScopedSpinLatch running_guard(&curr_running_txns_latch_);
+    timestamp_t start_time = time_++;
 
-  // TODO(Tianyu):
-  // Maybe embed this into the data structure, or use an object pool?
-  // Doing this with std::map or other data structure is risky though, as they may not
-  // guarantee that the iterator or underlying pointer is stable across operations.
-  // (That is, they may change as concurrent inserts and deletes happen)
-  auto *const result = new TransactionContext(start_time, start_time + INT64_MIN, buffer_pool_, log_manager_);
-  common::SpinLatch::ScopedSpinLatch running_guard(&curr_running_txns_latch_);
-  const auto ret UNUSED_ATTRIBUTE = curr_running_txns_.emplace(result->StartTime());
-  TERRIER_ASSERT(ret.second, "commit start time should be globally unique");
+    // TODO(Tianyu):
+    // Maybe embed this into the data structure, or use an object pool?
+    // Doing this with std::map or other data structure is risky though, as they may not
+    // guarantee that the iterator or underlying pointer is stable across operations.
+    // (That is, they may change as concurrent inserts and deletes happen)
+    result = new TransactionContext(start_time, start_time + INT64_MIN, buffer_pool_, log_manager_);
+    const auto ret UNUSED_ATTRIBUTE = curr_running_txns_.emplace(result->StartTime());
+    TERRIER_ASSERT(ret.second, "commit start time should be globally unique");
+  }
+
+  // This transaction cannot proceed if there is an ongoing write-commit by a
+  // transaction whose commit time is less than this transaction's begin time
+  //
+  // TODO(John):  This shared latch can be replaced with a read-only check to
+  // prevent invalidating this cache-line unnecessarily.
+  common::SharedLatch::ScopedSharedLatch guard(&commit_latch_);
   return result;
 }
 
