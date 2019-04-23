@@ -354,9 +354,9 @@ if (CMAKE_COMPILER_IS_GNUCXX)
 endif()
 
 set(TERRIER_LINK_LIBS
+    gflags
     ${TERRIER_LINK_LIBS}
     ${PTHREAD_LIBRARY}
-    gflags
     pg_query)
 
 set(TERRIER_TEST_LINK_LIBS
