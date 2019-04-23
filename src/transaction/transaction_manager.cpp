@@ -37,7 +37,7 @@ TransactionContext *TransactionManager::BeginTransaction() {
   // potentially allow some transactions who may be blocked unnecessarily to
   // proceed.
   while (blocking_commit_.load()) {
-  };
+  }
 
   return result;
 }
