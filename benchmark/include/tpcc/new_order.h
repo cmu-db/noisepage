@@ -341,6 +341,7 @@ class NewOrder {
         db->warehouse_table_->Select(txn, index_scan_results[0], warehouse_select_tuple);
     TERRIER_ASSERT(select_result, "Warehouse table doesn't change. All lookups should succeed.");
     const auto w_tax = *reinterpret_cast<double *>(warehouse_select_tuple->AccessWithNullCheck(0));
+    TERRIER_ASSERT(w_tax >= 0 && w_tax <= 0.2, "Invalid w_tax read from the Warehouse table.");
 
     // Look up D_ID, W_ID in index
     const auto district_key_pr_initializer = db->district_primary_index_->GetProjectedRowInitializer();
@@ -361,6 +362,8 @@ class NewOrder {
     const auto d_tax = *reinterpret_cast<double *>(district_select_tuple->AccessWithNullCheck(d_tax_select_pr_offset));
     const auto d_next_o_id =
         *reinterpret_cast<int32_t *>(district_select_tuple->AccessWithNullCheck(d_next_o_id_select_pr_offset));
+    TERRIER_ASSERT(d_tax >= 0 && d_tax <= 0.2, "Invalid d_tax read from the District table.");
+    TERRIER_ASSERT(d_next_o_id >= 3001, "Invalid d_next_o_id read from the District table.");
 
     // Increment D_NEXT_O_ID in table
     auto *const district_update_tuple = district_update_pr_initializer.InitializeRow(worker->district_tuple_buffer);
@@ -387,6 +390,7 @@ class NewOrder {
     TERRIER_ASSERT(select_result, "Customer table doesn't change. All lookups should succeed.");
     const auto c_discount =
         *reinterpret_cast<double *>(customer_select_tuple->AccessWithNullCheck(c_discount_select_pr_offset));
+    TERRIER_ASSERT(c_discount >= 0 && c_discount <= 0.5, "Invalid c_discount read from the Customer table.");
 
     // Insert new row in New Order
     auto *const new_order_insert_tuple = new_order_insert_pr_initializer.InitializeRow(worker->new_order_key_buffer);
@@ -438,6 +442,7 @@ class NewOrder {
           *reinterpret_cast<double *>(item_select_tuple->AccessWithNullCheck(i_price_select_pr_offset));
       const auto i_data =
           *reinterpret_cast<storage::VarlenEntry *>(item_select_tuple->AccessWithNullCheck(i_data_select_pr_offset));
+      TERRIER_ASSERT(i_price >= 1.0 && i_price <= 100.0, "Invalid i_price read from the Item table.");
 
       // Look up S_I_ID, S_W_ID in index
       const auto stock_key_pr_initializer = db->stock_primary_index_->GetProjectedRowInitializer();

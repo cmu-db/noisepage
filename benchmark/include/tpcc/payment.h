@@ -236,6 +236,7 @@ class Payment {
     const auto w_name =
         *reinterpret_cast<storage::VarlenEntry *>(warehouse_select_tuple->AccessWithNullCheck(w_name_select_pr_offset));
     const auto w_ytd = *reinterpret_cast<double *>(warehouse_select_tuple->AccessWithNullCheck(w_ytd_select_pr_offset));
+    TERRIER_ASSERT(w_ytd >= 300000.0, "Invalid w_ytd read from the Warehouse table.");
 
     // Increase W_YTD by H_AMOUNT in table
     auto *const warehouse_update_tuple = warehouse_update_pr_initializer.InitializeRow(worker->warehouse_tuple_buffer);
@@ -263,6 +264,7 @@ class Payment {
     const auto d_name =
         *reinterpret_cast<storage::VarlenEntry *>(district_select_tuple->AccessWithNullCheck(d_name_select_pr_offset));
     const auto d_ytd = *reinterpret_cast<double *>(district_select_tuple->AccessWithNullCheck(d_ytd_select_pr_offset));
+    TERRIER_ASSERT(d_ytd >= 30000.0, "Invalid d_ytd read from the District table.");
 
     // Increase D_YTD by H_AMOUNT in table
     auto *const district_update_tuple = district_update_pr_initializer.InitializeRow(worker->district_tuple_buffer);
@@ -337,6 +339,7 @@ class Payment {
         customer_select_tuple->AccessWithNullCheck(c_credit_select_pr_offset));
     const auto c_data =
         *reinterpret_cast<storage::VarlenEntry *>(customer_select_tuple->AccessWithNullCheck(c_data_select_pr_offset));
+    TERRIER_ASSERT(c_id >= 1 && c_id <= 3000, "Invalid c_id read from the Customer table.");
 
     // Update customer
     auto *customer_update_tuple = customer_update_pr_initializer.InitializeRow(worker->customer_tuple_buffer);
@@ -351,6 +354,8 @@ class Payment {
     TERRIER_ASSERT(result, "Customer update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
 
     const auto c_credit_str = c_credit.StringView();
+    TERRIER_ASSERT(c_credit_str.compare("BC") == 0 || c_credit_str.compare("GC") == 0,
+                   "Invalid c_credit read from the Customer table.");
     if (c_credit_str.compare("BC") == 0) {
       auto *const c_data_update_tuple = c_data_pr_initializer.InitializeRow(worker->customer_tuple_buffer);
       const auto c_data_str = c_data.StringView();

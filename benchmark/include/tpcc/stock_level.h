@@ -88,6 +88,7 @@ class StockLevel {
     TERRIER_ASSERT(select_result, "District should be present.");
 
     const auto d_next_o_id = *reinterpret_cast<int32_t *>(district_select_tuple->AccessWithNullCheck(0));
+    TERRIER_ASSERT(d_next_o_id >= 3001, "Invalid d_next_o_id read from the District table.");
 
     // Select all matching OL_W_ID and OL_D_ID and OL_O_ID in range [D_NEXT_O_ID - 20, D_NEXT_OID)
     const auto order_line_key_pr_initializer = db->order_line_primary_index_->GetProjectedRowInitializer();
@@ -119,6 +120,8 @@ class StockLevel {
       select_result = db->order_line_table_->Select(txn, order_line_tuple_slot, order_line_select_tuple);
       TERRIER_ASSERT(select_result, "Order line index contained this.");
       const auto ol_i_id = *reinterpret_cast<int32_t *>(order_line_select_tuple->AccessForceNotNull(0));
+      TERRIER_ASSERT(ol_i_id >= 1 && ol_i_id <= 100000, "Invalid ol_i_id read from the Order Line table.");
+
       if (item_counts.count(ol_i_id) > 0) continue;  // don't look up items we've already checked
 
       const auto stock_key_pr_initializer = db->stock_primary_index_->GetProjectedRowInitializer();
@@ -135,6 +138,7 @@ class StockLevel {
       select_result = db->stock_table_->Select(txn, stock_index_scan_results[0], stock_select_tuple);
       TERRIER_ASSERT(select_result, "Stock index contained this.");
       const auto s_quantity = *reinterpret_cast<int16_t *>(stock_select_tuple->AccessForceNotNull(0));
+      TERRIER_ASSERT(s_quantity >= 10 && s_quantity <= 100, "Invalid s_quantity read from the Stock table.");
 
       item_counts[ol_i_id] = s_quantity;
     }

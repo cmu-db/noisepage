@@ -204,6 +204,7 @@ class Delivery {
                      "Order select failed. This assertion assumes 1:1 mapping between warehouse and workers.");
 
       const auto o_c_id = *reinterpret_cast<int32_t *>(order_select_tuple->AccessWithNullCheck(0));
+      TERRIER_ASSERT(o_c_id >= 1 && o_c_id <= 3000, "Invalid o_c_id read from the Order table.");
 
       // update O_CARRIER_ID
       auto *order_update_tuple = order_update_pr_initializer.InitializeRow(worker->order_tuple_buffer);
@@ -235,13 +236,15 @@ class Delivery {
 
       // Retrieve sum of all OL_AMOUNT, update every OL_DELIVERY_D to current system time
       storage::ProjectedRow *order_line_select_tuple, *order_line_update_tuple;
-      double ol_amount = 0.0;
+      double ol_amount_sum = 0.0;
       for (const auto &tuple_slot : index_scan_results) {
         order_line_select_tuple = order_line_select_pr_initializer.InitializeRow(worker->order_line_tuple_buffer);
         select_result = db->order_line_table_->Select(txn, tuple_slot, order_line_select_tuple);
         TERRIER_ASSERT(select_result,
                        "Order Line select failed. This assertion assumes 1:1 mapping between warehouse and workers.");
-        ol_amount += *reinterpret_cast<double *>(order_line_select_tuple->AccessForceNotNull(0));
+        const auto ol_amount = *reinterpret_cast<double *>(order_line_select_tuple->AccessForceNotNull(0));
+        ol_amount_sum += ol_amount;
+        TERRIER_ASSERT(ol_amount >= 0.01 && ol_amount <= 9999.99, "Invalid ol_amount read from the Order Line table.");
 
         order_line_update_tuple = order_line_update_pr_initializer.InitializeRow(worker->order_line_tuple_buffer);
         *reinterpret_cast<uint64_t *>(order_line_update_tuple->AccessForceNotNull(0)) = args.ol_delivery_d;
@@ -268,7 +271,7 @@ class Delivery {
       select_result = db->customer_table_->Select(txn, index_scan_results[0], customer_select_tuple);
       TERRIER_ASSERT(select_result,
                      "Customer select failed. This assertion assumes 1:1 mapping between warehouse and workers.");
-      *reinterpret_cast<double *>(customer_select_tuple->AccessForceNotNull(c_balance_pr_offset)) += ol_amount;
+      *reinterpret_cast<double *>(customer_select_tuple->AccessForceNotNull(c_balance_pr_offset)) += ol_amount_sum;
       (*reinterpret_cast<int16_t *>(customer_select_tuple->AccessForceNotNull(c_delivery_cnt_pr_offset)))++;
       update_result = db->customer_table_->Update(txn, index_scan_results[0], *customer_select_tuple);
       TERRIER_ASSERT(update_result,

@@ -204,6 +204,7 @@ class OrderStatus {
         !args.use_c_last
             ? args.c_id
             : *reinterpret_cast<int32_t *>(customer_select_tuple->AccessWithNullCheck(c_id_select_pr_offset));
+    TERRIER_ASSERT(c_id >= 1 && c_id <= 3000, "Invalid c_id read from the Customer table.");
 
     // look up in secondary Order index
     const auto order_secondary_key_pr_initializer = db->order_secondary_index_->GetProjectedRowInitializer();
