@@ -36,7 +36,9 @@ TransactionContext *TransactionManager::BeginTransaction() {
   // TODO(John):  This check could be replaced with a timestamp comparison to
   // potentially allow some transactions who may be blocked unnecessarily to
   // proceed.
-  while(blocking_commit_.load()) {};
+  while (blocking_commit_.load()) {
+  };
+
   return result;
 }
 
