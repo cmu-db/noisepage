@@ -16,7 +16,7 @@ namespace parser {
 /**
  * Function parameter.
  */
-struct Parameter {
+struct BaseFunctionParameter {
   // TODO(WAN): there used to be a FuncParamMode that was never used?
 
   /**
@@ -41,9 +41,9 @@ struct Parameter {
   /**
    * @param datatype data type of the parameter
    */
-  explicit Parameter(DataType datatype) : datatype_(datatype) {}
+  explicit BaseFunctionParameter(DataType datatype) : datatype_(datatype) {}
 
-  virtual ~Parameter() = default;
+  virtual ~BaseFunctionParameter() = default;
 
   /**
    * @return data type of the parameter
@@ -57,23 +57,23 @@ struct Parameter {
 /**
  * Function return type.
  */
-struct ReturnType : Parameter {
+struct ReturnType : BaseFunctionParameter {
   /**
    * @param datatype data type of the parameter
    */
-  explicit ReturnType(DataType datatype) : Parameter(datatype) {}
+  explicit ReturnType(DataType datatype) : BaseFunctionParameter(datatype) {}
   ~ReturnType() override = default;
 };
 
 /**
  * Function parameter.
  */
-struct FuncParameter : Parameter {
+struct FuncParameter : BaseFunctionParameter {
   /**
    * @param datatype data type of the parameter
    * @param name name of the function parameter
    */
-  FuncParameter(DataType datatype, std::string name) : Parameter(datatype), name_(std::move(name)) {}
+  FuncParameter(DataType datatype, std::string name) : BaseFunctionParameter(datatype), name_(std::move(name)) {}
   ~FuncParameter() override = default;
 
   /**

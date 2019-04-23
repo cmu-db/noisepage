@@ -25,12 +25,40 @@ class FunctionExpression : public AbstractExpression {
       : AbstractExpression(ExpressionType::FUNCTION, return_value_type, std::move(children)),
         func_name_(std::move(func_name)) {}
 
-  std::unique_ptr<AbstractExpression> Copy() const override { return std::make_unique<FunctionExpression>(*this); }
+  /**
+   * Default constructor for deserialization
+   */
+  FunctionExpression() = default;
+
+  std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<FunctionExpression>(*this); }
+
+  bool operator==(const AbstractExpression &rhs) const override {
+    if (!AbstractExpression::operator==(rhs)) return false;
+    auto const &other = dynamic_cast<const FunctionExpression &>(rhs);
+    return GetFuncName() == other.GetFuncName();
+  }
 
   /**
    * @return function name
    */
   const std::string &GetFuncName() const { return func_name_; }
+
+  /**
+   * @return expression serialized to json
+   */
+  nlohmann::json ToJson() const override {
+    nlohmann::json j = AbstractExpression::ToJson();
+    j["func_name"] = func_name_;
+    return j;
+  }
+
+  /**
+   * @param j json to deserialize
+   */
+  void FromJson(const nlohmann::json &j) override {
+    AbstractExpression::FromJson(j);
+    func_name_ = j.at("func_name").get<std::string>();
+  }
 
  private:
   std::string func_name_;
@@ -49,5 +77,7 @@ class FunctionExpression : public AbstractExpression {
   // If so, wouldn't it make more sense for them to have their own class?
   // bool is_udf_;
 };
+
+DEFINE_JSON_DECLARATIONS(FunctionExpression);
 
 }  // namespace terrier::parser

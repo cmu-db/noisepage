@@ -22,9 +22,10 @@ namespace terrier::transaction {
 class TransactionContext {
  public:
   /**
-   * Constructs a new transaction context. Beware that the buffer pool given must be the same one the log manager uses,
+   * Constructs a new transaction context.
+   *
+   * @warning Beware that the buffer pool given must be the same one the log manager uses,
    * if logging is enabled.
-   * // TODO(Tianyu): We can terrier assert the above condition, but I need to go figure out friends.
    * @param start the start timestamp of the transaction
    * @param txn_id the id of the transaction, should be larger than all start time and commit time
    * @param buffer_pool the buffer pool to draw this transaction's undo buffer from
