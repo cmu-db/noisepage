@@ -7,7 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 // Terrier port
-SETTING_int(port, "Terrier port (default: 15721)", 15721, 1024, 65535, false)  // NOLINT
+SETTING_int(port, "Terrier port (default: 15721)", 15721, 1024, 65535, false)
 
 // Maximum number of connections
 SETTING_int(max_connections, "Maximum number of connections (default: 64)", 64, 1, 512, true)
@@ -82,10 +82,10 @@ SETTING_int(gc_num_threads, "The number of Garbage collection threads to run", 1
 SETTING_bool(parallel_execution, "Enable parallel execution of queries (default: true)", true, true)
 
 // Minimum number of tuples a table must have
-SETTING_int(min_parallel_table_scan_size,                                                               // NOLINT
-            "Minimum number of tuples a table must have before we consider performing parallel scans "  // NOLINT
-            "(default: 10K)",                                                                           // NOLINT
-            10 * 1000, 1, std::numeric_limits<int32_t>::max(), true)                                    // NOLINT
+SETTING_int(min_parallel_table_scan_size,
+            "Minimum number of tuples a table must have before we consider performing parallel scans "
+            "(default: 10K)",
+            10 * 1000, 1, std::numeric_limits<int32_t>::max(), true)
 
 //===----------------------------------------------------------------------===//
 // WRITE AHEAD LOG
@@ -163,11 +163,11 @@ SETTING_bool(predicate_push_down, "Enable predicate push-down optimization (defa
 SETTING_bool(hash_join_bloom_filter, "Enable bloom filter for hash join in codegen (default: false)", false, true)
 
 // Timeout for task execution
-SETTING_int(task_execution_timeout,                             // NOLINT
-            "Maximum allowed length of time (in ms) for task "  // NOLINT
-            "execution step of optimizer, "                     // NOLINT
-            "assuming one plan has been found (default 5000)",  // NOLINT
-            5000, 1000, 60000, true)                            // NOLINT
+SETTING_int(task_execution_timeout,
+            "Maximum allowed length of time (in ms) for task "
+            "execution step of optimizer, "
+            "assuming one plan has been found (default 5000)",
+            5000, 1000, 60000, true)
 
 //===----------------------------------------------------------------------===//
 // GENERAL
