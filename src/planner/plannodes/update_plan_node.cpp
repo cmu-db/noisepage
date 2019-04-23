@@ -50,7 +50,6 @@ nlohmann::json UpdatePlanNode::ToJson() const {
 }
 
 void UpdatePlanNode::FromJson(const nlohmann::json &j) {
-   TERRIER_ASSERT(GetPlanNodeType() == j.at("PlanNodeType").get<PlanNodeType>(), "Mismatching plan node types");
    AbstractPlanNode::FromJson(j);
    database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
    table_oid_ = j.at("table_oid").get<catalog::table_oid_t>();
