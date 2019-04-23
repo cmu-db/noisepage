@@ -54,6 +54,13 @@ class AttrDefHandle {
   explicit AttrDefHandle(SqlTableRW *pg_attrdef) : pg_attrdef_rw_(pg_attrdef) {}
 
   /**
+   * Delete all entries matching table_oid
+   * @param txn transaction
+   * @param table_oid to match
+   */
+  void DeleteEntries(transaction::TransactionContext *txn, table_oid_t table_oid);
+
+  /**
    * Create the storage table
    * @param txn the txn that creates this table
    * @param catalog ptr to the catalog
@@ -80,6 +87,6 @@ class AttrDefHandle {
   // database containing this table
   // db_oid_t db_oid_;
   // storage for this table
-  std::shared_ptr<catalog::SqlTableRW> pg_attrdef_rw_;
+  catalog::SqlTableRW *pg_attrdef_rw_;
 };
 }  // namespace terrier::catalog

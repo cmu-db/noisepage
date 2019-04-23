@@ -319,6 +319,8 @@ class SqlTableRW {
   /**
    * Misc access.
    */
+
+  // TODO(pakhtar): make non-shared
   std::shared_ptr<storage::SqlTable> GetSqlTable() { return table_; }
 
   /**

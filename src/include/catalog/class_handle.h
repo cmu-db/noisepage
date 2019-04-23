@@ -38,6 +38,13 @@ class ClassEntry : public CatalogEntry<col_oid_t> {
 class ClassHandle {
  public:
   /**
+   * Constructor
+   * @param catalog the global catalog object
+   * @param pg_class the pg_class sql table rw helper instance
+   */
+  explicit ClassHandle(Catalog *catalog, SqlTableRW *pg_class) : catalog_(catalog), pg_class_rw_(pg_class) {}
+
+  /**
    * Get a specific Class entry.
    * @param txn the transaction that initiates the read
    * @param oid which entry to return
@@ -55,6 +62,16 @@ class ClassHandle {
   std::shared_ptr<ClassEntry> GetClassEntry(transaction::TransactionContext *txn, const char *name);
 
   /**
+   * Get a class entry by name
+   * @param txn transaction
+   * @param ns_oid namespace oid
+   * @param name to lookup
+   * @return a shared ptr to a Class entry.
+   */
+  std::shared_ptr<ClassEntry> GetClassEntry(transaction::TransactionContext *txn, namespace_oid_t ns_oid,
+                                            const char *name);
+
+  /**
    * Add row into the Class table.
    * @param txn transaction to run
    * @param tbl_ptr ptr to the table
@@ -67,13 +84,6 @@ class ClassHandle {
                 int32_t ns_oid, int32_t ts_oid);
 
   /**
-   * Constructor
-   * @param catalog the global catalog object
-   * @param pg_class the pg_class sql table rw helper instance
-   */
-  explicit ClassHandle(Catalog *catalog, SqlTableRW *pg_class) : catalog_(catalog), pg_class_rw_(pg_class) {}
-
-  /**
    * Create the storage table
    * @param txn the txn that creates this table
    * @param catalog ptr to the catalog
@@ -83,6 +93,8 @@ class ClassHandle {
    */
   static SqlTableRW *Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,
                             const std::string &name);
+
+  bool DeleteEntry(transaction::TransactionContext *txn, namespace_oid_t ns_oid, col_oid_t col_oid);
 
   /**
    * Delete an entry in ClassHandle

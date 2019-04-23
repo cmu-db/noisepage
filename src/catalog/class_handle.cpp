@@ -25,6 +25,7 @@ const std::vector<SchemaCol> ClassHandle::unused_schema_cols_ = {};
 // Find entry with (row) oid and return it
 std::shared_ptr<ClassEntry> ClassHandle::GetClassEntry(transaction::TransactionContext *txn, col_oid_t oid) {
   std::vector<type::TransientValue> search_vec, ret_row;
+  search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::BIGINT));
   search_vec.push_back(type::TransientValueFactory::GetInteger(!oid));
   ret_row = pg_class_rw_->FindRow(txn, search_vec);
   return std::make_shared<ClassEntry>(oid, pg_class_rw_, std::move(ret_row));
@@ -36,6 +37,26 @@ std::shared_ptr<ClassEntry> ClassHandle::GetClassEntry(transaction::TransactionC
   search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
   search_vec.push_back(type::TransientValueFactory::GetVarChar(name));
   ret_row = pg_class_rw_->FindRow(txn, search_vec);
+  if (ret_row.empty()) {
+    return nullptr;
+  }
+  col_oid_t oid(type::TransientValuePeeker::PeekInteger(ret_row[1]));
+  return std::make_shared<ClassEntry>(oid, pg_class_rw_, std::move(ret_row));
+}
+
+std::shared_ptr<ClassEntry> ClassHandle::GetClassEntry(transaction::TransactionContext *txn, namespace_oid_t ns_oid,
+                                                       const char *name) {
+  std::vector<type::TransientValue> search_vec, ret_row;
+  // ptr
+  search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::BIGINT));
+  // oid
+  search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
+  search_vec.push_back(type::TransientValueFactory::GetVarChar(name));
+  search_vec.push_back(type::TransientValueFactory::GetInteger(!ns_oid));
+  ret_row = pg_class_rw_->FindRow(txn, search_vec);
+  if (ret_row.empty()) {
+    return nullptr;
+  }
   col_oid_t oid(type::TransientValuePeeker::PeekInteger(ret_row[1]));
   return std::make_shared<ClassEntry>(oid, pg_class_rw_, std::move(ret_row));
 }
@@ -52,6 +73,36 @@ void ClassHandle::AddEntry(transaction::TransactionContext *txn, const int64_t t
 
   catalog_->SetUnusedColumns(&row, ClassHandle::unused_schema_cols_);
   pg_class_rw_->InsertRow(txn, row);
+}
+
+bool ClassHandle::DeleteEntry(transaction::TransactionContext *txn, const std::shared_ptr<ClassEntry> &entry) {
+  std::vector<type::TransientValue> search_vec;
+
+  search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::BIGINT));
+  // get the oid of this row
+  search_vec.emplace_back(type::TransientValueFactory::GetInteger(entry->GetIntegerColumn("oid")));
+
+  // lookup and get back the projected column. Recover the tuple_slot
+  auto proj_col_p = pg_class_rw_->FindRowProjCol(txn, search_vec);
+  auto tuple_slot_p = proj_col_p->TupleSlots();
+  // delete
+  bool status = pg_class_rw_->GetSqlTable()->Delete(txn, *tuple_slot_p);
+  delete[] reinterpret_cast<byte *>(proj_col_p);
+  return status;
+}
+
+bool ClassHandle::DeleteEntry(transaction::TransactionContext *txn, namespace_oid_t ns_oid, col_oid_t col_oid) {
+  // find the entry
+  auto class_entry = GetClassEntry(txn, col_oid);
+  if (class_entry == nullptr) {
+    return false;
+  }
+  // verify namespace_oid
+  uint32_t found_ns_oid = class_entry->GetIntegerColumn("relnamespace");
+  TERRIER_ASSERT(found_ns_oid == !ns_oid, "non-matching namespace oid");
+  DeleteEntry(txn, class_entry);
+
+  return true;
 }
 
 SqlTableRW *ClassHandle::Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,
@@ -78,20 +129,6 @@ SqlTableRW *ClassHandle::Create(transaction::TransactionContext *txn, Catalog *c
   catalog->AddToMaps(db_oid, pg_class_oid, name, pg_class);
   // catalog->AddColumnsToPGAttribute(txn, db_oid, pg_class->GetSqlTable());
   return pg_class;
-}
-
-bool ClassHandle::DeleteEntry(transaction::TransactionContext *txn, const std::shared_ptr<ClassEntry> &entry) {
-  std::vector<type::TransientValue> search_vec;
-  // get the oid of this row
-  search_vec.emplace_back(type::TransientValueFactory::GetCopy(entry->GetColumn(0)));
-
-  // lookup and get back the projected column. Recover the tuple_slot
-  auto proj_col_p = pg_class_rw_->FindRowProjCol(txn, search_vec);
-  auto tuple_slot_p = proj_col_p->TupleSlots();
-  // delete
-  bool status = pg_class_rw_->GetSqlTable()->Delete(txn, *tuple_slot_p);
-  delete[] reinterpret_cast<byte *>(proj_col_p);
-  return status;
 }
 
 }  // namespace terrier::catalog

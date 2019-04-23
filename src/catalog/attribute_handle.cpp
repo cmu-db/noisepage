@@ -49,6 +49,27 @@ std::shared_ptr<AttributeEntry> AttributeHandle::GetAttributeEntry(transaction::
   return std::make_shared<AttributeEntry>(oid, pg_attribute_hrw_, std::move(ret_row));
 }
 
+void AttributeHandle::DeleteEntries(transaction::TransactionContext *txn, table_oid_t table_oid) {
+  auto layout = pg_attribute_hrw_->GetLayout();
+  int32_t col_index = pg_attribute_hrw_->ColNameToIndex("attrelid");
+
+  auto it = pg_attribute_hrw_->begin(txn);
+  while (it != pg_attribute_hrw_->end(txn)) {
+    storage::ProjectedColumns::RowView row_view = it->InterpretAsRow(layout, 0);
+    // check if a matching row, delete if it is
+    byte *col_p = row_view.AccessWithNullCheck(pg_attribute_hrw_->ColNumToOffset(col_index));
+    if (col_p == nullptr) {
+      continue;
+    }
+    auto col_int_value = *(reinterpret_cast<int32_t *>(col_p));
+    if (static_cast<uint32_t>(col_int_value) == !table_oid) {
+      // delete the entry
+      pg_attribute_hrw_->GetSqlTable()->Delete(txn, *(it->TupleSlots()));
+    }
+    ++it;
+  }
+}
+
 SqlTableRW *AttributeHandle::Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,
                                     const std::string &name) {
   catalog::SqlTableRW *pg_attr;

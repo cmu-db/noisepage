@@ -81,6 +81,13 @@ class AttributeHandle {
                                                     const std::string &name);
 
   /**
+   * Delete all entries matching table_oid
+   * @param txn transaction
+   * @param table_oid to match
+   */
+  void DeleteEntries(transaction::TransactionContext *txn, table_oid_t table_oid);
+
+  /**
    * Create the storage table
    */
   static SqlTableRW *Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,

@@ -7,6 +7,7 @@
 #include "catalog/catalog_defs.h"
 #include "catalog/catalog_sql_table.h"
 #include "catalog/database_handle.h"
+#include "catalog/table_handle.h"
 #include "catalog/tablespace_handle.h"
 #include "common/strong_typedef.h"
 #include "loggers/catalog_logger.h"
@@ -100,9 +101,10 @@ class Catalog {
   void DeleteNameSpace(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid);
 
   /**
-   * Create a table with schema
+   * Create a user table with schema
    * @param txn transaction to use
    * @param db_oid oid of the database
+   * @param ns_oid namespace oid
    * @param table_name table name
    * @param schema schema to use
    */
@@ -116,6 +118,28 @@ class Catalog {
    * @param table_name table to delete
    */
   void DeleteTable(transaction::TransactionContext *txn, db_oid_t db_oid, const std::string &table_name);
+
+  // TODO(pakhtar): these delete just from the catalog tables. Fix to delete sql table too... or
+  // rename.
+  /**
+   * Delete a user table, by name
+   * @param txn transaction
+   * @param db_oid database oid
+   * @param ns_oid namespace oid
+   * @param table_name
+   */
+  void DeleteUserTable(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid,
+                       const std::string &table_name);
+
+  /**
+   * Delete a user table, by oid
+   * @param txn transaction
+   * @param db_oid database oid
+   * @param ns_oid namespace oid
+   * @param tbl_oid table oid
+   */
+  void DeleteUserTable(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid,
+                       table_oid_t tbl_oid);
 
   /**
    * Return a database handle.
@@ -136,8 +160,7 @@ class Catalog {
   SettingsHandle GetSettingsHandle();
 
   /**
-   * Get a pointer to the storage table.
-   * Supports both catalog tables, and user created tables.
+   * Get a pointer to a catalog storage table.
    *
    * @param db_oid database that owns the table
    * @param table_oid returns the storage table pointer for this table_oid
@@ -147,8 +170,7 @@ class Catalog {
   SqlTableRW *GetCatalogTable(db_oid_t db_oid, table_oid_t table_oid);
 
   /**
-   * Get a pointer to the storage table, by table_name.
-   * Supports both catalog tables, and user created tables.
+   * Get a pointer to a catalog storage table, by table_name.
    *
    * @param db_oid database that owns the table
    * @param table_name returns the storage table point for this table
@@ -156,6 +178,21 @@ class Catalog {
    * @throw out_of_range exception if either oid doesn't exist or the catalog doesn't exist.
    */
   SqlTableRW *GetCatalogTable(db_oid_t db_oid, const std::string &table_name);
+
+  /**
+   * Get a pointer to a user storage table.
+   *
+   * @param db_oid database
+   * @param ns_oid namespace
+   * @param table_oid table
+   * @return a pointer to the Sqltable helper class
+   * @throw out_of_range exception if either oid doesn't exist or the catalog doesn't exist. ??
+   */
+  SqlTableRW *GetUserTable(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid,
+                           table_oid_t table_oid);
+
+  SqlTableRW *GetUserTable(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid,
+                           const std::string &name);
 
   /**
    * The global counter for getting next oid. The return result should be converted into corresponding oid type
@@ -174,6 +211,7 @@ class Catalog {
    * Destructor
    */
   ~Catalog() {
+    // TODO(pakhtar): do we put user databases in the maps? Should not.
     // iterate over all databases
     auto db_oid_map = map_.begin();
     while (db_oid_map != map_.end()) {
@@ -188,13 +226,6 @@ class Catalog {
     delete pg_tablespace_;
     delete pg_settings_;
   }
-
-  // ~Catalog() = default;
-
-  //  ~Catalog() {
-  //    // destroy all DB
-  //    // DestroyDB(DEFAULT_DATABASE_OID);
-  //  }
 
   // methods for catalog initializations
   /**
@@ -339,6 +370,14 @@ class Catalog {
    * @param oid - database from which tables are to be deleted.
    */
   void DestroyDB(db_oid_t oid);
+
+  /**
+   * @param txn transaction
+   * @param db_oid
+   * @param ns_oid
+   * @return TableHandle
+   */
+  TableHandle GetUserTableHandle(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid);
 
  private:
   transaction::TransactionManager *txn_manager_;

@@ -23,7 +23,27 @@ std::shared_ptr<AttrDefEntry> AttrDefHandle::GetAttrDefEntry(transaction::Transa
   std::vector<type::TransientValue> search_vec, ret_row;
   search_vec.push_back(type::TransientValueFactory::GetInteger(!oid));
   ret_row = pg_attrdef_rw_->FindRow(txn, search_vec);
-  return std::make_shared<AttrDefEntry>(oid, pg_attrdef_rw_.get(), std::move(ret_row));
+  return std::make_shared<AttrDefEntry>(oid, pg_attrdef_rw_, std::move(ret_row));
+}
+void AttrDefHandle::DeleteEntries(transaction::TransactionContext *txn, table_oid_t table_oid) {
+  auto layout = pg_attrdef_rw_->GetLayout();
+  int32_t col_index = pg_attrdef_rw_->ColNameToIndex("adrelid");
+
+  auto it = pg_attrdef_rw_->begin(txn);
+  while (it != pg_attrdef_rw_->end(txn)) {
+    storage::ProjectedColumns::RowView row_view = it->InterpretAsRow(layout, 0);
+    // check if a matching row, delete if it is
+    byte *col_p = row_view.AccessWithNullCheck(pg_attrdef_rw_->ColNumToOffset(col_index));
+    if (col_p == nullptr) {
+      continue;
+    }
+    auto col_int_value = *(reinterpret_cast<int32_t *>(col_p));
+    if (static_cast<uint32_t>(col_int_value) == !table_oid) {
+      // delete the entry
+      pg_attrdef_rw_->GetSqlTable()->Delete(txn, *(it->TupleSlots()));
+    }
+    ++it;
+  }
 }
 
 SqlTableRW *AttrDefHandle::Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,

@@ -38,7 +38,10 @@ void Catalog::DeleteDatabase(transaction::TransactionContext *txn, const std::st
   // remove entry from pg_database
   db_handle.DeleteEntry(txn, db_entry);
 
+  // TODO(pakhtar): delete all user tables
+
   // destroy all the non-global tables
+  // this should become just catalog tables
   DeleteDatabaseTables(oid);
 
   // delete from the maps
@@ -80,6 +83,7 @@ table_oid_t Catalog::CreateUserTable(transaction::TransactionContext *txn, db_oi
   auto tbl_rw = table_handle.CreateTable(txn, schema, table_name);
 
   // add to maps
+  // TODO(pakhtar): eliminate map usage for user tables.
   AddToMaps(db_oid, tbl_rw->Oid(), table_name, tbl_rw);
 
   // enter attribute information
@@ -89,6 +93,7 @@ table_oid_t Catalog::CreateUserTable(transaction::TransactionContext *txn, db_oi
 
 void Catalog::DeleteTable(transaction::TransactionContext *txn, db_oid_t db_oid, const std::string &table_name) {
   // auto db_handle = GetDatabaseHandle();
+  // TODO(pakhtar): if kept... examine lookup below
   auto table_oid = table_oid_t(name_map_[db_oid][table_name]);
 
   // remove entries from pg_attribute, if attrelid == table_oid
@@ -162,6 +167,33 @@ void Catalog::DeleteTable(transaction::TransactionContext *txn, db_oid_t db_oid,
   // TODO(pakhtar): drop table
 }
 
+void Catalog::DeleteUserTable(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid,
+                              const std::string &table_name) {
+  // convert table name to table_oid
+  auto user_tbl_p = GetUserTable(txn, db_oid, ns_oid, table_name);
+  auto user_tbl_oid = user_tbl_p->Oid();
+
+  DeleteUserTable(txn, db_oid, ns_oid, user_tbl_oid);
+}
+
+void Catalog::DeleteUserTable(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid,
+                              table_oid_t tbl_oid) {
+  auto db_handle = GetDatabaseHandle();
+  auto attr_handle = db_handle.GetAttributeHandle(txn, db_oid);
+  auto attrdef_handle = db_handle.GetAttrDefHandle(txn, db_oid);
+  auto class_handle = db_handle.GetClassHandle(txn, db_oid);
+
+  // get an attribute handle
+  attr_handle.DeleteEntries(txn, tbl_oid);
+
+  // get an attr_def handle
+  attrdef_handle.DeleteEntries(txn, tbl_oid);
+
+  // delete from pg_class
+  auto col_oid = col_oid_t(!tbl_oid);
+  class_handle.DeleteEntry(txn, ns_oid, col_oid);
+}
+
 DatabaseHandle Catalog::GetDatabaseHandle() { return DatabaseHandle(this, pg_database_); }
 
 TablespaceHandle Catalog::GetTablespaceHandle() { return TablespaceHandle(this, pg_tablespace_); }
@@ -172,6 +204,38 @@ SqlTableRW *Catalog::GetCatalogTable(db_oid_t db_oid, table_oid_t table_oid) { r
 
 SqlTableRW *Catalog::GetCatalogTable(db_oid_t db_oid, const std::string &table_name) {
   return GetCatalogTable(db_oid, name_map_.at(db_oid).at(table_name));
+}
+
+SqlTableRW *Catalog::GetUserTable(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid,
+                                  const std::string &name) {
+  try {
+    auto tbl_handle = GetUserTableHandle(txn, db_oid, ns_oid);
+    return tbl_handle.GetTable(txn, name);
+  } catch (const std::out_of_range &e) {
+    return nullptr;
+  }
+}
+
+SqlTableRW *Catalog::GetUserTable(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid,
+                                  table_oid_t table_oid) {
+  try {
+    auto tbl_handle = GetUserTableHandle(txn, db_oid, ns_oid);
+    return tbl_handle.GetTable(txn, table_oid);
+  } catch (const std::out_of_range &e) {
+    return nullptr;
+  }
+}
+
+TableHandle Catalog::GetUserTableHandle(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid) {
+  auto db_handle = GetDatabaseHandle();
+  // TODO(pakhtar): error checking...
+  // find the database
+  auto ns_handle = db_handle.GetNamespaceHandle(txn, db_oid);
+  auto ns_entry = ns_handle.GetNamespaceEntry(txn, ns_oid);
+  if (ns_entry == nullptr) {
+    throw std::out_of_range("no such namespace");
+  }
+  return ns_handle.GetTableHandle(txn, ns_oid);
 }
 
 uint32_t Catalog::GetNextOid() { return oid_++; }
@@ -195,11 +259,13 @@ void Catalog::AddUnusedSchemaColumns(SqlTableRW *db_p, const std::vector<SchemaC
   }
 }
 
+// TODO(pakhtar): resolve second arg.
 void Catalog::AddColumnsToPGAttribute(transaction::TransactionContext *txn, db_oid_t db_oid,
                                       const std::shared_ptr<storage::SqlTable> &table) {
   Schema schema = table->GetSchema();
   std::vector<Schema::Column> cols = schema.GetColumns();
-  catalog::SqlTableRW *pg_attribute = map_[db_oid][name_map_[db_oid]["pg_attribute"]];
+  // catalog::SqlTableRW *pg_attribute = map_[db_oid][name_map_[db_oid]["pg_attribute"]];
+  catalog::SqlTableRW *pg_attribute = GetCatalogTable(db_oid, "pg_attribute");
   int32_t col_num = 0;
   for (auto &c : cols) {
     std::vector<type::TransientValue> row;
@@ -294,7 +360,9 @@ void Catalog::BootstrapDatabase(transaction::TransactionContext *txn, db_oid_t d
   std::vector<std::string> c_tables = {"pg_database", "pg_tablespace", "pg_attribute", "pg_namespace",
                                        "pg_class",    "pg_type",       "pg_attrdef",   "pg_settings"};
   auto add_cols_to_pg_attr = [this, txn, db_oid](const std::string &st) {
-    AddColumnsToPGAttribute(txn, db_oid, map_[db_oid][name_map_[db_oid][st]]->GetSqlTable());
+    auto table_p = GetCatalogTable(db_oid, st);
+    AddColumnsToPGAttribute(txn, db_oid, table_p->GetSqlTable());
+    // AddColumnsToPGAttribute(txn, db_oid, map_[db_oid][name_map_[db_oid][st]]->GetSqlTable());
   };
   std::for_each(c_tables.begin(), c_tables.end(), add_cols_to_pg_attr);
 }
