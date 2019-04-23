@@ -164,7 +164,7 @@ class Schema {
   }
 
   std::shared_ptr<Schema> static DeserializeSchema(const nlohmann::json &j) {
-    std::vector<Schema::Column> columns = j.at("columns").get<std::vector<Schema::Column>>();
+    auto columns = j.at("columns").get<std::vector<Schema::Column>>();
     return std::make_shared<Schema>(columns);
   }
 
