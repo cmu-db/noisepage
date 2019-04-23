@@ -114,7 +114,7 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
 }
 
 void GarbageCollector::ProcessDeferredActions() {
-  transaction::ActionQueue new_actions = txn_manager_->DeferredActionsForGC();
+  auto new_actions = txn_manager_->DeferredActionsForGC();
   while (!new_actions.empty()) {
     deferred_actions_.push(new_actions.front());
     new_actions.pop();

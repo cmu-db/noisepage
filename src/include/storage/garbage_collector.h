@@ -70,7 +70,7 @@ class GarbageCollector {
   // queue of txns that need to be unlinked
   transaction::TransactionQueue txns_to_unlink_;
   // queue of unexecuted deferred actions
-  transaction::ActionQueue deferred_actions_;
+  std::queue<std::pair<transaction::timestamp_t, transaction::Action>> deferred_actions_;
 };
 
 }  // namespace terrier::storage

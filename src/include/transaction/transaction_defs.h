@@ -19,5 +19,4 @@ using TransactionQueue = std::forward_list<transaction::TransactionContext *>;
 using callback_fn = void (*)(void *);
 
 using Action = std::function<void()>;
-using ActionQueue = std::queue<std::pair<timestamp_t, Action>>;
 }  // namespace terrier::transaction

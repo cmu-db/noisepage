@@ -1,4 +1,5 @@
 #pragma once
+#include <queue>
 #include <unordered_set>
 #include <utility>
 #include "common/shared_latch.h"
@@ -86,9 +87,10 @@ class TransactionManager {
   /**
    * Transfers the buffered list of deferred actions to the GC for eventual
    * execution.
-   * @return the deferred actions
+   * @return the deferred actions as a sorted queue of pairs where the timestamp is
+   *         earliest epoch the associated action can safely fire
    */
-  ActionQueue DeferredActionsForGC();
+  std::queue<std::pair<timestamp_t, Action>> DeferredActionsForGC();
 
  private:
   storage::RecordBufferSegmentPool *buffer_pool_;
@@ -107,7 +109,7 @@ class TransactionManager {
   TransactionQueue completed_txns_;
   storage::LogManager *const log_manager_;
 
-  ActionQueue deferred_actions_;
+  std::queue<std::pair<timestamp_t, Action>> deferred_actions_;
   mutable common::SpinLatch deferred_actions_latch_;
 
   timestamp_t ReadOnlyCommitCriticalSection(TransactionContext *txn, transaction::callback_fn callback,

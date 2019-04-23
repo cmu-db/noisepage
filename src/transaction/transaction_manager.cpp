@@ -1,5 +1,6 @@
 #include "transaction/transaction_manager.h"
 #include <algorithm>
+#include <queue>
 #include <utility>
 
 namespace terrier::transaction {
@@ -182,7 +183,7 @@ void TransactionManager::DeferAction(Action a) {
   deferred_actions_.push({time_.load(), a});
 }
 
-ActionQueue TransactionManager::DeferredActionsForGC() {
+std::queue<std::pair<timestamp_t, Action>> TransactionManager::DeferredActionsForGC() {
   common::SpinLatch::ScopedSpinLatch guard(&deferred_actions_latch_);
   return std::move(deferred_actions_);
 }
