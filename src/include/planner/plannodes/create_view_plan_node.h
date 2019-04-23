@@ -125,7 +125,8 @@ class CreateViewPlanNode : public AbstractPlanNode {
         view_query_(std::move(view_query)) {}
 
  public:
-  CreateViewPlanNode() = delete;
+  DISALLOW_COPY_AND_MOVE(CreateViewPlanNode)
+
   /**
    * @return OID of the database
    */
@@ -178,12 +179,6 @@ class CreateViewPlanNode : public AbstractPlanNode {
    * View query
    */
   std::shared_ptr<parser::SelectStatement> view_query_;
-
- public:
-  /**
-   * Don't allow plan to be copied or moved
-   */
-  DISALLOW_COPY_AND_MOVE(CreateViewPlanNode);
 };
 
 }  // namespace terrier::planner

@@ -136,6 +136,8 @@ class InsertPlanNode : public AbstractPlanNode {
         bulk_insert_count_(bulk_insert_count) {}
 
  public:
+  DISALLOW_COPY_AND_MOVE(InsertPlanNode)
+
   /**
    * @return the type of this plan node
    */
@@ -195,11 +197,5 @@ class InsertPlanNode : public AbstractPlanNode {
    * name of time to insert
    */
   uint32_t bulk_insert_count_;
-
- public:
-  /**
-   * Don't allow plan to be copied or moved
-   */
-  DISALLOW_COPY_AND_MOVE(InsertPlanNode);
 };
 }  // namespace terrier::planner

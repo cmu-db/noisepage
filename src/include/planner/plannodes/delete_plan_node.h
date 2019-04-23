@@ -102,7 +102,7 @@ class DeletePlanNode : public AbstractPlanNode {
         delete_condition_(std::move(delete_condition)) {}
 
  public:
-  DeletePlanNode() = delete;
+  DISALLOW_COPY_AND_MOVE(DeletePlanNode)
 
   /**
    * @return OID of the database
@@ -146,12 +146,5 @@ class DeletePlanNode : public AbstractPlanNode {
    * Expression of delete condition
    */
   std::shared_ptr<parser::AbstractExpression> delete_condition_;
-
- public:
-  /**
-   * Don't allow plan to be copied or moved
-   */
-  DISALLOW_COPY_AND_MOVE(DeletePlanNode);
 };
-
 }  // namespace terrier::planner

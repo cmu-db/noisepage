@@ -67,6 +67,8 @@ class ResultPlanNode : public AbstractPlanNode {
       : AbstractPlanNode(std::move(children), std::move(output_schema)), expr_(std::move(expr)) {}
 
  public:
+  DISALLOW_COPY_AND_MOVE(ResultPlanNode)
+
   /**
    * @return the tuple in the storage layer
    */
@@ -89,12 +91,6 @@ class ResultPlanNode : public AbstractPlanNode {
    * Expression used to derived the output tuple
    */
   std::shared_ptr<parser::AbstractExpression> expr_;
-
- public:
-  /**
-   * Don't allow plan to be copied or moved
-   */
-  DISALLOW_COPY_AND_MOVE(ResultPlanNode);
 };
 
 }  // namespace terrier::planner

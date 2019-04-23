@@ -106,7 +106,7 @@ class DropIndexPlanNode : public AbstractPlanNode {
         if_exists_(if_exists) {}
 
  public:
-  DropIndexPlanNode() = delete;
+  DISALLOW_COPY_AND_MOVE(DropIndexPlanNode)
 
   /**
    * @return the type of this plan node
@@ -150,12 +150,6 @@ class DropIndexPlanNode : public AbstractPlanNode {
    * Whether "IF EXISTS" was used
    */
   bool if_exists_;
-
- public:
-  /**
-   * Don't allow plan to be copied or moved
-   */
-  DISALLOW_COPY_AND_MOVE(DropIndexPlanNode);
 };
 
 }  // namespace terrier::planner

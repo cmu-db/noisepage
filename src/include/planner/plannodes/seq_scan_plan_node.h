@@ -74,6 +74,8 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
         table_oid_(table_oid) {}
 
  public:
+  DISALLOW_COPY_AND_MOVE(SeqScanPlanNode)
+
   /**
    * @return the type of this plan node
    */
@@ -96,12 +98,6 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
    * OID for table being scanned
    */
   catalog::table_oid_t table_oid_;
-
- public:
-  /**
-   * Don't allow plan to be copied or moved
-   */
-  DISALLOW_COPY_AND_MOVE(SeqScanPlanNode);
 };
 
 }  // namespace terrier::planner

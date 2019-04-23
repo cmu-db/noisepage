@@ -110,6 +110,8 @@ class OrderByPlanNode : public AbstractPlanNode {
         offset_(offset) {}
 
  public:
+  DISALLOW_COPY_AND_MOVE(OrderByPlanNode)
+
   /**
    * @return col_oid_t of keys to sort on
    */
@@ -170,12 +172,6 @@ class OrderByPlanNode : public AbstractPlanNode {
 
   /* How many tuples to skip first */
   size_t offset_;
-
- public:
-  /**
-   * Don't allow plan to be copied or moved
-   */
-  DISALLOW_COPY_AND_MOVE(OrderByPlanNode);
 };
 
 }  // namespace terrier::planner

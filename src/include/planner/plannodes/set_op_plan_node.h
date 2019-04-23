@@ -66,6 +66,8 @@ class SetOpPlanNode : public AbstractPlanNode {
       : AbstractPlanNode(std::move(children), std::move(output_schema)), set_op_(set_op) {}
 
  public:
+  DISALLOW_COPY_AND_MOVE(SetOpPlanNode)
+
   /**
    * @return the set operation of this node
    */
@@ -88,12 +90,6 @@ class SetOpPlanNode : public AbstractPlanNode {
    * Set Operation of this node
    */
   SetOpType set_op_;
-
- public:
-  /**
-   * Don't allow plan to be copied or moved
-   */
-  DISALLOW_COPY_AND_MOVE(SetOpPlanNode);
 };
 
 }  // namespace terrier::planner

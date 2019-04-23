@@ -64,6 +64,8 @@ class AbstractJoinPlanNode : public AbstractPlanNode {
         join_predicate_(std::move(predicate)) {}
 
  public:
+  DISALLOW_COPY_AND_MOVE(AbstractJoinPlanNode)
+
   /**
    * @return the hashed value of this plan node
    */
@@ -87,12 +89,6 @@ class AbstractJoinPlanNode : public AbstractPlanNode {
  private:
   LogicalJoinType join_type_;
   std::shared_ptr<const parser::AbstractExpression> join_predicate_;
-
- public:
-  /**
-   * Don't allow plan to be copied or moved
-   */
-  DISALLOW_COPY_AND_MOVE(AbstractJoinPlanNode);
 };
 
 }  // namespace terrier::planner

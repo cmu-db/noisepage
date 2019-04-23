@@ -63,8 +63,8 @@ class AbstractPlanNode {
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
    */
-  explicit AbstractPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
-                            std::shared_ptr<OutputSchema> output_schema)
+  AbstractPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
+                   std::shared_ptr<OutputSchema> output_schema)
       : children_(std::move(children)), output_schema_(std::move(output_schema)) {}
 
   /**
@@ -73,6 +73,8 @@ class AbstractPlanNode {
   AbstractPlanNode() = default;
 
  public:
+  DISALLOW_COPY_AND_MOVE(AbstractPlanNode)
+
   virtual ~AbstractPlanNode() = default;
 
   //===--------------------------------------------------------------------===//
@@ -177,12 +179,6 @@ class AbstractPlanNode {
  private:
   std::vector<std::shared_ptr<AbstractPlanNode>> children_;
   std::shared_ptr<OutputSchema> output_schema_;
-
- public:
-  /**
-   * Don't allow plan to be copied or moved
-   */
-  DISALLOW_COPY_AND_MOVE(AbstractPlanNode);
 };
 
 //// JSON library interface. Do not modify.

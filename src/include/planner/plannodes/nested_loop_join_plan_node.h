@@ -48,6 +48,8 @@ class NestedLoopJoinPlanNode : public AbstractJoinPlanNode {
       : AbstractJoinPlanNode(std::move(children), std::move(output_schema), join_type, std::move(predicate)) {}
 
  public:
+  DISALLOW_COPY_AND_MOVE(NestedLoopJoinPlanNode)
+
   /**
    * @return the type of this plan node
    */
@@ -59,12 +61,6 @@ class NestedLoopJoinPlanNode : public AbstractJoinPlanNode {
   common::hash_t Hash() const override;
 
   bool operator==(const AbstractPlanNode &rhs) const override;
-
- public:
-  /**
-   * Don't allow plan to be copied or moved
-   */
-  DISALLOW_COPY_AND_MOVE(NestedLoopJoinPlanNode);
 };
 
 }  // namespace terrier::planner

@@ -45,6 +45,8 @@ class ProjectionPlanNode : public AbstractPlanNode {
       : AbstractPlanNode(std::move(children), std::move(output_schema)) {}
 
  public:
+  DISALLOW_COPY_AND_MOVE(ProjectionPlanNode)
+
   /**
    * @return the type of this plan node
    */
@@ -56,12 +58,6 @@ class ProjectionPlanNode : public AbstractPlanNode {
   common::hash_t Hash() const override;
 
   bool operator==(const AbstractPlanNode &rhs) const override;
-
- public:
-  /**
-   * Don't allow plan to be copied or moved
-   */
-  DISALLOW_COPY_AND_MOVE(ProjectionPlanNode);
 };
 
 }  // namespace terrier::planner

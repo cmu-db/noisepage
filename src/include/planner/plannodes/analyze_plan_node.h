@@ -96,6 +96,8 @@ class AnalyzePlanNode : public AbstractPlanNode {
         column_oids_(std::move(column_oids)) {}
 
  public:
+  DISALLOW_COPY_AND_MOVE(AnalyzePlanNode)
+
   /**
    * @return the type of this plan node
    */
@@ -138,12 +140,6 @@ class AnalyzePlanNode : public AbstractPlanNode {
    * OIDs of the columns to be analyzed
    */
   std::vector<catalog::col_oid_t> column_oids_;
-
- public:
-  /**
-   * Don't allow plan to be copied or moved
-   */
-  DISALLOW_COPY_AND_MOVE(AnalyzePlanNode);
 };
 
 }  // namespace terrier::planner

@@ -97,7 +97,7 @@ class UpdatePlanNode : public AbstractPlanNode {
         update_primary_key_(update_primary_key) {}
 
  public:
-  UpdatePlanNode() = delete;
+  DISALLOW_COPY_AND_MOVE(UpdatePlanNode)
 
   /**
    * @return OID of the database
@@ -141,12 +141,6 @@ class UpdatePlanNode : public AbstractPlanNode {
    * Whether to update primary key
    */
   bool update_primary_key_;
-
- public:
-  /**
-   * Don't allow plan to be copied or moved
-   */
-  DISALLOW_COPY_AND_MOVE(UpdatePlanNode);
 };
 
 }  // namespace terrier::planner

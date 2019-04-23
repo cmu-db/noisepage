@@ -179,7 +179,7 @@ class CreateIndexPlanNode : public AbstractPlanNode {
         key_attrs_(std::move(key_attrs)) {}
 
  public:
-  CreateIndexPlanNode() = delete;
+  DISALLOW_COPY_AND_MOVE(CreateIndexPlanNode)
 
   /**
    * @return the type of this plan node
@@ -263,12 +263,5 @@ class CreateIndexPlanNode : public AbstractPlanNode {
    * Attributes that are part of the index key
    */
   std::vector<std::string> key_attrs_;
-
- public:
-  /**
-   * Don't allow plan to be copied or moved
-   */
-  DISALLOW_COPY_AND_MOVE(CreateIndexPlanNode);
 };
-
 }  // namespace terrier::planner

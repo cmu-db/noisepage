@@ -65,6 +65,8 @@ class HashPlanNode : public AbstractPlanNode {
       : AbstractPlanNode(std::move(children), std::move(output_schema)), hash_keys_(std::move(hash_keys)) {}
 
  public:
+  DISALLOW_COPY_AND_MOVE(HashPlanNode)
+
   /**
    * @return the type of this plan node
    */
@@ -84,12 +86,6 @@ class HashPlanNode : public AbstractPlanNode {
 
  private:
   std::vector<std::shared_ptr<const parser::AbstractExpression>> hash_keys_;
-
- public:
-  /**
-   * Don't allow plan to be copied or moved
-   */
-  DISALLOW_COPY_AND_MOVE(HashPlanNode);
 };
 
 }  // namespace terrier::planner

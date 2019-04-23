@@ -22,7 +22,8 @@ namespace terrier::planner {
 class AggregatePlanNode : public AbstractPlanNode {
  public:
   /**
-   * Information for each term being aggregated on
+   * Information for each term being aggregated on. For example: [COUNT(*)] would have aggregate_type
+   * parser::ExpressionType::AGGREGATE_COUNT_STAR and a TupleValueExpression corresponding to the column being counted
    */
   class AggregateTerm {
    public:
@@ -151,6 +152,8 @@ class AggregatePlanNode : public AbstractPlanNode {
         aggregate_strategy_(aggregate_strategy) {}
 
  public:
+  DISALLOW_COPY_AND_MOVE(AggregatePlanNode)
+
   //===--------------------------------------------------------------------===//
   // ACCESSORS
   //===--------------------------------------------------------------------===//
@@ -202,12 +205,6 @@ class AggregatePlanNode : public AbstractPlanNode {
   std::shared_ptr<const parser::AbstractExpression> having_clause_predicate_;
   const std::vector<AggregateTerm> aggregate_terms_;
   const AggregateStrategyType aggregate_strategy_;
-
- public:
-  /**
-   * Don't allow plan to be copied or moved
-   */
-  DISALLOW_COPY_AND_MOVE(AggregatePlanNode);
 };
 
 }  // namespace terrier::planner

@@ -90,7 +90,7 @@ class CreateNamespacePlanNode : public AbstractPlanNode {
       : AbstractPlanNode(std::move(children), std::move(output_schema)), namespace_name_(std::move(namespace_name)) {}
 
  public:
-  CreateNamespacePlanNode() = delete;
+  DISALLOW_COPY_AND_MOVE(CreateNamespacePlanNode)
 
   /**
    * @return the type of this plan node
@@ -124,12 +124,6 @@ class CreateNamespacePlanNode : public AbstractPlanNode {
    * Namespace name
    */
   std::string namespace_name_;
-
- public:
-  /**
-   * Don't allow plan to be copied or moved
-   */
-  DISALLOW_COPY_AND_MOVE(CreateNamespacePlanNode);
 };
 
 }  // namespace terrier::planner

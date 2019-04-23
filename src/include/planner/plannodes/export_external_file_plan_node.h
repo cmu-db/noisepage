@@ -112,6 +112,8 @@ class ExportExternalFilePlanNode : public AbstractPlanNode {
         escape_(escape) {}
 
  public:
+  DISALLOW_COPY_AND_MOVE(ExportExternalFilePlanNode)
+
   /**
    * @return the type of this plan node
    */
@@ -149,12 +151,6 @@ class ExportExternalFilePlanNode : public AbstractPlanNode {
   char delimiter_;
   char quote_;
   char escape_;
-
- public:
-  /**
-   * Don't allow plan to be copied or moved
-   */
-  DISALLOW_COPY_AND_MOVE(ExportExternalFilePlanNode);
 };
 
 }  // namespace terrier::planner

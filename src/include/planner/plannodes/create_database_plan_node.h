@@ -77,6 +77,8 @@ class CreateDatabasePlanNode : public AbstractPlanNode {
       : AbstractPlanNode(std::move(children), std::move(output_schema)), database_name_(std::move(database_name)) {}
 
  public:
+  DISALLOW_COPY_AND_MOVE(CreateDatabasePlanNode)
+
   CreateDatabasePlanNode() = delete;
   /**
    * @return the type of this plan node
@@ -100,12 +102,5 @@ class CreateDatabasePlanNode : public AbstractPlanNode {
    * Database Name
    */
   std::string database_name_;
-
- public:
-  /**
-   * Don't allow plan to be copied or moved
-   */
-  DISALLOW_COPY_AND_MOVE(CreateDatabasePlanNode);
 };
-
 }  // namespace terrier::planner

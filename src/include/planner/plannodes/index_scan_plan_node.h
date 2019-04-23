@@ -81,6 +81,8 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
         index_oid_(index_oid) {}
 
  public:
+  DISALLOW_COPY_AND_MOVE(IndexScanPlanNode)
+
   /**
    * @return index OID to be used for scan
    */
@@ -102,12 +104,6 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
    * Index oid associated with index scan
    */
   catalog::index_oid_t index_oid_;
-
- public:
-  /**
-   * Don't allow plan to be copied or moved
-   */
-  DISALLOW_COPY_AND_MOVE(IndexScanPlanNode);
 };
 
 }  // namespace terrier::planner

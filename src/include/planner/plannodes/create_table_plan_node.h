@@ -616,7 +616,7 @@ class CreateTablePlanNode : public AbstractPlanNode {
         con_checks_(std::move(con_checks)) {}
 
  public:
-  CreateTablePlanNode() = delete;
+  DISALLOW_COPY_AND_MOVE(CreateTablePlanNode)
 
   /**
    * @return the type of this plan node
@@ -721,12 +721,6 @@ class CreateTablePlanNode : public AbstractPlanNode {
    * Check constraints
    */
   std::vector<CheckInfo> con_checks_;
-
- public:
-  /**
-   * Don't allow plan to be copied or moved
-   */
-  DISALLOW_COPY_AND_MOVE(CreateTablePlanNode);
 };
 
 }  // namespace terrier::planner

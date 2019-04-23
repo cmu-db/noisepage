@@ -208,7 +208,7 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
         trigger_type_(trigger_type) {}
 
  public:
-  CreateTriggerPlanNode() = delete;
+  DISALLOW_COPY_AND_MOVE(CreateTriggerPlanNode)
 
   /**
    * @return the type of this plan node
@@ -302,12 +302,6 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
    * Type of trigger
    */
   int16_t trigger_type_ = 0;
-
- public:
-  /**
-   * Don't allow plan to be copied or moved
-   */
-  DISALLOW_COPY_AND_MOVE(CreateTriggerPlanNode);
 };
 
 }  // namespace terrier::planner

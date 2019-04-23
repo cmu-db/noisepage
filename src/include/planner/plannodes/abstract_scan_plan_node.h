@@ -97,6 +97,8 @@ class AbstractScanPlanNode : public AbstractPlanNode {
         database_oid_(database_oid) {}
 
  public:
+  DISALLOW_COPY_AND_MOVE(AbstractScanPlanNode)
+
   /**
    * @return predicate used for performing scan
    */
@@ -143,12 +145,6 @@ class AbstractScanPlanNode : public AbstractPlanNode {
    * Database OID for scan
    */
   catalog::db_oid_t database_oid_;
-
- public:
-  /**
-   * Don't allow plan to be copied or moved
-   */
-  DISALLOW_COPY_AND_MOVE(AbstractScanPlanNode);
 };
 
 }  // namespace terrier::planner

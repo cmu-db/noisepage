@@ -131,6 +131,8 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
         null_string_(std::move(null_string)) {}
 
  public:
+  DISALLOW_COPY_AND_MOVE(CSVScanPlanNode)
+
   /**
    * @return the type of this plan node
    */
@@ -174,12 +176,6 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
   char quote_;
   char escape_;
   const std::string null_string_;
-
- public:
-  /**
-   * Don't allow plan to be copied or moved
-   */
-  DISALLOW_COPY_AND_MOVE(CSVScanPlanNode);
 };
 
 }  // namespace terrier::planner

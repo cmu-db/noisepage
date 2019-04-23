@@ -219,6 +219,8 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
         param_count_(param_count) {}
 
  public:
+  DISALLOW_COPY_AND_MOVE(CreateFunctionPlanNode)
+
   /**
    * @return the type of this plan node
    */
@@ -323,11 +325,5 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
    * Number of parameters
    */
   int param_count_ = 0;
-
- public:
-  /**
-   * Don't allow plan to be copied or moved
-   */
-  DISALLOW_COPY_AND_MOVE(CreateFunctionPlanNode);
 };
 }  // namespace terrier::planner
