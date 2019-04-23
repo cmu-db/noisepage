@@ -44,6 +44,7 @@ nlohmann::json AbstractPlanNode::ToJson() const {
 }
 
 void AbstractPlanNode::FromJson(const nlohmann::json &j) {
+  TERRIER_ASSERT(GetPlanNodeType() == j.at("plan_node_type").get<PlanNodeType>(), "Mismatching plan node types");
   // Deserialize output schema
   if (!j.at("output_schema").is_null()) {
     output_schema_ = std::make_shared<OutputSchema>();

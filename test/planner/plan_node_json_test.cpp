@@ -146,12 +146,11 @@ TEST(PlanNodeJsonTest, LimitPlanNodeJsonTest) {
 // NOLINTNEXTLINE
 TEST(PlanNodeJsonTest, UpdatePlanNodeJsonTest) {
   UpdatePlanNode::Builder builder;
-  auto plan_node =
-      builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
-      .SetDatabaseOid(catalog::db_oid_t(1000))
-      .SetTableOid(catalog::table_oid_t(200))
-      .SetUpdatePrimaryKey(true)
-      .Build();
+  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
+                       .SetDatabaseOid(catalog::db_oid_t(1000))
+                       .SetTableOid(catalog::table_oid_t(200))
+                       .SetUpdatePrimaryKey(true)
+                       .Build();
 
   // Serialize to Json
   auto json = plan_node->ToJson();
@@ -755,7 +754,7 @@ TEST(PlanNodeJsonTest, CreateTablePlanNodeTest) {
 
 // NOLINTNEXTLINE
 TEST(PlanNodeJsonTest, AnalyzePlanNodeJsonTest) {
-  // Construct LimitPlanNode
+  // Construct AnalyzePlanNode
   AnalyzePlanNode::Builder builder;
   std::vector<catalog::col_oid_t> col_oids = {catalog::col_oid_t(1), catalog::col_oid_t(2), catalog::col_oid_t(3),
                                               catalog::col_oid_t(4), catalog::col_oid_t(5)};
@@ -778,7 +777,7 @@ TEST(PlanNodeJsonTest, AnalyzePlanNodeJsonTest) {
 
 // NOLINTNEXTLINE
 TEST(PlanNodeJsonTest, SetOpPlanNodeJsonTest) {
-  // Construct LimitPlanNode
+  // Construct SetOpPlanNode
   SetOpPlanNode::Builder builder;
   auto plan_node =
       builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema()).SetSetOp(SetOpType::INTERSECT).Build();
@@ -797,7 +796,7 @@ TEST(PlanNodeJsonTest, SetOpPlanNodeJsonTest) {
 
 // NOLINTNEXTLINE
 TEST(PlanNodeJsonTest, ExportExternalFilePlanNodeJsonTest) {
-  // Construct LimitPlanNode
+  // Construct ExportExternalFilePlanNode
   ExportExternalFilePlanNode::Builder builder;
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema()).SetFileName("test_file").Build();
 

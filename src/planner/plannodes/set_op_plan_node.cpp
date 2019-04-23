@@ -33,7 +33,6 @@ nlohmann::json SetOpPlanNode::ToJson() const {
 }
 
 void SetOpPlanNode::FromJson(const nlohmann::json &j) {
-  TERRIER_ASSERT(GetPlanNodeType() == j.at("plan_node_type").get<PlanNodeType>(), "Mismatching plan node types");
   AbstractPlanNode::FromJson(j);
   set_op_ = j.at("set_op").get<SetOpType>();
 }

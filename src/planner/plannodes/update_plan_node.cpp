@@ -50,10 +50,10 @@ nlohmann::json UpdatePlanNode::ToJson() const {
 }
 
 void UpdatePlanNode::FromJson(const nlohmann::json &j) {
-   AbstractPlanNode::FromJson(j);
-   database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
-   table_oid_ = j.at("table_oid").get<catalog::table_oid_t>();
-   update_primary_key_ = j.at("update_primary_key").get<bool>();
+  AbstractPlanNode::FromJson(j);
+  database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
+  table_oid_ = j.at("table_oid").get<catalog::table_oid_t>();
+  update_primary_key_ = j.at("update_primary_key").get<bool>();
 }
 
 }  // namespace terrier::planner

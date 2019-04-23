@@ -29,7 +29,6 @@ nlohmann::json ExportExternalFilePlanNode::ToJson() const {
 }
 
 void ExportExternalFilePlanNode::FromJson(const nlohmann::json &j) {
-  TERRIER_ASSERT(GetPlanNodeType() == j.at("plan_node_type").get<PlanNodeType>(), "Mismatching plan node types");
   AbstractPlanNode::FromJson(j);
   file_name_ = j.at("file_name").get<std::string>();
   delimiter_ = j.at("delimiter").get<char>();
