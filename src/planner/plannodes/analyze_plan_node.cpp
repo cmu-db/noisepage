@@ -51,4 +51,20 @@ bool AnalyzePlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   return AbstractPlanNode::operator==(rhs);
 }
+
+nlohmann::json AnalyzePlanNode::ToJson() const {
+  nlohmann::json j = AbstractPlanNode::ToJson();
+  j["database_oid"] = database_oid_;
+  j["table_oid"] = table_oid_;
+  j["column_oids"] = column_oids_;
+  return j;
+}
+
+void AnalyzePlanNode::FromJson(const nlohmann::json &j) {
+  TERRIER_ASSERT(GetPlanNodeType() == j.at("plan_node_type").get<PlanNodeType>(), "Mismatching plan node types");
+  AbstractPlanNode::FromJson(j);
+  database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
+  table_oid_ = j.at("table_oid").get<catalog::table_oid_t>();
+  column_oids_ = j.at("column_oids").get<std::vector<catalog::col_oid_t>>();
+}
 }  // namespace terrier::planner

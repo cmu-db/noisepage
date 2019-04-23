@@ -753,4 +753,63 @@ TEST(PlanNodeJsonTest, CreateTablePlanNodeTest) {
   EXPECT_EQ(*no_pk_plan_node, *create_table_no_pk_plan);
 }
 
+// NOLINTNEXTLINE
+TEST(PlanNodeJsonTest, AnalyzePlanNodeJsonTest) {
+  // Construct LimitPlanNode
+  AnalyzePlanNode::Builder builder;
+  std::vector<catalog::col_oid_t> col_oids = {catalog::col_oid_t(1), catalog::col_oid_t(2), catalog::col_oid_t(3),
+                                              catalog::col_oid_t(4), catalog::col_oid_t(5)};
+  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
+                       .SetDatabaseOid(catalog::db_oid_t(1))
+                       .SetTableOid(catalog::table_oid_t(2))
+                       .Build();
+
+  // Serialize to Json
+  auto json = plan_node->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize plan node
+  auto deserialized_plan = DeserializePlanNode(json);
+  EXPECT_TRUE(deserialized_plan != nullptr);
+  EXPECT_EQ(PlanNodeType::ANALYZE, deserialized_plan->GetPlanNodeType());
+  auto analyze_plan = std::dynamic_pointer_cast<AnalyzePlanNode>(deserialized_plan);
+  EXPECT_EQ(*plan_node, *analyze_plan);
+}
+
+// NOLINTNEXTLINE
+TEST(PlanNodeJsonTest, SetOpPlanNodeJsonTest) {
+  // Construct LimitPlanNode
+  SetOpPlanNode::Builder builder;
+  auto plan_node =
+      builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema()).SetSetOp(SetOpType::INTERSECT).Build();
+
+  // Serialize to Json
+  auto json = plan_node->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize plan node
+  auto deserialized_plan = DeserializePlanNode(json);
+  EXPECT_TRUE(deserialized_plan != nullptr);
+  EXPECT_EQ(PlanNodeType::SETOP, deserialized_plan->GetPlanNodeType());
+  auto set_op_plan = std::dynamic_pointer_cast<SetOpPlanNode>(deserialized_plan);
+  EXPECT_EQ(*plan_node, *set_op_plan);
+}
+
+// NOLINTNEXTLINE
+TEST(PlanNodeJsonTest, ExportExternalFilePlanNodeJsonTest) {
+  // Construct LimitPlanNode
+  ExportExternalFilePlanNode::Builder builder;
+  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema()).SetFileName("test_file").Build();
+
+  // Serialize to Json
+  auto json = plan_node->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize plan node
+  auto deserialized_plan = DeserializePlanNode(json);
+  EXPECT_TRUE(deserialized_plan != nullptr);
+  EXPECT_EQ(PlanNodeType::EXPORT_EXTERNAL_FILE, deserialized_plan->GetPlanNodeType());
+  auto export_external_file_plan = std::dynamic_pointer_cast<ExportExternalFilePlanNode>(deserialized_plan);
+  EXPECT_EQ(*plan_node, *export_external_file_plan);
+}
 }  // namespace terrier::planner

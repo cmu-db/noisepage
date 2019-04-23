@@ -97,6 +97,10 @@ class AnalyzePlanNode : public AbstractPlanNode {
 
  public:
   /**
+   * Default constructor for deserialization
+   */
+  AnalyzePlanNode() = default;
+  /**
    * @return the type of this plan node
    */
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::ANALYZE; }
@@ -123,6 +127,9 @@ class AnalyzePlanNode : public AbstractPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
+
  private:
   /**
    * OID of the database
@@ -145,5 +152,7 @@ class AnalyzePlanNode : public AbstractPlanNode {
    */
   DISALLOW_COPY_AND_MOVE(AnalyzePlanNode);
 };
+
+DEFINE_JSON_DECLARATIONS(AnalyzePlanNode);
 
 }  // namespace terrier::planner

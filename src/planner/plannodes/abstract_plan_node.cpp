@@ -67,11 +67,11 @@ std::shared_ptr<AbstractPlanNode> DeserializePlanNode(const nlohmann::json &json
       //      break;
       //    }
       //
-      //    case PlanNodeType::ANALYZE: {
-      //      plan_node = std::make_shared<AnalyzePlanNode>();
-      //      break;
-      //    }
-      //
+    case PlanNodeType::ANALYZE: {
+      plan_node = std::make_shared<AnalyzePlanNode>();
+      break;
+    }
+
     case PlanNodeType::CREATE_DATABASE: {
       plan_node = std::make_shared<CreateDatabasePlanNode>();
       break;
@@ -146,11 +146,11 @@ std::shared_ptr<AbstractPlanNode> DeserializePlanNode(const nlohmann::json &json
       plan_node = std::make_shared<DropViewPlanNode>();
       break;
     }
-      //    case PlanNodeType::EXPORT_EXTERNAL_FILE: {
-      //      plan_node = std::make_shared<ExportExternalFilePlanNode>();
-      //      break;
-      //    }
-      //
+    case PlanNodeType::EXPORT_EXTERNAL_FILE: {
+      plan_node = std::make_shared<ExportExternalFilePlanNode>();
+      break;
+    }
+
     case PlanNodeType::HASHJOIN: {
       plan_node = std::make_shared<HashJoinPlanNode>();
       break;
@@ -200,12 +200,12 @@ std::shared_ptr<AbstractPlanNode> DeserializePlanNode(const nlohmann::json &json
       plan_node = std::make_shared<SeqScanPlanNode>();
       break;
     }
-      //
-      //    case PlanNodeType::SETOP: {
-      //      plan_node = std::make_shared<SetOpPlanNode>();
-      //      break;
-      //    }
-      //
+
+    case PlanNodeType::SETOP: {
+      plan_node = std::make_shared<SetOpPlanNode>();
+      break;
+    }
+
     case PlanNodeType::UPDATE: {
       plan_node = std::make_shared<UpdatePlanNode>();
       break;

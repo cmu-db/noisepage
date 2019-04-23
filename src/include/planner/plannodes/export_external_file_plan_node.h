@@ -113,6 +113,10 @@ class ExportExternalFilePlanNode : public AbstractPlanNode {
 
  public:
   /**
+   * Default constructor for deserialization
+   */
+  ExportExternalFilePlanNode() = default;
+  /**
    * @return the type of this plan node
    */
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::EXPORT_EXTERNAL_FILE; }
@@ -144,11 +148,26 @@ class ExportExternalFilePlanNode : public AbstractPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
+
  private:
+  /**
+   * string representation of file name
+   */
   std::string file_name_;
-  char delimiter_;
-  char quote_;
-  char escape_;
+  /**
+   * delimiter character
+   */
+  char delimiter_ = ',';
+  /**
+   * quote character
+   */
+  char quote_ = '"';
+  /**
+   * escape character
+   */
+  char escape_ = '"';
 
  public:
   /**
@@ -156,5 +175,7 @@ class ExportExternalFilePlanNode : public AbstractPlanNode {
    */
   DISALLOW_COPY_AND_MOVE(ExportExternalFilePlanNode);
 };
+
+DEFINE_JSON_DECLARATIONS(ExportExternalFilePlanNode);
 
 }  // namespace terrier::planner
