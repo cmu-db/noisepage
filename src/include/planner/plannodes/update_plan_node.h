@@ -126,6 +126,9 @@ class UpdatePlanNode : public AbstractPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
+
  private:
   /**
    * OID of the database
@@ -148,5 +151,7 @@ class UpdatePlanNode : public AbstractPlanNode {
    */
   DISALLOW_COPY_AND_MOVE(UpdatePlanNode);
 };
+
+DEFINE_JSON_DECLARATIONS(UpdatePlanNode);
 
 }  // namespace terrier::planner
