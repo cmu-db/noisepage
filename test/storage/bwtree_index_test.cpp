@@ -102,6 +102,9 @@ class BwTreeIndexTests : public TerrierTest {
     delete sql_table_;
     delete default_index_;
     delete unique_index_;
+    delete[] insert_buffer_;
+    delete[] key_buffer_1_;
+    delete[] key_buffer_2_;
     TerrierTest::TearDown();
   }
 };
@@ -154,6 +157,7 @@ TEST_F(BwTreeIndexTests, UniqueInsert) {
     }
 
     delete[] insert_buffer;
+    delete[] key_buffer;
   };
 
   // run the workload
@@ -219,6 +223,7 @@ TEST_F(BwTreeIndexTests, DefaultInsert) {
     }
 
     delete[] insert_buffer;
+    delete[] key_buffer;
   };
 
   // run the workload
