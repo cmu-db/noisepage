@@ -26,7 +26,10 @@ struct CatalogTestUtil {
     for (uint16_t i = 0; i < num_attrs; i++) {
       type::TypeId attr_type = *RandomTestUtil::UniformRandomElement(&possible_attr_types, generator);
       bool attr_nullable = *RandomTestUtil::UniformRandomElement(&possible_attr_nullable, generator);
-      columns.emplace_back("col_name", attr_type, attr_nullable, col_oid++);
+      if (attr_type != type::TypeId::VARCHAR && attr_type != type::TypeId::VARBINARY)
+        columns.emplace_back("col_name", attr_type, attr_nullable, col_oid++);
+      else
+        columns.emplace_back("col_name", attr_type, 255, attr_nullable, col_oid++);
     }
     return catalog::Schema(columns);
   }
