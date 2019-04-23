@@ -59,7 +59,7 @@ class BwTreeIndexTests : public TerrierTest {
 
  public:
   std::default_random_engine generator_;
-  const uint32_t num_threads_ = MultiThreadTestUtil::HardwareConcurrency();
+  const uint32_t num_threads_ = 4;
 
   // SqlTable
   storage::SqlTable *const sql_table_{new storage::SqlTable(&block_store_, table_schema_, catalog::table_oid_t(1))};
