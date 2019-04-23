@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <unordered_map>
 #include <utility>
 #include "common/stat_registry.h"
 #include "network/terrier_server.h"
@@ -15,11 +16,14 @@ namespace terrier {
  */
 class DBMain {
  public:
+  DBMain() = default;
+
   /**
    * The constructor of DBMain
    * @param param_map a map stores setting values
    */
-  DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_map) : param_map_(std::move(param_map)) {}
+  explicit DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_map)
+      : param_map_(std::move(param_map)) {}
 
   /**
    * This function boots the backend components.

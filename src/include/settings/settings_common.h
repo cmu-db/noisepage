@@ -1,10 +1,10 @@
 // This allows the settings defined once to be used in different contexts.
 // When __SETTING_GFLAGS_DEFINE__ is set,
-//    setting definitions will be exposed through glfags definitions.
+//    setting definitions will be exposed through gflags definitions.
 // When __SETTING_GFLAGS_DECLARE__ is set,
-//    setting definitions will be exposed through glfags declarations.
+//    setting definitions will be exposed through gflags declarations.
 // When __SETTING_POPULATE__ is set,
-//    setting definitions will be exposed through defitions in main function.
+//    setting definitions will be exposed through definitions in main function.
 // When __SETTING_ENUM__ is set,
 //    setting definitions will be exposed through Param.
 
@@ -71,25 +71,25 @@
 #undef SETTING_string
 #endif
 #define SETTING_int(name, description, default_value, min_value, max_value, is_mutable)                                \
-  param_map_.emplace(                                                                                                  \
+  param_map.emplace(                                                                                                   \
       terrier::settings::Param::name,                                                                                  \
       terrier::settings::ParamInfo(#name, terrier::type::TransientValueFactory::GetInteger(FLAGS_##name), description, \
                                    terrier::type::TransientValueFactory::GetInteger(default_value), is_mutable));
 
 #define SETTING_double(name, description, default_value, min_value, max_value, is_mutable)                             \
-  param_map_.emplace(                                                                                                  \
+  param_map.emplace(                                                                                                   \
       terrier::settings::Param::name,                                                                                  \
       terrier::settings::ParamInfo(#name, terrier::type::TransientValueFactory::GetDecimal(FLAGS_##name), description, \
                                    terrier::type::TransientValueFactory::GetDecimal(default_value), is_mutable));
 
 #define SETTING_bool(name, description, default_value, is_mutable)                                                     \
-  param_map_.emplace(                                                                                                  \
+  param_map.emplace(                                                                                                   \
       terrier::settings::Param::name,                                                                                  \
       terrier::settings::ParamInfo(#name, terrier::type::TransientValueFactory::GetBoolean(FLAGS_##name), description, \
                                    terrier::type::TransientValueFactory::GetBoolean(default_value), is_mutable));
 
 #define SETTING_string(name, description, default_value, is_mutable)                                                   \
-  param_map_.emplace(                                                                                                  \
+  param_map.emplace(                                                                                                   \
       terrier::settings::Param::name,                                                                                  \
       terrier::settings::ParamInfo(#name, terrier::type::TransientValueFactory::GetVarchar(FLAGS_##name), description, \
                                    terrier::type::TransientValueFactory::GetVarchar(default_value), is_mutable));

@@ -7,7 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 // Terrier port
-SETTING_int(port, "Terrier port (default: 15721)", 15721, 1024, 65535, false)  // NOLINT
+SETTING_int(port, "Terrier port (default: 15721)", 15721, 1024, 65535, false) // NOLINT
 
     // Maximum number of connections
     SETTING_int(max_connections, "Maximum number of connections (default: 64)", 64, 1, 512, true)
@@ -168,7 +168,6 @@ SETTING_int(port, "Terrier port (default: 15721)", 15721, 1024, 65535, false)  /
                 "execution step of optimizer, "                     // NOLINT
                 "assuming one plan has been found (default 5000)",  // NOLINT
                 5000, 1000, 60000, true)                            // NOLINT
-                                                                    // NOLINT
 
     //===----------------------------------------------------------------------===//
     // GENERAL
