@@ -30,7 +30,7 @@ TransactionContext *TransactionManager::BeginTransaction() {
   //
   // TODO(John):  This shared latch can be replaced with a read-only check to
   // prevent invalidating this cache-line unnecessarily.
-  common::SharedLatch::ScopedSharedLatch guard(&commit_latch_);
+  while(blocking_commit_.load()) {};
   return result;
 }
 
@@ -68,7 +68,8 @@ timestamp_t TransactionManager::ReadOnlyCommitCriticalSection(TransactionContext
 
 timestamp_t TransactionManager::UpdatingCommitCriticalSection(TransactionContext *const txn, const callback_fn callback,
                                                               void *const callback_arg) {
-  common::SharedLatch::ScopedExclusiveLatch guard(&commit_latch_);
+  common::SpinLatch::ScopedSpinLatch guard(&commit_latch_);
+  blocking_commit_ = true;
   const timestamp_t commit_time = time_++;
   // TODO(Tianyu):
   // WARNING: This operation has to happen in the critical section to make sure that commits appear in serial order
@@ -90,7 +91,7 @@ timestamp_t TransactionManager::UpdatingCommitCriticalSection(TransactionContext
   LogCommit(txn, commit_time, callback, callback_arg);
   // flip all timestamps to be committed
   for (auto &it : txn->undo_buffer_) it.Timestamp().store(commit_time);
-
+  blocking_commit_ = false;
   return commit_time;
 }
 
