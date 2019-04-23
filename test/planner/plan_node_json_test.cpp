@@ -798,7 +798,12 @@ TEST(PlanNodeJsonTest, SetOpPlanNodeJsonTest) {
 TEST(PlanNodeJsonTest, ExportExternalFilePlanNodeJsonTest) {
   // Construct ExportExternalFilePlanNode
   ExportExternalFilePlanNode::Builder builder;
-  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema()).SetFileName("test_file").Build();
+  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
+                       .SetFileName("test_file")
+                       .SetDelimiter(',')
+                       .SetEscape('"')
+                       .SetQuote('"')
+                       .Build();
 
   // Serialize to Json
   auto json = plan_node->ToJson();
@@ -811,4 +816,28 @@ TEST(PlanNodeJsonTest, ExportExternalFilePlanNodeJsonTest) {
   auto export_external_file_plan = std::dynamic_pointer_cast<ExportExternalFilePlanNode>(deserialized_plan);
   EXPECT_EQ(*plan_node, *export_external_file_plan);
 }
+
+// NOLINTNEXTLINE
+TEST(PlanNodeJsonTest, AggregatePlanNodeJsonTest) {
+  // Construct AggregatePlanNode
+  AggregatePlanNode::Builder builder;
+  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
+                       .SetAggregateStrategyType(AggregateStrategyType::HASH)
+                       .SetHavingClausePredicate(PlanNodeJsonTest::BuildDummyPredicate())
+                       .AddAgregateTerm(AggregatePlanNode::AggregateTerm(
+                           parser::ExpressionType::AGGREGATE_AVG, PlanNodeJsonTest::BuildDummyPredicate(), false))
+                       .Build();
+
+  // Serialize to Json
+  auto json = plan_node->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize plan node
+  auto deserialized_plan = DeserializePlanNode(json);
+  EXPECT_TRUE(deserialized_plan != nullptr);
+  EXPECT_EQ(PlanNodeType::AGGREGATE, deserialized_plan->GetPlanNodeType());
+  auto aggregate_plan = std::dynamic_pointer_cast<AggregatePlanNode>(deserialized_plan);
+  EXPECT_EQ(*plan_node, *aggregate_plan);
+}
+
 }  // namespace terrier::planner

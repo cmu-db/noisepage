@@ -63,11 +63,11 @@ std::shared_ptr<AbstractPlanNode> DeserializePlanNode(const nlohmann::json &json
 
   auto plan_type = json.at("plan_node_type").get<PlanNodeType>();
   switch (plan_type) {
-      //    case PlanNodeType::AGGREGATE: {
-      //      plan_node = std::make_shared<AggregatePlanNode>();
-      //      break;
-      //    }
-      //
+    case PlanNodeType::AGGREGATE: {
+      plan_node = std::make_shared<AggregatePlanNode>();
+      break;
+    }
+
     case PlanNodeType::ANALYZE: {
       plan_node = std::make_shared<AnalyzePlanNode>();
       break;

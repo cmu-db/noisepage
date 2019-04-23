@@ -52,4 +52,21 @@ bool AggregatePlanNode::operator==(const AbstractPlanNode &rhs) const {
   return (AbstractPlanNode::operator==(rhs));
 }
 
+nlohmann::json AggregatePlanNode::ToJson() const {
+  nlohmann::json j = AbstractPlanNode::ToJson();
+  j["having_clause_predicate"] = having_clause_predicate_;
+  j["aggregate_terms"] = aggregate_terms_;
+  j["aggregate_strategy"] = aggregate_strategy_;
+  return j;
+}
+
+void AggregatePlanNode::FromJson(const nlohmann::json &j) {
+  AbstractPlanNode::FromJson(j);
+  if (!j.at("having_clause_predicate").is_null()) {
+    having_clause_predicate_ = parser::DeserializeExpression(j.at("having_clause_predicate"));
+  }
+  aggregate_terms_ = j.at("aggregate_terms").get<std::vector<AggregateTerm>>();
+  aggregate_strategy_ = j.at("aggregate_strategy").get<AggregateStrategyType>();
+}
+
 }  // namespace terrier::planner

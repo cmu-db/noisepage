@@ -37,6 +37,11 @@ class AggregatePlanNode : public AbstractPlanNode {
         : aggregate_type_(aggregate_type), expression_(std::move(expr)), distinct_(distinct) {}
 
     /**
+     * Default constructor used for deserialization
+     */
+    AggregateTerm() = default;
+
+    /**
      * Check if two AggregateTerms are equal
      * @param rhs other aggregate term
      * @return true if two AggregateTerms are equal
@@ -54,6 +59,22 @@ class AggregatePlanNode : public AbstractPlanNode {
      * @return true if two aggregate terms are not equal
      */
     bool operator!=(const AggregateTerm &rhs) const { return !(*this == rhs); }
+
+    nlohmann::json ToJson() const {
+      nlohmann::json j;
+      j["aggregate_type"] = aggregate_type_;
+      j["expression"] = expression_;
+      j["distinct"] = distinct_;
+      return j;
+    }
+
+    void FromJson(const nlohmann::json &j) {
+      aggregate_type_ = j.at("aggregate_type").get<parser::ExpressionType>();
+      if (!j.at("expression").is_null()) {
+        expression_ = parser::DeserializeExpression(j.at("expression"));
+      }
+      distinct_ = j.at("distinct").get<bool>();
+    }
 
     /**
      * Count, Sum, Min, Max, etc
@@ -151,6 +172,11 @@ class AggregatePlanNode : public AbstractPlanNode {
         aggregate_strategy_(aggregate_strategy) {}
 
  public:
+  /**
+   * Default constructor used for deserialization
+   */
+  AggregatePlanNode() = default;
+
   //===--------------------------------------------------------------------===//
   // ACCESSORS
   //===--------------------------------------------------------------------===//
@@ -191,6 +217,9 @@ class AggregatePlanNode : public AbstractPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
+
  private:
   /**
    * @param agg_terms aggregate terms to be hashed
@@ -200,8 +229,8 @@ class AggregatePlanNode : public AbstractPlanNode {
 
  private:
   std::shared_ptr<parser::AbstractExpression> having_clause_predicate_;
-  const std::vector<AggregateTerm> aggregate_terms_;
-  const AggregateStrategyType aggregate_strategy_;
+  std::vector<AggregateTerm> aggregate_terms_;
+  AggregateStrategyType aggregate_strategy_;
 
  public:
   /**
@@ -209,5 +238,8 @@ class AggregatePlanNode : public AbstractPlanNode {
    */
   DISALLOW_COPY_AND_MOVE(AggregatePlanNode);
 };
+
+DEFINE_JSON_DECLARATIONS(AggregatePlanNode::AggregateTerm);
+DEFINE_JSON_DECLARATIONS(AggregatePlanNode);
 
 }  // namespace terrier::planner

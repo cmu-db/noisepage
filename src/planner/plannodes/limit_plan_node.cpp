@@ -31,7 +31,6 @@ nlohmann::json LimitPlanNode::ToJson() const {
 }
 
 void LimitPlanNode::FromJson(const nlohmann::json &j) {
-  TERRIER_ASSERT(GetPlanNodeType() == j.at("plan_node_type").get<PlanNodeType>(), "Mismatching plan node types");
   AbstractPlanNode::FromJson(j);
   limit_ = j.at("limit").get<size_t>();
   offset_ = j.at("offset").get<size_t>();
