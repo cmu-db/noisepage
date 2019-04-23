@@ -236,11 +236,13 @@ struct StorageTestUtil {
   template <class RowType1, class RowType2>
   static bool ProjectionListEqualShallow(const storage::BlockLayout &layout, const RowType1 *const one,
                                          const RowType2 *const other) {
+    EXPECT_EQ(one->NumColumns(), other->NumColumns());
     if (one->NumColumns() != other->NumColumns()) return false;
     for (uint16_t projection_list_index = 0; projection_list_index < one->NumColumns(); projection_list_index++) {
       // Check that the two point at the same column
       storage::col_id_t one_id = one->ColumnIds()[projection_list_index];
       storage::col_id_t other_id = other->ColumnIds()[projection_list_index];
+      EXPECT_EQ(one_id, other_id);
       if (one_id != other_id) return false;
 
       // Check that the two have the same content bit-wise
@@ -249,6 +251,7 @@ struct StorageTestUtil {
       const byte *other_content = other->AccessWithNullCheck(projection_list_index);
       // Either both are null or neither is null.
       if (one_content == nullptr || other_content == nullptr) {
+        EXPECT_EQ(one_content, other_content);
         if (one_content == other_content) continue;
         return false;
       }

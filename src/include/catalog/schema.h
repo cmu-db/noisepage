@@ -27,7 +27,7 @@ class Schema {
   class Column {
    public:
     /**
-     * Instantiates a Column object, primary to be used for building a Schema object
+     * Instantiates a Column object, primary to be used for building a Schema object (non VARLEN attributes)
      * @param name column name
      * @param type SQL type for this column
      * @param nullable true if the column is nullable, false otherwise
@@ -45,9 +45,10 @@ class Schema {
     }
 
     /**
-     * Instantiates a Column object, primary to be used for building a Schema object
+     * Instantiates a Column object, primary to be used for building a Schema object (VARLEN attributes only)
      * @param name column name
      * @param type SQL type for this column
+     * @param max_varlen_size the maximum length of the varlen entry
      * @param nullable true if the column is nullable, false otherwise
      * @param oid internal unique identifier for this column
      */
@@ -76,13 +77,16 @@ class Schema {
      */
     uint8_t GetAttrSize() const { return attr_size_; }
 
+    /**
+     * @return The maximum length of this column (only valid if it's VARLEN)
+     */
     uint16_t GetMaxVarlenSize() const {
       TERRIER_ASSERT(attr_size_ == VARLEN_COLUMN, "This attribute has no meaning for non-VARLEN columns.");
       return max_varlen_size_;
     }
 
     /**
-     * @return true if the attribute is inlined, false if it's a pointer to a varlen entry
+     * @return SQL type for this column
      */
     type::TypeId GetType() const { return type_; }
     /**
