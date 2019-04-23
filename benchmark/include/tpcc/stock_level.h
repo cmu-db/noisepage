@@ -136,12 +136,12 @@ class StockLevel {
       TERRIER_ASSERT(select_result, "Stock index contained this.");
       const auto s_quantity = *reinterpret_cast<int16_t *>(stock_select_tuple->AccessForceNotNull(0));
 
-      item_counts[ol_i_id] = static_cast<int16_t>(item_counts[ol_i_id] + s_quantity);  // default of int32_t is 0
+      item_counts[ol_i_id] = s_quantity;
     }
 
-    uint8_t low_stock = 0;
+    uint16_t low_stock = 0;
     for (const auto &it : item_counts) {
-      low_stock = static_cast<uint8_t>(low_stock + static_cast<uint8_t>(it.second < args.s_quantity_threshold));
+      low_stock = static_cast<uint16_t>(low_stock + static_cast<uint16_t>(it.second < args.s_quantity_threshold));
     }
 
     txn_manager->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
