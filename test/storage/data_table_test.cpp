@@ -211,6 +211,7 @@ TEST_F(DataTableTests, SimpleSequentialScan) {
       tested.InsertRandomTuple(transaction::timestamp_t(0), &generator_, &buffer_pool_);
 
     std::vector<storage::col_id_t> all_cols = StorageTestUtil::ProjectionListAllColumns(tested.Layout());
+    EXPECT_NE((!all_cols[all_cols.size() - 1]), -1);
     storage::ProjectedColumnsInitializer initializer(tested.Layout(), all_cols, num_inserts);
     auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedColumnsSize());
     storage::ProjectedColumns *columns = initializer.Initialize(buffer);
@@ -222,7 +223,7 @@ TEST_F(DataTableTests, SimpleSequentialScan) {
       EXPECT_EQ(it, tested.GetTable().end());
     }
     for (uint32_t i = 0; i < tested.InsertedTuples().size(); i++) {
-      storage::ProjectedColumns::RowView stored = columns->InterpretAsRow(tested.Layout(), i);
+      storage::ProjectedColumns::RowView stored = columns->InterpretAsRow(i);
       const storage::ProjectedRow *ref =
           tested.GetReferenceVersionedTuple(columns->TupleSlots()[i], transaction::timestamp_t(1));
       EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), &stored, ref));
