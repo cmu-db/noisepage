@@ -338,4 +338,7 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
    */
   DISALLOW_COPY_AND_MOVE(CreateFunctionPlanNode);
 };
+
+DEFINE_JSON_DECLARATIONS(CreateFunctionPlanNode);
+
 }  // namespace terrier::planner

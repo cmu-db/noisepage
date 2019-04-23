@@ -277,4 +277,6 @@ class CreateIndexPlanNode : public AbstractPlanNode {
   DISALLOW_COPY_AND_MOVE(CreateIndexPlanNode);
 };
 
+DEFINE_JSON_DECLARATIONS(CreateIndexPlanNode);
+
 }  // namespace terrier::planner

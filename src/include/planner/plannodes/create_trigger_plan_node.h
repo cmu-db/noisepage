@@ -316,4 +316,6 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
   DISALLOW_COPY_AND_MOVE(CreateTriggerPlanNode);
 };
 
+DEFINE_JSON_DECLARATIONS(CreateTriggerPlanNode);
+
 }  // namespace terrier::planner

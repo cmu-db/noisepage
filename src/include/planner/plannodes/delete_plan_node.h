@@ -160,4 +160,6 @@ class DeletePlanNode : public AbstractPlanNode {
   DISALLOW_COPY_AND_MOVE(DeletePlanNode);
 };
 
+DEFINE_JSON_DECLARATIONS(DeletePlanNode);
+
 }  // namespace terrier::planner

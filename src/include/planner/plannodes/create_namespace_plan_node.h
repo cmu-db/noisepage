@@ -138,4 +138,6 @@ class CreateNamespacePlanNode : public AbstractPlanNode {
   DISALLOW_COPY_AND_MOVE(CreateNamespacePlanNode);
 };
 
+DEFINE_JSON_DECLARATIONS(CreateNamespacePlanNode);
+
 }  // namespace terrier::planner

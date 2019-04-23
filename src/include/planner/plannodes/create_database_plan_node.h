@@ -115,4 +115,6 @@ class CreateDatabasePlanNode : public AbstractPlanNode {
   DISALLOW_COPY_AND_MOVE(CreateDatabasePlanNode);
 };
 
+DEFINE_JSON_DECLARATIONS(CreateDatabasePlanNode);
+
 }  // namespace terrier::planner

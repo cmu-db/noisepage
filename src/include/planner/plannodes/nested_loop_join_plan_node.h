@@ -75,4 +75,6 @@ class NestedLoopJoinPlanNode : public AbstractJoinPlanNode {
   DISALLOW_COPY_AND_MOVE(NestedLoopJoinPlanNode);
 };
 
+DEFINE_JSON_DECLARATIONS(NestedLoopJoinPlanNode);
+
 }  // namespace terrier::planner

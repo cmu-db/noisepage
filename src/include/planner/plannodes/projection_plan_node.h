@@ -71,4 +71,6 @@ class ProjectionPlanNode : public AbstractPlanNode {
   DISALLOW_COPY_AND_MOVE(ProjectionPlanNode);
 };
 
+DEFINE_JSON_DECLARATIONS(ProjectionPlanNode);
+
 }  // namespace terrier::planner

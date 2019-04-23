@@ -193,4 +193,6 @@ class CreateViewPlanNode : public AbstractPlanNode {
   DISALLOW_COPY_AND_MOVE(CreateViewPlanNode);
 };
 
+DEFINE_JSON_DECLARATIONS(CreateViewPlanNode);
+
 }  // namespace terrier::planner

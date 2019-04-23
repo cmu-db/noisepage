@@ -189,4 +189,6 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
   DISALLOW_COPY_AND_MOVE(CSVScanPlanNode);
 };
 
+DEFINE_JSON_DECLARATIONS(CSVScanPlanNode);
+
 }  // namespace terrier::planner

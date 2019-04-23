@@ -164,4 +164,6 @@ class DropViewPlanNode : public AbstractPlanNode {
   DISALLOW_COPY_AND_MOVE(DropViewPlanNode);
 };
 
+DEFINE_JSON_DECLARATIONS(DropViewPlanNode);
+
 }  // namespace terrier::planner
