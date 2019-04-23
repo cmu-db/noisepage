@@ -1,4 +1,6 @@
 #include "planner/plannodes/create_function_plan_node.h"
+#include <string>
+#include <vector>
 #include "storage/data_table.h"
 
 namespace terrier::planner {

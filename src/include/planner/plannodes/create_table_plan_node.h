@@ -686,9 +686,6 @@ class CreateTablePlanNode : public AbstractPlanNode {
    */
   CreateTablePlanNode() = default;
 
-  nlohmann::json ToJson() const override;
-  void FromJson(const nlohmann::json &j) override;
-
   /**
    * @return the type of this plan node
    */
@@ -745,6 +742,9 @@ class CreateTablePlanNode : public AbstractPlanNode {
   common::hash_t Hash() const override;
 
   bool operator==(const AbstractPlanNode &rhs) const override;
+
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
 
  private:
   /**
@@ -804,5 +804,6 @@ DEFINE_JSON_DECLARATIONS(PrimaryKeyInfo);
 DEFINE_JSON_DECLARATIONS(ForeignKeyInfo);
 DEFINE_JSON_DECLARATIONS(UniqueInfo);
 DEFINE_JSON_DECLARATIONS(CheckInfo);
+DEFINE_JSON_DECLARATIONS(CreateTablePlanNode);
 
 }  // namespace terrier::planner

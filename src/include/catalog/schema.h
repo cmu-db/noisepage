@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -123,6 +124,12 @@ class Schema {
       col_oid_to_offset[columns_[i].GetOid()] = i;
     }
   }
+
+  /**
+   * Default constructor used for deserialization
+   */
+  Schema() = default;
+
   /**
    * @param col_offset offset into the schema specifying which Column to access
    * @return description of the schema for a specific column
@@ -155,7 +162,6 @@ class Schema {
   void FromJson(const nlohmann::json &j) {
     TERRIER_ASSERT(false, "Schema::FromJson should never be invoked directly; use DeserializeSchema");
   }
-
 
   std::shared_ptr<Schema> static DeserializeSchema(const nlohmann::json &j) {
     std::vector<Schema::Column> columns = j.at("columns").get<std::vector<Schema::Column>>();

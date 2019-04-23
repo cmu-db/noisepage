@@ -1,4 +1,5 @@
 #include <memory>
+#include <string>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -329,12 +330,12 @@ TEST(PlanNodeJsonTest, HashJoinPlanNodeJoinTest) {
   // Construct HashJoinPlanNode
   HashJoinPlanNode::Builder builder;
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
-      .SetJoinType(LogicalJoinType::INNER)
-      .SetJoinPredicate(PlanNodeJsonTest::BuildDummyPredicate())
-      .AddLeftHashKey(std::make_shared<parser::TupleValueExpression>("col1", "table1"))
-      .AddRightHashKey(std::make_shared<parser::TupleValueExpression>("col2", "table2"))
-      .SetBuildBloomFilterFlag(false)
-      .Build();
+                       .SetJoinType(LogicalJoinType::INNER)
+                       .SetJoinPredicate(PlanNodeJsonTest::BuildDummyPredicate())
+                       .AddLeftHashKey(std::make_shared<parser::TupleValueExpression>("col1", "table1"))
+                       .AddRightHashKey(std::make_shared<parser::TupleValueExpression>("col2", "table2"))
+                       .SetBuildBloomFilterFlag(false)
+                       .Build();
 
   // Serialize to Json
   auto json = plan_node->ToJson();
@@ -371,15 +372,15 @@ TEST(PlanNodeJsonTest, CreateFunctionPlanNodeTest) {
   // Construct CreateFunctionPlanNode
   CreateFunctionPlanNode::Builder builder;
   auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(1))
-      .SetLanguage(parser::PLType::PL_PGSQL)
-      .SetFunctionParamNames({"i"})
-      .SetFunctionParamTypes({parser::BaseFunctionParameter::DataType::INT})
-      .SetFunctionBody({"RETURN i+1;"})
-      .SetIsReplace(true)
-      .SetFunctionName("test_func")
-      .SetReturnType(parser::BaseFunctionParameter::DataType::INT)
-      .SetParamCount(1)
-      .Build();
+                       .SetLanguage(parser::PLType::PL_PGSQL)
+                       .SetFunctionParamNames({"i"})
+                       .SetFunctionParamTypes({parser::BaseFunctionParameter::DataType::INT})
+                       .SetFunctionBody({"RETURN i+1;"})
+                       .SetIsReplace(true)
+                       .SetFunctionName("test_func")
+                       .SetReturnType(parser::BaseFunctionParameter::DataType::INT)
+                       .SetParamCount(1)
+                       .Build();
 
   // Serialize to Json
   auto json = plan_node->ToJson();
@@ -398,12 +399,12 @@ TEST(PlanNodeJsonTest, CreateIndexPlanNodeTest) {
   // Construct CreateIndexPlanNode
   CreateIndexPlanNode::Builder builder;
   auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(1))
-      .SetTableOid(catalog::table_oid_t(2))
-      .SetIndexName("test_index")
-      .SetUniqueIndex(true)
-      .SetIndexAttrs({"a", "foo"})
-      .SetKeyAttrs({"a", "bar"})
-      .Build();
+                       .SetTableOid(catalog::table_oid_t(2))
+                       .SetIndexName("test_index")
+                       .SetUniqueIndex(true)
+                       .SetIndexAttrs({"a", "foo"})
+                       .SetKeyAttrs({"a", "bar"})
+                       .Build();
 
   // Serialize to Json
   auto json = plan_node->ToJson();
@@ -440,14 +441,14 @@ TEST(PlanNodeJsonTest, CreateTriggerPlanNodeTest) {
   // Construct CreateTriggerPlanNode
   CreateTriggerPlanNode::Builder builder;
   auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(2))
-      .SetTableOid(catalog::table_oid_t(3))
-      .SetTriggerName("test_trigger")
-      .SetTriggerFuncnames({"test_trigger_func"})
-      .SetTriggerArgs({"a", "b"})
-      .SetTriggerColumns({catalog::col_oid_t(0), catalog::col_oid_t(1)})
-      .SetTriggerWhen(PlanNodeJsonTest::BuildDummyPredicate())
-      .SetTriggerType(23)
-      .Build();
+                       .SetTableOid(catalog::table_oid_t(3))
+                       .SetTriggerName("test_trigger")
+                       .SetTriggerFuncnames({"test_trigger_func"})
+                       .SetTriggerArgs({"a", "b"})
+                       .SetTriggerColumns({catalog::col_oid_t(0), catalog::col_oid_t(1)})
+                       .SetTriggerWhen(PlanNodeJsonTest::BuildDummyPredicate())
+                       .SetTriggerType(23)
+                       .Build();
 
   // Serialize to Json
   auto json = plan_node->ToJson();
@@ -467,10 +468,10 @@ TEST(PlanNodeJsonTest, CreateViewPlanNodeTest) {
   CreateViewPlanNode::Builder builder;
   std::shared_ptr<parser::SelectStatement> select_stmt = std::make_shared<parser::SelectStatement>();
   auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(2))
-      .SetNamespaceOid(catalog::namespace_oid_t(3))
-      .SetViewName("test_view")
-      .SetViewQuery(select_stmt)
-      .Build();
+                       .SetNamespaceOid(catalog::namespace_oid_t(3))
+                       .SetViewName("test_view")
+                       .SetViewQuery(select_stmt)
+                       .Build();
 
   // Serialize to Json
   auto json = plan_node->ToJson();
@@ -508,9 +509,9 @@ TEST(PlanNodeJsonTest, DeletePlanNodeTest) {
   // Construct DeletePlanNode
   DeletePlanNode::Builder builder;
   auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(1))
-      .SetTableOid(catalog::table_oid_t(2))
-      .SetDeleteCondition(PlanNodeJsonTest::BuildDummyPredicate())
-      .Build();
+                       .SetTableOid(catalog::table_oid_t(2))
+                       .SetDeleteCondition(PlanNodeJsonTest::BuildDummyPredicate())
+                       .Build();
 
   // Serialize to Json
   auto json = plan_node->ToJson();
@@ -566,9 +567,9 @@ TEST(PlanNodeJsonTest, DropNamespacePlanNodeTest) {
   // Construct DropNamespacePlanNode
   DropNamespacePlanNode::Builder builder;
   auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(8))
-      .SetNamespaceOid(catalog::namespace_oid_t(9))
-      .SetIfExist(true)
-      .Build();
+                       .SetNamespaceOid(catalog::namespace_oid_t(9))
+                       .SetIfExist(true)
+                       .Build();
 
   // Serialize to Json
   auto json = plan_node->ToJson();
@@ -640,57 +641,26 @@ TEST(PlanNodeJsonTest, DropViewPlanNodeTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(PlanNodeJsonTest, OrderByPlanNodeJsonTest) {
-  // Construct OrderByPlanNode
-  OrderByPlanNode::Builder builder;
-  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
-      .AddSortKey(catalog::col_oid_t(0), OrderByOrderingType::ASC)
-      .AddSortKey(catalog::col_oid_t(1), OrderByOrderingType::DESC)
-      .SetLimit(10)
-      .SetOffset(10)
-      .Build();
-
-  // Serialize to Json
-  auto json = plan_node->ToJson();
-  EXPECT_FALSE(json.is_null());
-
-  // Deserialize plan node
-  auto deserialized_plan = DeserializePlanNode(json);
-  EXPECT_TRUE(deserialized_plan != nullptr);
-  EXPECT_EQ(PlanNodeType::ORDERBY, deserialized_plan->GetPlanNodeType());
-  auto order_by_plan = std::dynamic_pointer_cast<OrderByPlanNode>(deserialized_plan);
-  EXPECT_EQ(*plan_node, *order_by_plan);
-}
-
-// NOLINTNEXTLINE
 TEST(PlanNodeJsonTest, CreateTablePlanNodeTest) {
   auto get_pk_info = []() {
-    PrimaryKeyInfo pk = {
-      .primary_key_cols_ = { "a" },
-      .constraint_name_ = "pk_a"
-    };
+    PrimaryKeyInfo pk = {.primary_key_cols_ = {"a"}, .constraint_name_ = "pk_a"};
 
     return pk;
   };
 
   auto get_fk_info = []() {
-    ForeignKeyInfo fk = {
-      .foreign_key_sources_ = { "b" },
-      .foreign_key_sinks_ = { "b" },
-      .sink_table_name_ = { "tbl2" },
-      .constraint_name_ = "fk_b",
-      .upd_action_ = parser::FKConstrActionType::CASCADE,
-      .del_action_ = parser::FKConstrActionType::CASCADE
-    };
+    ForeignKeyInfo fk = {.foreign_key_sources_ = {"b"},
+                         .foreign_key_sinks_ = {"b"},
+                         .sink_table_name_ = {"tbl2"},
+                         .constraint_name_ = "fk_b",
+                         .upd_action_ = parser::FKConstrActionType::CASCADE,
+                         .del_action_ = parser::FKConstrActionType::CASCADE};
 
     return fk;
   };
 
   auto get_unique_info = []() {
-    UniqueInfo uk = {
-      .unique_cols_ = { "u_a", "u_b" },
-      .constraint_name_ = "uk_a_b"
-    };
+    UniqueInfo uk = {.unique_cols_ = {"u_a", "u_b"}, .constraint_name_ = "uk_a_b"};
 
     return uk;
   };
@@ -705,12 +675,11 @@ TEST(PlanNodeJsonTest, CreateTablePlanNodeTest) {
 
   auto get_schema = []() {
     std::vector<catalog::Schema::Column> columns = {
-      catalog::Schema::Column("a", type::TypeId::INTEGER, false, catalog::col_oid_t(1)),
-      catalog::Schema::Column("b", type::TypeId::VARCHAR, true, catalog::col_oid_t(2)),
-      catalog::Schema::Column("u_a", type::TypeId::DECIMAL, false, catalog::col_oid_t(3)),
-      catalog::Schema::Column("u_b", type::TypeId::DATE, true, catalog::col_oid_t(4)),
-      catalog::Schema::Column("ck_a", type::TypeId::VARBINARY, false, catalog::col_oid_t(5))
-    };
+        catalog::Schema::Column("a", type::TypeId::INTEGER, false, catalog::col_oid_t(1)),
+        catalog::Schema::Column("b", type::TypeId::VARCHAR, true, catalog::col_oid_t(2)),
+        catalog::Schema::Column("u_a", type::TypeId::DECIMAL, false, catalog::col_oid_t(3)),
+        catalog::Schema::Column("u_b", type::TypeId::DATE, true, catalog::col_oid_t(4)),
+        catalog::Schema::Column("ck_a", type::TypeId::VARBINARY, false, catalog::col_oid_t(5))};
 
     return std::make_shared<catalog::Schema>(columns);
   };
@@ -718,26 +687,26 @@ TEST(PlanNodeJsonTest, CreateTablePlanNodeTest) {
   // Construct CreateTablePlanNode (1 with PK and 1 without PK)
   CreateTablePlanNode::Builder builder;
   auto pk_plan_node = builder.SetDatabaseOid(catalog::db_oid_t(1))
+                          .SetNamespaceOid(catalog::namespace_oid_t(2))
+                          .SetTableName("test_tbl")
+                          .SetTableSchema(get_schema())
+                          .SetHasPrimaryKey(true)
+                          .SetPrimaryKey(get_pk_info())
+                          .SetForeignKeys({get_fk_info()})
+                          .SetUniqueConstraints({get_unique_info()})
+                          .SetCheckConstraints(get_check_info())
+                          .Build();
+
+  auto no_pk_plan_node = builder.SetDatabaseOid(catalog::db_oid_t(1))
                              .SetNamespaceOid(catalog::namespace_oid_t(2))
                              .SetTableName("test_tbl")
                              .SetTableSchema(get_schema())
-                             .SetHasPrimaryKey(true)
+                             .SetHasPrimaryKey(false)
                              .SetPrimaryKey(get_pk_info())
                              .SetForeignKeys({get_fk_info()})
                              .SetUniqueConstraints({get_unique_info()})
-                             .SetCheckConstraints(std::move(get_check_info()))
+                             .SetCheckConstraints(get_check_info())
                              .Build();
-
-  auto no_pk_plan_node = builder.SetDatabaseOid(catalog::db_oid_t(1))
-                                .SetNamespaceOid(catalog::namespace_oid_t(2))
-                                .SetTableName("test_tbl")
-                                .SetTableSchema(get_schema())
-                                .SetHasPrimaryKey(false)
-                                .SetPrimaryKey(get_pk_info())
-                                .SetForeignKeys({get_fk_info()})
-                                .SetUniqueConstraints({get_unique_info()})
-                                .SetCheckConstraints(std::move(get_check_info()))
-                                .Build();
   EXPECT_TRUE(*pk_plan_node != *no_pk_plan_node);
 
   // Serialize to Json
