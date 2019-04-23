@@ -13,17 +13,17 @@ namespace terrier::storage {
  * tuple slot, so it is more compact in layout than MaterializedColumns, which has to also store the
  * TupleSlot information for each tuple. The inner class RowView provides access to the underlying logical
  * projected rows with the same interface as a real ProjecetedRow.
- * -----------------------------------------------------------------------
- * | size | max_tuples | num_tuples | num_cols | col_id1 | col_id2 | ... |
- * -----------------------------------------------------------------------
- * | val1_offset | val2_offset | ... | TupleSlot_1 | TupleSlot_2 |  ...  |
- * -----------------------------------------------------------------------
- * | null-bitmap, col_id1 | val1, col_id1 | val2, col_id1 |      ...     |
- * -----------------------------------------------------------------------
- * | null-bitmap, col_id1 | val1, col_id2 | val2, col_id2 |      ...     |
- * -----------------------------------------------------------------------
- * |                                ...                                  |
- * -----------------------------------------------------------------------
+ * -------------------------------------------------------------------------------------
+ * | size | max_tuples | num_tuples | num_cols | attr_end[4] | col_id1 | col_id2 | ... |
+ * -------------------------------------------------------------------------------------
+ * | val1_offset | val2_offset | ... | TupleSlot_1 | TupleSlot_2 |         ...         |
+ * -------------------------------------------------------------------------------------
+ * | null-bitmap, col_id1 | val1, col_id1 | val2, col_id1 |             ...            |
+ * -------------------------------------------------------------------------------------
+ * | null-bitmap, col_id1 | val1, col_id2 | val2, col_id2 |             ...            |
+ * -------------------------------------------------------------------------------------
+ * |                                       ...                                         |
+ * -------------------------------------------------------------------------------------
  */
 // PACKED for the same reason as ProjectedRow
 class PACKED ProjectedColumns {
@@ -88,8 +88,8 @@ class PACKED ProjectedColumns {
     byte *AccessWithNullCheck(const uint16_t projection_list_index) {
       TERRIER_ASSERT(projection_list_index < underlying_->NumColumns(), "Column offset out of bounds.");
       if (IsNull(projection_list_index)) return nullptr;
-      col_id_t col_id = underlying_->ColumnIds()[projection_list_index];
-      return underlying_->ColumnStart(projection_list_index) + layout_.AttrSize(col_id) * row_offset_;
+      return underlying_->ColumnStart(projection_list_index) +
+             underlying_->AttrSizeForColumn(projection_list_index) * row_offset_;
     }
 
     /**
@@ -101,8 +101,8 @@ class PACKED ProjectedColumns {
     const byte *AccessWithNullCheck(const uint16_t projection_list_index) const {
       TERRIER_ASSERT(projection_list_index < underlying_->NumColumns(), "Column offset out of bounds.");
       if (IsNull(projection_list_index)) return nullptr;
-      col_id_t col_id = underlying_->ColumnIds()[projection_list_index];
-      return underlying_->ColumnStart(projection_list_index) + layout_.AttrSize(col_id) * row_offset_;
+      return underlying_->ColumnStart(projection_list_index) +
+             underlying_->AttrSizeForColumn(projection_list_index) * row_offset_;
     }
 
     /**
@@ -113,16 +113,14 @@ class PACKED ProjectedColumns {
     byte *AccessForceNotNull(const uint16_t projection_list_index) {
       TERRIER_ASSERT(projection_list_index < underlying_->NumColumns(), "Column offset out of bounds.");
       if (IsNull(projection_list_index)) SetNotNull(projection_list_index);
-      col_id_t col_id = underlying_->ColumnIds()[projection_list_index];
-      return underlying_->ColumnStart(projection_list_index) + layout_.AttrSize(col_id) * row_offset_;
+      return underlying_->ColumnStart(projection_list_index) +
+             underlying_->AttrSizeForColumn(projection_list_index) * row_offset_;
     }
 
    private:
     friend class ProjectedColumns;
-    RowView(ProjectedColumns *underlying, const BlockLayout &layout, uint32_t row_offset)
-        : underlying_(underlying), layout_(layout), row_offset_(row_offset) {}
+    RowView(ProjectedColumns *underlying, uint32_t row_offset) : underlying_(underlying), row_offset_(row_offset) {}
     ProjectedColumns *const underlying_;
-    const BlockLayout &layout_;
     const uint32_t row_offset_;
   };
 
@@ -186,11 +184,10 @@ class PACKED ProjectedColumns {
   // TODO(Tianyu): If we make RowView mutable, then remove this function and make the constructor of RowView public.
   /**
    *
-   * @param layout block layout of the data table this ProjectedColumns come from
    * @param row_offset the row offset within the ProjectedColumns to look at
    * @return a view into the desired row within the ProjectedColumns
    */
-  RowView InterpretAsRow(const BlockLayout &layout, uint32_t row_offset) { return {this, layout, row_offset}; }
+  RowView InterpretAsRow(uint32_t row_offset) { return {this, row_offset}; }
 
   /**
    * @param projection_list_index index of the desired column in the projection list
@@ -204,12 +201,20 @@ class PACKED ProjectedColumns {
                                                          common::RawBitmap::SizeInBytes(max_tuples_));
   }
 
+  /**
+   * Returns the attribute size for the corresponding column
+   * @param col_id the column ID within the projection we want the size for
+   * @return the size (in bytes) of the attributes in this column
+   */
+  const uint32_t AttrSizeForColumn(uint16_t col_id);
+
  private:
   friend class ProjectedColumnsInitializer;
   uint32_t size_;
   uint32_t max_tuples_;
   uint32_t num_tuples_;
   uint16_t num_cols_;
+  uint16_t attr_ends_[NUM_ATTR_BOUNDARIES];
   byte varlen_contents_[0];
 
   uint32_t *AttrValueOffsets() { return StorageUtil::AlignedPtr<uint32_t>(ColumnIds() + num_cols_); }
@@ -264,6 +269,7 @@ class ProjectedColumnsInitializer {
  private:
   uint32_t size_ = 0;
   uint32_t max_tuples_;
+  uint16_t attr_ends_[NUM_ATTR_BOUNDARIES];
   std::vector<col_id_t> col_ids_;
   std::vector<uint32_t> offsets_;
 };

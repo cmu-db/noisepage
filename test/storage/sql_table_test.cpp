@@ -99,6 +99,66 @@ class SqlTableRW {
   }
 
   /**
+   * Read an uint64 from a row
+   * @param col_num column number in the schema
+   * @param slot - tuple to read from
+   * @return integer value
+   */
+  uint64_t GetInt64ColInRow(int32_t col_num, storage::TupleSlot slot) {
+    auto txn = txn_manager_.BeginTransaction();
+    auto read_buffer = common::AllocationUtil::AllocateAligned(pri_->ProjectedRowSize());
+    storage::ProjectedRow *read = pri_->InitializeRow(read_buffer);
+    table_->Select(txn, slot, read);
+    byte *col_p = read->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
+    txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+    auto ret_val = *(reinterpret_cast<uint64_t *>(col_p));
+
+    delete txn;
+    delete[] read_buffer;
+    return ret_val;
+  }
+
+  /**
+   * Read an uint16 from a row
+   * @param col_num column number in the schema
+   * @param slot - tuple to read from
+   * @return integer value
+   */
+  uint16_t GetInt16ColInRow(int32_t col_num, storage::TupleSlot slot) {
+    auto txn = txn_manager_.BeginTransaction();
+    auto read_buffer = common::AllocationUtil::AllocateAligned(pri_->ProjectedRowSize());
+    storage::ProjectedRow *read = pri_->InitializeRow(read_buffer);
+    table_->Select(txn, slot, read);
+    byte *col_p = read->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
+    txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+    auto ret_val = *(reinterpret_cast<uint16_t *>(col_p));
+
+    delete txn;
+    delete[] read_buffer;
+    return ret_val;
+  }
+
+  /**
+   * Read an uint8 from a row
+   * @param col_num column number in the schema
+   * @param slot - tuple to read from
+   * @return integer value
+   */
+  uint8_t GetInt8ColInRow(int32_t col_num, storage::TupleSlot slot) {
+    auto txn = txn_manager_.BeginTransaction();
+    auto read_buffer = common::AllocationUtil::AllocateAligned(pri_->ProjectedRowSize());
+    storage::ProjectedRow *read = pri_->InitializeRow(read_buffer);
+    table_->Select(txn, slot, read);
+    byte *col_p = read->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
+    txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+    auto ret_val = *(reinterpret_cast<uint8_t *>(col_p));
+
+    delete txn;
+    delete[] read_buffer;
+    return ret_val;
+  }
+
+  /**
    * Save an integer, for insertion by EndRowAndInsert
    * @param col_num column number in the schema
    * @param value to save
@@ -106,6 +166,36 @@ class SqlTableRW {
   void SetIntColInRow(int32_t col_num, int32_t value) {
     byte *col_p = insert_->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
     (*reinterpret_cast<uint32_t *>(col_p)) = value;
+  }
+
+  /**
+   * Save an uint64, for insertion by EndRowAndInsert
+   * @param col_num column number in the schema
+   * @param value to save
+   */
+  void SetInt64ColInRow(int32_t col_num, uint64_t value) {
+    byte *col_p = insert_->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
+    (*reinterpret_cast<uint64_t *>(col_p)) = value;
+  }
+
+  /**
+   * Save an uint16, for insertion by EndRowAndInsert
+   * @param col_num column number in the schema
+   * @param value to save
+   */
+  void SetInt16ColInRow(int32_t col_num, uint16_t value) {
+    byte *col_p = insert_->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
+    (*reinterpret_cast<uint16_t *>(col_p)) = value;
+  }
+
+  /**
+   * Save an uint8, for insertion by EndRowAndInsert
+   * @param col_num column number in the schema
+   * @param value to save
+   */
+  void SetInt8ColInRow(int32_t col_num, uint8_t value) {
+    byte *col_p = insert_->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
+    (*reinterpret_cast<uint8_t *>(col_p)) = value;
   }
 
   /**
@@ -229,4 +319,32 @@ TEST_F(SqlTableTests, VarlenInsertTest) {
   delete[] table_name;
 }
 
+// NOLINTNEXTLINE
+TEST_F(SqlTableTests, MultipleColumnWidths) {
+  SqlTableRW table(catalog::table_oid_t(2));
+
+  table.DefineColumn("bigint", type::TypeId::BIGINT, false, catalog::col_oid_t(1001));
+  table.DefineColumn("integer", type::TypeId::INTEGER, false, catalog::col_oid_t(1002));
+  table.DefineColumn("smallint", type::TypeId::SMALLINT, false, catalog::col_oid_t(1003));
+  table.DefineColumn("tinyint", type::TypeId::TINYINT, false, catalog::col_oid_t(1004));
+  table.Create();
+
+  table.StartRow();
+  table.SetInt64ColInRow(0, 10000000000);
+  table.SetIntColInRow(1, 100000);
+  table.SetInt16ColInRow(2, 512);
+  table.SetInt8ColInRow(3, 42);
+  storage::TupleSlot row_slot = table.EndRowAndInsert();
+
+  // Check data
+  uint64_t bigint = table.GetInt64ColInRow(0, row_slot);
+  uint32_t integer = table.GetIntColInRow(1, row_slot);
+  uint16_t smallint = table.GetInt16ColInRow(2, row_slot);
+  uint8_t tinyint = table.GetInt8ColInRow(3, row_slot);
+
+  EXPECT_EQ(bigint, 10000000000);
+  EXPECT_EQ(integer, 100000);
+  EXPECT_EQ(smallint, 512);
+  EXPECT_EQ(tinyint, 42);
+}
 }  // namespace terrier
