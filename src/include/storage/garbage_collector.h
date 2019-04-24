@@ -91,14 +91,14 @@ class GarbageCollector {
 
   /**
    * Given a version chain, perform interval gc on all versions except the head of the chain
-   * @param undo_record pointer to the head of the chain
+   * @param table data table
+   * @param slot tuple slot
    * @param active_txns vector containing all active transactions
    */
-  void ProcessTupleVersionChain(UndoRecord *undo_record, std::vector<transaction::timestamp_t> *active_txns);
+  void ProcessTupleVersionChain(DataTable *table, TupleSlot slot, std::vector<transaction::timestamp_t> *active_txns);
 
   /**
    * Straight up unlink the undo_record and reclaim its space
-   * @param txn
    * @param undo_record
    */
   void UnlinkUndoRecordVersion(UndoRecord *undo_record);
@@ -200,7 +200,7 @@ class GarbageCollector {
   bool compaction_buffer_empty;
   // queue of undo buffers containing compacted undo records which are pending unlinking
   std::forward_list<storage::UndoBuffer *> buffers_to_unlink_;
-  // queue of undo buffers containing compacted undo records which ahve been unlinked abd are pending deallocation
+  // queue of undo buffers containing compacted undo records which have been unlinked and are pending deallocation
   std::forward_list<storage::UndoBuffer *> buffers_to_deallocate_;
   // set of all column ids in the compacted interval
   std::unordered_set<col_id_t> col_set_;
