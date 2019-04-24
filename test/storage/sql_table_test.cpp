@@ -652,7 +652,7 @@ TEST_F(SqlTableTests, ScanTest) {
   // check the number of tuples we found
   EXPECT_EQ(pc->NumTuples(), 2);
 
-  auto row1 = pc->InterpretAsRow(*table.GetLayout(), 0);
+  auto row1 = pc->InterpretAsRow(0);
   byte *value = row1.AccessWithNullCheck(pc_pair.second.at(catalog::col_oid_t(0)));
   EXPECT_NE(value, nullptr);
   uint32_t id = *reinterpret_cast<uint32_t *>(value);
@@ -671,7 +671,7 @@ TEST_F(SqlTableTests, ScanTest) {
   }
 
   // check the if we get (200, 10001, null)
-  auto row2 = pc->InterpretAsRow(*table.GetLayout(), 1);
+  auto row2 = pc->InterpretAsRow(1);
   value = row2.AccessWithNullCheck(pc_pair.second.at(catalog::col_oid_t(0)));
   EXPECT_NE(value, nullptr);
   id = *reinterpret_cast<uint32_t *>(value);
@@ -695,7 +695,7 @@ TEST_F(SqlTableTests, ScanTest) {
   EXPECT_EQ(pc->NumTuples(), 2);
   EXPECT_TRUE(start_pos == table.table_->end());
 
-  auto row3 = pc->InterpretAsRow(*table.GetLayout(), 0);
+  auto row3 = pc->InterpretAsRow(0);
   value = row3.AccessWithNullCheck(pc_pair.second.at(catalog::col_oid_t(0)));
   EXPECT_NE(value, nullptr);
   id = *reinterpret_cast<uint32_t *>(value);
@@ -714,7 +714,7 @@ TEST_F(SqlTableTests, ScanTest) {
   }
 
   // check the if we get (200, 10001, null)
-  auto row4 = pc->InterpretAsRow(*table.GetLayout(), 1);
+  auto row4 = pc->InterpretAsRow(1);
   value = row4.AccessWithNullCheck(pc_pair.second.at(catalog::col_oid_t(0)));
   EXPECT_NE(value, nullptr);
   id = *reinterpret_cast<uint32_t *>(value);
@@ -765,7 +765,7 @@ TEST_F(SqlTableTests, VarlenInsertTest) {
 
 // NOLINTNEXTLINE
 TEST_F(SqlTableTests, MultipleColumnWidths) {
-  SqlTableRW table(catalog::table_oid_t(2));
+  SqlTableTestRW table(catalog::table_oid_t(2));
 
   table.DefineColumn("bigint", type::TypeId::BIGINT, false, catalog::col_oid_t(1001));
   table.DefineColumn("integer", type::TypeId::INTEGER, false, catalog::col_oid_t(1002));
