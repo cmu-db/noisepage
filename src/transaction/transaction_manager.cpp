@@ -1,5 +1,6 @@
 #include "transaction/transaction_manager.h"
 #include <algorithm>
+#include <queue>
 #include <utility>
 #include <vector>
 
@@ -16,7 +17,7 @@ TransactionContext *TransactionManager::BeginTransaction() {
   // Doing this with std::map or other data structure is risky though, as they may not
   // guarantee that the iterator or underlying pointer is stable across operations.
   // (That is, they may change as concurrent inserts and deletes happen)
-  auto *const result = new TransactionContext(start_time, start_time + INT64_MIN, buffer_pool_, log_manager_);
+  auto *const result = new TransactionContext(start_time, start_time + INT64_MIN, buffer_pool_, log_manager_, this);
   common::SpinLatch::ScopedSpinLatch running_guard(&curr_running_txns_latch_);
   const auto ret UNUSED_ATTRIBUTE = curr_running_txns_.emplace(result->StartTime());
   TERRIER_ASSERT(ret.second, "commit start time should be globally unique");
@@ -59,6 +60,7 @@ timestamp_t TransactionManager::UpdatingCommitCriticalSection(TransactionContext
                                                               void *const callback_arg) {
   common::SharedLatch::ScopedExclusiveLatch guard(&commit_latch_);
   const timestamp_t commit_time = time_++;
+
   // TODO(Tianyu):
   // WARNING: This operation has to happen in the critical section to make sure that commits appear in serial order
   // to the log manager. Otherwise there are rare races where:
@@ -87,6 +89,11 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
                                        void *callback_arg) {
   const timestamp_t result = txn->undo_buffer_.Empty() ? ReadOnlyCommitCriticalSection(txn, callback, callback_arg)
                                                        : UpdatingCommitCriticalSection(txn, callback, callback_arg);
+  while (!txn->commit_actions_.empty()) {
+    txn->commit_actions_.front()();
+    txn->commit_actions_.pop_front();
+  }
+
   {
     // In a critical section, remove this transaction from the table of running transactions
     common::SpinLatch::ScopedSpinLatch guard(&curr_running_txns_latch_);
@@ -102,6 +109,12 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
 }
 
 void TransactionManager::Abort(TransactionContext *const txn) {
+  // Immediately clear the abort actions stack
+  while (!txn->abort_actions_.empty()) {
+    txn->abort_actions_.front()();
+    txn->abort_actions_.pop_front();
+  }
+
   // no commit latch required here since all operations are transaction-local
   for (auto &it : txn->undo_buffer_) Rollback(txn, it);
   // The last update might not have been installed, and thus Rollback would miss it if it contains a
@@ -175,9 +188,17 @@ timestamp_t TransactionManager::OldestTransactionStartTime() const {
 
 TransactionQueue TransactionManager::CompletedTransactionsForGC() {
   common::SpinLatch::ScopedSpinLatch guard(&curr_running_txns_latch_);
-  TransactionQueue hand_to_gc(std::move(completed_txns_));
-  TERRIER_ASSERT(completed_txns_.empty(), "TransactionManager's queue should now be empty.");
-  return hand_to_gc;
+  return std::move(completed_txns_);
+}
+
+void TransactionManager::DeferAction(Action a) {
+  common::SpinLatch::ScopedSpinLatch guard(&deferred_actions_latch_);
+  deferred_actions_.push({time_.load(), a});
+}
+
+std::queue<std::pair<timestamp_t, Action>> TransactionManager::DeferredActionsForGC() {
+  common::SpinLatch::ScopedSpinLatch guard(&deferred_actions_latch_);
+  return std::move(deferred_actions_);
 }
 
 void TransactionManager::Rollback(TransactionContext *txn, const storage::UndoRecord &record) const {
