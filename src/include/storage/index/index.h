@@ -68,7 +68,7 @@ class Index {
    * @param location value
    * @return false if the value already exists, true otherwise
    */
-  virtual bool Insert(const ProjectedRow &tuple, TupleSlot location) = 0;
+  virtual bool Insert(transaction::TransactionContext *txn, const ProjectedRow &tuple, TupleSlot location) = 0;
 
   /**
    * Removes a key-value pair from the index.
@@ -76,7 +76,7 @@ class Index {
    * @param location value
    * @return false if the key-value pair did not exist, true if the deletion succeeds
    */
-  virtual bool Delete(const ProjectedRow &tuple, TupleSlot location) = 0;
+  virtual void Delete(transaction::TransactionContext *txn, const ProjectedRow &tuple, TupleSlot location) = 0;
 
   /**
    * Inserts a key-value pair only if any matching keys have TupleSlots that don't conflict
@@ -86,8 +86,7 @@ class Index {
    * @return true if the value was inserted, false otherwise
    *         (either because value exists, or predicate returns true for one of the existing values)
    */
-  virtual bool InsertUnique(const transaction::TransactionContext &txn, const ProjectedRow &tuple,
-                            TupleSlot location) = 0;
+  virtual bool InsertUnique(transaction::TransactionContext *txn, const ProjectedRow &tuple, TupleSlot location) = 0;
 
   /**
    * Finds all the values associated with the given key in our index.

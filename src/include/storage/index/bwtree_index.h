@@ -5,6 +5,7 @@
 #include <vector>
 #include "bwtree/bwtree.h"
 #include "storage/index/index.h"
+#include "transaction/transaction_context.h"
 
 namespace terrier::storage::index {
 
@@ -26,23 +27,44 @@ class BwTreeIndex final : public Index {
  public:
   ~BwTreeIndex() final { delete bwtree_; }
 
-  bool Insert(const ProjectedRow &tuple, const TupleSlot location) final {
+  bool Insert(transaction::TransactionContext *const txn, const ProjectedRow &tuple, const TupleSlot location) final {
     TERRIER_ASSERT(GetConstraintType() == ConstraintType::DEFAULT,
                    "This Insert is designed for secondary indexes with no uniqueness constraints.");
     KeyType index_key;
     index_key.SetFromProjectedRow(tuple, metadata_);
-    // TODO(Matt): register an abort action with the txn
-    return bwtree_->Insert(index_key, location, false);
+    const bool ret = bwtree_->Insert(index_key, location, false);
+
+    if (ret) {
+      // Register an abort action with the txn context in case of rollback
+      txn->RegisterAbortAction([=]() {
+        const bool result = bwtree_->Delete(index_key, location);
+        TERRIER_ASSERT(result, "Delete on the index failed.");
+      });
+    }
+
+    return ret;
   }
 
-  bool Delete(const ProjectedRow &tuple, const TupleSlot location) final {
+  void Delete(transaction::TransactionContext *const txn, const ProjectedRow &tuple, const TupleSlot location) final {
     KeyType index_key;
     index_key.SetFromProjectedRow(tuple, metadata_);
-    // TODO(Matt): register a deferred action for the GC with txn manager
-    return bwtree_->Delete(index_key, location);
+
+    TERRIER_ASSERT(!(location.GetBlock()->data_table_->HasConflict(*txn, location)) &&
+                       !(location.GetBlock()->data_table_->IsVisible(*txn, location)),
+                   "Called index delete on a TupleSlot that has a conflict with this txn or is still visible.");
+
+    // register a deferred action for the GC with txn manager
+    auto *const txn_manager = txn->GetTransactionManager();
+    TERRIER_ASSERT(txn_manager->GCEnabled(), "Need GC enabled for index deletes to not result in index pollution.");
+    txn->RegisterCommitAction([=]() {
+      txn_manager->DeferAction([=]() {
+        const bool result = bwtree_->Delete(index_key, location);
+        TERRIER_ASSERT(result, "Deferred delete on the index failed.");
+      });
+    });
   }
 
-  bool InsertUnique(const transaction::TransactionContext &txn, const ProjectedRow &tuple,
+  bool InsertUnique(transaction::TransactionContext *const txn, const ProjectedRow &tuple,
                     const TupleSlot location) final {
     TERRIER_ASSERT(GetConstraintType() == ConstraintType::UNIQUE,
                    "This Insert is designed for indexes with uniqueness constraints.");
@@ -52,7 +74,7 @@ class BwTreeIndex final : public Index {
 
     auto predicate = [&](const TupleSlot slot) -> bool {
       const auto *const data_table = slot.GetBlock()->data_table_;
-      return data_table->HasConflict(txn, slot) || data_table->IsVisible(txn, slot);
+      return data_table->HasConflict(*txn, slot) || data_table->IsVisible(*txn, slot);
     };
 
     const bool ret = bwtree_->ConditionalInsert(index_key, location, predicate, &predicate_satisfied);
@@ -64,7 +86,13 @@ class BwTreeIndex final : public Index {
       TERRIER_ASSERT(!ret, "Insertion should always fail. (Ziqi)");
     }
 
-    // TODO(Matt): register an abort action with the txn
+    if (ret) {
+      // Register an abort action with the txn context in case of rollback
+      txn->RegisterAbortAction([=]() {
+        const bool result = bwtree_->Delete(index_key, location);
+        TERRIER_ASSERT(result, "Delete on the index failed.");
+      });
+    }
 
     return ret;
   }
