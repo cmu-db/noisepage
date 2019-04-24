@@ -672,6 +672,15 @@ TEST_F(GarbageCollectorTests, InsertUpdate1) {
   }
 }
 
+/*
+ * Consider performing GC on the version chain sorted from newest to oldest:
+ * DELETE
+ * U3
+ * U2
+ * U1
+ * INSERT
+ * T0 <- active txn
+ */
 // NOLINTNEXTLINE
 TEST_F(GarbageCollectorTests, SingleOLAP) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
@@ -679,10 +688,11 @@ TEST_F(GarbageCollectorTests, SingleOLAP) {
     GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
     storage::GarbageCollector gc(&txn_manager);
 
+    // T0
     auto *txn0 = txn_manager.BeginTransaction();
 
+    // INSERT
     auto *txn1 = txn_manager.BeginTransaction();
-
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
     storage::TupleSlot slot = tested.table_.Insert(txn1, *insert_tuple);
     txn_manager.Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
@@ -690,20 +700,20 @@ TEST_F(GarbageCollectorTests, SingleOLAP) {
     tested.SelectIntoBuffer(txn0, slot);
     EXPECT_FALSE(tested.select_result_);
 
+    // U1
     auto *txn2 = txn_manager.BeginTransaction();
-
     storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
     tested.table_.Update(txn2, slot, *update);
     txn_manager.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
 
+    // U2
     auto *txn3 = txn_manager.BeginTransaction();
-
     update = tested.GenerateRandomUpdate(&generator_);
     tested.table_.Update(txn3, slot, *update);
     txn_manager.Commit(txn3, TestCallbacks::EmptyCallback, nullptr);
 
+    // U3
     auto *txn4 = txn_manager.BeginTransaction();
-
     update = tested.GenerateRandomUpdate(&generator_);
     tested.table_.Update(txn4, slot, *update);
     txn_manager.Commit(txn4, TestCallbacks::EmptyCallback, nullptr);
@@ -719,8 +729,9 @@ TEST_F(GarbageCollectorTests, SingleOLAP) {
     // Unlink txn 4 as txn 0 committed and unlink read-only txn 0 and unlink txn 1 as no active txn
     // Deallocate txn 2, 3
     EXPECT_EQ(std::make_pair(2u, 3u), gc.PerformGarbageCollection());
-    // Deallocate txn 4 and txn 1
+    // Deallocate txn 1, 4
     EXPECT_EQ(std::make_pair(2u, 0u), gc.PerformGarbageCollection());
+    // Nothing should be deallocated
     EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
   }
 }
