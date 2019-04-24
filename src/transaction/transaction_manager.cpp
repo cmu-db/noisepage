@@ -30,13 +30,12 @@ TransactionContext *TransactionManager::BeginTransaction() {
   // Do the allocation outside of any critical section
   auto *const result = new TransactionContext(start_time, start_time + INT64_MIN, buffer_pool_, log_manager_, this);
 
-  // This transaction cannot proceed if there is an ongoing write-commit by a
-  // transaction whose commit time is less than this transaction's begin time
+  // This transaction cannot proceed if there are no ongoing write-commits
   //
   // TODO(John):  This check could be replaced with a timestamp comparison to
   // potentially allow some transactions who may be blocked unnecessarily to
   // proceed.
-  while (blocking_commit_.load()) {
+  while (blocking_commit_.load() != 0) {
   }
 
   return result;
@@ -76,8 +75,7 @@ timestamp_t TransactionManager::ReadOnlyCommitCriticalSection(TransactionContext
 
 timestamp_t TransactionManager::UpdatingCommitCriticalSection(TransactionContext *const txn, const callback_fn callback,
                                                               void *const callback_arg) {
-  common::SpinLatch::ScopedSpinLatch guard(&commit_latch_);
-  blocking_commit_ = true;
+  blocking_commit_++;
   const timestamp_t commit_time = time_++;
 
   // TODO(Tianyu):
@@ -100,7 +98,7 @@ timestamp_t TransactionManager::UpdatingCommitCriticalSection(TransactionContext
   LogCommit(txn, commit_time, callback, callback_arg);
   // flip all timestamps to be committed
   for (auto &it : txn->undo_buffer_) it.Timestamp().store(commit_time);
-  blocking_commit_ = false;
+  blocking_commit_--;
   return commit_time;
 }
 
