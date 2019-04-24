@@ -1058,9 +1058,9 @@ TEST_F(GarbageCollectorTests, MultipleIntervalTest) {
  * but collected once the corresponding txn is committed
  *
  * This is the version chain:
- * U5 (by T1)
- * U4 (by T1)
- * U3 (by T1)
+ * U5 (by T2)
+ * U4 (by T2)
+ * U3 (by T2)
  * T2 <- active txn
  * U2
  * U1
