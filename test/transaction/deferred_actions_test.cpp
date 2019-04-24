@@ -63,7 +63,7 @@ TEST_F(DeferredActionsTest, CommitAction) {
   catalog::Schema schema(cols);
   storage::SqlTable table(&block_store, schema, catalog::table_oid_t(24));
 
-  auto row_pair = table.InitializerForProjectedRow(col_oids);
+  auto row_pair = table.InitializerForProjectedRow(col_oids, storage::layout_version_t(0));
   auto pri = new storage::ProjectedRowInitializer(std::get<0>(row_pair));
   auto pr_map = new storage::ProjectionMap(std::get<1>(row_pair));
 
@@ -82,7 +82,7 @@ TEST_F(DeferredActionsTest, CommitAction) {
 
   auto *data = reinterpret_cast<int32_t *>(insert->AccessForceNotNull(pr_map->at(col_oid)));
   *data = 42;
-  table.Insert(txn, *insert);
+  table.Insert(txn, *insert, storage::layout_version_t(0));
 
   EXPECT_FALSE(aborted);
   EXPECT_FALSE(committed);
@@ -236,7 +236,7 @@ TEST_F(DeferredActionsTest, CommitBootstrapDefer) {
   catalog::Schema schema(cols);
   storage::SqlTable table(&block_store, schema, catalog::table_oid_t(24));
 
-  auto row_pair = table.InitializerForProjectedRow(col_oids);
+  auto row_pair = table.InitializerForProjectedRow(col_oids, storage::layout_version_t(0));
   auto pri = new storage::ProjectedRowInitializer(std::get<0>(row_pair));
   auto pr_map = new storage::ProjectionMap(std::get<1>(row_pair));
 
@@ -270,7 +270,7 @@ TEST_F(DeferredActionsTest, CommitBootstrapDefer) {
 
   auto *data = reinterpret_cast<int32_t *>(insert->AccessForceNotNull(pr_map->at(col_oid)));
   *data = 42;
-  table.Insert(txn, *insert);
+  table.Insert(txn, *insert, storage::layout_version_t(0));
 
   EXPECT_FALSE(aborted);
   EXPECT_FALSE(committed);
