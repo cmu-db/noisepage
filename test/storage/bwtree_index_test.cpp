@@ -548,10 +548,12 @@ TEST_F(BwTreeIndexTests, ScanLimitDescending) {
 TEST_F(BwTreeIndexTests, CommitInsert1) {
   auto *txn0 = txn_manager_.BeginTransaction();
 
+  // txn 0 inserts into table
   auto *const insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
   const auto tuple_slot = sql_table_->Insert(txn0, *insert_tuple);
 
+  // txn 0 inserts into index
   auto *const insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
   EXPECT_TRUE(default_index_->Insert(*insert_key, tuple_slot));
@@ -560,6 +562,7 @@ TEST_F(BwTreeIndexTests, CommitInsert1) {
 
   auto *const scan_key_pr = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
 
+  // txn 0 scans index and gets a visible, correct result
   *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15721;
   default_index_->ScanKey(*txn0, *scan_key_pr, &results);
   EXPECT_EQ(results.size(), 1);
@@ -568,12 +571,14 @@ TEST_F(BwTreeIndexTests, CommitInsert1) {
 
   auto *txn1 = txn_manager_.BeginTransaction();
 
+  // txn 1 scans index and gets no visible result
   default_index_->ScanKey(*txn1, *scan_key_pr, &results);
   EXPECT_EQ(results.size(), 0);
   results.clear();
 
   txn_manager_.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
 
+  // txn 1 scans index and gets no visible result
   default_index_->ScanKey(*txn1, *scan_key_pr, &results);
   EXPECT_EQ(results.size(), 0);
   results.clear();
@@ -582,6 +587,77 @@ TEST_F(BwTreeIndexTests, CommitInsert1) {
 
   auto *txn2 = txn_manager_.BeginTransaction();
 
+  // txn 2 scans index and gets no visible result
+  default_index_->ScanKey(*txn2, *scan_key_pr, &results);
+  EXPECT_EQ(results.size(), 1);
+  EXPECT_EQ(tuple_slot, results[0]);
+  results.clear();
+
+  txn_manager_.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
+}
+
+//    Txn #0 | Txn #1 | Txn #2 |
+//    --------------------------
+//    BEGIN  |        |        |
+//           | BEGIN  |        |
+//           | W(X)   |        |
+//    R(X)   |        |        |
+//           | R(X)   |        |
+//           | COMMIT |        |
+//    R(X)   |        |        |
+//    COMMIT |        |        |
+//           |        | BEGIN  |
+//           |        | R(X)   |
+//           |        | COMMIT |
+//
+// Txn #0 should only read the previous version of X because its start time is before #1's commit
+// Txn #1 should only read Txn #1's version of X
+// Txn #2 should only read Txn #1's version of X
+//
+// This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
+// NOLINTNEXTLINE
+TEST_F(BwTreeIndexTests, CommitInsert2) {
+  auto *txn0 = txn_manager_.BeginTransaction();
+  auto *txn1 = txn_manager_.BeginTransaction();
+
+  // txn 1 inserts into table
+  auto *const insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
+  *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
+  const auto tuple_slot = sql_table_->Insert(txn1, *insert_tuple);
+
+  // txn 1 inserts into index
+  auto *const insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
+  *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
+  EXPECT_TRUE(default_index_->Insert(*insert_key, tuple_slot));
+
+  std::vector<storage::TupleSlot> results;
+
+  auto *const scan_key_pr = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
+
+  // txn 0 scans index and gets no visible result
+  *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15721;
+  default_index_->ScanKey(*txn0, *scan_key_pr, &results);
+  EXPECT_EQ(results.size(), 0);
+  results.clear();
+
+  // txn 1 scans index and gets a visible, correct result
+  default_index_->ScanKey(*txn1, *scan_key_pr, &results);
+  EXPECT_EQ(results.size(), 1);
+  EXPECT_EQ(tuple_slot, results[0]);
+  results.clear();
+
+  txn_manager_.Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
+
+  // txn 0 scans index and gets no visible result
+  default_index_->ScanKey(*txn0, *scan_key_pr, &results);
+  EXPECT_EQ(results.size(), 0);
+  results.clear();
+
+  txn_manager_.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
+
+  auto *txn2 = txn_manager_.BeginTransaction();
+
+  // txn 2 scans index and gets no visible result
   default_index_->ScanKey(*txn2, *scan_key_pr, &results);
   EXPECT_EQ(results.size(), 1);
   EXPECT_EQ(tuple_slot, results[0]);
