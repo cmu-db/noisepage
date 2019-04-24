@@ -965,6 +965,8 @@ TEST_F(BwTreeIndexTests, CommitUpdate2) {
 
   // txn 1 updates in the table, which is really a delete and insert since it's an indexed attribute
   EXPECT_TRUE(sql_table_->Delete(txn1, results[0]));
+  default_index_->Delete(txn1, *insert_key, results[0]);
+
   insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15445;
   const auto new_tuple_slot = sql_table_->Insert(txn1, *insert_tuple);
