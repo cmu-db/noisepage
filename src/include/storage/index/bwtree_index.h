@@ -45,25 +45,6 @@ class BwTreeIndex final : public Index {
     return ret;
   }
 
-  void Delete(transaction::TransactionContext *const txn, const ProjectedRow &tuple, const TupleSlot location) final {
-    KeyType index_key;
-    index_key.SetFromProjectedRow(tuple, metadata_);
-
-    TERRIER_ASSERT(!(location.GetBlock()->data_table_->HasConflict(*txn, location)) &&
-                       !(location.GetBlock()->data_table_->IsVisible(*txn, location)),
-                   "Called index delete on a TupleSlot that has a conflict with this txn or is still visible.");
-
-    // register a deferred action for the GC with txn manager
-    auto *const txn_manager = txn->GetTransactionManager();
-    TERRIER_ASSERT(txn_manager->GCEnabled(), "Need GC enabled for index deletes to not result in index pollution.");
-    txn->RegisterCommitAction([=]() {
-      txn_manager->DeferAction([=]() {
-        const bool result = bwtree_->Delete(index_key, location);
-        TERRIER_ASSERT(result, "Deferred delete on the index failed.");
-      });
-    });
-  }
-
   bool InsertUnique(transaction::TransactionContext *const txn, const ProjectedRow &tuple,
                     const TupleSlot location) final {
     TERRIER_ASSERT(GetConstraintType() == ConstraintType::UNIQUE,
@@ -95,6 +76,25 @@ class BwTreeIndex final : public Index {
     }
 
     return ret;
+  }
+
+  void Delete(transaction::TransactionContext *const txn, const ProjectedRow &tuple, const TupleSlot location) final {
+    KeyType index_key;
+    index_key.SetFromProjectedRow(tuple, metadata_);
+
+    TERRIER_ASSERT(!(location.GetBlock()->data_table_->HasConflict(*txn, location)) &&
+                       !(location.GetBlock()->data_table_->IsVisible(*txn, location)),
+                   "Called index delete on a TupleSlot that has a conflict with this txn or is still visible.");
+
+    // register a deferred action for the GC with txn manager
+    auto *const txn_manager = txn->GetTransactionManager();
+    TERRIER_ASSERT(txn_manager->GCEnabled(), "Need GC enabled for index deletes to not result in index pollution.");
+    txn->RegisterCommitAction([=]() {
+      txn_manager->DeferAction([=]() {
+        const bool result = bwtree_->Delete(index_key, location);
+        TERRIER_ASSERT(result, "Deferred delete on the index failed.");
+      });
+    });
   }
 
   void ScanKey(const transaction::TransactionContext &txn, const ProjectedRow &key,
