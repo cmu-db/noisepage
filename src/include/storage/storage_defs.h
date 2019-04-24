@@ -19,11 +19,20 @@
 namespace terrier::storage {
 // Write Ahead Logging:
 #define LOGGING_DISABLED nullptr
+#define ACTION_FRAMEWORK_DISABLED nullptr
 
 // All tuples potentially visible to txns should have a non-null attribute of version vector.
 // This is not to be confused with a non-null version vector that has value nullptr (0).
 #define VERSION_POINTER_COLUMN_ID ::terrier::storage::col_id_t(0)
 #define NUM_RESERVED_COLUMNS 1u
+
+// In type_util.h there are a total of 5 possible inlined attribute sizes:
+// 1, 2, 4, 8, and 16-bytes (16 byte is the structure portion of varlen).
+// Since we pack these attributes in descending size order, we can infer a
+// columns size by tracking the locations of the attribute size boundaries.
+// Therefore, we only need to track 4 locations because the exterior bounds
+// are implicit.
+#define NUM_ATTR_BOUNDARIES 4
 
 STRONG_TYPEDEF(col_id_t, uint16_t);
 STRONG_TYPEDEF(layout_version_t, uint32_t);
