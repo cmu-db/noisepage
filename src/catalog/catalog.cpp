@@ -101,8 +101,9 @@ void Catalog::DeleteTable(transaction::TransactionContext *txn, db_oid_t db_oid,
   int32_t col_index = attr_table->ColNameToIndex("attrelid");
   auto it = attr_table->begin(txn);
   while (it != attr_table->end(txn)) {
-    auto layout = attr_table->GetLayout();
-    storage::ProjectedColumns::RowView row_view = it->InterpretAsRow(layout, 0);
+    // auto layout = attr_table->GetLayout();
+    // storage::ProjectedColumns::RowView row_view = it->InterpretAsRow(layout, 0);
+    storage::ProjectedColumns::RowView row_view = it->InterpretAsRow(0);
     // check if a matching row, delete if it is
     byte *col_p = row_view.AccessWithNullCheck(attr_table->ColNumToOffset(col_index));
     if (col_p == nullptr) {
@@ -122,8 +123,9 @@ void Catalog::DeleteTable(transaction::TransactionContext *txn, db_oid_t db_oid,
   col_index = attrdef_table->ColNameToIndex("adrelid");
   auto attrdef_it = attrdef_table->begin(txn);
   while (attrdef_it != attrdef_table->end(txn)) {
-    auto layout = attrdef_table->GetLayout();
-    storage::ProjectedColumns::RowView row_view = attrdef_it->InterpretAsRow(layout, 0);
+    // auto layout = attrdef_table->GetLayout();
+    // storage::ProjectedColumns::RowView row_view = attrdef_it->InterpretAsRow(layout, 0);
+storage::ProjectedColumns::RowView row_view = attrdef_it->InterpretAsRow(0);
     // check if a matching row, delete if it is
     byte *col_p = row_view.AccessWithNullCheck(attrdef_table->ColNumToOffset(col_index));
     if (col_p == nullptr) {
@@ -143,8 +145,9 @@ void Catalog::DeleteTable(transaction::TransactionContext *txn, db_oid_t db_oid,
   col_index = class_table->ColNameToIndex("oid");
   auto class_it = class_table->begin(txn);
   while (class_it != class_table->end(txn)) {
-    auto layout = class_table->GetLayout();
-    storage::ProjectedColumns::RowView row_view = class_it->InterpretAsRow(layout, 0);
+    // auto layout = class_table->GetLayout();
+    // storage::ProjectedColumns::RowView row_view = class_it->InterpretAsRow(layout, 0);
+    storage::ProjectedColumns::RowView row_view = class_it->InterpretAsRow(0);
     // check if a matching row, delete if it is
     byte *col_p = row_view.AccessWithNullCheck(class_table->ColNumToOffset(col_index));
     if (col_p == nullptr) {
@@ -529,11 +532,12 @@ void Catalog::DestroyDB(db_oid_t oid) {
   CATALOG_LOG_TRACE("We found {} rows in pg_class", num_rows);
 
   // Get the block layout
-  auto layout = storage::StorageUtil::BlockLayoutFromSchema(pg_class_ptr->GetSchema()).first;
+  // auto layout = storage::StorageUtil::BlockLayoutFromSchema(pg_class_ptr->GetSchema()).first;
   // get the pg_catalog oid
   auto pg_catalog_oid = GetDatabaseHandle().GetNamespaceHandle(txn, oid).NameToOid(txn, "pg_catalog");
   for (uint32_t i = 0; i < num_rows; i++) {
-    auto row = columns->InterpretAsRow(layout, i);
+    // auto row = columns->InterpretAsRow(layout, i);
+    auto row = columns->InterpretAsRow(i);
     byte *col_p = row.AccessForceNotNull(col_map.at(col_oids[3]));
     auto nsp_oid = *reinterpret_cast<uint32_t *>(col_p);
     if (nsp_oid != !pg_catalog_oid) {

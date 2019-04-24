@@ -26,12 +26,13 @@ std::shared_ptr<AttrDefEntry> AttrDefHandle::GetAttrDefEntry(transaction::Transa
   return std::make_shared<AttrDefEntry>(oid, pg_attrdef_rw_, std::move(ret_row));
 }
 void AttrDefHandle::DeleteEntries(transaction::TransactionContext *txn, table_oid_t table_oid) {
-  auto layout = pg_attrdef_rw_->GetLayout();
+  // auto layout = pg_attrdef_rw_->GetLayout();
   int32_t col_index = pg_attrdef_rw_->ColNameToIndex("adrelid");
 
   auto it = pg_attrdef_rw_->begin(txn);
   while (it != pg_attrdef_rw_->end(txn)) {
-    storage::ProjectedColumns::RowView row_view = it->InterpretAsRow(layout, 0);
+    // storage::ProjectedColumns::RowView row_view = it->InterpretAsRow(layout, 0);
+    storage::ProjectedColumns::RowView row_view = it->InterpretAsRow(0);
     // check if a matching row, delete if it is
     byte *col_p = row_view.AccessWithNullCheck(pg_attrdef_rw_->ColNumToOffset(col_index));
     if (col_p == nullptr) {

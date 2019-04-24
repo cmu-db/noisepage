@@ -50,12 +50,13 @@ std::shared_ptr<AttributeEntry> AttributeHandle::GetAttributeEntry(transaction::
 }
 
 void AttributeHandle::DeleteEntries(transaction::TransactionContext *txn, table_oid_t table_oid) {
-  auto layout = pg_attribute_hrw_->GetLayout();
+  // auto layout = pg_attribute_hrw_->GetLayout();
   int32_t col_index = pg_attribute_hrw_->ColNameToIndex("attrelid");
 
   auto it = pg_attribute_hrw_->begin(txn);
   while (it != pg_attribute_hrw_->end(txn)) {
-    storage::ProjectedColumns::RowView row_view = it->InterpretAsRow(layout, 0);
+    // storage::ProjectedColumns::RowView row_view = it->InterpretAsRow(layout, 0);
+    storage::ProjectedColumns::RowView row_view = it->InterpretAsRow(0);
     // check if a matching row, delete if it is
     byte *col_p = row_view.AccessWithNullCheck(pg_attribute_hrw_->ColNumToOffset(col_index));
     if (col_p == nullptr) {

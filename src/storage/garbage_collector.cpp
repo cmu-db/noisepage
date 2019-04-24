@@ -13,6 +13,7 @@
 namespace terrier::storage {
 
 std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
+  ProcessDeferredActions();
   uint32_t txns_deallocated = ProcessDeallocateQueue();
   STORAGE_LOG_TRACE("GarbageCollector::PerformGarbageCollection(): txns_deallocated: {}", txns_deallocated);
   uint32_t txns_unlinked = ProcessUnlinkQueue();
@@ -110,6 +111,22 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
   txns_to_unlink_ = transaction::TransactionQueue(std::move(requeue));
 
   return txns_processed;
+}
+
+void GarbageCollector::ProcessDeferredActions() {
+  auto new_actions = txn_manager_->DeferredActionsForGC();
+  while (!new_actions.empty()) {
+    deferred_actions_.push(new_actions.front());
+    new_actions.pop();
+  }
+
+  const transaction::timestamp_t oldest_txn = txn_manager_->OldestTransactionStartTime();
+
+  // Execute as many deferred actions as we can at this time.
+  while ((!deferred_actions_.empty()) && deferred_actions_.front().first <= oldest_txn) {
+    deferred_actions_.front().second();
+    deferred_actions_.pop();
+  }
 }
 
 void GarbageCollector::TruncateVersionChain(DataTable *const table, const TupleSlot slot,

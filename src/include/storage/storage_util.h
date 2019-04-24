@@ -122,6 +122,7 @@ class StorageUtil {
    * @param schema Schema to generate a BlockLayout from. Columns should all have unique oids
    * @return pair of BlockLayout and a map between col_oid_t and col_id
    */
+   // TODO(pakhtar): remove, no implementation
   static std::pair<BlockLayout, ColumnMap> BlockLayoutFromSchema(const catalog::Schema &schema);
 
   /**
