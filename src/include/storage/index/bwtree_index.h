@@ -31,12 +31,14 @@ class BwTreeIndex final : public Index {
                    "This Insert is designed for secondary indexes with no uniqueness constraints.");
     KeyType index_key;
     index_key.SetFromProjectedRow(tuple, metadata_);
+    // TODO(Matt): register an abort action with the txn
     return bwtree_->Insert(index_key, location, false);
   }
 
   bool Delete(const ProjectedRow &tuple, const TupleSlot location) final {
     KeyType index_key;
     index_key.SetFromProjectedRow(tuple, metadata_);
+    // TODO(Matt): register a deferred action for the GC with txn manager
     return bwtree_->Delete(index_key, location);
   }
 
@@ -61,6 +63,8 @@ class BwTreeIndex final : public Index {
     } else {
       TERRIER_ASSERT(!ret, "Insertion should always fail. (Ziqi)");
     }
+
+    // TODO(Matt): register an abort action with the txn
 
     return ret;
   }
