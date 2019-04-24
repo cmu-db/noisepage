@@ -88,7 +88,6 @@ class BwTreeIndex final : public Index {
 
     // register a deferred action for the GC with txn manager
     auto *const txn_manager = txn->GetTransactionManager();
-    TERRIER_ASSERT(txn_manager->GCEnabled(), "Need GC enabled for index deletes to not result in index pollution.");
     txn->RegisterCommitAction([=]() {
       txn_manager->DeferAction([=]() {
         const bool result = bwtree_->Delete(index_key, location);
