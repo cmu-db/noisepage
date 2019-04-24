@@ -134,7 +134,7 @@ TEST_F(BwTreeIndexTests, UniqueInsert) {
         const auto tuple_slot = sql_table_->Insert(insert_txn, *insert_tuple);
 
         *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = i;
-        if (unique_index_->InsertUnique(*insert_txn, *insert_key, tuple_slot)) {
+        if (unique_index_->InsertUnique(insert_txn, *insert_key, tuple_slot)) {
           txn_manager_.Commit(insert_txn, TestCallbacks::EmptyCallback, nullptr);
         } else {
           txn_manager_.Abort(insert_txn);
@@ -148,7 +148,7 @@ TEST_F(BwTreeIndexTests, UniqueInsert) {
         const auto tuple_slot = sql_table_->Insert(insert_txn, *insert_tuple);
 
         *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = i;
-        if (unique_index_->InsertUnique(*insert_txn, *insert_key, tuple_slot)) {
+        if (unique_index_->InsertUnique(insert_txn, *insert_key, tuple_slot)) {
           txn_manager_.Commit(insert_txn, TestCallbacks::EmptyCallback, nullptr);
         } else {
           txn_manager_.Abort(insert_txn);
@@ -207,7 +207,7 @@ TEST_F(BwTreeIndexTests, DefaultInsert) {
         const auto tuple_slot = sql_table_->Insert(insert_txn, *insert_tuple);
 
         *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = i;
-        EXPECT_TRUE(default_index_->Insert(*insert_key, tuple_slot));
+        EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
         txn_manager_.Commit(insert_txn, TestCallbacks::EmptyCallback, nullptr);
       }
     } else {
@@ -217,7 +217,7 @@ TEST_F(BwTreeIndexTests, DefaultInsert) {
         const auto tuple_slot = sql_table_->Insert(insert_txn, *insert_tuple);
 
         *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = i;
-        EXPECT_TRUE(default_index_->Insert(*insert_key, tuple_slot));
+        EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
         txn_manager_.Commit(insert_txn, TestCallbacks::EmptyCallback, nullptr);
       }
     }
@@ -265,7 +265,7 @@ TEST_F(BwTreeIndexTests, ScanAscending) {
 
     auto *const insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
     *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = i;
-    EXPECT_TRUE(default_index_->Insert(*insert_key, tuple_slot));
+    EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
     reference[i] = tuple_slot;
   }
   txn_manager_.Commit(insert_txn, TestCallbacks::EmptyCallback, nullptr);
@@ -336,7 +336,7 @@ TEST_F(BwTreeIndexTests, ScanDescending) {
 
     auto *const insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
     *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = i;
-    EXPECT_TRUE(default_index_->Insert(*insert_key, tuple_slot));
+    EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
     reference[i] = tuple_slot;
   }
   txn_manager_.Commit(insert_txn, TestCallbacks::EmptyCallback, nullptr);
@@ -407,7 +407,7 @@ TEST_F(BwTreeIndexTests, ScanLimitAscending) {
 
     auto *const insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
     *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = i;
-    EXPECT_TRUE(default_index_->Insert(*insert_key, tuple_slot));
+    EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
     reference[i] = tuple_slot;
   }
   txn_manager_.Commit(insert_txn, TestCallbacks::EmptyCallback, nullptr);
@@ -474,7 +474,7 @@ TEST_F(BwTreeIndexTests, ScanLimitDescending) {
 
     auto *const insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
     *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = i;
-    EXPECT_TRUE(default_index_->Insert(*insert_key, tuple_slot));
+    EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
     reference[i] = tuple_slot;
   }
   txn_manager_.Commit(insert_txn, TestCallbacks::EmptyCallback, nullptr);
@@ -556,7 +556,7 @@ TEST_F(BwTreeIndexTests, CommitInsert1) {
   // txn 0 inserts into index
   auto *const insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
-  EXPECT_TRUE(default_index_->Insert(*insert_key, tuple_slot));
+  EXPECT_TRUE(default_index_->Insert(txn0, *insert_key, tuple_slot));
 
   std::vector<storage::TupleSlot> results;
 
@@ -628,7 +628,7 @@ TEST_F(BwTreeIndexTests, CommitInsert2) {
   // txn 1 inserts into index
   auto *const insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
-  EXPECT_TRUE(default_index_->Insert(*insert_key, tuple_slot));
+  EXPECT_TRUE(default_index_->Insert(txn1, *insert_key, tuple_slot));
 
   std::vector<storage::TupleSlot> results;
 
@@ -697,7 +697,7 @@ TEST_F(BwTreeIndexTests, AbortInsert1) {
   // txn 0 inserts into index
   auto *const insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
-  EXPECT_TRUE(default_index_->Insert(*insert_key, tuple_slot));
+  EXPECT_TRUE(default_index_->Insert(txn0, *insert_key, tuple_slot));
 
   std::vector<storage::TupleSlot> results;
 
@@ -718,14 +718,6 @@ TEST_F(BwTreeIndexTests, AbortInsert1) {
   results.clear();
 
   txn_manager_.Abort(txn0);
-
-  // txn 1 scans index and gets no visible result
-  default_index_->ScanKey(*txn1, *scan_key_pr, &results);
-  EXPECT_EQ(results.size(), 0);
-  results.clear();
-
-  // index cleanup in rollback
-  EXPECT_TRUE(default_index_->Delete(*insert_key, tuple_slot));
 
   // txn 1 scans index and gets no visible result
   default_index_->ScanKey(*txn1, *scan_key_pr, &results);
@@ -776,7 +768,7 @@ TEST_F(BwTreeIndexTests, AbortInsert2) {
   // txn 1 inserts into index
   auto *const insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
-  EXPECT_TRUE(default_index_->Insert(*insert_key, tuple_slot));
+  EXPECT_TRUE(default_index_->Insert(txn1, *insert_key, tuple_slot));
 
   std::vector<storage::TupleSlot> results;
 
@@ -795,14 +787,6 @@ TEST_F(BwTreeIndexTests, AbortInsert2) {
   results.clear();
 
   txn_manager_.Abort(txn1);
-
-  // txn 0 scans index and gets no visible result
-  default_index_->ScanKey(*txn0, *scan_key_pr, &results);
-  EXPECT_EQ(results.size(), 0);
-  results.clear();
-
-  // index cleanup in rollback
-  EXPECT_TRUE(default_index_->Delete(*insert_key, tuple_slot));
 
   // txn 0 scans index and gets no visible result
   default_index_->ScanKey(*txn0, *scan_key_pr, &results);
@@ -852,7 +836,7 @@ TEST_F(BwTreeIndexTests, CommitUpdate1) {
   // insert_txn inserts into index
   auto *insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
-  EXPECT_TRUE(default_index_->Insert(*insert_key, tuple_slot));
+  EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
 
   txn_manager_.Commit(insert_txn, TestCallbacks::EmptyCallback, nullptr);
 
@@ -870,12 +854,14 @@ TEST_F(BwTreeIndexTests, CommitUpdate1) {
 
   // txn 0 updates in the table, which is really a delete and insert since it's an indexed attribute
   EXPECT_TRUE(sql_table_->Delete(txn0, results[0]));
+  default_index_->Delete(txn0, *insert_key, results[0]);
+
   insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15445;
   const auto new_tuple_slot = sql_table_->Insert(txn0, *insert_tuple);
   insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15445;
-  EXPECT_TRUE(default_index_->Insert(*insert_key, new_tuple_slot));
+  EXPECT_TRUE(default_index_->Insert(txn0, *insert_key, new_tuple_slot));
 
   results.clear();
 
@@ -910,11 +896,6 @@ TEST_F(BwTreeIndexTests, CommitUpdate1) {
   results.clear();
 
   txn_manager_.Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
-
-  // index cleanup in garbage collector
-  insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
-  *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
-  EXPECT_TRUE(default_index_->Delete(*insert_key, tuple_slot));
 
   auto *txn2 = txn_manager_.BeginTransaction();
 
@@ -965,7 +946,7 @@ TEST_F(BwTreeIndexTests, CommitUpdate2) {
   // insert_txn inserts into index
   auto *insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
-  EXPECT_TRUE(default_index_->Insert(*insert_key, tuple_slot));
+  EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
 
   txn_manager_.Commit(insert_txn, TestCallbacks::EmptyCallback, nullptr);
 
@@ -989,7 +970,7 @@ TEST_F(BwTreeIndexTests, CommitUpdate2) {
   const auto new_tuple_slot = sql_table_->Insert(txn1, *insert_tuple);
   insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15445;
-  EXPECT_TRUE(default_index_->Insert(*insert_key, new_tuple_slot));
+  EXPECT_TRUE(default_index_->Insert(txn1, *insert_key, new_tuple_slot));
 
   results.clear();
 
@@ -1035,11 +1016,6 @@ TEST_F(BwTreeIndexTests, CommitUpdate2) {
   results.clear();
 
   txn_manager_.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
-
-  // index cleanup in garbage collector
-  insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
-  *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
-  EXPECT_TRUE(default_index_->Delete(*insert_key, tuple_slot));
 
   auto *txn2 = txn_manager_.BeginTransaction();
 
