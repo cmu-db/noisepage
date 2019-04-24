@@ -98,9 +98,7 @@ class BwTreeIndex final : public Index {
 
   void ScanKey(const transaction::TransactionContext &txn, const ProjectedRow &key,
                std::vector<TupleSlot> *value_list) final {
-    TERRIER_ASSERT(
-        value_list->empty(),
-        "Result set should begin empty. This can be changed in the future if index scan behavior requires it.");
+    TERRIER_ASSERT(value_list->empty(), "Result set should begin empty.");
 
     std::vector<TupleSlot> results;
 
@@ -123,9 +121,7 @@ class BwTreeIndex final : public Index {
 
   void ScanAscending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
                      const ProjectedRow &high_key, std::vector<TupleSlot> *value_list) final {
-    TERRIER_ASSERT(
-        value_list->empty(),
-        "Result set should begin empty. This can be changed in the future if index scan behavior requires it.");
+    TERRIER_ASSERT(value_list->empty(), "Result set should begin empty.");
 
     // Build search keys
     KeyType index_low_key, index_high_key;
@@ -143,9 +139,7 @@ class BwTreeIndex final : public Index {
 
   void ScanDescending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
                       const ProjectedRow &high_key, std::vector<TupleSlot> *value_list) final {
-    TERRIER_ASSERT(
-        value_list->empty(),
-        "Result set should begin empty. This can be changed in the future if index scan behavior requires it.");
+    TERRIER_ASSERT(value_list->empty(), "Result set should begin empty.");
 
     // Build search keys
     KeyType index_low_key, index_high_key;
@@ -167,9 +161,7 @@ class BwTreeIndex final : public Index {
   void ScanLimitAscending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
                           const ProjectedRow &high_key, std::vector<TupleSlot> *value_list,
                           const uint32_t limit) final {
-    TERRIER_ASSERT(
-        value_list->empty(),
-        "Result set should begin empty. This can be changed in the future if index scan behavior requires it.");
+    TERRIER_ASSERT(value_list->empty(), "Result set should begin empty.");
     TERRIER_ASSERT(limit > 0, "Limit must be greater than 0.");
 
     // Build search keys
@@ -190,9 +182,7 @@ class BwTreeIndex final : public Index {
   void ScanLimitDescending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
                            const ProjectedRow &high_key, std::vector<TupleSlot> *value_list,
                            const uint32_t limit) final {
-    TERRIER_ASSERT(
-        value_list->empty(),
-        "Result set should begin empty. This can be changed in the future if index scan behavior requires it.");
+    TERRIER_ASSERT(value_list->empty(), "Result set should begin empty.");
     TERRIER_ASSERT(limit > 0, "Limit must be greater than 0.");
 
     // Build search keys
