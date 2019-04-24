@@ -295,8 +295,18 @@ class Catalog {
    */
   void Bootstrap(transaction::TransactionContext *txn);
 
+  /**
+   * Create pg_database catalog
+   * @param table_oid to set for pg_database
+   */
   void CreatePGDatabase(table_oid_t table_oid);
 
+  /**
+   * Create pg_tablespace catalog
+   * @param db_oid database oid, in which to create pg_tablespace
+   * @param table_oid to set for pg_tablespace
+   * Note: pg_tablespace is not used (present for compatibility only)
+   */
   void CreatePGTablespace(db_oid_t db_oid, table_oid_t table_oid);
 
   /**

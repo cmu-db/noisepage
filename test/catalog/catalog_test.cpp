@@ -42,6 +42,12 @@ struct CatalogTests : public TerrierTest {
     }
   }
 
+  /**
+   * Checks pg_class for existence of the specified entry
+   * @param db_oid database oid
+   * @param ns_oid namespace oid
+   * @param table_name
+   */
   void VerifyTablePresent(catalog::db_oid_t db_oid, catalog::namespace_oid_t ns_oid, const char *table_name) {
     // verify it is present in pg_class
     auto db_h = catalog_->GetDatabaseHandle();
@@ -50,6 +56,12 @@ struct CatalogTests : public TerrierTest {
     EXPECT_NE(nullptr, class_entry);
   }
 
+  /**
+   * Checks pg_class for absence of the specified entry
+   * @param db_oid database oid
+   * @param ns_oid namespace oid
+   * @param table_name
+   */
   void VerifyTableAbsent(catalog::db_oid_t db_oid, catalog::namespace_oid_t ns_oid, const char *table_name) {
     auto db_h = catalog_->GetDatabaseHandle();
     auto class_h = db_h.GetClassHandle(txn_, db_oid);
