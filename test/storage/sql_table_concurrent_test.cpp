@@ -18,11 +18,7 @@ struct SqlTableConcurrentTests : public TerrierTest {
 
   void SetUp() override { TerrierTest::SetUp(); }
 
-  void TearDown() override {
-    gc_.PerformGarbageCollection();
-    gc_.PerformGarbageCollection();
-    TerrierTest::TearDown();
-  }
+  void TearDown() override { TerrierTest::TearDown(); }
 
   std::vector<catalog::Schema::Column> GenerateColumnsVector(storage::layout_version_t v) {
     std::vector<catalog::Schema::Column> cols;
@@ -183,27 +179,32 @@ struct SqlTableConcurrentTests : public TerrierTest {
   void ValidateTable(storage::SqlTable &table) {
     auto txn = txn_manager_.BeginTransaction();
 
-    auto row_pair = table.InitializerForProjectedRow(*versioned_col_oids[!schema_version_], schema_version_);
-    auto pri = new storage::ProjectedRowInitializer(std::get<0>(row_pair));
-    auto pr_map = new storage::ProjectionMap(std::get<1>(row_pair));
-    byte *buffer = common::AllocationUtil::AllocateAligned(pri->ProjectedRowSize());
+    auto row_pair = table.InitializerForProjectedColumns(*versioned_col_oids[!schema_version_], 100, schema_version_);
+    auto pci = new storage::ProjectedColumnsInitializer(std::get<0>(row_pair));
+    auto pc_map = new storage::ProjectionMap(std::get<1>(row_pair));
+    byte *buffer = common::AllocationUtil::AllocateAligned(pci->ProjectedColumnsSize());
+    auto table_iter = table.begin(schema_version_);
 
-    for (auto tuple : {table.begin(schema_version_), table.end()})  {
-      auto pr = pri->InitializeRow(buffer);
-      LOG_INFO("Checking the next slot ({}, {})", reinterpret_cast<uint64_t>(tuple->GetBlock()), (tuple->GetOffset()));
-      table.Select(txn, (*tuple), pr, *pr_map, schema_version_);
+    while (table_iter != table.end())  {
+      // LOG_INFO("  Iter at ({}, {})", reinterpret_cast<uint64_t>(table_iter->GetBlock()), (table_iter->GetOffset()));
+      auto pc = pci->Initialize(buffer);
+      table.Scan(txn, &table_iter, pc, *pc_map, schema_version_);
+      // LOG_INFO("  Iter at ({}, {})", reinterpret_cast<uint64_t>(table_iter->GetBlock()), (table_iter->GetOffset()));
 
-      EXPECT_NE(pr_map->find(catalog::col_oid_t(1000)), pr_map->end());
-      int32_t *base_val = reinterpret_cast<int32_t *>(pr->AccessWithNullCheck(pr_map->at(catalog::col_oid_t(1000))));
-      ValidateTuple<storage::ProjectedRow>(pr, pr_map, schema_version_, *base_val);
+      for (uint i : {0u, pc->NumTuples() - 1u}) {
+        auto pr = pc->InterpretAsRow(i);
+        EXPECT_NE(pc_map->find(catalog::col_oid_t(1000)), pc_map->end());
+        int32_t *base_val = reinterpret_cast<int32_t *>(pr.AccessWithNullCheck(pc_map->at(catalog::col_oid_t(1000))));
+        ValidateTuple<storage::ProjectedColumns::RowView>(&pr, pc_map, schema_version_, *base_val);
+      }
     }
 
     delete[] buffer;
-    delete pri;
-    delete pr_map;
+    delete pci;
+    delete pc_map;
   }
 
-  storage::RecordBufferSegmentPool buffer_pool_{10000, 10000};
+  storage::RecordBufferSegmentPool buffer_pool_{100000, 100000};
   transaction::TransactionManager txn_manager_ = {&buffer_pool_, true, LOGGING_DISABLED};
 
   std::default_random_engine generator_;
@@ -272,12 +273,17 @@ TEST_F(SqlTableConcurrentTests, ConcurrentInsertsWithDifferentVersions) {
 
     MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
 
+    // LOG_INFO("Validating table...");
     ValidateTable(table);
 
     for (auto &version : versioned_col_oids) delete version;
     versioned_col_oids.clear();
     // End concurrent section
     // delete init_txn;
+
+    gc_.PerformGarbageCollection();
+    gc_.PerformGarbageCollection();
+    gc_.PerformGarbageCollection();
   }
 }
 
@@ -361,6 +367,10 @@ TEST_F(SqlTableConcurrentTests, ConcurrentSelectsWithDifferentVersions) {
     versioned_col_oids.clear();
     // End concurrent section
     // delete init_txn;
+
+    gc_.PerformGarbageCollection();
+    gc_.PerformGarbageCollection();
+    gc_.PerformGarbageCollection();
   }
 }
 
@@ -431,11 +441,16 @@ TEST_F(SqlTableConcurrentTests, ConcurrentQueriesWithSchemaChange) {
           EXPECT_NE(pr_map->find(catalog::col_oid_t(100)), pr_map->end());
           uint32_t *version = reinterpret_cast<uint32_t *>(pr->AccessWithNullCheck(pr_map->at(catalog::col_oid_t(100))));
 
+          EXPECT_EQ(*version, (!tuples[base_val].GetBlock()->layout_version_));
           PopulateProjectedRow(working_version, base_val, pr, pr_map);
           auto result = table.Update(txn, tuples[base_val], *pr, *pr_map, working_version);
 
+          auto new_version = result.second.GetBlock()->layout_version_;
+          EXPECT_LE(*version, ((!new_version) >= 5) ? !new_version : 5);
+          EXPECT_LE(new_version, working_version);
           EXPECT_TRUE(result.first);
-          if (*version != (!working_version)) EXPECT_NE(tuples[base_val], result.second);
+          ASSERT_LE(*version, !working_version);
+          if (*version != (!working_version) && (!working_version) >= 5) EXPECT_NE(tuples[base_val], result.second);
           else EXPECT_EQ(tuples[base_val], result.second);
 
           tuples[base_val] = result.second;
@@ -458,6 +473,10 @@ TEST_F(SqlTableConcurrentTests, ConcurrentQueriesWithSchemaChange) {
     versioned_col_oids.clear();
     // End concurrent section
     // delete init_txn;
+
+    gc_.PerformGarbageCollection();
+    gc_.PerformGarbageCollection();
+    gc_.PerformGarbageCollection();
   }
 }
 

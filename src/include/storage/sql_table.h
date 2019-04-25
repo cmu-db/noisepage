@@ -116,7 +116,7 @@ class SqlTable {
       TERRIER_ASSERT(curr_version_ <= txn_version_, "Current version cannot be newer than transaction");
       while (current_it_ == tables_->Find(curr_version_)->second.data_table->end()) {
         // layout_version_t is uint32_t so we need to protect against underflow.
-        if (!curr_version_ == 0) {
+        if ((!curr_version_) == 0) {
           is_end_ = true;
           return;
         }
@@ -128,6 +128,7 @@ class SqlTable {
         }
         current_it_ = next_table->second.data_table->begin();
       }
+      TERRIER_ASSERT(current_it_->GetBlock() != nullptr && !is_end_, "Invalid iterator");
     }
 
     const common::ConcurrentMap<layout_version_t, DataTableVersion> *tables_;
@@ -243,7 +244,9 @@ class SqlTable {
    */
   SlotIterator begin(layout_version_t txn_version) const {
     // common::SpinLatch::ScopedSpinLatch guard(&tables_latch_);
-    return SlotIterator(&tables_, txn_version, false);
+    auto ret = SlotIterator(&tables_, txn_version, false);
+    ret.AdvanceOnEndOfDatatable_();
+    return ret;
   }
 
   /**

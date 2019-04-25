@@ -138,6 +138,7 @@ std::pair<bool, storage::TupleSlot> SqlTable::Update(transaction::TransactionCon
   layout_version_t old_version = slot.GetBlock()->layout_version_;
 
   // The version of the current slot is the same as the version num
+  TERRIER_ASSERT(old_version <= version_num, "Transaction should not be seeing this tuple");
   if (old_version == version_num) {
     return {tables_.Find(version_num)->second.data_table->Update(txn, slot, redo), slot};
   }
