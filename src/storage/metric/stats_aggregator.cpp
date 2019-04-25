@@ -27,5 +27,4 @@ void StatsAggregator::Aggregate() {
     raw_data->UpdateAndPersist(txn_manager_, catalog_);
   }
 }
-
 }  // namespace terrier::storage::metric

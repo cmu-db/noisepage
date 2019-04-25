@@ -124,6 +124,11 @@ class TransactionMetricRawData : public AbstractRawData {
     return data_[txn->TxnId().load()].tuple_delete_;
   }
 
+  /**
+   * Get the SQL table for persisting collected data, create a new table if necessary
+   */
+  catalog::SqlTableRW *GetStatsTable(transaction::TransactionManager *txn_manager, catalog::Catalog *catalog);
+
  private:
   /**
    * Collection of data related to a transaction
