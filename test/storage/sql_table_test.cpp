@@ -137,10 +137,9 @@ class SqlTableTestRW {
     storage::ProjectedRow *read = pri_->InitializeRow(read_buffer);
     table_->Select(txn, slot, read, *pr_map_, version_);
     byte *col_p = read->AccessWithNullCheck(pr_map_->at(col_oid));
-    auto ret_val = *(reinterpret_cast<uint32_t *>(col_p));
 
     delete[] read_buffer;
-    return (ret_val == nullptr);
+    return (col_p == nullptr);
   }
 
   /**
@@ -171,7 +170,7 @@ class SqlTableTestRW {
     auto read_buffer = common::AllocationUtil::AllocateAligned(pri_->ProjectedRowSize());
 
     storage::ProjectedRow *read = pri_->InitializeRow(read_buffer);
-    table_->Select(txn, slot, read);
+    table_->Select(txn, slot, read, *pr_map_, version_);
     byte *col_p = read->AccessForceNotNull(pr_map_->at(col_oid));
     auto ret_val = *(reinterpret_cast<uint64_t *>(col_p));
 
@@ -189,7 +188,7 @@ class SqlTableTestRW {
     auto read_buffer = common::AllocationUtil::AllocateAligned(pri_->ProjectedRowSize());
 
     storage::ProjectedRow *read = pri_->InitializeRow(read_buffer);
-    table_->Select(txn, slot, read);
+    table_->Select(txn, slot, read, *pr_map_, version_);
     byte *col_p = read->AccessForceNotNull(pr_map_->at(col_oid));
     auto ret_val = *(reinterpret_cast<uint16_t *>(col_p));
 
@@ -207,7 +206,7 @@ class SqlTableTestRW {
     auto read_buffer = common::AllocationUtil::AllocateAligned(pri_->ProjectedRowSize());
 
     storage::ProjectedRow *read = pri_->InitializeRow(read_buffer);
-    table_->Select(txn, slot, read);
+    table_->Select(txn, slot, read, *pr_map_, version_);
     byte *col_p = read->AccessForceNotNull(pr_map_->at(col_oid));
     auto ret_val = *(reinterpret_cast<uint8_t *>(col_p));
 
@@ -231,7 +230,7 @@ class SqlTableTestRW {
    * @param value to save
    */
   void SetInt64ColInRow(catalog::col_oid_t col_oid, uint64_t value) {
-    byte *col_p = insert_->AccessForceNotNull(pr_map_->at(col_oid));
+    byte *col_p = pr_->AccessForceNotNull(pr_map_->at(col_oid));
     (*reinterpret_cast<uint64_t *>(col_p)) = value;
   }
 
@@ -241,7 +240,7 @@ class SqlTableTestRW {
    * @param value to save
    */
   void SetInt16ColInRow(catalog::col_oid_t col_oid, uint16_t value) {
-    byte *col_p = insert_->AccessForceNotNull(pr_map_->at(col_oid));
+    byte *col_p = pr_->AccessForceNotNull(pr_map_->at(col_oid));
     (*reinterpret_cast<uint16_t *>(col_p)) = value;
   }
 
@@ -251,7 +250,7 @@ class SqlTableTestRW {
    * @param value to save
    */
   void SetInt8ColInRow(catalog::col_oid_t col_oid, uint8_t value) {
-    byte *col_p = insert_->AccessForceNotNull(pr_map_->at(col_oid));
+    byte *col_p = pr_->AccessForceNotNull(pr_map_->at(col_oid));
     (*reinterpret_cast<uint8_t *>(col_p)) = value;
   }
 
@@ -769,6 +768,7 @@ TEST_F(SqlTableTests, VarlenInsertTest) {
 // NOLINTNEXTLINE
 TEST_F(SqlTableTests, MultipleColumnWidths) {
   SqlTableTestRW table(catalog::table_oid_t(2));
+  auto txn = txn_manager_.BeginTransaction();
 
   table.DefineColumn("bigint", type::TypeId::BIGINT, false, catalog::col_oid_t(1001));
   table.DefineColumn("integer", type::TypeId::INTEGER, false, catalog::col_oid_t(1002));
@@ -776,12 +776,12 @@ TEST_F(SqlTableTests, MultipleColumnWidths) {
   table.DefineColumn("tinyint", type::TypeId::TINYINT, false, catalog::col_oid_t(1004));
   table.Create();
 
-  table.StartRow();
+  table.StartInsertRow();
   table.SetInt64ColInRow(catalog::col_oid_t(1001), 10000000000);
   table.SetIntColInRow(catalog::col_oid_t(1002), 100000);
   table.SetInt16ColInRow(catalog::col_oid_t(1003), 512);
   table.SetInt8ColInRow(catalog::col_oid_t(1004), 42);
-  storage::TupleSlot row_slot = table.EndRowAndInsert();
+  storage::TupleSlot row_slot = table.EndInsertRow();
 
   // Check data
   uint64_t bigint = table.GetInt64ColInRow(catalog::col_oid_t(1001), row_slot);
@@ -793,5 +793,8 @@ TEST_F(SqlTableTests, MultipleColumnWidths) {
   EXPECT_EQ(integer, 100000);
   EXPECT_EQ(smallint, 512);
   EXPECT_EQ(tinyint, 42);
+
+  txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+  delete txn;
 }
 }  // namespace terrier
