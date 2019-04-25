@@ -49,8 +49,5 @@ BENCHMARK_DEFINE_F(CheckpointBenchmark, SingleTable)(benchmark::State &state) {
   state.SetItemsProcessed(state.iterations() * num_rows);
 }
 
-BENCHMARK_REGISTER_F(CheckpointBenchmark, SingleTable)
-    ->Unit(benchmark::kMillisecond)
-    ->UseManualTime()
-    ->MinTime(10);
+BENCHMARK_REGISTER_F(CheckpointBenchmark, SingleTable)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(10);
 }  // namespace terrier

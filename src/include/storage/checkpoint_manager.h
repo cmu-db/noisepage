@@ -99,7 +99,7 @@ class CheckpointManager {
     }
     return file_name;
   }
-  
+
   /**
    * Delete all checkpoint files, mainly for test purposes.
    */
@@ -122,7 +122,7 @@ class CheckpointManager {
       throw std::runtime_error("cannot open checkpoint directory");
     }
   }
-  
+
   /**
    * Persist a table. This is achieved by first scan the table with a ProjectedColumn buffer, then transfer the data
    * to a ProjectedRow buffer and write the memory representation of the ProjectedRow directly to disk. Varlen columns
