@@ -6,6 +6,7 @@
 #include <random>
 #include <vector>
 #include "portable_endian/portable_endian.h"
+#include "storage/garbage_collector.h"
 #include "storage/index/compact_ints_key.h"
 #include "storage/index/index_builder.h"
 #include "storage/projected_row.h"
@@ -217,7 +218,8 @@ class BwTreeKeyTests : public TerrierTest {
     storage::SqlTable sql_table(&block_store, schema, catalog::table_oid_t(1));
     const auto &tuple_initializer = sql_table.InitializerForProjectedRow({catalog::col_oid_t(0)}).first;
 
-    transaction::TransactionManager txn_manager(&buffer_pool, false, LOGGING_DISABLED);
+    transaction::TransactionManager txn_manager(&buffer_pool, true, LOGGING_DISABLED);
+    storage::GarbageCollector gc_manager(&txn_manager);
 
     // dummy tuple to insert for each key. We just need the visible TupleSlot
     auto *const insert_buffer = common::AllocationUtil::AllocateAligned(tuple_initializer.ProjectedRowSize());
@@ -242,13 +244,14 @@ class BwTreeKeyTests : public TerrierTest {
 
     auto tuple_slot = sql_table.Insert(txn, *insert_tuple);
 
-    EXPECT_TRUE(index->Insert(*key, tuple_slot));
+    EXPECT_TRUE(index->Insert(txn, *key, tuple_slot));
 
     index->ScanKey(*txn, *key, &results);
     EXPECT_EQ(results.size(), 1);
     EXPECT_EQ(results[0], tuple_slot);
 
-    EXPECT_TRUE(index->Delete(*key, tuple_slot));
+    sql_table.Delete(txn, tuple_slot);
+    index->Delete(txn, *key, tuple_slot);
 
     results.clear();
     index->ScanKey(*txn, *key, &results);
@@ -257,9 +260,10 @@ class BwTreeKeyTests : public TerrierTest {
     txn_manager.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
 
     // Clean up
+    gc_manager.PerformGarbageCollection();
+    gc_manager.PerformGarbageCollection();
     delete[] key_buffer;
     delete[] insert_buffer;
-    delete txn;
   }
 
   /**
