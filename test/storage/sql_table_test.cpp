@@ -22,7 +22,6 @@ class SqlTableTestRW {
     delete pr_map_;
     delete schema_;
     delete table_;
-    delete layout_;
   }
 
   /**
@@ -45,9 +44,7 @@ class SqlTableTestRW {
     // update columns, schema and layout
     cols_.emplace_back(name, type, nullable, oid);
     delete schema_;
-    delete layout_;
     schema_ = new catalog::Schema(cols_, next_version_++);
-    layout_ = new storage::BlockLayout(storage::StorageUtil::BlockLayoutFromSchema(*schema_).first);
 
     table_->UpdateSchema(*schema_);
 
@@ -72,7 +69,6 @@ class SqlTableTestRW {
     schema_ = new catalog::Schema(cols_, next_version_++);
     table_ = new storage::SqlTable(&block_store_, *schema_, table_oid_);
 
-    layout_ = new storage::BlockLayout(storage::StorageUtil::BlockLayoutFromSchema(*schema_).first);
     for (const auto &c : cols_) {
       col_oids_.emplace_back(c.GetOid());
     }
@@ -279,7 +275,6 @@ class SqlTableTestRW {
     return ret_st;
   }
 
-  storage::BlockLayout *GetLayout() { return layout_; }
   /**
    * Save a string, for insertion by EndRowAndInsert
    * @param col_num column number in the schema
