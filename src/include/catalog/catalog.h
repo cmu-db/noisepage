@@ -29,6 +29,8 @@ class SettingsHandle;
 struct SchemaCol {
   /** column no */
   int32_t col_num;
+  /** true if used, false if defined only for compatibility */
+  bool used;
   /** column name */
   const char *col_name;
   /** column type id */
@@ -111,14 +113,6 @@ class Catalog {
   table_oid_t CreateUserTable(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid,
                               const std::string &table_name, const Schema &schema);
 
-  /**
-   * Delete a table
-   * @param txn transaction to use
-   * @param db_oid oid of the database
-   * @param table_name table to delete
-   */
-  void DeleteTable(transaction::TransactionContext *txn, db_oid_t db_oid, const std::string &table_name);
-
   // TODO(pakhtar): these delete just from the catalog tables. Fix to delete sql table too... or
   // rename.
   /**
@@ -160,26 +154,6 @@ class Catalog {
   SettingsHandle GetSettingsHandle();
 
   /**
-   * Get a pointer to a catalog storage table.
-   *
-   * @param db_oid database that owns the table
-   * @param table_oid returns the storage table pointer for this table_oid
-   * @return a pointer to the catalog
-   * @throw out_of_range exception if either oid doesn't exist or the catalog doesn't exist.
-   */
-  SqlTableRW *GetCatalogTable(db_oid_t db_oid, table_oid_t table_oid);
-
-  /**
-   * Get a pointer to a catalog storage table, by table_name.
-   *
-   * @param db_oid database that owns the table
-   * @param table_name returns the storage table point for this table
-   * @return a pointer to the catalog
-   * @throw out_of_range exception if either oid doesn't exist or the catalog doesn't exist.
-   */
-  SqlTableRW *GetCatalogTable(db_oid_t db_oid, const std::string &table_name);
-
-  /**
    * Get a pointer to a user storage table.
    * @param txn transaction
    * @param db_oid database
@@ -188,8 +162,8 @@ class Catalog {
    * @return a pointer to the Sqltable helper class
    * @throw out_of_range exception if either oid doesn't exist or the catalog doesn't exist. ??
    */
-  SqlTableRW *GetUserTable(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid,
-                           table_oid_t table_oid);
+  SqlTableHelper *GetUserTable(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid,
+                               table_oid_t table_oid);
 
   /**
    * Get a pointer to a user storage table.
@@ -200,8 +174,8 @@ class Catalog {
    * @return a pointer to the Sqltable helper class
    * @throw out_of_range exception if either oid doesn't exist or the catalog doesn't exist. ??
    */
-  SqlTableRW *GetUserTable(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid,
-                           const std::string &name);
+  SqlTableHelper *GetUserTable(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid,
+                               const std::string &name);
 
   /**
    * The global counter for getting next oid. The return result should be converted into corresponding oid type
@@ -244,7 +218,7 @@ class Catalog {
    * @param name of the catalog
    * @param table_rw_p catalog storage table
    */
-  void AddToMaps(db_oid_t db_oid, table_oid_t table_oid, const std::string &name, SqlTableRW *table_rw_p) {
+  void AddToMaps(db_oid_t db_oid, table_oid_t table_oid, const std::string &name, SqlTableHelper *table_rw_p) {
     map_[db_oid][table_oid] = table_rw_p;
     name_map_[db_oid][name] = table_oid;
   }
@@ -266,13 +240,6 @@ class Catalog {
   void SetUnusedColumns(std::vector<type::TransientValue> *vec, const std::vector<SchemaCol> &cols);
 
   /**
-   * Convert type id to schema type
-   * @param type_id type id
-   * @return schema type
-   */
-  type::TransientValue ValueTypeIdToSchemaType(type::TypeId type_id);
-
-  /**
    * -------------
    * Debug support
    * -------------
@@ -280,19 +247,32 @@ class Catalog {
 
   void Dump(transaction::TransactionContext *txn, db_oid_t db_oid);
 
+ protected:
+  /**
+   * Get a pointer to a catalog storage table helper
+   *
+   * @param db_oid database that owns the table
+   * @param table_oid returns the storage table pointer for this table_oid
+   * @return a pointer to the catalog
+   * @throw out_of_range exception if either oid doesn't exist or the catalog doesn't exist.
+   */
+  SqlTableHelper *GetCatalogTable(db_oid_t db_oid, table_oid_t table_oid);
+
+  /**
+   * Get a pointer to a catalog storage table helper, by table_name.
+   *
+   * @param db_oid database that owns the table
+   * @param table_name returns the storage table point for this table
+   * @return a pointer to the catalog
+   * @throw out_of_range exception if either oid doesn't exist or the catalog doesn't exist.
+   */
+  SqlTableHelper *GetCatalogTable(db_oid_t db_oid, const std::string &table_name);
+
  private:
   /**
    * Add a row into pg_database
    */
   void AddEntryToPGDatabase(transaction::TransactionContext *txn, db_oid_t oid, const std::string &name);
-
-  /**
-   * Add columns created for Postgres compatibility, but unused, to the schema
-   * @param db_p - shared_ptr to database
-   * @param cols - vector specifying the columns
-   *
-   */
-  void AddUnusedSchemaColumns(SqlTableRW *db_p, const std::vector<SchemaCol> &cols);
 
   /**
    * Bootstrap all the catalog tables so that new coming transactions can
@@ -398,21 +378,32 @@ class Catalog {
    */
   TableHandle GetUserTableHandle(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid);
 
+  /**
+   * Convert type id to schema type
+   * @param type_id type id
+   * @return schema type
+   */
+  type::TransientValue ValueTypeIdToSchemaType(type::TypeId type_id);
+
  private:
   transaction::TransactionManager *txn_manager_;
   // global catalogs
-  catalog::SqlTableRW *pg_database_;
-  catalog::SqlTableRW *pg_tablespace_;
-  catalog::SqlTableRW *pg_settings_;
+  catalog::SqlTableHelper *pg_database_;
+  catalog::SqlTableHelper *pg_tablespace_;
+  catalog::SqlTableHelper *pg_settings_;
 
   // map from (db_oid, catalog table_oid_t) to sql table rw wrapper
-  std::unordered_map<db_oid_t, std::unordered_map<table_oid_t, catalog::SqlTableRW *>> map_;
+  std::unordered_map<db_oid_t, std::unordered_map<table_oid_t, catalog::SqlTableHelper *>> map_;
 
   // map from (db_oid, catalog name) to table_oid
   std::unordered_map<db_oid_t, std::unordered_map<std::string, table_oid_t>> name_map_;
 
   // all oid types are generated by this global counter
   std::atomic<uint32_t> oid_;
+
+  friend class DatabaseHandle;
+  friend class AttrDefHandle;
+  friend class NamespaceHandle;
 };
 
 extern std::shared_ptr<Catalog> terrier_catalog;

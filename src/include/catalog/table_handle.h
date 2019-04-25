@@ -46,7 +46,7 @@ class TableEntry {
    * @param pg_tablespace a pointer to tablespace
    */
   TableEntry(table_oid_t oid, std::vector<type::TransientValue> &&row, transaction::TransactionContext *txn,
-             SqlTableRW *pg_namespace, SqlTableRW *pg_tablespace)
+             SqlTableHelper *pg_namespace, SqlTableHelper *pg_tablespace)
       : oid_(oid), txn_(txn), pg_namespace_(pg_namespace), pg_tablespace_(pg_tablespace) {
     rows_.resize(3);
     rows_[1] = std::move(row);
@@ -102,9 +102,9 @@ class TableEntry {
   transaction::TransactionContext *txn_;
   // it stores three rows in three tables
   std::vector<std::vector<type::TransientValue>> rows_;
-  // SqlTableRW *pg_class_;
-  SqlTableRW *pg_namespace_;
-  SqlTableRW *pg_tablespace_;
+  // SqlTableHelper *pg_class_;
+  SqlTableHelper *pg_namespace_;
+  SqlTableHelper *pg_tablespace_;
 };
 
 /**
@@ -133,8 +133,8 @@ class TableHandle {
    * @param pg_namespace a pointer to pg_namespace
    * @param pg_tablespace a pointer to pg_tablespace
    */
-  TableHandle(Catalog *catalog, namespace_oid_t nsp_oid, SqlTableRW *pg_class, SqlTableRW *pg_namespace,
-              SqlTableRW *pg_tablespace)
+  TableHandle(Catalog *catalog, namespace_oid_t nsp_oid, SqlTableHelper *pg_class, SqlTableHelper *pg_namespace,
+              SqlTableHelper *pg_tablespace)
       : catalog_(catalog),
         nsp_oid_(nsp_oid),
         pg_class_(pg_class),
@@ -177,7 +177,7 @@ class TableHandle {
    * @param name the table name
    * @param schema the table schema
    */
-  SqlTableRW *CreateTable(transaction::TransactionContext *txn, const Schema &schema, const std::string &name);
+  SqlTableHelper *CreateTable(transaction::TransactionContext *txn, const Schema &schema, const std::string &name);
 
   /**
    * Get a pointer to the table for read and write
@@ -185,7 +185,7 @@ class TableHandle {
    * @param oid the oid of the table
    * @return a pointer to the SqlTableRW
    */
-  SqlTableRW *GetTable(transaction::TransactionContext *txn, table_oid_t oid);
+  SqlTableHelper *GetTable(transaction::TransactionContext *txn, table_oid_t oid);
 
   /**
    * Get a pointer to the table for read and write
@@ -193,14 +193,14 @@ class TableHandle {
    * @param name the name of the table
    * @return a pointer to the SqlTableRW
    */
-  SqlTableRW *GetTable(transaction::TransactionContext *txn, const std::string &name);
+  SqlTableHelper *GetTable(transaction::TransactionContext *txn, const std::string &name);
 
  private:
   Catalog *catalog_;
   namespace_oid_t nsp_oid_;
-  SqlTableRW *pg_class_;
-  SqlTableRW *pg_namespace_;
-  SqlTableRW *pg_tablespace_;
+  SqlTableHelper *pg_class_;
+  SqlTableHelper *pg_namespace_;
+  SqlTableHelper *pg_tablespace_;
 };
 
 }  // namespace terrier::catalog

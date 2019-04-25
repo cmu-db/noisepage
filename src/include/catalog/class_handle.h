@@ -27,7 +27,7 @@ class ClassEntry : public CatalogEntry<col_oid_t> {
    * @param sql_table associated with this entry
    * @param entry a row in pg_class that represents this table
    */
-  ClassEntry(col_oid_t oid, catalog::SqlTableRW *sql_table, std::vector<type::TransientValue> &&entry)
+  ClassEntry(col_oid_t oid, catalog::SqlTableHelper *sql_table, std::vector<type::TransientValue> &&entry)
       : CatalogEntry(oid, sql_table, std::move(entry)) {}
 };
 
@@ -42,7 +42,7 @@ class ClassHandle {
    * @param catalog the global catalog object
    * @param pg_class the pg_class sql table rw helper instance
    */
-  explicit ClassHandle(Catalog *catalog, SqlTableRW *pg_class) : catalog_(catalog), pg_class_rw_(pg_class) {}
+  explicit ClassHandle(Catalog *catalog, SqlTableHelper *pg_class) : catalog_(catalog), pg_class_rw_(pg_class) {}
 
   /**
    * Get a specific Class entry.
@@ -91,8 +91,8 @@ class ClassHandle {
    * @param name catalog name
    * @return a shared pointer to the catalog table
    */
-  static SqlTableRW *Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,
-                            const std::string &name);
+  static SqlTableHelper *Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,
+                                const std::string &name);
 
   /**
    * Delete a entry from the class table
@@ -124,6 +124,6 @@ class ClassHandle {
   // database containing this table
   // db_oid_t db_oid_;
   // storage for this table
-  catalog::SqlTableRW *pg_class_rw_;
+  catalog::SqlTableHelper *pg_class_rw_;
 };
 }  // namespace terrier::catalog

@@ -11,12 +11,11 @@
 
 namespace terrier::catalog {
 
-const std::vector<SchemaCol> AttrDefHandle::schema_cols_ = {{0, "oid", type::TypeId::INTEGER},
-                                                            {1, "adrelid", type::TypeId::INTEGER},
-                                                            {2, "adnum", type::TypeId::INTEGER},
-                                                            {3, "adbin", type::TypeId::VARCHAR}};
-
-const std::vector<SchemaCol> AttrDefHandle::unused_schema_cols_ = {{4, "adsrc", type::TypeId::VARCHAR}};
+const std::vector<SchemaCol> AttrDefHandle::schema_cols_ = {{0, true, "oid", type::TypeId::INTEGER},
+                                                            {1, true, "adrelid", type::TypeId::INTEGER},
+                                                            {2, true, "adnum", type::TypeId::INTEGER},
+                                                            {3, true, "adbin", type::TypeId::VARCHAR},
+                                                            {4, false, "adsrc", type::TypeId::VARCHAR}};
 
 // Find entry with (row) oid and return it
 std::shared_ptr<AttrDefEntry> AttrDefHandle::GetAttrDefEntry(transaction::TransactionContext *txn, col_oid_t oid) {
@@ -47,29 +46,23 @@ void AttrDefHandle::DeleteEntries(transaction::TransactionContext *txn, table_oi
   }
 }
 
-SqlTableRW *AttrDefHandle::Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,
-                                  const std::string &name) {
-  catalog::SqlTableRW *pg_attrdef;
+SqlTableHelper *AttrDefHandle::Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,
+                                      const std::string &name) {
+  catalog::SqlTableHelper *pg_attrdef;
 
   // get an oid
   table_oid_t pg_attrdef_oid(catalog->GetNextOid());
 
   // uninitialized storage
-  pg_attrdef = new catalog::SqlTableRW(pg_attrdef_oid);
+  pg_attrdef = new catalog::SqlTableHelper(pg_attrdef_oid);
 
-  // columns we use
   for (auto col : AttrDefHandle::schema_cols_) {
     pg_attrdef->DefineColumn(col.col_name, col.type_id, false, col_oid_t(catalog->GetNextOid()));
   }
 
-  // columns we don't use
-  for (auto col : AttrDefHandle::unused_schema_cols_) {
-    pg_attrdef->DefineColumn(col.col_name, col.type_id, false, col_oid_t(catalog->GetNextOid()));
-  }
   // now actually create, with the provided schema
   pg_attrdef->Create();
   catalog->AddToMaps(db_oid, pg_attrdef_oid, name, pg_attrdef);
-  // catalog->AddColumnsToPGAttribute(txn, db_oid, pg_attrdef->GetSqlTable());
   return pg_attrdef;
 }
 

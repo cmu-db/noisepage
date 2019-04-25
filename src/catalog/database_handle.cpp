@@ -14,20 +14,21 @@
 
 namespace terrier::catalog {
 
-const std::vector<SchemaCol> DatabaseHandle::schema_cols_ = {{0, "oid", type::TypeId::INTEGER},
-                                                             {1, "datname", type::TypeId::VARCHAR}};
-
-const std::vector<SchemaCol> DatabaseHandle::unused_schema_cols_ = {
-    {2, "datdba", type::TypeId::INTEGER},        {3, "encoding", type::TypeId::INTEGER},
-    {4, "datcollate", type::TypeId::VARCHAR},    {5, "datctype", type::TypeId::VARCHAR},
-    {6, "datistemplate", type::TypeId::BOOLEAN}, {7, "datallowconn", type::TypeId::BOOLEAN},
-    {8, "datconnlimit", type::TypeId::INTEGER}};
+const std::vector<SchemaCol> DatabaseHandle::schema_cols_ = {{0, true, "oid", type::TypeId::INTEGER},
+                                                             {1, true, "datname", type::TypeId::VARCHAR},
+                                                             {2, false, "datdba", type::TypeId::INTEGER},
+                                                             {3, false, "encoding", type::TypeId::INTEGER},
+                                                             {4, false, "datcollate", type::TypeId::VARCHAR},
+                                                             {5, false, "datctype", type::TypeId::VARCHAR},
+                                                             {6, false, "datistemplate", type::TypeId::BOOLEAN},
+                                                             {7, false, "datallowconn", type::TypeId::BOOLEAN},
+                                                             {8, false, "datconnlimit", type::TypeId::INTEGER}};
 
 /**
  * Handle methods
  */
 
-DatabaseHandle::DatabaseHandle(Catalog *catalog, SqlTableRW *pg_database)
+DatabaseHandle::DatabaseHandle(Catalog *catalog, SqlTableHelper *pg_database)
     : catalog_(catalog), pg_database_rw_(pg_database) {}
 
 ClassHandle DatabaseHandle::GetClassHandle(transaction::TransactionContext *txn, db_oid_t oid) {

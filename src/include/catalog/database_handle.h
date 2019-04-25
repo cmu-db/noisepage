@@ -34,7 +34,7 @@ class DatabaseEntry : public CatalogEntry<db_oid_t> {
    * @param sql_table associated with this entry
    * @param entry a row in pg_database that represents this table
    */
-  DatabaseEntry(db_oid_t oid, catalog::SqlTableRW *sql_table, std::vector<type::TransientValue> &&entry)
+  DatabaseEntry(db_oid_t oid, catalog::SqlTableHelper *sql_table, std::vector<type::TransientValue> &&entry)
       : CatalogEntry(oid, sql_table, std::move(entry)) {}
 };
 
@@ -60,7 +60,7 @@ class DatabaseHandle {
    * @param catalog a pointer to the catalog object
    * @param pg_database the pointer to pg_database
    */
-  DatabaseHandle(Catalog *catalog, SqlTableRW *pg_database);
+  DatabaseHandle(Catalog *catalog, SqlTableHelper *pg_database);
 
   /**
    * Get a class handle for the database.
@@ -140,7 +140,7 @@ class DatabaseHandle {
   /**
    * pg_database SQL table
    */
-  catalog::SqlTableRW *pg_database_rw_;
+  catalog::SqlTableHelper *pg_database_rw_;
 };
 
 }  // namespace terrier::catalog

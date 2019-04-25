@@ -24,7 +24,7 @@ class TypeEntry : public CatalogEntry<type_oid_t> {
    * @param sql_table associated with this entry
    * @param entry a row in pg_type that represents this table
    */
-  TypeEntry(type_oid_t oid, catalog::SqlTableRW *sql_table, std::vector<type::TransientValue> &&entry)
+  TypeEntry(type_oid_t oid, catalog::SqlTableHelper *sql_table, std::vector<type::TransientValue> &&entry)
       : CatalogEntry(oid, sql_table, std::move(entry)) {}
 };
 
@@ -39,7 +39,7 @@ class TypeHandle {
   /**
    * Construct a type handle. It keeps a pointer to the pg_type sql table.
    */
-  TypeHandle(Catalog *catalog, SqlTableRW *pg_type);
+  TypeHandle(Catalog *catalog, SqlTableHelper *pg_type);
 
   /**
    * Get the oid of a type given its name.
@@ -74,8 +74,8 @@ class TypeHandle {
   /**
    * Create storage table
    */
-  static SqlTableRW *Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,
-                            const std::string &name);
+  static SqlTableHelper *Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,
+                                const std::string &name);
 
   /**
    * Debug methods
@@ -92,7 +92,7 @@ class TypeHandle {
   // TODO(yeshengm): we have to add support for UDF in the future
  private:
   Catalog *catalog_;
-  catalog::SqlTableRW *pg_type_rw_;
+  catalog::SqlTableHelper *pg_type_rw_;
 };
 
 }  // namespace terrier::catalog

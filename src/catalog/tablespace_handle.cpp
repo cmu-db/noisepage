@@ -13,12 +13,11 @@
 #include "type/type_id.h"
 namespace terrier::catalog {
 
-const std::vector<SchemaCol> TablespaceHandle::schema_cols_ = {{0, "oid", type::TypeId::INTEGER},
-                                                               {1, "spcname", type::TypeId::VARCHAR}};
-
-const std::vector<SchemaCol> TablespaceHandle::unused_schema_cols_ = {{2, "spcowner", type::TypeId::INTEGER},
-                                                                      {3, "spcacl", type::TypeId::VARCHAR},
-                                                                      {4, "spcoptions", type::TypeId::VARCHAR}};
+const std::vector<SchemaCol> TablespaceHandle::schema_cols_ = {{0, true, "oid", type::TypeId::INTEGER},
+                                                               {1, true, "spcname", type::TypeId::VARCHAR},
+                                                               {2, false, "spcowner", type::TypeId::INTEGER},
+                                                               {3, false, "spcacl", type::TypeId::VARCHAR},
+                                                               {4, false, "spcoptions", type::TypeId::VARCHAR}};
 
 std::shared_ptr<TablespaceEntry> TablespaceHandle::GetTablespaceEntry(transaction::TransactionContext *txn,
                                                                       tablespace_oid_t oid) {
@@ -43,28 +42,24 @@ void TablespaceHandle::AddEntry(transaction::TransactionContext *txn, const std:
 
   row.emplace_back(type::TransientValueFactory::GetInteger(catalog_->GetNextOid()));
   row.emplace_back(type::TransientValueFactory::GetVarChar(name));
-  catalog_->SetUnusedColumns(&row, TablespaceHandle::unused_schema_cols_);
+  catalog_->SetUnusedColumns(&row, TablespaceHandle::schema_cols_);
   pg_tablespace_->InsertRow(txn, row);
 }
 
-SqlTableRW *TablespaceHandle::Create(Catalog *catalog, db_oid_t db_oid, const std::string &name) {
-  catalog::SqlTableRW *storage_table;
+SqlTableHelper *TablespaceHandle::Create(Catalog *catalog, db_oid_t db_oid, const std::string &name) {
+  catalog::SqlTableHelper *storage_table;
 
   // get an oid
   table_oid_t storage_table_oid(catalog->GetNextOid());
 
   // uninitialized storage
-  storage_table = new catalog::SqlTableRW(storage_table_oid);
+  storage_table = new catalog::SqlTableHelper(storage_table_oid);
 
   // columns we use
   for (auto col : TablespaceHandle::schema_cols_) {
     storage_table->DefineColumn(col.col_name, col.type_id, false, col_oid_t(catalog->GetNextOid()));
   }
 
-  // columns we don't use
-  for (auto col : TablespaceHandle::unused_schema_cols_) {
-    storage_table->DefineColumn(col.col_name, col.type_id, false, col_oid_t(catalog->GetNextOid()));
-  }
   // now actually create, with the provided schema
   storage_table->Create();
   catalog->AddToMaps(db_oid, storage_table_oid, name, storage_table);

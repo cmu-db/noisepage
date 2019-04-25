@@ -18,12 +18,11 @@ namespace terrier::catalog {
 // note that this is not identical to Postgres's column sequence
 
 const std::vector<SchemaCol> AttributeHandle::schema_cols_ = {
-    {0, "oid", type::TypeId::INTEGER},     {1, "attrelid", type::TypeId::INTEGER},
-    {2, "attname", type::TypeId::VARCHAR}, {3, "atttypid", type::TypeId::INTEGER},
-    {4, "attlen", type::TypeId::INTEGER},  {5, "attnum", type::TypeId::INTEGER}};
+    {0, true, "oid", type::TypeId::INTEGER},     {1, true, "attrelid", type::TypeId::INTEGER},
+    {2, true, "attname", type::TypeId::VARCHAR}, {3, true, "atttypid", type::TypeId::INTEGER},
+    {4, true, "attlen", type::TypeId::INTEGER},  {5, true, "attnum", type::TypeId::INTEGER}};
 
 // TODO(pakhtar): add unused columns
-const std::vector<SchemaCol> AttributeHandle::unused_schema_cols_ = {};
 
 std::shared_ptr<AttributeEntry> AttributeHandle::GetAttributeEntry(transaction::TransactionContext *txn,
                                                                    table_oid_t table_oid, col_oid_t col_oid) {
@@ -71,29 +70,23 @@ void AttributeHandle::DeleteEntries(transaction::TransactionContext *txn, table_
   }
 }
 
-SqlTableRW *AttributeHandle::Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,
-                                    const std::string &name) {
-  catalog::SqlTableRW *pg_attr;
+SqlTableHelper *AttributeHandle::Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,
+                                        const std::string &name) {
+  catalog::SqlTableHelper *pg_attr;
 
   // get an oid
   table_oid_t pg_attr_oid(catalog->GetNextOid());
 
   // uninitialized storage
-  pg_attr = new catalog::SqlTableRW(pg_attr_oid);
+  pg_attr = new catalog::SqlTableHelper(pg_attr_oid);
 
-  // columns we use
   for (auto col : AttributeHandle::schema_cols_) {
     pg_attr->DefineColumn(col.col_name, col.type_id, false, col_oid_t(catalog->GetNextOid()));
   }
 
-  // columns we don't use
-  for (auto col : AttributeHandle::unused_schema_cols_) {
-    pg_attr->DefineColumn(col.col_name, col.type_id, false, col_oid_t(catalog->GetNextOid()));
-  }
   // now actually create, with the provided schema
   pg_attr->Create();
   catalog->AddToMaps(db_oid, pg_attr_oid, name, pg_attr);
-  // catalog->AddColumnsToPGAttribute(txn, db_oid, pg_attr->GetSqlTable());
   return pg_attr;
 }
 

@@ -20,14 +20,14 @@ namespace terrier::catalog {
 /**
  * Helper class to simplify operations on a SqlTable
  */
-class SqlTableRW {
+class SqlTableHelper {
  public:
   /**
    * Constructor
    * @param table_oid the table oid of the underlying sql table
    */
-  explicit SqlTableRW(catalog::table_oid_t table_oid) : table_oid_(table_oid) {}
-  ~SqlTableRW() {
+  explicit SqlTableHelper(catalog::table_oid_t table_oid) : table_oid_(table_oid) {}
+  ~SqlTableHelper() {
     delete pri_;
     delete pr_map_;
     delete schema_;
@@ -110,7 +110,7 @@ class SqlTableRW {
      * @param tblrw SqlTableRw
      * @param begin whether a begin operator is contructed.
      */
-    RowIterator(transaction::TransactionContext *txn, SqlTableRW *tblrw, bool begin)
+    RowIterator(transaction::TransactionContext *txn, SqlTableHelper *tblrw, bool begin)
         : txn_(txn), tblrw_(tblrw), buffer_(nullptr), dtsi_(tblrw->GetSqlTable()->begin()) {
       if (!begin) {
         // constructing end
@@ -143,7 +143,7 @@ class SqlTableRW {
 
    private:
     transaction::TransactionContext *txn_;
-    SqlTableRW *tblrw_;
+    SqlTableHelper *tblrw_;
     std::vector<storage::col_id_t> all_cols;
 
     byte *buffer_;
@@ -347,7 +347,7 @@ class SqlTableRW {
     auto proj_row = pri_->InitializeRow(insert_buffer);
 
     for (size_t i = 0; i < row.size(); i++) {
-      SqlTableRW::SetColInRow(proj_row, static_cast<int32_t>(i), row[i]);
+      SqlTableHelper::SetColInRow(proj_row, static_cast<int32_t>(i), row[i]);
     }
     table_->Insert(txn, *proj_row);
 

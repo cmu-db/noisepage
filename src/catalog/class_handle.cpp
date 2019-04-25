@@ -11,16 +11,14 @@
 namespace terrier::catalog {
 
 // Postgres has additional columns interspersed within these.
-const std::vector<SchemaCol> ClassHandle::schema_cols_ = {{0, "__ptr", type::TypeId::BIGINT},
-                                                          {1, "oid", type::TypeId::INTEGER},
-                                                          {2, "relname", type::TypeId::VARCHAR},
-                                                          {3, "relnamespace", type::TypeId::INTEGER},
-                                                          {4, "reltablespace", type::TypeId::INTEGER}};
+const std::vector<SchemaCol> ClassHandle::schema_cols_ = {{0, true, "__ptr", type::TypeId::BIGINT},
+                                                          {1, true, "oid", type::TypeId::INTEGER},
+                                                          {2, true, "relname", type::TypeId::VARCHAR},
+                                                          {3, true, "relnamespace", type::TypeId::INTEGER},
+                                                          {4, true, "reltablespace", type::TypeId::INTEGER}};
 
 // TODO(pakhtar): there are quite a number of unused columns...
 // Review and define, because some of them we'll probably use.
-
-const std::vector<SchemaCol> ClassHandle::unused_schema_cols_ = {};
 
 // Find entry with (row) oid and return it
 std::shared_ptr<ClassEntry> ClassHandle::GetClassEntry(transaction::TransactionContext *txn, col_oid_t oid) {
@@ -71,7 +69,7 @@ void ClassHandle::AddEntry(transaction::TransactionContext *txn, const int64_t t
   row.emplace_back(type::TransientValueFactory::GetInteger(ns_oid));
   row.emplace_back(type::TransientValueFactory::GetInteger(ts_oid));
 
-  catalog_->SetUnusedColumns(&row, ClassHandle::unused_schema_cols_);
+  catalog_->SetUnusedColumns(&row, ClassHandle::schema_cols_);
   pg_class_rw_->InsertRow(txn, row);
 }
 
@@ -108,29 +106,23 @@ bool ClassHandle::DeleteEntry(transaction::TransactionContext *txn, namespace_oi
   return true;
 }
 
-SqlTableRW *ClassHandle::Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,
-                                const std::string &name) {
-  catalog::SqlTableRW *pg_class;
+SqlTableHelper *ClassHandle::Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,
+                                    const std::string &name) {
+  catalog::SqlTableHelper *pg_class;
 
   // get an oid
   table_oid_t pg_class_oid(catalog->GetNextOid());
 
   // uninitialized storage
-  pg_class = new catalog::SqlTableRW(pg_class_oid);
+  pg_class = new catalog::SqlTableHelper(pg_class_oid);
 
-  // columns we use
   for (auto col : ClassHandle::schema_cols_) {
     pg_class->DefineColumn(col.col_name, col.type_id, false, col_oid_t(catalog->GetNextOid()));
   }
 
-  // columns we don't use
-  for (auto col : ClassHandle::unused_schema_cols_) {
-    pg_class->DefineColumn(col.col_name, col.type_id, false, col_oid_t(catalog->GetNextOid()));
-  }
   // now actually create, with the provided schema
   pg_class->Create();
   catalog->AddToMaps(db_oid, pg_class_oid, name, pg_class);
-  // catalog->AddColumnsToPGAttribute(txn, db_oid, pg_class->GetSqlTable());
   return pg_class;
 }
 

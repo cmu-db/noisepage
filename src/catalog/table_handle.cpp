@@ -43,12 +43,12 @@ table_oid_t TableHandle::NameToOid(transaction::TransactionContext *txn, const s
   return result;
 }
 
-SqlTableRW *TableHandle::CreateTable(transaction::TransactionContext *txn, const Schema &schema,
-                                     const std::string &name) {
+SqlTableHelper *TableHandle::CreateTable(transaction::TransactionContext *txn, const Schema &schema,
+                                         const std::string &name) {
   std::vector<type::TransientValue> row;
   // TODO(yangjuns): error handling
   // Create SqlTable
-  auto table = new SqlTableRW(table_oid_t(catalog_->GetNextOid()));
+  auto table = new SqlTableHelper(table_oid_t(catalog_->GetNextOid()));
   auto cols = schema.GetColumns();
   for (auto &col : cols) {
     table->DefineColumn(col.GetName(), col.GetType(), col.GetNullable(), col.GetOid());
@@ -65,7 +65,7 @@ SqlTableRW *TableHandle::CreateTable(transaction::TransactionContext *txn, const
   return table;
 }
 
-SqlTableRW *TableHandle::GetTable(transaction::TransactionContext *txn, table_oid_t oid) {
+SqlTableHelper *TableHandle::GetTable(transaction::TransactionContext *txn, table_oid_t oid) {
   // TODO(yangjuns): error handling
   // get the namespace_oid of the table to check if it's a table under current namespace
   std::vector<type::TransientValue> search_vec;
@@ -75,11 +75,11 @@ SqlTableRW *TableHandle::GetTable(transaction::TransactionContext *txn, table_oi
   std::vector<type::TransientValue> row = pg_class_->FindRow(txn, search_vec);
   namespace_oid_t nsp_oid = namespace_oid_t(type::TransientValuePeeker::PeekInteger(row[3]));
   if (nsp_oid != nsp_oid_) return nullptr;
-  auto ptr = reinterpret_cast<SqlTableRW *>(type::TransientValuePeeker::PeekBigInt(row[0]));
+  auto ptr = reinterpret_cast<SqlTableHelper *>(type::TransientValuePeeker::PeekBigInt(row[0]));
   return ptr;
 }
 
-SqlTableRW *TableHandle::GetTable(transaction::TransactionContext *txn, const std::string &name) {
+SqlTableHelper *TableHandle::GetTable(transaction::TransactionContext *txn, const std::string &name) {
   return GetTable(txn, NameToOid(txn, name));
 }
 
