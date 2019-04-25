@@ -1,5 +1,6 @@
 #pragma once
 
+#include <common/settings.h>
 #include <algorithm>
 #include <memory>
 #include <random>
@@ -162,7 +163,7 @@ class SqlTableHelper {
    */
   void DefineColumn(std::string name, type::TypeId type, bool nullable, catalog::col_oid_t oid) {
     if (type == type::TypeId::VARCHAR) {
-      cols_.emplace_back(name, type, 1024, nullable, oid);
+      cols_.emplace_back(name, type, common::Settings::CATALOG_VARCHAR_MAX_LEN, nullable, oid);
     } else {
       cols_.emplace_back(name, type, nullable, oid);
     }

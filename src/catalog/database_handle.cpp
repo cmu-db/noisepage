@@ -69,11 +69,6 @@ std::shared_ptr<DatabaseEntry> DatabaseHandle::GetDatabaseEntry(transaction::Tra
 
 std::shared_ptr<DatabaseEntry> DatabaseHandle::GetDatabaseEntry(transaction::TransactionContext *txn,
                                                                 const std::string &db_name) {
-  // we don't need to do this lookup. pg_database is global
-  // auto pg_database_rw = catalog_->GetCatalogTable(DEFAULT_DATABASE_OID, "pg_database");
-
-  // just use pg_database_
-
   std::vector<type::TransientValue> search_vec;
   search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
   search_vec.push_back(type::TransientValueFactory::GetVarChar(db_name));

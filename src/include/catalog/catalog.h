@@ -249,17 +249,8 @@ class Catalog {
 
  protected:
   /**
-   * Get a pointer to a catalog storage table helper
-   *
-   * @param db_oid database that owns the table
-   * @param table_oid returns the storage table pointer for this table_oid
-   * @return a pointer to the catalog
-   * @throw out_of_range exception if either oid doesn't exist or the catalog doesn't exist.
-   */
-  SqlTableHelper *GetCatalogTable(db_oid_t db_oid, table_oid_t table_oid);
-
-  /**
-   * Get a pointer to a catalog storage table helper, by table_name.
+   * Get a pointer to a catalog storage table helper, by table name. For use ONLY on catalog tables (which are in
+   * the pg_catalog namespace).
    *
    * @param db_oid database that owns the table
    * @param table_name returns the storage table point for this table
@@ -369,6 +360,17 @@ class Catalog {
    * @param oid - database from which tables are to be deleted.
    */
   void DestroyDB(db_oid_t oid);
+
+  /**
+   * Get a pointer to a catalog storage table helper. For use ONLY on catalog tables (which are in the pg_catalog
+   * namespace).
+   *
+   * @param db_oid database that owns the table
+   * @param table_oid returns the storage table pointer for this table_oid
+   * @return a pointer to the catalog
+   * @throw out_of_range exception if either oid doesn't exist or the catalog doesn't exist.
+   */
+  SqlTableHelper *GetCatalogTable(db_oid_t db_oid, table_oid_t table_oid);
 
   /**
    * @param txn transaction

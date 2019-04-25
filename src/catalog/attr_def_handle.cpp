@@ -24,6 +24,7 @@ std::shared_ptr<AttrDefEntry> AttrDefHandle::GetAttrDefEntry(transaction::Transa
   ret_row = pg_attrdef_rw_->FindRow(txn, search_vec);
   return std::make_shared<AttrDefEntry>(oid, pg_attrdef_rw_, std::move(ret_row));
 }
+
 void AttrDefHandle::DeleteEntries(transaction::TransactionContext *txn, table_oid_t table_oid) {
   // auto layout = pg_attrdef_rw_->GetLayout();
   int32_t col_index = pg_attrdef_rw_->ColNameToIndex("adrelid");

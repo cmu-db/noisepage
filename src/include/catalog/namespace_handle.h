@@ -118,8 +118,6 @@ class NamespaceHandle {
 
   /** Used schema columns */
   static const std::vector<SchemaCol> schema_cols_;
-  /** Unused schema columns */
-  static const std::vector<SchemaCol> unused_schema_cols_;
 
  private:
   Catalog *catalog_;

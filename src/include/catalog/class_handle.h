@@ -116,13 +116,9 @@ class ClassHandle {
 
   /** Used schema columns */
   static const std::vector<SchemaCol> schema_cols_;
-  /** Unused schema columns */
-  static const std::vector<SchemaCol> unused_schema_cols_;
 
  private:
   Catalog *catalog_;
-  // database containing this table
-  // db_oid_t db_oid_;
   // storage for this table
   catalog::SqlTableHelper *pg_class_rw_;
 };

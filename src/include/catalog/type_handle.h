@@ -87,8 +87,6 @@ class TypeHandle {
 
   /** Used schema columns */
   static const std::vector<SchemaCol> schema_cols_;
-  /** Unused schema columns */
-  static const std::vector<SchemaCol> unused_schema_cols_;
   // TODO(yeshengm): we have to add support for UDF in the future
  private:
   Catalog *catalog_;
