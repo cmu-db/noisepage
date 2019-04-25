@@ -6,6 +6,7 @@
 #include "bwtree/bwtree.h"
 #include "storage/index/index.h"
 #include "transaction/transaction_context.h"
+#include "transaction/transaction_manager.h"
 
 namespace terrier::storage::index {
 
