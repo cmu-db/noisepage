@@ -110,7 +110,7 @@ class AsyncBlockWriter {
    * @return pointer to a free block buffer
    */
   byte *GetBuffer() {
-    byte *res;
+    byte *res = nullptr;
 
     // TODO(Yuning): Maybe use blocking queue?
     while (!free_.Dequeue(&res)) {
