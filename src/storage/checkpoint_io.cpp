@@ -27,28 +27,19 @@ void AsyncBlockWriter::Close() {
 
   PosixIoWrappers::Close(out_);
 
-  while (free_.Dequeue(&buf)) {
+  while (!free_.Empty()) {
+    free_.Dequeue(&buf);
     delete[] buf;
   }
 }
 
 void AsyncBlockWriter::RunWriter() {
   byte *buf;
-
-  // TODO(Yuning): Maybe use blocking queue?
-  while (!pending_.Dequeue(&buf)) {
-    // spin
-  }
-
+  pending_.Dequeue(&buf);
   while (buf != nullptr) {
     PosixIoWrappers::WriteFully(out_, buf, block_size_);
-
     free_.Enqueue(buf);
-
-    // TODO(Yuning): Maybe use blocking queue?
-    while (!pending_.Dequeue(&buf)) {
-      // spin
-    }
+    pending_.Dequeue(&buf);
   }
 }
 
