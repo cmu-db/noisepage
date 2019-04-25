@@ -113,8 +113,8 @@ class SqlTable {
      * through advancement of the DataTable iterator in SqlTable::Scan.
      */
     void AdvanceOnEndOfDatatable_() {
-     TERRIER_ASSERT(curr_version_ <= txn_version_, "Current version must be older than transaction");
-     while (current_it_ == tables_->Find(curr_version_)->second.data_table->end()) {
+      TERRIER_ASSERT(curr_version_ <= txn_version_, "Current version cannot be newer than transaction");
+      while (current_it_ == tables_->Find(curr_version_)->second.data_table->end()) {
         // layout_version_t is uint32_t so we need to protect against underflow.
         if (!curr_version_ == 0) {
           is_end_ = true;
@@ -318,7 +318,6 @@ class SqlTable {
   BlockStore *const block_store_;
   const catalog::table_oid_t oid_;
 
-  // Eventually we'll support adding more tables when schema changes. For now we'll always access the one DataTable.
   common::ConcurrentMap<layout_version_t, DataTableVersion> tables_;
 
   /**
