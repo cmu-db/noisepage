@@ -42,14 +42,6 @@ class DatabaseEntry : public CatalogEntry<db_oid_t> {
  * A DatabaseHandle provides access to the (global) system pg_database
  * catalog.
  *
- * This pg_database is a subset of Postgres (v11)  pg_database, and
- * contains the following fields:
- *
- * Name    SQL Type     Description
- * ----    --------     -----------
- * oid     integer
- * datname varchar      Database name
- *
  * DatabaseEntry instances provide accessors for individual rows of
  * pg_database.
  */

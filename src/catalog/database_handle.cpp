@@ -22,7 +22,12 @@ const std::vector<SchemaCol> DatabaseHandle::schema_cols_ = {{0, true, "oid", ty
                                                              {5, false, "datctype", type::TypeId::VARCHAR},
                                                              {6, false, "datistemplate", type::TypeId::BOOLEAN},
                                                              {7, false, "datallowconn", type::TypeId::BOOLEAN},
-                                                             {8, false, "datconnlimit", type::TypeId::INTEGER}};
+                                                             {8, false, "datconnlimit", type::TypeId::INTEGER},
+                                                             {9, false, "datlasysiod", type::TypeId::INTEGER},
+                                                             {10, false, "datfrozenxid", type::TypeId::INTEGER},
+                                                             {11, false, "datminmxid", type::TypeId::INTEGER},
+                                                             {12, false, "dattablespace", type::TypeId::INTEGER},
+                                                             {13, false, "datacl", type::TypeId::INTEGER}};
 
 /**
  * Handle methods
