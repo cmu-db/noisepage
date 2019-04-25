@@ -55,8 +55,8 @@ void StatsAggregator::CreateTransactionTable() {
 
   // define schema
   std::vector<catalog::Schema::Column> cols;
-  cols.emplace_back("id", type::TypeId::INTEGER, false, catalog::col_oid_t(catalog_->GetNextOid()));
-  cols.emplace_back("latency", type::TypeId::INTEGER, false, catalog::col_oid_t(catalog_->GetNextOid()));
+  cols.emplace_back("id", type::TypeId::BIGINT, false, catalog::col_oid_t(catalog_->GetNextOid()));
+  cols.emplace_back("latency", type::TypeId::BIGINT, false, catalog::col_oid_t(catalog_->GetNextOid()));
   cols.emplace_back("tuple_read", type::TypeId::INTEGER, false, catalog::col_oid_t(catalog_->GetNextOid()));
   cols.emplace_back("tuple_insert", type::TypeId::INTEGER, false, catalog::col_oid_t(catalog_->GetNextOid()));
   cols.emplace_back("tuple_delete", type::TypeId::INTEGER, false, catalog::col_oid_t(catalog_->GetNextOid()));
