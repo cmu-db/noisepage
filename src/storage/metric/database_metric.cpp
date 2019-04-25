@@ -13,8 +13,8 @@ void DatabaseMetricRawData::UpdateAndPersist(transaction::TransactionManager *co
   const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
   auto db_handle = catalog->GetDatabaseHandle();
   auto table_handle = db_handle.GetNamespaceHandle(txn, terrier_oid).GetTableHandle(txn, "public");
-  auto table = table_handle.GetTable(txn, "database_metric_table");
-  std::vector<type::TransientValue> row;
+  auto table = GetStatsTable(txn_manager, catalog);
+  TERRIER_ASSERT(table != nullptr, "Stats table cannot be nullptr.");
 
   for (auto &entry : counters_) {
     // one iteration per database
@@ -51,7 +51,7 @@ void DatabaseMetricRawData::UpdateAndPersist(transaction::TransactionManager *co
     }
   }
 
-  txn_manager->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager->Commit(txn, nullptr, nullptr);
 }
 
 }  // namespace terrier::storage::metric

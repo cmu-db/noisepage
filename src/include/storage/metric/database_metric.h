@@ -73,6 +73,30 @@ class DatabaseMetricRawData : public AbstractRawData {
    */
   int32_t GetAbortCount(catalog::db_oid_t db_oid) { return counters_[db_oid].abort_cnt_; }
 
+  /**
+   * Get the SQL table for persisting collected data, create a new table if necessary
+   */
+  catalog::SqlTableRW *GetStatsTable(transaction::TransactionManager *const txn_manager,
+                                     catalog::Catalog *const catalog) {
+    auto txn = txn_manager->BeginTransaction();
+    const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
+    auto db_handle = catalog->GetDatabaseHandle();
+    auto table_handle = db_handle.GetNamespaceHandle(txn, terrier_oid).GetTableHandle(txn, "public");
+
+    // define schema
+    std::vector<catalog::Schema::Column> cols;
+    cols.emplace_back("id", type::TypeId::INTEGER, false, catalog::col_oid_t(catalog->GetNextOid()));
+    cols.emplace_back("commit_num", type::TypeId::INTEGER, false, catalog::col_oid_t(catalog->GetNextOid()));
+    cols.emplace_back("abort_num", type::TypeId::INTEGER, false, catalog::col_oid_t(catalog->GetNextOid()));
+    catalog::Schema schema(cols);
+
+    // create table
+    auto table_ptr = table_handle.GetTable(txn, "database_metric_table");
+    if (table_ptr == nullptr) table_ptr = table_handle.CreateTable(txn, schema, "database_metric_table");
+    txn_manager->Commit(txn, nullptr, nullptr);
+    return table_ptr;
+  }
+
  private:
   /**
    * Maps from database id to a pair of counters.

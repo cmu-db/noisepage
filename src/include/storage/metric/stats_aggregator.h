@@ -52,11 +52,6 @@ class StatsAggregator {
 
  private:
   /**
-   * Create an internal table for storing collected statistics
-   */
-  void CreateDatabaseTable();
-
-  /**
    * Transaction manager of the system
    */
   transaction::TransactionManager *const txn_manager_;
