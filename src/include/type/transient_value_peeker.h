@@ -18,7 +18,7 @@ class TransientValuePeeker {
    * @return bool representing the value of the TransientValue
    * @warning TransientValue must be non-NULL. @see TransientValue::Null() first
    */
-  static inline bool PeekBoolean(const TransientValue &value) {
+  static bool PeekBoolean(const TransientValue &value) {
     TERRIER_ASSERT(!value.Null(), "Doesn't make sense to peek a NULL value.");
     TERRIER_ASSERT(value.Type() == TypeId::BOOLEAN, "TypeId mismatch.");
     return value.GetAs<bool>();
@@ -29,7 +29,7 @@ class TransientValuePeeker {
    * @return int8_t representing the value of the TransientValue
    * @warning TransientValue must be non-NULL. @see TransientValue::Null() first
    */
-  static inline int8_t PeekTinyInt(const TransientValue &value) {
+  static int8_t PeekTinyInt(const TransientValue &value) {
     TERRIER_ASSERT(!value.Null(), "Doesn't make sense to peek a NULL value.");
     TERRIER_ASSERT(value.Type() == TypeId::TINYINT, "TypeId mismatch.");
     return value.GetAs<int8_t>();
@@ -40,7 +40,7 @@ class TransientValuePeeker {
    * @return int16_t representing the value of the TransientValue
    * @warning TransientValue must be non-NULL. @see TransientValue::Null() first
    */
-  static inline int16_t PeekSmallInt(const TransientValue &value) {
+  static int16_t PeekSmallInt(const TransientValue &value) {
     TERRIER_ASSERT(!value.Null(), "Doesn't make sense to peek a NULL value.");
     TERRIER_ASSERT(value.Type() == TypeId::SMALLINT, "TypeId mismatch.");
     return value.GetAs<int16_t>();
@@ -51,7 +51,7 @@ class TransientValuePeeker {
    * @return int32_t representing the value of the TransientValue
    * @warning TransientValue must be non-NULL. @see TransientValue::Null() first
    */
-  static inline int32_t PeekInteger(const TransientValue &value) {
+  static int32_t PeekInteger(const TransientValue &value) {
     TERRIER_ASSERT(!value.Null(), "Doesn't make sense to peek a NULL value.");
     TERRIER_ASSERT(value.Type() == TypeId::INTEGER, "TypeId mismatch.");
     return value.GetAs<int32_t>();
@@ -62,7 +62,7 @@ class TransientValuePeeker {
    * @return int64_t representing the value of the TransientValue
    * @warning TransientValue must be non-NULL. @see TransientValue::Null() first
    */
-  static inline int64_t PeekBigInt(const TransientValue &value) {
+  static int64_t PeekBigInt(const TransientValue &value) {
     TERRIER_ASSERT(!value.Null(), "Doesn't make sense to peek a NULL value.");
     TERRIER_ASSERT(value.Type() == TypeId::BIGINT, "TypeId mismatch.");
     return value.GetAs<int64_t>();
@@ -73,7 +73,7 @@ class TransientValuePeeker {
    * @return double representing the value of the TransientValue
    * @warning TransientValue must be non-NULL. @see TransientValue::Null() first
    */
-  static inline double PeekDecimal(const TransientValue &value) {
+  static double PeekDecimal(const TransientValue &value) {
     TERRIER_ASSERT(!value.Null(), "Doesn't make sense to peek a NULL value.");
     TERRIER_ASSERT(value.Type() == TypeId::DECIMAL, "TypeId mismatch.");
     return value.GetAs<double>();
@@ -84,7 +84,7 @@ class TransientValuePeeker {
    * @return timestamp_t representing the value of the TransientValue
    * @warning TransientValue must be non-NULL. @see TransientValue::Null() first
    */
-  static inline timestamp_t PeekTimestamp(const TransientValue &value) {
+  static timestamp_t PeekTimestamp(const TransientValue &value) {
     TERRIER_ASSERT(!value.Null(), "Doesn't make sense to peek a NULL value.");
     TERRIER_ASSERT(value.Type() == TypeId::TIMESTAMP, "TypeId mismatch.");
     return value.GetAs<timestamp_t>();
@@ -95,7 +95,7 @@ class TransientValuePeeker {
    * @return date_t representing the value of the TransientValue
    * @warning TransientValue must be non-NULL. @see TransientValue::Null() first
    */
-  static inline date_t PeekDate(const TransientValue &value) {
+  static date_t PeekDate(const TransientValue &value) {
     TERRIER_ASSERT(!value.Null(), "Doesn't make sense to peek a NULL value.");
     TERRIER_ASSERT(value.Type() == TypeId::DATE, "TypeId mismatch.");
     return value.GetAs<date_t>();
@@ -103,19 +103,16 @@ class TransientValuePeeker {
 
   /**
    * @param value TransientValue with TypeId VARCHAR to generate a C type for
-   * @return C string representing the value of the TransientValue. This null-terminated C string lives on the heap, and
-   * should be freed after use by the caller.
+   * @return C string representing the value of the TransientValue. Should use the underlying raw pointer with care
    * @warning TransientValue must be non-NULL. @see TransientValue::Null() first
    */
-  static inline const char *const PeekVarChar(const TransientValue &value) {
+  static std::string_view PeekVarChar(const TransientValue &value) {
     TERRIER_ASSERT(!value.Null(), "Doesn't make sense to peek a NULL value.");
     TERRIER_ASSERT(value.Type() == TypeId::VARCHAR, "TypeId mismatch.");
-    const auto *const varchar = value.GetAs<const char *const>();
-    const uint32_t length = *reinterpret_cast<const uint32_t *const>(varchar);
-    auto *const cstring = new char[length + 1];
-    std::memcpy(cstring, varchar + sizeof(uint32_t), length);
-    cstring[length] = '\0';
-    return cstring;
+    const auto *varchar = value.GetAs<const char *>();
+    uint32_t length = *reinterpret_cast<const uint32_t *>(varchar);
+    const auto *ptr = varchar + sizeof(uint32_t);
+    return std::string_view(ptr, length);
   }
 };
 

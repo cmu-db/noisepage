@@ -90,89 +90,65 @@ template void StorageUtil::ApplyDelta<ProjectedColumns::RowView>(const BlockLayo
                                                                  ProjectedColumns::RowView *buffer);
 
 uint32_t StorageUtil::PadUpToSize(const uint8_t word_size, const uint32_t offset) {
-  const uint32_t remainder = offset % word_size;
-  return remainder == 0 ? offset : offset + word_size - remainder;
+  TERRIER_ASSERT((word_size & (word_size - 1)) == 0, "word_size should be a power of two.");
+  // Because size is a power of two, mask is always all 1s up to the length of size.
+  // example, size is 8 (1000), mask is (0111)
+  uint32_t mask = word_size - 1;
+  // This is equivalent to (offset + (size - 1)) / size, which always pads up as desired
+  return (offset + mask) & (~mask);
 }
 
-// TODO(Tianyu): Rewrite these two functions to deal with varlens
-std::pair<BlockLayout, ColumnMap> StorageUtil::BlockLayoutFromSchema(const catalog::Schema &schema) {
-  uint16_t num_8_byte_attrs = 0;
-  uint16_t num_4_byte_attrs = 0;
-  uint16_t num_2_byte_attrs = 0;
-  uint16_t num_1_byte_attrs = 0;
-  uint16_t num_varlen_byte_attrs = 0;
-
-  // Begin with the NUM_RESERVED_COLUMNS in the attr_sizes
-  std::vector<uint8_t> attr_sizes;
-  attr_sizes.reserve(NUM_RESERVED_COLUMNS + schema.GetColumns().size());
-
-  for (uint8_t i = 0; i < NUM_RESERVED_COLUMNS; i++) {
-    attr_sizes.emplace_back(8);
-    num_8_byte_attrs++;
+std::vector<uint16_t> StorageUtil::ComputeBaseAttributeOffsets(const std::vector<uint8_t> &attr_sizes,
+                                                               uint16_t num_reserved_columns) {
+  // First compute {count_varlen, count_8, count_4, count_2, count_1}
+  // Then {offset_varlen, offset_8, offset_4, offset_2, offset_1} is the inclusive scan of the counts
+  std::vector<uint16_t> offsets;
+  offsets.reserve(5);
+  for (uint8_t i = 0; i < 5; i++) {
+    offsets.emplace_back(0);
   }
 
-  TERRIER_ASSERT(attr_sizes.size() == NUM_RESERVED_COLUMNS,
-                 "attr_sizes should be initialized with NUM_RESERVED_COLUMNS elements.");
-
-  // First pass through to accumulate the counts of each attr_size
-  for (const auto &column : schema.GetColumns()) {
-    attr_sizes.push_back(column.GetAttrSize());
-    switch (column.GetAttrSize()) {
+  for (const auto &size : attr_sizes) {
+    switch (size) {
+      case VARLEN_COLUMN:
+        offsets[1]++;
+        break;
       case 8:
-        num_8_byte_attrs++;
+        offsets[2]++;
         break;
       case 4:
-        num_4_byte_attrs++;
+        offsets[3]++;
         break;
       case 2:
-        num_2_byte_attrs++;
+        offsets[4]++;
         break;
       case 1:
-        num_1_byte_attrs++;
-        break;
-      case VARLEN_COLUMN:
-        num_varlen_byte_attrs++;
-      default:
-        break;
-    }
-  }
-
-  TERRIER_ASSERT(static_cast<uint16_t>(attr_sizes.size()) ==
-                     num_8_byte_attrs + num_4_byte_attrs + num_2_byte_attrs + num_1_byte_attrs + num_varlen_byte_attrs,
-                 "Number of attr_sizes does not match the sum of attr counts.");
-
-  // Initialize the offsets for each attr_size
-  auto offset_varlen_byte_attrs = static_cast<uint16_t>(NUM_RESERVED_COLUMNS);
-  auto offset_8_byte_attrs = static_cast<uint16_t>(offset_varlen_byte_attrs + num_varlen_byte_attrs);
-  auto offset_4_byte_attrs = static_cast<uint16_t>(offset_8_byte_attrs + (num_8_byte_attrs - NUM_RESERVED_COLUMNS));
-  auto offset_2_byte_attrs = static_cast<uint16_t>(offset_4_byte_attrs + num_4_byte_attrs);
-  auto offset_1_byte_attrs = static_cast<uint16_t>(offset_2_byte_attrs + num_2_byte_attrs);
-
-  ColumnMap col_oid_to_id;
-  // Build the map from Schema columns to underlying columns
-  for (const auto &column : schema.GetColumns()) {
-    switch (column.GetAttrSize()) {
-      case 8:
-        col_oid_to_id[column.GetOid()] = col_id_t(offset_8_byte_attrs++);
-        break;
-      case 4:
-        col_oid_to_id[column.GetOid()] = col_id_t(offset_4_byte_attrs++);
-        break;
-      case 2:
-        col_oid_to_id[column.GetOid()] = col_id_t(offset_2_byte_attrs++);
-        break;
-      case 1:
-        col_oid_to_id[column.GetOid()] = col_id_t(offset_1_byte_attrs++);
-        break;
-      case VARLEN_COLUMN:
-        col_oid_to_id[column.GetOid()] = col_id_t(offset_varlen_byte_attrs++);
         break;
       default:
         throw std::runtime_error("unexpected switch case value");
     }
   }
 
-  return {storage::BlockLayout(attr_sizes), col_oid_to_id};
+  // reserved columns appear first
+  offsets[0] = static_cast<uint16_t>(offsets[0] + num_reserved_columns);
+  // reserved columns are size 8
+  offsets[2] = static_cast<uint16_t>(offsets[2] - num_reserved_columns);
+
+  // compute the offsets with an inclusive scan
+  for (uint8_t i = 1; i < 5; i++) {
+    offsets[i] = static_cast<uint16_t>(offsets[i] + offsets[i - 1]);
+  }
+  return offsets;
+}
+
+std::vector<storage::col_id_t> StorageUtil::ProjectionListAllColumns(const storage::BlockLayout &layout) {
+  std::vector<storage::col_id_t> col_ids(layout.NumColumns() - NUM_RESERVED_COLUMNS);
+  // Add all of the column ids from the layout to the projection list
+  // 0 is version vector so we skip it
+  for (uint16_t col = NUM_RESERVED_COLUMNS; col < layout.NumColumns(); col++) {
+    col_ids[col - NUM_RESERVED_COLUMNS] = storage::col_id_t(col);
+  }
+  return col_ids;
 }
 
 }  // namespace terrier::storage

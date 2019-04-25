@@ -38,7 +38,8 @@ void RandomWorkloadTransaction::RandomUpdate(Random *generator) {
 
   std::vector<storage::col_id_t> update_col_ids =
       StorageTestUtil::ProjectionListRandomColumns(test_object_->layout_, generator);
-  storage::ProjectedRowInitializer initializer(test_object_->layout_, update_col_ids);
+  storage::ProjectedRowInitializer initializer =
+      storage::ProjectedRowInitializer::CreateProjectedRowInitializer(test_object_->layout_, update_col_ids);
   auto *update_buffer =
       test_object_->bookkeeping_ ? common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize()) : buffer_;
   storage::ProjectedRow *update = initializer.InitializeRow(update_buffer);
@@ -50,7 +51,7 @@ void RandomWorkloadTransaction::RandomUpdate(Random *generator) {
   // TODO(Tianyu): Hardly efficient, but will do for testing.
   if (test_object_->wal_on_ || test_object_->bookkeeping_) {
     auto *record = txn_->StageWrite(&test_object_->table_, updated, initializer);
-    std::memcpy(record->Delta(), update, update->Size());
+    std::memcpy(reinterpret_cast<void *>(record->Delta()), update, update->Size());
   }
   auto result = test_object_->table_.Update(txn_, updated, *update);
   aborted_ = !result;
@@ -207,7 +208,7 @@ void LargeTransactionTestObject::PopulateInitialTable(uint32_t num_tuples, Rando
     // TODO(Tianyu): Hardly efficient, but will do for testing.
     if (wal_on_ || bookkeeping_) {
       auto *record = initial_txn_->StageWrite(&table_, inserted, row_initializer_);
-      std::memcpy(record->Delta(), redo, redo->Size());
+      std::memcpy(reinterpret_cast<void *>(record->Delta()), redo, redo->Size());
     }
     last_checked_version_.emplace_back(inserted, bookkeeping_ ? redo : nullptr);
   }
@@ -260,7 +261,7 @@ void LargeTransactionTestObject::CheckTransactionReadCorrect(RandomWorkloadTrans
   EXPECT_TRUE(transaction::TransactionUtil::NewerThan(start_time, version_timestamp));
   for (auto &entry : txn->selects_) {
     auto it = before_snapshot.find(entry.first);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(layout_, entry.second, it->second));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(layout_, entry.second, it->second));
   }
 }
 

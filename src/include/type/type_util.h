@@ -17,6 +17,9 @@ class TypeUtil {
    * @return size in bytes used to represent the given type
    * @warning variable length types return 0. Handle this appropriately when calling this function and rememeber to use
    * the size of a pointer to point to the varlen entry
+   * @warning the implementation of ProjectedColumns assumes that all attribute sizes are an even power of two in its
+   * implementation (see NUM_ATTR_BOUNDARIES in storage_defs.h).  The concept of boundary checks can be implemented
+   * without this constraint, but it would likely incur a speed impact on creation of ProjectedColumns and RowViews.
    * @throw std::runtime_error if type is unknown
    */
   static uint8_t GetTypeSize(const TypeId type_id) {
@@ -34,9 +37,10 @@ class TypeUtil {
       case TypeId::TIMESTAMP:
         return 8;
       case TypeId::VARCHAR:
+      case TypeId::VARBINARY:
         return VARLEN_COLUMN;
       default:
-        throw std::runtime_error("Unknown type.");
+        throw std::runtime_error("Unknown TypeId in terrier::type::TypeUtil::GetTypeSize().");
     }
   }
 };

@@ -168,8 +168,9 @@ TEST(StatRegistryTest, GTEST_DEBUG_ONLY(DataTableStatTest)) {
                                                            terrier::storage::col_id_t{2}};
   terrier::storage::DataTable data_table_(&block_store_, block_layout_, terrier::storage::layout_version_t{0});
   terrier::transaction::timestamp_t timestamp(0);
-  auto *txn = new terrier::transaction::TransactionContext(timestamp, timestamp, &buffer_pool_, LOGGING_DISABLED);
-  auto init = terrier::storage::ProjectedRowInitializer(block_layout_, col_ids);
+  auto *txn = new terrier::transaction::TransactionContext(timestamp, timestamp, &buffer_pool_, LOGGING_DISABLED,
+                                                           ACTION_FRAMEWORK_DISABLED);
+  auto init = terrier::storage::ProjectedRowInitializer::CreateProjectedRowInitializer(block_layout_, col_ids);
   auto *redo_buffer_ = terrier::common::AllocationUtil::AllocateAligned(init.ProjectedRowSize());
   auto *redo = init.InitializeRow(redo_buffer_);
 
@@ -178,7 +179,6 @@ TEST(StatRegistryTest, GTEST_DEBUG_ONLY(DataTableStatTest)) {
   // initialize stat registry
   auto test_stat_reg = std::make_shared<terrier::common::StatisticsRegistry>();
   test_stat_reg->Register({"Storage"}, data_table_.GetDataTableCounter(), &data_table_);
-  std::cout << test_stat_reg->DumpStats() << std::endl;
   delete[] redo_buffer_;
   delete txn;
 

@@ -150,7 +150,7 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
       // so we are not checking it
       auto update_it = it->second->Updates()->find(redo->GetTupleSlot());
       EXPECT_NE(it->second->Updates()->end(), update_it);
-      EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), update_it->second, redo->Delta()));
+      EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), update_it->second, redo->Delta()));
       delete[] reinterpret_cast<byte *>(update_it->second);
       it->second->Updates()->erase(update_it);
     }

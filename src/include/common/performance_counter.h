@@ -192,3 +192,7 @@ class PerformanceCounter {
                                                                                                \
   inline void to_json(nlohmann::json &j, const ClassName &c) { j = c.ToJson(); }  /* NOLINT */ \
   inline void from_json(const nlohmann::json &j, ClassName &c) { c.FromJson(j); } /* NOLINT */
+
+// note: this is a rare correct usage of inline in modern C++
+// If you include a header file in multiple translation units, the multiple definitions conflict
+// and you get linker errors. We mark it inline so that the compiler figures it out.

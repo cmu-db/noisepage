@@ -3,31 +3,46 @@
 #include <algorithm>
 #include <functional>
 #include <ostream>
+#include <string_view>  // NOLINT
 #include <unordered_map>
 #include <utility>
 #include <vector>
 #include "catalog/catalog_defs.h"
 #include "common/constants.h"
 #include "common/container/bitmap.h"
+#include "common/hash_util.h"
 #include "common/macros.h"
 #include "common/object_pool.h"
 #include "common/strong_typedef.h"
+#include "storage/block_access_controller.h"
 
 namespace terrier::storage {
 // Write Ahead Logging:
 #define LOGGING_DISABLED nullptr
+#define ACTION_FRAMEWORK_DISABLED nullptr
 
 // All tuples potentially visible to txns should have a non-null attribute of version vector.
 // This is not to be confused with a non-null version vector that has value nullptr (0).
 #define VERSION_POINTER_COLUMN_ID ::terrier::storage::col_id_t(0)
 #define NUM_RESERVED_COLUMNS 1u
 
+// In type_util.h there are a total of 5 possible inlined attribute sizes:
+// 1, 2, 4, 8, and 16-bytes (16 byte is the structure portion of varlen).
+// Since we pack these attributes in descending size order, we can infer a
+// columns size by tracking the locations of the attribute size boundaries.
+// Therefore, we only need to track 4 locations because the exterior bounds
+// are implicit.
+#define NUM_ATTR_BOUNDARIES 4
+
 STRONG_TYPEDEF(col_id_t, uint16_t);
 STRONG_TYPEDEF(layout_version_t, uint32_t);
 
 /**
  * A block is a chunk of memory used for storage. It does not have any meaning
- * unless interpreted by a @see TupleAccessStrategy
+ * unless interpreted by a TupleAccessStrategy. The header layout is documented in the class as well.
+ * @see TupleAccessStrategy
+ *
+ * @warning If you change the layout please also change the way header sizes are computed in block layout!
  */
 struct alignas(common::Constants::BLOCK_SIZE) RawBlock {
   /**
@@ -41,9 +56,15 @@ struct alignas(common::Constants::BLOCK_SIZE) RawBlock {
    */
   std::atomic<uint32_t> insert_head_;
   /**
+   * Access controller of this block that coordinates access among Arrow readers, transactional workers
+   * and the transformation thread. In practice this can be used almost like a lock.
+   */
+  BlockAccessController controller_;
+
+  /**
    * Contents of the raw block.
    */
-  byte content_[common::Constants::BLOCK_SIZE - 2 * sizeof(uint32_t)];
+  byte content_[common::Constants::BLOCK_SIZE - 2 * sizeof(uint32_t) - sizeof(BlockAccessController)];
   // A Block needs to always be aligned to 1 MB, so we can get free bytes to
   // store offsets within a block in ine 8-byte word.
 };
@@ -147,8 +168,13 @@ class BlockAllocator {
  * malloc.
  */
 using BlockStore = common::ObjectPool<RawBlock, BlockAllocator>;
-
+/**
+ * Used by SqlTable to map between col_oids in Schema and col_ids in BlockLayout
+ */
 using ColumnMap = std::unordered_map<catalog::col_oid_t, col_id_t>;
+/**
+ * Used by execution and storage layers to map between col_oids and offsets within a ProjectedRow
+ */
 using ProjectionMap = std::unordered_map<catalog::col_oid_t, uint16_t>;
 
 /**
@@ -189,7 +215,7 @@ class VarlenEntry {
 
   /**
    * Constructs a new varlen entry, with the associated varlen value inlined within the struct itself. This is only
-   * possible when the inlined value is smaller than InlinedThreshold() as defined. The value is copied and the given
+   * possible when the inlined value is smaller than InlineThreshold() as defined. The value is copied and the given
    * pointer can be safely deallocated regardless of the state of the system.
    * @param content pointer to the varlen content
    * @param size length of the varlen content, in bytes (no C-style nul-terminator. Must be smaller than
@@ -231,7 +257,10 @@ class VarlenEntry {
    * Helper method to decide if the content needs to be GCed separately
    * @return whether the content can be deallocated by itself
    */
-  bool NeedReclaim() const { return size_ > static_cast<int32_t>(InlineThreshold()); }
+  bool NeedReclaim() const {
+    // force a signed comparison, if our sign bit is set size_ is negative so the test returns false
+    return size_ > static_cast<int32_t>(InlineThreshold());
+  }
 
   /**
    * @return pointer to the stored prefix of the varlen entry
@@ -243,13 +272,70 @@ class VarlenEntry {
    */
   const byte *Content() const { return IsInlined() ? prefix_ : content_; }
 
+  /**
+   * @return zero-copy view of the VarlenEntry as an immutable string that allows use with convenient STL functions
+   * @warning It is the programmer's responsibility to ensure that std::string_view does not outlive the VarlenEntry
+   */
+  std::string_view StringView() const {
+    return std::string_view(reinterpret_cast<const char *const>(Content()), Size());
+  }
+
  private:
-  int32_t size_;                   // sign bit is used to denote whether the buffer can be reclaimed by itself
+  int32_t size_;                   // buffer reclaimable => sign bit is 0 or size <= InlineThreshold
   byte prefix_[sizeof(uint32_t)];  // Explicit padding so that we can use these bits for inlined values or prefix
   const byte *content_;            // pointer to content of the varlen entry if not inlined
 };
 // To make sure our explicit padding is not screwing up the layout
 static_assert(sizeof(VarlenEntry) == 16, "size of the class should be 16 bytes");
+
+/**
+ * Equality checker that checks the underlying varlen bytes are equal (deep)
+ */
+struct VarlenContentDeepEqual {
+  /**
+   *
+   * @param lhs left hand side of comparison
+   * @param rhs right hand side of comparison
+   * @return whether the two varlen entries hold the same underlying value
+   */
+  bool operator()(const VarlenEntry &lhs, const VarlenEntry &rhs) const {
+    if (lhs.Size() != rhs.Size()) return false;
+    // TODO(Tianyu): Can optimize using prefixes
+    return std::memcmp(lhs.Content(), rhs.Content(), lhs.Size()) == 0;
+  }
+};
+
+/**
+ * Hasher that hashes the entry using the underlying varlen value
+ */
+struct VarlenContentHasher {
+  /**
+   * @param obj object to hash
+   * @return hash code of object
+   */
+  size_t operator()(const VarlenEntry &obj) const { return common::HashUtil::HashBytes(obj.Content(), obj.Size()); }
+};
+
+/**
+ * Lexicographic comparison of two varlen entries.
+ */
+struct VarlenContentCompare {
+  /**
+   *
+   * @param lhs left hand side of comparison
+   * @param rhs right hand side of comparison
+   * @return whether lhs < rhs in lexicographic order
+   */
+  bool operator()(const VarlenEntry &lhs, const VarlenEntry &rhs) const {
+    // Compare up to the minimum of the two sizes
+    int res = std::memcmp(lhs.Content(), rhs.Content(), std::min(lhs.Size(), rhs.Size()));
+    if (res == 0) {
+      // Shorter wins. If the two are equal, also return false.
+      return lhs.Size() < rhs.Size();
+    }
+    return res < 0;
+  }
+};
 
 }  // namespace terrier::storage
 

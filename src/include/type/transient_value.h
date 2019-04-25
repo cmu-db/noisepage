@@ -2,7 +2,9 @@
 
 #include <algorithm>
 #include <cstring>
+#include <string>
 #include "common/hash_util.h"
+#include "common/json.h"
 #include "common/macros.h"
 #include "loggers/type_logger.h"
 #include "type/type_id.h"
@@ -28,7 +30,7 @@ class TransientValuePeeker;
 class TransientValue {
   friend class TransientValueFactory;                     // Access to constructor
   friend class TransientValuePeeker;                      // Access to GetAs
-  friend class terrier::parser::ConstantValueExpression;  // Access to copy constructor
+  friend class terrier::parser::ConstantValueExpression;  // Access to copy constructor, json methods
 
  public:
   /**
@@ -168,8 +170,8 @@ class TransientValue {
   }
 
  private:
-  // The tests make sure that the private copy constructor and copy assignment operator work, so they need to be friends
-  // of the TransientValue class.
+  // The following tests make sure that the private copy constructor and copy assignment operator work, so they need to
+  // be friends of the TransientValue class.
   FRIEND_TEST(ValueTests, BooleanTest);
   FRIEND_TEST(ValueTests, TinyIntTest);
   FRIEND_TEST(ValueTests, SmallIntTest);
@@ -179,6 +181,29 @@ class TransientValue {
   FRIEND_TEST(ValueTests, TimestampTest);
   FRIEND_TEST(ValueTests, DateTest);
   FRIEND_TEST(ValueTests, VarCharTest);
+
+  /**
+   * Constructor for NULL value
+   * @param type type id
+   */
+  explicit TransientValue(const TypeId type) : type_(type), data_(0) { SetNull(true); }
+
+  // The following tests make sure that json serialization  works, so they need to
+  // be friends of the TransientValue class.
+  FRIEND_TEST(ValueTests, BooleanJsonTest);
+  FRIEND_TEST(ValueTests, TinyIntJsonTest);
+  FRIEND_TEST(ValueTests, SmallIntJsonTest);
+  FRIEND_TEST(ValueTests, IntegerJsonTest);
+  FRIEND_TEST(ValueTests, BigIntJsonTest);
+  FRIEND_TEST(ValueTests, DecimalJsonTest);
+  FRIEND_TEST(ValueTests, TimestampJsonTest);
+  FRIEND_TEST(ValueTests, DateJsonTest);
+  FRIEND_TEST(ValueTests, VarCharJsonTest);
+
+  /**
+   * Default constructor used for deserializing json
+   */
+  TransientValue() = default;
 
   template <typename T>
   TransientValue(const TypeId type, T data) {
@@ -246,7 +271,8 @@ class TransientValue {
    */
   template <typename T>
   T GetAs() const {
-    return *reinterpret_cast<const T *const>(&data_);
+    const auto *const value = reinterpret_cast<const T *const>(&data_);
+    return *value;
   }
 
   /**
@@ -269,8 +295,44 @@ class TransientValue {
     char *const varchar_contents = varchar + sizeof(uint32_t);
     const char *const other_varchar_contents = other_varchar + sizeof(uint32_t);
     std::memcpy(varchar_contents, other_varchar_contents, length);
+
     // copy the pointer to the VARCHAR buffer into the internal buffer
     data_ = reinterpret_cast<uintptr_t>(varchar);
+  }
+
+  /**
+   * @return transient value serialized to json
+   * @warning this method is made private to avoid serializing a TransientValue then
+   * deserializing it to bypass the TransientValuePeeker
+   */
+  nlohmann::json ToJson() const {
+    nlohmann::json j;
+    j["type"] = type_;
+    j["data"] = data_;
+    if (Type() == TypeId::VARCHAR) {
+      const uint32_t length = *reinterpret_cast<const uint32_t *const>(data_);
+      auto varchar = std::string(reinterpret_cast<const char *const>(data_), length + sizeof(uint32_t));
+      j["data"] = varchar;
+    } else {
+      j["data"] = data_;
+    }
+    return j;
+  }
+
+  /**
+   * @param j json to deserialize
+   * @warning this method is made private to avoid serializing a TransientValue then
+   * deserializing it to bypass the TransientValuePeeker
+   */
+  void FromJson(const nlohmann::json &j) {
+    type_ = j.at("type").get<TypeId>();
+    if (Type() == TypeId::VARCHAR) {
+      data_ = 0;
+      CopyVarChar(reinterpret_cast<const char *const>(j.at("data").get<std::string>().c_str()));
+
+    } else {
+      data_ = j.at("data").get<uintptr_t>();
+    }
   }
 
   TypeId type_ = TypeId::INVALID;
