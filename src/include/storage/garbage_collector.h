@@ -162,7 +162,8 @@ class GarbageCollector {
   void ReadUndoRecord(UndoRecord *start_record, UndoRecord *next, uint32_t *interval_length_ptr);
 
   /**
-   * Given the undo record, deallocate all the varlen entries contained in the regular undo record
+   * Given the undo record, mark all the varlen entries contained in the regular undo record to be deallocated later
+   * by pushing them in the corresponding transaction's loose pointers
    * @param undo_record the undo buffer whose varlen entries are to deallocated
    */
   void ReclaimBufferIfVarlen(UndoRecord *undo_record) const;

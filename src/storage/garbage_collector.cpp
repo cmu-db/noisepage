@@ -385,9 +385,10 @@ void GarbageCollector::ReadUndoRecord(UndoRecord *start_record, UndoRecord *next
     case DeltaRecordType::UPDATE:
       // Update the interval length
       (*interval_length_ptr)++;
-      // Process the Attributes to determine the attributes required for the compacted undo record
+      // Find the attributes contained in the undo record so that the initialised compacted undo record
+      // knows all the columns that will be contained in the compacted undo record
       ProcessUpdateUndoRecordAttributes(next);
-      // Mark the Record as unlinked
+      // Mark the undo record as unlinked
       UnlinkUndoRecordVersion(next);
       break;
     case DeltaRecordType::INSERT:
@@ -501,6 +502,8 @@ void GarbageCollector::ReclaimBufferIfVarlenCompacted(UndoRecord *const undo_rec
     col_id_t col_id = undo_record->Delta()->ColumnIds()[i];
     if (layout.IsVarlen(col_id)) {
       auto *varlen = reinterpret_cast<VarlenEntry *>(undo_record->Delta()->AccessWithNullCheck(i));
+      // The varlen entries in the compacted undo record don't need to be logged
+      // Can deallocate them right away
       if (varlen != nullptr && varlen->NeedReclaim()) delete[] varlen->Content();
     }
   }
