@@ -181,7 +181,7 @@ class Catalog {
 
   /**
    * Get a pointer to a user storage table.
-   *
+   * @param txn transaction
    * @param db_oid database
    * @param ns_oid namespace
    * @param table_oid table
@@ -191,6 +191,15 @@ class Catalog {
   SqlTableRW *GetUserTable(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid,
                            table_oid_t table_oid);
 
+  /**
+   * Get a pointer to a user storage table.
+   * @param txn transaction
+   * @param db_oid database
+   * @param ns_oid namespace
+   * @param name table name
+   * @return a pointer to the Sqltable helper class
+   * @throw out_of_range exception if either oid doesn't exist or the catalog doesn't exist. ??
+   */
   SqlTableRW *GetUserTable(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid,
                            const std::string &name);
 

@@ -83,6 +83,7 @@ class NamespaceHandle {
 
   /**
    * Delete an entry
+   * @param txn transaction
    * @param entry to delete
    * @return true on success
    */

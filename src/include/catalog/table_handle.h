@@ -42,7 +42,6 @@ class TableEntry {
    * @param oid the table oid
    * @param row a row in pg_class that represents this table
    * @param txn the transaction which wants the entry
-   * @param pg_class a pointer to the pg_class catalog
    * @param pg_namespace a pointer to pg_namespace
    * @param pg_tablespace a pointer to tablespace
    */

@@ -94,6 +94,13 @@ class ClassHandle {
   static SqlTableRW *Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,
                             const std::string &name);
 
+  /**
+   * Delete a entry from the class table
+   * @param txn transaction
+   * @param ns_oid namespace oid of entry to delete
+   * @param col_oid column oid of entry to delete
+   * @return true on success
+   */
   bool DeleteEntry(transaction::TransactionContext *txn, namespace_oid_t ns_oid, col_oid_t col_oid);
 
   /**

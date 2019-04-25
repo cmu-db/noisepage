@@ -117,15 +117,6 @@ class StorageUtil {
   }
 
   /**
-   * Given a schema, returns both a BlockLayout for the storage layer, and a mapping between each column's oid and the
-   * corresponding column id in the storage layer/BlockLayout
-   * @param schema Schema to generate a BlockLayout from. Columns should all have unique oids
-   * @return pair of BlockLayout and a map between col_oid_t and col_id
-   */
-   // TODO(pakhtar): remove, no implementation
-  static std::pair<BlockLayout, ColumnMap> BlockLayoutFromSchema(const catalog::Schema &schema);
-
-  /**
    * Given attribute sizes which will be sorted descending, computes the starting offsets for each of them.
    *
    * e.g. attribute_sizes {1, 2, 2, VARLEN} sorts to {VARLEN, 2, 2, 1}

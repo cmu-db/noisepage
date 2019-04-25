@@ -101,8 +101,6 @@ void Catalog::DeleteTable(transaction::TransactionContext *txn, db_oid_t db_oid,
   int32_t col_index = attr_table->ColNameToIndex("attrelid");
   auto it = attr_table->begin(txn);
   while (it != attr_table->end(txn)) {
-    // auto layout = attr_table->GetLayout();
-    // storage::ProjectedColumns::RowView row_view = it->InterpretAsRow(layout, 0);
     storage::ProjectedColumns::RowView row_view = it->InterpretAsRow(0);
     // check if a matching row, delete if it is
     byte *col_p = row_view.AccessWithNullCheck(attr_table->ColNumToOffset(col_index));
@@ -123,9 +121,7 @@ void Catalog::DeleteTable(transaction::TransactionContext *txn, db_oid_t db_oid,
   col_index = attrdef_table->ColNameToIndex("adrelid");
   auto attrdef_it = attrdef_table->begin(txn);
   while (attrdef_it != attrdef_table->end(txn)) {
-    // auto layout = attrdef_table->GetLayout();
-    // storage::ProjectedColumns::RowView row_view = attrdef_it->InterpretAsRow(layout, 0);
-storage::ProjectedColumns::RowView row_view = attrdef_it->InterpretAsRow(0);
+    storage::ProjectedColumns::RowView row_view = attrdef_it->InterpretAsRow(0);
     // check if a matching row, delete if it is
     byte *col_p = row_view.AccessWithNullCheck(attrdef_table->ColNumToOffset(col_index));
     if (col_p == nullptr) {
@@ -145,8 +141,6 @@ storage::ProjectedColumns::RowView row_view = attrdef_it->InterpretAsRow(0);
   col_index = class_table->ColNameToIndex("oid");
   auto class_it = class_table->begin(txn);
   while (class_it != class_table->end(txn)) {
-    // auto layout = class_table->GetLayout();
-    // storage::ProjectedColumns::RowView row_view = class_it->InterpretAsRow(layout, 0);
     storage::ProjectedColumns::RowView row_view = class_it->InterpretAsRow(0);
     // check if a matching row, delete if it is
     byte *col_p = row_view.AccessWithNullCheck(class_table->ColNumToOffset(col_index));
@@ -365,7 +359,6 @@ void Catalog::BootstrapDatabase(transaction::TransactionContext *txn, db_oid_t d
   auto add_cols_to_pg_attr = [this, txn, db_oid](const std::string &st) {
     auto table_p = GetCatalogTable(db_oid, st);
     AddColumnsToPGAttribute(txn, db_oid, table_p->GetSqlTable());
-    // AddColumnsToPGAttribute(txn, db_oid, map_[db_oid][name_map_[db_oid][st]]->GetSqlTable());
   };
   std::for_each(c_tables.begin(), c_tables.end(), add_cols_to_pg_attr);
 }
@@ -379,8 +372,6 @@ void Catalog::CreatePGAttrDef(transaction::TransactionContext *txn, db_oid_t db_
 }
 
 void Catalog::CreatePGNamespace(transaction::TransactionContext *txn, db_oid_t db_oid) {
-  // std::vector<type::TransientValue> row;
-
   // create the namespace table
   NamespaceHandle::Create(txn, this, db_oid, "pg_namespace");
 
@@ -531,8 +522,6 @@ void Catalog::DestroyDB(db_oid_t oid) {
   auto num_rows = columns->NumTuples();
   CATALOG_LOG_TRACE("We found {} rows in pg_class", num_rows);
 
-  // Get the block layout
-  // auto layout = storage::StorageUtil::BlockLayoutFromSchema(pg_class_ptr->GetSchema()).first;
   // get the pg_catalog oid
   auto pg_catalog_oid = GetDatabaseHandle().GetNamespaceHandle(txn, oid).NameToOid(txn, "pg_catalog");
   for (uint32_t i = 0; i < num_rows; i++) {

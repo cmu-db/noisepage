@@ -97,9 +97,12 @@ bool ClassHandle::DeleteEntry(transaction::TransactionContext *txn, namespace_oi
   if (class_entry == nullptr) {
     return false;
   }
-  // verify namespace_oid
+  // verify namespace_oid matches
   uint32_t found_ns_oid = class_entry->GetIntegerColumn("relnamespace");
-  TERRIER_ASSERT(found_ns_oid == !ns_oid, "non-matching namespace oid");
+  if (found_ns_oid != !ns_oid) {
+    CATALOG_LOG_ERROR("Error deleting class entry, found ns oid {} != entry ns oid {}", found_ns_oid, !ns_oid);
+    TERRIER_ASSERT(found_ns_oid == !ns_oid, "non-matching namespace oid");
+  }
   DeleteEntry(txn, class_entry);
 
   return true;

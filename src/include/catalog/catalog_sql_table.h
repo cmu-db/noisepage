@@ -179,7 +179,8 @@ class SqlTableRW {
       col_oids_.emplace_back(c.GetOid());
     }
 
-    init_pair_ = new std::pair<storage::ProjectedColumnsInitializer, storage::ProjectionMap>(table_->InitializerForProjectedColumns(col_oids_, 1));
+    init_pair_ = new std::pair<storage::ProjectedColumnsInitializer, storage::ProjectionMap>(
+        table_->InitializerForProjectedColumns(col_oids_, 1));
     col_initer_ = &init_pair_->first;
 
     // save information needed for (later) reading and writing
