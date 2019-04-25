@@ -121,7 +121,7 @@ BENCHMARK_DEFINE_F(SqlTableBenchmark, SimpleInsert)(benchmark::State &state) {
     storage::SqlTable table(&block_store_, *schema_, catalog::table_oid_t(0));
     // We can use dummy timestamps here since we're not invoking concurrency control
     transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), &buffer_pool_,
-                                        LOGGING_DISABLED);
+                                        LOGGING_DISABLED, ACTION_FRAMEWORK_DISABLED);
     for (uint32_t i = 0; i < num_inserts_; ++i) {
       table.Insert(&txn, *redo_, storage::layout_version_t(0));
     }
@@ -141,7 +141,7 @@ BENCHMARK_DEFINE_F(SqlTableBenchmark, ConcurrentInsert)(benchmark::State &state)
     auto workload = [&](uint32_t id) {
       // We can use dummy timestamps here since we're not invoking concurrency control
       transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), &buffer_pool_,
-                                          LOGGING_DISABLED);
+                                          LOGGING_DISABLED, ACTION_FRAMEWORK_DISABLED);
       for (uint32_t i = 0; i < num_inserts_ / num_threads_; ++i) {
         table.Insert(&txn, *redo_, storage::layout_version_t(0));
       }
@@ -160,7 +160,7 @@ BENCHMARK_DEFINE_F(SqlTableBenchmark, SingleVersionSequentialRead)(benchmark::St
   // Populate read_table_ by inserting tuples
   // We can use dummy timestamps here since we're not invoking concurrency control
   transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), &buffer_pool_,
-                                      LOGGING_DISABLED);
+                                      LOGGING_DISABLED, ACTION_FRAMEWORK_DISABLED);
   std::vector<storage::TupleSlot> read_order;
   for (uint32_t i = 0; i < num_reads_; ++i) {
     read_order.emplace_back(table_->Insert(&txn, *redo_, storage::layout_version_t(0)));
@@ -183,7 +183,7 @@ BENCHMARK_DEFINE_F(SqlTableBenchmark, MultiVersionMismatchSequentialRead)(benchm
   // Populate read_table_ by inserting tuples
   // We can use dummy timestamps here since we're not invoking concurrency control
   transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), &buffer_pool_,
-                                      LOGGING_DISABLED);
+                                      LOGGING_DISABLED, ACTION_FRAMEWORK_DISABLED);
   std::vector<storage::TupleSlot> read_order;
   for (uint32_t i = 0; i < num_reads_; ++i) {
     read_order.emplace_back(table_->Insert(&txn, *redo_, storage::layout_version_t(0)));
@@ -218,7 +218,7 @@ BENCHMARK_DEFINE_F(SqlTableBenchmark, MultiVersionMatchSequentialRead)(benchmark
   // Populate read_table_ by inserting tuples
   // We can use dummy timestamps here since we're not invoking concurrency control
   transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), &buffer_pool_,
-                                      LOGGING_DISABLED);
+                                      LOGGING_DISABLED, ACTION_FRAMEWORK_DISABLED);
   // create new schema
   catalog::col_oid_t col_oid(column_num_);
   std::vector<catalog::Schema::Column> new_columns(columns_.begin(), columns_.end() - 1);
@@ -261,7 +261,7 @@ BENCHMARK_DEFINE_F(SqlTableBenchmark, SingleVersionRandomRead)(benchmark::State 
   // Populate read_table_ by inserting tuples
   // We can use dummy timestamps here since we're not invoking concurrency control
   transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), &buffer_pool_,
-                                      LOGGING_DISABLED);
+                                      LOGGING_DISABLED, ACTION_FRAMEWORK_DISABLED);
   std::vector<storage::TupleSlot> read_order;
   for (uint32_t i = 0; i < num_reads_; ++i) {
     read_order.emplace_back(table_->Insert(&txn, *redo_, storage::layout_version_t(0)));
@@ -286,7 +286,7 @@ BENCHMARK_DEFINE_F(SqlTableBenchmark, MultiVersionMismatchRandomRead)(benchmark:
   // Populate read_table_ by inserting tuples
   // We can use dummy timestamps here since we're not invoking concurrency control
   transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), &buffer_pool_,
-                                      LOGGING_DISABLED);
+                                      LOGGING_DISABLED, ACTION_FRAMEWORK_DISABLED);
   std::vector<storage::TupleSlot> read_order;
   for (uint32_t i = 0; i < num_reads_; ++i) {
     read_order.emplace_back(table_->Insert(&txn, *redo_, storage::layout_version_t(0)));
@@ -324,7 +324,7 @@ BENCHMARK_DEFINE_F(SqlTableBenchmark, MultiVersionMatchRandomRead)(benchmark::St
   // Populate read_table_ by inserting tuples
   // We can use dummy timestamps here since we're not invoking concurrency control
   transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), &buffer_pool_,
-                                      LOGGING_DISABLED);
+                                      LOGGING_DISABLED, ACTION_FRAMEWORK_DISABLED);
   // create new schema
   catalog::col_oid_t col_oid(column_num_);
   std::vector<catalog::Schema::Column> new_columns(columns_.begin(), columns_.end() - 1);
@@ -370,7 +370,7 @@ BENCHMARK_DEFINE_F(SqlTableBenchmark, ConcurrentSingleVersionRead)(benchmark::St
   // Populate read_table_ by inserting tuples
   // We can use dummy timestamps here since we're not invoking concurrency control
   transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), &buffer_pool_,
-                                      LOGGING_DISABLED);
+                                      LOGGING_DISABLED, ACTION_FRAMEWORK_DISABLED);
   std::vector<storage::TupleSlot> read_order;
   for (uint32_t i = 0; i < num_reads_; ++i) {
     read_order.emplace_back(table_->Insert(&txn, *redo_, storage::layout_version_t(0)));
@@ -388,7 +388,7 @@ BENCHMARK_DEFINE_F(SqlTableBenchmark, ConcurrentSingleVersionRead)(benchmark::St
     auto workload = [&](uint32_t id) {
       // We can use dummy timestamps here since we're not invoking concurrency control
       transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), &buffer_pool_,
-                                          LOGGING_DISABLED);
+                                          LOGGING_DISABLED, ACTION_FRAMEWORK_DISABLED);
       for (uint32_t i = 0; i < num_inserts_ / num_threads_; ++i) {
         table_->Select(&txn, read_order[(rand_read_offsets[id] + i) % read_order.size()], reads_[id], *map_,
                        storage::layout_version_t(0));
@@ -408,7 +408,7 @@ BENCHMARK_DEFINE_F(SqlTableBenchmark, ConcurrentMultiVersionRead)(benchmark::Sta
   // Populate read_table_ by inserting tuples
   // We can use dummy timestamps here since we're not invoking concurrency control
   transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), &buffer_pool_,
-                                      LOGGING_DISABLED);
+                                      LOGGING_DISABLED, ACTION_FRAMEWORK_DISABLED);
   std::vector<storage::TupleSlot> read_order;
   for (uint32_t i = 0; i < num_reads_; ++i) {
     read_order.emplace_back(table_->Insert(&txn, *redo_, storage::layout_version_t(0)));
@@ -446,7 +446,7 @@ BENCHMARK_DEFINE_F(SqlTableBenchmark, ConcurrentMultiVersionRead)(benchmark::Sta
     auto workload = [&](uint32_t id) {
       // We can use dummy timestamps here since we're not invoking concurrency control
       transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), &buffer_pool_,
-                                          LOGGING_DISABLED);
+                                          LOGGING_DISABLED, ACTION_FRAMEWORK_DISABLED);
       for (uint32_t i = 0; i < num_inserts_ / num_threads_; ++i) {
         table_->Select(&txn, read_order[(rand_read_offsets[id] + i) % read_order.size()], reads_[id], *map_,
                        storage::layout_version_t(1));
@@ -465,7 +465,7 @@ BENCHMARK_DEFINE_F(SqlTableBenchmark, SingleVersionUpdate)(benchmark::State &sta
   // Insert a tuple to the table
   // We can use dummy timestamps here since we're not invoking concurrency control
   transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), &buffer_pool_,
-                                      LOGGING_DISABLED);
+                                      LOGGING_DISABLED, ACTION_FRAMEWORK_DISABLED);
   storage::TupleSlot slot = table_->Insert(&txn, *redo_, storage::layout_version_t(0));
   // Populate with random values for updates
   CatalogTestUtil::PopulateRandomRow(redo_, *schema_, *map_, &generator_);
@@ -487,7 +487,7 @@ BENCHMARK_DEFINE_F(SqlTableBenchmark, MultiVersionMatchUpdate)(benchmark::State 
   // Populate read_table_ by inserting tuples
   // We can use dummy timestamps here since we're not invoking concurrency control
   transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), &buffer_pool_,
-                                      LOGGING_DISABLED);
+                                      LOGGING_DISABLED, ACTION_FRAMEWORK_DISABLED);
   // create new schema
   catalog::col_oid_t col_oid(column_num_);
   std::vector<catalog::Schema::Column> new_columns(columns_.begin(), columns_.end() - 1);
@@ -568,7 +568,7 @@ BENCHMARK_DEFINE_F(SqlTableBenchmark, SingleVersionScan)(benchmark::State &state
   // Populate read_table_ by inserting tuples
   // We can use dummy timestamps here since we're not invoking concurrency control
   transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), &buffer_pool_,
-                                      LOGGING_DISABLED);
+                                      LOGGING_DISABLED, ACTION_FRAMEWORK_DISABLED);
   for (uint32_t i = 0; i < num_inserts_; ++i) {
     table_->Insert(&txn, *redo_, storage::layout_version_t(0));
   }
@@ -599,7 +599,7 @@ BENCHMARK_DEFINE_F(SqlTableBenchmark, MultiVersionScan)(benchmark::State &state)
   // Populate read_table_ by inserting tuples
   // We can use dummy timestamps here since we're not invoking concurrency control
   transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), &buffer_pool_,
-                                      LOGGING_DISABLED);
+                                      LOGGING_DISABLED, ACTION_FRAMEWORK_DISABLED);
 
   // insert tuples into old schema
   for (uint32_t i = 0; i < num_inserts_ / 2; ++i) {
