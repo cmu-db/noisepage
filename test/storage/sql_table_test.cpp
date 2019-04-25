@@ -310,7 +310,6 @@ class SqlTableTestRW {
   catalog::Schema *schema_ = nullptr;
   std::vector<catalog::Schema::Column> cols_;
   std::vector<catalog::col_oid_t> col_oids_;
-  storage::BlockLayout *layout_ = nullptr;
 
   storage::ProjectedRowInitializer *pri_ = nullptr;
   storage::ProjectionMap *pr_map_ = nullptr;
