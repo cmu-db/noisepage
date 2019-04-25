@@ -218,7 +218,7 @@ class DataTable {
   friend class GarbageCollector;
   // The TransactionManager needs to modify VersionPtrs when rolling back aborts
   friend class transaction::TransactionManager;
-  // The Index wrapper needs access to VisibleToTxn
+  // The index wrappers need access to IsVisible and HasConflict
   friend class index::Index;
   template <typename KeyType>
   friend class index::BwTreeIndex;
@@ -258,6 +258,7 @@ class DataTable {
   // Checks for Snapshot Isolation conflicts, used by Update
   bool HasConflict(const transaction::TransactionContext &txn, UndoRecord *version_ptr) const;
 
+  // Wrapper around the other HasConflict for indexes to call (they only have tuple slot, not the version pointer)
   bool HasConflict(const transaction::TransactionContext &txn, TupleSlot slot) const;
 
   // Performs a visibility check on the designated TupleSlot. Note that this does not traverse a version chain, so this

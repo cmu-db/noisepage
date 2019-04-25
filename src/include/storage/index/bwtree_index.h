@@ -32,9 +32,9 @@ class BwTreeIndex final : public Index {
                    "This Insert is designed for secondary indexes with no uniqueness constraints.");
     KeyType index_key;
     index_key.SetFromProjectedRow(tuple, metadata_);
-    const bool ret = bwtree_->Insert(index_key, location, false);
+    const bool result = bwtree_->Insert(index_key, location, false);
 
-    if (ret) {
+    if (result) {
       // Register an abort action with the txn context in case of rollback
       txn->RegisterAbortAction([=]() {
         const bool result = bwtree_->Delete(index_key, location);
@@ -42,7 +42,7 @@ class BwTreeIndex final : public Index {
       });
     }
 
-    return ret;
+    return result;
   }
 
   bool InsertUnique(transaction::TransactionContext *const txn, const ProjectedRow &tuple,
@@ -53,21 +53,17 @@ class BwTreeIndex final : public Index {
     index_key.SetFromProjectedRow(tuple, metadata_);
     bool predicate_satisfied = false;
 
+    // The predicate checks if any matching keys have write-write conflicts or are still visible to the calling txn.
     auto predicate = [&](const TupleSlot slot) -> bool {
       const auto *const data_table = slot.GetBlock()->data_table_;
       return data_table->HasConflict(*txn, slot) || data_table->IsVisible(*txn, slot);
     };
 
-    const bool ret = bwtree_->ConditionalInsert(index_key, location, predicate, &predicate_satisfied);
+    const bool result = bwtree_->ConditionalInsert(index_key, location, predicate, &predicate_satisfied);
 
-    // if predicate is not satisfied then we know insertion succeeds
-    if (!predicate_satisfied) {
-      TERRIER_ASSERT(ret, "Insertion should always succeed. (Ziqi)");
-    } else {
-      TERRIER_ASSERT(!ret, "Insertion should always fail. (Ziqi)");
-    }
+    TERRIER_ASSERT(predicate_satisfied != result, "If predicate is not satisfied then insertion should succeed.");
 
-    if (ret) {
+    if (result) {
       // Register an abort action with the txn context in case of rollback
       txn->RegisterAbortAction([=]() {
         const bool result = bwtree_->Delete(index_key, location);
@@ -75,7 +71,7 @@ class BwTreeIndex final : public Index {
       });
     }
 
-    return ret;
+    return result;
   }
 
   void Delete(transaction::TransactionContext *const txn, const ProjectedRow &tuple, const TupleSlot location) final {
@@ -86,7 +82,7 @@ class BwTreeIndex final : public Index {
                        !(location.GetBlock()->data_table_->IsVisible(*txn, location)),
                    "Called index delete on a TupleSlot that has a conflict with this txn or is still visible.");
 
-    // register a deferred action for the GC with txn manager
+    // Register a deferred action for the GC with txn manager
     auto *const txn_manager = txn->GetTransactionManager();
     txn->RegisterCommitAction([=]() {
       txn_manager->DeferAction([=]() {
@@ -108,6 +104,9 @@ class BwTreeIndex final : public Index {
 
     // Perform lookup in BwTree
     bwtree_->GetValue(index_key, results);
+
+    // Avoid resizing our value_list, even if it means over-provisioning
+    value_list->reserve(results.size());
 
     // Perform visibility check on result
     for (const auto &result : results) {
