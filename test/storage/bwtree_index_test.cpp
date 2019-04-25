@@ -851,6 +851,7 @@ TEST_F(BwTreeIndexTests, CommitUpdate1) {
   default_index_->ScanKey(*txn0, *scan_key_pr, &results);
   EXPECT_EQ(results.size(), 1);
   EXPECT_EQ(tuple_slot, results[0]);
+  results.clear();
 
   // txn 0 updates in the table, which is really a delete and insert since it's an indexed attribute
   EXPECT_TRUE(sql_table_->Delete(txn0, results[0]));
@@ -863,6 +864,17 @@ TEST_F(BwTreeIndexTests, CommitUpdate1) {
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15445;
   EXPECT_TRUE(default_index_->Insert(txn0, *insert_key, new_tuple_slot));
 
+  // txn 1 scans index for 15721 and gets no visible result
+  *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15721;
+  default_index_->ScanKey(*txn0, *scan_key_pr, &results);
+  EXPECT_EQ(results.size(), 0);
+  results.clear();
+
+  // txn 1 scans index for 15445 and gets a visible, correct result
+  *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15445;
+  default_index_->ScanKey(*txn0, *scan_key_pr, &results);
+  EXPECT_EQ(results.size(), 1);
+  EXPECT_EQ(new_tuple_slot, results[0]);
   results.clear();
 
   auto *txn1 = txn_manager_.BeginTransaction();
@@ -1083,6 +1095,7 @@ TEST_F(BwTreeIndexTests, AbortUpdate1) {
   default_index_->ScanKey(*txn0, *scan_key_pr, &results);
   EXPECT_EQ(results.size(), 1);
   EXPECT_EQ(tuple_slot, results[0]);
+  results.clear();
 
   // txn 0 updates in the table, which is really a delete and insert since it's an indexed attribute
   EXPECT_TRUE(sql_table_->Delete(txn0, results[0]));
@@ -1095,6 +1108,17 @@ TEST_F(BwTreeIndexTests, AbortUpdate1) {
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15445;
   EXPECT_TRUE(default_index_->Insert(txn0, *insert_key, new_tuple_slot));
 
+  // txn 1 scans index for 15721 and gets no visible result
+  *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15721;
+  default_index_->ScanKey(*txn0, *scan_key_pr, &results);
+  EXPECT_EQ(results.size(), 0);
+  results.clear();
+
+  // txn 1 scans index for 15445 and gets a visible, correct result
+  *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15445;
+  default_index_->ScanKey(*txn0, *scan_key_pr, &results);
+  EXPECT_EQ(results.size(), 1);
+  EXPECT_EQ(new_tuple_slot, results[0]);
   results.clear();
 
   auto *txn1 = txn_manager_.BeginTransaction();
@@ -1262,6 +1286,95 @@ TEST_F(BwTreeIndexTests, AbortUpdate2) {
 
   // txn 2 scans index for 15445 and gets no visible result
   *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15445;
+  default_index_->ScanKey(*txn2, *scan_key_pr, &results);
+  EXPECT_EQ(results.size(), 0);
+  results.clear();
+
+  txn_manager_.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
+}
+
+//    Txn #0 | Txn #1 | Txn #2 |
+//    --------------------------
+//    BEGIN  |        |        |
+//    W(X)   |        |        |
+//    R(X)   |        |        |
+//           | BEGIN  |        |
+//           | R(X)   |        |
+//    COMMIT |        |        |
+//           | R(X)   |        |
+//           | COMMIT |        |
+//           |        | BEGIN  |
+//           |        | R(X)   |
+//           |        | COMMIT |
+//
+// Txn #0 should only read Txn #0's version of X
+// Txn #1 should only read the previous version of X because its start time is before #0's commit
+// Txn #2 should only read Txn #0's version of X
+//
+// This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
+// NOLINTNEXTLINE
+TEST_F(BwTreeIndexTests, CommitDelete1) {
+  auto *insert_txn = txn_manager_.BeginTransaction();
+
+  // insert_txn inserts into table
+  auto *insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
+  *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
+  const auto tuple_slot = sql_table_->Insert(insert_txn, *insert_tuple);
+
+  // insert_txn inserts into index
+  auto *insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
+  *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
+  EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
+
+  txn_manager_.Commit(insert_txn, TestCallbacks::EmptyCallback, nullptr);
+
+  std::vector<storage::TupleSlot> results;
+
+  auto *const scan_key_pr = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
+
+  auto *txn0 = txn_manager_.BeginTransaction();
+
+  // txn 0 scans index for 15721 and gets a visible, correct result
+  *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15721;
+  default_index_->ScanKey(*txn0, *scan_key_pr, &results);
+  EXPECT_EQ(results.size(), 1);
+  EXPECT_EQ(tuple_slot, results[0]);
+  results.clear();
+
+  // txn 0 deletes in the table
+  EXPECT_TRUE(sql_table_->Delete(txn0, results[0]));
+  default_index_->Delete(txn0, *insert_key, results[0]);
+
+  // txn 0 scans index for 15721 and gets no visible result
+  *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15721;
+  default_index_->ScanKey(*txn0, *scan_key_pr, &results);
+  EXPECT_EQ(results.size(), 0);
+  results.clear();
+
+  auto *txn1 = txn_manager_.BeginTransaction();
+
+  // txn 1 scans index for 15721 and gets a visible, correct result
+  *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15721;
+  default_index_->ScanKey(*txn1, *scan_key_pr, &results);
+  EXPECT_EQ(results.size(), 1);
+  EXPECT_EQ(tuple_slot, results[0]);
+  results.clear();
+
+  txn_manager_.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
+
+  // txn 1 scans index for 15721 and gets a visible, correct result
+  *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15721;
+  default_index_->ScanKey(*txn1, *scan_key_pr, &results);
+  EXPECT_EQ(results.size(), 1);
+  EXPECT_EQ(tuple_slot, results[0]);
+  results.clear();
+
+  txn_manager_.Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
+
+  auto *txn2 = txn_manager_.BeginTransaction();
+
+  // txn 2 scans index for 15721 and gets no visible result
+  *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15721;
   default_index_->ScanKey(*txn2, *scan_key_pr, &results);
   EXPECT_EQ(results.size(), 0);
   results.clear();
