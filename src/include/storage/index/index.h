@@ -64,6 +64,7 @@ class Index {
 
   /**
    * Inserts a new key-value pair into the index.
+   * @param txn txn context for the calling txn, used to register abort actions
    * @param tuple key
    * @param location value
    * @return false if the value already exists, true otherwise
@@ -72,7 +73,7 @@ class Index {
 
   /**
    * Inserts a key-value pair only if any matching keys have TupleSlots that don't conflict
-   * @param txn txn context for the calling txn, used for visibility and write-write checks
+   * @param txn txn context for the calling txn, used for visibility and write-write, and to register abort actions
    * @param tuple key
    * @param location value
    * @return true if the value was inserted, false otherwise
@@ -82,6 +83,7 @@ class Index {
 
   /**
    * Removes a key-value pair from the index.
+   * @param txn txn context for the calling txn, used to register commit actions for deferred GC actions
    * @param tuple key
    * @param location value
    * @return false if the key-value pair did not exist, true if the deletion succeeds
