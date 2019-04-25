@@ -99,7 +99,30 @@ class CheckpointManager {
     }
     return file_name;
   }
-
+  
+  /**
+   * Delete all checkpoint files, mainly for test purposes.
+   */
+  void UnlinkCheckpointFiles() {
+    // TODO(zhaozhes) : checkpoint directory is currently hard-coded here
+    char const *path = ".";
+    DIR *dir;
+    struct dirent *ent;
+    if ((dir = opendir(path)) != nullptr) {
+      /* print all the files and directories within directory */
+      while ((ent = readdir(dir)) != nullptr) {
+        std::string checkpoint_file(ent->d_name);
+        if (checkpoint_file.find(checkpoint_file_path_prefix_) == 0) {
+          unlink(checkpoint_file.c_str());
+        }
+      }
+      closedir(dir);
+    } else {
+      /* could not open directory */
+      throw std::runtime_error("cannot open checkpoint directory");
+    }
+  }
+  
   /**
    * Persist a table. This is achieved by first scan the table with a ProjectedColumn buffer, then transfer the data
    * to a ProjectedRow buffer and write the memory representation of the ProjectedRow directly to disk. Varlen columns

@@ -31,26 +31,6 @@ class CheckpointTests : public TerrierTest {
     checkpoint_thread_.join();
   }
 
-  void UnlinkCheckpointFiles() {
-    // TODO(zhaozhes) : checkpoint directory is currently hard-coded here
-    char const *path = ".";
-    DIR *dir;
-    struct dirent *ent;
-    if ((dir = opendir(path)) != nullptr) {
-      /* print all the files and directories within directory */
-      while ((ent = readdir(dir)) != nullptr) {
-        std::string checkpoint_file(ent->d_name);
-        if (checkpoint_file.find(CHECKPOINT_FILE_PREFIX) == 0) {
-          unlink(checkpoint_file.c_str());
-        }
-      }
-      closedir(dir);
-    } else {
-      /* could not open directory */
-      throw std::runtime_error("cannot open checkpoint directory");
-    }
-  }
-
   storage::CheckpointManager checkpoint_manager_{CHECKPOINT_FILE_PREFIX};
   std::thread checkpoint_thread_;
   transaction::TransactionManager *txn_manager_;
@@ -82,8 +62,7 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryNoSeparateThread) {
   tested.GenerateRandomColumns(num_columns, true, &random_generator);
   tested.Create();
   tested.InsertRandomRows(num_rows, 0.2, &random_generator);
-
-  storage::CheckpointManager manager(CHECKPOINT_FILE_PREFIX);
+  
   storage::SqlTable *table = tested.GetTable();
   storage::BlockLayout layout = tested.GetLayout();
   catalog::Schema *schema = tested.GetSchema();
@@ -103,10 +82,10 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryNoSeparateThread) {
   transaction::TransactionContext *recovery_txn = txn_manager->BeginTransaction();
   storage::BlockStore block_store_{10000, 10000};
   storage::SqlTable *recovered_table = new storage::SqlTable(&block_store_, *schema, catalog::table_oid_t(1));
-  manager.StartRecovery(recovery_txn);
-  manager.RegisterTable(recovered_table, &layout);
-  manager.Recover(latest_checkpoint_path.c_str());
-  manager.EndRecovery();
+  checkpoint_manager_.StartRecovery(recovery_txn);
+  checkpoint_manager_.RegisterTable(recovered_table, &layout);
+  checkpoint_manager_.Recover(latest_checkpoint_path.c_str());
+  checkpoint_manager_.EndRecovery();
   txn_manager->Commit(recovery_txn, StorageTestUtil::EmptyCallback, nullptr);
   // read recovered table
   transaction::TransactionContext *scan_txn_2 = txn_manager->BeginTransaction();
@@ -123,7 +102,7 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryNoSeparateThread) {
                       std::inserter(diff2, diff2.begin()));
   EXPECT_EQ(diff1.size(), 0);
   EXPECT_EQ(diff2.size(), 0);
-  UnlinkCheckpointFiles();
+  checkpoint_manager_.UnlinkCheckpointFiles();
   delete txn;
   delete recovered_table;
   delete scan_txn;
@@ -143,7 +122,6 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryNoVarlen) {
   tested.Create();
   tested.InsertRandomRows(num_rows, 0.2, &random_generator);
 
-  storage::CheckpointManager manager(CHECKPOINT_FILE_PREFIX);
   storage::SqlTable *table = tested.GetTable();
   storage::BlockLayout layout = tested.GetLayout();
   catalog::Schema *schema = tested.GetSchema();
@@ -164,10 +142,10 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryNoVarlen) {
   transaction::TransactionContext *recovery_txn = txn_manager->BeginTransaction();
   storage::BlockStore block_store_{10000, 10000};
   storage::SqlTable *recovered_table = new storage::SqlTable(&block_store_, *schema, catalog::table_oid_t(1));
-  manager.StartRecovery(recovery_txn);
-  manager.RegisterTable(recovered_table, &layout);
-  manager.Recover(latest_checkpoint_path.c_str());
-  manager.EndRecovery();
+  checkpoint_manager_.StartRecovery(recovery_txn);
+  checkpoint_manager_.RegisterTable(recovered_table, &layout);
+  checkpoint_manager_.Recover(latest_checkpoint_path.c_str());
+  checkpoint_manager_.EndRecovery();
   txn_manager->Commit(recovery_txn, StorageTestUtil::EmptyCallback, nullptr);
   // read recovered table
   transaction::TransactionContext *scan_txn_2 = txn_manager->BeginTransaction();
@@ -184,7 +162,7 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryNoVarlen) {
                       std::inserter(diff2, diff2.begin()));
   EXPECT_EQ(diff1.size(), 0);
   EXPECT_EQ(diff2.size(), 0);
-  UnlinkCheckpointFiles();
+  checkpoint_manager_.UnlinkCheckpointFiles();
   delete recovered_table;
   delete scan_txn;
   delete scan_txn_2;
@@ -202,8 +180,7 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryWithVarlen) {
   tested.GenerateRandomColumns(num_columns, true, &random_generator);
   tested.Create();
   tested.InsertRandomRows(num_rows, 0.2, &random_generator);
-
-  storage::CheckpointManager manager(CHECKPOINT_FILE_PREFIX);
+  
   storage::SqlTable *table = tested.GetTable();
   storage::BlockLayout layout = tested.GetLayout();
   catalog::Schema *schema = tested.GetSchema();
@@ -224,10 +201,10 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryWithVarlen) {
   transaction::TransactionContext *recovery_txn = txn_manager->BeginTransaction();
   storage::BlockStore block_store_{10000, 10000};
   storage::SqlTable *recovered_table = new storage::SqlTable(&block_store_, *schema, catalog::table_oid_t(1));
-  manager.StartRecovery(recovery_txn);
-  manager.RegisterTable(recovered_table, &layout);
-  manager.Recover(latest_checkpoint_path.c_str());
-  manager.EndRecovery();
+  checkpoint_manager_.StartRecovery(recovery_txn);
+  checkpoint_manager_.RegisterTable(recovered_table, &layout);
+  checkpoint_manager_.Recover(latest_checkpoint_path.c_str());
+  checkpoint_manager_.EndRecovery();
   txn_manager->Commit(recovery_txn, StorageTestUtil::EmptyCallback, nullptr);
   // read recovered table
   transaction::TransactionContext *scan_txn_2 = txn_manager->BeginTransaction();
@@ -244,7 +221,7 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryWithVarlen) {
                       std::inserter(diff2, diff2.begin()));
   EXPECT_EQ(diff1.size(), 0);
   EXPECT_EQ(diff2.size(), 0);
-  UnlinkCheckpointFiles();
+  checkpoint_manager_.UnlinkCheckpointFiles();
   delete recovered_table;
   delete scan_txn;
   delete scan_txn_2;
