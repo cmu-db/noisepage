@@ -777,17 +777,17 @@ TEST_F(SqlTableTests, MultipleColumnWidths) {
   table.Create();
 
   table.StartInsertRow();
-  table.SetInt64ColInRow(txn, catalog::col_oid_t(1001), 10000000000);
-  table.SetIntColInRow(txn, catalog::col_oid_t(1002), 100000);
-  table.SetInt16ColInRow(txn, catalog::col_oid_t(1003), 512);
-  table.SetInt8ColInRow(txn, catalog::col_oid_t(1004), 42);
+  table.SetInt64ColInRow(catalog::col_oid_t(1001), 10000000000);
+  table.SetIntColInRow(catalog::col_oid_t(1002), 100000);
+  table.SetInt16ColInRow(catalog::col_oid_t(1003), 512);
+  table.SetInt8ColInRow(catalog::col_oid_t(1004), 42);
   storage::TupleSlot row_slot = table.EndInsertRow(txn);
 
   // Check data
-  uint64_t bigint = table.GetInt64ColInRow(catalog::col_oid_t(1001), row_slot);
-  uint32_t integer = table.GetIntColInRow(catalog::col_oid_t(1002), row_slot);
-  uint16_t smallint = table.GetInt16ColInRow(catalog::col_oid_t(1003), row_slot);
-  uint8_t tinyint = table.GetInt8ColInRow(catalog::col_oid_t(1004), row_slot);
+  uint64_t bigint = table.GetInt64ColInRow(txn, catalog::col_oid_t(1001), row_slot);
+  uint32_t integer = table.GetIntColInRow(txn, catalog::col_oid_t(1002), row_slot);
+  uint16_t smallint = table.GetInt16ColInRow(txn, catalog::col_oid_t(1003), row_slot);
+  uint8_t tinyint = table.GetInt8ColInRow(txn, catalog::col_oid_t(1004), row_slot);
 
   EXPECT_EQ(bigint, 10000000000);
   EXPECT_EQ(integer, 100000);
