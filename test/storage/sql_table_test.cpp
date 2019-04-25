@@ -131,6 +131,18 @@ class SqlTableTestRW {
     return result;
   }
 
+  bool IsNullColInRow(transaction::TransactionContext *txn, catalog::col_oid_t col_oid, storage::TupleSlot slot) {
+    auto read_buffer = common::AllocationUtil::AllocateAligned(pri_->ProjectedRowSize());
+
+    storage::ProjectedRow *read = pri_->InitializeRow(read_buffer);
+    table_->Select(txn, slot, read, *pr_map_, version_);
+    byte *col_p = read->AccessWithNullCheck(pr_map_->at(col_oid));
+    auto ret_val = *(reinterpret_cast<uint32_t *>(col_p));
+
+    delete[] read_buffer;
+    return (ret_val == nullptr);
+  }
+
   /**
    * Read an integer from a row
    * @param col_num column number in the schema
@@ -139,15 +151,12 @@ class SqlTableTestRW {
    */
   uint32_t GetIntColInRow(transaction::TransactionContext *txn, catalog::col_oid_t col_oid, storage::TupleSlot slot) {
     auto read_buffer = common::AllocationUtil::AllocateAligned(pri_->ProjectedRowSize());
+
     storage::ProjectedRow *read = pri_->InitializeRow(read_buffer);
     table_->Select(txn, slot, read, *pr_map_, version_);
     byte *col_p = read->AccessWithNullCheck(pr_map_->at(col_oid));
-    uint32_t ret_val;
-    if (col_p == nullptr) {
-      ret_val = 12345;
-    } else {
-      ret_val = *(reinterpret_cast<uint32_t *>(col_p));
-    }
+    auto ret_val = *(reinterpret_cast<uint32_t *>(col_p));
+
     delete[] read_buffer;
     return ret_val;
   }
@@ -158,16 +167,14 @@ class SqlTableTestRW {
    * @param slot - tuple to read from
    * @return integer value
    */
-  uint64_t GetInt64ColInRow(int32_t col_num, storage::TupleSlot slot) {
-    auto txn = txn_manager_.BeginTransaction();
+  uint64_t GetInt64ColInRow(transaction::TransactionContext *txn, catalog::col_oid_t col_oid, storage::TupleSlot slot) {
     auto read_buffer = common::AllocationUtil::AllocateAligned(pri_->ProjectedRowSize());
+
     storage::ProjectedRow *read = pri_->InitializeRow(read_buffer);
     table_->Select(txn, slot, read);
-    byte *col_p = read->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
-    txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+    byte *col_p = read->AccessForceNotNull(pr_map_->at(col_oid));
     auto ret_val = *(reinterpret_cast<uint64_t *>(col_p));
 
-    delete txn;
     delete[] read_buffer;
     return ret_val;
   }
@@ -178,16 +185,14 @@ class SqlTableTestRW {
    * @param slot - tuple to read from
    * @return integer value
    */
-  uint16_t GetInt16ColInRow(int32_t col_num, storage::TupleSlot slot) {
-    auto txn = txn_manager_.BeginTransaction();
+  uint16_t GetInt16ColInRow(transaction::TransactionContext *txn, catalog::col_oid_t col_oid, storage::TupleSlot slot) {
     auto read_buffer = common::AllocationUtil::AllocateAligned(pri_->ProjectedRowSize());
+
     storage::ProjectedRow *read = pri_->InitializeRow(read_buffer);
     table_->Select(txn, slot, read);
-    byte *col_p = read->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
-    txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+    byte *col_p = read->AccessForceNotNull(pr_map_->at(col_oid));
     auto ret_val = *(reinterpret_cast<uint16_t *>(col_p));
 
-    delete txn;
     delete[] read_buffer;
     return ret_val;
   }
@@ -198,16 +203,14 @@ class SqlTableTestRW {
    * @param slot - tuple to read from
    * @return integer value
    */
-  uint8_t GetInt8ColInRow(int32_t col_num, storage::TupleSlot slot) {
-    auto txn = txn_manager_.BeginTransaction();
+  uint8_t GetInt8ColInRow(transaction::TransactionContext *txn, catalog::col_oid_t col_oid, storage::TupleSlot slot) {
     auto read_buffer = common::AllocationUtil::AllocateAligned(pri_->ProjectedRowSize());
+
     storage::ProjectedRow *read = pri_->InitializeRow(read_buffer);
     table_->Select(txn, slot, read);
-    byte *col_p = read->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
-    txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+    byte *col_p = read->AccessForceNotNull(pr_map_->at(col_oid));
     auto ret_val = *(reinterpret_cast<uint8_t *>(col_p));
 
-    delete txn;
     delete[] read_buffer;
     return ret_val;
   }
@@ -227,8 +230,8 @@ class SqlTableTestRW {
    * @param col_num column number in the schema
    * @param value to save
    */
-  void SetInt64ColInRow(int32_t col_num, uint64_t value) {
-    byte *col_p = insert_->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
+  void SetInt64ColInRow(catalog::col_oid_t col_oid, uint64_t value) {
+    byte *col_p = insert_->AccessForceNotNull(pr_map_->at(col_oid));
     (*reinterpret_cast<uint64_t *>(col_p)) = value;
   }
 
@@ -237,8 +240,8 @@ class SqlTableTestRW {
    * @param col_num column number in the schema
    * @param value to save
    */
-  void SetInt16ColInRow(int32_t col_num, uint16_t value) {
-    byte *col_p = insert_->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
+  void SetInt16ColInRow(catalog::col_oid_t col_oid, uint16_t value) {
+    byte *col_p = insert_->AccessForceNotNull(pr_map_->at(col_oid));
     (*reinterpret_cast<uint16_t *>(col_p)) = value;
   }
 
@@ -247,8 +250,8 @@ class SqlTableTestRW {
    * @param col_num column number in the schema
    * @param value to save
    */
-  void SetInt8ColInRow(int32_t col_num, uint8_t value) {
-    byte *col_p = insert_->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
+  void SetInt8ColInRow(catalog::col_oid_t col_oid, uint8_t value) {
+    byte *col_p = insert_->AccessForceNotNull(pr_map_->at(col_oid));
     (*reinterpret_cast<uint8_t *>(col_p)) = value;
   }
 
@@ -380,8 +383,8 @@ TEST_F(SqlTableTests, SelectTest) {
   datname = table.GetIntColInRow(txn, catalog::col_oid_t(1), row2_slot);
   EXPECT_EQ(10001, datname);
 
-  uint32_t new_col = table.GetIntColInRow(txn, catalog::col_oid_t(2), row1_slot);
-  EXPECT_EQ(12345, new_col);
+  bool new_col_is_null = table.IsNullColInRow(txn, catalog::col_oid_t(2), row1_slot);
+  EXPECT_TRUE(new_col_is_null);
 
   txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
   delete txn;
@@ -425,8 +428,8 @@ TEST_F(SqlTableTests, InsertTest) {
   EXPECT_EQ(300, id);
   datname = table.GetIntColInRow(txn, catalog::col_oid_t(1), row3_slot);
   EXPECT_EQ(10002, datname);
-  uint32_t new_col = table.GetIntColInRow(txn, catalog::col_oid_t(2), row3_slot);
-  EXPECT_EQ(12345, new_col);
+  bool new_col_is_null = table.IsNullColInRow(txn, catalog::col_oid_t(2), row1_slot);
+  EXPECT_TRUE(new_col_is_null);
 
   id = table.GetIntColInRow(txn, catalog::col_oid_t(0), row4_slot);
   EXPECT_EQ(400, id);
@@ -774,17 +777,17 @@ TEST_F(SqlTableTests, MultipleColumnWidths) {
   table.Create();
 
   table.StartRow();
-  table.SetInt64ColInRow(0, 10000000000);
-  table.SetIntColInRow(1, 100000);
-  table.SetInt16ColInRow(2, 512);
-  table.SetInt8ColInRow(3, 42);
+  table.SetInt64ColInRow(catalog::col_oid_t(1001), 10000000000);
+  table.SetIntColInRow(catalog::col_oid_t(1002), 100000);
+  table.SetInt16ColInRow(catalog::col_oid_t(1003), 512);
+  table.SetInt8ColInRow(catalog::col_oid_t(1004), 42);
   storage::TupleSlot row_slot = table.EndRowAndInsert();
 
   // Check data
-  uint64_t bigint = table.GetInt64ColInRow(0, row_slot);
-  uint32_t integer = table.GetIntColInRow(1, row_slot);
-  uint16_t smallint = table.GetInt16ColInRow(2, row_slot);
-  uint8_t tinyint = table.GetInt8ColInRow(3, row_slot);
+  uint64_t bigint = table.GetInt64ColInRow(catalog::col_oid_t(1001), row_slot);
+  uint32_t integer = table.GetIntColInRow(catalog::col_oid_t(1002), row_slot);
+  uint16_t smallint = table.GetInt16ColInRow(catalog::col_oid_t(1003), row_slot);
+  uint8_t tinyint = table.GetInt8ColInRow(catalog::col_oid_t(1004), row_slot);
 
   EXPECT_EQ(bigint, 10000000000);
   EXPECT_EQ(integer, 100000);
