@@ -36,7 +36,7 @@ class ConcurrentBlockingQueue {
    * queue and assign it to the destination.
    * @param dest an element.
    */
-  void Dequeue(T *dest) { return queue_.pop(*dest); }
+  void Dequeue(T *dest) { queue_.pop(*dest); }
 
   /**
    * Returns the number of items in the queue. The method is allowed to return
