@@ -27,13 +27,13 @@ class DatabaseMetricRawData : public AbstractRawData {
    * Increment the number of committed transaction by one
    * @param database_id OID of the database the transaction committed in
    */
-  void IncrementTxnCommitted(catalog::db_oid_t database_id) { counters_[database_id].commit_cnt_++; }
+  void IncrementTxnCommitted(catalog::db_oid_t database_id) { data_[database_id].commit_cnt_++; }
 
   /**
    * Increment the number of aborted transaction by one
    * @param database_id OID of the database the transaction aborted in
    */
-  void IncrementTxnAborted(catalog::db_oid_t database_id) { counters_[database_id].abort_cnt_++; }
+  void IncrementTxnAborted(catalog::db_oid_t database_id) { data_[database_id].abort_cnt_++; }
 
   /**
    * Aggregate collected data from another raw data object into this raw data object
@@ -41,8 +41,8 @@ class DatabaseMetricRawData : public AbstractRawData {
    */
   void Aggregate(AbstractRawData *other) override {
     auto other_db_metric = dynamic_cast<DatabaseMetricRawData *>(other);
-    for (auto &entry : other_db_metric->counters_) {
-      auto &this_counter = counters_[entry.first];
+    for (auto &entry : other_db_metric->data_) {
+      auto &this_counter = data_[entry.first];
       auto &other_counter = entry.second;
       this_counter.commit_cnt_ += other_counter.commit_cnt_;
       this_counter.abort_cnt_ += other_counter.abort_cnt_;
@@ -66,12 +66,12 @@ class DatabaseMetricRawData : public AbstractRawData {
   /**
    * @return the number of committed transaction in a database
    */
-  int32_t GetCommitCount(catalog::db_oid_t db_oid) { return counters_[db_oid].commit_cnt_; }
+  int32_t GetCommitCount(catalog::db_oid_t db_oid) { return data_[db_oid].commit_cnt_; }
 
   /**
    * @return the number of aborted transaction in a database
    */
-  int32_t GetAbortCount(catalog::db_oid_t db_oid) { return counters_[db_oid].abort_cnt_; }
+  int32_t GetAbortCount(catalog::db_oid_t db_oid) { return data_[db_oid].abort_cnt_; }
 
  private:
   /**
@@ -84,7 +84,7 @@ class DatabaseMetricRawData : public AbstractRawData {
     int32_t commit_cnt_;
     int32_t abort_cnt_;
   };
-  std::unordered_map<catalog::db_oid_t, struct Counter> counters_;
+  std::unordered_map<catalog::db_oid_t, struct Counter> data_;
 };
 
 /**

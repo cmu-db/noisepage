@@ -9,10 +9,40 @@ namespace terrier::storage::metric {
 void TransactionMetricRawData::UpdateAndPersist(transaction::TransactionManager *const txn_manager,
                                                 catalog::Catalog *catalog) {
   auto txn = txn_manager->BeginTransaction();
+  const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
+  auto db_handle = catalog->GetDatabaseHandle();
+  auto table_handle = db_handle.GetNamespaceHandle(txn, terrier_oid).GetTableHandle(txn, "public");
+  auto table = table_handle.GetTable(txn, "txn_metric_table");
+  std::vector<type::TransientValue> row;
 
-  // TODO(Wen) find a way to store collected data
+  for (auto &entry : data_) {
+    // one iteration per transaction
+    auto txn_oid = static_cast<uint64_t>(entry.first);
+    auto &counter = entry.second;
+    auto latency = counter.latency_;
+    auto tuple_read = counter.tuple_read_;
+    auto tuple_insert = counter.tuple_insert_;
+    auto tuple_delete = counter.tuple_delete_;
+    auto tuple_update = counter.tuple_update_;
 
-  // TODO(Wen) might need to change this line
+    std::vector<type::TransientValue> search_vec;
+    search_vec.emplace_back(type::TransientValueFactory::GetBigInt(txn_oid));
+    auto row = table->FindRow(txn, search_vec);
+    if (row.size() <= 1) {
+      // no entry exists for this transaction yet
+      row.clear();
+      row.emplace_back(type::TransientValueFactory::GetBigInt(txn_oid));
+      row.emplace_back(type::TransientValueFactory::GetBigInt(latency));
+      row.emplace_back(type::TransientValueFactory::GetInteger(tuple_read));
+      row.emplace_back(type::TransientValueFactory::GetInteger(tuple_insert));
+      row.emplace_back(type::TransientValueFactory::GetInteger(tuple_delete));
+      row.emplace_back(type::TransientValueFactory::GetInteger(tuple_update));
+      table->InsertRow(txn, row);
+    } else {
+      TERRIER_ASSERT(false, "There should not be update of the transaction data.");
+    }
+  }
+
   txn_manager->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
 }
 

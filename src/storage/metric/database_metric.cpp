@@ -16,9 +16,9 @@ void DatabaseMetricRawData::UpdateAndPersist(transaction::TransactionManager *co
   auto table = table_handle.GetTable(txn, "database_metric_table");
   std::vector<type::TransientValue> row;
 
-  for (auto &entry : counters_) {
+  for (auto &entry : data_) {
     // one iteration per database
-    auto database_oid = static_cast<int32_t>(static_cast<uint32_t>(entry.first));
+    auto database_oid = static_cast<uint32_t>(entry.first);
     auto &counter = entry.second;
     auto commit_cnt = counter.commit_cnt_;
     auto abort_cnt = counter.abort_cnt_;

@@ -47,4 +47,26 @@ void StatsAggregator::CreateDatabaseTable() {
   txn_manager_->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
 }
 
+void StatsAggregator::CreateTransactionTable() {
+  auto txn = txn_manager_->BeginTransaction();
+  const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
+  auto db_handle = catalog_->GetDatabaseHandle();
+  auto table_handle = db_handle.GetNamespaceHandle(txn, terrier_oid).GetTableHandle(txn, "public");
+
+  // define schema
+  std::vector<catalog::Schema::Column> cols;
+  cols.emplace_back("id", type::TypeId::INTEGER, false, catalog::col_oid_t(catalog_->GetNextOid()));
+  cols.emplace_back("latency", type::TypeId::INTEGER, false, catalog::col_oid_t(catalog_->GetNextOid()));
+  cols.emplace_back("tuple_read", type::TypeId::INTEGER, false, catalog::col_oid_t(catalog_->GetNextOid()));
+  cols.emplace_back("tuple_insert", type::TypeId::INTEGER, false, catalog::col_oid_t(catalog_->GetNextOid()));
+  cols.emplace_back("tuple_delete", type::TypeId::INTEGER, false, catalog::col_oid_t(catalog_->GetNextOid()));
+  cols.emplace_back("tuple_update", type::TypeId::INTEGER, false, catalog::col_oid_t(catalog_->GetNextOid()));
+  catalog::Schema schema(cols);
+
+  // create table
+  auto table_ptr = table_handle.GetTable(txn, "txn_metric_table");
+  if (table_ptr == nullptr) table_handle.CreateTable(txn, schema, "txn_metric_table");
+  txn_manager_->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+}
+
 }  // namespace terrier::storage::metric

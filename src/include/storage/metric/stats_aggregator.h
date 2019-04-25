@@ -52,9 +52,14 @@ class StatsAggregator {
 
  private:
   /**
-   * Create an internal table for storing collected statistics
+   * Create an internal table for storing collected database level statistics
    */
   void CreateDatabaseTable();
+
+  /**
+   * Create an internal table for storing collected transaction level statistics
+  */
+  void CreateTransactionTable();
 
   /**
    * Transaction manager of the system
