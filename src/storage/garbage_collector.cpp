@@ -190,7 +190,7 @@ bool GarbageCollector::ProcessUndoRecord(UndoRecord *const undo_record,
   // Process this tuple only
   if (visited_slots->insert(slot).second) {
     // Perform interval gc for the entire version chain excluding the head of the chain
-    ProcessTupleVersionChain(undo_record, active_txns);
+    ProcessTupleVersionChain(table, slot, active_txns);
     ProcessTupleVersionChainHead(table, slot, active_txns);
   }
 
@@ -239,11 +239,9 @@ void GarbageCollector::ProcessDeferredActions() {
   }
 }
 
-void GarbageCollector::ProcessTupleVersionChain(UndoRecord *const undo_record,
+void GarbageCollector::ProcessTupleVersionChain(DataTable *const table, TupleSlot slot,
                                                 std::vector<transaction::timestamp_t> *const active_txns) {
   // Read the Version Pointer of this tuple
-  const TupleSlot slot = undo_record->Slot();
-  DataTable *table = undo_record->Table();
   const TupleAccessStrategy &accessor = table->accessor_;
   UndoRecord *version_chain_head;
   version_chain_head = table->AtomicallyReadVersionPtr(slot, accessor);
@@ -344,7 +342,7 @@ void GarbageCollector::UnlinkUndoRecordVersion(UndoRecord *const undo_record) {
   undo_record->txnptr_.Put(nullptr);
 }
 
-void GarbageCollector::ReclaimSlotIfDeleted(UndoRecord *undo_record) const {
+void GarbageCollector::ReclaimSlotIfDeleted(UndoRecord *const undo_record) const {
   if (undo_record->Type() == DeltaRecordType::DELETE) undo_record->Table()->accessor_.Deallocate(undo_record->Slot());
 }
 
@@ -387,9 +385,10 @@ void GarbageCollector::ReadUndoRecord(UndoRecord *start_record, UndoRecord *next
     case DeltaRecordType::UPDATE:
       // Update the interval length
       (*interval_length_ptr)++;
-      // Process the Attributes to determine the attributes required for the compacted undo record
+      // Find the attributes contained in the undo record so that the initialised compacted undo record
+      // knows all the columns that will be contained in the compacted undo record
       ProcessUpdateUndoRecordAttributes(next);
-      // Mark the Record as unlinked
+      // Mark the undo record as unlinked
       UnlinkUndoRecordVersion(next);
       break;
     case DeltaRecordType::INSERT:
@@ -503,6 +502,8 @@ void GarbageCollector::ReclaimBufferIfVarlenCompacted(UndoRecord *const undo_rec
     col_id_t col_id = undo_record->Delta()->ColumnIds()[i];
     if (layout.IsVarlen(col_id)) {
       auto *varlen = reinterpret_cast<VarlenEntry *>(undo_record->Delta()->AccessWithNullCheck(i));
+      // The varlen entries in the compacted undo record don't need to be logged
+      // Can deallocate them right away
       if (varlen != nullptr && varlen->NeedReclaim()) delete[] varlen->Content();
     }
   }
