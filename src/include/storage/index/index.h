@@ -40,7 +40,7 @@ class Index {
   const IndexMetadata metadata_;
 
   /**
-   * Determine if a Tuple is visible by asking the DataTable associated with the TupleSlot. Used for scans.
+   * Determine if a tuple is visible by asking the DataTable associated with the TupleSlot. Used for scans.
    * @param txn the calling transaction
    * @param slot the slot of the tuple to check visibility on
    * @return true if tuple is visible to this txn, false otherwise
@@ -63,7 +63,7 @@ class Index {
   virtual ~Index() = default;
 
   /**
-   * Inserts a new key-value pair into the index.
+   * Inserts a new key-value pair into the index, used for non-unique key indexes.
    * @param txn txn context for the calling txn, used to register abort actions
    * @param tuple key
    * @param location value
@@ -82,11 +82,11 @@ class Index {
   virtual bool InsertUnique(transaction::TransactionContext *txn, const ProjectedRow &tuple, TupleSlot location) = 0;
 
   /**
-   * Removes a key-value pair from the index.
+   * Doesn't immediately call delete on the index. Registers a commit action in the txn that will eventually register a
+   * deferred action for the GC to safely call delete on the index when no more transactions need to access the key.
    * @param txn txn context for the calling txn, used to register commit actions for deferred GC actions
    * @param tuple key
    * @param location value
-   * @return false if the key-value pair did not exist, true if the deletion succeeds
    */
   virtual void Delete(transaction::TransactionContext *txn, const ProjectedRow &tuple, TupleSlot location) = 0;
 
@@ -100,7 +100,7 @@ class Index {
                        std::vector<TupleSlot> *value_list) = 0;
 
   /**
-   * Finds all the values between the given keys in our index.
+   * Finds all the values between the given keys in our index, sorted in ascending order.
    * @param txn txn context for the calling txn, used for visibility checks
    * @param low_key the key to start at
    * @param high_key the key to end at
@@ -110,7 +110,7 @@ class Index {
                              const ProjectedRow &high_key, std::vector<TupleSlot> *value_list) = 0;
 
   /**
-   * Finds all the values between the given keys in our index.
+   * Finds all the values between the given keys in our index, sorted in descending order.
    * @param txn txn context for the calling txn, used for visibility checks
    * @param low_key the key to end at
    * @param high_key the key to start at
@@ -120,7 +120,7 @@ class Index {
                               const ProjectedRow &high_key, std::vector<TupleSlot> *value_list) = 0;
 
   /**
-   * Finds all the values between the given keys in our index.
+   * Finds the first limit # of values between the given keys in our index, sorted in ascending order.
    * @param txn txn context for the calling txn, used for visibility checks
    * @param low_key the key to start at
    * @param high_key the key to end at
@@ -131,7 +131,7 @@ class Index {
                                   const ProjectedRow &high_key, std::vector<TupleSlot> *value_list, uint32_t limit) = 0;
 
   /**
-   * Finds all the values between the given keys in our index.
+   * Finds the first limit # of values between the given keys in our index, sorted in descending order.
    * @param txn txn context for the calling txn, used for visibility checks
    * @param low_key the key to end at
    * @param high_key the key to start at
