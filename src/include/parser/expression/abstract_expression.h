@@ -72,7 +72,7 @@ class AbstractExpression {
   /**
    * Logical inequality check.
    * @param rhs other
-   * @return true if the two expressions are not logically equal
+   * @return true if the two expressions are logically not equal
    */
   virtual bool operator!=(const AbstractExpression &rhs) const { return !operator==(rhs); }
 
