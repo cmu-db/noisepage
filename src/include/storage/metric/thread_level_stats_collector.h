@@ -37,6 +37,7 @@ class ThreadLevelStatsCollector {
    * Concurrent unordered map between thread ID and pointer to an instance of this class
    */
   using CollectorsMap = common::ConcurrentMap<std::thread::id, ThreadLevelStatsCollector *, std::hash<std::thread::id>>;
+
   /**
    * @return the Collector for the calling thread
    */
@@ -50,17 +51,22 @@ class ThreadLevelStatsCollector {
   }
 
   /**
+   * Remove all collectors from collector map
+   */
+  static void ClearCollectorMap() { collector_map_.Clear(); }
+
+  /**
    * @return A mapping from each thread to their assigned Collector
    */
   static CollectorsMap &GetAllCollectors() { return collector_map_; }
 
   /**
-   * @brief Constructor of collector
+   * Constructor of collector
    */
   ThreadLevelStatsCollector();
 
   /**
-   * @brief Destructor of collector
+   * Destructor of collector
    */
   ~ThreadLevelStatsCollector();
 

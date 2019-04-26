@@ -204,6 +204,11 @@ class ConcurrentMap {
   void UnsafeErase(const K &key) { map_.unsafe_erase(key); }
 
   /**
+   * Remove all elements
+   */
+  void Clear() { map_.clear(); }
+
+  /**
    * @return const iterator to the first element
    */
   ConstIterator CBegin() const { return ConstIterator(map_.cbegin()); }
