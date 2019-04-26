@@ -86,8 +86,8 @@ void UpdateAndPersist(transaction::TransactionManager *txn_manager, catalog::Cat
    * one represents the number of transactions aborted.
    */
   struct Counter {
-    int32_t commit_cnt_;
-    int32_t abort_cnt_;
+    int64_t commit_cnt_;
+    int64_t abort_cnt_;
   };
   std::unordered_map<catalog::db_oid_t, struct Counter> data_;
 };

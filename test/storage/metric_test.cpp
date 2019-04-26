@@ -51,8 +51,8 @@ TEST_F(MetricTests, DatabaseMetricBasicTest) {
   auto stats_collector = storage::metric::ThreadLevelStatsCollector();
   storage::metric::StatsAggregator aggregator(txn_manager_, catalog_);
   for (uint8_t i = 0; i < num_iterations_; i++) {
-    std::unordered_map<uint8_t, int32_t> commit_map;
-    std::unordered_map<uint8_t, int32_t> abort_map;
+    std::unordered_map<uint8_t, int64_t> commit_map;
+    std::unordered_map<uint8_t, int64_t> abort_map;
     for (uint8_t j = 0; j < num_databases_; j++) {
       commit_map[j] = 0;
       abort_map[j] = 0;
@@ -101,8 +101,8 @@ TEST_F(MetricTests, DatabaseMetricBasicTest) {
 TEST_F(MetricTests, DatabaseMetricStorageTest) {
   auto stats_collector = storage::metric::ThreadLevelStatsCollector();
   storage::metric::StatsAggregator aggregator(txn_manager_, catalog_);
-  std::unordered_map<uint8_t, int32_t> commit_map;
-  std::unordered_map<uint8_t, int32_t> abort_map;
+  std::unordered_map<uint8_t, int64_t> commit_map;
+  std::unordered_map<uint8_t, int64_t> abort_map;
   for (uint8_t j = 0; j < num_databases_; j++) {
       commit_map[j] = 0;
       abort_map[j] = 0;
