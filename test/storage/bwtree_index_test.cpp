@@ -525,6 +525,165 @@ TEST_F(BwTreeIndexTests, ScanLimitDescending) {
   txn_manager_.Commit(scan_txn, TestCallbacks::EmptyCallback, nullptr);
 }
 
+// Verifies that primary key insert fails on write-write conflict
+// NOLINTNEXTLINE
+TEST_F(BwTreeIndexTests, UniqueKey1) {
+  auto *txn0 = txn_manager_.BeginTransaction();
+
+  // txn 0 inserts into table
+  auto *insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
+  *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
+  const auto tuple_slot = sql_table_->Insert(txn0, *insert_tuple);
+
+  // txn 0 inserts into index
+  auto *insert_key = unique_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
+  *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
+  EXPECT_TRUE(unique_index_->InsertUnique(txn0, *insert_key, tuple_slot));
+
+  std::vector<storage::TupleSlot> results;
+
+  auto *const scan_key_pr = unique_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
+
+  // txn 0 scans index and gets a visible, correct result
+  *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15721;
+  unique_index_->ScanKey(*txn0, *scan_key_pr, &results);
+  EXPECT_EQ(results.size(), 1);
+  EXPECT_EQ(tuple_slot, results[0]);
+  results.clear();
+
+  auto *txn1 = txn_manager_.BeginTransaction();
+
+  // txn 1 scans index and gets no visible result
+  unique_index_->ScanKey(*txn1, *scan_key_pr, &results);
+  EXPECT_EQ(results.size(), 0);
+  results.clear();
+
+  // txn 1 inserts into table
+  insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
+  *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
+  const auto new_tuple_slot = sql_table_->Insert(txn1, *insert_tuple);
+
+  // txn 1 inserts into index and fails due to write-write conflict with txn 0
+  insert_key = unique_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
+  *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
+  EXPECT_FALSE(unique_index_->InsertUnique(txn1, *insert_key, new_tuple_slot));
+
+  txn_manager_.Abort(txn1);
+
+  txn_manager_.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
+
+  auto *txn2 = txn_manager_.BeginTransaction();
+
+  // txn 2 scans index and gets a visible, correct result
+  unique_index_->ScanKey(*txn2, *scan_key_pr, &results);
+  EXPECT_EQ(results.size(), 1);
+  EXPECT_EQ(tuple_slot, results[0]);
+  results.clear();
+
+  txn_manager_.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
+}
+
+// Verifies that primary key insert fails on visible key conflict
+// NOLINTNEXTLINE
+TEST_F(BwTreeIndexTests, UniqueKey2) {
+  auto *txn0 = txn_manager_.BeginTransaction();
+
+  // txn 0 inserts into table
+  auto *insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
+  *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
+  const auto tuple_slot = sql_table_->Insert(txn0, *insert_tuple);
+
+  // txn 0 inserts into index
+  auto *insert_key = unique_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
+  *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
+  EXPECT_TRUE(unique_index_->InsertUnique(txn0, *insert_key, tuple_slot));
+
+  std::vector<storage::TupleSlot> results;
+
+  auto *const scan_key_pr = unique_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
+
+  // txn 0 scans index and gets a visible, correct result
+  *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15721;
+  unique_index_->ScanKey(*txn0, *scan_key_pr, &results);
+  EXPECT_EQ(results.size(), 1);
+  EXPECT_EQ(tuple_slot, results[0]);
+  results.clear();
+
+  txn_manager_.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
+
+  auto *txn1 = txn_manager_.BeginTransaction();
+
+  // txn 1 inserts into table
+  insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
+  *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
+  const auto new_tuple_slot = sql_table_->Insert(txn1, *insert_tuple);
+
+  // txn 1 inserts into index and fails due to visible key conflict with txn 0
+  insert_key = unique_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
+  *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
+  EXPECT_FALSE(unique_index_->InsertUnique(txn1, *insert_key, new_tuple_slot));
+
+  txn_manager_.Abort(txn1);
+
+  auto *txn2 = txn_manager_.BeginTransaction();
+
+  // txn 2 scans index and gets a visible, correct result
+  unique_index_->ScanKey(*txn2, *scan_key_pr, &results);
+  EXPECT_EQ(results.size(), 1);
+  EXPECT_EQ(tuple_slot, results[0]);
+  results.clear();
+
+  txn_manager_.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
+}
+
+// Verifies that primary key insert fails on same txn trying to insert key twice
+// NOLINTNEXTLINE
+TEST_F(BwTreeIndexTests, UniqueKey3) {
+  auto *txn0 = txn_manager_.BeginTransaction();
+
+  // txn 0 inserts into table
+  auto *insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
+  *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
+  const auto tuple_slot = sql_table_->Insert(txn0, *insert_tuple);
+
+  // txn 0 inserts into index
+  auto *insert_key = unique_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
+  *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
+  EXPECT_TRUE(unique_index_->InsertUnique(txn0, *insert_key, tuple_slot));
+
+  std::vector<storage::TupleSlot> results;
+
+  auto *const scan_key_pr = unique_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
+
+  // txn 0 scans index and gets a visible, correct result
+  *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15721;
+  unique_index_->ScanKey(*txn0, *scan_key_pr, &results);
+  EXPECT_EQ(results.size(), 1);
+  EXPECT_EQ(tuple_slot, results[0]);
+  results.clear();
+
+  // txn 0 inserts into table
+  insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
+  *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
+  const auto new_tuple_slot = sql_table_->Insert(txn0, *insert_tuple);
+
+  // txn 0 inserts into index and fails due to visible key conflict with txn 0
+  insert_key = unique_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
+  *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
+  EXPECT_FALSE(unique_index_->InsertUnique(txn0, *insert_key, new_tuple_slot));
+
+  txn_manager_.Abort(txn0);
+
+  auto *txn2 = txn_manager_.BeginTransaction();
+
+  // txn 2 scans index and gets no visible result
+  unique_index_->ScanKey(*txn2, *scan_key_pr, &results);
+  EXPECT_EQ(results.size(), 0);
+  results.clear();
+
+  txn_manager_.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
+}
+
 //    Txn #0 | Txn #1 | Txn #2 |
 //    --------------------------
 //    BEGIN  |        |        |
