@@ -128,7 +128,7 @@ class SettingsManager {
   void DefineSetting(Param param, const std::string &name, const type::TransientValue &value,
                      const std::string &description, const type::TransientValue &default_value,
                      const type::TransientValue &min_value, const type::TransientValue &max_value, bool is_mutable,
-                     callback_fn callback = nullptr);
+                     callback_fn callback);
 
   type::TransientValue &GetValue(Param param);
   void SetValue(Param param, const type::TransientValue &value);
