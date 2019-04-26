@@ -161,7 +161,7 @@ class ConcurrentMap {
   }
 
   /**
-   * Insert the specified key and value into the map. Overwrites mapping if a
+   * Insert the specified key and value into the map. Insertion fails if a
    * mapping already exists.
    * @param key key to insert
    * @param value value to insert

@@ -141,7 +141,6 @@ TEST_F(MetricTests, DatabaseMetricStorageTest) {
       EXPECT_EQ(abort_cnt, abort_map[j]);
     }
     txn_manager_->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
-
   }
 }
 

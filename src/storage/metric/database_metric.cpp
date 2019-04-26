@@ -7,7 +7,7 @@
 namespace terrier::storage::metric {
 
 catalog::SqlTableHelper *DatabaseMetricRawData::GetStatsTable(transaction::TransactionManager *const txn_manager,
-                                                          catalog::Catalog *const catalog) {
+                                                              catalog::Catalog *const catalog) {
   auto txn = txn_manager->BeginTransaction();
   const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
   auto db_handle = catalog->GetDatabaseHandle();
