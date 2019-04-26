@@ -15,7 +15,13 @@
 #include "storage/metric/thread_level_stats_collector.h"
 #include "util/transaction_test_util.h"
 
-namespace terrier::storage::metric {
+namespace terrier {
+
+namespace settings {
+class SettingsManager;
+}
+
+namespace storage::metric {
 
 /**
  * Background thread that periodically collects data from thread level collectors
@@ -30,8 +36,9 @@ class StatsAggregator {
    * @param txn_manager transaction manager of the system for persisting collected data
    * @param catalog catalog of the system for SqlTable lookups/creation
    */
-  explicit StatsAggregator(transaction::TransactionManager *txn_manager, catalog::Catalog *catalog)
-      : txn_manager_(txn_manager), catalog_(catalog) {}
+  explicit StatsAggregator(transaction::TransactionManager *txn_manager, catalog::Catalog *catalog,
+                           settings::SettingsManager *settings_manager)
+      : txn_manager_(txn_manager), catalog_(catalog), settings_manager_(settings_manager) {}
 
   /**
    * Aggregate metrics from all threads which have collected stats,
@@ -61,6 +68,11 @@ class StatsAggregator {
    */
   catalog::Catalog *const GetCatalog() { return catalog_; }
 
+  /**
+   * @return settings manager of the system
+   */
+  settings::SettingsManager *const GetSettingsManager() { return settings_manager_; }
+
  private:
   /**
    * Transaction manager of the system
@@ -71,6 +83,12 @@ class StatsAggregator {
    * Catalog of the system
    */
   catalog::Catalog *const catalog_;
+
+  /**
+   * Settings manager of the system
+   */
+  settings::SettingsManager *const settings_manager_;
 };
 
-}  // namespace terrier::storage::metric
+}  // namespace storage::metric
+}  // namespace terrier

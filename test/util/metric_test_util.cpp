@@ -5,7 +5,7 @@
 namespace terrier {
 
 int TestingStatsUtil::AggregateTestCounts() {
-  storage::metric::StatsAggregator aggregator(nullptr, nullptr);
+  storage::metric::StatsAggregator aggregator(nullptr, nullptr, nullptr);
   auto result = aggregator.AggregateRawData();
 
   if (result.empty()) return 0;
