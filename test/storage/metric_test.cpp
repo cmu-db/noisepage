@@ -233,7 +233,6 @@ TEST_F(MetricTests, TransactionMetricBasicTest) {
   }
 }
 
-
 TEST_F(MetricTests, TransactionMetricStorageTest) {
   auto stats_collector = storage::metric::ThreadLevelStatsCollector();
   storage::metric::StatsAggregator aggregator(txn_manager_, catalog_);
@@ -311,6 +310,5 @@ TEST_F(MetricTests, TransactionMetricStorageTest) {
     }
   }
 }
-
 
 }  // namespace terrier
