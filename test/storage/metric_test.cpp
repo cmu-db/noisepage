@@ -27,8 +27,8 @@ class MetricTests : public TerrierTest {
 
     TerrierTest::TearDown();
     delete catalog_;  // need to delete catalog_first
-    delete txn_manager_;
     delete txn_;
+    delete txn_manager_;
   }
 
   catalog::Catalog *catalog_;
@@ -37,8 +37,8 @@ class MetricTests : public TerrierTest {
   transaction::TransactionContext *txn_ = nullptr;
   transaction::TransactionManager *txn_manager_;
   std::default_random_engine generator_;
-  const uint8_t num_iterations_ = 100;
-  const uint8_t num_databases_ = 100;
+  const uint8_t num_iterations_ = 2;
+  const uint8_t num_databases_ = 2;
 };
 
 /**
@@ -94,14 +94,17 @@ TEST_F(MetricTests, DatabaseMetricBasicTest) {
 }
 
 TEST_F(MetricTests, DatabaseMetricStorageTest) {
-  for (uint8_t i = 0; i < num_iterations_; i++) {
-    auto stats_collector = storage::metric::ThreadLevelStatsCollector();
-
-    std::unordered_map<uint8_t, int32_t> commit_map;
-    std::unordered_map<uint8_t, int32_t> abort_map;
-    for (uint8_t j = 0; j < num_databases_; j++) {
+  const uint32_t num_threads = MultiThreadTestUtil::HardwareConcurrency();
+  common::WorkerPool thread_pool(num_threads, {});
+  std::unordered_map<uint8_t, int32_t> commit_map;
+  std::unordered_map<uint8_t, int32_t> abort_map;
+  for (uint8_t j = 0; j < num_databases_; j++) {
       commit_map[j] = 0;
       abort_map[j] = 0;
+  }
+  for (uint8_t i = 0; i < num_iterations_; i++) {
+    auto stats_collector = storage::metric::ThreadLevelStatsCollector();
+    for (uint8_t j = 0; j < num_databases_; j++) {
       auto num_txns_ = static_cast<uint8_t>(std::uniform_int_distribution<uint8_t>(0, UINT8_MAX)(generator_));
       for (uint8_t k = 0; k < num_txns_; k++) {
         auto *txn = txn_manager_->BeginTransaction();
@@ -120,27 +123,24 @@ TEST_F(MetricTests, DatabaseMetricStorageTest) {
         }
       }
     }
-    printf("Before aggregate\n");
     storage::metric::StatsAggregator aggregator(txn_manager_, catalog_);
-    aggregator.Aggregate();
-    printf("After aggregate\n");
+    aggregator.Aggregate(txn_);
 
-    auto txn = txn_manager_->BeginTransaction();
     const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
     auto db_handle = catalog_->GetDatabaseHandle();
-    auto table_handle = db_handle.GetNamespaceHandle(txn, terrier_oid).GetTableHandle(txn, "public");
-    auto table = table_handle.GetTable(txn, "database_metric_table");
+    auto table_handle = db_handle.GetNamespaceHandle(txn_, terrier_oid).GetTableHandle(txn_, "public");
+    auto table = table_handle.GetTable(txn_, "database_metric_table");
+    
 
     for (uint8_t j = 0; j < num_databases_; j++) {
       std::vector<type::TransientValue> search_vec;
-      search_vec.emplace_back(type::TransientValueFactory::GetInteger(static_cast<int32_t>(j)));
-      auto row = table->FindRow(txn, search_vec);
+      search_vec.emplace_back(type::TransientValueFactory::GetInteger(static_cast<uint32_t>(j)));
+      auto row = table->FindRow(txn_, search_vec);
       auto commit_cnt = type::TransientValuePeeker::PeekInteger(row[1]);
       auto abort_cnt = type::TransientValuePeeker::PeekInteger(row[2]);
       EXPECT_EQ(commit_cnt, commit_map[j]);
       EXPECT_EQ(abort_cnt, abort_map[j]);
     }
-    txn_manager_->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
 
   }
 }

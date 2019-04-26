@@ -86,7 +86,7 @@ class TransactionMetricRawData : public AbstractRawData {
    * @param txn_manager transaction manager of the system
    * @param catalog catalog of the system
    */
-  void UpdateAndPersist(transaction::TransactionManager *txn_manager, catalog::Catalog *catalog) override;
+  void UpdateAndPersist(transaction::TransactionManager *txn_manager, catalog::Catalog *catalog, transaction::TransactionContext *txn) override;
 
   /**
    * @return the type of the metric this object is holding the data for
@@ -127,7 +127,7 @@ class TransactionMetricRawData : public AbstractRawData {
   /**
    * Get the SQL table for persisting collected data, create a new table if necessary
    */
-  catalog::SqlTableHelper *GetStatsTable(transaction::TransactionManager *txn_manager, catalog::Catalog *catalog);
+  catalog::SqlTableHelper *GetStatsTable(transaction::TransactionManager *txn_manager, catalog::Catalog *catalog, transaction::TransactionContext *txn);
 
  private:
   /**

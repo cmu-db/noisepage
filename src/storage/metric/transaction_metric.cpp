@@ -7,8 +7,7 @@
 namespace terrier::storage::metric {
 
 catalog::SqlTableHelper *TransactionMetricRawData::GetStatsTable(transaction::TransactionManager *const txn_manager,
-                                                             catalog::Catalog *const catalog) {
-  auto txn = txn_manager->BeginTransaction();
+                                                             catalog::Catalog *const catalog, transaction::TransactionContext *txn) {
   const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
   auto db_handle = catalog->GetDatabaseHandle();
   auto table_handle = db_handle.GetNamespaceHandle(txn, terrier_oid).GetTableHandle(txn, "public");
@@ -26,14 +25,12 @@ catalog::SqlTableHelper *TransactionMetricRawData::GetStatsTable(transaction::Tr
   // create table
   auto table_ptr = table_handle.GetTable(txn, "txn_metric_table");
   if (table_ptr == nullptr) table_ptr = table_handle.CreateTable(txn, schema, "txn_metric_table");
-  txn_manager->Commit(txn, nullptr, nullptr);
   return table_ptr;
 }
 
 void TransactionMetricRawData::UpdateAndPersist(transaction::TransactionManager *const txn_manager,
-                                                catalog::Catalog *catalog) {
-  auto txn = txn_manager->BeginTransaction();
-  auto table = GetStatsTable(txn_manager, catalog);
+                                                catalog::Catalog *catalog, transaction::TransactionContext *txn) {
+  auto table = GetStatsTable(txn_manager, catalog, txn);
   TERRIER_ASSERT(table != nullptr, "Stats table cannot be nullptr.");
   std::vector<type::TransientValue> row;
 
@@ -64,8 +61,6 @@ void TransactionMetricRawData::UpdateAndPersist(transaction::TransactionManager 
       TERRIER_ASSERT(false, "There should not be update of the transaction data.");
     }
   }
-
-  txn_manager->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
 }
 
 }  // namespace terrier::storage::metric

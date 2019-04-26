@@ -38,6 +38,7 @@ class StatsAggregator {
    * and insert new total into SQLtable
    */
   void Aggregate();
+void Aggregate(transaction::TransactionContext *txn);
 
   /**
    * Worker method for Aggregate() that performs stats collection

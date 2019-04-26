@@ -37,7 +37,7 @@ class AbstractRawData {
    * @param txn_manager transaction manager of the system
    * @param catalog catalog of the system
    */
-  virtual void UpdateAndPersist(transaction::TransactionManager *txn_manager, catalog::Catalog *catalog) = 0;
+   virtual void UpdateAndPersist(transaction::TransactionManager *txn_manager, catalog::Catalog *catalog, transaction::TransactionContext *txn) = 0;
 
   /**
    * @return the type of the metric this object is holding the data for

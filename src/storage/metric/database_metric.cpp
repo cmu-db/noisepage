@@ -7,11 +7,11 @@
 namespace terrier::storage::metric {
 
 catalog::SqlTableHelper *DatabaseMetricRawData::GetStatsTable(transaction::TransactionManager *const txn_manager,
-                                                          catalog::Catalog *const catalog) {
-  auto txn = txn_manager->BeginTransaction();
+                                                          catalog::Catalog *const catalog, transaction::TransactionContext *txn) {
   const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
   auto db_handle = catalog->GetDatabaseHandle();
-  auto table_handle = db_handle.GetNamespaceHandle(txn, terrier_oid).GetTableHandle(txn, "public");
+  auto tablee = db_handle.GetNamespaceHandle(txn, terrier_oid);
+  auto table_handle = tablee.GetTableHandle(txn, "public");
 
   // define schema
   std::vector<catalog::Schema::Column> cols;
@@ -19,18 +19,15 @@ catalog::SqlTableHelper *DatabaseMetricRawData::GetStatsTable(transaction::Trans
   cols.emplace_back("commit_num", type::TypeId::INTEGER, false, catalog::col_oid_t(catalog->GetNextOid()));
   cols.emplace_back("abort_num", type::TypeId::INTEGER, false, catalog::col_oid_t(catalog->GetNextOid()));
   catalog::Schema schema(cols);
-
   // create table
   auto table_ptr = table_handle.GetTable(txn, "database_metric_table");
   if (table_ptr == nullptr) table_ptr = table_handle.CreateTable(txn, schema, "database_metric_table");
-  txn_manager->Commit(txn, nullptr, nullptr);
   return table_ptr;
 }
 
 void DatabaseMetricRawData::UpdateAndPersist(transaction::TransactionManager *const txn_manager,
-                                             catalog::Catalog *const catalog) {
-  auto txn = txn_manager->BeginTransaction();
-  auto table = GetStatsTable(txn_manager, catalog);
+                                             catalog::Catalog *const catalog, transaction::TransactionContext *txn) {
+  auto table = GetStatsTable(txn_manager, catalog, txn);
   TERRIER_ASSERT(table != nullptr, "Stats table cannot be nullptr.");
 
   for (auto &entry : data_) {
@@ -39,11 +36,12 @@ void DatabaseMetricRawData::UpdateAndPersist(transaction::TransactionManager *co
     auto &counter = entry.second;
     auto commit_cnt = counter.commit_cnt_;
     auto abort_cnt = counter.abort_cnt_;
-
+    
     std::vector<type::TransientValue> search_vec;
     search_vec.emplace_back(type::TransientValueFactory::GetInteger(database_oid));
     auto row = table->FindRow(txn, search_vec);
-    if (row.size() <= 1) {
+
+    if (row.empty()) {
       // no entry exists for this database yet
       row.clear();
       row.emplace_back(type::TransientValueFactory::GetInteger(database_oid));
@@ -66,9 +64,8 @@ void DatabaseMetricRawData::UpdateAndPersist(transaction::TransactionManager *co
       // insert
       table->InsertRow(txn, row);
     }
+    row = table->FindRow(txn, search_vec);
   }
-
-  txn_manager->Commit(txn, nullptr, nullptr);
 }
 
 }  // namespace terrier::storage::metric
