@@ -103,22 +103,22 @@ class TransactionMetricRawData : public AbstractRawData {
   /**
    * @return the tuples read of the given transaction
    */
-  int32_t GetTupleRead(transaction::timestamp_t txn_id) { return data_[txn_id].tuple_read_; }
+  int64_t GetTupleRead(transaction::timestamp_t txn_id) { return data_[txn_id].tuple_read_; }
 
   /**
    * @return the tuples updated of the given transaction
    */
-  int32_t GetTupleUpdate(transaction::timestamp_t txn_id) { return data_[txn_id].tuple_update_; }
+  int64_t GetTupleUpdate(transaction::timestamp_t txn_id) { return data_[txn_id].tuple_update_; }
 
   /**
    * @return the tuples inserted of the given transaction
    */
-  int32_t GetTupleInsert(transaction::timestamp_t txn_id) { return data_[txn_id].tuple_insert_; }
+  int64_t GetTupleInsert(transaction::timestamp_t txn_id) { return data_[txn_id].tuple_insert_; }
 
   /**
    * @return the tuples deleted of the given transaction
    */
-  int32_t GetTupleDelete(transaction::timestamp_t txn_id) { return data_[txn_id].tuple_delete_; }
+  int64_t GetTupleDelete(transaction::timestamp_t txn_id) { return data_[txn_id].tuple_delete_; }
 
   /**
    * Get the SQL table for persisting collected data, create a new table if necessary
