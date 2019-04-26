@@ -17,8 +17,8 @@ catalog::SqlTableHelper *DatabaseMetricRawData::GetStatsTable(transaction::Trans
   // define schema
   std::vector<catalog::Schema::Column> cols;
   cols.emplace_back("id", type::TypeId::INTEGER, false, catalog::col_oid_t(catalog->GetNextOid()));
-  cols.emplace_back("commit_num", type::TypeId::INTEGER, false, catalog::col_oid_t(catalog->GetNextOid()));
-  cols.emplace_back("abort_num", type::TypeId::INTEGER, false, catalog::col_oid_t(catalog->GetNextOid()));
+  cols.emplace_back("commit_num", type::TypeId::BIGINT, false, catalog::col_oid_t(catalog->GetNextOid()));
+  cols.emplace_back("abort_num", type::TypeId::BIGINT, false, catalog::col_oid_t(catalog->GetNextOid()));
   catalog::Schema schema(cols);
   // create table
   auto table_ptr = table_handle.GetTable(txn, "database_metric_table");
@@ -45,8 +45,8 @@ void DatabaseMetricRawData::UpdateAndPersist(transaction::TransactionManager *co
       // no entry exists for this database yet
       row.clear();
       row.emplace_back(type::TransientValueFactory::GetInteger(database_oid));
-      row.emplace_back(type::TransientValueFactory::GetInteger(commit_cnt));
-      row.emplace_back(type::TransientValueFactory::GetInteger(abort_cnt));
+      row.emplace_back(type::TransientValueFactory::GetBigInt(commit_cnt));
+      row.emplace_back(type::TransientValueFactory::GetBigInt(abort_cnt));
       table->InsertRow(txn, row);
     } else {
       // update existing entry
@@ -54,8 +54,8 @@ void DatabaseMetricRawData::UpdateAndPersist(transaction::TransactionManager *co
       auto old_abort_cnt = type::TransientValuePeeker::PeekInteger(row[2]);
       row.clear();
       row.emplace_back(type::TransientValueFactory::GetInteger(database_oid));
-      row.emplace_back(type::TransientValueFactory::GetInteger(commit_cnt + old_commit_cnt));
-      row.emplace_back(type::TransientValueFactory::GetInteger(abort_cnt + old_abort_cnt));
+      row.emplace_back(type::TransientValueFactory::GetBigInt(commit_cnt + old_commit_cnt));
+      row.emplace_back(type::TransientValueFactory::GetBigInt(abort_cnt + old_abort_cnt));
       auto proj_col_p = table->FindRowProjCol(txn, search_vec);
       auto tuple_slot_p = proj_col_p->TupleSlots();
       // delete

@@ -136,10 +136,10 @@ class TransactionMetricRawData : public AbstractRawData {
   struct TransactionData {
     std::chrono::high_resolution_clock::time_point start_;
     int64_t latency_;
-    int32_t tuple_read_;
-    int32_t tuple_insert_;
-    int32_t tuple_delete_;
-    int32_t tuple_update_;
+    int64_t tuple_read_;
+    int64_t tuple_insert_;
+    int64_t tuple_delete_;
+    int64_t tuple_update_;
   };
 
   /**

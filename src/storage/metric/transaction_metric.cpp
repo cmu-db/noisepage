@@ -18,10 +18,10 @@ catalog::SqlTableHelper *TransactionMetricRawData::GetStatsTable(transaction::Tr
   std::vector<catalog::Schema::Column> cols;
   cols.emplace_back("id", type::TypeId::BIGINT, false, catalog::col_oid_t(catalog->GetNextOid()));
   cols.emplace_back("latency", type::TypeId::BIGINT, false, catalog::col_oid_t(catalog->GetNextOid()));
-  cols.emplace_back("tuple_read", type::TypeId::INTEGER, false, catalog::col_oid_t(catalog->GetNextOid()));
-  cols.emplace_back("tuple_insert", type::TypeId::INTEGER, false, catalog::col_oid_t(catalog->GetNextOid()));
-  cols.emplace_back("tuple_delete", type::TypeId::INTEGER, false, catalog::col_oid_t(catalog->GetNextOid()));
-  cols.emplace_back("tuple_update", type::TypeId::INTEGER, false, catalog::col_oid_t(catalog->GetNextOid()));
+  cols.emplace_back("tuple_read", type::TypeId::BIGINT, false, catalog::col_oid_t(catalog->GetNextOid()));
+  cols.emplace_back("tuple_insert", type::TypeId::BIGINT, false, catalog::col_oid_t(catalog->GetNextOid()));
+  cols.emplace_back("tuple_delete", type::TypeId::BIGINT, false, catalog::col_oid_t(catalog->GetNextOid()));
+  cols.emplace_back("tuple_update", type::TypeId::BIGINT, false, catalog::col_oid_t(catalog->GetNextOid()));
   catalog::Schema schema(cols);
 
   // create table
@@ -54,10 +54,10 @@ void TransactionMetricRawData::UpdateAndPersist(transaction::TransactionManager 
       row.clear();
       row.emplace_back(type::TransientValueFactory::GetBigInt(txn_oid));
       row.emplace_back(type::TransientValueFactory::GetBigInt(latency));
-      row.emplace_back(type::TransientValueFactory::GetInteger(tuple_read));
-      row.emplace_back(type::TransientValueFactory::GetInteger(tuple_insert));
-      row.emplace_back(type::TransientValueFactory::GetInteger(tuple_delete));
-      row.emplace_back(type::TransientValueFactory::GetInteger(tuple_update));
+      row.emplace_back(type::TransientValueFactory::GetBigInt(tuple_read));
+      row.emplace_back(type::TransientValueFactory::GetBigInt(tuple_insert));
+      row.emplace_back(type::TransientValueFactory::GetBigInt(tuple_delete));
+      row.emplace_back(type::TransientValueFactory::GetBigInt(tuple_update));
       table->InsertRow(txn, row);
     } else {
       TERRIER_ASSERT(false, "There should not be update of the transaction data.");
