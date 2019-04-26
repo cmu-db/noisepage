@@ -1,4 +1,5 @@
 #include "storage/metric/transaction_metric.h"
+#include <vector>
 #include "catalog/catalog_defs.h"
 #include "storage/metric/thread_level_stats_collector.h"
 #include "transaction/transaction_manager.h"
