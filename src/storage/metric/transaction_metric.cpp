@@ -1,4 +1,5 @@
 #include "storage/metric/transaction_metric.h"
+#include <vector>
 #include "catalog/catalog_defs.h"
 #include "storage/metric/thread_level_stats_collector.h"
 #include "transaction/transaction_manager.h"
@@ -7,7 +8,8 @@
 namespace terrier::storage::metric {
 
 catalog::SqlTableHelper *TransactionMetricRawData::GetStatsTable(transaction::TransactionManager *const txn_manager,
-                                                             catalog::Catalog *const catalog, transaction::TransactionContext *txn) {
+                                                                 catalog::Catalog *const catalog,
+                                                                 transaction::TransactionContext *txn) {
   const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
   auto db_handle = catalog->GetDatabaseHandle();
   auto table_handle = db_handle.GetNamespaceHandle(txn, terrier_oid).GetTableHandle(txn, "public");

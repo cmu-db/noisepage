@@ -1,4 +1,4 @@
-#include "util/testing_stats_util.h"
+#include "util/metric_test_util.h"
 #include "storage/metric/stats_aggregator.h"
 #include "storage/metric/test_metric.h"
 
