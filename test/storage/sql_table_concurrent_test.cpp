@@ -109,7 +109,7 @@ struct SqlTableConcurrentTests : public TerrierTest {
     uint32_t *version = reinterpret_cast<uint32_t *>(pr->AccessWithNullCheck(pr_map->at(catalog::col_oid_t(100))));
     EXPECT_NE(version, nullptr);
     // LOG_INFO("Reading tuple at {} from {}", *version, !v);
-    EXPECT_TRUE(*version <= (!v));
+    ASSERT_TRUE(*version <= (!v));
 
     EXPECT_NE(pr_map->find(catalog::col_oid_t(1000)), pr_map->end());
     int32_t *sentinel = reinterpret_cast<int32_t *>(pr->AccessWithNullCheck(pr_map->at(catalog::col_oid_t(1000))));
