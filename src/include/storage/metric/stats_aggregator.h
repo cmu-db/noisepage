@@ -35,6 +35,7 @@ class StatsAggregator {
    * Instantiate a new stats collector
    * @param txn_manager transaction manager of the system for persisting collected data
    * @param catalog catalog of the system for SqlTable lookups/creation
+   * @param settings_manager settings manager of the system for retrieving relevant settings
    */
   explicit StatsAggregator(transaction::TransactionManager *txn_manager, catalog::Catalog *catalog,
                            settings::SettingsManager *settings_manager)
