@@ -48,8 +48,9 @@ class MetricTests : public TerrierTest {
 TEST_F(MetricTests, DatabaseMetricBasicTest) {
   const uint32_t num_threads = MultiThreadTestUtil::HardwareConcurrency();
   common::WorkerPool thread_pool(num_threads, {});
+  auto stats_collector = storage::metric::ThreadLevelStatsCollector();
+  storage::metric::StatsAggregator aggregator(txn_manager_, catalog_);
   for (uint8_t i = 0; i < num_iterations_; i++) {
-    auto stats_collector = storage::metric::ThreadLevelStatsCollector();
     std::unordered_map<uint8_t, int32_t> commit_map;
     std::unordered_map<uint8_t, int32_t> abort_map;
     for (uint8_t j = 0; j < num_databases_; j++) {
@@ -74,7 +75,6 @@ TEST_F(MetricTests, DatabaseMetricBasicTest) {
       }
     }
 
-    storage::metric::StatsAggregator aggregator(txn_manager_, catalog_);
     auto result = aggregator.AggregateRawData();
     EXPECT_FALSE(result.empty());
 
@@ -93,9 +93,14 @@ TEST_F(MetricTests, DatabaseMetricBasicTest) {
   }
 }
 
+
+/**
+ *  Testing database metric stats collection and persisting, single thread
+ */
+// NOLINTNEXTLINE
 TEST_F(MetricTests, DatabaseMetricStorageTest) {
-  const uint32_t num_threads = MultiThreadTestUtil::HardwareConcurrency();
-  common::WorkerPool thread_pool(num_threads, {});
+  auto stats_collector = storage::metric::ThreadLevelStatsCollector();
+  storage::metric::StatsAggregator aggregator(txn_manager_, catalog_);
   std::unordered_map<uint8_t, int32_t> commit_map;
   std::unordered_map<uint8_t, int32_t> abort_map;
   for (uint8_t j = 0; j < num_databases_; j++) {
@@ -123,7 +128,6 @@ TEST_F(MetricTests, DatabaseMetricStorageTest) {
         }
       }
     }
-    storage::metric::StatsAggregator aggregator(txn_manager_, catalog_);
     aggregator.Aggregate(txn_);
 
     const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
@@ -141,7 +145,6 @@ TEST_F(MetricTests, DatabaseMetricStorageTest) {
       EXPECT_EQ(commit_cnt, commit_map[j]);
       EXPECT_EQ(abort_cnt, abort_map[j]);
     }
-
   }
 }
 

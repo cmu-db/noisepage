@@ -20,10 +20,16 @@ namespace storage::metric {
 /**
  * @brief Class responsible for collecting raw data on a single thread.
  *
- * Each thread will be assigned one collector that is globally unique. This is
- * to ensure that we can collect raw data in an non-blocking way as the
+ * Each thread should be assigned one collector, at the time of system startup, that is globally
+ * unique. This is to ensure that we can collect raw data in an non-blocking way as the
  * collection code runs on critical query path. Periodically a dedicated aggregator thread
  * will put the data from all collectors together into a meaningful form.
+ *
+ * @warning The constructor of this class adds itself to a map of collector. The destructor
+ * of this class erases itself from the map. The map supports concurrent insert only. This means
+ * that calling the destructor concurrently with constructors and destructors of other instances
+ * is unsafe! Therefore, ThreadLevelStatsCollector should have the same scope as the worker pool.
+ * When the worker pool resizes, the CollectorsMap needs to be resized as well.
  */
 class ThreadLevelStatsCollector {
  public:
@@ -31,6 +37,7 @@ class ThreadLevelStatsCollector {
    * Concurrent unordered map between thread ID and pointer to an instance of this class
    */
   using CollectorsMap = common::ConcurrentMap<std::thread::id, ThreadLevelStatsCollector *, std::hash<std::thread::id>>;
+
   /**
    * @return the Collector for the calling thread
    */
@@ -38,10 +45,15 @@ class ThreadLevelStatsCollector {
     std::thread::id tid = std::this_thread::get_id();
     auto const iter = collector_map_.Find(tid);
     if (iter == collector_map_.End()) {
-      return nullptr;
+      return new ThreadLevelStatsCollector();
     }
     return iter->second;
   }
+
+  /**
+   * Remove all collectors from collector map
+   */
+  static void ClearCollectorMap() { collector_map_.Clear(); }
 
   /**
    * @return A mapping from each thread to their assigned Collector
@@ -49,12 +61,12 @@ class ThreadLevelStatsCollector {
   static CollectorsMap &GetAllCollectors() { return collector_map_; }
 
   /**
-   * @brief Constructor of collector
+   * Constructor of collector
    */
   ThreadLevelStatsCollector();
 
   /**
-   * @brief Destructor of collector
+   * Destructor of collector
    */
   ~ThreadLevelStatsCollector();
 

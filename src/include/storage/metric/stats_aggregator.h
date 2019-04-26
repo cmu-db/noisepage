@@ -35,7 +35,10 @@ class StatsAggregator {
   /**
    * Aggregate metrics from all threads which have collected stats,
    * combine with what was previously persisted in internal SQL tables
-   * and insert new total into SQLtable
+   * and insert new total into SQLtable.
+   *
+   * @warning this method should be called before manipulating the worker pool, especially if
+   * some of the worker threads are reassigned to tasks other than execution.
    */
   void Aggregate();
 void Aggregate(transaction::TransactionContext *txn);
@@ -47,15 +50,24 @@ void Aggregate(transaction::TransactionContext *txn);
   std::vector<std::shared_ptr<AbstractRawData>> AggregateRawData();
 
   /**
-   * @return the txn_manager of the system
+   * @return txn_manager of the system
    */
-  transaction::TransactionManager *GetTxnManager() { return txn_manager_; }
+  transaction::TransactionManager *const GetTxnManager() { return txn_manager_; }
+
+  /**
+   * @return catalog of the system
+   */
+  catalog::Catalog *const GetCatalog() { return catalog_; }
 
  private:
   /**
    * Transaction manager of the system
    */
   transaction::TransactionManager *const txn_manager_;
+
+  /**
+   * Catalog of the system
+   */
   catalog::Catalog *const catalog_;
 };
 

@@ -22,7 +22,7 @@ ThreadLevelStatsCollector::ThreadLevelStatsCollector() {
 ThreadLevelStatsCollector::~ThreadLevelStatsCollector() {
   metrics_.clear();
   metric_dispatch_.clear();
-  collector_map_.Insert(std::this_thread::get_id(), NULL);
+  collector_map_.UnsafeErase(std::this_thread::get_id());
 }
 
 std::vector<std::shared_ptr<AbstractRawData>> ThreadLevelStatsCollector::GetDataToAggregate() {
