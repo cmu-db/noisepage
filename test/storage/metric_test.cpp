@@ -7,8 +7,8 @@
 #include "storage/metric/transaction_metric.h"
 #include "transaction/transaction_defs.h"
 #include "transaction/transaction_manager.h"
+#include "util/metric_test_util.h"
 #include "util/test_harness.h"
-#include "util/testing_stats_util.h"
 #include "util/transaction_test_util.h"
 
 namespace terrier {
@@ -46,6 +46,24 @@ class MetricTests : public TerrierTest {
   const uint8_t num_txns_ = 2;
   const int64_t acc_err = 5;
 };
+
+/**
+ * Basic test for testing metric registration and stats collection
+ */
+// NOLINTNEXTLINE
+TEST_F(MetricTests, BasicTest) {
+  storage::metric::StatsAggregator aggregator(txn_manager_, catalog_);
+  EXPECT_EQ(aggregator.GetTxnManager(), txn_manager_);
+  EXPECT_EQ(aggregator.GetCatalog(), catalog_);
+  
+  auto test_num_1 = std::uniform_int_distribution<int32_t>(0, INT32_MAX)(generator_);
+  auto test_num_2 = std::uniform_int_distribution<int32_t>(0, INT32_MAX)(generator_);
+  auto stats_collector = storage::metric::ThreadLevelStatsCollector();
+  storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTestNum(test_num_1);
+  storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTestNum(test_num_2);
+
+  EXPECT_EQ(TestingStatsUtil::AggregateTestCounts(), test_num_1 + test_num_2);
+}
 
 /**
  * Basic test for testing database metric registration and stats collection, single thread
