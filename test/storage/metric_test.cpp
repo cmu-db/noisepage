@@ -162,8 +162,8 @@ TEST_F(MetricTests, DatabaseMetricStorageTest) {
       std::vector<type::TransientValue> search_vec;
       search_vec.emplace_back(type::TransientValueFactory::GetInteger(static_cast<uint32_t>(j)));
       auto row = table->FindRow(txn_, search_vec);
-      auto commit_cnt = type::TransientValuePeeker::PeekInteger(row[1]);
-      auto abort_cnt = type::TransientValuePeeker::PeekInteger(row[2]);
+      auto commit_cnt = type::TransientValuePeeker::PeekBigInt(row[1]);
+      auto abort_cnt = type::TransientValuePeeker::PeekBigInt(row[2]);
       EXPECT_EQ(commit_cnt, commit_map[j]);
       EXPECT_EQ(abort_cnt, abort_map[j]);
     }
@@ -179,10 +179,10 @@ TEST_F(MetricTests, TransactionMetricBasicTest) {
 
   for (uint8_t i = 0; i < num_iterations_; i++) {
     std::unordered_map<uint8_t, transaction::timestamp_t> id_map;
-    std::unordered_map<transaction::timestamp_t, int32_t> read_map;
-    std::unordered_map<transaction::timestamp_t, int32_t> update_map;
-    std::unordered_map<transaction::timestamp_t, int32_t> insert_map;
-    std::unordered_map<transaction::timestamp_t, int32_t> delete_map;
+    std::unordered_map<transaction::timestamp_t, int64_t> read_map;
+    std::unordered_map<transaction::timestamp_t, int64_t> update_map;
+    std::unordered_map<transaction::timestamp_t, int64_t> insert_map;
+    std::unordered_map<transaction::timestamp_t, int64_t> delete_map;
     std::unordered_map<transaction::timestamp_t, int64_t> latency_map;
     for (uint8_t j = 0; j < num_txns_; j++) {
       auto start = std::chrono::high_resolution_clock::now();
@@ -260,10 +260,10 @@ TEST_F(MetricTests, TransactionMetricStorageTest) {
 
   for (uint8_t i = 0; i < num_iterations_; i++) {
     std::unordered_map<uint8_t, transaction::timestamp_t> id_map;
-    std::unordered_map<transaction::timestamp_t, int32_t> read_map;
-    std::unordered_map<transaction::timestamp_t, int32_t> update_map;
-    std::unordered_map<transaction::timestamp_t, int32_t> insert_map;
-    std::unordered_map<transaction::timestamp_t, int32_t> delete_map;
+    std::unordered_map<transaction::timestamp_t, int64_t> read_map;
+    std::unordered_map<transaction::timestamp_t, int64_t> update_map;
+    std::unordered_map<transaction::timestamp_t, int64_t> insert_map;
+    std::unordered_map<transaction::timestamp_t, int64_t> delete_map;
     std::unordered_map<transaction::timestamp_t, int64_t> latency_map;
     for (uint8_t j = 0; j < num_txns_; j++) {
       auto start = std::chrono::high_resolution_clock::now();
@@ -315,10 +315,10 @@ TEST_F(MetricTests, TransactionMetricStorageTest) {
       search_vec.emplace_back(type::TransientValueFactory::GetBigInt(static_cast<uint64_t>(txn_id)));
       auto row = table->FindRow(txn_, search_vec);
       auto latency = type::TransientValuePeeker::PeekBigInt(row[1]);
-      auto read_cnt = type::TransientValuePeeker::PeekInteger(row[2]);
-      auto insert_cnt = type::TransientValuePeeker::PeekInteger(row[3]);
-      auto delete_cnt = type::TransientValuePeeker::PeekInteger(row[4]);
-      auto update_cnt = type::TransientValuePeeker::PeekInteger(row[5]);
+      auto read_cnt = type::TransientValuePeeker::PeekBigInt(row[2]);
+      auto insert_cnt = type::TransientValuePeeker::PeekBigInt(row[3]);
+      auto delete_cnt = type::TransientValuePeeker::PeekBigInt(row[4]);
+      auto update_cnt = type::TransientValuePeeker::PeekBigInt(row[5]);
       EXPECT_EQ(read_cnt, read_map[txn_id]);
       EXPECT_EQ(update_cnt, update_map[txn_id]);
       EXPECT_EQ(insert_cnt, insert_map[txn_id]);
