@@ -55,7 +55,7 @@ TEST_F(MetricTests, BasicTest) {
   storage::metric::StatsAggregator aggregator(txn_manager_, catalog_);
   EXPECT_EQ(aggregator.GetTxnManager(), txn_manager_);
   EXPECT_EQ(aggregator.GetCatalog(), catalog_);
-  
+
   auto test_num_1 = std::uniform_int_distribution<int32_t>(0, INT32_MAX)(generator_);
   auto test_num_2 = std::uniform_int_distribution<int32_t>(0, INT32_MAX)(generator_);
   auto stats_collector = storage::metric::ThreadLevelStatsCollector();

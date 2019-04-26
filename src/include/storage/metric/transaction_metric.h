@@ -155,7 +155,6 @@ class TransactionMetric : public AbstractMetric<TransactionMetricRawData> {
  public:
   /**
    * @param txn transaction context of the beginning transaction
-   * @param database_oid OID of the database the transaction is running in
    */
   void OnTransactionBegin(const transaction::TransactionContext *txn) override { GetRawData()->SetTxnStart(txn); }
 
