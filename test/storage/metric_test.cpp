@@ -177,6 +177,10 @@ TEST_F(MetricTests, DatabaseMetricStorageTest) {
   }
 }
 
+/**
+ * Basic test for testing transaction metric registration and stats collection, single thread
+ */
+// NOLINTNEXTLINE
 TEST_F(MetricTests, TransactionMetricBasicTest) {
   auto stats_collector = storage::metric::ThreadLevelStatsCollector();
   storage::metric::StatsAggregator aggregator(txn_manager_, catalog_, nullptr);
@@ -258,6 +262,10 @@ TEST_F(MetricTests, TransactionMetricBasicTest) {
   }
 }
 
+/**
+ *  Testing transaction metric stats collection and persistence, single thread
+ */
+// NOLINTNEXTLINE
 TEST_F(MetricTests, TransactionMetricStorageTest) {
   auto stats_collector = storage::metric::ThreadLevelStatsCollector();
   storage::metric::StatsAggregator aggregator(txn_manager_, catalog_, nullptr);
