@@ -29,7 +29,6 @@ void DatabaseMetricRawData::UpdateAndPersist(transaction::TransactionManager *co
                                              catalog::Catalog *const catalog, transaction::TransactionContext *txn) {
   auto table = GetStatsTable(txn_manager, catalog, txn);
   TERRIER_ASSERT(table != nullptr, "Stats table cannot be nullptr.");
-
   for (auto &entry : data_) {
     // one iteration per database
     auto database_oid = static_cast<uint32_t>(entry.first);

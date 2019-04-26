@@ -110,7 +110,7 @@ TEST_F(MetricTests, DatabaseMetricStorageTest) {
   for (uint8_t i = 0; i < num_iterations_; i++) {
     auto stats_collector = storage::metric::ThreadLevelStatsCollector();
     for (uint8_t j = 0; j < num_databases_; j++) {
-      auto num_txns_ = static_cast<uint8_t>(std::uniform_int_distribution<uint8_t>(0, UINT8_MAX)(generator_));
+      auto num_txns_ = static_cast<uint8_t>(std::uniform_int_distribution<uint8_t>(1, UINT8_MAX)(generator_));
       for (uint8_t k = 0; k < num_txns_; k++) {
         auto *txn = txn_manager_->BeginTransaction();
         storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTransactionBegin(txn);
