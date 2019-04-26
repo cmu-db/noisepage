@@ -68,12 +68,12 @@ class DatabaseMetricRawData : public AbstractRawData {
   /**
    * @return the number of committed transaction in a database
    */
-  int32_t GetCommitCount(catalog::db_oid_t db_oid) { return data_[db_oid].commit_cnt_; }
+  int64_t GetCommitCount(catalog::db_oid_t db_oid) { return data_[db_oid].commit_cnt_; }
 
   /**
    * @return the number of aborted transaction in a database
    */
-  int32_t GetAbortCount(catalog::db_oid_t db_oid) { return data_[db_oid].abort_cnt_; }
+  int64_t GetAbortCount(catalog::db_oid_t db_oid) { return data_[db_oid].abort_cnt_; }
 
   /**
    * Get the SQL table for persisting collected data, create a new table if necessary
