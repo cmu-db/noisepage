@@ -13,6 +13,10 @@
 
 namespace terrier {
 
+namespace settings {
+class SettingsManager;
+}
+
 /**
  * @brief Test the correctness of database metric
  */
@@ -24,6 +28,7 @@ class MetricTests : public TerrierTest {
 
     txn_ = txn_manager_->BeginTransaction();
     catalog_ = new catalog::Catalog(txn_manager_, txn_);
+    settings_manager_ = nullptr;
   }
 
   void TearDown() override {
@@ -34,6 +39,7 @@ class MetricTests : public TerrierTest {
     delete txn_;
     delete txn_manager_;
   }
+  settings::SettingsManager *settings_manager_;
 
   catalog::Catalog *catalog_;
   storage::RecordBufferSegmentPool buffer_pool_{100, 100};
@@ -52,9 +58,10 @@ class MetricTests : public TerrierTest {
  */
 // NOLINTNEXTLINE
 TEST_F(MetricTests, BasicTest) {
-  storage::metric::StatsAggregator aggregator(txn_manager_, catalog_);
+  storage::metric::StatsAggregator aggregator(txn_manager_, catalog_, nullptr);
   EXPECT_EQ(aggregator.GetTxnManager(), txn_manager_);
   EXPECT_EQ(aggregator.GetCatalog(), catalog_);
+  EXPECT_EQ(aggregator.GetSettingsManager(), settings_manager_);
 
   auto test_num_1 = std::uniform_int_distribution<int32_t>(0, INT32_MAX)(generator_);
   auto test_num_2 = std::uniform_int_distribution<int32_t>(0, INT32_MAX)(generator_);
@@ -73,7 +80,7 @@ TEST_F(MetricTests, DatabaseMetricBasicTest) {
   const uint32_t num_threads = MultiThreadTestUtil::HardwareConcurrency();
   common::WorkerPool thread_pool(num_threads, {});
   auto stats_collector = storage::metric::ThreadLevelStatsCollector();
-  storage::metric::StatsAggregator aggregator(txn_manager_, catalog_);
+  storage::metric::StatsAggregator aggregator(txn_manager_, catalog_, nullptr);
   for (uint8_t i = 0; i < num_iterations_; i++) {
     std::unordered_map<uint8_t, int64_t> commit_map;
     std::unordered_map<uint8_t, int64_t> abort_map;
@@ -123,9 +130,9 @@ TEST_F(MetricTests, DatabaseMetricBasicTest) {
 // NOLINTNEXTLINE
 TEST_F(MetricTests, DatabaseMetricStorageTest) {
   auto stats_collector = storage::metric::ThreadLevelStatsCollector();
-  storage::metric::StatsAggregator aggregator(txn_manager_, catalog_);
-  std::unordered_map<uint8_t, int64_t> commit_map;
-  std::unordered_map<uint8_t, int64_t> abort_map;
+  storage::metric::StatsAggregator aggregator(txn_manager_, catalog_, nullptr);
+  std::unordered_map<uint8_t, int32_t> commit_map;
+  std::unordered_map<uint8_t, int32_t> abort_map;
   for (uint8_t j = 0; j < num_databases_; j++) {
     commit_map[j] = 0;
     abort_map[j] = 0;
@@ -172,7 +179,7 @@ TEST_F(MetricTests, DatabaseMetricStorageTest) {
 
 TEST_F(MetricTests, TransactionMetricBasicTest) {
   auto stats_collector = storage::metric::ThreadLevelStatsCollector();
-  storage::metric::StatsAggregator aggregator(txn_manager_, catalog_);
+  storage::metric::StatsAggregator aggregator(txn_manager_, catalog_, nullptr);
 
   catalog::table_oid_t table_oid = static_cast<catalog::table_oid_t>(2);  // any value
   const catalog::db_oid_t database_oid(catalog::DEFAULT_DATABASE_OID);
@@ -253,7 +260,7 @@ TEST_F(MetricTests, TransactionMetricBasicTest) {
 
 TEST_F(MetricTests, TransactionMetricStorageTest) {
   auto stats_collector = storage::metric::ThreadLevelStatsCollector();
-  storage::metric::StatsAggregator aggregator(txn_manager_, catalog_);
+  storage::metric::StatsAggregator aggregator(txn_manager_, catalog_, nullptr);
 
   catalog::table_oid_t table_oid = static_cast<catalog::table_oid_t>(2);  // any value
   const catalog::db_oid_t database_oid(catalog::DEFAULT_DATABASE_OID);
