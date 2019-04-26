@@ -296,11 +296,6 @@ class AbstractMetric : public Metric {
     return {raw_data_.load(), &safe_};
   }
 
-  /**
-   * Get the SQL table for persisting collected data, create a new table if necessary
-   */
-  catalog::SqlTableHelper *GetStatsTable(transaction::TransactionManager *txn_manager, catalog::Catalog *catalog);
-
  private:
   /**
    * Pointer to raw data

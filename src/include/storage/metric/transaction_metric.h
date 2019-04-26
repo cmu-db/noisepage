@@ -81,10 +81,11 @@ class TransactionMetricRawData : public AbstractRawData {
 
   /**
    * Make necessary updates to the metric raw data and persist the content of
-   * this RawData into the Catalog. Expect this object
+   * this RawData into SqlTables. Expect this object
    * to be garbage-collected after this method is called.
    * @param txn_manager transaction manager of the system
    * @param catalog catalog of the system
+   * @param txn transaction context used for accessing SqlTables
    */
   void UpdateAndPersist(transaction::TransactionManager *txn_manager, catalog::Catalog *catalog,
                         transaction::TransactionContext *txn) override;
@@ -121,9 +122,12 @@ class TransactionMetricRawData : public AbstractRawData {
 
   /**
    * Get the SQL table for persisting collected data, create a new table if necessary
+   * @param txn_manager transaction manager of the system
+   * @param catalog catalog of the system
+   * @param txn transaction context used for table lookup/creation
    */
   catalog::SqlTableHelper *GetStatsTable(transaction::TransactionManager *txn_manager, catalog::Catalog *catalog,
-                                         transaction::TransactionContext *txn);
+                                         transaction::TransactionContext *txn) override;
 
  private:
   /**

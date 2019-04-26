@@ -8,11 +8,11 @@ namespace terrier::storage::metric {
 
 catalog::SqlTableHelper *DatabaseMetricRawData::GetStatsTable(transaction::TransactionManager *const txn_manager,
                                                               catalog::Catalog *const catalog,
-                                                              transaction::TransactionContext *txn) {
+                                                              transaction::TransactionContext *const txn) {
   const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
   auto db_handle = catalog->GetDatabaseHandle();
-  auto tablee = db_handle.GetNamespaceHandle(txn, terrier_oid);
-  auto table_handle = tablee.GetTableHandle(txn, "public");
+  auto ns_handle = db_handle.GetNamespaceHandle(txn, terrier_oid);
+  auto table_handle = ns_handle.GetTableHandle(txn, "public");
 
   // define schema
   std::vector<catalog::Schema::Column> cols;
