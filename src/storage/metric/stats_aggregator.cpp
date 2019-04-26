@@ -21,8 +21,6 @@ RawDataCollect StatsAggregator::AggregateRawData() {
   return acc;
 }
 
-void StatsAggregator::Aggregate() {}
-
 void StatsAggregator::Aggregate(transaction::TransactionContext *txn) {
   auto acc = AggregateRawData();
   for (auto &raw_data : acc) {

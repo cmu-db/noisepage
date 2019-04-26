@@ -1,5 +1,6 @@
 #include <random>
 #include <unordered_map>
+#include <vector>
 #include "storage/metric/database_metric.h"
 #include "storage/metric/transaction_metric.h"
 #include "storage/metric/stats_aggregator.h"

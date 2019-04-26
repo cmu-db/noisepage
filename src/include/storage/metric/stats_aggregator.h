@@ -39,8 +39,9 @@ class StatsAggregator {
    *
    * @warning this method should be called before manipulating the worker pool, especially if
    * some of the worker threads are reassigned to tasks other than execution.
+   *
+   * @param txn transaction context used for data aggregation and persistence
    */
-  void Aggregate();
   void Aggregate(transaction::TransactionContext *txn);
 
   /**
