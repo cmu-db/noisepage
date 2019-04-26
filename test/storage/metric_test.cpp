@@ -97,8 +97,6 @@ TEST_F(MetricTests, DatabaseMetricStorageTest) {
   for (uint8_t i = 0; i < num_iterations_; i++) {
     auto stats_collector = storage::metric::ThreadLevelStatsCollector();
 
-    // transaction::TransactionManager txn_manager(&buffer_pool_, true, LOGGING_DISABLED);
-    // transaction::TransactionManager txn_manager(nullptr, false, LOGGING_DISABLED);
     std::unordered_map<uint8_t, int32_t> commit_map;
     std::unordered_map<uint8_t, int32_t> abort_map;
     for (uint8_t j = 0; j < num_databases_; j++) {
@@ -122,9 +120,10 @@ TEST_F(MetricTests, DatabaseMetricStorageTest) {
         }
       }
     }
-
+    printf("Before aggregate\n");
     storage::metric::StatsAggregator aggregator(txn_manager_, catalog_);
     aggregator.Aggregate();
+    printf("After aggregate\n");
 
     auto txn = txn_manager_->BeginTransaction();
     const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);

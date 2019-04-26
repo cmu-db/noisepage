@@ -299,7 +299,7 @@ class AbstractMetric : public Metric {
   /**
    * Get the SQL table for persisting collected data, create a new table if necessary
    */
-  catalog::SqlTableRW *GetStatsTable(transaction::TransactionManager *const txn_manager,
+  catalog::SqlTableHelper *GetStatsTable(transaction::TransactionManager *const txn_manager,
                                      catalog::Catalog *const catalog);
 
  private:

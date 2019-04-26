@@ -127,7 +127,7 @@ class TransactionMetricRawData : public AbstractRawData {
   /**
    * Get the SQL table for persisting collected data, create a new table if necessary
    */
-  catalog::SqlTableRW *GetStatsTable(transaction::TransactionManager *txn_manager, catalog::Catalog *catalog);
+  catalog::SqlTableHelper *GetStatsTable(transaction::TransactionManager *txn_manager, catalog::Catalog *catalog);
 
  private:
   /**
