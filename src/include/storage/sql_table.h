@@ -243,7 +243,9 @@ class SqlTable {
    */
   SlotIterator begin(layout_version_t txn_version) const {
     // common::SpinLatch::ScopedSpinLatch guard(&tables_latch_);
-    return SlotIterator(&tables_, txn_version, false);
+    auto ret = SlotIterator(&tables_, txn_version, false);
+    ret.AdvanceOnEndOfDatatable_();
+    return ret;
   }
 
   /**
