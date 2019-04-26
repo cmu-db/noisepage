@@ -93,7 +93,6 @@ TEST_F(MetricTests, DatabaseMetricBasicTest) {
   }
 }
 
-
 /**
  *  Testing database metric stats collection and persisting, single thread
  */
@@ -104,8 +103,8 @@ TEST_F(MetricTests, DatabaseMetricStorageTest) {
   std::unordered_map<uint8_t, int32_t> commit_map;
   std::unordered_map<uint8_t, int32_t> abort_map;
   for (uint8_t j = 0; j < num_databases_; j++) {
-      commit_map[j] = 0;
-      abort_map[j] = 0;
+    commit_map[j] = 0;
+    abort_map[j] = 0;
   }
   for (uint8_t i = 0; i < num_iterations_; i++) {
     auto stats_collector = storage::metric::ThreadLevelStatsCollector();
@@ -134,7 +133,6 @@ TEST_F(MetricTests, DatabaseMetricStorageTest) {
     auto db_handle = catalog_->GetDatabaseHandle();
     auto table_handle = db_handle.GetNamespaceHandle(txn_, terrier_oid).GetTableHandle(txn_, "public");
     auto table = table_handle.GetTable(txn_, "database_metric_table");
-    
 
     for (uint8_t j = 0; j < num_databases_; j++) {
       std::vector<type::TransientValue> search_vec;

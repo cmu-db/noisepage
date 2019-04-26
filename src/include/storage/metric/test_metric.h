@@ -1,9 +1,9 @@
 #pragma once
 
+#include <cstdio>
 #include "catalog/catalog.h"
 #include "storage/metric/abstract_metric.h"
 #include "storage/metric/abstract_raw_data.h"
-#include <cstdio>
 
 namespace terrier::storage::metric {
 
@@ -34,7 +34,8 @@ class TestMetricRawData : public AbstractRawData {
    * @param txn_manager transaction manager of the system
    * @param catalog catalog of the system
    */
-  void UpdateAndPersist(transaction::TransactionManager *txn_manager, catalog::Catalog *catalog, transaction::TransactionContext *txn) override {}
+  void UpdateAndPersist(transaction::TransactionManager *txn_manager, catalog::Catalog *catalog,
+                        transaction::TransactionContext *txn) override {}
 
   /**
    * @return the type of the metric this object is holding the data for

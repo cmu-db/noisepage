@@ -7,7 +7,8 @@
 namespace terrier::storage::metric {
 
 catalog::SqlTableHelper *DatabaseMetricRawData::GetStatsTable(transaction::TransactionManager *const txn_manager,
-                                                          catalog::Catalog *const catalog, transaction::TransactionContext *txn) {
+                                                              catalog::Catalog *const catalog,
+                                                              transaction::TransactionContext *txn) {
   const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
   auto db_handle = catalog->GetDatabaseHandle();
   auto tablee = db_handle.GetNamespaceHandle(txn, terrier_oid);
@@ -35,7 +36,7 @@ void DatabaseMetricRawData::UpdateAndPersist(transaction::TransactionManager *co
     auto &counter = entry.second;
     auto commit_cnt = counter.commit_cnt_;
     auto abort_cnt = counter.abort_cnt_;
-    
+
     std::vector<type::TransientValue> search_vec;
     search_vec.emplace_back(type::TransientValueFactory::GetInteger(database_oid));
     auto row = table->FindRow(txn, search_vec);

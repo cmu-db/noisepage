@@ -56,7 +56,8 @@ class DatabaseMetricRawData : public AbstractRawData {
    * @param txn_manager transaction manager of the system
    * @param catalog catalog of the system
    */
-void UpdateAndPersist(transaction::TransactionManager *txn_manager, catalog::Catalog *catalog, transaction::TransactionContext *txn) override;
+  void UpdateAndPersist(transaction::TransactionManager *txn_manager, catalog::Catalog *catalog,
+                        transaction::TransactionContext *txn) override;
 
   /**
    * @return the type of the metric this object is holding the data for
@@ -76,7 +77,8 @@ void UpdateAndPersist(transaction::TransactionManager *txn_manager, catalog::Cat
   /**
    * Get the SQL table for persisting collected data, create a new table if necessary
    */
-  catalog::SqlTableHelper *GetStatsTable(transaction::TransactionManager *txn_manager, catalog::Catalog *catalog, transaction::TransactionContext *txn);
+  catalog::SqlTableHelper *GetStatsTable(transaction::TransactionManager *txn_manager, catalog::Catalog *catalog,
+                                         transaction::TransactionContext *txn);
 
  private:
   /**

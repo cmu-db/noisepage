@@ -7,7 +7,8 @@
 namespace terrier::storage::metric {
 
 catalog::SqlTableHelper *TransactionMetricRawData::GetStatsTable(transaction::TransactionManager *const txn_manager,
-                                                             catalog::Catalog *const catalog, transaction::TransactionContext *txn) {
+                                                                 catalog::Catalog *const catalog,
+                                                                 transaction::TransactionContext *txn) {
   const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
   auto db_handle = catalog->GetDatabaseHandle();
   auto table_handle = db_handle.GetNamespaceHandle(txn, terrier_oid).GetTableHandle(txn, "public");

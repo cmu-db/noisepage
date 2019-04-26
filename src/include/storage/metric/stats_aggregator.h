@@ -41,7 +41,7 @@ class StatsAggregator {
    * some of the worker threads are reassigned to tasks other than execution.
    */
   void Aggregate();
-void Aggregate(transaction::TransactionContext *txn);
+  void Aggregate(transaction::TransactionContext *txn);
 
   /**
    * Worker method for Aggregate() that performs stats collection

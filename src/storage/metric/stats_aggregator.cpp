@@ -19,7 +19,6 @@ RawDataCollect StatsAggregator::AggregateRawData() {
     }
   }
   return acc;
-
 }
 
 void StatsAggregator::Aggregate() {}
