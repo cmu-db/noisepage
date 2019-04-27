@@ -443,7 +443,7 @@ TEST_F(SqlTableConcurrentTests, ConcurrentQueriesWithSchemaChange) {
           auto old_version = tuples[base_val].GetBlock()->layout_version_;
           PopulateProjectedRow(working_version, base_val, pr, pr_map);
 
-          auto result = table.Update(txn, tuples[base_val], *pr, *pr_map, working_version);
+          auto result = table.Update(txn, tuples[base_val], pr, *pr_map, working_version);
 
           auto new_version = result.second.GetBlock()->layout_version_;
           EXPECT_LE(old_version, new_version);
