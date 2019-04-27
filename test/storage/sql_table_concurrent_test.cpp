@@ -236,7 +236,7 @@ TEST_F(SqlTableConcurrentTests, ConcurrentInsertsWithSchemaChanges) {
     auto workload = [&](uint32_t id) {
       for (uint32_t t = 0; t < txns_per_thread; t++) {
         storage::layout_version_t working_version = schema_version_;
-        auto txn = txn_manager_.BeginTransaction();
+        auto *txn = txn_manager_.BeginTransaction();
         if (id == 0) {
           if (t < 8) {
             catalog::Schema schema(GenerateColumnsVector(working_version + 1), working_version + 1);
@@ -309,6 +309,7 @@ TEST_F(SqlTableConcurrentTests, ConcurrentSelectsWithSchemaChanges) {
       pr = nullptr;
       delete[] buffer;
     }
+
     txn_manager_.Commit(init_txn, TestCallbacks::EmptyCallback, nullptr);
 
     delete pri;
@@ -322,13 +323,12 @@ TEST_F(SqlTableConcurrentTests, ConcurrentSelectsWithSchemaChanges) {
 
         if (id == 0) {
           // Update schema if there are still more schemas
-          if (t < 8) break {
+          if (t < 8) {
             catalog::Schema schema(GenerateColumnsVector(working_version + 1), working_version + 1);
             table.UpdateSchema(schema);
           }
         } else {
           // Select a tuple
-          txn = txn_manager_.BeginTransaction();
           auto row_pair = table.InitializerForProjectedRow(*versioned_col_oids[!working_version], working_version);
           auto pri = new storage::ProjectedRowInitializer(std::get<0>(row_pair));
           auto pr_map = new storage::ProjectionMap(std::get<1>(row_pair));
@@ -346,7 +346,7 @@ TEST_F(SqlTableConcurrentTests, ConcurrentSelectsWithSchemaChanges) {
         }
 
         txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
-        if (id == 0) schema_version_++;
+        if (id == 0 && t < 8) schema_version_++;
       }
     };
 
@@ -356,6 +356,7 @@ TEST_F(SqlTableConcurrentTests, ConcurrentSelectsWithSchemaChanges) {
     for (auto &version : versioned_col_oids) delete version;
     versioned_col_oids.clear();
 
+    gc_.PerformGarbageCollection();
     gc_.PerformGarbageCollection();
     gc_.PerformGarbageCollection();
   }
@@ -451,7 +452,7 @@ TEST_F(SqlTableConcurrentTests, ConcurrentUpdatesWithSchemaChanges) {
           delete pr_map;
         }
         txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
-        if (id == 0) schema_version_++;
+        if (id == 0 && t < 8) schema_version_++;
       }
     };
 
