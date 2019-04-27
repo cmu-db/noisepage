@@ -165,7 +165,8 @@ class CheckpointManager {
   
   /**
    * Will be called from recover after the tables are recovered from checkpoint files. This function will replay logs
-   * from the timestamp and recover all the logs. The caller should ensure that the tables are already recovered.
+   * from the timestamp and recover all the logs. The caller should ensure that the tables are already recovered,
+   * and the tuple_slot_map_ is built. This function should be called after Recover() or inside Recover().
    *
    * @param log_file_path log file path.
    * @param checkpoint_timestamp The checkpoint timestamp. All logs with smaller timestamps will be ignored.

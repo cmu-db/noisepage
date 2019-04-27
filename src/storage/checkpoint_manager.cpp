@@ -59,7 +59,7 @@ void CheckpointManager::Recover(const char *checkpoint_file_path) {
       TupleSlot new_slot = table->Insert(txn_, *row);
       TERRIER_ASSERT(tuple_slot_map_.find(*slot) == tuple_slot_map_.end(),
                      "Any tuple slot during recovery should be encounted only once.");
-      tuple_slot_map_.insert(*slot, new_slot);
+      tuple_slot_map_[*slot] = new_slot;
     }
   }
 }
@@ -89,7 +89,7 @@ void CheckpointManager::RecoverFromLogs(const char *log_file_path, terrier::tran
         log_record->GetUnderlyingRecordBodyAs<CommitRecord>()->CommitTime();
       // Only need to recover logs commited after the checkpoint
       if (commit_timestamp > checkpoint_timestamp) {
-        timestamp_map.insert(log_record->TxnBegin(), commit_timestamp);
+        timestamp_map[log_record->TxnBegin()] = commit_timestamp;
       }
     }
     delete[] reinterpret_cast<byte *>(log_record);
@@ -105,12 +105,11 @@ void CheckpointManager::RecoverFromLogs(const char *log_file_path, terrier::tran
       delete[] reinterpret_cast<byte *>(log_record);
       continue;
     }
-    terrier::transaction::timestamp_t commit_timestamp = timestamp_map[log_record->TxnBegin()];
   
     // TODO(zhaozhes): support for multi table. However, the log records stores data_table instead of
     // sql_table, which should be modified I think, so I think we should not currently use the API from log records.
     // For the above reasons, we currently can only support one table recovery, hard-coded as oid 0.
-    SqlTable *table = GetTable(0);
+    SqlTable *table = GetTable(static_cast<catalog::table_oid_t>(0));
     if (log_record->RecordType() == LogRecordType::DELETE) {
       auto *delete_record = log_record->GetUnderlyingRecordBodyAs<storage::DeleteRecord>();
       TupleSlot slot = tuple_slot_map_[delete_record->GetTupleSlot()];
@@ -130,7 +129,7 @@ void CheckpointManager::RecoverFromLogs(const char *log_file_path, terrier::tran
         // For an insert record, we have to add its tuple slot into the mapping as well,
         // to cope with a possible later update on it.
         TupleSlot slot = table->Insert(txn_, *row);
-        tuple_slot_map_.insert(old_slot, slot);
+        tuple_slot_map_[old_slot] = slot;
       } else {
         TupleSlot slot = tuple_slot_map_[redo_record->GetTupleSlot()];
         if (!table->Update(txn_, slot, *row)) {
