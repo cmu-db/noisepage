@@ -20,15 +20,6 @@ struct SqlTableConcurrentTests : public TerrierTest {
 
   void TearDown() override { TerrierTest::TearDown(); }
 
-  std::map<storage::layout_version_t, std::vector<catalog::Schema::Column>> GeneratVersionOidsMap() {
-    std::map<storage::layout_version_t, std::vector<catalog::Schema::Column>> m;
-    for (auto i : {0, 8}) {
-      auto layout = storage::layout_version_t(i);
-      m.insert({layout, GenerateColumnsVector(layout)});
-    }
-    return m;
-  }
-
   std::vector<catalog::Schema::Column> GenerateColumnsVector(storage::layout_version_t v) {
     std::vector<catalog::Schema::Column> cols;
 
@@ -451,16 +442,19 @@ TEST_F(SqlTableConcurrentTests, ConcurrentQueriesWithSchemaChange) {
           uint32_t *version = reinterpret_cast<uint32_t *>(pr->AccessWithNullCheck(pr_map->at(catalog::col_oid_t(100))));
 
           EXPECT_EQ(*version, (!tuples[base_val].GetBlock()->layout_version_));
+          auto old_version = tuples[base_val].GetBlock()->layout_version_;
           PopulateProjectedRow(working_version, base_val, pr, pr_map);
+
+
           auto result = table.Update(txn, tuples[base_val], *pr, *pr_map, working_version);
 
           auto new_version = result.second.GetBlock()->layout_version_;
-          EXPECT_LE(*version, ((!new_version) >= 5) ? !new_version : 5);
+          EXPECT_LE(old_version, new_version);
           EXPECT_LE(new_version, working_version);
           EXPECT_TRUE(result.first);
-          EXPECT_LE(*version, !working_version);
-          if (*version != (!working_version) && (!working_version) >= 5) EXPECT_NE(tuples[base_val], result.second);
-          else if (*version == (!working_version)) EXPECT_EQ(tuples[base_val], result.second);
+          EXPECT_EQ(*version, !working_version);
+          if (old_version != working_version && (!working_version) >= 5) EXPECT_NE(tuples[base_val], result.second);
+          else if (old_version == working_version) EXPECT_EQ(tuples[base_val], result.second);
           else EXPECT_EQ(tuples[base_val], result.second);
 
           tuples[base_val] = result.second;
