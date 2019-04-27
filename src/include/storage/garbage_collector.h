@@ -172,7 +172,7 @@ class GarbageCollector {
    * Given the undo buffer, deallocate all the varlen entries contained in compacted undo record
    * @param undo_record the undo buffer whose varlen entries are to deallocated
    */
-  void ReclaimBufferIfVarlenCompacted(UndoRecord *undo_record) const;
+  void ReclaimBufferIfVarlenCompacted(UndoRecord *undo_record);
 
   /**
    * Delete the slot corresponding to the unlinked undo record if the undo record was a DELETE
@@ -184,11 +184,11 @@ class GarbageCollector {
    * Deallocate varlen entries or mark them to be deleted later from the unlinked undo record
    * @param undo_record the unlinked undo record
    */
-  void ReclaimVarlen(UndoRecord *undo_record) const;
+  void ReclaimVarlen(UndoRecord *undo_record);
 
   /**
    * Straight up unlink the undo_record and reclaim its space
-   * @param undo_record
+   * @param undo_record the undo record to unlink
    */
   void UnlinkUndoRecordVersion(UndoRecord *undo_record);
 
@@ -213,6 +213,8 @@ class GarbageCollector {
   std::unordered_set<col_id_t> col_set_;
   // queue of unexecuted deferred actions
   std::queue<std::pair<transaction::timestamp_t, transaction::Action>> deferred_actions_;
+  // List of loose varlen pointers from compacted undo record
+  std::vector<const byte *> varlen_loose_ptrs_;
 };
 
 }  // namespace terrier::storage

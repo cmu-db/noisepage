@@ -42,6 +42,10 @@ std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
     buffers_to_unlink_.push_front(delta_record_compaction_buffer_);
   }
 
+  // Deallocate varlen pointers
+  for (const byte *ptr : varlen_loose_ptrs_) delete[] ptr;
+  varlen_loose_ptrs_.clear();
+
   return std::make_pair(txns_deallocated, txns_unlinked);
 }
 
@@ -480,6 +484,7 @@ void GarbageCollector::CopyVarlen(UndoRecord *undo_record) {
         // Copy the varlen entry from the original undo record to the compacted undo record
         uint32_t size = varlen->Size();
         byte *buffer = common::AllocationUtil::AllocateAligned(size);
+        std::memcpy(buffer, varlen->Content(), size);
         *reinterpret_cast<storage::VarlenEntry *>(undo_record->Delta()->AccessForceNotNull(i)) =
             storage::VarlenEntry::Create(buffer, size, true);
       }
@@ -487,7 +492,7 @@ void GarbageCollector::CopyVarlen(UndoRecord *undo_record) {
   }
 }
 
-void GarbageCollector::ReclaimVarlen(UndoRecord *const undo_record) const {
+void GarbageCollector::ReclaimVarlen(UndoRecord *const undo_record) {
   if (undo_record->txnptr_.IsCompacted()) {
     ReclaimBufferIfVarlenCompacted(undo_record);
   } else {
@@ -495,7 +500,7 @@ void GarbageCollector::ReclaimVarlen(UndoRecord *const undo_record) const {
   }
 }
 
-void GarbageCollector::ReclaimBufferIfVarlenCompacted(UndoRecord *const undo_record) const {
+void GarbageCollector::ReclaimBufferIfVarlenCompacted(UndoRecord *const undo_record) {
   const TupleAccessStrategy &accessor = undo_record->Table()->accessor_;
   const BlockLayout &layout = accessor.GetBlockLayout();
   for (uint16_t i = 0; i < undo_record->Delta()->NumColumns(); i++) {
@@ -504,7 +509,7 @@ void GarbageCollector::ReclaimBufferIfVarlenCompacted(UndoRecord *const undo_rec
       auto *varlen = reinterpret_cast<VarlenEntry *>(undo_record->Delta()->AccessWithNullCheck(i));
       // The varlen entries in the compacted undo record don't need to be logged
       // Can deallocate them right away
-      if (varlen != nullptr && varlen->NeedReclaim()) delete[] varlen->Content();
+      if (varlen != nullptr && varlen->NeedReclaim()) varlen_loose_ptrs_.push_back(varlen->Content());
     }
   }
 }
