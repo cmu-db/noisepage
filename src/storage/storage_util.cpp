@@ -1,4 +1,5 @@
 #include "storage/storage_util.h"
+#include <cstring>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -6,43 +7,7 @@
 #include "storage/projected_columns.h"
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
-
 namespace terrier::storage {
-void StorageUtil::WriteBytes(const uint8_t attr_size, const uint64_t val, byte *const pos) {
-  switch (attr_size) {
-    case sizeof(uint8_t):
-      *reinterpret_cast<uint8_t *>(pos) = static_cast<uint8_t>(val);
-      break;
-    case sizeof(uint16_t):
-      *reinterpret_cast<uint16_t *>(pos) = static_cast<uint16_t>(val);
-      break;
-    case sizeof(uint32_t):
-      *reinterpret_cast<uint32_t *>(pos) = static_cast<uint32_t>(val);
-      break;
-    case sizeof(uint64_t):
-      *reinterpret_cast<uint64_t *>(pos) = static_cast<uint64_t>(val);
-      break;
-    default:
-      // Invalid attr size
-      throw std::runtime_error("Invalid byte write value");
-  }
-}
-
-uint64_t StorageUtil::ReadBytes(const uint8_t attr_size, const byte *const pos) {
-  switch (attr_size) {
-    case sizeof(uint8_t):
-      return *reinterpret_cast<const uint8_t *>(pos);
-    case sizeof(uint16_t):
-      return *reinterpret_cast<const uint16_t *>(pos);
-    case sizeof(uint32_t):
-      return *reinterpret_cast<const uint32_t *>(pos);
-    case sizeof(uint64_t):
-      return *reinterpret_cast<const uint64_t *>(pos);
-    default:
-      // Invalid attr size
-      throw std::runtime_error("Invalid byte write value");
-  }
-}
 
 template <class RowType>
 void StorageUtil::CopyWithNullCheck(const byte *const from, RowType *const to, const uint8_t size,
@@ -50,7 +15,7 @@ void StorageUtil::CopyWithNullCheck(const byte *const from, RowType *const to, c
   if (from == nullptr)
     to->SetNull(projection_list_index);
   else
-    WriteBytes(size, ReadBytes(size, from), to->AccessForceNotNull(projection_list_index));
+    std::memcpy(to->AccessForceNotNull(projection_list_index), from, size);
 }
 
 template void StorageUtil::CopyWithNullCheck<ProjectedRow>(const byte *, ProjectedRow *, uint8_t, uint16_t);
@@ -59,12 +24,10 @@ template void StorageUtil::CopyWithNullCheck<ProjectedColumns::RowView>(const by
 
 void StorageUtil::CopyWithNullCheck(const byte *const from, const TupleAccessStrategy &accessor, const TupleSlot to,
                                     const col_id_t col_id) {
-  if (from == nullptr) {
+  if (from == nullptr)
     accessor.SetNull(to, col_id);
-  } else {
-    uint8_t size = accessor.GetBlockLayout().AttrSize(col_id);
-    WriteBytes(size, ReadBytes(size, from), accessor.AccessForceNotNull(to, col_id));
-  }
+  else
+    std::memcpy(accessor.AccessForceNotNull(to, col_id), from, accessor.GetBlockLayout().AttrSize(col_id));
 }
 
 template <class RowType>
@@ -127,74 +90,55 @@ template void StorageUtil::ApplyDelta<ProjectedColumns::RowView>(const BlockLayo
                                                                  ProjectedColumns::RowView *buffer);
 
 uint32_t StorageUtil::PadUpToSize(const uint8_t word_size, const uint32_t offset) {
-  const uint32_t remainder = offset % word_size;
-  return remainder == 0 ? offset : offset + word_size - remainder;
+  TERRIER_ASSERT((word_size & (word_size - 1)) == 0, "word_size should be a power of two.");
+  // Because size is a power of two, mask is always all 1s up to the length of size.
+  // example, size is 8 (1000), mask is (0111)
+  uint32_t mask = word_size - 1;
+  // This is equivalent to (offset + (size - 1)) / size, which always pads up as desired
+  return (offset + mask) & (~mask);
 }
 
-std::pair<BlockLayout, ColumnMap> StorageUtil::BlockLayoutFromSchema(const catalog::Schema &schema) {
-  uint16_t num_8_byte_attrs = NUM_RESERVED_COLUMNS;
-  uint16_t num_4_byte_attrs = 0;
-  uint16_t num_2_byte_attrs = 0;
-  uint16_t num_1_byte_attrs = 0;
+std::vector<uint16_t> StorageUtil::ComputeBaseAttributeOffsets(const std::vector<uint8_t> &attr_sizes,
+                                                               uint16_t num_reserved_columns) {
+  // First compute {count_varlen, count_8, count_4, count_2, count_1}
+  // Then {offset_varlen, offset_8, offset_4, offset_2, offset_1} is the inclusive scan of the counts
+  std::vector<uint16_t> offsets;
+  offsets.reserve(5);
+  for (uint8_t i = 0; i < 5; i++) {
+    offsets.emplace_back(0);
+  }
 
-  // Begin with the NUM_RESERVED_COLUMNS in the attr_sizes
-  std::vector<uint8_t> attr_sizes({8});
-  TERRIER_ASSERT(attr_sizes.size() == NUM_RESERVED_COLUMNS,
-                 "attr_sizes should be initialized with NUM_RESERVED_COLUMNS elements.");
-
-  // First pass through to accumulate the counts of each attr_size
-  for (const auto &column : schema.GetColumns()) {
-    attr_sizes.push_back(column.GetAttrSize());
-    switch (column.GetAttrSize()) {
+  for (const auto &size : attr_sizes) {
+    switch (size) {
+      case VARLEN_COLUMN:
+        offsets[1]++;
+        break;
       case 8:
-        num_8_byte_attrs++;
+        offsets[2]++;
         break;
       case 4:
-        num_4_byte_attrs++;
+        offsets[3]++;
         break;
       case 2:
-        num_2_byte_attrs++;
+        offsets[4]++;
         break;
       case 1:
-        num_1_byte_attrs++;
         break;
       default:
-        break;
+        throw std::runtime_error("unexpected switch case value");
     }
   }
 
-  TERRIER_ASSERT(static_cast<uint16_t>(attr_sizes.size()) ==
-                     num_8_byte_attrs + num_4_byte_attrs + num_2_byte_attrs + num_1_byte_attrs,
-                 "Number of attr_sizes does not match the sum of attr counts.");
+  // reserved columns appear first
+  offsets[0] = static_cast<uint16_t>(offsets[0] + num_reserved_columns);
+  // reserved columns are size 8
+  offsets[2] = static_cast<uint16_t>(offsets[2] - num_reserved_columns);
 
-  // Initialize the offsets for each attr_size
-  uint16_t offset_8_byte_attrs = NUM_RESERVED_COLUMNS;
-  uint16_t offset_4_byte_attrs = num_8_byte_attrs;
-  auto offset_2_byte_attrs = static_cast<uint16_t>(offset_4_byte_attrs + num_4_byte_attrs);
-  auto offset_1_byte_attrs = static_cast<uint16_t>(offset_2_byte_attrs + num_2_byte_attrs);
-
-  ColumnMap col_oid_to_id;
-  // Build the map from Schema columns to underlying columns
-  for (const auto &column : schema.GetColumns()) {
-    switch (column.GetAttrSize()) {
-      case 8:
-        col_oid_to_id[column.GetOid()] = col_id_t(offset_8_byte_attrs++);
-        break;
-      case 4:
-        col_oid_to_id[column.GetOid()] = col_id_t(offset_4_byte_attrs++);
-        break;
-      case 2:
-        col_oid_to_id[column.GetOid()] = col_id_t(offset_2_byte_attrs++);
-        break;
-      case 1:
-        col_oid_to_id[column.GetOid()] = col_id_t(offset_1_byte_attrs++);
-        break;
-      default:
-        break;
-    }
+  // compute the offsets with an inclusive scan
+  for (uint8_t i = 1; i < 5; i++) {
+    offsets[i] = static_cast<uint16_t>(offsets[i] + offsets[i - 1]);
   }
-
-  return {storage::BlockLayout(attr_sizes), col_oid_to_id};
+  return offsets;
 }
 
 }  // namespace terrier::storage

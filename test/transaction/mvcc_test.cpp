@@ -1,3 +1,4 @@
+#include <cstring>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -16,7 +17,7 @@ class MVCCDataTableTestObject {
  public:
   template <class Random>
   MVCCDataTableTestObject(storage::BlockStore *block_store, const uint16_t max_col, Random *generator)
-      : layout_(StorageTestUtil::RandomLayout(max_col, generator)),
+      : layout_(StorageTestUtil::RandomLayoutNoVarlen(max_col, generator)),
         table_(block_store, layout_, storage::layout_version_t(0)) {}
 
   ~MVCCDataTableTestObject() {
@@ -39,7 +40,8 @@ class MVCCDataTableTestObject {
   template <class Random>
   storage::ProjectedRow *GenerateRandomUpdate(Random *generator) {
     std::vector<storage::col_id_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout_, generator);
-    storage::ProjectedRowInitializer update_initializer(layout_, update_col_ids);
+    storage::ProjectedRowInitializer update_initializer =
+        storage::ProjectedRowInitializer::CreateProjectedRowInitializer(layout_, update_col_ids);
     auto *buffer = common::AllocationUtil::AllocateAligned(update_initializer.ProjectedRowSize());
     loose_pointers_.push_back(buffer);
     storage::ProjectedRow *update = update_initializer.InitializeRow(buffer);
@@ -52,7 +54,7 @@ class MVCCDataTableTestObject {
     auto *buffer = common::AllocationUtil::AllocateAligned(redo_initializer.ProjectedRowSize());
     loose_pointers_.push_back(buffer);
     // Copy previous version
-    TERRIER_MEMCPY(buffer, &previous, redo_initializer.ProjectedRowSize());
+    std::memcpy(buffer, &previous, redo_initializer.ProjectedRowSize());
     auto *version = reinterpret_cast<storage::ProjectedRow *>(buffer);
     std::unordered_map<uint16_t, uint16_t> col_to_projection_list_index;
     storage::StorageUtil::ApplyDelta(layout_, delta, version);
@@ -73,7 +75,8 @@ class MVCCDataTableTestObject {
   const double null_bias_ = 0;
   std::vector<byte *> loose_pointers_;
   std::vector<transaction::TransactionContext *> loose_txns_;
-  storage::ProjectedRowInitializer redo_initializer{layout_, StorageTestUtil::ProjectionListAllColumns(layout_)};
+  storage::ProjectedRowInitializer redo_initializer = storage::ProjectedRowInitializer::CreateProjectedRowInitializer(
+      layout_, StorageTestUtil::ProjectionListAllColumns(layout_));
   byte *select_buffer_ = common::AllocationUtil::AllocateAligned(redo_initializer.ProjectedRowSize());
   bool select_result_;
 };
@@ -120,7 +123,7 @@ TEST_F(MVCCTests, CommitInsert1) {
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     auto *txn1 = txn_manager.BeginTransaction();
     tested.loose_txns_.push_back(txn1);
@@ -140,7 +143,7 @@ TEST_F(MVCCTests, CommitInsert1) {
 
     select_tuple = tested.SelectIntoBuffer(txn2, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
     txn_manager.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
   }
 }
@@ -184,7 +187,7 @@ TEST_F(MVCCTests, CommitInsert2) {
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     txn_manager.Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
 
@@ -199,7 +202,7 @@ TEST_F(MVCCTests, CommitInsert2) {
 
     select_tuple = tested.SelectIntoBuffer(txn2, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
     txn_manager.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
   }
 }
@@ -237,7 +240,7 @@ TEST_F(MVCCTests, AbortInsert1) {
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     auto *txn1 = txn_manager.BeginTransaction();
     tested.loose_txns_.push_back(txn1);
@@ -300,7 +303,7 @@ TEST_F(MVCCTests, AbortInsert2) {
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     txn_manager.Abort(txn1);
 
@@ -362,20 +365,20 @@ TEST_F(MVCCTests, CommitUpdate1) {
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, update_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple));
 
     auto *txn1 = txn_manager.BeginTransaction();
     tested.loose_txns_.push_back(txn1);
 
     select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     txn_manager.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
 
     select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     txn_manager.Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
 
@@ -384,7 +387,7 @@ TEST_F(MVCCTests, CommitUpdate1) {
 
     select_tuple = tested.SelectIntoBuffer(txn2, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, update_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple));
     txn_manager.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
   }
 }
@@ -436,16 +439,16 @@ TEST_F(MVCCTests, CommitUpdate2) {
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     select_tuple = tested.SelectIntoBuffer(txn1, slot);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, update_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple));
 
     txn_manager.Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
 
     select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     txn_manager.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
 
@@ -454,7 +457,7 @@ TEST_F(MVCCTests, CommitUpdate2) {
 
     select_tuple = tested.SelectIntoBuffer(txn2, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, update_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple));
     txn_manager.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
   }
 }
@@ -503,20 +506,20 @@ TEST_F(MVCCTests, AbortUpdate1) {
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, update_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple));
 
     auto *txn1 = txn_manager.BeginTransaction();
     tested.loose_txns_.push_back(txn1);
 
     select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     txn_manager.Abort(txn0);
 
     select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     txn_manager.Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
 
@@ -525,7 +528,7 @@ TEST_F(MVCCTests, AbortUpdate1) {
 
     select_tuple = tested.SelectIntoBuffer(txn2, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
     txn_manager.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
   }
 }
@@ -577,17 +580,17 @@ TEST_F(MVCCTests, AbortUpdate2) {
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, update_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple));
 
     txn_manager.Abort(txn1);
 
     select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     txn_manager.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
 
@@ -596,7 +599,7 @@ TEST_F(MVCCTests, AbortUpdate2) {
 
     select_tuple = tested.SelectIntoBuffer(txn2, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
     txn_manager.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
   }
 }
@@ -633,7 +636,7 @@ TEST_F(MVCCTests, InsertUpdate1) {
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
     txn_manager.Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
 
     storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
@@ -692,13 +695,13 @@ TEST_F(MVCCTests, CommitDelete1) {
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     txn_manager.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
 
     select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     txn_manager.Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
 
@@ -754,7 +757,7 @@ TEST_F(MVCCTests, CommitDelete2) {
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     tested.SelectIntoBuffer(txn1, slot);
     EXPECT_FALSE(tested.select_result_);
@@ -763,7 +766,7 @@ TEST_F(MVCCTests, CommitDelete2) {
 
     select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     txn_manager.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
 
@@ -822,13 +825,13 @@ TEST_F(MVCCTests, AbortDelete1) {
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     txn_manager.Abort(txn0);
 
     select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     txn_manager.Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
 
@@ -837,7 +840,7 @@ TEST_F(MVCCTests, AbortDelete1) {
 
     select_tuple = tested.SelectIntoBuffer(txn2, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
     txn_manager.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
   }
 }
@@ -885,7 +888,7 @@ TEST_F(MVCCTests, AbortDelete2) {
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     tested.SelectIntoBuffer(txn1, slot);
     EXPECT_FALSE(tested.select_result_);
@@ -894,7 +897,7 @@ TEST_F(MVCCTests, AbortDelete2) {
 
     select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     txn_manager.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
 
@@ -903,7 +906,7 @@ TEST_F(MVCCTests, AbortDelete2) {
 
     select_tuple = tested.SelectIntoBuffer(txn2, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
     txn_manager.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
   }
 }
@@ -954,7 +957,7 @@ TEST_F(MVCCTests, CommitUpdateDelete1) {
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, update_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple));
 
     auto *txn1 = txn_manager.BeginTransaction();
     tested.loose_txns_.push_back(txn1);
@@ -966,13 +969,13 @@ TEST_F(MVCCTests, CommitUpdateDelete1) {
 
     select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     txn_manager.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
 
     select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     txn_manager.Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
 
@@ -1034,10 +1037,10 @@ TEST_F(MVCCTests, CommitUpdateDelete2) {
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     select_tuple = tested.SelectIntoBuffer(txn1, slot);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, update_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple));
 
     EXPECT_TRUE(tested.table_.Delete(txn1, slot));
 
@@ -1048,7 +1051,7 @@ TEST_F(MVCCTests, CommitUpdateDelete2) {
 
     select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     txn_manager.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
 
@@ -1107,14 +1110,14 @@ TEST_F(MVCCTests, AbortUpdateDelete1) {
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, update_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple));
 
     auto *txn1 = txn_manager.BeginTransaction();
     tested.loose_txns_.push_back(txn1);
 
     select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     EXPECT_TRUE(tested.table_.Delete(txn0, slot));
 
@@ -1125,7 +1128,7 @@ TEST_F(MVCCTests, AbortUpdateDelete1) {
 
     select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     txn_manager.Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
 
@@ -1134,7 +1137,7 @@ TEST_F(MVCCTests, AbortUpdateDelete1) {
 
     select_tuple = tested.SelectIntoBuffer(txn2, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
     txn_manager.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
   }
 }
@@ -1188,11 +1191,11 @@ TEST_F(MVCCTests, AbortUpdateDelete2) {
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, update_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple));
 
     EXPECT_TRUE(tested.table_.Delete(txn1, slot));
 
@@ -1203,7 +1206,7 @@ TEST_F(MVCCTests, AbortUpdateDelete2) {
 
     select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     txn_manager.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
 
@@ -1212,7 +1215,7 @@ TEST_F(MVCCTests, AbortUpdateDelete2) {
 
     select_tuple = tested.SelectIntoBuffer(txn2, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
     txn_manager.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
   }
 }
@@ -1252,7 +1255,7 @@ TEST_F(MVCCTests, SimpleDelete1) {
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     EXPECT_TRUE(tested.table_.Update(txn0, slot, *update));
 
@@ -1260,7 +1263,7 @@ TEST_F(MVCCTests, SimpleDelete1) {
 
     select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, update_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple));
 
     EXPECT_TRUE(tested.table_.Delete(txn0, slot));
 
@@ -1316,7 +1319,7 @@ TEST_F(MVCCTests, SimpleDelete2) {
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     EXPECT_TRUE(tested.table_.Update(txn0, slot, *update));
 
@@ -1324,7 +1327,7 @@ TEST_F(MVCCTests, SimpleDelete2) {
 
     select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, update_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple));
 
     EXPECT_TRUE(tested.table_.Delete(txn0, slot));
 
@@ -1341,9 +1344,8 @@ TEST_F(MVCCTests, SimpleDelete2) {
 
     select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
     txn_manager.Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
   }
 }
-
 }  // namespace terrier

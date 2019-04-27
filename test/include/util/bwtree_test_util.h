@@ -2,7 +2,6 @@
 #include "bwtree/bwtree.h"
 #include "gtest/gtest.h"
 #include "util/random_test_util.h"
-#include "util/test_thread_pool.h"
 
 namespace terrier {
 /**
@@ -28,7 +27,7 @@ struct BwTreeTestUtil {
    */
   class KeyComparator {
    public:
-    inline bool operator()(const int64_t k1, const int64_t k2) const { return k1 < k2; }
+    bool operator()(const int64_t k1, const int64_t k2) const { return k1 < k2; }
 
     explicit KeyComparator(int dummy UNUSED_ATTRIBUTE) {}
 
@@ -45,7 +44,7 @@ struct BwTreeTestUtil {
    */
   class KeyEqualityChecker {
    public:
-    inline bool operator()(const int64_t k1, const int64_t k2) const { return k1 == k2; }
+    bool operator()(const int64_t k1, const int64_t k2) const { return k1 == k2; }
 
     explicit KeyEqualityChecker(int dummy UNUSED_ATTRIBUTE) {}
 

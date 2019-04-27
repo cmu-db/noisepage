@@ -1,4 +1,3 @@
-#include <storage/varlen_pool.h>
 #include <unordered_map>
 #include <vector>
 
@@ -53,7 +52,7 @@ class WriteAheadLoggingTests : public TerrierTest {
       // Okay to fill in null since nobody will invoke the callback.
       // is_read_only argument is set to false, because we do not write out a commit record for a transaction if it is
       // not read-only.
-      return storage::CommitRecord::Initialize(buf, txn_begin, txn_commit, nullptr, nullptr, false);
+      return storage::CommitRecord::Initialize(buf, txn_begin, txn_commit, nullptr, nullptr, false, nullptr);
     }
     // TODO(Tianyu): Without a lookup mechanism this oid is not exactly meaningful. Implement lookup when possible.
     auto table_oid UNUSED_ATTRIBUTE = in->ReadValue<catalog::table_oid_t>();
@@ -75,7 +74,7 @@ class WriteAheadLoggingTests : public TerrierTest {
     }
 
     // Initialize the redo record.
-    auto initializer = storage::ProjectedRowInitializer(block_layout, col_ids);
+    auto initializer = storage::ProjectedRowInitializer::CreateProjectedRowInitializer(block_layout, col_ids);
     // TODO(Justin): set a pointer to the correct data table? Will this even be useful for recovery?
     auto *result = storage::RedoRecord::Initialize(buf, txn_begin, nullptr, tuple_slot, initializer);
     auto *delta = result->GetUnderlyingRecordBodyAs<storage::RedoRecord>()->Delta();
@@ -100,13 +99,13 @@ class WriteAheadLoggingTests : public TerrierTest {
         // Read how many bytes this varlen actually is.
         const auto varlen_attribute_size = in->ReadValue<uint32_t>();
         // Allocate a varlen entry of this many bytes.
-        auto *varlen_entry = varlen_pool_.Allocate(varlen_attribute_size);
+        byte *varlen_content = common::AllocationUtil::AllocateAligned(varlen_attribute_size);
         // Fill the entry with the next bytes from the log file.
-        in->Read(varlen_entry->content_, varlen_entry->size_);
+        in->Read(varlen_content, varlen_attribute_size);
         // The attribute value in the ProjectedRow will be a pointer to this varlen entry.
-        auto *dest = reinterpret_cast<storage::VarlenEntry **>(column_value_address);
+        auto *entry = reinterpret_cast<storage::VarlenEntry *>(*column_value_address);
         // Set the value to be the address of the varlen_entry.
-        *dest = varlen_entry;
+        *entry = storage::VarlenEntry::Create(varlen_content, varlen_attribute_size, true);
       } else {
         // For inlined attributes, just directly read into the ProjectedRow.
         in->Read(column_value_address, block_layout.AttrSize(col_ids[i]));
@@ -123,7 +122,6 @@ class WriteAheadLoggingTests : public TerrierTest {
   storage::RecordBufferSegmentPool pool_{2000, 100};
   storage::BlockStore block_store_{100, 100};
   storage::LogManager log_manager_{LOG_FILE_NAME, &pool_};
-  storage::VarlenPool varlen_pool_;
 
   // Members related to running gc / logging.
   std::thread log_thread_;
@@ -154,13 +152,23 @@ class WriteAheadLoggingTests : public TerrierTest {
 TEST_F(WriteAheadLoggingTests, LargeLogTest) {
   // There are 5 columns. The table has 10 rows. Each transaction does 5 operations. The update-select ratio of
   // operations is 50%-50%.
-  LargeTransactionTestObject tested(5, 10, 5, {0.5, 0.5}, &block_store_, &pool_, &generator_, true, true,
-                                    &log_manager_);
+  LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
+                                          .SetMaxColumns(5)
+                                          .SetInitialTableSize(10)
+                                          .SetTxnLength(5)
+                                          .SetUpdateSelectRatio({0.5, 0.5})
+                                          .SetBlockStore(&block_store_)
+                                          .SetBufferPool(&pool_)
+                                          .SetGenerator(&generator_)
+                                          .SetGcOn(true)
+                                          .SetBookkeeping(true)
+                                          .SetLogManager(&log_manager_)
+                                          .build();
   StartLogging(10);
   StartGC(tested.GetTxnManager(), 10);
   auto result = tested.SimulateOltp(100, 4);
-  EndGC();
   EndLogging();
+  EndGC();
 
   std::unordered_map<transaction::timestamp_t, RandomWorkloadTransaction *> txns_map;
   for (auto *txn : result.first) txns_map[txn->BeginTimestamp()] = txn;
@@ -197,7 +205,7 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
       //  so we are not checking it.
       auto update_it = it->second->Updates()->find(redo->GetTupleSlot());
       EXPECT_NE(it->second->Updates()->end(), update_it);
-      EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), update_it->second, redo->Delta()));
+      EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), update_it->second, redo->Delta()));
       delete[] reinterpret_cast<byte *>(update_it->second);
       it->second->Updates()->erase(update_it);
     }
@@ -222,13 +230,24 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
 // NOLINTNEXTLINE
 TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
   // Each transaction is read-only (update-select ratio of 0-100). Also, no need for bookkeeping.
-  LargeTransactionTestObject tested(5, 1, 5, {0.0, 1.0}, &block_store_, &pool_, &generator_, true, false,
-                                    &log_manager_);
+  LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
+                                          .SetMaxColumns(5)
+                                          .SetInitialTableSize(1)
+                                          .SetTxnLength(5)
+                                          .SetUpdateSelectRatio({0.0, 1.0})
+                                          .SetBlockStore(&block_store_)
+                                          .SetBufferPool(&pool_)
+                                          .SetGenerator(&generator_)
+                                          .SetGcOn(true)
+                                          .SetBookkeeping(false)
+                                          .SetLogManager(&log_manager_)
+                                          .build();
+
   StartLogging(10);
   StartGC(tested.GetTxnManager(), 10);
   auto result = tested.SimulateOltp(100, 4);
-  EndGC();
   EndLogging();
+  EndGC();
 
   // Read-only workload has completed. Read the log file back in to check that no records were produced for these
   // transactions.

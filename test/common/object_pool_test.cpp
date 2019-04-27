@@ -5,8 +5,8 @@
 
 #include "common/object_pool.h"
 #include "gtest/gtest.h"
+#include "util/multithread_test_util.h"
 #include "util/random_test_util.h"
-#include "util/test_thread_pool.h"
 
 namespace terrier {
 
@@ -89,8 +89,6 @@ class ObjectPoolTestType {
 // the same pointer to two threads at the same time.
 // NOLINTNEXTLINE
 TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
-  TestThreadPool thread_pool;
-
   const uint64_t size_limit = 100;
   const uint64_t reuse_limit = 100;
   common::ObjectPool<ObjectPoolTestType> tested(size_limit, reuse_limit);
@@ -104,7 +102,7 @@ TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
     auto allocate = [&] {
       try {
         ptrs.push_back(tested.Get()->Use(tid));
-      } catch (common::NoMoreObjectException) {
+      } catch (common::NoMoreObjectException &) {
         // Since threads are alloc and free in random order, object pool could possibly have no object to hand out.
         // When this occurs, we just do nothing. The purpose of this test is to test object pool concurrently and
         // check correctness. We just skip and do nothing. The object pool will eventually have objects when other
@@ -126,6 +124,7 @@ TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
                                                    {0.25, 0.25, 0.25, 0.25}, &generator, 1000);
     for (auto *ptr : ptrs) tested.Release(ptr->Release(tid));
   };
-  thread_pool.RunThreadsUntilFinish(TestThreadPool::HardwareConcurrency(), workload, 100);
+  common::WorkerPool thread_pool(MultiThreadTestUtil::HardwareConcurrency(), {});
+  MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, MultiThreadTestUtil::HardwareConcurrency(), workload, 100);
 }
 }  // namespace terrier

@@ -14,33 +14,38 @@ TupleAccessStrategy::TupleAccessStrategy(BlockLayout layout)
     column_offsets_[i] = acc_offset;
     uint32_t column_size =
         layout_.AttrSize(col_id_t(i)) * layout_.NumSlots()  // content
-        + StorageUtil::PadUpToSize(layout_.AttrSize(col_id_t(i)),
+        + StorageUtil::PadUpToSize(sizeof(uint64_t),
                                    common::RawBitmap::SizeInBytes(layout_.NumSlots()));  // padded-bitmap size
     acc_offset += StorageUtil::PadUpToSize(sizeof(uint64_t), column_size);
+    TERRIER_ASSERT(acc_offset <= common::Constants::BLOCK_SIZE, "Offsets cannot be out of block bounds");
   }
 }
 
 void TupleAccessStrategy::InitializeRawBlock(RawBlock *const raw, const layout_version_t layout_version) const {
   // Intentional unsafe cast
   raw->layout_version_ = layout_version;
-  raw->num_records_ = 0;
+  raw->insert_head_ = 0;
   auto *result = reinterpret_cast<TupleAccessStrategy::Block *>(raw);
-  result->NumSlots() = layout_.NumSlots();
+  for (uint16_t i = 0; i < layout_.NumColumns(); i++) result->AttrOffsets()[i] = column_offsets_[i];
+  result->GetArrowBlockMetadata().Initialize(GetBlockLayout().NumColumns());
 
-  for (uint16_t i = 0; i < layout_.NumColumns(); i++) result->AttrOffets()[i] = column_offsets_[i];
-
-  result->NumAttrs(layout_) = layout_.NumColumns();
-
-  for (uint16_t i = 0; i < layout_.NumColumns(); i++) result->AttrSizes(layout_)[i] = layout_.AttrSize(col_id_t(i));
+  for (uint16_t i = 0; i < layout_.NumColumns(); i++) result->AttrOffets(layout_)[i] = column_offsets_[i];
 
   result->SlotAllocationBitmap(layout_)->UnsafeClear(layout_.NumSlots());
-  result->Column(VERSION_POINTER_COLUMN_ID)->NullBitmap()->UnsafeClear(layout_.NumSlots());
+  result->Column(layout_, VERSION_POINTER_COLUMN_ID)->NullBitmap()->UnsafeClear(layout_.NumSlots());
+  // TODO(Tianyu): This can be a slight drag on insert performance. With the exception of some test cases where GC is
+  // not enabled, we should be able to do this step in the GC and still be good.
+
+  // Also need to clean up any potential dangling version pointers (in cases where GC is off, or when a table is deleted
+  // and individual tuples in it are not)
+  std::memset(ColumnStart(raw, VERSION_POINTER_COLUMN_ID), 0, sizeof(void *) * layout_.NumSlots());
 }
 
 bool TupleAccessStrategy::Allocate(RawBlock *const block, TupleSlot *const slot) const {
   common::RawConcurrentBitmap *bitmap = reinterpret_cast<Block *>(block)->SlotAllocationBitmap(layout_);
-  const uint32_t start = block->num_records_;
+  const uint32_t start = block->insert_head_;
 
+  // We are not allowed to insert into this block any more
   if (start == layout_.NumSlots()) return false;
 
   uint32_t pos = start;
@@ -48,7 +53,7 @@ bool TupleAccessStrategy::Allocate(RawBlock *const block, TupleSlot *const slot)
   while (bitmap->FirstUnsetPos(layout_.NumSlots(), pos, &pos)) {
     if (bitmap->Flip(pos, false)) {
       *slot = TupleSlot(block, pos);
-      block->num_records_++;
+      block->insert_head_++;
       return true;
     }
   }

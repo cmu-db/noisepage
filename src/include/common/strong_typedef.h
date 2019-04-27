@@ -66,6 +66,7 @@ class StrongTypeAlias {
 
  public:
   StrongTypeAlias() = default;
+
   /**
    * Constructs a new StrongTypeAlias.
    * @param val const reference to the underlying type.
@@ -233,10 +234,8 @@ struct atomic<terrier::common::StrongTypeAlias<Tag, IntType>> {
    * @param val value to initialize with.
    */
   explicit atomic(t val) : underlying_{!val} {}
-  /**
-   * Disable copying and moving for our atomic object.
-   */
-  DISALLOW_COPY_AND_MOVE(atomic);
+
+  DISALLOW_COPY_AND_MOVE(atomic)
 
   /**
    * Checks if the atomic object is lock-free.

@@ -1,4 +1,5 @@
 #include "storage/data_table.h"
+#include <cstring>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -16,7 +17,7 @@ class RandomDataTableTestObject {
   template <class Random>
   RandomDataTableTestObject(storage::BlockStore *block_store, const uint16_t max_col, const double null_bias,
                             Random *generator)
-      : layout_(StorageTestUtil::RandomLayout(max_col, generator)),
+      : layout_(StorageTestUtil::RandomLayoutNoVarlen(max_col, generator)),
         table_(block_store, layout_, storage::layout_version_t(0)),
         null_bias_(null_bias) {}
 
@@ -36,12 +37,31 @@ class RandomDataTableTestObject {
     StorageTestUtil::PopulateRandomRow(redo, layout_, null_bias_, generator);
 
     // generate a txn with an UndoRecord to populate on Insert
-    auto *txn = new transaction::TransactionContext(timestamp, timestamp, buffer_pool, LOGGING_DISABLED);
+    auto *txn = new transaction::TransactionContext(timestamp, timestamp, buffer_pool, LOGGING_DISABLED,
+                                                    ACTION_FRAMEWORK_DISABLED);
     loose_txns_.push_back(txn);
 
     storage::TupleSlot slot = table_.Insert(txn, *redo);
     inserted_slots_.push_back(slot);
     tuple_versions_[slot].emplace_back(timestamp, redo);
+
+    return slot;
+  }
+
+  // Generate an insert using the given transaction context. This is equivalent to the version of the call taking in
+  // a timestamp, but more space efficient if the insertions are large.
+  template <class Random>
+  storage::TupleSlot InsertRandomTuple(transaction::TransactionContext *txn, Random *generator,
+                                       storage::RecordBufferSegmentPool *buffer_pool) {
+    // generate a random redo ProjectedRow to Insert
+    auto *redo_buffer = common::AllocationUtil::AllocateAligned(redo_initializer_.ProjectedRowSize());
+    loose_pointers_.push_back(redo_buffer);
+    storage::ProjectedRow *redo = redo_initializer_.InitializeRow(redo_buffer);
+    StorageTestUtil::PopulateRandomRow(redo, layout_, null_bias_, generator);
+
+    storage::TupleSlot slot = table_.Insert(txn, *redo);
+    inserted_slots_.push_back(slot);
+    tuple_versions_[slot].emplace_back(txn->StartTime(), redo);
 
     return slot;
   }
@@ -55,13 +75,15 @@ class RandomDataTableTestObject {
 
     // generate a random redo ProjectedRow to Update
     std::vector<storage::col_id_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout_, generator);
-    storage::ProjectedRowInitializer update_initializer(layout_, update_col_ids);
+    storage::ProjectedRowInitializer update_initializer =
+        storage::ProjectedRowInitializer::CreateProjectedRowInitializer(layout_, update_col_ids);
     auto *update_buffer = common::AllocationUtil::AllocateAligned(update_initializer.ProjectedRowSize());
     storage::ProjectedRow *update = update_initializer.InitializeRow(update_buffer);
     StorageTestUtil::PopulateRandomRow(update, layout_, null_bias_, generator);
 
     // generate a txn with an UndoRecord to populate on Insert
-    auto *txn = new transaction::TransactionContext(timestamp, timestamp, buffer_pool, LOGGING_DISABLED);
+    auto *txn = new transaction::TransactionContext(timestamp, timestamp, buffer_pool, LOGGING_DISABLED,
+                                                    ACTION_FRAMEWORK_DISABLED);
     loose_txns_.push_back(txn);
 
     bool result = table_.Update(txn, slot, *update);
@@ -71,7 +93,7 @@ class RandomDataTableTestObject {
       auto *version_buffer = common::AllocationUtil::AllocateAligned(redo_initializer_.ProjectedRowSize());
       loose_pointers_.push_back(version_buffer);
       // Copy previous version
-      TERRIER_MEMCPY(version_buffer, tuple_versions_[slot].back().second, redo_initializer_.ProjectedRowSize());
+      std::memcpy(version_buffer, tuple_versions_[slot].back().second, redo_initializer_.ProjectedRowSize());
       auto *version = reinterpret_cast<storage::ProjectedRow *>(version_buffer);
       // apply delta
       storage::StorageUtil::ApplyDelta(layout_, *update, version);
@@ -102,7 +124,8 @@ class RandomDataTableTestObject {
   storage::ProjectedRow *SelectIntoBuffer(const storage::TupleSlot slot, const transaction::timestamp_t timestamp,
                                           storage::RecordBufferSegmentPool *buffer_pool) {
     // generate a txn with an UndoRecord to populate on Insert
-    auto *txn = new transaction::TransactionContext(timestamp, timestamp, buffer_pool, LOGGING_DISABLED);
+    auto *txn = new transaction::TransactionContext(timestamp, timestamp, buffer_pool, LOGGING_DISABLED,
+                                                    ACTION_FRAMEWORK_DISABLED);
     loose_txns_.push_back(txn);
 
     // generate a redo ProjectedRow for Select
@@ -113,7 +136,8 @@ class RandomDataTableTestObject {
 
   void Scan(storage::DataTable::SlotIterator *begin, const transaction::timestamp_t timestamp,
             storage::ProjectedColumns *buffer, storage::RecordBufferSegmentPool *buffer_pool) {
-    auto *txn = new transaction::TransactionContext(timestamp, timestamp, buffer_pool, LOGGING_DISABLED);
+    auto *txn = new transaction::TransactionContext(timestamp, timestamp, buffer_pool, LOGGING_DISABLED,
+                                                    ACTION_FRAMEWORK_DISABLED);
     loose_txns_.push_back(txn);
     table_.Scan(txn, begin, buffer);
   }
@@ -131,13 +155,14 @@ class RandomDataTableTestObject {
   std::vector<transaction::TransactionContext *> loose_txns_;
   double null_bias_;
   // These always over-provision in the case of partial selects or deltas, which is fine.
-  storage::ProjectedRowInitializer redo_initializer_{layout_, StorageTestUtil::ProjectionListAllColumns(layout_)};
+  storage::ProjectedRowInitializer redo_initializer_ = storage::ProjectedRowInitializer::CreateProjectedRowInitializer(
+      layout_, StorageTestUtil::ProjectionListAllColumns(layout_));
   byte *select_buffer_ = common::AllocationUtil::AllocateAligned(redo_initializer_.ProjectedRowSize());
 };
 
 struct DataTableTests : public TerrierTest {
   storage::BlockStore block_store_{100, 100};
-  storage::RecordBufferSegmentPool buffer_pool_{10000, 10000};
+  storage::RecordBufferSegmentPool buffer_pool_{100000, 10000};
   std::default_random_engine generator_;
   std::uniform_real_distribution<double> null_ratio_{0.0, 1.0};
 };
@@ -164,7 +189,7 @@ TEST_F(DataTableTests, SimpleInsertSelect) {
       storage::ProjectedRow *stored =
           tested.SelectIntoBuffer(inserted_tuple, transaction::timestamp_t(1), &buffer_pool_);
       const storage::ProjectedRow *ref = tested.GetReferenceVersionedTuple(inserted_tuple, transaction::timestamp_t(1));
-      EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), stored, ref));
+      EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), stored, ref));
     }
   }
 }
@@ -172,28 +197,36 @@ TEST_F(DataTableTests, SimpleInsertSelect) {
 // Insert some number of tuples and sequentially scan for them down the table
 // NOLINTNEXTLINE
 TEST_F(DataTableTests, SimpleSequentialScan) {
-  const uint32_t num_iterations = 50;
-  const uint32_t num_inserts = 1000;
-  const uint16_t max_columns = 100;
+  const uint32_t num_iterations = 10;
+  const uint16_t max_columns = 20;
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
     RandomDataTableTestObject tested(&block_store_, max_columns, null_ratio_(generator_), &generator_);
+    // make sure we test the edge case where a block is filled
+    uint32_t num_inserts = iteration == 0
+                               ? tested.Layout().NumSlots()
+                               : std::uniform_int_distribution<uint32_t>(1, tested.Layout().NumSlots())(generator_);
 
     // Populate the table with random tuples
     for (uint32_t i = 0; i < num_inserts; ++i)
       tested.InsertRandomTuple(transaction::timestamp_t(0), &generator_, &buffer_pool_);
 
     std::vector<storage::col_id_t> all_cols = StorageTestUtil::ProjectionListAllColumns(tested.Layout());
+    EXPECT_NE((!all_cols[all_cols.size() - 1]), -1);
     storage::ProjectedColumnsInitializer initializer(tested.Layout(), all_cols, num_inserts);
     auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedColumnsSize());
     storage::ProjectedColumns *columns = initializer.Initialize(buffer);
     auto it = tested.GetTable().begin();
     tested.Scan(&it, transaction::timestamp_t(1), columns, &buffer_pool_);
     EXPECT_EQ(num_inserts, columns->NumTuples());
+    // Test that the scan ends as soon as there are no more valid tuples,
+    if (it != tested.GetTable().end()) {
+      EXPECT_EQ(it, tested.GetTable().end());
+    }
     for (uint32_t i = 0; i < tested.InsertedTuples().size(); i++) {
-      storage::ProjectedColumns::RowView stored = columns->InterpretAsRow(tested.Layout(), i);
+      storage::ProjectedColumns::RowView stored = columns->InterpretAsRow(i);
       const storage::ProjectedRow *ref =
           tested.GetReferenceVersionedTuple(columns->TupleSlots()[i], transaction::timestamp_t(1));
-      EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), &stored, ref));
+      EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), &stored, ref));
     }
     delete[] buffer;
   }
@@ -227,7 +260,7 @@ TEST_F(DataTableTests, SimpleVersionChain) {
           tested.GetReferenceVersionedTuple(tuple, transaction::timestamp_t(i));
       storage::ProjectedRow *stored_version =
           tested.SelectIntoBuffer(tuple, transaction::timestamp_t(i), &buffer_pool_);
-      EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), reference_version, stored_version));
+      EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), reference_version, stored_version));
     }
   }
 }
@@ -254,7 +287,36 @@ TEST_F(DataTableTests, WriteWriteConflictUpdateFails) {
     std::vector<storage::col_id_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(tested.Layout());
     storage::ProjectedRow *stored = tested.SelectIntoBuffer(tuple, transaction::timestamp_t(UINT64_MAX), &buffer_pool_);
     const storage::ProjectedRow *ref = tested.GetReferenceVersionedTuple(tuple, transaction::timestamp_t(UINT64_MAX));
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), ref, stored));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), ref, stored));
+  }
+}
+
+// Test that insertion into a block does not wrap around even in the presence of deleted slots. This makes compaction
+// a lot easier to write.
+// NOLINTNEXTLINE
+TEST_F(DataTableTests, InsertNoWrap) {
+  const uint32_t num_iterations = 10;
+  const uint16_t max_columns = 10;
+  for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
+    RandomDataTableTestObject tested(&block_store_, max_columns, null_ratio_(generator_), &generator_);
+    storage::RawBlock *block = nullptr;
+    // fill the block. bypass the test object to be more efficient with buffers
+    transaction::timestamp_t timestamp(0);
+    auto *txn = new transaction::TransactionContext(timestamp, timestamp, &buffer_pool_, LOGGING_DISABLED,
+                                                    ACTION_FRAMEWORK_DISABLED);
+    for (uint32_t i = 0; i < tested.Layout().NumSlots(); i++) {
+      storage::RawBlock *inserted_block = tested.InsertRandomTuple(txn, &generator_, &buffer_pool_).GetBlock();
+      if (block == nullptr) block = inserted_block;
+      EXPECT_EQ(inserted_block, block);
+    }
+
+    // Bypass concurrency control and remove some tuples
+    storage::TupleAccessStrategy accessor(tested.Layout());
+    accessor.Deallocate({block, 0});
+
+    // Even though there is still space available, we should insert into a new block
+    EXPECT_NE(block, tested.InsertRandomTuple(transaction::timestamp_t(0), &generator_, &buffer_pool_).GetBlock());
+    delete txn;
   }
 }
 }  // namespace terrier

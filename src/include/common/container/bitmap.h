@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstring>
 #include <memory>
 #include "common/strong_typedef.h"
 
@@ -11,10 +12,10 @@
 // sure this is always 8 bits. If not, consider getting a new machine, and preferably not from another dimension :)
 static_assert(BYTE_SIZE == 8u, "BYTE_SIZE should be set to 8!");
 
-// n must be [0, 7], all 0 except for 1 on the nth bit
-#define ONE_HOT_MASK(n) (1u << (BYTE_SIZE - (n)-1u))
-// n must be [0, 7], all 1 except for 0 on the nth bit
-#define ONE_COLD_MASK(n) (0xFF - ONE_HOT_MASK(n))
+// n must be [0, 7], all 0 except for 1 on the nth bit in LSB order.
+#define LSB_ONE_HOT_MASK(n) (1u << n)
+// n must be [0, 7], all 1 except for 0 on the nth bit in LSB order
+#define LSB_ONE_COLD_MASK(n) (0xFF - LSB_ONE_HOT_MASK(n))
 
 namespace terrier::common {
 
@@ -50,7 +51,7 @@ class RawBitmap {
   static RawBitmap *Allocate(const uint32_t num_bits) {
     auto size = SizeInBytes(num_bits);
     auto *result = new uint8_t[size];
-    TERRIER_MEMSET(result, 0, size);
+    std::memset(result, 0, size);
     return reinterpret_cast<RawBitmap *>(result);
   }
 
@@ -66,7 +67,7 @@ class RawBitmap {
    * @return true if 1, false if 0
    */
   bool Test(const uint32_t pos) const {
-    return static_cast<bool>(bits_[pos / BYTE_SIZE] & ONE_HOT_MASK(pos % BYTE_SIZE));
+    return static_cast<bool>(bits_[pos / BYTE_SIZE] & LSB_ONE_HOT_MASK(pos % BYTE_SIZE));
   }
 
   /**
@@ -84,9 +85,9 @@ class RawBitmap {
    */
   RawBitmap &Set(const uint32_t pos, const bool val) {
     if (val)
-      bits_[pos / BYTE_SIZE] |= static_cast<uint8_t>(ONE_HOT_MASK(pos % BYTE_SIZE));
+      bits_[pos / BYTE_SIZE] |= static_cast<uint8_t>(LSB_ONE_HOT_MASK(pos % BYTE_SIZE));
     else
-      bits_[pos / BYTE_SIZE] &= static_cast<uint8_t>(ONE_COLD_MASK(pos % BYTE_SIZE));
+      bits_[pos / BYTE_SIZE] &= static_cast<uint8_t>(LSB_ONE_COLD_MASK(pos % BYTE_SIZE));
     return *this;
   }
 
@@ -96,7 +97,7 @@ class RawBitmap {
    * @return self-reference for chaining
    */
   RawBitmap &Flip(const uint32_t pos) {
-    bits_[pos / BYTE_SIZE] ^= static_cast<uint8_t>(ONE_HOT_MASK(pos % BYTE_SIZE));
+    bits_[pos / BYTE_SIZE] ^= static_cast<uint8_t>(LSB_ONE_HOT_MASK(pos % BYTE_SIZE));
     return *this;
   }
 
@@ -107,7 +108,7 @@ class RawBitmap {
    */
   void Clear(const uint32_t num_bits) {
     auto size = SizeInBytes(num_bits);
-    TERRIER_MEMSET(bits_, 0, size);
+    std::memset(bits_, 0, size);
   }
 
  private:

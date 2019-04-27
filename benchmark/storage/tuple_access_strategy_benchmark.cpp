@@ -1,11 +1,12 @@
+#include <cstring>
 #include <vector>
 
 #include "benchmark/benchmark.h"
 #include "common/strong_typedef.h"
 #include "storage/storage_util.h"
 #include "storage/tuple_access_strategy.h"
+#include "util/multithread_test_util.h"
 #include "util/storage_test_util.h"
-#include "util/test_thread_pool.h"
 
 namespace terrier {
 
@@ -30,7 +31,8 @@ class TupleAccessStrategyBenchmark : public benchmark::Fixture {
   const storage::BlockLayout layout_{{column_size_, column_size_, column_size_}};
 
   // Tuple properties
-  const storage::ProjectedRowInitializer initializer_{layout_, StorageTestUtil::ProjectionListAllColumns(layout_)};
+  const storage::ProjectedRowInitializer initializer_ = storage::ProjectedRowInitializer::CreateProjectedRowInitializer(
+      layout_, StorageTestUtil::ProjectionListAllColumns(layout_));
 
   // Workload
   const uint32_t num_inserts_ = 10000000;
@@ -59,7 +61,7 @@ BENCHMARK_DEFINE_F(TupleAccessStrategyBenchmark, SimpleInsert)(benchmark::State 
       // Get a Block, zero it, and initialize
       storage::RawBlock *raw_block = block_store_.Get();
       raw_blocks_.emplace_back(raw_block);
-      TERRIER_MEMSET(raw_block, 0, sizeof(storage::RawBlock));
+      std::memset(raw_block, 0, sizeof(storage::RawBlock));
       tested.InitializeRawBlock(raw_block, storage::layout_version_t(0));
       for (uint32_t j = 0; j < layout_.NumSlots(); j++) {
         storage::TupleSlot slot;
@@ -79,16 +81,15 @@ BENCHMARK_DEFINE_F(TupleAccessStrategyBenchmark, SimpleInsert)(benchmark::State 
 // Insert the num_inserts_ of tuples into Blocks concurrently
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(TupleAccessStrategyBenchmark, ConcurrentInsert)(benchmark::State &state) {
-  TestThreadPool thread_pool;
   storage::TupleAccessStrategy tested(layout_);
-
+  common::WorkerPool thread_pool(num_threads_, {});
   // NOLINTNEXTLINE
   for (auto _ : state) {
     for (uint32_t i = 0; i < num_blocks_; i++) {
       // Get a Block, zero it, and initialize
       storage::RawBlock *raw_block = block_store_.Get();
       raw_blocks_.emplace_back(raw_block);
-      TERRIER_MEMSET(raw_block, 0, sizeof(storage::RawBlock));
+      std::memset(raw_block, 0, sizeof(storage::RawBlock));
       tested.InitializeRawBlock(raw_block, storage::layout_version_t(0));
 
       auto workload = [&](uint32_t id) {
@@ -98,8 +99,7 @@ BENCHMARK_DEFINE_F(TupleAccessStrategyBenchmark, ConcurrentInsert)(benchmark::St
           StorageTestUtil::InsertTuple(*redo_, tested, layout_, slot);
         }
       };
-
-      thread_pool.RunThreadsUntilFinish(num_threads_, workload);
+      MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, workload);
     }
     // return all of the used blocks to the BlockStore
     for (uint32_t i = 0; i < num_blocks_; i++) {

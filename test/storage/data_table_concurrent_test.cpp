@@ -3,9 +3,9 @@
 #include <vector>
 #include "storage/data_table.h"
 #include "transaction/transaction_context.h"
+#include "util/multithread_test_util.h"
 #include "util/storage_test_util.h"
 #include "util/test_harness.h"
-#include "util/test_thread_pool.h"
 
 namespace terrier {
 class FakeTransaction {
@@ -16,7 +16,7 @@ class FakeTransaction {
       : layout_(layout),
         table_(table),
         null_bias_(null_bias),
-        txn_(start_time, txn_id, buffer_pool, LOGGING_DISABLED) {}
+        txn_(start_time, txn_id, buffer_pool, LOGGING_DISABLED, ACTION_FRAMEWORK_DISABLED) {}
 
   ~FakeTransaction() {
     for (auto ptr : loose_pointers_) delete[] ptr;
@@ -40,7 +40,8 @@ class FakeTransaction {
   bool RandomlyUpdateTuple(const storage::TupleSlot slot, Random *generator) {
     // generate random update
     std::vector<storage::col_id_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout_, generator);
-    storage::ProjectedRowInitializer update_initializer(layout_, update_col_ids);
+    storage::ProjectedRowInitializer update_initializer =
+        storage::ProjectedRowInitializer::CreateProjectedRowInitializer(layout_, update_col_ids);
     auto *update_buffer = common::AllocationUtil::AllocateAligned(update_initializer.ProjectedRowSize());
     storage::ProjectedRow *update = update_initializer.InitializeRow(update_buffer);
     StorageTestUtil::PopulateRandomRow(update, layout_, null_bias_, generator);
@@ -64,7 +65,8 @@ class FakeTransaction {
   const storage::BlockLayout &layout_;
   storage::DataTable *table_;
   double null_bias_;
-  storage::ProjectedRowInitializer redo_initializer_{layout_, StorageTestUtil::ProjectionListAllColumns(layout_)};
+  storage::ProjectedRowInitializer redo_initializer_ = storage::ProjectedRowInitializer::CreateProjectedRowInitializer(
+      layout_, StorageTestUtil::ProjectionListAllColumns(layout_));
   // All data structures here are only accessed thread-locally so no need
   // for concurrent versions
   std::vector<storage::TupleSlot> inserted_slots_;
@@ -85,13 +87,13 @@ struct DataTableConcurrentTests : public TerrierTest {
 // Therefore all transactions should successfully insert their tuples, which is what we test for.
 // NOLINTNEXTLINE
 TEST_F(DataTableConcurrentTests, ConcurrentInsert) {
-  TestThreadPool thread_pool;
   const uint32_t num_iterations = 50;
   const uint32_t num_inserts = 10000;
   const uint16_t max_columns = 20;
-  const uint32_t num_threads = TestThreadPool::HardwareConcurrency();
+  const uint32_t num_threads = MultiThreadTestUtil::HardwareConcurrency();
+  common::WorkerPool thread_pool(num_threads, {});
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
-    storage::BlockLayout layout = StorageTestUtil::RandomLayout(max_columns, &generator_);
+    storage::BlockLayout layout = StorageTestUtil::RandomLayoutNoVarlen(max_columns, &generator_);
     storage::DataTable tested(&block_store_, layout, storage::layout_version_t(0));
     std::vector<std::unique_ptr<FakeTransaction>> fake_txns;
     for (uint32_t thread = 0; thread < num_threads; thread++)
@@ -103,15 +105,16 @@ TEST_F(DataTableConcurrentTests, ConcurrentInsert) {
       std::default_random_engine thread_generator(id);
       for (uint32_t i = 0; i < num_inserts / num_threads; i++) fake_txns[id]->InsertRandomTuple(&thread_generator);
     };
-
-    thread_pool.RunThreadsUntilFinish(num_threads, workload);
-    storage::ProjectedRowInitializer select_initializer(layout, StorageTestUtil::ProjectionListAllColumns(layout));
+    MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
+    storage::ProjectedRowInitializer select_initializer =
+        storage::ProjectedRowInitializer::CreateProjectedRowInitializer(
+            layout, StorageTestUtil::ProjectionListAllColumns(layout));
     auto *select_buffer = common::AllocationUtil::AllocateAligned(select_initializer.ProjectedRowSize());
     for (auto &fake_txn : fake_txns) {
       for (auto slot : fake_txn->InsertedTuples()) {
         storage::ProjectedRow *select_row = select_initializer.InitializeRow(select_buffer);
         tested.Select(fake_txn->GetTxn(), slot, select_row);
-        EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(layout, fake_txn->GetReferenceTuple(slot), select_row));
+        EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(layout, fake_txn->GetReferenceTuple(slot), select_row));
       }
     }
     delete[] select_buffer;
@@ -123,12 +126,12 @@ TEST_F(DataTableConcurrentTests, ConcurrentInsert) {
 // Therefore only one transaction should win, which is what we test for.
 // NOLINTNEXTLINE
 TEST_F(DataTableConcurrentTests, ConcurrentUpdateOneWriterWins) {
-  TestThreadPool thread_pool;
   const uint32_t num_iterations = 100;
   const uint16_t max_columns = 20;
-  const uint32_t num_threads = TestThreadPool::HardwareConcurrency();
+  const uint32_t num_threads = MultiThreadTestUtil::HardwareConcurrency();
+  common::WorkerPool thread_pool(num_threads, {});
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
-    storage::BlockLayout layout = StorageTestUtil::RandomLayout(max_columns, &generator_);
+    storage::BlockLayout layout = StorageTestUtil::RandomLayoutNoVarlen(max_columns, &generator_);
     storage::DataTable tested(&block_store_, layout, storage::layout_version_t(0));
     FakeTransaction insert_txn(layout, &tested, null_ratio_(generator_), transaction::timestamp_t(0),
                                transaction::timestamp_t(1), &buffer_pool_);
@@ -150,8 +153,7 @@ TEST_F(DataTableConcurrentTests, ConcurrentUpdateOneWriterWins) {
       else
         fail++;
     };
-
-    thread_pool.RunThreadsUntilFinish(num_threads, workload);
+    MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
     EXPECT_EQ(1, success);
     EXPECT_EQ(num_threads - 1, fail);
   }

@@ -57,7 +57,7 @@ namespace third_party::bwtree {
 #define MAX_THREAD_COUNT ((int)0x7FFFFFFF)
 
 // The maximum number of nodes we could map in this index
-#define MAPPING_TABLE_SIZE ((size_t)(1 << 20))
+#define MAPPING_TABLE_SIZE ((size_t)(1 << 27))
 
 // If the length of delta chain exceeds ( >= ) this then we consolidate the node
 #define INNER_DELTA_CHAIN_LENGTH_THRESHOLD ((int)8)
@@ -2329,7 +2329,10 @@ class BwTree : public BwTreeBase {
    *
    * DO NOT call this in worker thread!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    */
-  inline void InvalidateNodeID(NodeID node_id) { mapping_table[node_id] = nullptr; }
+  inline void InvalidateNodeID(NodeID node_id) {
+    mapping_table[node_id] = nullptr;
+    free_node_id_list.SingleThreadPush(node_id);
+  }
 
   /*
    * FreeNodeByPointer() - Free all nodes currently in the tree
@@ -2543,7 +2546,7 @@ class BwTree : public BwTreeBase {
    * the mapping table rather than CAS with nullptr
    */
   void InitMappingTable() {
-    mapping_table = (std::atomic<const BaseNode *> *)mmap(nullptr, 1024 * 1024 * 1024, PROT_READ | PROT_WRITE,
+    mapping_table = (std::atomic<const BaseNode *> *)mmap(nullptr, sizeof(BaseNode *) * MAPPING_TABLE_SIZE, PROT_READ | PROT_WRITE,
                                                           MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
     // If allocation fails, we throw an error because this is uncoverable
     // The upper level functions should either catch this exception
@@ -3963,7 +3966,7 @@ class BwTree : public BwTreeBase {
    * guaranteed a specific order
    */
   const KeyValuePair *NavigateLeafNode(Context *context_p, const ValueType &value, std::pair<int, bool> *index_pair_p,
-                                       std::function<bool(const void *)> predicate, bool *predicate_satisfied) {
+                                       std::function<bool(const ValueType)> predicate, bool *predicate_satisfied) {
     // NOTE: We do not have to traverse to the right sibling here
     // since Traverse() already traverses to the right sibling
     // if value pointer given to it is nullptr
@@ -6554,7 +6557,7 @@ class BwTree : public BwTreeBase {
    * NOTE: We first test the predicate, and then test for duplicated values
    * so predicate test result is always available
    */
-  bool ConditionalInsert(const KeyType &key, const ValueType &value, std::function<bool(const void *)> predicate,
+  bool ConditionalInsert(const KeyType &key, const ValueType &value, std::function<bool(const ValueType)> predicate,
                          bool *predicate_satisfied) {
     INDEX_LOG_TRACE("Insert (cond.) called");
 
@@ -7031,7 +7034,7 @@ class BwTree : public BwTreeBase {
       // NOTE: Only unmap memory here because we need to access the mapping
       // table in the above routine. If it was unmapped in ~BwTree() then this
       // function will invoke illegal memory access
-      int munmap_ret = munmap(tree_p->mapping_table, 1024 * 1024 * 1024);
+      int munmap_ret = munmap(tree_p->mapping_table, sizeof(BaseNode *) * MAPPING_TABLE_SIZE);
 
       // Although failure of munmap is not fatal, we still print out
       // an error log entry

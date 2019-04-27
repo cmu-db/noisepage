@@ -1,5 +1,6 @@
 #include "util/transaction_test_util.h"
 #include <algorithm>
+#include <cstring>
 #include <utility>
 #include <vector>
 #include "common/allocator.h"
@@ -28,28 +29,29 @@ void RandomWorkloadTransaction::RandomUpdate(Random *generator) {
   if (aborted_) return;
   storage::TupleSlot updated =
       RandomTestUtil::UniformRandomElement(test_object_->last_checked_version_, generator)->first;
+  if (test_object_->bookkeeping_) {
+    auto it = updates_.find(updated);
+    // don't double update if checking for correctness, as it is complicated to keep track of on snapshots,
+    // and not very helpful in finding bugs anyways
+    if (it != updates_.end()) return;
+  }
+
   std::vector<storage::col_id_t> update_col_ids =
       StorageTestUtil::ProjectionListRandomColumns(test_object_->layout_, generator);
-  storage::ProjectedRowInitializer initializer(test_object_->layout_, update_col_ids);
+  storage::ProjectedRowInitializer initializer =
+      storage::ProjectedRowInitializer::CreateProjectedRowInitializer(test_object_->layout_, update_col_ids);
   auto *update_buffer =
       test_object_->bookkeeping_ ? common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize()) : buffer_;
   storage::ProjectedRow *update = initializer.InitializeRow(update_buffer);
 
   StorageTestUtil::PopulateRandomRow(update, test_object_->layout_, 0.0, generator);
-  if (test_object_->bookkeeping_) {
-    auto it = updates_.find(updated);
-    // don't double update if checking for correctness, as it is complicated to keep track of on snapshots,
-    // and not very helpful in finding bugs anyways
-    if (it != updates_.end()) {
-      delete[] update_buffer;
-      return;
-    }
-    updates_[updated] = update;
-  }
+
+  if (test_object_->bookkeeping_) updates_[updated] = update;
+
   // TODO(Tianyu): Hardly efficient, but will do for testing.
-  if (test_object_->wal_on_) {
+  if (test_object_->wal_on_ || test_object_->bookkeeping_) {
     auto *record = txn_->StageWrite(&(test_object_->table_), updated, initializer);
-    TERRIER_MEMCPY(record->Delta(), update, update->Size());
+    std::memcpy(reinterpret_cast<void *>(record->Delta()), update, update->Size());
   }
   auto result = test_object_->table_.Update(txn_, updated, *update);
   aborted_ = !result;
@@ -87,11 +89,13 @@ LargeTransactionTestObject::LargeTransactionTestObject(uint16_t max_columns, uin
                                                        storage::BlockStore *block_store,
                                                        storage::RecordBufferSegmentPool *buffer_pool,
                                                        std::default_random_engine *generator, bool gc_on,
-                                                       bool bookkeeping, storage::LogManager *log_manager)
+                                                       bool bookkeeping, storage::LogManager *log_manager,
+                                                       bool varlen_allowed)
     : txn_length_(txn_length),
       update_select_ratio_(std::move(update_select_ratio)),
       generator_(generator),
-      layout_(StorageTestUtil::RandomLayout(max_columns, generator_)),
+      layout_(varlen_allowed ? StorageTestUtil::RandomLayoutWithVarlens(max_columns, generator_)
+                             : StorageTestUtil::RandomLayoutNoVarlen(max_columns, generator_)),
       table_(block_store, layout_, storage::layout_version_t(0)),
       txn_manager_(buffer_pool, gc_on, log_manager),
       gc_on_(gc_on),
@@ -110,7 +114,6 @@ LargeTransactionTestObject::~LargeTransactionTestObject() {
 
 // Caller is responsible for freeing the returned results if bookkeeping is on.
 SimulationResult LargeTransactionTestObject::SimulateOltp(uint32_t num_transactions, uint32_t num_concurrent_txns) {
-  TestThreadPool thread_pool;
   std::vector<RandomWorkloadTransaction *> txns;
   std::function<void(uint32_t)> workload;
   std::atomic<uint32_t> txns_run = 0;
@@ -135,8 +138,8 @@ SimulationResult LargeTransactionTestObject::SimulateOltp(uint32_t num_transacti
       }
     };
   }
-
-  thread_pool.RunThreadsUntilFinish(num_concurrent_txns, workload);
+  common::WorkerPool thread_pool(num_concurrent_txns, {});
+  MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_concurrent_txns, workload);
 
   if (!bookkeeping_) {
     // We only need to deallocate, and return, if gc is on, this loop is a no-op
@@ -157,6 +160,8 @@ SimulationResult LargeTransactionTestObject::SimulateOltp(uint32_t num_transacti
 
 void LargeTransactionTestObject::CheckReadsCorrect(std::vector<RandomWorkloadTransaction *> *commits) {
   TERRIER_ASSERT(bookkeeping_, "Cannot check for correctness with bookkeeping off");
+  // If nothing commits, then all our reads are vacuously correct
+  if (commits->empty()) return;
   VersionedSnapshots snapshots = ReconstructVersionedTable(commits);
   // make sure table_version is updated
   transaction::timestamp_t latest_version = commits->at(commits->size() - 1)->commit_time_;
@@ -201,9 +206,9 @@ void LargeTransactionTestObject::PopulateInitialTable(uint32_t num_tuples, Rando
     StorageTestUtil::PopulateRandomRow(redo, layout_, 0.0, generator);
     storage::TupleSlot inserted = table_.Insert(initial_txn_, *redo);
     // TODO(Tianyu): Hardly efficient, but will do for testing.
-    if (wal_on_) {
+    if (wal_on_ || bookkeeping_) {
       auto *record = initial_txn_->StageWrite(&table_, inserted, row_initializer_);
-      TERRIER_MEMCPY(record->Delta(), redo, redo->Size());
+      std::memcpy(reinterpret_cast<void *>(record->Delta()), redo, redo->Size());
     }
     last_checked_version_.emplace_back(inserted, bookkeeping_ ? redo : nullptr);
   }
@@ -214,7 +219,7 @@ void LargeTransactionTestObject::PopulateInitialTable(uint32_t num_tuples, Rando
 
 storage::ProjectedRow *LargeTransactionTestObject::CopyTuple(storage::ProjectedRow *other) {
   auto *copy = common::AllocationUtil::AllocateAligned(other->Size());
-  TERRIER_MEMCPY(copy, other, other->Size());
+  std::memcpy(copy, other, other->Size());
   return reinterpret_cast<storage::ProjectedRow *>(copy);
 }
 
@@ -256,7 +261,7 @@ void LargeTransactionTestObject::CheckTransactionReadCorrect(RandomWorkloadTrans
   EXPECT_TRUE(transaction::TransactionUtil::NewerThan(start_time, version_timestamp));
   for (auto &entry : txn->selects_) {
     auto it = before_snapshot.find(entry.first);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(layout_, entry.second, it->second));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(layout_, entry.second, it->second));
   }
 }
 
@@ -266,4 +271,11 @@ void LargeTransactionTestObject::UpdateLastCheckedVersion(const TableSnapshot &s
     entry.second = snapshot.find(entry.first)->second;
   }
 }
+
+LargeTransactionTestObject LargeTransactionTestObject::Builder::build() {
+  return {builder_max_columns_, builder_initial_table_size_, builder_txn_length_, builder_update_select_ratio_,
+          builder_block_store_, builder_buffer_pool_,        builder_generator_,  builder_gc_on_,
+          builder_bookkeeping_, builder_log_manager_,        varlen_allowed_};
+}
+
 }  // namespace terrier

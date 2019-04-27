@@ -1,4 +1,5 @@
 #include "storage/data_table.h"
+#include <cstring>
 #include <unordered_map>
 #include "common/allocator.h"
 #include "storage/storage_util.h"
@@ -14,6 +15,14 @@ DataTable::DataTable(BlockStore *const store, const BlockLayout &layout, const l
                  "First column is reserved for version info, second column is reserved for logical delete.");
 }
 
+DataTable::~DataTable() {
+  common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
+  for (RawBlock *block : blocks_) {
+    DeallocateVarlensOnShutdown(block);
+    block_store_->Release(block);
+  }
+}
+
 bool DataTable::Select(terrier::transaction::TransactionContext *txn, terrier::storage::TupleSlot slot,
                        terrier::storage::ProjectedRow *out_buffer) const {
   data_table_counter_.IncrementNumSelect(1);
@@ -23,10 +32,11 @@ bool DataTable::Select(terrier::transaction::TransactionContext *txn, terrier::s
 void DataTable::Scan(transaction::TransactionContext *const txn, SlotIterator *const start_pos,
                      ProjectedColumns *const out_buffer) const {
   // TODO(Tianyu): So far this is not that much better than tuple-at-a-time access,
-  // but can be improved if block is read-only, or if we implement version synopsis, to just use memcpy when it's safe
+  // but can be improved if block is read-only, or if we implement version synopsis, to just use std::memcpy when it's
+  // safe
   uint32_t filled = 0;
   while (filled < out_buffer->MaxTuples() && *start_pos != end()) {
-    ProjectedColumns::RowView row = out_buffer->InterpretAsRow(accessor_.GetBlockLayout(), filled);
+    ProjectedColumns::RowView row = out_buffer->InterpretAsRow(filled);
     const TupleSlot slot = **start_pos;
     // Only fill the buffer with valid, visible tuples
     if (accessor_.Allocated(slot) && SelectIntoBuffer(txn, slot, &row)) {
@@ -38,35 +48,60 @@ void DataTable::Scan(transaction::TransactionContext *const txn, SlotIterator *c
   out_buffer->SetNumTuples(filled);
 }
 
+DataTable::SlotIterator &DataTable::SlotIterator::operator++() {
+  common::SpinLatch::ScopedSpinLatch guard(&table_->blocks_latch_);
+  // Jump to the next block if already the last slot in the block.
+  if (current_slot_.GetOffset() == table_->accessor_.GetBlockLayout().NumSlots() - 1) {
+    ++block_;
+    // Cannot dereference if the next block is end(), so just use nullptr to denote
+    current_slot_ = {block_ == table_->blocks_.end() ? nullptr : *block_, 0};
+  } else {
+    current_slot_ = {*block_, current_slot_.GetOffset() + 1};
+  }
+  return *this;
+}
+
+DataTable::SlotIterator DataTable::end() const {
+  common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
+  // TODO(Tianyu): Need to look in detail at how this interacts with compaction when that gets in.
+
+  // The end iterator could either point to an unfilled slot in a block, or point to nothing if every block in the
+  // table is full. In the case that it points to nothing, we will use the end-iterator of the blocks list and
+  // 0 to denote that this is the case. This solution makes increment logic simple and natural.
+  if (blocks_.empty()) return {this, blocks_.end(), 0};
+  auto last_block = --blocks_.end();
+  uint32_t insert_head = (*last_block)->insert_head_;
+  // Last block is full, return the default end iterator that doesn't point to anything
+  if (insert_head == accessor_.GetBlockLayout().NumSlots()) return {this, blocks_.end(), 0};
+  // Otherwise, insert head points to the slot that will be inserted next, which would be exactly what we want.
+  return {this, last_block, insert_head};
+}
+
 bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSlot slot, const ProjectedRow &redo) {
   TERRIER_ASSERT(redo.NumColumns() <= accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
                  "The input buffer cannot change the reserved columns, so it should have fewer attributes.");
   TERRIER_ASSERT(redo.NumColumns() > 0, "The input buffer should modify at least one attribute.");
   UndoRecord *const undo = txn->UndoRecordForUpdate(this, slot, redo);
-  UndoRecord *const version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
+  UndoRecord *version_ptr;
+  do {
+    version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
 
-  // Since we disallow write-write conflicts, the version vector pointer is essentially an implicit
-  // write lock on the tuple.
-  if (HasConflict(version_ptr, txn) || !Visible(slot, accessor_)) {
-    // Mark this UndoRecord as never installed by setting the table pointer to nullptr. This is inspected in the
-    // TransactionManager's Rollback() and GC's Unlink logic
-    undo->Table() = nullptr;
-    return false;
-  }
+    // Since we disallow write-write conflicts, the version vector pointer is essentially an implicit
+    // write lock on the tuple.
+    if (HasConflict(version_ptr, txn) || !Visible(slot, accessor_)) {
+      // Mark this UndoRecord as never installed by setting the table pointer to nullptr. This is inspected in the
+      // TransactionManager's Rollback() and GC's Unlink logic
+      undo->Table() = nullptr;
+      return false;
+    }
 
-  // Store before-image before making any changes or grabbing lock
-  for (uint16_t i = 0; i < undo->Delta()->NumColumns(); i++)
-    StorageUtil::CopyAttrIntoProjection(accessor_, slot, undo->Delta(), i);
+    // Store before-image before making any changes or grabbing lock
+    for (uint16_t i = 0; i < undo->Delta()->NumColumns(); i++)
+      StorageUtil::CopyAttrIntoProjection(accessor_, slot, undo->Delta(), i);
 
-  // Update the next pointer of the new head of the version chain
-  undo->Next() = version_ptr;
-
-  if (!CompareAndSwapVersionPtr(slot, accessor_, version_ptr, undo)) {
-    // Mark this UndoRecord as never installed by setting the table pointer to nullptr. This is inspected in the
-    // TransactionManager's Rollback() and GC's Unlink logic
-    undo->Table() = nullptr;
-    return false;
-  }
+    // Update the next pointer of the new head of the version chain
+    undo->Next() = version_ptr;
+  } while (!CompareAndSwapVersionPtr(slot, accessor_, version_ptr, undo));
 
   // Update in place with the new value.
   for (uint16_t i = 0; i < redo.NumColumns(); i++) {
@@ -78,6 +113,7 @@ bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSl
     StorageUtil::CopyAttrFromProjection(accessor_, slot, redo, i);
   }
   data_table_counter_.IncrementNumUpdate(1);
+
   return true;
 }
 
@@ -97,52 +133,52 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const Pr
     if (block != nullptr && accessor_.Allocate(block, &result)) break;
     NewBlock(block);
   }
+  InsertInto(txn, redo, result);
+  data_table_counter_.IncrementNumInsert(1);
+  return result;
+}
+
+void DataTable::InsertInto(transaction::TransactionContext *txn, const ProjectedRow &redo, TupleSlot dest) {
+  TERRIER_ASSERT(accessor_.Allocated(dest), "destination slot must already be allocated");
+  TERRIER_ASSERT(accessor_.IsNull(dest, VERSION_POINTER_COLUMN_ID),
+                 "The slot needs to be logically deleted to every running transaction");
   // At this point, sequential scan down the block can still see this, except it thinks it is logically deleted if we 0
   // the primary key column
-  UndoRecord *undo = txn->UndoRecordForInsert(this, result);
-
-  // Update the version pointer atomically so that a sequential scan will not see inconsistent version pointer, which
-  // may result in a segfault
-  AtomicallyWriteVersionPtr(result, accessor_, undo);
-
+  UndoRecord *undo = txn->UndoRecordForInsert(this, dest);
+  AtomicallyWriteVersionPtr(dest, accessor_, undo);
   // Set the logically deleted bit to present as the undo record is ready
-  accessor_.AccessForceNotNull(result, VERSION_POINTER_COLUMN_ID);
-
+  accessor_.AccessForceNotNull(dest, VERSION_POINTER_COLUMN_ID);
   // Update in place with the new value.
   for (uint16_t i = 0; i < redo.NumColumns(); i++) {
     TERRIER_ASSERT(redo.ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,
                    "Insert buffer should not change the version pointer column.");
-    StorageUtil::CopyAttrFromProjection(accessor_, result, redo, i);
+    StorageUtil::CopyAttrFromProjection(accessor_, dest, redo, i);
   }
-
-  data_table_counter_.IncrementNumInsert(1);
-  return result;
 }
 
 bool DataTable::Delete(transaction::TransactionContext *const txn, const TupleSlot slot) {
   data_table_counter_.IncrementNumDelete(1);
   // Create a redo
+  // TODO(Tianyu): Is it better to be consistent with the StageWrite behavior where we have caller explicitly
+  // call StageDelete before calling Delete?
   txn->StageDelete(this, slot);
   UndoRecord *const undo = txn->UndoRecordForDelete(this, slot);
-  UndoRecord *const version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
-  // Since we disallow write-write conflicts, the version vector pointer is essentially an implicit
-  // write lock on the tuple.
-  if (HasConflict(version_ptr, txn) || !Visible(slot, accessor_)) {
-    // Mark this UndoRecord as never installed by setting the table pointer to nullptr. This is inspected in the
-    // TransactionManager's Rollback() and GC's Unlink logic
-    undo->Table() = nullptr;
-    return false;
-  }
+  UndoRecord *version_ptr;
+  do {
+    version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
+    // Since we disallow write-write conflicts, the version vector pointer is essentially an implicit
+    // write lock on the tuple.
+    if (HasConflict(version_ptr, txn) || !Visible(slot, accessor_)) {
+      // Mark this UndoRecord as never installed by setting the table pointer to nullptr. This is inspected in the
+      // TransactionManager's Rollback() and GC's Unlink logic
+      undo->Table() = nullptr;
+      return false;
+    }
 
-  // Update the next pointer of the new head of the version chain
-  undo->Next() = version_ptr;
+    // Update the next pointer of the new head of the version chain
+    undo->Next() = version_ptr;
+  } while (!CompareAndSwapVersionPtr(slot, accessor_, version_ptr, undo));
 
-  if (!CompareAndSwapVersionPtr(slot, accessor_, version_ptr, undo)) {
-    // Mark this UndoRecord as never installed by setting the table pointer to nullptr. This is inspected in the
-    // TransactionManager's Rollback() and GC's Unlink logic
-    undo->Table() = nullptr;
-    return false;
-  }
   // We have the write lock. Go ahead and flip the logically deleted bit to true
   accessor_.SetNull(slot, VERSION_POINTER_COLUMN_ID);
   return true;
@@ -151,7 +187,6 @@ bool DataTable::Delete(transaction::TransactionContext *const txn, const TupleSl
 template <class RowType>
 bool DataTable::SelectIntoBuffer(transaction::TransactionContext *const txn, const TupleSlot slot,
                                  RowType *const out_buffer) const {
-  TERRIER_ASSERT(accessor_.Allocated(slot), "Must select a tuple slot that is claimed by a tuple");
   TERRIER_ASSERT(out_buffer->NumColumns() <= accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
                  "The output buffer never returns the version pointer columns, so it should have "
                  "fewer attributes.");
@@ -199,6 +234,9 @@ bool DataTable::SelectIntoBuffer(transaction::TransactionContext *const txn, con
         break;
       case DeltaRecordType::DELETE:
         visible = true;
+        break;
+      default:
+        throw std::runtime_error("unexpected delta record type");
     }
     // TODO(Matt): This logic might need revisiting if we start recycling slots and a chain can have a delete later in
     // the chain than an insert.
@@ -261,5 +299,18 @@ void DataTable::NewBlock(RawBlock *expected_val) {
   blocks_.push_back(new_block);
   insertion_head_ = new_block;
   data_table_counter_.IncrementNumNewBlock(1);
+}
+
+void DataTable::DeallocateVarlensOnShutdown(RawBlock *block) {
+  const BlockLayout &layout = accessor_.GetBlockLayout();
+  for (col_id_t col : layout.Varlens()) {
+    for (uint32_t offset = 0; offset < layout.NumSlots(); offset++) {
+      TupleSlot slot(block, offset);
+      if (!accessor_.Allocated(slot)) continue;
+      auto *entry = reinterpret_cast<VarlenEntry *>(accessor_.AccessWithNullCheck(slot, col));
+      // If entry is null here, the varlen entry is a null SQL value.
+      if (entry != nullptr && entry->NeedReclaim()) delete[] entry->Content();
+    }
+  }
 }
 }  // namespace terrier::storage

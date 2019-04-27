@@ -1,6 +1,5 @@
 #include "storage/write_ahead_log/log_manager.h"
-
-#include "storage/varlen_pool.h"
+#include <transaction/transaction_context.h>
 
 namespace terrier::storage {
 void LogManager::Process() {
@@ -20,10 +19,11 @@ void LogManager::Process() {
         // If a transaction is read-only, then the only record it generates is its commit record. This commit record is
         // necessary for the transaction's callback function to be invoked, but there is no need to serialize it, as
         // it corresponds to a transaction with nothing to redo.
-        if (!commit_record->IsReadOnly()) {
-          SerializeRecord(record);
-        }
+        if (!commit_record->IsReadOnly()) SerializeRecord(record);
         commits_in_buffer_.emplace_back(commit_record->Callback(), commit_record->CallbackArg());
+        // Not safe to mark read only transactions as the transactions are deallocated preemptively without waiting for
+        // logging (there is nothing to log after all)
+        if (!commit_record->IsReadOnly()) commit_record->Txn()->log_processed_ = true;
       } else {
         // Any record that is not a commit record is always serialized.`
         SerializeRecord(record);
@@ -88,9 +88,9 @@ void LogManager::SerializeRecord(const terrier::storage::LogRecord &record) {
           // Inline column value is a pointer to a VarlenEntry, so reinterpret as such.
           const auto *varlen_entry = reinterpret_cast<const VarlenEntry *>(*column_value_address);
           // Serialize out length of the varlen entry.
-          WriteValue(varlen_entry->size_);
+          WriteValue(varlen_entry->Size());
           // Serialize out the content field of the varlen entry.
-          out_.BufferWrite(varlen_entry->content_, varlen_entry->size_);
+          out_.BufferWrite(varlen_entry->Content(), varlen_entry->Size());
         } else {
           // Inline column value is the actual data we want to serialize out.
           // Note that by writing out AttrSize(col_id) bytes instead of just the difference between successive offsets

@@ -1,5 +1,6 @@
 #include "util/transaction_benchmark_util.h"
 #include <algorithm>
+#include <cstring>
 #include <utility>
 #include <vector>
 #include "common/allocator.h"
@@ -27,7 +28,8 @@ void RandomWorkloadTransaction::RandomUpdate(Random *generator) {
       RandomTestUtil::UniformRandomElement(test_object_->last_checked_version_, generator)->first;
   std::vector<storage::col_id_t> update_col_ids =
       StorageTestUtil::ProjectionListRandomColumns(test_object_->layout_, generator);
-  storage::ProjectedRowInitializer initializer(test_object_->layout_, update_col_ids);
+  storage::ProjectedRowInitializer initializer =
+      storage::ProjectedRowInitializer::CreateProjectedRowInitializer(test_object_->layout_, update_col_ids);
   auto *update_buffer = buffer_;
   storage::ProjectedRow *update = initializer.InitializeRow(update_buffer);
 
@@ -35,7 +37,7 @@ void RandomWorkloadTransaction::RandomUpdate(Random *generator) {
   // TODO(Tianyu): Hardly efficient, but will do for testing.
   if (test_object_->wal_on_) {
     auto *record = txn_->StageWrite(&(test_object_->table_), updated, initializer);
-    TERRIER_MEMCPY(record->Delta(), update, update->Size());
+    std::memcpy(record->Delta(), update, update->Size());
   }
   auto result = test_object_->table_.Update(txn_, updated, *update);
   aborted_ = !result;
@@ -45,7 +47,8 @@ template <class Random>
 void RandomWorkloadTransaction::RandomInsert(Random *generator) {
   if (aborted_) return;
   std::vector<storage::col_id_t> insert_col_ids = StorageTestUtil::ProjectionListAllColumns(test_object_->layout_);
-  storage::ProjectedRowInitializer initializer(test_object_->layout_, insert_col_ids);
+  storage::ProjectedRowInitializer initializer =
+      storage::ProjectedRowInitializer::CreateProjectedRowInitializer(test_object_->layout_, insert_col_ids);
   auto *insert_buffer = buffer_;
   storage::ProjectedRow *insert = initializer.InitializeRow(insert_buffer);
 
@@ -54,7 +57,7 @@ void RandomWorkloadTransaction::RandomInsert(Random *generator) {
   // TODO(Tianyu): Hardly efficient, but will do for testing.
   if (test_object_->wal_on_) {
     auto *record = txn_->StageWrite(&(test_object_->table_), inserted, initializer);
-    TERRIER_MEMCPY(record->Delta(), insert, insert->Size());
+    std::memcpy(record->Delta(), insert, insert->Size());
   }
 }
 
@@ -101,7 +104,7 @@ LargeTransactionBenchmarkObject::~LargeTransactionBenchmarkObject() {
 
 // Caller is responsible for freeing the returned results if bookkeeping is on.
 uint64_t LargeTransactionBenchmarkObject::SimulateOltp(uint32_t num_transactions, uint32_t num_concurrent_txns) {
-  TestThreadPool thread_pool;
+  common::WorkerPool thread_pool(num_concurrent_txns, {});
   std::vector<RandomWorkloadTransaction *> txns;
   std::function<void(uint32_t)> workload;
   std::atomic<uint32_t> txns_run = 0;
@@ -125,7 +128,7 @@ uint64_t LargeTransactionBenchmarkObject::SimulateOltp(uint32_t num_transactions
     };
   }
 
-  thread_pool.RunThreadsUntilFinish(num_concurrent_txns, workload);
+  MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_concurrent_txns, workload);
 
   // We only need to deallocate, and return, if gc is on, this loop is a no-op
   for (RandomWorkloadTransaction *txn : txns) {
@@ -162,7 +165,7 @@ void LargeTransactionBenchmarkObject::PopulateInitialTable(uint32_t num_tuples, 
     // TODO(Tianyu): Hardly efficient, but will do for testing.
     if (wal_on_) {
       auto *record = initial_txn_->StageWrite(&table_, inserted, row_initializer_);
-      TERRIER_MEMCPY(record->Delta(), redo, redo->Size());
+      std::memcpy(record->Delta(), redo, redo->Size());
     }
     last_checked_version_.emplace_back(inserted, nullptr);
   }

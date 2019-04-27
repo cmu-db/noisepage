@@ -4,6 +4,7 @@
 #include <vector>
 #include "common/container/concurrent_bitmap.h"
 #include "common/macros.h"
+#include "storage/arrow_block_metadata.h"
 #include "storage/storage_defs.h"
 #include "storage/storage_util.h"
 
@@ -17,7 +18,7 @@ class TupleAccessStrategy {
   /*
    * A mini block stores individual columns. Mini block layout:
    * ----------------------------------------------------
-   * | null-bitmap (pad up to size of attr) | val1 | val2 | ... |
+   * | null-bitmap (pad up to 8 bytes) | val1 | val2 | ... |
    * ----------------------------------------------------
    * Warning, 0 means null
    */
@@ -25,7 +26,7 @@ class TupleAccessStrategy {
     MEM_REINTERPRETATION_ONLY(MiniBlock)
     // return a pointer to the start of the column. (use as an array)
     byte *ColumnStart(const BlockLayout &layout, const col_id_t col_id) {
-      return StorageUtil::AlignedPtr(layout.AttrSize(col_id),
+      return StorageUtil::AlignedPtr(sizeof(uint64_t),  // always padded up to 8 bytes
                                      varlen_contents_ + common::RawBitmap::SizeInBytes(layout.NumSlots()));
     }
 
@@ -34,58 +35,54 @@ class TupleAccessStrategy {
       return reinterpret_cast<common::RawConcurrentBitmap *>(varlen_contents_);
     }
 
-    // Because where the other fields start will depend on the specific layout,
-    // reinterpreting the rest as bytes is the best we can do without LLVM.
     byte varlen_contents_[0];
   };
 
   /*
    * Block Header layout:
-   * ------------------------------------------------------------------------------------------
-   * | layout_version | num_records | num_slots | attr_offsets[num_attributes] 32-bit fields  |
-   * ------------------------------------------------------------------------------------------
-   * | num_attrs (16-bit) | attr_sizes[num_attr] (8-bit) |  bitmap for slots (64-bit aligned) |
-   * ------------------------------------------------------------------------------------------
-   * | content (64-bit aligned) |
-   * ----------------------------
-   *
-   * This is laid out in this order, because except for num_records,
-   * the other fields are going to be immutable for a block's lifetime,
-   * and except for block id, all the other fields are going to be baked in to
-   * the code and never read. Laying out in this order allows us to only load the
-   * first 64 bits we care about in the header in compiled code.
+   * ----------------------------------------------------------------------------------------------
+   * | layout_version (32) | insert_head (32) | control_block (64) |     ArrowBlockMetadata       |
+   * ----------------------------------------------------------------------------------------------
+   * | attr_offsets[num_col] (32) | bitmap for slots (64-bit aligned) |   data (64-bit aligned)   |
+   * ----------------------------------------------------------------------------------------------
    *
    * Note that we will never need to span a tuple across multiple pages if we enforce
-   * block size to be 1 MB and columns to be less than 65535 (max uint16_t)
+   * block size to be 1 MB and columns to be less than MAX_COL
    */
   struct Block {
     MEM_REINTERPRETATION_ONLY(Block)
 
-    // return the miniblock for the column at the given offset.
-    MiniBlock *Column(const col_id_t col_id) {
-      byte *head = reinterpret_cast<byte *>(this) + AttrOffets()[!col_id];
-      return reinterpret_cast<MiniBlock *>(head);
+    // TODO(Tianyu): Is header access going to be too slow? If so, consider storing offsets to jump to within headers as
+    // well.
+    ArrowBlockMetadata &GetArrowBlockMetadata() { return *reinterpret_cast<ArrowBlockMetadata *>(block_.content_); }
+
+    // return reference to attr_offsets. Use as an array.
+    uint32_t *AttrOffets(const BlockLayout &layout) {
+      return reinterpret_cast<uint32_t *>(block_.content_ + ArrowBlockMetadata::Size(layout.NumColumns()));
     }
 
     // return reference to the bitmap for slots. Use as a member
     common::RawConcurrentBitmap *SlotAllocationBitmap(const BlockLayout &layout) {
       return reinterpret_cast<common::RawConcurrentBitmap *>(
-          StorageUtil::AlignedPtr(sizeof(uint64_t), AttrSizes(layout) + NumAttrs(layout)));
+          StorageUtil::AlignedPtr(sizeof(uint64_t), AttrOffets(layout) + layout.NumColumns()));
+    }
+
+    // return the miniblock for the column at the given offset.
+    MiniBlock *Column(const BlockLayout &layout, const col_id_t col_id) {
+      byte *head = reinterpret_cast<byte *>(this) + AttrOffets(layout)[!col_id];
+      return reinterpret_cast<MiniBlock *>(head);
     }
 
     // return reference to num_slots. Use as a member.
     uint32_t &NumSlots() { return *reinterpret_cast<uint32_t *>(block_.content_); }
 
     // return reference to attr_offsets. Use as an array.
-    uint32_t *AttrOffets() { return &NumSlots() + 1; }
+    uint32_t *AttrOffsets() { return &NumSlots() + 1; }
 
     // return reference to num_attrs. Use as a member.
     uint16_t &NumAttrs(const BlockLayout &layout) {
-      return *reinterpret_cast<uint16_t *>(AttrOffets() + layout.NumColumns());
+      return *reinterpret_cast<uint16_t *>(AttrOffsets() + layout.NumColumns());
     }
-
-    // return reference to attr_sizes. Use as an array.
-    uint8_t *AttrSizes(const BlockLayout &layout) { return reinterpret_cast<uint8_t *>(&NumAttrs(layout) + 1); }
 
     RawBlock block_;
   };
@@ -109,6 +106,14 @@ class TupleAccessStrategy {
   void InitializeRawBlock(RawBlock *raw, layout_version_t layout_version) const;
 
   /**
+   * @param block block to access
+   * @return the ArrowBlockMetadata object of the requested block
+   */
+  ArrowBlockMetadata &GetArrowBlockMetadata(RawBlock *block) const {
+    return reinterpret_cast<Block *>(block)->GetArrowBlockMetadata();
+  }
+
+  /**
    * @param slot tuple slot value to check
    * @return whether the given slot is occupied by a tuple
    */
@@ -123,7 +128,7 @@ class TupleAccessStrategy {
    */
   common::RawConcurrentBitmap *ColumnNullBitmap(RawBlock *block, const col_id_t col_id) const {
     TERRIER_ASSERT((!col_id) < layout_.NumColumns(), "Column out of bounds!");
-    return reinterpret_cast<Block *>(block)->Column(col_id)->NullBitmap();
+    return reinterpret_cast<Block *>(block)->Column(layout_, col_id)->NullBitmap();
   }
 
   /**
@@ -133,7 +138,7 @@ class TupleAccessStrategy {
    */
   byte *ColumnStart(RawBlock *block, const col_id_t col_id) const {
     TERRIER_ASSERT((!col_id) < layout_.NumColumns(), "Column out of bounds!");
-    return reinterpret_cast<Block *>(block)->Column(col_id)->ColumnStart(layout_, col_id);
+    return reinterpret_cast<Block *>(block)->Column(layout_, col_id)->ColumnStart(layout_, col_id);
   }
 
   /**
@@ -204,6 +209,17 @@ class TupleAccessStrategy {
   }
 
   /**
+   * Flip a deallocated slot to be allocated again. This is useful when compacting a block,
+   * as we want to make decisions in the compactor on what slot to use, not in this class.
+   * This method should not be called other than that.
+   * @param slot the tuple slot to reallocate. Must be currently deallocated.
+   */
+  void Reallocate(TupleSlot slot) const {
+    TERRIER_ASSERT(!Allocated(slot), "Can only reallocate slots that are deallocated");
+    reinterpret_cast<Block *>(slot.GetBlock())->SlotAllocationBitmap(layout_)->Flip(slot.GetOffset(), false);
+  }
+
+  /**
    * Allocates a slot for a new tuple, writing to the given reference.
    * @param block block to allocate a slot in.
    * @param[out] slot tuple to write to.
@@ -212,13 +228,14 @@ class TupleAccessStrategy {
   bool Allocate(RawBlock *block, TupleSlot *slot) const;
 
   /**
-   * Deallocates a slot, making it usable for later inserts.
+   * Deallocates a slot.
    * @param slot the slot to free up
    */
   void Deallocate(const TupleSlot slot) const {
     TERRIER_ASSERT(Allocated(slot), "Can only deallocate slots that are allocated");
     reinterpret_cast<Block *>(slot.GetBlock())->SlotAllocationBitmap(layout_)->Flip(slot.GetOffset(), true);
-    slot.GetBlock()->num_records_--;
+    // TODO(Tianyu): Make explicit that this operation does not reset the insertion head, and the block
+    // is still considered "full" and will not be inserted into.
   }
 
   /**
