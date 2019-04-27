@@ -187,9 +187,8 @@ class SqlTable {
    * @return true if successful, false otherwise; If the update changed the location of the TupleSlot, a new TupleSlot
    * is returned. Otherwise, the same TupleSlot is returned.
    */
-  std::pair<bool, storage::TupleSlot> Update(transaction::TransactionContext *txn, TupleSlot slot,
-                                             ProjectedRow &redo, const ProjectionMap &map,
-                                             layout_version_t version_num);
+  std::pair<bool, storage::TupleSlot> Update(transaction::TransactionContext *txn, TupleSlot slot, ProjectedRow *redo,
+                                             const ProjectionMap &map, layout_version_t version_num);
 
   /**
    * Inserts a tuple, as given in the redo, and return the slot allocated for the tuple.

@@ -102,9 +102,8 @@ struct SqlTableConcurrentTests : public TerrierTest {
     }
   }
 
-  template<class RowType>
-  void ValidateTuple(RowType *pr, storage::ProjectionMap *pr_map, storage::layout_version_t v,
-                     int base_val) {
+  template <class RowType>
+  void ValidateTuple(RowType *pr, storage::ProjectionMap *pr_map, storage::layout_version_t v, int base_val) {
     EXPECT_NE(pr_map->find(catalog::col_oid_t(100)), pr_map->end());
     uint32_t *version = reinterpret_cast<uint32_t *>(pr->AccessWithNullCheck(pr_map->at(catalog::col_oid_t(100))));
     EXPECT_NE(version, nullptr);
@@ -176,7 +175,7 @@ struct SqlTableConcurrentTests : public TerrierTest {
     }
   }
 
-  void ValidateTable(storage::SqlTable &table) {
+  void ValidateTable(const storage::SqlTable &table) {
     auto txn = txn_manager_.BeginTransaction();
 
     auto row_pair = table.InitializerForProjectedColumns(*versioned_col_oids[!schema_version_], 100, schema_version_);
@@ -185,7 +184,7 @@ struct SqlTableConcurrentTests : public TerrierTest {
     byte *buffer = common::AllocationUtil::AllocateAligned(pci->ProjectedColumnsSize());
     auto table_iter = table.begin(schema_version_);
 
-    while (table_iter != table.end())  {
+    while (table_iter != table.end()) {
       // LOG_INFO("  Iter at ({}, {})", reinterpret_cast<uint64_t>(table_iter->GetBlock()), (table_iter->GetOffset()));
       auto pc = pci->Initialize(buffer);
       table.Scan(txn, &table_iter, pc, *pc_map, schema_version_);
@@ -323,7 +322,6 @@ TEST_F(SqlTableConcurrentTests, ConcurrentSelectsWithDifferentVersions) {
     }
     txn_manager_.Commit(init_txn, TestCallbacks::EmptyCallback, nullptr);
 
-
     delete pri;
     delete pr_map;
 
@@ -409,7 +407,6 @@ TEST_F(SqlTableConcurrentTests, ConcurrentQueriesWithSchemaChange) {
     }
     txn_manager_.Commit(init_txn, TestCallbacks::EmptyCallback, nullptr);
 
-
     delete pri;
     delete pr_map;
 
@@ -439,12 +436,12 @@ TEST_F(SqlTableConcurrentTests, ConcurrentQueriesWithSchemaChange) {
           ValidateTuple<storage::ProjectedRow>(pr, pr_map, working_version, base_val);
 
           EXPECT_NE(pr_map->find(catalog::col_oid_t(100)), pr_map->end());
-          uint32_t *version = reinterpret_cast<uint32_t *>(pr->AccessWithNullCheck(pr_map->at(catalog::col_oid_t(100))));
+          uint32_t *version =
+              reinterpret_cast<uint32_t *>(pr->AccessWithNullCheck(pr_map->at(catalog::col_oid_t(100))));
 
           EXPECT_EQ(*version, (!tuples[base_val].GetBlock()->layout_version_));
           auto old_version = tuples[base_val].GetBlock()->layout_version_;
           PopulateProjectedRow(working_version, base_val, pr, pr_map);
-
 
           auto result = table.Update(txn, tuples[base_val], *pr, *pr_map, working_version);
 
@@ -453,9 +450,12 @@ TEST_F(SqlTableConcurrentTests, ConcurrentQueriesWithSchemaChange) {
           EXPECT_LE(new_version, working_version);
           EXPECT_TRUE(result.first);
           EXPECT_EQ(*version, !working_version);
-          if (old_version != working_version && (!working_version) >= 5) EXPECT_NE(tuples[base_val], result.second);
-          else if (old_version == working_version) EXPECT_EQ(tuples[base_val], result.second);
-          else EXPECT_EQ(tuples[base_val], result.second);
+          if (old_version != working_version && (!working_version) >= 5)
+            EXPECT_NE(tuples[base_val], result.second);
+          else if (old_version == working_version)
+            EXPECT_EQ(tuples[base_val], result.second);
+          else
+            EXPECT_EQ(tuples[base_val], result.second);
 
           tuples[base_val] = result.second;
 
