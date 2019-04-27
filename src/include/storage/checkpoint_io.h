@@ -160,10 +160,11 @@ class AsyncBlockWriter {
 /**
  * A buffered tuple writer collects tuples into blocks, and output a block once a time.
  * The block size is fetched from database setting, and should be the page size.
+ * TupleSlot is stored for log recovery (for the purpose of locating the records).
  * layout:
- * ----------------------------------------------------------------------------------
- * | checksum | table_oid | tuple1 | varlen_entries(if exist) | tuple2 | tuple3 | ... |
- * ----------------------------------------------------------------------------------
+ * -----------------------------------------------------------------------------------------------------
+ * | checksum | table_oid | tuple1 | TupleSlot1 | varlen_entries(if exist) | tuple2 | TupleSlot2 | ... |
+ * -----------------------------------------------------------------------------------------------------
  */
 class BufferedTupleWriter {
   // TODO(Zhaozhe): checksum
@@ -207,7 +208,8 @@ class BufferedTupleWriter {
    * @param schema schema of the row
    * @param proj_map projection map of the schema.
    */
-  void SerializeTuple(ProjectedRow *row, const catalog::Schema &schema, const ProjectionMap &proj_map);
+  void SerializeTuple(ProjectedRow *row, const TupleSlot *slot, const catalog::Schema &schema,
+                      const ProjectionMap &proj_map);
 
   /**
    * Get the current checkpoint page.
@@ -292,6 +294,7 @@ class BufferedTupleReader {
    *         nullptr if an error happens or there is no other row in the page.
    */
   ProjectedRow *ReadNextRow() {
+    // TODO(mengyang): why sometimes uint64 aligned, sometimes uint32 aligned?
     AlignBufferOffset<uint64_t>();
     if (block_size_ - page_offset_ < sizeof(uint32_t)) {
       // definitely not enough to store another row in the page.
@@ -306,6 +309,13 @@ class BufferedTupleReader {
     auto *checkpoint_row = reinterpret_cast<ProjectedRow *>(buffer_ + page_offset_);
     page_offset_ += row_size;
     return checkpoint_row;
+  }
+  
+  TupleSlot *ReadNextTupleSlot() {
+    AlignBufferOffset<uint32_t>();
+    auto slot = reinterpret_cast<TupleSlot *>(buffer_ + page_offset_);
+    page_offset_ += static_cast<uint32_t>(sizeof(TupleSlot));
+    return slot;
   }
 
   /**

@@ -7,6 +7,7 @@
 #include <cerrno>
 #include <cstring>
 #include <string>
+#include <transaction/transaction_context.h>
 #include "common/macros.h"
 #include "loggers/storage_logger.h"
 
@@ -146,7 +147,11 @@ class BufferedLogReader {
    * @param log_file_path path to the the log file to read from.
    */
   explicit BufferedLogReader(const char *log_file_path) : in_(PosixIoWrappers::Open(log_file_path, O_RDONLY)) {}
-
+  
+  /**
+ * Must call before object is destructed
+ */
+  void Close() { PosixIoWrappers::Close(in_); }
   /**
    * @return if there are contents left in the write ahead log
    */
@@ -190,4 +195,8 @@ class BufferedLogReader {
 
   void RefillBuffer();
 };
+
+// TODO(zhaozhes): copied from log_test.cpp because I believe it should be here because checkpoint recovery need it.
+LogRecord *ReadNextLogRecord(BufferedLogReader *in);
+
 }  // namespace terrier::storage
