@@ -20,6 +20,15 @@ struct SqlTableConcurrentTests : public TerrierTest {
 
   void TearDown() override { TerrierTest::TearDown(); }
 
+  std::map<storage::layout_version_t, std::vector<catalog::Schema::Column>> GeneratVersionOidsMap() {
+    std::map<storage::layout_version_t, std::vector<catalog::Schema::Column>> m;
+    for (auto i : {0, 8}) {
+      auto layout = storage::layout_version_t(i);
+      m.insert({layout, GenerateColumnsVector(layout)});
+    }
+    return m;
+  }
+
   std::vector<catalog::Schema::Column> GenerateColumnsVector(storage::layout_version_t v) {
     std::vector<catalog::Schema::Column> cols;
 

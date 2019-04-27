@@ -175,14 +175,14 @@ std::pair<bool, storage::TupleSlot> SqlTable::Update(transaction::TransactionCon
     // We should create a buffer of old Projected Row and update in place. We can't just
     // directly erase the data without creating a redo and update the chain.
 
-    auto old_pair = InitializerForProjectedRow(redo_col_oids, version_num);
+    auto old_pair = InitializerForProjectedRow(redo_col_oids, old_version);
 
     // 1. Create a ProjectedRow Buffer for the old version
     byte *buffer = common::AllocationUtil::AllocateAligned(old_pair.first.ProjectedRowSize());
     storage::ProjectedRow *pr = old_pair.first.InitializeRow(buffer);
 
     // 2. Copy from new ProjectedRow to old ProjectedRow
-    StorageUtil::CopyProjectionIntoProjection(redo, map, tables_.Find(version_num)->second.layout, pr, old_pair.second);
+    StorageUtil::CopyProjectionIntoProjection(redo, map, tables_.Find(old_version)->second.layout, pr, old_pair.second);
 
     // 3. Update the old data-table
     bool result = tables_.Find(old_version)->second.data_table->Update(txn, slot, *pr);
