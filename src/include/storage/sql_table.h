@@ -188,7 +188,7 @@ class SqlTable {
    * is returned. Otherwise, the same TupleSlot is returned.
    */
   std::pair<bool, storage::TupleSlot> Update(transaction::TransactionContext *txn, TupleSlot slot,
-                                             const ProjectedRow &redo, const ProjectionMap &map,
+                                             ProjectedRow &redo, const ProjectionMap &map,
                                              layout_version_t version_num);
 
   /**

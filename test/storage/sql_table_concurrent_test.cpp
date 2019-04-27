@@ -211,6 +211,8 @@ struct SqlTableConcurrentTests : public TerrierTest {
     delete[] buffer;
     delete pci;
     delete pc_map;
+
+    txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
   }
 
   storage::RecordBufferSegmentPool buffer_pool_{100000, 100000};
@@ -249,16 +251,14 @@ TEST_F(SqlTableConcurrentTests, ConcurrentInsertsWithDifferentVersions) {
     auto workload = [&](uint32_t id) {
       for (uint32_t t = 0; t < txns_per_thread; t++) {
         storage::layout_version_t working_version = schema_version_;
-        transaction::TransactionContext *txn;
+        auto txn = txn_manager_.BeginTransaction();
         if (id == 0) {
-          if (t >= 8) break;  // No more schema updates
-          txn = txn_manager_.BeginTransaction();
-          // LOG_INFO("  Adding schema version {}", (!working_version)+1);
-          catalog::Schema schema(GenerateColumnsVector(working_version + 1), working_version + 1);
-          table.UpdateSchema(schema);
-          // Update schema
+          if (t < 8) {
+            // LOG_INFO("  Adding schema version {}", (!working_version)+1);
+            catalog::Schema schema(GenerateColumnsVector(working_version + 1), working_version + 1);
+            table.UpdateSchema(schema);
+          }
         } else {
-          txn = txn_manager_.BeginTransaction();
           // LOG_INFO("    Thread {} in version {} with transaction {}", id, !working_version, t);
           auto row_pair = table.InitializerForProjectedRow(*versioned_col_oids[!working_version], working_version);
           auto pri = new storage::ProjectedRowInitializer(std::get<0>(row_pair));
@@ -276,7 +276,7 @@ TEST_F(SqlTableConcurrentTests, ConcurrentInsertsWithDifferentVersions) {
           delete pr_map;
         }
         txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
-        if (id == 0) schema_version_++;
+        if (id == 0 && t < 8) schema_version_++;
       }
     };
 
@@ -458,8 +458,9 @@ TEST_F(SqlTableConcurrentTests, ConcurrentQueriesWithSchemaChange) {
           EXPECT_LE(*version, ((!new_version) >= 5) ? !new_version : 5);
           EXPECT_LE(new_version, working_version);
           EXPECT_TRUE(result.first);
-          ASSERT_LE(*version, !working_version);
+          EXPECT_LE(*version, !working_version);
           if (*version != (!working_version) && (!working_version) >= 5) EXPECT_NE(tuples[base_val], result.second);
+          else if (*version == (!working_version)) EXPECT_EQ(tuples[base_val], result.second);
           else EXPECT_EQ(tuples[base_val], result.second);
 
           tuples[base_val] = result.second;

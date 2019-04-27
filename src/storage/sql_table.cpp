@@ -129,7 +129,7 @@ bool SqlTable::Select(transaction::TransactionContext *const txn, const TupleSlo
  * is returned. Otherwise, the same TupleSlot is returned.
  */
 std::pair<bool, storage::TupleSlot> SqlTable::Update(transaction::TransactionContext *const txn, const TupleSlot slot,
-                                                     const ProjectedRow &redo, const ProjectionMap &map,
+                                                     ProjectedRow &redo, const ProjectionMap &map,
                                                      layout_version_t version_num) {
   // TODO(Matt): check constraints? Discuss if that happens in execution layer or not
   // TODO(Matt): update indexes
@@ -171,22 +171,30 @@ std::pair<bool, storage::TupleSlot> SqlTable::Update(transaction::TransactionCon
   storage::TupleSlot ret_slot;
   if (is_subset) {
     // we can update in place
+    auto old_dt_version = tables_.Find(old_version)->second;
+
+    // The slot version is not the same as the version_num
+    col_id_t original_column_ids[redo.NumColumns()];
+    ModifyProjectionHeaderForVersion(&redo, tables_.Find(version_num)->second, old_dt_version, original_column_ids);
+
+    // Get the result and copy back the old header
+    bool result = old_dt_version.data_table->Update(txn, slot, redo);
 
     // We should create a buffer of old Projected Row and update in place. We can't just
     // directly erase the data without creating a redo and update the chain.
 
-    auto old_pair = InitializerForProjectedRow(redo_col_oids, old_version);
+    // auto old_pair = InitializerForProjectedRow(redo_col_oids, old_version);
 
-    // 1. Create a ProjectedRow Buffer for the old version
-    byte *buffer = common::AllocationUtil::AllocateAligned(old_pair.first.ProjectedRowSize());
-    storage::ProjectedRow *pr = old_pair.first.InitializeRow(buffer);
+    // // 1. Create a ProjectedRow Buffer for the old version
+    // byte *buffer = common::AllocationUtil::AllocateAligned(old_pair.first.ProjectedRowSize());
+    // storage::ProjectedRow *pr = old_pair.first.InitializeRow(buffer);
 
-    // 2. Copy from new ProjectedRow to old ProjectedRow
-    StorageUtil::CopyProjectionIntoProjection(redo, map, tables_.Find(old_version)->second.layout, pr, old_pair.second);
+    // // 2. Copy from new ProjectedRow to old ProjectedRow
+    // StorageUtil::CopyProjectionIntoProjection(redo, map, tables_.Find(old_version)->second.layout, pr, old_pair.second);
 
-    // 3. Update the old data-table
-    bool result = tables_.Find(old_version)->second.data_table->Update(txn, slot, *pr);
-    delete[] buffer;
+    // // 3. Update the old data-table
+    // bool result = tables_.Find(old_version)->second.data_table->Update(txn, slot, *pr);
+    // delete[] buffer;
     if (!result) {
       return {false, slot};
     }
