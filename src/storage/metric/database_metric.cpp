@@ -50,8 +50,8 @@ void DatabaseMetricRawData::UpdateAndPersist(transaction::TransactionManager *co
       table->InsertRow(txn, row);
     } else {
       // update existing entry
-      auto old_commit_cnt = type::TransientValuePeeker::PeekInteger(row[1]);
-      auto old_abort_cnt = type::TransientValuePeeker::PeekInteger(row[2]);
+      auto old_commit_cnt = type::TransientValuePeeker::PeekBigInt(row[1]);
+      auto old_abort_cnt = type::TransientValuePeeker::PeekBigInt(row[2]);
       row.clear();
       row.emplace_back(type::TransientValueFactory::GetInteger(database_oid));
       row.emplace_back(type::TransientValueFactory::GetBigInt(commit_cnt + old_commit_cnt));
