@@ -142,32 +142,11 @@ class RedoRecord {
     return result;
   }
 
-  /**
-   * TODO(Tianyu): Remove this as we clean up serialization
-   * Hacky back door for BufferedLogReader. Essentially, the current implementation dumps memory content straight out
-   * to disk, which we then read directly back into the projected row. After the serialization format is decided, write
-   * a real factory method for recovery.
-   * @param head
-   * @param size
-   * @param txn_begin
-   * @param table
-   * @param tuple_slot
-   * @return
-   */
-  static LogRecord *PartialInitialize(byte *const head, const uint32_t size, const transaction::timestamp_t txn_begin,
-                                      DataTable *const table, TupleSlot tuple_slot) {
-    LogRecord *result = LogRecord::InitializeHeader(head, LogRecordType::REDO, size, txn_begin);
-    auto *body = result->GetUnderlyingRecordBodyAs<RedoRecord>();
-    body->table_ = table;
-    body->tuple_slot_ = tuple_slot;
-    return result;
-  }
-
  private:
   // TODO(Tianyu): We will eventually need to consult the DataTable to determine how to serialize a given column
-  // (varlen? compressed? from an outdated schema?) For now we just assume we can serialize everything out as-is,
-  // and the reader still have access to the layout on recovery and can deserialize. This is why we are not
-  // just taking an oid.
+  //  (varlen? compressed? from an outdated schema?) For now we just assume we can serialize everything out as-is,
+  //  and the reader still have access to the layout on recovery and can deserialize. This is why we are not
+  //  just taking an oid.
   DataTable *table_;
   TupleSlot tuple_slot_;
   // This needs to be aligned to 8 bytes to ensure the real size of RedoRecord (plus actual ProjectedRow) is also

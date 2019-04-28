@@ -69,14 +69,14 @@ class LogManager {
 
  private:
   // TODO(Tianyu): This can be changed later to be include things that are not necessarily backed by a disk
-  // (e.g. logs can be streamed out to the network for remote replication)
+  //  (e.g. logs can be streamed out to the network for remote replication)
   BufferedLogWriter out_;
   RecordBufferSegmentPool *buffer_pool_;
 
   // TODO(Tianyu): Might not be necessary, since commit on txn manager is already protected with a latch
   common::SpinLatch flush_queue_latch_;
   // TODO(Tianyu): benchmark for if these should be concurrent data structures, and if we should apply the same
-  // optimization we applied to the GC queue.
+  //  optimization we applied to the GC queue.
   std::queue<RecordBufferSegment *> flush_queue_;
 
   // These do not need to be thread safe since the only thread adding or removing from it is the flushing thread

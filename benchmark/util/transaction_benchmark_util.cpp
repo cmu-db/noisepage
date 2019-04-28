@@ -164,7 +164,7 @@ void LargeTransactionBenchmarkObject::PopulateInitialTable(uint32_t num_tuples, 
     storage::TupleSlot inserted = table_.Insert(initial_txn_, *redo);
     // TODO(Tianyu): Hardly efficient, but will do for testing.
     if (wal_on_) {
-      auto *record = initial_txn_->StageWrite(nullptr, inserted, row_initializer_);
+      auto *record = initial_txn_->StageWrite(&table_, inserted, row_initializer_);
       std::memcpy(record->Delta(), redo, redo->Size());
     }
     last_checked_version_.emplace_back(inserted, nullptr);
