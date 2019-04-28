@@ -89,8 +89,13 @@ void LogManager::SerializeRecord(const terrier::storage::LogRecord &record) {
           const auto *varlen_entry = reinterpret_cast<const VarlenEntry *>(*column_value_address);
           // Serialize out length of the varlen entry.
           WriteValue(varlen_entry->Size());
-          // Serialize out the content field of the varlen entry.
-          out_.BufferWrite(varlen_entry->Content(), varlen_entry->Size());
+          if (varlen_entry->IsInlined()) {
+            // Serialize out the prefix of the varlen entry.
+            out_.BufferWrite(varlen_entry->Prefix(), varlen_entry->Size());
+          } else {
+            // Serialize out the content field of the varlen entry.
+            out_.BufferWrite(varlen_entry->Content(), varlen_entry->Size());
+          }
         } else {
           // Inline column value is the actual data we want to serialize out.
           // Note that by writing out AttrSize(col_id) bytes instead of just the difference between successive offsets

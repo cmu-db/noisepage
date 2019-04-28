@@ -98,14 +98,20 @@ class WriteAheadLoggingTests : public TerrierTest {
       if (block_layout.IsVarlen(col_ids[i])) {
         // Read how many bytes this varlen actually is.
         const auto varlen_attribute_size = in->ReadValue<uint32_t>();
-        // Allocate a varlen entry of this many bytes.
+        // Allocate a varlen buffer of this many bytes.
         auto *varlen_attribute_content = common::AllocationUtil::AllocateAligned(varlen_attribute_size);
         // Fill the entry with the next bytes from the log file.
         in->Read(varlen_attribute_content, varlen_attribute_size);
+        // Create the varlen entry depending on whether it can be inlined or not
+        storage::VarlenEntry varlen_entry;
+        if (varlen_attribute_size <= storage::VarlenEntry::InlineThreshold()) {
+          varlen_entry = storage::VarlenEntry::CreateInline(varlen_attribute_content, varlen_attribute_size);
+        } else {
+          varlen_entry = storage::VarlenEntry::Create(varlen_attribute_content, varlen_attribute_size, true);
+        }
         // The attribute value in the ProjectedRow will be a pointer to this varlen entry.
         auto *dest = reinterpret_cast<storage::VarlenEntry **>(column_value_address);
         // Set the value to be the address of the varlen_entry.
-        auto varlen_entry = storage::VarlenEntry::Create(varlen_attribute_content, varlen_attribute_size, true);
         *dest = &varlen_entry;
       } else {
         // For inlined attributes, just directly read into the ProjectedRow.
