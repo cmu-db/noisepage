@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <utility>
 #include "catalog/settings_handle.h"
+#include "common/action_context.h"
 #include "common/exception.h"
 #include "loggers/settings_logger.h"
 #include "main/main_database.h"
@@ -20,7 +21,8 @@
 
 namespace terrier::settings {
 
-using callback_fn = void (*)(void *, void *);
+using callback_fn = void (*)(void *, void *, std::shared_ptr<common::ActionContext> action_context);
+using setter_callback_fn = void (*)(std::shared_ptr<common::ActionContext> action_context);
 
 /**
  * A wrapper for pg_settings table, does not store values in it.
@@ -73,28 +75,32 @@ class SettingsManager {
    * @param param setting name
    * @param value the new value
    */
-  void SetInt(Param param, int32_t value);
+  void SetInt(Param param, int32_t value, std::shared_ptr<common::ActionContext> action_context,
+              setter_callback_fn setter_callback);
 
   /**
    * Set the value of a double setting
    * @param param setting name
    * @param value the new value
    */
-  void SetDouble(Param param, double value);
+  void SetDouble(Param param, double value, std::shared_ptr<common::ActionContext> action_context,
+                 setter_callback_fn setter_callback);
 
   /**
    * Set the value of a boolean setting
    * @param param setting name
    * @param value the new value
    */
-  void SetBool(Param param, bool value);
+  void SetBool(Param param, bool value, std::shared_ptr<common::ActionContext> action_context,
+               setter_callback_fn setter_callback);
 
   /**
    * Set the value of a string setting
    * @param param setting name
    * @param value the new value
    */
-  void SetString(Param param, const std::string_view &value);
+  void SetString(Param param, const std::string_view &value, std::shared_ptr<common::ActionContext> action_context,
+                 setter_callback_fn setter_callback);
 
   // Call this method in Catalog->Bootstrap
   // to store information into pg_settings

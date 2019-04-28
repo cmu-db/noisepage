@@ -52,10 +52,8 @@ void Catalog::DeleteDatabase(transaction::TransactionContext *txn, const std::st
   name_map_.erase(oid);
 }
 
-table_oid_t Catalog::CreateUserTable(transaction::TransactionContext *txn,
-                                     db_oid_t db_oid,
-                                     const std::string &table_name,
-                                     const Schema &schema) {
+table_oid_t Catalog::CreateUserTable(transaction::TransactionContext *txn, db_oid_t db_oid,
+                                     const std::string &table_name, const Schema &schema) {
   auto db_handle = GetDatabaseHandle();
   auto table_handle = db_handle.GetNamespaceHandle(txn, db_oid).GetTableHandle(txn, "public");
 

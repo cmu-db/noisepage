@@ -49,11 +49,20 @@ int MainDatabase::start(int argc, char *argv[]) {
   return 0;
 }
 
-void MainDatabase::EmptyCallback(void *old_value, void *new_value) {}
+void MainDatabase::EmptyCallback(void *old_value, void *new_value,
+                                 std::shared_ptr<common::ActionContext> action_context) {
+  action_context->SetState(common::ActionState::SUCCESS);
+}
 
-void MainDatabase::BufferPoolSizeCallback(void *old_value, void *new_value) {
+void MainDatabase::BufferPoolSizeCallback(void *old_value, void *new_value,
+                                          std::shared_ptr<common::ActionContext> action_context) {
+  action_context->SetState(common::ActionState::IN_PROGRESS);
   int new_size = *static_cast<int *>(new_value);
-  txn_manager_->SetBufferPoolSizeLimit(new_size);
+  bool success = txn_manager_->SetBufferPoolSizeLimit(new_size);
+  if (success)
+    action_context->SetState(common::ActionState::SUCCESS);
+  else
+    action_context->SetState(common::ActionState::FAILURE);
 }
 
 transaction::TransactionManager *MainDatabase::txn_manager_;

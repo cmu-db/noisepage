@@ -69,6 +69,8 @@ class SettingsTests : public TerrierTest {
     delete txn_manager_;
     delete settings_manager_;
   }
+
+  static void EmptySetterCallback(std::shared_ptr<common::ActionContext> action_context UNUSED_ATTRIBUTE) {}
 };
 
 // NOLINTNEXTLINE
@@ -76,7 +78,10 @@ TEST_F(SettingsTests, BasicTest) {
   auto port = static_cast<uint16_t>(settings_manager_->GetInt(Param::port));
   EXPECT_EQ(port, 15721);
 
-  EXPECT_THROW(settings_manager_->SetInt(Param::port, 23333), SettingsException);
+  const int32_t action_id = 1;
+  setter_callback_fn setter_callback = SettingsTests::EmptySetterCallback;
+  std::shared_ptr<common::ActionContext> action_context = std::make_shared<common::ActionContext>(action_id);
+  EXPECT_THROW(settings_manager_->SetInt(Param::port, 23333, action_context, setter_callback), SettingsException);
 }
 
 // NOLINTNEXTLINE
@@ -88,9 +93,14 @@ TEST_F(SettingsTests, CallbackTest) {
   bufferPoolSize = txn_manager_->GetBufferPoolSizeLimit();
   EXPECT_EQ(bufferPoolSize, defaultBufferPoolSize);
 
+  const int32_t action_id = 1;
+  setter_callback_fn setter_callback = SettingsTests::EmptySetterCallback;
+  std::shared_ptr<common::ActionContext> action_context = std::make_shared<common::ActionContext>(action_id);
+
   // Setting new value should invoke callback.
   const int64_t newBufferPoolSize = defaultBufferPoolSize + 1;
-  settings_manager_->SetInt(Param::buffer_pool_size, static_cast<int32_t>(newBufferPoolSize));
+  settings_manager_->SetInt(Param::buffer_pool_size, static_cast<int32_t>(newBufferPoolSize), action_context,
+                            setter_callback);
   bufferPoolSize = static_cast<int64_t>(settings_manager_->GetInt(Param::buffer_pool_size));
   EXPECT_EQ(bufferPoolSize, newBufferPoolSize);
 

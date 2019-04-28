@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 
+#include "common/macros.h"
 #include "settings/settings_manager.h"
 #include "type/transient_value_factory.h"
 // This will expand to define all the settings defined in settings.h
@@ -17,6 +18,8 @@ namespace terrier::settings {
 using Index = catalog::SettingsTableColumn;
 using ValueFactory = type::TransientValueFactory;
 using ValuePeeker = type::TransientValuePeeker;
+using ActionContext = common::ActionContext;
+using ActionState = common::ActionState;
 
 // Used for building temporary transactions
 void EmptyCallback(void * /*unused*/) {}
@@ -86,33 +89,69 @@ bool SettingsManager::GetBool(Param param) { return ValuePeeker::PeekBoolean(Get
 
 std::string_view SettingsManager::GetString(Param param) { return ValuePeeker::PeekVarChar(GetValue(param)); }
 
-void SettingsManager::SetInt(Param param, int32_t value) {
+void SettingsManager::SetInt(Param param, int32_t value, std::shared_ptr<ActionContext> action_context,
+                             setter_callback_fn setter_callback) {
   int old_value = GetInt(param);
   SetValue(param, ValueFactory::GetInteger(value));
   callback_fn callback = callback_map_.find(param)->second;
-  callback(static_cast<void *>(&old_value), static_cast<void *>(&value));
+  callback(static_cast<void *>(&old_value), static_cast<void *>(&value), action_context);
+
+  ActionState action_state = action_context->GetState();
+  TERRIER_ASSERT(action_state == ActionState::FAILURE || action_state == ActionState::SUCCESS,
+                 "action context should have state of either SUCCESS or FAILURE on completion.");
+  if (action_state == ActionState::FAILURE) {
+    SetValue(param, ValueFactory::GetInteger(old_value));
+  }
+  setter_callback(action_context);
 }
 
-void SettingsManager::SetDouble(Param param, double value) {
+void SettingsManager::SetDouble(Param param, double value, std::shared_ptr<ActionContext> action_context,
+                                setter_callback_fn setter_callback) {
   double old_value = GetDouble(param);
   SetValue(param, ValueFactory::GetDecimal(value));
   callback_fn callback = callback_map_.find(param)->second;
-  callback(static_cast<void *>(&old_value), static_cast<void *>(&value));
+  callback(static_cast<void *>(&old_value), static_cast<void *>(&value), action_context);
+
+  ActionState action_state = action_context->GetState();
+  TERRIER_ASSERT(action_state == ActionState::FAILURE || action_state == ActionState::SUCCESS,
+                 "action context should have state of either SUCCESS or FAILURE on completion.");
+  if (action_state == ActionState::FAILURE) {
+    SetValue(param, ValueFactory::GetDecimal(old_value));
+  }
+  setter_callback(action_context);
 }
 
-void SettingsManager::SetBool(Param param, bool value) {
+void SettingsManager::SetBool(Param param, bool value, std::shared_ptr<ActionContext> action_context,
+                              setter_callback_fn setter_callback) {
   bool old_value = GetBool(param);
   SetValue(param, ValueFactory::GetBoolean(value));
   callback_fn callback = callback_map_.find(param)->second;
-  callback(static_cast<void *>(&old_value), static_cast<void *>(&value));
+  callback(static_cast<void *>(&old_value), static_cast<void *>(&value), action_context);
+
+  ActionState action_state = action_context->GetState();
+  TERRIER_ASSERT(action_state == ActionState::FAILURE || action_state == ActionState::SUCCESS,
+                 "action context should have state of either SUCCESS or FAILURE on completion.");
+  if (action_state == ActionState::FAILURE) {
+    SetValue(param, ValueFactory::GetBoolean(old_value));
+  }
+  setter_callback(action_context);
 }
 
-void SettingsManager::SetString(Param param, const std::string_view &value) {
+void SettingsManager::SetString(Param param, const std::string_view &value,
+                                std::shared_ptr<ActionContext> action_context, setter_callback_fn setter_callback) {
   std::string_view old_value = GetString(param);
   SetValue(param, ValueFactory::GetVarChar(value));
   callback_fn callback = callback_map_.find(param)->second;
   std::string_view new_value(value);
-  callback(static_cast<void *>(&old_value), static_cast<void *>(&new_value));
+  callback(static_cast<void *>(&old_value), static_cast<void *>(&new_value), action_context);
+
+  ActionState action_state = action_context->GetState();
+  TERRIER_ASSERT(action_state == ActionState::FAILURE || action_state == ActionState::SUCCESS,
+                 "action context should have state of either SUCCESS or FAILURE on completion.");
+  if (action_state == ActionState::FAILURE) {
+    SetValue(param, ValueFactory::GetVarChar(old_value));
+  }
+  setter_callback(action_context);
 }
 
 const std::string SettingsManager::GetInfo() {

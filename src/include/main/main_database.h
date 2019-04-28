@@ -48,14 +48,15 @@ class MainDatabase {
    * @param old_value the old value of corresponding setting
    * @param new_value the new value of corresponding setting
    */
-  static void EmptyCallback(void *old_value, void *new_value);
+  static void EmptyCallback(void *old_value, void *new_value, std::shared_ptr<common::ActionContext> action_context);
 
   /**
    * Buffer pool size callback used by settings manager
    * @param old_value old value of buffer pool size
    * @param new_value new value of buffer pool size
    */
-  static void BufferPoolSizeCallback(void *old_value, void *new_value);
+  static void BufferPoolSizeCallback(void *old_value, void *new_value,
+                                     std::shared_ptr<common::ActionContext> action_context);
 
   /**
    * The global pointer to transaction manager
