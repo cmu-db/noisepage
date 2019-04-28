@@ -82,7 +82,42 @@ class LogManager {
   // These do not need to be thread safe since the only thread adding or removing from it is the flushing thread
   std::vector<std::pair<transaction::callback_fn, void *>> commits_in_buffer_;
 
+  /**
+   * Calculate the size of the log for a record
+   * @param record the record
+   * @return the size of the record
+   */
+  uint32_t GetRecordSize(const terrier::storage::LogRecord &record);
+
+  /**
+   * Calculate the size of the log for a task buffer
+   * @param task_buffer the task buffer
+   * @return the size of the buffer
+   */
+  uint32_t GetTaskBufferSize(IterableBufferSegment<LogRecord> &task_buffer);
+
+  /**
+   * Calculate the size of the value
+   * @tparam T
+   * @param val the value
+   * @return the size of the value
+   */
+  template <class T>
+  uint32_t GetValueSize(const T &val) {
+    return sizeof(T);
+  }
+
+  /**
+   * Serialize out the record to the log
+   * @param task_buffer the task buffer
+   */
   void SerializeRecord(const LogRecord &record);
+
+  /**
+   * Serialize out the task buffer to the log
+   * @param task_buffer the task buffer
+   */
+  void SerializeTaskBuffer(IterableBufferSegment<LogRecord> &task_buffer);
 
   template <class T>
   void WriteValue(const T &val) {
