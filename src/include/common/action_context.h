@@ -19,11 +19,13 @@ enum class ActionState {
  */
 class ActionContext {
  public:
+  ActionContext(const ActionContext &) = delete;
+
   /**
    * Constructor of ActionContext.
    * @param action_id id of this action.
    */
-  ActionContext(int32_t action_id) : action_id_(action_id) {}
+  ActionContext(int32_t action_id) : action_id_(action_id), state_(ActionState ::INITIATED) {}
 
   /**
    * Get the state of this action.
