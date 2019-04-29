@@ -83,7 +83,7 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryNoSeparateThread) {
   storage::BlockStore block_store_{10000, 10000};
   storage::SqlTable *recovered_table = new storage::SqlTable(&block_store_, *schema, catalog::table_oid_t(1));
   checkpoint_manager_.StartRecovery(recovery_txn);
-  checkpoint_manager_.RegisterTable(recovered_table, &layout);
+  checkpoint_manager_.RegisterTable(recovered_table);
   checkpoint_manager_.Recover(latest_checkpoint_path.c_str());
   checkpoint_manager_.EndRecovery();
   txn_manager->Commit(recovery_txn, StorageTestUtil::EmptyCallback, nullptr);
@@ -143,7 +143,7 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryNoVarlen) {
   storage::BlockStore block_store_{10000, 10000};
   storage::SqlTable *recovered_table = new storage::SqlTable(&block_store_, *schema, catalog::table_oid_t(1));
   checkpoint_manager_.StartRecovery(recovery_txn);
-  checkpoint_manager_.RegisterTable(recovered_table, &layout);
+  checkpoint_manager_.RegisterTable(recovered_table);
   checkpoint_manager_.Recover(latest_checkpoint_path.c_str());
   checkpoint_manager_.EndRecovery();
   txn_manager->Commit(recovery_txn, StorageTestUtil::EmptyCallback, nullptr);
@@ -202,7 +202,7 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryWithVarlen) {
   storage::BlockStore block_store_{10000, 10000};
   storage::SqlTable *recovered_table = new storage::SqlTable(&block_store_, *schema, catalog::table_oid_t(1));
   checkpoint_manager_.StartRecovery(recovery_txn);
-  checkpoint_manager_.RegisterTable(recovered_table, &layout);
+  checkpoint_manager_.RegisterTable(recovered_table);
   checkpoint_manager_.Recover(latest_checkpoint_path.c_str());
   checkpoint_manager_.EndRecovery();
   txn_manager->Commit(recovery_txn, StorageTestUtil::EmptyCallback, nullptr);

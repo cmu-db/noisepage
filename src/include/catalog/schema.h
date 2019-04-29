@@ -74,6 +74,10 @@ class Schema {
      * @return internal unique identifier for this column
      */
     col_oid_t GetOid() const { return oid_; }
+    /**
+     * @return true if the attribute is a varlen attribute
+     */
+    bool IsVarlen() const { return attr_size_ == VARLEN_COLUMN; }
 
    private:
     const std::string name_;
