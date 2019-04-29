@@ -39,16 +39,7 @@ class SqlTable {
    * @param schema the initial Schema of this SqlTable
    * @param oid unique identifier for this SqlTable
    */
-  SqlTable(BlockStore *const store, const catalog::Schema &schema, const catalog::table_oid_t oid)
-      : block_store_(store), oid_(oid), schema_(schema) {
-    const auto layout_and_map = StorageUtil::BlockLayoutFromSchema(schema);
-    InverseColumnMap inverse_column_map;
-    for (auto &p : layout_and_map.second) {
-      inverse_column_map[p.second] = p.first;
-    }
-    table_ = {new DataTable(block_store_, layout_and_map.first, layout_version_t(0)), layout_and_map.first,
-              layout_and_map.second, inverse_column_map};
-  }
+  SqlTable(BlockStore *store, const catalog::Schema &schema, catalog::table_oid_t oid);
 
   /**
    * Destructs a SqlTable, frees all its members.
