@@ -26,6 +26,9 @@ std::shared_ptr<ClassEntry> ClassHandle::GetClassEntry(transaction::TransactionC
   search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::BIGINT));
   search_vec.push_back(type::TransientValueFactory::GetInteger(!oid));
   ret_row = pg_class_rw_->FindRow(txn, search_vec);
+  if (ret_row.empty()) {
+    return nullptr;
+  }
   return std::make_shared<ClassEntry>(oid, pg_class_rw_, std::move(ret_row));
 }
 

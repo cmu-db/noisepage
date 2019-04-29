@@ -64,6 +64,9 @@ std::shared_ptr<DatabaseEntry> DatabaseHandle::GetDatabaseEntry(transaction::Tra
   std::vector<type::TransientValue> search_vec;
   search_vec.push_back(type::TransientValueFactory::GetInteger(!oid));
   auto row_vec = pg_database_rw->FindRow(txn, search_vec);
+  if (row_vec.empty()) {
+    return nullptr;
+  }
   return std::make_shared<DatabaseEntry>(oid, pg_database_rw, std::move(row_vec));
 }
 

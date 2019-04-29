@@ -24,6 +24,9 @@ std::shared_ptr<NamespaceEntry> NamespaceHandle::GetNamespaceEntry(transaction::
   std::vector<type::TransientValue> search_vec, ret_row;
   search_vec.push_back(type::TransientValueFactory::GetInteger(!oid));
   ret_row = pg_namespace_hrw_->FindRow(txn, search_vec);
+  if (ret_row.empty()) {
+    return nullptr;
+  }
   return std::make_shared<NamespaceEntry>(oid, pg_namespace_hrw_, std::move(ret_row));
 }
 
@@ -42,6 +45,9 @@ std::shared_ptr<NamespaceEntry> NamespaceHandle::GetNamespaceEntry(transaction::
 
 namespace_oid_t NamespaceHandle::NameToOid(transaction::TransactionContext *txn, const std::string &name) {
   auto nse = GetNamespaceEntry(txn, name);
+  if (nse == nullptr) {
+    throw CATALOG_EXCEPTION("namespace does not exist");
+  }
   return namespace_oid_t(type::TransientValuePeeker::PeekInteger(nse->GetColumn(0)));
 }
 

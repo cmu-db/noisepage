@@ -381,11 +381,12 @@ class Catalog {
   TableHandle GetUserTableHandle(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid);
 
   /**
-   * Convert type id to schema type
+   * Convert type id (type specified in storage layer schema) to the string used in catalog pg_type to identify
+   * a type.
    * @param type_id type id
-   * @return schema type
+   * @return type name used by the catalog in pg_type
    */
-  type::TransientValue ValueTypeIdToSchemaType(type::TypeId type_id);
+  std::string ValueTypeIdToSchemaType(type::TypeId type_id);
 
  private:
   transaction::TransactionManager *txn_manager_;

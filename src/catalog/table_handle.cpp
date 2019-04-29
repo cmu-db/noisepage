@@ -22,6 +22,9 @@ std::shared_ptr<TableEntry> TableHandle::GetTableEntry(transaction::TransactionC
   search_vec.emplace_back(type::TransientValueFactory::GetInteger(!oid));
 
   std::vector<type::TransientValue> row = pg_class_->FindRow(txn, search_vec);
+  if (row.empty()) {
+    return nullptr;
+  }
   nsp_oid = namespace_oid_t(type::TransientValuePeeker::PeekInteger(row[3]));
   if (nsp_oid != nsp_oid_) return nullptr;
   return std::make_shared<TableEntry>(oid, std::move(row), txn, pg_namespace_, pg_tablespace_);
@@ -39,6 +42,9 @@ table_oid_t TableHandle::NameToOid(transaction::TransactionContext *txn, const s
   search_vec.emplace_back(type::TransientValueFactory::GetVarChar(name));
 
   std::vector<type::TransientValue> row = pg_class_->FindRow(txn, search_vec);
+  if (row.empty()) {
+    throw CATALOG_EXCEPTION("table does not exist");
+  }
   auto result = table_oid_t(type::TransientValuePeeker::PeekInteger(row[1]));
   return result;
 }
@@ -73,6 +79,9 @@ SqlTableHelper *TableHandle::GetTable(transaction::TransactionContext *txn, tabl
   search_vec.emplace_back(type::TransientValueFactory::GetInteger(!oid));
 
   std::vector<type::TransientValue> row = pg_class_->FindRow(txn, search_vec);
+  if (row.empty()) {
+    return nullptr;
+  }
   namespace_oid_t nsp_oid = namespace_oid_t(type::TransientValuePeeker::PeekInteger(row[3]));
   if (nsp_oid != nsp_oid_) return nullptr;
   auto ptr = reinterpret_cast<SqlTableHelper *>(type::TransientValuePeeker::PeekBigInt(row[0]));

@@ -46,6 +46,9 @@ TypeHandle::TypeHandle(Catalog *catalog, SqlTableHelper *pg_type) : catalog_(cat
 
 type_oid_t TypeHandle::TypeToOid(transaction::TransactionContext *txn, const std::string &type) {
   auto te = GetTypeEntry(txn, type);
+  if (te == nullptr) {
+    throw CATALOG_EXCEPTION("no such type");
+  }
   return type_oid_t(type::TransientValuePeeker::PeekInteger(te->GetColumn(0)));
 }
 
@@ -53,6 +56,9 @@ std::shared_ptr<TypeEntry> TypeHandle::GetTypeEntry(transaction::TransactionCont
   std::vector<type::TransientValue> search_vec, ret_row;
   search_vec.push_back(type::TransientValueFactory::GetInteger(!oid));
   ret_row = pg_type_rw_->FindRow(txn, search_vec);
+  if (ret_row.empty()) {
+    return nullptr;
+  }
   return std::make_shared<TypeEntry>(oid, pg_type_rw_, std::move(ret_row));
 }
 
@@ -61,21 +67,9 @@ std::shared_ptr<TypeEntry> TypeHandle::GetTypeEntry(transaction::TransactionCont
   search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
   search_vec.push_back(type::TransientValueFactory::GetVarChar(type));
   ret_row = pg_type_rw_->FindRow(txn, search_vec);
-  type_oid_t oid(type::TransientValuePeeker::PeekInteger(ret_row[0]));
-  return std::make_shared<TypeEntry>(oid, pg_type_rw_, std::move(ret_row));
-}
-
-/*
- * Lookup a type and return the entry, e.g. "boolean"
- */
-std::shared_ptr<TypeEntry> TypeHandle::GetTypeEntry(transaction::TransactionContext *txn,
-                                                    const type::TransientValue &type) {
-  std::vector<type::TransientValue> search_vec, ret_row;
-  for (int32_t i = 0; i < 1; i++) {
-    search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
+  if (ret_row.empty()) {
+    return nullptr;
   }
-  search_vec.push_back(type::TransientValueFactory::GetCopy(type));
-  ret_row = pg_type_rw_->FindRow(txn, search_vec);
   type_oid_t oid(type::TransientValuePeeker::PeekInteger(ret_row[0]));
   return std::make_shared<TypeEntry>(oid, pg_type_rw_, std::move(ret_row));
 }

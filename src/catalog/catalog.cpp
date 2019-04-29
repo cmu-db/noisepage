@@ -159,7 +159,7 @@ TableHandle Catalog::GetUserTableHandle(transaction::TransactionContext *txn, db
   auto ns_handle = db_handle.GetNamespaceHandle(txn, db_oid);
   auto ns_entry = ns_handle.GetNamespaceEntry(txn, ns_oid);
   if (ns_entry == nullptr) {
-    throw std::out_of_range("no such namespace");
+    throw CATALOG_EXCEPTION("namespace does not exist");
   }
   return ns_handle.GetTableHandle(txn, ns_oid);
 }
@@ -513,34 +513,34 @@ void Catalog::SetUnusedColumns(std::vector<type::TransientValue> *vec, const std
   }
 }
 
-type::TransientValue Catalog::ValueTypeIdToSchemaType(type::TypeId type_id) {
+std::string Catalog::ValueTypeIdToSchemaType(type::TypeId type_id) {
   switch (type_id) {
     case type::TypeId::BOOLEAN:
-      return type::TransientValueFactory::GetVarChar("boolean");
+      return std::string("boolean");
 
     case type::TypeId::TINYINT:
-      return type::TransientValueFactory::GetVarChar("tinyint");
+      return std::string("tinyint");
 
     case type::TypeId::SMALLINT:
-      return type::TransientValueFactory::GetVarChar("smallint");
+      return std::string("smallint");
 
     case type::TypeId::INTEGER:
-      return type::TransientValueFactory::GetVarChar("integer");
+      return std::string("integer");
 
     case type::TypeId::BIGINT:
-      return type::TransientValueFactory::GetVarChar("bigint");
+      return std::string("bigint");
 
     case type::TypeId::DATE:
-      return type::TransientValueFactory::GetVarChar("date");
+      return std::string("date");
 
     case type::TypeId::DECIMAL:
-      return type::TransientValueFactory::GetVarChar("decimal");
+      return std::string("decimal");
 
     case type::TypeId::TIMESTAMP:
-      return type::TransientValueFactory::GetVarChar("timestamp");
+      return std::string("timestamp");
 
     case type::TypeId::VARCHAR:
-      return type::TransientValueFactory::GetVarChar("varchar");
+      return std::string("varchar");
 
     default:
       throw NOT_IMPLEMENTED_EXCEPTION("unsupported type in ValueToSchemaType");

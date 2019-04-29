@@ -30,6 +30,9 @@ std::shared_ptr<AttributeEntry> AttributeHandle::GetAttributeEntry(transaction::
   search_vec.push_back(type::TransientValueFactory::GetInteger(!col_oid));
   search_vec.push_back(type::TransientValueFactory::GetInteger(!table_oid));
   ret_row = pg_attribute_hrw_->FindRow(txn, search_vec);
+  if (ret_row.empty()) {
+    return nullptr;
+  }
   col_oid_t oid(type::TransientValuePeeker::PeekInteger(ret_row[0]));
   return std::make_shared<AttributeEntry>(oid, pg_attribute_hrw_, std::move(ret_row));
 }
@@ -42,7 +45,8 @@ std::shared_ptr<AttributeEntry> AttributeHandle::GetAttributeEntry(transaction::
   search_vec.push_back(type::TransientValueFactory::GetVarChar(name));
   ret_row = pg_attribute_hrw_->FindRow(txn, search_vec);
   if (ret_row.empty()) {
-    throw CATALOG_EXCEPTION("attribute doesn't exist");
+    return nullptr;
+    // throw CATALOG_EXCEPTION("attribute doesn't exist");
   }
   col_oid_t oid(type::TransientValuePeeker::PeekInteger(ret_row[0]));
   return std::make_shared<AttributeEntry>(oid, pg_attribute_hrw_, std::move(ret_row));

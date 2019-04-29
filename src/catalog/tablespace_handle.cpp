@@ -24,6 +24,9 @@ std::shared_ptr<TablespaceEntry> TablespaceHandle::GetTablespaceEntry(transactio
   std::vector<type::TransientValue> search_vec, ret_row;
   search_vec.push_back(type::TransientValueFactory::GetInteger(!oid));
   ret_row = pg_tablespace_->FindRow(txn, search_vec);
+  if (ret_row.empty()) {
+    return nullptr;
+  }
   return std::make_shared<TablespaceEntry>(oid, pg_tablespace_, std::move(ret_row));
 }
 
@@ -33,6 +36,9 @@ std::shared_ptr<TablespaceEntry> TablespaceHandle::GetTablespaceEntry(transactio
   search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
   search_vec.push_back(type::TransientValueFactory::GetVarChar(name));
   ret_row = pg_tablespace_->FindRow(txn, search_vec);
+  if (ret_row.empty()) {
+    return nullptr;
+  }
   tablespace_oid_t oid(type::TransientValuePeeker::PeekInteger(ret_row[0]));
   return std::make_shared<TablespaceEntry>(oid, pg_tablespace_, std::move(ret_row));
 }

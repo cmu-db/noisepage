@@ -80,7 +80,9 @@ class SettingsHandle {
     search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
     search_vec.push_back(type::TransientValueFactory::GetVarChar(name.c_str()));
     ret_row = pg_settings_->FindRow(txn, search_vec);
-
+    if (ret_row.empty()) {
+      return nullptr;
+    }
     settings_oid_t oid(type::TransientValuePeeker::PeekInteger(ret_row[0]));
     return std::make_shared<SettingsEntry>(oid, pg_settings_, std::move(ret_row));
   }

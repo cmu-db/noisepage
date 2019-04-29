@@ -22,6 +22,9 @@ std::shared_ptr<AttrDefEntry> AttrDefHandle::GetAttrDefEntry(transaction::Transa
   std::vector<type::TransientValue> search_vec, ret_row;
   search_vec.push_back(type::TransientValueFactory::GetInteger(!oid));
   ret_row = pg_attrdef_rw_->FindRow(txn, search_vec);
+  if (ret_row.empty()) {
+    return nullptr;
+  }
   return std::make_shared<AttrDefEntry>(oid, pg_attrdef_rw_, std::move(ret_row));
 }
 

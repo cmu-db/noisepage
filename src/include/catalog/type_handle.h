@@ -67,11 +67,6 @@ class TypeHandle {
   std::shared_ptr<TypeEntry> GetTypeEntry(transaction::TransactionContext *txn, const std::string &type);
 
   /**
-   * Get a type entry from pg_type handle by name.
-   */
-  std::shared_ptr<TypeEntry> GetTypeEntry(transaction::TransactionContext *txn, const type::TransientValue &type);
-
-  /**
    * Create storage table
    */
   static SqlTableHelper *Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,

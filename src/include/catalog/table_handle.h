@@ -71,6 +71,7 @@ class TableEntry {
           std::vector<type::TransientValue> search_vec;
           search_vec.emplace_back(type::TransientValueFactory::GetInteger(!nsp_oid));
           rows_[0] = pg_namespace_->FindRow(txn_, search_vec);
+          // TODO(pakhtar): error checking
         }
         return rows_[0][1];
       }
@@ -83,6 +84,7 @@ class TableEntry {
           std::vector<type::TransientValue> search_vec;
           search_vec.emplace_back(type::TransientValueFactory::GetInteger(!tsp_oid));
           rows_[2] = pg_tablespace_->FindRow(txn_, search_vec);
+          // TODO(pakhtar): error checking
         }
         return rows_[2][1];
       }
