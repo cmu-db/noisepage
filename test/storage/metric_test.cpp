@@ -345,7 +345,6 @@ TEST_F(MetricTests, TransactionMetricStorageTest) {
   }
 }
 
-
 /**
  *  Testing metric stats collection and persistence, multi threads
  */
@@ -366,43 +365,43 @@ TEST_F(MetricTests, MultiThreadTest) {
     auto num_insert = static_cast<uint8_t>(std::uniform_int_distribution<uint8_t>(1, UINT8_MAX)(generator_));
     auto num_delete = static_cast<uint8_t>(std::uniform_int_distribution<uint8_t>(1, UINT8_MAX)(generator_));
     auto workload = [&](uint32_t id) {
-	// NOTICE: thread level collector must be alive while aggregating
-	if (id==0){ // aggregator thread
-		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-                aggregator.Aggregate(txn_);
-	}
-	else { // normal thread
-          auto stats_collector = storage::metric::ThreadLevelStatsCollector();
-          for (uint8_t j = 0; j < num_txns_; j++) {
-            auto start = std::chrono::high_resolution_clock::now();
-            auto *txn = txn_manager_->BeginTransaction();
-            auto txn_id = txn->TxnId().load();
-            txn_queue.Enqueue(txn_id);
-            for (uint8_t k = 0; k < num_read; k++) {
-              storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleRead(txn, database_oid,
+      // NOTICE: thread level collector must be alive while aggregating
+      if (id == 0) {  // aggregator thread
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        aggregator.Aggregate(txn_);
+      } else {  // normal thread
+        auto stats_collector = storage::metric::ThreadLevelStatsCollector();
+        for (uint8_t j = 0; j < num_txns_; j++) {
+          auto start = std::chrono::high_resolution_clock::now();
+          auto *txn = txn_manager_->BeginTransaction();
+          auto txn_id = txn->TxnId().load();
+          txn_queue.Enqueue(txn_id);
+          for (uint8_t k = 0; k < num_read; k++) {
+            storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleRead(txn, database_oid,
                                                                                                   table_oid);
-            }
-            for (uint8_t k = 0; k < num_update; k++) {
-              storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleUpdate(txn, database_oid,
-                                                                                                  table_oid);
-            }
-            for (uint8_t k = 0; k < num_insert; k++) {
-              storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleInsert(txn, database_oid,
-                                                                                                  table_oid);
-            }
-            for (uint8_t k = 0; k < num_delete; k++) {
-              storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleDelete(txn, database_oid,
-                                                                                                  table_oid);
-            }
-            txn_manager_->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
-            auto latency = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count());
-	    latency_map.Insert(txn_id, latency);
           }
-	  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-	}
+          for (uint8_t k = 0; k < num_update; k++) {
+            storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleUpdate(txn, database_oid,
+                                                                                                    table_oid);
+          }
+          for (uint8_t k = 0; k < num_insert; k++) {
+            storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleInsert(txn, database_oid,
+                                                                                                    table_oid);
+          }
+          for (uint8_t k = 0; k < num_delete; k++) {
+            storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleDelete(txn, database_oid,
+                                                                                                    table_oid);
+          }
+          txn_manager_->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+          auto latency = static_cast<uint64_t>(
+              std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start)
+                  .count());
+          latency_map.Insert(txn_id, latency);
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+      }
     };
     MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
-
 
     auto db_handle = catalog_->GetDatabaseHandle();
     auto table_handle = db_handle.GetNamespaceHandle(txn_, database_oid).GetTableHandle(txn_, "public");
