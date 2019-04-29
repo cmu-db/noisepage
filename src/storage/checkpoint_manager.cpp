@@ -1,7 +1,7 @@
 #include "common/macros.h"
 #include "storage/checkpoint_manager.h"
 #include <vector>
-#include <unordered_map>
+#include <unordered_set>
 
 #define NUM_RESERVED_COLUMNS 1u
 
@@ -76,20 +76,20 @@ void CheckpointManager::RecoverFromLogs(const char *log_file_path, terrier::tran
   // implementation guarantees that the update from the same transaction appears in order, and different transactions
   // appear in commit order.
   
-  std::unordered_map<terrier::transaction::timestamp_t, terrier::transaction::timestamp_t> timestamp_map;
+  std::unordered_set<terrier::transaction::timestamp_t> valid_begin_ts;
   
   // First pass
   BufferedLogReader in(log_file_path);
   while (in.HasMore()) {
     LogRecord *log_record = ReadNextLogRecord(&in);
     if (log_record->RecordType() == LogRecordType::COMMIT) {
-      TERRIER_ASSERT(timestamp_map.find(log_record->TxnBegin()) != timestamp_map.end(),
+      TERRIER_ASSERT(valid_begin_ts.find(log_record->TxnBegin()) != valid_begin_ts.end(),
                      "Commit records should be mapped to unique begin timestamps.");
       terrier::transaction::timestamp_t commit_timestamp =
         log_record->GetUnderlyingRecordBodyAs<CommitRecord>()->CommitTime();
       // Only need to recover logs commited after the checkpoint
       if (commit_timestamp > checkpoint_timestamp) {
-        timestamp_map[log_record->TxnBegin()] = commit_timestamp;
+        valid_begin_ts.insert(log_record->TxnBegin());
       }
     }
     delete[] reinterpret_cast<byte *>(log_record);
@@ -100,7 +100,7 @@ void CheckpointManager::RecoverFromLogs(const char *log_file_path, terrier::tran
   in = BufferedLogReader(log_file_path);
   while (in.HasMore()) {
     LogRecord *log_record = ReadNextLogRecord(&in);
-    if (timestamp_map.find(log_record->TxnBegin()) == timestamp_map.end()) {
+    if (valid_begin_ts.find(log_record->TxnBegin()) == valid_begin_ts.end()) {
       // This record is from an uncommited transaction or out-of-date transaction.
       delete[] reinterpret_cast<byte *>(log_record);
       continue;
@@ -114,7 +114,7 @@ void CheckpointManager::RecoverFromLogs(const char *log_file_path, terrier::tran
       auto *delete_record = log_record->GetUnderlyingRecordBodyAs<storage::DeleteRecord>();
       TupleSlot slot = tuple_slot_map_[delete_record->GetTupleSlot()];
       if (!table->Delete(txn_, slot)) {
-        TERRIER_ASSERT(-1, "Delete failed during log recovery");
+        TERRIER_ASSERT(0, "Delete failed during log recovery");
       }
     } else if (log_record->RecordType() == LogRecordType::REDO) {
       auto *redo_record = log_record->GetUnderlyingRecordBodyAs<storage::RedoRecord>();
@@ -133,7 +133,7 @@ void CheckpointManager::RecoverFromLogs(const char *log_file_path, terrier::tran
       } else {
         TupleSlot slot = tuple_slot_map_[redo_record->GetTupleSlot()];
         if (!table->Update(txn_, slot, *row)) {
-          TERRIER_ASSERT(-1, "Update failed during log recovery");
+          TERRIER_ASSERT(0, "Update failed during log recovery");
         }
       }
       
