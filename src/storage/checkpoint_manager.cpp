@@ -35,7 +35,6 @@ void CheckpointManager::Recover(const char *checkpoint_file_path) {
     // TODO(zhaozhe): check checksum here
     catalog::table_oid_t oid = page->GetTableOid();
     SqlTable *table = GetTable(oid);
-    BlockLayout *layout = GetLayout(oid);
 
     ProjectedRow *row = nullptr;
     while ((row = reader.ReadNextRow()) != nullptr) {
@@ -43,8 +42,8 @@ void CheckpointManager::Recover(const char *checkpoint_file_path) {
       // loop through columns to deal with non-inlined varlens.
       for (uint16_t projection_list_idx = 0; projection_list_idx < row->NumColumns(); projection_list_idx++) {
         if (!row->IsNull(projection_list_idx)) {
-          col_id_t col = row->ColumnIds()[projection_list_idx];
-          if (layout->IsVarlen(col)) {
+          catalog::col_oid_t col = table->ColOidForId(row->ColumnIds()[projection_list_idx]);
+          if (table->GetSchema().GetColumn(col).IsVarlen()) {
             auto *entry = reinterpret_cast<VarlenEntry *>(row->AccessForceNotNull(projection_list_idx));
             if (!entry->IsInlined()) {
               uint32_t varlen_size = reader.ReadNextVarlenSize();

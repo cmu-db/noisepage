@@ -140,7 +140,7 @@ class CheckpointManager {
   }
 
   /**
-   * Begin a recovery. This will clear all registered tables and layouts.
+   * Begin a recovery. This will clear all registered tables.
    */
   void StartRecovery(transaction::TransactionContext *txn) {
     txn_ = txn;
@@ -150,11 +150,9 @@ class CheckpointManager {
   /**
    * Register a table in the checkpoint manager, so that its content can be restored during the recovery.
    * @param table to be recovered.
-   * @param layout of the table.
    */
-  void RegisterTable(SqlTable *table, BlockLayout *layout) {
+  void RegisterTable(SqlTable *table) {
     tables_.push_back(table);
-    layouts_.push_back(layout);
   }
 
   /**
@@ -179,7 +177,6 @@ class CheckpointManager {
   void EndRecovery() {
     txn_ = nullptr;
     tables_.clear();
-    layouts_.clear();
   }
 
  private:
@@ -187,17 +184,11 @@ class CheckpointManager {
   BufferedTupleWriter out_;
   transaction::TransactionContext *txn_ = nullptr;
   std::vector<SqlTable *> tables_;
-  std::vector<BlockLayout *> layouts_;
   std::unordered_map<TupleSlot, TupleSlot> tuple_slot_map_;
 
   SqlTable *GetTable(catalog::table_oid_t oid) {
     // TODO(mengyang): add support to multiple tables
     return tables_.at(0);
-  }
-
-  BlockLayout *GetLayout(catalog::table_oid_t oid) {
-    // TODO(mengyang): add support to multiple tables
-    return layouts_.at(0);
   }
 };
 
