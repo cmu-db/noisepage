@@ -303,6 +303,73 @@ struct StorageTestUtil {
     return os.str();
   }
 
+
+  template <class RowType>
+  static std::string PrintRowWithSchema(const RowType &row, const catalog::Schema &schema, bool varlen_pointer = true) {
+    std::ostringstream os;
+    os << "num_cols: " << row.NumColumns() << std::endl;
+    for (uint16_t i = 0; i < row.NumColumns(); i++) {
+      const storage::col_id_t col_id = row.ColumnIds()[i];
+      const byte *attr = row.AccessWithNullCheck(i);
+      if (attr == nullptr) {
+        os << "col_id: " << !col_id << " is NULL" << std::endl;
+        continue;
+      }
+
+      if (schema.GetColumn(i).IsVarlen()) {
+        auto *entry = reinterpret_cast<const storage::VarlenEntry *>(attr);
+        os << "col_id: " << !col_id;
+        os << " is varlen";
+        if (varlen_pointer) {
+          os << ", ptr " << entry->Content();
+        }
+        os << ", size " << entry->Size();
+        os << ", reclaimable " << entry->NeedReclaim();
+        os << ", content ";
+        for (uint8_t pos = 0; pos < entry->Size(); pos++) {
+          os << std::setfill('0') << std::setw(2) << std::hex << +static_cast<uint8_t>(entry->Content()[pos]);
+        }
+        os << std::endl;
+      } else {
+        os << "col_id: " << !col_id;
+        os << " is ";
+        for (uint8_t pos = 0; pos < schema.GetColumn(i).GetAttrSize(); pos++) {
+          os << std::setfill('0') << std::setw(2) << std::hex << +static_cast<uint8_t>(attr[pos]);
+        }
+        os << std::endl;
+      }
+    }
+    return os.str();
+  }
+
+
+  // print all rows in a SqlTable, put print outputs into a vector.
+  static void PrintAllRows(transaction::TransactionContext *txn, storage::SqlTable *table,
+                    std::vector<std::string> *set) {
+    const catalog::Schema schema = table->GetSchema();
+    std::vector<catalog::col_oid_t> all_col;
+    for (auto &column : schema.GetColumns()) {
+      all_col.emplace_back(column.GetOid());
+    }
+    uint32_t max_tuples = 100;
+
+    auto column_initializer_pair = table->InitializerForProjectedColumns(all_col, max_tuples);
+    auto *scan_buffer = common::AllocationUtil::AllocateAligned(column_initializer_pair.first.ProjectedColumnsSize());
+    storage::ProjectedColumns *columns = column_initializer_pair.first.Initialize(scan_buffer);
+
+    auto it = table->begin();
+    auto end = table->end();
+    while (it != end) {
+      table->Scan(txn, &it, columns);
+      uint32_t num_tuples = columns->NumTuples();
+      for (uint32_t off = 0; off < num_tuples; off++) {
+        storage::ProjectedColumns::RowView row = columns->InterpretAsRow(off);
+        set->push_back(PrintRowWithSchema(row, table->GetSchema(), false));
+      }
+    }
+    delete[] scan_buffer;
+  }
+
   // Write the given tuple (projected row) into a block using the given access strategy,
   // at the specified offset
   static void InsertTuple(const storage::ProjectedRow &tuple, const storage::TupleAccessStrategy &tested,
@@ -360,7 +427,6 @@ class RandomSqlTableTestObject {
     delete pri_;
     delete pr_map_;
     delete schema_;
-    delete layout_;
     delete table_;
   }
 
@@ -389,7 +455,15 @@ class RandomSqlTableTestObject {
    * @param oid for the column
    */
   void DefineColumn(std::string name, type::TypeId type, bool nullable, catalog::col_oid_t oid) {
-    cols_.emplace_back(name, type, nullable, oid);
+    switch (type) {
+      case type::TypeId::VARCHAR:
+      case type::TypeId::VARBINARY: // varlen entries
+        cols_.emplace_back(name, type, 2 * storage::VarlenEntry::InlineThreshold(), nullable, oid);
+        break;
+      default:
+        cols_.emplace_back(name, type, nullable, oid);
+        break;
+    }
   }
 
   /**
@@ -398,7 +472,6 @@ class RandomSqlTableTestObject {
   void Create() {
     schema_ = new catalog::Schema(cols_);
     table_ = new storage::SqlTable(&block_store_, *schema_, table_oid_);
-    layout_ = new storage::BlockLayout(storage::StorageUtil::BlockLayoutFromSchema(*schema_).first);
 
     for (const auto &c : cols_) {
       col_oids_.emplace_back(c.GetOid());
@@ -468,36 +541,9 @@ class RandomSqlTableTestObject {
 
   storage::SqlTable *GetTable() { return table_; }
 
-  storage::BlockLayout &GetLayout() { return *layout_; }
-
   transaction::TransactionManager *GetTxnManager() { return &txn_manager_; }
 
   catalog::Schema *GetSchema() { return schema_; }
-
-  void PrintAllRows(transaction::TransactionContext *txn, storage::SqlTable *table, storage::BlockLayout *layout,
-                    std::vector<std::string> *set) {
-    std::vector<storage::col_id_t> all_col(layout->NumColumns() - NUM_RESERVED_COLUMNS);
-    for (uint16_t col = NUM_RESERVED_COLUMNS; col < layout->NumColumns(); col++) {
-      all_col[col - NUM_RESERVED_COLUMNS] = storage::col_id_t(col);
-    }
-    uint32_t max_tuples = 100;
-
-    storage::ProjectedColumnsInitializer column_initializer(*layout, all_col, max_tuples);
-    auto *scan_buffer = common::AllocationUtil::AllocateAligned(column_initializer.ProjectedColumnsSize());
-    storage::ProjectedColumns *columns = column_initializer.Initialize(scan_buffer);
-
-    auto it = table->begin();
-    auto end = table->end();
-    while (it != end) {
-      table->Scan(txn, &it, columns);
-      uint32_t num_tuples = columns->NumTuples();
-      for (uint32_t off = 0; off < num_tuples; off++) {
-        storage::ProjectedColumns::RowView row = columns->InterpretAsRow(*layout, off);
-        set->push_back(StorageTestUtil::PrintRow(row, *layout, false));
-      }
-    }
-    delete[] scan_buffer;
-  }
 
  private:
   static std::vector<type::TypeId> DataTypeAll(bool varlen_allowed) {
@@ -513,7 +559,6 @@ class RandomSqlTableTestObject {
   storage::SqlTable *table_ = nullptr;
 
   catalog::Schema *schema_ = nullptr;
-  storage::BlockLayout *layout_ = nullptr;
   std::vector<catalog::Schema::Column> cols_;
   std::vector<catalog::col_oid_t> col_oids_;
 

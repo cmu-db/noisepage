@@ -64,7 +64,7 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryNoSeparateThread) {
   tested.InsertRandomRows(num_rows, 0.2, &random_generator);
   
   storage::SqlTable *table = tested.GetTable();
-  storage::BlockLayout layout = tested.GetLayout();
+//  storage::BlockLayout layout = tested.GetLayout();
   catalog::Schema *schema = tested.GetSchema();
   transaction::TransactionManager *txn_manager = tested.GetTxnManager();
 
@@ -75,7 +75,7 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryNoSeparateThread) {
   // read first run
   transaction::TransactionContext *scan_txn = txn_manager->BeginTransaction();
   std::vector<std::string> original_rows;
-  tested.PrintAllRows(scan_txn, table, &layout, &original_rows);
+  StorageTestUtil::PrintAllRows(scan_txn, table, &original_rows);
   txn_manager->Commit(scan_txn, StorageTestUtil::EmptyCallback, nullptr);
   // recovery to another table
   std::string latest_checkpoint_path = checkpoint_manager_.GetLatestCheckpointFilename();
@@ -90,7 +90,7 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryNoSeparateThread) {
   // read recovered table
   transaction::TransactionContext *scan_txn_2 = txn_manager->BeginTransaction();
   std::vector<std::string> recovered_rows;
-  tested.PrintAllRows(scan_txn_2, recovered_table, &layout, &recovered_rows);
+  StorageTestUtil::PrintAllRows(scan_txn_2, recovered_table, &recovered_rows);
   txn_manager->Commit(scan_txn_2, StorageTestUtil::EmptyCallback, nullptr);
   // compare
   std::vector<std::string> diff1, diff2;
@@ -123,7 +123,6 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryNoVarlen) {
   tested.InsertRandomRows(num_rows, 0.2, &random_generator);
 
   storage::SqlTable *table = tested.GetTable();
-  storage::BlockLayout layout = tested.GetLayout();
   catalog::Schema *schema = tested.GetSchema();
   transaction::TransactionManager *txn_manager = tested.GetTxnManager();
 
@@ -135,7 +134,7 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryNoVarlen) {
   // read first run
   transaction::TransactionContext *scan_txn = txn_manager->BeginTransaction();
   std::vector<std::string> original_rows;
-  tested.PrintAllRows(scan_txn, table, &layout, &original_rows);
+  StorageTestUtil::PrintAllRows(scan_txn, table, &original_rows);
   txn_manager->Commit(scan_txn, StorageTestUtil::EmptyCallback, nullptr);
   // recovery to another table
   std::string latest_checkpoint_path = checkpoint_manager_.GetLatestCheckpointFilename();
@@ -150,7 +149,7 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryNoVarlen) {
   // read recovered table
   transaction::TransactionContext *scan_txn_2 = txn_manager->BeginTransaction();
   std::vector<std::string> recovered_rows;
-  tested.PrintAllRows(scan_txn_2, recovered_table, &layout, &recovered_rows);
+  StorageTestUtil::PrintAllRows(scan_txn_2, recovered_table, &recovered_rows);
   txn_manager->Commit(scan_txn_2, StorageTestUtil::EmptyCallback, nullptr);
   // compare
   std::vector<std::string> diff1, diff2;
@@ -182,7 +181,6 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryWithVarlen) {
   tested.InsertRandomRows(num_rows, 0.2, &random_generator);
   
   storage::SqlTable *table = tested.GetTable();
-  storage::BlockLayout layout = tested.GetLayout();
   catalog::Schema *schema = tested.GetSchema();
   transaction::TransactionManager *txn_manager = tested.GetTxnManager();
 
@@ -194,7 +192,7 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryWithVarlen) {
   // read first run
   transaction::TransactionContext *scan_txn = txn_manager->BeginTransaction();
   std::vector<std::string> original_rows;
-  tested.PrintAllRows(scan_txn, table, &layout, &original_rows);
+  StorageTestUtil::PrintAllRows(scan_txn, table, &original_rows);
   txn_manager->Commit(scan_txn, StorageTestUtil::EmptyCallback, nullptr);
   // recovery to another table
   std::string latest_checkpoint_path = checkpoint_manager_.GetLatestCheckpointFilename();
@@ -209,7 +207,7 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryWithVarlen) {
   // read recovered table
   transaction::TransactionContext *scan_txn_2 = txn_manager->BeginTransaction();
   std::vector<std::string> recovered_rows;
-  tested.PrintAllRows(scan_txn_2, recovered_table, &layout, &recovered_rows);
+  StorageTestUtil::PrintAllRows(scan_txn_2, recovered_table, &recovered_rows);
   txn_manager->Commit(scan_txn_2, StorageTestUtil::EmptyCallback, nullptr);
   // compare
   std::vector<std::string> diff1, diff2;
