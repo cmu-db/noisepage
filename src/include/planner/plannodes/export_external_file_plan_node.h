@@ -84,15 +84,15 @@ class ExportExternalFilePlanNode : public AbstractPlanNode {
     /**
      * delimiter character
      */
-    char delimiter_ = ',';
+    char delimiter_ = DEFAULT_DELIMETER_CHAR;
     /**
      * quote character
      */
-    char quote_ = '"';
+    char quote_ = DEFAULT_QUOTE_CHAR;
     /**
      * escape character
      */
-    char escape_ = '"';
+    char escape_ = DEFAULT_ESCAPE_CHAR;
   };
 
  private:

@@ -87,19 +87,19 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
     /**
      * delimiter character for CSV
      */
-    char delimiter_ = ',';
+    char delimiter_ = DEFAULT_DELIMETER_CHAR;
     /**
      * quote character for CSV
      */
-    char quote_ = '"';
+    char quote_ = DEFAULT_QUOTE_CHAR;
     /**
      * escape character for CSV
      */
-    char escape_ = '"';
+    char escape_ = DEFAULT_ESCAPE_CHAR;
     /**
      * null string for CSV
      */
-    std::string null_string_ = "";
+    std::string null_string_ = DEFAULT_NULL_STRING;
   };
 
  private:
