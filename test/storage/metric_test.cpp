@@ -1,5 +1,5 @@
 #include <random>
-#include <thread> //NOLINT
+#include <thread>  //NOLINT
 #include <unordered_map>
 #include <vector>
 #include "storage/metric/database_metric.h"
