@@ -20,8 +20,6 @@ common::hash_t InsertPlanNode::Hash() const {
   auto table_oid = GetTableOid();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&table_oid));
 
-  // TODO(Gus,Wen) hash values
-
   // Hash parameter_info
   for (const auto parameter : parameter_info_) {
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(parameter));

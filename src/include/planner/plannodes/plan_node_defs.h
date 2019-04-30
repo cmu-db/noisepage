@@ -110,7 +110,6 @@ enum class SetOpType { INVALID = INVALID_TYPE_ID, INTERSECT = 1, INTERSECT_ALL =
 #define DEFAULT_ESCAPE_CHAR '"'
 #define DEFAULT_NULL_STRING ""
 
-
 // TODO(Gus,Wen) Tuple as a concept does not exist yet, someone need to define it in the storage layer, possibly a
 /**
  * Temporary definition of a tuple in the storage layer

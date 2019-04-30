@@ -15,6 +15,59 @@
 namespace terrier::planner {
 
 /**
+ * Parameter Info
+ */
+struct ParameterInfo {
+  /**
+   * Constructor
+   */
+  ParameterInfo(uint32_t tuple_index, uint32_t tuple_column_index, uint32_t value_index)
+      : tuple_index_(tuple_index), tuple_column_index_(tuple_column_index), value_index_(value_index) {}
+
+  /**
+   * Index of tuple
+   */
+  uint32_t tuple_index_;
+
+  /**
+   * Column index
+   */
+  uint32_t tuple_column_index_;
+
+  /**
+   * Index of value
+   */
+  uint32_t value_index_;
+
+  /**
+   * @return the hashed value of this parameter info
+   */
+  common::hash_t Hash() const {
+    common::hash_t hash = common::HashUtil::Hash(tuple_index_);
+    hash = common::HashUtil::CombineHashes(hash, tuple_column_index_);
+    hash = common::HashUtil::CombineHashes(hash, value_index_);
+    return hash;
+  }
+
+  /**
+   * Logical equality check.
+   * @param rhs other
+   * @return true if the two parameter info are logically equal
+   */
+  bool operator==(const ParameterInfo &rhs) const {
+    return tuple_index_ == rhs.tuple_index_ && tuple_column_index_ == rhs.tuple_column_index_ &&
+           value_index_ == rhs.value_index_;
+  }
+
+  /**
+   * Logical inequality check.
+   * @param rhs other
+   * @return true if the two parameter info are not logically equal
+   */
+  bool operator!=(const ParameterInfo &rhs) const { return !(*this == rhs); }
+};
+
+/**
  * Plan node for insert
  */
 class InsertPlanNode : public AbstractPlanNode {
@@ -59,11 +112,13 @@ class InsertPlanNode : public AbstractPlanNode {
     }
 
     /**
-     * @param parameter_info parameter information
+     * @param tuple_index Index of tuple
+     * @param tuple_column_index column index
+     * @param value_index Index of value
      * @return builder object
      */
-    Builder &SetParameterInfo(std::vector<std::tuple<uint32_t, uint32_t, uint32_t>> &&parameter_info) {
-      parameter_info_ = std::move(parameter_info);
+    Builder &AddParameterInfo(uint32_t tuple_index, uint32_t tuple_column_index, uint32_t value_index) {
+      parameter_info_.emplace_back(tuple_index, tuple_column_index, value_index);
       return *this;
     }
 
@@ -104,9 +159,9 @@ class InsertPlanNode : public AbstractPlanNode {
 
     // TODO(Gus,Wen) the storage layer is different now, need to whether reconsider this mapping approach is still valid
     /**
-     * parameter information <tuple_index,  tuple_column_index, value_index>
+     * parameter information
      */
-    std::vector<std::tuple<uint32_t, uint32_t, uint32_t>> parameter_info_;
+    std::vector<ParameterInfo> parameter_info_;
 
     /**
      * number of times to insert
@@ -126,8 +181,8 @@ class InsertPlanNode : public AbstractPlanNode {
    */
   InsertPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
                  catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
-                 std::vector<type::TransientValue> &&values,
-                 std::vector<std::tuple<uint32_t, uint32_t, uint32_t>> &&parameter_info, uint32_t bulk_insert_count)
+                 std::vector<type::TransientValue> &&values, std::vector<ParameterInfo> &&parameter_info,
+                 uint32_t bulk_insert_count)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         database_oid_(database_oid),
         table_oid_(table_oid),
@@ -158,7 +213,7 @@ class InsertPlanNode : public AbstractPlanNode {
   /**
    * @return the information of insert parameters
    */
-  const std::vector<std::tuple<uint32_t, uint32_t, uint32_t>> &GetParameterInfo() const { return parameter_info_; }
+  const std::vector<ParameterInfo> &GetParameterInfo() const { return parameter_info_; }
 
   /**
    * @return number of times to insert
@@ -189,9 +244,9 @@ class InsertPlanNode : public AbstractPlanNode {
   std::vector<type::TransientValue> values_;
 
   /**
-   * parameter information <tuple_index,  tuple_column_index, value_index>
+   * parameter information
    */
-  std::vector<std::tuple<uint32_t, uint32_t, uint32_t>> parameter_info_;
+  std::vector<ParameterInfo> parameter_info_;
 
   /**
    * name of time to insert
