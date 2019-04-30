@@ -51,13 +51,10 @@ TEST(PlanNodeTest, DropDatabasePlanTest) {
   auto *drop_stmt = static_cast<parser::DropStatement *>(stms[0].get());
 
   DropDatabasePlanNode::Builder builder;
-  std::default_random_engine generator_;
-  auto database_oid =
-      static_cast<catalog::db_oid_t>(std::uniform_int_distribution<uint32_t>(0, UINT32_MAX)(generator_));
-  auto plan = builder.SetDatabaseOid(database_oid).SetFromDropStatement(drop_stmt).Build();
+  auto plan = builder.SetDatabaseOid(catalog::db_oid_t(0)).SetFromDropStatement(drop_stmt).Build();
 
   EXPECT_TRUE(plan != nullptr);
-  EXPECT_EQ(database_oid, plan->GetDatabaseOid());
+  EXPECT_EQ(catalog::db_oid_t(0), plan->GetDatabaseOid());
   EXPECT_FALSE(plan->IsIfExists());
   EXPECT_EQ(PlanNodeType::DROP_DATABASE, plan->GetPlanNodeType());
 }
@@ -70,13 +67,10 @@ TEST(PlanNodeTest, DropDatabasePlanIfExistsTest) {
   auto *drop_stmt = static_cast<parser::DropStatement *>(stms[0].get());
 
   DropDatabasePlanNode::Builder builder;
-  std::default_random_engine generator_;
-  auto database_oid =
-      static_cast<catalog::db_oid_t>(std::uniform_int_distribution<uint32_t>(0, UINT32_MAX)(generator_));
-  auto plan = builder.SetDatabaseOid(database_oid).SetFromDropStatement(drop_stmt).Build();
+  auto plan = builder.SetDatabaseOid(catalog::db_oid_t(0)).SetFromDropStatement(drop_stmt).Build();
 
   EXPECT_TRUE(plan != nullptr);
-  EXPECT_EQ(database_oid, plan->GetDatabaseOid());
+  EXPECT_EQ(catalog::db_oid_t(0), plan->GetDatabaseOid());
   EXPECT_TRUE(plan->IsIfExists());
   EXPECT_EQ(PlanNodeType::DROP_DATABASE, plan->GetPlanNodeType());
 }

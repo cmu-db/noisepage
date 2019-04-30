@@ -36,6 +36,15 @@ class DropViewPlanNode : public AbstractPlanNode {
     }
 
     /**
+     * @param namespace_oid OID of the namespace
+     * @return builder object
+     */
+    Builder &SetNamespaceOid(catalog::namespace_oid_t namespace_oid) {
+      namespace_oid_ = namespace_oid;
+      return *this;
+    }
+
+    /**
      * @param view_oid the OID of the view to drop
      * @return builder object
      */
@@ -69,8 +78,8 @@ class DropViewPlanNode : public AbstractPlanNode {
      * @return plan node
      */
     std::shared_ptr<DropViewPlanNode> Build() {
-      return std::shared_ptr<DropViewPlanNode>(
-          new DropViewPlanNode(std::move(children_), std::move(output_schema_), database_oid_, view_oid_, if_exists_));
+      return std::shared_ptr<DropViewPlanNode>(new DropViewPlanNode(
+          std::move(children_), std::move(output_schema_), database_oid_, namespace_oid_, view_oid_, if_exists_));
     }
 
    protected:
@@ -78,6 +87,11 @@ class DropViewPlanNode : public AbstractPlanNode {
      * OID of the database
      */
     catalog::db_oid_t database_oid_;
+
+    /**
+     * OID of namespace
+     */
+    catalog::namespace_oid_t namespace_oid_;
 
     /**
      * OID of the view to drop
@@ -95,13 +109,15 @@ class DropViewPlanNode : public AbstractPlanNode {
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
    * @param database_oid OID of the database
+   * @param namespace_oid OID of the namespace
    * @param view_oid OID of the view to drop
    */
   DropViewPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
                    std::shared_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
-                   catalog::view_oid_t view_oid, bool if_exists)
+                   catalog::namespace_oid_t namespace_oid, catalog::view_oid_t view_oid, bool if_exists)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         database_oid_(database_oid),
+        namespace_oid_(namespace_oid),
         view_oid_(view_oid),
         if_exists_(if_exists) {}
 
@@ -117,6 +133,11 @@ class DropViewPlanNode : public AbstractPlanNode {
    * @return OID of the database
    */
   catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
+
+  /**
+   * @return OID of the namespace
+   */
+  catalog::namespace_oid_t GetNamespaceOid() const { return namespace_oid_; }
 
   /**
    * @return OID of the view to drop
@@ -140,6 +161,11 @@ class DropViewPlanNode : public AbstractPlanNode {
    * OID of the database
    */
   catalog::db_oid_t database_oid_;
+
+  /**
+   * OID of namespace
+   */
+  catalog::namespace_oid_t namespace_oid_;
 
   /**
    * OID of the view to drop

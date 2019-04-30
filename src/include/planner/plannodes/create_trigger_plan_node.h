@@ -38,6 +38,15 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
     }
 
     /**
+     * @param namespace_oid OID of the namespace
+     * @return builder object
+     */
+    Builder &SetNamespaceOid(catalog::namespace_oid_t namespace_oid) {
+      namespace_oid_ = namespace_oid;
+      return *this;
+    }
+
+    /**
      * @param table_oid OID of the table to create trigger on
      * @return builder object
      */
@@ -130,10 +139,10 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
      * @return plan node
      */
     std::shared_ptr<CreateTriggerPlanNode> Build() {
-      return std::shared_ptr<CreateTriggerPlanNode>(
-          new CreateTriggerPlanNode(std::move(children_), std::move(output_schema_), database_oid_, table_oid_,
-                                    std::move(trigger_name_), std::move(trigger_funcnames_), std::move(trigger_args_),
-                                    std::move(trigger_columns_), std::move(trigger_when_), trigger_type_));
+      return std::shared_ptr<CreateTriggerPlanNode>(new CreateTriggerPlanNode(
+          std::move(children_), std::move(output_schema_), database_oid_, namespace_oid_, table_oid_,
+          std::move(trigger_name_), std::move(trigger_funcnames_), std::move(trigger_args_),
+          std::move(trigger_columns_), std::move(trigger_when_), trigger_type_));
     }
 
    protected:
@@ -141,6 +150,11 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
      * OID of the database
      */
     catalog::db_oid_t database_oid_;
+
+    /**
+     * OID of namespace
+     */
+    catalog::namespace_oid_t namespace_oid_;
 
     /**
      * OID of the table to create trigger on
@@ -183,6 +197,7 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
    * @param database_oid OID of the database
+   * @param namespace_oid OID of the namespace
    * @param table_oid OID of the table to create trigger on
    * @param trigger_name name of the trigger
    * @param trigger_funcnames trigger function names
@@ -193,12 +208,13 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
    */
   CreateTriggerPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
                         std::shared_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
-                        catalog::table_oid_t table_oid, std::string trigger_name,
-                        std::vector<std::string> &&trigger_funcnames, std::vector<std::string> &&trigger_args,
-                        std::vector<catalog::col_oid_t> &&trigger_columns,
+                        catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
+                        std::string trigger_name, std::vector<std::string> &&trigger_funcnames,
+                        std::vector<std::string> &&trigger_args, std::vector<catalog::col_oid_t> &&trigger_columns,
                         std::shared_ptr<parser::AbstractExpression> &&trigger_when, int16_t trigger_type)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         database_oid_(database_oid),
+        namespace_oid_(namespace_oid),
         table_oid_(table_oid),
         trigger_name_(std::move(trigger_name)),
         trigger_funcnames_(std::move(trigger_funcnames)),
@@ -219,6 +235,11 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
    * @return OID of the database
    */
   catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
+
+  /**
+   * @return OID of the namespace
+   */
+  catalog::namespace_oid_t GetNamespaceOid() const { return namespace_oid_; }
 
   /**
    * @return OID of the table to create trigger on
@@ -267,6 +288,11 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
    * OID of the database
    */
   catalog::db_oid_t database_oid_;
+
+  /**
+   * OID of namespace
+   */
+  catalog::namespace_oid_t namespace_oid_;
 
   /**
    * OID of the table to create trigger on

@@ -94,6 +94,15 @@ class InsertPlanNode : public AbstractPlanNode {
     }
 
     /**
+     * @param namespace_oid OID of the namespace
+     * @return builder object
+     */
+    Builder &SetNamespaceOid(catalog::namespace_oid_t namespace_oid) {
+      namespace_oid_ = namespace_oid;
+      return *this;
+    }
+
+    /**
      * @param table_oid the OID of the target SQL table
      * @return builder object
      */
@@ -136,9 +145,9 @@ class InsertPlanNode : public AbstractPlanNode {
      * @return plan node
      */
     std::shared_ptr<InsertPlanNode> Build() {
-      return std::shared_ptr<InsertPlanNode>(new InsertPlanNode(std::move(children_), std::move(output_schema_),
-                                                                database_oid_, table_oid_, std::move(values_),
-                                                                std::move(parameter_info_), bulk_insert_count_));
+      return std::shared_ptr<InsertPlanNode>(
+          new InsertPlanNode(std::move(children_), std::move(output_schema_), database_oid_, namespace_oid_, table_oid_,
+                             std::move(values_), std::move(parameter_info_), bulk_insert_count_));
     }
 
    protected:
@@ -146,6 +155,11 @@ class InsertPlanNode : public AbstractPlanNode {
      * OID of the database
      */
     catalog::db_oid_t database_oid_;
+
+    /**
+     * OID of namespace
+     */
+    catalog::namespace_oid_t namespace_oid_;
 
     /**
      * OID of the table to insert into
@@ -174,17 +188,19 @@ class InsertPlanNode : public AbstractPlanNode {
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
    * @param database_oid OID of the database
+   * @param namespace_oid OID of the namespace
    * @param table_oid the OID of the target SQL table
    * @param values values to insert
    * @param parameter_info parameters information
    * @param bulk_insert_count the number of times to insert
    */
   InsertPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
-                 catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
+                 catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
                  std::vector<type::TransientValue> &&values, std::vector<ParameterInfo> &&parameter_info,
                  uint32_t bulk_insert_count)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         database_oid_(database_oid),
+        namespace_oid_(namespace_oid),
         table_oid_(table_oid),
         values_(std::move(values)),
         parameter_info_(std::move(parameter_info)),
@@ -202,6 +218,11 @@ class InsertPlanNode : public AbstractPlanNode {
    * @return OID of the database
    */
   catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
+
+  /**
+   * @return OID of the namespace
+   */
+  catalog::namespace_oid_t GetNamespaceOid() const { return namespace_oid_; }
 
   /**
    * @return the OID of the table to insert into
@@ -232,6 +253,11 @@ class InsertPlanNode : public AbstractPlanNode {
    * OID of the database
    */
   catalog::db_oid_t database_oid_;
+
+  /**
+   * OID of namespace
+   */
+  catalog::namespace_oid_t namespace_oid_;
 
   /**
    * OID of the table to insert into

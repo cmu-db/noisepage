@@ -121,6 +121,8 @@ class CreateViewPlanNode : public AbstractPlanNode {
                      catalog::namespace_oid_t namespace_oid, std::string view_name,
                      std::shared_ptr<parser::SelectStatement> view_query)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
+        database_oid_(database_oid),
+        namespace_oid_(namespace_oid),
         view_name_(std::move(view_name)),
         view_query_(std::move(view_query)) {}
 
@@ -133,7 +135,7 @@ class CreateViewPlanNode : public AbstractPlanNode {
   catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
 
   /**
-   * @return OID of the namespace to create index on
+   * @return OID of the namespace
    */
   catalog::namespace_oid_t GetNamespaceOid() const { return namespace_oid_; }
 

@@ -74,9 +74,9 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
      * @return plan node
      */
     std::shared_ptr<CSVScanPlanNode> Build() {
-      return std::shared_ptr<CSVScanPlanNode>(
-          new CSVScanPlanNode(std::move(children_), std::move(output_schema_), nullptr /* predicate */, is_for_update_,
-                              is_parallel_, database_oid_, file_name_, delimiter_, quote_, escape_, null_string_));
+      return std::shared_ptr<CSVScanPlanNode>(new CSVScanPlanNode(
+          std::move(children_), std::move(output_schema_), nullptr /* predicate */, is_for_update_, is_parallel_,
+          database_oid_, namespace_oid_, file_name_, delimiter_, quote_, escape_, null_string_));
     }
 
    protected:
@@ -120,10 +120,10 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
   CSVScanPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
                   std::shared_ptr<OutputSchema> output_schema,
                   std::shared_ptr<const parser::AbstractExpression> predicate, bool is_for_update, bool is_parallel,
-                  catalog::db_oid_t database_oid, std::string file_name, char delimiter, char quote, char escape,
-                  std::string null_string)
+                  catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string file_name,
+                  char delimiter, char quote, char escape, std::string null_string)
       : AbstractScanPlanNode(std::move(children), std::move(output_schema), std::move(predicate), is_for_update,
-                             is_parallel, database_oid),
+                             is_parallel, database_oid, namespace_oid),
         file_name_(std::move(file_name)),
         delimiter_(delimiter),
         quote_(quote),

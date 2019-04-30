@@ -37,6 +37,15 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
     }
 
     /**
+     * @param namespace_oid OID of the namespace
+     * @return builder object
+     */
+    Builder &SetNamespaceOid(catalog::namespace_oid_t namespace_oid) {
+      namespace_oid_ = namespace_oid;
+      return *this;
+    }
+
+    /**
      * @param language the UDF language type
      * @return builder object
      */
@@ -135,9 +144,9 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
      */
     std::shared_ptr<CreateFunctionPlanNode> Build() {
       return std::shared_ptr<CreateFunctionPlanNode>(new CreateFunctionPlanNode(
-          std::move(children_), std::move(output_schema_), database_oid_, language_, std::move(function_param_names_),
-          std::move(function_param_types_), std::move(function_body_), is_replace_, std::move(function_name_),
-          return_type_, param_count_));
+          std::move(children_), std::move(output_schema_), database_oid_, namespace_oid_, language_,
+          std::move(function_param_names_), std::move(function_param_types_), std::move(function_body_), is_replace_,
+          std::move(function_name_), return_type_, param_count_));
     }
 
    protected:
@@ -145,6 +154,11 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
      * OID of the database
      */
     catalog::db_oid_t database_oid_;
+
+    /**
+     * OID of namespace
+     */
+    catalog::namespace_oid_t namespace_oid_;
 
     /**
      * Indicates the UDF language type
@@ -192,6 +206,7 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
    * @param database_oid OID of the database
+   * @param namespace_oid OID of the namespace
    * @param language the UDF language type
    * @param function_param_names Function parameters names passed to the UDF
    * @param function_param_types Function parameter types passed to the UDF
@@ -203,12 +218,14 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
    */
   CreateFunctionPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
                          std::shared_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
-                         parser::PLType language, std::vector<std::string> &&function_param_names,
+                         catalog::namespace_oid_t namespace_oid, parser::PLType language,
+                         std::vector<std::string> &&function_param_names,
                          std::vector<parser::BaseFunctionParameter::DataType> &&function_param_types,
                          std::vector<std::string> &&function_body, bool is_replace, std::string function_name,
                          parser::BaseFunctionParameter::DataType return_type, int param_count)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         database_oid_(database_oid),
+        namespace_oid_(namespace_oid),
         language_(language),
         function_param_names_(std::move(function_param_names)),
         function_param_types_(std::move(function_param_types)),
@@ -230,6 +247,11 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
    * @return OID of the database
    */
   catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
+
+  /**
+   * @return OID of the namespace
+   */
+  catalog::namespace_oid_t GetNamespaceOid() const { return namespace_oid_; }
 
   /**
    * @return name of the user defined function
@@ -285,6 +307,11 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
    * OID of database
    */
   catalog::db_oid_t database_oid_;
+
+  /**
+   * OID of namespace
+   */
+  catalog::namespace_oid_t namespace_oid_;
 
   /**
    * Indicates the UDF language type
