@@ -2,8 +2,8 @@
 
 #include <dirent.h>
 #include <string>
-#include <vector>
 #include <unordered_map>
+#include <vector>
 #include "common/spin_latch.h"
 #include "common/strong_typedef.h"
 #include "storage/checkpoint_io.h"
@@ -51,7 +51,7 @@ class CheckpointManager {
     out_.Open((GetCheckpointFilePath(txn)).c_str());
     // TODO(zhaozhes): persist catalog, get metadata for each table and prepare to checkpoint each table
   }
-  
+
   /**
    * Persist a table. This is achieved by first scan the table with a ProjectedColumn buffer, then transfer the data
    * to a ProjectedRow buffer and write the memory representation of the ProjectedRow directly to disk. Varlen columns
@@ -66,7 +66,7 @@ class CheckpointManager {
    *  This is no longer required once the catalog is merged, since we can get the schema of a table from the catalog.
    */
   void Checkpoint(const SqlTable &table, const catalog::Schema &schema);
-  
+
   /**
    * Finish the current checkpoint.
    */
@@ -115,7 +115,7 @@ class CheckpointManager {
     }
     return file_name;
   }
-  
+
   /**
    * Delete all checkpoint files, mainly for test purposes.
    */
@@ -151,16 +151,13 @@ class CheckpointManager {
    * Register a table in the checkpoint manager, so that its content can be restored during the recovery.
    * @param table to be recovered.
    */
-  void RegisterTable(SqlTable *table) {
-    tables_.push_back(table);
-  }
+  void RegisterTable(SqlTable *table) { tables_.push_back(table); }
 
   /**
    * Read the content of a file, and reinsert all tuples into the tables already registered.
    */
   void Recover(const char *checkpoint_file_path);
-  
-  
+
   /**
    * Will be called from recover after the tables are recovered from checkpoint files. This function will replay logs
    * from the timestamp and recover all the logs. The caller should ensure that the tables are already recovered,

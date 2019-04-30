@@ -85,13 +85,12 @@ LogRecord *ReadNextLogRecord(BufferedLogReader *in) {
   auto table_oid UNUSED_ATTRIBUTE = in->ReadValue<catalog::table_oid_t>();
   auto tuple_slot = in->ReadValue<TupleSlot>();
   auto result = RedoRecord::PartialInitialize(buf, size, txn_begin,
-    // TODO(Tianyu): Hacky as hell
+                                              // TODO(Tianyu): Hacky as hell
                                               nullptr, tuple_slot);
   // TODO(Tianyu): For now, without inlined attributes, the delta portion is a straight memory copy. This
   // will obviously change in the future. Also, this is hacky as hell
   auto delta_size = in->ReadValue<uint32_t>();
-  byte *dest =
-    reinterpret_cast<byte *>(result->GetUnderlyingRecordBodyAs<RedoRecord>()->Delta()) + sizeof(uint32_t);
+  byte *dest = reinterpret_cast<byte *>(result->GetUnderlyingRecordBodyAs<RedoRecord>()->Delta()) + sizeof(uint32_t);
   in->Read(dest, delta_size - static_cast<uint32_t>(sizeof(uint32_t)));
   return result;
 }

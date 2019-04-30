@@ -303,7 +303,6 @@ struct StorageTestUtil {
     return os.str();
   }
 
-
   template <class RowType>
   static std::string PrintRowWithSchema(const RowType &row, const catalog::Schema &schema, bool varlen_pointer = true) {
     std::ostringstream os;
@@ -342,10 +341,9 @@ struct StorageTestUtil {
     return os.str();
   }
 
-
   // print all rows in a SqlTable, put print outputs into a vector.
   static void PrintAllRows(transaction::TransactionContext *txn, storage::SqlTable *table,
-                    std::vector<std::string> *set) {
+                           std::vector<std::string> *set) {
     const catalog::Schema schema = table->GetSchema();
     std::vector<catalog::col_oid_t> all_col;
     for (auto &column : schema.GetColumns()) {
@@ -457,7 +455,7 @@ class RandomSqlTableTestObject {
   void DefineColumn(std::string name, type::TypeId type, bool nullable, catalog::col_oid_t oid) {
     switch (type) {
       case type::TypeId::VARCHAR:
-      case type::TypeId::VARBINARY: // varlen entries
+      case type::TypeId::VARBINARY:  // varlen entries
         cols_.emplace_back(name, type, 2 * storage::VarlenEntry::InlineThreshold(), nullable, oid);
         break;
       default:

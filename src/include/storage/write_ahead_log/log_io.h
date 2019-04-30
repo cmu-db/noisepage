@@ -3,11 +3,11 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/uio.h>
+#include <transaction/transaction_context.h>
 #include <unistd.h>
 #include <cerrno>
 #include <cstring>
 #include <string>
-#include <transaction/transaction_context.h>
 #include "common/macros.h"
 #include "loggers/storage_logger.h"
 
@@ -147,10 +147,10 @@ class BufferedLogReader {
    * @param log_file_path path to the the log file to read from.
    */
   explicit BufferedLogReader(const char *log_file_path) : in_(PosixIoWrappers::Open(log_file_path, O_RDONLY)) {}
-  
+
   /**
- * Must call before object is destructed
- */
+   * Must call before object is destructed
+   */
   void Close() { PosixIoWrappers::Close(in_); }
   /**
    * @return if there are contents left in the write ahead log

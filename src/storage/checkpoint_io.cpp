@@ -81,10 +81,11 @@ void BufferedTupleWriter::SerializeTuple(ProjectedRow *row, const TupleSlot *slo
   //  Currently we assume the size of a row is less than the size of page.
   TERRIER_ASSERT(row->Size() + varlen_size <= block_size_ - sizeof(CheckpointFilePage),
                  "row size should not be larger than page size.");
-  TERRIER_ASSERT(sizeof(TupleSlot) % sizeof(uint32_t) == 0, "TupleSlot is expected to be 8 aligned. If not, pad it in "
-                                                            "the code.");
+  TERRIER_ASSERT(sizeof(TupleSlot) % sizeof(uint32_t) == 0,
+                 "TupleSlot is expected to be 8 aligned. If not, pad it in "
+                 "the code.");
   AlignBufferOffset<uint64_t>();  // align for ProjectedRow
-  uint32_t checkpoint_record_size = row->Size() + sizeof(TupleSlot) + varlen_size;
+  uint32_t checkpoint_record_size = row->Size() + static_cast<uint32_t>(sizeof(TupleSlot)) + varlen_size;
   if (page_offset_ + checkpoint_record_size > block_size_) {
     Persist();
   }
@@ -92,12 +93,12 @@ void BufferedTupleWriter::SerializeTuple(ProjectedRow *row, const TupleSlot *slo
   // Move row to buffer
   std::memcpy(buffer_ + page_offset_, row, row->Size());
   page_offset_ += row->Size();
-  
+
   // Move tupleslot to buffer
   AlignBufferOffset<uint32_t>();
   std::memcpy(buffer_ + page_offset_, slot, sizeof(TupleSlot));
   page_offset_ += sizeof(TupleSlot);
-  
+
   // Move varlens to buffer
   for (auto *entry : varlen_entries) {
     AlignBufferOffset<uint32_t>();  // align for size field of varlen.

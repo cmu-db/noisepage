@@ -62,9 +62,9 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryNoSeparateThread) {
   tested.GenerateRandomColumns(num_columns, true, &random_generator);
   tested.Create();
   tested.InsertRandomRows(num_rows, 0.2, &random_generator);
-  
+
   storage::SqlTable *table = tested.GetTable();
-//  storage::BlockLayout layout = tested.GetLayout();
+  //  storage::BlockLayout layout = tested.GetLayout();
   catalog::Schema *schema = tested.GetSchema();
   transaction::TransactionManager *txn_manager = tested.GetTxnManager();
 
@@ -179,7 +179,7 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryWithVarlen) {
   tested.GenerateRandomColumns(num_columns, true, &random_generator);
   tested.Create();
   tested.InsertRandomRows(num_rows, 0.2, &random_generator);
-  
+
   storage::SqlTable *table = tested.GetTable();
   catalog::Schema *schema = tested.GetSchema();
   transaction::TransactionManager *txn_manager = tested.GetTxnManager();

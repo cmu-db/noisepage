@@ -1,7 +1,7 @@
-#include "common/macros.h"
 #include "storage/checkpoint_manager.h"
-#include <vector>
 #include <unordered_set>
+#include <vector>
+#include "common/macros.h"
 
 #define NUM_RESERVED_COLUMNS 1u
 
@@ -64,7 +64,8 @@ void CheckpointManager::Recover(const char *checkpoint_file_path) {
 }
 
 // TODO(zhaozhes): varlen log is not yet supported in logs.
-void CheckpointManager::RecoverFromLogs(const char *log_file_path, terrier::transaction::timestamp_t checkpoint_timestamp) {
+void CheckpointManager::RecoverFromLogs(const char *log_file_path,
+                                        terrier::transaction::timestamp_t checkpoint_timestamp) {
   // The recovery algorithm scans the log file twice.
   // On the first pass, a mapping from beginning timestamp (uniquely identifying) to commit timestamp (also uniquely
   // identifying) is established. The purpose of this pass is to know the commit timestamp of each record,
@@ -74,9 +75,9 @@ void CheckpointManager::RecoverFromLogs(const char *log_file_path, terrier::tran
   // On the second pass, the valid log records will be replayed sequentially from oldest to newest, because the logging
   // implementation guarantees that the update from the same transaction appears in order, and different transactions
   // appear in commit order.
-  
+
   std::unordered_set<terrier::transaction::timestamp_t> valid_begin_ts;
-  
+
   // First pass
   BufferedLogReader in(log_file_path);
   while (in.HasMore()) {
@@ -85,7 +86,7 @@ void CheckpointManager::RecoverFromLogs(const char *log_file_path, terrier::tran
       TERRIER_ASSERT(valid_begin_ts.find(log_record->TxnBegin()) != valid_begin_ts.end(),
                      "Commit records should be mapped to unique begin timestamps.");
       terrier::transaction::timestamp_t commit_timestamp =
-        log_record->GetUnderlyingRecordBodyAs<CommitRecord>()->CommitTime();
+          log_record->GetUnderlyingRecordBodyAs<CommitRecord>()->CommitTime();
       // Only need to recover logs commited after the checkpoint
       if (commit_timestamp > checkpoint_timestamp) {
         valid_begin_ts.insert(log_record->TxnBegin());
@@ -94,7 +95,7 @@ void CheckpointManager::RecoverFromLogs(const char *log_file_path, terrier::tran
     delete[] reinterpret_cast<byte *>(log_record);
   }
   in.Close();
-  
+
   // Second pass
   in = BufferedLogReader(log_file_path);
   while (in.HasMore()) {
@@ -104,7 +105,7 @@ void CheckpointManager::RecoverFromLogs(const char *log_file_path, terrier::tran
       delete[] reinterpret_cast<byte *>(log_record);
       continue;
     }
-  
+
     // TODO(zhaozhes): support for multi table. However, the log records stores data_table instead of
     // sql_table, which should be modified I think, so I think we should not currently use the API from log records.
     // For the above reasons, we currently can only support one table recovery, hard-coded as oid 0.
@@ -135,7 +136,6 @@ void CheckpointManager::RecoverFromLogs(const char *log_file_path, terrier::tran
           TERRIER_ASSERT(0, "Update failed during log recovery");
         }
       }
-      
     }
     delete[] reinterpret_cast<byte *>(log_record);
   }

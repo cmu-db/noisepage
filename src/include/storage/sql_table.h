@@ -182,9 +182,7 @@ class SqlTable {
    * @param col_id a col_id, must be in the table's InverseColumnMap
    * @return col_oid for the col_id
    */
-  catalog::col_oid_t ColOidForId(const col_id_t col_id) const {
-    return table_.inverse_column_map.at(col_id);
-  }
+  catalog::col_oid_t ColOidForId(const col_id_t col_id) const { return table_.inverse_column_map.at(col_id); }
 
  private:
   BlockStore *const block_store_;

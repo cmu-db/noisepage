@@ -310,7 +310,7 @@ class BufferedTupleReader {
     page_offset_ += row_size;
     return checkpoint_row;
   }
-  
+
   TupleSlot *ReadNextTupleSlot() {
     AlignBufferOffset<uint32_t>();
     auto slot = reinterpret_cast<TupleSlot *>(buffer_ + page_offset_);
