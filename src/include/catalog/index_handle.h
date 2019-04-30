@@ -7,10 +7,29 @@
 #include <vector>
 
 #include "catalog/catalog_defs.h"
+#include "catalog/catalog_entry.h"
 #include "catalog/catalog_sql_table.h"
 #include "catalog/namespace_handle.h"
 
 namespace terrier::catalog {
+
+
+
+/**
+ * A namespace entry represent a row in pg_namespace catalog.
+ */
+class IndexEntry : public CatalogEntry<index_oid_t> {
+ public:
+  /**
+   * Constructor
+   * @param oid namespace def oid
+   * @param sql_table associated with this entry
+   * @param entry a row in pg_namespace that represents this table
+   */
+  IndexEntry(index_oid_t oid, catalog::SqlTableHelper *sql_table, std::vector<type::TransientValue> &&entry)
+      : CatalogEntry(oid, sql_table, std::move(entry)) {}
+};
+
 
 class Catalog;
 /**
@@ -21,42 +40,13 @@ class Catalog;
  */
 class IndexHandle {
  public:
-  /**
-   * An IndexEntry represents a row in pg_index catalog.
-   */
-  class IndexEntry {
-   public:
-    /**
-     * Contruct an IndexEntry.
-     * @param oid: the oid of the give index, i.e. the indexrelid of the given pg_index row.
-     * @param entry: the vector of all the columns of the pg_index row.
-     */
-    IndexEntry(index_oid_t oid, std::vector<type::TransientValue> &&entry) : oid_(oid), entry_(std::move(entry)) {}
-
-    /**
-     * Get the given column of the given pg_index row.
-     * @param col_num: the index of the column.
-     * @return the given row
-     */
-    const type::TransientValue &GetColumn(int32_t col_num) { return entry_[col_num]; }
-
-    /**
-     *  Get the index oid.
-     * @return the index oid
-     */
-    index_oid_t GetIndexOid() { return oid_; }
-
-   private:
-    index_oid_t oid_;
-    std::vector<type::TransientValue> entry_;
-  };
 
   /**
    * Construct a IndexHandle. It keeps a pointer to the pg_index sql table.
    * @param catalog: The pointer to the catalog.
    * @param pg_index: The pointer to the pg_index sql table.
    */
-  IndexHandle(Catalog *catalog, std::shared_ptr<catalog::SqlTableRW> pg_index);
+  IndexHandle(catalog::SqlTableHelper *pg_index);
 
   /**
    * Get the IndexEntry by oid from IndexHandle
@@ -76,7 +66,7 @@ class IndexHandle {
   /**
    * Create storage table
    */
-  static std::shared_ptr<catalog::SqlTableRW> Create(transaction::TransactionContext *txn, Catalog *catalog,
+  static std::shared_ptr<catalog::SqlTableHelper> Create(transaction::TransactionContext *txn, Catalog *catalog,
                                                      db_oid_t db_oid, const std::string &name);
   /**
    * Debug methods
@@ -86,13 +76,9 @@ class IndexHandle {
     pg_index_rw_->Dump(txn, limit);
   }
 
-  /** Used schema columns */
   static const std::vector<SchemaCol> schema_cols_;
-  /** Unused schema columns */
-  static const std::vector<SchemaCol> unused_schema_cols_;
 
  private:
-  Catalog *catalog_;
-  std::shared_ptr<catalog::SqlTableRW> pg_index_rw_;
+  catalog::SqlTableHelper *pg_index_rw_;
 };
 }  // namespace terrier::catalog

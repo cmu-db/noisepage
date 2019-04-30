@@ -9,8 +9,8 @@ struct IndexHandleTest : public TerrierTest {
     TerrierTest::SetUp();
     txn_manager_ = new transaction::TransactionManager(&buffer_pool_, true, LOGGING_DISABLED);
 
-    catalog_ = new catalog::Catalog(txn_manager_);
     txn_ = txn_manager_->BeginTransaction();
+    catalog_ = new catalog::Catalog(txn_manager_, txn_);
   }
 
   void TearDown() override {
@@ -51,7 +51,7 @@ TEST_F(IndexHandleTest, BasicCorrectnessTest) {
   auto index_entry = index_handle.GetIndexEntry(txn_, indexrelid);
 
   EXPECT_NE(index_entry, nullptr);
-  EXPECT_EQ(!index_entry->GetIndexOid(), !indexrelid);
+  EXPECT_EQ(!index_entry->GetOid(), !indexrelid);
   EXPECT_EQ(!catalog::index_oid_t(type::TransientValuePeeker::PeekInteger(index_entry->GetColumn(0))), !indexrelid);
   EXPECT_EQ(!catalog::table_oid_t(type::TransientValuePeeker::PeekInteger(index_entry->GetColumn(1))), !indrelid);
   EXPECT_EQ(type::TransientValuePeeker::PeekInteger(index_entry->GetColumn(2)), indnatts);

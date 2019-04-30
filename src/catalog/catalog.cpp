@@ -39,20 +39,9 @@ void Catalog::DeleteDatabase(transaction::TransactionContext *txn, const std::st
   db_handle.DeleteEntry(txn, db_entry);
 
   // TODO(pakhtar): delete all user tables
-
-<<<<<<< HEAD
-  // drop database local tables
-  // - pg_attribute
-  // - pg_namespace
-  // - pg_class
-  // - pg_type
-  // - pg_attrdef
-  // - pg_index
-=======
   // destroy all the non-global tables
   // this should become just catalog tables
   DeleteDatabaseTables(oid);
->>>>>>> yangjuns/catalog
 
   // delete from the maps
   map_.erase(oid);
@@ -415,7 +404,7 @@ void Catalog::CreatePGType(transaction::TransactionContext *txn, db_oid_t db_oid
 }
 
 void Catalog::CreatePGIndex(terrier::transaction::TransactionContext *txn, terrier::catalog::db_oid_t db_oid) {
-  std::shared_ptr<SqlTableRW> pg_index = IndexHandle::Create(txn, this, db_oid, "pg_index");
+  std::shared_ptr<SqlTableHelper> pg_index = IndexHandle::Create(txn, this, db_oid, "pg_index");
 }
 
 void Catalog::DeleteDatabaseTables(db_oid_t db_oid) {
@@ -600,7 +589,7 @@ void Catalog::Dump(transaction::TransactionContext *txn, const db_oid_t db_oid) 
   CATALOG_LOG_DEBUG("");
   CATALOG_LOG_DEBUG("-- pg_index -- ");
   auto index_handle = db_handle.GetIndexHandle(txn, db_oid);
-  type_handle.Dump(txn);
+  index_handle.Dump(txn);
 }
 
 }  // namespace terrier::catalog
