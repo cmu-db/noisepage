@@ -4,20 +4,6 @@
 
 namespace terrier::planner {
 
-common::hash_t AggregatePlanNode::HashAggregateTerms(
-    const std::vector<AggregatePlanNode::AggregateTerm> &agg_terms) const {
-  common::hash_t hash = 0;
-
-  for (auto &agg_term : GetAggregateTerms()) {
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&agg_term.aggregate_type_));
-
-    if (agg_term.expression_ != nullptr) hash = common::HashUtil::CombineHashes(hash, agg_term.expression_->Hash());
-
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&agg_term.distinct_));
-  }
-  return hash;
-}
-
 // TODO(Gus,Wen): include hash for schema
 common::hash_t AggregatePlanNode::Hash() const {
   auto type = GetPlanNodeType();
@@ -27,7 +13,9 @@ common::hash_t AggregatePlanNode::Hash() const {
     hash = common::HashUtil::CombineHashes(hash, GetHavingClausePredicate()->Hash());
   }
 
-  hash = common::HashUtil::CombineHashes(hash, HashAggregateTerms(GetAggregateTerms()));
+  for (auto aggregate_term : aggregate_terms_) {
+    hash = common::HashUtil::CombineHashes(hash, aggregate_term->Hash());
+  }
 
   auto agg_strategy = GetAggregateStrategyType();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&agg_strategy));
@@ -45,7 +33,14 @@ bool AggregatePlanNode::operator==(const AbstractPlanNode &rhs) const {
   if ((pred == nullptr && other_pred != nullptr) || (pred != nullptr && other_pred == nullptr)) return false;
   if (pred != nullptr && *pred != *other_pred) return false;
 
-  if (GetAggregateTerms() != other.GetAggregateTerms()) return false;
+  if (aggregate_terms_.size() != other.GetAggregateTerms().size()) return false;
+  for (size_t i = 0; i < aggregate_terms_.size(); i++) {
+    auto &left_term = aggregate_terms_[i];
+    auto &right_term = other.GetAggregateTerms()[i];
+    if ((left_term == nullptr && right_term != nullptr) || (left_term != nullptr && right_term == nullptr))
+      return false;
+    if (left_term != nullptr && *left_term != *right_term) return false;
+  }
 
   if (GetAggregateStrategyType() != other.GetAggregateStrategyType()) return false;
 
