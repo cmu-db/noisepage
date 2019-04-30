@@ -1,5 +1,6 @@
 #pragma once
 
+#include <common/settings.h>
 #include <algorithm>
 #include <memory>
 #include <random>
@@ -20,19 +21,19 @@ namespace terrier::catalog {
 /**
  * Helper class to simplify operations on a SqlTable
  */
-class SqlTableRW {
+class SqlTableHelper {
  public:
   /**
    * Constructor
    * @param table_oid the table oid of the underlying sql table
    */
-  explicit SqlTableRW(catalog::table_oid_t table_oid) : table_oid_(table_oid) {}
-  ~SqlTableRW() {
+  explicit SqlTableHelper(catalog::table_oid_t table_oid) : table_oid_(table_oid) {}
+  ~SqlTableHelper() {
     delete pri_;
     delete pr_map_;
     delete schema_;
-    delete layout_and_map_;
-    delete col_initer_;
+    // delete col_initer_;
+    delete init_pair_;
   }
 
   class RowIterator;
@@ -88,8 +89,8 @@ class SqlTableRW {
         proj_col_bufp = nullptr;
         return *this;
       }
-      auto layout = tblrw_->GetLayoutP();
-      storage::ProjectedColumns::RowView row_view = proj_col_bufp->InterpretAsRow(*layout, 0);
+
+      storage::ProjectedColumns::RowView row_view = proj_col_bufp->InterpretAsRow(0);
       auto ret_vec = tblrw_->ColToValueVec(row_view);
       return *this;
     }
@@ -110,16 +111,15 @@ class SqlTableRW {
      * @param tblrw SqlTableRw
      * @param begin whether a begin operator is contructed.
      */
-    RowIterator(transaction::TransactionContext *txn, SqlTableRW *tblrw, bool begin)
-        : txn_(txn), tblrw_(tblrw), buffer_(nullptr), dtsi_(tblrw->GetSqlTable()->begin()), layout_(nullptr) {
+    RowIterator(transaction::TransactionContext *txn, SqlTableHelper *tblrw, bool begin)
+        : txn_(txn), tblrw_(tblrw), buffer_(nullptr), dtsi_(tblrw->GetSqlTable()->begin()) {
       if (!begin) {
         // constructing end
         proj_col_bufp = nullptr;
         return;
       }
-      layout_ = tblrw_->GetLayoutP();
-      all_cols = storage::StorageUtil::ProjectionListAllColumns(*layout_);
-      auto col_initer = new storage::ProjectedColumnsInitializer(*layout_, all_cols, 1);
+
+      auto col_initer = tblrw_->col_initer_;
       buffer_ = common::AllocationUtil::AllocateAligned(col_initer->ProjectedColumnsSize());
       proj_col_bufp = col_initer->Initialize(buffer_);
 
@@ -132,31 +132,25 @@ class SqlTableRW {
       }
 
       if (proj_col_bufp->NumTuples() > 0) {
-        delete col_initer;
-        all_cols.clear();
         return;
       }
 
       if (dtsi_ == tblrw_->GetSqlTable()->end()) {
         proj_col_bufp = nullptr;
       }
-      delete col_initer;
-      all_cols.clear();
     }
 
     ~RowIterator() { delete[] buffer_; }
 
    private:
     transaction::TransactionContext *txn_;
-    SqlTableRW *tblrw_;
+    SqlTableHelper *tblrw_;
     std::vector<storage::col_id_t> all_cols;
 
     byte *buffer_;
     storage::ProjectedColumns *proj_col_bufp;
 
     storage::DataTable::SlotIterator dtsi_;
-    // the storage table's cached layout
-    const storage::BlockLayout *layout_;
   };
 
   /**
@@ -168,7 +162,12 @@ class SqlTableRW {
    * @param oid for the column
    */
   void DefineColumn(std::string name, type::TypeId type, bool nullable, catalog::col_oid_t oid) {
-    cols_.emplace_back(name, type, nullable, oid);
+    if (type == type::TypeId::VARCHAR) {
+      uint32_t max_len = common::Settings::CATALOG_VARCHAR_MAX_LEN;
+      cols_.emplace_back(name, type, max_len, nullable, oid);
+    } else {
+      cols_.emplace_back(name, type, nullable, oid);
+    }
   }
 
   /**
@@ -181,6 +180,10 @@ class SqlTableRW {
     for (const auto &c : cols_) {
       col_oids_.emplace_back(c.GetOid());
     }
+
+    init_pair_ = new std::pair<storage::ProjectedColumnsInitializer, storage::ProjectionMap>(
+        table_->InitializerForProjectedColumns(col_oids_, 1));
+    col_initer_ = &init_pair_->first;
 
     // save information needed for (later) reading and writing
     // TODO(pakhtar): review to see if still needed, since we are using
@@ -273,11 +276,8 @@ class SqlTableRW {
    */
   int32_t GetNumRows(transaction::TransactionContext *txn) {
     int32_t num_cols = 0;
-    auto layout = GetLayout();
-    std::vector<storage::col_id_t> all_cols = storage::StorageUtil::ProjectionListAllColumns(layout);
-    storage::ProjectedColumnsInitializer col_initer(layout, all_cols, 100);
-    auto *buffer = common::AllocationUtil::AllocateAligned(col_initer.ProjectedColumnsSize());
-    storage::ProjectedColumns *proj_col_bufp = col_initer.Initialize(buffer);
+    auto *buffer = common::AllocationUtil::AllocateAligned(col_initer_->ProjectedColumnsSize());
+    storage::ProjectedColumns *proj_col_bufp = col_initer_->Initialize(buffer);
 
     auto it = table_->begin();
     while (it != table_->end()) {
@@ -307,6 +307,8 @@ class SqlTableRW {
   /**
    * Misc access.
    */
+
+  // TODO(pakhtar): make non-shared
   std::shared_ptr<storage::SqlTable> GetSqlTable() { return table_; }
 
   /**
@@ -347,7 +349,7 @@ class SqlTableRW {
     auto proj_row = pri_->InitializeRow(insert_buffer);
 
     for (size_t i = 0; i < row.size(); i++) {
-      SqlTableRW::SetColInRow(proj_row, static_cast<int32_t>(i), row[i]);
+      SqlTableHelper::SetColInRow(proj_row, static_cast<int32_t>(i), row[i]);
     }
     table_->Insert(txn, *proj_row);
 
@@ -367,13 +369,6 @@ class SqlTableRW {
                                             const std::vector<type::TransientValue> &search_vec) {
     bool row_match;
 
-    auto layout = GetLayout();
-    // setup parameters for a scan
-    std::vector<storage::col_id_t> all_cols = storage::StorageUtil::ProjectionListAllColumns(layout);
-    // get one row at a time
-    if (col_initer_ == nullptr) {
-      col_initer_ = new storage::ProjectedColumnsInitializer(layout, all_cols, 1);
-    }
     auto *buffer = common::AllocationUtil::AllocateAligned(col_initer_->ProjectedColumnsSize());
     storage::ProjectedColumns *proj_col_bufp = col_initer_->Initialize(buffer);
 
@@ -385,7 +380,7 @@ class SqlTableRW {
         continue;
       }
       // interpret as a row
-      storage::ProjectedColumns::RowView row_view = proj_col_bufp->InterpretAsRow(layout, 0);
+      storage::ProjectedColumns::RowView row_view = proj_col_bufp->InterpretAsRow(0);
       // check if this row matches
       row_match = RowFound(row_view, search_vec);
       if (row_match) {
@@ -409,14 +404,6 @@ class SqlTableRW {
                                             const std::vector<type::TransientValue> &search_vec) {
     bool row_match;
 
-    auto layout = GetLayout();
-    // setup parameters for a scan
-    std::vector<storage::col_id_t> all_cols = storage::StorageUtil::ProjectionListAllColumns(layout);
-    // get one row at a time
-    // storage::ProjectedColumnsInitializer col_initer(layout, all_cols, 1);
-    if (col_initer_ == nullptr) {
-      col_initer_ = new storage::ProjectedColumnsInitializer(layout, all_cols, 1);
-    }
     auto *buffer = common::AllocationUtil::AllocateAligned(col_initer_->ProjectedColumnsSize());
     storage::ProjectedColumns *proj_col_bufp = col_initer_->Initialize(buffer);
 
@@ -428,7 +415,7 @@ class SqlTableRW {
         continue;
       }
       // interpret as a row
-      storage::ProjectedColumns::RowView row_view = proj_col_bufp->InterpretAsRow(layout, 0);
+      storage::ProjectedColumns::RowView row_view = proj_col_bufp->InterpretAsRow(0);
       // check if this row matches
       row_match = RowFound(row_view, search_vec);
       if (row_match) {
@@ -437,30 +424,7 @@ class SqlTableRW {
       }
     }
     delete[] buffer;
-    // delete col_initer_;
     return nullptr;
-  }
-
-  /**
-   * Get the layout of the SQL table.
-   */
-  storage::BlockLayout GetLayout() {
-    if (layout_and_map_ == nullptr) {
-      layout_and_map_ = new std::pair<storage::BlockLayout, storage::ColumnMap>(
-          storage::StorageUtil::BlockLayoutFromSchema(*schema_));
-    }
-    return layout_and_map_->first;
-  }
-
-  /**
-   * Get ptr to the layout of the SQL table.
-   */
-  const storage::BlockLayout *GetLayoutP() {
-    if (layout_and_map_ == nullptr) {
-      layout_and_map_ = new std::pair<storage::BlockLayout, storage::ColumnMap>(
-          storage::StorageUtil::BlockLayoutFromSchema(*schema_));
-    }
-    return &layout_and_map_->first;
   }
 
   /**
@@ -524,13 +488,6 @@ class SqlTableRW {
    *          0 => all
    */
   void Dump(transaction::TransactionContext *txn, int32_t max_col = 0) {
-    auto layout = GetLayout();
-    // setup parameters for a scan
-    std::vector<storage::col_id_t> all_cols = storage::StorageUtil::ProjectionListAllColumns(layout);
-    // get one row at a time
-    if (col_initer_ == nullptr) {
-      col_initer_ = new storage::ProjectedColumnsInitializer(layout, all_cols, 1);
-    }
     auto *buffer = common::AllocationUtil::AllocateAligned(col_initer_->ProjectedColumnsSize());
     storage::ProjectedColumns *proj_col_bufp = col_initer_->Initialize(buffer);
     int32_t row_num = 0;
@@ -542,9 +499,7 @@ class SqlTableRW {
         continue;
       }
       // interpret as a row
-      storage::ProjectedColumns::RowView row_view = proj_col_bufp->InterpretAsRow(layout, 0);
-      // convert the row into a Value vector and return
-      // auto ret_vec = ColToValueVec(row_view);
+      storage::ProjectedColumns::RowView row_view = proj_col_bufp->InterpretAsRow(0);
       CATALOG_LOG_DEBUG("");
       CATALOG_LOG_DEBUG("row {}", row_num);
       for (int32_t i = 0; i < row_view.NumColumns(); i++) {
@@ -714,7 +669,7 @@ class SqlTableRW {
   storage::ProjectionMap *pr_map_ = nullptr;
 
   // cache some items, for efficiency
-  std::pair<storage::BlockLayout, storage::ColumnMap> *layout_and_map_ = nullptr;
+  std::pair<storage::ProjectedColumnsInitializer, storage::ProjectionMap> *init_pair_ = nullptr;
   storage::ProjectedColumnsInitializer *col_initer_ = nullptr;
 };
 

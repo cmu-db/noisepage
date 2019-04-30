@@ -42,18 +42,12 @@ class TableEntry {
    * @param oid the table oid
    * @param row a row in pg_class that represents this table
    * @param txn the transaction which wants the entry
-   * @param pg_class a pointer to the pg_class catalog
    * @param pg_namespace a pointer to pg_namespace
    * @param pg_tablespace a pointer to tablespace
    */
   TableEntry(table_oid_t oid, std::vector<type::TransientValue> &&row, transaction::TransactionContext *txn,
-             std::shared_ptr<SqlTableRW> pg_class, std::shared_ptr<SqlTableRW> pg_namespace,
-             std::shared_ptr<SqlTableRW> pg_tablespace)
-      : oid_(oid),
-        txn_(txn),
-        pg_class_(std::move(pg_class)),
-        pg_namespace_(std::move(pg_namespace)),
-        pg_tablespace_(std::move(pg_tablespace)) {
+             SqlTableHelper *pg_namespace, SqlTableHelper *pg_tablespace)
+      : oid_(oid), txn_(txn), pg_namespace_(pg_namespace), pg_tablespace_(pg_tablespace) {
     rows_.resize(3);
     rows_[1] = std::move(row);
   }
@@ -77,6 +71,7 @@ class TableEntry {
           std::vector<type::TransientValue> search_vec;
           search_vec.emplace_back(type::TransientValueFactory::GetInteger(!nsp_oid));
           rows_[0] = pg_namespace_->FindRow(txn_, search_vec);
+          // TODO(pakhtar): error checking
         }
         return rows_[0][1];
       }
@@ -89,6 +84,7 @@ class TableEntry {
           std::vector<type::TransientValue> search_vec;
           search_vec.emplace_back(type::TransientValueFactory::GetInteger(!tsp_oid));
           rows_[2] = pg_tablespace_->FindRow(txn_, search_vec);
+          // TODO(pakhtar): error checking
         }
         return rows_[2][1];
       }
@@ -108,9 +104,9 @@ class TableEntry {
   transaction::TransactionContext *txn_;
   // it stores three rows in three tables
   std::vector<std::vector<type::TransientValue>> rows_;
-  std::shared_ptr<SqlTableRW> pg_class_;
-  std::shared_ptr<SqlTableRW> pg_namespace_;
-  std::shared_ptr<SqlTableRW> pg_tablespace_;
+  // SqlTableHelper *pg_class_;
+  SqlTableHelper *pg_namespace_;
+  SqlTableHelper *pg_tablespace_;
 };
 
 /**
@@ -139,13 +135,13 @@ class TableHandle {
    * @param pg_namespace a pointer to pg_namespace
    * @param pg_tablespace a pointer to pg_tablespace
    */
-  TableHandle(Catalog *catalog, namespace_oid_t nsp_oid, std::shared_ptr<SqlTableRW> pg_class,
-              std::shared_ptr<SqlTableRW> pg_namespace, std::shared_ptr<SqlTableRW> pg_tablespace)
+  TableHandle(Catalog *catalog, namespace_oid_t nsp_oid, SqlTableHelper *pg_class, SqlTableHelper *pg_namespace,
+              SqlTableHelper *pg_tablespace)
       : catalog_(catalog),
         nsp_oid_(nsp_oid),
-        pg_class_(std::move(pg_class)),
-        pg_namespace_(std::move(pg_namespace)),
-        pg_tablespace_(std::move(pg_tablespace)) {}
+        pg_class_(pg_class),
+        pg_namespace_(pg_namespace),
+        pg_tablespace_(pg_tablespace) {}
 
   /**
    * Get the table oid for a given table name
@@ -183,7 +179,7 @@ class TableHandle {
    * @param name the table name
    * @param schema the table schema
    */
-  SqlTableRW *CreateTable(transaction::TransactionContext *txn, const Schema &schema, const std::string &name);
+  SqlTableHelper *CreateTable(transaction::TransactionContext *txn, const Schema &schema, const std::string &name);
 
   /**
    * Get a pointer to the table for read and write
@@ -191,7 +187,7 @@ class TableHandle {
    * @param oid the oid of the table
    * @return a pointer to the SqlTableRW
    */
-  SqlTableRW *GetTable(transaction::TransactionContext *txn, table_oid_t oid);
+  SqlTableHelper *GetTable(transaction::TransactionContext *txn, table_oid_t oid);
 
   /**
    * Get a pointer to the table for read and write
@@ -199,14 +195,14 @@ class TableHandle {
    * @param name the name of the table
    * @return a pointer to the SqlTableRW
    */
-  SqlTableRW *GetTable(transaction::TransactionContext *txn, const std::string &name);
+  SqlTableHelper *GetTable(transaction::TransactionContext *txn, const std::string &name);
 
  private:
   Catalog *catalog_;
   namespace_oid_t nsp_oid_;
-  std::shared_ptr<SqlTableRW> pg_class_;
-  std::shared_ptr<SqlTableRW> pg_namespace_;
-  std::shared_ptr<SqlTableRW> pg_tablespace_;
+  SqlTableHelper *pg_class_;
+  SqlTableHelper *pg_namespace_;
+  SqlTableHelper *pg_tablespace_;
 };
 
 }  // namespace terrier::catalog
