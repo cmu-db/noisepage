@@ -328,7 +328,8 @@ TEST_F(MetricTests, TransactionMetricStorageTest) {
     for (uint8_t j = 0; j < num_txns_; j++) {
       auto txn_id = id_map[j];
       std::vector<type::TransientValue> search_vec;
-      search_vec.emplace_back(type::TransientValueFactory::GetBigInt(static_cast<uint64_t>(txn_id)));
+      search_vec.emplace_back(
+          type::TransientValueFactory::GetBigInt(static_cast<int64_t>(static_cast<uint64_t>(txn_id))));
       auto row = table->FindRow(txn_, search_vec);
       auto latency = type::TransientValuePeeker::PeekBigInt(row[1]);
       auto read_cnt = type::TransientValuePeeker::PeekBigInt(row[2]);
@@ -360,17 +361,20 @@ TEST_F(MetricTests, MultiThreadTest) {
     common::ConcurrentQueue<transaction::timestamp_t> txn_queue;
     common::ConcurrentMap<transaction::timestamp_t, int64_t> latency_map;
     storage::metric::StatsAggregator aggregator(txn_manager_, catalog_, nullptr);
+    common::ConcurrentVector<std::shared_ptr<storage::metric::ThreadLevelStatsCollector *>> collectors;
     auto num_read = static_cast<uint8_t>(std::uniform_int_distribution<uint8_t>(1, UINT8_MAX)(generator_));
     auto num_update = static_cast<uint8_t>(std::uniform_int_distribution<uint8_t>(1, UINT8_MAX)(generator_));
     auto num_insert = static_cast<uint8_t>(std::uniform_int_distribution<uint8_t>(1, UINT8_MAX)(generator_));
     auto num_delete = static_cast<uint8_t>(std::uniform_int_distribution<uint8_t>(1, UINT8_MAX)(generator_));
+
     auto workload = [&](uint32_t id) {
       // NOTICE: thread level collector must be alive while aggregating
       if (id == 0) {  // aggregator thread
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        std::this_thread::sleep_for(std::chrono::milliseconds(3000));
         aggregator.Aggregate(txn_);
       } else {  // normal thread
-        auto stats_collector = storage::metric::ThreadLevelStatsCollector();
+        auto *stats_collector = new storage::metric::ThreadLevelStatsCollector();
+        collectors.PushBack(std::make_shared<storage::metric::ThreadLevelStatsCollector *>(stats_collector));
         for (uint8_t j = 0; j < num_txns_; j++) {
           auto start = std::chrono::high_resolution_clock::now();
           auto *txn = txn_manager_->BeginTransaction();
@@ -412,7 +416,8 @@ TEST_F(MetricTests, MultiThreadTest) {
       auto res = txn_queue.Dequeue(&txn_id);
       if (!res) break;
       std::vector<type::TransientValue> search_vec;
-      search_vec.emplace_back(type::TransientValueFactory::GetBigInt(static_cast<uint64_t>(txn_id)));
+      search_vec.emplace_back(
+          type::TransientValueFactory::GetBigInt(static_cast<int64_t>(static_cast<uint64_t>(txn_id))));
       auto row = table->FindRow(txn_, search_vec);
       auto latency = type::TransientValuePeeker::PeekBigInt(row[1]);
       auto read_cnt = type::TransientValuePeeker::PeekBigInt(row[2]);
