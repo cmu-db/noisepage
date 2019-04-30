@@ -155,13 +155,52 @@ struct StorageTestUtil {
   }
 
   template <class Random>
+  static std::unordered_map<storage::TupleSlot, storage::ProjectedRow *> PopulateBlockRandomly(
+      const storage::BlockLayout &layout, storage::RawBlock *block, double empty_ratio, Random *const generator) {
+    std::unordered_map<storage::TupleSlot, storage::ProjectedRow *> result;
+    std::bernoulli_distribution coin(empty_ratio);
+    // TODO(Tianyu): Do we ever want to tune this for tests?
+    const double null_ratio = 0.1;
+    storage::TupleAccessStrategy accessor(layout);  // Have to construct one since we don't have access to data table
+    auto initializer = storage::ProjectedRowInitializer::CreateProjectedRowInitializer(
+        layout, StorageTestUtil::ProjectionListAllColumns(layout));
+    for (uint32_t i = 0; i < layout.NumSlots(); i++) {
+      storage::TupleSlot slot;
+      bool ret UNUSED_ATTRIBUTE = accessor.Allocate(block, &slot);
+      TERRIER_ASSERT(ret && slot == storage::TupleSlot(block, i),
+                     "slot allocation should happen sequentially and succeed");
+      if (coin(*generator)) {
+        // slot will be marked empty
+        accessor.Deallocate(slot);
+        continue;
+      }
+      auto *redo_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+      storage::ProjectedRow *redo = initializer.InitializeRow(redo_buffer);
+      StorageTestUtil::PopulateRandomRow(redo, layout, null_ratio, generator);
+      result[slot] = redo;
+      // Copy without transactions to simulate a version-free block
+      accessor.SetNotNull(slot, VERSION_POINTER_COLUMN_ID);
+      for (uint16_t j = 0; j < redo->NumColumns(); j++)
+        storage::StorageUtil::CopyAttrFromProjection(accessor, slot, *redo, j);
+    }
+    TERRIER_ASSERT(block->insert_head_ == layout.NumSlots(), "The block should be considered full at this point");
+    return result;
+  }
+
+  template <class Random>
   static storage::ProjectedRowInitializer RandomInitializer(const storage::BlockLayout &layout, Random *generator) {
     return {layout, ProjectionListRandomColumns(layout, generator)};
   }
 
+  // Returns true iff the underlying varlen is bit-wise identical. Compressions schemes and other metadata are ignored.
+  static bool VarlenEntryEqualDeep(const storage::VarlenEntry &one, const storage::VarlenEntry &other) {
+    if (one.Size() != other.Size()) return false;
+    return memcmp(one.Content(), other.Content(), one.Size()) == 0;
+  }
+
   template <class RowType1, class RowType2>
-  static bool ProjectionListEqual(const storage::BlockLayout &layout, const RowType1 *const one,
-                                  const RowType2 *const other) {
+  static bool ProjectionListEqualDeep(const storage::BlockLayout &layout, const RowType1 *const one,
+                                      const RowType2 *const other) {
     if (one->NumColumns() != other->NumColumns()) return false;
     for (uint16_t projection_list_index = 0; projection_list_index < one->NumColumns(); projection_list_index++) {
       // Check that the two point at the same column
@@ -174,7 +213,45 @@ struct StorageTestUtil {
       const byte *one_content = one->AccessWithNullCheck(projection_list_index);
       const byte *other_content = other->AccessWithNullCheck(projection_list_index);
       // Either both are null or neither is null.
+
       if (one_content == nullptr || other_content == nullptr) {
+        if (one_content == other_content) continue;
+        return false;
+      }
+
+      if (layout.IsVarlen(one_id)) {
+        // Need to follow pointers and throw away metadata and padding for equality comparison
+        auto &one_entry = *reinterpret_cast<const storage::VarlenEntry *>(one_content),
+             &other_entry = *reinterpret_cast<const storage::VarlenEntry *>(other_content);
+        if (one_entry.Size() != other_entry.Size()) return false;
+        if (memcmp(one_entry.Content(), other_entry.Content(), one_entry.Size()) != 0) return false;
+      } else if (memcmp(one_content, other_content, attr_size) != 0) {
+        // Otherwise, they should be bit-wise identical.
+        return false;
+      }
+    }
+    return true;
+  }
+
+  template <class RowType1, class RowType2>
+  static bool ProjectionListEqualShallow(const storage::BlockLayout &layout, const RowType1 *const one,
+                                         const RowType2 *const other) {
+    EXPECT_EQ(one->NumColumns(), other->NumColumns());
+    if (one->NumColumns() != other->NumColumns()) return false;
+    for (uint16_t projection_list_index = 0; projection_list_index < one->NumColumns(); projection_list_index++) {
+      // Check that the two point at the same column
+      storage::col_id_t one_id = one->ColumnIds()[projection_list_index];
+      storage::col_id_t other_id = other->ColumnIds()[projection_list_index];
+      EXPECT_EQ(one_id, other_id);
+      if (one_id != other_id) return false;
+
+      // Check that the two have the same content bit-wise
+      uint8_t attr_size = layout.AttrSize(one_id);
+      const byte *one_content = one->AccessWithNullCheck(projection_list_index);
+      const byte *other_content = other->AccessWithNullCheck(projection_list_index);
+      // Either both are null or neither is null.
+      if (one_content == nullptr || other_content == nullptr) {
+        EXPECT_EQ(one_content, other_content);
         if (one_content == other_content) continue;
         return false;
       }

@@ -1,4 +1,5 @@
 #pragma once
+#include <queue>
 #include <unordered_set>
 #include <utility>
 #include "common/shared_latch.h"
@@ -24,7 +25,7 @@ class TransactionManager {
    * buffers.
    * @param buffer_pool the buffer pool to use for transaction undo buffers
    * @param gc_enabled true if txns should be stored in a local queue to hand off to the GC, false otherwise
-   * @param log_manager the log manager in the system, or nullptr if logging is turned off.
+   * @param log_manager the log manager in the system, or LOGGING_DISABLED(nulllptr) if logging is turned off.
    */
   TransactionManager(storage::RecordBufferSegmentPool *const buffer_pool, const bool gc_enabled,
                      storage::LogManager *log_manager)
@@ -75,6 +76,22 @@ class TransactionManager {
    */
   TransactionQueue CompletedTransactionsForGC();
 
+  /**
+   * Adds the action to a buffered list of deferred actions.  This action will
+   * be triggered no sooner than when the epoch (timestamp of oldest running
+   * transaction) is more recent than the time this function was called.
+   * @param a functional implementation of the action that is deferred
+   */
+  void DeferAction(Action a);
+
+  /**
+   * Transfers the buffered list of deferred actions to the GC for eventual
+   * execution.
+   * @return the deferred actions as a sorted queue of pairs where the timestamp is
+   *         earliest epoch the associated action can safely fire
+   */
+  std::queue<std::pair<timestamp_t, Action>> DeferredActionsForGC();
+
  private:
   storage::RecordBufferSegmentPool *buffer_pool_;
   // TODO(Tianyu): Timestamp generation needs to be more efficient (batches)
@@ -91,6 +108,9 @@ class TransactionManager {
   bool gc_enabled_ = false;
   TransactionQueue completed_txns_;
   storage::LogManager *const log_manager_;
+
+  std::queue<std::pair<timestamp_t, Action>> deferred_actions_;
+  mutable common::SpinLatch deferred_actions_latch_;
 
   timestamp_t ReadOnlyCommitCriticalSection(TransactionContext *txn, transaction::callback_fn callback,
                                             void *callback_arg);
