@@ -1,3 +1,4 @@
+#include <memory>
 #include <random>
 #include <thread>  //NOLINT
 #include <unordered_map>
@@ -228,7 +229,7 @@ TEST_F(MetricTests, TransactionMetricBasicTest) {
         }
       }
       txn_manager_->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
-      auto latency = static_cast<uint64_t>(
+      auto latency = static_cast<int64_t>(
           std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start)
               .count());
       latency_map[txn_id] = latency;
