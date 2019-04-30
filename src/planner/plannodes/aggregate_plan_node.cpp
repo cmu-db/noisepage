@@ -13,7 +13,7 @@ common::hash_t AggregatePlanNode::Hash() const {
     hash = common::HashUtil::CombineHashes(hash, GetHavingClausePredicate()->Hash());
   }
 
-  for (auto aggregate_term : aggregate_terms_) {
+  for (auto &aggregate_term : aggregate_terms_) {
     hash = common::HashUtil::CombineHashes(hash, aggregate_term->Hash());
   }
 

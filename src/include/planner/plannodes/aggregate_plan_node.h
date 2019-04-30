@@ -17,7 +17,7 @@
 
 namespace terrier::planner {
 
-typedef std::shared_ptr<const parser::AggregateExpression> AggregateTerm;
+using AggregateTerm = std::shared_ptr<const parser::AggregateExpression>;
 
 /**
  * Plan node for aggregates
