@@ -1,4 +1,5 @@
 #include "planner/plannodes/abstract_scan_plan_node.h"
+#include <catalog/catalog_defs.h>
 
 namespace terrier::planner {
 
@@ -18,7 +19,7 @@ bool AbstractScanPlanNode::operator==(const AbstractPlanNode &rhs) const {
   }
 
   return IsForUpdate() == other.IsForUpdate() && IsParallel() == other.IsParallel() &&
-         GetDatabaseOid() == other.GetDatabaseOid();
+         GetDatabaseOid() == other.GetDatabaseOid() && GetNamespaceOid() == other.GetNamespaceOid();
 }
 
 common::hash_t AbstractScanPlanNode::Hash() const {
@@ -41,6 +42,10 @@ common::hash_t AbstractScanPlanNode::Hash() const {
   auto database_oid = GetDatabaseOid();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid));
 
+  // Hash namespace oid
+  auto namespace_oid = GetNamespaceOid();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&namespace_oid));
+
   return hash;
 }
 
@@ -50,6 +55,7 @@ nlohmann::json AbstractScanPlanNode::ToJson() const {
   j["is_for_update"] = is_for_update_;
   j["is_parallel"] = is_parallel_;
   j["database_oid"] = database_oid_;
+  j["namespace_oid"] = namespace_oid_;
   return j;
 }
 
@@ -61,6 +67,7 @@ void AbstractScanPlanNode::FromJson(const nlohmann::json &j) {
   is_for_update_ = j.at("is_for_update").get<bool>();
   is_parallel_ = j.at("is_parallel").get<bool>();
   database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
+  namespace_oid_ = j.at("namespace_oid").get<catalog::namespace_oid_t>();
 }
 
 }  // namespace terrier::planner

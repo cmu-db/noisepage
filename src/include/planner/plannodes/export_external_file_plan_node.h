@@ -151,6 +151,9 @@ class ExportExternalFilePlanNode : public AbstractPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
+
  private:
   std::string file_name_;
   char delimiter_;

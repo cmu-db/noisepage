@@ -69,8 +69,8 @@ class AbstractPlanNode {
 
  public:
   /**
- * Constructor for Deserialization and DDL statements
- */
+   * Constructor for Deserialization and DDL statements
+   */
   AbstractPlanNode() = default;
 
   DISALLOW_COPY_AND_MOVE(AbstractPlanNode)

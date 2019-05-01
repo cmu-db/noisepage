@@ -164,7 +164,6 @@ class DropIndexPlanNode : public AbstractPlanNode {
   nlohmann::json ToJson() const override;
   void FromJson(const nlohmann::json &j) override;
 
-
  private:
   /**
    * OID of the database

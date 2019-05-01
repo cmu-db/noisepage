@@ -36,6 +36,15 @@ class AnalyzePlanNode : public AbstractPlanNode {
     }
 
     /**
+     * @param namespace_oid OID of the namespace
+     * @return builder object
+     */
+    Builder &SetNamespaceOid(catalog::namespace_oid_t namespace_oid) {
+      namespace_oid_ = namespace_oid;
+      return *this;
+    }
+
+    /**
      * @param table_oid the OID of the target SQL table
      * @return builder object
      */
@@ -59,7 +68,8 @@ class AnalyzePlanNode : public AbstractPlanNode {
      */
     std::shared_ptr<AnalyzePlanNode> Build() {
       return std::shared_ptr<AnalyzePlanNode>(new AnalyzePlanNode(std::move(children_), std::move(output_schema_),
-                                                                  database_oid_, table_oid_, std::move(column_oids_)));
+                                                                  database_oid_, namespace_oid_, table_oid_,
+                                                                  std::move(column_oids_)));
     }
 
    protected:
@@ -67,6 +77,11 @@ class AnalyzePlanNode : public AbstractPlanNode {
      * OID of the database
      */
     catalog::db_oid_t database_oid_;
+
+    /**
+     * OID of namespace
+     */
+    catalog::namespace_oid_t namespace_oid_;
 
     /**
      * OID of the target table
@@ -89,9 +104,11 @@ class AnalyzePlanNode : public AbstractPlanNode {
    */
   AnalyzePlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
                   std::shared_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
-                  catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&column_oids)
+                  catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
+                  std::vector<catalog::col_oid_t> &&column_oids)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         database_oid_(database_oid),
+        namespace_oid_(namespace_oid),
         table_oid_(table_oid),
         column_oids_(std::move(column_oids)) {}
 
@@ -112,6 +129,11 @@ class AnalyzePlanNode : public AbstractPlanNode {
    * @return OID of the database
    */
   catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
+
+  /**
+   * @return OID of the namespace
+   */
+  catalog::namespace_oid_t GetNamespaceOid() const { return namespace_oid_; }
 
   /**
    * @return the OID of the target table
@@ -138,6 +160,11 @@ class AnalyzePlanNode : public AbstractPlanNode {
    * OID of the database
    */
   catalog::db_oid_t database_oid_;
+
+  /**
+   * OID of the namespace
+   */
+  catalog::namespace_oid_t namespace_oid_;
 
   /**
    * OID of the target table

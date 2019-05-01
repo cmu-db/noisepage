@@ -26,6 +26,9 @@ struct PrimaryKeyInfo {
    */
   std::string constraint_name_;
 
+  /**
+   * @return serialized PrimaryKeyInfo
+   */
   nlohmann::json ToJson() const {
     nlohmann::json j;
     j["primary_key_cols"] = primary_key_cols_;
@@ -33,6 +36,10 @@ struct PrimaryKeyInfo {
     return j;
   }
 
+  /**
+   * Deserializes a PrimaryKeyInfo
+   * @param j serialized json of PrimaryKeyInfo
+   */
   void FromJson(const nlohmann::json &j) {
     primary_key_cols_ = j.at("primary_key_cols").get<std::vector<std::string>>();
     constraint_name_ = j.at("constraint_name").get<std::string>();
@@ -104,6 +111,9 @@ struct ForeignKeyInfo {
    */
   parser::FKConstrActionType del_action_;
 
+  /**
+   * @return serialized ForeignKeyInfo
+   */
   nlohmann::json ToJson() const {
     nlohmann::json j;
     j["foreign_key_sources"] = foreign_key_sources_;
@@ -115,6 +125,10 @@ struct ForeignKeyInfo {
     return j;
   }
 
+  /**
+   * Deserializes a ForeignKeyInfo
+   * @param j serialized json of ForeignKeyInfo
+   */
   void FromJson(const nlohmann::json &j) {
     foreign_key_sources_ = j.at("foreign_key_sources").get<std::vector<std::string>>();
     foreign_key_sinks_ = j.at("foreign_key_sinks").get<std::vector<std::string>>();
@@ -199,6 +213,9 @@ struct UniqueInfo {
    */
   std::string constraint_name_;
 
+  /**
+   * @return serialized UniqueInfo
+   */
   nlohmann::json ToJson() const {
     nlohmann::json j;
     j["unique_cols"] = unique_cols_;
@@ -206,6 +223,10 @@ struct UniqueInfo {
     return j;
   }
 
+  /**
+   * Deserializes a UniqueInfo
+   * @param j serialized json of UniqueInfo
+   */
   void FromJson(const nlohmann::json &j) {
     unique_cols_ = j.at("unique_cols").get<std::vector<std::string>>();
     constraint_name_ = j.at("constraint_name").get<std::string>();
@@ -269,6 +290,9 @@ struct CheckInfo {
    */
   type::TransientValue expr_value_;
 
+  /**
+   * @return serialized CheckInfo
+   */
   nlohmann::json ToJson() const {
     nlohmann::json j;
     j["check_cols"] = check_cols_;
@@ -278,6 +302,10 @@ struct CheckInfo {
     return j;
   }
 
+  /**
+   * Deserializes a check info
+   * @param j serialized json of check info
+   */
   void FromJson(const nlohmann::json &j) {
     check_cols_ = j.at("check_cols").get<std::vector<std::string>>();
     constraint_name_ = j.at("constraint_name").get<std::string>();

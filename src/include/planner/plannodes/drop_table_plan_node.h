@@ -122,6 +122,11 @@ class DropTablePlanNode : public AbstractPlanNode {
         if_exists_(if_exists) {}
 
  public:
+  /**
+   * Default constructor for deserialization
+   */
+  DropTablePlanNode() = default;
+
   DISALLOW_COPY_AND_MOVE(DropTablePlanNode)
 
   /**
@@ -155,6 +160,9 @@ class DropTablePlanNode : public AbstractPlanNode {
   common::hash_t Hash() const override;
 
   bool operator==(const AbstractPlanNode &rhs) const override;
+
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
 
  private:
   /**

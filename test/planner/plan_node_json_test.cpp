@@ -1,3 +1,4 @@
+#include <catalog/catalog_defs.h>
 #include <memory>
 #include <string>
 #include <tuple>
@@ -80,6 +81,7 @@ class PlanNodeJsonTest : public TerrierTest {
         .SetIsForUpdateFlag(false)
         .SetDatabaseOid(catalog::db_oid_t(0))
         .SetTableOid(catalog::table_oid_t(0))
+        .SetNamespaceOid(catalog::namespace_oid_t(0))
         .Build();
   }
 };
@@ -127,12 +129,16 @@ TEST(PlanNodeJsonTest, OutputSchemaJsonTest) {
 // NOLINTNEXTLINE
 TEST(PlanNodeJsonTest, AggregatePlanNodeJsonTest) {
   // Construct AggregatePlanNode
+
+  std::vector<std::shared_ptr<parser::AbstractExpression>> children;
+  children.push_back(PlanNodeJsonTest::BuildDummyPredicate());
+  auto agg_term = std::make_shared<parser::AggregateExpression>(parser::ExpressionType::AGGREGATE_COUNT_STAR,
+                                                                std::move(children), false);
   AggregatePlanNode::Builder builder;
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
                        .SetAggregateStrategyType(AggregateStrategyType::HASH)
                        .SetHavingClausePredicate(PlanNodeJsonTest::BuildDummyPredicate())
-                       .AddAgregateTerm(AggregatePlanNode::AggregateTerm(
-                           parser::ExpressionType::AGGREGATE_AVG, PlanNodeJsonTest::BuildDummyPredicate(), false))
+                       .AddAggregateTerm(std::move(agg_term))
                        .Build();
 
   // Serialize to Json
@@ -155,7 +161,9 @@ TEST(PlanNodeJsonTest, AnalyzePlanNodeJsonTest) {
                                               catalog::col_oid_t(4), catalog::col_oid_t(5)};
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
                        .SetDatabaseOid(catalog::db_oid_t(1))
+                       .SetNamespaceOid(catalog::namespace_oid_t(0))
                        .SetTableOid(catalog::table_oid_t(2))
+                       .SetColumnOIDs(std::move(col_oids))
                        .Build();
 
   // Serialize to Json
@@ -193,10 +201,11 @@ TEST(PlanNodeJsonTest, CreateFunctionPlanNodeTest) {
   // Construct CreateFunctionPlanNode
   CreateFunctionPlanNode::Builder builder;
   auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(1))
+                       .SetNamespaceOid(catalog::namespace_oid_t(0))
                        .SetLanguage(parser::PLType::PL_PGSQL)
                        .SetFunctionParamNames({"i"})
                        .SetFunctionParamTypes({parser::BaseFunctionParameter::DataType::INT})
-                       .SetFunctionBody({"RETURN i+1;"})
+                       .SetColumnNames({"RETURN i+1;"})
                        .SetIsReplace(true)
                        .SetFunctionName("test_func")
                        .SetReturnType(parser::BaseFunctionParameter::DataType::INT)
@@ -220,6 +229,7 @@ TEST(PlanNodeJsonTest, CreateIndexPlanNodeTest) {
   // Construct CreateIndexPlanNode
   CreateIndexPlanNode::Builder builder;
   auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(1))
+                       .SetNamespaceOid(catalog::namespace_oid_t(0))
                        .SetTableOid(catalog::table_oid_t(2))
                        .SetIndexName("test_index")
                        .SetUniqueIndex(true)
@@ -293,10 +303,8 @@ TEST(PlanNodeJsonTest, CreateTablePlanNodeTest) {
   auto get_schema = []() {
     std::vector<catalog::Schema::Column> columns = {
         catalog::Schema::Column("a", type::TypeId::INTEGER, false, catalog::col_oid_t(1)),
-        catalog::Schema::Column("b", type::TypeId::VARCHAR, true, catalog::col_oid_t(2)),
-        catalog::Schema::Column("u_a", type::TypeId::DECIMAL, false, catalog::col_oid_t(3)),
-        catalog::Schema::Column("u_b", type::TypeId::DATE, true, catalog::col_oid_t(4)),
-        catalog::Schema::Column("ck_a", type::TypeId::VARBINARY, false, catalog::col_oid_t(5))};
+        catalog::Schema::Column("u_a", type::TypeId::DECIMAL, false, catalog::col_oid_t(2)),
+        catalog::Schema::Column("u_b", type::TypeId::DATE, true, catalog::col_oid_t(3))};
 
     return std::make_shared<catalog::Schema>(columns);
   };
@@ -353,6 +361,7 @@ TEST(PlanNodeJsonTest, CreateTriggerPlanNodeTest) {
   // Construct CreateTriggerPlanNode
   CreateTriggerPlanNode::Builder builder;
   auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(2))
+                       .SetNamespaceOid(catalog::namespace_oid_t(0))
                        .SetTableOid(catalog::table_oid_t(3))
                        .SetTriggerName("test_trigger")
                        .SetTriggerFuncnames({"test_trigger_func"})
@@ -421,6 +430,7 @@ TEST(PlanNodeJsonTest, DeletePlanNodeTest) {
   // Construct DeletePlanNode
   DeletePlanNode::Builder builder;
   auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(1))
+                       .SetNamespaceOid(catalog::namespace_oid_t(0))
                        .SetTableOid(catalog::table_oid_t(2))
                        .SetDeleteCondition(PlanNodeJsonTest::BuildDummyPredicate())
                        .Build();
@@ -459,8 +469,11 @@ TEST(PlanNodeJsonTest, DropDatabasePlanNodeTest) {
 TEST(PlanNodeJsonTest, DropIndexPlanNodeTest) {
   // Construct DropIndexPlanNode
   DropIndexPlanNode::Builder builder;
-  auto plan_node =
-      builder.SetDatabaseOid(catalog::db_oid_t(7)).SetIndexOid(catalog::index_oid_t(8)).SetIfExist(true).Build();
+  auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(7))
+                       .SetNamespaceOid(catalog::namespace_oid_t(0))
+                       .SetIndexOid(catalog::index_oid_t(8))
+                       .SetIfExist(true)
+                       .Build();
 
   // Serialize to Json
   auto json = plan_node->ToJson();
@@ -499,8 +512,11 @@ TEST(PlanNodeJsonTest, DropNamespacePlanNodeTest) {
 TEST(PlanNodeJsonTest, DropTablePlanNodeTest) {
   // Construct DropTablePlanNode
   DropTablePlanNode::Builder builder;
-  auto plan_node =
-      builder.SetDatabaseOid(catalog::db_oid_t(9)).SetTableOid(catalog::table_oid_t(10)).SetIfExist(true).Build();
+  auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(9))
+                       .SetNamespaceOid(catalog::namespace_oid_t(0))
+                       .SetTableOid(catalog::table_oid_t(10))
+                       .SetIfExist(true)
+                       .Build();
 
   // Serialize to Json
   auto json = plan_node->ToJson();
@@ -518,8 +534,11 @@ TEST(PlanNodeJsonTest, DropTablePlanNodeTest) {
 TEST(PlanNodeJsonTest, DropTriggerPlanNodeTest) {
   // Construct DropTriggerPlanNode
   DropTriggerPlanNode::Builder builder;
-  auto plan_node =
-      builder.SetDatabaseOid(catalog::db_oid_t(10)).SetTriggerOid(catalog::trigger_oid_t(11)).SetIfExist(true).Build();
+  auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(10))
+                       .SetNamespaceOid(catalog::namespace_oid_t(0))
+                       .SetTriggerOid(catalog::trigger_oid_t(11))
+                       .SetIfExist(true)
+                       .Build();
 
   // Serialize to Json
   auto json = plan_node->ToJson();
@@ -537,8 +556,11 @@ TEST(PlanNodeJsonTest, DropTriggerPlanNodeTest) {
 TEST(PlanNodeJsonTest, DropViewPlanNodeTest) {
   // Construct DropViewPlanNode
   DropViewPlanNode::Builder builder;
-  auto plan_node =
-      builder.SetDatabaseOid(catalog::db_oid_t(11)).SetViewOid(catalog::view_oid_t(12)).SetIfExist(true).Build();
+  auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(11))
+                       .SetNamespaceOid(catalog::namespace_oid_t(0))
+                       .SetViewOid(catalog::view_oid_t(12))
+                       .SetIfExist(true)
+                       .Build();
 
   // Serialize to Json
   auto json = plan_node->ToJson();
@@ -631,6 +653,7 @@ TEST(PlanNodeJsonTest, IndexScanPlanNodeJsonTest) {
                        .SetIsForUpdateFlag(false)
                        .SetDatabaseOid(catalog::db_oid_t(0))
                        .SetIndexOid(catalog::index_oid_t(0))
+                       .SetNamespaceOid(catalog::namespace_oid_t(0))
                        .Build();
 
   // Serialize to Json
@@ -651,15 +674,14 @@ TEST(PlanNodeJsonTest, InsertPlanNodeJsonTest) {
   std::vector<type::TransientValue> values;
   values.push_back(type::TransientValueFactory::GetInteger(0));
   values.push_back(type::TransientValueFactory::GetBoolean(true));
-  std::vector<std::tuple<uint32_t, uint32_t, uint32_t>> parameter_info;
-  parameter_info.emplace_back(0, 1, 2);
-  parameter_info.emplace_back(3, 4, 5);
   InsertPlanNode::Builder builder;
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
                        .SetDatabaseOid(catalog::db_oid_t(0))
+                       .SetNamespaceOid(catalog::namespace_oid_t(0))
                        .SetTableOid(catalog::table_oid_t(1))
                        .SetValues(std::move(values))
-                       .SetParameterInfo(std::move(parameter_info))
+                       .AddParameterInfo(0, 1, 2)
+                       .AddParameterInfo(3, 4, 5)
                        .SetBulkInsertCount(1)
                        .Build();
 
@@ -785,6 +807,7 @@ TEST(PlanNodeJsonTest, SeqScanPlanNodeJsonTest) {
                        .SetIsParallelFlag(true)
                        .SetIsForUpdateFlag(false)
                        .SetDatabaseOid(catalog::db_oid_t(0))
+                       .SetNamespaceOid(catalog::namespace_oid_t(0))
                        .SetTableOid(catalog::table_oid_t(0))
                        .Build();
 
@@ -824,6 +847,7 @@ TEST(PlanNodeJsonTest, UpdatePlanNodeJsonTest) {
   UpdatePlanNode::Builder builder;
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
                        .SetDatabaseOid(catalog::db_oid_t(1000))
+                       .SetNamespaceOid(catalog::namespace_oid_t(0))
                        .SetTableOid(catalog::table_oid_t(200))
                        .SetUpdatePrimaryKey(true)
                        .Build();

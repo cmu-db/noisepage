@@ -96,8 +96,7 @@ class OrderByPlanNode : public AbstractPlanNode {
    * @param offset offset in sort from where to limit from
    */
   OrderByPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
-                  std::shared_ptr<OutputSchema> output_schema,
-                  std::vector<SortKey> sort_keys, bool has_limit,
+                  std::shared_ptr<OutputSchema> output_schema, std::vector<SortKey> sort_keys, bool has_limit,
                   size_t limit, size_t offset)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         sort_keys_(std::move(sort_keys)),

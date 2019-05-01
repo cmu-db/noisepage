@@ -67,6 +67,9 @@ bool CreateTablePlanNode::operator==(const AbstractPlanNode &rhs) const {
   // Has primary key
   if (HasPrimaryKey() != other.HasPrimaryKey()) return false;
 
+  // Primary Key
+  if (HasPrimaryKey() && (GetPrimaryKey() != other.GetPrimaryKey())) return false;
+
   // Foreign key
   const auto &foreign_keys_ = GetForeignKeys();
   const auto &other_foreign_keys_ = other.GetForeignKeys();

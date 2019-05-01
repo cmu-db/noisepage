@@ -13,6 +13,10 @@ common::hash_t CreateFunctionPlanNode::Hash() const {
   auto database_oid = GetDatabaseOid();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid));
 
+  // Hash namespace oid
+  auto namespace_oid = GetNamespaceOid();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&namespace_oid));
+
   // Hash language
   auto language = GetUDFLanguage();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&language));
@@ -55,6 +59,9 @@ bool CreateFunctionPlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   // Database OID
   if (GetDatabaseOid() != other.GetDatabaseOid()) return false;
+
+  // Namespace OID
+  if (GetNamespaceOid() != other.GetNamespaceOid()) return false;
 
   // Language
   if (GetUDFLanguage() != other.GetUDFLanguage()) return false;
@@ -109,6 +116,7 @@ bool CreateFunctionPlanNode::operator==(const AbstractPlanNode &rhs) const {
 nlohmann::json CreateFunctionPlanNode::ToJson() const {
   nlohmann::json j = AbstractPlanNode::ToJson();
   j["database_oid"] = database_oid_;
+  j["namespace_oid"] = namespace_oid_;
   j["language"] = language_;
   j["function_param_names"] = function_param_names_;
   j["function_param_types"] = function_param_types_;
@@ -123,6 +131,7 @@ nlohmann::json CreateFunctionPlanNode::ToJson() const {
 void CreateFunctionPlanNode::FromJson(const nlohmann::json &j) {
   AbstractPlanNode::FromJson(j);
   database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
+  namespace_oid_ = j.at("namespace_oid").get<catalog::namespace_oid_t>();
   language_ = j.at("language").get<parser::PLType>();
   function_param_names_ = j.at("function_param_names").get<std::vector<std::string>>();
   function_param_types_ = j.at("function_param_types").get<std::vector<parser::BaseFunctionParameter::DataType>>();

@@ -115,6 +115,11 @@ class UpdatePlanNode : public AbstractPlanNode {
         update_primary_key_(update_primary_key) {}
 
  public:
+  /**
+   * Default constructor for deserialization
+   */
+  UpdatePlanNode() = default;
+
   DISALLOW_COPY_AND_MOVE(UpdatePlanNode)
 
   /**

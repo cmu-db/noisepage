@@ -17,7 +17,7 @@
 
 namespace terrier::planner {
 
-using AggregateTerm = std::shared_ptr<const parser::AggregateExpression>;
+using AggregateTerm = std::shared_ptr<parser::AggregateExpression>;
 
 /**
  * Plan node for aggregates
@@ -40,7 +40,7 @@ class AggregatePlanNode : public AbstractPlanNode {
      * @param term aggregate term to be added
      * @return builder object
      */
-    Builder &AddAgregateTerm(AggregateTerm term) {
+    Builder &AddAggregateTerm(AggregateTerm term) {
       aggregate_terms_.emplace_back(std::move(term));
       return *this;
     }

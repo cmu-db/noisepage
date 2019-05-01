@@ -25,6 +25,11 @@ struct ParameterInfo {
       : tuple_index_(tuple_index), tuple_column_index_(tuple_column_index), value_index_(value_index) {}
 
   /**
+   * Default constructor for deserialization
+   */
+  ParameterInfo() = default;
+
+  /**
    * Index of tuple
    */
   uint32_t tuple_index_;
@@ -65,6 +70,27 @@ struct ParameterInfo {
    * @return true if the two parameter info are not logically equal
    */
   bool operator!=(const ParameterInfo &rhs) const { return !(*this == rhs); }
+
+  /**
+   * @return serialized ParameterInfo
+   */
+  nlohmann::json ToJson() const {
+    nlohmann::json j;
+    j["tuple_index"] = tuple_index_;
+    j["tuple_column_index"] = tuple_column_index_;
+    j["value_index"] = value_index_;
+    return j;
+  }
+
+  /**
+   * Deserializes a ParameterInfo
+   * @param j serialized json of ParameterInfo
+   */
+  void FromJson(const nlohmann::json &j) {
+    tuple_index_ = j.at("tuple_index").get<uint32_t>();
+    tuple_column_index_ = j.at("tuple_column_index").get<uint32_t>();
+    value_index_ = j.at("value_index").get<uint32_t>();
+  }
 };
 
 /**
@@ -291,5 +317,6 @@ class InsertPlanNode : public AbstractPlanNode {
 };
 
 DEFINE_JSON_DECLARATIONS(InsertPlanNode);
+DEFINE_JSON_DECLARATIONS(ParameterInfo);
 
 }  // namespace terrier::planner

@@ -103,8 +103,8 @@ class AbstractScanPlanNode : public AbstractPlanNode {
    */
   AbstractScanPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
                        std::shared_ptr<OutputSchema> output_schema,
-                       std::shared_ptr<parser::AbstractExpression> predicate, bool is_for_update,
-                       bool is_parallel, catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid)
+                       std::shared_ptr<parser::AbstractExpression> predicate, bool is_for_update, bool is_parallel,
+                       catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         scan_predicate_(std::move(predicate)),
         is_for_update_(is_for_update),
