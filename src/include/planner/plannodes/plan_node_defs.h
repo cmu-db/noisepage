@@ -101,6 +101,15 @@ enum class LogicalJoinType {
 
 enum class SetOpType { INVALID = INVALID_TYPE_ID, INTERSECT = 1, INTERSECT_ALL = 2, EXCEPT = 3, EXCEPT_ALL = 4 };
 
+//===--------------------------------------------------------------------===//
+// External File defaults
+//===--------------------------------------------------------------------===//
+
+#define DEFAULT_DELIMETER_CHAR ','
+#define DEFAULT_QUOTE_CHAR '"'
+#define DEFAULT_ESCAPE_CHAR '"'
+#define DEFAULT_NULL_STRING ""
+
 // TODO(Gus,Wen) Tuple as a concept does not exist yet, someone need to define it in the storage layer, possibly a
 /**
  * Temporary definition of a tuple in the storage layer

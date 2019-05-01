@@ -82,8 +82,7 @@ class CreateDatabasePlanNode : public AbstractPlanNode {
    */
   CreateDatabasePlanNode() = default;
 
-  nlohmann::json ToJson() const override;
-  void FromJson(const nlohmann::json &j) override;
+  DISALLOW_COPY_AND_MOVE(CreateDatabasePlanNode)
 
   /**
    * @return the type of this plan node
@@ -102,17 +101,14 @@ class CreateDatabasePlanNode : public AbstractPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
+
  private:
   /**
    * Database Name
    */
   std::string database_name_;
-
- public:
-  /**
-   * Don't allow plan to be copied or moved
-   */
-  DISALLOW_COPY_AND_MOVE(CreateDatabasePlanNode);
 };
 
 DEFINE_JSON_DECLARATIONS(CreateDatabasePlanNode);

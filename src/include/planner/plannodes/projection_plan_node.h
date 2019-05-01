@@ -49,6 +49,9 @@ class ProjectionPlanNode : public AbstractPlanNode {
    * Default constructor used for deserialization
    */
   ProjectionPlanNode() = default;
+
+  DISALLOW_COPY_AND_MOVE(ProjectionPlanNode)
+
   /**
    * @return the type of this plan node
    */
@@ -63,12 +66,6 @@ class ProjectionPlanNode : public AbstractPlanNode {
 
   nlohmann::json ToJson() const override;
   void FromJson(const nlohmann::json &j) override;
-
- public:
-  /**
-   * Don't allow plan to be copied or moved
-   */
-  DISALLOW_COPY_AND_MOVE(ProjectionPlanNode);
 };
 
 DEFINE_JSON_DECLARATIONS(ProjectionPlanNode);

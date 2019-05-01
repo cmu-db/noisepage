@@ -38,6 +38,15 @@ class UpdatePlanNode : public AbstractPlanNode {
     }
 
     /**
+     * @param namespace_oid OID of the namespace
+     * @return builder object
+     */
+    Builder &SetNamespaceOid(catalog::namespace_oid_t namespace_oid) {
+      namespace_oid_ = namespace_oid;
+      return *this;
+    }
+
+    /**
      * @param table_oid the OID of the target SQL table
      * @return builder object
      */
@@ -61,7 +70,8 @@ class UpdatePlanNode : public AbstractPlanNode {
      */
     std::shared_ptr<UpdatePlanNode> Build() {
       return std::shared_ptr<UpdatePlanNode>(new UpdatePlanNode(std::move(children_), std::move(output_schema_),
-                                                                database_oid_, table_oid_, update_primary_key_));
+                                                                database_oid_, namespace_oid_, table_oid_,
+                                                                update_primary_key_));
     }
 
    protected:
@@ -69,6 +79,11 @@ class UpdatePlanNode : public AbstractPlanNode {
      * OID of the database
      */
     catalog::db_oid_t database_oid_;
+
+    /**
+     * OID of namespace
+     */
+    catalog::namespace_oid_t namespace_oid_;
 
     /**
      * OID of the table to update
@@ -86,26 +101,31 @@ class UpdatePlanNode : public AbstractPlanNode {
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
    * @param database_oid OID of the database
+   * @param namespace_oid OID of the namespace
    * @param table_oid OID of the target SQL table
    * @param update_primary_key whether to update primary key
    */
   UpdatePlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
-                 catalog::db_oid_t database_oid, catalog::table_oid_t table_oid, bool update_primary_key)
+                 catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
+                 bool update_primary_key)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         database_oid_(database_oid),
+        namespace_oid_(namespace_oid),
         table_oid_(table_oid),
         update_primary_key_(update_primary_key) {}
 
  public:
-  /**
-   * Default constructor used for deserialization
-   */
-  UpdatePlanNode() = default;
+  DISALLOW_COPY_AND_MOVE(UpdatePlanNode)
 
   /**
    * @return OID of the database
    */
   catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
+
+  /**
+   * @return OID of the namespace
+   */
+  catalog::namespace_oid_t GetNamespaceOid() const { return namespace_oid_; }
 
   /**
    * @return the OID of the target table to operate on
@@ -139,6 +159,11 @@ class UpdatePlanNode : public AbstractPlanNode {
   catalog::db_oid_t database_oid_;
 
   /**
+   * OID of namespace
+   */
+  catalog::namespace_oid_t namespace_oid_;
+
+  /**
    * OID of the table to update
    */
   catalog::table_oid_t table_oid_;
@@ -147,12 +172,6 @@ class UpdatePlanNode : public AbstractPlanNode {
    * Whether to update primary key
    */
   bool update_primary_key_;
-
- public:
-  /**
-   * Don't allow plan to be copied or moved
-   */
-  DISALLOW_COPY_AND_MOVE(UpdatePlanNode);
 };
 
 DEFINE_JSON_DECLARATIONS(UpdatePlanNode);

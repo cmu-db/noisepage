@@ -35,6 +35,15 @@ class DeletePlanNode : public AbstractPlanNode {
     }
 
     /**
+     * @param namespace_oid OID of the namespace
+     * @return builder object
+     */
+    Builder &SetNamespaceOid(catalog::namespace_oid_t namespace_oid) {
+      namespace_oid_ = namespace_oid;
+      return *this;
+    }
+
+    /**
      * @param table_oid the OID of the target SQL table
      * @return builder object
      */
@@ -66,8 +75,9 @@ class DeletePlanNode : public AbstractPlanNode {
      * @return plan node
      */
     std::shared_ptr<DeletePlanNode> Build() {
-      return std::shared_ptr<DeletePlanNode>(new DeletePlanNode(
-          std::move(children_), std::move(output_schema_), database_oid_, table_oid_, std::move(delete_condition_)));
+      return std::shared_ptr<DeletePlanNode>(new DeletePlanNode(std::move(children_), std::move(output_schema_),
+                                                                database_oid_, namespace_oid_, table_oid_,
+                                                                std::move(delete_condition_)));
     }
 
    protected:
@@ -75,6 +85,11 @@ class DeletePlanNode : public AbstractPlanNode {
      * OID of the database
      */
     catalog::db_oid_t database_oid_;
+
+    /**
+     * OID of namespace
+     */
+    catalog::namespace_oid_t namespace_oid_;
 
     /**
      * the table to be deleted
@@ -91,13 +106,17 @@ class DeletePlanNode : public AbstractPlanNode {
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
+   * @param database_oid OID of the database
+   * @param namespace_oid OID of the namespace
    * @param table_oid the OID of the target SQL table
    * @param delete_condition expression of delete condition
    */
   DeletePlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
-                 catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
+                 catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
                  std::shared_ptr<parser::AbstractExpression> delete_condition)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
+        database_oid_(database_oid),
+        namespace_oid_(namespace_oid),
         table_oid_(table_oid),
         delete_condition_(std::move(delete_condition)) {}
 
@@ -107,13 +126,17 @@ class DeletePlanNode : public AbstractPlanNode {
    */
   DeletePlanNode() = default;
 
-  nlohmann::json ToJson() const override;
-  void FromJson(const nlohmann::json &j) override;
+  DISALLOW_COPY_AND_MOVE(DeletePlanNode)
 
   /**
    * @return OID of the database
    */
   catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
+
+  /**
+   * @return OID of the namespace
+   */
+  catalog::namespace_oid_t GetNamespaceOid() const { return namespace_oid_; }
 
   /**
    * @return OID of the table to be deleted
@@ -137,11 +160,19 @@ class DeletePlanNode : public AbstractPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
+
  private:
   /**
    * OID of the database
    */
   catalog::db_oid_t database_oid_;
+
+  /**
+   * OID of namespace
+   */
+  catalog::namespace_oid_t namespace_oid_;
 
   /**
    * Table to be deleted
@@ -152,12 +183,6 @@ class DeletePlanNode : public AbstractPlanNode {
    * Expression of delete condition
    */
   std::shared_ptr<parser::AbstractExpression> delete_condition_;
-
- public:
-  /**
-   * Don't allow plan to be copied or moved
-   */
-  DISALLOW_COPY_AND_MOVE(DeletePlanNode);
 };
 
 DEFINE_JSON_DECLARATIONS(DeletePlanNode);

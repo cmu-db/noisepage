@@ -49,11 +49,20 @@ class AbstractScanPlanNode : public AbstractPlanNode {
     }
 
     /**
-     * @param oid database OID of table/index beind scanned
+     * @param database_oid database OID of table/index beind scanned
      * @return builder object
      */
-    ConcreteType &SetDatabaseOid(catalog::db_oid_t oid) {
-      database_oid_ = oid;
+    ConcreteType &SetDatabaseOid(catalog::db_oid_t database_oid) {
+      database_oid_ = database_oid;
+      return *dynamic_cast<ConcreteType *>(this);
+    }
+
+    /**
+     * @param namespace_oid namespace OID of table/index beind scanned
+     * @return builder object
+     */
+    ConcreteType &SetNamespaceOid(catalog::namespace_oid_t namespace_oid) {
+      namespace_oid_ = namespace_oid;
       return *dynamic_cast<ConcreteType *>(this);
     }
 
@@ -75,6 +84,11 @@ class AbstractScanPlanNode : public AbstractPlanNode {
      * Database OID for scan
      */
     catalog::db_oid_t database_oid_;
+
+    /**
+     * OID of namespace
+     */
+    catalog::namespace_oid_t namespace_oid_;
   };
 
   /**
@@ -85,22 +99,26 @@ class AbstractScanPlanNode : public AbstractPlanNode {
    * @param is_for_update scan is used for an update
    * @param is_parallel parallel scan flag
    * @param database_oid database oid for scan
+   * @param namespace_oid OID of the namespace
    */
   AbstractScanPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
                        std::shared_ptr<OutputSchema> output_schema,
-                       std::shared_ptr<parser::AbstractExpression> predicate, bool is_for_update, bool is_parallel,
-                       catalog::db_oid_t database_oid)
+                       std::shared_ptr<parser::AbstractExpression> predicate, bool is_for_update,
+                       bool is_parallel, catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         scan_predicate_(std::move(predicate)),
         is_for_update_(is_for_update),
         is_parallel_(is_parallel),
-        database_oid_(database_oid) {}
+        database_oid_(database_oid),
+        namespace_oid_(namespace_oid) {}
 
  public:
   /**
    * Default constructor used for deserialization
    */
   AbstractScanPlanNode() = default;
+
+  DISALLOW_COPY_AND_MOVE(AbstractScanPlanNode)
 
   /**
    * @return predicate used for performing scan
@@ -121,6 +139,11 @@ class AbstractScanPlanNode : public AbstractPlanNode {
    * @return database OID of index/table being scanned
    */
   catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
+
+  /**
+   * @return namespace OID of index/table being scanned
+   */
+  catalog::namespace_oid_t GetNamespaceOid() const { return namespace_oid_; }
 
   /**
    * @return the hashed value of this plan node
@@ -152,11 +175,10 @@ class AbstractScanPlanNode : public AbstractPlanNode {
    */
   catalog::db_oid_t database_oid_;
 
- public:
   /**
-   * Don't allow plan to be copied or moved
+   * Namespace OID for scan
    */
-  DISALLOW_COPY_AND_MOVE(AbstractScanPlanNode);
+  catalog::namespace_oid_t namespace_oid_;
 };
 
 }  // namespace terrier::planner

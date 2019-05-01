@@ -53,6 +53,8 @@ class NestedLoopJoinPlanNode : public AbstractJoinPlanNode {
    */
   NestedLoopJoinPlanNode() = default;
 
+  DISALLOW_COPY_AND_MOVE(NestedLoopJoinPlanNode)
+
   /**
    * @return the type of this plan node
    */
@@ -67,12 +69,6 @@ class NestedLoopJoinPlanNode : public AbstractJoinPlanNode {
 
   nlohmann::json ToJson() const override;
   void FromJson(const nlohmann::json &j) override;
-
- public:
-  /**
-   * Don't allow plan to be copied or moved
-   */
-  DISALLOW_COPY_AND_MOVE(NestedLoopJoinPlanNode);
 };
 
 DEFINE_JSON_DECLARATIONS(NestedLoopJoinPlanNode);

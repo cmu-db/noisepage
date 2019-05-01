@@ -15,6 +15,59 @@
 namespace terrier::planner {
 
 /**
+ * Parameter Info
+ */
+struct ParameterInfo {
+  /**
+   * Constructor
+   */
+  ParameterInfo(uint32_t tuple_index, uint32_t tuple_column_index, uint32_t value_index)
+      : tuple_index_(tuple_index), tuple_column_index_(tuple_column_index), value_index_(value_index) {}
+
+  /**
+   * Index of tuple
+   */
+  uint32_t tuple_index_;
+
+  /**
+   * Column index
+   */
+  uint32_t tuple_column_index_;
+
+  /**
+   * Index of value
+   */
+  uint32_t value_index_;
+
+  /**
+   * @return the hashed value of this parameter info
+   */
+  common::hash_t Hash() const {
+    common::hash_t hash = common::HashUtil::Hash(tuple_index_);
+    hash = common::HashUtil::CombineHashes(hash, tuple_column_index_);
+    hash = common::HashUtil::CombineHashes(hash, value_index_);
+    return hash;
+  }
+
+  /**
+   * Logical equality check.
+   * @param rhs other
+   * @return true if the two parameter info are logically equal
+   */
+  bool operator==(const ParameterInfo &rhs) const {
+    return tuple_index_ == rhs.tuple_index_ && tuple_column_index_ == rhs.tuple_column_index_ &&
+           value_index_ == rhs.value_index_;
+  }
+
+  /**
+   * Logical inequality check.
+   * @param rhs other
+   * @return true if the two parameter info are not logically equal
+   */
+  bool operator!=(const ParameterInfo &rhs) const { return !(*this == rhs); }
+};
+
+/**
  * Plan node for insert
  */
 class InsertPlanNode : public AbstractPlanNode {
@@ -41,6 +94,15 @@ class InsertPlanNode : public AbstractPlanNode {
     }
 
     /**
+     * @param namespace_oid OID of the namespace
+     * @return builder object
+     */
+    Builder &SetNamespaceOid(catalog::namespace_oid_t namespace_oid) {
+      namespace_oid_ = namespace_oid;
+      return *this;
+    }
+
+    /**
      * @param table_oid the OID of the target SQL table
      * @return builder object
      */
@@ -59,11 +121,13 @@ class InsertPlanNode : public AbstractPlanNode {
     }
 
     /**
-     * @param parameter_info parameter information
+     * @param tuple_index Index of tuple
+     * @param tuple_column_index column index
+     * @param value_index Index of value
      * @return builder object
      */
-    Builder &SetParameterInfo(std::vector<std::tuple<uint32_t, uint32_t, uint32_t>> &&parameter_info) {
-      parameter_info_ = std::move(parameter_info);
+    Builder &AddParameterInfo(uint32_t tuple_index, uint32_t tuple_column_index, uint32_t value_index) {
+      parameter_info_.emplace_back(tuple_index, tuple_column_index, value_index);
       return *this;
     }
 
@@ -77,13 +141,13 @@ class InsertPlanNode : public AbstractPlanNode {
     }
 
     /**
-     * Build the insert plan node
+     * Build the delete plan node
      * @return plan node
      */
     std::shared_ptr<InsertPlanNode> Build() {
-      return std::shared_ptr<InsertPlanNode>(new InsertPlanNode(std::move(children_), std::move(output_schema_),
-                                                                database_oid_, table_oid_, std::move(values_),
-                                                                std::move(parameter_info_), bulk_insert_count_));
+      return std::shared_ptr<InsertPlanNode>(
+          new InsertPlanNode(std::move(children_), std::move(output_schema_), database_oid_, namespace_oid_, table_oid_,
+                             std::move(values_), std::move(parameter_info_), bulk_insert_count_));
     }
 
    protected:
@@ -91,6 +155,11 @@ class InsertPlanNode : public AbstractPlanNode {
      * OID of the database
      */
     catalog::db_oid_t database_oid_;
+
+    /**
+     * OID of namespace
+     */
+    catalog::namespace_oid_t namespace_oid_;
 
     /**
      * OID of the table to insert into
@@ -104,9 +173,9 @@ class InsertPlanNode : public AbstractPlanNode {
 
     // TODO(Gus,Wen) the storage layer is different now, need to whether reconsider this mapping approach is still valid
     /**
-     * parameter information <tuple_index,  tuple_column_index, value_index>
+     * parameter information
      */
-    std::vector<std::tuple<uint32_t, uint32_t, uint32_t>> parameter_info_;
+    std::vector<ParameterInfo> parameter_info_;
 
     /**
      * number of times to insert
@@ -119,23 +188,27 @@ class InsertPlanNode : public AbstractPlanNode {
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
    * @param database_oid OID of the database
+   * @param namespace_oid OID of the namespace
    * @param table_oid the OID of the target SQL table
    * @param values values to insert
    * @param parameter_info parameters information
    * @param bulk_insert_count the number of times to insert
    */
   InsertPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
-                 catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
-                 std::vector<type::TransientValue> &&values,
-                 std::vector<std::tuple<uint32_t, uint32_t, uint32_t>> &&parameter_info, uint32_t bulk_insert_count)
+                 catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
+                 std::vector<type::TransientValue> &&values, std::vector<ParameterInfo> &&parameter_info,
+                 uint32_t bulk_insert_count)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         database_oid_(database_oid),
+        namespace_oid_(namespace_oid),
         table_oid_(table_oid),
         values_(std::move(values)),
         parameter_info_(std::move(parameter_info)),
         bulk_insert_count_(bulk_insert_count) {}
 
  public:
+  DISALLOW_COPY_AND_MOVE(InsertPlanNode)
+
   /**
    * Default constructor used for deserialization
    */
@@ -151,6 +224,11 @@ class InsertPlanNode : public AbstractPlanNode {
   catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
 
   /**
+   * @return OID of the namespace
+   */
+  catalog::namespace_oid_t GetNamespaceOid() const { return namespace_oid_; }
+
+  /**
    * @return the OID of the table to insert into
    */
   catalog::table_oid_t GetTableOid() const { return table_oid_; }
@@ -163,7 +241,7 @@ class InsertPlanNode : public AbstractPlanNode {
   /**
    * @return the information of insert parameters
    */
-  const std::vector<std::tuple<uint32_t, uint32_t, uint32_t>> &GetParameterInfo() const { return parameter_info_; }
+  const std::vector<ParameterInfo> &GetParameterInfo() const { return parameter_info_; }
 
   /**
    * @return number of times to insert
@@ -187,6 +265,11 @@ class InsertPlanNode : public AbstractPlanNode {
   catalog::db_oid_t database_oid_;
 
   /**
+   * OID of namespace
+   */
+  catalog::namespace_oid_t namespace_oid_;
+
+  /**
    * OID of the table to insert into
    */
   catalog::table_oid_t table_oid_;
@@ -197,20 +280,14 @@ class InsertPlanNode : public AbstractPlanNode {
   std::vector<type::TransientValue> values_;
 
   /**
-   * parameter information <tuple_index,  tuple_column_index, value_index>
+   * parameter information
    */
-  std::vector<std::tuple<uint32_t, uint32_t, uint32_t>> parameter_info_;
+  std::vector<ParameterInfo> parameter_info_;
 
   /**
-   * number of times to insert
+   * name of time to insert
    */
   uint32_t bulk_insert_count_;
-
- public:
-  /**
-   * Don't allow plan to be copied or moved
-   */
-  DISALLOW_COPY_AND_MOVE(InsertPlanNode);
 };
 
 DEFINE_JSON_DECLARATIONS(InsertPlanNode);

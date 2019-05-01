@@ -94,8 +94,7 @@ class DropDatabasePlanNode : public AbstractPlanNode {
    */
   DropDatabasePlanNode() = default;
 
-  nlohmann::json ToJson() const override;
-  void FromJson(const nlohmann::json &j) override;
+  DISALLOW_COPY_AND_MOVE(DropDatabasePlanNode)
 
   /**
    * @return the type of this plan node
@@ -119,6 +118,9 @@ class DropDatabasePlanNode : public AbstractPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
+
  private:
   /**
    * OID of the database to drop
@@ -129,12 +131,6 @@ class DropDatabasePlanNode : public AbstractPlanNode {
    * Whether "IF EXISTS" was used
    */
   bool if_exists_;
-
- public:
-  /**
-   * Don't allow plan to be copied or moved
-   */
-  DISALLOW_COPY_AND_MOVE(DropDatabasePlanNode);
 };
 
 DEFINE_JSON_DECLARATIONS(DropDatabasePlanNode);

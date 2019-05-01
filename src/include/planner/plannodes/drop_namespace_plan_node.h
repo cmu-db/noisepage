@@ -111,8 +111,7 @@ class DropNamespacePlanNode : public AbstractPlanNode {
    */
   DropNamespacePlanNode() = default;
 
-  nlohmann::json ToJson() const override;
-  void FromJson(const nlohmann::json &j) override;
+  DISALLOW_COPY_AND_MOVE(DropNamespacePlanNode)
 
   /**
    * @return the type of this plan node
@@ -141,6 +140,10 @@ class DropNamespacePlanNode : public AbstractPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
+
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
+
  private:
   /**
    * OID of the database
@@ -156,12 +159,6 @@ class DropNamespacePlanNode : public AbstractPlanNode {
    * Whether "IF EXISTS" was used
    */
   bool if_exists_;
-
- public:
-  /**
-   * Don't allow plan to be copied or moved
-   */
-  DISALLOW_COPY_AND_MOVE(DropNamespacePlanNode);
 };
 
 DEFINE_JSON_DECLARATIONS(DropNamespacePlanNode);

@@ -70,6 +70,9 @@ class SetOpPlanNode : public AbstractPlanNode {
    * Default constructor for deserialization
    */
   SetOpPlanNode() = default;
+
+  DISALLOW_COPY_AND_MOVE(SetOpPlanNode)
+
   /**
    * @return the set operation of this node
    */
@@ -95,12 +98,6 @@ class SetOpPlanNode : public AbstractPlanNode {
    * Set Operation of this node
    */
   SetOpType set_op_;
-
- public:
-  /**
-   * Don't allow plan to be copied or moved
-   */
-  DISALLOW_COPY_AND_MOVE(SetOpPlanNode);
 };
 
 DEFINE_JSON_DECLARATIONS(SetOpPlanNode);

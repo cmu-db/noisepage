@@ -1,5 +1,6 @@
 #pragma once
 
+#include <parser/expression/aggregate_expression.h>
 #include <memory>
 #include <numeric>
 #include <string>
@@ -16,80 +17,13 @@
 
 namespace terrier::planner {
 
+using AggregateTerm = std::shared_ptr<const parser::AggregateExpression>;
+
 /**
  * Plan node for aggregates
  */
 class AggregatePlanNode : public AbstractPlanNode {
  public:
-  /**
-   * Information for each term being aggregated on
-   */
-  class AggregateTerm {
-   public:
-    /**
-     *
-     * @param aggregate_type Aggregate expression type
-     * @param expr pointer to aggregate expression
-     * @param distinct distinct flag
-     */
-    AggregateTerm(parser::ExpressionType aggregate_type, std::shared_ptr<parser::AbstractExpression> &&expr,
-                  bool distinct)
-        : aggregate_type_(aggregate_type), expression_(std::move(expr)), distinct_(distinct) {}
-
-    /**
-     * Default constructor used for deserialization
-     */
-    AggregateTerm() = default;
-
-    /**
-     * Check if two AggregateTerms are equal
-     * @param rhs other aggregate term
-     * @return true if two AggregateTerms are equal
-     */
-    bool operator==(const AggregateTerm &rhs) const {
-      if ((expression_ == nullptr && rhs.expression_ != nullptr) ||
-          (expression_ != nullptr && rhs.expression_ == nullptr))
-        return false;
-      if (expression_ != nullptr && *expression_ != *rhs.expression_) return false;
-      return aggregate_type_ == rhs.aggregate_type_ && distinct_ == rhs.distinct_;
-    }
-
-    /**
-     * @param rhs other aggregate term
-     * @return true if two aggregate terms are not equal
-     */
-    bool operator!=(const AggregateTerm &rhs) const { return !(*this == rhs); }
-
-    nlohmann::json ToJson() const {
-      nlohmann::json j;
-      j["aggregate_type"] = aggregate_type_;
-      j["expression"] = expression_;
-      j["distinct"] = distinct_;
-      return j;
-    }
-
-    void FromJson(const nlohmann::json &j) {
-      aggregate_type_ = j.at("aggregate_type").get<parser::ExpressionType>();
-      if (!j.at("expression").is_null()) {
-        expression_ = parser::DeserializeExpression(j.at("expression"));
-      }
-      distinct_ = j.at("distinct").get<bool>();
-    }
-
-    /**
-     * Count, Sum, Min, Max, etc
-     */
-    parser::ExpressionType aggregate_type_;
-    /**
-     * Aggregate expression
-     */
-    std::shared_ptr<parser::AbstractExpression> expression_;
-    /**
-     * Distinct flag for aggragate term (example COUNT(distinct order))
-     */
-    bool distinct_;
-  };
-
   /**
    * Builder for aggregate plan node
    */
@@ -177,16 +111,11 @@ class AggregatePlanNode : public AbstractPlanNode {
    */
   AggregatePlanNode() = default;
 
+  DISALLOW_COPY_AND_MOVE(AggregatePlanNode)
+
   //===--------------------------------------------------------------------===//
   // ACCESSORS
   //===--------------------------------------------------------------------===//
-
-  // TODO(Gus,Wen): Figure out how to represent global aggregates (example: count(*))
-  /**
-   * A global aggregate does not aggregate over specific columns, example: count(*)
-   * @return true if aggregation is global
-   */
-  bool IsGlobal() const { return false; }
 
   /**
    * @return pointer to predicate for having clause
@@ -221,25 +150,9 @@ class AggregatePlanNode : public AbstractPlanNode {
   void FromJson(const nlohmann::json &j) override;
 
  private:
-  /**
-   * @param agg_terms aggregate terms to be hashed
-   * @return hash of agregate terms
-   */
-  common::hash_t HashAggregateTerms(const std::vector<AggregatePlanNode::AggregateTerm> &agg_terms) const;
-
- private:
   std::shared_ptr<parser::AbstractExpression> having_clause_predicate_;
   std::vector<AggregateTerm> aggregate_terms_;
   AggregateStrategyType aggregate_strategy_;
-
- public:
-  /**
-   * Don't allow plan to be copied or moved
-   */
-  DISALLOW_COPY_AND_MOVE(AggregatePlanNode);
 };
-
-DEFINE_JSON_DECLARATIONS(AggregatePlanNode::AggregateTerm);
 DEFINE_JSON_DECLARATIONS(AggregatePlanNode);
-
 }  // namespace terrier::planner

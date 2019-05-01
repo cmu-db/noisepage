@@ -81,6 +81,8 @@ class LimitPlanNode : public AbstractPlanNode {
    */
   LimitPlanNode() = default;
 
+  DISALLOW_COPY_AND_MOVE(LimitPlanNode)
+
   /**
    * @return the type of this plan node
    */
@@ -116,12 +118,6 @@ class LimitPlanNode : public AbstractPlanNode {
    * The offset
    */
   size_t offset_;
-
- public:
-  /**
-   * Don't allow plan to be copied or moved
-   */
-  DISALLOW_COPY_AND_MOVE(LimitPlanNode);
 };
 
 DEFINE_JSON_DECLARATIONS(LimitPlanNode);

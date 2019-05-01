@@ -9,6 +9,8 @@
 
 namespace terrier::planner {
 
+using SortKey = std::pair<catalog::col_oid_t, OrderByOrderingType>;
+
 /**
  * Plan node for order by operator
  */
@@ -68,7 +70,7 @@ class OrderByPlanNode : public AbstractPlanNode {
     /**
      * Column Ids and ordering type ([ASC] or [DESC]) used (in order) to sort input tuples
      */
-    std::vector<std::pair<catalog::col_oid_t, OrderByOrderingType>> sort_keys_;
+    std::vector<SortKey> sort_keys_;
     /**
      * true if sort has a defined limit. False by default
      */
@@ -95,7 +97,7 @@ class OrderByPlanNode : public AbstractPlanNode {
    */
   OrderByPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
                   std::shared_ptr<OutputSchema> output_schema,
-                  std::vector<std::pair<catalog::col_oid_t, OrderByOrderingType>> sort_keys, bool has_limit,
+                  std::vector<SortKey> sort_keys, bool has_limit,
                   size_t limit, size_t offset)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         sort_keys_(std::move(sort_keys)),
@@ -109,10 +111,12 @@ class OrderByPlanNode : public AbstractPlanNode {
    */
   OrderByPlanNode() = default;
 
+  DISALLOW_COPY_AND_MOVE(OrderByPlanNode)
+
   /**
    * @return keys to sort on
    */
-  const std::vector<std::pair<catalog::col_oid_t, OrderByOrderingType>> &GetSortKeys() const { return sort_keys_; }
+  const std::vector<SortKey> &GetSortKeys() const { return sort_keys_; }
 
   /**
    * @return the type of this plan node
@@ -154,7 +158,7 @@ class OrderByPlanNode : public AbstractPlanNode {
 
  private:
   /* Column Ids and ordering type ([ASC] or [DESC]) used (in order) to sort input tuples */
-  std::vector<std::pair<catalog::col_oid_t, OrderByOrderingType>> sort_keys_;
+  std::vector<SortKey> sort_keys_;
 
   /* Whether there is limit clause */
   bool has_limit_;
@@ -164,12 +168,6 @@ class OrderByPlanNode : public AbstractPlanNode {
 
   /* How many tuples to skip first */
   size_t offset_;
-
- public:
-  /**
-   * Don't allow plan to be copied or moved
-   */
-  DISALLOW_COPY_AND_MOVE(OrderByPlanNode);
 };
 
 DEFINE_JSON_DECLARATIONS(OrderByPlanNode);

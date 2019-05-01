@@ -686,6 +686,8 @@ class CreateTablePlanNode : public AbstractPlanNode {
    */
   CreateTablePlanNode() = default;
 
+  DISALLOW_COPY_AND_MOVE(CreateTablePlanNode)
+
   /**
    * @return the type of this plan node
    */
@@ -792,12 +794,6 @@ class CreateTablePlanNode : public AbstractPlanNode {
    * Check constraints
    */
   std::vector<CheckInfo> con_checks_;
-
- public:
-  /**
-   * Don't allow plan to be copied or moved
-   */
-  DISALLOW_COPY_AND_MOVE(CreateTablePlanNode);
 };
 
 DEFINE_JSON_DECLARATIONS(PrimaryKeyInfo);

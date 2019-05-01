@@ -36,6 +36,15 @@ class CreateIndexPlanNode : public AbstractPlanNode {
     }
 
     /**
+     * @param namespace_oid OID of the namespace
+     * @return builder object
+     */
+    Builder &SetNamespaceOid(catalog::namespace_oid_t namespace_oid) {
+      namespace_oid_ = namespace_oid;
+      return *this;
+    }
+
+    /**
      * @param table_oid OID of the table to create index on
      * @return builder object
      */
@@ -110,8 +119,8 @@ class CreateIndexPlanNode : public AbstractPlanNode {
      */
     std::shared_ptr<CreateIndexPlanNode> Build() {
       return std::shared_ptr<CreateIndexPlanNode>(new CreateIndexPlanNode(
-          std::move(children_), std::move(output_schema_), database_oid_, table_oid_, index_type_, unique_index_,
-          std::move(index_name_), std::move(index_attrs_), std::move(key_attrs_)));
+          std::move(children_), std::move(output_schema_), database_oid_, namespace_oid_, table_oid_, index_type_,
+          unique_index_, std::move(index_name_), std::move(index_attrs_), std::move(key_attrs_)));
     }
 
    protected:
@@ -119,6 +128,11 @@ class CreateIndexPlanNode : public AbstractPlanNode {
      * OID of the database
      */
     catalog::db_oid_t database_oid_;
+
+    /**
+     * OID of namespace
+     */
+    catalog::namespace_oid_t namespace_oid_;
 
     /**
      * OID of the table to create index on
@@ -156,6 +170,7 @@ class CreateIndexPlanNode : public AbstractPlanNode {
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
    * @param database_oid OID of the database
+   * @param namespace_oid OID of the namespace
    * @param table_oid OID of the table to create index on
    * @param table_schema schema of the table to create
    * @param index_type type of index to create
@@ -166,11 +181,12 @@ class CreateIndexPlanNode : public AbstractPlanNode {
    */
   CreateIndexPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
                       std::shared_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
-                      catalog::table_oid_t table_oid, parser::IndexType index_type, bool unique_index,
-                      std::string index_name, std::vector<std::string> &&index_attrs,
-                      std::vector<std::string> &&key_attrs)
+                      catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
+                      parser::IndexType index_type, bool unique_index, std::string index_name,
+                      std::vector<std::string> &&index_attrs, std::vector<std::string> &&key_attrs)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         database_oid_(database_oid),
+        namespace_oid_(namespace_oid),
         table_oid_(table_oid),
         index_type_(index_type),
         unique_index_(unique_index),
@@ -184,8 +200,7 @@ class CreateIndexPlanNode : public AbstractPlanNode {
    */
   CreateIndexPlanNode() = default;
 
-  nlohmann::json ToJson() const override;
-  void FromJson(const nlohmann::json &j) override;
+  DISALLOW_COPY_AND_MOVE(CreateIndexPlanNode)
 
   /**
    * @return the type of this plan node
@@ -196,6 +211,11 @@ class CreateIndexPlanNode : public AbstractPlanNode {
    * @return OID of the database
    */
   catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
+
+  /**
+   * @return OID of the namespace
+   */
+  catalog::namespace_oid_t GetNamespaceOid() const { return namespace_oid_; }
 
   /**
    * @return OID of the table to create index on
@@ -234,11 +254,19 @@ class CreateIndexPlanNode : public AbstractPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
+
  private:
   /**
    * OID of the database
    */
   catalog::db_oid_t database_oid_;
+
+  /**
+   * OID of namespace
+   */
+  catalog::namespace_oid_t namespace_oid_;
 
   /**
    * OID of the table to create index on
@@ -269,12 +297,6 @@ class CreateIndexPlanNode : public AbstractPlanNode {
    * Attributes that are part of the index key
    */
   std::vector<std::string> key_attrs_;
-
- public:
-  /**
-   * Don't allow plan to be copied or moved
-   */
-  DISALLOW_COPY_AND_MOVE(CreateIndexPlanNode);
 };
 
 DEFINE_JSON_DECLARATIONS(CreateIndexPlanNode);

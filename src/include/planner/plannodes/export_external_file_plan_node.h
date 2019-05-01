@@ -84,15 +84,15 @@ class ExportExternalFilePlanNode : public AbstractPlanNode {
     /**
      * delimiter character
      */
-    char delimiter_ = ',';
+    char delimiter_ = DEFAULT_DELIMETER_CHAR;
     /**
      * quote character
      */
-    char quote_ = '"';
+    char quote_ = DEFAULT_QUOTE_CHAR;
     /**
      * escape character
      */
-    char escape_ = '"';
+    char escape_ = DEFAULT_ESCAPE_CHAR;
   };
 
  private:
@@ -116,6 +116,9 @@ class ExportExternalFilePlanNode : public AbstractPlanNode {
    * Default constructor for deserialization
    */
   ExportExternalFilePlanNode() = default;
+
+  DISALLOW_COPY_AND_MOVE(ExportExternalFilePlanNode)
+
   /**
    * @return the type of this plan node
    */
@@ -148,32 +151,11 @@ class ExportExternalFilePlanNode : public AbstractPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
-  nlohmann::json ToJson() const override;
-  void FromJson(const nlohmann::json &j) override;
-
  private:
-  /**
-   * string representation of file name
-   */
   std::string file_name_;
-  /**
-   * delimiter character
-   */
-  char delimiter_ = ',';
-  /**
-   * quote character
-   */
-  char quote_ = '"';
-  /**
-   * escape character
-   */
-  char escape_ = '"';
-
- public:
-  /**
-   * Don't allow plan to be copied or moved
-   */
-  DISALLOW_COPY_AND_MOVE(ExportExternalFilePlanNode);
+  char delimiter_;
+  char quote_;
+  char escape_;
 };
 
 DEFINE_JSON_DECLARATIONS(ExportExternalFilePlanNode);

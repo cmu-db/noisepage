@@ -1,8 +1,11 @@
 #include "planner/plannodes/insert_plan_node.h"
-
-#include <tuple>
+#include <memory>
+#include <string>
+#include <utility>
 #include <vector>
+#include "parser/expression/constant_value_expression.h"
 #include "storage/sql_table.h"
+#include "type/transient_value_factory.h"
 
 namespace terrier::planner {
 common::hash_t InsertPlanNode::Hash() const {
@@ -16,10 +19,6 @@ common::hash_t InsertPlanNode::Hash() const {
   // Hash table_oid
   auto table_oid = GetTableOid();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&table_oid));
-
-  for (const auto &value : GetValues()) {
-    hash = common::HashUtil::CombineHashes(hash, value.Hash());
-  }
 
   // Hash parameter_info
   for (const auto parameter : parameter_info_) {

@@ -105,6 +105,8 @@ class HashJoinPlanNode : public AbstractJoinPlanNode {
    */
   HashJoinPlanNode() = default;
 
+  DISALLOW_COPY_AND_MOVE(HashJoinPlanNode)
+
   /**
    * @return the type of this plan node
    */
@@ -142,12 +144,6 @@ class HashJoinPlanNode : public AbstractJoinPlanNode {
 
   // Flag indicating whether we build a bloom filter
   bool build_bloomfilter_;
-
- public:
-  /**
-   * Don't allow plan to be copied or moved
-   */
-  DISALLOW_COPY_AND_MOVE(HashJoinPlanNode);
 };
 
 DEFINE_JSON_DECLARATIONS(HashJoinPlanNode);

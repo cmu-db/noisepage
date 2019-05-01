@@ -74,9 +74,9 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
      * @return plan node
      */
     std::shared_ptr<CSVScanPlanNode> Build() {
-      return std::shared_ptr<CSVScanPlanNode>(
-          new CSVScanPlanNode(std::move(children_), std::move(output_schema_), nullptr /* predicate */, is_for_update_,
-                              is_parallel_, database_oid_, file_name_, delimiter_, quote_, escape_, null_string_));
+      return std::shared_ptr<CSVScanPlanNode>(new CSVScanPlanNode(
+          std::move(children_), std::move(output_schema_), nullptr /* predicate */, is_for_update_, is_parallel_,
+          database_oid_, namespace_oid_, file_name_, delimiter_, quote_, escape_, null_string_));
     }
 
    protected:
@@ -87,19 +87,19 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
     /**
      * delimiter character for CSV
      */
-    char delimiter_ = ',';
+    char delimiter_ = DEFAULT_DELIMETER_CHAR;
     /**
      * quote character for CSV
      */
-    char quote_ = '"';
+    char quote_ = DEFAULT_QUOTE_CHAR;
     /**
      * escape character for CSV
      */
-    char escape_ = '"';
+    char escape_ = DEFAULT_ESCAPE_CHAR;
     /**
      * null string for CSV
      */
-    std::string null_string_ = "";
+    std::string null_string_ = DEFAULT_NULL_STRING;
   };
 
  private:
@@ -118,11 +118,12 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
    * @param null_string the null string for the file
    */
   CSVScanPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
-                  std::shared_ptr<OutputSchema> output_schema, std::shared_ptr<parser::AbstractExpression> predicate,
-                  bool is_for_update, bool is_parallel, catalog::db_oid_t database_oid, std::string file_name,
+                  std::shared_ptr<OutputSchema> output_schema,
+                  std::shared_ptr<const parser::AbstractExpression> predicate, bool is_for_update, bool is_parallel,
+                  catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string file_name,
                   char delimiter, char quote, char escape, std::string null_string)
       : AbstractScanPlanNode(std::move(children), std::move(output_schema), std::move(predicate), is_for_update,
-                             is_parallel, database_oid),
+                             is_parallel, database_oid, namespace_oid),
         file_name_(std::move(file_name)),
         delimiter_(delimiter),
         quote_(quote),
@@ -135,8 +136,7 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
    */
   CSVScanPlanNode() = default;
 
-  nlohmann::json ToJson() const override;
-  void FromJson(const nlohmann::json &j) override;
+  DISALLOW_COPY_AND_MOVE(CSVScanPlanNode)
 
   /**
    * @return the type of this plan node
@@ -175,18 +175,15 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
+
  private:
   std::string file_name_;
   char delimiter_;
   char quote_;
   char escape_;
   std::string null_string_;
-
- public:
-  /**
-   * Don't allow plan to be copied or moved
-   */
-  DISALLOW_COPY_AND_MOVE(CSVScanPlanNode);
 };
 
 DEFINE_JSON_DECLARATIONS(CSVScanPlanNode);

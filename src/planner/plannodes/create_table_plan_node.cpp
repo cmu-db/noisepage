@@ -28,9 +28,7 @@ common::hash_t CreateTablePlanNode::Hash() const {
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&has_primary_key));
 
   // Hash primary_key
-  if (has_primary_key) {
-    hash = common::HashUtil::CombineHashes(hash, primary_key_.Hash());
-  }
+  hash = common::HashUtil::CombineHashes(hash, primary_key_.Hash());
 
   // Hash foreign_keys
   for (const auto &foreign_key : foreign_keys_) {
@@ -68,13 +66,6 @@ bool CreateTablePlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   // Has primary key
   if (HasPrimaryKey() != other.HasPrimaryKey()) return false;
-
-  // Primary Key if exists
-  if (HasPrimaryKey()) {
-    const auto &pk = GetPrimaryKey();
-    const auto &other_pk = other.GetPrimaryKey();
-    if (pk != other_pk) return false;
-  }
 
   // Foreign key
   const auto &foreign_keys_ = GetForeignKeys();

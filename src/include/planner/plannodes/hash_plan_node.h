@@ -71,6 +71,8 @@ class HashPlanNode : public AbstractPlanNode {
    */
   HashPlanNode() = default;
 
+  DISALLOW_COPY_AND_MOVE(HashPlanNode)
+
   /**
    * @return the type of this plan node
    */
@@ -93,12 +95,6 @@ class HashPlanNode : public AbstractPlanNode {
 
  private:
   std::vector<std::shared_ptr<parser::AbstractExpression>> hash_keys_;
-
- public:
-  /**
-   * Don't allow plan to be copied or moved
-   */
-  DISALLOW_COPY_AND_MOVE(HashPlanNode);
 };
 
 DEFINE_JSON_DECLARATIONS(HashPlanNode);

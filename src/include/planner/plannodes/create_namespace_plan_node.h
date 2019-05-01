@@ -95,8 +95,7 @@ class CreateNamespacePlanNode : public AbstractPlanNode {
    */
   CreateNamespacePlanNode() = default;
 
-  nlohmann::json ToJson() const override;
-  void FromJson(const nlohmann::json &j) override;
+  DISALLOW_COPY_AND_MOVE(CreateNamespacePlanNode)
 
   /**
    * @return the type of this plan node
@@ -120,6 +119,9 @@ class CreateNamespacePlanNode : public AbstractPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
+
  private:
   /**
    * OID of the database
@@ -130,14 +132,6 @@ class CreateNamespacePlanNode : public AbstractPlanNode {
    * Namespace name
    */
   std::string namespace_name_;
-
- public:
-  /**
-   * Don't allow plan to be copied or moved
-   */
-  DISALLOW_COPY_AND_MOVE(CreateNamespacePlanNode);
 };
-
 DEFINE_JSON_DECLARATIONS(CreateNamespacePlanNode);
-
 }  // namespace terrier::planner
