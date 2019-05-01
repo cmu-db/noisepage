@@ -129,7 +129,7 @@ class AbstractPlanNode {
 
   /**
    * Populates the plan node with the information in the given JSON.
-   * Undefined behavior occurs if the JSON has a different PlanNodeType.
+   * @param j json to deserialize
    */
   virtual void FromJson(const nlohmann::json &j);
 
@@ -184,8 +184,14 @@ class AbstractPlanNode {
   std::shared_ptr<OutputSchema> output_schema_;
 };
 
-// JSON library interface. Do not modify.
 DEFINE_JSON_DECLARATIONS(AbstractPlanNode);
+
+/**
+ * Main deserialization method. This is the only method that should be used to deserialize. You should never be calling
+ * FromJson to deserialize a plan node
+ * @param json json to deserialize
+ * @return deserialized plan node
+ */
 std::shared_ptr<AbstractPlanNode> DeserializePlanNode(const nlohmann::json &json);
 
 }  // namespace terrier::planner
