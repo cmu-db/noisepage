@@ -221,7 +221,7 @@ class TransientValue {
   FRIEND_TEST(ValueTests, TimestampTest);
   FRIEND_TEST(ValueTests, DateTest);
   FRIEND_TEST(ValueTests, VarCharTest);
-  
+
   /**
    * Constructor for NULL value
    * @param type type id
@@ -239,7 +239,7 @@ class TransientValue {
   FRIEND_TEST(ValueTests, TimestampJsonTest);
   FRIEND_TEST(ValueTests, DateJsonTest);
   FRIEND_TEST(ValueTests, VarCharJsonTest);
-  
+
   template <typename T>
   TransientValue(const TypeId type, T data) {
     // clear internal buffer
