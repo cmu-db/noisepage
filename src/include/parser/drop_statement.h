@@ -103,7 +103,7 @@ class DropStatement : public TableRefStatement {
   // DROP SCHEMA
   const bool cascade_ = false;
 
-  // drop trigger
+  // DROP TRIGGER
   const std::string trigger_name_;
 };
 
