@@ -97,7 +97,9 @@ void BufferedTupleWriter::SerializeTuple(ProjectedRow *row, const TupleSlot *slo
   // Move tupleslot to buffer
   AlignBufferOffset<uint32_t>();
   std::memcpy(buffer_ + page_offset_, slot, sizeof(TupleSlot));
-  page_offset_ += sizeof(TupleSlot);
+  // The size of TupleSlot is small, so the cast is unlikely to overflow.
+  // It is safe to do the cast.
+  page_offset_ += static_cast<uint32_t>(sizeof(TupleSlot));
 
   // Move varlens to buffer
   for (auto *entry : varlen_entries) {
