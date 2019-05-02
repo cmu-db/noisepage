@@ -25,4 +25,15 @@ bool SetOpPlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   return AbstractPlanNode::operator==(rhs);
 }
+
+nlohmann::json SetOpPlanNode::ToJson() const {
+  nlohmann::json j = AbstractPlanNode::ToJson();
+  j["set_op"] = set_op_;
+  return j;
+}
+
+void SetOpPlanNode::FromJson(const nlohmann::json &j) {
+  AbstractPlanNode::FromJson(j);
+  set_op_ = j.at("set_op").get<SetOpType>();
+}
 }  // namespace terrier::planner

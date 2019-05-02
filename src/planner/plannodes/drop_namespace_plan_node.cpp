@@ -38,4 +38,20 @@ bool DropNamespacePlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   return AbstractPlanNode::operator==(rhs);
 }
+
+nlohmann::json DropNamespacePlanNode::ToJson() const {
+  nlohmann::json j = AbstractPlanNode::ToJson();
+  j["database_oid"] = database_oid_;
+  j["namespace_oid"] = namespace_oid_;
+  j["if_exists"] = if_exists_;
+  return j;
+}
+
+void DropNamespacePlanNode::FromJson(const nlohmann::json &j) {
+  AbstractPlanNode::FromJson(j);
+  database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
+  namespace_oid_ = j.at("namespace_oid").get<catalog::namespace_oid_t>();
+  if_exists_ = j.at("if_exists").get<bool>();
+}
+
 }  // namespace terrier::planner

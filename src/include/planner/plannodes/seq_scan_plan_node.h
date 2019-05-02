@@ -66,15 +66,19 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
    * @param table_oid OID for table to scan
    */
   SeqScanPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
-                  std::shared_ptr<OutputSchema> output_schema,
-                  std::shared_ptr<const parser::AbstractExpression> predicate, bool is_for_update, bool is_parallel,
-                  catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                  catalog::table_oid_t table_oid)
+                  std::shared_ptr<OutputSchema> output_schema, std::shared_ptr<parser::AbstractExpression> predicate,
+                  bool is_for_update, bool is_parallel, catalog::db_oid_t database_oid,
+                  catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid)
       : AbstractScanPlanNode(std::move(children), std::move(output_schema), std::move(predicate), is_for_update,
                              is_parallel, database_oid, namespace_oid),
         table_oid_(table_oid) {}
 
  public:
+  /**
+   * Default constructor used for deserialization
+   */
+  SeqScanPlanNode() = default;
+
   DISALLOW_COPY_AND_MOVE(SeqScanPlanNode)
 
   /**
@@ -94,11 +98,16 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
+
  private:
   /**
    * OID for table being scanned
    */
   catalog::table_oid_t table_oid_;
 };
+
+DEFINE_JSON_DECLARATIONS(SeqScanPlanNode);
 
 }  // namespace terrier::planner

@@ -224,6 +224,11 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
         trigger_type_(trigger_type) {}
 
  public:
+  /**
+   * Default constructor for deserialization
+   */
+  CreateTriggerPlanNode() = default;
+
   DISALLOW_COPY_AND_MOVE(CreateTriggerPlanNode)
 
   /**
@@ -283,6 +288,9 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
+
  private:
   /**
    * OID of the database
@@ -329,5 +337,7 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
    */
   int16_t trigger_type_ = 0;
 };
+
+DEFINE_JSON_DECLARATIONS(CreateTriggerPlanNode);
 
 }  // namespace terrier::planner

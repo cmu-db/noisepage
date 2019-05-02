@@ -67,12 +67,12 @@ class AbstractPlanNode {
                    std::shared_ptr<OutputSchema> output_schema)
       : children_(std::move(children)), output_schema_(std::move(output_schema)) {}
 
+ public:
   /**
    * Constructor for Deserialization and DDL statements
    */
   AbstractPlanNode() = default;
 
- public:
   DISALLOW_COPY_AND_MOVE(AbstractPlanNode)
 
   virtual ~AbstractPlanNode() = default;
@@ -117,21 +117,21 @@ class AbstractPlanNode {
    */
   std::shared_ptr<OutputSchema> GetOutputSchema() const { return output_schema_; }
 
-  //  //===--------------------------------------------------------------------===//
-  //  // JSON Serialization/Deserialization
-  //  //===--------------------------------------------------------------------===//
-  //
-  //  /**
-  //   * Return the current plan node in JSON format.
-  //   * @return JSON representation of plan node
-  //   */
-  //  virtual nlohmann::json ToJson() const;
-  //
-  //  /**
-  //   * Populates the plan node with the information in the given JSON.
-  //   * Undefined behavior occurs if the JSON has a different PlanNodeType.
-  //   */
-  //  virtual void FromJson(const nlohmann::json &json);
+  //===--------------------------------------------------------------------===//
+  // JSON Serialization/Deserialization
+  //===--------------------------------------------------------------------===//
+
+  /**
+   * Return the current plan node in JSON format.
+   * @return JSON representation of plan node
+   */
+  virtual nlohmann::json ToJson() const;
+
+  /**
+   * Populates the plan node with the information in the given JSON.
+   * @param j json to deserialize
+   */
+  virtual void FromJson(const nlohmann::json &j);
 
   //===--------------------------------------------------------------------===//
   // Utilities
@@ -142,7 +142,9 @@ class AbstractPlanNode {
    * @return hash of the plan node
    */
   virtual common::hash_t Hash() const {
-    common::hash_t hash = GetOutputSchema()->Hash();
+    auto type = GetPlanNodeType();
+    common::hash_t hash = common::HashUtil::Hash(&type);
+    hash = common::HashUtil::CombineHashes(hash, GetOutputSchema()->Hash());
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(GetPlanNodeType()));
     for (auto &child : GetChildren()) {
       hash = common::HashUtil::CombineHashes(hash, child->Hash());
@@ -155,6 +157,7 @@ class AbstractPlanNode {
    * @return true if plan node and its children are equal
    */
   virtual bool operator==(const AbstractPlanNode &rhs) const {
+    if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
     auto output_schema = GetOutputSchema();
     auto other_output_schema = rhs.GetOutputSchema();
     if ((output_schema == nullptr && other_output_schema != nullptr) ||
@@ -181,9 +184,15 @@ class AbstractPlanNode {
   std::shared_ptr<OutputSchema> output_schema_;
 };
 
-//// JSON library interface. Do not modify.
-// DEFINE_JSON_DECLARATIONS(AbstractPlanNode);
-// std::shared_ptr<AbstractPlanNode> DeserializePlanNode(const nlohmann::json &json);
+DEFINE_JSON_DECLARATIONS(AbstractPlanNode);
+
+/**
+ * Main deserialization method. This is the only method that should be used to deserialize. You should never be calling
+ * FromJson to deserialize a plan node
+ * @param json json to deserialize
+ * @return deserialized plan node
+ */
+std::shared_ptr<AbstractPlanNode> DeserializePlanNode(const nlohmann::json &json);
 
 }  // namespace terrier::planner
 

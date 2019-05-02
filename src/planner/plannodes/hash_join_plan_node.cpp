@@ -7,13 +7,6 @@ namespace terrier::planner {
 common::hash_t HashJoinPlanNode::Hash() const {
   common::hash_t hash = AbstractJoinPlanNode::Hash();
 
-  // Hash Join Type
-  auto logical_join_type = GetLogicalJoinType();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&logical_join_type));
-
-  // Hash Predicate
-  hash = common::HashUtil::CombineHashes(hash, GetJoinPredicate()->Hash());
-
   // Hash left keys
   for (const auto &left_hash_key : left_hash_keys_) {
     hash = common::HashUtil::CombineHashes(hash, left_hash_key->Hash());
@@ -28,21 +21,17 @@ common::hash_t HashJoinPlanNode::Hash() const {
   auto build_bloomfilter = IsBloomFilterEnabled();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&build_bloomfilter));
 
-  return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
+  return hash;
 }
 
 bool HashJoinPlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (!AbstractJoinPlanNode::operator==(rhs)) {
-    return false;
-  }
+  if (!AbstractJoinPlanNode::operator==(rhs)) return false;
 
   const auto &other = static_cast<const HashJoinPlanNode &>(rhs);
 
   if (GetLogicalJoinType() != other.GetLogicalJoinType()) return false;
 
   if (IsBloomFilterEnabled() != other.IsBloomFilterEnabled()) return false;
-
-  if (*GetJoinPredicate() != *other.GetJoinPredicate()) return false;
 
   // Left hash keys
   const auto &left_keys = GetLeftHashKeys();
@@ -70,8 +59,37 @@ bool HashJoinPlanNode::operator==(const AbstractPlanNode &rhs) const {
     }
   }
 
-  return GetLeftHashKeys() == other.GetLeftHashKeys() && GetRightHashKeys() == other.GetRightHashKeys() &&
-         AbstractPlanNode::operator==(rhs);
+  return true;
+}
+
+nlohmann::json HashJoinPlanNode::ToJson() const {
+  nlohmann::json j = AbstractJoinPlanNode::ToJson();
+  j["left_hash_keys"] = left_hash_keys_;
+  j["right_hash_keys"] = right_hash_keys_;
+  j["build_bloom_filter"] = build_bloomfilter_;
+  return j;
+}
+
+void HashJoinPlanNode::FromJson(const nlohmann::json &j) {
+  AbstractJoinPlanNode::FromJson(j);
+
+  // Deserialize left keys
+  auto left_keys = j.at("left_hash_keys").get<std::vector<nlohmann::json>>();
+  for (const auto &key_json : left_keys) {
+    if (!key_json.is_null()) {
+      left_hash_keys_.push_back(parser::DeserializeExpression(key_json));
+    }
+  }
+
+  // Deserialize right keys
+  auto right_keys = j.at("right_hash_keys").get<std::vector<nlohmann::json>>();
+  for (const auto &key_json : right_keys) {
+    if (!key_json.is_null()) {
+      right_hash_keys_.push_back(parser::DeserializeExpression(key_json));
+    }
+  }
+
+  build_bloomfilter_ = j.at("build_bloom_filter").get<bool>();
 }
 
 }  // namespace terrier::planner

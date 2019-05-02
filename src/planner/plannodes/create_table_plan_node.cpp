@@ -67,6 +67,9 @@ bool CreateTablePlanNode::operator==(const AbstractPlanNode &rhs) const {
   // Has primary key
   if (HasPrimaryKey() != other.HasPrimaryKey()) return false;
 
+  // Primary Key
+  if (HasPrimaryKey() && (GetPrimaryKey() != other.GetPrimaryKey())) return false;
+
   // Foreign key
   const auto &foreign_keys_ = GetForeignKeys();
   const auto &other_foreign_keys_ = other.GetForeignKeys();
@@ -102,4 +105,43 @@ bool CreateTablePlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   return AbstractPlanNode::operator==(rhs);
 }
+
+nlohmann::json CreateTablePlanNode::ToJson() const {
+  nlohmann::json j = AbstractPlanNode::ToJson();
+  j["database_oid"] = database_oid_;
+  j["namespace_oid"] = namespace_oid_;
+  j["table_name"] = table_name_;
+  j["table_schema"] = table_schema_;
+
+  j["has_primary_key"] = has_primary_key_;
+  if (has_primary_key_) {
+    j["primary_key"] = primary_key_;
+  }
+
+  j["foreign_keys"] = foreign_keys_;
+  j["con_uniques"] = con_uniques_;
+  j["con_checks"] = con_checks_;
+  return j;
+}
+
+void CreateTablePlanNode::FromJson(const nlohmann::json &j) {
+  AbstractPlanNode::FromJson(j);
+  database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
+  namespace_oid_ = j.at("namespace_oid").get<catalog::namespace_oid_t>();
+  table_name_ = j.at("table_name").get<std::string>();
+
+  if (!j.at("table_schema").is_null()) {
+    table_schema_ = catalog::Schema::DeserializeSchema(j.at("table_schema"));
+  }
+
+  has_primary_key_ = j.at("has_primary_key").get<bool>();
+  if (has_primary_key_) {
+    primary_key_ = j.at("primary_key").get<PrimaryKeyInfo>();
+  }
+
+  foreign_keys_ = j.at("foreign_keys").get<std::vector<ForeignKeyInfo>>();
+  con_uniques_ = j.at("con_uniques").get<std::vector<UniqueInfo>>();
+  con_checks_ = j.at("con_checks").get<std::vector<CheckInfo>>();
+}
+
 }  // namespace terrier::planner
