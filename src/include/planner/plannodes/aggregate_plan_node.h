@@ -17,7 +17,7 @@
 
 namespace terrier::planner {
 
-using AggregateTerm = std::shared_ptr<const parser::AggregateExpression>;
+using AggregateTerm = std::shared_ptr<parser::AggregateExpression>;
 
 /**
  * Plan node for aggregates
@@ -40,7 +40,7 @@ class AggregatePlanNode : public AbstractPlanNode {
      * @param term aggregate term to be added
      * @return builder object
      */
-    Builder &AddAgregateTerm(AggregateTerm term) {
+    Builder &AddAggregateTerm(AggregateTerm term) {
       aggregate_terms_.emplace_back(std::move(term));
       return *this;
     }
@@ -49,7 +49,7 @@ class AggregatePlanNode : public AbstractPlanNode {
      * @param predicate having clause predicate to use for aggregate term
      * @return builder object
      */
-    Builder &SetHavingClausePredicate(std::shared_ptr<const parser::AbstractExpression> predicate) {
+    Builder &SetHavingClausePredicate(std::shared_ptr<parser::AbstractExpression> predicate) {
       having_clause_predicate_ = std::move(predicate);
       return *this;
     }
@@ -77,7 +77,7 @@ class AggregatePlanNode : public AbstractPlanNode {
     /**
      * Predicate for having clause if it exists
      */
-    std::shared_ptr<const parser::AbstractExpression> having_clause_predicate_;
+    std::shared_ptr<parser::AbstractExpression> having_clause_predicate_;
     /**
      * List of aggregate terms for aggregation
      */
@@ -98,7 +98,7 @@ class AggregatePlanNode : public AbstractPlanNode {
    */
   AggregatePlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
                     std::shared_ptr<OutputSchema> output_schema,
-                    std::shared_ptr<const parser::AbstractExpression> having_clause_predicate,
+                    std::shared_ptr<parser::AbstractExpression> having_clause_predicate,
                     std::vector<AggregateTerm> aggregate_terms, AggregateStrategyType aggregate_strategy)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         having_clause_predicate_(std::move(having_clause_predicate)),
@@ -106,6 +106,11 @@ class AggregatePlanNode : public AbstractPlanNode {
         aggregate_strategy_(aggregate_strategy) {}
 
  public:
+  /**
+   * Default constructor used for deserialization
+   */
+  AggregatePlanNode() = default;
+
   DISALLOW_COPY_AND_MOVE(AggregatePlanNode)
 
   //===--------------------------------------------------------------------===//
@@ -115,7 +120,7 @@ class AggregatePlanNode : public AbstractPlanNode {
   /**
    * @return pointer to predicate for having clause
    */
-  const std::shared_ptr<const parser::AbstractExpression> &GetHavingClausePredicate() const {
+  const std::shared_ptr<parser::AbstractExpression> &GetHavingClausePredicate() const {
     return having_clause_predicate_;
   }
 
@@ -141,14 +146,13 @@ class AggregatePlanNode : public AbstractPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
+
  private:
-  std::shared_ptr<const parser::AbstractExpression> having_clause_predicate_;
-
-  /**
-   * Aggregate terms should be parser::AggregateExpressions, with a child dictating what column to aggregate on
-   */
-  const std::vector<AggregateTerm> aggregate_terms_;
-  const AggregateStrategyType aggregate_strategy_;
+  std::shared_ptr<parser::AbstractExpression> having_clause_predicate_;
+  std::vector<AggregateTerm> aggregate_terms_;
+  AggregateStrategyType aggregate_strategy_;
 };
-
+DEFINE_JSON_DECLARATIONS(AggregatePlanNode);
 }  // namespace terrier::planner
