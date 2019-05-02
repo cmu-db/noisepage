@@ -44,10 +44,15 @@ class NestedLoopJoinPlanNode : public AbstractJoinPlanNode {
    */
   NestedLoopJoinPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
                          std::shared_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
-                         std::shared_ptr<const parser::AbstractExpression> predicate)
+                         std::shared_ptr<parser::AbstractExpression> predicate)
       : AbstractJoinPlanNode(std::move(children), std::move(output_schema), join_type, std::move(predicate)) {}
 
  public:
+  /**
+   * Default constructor used for deserialization
+   */
+  NestedLoopJoinPlanNode() = default;
+
   DISALLOW_COPY_AND_MOVE(NestedLoopJoinPlanNode)
 
   /**
@@ -61,6 +66,11 @@ class NestedLoopJoinPlanNode : public AbstractJoinPlanNode {
   common::hash_t Hash() const override;
 
   bool operator==(const AbstractPlanNode &rhs) const override;
+
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
 };
+
+DEFINE_JSON_DECLARATIONS(NestedLoopJoinPlanNode);
 
 }  // namespace terrier::planner

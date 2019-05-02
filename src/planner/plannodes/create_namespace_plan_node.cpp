@@ -33,4 +33,18 @@ bool CreateNamespacePlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   return AbstractPlanNode::operator==(rhs);
 }
+
+nlohmann::json CreateNamespacePlanNode::ToJson() const {
+  nlohmann::json j = AbstractPlanNode::ToJson();
+  j["database_oid"] = database_oid_;
+  j["namespace_name"] = namespace_name_;
+  return j;
+}
+
+void CreateNamespacePlanNode::FromJson(const nlohmann::json &j) {
+  AbstractPlanNode::FromJson(j);
+  database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
+  namespace_name_ = j.at("namespace_name").get<std::string>();
+}
+
 }  // namespace terrier::planner

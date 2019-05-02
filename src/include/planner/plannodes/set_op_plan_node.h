@@ -66,6 +66,11 @@ class SetOpPlanNode : public AbstractPlanNode {
       : AbstractPlanNode(std::move(children), std::move(output_schema)), set_op_(set_op) {}
 
  public:
+  /**
+   * Default constructor for deserialization
+   */
+  SetOpPlanNode() = default;
+
   DISALLOW_COPY_AND_MOVE(SetOpPlanNode)
 
   /**
@@ -85,11 +90,16 @@ class SetOpPlanNode : public AbstractPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
+
  private:
   /**
    * Set Operation of this node
    */
   SetOpType set_op_;
 };
+
+DEFINE_JSON_DECLARATIONS(SetOpPlanNode);
 
 }  // namespace terrier::planner

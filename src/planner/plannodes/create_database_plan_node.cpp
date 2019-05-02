@@ -25,4 +25,16 @@ bool CreateDatabasePlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   return AbstractPlanNode::operator==(rhs);
 }
+
+nlohmann::json CreateDatabasePlanNode::ToJson() const {
+  nlohmann::json j = AbstractPlanNode::ToJson();
+  j["database_name"] = database_name_;
+  return j;
+}
+
+void CreateDatabasePlanNode::FromJson(const nlohmann::json &j) {
+  AbstractPlanNode::FromJson(j);
+  database_name_ = j.at("database_name").get<std::string>();
+}
+
 }  // namespace terrier::planner

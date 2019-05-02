@@ -6,6 +6,7 @@
 #include <vector>
 #include "common/constants.h"
 #include "common/hash_util.h"
+#include "common/json.h"
 #include "common/macros.h"
 #include "common/strong_typedef.h"
 #include "parser/expression/abstract_expression.h"
@@ -59,6 +60,12 @@ class OutputSchema {
         : name_(std::move(name)), type_(type), nullable_(nullable), oid_(oid) {
       TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
     }
+
+    /**
+     * Default constructor used for deserialization
+     */
+    Column() = default;
+
     /**
      * @return column name
      */
@@ -94,11 +101,33 @@ class OutputSchema {
      */
     bool operator!=(const Column &rhs) const { return !operator==(rhs); }
 
+    /**
+     * @return column serialized to json
+     */
+    nlohmann::json ToJson() const {
+      nlohmann::json j;
+      j["name"] = name_;
+      j["type"] = type_;
+      j["nullable"] = nullable_;
+      j["oid"] = oid_;
+      return j;
+    }
+
+    /**
+     * @param j json to deserialize
+     */
+    void FromJson(const nlohmann::json &j) {
+      name_ = j.at("name").get<std::string>();
+      type_ = j.at("type").get<type::TypeId>();
+      nullable_ = j.at("nullable").get<bool>();
+      oid_ = j.at("oid").get<catalog::col_oid_t>();
+    }
+
    private:
-    const std::string name_;
-    const type::TypeId type_;
-    const bool nullable_;
-    const catalog::col_oid_t oid_;
+    std::string name_;
+    type::TypeId type_;
+    bool nullable_;
+    catalog::col_oid_t oid_;
   };
 
   /**
@@ -106,15 +135,6 @@ class OutputSchema {
    */
   class DerivedColumn {
    public:
-    /**
-     * Intermediate column
-     */
-    Column column_;
-    /**
-     * The expression used to derive the intermediate column
-     */
-    std::shared_ptr<parser::AbstractExpression> expr_;
-
     /**
      * Instantiate a derived column
      * @param column an intermediate column
@@ -124,6 +144,11 @@ class OutputSchema {
         : column_(std::move(column)), expr_(std::move(expr)) {}
 
     /**
+     * Default constructor used for deserialization
+     */
+    DerivedColumn() = default;
+
+    /**
      * Hash the current DerivedColumn.
      */
     common::hash_t Hash() const {
@@ -131,13 +156,59 @@ class OutputSchema {
       hash = common::HashUtil::CombineHashes(hash, expr_->Hash());
       return hash;
     }
+
+    /**
+     * Equality check.
+     * @param rhs other
+     * @return true if the two derived columns are the same
+     */
+    bool operator==(const DerivedColumn &rhs) const {
+      if (column_ != rhs.column_) return false;
+
+      if ((expr_ == nullptr && rhs.expr_ != nullptr) || (expr_ != nullptr && rhs.expr_ == nullptr)) {
+        return false;
+      }
+      if (expr_ != nullptr && *expr_ != *rhs.expr_) {
+        return false;
+      }
+      return true;
+    }
+
+    /**
+     * @return derived column serialized to json
+     */
+    nlohmann::json ToJson() const {
+      nlohmann::json j;
+      j["column"] = column_;
+      j["expr"] = expr_;
+      return j;
+    }
+
+    /**
+     * @param j json to deserialize
+     */
+    void FromJson(const nlohmann::json &j) {
+      column_ = j.at("column").get<Column>();
+      if (!j.at("expr").is_null()) {
+        expr_ = parser::DeserializeExpression(j.at("expr"));
+      }
+    }
+
+    /**
+     * Intermediate column
+     */
+    Column column_;
+    /**
+     * The expression used to derive the intermediate column
+     */
+    std::shared_ptr<parser::AbstractExpression> expr_;
   };
 
   /**
    * Define a mapping of an offset into a vector of columns of an OutputSchema to an intermediate column produced by a
    * plan node
    */
-  using DerivedTarget = std::pair<uint32_t, const DerivedColumn>;
+  using DerivedTarget = std::pair<uint32_t, DerivedColumn>;
 
   /**
    * Generic specification of a direct map between the columns of two output schema
@@ -165,6 +236,11 @@ class OutputSchema {
    * @param other the OutputSchema to be copied
    */
   OutputSchema(const OutputSchema &other) = default;
+
+  /**
+   * Default constructor for deserialization
+   */
+  OutputSchema() = default;
 
   /**
    * @param col_id offset into the schema specifying which Column to access
@@ -211,15 +287,7 @@ class OutputSchema {
    * @return true if the two OutputSchema are the same
    */
   bool operator==(const OutputSchema &rhs) const {
-    if (columns_.size() != rhs.columns_.size()) {
-      return false;
-    }
-    for (size_t i = 0; i < columns_.size(); i++) {
-      if (columns_[i] != rhs.columns_[i]) {
-        return false;
-      }
-    }
-    return true;
+    return (columns_ == rhs.columns_) && (targets_ == rhs.targets_) && (direct_map_list_ == rhs.direct_map_list_);
   }
 
   /**
@@ -229,9 +297,34 @@ class OutputSchema {
    */
   bool operator!=(const OutputSchema &rhs) const { return !operator==(rhs); }
 
+  /**
+   * @return derived column serialized to json
+   */
+  nlohmann::json ToJson() const {
+    nlohmann::json j;
+    j["columns"] = columns_;
+    j["targets"] = targets_;
+    j["direct_map_list"] = direct_map_list_;
+    return j;
+  }
+
+  /**
+   * @param j json to deserialize
+   */
+  void FromJson(const nlohmann::json &j) {
+    columns_ = j.at("columns").get<std::vector<Column>>();
+    targets_ = j.at("targets").get<std::vector<DerivedTarget>>();
+    direct_map_list_ = j.at("direct_map_list").get<std::vector<DirectMap>>();
+  }
+
  private:
-  const std::vector<Column> columns_;
-  const std::vector<DerivedTarget> targets_;
-  const std::vector<DirectMap> direct_map_list_;
+  std::vector<Column> columns_;
+  std::vector<DerivedTarget> targets_;
+  std::vector<DirectMap> direct_map_list_;
 };
+
+DEFINE_JSON_DECLARATIONS(OutputSchema::Column);
+DEFINE_JSON_DECLARATIONS(OutputSchema::DerivedColumn);
+DEFINE_JSON_DECLARATIONS(OutputSchema);
+
 }  // namespace terrier::planner

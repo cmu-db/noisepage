@@ -118,10 +118,10 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
    * @param null_string the null string for the file
    */
   CSVScanPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
-                  std::shared_ptr<OutputSchema> output_schema,
-                  std::shared_ptr<const parser::AbstractExpression> predicate, bool is_for_update, bool is_parallel,
-                  catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string file_name,
-                  char delimiter, char quote, char escape, std::string null_string)
+                  std::shared_ptr<OutputSchema> output_schema, std::shared_ptr<parser::AbstractExpression> predicate,
+                  bool is_for_update, bool is_parallel, catalog::db_oid_t database_oid,
+                  catalog::namespace_oid_t namespace_oid, std::string file_name, char delimiter, char quote,
+                  char escape, std::string null_string)
       : AbstractScanPlanNode(std::move(children), std::move(output_schema), std::move(predicate), is_for_update,
                              is_parallel, database_oid, namespace_oid),
         file_name_(std::move(file_name)),
@@ -131,6 +131,11 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
         null_string_(std::move(null_string)) {}
 
  public:
+  /**
+   * Default constructor for deserialization
+   */
+  CSVScanPlanNode() = default;
+
   DISALLOW_COPY_AND_MOVE(CSVScanPlanNode)
 
   /**
@@ -170,12 +175,17 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
+
  private:
-  const std::string file_name_;
+  std::string file_name_;
   char delimiter_;
   char quote_;
   char escape_;
-  const std::string null_string_;
+  std::string null_string_;
 };
+
+DEFINE_JSON_DECLARATIONS(CSVScanPlanNode);
 
 }  // namespace terrier::planner

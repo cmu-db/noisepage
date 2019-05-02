@@ -236,6 +236,11 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
         param_count_(param_count) {}
 
  public:
+  /**
+   * Default constructor used for deserialization
+   */
+  CreateFunctionPlanNode() = default;
+
   DISALLOW_COPY_AND_MOVE(CreateFunctionPlanNode)
 
   /**
@@ -302,6 +307,9 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
+
  private:
   /**
    * OID of database
@@ -353,4 +361,7 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
    */
   int param_count_ = 0;
 };
+
+DEFINE_JSON_DECLARATIONS(CreateFunctionPlanNode);
+
 }  // namespace terrier::planner
