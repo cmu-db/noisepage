@@ -240,11 +240,6 @@ class TransientValue {
   FRIEND_TEST(ValueTests, DateJsonTest);
   FRIEND_TEST(ValueTests, VarCharJsonTest);
 
-  /**
-   * Default constructor used for deserializing json
-   */
-  TransientValue() = default;
-
   template <typename T>
   TransientValue(const TypeId type, T data) {
     // clear internal buffer
