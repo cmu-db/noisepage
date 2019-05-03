@@ -1,5 +1,5 @@
 
-#include "storage/index/index_populator.h"
+#include "storage/index/index_builder.h"
 #include <string>
 #include <vector>
 #include "catalog/catalog.h"

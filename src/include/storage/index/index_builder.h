@@ -4,7 +4,9 @@
 #include "loggers/main_logger.h"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
+#include "parser/parser_defs.h"
 #include "transaction/transaction_context.h"
+#include "catalog/catalog_defs.h"
 
 namespace terrier::storage::index {
 
@@ -17,6 +19,19 @@ namespace terrier::storage::index {
  */
 class IndexBuilder {
  public:
+  static void CreateConcurrently(
+      catalog::db_oid_t db_oid,
+      catalog::namespace_oid_t ns_oid,
+      catalog::table_oid_t tbl_oid,
+      parser::IndexType index_type,
+      bool unique_index,
+      std::string &index_name,
+      std::vector<std::string> &index_attrs,
+      std::vector<std::string> &key_attrs
+  ) {
+    // TODO
+  }
+
   /**
    * The method populates all tuples in the table visible to current transaction with latest version,
    * then pack target columns into ProjectedRow's and insert into the given index.
