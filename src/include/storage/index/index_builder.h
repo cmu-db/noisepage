@@ -22,27 +22,28 @@ namespace terrier::storage::index {
  */
 class IndexBuilder {
  private:
-  Index *GetEmptyIndex(bool unique_index, catalog::db_oid_t db_oid, catalog::table_oid_t table_oid,
-                       catalog::index_oid_t index_oid, catalog::Catalog *catalog, std::vector<std::string> &key_attrs,
-                       transaction::TransactionContext *txn_ctx) {
-    auto *index_factory = new IndexFactory();
-    index_factory->SetOid(index_oid);
+  Index *GetEmptyIndex(catalog::db_oid_t db_oid, catalog::table_oid_t table_oid,
+                       catalog::index_oid_t index_oid, bool unique_index,
+                       std::vector<std::string> &key_attrs,
+                       transaction::TransactionContext *txn, catalog::Catalog *catalog) {
+    IndexFactory index_factory;
     ConstraintType constraint = (unique_index) ? ConstraintType::UNIQUE : ConstraintType::DEFAULT;
-    index_factory->SetConstraintType(constraint);
+    index_factory.SetOid(index_oid);
+    index_factory.SetConstraintType(constraint);
     IndexKeySchema key_schema;
     for (const auto &key_name : key_attrs) {
       auto entry = catalog->GetDatabaseHandle()
-                       .GetAttributeHandle(txn_ctx, db_oid)
-                       .GetAttributeEntry(txn_ctx, table_oid, key_name);
+                       .GetAttributeHandle(txn, db_oid)
+                       .GetAttributeEntry(txn, table_oid, key_name);
       type::TypeId type_id = (type::TypeId)entry->GetTinyIntColumn("atttypid");
-      if (type_id == type::TypeId::VARCHAR || type_id == type::TypeId::VARBINARY)
+      if (type::TypeUtil::GetTypeSize(type_id) == VARLEN_COLUMN)
         key_schema.emplace_back(entry->GetIntegerColumn("oid"), type_id, entry->ColumnIsNull(key_name));
       else
         key_schema.emplace_back(entry->GetIntegerColumn("oid"), type_id, entry->ColumnIsNull(key_name),
                                 entry->GetIntegerColumn("attlen"));
     }
-    index_factory->SetKeySchema(key_schema);
-    return index_factory->Build();
+    index_factory.SetKeySchema(key_schema);
+    return index_factory.Build();
   }
 
  public:
@@ -60,6 +61,10 @@ class IndexBuilder {
       return;
     }
     std::shared_ptr<SqlTable> sql_table = sql_table_helper->GetSqlTable();
+    catalog::IndexHandle index_handle = catalog->GetDatabaseHandle().GetIndexHandle(txn1, db_oid);
+
+    index_handle.AddIndexEntry(txn1,)
+     Index *index = GetEmptyIndex(db_oid, table_oid, )
 
     txn_mgr->Commit(txn1, nullptr, nullptr);
   }
