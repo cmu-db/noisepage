@@ -54,7 +54,7 @@ class TestConfig(object):
         # of sources. Stop if the history requirements are met.
         self.ref_data_sources = [
             {"project" : "terrier-nightly",
-             "min_build" : 190,
+             "min_build" : 208,
             },
         ]
         return
