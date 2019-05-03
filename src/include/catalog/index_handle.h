@@ -66,7 +66,7 @@ class IndexHandle {
   /**
    * Create storage table
    */
-  static std::shared_ptr<catalog::SqlTableHelper> Create(transaction::TransactionContext *txn, Catalog *catalog,
+  static catalog::SqlTableHelper *Create(transaction::TransactionContext *txn, Catalog *catalog,
                                                      db_oid_t db_oid, const std::string &name);
   /**
    * Debug methods

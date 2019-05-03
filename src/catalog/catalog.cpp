@@ -404,7 +404,7 @@ void Catalog::CreatePGType(transaction::TransactionContext *txn, db_oid_t db_oid
 }
 
 void Catalog::CreatePGIndex(terrier::transaction::TransactionContext *txn, terrier::catalog::db_oid_t db_oid) {
-  std::shared_ptr<SqlTableHelper> pg_index = IndexHandle::Create(txn, this, db_oid, "pg_index");
+  IndexHandle::Create(txn, this, db_oid, "pg_index");
 }
 
 void Catalog::DeleteDatabaseTables(db_oid_t db_oid) {

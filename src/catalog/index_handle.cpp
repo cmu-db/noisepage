@@ -61,20 +61,20 @@ void IndexHandle::AddEntry(transaction::TransactionContext *txn, index_oid_t ind
   pg_index_rw_->InsertRow(txn, row);
 }
 
-std::shared_ptr<catalog::SqlTableHelper> IndexHandle::Create(transaction::TransactionContext *txn, Catalog *catalog,
+catalog::SqlTableHelper *IndexHandle::Create(transaction::TransactionContext *txn, Catalog *catalog,
                                                              db_oid_t db_oid, const std::string &name) {
   table_oid_t pg_index_oid(catalog->GetNextOid());
-  std::shared_ptr<catalog::SqlTableHelper> pg_index = std::make_shared<catalog::SqlTableHelper>(pg_index_oid);
+  catalog::SqlTableHelper *storage_table = new catalog::SqlTableHelper(pg_index_oid);
 
   // used columns
   for (auto col : schema_cols_) {
-    pg_index->DefineColumn(col.col_name, col.type_id, false, col_oid_t(catalog->GetNextOid()));
+    storage_table->DefineColumn(col.col_name, col.type_id, false, col_oid_t(catalog->GetNextOid()));
   }
-  pg_index->Create();
-  // TODO fixit
-//  catalog->AddToMaps(db_oid, pg_index_oid, name, pg_index);
 
-  return pg_index;
+  storage_table->Create();
+  catalog->AddToMaps(db_oid, pg_index_oid, name, storage_table);
+
+  return storage_table;
 }
 
 }  // namespace terrier::catalog
