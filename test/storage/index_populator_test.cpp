@@ -45,8 +45,8 @@ TEST_F(IndexPopulatorTest, BasicCorrectnessTest) {
   std::vector<catalog::Schema::Column> cols;
   cols.emplace_back("sex", type::TypeId::BOOLEAN, false, catalog::col_oid_t(catalog_->GetNextOid()));
   cols.emplace_back("id", type::TypeId::INTEGER, false, catalog::col_oid_t(catalog_->GetNextOid()));
-  cols.emplace_back("name", type::TypeId::VARCHAR, false, catalog::col_oid_t(catalog_->GetNextOid()));
-  cols.emplace_back("address", type::TypeId::VARCHAR, false, catalog::col_oid_t(catalog_->GetNextOid()));
+  cols.emplace_back("name", type::TypeId::VARCHAR, 100, false, catalog::col_oid_t(catalog_->GetNextOid()));
+  cols.emplace_back("address", type::TypeId::VARCHAR, 100, false, catalog::col_oid_t(catalog_->GetNextOid()));
   catalog::Schema schema(cols);
 
   // create table
