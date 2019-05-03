@@ -60,6 +60,25 @@ class IndexHandle {
                 bool indislive);
 
   /**
+   * Current workaround so that columns can be set in this table
+   * FIXME(yesheng): better have a unified approach.
+   */
+   void SetEntryColumn(transaction::TransactionContext *txn, index_oid_t indexreloid, const std::string &col, type::TransientValue &&value) {
+    std::shared_ptr<IndexEntry> entry = GetIndexEntry(txn, indexreloid);
+    DeleteEntry(txn, entry);
+    std::vector<type::TransientValue> new_values;
+    new_values.reserve(schema_cols_.size());
+    for (int i = 0; i < schema_cols_.size(); i++) {
+      new_values.emplace_back(type::TransientValueFactory::GetCopy(entry->GetColumn(i)));
+    }
+    pg_index_rw_->InsertRow(txn, new_values);
+  }
+
+  bool DeleteEntry(transaction::TransactionContext *txn, const std::shared_ptr<IndexEntry> &entry);
+
+
+
+  /**
    * Create storage table
    */
   static catalog::SqlTableHelper *Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,

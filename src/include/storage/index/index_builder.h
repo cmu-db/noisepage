@@ -37,9 +37,9 @@ class IndexBuilder {
                        .GetAttributeEntry(txn, table_oid, key_name);
       type::TypeId type_id = (type::TypeId)entry->GetTinyIntColumn("atttypid");
       if (type::TypeUtil::GetTypeSize(type_id) == VARLEN_COLUMN)
-        key_schema.emplace_back(entry->GetIntegerColumn("oid"), type_id, entry->ColumnIsNull(key_name));
+        key_schema.emplace_back(catalog::indexkeycol_oid_t(entry->GetIntegerColumn("oid")), type_id, entry->ColumnIsNull(key_name));
       else
-        key_schema.emplace_back(entry->GetIntegerColumn("oid"), type_id, entry->ColumnIsNull(key_name),
+        key_schema.emplace_back(catalog::indexkeycol_oid_t(entry->GetIntegerColumn("oid")), type_id, entry->ColumnIsNull(key_name),
                                 entry->GetIntegerColumn("attlen"));
     }
     index_factory.SetKeySchema(key_schema);
@@ -61,10 +61,10 @@ class IndexBuilder {
       return;
     }
     std::shared_ptr<SqlTable> sql_table = sql_table_helper->GetSqlTable();
-    catalog::IndexHandle index_handle = catalog->GetDatabaseHandle().GetIndexHandle(txn1, db_oid);
+//    catalog::IndexHandle index_handle = catalog->GetDatabaseHandle().GetIndexHandle(txn1, db_oid);
 
-    index_handle.AddIndexEntry(txn1,)
-     Index *index = GetEmptyIndex(db_oid, table_oid, )
+//    index_handle.AddIndexEntry(txn1,)
+//     Index *index = GetEmptyIndex(db_oid, table_oid, )
 
     txn_mgr->Commit(txn1, nullptr, nullptr);
   }

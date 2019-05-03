@@ -1097,9 +1097,9 @@ TEST_F(BwTreeKeyTests, CompactIntsBuilderTest) {
   for (uint32_t i = 0; i < num_iters; i++) {
     const auto key_schema = StorageTestUtil::RandomCompactIntsKeySchema(&generator_);
 
-    IndexBuilder builder;
-    builder.SetConstraintType(ConstraintType::DEFAULT).SetKeySchema(key_schema).SetOid(catalog::index_oid_t(i));
-    auto *index = builder.Build();
+    IndexFactory factory;
+    factory.SetConstraintType(ConstraintType::DEFAULT).SetKeySchema(key_schema).SetOid(catalog::index_oid_t(i));
+    auto *index = factory.Build();
     BasicOps(index);
 
     delete index;
@@ -1118,9 +1118,9 @@ TEST_F(BwTreeKeyTests, GenericKeyBuilderTest) {
   for (uint32_t i = 0; i < num_iters; i++) {
     const auto key_schema = StorageTestUtil::RandomGenericKeySchema(10, generic_key_types, &generator_);
 
-    IndexBuilder builder;
-    builder.SetConstraintType(ConstraintType::DEFAULT).SetKeySchema(key_schema).SetOid(catalog::index_oid_t(i));
-    auto *index = builder.Build();
+    IndexFactory factory;
+    factory.SetConstraintType(ConstraintType::DEFAULT).SetKeySchema(key_schema).SetOid(catalog::index_oid_t(i));
+    auto *index = factory.Build();
     BasicOps(index);
 
     delete index;

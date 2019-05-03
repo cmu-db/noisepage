@@ -70,4 +70,19 @@ catalog::SqlTableHelper *IndexHandle::Create(transaction::TransactionContext *tx
   return storage_table;
 }
 
+bool IndexHandle::DeleteEntry(transaction::TransactionContext *txn, const std::shared_ptr<IndexEntry> &entry) {
+  std::vector<type::TransientValue> search_vec;
+  auto ns_oid_int = entry->GetIntegerColumn("oid");
+  // get the oid of this row
+  search_vec.emplace_back(type::TransientValueFactory::GetInteger(ns_oid_int));
+
+  // lookup and get back the projected column. Recover the tuple_slot
+  auto proj_col_p = pg_index_rw_->FindRowProjCol(txn, search_vec);
+  auto tuple_slot_p = proj_col_p->TupleSlots();
+  // delete
+  bool status = pg_index_rw_->GetSqlTable()->Delete(txn, *tuple_slot_p);
+  delete[] reinterpret_cast<byte *>(proj_col_p);
+  return status;
+}
+
 }  // namespace terrier::catalog
