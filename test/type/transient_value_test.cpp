@@ -389,4 +389,154 @@ TEST_F(ValueTests, VarCharTest) {
   }
 }
 
+// NOLINTNEXTLINE
+TEST_F(ValueTests, BooleanJsonTest) {
+  auto data = static_cast<bool>(std::uniform_int_distribution<uint8_t>(0, 1)(generator_));
+
+  auto value = type::TransientValueFactory::GetBoolean(data);
+  EXPECT_FALSE(value.Null());
+
+  auto json = value.ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  TransientValue deserialized_value;
+  deserialized_value.FromJson(json);
+
+  EXPECT_EQ(value, deserialized_value);
+}
+
+// NOLINTNEXTLINE
+TEST_F(ValueTests, TinyIntJsonTest) {
+  auto data = static_cast<int8_t>(std::uniform_int_distribution<int8_t>(INT8_MIN, INT8_MAX)(generator_));
+
+  auto value = type::TransientValueFactory::GetTinyInt(data);
+  EXPECT_FALSE(value.Null());
+
+  auto json = value.ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  TransientValue deserialized_value;
+  deserialized_value.FromJson(json);
+
+  EXPECT_EQ(value, deserialized_value);
+}
+
+// NOLINTNEXTLINE
+TEST_F(ValueTests, SmallIntJsonTest) {
+  auto data = static_cast<int16_t>(std::uniform_int_distribution<int16_t>(INT16_MIN, INT16_MAX)(generator_));
+
+  auto value = type::TransientValueFactory::GetSmallInt(data);
+  EXPECT_FALSE(value.Null());
+
+  auto json = value.ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  TransientValue deserialized_value;
+  deserialized_value.FromJson(json);
+
+  EXPECT_EQ(value, deserialized_value);
+}
+
+// NOLINTNEXTLINE
+TEST_F(ValueTests, IntegerJsonTest) {
+  auto data = static_cast<int32_t>(std::uniform_int_distribution<int32_t>(INT32_MIN, INT32_MAX)(generator_));
+
+  auto value = type::TransientValueFactory::GetInteger(data);
+  EXPECT_FALSE(value.Null());
+
+  auto json = value.ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  TransientValue deserialized_value;
+  deserialized_value.FromJson(json);
+
+  EXPECT_EQ(value, deserialized_value);
+}
+
+// NOLINTNEXTLINE
+TEST_F(ValueTests, BigIntJsonTest) {
+  auto data = static_cast<int64_t>(std::uniform_int_distribution<int64_t>(INT64_MIN, INT64_MAX)(generator_));
+
+  auto value = type::TransientValueFactory::GetBigInt(data);
+  EXPECT_FALSE(value.Null());
+
+  auto json = value.ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  TransientValue deserialized_value;
+  deserialized_value.FromJson(json);
+
+  EXPECT_EQ(value, deserialized_value);
+}
+
+// NOLINTNEXTLINE
+TEST_F(ValueTests, DecimalJsonTest) {
+  auto data = std::uniform_real_distribution<double>(DBL_MIN, DBL_MAX)(generator_);
+
+  auto value = type::TransientValueFactory::GetDecimal(data);
+  EXPECT_FALSE(value.Null());
+
+  auto json = value.ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  TransientValue deserialized_value;
+  deserialized_value.FromJson(json);
+
+  EXPECT_EQ(value, deserialized_value);
+}
+
+// NOLINTNEXTLINE
+TEST_F(ValueTests, TimestampJsonTest) {
+  auto data = static_cast<type::timestamp_t>(std::uniform_int_distribution<uint64_t>(0, UINT64_MAX)(generator_));
+
+  auto value = type::TransientValueFactory::GetTimestamp(data);
+  EXPECT_FALSE(value.Null());
+
+  auto json = value.ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  TransientValue deserialized_value;
+  deserialized_value.FromJson(json);
+
+  EXPECT_EQ(value, deserialized_value);
+}
+
+// NOLINTNEXTLINE
+TEST_F(ValueTests, DateJsonTest) {
+  auto data = static_cast<type::date_t>(std::uniform_int_distribution<uint32_t>(0, UINT32_MAX)(generator_));
+
+  auto value = type::TransientValueFactory::GetDate(data);
+  EXPECT_FALSE(value.Null());
+
+  auto json = value.ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  TransientValue deserialized_value;
+  deserialized_value.FromJson(json);
+
+  EXPECT_EQ(value, deserialized_value);
+}
+
+// NOLINTNEXTLINE
+TEST_F(ValueTests, VarCharJsonTest) {
+  auto length = std::uniform_int_distribution<uint32_t>(1, UINT8_MAX)(generator_);
+  auto *const data = new char[length];
+  for (uint32_t j = 0; j < length - 1; j++) {
+    data[j] = std::uniform_int_distribution<char>('A', 'z')(generator_);
+  }
+  data[length - 1] = '\0';  // null terminate the c-string
+
+  TransientValue value = type::TransientValueFactory::GetVarChar(data);
+  EXPECT_FALSE(value.Null());
+
+  auto json = value.ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  TransientValue deserialized_value;
+  deserialized_value.FromJson(json);
+
+  EXPECT_EQ(value, deserialized_value);
+  delete[] data;
+}
+
 }  // namespace terrier::type

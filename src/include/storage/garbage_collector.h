@@ -51,22 +51,16 @@ class GarbageCollector {
    */
   uint32_t ProcessUnlinkQueue();
 
-  bool ProcessUndoRecord(transaction::TransactionContext *txn, UndoRecord *undo_record) const;
+  /**
+   * Process deferred actions
+   */
+  void ProcessDeferredActions();
 
   void ReclaimSlotIfDeleted(UndoRecord *undo_record) const;
 
   void ReclaimBufferIfVarlen(transaction::TransactionContext *txn, UndoRecord *undo_record) const;
-  /**
-   * Given a UndoRecord that has been deemed safe to unlink by the GC, attempts to remove it from the version chain.
-   * It's possible that this process will fail because the GC is conservative with conflicts. If the UndoRecord in the
-   * version chain to be updated in order to unlink the target UndoRecord is not yet committed, we will fail and
-   * expect this txn to be requeued and we'll try again on the next GC invocation, hopefully after the conflicting txn
-   * is either committed or aborted.
-   * @param txn pointer to the transaction that created this UndoRecord
-   * @param undo_record UndoRecord to be unlinked
-   * @return true if the UndoRecord was either unlinked successfully or already unlinked, false otherwise
-   */
-  bool UnlinkUndoRecord(transaction::TransactionContext *txn, UndoRecord *undo_record) const;
+
+  void TruncateVersionChain(DataTable *table, TupleSlot slot, transaction::timestamp_t oldest) const;
 
   transaction::TransactionManager *const txn_manager_;
   // timestamp of the last time GC unlinked anything. We need this to know when unlinked versions are safe to deallocate
@@ -75,6 +69,8 @@ class GarbageCollector {
   transaction::TransactionQueue txns_to_deallocate_;
   // queue of txns that need to be unlinked
   transaction::TransactionQueue txns_to_unlink_;
+  // queue of unexecuted deferred actions
+  std::queue<std::pair<transaction::timestamp_t, transaction::Action>> deferred_actions_;
 };
 
 }  // namespace terrier::storage

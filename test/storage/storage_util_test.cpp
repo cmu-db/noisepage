@@ -46,7 +46,8 @@ TEST_F(StorageUtilTests, CopyToProjectedRow) {
 
     // generate a random projectedRow
     std::vector<storage::col_id_t> update_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
-    storage::ProjectedRowInitializer update_initializer(layout, update_col_ids);
+    storage::ProjectedRowInitializer update_initializer =
+        storage::ProjectedRowInitializer::CreateProjectedRowInitializer(layout, update_col_ids);
     auto *row_buffer = common::AllocationUtil::AllocateAligned(update_initializer.ProjectedRowSize());
     storage::ProjectedRow *row = update_initializer.InitializeRow(row_buffer);
 
@@ -120,7 +121,8 @@ TEST_F(StorageUtilTests, ApplyDelta) {
 
     // the old row
     std::vector<storage::col_id_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
-    storage::ProjectedRowInitializer initializer(layout, all_col_ids);
+    storage::ProjectedRowInitializer initializer =
+        storage::ProjectedRowInitializer::CreateProjectedRowInitializer(layout, all_col_ids);
     auto *old_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
     storage::ProjectedRow *old = initializer.InitializeRow(old_buffer);
     StorageTestUtil::PopulateRandomRow(old, layout, null_ratio_(generator_), &generator_);
@@ -132,7 +134,8 @@ TEST_F(StorageUtilTests, ApplyDelta) {
 
     // the delta change to apply
     std::vector<storage::col_id_t> rand_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout, &generator_);
-    storage::ProjectedRowInitializer rand_initializer(layout, rand_col_ids);
+    storage::ProjectedRowInitializer rand_initializer =
+        storage::ProjectedRowInitializer::CreateProjectedRowInitializer(layout, rand_col_ids);
     auto *delta_buffer = common::AllocationUtil::AllocateAligned(rand_initializer.ProjectedRowSize());
     storage::ProjectedRow *delta = rand_initializer.InitializeRow(delta_buffer);
     StorageTestUtil::PopulateRandomRow(delta, layout, null_ratio_(generator_), &generator_);
@@ -173,50 +176,4 @@ TEST_F(StorageUtilTests, ApplyDelta) {
     delete[] old_buffer;
   }
 }
-
-// Verifies that we properly generate both a valid BlockLayout and a valid mapping from col_oid to col_id for a given
-// random Schema
-// NOLINTNEXTLINE
-TEST_F(StorageUtilTests, BlockLayoutFromSchema) {
-  for (uint32_t iteration = 0; iteration < num_iterations_; iteration++) {
-    uint16_t max_columns = 1000;
-    const catalog::Schema schema =
-        CatalogTestUtil::RandomSchema(static_cast<uint16_t>(max_columns - NUM_RESERVED_COLUMNS), &generator_);
-    const auto layout_and_col_map = storage::StorageUtil::BlockLayoutFromSchema(schema);
-    const storage::BlockLayout layout = layout_and_col_map.first;
-    const std::unordered_map<catalog::col_oid_t, storage::col_id_t> column_map = layout_and_col_map.second;
-
-    // BlockLayout should have number of columns as Schema + NUM_RESERVED_COLUMNS because Schema doesn't know anything
-    // about the storage layer's reserved columns
-    EXPECT_EQ(layout.NumColumns(), schema.GetColumns().size() + NUM_RESERVED_COLUMNS);
-    // column_map should have number of columns as Schema + NUM_RESERVED_COLUMNS because Schema doesn't know anything
-    // about the storage layer's reserved columns
-    EXPECT_EQ(layout.NumColumns(), column_map.size() + NUM_RESERVED_COLUMNS);
-
-    // Verify that the BlockLayout's columns are sorted by attribute size in descending order
-    // Reserved columns precede all user defined columns, so exclude them.
-    for (uint16_t i = NUM_RESERVED_COLUMNS; i < layout.NumColumns() - 1; i++) {
-      EXPECT_GE(layout.AttrSize(storage::col_id_t(i)),
-                layout.AttrSize(storage::col_id_t(static_cast<uint16_t>(i + 1))));
-    }
-
-    // Verify the contents of the column_map
-    for (const auto &i : column_map) {
-      const catalog::col_oid_t col_oid = i.first;
-      const storage::col_id_t col_id = i.second;
-
-      // Column id should not map to either of the reserved columns
-      EXPECT_NE(col_id, storage::col_id_t(0));
-      // Find the Column in the Schema corresponding to the current oid
-      auto schema_column =
-          std::find_if(schema.GetColumns().cbegin(), schema.GetColumns().cend(),
-                       [&](const catalog::Schema::Column &col) -> bool { return col.GetOid() == col_oid; });
-      // The attribute size in the schema should match the attribute size in the BlockLayout
-      // varlen columns have the high bit set, remove it
-      uint8_t sc_attr_size = schema_column->GetAttrSize() & INT8_MAX;
-      EXPECT_EQ(sc_attr_size, layout.AttrSize(col_id));
-    }
-  }
-}
-
 }  // namespace terrier

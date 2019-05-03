@@ -41,7 +41,7 @@ class TestConfig(object):
 
         # percentage difference permissible, if using historical data
         # i.e. if min_ref_values are available
-        self.ref_tolerance = 15
+        self.ref_tolerance = 10
 
         # if fewer than min_ref_values are available
         self.lax_tolerance = 30
@@ -53,7 +53,7 @@ class TestConfig(object):
         # of sources. Stop if the history requirements are met.
         self.ref_data_sources = [
             {"project" : "terrier-nightly",
-             "min_build" : 28,
+             "min_build" : 208,
             },
         ]
         return

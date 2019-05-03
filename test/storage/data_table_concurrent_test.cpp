@@ -16,7 +16,7 @@ class FakeTransaction {
       : layout_(layout),
         table_(table),
         null_bias_(null_bias),
-        txn_(start_time, txn_id, buffer_pool, LOGGING_DISABLED) {}
+        txn_(start_time, txn_id, buffer_pool, LOGGING_DISABLED, ACTION_FRAMEWORK_DISABLED) {}
 
   ~FakeTransaction() {
     for (auto ptr : loose_pointers_) delete[] ptr;
@@ -40,7 +40,8 @@ class FakeTransaction {
   bool RandomlyUpdateTuple(const storage::TupleSlot slot, Random *generator) {
     // generate random update
     std::vector<storage::col_id_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout_, generator);
-    storage::ProjectedRowInitializer update_initializer(layout_, update_col_ids);
+    storage::ProjectedRowInitializer update_initializer =
+        storage::ProjectedRowInitializer::CreateProjectedRowInitializer(layout_, update_col_ids);
     auto *update_buffer = common::AllocationUtil::AllocateAligned(update_initializer.ProjectedRowSize());
     storage::ProjectedRow *update = update_initializer.InitializeRow(update_buffer);
     StorageTestUtil::PopulateRandomRow(update, layout_, null_bias_, generator);
@@ -64,7 +65,8 @@ class FakeTransaction {
   const storage::BlockLayout &layout_;
   storage::DataTable *table_;
   double null_bias_;
-  storage::ProjectedRowInitializer redo_initializer_{layout_, StorageTestUtil::ProjectionListAllColumns(layout_)};
+  storage::ProjectedRowInitializer redo_initializer_ = storage::ProjectedRowInitializer::CreateProjectedRowInitializer(
+      layout_, StorageTestUtil::ProjectionListAllColumns(layout_));
   // All data structures here are only accessed thread-locally so no need
   // for concurrent versions
   std::vector<storage::TupleSlot> inserted_slots_;
@@ -104,13 +106,15 @@ TEST_F(DataTableConcurrentTests, ConcurrentInsert) {
       for (uint32_t i = 0; i < num_inserts / num_threads; i++) fake_txns[id]->InsertRandomTuple(&thread_generator);
     };
     MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
-    storage::ProjectedRowInitializer select_initializer(layout, StorageTestUtil::ProjectionListAllColumns(layout));
+    storage::ProjectedRowInitializer select_initializer =
+        storage::ProjectedRowInitializer::CreateProjectedRowInitializer(
+            layout, StorageTestUtil::ProjectionListAllColumns(layout));
     auto *select_buffer = common::AllocationUtil::AllocateAligned(select_initializer.ProjectedRowSize());
     for (auto &fake_txn : fake_txns) {
       for (auto slot : fake_txn->InsertedTuples()) {
         storage::ProjectedRow *select_row = select_initializer.InitializeRow(select_buffer);
         tested.Select(fake_txn->GetTxn(), slot, select_row);
-        EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(layout, fake_txn->GetReferenceTuple(slot), select_row));
+        EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(layout, fake_txn->GetReferenceTuple(slot), select_row));
       }
     }
     delete[] select_buffer;
