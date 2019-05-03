@@ -156,7 +156,7 @@ TEST_F(IndexPopulatorTest, BasicCorrectnessTest) {
         key->ColumnIds()[i] = index_key->ColumnIds()[i];
       }
       std::vector<TupleSlot> tup_slots;
-      index_0->ScanKey(*key, &tup_slots);
+      index_0->ScanKey(*txn_, *key, &tup_slots);
       bool flag = false;
       for (const auto &tup_slot : tup_slots) {
         if (it == tup_slot) {

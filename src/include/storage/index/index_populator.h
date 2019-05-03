@@ -52,7 +52,7 @@ class IndexPopulator {
         for (uint16_t i = 0; i < select_pr->NumColumns(); ++i) {
           select_pr->ColumnIds()[i] = indkey_pr->ColumnIds()[i];
         }
-        index.Insert(*select_pr, it);
+        index.Insert(txn, *select_pr, it);
         for (uint16_t i = 0; i < select_pr->NumColumns(); ++i) {
           select_pr->ColumnIds()[i] = sql_table_cols[i];
         }
