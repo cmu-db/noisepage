@@ -39,7 +39,7 @@ void DataTable::Scan(transaction::TransactionContext *const txn, SlotIterator *c
     ProjectedColumns::RowView row = out_buffer->InterpretAsRow(filled);
     const TupleSlot slot = **start_pos;
     // Only fill the buffer with valid, visible tuples
-    if (accessor_.Allocated(slot) && SelectIntoBuffer(txn, slot, &row)) {
+    if (SelectIntoBuffer(txn, slot, &row)) {
       out_buffer->TupleSlots()[filled] = slot;
       filled++;
     }
