@@ -17,8 +17,7 @@ constexpr const char *error_strings[] = {MESSAGE_LIST(F)};
 
 }  // namespace
 
-void ErrorReporter::MessageArgument::FormatMessageArgument(
-    std::string &str) const {
+void ErrorReporter::MessageArgument::FormatMessageArgument(std::string &str) const {
   switch (kind()) {
     case Kind::CString: {
       str.append(raw_str_);
@@ -37,8 +36,7 @@ void ErrorReporter::MessageArgument::FormatMessageArgument(
       break;
     }
     case Kind::Token: {
-      str.append(parsing::Token::GetString(
-          static_cast<parsing::Token::Type>(integer_)));
+      str.append(parsing::Token::GetString(static_cast<parsing::Token::Type>(integer_)));
       break;
     }
     case Kind::Type: {
@@ -51,8 +49,7 @@ void ErrorReporter::MessageArgument::FormatMessageArgument(
 std::string ErrorReporter::MessageWithArgs::FormatMessage() const {
   std::string msg;
 
-  auto msg_idx =
-      static_cast<std::underlying_type_t<ErrorMessageId>>(error_message_id());
+  auto msg_idx = static_cast<std::underlying_type_t<ErrorMessageId>>(error_message_id());
 
   msg.append("Line: ").append(std::to_string(position().line)).append(", ");
   msg.append("Col: ").append(std::to_string(position().column)).append(" => ");

@@ -162,22 +162,16 @@ inline const T *VectorProjectionIterator::Get(u32 col_idx, bool *null) const {
 
 inline void VectorProjectionIterator::Advance() { curr_idx_++; }
 
-inline void VectorProjectionIterator::AdvanceFiltered() {
-  curr_idx_ = selection_vector_[++selection_vector_read_idx_];
-}
+inline void VectorProjectionIterator::AdvanceFiltered() { curr_idx_ = selection_vector_[++selection_vector_read_idx_]; }
 
 inline void VectorProjectionIterator::Match(bool matched) {
   selection_vector_[selection_vector_write_idx_] = curr_idx_;
   selection_vector_write_idx_ += matched;
 }
 
-inline bool VectorProjectionIterator::HasNext() const {
-  return curr_idx_ < vector_projection_->total_tuple_count();
-}
+inline bool VectorProjectionIterator::HasNext() const { return curr_idx_ < vector_projection_->total_tuple_count(); }
 
-inline bool VectorProjectionIterator::HasNextFiltered() const {
-  return selection_vector_read_idx_ < num_selected();
-}
+inline bool VectorProjectionIterator::HasNextFiltered() const { return selection_vector_read_idx_ < num_selected(); }
 
 inline void VectorProjectionIterator::Reset() {
   const auto next_idx = selection_vector_[0];
@@ -196,8 +190,7 @@ inline void VectorProjectionIterator::ResetFiltered() {
 template <typename F>
 inline void VectorProjectionIterator::ForEach(const F &fn) {
   // Ensure function conforms to expected form
-  static_assert(std::is_invocable_r_v<void, F>,
-                "Iteration function must be a no-arg void-return function");
+  static_assert(std::is_invocable_r_v<void, F>, "Iteration function must be a no-arg void-return function");
 
   if (IsFiltered()) {
     for (; HasNextFiltered(); AdvanceFiltered()) {
@@ -215,8 +208,7 @@ inline void VectorProjectionIterator::ForEach(const F &fn) {
 template <typename F>
 inline void VectorProjectionIterator::RunFilter(const F &filter) {
   // Ensure filter function conforms to expected form
-  static_assert(std::is_invocable_r_v<bool, F>,
-                "Filter function must be a no-arg function returning a bool");
+  static_assert(std::is_invocable_r_v<bool, F>, "Filter function must be a no-arg function returning a bool");
 
   if (IsFiltered()) {
     for (; HasNextFiltered(); AdvanceFiltered()) {

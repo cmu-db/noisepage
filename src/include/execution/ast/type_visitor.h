@@ -10,9 +10,7 @@ namespace tpl::ast {
 template <typename Impl, typename RetType = void>
 class TypeVisitor {
  public:
-#define DISPATCH(Type)                           \
-  return static_cast<Impl *>(this)->Visit##Type( \
-      static_cast<const Type *>(type));
+#define DISPATCH(Type) return static_cast<Impl *>(this)->Visit##Type(static_cast<const Type *>(type));
 
   RetType Visit(const Type *type) {
     switch (type->type_id()) {

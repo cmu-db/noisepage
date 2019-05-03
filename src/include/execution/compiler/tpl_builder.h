@@ -7,4 +7,4 @@ class TplBuilder {
  private:
 };
 
-}
+}  // namespace tpl::compiler

@@ -12,16 +12,7 @@ namespace tpl::sql {
 /**
  * Supported SQL data types
  */
-enum class TypeId : u8 {
-  Boolean,
-  SmallInt,
-  Integer,
-  BigInt,
-  Decimal,
-  Date,
-  Char,
-  Varchar
-};
+enum class TypeId : u8 { Boolean, SmallInt, Integer, BigInt, Decimal, Date, Char, Varchar };
 
 /// Base algebraic SQL type
 class Type {
@@ -72,8 +63,7 @@ class Type {
   }
 
  protected:
-  explicit Type(TypeId type_id, bool nullable)
-      : type_id_(type_id), nullable_(nullable) {}
+  explicit Type(TypeId type_id, bool nullable) : type_id_(type_id), nullable_(nullable) {}
 
  private:
   TypeId type_id_;
@@ -87,13 +77,9 @@ class BooleanType : public Type {
 
   static const BooleanType &InstanceNullable();
 
-  static const BooleanType &Instance(bool nullable) {
-    return (nullable ? InstanceNullable() : InstanceNonNullable());
-  }
+  static const BooleanType &Instance(bool nullable) { return (nullable ? InstanceNullable() : InstanceNonNullable()); }
 
-  const Type &GetNonNullableVersion() const override {
-    return InstanceNonNullable();
-  }
+  const Type &GetNonNullableVersion() const override { return InstanceNonNullable(); }
 
   const Type &GetNullableVersion() const override { return InstanceNullable(); }
 
@@ -103,9 +89,7 @@ class BooleanType : public Type {
 
   bool Equals(const Type &other) const override;
 
-  static bool classof(const Type *type) {
-    return type->type_id() == TypeId::Boolean;
-  }
+  static bool classof(const Type *type) { return type->type_id() == TypeId::Boolean; }
 
  private:
   explicit BooleanType(bool nullable);
@@ -133,13 +117,9 @@ class SmallIntType : public NumberBaseType<i16> {
 
   static const SmallIntType &InstanceNullable();
 
-  static const SmallIntType &Instance(bool nullable) {
-    return (nullable ? InstanceNullable() : InstanceNonNullable());
-  }
+  static const SmallIntType &Instance(bool nullable) { return (nullable ? InstanceNullable() : InstanceNonNullable()); }
 
-  const Type &GetNonNullableVersion() const override {
-    return InstanceNonNullable();
-  }
+  const Type &GetNonNullableVersion() const override { return InstanceNonNullable(); }
 
   const Type &GetNullableVersion() const override { return InstanceNullable(); }
 
@@ -147,9 +127,7 @@ class SmallIntType : public NumberBaseType<i16> {
 
   bool Equals(const Type &other) const override;
 
-  static bool classof(const Type *type) {
-    return type->type_id() == TypeId::SmallInt;
-  }
+  static bool classof(const Type *type) { return type->type_id() == TypeId::SmallInt; }
 
  private:
   explicit SmallIntType(bool nullable);
@@ -161,13 +139,9 @@ class IntegerType : public NumberBaseType<i32> {
 
   static const IntegerType &InstanceNullable();
 
-  static const IntegerType &Instance(bool nullable) {
-    return (nullable ? InstanceNullable() : InstanceNonNullable());
-  }
+  static const IntegerType &Instance(bool nullable) { return (nullable ? InstanceNullable() : InstanceNonNullable()); }
 
-  const Type &GetNonNullableVersion() const override {
-    return InstanceNonNullable();
-  }
+  const Type &GetNonNullableVersion() const override { return InstanceNonNullable(); }
 
   const Type &GetNullableVersion() const override { return InstanceNullable(); }
 
@@ -175,9 +149,7 @@ class IntegerType : public NumberBaseType<i32> {
 
   bool Equals(const Type &other) const override;
 
-  static bool classof(const Type *type) {
-    return type->type_id() == TypeId::Integer;
-  }
+  static bool classof(const Type *type) { return type->type_id() == TypeId::Integer; }
 
  private:
   explicit IntegerType(bool nullable);
@@ -189,13 +161,9 @@ class BigIntType : public NumberBaseType<i64> {
 
   static const BigIntType &InstanceNullable();
 
-  static const BigIntType &Instance(bool nullable) {
-    return (nullable ? InstanceNullable() : InstanceNonNullable());
-  }
+  static const BigIntType &Instance(bool nullable) { return (nullable ? InstanceNullable() : InstanceNonNullable()); }
 
-  const Type &GetNonNullableVersion() const override {
-    return InstanceNonNullable();
-  }
+  const Type &GetNonNullableVersion() const override { return InstanceNonNullable(); }
 
   const Type &GetNullableVersion() const override { return InstanceNullable(); }
 
@@ -203,9 +171,7 @@ class BigIntType : public NumberBaseType<i64> {
 
   bool Equals(const Type &other) const override;
 
-  static bool classof(const Type *type) {
-    return type->type_id() == TypeId::BigInt;
-  }
+  static bool classof(const Type *type) { return type->type_id() == TypeId::BigInt; }
 
  private:
   explicit BigIntType(bool nullable);
@@ -218,17 +184,12 @@ class DecimalType : public Type {
   static const DecimalType &InstanceNullable(u32 precision, u32 scale);
 
   static const DecimalType &Instance(bool nullable, u32 precision, u32 scale) {
-    return (nullable ? InstanceNullable(precision, scale)
-                     : InstanceNonNullable(precision, scale));
+    return (nullable ? InstanceNullable(precision, scale) : InstanceNonNullable(precision, scale));
   }
 
-  const Type &GetNonNullableVersion() const override {
-    return InstanceNonNullable(precision(), scale());
-  }
+  const Type &GetNonNullableVersion() const override { return InstanceNonNullable(precision(), scale()); }
 
-  const Type &GetNullableVersion() const override {
-    return InstanceNullable(precision(), scale());
-  }
+  const Type &GetNullableVersion() const override { return InstanceNullable(precision(), scale()); }
 
   std::string GetName() const override;
 
@@ -240,9 +201,7 @@ class DecimalType : public Type {
 
   u32 scale() const;
 
-  static bool classof(const Type *type) {
-    return type->type_id() == TypeId::Decimal;
-  }
+  static bool classof(const Type *type) { return type->type_id() == TypeId::Decimal; }
 
  private:
   DecimalType(bool nullable, u32 precision, u32 scale);
@@ -261,13 +220,9 @@ class DateType : public Type {
 
   static const DateType &InstanceNullable();
 
-  static const DateType &Instance(bool nullable) {
-    return (nullable ? InstanceNullable() : InstanceNonNullable());
-  }
+  static const DateType &Instance(bool nullable) { return (nullable ? InstanceNullable() : InstanceNonNullable()); }
 
-  const Type &GetNonNullableVersion() const override {
-    return InstanceNonNullable();
-  }
+  const Type &GetNonNullableVersion() const override { return InstanceNonNullable(); }
 
   const Type &GetNullableVersion() const override { return InstanceNullable(); }
 
@@ -277,9 +232,7 @@ class DateType : public Type {
 
   bool IsArithmetic() const override { return false; }
 
-  static bool classof(const Type *type) {
-    return type->type_id() == TypeId::Date;
-  }
+  static bool classof(const Type *type) { return type->type_id() == TypeId::Date; }
 
  private:
   explicit DateType(bool nullable);
@@ -295,13 +248,9 @@ class CharType : public Type {
     return (nullable ? InstanceNullable(len) : InstanceNonNullable(len));
   }
 
-  const Type &GetNonNullableVersion() const override {
-    return InstanceNonNullable(length());
-  }
+  const Type &GetNonNullableVersion() const override { return InstanceNonNullable(length()); }
 
-  const Type &GetNullableVersion() const override {
-    return InstanceNullable(length());
-  }
+  const Type &GetNullableVersion() const override { return InstanceNullable(length()); }
 
   std::string GetName() const override;
 
@@ -311,9 +260,7 @@ class CharType : public Type {
 
   u32 length() const;
 
-  static bool classof(const Type *type) {
-    return type->type_id() == TypeId::Char;
-  }
+  static bool classof(const Type *type) { return type->type_id() == TypeId::Char; }
 
  private:
   explicit CharType(bool nullable, u32 length);
@@ -332,17 +279,12 @@ class VarcharType : public Type {
   static const VarcharType &InstanceNullable(u32 max_len);
 
   static const VarcharType &Instance(bool nullable, u32 max_len) {
-    return (nullable ? InstanceNullable(max_len)
-                     : InstanceNonNullable(max_len));
+    return (nullable ? InstanceNullable(max_len) : InstanceNonNullable(max_len));
   }
 
-  const Type &GetNonNullableVersion() const override {
-    return InstanceNonNullable(max_length());
-  }
+  const Type &GetNonNullableVersion() const override { return InstanceNonNullable(max_length()); }
 
-  const Type &GetNullableVersion() const override {
-    return InstanceNullable(max_length());
-  }
+  const Type &GetNullableVersion() const override { return InstanceNullable(max_length()); }
 
   std::string GetName() const override;
 
@@ -352,9 +294,7 @@ class VarcharType : public Type {
 
   u32 max_length() const;
 
-  static bool classof(const Type *type) {
-    return type->type_id() == TypeId::Varchar;
-  }
+  static bool classof(const Type *type) { return type->type_id() == TypeId::Varchar; }
 
  private:
   explicit VarcharType(bool nullable, u32 max_len);

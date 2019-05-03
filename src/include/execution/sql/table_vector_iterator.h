@@ -39,9 +39,7 @@ class TableVectorIterator {
   const Table *table() const { return block_iterator_.table(); }
 
   /// Return the iterator over the current active vector projection
-  VectorProjectionIterator *vector_projection_iterator() {
-    return &vector_projection_iterator_;
-  }
+  VectorProjectionIterator *vector_projection_iterator() { return &vector_projection_iterator_; }
 
  private:
   // When the column iterators receive new vectors of input, we need to

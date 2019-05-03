@@ -34,8 +34,7 @@ struct ColumnInsertMeta {
   u64 min;
   u64 max;
 
-  ColumnInsertMeta(const char *name, const Type &type, Dist dist, u64 min,
-                   u64 max)
+  ColumnInsertMeta(const char *name, const Type &type, Dist dist, u64 min, u64 max)
       : name(name), type(type), dist(dist), min(min), max(max) {}
 };
 
@@ -49,8 +48,7 @@ struct TableInsertMeta {
   u32 num_rows;
   std::vector<ColumnInsertMeta> col_meta;
 
-  TableInsertMeta(TableId id, const char *name, u32 num_rows,
-                  std::vector<ColumnInsertMeta> col_meta)
+  TableInsertMeta(TableId id, const char *name, u32 num_rows, std::vector<ColumnInsertMeta> col_meta)
       : id(id), name(name), num_rows(num_rows), col_meta(std::move(col_meta)) {}
 };
 
@@ -104,8 +102,7 @@ T *CreateNumberColumnData(Dist dist, u32 num_vals, u64 min, u64 max) {
   return val;
 }
 
-std::pair<byte *, u32 *> GenerateColumnData(const ColumnInsertMeta &col_meta,
-                                            u32 num_rows) {
+std::pair<byte *, u32 *> GenerateColumnData(const ColumnInsertMeta &col_meta, u32 num_rows) {
   // Create data
   byte *col_data = nullptr;
   switch (col_meta.type.type_id()) {
@@ -113,19 +110,19 @@ std::pair<byte *, u32 *> GenerateColumnData(const ColumnInsertMeta &col_meta,
       throw std::runtime_error("Implement me!");
     }
     case TypeId::SmallInt: {
-      col_data = reinterpret_cast<byte *>(CreateNumberColumnData<i16>(
-          col_meta.dist, num_rows, col_meta.min, col_meta.max));
+      col_data =
+          reinterpret_cast<byte *>(CreateNumberColumnData<i16>(col_meta.dist, num_rows, col_meta.min, col_meta.max));
       break;
     }
     case TypeId::Integer: {
-      col_data = reinterpret_cast<byte *>(CreateNumberColumnData<i32>(
-          col_meta.dist, num_rows, col_meta.min, col_meta.max));
+      col_data =
+          reinterpret_cast<byte *>(CreateNumberColumnData<i32>(col_meta.dist, num_rows, col_meta.min, col_meta.max));
       break;
     }
     case TypeId::BigInt:
     case TypeId::Decimal: {
-      col_data = reinterpret_cast<byte *>(CreateNumberColumnData<i64>(
-          col_meta.dist, num_rows, col_meta.min, col_meta.max));
+      col_data =
+          reinterpret_cast<byte *>(CreateNumberColumnData<i64>(col_meta.dist, num_rows, col_meta.min, col_meta.max));
       break;
     }
     case TypeId::Date:
@@ -147,12 +144,10 @@ std::pair<byte *, u32 *> GenerateColumnData(const ColumnInsertMeta &col_meta,
 }
 
 void InitTable(const TableInsertMeta &table_meta, Table *table) {
-  LOG_INFO("Populating table instance '{}' with {} rows", table_meta.name,
-           table_meta.num_rows);
+  LOG_INFO("Populating table instance '{}' with {} rows", table_meta.name, table_meta.num_rows);
 
   u32 batch_size = 10000;
-  u32 num_batches = table_meta.num_rows / batch_size +
-                    static_cast<u32>(table_meta.num_rows % batch_size != 0);
+  u32 num_batches = table_meta.num_rows / batch_size + static_cast<u32>(table_meta.num_rows % batch_size != 0);
 
   for (u32 i = 0; i < num_batches; i++) {
     std::vector<ColumnSegment> columns;
@@ -189,8 +184,8 @@ Catalog::Catalog() {
     }
 
     // Insert into catalog
-    table_catalog_[meta.id] = std::make_unique<Table>(
-        static_cast<u16>(meta.id), std::make_unique<Schema>(std::move(cols)));
+    table_catalog_[meta.id] =
+        std::make_unique<Table>(static_cast<u16>(meta.id), std::make_unique<Schema>(std::move(cols)));
   }
 
   // Populate all tables
@@ -226,9 +221,7 @@ Table *Catalog::LookupTableByName(const std::string &name) const {
   return LookupTableById(iter->second);
 }
 
-Table *Catalog::LookupTableByName(const ast::Identifier name) const {
-  return LookupTableByName(name.data());
-}
+Table *Catalog::LookupTableByName(const ast::Identifier name) const { return LookupTableByName(name.data()); }
 
 Table *Catalog::LookupTableById(TableId table_id) const {
   auto iter = table_catalog_.find(table_id);

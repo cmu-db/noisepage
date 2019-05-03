@@ -22,8 +22,8 @@ class QueryState {
 
   DISALLOW_COPY_AND_MOVE(QueryState);
 
-  explicit QueryState(std::string struct_name, util::Region *region) :
-      struct_name_(std::move(struct_name)), states_(region), constructed_type_(nullptr) {}
+  explicit QueryState(std::string struct_name, util::Region *region)
+      : struct_name_(std::move(struct_name)), states_(region), constructed_type_(nullptr) {}
 
   ast::Expr *LoadStatePtr(CodeGen *codegen, QueryState::Id state_id) {
     TPL_ASSERT(constructed_type_ != nullptr, "Cannot index into non-finalized type.");
@@ -53,10 +53,12 @@ class QueryState {
   }
 
   ast::Type *FinalizeType(CodeGen *codegen) {
-    if (constructed_type_ != nullptr) { return constructed_type_; }
+    if (constructed_type_ != nullptr) {
+      return constructed_type_;
+    }
 
     util::RegionVector<ast::Field> fields(codegen->GetRegion());
-    for (const auto &state:  states_) {
+    for (const auto &state : states_) {
       auto id = ast::Identifier(state.name.c_str());
       auto field = codegen->NewField(id, state.type);
       fields.emplace_back(field);

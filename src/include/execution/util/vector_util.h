@@ -22,14 +22,12 @@ class VectorUtil {
   /// \param sel The
   /// \return The number of elements that pass the filter
   template <typename T, template <typename> typename Op>
-  static u32 FilterVectorByVal(const T *RESTRICT in, u32 in_count, T val,
-                               u32 *RESTRICT out, const u32 *RESTRICT sel) {
+  static u32 FilterVectorByVal(const T *RESTRICT in, u32 in_count, T val, u32 *RESTRICT out, const u32 *RESTRICT sel) {
     // Simple check to make sure the provided filter operation returns bool
     static_assert(std::is_same_v<bool, std::invoke_result_t<Op<T>, T, T>>);
 
     u32 in_pos = 0;
-    u32 out_pos =
-        simd::FilterVectorByVal<T, Op>(in, in_count, val, out, sel, in_pos);
+    u32 out_pos = simd::FilterVectorByVal<T, Op>(in, in_count, val, out, sel, in_pos);
 
     if (sel == nullptr) {
       for (; in_pos < in_count; in_pos++) {
@@ -52,11 +50,10 @@ class VectorUtil {
   // Generate specialized vectorized filters
   // -------------------------------------------------------
 
-#define GEN_FILTER(Op, Comparison)                                        \
-  template <typename T>                                                   \
-  static u32 Filter##Op(const T *RESTRICT in, u32 in_count, T val,        \
-                        u32 *RESTRICT out, u32 *RESTRICT sel) {           \
-    return FilterVectorByVal<T, Comparison>(in, in_count, val, out, sel); \
+#define GEN_FILTER(Op, Comparison)                                                                         \
+  template <typename T>                                                                                    \
+  static u32 Filter##Op(const T *RESTRICT in, u32 in_count, T val, u32 *RESTRICT out, u32 *RESTRICT sel) { \
+    return FilterVectorByVal<T, Comparison>(in, in_count, val, out, sel);                                  \
   }
   GEN_FILTER(Eq, std::equal_to)
   GEN_FILTER(Gt, std::greater)

@@ -10,14 +10,12 @@ namespace tpl::sql {
 
 VectorProjection::VectorProjection() : tuple_count_(0), vector_size_(0) {}
 
-VectorProjection::VectorProjection(
-    const std::vector<const Schema::ColumnInfo *> &col_infos, u32 size)
+VectorProjection::VectorProjection(const std::vector<const Schema::ColumnInfo *> &col_infos, u32 size)
     : tuple_count_(0), vector_size_(size) {
   Setup(col_infos, size);
 }
 
-void VectorProjection::Setup(
-    const std::vector<const Schema::ColumnInfo *> &col_infos, u32 size) {
+void VectorProjection::Setup(const std::vector<const Schema::ColumnInfo *> &col_infos, u32 size) {
   const auto num_cols = col_infos.size();
   column_info_ = std::make_unique<const Schema::ColumnInfo *[]>(num_cols);
   column_data_ = std::make_unique<byte *[]>(num_cols);
@@ -34,8 +32,7 @@ void VectorProjection::Setup(
   }
 }
 
-void VectorProjection::ResetColumn(
-    const std::vector<ColumnVectorIterator> &col_iters, const u32 col_idx) {
+void VectorProjection::ResetColumn(const std::vector<ColumnVectorIterator> &col_iters, const u32 col_idx) {
   // Read the column's data and NULL bitmap from the iterator
   const ColumnVectorIterator &col_iter = col_iters[col_idx];
   column_data_[col_idx] = col_iter.col_data();
@@ -51,8 +48,7 @@ void VectorProjection::ResetColumn(
   ClearDeletions();
 }
 
-void VectorProjection::ResetFromRaw(byte col_data[], u32 col_null_bitmap[],
-                                    const u32 col_idx, const u32 num_tuples) {
+void VectorProjection::ResetFromRaw(byte col_data[], u32 col_null_bitmap[], const u32 col_idx, const u32 num_tuples) {
   column_data_[col_idx] = col_data;
   column_null_bitmaps_[col_idx] = col_null_bitmap;
   tuple_count_ = num_tuples;

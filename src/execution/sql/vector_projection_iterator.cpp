@@ -14,8 +14,7 @@ VectorProjectionIterator::VectorProjectionIterator()
   selection_vector_[0] = VectorProjectionIterator::kInvalidPos;
 }
 
-VectorProjectionIterator::VectorProjectionIterator(VectorProjection *vp)
-    : VectorProjectionIterator() {
+VectorProjectionIterator::VectorProjectionIterator(VectorProjection *vp) : VectorProjectionIterator() {
   SetVectorProjection(vp);
 }
 
@@ -38,8 +37,8 @@ u32 VectorProjectionIterator::FilterColByValImpl(u32 col_idx, T val) {
   const u32 *sel_vec = (IsFiltered() ? selection_vector_ : nullptr);
 
   // Filter!
-  selection_vector_write_idx_ = util::VectorUtil::FilterVectorByVal<T, Op>(
-      input, num_selected_, val, selection_vector_, sel_vec);
+  selection_vector_write_idx_ =
+      util::VectorUtil::FilterVectorByVal<T, Op>(input, num_selected_, val, selection_vector_, sel_vec);
 
   // After the filter has been run on the entire vector projection, we need to
   // ensure that we reset it so that clients can query the updated state of the
@@ -54,8 +53,7 @@ u32 VectorProjectionIterator::FilterColByValImpl(u32 col_idx, T val) {
 
 // Filter an entire column's data by the provided constant value
 template <template <typename> typename Op>
-u32 VectorProjectionIterator::FilterColByVal(const u32 col_idx,
-                                             const FilterVal val) {
+u32 VectorProjectionIterator::FilterColByVal(const u32 col_idx, const FilterVal val) {
   auto *col_type = vector_projection_->GetColumnInfo(col_idx);
 
   switch (col_type->type.type_id()) {

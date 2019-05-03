@@ -12,18 +12,11 @@ namespace tpl::sql {
 /// NULL.
 class ColumnSegment {
  public:
-  ColumnSegment(const Type &type, byte *data, u32 *null_bitmap,
-                u32 num_tuples) noexcept
-      : type_(type),
-        data_(data),
-        null_bitmap_(null_bitmap),
-        num_tuples_(num_tuples) {}
+  ColumnSegment(const Type &type, byte *data, u32 *null_bitmap, u32 num_tuples) noexcept
+      : type_(type), data_(data), null_bitmap_(null_bitmap), num_tuples_(num_tuples) {}
 
   ColumnSegment(ColumnSegment &&other) noexcept
-      : type_(other.type_),
-        data_(other.data_),
-        null_bitmap_(other.null_bitmap_),
-        num_tuples_(other.num_tuples_) {
+      : type_(other.type_), data_(other.data_), null_bitmap_(other.null_bitmap_), num_tuples_(other.num_tuples_) {
     other.data_ = nullptr;
     other.null_bitmap_ = nullptr;
   }
@@ -51,9 +44,7 @@ class ColumnSegment {
   /// Is the value at the given index NULL
   /// \param idx The index to check
   /// \return True if the value is null; false otherwise
-  bool IsNullAt(u32 idx) const {
-    return util::BitUtil::Test(null_bitmap_, idx);
-  }
+  bool IsNullAt(u32 idx) const { return util::BitUtil::Test(null_bitmap_, idx); }
 
   // -------------------------------------------------------
   // Accessors

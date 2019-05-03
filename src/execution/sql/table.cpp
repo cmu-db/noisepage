@@ -18,9 +18,7 @@ void Table::Insert(Block &&block) {
   // Sanity check
   TPL_ASSERT(block.num_cols() == num_columns(), "Column count mismatch");
   for (u32 i = 0; i < num_columns(); i++) {
-    TPL_ASSERT(
-        schema().GetColumnInfo(i)->type.Equals(block.GetColumnData(i)->type()),
-        "Column type mismatch");
+    TPL_ASSERT(schema().GetColumnInfo(i)->type.Equals(block.GetColumnData(i)->type()), "Column type mismatch");
   }
 
   num_tuples_ += block.num_tuples();
@@ -29,8 +27,7 @@ void Table::Insert(Block &&block) {
 
 namespace {
 
-void DumpColValue(std::ostream &os, const Type &type, const ColumnSegment &col,
-                  u32 row_idx) {
+void DumpColValue(std::ostream &os, const Type &type, const ColumnSegment &col, u32 row_idx) {
   switch (type.type_id()) {
     case TypeId::Boolean: {
       break;

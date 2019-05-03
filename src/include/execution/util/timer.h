@@ -20,10 +20,7 @@ class Timer {
   void Stop() noexcept {
     stop_ = Clock::now();
 
-    elapsed_ =
-        std::chrono::duration_cast<
-            std::chrono::duration<double, ResolutionRatio>>(stop_ - start_)
-            .count();
+    elapsed_ = std::chrono::duration_cast<std::chrono::duration<double, ResolutionRatio>>(stop_ - start_).count();
   }
 
   /// Return the total number of elapsed time units

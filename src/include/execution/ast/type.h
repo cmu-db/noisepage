@@ -79,16 +79,13 @@ class Context;
 #define IGNORE_BUILTIN_TYPE (...)
 
 // Only consider the primitive builtin types
-#define PRIMIMITIVE_BUILTIN_TYPE_LIST(F) \
-  BUILTIN_TYPE_LIST(F, IGNORE_BUILTIN_TYPE, IGNORE_BUILTIN_TYPE)
+#define PRIMIMITIVE_BUILTIN_TYPE_LIST(F) BUILTIN_TYPE_LIST(F, IGNORE_BUILTIN_TYPE, IGNORE_BUILTIN_TYPE)
 
 // Only consider the non-primitive builtin types
-#define NON_PRIMITIVE_BUILTIN_TYPE_LIST(F) \
-  BUILTIN_TYPE_LIST(IGNORE_BUILTIN_TYPE, F, IGNORE_BUILTIN_TYPE)
+#define NON_PRIMITIVE_BUILTIN_TYPE_LIST(F) BUILTIN_TYPE_LIST(IGNORE_BUILTIN_TYPE, F, IGNORE_BUILTIN_TYPE)
 
 // Only consider the SQL builtin types
-#define SQL_BUILTIN_TYPE_LIST(F) \
-  BUILTIN_TYPE_LIST(IGNORE_BUILTIN_TYPE, IGNORE_BUILTIN_TYPE, F)
+#define SQL_BUILTIN_TYPE_LIST(F) BUILTIN_TYPE_LIST(IGNORE_BUILTIN_TYPE, IGNORE_BUILTIN_TYPE, F)
 
 // Forward declare everything first
 #define F(TypeClass) class TypeClass;
@@ -239,23 +236,17 @@ class BuiltinType : public Type {
   bool is_primitive() const { return kPrimitiveFlags[static_cast<u16>(kind_)]; }
 
   /// Is this builtin a primitive integer?
-  bool is_integer() const {
-    return Kind::Int8 <= kind() && kind() <= Kind::Uint128;
-  }
+  bool is_integer() const { return Kind::Int8 <= kind() && kind() <= Kind::Uint128; }
 
   /// Is this builtin a primitive floating point number?
-  bool is_floating_point() const {
-    return kFloatingPointFlags[static_cast<u16>(kind_)];
-  }
+  bool is_floating_point() const { return kFloatingPointFlags[static_cast<u16>(kind_)]; }
 
   /// Return the kind of this builtin
   Kind kind() const { return kind_; }
 
   static BuiltinType *Get(Context *ctx, Kind kind);
 
-  static bool classof(const Type *type) {
-    return type->type_id() == TypeId::BuiltinType;
-  }
+  static bool classof(const Type *type) { return type->type_id() == TypeId::BuiltinType; }
 
  private:
   friend class Context;
@@ -280,14 +271,11 @@ class StringType : public Type {
  public:
   static StringType *Get(Context *ctx);
 
-  static bool classof(const Type *type) {
-    return type->type_id() == TypeId::StringType;
-  }
+  static bool classof(const Type *type) { return type->type_id() == TypeId::StringType; }
 
  private:
   friend class Context;
-  explicit StringType(Context *ctx)
-      : Type(ctx, sizeof(i8 *), alignof(i8 *), TypeId::StringType) {}
+  explicit StringType(Context *ctx) : Type(ctx, sizeof(i8 *), alignof(i8 *), TypeId::StringType) {}
 };
 
 /// Pointer type
@@ -297,14 +285,11 @@ class PointerType : public Type {
 
   static PointerType *Get(Type *base);
 
-  static bool classof(const Type *type) {
-    return type->type_id() == TypeId::PointerType;
-  }
+  static bool classof(const Type *type) { return type->type_id() == TypeId::PointerType; }
 
  private:
   explicit PointerType(Type *base)
-      : Type(base->context(), sizeof(i8 *), alignof(i8 *), TypeId::PointerType),
-        base_(base) {}
+      : Type(base->context(), sizeof(i8 *), alignof(i8 *), TypeId::PointerType), base_(base) {}
 
  private:
   Type *base_;
@@ -319,14 +304,11 @@ class ArrayType : public Type {
 
   static ArrayType *Get(u64 length, Type *elem_type);
 
-  static bool classof(const Type *type) {
-    return type->type_id() == TypeId::ArrayType;
-  }
+  static bool classof(const Type *type) { return type->type_id() == TypeId::ArrayType; }
 
  private:
   explicit ArrayType(u64 length, Type *elem_type)
-      : Type(elem_type->context(), elem_type->size() * length,
-             elem_type->alignment(), TypeId::ArrayType),
+      : Type(elem_type->context(), elem_type->size() * length, elem_type->alignment(), TypeId::ArrayType),
         length_(length),
         elem_type_(elem_type) {}
 
@@ -343,9 +325,7 @@ struct Field {
 
   Field(const Identifier &name, Type *type) : name(name), type(type) {}
 
-  bool operator==(const Field &other) const noexcept {
-    return name == other.name && type == other.type;
-  }
+  bool operator==(const Field &other) const noexcept { return name == other.name && type == other.type; }
 };
 
 /// Function type
@@ -359,9 +339,7 @@ class FunctionType : public Type {
 
   static FunctionType *Get(util::RegionVector<Field> &&params, Type *ret);
 
-  static bool classof(const Type *type) {
-    return type->type_id() == TypeId::FunctionType;
-  }
+  static bool classof(const Type *type) { return type->type_id() == TypeId::FunctionType; }
 
  private:
   explicit FunctionType(util::RegionVector<Field> &&params, Type *ret);
@@ -380,9 +358,7 @@ class MapType : public Type {
 
   static MapType *Get(Type *key_type, Type *value_type);
 
-  static bool classof(const Type *type) {
-    return type->type_id() == TypeId::MapType;
-  }
+  static bool classof(const Type *type) { return type->type_id() == TypeId::MapType; }
 
  private:
   MapType(Type *key_type, Type *val_type);
@@ -415,20 +391,15 @@ class StructType : public Type {
     return 0;
   }
 
-  bool IsLayoutIdentical(const StructType &other) const {
-    return (this == &other || fields() == other.fields());
-  }
+  bool IsLayoutIdentical(const StructType &other) const { return (this == &other || fields() == other.fields()); }
 
   static StructType *Get(Context *ctx, util::RegionVector<Field> &&fields);
   static StructType *Get(util::RegionVector<Field> &&fields);
 
-  static bool classof(const Type *type) {
-    return type->type_id() == TypeId::StructType;
-  }
+  static bool classof(const Type *type) { return type->type_id() == TypeId::StructType; }
 
  private:
-  explicit StructType(Context *ctx, u32 size, u32 alignment,
-                      util::RegionVector<Field> &&fields,
+  explicit StructType(Context *ctx, u32 size, u32 alignment, util::RegionVector<Field> &&fields,
                       util::RegionVector<u32> &&field_offsets);
 
  private:
@@ -454,13 +425,9 @@ inline bool Type::IsSpecificBuiltin(u16 kind) const {
   return false;
 }
 
-inline bool Type::IsNilType() const {
-  return IsSpecificBuiltin(BuiltinType::Nil);
-}
+inline bool Type::IsNilType() const { return IsSpecificBuiltin(BuiltinType::Nil); }
 
-inline bool Type::IsBoolType() const {
-  return IsSpecificBuiltin(BuiltinType::Bool);
-}
+inline bool Type::IsBoolType() const { return IsSpecificBuiltin(BuiltinType::Bool); }
 
 inline bool Type::IsIntegerType() const {
   if (auto *builtin_type = SafeAs<BuiltinType>()) {

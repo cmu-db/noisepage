@@ -91,9 +91,8 @@ class ConciseHashTable {
     // The prefix population count
     u32 count;
 
-    static_assert(
-        sizeof(bits) * kBitsPerByte == kSlotsPerGroup,
-        "Number of slots in group and configured constant are out of sync");
+    static_assert(sizeof(bits) * kBitsPerByte == kSlotsPerGroup,
+                  "Number of slots in group and configured constant are out of sync");
   } PACKED;
 
  private:
@@ -148,8 +147,7 @@ inline void ConciseHashTable::PrefetchSlotGroup(hash_t hash) const {
   util::Prefetch<ForRead, Locality::Low>(slot_groups_ + group_idx);
 }
 
-inline u64 ConciseHashTable::NumFilledSlotsBefore(
-    const ConciseHashTableSlot slot) const {
+inline u64 ConciseHashTable::NumFilledSlotsBefore(const ConciseHashTableSlot slot) const {
   TPL_ASSERT(is_built(), "Table must be built");
 
   const u64 group_idx = slot >> kLogSlotsPerGroup;

@@ -22,8 +22,7 @@ class Table {
   /// A collection of column values forming a block of tuples in the table
   class Block {
    public:
-    Block(std::vector<ColumnSegment> &&data, u32 num_tuples)
-        : data_(std::move(data)), num_tuples_(num_tuples) {}
+    Block(std::vector<ColumnSegment> &&data, u32 num_tuples) : data_(std::move(data)), num_tuples_(num_tuples) {}
 
     u32 num_cols() const { return static_cast<u32>(data_.size()); }
 
@@ -44,8 +43,7 @@ class Table {
   /// Create a new table with ID \ref id and physical layout \ref schema
   /// \param id The desired ID of the table
   /// \param schema The physical schema of the table
-  Table(u16 id, std::unique_ptr<Schema> schema)
-      : schema_(std::move(schema)), id_(id), num_tuples_(0) {}
+  Table(u16 id, std::unique_ptr<Schema> schema) : schema_(std::move(schema)), id_(id), num_tuples_(0) {}
 
   /// Insert column data from \ref data into the table
   /// \param block The block of data to insert into the table

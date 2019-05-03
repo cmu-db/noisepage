@@ -16,8 +16,7 @@ class JoinHashTable {
  public:
   /// Construct a hash-table used for join processing using \a region as the
   /// main memory allocator
-  JoinHashTable(util::Region *region, u32 tuple_size,
-                bool use_concise_ht = false) noexcept;
+  JoinHashTable(util::Region *region, u32 tuple_size, bool use_concise_ht = false) noexcept;
 
   /// This class cannot be copied or moved
   DISALLOW_COPY_AND_MOVE(JoinHashTable);
@@ -40,13 +39,10 @@ class JoinHashTable {
   Iterator Lookup(hash_t hash) const;
 
   /// Perform a vectorized lookup
-  void LookupBatch(u32 num_tuples, const hash_t hashes[],
-                   const HashTableEntry *results[]) const;
+  void LookupBatch(u32 num_tuples, const hash_t hashes[], const HashTableEntry *results[]) const;
 
   /// Return the amount of memory the buffered tuples occupy
-  u64 GetBufferedTupleMemoryUsage() const noexcept {
-    return entries_.size() * entries_.element_size();
-  }
+  u64 GetBufferedTupleMemoryUsage() const noexcept { return entries_.size() * entries_.element_size(); }
 
   /// Get the amount of memory used by the join index only (i.e., excluding
   /// space used to store materialized build-side tuples)
@@ -56,9 +52,7 @@ class JoinHashTable {
   }
 
   /// Return the total size of the join hash table in bytes
-  u64 GetTotalMemoryUsage() const noexcept {
-    return GetBufferedTupleMemoryUsage() + GetJoinIndexMemoryUsage();
-  }
+  u64 GetTotalMemoryUsage() const noexcept { return GetBufferedTupleMemoryUsage() + GetJoinIndexMemoryUsage(); }
 
   // -------------------------------------------------------
   // Simple Accessors
@@ -85,8 +79,7 @@ class JoinHashTable {
     Iterator(const HashTableEntry *initial, hash_t hash);
 
     using KeyEq = bool(void *opaque_ctx, void *probe_tuple, void *table_tuple);
-    const HashTableEntry *NextMatch(KeyEq key_eq, void *opaque_ctx,
-                                    void *probe_tuple);
+    const HashTableEntry *NextMatch(KeyEq key_eq, void *opaque_ctx, void *probe_tuple);
 
    private:
     // The next element the iterator produces
@@ -99,9 +92,7 @@ class JoinHashTable {
   friend class tpl::sql::test::JoinHashTableTest;
 
   // Access a stored entry by index
-  HashTableEntry *EntryAt(const u64 idx) noexcept {
-    return reinterpret_cast<HashTableEntry *>(entries_[idx]);
-  }
+  HashTableEntry *EntryAt(const u64 idx) noexcept { return reinterpret_cast<HashTableEntry *>(entries_[idx]); }
 
   const HashTableEntry *EntryAt(const u64 idx) const noexcept {
     return reinterpret_cast<const HashTableEntry *>(entries_[idx]);
@@ -130,22 +121,18 @@ class JoinHashTable {
 
   // Dispatched from LookupBatch() to lookup from either a generic or concise
   // hash table in batched manner
-  void LookupBatchInGenericHashTable(u32 num_tuples, const hash_t hashes[],
-                                     const HashTableEntry *results[]) const;
-  void LookupBatchInConciseHashTable(u32 num_tuples, const hash_t hashes[],
-                                     const HashTableEntry *results[]) const;
+  void LookupBatchInGenericHashTable(u32 num_tuples, const hash_t hashes[], const HashTableEntry *results[]) const;
+  void LookupBatchInConciseHashTable(u32 num_tuples, const hash_t hashes[], const HashTableEntry *results[]) const;
 
   // Dispatched from LookupBatchInGenericHashTable()
   template <bool Prefetch>
-  void LookupBatchInGenericHashTableInternal(
-      u32 num_tuples, const hash_t hashes[],
-      const HashTableEntry *results[]) const;
+  void LookupBatchInGenericHashTableInternal(u32 num_tuples, const hash_t hashes[],
+                                             const HashTableEntry *results[]) const;
 
   // Dispatched from LookupBatchInConciseHashTable()
   template <bool Prefetch>
-  void LookupBatchInConciseHashTableInternal(
-      u32 num_tuples, const hash_t hashes[],
-      const HashTableEntry *results[]) const;
+  void LookupBatchInConciseHashTableInternal(u32 num_tuples, const hash_t hashes[],
+                                             const HashTableEntry *results[]) const;
 
  private:
   // The vector where we store the build-side input
@@ -172,8 +159,7 @@ class JoinHashTable {
 // ---------------------------------------------------------
 
 template <>
-inline JoinHashTable::Iterator JoinHashTable::Lookup<false>(
-    const hash_t hash) const {
+inline JoinHashTable::Iterator JoinHashTable::Lookup<false>(const hash_t hash) const {
   HashTableEntry *entry = generic_hash_table_.FindChainHead(hash);
   while (entry != nullptr && entry->hash != hash) {
     entry = entry->next;
@@ -182,8 +168,7 @@ inline JoinHashTable::Iterator JoinHashTable::Lookup<false>(
 }
 
 template <>
-inline JoinHashTable::Iterator JoinHashTable::Lookup<true>(
-    const hash_t hash) const {
+inline JoinHashTable::Iterator JoinHashTable::Lookup<true>(const hash_t hash) const {
   const auto [found, idx] = concise_hash_table_.Lookup(hash);
   auto *entry = (found ? EntryAt(idx) : nullptr);
   return JoinHashTable::Iterator(entry, hash);
@@ -193,19 +178,15 @@ inline JoinHashTable::Iterator JoinHashTable::Lookup<true>(
 // JoinHashTable's Iterator implementation
 // ---------------------------------------------------------
 
-inline JoinHashTable::Iterator::Iterator(const HashTableEntry *initial,
-                                         hash_t hash)
-    : next_(initial), hash_(hash) {}
+inline JoinHashTable::Iterator::Iterator(const HashTableEntry *initial, hash_t hash) : next_(initial), hash_(hash) {}
 
-inline const HashTableEntry *JoinHashTable::Iterator::NextMatch(
-    JoinHashTable::Iterator::KeyEq key_eq, void *opaque_ctx,
-    void *probe_tuple) {
+inline const HashTableEntry *JoinHashTable::Iterator::NextMatch(JoinHashTable::Iterator::KeyEq key_eq, void *opaque_ctx,
+                                                                void *probe_tuple) {
   const HashTableEntry *result = next_;
   while (result != nullptr) {
     next_ = next_->next;
     if (result->hash == hash_ &&
-        key_eq(opaque_ctx, probe_tuple,
-               reinterpret_cast<void *>(const_cast<byte *>(result->payload)))) {
+        key_eq(opaque_ctx, probe_tuple, reinterpret_cast<void *>(const_cast<byte *>(result->payload)))) {
       break;
     }
     result = next_;

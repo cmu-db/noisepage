@@ -15,12 +15,10 @@ class StlRegionAllocator {
 
   explicit StlRegionAllocator(Region *region) noexcept : region_(region) {}
 
-  StlRegionAllocator(const StlRegionAllocator &other) noexcept
-      : region_(other.region_) {}
+  StlRegionAllocator(const StlRegionAllocator &other) noexcept : region_(other.region_) {}
 
   template <typename U>
-  explicit StlRegionAllocator(const StlRegionAllocator<U> &other) noexcept
-      : region_(other.region_) {}
+  explicit StlRegionAllocator(const StlRegionAllocator<U> &other) noexcept : region_(other.region_) {}
 
   template <typename U>
   friend class StlRegionAllocator;
@@ -30,13 +28,9 @@ class StlRegionAllocator {
   // No-op
   void deallocate(T *ptr, std::size_t n) {}
 
-  bool operator==(const StlRegionAllocator &other) const {
-    return region_ == other.region_;
-  }
+  bool operator==(const StlRegionAllocator &other) const { return region_ == other.region_; }
 
-  bool operator!=(const StlRegionAllocator &other) const {
-    return !(*this == other);
-  }
+  bool operator!=(const StlRegionAllocator &other) const { return !(*this == other); }
 
  private:
   Region *region_;
@@ -48,16 +42,12 @@ class LLVMRegionAllocator : public llvm::AllocatorBase<LLVMRegionAllocator> {
  public:
   explicit LLVMRegionAllocator(Region *region) noexcept : region_(region) {}
 
-  void *Allocate(std::size_t size, std::size_t alignment) {
-    return region_->Allocate(size, alignment);
-  }
+  void *Allocate(std::size_t size, std::size_t alignment) { return region_->Allocate(size, alignment); }
 
   // Pull in base class overloads.
   using AllocatorBase<LLVMRegionAllocator>::Allocate;
 
-  void Deallocate(const void *ptr, std::size_t size) {
-    region_->Deallocate(ptr, size);
-  }
+  void Deallocate(const void *ptr, std::size_t size) { region_->Deallocate(ptr, size); }
 
   // Pull in base class overloads.
   using AllocatorBase<LLVMRegionAllocator>::Deallocate;

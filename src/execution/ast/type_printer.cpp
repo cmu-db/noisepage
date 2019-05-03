@@ -32,9 +32,7 @@ class TypePrinter : public TypeVisitor<TypePrinter> {
   llvm::raw_ostream &out_;
 };
 
-void tpl::ast::TypePrinter::VisitBuiltinType(const BuiltinType *type) {
-  os() << type->tpl_name();
-}
+void tpl::ast::TypePrinter::VisitBuiltinType(const BuiltinType *type) { os() << type->tpl_name(); }
 
 void TypePrinter::VisitFunctionType(const FunctionType *type) {
   os() << "(";

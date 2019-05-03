@@ -15,6 +15,7 @@ class Pipeline;
 
 class PipelineContext {
   friend class Pipeline;
+
  public:
   using Id = u32;
   explicit PipelineContext(Pipeline *pipeline);
@@ -30,7 +31,6 @@ class PipelineContext {
   ast::Expr *thread_state_;
   ast::Expr *thread_init_func_;
   ast::Expr *pipeline_func_;
-
 };
 
 class Pipeline {
@@ -50,7 +50,6 @@ class Pipeline {
   std::vector<OperatorTranslator *> pipeline_;
   std::vector<u32> stage_boundaries_;
   Parallelism parallelism_;
-
 };
 
-}
+}  // namespace tpl::compiler

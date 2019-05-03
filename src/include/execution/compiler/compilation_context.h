@@ -3,16 +3,20 @@
 #include <unordered_map>
 
 #include "execution/ast/ast.h"
+#include "execution/compiler/codegen.h"
 #include "execution/compiler/expression/expression_translator.h"
 #include "execution/compiler/operator/operator_translator.h"
-#include "execution/compiler/codegen.h"
-#include "execution/compiler/translator_factory.h"
 #include "execution/compiler/pipeline.h"
+#include "execution/compiler/translator_factory.h"
 
 namespace terrier {
-namespace parser { class AbstractExpression; }
-namespace planner { class AbstractPlanNode; }
+namespace parser {
+class AbstractExpression;
 }
+namespace planner {
+class AbstractPlanNode;
+}
+}  // namespace terrier
 
 namespace tpl::compiler {
 
@@ -48,7 +52,8 @@ class CompilationContext {
 
   std::vector<Pipeline *> pipelines_;
   std::unordered_map<const terrier::planner::AbstractPlanNode *, std::unique_ptr<OperatorTranslator>> op_translators_;
-  std::unordered_map<const terrier::parser::AbstractExpression *, std::unique_ptr<ExpressionTranslator>> ex_translators_;
+  std::unordered_map<const terrier::parser::AbstractExpression *, std::unique_ptr<ExpressionTranslator>>
+      ex_translators_;
 };
 
-}
+}  // namespace tpl::compiler

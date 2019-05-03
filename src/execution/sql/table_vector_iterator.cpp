@@ -9,15 +9,11 @@
 namespace tpl::sql {
 
 // Iterate over the table and select all columns
-TableVectorIterator::TableVectorIterator(const u16 table_id)
-    : block_iterator_(table_id), initialized_(false) {}
+TableVectorIterator::TableVectorIterator(const u16 table_id) : block_iterator_(table_id), initialized_(false) {}
 
 // Iterate over the table, but only select the given columns
-TableVectorIterator::TableVectorIterator(const u16 table_id,
-                                         std::vector<u32> column_indexes)
-    : column_indexes_(std::move(column_indexes)),
-      block_iterator_(table_id),
-      initialized_(false) {}
+TableVectorIterator::TableVectorIterator(const u16 table_id, std::vector<u32> column_indexes)
+    : column_indexes_(std::move(column_indexes)), block_iterator_(table_id), initialized_(false) {}
 
 bool TableVectorIterator::Init() {
   // No-op if already initialized

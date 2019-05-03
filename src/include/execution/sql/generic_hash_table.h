@@ -74,9 +74,7 @@ class GenericHashTable {
   HashTableEntry *FindChainHeadWithTag(hash_t hash) const;
 
   /// Return the number of bytes this hash table has allocated
-  u64 GetTotalMemoryUsage() const {
-    return sizeof(HashTableEntry *) * capacity();
-  }
+  u64 GetTotalMemoryUsage() const { return sizeof(HashTableEntry *) * capacity(); }
 
   /// Return the number of elements stored in this hash table
   u64 num_elements() const { return num_elems_; }
@@ -96,14 +94,12 @@ class GenericHashTable {
     return reinterpret_cast<HashTableEntry *>(ptr & kMaskPointer);
   }
 
-  static HashTableEntry *UpdateTag(
-      const HashTableEntry *const tagged_old_entry,
-      const HashTableEntry *const untagged_new_entry) {
+  static HashTableEntry *UpdateTag(const HashTableEntry *const tagged_old_entry,
+                                   const HashTableEntry *const untagged_new_entry) {
     auto old_tagged_ptr = reinterpret_cast<intptr_t>(tagged_old_entry);
     auto new_untagged_ptr = reinterpret_cast<intptr_t>(untagged_new_entry);
-    auto new_tagged_ptr = (new_untagged_ptr & kMaskPointer) |
-                          (old_tagged_ptr & kMaskTag) |
-                          TagHash(untagged_new_entry->hash);
+    auto new_tagged_ptr =
+        (new_untagged_ptr & kMaskPointer) | (old_tagged_ptr & kMaskTag) | TagHash(untagged_new_entry->hash);
     return reinterpret_cast<HashTableEntry *>(new_tagged_ptr);
   }
 
@@ -149,8 +145,7 @@ inline HashTableEntry *GenericHashTable::FindChainHead(hash_t hash) const {
   return entries_[pos].load(std::memory_order_relaxed);
 }
 
-inline HashTableEntry *GenericHashTable::FindChainHeadWithTag(
-    hash_t hash) const {
+inline HashTableEntry *GenericHashTable::FindChainHeadWithTag(hash_t hash) const {
   const HashTableEntry *const candidate = FindChainHead(hash);
   auto exists_in_chain = reinterpret_cast<intptr_t>(candidate) & TagHash(hash);
   return (exists_in_chain ? UntagPointer(candidate) : nullptr);
@@ -180,8 +175,7 @@ inline void GenericHashTable::Insert(HashTableEntry *new_entry, hash_t hash) {
 }
 
 template <bool Concurrent>
-inline void GenericHashTable::InsertTagged(HashTableEntry *new_entry,
-                                           hash_t hash) {
+inline void GenericHashTable::InsertTagged(HashTableEntry *new_entry, hash_t hash) {
   const auto pos = hash & mask_;
 
   TPL_ASSERT(pos < capacity(), "Computed table position exceeds capacity!");

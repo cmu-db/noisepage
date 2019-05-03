@@ -24,9 +24,7 @@ std::string BooleanType::GetName() const {
 
 bool BooleanType::IsArithmetic() const { return false; }
 
-bool BooleanType::Equals(const Type &other) const {
-  return other.Is<BooleanType>() && nullable() == other.nullable();
-}
+bool BooleanType::Equals(const Type &other) const { return other.Is<BooleanType>() && nullable() == other.nullable(); }
 
 const BooleanType &BooleanType::InstanceNonNullable() {
   thread_local BooleanType kNonNullableBoolean(false);
@@ -42,8 +40,7 @@ const BooleanType &BooleanType::InstanceNullable() {
 // Small Integer
 // ---------------------------------------------------------
 
-SmallIntType::SmallIntType(bool nullable)
-    : NumberBaseType(TypeId::SmallInt, nullable) {}
+SmallIntType::SmallIntType(bool nullable) : NumberBaseType(TypeId::SmallInt, nullable) {}
 
 std::string SmallIntType::GetName() const {
   std::string str = "SmallInt";
@@ -71,8 +68,7 @@ const SmallIntType &SmallIntType::InstanceNullable() {
 // Integer
 // ---------------------------------------------------------
 
-IntegerType::IntegerType(bool nullable)
-    : NumberBaseType(TypeId::Integer, nullable) {}
+IntegerType::IntegerType(bool nullable) : NumberBaseType(TypeId::Integer, nullable) {}
 
 std::string IntegerType::GetName() const {
   std::string str = "Integer";
@@ -82,9 +78,7 @@ std::string IntegerType::GetName() const {
   return str;
 }
 
-bool IntegerType::Equals(const Type &other) const {
-  return other.Is<IntegerType>() && nullable() == other.nullable();
-}
+bool IntegerType::Equals(const Type &other) const { return other.Is<IntegerType>() && nullable() == other.nullable(); }
 
 const IntegerType &IntegerType::InstanceNonNullable() {
   thread_local IntegerType kNonNullableInt(false);
@@ -100,8 +94,7 @@ const IntegerType &IntegerType::InstanceNullable() {
 // Big Integer
 // ---------------------------------------------------------
 
-BigIntType::BigIntType(bool nullable)
-    : NumberBaseType(TypeId::BigInt, nullable) {}
+BigIntType::BigIntType(bool nullable) : NumberBaseType(TypeId::BigInt, nullable) {}
 
 std::string BigIntType::GetName() const {
   std::string str = "BigInt";
@@ -111,9 +104,7 @@ std::string BigIntType::GetName() const {
   return str;
 }
 
-bool BigIntType::Equals(const Type &other) const {
-  return other.Is<BigIntType>() && nullable() == other.nullable();
-}
+bool BigIntType::Equals(const Type &other) const { return other.Is<BigIntType>() && nullable() == other.nullable(); }
 
 const BigIntType &BigIntType::InstanceNonNullable() {
   thread_local BigIntType kNonNullableBigInt(false);
@@ -133,8 +124,7 @@ DecimalType::DecimalType(bool nullable, u32 precision, u32 scale)
     : Type(TypeId::Decimal, nullable), precision_(precision), scale_(scale) {}
 
 std::string DecimalType::GetName() const {
-  std::string str =
-      "Decimal[" + std::to_string(precision()) + "," + std::to_string(scale());
+  std::string str = "Decimal[" + std::to_string(precision()) + "," + std::to_string(scale());
   if (nullable()) {
     str.append(",NULLABLE");
   }
@@ -144,8 +134,8 @@ std::string DecimalType::GetName() const {
 
 bool DecimalType::Equals(const Type &other) const {
   if (auto *other_decimal = other.SafeAs<DecimalType>()) {
-    return precision() == other_decimal->precision() &&
-           scale() == other_decimal->scale() && nullable() == other.nullable();
+    return precision() == other_decimal->precision() && scale() == other_decimal->scale() &&
+           nullable() == other.nullable();
   }
   return false;
 }
@@ -158,16 +148,14 @@ u32 DecimalType::scale() const { return scale_; }
 
 template <bool Nullable>
 const DecimalType &DecimalType::InstanceInternal(u32 precision, u32 scale) {
-  thread_local llvm::DenseMap<std::pair<u32, u32>, std::unique_ptr<DecimalType>>
-      kDecimalTypeMap;
+  thread_local llvm::DenseMap<std::pair<u32, u32>, std::unique_ptr<DecimalType>> kDecimalTypeMap;
 
   auto key = std::make_pair(precision, scale);
   if (auto iter = kDecimalTypeMap.find(key); iter != kDecimalTypeMap.end()) {
     return *iter->second;
   }
 
-  auto iter = kDecimalTypeMap.try_emplace(
-      key, new DecimalType(Nullable, precision, scale));
+  auto iter = kDecimalTypeMap.try_emplace(key, new DecimalType(Nullable, precision, scale));
   return *iter.first->second;
 }
 
@@ -201,9 +189,7 @@ std::string DateType::GetName() const {
   return str;
 }
 
-bool DateType::Equals(const Type &other) const {
-  return other.Is<DateType>() && nullable() == other.nullable();
-}
+bool DateType::Equals(const Type &other) const { return other.Is<DateType>() && nullable() == other.nullable(); }
 
 DateType::DateType(bool nullable) : Type(TypeId::Date, nullable) {}
 
@@ -223,15 +209,10 @@ const CharType &CharType::InstanceInternal(u32 length) {
   return *iter.first->second;
 }
 
-const CharType &CharType::InstanceNonNullable(u32 len) {
-  return InstanceInternal<false>(len);
-}
-const CharType &CharType::InstanceNullable(u32 len) {
-  return InstanceInternal<true>(len);
-}
+const CharType &CharType::InstanceNonNullable(u32 len) { return InstanceInternal<false>(len); }
+const CharType &CharType::InstanceNullable(u32 len) { return InstanceInternal<true>(len); }
 
-CharType::CharType(bool nullable, u32 length)
-    : Type(TypeId::Char, nullable), length_(length) {}
+CharType::CharType(bool nullable, u32 length) : Type(TypeId::Char, nullable), length_(length) {}
 
 std::string CharType::GetName() const {
   std::string str = "Char[" + std::to_string(length());
@@ -244,8 +225,7 @@ std::string CharType::GetName() const {
 
 bool CharType::Equals(const Type &other) const {
   if (auto *other_char = other.SafeAs<CharType>()) {
-    return length() == other_char->length() &&
-           nullable() == other_char->nullable();
+    return length() == other_char->length() && nullable() == other_char->nullable();
   }
   return false;
 }
@@ -258,28 +238,21 @@ u32 CharType::length() const { return length_; }
 
 template <bool Nullable>
 const VarcharType &VarcharType::InstanceInternal(u32 length) {
-  thread_local llvm::DenseMap<u32, std::unique_ptr<VarcharType>>
-      kVarcharTypeMap;
+  thread_local llvm::DenseMap<u32, std::unique_ptr<VarcharType>> kVarcharTypeMap;
 
   if (auto iter = kVarcharTypeMap.find(length); iter != kVarcharTypeMap.end()) {
     return *iter->second;
   }
 
-  auto iter =
-      kVarcharTypeMap.try_emplace(length, new VarcharType(Nullable, length));
+  auto iter = kVarcharTypeMap.try_emplace(length, new VarcharType(Nullable, length));
   return *iter.first->second;
 }
 
-const VarcharType &VarcharType::InstanceNonNullable(u32 max_len) {
-  return InstanceInternal<false>(max_len);
-}
+const VarcharType &VarcharType::InstanceNonNullable(u32 max_len) { return InstanceInternal<false>(max_len); }
 
-const VarcharType &VarcharType::InstanceNullable(u32 max_len) {
-  return InstanceInternal<true>(max_len);
-}
+const VarcharType &VarcharType::InstanceNullable(u32 max_len) { return InstanceInternal<true>(max_len); }
 
-VarcharType::VarcharType(bool nullable, u32 max_len)
-    : Type(TypeId::Varchar, nullable), max_len_(max_len) {}
+VarcharType::VarcharType(bool nullable, u32 max_len) : Type(TypeId::Varchar, nullable), max_len_(max_len) {}
 
 std::string VarcharType::GetName() const {
   std::string str = "Char[" + std::to_string(max_length());
@@ -292,8 +265,7 @@ std::string VarcharType::GetName() const {
 
 bool VarcharType::Equals(const Type &other) const {
   if (auto *other_varchar = other.SafeAs<VarcharType>()) {
-    return max_length() == other_varchar->max_length() &&
-           nullable() == other_varchar->nullable();
+    return max_length() == other_varchar->max_length() && nullable() == other_varchar->nullable();
   }
   return false;
 }

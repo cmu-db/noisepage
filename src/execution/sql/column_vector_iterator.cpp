@@ -6,8 +6,7 @@
 
 namespace tpl::sql {
 
-ColumnVectorIterator::ColumnVectorIterator(
-    const Schema::ColumnInfo *col_info) noexcept
+ColumnVectorIterator::ColumnVectorIterator(const Schema::ColumnInfo *col_info) noexcept
     : col_info_(col_info),
       column_(nullptr),
       current_block_pos_(0),
@@ -26,8 +25,7 @@ bool ColumnVectorIterator::Advance() noexcept {
   col_null_bitmap_ = const_cast<u32 *>(column_->AccessRawNullBitmap(0));
 
   current_block_pos_ = next_block_pos_;
-  next_block_pos_ =
-      std::min(column_->num_tuples(), current_block_pos_ + vector_size());
+  next_block_pos_ = std::min(column_->num_tuples(), current_block_pos_ + vector_size());
 
   return true;
 }

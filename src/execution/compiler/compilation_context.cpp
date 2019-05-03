@@ -10,10 +10,7 @@
 namespace tpl::compiler {
 
 CompilationContext::CompilationContext(tpl::compiler::Query *query, tpl::compiler::ExecutionConsumer *consumer)
-: codegen_(&query->GetCodeContext())
-{
-
-}
+    : codegen_(&query->GetCodeContext()) {}
 
 void CompilationContext::Prepare(const terrier::parser::AbstractExpression &expr) {
   ex_translators_.insert(std::make_pair(&expr, translator_factory_.CreateTranslator(expr, this)));
@@ -33,9 +30,7 @@ OperatorTranslator *CompilationContext::GetTranslator(const terrier::planner::Ab
   return iter == op_translators_.end() ? nullptr : iter->second.get();
 }
 
-void CompilationContext::Produce(const terrier::planner::AbstractPlanNode &node) {
-  GetTranslator(node)->Produce();
-}
+void CompilationContext::Produce(const terrier::planner::AbstractPlanNode &node) { GetTranslator(node)->Produce(); }
 
 void CompilationContext::GeneratePlan(Query *query) {
   Pipeline main_pipeline(this);
@@ -46,21 +41,19 @@ void CompilationContext::GeneratePlan(Query *query) {
   // TODO(WAN): init, plan, teardown
   std::shared_ptr<ast::BlockStmt> compiled_query;
   // init
-  std::vector<FunctionDec> args = {{"query_state", query->GetQueryState().GetType()}};
+  std::vector<ast::FieldDecl> args = {{"query_state", query->GetQueryState().GetType()}};
   FunctionBuilder init_func(query->GetCodeContext(), "init", codegen_.Ty_Nil(), args);
   consumer_->InitializeQueryState(this);
   for (const auto &iter : op_translators_) {
     iter.second->InitializeQueryState();
   }
 
-
   // plan
 
   // teardown
   consumer_->TeardownQueryState(this);
 
-
   query->SetCompiledQuery(compiled_query);
 }
 
-}
+}  // namespace tpl::compiler

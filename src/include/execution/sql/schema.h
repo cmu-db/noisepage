@@ -17,8 +17,7 @@ class Schema {
     const Type &type;
     ColumnEncoding encoding;
 
-    ColumnInfo(std::string name, const Type &type,
-               ColumnEncoding encoding = ColumnEncoding::None)
+    ColumnInfo(std::string name, const Type &type, ColumnEncoding encoding = ColumnEncoding::None)
         : name(std::move(name)), type(type), encoding(encoding) {}
 
     // TODO(pmenon): Fix me to change based on encoding

@@ -28,16 +28,13 @@ struct PassArgument {
 
 class ErrorReporter {
  public:
-  explicit ErrorReporter(util::Region *region)
-      : region_(region), errors_(region) {}
+  explicit ErrorReporter(util::Region *region) : region_(region), errors_(region) {}
 
   // Record an error
   template <typename... ArgTypes>
-  void Report(const SourcePosition &pos,
-              const ErrorMessage<ArgTypes...> &message,
+  void Report(const SourcePosition &pos, const ErrorMessage<ArgTypes...> &message,
               typename detail::PassArgument<ArgTypes>::type... args) {
-    errors_.emplace_back(region_, pos, message,
-                         std::forward<ArgTypes>(args)...);
+    errors_.emplace_back(region_, pos, message, std::forward<ArgTypes>(args)...);
   }
 
   // Have any errors been reported?
@@ -55,26 +52,20 @@ class ErrorReporter {
    public:
     enum Kind { CString, Int, Position, Token, Type };
 
-    explicit MessageArgument(const char *str)
-        : kind_(Kind::CString), raw_str_(str) {}
+    explicit MessageArgument(const char *str) : kind_(Kind::CString), raw_str_(str) {}
 
-    explicit MessageArgument(i32 integer)
-        : kind_(Kind::Int), integer_(integer) {}
+    explicit MessageArgument(i32 integer) : kind_(Kind::Int), integer_(integer) {}
 
-    explicit MessageArgument(ast::Identifier str)
-        : MessageArgument(str.data()) {}
+    explicit MessageArgument(ast::Identifier str) : MessageArgument(str.data()) {}
 
-    explicit MessageArgument(ast::Type *type)
-        : kind_(Kind::Type), type_(type) {}
+    explicit MessageArgument(ast::Type *type) : kind_(Kind::Type), type_(type) {}
 
     explicit MessageArgument(const parsing::Token::Type type)
-        : MessageArgument(
-              static_cast<std::underlying_type_t<parsing::Token::Type>>(type)) {
+        : MessageArgument(static_cast<std::underlying_type_t<parsing::Token::Type>>(type)) {
       kind_ = Kind::Token;
     }
 
-    explicit MessageArgument(const SourcePosition &pos)
-        : kind_(Kind::Position), pos_(pos) {}
+    explicit MessageArgument(const SourcePosition &pos) : kind_(Kind::Position), pos_(pos) {}
 
     Kind kind() const { return kind_; }
 
@@ -99,8 +90,7 @@ class ErrorReporter {
   class MessageWithArgs {
    public:
     template <typename... ArgTypes>
-    MessageWithArgs(util::Region *region, const SourcePosition &pos,
-                    const ErrorMessage<ArgTypes...> &message,
+    MessageWithArgs(util::Region *region, const SourcePosition &pos, const ErrorMessage<ArgTypes...> &message,
                     typename detail::PassArgument<ArgTypes>::type... args)
         : pos_(pos), id_(message.id), args_(region) {
       args_.insert(args_.end(), {MessageArgument(std::move(args))...});

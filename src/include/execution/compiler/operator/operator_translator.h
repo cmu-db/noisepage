@@ -8,7 +8,8 @@ class OperatorTranslator {
   virtual void TeardownQueryState() = 0;
 
   virtual void Produce() const = 0;
+
  private:
 };
 
-}
+}  // namespace tpl::compiler

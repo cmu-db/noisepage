@@ -73,9 +73,7 @@ class Builtins {
   // Return the total number of bytecodes
   static constexpr u32 NumBuiltins() { return kBuiltinsCount; }
 
-  static const char *GetFunctionName(Builtin builtin) {
-    return kBuiltinFunctionNames[static_cast<u8>(builtin)];
-  }
+  static const char *GetFunctionName(Builtin builtin) { return kBuiltinFunctionNames[static_cast<u8>(builtin)]; }
 
  private:
   static const char *kBuiltinFunctionNames[];

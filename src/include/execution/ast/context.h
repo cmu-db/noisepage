@@ -49,8 +49,7 @@ class Context {
   /// \param[out] builtin If non-null, set to the appropriate builtin
   ///                     enumeration \return True if the function name is that
   ///                     of a builtin; false otherwise
-  bool IsBuiltinFunction(Identifier identifier,
-                         Builtin *builtin = nullptr) const;
+  bool IsBuiltinFunction(Identifier identifier, Builtin *builtin = nullptr) const;
 
   // -------------------------------------------------------
   // Simple accessors

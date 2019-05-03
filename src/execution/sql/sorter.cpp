@@ -10,12 +10,8 @@
 
 namespace tpl::sql {
 
-Sorter::Sorter(util::Region *region, ComparisonFunction cmp_fn,
-               u32 tuple_size) noexcept
-    : tuple_storage_(region, tuple_size),
-      cmp_fn_(cmp_fn),
-      tuples_(region),
-      sorted_(false) {}
+Sorter::Sorter(util::Region *region, ComparisonFunction cmp_fn, u32 tuple_size) noexcept
+    : tuple_storage_(region, tuple_size), cmp_fn_(cmp_fn), tuples_(region), sorted_(false) {}
 
 Sorter::~Sorter() = default;
 
@@ -25,9 +21,7 @@ byte *Sorter::AllocInputTuple() noexcept {
   return ret;
 }
 
-byte *Sorter::AllocInputTupleTopK(UNUSED u64 top_k) noexcept {
-  return AllocInputTuple();
-}
+byte *Sorter::AllocInputTupleTopK(UNUSED u64 top_k) noexcept { return AllocInputTuple(); }
 
 void Sorter::AllocInputTupleTopKFinish(u64 top_k) noexcept {
   // If the number of buffered tuples is less than the bound, we're done
@@ -65,9 +59,7 @@ void Sorter::AllocInputTupleTopKFinish(u64 top_k) noexcept {
 }
 
 void Sorter::BuildHeap() {
-  const auto compare = [this](const byte *left, const byte *right) {
-    return cmp_fn_(left, right) < 0;
-  };
+  const auto compare = [this](const byte *left, const byte *right) { return cmp_fn_(left, right) < 0; };
   std::make_heap(tuples_.begin(), tuples_.end(), compare);
 }
 
@@ -117,17 +109,14 @@ void Sorter::Sort() {
   timer.Start();
 
   // Sort the sucker
-  const auto compare = [this](const byte *left, const byte *right) {
-    return cmp_fn_(left, right) < 0;
-  };
+  const auto compare = [this](const byte *left, const byte *right) { return cmp_fn_(left, right) < 0; };
   ips4o::sort(tuples_.begin(), tuples_.end(), compare);
 
   timer.Stop();
 
 #ifndef NDEBUG
   auto rate = (tuples_.size() / timer.elapsed()) / 1000.0;
-  LOG_DEBUG("Sorted %zu tuples in %.2f ms (%.2lf TPS)", tuples_.size(),
-            timer.elapsed(), rate);
+  LOG_DEBUG("Sorted %zu tuples in %.2f ms (%.2lf TPS)", tuples_.size(), timer.elapsed(), rate);
 #endif
 
   // Mark complete
