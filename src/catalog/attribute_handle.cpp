@@ -19,7 +19,7 @@ namespace terrier::catalog {
 
 const std::vector<SchemaCol> AttributeHandle::schema_cols_ = {
     {0, true, "oid", type::TypeId::INTEGER},     {1, true, "attrelid", type::TypeId::INTEGER},
-    {2, true, "attname", type::TypeId::VARCHAR}, {3, true, "atttypid", type::TypeId::INTEGER},
+    {2, true, "attname", type::TypeId::VARCHAR}, {3, true, "atttypid", type::TypeId::TINYINT},
     {4, true, "attlen", type::TypeId::INTEGER},  {5, true, "attnum", type::TypeId::INTEGER}};
 
 // TODO(pakhtar): add unused columns
