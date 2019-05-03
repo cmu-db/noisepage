@@ -49,8 +49,7 @@ class Schema {
       // ASSUMPTION: The default_value passed in is of size attr_size_
       // Copy the passed in default value (if exists)
       if (default_value != nullptr) {
-        default_ = new byte[attr_size_];
-        std::memcpy(default_, default_value, attr_size_);
+        SetDefault(default_value);
       }
     }
 
@@ -113,6 +112,29 @@ class Schema {
      * @return default value for this column
      */
     byte *GetDefault() const { return default_; }
+
+    /**
+     * Clear the default value of the column
+     */
+    void ClearDefault() {
+      if (default_ != nullptr) {
+        // Free the memory allocate to the default value
+        delete default_;
+        default_ = nullptr;
+      }
+    }
+
+    /**
+     * Set the default value of the column
+     * @param default_value default_value as a bytes array
+     */
+    void SetDefault(byte *default_value) {
+      if (default_ == nullptr) {
+        default_ = new byte[attr_size_];
+      }
+      // Copy the new default value
+      std::memcpy(default_, default_value, attr_size_);
+    }
 
    private:
     const std::string name_;
