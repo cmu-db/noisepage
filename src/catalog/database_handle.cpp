@@ -60,7 +60,7 @@ AttrDefHandle DatabaseHandle::GetAttrDefHandle(transaction::TransactionContext *
 
 IndexHandle DatabaseHandle::GetIndexHandle(terrier::transaction::TransactionContext *txn,
                                            terrier::catalog::db_oid_t oid) {
-  return IndexHandle(catalog_->GetCatalogTable(oid, "pg_index"));
+  return IndexHandle(catalog_, catalog_->GetCatalogTable(oid, "pg_index"));
 }
 
 std::shared_ptr<DatabaseEntry> DatabaseHandle::GetDatabaseEntry(transaction::TransactionContext *txn, db_oid_t oid) {

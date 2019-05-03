@@ -42,7 +42,7 @@ class IndexHandle {
    * @param catalog: The pointer to the catalog.
    * @param pg_index: The pointer to the pg_index sql table.
    */
-  explicit IndexHandle(catalog::SqlTableHelper *pg_index);
+  explicit IndexHandle(Catalog *catalog, catalog::SqlTableHelper *pg_index);
 
   /**
    * Get the IndexEntry by oid from IndexHandle
@@ -75,6 +75,7 @@ class IndexHandle {
   static const std::vector<SchemaCol> schema_cols_;
 
  private:
+  Catalog *catalog_;
   catalog::SqlTableHelper *pg_index_rw_;
 };
 }  // namespace terrier::catalog

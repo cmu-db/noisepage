@@ -11,13 +11,13 @@
 namespace terrier::catalog {
 
 const std::vector<SchemaCol> IndexHandle::schema_cols_ = {
-    {0, true, "indexrelid", type::TypeId::INTEGER},      {1, true, "indrelid", type::TypeId::INTEGER},
-    {2, true, "indnatts", type::TypeId::INTEGER},        {3, true, "indnkeyatts", type::TypeId::INTEGER},
-    {4, true, "indisunique", type::TypeId::BOOLEAN},     {5, true, "indisprimary", type::TypeId::BOOLEAN},
-    {6, false, "indisexclusion", type::TypeId::BOOLEAN}, {7, false, "indimmediate", type::TypeId::BOOLEAN},
-    {8, false, "indisclustered", type::TypeId::BOOLEAN}, {10, false, "indcheckxmin", type::TypeId::BOOLEAN},
-    {9, true, "indisvalid", type::TypeId::BOOLEAN},      {11, true, "indisready", type::TypeId::BOOLEAN},
-    {12, true, "indislive", type::TypeId::BOOLEAN},      {13, false, "indisreplident", type::TypeId::BOOLEAN},
+    {0, true, "indexrelid", type::TypeId::INTEGER},     {1, true, "indrelid", type::TypeId::INTEGER},
+    {2, true, "indnatts", type::TypeId::INTEGER},       {3, true, "indnkeyatts", type::TypeId::INTEGER},
+    {4, true, "indisunique", type::TypeId::BOOLEAN},    {5, true, "indisprimary", type::TypeId::BOOLEAN},
+    {6, true, "indisexclusion", type::TypeId::BOOLEAN}, {7, true, "indimmediate", type::TypeId::BOOLEAN},
+    {8, true, "indisclustered", type::TypeId::BOOLEAN}, {10, false, "indcheckxmin", type::TypeId::BOOLEAN},
+    {9, false, "indisvalid", type::TypeId::BOOLEAN},    {11, false, "indisready", type::TypeId::BOOLEAN},
+    {12, false, "indislive", type::TypeId::BOOLEAN},    {13, false, "indisreplident", type::TypeId::BOOLEAN},
     {14, false, "indkey", type::TypeId::BOOLEAN},        // Should be of type int2vector
     {15, false, "indcollation", type::TypeId::BOOLEAN},  // Should be of type oidvector
     {16, false, "indclass", type::TypeId::BOOLEAN},      // Should be of type oidvector
@@ -26,7 +26,8 @@ const std::vector<SchemaCol> IndexHandle::schema_cols_ = {
     {19, false, "indpred", type::TypeId::BOOLEAN}        // Should be of type pg_node_tree
 };
 
-IndexHandle::IndexHandle(catalog::SqlTableHelper *pg_index) : pg_index_rw_(pg_index) {}
+IndexHandle::IndexHandle(Catalog *catalog, catalog::SqlTableHelper *pg_index)
+    : catalog_(catalog), pg_index_rw_(pg_index) {}
 
 std::shared_ptr<IndexEntry> IndexHandle::GetIndexEntry(transaction::TransactionContext *txn, index_oid_t oid) {
   std::vector<type::TransientValue> search_vec, ret_row;
@@ -49,6 +50,7 @@ void IndexHandle::AddEntry(transaction::TransactionContext *txn, index_oid_t ind
   row.emplace_back(type::TransientValueFactory::GetBoolean(indisvalid));
   row.emplace_back(type::TransientValueFactory::GetBoolean(indisready));
   row.emplace_back(type::TransientValueFactory::GetBoolean(indislive));
+  catalog_->SetUnusedColumns(&row, IndexHandle::schema_cols_);
   pg_index_rw_->InsertRow(txn, row);
 }
 
