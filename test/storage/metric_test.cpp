@@ -467,7 +467,7 @@ TEST_F(MetricTests, MultiThreadTest) {
       EXPECT_EQ(insert_cnt, num_insert);
       EXPECT_EQ(delete_cnt, num_delete);
       EXPECT_GE(latency_map.Find(txn_id)->second, latency);
-      EXPECT_LT(latency_map.Find(txn_id)->second, latency + acc_err);
+      EXPECT_LE(latency_map.Find(txn_id)->second, latency + acc_err);
     }
   }
 }
