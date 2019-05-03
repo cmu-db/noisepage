@@ -61,6 +61,15 @@ class MetricTests : public TerrierTest {
     txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
     TerrierTest::TearDown();
     EndGC();
+    const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
+    auto db_handle = catalog_->GetDatabaseHandle();
+    auto table_handle = db_handle.GetNamespaceHandle(txn_, terrier_oid).GetTableHandle(txn_, "public");
+    auto table = table_handle.GetTable(txn_, "database_metric_table");
+    delete table;
+    db_handle = catalog_->GetDatabaseHandle();
+    table_handle = db_handle.GetNamespaceHandle(txn_, terrier_oid).GetTableHandle(txn_, "public");
+    table = table_handle.GetTable(txn_, "txn_metric_table");
+    delete table;
     delete catalog_;  // need to delete catalog_first
     delete txn_manager_;
   }
