@@ -22,10 +22,10 @@ namespace terrier::storage::index {
  */
 class IndexBuilder {
  private:
-  Index *GetEmptyIndex(catalog::db_oid_t db_oid, catalog::table_oid_t table_oid,
+  static Index *GetEmptyIndex(transaction::TransactionContext *txn, catalog::db_oid_t db_oid, catalog::table_oid_t table_oid,
                        catalog::index_oid_t index_oid, bool unique_index,
                        std::vector<std::string> &key_attrs,
-                       transaction::TransactionContext *txn, catalog::Catalog *catalog) {
+                        catalog::Catalog *catalog) {
     IndexFactory index_factory;
     ConstraintType constraint = (unique_index) ? ConstraintType::UNIQUE : ConstraintType::DEFAULT;
     index_factory.SetOid(index_oid);
@@ -61,12 +61,24 @@ class IndexBuilder {
       return;
     }
     std::shared_ptr<SqlTable> sql_table = sql_table_helper->GetSqlTable();
-//    catalog::IndexHandle index_handle = catalog->GetDatabaseHandle().GetIndexHandle(txn1, db_oid);
-
-//    index_handle.AddIndexEntry(txn1,)
-//     Index *index = GetEmptyIndex(db_oid, table_oid, )
-
+    catalog::IndexHandle index_handle = catalog->GetDatabaseHandle().GetIndexHandle(txn1, db_oid);
+    // placeholder args
+    catalog::index_oid_t index_oid(catalog->GetNextOid());
+    int32_t indnatts = index_attrs.size();
+    int32_t indnkeyatts = key_attrs.size();
+    bool indisunique = unique_index;
+    bool indisprimary = false;
+    bool indisvalid = false;
+    bool indisready = false;
+    bool indislive = false;
+    index_handle.AddEntry(txn1, index_oid, table_oid, indnatts, indnkeyatts, indisunique, indisprimary, indisvalid, indisready, indislive);
+    Index *index = GetEmptyIndex(txn1, db_oid, table_oid, index_oid, indisunique, key_attrs, catalog);
     txn_mgr->Commit(txn1, nullptr, nullptr);
+
+    transaction::TransactionContext *txn2 = txn_mgr->BeginTransaction();
+    // TODO
+    index->GetOid();
+    txn_mgr->Commit(txn2, nullptr, nullptr);
   }
 
   /**
