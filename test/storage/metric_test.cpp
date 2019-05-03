@@ -385,11 +385,12 @@ TEST_F(MetricTests, TransactionMetricStorageTest) {
 }
 
 /**
- *  Testing metric stats collection and persistence, multi threads
+ *  Testing metric stats collection and persistence, multiple threads
  */
 // NOLINTNEXTLINE
 TEST_F(MetricTests, MultiThreadTest) {
-  const uint32_t num_threads = MultiThreadTestUtil::HardwareConcurrency();
+  //const uint32_t num_threads = MultiThreadTestUtil::HardwareConcurrency();
+  const uint32_t num_threads = 1;
   common::WorkerPool thread_pool(num_threads, {});
 
   catalog::table_oid_t table_oid = static_cast<catalog::table_oid_t>(2);  // any value
@@ -410,6 +411,10 @@ TEST_F(MetricTests, MultiThreadTest) {
       if (id == 0) {  // aggregator thread
         std::this_thread::sleep_for(std::chrono::milliseconds(3000));
         aggregator.Aggregate(txn_);
+        auto iter = collectors.Begin();
+        for (; iter != collectors.End(); iter++) {
+          delete iter->get();
+        }
       } else {  // normal thread
         auto *stats_collector = new storage::metric::ThreadLevelStatsCollector();
         collectors.PushBack(std::make_shared<storage::metric::ThreadLevelStatsCollector *>(stats_collector));
@@ -471,5 +476,4 @@ TEST_F(MetricTests, MultiThreadTest) {
     }
   }
 }
-
 }  // namespace terrier
