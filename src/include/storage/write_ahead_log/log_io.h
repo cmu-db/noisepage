@@ -105,7 +105,7 @@ class BufferedLogWriter {
     if (!CanBuffer(size)) {
       uint32_t space_available = BUFFER_SIZE - buffer_size_;
       std::memcpy(buffer_ + buffer_size_, data, space_available);
-      buffer_size_ += size;
+      buffer_size_ += space_available;
       return space_available;
     } else {
       TERRIER_ASSERT(CanBuffer(size), "attempting to write to full write buffer");
