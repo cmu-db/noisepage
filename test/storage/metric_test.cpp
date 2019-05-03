@@ -389,7 +389,7 @@ TEST_F(MetricTests, TransactionMetricStorageTest) {
  */
 // NOLINTNEXTLINE
 TEST_F(MetricTests, MultiThreadTest) {
-  //const uint32_t num_threads = MultiThreadTestUtil::HardwareConcurrency();
+  // const uint32_t num_threads = MultiThreadTestUtil::HardwareConcurrency();
   const uint32_t num_threads = 1;
   common::WorkerPool thread_pool(num_threads, {});
 
