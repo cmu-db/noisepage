@@ -99,16 +99,19 @@ class BufferedLogWriter {
    * @param data memory location of the bytes to write
    * @param size number of bytes to write
    */
-  void BufferWrite(const void *data, uint32_t size) {
-    if (!CanBuffer(size)) FlushBuffer();
+  uint32_t BufferWrite(const void *data, uint32_t size) {
     // If we still do not have buffer space after flush, the write is too large to be buffered. We should bypass the
     // buffer and write directly to disk
     if (!CanBuffer(size)) {
-      WriteUnsynced(data, size);
+      uint32_t space_available = BUFFER_SIZE - buffer_size_;
+      std::memcpy(buffer_ + buffer_size_, data, space_available);
+      buffer_size_ += size;
+      return space_available;
     } else {
       TERRIER_ASSERT(CanBuffer(size), "attempting to write to full write buffer");
       std::memcpy(buffer_ + buffer_size_, data, size);
       buffer_size_ += size;
+      return size;
     }
   }
 
@@ -116,23 +119,33 @@ class BufferedLogWriter {
    * Flush any buffered writes and call fsync to make sure that all writes are consistent.
    */
   void Persist() {
-    FlushBuffer();
     if (fsync(out_) == -1) throw std::runtime_error("fsync failed with errno " + std::to_string(errno));
   }
-
- private:
-  int out_;  // fd of the output files
-  char buffer_[BUFFER_SIZE];
-  uint32_t buffer_size_ = 0;
-
-  bool CanBuffer(uint32_t size) { return BUFFER_SIZE - buffer_size_ >= size; }
-
-  void WriteUnsynced(const void *data, uint32_t size) { PosixIoWrappers::WriteFully(out_, data, size); }
 
   void FlushBuffer() {
     WriteUnsynced(buffer_, buffer_size_);
     buffer_size_ = 0;
   }
+
+  bool IsBufferFull() {
+    return buffer_size_ == BUFFER_SIZE;
+  }
+  bool IsBufferNotEmpty() {
+    return buffer_size_ != 0;
+  }
+  bool IsBufferEmpty() {
+    return buffer_size_ == 0;
+  }
+
+ private:
+  int out_;  // fd of the output files
+  char buffer_[BUFFER_SIZE];
+
+  uint32_t buffer_size_ = 0;
+
+  bool CanBuffer(uint32_t size) { return BUFFER_SIZE - buffer_size_ >= size; }
+
+  void WriteUnsynced(const void *data, uint32_t size) { PosixIoWrappers::WriteFully(out_, data, size); }
 };
 
 /**

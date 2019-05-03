@@ -16,11 +16,15 @@ void LogManager::Process() {
     SerializeTaskBuffer(task_buffer);
     buffer_pool_->Release(buffer);
   }
+  if (buffer_to_write_ != nullptr) {
+    MarkBufferFull();
+  }
   Flush();
 }
 
 void LogManager::Flush() {
-  out_.Persist();
+  do_persist_ = true;
+  while (do_persist_);
   for (auto &callback : commits_in_buffer_) callback.first(callback.second);
   commits_in_buffer_.clear();
 }
@@ -72,10 +76,10 @@ void LogManager::SerializeRecord(const terrier::storage::LogRecord &record) {
       // Write out which column ids this redo record is concerned with. On recovery, we can construct the appropriate
       // ProjectedRowInitializer from these ids and their corresponding block layout.
       WriteValue(delta->NumColumns());
-      out_.BufferWrite(delta->ColumnIds(), static_cast<uint32_t>(sizeof(col_id_t)) * delta->NumColumns());
+      WriteValue(delta->ColumnIds(), static_cast<uint32_t>(sizeof(col_id_t)) * delta->NumColumns());
 
       // Write out the null bitmap.
-      out_.BufferWrite(&(delta->Bitmap()), common::RawBitmap::SizeInBytes(delta->NumColumns()));
+      WriteValue(&(delta->Bitmap()), common::RawBitmap::SizeInBytes(delta->NumColumns()));
 
       // We need the block layout to determine the size of each attribute.
       const auto &block_layout = data_table->GetBlockLayout();
@@ -96,16 +100,16 @@ void LogManager::SerializeRecord(const terrier::storage::LogRecord &record) {
           WriteValue(varlen_entry->Size());
           if (varlen_entry->IsInlined()) {
             // Serialize out the prefix of the varlen entry.
-            out_.BufferWrite(varlen_entry->Prefix(), varlen_entry->Size());
+            WriteValue(varlen_entry->Prefix(), varlen_entry->Size());
           } else {
             // Serialize out the content field of the varlen entry.
-            out_.BufferWrite(varlen_entry->Content(), varlen_entry->Size());
+            WriteValue(varlen_entry->Content(), varlen_entry->Size());
           }
         } else {
           // Inline column value is the actual data we want to serialize out.
           // Note that by writing out AttrSize(col_id) bytes instead of just the difference between successive offsets
           // of the delta record, we avoid serializing out any potential padding.
-          out_.BufferWrite(column_value_address, block_layout.AttrSize(col_id));
+          WriteValue(column_value_address, block_layout.AttrSize(col_id));
         }
       }
       break;
@@ -122,4 +126,48 @@ void LogManager::SerializeRecord(const terrier::storage::LogRecord &record) {
   }
 }
 
+void LogManager::WriteToDisk() {
+  while(run_log_writer_thread_) {
+    BufferedLogWriter *buf;
+    bool dequeued = filled_buffer_queue_.dequeue_for(buf, std::chrono::milliseconds(10));
+    if (do_persist_) {
+      FlushAllBuffers();
+      do_persist_ = false;
+    }
+    if (!dequeued) {
+      continue;
+    }
+    // Flush the buffer to the disk
+    buf->FlushBuffer();
+    TERRIER_ASSERT(buf->IsBufferEmpty(), "DAMN");
+    // Push the emptied buffer to queue of available buffers to fill
+    empty_buffer_queue_.enqueue(&(*buf));
+  }
+}
+
+void LogManager::FlushAllBuffers() {
+  bool dequeued;
+  do {
+    BufferedLogWriter *buf;
+    dequeued = filled_buffer_queue_.dequeue_for(buf, std::chrono::milliseconds(10));
+    if (dequeued) {
+      buf->FlushBuffer();
+    }
+  } while(dequeued);
+  buffers_[0].Persist();
+}
+
+void LogManager::WriteValue(const void *val, uint32_t size) {
+  BufferedLogWriter *out = GetBufferToWrite();
+  uint32_t size_written = 0;
+
+  while (size_written < size) {
+    TERRIER_ASSERT(!out->IsBufferFull(), "NO");
+    size_written += out->BufferWrite(((byte *)val + size_written), size - size_written);
+    if (out->IsBufferFull()) {
+      MarkBufferFull();
+      out = GetBufferToWrite();
+    }
+  }
+}
 }  // namespace terrier::storage

@@ -11,6 +11,9 @@
 #include "storage/write_ahead_log/log_io.h"
 #include "storage/write_ahead_log/log_record.h"
 #include "transaction/transaction_defs.h"
+#include "spdlog/details/mpmc_blocking_q.h"
+
+#define MAX_BUF 2
 
 namespace terrier::storage {
 /**
@@ -28,15 +31,25 @@ class LogManager {
    *                    buffers from
    */
   LogManager(const char *log_file_path, RecordBufferSegmentPool *const buffer_pool)
-      : out_(log_file_path), buffer_pool_(buffer_pool) {}
+      : buffer_to_write_(nullptr), buffer_pool_(buffer_pool), empty_buffer_queue_(MAX_BUF),
+      filled_buffer_queue_(MAX_BUF), run_log_writer_thread_(true), do_persist_(true)  {
+    log_writer_thread_ = std::thread([this] { WriteToDisk(); });
+    buffers_.resize(MAX_BUF, BufferedLogWriter(log_file_path));
+    for ( int i = 0; i < MAX_BUF; i++) {
+      TERRIER_ASSERT(buffers_[i].IsBufferEmpty(), "DAMN");
+      empty_buffer_queue_.enqueue(&buffers_[i]);
+    }
+  }
 
   /**
    * Must be called when no other threads are doing work
    */
   void Shutdown() {
     Process();
-    Flush();
-    out_.Close();
+    run_log_writer_thread_ = false;
+    log_writer_thread_.join();
+    buffers_[0].Close();
+    buffers_.clear();
   }
 
   /**
@@ -68,9 +81,11 @@ class LogManager {
   void Flush();
 
  private:
+  std::vector<BufferedLogWriter> buffers_;
+
+  BufferedLogWriter *buffer_to_write_;
   // TODO(Tianyu): This can be changed later to be include things that are not necessarily backed by a disk
   //  (e.g. logs can be streamed out to the network for remote replication)
-  BufferedLogWriter out_;
   RecordBufferSegmentPool *buffer_pool_;
 
   // TODO(Tianyu): Might not be necessary, since commit on txn manager is already protected with a latch
@@ -82,6 +97,17 @@ class LogManager {
   // These do not need to be thread safe since the only thread adding or removing from it is the flushing thread
   std::vector<std::pair<transaction::callback_fn, void *>> commits_in_buffer_;
 
+
+
+  using item_type = BufferedLogWriter *;
+  using q_type =spdlog::details::mpmc_blocking_queue<item_type>;
+
+  q_type empty_buffer_queue_;
+  q_type filled_buffer_queue_;
+
+  std::thread log_writer_thread_;
+  volatile bool run_log_writer_thread_;
+  volatile bool do_persist_;
   /**
    * Serialize out the record to the log
    * @param task_buffer the task buffer
@@ -94,9 +120,36 @@ class LogManager {
    */
   void SerializeTaskBuffer(IterableBufferSegment<LogRecord> &task_buffer);
 
+  void WriteToDisk();
+  void FlushAllBuffers();
   template <class T>
   void WriteValue(const T &val) {
-    out_.BufferWrite(&val, sizeof(T));
+    WriteValue(&val, sizeof(T));
   }
+
+  BufferedLogWriter *DequeueBuffer(q_type *queue) {
+    bool dequeued = false;
+    BufferedLogWriter *buf = nullptr;
+    while (!dequeued) {
+      // Get a buffer from the queue of buffers pending write
+      dequeued = queue->dequeue_for(buf, std::chrono::milliseconds(10));
+    }
+    return buf;
+  }
+
+  BufferedLogWriter *GetBufferToWrite() {
+    if (buffer_to_write_ == nullptr) {
+      buffer_to_write_ = DequeueBuffer(&empty_buffer_queue_);
+      TERRIER_ASSERT(buffer_to_write_->IsBufferEmpty(), "NO");
+    }
+    return buffer_to_write_;
+  }
+
+  void MarkBufferFull() {
+    filled_buffer_queue_.enqueue(&(*buffer_to_write_));
+    buffer_to_write_= nullptr;
+  }
+
+  void WriteValue(const void *val, uint32_t size);
 };
 }  // namespace terrier::storage
