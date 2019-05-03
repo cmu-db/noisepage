@@ -16,7 +16,7 @@ namespace terrier::storage::index {
  */
 template <typename KeyType>
 class BwTreeIndex final : public Index {
-  friend class IndexBuilder;
+  friend class IndexFactory;
 
  private:
   BwTreeIndex(const catalog::index_oid_t oid, const ConstraintType constraint_type, IndexMetadata metadata)

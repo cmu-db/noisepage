@@ -4,12 +4,12 @@
 #include <vector>
 #include "catalog/catalog.h"
 #include "catalog/catalog_sql_table.h"
-#include "storage/index/index_builder.h"
+#include "storage/index/index_factory.h"
 #include "util/test_harness.h"
 #include "util/transaction_test_util.h"
 
 namespace terrier::storage::index {
-struct IndexPopulatorTest : public TerrierTest {
+struct IndexBuilderTest : public TerrierTest {
   void SetUp() override {
     TerrierTest::SetUp();
     txn_manager_ = new transaction::TransactionManager(&buffer_pool_, true, LOGGING_DISABLED);
@@ -35,7 +35,7 @@ struct IndexPopulatorTest : public TerrierTest {
 
 // Check the basic correctness of index populator
 // NOLINTNEXTLINE
-TEST_F(IndexPopulatorTest, BasicCorrectnessTest) {
+TEST_F(IndexBuilderTest, BasicCorrectnessTest) {
   // terrier has db_oid_t DEFAULT_DATABASE_OID
   const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
   auto db_handle = catalog_->GetDatabaseHandle();
@@ -81,7 +81,7 @@ TEST_F(IndexPopulatorTest, BasicCorrectnessTest) {
   }
 
   // Build an index on the first column of the table
-  IndexBuilder index_builder;
+  IndexFactory index_factory;
   catalog::index_oid_t index_oid_0(catalog_->GetNextOid());
 
   // Set up the IndexKeySchema
@@ -120,13 +120,13 @@ TEST_F(IndexPopulatorTest, BasicCorrectnessTest) {
   auto index_key_schema = IndexKeySchema(key_cols_0);
 
   // Build the index
-  index_builder.SetOid(index_oid_0);
-  index_builder.SetConstraintType(ConstraintType::DEFAULT);
-  index_builder.SetKeySchema(index_key_schema);
-  auto index_0 = index_builder.Build();
+  index_factory.SetOid(index_oid_0);
+  index_factory.SetConstraintType(ConstraintType::DEFAULT);
+  index_factory.SetKeySchema(index_key_schema);
+  auto index_0 = index_factory.Build();
 
   // Populate the index
-  IndexPopulator::PopulateIndex(txn_, *table->GetSqlTable(), IndexKeySchema(key_cols_0), *index_0);
+  IndexBuilder::PopulateIndex(txn_, *table->GetSqlTable(), IndexKeySchema(key_cols_0), *index_0);
 
   // Create the projected row for index
   const IndexMetadata &metadata_0 = index_0->GetIndexMetadata();

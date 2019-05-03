@@ -8,7 +8,7 @@
 #include "portable_endian/portable_endian.h"
 #include "storage/garbage_collector.h"
 #include "storage/index/compact_ints_key.h"
-#include "storage/index/index_builder.h"
+#include "storage/index/index_factory.h"
 #include "storage/projected_row.h"
 #include "storage/sql_table.h"
 #include "transaction/transaction_context.h"

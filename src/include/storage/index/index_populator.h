@@ -15,7 +15,7 @@ namespace terrier::storage::index {
  *
  * This class can only be used when creating an index.
  */
-class IndexPopulator {
+class IndexBuilder {
  public:
   /**
    * The method populates all tuples in the table visible to current transaction with latest version,
