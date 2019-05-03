@@ -13,8 +13,6 @@
 
 namespace terrier::catalog {
 
-
-
 /**
  * A namespace entry represent a row in pg_namespace catalog.
  */
@@ -30,7 +28,6 @@ class IndexEntry : public CatalogEntry<index_oid_t> {
       : CatalogEntry(oid, sql_table, std::move(entry)) {}
 };
 
-
 class Catalog;
 /**
  * An IndexHandle contains the information about indexes.
@@ -40,13 +37,12 @@ class Catalog;
  */
 class IndexHandle {
  public:
-
   /**
    * Construct a IndexHandle. It keeps a pointer to the pg_index sql table.
    * @param catalog: The pointer to the catalog.
    * @param pg_index: The pointer to the pg_index sql table.
    */
-  IndexHandle(catalog::SqlTableHelper *pg_index);
+  explicit IndexHandle(catalog::SqlTableHelper *pg_index);
 
   /**
    * Get the IndexEntry by oid from IndexHandle
@@ -66,8 +62,8 @@ class IndexHandle {
   /**
    * Create storage table
    */
-  static catalog::SqlTableHelper *Create(transaction::TransactionContext *txn, Catalog *catalog,
-                                                     db_oid_t db_oid, const std::string &name);
+  static catalog::SqlTableHelper *Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,
+                                         const std::string &name);
   /**
    * Debug methods
    */
