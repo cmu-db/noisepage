@@ -152,6 +152,7 @@ void LogManager::FlushAllBuffers() {
     dequeued = filled_buffer_queue_.dequeue_for(buf, std::chrono::milliseconds(10));
     if (dequeued) {
       buf->FlushBuffer();
+      empty_buffer_queue_.enqueue(&(*buf));
     }
   } while(dequeued);
   buffers_[0].Persist();
