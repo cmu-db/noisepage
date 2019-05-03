@@ -33,7 +33,8 @@ class HashPlanNode : public AbstractPlanNode {
      * @param key Hash key to be added
      * @return builder object
      */
-    Builder &AddHashKey(std::shared_ptr<const parser::AbstractExpression> key) {
+    Builder &AddHashKey(std::shared_ptr<parser::AbstractExpression> key) {
+      TERRIER_ASSERT(key != nullptr, "Can't add nullptr key to HashPlanNode");
       hash_keys_.emplace_back(key);
       return *this;
     }
@@ -51,7 +52,7 @@ class HashPlanNode : public AbstractPlanNode {
     /**
      * keys to be hashed on
      */
-    std::vector<std::shared_ptr<const parser::AbstractExpression>> hash_keys_;
+    std::vector<std::shared_ptr<parser::AbstractExpression>> hash_keys_;
   };
 
  private:
@@ -61,10 +62,15 @@ class HashPlanNode : public AbstractPlanNode {
    * @param hash_keys keys to be hashed on
    */
   HashPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
-               std::vector<std::shared_ptr<const parser::AbstractExpression>> hash_keys)
+               std::vector<std::shared_ptr<parser::AbstractExpression>> hash_keys)
       : AbstractPlanNode(std::move(children), std::move(output_schema)), hash_keys_(std::move(hash_keys)) {}
 
  public:
+  /**
+   * Default constructor used for deserialization
+   */
+  HashPlanNode() = default;
+
   DISALLOW_COPY_AND_MOVE(HashPlanNode)
 
   /**
@@ -75,7 +81,7 @@ class HashPlanNode : public AbstractPlanNode {
   /**
    * @return keys to be hashed on
    */
-  const std::vector<std::shared_ptr<const parser::AbstractExpression>> &GetHashKeys() const { return hash_keys_; }
+  const std::vector<std::shared_ptr<parser::AbstractExpression>> &GetHashKeys() const { return hash_keys_; }
 
   /**
    * @return the hashed value of this plan node
@@ -84,8 +90,13 @@ class HashPlanNode : public AbstractPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
+
  private:
-  std::vector<std::shared_ptr<const parser::AbstractExpression>> hash_keys_;
+  std::vector<std::shared_ptr<parser::AbstractExpression>> hash_keys_;
 };
+
+DEFINE_JSON_DECLARATIONS(HashPlanNode);
 
 }  // namespace terrier::planner

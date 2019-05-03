@@ -45,6 +45,11 @@ class ProjectionPlanNode : public AbstractPlanNode {
       : AbstractPlanNode(std::move(children), std::move(output_schema)) {}
 
  public:
+  /**
+   * Default constructor used for deserialization
+   */
+  ProjectionPlanNode() = default;
+
   DISALLOW_COPY_AND_MOVE(ProjectionPlanNode)
 
   /**
@@ -58,6 +63,11 @@ class ProjectionPlanNode : public AbstractPlanNode {
   common::hash_t Hash() const override;
 
   bool operator==(const AbstractPlanNode &rhs) const override;
+
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
 };
+
+DEFINE_JSON_DECLARATIONS(ProjectionPlanNode);
 
 }  // namespace terrier::planner

@@ -127,6 +127,11 @@ class CreateViewPlanNode : public AbstractPlanNode {
         view_query_(std::move(view_query)) {}
 
  public:
+  /**
+   * Default constructor for deserialization
+   */
+  CreateViewPlanNode() = default;
+
   DISALLOW_COPY_AND_MOVE(CreateViewPlanNode)
 
   /**
@@ -161,6 +166,9 @@ class CreateViewPlanNode : public AbstractPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
+
  private:
   /**
    * OID of the database
@@ -182,5 +190,7 @@ class CreateViewPlanNode : public AbstractPlanNode {
    */
   std::shared_ptr<parser::SelectStatement> view_query_;
 };
+
+DEFINE_JSON_DECLARATIONS(CreateViewPlanNode);
 
 }  // namespace terrier::planner

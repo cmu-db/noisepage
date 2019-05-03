@@ -122,6 +122,11 @@ class DropIndexPlanNode : public AbstractPlanNode {
         if_exists_(if_exists) {}
 
  public:
+  /**
+   * Default constructor for deserialization
+   */
+  DropIndexPlanNode() = default;
+
   DISALLOW_COPY_AND_MOVE(DropIndexPlanNode)
 
   /**
@@ -156,6 +161,9 @@ class DropIndexPlanNode : public AbstractPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
+
  private:
   /**
    * OID of the database
@@ -177,5 +185,7 @@ class DropIndexPlanNode : public AbstractPlanNode {
    */
   bool if_exists_;
 };
+
+DEFINE_JSON_DECLARATIONS(DropIndexPlanNode);
 
 }  // namespace terrier::planner

@@ -19,4 +19,20 @@ bool ExportExternalFilePlanNode::operator==(const AbstractPlanNode &rhs) const {
           escape_ == other.escape_ && AbstractPlanNode::operator==(rhs));
 }
 
+nlohmann::json ExportExternalFilePlanNode::ToJson() const {
+  nlohmann::json j = AbstractPlanNode::ToJson();
+  j["file_name"] = file_name_;
+  j["delimiter"] = delimiter_;
+  j["quote"] = quote_;
+  j["escape"] = escape_;
+  return j;
+}
+
+void ExportExternalFilePlanNode::FromJson(const nlohmann::json &j) {
+  AbstractPlanNode::FromJson(j);
+  file_name_ = j.at("file_name").get<std::string>();
+  delimiter_ = j.at("delimiter").get<char>();
+  quote_ = j.at("quote").get<char>();
+  escape_ = j.at("escape").get<char>();
+}
 }  // namespace terrier::planner

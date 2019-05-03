@@ -13,6 +13,10 @@ common::hash_t CreateIndexPlanNode::Hash() const {
   auto database_oid = GetDatabaseOid();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid));
 
+  // Hash namespace oid
+  auto namespace_oid = GetNamespaceOid();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&namespace_oid));
+
   // Hash table_oid
   auto table_oid = GetTableOid();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&table_oid));
@@ -44,6 +48,9 @@ bool CreateIndexPlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   // Database OID
   if (GetDatabaseOid() != other.GetDatabaseOid()) return false;
+
+  // Namespace OID
+  if (GetNamespaceOid() != other.GetNamespaceOid()) return false;
 
   // Table OID
   if (GetTableOid() != other.GetTableOid()) return false;
@@ -81,4 +88,30 @@ bool CreateIndexPlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   return AbstractPlanNode::operator==(rhs);
 }
+
+nlohmann::json CreateIndexPlanNode::ToJson() const {
+  nlohmann::json j = AbstractPlanNode::ToJson();
+  j["database_oid"] = database_oid_;
+  j["namespace_oid"] = namespace_oid_;
+  j["table_oid"] = table_oid_;
+  j["index_type"] = index_type_;
+  j["unique_index"] = unique_index_;
+  j["index_name"] = index_name_;
+  j["index_attrs"] = index_attrs_;
+  j["key_attrs"] = key_attrs_;
+  return j;
+}
+
+void CreateIndexPlanNode::FromJson(const nlohmann::json &j) {
+  AbstractPlanNode::FromJson(j);
+  database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
+  namespace_oid_ = j.at("namespace_oid").get<catalog::namespace_oid_t>();
+  table_oid_ = j.at("table_oid").get<catalog::table_oid_t>();
+  index_type_ = j.at("index_type").get<parser::IndexType>();
+  unique_index_ = j.at("unique_index").get<bool>();
+  index_name_ = j.at("index_name").get<std::string>();
+  index_attrs_ = j.at("index_attrs").get<std::vector<std::string>>();
+  key_attrs_ = j.at("key_attrs").get<std::vector<std::string>>();
+}
+
 }  // namespace terrier::planner

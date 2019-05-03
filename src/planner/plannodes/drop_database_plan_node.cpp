@@ -7,7 +7,7 @@ common::hash_t DropDatabasePlanNode::Hash() const {
   auto type = GetPlanNodeType();
   common::hash_t hash = common::HashUtil::Hash(&type);
 
-  // Hash databse_oid
+  // Hash database oid
   auto database_oid = GetDatabaseOid();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid));
 
@@ -31,4 +31,18 @@ bool DropDatabasePlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   return AbstractPlanNode::operator==(rhs);
 }
+
+nlohmann::json DropDatabasePlanNode::ToJson() const {
+  nlohmann::json j = AbstractPlanNode::ToJson();
+  j["database_oid"] = database_oid_;
+  j["if_exists"] = if_exists_;
+  return j;
+}
+
+void DropDatabasePlanNode::FromJson(const nlohmann::json &j) {
+  AbstractPlanNode::FromJson(j);
+  database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
+  if_exists_ = j.at("if_exists").get<bool>();
+}
+
 }  // namespace terrier::planner

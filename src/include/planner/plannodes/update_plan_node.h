@@ -115,6 +115,11 @@ class UpdatePlanNode : public AbstractPlanNode {
         update_primary_key_(update_primary_key) {}
 
  public:
+  /**
+   * Default constructor for deserialization
+   */
+  UpdatePlanNode() = default;
+
   DISALLOW_COPY_AND_MOVE(UpdatePlanNode)
 
   /**
@@ -149,6 +154,9 @@ class UpdatePlanNode : public AbstractPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
+
  private:
   /**
    * OID of the database
@@ -170,5 +178,7 @@ class UpdatePlanNode : public AbstractPlanNode {
    */
   bool update_primary_key_;
 };
+
+DEFINE_JSON_DECLARATIONS(UpdatePlanNode);
 
 }  // namespace terrier::planner

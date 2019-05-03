@@ -3,9 +3,7 @@
 namespace terrier::planner {
 
 bool AbstractJoinPlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (GetPlanNodeType() != rhs.GetPlanNodeType()) {
-    return false;
-  }
+  if (!AbstractPlanNode::operator==(rhs)) return false;
 
   // Check join type
   auto &other = dynamic_cast<const AbstractJoinPlanNode &>(rhs);
@@ -27,8 +25,7 @@ bool AbstractJoinPlanNode::operator==(const AbstractPlanNode &rhs) const {
 }
 
 common::hash_t AbstractJoinPlanNode::Hash() const {
-  auto type = GetPlanNodeType();
-  common::hash_t hash = common::HashUtil::Hash(&type);
+  common::hash_t hash = AbstractPlanNode::Hash();
 
   auto join_type = GetLogicalJoinType();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&join_type));
@@ -38,6 +35,21 @@ common::hash_t AbstractJoinPlanNode::Hash() const {
   }
 
   return hash;
+}
+
+nlohmann::json AbstractJoinPlanNode::ToJson() const {
+  nlohmann::json j = AbstractPlanNode::ToJson();
+  j["join_type"] = join_type_;
+  j["join_predicate"] = join_predicate_;
+  return j;
+}
+
+void AbstractJoinPlanNode::FromJson(const nlohmann::json &j) {
+  AbstractPlanNode::FromJson(j);
+  join_type_ = j.at("join_type").get<LogicalJoinType>();
+  if (!j.at("join_predicate").is_null()) {
+    join_predicate_ = parser::DeserializeExpression(j.at("join_predicate"));
+  }
 }
 
 }  // namespace terrier::planner
