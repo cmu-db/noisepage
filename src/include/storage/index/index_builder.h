@@ -1,14 +1,15 @@
 #pragma once
 
 #include <vector>
-#include "loggers/main_logger.h"
-#include "storage/index/index.h"
-#include "storage/sql_table.h"
-#include "parser/parser_defs.h"
-#include "transaction/transaction_manager.h"
-#include "transaction/transaction_context.h"
-#include "catalog/catalog_defs.h"
 #include "catalog/catalog.h"
+#include "catalog/catalog_defs.h"
+#include "loggers/main_logger.h"
+#include "parser/parser_defs.h"
+#include "storage/index/index.h"
+#include "storage/index/index_factory.h"
+#include "storage/sql_table.h"
+#include "transaction/transaction_context.h"
+#include "transaction/transaction_manager.h"
 
 namespace terrier::storage::index {
 
@@ -20,19 +21,36 @@ namespace terrier::storage::index {
  * This class can only be used when creating an index.
  */
 class IndexBuilder {
+ private:
+  Index *GetEmptyIndex(bool unique_index, catalog::db_oid_t db_oid, catalog::table_oid_t table_oid,
+                       catalog::index_oid_t index_oid, catalog::Catalog *catalog, std::vector<std::string> &key_attrs,
+                       transaction::TransactionContext *txn_ctx) {
+    auto *index_factory = new IndexFactory();
+    index_factory->SetOid(index_oid);
+    ConstraintType constraint = (unique_index) ? ConstraintType::UNIQUE : ConstraintType::DEFAULT;
+    index_factory->SetConstraintType(constraint);
+    IndexKeySchema key_schema;
+    for (const auto &key_name : key_attrs) {
+      auto entry = catalog->GetDatabaseHandle()
+                       .GetAttributeHandle(txn_ctx, db_oid)
+                       .GetAttributeEntry(txn_ctx, table_oid, key_name);
+      type::TypeId type_id = (type::TypeId)entry->GetTinyIntColumn("atttypid");
+      if (type_id == type::TypeId::VARCHAR || type_id == type::TypeId::VARBINARY)
+        key_schema.emplace_back(entry->GetIntegerColumn("oid"), type_id, entry->ColumnIsNull(key_name));
+      else
+        key_schema.emplace_back(entry->GetIntegerColumn("oid"), type_id, entry->ColumnIsNull(key_name),
+                                entry->GetIntegerColumn("attlen"));
+    }
+    index_factory->SetKeySchema(key_schema);
+    return index_factory->Build();
+  }
+
  public:
-  static void CreateConcurrently(
-      catalog::db_oid_t db_oid,
-      catalog::namespace_oid_t ns_oid,
-      catalog::table_oid_t table_oid,
-      parser::IndexType index_type,
-      bool unique_index,
-      std::string &index_name,
-      std::vector<std::string> &index_attrs,
-      std::vector<std::string> &key_attrs,
-      transaction::TransactionManager *txn_mgr,
-      catalog::Catalog *catalog
-  ) {
+  static void CreateConcurrently(catalog::db_oid_t db_oid, catalog::namespace_oid_t ns_oid,
+                                 catalog::table_oid_t table_oid, parser::IndexType index_type, bool unique_index,
+                                 std::string &index_name, std::vector<std::string> &index_attrs,
+                                 std::vector<std::string> &key_attrs, transaction::TransactionManager *txn_mgr,
+                                 catalog::Catalog *catalog) {
     // TODO
     transaction::TransactionContext *txn1 = txn_mgr->BeginTransaction();
     catalog::SqlTableHelper *sql_table_helper = catalog->GetUserTable(txn1, db_oid, ns_oid, table_oid);
@@ -42,7 +60,6 @@ class IndexBuilder {
       return;
     }
     std::shared_ptr<SqlTable> sql_table = sql_table_helper->GetSqlTable();
-    
 
     txn_mgr->Commit(txn1, nullptr, nullptr);
   }
