@@ -1,5 +1,8 @@
 #pragma once
 
+#include "execution/compiler/operator/operator_translator.h"
+#include "execution/compiler/expression/expression_translator.h"
+
 namespace terrier::parser {
 class AbstractExpression;
 }
@@ -11,8 +14,6 @@ class AbstractPlanNode;
 namespace tpl::compiler {
 
 class Pipeline;
-class OperatorTranslator;
-class ExpressionTranslator;
 
 class TranslatorFactory {
  public:

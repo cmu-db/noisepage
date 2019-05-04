@@ -5,6 +5,7 @@
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/compiler_defs.h"
 #include "execution/compiler/execution_consumer.h"
+#include "execution/compiler/function_builder.h"
 #include "execution/compiler/pipeline.h"
 #include "execution/compiler/query.h"
 #include "execution/compiler/query_state.h"
@@ -12,25 +13,25 @@
 
 namespace tpl::compiler {
 
-CompilationContext::CompilationContext(CodeContext *code_ctx, QueryState *query_state, ExecutionConsumer *consumer)
-    : code_ctx_(code_ctx), query_state_(query_state), consumer_(consumer), codegen_(code_ctx_) {}
+CompilationContext::CompilationContext(Query *query, ExecutionConsumer *consumer)
+    : query_(query), consumer_(consumer), codegen_(query_->GetCodeContext()) {}
 
 void CompilationContext::GeneratePlan(Query *query) {
   Pipeline main_pipeline(this);
   consumer_->Prepare(this);
   Prepare(query->GetPlan(), &main_pipeline);
-  query_state_->FinalizeType(&codegen_);
+  query->GetQueryState()->FinalizeType(&codegen_);
 
-  // todo(wan): this wraps into function_builder
   util::RegionVector<ast::FieldDecl *> params(query->GetRegion());
-  params.emplace_back(codegen_->NewFieldDecl(DUMMY_POS, ast::Identifier(query->GetQueryStateName().c_str()), query_state_->GetType()));
-  auto fn_ty = codegen_->NewFunctionType(DUMMY_POS, std::move(params), codegen_.Ty_Nil());
-  auto fn_lit = codegen_->NewFunctionLitExpr(fn_ty, codegen_.EmptyBlock());
-  auto fn_decl = codegen_->NewFunctionDecl(DUMMY_POS, ast::Identifier(query->GetQueryInitName().c_str()), fn_lit);
-  consumer_->InitializeQueryState(this);
+  params.emplace_back(codegen_->NewFieldDecl(DUMMY_POS, ast::Identifier(query->GetQueryStateName().c_str()), query->GetQueryState()->GetType()));
+  FunctionBuilder init_fn(codegen_, ast::Identifier(query->GetQueryInitName().c_str()), std::move(params), codegen_.Ty_Nil());
+
+//  consumer_->InitializeQueryState(this);
   for (const auto &it : op_translators_) {
     it.second->InitializeQueryState();
   }
+  init_fn.Finish();
+
 
 }
 

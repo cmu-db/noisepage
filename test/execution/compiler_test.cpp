@@ -5,6 +5,9 @@
 #include <utility>
 #include <vector>
 
+#include "execution/compiler/query.h"
+#include "execution/compiler/compilation_context.h"
+
 #include "parser/expression/comparison_expression.h"
 #include "parser/expression/conjunction_expression.h"
 #include "parser/expression/constant_value_expression.h"
@@ -811,16 +814,8 @@ TEST(PlanNodeJsonTest, SeqScanPlanNodeJsonTest) {
       .SetTableOid(catalog::table_oid_t(0))
       .Build();
 
-  // Serialize to Json
-  auto json = plan_node->ToJson();
-  EXPECT_FALSE(json.is_null());
-
-  // Deserialize plan node
-  auto deserialized_plan = DeserializePlanNode(json);
-  EXPECT_TRUE(deserialized_plan != nullptr);
-  EXPECT_EQ(PlanNodeType::SEQSCAN, deserialized_plan->GetPlanNodeType());
-  auto seq_scan_plan = std::dynamic_pointer_cast<SeqScanPlanNode>(deserialized_plan);
-  EXPECT_EQ(*plan_node, *seq_scan_plan);
+  tpl::compiler::Query query(*plan_node);
+  tpl::compiler::CompilationContext ctx(&query, nullptr);
 }
 
 // NOLINTNEXTLINE

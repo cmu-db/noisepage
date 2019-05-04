@@ -28,7 +28,7 @@ class ExpressionTranslator;
 
 class CompilationContext {
  public:
-  CompilationContext(CodeContext *code_ctx, QueryState *query_state, ExecutionConsumer *consumer);
+  CompilationContext(Query *query, ExecutionConsumer *consumer);
 
   void GeneratePlan(Query *query);
 
@@ -36,8 +36,7 @@ class CompilationContext {
   void Prepare(const terrier::parser::AbstractExpression &ex);
 
  private:
-  CodeContext *code_ctx_;
-  QueryState *query_state_;
+  Query *query_;
   ExecutionConsumer *consumer_;
   CodeGen codegen_;
 

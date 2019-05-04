@@ -20,6 +20,9 @@ class CodeContext {
 
   DISALLOW_COPY_AND_MOVE(CodeContext);
 
+  void SetCurrentFunction(FunctionBuilder *fn) { curr_fn_ = fn; }
+  FunctionBuilder *GetCurrentFunction() const { return curr_fn_; }
+
  private:
   util::Region *region_;
   sema::ErrorReporter error_reporter_;

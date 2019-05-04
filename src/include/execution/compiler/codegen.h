@@ -8,11 +8,20 @@ class Stmt;
 class Expr;
 }
 
+namespace tpl::util {
+class Region;
+}
+
 namespace tpl::compiler {
 
 class CodeContext;
 
 class CodeGen {
+ private:
+  friend FunctionBuilder;
+  util::Region *GetRegion() { return ctx_->region_; }
+  CodeContext *GetCodeContext() { return ctx_; }
+
  public:
   explicit CodeGen(CodeContext *ctx) : ctx_(ctx), factory_(&ctx_->ast_factory_) {}
 
