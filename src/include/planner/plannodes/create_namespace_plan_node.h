@@ -90,6 +90,11 @@ class CreateNamespacePlanNode : public AbstractPlanNode {
       : AbstractPlanNode(std::move(children), std::move(output_schema)), namespace_name_(std::move(namespace_name)) {}
 
  public:
+  /**
+   * Default constructor for deserialization
+   */
+  CreateNamespacePlanNode() = default;
+
   DISALLOW_COPY_AND_MOVE(CreateNamespacePlanNode)
 
   /**
@@ -114,6 +119,9 @@ class CreateNamespacePlanNode : public AbstractPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
+
  private:
   /**
    * OID of the database
@@ -125,5 +133,5 @@ class CreateNamespacePlanNode : public AbstractPlanNode {
    */
   std::string namespace_name_;
 };
-
+DEFINE_JSON_DECLARATIONS(CreateNamespacePlanNode);
 }  // namespace terrier::planner

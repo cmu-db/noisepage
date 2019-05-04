@@ -24,8 +24,22 @@ bool ResultPlanNode::operator==(const AbstractPlanNode &rhs) const {
   auto other_expr = other.GetExpression();
   if ((expr != nullptr && other_expr == nullptr) || (expr == nullptr && other_expr != nullptr)) return false;
 
-  if (expr != nullptr && expr != other_expr) return false;
+  if (expr != nullptr && *expr != *other_expr) return false;
 
   return AbstractPlanNode::operator==(rhs);
 }
+
+nlohmann::json ResultPlanNode::ToJson() const {
+  nlohmann::json j = AbstractPlanNode::ToJson();
+  j["expr"] = expr_;
+  return j;
+}
+
+void ResultPlanNode::FromJson(const nlohmann::json &j) {
+  AbstractPlanNode::FromJson(j);
+  if (!j.at("expr").is_null()) {
+    expr_ = parser::DeserializeExpression(j.at("expr"));
+  }
+}
+
 }  // namespace terrier::planner

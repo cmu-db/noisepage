@@ -77,9 +77,13 @@ class CreateDatabasePlanNode : public AbstractPlanNode {
       : AbstractPlanNode(std::move(children), std::move(output_schema)), database_name_(std::move(database_name)) {}
 
  public:
+  /**
+   * Default constructor used for deserialization
+   */
+  CreateDatabasePlanNode() = default;
+
   DISALLOW_COPY_AND_MOVE(CreateDatabasePlanNode)
 
-  CreateDatabasePlanNode() = delete;
   /**
    * @return the type of this plan node
    */
@@ -97,10 +101,16 @@ class CreateDatabasePlanNode : public AbstractPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
+
  private:
   /**
    * Database Name
    */
   std::string database_name_;
 };
+
+DEFINE_JSON_DECLARATIONS(CreateDatabasePlanNode);
+
 }  // namespace terrier::planner

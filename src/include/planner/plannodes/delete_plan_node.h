@@ -121,6 +121,11 @@ class DeletePlanNode : public AbstractPlanNode {
         delete_condition_(std::move(delete_condition)) {}
 
  public:
+  /**
+   * Default constructor used for deserialization
+   */
+  DeletePlanNode() = default;
+
   DISALLOW_COPY_AND_MOVE(DeletePlanNode)
 
   /**
@@ -155,6 +160,9 @@ class DeletePlanNode : public AbstractPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
+
  private:
   /**
    * OID of the database
@@ -176,4 +184,7 @@ class DeletePlanNode : public AbstractPlanNode {
    */
   std::shared_ptr<parser::AbstractExpression> delete_condition_;
 };
+
+DEFINE_JSON_DECLARATIONS(DeletePlanNode);
+
 }  // namespace terrier::planner

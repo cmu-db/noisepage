@@ -67,6 +67,11 @@ class ResultPlanNode : public AbstractPlanNode {
       : AbstractPlanNode(std::move(children), std::move(output_schema)), expr_(std::move(expr)) {}
 
  public:
+  /**
+   * Default constructor used for deserialization
+   */
+  ResultPlanNode() = default;
+
   DISALLOW_COPY_AND_MOVE(ResultPlanNode)
 
   /**
@@ -86,11 +91,16 @@ class ResultPlanNode : public AbstractPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
+
  private:
   /**
    * Expression used to derived the output tuple
    */
   std::shared_ptr<parser::AbstractExpression> expr_;
 };
+
+DEFINE_JSON_DECLARATIONS(ResultPlanNode);
 
 }  // namespace terrier::planner

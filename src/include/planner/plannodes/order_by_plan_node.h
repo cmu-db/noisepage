@@ -9,6 +9,8 @@
 
 namespace terrier::planner {
 
+using SortKey = std::pair<catalog::col_oid_t, OrderByOrderingType>;
+
 /**
  * Plan node for order by operator
  */
@@ -32,8 +34,7 @@ class OrderByPlanNode : public AbstractPlanNode {
      * @return builder object
      */
     Builder &AddSortKey(catalog::col_oid_t key, OrderByOrderingType ordering) {
-      sort_keys_.push_back(key);
-      sort_key_orderings_.push_back(ordering);
+      sort_keys_.emplace_back(key, ordering);
       return *this;
     }
 
@@ -62,19 +63,14 @@ class OrderByPlanNode : public AbstractPlanNode {
      */
     std::shared_ptr<OrderByPlanNode> Build() {
       return std::shared_ptr<OrderByPlanNode>(new OrderByPlanNode(std::move(children_), std::move(output_schema_),
-                                                                  std::move(sort_keys_), std::move(sort_key_orderings_),
-                                                                  has_limit_, limit_, offset_));
+                                                                  std::move(sort_keys_), has_limit_, limit_, offset_));
     }
 
    protected:
     /**
-     * col_oid_t of keys to sort on
+     * Column Ids and ordering type ([ASC] or [DESC]) used (in order) to sort input tuples
      */
-    std::vector<catalog::col_oid_t> sort_keys_;
-    /**
-     * type of ordering for each sort key (ASC or DESC)
-     */
-    std::vector<OrderByOrderingType> sort_key_orderings_;
+    std::vector<SortKey> sort_keys_;
     /**
      * true if sort has a defined limit. False by default
      */
@@ -100,27 +96,26 @@ class OrderByPlanNode : public AbstractPlanNode {
    * @param offset offset in sort from where to limit from
    */
   OrderByPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
-                  std::shared_ptr<OutputSchema> output_schema, std::vector<catalog::col_oid_t> sort_keys,
-                  std::vector<OrderByOrderingType> sort_key_orderings, bool has_limit, size_t limit, size_t offset)
+                  std::shared_ptr<OutputSchema> output_schema, std::vector<SortKey> sort_keys, bool has_limit,
+                  size_t limit, size_t offset)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         sort_keys_(std::move(sort_keys)),
-        sort_key_orderings_(std::move(sort_key_orderings)),
         has_limit_(has_limit),
         limit_(limit),
         offset_(offset) {}
 
  public:
+  /**
+   * Default constructor used for deserialization
+   */
+  OrderByPlanNode() = default;
+
   DISALLOW_COPY_AND_MOVE(OrderByPlanNode)
 
   /**
-   * @return col_oid_t of keys to sort on
+   * @return keys to sort on
    */
-  const std::vector<catalog::col_oid_t> &GetSortKeys() const { return sort_keys_; }
-
-  /**
-   * @return type of ordering for each sort key (ASC or DESC)
-   */
-  const std::vector<OrderByOrderingType> &GetSortKeyOrderings() const { return sort_key_orderings_; }
+  const std::vector<SortKey> &GetSortKeys() const { return sort_keys_; }
 
   /**
    * @return the type of this plan node
@@ -157,12 +152,12 @@ class OrderByPlanNode : public AbstractPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
- private:
-  /* Column Ids used (in order) to sort input tuples */
-  const std::vector<catalog::col_oid_t> sort_keys_;
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
 
-  /* Sort order flag. descend_flags_[i] */
-  const std::vector<OrderByOrderingType> sort_key_orderings_;
+ private:
+  /* Column Ids and ordering type ([ASC] or [DESC]) used (in order) to sort input tuples */
+  std::vector<SortKey> sort_keys_;
 
   /* Whether there is limit clause */
   bool has_limit_;
@@ -173,5 +168,7 @@ class OrderByPlanNode : public AbstractPlanNode {
   /* How many tuples to skip first */
   size_t offset_;
 };
+
+DEFINE_JSON_DECLARATIONS(OrderByPlanNode);
 
 }  // namespace terrier::planner

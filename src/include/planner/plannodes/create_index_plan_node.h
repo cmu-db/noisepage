@@ -195,6 +195,11 @@ class CreateIndexPlanNode : public AbstractPlanNode {
         key_attrs_(std::move(key_attrs)) {}
 
  public:
+  /**
+   * Default constructor for deserialization
+   */
+  CreateIndexPlanNode() = default;
+
   DISALLOW_COPY_AND_MOVE(CreateIndexPlanNode)
 
   /**
@@ -249,6 +254,9 @@ class CreateIndexPlanNode : public AbstractPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
+  nlohmann::json ToJson() const override;
+  void FromJson(const nlohmann::json &j) override;
+
  private:
   /**
    * OID of the database
@@ -290,4 +298,7 @@ class CreateIndexPlanNode : public AbstractPlanNode {
    */
   std::vector<std::string> key_attrs_;
 };
+
+DEFINE_JSON_DECLARATIONS(CreateIndexPlanNode);
+
 }  // namespace terrier::planner
