@@ -393,6 +393,7 @@ class BufferedTupleReader {
       return nullptr;
     }
 
+    ClearLoosePointers();
     auto *checkpoint_row = reinterpret_cast<ProjectedRow *>(ReadDataAcrossPages(row_size));
     return checkpoint_row;
   }
@@ -494,6 +495,13 @@ class BufferedTupleReader {
       }
       return tmp_buffer;
     }
+  }
+
+  void ClearLoosePointers() {
+    for (auto ptr : loose_ptrs_) {
+      delete [] ptr;
+    }
+    loose_ptrs_.clear();
   }
 };
 
