@@ -6,7 +6,7 @@
 #define NUM_RESERVED_COLUMNS 1u
 
 namespace terrier::storage {
-void CheckpointManager::Checkpoint(const SqlTable &table, const catalog::Schema &schema, const uint32_t catalog_type) {
+void CheckpointManager::Checkpoint(const SqlTable &table, const catalog::Schema &schema, uint32_t catalog_type) {
   std::vector<catalog::col_oid_t> all_col(schema.GetColumns().size());
   uint16_t col_idx = 0;
   for (const catalog::Schema::Column &column : schema.GetColumns()) {
@@ -15,10 +15,10 @@ void CheckpointManager::Checkpoint(const SqlTable &table, const catalog::Schema 
   }
 
   out_.SetTableOid(table.Oid());
-  if (catalog_type == 0) { // normal table
+  if (catalog_type == 0) {  // normal table
     // TODO(mengyang): should be the version of the table.
     out_.SetVersion(0);
-  } else { // catalog table
+  } else {  // catalog table
     out_.SetVersion(catalog_type);
   }
 

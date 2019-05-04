@@ -71,7 +71,7 @@ class CheckpointManager {
    * @param schema of the table to becheckpointed
    * @param catalog_type 0 if this table is not a catalog table, otherwise, this is the type of the catalog table.
    */
-  void Checkpoint(const SqlTable &table, const catalog::Schema &schema, const uint32_t catalog_type = 0);
+  void Checkpoint(const SqlTable &table, const catalog::Schema &schema, uint32_t catalog_type = 0);
 
   /**
    * Finish the current checkpoint.

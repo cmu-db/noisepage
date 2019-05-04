@@ -229,7 +229,7 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryWithVarlen) {
 // NOLINTNEXTLINE
 TEST_F(CheckpointTests, SimpleCheckpointRecoveryWithHugeRow) {
   const uint32_t num_rows = 100;
-  const uint32_t num_columns = 512; // single row size is greater than the page size
+  const uint32_t num_columns = 512;  // single row size is greater than the page size
   int magic_seed = 13523777;
   // initialize test
   auto tested = RandomSqlTableTestObject();

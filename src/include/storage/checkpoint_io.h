@@ -401,7 +401,6 @@ class BufferedTupleReader {
   TupleSlot *ReadNextTupleSlot() {
     AlignBufferOffset<uint32_t>();
     auto slot = reinterpret_cast<TupleSlot *>(ReadDataAcrossPages(sizeof(uint32_t)));
-//    page_offset_ += static_cast<uint32_t>(sizeof(TupleSlot));
     return slot;
   }
 
@@ -413,7 +412,6 @@ class BufferedTupleReader {
   uint32_t ReadNextVarlenSize() {
     AlignBufferOffset<uint32_t>();
     uint32_t size = *reinterpret_cast<uint32_t *>(ReadDataAcrossPages(sizeof(uint32_t)));
-//    page_offset_ += static_cast<uint32_t>(sizeof(uint32_t));
     return size;
   }
 
@@ -424,10 +422,7 @@ class BufferedTupleReader {
    * @param size of the varlen
    * @return pointer to the varlen content
    */
-  byte *ReadNextVarlen(uint32_t size) {
-    byte *result = ReadDataAcrossPages(size);
-    return result;
-  }
+  byte *ReadNextVarlen(uint32_t size) { return ReadDataAcrossPages(size); }
 
   /**
    * Get the current checkpoint page.
@@ -466,40 +461,40 @@ class BufferedTupleReader {
    */
   byte *ReadDataAcrossPages(uint32_t size) {
     uint32_t remaining_buffer = block_size_ - page_offset_;
-    if (size <= remaining_buffer) { // current buffer is enough
+    if (size <= remaining_buffer) {  // current buffer is enough
       byte *result = buffer_ + page_offset_;
       page_offset_ += size;
       return result;
-    } else { // current buffer is not enough
-      byte *tmp_buffer = common::AllocationUtil::AllocateAligned(size);
-      uint32_t left_to_read = size;
-      uint32_t already_read = 0;
-      while (left_to_read > 0) {
-        remaining_buffer = block_size_ - page_offset_;
-        if (left_to_read <= remaining_buffer) { // remaining buffer is enough
-          memcpy(tmp_buffer + already_read, buffer_ + page_offset_, left_to_read);
-          page_offset_ += left_to_read;
-          loose_ptrs_.emplace_back(tmp_buffer);
-          return tmp_buffer;
-        } else { // remaining buffer is not enough
-          memcpy(tmp_buffer + already_read, buffer_ + page_offset_, remaining_buffer);
-          if (!ReadNextBlock()) {
-            // should not happen, unless the checkpoint file is corrupted.
-            // TODO(Mengyang): figure out what kind of exception to throw here.
-            loose_ptrs_.emplace_back(tmp_buffer);
-            return tmp_buffer;
-          }
-          left_to_read -= remaining_buffer;
-          already_read += remaining_buffer;
-        }
-      }
-      return tmp_buffer;
     }
+    // current buffer is not enough
+    byte *tmp_buffer = common::AllocationUtil::AllocateAligned(size);
+    uint32_t left_to_read = size;
+    uint32_t already_read = 0;
+    while (left_to_read > 0) {
+      remaining_buffer = block_size_ - page_offset_;
+      if (left_to_read <= remaining_buffer) {  // remaining buffer is enough
+        memcpy(tmp_buffer + already_read, buffer_ + page_offset_, left_to_read);
+        page_offset_ += left_to_read;
+        loose_ptrs_.emplace_back(tmp_buffer);
+        return tmp_buffer;
+      }
+      // remaining buffer is not enough
+      memcpy(tmp_buffer + already_read, buffer_ + page_offset_, remaining_buffer);
+      if (!ReadNextBlock()) {
+        // should not happen, unless the checkpoint file is corrupted.
+        // TODO(Mengyang): figure out what kind of exception to throw here.
+        loose_ptrs_.emplace_back(tmp_buffer);
+        return tmp_buffer;
+      }
+      left_to_read -= remaining_buffer;
+      already_read += remaining_buffer;
+    }
+    return tmp_buffer;
   }
 
   void ClearLoosePointers() {
     for (auto ptr : loose_ptrs_) {
-      delete [] ptr;
+      delete[] ptr;
     }
     loose_ptrs_.clear();
   }
