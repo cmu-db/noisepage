@@ -22,16 +22,45 @@ void CompilationContext::GeneratePlan(Query *query) {
   Prepare(query->GetPlan(), &main_pipeline);
   query->GetQueryState()->FinalizeType(&codegen_);
 
-  util::RegionVector<ast::FieldDecl *> params(query->GetRegion());
-  params.emplace_back(codegen_->NewFieldDecl(DUMMY_POS, ast::Identifier(query->GetQueryStateName().c_str()), query->GetQueryState()->GetType()));
-  FunctionBuilder init_fn(codegen_, ast::Identifier(query->GetQueryInitName().c_str()), std::move(params), codegen_.Ty_Nil());
+  util::RegionVector<ast::Stmt *> stmts(query->GetRegion());
+  ast::Identifier qs_id(query->GetQueryStateName().c_str());
+  auto qs_type = query->GetQueryState()->GetType();
 
-//  consumer_->InitializeQueryState(this);
-  for (const auto &it : op_translators_) {
-    it.second->InitializeQueryState();
+  {
+    util::RegionVector<ast::FieldDecl *> params(query->GetRegion());
+    params.emplace_back(codegen_->NewFieldDecl(DUMMY_POS, qs_id, qs_type));
+    FunctionBuilder
+        init_fn(codegen_, ast::Identifier(query->GetQueryInitName().c_str()), std::move(params), codegen_.Ty_Nil());
+    consumer_->InitializeQueryState(this);
+    for (const auto &it : op_translators_) {
+      it.second->InitializeQueryState();
+    }
+    stmts.emplace_back(codegen_->NewDeclStmt(init_fn.Finish()));
   }
-  init_fn.Finish();
 
+  {
+    util::RegionVector<ast::FieldDecl *> params(query->GetRegion());
+    params.emplace_back(codegen_->NewFieldDecl(DUMMY_POS, qs_id, qs_type));
+    FunctionBuilder
+        produce_fn(codegen_, ast::Identifier(query->GetQueryProduceName().c_str()), std::move(params), codegen_.Ty_Nil());
+    GetTranslator(query->GetPlan())->Produce();
+    stmts.emplace_back(codegen_->NewDeclStmt(produce_fn.Finish()));
+  }
+
+  {
+    util::RegionVector<ast::FieldDecl *> params(query->GetRegion());
+    params.emplace_back(codegen_->NewFieldDecl(DUMMY_POS, qs_id, qs_type));
+    FunctionBuilder
+        teardown_fn(codegen_, ast::Identifier(query->GetQueryTeardownName().c_str()), std::move(params), codegen_.Ty_Nil());
+    consumer_->TeardownQueryState(this);
+    for (const auto &it : op_translators_) {
+      it.second->TeardownQueryState();
+    }
+    stmts.emplace_back(codegen_->NewDeclStmt(teardown_fn.Finish()));
+  }
+
+  const auto compiled_fn = codegen_->NewBlockStmt(DUMMY_POS, DUMMY_POS, std::move(stmts));
+  query->SetCompiledFunction(compiled_fn);
 }
 
 void CompilationContext::Prepare(const terrier::planner::AbstractPlanNode &op, tpl::compiler::Pipeline *pipeline) {
@@ -40,6 +69,17 @@ void CompilationContext::Prepare(const terrier::planner::AbstractPlanNode &op, t
 
 void CompilationContext::Prepare(const terrier::parser::AbstractExpression &ex) {
   ex_translators_.emplace(std::make_pair(&ex, translator_factory_.CreateTranslator(ex)));
+}
+
+// Get the registered translator for the given operator
+OperatorTranslator *CompilationContext::GetTranslator(const terrier::planner::AbstractPlanNode &op) const {
+  auto iter = op_translators_.find(&op);
+  return iter == op_translators_.end() ? nullptr : iter->second.get();
+}
+
+ExpressionTranslator *CompilationContext::GetTranslator(const terrier::parser::AbstractExpression &ex) const {
+  auto iter = ex_translators_.find(&ex);
+  return iter == ex_translators_.end() ? nullptr : iter->second.get();
 }
 
 }

@@ -35,6 +35,9 @@ class CompilationContext {
   void Prepare(const terrier::planner::AbstractPlanNode &op, Pipeline *pipeline);
   void Prepare(const terrier::parser::AbstractExpression &ex);
 
+  OperatorTranslator *GetTranslator(const terrier::planner::AbstractPlanNode &op) const;
+  ExpressionTranslator *GetTranslator(const terrier::parser::AbstractExpression &ex) const;
+
  private:
   Query *query_;
   ExecutionConsumer *consumer_;

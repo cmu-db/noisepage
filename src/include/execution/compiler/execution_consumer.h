@@ -8,6 +8,7 @@ class ExecutionConsumer {
  public:
   void Prepare(CompilationContext *ctx);
   void InitializeQueryState(CompilationContext *ctx);
+  void TeardownQueryState(CompilationContext *ctx);
 };
 
 }
