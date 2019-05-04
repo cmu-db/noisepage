@@ -136,8 +136,9 @@ class IndexBuilder {
     transaction::TransactionContext *build_txn = txn_mgr->BeginTransaction();
     // Change "indisready" to false and "indisvalid" to the result of populating the index in the catalog entry
     index_handle.SetEntryColumn(build_txn, index_oid, "indisready", type::TransientValueFactory::GetBoolean(false));
-    index_handle.SetEntryColumn(build_txn, index_oid, "indisvalid",
-                                type::TransientValueFactory::GetBoolean(PopulateIndex(build_txn, *sql_table, index)));
+    index_handle.SetEntryColumn(
+        build_txn, index_oid, "indisvalid",
+        type::TransientValueFactory::GetBoolean(PopulateIndex(build_txn, *sql_table, index, unique_index)));
     // Commit the transaction
     txn_mgr->Commit(build_txn, nullptr, nullptr);
   }
@@ -149,10 +150,11 @@ class IndexBuilder {
    * @param txn current transaction context
    * @param sql_table the target sql table
    * @param index target index inserted into
+   * @param unique_index whether the index is unique or not
    * @return true if populating index successes otherwise false
    */
-  static bool PopulateIndex(transaction::TransactionContext *txn,  // NOLINT
-                            SqlTable &sql_table, Index *index) {   // NOLINT
+  static bool PopulateIndex(transaction::TransactionContext *txn,                    // NOLINT
+                            SqlTable &sql_table, Index *index, bool unique_index) {  // NOLINT
     // Create the projected row for the index
     const IndexMetadata &metadata = index->GetIndexMetadata();
     const IndexKeySchema &index_key_schema = metadata.GetKeySchema();
@@ -180,10 +182,19 @@ class IndexBuilder {
         for (uint16_t i = 0; i < select_pr->NumColumns(); ++i) {
           select_pr->ColumnIds()[i] = indkey_pr->ColumnIds()[i];
         }
-        if (!index->Insert(txn, *select_pr, it)) {
-          success = false;
-          break;
+        // Check whether the insertion successes
+        if (unique_index) {
+          if (!index->InsertUnique(txn, *select_pr, it)) {
+            success = false;
+            break;
+          }
+        } else {
+          if (!index->Insert(txn, *select_pr, it)) {
+            success = false;
+            break;
+          }
         }
+
         for (uint16_t i = 0; i < select_pr->NumColumns(); ++i) {
           select_pr->ColumnIds()[i] = sql_table_cols[i];
         }
