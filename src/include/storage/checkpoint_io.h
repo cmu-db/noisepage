@@ -15,8 +15,6 @@ namespace terrier::storage {
 
 // checkpoint file header flags
 #define P_IS_CATALOG 0
-#define P_IS_COMPOSITE_ROW 1
-#define P_IS_COMPOSITE_START 2
 
 /**
  * The header of a page in the checkpoint file.
@@ -67,6 +65,12 @@ class PACKED CheckpointFilePage {
   byte *GetPayload() { return payload_; }
 
   /**
+   * Set all the flags at the same time.
+   * @param flags to be set.
+   */
+  void SetFlags(uint32_t flags) { flags_ = flags; }
+
+  /**
    * Set the bit in the flags to some value.
    * @param pos position of the flag to set, from the most significant bit to the least significant bit.
    * @param value bool value to set
@@ -93,8 +97,6 @@ class PACKED CheckpointFilePage {
                       // serves as the type of the catalog table.
   /* 32 bit flag. The meaning of each bit is:
    *  0. catalog table
-   *  1. composite row
-   *  2. start of a composite row
    */
   uint32_t flags_;
   byte payload_[0];
@@ -277,15 +279,42 @@ class BufferedTupleWriter {
   uint32_t page_offset_ = 0;
   byte *buffer_ = nullptr;
 
-  // cache of the header so that it can be automatically filled into the page.
+  // cache of the header so that it can be automatically filled into new pages.
   uint32_t table_oid_;
   uint32_t version_;
   uint32_t flags_;
+
+  /**
+   * Wirte a piece of data into the buffer. If the buffer is not enough, persist current buffer and allocate a new one.
+   * Note that alignment is not dealt in this function. It has to be done manually.
+   * @param data to be written.
+   * @param size of the data.
+   */
+  void WriteDataToBuffer(const byte *data, uint32_t size) {
+    uint32_t left_to_write = size;
+    while (left_to_write > 0) {
+      uint32_t remaining_buffer = block_size_ - page_offset_;
+      if (left_to_write >= remaining_buffer) {
+        memcpy(buffer_ + page_offset_, data, remaining_buffer);
+        page_offset_ += remaining_buffer;
+        left_to_write -= remaining_buffer;
+        data = data + remaining_buffer;
+        Persist();
+      } else {
+        memcpy(buffer_ + page_offset_, data, left_to_write);
+        page_offset_ += left_to_write;
+        return;
+      }
+    }
+  }
 
   void ResetBuffer() {
     CheckpointFilePage::Initialize(reinterpret_cast<CheckpointFilePage *>(buffer_));
     page_offset_ = sizeof(CheckpointFilePage);
     AlignBufferOffset<uint64_t>();  // align for ProjectedRow
+    GetPage()->SetVersion(version_);
+    GetPage()->SetTableOid(catalog::table_oid_t(table_oid_));
+    GetPage()->SetFlags(flags_);
   }
 
   void PersistBuffer() {
