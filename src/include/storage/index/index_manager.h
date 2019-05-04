@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 #include "catalog/catalog.h"
@@ -70,8 +71,27 @@ class IndexManager {
     // Build an empty index
     return index_factory.Build();
   }
+  typedef std::pair<std::pair<catalog::db_oid_t, catalog::namespace_oid_t>, catalog::index_oid_t> index_id_t;
+
+  std::map<index_id_t, bool> index_building_map_;
+  // FIXME(xueyuanz): This latch might not be necessary, the index_builing_map_ is also guarded by the commit_latch.
+  common::SpinLatch index_building_map_latch_;
 
  public:
+  void SetIndexBuildingFlag(const index_id_t &key, bool value) {
+    common::SpinLatch::ScopedSpinLatch guard(&index_building_map_latch_);
+    index_building_map_[key] = value;
+  }
+  int GetIndexBuildingFlag(const index_id_t &key) {
+    common::SpinLatch::ScopedSpinLatch guard(&index_building_map_latch_);
+    auto it = index_building_map_.find(key);
+    if (it == index_building_map_.end()) {
+      return -1;
+    } else {
+      return it->second ? 1 : 0;
+    }
+  }
+
   /**
    * The method can create the index in a non-blocking manner. It launches two transactions to build the index.
    * The first transaction inserts a new entry on the index into catalog and creates an empty index with all metadata

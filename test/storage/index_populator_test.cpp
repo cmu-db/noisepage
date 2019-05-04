@@ -3,8 +3,8 @@
 #include <vector>
 #include "catalog/catalog.h"
 #include "catalog/catalog_sql_table.h"
-#include "storage/index/index_manager.h"
 #include "storage/index/index_factory.h"
+#include "storage/index/index_manager.h"
 #include "util/test_harness.h"
 #include "util/transaction_test_util.h"
 
