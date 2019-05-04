@@ -321,7 +321,7 @@ class SqlTableTestRW {
    * @param n an integer
    * @return byte array
    */
-  byte *intToByteArray(int n) {
+  byte *IntToByteArray(int n) {
     auto byteArray = new byte[sizeof(n)];
     memcpy(byteArray, reinterpret_cast<char *>(&n), sizeof(n));
     return byteArray;
@@ -399,7 +399,7 @@ TEST_F(SqlTableTests, SelectTest) {
   int default_val = 42;
   // Add a new column with a default value
   table.AddColumn(txn, "new_col", type::TypeId::INTEGER, true, catalog::col_oid_t(2),
-                  table.intToByteArray(default_val));
+                  table.IntToByteArray(default_val));
 
   id = table.GetIntColInRow(txn, catalog::col_oid_t(0), row1_slot);
   EXPECT_EQ(100, id);
@@ -626,7 +626,7 @@ TEST_F(SqlTableTests, ScanTest) {
 
   // new_col_map[100] = NULL (created before column added)
   // new_col_map[200] = NULL (created before column added)
-  // new_col_map[300] = NULL (inserted without value)
+  // new_col_map[300] = NULL (Not explicitly specified);
   new_col_map[400] = 42;
 
   seen_map[100] = false;
@@ -655,12 +655,13 @@ TEST_F(SqlTableTests, ScanTest) {
   // manually set the version of the transaction to be 1
   table.version_ = storage::layout_version_t(1);
   table.AddColumn(txn, "new_col", type::TypeId::INTEGER, true, catalog::col_oid_t(2),
-                  table.intToByteArray(new_col_default_value));
+                  table.IntToByteArray(new_col_default_value));
 
-  // insert (300, 10002, 1729)
+  // insert (300, 10002, 1729) - Default value populated by the execution engine
   table.StartInsertRow();
   table.SetIntColInRow(catalog::col_oid_t(0), 300);
   table.SetIntColInRow(catalog::col_oid_t(1), datname_map[300]);
+  table.SetIntColInRow(catalog::col_oid_t(2), new_col_default_value);
   table.EndInsertRow(txn);
 
   // insert (400, 10003, 42)
@@ -834,9 +835,9 @@ TEST_F(SqlTableTests, MultipleColumnWidths) {
 
 // NOLINTNEXTLINE
 TEST_F(SqlTableTests, BasicDefaultValuesTest) {
-  // Have 3 types of columns, 1 with default value at creation, one without and one with
-  // default value added later explicitly.
-  // Insert rows and check the output
+  // TODO(Sai): Merge the sql_table_test and sql_table_concurrent_test frameworks to avoid repetition for adding in
+  // columns. Have 3 types of columns, 1 with default value at creation, one without and one with default value added
+  // later explicitly. Insert rows and check the output
   SqlTableTestRW table(catalog::table_oid_t(2));
   auto txn = txn_manager_.BeginTransaction();
 
@@ -855,7 +856,7 @@ TEST_F(SqlTableTests, BasicDefaultValuesTest) {
   // Explicitly set the layout version number
   table.version_ = storage::layout_version_t(1);
   int col2_default = 42;
-  table.AddColumn(txn, "col2", type::TypeId::INTEGER, true, catalog::col_oid_t(2), table.intToByteArray(col2_default));
+  table.AddColumn(txn, "col2", type::TypeId::INTEGER, true, catalog::col_oid_t(2), table.IntToByteArray(col2_default));
 
   // Insert (2, NULL, 890)
   table.StartInsertRow();
@@ -874,7 +875,7 @@ TEST_F(SqlTableTests, BasicDefaultValuesTest) {
   // Add another column with a default value and insert a row
   table.version_ = storage::layout_version_t(2);
   int col3_default = 1729;
-  table.AddColumn(txn, "col3", type::TypeId::INTEGER, true, catalog::col_oid_t(3), table.intToByteArray(col3_default));
+  table.AddColumn(txn, "col3", type::TypeId::INTEGER, true, catalog::col_oid_t(3), table.IntToByteArray(col3_default));
 
   // Insert (3, 300, NULL, NULL)
   // NOTE: The default values for new rows are filled in by the execution engine
@@ -950,7 +951,7 @@ TEST_F(SqlTableTests, ModifyDefaultValuesTest) {
 
   // Now set the default value of the column to something
   int col2_default = 42;
-  byte* col2_default_bytes = table.intToByteArray(col2_default);
+  byte *col2_default_bytes = table.IntToByteArray(col2_default);
   table.SetColumnDefault(catalog::col_oid_t(2), col2_default_bytes);
   delete[] col2_default_bytes;
 

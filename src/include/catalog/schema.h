@@ -25,6 +25,7 @@ class Schema {
    * the reliance on these classes
    */
   class Column {
+    // TODO(Sai): DON'T use default parameters for function arguments. Everyone should explicitly pass in nullptr.
    public:
     /**
      * Instantiates a Column object, primary to be used for building a Schema object (non VARLEN attributes)
