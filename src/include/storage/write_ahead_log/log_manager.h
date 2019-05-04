@@ -31,12 +31,11 @@ class LogManager {
    *                    buffers from
    */
   LogManager(const char *log_file_path, RecordBufferSegmentPool *const buffer_pool)
-      : buffer_to_write_(nullptr), buffer_pool_(buffer_pool), empty_buffer_queue_(MAX_BUF),
-      filled_buffer_queue_(MAX_BUF), run_log_writer_thread_(true), do_persist_(true)  {
+      : buffers_(MAX_BUF, BufferedLogWriter(log_file_path)), buffer_to_write_(nullptr), buffer_pool_(buffer_pool),
+      empty_buffer_queue_(MAX_BUF), filled_buffer_queue_(MAX_BUF), run_log_writer_thread_(true), do_persist_(true)  {
     log_writer_thread_ = std::thread([this] { WriteToDisk(); });
-    buffers_.resize(MAX_BUF, BufferedLogWriter(log_file_path));
+    //buffers_.resize(MAX_BUF, BufferedLogWriter(log_file_path));
     for ( int i = 0; i < MAX_BUF; i++) {
-      TERRIER_ASSERT(buffers_[i].IsBufferEmpty(), "DAMN");
       empty_buffer_queue_.enqueue(&buffers_[i]);
     }
   }
@@ -97,8 +96,6 @@ class LogManager {
   // These do not need to be thread safe since the only thread adding or removing from it is the flushing thread
   std::vector<std::pair<transaction::callback_fn, void *>> commits_in_buffer_;
 
-
-
   using item_type = BufferedLogWriter *;
   using q_type =spdlog::details::mpmc_blocking_queue<item_type>;
 
@@ -127,7 +124,7 @@ class LogManager {
     WriteValue(&val, sizeof(T));
   }
 
-  BufferedLogWriter *DequeueBuffer(q_type *queue) {
+  BufferedLogWriter *BlockingDequeueBuffer(q_type *queue) {
     bool dequeued = false;
     BufferedLogWriter *buf = nullptr;
     while (!dequeued) {
@@ -137,10 +134,17 @@ class LogManager {
     return buf;
   }
 
+  void BlockingEnqueueBuffer(BufferedLogWriter *buf, q_type *queue) {
+    queue->enqueue(&(*buf));
+  }
+
+  bool UnblockingDequeueBuffer(BufferedLogWriter **buf, q_type *queue) {
+    return queue->dequeue_for(*buf, std::chrono::milliseconds(10));
+  }
+
   BufferedLogWriter *GetBufferToWrite() {
     if (buffer_to_write_ == nullptr) {
-      buffer_to_write_ = DequeueBuffer(&empty_buffer_queue_);
-      TERRIER_ASSERT(buffer_to_write_->IsBufferEmpty(), "NO");
+      buffer_to_write_ = BlockingDequeueBuffer(&empty_buffer_queue_);
     }
     return buffer_to_write_;
   }

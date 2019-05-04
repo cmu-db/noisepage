@@ -12,10 +12,12 @@ void LogManager::Process() {
       buffer = flush_queue_.front();
       flush_queue_.pop();
     }
+    // Serialize the Redo buffer and release it to the buffer pool
     IterableBufferSegment<LogRecord> task_buffer(buffer);
     SerializeTaskBuffer(task_buffer);
     buffer_pool_->Release(buffer);
   }
+  // Mark the last buffer that was written to as full
   if (buffer_to_write_ != nullptr) {
     MarkBufferFull();
   }
@@ -23,8 +25,11 @@ void LogManager::Process() {
 }
 
 void LogManager::Flush() {
+  // Set the flag for the log writer thread to persist the buffers to disk
   do_persist_ = true;
+  // Wait for the log writer thread to persist the logs
   while (do_persist_);
+  // Execute the callbacks for the transactions that have been persisted
   for (auto &callback : commits_in_buffer_) callback.first(callback.second);
   commits_in_buffer_.clear();
 }
@@ -127,11 +132,15 @@ void LogManager::SerializeRecord(const terrier::storage::LogRecord &record) {
 }
 
 void LogManager::WriteToDisk() {
+  // Log writer thread spins in this loop
+  // It dequeues a filled buffer and flushes it to disk
   while(run_log_writer_thread_) {
     BufferedLogWriter *buf;
-    bool dequeued = filled_buffer_queue_.dequeue_for(buf, std::chrono::milliseconds(10));
+    bool dequeued = UnblockingDequeueBuffer(&buf, &filled_buffer_queue_);
+    // If the main logger thread has signaled to persist the buffers, persist all the filled buffers
     if (do_persist_) {
       FlushAllBuffers();
+      // Signal the main logger thread for completion of persistence
       do_persist_ = false;
     }
     if (!dequeued) {
@@ -139,34 +148,39 @@ void LogManager::WriteToDisk() {
     }
     // Flush the buffer to the disk
     buf->FlushBuffer();
-    TERRIER_ASSERT(buf->IsBufferEmpty(), "DAMN");
     // Push the emptied buffer to queue of available buffers to fill
-    empty_buffer_queue_.enqueue(&(*buf));
+    BlockingEnqueueBuffer(buf, &empty_buffer_queue_);
   }
 }
 
 void LogManager::FlushAllBuffers() {
+  // Persist all the filled buffers to the disk
   bool dequeued;
   do {
+    // Dequeue filled buffers and flush them to disk
     BufferedLogWriter *buf;
-    dequeued = filled_buffer_queue_.dequeue_for(buf, std::chrono::milliseconds(10));
+    dequeued = UnblockingDequeueBuffer(&buf, &filled_buffer_queue_);
     if (dequeued) {
       buf->FlushBuffer();
-      empty_buffer_queue_.enqueue(&(*buf));
+      // Enqueue the flushed buffer to the empty buffer queue
+      BlockingEnqueueBuffer(buf, &empty_buffer_queue_);
     }
   } while(dequeued);
+  // Persist the buffers
   buffers_[0].Persist();
 }
 
 void LogManager::WriteValue(const void *val, uint32_t size) {
+  // Serialize the value and copy it to the buffer
   BufferedLogWriter *out = GetBufferToWrite();
   uint32_t size_written = 0;
 
   while (size_written < size) {
-    TERRIER_ASSERT(!out->IsBufferFull(), "NO");
     size_written += out->BufferWrite(((byte *)val + size_written), size - size_written);
     if (out->IsBufferFull()) {
+      // Mark the buffer full for the log writer thread to flush it
       MarkBufferFull();
+      // Get an empty buffer for writing this value
       out = GetBufferToWrite();
     }
   }
