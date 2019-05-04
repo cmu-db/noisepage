@@ -276,11 +276,20 @@ void SqlTable::Scan(transaction::TransactionContext *const txn, SqlTable::SlotIt
   TERRIER_ASSERT(out_buffer->NumColumns() <= tables_.Find(version_num)->second.column_map.size(),
                  "The output buffer never returns the version pointer columns, so it should have "
                  "fewer attributes.");
+
+  DataTable::SlotIterator *dt_slot = start_pos->GetDataTableSlotIterator();
+
+  // Check for version match
+  if (old_version_num == version_num) {
+    tables_.Find(version_num)->second.data_table->Scan(txn, dt_slot, out_buffer);
+    start_pos->AdvanceOnEndOfDatatable_();
+    return;
+  }
+
   col_id_t original_column_ids[out_buffer->NumColumns()];
   ModifyProjectionHeaderForVersion(out_buffer, tables_.Find(version_num)->second, tables_.Find(old_version_num)->second,
                                    original_column_ids);
 
-  DataTable::SlotIterator *dt_slot = start_pos->GetDataTableSlotIterator();
   tables_.Find(old_version_num)->second.data_table->Scan(txn, dt_slot, out_buffer);
   start_pos->AdvanceOnEndOfDatatable_();
 
