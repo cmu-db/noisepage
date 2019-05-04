@@ -32,8 +32,6 @@ class SqlTable {
     BlockLayout layout;
     ColumnMap column_map;
     InverseColumnMap inverse_column_map;
-    // TODO(Sai): Do we really need a defaultValueMap for every version? One for SqlTable should work?
-    DefaultValueMap default_value_map;
   };
 
   /**
@@ -322,6 +320,10 @@ class SqlTable {
   const catalog::table_oid_t oid_;
 
   common::ConcurrentMap<layout_version_t, DataTableVersion> tables_;
+  // NOTE: This map only keeps track of the default values specified at column creation
+  // For columns which don't have default value or added later, just set to null
+  // Populating default values into the ProjectedRow inserted later is taken care of by the execution engine
+  DefaultValueMap default_value_map_;
 
   /**
    * Given a set of col_oids, return a vector of corresponding col_ids to use for ProjectionInitialization

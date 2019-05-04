@@ -39,9 +39,8 @@ class SqlTableTestRW {
       cols_.emplace_back(name, type, 255, nullable, oid);
   }
 
-  // TODO: Change the function signature to make default_value as an optional argument
   void AddColumn(transaction::TransactionContext *txn, std::string name, type::TypeId type, bool nullable,
-                 catalog::col_oid_t oid, byte *default_value=nullptr) {
+                 catalog::col_oid_t oid, byte *default_value = nullptr) {
     // update columns, schema and layout
     cols_.emplace_back(name, type, nullable, oid, default_value);
     delete schema_;
@@ -270,9 +269,7 @@ class SqlTableTestRW {
    * Set the attribute of col_oid to null
    * @param col_oid col_oid of the column in the schema
    */
-  void SetNullInRow(catalog::col_oid_t col_oid) {
-    pr_->SetNull(pr_map_->at(col_oid));
-  }
+  void SetNullInRow(catalog::col_oid_t col_oid) { pr_->SetNull(pr_map_->at(col_oid)); }
 
   /**
    * Read a string from a row
@@ -837,7 +834,6 @@ TEST_F(SqlTableTests, MultipleColumnWidths) {
 
 // NOLINTNEXTLINE
 TEST_F(SqlTableTests, BasicDefaultValuesTest) {
-  // TODO: Test a typical Default value condition
   // Have 3 types of columns, 1 with default value at creation, one without and one with
   // default value added later explicitly.
   // Insert rows and check the output
@@ -859,8 +855,7 @@ TEST_F(SqlTableTests, BasicDefaultValuesTest) {
   // Explicitly set the layout version number
   table.version_ = storage::layout_version_t(1);
   int col2_default = 42;
-  table.AddColumn(txn, "col2", type::TypeId::INTEGER, true, catalog::col_oid_t(2),
-      table.intToByteArray(col2_default));
+  table.AddColumn(txn, "col2", type::TypeId::INTEGER, true, catalog::col_oid_t(2), table.intToByteArray(col2_default));
 
   // Insert (2, NULL, 890)
   table.StartInsertRow();
@@ -879,8 +874,7 @@ TEST_F(SqlTableTests, BasicDefaultValuesTest) {
   // Add another column with a default value and insert a row
   table.version_ = storage::layout_version_t(2);
   int col3_default = 1729;
-  table.AddColumn(txn, "col3", type::TypeId::INTEGER, true, catalog::col_oid_t(3),
-      table.intToByteArray(col3_default));
+  table.AddColumn(txn, "col3", type::TypeId::INTEGER, true, catalog::col_oid_t(3), table.intToByteArray(col3_default));
 
   // Insert (3, 300, NULL, NULL)
   // NOTE: The default values for new rows are filled in by the execution engine
@@ -956,7 +950,10 @@ TEST_F(SqlTableTests, ModifyDefaultValuesTest) {
 
   // Now set the default value of the column to something
   int col2_default = 42;
-  table.SetColumnDefault(catalog::col_oid_t(2), table.intToByteArray(col2_default));
+  byte* col2_default_bytes = table.intToByteArray(col2_default);
+  table.SetColumnDefault(catalog::col_oid_t(2), col2_default_bytes);
+  delete[] col2_default_bytes;
+
   // Add a new column - to trigger the UpdateSchema
   table.version_ = storage::layout_version_t(2);
   table.AddColumn(txn, "col3", type::TypeId::INTEGER, true, catalog::col_oid_t(3));
@@ -999,7 +996,7 @@ TEST_F(SqlTableTests, ModifyDefaultValuesTest) {
   col3_is_null = table.IsNullColInRow(txn, catalog::col_oid_t(3), row3_slot);
   EXPECT_TRUE(col3_is_null);
 
-  // TODO: Test the following cases
+  // TODO(Sai): Test the following cases
   // 2. Column has no default value but is then added later
   //    - Handled by the execution engine. Just make sure values are as expected
   // 3. Column has default value during creation, but removed later

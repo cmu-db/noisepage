@@ -1,5 +1,6 @@
 #include "storage/sql_table.h"
 #include <set>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -75,12 +76,13 @@ void SqlTable::UpdateSchema(const catalog::Schema &schema) {
   }
 
   // Populate the default value map
-  DefaultValueMap default_value_map;
   for (const auto &column : schema.GetColumns()) {
+    auto col_oid = column.GetOid();
     byte *default_value = column.GetDefault();
-    uint8_t attr_size = column.GetAttrSize();
-    if (default_value != nullptr) {
-      default_value_map[column.GetOid()] = {default_value, attr_size};
+    // Only populate the default values of the columns which are new and have a default value
+    if (default_value_map_.count(col_oid) == 0) {
+      uint8_t attr_size = column.GetAttrSize();
+      default_value_map_[column.GetOid()] = {default_value, attr_size};
     }
   }
 
@@ -93,7 +95,7 @@ void SqlTable::UpdateSchema(const catalog::Schema &schema) {
   // for this allocation is in the destructor for SqlTable.  clang-analyzer-cplusplus.NewDeleteLeaks identifies this
   // as a potential leak and throws an error incorrectly.
   // NOLINTNEXTLINE
-  tables_.Insert(schema.GetVersion(), {dt, layout, col_map, inv_col_map, default_value_map});
+  tables_.Insert(schema.GetVersion(), {dt, layout, col_map, inv_col_map});
 }
 
 bool SqlTable::Select(transaction::TransactionContext *const txn, const TupleSlot slot, ProjectedRow *const out_buffer,
@@ -111,6 +113,9 @@ bool SqlTable::Select(transaction::TransactionContext *const txn, const TupleSlo
     return tables_.Find(version_num)->second.data_table->Select(txn, slot, out_buffer);
   }
 
+  // TODO(Sai): Instead of directly calling header mangling for version mismatch,
+  // is it better to verify that the columns in the PR required are exactly equal to the older version?
+
   auto old_dt_version = tables_.Find(old_version_num)->second;
   auto curr_dt_version = tables_.Find(version_num)->second;
 
@@ -122,17 +127,26 @@ bool SqlTable::Select(transaction::TransactionContext *const txn, const TupleSlo
   bool result = old_dt_version.data_table->Select(txn, slot, out_buffer);
   std::memcpy(out_buffer->ColumnIds(), original_column_ids, sizeof(col_id_t) * out_buffer->NumColumns());
 
-  // Get the DefaultValueMap visible to this transaction
-  DefaultValueMap default_val_map = curr_dt_version.default_value_map;
+  // Default values should only be filled into the columns that are missing in the old_dt_version
+  // Do not fill default values for the columns which already exist in the old_dt_version
 
-  // Populate default values into the empty columns of the ProjectedRow (if any)
-  STORAGE_LOG_DEBUG("Loading default values")
-  for (uint16_t i = 0; i < out_buffer->NumColumns(); i++) {
-    catalog::col_oid_t col_oid = curr_dt_version.inverse_column_map.at(out_buffer->ColumnIds()[i]);
-    // Fill in the default value if the entry is not null and the col_oid is in the map
-    if (default_val_map.count(col_oid) > 0 && out_buffer->IsNull(i)) {
-      auto dv_pair = default_val_map.at(col_oid);
-      storage::StorageUtil::CopyWithNullCheck(dv_pair.first, out_buffer, dv_pair.second, i);
+  // Calculate the col_oids of out_buffer which are missing from the old version of datatable
+  std::unordered_set<catalog::col_oid_t> missing_col_oids;
+  for (const auto &[col_oid, offset] : pr_map) {
+    missing_col_oids.emplace(col_oid);
+  }
+  for (const auto &[col_oid, col_id] : old_dt_version.column_map) {
+    // Remove the col_oid from the missing_col_oids
+    missing_col_oids.erase(col_oid);
+  }
+
+  // Fill in the default values for the missing columns
+  for (catalog::col_oid_t col_oid : missing_col_oids) {
+    TERRIER_ASSERT(default_value_map_.count(col_oid) > 0, "Every column in schema must exist in default_value_map");
+    const auto &[default_value, attr_size] = default_value_map_.at(col_oid);
+    // If the default value for this column exists, copy it in to the PR
+    if (default_value != nullptr) {
+      storage::StorageUtil::CopyWithNullCheck(default_value, out_buffer, attr_size, pr_map.at(col_oid));
     }
   }
 
@@ -263,6 +277,8 @@ void SqlTable::Scan(transaction::TransactionContext *const txn, SqlTable::SlotIt
                     layout_version_t version_num) const {
   layout_version_t dt_version_num = start_pos->curr_version_;
 
+  // TODO(Sai): Add version check before calling header mangling
+  // Also possibly checking for same columns instead in the PR and the old_dt_version?
   TERRIER_ASSERT(out_buffer->NumColumns() <= tables_.Find(version_num)->second.column_map.size(),
                  "The output buffer never returns the version pointer columns, so it should have "
                  "fewer attributes.");
@@ -282,17 +298,21 @@ void SqlTable::Scan(transaction::TransactionContext *const txn, SqlTable::SlotIt
   if (filled > 0) {
     // Since we are populating multiple tuples, calculate the columns matching with default value map
     auto curr_dt_version = tables_.Find(version_num)->second;
-    DefaultValueMap default_val_map = curr_dt_version.default_value_map;
+    // DefaultValueMap default_val_map = curr_dt_version.default_value_map;
     // Find out the columns which contain default values and their projection list index
     std::vector<std::pair<catalog::col_oid_t, uint16_t>> matching_cols;
     for (uint16_t i = 0; i < out_buffer->NumColumns(); i++) {
       catalog::col_oid_t col_oid = curr_dt_version.inverse_column_map.at(out_buffer->ColumnIds()[i]);
       // Fill in the default value if the entry is not null and the col_oid is in the map
-      if (default_val_map.count(col_oid) > 0) {
+      if (default_value_map_.count(col_oid) > 0) {
         matching_cols.emplace_back(col_oid, i);
       }
     }
 
+    // TODO(Sai): Make the change of the default value as in Select
+    // TODO(Sai): Try an efficient way of filling in default values for the ProjectedColumns?
+    // Scan returns ProjectedColumns from a single (older) version of DataTable. So, just copy the default values
+    // of the matching columns calculated above.
     // Fill in the matching default values for each of the rows
     // Since each row could have different columns unfilled, using RowView to iterate over ProjectedColumns
     for (uint32_t row_idx = 0; row_idx < filled; row_idx++) {
@@ -301,7 +321,7 @@ void SqlTable::Scan(transaction::TransactionContext *const txn, SqlTable::SlotIt
         auto col_oid = col_oid_idx_pair.first;
         auto idx = col_oid_idx_pair.second;
         if (row.IsNull(idx)) {
-          auto dv_pair = default_val_map.at(col_oid);
+          auto dv_pair = default_value_map_.at(col_oid);
           storage::StorageUtil::CopyWithNullCheck(dv_pair.first, &row, dv_pair.second, idx);
         }
       }
