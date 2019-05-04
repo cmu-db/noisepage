@@ -304,4 +304,76 @@ TEST_F(LargeGCTests, TPCCishHighThreadWithGC) {
     EndGC();
   }
 }
+
+// This test attempts to simulate a long running read-only OLAP query, with OLTP
+// queries in a TPC-C-like scenario.
+// NOLINTNEXTLINE
+TEST_F(LargeGCTests, OLAPAndTPCCishWithGC) {
+  const uint32_t txn_length = 5;
+  const std::vector<double> update_select_ratio = {0.4, 0.6};
+  const uint32_t num_concurrent_txns = MultiThreadTestUtil::HardwareConcurrency();
+  for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
+    LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
+        .SetMaxColumns(max_columns)
+        .SetInitialTableSize(initial_table_size)
+        .SetTxnLength(txn_length)
+        .SetUpdateSelectRatio(update_select_ratio)
+        .SetBlockStore(&block_store_)
+        .SetBufferPool(&buffer_pool_)
+        .SetGenerator(&generator_)
+        .SetGcOn(true)
+        .SetBookkeeping(true)
+        .SetVarlenAllowed(true)
+        .build();
+    StartGC(tested.GetTxnManager());
+    // OLAP Transaction starts here
+    auto *olap_txn = tested.GetTxnManager()->BeginTransaction();
+    for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
+      auto result = tested.SimulateOltp(batch_size, num_concurrent_txns);
+      gc_paused_ = true;
+      tested.CheckReadsCorrect(&result.first);
+      for (auto w : result.first) delete w;
+      for (auto w : result.second) delete w;
+      gc_paused_ = false;
+    }
+    tested.GetTxnManager()->Commit(olap_txn, TestCallbacks::EmptyCallback, nullptr);
+    EndGC();
+  }
+}
+
+// This test is similar to OLAPAndTPCCishWithGC with a higher number of thread swapouts, and a
+// higher ratio of updates and longer transactions leading to more aborts.
+// NOLINTNEXTLINE
+TEST_F(LargeGCTests, OLAPAndHighAbortRateHighThreadWithGC) {
+  const uint32_t txn_length = 40;
+  const std::vector<double> update_select_ratio = {0.8, 0.2};
+  const uint32_t num_concurrent_txns = 2 * MultiThreadTestUtil::HardwareConcurrency();
+  for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
+    LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
+        .SetMaxColumns(max_columns)
+        .SetInitialTableSize(initial_table_size)
+        .SetTxnLength(txn_length)
+        .SetUpdateSelectRatio(update_select_ratio)
+        .SetBlockStore(&block_store_)
+        .SetBufferPool(&buffer_pool_)
+        .SetGenerator(&generator_)
+        .SetGcOn(true)
+        .SetBookkeeping(true)
+        .SetVarlenAllowed(true)
+        .build();
+    StartGC(tested.GetTxnManager());
+    // OLAP Transaction starts here
+    auto *olap_txn = tested.GetTxnManager()->BeginTransaction();
+    for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
+      auto result = tested.SimulateOltp(batch_size, num_concurrent_txns);
+      gc_paused_ = true;
+      tested.CheckReadsCorrect(&result.first);
+      for (auto w : result.first) delete w;
+      for (auto w : result.second) delete w;
+      gc_paused_ = false;
+    }
+    tested.GetTxnManager()->Commit(olap_txn, TestCallbacks::EmptyCallback, nullptr);
+    EndGC();
+  }
+}
 }  // namespace terrier
