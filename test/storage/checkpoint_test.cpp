@@ -226,4 +226,27 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryWithVarlen) {
   delete recovery_txn;
 }
 
+// NOLINTNEXTLINE
+TEST_F(CheckpointTests, SimpleCheckpointRecoveryWithHugeRow) {
+  const uint32_t num_rows = 100;
+  const uint32_t num_columns = 512; // single row size is greater than the page size
+  int magic_seed = 13523777;
+  // initialize test
+  auto tested = RandomSqlTableTestObject();
+  std::default_random_engine random_generator(magic_seed);
+  tested.GenerateRandomColumns(num_columns, false, &random_generator);
+  tested.Create();
+  tested.InsertRandomRows(num_rows, 0.2, &random_generator);
+
+  storage::SqlTable *table = tested.GetTable();
+  catalog::Schema *schema = tested.GetSchema();
+  transaction::TransactionManager *txn_manager = tested.GetTxnManager();
+
+  // checkpoint
+  StartCheckpointingThread(txn_manager, 50, table, schema);
+  // Sleep for some time to ensure that the checkpoint thread has started at least one checkpoint. (Prevent racing)
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  EndCheckpointingThread();
+}
+
 }  // namespace terrier

@@ -86,16 +86,10 @@ void BufferedTupleWriter::SerializeTuple(ProjectedRow *row, const TupleSlot *slo
   }
 
   // Move row to buffer
-//  std::memcpy(buffer_ + page_offset_, row, row->Size());
-//  page_offset_ += row->Size();
   WriteDataToBuffer(reinterpret_cast<byte *>(row), row->Size());
 
   // Move tupleslot to buffer
   AlignBufferOffset<uint32_t>();
-//  std::memcpy(buffer_ + page_offset_, slot, sizeof(TupleSlot));
-//  // The size of TupleSlot is small, so the cast is unlikely to overflow.
-//  // It is safe to do the cast.
-//  page_offset_ += static_cast<uint32_t>(sizeof(TupleSlot));
   WriteDataToBuffer(reinterpret_cast<const byte *>(slot), static_cast<uint32_t>(sizeof(TupleSlot)));
 
   // Move varlens to buffer
@@ -103,10 +97,6 @@ void BufferedTupleWriter::SerializeTuple(ProjectedRow *row, const TupleSlot *slo
     AlignBufferOffset<uint32_t>();  // align for size field of varlen.
     uint32_t size = entry->Size();
     TERRIER_ASSERT(size > VarlenEntry::InlineThreshold(), "Small varlens should be inlined.");
-//    std::memcpy(buffer_ + page_offset_, &size, sizeof(size));
-//    page_offset_ += static_cast<uint32_t>(sizeof(size));
-//    std::memcpy(buffer_ + page_offset_, entry->Content(), size);
-//    page_offset_ += size;
     WriteDataToBuffer(reinterpret_cast<byte *>(&size), size);
     WriteDataToBuffer(entry->Content(), size);
   }
