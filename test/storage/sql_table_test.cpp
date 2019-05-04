@@ -998,12 +998,8 @@ TEST_F(SqlTableTests, ModifyDefaultValuesTest) {
   EXPECT_TRUE(col3_is_null);
 
   // TODO(Sai): Test the following cases
-  // 2. Column has no default value but is then added later
-  //    - Handled by the execution engine. Just make sure values are as expected
-  // 3. Column has default value during creation, but removed later
+  // 1. Column has default value during creation, but removed later
   //    - Old rows should return default value but new ones shouldn't
-  // 4. Column with a default value, but the value passed in is forced to be NULL.
-  //    - Default values shouldn't be filled in for these.
 
   txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
   delete txn;

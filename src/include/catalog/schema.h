@@ -115,26 +115,22 @@ class Schema {
     byte *GetDefault() const { return default_; }
 
     /**
-     * Clear the default value of the column
-     */
-    void ClearDefault() {
-      if (default_ != nullptr) {
-        // Free the memory allocate to the default value
-        delete default_;
-        default_ = nullptr;
-      }
-    }
-
-    /**
      * Set the default value of the column
-     * @param default_value default_value as a bytes array
+     * @param default_value default_value as a bytes array. Could be nullptr
      */
     void SetDefault(byte *default_value) {
-      if (default_ == nullptr) {
-        default_ = new byte[attr_size_];
+      // If explicitly setting the default value to null
+      if (default_value == nullptr && default_ != nullptr) {
+        // Free the memory allocated to the default value
+        delete default_;
+        default_ = nullptr;
+      } else {
+        if (default_ == nullptr) {
+          default_ = new byte[attr_size_];
+        }
+        // Copy the new default value
+        std::memcpy(default_, default_value, attr_size_);
       }
-      // Copy the new default value
-      std::memcpy(default_, default_value, attr_size_);
     }
 
    private:
@@ -144,6 +140,8 @@ class Schema {
     uint16_t max_varlen_size_;
     const bool nullable_;
     const col_oid_t oid_;
+    // TODO(Sai): Consider having a DefaultValueObject containing isNull, 16-byte variable and attribute size
+    // This avoids handling memory explicitly for default values
     byte *default_;
   };
 
