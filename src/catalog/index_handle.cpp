@@ -14,10 +14,10 @@ const std::vector<SchemaCol> IndexHandle::schema_cols_ = {
     {0, true, "indexrelid", type::TypeId::INTEGER},     {1, true, "indrelid", type::TypeId::INTEGER},
     {2, true, "indnatts", type::TypeId::INTEGER},       {3, true, "indnkeyatts", type::TypeId::INTEGER},
     {4, true, "indisunique", type::TypeId::BOOLEAN},    {5, true, "indisprimary", type::TypeId::BOOLEAN},
-    {6, true, "indisexclusion", type::TypeId::BOOLEAN}, {7, true, "indimmediate", type::TypeId::BOOLEAN},
-    {8, true, "indisclustered", type::TypeId::BOOLEAN}, {10, false, "indcheckxmin", type::TypeId::BOOLEAN},
-    {9, false, "indisvalid", type::TypeId::BOOLEAN},    {11, false, "indisready", type::TypeId::BOOLEAN},
-    {12, false, "indislive", type::TypeId::BOOLEAN},    {13, false, "indisreplident", type::TypeId::BOOLEAN},
+    {9, true, "indisvalid", type::TypeId::BOOLEAN},     {11, true, "indisready", type::TypeId::BOOLEAN},
+    {12, true, "indislive", type::TypeId::BOOLEAN},     {6, false, "indisexclusion", type::TypeId::BOOLEAN},
+    {7, false, "indimmediate", type::TypeId::BOOLEAN},  {8, false, "indisclustered", type::TypeId::BOOLEAN},
+    {10, false, "indcheckxmin", type::TypeId::BOOLEAN}, {13, false, "indisreplident", type::TypeId::BOOLEAN},
     {14, false, "indkey", type::TypeId::BOOLEAN},        // Should be of type int2vector
     {15, false, "indcollation", type::TypeId::BOOLEAN},  // Should be of type oidvector
     {16, false, "indclass", type::TypeId::BOOLEAN},      // Should be of type oidvector
@@ -72,9 +72,9 @@ catalog::SqlTableHelper *IndexHandle::Create(transaction::TransactionContext *tx
 
 bool IndexHandle::DeleteEntry(transaction::TransactionContext *txn, const std::shared_ptr<IndexEntry> &entry) {
   std::vector<type::TransientValue> search_vec;
-  auto ns_oid_int = entry->GetIntegerColumn("oid");
+  auto indexrel_oid = entry->GetIntegerColumn("indexrelid");
   // get the oid of this row
-  search_vec.emplace_back(type::TransientValueFactory::GetInteger(ns_oid_int));
+  search_vec.emplace_back(type::TransientValueFactory::GetInteger(indexrel_oid));
 
   // lookup and get back the projected column. Recover the tuple_slot
   auto proj_col_p = pg_index_rw_->FindRowProjCol(txn, search_vec);
@@ -83,6 +83,23 @@ bool IndexHandle::DeleteEntry(transaction::TransactionContext *txn, const std::s
   bool status = pg_index_rw_->GetSqlTable()->Delete(txn, *tuple_slot_p);
   delete[] reinterpret_cast<byte *>(proj_col_p);
   return status;
+}
+
+void IndexHandle::SetEntryColumn(transaction::TransactionContext *txn, index_oid_t indexreloid, const std::string &col,
+                                 type::TransientValue &&value) {
+  std::shared_ptr<IndexEntry> entry = GetIndexEntry(txn, indexreloid);
+  DeleteEntry(txn, entry);
+  std::vector<type::TransientValue> new_values;
+  new_values.reserve(schema_cols_.size());
+  int col_id = pg_index_rw_->ColNameToIndex(col);
+  for (size_t i = 0; i < schema_cols_.size(); i++) {
+    if (i == col_id) {
+      new_values.emplace_back(std::move(value));
+    } else {
+      new_values.emplace_back(type::TransientValueFactory::GetCopy(entry->GetColumn(static_cast<int32_t>(i))));
+    }
+  }
+  pg_index_rw_->InsertRow(txn, new_values);
 }
 
 }  // namespace terrier::catalog

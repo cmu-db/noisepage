@@ -1,8 +1,10 @@
 #include "catalog/catalog.h"
 #include "transaction/transaction_manager.h"
+#include "type/transient_value_factory.h"
 #include "type/transient_value_peeker.h"
 #include "util/test_harness.h"
 #include "util/transaction_test_util.h"
+
 namespace terrier {
 struct IndexHandleTest : public TerrierTest {
   void SetUp() override {
@@ -61,6 +63,43 @@ TEST_F(IndexHandleTest, BasicCorrectnessTest) {
   EXPECT_EQ(type::TransientValuePeeker::PeekBoolean(index_entry->GetColumn(6)), indisvalid);
   EXPECT_EQ(type::TransientValuePeeker::PeekBoolean(index_entry->GetColumn(7)), indisready);
   EXPECT_EQ(type::TransientValuePeeker::PeekBoolean(index_entry->GetColumn(8)), indislive);
+}
+
+// NOLINTNEXTLINE
+TEST_F(IndexHandleTest, IndexHandleModificationTest) {
+  // terrier has db_oid_t DEFAULT_DATABASE_OID
+  const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
+  auto db_handle = catalog_->GetDatabaseHandle();
+  auto index_handle = db_handle.GetIndexHandle(txn_, terrier_oid);
+
+  auto indexrelid = catalog::index_oid_t(catalog_->GetNextOid());
+  auto indrelid = catalog::table_oid_t(catalog_->GetNextOid());
+  int32_t indnatts = 123;
+  int32_t indnkeyatts = 456;
+  bool indisunique = true;
+  bool indisprimary = false;
+  bool indisvalid = false;
+  bool indisready = false;
+  bool indislive = true;
+  index_handle.AddEntry(txn_, indexrelid, indrelid, indnatts, indnkeyatts, indisunique, indisprimary, indisvalid,
+                        indisready, indislive);
+  auto index_entry = index_handle.GetIndexEntry(txn_, indexrelid);
+
+  EXPECT_NE(index_entry, nullptr);
+  EXPECT_EQ(!index_entry->GetOid(), !indexrelid);
+  EXPECT_EQ(!catalog::index_oid_t(index_entry->GetIntegerColumn("indexrelid")), !indexrelid);
+  EXPECT_EQ(!catalog::table_oid_t(index_entry->GetIntegerColumn("indrelid")), !indrelid);
+  EXPECT_EQ(index_entry->GetIntegerColumn("indnatts"), indnatts);
+  EXPECT_EQ(index_entry->GetIntegerColumn("indnkeyatts"), indnkeyatts);
+  EXPECT_EQ(index_entry->GetBooleanColumn("indisunique"), indisunique);
+  EXPECT_EQ(index_entry->GetBooleanColumn("indisprimary"), indisprimary);
+  EXPECT_EQ(index_entry->GetBooleanColumn("indisvalid"), indisvalid);
+  EXPECT_EQ(index_entry->GetBooleanColumn("indisready"), indisready);
+  EXPECT_EQ(index_entry->GetBooleanColumn("indislive"), indislive);
+
+  index_handle.SetEntryColumn(txn_, indexrelid, "indisvalid", type::TransientValueFactory::GetBoolean(true));
+  index_entry = index_handle.GetIndexEntry(txn_, indexrelid);
+  EXPECT_EQ(index_entry->GetBooleanColumn("indisvalid"), true);
 }
 
 }  // namespace terrier
