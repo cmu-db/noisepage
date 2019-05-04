@@ -132,14 +132,14 @@ TEST_F(MetricTests, DatabaseMetricBasicTest) {
         storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTransactionBegin(txn);
         auto txn_res = static_cast<bool>(std::uniform_int_distribution<uint8_t>(0, 1)(generator_));
         if (txn_res) {
-          txn_manager_->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
           storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTransactionCommit(
               txn, static_cast<catalog::db_oid_t>(j));
+          txn_manager_->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
           commit_map[j]++;
         } else {
-          txn_manager_->Abort(txn);
           storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTransactionAbort(
               txn, static_cast<catalog::db_oid_t>(j));
+          txn_manager_->Abort(txn);
           abort_map[j]++;
         }
       }
@@ -185,14 +185,14 @@ TEST_F(MetricTests, DatabaseMetricStorageTest) {
         storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTransactionBegin(txn);
         auto txn_res = static_cast<bool>(std::uniform_int_distribution<uint8_t>(0, 1)(generator_));
         if (txn_res) {
-          txn_manager_->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
           storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTransactionCommit(
               txn, static_cast<catalog::db_oid_t>(j));
+          txn_manager_->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
           commit_map[j]++;
         } else {
-          txn_manager_->Abort(txn);
           storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTransactionAbort(
               txn, static_cast<catalog::db_oid_t>(j));
+          txn_manager_->Abort(txn);
           abort_map[j]++;
         }
       }
@@ -265,10 +265,10 @@ TEST_F(MetricTests, TransactionMetricBasicTest) {
           delete_map[txn_id]++;
         }
       }
-      txn_manager_->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
       auto latency = static_cast<int64_t>(
           std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start)
               .count());
+      txn_manager_->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
       latency_map[txn_id] = latency;
     }
 
@@ -350,10 +350,10 @@ TEST_F(MetricTests, TransactionMetricStorageTest) {
           delete_map[txn_id]++;
         }
       }
-      txn_manager_->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
       auto latency = static_cast<uint64_t>(
           std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start)
               .count());
+      txn_manager_->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
       latency_map[txn_id] = latency;
     }
 
@@ -389,8 +389,7 @@ TEST_F(MetricTests, TransactionMetricStorageTest) {
  */
 // NOLINTNEXTLINE
 TEST_F(MetricTests, MultiThreadTest) {
-  // const uint32_t num_threads = MultiThreadTestUtil::HardwareConcurrency();
-  const uint32_t num_threads = 1;
+  const uint32_t num_threads = MultiThreadTestUtil::HardwareConcurrency();
   common::WorkerPool thread_pool(num_threads, {});
 
   catalog::table_oid_t table_oid = static_cast<catalog::table_oid_t>(2);  // any value
@@ -439,10 +438,10 @@ TEST_F(MetricTests, MultiThreadTest) {
             storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleDelete(txn, database_oid,
                                                                                                     table_oid);
           }
-          txn_manager_->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
           auto latency = static_cast<uint64_t>(
               std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start)
                   .count());
+          txn_manager_->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
           latency_map.Insert(txn_id, latency);
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
