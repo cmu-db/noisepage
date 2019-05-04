@@ -211,7 +211,7 @@ class Schema {
   }
 
  private:
-  const storage::layout_version_t version_;
+  storage::layout_version_t version_;
   const std::vector<Column> columns_;
   std::unordered_map<col_oid_t, uint32_t> col_oid_to_offset;
 };
