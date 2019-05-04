@@ -40,7 +40,9 @@ class LogManager {
         do_persist_(true) {
     for (int i = 0; i < MAX_BUF; i++) {
       buffers_.emplace_back(BufferedLogWriter(log_file_path));
-      empty_buffer_queue_.enqueue(&buffers_[i]);
+    }
+    for (int i = 0; i < MAX_BUF; i++) {
+      BlockingEnqueueBuffer(&buffers_[i], &empty_buffer_queue_);
     }
     log_writer_thread_ = std::thread([this] { WriteToDiskLoop(); });
   }
