@@ -69,8 +69,8 @@ class IndexHandle {
     DeleteEntry(txn, entry);
     std::vector<type::TransientValue> new_values;
     new_values.reserve(schema_cols_.size());
-    for (int i = 0; i < schema_cols_.size(); i++) {
-      new_values.emplace_back(type::TransientValueFactory::GetCopy(entry->GetColumn(i)));
+    for (size_t i = 0; i < schema_cols_.size(); i++) {
+      new_values.emplace_back(type::TransientValueFactory::GetCopy(entry->GetColumn(static_cast<int32_t>(i))));
     }
     pg_index_rw_->InsertRow(txn, new_values);
   }

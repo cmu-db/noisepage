@@ -65,8 +65,8 @@ class IndexBuilder {
     catalog::IndexHandle index_handle = catalog->GetDatabaseHandle().GetIndexHandle(txn1, db_oid);
     // placeholder args
     catalog::index_oid_t index_oid(catalog->GetNextOid());
-    int32_t indnatts = index_attrs.size();
-    int32_t indnkeyatts = key_attrs.size();
+    auto indnatts = static_cast<int32_t>(index_attrs.size());
+    auto indnkeyatts = static_cast<int32_t>(key_attrs.size());
     bool indisunique = unique_index;
     bool indisprimary = false;
     bool indisvalid = false;
