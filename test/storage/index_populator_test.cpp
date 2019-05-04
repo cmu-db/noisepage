@@ -3,7 +3,7 @@
 #include <vector>
 #include "catalog/catalog.h"
 #include "catalog/catalog_sql_table.h"
-#include "storage/index/index_builder.h"
+#include "storage/index/index_manager.h"
 #include "storage/index/index_factory.h"
 #include "util/test_harness.h"
 #include "util/transaction_test_util.h"
@@ -126,7 +126,7 @@ TEST_F(IndexBuilderTest, BasicCorrectnessTest) {
   auto index_0 = index_factory.Build();
 
   // Populate the index
-  bool success = IndexBuilder::PopulateIndex(txn_, *table->GetSqlTable(), index_0, false);
+  bool success = IndexManager::PopulateIndex(txn_, *table->GetSqlTable(), index_0, false);
   EXPECT_EQ(success, true);
 
   // Create the projected row for index

@@ -22,7 +22,7 @@ namespace terrier::storage::index {
  *
  * This class can only be used when creating an index.
  */
-class IndexBuilder {
+class IndexManager {
  private:
   /**
    * The method sets the type of constraints and the key schema for the index. It finally returns an empty
