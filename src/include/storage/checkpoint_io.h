@@ -382,7 +382,6 @@ class BufferedTupleReader {
    *         nullptr if an error happens or there is no other row in the page.
    */
   ProjectedRow *ReadNextRow() {
-    // TODO(mengyang): why sometimes uint64 aligned, sometimes uint32 aligned?
     AlignBufferOffset<uint64_t>();
     if (block_size_ - page_offset_ < sizeof(uint32_t)) {
       // definitely not enough to store another row in the page.
@@ -394,15 +393,14 @@ class BufferedTupleReader {
       return nullptr;
     }
 
-    auto *checkpoint_row = reinterpret_cast<ProjectedRow *>(buffer_ + page_offset_);
-    page_offset_ += row_size;
+    auto *checkpoint_row = reinterpret_cast<ProjectedRow *>(ReadDataAcrossPages(row_size));
     return checkpoint_row;
   }
 
   TupleSlot *ReadNextTupleSlot() {
     AlignBufferOffset<uint32_t>();
-    auto slot = reinterpret_cast<TupleSlot *>(buffer_ + page_offset_);
-    page_offset_ += static_cast<uint32_t>(sizeof(TupleSlot));
+    auto slot = reinterpret_cast<TupleSlot *>(ReadDataAcrossPages(sizeof(uint32_t)));
+//    page_offset_ += static_cast<uint32_t>(sizeof(TupleSlot));
     return slot;
   }
 
@@ -413,8 +411,8 @@ class BufferedTupleReader {
    */
   uint32_t ReadNextVarlenSize() {
     AlignBufferOffset<uint32_t>();
-    uint32_t size = *reinterpret_cast<uint32_t *>(buffer_ + page_offset_);
-    page_offset_ += static_cast<uint32_t>(sizeof(uint32_t));
+    uint32_t size = *reinterpret_cast<uint32_t *>(ReadDataAcrossPages(sizeof(uint32_t)));
+//    page_offset_ += static_cast<uint32_t>(sizeof(uint32_t));
     return size;
   }
 
@@ -426,8 +424,7 @@ class BufferedTupleReader {
    * @return pointer to the varlen content
    */
   byte *ReadNextVarlen(uint32_t size) {
-    byte *result = buffer_ + page_offset_;
-    page_offset_ += size;
+    byte *result = ReadDataAcrossPages(size);
     return result;
   }
 
@@ -444,9 +441,59 @@ class BufferedTupleReader {
   uint32_t page_count_ = 0;
   byte *buffer_;
 
+  std::vector<byte *> loose_ptrs_;
+
+  /**
+   * Align the current buffer offset to 4 bytes or 8 bytes, depending on what kind of value will be read next.
+   */
   template <class T>
   void AlignBufferOffset() {
     page_offset_ = StorageUtil::PadUpToSize(alignof(T), page_offset_);
+  }
+
+  /**
+   * Read a piece of data from the checkpoint file. If the size is larger than the remaining size of the page, a new
+   * block is read in. Data from different pages will be concatenate together.
+   *
+   * Note: if data is read from multiple pages, a new piece of memory is allocated for this data, and thus it is a
+   *       loose pointer. This pointer will be cleaned when reading the next row (i.e. next call to ReadNextRow), so
+   *       whoever is using this piece of memory should stop using it after reading the next row.
+   *       This is a technical debt because we don't know when the user will end doing things on it. This also make us
+   *       unable to have concurrent readers. Maybe in the future we will have a dedicated GC thread for doing this.
+   * @param size of the data to be read from the file.
+   * @return pointer to the data.
+   */
+  byte *ReadDataAcrossPages(uint32_t size) {
+    uint32_t remaining_buffer = block_size_ - page_offset_;
+    if (size <= remaining_buffer) { // current buffer is enough
+      byte *result = buffer_ + page_offset_;
+      page_offset_ += size;
+      return result;
+    } else { // current buffer is not enough
+      byte *tmp_buffer = common::AllocationUtil::AllocateAligned(size);
+      uint32_t left_to_read = size;
+      uint32_t already_read = 0;
+      while (left_to_read > 0) {
+        remaining_buffer = block_size_ - page_offset_;
+        if (left_to_read <= remaining_buffer) { // remaining buffer is enough
+          memcpy(tmp_buffer + already_read, buffer_ + page_offset_, left_to_read);
+          page_offset_ += left_to_read;
+          loose_ptrs_.emplace_back(tmp_buffer);
+          return tmp_buffer;
+        } else { // remaining buffer is not enough
+          memcpy(tmp_buffer + already_read, buffer_ + page_offset_, remaining_buffer);
+          if (!ReadNextBlock()) {
+            // should not happen, unless the checkpoint file is corrupted.
+            // TODO(Mengyang): figure out what kind of exception to throw here.
+            loose_ptrs_.emplace_back(tmp_buffer);
+            return tmp_buffer;
+          }
+          left_to_read -= remaining_buffer;
+          already_read += remaining_buffer;
+        }
+      }
+      return tmp_buffer;
+    }
   }
 };
 

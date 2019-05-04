@@ -247,6 +247,41 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryWithHugeRow) {
   // Sleep for some time to ensure that the checkpoint thread has started at least one checkpoint. (Prevent racing)
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
   EndCheckpointingThread();
+  // read first run
+  transaction::TransactionContext *scan_txn = txn_manager->BeginTransaction();
+  std::vector<std::string> original_rows;
+  StorageTestUtil::PrintAllRows(scan_txn, table, &original_rows);
+  txn_manager->Commit(scan_txn, StorageTestUtil::EmptyCallback, nullptr);
+  // recovery to another table
+  std::string latest_checkpoint_path = checkpoint_manager_.GetLatestCheckpointFilename();
+  transaction::TransactionContext *recovery_txn = txn_manager->BeginTransaction();
+  storage::BlockStore block_store_{10000, 10000};
+  storage::SqlTable *recovered_table = new storage::SqlTable(&block_store_, *schema, catalog::table_oid_t(1));
+  checkpoint_manager_.StartRecovery(recovery_txn);
+  checkpoint_manager_.RegisterTable(recovered_table);
+  checkpoint_manager_.Recover(latest_checkpoint_path.c_str());
+  checkpoint_manager_.EndRecovery();
+  txn_manager->Commit(recovery_txn, StorageTestUtil::EmptyCallback, nullptr);
+  // read recovered table
+  transaction::TransactionContext *scan_txn_2 = txn_manager->BeginTransaction();
+  std::vector<std::string> recovered_rows;
+  StorageTestUtil::PrintAllRows(scan_txn_2, recovered_table, &recovered_rows);
+  txn_manager->Commit(scan_txn_2, StorageTestUtil::EmptyCallback, nullptr);
+  // compare
+  std::vector<std::string> diff1, diff2;
+  std::sort(original_rows.begin(), original_rows.end());
+  std::sort(recovered_rows.begin(), recovered_rows.end());
+  std::set_difference(original_rows.begin(), original_rows.end(), recovered_rows.begin(), recovered_rows.end(),
+                      std::inserter(diff1, diff1.begin()));
+  std::set_difference(recovered_rows.begin(), recovered_rows.end(), original_rows.begin(), original_rows.end(),
+                      std::inserter(diff2, diff2.begin()));
+  EXPECT_EQ(diff1.size(), 0);
+  EXPECT_EQ(diff2.size(), 0);
+  checkpoint_manager_.UnlinkCheckpointFiles();
+  delete recovered_table;
+  delete scan_txn;
+  delete scan_txn_2;
+  delete recovery_txn;
 }
 
 }  // namespace terrier
