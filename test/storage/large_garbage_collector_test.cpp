@@ -314,17 +314,17 @@ TEST_F(LargeGCTests, OLAPAndTPCCishWithGC) {
   const uint32_t num_concurrent_txns = MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
-        .SetMaxColumns(max_columns)
-        .SetInitialTableSize(initial_table_size)
-        .SetTxnLength(txn_length)
-        .SetUpdateSelectRatio(update_select_ratio)
-        .SetBlockStore(&block_store_)
-        .SetBufferPool(&buffer_pool_)
-        .SetGenerator(&generator_)
-        .SetGcOn(true)
-        .SetBookkeeping(true)
-        .SetVarlenAllowed(true)
-        .build();
+                                            .SetMaxColumns(max_columns)
+                                            .SetInitialTableSize(initial_table_size)
+                                            .SetTxnLength(txn_length)
+                                            .SetUpdateSelectRatio(update_select_ratio)
+                                            .SetBlockStore(&block_store_)
+                                            .SetBufferPool(&buffer_pool_)
+                                            .SetGenerator(&generator_)
+                                            .SetGcOn(true)
+                                            .SetBookkeeping(true)
+                                            .SetVarlenAllowed(true)
+                                            .build();
     StartGC(tested.GetTxnManager());
     // OLAP Transaction starts here
     auto *olap_txn = tested.GetTxnManager()->BeginTransaction();
@@ -350,17 +350,17 @@ TEST_F(LargeGCTests, OLAPAndHighAbortRateHighThreadWithGC) {
   const uint32_t num_concurrent_txns = 2 * MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
-        .SetMaxColumns(max_columns)
-        .SetInitialTableSize(initial_table_size)
-        .SetTxnLength(txn_length)
-        .SetUpdateSelectRatio(update_select_ratio)
-        .SetBlockStore(&block_store_)
-        .SetBufferPool(&buffer_pool_)
-        .SetGenerator(&generator_)
-        .SetGcOn(true)
-        .SetBookkeeping(true)
-        .SetVarlenAllowed(true)
-        .build();
+                                            .SetMaxColumns(max_columns)
+                                            .SetInitialTableSize(initial_table_size)
+                                            .SetTxnLength(txn_length)
+                                            .SetUpdateSelectRatio(update_select_ratio)
+                                            .SetBlockStore(&block_store_)
+                                            .SetBufferPool(&buffer_pool_)
+                                            .SetGenerator(&generator_)
+                                            .SetGcOn(true)
+                                            .SetBookkeeping(true)
+                                            .SetVarlenAllowed(true)
+                                            .build();
     StartGC(tested.GetTxnManager());
     // OLAP Transaction starts here
     auto *olap_txn = tested.GetTxnManager()->BeginTransaction();
