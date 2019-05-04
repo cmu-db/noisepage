@@ -13,6 +13,11 @@ namespace terrier::storage {
 // Use magic number before we have a setting manager.
 #define CHECKPOINT_BUF_NUM 10
 
+// checkpoint file header flags
+#define P_IS_CATALOG 0
+#define P_IS_COMPOSITE_ROW 1
+#define P_IS_COMPOSITE_START 2
+
 /**
  * The header of a page in the checkpoint file.
  */
@@ -61,12 +66,36 @@ class PACKED CheckpointFilePage {
    */
   byte *GetPayload() { return payload_; }
 
+  /**
+   * Set the bit in the flags to some value.
+   * @param pos position of the flag to set, from the most significant bit to the least significant bit.
+   * @param value bool value to set
+   */
+  void SetFlag(uint32_t pos, bool value) { Bitmap().Set(pos, value); }
+
+  /**
+   * Get the status of the flag at some position
+   * @param pos position of the flag to test, from the most significant bit the the least significant bit.
+   * @return the value of the flag.
+   */
+  bool GetFlag(uint32_t pos) { return Bitmap().Test(pos); }
+
+  void SetVersion(uint32_t version) { version_ = version; }
+
+  uint32_t GetVersion() { return version_; }
+
  private:
   uint32_t checksum_;
   // Note: use uint32_t instead of table_oid_t, because table_oid_t is not POD so that
   // we cannot use PACKED in this class.
   uint32_t table_oid_;
-  uint32_t version_;  // version of the schema(useful with schema change)
+  uint32_t version_;  // version of the schema(useful with schema change), or, for catalog tables,
+                      // serves as the type of the catalog table.
+  /* 32 bit flag. The meaning of each bit is:
+   *  0. catalog table
+   *  1. composite row
+   *  2. start of a composite row
+   */
   uint32_t flags_;
   byte payload_[0];
 
@@ -162,9 +191,15 @@ class AsyncBlockWriter {
  * The block size is fetched from database setting, and should be the page size.
  * TupleSlot is stored for log recovery (for the purpose of locating the records).
  * layout:
- * -----------------------------------------------------------------------------------------------------
- * | checksum | table_oid | tuple1 | TupleSlot1 | varlen_entries(if exist) | tuple2 | TupleSlot2 | ... |
- * -----------------------------------------------------------------------------------------------------
+ * +-----------------------------------------------+
+ * | checksum | table_oid | schema_version | flags |
+ * +-----------------------------------------------+
+ * | tuple1 | TupleSlot1 | varlen_entries(if exist)|
+ * +-----------------------------------------------+
+ * | tuple2 | TupleSlot2 | varlen_entries(if exist)|
+ * +-----------------------------------------------+
+ * | ... |
+ * +-----+
  */
 class BufferedTupleWriter {
   // TODO(Zhaozhe): checksum
@@ -217,11 +252,35 @@ class BufferedTupleWriter {
    */
   CheckpointFilePage *GetPage() { return reinterpret_cast<CheckpointFilePage *>(buffer_); }
 
+  /**
+   * Set the cached table oid. This value will be written to every page, unless otherwise changed.
+   * @param oid of the table
+   */
+  void SetTableOid(catalog::table_oid_t oid) {
+    table_oid_ = !oid;
+    GetPage()->SetTableOid(oid);
+  }
+
+  /**
+   * Set the cached table schema version. This value will be written to every page, unless otherwise changed.
+   * Currently the table only have one version, so this should be 0 all the time.
+   * @param version of the table schema
+   */
+  void SetVersion(uint32_t version) {
+    version_ = version;
+    GetPage()->SetVersion(version);
+  }
+
  private:
   AsyncBlockWriter async_writer_;  // background writer
   uint32_t block_size_;
   uint32_t page_offset_ = 0;
   byte *buffer_ = nullptr;
+
+  // cache of the header so that it can be automatically filled into the page.
+  uint32_t table_oid_;
+  uint32_t version_;
+  uint32_t flags_;
 
   void ResetBuffer() {
     CheckpointFilePage::Initialize(reinterpret_cast<CheckpointFilePage *>(buffer_));

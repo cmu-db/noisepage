@@ -57,6 +57,8 @@ class CheckpointManager {
    * to a ProjectedRow buffer and write the memory representation of the ProjectedRow directly to disk. Varlen columns
    * that is not inlined will be written to another checkpoint file.
    *
+   * Also, the type of the catalog table (if it is a catalog table) is required for recovery proccedure.
+   *
    * TODO(Mengyang): possible optimizations:
    *                 * store projected columns directly to disk
    *                 * use a batch of ProjectedRows as buffer
@@ -64,8 +66,12 @@ class CheckpointManager {
    *
    * TODO(Mengyang): Currently we require a schema passed in, but this is wrong especially with multi-version schema.
    *  This is no longer required once the catalog is merged, since we can get the schema of a table from the catalog.
+   *
+   * @param table SqlTable to be checkpointed
+   * @param schema of the table to becheckpointed
+   * @param catalog_type 0 if this table is not a catalog table, otherwise, this is the type of the catalog table.
    */
-  void Checkpoint(const SqlTable &table, const catalog::Schema &schema);
+  void Checkpoint(const SqlTable &table, const catalog::Schema &schema, const uint32_t catalog_type = 0);
 
   /**
    * Finish the current checkpoint.
