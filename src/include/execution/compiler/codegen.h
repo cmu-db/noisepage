@@ -18,7 +18,8 @@ class CodeContext;
 
 class CodeGen {
  private:
-  friend FunctionBuilder;
+  friend class FunctionBuilder;
+  friend class QueryState;
   util::Region *GetRegion() { return ctx_->region_; }
   CodeContext *GetCodeContext() { return ctx_; }
 

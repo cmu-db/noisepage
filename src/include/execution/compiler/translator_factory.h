@@ -1,15 +1,9 @@
 #pragma once
 
+#include "parser/expression/abstract_expression.h"
+#include "planner/plannodes/abstract_plan_node.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/expression/expression_translator.h"
-
-namespace terrier::parser {
-class AbstractExpression;
-}
-
-namespace terrier::planner {
-class AbstractPlanNode;
-}
 
 namespace tpl::compiler {
 

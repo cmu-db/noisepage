@@ -816,6 +816,7 @@ TEST(PlanNodeJsonTest, SeqScanPlanNodeJsonTest) {
 
   tpl::compiler::Query query(*plan_node);
   tpl::compiler::CompilationContext ctx(&query, nullptr);
+  ctx.GeneratePlan(&query);
 }
 
 // NOLINTNEXTLINE

@@ -12,7 +12,7 @@ fn_params_(std::move(fn_params)), fn_ret_type_(fn_ret_type), fn_body_(codegen_.G
 {}
 
 ast::FunctionDecl *FunctionBuilder::Finish() {
-  auto fn_ty = codegen_->NewFunctionType(DUMMY_POS, std::move(fn_params_), codegen_.Ty_Nil());
+  auto fn_ty = codegen_->NewFunctionType(DUMMY_POS, std::move(fn_params_), fn_ret_type_);
   auto fn_body = codegen_->NewBlockStmt(DUMMY_POS, DUMMY_POS, std::move(fn_body_));
   auto fn_lit = codegen_->NewFunctionLitExpr(fn_ty, fn_body);
   codegen_.GetCodeContext()->SetCurrentFunction(prev_fn_);

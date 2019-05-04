@@ -32,15 +32,14 @@ void CompilationContext::GeneratePlan(Query *query) {
   }
   init_fn.Finish();
 
-
 }
 
 void CompilationContext::Prepare(const terrier::planner::AbstractPlanNode &op, tpl::compiler::Pipeline *pipeline) {
-  op_translators_.emplace(std::make_pair(op, translator_factory_.CreateTranslator(op, pipeline)));
+  op_translators_.emplace(std::make_pair(&op, translator_factory_.CreateTranslator(op, pipeline)));
 }
 
 void CompilationContext::Prepare(const terrier::parser::AbstractExpression &ex) {
-  ex_translators_.emplace(std::make_pair(ex, translator_factory_.CreateTranslator(ex)));
+  ex_translators_.emplace(std::make_pair(&ex, translator_factory_.CreateTranslator(ex)));
 }
 
 }
