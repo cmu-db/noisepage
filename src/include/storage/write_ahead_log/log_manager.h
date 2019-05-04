@@ -7,11 +7,11 @@
 #include <vector>
 #include "common/spin_latch.h"
 #include "common/strong_typedef.h"
+#include "spdlog/details/mpmc_blocking_q.h"
 #include "storage/record_buffer.h"
 #include "storage/write_ahead_log/log_io.h"
 #include "storage/write_ahead_log/log_record.h"
 #include "transaction/transaction_defs.h"
-#include "spdlog/details/mpmc_blocking_q.h"
 
 #define MAX_BUF 2
 
@@ -31,11 +31,15 @@ class LogManager {
    *                    buffers from
    */
   LogManager(const char *log_file_path, RecordBufferSegmentPool *const buffer_pool)
-      : buffers_(MAX_BUF, BufferedLogWriter(log_file_path)), buffer_to_write_(nullptr), buffer_pool_(buffer_pool),
-      empty_buffer_queue_(MAX_BUF), filled_buffer_queue_(MAX_BUF), run_log_writer_thread_(true), do_persist_(true)  {
+      : buffers_(MAX_BUF, BufferedLogWriter(log_file_path)),
+        buffer_to_write_(nullptr),
+        buffer_pool_(buffer_pool),
+        empty_buffer_queue_(MAX_BUF),
+        filled_buffer_queue_(MAX_BUF),
+        run_log_writer_thread_(true),
+        do_persist_(true) {
     log_writer_thread_ = std::thread([this] { WriteToDisk(); });
-    //buffers_.resize(MAX_BUF, BufferedLogWriter(log_file_path));
-    for ( int i = 0; i < MAX_BUF; i++) {
+    for (int i = 0; i < MAX_BUF; i++) {
       empty_buffer_queue_.enqueue(&buffers_[i]);
     }
   }
@@ -97,7 +101,7 @@ class LogManager {
   std::vector<std::pair<transaction::callback_fn, void *>> commits_in_buffer_;
 
   using item_type = BufferedLogWriter *;
-  using q_type =spdlog::details::mpmc_blocking_queue<item_type>;
+  using q_type = spdlog::details::mpmc_blocking_queue<item_type>;
 
   q_type empty_buffer_queue_;
   q_type filled_buffer_queue_;
@@ -115,7 +119,7 @@ class LogManager {
    * Serialize out the task buffer to the log
    * @param task_buffer the task buffer
    */
-  void SerializeTaskBuffer(IterableBufferSegment<LogRecord> &task_buffer);
+  void SerializeTaskBuffer(IterableBufferSegment<LogRecord> *task_buffer);
 
   void WriteToDisk();
   void FlushAllBuffers();
@@ -134,9 +138,7 @@ class LogManager {
     return buf;
   }
 
-  void BlockingEnqueueBuffer(BufferedLogWriter *buf, q_type *queue) {
-    queue->enqueue(&(*buf));
-  }
+  void BlockingEnqueueBuffer(BufferedLogWriter *buf, q_type *queue) { queue->enqueue(&(*buf)); }
 
   bool UnblockingDequeueBuffer(BufferedLogWriter **buf, q_type *queue) {
     return queue->dequeue_for(*buf, std::chrono::milliseconds(10));
@@ -151,7 +153,7 @@ class LogManager {
 
   void MarkBufferFull() {
     filled_buffer_queue_.enqueue(&(*buffer_to_write_));
-    buffer_to_write_= nullptr;
+    buffer_to_write_ = nullptr;
   }
 
   void WriteValue(const void *val, uint32_t size);

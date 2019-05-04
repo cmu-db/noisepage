@@ -123,9 +123,7 @@ class BufferedLogWriter {
     buffer_size_ = 0;
   }
 
-  bool IsBufferFull() {
-    return buffer_size_ == BUFFER_SIZE;
-  }
+  bool IsBufferFull() { return buffer_size_ == BUFFER_SIZE; }
 
  private:
   int out_;  // fd of the output files

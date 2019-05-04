@@ -14,7 +14,7 @@ void LogManager::Process() {
     }
     // Serialize the Redo buffer and release it to the buffer pool
     IterableBufferSegment<LogRecord> task_buffer(buffer);
-    SerializeTaskBuffer(task_buffer);
+    SerializeTaskBuffer(&task_buffer);
     buffer_pool_->Release(buffer);
   }
   // Mark the last buffer that was written to as full
@@ -28,14 +28,15 @@ void LogManager::Flush() {
   // Set the flag for the log writer thread to persist the buffers to disk
   do_persist_ = true;
   // Wait for the log writer thread to persist the logs
-  while (do_persist_);
+  while (do_persist_) {
+  }
   // Execute the callbacks for the transactions that have been persisted
   for (auto &callback : commits_in_buffer_) callback.first(callback.second);
   commits_in_buffer_.clear();
 }
 
-void LogManager::SerializeTaskBuffer(IterableBufferSegment<LogRecord> &task_buffer) {
-  for (LogRecord &record : task_buffer) {
+void LogManager::SerializeTaskBuffer(IterableBufferSegment<LogRecord> *const task_buffer) {
+  for (LogRecord &record : *task_buffer) {
     if (record.RecordType() == LogRecordType::COMMIT) {
       auto *commit_record = record.GetUnderlyingRecordBodyAs<CommitRecord>();
 
@@ -134,7 +135,7 @@ void LogManager::SerializeRecord(const terrier::storage::LogRecord &record) {
 void LogManager::WriteToDisk() {
   // Log writer thread spins in this loop
   // It dequeues a filled buffer and flushes it to disk
-  while(run_log_writer_thread_) {
+  while (run_log_writer_thread_) {
     BufferedLogWriter *buf;
     bool dequeued = UnblockingDequeueBuffer(&buf, &filled_buffer_queue_);
     // If the main logger thread has signaled to persist the buffers, persist all the filled buffers
@@ -165,7 +166,7 @@ void LogManager::FlushAllBuffers() {
       // Enqueue the flushed buffer to the empty buffer queue
       BlockingEnqueueBuffer(buf, &empty_buffer_queue_);
     }
-  } while(dequeued);
+  } while (dequeued);
   // Persist the buffers
   buffers_[0].Persist();
 }
@@ -176,7 +177,8 @@ void LogManager::WriteValue(const void *val, uint32_t size) {
   uint32_t size_written = 0;
 
   while (size_written < size) {
-    size_written += out->BufferWrite(((byte *)val + size_written), size - size_written);
+    const byte *val_byte = reinterpret_cast<const byte *>(val) + size_written;
+    size_written += out->BufferWrite(val_byte, size - size_written);
     if (out->IsBufferFull()) {
       // Mark the buffer full for the log writer thread to flush it
       MarkBufferFull();
