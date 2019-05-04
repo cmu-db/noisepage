@@ -473,7 +473,7 @@ BENCHMARK_DEFINE_F(SqlTableBenchmark, SingleVersionUpdate)(benchmark::State &sta
   for (auto _ : state) {
     for (uint32_t i = 0; i < num_updates_; ++i) {
       // update the tuple with the  for benchmark purpose
-      table_->Update(&txn, slot, *redo_, *map_, storage::layout_version_t(0));
+      table_->Update(&txn, slot, redo_, *map_, storage::layout_version_t(0));
     }
   }
 
@@ -516,7 +516,7 @@ BENCHMARK_DEFINE_F(SqlTableBenchmark, MultiVersionMatchUpdate)(benchmark::State 
   // NOLINTNEXTLINE
   for (auto _ : state) {
     for (uint32_t i = 0; i < num_updates_; ++i) {
-      table_->Update(&txn, slot, *update_pr, pair.second, storage::layout_version_t(1));
+      table_->Update(&txn, slot, update_pr, pair.second, storage::layout_version_t(1));
     }
   }
   delete[] update_buffer;
@@ -552,7 +552,7 @@ BENCHMARK_DEFINE_F(SqlTableBenchmark, MultiVersionMismatchUpdate)(benchmark::Sta
   // NOLINTNEXTLINE
   for (auto _ : state) {
     for (uint32_t i = 0; i < num_updates_; ++i) {
-      table_->Update(txn, update_slots[i], *update_pr, pair.second, storage::layout_version_t(1));
+      table_->Update(txn, update_slots[i], update_pr, pair.second, storage::layout_version_t(1));
     }
   }
   delete[] update_buffer;

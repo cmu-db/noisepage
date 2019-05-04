@@ -107,7 +107,7 @@ class SqlTableTestRW {
   }
 
   std::pair<bool, storage::TupleSlot> EndUpdateRow(transaction::TransactionContext *txn, storage::TupleSlot slot) {
-    auto result_pair = table_->Update(txn, slot, *pr_, *pr_map_, version_);
+    auto result_pair = table_->Update(txn, slot, pr_, *pr_map_, version_);
     pr_ = nullptr;
     delete[] buffer_;
     return result_pair;

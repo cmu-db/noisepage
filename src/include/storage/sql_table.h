@@ -116,7 +116,7 @@ class SqlTable {
       TERRIER_ASSERT(curr_version_ <= txn_version_, "Current version cannot be newer than transaction");
       while (current_it_ == tables_->Find(curr_version_)->second.data_table->end()) {
         // layout_version_t is uint32_t so we need to protect against underflow.
-        if (!curr_version_ == 0) {
+        if ((!curr_version_) == 0) {
           is_end_ = true;
           return;
         }
@@ -128,6 +128,7 @@ class SqlTable {
         }
         current_it_ = next_table->second.data_table->begin();
       }
+      TERRIER_ASSERT(current_it_->GetBlock() != nullptr && !is_end_, "Invalid iterator");
     }
 
     const common::ConcurrentMap<layout_version_t, DataTableVersion> *tables_;
@@ -186,9 +187,8 @@ class SqlTable {
    * @return true if successful, false otherwise; If the update changed the location of the TupleSlot, a new TupleSlot
    * is returned. Otherwise, the same TupleSlot is returned.
    */
-  std::pair<bool, storage::TupleSlot> Update(transaction::TransactionContext *txn, TupleSlot slot,
-                                             const ProjectedRow &redo, const ProjectionMap &map,
-                                             layout_version_t version_num);
+  std::pair<bool, storage::TupleSlot> Update(transaction::TransactionContext *txn, TupleSlot slot, ProjectedRow *redo,
+                                             const ProjectionMap &map, layout_version_t version_num);
 
   /**
    * Inserts a tuple, as given in the redo, and return the slot allocated for the tuple.
