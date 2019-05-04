@@ -961,7 +961,7 @@ TEST_F(SqlTableTests, ModifyDefaultValuesTest) {
   table.version_ = storage::layout_version_t(2);
   table.AddColumn(txn, "col3", type::TypeId::INTEGER, true, catalog::col_oid_t(3));
 
-  // Insert (3, 300, 42) - The default value will be populated by the execution engine
+  // Insert (3, 300, 42, NULL) - The default value for col2 will be populated by the execution engine
   table.StartInsertRow();
   table.SetIntColInRow(catalog::col_oid_t(0), 3);
   table.SetIntColInRow(catalog::col_oid_t(1), 300);
@@ -969,29 +969,35 @@ TEST_F(SqlTableTests, ModifyDefaultValuesTest) {
   storage::TupleSlot row3_slot = table.EndInsertRow(txn);
 
   // Validate the tuples
-  // 1st row should be (1, 100, NULL)
+  // 1st row should be (1, 100, NULL, NULL)
   uint32_t id = table.GetIntColInRow(txn, catalog::col_oid_t(0), row1_slot);
   EXPECT_EQ(1, id);
   uint32_t col1 = table.GetIntColInRow(txn, catalog::col_oid_t(1), row1_slot);
   EXPECT_EQ(100, col1);
   bool col2_is_null = table.IsNullColInRow(txn, catalog::col_oid_t(2), row1_slot);
   EXPECT_TRUE(col2_is_null);
+  bool col3_is_null = table.IsNullColInRow(txn, catalog::col_oid_t(3), row1_slot);
+  EXPECT_TRUE(col3_is_null);
 
-  // 2nd tuple should be (2, 200, NULL)
+  // 2nd tuple should be (2, 200, NULL, NULL)
   id = table.GetIntColInRow(txn, catalog::col_oid_t(0), row2_slot);
   EXPECT_EQ(2, id);
   col1 = table.GetIntColInRow(txn, catalog::col_oid_t(1), row2_slot);
   EXPECT_EQ(200, col1);
-  col2_is_null = table.IsNullColInRow(txn, catalog::col_oid_t(2), row1_slot);
+  col2_is_null = table.IsNullColInRow(txn, catalog::col_oid_t(2), row2_slot);
   EXPECT_TRUE(col2_is_null);
+  col3_is_null = table.IsNullColInRow(txn, catalog::col_oid_t(3), row2_slot);
+  EXPECT_TRUE(col3_is_null);
 
-  // 3rd tuple should be (3, 300, 42)
+  // 3rd tuple should be (3, 300, 42, NULL)
   id = table.GetIntColInRow(txn, catalog::col_oid_t(0), row3_slot);
   EXPECT_EQ(3, id);
   col1 = table.GetIntColInRow(txn, catalog::col_oid_t(1), row3_slot);
   EXPECT_EQ(300, col1);
   uint32_t col2 = table.GetIntColInRow(txn, catalog::col_oid_t(2), row3_slot);
   EXPECT_EQ(col2_default, col2);
+  col3_is_null = table.IsNullColInRow(txn, catalog::col_oid_t(3), row3_slot);
+  EXPECT_TRUE(col3_is_null);
 
   // TODO: Test the following cases
   // 2. Column has no default value but is then added later
