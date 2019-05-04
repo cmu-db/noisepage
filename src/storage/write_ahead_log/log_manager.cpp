@@ -132,12 +132,12 @@ void LogManager::SerializeRecord(const terrier::storage::LogRecord &record) {
   }
 }
 
-void LogManager::WriteToDisk() {
+void LogManager::WriteToDiskLoop() {
   // Log writer thread spins in this loop
   // It dequeues a filled buffer and flushes it to disk
   while (run_log_writer_thread_) {
     BufferedLogWriter *buf;
-    bool dequeued = UnblockingDequeueBuffer(&buf, &filled_buffer_queue_);
+    bool dequeued = NonblockingDequeueBuffer(&buf, &filled_buffer_queue_);
     // If the main logger thread has signaled to persist the buffers, persist all the filled buffers
     if (do_persist_) {
       FlushAllBuffers();
@@ -160,7 +160,7 @@ void LogManager::FlushAllBuffers() {
   do {
     // Dequeue filled buffers and flush them to disk
     BufferedLogWriter *buf;
-    dequeued = UnblockingDequeueBuffer(&buf, &filled_buffer_queue_);
+    dequeued = NonblockingDequeueBuffer(&buf, &filled_buffer_queue_);
     if (dequeued) {
       buf->FlushBuffer();
       // Enqueue the flushed buffer to the empty buffer queue

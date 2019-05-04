@@ -14,6 +14,7 @@
 #include "transaction/transaction_defs.h"
 
 #define MAX_BUF 2
+#define QUEUE_WAIT_TIME_MILLISECONDS 10
 
 namespace terrier::storage {
 /**
@@ -31,17 +32,17 @@ class LogManager {
    *                    buffers from
    */
   LogManager(const char *log_file_path, RecordBufferSegmentPool *const buffer_pool)
-      : buffers_(MAX_BUF, BufferedLogWriter(log_file_path)),
+      : buffer_pool_(buffer_pool),
         buffer_to_write_(nullptr),
-        buffer_pool_(buffer_pool),
         empty_buffer_queue_(MAX_BUF),
         filled_buffer_queue_(MAX_BUF),
         run_log_writer_thread_(true),
         do_persist_(true) {
-    log_writer_thread_ = std::thread([this] { WriteToDisk(); });
     for (int i = 0; i < MAX_BUF; i++) {
+      buffers_.emplace_back(BufferedLogWriter(log_file_path));
       empty_buffer_queue_.enqueue(&buffers_[i]);
     }
+    log_writer_thread_ = std::thread([this] { WriteToDiskLoop(); });
   }
 
   /**
@@ -51,8 +52,9 @@ class LogManager {
     Process();
     run_log_writer_thread_ = false;
     log_writer_thread_.join();
-    buffers_[0].Close();
-    buffers_.clear();
+    for (auto buf : buffers_) {
+      buf.Close();
+    }
   }
 
   /**
@@ -84,9 +86,6 @@ class LogManager {
   void Flush();
 
  private:
-  std::vector<BufferedLogWriter> buffers_;
-
-  BufferedLogWriter *buffer_to_write_;
   // TODO(Tianyu): This can be changed later to be include things that are not necessarily backed by a disk
   //  (e.g. logs can be streamed out to the network for remote replication)
   RecordBufferSegmentPool *buffer_pool_;
@@ -100,15 +99,24 @@ class LogManager {
   // These do not need to be thread safe since the only thread adding or removing from it is the flushing thread
   std::vector<std::pair<transaction::callback_fn, void *>> commits_in_buffer_;
 
-  using item_type = BufferedLogWriter *;
-  using q_type = spdlog::details::mpmc_blocking_queue<item_type>;
+  using queue_t = spdlog::details::mpmc_blocking_queue<BufferedLogWriter *>;
 
-  q_type empty_buffer_queue_;
-  q_type filled_buffer_queue_;
+  // This stores all the buffers the serializer or the log writer threads use
+  std::vector<BufferedLogWriter> buffers_;
+  // This is the buffer the serializer thread will write to
+  BufferedLogWriter *buffer_to_write_;
+  // The queue containing empty buffers which the serializer thread will use
+  queue_t empty_buffer_queue_;
+  // The queue containing filled buffers pending flush to the disk
+  queue_t filled_buffer_queue_;
 
+  // The log writer thread which flushes filled buffers to the disk
   std::thread log_writer_thread_;
+  // Flag used by the serializer thread to signal shutdown to the log writer thread
   volatile bool run_log_writer_thread_;
+  // Flag used by the serializer thread to signal the log writer thread to persist the data on disk
   volatile bool do_persist_;
+
   /**
    * Serialize out the record to the log
    * @param task_buffer the task buffer
@@ -121,29 +129,20 @@ class LogManager {
    */
   void SerializeTaskBuffer(IterableBufferSegment<LogRecord> *task_buffer);
 
-  void WriteToDisk();
+  /**
+   * Write data to disk till shutdown. This is what the log writer thread runs
+   */
+  void WriteToDiskLoop();
+
+  /**
+   * Flush all buffers in the filled buffers queue to the disk, followed by an fsync
+   */
   void FlushAllBuffers();
-  template <class T>
-  void WriteValue(const T &val) {
-    WriteValue(&val, sizeof(T));
-  }
 
-  BufferedLogWriter *BlockingDequeueBuffer(q_type *queue) {
-    bool dequeued = false;
-    BufferedLogWriter *buf = nullptr;
-    while (!dequeued) {
-      // Get a buffer from the queue of buffers pending write
-      dequeued = queue->dequeue_for(buf, std::chrono::milliseconds(10));
-    }
-    return buf;
-  }
-
-  void BlockingEnqueueBuffer(BufferedLogWriter *buf, q_type *queue) { queue->enqueue(&(*buf)); }
-
-  bool UnblockingDequeueBuffer(BufferedLogWriter **buf, q_type *queue) {
-    return queue->dequeue_for(*buf, std::chrono::milliseconds(10));
-  }
-
+  /**
+   * Used by the serializer thread to get a buffer to serialize data to
+   * @return buffer to write to
+   */
   BufferedLogWriter *GetBufferToWrite() {
     if (buffer_to_write_ == nullptr) {
       buffer_to_write_ = BlockingDequeueBuffer(&empty_buffer_queue_);
@@ -151,11 +150,65 @@ class LogManager {
     return buffer_to_write_;
   }
 
-  void MarkBufferFull() {
-    filled_buffer_queue_.enqueue(&(*buffer_to_write_));
-    buffer_to_write_ = nullptr;
+  /**
+   * Serialize the data pointed to by val to a buffer
+   * @tparam T Type of the value
+   * @param val The value to write to the buffer
+   */
+  template <class T>
+  void WriteValue(const T &val) {
+    WriteValue(&val, sizeof(T));
   }
 
+  /**
+   * Serialize the data pointed to by val to a buffer
+   * @param val the value
+   * @param size size of the value to serialize
+   */
   void WriteValue(const void *val, uint32_t size);
+
+  /**
+   * Enqueue a buffer to the queue
+   * Blocks if the queue is full
+   * @param queue the queue to get the buffer from
+   */
+  void BlockingEnqueueBuffer(BufferedLogWriter *buf, queue_t *queue) { queue->enqueue(&(*buf)); }
+
+  /**
+   * Dequeue a buffer from queue and return it
+   * Blocks if the queue is empty
+   * @param queue the queue to get the buffer from
+   * @return a buffer
+   */
+  BufferedLogWriter *BlockingDequeueBuffer(queue_t *queue) {
+    bool dequeued = false;
+    BufferedLogWriter *buf = nullptr;
+    while (!dequeued) {
+      // Get a buffer from the queue of buffers pending write
+      dequeued = queue->dequeue_for(buf, std::chrono::milliseconds(QUEUE_WAIT_TIME_MILLISECONDS));
+    }
+    return buf;
+  }
+
+  /**
+   * Dequeue a buffer from queue and put it in buf
+   * Blocks for a few milliseconds (@see QUEUE_WAIT_TIME_MILLISECONDS) if queue is empty
+   * @param buf the buffer which was dequeued
+   * @param queue the queue to get the buffer from
+   * @return true if a buffer was dequeued
+   */
+  bool NonblockingDequeueBuffer(BufferedLogWriter **buf, queue_t *queue) {
+    return queue->dequeue_for(*buf, std::chrono::milliseconds(QUEUE_WAIT_TIME_MILLISECONDS));
+  }
+
+  /**
+   * Mark the current buffer that the serializer thread is writing to as filled
+   */
+  void MarkBufferFull() {
+    if (buffer_pool_ != nullptr) {
+      BlockingEnqueueBuffer(buffer_to_write_, &filled_buffer_queue_);
+      buffer_to_write_ = nullptr;
+    }
+  }
 };
 }  // namespace terrier::storage
