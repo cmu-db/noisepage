@@ -862,15 +862,13 @@ TEST_F(SqlTableTests, BasicDefaultValuesTest) {
   table.AddColumn(txn, "col2", type::TypeId::INTEGER, true, catalog::col_oid_t(2),
       table.intToByteArray(col2_default));
 
-  // Insert (2, 200, 42)
-  // NOTE: The default values for new rows are filled in by the execution engine
+  // Insert (2, NULL, 890)
   table.StartInsertRow();
   table.SetIntColInRow(catalog::col_oid_t(0), 2);
-  table.SetIntColInRow(catalog::col_oid_t(1), 200);
-  table.SetIntColInRow(catalog::col_oid_t(2), 42);
+  table.SetIntColInRow(catalog::col_oid_t(2), 890);
   storage::TupleSlot row2_slot = table.EndInsertRow(txn);
 
-  // 1st row should be (1, 100, 42)
+  // 1st row should be (1, 100, 42) by now
   uint32_t id = table.GetIntColInRow(txn, catalog::col_oid_t(0), row1_slot);
   EXPECT_EQ(1, id);
   uint32_t col1 = table.GetIntColInRow(txn, catalog::col_oid_t(1), row1_slot);
@@ -884,13 +882,11 @@ TEST_F(SqlTableTests, BasicDefaultValuesTest) {
   table.AddColumn(txn, "col3", type::TypeId::INTEGER, true, catalog::col_oid_t(3),
       table.intToByteArray(col3_default));
 
-  // Insert (3, 300, 42, NULL)
+  // Insert (3, 300, NULL, NULL)
   // NOTE: The default values for new rows are filled in by the execution engine
   table.StartInsertRow();
   table.SetIntColInRow(catalog::col_oid_t(0), 3);
   table.SetIntColInRow(catalog::col_oid_t(1), 300);
-  table.SetIntColInRow(catalog::col_oid_t(2), 42);
-//  table.SetIntColInRow(catalog::col_oid_t(3), 1729);
   storage::TupleSlot row3_slot = table.EndInsertRow(txn);
 
   // SELECT and validate all the rows
@@ -904,25 +900,23 @@ TEST_F(SqlTableTests, BasicDefaultValuesTest) {
   uint32_t col3 = table.GetIntColInRow(txn, catalog::col_oid_t(3), row1_slot);
   EXPECT_EQ(col3_default, col3);
 
-  // 2nd tuple should be (2, 200, 42, 1729)
+  // 2nd tuple should be (2, NULL, 890, 1729)
   id = table.GetIntColInRow(txn, catalog::col_oid_t(0), row2_slot);
   EXPECT_EQ(2, id);
-  col1 = table.GetIntColInRow(txn, catalog::col_oid_t(1), row2_slot);
-  EXPECT_EQ(200, col1);
+  bool col1_is_null = table.IsNullColInRow(txn, catalog::col_oid_t(1), row2_slot);
+  EXPECT_TRUE(col1_is_null);
   col2 = table.GetIntColInRow(txn, catalog::col_oid_t(2), row2_slot);
-  EXPECT_EQ(col2_default, col2);
+  EXPECT_EQ(890, col2);
   col3 = table.GetIntColInRow(txn, catalog::col_oid_t(3), row2_slot);
   EXPECT_EQ(col3_default, col3);
 
-  // 2nd tuple should be (2, 200, 42, 1729)
+  // 3rd tuple should be (3, 300, NULL, NULL)
   id = table.GetIntColInRow(txn, catalog::col_oid_t(0), row3_slot);
   EXPECT_EQ(3, id);
   col1 = table.GetIntColInRow(txn, catalog::col_oid_t(1), row3_slot);
   EXPECT_EQ(300, col1);
-  col2 = table.GetIntColInRow(txn, catalog::col_oid_t(2), row3_slot);
-  EXPECT_EQ(col2_default, col2);
-//  col3 = table.GetIntColInRow(txn, catalog::col_oid_t(3), row3_slot);
-//  EXPECT_EQ(col3_default, col3);
+  bool is_col2_null = table.IsNullColInRow(txn, catalog::col_oid_t(2), row3_slot);
+  EXPECT_TRUE(is_col2_null);
   bool is_col3_null = table.IsNullColInRow(txn, catalog::col_oid_t(3), row3_slot);
   EXPECT_TRUE(is_col3_null);
 
@@ -964,7 +958,6 @@ TEST_F(SqlTableTests, ModifyDefaultValuesTest) {
   int col2_default = 42;
   table.SetColumnDefault(catalog::col_oid_t(2), table.intToByteArray(col2_default));
   // Add a new column - to trigger the UpdateSchema
-  // TODO(Sai): This is populating default values when it shouldn't be for col2. FIX IT!
   table.version_ = storage::layout_version_t(2);
   table.AddColumn(txn, "col3", type::TypeId::INTEGER, true, catalog::col_oid_t(3));
 
