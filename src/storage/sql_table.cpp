@@ -129,14 +129,7 @@ bool SqlTable::Select(transaction::TransactionContext *const txn, const TupleSlo
   // Do not fill default values for the columns which already exist in the old_dt_version
 
   // Calculate the col_oids of out_buffer which are missing from the old version of datatable
-  std::unordered_set<catalog::col_oid_t> missing_col_oids;
-  for (const auto &it : pr_map) {
-    missing_col_oids.emplace(it.first);
-  }
-  for (const auto &it : old_dt_version.column_map) {
-    // Remove the col_oid from the missing_col_oids
-    missing_col_oids.erase(it.first);
-  }
+  std::unordered_set<catalog::col_oid_t> missing_col_oids = GetMissingColumnOidsForVersion(pr_map, old_dt_version);
 
   // Fill in the default values for the missing columns
   for (catalog::col_oid_t col_oid : missing_col_oids) {
@@ -283,7 +276,6 @@ void SqlTable::Scan(transaction::TransactionContext *const txn, SqlTable::SlotIt
                     layout_version_t version_num) const {
   layout_version_t old_version_num = start_pos->curr_version_;
 
-  // TODO(Sai): Add version check before calling header mangling
   TERRIER_ASSERT(out_buffer->NumColumns() <= tables_.Find(version_num)->second.column_map.size(),
                  "The output buffer never returns the version pointer columns, so it should have "
                  "fewer attributes.");
@@ -313,16 +305,8 @@ void SqlTable::Scan(transaction::TransactionContext *const txn, SqlTable::SlotIt
 
   // Populate the default values to all the scanned tuples
   if (filled > 0) {
-    // TODO(Sai): Abstract this out into a common function
     // Calculate the col_oids of out_buffer which are missing from the old version of datatable
-    std::unordered_set<catalog::col_oid_t> missing_col_oids;
-    for (const auto &it : pr_map) {
-      missing_col_oids.emplace(it.first);
-    }
-    for (const auto &it : old_dt_version.column_map) {
-      // Remove the col_oid from the missing_col_oids
-      missing_col_oids.erase(it.first);
-    }
+    std::unordered_set<catalog::col_oid_t> missing_col_oids = GetMissingColumnOidsForVersion(pr_map, old_dt_version);
 
     // TODO(Sai): The default values can be populated directly into the ProjectedColumns, making it faster than the
     // case of column being present. Need to handle the bitmask operations correctly for null default values.
@@ -332,7 +316,6 @@ void SqlTable::Scan(transaction::TransactionContext *const txn, SqlTable::SlotIt
       for (catalog::col_oid_t col_oid : missing_col_oids) {
         TERRIER_ASSERT(default_value_map_.count(col_oid) > 0, "Every column in schema must exist in default_value_map");
         const auto &[default_value, attr_size] = default_value_map_.at(col_oid);
-        // TODO(Sai): If this becomes a performance bottleneck, we can move this logic to
         // ModifyProjectionHeaderForVersion
         storage::StorageUtil::CopyWithNullCheck(default_value, &row, attr_size, pr_map.at(col_oid));
       }
@@ -417,5 +400,19 @@ template void SqlTable::ModifyProjectionHeaderForVersion<ProjectedColumns>(Proje
                                                                            const DataTableVersion &curr_dt_version,
                                                                            const DataTableVersion &old_dt_version,
                                                                            col_id_t *original_col_id_store) const;
+
+std::unordered_set<catalog::col_oid_t> SqlTable::GetMissingColumnOidsForVersion(
+    const ProjectionMap &pr_map, const DataTableVersion &old_dt_version) const {
+  // Calculate the col_oids of out_buffer which are missing from the old version of datatable
+  std::unordered_set<catalog::col_oid_t> missing_col_oids;
+  for (const auto &it : pr_map) {
+    missing_col_oids.emplace(it.first);
+  }
+  for (const auto &it : old_dt_version.column_map) {
+    // Remove the col_oid from the missing_col_oids
+    missing_col_oids.erase(it.first);
+  }
+  return missing_col_oids;
+}
 
 }  // namespace terrier::storage

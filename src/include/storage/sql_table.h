@@ -2,6 +2,7 @@
 #include <list>
 #include <map>
 #include <set>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 #include "catalog/schema.h"
@@ -356,5 +357,15 @@ class SqlTable {
   template <class RowType>
   void ModifyProjectionHeaderForVersion(RowType *out_buffer, const DataTableVersion &curr_dt_version,
                                         const DataTableVersion &old_dt_version, col_id_t *original_col_id_store) const;
+
+  /**
+   * Calculate the columns of the ProjectionMap that are missing from the old version of datatable
+   * Used to find out the columns for which default values must be filled in
+   * @param pr_map ProjectionMap of the ProjectedRow passed into Select/Scan
+   * @param old_dt_version old version of the datatable
+   * @return Unordered set of missing column oids
+   */
+  std::unordered_set<catalog::col_oid_t> GetMissingColumnOidsForVersion(const ProjectionMap &pr_map,
+                                                                        const DataTableVersion &old_dt_version) const;
 };
 }  // namespace terrier::storage

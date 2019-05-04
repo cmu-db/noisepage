@@ -997,10 +997,6 @@ TEST_F(SqlTableTests, ModifyDefaultValuesTest) {
   col3_is_null = table.IsNullColInRow(txn, catalog::col_oid_t(3), row3_slot);
   EXPECT_TRUE(col3_is_null);
 
-  // TODO(Sai): Test the following cases
-  // 1. Column has default value during creation, but removed later
-  //    - Old rows should return default value but new ones shouldn't
-
   txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
   delete txn;
 }
