@@ -23,6 +23,27 @@ TransactionContext *TransactionManager::BeginTransaction() {
   return result;
 }
 
+TransactionContext *TransactionManager::BeginTransactionWithAction(Action a) {
+  // This latch has to also protect addition of this transaction to the running transaction table. Otherwise,
+  // the thread might get scheduled out while other transactions commit, and the GC will deallocate their version
+  // chain which may be needed for this transaction, assuming that this transaction does not exist.
+  common::SharedLatch::ScopedSharedLatch guard(&commit_latch_);
+  timestamp_t start_time = time_++;
+
+  // TODO(Tianyu):
+  // Maybe embed this into the data structure, or use an object pool?
+  // Doing this with std::map or other data structure is risky though, as they may not
+  // guarantee that the iterator or underlying pointer is stable across operations.
+  // (That is, they may change as concurrent inserts and deletes happen)
+  auto *const result = new TransactionContext(start_time, start_time + INT64_MIN, buffer_pool_, log_manager_, this);
+  common::SpinLatch::ScopedSpinLatch running_guard(&curr_running_txns_latch_);
+  const auto ret UNUSED_ATTRIBUTE = curr_running_txns_.emplace(result->StartTime());
+  TERRIER_ASSERT(ret.second, "commit start time should be globally unique");
+  // execute the action
+  a();
+  return result;
+}
+
 void TransactionManager::LogCommit(TransactionContext *const txn, const timestamp_t commit_time,
                                    const callback_fn callback, void *const callback_arg) {
   txn->TxnId().store(commit_time);

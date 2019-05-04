@@ -38,6 +38,12 @@ class TransactionManager {
   TransactionContext *BeginTransaction();
 
   /**
+   * Begins a transaction with a predicate action.
+   * @return transaction context for the newly begun transaction
+   */
+  TransactionContext *BeginTransactionWithAction(Action a);
+
+  /**
    * Commits a transaction, making all of its changes visible to others.
    * @param txn the transaction to commit
    * @param callback function pointer of the callback to invoke when commit is
