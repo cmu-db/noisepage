@@ -41,12 +41,11 @@ This design is simple and straightforward. It is also easy to implement correctl
 
 ### Non-Blocking manner
 
-The idea of creating index without blocking modifications on the table comes from [Postgres](https://www.postgresql.org/docs/11/sql-createindex.html). We use the same idea here. The creation of an index will be completed in three transactions:
-* The first transaction adds a record corresponding to the index into the system catalogs and sets the status of index to be ```INVALID```.
-* The second transaction takes the first scan of the target table, builds the index and sets the status of the index in system catalogs to be ```READY``` (allow insert/update but does not allow queries) after building the index.
-* The third transaction takes the second scan of the target table, adds missing parts during the first scan of the table (the second transaction) and set the status of the index in system catalogs to be ```VALID``` after building the index.
+The idea of creating index without blocking modifications on the table comes from [Postgres](https://www.postgresql.org/docs/11/sql-createindex.html). We use the similar idea here with small modifications . The creation of an index will be completed in two transactions:
+* The first transaction adds a record corresponding to the index into the system catalogs and sets the status of index to be ```READY```(allow insert/update but does not allow deletes nor queries)
+* The second transaction takes the scan of the whole target table and builds the index by adding all entries of its snapshot into the index. After that the transaction sets the status of the index in system catalogs to be ```VALID``` and commits.
 
-Note that before each scan of the whole table, the transaction should wait for all running transactions modifying the target table to terminate. Besides, after the second scan of the table, the (third) transaction should wait for all transactions older than it and taking snapshots of the target table to terminate. After that, the status can only be set to ```VALID```.
+Note that before the start of the second transaction, the building process should wait for all running transactions to terminate, whose timestamps are smaller than the commit timestamp of the first transaction in the building process (the transaction adding a new entry on index into catalog).
 
 For uniqueness constraint, we does not allow building an index on a non-unique attribute or non-unique attributes. That means we will check the validity of the unique constraint in first transaction and abort the whole operation if violated rather than leaving an ```INVALID``` index in [Postgres](https://www.postgresql.org/docs/11/sql-createindex.html)
 
@@ -61,9 +60,14 @@ The test mainly has two aspects: correctness test and performance test. For non-
 ## Trade-offs and Potential Problems
 The non-blocking implementation does not other modifications on the target table during building process but increases the time of building index significantly on large table(according to the documentation of Postgres).
 
-The implementation discuss little about deletion in the index and it may cause problems in the second scan because it is possible to delete a record missing in the first scan but has not been added in the second scan. Similarly, there are some other consistency problems brought by non-blocking.
+We have an assumption on the behavior of transactions on modifying the index. We assume that all modifications on the index by some transaction X can only be seen by X when X is still running. Those modifications can only be visible after X commits. It is similar to the condition that every transaction has its own snapshot on the index. However, currently, the index is not multi-versioned, so we don't know whether the system can achieve this. If not, some pessimistic modifications on the index may be applied.
+
+The implementation discusses little about deletion in the index because we think it is really tricky. When querying a key in the index, the index will return a set of possible versions of the target tuple. Then it is the responsibility
+of the querying transaction to select the correct version. In that case, the index cannot delete the key immediately after some transaction X attempts to delete that key because it may happen that other running transactions after
+X commits will still query the same key. This can be a problem because there is no versioning information on the index in delta records. (that is, the index is not multi-versioned, so there is no invisibility.) Our thinking on this issue
+is that it is the responsibility of index garbage collector to remove those keys by which all versions of tuples pointed are deleted. We don't know whether it is correct nor it will hurt the performance.
 
 ## Future Work
-* The building process (two scans of the table) can be parallelized in a multi-threading way. That will increase the performance of the building process, especially for second and third transactions in the non-blocking implementation.
+* The building process (the scan of the table) can be parallelized in a multi-threading way. That will increase the performance of the building process, especially for second and third transactions in the non-blocking implementation.
 * We have a different design on creating unique index on non-unique attributes from Postgres. We need to discuss which design should be appropriate.
 * The index builder can support several types of index and will select the best index given the key schema and constraint type before actual building the index.
