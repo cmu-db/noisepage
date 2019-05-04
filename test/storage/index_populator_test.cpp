@@ -126,7 +126,8 @@ TEST_F(IndexBuilderTest, BasicCorrectnessTest) {
   auto index_0 = index_factory.Build();
 
   // Populate the index
-  IndexBuilder::PopulateIndex(txn_, *table->GetSqlTable(), index_0);
+  bool success = IndexBuilder::PopulateIndex(txn_, *table->GetSqlTable(), index_0);
+  EXPECT_EQ(success, true);
 
   // Create the projected row for index
   const IndexMetadata &metadata_0 = index_0->GetIndexMetadata();

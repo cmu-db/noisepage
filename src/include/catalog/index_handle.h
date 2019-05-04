@@ -64,7 +64,7 @@ class IndexHandle {
    * FIXME(yesheng): better have a unified approach.
    */
   void SetEntryColumn(transaction::TransactionContext *txn, index_oid_t indexreloid, const std::string &col,
-                      type::TransientValue &&value);
+                      const type::TransientValue &value);
 
   bool DeleteEntry(transaction::TransactionContext *txn, const std::shared_ptr<IndexEntry> &entry);
 

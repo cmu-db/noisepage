@@ -86,15 +86,15 @@ bool IndexHandle::DeleteEntry(transaction::TransactionContext *txn, const std::s
 }
 
 void IndexHandle::SetEntryColumn(transaction::TransactionContext *txn, index_oid_t indexreloid, const std::string &col,
-                                 type::TransientValue &&value) {
+                                 const type::TransientValue &value) {
   std::shared_ptr<IndexEntry> entry = GetIndexEntry(txn, indexreloid);
   DeleteEntry(txn, entry);
   std::vector<type::TransientValue> new_values;
   new_values.reserve(schema_cols_.size());
-  int col_id = pg_index_rw_->ColNameToIndex(col);
+  int32_t col_id = pg_index_rw_->ColNameToIndex(col);
   for (size_t i = 0; i < schema_cols_.size(); i++) {
-    if (i == col_id) {
-      new_values.emplace_back(std::move(value));
+    if (static_cast<int32_t>(i) == col_id) {
+      new_values.emplace_back(type::TransientValueFactory::GetCopy(value));
     } else {
       new_values.emplace_back(type::TransientValueFactory::GetCopy(entry->GetColumn(static_cast<int32_t>(i))));
     }
