@@ -63,7 +63,8 @@ class IndexHandle {
    * Current workaround so that columns can be set in this table
    * FIXME(yesheng): better have a unified approach.
    */
-   void SetEntryColumn(transaction::TransactionContext *txn, index_oid_t indexreloid, const std::string &col, type::TransientValue &&value) {
+  void SetEntryColumn(transaction::TransactionContext *txn, index_oid_t indexreloid, const std::string &col,
+                      type::TransientValue &&value) {
     std::shared_ptr<IndexEntry> entry = GetIndexEntry(txn, indexreloid);
     DeleteEntry(txn, entry);
     std::vector<type::TransientValue> new_values;
@@ -75,8 +76,6 @@ class IndexHandle {
   }
 
   bool DeleteEntry(transaction::TransactionContext *txn, const std::shared_ptr<IndexEntry> &entry);
-
-
 
   /**
    * Create storage table
