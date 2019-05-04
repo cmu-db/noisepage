@@ -9,19 +9,16 @@
 #include "common/action_context.h"
 #include "common/exception.h"
 #include "loggers/settings_logger.h"
-#include "main/main_database.h"
 #include "settings/settings_param.h"
 #include "type/transient_value.h"
 #include "type/transient_value_peeker.h"
 
-#define __SETTING_GFLAGS_DECLARE__     // NOLINT
-#include "settings/settings_common.h"  // NOLINT
-#include "settings/settings_defs.h"    // NOLINT
-#undef __SETTING_GFLAGS_DECLARE__      // NOLINT
+namespace terrier {
+class DBMain;
+}
 
 namespace terrier::settings {
-
-using callback_fn = void (*)(void *, void *, std::shared_ptr<common::ActionContext> action_context);
+using callback_fn = void (DBMain::*)(void *, void *, std::shared_ptr<common::ActionContext> action_context);
 using setter_callback_fn = void (*)(std::shared_ptr<common::ActionContext> action_context);
 
 /**
@@ -40,7 +37,7 @@ class SettingsManager {
    * @param catalog a shared pointer to the system catalog
    * @param txn_manager a pointer to the transaction manager
    */
-  SettingsManager(catalog::Catalog *catalog, transaction::TransactionManager *txn_manager);
+  SettingsManager(DBMain *db, catalog::Catalog *catalog, transaction::TransactionManager *txn_manager);
 
   /**
    * Get the value of an integer setting
@@ -121,20 +118,19 @@ class SettingsManager {
   void ShowInfo();
 
   /**
-   * Migrate values from GFlags to internal map
+   * Validate values from DBMain map
    */
-  void InitParams();
+  void ValidateParams();
 
  private:
+  DBMain *db_;
   catalog::SettingsHandle settings_handle_;
   transaction::TransactionManager *txn_manager_;
   std::unordered_map<Param, ParamInfo> param_map_;
   std::unordered_map<Param, callback_fn> callback_map_;
 
-  void DefineSetting(Param param, const std::string &name, const type::TransientValue &value,
-                     const std::string &description, const type::TransientValue &default_value,
-                     const type::TransientValue &min_value, const type::TransientValue &max_value, bool is_mutable,
-                     callback_fn callback);
+  void ValidateSetting(Param param, const type::TransientValue &min_value, const type::TransientValue &max_value,
+                       callback_fn callback);
 
   type::TransientValue &GetValue(Param param);
   void SetValue(Param param, const type::TransientValue &value);

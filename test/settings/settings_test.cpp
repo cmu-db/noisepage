@@ -8,19 +8,26 @@
 #include <vector>
 #include "gtest/gtest.h"
 #include "loggers/main_logger.h"
-#include "main/main_database.h"
+#include "main/db_main.h"
 #include "network/connection_handle_factory.h"
 #include "settings/settings_manager.h"
 #include "storage/garbage_collector.h"
 #include "util/transaction_test_util.h"
 
+#define __SETTING_GFLAGS_DEFINE__      // NOLINT
+#include "settings/settings_common.h"  // NOLINT
+#include "settings/settings_defs.h"    // NOLINT
+#undef __SETTING_GFLAGS_DEFINE__       // NOLINT
+
 namespace terrier::settings {
 
 class SettingsTests : public TerrierTest {
  protected:
+  DBMain *db_;
   SettingsManager *settings_manager_;
   transaction::TransactionContext *txn_;
   transaction::TransactionManager *txn_manager_;
+  catalog::Catalog *catalog_;
   const uint64_t defaultBufferPoolSize = 100000;
   storage::RecordBufferSegmentPool buffer_pool_{defaultBufferPoolSize, 100};
   storage::GarbageCollector *gc_;
@@ -53,19 +60,29 @@ class SettingsTests : public TerrierTest {
 
   void SetUp() override {
     TerrierTest::SetUp();
+    std::unordered_map<Param, ParamInfo> param_map;
+
+#define __SETTING_POPULATE__           // NOLINT
+#include "settings/settings_common.h"  // NOLINT
+#include "settings/settings_defs.h"    // NOLINT
+#undef __SETTING_POPULATE__            // NOLINT
+
+    db_ = new DBMain(std::move(param_map));
 
     txn_manager_ = new transaction::TransactionManager(&buffer_pool_, true, nullptr);
+    db_->terrier_txn_manager_ = txn_manager_;
     StartGC(txn_manager_);
 
     txn_ = txn_manager_->BeginTransaction();
-    terrier::catalog::terrier_catalog = std::make_shared<terrier::catalog::Catalog>(txn_manager_, txn_);
-    settings_manager_ = new SettingsManager(terrier::catalog::terrier_catalog.get(), txn_manager_);
+    catalog_ = new catalog::Catalog(txn_manager_, txn_);
+    settings_manager_ = new SettingsManager(db_, catalog_, txn_manager_);
   }
 
   void TearDown() override {
     txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
     EndGC();
     TerrierTest::TearDown();
+    delete db_;
     delete txn_manager_;
     delete settings_manager_;
   }
@@ -86,7 +103,6 @@ TEST_F(SettingsTests, BasicTest) {
 
 // NOLINTNEXTLINE
 TEST_F(SettingsTests, CallbackTest) {
-  MainDatabase::txn_manager_ = txn_manager_;
   auto bufferPoolSize = static_cast<int64_t>(settings_manager_->GetInt(Param::buffer_pool_size));
   EXPECT_EQ(bufferPoolSize, defaultBufferPoolSize);
 

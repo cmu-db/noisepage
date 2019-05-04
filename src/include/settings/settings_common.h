@@ -23,28 +23,22 @@
 #undef SETTING_string
 #endif
 
-#define VALIDATOR_int(name, default_value)                          \
-  static bool Validate##name(const char *setting_name, int value) { \
-    if (FLAGS_##name == static_cast<int>(default_value)) {          \
-      return true;                                                  \
-    }                                                               \
-    SETTINGS_LOG_ERROR(                                             \
-        "Value for \"{}"                                            \
-        "\" has been set to {})",                                   \
-        setting_name, FLAGS_##name);                                \
-    return false;                                                   \
+#define VALIDATOR_int(name, default_value)                                                      \
+  static bool Validate##name(const char *setting_name, int value) {                             \
+    if (FLAGS_##name == static_cast<int>(default_value)) {                                      \
+      return true;                                                                              \
+    }                                                                                           \
+    std::cerr << "Value for \"" << #name << "\" has been set to " << FLAGS_##name << std::endl; \
+    return false;                                                                               \
   }
 
-#define VALIDATOR_double(name, default_value)                          \
-  static bool Validate##name(const char *setting_name, double value) { \
-    if (FLAGS_##name == static_cast<double>(default_value)) {          \
-      return true;                                                     \
-    }                                                                  \
-    SETTINGS_LOG_ERROR(                                                \
-        "Value for \"{}"                                               \
-        "\" has been set to {})",                                      \
-        setting_name, FLAGS_##name);                                   \
-    return false;                                                      \
+#define VALIDATOR_double(name, default_value)                                                   \
+  static bool Validate##name(const char *setting_name, double value) {                          \
+    if (FLAGS_##name == static_cast<double>(default_value)) {                                   \
+      return true;                                                                              \
+    }                                                                                           \
+    std::cerr << "Value for \"" << #name << "\" has been set to " << FLAGS_##name << std::endl; \
+    return false;                                                                               \
   }
 
 #define SETTING_int(name, description, default_value, min_value, max_value, is_mutable, callback_fn) \
@@ -89,7 +83,7 @@
 #define SETTING_string(name, description, default_value, is_mutable, callback_fn) DECLARE_string(name);
 #endif
 
-#ifdef __SETTING_DEFINE__
+#ifdef __SETTING_VALIDATE__
 #ifdef SETTING_int
 #undef SETTING_int
 #endif
@@ -102,29 +96,21 @@
 #ifdef SETTING_string
 #undef SETTING_string
 #endif
-#define SETTING_int(name, description, default_value, min_value, max_value, is_mutable, callback_fn)          \
-  DefineSetting(terrier::settings::Param::name, #name, type::TransientValueFactory::GetInteger(FLAGS_##name), \
-                description, type::TransientValueFactory::GetInteger(default_value),                          \
-                type::TransientValueFactory::GetInteger(min_value),                                           \
-                type::TransientValueFactory::GetInteger(max_value), is_mutable, callback_fn);
+#define SETTING_int(name, description, default_value, min_value, max_value, is_mutable, callback_fn)  \
+  ValidateSetting(terrier::settings::Param::name, type::TransientValueFactory::GetInteger(min_value), \
+                  type::TransientValueFactory::GetInteger(max_value), &callback_fn);
 
-#define SETTING_double(name, description, default_value, min_value, max_value, is_mutable, callback_fn)       \
-  DefineSetting(terrier::settings::Param::name, #name, type::TransientValueFactory::GetDecimal(FLAGS_##name), \
-                description, type::TransientValueFactory::GetDecimal(default_value),                          \
-                type::TransientValueFactory::GetDecimal(min_value),                                           \
-                type::TransientValueFactory::GetDecimal(max_value), is_mutable, callback_fn);
+#define SETTING_double(name, description, default_value, min_value, max_value, is_mutable, callback_fn) \
+  ValidateSetting(terrier::settings::Param::name, type::TransientValueFactory::GetDecimal(min_value),   \
+                  type::TransientValueFactory::GetDecimal(max_value), &callback_fn);
 
-#define SETTING_bool(name, description, default_value, is_mutable, callback_fn)                               \
-  DefineSetting(terrier::settings::Param::name, #name, type::TransientValueFactory::GetBoolean(FLAGS_##name), \
-                description, type::TransientValueFactory::GetBoolean(default_value),                          \
-                type::TransientValueFactory::GetBoolean(default_value),                                       \
-                type::TransientValueFactory::GetBoolean(default_value), is_mutable, callback_fn);
+#define SETTING_bool(name, description, default_value, is_mutable, callback_fn)                           \
+  ValidateSetting(terrier::settings::Param::name, type::TransientValueFactory::GetBoolean(default_value), \
+                  type::TransientValueFactory::GetBoolean(default_value), &callback_fn);
 
-#define SETTING_string(name, description, default_value, is_mutable, callback_fn)                             \
-  DefineSetting(terrier::settings::Param::name, #name, type::TransientValueFactory::GetVarchar(FLAGS_##name), \
-                description, type::TransientValueFactory::GetVarchar(default_value),                          \
-                type::TransientValueFactory::GetVarchar(default_value),                                       \
-                type::TransientValueFactory::GetVarchar(default_value), is_mutable, callback_fn);
+#define SETTING_string(name, description, default_value, is_mutable, callback_fn)                         \
+  ValidateSetting(terrier::settings::Param::name, type::TransientValueFactory::GetVarchar(default_value), \
+                  type::TransientValueFactory::GetVarchar(default_value), &callback_fn);
 #endif
 
 #ifdef __SETTING_ENUM__
@@ -147,4 +133,42 @@
 #define SETTING_bool(name, description, default_value, is_mutable, callback_fn) name,
 
 #define SETTING_string(name, description, default_value, is_mutable, callback_fn) name,
+#endif
+
+#ifdef __SETTING_POPULATE__
+#ifdef SETTING_int
+#undef SETTING_int
+#endif
+#ifdef SETTING_double
+#undef SETTING_double
+#endif
+#ifdef SETTING_bool
+#undef SETTING_bool
+#endif
+#ifdef SETTING_string
+#undef SETTING_string
+#endif
+#define SETTING_int(name, description, default_value, min_value, max_value, is_mutable, callback_fn)                   \
+  param_map.emplace(                                                                                                   \
+      terrier::settings::Param::name,                                                                                  \
+      terrier::settings::ParamInfo(#name, terrier::type::TransientValueFactory::GetInteger(FLAGS_##name), description, \
+                                   terrier::type::TransientValueFactory::GetInteger(default_value), is_mutable));
+
+#define SETTING_double(name, description, default_value, min_value, max_value, is_mutable, callback_fn)                \
+  param_map.emplace(                                                                                                   \
+      terrier::settings::Param::name,                                                                                  \
+      terrier::settings::ParamInfo(#name, terrier::type::TransientValueFactory::GetDecimal(FLAGS_##name), description, \
+                                   terrier::type::TransientValueFactory::GetDecimal(default_value), is_mutable));
+
+#define SETTING_bool(name, description, default_value, is_mutable, callback_fn)                                        \
+  param_map.emplace(                                                                                                   \
+      terrier::settings::Param::name,                                                                                  \
+      terrier::settings::ParamInfo(#name, terrier::type::TransientValueFactory::GetBoolean(FLAGS_##name), description, \
+                                   terrier::type::TransientValueFactory::GetBoolean(default_value), is_mutable));
+
+#define SETTING_string(name, description, default_value, is_mutable, callback_fn)                                      \
+  param_map.emplace(                                                                                                   \
+      terrier::settings::Param::name,                                                                                  \
+      terrier::settings::ParamInfo(#name, terrier::type::TransientValueFactory::GetVarchar(FLAGS_##name), description, \
+                                   terrier::type::TransientValueFactory::GetVarchar(default_value), is_mutable));
 #endif

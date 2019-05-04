@@ -24,6 +24,7 @@ enum class Param {                     // NOLINT
  * ParamInfo is the structure to hold settings information.
  */
 class ParamInfo {
+ public:
   /**
    * The constructor of ParamInfo
    * @param name setting name

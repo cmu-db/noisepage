@@ -320,6 +320,4 @@ class Catalog {
   std::atomic<uint32_t> oid_;
 };
 
-extern std::shared_ptr<Catalog> terrier_catalog;
-
 }  // namespace terrier::catalog
