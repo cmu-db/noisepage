@@ -1,8 +1,9 @@
 #pragma once
 
+#include <map>
 #include <memory>
-#include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 #include "catalog/catalog.h"
 #include "catalog/catalog_defs.h"
@@ -38,9 +39,9 @@ class IndexManager {
    * @param catalog the pointer to the catalog
    * @return an empty index with metadata set
    */
-  static Index *GetEmptyIndex(transaction::TransactionContext *txn, catalog::db_oid_t db_oid,
-                              catalog::table_oid_t table_oid, catalog::index_oid_t index_oid, bool unique_index,
-                              const std::vector<std::string> &key_attrs, catalog::Catalog *catalog) {
+  Index *GetEmptyIndex(transaction::TransactionContext *txn, catalog::db_oid_t db_oid, catalog::table_oid_t table_oid,
+                       catalog::index_oid_t index_oid, bool unique_index, const std::vector<std::string> &key_attrs,
+                       catalog::Catalog *catalog) {
     // Setup the oid and constraint type for the index
     IndexFactory index_factory;
     ConstraintType constraint = (unique_index) ? ConstraintType::UNIQUE : ConstraintType::DEFAULT;
@@ -71,13 +72,17 @@ class IndexManager {
     // Build an empty index
     return index_factory.Build();
   }
-  typedef std::pair<std::pair<catalog::db_oid_t, catalog::namespace_oid_t>, catalog::index_oid_t> index_id_t;
+  using index_id_t = std::pair<std::pair<catalog::db_oid_t, catalog::namespace_oid_t>, catalog::index_oid_t>;
 
   std::map<index_id_t, bool> index_building_map_;
   // FIXME(xueyuanz): This latch might not be necessary, the index_builing_map_ is also guarded by the commit_latch.
   common::SpinLatch index_building_map_latch_;
 
  public:
+  index_id_t make_index_id(catalog::db_oid_t db_oid, catalog::namespace_oid_t namespace_oid,
+                           catalog::index_oid_t index_oid) {
+    return std::make_pair(std::make_pair(db_oid, namespace_oid), index_oid);
+  }
   void SetIndexBuildingFlag(const index_id_t &key, bool value) {
     common::SpinLatch::ScopedSpinLatch guard(&index_building_map_latch_);
     index_building_map_[key] = value;
@@ -85,11 +90,8 @@ class IndexManager {
   int GetIndexBuildingFlag(const index_id_t &key) {
     common::SpinLatch::ScopedSpinLatch guard(&index_building_map_latch_);
     auto it = index_building_map_.find(key);
-    if (it == index_building_map_.end()) {
-      return -1;
-    } else {
-      return it->second ? 1 : 0;
-    }
+    if (it == index_building_map_.end()) return -1;
+    return it->second ? 1 : 0;
   }
 
   /**
@@ -110,11 +112,10 @@ class IndexManager {
    * @param txn_mgr the pointer to the transaction manager
    * @param catalog the pointer to the catalog
    */
-  static void CreateConcurrently(catalog::db_oid_t db_oid, catalog::namespace_oid_t ns_oid,
-                                 catalog::table_oid_t table_oid, parser::IndexType index_type, bool unique_index,
-                                 const std::string &index_name, const std::vector<std::string> &index_attrs,
-                                 const std::vector<std::string> &key_attrs, transaction::TransactionManager *txn_mgr,
-                                 catalog::Catalog *catalog) {
+  void CreateConcurrently(catalog::db_oid_t db_oid, catalog::namespace_oid_t ns_oid, catalog::table_oid_t table_oid,
+                          parser::IndexType index_type, bool unique_index, const std::string &index_name,
+                          const std::vector<std::string> &index_attrs, const std::vector<std::string> &key_attrs,
+                          transaction::TransactionManager *txn_mgr, catalog::Catalog *catalog) {
     // First transaction to insert an entry for the index in the catalog
     transaction::TransactionContext *txn1 = txn_mgr->BeginTransaction();
     catalog::SqlTableHelper *sql_table_helper = catalog->GetUserTable(txn1, db_oid, ns_oid, table_oid);
@@ -139,11 +140,16 @@ class IndexManager {
                           indisready, indislive);
 
     Index *index = GetEmptyIndex(txn1, db_oid, table_oid, index_oid, indisunique, key_attrs, catalog);
+
     // Initializing the index fails
     if (index == nullptr) {
       txn_mgr->Abort(txn1);
       return;
     }
+    // initialize the building flag to false
+    auto index_id = make_index_id(db_oid, ns_oid, index_oid);
+    SetIndexBuildingFlag(index_id, false);
+
     // Commit first transaction
     transaction::timestamp_t commit_time = txn_mgr->Commit(txn1, nullptr, nullptr);
 
@@ -153,7 +159,9 @@ class IndexManager {
     }
 
     // Start the second transaction to insert all keys into the index.
-    transaction::TransactionContext *build_txn = txn_mgr->BeginTransaction();
+    // The second transaction set the building flag to true in the critical section.
+    transaction::TransactionContext *build_txn =
+        txn_mgr->BeginTransactionWithAction([&]() { SetIndexBuildingFlag(index_id, true); });
     // Change "indisready" to false and "indisvalid" to the result of populating the index in the catalog entry
     index_handle.SetEntryColumn(build_txn, index_oid, "indisready", type::TransientValueFactory::GetBoolean(false));
     index_handle.SetEntryColumn(
@@ -173,8 +181,8 @@ class IndexManager {
    * @param unique_index whether the index is unique or not
    * @return true if populating index successes otherwise false
    */
-  static bool PopulateIndex(transaction::TransactionContext *txn,                    // NOLINT
-                            SqlTable &sql_table, Index *index, bool unique_index) {  // NOLINT
+  bool PopulateIndex(transaction::TransactionContext *txn,                    // NOLINT
+                     SqlTable &sql_table, Index *index, bool unique_index) {  // NOLINT
     // Create the projected row for the index
     const IndexMetadata &metadata = index->GetIndexMetadata();
     const IndexKeySchema &index_key_schema = metadata.GetKeySchema();

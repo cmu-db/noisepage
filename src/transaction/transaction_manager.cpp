@@ -23,7 +23,7 @@ TransactionContext *TransactionManager::BeginTransaction() {
   return result;
 }
 
-TransactionContext *TransactionManager::BeginTransactionWithAction(Action a) {
+TransactionContext *TransactionManager::BeginTransactionWithAction(const Action &a) {
   // This latch has to also protect addition of this transaction to the running transaction table. Otherwise,
   // the thread might get scheduled out while other transactions commit, and the GC will deallocate their version
   // chain which may be needed for this transaction, assuming that this transaction does not exist.

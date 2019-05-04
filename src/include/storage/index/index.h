@@ -29,7 +29,6 @@ class Index {
   friend class GenericKey<128>;
   friend class GenericKey<256>;
   friend class BwTreeIndexTests;
-  friend class IndexPopulator;
   friend class BwTreeKeyTests;
 
   const catalog::index_oid_t oid_;

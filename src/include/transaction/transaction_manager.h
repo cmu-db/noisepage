@@ -41,7 +41,7 @@ class TransactionManager {
    * Begins a transaction with a predicate action.
    * @return transaction context for the newly begun transaction
    */
-  TransactionContext *BeginTransactionWithAction(Action a);
+  TransactionContext *BeginTransactionWithAction(const Action &a);
 
   /**
    * Commits a transaction, making all of its changes visible to others.

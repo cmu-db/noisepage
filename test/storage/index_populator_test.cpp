@@ -13,6 +13,7 @@ struct IndexBuilderTest : public TerrierTest {
   void SetUp() override {
     TerrierTest::SetUp();
     txn_manager_ = new transaction::TransactionManager(&buffer_pool_, true, LOGGING_DISABLED);
+    index_manager_ = new IndexManager();
 
     txn_ = txn_manager_->BeginTransaction();
     catalog_ = new catalog::Catalog(txn_manager_, txn_);
@@ -31,6 +32,7 @@ struct IndexBuilderTest : public TerrierTest {
 
   transaction::TransactionContext *txn_;
   transaction::TransactionManager *txn_manager_;
+  IndexManager *index_manager_;
 };
 
 // Check the basic correctness of index populator
@@ -126,7 +128,7 @@ TEST_F(IndexBuilderTest, BasicCorrectnessTest) {
   auto index_0 = index_factory.Build();
 
   // Populate the index
-  bool success = IndexManager::PopulateIndex(txn_, *table->GetSqlTable(), index_0, false);
+  bool success = index_manager_->PopulateIndex(txn_, *table->GetSqlTable(), index_0, false);
   EXPECT_EQ(success, true);
 
   // Create the projected row for index
