@@ -5,15 +5,18 @@
 #include <random>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 #include "catalog/schema.h"
 #include "common/strong_typedef.h"
 #include "gtest/gtest.h"
+#include "storage/sql_table.h"
 #include "storage/storage_defs.h"
 #include "storage/storage_util.h"
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
+#include "transaction/transaction_manager.h"
 #include "type/type_id.h"
 #include "util/multithread_test_util.h"
 #include "util/random_test_util.h"
@@ -21,6 +24,7 @@
 namespace terrier {
 struct StorageTestUtil {
   StorageTestUtil() = delete;
+  static void EmptyCallback(void * /*unused*/) {}
 
 #define TO_INT(p) reinterpret_cast<uintptr_t>(p)
   /**
@@ -262,7 +266,7 @@ struct StorageTestUtil {
   }
 
   template <class RowType>
-  static std::string PrintRow(const RowType &row, const storage::BlockLayout &layout) {
+  static std::string PrintRow(const RowType &row, const storage::BlockLayout &layout, bool varlen_pointer = true) {
     std::ostringstream os;
     os << "num_cols: " << row.NumColumns() << std::endl;
     for (uint16_t i = 0; i < row.NumColumns(); i++) {
@@ -276,24 +280,94 @@ struct StorageTestUtil {
       if (layout.IsVarlen(col_id)) {
         auto *entry = reinterpret_cast<const storage::VarlenEntry *>(attr);
         os << "col_id: " << !col_id;
-        os << " is varlen, ptr " << entry->Content();
+        os << " is varlen";
+        if (varlen_pointer) {
+          os << ", ptr " << entry->Content();
+        }
         os << ", size " << entry->Size();
         os << ", reclaimable " << entry->NeedReclaim();
         os << ", content ";
         for (uint8_t pos = 0; pos < entry->Size(); pos++) {
-          os << std::setfill('0') << std::setw(2) << std::hex << static_cast<uint8_t>(entry->Content()[pos]);
+          os << std::setfill('0') << std::setw(2) << std::hex << +static_cast<uint8_t>(entry->Content()[pos]);
         }
         os << std::endl;
       } else {
         os << "col_id: " << !col_id;
         os << " is ";
         for (uint8_t pos = 0; pos < layout.AttrSize(col_id); pos++) {
-          os << std::setfill('0') << std::setw(2) << std::hex << static_cast<uint8_t>(attr[pos]);
+          os << std::setfill('0') << std::setw(2) << std::hex << +static_cast<uint8_t>(attr[pos]);
         }
         os << std::endl;
       }
     }
     return os.str();
+  }
+
+  template <class RowType>
+  static std::string PrintRowWithSchema(const RowType &row, const catalog::Schema &schema, const storage::ProjectionMap &map, bool varlen_pointer = true) {
+    std::ostringstream os;
+    auto &columns = schema.GetColumns();
+    os << "num_cols: " << columns.size() << std::endl;
+    for (uint16_t i = 0; i < columns.size(); i++) {
+      const storage::col_id_t col_id = row.ColumnIds()[i];
+      const byte *attr = row.AccessWithNullCheck(map.at(columns[i].GetOid()));
+      if (attr == nullptr) {
+        os << "col_id: " << !col_id << " is NULL" << std::endl;
+        continue;
+      }
+
+      if (columns[i].IsVarlen()) {
+        auto *entry = reinterpret_cast<const storage::VarlenEntry *>(attr);
+        os << "col_id: " << !col_id;
+        os << " is varlen";
+        if (varlen_pointer) {
+          os << ", ptr " << entry->Content();
+        }
+        os << ", size " << entry->Size();
+        os << ", reclaimable " << entry->NeedReclaim();
+        os << ", content ";
+        for (uint8_t pos = 0; pos < entry->Size(); pos++) {
+          os << std::setfill('0') << std::setw(2) << std::hex << +static_cast<uint8_t>(entry->Content()[pos]);
+        }
+        os << std::endl;
+      } else {
+        os << "col_id: " << !col_id;
+        os << " is ";
+        for (uint8_t pos = 0; pos < columns[i].GetAttrSize(); pos++) {
+          os << std::setfill('0') << std::setw(2) << std::hex << +static_cast<uint8_t>(attr[pos]);
+        }
+        os << std::endl;
+      }
+    }
+    return os.str();
+  }
+
+  // print all rows in a SqlTable, put print outputs into a vector.
+  static void PrintAllRows(transaction::TransactionContext *txn, storage::SqlTable *table,
+                           std::vector<std::string> *set) {
+    const catalog::Schema schema = table->GetSchema();
+    std::vector<catalog::col_oid_t> all_col;
+    for (auto &column : schema.GetColumns()) {
+      all_col.emplace_back(column.GetOid());
+    }
+    uint32_t max_tuples = 100;
+
+    auto column_initializer_pair = table->InitializerForProjectedColumns(all_col, max_tuples);
+    auto *scan_buffer = common::AllocationUtil::AllocateAligned(column_initializer_pair.first.ProjectedColumnsSize());
+    storage::ProjectedColumns *columns = column_initializer_pair.first.Initialize(scan_buffer);
+    auto &proj_map = column_initializer_pair.second;
+
+    auto it = table->begin();
+    auto end = table->end();
+    while (it != end) {
+      table->Scan(txn, &it, columns);
+      uint32_t num_tuples = columns->NumTuples();
+      for (uint32_t off = 0; off < num_tuples; off++) {
+        storage::ProjectedColumns::RowView row = columns->InterpretAsRow(off);
+        set->push_back(PrintRowWithSchema(row, table->GetSchema(), proj_map, false));
+      }
+    }
+    delete[] scan_buffer;
   }
 
   // Write the given tuple (projected row) into a block using the given access strategy,
@@ -345,4 +419,170 @@ struct StorageTestUtil {
     return storage::BlockLayout(attr_sizes);
   }
 };
+
+class RandomSqlTableTestObject {
+ public:
+  RandomSqlTableTestObject() = default;
+
+  /**
+   * Generate random columns, and add them sequencially to the internal list.
+   * @param num_cols number of columns to add.
+   * @param varlen_allowed allow VARCHAR to be used in columns.
+   * @param generator of random numbers.
+   */
+  template <class Random>
+  void GenerateRandomColumns(int num_cols, bool varlen_allowed, Random *generator) {
+    std::string prefix = "col_";
+    std::vector<type::TypeId> types = DataTypeAll(varlen_allowed);
+    for (int i = 0; i < num_cols; i++) {
+      type::TypeId type = *RandomTestUtil::UniformRandomElement(&types, generator);
+      DefineColumn(prefix + std::to_string(uint8_t(type)), type, true, catalog::col_oid_t(i));
+    }
+  }
+
+  /**
+   * Append a column definition to the internal list. The list will be
+   * used when creating the SqlTable.
+   * @param name of the column
+   * @param type of the column
+   * @param nullable
+   * @param oid for the column
+   */
+  void DefineColumn(std::string name, type::TypeId type, bool nullable, catalog::col_oid_t oid) {
+    switch (type) {
+      case type::TypeId::VARCHAR:
+      case type::TypeId::VARBINARY:  // varlen entries
+        cols_.emplace_back(name, type, 2 * storage::VarlenEntry::InlineThreshold(), nullable, oid);
+        break;
+      default:
+        cols_.emplace_back(name, type, nullable, oid);
+        break;
+    }
+  }
+
+  /**
+   * Create the SQL table.
+   */
+  void Create(catalog::table_oid_t table_oid) {
+    schema_ = new catalog::Schema(cols_);
+    table_ = new storage::SqlTable(&block_store_, *schema_, table_oid);
+
+    for (const auto &c : cols_) {
+      col_oids_.emplace_back(c.GetOid());
+    }
+
+    // save information needed for (later) reading and writing
+    auto row_pair = table_->InitializerForProjectedRow(col_oids_);
+    pri_ = new storage::ProjectedRowInitializer(std::get<0>(row_pair));
+    pr_map_ = new storage::ProjectionMap(std::get<1>(row_pair));
+  }
+
+  template <class Random>
+  void InsertRandomRow(transaction::TransactionContext *txn, const double null_bias, Random *generator) {
+    std::bernoulli_distribution coin(1 - null_bias);
+    std::uniform_int_distribution<uint32_t> varlen_size(1, 2 * storage::VarlenEntry::InlineThreshold());
+    std::uniform_int_distribution<uint8_t> char_dist(0, UINT8_MAX);
+    std::uniform_int_distribution<int32_t> int_dist(INT32_MIN, INT32_MAX);
+
+    auto insert_buffer = common::AllocationUtil::AllocateAligned(pri_->ProjectedRowSize());
+    auto insert = pri_->InitializeRow(insert_buffer);
+
+    for (int i = 0; i < static_cast<int>(cols_.size()); i++) {
+      if (coin(*generator)) {  // not null
+        uint16_t offset = pr_map_->at(col_oids_[i]);
+        insert->SetNotNull(offset);
+        auto col = cols_[i];
+        byte *col_p = insert->AccessForceNotNull(offset);
+        uint32_t size;
+        switch (col.GetType()) {
+          case type::TypeId::INTEGER:
+            (*reinterpret_cast<uint32_t *>(col_p)) = int_dist(*generator);
+            break;
+          case type::TypeId::VARCHAR:
+            size = varlen_size(*generator);
+            if (size > storage::VarlenEntry::InlineThreshold()) {
+              byte *varlen = common::AllocationUtil::AllocateAligned(size);
+              StorageTestUtil::FillWithRandomBytes(size, varlen, generator);
+              // varlen entries always start off not inlined
+              *reinterpret_cast<storage::VarlenEntry *>(col_p) = storage::VarlenEntry::Create(varlen, size, true);
+            } else {
+              byte buf[storage::VarlenEntry::InlineThreshold()];
+              StorageTestUtil::FillWithRandomBytes(size, buf, generator);
+              *reinterpret_cast<storage::VarlenEntry *>(col_p) = storage::VarlenEntry::CreateInline(buf, size);
+            }
+            break;
+          default:
+            break;
+        }
+      } else {  // null
+        insert->SetNull(pr_map_->at(col_oids_[i]));
+      }
+    }
+
+    table_->Insert(txn, *insert);
+    delete[] insert_buffer;
+  }
+
+  template <class Random>
+  void InsertRandomRows(const int num_rows, const double null_bias, Random *generator) {
+    auto txn = txn_manager_.BeginTransaction();
+    for (int i = 0; i < num_rows; i++) {
+      InsertRandomRow(txn, null_bias, generator);
+    }
+    txn_manager_.Commit(txn, StorageTestUtil::EmptyCallback, nullptr);
+    delete txn;
+  }
+
+  storage::SqlTable *GetTable() { return table_; }
+
+  transaction::TransactionManager *GetTxnManager() { return &txn_manager_; }
+
+  catalog::Schema *GetSchema() { return schema_; }
+
+  /**
+   * Generate a random sqlTable, and return the table with its schema. These 2 objects need to be freed manually.
+   * @tparam Random Random generator class
+   * @param num_cols number of columns in the table
+   * @param varlen_allowed whether the table contains varlen columns
+   * @param generator Random generator object
+   * @param num_rows number of row in the table
+   * @param null_bias bias towards null value.
+   * @return a pair of SqlTable and its Schema object.
+   */
+  template <class Random>
+  std::pair<storage::SqlTable *, catalog::Schema *> GenerateAndPopulateRandomTable(
+          int num_cols, bool varlen_allowed, Random *generator, const int num_rows, const double null_bias) {
+
+    GenerateRandomColumns(num_cols, varlen_allowed, generator);
+    Create(catalog::table_oid_t(table_oid_));
+    table_oid_++;
+    InsertRandomRows(num_rows, null_bias, generator);
+
+    delete pri_;
+    delete pr_map_;
+
+    return {table_, schema_};
+  }
+
+ private:
+  static std::vector<type::TypeId> DataTypeAll(bool varlen_allowed) {
+    if (varlen_allowed) return {type::TypeId::INTEGER, type::TypeId::VARCHAR};
+    return {type::TypeId::INTEGER};
+  }
+
+  storage::RecordBufferSegmentPool buffer_pool_{10000, 10000};
+  transaction::TransactionManager txn_manager_ = {&buffer_pool_, true, LOGGING_DISABLED};
+
+  storage::BlockStore block_store_{10000, 10000};
+  storage::SqlTable *table_ = nullptr;
+  uint32_t table_oid_ = 1;
+
+  catalog::Schema *schema_ = nullptr;
+  std::vector<catalog::Schema::Column> cols_;
+  std::vector<catalog::col_oid_t> col_oids_;
+
+  storage::ProjectedRowInitializer *pri_ = nullptr;
+  storage::ProjectionMap *pr_map_ = nullptr;
+};
+
 }  // namespace terrier

@@ -27,6 +27,7 @@ class SqlTable {
     DataTable *data_table;
     BlockLayout layout;
     ColumnMap column_map;
+    InverseColumnMap inverse_column_map;
   };
 
  public:
@@ -44,6 +45,12 @@ class SqlTable {
    * Destructs a SqlTable, frees all its members.
    */
   ~SqlTable() { delete table_.data_table; }
+
+  /**
+   * Get the schema use of the SQL table
+   * @return the schema
+   */
+  catalog::Schema &GetSchema() { return schema_; }
 
   /**
    * Materializes a single tuple from the given slot, as visible at the timestamp of the calling txn.
@@ -95,7 +102,7 @@ class SqlTable {
    * Sequentially scans the table starting from the given iterator(inclusive) and materializes as many tuples as would
    * fit into the given buffer, as visible to the transaction given, according to the format described by the given
    * output buffer. The tuples materialized are guaranteed to be visible and valid, and the function makes best effort
-   * to fill the buffer, unless there are no more tuples. The given iterator is mutated to point to one slot passed the
+   * to fill the buffer, unless there are no more tuples. The given iterator is mutated to point to one slot past the
    * last slot scanned in the invocation.
    *
    * @param txn the calling transaction
@@ -170,9 +177,18 @@ class SqlTable {
     return {initializer, projection_map};
   }
 
+  /**
+   * Given a col_id, return the corresponding col_oid
+   * @param col_id a col_id, must be in the table's InverseColumnMap
+   * @return col_oid for the col_id
+   */
+  catalog::col_oid_t ColOidForId(const col_id_t col_id) const { return table_.inverse_column_map.at(col_id); }
+
  private:
   BlockStore *const block_store_;
   const catalog::table_oid_t oid_;
+
+  catalog::Schema schema_;
 
   // Eventually we'll support adding more tables when schema changes. For now we'll always access the one DataTable.
   DataTableVersion table_;
