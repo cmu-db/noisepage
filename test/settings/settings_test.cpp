@@ -6,6 +6,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <utility>
 #include "gtest/gtest.h"
 #include "loggers/main_logger.h"
 #include "main/db_main.h"
@@ -87,7 +88,7 @@ class SettingsTests : public TerrierTest {
     delete settings_manager_;
   }
 
-  static void EmptySetterCallback(std::shared_ptr<common::ActionContext> action_context UNUSED_ATTRIBUTE) {}
+  static void EmptySetterCallback(const std::shared_ptr<common::ActionContext> &action_context UNUSED_ATTRIBUTE) {}
 };
 
 // NOLINTNEXTLINE

@@ -25,7 +25,7 @@ class ActionContext {
    * Constructor of ActionContext.
    * @param action_id id of this action.
    */
-  ActionContext(int32_t action_id) : action_id_(action_id), state_(ActionState ::INITIATED) {}
+  explicit ActionContext(int32_t action_id) : action_id_(action_id), state_(ActionState ::INITIATED) {}
 
   /**
    * Get the state of this action.

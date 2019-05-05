@@ -69,12 +69,13 @@ void DBMain::CleanUp() {
   spdlog::shutdown();
 }
 
-void DBMain::EmptyCallback(void *old_value, void *new_value, std::shared_ptr<common::ActionContext> action_context) {
+void DBMain::EmptyCallback(void *old_value, void *new_value,
+                           const std::shared_ptr<common::ActionContext> &action_context) {
   action_context->SetState(common::ActionState::SUCCESS);
 }
 
 void DBMain::BufferPoolSizeCallback(void *old_value, void *new_value,
-                                    std::shared_ptr<common::ActionContext> action_context) {
+                                    const std::shared_ptr<common::ActionContext> &action_context) {
   action_context->SetState(common::ActionState::IN_PROGRESS);
   int new_size = *static_cast<int *>(new_value);
   bool success = terrier_txn_manager_->SetBufferPoolSizeLimit(new_size);

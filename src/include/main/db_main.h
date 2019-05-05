@@ -3,6 +3,7 @@
 #include <network/terrier_server.h>
 #include <memory>
 #include <unordered_map>
+#include <utility>
 #include "catalog/catalog.h"
 #include "common/action_context.h"
 #include "common/stat_registry.h"
@@ -58,19 +59,21 @@ class DBMain {
    */
   void ForceShutdown();
 
+  // TODO(Weichen): Use unique ptr is enough.
   /**
-   * Baisc empty callbacks used by settings manager
+   * Basic empty callbacks used by settings manager
    * @param old_value the old value of corresponding setting
    * @param new_value the new value of corresponding setting
    */
-  void EmptyCallback(void *old_value, void *new_value, std::shared_ptr<common::ActionContext> action_context);
+  void EmptyCallback(void *old_value, void *new_value, const std::shared_ptr<common::ActionContext> &action_context);
 
   /**
    * Buffer pool size callback used by settings manager
    * @param old_value old value of buffer pool size
    * @param new_value new value of buffer pool size
    */
-  void BufferPoolSizeCallback(void *old_value, void *new_value, std::shared_ptr<common::ActionContext> action_context);
+  void BufferPoolSizeCallback(void *old_value, void *new_value,
+                              const std::shared_ptr<common::ActionContext> &action_context);
 
  private:
   friend class settings::SettingsManager;

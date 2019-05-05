@@ -1,6 +1,7 @@
 #include <gflags/gflags.h>
 #include <unordered_map>
 #include <utility>
+#include <memory>
 #include "main/db_main.h"
 
 /*

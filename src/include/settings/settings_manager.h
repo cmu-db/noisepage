@@ -18,8 +18,8 @@ class DBMain;
 }
 
 namespace terrier::settings {
-using callback_fn = void (DBMain::*)(void *, void *, std::shared_ptr<common::ActionContext> action_context);
-using setter_callback_fn = void (*)(std::shared_ptr<common::ActionContext> action_context);
+using callback_fn = void (DBMain::*)(void *, void *, const std::shared_ptr<common::ActionContext> &action_context);
+using setter_callback_fn = void (*)(const std::shared_ptr<common::ActionContext> &action_context);
 
 /**
  * A wrapper for pg_settings table, does not store values in it.
