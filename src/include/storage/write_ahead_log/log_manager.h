@@ -207,10 +207,8 @@ class LogManager {
    * Mark the current buffer that the serializer thread is writing to as filled
    */
   void MarkBufferFull() {
-    if (buffer_pool_ != nullptr) {
-      BlockingEnqueueBuffer(buffer_to_write_, &filled_buffer_queue_);
-      buffer_to_write_ = nullptr;
-    }
+    BlockingEnqueueBuffer(buffer_to_write_, &filled_buffer_queue_);
+    buffer_to_write_ = nullptr;
   }
 };
 }  // namespace terrier::storage
