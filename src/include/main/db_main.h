@@ -19,19 +19,6 @@ class SettingsTests;
 /**
  * The DBMain Class holds all the static functions, singleton pointers, etc.
  * It has the full knowledge of the whole database systems.
-#include <memory>
-#include <unordered_map>
-#include <utility>
-#include "common/stat_registry.h"
-#include "network/terrier_server.h"
-#include "settings/settings_param.h"
-#include "type/transient_value_factory.h"
-
-namespace terrier {
-
-/**
- * A DBMain object holds every thing (i.e. pointers to every component)
- * about the database system.
  * *Only the settings manager should be able to access the DBMain object.*
  */
 class DBMain {
@@ -93,10 +80,6 @@ class DBMain {
   transaction::TransactionManager *terrier_txn_manager_;
   catalog::Catalog *terrier_catalog_;
   settings::SettingsManager *terrier_settings_manager_;
- private:
-  // friend class SettingsManager
-  std::shared_ptr<common::StatisticsRegistry> main_stat_reg_;
-  std::unordered_map<settings::Param, settings::ParamInfo> param_map_;
   network::TerrierServer terrier_server_;
 
   /**
