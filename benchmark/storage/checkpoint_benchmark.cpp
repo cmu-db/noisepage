@@ -25,7 +25,7 @@ BENCHMARK_DEFINE_F(CheckpointBenchmark, SingleTable)(benchmark::State &state) {
   auto tested = RandomSqlTableTestObject();
   std::default_random_engine random_generator(magic_seed);
   tested.GenerateRandomColumns(num_columns, true, &random_generator);
-  tested.Create();
+  tested.Create(catalog::table_oid_t(1));
   tested.InsertRandomRows(num_rows, 0.2, &random_generator);
 
   storage::SqlTable *table = tested.GetTable();
