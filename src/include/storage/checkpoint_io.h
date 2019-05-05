@@ -14,6 +14,9 @@ namespace terrier::storage {
 // Use magic number before we have a setting manager.
 #define CHECKPOINT_BUF_NUM 10
 
+// checkpoint file header flags
+#define P_IS_CATALOG 0
+
 /**
  * The header of a page in the checkpoint file.
  */
@@ -62,12 +65,40 @@ class PACKED CheckpointFilePage {
    */
   byte *GetPayload() { return payload_; }
 
+  /**
+   * Set all the flags at the same time.
+   * @param flags to be set.
+   */
+  void SetFlags(uint32_t flags) { flags_ = flags; }
+
+  /**
+   * Set the bit in the flags to some value.
+   * @param pos position of the flag to set, from the most significant bit to the least significant bit.
+   * @param value bool value to set
+   */
+  void SetFlag(uint32_t pos, bool value) { Bitmap().Set(pos, value); }
+
+  /**
+   * Get the status of the flag at some position
+   * @param pos position of the flag to test, from the most significant bit the the least significant bit.
+   * @return the value of the flag.
+   */
+  bool GetFlag(uint32_t pos) { return Bitmap().Test(pos); }
+
+  void SetVersion(uint32_t version) { version_ = version; }
+
+  uint32_t GetVersion() { return version_; }
+
  private:
   uint32_t checksum_;
   // Note: use uint32_t instead of table_oid_t, because table_oid_t is not POD so that
   // we cannot use PACKED in this class.
   uint32_t table_oid_;
-  uint32_t version_;  // version of the schema(useful with schema change)
+  uint32_t version_;  // version of the schema(useful with schema change), or, for catalog tables,
+                      // serves as the type of the catalog table.
+  /* 32 bit flag. The meaning of each bit is:
+   *  0. catalog table
+   */
   uint32_t flags_;
   byte payload_[0];
 
@@ -156,10 +187,17 @@ class AsyncBlockWriter {
 /**
  * A buffered tuple writer collects tuples into blocks, and output a block once a time.
  * The block size is fetched from database setting, and should be the page size.
+ * TupleSlot is stored for log recovery (for the purpose of locating the records).
  * layout:
- * ----------------------------------------------------------------------------------
- * | checksum | table_oid | tuple1 | varlen_entries(if exist) | tuple2 | tuple3 | ... |
- * ----------------------------------------------------------------------------------
+ * +-----------------------------------------------+
+ * | checksum | table_oid | schema_version | flags |
+ * +-----------------------------------------------+
+ * | tuple1 | TupleSlot1 | varlen_entries(if exist)|
+ * +-----------------------------------------------+
+ * | tuple2 | TupleSlot2 | varlen_entries(if exist)|
+ * +-----------------------------------------------+
+ * | ... |
+ * +-----+
  */
 class BufferedTupleWriter {
   // TODO(Zhaozhe): checksum
@@ -203,7 +241,8 @@ class BufferedTupleWriter {
    * @param schema schema of the row
    * @param proj_map projection map of the schema.
    */
-  void SerializeTuple(ProjectedRow *row, const catalog::Schema &schema, const ProjectionMap &proj_map);
+  void SerializeTuple(ProjectedRow *row, const TupleSlot *slot, const catalog::Schema &schema,
+                      const ProjectionMap &proj_map);
 
   /**
    * Get the current checkpoint page.
@@ -211,16 +250,67 @@ class BufferedTupleWriter {
    */
   CheckpointFilePage *GetPage() { return reinterpret_cast<CheckpointFilePage *>(buffer_); }
 
+  /**
+   * Set the cached table oid. This value will be written to every page, unless otherwise changed.
+   * @param oid of the table
+   */
+  void SetTableOid(catalog::table_oid_t oid) {
+    table_oid_ = !oid;
+    GetPage()->SetTableOid(oid);
+  }
+
+  /**
+   * Set the cached table schema version. This value will be written to every page, unless otherwise changed.
+   * Currently the table only have one version, so this should be 0 all the time.
+   * @param version of the table schema
+   */
+  void SetVersion(uint32_t version) {
+    version_ = version;
+    GetPage()->SetVersion(version);
+  }
+
  private:
   AsyncBlockWriter async_writer_;  // background writer
   uint32_t block_size_;
   uint32_t page_offset_ = 0;
   byte *buffer_ = nullptr;
 
+  // cache of the header so that it can be automatically filled into new pages.
+  uint32_t table_oid_;
+  uint32_t version_;
+  uint32_t flags_;
+
+  /**
+   * Wirte a piece of data into the buffer. If the buffer is not enough, persist current buffer and allocate a new one.
+   * Note that alignment is not dealt in this function. It has to be done manually.
+   * @param data to be written.
+   * @param size of the data.
+   */
+  void WriteDataToBuffer(const byte *data, uint32_t size) {
+    uint32_t left_to_write = size;
+    while (left_to_write > 0) {
+      uint32_t remaining_buffer = block_size_ - page_offset_;
+      if (left_to_write >= remaining_buffer) {
+        memcpy(buffer_ + page_offset_, data, remaining_buffer);
+        page_offset_ += remaining_buffer;
+        left_to_write -= remaining_buffer;
+        data = data + remaining_buffer;
+        Persist();
+      } else {
+        memcpy(buffer_ + page_offset_, data, left_to_write);
+        page_offset_ += left_to_write;
+        return;
+      }
+    }
+  }
+
   void ResetBuffer() {
     CheckpointFilePage::Initialize(reinterpret_cast<CheckpointFilePage *>(buffer_));
     page_offset_ = sizeof(CheckpointFilePage);
     AlignBufferOffset<uint64_t>();  // align for ProjectedRow
+    GetPage()->SetVersion(version_);
+    GetPage()->SetTableOid(catalog::table_oid_t(table_oid_));
+    GetPage()->SetFlags(flags_);
   }
 
   void PersistBuffer() {
@@ -263,6 +353,7 @@ class BufferedTupleReader {
    */
   ~BufferedTupleReader() {
     PosixIoWrappers::Close(in_);
+    ClearLoosePointers();
     delete[] buffer_;
   }
 
@@ -299,9 +390,15 @@ class BufferedTupleReader {
       return nullptr;
     }
 
-    auto *checkpoint_row = reinterpret_cast<ProjectedRow *>(buffer_ + page_offset_);
-    page_offset_ += row_size;
+    ClearLoosePointers();
+    auto *checkpoint_row = reinterpret_cast<ProjectedRow *>(ReadDataAcrossPages(row_size));
     return checkpoint_row;
+  }
+
+  TupleSlot *ReadNextTupleSlot() {
+    AlignBufferOffset<uint32_t>();
+    auto slot = reinterpret_cast<TupleSlot *>(ReadDataAcrossPages(sizeof(uint32_t)));
+    return slot;
   }
 
   /**
@@ -311,8 +408,7 @@ class BufferedTupleReader {
    */
   uint32_t ReadNextVarlenSize() {
     AlignBufferOffset<uint32_t>();
-    uint32_t size = *reinterpret_cast<uint32_t *>(buffer_ + page_offset_);
-    page_offset_ += static_cast<uint32_t>(sizeof(uint32_t));
+    uint32_t size = *reinterpret_cast<uint32_t *>(ReadDataAcrossPages(sizeof(uint32_t)));
     return size;
   }
 
@@ -323,11 +419,7 @@ class BufferedTupleReader {
    * @param size of the varlen
    * @return pointer to the varlen content
    */
-  byte *ReadNextVarlen(uint32_t size) {
-    byte *result = buffer_ + page_offset_;
-    page_offset_ += size;
-    return result;
-  }
+  byte *ReadNextVarlen(uint32_t size) { return ReadDataAcrossPages(size); }
 
   /**
    * Get the current checkpoint page.
@@ -342,9 +434,66 @@ class BufferedTupleReader {
   uint32_t page_count_ = 0;
   byte *buffer_;
 
+  std::vector<byte *> loose_ptrs_;
+
+  /**
+   * Align the current buffer offset to 4 bytes or 8 bytes, depending on what kind of value will be read next.
+   */
   template <class T>
   void AlignBufferOffset() {
     page_offset_ = StorageUtil::PadUpToSize(alignof(T), page_offset_);
+  }
+
+  /**
+   * Read a piece of data from the checkpoint file. If the size is larger than the remaining size of the page, a new
+   * block is read in. Data from different pages will be concatenate together.
+   *
+   * Note: if data is read from multiple pages, a new piece of memory is allocated for this data, and thus it is a
+   *       loose pointer. This pointer will be cleaned when reading the next row (i.e. next call to ReadNextRow), so
+   *       whoever is using this piece of memory should stop using it after reading the next row.
+   *       This is a technical debt because we don't know when the user will end doing things on it. This also make us
+   *       unable to have concurrent readers. Maybe in the future we will have a dedicated GC thread for doing this.
+   * @param size of the data to be read from the file.
+   * @return pointer to the data.
+   */
+  byte *ReadDataAcrossPages(uint32_t size) {
+    uint32_t remaining_buffer = block_size_ - page_offset_;
+    if (size <= remaining_buffer) {  // current buffer is enough
+      byte *result = buffer_ + page_offset_;
+      page_offset_ += size;
+      return result;
+    }
+    // current buffer is not enough
+    byte *tmp_buffer = common::AllocationUtil::AllocateAligned(size);
+    uint32_t left_to_read = size;
+    uint32_t already_read = 0;
+    while (left_to_read > 0) {
+      remaining_buffer = block_size_ - page_offset_;
+      if (left_to_read <= remaining_buffer) {  // remaining buffer is enough
+        memcpy(tmp_buffer + already_read, buffer_ + page_offset_, left_to_read);
+        page_offset_ += left_to_read;
+        loose_ptrs_.emplace_back(tmp_buffer);
+        return tmp_buffer;
+      }
+      // remaining buffer is not enough
+      memcpy(tmp_buffer + already_read, buffer_ + page_offset_, remaining_buffer);
+      if (!ReadNextBlock()) {
+        // should not happen, unless the checkpoint file is corrupted.
+        // TODO(Mengyang): figure out what kind of exception to throw here.
+        loose_ptrs_.emplace_back(tmp_buffer);
+        return tmp_buffer;
+      }
+      left_to_read -= remaining_buffer;
+      already_read += remaining_buffer;
+    }
+    return tmp_buffer;
+  }
+
+  void ClearLoosePointers() {
+    for (auto ptr : loose_ptrs_) {
+      delete[] ptr;
+    }
+    loose_ptrs_.clear();
   }
 };
 

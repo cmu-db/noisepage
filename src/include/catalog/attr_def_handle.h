@@ -28,7 +28,7 @@ class AttrDefEntry : public CatalogEntry<col_oid_t> {
    * @param sql_table associated with this entry
    * @param entry a row in pg_attrdef that represents this table
    */
-  AttrDefEntry(col_oid_t oid, catalog::SqlTableRW *sql_table, std::vector<type::TransientValue> &&entry)
+  AttrDefEntry(col_oid_t oid, catalog::SqlTableHelper *sql_table, std::vector<type::TransientValue> &&entry)
       : CatalogEntry(oid, sql_table, std::move(entry)) {}
 };
 
@@ -51,7 +51,14 @@ class AttrDefHandle {
    * Constructor
    * @param pg_attrdef a pointer to pg_attrdef sql table rw helper instance
    */
-  explicit AttrDefHandle(SqlTableRW *pg_attrdef) : pg_attrdef_rw_(pg_attrdef) {}
+  explicit AttrDefHandle(SqlTableHelper *pg_attrdef) : pg_attrdef_rw_(pg_attrdef) {}
+
+  /**
+   * Delete all entries matching table_oid
+   * @param txn transaction
+   * @param table_oid to match
+   */
+  void DeleteEntries(transaction::TransactionContext *txn, table_oid_t table_oid);
 
   /**
    * Create the storage table
@@ -61,8 +68,8 @@ class AttrDefHandle {
    * @param name catalog name
    * @return a shared pointer to the catalog table
    */
-  static SqlTableRW *Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,
-                            const std::string &name);
+  static SqlTableHelper *Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,
+                                const std::string &name);
 
   /**
    * Debug methods
@@ -71,15 +78,9 @@ class AttrDefHandle {
 
   /** Used schema columns */
   static const std::vector<SchemaCol> schema_cols_;
-  /** Unused schema columns */
-  static const std::vector<SchemaCol> unused_schema_cols_;
 
  private:
-  // not sure if needed..
-  // Catalog *catalog_;
-  // database containing this table
-  // db_oid_t db_oid_;
   // storage for this table
-  std::shared_ptr<catalog::SqlTableRW> pg_attrdef_rw_;
+  catalog::SqlTableHelper *pg_attrdef_rw_;
 };
 }  // namespace terrier::catalog

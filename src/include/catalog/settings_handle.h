@@ -25,7 +25,7 @@ class SettingsEntry : public CatalogEntry<settings_oid_t> {
    * @param sql_table associated with this entry
    * @param entry a row in pg_settings that represents this table
    */
-  SettingsEntry(settings_oid_t oid, catalog::SqlTableRW *sql_table, std::vector<type::TransientValue> &&entry)
+  SettingsEntry(settings_oid_t oid, catalog::SqlTableHelper *sql_table, std::vector<type::TransientValue> &&entry)
       : CatalogEntry(oid, sql_table, std::move(entry)) {}
 };
 
@@ -47,7 +47,7 @@ class SettingsHandle {
    * Constructor
    * @param pg_settings a pointer to pg_settings sql table helper instance
    */
-  explicit SettingsHandle(SqlTableRW *pg_settings) : pg_settings_(pg_settings) {}
+  explicit SettingsHandle(SqlTableHelper *pg_settings) : pg_settings_(pg_settings) {}
 
   /**
    * Create the storage table
@@ -57,8 +57,8 @@ class SettingsHandle {
    * @param name catalog name
    * @return a shared pointer to the catalog table
    */
-  static SqlTableRW *Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,
-                            const std::string &name);
+  static SqlTableHelper *Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,
+                                const std::string &name);
 
   /**
    * Insert a row
@@ -80,7 +80,9 @@ class SettingsHandle {
     search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
     search_vec.push_back(type::TransientValueFactory::GetVarChar(name.c_str()));
     ret_row = pg_settings_->FindRow(txn, search_vec);
-
+    if (ret_row.empty()) {
+      return nullptr;
+    }
     settings_oid_t oid(type::TransientValuePeeker::PeekInteger(ret_row[0]));
     return std::make_shared<SettingsEntry>(oid, pg_settings_, std::move(ret_row));
   }
@@ -92,12 +94,10 @@ class SettingsHandle {
 
   /** Used schema columns */
   static const std::vector<SchemaCol> schema_cols_;
-  /** Unused schema columns */
-  static const std::vector<SchemaCol> unused_schema_cols_;
 
  private:
   // storage for this table
-  catalog::SqlTableRW *pg_settings_;
+  catalog::SqlTableHelper *pg_settings_;
 };
 
 }  // namespace terrier::catalog

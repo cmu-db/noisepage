@@ -68,4 +68,31 @@ void BufferedLogReader::RefillBuffer() {
   }
 }
 
+// TODO(zhaozhes): copied from log_test.cpp because I believe it should be here because checkpoint recovery need it.
+LogRecord *ReadNextLogRecord(BufferedLogReader *in) {
+  auto size = in->ReadValue<uint32_t>();
+  byte *buf = common::AllocationUtil::AllocateAligned(size);
+  auto record_type = in->ReadValue<LogRecordType>();
+  auto txn_begin = in->ReadValue<transaction::timestamp_t>();
+  if (record_type == LogRecordType::COMMIT) {
+    auto txn_commit = in->ReadValue<transaction::timestamp_t>();
+    // Okay to fill in null since nobody will invoke the callback.
+    // is_read_only argument is set to false, because we do not write out a commit record for a transaction if it is
+    // not read-only.
+    return CommitRecord::Initialize(buf, txn_begin, txn_commit, nullptr, nullptr, false, nullptr);
+  }
+  // TODO(Tianyu): Without a lookup mechanism this oid is not exactly meaningful. Implement lookup when possible
+  auto table_oid UNUSED_ATTRIBUTE = in->ReadValue<catalog::table_oid_t>();
+  auto tuple_slot = in->ReadValue<TupleSlot>();
+  auto result = RedoRecord::PartialInitialize(buf, size, txn_begin,
+                                              // TODO(Tianyu): Hacky as hell
+                                              nullptr, tuple_slot);
+  // TODO(Tianyu): For now, without inlined attributes, the delta portion is a straight memory copy. This
+  // will obviously change in the future. Also, this is hacky as hell
+  auto delta_size = in->ReadValue<uint32_t>();
+  byte *dest = reinterpret_cast<byte *>(result->GetUnderlyingRecordBodyAs<RedoRecord>()->Delta()) + sizeof(uint32_t);
+  in->Read(dest, delta_size - static_cast<uint32_t>(sizeof(uint32_t)));
+  return result;
+}
+
 }  // namespace terrier::storage

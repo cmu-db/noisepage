@@ -29,29 +29,44 @@ struct CatalogTests : public TerrierTest {
   }
 
   /**
-   * Verify the expected tables are present
+   * Verify the expected catalog tables are present
    * @param db_oid of the database to check
    */
-  void VerifyTables(catalog::db_oid_t db_oid) {
+  void VerifyCatalogTables(catalog::db_oid_t db_oid) {
     std::vector<std::string> table_names = {"pg_attribute", "pg_attrdef", "pg_class", "pg_namespace", "pg_type"};
+    auto db_h = catalog_->GetDatabaseHandle();
+    auto ns_h = db_h.GetNamespaceHandle(txn_, db_oid);
+    auto ns_oid = ns_h.NameToOid(txn_, "pg_catalog");
     for (auto const &table_name : table_names) {
-      VerifyTablePresent(db_oid, table_name.c_str());
+      VerifyTablePresent(db_oid, ns_oid, table_name.c_str());
     }
   }
 
-  void VerifyTablePresent(catalog::db_oid_t db_oid, const char *table_name) {
-    // verify that we can get to the table
-    auto UNUSED_ATTRIBUTE table_p = catalog_->GetCatalogTable(db_oid, table_name);
-
+  /**
+   * Checks pg_class for existence of the specified entry
+   * @param db_oid database oid
+   * @param ns_oid namespace oid
+   * @param table_name
+   */
+  void VerifyTablePresent(catalog::db_oid_t db_oid, catalog::namespace_oid_t ns_oid, const char *table_name) {
     // verify it is present in pg_class
     auto db_h = catalog_->GetDatabaseHandle();
     auto class_h = db_h.GetClassHandle(txn_, db_oid);
-    auto class_entry = class_h.GetClassEntry(txn_, table_name);
+    auto class_entry = class_h.GetClassEntry(txn_, ns_oid, table_name);
+    EXPECT_NE(nullptr, class_entry);
   }
 
-  void VerifyTableAbsent(catalog::db_oid_t db_oid, const char *table_name) {
-    EXPECT_THROW(catalog_->GetCatalogTable(db_oid, table_name), std::out_of_range);
-    // TODO(pakhtar): verify absence from pg_class
+  /**
+   * Checks pg_class for absence of the specified entry
+   * @param db_oid database oid
+   * @param ns_oid namespace oid
+   * @param table_name
+   */
+  void VerifyTableAbsent(catalog::db_oid_t db_oid, catalog::namespace_oid_t ns_oid, const char *table_name) {
+    auto db_h = catalog_->GetDatabaseHandle();
+    auto class_h = db_h.GetClassHandle(txn_, db_oid);
+    auto class_entry = class_h.GetClassEntry(txn_, ns_oid, table_name);
+    EXPECT_EQ(nullptr, class_entry);
   }
 
   catalog::Catalog *catalog_;
@@ -61,21 +76,11 @@ struct CatalogTests : public TerrierTest {
   transaction::TransactionManager *txn_manager_;
 };
 
-// Tests for higher level catalog API
+/*
+ * Create and delete a user table.
+ */
 // NOLINTNEXTLINE
-TEST_F(CatalogTests, DISABLED_CreateDatabaseTest) {
-  catalog_->CreateDatabase(txn_, "test_database");
-  auto db_handle = catalog_->GetDatabaseHandle();
-
-  // that we can retrieve the entry means is was correctly inserted into the catalog
-  auto entry = db_handle.GetDatabaseEntry(txn_, "test_database");
-  auto oid = entry->GetOid();
-  VerifyTables(oid);
-  catalog_->Dump(txn_, oid);
-}
-
-// NOLINTNEXTLINE
-TEST_F(CatalogTests, CreateUserTableTest) {
+TEST_F(CatalogTests, UserTableTest) {
   const catalog::db_oid_t default_db_oid(catalog::DEFAULT_DATABASE_OID);
   std::vector<type::TransientValue> row;
 
@@ -91,35 +96,40 @@ TEST_F(CatalogTests, CreateUserTableTest) {
   auto public_ns_oid = ns_handle.NameToOid(txn_, ns_public_st);
 
   auto tbl_oid = catalog_->CreateUserTable(txn_, default_db_oid, public_ns_oid, "user_table_1", schema);
-  VerifyTablePresent(default_db_oid, "user_table_1");
+  VerifyTablePresent(default_db_oid, public_ns_oid, "user_table_1");
   catalog_->Dump(txn_, default_db_oid);
 
-  auto table_p = catalog_->GetCatalogTable(default_db_oid, tbl_oid);
-  // get the table ptr
+  auto table_p = catalog_->GetUserTable(txn_, default_db_oid, public_ns_oid, tbl_oid);
   row.emplace_back(type::TransientValueFactory::GetInteger(catalog_->GetNextOid()));
   row.emplace_back(type::TransientValueFactory::GetInteger(7));
   table_p->InsertRow(txn_, row);
   table_p->Dump(txn_);
 
-  // TODO(pakhtar) add more commewnts to function of DeleteTable
-  catalog_->DeleteTable(txn_, default_db_oid, "user_table_1");
-  VerifyTableAbsent(default_db_oid, "user_table_1");
+  catalog_->DeleteUserTable(txn_, default_db_oid, public_ns_oid, "user_table_1");
+  VerifyTableAbsent(default_db_oid, public_ns_oid, "user_table_1");
   catalog_->Dump(txn_, default_db_oid);
-  delete table_p;
+  // delete table_p;
 }
 
+/*
+ * Create and delete a database
+ */
 // NOLINTNEXTLINE
-TEST_F(CatalogTests, DeleteDatabaseTest) {
+TEST_F(CatalogTests, DatabaseTest) {
   catalog_->CreateDatabase(txn_, "test_database");
   auto db_handle = catalog_->GetDatabaseHandle();
   auto entry = db_handle.GetDatabaseEntry(txn_, "test_database");
   auto oid = entry->GetOid();
+  VerifyCatalogTables(oid);
   catalog_->Dump(txn_, oid);
 
   // delete it
   catalog_->DeleteDatabase(txn_, "test_database");
 }
 
+/*
+ * Create and delete a namespace
+ */
 // NOLINTNEXTLINE
 TEST_F(CatalogTests, NamespaceTest) {
   auto db_handle = catalog_->GetDatabaseHandle();
