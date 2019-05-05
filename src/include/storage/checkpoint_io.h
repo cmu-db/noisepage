@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include "common/container/concurrent_blocking_queue.h"
 #include "common/container/concurrent_map.h"
 #include "storage/projected_columns.h"
 #include "storage/projected_row.h"
@@ -141,13 +142,8 @@ class AsyncBlockWriter {
    * @return pointer to a free block buffer
    */
   byte *GetBuffer() {
-    byte *res;
-
-    // TODO(Yuning): Maybe use blocking queue?
-    while (!free_.Dequeue(&res)) {
-      // spin
-    }
-
+    byte *res = nullptr;
+    free_.Dequeue(&res);
     return res;
   }
 
@@ -178,9 +174,9 @@ class AsyncBlockWriter {
  private:
   int out_;  // fd of the output files
   uint32_t block_size_;
-  common::ConcurrentQueue<byte *> free_;     // free buffers
-  common::ConcurrentQueue<byte *> pending_;  // buffers pending write
-  std::thread *writer_thread_;               // writer thread
+  common::ConcurrentBlockingQueue<byte *> free_;     // free buffers
+  common::ConcurrentBlockingQueue<byte *> pending_;  // buffers pending write
+  std::thread *writer_thread_;                       // writer thread
 
   /**
    * The writer thread
