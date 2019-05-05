@@ -77,13 +77,8 @@ void BufferedTupleWriter::SerializeTuple(ProjectedRow *row, const TupleSlot *slo
 
   // Serialize the row
   // First serialize row, then tupleslot, finally varlens (if any).
-  // TODO(mengyang): find a way to deal with huge rows.
-  //  Currently we assume the size of a row is less than the size of page.
-  TERRIER_ASSERT(row->Size() + varlen_size <= block_size_ - sizeof(CheckpointFilePage),
-                 "row size should not be larger than page size.");
-  TERRIER_ASSERT(sizeof(TupleSlot) % sizeof(uint32_t) == 0,
-                 "TupleSlot is expected to be 8 aligned. If not, pad it in "
-                 "the code.");
+  // TODO(mengyang): currently we persist the current buffer and allocate a new one, if the buffer is not enough. This
+  //                 can (should) be changed to save storage.
   AlignBufferOffset<uint64_t>();  // align for ProjectedRow
   uint32_t checkpoint_record_size = row->Size() + static_cast<uint32_t>(sizeof(TupleSlot)) + varlen_size;
   if (page_offset_ + checkpoint_record_size > block_size_) {
@@ -91,25 +86,19 @@ void BufferedTupleWriter::SerializeTuple(ProjectedRow *row, const TupleSlot *slo
   }
 
   // Move row to buffer
-  std::memcpy(buffer_ + page_offset_, row, row->Size());
-  page_offset_ += row->Size();
+  WriteDataToBuffer(reinterpret_cast<byte *>(row), row->Size());
 
   // Move tupleslot to buffer
   AlignBufferOffset<uint32_t>();
-  std::memcpy(buffer_ + page_offset_, slot, sizeof(TupleSlot));
-  // The size of TupleSlot is small, so the cast is unlikely to overflow.
-  // It is safe to do the cast.
-  page_offset_ += static_cast<uint32_t>(sizeof(TupleSlot));
+  WriteDataToBuffer(reinterpret_cast<const byte *>(slot), static_cast<uint32_t>(sizeof(TupleSlot)));
 
   // Move varlens to buffer
   for (auto *entry : varlen_entries) {
     AlignBufferOffset<uint32_t>();  // align for size field of varlen.
     uint32_t size = entry->Size();
     TERRIER_ASSERT(size > VarlenEntry::InlineThreshold(), "Small varlens should be inlined.");
-    std::memcpy(buffer_ + page_offset_, &size, sizeof(size));
-    page_offset_ += static_cast<uint32_t>(sizeof(size));
-    std::memcpy(buffer_ + page_offset_, entry->Content(), size);
-    page_offset_ += size;
+    WriteDataToBuffer(reinterpret_cast<byte *>(&size), sizeof(uint32_t));
+    WriteDataToBuffer(entry->Content(), size);
   }
 }
 
