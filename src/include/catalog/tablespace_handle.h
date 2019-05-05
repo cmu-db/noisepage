@@ -26,7 +26,7 @@ class TablespaceEntry : public CatalogEntry<tablespace_oid_t> {
    * @param sql_table associated with this entry
    * @param entry a row in pg_tablespace that represents this table
    */
-  TablespaceEntry(tablespace_oid_t oid, catalog::SqlTableRW *sql_table, std::vector<type::TransientValue> &&entry)
+  TablespaceEntry(tablespace_oid_t oid, catalog::SqlTableHelper *sql_table, std::vector<type::TransientValue> &&entry)
       : CatalogEntry(oid, sql_table, std::move(entry)) {}
 };
 
@@ -52,7 +52,7 @@ class TablespaceHandle {
    * @param pg_tablespace a pointer to pg_tablespace
    * @param catalog pointer to the catalog class
    */
-  explicit TablespaceHandle(Catalog *catalog, SqlTableRW *pg_tablespace)
+  explicit TablespaceHandle(Catalog *catalog, SqlTableHelper *pg_tablespace)
       : catalog_(catalog), pg_tablespace_(pg_tablespace) {}
 
   /**
@@ -87,16 +87,14 @@ class TablespaceHandle {
   /**
    * Create the storage table
    */
-  static SqlTableRW *Create(Catalog *catalog, db_oid_t db_oid, const std::string &name);
+  static SqlTableHelper *Create(Catalog *catalog, db_oid_t db_oid, const std::string &name);
 
   /** Used schema columns */
   static const std::vector<SchemaCol> schema_cols_;
-  /** Unused schema columns */
-  static const std::vector<SchemaCol> unused_schema_cols_;
 
  private:
   Catalog *catalog_;
-  catalog::SqlTableRW *pg_tablespace_;
+  catalog::SqlTableHelper *pg_tablespace_;
 };
 
 }  // namespace terrier::catalog

@@ -38,7 +38,10 @@ void Catalog::DeleteDatabase(transaction::TransactionContext *txn, const std::st
   // remove entry from pg_database
   db_handle.DeleteEntry(txn, db_entry);
 
+  // TODO(pakhtar): delete all user tables
+
   // destroy all the non-global tables
+  // this should become just catalog tables
   DeleteDatabaseTables(oid);
 
   // delete from the maps
@@ -80,6 +83,7 @@ table_oid_t Catalog::CreateUserTable(transaction::TransactionContext *txn, db_oi
   auto tbl_rw = table_handle.CreateTable(txn, schema, table_name);
 
   // add to maps
+  // TODO(pakhtar): eliminate map usage for user tables.
   AddToMaps(db_oid, tbl_rw->Oid(), table_name, tbl_rw);
 
   // enter attribute information
@@ -87,79 +91,31 @@ table_oid_t Catalog::CreateUserTable(transaction::TransactionContext *txn, db_oi
   return tbl_rw->Oid();
 }
 
-void Catalog::DeleteTable(transaction::TransactionContext *txn, db_oid_t db_oid, const std::string &table_name) {
-  // auto db_handle = GetDatabaseHandle();
-  auto table_oid = table_oid_t(name_map_[db_oid][table_name]);
+void Catalog::DeleteUserTable(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid,
+                              const std::string &table_name) {
+  // convert table name to table_oid
+  auto user_tbl_p = GetUserTable(txn, db_oid, ns_oid, table_name);
+  auto user_tbl_oid = user_tbl_p->Oid();
 
-  // remove entries from pg_attribute, if attrelid == table_oid
-  auto attr_table = GetCatalogTable(db_oid, "pg_attribute");
-  int32_t col_index = attr_table->ColNameToIndex("attrelid");
-  auto it = attr_table->begin(txn);
-  while (it != attr_table->end(txn)) {
-    auto layout = attr_table->GetLayout();
-    storage::ProjectedColumns::RowView row_view = it->InterpretAsRow(layout, 0);
-    // check if a matching row, delete if it is
-    byte *col_p = row_view.AccessWithNullCheck(attr_table->ColNumToOffset(col_index));
-    if (col_p == nullptr) {
-      continue;
-    }
-    auto col_int_value = *(reinterpret_cast<int32_t *>(col_p));
-    if (static_cast<uint32_t>(col_int_value) == !table_oid) {
-      // delete the entry
-      attr_table->GetSqlTable()->Delete(txn, *(it->TupleSlots()));
-    }
-    ++it;
-  }
+  DeleteUserTable(txn, db_oid, ns_oid, user_tbl_oid);
+}
 
-  // remove entries from pg_attrdef
-  // adrelid == table oid (i.e. pg_class.oid).
-  auto attrdef_table = GetCatalogTable(db_oid, "pg_attrdef");
-  col_index = attrdef_table->ColNameToIndex("adrelid");
-  auto attrdef_it = attrdef_table->begin(txn);
-  while (attrdef_it != attrdef_table->end(txn)) {
-    auto layout = attrdef_table->GetLayout();
-    storage::ProjectedColumns::RowView row_view = attrdef_it->InterpretAsRow(layout, 0);
-    // check if a matching row, delete if it is
-    byte *col_p = row_view.AccessWithNullCheck(attrdef_table->ColNumToOffset(col_index));
-    if (col_p == nullptr) {
-      continue;
-    }
-    auto col_int_value = *(reinterpret_cast<int32_t *>(col_p));
-    if (static_cast<uint32_t>(col_int_value) == !table_oid) {
-      // delete the entry
-      attrdef_table->GetSqlTable()->Delete(txn, *(attrdef_it->TupleSlots()));
-    }
-    ++attrdef_it;
-  }
+void Catalog::DeleteUserTable(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid,
+                              table_oid_t tbl_oid) {
+  auto db_handle = GetDatabaseHandle();
+  auto attr_handle = db_handle.GetAttributeHandle(txn, db_oid);
+  auto attrdef_handle = db_handle.GetAttrDefHandle(txn, db_oid);
+  auto class_handle = db_handle.GetClassHandle(txn, db_oid);
 
-  // remove entries from pg_class
-  // oid is col 0
-  auto class_table = GetCatalogTable(db_oid, "pg_class");
-  col_index = class_table->ColNameToIndex("oid");
-  auto class_it = class_table->begin(txn);
-  while (class_it != class_table->end(txn)) {
-    auto layout = class_table->GetLayout();
-    storage::ProjectedColumns::RowView row_view = class_it->InterpretAsRow(layout, 0);
-    // check if a matching row, delete if it is
-    byte *col_p = row_view.AccessWithNullCheck(class_table->ColNumToOffset(col_index));
-    if (col_p == nullptr) {
-      continue;
-    }
-    auto col_int_value = *(reinterpret_cast<int32_t *>(col_p));
-    if (static_cast<uint32_t>(col_int_value) == !table_oid) {
-      // delete the entry
-      class_table->GetSqlTable()->Delete(txn, *(class_it->TupleSlots()));
-      // there is just the one, stop
-      break;
-    }
-    ++class_it;
-  }
+  // get an attribute handle
+  attr_handle.DeleteEntries(txn, tbl_oid);
 
-  // delete from the maps
-  name_map_[db_oid].erase(table_name);
-  map_[db_oid].erase(table_oid);
+  // get an attr_def handle
+  attrdef_handle.DeleteEntries(txn, tbl_oid);
 
-  // TODO(pakhtar): drop table
+  // delete from pg_class
+  auto col_oid = col_oid_t(!tbl_oid);
+  class_handle.DeleteEntry(txn, ns_oid, col_oid);
 }
 
 DatabaseHandle Catalog::GetDatabaseHandle() { return DatabaseHandle(this, pg_database_); }
@@ -168,10 +124,44 @@ TablespaceHandle Catalog::GetTablespaceHandle() { return TablespaceHandle(this, 
 
 SettingsHandle Catalog::GetSettingsHandle() { return SettingsHandle(pg_settings_); }
 
-SqlTableRW *Catalog::GetCatalogTable(db_oid_t db_oid, table_oid_t table_oid) { return map_.at(db_oid).at(table_oid); }
+SqlTableHelper *Catalog::GetCatalogTable(db_oid_t db_oid, table_oid_t table_oid) {
+  return map_.at(db_oid).at(table_oid);
+}
 
-SqlTableRW *Catalog::GetCatalogTable(db_oid_t db_oid, const std::string &table_name) {
+SqlTableHelper *Catalog::GetCatalogTable(db_oid_t db_oid, const std::string &table_name) {
   return GetCatalogTable(db_oid, name_map_.at(db_oid).at(table_name));
+}
+
+SqlTableHelper *Catalog::GetUserTable(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid,
+                                      const std::string &name) {
+  try {
+    auto tbl_handle = GetUserTableHandle(txn, db_oid, ns_oid);
+    return tbl_handle.GetTable(txn, name);
+  } catch (const std::out_of_range &e) {
+    return nullptr;
+  }
+}
+
+SqlTableHelper *Catalog::GetUserTable(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid,
+                                      table_oid_t table_oid) {
+  try {
+    auto tbl_handle = GetUserTableHandle(txn, db_oid, ns_oid);
+    return tbl_handle.GetTable(txn, table_oid);
+  } catch (const std::out_of_range &e) {
+    return nullptr;
+  }
+}
+
+TableHandle Catalog::GetUserTableHandle(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid) {
+  auto db_handle = GetDatabaseHandle();
+  // TODO(pakhtar): error checking...
+  // find the database
+  auto ns_handle = db_handle.GetNamespaceHandle(txn, db_oid);
+  auto ns_entry = ns_handle.GetNamespaceEntry(txn, ns_oid);
+  if (ns_entry == nullptr) {
+    throw CATALOG_EXCEPTION("namespace does not exist");
+  }
+  return ns_handle.GetTableHandle(txn, ns_oid);
 }
 
 uint32_t Catalog::GetNextOid() { return oid_++; }
@@ -189,17 +179,13 @@ void Catalog::Bootstrap(transaction::TransactionContext *txn) {
   BootstrapDatabase(txn, DEFAULT_DATABASE_OID);
 }
 
-void Catalog::AddUnusedSchemaColumns(SqlTableRW *db_p, const std::vector<SchemaCol> &cols) {
-  for (const auto &col : cols) {
-    db_p->DefineColumn(col.col_name, col.type_id, false, col_oid_t(GetNextOid()));
-  }
-}
-
+// TODO(pakhtar): resolve second arg.
 void Catalog::AddColumnsToPGAttribute(transaction::TransactionContext *txn, db_oid_t db_oid,
                                       const std::shared_ptr<storage::SqlTable> &table) {
   Schema schema = table->GetSchema();
   std::vector<Schema::Column> cols = schema.GetColumns();
-  catalog::SqlTableRW *pg_attribute = map_[db_oid][name_map_[db_oid]["pg_attribute"]];
+  // catalog::SqlTableHelper *pg_attribute = map_[db_oid][name_map_[db_oid]["pg_attribute"]];
+  catalog::SqlTableHelper *pg_attribute = GetCatalogTable(db_oid, "pg_attribute");
   int32_t col_num = 0;
   for (auto &c : cols) {
     std::vector<type::TransientValue> row;
@@ -228,15 +214,10 @@ void Catalog::AddColumnsToPGAttribute(transaction::TransactionContext *txn, db_o
 void Catalog::CreatePGDatabase(table_oid_t table_oid) {
   CATALOG_LOG_TRACE("Creating pg_database table");
   // set the oid
-  pg_database_ = new catalog::SqlTableRW(table_oid);
+  pg_database_ = new catalog::SqlTableHelper(table_oid);
 
   // columns we use
   for (auto col : DatabaseHandle::schema_cols_) {
-    pg_database_->DefineColumn(col.col_name, col.type_id, false, col_oid_t(GetNextOid()));
-  }
-
-  // columns we don't use
-  for (auto col : DatabaseHandle::unused_schema_cols_) {
     pg_database_->DefineColumn(col.col_name, col.type_id, false, col_oid_t(GetNextOid()));
   }
   // create the table
@@ -244,7 +225,7 @@ void Catalog::CreatePGDatabase(table_oid_t table_oid) {
   db_oid_t default_db_oid = DEFAULT_DATABASE_OID;
 
   // add it to the map
-  map_[default_db_oid] = std::unordered_map<table_oid_t, catalog::SqlTableRW *>();
+  map_[default_db_oid] = std::unordered_map<table_oid_t, catalog::SqlTableHelper *>();
   // what about the name map?
 }
 
@@ -255,7 +236,7 @@ void Catalog::PopulatePGDatabase(transaction::TransactionContext *txn) {
 
   row.emplace_back(type::TransientValueFactory::GetInteger(!terrier_oid));
   row.emplace_back(type::TransientValueFactory::GetVarChar("terrier"));
-  SetUnusedColumns(&row, DatabaseHandle::unused_schema_cols_);
+  SetUnusedColumns(&row, DatabaseHandle::schema_cols_);
   pg_database_->InsertRow(txn, row);
 }
 
@@ -294,7 +275,8 @@ void Catalog::BootstrapDatabase(transaction::TransactionContext *txn, db_oid_t d
   std::vector<std::string> c_tables = {"pg_database", "pg_tablespace", "pg_attribute", "pg_namespace",
                                        "pg_class",    "pg_type",       "pg_attrdef",   "pg_settings"};
   auto add_cols_to_pg_attr = [this, txn, db_oid](const std::string &st) {
-    AddColumnsToPGAttribute(txn, db_oid, map_[db_oid][name_map_[db_oid][st]]->GetSqlTable());
+    auto table_p = GetCatalogTable(db_oid, st);
+    AddColumnsToPGAttribute(txn, db_oid, table_p->GetSqlTable());
   };
   std::for_each(c_tables.begin(), c_tables.end(), add_cols_to_pg_attr);
 }
@@ -308,8 +290,6 @@ void Catalog::CreatePGAttrDef(transaction::TransactionContext *txn, db_oid_t db_
 }
 
 void Catalog::CreatePGNamespace(transaction::TransactionContext *txn, db_oid_t db_oid) {
-  // std::vector<type::TransientValue> row;
-
   // create the namespace table
   NamespaceHandle::Create(txn, this, db_oid, "pg_namespace");
 
@@ -436,7 +416,7 @@ void Catalog::DeleteDatabaseTables(db_oid_t db_oid) {
 }
 
 void Catalog::DestroyDB(db_oid_t oid) {
-  // Note that we are using shared pointers for SqlTableRW. Catalog class have references to all the catalog tables,
+  // Note that we are using shared pointers for SqlTableHelper. Catalog class have references to all the catalog tables,
   // (i.e, tables that have namespace "pg_catalog") but not user created tables. We cannot use a shared pointer for a
   // user table because it will be automatically freed if no one holds it.
   // Since we don't automatically free these tables, we need to free tables when we destroy the database
@@ -460,19 +440,18 @@ void Catalog::DestroyDB(db_oid_t oid) {
   auto num_rows = columns->NumTuples();
   CATALOG_LOG_TRACE("We found {} rows in pg_class", num_rows);
 
-  // Get the block layout
-  auto layout = storage::StorageUtil::BlockLayoutFromSchema(pg_class_ptr->GetSchema()).first;
   // get the pg_catalog oid
   auto pg_catalog_oid = GetDatabaseHandle().GetNamespaceHandle(txn, oid).NameToOid(txn, "pg_catalog");
   for (uint32_t i = 0; i < num_rows; i++) {
-    auto row = columns->InterpretAsRow(layout, i);
+    // auto row = columns->InterpretAsRow(layout, i);
+    auto row = columns->InterpretAsRow(i);
     byte *col_p = row.AccessForceNotNull(col_map.at(col_oids[3]));
     auto nsp_oid = *reinterpret_cast<uint32_t *>(col_p);
     if (nsp_oid != !pg_catalog_oid) {
       // user created tables, need to free them
       byte *addr_col = row.AccessForceNotNull(col_map.at(col_oids[0]));
       int64_t ptr = *reinterpret_cast<int64_t *>(addr_col);
-      delete reinterpret_cast<SqlTableRW *>(ptr);
+      delete reinterpret_cast<SqlTableHelper *>(ptr);
     }
   }
   delete[] buffer;
@@ -485,15 +464,18 @@ void Catalog::AddEntryToPGDatabase(transaction::TransactionContext *txn, db_oid_
   std::vector<type::TransientValue> entry;
   entry.emplace_back(type::TransientValueFactory::GetInteger(!oid));
   entry.emplace_back(type::TransientValueFactory::GetVarChar(name));
-  SetUnusedColumns(&entry, DatabaseHandle::unused_schema_cols_);
+  SetUnusedColumns(&entry, DatabaseHandle::schema_cols_);
   pg_database_->InsertRow(txn, entry);
 
   // oid -> empty map (for tables)
-  map_[oid] = std::unordered_map<table_oid_t, catalog::SqlTableRW *>();
+  map_[oid] = std::unordered_map<table_oid_t, catalog::SqlTableHelper *>();
 }
 
 void Catalog::SetUnusedColumns(std::vector<type::TransientValue> *vec, const std::vector<SchemaCol> &cols) {
   for (const auto col : cols) {
+    if (col.used) {
+      continue;
+    }
     switch (col.type_id) {
       case type::TypeId::BOOLEAN:
         vec->emplace_back(type::TransientValueFactory::GetBoolean(false));
@@ -531,34 +513,34 @@ void Catalog::SetUnusedColumns(std::vector<type::TransientValue> *vec, const std
   }
 }
 
-type::TransientValue Catalog::ValueTypeIdToSchemaType(type::TypeId type_id) {
+std::string Catalog::ValueTypeIdToSchemaType(type::TypeId type_id) {
   switch (type_id) {
     case type::TypeId::BOOLEAN:
-      return type::TransientValueFactory::GetVarChar("boolean");
+      return std::string("boolean");
 
     case type::TypeId::TINYINT:
-      return type::TransientValueFactory::GetVarChar("tinyint");
+      return std::string("tinyint");
 
     case type::TypeId::SMALLINT:
-      return type::TransientValueFactory::GetVarChar("smallint");
+      return std::string("smallint");
 
     case type::TypeId::INTEGER:
-      return type::TransientValueFactory::GetVarChar("integer");
+      return std::string("integer");
 
     case type::TypeId::BIGINT:
-      return type::TransientValueFactory::GetVarChar("bigint");
+      return std::string("bigint");
 
     case type::TypeId::DATE:
-      return type::TransientValueFactory::GetVarChar("date");
+      return std::string("date");
 
     case type::TypeId::DECIMAL:
-      return type::TransientValueFactory::GetVarChar("decimal");
+      return std::string("decimal");
 
     case type::TypeId::TIMESTAMP:
-      return type::TransientValueFactory::GetVarChar("timestamp");
+      return std::string("timestamp");
 
     case type::TypeId::VARCHAR:
-      return type::TransientValueFactory::GetVarChar("varchar");
+      return std::string("varchar");
 
     default:
       throw NOT_IMPLEMENTED_EXCEPTION("unsupported type in ValueToSchemaType");

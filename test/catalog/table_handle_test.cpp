@@ -10,6 +10,9 @@
 #include "util/transaction_test_util.h"
 namespace terrier {
 
+// for tables in the test
+#define MAX_VARCHAR_SIZE 1024
+
 struct TableHandleTests : public TerrierTest {
   void SetUp() override {
     TerrierTest::SetUp();
@@ -118,7 +121,7 @@ TEST_F(TableHandleTests, CreateTest) {
   // define schema
   std::vector<catalog::Schema::Column> cols;
   cols.emplace_back("id", type::TypeId::INTEGER, false, catalog::col_oid_t(catalog_->GetNextOid()));
-  cols.emplace_back("name", type::TypeId::VARCHAR, false, catalog::col_oid_t(catalog_->GetNextOid()));
+  cols.emplace_back("name", type::TypeId::VARCHAR, MAX_VARCHAR_SIZE, false, catalog::col_oid_t(catalog_->GetNextOid()));
   catalog::Schema schema(cols);
 
   // create table

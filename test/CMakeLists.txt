@@ -9,7 +9,7 @@ if (TERRIER_BUILD_TESTS)
     add_library(test_util STATIC ${TEST_UTIL_SRCS})
     target_link_libraries(test_util ${TERRIER_LINK_LIBS})
     add_dependencies(test_util gtest)
-    
+
     add_subdirectory(common)
     add_subdirectory(network)
     add_subdirectory(parser)
@@ -17,5 +17,6 @@ if (TERRIER_BUILD_TESTS)
     add_subdirectory(transaction)
     add_subdirectory(type)
     add_subdirectory(catalog)
+    add_subdirectory(planner)
 endif()
 

@@ -2,8 +2,8 @@
 
 #include <dirent.h>
 #include <string>
-#include <vector>
 #include <unordered_map>
+#include <vector>
 #include "common/spin_latch.h"
 #include "common/strong_typedef.h"
 #include "storage/checkpoint_io.h"
@@ -51,11 +51,13 @@ class CheckpointManager {
     out_.Open((GetCheckpointFilePath(txn)).c_str());
     // TODO(zhaozhes): persist catalog, get metadata for each table and prepare to checkpoint each table
   }
-  
+
   /**
    * Persist a table. This is achieved by first scan the table with a ProjectedColumn buffer, then transfer the data
    * to a ProjectedRow buffer and write the memory representation of the ProjectedRow directly to disk. Varlen columns
    * that is not inlined will be written to another checkpoint file.
+   *
+   * Also, the type of the catalog table (if it is a catalog table) is required for recovery proccedure.
    *
    * TODO(Mengyang): possible optimizations:
    *                 * store projected columns directly to disk
@@ -64,9 +66,13 @@ class CheckpointManager {
    *
    * TODO(Mengyang): Currently we require a schema passed in, but this is wrong especially with multi-version schema.
    *  This is no longer required once the catalog is merged, since we can get the schema of a table from the catalog.
+   *
+   * @param table SqlTable to be checkpointed
+   * @param schema of the table to becheckpointed
+   * @param catalog_type 0 if this table is not a catalog table, otherwise, this is the type of the catalog table.
    */
-  void Checkpoint(const SqlTable &table, const catalog::Schema &schema);
-  
+  void Checkpoint(const SqlTable &table, const catalog::Schema &schema, uint32_t catalog_type = 0);
+
   /**
    * Finish the current checkpoint.
    */
@@ -115,7 +121,7 @@ class CheckpointManager {
     }
     return file_name;
   }
-  
+
   /**
    * Delete all checkpoint files, mainly for test purposes.
    */
@@ -140,7 +146,7 @@ class CheckpointManager {
   }
 
   /**
-   * Begin a recovery. This will clear all registered tables and layouts.
+   * Begin a recovery. This will clear all registered tables.
    */
   void StartRecovery(transaction::TransactionContext *txn) {
     txn_ = txn;
@@ -150,19 +156,14 @@ class CheckpointManager {
   /**
    * Register a table in the checkpoint manager, so that its content can be restored during the recovery.
    * @param table to be recovered.
-   * @param layout of the table.
    */
-  void RegisterTable(SqlTable *table, BlockLayout *layout) {
-    tables_.push_back(table);
-    layouts_.push_back(layout);
-  }
+  void RegisterTable(SqlTable *table) { tables_.push_back(table); }
 
   /**
    * Read the content of a file, and reinsert all tuples into the tables already registered.
    */
   void Recover(const char *checkpoint_file_path);
-  
-  
+
   /**
    * Will be called from recover after the tables are recovered from checkpoint files. This function will replay logs
    * from the timestamp and recover all the logs. The caller should ensure that the tables are already recovered,
@@ -179,7 +180,6 @@ class CheckpointManager {
   void EndRecovery() {
     txn_ = nullptr;
     tables_.clear();
-    layouts_.clear();
   }
 
  private:
@@ -187,17 +187,11 @@ class CheckpointManager {
   BufferedTupleWriter out_;
   transaction::TransactionContext *txn_ = nullptr;
   std::vector<SqlTable *> tables_;
-  std::vector<BlockLayout *> layouts_;
   std::unordered_map<TupleSlot, TupleSlot> tuple_slot_map_;
 
   SqlTable *GetTable(catalog::table_oid_t oid) {
     // TODO(mengyang): add support to multiple tables
     return tables_.at(0);
-  }
-
-  BlockLayout *GetLayout(catalog::table_oid_t oid) {
-    // TODO(mengyang): add support to multiple tables
-    return layouts_.at(0);
   }
 };
 

@@ -50,10 +50,10 @@ void SqlRandomWorkloadTransaction::RandomUpdate(Random *generator) {
   
   // TODO(Tianyu): Hardly efficient, but will do for testing.
   if (test_object_->wal_on_ || test_object_->bookkeeping_) {
-    auto *record = txn_->StageWrite(&test_object_->table_.get_data_table(), updated, initializer);
+    auto *record = txn_->StageWrite(test_object_->table_, updated, initializer);
     std::memcpy(reinterpret_cast<void *>(record->Delta()), update, update->Size());
   }
-  auto result = test_object_->table_.Update(txn_, updated, *update);
+  auto result = test_object_->table_->Update(txn_, updated, *update);
   aborted_ = !result;
 }
 
@@ -66,7 +66,7 @@ void SqlRandomWorkloadTransaction::RandomSelect(Random *generator) {
                         ? common::AllocationUtil::AllocateAligned(test_object_->row_initializer_.ProjectedRowSize())
                         : buffer_;
   storage::ProjectedRow *select = test_object_->row_initializer_.InitializeRow(select_buffer);
-  test_object_->table_.Select(txn_, selected, select);
+  test_object_->table_->Select(txn_, selected, select);
   if (test_object_->bookkeeping_) {
     auto updated = updates_.find(selected);
     // Only track reads whose value depend on the snapshot
@@ -95,9 +95,9 @@ SqlLargeTransactionTestObject::SqlLargeTransactionTestObject(uint16_t max_column
     update_select_ratio_(std::move(update_select_ratio)),
     generator_(generator),
     schema_(StorageTestUtil::GenerateRandomSchema(max_columns, generator_, varlen_allowed)),
-    layout_(FromS)
     sql_table_(block_store, schema_, catalog::table_oid_t(0)),
     table_(sql_table_.get_data_table()),
+    layout_(sql_table_.get_layout()),
     txn_manager_(buffer_pool, gc_on, log_manager),
     gc_on_(gc_on),
     wal_on_(log_manager != LOGGING_DISABLED),
@@ -205,10 +205,10 @@ void SqlLargeTransactionTestObject::PopulateInitialTable(uint32_t num_tuples, Ra
     storage::ProjectedRow *redo = bookkeeping_ ? row_initializer_.InitializeRow(redo_buffer)
                                                : reinterpret_cast<storage::ProjectedRow *>(redo_buffer);
     StorageTestUtil::PopulateRandomRow(redo, layout_, 0.0, generator);
-    storage::TupleSlot inserted = table_.Insert(initial_txn_, *redo);
+    storage::TupleSlot inserted = table_->Insert(initial_txn_, *redo);
     // TODO(Tianyu): Hardly efficient, but will do for testing.
     if (wal_on_ || bookkeeping_) {
-      auto *record = initial_txn_->StageWrite(&table_, inserted, row_initializer_);
+      auto *record = initial_txn_->StageWrite(table_, inserted, row_initializer_);
       std::memcpy(reinterpret_cast<void *>(record->Delta()), redo, redo->Size());
     }
     last_checked_version_.emplace_back(inserted, bookkeeping_ ? redo : nullptr);

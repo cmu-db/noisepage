@@ -246,7 +246,7 @@ public:
   /**
    * @return the data table used by this test
    */
-  storage::SqlTable *GetTable() { return &table_; }
+  storage::SqlTable *GetTable() { return &sql_table_; }
   
   /**
    * Simulate an oltp workload, running the specified number of total transactions while allowing the specified number
@@ -315,9 +315,9 @@ private:
   std::vector<double> update_select_ratio_;
   std::default_random_engine *generator_;
   catalog::Schema schema_;
-  storage::BlockLayout layout_;
   storage::SqlTable sql_table_;
   storage::DataTable* table_;
+  storage::BlockLayout layout_;
   transaction::TransactionManager txn_manager_;
   transaction::TransactionContext *initial_txn_;
   bool gc_on_, wal_on_, bookkeeping_;

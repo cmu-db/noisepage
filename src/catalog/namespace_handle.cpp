@@ -14,19 +14,19 @@
 
 namespace terrier::catalog {
 
-const std::vector<SchemaCol> NamespaceHandle::schema_cols_ = {{0, "oid", type::TypeId::INTEGER},
-                                                              {1, "nspname", type::TypeId::VARCHAR}};
-
-const std::vector<SchemaCol> NamespaceHandle::unused_schema_cols_ = {
-    {2, "nspowner", type::TypeId::INTEGER},
-    {3, "nspacl", type::TypeId::VARCHAR},
-};
+const std::vector<SchemaCol> NamespaceHandle::schema_cols_ = {{0, true, "oid", type::TypeId::INTEGER},
+                                                              {1, true, "nspname", type::TypeId::VARCHAR},
+                                                              {2, false, "nspowner", type::TypeId::INTEGER},
+                                                              {3, false, "nspacl", type::TypeId::VARCHAR}};
 
 std::shared_ptr<NamespaceEntry> NamespaceHandle::GetNamespaceEntry(transaction::TransactionContext *txn,
                                                                    namespace_oid_t oid) {
   std::vector<type::TransientValue> search_vec, ret_row;
   search_vec.push_back(type::TransientValueFactory::GetInteger(!oid));
   ret_row = pg_namespace_hrw_->FindRow(txn, search_vec);
+  if (ret_row.empty()) {
+    return nullptr;
+  }
   return std::make_shared<NamespaceEntry>(oid, pg_namespace_hrw_, std::move(ret_row));
 }
 
@@ -45,6 +45,9 @@ std::shared_ptr<NamespaceEntry> NamespaceHandle::GetNamespaceEntry(transaction::
 
 namespace_oid_t NamespaceHandle::NameToOid(transaction::TransactionContext *txn, const std::string &name) {
   auto nse = GetNamespaceEntry(txn, name);
+  if (nse == nullptr) {
+    throw CATALOG_EXCEPTION("namespace does not exist");
+  }
   return namespace_oid_t(type::TransientValuePeeker::PeekInteger(nse->GetColumn(0)));
 }
 
@@ -67,7 +70,7 @@ void NamespaceHandle::AddEntry(transaction::TransactionContext *txn, const std::
 
   row.emplace_back(type::TransientValueFactory::GetInteger(catalog_->GetNextOid()));
   row.emplace_back(type::TransientValueFactory::GetVarChar(name));
-  catalog_->SetUnusedColumns(&row, NamespaceHandle::unused_schema_cols_);
+  catalog_->SetUnusedColumns(&row, NamespaceHandle::schema_cols_);
   pg_namespace_hrw_->InsertRow(txn, row);
 }
 
@@ -86,29 +89,24 @@ bool NamespaceHandle::DeleteEntry(transaction::TransactionContext *txn, const st
   return status;
 }
 
-SqlTableRW *NamespaceHandle::Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,
-                                    const std::string &name) {
-  catalog::SqlTableRW *storage_table;
+SqlTableHelper *NamespaceHandle::Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,
+                                        const std::string &name) {
+  catalog::SqlTableHelper *storage_table;
 
   // get an oid
   table_oid_t storage_table_oid(catalog->GetNextOid());
 
   // uninitialized storage
-  storage_table = new catalog::SqlTableRW(storage_table_oid);
+  storage_table = new catalog::SqlTableHelper(storage_table_oid);
 
   // columns we use
   for (auto col : NamespaceHandle::schema_cols_) {
     storage_table->DefineColumn(col.col_name, col.type_id, false, col_oid_t(catalog->GetNextOid()));
   }
 
-  // columns we don't use
-  for (auto col : NamespaceHandle::unused_schema_cols_) {
-    storage_table->DefineColumn(col.col_name, col.type_id, false, col_oid_t(catalog->GetNextOid()));
-  }
   // now actually create, with the provided schema
   storage_table->Create();
   catalog->AddToMaps(db_oid, storage_table_oid, name, storage_table);
-  // catalog->AddColumnsToPGAttribute(txn, db_oid, storage_table->GetSqlTable());
   return storage_table;
 }
 

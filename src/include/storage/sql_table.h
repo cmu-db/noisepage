@@ -27,6 +27,7 @@ class SqlTable {
     DataTable *data_table;
     BlockLayout layout;
     ColumnMap column_map;
+    InverseColumnMap inverse_column_map;
   };
 
  public:
@@ -38,12 +39,7 @@ class SqlTable {
    * @param schema the initial Schema of this SqlTable
    * @param oid unique identifier for this SqlTable
    */
-  SqlTable(BlockStore *const store, const catalog::Schema &schema, const catalog::table_oid_t oid)
-      : block_store_(store), oid_(oid), schema_(schema) {
-    const auto layout_and_map = StorageUtil::BlockLayoutFromSchema(schema);
-    table_ = {new DataTable(block_store_, layout_and_map.first, layout_version_t(0)), layout_and_map.first,
-              layout_and_map.second};
-  }
+  SqlTable(BlockStore *store, const catalog::Schema &schema, catalog::table_oid_t oid);
 
   /**
    * Destructs a SqlTable, frees all its members.
@@ -191,6 +187,25 @@ class SqlTable {
   storage::DataTable* get_data_table () {
     return table_.data_table;
   }
+  
+  /**
+ * This is extremely hacky, just for test purposes only. Because the current transaction and logging infrastructure are
+ * all based on data tables, but checkpointing is implemented on sql tables. Migrating existing API from data tables
+ * to sql tables would require much effort that would need to modify many tests, and this is left for future work.
+ * The current workaround is to get the underlying data table and do not modify existing infrastructure.
+ * @return the data table underlying sqltable
+ */
+  storage::BlockLayout get_layout () {
+    return table_.layout;
+  }
+  
+  
+  /**
+   * Given a col_id, return the corresponding col_oid
+   * @param col_id a col_id, must be in the table's InverseColumnMap
+   * @return col_oid for the col_id
+   */
+  catalog::col_oid_t ColOidForId(const col_id_t col_id) const { return table_.inverse_column_map.at(col_id); }
   
  private:
   BlockStore *const block_store_;
