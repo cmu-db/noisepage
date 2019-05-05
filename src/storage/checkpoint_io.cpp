@@ -97,7 +97,7 @@ void BufferedTupleWriter::SerializeTuple(ProjectedRow *row, const TupleSlot *slo
     AlignBufferOffset<uint32_t>();  // align for size field of varlen.
     uint32_t size = entry->Size();
     TERRIER_ASSERT(size > VarlenEntry::InlineThreshold(), "Small varlens should be inlined.");
-    WriteDataToBuffer(reinterpret_cast<byte *>(&size), size);
+    WriteDataToBuffer(reinterpret_cast<byte *>(&size), sizeof(uint32_t));
     WriteDataToBuffer(entry->Content(), size);
   }
 }

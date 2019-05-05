@@ -357,6 +357,7 @@ class BufferedTupleReader {
    */
   ~BufferedTupleReader() {
     PosixIoWrappers::Close(in_);
+    ClearLoosePointers();
     delete[] buffer_;
   }
 
