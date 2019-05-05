@@ -102,6 +102,16 @@ TEST_F(SettingsTests, BasicTest) {
   std::shared_ptr<common::ActionContext> action_context = std::make_shared<common::ActionContext>(action_id);
   settings_manager_->SetInt(Param::port, 23333, action_context, setter_callback);
   EXPECT_EQ(common::ActionState::FAILURE, action_context->GetState());
+
+  double pi = settings_manager_->GetDouble(Param::pi);
+  EXPECT_EQ(pi, 3.14159);
+
+  bool parallel = settings_manager_->GetBool(Param::parallel_execution);
+  EXPECT_TRUE(parallel);
+
+  auto name = settings_manager_->GetString(Param::db_name);
+  EXPECT_EQ("Terrier", name);
+
 }
 
 // NOLINTNEXTLINE

@@ -111,8 +111,8 @@
                   type::TransientValueFactory::GetBoolean(default_value), &callback_fn);
 
 #define SETTING_string(name, description, default_value, is_mutable, callback_fn)                         \
-  ValidateSetting(terrier::settings::Param::name, type::TransientValueFactory::GetVarchar(default_value), \
-                  type::TransientValueFactory::GetVarchar(default_value), &callback_fn);
+  ValidateSetting(terrier::settings::Param::name, type::TransientValueFactory::GetVarChar(default_value), \
+                  type::TransientValueFactory::GetVarChar(default_value), &callback_fn);
 #endif
 
 #ifdef __SETTING_ENUM__
@@ -171,6 +171,6 @@
 #define SETTING_string(name, description, default_value, is_mutable, callback_fn)                                      \
   param_map.emplace(                                                                                                   \
       terrier::settings::Param::name,                                                                                  \
-      terrier::settings::ParamInfo(#name, terrier::type::TransientValueFactory::GetVarchar(FLAGS_##name), description, \
-                                   terrier::type::TransientValueFactory::GetVarchar(default_value), is_mutable));
+      terrier::settings::ParamInfo(#name, terrier::type::TransientValueFactory::GetVarChar(FLAGS_##name), description, \
+                                   terrier::type::TransientValueFactory::GetVarChar(default_value), is_mutable));
 #endif
