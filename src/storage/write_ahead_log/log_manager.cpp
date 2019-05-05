@@ -138,19 +138,18 @@ void LogManager::WriteToDiskLoop() {
   while (run_log_writer_thread_) {
     BufferedLogWriter *buf;
     bool dequeued = NonblockingDequeueBuffer(&buf, &filled_buffer_queue_);
+    if (dequeued) {
+      // Flush the buffer to the disk
+      buf->FlushBuffer();
+      // Push the emptied buffer to queue of available buffers to fill
+      BlockingEnqueueBuffer(buf, &empty_buffer_queue_);
+    }
     // If the main logger thread has signaled to persist the buffers, persist all the filled buffers
     if (do_persist_) {
       FlushAllBuffers();
       // Signal the main logger thread for completion of persistence
       do_persist_ = false;
     }
-    if (!dequeued) {
-      continue;
-    }
-    // Flush the buffer to the disk
-    buf->FlushBuffer();
-    // Push the emptied buffer to queue of available buffers to fill
-    BlockingEnqueueBuffer(buf, &empty_buffer_queue_);
   }
 }
 
