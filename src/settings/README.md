@@ -4,9 +4,7 @@
 
 > What motivates this to be implemented? What will this component achieve? 
 
-The Settings Manager is a place for all configurations of the system. It offers programmatic interfaces for defining, accessing and modifying configuration parameters for all parts of the system. Although there is a `pg_settings` table in the catalog that does similar things, the internal parts don't want to access its configurations with troublesome SQL statements. Therefore, we provide `set` and `get` methods to them. The access and modify methods are designed to be able to detect wrong parameter names at compilation time. 
-
-It is responsible for loading the configurations from the default values, `gflags`, and the config file. It also supports callback triggers: you can define a callback function for each configurable parameter. When the parameter is changed, the Settings Manager will call that function for you. For example, when someone scales down the number of GC threads from 8 to 6, the Settings Manager will tell the Garbage Collector to shut down 2 threads via the callback tied to that parameter. Besides, the Settings Manager supports action context, which records information relevant to the setting value deployment. The caller of `set` methods can pass in a callback function to analyze the action context.
+The Settings Manager is a place for all configurations of the system. It offers programmatic interfaces for defining, accessing and modifying configuration parameters for all parts of the system. Although there is a `pg_settings` table in the catalog that does similar things, the internal parts don't want to access its configurations with troublesome SQL statements. Therefore, we provide `set` and `get` methods to them. The access and modify methods are designed to be able to detect wrong parameter names at compilation time. It is responsible for loading the configurations from the default values, `gflags`, and the config file. It also supports callback triggers: you can define a callback function for each configurable parameter. When the parameter is changed, the Settings Manager will call that function for you. For example, when someone scales down the number of GC threads from 8 to 6, the Settings Manager will tell the Garbage Collector to shut down 2 threads via the callback tied to that parameter. Besides, the Settings Manager supports action context, which records information relevant to the setting value deployment. The caller of `set` methods can pass in a callback function to analyze the action context.
 
 Having a Settings Manager in the system eliminates all hardcoding stuff and its compilation time saves a lot of debugging efforts. In addition, it will be a critical part for a self-driving database system where quite a lot of parameters will be modified online.
 
@@ -31,7 +29,9 @@ The Settings Manager is a relatively independent component in the system. It mai
 
 For parameter definitions, they are parsed by GFlags framework in the main() function and populated to a map inside `DBMain` object. The Settings Manager will check the setting values in DBMain. After that, it will serve `get` and `set` calls from any part of the system.
 
-For callbacks, when a parameter is changed, the Settings Manager will invoke its associated callback function in the main database object. The change can be done either synchronously or asynchronously. If it's invoked in an asynchronous manner: the Settings Manager will not wait until the change is enforced. Instead, it will expect to return immediately. Then, there is a callback in the Settings Manager itself to receive reports from the parts. The information is passed via an ActionContext object.
+For callbacks, when a parameter is changed, the Settings Manager will invoke its associated callback function in the main database object.  When a component wants to issue a change, it should provide a callback function to receive the result ActionContext. The Settings Manager will enforce the change and put the result (whether the change succeeded or failed) and traces in the ActionContext, and pass it back as an argument when calling the setter callback.
+
+![](doc/callback_flow.png)
 
 ## Design Rationale
 
@@ -63,7 +63,11 @@ Although there is a physical `pg_settings` table in the catalogs where we can fi
 
 - Although this essentially turned the Settings Manager as a cache layer for the `pg_settings` table, its consistency is easy to maintain (just update the catalog in `set` methods).
 
-This value map is an external map actually stored in DBMain. We also have another internal callback map, which maps a setting to its callback. It should be immutable during runtime,
+This value map is an external map actually stored in DBMain. We also have another internal callback map, which maps a setting to its callback. It should be immutable during runtime.
+
+### Synchronous Modification Enforcement
+
+The Settings Manager enforces changes to parameters in a synchronous manner. This is easier to debug and more convenient to use when the user expects that the change takes little time to complete. If a component wants to make an asynchronous change, it can do an async call to `SetXXX()`. Since we accept setter callbacks in `Set` methods, such design makes both sync and async changes available.
 
 ## Testing Plan
 
