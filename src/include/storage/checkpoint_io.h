@@ -400,8 +400,8 @@ class BufferedTupleReader {
   }
 
   TupleSlot *ReadNextTupleSlot() {
-    AlignBufferOffset<uint32_t>();
-    auto slot = reinterpret_cast<TupleSlot *>(ReadDataAcrossPages(sizeof(uint32_t)));
+    AlignBufferOffset<uintptr_t >();
+    auto slot = reinterpret_cast<TupleSlot *>(ReadDataAcrossPages(sizeof(uintptr_t)));
     return slot;
   }
 

@@ -157,7 +157,7 @@ class CheckpointManager {
    * Register a table in the checkpoint manager, so that its content can be restored during the recovery.
    * @param table to be recovered.
    */
-  void RegisterTable(SqlTable *table) { tables_.push_back(table); }
+  void RegisterTable(SqlTable *table) { tables_[table->Oid()] = table; }
 
   /**
    * Read the content of a file, and reinsert all tuples into the tables already registered.
@@ -186,12 +186,12 @@ class CheckpointManager {
   std::string checkpoint_file_path_prefix_;
   BufferedTupleWriter out_;
   transaction::TransactionContext *txn_ = nullptr;
-  std::vector<SqlTable *> tables_;
+  std::unordered_map<catalog::table_oid_t, SqlTable *> tables_;
   std::unordered_map<TupleSlot, TupleSlot> tuple_slot_map_;
 
   SqlTable *GetTable(catalog::table_oid_t oid) {
     // TODO(mengyang): add support to multiple tables
-    return tables_.at(0);
+    return tables_.at(oid);
   }
 };
 
