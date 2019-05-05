@@ -193,6 +193,10 @@ class CheckpointManager {
     // TODO(mengyang): add support to multiple tables
     return tables_.at(oid);
   }
+
+
+  // TODO(zhaozhes): copied from log_test.cpp because I believe it should be here because checkpoint recovery need it.
+  LogRecord *ReadNextLogRecord(BufferedLogReader *in);
 };
 
 }  // namespace terrier::storage
