@@ -833,11 +833,11 @@ TEST_F(SqlTableTests, MultipleColumnWidths) {
   delete txn;
 }
 
+// TODO(Sai): Merge the sql_table_test and sql_table_concurrent_test frameworks to avoid repetition
 // NOLINTNEXTLINE
 TEST_F(SqlTableTests, BasicDefaultValuesTest) {
-  // TODO(Sai): Merge the sql_table_test and sql_table_concurrent_test frameworks to avoid repetition for adding in
-  // columns. Have 3 types of columns, 1 with default value at creation, one without and one with default value added
-  // later explicitly. Insert rows and check the output
+  // Test for adding new columns with default values
+  // Default value for a column should only be filled in for the versions that don't have that column
   SqlTableTestRW table(catalog::table_oid_t(2));
   auto txn = txn_manager_.BeginTransaction();
 
@@ -878,7 +878,6 @@ TEST_F(SqlTableTests, BasicDefaultValuesTest) {
   table.AddColumn(txn, "col3", type::TypeId::INTEGER, true, catalog::col_oid_t(3), table.IntToByteArray(col3_default));
 
   // Insert (3, 300, NULL, NULL)
-  // NOTE: The default values for new rows are filled in by the execution engine
   table.StartInsertRow();
   table.SetIntColInRow(catalog::col_oid_t(0), 3);
   table.SetIntColInRow(catalog::col_oid_t(1), 300);
@@ -923,7 +922,7 @@ TEST_F(SqlTableTests, BasicDefaultValuesTest) {
 TEST_F(SqlTableTests, ModifyDefaultValuesTest) {
   // Testing the case of adding a column without a default value
   // and then setting the default value for that column.
-  // This should not retro-actively populate the default value for older tuples
+  // This should NOT retro-actively populate the default value for older tuples
   SqlTableTestRW table(catalog::table_oid_t(2));
   auto txn = txn_manager_.BeginTransaction();
 
