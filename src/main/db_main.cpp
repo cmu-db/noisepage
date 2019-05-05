@@ -40,7 +40,7 @@ void DBMain::Init() {
   main_stat_reg_ = std::make_shared<terrier::common::StatisticsRegistry>();
 
   // create the global transaction mgr
-  storage::RecordBufferSegmentPool *buffer_pool = new storage::RecordBufferSegmentPool (100000, 10000);
+  storage::RecordBufferSegmentPool *buffer_pool = new storage::RecordBufferSegmentPool(100000, 10000);
   terrier_txn_manager_ = new transaction::TransactionManager(buffer_pool, true, nullptr);
   terrier::transaction::TransactionContext *txn_ = terrier_txn_manager_->BeginTransaction();
   // create the (system) catalogs
