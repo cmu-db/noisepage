@@ -112,17 +112,23 @@ class BufferedLogWriter {
   }
 
   /**
-   * Flush any buffered writes and call fsync to make sure that all writes are consistent.
+   * Call fsync to make sure that all writes are consistent.
    */
   void Persist() {
     if (fsync(out_) == -1) throw std::runtime_error("fsync failed with errno " + std::to_string(errno));
   }
 
+  /**
+   * Flush any buffered writes.
+   */
   void FlushBuffer() {
     WriteUnsynced(buffer_, buffer_size_);
     buffer_size_ = 0;
   }
 
+  /**
+   * @return if the buffer is full
+   */
   bool IsBufferFull() { return buffer_size_ == BUFFER_SIZE; }
 
  private:
