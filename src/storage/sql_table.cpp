@@ -90,6 +90,10 @@ void SqlTable::UpdateSchema(const catalog::Schema &schema) {
       uint8_t attr_size = column.GetAttrSize();
       byte *temp = nullptr;
       if (default_value != nullptr) {
+        // clang's memory analyis has a false positive on this allocation.  All memory
+        // allocated here is placed into 'default_value_map_' and eventually freed
+        // with the rest of the SqlTable object in the destructor (see line 20).
+        // NOLINTNEXTLINE
         temp = new byte[attr_size];
         std::memcpy(temp, default_value, attr_size);
       }
