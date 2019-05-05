@@ -2,6 +2,7 @@
 #include <list>
 #include <map>
 #include <set>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 #include "catalog/schema.h"
@@ -32,7 +33,6 @@ class SqlTable {
     BlockLayout layout;
     ColumnMap column_map;
     InverseColumnMap inverse_column_map;
-    // TODO(John): Add 'default_value_map' (dynamic) for col_oid->default_val
   };
 
   /**
@@ -321,6 +321,10 @@ class SqlTable {
   const catalog::table_oid_t oid_;
 
   common::ConcurrentMap<layout_version_t, DataTableVersion> tables_;
+  // NOTE: This map only keeps track of the default values specified at column creation
+  // For columns which don't have default value or added later, just set to null
+  // Populating default values into the ProjectedRow inserted later is taken care of by the execution engine
+  DefaultValueMap default_value_map_;
 
   /**
    * Given a set of col_oids, return a vector of corresponding col_ids to use for ProjectionInitialization
@@ -353,5 +357,25 @@ class SqlTable {
   template <class RowType>
   void ModifyProjectionHeaderForVersion(RowType *out_buffer, const DataTableVersion &curr_dt_version,
                                         const DataTableVersion &old_dt_version, col_id_t *original_col_id_store) const;
+
+  /**
+   * Calculate the columns of the ProjectionMap that are missing from the old version of datatable
+   * Used to find out the columns for which default values must be filled in
+   * @param pr_map ProjectionMap of the ProjectedRow passed into Select/Scan
+   * @param old_dt_version old version of the datatable
+   * @return Unordered set of missing column oids
+   */
+  std::unordered_set<catalog::col_oid_t> GetMissingColumnOidsForVersion(const ProjectionMap &pr_map,
+                                                                        const DataTableVersion &old_dt_version) const;
+
+  /**
+   * Fill in the default value for the given column i.e. col_oid. The default value being filled in can be null
+   * @tparam RowType ProjectedRow or ProjectedColumns::RowView
+   * @param out_buffer ProjectedRow or ProjectedColumns::RowView
+   * @param col_oid OID of the column
+   * @param pr_map ProjectionMap of the RowType
+   */
+  template <class RowType>
+  void FillDefaultValue(RowType *out_buffer, catalog::col_oid_t col_oid, const ProjectionMap &pr_map) const;
 };
 }  // namespace terrier::storage

@@ -40,9 +40,9 @@ class SqlTableTestRW {
   }
 
   void AddColumn(transaction::TransactionContext *txn, std::string name, type::TypeId type, bool nullable,
-                 catalog::col_oid_t oid) {
+                 catalog::col_oid_t oid, byte *default_value = nullptr) {
     // update columns, schema and layout
-    cols_.emplace_back(name, type, nullable, oid);
+    cols_.emplace_back(name, type, nullable, oid, default_value);
     delete schema_;
     schema_ = new catalog::Schema(cols_, next_version_++);
 
@@ -62,6 +62,21 @@ class SqlTableTestRW {
     pri_ = new storage::ProjectedRowInitializer(std::get<0>(row_pair));
     pr_map_ = new storage::ProjectionMap(std::get<1>(row_pair));
   }
+
+  /**
+   * Set a default value for the given column oid. This doesn't need to call UpdateSchema
+   * @param oid oid of the column
+   * @param default_value the default value to be set
+   */
+  void SetColumnDefault(catalog::col_oid_t oid, byte *default_value) {
+    // Get the index of this oid in the col_oids vector
+    auto col_pos = std::find(col_oids_.begin(), col_oids_.end(), oid);
+    TERRIER_ASSERT(col_pos != col_oids_.end(), "oid doesn't exist in the table");
+    auto idx = col_pos - col_oids_.begin();
+
+    cols_.at(idx).SetDefault(default_value);
+  }
+
   /**
    * Create the SQL table.
    */
@@ -251,6 +266,12 @@ class SqlTableTestRW {
   }
 
   /**
+   * Set the attribute of col_oid to null
+   * @param col_oid col_oid of the column in the schema
+   */
+  void SetNullInRow(catalog::col_oid_t col_oid) { pr_->SetNull(pr_map_->at(col_oid)); }
+
+  /**
    * Read a string from a row
    * @param col_num column number in the schema
    * @param slot - tuple to read from
@@ -293,6 +314,17 @@ class SqlTableTestRW {
       *reinterpret_cast<storage::VarlenEntry *>(col_p) =
           storage::VarlenEntry::Create(varlen, static_cast<uint32_t>(size), true);
     }
+  }
+
+  /**
+   * Convert an integer to byte array
+   * @param n an integer
+   * @return byte array
+   */
+  byte *IntToByteArray(int n) {
+    auto byteArray = new byte[sizeof(n)];
+    memcpy(byteArray, reinterpret_cast<char *>(&n), sizeof(n));
+    return byteArray;
   }
 
  public:
@@ -364,7 +396,10 @@ TEST_F(SqlTableTests, SelectTest) {
 
   // manually set the version of the transaction to be 1
   table.version_ = storage::layout_version_t(1);
-  table.AddColumn(txn, "new_col", type::TypeId::INTEGER, true, catalog::col_oid_t(2));
+  int default_val = 42;
+  // Add a new column with a default value
+  table.AddColumn(txn, "new_col", type::TypeId::INTEGER, true, catalog::col_oid_t(2),
+                  table.IntToByteArray(default_val));
 
   id = table.GetIntColInRow(txn, catalog::col_oid_t(0), row1_slot);
   EXPECT_EQ(100, id);
@@ -376,8 +411,11 @@ TEST_F(SqlTableTests, SelectTest) {
   datname = table.GetIntColInRow(txn, catalog::col_oid_t(1), row2_slot);
   EXPECT_EQ(10001, datname);
 
-  bool new_col_is_null = table.IsNullColInRow(txn, catalog::col_oid_t(2), row1_slot);
-  EXPECT_TRUE(new_col_is_null);
+  // The new_column should return the default_value for the old version slots
+  uint32_t new_col = table.GetIntColInRow(txn, catalog::col_oid_t(2), row1_slot);
+  EXPECT_EQ(default_val, new_col);
+  new_col = table.GetIntColInRow(txn, catalog::col_oid_t(2), row2_slot);
+  EXPECT_EQ(default_val, new_col);
 
   txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
   delete txn;
@@ -402,7 +440,7 @@ TEST_F(SqlTableTests, InsertTest) {
 
   // manually set the version of the transaction to be 1
   table.version_ = storage::layout_version_t(1);
-  table.AddColumn(txn, "new_col", type::TypeId::INTEGER, true, catalog::col_oid_t(2));
+  table.AddColumn(txn, "new_col", type::TypeId::INTEGER, true, catalog::col_oid_t(2), nullptr);
 
   // insert (300, 10002, null)
   table.StartInsertRow();
@@ -457,7 +495,7 @@ TEST_F(SqlTableTests, DeleteTest) {
 
   // manually set the version of the transaction to be 1
   table.version_ = storage::layout_version_t(1);
-  table.AddColumn(txn, "new_col", type::TypeId::INTEGER, true, catalog::col_oid_t(2));
+  table.AddColumn(txn, "new_col", type::TypeId::INTEGER, true, catalog::col_oid_t(2), nullptr);
 
   // insert (300, 10002, null)
   table.StartInsertRow();
@@ -507,7 +545,7 @@ TEST_F(SqlTableTests, UpdateTest) {
 
   // manually set the version of the transaction to be 1
   table.version_ = storage::layout_version_t(1);
-  table.AddColumn(txn, "new_col", type::TypeId::INTEGER, true, catalog::col_oid_t(2));
+  table.AddColumn(txn, "new_col", type::TypeId::INTEGER, true, catalog::col_oid_t(2), nullptr);
 
   // insert (300, 10002, null)
   table.StartInsertRow();
@@ -578,6 +616,7 @@ TEST_F(SqlTableTests, UpdateTest) {
 TEST_F(SqlTableTests, ScanTest) {
   std::map<uint32_t, uint32_t> datname_map;
   std::map<uint32_t, uint32_t> new_col_map;
+  uint32_t new_col_default_value = 1729;
   std::map<uint32_t, bool> seen_map;
 
   datname_map[100] = 10000;
@@ -587,7 +626,7 @@ TEST_F(SqlTableTests, ScanTest) {
 
   // new_col_map[100] = NULL (created before column added)
   // new_col_map[200] = NULL (created before column added)
-  // new_col_map[300] = NULL (inserted without value)
+  // new_col_map[300] = NULL (Not explicitly specified);
   new_col_map[400] = 42;
 
   seen_map[100] = false;
@@ -615,12 +654,14 @@ TEST_F(SqlTableTests, ScanTest) {
 
   // manually set the version of the transaction to be 1
   table.version_ = storage::layout_version_t(1);
-  table.AddColumn(txn, "new_col", type::TypeId::INTEGER, true, catalog::col_oid_t(2));
+  table.AddColumn(txn, "new_col", type::TypeId::INTEGER, true, catalog::col_oid_t(2),
+                  table.IntToByteArray(new_col_default_value));
 
-  // insert (300, 10002, null)
+  // insert (300, 10002, 1729) - Default value populated by the execution engine
   table.StartInsertRow();
   table.SetIntColInRow(catalog::col_oid_t(0), 300);
   table.SetIntColInRow(catalog::col_oid_t(1), datname_map[300]);
+  table.SetIntColInRow(catalog::col_oid_t(2), new_col_default_value);
   table.EndInsertRow(txn);
 
   // insert (400, 10003, 42)
@@ -659,10 +700,10 @@ TEST_F(SqlTableTests, ScanTest) {
   uint32_t datname = *reinterpret_cast<uint32_t *>(value);
   EXPECT_EQ(datname, datname_map[id]);
   value = row1.AccessWithNullCheck(pc_pair.second.at(catalog::col_oid_t(2)));
+  uint32_t new_col = *reinterpret_cast<uint32_t *>(value);
   if (id != 400) {
-    EXPECT_EQ(value, nullptr);
+    EXPECT_EQ(new_col, new_col_default_value);
   } else {
-    uint32_t new_col = *reinterpret_cast<uint32_t *>(value);
     EXPECT_EQ(new_col, new_col_map[id]);
   }
 
@@ -678,10 +719,10 @@ TEST_F(SqlTableTests, ScanTest) {
   datname = *reinterpret_cast<uint32_t *>(value);
   EXPECT_EQ(datname, datname_map[id]);
   value = row2.AccessWithNullCheck(pc_pair.second.at(catalog::col_oid_t(2)));
+  new_col = *reinterpret_cast<uint32_t *>(value);
   if (id != 400) {
-    EXPECT_EQ(value, nullptr);
+    EXPECT_EQ(new_col, new_col_default_value);
   } else {
-    uint32_t new_col = *reinterpret_cast<uint32_t *>(value);
     EXPECT_EQ(new_col, new_col_map[id]);
   }
 
@@ -702,10 +743,10 @@ TEST_F(SqlTableTests, ScanTest) {
   datname = *reinterpret_cast<uint32_t *>(value);
   EXPECT_EQ(datname, datname_map[id]);
   value = row3.AccessWithNullCheck(pc_pair.second.at(catalog::col_oid_t(2)));
+  new_col = *reinterpret_cast<uint32_t *>(value);
   if (id != 400) {
-    EXPECT_EQ(value, nullptr);
+    EXPECT_EQ(new_col, new_col_default_value);
   } else {
-    uint32_t new_col = *reinterpret_cast<uint32_t *>(value);
     EXPECT_EQ(new_col, new_col_map[id]);
   }
 
@@ -721,10 +762,10 @@ TEST_F(SqlTableTests, ScanTest) {
   datname = *reinterpret_cast<uint32_t *>(value);
   EXPECT_EQ(datname, datname_map[id]);
   value = row4.AccessWithNullCheck(pc_pair.second.at(catalog::col_oid_t(2)));
+  new_col = *reinterpret_cast<uint32_t *>(value);
   if (id != 400) {
-    EXPECT_EQ(value, nullptr);
+    EXPECT_EQ(new_col, new_col_default_value);
   } else {
-    uint32_t new_col = *reinterpret_cast<uint32_t *>(value);
     EXPECT_EQ(new_col, new_col_map[id]);
   }
 
@@ -787,6 +828,173 @@ TEST_F(SqlTableTests, MultipleColumnWidths) {
   EXPECT_EQ(integer, 100000);
   EXPECT_EQ(smallint, 512);
   EXPECT_EQ(tinyint, 42);
+
+  txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+  delete txn;
+}
+
+// TODO(Sai): Merge the sql_table_test and sql_table_concurrent_test frameworks to avoid repetition
+// NOLINTNEXTLINE
+TEST_F(SqlTableTests, BasicDefaultValuesTest) {
+  // Test for adding new columns with default values
+  // Default value for a column should only be filled in for the versions that don't have that column
+  SqlTableTestRW table(catalog::table_oid_t(2));
+  auto txn = txn_manager_.BeginTransaction();
+
+  // Create a table of 2 columns, with no default values at the start.
+  table.DefineColumn("id", type::TypeId::INTEGER, false, catalog::col_oid_t(0));
+  table.DefineColumn("col1", type::TypeId::INTEGER, false, catalog::col_oid_t(1));
+  table.Create();
+
+  // Insert (1, 100)
+  table.StartInsertRow();
+  table.SetIntColInRow(catalog::col_oid_t(0), 1);
+  table.SetIntColInRow(catalog::col_oid_t(1), 100);
+  storage::TupleSlot row1_slot = table.EndInsertRow(txn);
+
+  // Add a new column with a default value and insert a row
+  // Explicitly set the layout version number
+  table.version_ = storage::layout_version_t(1);
+  int col2_default = 42;
+  table.AddColumn(txn, "col2", type::TypeId::INTEGER, true, catalog::col_oid_t(2), table.IntToByteArray(col2_default));
+
+  // Insert (2, NULL, 890)
+  table.StartInsertRow();
+  table.SetIntColInRow(catalog::col_oid_t(0), 2);
+  table.SetIntColInRow(catalog::col_oid_t(2), 890);
+  storage::TupleSlot row2_slot = table.EndInsertRow(txn);
+
+  // 1st row should be (1, 100, 42) by now
+  uint32_t id = table.GetIntColInRow(txn, catalog::col_oid_t(0), row1_slot);
+  EXPECT_EQ(1, id);
+  uint32_t col1 = table.GetIntColInRow(txn, catalog::col_oid_t(1), row1_slot);
+  EXPECT_EQ(100, col1);
+  uint32_t col2 = table.GetIntColInRow(txn, catalog::col_oid_t(2), row1_slot);
+  EXPECT_EQ(col2_default, col2);
+
+  // Add another column with a default value and insert a row
+  table.version_ = storage::layout_version_t(2);
+  int col3_default = 1729;
+  table.AddColumn(txn, "col3", type::TypeId::INTEGER, true, catalog::col_oid_t(3), table.IntToByteArray(col3_default));
+
+  // Insert (3, 300, NULL, NULL)
+  table.StartInsertRow();
+  table.SetIntColInRow(catalog::col_oid_t(0), 3);
+  table.SetIntColInRow(catalog::col_oid_t(1), 300);
+  storage::TupleSlot row3_slot = table.EndInsertRow(txn);
+
+  // SELECT and validate all the rows
+  // 1st row should be (1, 100, 42, 1729)
+  id = table.GetIntColInRow(txn, catalog::col_oid_t(0), row1_slot);
+  EXPECT_EQ(1, id);
+  col1 = table.GetIntColInRow(txn, catalog::col_oid_t(1), row1_slot);
+  EXPECT_EQ(100, col1);
+  col2 = table.GetIntColInRow(txn, catalog::col_oid_t(2), row1_slot);
+  EXPECT_EQ(col2_default, col2);
+  uint32_t col3 = table.GetIntColInRow(txn, catalog::col_oid_t(3), row1_slot);
+  EXPECT_EQ(col3_default, col3);
+
+  // 2nd tuple should be (2, NULL, 890, 1729)
+  id = table.GetIntColInRow(txn, catalog::col_oid_t(0), row2_slot);
+  EXPECT_EQ(2, id);
+  bool col1_is_null = table.IsNullColInRow(txn, catalog::col_oid_t(1), row2_slot);
+  EXPECT_TRUE(col1_is_null);
+  col2 = table.GetIntColInRow(txn, catalog::col_oid_t(2), row2_slot);
+  EXPECT_EQ(890, col2);
+  col3 = table.GetIntColInRow(txn, catalog::col_oid_t(3), row2_slot);
+  EXPECT_EQ(col3_default, col3);
+
+  // 3rd tuple should be (3, 300, NULL, NULL)
+  id = table.GetIntColInRow(txn, catalog::col_oid_t(0), row3_slot);
+  EXPECT_EQ(3, id);
+  col1 = table.GetIntColInRow(txn, catalog::col_oid_t(1), row3_slot);
+  EXPECT_EQ(300, col1);
+  bool is_col2_null = table.IsNullColInRow(txn, catalog::col_oid_t(2), row3_slot);
+  EXPECT_TRUE(is_col2_null);
+  bool is_col3_null = table.IsNullColInRow(txn, catalog::col_oid_t(3), row3_slot);
+  EXPECT_TRUE(is_col3_null);
+
+  txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+  delete txn;
+}
+
+// NOLINTNEXTLINE
+TEST_F(SqlTableTests, ModifyDefaultValuesTest) {
+  // Testing the case of adding a column without a default value
+  // and then setting the default value for that column.
+  // This should NOT retro-actively populate the default value for older tuples
+  SqlTableTestRW table(catalog::table_oid_t(2));
+  auto txn = txn_manager_.BeginTransaction();
+
+  // Create a table of 2 columns, with no default values at the start.
+  table.DefineColumn("id", type::TypeId::INTEGER, false, catalog::col_oid_t(0));
+  table.DefineColumn("col1", type::TypeId::INTEGER, false, catalog::col_oid_t(1));
+  table.Create();
+
+  // Insert (1, 100)
+  table.StartInsertRow();
+  table.SetIntColInRow(catalog::col_oid_t(0), 1);
+  table.SetIntColInRow(catalog::col_oid_t(1), 100);
+  storage::TupleSlot row1_slot = table.EndInsertRow(txn);
+
+  // Explicitly set the layout version number
+  table.version_ = storage::layout_version_t(1);
+  // Add a new column WITHOUT a default value
+  table.AddColumn(txn, "col2", type::TypeId::INTEGER, true, catalog::col_oid_t(2));
+
+  // Insert (2, 200, NULL) i.e. nothing passed in for col2
+  table.StartInsertRow();
+  table.SetIntColInRow(catalog::col_oid_t(0), 2);
+  table.SetIntColInRow(catalog::col_oid_t(1), 200);
+  storage::TupleSlot row2_slot = table.EndInsertRow(txn);
+
+  // Now set the default value of the column to something
+  int col2_default = 42;
+  byte *col2_default_bytes = table.IntToByteArray(col2_default);
+  table.SetColumnDefault(catalog::col_oid_t(2), col2_default_bytes);
+  delete[] col2_default_bytes;
+
+  // Add a new column - to trigger the UpdateSchema
+  table.version_ = storage::layout_version_t(2);
+  table.AddColumn(txn, "col3", type::TypeId::INTEGER, true, catalog::col_oid_t(3));
+
+  // Insert (3, 300, 42, NULL) - The default value for col2 will be populated by the execution engine
+  table.StartInsertRow();
+  table.SetIntColInRow(catalog::col_oid_t(0), 3);
+  table.SetIntColInRow(catalog::col_oid_t(1), 300);
+  table.SetIntColInRow(catalog::col_oid_t(2), col2_default);
+  storage::TupleSlot row3_slot = table.EndInsertRow(txn);
+
+  // Validate the tuples
+  // 1st row should be (1, 100, NULL, NULL)
+  uint32_t id = table.GetIntColInRow(txn, catalog::col_oid_t(0), row1_slot);
+  EXPECT_EQ(1, id);
+  uint32_t col1 = table.GetIntColInRow(txn, catalog::col_oid_t(1), row1_slot);
+  EXPECT_EQ(100, col1);
+  bool col2_is_null = table.IsNullColInRow(txn, catalog::col_oid_t(2), row1_slot);
+  EXPECT_TRUE(col2_is_null);
+  bool col3_is_null = table.IsNullColInRow(txn, catalog::col_oid_t(3), row1_slot);
+  EXPECT_TRUE(col3_is_null);
+
+  // 2nd tuple should be (2, 200, NULL, NULL)
+  id = table.GetIntColInRow(txn, catalog::col_oid_t(0), row2_slot);
+  EXPECT_EQ(2, id);
+  col1 = table.GetIntColInRow(txn, catalog::col_oid_t(1), row2_slot);
+  EXPECT_EQ(200, col1);
+  col2_is_null = table.IsNullColInRow(txn, catalog::col_oid_t(2), row2_slot);
+  EXPECT_TRUE(col2_is_null);
+  col3_is_null = table.IsNullColInRow(txn, catalog::col_oid_t(3), row2_slot);
+  EXPECT_TRUE(col3_is_null);
+
+  // 3rd tuple should be (3, 300, 42, NULL)
+  id = table.GetIntColInRow(txn, catalog::col_oid_t(0), row3_slot);
+  EXPECT_EQ(3, id);
+  col1 = table.GetIntColInRow(txn, catalog::col_oid_t(1), row3_slot);
+  EXPECT_EQ(300, col1);
+  uint32_t col2 = table.GetIntColInRow(txn, catalog::col_oid_t(2), row3_slot);
+  EXPECT_EQ(col2_default, col2);
+  col3_is_null = table.IsNullColInRow(txn, catalog::col_oid_t(3), row3_slot);
+  EXPECT_TRUE(col3_is_null);
 
   txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
   delete txn;

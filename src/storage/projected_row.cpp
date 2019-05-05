@@ -4,6 +4,7 @@
 #include <functional>
 #include <numeric>
 #include <set>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 

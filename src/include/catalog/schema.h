@@ -26,6 +26,7 @@ class Schema {
    * the reliance on these classes
    */
   class Column {
+    // TODO(Sai): DON'T use default parameters for function arguments. Everyone should explicitly pass in nullptr.
    public:
     /**
      * Instantiates a Column object, primary to be used for building a Schema object (non VARLEN attributes)
@@ -33,16 +34,25 @@ class Schema {
      * @param type SQL type for this column
      * @param nullable true if the column is nullable, false otherwise
      * @param oid internal unique identifier for this column
+     * @param default_value default value for this column. Null by default
      */
-    Column(std::string name, const type::TypeId type, const bool nullable, const col_oid_t oid)
+    Column(std::string name, const type::TypeId type, const bool nullable, const col_oid_t oid,
+           byte *default_value = nullptr)
         : name_(std::move(name)),
           type_(type),
           attr_size_(type::TypeUtil::GetTypeSize(type_)),
           nullable_(nullable),
-          oid_(oid) {
+          oid_(oid),
+          default_(nullptr) {
       TERRIER_ASSERT(attr_size_ == 1 || attr_size_ == 2 || attr_size_ == 4 || attr_size_ == 8,
                      "This constructor is meant for non-VARLEN columns.");
       TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
+
+      // ASSUMPTION: The default_value passed in is of size attr_size_
+      // Copy the passed in default value (if exists)
+      if (default_value != nullptr) {
+        SetDefault(default_value);
+      }
     }
 
     /**
@@ -61,9 +71,15 @@ class Schema {
           max_varlen_size_(max_varlen_size),
           nullable_(nullable),
           oid_(oid) {
+      // TODO(Sai): How to handle default values for VARLEN?
       TERRIER_ASSERT(attr_size_ == VARLEN_COLUMN, "This constructor is meant for VARLEN columns.");
       TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
     }
+
+    /**
+     * Free the memory allocated to default_ in the destructor
+     */
+    ~Column() = default;
 
     /**
      * @return column name
@@ -94,6 +110,29 @@ class Schema {
      * @return internal unique identifier for this column
      */
     col_oid_t GetOid() const { return oid_; }
+    /**
+     * @return default value for this column
+     */
+    byte *GetDefault() const { return default_; }
+
+    /**
+     * Set the default value of the column
+     * @param default_value default_value as a bytes array. Could be nullptr
+     */
+    void SetDefault(byte *default_value) {
+      // If explicitly setting the default value to null
+      if (default_value == nullptr && default_ != nullptr) {
+        // Free the memory allocated to the default value
+        delete default_;
+        default_ = nullptr;
+      } else {
+        if (default_ == nullptr) {
+          default_ = new byte[attr_size_];
+        }
+        // Copy the new default value
+        std::memcpy(default_, default_value, attr_size_);
+      }
+    }
 
     /**
      * Default constructor for deserialization
@@ -134,8 +173,9 @@ class Schema {
     uint16_t max_varlen_size_;
     bool nullable_;
     col_oid_t oid_;
-    // TODO(Matt): default value would go here
-    // Value default_;
+    // TODO(Sai): Consider having a DefaultValueObject containing isNull, 16-byte variable and attribute size
+    // This avoids handling memory explicitly for default values
+    byte *default_;
   };
 
   /**
