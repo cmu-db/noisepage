@@ -168,7 +168,8 @@ void LogManager::FlushAllBuffers() {
     }
   } while (dequeued);
   // Persist the buffers
-  buffers_[0].Persist();
+  TERRIER_ASSERT(!buffers_.empty(), "Buffers vector should not be empty until Shutdown");
+  buffers_.front().Persist();
 }
 
 void LogManager::WriteValue(const void *val, uint32_t size) {
