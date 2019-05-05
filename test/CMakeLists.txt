@@ -18,5 +18,6 @@ if (TERRIER_BUILD_TESTS)
     add_subdirectory(type)
     add_subdirectory(catalog)
     add_subdirectory(settings)
+    add_subdirectory(planner)
 endif()
 
