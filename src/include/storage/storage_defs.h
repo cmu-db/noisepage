@@ -182,7 +182,7 @@ using InverseColumnMap = std::unordered_map<col_id_t, catalog::col_oid_t>;
  * Used by SqlTable to map between col_oids in Schema and their {default_value, attribute_size}
  */
 // using DefaultValueMap = std::unordered_map<catalog::col_oid_t, std::pair<byte *, uint8_t>>;
-using DefaultValueMap = common::ConcurrentMap<catalog::col_oid_t, std::pair<byte *, uint8_t>>;
+using DefaultValueMap = common::ConcurrentMap<catalog::col_oid_t, std::pair<const byte *, uint8_t>>;
 
 /**
  * Denote whether a record modifies the logical delete column, used when DataTable inspects deltas

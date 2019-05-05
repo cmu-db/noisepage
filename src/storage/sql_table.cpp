@@ -15,6 +15,12 @@ SqlTable::SqlTable(BlockStore *const store, const catalog::Schema &schema, const
 }
 
 SqlTable::~SqlTable() {
+  while (default_value_map_.CBegin() != default_value_map_.CEnd()) {
+    auto pair = *(default_value_map_.CBegin());
+    delete[] pair.second.first;
+    default_value_map_.UnsafeErase(pair.first);
+  }
+
   while (tables_.CBegin() != tables_.CEnd()) {
     auto pair = *(tables_.CBegin());
     delete (pair.second.data_table);  // Delete the data_table object on the heap
@@ -78,11 +84,16 @@ void SqlTable::UpdateSchema(const catalog::Schema &schema) {
   // Populate the default value map
   for (const auto &column : schema.GetColumns()) {
     auto col_oid = column.GetOid();
-    byte *default_value = column.GetDefault();
+    auto *default_value = column.GetDefault();
     // Only populate the default values of the columns which are new and have a default value
     if (default_value_map_.Find(col_oid) == default_value_map_.End()) {
       uint8_t attr_size = column.GetAttrSize();
-      default_value_map_.Insert(column.GetOid(), {default_value, attr_size});
+      byte *temp = nullptr;
+      if (default_value != nullptr) {
+        temp = new byte[attr_size];
+        std::memcpy(temp, default_value, attr_size);
+      }
+      default_value_map_.Insert(column.GetOid(), {temp, attr_size});
     }
   }
 

@@ -316,17 +316,6 @@ class SqlTableTestRW {
     }
   }
 
-  /**
-   * Convert an integer to byte array
-   * @param n an integer
-   * @return byte array
-   */
-  byte *IntToByteArray(int n) {
-    auto byteArray = new byte[sizeof(n)];
-    memcpy(byteArray, reinterpret_cast<char *>(&n), sizeof(n));
-    return byteArray;
-  }
-
  public:
   // This is a public field that transactions can set and read.
   // The purpose is to record the version for each transaction. In reality this information should be retrieved from
@@ -399,7 +388,7 @@ TEST_F(SqlTableTests, SelectTest) {
   int default_val = 42;
   // Add a new column with a default value
   table.AddColumn(txn, "new_col", type::TypeId::INTEGER, true, catalog::col_oid_t(2),
-                  table.IntToByteArray(default_val));
+                  reinterpret_cast<byte *>(&default_val));
 
   id = table.GetIntColInRow(txn, catalog::col_oid_t(0), row1_slot);
   EXPECT_EQ(100, id);
@@ -655,7 +644,7 @@ TEST_F(SqlTableTests, ScanTest) {
   // manually set the version of the transaction to be 1
   table.version_ = storage::layout_version_t(1);
   table.AddColumn(txn, "new_col", type::TypeId::INTEGER, true, catalog::col_oid_t(2),
-                  table.IntToByteArray(new_col_default_value));
+                  reinterpret_cast<byte *>(&new_col_default_value));
 
   // insert (300, 10002, 1729) - Default value populated by the execution engine
   table.StartInsertRow();
@@ -856,7 +845,8 @@ TEST_F(SqlTableTests, BasicDefaultValuesTest) {
   // Explicitly set the layout version number
   table.version_ = storage::layout_version_t(1);
   int col2_default = 42;
-  table.AddColumn(txn, "col2", type::TypeId::INTEGER, true, catalog::col_oid_t(2), table.IntToByteArray(col2_default));
+  table.AddColumn(txn, "col2", type::TypeId::INTEGER, true, catalog::col_oid_t(2),
+                  reinterpret_cast<byte *>(&col2_default));
 
   // Insert (2, NULL, 890)
   table.StartInsertRow();
@@ -875,7 +865,8 @@ TEST_F(SqlTableTests, BasicDefaultValuesTest) {
   // Add another column with a default value and insert a row
   table.version_ = storage::layout_version_t(2);
   int col3_default = 1729;
-  table.AddColumn(txn, "col3", type::TypeId::INTEGER, true, catalog::col_oid_t(3), table.IntToByteArray(col3_default));
+  table.AddColumn(txn, "col3", type::TypeId::INTEGER, true, catalog::col_oid_t(3),
+                  reinterpret_cast<byte *>(&col3_default));
 
   // Insert (3, 300, NULL, NULL)
   table.StartInsertRow();
@@ -950,9 +941,8 @@ TEST_F(SqlTableTests, ModifyDefaultValuesTest) {
 
   // Now set the default value of the column to something
   int col2_default = 42;
-  byte *col2_default_bytes = table.IntToByteArray(col2_default);
+  auto *col2_default_bytes = reinterpret_cast<byte *>(&col2_default);
   table.SetColumnDefault(catalog::col_oid_t(2), col2_default_bytes);
-  delete[] col2_default_bytes;
 
   // Add a new column - to trigger the UpdateSchema
   table.version_ = storage::layout_version_t(2);
