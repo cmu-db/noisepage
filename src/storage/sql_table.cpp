@@ -82,6 +82,10 @@ void SqlTable::UpdateSchema(const catalog::Schema &schema) {
   }
 
   // Populate the default value map
+  //
+  // clang's memory analysis gets confused by the iterator here.  This is tied
+  // to the same false positive identified inside of the loop and is caused.
+  // NOLINTNEXTLINE
   for (const auto &column : schema.GetColumns()) {
     auto col_oid = column.GetOid();
     auto *default_value = column.GetDefault();
