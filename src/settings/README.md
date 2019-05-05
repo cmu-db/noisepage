@@ -6,7 +6,7 @@
 
 The Settings Manager is a place for all configurations of the system. It offers programmatic interfaces for defining, accessing and modifying configuration parameters for all parts of the system. Although there is a `pg_settings` table in the catalog that does similar things, the internal parts don't want to access its configurations with troublesome SQL statements. Therefore, we provide `set` and `get` methods to them. The access and modify methods are designed to be able to detect wrong parameter names at compilation time. 
 
-It is responsible for loading the configurations from the default values, `gflags`, and the config file. It also supports callback triggers: you can define a callback function for each configurable parameter. When the parameter is changed, the Settings Manager will call that function for you. For example, when someone scales down the number of GC threads from 8 to 6, the Settings Manager will tell the Garbage Collector to shut down 2 threads via the callback tied to that parameter.
+It is responsible for loading the configurations from the default values, `gflags`, and the config file. It also supports callback triggers: you can define a callback function for each configurable parameter. When the parameter is changed, the Settings Manager will call that function for you. For example, when someone scales down the number of GC threads from 8 to 6, the Settings Manager will tell the Garbage Collector to shut down 2 threads via the callback tied to that parameter. Besides, the Settings Manager supports action context, which records information relevant to the setting value deployment. The caller of `set` methods can pass in a callback function to analyze the action context.
 
 Having a Settings Manager in the system eliminates all hardcoding stuff and its compilation time saves a lot of debugging efforts. In addition, it will be a critical part for a self-driving database system where quite a lot of parameters will be modified online.
 
@@ -16,7 +16,7 @@ Having a Settings Manager in the system eliminates all hardcoding stuff and its 
 
 The Settings Manager relies on the following parts:
 
-- The main database object. The callbacks should be defined in the main database object because only the main object has all the pointers to the different parts of the system. The Settings Manager will invoke them when the corresponding parameter is changed.
+- The main database object `DBMain`. The callbacks should be defined in the main database object because only the main object has all the pointers to the different parts of the system. The Settings Manager will invoke them when the corresponding parameter is changed. Only settings manager have access to the main database object.
 - The catalog and the Transaction Manager. Currently, we are maintaining a physical `pg_settings` table in the catalog. Therefore, in order to keep consistent, we have to update `pg_settings` every time a parameter is changed, and updating the catalog needs to be done in a transaction. 
 
 ## Glossary (Optional)
@@ -29,9 +29,9 @@ The Settings Manager relies on the following parts:
 
 The Settings Manager is a relatively independent component in the system. It mainly serves as a storage component except when it wants to invoke callbacks.
 
-For parameter definitions, it will read the definitions from `settings.h`. Then, it will overwrite the default values if another parameter value is specified in `gflags` or the config file. After that, it will serve `get` and `set` calls from any part of the system.
+For parameter definitions, they are parsed by GFlags framework in the main() function and populated to a map inside `DBMain` object. The Settings Manager will check the setting values in DBMain. After that, it will serve `get` and `set` calls from any part of the system.
 
-For callbacks, when a parameter is changed, the Settings Manager will invoke its associated callback function in the main database object. The change is done asynchronously: the Settings Manager will not wait until the change is enforced. Instead, it will expect to return immediately. Then, there is a callback in the Settings Manager itself to receive reports from the parts. The information is passed via an ActionContext object.
+For callbacks, when a parameter is changed, the Settings Manager will invoke its associated callback function in the main database object. The change can be done either synchronously or asynchronously. If it's invoked in an asynchronous manner: the Settings Manager will not wait until the change is enforced. Instead, it will expect to return immediately. Then, there is a callback in the Settings Manager itself to receive reports from the parts. The information is passed via an ActionContext object.
 
 ## Design Rationale
 
@@ -53,7 +53,7 @@ Although macros are confusing and not straightforward, it offers more benefits t
 
 In the current design, users only need to define his parameter in `settings.h` only once, and the Settings Manager will do the `enum`, `gflags` and initialization stuff for them by simply `#include settings.h` and interpret `SETTING_xxx` in different ways.
 
-### Internal Map
+### Internal and External Map
 
 Although there is a physical `pg_settings` table in the catalogs where we can find all the information about a parameter, we finally decided that there should be a map that contains the values of parameters. Why? Because:
 
@@ -62,6 +62,8 @@ Although there is a physical `pg_settings` table in the catalogs where we can fi
 - Since the number of parameters is low, an extra map won't introduce much overhead.
 
 - Although this essentially turned the Settings Manager as a cache layer for the `pg_settings` table, its consistency is easy to maintain (just update the catalog in `set` methods).
+
+This value map is an external map actually stored in DBMain. We also have another internal callback map, which maps a setting to its callback. It should be immutable during runtime,
 
 ## Testing Plan
 

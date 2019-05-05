@@ -126,7 +126,6 @@ class SettingsManager {
   DBMain *db_;
   catalog::SettingsHandle settings_handle_;
   transaction::TransactionManager *txn_manager_;
-  std::unordered_map<Param, ParamInfo> param_map_;
   std::unordered_map<Param, callback_fn> callback_map_;
 
   void ValidateSetting(Param param, const type::TransientValue &min_value, const type::TransientValue &max_value,
