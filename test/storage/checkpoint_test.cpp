@@ -83,16 +83,15 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryNoSeparateThread) {
   const uint32_t num_rows = 100000;
   const uint32_t num_columns = 3;
   int magic_seed = 13523777;
+  double null_bias = 0.2;
   // initialize test
   auto tested = RandomSqlTableTestObject();
   std::default_random_engine random_generator(magic_seed);
-  tested.GenerateRandomColumns(num_columns, true, &random_generator);
-  tested.Create();
-  tested.InsertRandomRows(num_rows, 0.2, &random_generator);
+  auto table_pair = tested.GenerateAndPopulateRandomTable(num_columns, true, &random_generator, num_rows, null_bias);
 
-  storage::SqlTable *table = tested.GetTable();
+  storage::SqlTable *table = table_pair.first;
   //  storage::BlockLayout layout = tested.GetLayout();
-  catalog::Schema *schema = tested.GetSchema();
+  catalog::Schema *schema = table_pair.second;
   transaction::TransactionManager *txn_manager = tested.GetTxnManager();
 
   // checkpoint
@@ -135,6 +134,8 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryNoSeparateThread) {
   delete scan_txn;
   delete scan_txn_2;
   delete recovery_txn;
+  delete table;
+  delete schema;
 }
 
 // NOLINTNEXTLINE
@@ -142,15 +143,16 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryNoVarlen) {
   const uint32_t num_rows = 100;
   const uint32_t num_columns = 3;
   int magic_seed = 13523;
+  double null_bias = 0.2;
+
   // initialize test
   auto tested = RandomSqlTableTestObject();
   std::default_random_engine random_generator(magic_seed);
-  tested.GenerateRandomColumns(num_columns, false, &random_generator);
-  tested.Create();
-  tested.InsertRandomRows(num_rows, 0.2, &random_generator);
+  auto table_pair = tested.GenerateAndPopulateRandomTable(num_columns, false, &random_generator, num_rows, null_bias);
 
-  storage::SqlTable *table = tested.GetTable();
-  catalog::Schema *schema = tested.GetSchema();
+  storage::SqlTable *table = table_pair.first;
+  //  storage::BlockLayout layout = tested.GetLayout();
+  catalog::Schema *schema = table_pair.second;
   transaction::TransactionManager *txn_manager = tested.GetTxnManager();
 
   // checkpoint
@@ -193,6 +195,8 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryNoVarlen) {
   delete scan_txn;
   delete scan_txn_2;
   delete recovery_txn;
+  delete table;
+  delete schema;
 }
 
 // NOLINTNEXTLINE
@@ -200,15 +204,16 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryWithVarlen) {
   const uint32_t num_rows = 1000;
   const uint32_t num_columns = 3;
   int magic_seed = 13523777;
+  double null_bias = 0.2;
+
   // initialize test
   auto tested = RandomSqlTableTestObject();
   std::default_random_engine random_generator(magic_seed);
-  tested.GenerateRandomColumns(num_columns, true, &random_generator);
-  tested.Create();
-  tested.InsertRandomRows(num_rows, 0.2, &random_generator);
+  auto table_pair = tested.GenerateAndPopulateRandomTable(num_columns, true, &random_generator, num_rows, null_bias);
 
-  storage::SqlTable *table = tested.GetTable();
-  catalog::Schema *schema = tested.GetSchema();
+  storage::SqlTable *table = table_pair.first;
+  //  storage::BlockLayout layout = tested.GetLayout();
+  catalog::Schema *schema = table_pair.second;
   transaction::TransactionManager *txn_manager = tested.GetTxnManager();
 
   // checkpoint
@@ -251,6 +256,8 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryWithVarlen) {
   delete scan_txn;
   delete scan_txn_2;
   delete recovery_txn;
+  delete table;
+  delete schema;
 }
 
 // NOLINTNEXTLINE
@@ -258,15 +265,16 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryWithHugeRow) {
   const uint32_t num_rows = 100;
   const uint32_t num_columns = 512;  // single row size is greater than the page size
   int magic_seed = 13523777;
+  double null_bias = 0.2;
+
   // initialize test
   auto tested = RandomSqlTableTestObject();
   std::default_random_engine random_generator(magic_seed);
-  tested.GenerateRandomColumns(num_columns, false, &random_generator);
-  tested.Create();
-  tested.InsertRandomRows(num_rows, 0.2, &random_generator);
+  auto table_pair = tested.GenerateAndPopulateRandomTable(num_columns, false, &random_generator, num_rows, null_bias);
 
-  storage::SqlTable *table = tested.GetTable();
-  catalog::Schema *schema = tested.GetSchema();
+  storage::SqlTable *table = table_pair.first;
+  //  storage::BlockLayout layout = tested.GetLayout();
+  catalog::Schema *schema = table_pair.second;
   transaction::TransactionManager *txn_manager = tested.GetTxnManager();
 
   // checkpoint
@@ -309,6 +317,8 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryWithHugeRow) {
   delete scan_txn;
   delete scan_txn_2;
   delete recovery_txn;
+  delete table;
+  delete schema;
 }
 
 //// NOLINTNEXTLINE

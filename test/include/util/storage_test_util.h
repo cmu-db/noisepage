@@ -437,12 +437,6 @@ struct StorageTestUtil {
 class RandomSqlTableTestObject {
  public:
   RandomSqlTableTestObject() = default;
-  ~RandomSqlTableTestObject() {
-    delete pri_;
-    delete pr_map_;
-    delete schema_;
-    delete table_;
-  }
 
   /**
    * Generate random columns, and add them sequencially to the internal list.
@@ -483,9 +477,9 @@ class RandomSqlTableTestObject {
   /**
    * Create the SQL table.
    */
-  void Create() {
+  void Create(catalog::table_oid_t table_oid) {
     schema_ = new catalog::Schema(cols_);
-    table_ = new storage::SqlTable(&block_store_, *schema_, table_oid_);
+    table_ = new storage::SqlTable(&block_store_, *schema_, table_oid);
 
     for (const auto &c : cols_) {
       col_oids_.emplace_back(c.GetOid());
@@ -559,6 +553,31 @@ class RandomSqlTableTestObject {
 
   catalog::Schema *GetSchema() { return schema_; }
 
+  /**
+   * Generate a random sqlTable, and return the table with its schema. These 2 objects need to be freed manually.
+   * @tparam Random Random generator class
+   * @param num_cols number of columns in the table
+   * @param varlen_allowed whether the table contains varlen columns
+   * @param generator Random generator object
+   * @param num_rows number of row in the table
+   * @param null_bias bias towards null value.
+   * @return a pair of SqlTable and its Schema object.
+   */
+  template <class Random>
+  std::pair<storage::SqlTable *, catalog::Schema *> GenerateAndPopulateRandomTable(
+          int num_cols, bool varlen_allowed, Random *generator, const int num_rows, const double null_bias) {
+
+    GenerateRandomColumns(num_cols, varlen_allowed, generator);
+    Create(catalog::table_oid_t(table_oid_));
+    table_oid_++;
+    InsertRandomRows(num_rows, null_bias, generator);
+
+    delete pri_;
+    delete pr_map_;
+
+    return {table_, schema_};
+  }
+
  private:
   static std::vector<type::TypeId> DataTypeAll(bool varlen_allowed) {
     if (varlen_allowed) return {type::TypeId::INTEGER, type::TypeId::VARCHAR};
@@ -569,8 +588,8 @@ class RandomSqlTableTestObject {
   transaction::TransactionManager txn_manager_ = {&buffer_pool_, true, LOGGING_DISABLED};
 
   storage::BlockStore block_store_{10000, 10000};
-  catalog::table_oid_t table_oid_{2};
   storage::SqlTable *table_ = nullptr;
+  uint32_t table_oid_ = 1;
 
   catalog::Schema *schema_ = nullptr;
   std::vector<catalog::Schema::Column> cols_;
