@@ -50,7 +50,7 @@ void SqlRandomWorkloadTransaction::RandomUpdate(Random *generator) {
   
   // TODO(Tianyu): Hardly efficient, but will do for testing.
   if (test_object_->wal_on_ || test_object_->bookkeeping_) {
-    auto *record = txn_->StageWrite(&test_object_->table_, updated, initializer);
+    auto *record = txn_->StageWrite(&test_object_->table_.get_data_table(), updated, initializer);
     std::memcpy(reinterpret_cast<void *>(record->Delta()), update, update->Size());
   }
   auto result = test_object_->table_.Update(txn_, updated, *update);
@@ -81,7 +81,7 @@ void SqlRandomWorkloadTransaction::Finish() {
   if (aborted_)
     test_object_->txn_manager_.Abort(txn_);
   else
-    commit_time_ = test_object_->txn_manager_.Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
+    commit_time_ = test_object_->txn_manager_.Commit(txn_, SqlTestCallbacks::EmptyCallback, nullptr);
 }
 
 SqlLargeTransactionTestObject::SqlLargeTransactionTestObject(uint16_t max_columns, uint32_t initial_table_size,
@@ -94,9 +94,10 @@ SqlLargeTransactionTestObject::SqlLargeTransactionTestObject(uint16_t max_column
   : txn_length_(txn_length),
     update_select_ratio_(std::move(update_select_ratio)),
     generator_(generator),
-    layout_(varlen_allowed ? StorageTestUtil::RandomLayoutWithVarlens(max_columns, generator_)
-                           : StorageTestUtil::RandomLayoutNoVarlen(max_columns, generator_)),
-    table_(block_store, layout_, storage::layout_version_t(0)),
+    schema_(StorageTestUtil::GenerateRandomSchema(max_columns, generator_, varlen_allowed)),
+    layout_(FromS)
+    sql_table_(block_store, schema_, catalog::table_oid_t(0)),
+    table_(sql_table_.get_data_table()),
     txn_manager_(buffer_pool, gc_on, log_manager),
     gc_on_(gc_on),
     wal_on_(log_manager != LOGGING_DISABLED),
@@ -113,7 +114,7 @@ SqlLargeTransactionTestObject::~SqlLargeTransactionTestObject() {
 }
 
 // Caller is responsible for freeing the returned results if bookkeeping is on.
-SimulationResult SqlLargeTransactionTestObject::SimulateOltp(uint32_t num_transactions, uint32_t num_concurrent_txns) {
+SqlSimulationResult SqlLargeTransactionTestObject::SimulateOltp(uint32_t num_transactions, uint32_t num_concurrent_txns) {
   std::vector<SqlRandomWorkloadTransaction *> txns;
   std::function<void(uint32_t)> workload;
   std::atomic<uint32_t> txns_run = 0;
@@ -212,7 +213,7 @@ void SqlLargeTransactionTestObject::PopulateInitialTable(uint32_t num_tuples, Ra
     }
     last_checked_version_.emplace_back(inserted, bookkeeping_ ? redo : nullptr);
   }
-  txn_manager_.Commit(initial_txn_, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(initial_txn_, SqlTestCallbacks::EmptyCallback, nullptr);
   // cleanup if not keeping track of all the inserts.
   if (!bookkeeping_) delete[] redo_buffer;
 }

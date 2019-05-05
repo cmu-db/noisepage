@@ -14,6 +14,11 @@
 
 namespace terrier {
 
+struct SqlTestCallbacks {
+  SqlTestCallbacks() = delete;
+  static void EmptyCallback(void * /*unused*/) {}
+};
+
 class SqlLargeTransactionTestObject;
 class SqlRandomWorkloadTransaction;
 using TupleEntry = std::pair<storage::TupleSlot, storage::ProjectedRow *>;
@@ -309,8 +314,10 @@ private:
   uint32_t txn_length_;
   std::vector<double> update_select_ratio_;
   std::default_random_engine *generator_;
+  catalog::Schema schema_;
   storage::BlockLayout layout_;
-  storage::SqlTable table_;
+  storage::SqlTable sql_table_;
+  storage::DataTable* table_;
   transaction::TransactionManager txn_manager_;
   transaction::TransactionContext *initial_txn_;
   bool gc_on_, wal_on_, bookkeeping_;
