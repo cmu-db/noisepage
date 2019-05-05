@@ -141,9 +141,11 @@ class SettingsManager {
                        callback_fn callback);
 
   type::TransientValue &GetValue(Param param);
-  void SetValue(Param param, const type::TransientValue &value);
+  bool SetValue(Param param, const type::TransientValue &value);
   bool ValidateValue(const type::TransientValue &value, const type::TransientValue &min_value,
                      const type::TransientValue &max_value);
+  common::ActionState InvokeCallback(Param param, void *old_value, void *new_value,
+                                     std::shared_ptr<common::ActionContext> action_context);
 };
 
 }  // namespace terrier::settings
