@@ -100,7 +100,8 @@ TEST_F(SettingsTests, BasicTest) {
   const int32_t action_id = 1;
   setter_callback_fn setter_callback = SettingsTests::EmptySetterCallback;
   std::shared_ptr<common::ActionContext> action_context = std::make_shared<common::ActionContext>(action_id);
-  EXPECT_THROW(settings_manager_->SetInt(Param::port, 23333, action_context, setter_callback), SettingsException);
+  settings_manager_->SetInt(Param::port, 23333, action_context, setter_callback);
+  EXPECT_EQ(common::ActionState::FAILURE, action_context->GetState());
 }
 
 // NOLINTNEXTLINE
