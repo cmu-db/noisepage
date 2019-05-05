@@ -20,6 +20,9 @@ int main(int argc, char *argv[]) {
   ::google::ParseCommandLineFlags(&argc, &argv, true);
   std::unordered_map<terrier::settings::Param, terrier::settings::ParamInfo> param_map;
 
+  // initialize stat registry
+  auto main_stat_reg = std::make_shared<terrier::common::StatisticsRegistry>();
+
   /*
    * Populate gflag values to param map.
    * This will expand to a list of code like:

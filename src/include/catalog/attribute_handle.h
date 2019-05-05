@@ -27,7 +27,7 @@ class AttributeEntry : public CatalogEntry<col_oid_t> {
    * @param sql_table associated with this entry
    * @param entry a row in pg_attribute that represents this table
    */
-  AttributeEntry(col_oid_t oid, catalog::SqlTableRW *sql_table, std::vector<type::TransientValue> &&entry)
+  AttributeEntry(col_oid_t oid, catalog::SqlTableHelper *sql_table, std::vector<type::TransientValue> &&entry)
       : CatalogEntry(oid, sql_table, std::move(entry)) {}
 };
 
@@ -50,8 +50,7 @@ class AttributeHandle {
    * Construct an attribute handle
    * @param pg_attribute a pointer to pg_attribute sql table rw helper instance
    */
-  explicit AttributeHandle(std::shared_ptr<catalog::SqlTableRW> pg_attribute)
-      : pg_attribute_hrw_(std::move(pg_attribute)) {}
+  explicit AttributeHandle(SqlTableHelper *pg_attribute) : pg_attribute_hrw_(pg_attribute) {}
 
   /**
    * Convert a attribute string to its oid representation
@@ -82,10 +81,17 @@ class AttributeHandle {
                                                     const std::string &name);
 
   /**
+   * Delete all entries matching table_oid
+   * @param txn transaction
+   * @param table_oid to match
+   */
+  void DeleteEntries(transaction::TransactionContext *txn, table_oid_t table_oid);
+
+  /**
    * Create the storage table
    */
-  static std::shared_ptr<catalog::SqlTableRW> Create(transaction::TransactionContext *txn, Catalog *catalog,
-                                                     db_oid_t db_oid, const std::string &name);
+  static SqlTableHelper *Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,
+                                const std::string &name);
 
   // start Debug methods
   /**
@@ -100,11 +106,9 @@ class AttributeHandle {
 
   /** Used schema columns */
   static const std::vector<SchemaCol> schema_cols_;
-  /** Unused schema columns */
-  static const std::vector<SchemaCol> unused_schema_cols_;
 
  private:
-  std::shared_ptr<catalog::SqlTableRW> pg_attribute_hrw_;
+  catalog::SqlTableHelper *pg_attribute_hrw_;
 };
 
 }  // namespace terrier::catalog

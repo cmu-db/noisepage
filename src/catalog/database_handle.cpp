@@ -14,21 +14,27 @@
 
 namespace terrier::catalog {
 
-const std::vector<SchemaCol> DatabaseHandle::schema_cols_ = {{0, "oid", type::TypeId::INTEGER},
-                                                             {1, "datname", type::TypeId::VARCHAR}};
-
-const std::vector<SchemaCol> DatabaseHandle::unused_schema_cols_ = {
-    {2, "datdba", type::TypeId::INTEGER},        {3, "encoding", type::TypeId::INTEGER},
-    {4, "datcollate", type::TypeId::VARCHAR},    {5, "datctype", type::TypeId::VARCHAR},
-    {6, "datistemplate", type::TypeId::BOOLEAN}, {7, "datallowconn", type::TypeId::BOOLEAN},
-    {8, "datconnlimit", type::TypeId::INTEGER}};
+const std::vector<SchemaCol> DatabaseHandle::schema_cols_ = {{0, true, "oid", type::TypeId::INTEGER},
+                                                             {1, true, "datname", type::TypeId::VARCHAR},
+                                                             {2, false, "datdba", type::TypeId::INTEGER},
+                                                             {3, false, "encoding", type::TypeId::INTEGER},
+                                                             {4, false, "datcollate", type::TypeId::VARCHAR},
+                                                             {5, false, "datctype", type::TypeId::VARCHAR},
+                                                             {6, false, "datistemplate", type::TypeId::BOOLEAN},
+                                                             {7, false, "datallowconn", type::TypeId::BOOLEAN},
+                                                             {8, false, "datconnlimit", type::TypeId::INTEGER},
+                                                             {9, false, "datlasysiod", type::TypeId::INTEGER},
+                                                             {10, false, "datfrozenxid", type::TypeId::INTEGER},
+                                                             {11, false, "datminmxid", type::TypeId::INTEGER},
+                                                             {12, false, "dattablespace", type::TypeId::INTEGER},
+                                                             {13, false, "datacl", type::TypeId::INTEGER}};
 
 /**
  * Handle methods
  */
 
-DatabaseHandle::DatabaseHandle(Catalog *catalog, std::shared_ptr<catalog::SqlTableRW> pg_database)
-    : catalog_(catalog), pg_database_rw_(std::move(pg_database)) {}
+DatabaseHandle::DatabaseHandle(Catalog *catalog, SqlTableHelper *pg_database)
+    : catalog_(catalog), pg_database_rw_(pg_database) {}
 
 ClassHandle DatabaseHandle::GetClassHandle(transaction::TransactionContext *txn, db_oid_t oid) {
   std::string pg_class("pg_class");
@@ -58,16 +64,14 @@ std::shared_ptr<DatabaseEntry> DatabaseHandle::GetDatabaseEntry(transaction::Tra
   std::vector<type::TransientValue> search_vec;
   search_vec.push_back(type::TransientValueFactory::GetInteger(!oid));
   auto row_vec = pg_database_rw->FindRow(txn, search_vec);
-  return std::make_shared<DatabaseEntry>(oid, pg_database_rw.get(), std::move(row_vec));
+  if (row_vec.empty()) {
+    return nullptr;
+  }
+  return std::make_shared<DatabaseEntry>(oid, pg_database_rw, std::move(row_vec));
 }
 
 std::shared_ptr<DatabaseEntry> DatabaseHandle::GetDatabaseEntry(transaction::TransactionContext *txn,
                                                                 const std::string &db_name) {
-  // we don't need to do this lookup. pg_database is global
-  // auto pg_database_rw = catalog_->GetCatalogTable(DEFAULT_DATABASE_OID, "pg_database");
-
-  // just use pg_database_
-
   std::vector<type::TransientValue> search_vec;
   search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
   search_vec.push_back(type::TransientValueFactory::GetVarChar(db_name));
@@ -77,7 +81,7 @@ std::shared_ptr<DatabaseEntry> DatabaseHandle::GetDatabaseEntry(transaction::Tra
   }
   // specifying the oid is redundant. Eliminate?
   db_oid_t oid(type::TransientValuePeeker::PeekInteger(row_vec[0]));
-  return std::make_shared<DatabaseEntry>(oid, pg_database_rw_.get(), std::move(row_vec));
+  return std::make_shared<DatabaseEntry>(oid, pg_database_rw_, std::move(row_vec));
 }
 
 bool DatabaseHandle::DeleteEntry(transaction::TransactionContext *txn, const std::shared_ptr<DatabaseEntry> &entry) {

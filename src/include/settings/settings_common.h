@@ -5,6 +5,8 @@
 //    setting definitions will be exposed through glfags declarations.
 // When __SETTING_DEFINE__ is set,
 //    setting definitions will be exposed through defitions in settings_manager.
+// When __SETTING_POPULATE__ is set,
+//    setting definitions will be exposed through definitions in main function.
 // When __SETTING_ENUM__ is set,
 //    setting definitions will be exposed through Param.
 

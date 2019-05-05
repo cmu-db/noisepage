@@ -25,7 +25,7 @@ class NamespaceEntry : public CatalogEntry<namespace_oid_t> {
    * @param sql_table associated with this entry
    * @param entry a row in pg_namespace that represents this table
    */
-  NamespaceEntry(namespace_oid_t oid, catalog::SqlTableRW *sql_table, std::vector<type::TransientValue> &&entry)
+  NamespaceEntry(namespace_oid_t oid, catalog::SqlTableHelper *sql_table, std::vector<type::TransientValue> &&entry)
       : CatalogEntry(oid, sql_table, std::move(entry)) {}
 };
 
@@ -42,8 +42,8 @@ class NamespaceHandle {
    * @param oid the db oid of the underlying database
    * @param pg_namespace a pointer to pg_namespace sql table rw helper instance
    */
-  explicit NamespaceHandle(Catalog *catalog, db_oid_t oid, std::shared_ptr<catalog::SqlTableRW> pg_namespace)
-      : catalog_(catalog), db_oid_(oid), pg_namespace_hrw_(std::move(pg_namespace)) {}
+  explicit NamespaceHandle(Catalog *catalog, db_oid_t oid, SqlTableHelper *pg_namespace)
+      : catalog_(catalog), db_oid_(oid), pg_namespace_hrw_(pg_namespace) {}
 
   /**
    * Convert a namespace string to its oid representation
@@ -82,6 +82,14 @@ class NamespaceHandle {
   void AddEntry(transaction::TransactionContext *txn, const std::string &name);
 
   /**
+   * Delete an entry
+   * @param txn transaction
+   * @param entry to delete
+   * @return true on success
+   */
+  bool DeleteEntry(transaction::TransactionContext *txn, const std::shared_ptr<NamespaceEntry> &entry);
+
+  /**
    * Get a table handle under the given namespace
    * @param txn the transaction context
    * @param nsp_name the namespace
@@ -90,10 +98,18 @@ class NamespaceHandle {
   TableHandle GetTableHandle(transaction::TransactionContext *txn, const std::string &nsp_name);
 
   /**
+   * Get a table handle under the given namespace
+   * @param txn the transaction context
+   * @param ns_oid
+   * @return a handle to all the tables under the namespace
+   */
+  TableHandle GetTableHandle(transaction::TransactionContext *txn, namespace_oid_t ns_oid);
+
+  /**
    * Create the storage table
    */
-  static std::shared_ptr<catalog::SqlTableRW> Create(transaction::TransactionContext *txn, Catalog *catalog,
-                                                     db_oid_t db_oid, const std::string &name);
+  static SqlTableHelper *Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,
+                                const std::string &name);
 
   /**
    * Debug methods
@@ -102,14 +118,12 @@ class NamespaceHandle {
 
   /** Used schema columns */
   static const std::vector<SchemaCol> schema_cols_;
-  /** Unused schema columns */
-  static const std::vector<SchemaCol> unused_schema_cols_;
 
  private:
   Catalog *catalog_;
   // database parent of this namespace
   db_oid_t db_oid_;
-  std::shared_ptr<catalog::SqlTableRW> pg_namespace_hrw_;
+  catalog::SqlTableHelper *pg_namespace_hrw_;
 };
 
 }  // namespace terrier::catalog

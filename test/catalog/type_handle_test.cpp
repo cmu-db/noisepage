@@ -29,7 +29,6 @@ struct TypeHandleTest : public TerrierTest {
   transaction::TransactionManager *txn_manager_;
 };
 
-// Tests that we can get the default namespace and get the correct value from the corresponding row in pg_namespace
 // NOLINTNEXTLINE
 TEST_F(TypeHandleTest, BasicCorrectnessTest) {
   // terrier has db_oid_t DEFAULT_DATABASE_OID
@@ -42,6 +41,19 @@ TEST_F(TypeHandleTest, BasicCorrectnessTest) {
 
   EXPECT_EQ(type::TransientValuePeeker::PeekInteger(type_entry_ptr->GetColumn(3)),
             type::TypeUtil::GetTypeSize(type::TypeId::INTEGER));
+}
+
+// NOLINTNEXTLINE
+TEST_F(TypeHandleTest, OidLookupTest) {
+  // terrier has db_oid_t DEFAULT_DATABASE_OID
+  const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
+  auto db_handle = catalog_->GetDatabaseHandle();
+  auto type_handle = db_handle.GetTypeHandle(txn_, terrier_oid);
+
+  // check name to oid for a valid name
+  auto UNUSED_ATTRIBUTE type_oid = type_handle.TypeToOid(txn_, "integer");
+
+  EXPECT_THROW(type_handle.TypeToOid(txn_, "no_such_integer"), CatalogException);
 }
 
 }  // namespace terrier

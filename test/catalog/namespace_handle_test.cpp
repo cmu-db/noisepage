@@ -64,6 +64,29 @@ TEST_F(NamespaceHandleTests, CreateTest) {
   // verify correctly created
   auto namespace_entry_ptr = namespace_handle.GetNamespaceEntry(txn_, "test_namespace");
   EXPECT_EQ("test_namespace", namespace_entry_ptr->GetVarcharColumn("nspname"));
-  // EXPECT_EQ("test_namespace", type::TransientValuePeeker::PeekVarChar(namespace_entry_ptr->GetColumn(1)));
+
+  // test deletion
+  namespace_handle.DeleteEntry(txn_, namespace_entry_ptr);
+  namespace_entry_ptr = namespace_handle.GetNamespaceEntry(txn_, "test_namespace");
+  EXPECT_EQ(nullptr, namespace_entry_ptr);
 }
+
+// Test oid lookup
+// NOLINTNEXTLINE
+TEST_F(NamespaceHandleTests, OidLookupTest) {
+  // terrier has db_oid_t DEFAULT_DATABASE_OID
+  const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
+  auto db_handle = catalog_->GetDatabaseHandle();
+  auto namespace_handle = db_handle.GetNamespaceHandle(txn_, terrier_oid);
+  namespace_handle.AddEntry(txn_, "test_namespace");
+
+  // verify that we can get to an oid
+  auto UNUSED_ATTRIBUTE ns_oid = namespace_handle.NameToOid(txn_, "test_namespace");
+
+  // delete it
+  auto namespace_entry_ptr = namespace_handle.GetNamespaceEntry(txn_, "test_namespace");
+  namespace_handle.DeleteEntry(txn_, namespace_entry_ptr);
+  EXPECT_THROW(namespace_handle.NameToOid(txn_, "test_namespace"), CatalogException);
+}
+
 }  // namespace terrier

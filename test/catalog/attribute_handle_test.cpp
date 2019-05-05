@@ -54,7 +54,7 @@ TEST_F(AttributeHandleTests, BasicCorrectnessTest) {
   uint32_t rel_id = type::TransientValuePeeker::PeekInteger(attribute_entry_ptr->GetColumn(1));
   EXPECT_EQ(rel_id, !table_handle.NameToOid(txn_, "pg_database"));
 
-  // pg_database doesn't have column "attrelid". Searching for such column should result in an exception.
-  EXPECT_THROW(attribute_handle.GetAttributeEntry(txn_, terrier_table_oid, "attrlid"), CatalogException);
+  attribute_entry_ptr = attribute_handle.GetAttributeEntry(txn_, terrier_table_oid, "attrlid");
+  EXPECT_EQ(nullptr, attribute_entry_ptr);
 }
 }  // namespace terrier
