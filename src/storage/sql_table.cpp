@@ -80,9 +80,9 @@ void SqlTable::UpdateSchema(const catalog::Schema &schema) {
     auto col_oid = column.GetOid();
     byte *default_value = column.GetDefault();
     // Only populate the default values of the columns which are new and have a default value
-    if (default_value_map_.count(col_oid) == 0) {
+    if (default_value_map_.Find(col_oid) == default_value_map_.End()) {
       uint8_t attr_size = column.GetAttrSize();
-      default_value_map_[column.GetOid()] = {default_value, attr_size};
+      default_value_map_.Insert(column.GetOid(), {default_value, attr_size});
     }
   }
 
@@ -133,8 +133,11 @@ bool SqlTable::Select(transaction::TransactionContext *const txn, const TupleSlo
 
   // Fill in the default values for the missing columns
   for (catalog::col_oid_t col_oid : missing_col_oids) {
-    TERRIER_ASSERT(default_value_map_.count(col_oid) > 0, "Every column in schema must exist in default_value_map");
-    const auto &[default_value, attr_size] = default_value_map_.at(col_oid);
+    TERRIER_ASSERT(default_value_map_.Find(col_oid) != default_value_map_.CEnd(),
+        "Every column in schema must exist in default_value_map");
+    auto pair = default_value_map_.Find(col_oid)->second;
+    auto default_value = pair.first;
+    auto attr_size = pair.second;
     // TODO(Sai): If this becomes a performance bottleneck, we can move this logic to ModifyProjectionHeaderForVersion
     storage::StorageUtil::CopyWithNullCheck(default_value, out_buffer, attr_size, pr_map.at(col_oid));
   }
@@ -314,9 +317,11 @@ void SqlTable::Scan(transaction::TransactionContext *const txn, SqlTable::SlotIt
     for (uint32_t row_idx = 0; row_idx < filled; row_idx++) {
       ProjectedColumns::RowView row = out_buffer->InterpretAsRow(row_idx);
       for (catalog::col_oid_t col_oid : missing_col_oids) {
-        TERRIER_ASSERT(default_value_map_.count(col_oid) > 0, "Every column in schema must exist in default_value_map");
-        const auto &[default_value, attr_size] = default_value_map_.at(col_oid);
-        // ModifyProjectionHeaderForVersion
+        TERRIER_ASSERT(default_value_map_.Find(col_oid) != default_value_map_.CEnd(),
+                       "Every column in schema must exist in default_value_map");
+        auto pair = default_value_map_.Find(col_oid)->second;
+        auto default_value = pair.first;
+        auto attr_size = pair.second;
         storage::StorageUtil::CopyWithNullCheck(default_value, &row, attr_size, pr_map.at(col_oid));
       }
     }
