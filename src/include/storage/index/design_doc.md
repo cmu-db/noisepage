@@ -8,14 +8,9 @@ on a single or group of columns with little affect on other concurrent transacti
 
 ## Scope
 
-This component relies on execution engine, transaction manager and storage manager of the database systems. Since the SQL commands such as ```CREATE INDEX``` and ```DROP INDEX```
-trigger creating and dropping the index, the execution engine (and parser) will help actually execute corresponding functions. Next, to build the index, values of key columns and
-the pointer to target version in the version chain of a tuple are necessary. The storage manager can provide this component with methods to access those information. Moreover,
-the storage manager can help this component organize the layout of index. Finally, creating and dropping index will be implemented in a transactional manner,
-so transaction manager should also play a role.
+This component relies on execution engine, transaction manager and storage manager of the database systems. Since the SQL commands such as ```CREATE INDEX``` and ```DROP INDEX``` trigger creating and dropping the index, the execution engine (and parser) will help actually execute corresponding functions. Next, to build the index, values of key columns and the pointer to target version in the version chain of a tuple are necessary. The storage manager can provide this component with methods to access those information. Moreover, the storage manager can help this component organize the layout of index. Finally, creating and dropping index will be implemented in a transactional manner, so transaction manager should also play a role.
 
-This component modifies system catalogs. During creation of an index, a record containing the information about this index should be inserted into system catalogs. During deletion
-of an index, the record containing the information about this index should also be deleted from system catalogs.
+This component modifies system catalogs. During creation of an index, a record containing the information about this index should be inserted into system catalogs. During deletion of an index, the record containing the information about this index should also be deleted from system catalogs.
 
 ## Glossary (Optional)
 
@@ -23,8 +18,7 @@ There are no new concepts being introduced in this component.
 
 ## Architectural Design
 
-The input of the index builder contains metadata about this index: key schema and constraint type. The output of the index builder is a [Bw-Tree](https://github.com/wangziqi2013/BwTree) index satisfying the key schema and constraints. Each element in the index is key-value pair. 
-The key is a [ProjectedRow](https://github.com/cmu-db/terrier/wiki/Storage-Engine-Design#projectedrow-and-projectedcolumns) and the value is a [TupleSlot](https://github.com/cmu-db/terrier/wiki/Storage-Engine-Design#tupleslot).
+The input of the index builder contains metadata about this index: key schema and constraint type. The output of the index builder is a [Bw-Tree](https://github.com/wangziqi2013/BwTree) index satisfying the key schema and constraints. Each element in the index is key-value pair. The key is a [ProjectedRow](https://github.com/cmu-db/terrier/wiki/Storage-Engine-Design#projectedrow-and-projectedcolumns) and the value is a [TupleSlot](https://github.com/cmu-db/terrier/wiki/Storage-Engine-Design#tupleslot).
 
 ### Blocking manner
 
@@ -47,6 +41,8 @@ The idea of creating index without blocking modifications on the table comes fro
 
 Note that before the start of the second transaction, the building process should wait for all running transactions to terminate, whose timestamps are smaller than the commit timestamp of the first transaction in the building process (the transaction adding a new entry on index into catalog).
 
+In that case, there still exists a critical issue. Consider those very short transactions inserting keys into the index who starts and ends both between two transactions in the building process. If they insert keys into the index, the second transaction can see them in its snapshot and inserts them into the index again. That means there can be duplicated records in the index, which is not what we want. To resolve this issue, we use an additional mapping from the index to its status, which currently is only either in the process of building or not when the catalog shows the index is in the ```READY``` state. It is set to building when the second transaction starts and not building otherwise. When the status is not building, the transaction cannot insert keys into the index. When the status is building, the transaction can insert keys into the index. In that case, the duplication can be avoided. (Here we have the assumption that all modifications on index entries are deferred to the commit phase of transactions.)
+
 For uniqueness constraint, we does not allow building an index on a non-unique attribute or non-unique attributes. That means we will check the validity of the unique constraint in first transaction and abort the whole operation if violated rather than leaving an ```INVALID``` index in [Postgres](https://www.postgresql.org/docs/11/sql-createindex.html)
 
 The big advantage of the non-blocking manner is that creating index will not block any modifications on the table, but the building process may take significantly longer time.
@@ -60,7 +56,7 @@ The test mainly has two aspects: correctness test and performance test. For non-
 ## Trade-offs and Potential Problems
 The non-blocking implementation does not other modifications on the target table during building process but increases the time of building index significantly on large table(according to the documentation of Postgres).
 
-We have an assumption on the behavior of transactions on modifying the index. We assume that all modifications on the index by some transaction X can only be seen by X when X is still running. Those modifications can only be visible after X commits. It is similar to the condition that every transaction has its own snapshot on the index. However, currently, the index is not multi-versioned, so we don't know whether the system can achieve this. If not, some pessimistic modifications on the index may be applied.
+We have an assumption on the behavior of transactions on modifying the index. We assume that all modifications on the index by some transaction X can only be seen by X when X is still running. Those modifications can only be visible after X commits. It is similar to the condition that every transaction has its own snapshot on the index. Currently, transactions can register deferred actions in the transaction manager. We think that may help us achieve the goal.
 
 The implementation discusses little about deletion in the index because we think it is really tricky. When querying a key in the index, the index will return a set of possible versions of the target tuple. Then it is the responsibility
 of the querying transaction to select the correct version. In that case, the index cannot delete the key immediately after some transaction X attempts to delete that key because it may happen that other running transactions after
@@ -68,6 +64,6 @@ X commits will still query the same key. This can be a problem because there is 
 is that it is the responsibility of index garbage collector to remove those keys by which all versions of tuples pointed are deleted. We don't know whether it is correct nor it will hurt the performance.
 
 ## Future Work
-* The building process (the scan of the table) can be parallelized in a multi-threading way. That will increase the performance of the building process, especially for second and third transactions in the non-blocking implementation.
+* The building process (the scan of the table) can be parallelized in a multi-threading way. That will increase the performance of the building process in the non-blocking implementation.
 * We have a different design on creating unique index on non-unique attributes from Postgres. We need to discuss which design should be appropriate.
 * The index builder can support several types of index and will select the best index given the key schema and constraint type before actual building the index.
