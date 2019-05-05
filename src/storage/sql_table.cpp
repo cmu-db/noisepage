@@ -133,13 +133,7 @@ bool SqlTable::Select(transaction::TransactionContext *const txn, const TupleSlo
 
   // Fill in the default values for the missing columns
   for (catalog::col_oid_t col_oid : missing_col_oids) {
-    TERRIER_ASSERT(default_value_map_.Find(col_oid) != default_value_map_.CEnd(),
-        "Every column in schema must exist in default_value_map");
-    auto pair = default_value_map_.Find(col_oid)->second;
-    auto default_value = pair.first;
-    auto attr_size = pair.second;
-    // TODO(Sai): If this becomes a performance bottleneck, we can move this logic to ModifyProjectionHeaderForVersion
-    storage::StorageUtil::CopyWithNullCheck(default_value, out_buffer, attr_size, pr_map.at(col_oid));
+    FillDefaultValue(out_buffer, col_oid, pr_map);
   }
 
   return result;
@@ -317,12 +311,7 @@ void SqlTable::Scan(transaction::TransactionContext *const txn, SqlTable::SlotIt
     for (uint32_t row_idx = 0; row_idx < filled; row_idx++) {
       ProjectedColumns::RowView row = out_buffer->InterpretAsRow(row_idx);
       for (catalog::col_oid_t col_oid : missing_col_oids) {
-        TERRIER_ASSERT(default_value_map_.Find(col_oid) != default_value_map_.CEnd(),
-                       "Every column in schema must exist in default_value_map");
-        auto pair = default_value_map_.Find(col_oid)->second;
-        auto default_value = pair.first;
-        auto attr_size = pair.second;
-        storage::StorageUtil::CopyWithNullCheck(default_value, &row, attr_size, pr_map.at(col_oid));
+        FillDefaultValue(&row, col_oid, pr_map);
       }
     }
   }
@@ -419,5 +408,23 @@ std::unordered_set<catalog::col_oid_t> SqlTable::GetMissingColumnOidsForVersion(
   }
   return missing_col_oids;
 }
+
+template <class RowType>
+void SqlTable::FillDefaultValue(RowType *out_buffer, const catalog::col_oid_t col_oid,
+                                const ProjectionMap &pr_map) const {
+  TERRIER_ASSERT(default_value_map_.Find(col_oid) != default_value_map_.CEnd(),
+                 "Every column in schema must exist in default_value_map");
+  auto pair = default_value_map_.Find(col_oid)->second;
+  auto default_value = pair.first;
+  auto attr_size = pair.second;
+  // TODO(Sai): If this becomes a performance bottleneck, we can move this logic to ModifyProjectionHeaderForVersion
+  storage::StorageUtil::CopyWithNullCheck(default_value, out_buffer, attr_size, pr_map.at(col_oid));
+}
+
+template void SqlTable::FillDefaultValue<ProjectedRow>(ProjectedRow *, const catalog::col_oid_t,
+                                                       const ProjectionMap &) const;
+template void SqlTable::FillDefaultValue<ProjectedColumns::RowView>(ProjectedColumns::RowView *,
+                                                                    const catalog::col_oid_t,
+                                                                    const ProjectionMap &) const;
 
 }  // namespace terrier::storage

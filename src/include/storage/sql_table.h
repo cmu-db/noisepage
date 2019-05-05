@@ -367,5 +367,15 @@ class SqlTable {
    */
   std::unordered_set<catalog::col_oid_t> GetMissingColumnOidsForVersion(const ProjectionMap &pr_map,
                                                                         const DataTableVersion &old_dt_version) const;
+
+  /**
+   * Fill in the default value for the given column i.e. col_oid. The default value being filled in can be null
+   * @tparam RowType ProjectedRow or ProjectedColumns::RowView
+   * @param out_buffer ProjectedRow or ProjectedColumns::RowView
+   * @param col_oid OID of the column
+   * @param pr_map ProjectionMap of the RowType
+   */
+  template <class RowType>
+  void FillDefaultValue(RowType *out_buffer, catalog::col_oid_t col_oid, const ProjectionMap &pr_map) const;
 };
 }  // namespace terrier::storage
