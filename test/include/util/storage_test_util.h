@@ -304,18 +304,19 @@ struct StorageTestUtil {
   }
 
   template <class RowType>
-  static std::string PrintRowWithSchema(const RowType &row, const catalog::Schema &schema, bool varlen_pointer = true) {
+  static std::string PrintRowWithSchema(const RowType &row, const catalog::Schema &schema, const storage::ProjectionMap &map, bool varlen_pointer = true) {
     std::ostringstream os;
-    os << "num_cols: " << row.NumColumns() << std::endl;
-    for (uint16_t i = 0; i < row.NumColumns(); i++) {
+    auto &columns = schema.GetColumns();
+    os << "num_cols: " << columns.size() << std::endl;
+    for (uint16_t i = 0; i < columns.size(); i++) {
       const storage::col_id_t col_id = row.ColumnIds()[i];
-      const byte *attr = row.AccessWithNullCheck(i);
+      const byte *attr = row.AccessWithNullCheck(map.at(columns[i].GetOid()));
       if (attr == nullptr) {
         os << "col_id: " << !col_id << " is NULL" << std::endl;
         continue;
       }
 
-      if (schema.GetColumn(i).IsVarlen()) {
+      if (columns[i].IsVarlen()) {
         auto *entry = reinterpret_cast<const storage::VarlenEntry *>(attr);
         os << "col_id: " << !col_id;
         os << " is varlen";
@@ -332,7 +333,7 @@ struct StorageTestUtil {
       } else {
         os << "col_id: " << !col_id;
         os << " is ";
-        for (uint8_t pos = 0; pos < schema.GetColumn(i).GetAttrSize(); pos++) {
+        for (uint8_t pos = 0; pos < columns[i].GetAttrSize(); pos++) {
           os << std::setfill('0') << std::setw(2) << std::hex << +static_cast<uint8_t>(attr[pos]);
         }
         os << std::endl;
@@ -354,6 +355,7 @@ struct StorageTestUtil {
     auto column_initializer_pair = table->InitializerForProjectedColumns(all_col, max_tuples);
     auto *scan_buffer = common::AllocationUtil::AllocateAligned(column_initializer_pair.first.ProjectedColumnsSize());
     storage::ProjectedColumns *columns = column_initializer_pair.first.Initialize(scan_buffer);
+    auto &proj_map = column_initializer_pair.second;
 
     auto it = table->begin();
     auto end = table->end();
@@ -362,7 +364,7 @@ struct StorageTestUtil {
       uint32_t num_tuples = columns->NumTuples();
       for (uint32_t off = 0; off < num_tuples; off++) {
         storage::ProjectedColumns::RowView row = columns->InterpretAsRow(off);
-        set->push_back(PrintRowWithSchema(row, table->GetSchema(), false));
+        set->push_back(PrintRowWithSchema(row, table->GetSchema(), proj_map, false));
       }
     }
     delete[] scan_buffer;

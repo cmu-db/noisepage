@@ -53,7 +53,7 @@ class CheckpointTests : public TerrierTest {
 
 // NOLINTNEXTLINE
 TEST_F(CheckpointTests, SimpleCheckpointRecoveryNoSeparateThread) {
-  const uint32_t num_rows = 1000;
+  const uint32_t num_rows = 100000;
   const uint32_t num_columns = 3;
   int magic_seed = 13523777;
   // initialize test
