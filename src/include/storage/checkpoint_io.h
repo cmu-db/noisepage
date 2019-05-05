@@ -1,7 +1,7 @@
 #pragma once
 #include <vector>
-#include "common/container/concurrent_map.h"
 #include "common/container/concurrent_blocking_queue.h"
+#include "common/container/concurrent_map.h"
 #include "storage/projected_columns.h"
 #include "storage/projected_row.h"
 #include "storage/write_ahead_log/log_io.h"
@@ -176,7 +176,7 @@ class AsyncBlockWriter {
   uint32_t block_size_;
   common::ConcurrentBlockingQueue<byte *> free_;     // free buffers
   common::ConcurrentBlockingQueue<byte *> pending_;  // buffers pending write
-  std::thread *writer_thread_;               // writer thread
+  std::thread *writer_thread_;                       // writer thread
 
   /**
    * The writer thread
