@@ -5,8 +5,8 @@
 #include <pqxx/pqxx>  // NOLINT
 #include <string>
 #include <unordered_map>
-#include <vector>
 #include <utility>
+#include <vector>
 #include "gtest/gtest.h"
 #include "loggers/main_logger.h"
 #include "main/db_main.h"
@@ -84,6 +84,7 @@ class SettingsTests : public TerrierTest {
     EndGC();
     TerrierTest::TearDown();
     delete db_;
+    delete catalog_;
     delete txn_manager_;
     delete settings_manager_;
   }

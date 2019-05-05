@@ -64,6 +64,7 @@ class DBMain {
    * Basic empty callbacks used by settings manager
    * @param old_value the old value of corresponding setting
    * @param new_value the new value of corresponding setting
+   * @param action_context action context for empty callback
    */
   void EmptyCallback(void *old_value, void *new_value, const std::shared_ptr<common::ActionContext> &action_context);
 
@@ -71,6 +72,7 @@ class DBMain {
    * Buffer pool size callback used by settings manager
    * @param old_value old value of buffer pool size
    * @param new_value new value of buffer pool size
+   * @param action_context action context for changing buffer pool size
    */
   void BufferPoolSizeCallback(void *old_value, void *new_value,
                               const std::shared_ptr<common::ActionContext> &action_context);

@@ -34,6 +34,7 @@ class SettingsManager {
 
   /**
    * The constructor of settings manager
+   * @param db a pointer to the DBMain
    * @param catalog a shared pointer to the system catalog
    * @param txn_manager a pointer to the transaction manager
    */
@@ -71,6 +72,8 @@ class SettingsManager {
    * Set the value of an integer setting
    * @param param setting name
    * @param value the new value
+   * @param action_context action context for setting an integer param
+   * @param setter_callback callback from caller
    */
   void SetInt(Param param, int32_t value, std::shared_ptr<common::ActionContext> action_context,
               setter_callback_fn setter_callback);
@@ -79,6 +82,8 @@ class SettingsManager {
    * Set the value of a double setting
    * @param param setting name
    * @param value the new value
+   * @param action_context action context for setting a double param
+   * @param setter_callback callback from caller
    */
   void SetDouble(Param param, double value, std::shared_ptr<common::ActionContext> action_context,
                  setter_callback_fn setter_callback);
@@ -87,6 +92,8 @@ class SettingsManager {
    * Set the value of a boolean setting
    * @param param setting name
    * @param value the new value
+   * @param action_context action context for setting a boolean param
+   * @param setter_callback callback from caller
    */
   void SetBool(Param param, bool value, std::shared_ptr<common::ActionContext> action_context,
                setter_callback_fn setter_callback);
@@ -95,6 +102,8 @@ class SettingsManager {
    * Set the value of a string setting
    * @param param setting name
    * @param value the new value
+   * @param action_context action context for setting a string param
+   * @param setter_callback callback from caller
    */
   void SetString(Param param, const std::string_view &value, std::shared_ptr<common::ActionContext> action_context,
                  setter_callback_fn setter_callback);
