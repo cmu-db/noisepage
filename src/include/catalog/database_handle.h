@@ -34,21 +34,13 @@ class DatabaseEntry : public CatalogEntry<db_oid_t> {
    * @param sql_table associated with this entry
    * @param entry a row in pg_database that represents this table
    */
-  DatabaseEntry(db_oid_t oid, catalog::SqlTableRW *sql_table, std::vector<type::TransientValue> &&entry)
+  DatabaseEntry(db_oid_t oid, catalog::SqlTableHelper *sql_table, std::vector<type::TransientValue> &&entry)
       : CatalogEntry(oid, sql_table, std::move(entry)) {}
 };
 
 /**
  * A DatabaseHandle provides access to the (global) system pg_database
  * catalog.
- *
- * This pg_database is a subset of Postgres (v11)  pg_database, and
- * contains the following fields:
- *
- * Name    SQL Type     Description
- * ----    --------     -----------
- * oid     integer
- * datname varchar      Database name
  *
  * DatabaseEntry instances provide accessors for individual rows of
  * pg_database.
@@ -60,7 +52,7 @@ class DatabaseHandle {
    * @param catalog a pointer to the catalog object
    * @param pg_database the pointer to pg_database
    */
-  DatabaseHandle(Catalog *catalog, std::shared_ptr<catalog::SqlTableRW> pg_database);
+  DatabaseHandle(Catalog *catalog, SqlTableHelper *pg_database);
 
   /**
    * Get a class handle for the database.
@@ -132,15 +124,13 @@ class DatabaseHandle {
 
   /** Used schema columns */
   static const std::vector<SchemaCol> schema_cols_;
-  /** Unused schema columns */
-  static const std::vector<SchemaCol> unused_schema_cols_;
 
  private:
   Catalog *catalog_;
   /**
    * pg_database SQL table
    */
-  std::shared_ptr<catalog::SqlTableRW> pg_database_rw_;
+  catalog::SqlTableHelper *pg_database_rw_;
 };
 
 }  // namespace terrier::catalog
