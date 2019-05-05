@@ -136,16 +136,19 @@ class IndexManager {
     bool indisvalid = false;
     bool indisready = true;
     bool indislive = false;
-    index_handle.AddEntry(txn1, index_oid, table_oid, indnatts, indnkeyatts, indisunique, indisprimary, indisvalid,
-                          indisready, indislive);
 
+    // Intialize the index
     Index *index = GetEmptyIndex(txn1, db_oid, table_oid, index_oid, indisunique, key_attrs, catalog);
-
     // Initializing the index fails
     if (index == nullptr) {
       txn_mgr->Abort(txn1);
       return;
     }
+
+    // Add IndexEntry
+    index_handle.AddEntry(txn1, index, index_oid, table_oid, indnatts, indnkeyatts, indisunique, indisprimary,
+                          indisvalid, indisready, indislive);
+
     // initialize the building flag to false
     auto index_id = make_index_id(db_oid, ns_oid, index_oid);
     SetIndexBuildingFlag(index_id, false);
@@ -169,6 +172,35 @@ class IndexManager {
         type::TransientValueFactory::GetBoolean(PopulateIndex(build_txn, *sql_table, index, unique_index)));
     // Commit the transaction
     txn_mgr->Commit(build_txn, nullptr, nullptr);
+  }
+
+  void Drop(catalog::db_oid_t db_oid, catalog::namespace_oid_t ns_oid, catalog::table_oid_t table_oid,
+            catalog::index_oid_t index_oid, const std::string &index_name, transaction::TransactionManager *txn_mgr,
+            catalog::Catalog *catalog) {
+    // Start the transaction to delete the entry in the catalog
+    transaction::TransactionContext *txn = txn_mgr->BeginTransaction();
+    catalog::SqlTableHelper *sql_table_helper = catalog->GetUserTable(txn, db_oid, ns_oid, table_oid);
+    // user table does not exist
+    if (sql_table_helper == nullptr) {
+      txn_mgr->Abort(txn);
+      return;
+    }
+    std::shared_ptr<SqlTable> sql_table = sql_table_helper->GetSqlTable();
+    catalog::IndexHandle index_handle = catalog->GetDatabaseHandle().GetIndexHandle(txn, db_oid);
+    // Get the index entry to be deleted
+    std::shared_ptr<catalog::IndexEntry> index_entry = index_handle.GetIndexEntry(txn, index_oid);
+    // Delete the index entry from the index_handle
+    index_handle.DeleteEntry(txn, index_entry);
+    // Commit the transaction
+    transaction::timestamp_t commit_time = txn_mgr->Commit(txn, nullptr, nullptr);
+
+    // Wait for all transactions older than the timestamp of previous transaction commit
+    // TODO(xueyuanz): use more efficient way to wait for all previous transactions to complete.
+    while (txn_mgr->OldestTransactionStartTime() < commit_time) {
+    }
+    // Now we can safely destruct the index_entry
+    Index *index = reinterpret_cast<Index *>(index_entry->GetBigIntColumn("indexptr"));
+    delete index;
   }
 
   /**

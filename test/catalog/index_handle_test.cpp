@@ -38,6 +38,7 @@ TEST_F(IndexHandleTest, BasicCorrectnessTest) {
   auto db_handle = catalog_->GetDatabaseHandle();
   auto index_handle = db_handle.GetIndexHandle(txn_, terrier_oid);
 
+  storage::index::Index *index_ptr = nullptr;
   auto indexrelid = catalog::index_oid_t(catalog_->GetNextOid());
   auto indrelid = catalog::table_oid_t(catalog_->GetNextOid());
   int32_t indnatts = 123;
@@ -47,22 +48,26 @@ TEST_F(IndexHandleTest, BasicCorrectnessTest) {
   bool indisvalid = true;
   bool indisready = false;
   bool indislive = true;
-  index_handle.AddEntry(txn_, indexrelid, indrelid, indnatts, indnkeyatts, indisunique, indisprimary, indisvalid,
-                        indisready, indislive);
+  index_handle.AddEntry(txn_, index_ptr, indexrelid, indrelid, indnatts, indnkeyatts, indisunique, indisprimary,
+                        indisvalid, indisready, indislive);
 
   auto index_entry = index_handle.GetIndexEntry(txn_, indexrelid);
 
   EXPECT_NE(index_entry, nullptr);
+
   EXPECT_EQ(!index_entry->GetOid(), !indexrelid);
-  EXPECT_EQ(!catalog::index_oid_t(type::TransientValuePeeker::PeekInteger(index_entry->GetColumn(0))), !indexrelid);
-  EXPECT_EQ(!catalog::table_oid_t(type::TransientValuePeeker::PeekInteger(index_entry->GetColumn(1))), !indrelid);
-  EXPECT_EQ(type::TransientValuePeeker::PeekInteger(index_entry->GetColumn(2)), indnatts);
-  EXPECT_EQ(type::TransientValuePeeker::PeekInteger(index_entry->GetColumn(3)), indnkeyatts);
-  EXPECT_EQ(type::TransientValuePeeker::PeekBoolean(index_entry->GetColumn(4)), indisunique);
-  EXPECT_EQ(type::TransientValuePeeker::PeekBoolean(index_entry->GetColumn(5)), indisprimary);
-  EXPECT_EQ(type::TransientValuePeeker::PeekBoolean(index_entry->GetColumn(6)), indisvalid);
-  EXPECT_EQ(type::TransientValuePeeker::PeekBoolean(index_entry->GetColumn(7)), indisready);
-  EXPECT_EQ(type::TransientValuePeeker::PeekBoolean(index_entry->GetColumn(8)), indislive);
+  EXPECT_EQ(
+      reinterpret_cast<storage::index::Index *>(type::TransientValuePeeker::PeekBigInt(index_entry->GetColumn(0))),
+      nullptr);
+  EXPECT_EQ(!catalog::index_oid_t(type::TransientValuePeeker::PeekInteger(index_entry->GetColumn(1))), !indexrelid);
+  EXPECT_EQ(!catalog::table_oid_t(type::TransientValuePeeker::PeekInteger(index_entry->GetColumn(2))), !indrelid);
+  EXPECT_EQ(type::TransientValuePeeker::PeekInteger(index_entry->GetColumn(3)), indnatts);
+  EXPECT_EQ(type::TransientValuePeeker::PeekInteger(index_entry->GetColumn(4)), indnkeyatts);
+  EXPECT_EQ(type::TransientValuePeeker::PeekBoolean(index_entry->GetColumn(5)), indisunique);
+  EXPECT_EQ(type::TransientValuePeeker::PeekBoolean(index_entry->GetColumn(6)), indisprimary);
+  EXPECT_EQ(type::TransientValuePeeker::PeekBoolean(index_entry->GetColumn(7)), indisvalid);
+  EXPECT_EQ(type::TransientValuePeeker::PeekBoolean(index_entry->GetColumn(8)), indisready);
+  EXPECT_EQ(type::TransientValuePeeker::PeekBoolean(index_entry->GetColumn(9)), indislive);
 }
 
 // NOLINTNEXTLINE
@@ -71,7 +76,7 @@ TEST_F(IndexHandleTest, IndexHandleModificationTest) {
   const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
   auto db_handle = catalog_->GetDatabaseHandle();
   auto index_handle = db_handle.GetIndexHandle(txn_, terrier_oid);
-
+  storage::index::Index *index_ptr = nullptr;
   auto indexrelid = catalog::index_oid_t(catalog_->GetNextOid());
   auto indrelid = catalog::table_oid_t(catalog_->GetNextOid());
   int32_t indnatts = 123;
@@ -81,12 +86,13 @@ TEST_F(IndexHandleTest, IndexHandleModificationTest) {
   bool indisvalid = false;
   bool indisready = false;
   bool indislive = true;
-  index_handle.AddEntry(txn_, indexrelid, indrelid, indnatts, indnkeyatts, indisunique, indisprimary, indisvalid,
-                        indisready, indislive);
+  index_handle.AddEntry(txn_, index_ptr, indexrelid, indrelid, indnatts, indnkeyatts, indisunique, indisprimary,
+                        indisvalid, indisready, indislive);
   auto index_entry = index_handle.GetIndexEntry(txn_, indexrelid);
 
   EXPECT_NE(index_entry, nullptr);
   EXPECT_EQ(!index_entry->GetOid(), !indexrelid);
+  EXPECT_EQ(reinterpret_cast<storage::index::Index *>(index_entry->GetBigIntColumn("indexptr")), nullptr);
   EXPECT_EQ(!catalog::index_oid_t(index_entry->GetIntegerColumn("indexrelid")), !indexrelid);
   EXPECT_EQ(!catalog::table_oid_t(index_entry->GetIntegerColumn("indrelid")), !indrelid);
   EXPECT_EQ(index_entry->GetIntegerColumn("indnatts"), indnatts);

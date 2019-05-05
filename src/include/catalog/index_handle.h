@@ -55,9 +55,9 @@ class IndexHandle {
   /**
    * Add an IndexEntry to the IndexHandle
    */
-  void AddEntry(transaction::TransactionContext *txn, index_oid_t indexrelid, table_oid_t indrelid, int32_t indnatts,
-                int32_t indnkeyatts, bool indisunique, bool indisprimary, bool indisvalid, bool indisready,
-                bool indislive);
+  void AddEntry(transaction::TransactionContext *txn, storage::index::Index *index_ptr, index_oid_t indexrelid,
+                table_oid_t indrelid, int32_t indnatts, int32_t indnkeyatts, bool indisunique, bool indisprimary,
+                bool indisvalid, bool indisready, bool indislive);
 
   /**
    * Current workaround so that columns can be set in this table
