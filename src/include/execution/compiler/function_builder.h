@@ -3,6 +3,7 @@
 #include <string>
 #include "execution/ast/ast.h"
 #include "execution/util/region_containers.h"
+#include "execution/compiler/codegen.h"
 
 namespace tpl::compiler {
 
@@ -15,7 +16,15 @@ class FunctionBuilder {
                   util::RegionVector<ast::FieldDecl *> fn_params,
                   ast::Expr *fn_ret_type);
 
+  void Append(ast::Stmt *stmt) {
+    fn_body_.emplace_back(stmt);
+  }
+
+  CodeGen &GetCodeGen() { return codegen_; }
+
   ast::FunctionDecl *Finish();
+
+  DISALLOW_COPY_AND_MOVE(FunctionBuilder);
 
  private:
   CodeGen &codegen_;

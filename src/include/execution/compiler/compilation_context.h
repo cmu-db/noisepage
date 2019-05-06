@@ -5,7 +5,11 @@
 #include <vector>
 
 #include "execution/compiler/codegen.h"
+#include "execution/compiler/execution_consumer.h"
 #include "execution/compiler/translator_factory.h"
+#include "execution/compiler/query.h"
+
+#include "execution/util/region.h"
 
 namespace terrier::parser {
 class AbstractExpression;
@@ -19,8 +23,6 @@ namespace tpl::compiler {
 
 // TODO(WAN): parameter cache would be nice
 class CodeContext;
-class ExecutionConsumer;
-class Query;
 class QueryState;
 class Pipeline;
 class OperatorTranslator;
@@ -37,6 +39,16 @@ class CompilationContext {
 
   OperatorTranslator *GetTranslator(const terrier::planner::AbstractPlanNode &op) const;
   ExpressionTranslator *GetTranslator(const terrier::parser::AbstractExpression &ex) const;
+  ExecutionConsumer *GetExecutionConsumer() { return consumer_; }
+
+  util::Region *GetRegion() { return query_->GetRegion(); }
+  CodeGen &GetCodeGen() { return codegen_; }
+
+  u32 RegisterPipeline(Pipeline *pipeline) {
+    auto pos = pipelines_.size();
+    pipelines_.emplace_back(pipeline);
+    return pos;
+  }
 
  private:
   Query *query_;

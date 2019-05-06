@@ -1,6 +1,7 @@
 #pragma once
 
 #include "execution/compiler/code_context.h"
+#include "execution/compiler/code_block.h"
 #include "execution/util/macros.h"
 
 namespace tpl::ast {
@@ -28,7 +29,59 @@ class CodeGen {
 
   ast::AstNodeFactory *operator->() { return factory_; }
 
+  FunctionBuilder *GetCurrentFunction() { return ctx_->GetCurrentFunction(); }
+
   DISALLOW_COPY_AND_MOVE(CodeGen);
+
+  /*ast::FunctionDecl *GetFunction(std::string name, ast::Expr *ret_type, util::RegionVector<ast::FieldDecl *> args,
+                                 CodeBlock &block) {
+    auto nameIdentifier = ast::Identifier(name.data());
+    return factory_->NewFunctionDecl(
+        DUMMY_POS, nameIdentifier,
+        factory_->NewFunctionLitExpr(factory_->NewFunctionType(DUMMY_POS, std::move(args), ret_type),
+                                     block.Compile(factory_, ctx_->region_)));
+  }
+
+  ast::BlockStmt *Compile(CodeBlock &block) { block.Compile(factory_, ctx_->region_); }
+
+  ast::Expr *Val_Nil() const { return factory_->NewNilLiteral(DUMMY_POS); }
+
+  ast::Expr *Val_Bool(bool b) const { return factory_->NewBoolLiteral(DUMMY_POS, b); }
+
+  ast::Expr *Val_Int(i32 n) const { return factory_->NewIntLiteral(DUMMY_POS, n); }
+
+  ast::Expr *Val_Float(f32 f) const { return factory_->NewFloatLiteral(DUMMY_POS, f); }
+
+  ast::Stmt *ForInStmt(ast::Expr *target, ast::Expr *table_name, ast::Attributes *attributes,
+                       ast::BlockStmt *body) const {
+    return factory_->NewForInStmt(DUMMY_POS, target, table_name, attributes, body);
+  }
+
+  ast::Stmt *AssignStmt(ast::Expr *left, ast::Expr *right) const {
+    return factory_->NewAssignmentStmt(DUMMY_POS, left, right);
+  }
+
+  ast::Expr *Add(ast::Expr *left, ast::Expr *right) const {
+    return factory_->NewBinaryOpExpr(DUMMY_POS, parsing::Token::Type::PLUS, left, right);
+  }
+
+  ast::Expr *Subtract(ast::Expr *left, ast::Expr *right) const {
+    return factory_->NewBinaryOpExpr(DUMMY_POS, parsing::Token::Type::MINUS, left, right);
+  }
+
+  ast::Expr *Multiply(ast::Expr *left, ast::Expr *right) const {
+    return factory_->NewBinaryOpExpr(DUMMY_POS, parsing::Token::Type::STAR, left, right);
+  }
+
+  ast::Expr *Divide(ast::Expr *left, ast::Expr *right) const {
+    return factory_->NewBinaryOpExpr(DUMMY_POS, parsing::Token::Type::SLASH, left, right);
+  }
+
+  ast::Expr *Modulo(ast::Expr *left, ast::Expr *right) const {
+    return factory_->NewBinaryOpExpr(DUMMY_POS, parsing::Token::Type::PERCENT, left, right);
+  }
+
+  ast::Stmt *Return(ast::Expr *val) const { return factory_->NewReturnStmt(DUMMY_POS, val); }*/
 
   ast::Expr *Ty_Nil() const { return ctx_->nil_type_; }
   ast::Expr *Ty_Bool() const { return ctx_->bool_type_; }
@@ -50,9 +103,18 @@ class CodeGen {
     return factory_->NewBlockStmt(DUMMY_POS, DUMMY_POS, std::move(stmts));
   }
 
+  ast::Identifier NewIdentifier() {
+    return ast::Identifier(std::to_string(id_count++).c_str());
+  }
+
+  ast::Stmt *Call(ast::FunctionDecl *fn, util::RegionVector<ast::Expr*> &&args) {
+    return factory_->NewExpressionStmt(factory_->NewCallExpr(fn->function(), std::move(args)));
+  }
+
  private:
   static constexpr SourcePosition DUMMY_POS{0, 0};
 
+  u64 id_count;
   CodeContext *ctx_;
   ast::AstNodeFactory *factory_;
 

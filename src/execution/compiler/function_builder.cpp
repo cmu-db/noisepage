@@ -9,7 +9,9 @@ namespace tpl::compiler {
 FunctionBuilder::FunctionBuilder(CodeGen &codegen, ast::Identifier fn_name, util::RegionVector<ast::FieldDecl *> fn_params, ast::Expr *fn_ret_type)
 : codegen_(codegen), prev_fn_(codegen_.GetCodeContext()->GetCurrentFunction()), fn_name_(fn_name),
 fn_params_(std::move(fn_params)), fn_ret_type_(fn_ret_type), fn_body_(codegen_.GetRegion())
-{}
+{
+  codegen.GetCodeContext()->SetCurrentFunction(this);
+}
 
 ast::FunctionDecl *FunctionBuilder::Finish() {
   auto fn_ty = codegen_->NewFunctionType(DUMMY_POS, std::move(fn_params_), fn_ret_type_);
