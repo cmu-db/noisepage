@@ -66,6 +66,13 @@ class IndexHandle {
   void SetEntryColumn(transaction::TransactionContext *txn, index_oid_t indexreloid, const std::string &col,
                       const type::TransientValue &value);
 
+  /**
+   * Delete the entry in the catalog
+   *
+   * @param txn the transaction context
+   * @param entry the target entry
+   * @return true if successfull otherwise false
+   */
   bool DeleteEntry(transaction::TransactionContext *txn, const std::shared_ptr<IndexEntry> &entry);
 
   /**
@@ -81,6 +88,9 @@ class IndexHandle {
     pg_index_rw_->Dump(txn, limit);
   }
 
+  /**
+   * Schema columns
+   */
   static const std::vector<SchemaCol> schema_cols_;
 
  private:
