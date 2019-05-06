@@ -11,7 +11,8 @@ namespace terrier::storage::metric {
 ThreadLevelStatsCollector::CollectorsMap ThreadLevelStatsCollector::collector_map_ = CollectorsMap();
 
 ThreadLevelStatsCollector::ThreadLevelStatsCollector() {
-  collector_map_.Insert(std::this_thread::get_id(), this);
+  thread_id_ = std::this_thread::get_id();
+  collector_map_.Insert(thread_id_, this);
   RegisterMetric<DatabaseMetric>({StatsEventType::TXN_BEGIN, StatsEventType::TXN_COMMIT, StatsEventType::TXN_ABORT});
   RegisterMetric<TransactionMetric>({StatsEventType::TXN_BEGIN, StatsEventType::TXN_COMMIT, StatsEventType::TXN_ABORT,
                                      StatsEventType::TUPLE_READ, StatsEventType::TUPLE_UPDATE,
@@ -22,12 +23,12 @@ ThreadLevelStatsCollector::ThreadLevelStatsCollector() {
 ThreadLevelStatsCollector::~ThreadLevelStatsCollector() {
   metrics_.clear();
   metric_dispatch_.clear();
-  collector_map_.UnsafeErase(std::this_thread::get_id());
+  collector_map_.UnsafeErase(thread_id_);
 }
 
 std::vector<std::shared_ptr<AbstractRawData>> ThreadLevelStatsCollector::GetDataToAggregate() {
   std::vector<std::shared_ptr<AbstractRawData>> result;
-  for (auto &metric : metrics_) result.push_back(metric->Swap());
+  for (auto &metric : metrics_) result.emplace_back(metric->Swap());
   return result;
 }
 }  // namespace terrier::storage::metric

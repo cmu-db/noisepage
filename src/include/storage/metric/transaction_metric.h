@@ -40,7 +40,7 @@ class TransactionMetricRawData : public AbstractRawData {
     auto end = std::chrono::high_resolution_clock::now();
     auto start = data_[txn->TxnId().load()].start_;
     data_[txn->TxnId().load()].latency_ =
-        static_cast<int64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count());
+        static_cast<int64_t>(std::chrono::duration_cast<std::chrono::microseconds>(end - start).count());
   }
 
   /**

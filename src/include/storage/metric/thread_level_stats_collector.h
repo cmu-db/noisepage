@@ -333,6 +333,11 @@ class ThreadLevelStatsCollector {
    * Mapping from thread ID to stats collector
    */
   static CollectorsMap collector_map_;
+
+  /**
+   * Thread ID of the thread initially registered this collector
+   */
+  std::thread::id thread_id_;
 };
 
 }  // namespace storage::metric
