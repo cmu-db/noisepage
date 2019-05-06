@@ -20,13 +20,7 @@ class AbstractPlanNode;
 }
 
 namespace tpl::compiler {
-
 // TODO(WAN): parameter cache would be nice
-class CodeContext;
-class QueryState;
-class Pipeline;
-class OperatorTranslator;
-class ExpressionTranslator;
 
 class CompilationContext {
  public:

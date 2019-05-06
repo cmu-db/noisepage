@@ -25,7 +25,7 @@ class CodeGen {
   CodeContext *GetCodeContext() { return ctx_; }
 
  public:
-  explicit CodeGen(CodeContext *ctx) : ctx_(ctx), factory_(&ctx_->ast_factory_) {}
+  explicit CodeGen(CodeContext *ctx) : id_count_(0), ctx_(ctx), factory_(&ctx_->ast_factory_) {}
 
   ast::AstNodeFactory *operator->() { return factory_; }
 
@@ -104,7 +104,7 @@ class CodeGen {
   }
 
   ast::Identifier NewIdentifier() {
-    return ast::Identifier(std::to_string(id_count++).c_str());
+    return ast::Identifier(std::to_string(id_count_++).c_str());
   }
 
   ast::Stmt *Call(ast::FunctionDecl *fn, util::RegionVector<ast::Expr*> &&args) {
@@ -114,7 +114,7 @@ class CodeGen {
  private:
   static constexpr SourcePosition DUMMY_POS{0, 0};
 
-  u64 id_count;
+  u64 id_count_;
   CodeContext *ctx_;
   ast::AstNodeFactory *factory_;
 

@@ -4,6 +4,7 @@
 #include "execution/ast/ast.h"
 #include "execution/util/region_containers.h"
 #include "execution/compiler/codegen.h"
+#include "compiler_defs.h"
 
 namespace tpl::compiler {
 
@@ -17,7 +18,17 @@ class FunctionBuilder {
                   ast::Expr *fn_ret_type);
 
   void Append(ast::Stmt *stmt) {
-    fn_body_.emplace_back(stmt);
+    insertion_point_->AppendStmt(stmt);
+  }
+
+  void SetInsertionPoint(ast::BlockStmt *insertion_point) {
+    insertion_point_ = insertion_point;
+  }
+
+  void StartForInStmt(ast::Expr *target, ast::Expr *table, ast::Attributes *attributes) {
+    auto forblock = codegen_.EmptyBlock();
+    Append(codegen_->NewForInStmt(DUMMY_POS, target, table, attributes, forblock));
+    SetInsertionPoint(forblock);
   }
 
   CodeGen &GetCodeGen() { return codegen_; }
@@ -34,7 +45,8 @@ class FunctionBuilder {
   util::RegionVector<ast::FieldDecl *> fn_params_;
   ast::Expr *fn_ret_type_;
 
-  util::RegionVector<ast::Stmt *> fn_body_;
+  ast::BlockStmt *fn_body_;
+  ast::BlockStmt *&insertion_point_;
 };
 
 }

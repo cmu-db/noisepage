@@ -6,7 +6,7 @@ namespace tpl::compiler {
 class ConsumerContext {
  public:
   // Constructor
-  ConsumerContext(CompilationContext &compilation_context, Pipeline &pipeline);
+  ConsumerContext(CompilationContext &compilation_context, Pipeline *pipeline);
 
   /// This class cannot be copy or move-constructed
   DISALLOW_COPY_AND_MOVE(ConsumerContext);
@@ -27,6 +27,6 @@ class ConsumerContext {
   CompilationContext &compilation_context_;
 
   // The pipeline of operators that this context passes through
-  Pipeline &pipeline_;
+  Pipeline *pipeline_;
 };
 }
