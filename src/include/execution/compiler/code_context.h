@@ -4,6 +4,7 @@
 #include "execution/ast/context.h"
 #include "execution/sema/error_reporter.h"
 #include "execution/util/macros.h"
+#include "codegen.h"
 
 namespace tpl::ast {
 class FunctionDecl;
@@ -11,6 +12,7 @@ class FunctionDecl;
 
 namespace tpl::compiler {
 
+class CodeGen;
 class FunctionBuilder;
 
 class CodeContext {
@@ -18,10 +20,18 @@ class CodeContext {
  public:
   explicit CodeContext(util::Region *region);
 
+  CodeGen &GetCodeGen() { return codeGen_; }
+
   DISALLOW_COPY_AND_MOVE(CodeContext);
+
 
   void SetCurrentFunction(FunctionBuilder *fn) { curr_fn_ = fn; }
   FunctionBuilder *GetCurrentFunction() const { return curr_fn_; }
+
+  ast::Identifier NewIdentifier() {
+    auto *s = new std::string(std::to_string(uniq_id_++));
+    return ast::Identifier(s->c_str());
+  }
 
  private:
   util::Region *region_;
@@ -29,6 +39,7 @@ class CodeContext {
   ast::Context ast_ctx_;
   ast::AstNodeFactory ast_factory_;
   FunctionBuilder *curr_fn_;
+  CodeGen codeGen_;
 
   ast::Expr *nil_type_;
   ast::Expr *bool_type_;
@@ -44,6 +55,8 @@ class CodeContext {
   ast::Expr *u128_type_;
   ast::Expr *f32_type_;
   ast::Expr *f64_type_;
+
+  u64 uniq_id_;
 };
 
 }

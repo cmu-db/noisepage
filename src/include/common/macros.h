@@ -19,7 +19,9 @@
 #ifdef NDEBUG
 #define ALWAYS_INLINE __attribute__((always_inline))
 #else
+#ifndef ALWAYS_INLINE
 #define ALWAYS_INLINE
+#endif
 #endif
 
 #ifdef __clang__
@@ -88,6 +90,7 @@
 //===----------------------------------------------------------------------===//
 
 // Macros to disable copying and moving
+#ifndef DISALLOW_COPY
 #define DISALLOW_COPY(cname)     \
   /* Delete copy constructor. */ \
   cname(const cname &) = delete; \
@@ -106,6 +109,7 @@
 #define DISALLOW_COPY_AND_MOVE(cname) \
   DISALLOW_COPY(cname);               \
   DISALLOW_MOVE(cname);
+#endif
 
 /**
  * Used to mark a class as only obtainable from reinterpreting a chunk of memory initialized as byte array or a buffer.

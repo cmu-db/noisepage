@@ -339,6 +339,10 @@ class BlockStmt : public Stmt {
 
   const SourcePosition &right_brace_position() const { return rbrace_pos_; }
 
+  void AppendStmt(Stmt *stmt) {
+    statements_.emplace_back(stmt);
+  }
+
   bool IsEmpty() const { return statements_.empty(); }
 
   Stmt *LastStmt() { return (IsEmpty() ? nullptr : statements_.back()); }

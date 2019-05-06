@@ -44,7 +44,7 @@ class PostgresParser {
       case 'a':
         return FKConstrActionType::NOACTION;
       case 'r':
-        return FKConstrActionType::RESTRICT;
+        return FKConstrActionType::RESTRICT_;
       case 'c':
         return FKConstrActionType::CASCADE;
       case 'n':
