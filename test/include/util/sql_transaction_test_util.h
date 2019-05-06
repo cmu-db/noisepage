@@ -265,6 +265,11 @@ public:
   const storage::BlockLayout &Layout() const { return layout_; }
   
   /**
+ * @return schema of the randomly generated table
+ */
+  const catalog::Schema *Schema() const { return &schema_; }
+  
+  /**
    * Checks the correctness of reads in the committed transactions. No committed transaction should have read some
    * version of the tuple outside of its version. The correct version is reconstructed using the last valid image of
    * the table, either initial or the newest version last time this method is called, and the list of updates committed.
