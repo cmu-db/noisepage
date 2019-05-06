@@ -80,6 +80,7 @@ class CheckpointTests : public TerrierTest {
 
 // NOLINTNEXTLINE
 TEST_F(CheckpointTests, SimpleCheckpointRecoveryNoSeparateThread) {
+  checkpoint_manager_.UnlinkCheckpointFiles();
   const uint32_t num_rows = 100000;
   const uint32_t num_columns = 3;
   int magic_seed = 13523777;
@@ -139,6 +140,7 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryNoSeparateThread) {
 
 // NOLINTNEXTLINE
 TEST_F(CheckpointTests, SimpleCheckpointRecoveryNoVarlen) {
+  checkpoint_manager_.UnlinkCheckpointFiles();
   const uint32_t num_rows = 100;
   const uint32_t num_columns = 3;
   int magic_seed = 13523;
@@ -199,6 +201,7 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryNoVarlen) {
 
 // NOLINTNEXTLINE
 TEST_F(CheckpointTests, SimpleCheckpointRecoveryWithVarlen) {
+  checkpoint_manager_.UnlinkCheckpointFiles();
   const uint32_t num_rows = 1000;
   const uint32_t num_columns = 3;
   int magic_seed = 13523777;
@@ -259,6 +262,7 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryWithVarlen) {
 
 // NOLINTNEXTLINE
 TEST_F(CheckpointTests, SimpleCheckpointRecoveryWithHugeRow) {
+  checkpoint_manager_.UnlinkCheckpointFiles();
   const uint32_t num_rows = 100;
   const uint32_t num_columns = 512;  // single row size is greater than the page size
   int magic_seed = 13523777;
@@ -276,7 +280,7 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryWithHugeRow) {
   // checkpoint
   StartCheckpointingThread(txn_manager, 50, table, schema);
   // Sleep for some time to ensure that the checkpoint thread has started at least one checkpoint. (Prevent racing)
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
   EndCheckpointingThread();
   // read first run
   transaction::TransactionContext *scan_txn = txn_manager->BeginTransaction();
@@ -319,6 +323,7 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryWithHugeRow) {
 
 // NOLINTNEXTLINE
 TEST_F(CheckpointTests, SimpleCheckpointRecoveryNoVarlenWithTxnObject) {
+  checkpoint_manager_.UnlinkCheckpointFiles();
   const uint32_t num_rows = 10;
   const uint32_t num_columns = 3;
   // initialize test
@@ -341,7 +346,7 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryNoVarlenWithTxnObject) {
   // checkpoint
   StartCheckpointingThread(txn_manager, 50, table, schema);
   // Sleep for some time to ensure that the checkpoint thread has started at least one checkpoint.
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
   EndCheckpointingThread();
   // read first run
   transaction::TransactionContext *scan_txn = txn_manager->BeginTransaction();
