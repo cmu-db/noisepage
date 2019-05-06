@@ -10,13 +10,7 @@ configure_file (
 
 
 # Find CLANG
-set(SUPPORTED_CLANGS "clang++-7" "clang++-6.0")
-if (${MACOSX})
-    # Because MacOS does some weird Clang versioning, and it isn't available
-    # through Homebrew, we add in vanilla "clang++". You won't be running TPL
-    # in production on a Mac system anyways ...
-    list(APPEND SUPPORTED_CLANGS "clang++")
-endif ()
+set(SUPPORTED_CLANGS "clang++-7" "clang++-6.0" "clang++")
 
 find_program(CLANG NAMES ${SUPPORTED_CLANGS})
 if (NOT EXISTS ${CLANG})
