@@ -1,0 +1,5 @@
+#pragma once
+
+// These defines are configured and filled in by CMake during build
+#define TPL_VERSION_MAJOR @TPL_VERSION_MAJOR@
+#define TPL_VERSION_MINOR @TPL_VERSION_MINOR@

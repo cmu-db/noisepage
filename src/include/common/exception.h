@@ -12,14 +12,23 @@ namespace terrier {
  * They record where the exception was generated.
  */
 
-#define NOT_IMPLEMENTED_EXCEPTION(msg) NotImplementedException(msg, __FILE__, __LINE__)
+#define NOT_IMPLEMENTED_EXCEPTION(msg) \
+  NotImplementedException(msg, __FILE__, __LINE__)
+#define CATALOG_EXCEPTION(msg) CatalogException(msg, __FILE__, __LINE__)
 #define PARSER_EXCEPTION(msg) ParserException(msg, __FILE__, __LINE__)
-#define NETWORK_PROCESS_EXCEPTION(msg) NetworkProcessException(msg, __FILE__, __LINE__)
+#define NETWORK_PROCESS_EXCEPTION(msg) \
+  NetworkProcessException(msg, __FILE__, __LINE__)
 
 /**
  * Exception types
  */
-enum class ExceptionType { RESERVED = 0, NOT_IMPLEMENTED = 1, PARSER = 2, NETWORK = 3 };
+enum class ExceptionType {
+  RESERVED = 0,
+  NOT_IMPLEMENTED = 1,
+  CATALOG = 2,
+  NETWORK = 3,
+  PARSER = 4
+};
 
 /**
  * Exception base class.
@@ -33,11 +42,13 @@ class Exception : public std::runtime_error {
    * @param file name of the file in which the exception occurred
    * @param line line number at which the exception occurred
    */
-  Exception(const ExceptionType type, const char *msg, const char *file, int line)
+  Exception(const ExceptionType type, const char *msg, const char *file,
+            int line)
       : std::runtime_error(msg), type_(type), file_(file), line_(line) {}
 
   /**
-   * Allows type and source location of the exception to be recorded in the log at the catch point.
+   * Allows type and source location of the exception to be recorded in the log
+   * at the catch point.
    */
   friend std::ostream &operator<<(std::ostream &out, const Exception &ex) {
     out << ex.get_type() << " exception:";
@@ -54,6 +65,8 @@ class Exception : public std::runtime_error {
     switch (type_) {
       case ExceptionType::NOT_IMPLEMENTED:
         return "Not Implemented";
+      case ExceptionType::CATALOG:
+        return "Catalog";
       case ExceptionType::PARSER:
         return "Parser";
       case ExceptionType::NETWORK:
@@ -92,15 +105,17 @@ class Exception : public std::runtime_error {
 // Derived exception types
 // -----------------------
 
-#define DEFINE_EXCEPTION(e_name, e_type)                                                        \
-  class e_name : public Exception {                                                             \
-    e_name() = delete;                                                                          \
-                                                                                                \
-   public:                                                                                      \
-    e_name(const char *msg, const char *file, int line) : Exception(e_type, msg, file, line) {} \
+#define DEFINE_EXCEPTION(e_name, e_type)                \
+  class e_name : public Exception {                     \
+    e_name() = delete;                                  \
+                                                        \
+   public:                                              \
+    e_name(const char *msg, const char *file, int line) \
+        : Exception(e_type, msg, file, line) {}         \
   }
 
 DEFINE_EXCEPTION(NotImplementedException, ExceptionType::NOT_IMPLEMENTED);
+DEFINE_EXCEPTION(CatalogException, ExceptionType::CATALOG);
 DEFINE_EXCEPTION(ParserException, ExceptionType::PARSER);
 DEFINE_EXCEPTION(NetworkProcessException, ExceptionType::NETWORK);
 

@@ -4,6 +4,7 @@
 
 file(GLOB_RECURSE TERRIER_SRCS ${PROJECT_SOURCE_DIR}/src/*.cpp ${PROJECT_SOURCE_DIR}/src/include/*.h)
 list(REMOVE_ITEM TERRIER_SRCS ${PROJECT_SOURCE_DIR}/src/main/terrier.cpp)
+list(REMOVE_ITEM TERRIER_SRCS ${PROJECT_SOURCE_DIR}/src/execution/tpl.cpp)
 
 ###############################################
 # Third party sources
@@ -25,6 +26,19 @@ list(APPEND TERRIER_SRCS ${BWTREE_SOURCES})
 # json
 list(APPEND TERRIER_SRCS ${PROJECT_SOURCE_DIR}/third_party/nlohmann/json.hpp)
 
+# ips4o
+file(GLOB_RECURSE IPS4O_SOURCES
+        ${PROJECT_SOURCE_DIR}/third_party/ips4o/*.hpp
+        )
+list(APPEND TERRIER_SRCS ${IPS4O_SOURCES})
+
+# xbyak
+file(GLOB_RECURSE XBYAK_SOURCES
+        ${PROJECT_SOURCE_DIR}/third_party/xbyak/*.cpp ${PROJECT_SOURCE_DIR}/third_party/xbyak/*.hpp ${PROJECT_SOURCE_DIR}/third_party/xbyak/*.h
+        )
+list(APPEND TERRIER_SRCS ${XBYAK})
+
+
 ###############################################
 # Terrier library
 ###############################################
@@ -41,5 +55,12 @@ ADD_TERRIER_LIB(terrier
 ###############################################
 # Terrier executable
 ###############################################
+set(TPL_LINK_LIBS "")
 add_executable(terrier main/terrier.cpp)
 target_link_libraries(terrier terrier_shared)
+
+
+###############################################
+# TPL executable & bytecodes
+###############################################
+add_subdirectory(execution)
