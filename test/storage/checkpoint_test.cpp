@@ -346,7 +346,7 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryNoVarlenWithTxnObject) {
   // checkpoint
   StartCheckpointingThread(txn_manager, 50, table, schema);
   // Sleep for some time to ensure that the checkpoint thread has started at least one checkpoint.
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
   EndCheckpointingThread();
   // read first run
   transaction::TransactionContext *scan_txn = txn_manager->BeginTransaction();
@@ -357,7 +357,7 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryNoVarlenWithTxnObject) {
   std::string latest_checkpoint_path = checkpoint_manager_.GetLatestCheckpointFilename();
   transaction::TransactionContext *recovery_txn = txn_manager->BeginTransaction();
   storage::BlockStore block_store_{10000, 10000};
-  storage::SqlTable *recovered_table = new storage::SqlTable(&block_store_, *schema, catalog::table_oid_t(1));
+  storage::SqlTable *recovered_table = new storage::SqlTable(&block_store_, *schema, catalog::table_oid_t(0));
   checkpoint_manager_.StartRecovery(recovery_txn);
   checkpoint_manager_.RegisterTable(recovered_table);
   checkpoint_manager_.Recover(latest_checkpoint_path.c_str());
@@ -383,8 +383,6 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryNoVarlenWithTxnObject) {
   delete scan_txn;
   delete scan_txn_2;
   delete recovery_txn;
-  delete table;
-  delete schema;
 }
 
 
