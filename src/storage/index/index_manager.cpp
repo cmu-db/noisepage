@@ -2,10 +2,11 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include "util/transaction_benchmark_util.h"
 
 namespace terrier::storage::index {
 Index *IndexManager::GetEmptyIndex(transaction::TransactionContext *txn, catalog::db_oid_t db_oid,
-                                   catalog::table_oid_t table_oid, catalog::index_oid_t index_oid, bool unique_index,
+                                   catalog::index_oid_t index_oid, SqlTable *sql_table, bool unique_index,
                                    const std::vector<std::string> &key_attrs, catalog::Catalog *catalog) {
   // Setup the oid and constraint type for the index
   IndexFactory index_factory;
@@ -16,21 +17,16 @@ Index *IndexManager::GetEmptyIndex(transaction::TransactionContext *txn, catalog
   // Setup the key schema for the index
   IndexKeySchema key_schema;
   for (const auto &key_name : key_attrs) {
-    // Get the catalog entry for each attribute
-    auto entry =
-        catalog->GetDatabaseHandle().GetAttributeHandle(txn, db_oid).GetAttributeEntry(txn, table_oid, key_name);
-
-    // If there is no corresponding entry in the catalog, return nullptr.
-    if (entry == nullptr) return nullptr;
+    // Get the corresponding column
+    auto col = sql_table->GetSchema().GetColumn(key_name);
+    auto col_oid = catalog::indexkeycol_oid_t(!col.GetOid());
 
     // Fill in the key schema with information from catalog entry
-    type::TypeId type_id = static_cast<type::TypeId>(entry->GetIntegerColumn("atttypid"));
-    if (type::TypeUtil::GetTypeSize(type_id) == VARLEN_COLUMN)
-      key_schema.emplace_back(catalog::indexkeycol_oid_t(entry->GetIntegerColumn("oid")), type_id,
-                              entry->ColumnIsNull(key_name));
+    type::TypeId col_type = col.GetType();
+    if (col_type == type::TypeId::VARCHAR || col_type == type::TypeId::VARBINARY)
+      key_schema.emplace_back(IndexKeyColumn(col_oid, col_type, col.GetNullable(), INT8_MAX & col.GetAttrSize()));
     else
-      key_schema.emplace_back(catalog::indexkeycol_oid_t(entry->GetIntegerColumn("oid")), type_id,
-                              entry->ColumnIsNull(key_name), entry->GetIntegerColumn("attlen"));
+      key_schema.emplace_back(IndexKeyColumn(col_oid, col_type, col.GetNullable()));
   }
   index_factory.SetKeySchema(key_schema);
 
@@ -38,18 +34,20 @@ Index *IndexManager::GetEmptyIndex(transaction::TransactionContext *txn, catalog
   return index_factory.Build();
 }
 
-void IndexManager::CreateConcurrently(catalog::db_oid_t db_oid, catalog::namespace_oid_t ns_oid,
-                                      catalog::table_oid_t table_oid, parser::IndexType index_type, bool unique_index,
-                                      const std::string &index_name, const std::vector<std::string> &index_attrs,
-                                      const std::vector<std::string> &key_attrs,
-                                      transaction::TransactionManager *txn_mgr, catalog::Catalog *catalog) {
+catalog::index_oid_t IndexManager::CreateConcurrently(catalog::db_oid_t db_oid, catalog::namespace_oid_t ns_oid,
+                                                      catalog::table_oid_t table_oid, parser::IndexType index_type,
+                                                      bool unique_index, const std::string &index_name,
+                                                      const std::vector<std::string> &index_attrs,
+                                                      const std::vector<std::string> &key_attrs,
+                                                      transaction::TransactionManager *txn_mgr,
+                                                      catalog::Catalog *catalog) {
   // First transaction to insert an entry for the index in the catalog
   transaction::TransactionContext *txn1 = txn_mgr->BeginTransaction();
   catalog::SqlTableHelper *sql_table_helper = catalog->GetUserTable(txn1, db_oid, ns_oid, table_oid);
   // user table does not exist
   if (sql_table_helper == nullptr) {
     txn_mgr->Abort(txn1);
-    return;
+    return catalog::index_oid_t(0);
   }
   std::shared_ptr<SqlTable> sql_table = sql_table_helper->GetSqlTable();
   catalog::IndexHandle index_handle = catalog->GetDatabaseHandle().GetIndexHandle(txn1, db_oid);
@@ -65,11 +63,11 @@ void IndexManager::CreateConcurrently(catalog::db_oid_t db_oid, catalog::namespa
   bool indislive = false;
 
   // Intialize the index
-  Index *index = GetEmptyIndex(txn1, db_oid, table_oid, index_oid, indisunique, key_attrs, catalog);
+  Index *index = GetEmptyIndex(txn1, db_oid, index_oid, sql_table.get(), indisunique, key_attrs, catalog);
   // Initializing the index fails
   if (index == nullptr) {
     txn_mgr->Abort(txn1);
-    return;
+    return catalog::index_oid_t(0);
   }
 
   // Add IndexEntry
@@ -81,7 +79,7 @@ void IndexManager::CreateConcurrently(catalog::db_oid_t db_oid, catalog::namespa
   SetIndexBuildingFlag(index_id, false);
 
   // Commit first transaction
-  transaction::timestamp_t commit_time = txn_mgr->Commit(txn1, nullptr, nullptr);
+  transaction::timestamp_t commit_time = txn_mgr->Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
 
   // Wait for all transactions older than the timestamp of previous transaction commit
   // TODO(jiaqizuo): use more efficient way to wait for all previous transactions to complete.
@@ -98,7 +96,8 @@ void IndexManager::CreateConcurrently(catalog::db_oid_t db_oid, catalog::namespa
       build_txn, index_oid, "indisvalid",
       type::TransientValueFactory::GetBoolean(PopulateIndex(build_txn, *sql_table, index, unique_index)));
   // Commit the transaction
-  txn_mgr->Commit(build_txn, nullptr, nullptr);
+  txn_mgr->Commit(build_txn, TestCallbacks::EmptyCallback, nullptr);
+  return index_oid;
 }
 
 void IndexManager::Drop(catalog::db_oid_t db_oid, catalog::namespace_oid_t ns_oid, catalog::table_oid_t table_oid,
@@ -119,7 +118,7 @@ void IndexManager::Drop(catalog::db_oid_t db_oid, catalog::namespace_oid_t ns_oi
   // Delete the index entry from the index_handle
   index_handle.DeleteEntry(txn, index_entry);
   // Commit the transaction
-  transaction::timestamp_t commit_time = txn_mgr->Commit(txn, nullptr, nullptr);
+  transaction::timestamp_t commit_time = txn_mgr->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
 
   // Wait for all transactions older than the timestamp of previous transaction commit
   // TODO(xueyuanz): use more efficient way to wait for all previous transactions to complete.

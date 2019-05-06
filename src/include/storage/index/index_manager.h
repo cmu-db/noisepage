@@ -32,15 +32,15 @@ class IndexManager {
    *
    * @param txn the context of index building transaction
    * @param db_oid the oid of the database
-   * @param table_oid the oid of the target table
    * @param index_oid the oid of the index given by catalog
+   * @param sql_table the target sql table
    * @param unique_index whether the index has unique constraint or not
    * @param key_attrs all attributes in the key
    * @param catalog the pointer to the catalog
    * @return an empty index with metadata set
    */
-  Index *GetEmptyIndex(transaction::TransactionContext *txn, catalog::db_oid_t db_oid, catalog::table_oid_t table_oid,
-                       catalog::index_oid_t index_oid, bool unique_index, const std::vector<std::string> &key_attrs,
+  Index *GetEmptyIndex(transaction::TransactionContext *txn, catalog::db_oid_t db_oid, catalog::index_oid_t index_oid,
+                       SqlTable *sql_table, bool unique_index, const std::vector<std::string> &key_attrs,
                        catalog::Catalog *catalog);
 
   /**
@@ -110,11 +110,14 @@ class IndexManager {
    * @param key_attrs all attributes of the key
    * @param txn_mgr the pointer to the transaction manager
    * @param catalog the pointer to the catalog
+   * @return the index oid if create success otherwise 0
    */
-  void CreateConcurrently(catalog::db_oid_t db_oid, catalog::namespace_oid_t ns_oid, catalog::table_oid_t table_oid,
-                          parser::IndexType index_type, bool unique_index, const std::string &index_name,
-                          const std::vector<std::string> &index_attrs, const std::vector<std::string> &key_attrs,
-                          transaction::TransactionManager *txn_mgr, catalog::Catalog *catalog);
+  catalog::index_oid_t CreateConcurrently(catalog::db_oid_t db_oid, catalog::namespace_oid_t ns_oid,
+                                          catalog::table_oid_t table_oid, parser::IndexType index_type,
+                                          bool unique_index, const std::string &index_name,
+                                          const std::vector<std::string> &index_attrs,
+                                          const std::vector<std::string> &key_attrs,
+                                          transaction::TransactionManager *txn_mgr, catalog::Catalog *catalog);
 
   /**
    * Drop the index. The method first deletes the entry about the index in the catalog in a transaction.

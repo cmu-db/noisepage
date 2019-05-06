@@ -42,6 +42,9 @@ std::shared_ptr<IndexEntry> IndexHandle::GetIndexEntry(transaction::TransactionC
   search_vec.emplace_back(type::TransientValueFactory::GetNull(type::TypeId::BIGINT));
   search_vec.emplace_back(type::TransientValueFactory::GetInteger(!oid));
   ret_row = pg_index_rw_->FindRow(txn, search_vec);
+  if (ret_row.empty()) {
+    return nullptr;
+  }
   return std::make_shared<IndexEntry>(oid, pg_index_rw_, std::move(ret_row));
 }
 
