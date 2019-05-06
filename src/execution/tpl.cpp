@@ -144,6 +144,7 @@ static void CompileAndRun(const std::string &source,
       "Parse: {} ms, Type-check: {} ms, Code-gen: {} ms, Exec.: {} ms, "
       "Jit+Exec.: {} ms",
       parse_ms, typecheck_ms, codegen_ms, exec_ms, jit_ms);
+  exec->GetTxnManager()->Commit(txn, [](void*){}, nullptr);
 }
 
 /// Run the TPL REPL

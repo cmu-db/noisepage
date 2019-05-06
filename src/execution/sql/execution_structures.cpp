@@ -30,7 +30,8 @@ ExecutionStructures::ExecutionStructures() {
   log_manager_ =
       std::make_unique<storage::LogManager>("log_file.log", buffer_pool_.get());
   txn_manager_ = std::make_unique<transaction::TransactionManager>(
-      buffer_pool_.get(), false, log_manager_.get());
+      buffer_pool_.get(), true, log_manager_.get());
+  gc_ = std::make_unique<storage::GarbageCollector>(txn_manager_.get());
   catalog_ = std::make_unique<catalog::Catalog>(txn_manager_.get(),
                                                 block_store_.get());
   InitTestTables();

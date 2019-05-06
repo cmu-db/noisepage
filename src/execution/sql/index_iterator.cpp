@@ -63,7 +63,7 @@ void IndexIterator::ScanKey(byte *sql_key) {
   index_values_.clear();
   catalog_index_->GetIndex()->ScanKey(*index_pr_, &index_values_);
   // FOR DEBUGGING ONLY: print to check if output is correct.
-  if (!index_values_.empty()) std::cout << "Scan key rows:" << std::endl;
+  /*if (!index_values_.empty()) std::cout << "Scan key rows:" << std::endl;
   for (const auto &slot : index_values_) {
     catalog_table_->GetSqlTable()->Select(txn_, slot, row_pr_);
     for (uint16_t i = 0; i < row_pr_->NumColumns(); i++) {
@@ -77,7 +77,7 @@ void IndexIterator::ScanKey(byte *sql_key) {
       std::cout << "(" << offset << "); " << std::endl;
     }
     std::cout << std::endl;
-  }
+  }*/
 }
 
 void IndexIterator::Advance() {

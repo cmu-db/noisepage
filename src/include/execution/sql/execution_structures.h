@@ -10,6 +10,7 @@
 #include "storage/write_ahead_log/log_manager.h"
 #include "transaction/transaction_manager.h"
 #include "execution/util/common.h"
+#include "storage/garbage_collector.h"
 
 namespace tpl::sql {
 using namespace terrier;
@@ -29,6 +30,8 @@ class ExecutionStructures {
   }
 
   storage::LogManager *GetLogManager() { return log_manager_.get(); }
+
+  storage::GarbageCollector *GetGC() { return gc_.get(); }
 
   transaction::TransactionManager *GetTxnManager() {
     return txn_manager_.get();
@@ -53,6 +56,7 @@ class ExecutionStructures {
   std::unique_ptr<catalog::Catalog> catalog_;
   std::unordered_map<std::string, std::shared_ptr<exec::FinalSchema>>
       test_plan_nodes_;
+  std::unique_ptr<storage::GarbageCollector> gc_;
 };
 
 // Keep small so that nested loop join won't run out of memory.
