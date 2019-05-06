@@ -303,7 +303,7 @@ TEST_F(MetricTests, TransactionMetricBasicTest) {
           EXPECT_EQ(insert_cnt, insert_map[txn_id]);
           EXPECT_EQ(delete_cnt, delete_map[txn_id]);
           EXPECT_GE(latency_max_map[txn_id], latency);
-          EXPECT_LT(latency_min_map[txn_id], latency);
+          EXPECT_LE(latency_min_map[txn_id], latency);
         }
       }
     }
