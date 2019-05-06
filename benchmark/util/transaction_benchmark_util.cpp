@@ -36,7 +36,7 @@ void RandomWorkloadTransaction::RandomUpdate(Random *generator) {
   StorageTestUtil::PopulateRandomRow(update, test_object_->layout_, 0.0, generator);
   // TODO(Tianyu): Hardly efficient, but will do for testing.
   if (test_object_->wal_on_) {
-    auto *record = txn_->StageWrite(&test_object_->table_, updated, initializer);
+    auto *record = txn_->StageWrite(&(test_object_->table_), updated, initializer);
     std::memcpy(record->Delta(), update, update->Size());
   }
   auto result = test_object_->table_.Update(txn_, updated, *update);
@@ -56,7 +56,7 @@ void RandomWorkloadTransaction::RandomInsert(Random *generator) {
   storage::TupleSlot inserted = test_object_->table_.Insert(txn_, *insert);
   // TODO(Tianyu): Hardly efficient, but will do for testing.
   if (test_object_->wal_on_) {
-    auto *record = txn_->StageWrite(&test_object_->table_, inserted, initializer);
+    auto *record = txn_->StageWrite(&(test_object_->table_), inserted, initializer);
     std::memcpy(record->Delta(), insert, insert->Size());
   }
 }
@@ -164,7 +164,7 @@ void LargeTransactionBenchmarkObject::PopulateInitialTable(uint32_t num_tuples, 
     storage::TupleSlot inserted = table_.Insert(initial_txn_, *redo);
     // TODO(Tianyu): Hardly efficient, but will do for testing.
     if (wal_on_) {
-      auto *record = initial_txn_->StageWrite(nullptr, inserted, row_initializer_);
+      auto *record = initial_txn_->StageWrite(&table_, inserted, row_initializer_);
       std::memcpy(record->Delta(), redo, redo->Size());
     }
     last_checked_version_.emplace_back(inserted, nullptr);
