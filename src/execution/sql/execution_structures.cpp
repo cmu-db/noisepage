@@ -256,7 +256,7 @@ void ExecutionStructures::InitTestTables() {
     }
   }
   // Commit the transaction.
-  txn_manager_->Commit(txn, [](void*){return;}, nullptr);
+  txn_manager_->Commit(txn, [](void*){}, nullptr);
 }
 
 void ExecutionStructures::InitTestSchemas() {
@@ -387,6 +387,8 @@ void ExecutionStructures::InitTestIndexes() {
     // Fill up the index
     FillIndex(catalog_index, catalog_table, txn, index_meta);
   }
+  // Commit the transaction.
+  txn_manager_->Commit(txn, [](void*){}, nullptr);
 }
 
 

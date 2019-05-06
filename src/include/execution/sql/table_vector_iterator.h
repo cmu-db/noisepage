@@ -16,6 +16,9 @@ class TableVectorIterator {
       u32 db_oid, u32 table_oid,
       terrier::transaction::TransactionContext *txn = nullptr);
 
+  // Destructor
+  ~TableVectorIterator();
+
   /// This class cannot be copied or moved
   DISALLOW_COPY_AND_MOVE(TableVectorIterator);
 

@@ -12,6 +12,11 @@ TableVectorIterator::TableVectorIterator(u32 db_oid, u32 table_oid,
       txn_(txn),
       null_txn_(txn == nullptr) {}
 
+
+TableVectorIterator::~TableVectorIterator() {
+  delete [] buffer_;
+}
+
 bool TableVectorIterator::Init() {
   // Find the table
   auto *exec = ExecutionStructures::Instance();

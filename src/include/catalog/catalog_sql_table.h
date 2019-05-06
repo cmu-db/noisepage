@@ -29,6 +29,11 @@ class SqlTableRW {
     pr_map_ = new storage::ProjectionMap(std::get<1>(row_pair));
   }
 
+  ~SqlTableRW() {
+    delete pri_;
+    delete pr_map_;
+  }
+
   /**
    * Misc access.
    */
