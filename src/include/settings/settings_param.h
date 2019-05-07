@@ -3,7 +3,12 @@
 #include <string>
 #include <utility>
 
+namespace terrier {
+class DBMain;
+}
+
 namespace terrier::settings {
+using callback_fn = void (DBMain::*)(void *, void *, const std::shared_ptr<common::ActionContext> &action_context);
 
 /**
  * Param is a enum class, where all the setting names
@@ -36,16 +41,18 @@ class ParamInfo {
    * @param is_mutable if the setting is mutable or not
    * @param min_value allowed minimum value
    * @param max_value allowed maximum value
+   * @param callback function invoked when param is changed
    */
   ParamInfo(std::string name, type::TransientValue &&value, std::string desc, type::TransientValue &&default_value,
-            bool is_mutable, double min_value, double max_value)
+            bool is_mutable, double min_value, double max_value, callback_fn callback)
       : name(std::move(name)),
         value(std::move(value)),
         desc(std::move(desc)),
         default_value(std::move(default_value)),
         is_mutable(is_mutable),
         min_value(min_value),
-        max_value(max_value) {}
+        max_value(max_value),
+        callback(callback) {}
 
  private:
   friend class SettingsManager;
@@ -56,6 +63,7 @@ class ParamInfo {
   bool is_mutable;
   double min_value;
   double max_value;
+  callback_fn callback;
 };
 
 }  // namespace terrier::settings

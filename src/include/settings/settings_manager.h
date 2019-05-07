@@ -18,7 +18,6 @@ class DBMain;
 }
 
 namespace terrier::settings {
-using callback_fn = void (DBMain::*)(void *, void *, const std::shared_ptr<common::ActionContext> &action_context);
 using setter_callback_fn = void (*)(const std::shared_ptr<common::ActionContext> &action_context);
 
 /**
@@ -135,10 +134,8 @@ class SettingsManager {
   DBMain *db_;
   catalog::SettingsHandle settings_handle_;
   transaction::TransactionManager *txn_manager_;
-  std::unordered_map<Param, callback_fn> callback_map_;
 
-  void ValidateSetting(Param param, const type::TransientValue &min_value, const type::TransientValue &max_value,
-                       callback_fn callback);
+  void ValidateSetting(Param param, const type::TransientValue &min_value, const type::TransientValue &max_value);
 
   type::TransientValue &GetValue(Param param);
   bool SetValue(Param param, const type::TransientValue &value);

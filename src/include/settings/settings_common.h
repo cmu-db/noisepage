@@ -100,19 +100,19 @@
 #endif
 #define SETTING_int(name, description, default_value, min_value, max_value, is_mutable, callback_fn)  \
   ValidateSetting(terrier::settings::Param::name, type::TransientValueFactory::GetInteger(min_value), \
-                  type::TransientValueFactory::GetInteger(max_value), &callback_fn);
+                  type::TransientValueFactory::GetInteger(max_value));
 
 #define SETTING_double(name, description, default_value, min_value, max_value, is_mutable, callback_fn) \
   ValidateSetting(terrier::settings::Param::name, type::TransientValueFactory::GetDecimal(min_value),   \
-                  type::TransientValueFactory::GetDecimal(max_value), &callback_fn);
+                  type::TransientValueFactory::GetDecimal(max_value));
 
 #define SETTING_bool(name, description, default_value, is_mutable, callback_fn)                           \
   ValidateSetting(terrier::settings::Param::name, type::TransientValueFactory::GetBoolean(default_value), \
-                  type::TransientValueFactory::GetBoolean(default_value), &callback_fn);
+                  type::TransientValueFactory::GetBoolean(default_value));
 
 #define SETTING_string(name, description, default_value, is_mutable, callback_fn)                         \
   ValidateSetting(terrier::settings::Param::name, type::TransientValueFactory::GetVarChar(default_value), \
-                  type::TransientValueFactory::GetVarChar(default_value), &callback_fn);
+                  type::TransientValueFactory::GetVarChar(default_value));
 #endif
 
 #ifdef __SETTING_ENUM__
@@ -155,24 +155,26 @@
       terrier::settings::Param::name,                                                                                  \
       terrier::settings::ParamInfo(#name, terrier::type::TransientValueFactory::GetInteger(FLAGS_##name), description, \
                                    terrier::type::TransientValueFactory::GetInteger(default_value), is_mutable,        \
-                                   min_value, max_value));
+                                   min_value, max_value, &callback_fn));
 
 #define SETTING_double(name, description, default_value, min_value, max_value, is_mutable, callback_fn)                \
   param_map.emplace(                                                                                                   \
       terrier::settings::Param::name,                                                                                  \
       terrier::settings::ParamInfo(#name, terrier::type::TransientValueFactory::GetDecimal(FLAGS_##name), description, \
                                    terrier::type::TransientValueFactory::GetDecimal(default_value), is_mutable,        \
-                                   min_value, max_value));
+                                   min_value, max_value, &callback_fn));
 
-#define SETTING_bool(name, description, default_value, is_mutable, callback_fn)                             \
-  param_map.emplace(terrier::settings::Param::name,                                                         \
-                    terrier::settings::ParamInfo(                                                           \
-                        #name, terrier::type::TransientValueFactory::GetBoolean(FLAGS_##name), description, \
-                        terrier::type::TransientValueFactory::GetBoolean(default_value), is_mutable, 0, 0));
+#define SETTING_bool(name, description, default_value, is_mutable, callback_fn)                                        \
+  param_map.emplace(                                                                                                   \
+      terrier::settings::Param::name,                                                                                  \
+      terrier::settings::ParamInfo(#name, terrier::type::TransientValueFactory::GetBoolean(FLAGS_##name), description, \
+                                   terrier::type::TransientValueFactory::GetBoolean(default_value), is_mutable, 0, 0,  \
+                                   &callback_fn));
 
-#define SETTING_string(name, description, default_value, is_mutable, callback_fn)                           \
-  param_map.emplace(terrier::settings::Param::name,                                                         \
-                    terrier::settings::ParamInfo(                                                           \
-                        #name, terrier::type::TransientValueFactory::GetVarChar(FLAGS_##name), description, \
-                        terrier::type::TransientValueFactory::GetVarChar(default_value), is_mutable, 0, 0));
+#define SETTING_string(name, description, default_value, is_mutable, callback_fn)                                      \
+  param_map.emplace(                                                                                                   \
+      terrier::settings::Param::name,                                                                                  \
+      terrier::settings::ParamInfo(#name, terrier::type::TransientValueFactory::GetVarChar(FLAGS_##name), description, \
+                                   terrier::type::TransientValueFactory::GetVarChar(default_value), is_mutable, 0, 0,  \
+                                   &callback_fn));
 #endif

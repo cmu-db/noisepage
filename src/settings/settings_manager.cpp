@@ -35,7 +35,7 @@ void SettingsManager::ValidateParams() {
   // all of the settings defined in settings.h.
   // Example:
   //   ValidateSetting(Param::port, type::TransientValueFactory::GetInteger(1024),
-  //                  type::TransientValueFactory::GetInteger(65535), &DBMain::EmptyCallback);
+  //                  type::TransientValueFactory::GetInteger(65535));
 
 #define __SETTING_VALIDATE__           // NOLINT
 #include "settings/settings_common.h"  // NOLINT
@@ -44,7 +44,7 @@ void SettingsManager::ValidateParams() {
 }
 
 void SettingsManager::ValidateSetting(Param param, const type::TransientValue &min_value,
-                                      const type::TransientValue &max_value, callback_fn callback) {
+                                      const type::TransientValue &max_value) {
   const ParamInfo &info = db_->param_map_.find(param)->second;
   if (!ValidateValue(info.value, min_value, max_value)) {
     SETTINGS_LOG_ERROR(
@@ -53,8 +53,6 @@ void SettingsManager::ValidateSetting(Param param, const type::TransientValue &m
         info.name);
     throw SETTINGS_EXCEPTION("Invalid setting value");
   }
-
-  callback_map_.emplace(param, callback);
 }
 
 void SettingsManager::InitializeCatalog() {
@@ -212,7 +210,7 @@ bool SettingsManager::ValidateValue(const type::TransientValue &value, const typ
 
 common::ActionState SettingsManager::InvokeCallback(Param param, void *old_value, void *new_value,
                                                     std::shared_ptr<common::ActionContext> action_context) {
-  callback_fn callback = callback_map_.find(param)->second;
+  callback_fn callback = db_->param_map_.find(param)->second.callback;
   (db_->*callback)(old_value, new_value, action_context);
   ActionState action_state = action_context->GetState();
   TERRIER_ASSERT(action_state == ActionState::FAILURE || action_state == ActionState::SUCCESS,
