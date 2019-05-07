@@ -80,23 +80,36 @@ void SettingsManager::InitializeCatalog() {
   txn_manager_->Commit(txn, EmptyCallback, nullptr);
 }
 
-int32_t SettingsManager::GetInt(Param param) { return ValuePeeker::PeekInteger(GetValue(param)); }
+int32_t SettingsManager::GetInt(Param param) {
+  common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
+  return ValuePeeker::PeekInteger(GetValue(param));
+}
 
-double SettingsManager::GetDouble(Param param) { return ValuePeeker::PeekDecimal(GetValue(param)); }
+double SettingsManager::GetDouble(Param param) {
+  common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
+  return ValuePeeker::PeekDecimal(GetValue(param));
+}
 
-bool SettingsManager::GetBool(Param param) { return ValuePeeker::PeekBoolean(GetValue(param)); }
+bool SettingsManager::GetBool(Param param) {
+  common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
+  return ValuePeeker::PeekBoolean(GetValue(param));
+}
 
-std::string_view SettingsManager::GetString(Param param) { return ValuePeeker::PeekVarChar(GetValue(param)); }
+std::string_view SettingsManager::GetString(Param param) {
+  common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
+  return ValuePeeker::PeekVarChar(GetValue(param));
+}
 
 void SettingsManager::SetInt(Param param, int32_t value, std::shared_ptr<ActionContext> action_context,
                              setter_callback_fn setter_callback) {
+  common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
   const auto &param_info = db_->param_map_.find(param)->second;
   int min_value = static_cast<int>(param_info.min_value);
   int max_value = static_cast<int>(param_info.max_value);
   if (!(value >= min_value && value <= max_value)) {
     action_context->SetState(ActionState::FAILURE);
   } else {
-    int old_value = GetInt(param);
+    int old_value = ValuePeeker::PeekInteger(GetValue(param));
     if (!SetValue(param, ValueFactory::GetInteger(value))) {
       action_context->SetState(ActionState::FAILURE);
     } else {
@@ -113,13 +126,14 @@ void SettingsManager::SetInt(Param param, int32_t value, std::shared_ptr<ActionC
 
 void SettingsManager::SetDouble(Param param, double value, std::shared_ptr<ActionContext> action_context,
                                 setter_callback_fn setter_callback) {
+  common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
   const auto &param_info = db_->param_map_.find(param)->second;
   double min_value = param_info.min_value;
   double max_value = param_info.max_value;
   if (!(value >= min_value && value <= max_value)) {
     action_context->SetState(ActionState::FAILURE);
   } else {
-    double old_value = GetDouble(param);
+    double old_value = ValuePeeker::PeekDecimal(GetValue(param));
     if (!SetValue(param, ValueFactory::GetDecimal(value))) {
       action_context->SetState(ActionState::FAILURE);
     } else {
@@ -136,7 +150,8 @@ void SettingsManager::SetDouble(Param param, double value, std::shared_ptr<Actio
 
 void SettingsManager::SetBool(Param param, bool value, std::shared_ptr<ActionContext> action_context,
                               setter_callback_fn setter_callback) {
-  bool old_value = GetBool(param);
+  common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
+  bool old_value = ValuePeeker::PeekBoolean(GetValue(param));
   if (!SetValue(param, ValueFactory::GetBoolean(value))) {
     action_context->SetState(ActionState::FAILURE);
   } else {
@@ -152,7 +167,8 @@ void SettingsManager::SetBool(Param param, bool value, std::shared_ptr<ActionCon
 
 void SettingsManager::SetString(Param param, const std::string_view &value,
                                 std::shared_ptr<ActionContext> action_context, setter_callback_fn setter_callback) {
-  std::string_view old_value = GetString(param);
+  common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
+  std::string_view old_value = ValuePeeker::PeekVarChar(GetValue(param));
   if (!SetValue(param, ValueFactory::GetVarChar(value))) {
     action_context->SetState(ActionState::FAILURE);
   } else {

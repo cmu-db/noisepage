@@ -134,6 +134,7 @@ class SettingsManager {
   DBMain *db_;
   catalog::SettingsHandle settings_handle_;
   transaction::TransactionManager *txn_manager_;
+  common::SharedLatch latch_;
 
   void ValidateSetting(Param param, const type::TransientValue &min_value, const type::TransientValue &max_value);
 
