@@ -92,30 +92,46 @@ std::string_view SettingsManager::GetString(Param param) { return ValuePeeker::P
 
 void SettingsManager::SetInt(Param param, int32_t value, std::shared_ptr<ActionContext> action_context,
                              setter_callback_fn setter_callback) {
-  int old_value = GetInt(param);
-  if (!SetValue(param, ValueFactory::GetInteger(value))) {
+  const auto &param_info = db_->param_map_.find(param)->second;
+  int min_value = static_cast<int>(param_info.min_value);
+  int max_value = static_cast<int>(param_info.max_value);
+  if (!(value >= min_value && value <= max_value)) {
     action_context->SetState(ActionState::FAILURE);
-    return;
-  }
-  ActionState action_state =
-      InvokeCallback(param, static_cast<void *>(&old_value), static_cast<void *>(&value), action_context);
-  if (action_state == ActionState::FAILURE) {
-    SetValue(param, ValueFactory::GetInteger(old_value));
+  } else {
+    int old_value = GetInt(param);
+    if (!SetValue(param, ValueFactory::GetInteger(value))) {
+      action_context->SetState(ActionState::FAILURE);
+    } else {
+      ActionState action_state =
+          InvokeCallback(param, static_cast<void *>(&old_value), static_cast<void *>(&value), action_context);
+      if (action_state == ActionState::FAILURE) {
+        bool result = SetValue(param, ValueFactory::GetInteger(old_value));
+        TERRIER_ASSERT(result, "Resetting parameter value should not fail");
+      }
+    }
   }
   setter_callback(action_context);
 }
 
 void SettingsManager::SetDouble(Param param, double value, std::shared_ptr<ActionContext> action_context,
                                 setter_callback_fn setter_callback) {
-  double old_value = GetDouble(param);
-  if (!SetValue(param, ValueFactory::GetDecimal(value))) {
+  const auto &param_info = db_->param_map_.find(param)->second;
+  double min_value = param_info.min_value;
+  double max_value = param_info.max_value;
+  if (!(value >= min_value && value <= max_value)) {
     action_context->SetState(ActionState::FAILURE);
-    return;
-  }
-  ActionState action_state =
-      InvokeCallback(param, static_cast<void *>(&old_value), static_cast<void *>(&value), action_context);
-  if (action_state == ActionState::FAILURE) {
-    SetValue(param, ValueFactory::GetDecimal(old_value));
+  } else {
+    double old_value = GetDouble(param);
+    if (!SetValue(param, ValueFactory::GetDecimal(value))) {
+      action_context->SetState(ActionState::FAILURE);
+    } else {
+      ActionState action_state =
+          InvokeCallback(param, static_cast<void *>(&old_value), static_cast<void *>(&value), action_context);
+      if (action_state == ActionState::FAILURE) {
+        bool result = SetValue(param, ValueFactory::GetDecimal(old_value));
+        TERRIER_ASSERT(result, "Resetting parameter value should not fail");
+      }
+    }
   }
   setter_callback(action_context);
 }
@@ -125,12 +141,13 @@ void SettingsManager::SetBool(Param param, bool value, std::shared_ptr<ActionCon
   bool old_value = GetBool(param);
   if (!SetValue(param, ValueFactory::GetBoolean(value))) {
     action_context->SetState(ActionState::FAILURE);
-    return;
-  }
-  ActionState action_state =
-      InvokeCallback(param, static_cast<void *>(&old_value), static_cast<void *>(&value), action_context);
-  if (action_state == ActionState::FAILURE) {
-    SetValue(param, ValueFactory::GetBoolean(old_value));
+  } else {
+    ActionState action_state =
+        InvokeCallback(param, static_cast<void *>(&old_value), static_cast<void *>(&value), action_context);
+    if (action_state == ActionState::FAILURE) {
+      bool result = SetValue(param, ValueFactory::GetBoolean(old_value));
+      TERRIER_ASSERT(result, "Resetting parameter value should not fail");
+    }
   }
   setter_callback(action_context);
 }
@@ -140,14 +157,14 @@ void SettingsManager::SetString(Param param, const std::string_view &value,
   std::string_view old_value = GetString(param);
   if (!SetValue(param, ValueFactory::GetVarChar(value))) {
     action_context->SetState(ActionState::FAILURE);
-    return;
-  }
-  std::string_view new_value(value);
-  ActionState action_state =
-      InvokeCallback(param, static_cast<void *>(&old_value), static_cast<void *>(&new_value), action_context);
-
-  if (action_state == ActionState::FAILURE) {
-    SetValue(param, ValueFactory::GetVarChar(old_value));
+  } else {
+    std::string_view new_value(value);
+    ActionState action_state =
+        InvokeCallback(param, static_cast<void *>(&old_value), static_cast<void *>(&new_value), action_context);
+    if (action_state == ActionState::FAILURE) {
+      bool result = SetValue(param, ValueFactory::GetVarChar(old_value));
+      TERRIER_ASSERT(result, "Resetting parameter value should not fail");
+    }
   }
   setter_callback(action_context);
 }

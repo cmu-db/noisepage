@@ -34,14 +34,18 @@ class ParamInfo {
    * @param desc a description of the setting
    * @param default_value the default value of the setting
    * @param is_mutable if the setting is mutable or not
+   * @param min_value allowed minimum value
+   * @param max_value allowed maximum value
    */
   ParamInfo(std::string name, type::TransientValue &&value, std::string desc, type::TransientValue &&default_value,
-            bool is_mutable)
+            bool is_mutable, double min_value, double max_value)
       : name(std::move(name)),
         value(std::move(value)),
         desc(std::move(desc)),
         default_value(std::move(default_value)),
-        is_mutable(is_mutable) {}
+        is_mutable(is_mutable),
+        min_value(min_value),
+        max_value(max_value) {}
 
  private:
   friend class SettingsManager;
@@ -50,6 +54,8 @@ class ParamInfo {
   std::string desc;
   type::TransientValue default_value;
   bool is_mutable;
+  double min_value;
+  double max_value;
 };
 
 }  // namespace terrier::settings

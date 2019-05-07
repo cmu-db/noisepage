@@ -111,7 +111,6 @@ TEST_F(SettingsTests, BasicTest) {
 
   auto name = settings_manager_->GetString(Param::db_name);
   EXPECT_EQ("Terrier", name);
-
 }
 
 // NOLINTNEXTLINE
