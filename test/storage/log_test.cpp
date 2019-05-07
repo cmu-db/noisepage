@@ -17,6 +17,7 @@ class WriteAheadLoggingTests : public TerrierTest {
  public:
   void StartLogging(uint32_t log_period_milli) {
     logging_ = true;
+    log_manager_.Start();
     log_thread_ = std::thread([log_period_milli, this] { LogThreadLoop(log_period_milli); });
   }
 

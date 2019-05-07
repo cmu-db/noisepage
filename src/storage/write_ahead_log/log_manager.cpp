@@ -133,45 +133,6 @@ void LogManager::SerializeRecord(const terrier::storage::LogRecord &record) {
   }
 }
 
-void LogManager::WriteToDiskLoop() {
-  // Log writer thread spins in this loop
-  // It dequeues a filled buffer and flushes it to disk
-  while (run_log_writer_thread_) {
-    BufferedLogWriter *buf;
-    bool dequeued = NonblockingDequeueBuffer(&buf, &filled_buffer_queue_);
-    if (dequeued) {
-      // Flush the buffer to the disk
-      buf->FlushBuffer();
-      // Push the emptied buffer to queue of available buffers to fill
-      BlockingEnqueueBuffer(buf, &empty_buffer_queue_);
-    }
-    // If the main logger thread has signaled to persist the buffers, persist all the filled buffers
-    if (do_persist_) {
-      FlushAllBuffers();
-      // Signal the main logger thread for completion of persistence
-      do_persist_ = false;
-    }
-  }
-}
-
-void LogManager::FlushAllBuffers() {
-  // Persist all the filled buffers to the disk
-  bool dequeued;
-  do {
-    // Dequeue filled buffers and flush them to disk
-    BufferedLogWriter *buf;
-    dequeued = NonblockingDequeueBuffer(&buf, &filled_buffer_queue_);
-    if (dequeued) {
-      buf->FlushBuffer();
-      // Enqueue the flushed buffer to the empty buffer queue
-      BlockingEnqueueBuffer(buf, &empty_buffer_queue_);
-    }
-  } while (dequeued);
-  // Persist the buffers
-  TERRIER_ASSERT(!buffers_.empty(), "Buffers vector should not be empty until Shutdown");
-  buffers_.front().Persist();
-}
-
 void LogManager::WriteValue(const void *val, uint32_t size) {
   // Serialize the value and copy it to the buffer
   BufferedLogWriter *out = GetBufferToWrite();

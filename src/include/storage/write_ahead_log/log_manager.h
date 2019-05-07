@@ -11,6 +11,7 @@
 #include "storage/record_buffer.h"
 #include "storage/write_ahead_log/log_io.h"
 #include "storage/write_ahead_log/log_record.h"
+#include "storage/write_ahead_log/log_writer.h"
 #include "transaction/transaction_defs.h"
 
 // TODO(Utkarsh): Get rid of magic constants
@@ -37,7 +38,8 @@ class LogManager {
         buffer_to_write_(nullptr),
         empty_buffer_queue_(MAX_BUF),
         filled_buffer_queue_(MAX_BUF),
-        run_log_writer_thread_(true),
+        log_writer_(nullptr),
+        run_log_writer_thread_(false),
         do_persist_(true) {
     for (int i = 0; i < MAX_BUF; i++) {
       buffers_.emplace_back(BufferedLogWriter(log_file_path));
@@ -45,7 +47,14 @@ class LogManager {
     for (int i = 0; i < MAX_BUF; i++) {
       BlockingEnqueueBuffer(&buffers_[i], &empty_buffer_queue_);
     }
-    log_writer_thread_ = std::thread([this] { WriteToDiskLoop(); });
+  }
+
+  /**
+   * Start logging
+   */
+  void Start() {
+    run_log_writer_thread_ = true;
+    log_writer_ = new LogWriter(this);
   }
 
   /**
@@ -54,7 +63,7 @@ class LogManager {
   void Shutdown() {
     Process();
     run_log_writer_thread_ = false;
-    log_writer_thread_.join();
+    log_writer_->Shutdown();
     for (auto buf : buffers_) {
       buf.Close();
     }
@@ -89,6 +98,7 @@ class LogManager {
   void Flush();
 
  private:
+  friend class LogWriter;
   // TODO(Tianyu): This can be changed later to be include things that are not necessarily backed by a disk
   //  (e.g. logs can be streamed out to the network for remote replication)
   RecordBufferSegmentPool *buffer_pool_;
@@ -113,8 +123,8 @@ class LogManager {
   // The queue containing filled buffers pending flush to the disk
   queue_t filled_buffer_queue_;
 
-  // The log writer thread which flushes filled buffers to the disk
-  std::thread log_writer_thread_;
+  // The log writer object which flushes filled buffers to the disk
+  LogWriter *log_writer_;
   // Flag used by the serializer thread to signal shutdown to the log writer thread
   volatile bool run_log_writer_thread_;
   // Flag used by the serializer thread to signal the log writer thread to persist the data on disk
@@ -131,16 +141,6 @@ class LogManager {
    * @param task_buffer the iterator to the redo buffer to be serialized
    */
   void SerializeTaskBuffer(IterableBufferSegment<LogRecord> *task_buffer);
-
-  /**
-   * Write data to disk till shutdown. This is what the log writer thread runs
-   */
-  void WriteToDiskLoop();
-
-  /**
-   * Flush all buffers in the filled buffers queue to the disk, followed by an fsync
-   */
-  void FlushAllBuffers();
 
   /**
    * Used by the serializer thread to get a buffer to serialize data to

@@ -14,6 +14,7 @@ class LoggingBenchmark : public benchmark::Fixture {
  public:
   void StartLogging() {
     logging_ = true;
+    log_manager_->Start();
     log_thread_ = std::thread([this] { LogThreadLoop(); });
   }
 
