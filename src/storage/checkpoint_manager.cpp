@@ -91,7 +91,7 @@ void CheckpointManager::RecoverFromLogs(const char *log_file_path,
   while (in.HasMore()) {
     LogRecord *log_record = ReadNextLogRecord(&in);
     if (log_record->RecordType() == LogRecordType::COMMIT) {
-      TERRIER_ASSERT(valid_begin_ts.find(log_record->TxnBegin()) != valid_begin_ts.end(),
+      TERRIER_ASSERT(valid_begin_ts.find(log_record->TxnBegin()) == valid_begin_ts.end(),
                      "Commit records should be mapped to unique begin timestamps.");
       terrier::transaction::timestamp_t commit_timestamp =
           log_record->GetUnderlyingRecordBodyAs<CommitRecord>()->CommitTime();
@@ -102,7 +102,8 @@ void CheckpointManager::RecoverFromLogs(const char *log_file_path,
     }
     delete[] reinterpret_cast<byte *>(log_record);
   }
-  in.Close();
+  // TODO (zhaozhes): figure out why closing leads to errno 9
+//  in.Close();
 
   // Second pass
   in = BufferedLogReader(log_file_path);
@@ -147,6 +148,7 @@ void CheckpointManager::RecoverFromLogs(const char *log_file_path,
     }
     delete[] reinterpret_cast<byte *>(log_record);
   }
+//  in.Close();
 }
 
 storage::LogRecord *CheckpointManager::ReadNextLogRecord(storage::BufferedLogReader *in) {

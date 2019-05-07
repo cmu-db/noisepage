@@ -95,10 +95,11 @@ class CheckpointManager {
    * Get the most up to date checkpoint file name
    * @return path to the latest checkpoint file (with largest transaction id)
    */
-  std::string GetLatestCheckpointFilename() {
+  std::pair<std::string, terrier::transaction::timestamp_t> GetLatestCheckpointFilename() {
     // TODO(zhaozhes): checkpoint directory is currently hard-coded here
     char const *path = ".";
     std::string file_name;
+    auto largest_timestamp = static_cast<terrier::transaction::timestamp_t>(0);
 
     DIR *dir;
     struct dirent *ent;
@@ -106,11 +107,13 @@ class CheckpointManager {
       /* print all the files and directories within directory */
       while ((ent = readdir(dir)) != nullptr) {
         std::string candidate(ent->d_name);
+        
         if (candidate.find(checkpoint_file_path_prefix_) == 0) {
-          // A little hack here to compare the timestamp strings
-          if (candidate.length() > file_name.length() ||
-              (candidate.length() == file_name.length() && candidate > file_name)) {
+          auto timestamp = static_cast<terrier::transaction::timestamp_t>
+            (std::stoull(candidate.substr(checkpoint_file_path_prefix_.length(), -1)));
+          if (timestamp > largest_timestamp) {
             file_name = candidate;
+            largest_timestamp = timestamp;
           }
         }
       }
@@ -119,7 +122,7 @@ class CheckpointManager {
       /* could not open directory */
       throw std::runtime_error("cannot open checkpoint directory");
     }
-    return file_name;
+    return std::make_pair(file_name, largest_timestamp);
   }
 
   /**

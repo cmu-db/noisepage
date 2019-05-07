@@ -81,7 +81,7 @@ class CheckpointTests : public TerrierTest {
 // NOLINTNEXTLINE
 TEST_F(CheckpointTests, SimpleCheckpointRecoveryNoSeparateThread) {
   checkpoint_manager_.UnlinkCheckpointFiles();
-  const uint32_t num_rows = 100000;
+  const uint32_t num_rows = 100;
   const uint32_t num_columns = 3;
   int magic_seed = 13523777;
   double null_bias = 0.2;
@@ -104,13 +104,14 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryNoSeparateThread) {
   StorageTestUtil::PrintAllRows(scan_txn, table, &original_rows);
   txn_manager->Commit(scan_txn, StorageTestUtil::EmptyCallback, nullptr);
   // recovery to another table
-  std::string latest_checkpoint_path = checkpoint_manager_.GetLatestCheckpointFilename();
+  std::pair<std::string, terrier::transaction::timestamp_t> checkpoint_pair =
+    checkpoint_manager_.GetLatestCheckpointFilename();
   transaction::TransactionContext *recovery_txn = txn_manager->BeginTransaction();
   storage::BlockStore block_store_{10000, 10000};
   storage::SqlTable *recovered_table = new storage::SqlTable(&block_store_, *schema, catalog::table_oid_t(1));
   checkpoint_manager_.StartRecovery(recovery_txn);
   checkpoint_manager_.RegisterTable(recovered_table);
-  checkpoint_manager_.Recover(latest_checkpoint_path.c_str());
+  checkpoint_manager_.Recover(checkpoint_pair.first.c_str());
   checkpoint_manager_.EndRecovery();
   txn_manager->Commit(recovery_txn, StorageTestUtil::EmptyCallback, nullptr);
   // read recovered table
@@ -166,13 +167,14 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryNoVarlen) {
   StorageTestUtil::PrintAllRows(scan_txn, table, &original_rows);
   txn_manager->Commit(scan_txn, StorageTestUtil::EmptyCallback, nullptr);
   // recovery to another table
-  std::string latest_checkpoint_path = checkpoint_manager_.GetLatestCheckpointFilename();
+  std::pair<std::string, terrier::transaction::timestamp_t> checkpoint_pair =
+    checkpoint_manager_.GetLatestCheckpointFilename();
   transaction::TransactionContext *recovery_txn = txn_manager->BeginTransaction();
   storage::BlockStore block_store_{10000, 10000};
   storage::SqlTable *recovered_table = new storage::SqlTable(&block_store_, *schema, catalog::table_oid_t(1));
   checkpoint_manager_.StartRecovery(recovery_txn);
   checkpoint_manager_.RegisterTable(recovered_table);
-  checkpoint_manager_.Recover(latest_checkpoint_path.c_str());
+  checkpoint_manager_.Recover(checkpoint_pair.first.c_str());
   checkpoint_manager_.EndRecovery();
   txn_manager->Commit(recovery_txn, StorageTestUtil::EmptyCallback, nullptr);
   // read recovered table
@@ -202,7 +204,7 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryNoVarlen) {
 // NOLINTNEXTLINE
 TEST_F(CheckpointTests, SimpleCheckpointRecoveryWithVarlen) {
   checkpoint_manager_.UnlinkCheckpointFiles();
-  const uint32_t num_rows = 1000;
+  const uint32_t num_rows = 100;
   const uint32_t num_columns = 3;
   int magic_seed = 13523777;
   double null_bias = 0.2;
@@ -227,13 +229,14 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryWithVarlen) {
   StorageTestUtil::PrintAllRows(scan_txn, table, &original_rows);
   txn_manager->Commit(scan_txn, StorageTestUtil::EmptyCallback, nullptr);
   // recovery to another table
-  std::string latest_checkpoint_path = checkpoint_manager_.GetLatestCheckpointFilename();
+  std::pair<std::string, terrier::transaction::timestamp_t> checkpoint_pair =
+    checkpoint_manager_.GetLatestCheckpointFilename();
   transaction::TransactionContext *recovery_txn = txn_manager->BeginTransaction();
   storage::BlockStore block_store_{10000, 10000};
   storage::SqlTable *recovered_table = new storage::SqlTable(&block_store_, *schema, catalog::table_oid_t(1));
   checkpoint_manager_.StartRecovery(recovery_txn);
   checkpoint_manager_.RegisterTable(recovered_table);
-  checkpoint_manager_.Recover(latest_checkpoint_path.c_str());
+  checkpoint_manager_.Recover(checkpoint_pair.first.c_str());
   checkpoint_manager_.EndRecovery();
   txn_manager->Commit(recovery_txn, StorageTestUtil::EmptyCallback, nullptr);
   // read recovered table
@@ -288,13 +291,14 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryWithHugeRow) {
   StorageTestUtil::PrintAllRows(scan_txn, table, &original_rows);
   txn_manager->Commit(scan_txn, StorageTestUtil::EmptyCallback, nullptr);
   // recovery to another table
-  std::string latest_checkpoint_path = checkpoint_manager_.GetLatestCheckpointFilename();
+  std::pair<std::string, terrier::transaction::timestamp_t> checkpoint_pair =
+    checkpoint_manager_.GetLatestCheckpointFilename();
   transaction::TransactionContext *recovery_txn = txn_manager->BeginTransaction();
   storage::BlockStore block_store_{10000, 10000};
   storage::SqlTable *recovered_table = new storage::SqlTable(&block_store_, *schema, catalog::table_oid_t(1));
   checkpoint_manager_.StartRecovery(recovery_txn);
   checkpoint_manager_.RegisterTable(recovered_table);
-  checkpoint_manager_.Recover(latest_checkpoint_path.c_str());
+  checkpoint_manager_.Recover(checkpoint_pair.first.c_str());
   checkpoint_manager_.EndRecovery();
   txn_manager->Commit(recovery_txn, StorageTestUtil::EmptyCallback, nullptr);
   // read recovered table
@@ -348,19 +352,27 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryNoVarlenWithTxnObject) {
   // Sleep for some time to ensure that the checkpoint thread has started at least one checkpoint.
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
   EndCheckpointingThread();
+  
+  // Run transactions to generate logs
+  StartLogging(10);
+  auto result = tested.SimulateOltp(10, 4);
+  EndLogging();
+  
   // read first run
   transaction::TransactionContext *scan_txn = txn_manager->BeginTransaction();
   std::vector<std::string> original_rows;
   StorageTestUtil::PrintAllRows(scan_txn, table, &original_rows);
   txn_manager->Commit(scan_txn, StorageTestUtil::EmptyCallback, nullptr);
   // recovery to another table
-  std::string latest_checkpoint_path = checkpoint_manager_.GetLatestCheckpointFilename();
+  std::pair<std::string, terrier::transaction::timestamp_t> checkpoint_pair =
+    checkpoint_manager_.GetLatestCheckpointFilename();
   transaction::TransactionContext *recovery_txn = txn_manager->BeginTransaction();
   storage::BlockStore block_store_{10000, 10000};
   storage::SqlTable *recovered_table = new storage::SqlTable(&block_store_, *schema, catalog::table_oid_t(0));
   checkpoint_manager_.StartRecovery(recovery_txn);
   checkpoint_manager_.RegisterTable(recovered_table);
-  checkpoint_manager_.Recover(latest_checkpoint_path.c_str());
+  checkpoint_manager_.Recover(checkpoint_pair.first.c_str());
+  checkpoint_manager_.RecoverFromLogs(LOG_FILE_NAME, checkpoint_pair.second);
   checkpoint_manager_.EndRecovery();
   txn_manager->Commit(recovery_txn, StorageTestUtil::EmptyCallback, nullptr);
   // read recovered table
@@ -383,6 +395,7 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryNoVarlenWithTxnObject) {
   delete scan_txn;
   delete scan_txn_2;
   delete recovery_txn;
+  unlink(LOG_FILE_NAME);
 }
 
 

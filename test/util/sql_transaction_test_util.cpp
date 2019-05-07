@@ -114,7 +114,8 @@ SqlLargeTransactionTestObject::~SqlLargeTransactionTestObject() {
 }
 
 // Caller is responsible for freeing the returned results if bookkeeping is on.
-SqlSimulationResult SqlLargeTransactionTestObject::SimulateOltp(uint32_t num_transactions, uint32_t num_concurrent_txns) {
+SqlSimulationResult SqlLargeTransactionTestObject::SimulateOltp(uint32_t num_transactions,
+                                                                uint32_t num_concurrent_txns) {
   std::vector<SqlRandomWorkloadTransaction *> txns;
   std::function<void(uint32_t)> workload;
   std::atomic<uint32_t> txns_run = 0;
