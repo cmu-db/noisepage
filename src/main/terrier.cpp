@@ -14,16 +14,8 @@
 #include "settings/settings_defs.h"    // NOLINT
 #undef __SETTING_GFLAGS_DEFINE__       // NOLINT
 
-int main(int argc, char *argv[]) {
-  // initialize loggers
-  // Parse Setting Values
-  ::google::SetUsageMessage("Usage Info: \n");
-  ::google::ParseCommandLineFlags(&argc, &argv, true);
-  std::unordered_map<terrier::settings::Param, terrier::settings::ParamInfo> param_map;
-
-  // initialize stat registry
-  auto main_stat_reg = std::make_shared<terrier::common::StatisticsRegistry>();
-
+// Construct settings param map from settings_defs.h
+static void ConstructParamMap(std::unordered_map<terrier::settings::Param, terrier::settings::ParamInfo> &param_map) {
   /*
    * Populate gflag values to param map.
    * This will expand to a list of code like:
@@ -38,7 +30,19 @@ int main(int argc, char *argv[]) {
 #include "settings/settings_common.h"  // NOLINT
 #include "settings/settings_defs.h"    // NOLINT
 #undef __SETTING_POPULATE__            // NOLINT
+}
 
+int main(int argc, char *argv[]) {
+  // initialize loggers
+  // Parse Setting Values
+  ::google::SetUsageMessage("Usage Info: \n");
+  ::google::ParseCommandLineFlags(&argc, &argv, true);
+  std::unordered_map<terrier::settings::Param, terrier::settings::ParamInfo> param_map;
+
+  // initialize stat registry
+  auto main_stat_reg = std::make_shared<terrier::common::StatisticsRegistry>();
+
+  ConstructParamMap(param_map);
   terrier::DBMain db(std::move(param_map));
   db.Init();
   db.Run();
