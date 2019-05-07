@@ -86,7 +86,7 @@ void LogManager::SerializeRecord(const terrier::storage::LogRecord &record) {
 
         if (block_layout.IsVarlen(col_id)) {
           // Inline column value is a pointer to a VarlenEntry, so reinterpret as such.
-          const auto *varlen_entry = reinterpret_cast<const VarlenEntry *>(*column_value_address);
+          const auto *varlen_entry = reinterpret_cast<const VarlenEntry *>(column_value_address);
           // Serialize out length of the varlen entry.
           WriteValue(varlen_entry->Size());
           // Serialize out the content field of the varlen entry.

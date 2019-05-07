@@ -411,7 +411,16 @@ struct StorageTestUtil {
     std::vector<catalog::Schema::Column> cols;
     for (int i = 0; i < num_cols; i++) {
       type::TypeId type = *RandomTestUtil::UniformRandomElement(&types, generator);
-      cols.emplace_back(prefix + std::to_string(uint8_t(type)), type, true, catalog::col_oid_t(i));
+      switch (type) {
+        case type::TypeId::VARCHAR:
+        case type::TypeId::VARBINARY:  // varlen entries
+          cols.emplace_back(prefix + std::to_string(uint8_t(type)), type,
+            2 * storage::VarlenEntry::InlineThreshold(), true, catalog::col_oid_t(i));
+          break;
+        default:
+          cols.emplace_back(prefix + std::to_string(uint8_t(type)), type, true, catalog::col_oid_t(i));
+          break;
+      }
     }
     return catalog::Schema(cols);
   }

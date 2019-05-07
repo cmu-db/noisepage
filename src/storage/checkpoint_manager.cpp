@@ -210,9 +210,13 @@ storage::LogRecord *CheckpointManager::ReadNextLogRecord(storage::BufferedLogRea
       // Fill the entry with the next bytes from the log file.
       in->Read(varlen_content, varlen_attribute_size);
       // The attribute value in the ProjectedRow will be a pointer to this varlen entry.
-      auto *entry = reinterpret_cast<storage::VarlenEntry *>(*column_value_address);
+      auto *entry = reinterpret_cast<storage::VarlenEntry *>(column_value_address);
       // Set the value to be the address of the varlen_entry.
-      *entry = storage::VarlenEntry::Create(varlen_content, varlen_attribute_size, true);
+      if (varlen_attribute_size > VarlenEntry::InlineThreshold()) {
+        *entry = storage::VarlenEntry::Create(varlen_content, varlen_attribute_size, true);
+      } else{
+        *entry = storage::VarlenEntry::CreateInline(varlen_content, varlen_attribute_size);
+      }
     } else {
       // For inlined attributes, just directly read into the ProjectedRow.
       in->Read(column_value_address, table->GetSchema().GetColumn(col_oids[i]).GetAttrSize());
