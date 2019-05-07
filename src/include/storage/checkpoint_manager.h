@@ -1,6 +1,7 @@
 #pragma once
 
 #include <dirent.h>
+#include <cstdio>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -48,7 +49,8 @@ class CheckpointManager {
    */
   void StartCheckpoint(transaction::TransactionContext *txn) {
     txn_ = txn;
-    out_.Open((GetCheckpointFilePath(txn)).c_str());
+    // Use a temporary name, and change to correct name once finished. To prevent crashes during checkpointing.
+    out_.Open(unfinished_checkpoint_name_);
     // TODO(zhaozhes): persist catalog, get metadata for each table and prepare to checkpoint each table
   }
 
@@ -79,6 +81,7 @@ class CheckpointManager {
   void EndCheckpoint() {
     out_.Persist();
     out_.Close();
+    std::rename(unfinished_checkpoint_name_, GetCheckpointFilePath(txn_).c_str());
     txn_ = nullptr;
   }
 
@@ -107,7 +110,6 @@ class CheckpointManager {
       /* print all the files and directories within directory */
       while ((ent = readdir(dir)) != nullptr) {
         std::string candidate(ent->d_name);
-
         if (candidate.find(checkpoint_file_path_prefix_) == 0) {
           auto timestamp = static_cast<terrier::transaction::timestamp_t>(
               std::stoull(candidate.substr(checkpoint_file_path_prefix_.length(), -1)));
@@ -141,6 +143,8 @@ class CheckpointManager {
           unlink(checkpoint_file.c_str());
         }
       }
+      // delete temporary uncompleted files, if any (should not have happened if the system did not crash during test.
+      unlink(unfinished_checkpoint_name_);
       closedir(dir);
     } else {
       /* could not open directory */
@@ -154,6 +158,7 @@ class CheckpointManager {
   void StartRecovery(transaction::TransactionContext *txn) {
     txn_ = txn;
     tuple_slot_map_.clear();
+    tables_.clear();
   }
 
   /**
@@ -168,25 +173,18 @@ class CheckpointManager {
   void Recover(const char *checkpoint_file_path);
 
   /**
-   * Will be called from recover after the tables are recovered from checkpoint files. This function will replay logs
+   * Should be called after the tables are recovered from checkpoint files. This function will replay logs
    * from the timestamp and recover all the logs. The caller should ensure that the tables are already recovered,
-   * and the tuple_slot_map_ is built. This function should be called after Recover() or inside Recover().
+   * and the tuple_slot_map_ is built. This function should be called after Recover().
    *
    * @param log_file_path log file path.
    * @param checkpoint_timestamp The checkpoint timestamp. All logs with smaller timestamps will be ignored.
    */
   void RecoverFromLogs(const char *log_file_path, terrier::transaction::timestamp_t checkpoint_timestamp);
 
-  /**
-   * Stop the current recovery. All registered tables are cleared.
-   */
-  void EndRecovery() {
-    txn_ = nullptr;
-    tables_.clear();
-  }
-
  private:
   std::string checkpoint_file_path_prefix_;
+  const char *unfinished_checkpoint_name_ = "checkpoint.tmp";
   BufferedTupleWriter out_;
   transaction::TransactionContext *txn_ = nullptr;
   std::unordered_map<catalog::table_oid_t, SqlTable *> tables_;
@@ -197,7 +195,6 @@ class CheckpointManager {
     return tables_.at(oid);
   }
 
-  // TODO(zhaozhes): copied from log_test.cpp because I believe it should be here because checkpoint recovery need it.
   LogRecord *ReadNextLogRecord(BufferedLogReader *in);
 };
 
