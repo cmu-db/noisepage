@@ -28,7 +28,7 @@ TEST_F(BwTreeTests, ReproduceNewOrderMemoryLeak) {
                  "This test requires an even number of threads. This should have been handled when it was assigned.");
 
   // This defines the key space (0 ~ (1M - 1))
-  const uint32_t key_num = 1024 * 1024 * 1024;
+  const uint32_t key_num = 1024 * 1024 * num_threads_;
   common::WorkerPool thread_pool(num_threads_, {});
   auto *const tree = new third_party::bwtree::BwTree<int64_t, int64_t>;
 
