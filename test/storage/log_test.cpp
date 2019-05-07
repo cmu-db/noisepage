@@ -7,9 +7,9 @@
 #include "storage/garbage_collector.h"
 #include "storage/write_ahead_log/log_manager.h"
 #include "transaction/transaction_manager.h"
+#include "util/sql_transaction_test_util.h"
 #include "util/storage_test_util.h"
 #include "util/test_harness.h"
-#include "util/sql_transaction_test_util.h"
 
 #define LOG_FILE_NAME "test.log"
 #define CHECKPOINT_FILE_PREFIX "checkpoint_file_"
@@ -80,17 +80,17 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
   // There are 5 columns. The table has 10 rows. Each transaction does 5 operations. The update-select ratio of
   // operations is 50%-50%.
   SqlLargeTransactionTestObject tested = SqlLargeTransactionTestObject::Builder()
-                                          .SetMaxColumns(5)
-                                          .SetInitialTableSize(10)
-                                          .SetTxnLength(5)
-                                          .SetUpdateSelectRatio({0.5, 0.5})
-                                          .SetBlockStore(&block_store_)
-                                          .SetBufferPool(&pool_)
-                                          .SetGenerator(&generator_)
-                                          .SetGcOn(true)
-                                          .SetBookkeeping(true)
-                                          .SetLogManager(&log_manager_)
-                                          .build();
+                                             .SetMaxColumns(5)
+                                             .SetInitialTableSize(10)
+                                             .SetTxnLength(5)
+                                             .SetUpdateSelectRatio({0.5, 0.5})
+                                             .SetBlockStore(&block_store_)
+                                             .SetBufferPool(&pool_)
+                                             .SetGenerator(&generator_)
+                                             .SetGcOn(true)
+                                             .SetBookkeeping(true)
+                                             .SetLogManager(&log_manager_)
+                                             .build();
   StartLogging(10);
   StartGC(tested.GetTxnManager(), 10);
   auto result = tested.SimulateOltp(100, 4);
@@ -158,17 +158,17 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
 TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
   // Each transaction is read-only (update-select ratio of 0-100). Also, no need for bookkeeping.
   SqlLargeTransactionTestObject tested = SqlLargeTransactionTestObject::Builder()
-                                          .SetMaxColumns(5)
-                                          .SetInitialTableSize(1)
-                                          .SetTxnLength(5)
-                                          .SetUpdateSelectRatio({0.0, 1.0})
-                                          .SetBlockStore(&block_store_)
-                                          .SetBufferPool(&pool_)
-                                          .SetGenerator(&generator_)
-                                          .SetGcOn(true)
-                                          .SetBookkeeping(false)
-                                          .SetLogManager(&log_manager_)
-                                          .build();
+                                             .SetMaxColumns(5)
+                                             .SetInitialTableSize(1)
+                                             .SetTxnLength(5)
+                                             .SetUpdateSelectRatio({0.0, 1.0})
+                                             .SetBlockStore(&block_store_)
+                                             .SetBufferPool(&pool_)
+                                             .SetGenerator(&generator_)
+                                             .SetGcOn(true)
+                                             .SetBookkeeping(false)
+                                             .SetLogManager(&log_manager_)
+                                             .build();
 
   StartLogging(10);
   StartGC(tested.GetTxnManager(), 10);
