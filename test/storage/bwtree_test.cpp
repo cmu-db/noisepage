@@ -22,12 +22,67 @@ struct BwTreeTests : public TerrierTest {
       MultiThreadTestUtil::HardwareConcurrency() + (MultiThreadTestUtil::HardwareConcurrency() % 2);
 };
 
+// NOLINTNEXTLINE
+TEST_F(BwTreeTests, ReproduceNewOrderMemoryLeak) {
+  TERRIER_ASSERT(num_threads_ % 2 == 0,
+                 "This test requires an even number of threads. This should have been handled when it was assigned.");
+
+  // This defines the key space (0 ~ (1M - 1))
+  const uint32_t key_num = 1024 * 1024;
+  common::WorkerPool thread_pool(num_threads_, {});
+  auto *const tree = new third_party::bwtree::BwTree<int64_t, int64_t>;
+
+  std::vector<int64_t> keys;
+  keys.reserve(key_num);
+
+  for (int64_t i = 0; i < key_num; i++) {
+    keys.emplace_back(i);
+  }
+  std::shuffle(keys.begin(), keys.end(), std::mt19937{std::random_device{}()});
+
+  const uint32_t chunk_size = key_num / num_threads_;
+
+  auto workload = [&](uint32_t id) {
+    const uint32_t chunk_offset = chunk_size * id;
+
+    if ((id % 2) == 0) {
+      // Insert random keys
+      for (uint32_t i = 0; i < chunk_size && chunk_offset + i < key_num; i++) {
+        const auto key = keys[chunk_offset + i];
+        tree->Insert(key, key);
+      }
+    } else {
+      std::vector<int64_t> scan_results;
+      // Do ascending limit scans and delete the smallest element found in the range
+      for (uint32_t i = 0; i < chunk_size - 1 && chunk_offset + i + 1 < key_num; i++) {
+        const auto low_key = std::min(keys[chunk_offset + i], keys[chunk_offset + i + 1]);
+        const auto high_key = std::max(keys[chunk_offset + i], keys[chunk_offset + i + 1]);
+
+        const auto scan_limit = 1;
+        scan_results.clear();
+
+        for (auto scan_itr = tree->Begin(low_key); scan_results.size() < scan_limit && !scan_itr.IsEnd() &&
+                                                   (tree->KeyCmpLessEqual(scan_itr->first, high_key));
+             scan_itr++) {
+          scan_results.emplace_back(scan_itr->second);
+        }
+
+        if (!scan_results.empty()) tree->Delete(scan_results[0], scan_results[0]);
+      }
+    }
+  };
+
+  MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, workload);
+
+  delete tree;
+}
+
 /**
  * Adapted from https://github.com/wangziqi2013/BwTree/blob/master/stl_test/bloom_filter.cpp
  * Modified to have Inserts live on the heap, because that's required according to Ziqi
  */
 // NOLINTNEXTLINE
-TEST_F(BwTreeTests, BloomFilter) {
+TEST_F(BwTreeTests, DISABLED_BloomFilter) {
   std::vector<uint32_t *> loose_pointers;
   const uint32_t *buffer[256];
 
@@ -59,7 +114,7 @@ TEST_F(BwTreeTests, BloomFilter) {
  * Adapted from https://github.com/wangziqi2013/BwTree/blob/master/stl_test/sorted_small_set_test.cpp
  */
 // NOLINTNEXTLINE
-TEST_F(BwTreeTests, SortedSmallSet) {
+TEST_F(BwTreeTests, DISABLED_SortedSmallSet) {
   const uint32_t num_inserts = 100;
   auto *buffer = new uint32_t[num_inserts];
 
@@ -86,7 +141,7 @@ TEST_F(BwTreeTests, SortedSmallSet) {
  * Adapted from https://github.com/wangziqi2013/BwTree/blob/master/test/iterator_test.cpp
  */
 // NOLINTNEXTLINE
-TEST_F(BwTreeTests, ForwardIterator) {
+TEST_F(BwTreeTests, DISABLED_ForwardIterator) {
   auto *const tree = BwTreeTestUtil::GetEmptyTree();
   const int key_num = 1024 * 1024;
 
@@ -126,7 +181,7 @@ TEST_F(BwTreeTests, ForwardIterator) {
  * Adapted from https://github.com/wangziqi2013/BwTree/blob/master/test/iterator_test.cpp
  */
 // NOLINTNEXTLINE
-TEST_F(BwTreeTests, ReverseIterator) {
+TEST_F(BwTreeTests, DISABLED_ReverseIterator) {
   auto *const tree = BwTreeTestUtil::GetEmptyTree();
   const int key_num = 1024 * 1024;
 
@@ -161,7 +216,7 @@ TEST_F(BwTreeTests, ReverseIterator) {
  * Adapted from https://github.com/wangziqi2013/BwTree/blob/master/test/random_pattern_test.cpp
  */
 // NOLINTNEXTLINE
-TEST_F(BwTreeTests, ConcurrentRandomInsert) {
+TEST_F(BwTreeTests, DISABLED_ConcurrentRandomInsert) {
   // This defines the key space (0 ~ (1M - 1))
   const uint32_t key_num = 1024 * 1024;
   std::atomic<size_t> insert_success_counter = 0;
@@ -208,7 +263,7 @@ TEST_F(BwTreeTests, ConcurrentRandomInsert) {
  * concurrently on the same key
  */
 // NOLINTNEXTLINE
-TEST_F(BwTreeTests, ConcurrentMixed) {
+TEST_F(BwTreeTests, DISABLED_ConcurrentMixed) {
   TERRIER_ASSERT(num_threads_ % 2 == 0,
                  "This test requires an even number of threads. This should have been handled when it was assigned.");
 
@@ -257,7 +312,7 @@ TEST_F(BwTreeTests, ConcurrentMixed) {
  * Test Basic Insert/Delete/GetValue with different patterns and multi thread
  */
 // NOLINTNEXTLINE
-TEST_F(BwTreeTests, Interleaved) {
+TEST_F(BwTreeTests, DISABLED_Interleaved) {
   const uint32_t basic_test_key_num = 128 * 1024;
 
   common::WorkerPool thread_pool(num_threads_, {});
@@ -418,7 +473,7 @@ TEST_F(BwTreeTests, Interleaved) {
  * This function enters epoch and takes a random delay and exits epoch repeat until desired count has been reached
  */
 // NOLINTNEXTLINE
-TEST_F(BwTreeTests, EpochManager) {
+TEST_F(BwTreeTests, DISABLED_EpochManager) {
   common::WorkerPool thread_pool(num_threads_, {});
   auto *const tree = BwTreeTestUtil::GetEmptyTree();
 
