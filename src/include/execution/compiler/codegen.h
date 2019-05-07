@@ -1,7 +1,6 @@
 #pragma once
 
 #include "execution/compiler/code_context.h"
-#include "execution/compiler/code_block.h"
 #include "execution/util/macros.h"
 
 namespace tpl::ast {
@@ -14,8 +13,6 @@ class Region;
 }
 
 namespace tpl::compiler {
-
-class CodeContext;
 
 class CodeGen {
  private:

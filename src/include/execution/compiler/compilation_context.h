@@ -4,7 +4,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include "execution/compiler/codegen.h"
 #include "execution/compiler/execution_consumer.h"
 #include "execution/compiler/translator_factory.h"
 #include "execution/compiler/query.h"
@@ -21,6 +20,7 @@ class AbstractPlanNode;
 
 namespace tpl::compiler {
 // TODO(WAN): parameter cache would be nice
+class CodeGen;
 
 class CompilationContext {
  public:

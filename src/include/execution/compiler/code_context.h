@@ -4,7 +4,7 @@
 #include "execution/ast/context.h"
 #include "execution/sema/error_reporter.h"
 #include "execution/util/macros.h"
-#include "codegen.h"
+#include "execution/compiler/codegen.h"
 
 namespace tpl::ast {
 class FunctionDecl;
@@ -12,7 +12,6 @@ class FunctionDecl;
 
 namespace tpl::compiler {
 
-class CodeGen;
 class FunctionBuilder;
 
 class CodeContext {

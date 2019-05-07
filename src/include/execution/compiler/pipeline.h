@@ -4,6 +4,7 @@
 
 namespace tpl::compiler {
 class CompilationContext;
+class CodeGen;
 
 class Pipeline {
  public:
