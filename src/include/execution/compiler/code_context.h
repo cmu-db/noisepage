@@ -13,6 +13,7 @@ class FunctionDecl;
 namespace tpl::compiler {
 
 class FunctionBuilder;
+class CodeGen;
 
 class CodeContext {
   friend class CodeGen;

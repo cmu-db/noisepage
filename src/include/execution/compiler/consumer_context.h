@@ -20,7 +20,7 @@ class ConsumerContext {
   CodeGen &GetCodeGen() const;
 
   // Get the pipeline and the context
-  const Pipeline &GetPipeline() const { return pipeline_; }
+  const Pipeline *GetPipeline() const { return pipeline_; }
 
  private:
   // The compilation context

@@ -4,21 +4,18 @@
 
 namespace tpl::compiler {
 class CompilationContext;
+class OperatorTranslator;
 class CodeGen;
 
 class Pipeline {
  public:
-  explicit Pipeline(CompilationContext *ctx) : ctx_(ctx) {};
+  explicit Pipeline(CompilationContext *ctx) : ctx_(ctx), pipeline_index_(0) {};
 
   enum class Parallelism : uint32_t { Serial = 0, Flexible = 1, Parallel = 2 };
 
-  util::Region *GetRegion() {
-    return ctx_->GetRegion();
-  };
+  util::Region *GetRegion();
 
-  CodeGen &GetCodeGen() {
-    return ctx_->GetCodeGen();
-  }
+  CodeGen &GetCodeGen();
 
   CompilationContext *GetCompilationContext() {
     return ctx_;
@@ -33,6 +30,9 @@ class Pipeline {
   CompilationContext *ctx_;
 
   std::vector<OperatorTranslator *> pipeline_;
+
+  // The index into the pipeline that points to the current working operator
+  uint32_t pipeline_index_;
 };
 
 }

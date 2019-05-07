@@ -12,6 +12,14 @@ namespace tpl::compiler {
    }
  }
 
+  util::Region *Pipeline::GetRegion() {
+    return ctx_->GetRegion();
+  };
+
+  CodeGen &Pipeline::GetCodeGen() {
+    return ctx_->GetCodeGen();
+  }
+
   void compiler::Pipeline::Add(OperatorTranslator *translator, tpl::compiler::Pipeline::Parallelism
     parallelism) {
     pipeline_.push_back(translator);

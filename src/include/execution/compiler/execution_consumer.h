@@ -1,10 +1,12 @@
 #pragma once
 
 #include "consumer_context.h"
+#include "row_batch.h"
 
 namespace tpl::compiler {
 
 class CompilationContext;
+class ConsumerContext;
 
 class ExecutionConsumer {
  public:

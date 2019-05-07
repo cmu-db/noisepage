@@ -11,7 +11,7 @@
 
 namespace tpl::compiler {
 
-OperatorTranslator *TranslatorFactory::GetTranslator(const terrier::planner::AbstractPlanNode &op, Pipeline *pipeline) {
+OperatorTranslator *TranslatorFactory::CreateTranslator(const terrier::planner::AbstractPlanNode &op, Pipeline *pipeline) {
     switch (op.GetPlanNodeType()) {
       case terrier::planner::PlanNodeType::SEQSCAN: {
         return new (pipeline->GetRegion()) SeqScanTranslator(planNode, context);
@@ -24,7 +24,7 @@ OperatorTranslator *TranslatorFactory::GetTranslator(const terrier::planner::Abs
     }
   }
 
-ExpressionTranslator *TranslatorFactory::GetTranslator(const terrier::expression::AbstractExpression *expression, CompilationContext &context) {
+ExpressionTranslator *TranslatorFactory::CreateTranslator(const terrier::expression::AbstractExpression *expression, CompilationContext &context) {
   auto type = expression->GetExpressionType();
   if(COMPARISON_OP(type)){
     auto ret = new (context.GetRegion()) ComparisonTranslator(expression, context);

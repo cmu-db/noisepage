@@ -18,15 +18,15 @@ class CodeGen {
  private:
   friend class FunctionBuilder;
   friend class QueryState;
-  util::Region *GetRegion() { return ctx_->region_; }
+  util::Region *GetRegion();
   CodeContext *GetCodeContext() { return ctx_; }
 
  public:
-  explicit CodeGen(CodeContext *ctx) : id_count_(0), ctx_(ctx), factory_(&ctx_->ast_factory_) {}
+  explicit CodeGen(CodeContext *ctx);
 
   ast::AstNodeFactory *operator->() { return factory_; }
 
-  FunctionBuilder *GetCurrentFunction() { return ctx_->GetCurrentFunction(); }
+  FunctionBuilder *GetCurrentFunction();
 
   DISALLOW_COPY_AND_MOVE(CodeGen);
 
@@ -80,33 +80,26 @@ class CodeGen {
 
   ast::Stmt *Return(ast::Expr *val) const { return factory_->NewReturnStmt(DUMMY_POS, val); }*/
 
-  ast::Expr *Ty_Nil() const { return ctx_->nil_type_; }
-  ast::Expr *Ty_Bool() const { return ctx_->bool_type_; }
-  ast::Expr *Ty_Int8() const { return ctx_->i8_type_; }
-  ast::Expr *Ty_Int16() const { return ctx_->i16_type_; }
-  ast::Expr *Ty_Int32() const { return ctx_->i32_type_; }
-  ast::Expr *Ty_Int64() const { return ctx_->i64_type_; }
-  ast::Expr *Ty_Int128() const { return ctx_->i128_type_; }
-  ast::Expr *Ty_UInt8() const { return ctx_->u8_type_; }
-  ast::Expr *Ty_UInt16() const { return ctx_->u16_type_; }
-  ast::Expr *Ty_UInt32() const { return ctx_->u32_type_; }
-  ast::Expr *Ty_UInt64() const { return ctx_->u64_type_; }
-  ast::Expr *Ty_UInt128() const { return ctx_->u128_type_; }
-  ast::Expr *Ty_Float32() const { return ctx_->f32_type_; }
-  ast::Expr *Ty_Float64() const { return ctx_->f64_type_; }
+  ast::Expr *Ty_Nil() const;
+  ast::Expr *Ty_Bool() const;
+  ast::Expr *Ty_Int8() const;
+  ast::Expr *Ty_Int16() const;
+  ast::Expr *Ty_Int32() const;
+  ast::Expr *Ty_Int64() const;
+  ast::Expr *Ty_Int128() const;
+  ast::Expr *Ty_UInt8() const;
+  ast::Expr *Ty_UInt16() const;
+  ast::Expr *Ty_UInt32() const;
+  ast::Expr *Ty_UInt64() const;
+  ast::Expr *Ty_UInt128() const;
+  ast::Expr *Ty_Float32() const;
+  ast::Expr *Ty_Float64() const;
 
-  ast::BlockStmt *EmptyBlock() const {
-    util::RegionVector<ast::Stmt *> stmts(ctx_->region_);
-    return factory_->NewBlockStmt(DUMMY_POS, DUMMY_POS, std::move(stmts));
-  }
+  ast::BlockStmt *EmptyBlock() const;
 
-  ast::Identifier NewIdentifier() {
-    return ast::Identifier(std::to_string(id_count_++).c_str());
-  }
+  ast::Identifier NewIdentifier();
 
-  ast::Stmt *Call(ast::FunctionDecl *fn, util::RegionVector<ast::Expr*> &&args) {
-    return factory_->NewExpressionStmt(factory_->NewCallExpr(fn->function(), std::move(args)));
-  }
+  ast::Stmt *Call(ast::FunctionDecl *fn, util::RegionVector<ast::Expr*> &&args);
 
  private:
   static constexpr SourcePosition DUMMY_POS{0, 0};
