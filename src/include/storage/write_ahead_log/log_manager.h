@@ -49,6 +49,10 @@ class LogManager {
     }
   }
 
+  ~LogManager() {
+    delete log_writer_;
+  }
+
   /**
    * Start logging
    */
