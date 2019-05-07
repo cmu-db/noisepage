@@ -181,7 +181,10 @@ class CheckpointManager {
    * @param checkpoint_timestamp The checkpoint timestamp. All logs with smaller timestamps will be ignored.
    */
   void RecoverFromLogs(const char *log_file_path, terrier::transaction::timestamp_t checkpoint_timestamp);
-
+  
+  // Used in log_test, so put in public
+  LogRecord *ReadNextLogRecord(BufferedLogReader *in);
+  
  private:
   std::string checkpoint_file_path_prefix_;
   const char *unfinished_checkpoint_name_ = "checkpoint.tmp";
@@ -194,8 +197,6 @@ class CheckpointManager {
     // TODO(mengyang): add support to multiple tables
     return tables_.at(oid);
   }
-
-  LogRecord *ReadNextLogRecord(BufferedLogReader *in);
 };
 
 }  // namespace terrier::storage

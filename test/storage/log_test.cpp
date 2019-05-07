@@ -2,15 +2,17 @@
 #include <vector>
 
 #include "gtest/gtest.h"
+#include "storage/checkpoint_manager.h"
 #include "storage/data_table.h"
 #include "storage/garbage_collector.h"
 #include "storage/write_ahead_log/log_manager.h"
 #include "transaction/transaction_manager.h"
 #include "util/storage_test_util.h"
 #include "util/test_harness.h"
-#include "util/transaction_test_util.h"
+#include "util/sql_transaction_test_util.h"
 
 #define LOG_FILE_NAME "test.log"
+#define CHECKPOINT_FILE_PREFIX "checkpoint_file_"
 
 namespace terrier {
 class WriteAheadLoggingTests : public TerrierTest {
@@ -53,6 +55,8 @@ class WriteAheadLoggingTests : public TerrierTest {
   std::thread gc_thread_;
   storage::GarbageCollector *gc_;
 
+  storage::CheckpointManager checkpoint_manager_{CHECKPOINT_FILE_PREFIX};
+
  private:
   void LogThreadLoop(uint32_t log_period_milli) {
     while (logging_) {
@@ -68,14 +72,14 @@ class WriteAheadLoggingTests : public TerrierTest {
     }
   }
 };
-/*
+
 // This test uses the LargeTransactionTestObject to simulate some number of transactions with logging turned on, and
 // then reads the logged out content to make sure they are correct
 // NOLINTNEXTLINE
 TEST_F(WriteAheadLoggingTests, LargeLogTest) {
   // There are 5 columns. The table has 10 rows. Each transaction does 5 operations. The update-select ratio of
   // operations is 50%-50%.
-  LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
+  SqlLargeTransactionTestObject tested = SqlLargeTransactionTestObject::Builder()
                                           .SetMaxColumns(5)
                                           .SetInitialTableSize(10)
                                           .SetTxnLength(5)
@@ -93,13 +97,13 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
   EndLogging();
   EndGC();
 
-  std::unordered_map<transaction::timestamp_t, RandomWorkloadTransaction *> txns_map;
+  checkpoint_manager_.RegisterTable(tested.GetTable());
+  std::unordered_map<transaction::timestamp_t, SqlRandomWorkloadTransaction *> txns_map;
   for (auto *txn : result.first) txns_map[txn->BeginTimestamp()] = txn;
   // At this point all the log records should have been written out, we can start reading stuff back in.
   storage::BufferedLogReader in(LOG_FILE_NAME);
-  const auto &block_layout = tested.Layout();
   while (in.HasMore()) {
-    storage::LogRecord *log_record = ReadNextRecord(&in, block_layout);
+    storage::LogRecord *log_record = checkpoint_manager_.ReadNextLogRecord(&in);
     if (log_record->TxnBegin() == transaction::timestamp_t(0)) {
       // TODO(Tianyu): This is hacky, but it will be a pain to extract the initial transaction. The LargeTransactionTest
       //  harness probably needs some refactor (later after wal is in).
@@ -147,13 +151,13 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
   for (auto *txn : result.first) delete txn;
   for (auto *txn : result.second) delete txn;
 }
-*/
+
 // This test simulates a series of read-only transactions, and then reads the generated log file back in to ensure that
 // read-only transactions do not generate any log records, as they are not necessary for recovery.
 // NOLINTNEXTLINE
 TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
   // Each transaction is read-only (update-select ratio of 0-100). Also, no need for bookkeeping.
-  LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
+  SqlLargeTransactionTestObject tested = SqlLargeTransactionTestObject::Builder()
                                           .SetMaxColumns(5)
                                           .SetInitialTableSize(1)
                                           .SetTxnLength(5)
@@ -174,11 +178,11 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
 
   // Read-only workload has completed. Read the log file back in to check that no records were produced for these
   // transactions.
+  checkpoint_manager_.RegisterTable(tested.GetTable());
   int log_records_count = 0;
   storage::BufferedLogReader in(LOG_FILE_NAME);
-  /*
   while (in.HasMore()) {
-    storage::LogRecord *log_record = ReadNextRecord(&in, tested.Layout());
+    storage::LogRecord *log_record = checkpoint_manager_.ReadNextLogRecord(&in);
     if (log_record->TxnBegin() == transaction::timestamp_t(0)) {
       // (TODO) Currently following pattern from LargeLogTest of skipping the initial transaction. When the transaction
       // testing framework changes, fix this.
@@ -189,7 +193,6 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
     log_records_count += 1;
     delete[] reinterpret_cast<byte *>(log_record);
   }
-  */
 
   EXPECT_EQ(log_records_count, 0);
   unlink(LOG_FILE_NAME);
