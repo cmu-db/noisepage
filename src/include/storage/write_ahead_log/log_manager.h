@@ -13,6 +13,7 @@
 #include "storage/write_ahead_log/log_record.h"
 #include "transaction/transaction_defs.h"
 
+// TODO(Utkarsh): Get rid of magic constants
 #define MAX_BUF 2
 #define QUEUE_WAIT_TIME_MILLISECONDS 10
 
@@ -121,13 +122,13 @@ class LogManager {
 
   /**
    * Serialize out the record to the log
-   * @param task_buffer the task buffer
+   * @param record the redo record to serialise
    */
   void SerializeRecord(const LogRecord &record);
 
   /**
    * Serialize out the task buffer to the log
-   * @param task_buffer the task buffer
+   * @param task_buffer the iterator to the redo buffer to be serialized
    */
   void SerializeTaskBuffer(IterableBufferSegment<LogRecord> *task_buffer);
 

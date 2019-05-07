@@ -36,6 +36,7 @@ void LogManager::Flush() {
 }
 
 void LogManager::SerializeTaskBuffer(IterableBufferSegment<LogRecord> *const task_buffer) {
+  // Iterate over all redo records in the redo buffer through the provided iterator
   for (LogRecord &record : *task_buffer) {
     if (record.RecordType() == LogRecordType::COMMIT) {
       auto *commit_record = record.GetUnderlyingRecordBodyAs<CommitRecord>();
