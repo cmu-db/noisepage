@@ -1,17 +1,20 @@
 #include "execution/compiler/consumer_context.h"
 
-namespace tpl::compiler {
-  ConsumerContext::ConsumerContext(CompilationContext &compilation_context,
-                                 Pipeline *pipeline) : compilation_context_(compilation_context), pipeline_(pipeline) {}
+#include "execution/compiler/compilation_context.h"
+#include "execution/compiler/execution_consumer.h"
+#include "execution/compiler/pipeline.h"
 
-// Pass the row batch to the next operator in the pipeline
-void ConsumerContext::Consume(RowBatch &batch) {
+namespace tpl::compiler {
+
+ConsumerContext::ConsumerContext(CompilationContext *compilation_context,
+                               Pipeline *pipeline) : compilation_context_(compilation_context), pipeline_(pipeline) {}
+
+void ConsumerContext::Consume(RowBatch *batch) {
   auto *translator = pipeline_->NextStep();
   if (translator == nullptr) {
-    // We're at the end of the query pipeline, we now send the output tuples
-    // to the result consumer configured in the compilation context
-    auto consumer = compilation_context_.GetExecutionConsumer();
-    consumer->ConsumeResult(*this, batch);
+    // End of query pipeline, send output tuples to compilation context's consumer
+    auto consumer = compilation_context_->GetExecutionConsumer();
+    consumer->ConsumeResult(this, batch);
   } else {
     // We're not at the end of the pipeline, push the batch through the stages
     do {
@@ -21,4 +24,5 @@ void ConsumerContext::Consume(RowBatch &batch) {
     } while ((translator = pipeline_->NextStep()) != nullptr);
   }
 }
+
 }

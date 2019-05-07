@@ -12,10 +12,10 @@ class CodeGen;
 
 class FunctionBuilder {
  public:
-  FunctionBuilder(CodeGen &code_ctx,
-                  ast::Identifier fn_name,
-                  util::RegionVector<ast::FieldDecl *> fn_params,
-                  ast::Expr *fn_ret_type);
+  FunctionBuilder(CodeGen &code_ctx, ast::Identifier fn_name, util::RegionVector<ast::FieldDecl *> fn_params,
+      ast::Expr *fn_ret_type);
+
+  DISALLOW_COPY_AND_MOVE(FunctionBuilder);
 
   void Append(ast::Stmt *stmt) {
     insertion_point_->AppendStmt(stmt);
@@ -25,17 +25,11 @@ class FunctionBuilder {
     insertion_point_ = insertion_point;
   }
 
-  void StartForInStmt(ast::Expr *target, ast::Expr *table, ast::Attributes *attributes) {
-    auto forblock = codegen_.EmptyBlock();
-    Append(codegen_->NewForInStmt(DUMMY_POS, target, table, attributes, forblock));
-    SetInsertionPoint(forblock);
-  }
+  void StartForInStmt(ast::Expr *target, ast::Expr *table, ast::Attributes *attributes);
 
   CodeGen &GetCodeGen() { return codegen_; }
 
   ast::FunctionDecl *Finish();
-
-  DISALLOW_COPY_AND_MOVE(FunctionBuilder);
 
  private:
   CodeGen &codegen_;

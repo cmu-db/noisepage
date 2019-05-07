@@ -1,6 +1,7 @@
 #include "execution/compiler/codegen.h"
+
+#include "execution/compiler/compilation_context.h"
 #include "execution/compiler/pipeline.h"
-#include "../../include/execution/compiler/pipeline.h"
 
 namespace tpl::compiler {
 
@@ -16,12 +17,11 @@ namespace tpl::compiler {
     return ctx_->GetRegion();
   };
 
-  CodeGen &Pipeline::GetCodeGen() {
+  CodeGen *Pipeline::GetCodeGen() {
     return ctx_->GetCodeGen();
   }
 
-  void compiler::Pipeline::Add(OperatorTranslator *translator, tpl::compiler::Pipeline::Parallelism
-    parallelism) {
+  void Pipeline::Add(OperatorTranslator *translator, Pipeline::Parallelism parallelism) {
     pipeline_.push_back(translator);
   }
 }

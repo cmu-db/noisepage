@@ -1,7 +1,8 @@
-#include <execution/util/macros.h>
-#include <execution/compiler/pipeline.h>
 #include "execution/compiler/translator_factory.h"
+
 #include "execution/compiler/operator/seq_scan_translator.h"
+#include "execution/compiler/pipeline.h"
+#include "execution/util/macros.h"
 
 namespace tpl::compiler {
 
@@ -15,28 +16,8 @@ OperatorTranslator *TranslatorFactory::CreateTranslator(const terrier::planner::
     }
   }
 
-/*ExpressionTranslator *TranslatorFactory::CreateTranslator(const terrier::expression::AbstractExpression *expression, CompilationContext &context) {
-  auto type = expression->GetExpressionType();
-  if(COMPARISON_OP(type)){
-    auto ret = new (context.GetRegion()) ComparisonTranslator(expression, context);
-    return reinterpret_cast<ExpressionTranslator*>(ret);
-  }
-  if(ARITHMETIC_OP(type)){
-    auto ret = new (context.GetRegion()) ArithmeticTranslator(expression, context);
-    return reinterpret_cast<ExpressionTranslator*>(ret);
-  }
-  if(UNARY_OP(type)){
-    auto ret = new (context.GetRegion()) UnaryTranslator(expression, context);
-    return reinterpret_cast<ExpressionTranslator*>(ret);
-  }
-  if(CONJUNCTION_OP(type)){
-    auto ret = new (context.GetRegion()) ConjunctionTranslator(expression, context);
-    return reinterpret_cast<ExpressionTranslator*>(ret);
-  }
-  if(CONSTANT_VAL(type)){
-    auto ret = new (context.GetRegion()) ConstantTranslator(expression, context);
-    return reinterpret_cast<ExpressionTranslator*>(ret);
-  }
-}*/
+ExpressionTranslator *TranslatorFactory::CreateTranslator(const terrier::parser::AbstractExpression &ex) {
+  return nullptr;
+}
 
 } //namespace tpl::compiler

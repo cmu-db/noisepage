@@ -14,6 +14,12 @@ fn_params_(std::move(fn_params)), fn_ret_type_(fn_ret_type), fn_body_(codegen.Em
   codegen.GetCodeContext()->SetCurrentFunction(this);
 }
 
+void FunctionBuilder::StartForInStmt(ast::Expr *target, ast::Expr *table, ast::Attributes *attributes) {
+  auto forblock = codegen_.EmptyBlock();
+  Append(codegen_->NewForInStmt(DUMMY_POS, target, table, attributes, forblock));
+  SetInsertionPoint(forblock);
+}
+
 ast::FunctionDecl *FunctionBuilder::Finish() {
   auto fn_ty = codegen_->NewFunctionType(DUMMY_POS, std::move(fn_params_), fn_ret_type_);
   auto fn_lit = codegen_->NewFunctionLitExpr(fn_ty, fn_body_);

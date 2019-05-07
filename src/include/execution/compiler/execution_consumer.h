@@ -1,7 +1,7 @@
 #pragma once
 
-#include "consumer_context.h"
-#include "row_batch.h"
+#include "execution/compiler/consumer_context.h"
+#include "execution/compiler/row_batch.h"
 
 namespace tpl::compiler {
 class CompilationContext;
@@ -13,7 +13,7 @@ class ExecutionConsumer {
   void InitializeQueryState(CompilationContext *ctx) {}
   void TeardownQueryState(CompilationContext *ctx) {}
 
-  void ConsumeResult(ConsumerContext &context, RowBatch &batch) const {}
+  void ConsumeResult(ConsumerContext *context, RowBatch *batch) const {}
 };
 
 }

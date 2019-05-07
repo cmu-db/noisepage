@@ -1,5 +1,6 @@
 #include "execution/compiler/query_state.h"
 
+#include "execution/ast/ast_node_factory.h"
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/compiler_defs.h"
 #include "execution/util/region_containers.h"

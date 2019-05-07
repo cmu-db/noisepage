@@ -65,11 +65,27 @@ void CompilationContext::GeneratePlan(Query *query) {
   query->SetCompiledFunction(compiled_fn);
 }
 
+u32 CompilationContext::RegisterPipeline(Pipeline *pipeline) {
+  auto pos = pipelines_.size();
+  pipelines_.emplace_back(pipeline);
+  return pos;
+}
+
+ExecutionConsumer *CompilationContext::GetExecutionConsumer() { return consumer_; }
+CodeGen *CompilationContext::GetCodeGen() { return &codegen_; }
+
+util::Region *CompilationContext::GetRegion() {
+  return query_->GetRegion();
+}
+
 void CompilationContext::Prepare(const terrier::planner::AbstractPlanNode &op, tpl::compiler::Pipeline *pipeline) {
   op_translators_.emplace(std::make_pair(&op, translator_factory_.CreateTranslator(op, pipeline)));
 }
 
-// Get the registered translator for the given operator
+void CompilationContext::Prepare(const terrier::parser::AbstractExpression &ex) {
+  ex_translators_.emplace(std::make_pair(&ex, translator_factory_.CreateTranslator(ex)));
+}
+
 OperatorTranslator *CompilationContext::GetTranslator(const terrier::planner::AbstractPlanNode &op) const {
   auto iter = op_translators_.find(&op);
   return iter == op_translators_.end() ? nullptr : iter->second.get();

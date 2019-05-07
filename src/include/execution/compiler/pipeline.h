@@ -1,8 +1,10 @@
 #pragma once
+
+#include <vector>
 #include "execution/util/region.h"
-#include "execution/compiler/compilation_context.h"
 
 namespace tpl::compiler {
+
 class CompilationContext;
 class OperatorTranslator;
 class CodeGen;
@@ -15,7 +17,7 @@ class Pipeline {
 
   util::Region *GetRegion();
 
-  CodeGen &GetCodeGen();
+  CodeGen *GetCodeGen();
 
   CompilationContext *GetCompilationContext() {
     return ctx_;
@@ -28,10 +30,7 @@ class Pipeline {
 
  private:
   CompilationContext *ctx_;
-
   std::vector<OperatorTranslator *> pipeline_;
-
-  // The index into the pipeline that points to the current working operator
   uint32_t pipeline_index_;
 };
 

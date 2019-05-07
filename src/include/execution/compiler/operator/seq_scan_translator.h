@@ -1,24 +1,19 @@
 #pragma once
 
-#include "execution/compiler/compiler_defs.h"
-#include "execution/compiler/code_context.h"
-#include "execution/compiler/function_builder.h"
 #include "execution/compiler/operator/operator_translator.h"
-
-#include "planner/plannodes/abstract_scan_plan_node.h"
 
 namespace tpl::compiler {
 
-class SeqScanTranslator : public OperatorTranslator{
+class SeqScanTranslator : public OperatorTranslator {
 
  public:
+  SeqScanTranslator(const terrier::planner::AbstractPlanNode &op, Pipeline *pipeline)
+  : OperatorTranslator(op, pipeline) {}
 
-  SeqScanTranslator(const terrier::planner::AbstractPlanNode &planNode, Pipeline *pipeline)
-  : OperatorTranslator(planNode, pipeline) {}
+  void InitializeQueryState() override {}
+  void TeardownQueryState() override {}
+  void Consume(const ConsumerContext *context, RowBatch *batch) const override {}
 
-  void InitializeQueryState() override;
-  void TeardownQueryState() override;
-  void Consume(const ConsumerContext *context, RowBatch &batch) const override;
   void Produce() override;
 };
 
