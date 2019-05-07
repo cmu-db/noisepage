@@ -16,6 +16,9 @@ class SeqScanTranslator : public OperatorTranslator{
   SeqScanTranslator(const terrier::planner::AbstractPlanNode &planNode, Pipeline *pipeline)
   : OperatorTranslator(planNode, pipeline) {}
 
+  void InitializeQueryState() override;
+  void TeardownQueryState() override;
+  void Consume(const ConsumerContext *context, RowBatch &batch) const override;
   void Produce() override;
 };
 

@@ -103,7 +103,7 @@ void VM::InvokeFunction(const BytecodeModule &module, const FunctionId func_id,
   u8 *raw_frame = nullptr;
   if (frame_size > kMaxStackAllocSize) {
     used_heap = true;
-    raw_frame = static_cast<u8 *>(std::aligned_alloc(alignof(u64), frame_size));
+    posix_memalign(reinterpret_cast<void **>(raw_frame), alignof(u64), frame_size);
   } else if (frame_size > kSoftMaxStackAllocSize) {
     // TODO(pmenon): Check stack before allocation
     raw_frame = static_cast<u8 *>(alloca(frame_size));
@@ -1152,7 +1152,7 @@ const u8 *VM::ExecuteCall(const u8 *ip, VM::Frame *caller) {
   u8 *raw_frame = nullptr;
   if (frame_size > kMaxStackAllocSize) {
     used_heap = true;
-    raw_frame = static_cast<u8 *>(std::aligned_alloc(alignof(u64), frame_size));
+    posix_memalign(reinterpret_cast<void **>(raw_frame), alignof(u64), frame_size);
   } else if (frame_size > kSoftMaxStackAllocSize) {
     // TODO(pmenon): Check stack before allocation
     raw_frame = static_cast<u8 *>(alloca(frame_size));

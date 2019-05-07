@@ -18,7 +18,9 @@ class OperatorTranslator {
 
   virtual void Produce() = 0;
 
-  virtual void Consume(ConsumerContext *context, RowBatch &batch) = 0;
+  virtual void Consume(const ConsumerContext *context, RowBatch &batch) const = 0;
+
+  virtual ~OperatorTranslator() {};
 
  protected:
   Pipeline *pipeline_;
