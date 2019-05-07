@@ -178,6 +178,24 @@ class SqlTable {
   }
 
   /**
+   * This is really hacky, just for test purposes only. Because the current transaction and logging infrastructure are
+   * all based on data tables, but checkpointing is implemented on sql tables. Migrating existing API from data tables
+   * to sql tables would require much effort that would need to modify many tests, and this is left for future work.
+   * The current workaround is to get the underlying data table and do not modify existing infrastructure.
+   * @return the data table underlying sqltable
+   */
+  storage::DataTable *get_data_table() { return table_.data_table; }
+
+  /**
+   * This is extremely hacky, just for test purposes only. Because the current transaction and logging infrastructure
+   * are all based on data tables, but checkpointing is implemented on sql tables. Migrating existing API from data
+   * tables to sql tables would require much effort that would need to modify many tests, and this is left for future
+   * work. The current workaround is to get the underlying data table and do not modify existing infrastructure.
+   * @return the data table underlying sqltable
+   */
+  storage::BlockLayout get_layout() { return table_.layout; }
+
+  /**
    * Given a col_id, return the corresponding col_oid
    * @param col_id a col_id, must be in the table's InverseColumnMap
    * @return col_oid for the col_id

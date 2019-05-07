@@ -91,7 +91,7 @@ void CheckpointManager::RecoverFromLogs(const char *log_file_path,
   while (in.HasMore()) {
     LogRecord *log_record = ReadNextLogRecord(&in);
     if (log_record->RecordType() == LogRecordType::COMMIT) {
-      TERRIER_ASSERT(valid_begin_ts.find(log_record->TxnBegin()) != valid_begin_ts.end(),
+      TERRIER_ASSERT(valid_begin_ts.find(log_record->TxnBegin()) == valid_begin_ts.end(),
                      "Commit records should be mapped to unique begin timestamps.");
       terrier::transaction::timestamp_t commit_timestamp =
           log_record->GetUnderlyingRecordBodyAs<CommitRecord>()->CommitTime();
@@ -102,7 +102,7 @@ void CheckpointManager::RecoverFromLogs(const char *log_file_path,
     }
     delete[] reinterpret_cast<byte *>(log_record);
   }
-  in.Close();
+  // No need for in.Close(), because it is already closed log.io when the file has no more contents
 
   // Second pass
   in = BufferedLogReader(log_file_path);
@@ -133,7 +133,7 @@ void CheckpointManager::RecoverFromLogs(const char *log_file_path,
       // then we reason it to be an insert record, otherwise an update record.
       TupleSlot old_slot = redo_record->GetTupleSlot();
       ProjectedRow *row = redo_record->Delta();
-      if (tuple_slot_map_.find(old_slot) != tuple_slot_map_.end()) {
+      if (tuple_slot_map_.find(old_slot) == tuple_slot_map_.end()) {
         // For an insert record, we have to add its tuple slot into the mapping as well,
         // to cope with a possible later update on it.
         TupleSlot slot = table->Insert(txn_, *row);
@@ -147,6 +147,86 @@ void CheckpointManager::RecoverFromLogs(const char *log_file_path,
     }
     delete[] reinterpret_cast<byte *>(log_record);
   }
+}
+
+storage::LogRecord *CheckpointManager::ReadNextLogRecord(storage::BufferedLogReader *in) {
+  // TODO(Justin): Fit this to new serialization format after it is complete.
+  auto size = in->ReadValue<uint32_t>();
+  byte *buf = common::AllocationUtil::AllocateAligned(size);
+  auto record_type = in->ReadValue<storage::LogRecordType>();
+  auto txn_begin = in->ReadValue<transaction::timestamp_t>();
+  if (record_type == storage::LogRecordType::COMMIT) {
+    auto txn_commit = in->ReadValue<transaction::timestamp_t>();
+    // Okay to fill in null since nobody will invoke the callback.
+    // is_read_only argument is set to false, because we do not write out a commit record for a transaction if it is
+    // not read-only.
+    return storage::CommitRecord::Initialize(buf, txn_begin, txn_commit, nullptr, nullptr, false, nullptr);
+  }
+  auto table_oid = in->ReadValue<catalog::table_oid_t>();
+  auto tuple_slot = in->ReadValue<storage::TupleSlot>();
+  if (record_type == storage::LogRecordType::DELETE) {
+    // TODO(Justin): set a pointer to the correct data table? Will this even be useful for recovery?
+    return storage::DeleteRecord::Initialize(buf, txn_begin, nullptr, tuple_slot);
+  }
+  // If code path reaches here, we have a REDO record.
+  SqlTable *table = GetTable(table_oid);
+  auto num_cols = in->ReadValue<uint16_t>();
+
+  // TODO(Justin): Could do this with just one read of (sizeof(col_id_t) * num_cols) bytes, and then index in. That's
+  //  probably faster, but stick with the more naive way for now. We need a vector, not just a col_id_t[], because
+  //  that is what ProjectedRowInitializer needs.
+  std::vector<catalog::col_oid_t> col_oids(num_cols);
+  for (uint16_t i = 0; i < num_cols; i++) {
+    const auto col_id = in->ReadValue<storage::col_id_t>();
+    col_oids[i] = table->ColOidForId(col_id);
+  }
+  // Initialize the redo record.
+  auto row_pair = table->InitializerForProjectedRow(col_oids);
+  // TODO(Justin): set a pointer to the correct data table? Will this even be useful for recovery?
+  auto *result = storage::RedoRecord::Initialize(buf, txn_begin, nullptr, tuple_slot, row_pair.first);
+  auto *delta = result->GetUnderlyingRecordBodyAs<storage::RedoRecord>()->Delta();
+
+  // Get an in memory copy of the record's null bitmap. Note: this is used to guide how the rest of the log file is
+  // read in. It doesn't populate the delta's bitmap yet. This will happen naturally as we proceed column-by-column.
+  auto bitmap_num_bytes = common::RawBitmap::SizeInBytes(num_cols);
+  auto *bitmap_buffer = new uint8_t[bitmap_num_bytes];
+  in->Read(bitmap_buffer, bitmap_num_bytes);
+  auto *bitmap = reinterpret_cast<common::RawBitmap *>(bitmap_buffer);
+
+  for (uint16_t i = 0; i < num_cols; i++) {
+    if (!bitmap->Test(i)) {
+      // Recall that 0 means null in our definition of a ProjectedRow's null bitmap.
+      delta->SetNull(i);
+      continue;
+    }
+
+    // The column is not null, so set the bitmap accordingly and get access to the column value.
+    auto *column_value_address = delta->AccessForceNotNull(row_pair.second.at(col_oids[i]));
+    if (table->GetSchema().GetColumn(col_oids[i]).IsVarlen()) {
+      // Read how many bytes this varlen actually is.
+      const auto varlen_attribute_size = in->ReadValue<uint32_t>();
+      // Allocate a varlen entry of this many bytes.
+      byte *varlen_content = common::AllocationUtil::AllocateAligned(varlen_attribute_size);
+      // Fill the entry with the next bytes from the log file.
+      in->Read(varlen_content, varlen_attribute_size);
+      // The attribute value in the ProjectedRow will be a pointer to this varlen entry.
+      auto *entry = reinterpret_cast<storage::VarlenEntry *>(column_value_address);
+      // Set the value to be the address of the varlen_entry.
+      if (varlen_attribute_size > VarlenEntry::InlineThreshold()) {
+        *entry = storage::VarlenEntry::Create(varlen_content, varlen_attribute_size, true);
+      } else {
+        *entry = storage::VarlenEntry::CreateInline(varlen_content, varlen_attribute_size);
+      }
+    } else {
+      // For inlined attributes, just directly read into the ProjectedRow.
+      in->Read(column_value_address, table->GetSchema().GetColumn(col_oids[i]).GetAttrSize());
+    }
+  }
+
+  // Free the memory allocated for the bitmap.
+  delete[] bitmap_buffer;
+
+  return result;
 }
 
 }  // namespace terrier::storage

@@ -304,7 +304,8 @@ struct StorageTestUtil {
   }
 
   template <class RowType>
-  static std::string PrintRowWithSchema(const RowType &row, const catalog::Schema &schema, const storage::ProjectionMap &map, bool varlen_pointer = true) {
+  static std::string PrintRowWithSchema(const RowType &row, const catalog::Schema &schema,
+                                        const storage::ProjectionMap &map, bool varlen_pointer = true) {
     std::ostringstream os;
     auto &columns = schema.GetColumns();
     os << "num_cols: " << columns.size() << std::endl;
@@ -399,6 +400,29 @@ struct StorageTestUtil {
         EXPECT_TRUE(!memcmp(val_ptr, col_slot, layout.AttrSize(col_id)));
       }
     }
+  }
+
+  template <class Random>
+  static catalog::Schema GenerateRandomSchema(int num_cols, Random *generator, bool varlen_allowed) {
+    std::string prefix = "col_";
+    std::vector<type::TypeId> types = varlen_allowed
+                                          ? std::vector<type::TypeId>{type::TypeId::INTEGER, type::TypeId::VARCHAR}
+                                          : std::vector<type::TypeId>{type::TypeId::INTEGER};
+    std::vector<catalog::Schema::Column> cols;
+    for (int i = 0; i < num_cols; i++) {
+      type::TypeId type = *RandomTestUtil::UniformRandomElement(&types, generator);
+      switch (type) {
+        case type::TypeId::VARCHAR:
+        case type::TypeId::VARBINARY:  // varlen entries
+          cols.emplace_back(prefix + std::to_string(uint8_t(type)), type, 2 * storage::VarlenEntry::InlineThreshold(),
+                            true, catalog::col_oid_t(i));
+          break;
+        default:
+          cols.emplace_back(prefix + std::to_string(uint8_t(type)), type, true, catalog::col_oid_t(i));
+          break;
+      }
+    }
+    return catalog::Schema(cols);
   }
 
  private:
@@ -550,9 +574,10 @@ class RandomSqlTableTestObject {
    * @return a pair of SqlTable and its Schema object.
    */
   template <class Random>
-  std::pair<storage::SqlTable *, catalog::Schema *> GenerateAndPopulateRandomTable(
-          int num_cols, bool varlen_allowed, Random *generator, const int num_rows, const double null_bias) {
-
+  std::pair<storage::SqlTable *, catalog::Schema *> GenerateAndPopulateRandomTable(int num_cols, bool varlen_allowed,
+                                                                                   Random *generator,
+                                                                                   const int num_rows,
+                                                                                   const double null_bias) {
     GenerateRandomColumns(num_cols, varlen_allowed, generator);
     Create(catalog::table_oid_t(table_oid_));
     table_oid_++;

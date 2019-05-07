@@ -41,21 +41,69 @@ void LogManager::Flush() {
 }
 
 void LogManager::SerializeRecord(const terrier::storage::LogRecord &record) {
+  // First, serialize out fields common across all LogRecordType's.
+
+  // Note: This is the in-memory size of the log record itself, i.e. inclusive of padding and not considering the size
+  // of any potential varlen entries. It is logically different from the size of the serialized record, which the log
+  // manager generates in this function. In particular, the later value is very likely to be strictly smaller when the
+  // LogRecordType is REDO. On recovery, the goal is to turn the serialized format back into an in-memory log record of
+  // this size.
   WriteValue(record.Size());
+
   WriteValue(record.RecordType());
   WriteValue(record.TxnBegin());
+
   switch (record.RecordType()) {
     case LogRecordType::REDO: {
       auto *record_body = record.GetUnderlyingRecordBodyAs<RedoRecord>();
-      WriteValue(record_body->GetDataTable()->TableOid());
+      auto *data_table = record_body->GetDataTable();
+      WriteValue(data_table->TableOid());
+
+      // TODO(Justin): Be careful about how tuple slot is interpreted during real recovery. Right now I think we kind of
+      //  sidestep the issue with "bookkeeping".
       WriteValue(record_body->GetTupleSlot());
-      // TODO(Tianyu): Need to inline varlen or other things, and figure out a better representation.
-      out_.BufferWrite(record_body->Delta(), record_body->Delta()->Size());
+
+      auto *delta = record_body->Delta();
+      // Write out which column ids this redo record is concerned with. On recovery, we can construct the appropriate
+      // ProjectedRowInitializer from these ids and their corresponding block layout.
+      WriteValue(delta->NumColumns());
+      out_.BufferWrite(delta->ColumnIds(), static_cast<uint32_t>(sizeof(col_id_t)) * delta->NumColumns());
+
+      // Write out the null bitmap.
+      out_.BufferWrite(&(delta->Bitmap()), common::RawBitmap::SizeInBytes(delta->NumColumns()));
+
+      // We need the block layout to determine the size of each attribute.
+      const auto &block_layout = data_table->GetBlockLayout();
+      for (uint16_t i = 0; i < delta->NumColumns(); i++) {
+        const auto *column_value_address = delta->AccessWithNullCheck(i);
+        if (column_value_address == nullptr) {
+          // If the column in this REDO record is null, then there's nothing to serialize out. The bitmap contains all
+          // the relevant information.
+          continue;
+        }
+        // Get the column id of the current column in the ProjectedRow.
+        col_id_t col_id = delta->ColumnIds()[i];
+
+        if (block_layout.IsVarlen(col_id)) {
+          // Inline column value is a pointer to a VarlenEntry, so reinterpret as such.
+          const auto *varlen_entry = reinterpret_cast<const VarlenEntry *>(column_value_address);
+          // Serialize out length of the varlen entry.
+          WriteValue(varlen_entry->Size());
+          // Serialize out the content field of the varlen entry.
+          out_.BufferWrite(varlen_entry->Content(), varlen_entry->Size());
+        } else {
+          // Inline column value is the actual data we want to serialize out.
+          // Note that by writing out AttrSize(col_id) bytes instead of just the difference between successive offsets
+          // of the delta record, we avoid serializing out any potential padding.
+          out_.BufferWrite(column_value_address, block_layout.AttrSize(col_id));
+        }
+      }
       break;
     }
     case LogRecordType::DELETE: {
       auto *record_body = record.GetUnderlyingRecordBodyAs<DeleteRecord>();
-      WriteValue(record_body->GetDataTable()->TableOid());
+      auto *data_table = record_body->GetDataTable();
+      WriteValue(data_table->TableOid());
       WriteValue(record_body->GetTupleSlot());
       break;
     }

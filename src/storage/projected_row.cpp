@@ -27,7 +27,7 @@ ProjectedRowInitializer::ProjectedRowInitializer(const std::vector<AttrType> &at
                  "There should not be any duplicates in the col_ids.");
   // TODO(Tianyu): We should really assert that it has a subset of columns, but that is a bit more complicated.
 
-  size_ = sizeof(ProjectedRow);  // size and num_col size
+  size_ = sizeof(ProjectedRow);  // size and num_cols size
   // space needed to store col_ids, must be padded up so that the following offsets are aligned
   size_ = StorageUtil::PadUpToSize(sizeof(uint32_t), size_ + static_cast<uint32_t>(col_ids_.size() * sizeof(uint16_t)));
   // space needed to store value offsets, we don't need to pad as we're using a regular non-concurrent bitmap

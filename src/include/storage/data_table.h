@@ -207,6 +207,12 @@ class DataTable {
    */
   DataTableCounter *GetDataTableCounter() { return &data_table_counter_; }
 
+  /**
+   * Returns a read-only view of this DataTable's BlockLayout.
+   * @return this DataTable's BlockLayout.
+   */
+  const BlockLayout &GetBlockLayout() const { return accessor_.GetBlockLayout(); }
+
  private:
   // The GarbageCollector needs to modify VersionPtrs when pruning version chains
   friend class GarbageCollector;
