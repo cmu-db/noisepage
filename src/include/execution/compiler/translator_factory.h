@@ -8,6 +8,7 @@
 namespace tpl::compiler {
 
 class Pipeline;
+class OperatorTranslator;
 
 class TranslatorFactory {
  public:

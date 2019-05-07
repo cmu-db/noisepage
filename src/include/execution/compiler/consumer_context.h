@@ -3,6 +3,9 @@
 #include "execution/compiler/row_batch.h"
 
 namespace tpl::compiler {
+class CompilationContext;
+class Pipeline;
+
 class ConsumerContext {
  public:
   // Constructor

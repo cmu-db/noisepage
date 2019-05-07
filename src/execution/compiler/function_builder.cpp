@@ -3,6 +3,7 @@
 #include "execution/ast/ast.h"
 #include "execution/compiler/compiler_defs.h"
 #include "execution/compiler/codegen.h"
+#include "execution/compiler/code_context.h"
 
 namespace tpl::compiler {
 

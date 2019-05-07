@@ -3,11 +3,10 @@
 #include "execution/compiler/consumer_context.h"
 #include "execution/compiler/pipeline.h"
 #include "planner/plannodes/abstract_plan_node.h"
-#include "execution/compiler/code_context.h"
-#include "execution/compiler/codegen.h"
 #include "execution/compiler/row_batch.h"
 
 namespace tpl::compiler {
+class Pipeline;
 
 class OperatorTranslator {
  public:

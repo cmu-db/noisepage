@@ -4,7 +4,6 @@
 #include "row_batch.h"
 
 namespace tpl::compiler {
-
 class CompilationContext;
 class ConsumerContext;
 
