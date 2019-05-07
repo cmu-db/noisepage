@@ -41,7 +41,7 @@ class CheckpointTests : public TerrierTest {
   void EndLogging() {
     logging_ = false;
     log_thread_.join();
-    log_manager_.Shutdown();
+    log_manager_->Shutdown();
   }
   
   storage::CheckpointManager checkpoint_manager_{CHECKPOINT_FILE_PREFIX};
@@ -49,7 +49,7 @@ class CheckpointTests : public TerrierTest {
   std::default_random_engine generator_;
   storage::RecordBufferSegmentPool pool_{2000, 100};
   storage::BlockStore block_store_{100, 100};
-  storage::LogManager log_manager_{LOG_FILE_NAME, &pool_};
+  storage::LogManager* log_manager_;
 
  private:
   void CheckpointThreadLoop(uint32_t log_period_milli) {
@@ -58,7 +58,6 @@ class CheckpointTests : public TerrierTest {
       checkpoint_manager_.Process(txn, *table_, *schema_);
       txn_manager_->Commit(txn, StorageTestUtil::EmptyCallback, nullptr);
       delete txn;
-      STORAGE_LOG_DEBUG("Commited a checkpoint");
       std::this_thread::sleep_for(std::chrono::milliseconds(log_period_milli));
     }
   }
@@ -66,7 +65,7 @@ class CheckpointTests : public TerrierTest {
   void LogThreadLoop(uint32_t log_period_milli) {
     while (logging_) {
       std::this_thread::sleep_for(std::chrono::milliseconds(log_period_milli));
-      log_manager_.Process();
+      log_manager_->Process();
     }
   }
   
@@ -326,10 +325,13 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryWithHugeRow) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(CheckpointTests, SimpleCheckpointRecoveryNoVarlenWithTxnObject) {
+TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryNoVarlen) {
   checkpoint_manager_.UnlinkCheckpointFiles();
-  const uint32_t num_rows = 10;
-  const uint32_t num_columns = 3;
+  // First unlink log file and initialize log manager, to prevent existing log file affect the currrent test
+  unlink(LOG_FILE_NAME);
+  log_manager_ = new storage::LogManager{LOG_FILE_NAME, &pool_};
+  const uint32_t num_rows = 100;
+  const uint32_t num_columns = 10;
   // initialize test
   SqlLargeTransactionTestObject tested = SqlLargeTransactionTestObject::Builder()
                                       .SetMaxColumns(num_columns)
@@ -341,7 +343,7 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryNoVarlenWithTxnObject) {
                                       .SetGenerator(&generator_)
                                       .SetGcOn(true)
                                       .SetBookkeeping(true)
-                                      .SetLogManager(&log_manager_)
+                                      .SetLogManager(log_manager_)
                                       .build();
 
   storage::SqlTable *table = tested.GetTable();
@@ -355,7 +357,7 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryNoVarlenWithTxnObject) {
   
   // Run transactions to generate logs
   StartLogging(10);
-  auto result = tested.SimulateOltp(10, 4);
+  auto result = tested.SimulateOltp(100, 4);
   EndLogging();
   
   // read first run

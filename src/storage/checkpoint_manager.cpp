@@ -102,8 +102,7 @@ void CheckpointManager::RecoverFromLogs(const char *log_file_path,
     }
     delete[] reinterpret_cast<byte *>(log_record);
   }
-  // TODO (zhaozhes): figure out why closing leads to errno 9
-//  in.Close();
+  // No need for in.Close(), because it is already closed log.io when the file has no more contents
 
   // Second pass
   in = BufferedLogReader(log_file_path);
@@ -134,7 +133,7 @@ void CheckpointManager::RecoverFromLogs(const char *log_file_path,
       // then we reason it to be an insert record, otherwise an update record.
       TupleSlot old_slot = redo_record->GetTupleSlot();
       ProjectedRow *row = redo_record->Delta();
-      if (tuple_slot_map_.find(old_slot) != tuple_slot_map_.end()) {
+      if (tuple_slot_map_.find(old_slot) == tuple_slot_map_.end()) {
         // For an insert record, we have to add its tuple slot into the mapping as well,
         // to cope with a possible later update on it.
         TupleSlot slot = table->Insert(txn_, *row);
@@ -148,7 +147,6 @@ void CheckpointManager::RecoverFromLogs(const char *log_file_path,
     }
     delete[] reinterpret_cast<byte *>(log_record);
   }
-//  in.Close();
 }
 
 storage::LogRecord *CheckpointManager::ReadNextLogRecord(storage::BufferedLogReader *in) {
