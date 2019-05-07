@@ -214,7 +214,7 @@ storage::LogRecord *CheckpointManager::ReadNextLogRecord(storage::BufferedLogRea
       // Set the value to be the address of the varlen_entry.
       if (varlen_attribute_size > VarlenEntry::InlineThreshold()) {
         *entry = storage::VarlenEntry::Create(varlen_content, varlen_attribute_size, true);
-      } else{
+      } else {
         *entry = storage::VarlenEntry::CreateInline(varlen_content, varlen_attribute_size);
       }
     } else {
