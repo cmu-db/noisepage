@@ -151,8 +151,7 @@ class BufferedLogReader {
   /**
    * Must call before object is destructed
    */
-  void Close() {
-    PosixIoWrappers::Close(in_); }
+  void Close() { PosixIoWrappers::Close(in_); }
   /**
    * @return if there are contents left in the write ahead log
    */

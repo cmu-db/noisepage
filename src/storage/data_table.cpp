@@ -1,7 +1,7 @@
 #include "storage/data_table.h"
+#include <loggers/storage_logger.h>
 #include <cstring>
 #include <unordered_map>
-#include <loggers/storage_logger.h>
 #include "common/allocator.h"
 #include "storage/storage_util.h"
 #include "transaction/transaction_context.h"

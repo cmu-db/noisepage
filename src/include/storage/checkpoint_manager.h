@@ -107,10 +107,10 @@ class CheckpointManager {
       /* print all the files and directories within directory */
       while ((ent = readdir(dir)) != nullptr) {
         std::string candidate(ent->d_name);
-        
+
         if (candidate.find(checkpoint_file_path_prefix_) == 0) {
-          auto timestamp = static_cast<terrier::transaction::timestamp_t>
-            (std::stoull(candidate.substr(checkpoint_file_path_prefix_.length(), -1)));
+          auto timestamp = static_cast<terrier::transaction::timestamp_t>(
+              std::stoull(candidate.substr(checkpoint_file_path_prefix_.length(), -1)));
           if (timestamp > largest_timestamp) {
             file_name = candidate;
             largest_timestamp = timestamp;
@@ -196,7 +196,6 @@ class CheckpointManager {
     // TODO(mengyang): add support to multiple tables
     return tables_.at(oid);
   }
-
 
   // TODO(zhaozhes): copied from log_test.cpp because I believe it should be here because checkpoint recovery need it.
   LogRecord *ReadNextLogRecord(BufferedLogReader *in);

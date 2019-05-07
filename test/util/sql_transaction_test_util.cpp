@@ -8,14 +8,14 @@
 
 namespace terrier {
 SqlRandomWorkloadTransaction::SqlRandomWorkloadTransaction(SqlLargeTransactionTestObject *test_object)
-  : test_object_(test_object),
-    txn_(test_object->txn_manager_.BeginTransaction()),
-    aborted_(false),
-    start_time_(txn_->StartTime()),
-    commit_time_(UINT64_MAX),
-    buffer_(test_object->bookkeeping_
-            ? nullptr
-            : common::AllocationUtil::AllocateAligned(test_object->row_initializer_.ProjectedRowSize())) {}
+    : test_object_(test_object),
+      txn_(test_object->txn_manager_.BeginTransaction()),
+      aborted_(false),
+      start_time_(txn_->StartTime()),
+      commit_time_(UINT64_MAX),
+      buffer_(test_object->bookkeeping_
+                  ? nullptr
+                  : common::AllocationUtil::AllocateAligned(test_object->row_initializer_.ProjectedRowSize())) {}
 
 SqlRandomWorkloadTransaction::~SqlRandomWorkloadTransaction() {
   if (!test_object_->gc_on_) delete txn_;
@@ -28,26 +28,26 @@ template <class Random>
 void SqlRandomWorkloadTransaction::RandomUpdate(Random *generator) {
   if (aborted_) return;
   storage::TupleSlot updated =
-    RandomTestUtil::UniformRandomElement(test_object_->last_checked_version_, generator)->first;
+      RandomTestUtil::UniformRandomElement(test_object_->last_checked_version_, generator)->first;
   if (test_object_->bookkeeping_) {
     auto it = updates_.find(updated);
     // don't double update if checking for correctness, as it is complicated to keep track of on snapshots,
     // and not very helpful in finding bugs anyways
     if (it != updates_.end()) return;
   }
-  
+
   std::vector<storage::col_id_t> update_col_ids =
-    StorageTestUtil::ProjectionListRandomColumns(test_object_->layout_, generator);
+      StorageTestUtil::ProjectionListRandomColumns(test_object_->layout_, generator);
   storage::ProjectedRowInitializer initializer =
-    storage::ProjectedRowInitializer::CreateProjectedRowInitializer(test_object_->layout_, update_col_ids);
+      storage::ProjectedRowInitializer::CreateProjectedRowInitializer(test_object_->layout_, update_col_ids);
   auto *update_buffer =
-    test_object_->bookkeeping_ ? common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize()) : buffer_;
+      test_object_->bookkeeping_ ? common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize()) : buffer_;
   storage::ProjectedRow *update = initializer.InitializeRow(update_buffer);
-  
+
   StorageTestUtil::PopulateRandomRow(update, test_object_->layout_, 0.0, generator);
-  
+
   if (test_object_->bookkeeping_) updates_[updated] = update;
-  
+
   // TODO(Tianyu): Hardly efficient, but will do for testing.
   if (test_object_->wal_on_ || test_object_->bookkeeping_) {
     auto *record = txn_->StageWrite(test_object_->table_, updated, initializer);
@@ -61,10 +61,10 @@ template <class Random>
 void SqlRandomWorkloadTransaction::RandomSelect(Random *generator) {
   if (aborted_) return;
   storage::TupleSlot selected =
-    RandomTestUtil::UniformRandomElement(test_object_->last_checked_version_, generator)->first;
+      RandomTestUtil::UniformRandomElement(test_object_->last_checked_version_, generator)->first;
   auto *select_buffer = test_object_->bookkeeping_
-                        ? common::AllocationUtil::AllocateAligned(test_object_->row_initializer_.ProjectedRowSize())
-                        : buffer_;
+                            ? common::AllocationUtil::AllocateAligned(test_object_->row_initializer_.ProjectedRowSize())
+                            : buffer_;
   storage::ProjectedRow *select = test_object_->row_initializer_.InitializeRow(select_buffer);
   test_object_->table_->Select(txn_, selected, select);
   if (test_object_->bookkeeping_) {
@@ -84,24 +84,22 @@ void SqlRandomWorkloadTransaction::Finish() {
     commit_time_ = test_object_->txn_manager_.Commit(txn_, SqlTestCallbacks::EmptyCallback, nullptr);
 }
 
-SqlLargeTransactionTestObject::SqlLargeTransactionTestObject(uint16_t max_columns, uint32_t initial_table_size,
-                                                       uint32_t txn_length, std::vector<double> update_select_ratio,
-                                                       storage::BlockStore *block_store,
-                                                       storage::RecordBufferSegmentPool *buffer_pool,
-                                                       std::default_random_engine *generator, bool gc_on,
-                                                       bool bookkeeping, storage::LogManager *log_manager,
-                                                       bool varlen_allowed)
-  : txn_length_(txn_length),
-    update_select_ratio_(std::move(update_select_ratio)),
-    generator_(generator),
-    schema_(StorageTestUtil::GenerateRandomSchema(max_columns, generator_, varlen_allowed)),
-    sql_table_(block_store, schema_, catalog::table_oid_t(0)),
-    table_(sql_table_.get_data_table()),
-    layout_(sql_table_.get_layout()),
-    txn_manager_(buffer_pool, gc_on, log_manager),
-    gc_on_(gc_on),
-    wal_on_(log_manager != LOGGING_DISABLED),
-    bookkeeping_(bookkeeping) {
+SqlLargeTransactionTestObject::SqlLargeTransactionTestObject(
+    uint16_t max_columns, uint32_t initial_table_size, uint32_t txn_length, std::vector<double> update_select_ratio,
+    storage::BlockStore *block_store, storage::RecordBufferSegmentPool *buffer_pool,
+    std::default_random_engine *generator, bool gc_on, bool bookkeeping, storage::LogManager *log_manager,
+    bool varlen_allowed)
+    : txn_length_(txn_length),
+      update_select_ratio_(std::move(update_select_ratio)),
+      generator_(generator),
+      schema_(StorageTestUtil::GenerateRandomSchema(max_columns, generator_, varlen_allowed)),
+      sql_table_(block_store, schema_, catalog::table_oid_t(0)),
+      table_(sql_table_.get_data_table()),
+      layout_(sql_table_.get_layout()),
+      txn_manager_(buffer_pool, gc_on, log_manager),
+      gc_on_(gc_on),
+      wal_on_(log_manager != LOGGING_DISABLED),
+      bookkeeping_(bookkeeping) {
   // Bootstrap the table to have the specified number of tuples
   PopulateInitialTable(initial_table_size, generator_);
 }
@@ -142,7 +140,7 @@ SqlSimulationResult SqlLargeTransactionTestObject::SimulateOltp(uint32_t num_tra
   }
   common::WorkerPool thread_pool(num_concurrent_txns, {});
   MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_concurrent_txns, workload);
-  
+
   if (!bookkeeping_) {
     // We only need to deallocate, and return, if gc is on, this loop is a no-op
     for (SqlRandomWorkloadTransaction *txn : txns) delete txn;
@@ -152,7 +150,7 @@ SqlSimulationResult SqlLargeTransactionTestObject::SimulateOltp(uint32_t num_tra
   // filter out aborted transactions
   std::vector<SqlRandomWorkloadTransaction *> committed, aborted;
   for (SqlRandomWorkloadTransaction *txn : txns) (txn->aborted_ ? aborted : committed).push_back(txn);
-  
+
   // Sort according to commit timestamp (Although we probably already are? Never hurts to be sure)
   std::sort(committed.begin(), committed.end(), [](SqlRandomWorkloadTransaction *a, SqlRandomWorkloadTransaction *b) {
     return transaction::TransactionUtil::NewerThan(b->commit_time_, a->commit_time_);
@@ -169,7 +167,7 @@ void SqlLargeTransactionTestObject::CheckReadsCorrect(std::vector<SqlRandomWorkl
   transaction::timestamp_t latest_version = commits->at(commits->size() - 1)->commit_time_;
   // Only need to check that reads make sense?
   for (SqlRandomWorkloadTransaction *txn : *commits) CheckTransactionReadCorrect(txn, snapshots);
-  
+
   // clean up memory, update the kept version to be the latest.
   for (auto &snapshot : snapshots) {
     if (snapshot.first == latest_version) {
@@ -180,9 +178,10 @@ void SqlLargeTransactionTestObject::CheckReadsCorrect(std::vector<SqlRandomWorkl
   }
 }
 
-void SqlLargeTransactionTestObject::SimulateOneTransaction(terrier::SqlRandomWorkloadTransaction *txn, uint32_t txn_id) {
+void SqlLargeTransactionTestObject::SimulateOneTransaction(terrier::SqlRandomWorkloadTransaction *txn,
+                                                           uint32_t txn_id) {
   std::default_random_engine thread_generator(txn_id);
-  
+
   auto update = [&] { txn->RandomUpdate(&thread_generator); };
   auto select = [&] { txn->RandomSelect(&thread_generator); };
   RandomTestUtil::InvokeWorkloadWithDistribution({update, select}, update_select_ratio_, &thread_generator,
@@ -226,7 +225,7 @@ storage::ProjectedRow *SqlLargeTransactionTestObject::CopyTuple(storage::Project
 }
 
 void SqlLargeTransactionTestObject::UpdateSnapshot(SqlRandomWorkloadTransaction *txn, TableSnapshot *curr,
-                                                const TableSnapshot &before) {
+                                                   const TableSnapshot &before) {
   for (auto &entry : before) curr->emplace(entry.first, CopyTuple(entry.second));
   for (auto &update : txn->updates_) {
     // TODO(Tianyu): Can be smarter about copies
@@ -236,13 +235,13 @@ void SqlLargeTransactionTestObject::UpdateSnapshot(SqlRandomWorkloadTransaction 
 }
 
 VersionedSnapshots SqlLargeTransactionTestObject::ReconstructVersionedTable(
-  std::vector<SqlRandomWorkloadTransaction *> *txns) {
+    std::vector<SqlRandomWorkloadTransaction *> *txns) {
   VersionedSnapshots result;
   // empty starting version
   TableSnapshot *prev = &(result.emplace(transaction::timestamp_t(0), TableSnapshot()).first->second);
   // populate with initial image of the table
   for (auto &entry : last_checked_version_) (*prev)[entry.first] = CopyTuple(entry.second);
-  
+
   for (SqlRandomWorkloadTransaction *txn : *txns) {
     auto ret = result.emplace(txn->commit_time_, TableSnapshot());
     UpdateSnapshot(txn, &(ret.first->second), *prev);
@@ -252,7 +251,7 @@ VersionedSnapshots SqlLargeTransactionTestObject::ReconstructVersionedTable(
 }
 
 void SqlLargeTransactionTestObject::CheckTransactionReadCorrect(SqlRandomWorkloadTransaction *txn,
-                                                             const VersionedSnapshots &snapshots) {
+                                                                const VersionedSnapshots &snapshots) {
   transaction::timestamp_t start_time = txn->start_time_;
   // this version is the most recent future update
   auto ret = snapshots.upper_bound(start_time);
