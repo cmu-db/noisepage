@@ -201,7 +201,7 @@ storage::LogRecord *CheckpointManager::ReadNextLogRecord(storage::BufferedLogRea
     }
 
     // The column is not null, so set the bitmap accordingly and get access to the column value.
-    auto *column_value_address = delta->AccessForceNotNull(i);
+    auto *column_value_address = delta->AccessForceNotNull(row_pair.second.at(col_oids[i]));
     if (table->GetSchema().GetColumn(col_oids[i]).IsVarlen()) {
       // Read how many bytes this varlen actually is.
       const auto varlen_attribute_size = in->ReadValue<uint32_t>();
