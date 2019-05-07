@@ -40,7 +40,7 @@ TEST_F(BwTreeTests, ReproduceNewOrderMemoryLeak) {
   }
   std::shuffle(keys.begin(), keys.end(), std::mt19937{std::random_device{}()});
 
-  const uint32_t chunk_size = key_num / num_threads_;
+  const uint32_t chunk_size = 1024 * 1024;
 
   auto workload = [&](uint32_t id) {
     const uint32_t chunk_offset = chunk_size * id;
