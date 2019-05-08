@@ -66,7 +66,7 @@ class ProducerConsumerQueue {
   void Clear() {
     T tmp;
     bool empty = false;
-    while(!empty) {
+    while (!empty) {
       empty = !NonBlockingDequeue(&tmp);
     }
   }

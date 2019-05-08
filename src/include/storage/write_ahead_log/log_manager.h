@@ -43,8 +43,6 @@ class LogManager {
         run_log_writer_thread_(false),
         do_persist_(true) {}
 
-  ~LogManager() { delete log_writer_; }
-
   /**
    * Start logging
    */
@@ -65,14 +63,17 @@ class LogManager {
    */
   void Shutdown() {
     Process();
+    // Shutdown the log writer thread
     run_log_writer_thread_ = false;
     log_writer_->Shutdown();
     for (auto buf : buffers_) {
       buf.Close();
     }
+    // Clear buffer queues
     empty_buffer_queue_.Clear();
     filled_buffer_queue_.Clear();
     buffers_.clear();
+    delete log_writer_;
   }
 
   /**
