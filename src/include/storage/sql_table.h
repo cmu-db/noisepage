@@ -39,7 +39,7 @@ class SqlTable {
    * @param schema the initial Schema of this SqlTable
    * @param oid unique identifier for this SqlTable
    */
-  SqlTable(BlockStore *store, const catalog::Schema &schema, catalog::table_oid_t oid);
+  SqlTable(BlockStore *store, catalog::Schema schema, catalog::table_oid_t oid);
 
   /**
    * Destructs a SqlTable, frees all its members.
