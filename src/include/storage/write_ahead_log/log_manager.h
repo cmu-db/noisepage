@@ -35,19 +35,13 @@ class LogManager {
    */
   LogManager(const char *log_file_path, RecordBufferSegmentPool *const buffer_pool)
       : buffer_pool_(buffer_pool),
+        log_file_path_(log_file_path),
         buffer_to_write_(nullptr),
         empty_buffer_queue_(MAX_BUF, std::chrono::milliseconds(QUEUE_WAIT_TIME_MILLISECONDS)),
         filled_buffer_queue_(MAX_BUF, std::chrono::milliseconds(QUEUE_WAIT_TIME_MILLISECONDS)),
         log_writer_(nullptr),
         run_log_writer_thread_(false),
-        do_persist_(true) {
-    for (int i = 0; i < MAX_BUF; i++) {
-      buffers_.emplace_back(BufferedLogWriter(log_file_path));
-    }
-    for (int i = 0; i < MAX_BUF; i++) {
-      empty_buffer_queue_.BlockingEnqueue(&buffers_[i]);
-    }
-  }
+        do_persist_(true) {}
 
   ~LogManager() { delete log_writer_; }
 
@@ -55,6 +49,13 @@ class LogManager {
    * Start logging
    */
   void Start() {
+    // Initialize buffers for logging
+    for (int i = 0; i < MAX_BUF; i++) {
+      buffers_.emplace_back(BufferedLogWriter(log_file_path_));
+    }
+    for (int i = 0; i < MAX_BUF; i++) {
+      empty_buffer_queue_.BlockingEnqueue(&buffers_[i]);
+    }
     run_log_writer_thread_ = true;
     log_writer_ = new LogWriter(this);
   }
@@ -69,6 +70,9 @@ class LogManager {
     for (auto buf : buffers_) {
       buf.Close();
     }
+    empty_buffer_queue_.Clear();
+    filled_buffer_queue_.Clear();
+    buffers_.clear();
   }
 
   /**
@@ -114,6 +118,8 @@ class LogManager {
   // These do not need to be thread safe since the only thread adding or removing from it is the flushing thread
   std::vector<std::pair<transaction::callback_fn, void *>> commits_in_buffer_;
 
+  // System path for log file
+  const char *log_file_path_;
   // This stores all the buffers the serializer or the log writer threads use
   std::vector<BufferedLogWriter> buffers_;
   // This is the buffer the serializer thread will write to

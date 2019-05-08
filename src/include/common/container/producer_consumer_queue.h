@@ -60,6 +60,17 @@ class ProducerConsumerQueue {
    */
   bool NonBlockingDequeue(T *dest) { return queue_.dequeue_for(*dest, wait_time_); }
 
+  /**
+   * Clear the queue
+   */
+  void Clear() {
+    T tmp;
+    bool empty = false;
+    while(!empty) {
+      empty = !NonBlockingDequeue(&tmp);
+    }
+  }
+
  private:
   spdlog::details::mpmc_blocking_queue<T> queue_;
   std::chrono::milliseconds wait_time_;
