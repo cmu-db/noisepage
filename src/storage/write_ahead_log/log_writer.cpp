@@ -9,11 +9,11 @@ void LogWriter::FlushAllBuffers() {
   do {
     // Dequeue filled buffers and flush them to disk
     BufferedLogWriter *buf;
-    dequeued = log_manager_->NonblockingDequeueBuffer(&buf, &(log_manager_->filled_buffer_queue_));
+    dequeued = log_manager_->filled_buffer_queue_.NonBlockingDequeue(&buf);
     if (dequeued) {
       buf->FlushBuffer();
       // Enqueue the flushed buffer to the empty buffer queue
-      log_manager_->BlockingEnqueueBuffer(buf, &(log_manager_->empty_buffer_queue_));
+      log_manager_->empty_buffer_queue_.BlockingEnqueue(buf);
     }
   } while (dequeued);
   // Persist the buffers
@@ -26,12 +26,12 @@ void LogWriter::WriteToDisk() {
   // It dequeues a filled buffer and flushes it to disk
   while (log_manager_->run_log_writer_thread_) {
     BufferedLogWriter *buf;
-    bool dequeued = log_manager_->NonblockingDequeueBuffer(&buf, &(log_manager_->filled_buffer_queue_));
+    bool dequeued = log_manager_->filled_buffer_queue_.NonBlockingDequeue(&buf);
     if (dequeued) {
       // Flush the buffer to the disk
       buf->FlushBuffer();
       // Push the emptied buffer to queue of available buffers to fill
-      log_manager_->BlockingEnqueueBuffer(buf, &(log_manager_->empty_buffer_queue_));
+      log_manager_->empty_buffer_queue_.BlockingEnqueue(buf);
     }
     // If the main logger thread has signaled to persist the buffers, persist all the filled buffers
     if (log_manager_->do_persist_) {

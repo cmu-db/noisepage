@@ -5,9 +5,9 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include "common/container/producer_consumer_queue.h"
 #include "common/spin_latch.h"
 #include "common/strong_typedef.h"
-#include "spdlog/details/mpmc_blocking_q.h"
 #include "storage/record_buffer.h"
 #include "storage/write_ahead_log/log_io.h"
 #include "storage/write_ahead_log/log_record.h"
@@ -36,8 +36,8 @@ class LogManager {
   LogManager(const char *log_file_path, RecordBufferSegmentPool *const buffer_pool)
       : buffer_pool_(buffer_pool),
         buffer_to_write_(nullptr),
-        empty_buffer_queue_(MAX_BUF),
-        filled_buffer_queue_(MAX_BUF),
+        empty_buffer_queue_(MAX_BUF, std::chrono::milliseconds(QUEUE_WAIT_TIME_MILLISECONDS)),
+        filled_buffer_queue_(MAX_BUF, std::chrono::milliseconds(QUEUE_WAIT_TIME_MILLISECONDS)),
         log_writer_(nullptr),
         run_log_writer_thread_(false),
         do_persist_(true) {
@@ -45,13 +45,11 @@ class LogManager {
       buffers_.emplace_back(BufferedLogWriter(log_file_path));
     }
     for (int i = 0; i < MAX_BUF; i++) {
-      BlockingEnqueueBuffer(&buffers_[i], &empty_buffer_queue_);
+      empty_buffer_queue_.BlockingEnqueue(&buffers_[i]);
     }
   }
 
-  ~LogManager() {
-    delete log_writer_;
-  }
+  ~LogManager() { delete log_writer_; }
 
   /**
    * Start logging
@@ -116,16 +114,14 @@ class LogManager {
   // These do not need to be thread safe since the only thread adding or removing from it is the flushing thread
   std::vector<std::pair<transaction::callback_fn, void *>> commits_in_buffer_;
 
-  using queue_t = spdlog::details::mpmc_blocking_queue<BufferedLogWriter *>;
-
   // This stores all the buffers the serializer or the log writer threads use
   std::vector<BufferedLogWriter> buffers_;
   // This is the buffer the serializer thread will write to
   BufferedLogWriter *buffer_to_write_;
   // The queue containing empty buffers which the serializer thread will use
-  queue_t empty_buffer_queue_;
+  common::ProducerConsumerQueue<BufferedLogWriter *> empty_buffer_queue_;
   // The queue containing filled buffers pending flush to the disk
-  queue_t filled_buffer_queue_;
+  common::ProducerConsumerQueue<BufferedLogWriter *> filled_buffer_queue_;
 
   // The log writer object which flushes filled buffers to the disk
   LogWriter *log_writer_;
@@ -152,7 +148,7 @@ class LogManager {
    */
   BufferedLogWriter *GetBufferToWrite() {
     if (buffer_to_write_ == nullptr) {
-      buffer_to_write_ = BlockingDequeueBuffer(&empty_buffer_queue_);
+      empty_buffer_queue_.BlockingDequeue(&buffer_to_write_);
     }
     return buffer_to_write_;
   }
@@ -175,44 +171,10 @@ class LogManager {
   void WriteValue(const void *val, uint32_t size);
 
   /**
-   * Enqueue a buffer to the queue
-   * Blocks if the queue is full
-   * @param queue the queue to get the buffer from
-   */
-  void BlockingEnqueueBuffer(BufferedLogWriter *buf, queue_t *queue) { queue->enqueue(&(*buf)); }
-
-  /**
-   * Dequeue a buffer from queue and return it
-   * Blocks if the queue is empty
-   * @param queue the queue to get the buffer from
-   * @return a buffer
-   */
-  BufferedLogWriter *BlockingDequeueBuffer(queue_t *queue) {
-    bool dequeued = false;
-    BufferedLogWriter *buf = nullptr;
-    while (!dequeued) {
-      // Get a buffer from the queue of buffers pending write
-      dequeued = queue->dequeue_for(buf, std::chrono::milliseconds(QUEUE_WAIT_TIME_MILLISECONDS));
-    }
-    return buf;
-  }
-
-  /**
-   * Dequeue a buffer from queue and put it in buf
-   * Blocks for a few milliseconds (@see QUEUE_WAIT_TIME_MILLISECONDS) if queue is empty
-   * @param buf the buffer which was dequeued
-   * @param queue the queue to get the buffer from
-   * @return true if a buffer was dequeued
-   */
-  bool NonblockingDequeueBuffer(BufferedLogWriter **buf, queue_t *queue) {
-    return queue->dequeue_for(*buf, std::chrono::milliseconds(QUEUE_WAIT_TIME_MILLISECONDS));
-  }
-
-  /**
    * Mark the current buffer that the serializer thread is writing to as filled
    */
   void MarkBufferFull() {
-    BlockingEnqueueBuffer(buffer_to_write_, &filled_buffer_queue_);
+    filled_buffer_queue_.BlockingEnqueue(buffer_to_write_);
     buffer_to_write_ = nullptr;
   }
 };

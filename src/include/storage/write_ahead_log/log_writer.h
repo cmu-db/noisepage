@@ -1,6 +1,5 @@
 #pragma once
 
-#include <thread>
 #include "storage/write_ahead_log/log_io.h"
 
 namespace terrier::storage {
