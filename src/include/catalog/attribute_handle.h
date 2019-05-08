@@ -19,7 +19,7 @@ struct SchemaCol;
 /**
  * A attribute entry represent a row in pg_attribute catalog.
  */
-class AttributeEntry : public CatalogEntry<col_oid_t> {
+class AttributeCatalogEntry : public CatalogEntry<col_oid_t> {
  public:
   /**
    * Constructor
@@ -27,7 +27,7 @@ class AttributeEntry : public CatalogEntry<col_oid_t> {
    * @param sql_table associated with this entry
    * @param entry a row in pg_attribute that represents this table
    */
-  AttributeEntry(col_oid_t oid, catalog::SqlTableHelper *sql_table, std::vector<type::TransientValue> &&entry)
+  AttributeCatalogEntry(col_oid_t oid, catalog::SqlTableHelper *sql_table, std::vector<type::TransientValue> &&entry)
       : CatalogEntry(oid, sql_table, std::move(entry)) {}
 };
 
@@ -44,13 +44,13 @@ class AttributeEntry : public CatalogEntry<col_oid_t> {
  * The term attribute is equivalent to column and is used for historical
  * reasons.
  */
-class AttributeHandle {
+class AttributeCatalogTable {
  public:
   /**
    * Construct an attribute handle
    * @param pg_attribute a pointer to pg_attribute sql table rw helper instance
    */
-  explicit AttributeHandle(SqlTableHelper *pg_attribute) : pg_attribute_hrw_(pg_attribute) {}
+  explicit AttributeCatalogTable(SqlTableHelper *pg_attribute) : pg_attribute_hrw_(pg_attribute) {}
 
   /**
    * Convert a attribute string to its oid representation
@@ -67,8 +67,8 @@ class AttributeHandle {
    * @param col_oid attribute for col_oid of table_oid
    * @return a shared pointer to Attribute entry; NULL if the attribute doesn't exist
    */
-  std::shared_ptr<AttributeEntry> GetAttributeEntry(transaction::TransactionContext *txn, table_oid_t table_oid,
-                                                    col_oid_t col_oid);
+  std::shared_ptr<AttributeCatalogEntry> GetAttributeEntry(transaction::TransactionContext *txn, table_oid_t table_oid,
+                                                           col_oid_t col_oid);
 
   /**
    * Get an attribute entry.
@@ -77,8 +77,8 @@ class AttributeHandle {
    * @param name attribute for column name of table_oid
    * @return a shared pointer to Attribute entry;
    */
-  std::shared_ptr<AttributeEntry> GetAttributeEntry(transaction::TransactionContext *txn, table_oid_t table_oid,
-                                                    const std::string &name);
+  std::shared_ptr<AttributeCatalogEntry> GetAttributeEntry(transaction::TransactionContext *txn, table_oid_t table_oid,
+                                                           const std::string &name);
 
   /**
    * Delete all entries matching table_oid
@@ -99,7 +99,7 @@ class AttributeHandle {
    * @param txn
    */
   void Dump(transaction::TransactionContext *txn) {
-    auto limit = static_cast<int32_t>(AttributeHandle::schema_cols_.size());
+    auto limit = static_cast<int32_t>(AttributeCatalogTable::schema_cols_.size());
     pg_attribute_hrw_->Dump(txn, limit);
   }
   // end Debug methods

@@ -52,7 +52,7 @@ void Catalog::DeleteDatabase(transaction::TransactionContext *txn, const std::st
 namespace_oid_t Catalog::CreateNameSpace(transaction::TransactionContext *txn, db_oid_t db_oid,
                                          const std::string &name) {
   auto db_handle = GetDatabaseHandle();
-  auto ns_handle = db_handle.GetNamespaceHandle(txn, db_oid);
+  auto ns_handle = db_handle.GetNamespaceTable(txn, db_oid);
   auto ns_entry = ns_handle.GetNamespaceEntry(txn, name);
   if (ns_entry == nullptr) {
     ns_handle.AddEntry(txn, name);
@@ -64,7 +64,7 @@ namespace_oid_t Catalog::CreateNameSpace(transaction::TransactionContext *txn, d
 
 void Catalog::DeleteNameSpace(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid) {
   auto db_handle = GetDatabaseHandle();
-  auto ns_handle = db_handle.GetNamespaceHandle(txn, db_oid);
+  auto ns_handle = db_handle.GetNamespaceTable(txn, db_oid);
 
   auto ns_entry = ns_handle.GetNamespaceEntry(txn, ns_oid);
   if (ns_entry == nullptr) {
@@ -76,7 +76,7 @@ void Catalog::DeleteNameSpace(transaction::TransactionContext *txn, db_oid_t db_
 table_oid_t Catalog::CreateUserTable(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid,
                                      const std::string &table_name, const Schema &schema) {
   auto db_handle = GetDatabaseHandle();
-  auto ns_handle = db_handle.GetNamespaceHandle(txn, db_oid);
+  auto ns_handle = db_handle.GetNamespaceTable(txn, db_oid);
   auto table_handle = ns_handle.GetTableHandle(txn, ns_oid);
 
   // creates the storage table and adds to pg_class
@@ -103,9 +103,9 @@ void Catalog::DeleteUserTable(transaction::TransactionContext *txn, db_oid_t db_
 void Catalog::DeleteUserTable(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid,
                               table_oid_t tbl_oid) {
   auto db_handle = GetDatabaseHandle();
-  auto attr_handle = db_handle.GetAttributeHandle(txn, db_oid);
-  auto attrdef_handle = db_handle.GetAttrDefHandle(txn, db_oid);
-  auto class_handle = db_handle.GetClassHandle(txn, db_oid);
+  auto attr_handle = db_handle.GetAttributeTable(txn, db_oid);
+  auto attrdef_handle = db_handle.GetAttrDefTable(txn, db_oid);
+  auto class_handle = db_handle.GetClassTable(txn, db_oid);
 
   // get an attribute handle
   attr_handle.DeleteEntries(txn, tbl_oid);
@@ -118,11 +118,11 @@ void Catalog::DeleteUserTable(transaction::TransactionContext *txn, db_oid_t db_
   class_handle.DeleteEntry(txn, ns_oid, col_oid);
 }
 
-DatabaseHandle Catalog::GetDatabaseHandle() { return DatabaseHandle(this, pg_database_); }
+DatabaseCatalogTable Catalog::GetDatabaseHandle() { return DatabaseCatalogTable(this, pg_database_); }
 
-TablespaceHandle Catalog::GetTablespaceHandle() { return TablespaceHandle(this, pg_tablespace_); }
+TablespaceCatalogTable Catalog::GetTablespaceHandle() { return TablespaceCatalogTable(this, pg_tablespace_); }
 
-SettingsHandle Catalog::GetSettingsHandle() { return SettingsHandle(pg_settings_); }
+SettingsCatalogTable Catalog::GetSettingsHandle() { return SettingsCatalogTable(pg_settings_); }
 
 SqlTableHelper *Catalog::GetCatalogTable(db_oid_t db_oid, table_oid_t table_oid) {
   return map_.at(db_oid).at(table_oid);
@@ -152,11 +152,12 @@ SqlTableHelper *Catalog::GetUserTable(transaction::TransactionContext *txn, db_o
   }
 }
 
-TableHandle Catalog::GetUserTableHandle(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid) {
+TableCatalogView Catalog::GetUserTableHandle(transaction::TransactionContext *txn, db_oid_t db_oid,
+                                             namespace_oid_t ns_oid) {
   auto db_handle = GetDatabaseHandle();
   // TODO(pakhtar): error checking...
   // find the database
-  auto ns_handle = db_handle.GetNamespaceHandle(txn, db_oid);
+  auto ns_handle = db_handle.GetNamespaceTable(txn, db_oid);
   auto ns_entry = ns_handle.GetNamespaceEntry(txn, ns_oid);
   if (ns_entry == nullptr) {
     throw CATALOG_EXCEPTION("namespace does not exist");
@@ -174,7 +175,7 @@ void Catalog::Bootstrap(transaction::TransactionContext *txn) {
   CreatePGTablespace(DEFAULT_DATABASE_OID, table_oid_t(GetNextOid()));
   PopulatePGTablespace(txn);
 
-  pg_settings_ = SettingsHandle::Create(txn, this, DEFAULT_DATABASE_OID, "pg_settings");
+  pg_settings_ = SettingsCatalogTable::Create(txn, this, DEFAULT_DATABASE_OID, "pg_settings");
 
   BootstrapDatabase(txn, DEFAULT_DATABASE_OID);
 }
@@ -194,7 +195,7 @@ void Catalog::AddColumnsToPGAttribute(transaction::TransactionContext *txn, db_o
     row.emplace_back(type::TransientValueFactory::GetVarChar(c.GetName()));
 
     // pg_type.oid
-    auto type_handle = GetDatabaseHandle().GetTypeHandle(txn, db_oid);
+    auto type_handle = GetDatabaseHandle().GetTypeTable(txn, db_oid);
     auto s_type = ValueTypeIdToSchemaType(c.GetType());
     auto type_entry = type_handle.GetTypeEntry(txn, s_type);
     row.emplace_back(type::TransientValueFactory::GetInteger(!type_entry->GetOid()));
@@ -217,7 +218,7 @@ void Catalog::CreatePGDatabase(table_oid_t table_oid) {
   pg_database_ = new catalog::SqlTableHelper(table_oid);
 
   // columns we use
-  for (auto col : DatabaseHandle::schema_cols_) {
+  for (auto col : DatabaseCatalogTable::schema_cols_) {
     pg_database_->DefineColumn(col.col_name, col.type_id, false, col_oid_t(GetNextOid()));
   }
   // create the table
@@ -236,13 +237,13 @@ void Catalog::PopulatePGDatabase(transaction::TransactionContext *txn) {
 
   row.emplace_back(type::TransientValueFactory::GetInteger(!terrier_oid));
   row.emplace_back(type::TransientValueFactory::GetVarChar("terrier"));
-  SetUnusedColumns(&row, DatabaseHandle::schema_cols_);
+  SetUnusedColumns(&row, DatabaseCatalogTable::schema_cols_);
   pg_database_->InsertRow(txn, row);
 }
 
 void Catalog::CreatePGTablespace(db_oid_t db_oid, table_oid_t table_oid) {
   CATALOG_LOG_TRACE("Creating pg_tablespace table");
-  pg_tablespace_ = TablespaceHandle::Create(this, db_oid, "pg_tablespace");
+  pg_tablespace_ = TablespaceCatalogTable::Create(this, db_oid, "pg_tablespace");
 }
 
 void Catalog::PopulatePGTablespace(transaction::TransactionContext *txn) {
@@ -282,18 +283,18 @@ void Catalog::BootstrapDatabase(transaction::TransactionContext *txn, db_oid_t d
 }
 
 void Catalog::CreatePGAttribute(terrier::transaction::TransactionContext *txn, terrier::catalog::db_oid_t db_oid) {
-  AttributeHandle::Create(txn, this, db_oid, "pg_attribute");
+  AttributeCatalogTable::Create(txn, this, db_oid, "pg_attribute");
 }
 
 void Catalog::CreatePGAttrDef(transaction::TransactionContext *txn, db_oid_t db_oid) {
-  AttrDefHandle::Create(txn, this, db_oid, "pg_attrdef");
+  AttrDefCatalogTable::Create(txn, this, db_oid, "pg_attrdef");
 }
 
 void Catalog::CreatePGNamespace(transaction::TransactionContext *txn, db_oid_t db_oid) {
   // create the namespace table
-  NamespaceHandle::Create(txn, this, db_oid, "pg_namespace");
+  NamespaceCatalogTable::Create(txn, this, db_oid, "pg_namespace");
 
-  auto ns_handle = GetDatabaseHandle().GetNamespaceHandle(txn, db_oid);
+  auto ns_handle = GetDatabaseHandle().GetNamespaceTable(txn, db_oid);
 
   // populate it
   ns_handle.AddEntry(txn, "pg_catalog");
@@ -304,13 +305,13 @@ void Catalog::CreatePGClass(transaction::TransactionContext *txn, db_oid_t db_oi
   std::vector<type::TransientValue> row;
 
   // create pg_class storage
-  ClassHandle::Create(txn, this, db_oid, "pg_class");
+  ClassCatalogTable::Create(txn, this, db_oid, "pg_class");
 
-  auto class_handle = GetDatabaseHandle().GetClassHandle(txn, db_oid);
+  auto class_handle = GetDatabaseHandle().GetClassTable(txn, db_oid);
 
   // lookup oids inserted in multiple entries
   auto pg_catalog_namespace_oid =
-      !GetDatabaseHandle().GetNamespaceHandle(txn, db_oid).GetNamespaceEntry(txn, "pg_catalog")->GetOid();
+      !GetDatabaseHandle().GetNamespaceTable(txn, db_oid).GetNamespaceEntry(txn, "pg_catalog")->GetOid();
 
   auto pg_global_ts_oid = !GetTablespaceHandle().GetTablespaceEntry(txn, "pg_global")->GetOid();
   auto pg_default_ts_oid = !GetTablespaceHandle().GetTablespaceEntry(txn, "pg_default")->GetOid();
@@ -373,13 +374,13 @@ void Catalog::CreatePGClass(transaction::TransactionContext *txn, db_oid_t db_oi
 }
 
 void Catalog::CreatePGType(transaction::TransactionContext *txn, db_oid_t db_oid) {
-  TypeHandle::Create(txn, this, db_oid, "pg_type");
+  TypeCatalogTable::Create(txn, this, db_oid, "pg_type");
 
   std::vector<type::TransientValue> row;
   // TODO(Yesheng): get rid of this strange calling chain
-  auto pg_type_handle = GetDatabaseHandle().GetTypeHandle(txn, db_oid);
+  auto pg_type_handle = GetDatabaseHandle().GetTypeTable(txn, db_oid);
   auto catalog_ns_oid =
-      GetDatabaseHandle().GetNamespaceHandle(txn, db_oid).GetNamespaceEntry(txn, "pg_catalog")->GetOid();
+      GetDatabaseHandle().GetNamespaceTable(txn, db_oid).GetNamespaceEntry(txn, "pg_catalog")->GetOid();
 
   // built-in types as in type/type_id.h
   pg_type_handle.AddEntry(txn, type_oid_t(GetNextOid()), "boolean", catalog_ns_oid,
@@ -441,7 +442,7 @@ void Catalog::DestroyDB(db_oid_t oid) {
   CATALOG_LOG_TRACE("We found {} rows in pg_class", num_rows);
 
   // get the pg_catalog oid
-  auto pg_catalog_oid = GetDatabaseHandle().GetNamespaceHandle(txn, oid).NameToOid(txn, "pg_catalog");
+  auto pg_catalog_oid = GetDatabaseHandle().GetNamespaceTable(txn, oid).NameToOid(txn, "pg_catalog");
   for (uint32_t i = 0; i < num_rows; i++) {
     // auto row = columns->InterpretAsRow(layout, i);
     auto row = columns->InterpretAsRow(i);
@@ -464,7 +465,7 @@ void Catalog::AddEntryToPGDatabase(transaction::TransactionContext *txn, db_oid_
   std::vector<type::TransientValue> entry;
   entry.emplace_back(type::TransientValueFactory::GetInteger(!oid));
   entry.emplace_back(type::TransientValueFactory::GetVarChar(name));
-  SetUnusedColumns(&entry, DatabaseHandle::schema_cols_);
+  SetUnusedColumns(&entry, DatabaseCatalogTable::schema_cols_);
   pg_database_->InsertRow(txn, entry);
 
   // oid -> empty map (for tables)
@@ -558,25 +559,25 @@ void Catalog::Dump(transaction::TransactionContext *txn, const db_oid_t db_oid) 
 
   CATALOG_LOG_DEBUG("");
   CATALOG_LOG_DEBUG("-- pg_namespace -- ");
-  auto ns_handle = db_handle.GetNamespaceHandle(txn, db_oid);
+  auto ns_handle = db_handle.GetNamespaceTable(txn, db_oid);
   ns_handle.Dump(txn);
 
   // pg_attribute
   CATALOG_LOG_DEBUG("");
   CATALOG_LOG_DEBUG("-- pg_attribute -- ");
-  auto attr_handle = db_handle.GetAttributeHandle(txn, db_oid);
+  auto attr_handle = db_handle.GetAttributeTable(txn, db_oid);
   attr_handle.Dump(txn);
 
   // pg_type
   CATALOG_LOG_DEBUG("");
   CATALOG_LOG_DEBUG("-- pg_type -- ");
-  auto type_handle = db_handle.GetTypeHandle(txn, db_oid);
+  auto type_handle = db_handle.GetTypeTable(txn, db_oid);
   type_handle.Dump(txn);
 
   // pg_class
   CATALOG_LOG_DEBUG("");
   CATALOG_LOG_DEBUG("-- pg_class -- ");
-  auto cls_handle = db_handle.GetClassHandle(txn, db_oid);
+  auto cls_handle = db_handle.GetClassTable(txn, db_oid);
   cls_handle.Dump(txn);
 }
 

@@ -13,25 +13,25 @@
 #include "type/type_id.h"
 namespace terrier::catalog {
 
-const std::vector<SchemaCol> TablespaceHandle::schema_cols_ = {{0, true, "oid", type::TypeId::INTEGER},
-                                                               {1, true, "spcname", type::TypeId::VARCHAR},
-                                                               {2, false, "spcowner", type::TypeId::INTEGER},
-                                                               {3, false, "spcacl", type::TypeId::VARCHAR},
-                                                               {4, false, "spcoptions", type::TypeId::VARCHAR}};
+const std::vector<SchemaCol> TablespaceCatalogTable::schema_cols_ = {{0, true, "oid", type::TypeId::INTEGER},
+                                                                     {1, true, "spcname", type::TypeId::VARCHAR},
+                                                                     {2, false, "spcowner", type::TypeId::INTEGER},
+                                                                     {3, false, "spcacl", type::TypeId::VARCHAR},
+                                                                     {4, false, "spcoptions", type::TypeId::VARCHAR}};
 
-std::shared_ptr<TablespaceEntry> TablespaceHandle::GetTablespaceEntry(transaction::TransactionContext *txn,
-                                                                      tablespace_oid_t oid) {
+std::shared_ptr<TablespaceCatalogEntry> TablespaceCatalogTable::GetTablespaceEntry(transaction::TransactionContext *txn,
+                                                                                   tablespace_oid_t oid) {
   std::vector<type::TransientValue> search_vec, ret_row;
   search_vec.push_back(type::TransientValueFactory::GetInteger(!oid));
   ret_row = pg_tablespace_->FindRow(txn, search_vec);
   if (ret_row.empty()) {
     return nullptr;
   }
-  return std::make_shared<TablespaceEntry>(oid, pg_tablespace_, std::move(ret_row));
+  return std::make_shared<TablespaceCatalogEntry>(oid, pg_tablespace_, std::move(ret_row));
 }
 
-std::shared_ptr<TablespaceEntry> TablespaceHandle::GetTablespaceEntry(transaction::TransactionContext *txn,
-                                                                      const std::string &name) {
+std::shared_ptr<TablespaceCatalogEntry> TablespaceCatalogTable::GetTablespaceEntry(transaction::TransactionContext *txn,
+                                                                                   const std::string &name) {
   std::vector<type::TransientValue> search_vec, ret_row;
   search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
   search_vec.push_back(type::TransientValueFactory::GetVarChar(name));
@@ -40,19 +40,19 @@ std::shared_ptr<TablespaceEntry> TablespaceHandle::GetTablespaceEntry(transactio
     return nullptr;
   }
   tablespace_oid_t oid(type::TransientValuePeeker::PeekInteger(ret_row[0]));
-  return std::make_shared<TablespaceEntry>(oid, pg_tablespace_, std::move(ret_row));
+  return std::make_shared<TablespaceCatalogEntry>(oid, pg_tablespace_, std::move(ret_row));
 }
 
-void TablespaceHandle::AddEntry(transaction::TransactionContext *txn, const std::string &name) {
+void TablespaceCatalogTable::AddEntry(transaction::TransactionContext *txn, const std::string &name) {
   std::vector<type::TransientValue> row;
 
   row.emplace_back(type::TransientValueFactory::GetInteger(catalog_->GetNextOid()));
   row.emplace_back(type::TransientValueFactory::GetVarChar(name));
-  catalog_->SetUnusedColumns(&row, TablespaceHandle::schema_cols_);
+  catalog_->SetUnusedColumns(&row, TablespaceCatalogTable::schema_cols_);
   pg_tablespace_->InsertRow(txn, row);
 }
 
-SqlTableHelper *TablespaceHandle::Create(Catalog *catalog, db_oid_t db_oid, const std::string &name) {
+SqlTableHelper *TablespaceCatalogTable::Create(Catalog *catalog, db_oid_t db_oid, const std::string &name) {
   catalog::SqlTableHelper *storage_table;
 
   // get an oid
@@ -62,7 +62,7 @@ SqlTableHelper *TablespaceHandle::Create(Catalog *catalog, db_oid_t db_oid, cons
   storage_table = new catalog::SqlTableHelper(storage_table_oid);
 
   // columns we use
-  for (auto col : TablespaceHandle::schema_cols_) {
+  for (auto col : TablespaceCatalogTable::schema_cols_) {
     storage_table->DefineColumn(col.col_name, col.type_id, false, col_oid_t(catalog->GetNextOid()));
   }
 

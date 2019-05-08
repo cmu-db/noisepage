@@ -17,7 +17,7 @@ struct SchemaCol;
 /**
  * A namespace entry represent a row in pg_namespace catalog.
  */
-class NamespaceEntry : public CatalogEntry<namespace_oid_t> {
+class NamespaceCatalogEntry : public CatalogEntry<namespace_oid_t> {
  public:
   /**
    * Constructor
@@ -25,7 +25,8 @@ class NamespaceEntry : public CatalogEntry<namespace_oid_t> {
    * @param sql_table associated with this entry
    * @param entry a row in pg_namespace that represents this table
    */
-  NamespaceEntry(namespace_oid_t oid, catalog::SqlTableHelper *sql_table, std::vector<type::TransientValue> &&entry)
+  NamespaceCatalogEntry(namespace_oid_t oid, catalog::SqlTableHelper *sql_table,
+                        std::vector<type::TransientValue> &&entry)
       : CatalogEntry(oid, sql_table, std::move(entry)) {}
 };
 
@@ -34,7 +35,7 @@ class NamespaceEntry : public CatalogEntry<namespace_oid_t> {
  * retrieve namespace related information and it serves as the entry point for access the tables
  * under different namespaces.
  */
-class NamespaceHandle {
+class NamespaceCatalogTable {
  public:
   /**
    * Construct a namespace handle. It keeps a pointer to the pg_namespace sql table.
@@ -42,7 +43,7 @@ class NamespaceHandle {
    * @param oid the db oid of the underlying database
    * @param pg_namespace a pointer to pg_namespace sql table rw helper instance
    */
-  explicit NamespaceHandle(Catalog *catalog, db_oid_t oid, SqlTableHelper *pg_namespace)
+  explicit NamespaceCatalogTable(Catalog *catalog, db_oid_t oid, SqlTableHelper *pg_namespace)
       : catalog_(catalog), db_oid_(oid), pg_namespace_hrw_(pg_namespace) {}
 
   /**
@@ -62,7 +63,7 @@ class NamespaceHandle {
    * @return a shared pointer to Namespace entry; NULL if the namespace doesn't exist in
    * the database
    */
-  std::shared_ptr<NamespaceEntry> GetNamespaceEntry(transaction::TransactionContext *txn, namespace_oid_t oid);
+  std::shared_ptr<NamespaceCatalogEntry> GetNamespaceEntry(transaction::TransactionContext *txn, namespace_oid_t oid);
 
   /**
    * Get a namespace entry for a given namespace. It's essentially equivalent to reading a
@@ -73,7 +74,8 @@ class NamespaceHandle {
    * @return a shared pointer to Namespace entry; NULL if the namespace doesn't exist in
    * the database
    */
-  std::shared_ptr<NamespaceEntry> GetNamespaceEntry(transaction::TransactionContext *txn, const std::string &name);
+  std::shared_ptr<NamespaceCatalogEntry> GetNamespaceEntry(transaction::TransactionContext *txn,
+                                                           const std::string &name);
 
   /**
    * Add name into the namespace table.
@@ -87,7 +89,7 @@ class NamespaceHandle {
    * @param entry to delete
    * @return true on success
    */
-  bool DeleteEntry(transaction::TransactionContext *txn, const std::shared_ptr<NamespaceEntry> &entry);
+  bool DeleteEntry(transaction::TransactionContext *txn, const std::shared_ptr<NamespaceCatalogEntry> &entry);
 
   /**
    * Get a table handle under the given namespace
@@ -95,7 +97,7 @@ class NamespaceHandle {
    * @param nsp_name the namespace
    * @return a handle to all the tables under the namespace
    */
-  TableHandle GetTableHandle(transaction::TransactionContext *txn, const std::string &nsp_name);
+  TableCatalogView GetTableHandle(transaction::TransactionContext *txn, const std::string &nsp_name);
 
   /**
    * Get a table handle under the given namespace
@@ -103,7 +105,7 @@ class NamespaceHandle {
    * @param ns_oid
    * @return a handle to all the tables under the namespace
    */
-  TableHandle GetTableHandle(transaction::TransactionContext *txn, namespace_oid_t ns_oid);
+  TableCatalogView GetTableHandle(transaction::TransactionContext *txn, namespace_oid_t ns_oid);
 
   /**
    * Create the storage table

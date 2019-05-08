@@ -14,24 +14,24 @@
 
 namespace terrier::catalog {
 
-const std::vector<SchemaCol> NamespaceHandle::schema_cols_ = {{0, true, "oid", type::TypeId::INTEGER},
-                                                              {1, true, "nspname", type::TypeId::VARCHAR},
-                                                              {2, false, "nspowner", type::TypeId::INTEGER},
-                                                              {3, false, "nspacl", type::TypeId::VARCHAR}};
+const std::vector<SchemaCol> NamespaceCatalogTable::schema_cols_ = {{0, true, "oid", type::TypeId::INTEGER},
+                                                                    {1, true, "nspname", type::TypeId::VARCHAR},
+                                                                    {2, false, "nspowner", type::TypeId::INTEGER},
+                                                                    {3, false, "nspacl", type::TypeId::VARCHAR}};
 
-std::shared_ptr<NamespaceEntry> NamespaceHandle::GetNamespaceEntry(transaction::TransactionContext *txn,
-                                                                   namespace_oid_t oid) {
+std::shared_ptr<NamespaceCatalogEntry> NamespaceCatalogTable::GetNamespaceEntry(transaction::TransactionContext *txn,
+                                                                                namespace_oid_t oid) {
   std::vector<type::TransientValue> search_vec, ret_row;
   search_vec.push_back(type::TransientValueFactory::GetInteger(!oid));
   ret_row = pg_namespace_hrw_->FindRow(txn, search_vec);
   if (ret_row.empty()) {
     return nullptr;
   }
-  return std::make_shared<NamespaceEntry>(oid, pg_namespace_hrw_, std::move(ret_row));
+  return std::make_shared<NamespaceCatalogEntry>(oid, pg_namespace_hrw_, std::move(ret_row));
 }
 
-std::shared_ptr<NamespaceEntry> NamespaceHandle::GetNamespaceEntry(transaction::TransactionContext *txn,
-                                                                   const std::string &name) {
+std::shared_ptr<NamespaceCatalogEntry> NamespaceCatalogTable::GetNamespaceEntry(transaction::TransactionContext *txn,
+                                                                                const std::string &name) {
   std::vector<type::TransientValue> search_vec, ret_row;
   search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
   search_vec.push_back(type::TransientValueFactory::GetVarChar(name));
@@ -40,10 +40,10 @@ std::shared_ptr<NamespaceEntry> NamespaceHandle::GetNamespaceEntry(transaction::
     return nullptr;
   }
   namespace_oid_t oid(type::TransientValuePeeker::PeekInteger(ret_row[0]));
-  return std::make_shared<NamespaceEntry>(oid, pg_namespace_hrw_, std::move(ret_row));
+  return std::make_shared<NamespaceCatalogEntry>(oid, pg_namespace_hrw_, std::move(ret_row));
 }
 
-namespace_oid_t NamespaceHandle::NameToOid(transaction::TransactionContext *txn, const std::string &name) {
+namespace_oid_t NamespaceCatalogTable::NameToOid(transaction::TransactionContext *txn, const std::string &name) {
   auto nse = GetNamespaceEntry(txn, name);
   if (nse == nullptr) {
     throw CATALOG_EXCEPTION("namespace does not exist");
@@ -51,30 +51,32 @@ namespace_oid_t NamespaceHandle::NameToOid(transaction::TransactionContext *txn,
   return namespace_oid_t(type::TransientValuePeeker::PeekInteger(nse->GetColumn(0)));
 }
 
-TableHandle NamespaceHandle::GetTableHandle(transaction::TransactionContext *txn, const std::string &nsp_name) {
+TableCatalogView NamespaceCatalogTable::GetTableHandle(transaction::TransactionContext *txn,
+                                                       const std::string &nsp_name) {
   auto ns_oid = NameToOid(txn, nsp_name);
   return GetTableHandle(txn, ns_oid);
 }
 
-TableHandle NamespaceHandle::GetTableHandle(transaction::TransactionContext *txn, namespace_oid_t ns_oid) {
+TableCatalogView NamespaceCatalogTable::GetTableHandle(transaction::TransactionContext *txn, namespace_oid_t ns_oid) {
   std::string pg_class("pg_class");
   std::string pg_namespace("pg_namespace");
   std::string pg_tablespace("pg_tablespace");
-  return TableHandle(catalog_, ns_oid, catalog_->GetCatalogTable(db_oid_, pg_class),
-                     catalog_->GetCatalogTable(db_oid_, pg_namespace),
-                     catalog_->GetCatalogTable(db_oid_, pg_tablespace));
+  return TableCatalogView(catalog_, ns_oid, catalog_->GetCatalogTable(db_oid_, pg_class),
+                          catalog_->GetCatalogTable(db_oid_, pg_namespace),
+                          catalog_->GetCatalogTable(db_oid_, pg_tablespace));
 }
 
-void NamespaceHandle::AddEntry(transaction::TransactionContext *txn, const std::string &name) {
+void NamespaceCatalogTable::AddEntry(transaction::TransactionContext *txn, const std::string &name) {
   std::vector<type::TransientValue> row;
 
   row.emplace_back(type::TransientValueFactory::GetInteger(catalog_->GetNextOid()));
   row.emplace_back(type::TransientValueFactory::GetVarChar(name));
-  catalog_->SetUnusedColumns(&row, NamespaceHandle::schema_cols_);
+  catalog_->SetUnusedColumns(&row, NamespaceCatalogTable::schema_cols_);
   pg_namespace_hrw_->InsertRow(txn, row);
 }
 
-bool NamespaceHandle::DeleteEntry(transaction::TransactionContext *txn, const std::shared_ptr<NamespaceEntry> &entry) {
+bool NamespaceCatalogTable::DeleteEntry(transaction::TransactionContext *txn,
+                                        const std::shared_ptr<NamespaceCatalogEntry> &entry) {
   std::vector<type::TransientValue> search_vec;
   auto ns_oid_int = entry->GetIntegerColumn("oid");
   // get the oid of this row
@@ -89,8 +91,8 @@ bool NamespaceHandle::DeleteEntry(transaction::TransactionContext *txn, const st
   return status;
 }
 
-SqlTableHelper *NamespaceHandle::Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,
-                                        const std::string &name) {
+SqlTableHelper *NamespaceCatalogTable::Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,
+                                              const std::string &name) {
   catalog::SqlTableHelper *storage_table;
 
   // get an oid
@@ -100,7 +102,7 @@ SqlTableHelper *NamespaceHandle::Create(transaction::TransactionContext *txn, Ca
   storage_table = new catalog::SqlTableHelper(storage_table_oid);
 
   // columns we use
-  for (auto col : NamespaceHandle::schema_cols_) {
+  for (auto col : NamespaceCatalogTable::schema_cols_) {
     storage_table->DefineColumn(col.col_name, col.type_id, false, col_oid_t(catalog->GetNextOid()));
   }
 

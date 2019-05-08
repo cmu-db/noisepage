@@ -18,7 +18,7 @@
 namespace terrier::catalog {
 
 class Catalog;
-class AttributeHandle;
+class AttributeCatalogTable;
 
 /**
  * A table entry represent a row in pg_tables catalog.
@@ -33,7 +33,7 @@ class AttributeHandle;
  *    rows_[1] stores a row in pg_class which contains table information for this TableEntry
  *    rows_[2] stores a row in pg_tablespace which contains table information for this TableEntry
  */
-class TableEntry {
+class TableCatalogEntry {
  public:
   /**
    * Constructs a table entry in pg_tables.
@@ -45,8 +45,8 @@ class TableEntry {
    * @param pg_namespace a pointer to pg_namespace
    * @param pg_tablespace a pointer to tablespace
    */
-  TableEntry(table_oid_t oid, std::vector<type::TransientValue> &&row, transaction::TransactionContext *txn,
-             SqlTableHelper *pg_namespace, SqlTableHelper *pg_tablespace)
+  TableCatalogEntry(table_oid_t oid, std::vector<type::TransientValue> &&row, transaction::TransactionContext *txn,
+                    SqlTableHelper *pg_namespace, SqlTableHelper *pg_tablespace)
       : oid_(oid), txn_(txn), pg_namespace_(pg_namespace), pg_tablespace_(pg_tablespace) {
     rows_.resize(3);
     rows_[1] = std::move(row);
@@ -124,7 +124,7 @@ class TableEntry {
  * pg_tablespace:
  *	    oid | spcname
  */
-class TableHandle {
+class TableCatalogView {
  public:
   /**
    * Construct a table handle. It keeps pointers to the pg_class, pg_namespace, pg_tablespace sql tables.
@@ -135,8 +135,8 @@ class TableHandle {
    * @param pg_namespace a pointer to pg_namespace
    * @param pg_tablespace a pointer to pg_tablespace
    */
-  TableHandle(Catalog *catalog, namespace_oid_t nsp_oid, SqlTableHelper *pg_class, SqlTableHelper *pg_namespace,
-              SqlTableHelper *pg_tablespace)
+  TableCatalogView(Catalog *catalog, namespace_oid_t nsp_oid, SqlTableHelper *pg_class, SqlTableHelper *pg_namespace,
+                   SqlTableHelper *pg_tablespace)
       : catalog_(catalog),
         nsp_oid_(nsp_oid),
         pg_class_(pg_class),
@@ -160,7 +160,7 @@ class TableHandle {
    * @return a shared pointer to table entry; NULL if the namespace doesn't exist in
    * the database
    */
-  std::shared_ptr<TableEntry> GetTableEntry(transaction::TransactionContext *txn, table_oid_t oid);
+  std::shared_ptr<TableCatalogEntry> GetTableEntry(transaction::TransactionContext *txn, table_oid_t oid);
 
   /**
    * Get a table entry for the given table name. It's essentially equivalent to reading a
@@ -171,7 +171,7 @@ class TableHandle {
    * @return a shared pointer to table entry; NULL if the namespace doesn't exist in
    * the database
    */
-  std::shared_ptr<TableEntry> GetTableEntry(transaction::TransactionContext *txn, const std::string &name);
+  std::shared_ptr<TableCatalogEntry> GetTableEntry(transaction::TransactionContext *txn, const std::string &name);
 
   /**
    * Create a SqlTable. The namespace of the table is the same as the TableHandle.

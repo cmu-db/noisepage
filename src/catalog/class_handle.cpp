@@ -11,17 +11,18 @@
 namespace terrier::catalog {
 
 // Postgres has additional columns interspersed within these.
-const std::vector<SchemaCol> ClassHandle::schema_cols_ = {{0, true, "__ptr", type::TypeId::BIGINT},
-                                                          {1, true, "oid", type::TypeId::INTEGER},
-                                                          {2, true, "relname", type::TypeId::VARCHAR},
-                                                          {3, true, "relnamespace", type::TypeId::INTEGER},
-                                                          {4, true, "reltablespace", type::TypeId::INTEGER}};
+const std::vector<SchemaCol> ClassCatalogTable::schema_cols_ = {{0, true, "__ptr", type::TypeId::BIGINT},
+                                                                {1, true, "oid", type::TypeId::INTEGER},
+                                                                {2, true, "relname", type::TypeId::VARCHAR},
+                                                                {3, true, "relnamespace", type::TypeId::INTEGER},
+                                                                {4, true, "reltablespace", type::TypeId::INTEGER}};
 
 // TODO(pakhtar): there are quite a number of unused columns...
 // Review and define, because some of them we'll probably use.
 
 // Find entry with (row) oid and return it
-std::shared_ptr<ClassEntry> ClassHandle::GetClassEntry(transaction::TransactionContext *txn, col_oid_t oid) {
+std::shared_ptr<ClassCatalogEntry> ClassCatalogTable::GetClassEntry(transaction::TransactionContext *txn,
+                                                                    col_oid_t oid) {
   std::vector<type::TransientValue> search_vec, ret_row;
   search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::BIGINT));
   search_vec.push_back(type::TransientValueFactory::GetInteger(!oid));
@@ -29,10 +30,11 @@ std::shared_ptr<ClassEntry> ClassHandle::GetClassEntry(transaction::TransactionC
   if (ret_row.empty()) {
     return nullptr;
   }
-  return std::make_shared<ClassEntry>(oid, pg_class_rw_, std::move(ret_row));
+  return std::make_shared<ClassCatalogEntry>(oid, pg_class_rw_, std::move(ret_row));
 }
 
-std::shared_ptr<ClassEntry> ClassHandle::GetClassEntry(transaction::TransactionContext *txn, const char *name) {
+std::shared_ptr<ClassCatalogEntry> ClassCatalogTable::GetClassEntry(transaction::TransactionContext *txn,
+                                                                    const char *name) {
   std::vector<type::TransientValue> search_vec, ret_row;
   search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::BIGINT));
   search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
@@ -42,11 +44,11 @@ std::shared_ptr<ClassEntry> ClassHandle::GetClassEntry(transaction::TransactionC
     return nullptr;
   }
   col_oid_t oid(type::TransientValuePeeker::PeekInteger(ret_row[1]));
-  return std::make_shared<ClassEntry>(oid, pg_class_rw_, std::move(ret_row));
+  return std::make_shared<ClassCatalogEntry>(oid, pg_class_rw_, std::move(ret_row));
 }
 
-std::shared_ptr<ClassEntry> ClassHandle::GetClassEntry(transaction::TransactionContext *txn, namespace_oid_t ns_oid,
-                                                       const char *name) {
+std::shared_ptr<ClassCatalogEntry> ClassCatalogTable::GetClassEntry(transaction::TransactionContext *txn,
+                                                                    namespace_oid_t ns_oid, const char *name) {
   std::vector<type::TransientValue> search_vec, ret_row;
   // ptr
   search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::BIGINT));
@@ -59,11 +61,11 @@ std::shared_ptr<ClassEntry> ClassHandle::GetClassEntry(transaction::TransactionC
     return nullptr;
   }
   col_oid_t oid(type::TransientValuePeeker::PeekInteger(ret_row[1]));
-  return std::make_shared<ClassEntry>(oid, pg_class_rw_, std::move(ret_row));
+  return std::make_shared<ClassCatalogEntry>(oid, pg_class_rw_, std::move(ret_row));
 }
 
-void ClassHandle::AddEntry(transaction::TransactionContext *txn, const int64_t tbl_ptr, const int32_t entry_oid,
-                           const std::string &name, const int32_t ns_oid, const int32_t ts_oid) {
+void ClassCatalogTable::AddEntry(transaction::TransactionContext *txn, const int64_t tbl_ptr, const int32_t entry_oid,
+                                 const std::string &name, const int32_t ns_oid, const int32_t ts_oid) {
   std::vector<type::TransientValue> row;
 
   row.emplace_back(type::TransientValueFactory::GetBigInt(tbl_ptr));
@@ -72,11 +74,12 @@ void ClassHandle::AddEntry(transaction::TransactionContext *txn, const int64_t t
   row.emplace_back(type::TransientValueFactory::GetInteger(ns_oid));
   row.emplace_back(type::TransientValueFactory::GetInteger(ts_oid));
 
-  catalog_->SetUnusedColumns(&row, ClassHandle::schema_cols_);
+  catalog_->SetUnusedColumns(&row, ClassCatalogTable::schema_cols_);
   pg_class_rw_->InsertRow(txn, row);
 }
 
-bool ClassHandle::DeleteEntry(transaction::TransactionContext *txn, const std::shared_ptr<ClassEntry> &entry) {
+bool ClassCatalogTable::DeleteEntry(transaction::TransactionContext *txn,
+                                    const std::shared_ptr<ClassCatalogEntry> &entry) {
   std::vector<type::TransientValue> search_vec;
 
   search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::BIGINT));
@@ -92,7 +95,7 @@ bool ClassHandle::DeleteEntry(transaction::TransactionContext *txn, const std::s
   return status;
 }
 
-bool ClassHandle::DeleteEntry(transaction::TransactionContext *txn, namespace_oid_t ns_oid, col_oid_t col_oid) {
+bool ClassCatalogTable::DeleteEntry(transaction::TransactionContext *txn, namespace_oid_t ns_oid, col_oid_t col_oid) {
   // find the entry
   auto class_entry = GetClassEntry(txn, col_oid);
   if (class_entry == nullptr) {
@@ -109,8 +112,8 @@ bool ClassHandle::DeleteEntry(transaction::TransactionContext *txn, namespace_oi
   return true;
 }
 
-SqlTableHelper *ClassHandle::Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,
-                                    const std::string &name) {
+SqlTableHelper *ClassCatalogTable::Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,
+                                          const std::string &name) {
   catalog::SqlTableHelper *pg_class;
 
   // get an oid
@@ -119,7 +122,7 @@ SqlTableHelper *ClassHandle::Create(transaction::TransactionContext *txn, Catalo
   // uninitialized storage
   pg_class = new catalog::SqlTableHelper(pg_class_oid);
 
-  for (auto col : ClassHandle::schema_cols_) {
+  for (auto col : ClassCatalogTable::schema_cols_) {
     pg_class->DefineColumn(col.col_name, col.type_id, false, col_oid_t(catalog->GetNextOid()));
   }
 

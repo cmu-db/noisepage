@@ -11,24 +11,25 @@
 
 namespace terrier::catalog {
 
-const std::vector<SchemaCol> AttrDefHandle::schema_cols_ = {{0, true, "oid", type::TypeId::INTEGER},
-                                                            {1, true, "adrelid", type::TypeId::INTEGER},
-                                                            {2, true, "adnum", type::TypeId::INTEGER},
-                                                            {3, true, "adbin", type::TypeId::VARCHAR},
-                                                            {4, false, "adsrc", type::TypeId::VARCHAR}};
+const std::vector<SchemaCol> AttrDefCatalogTable::schema_cols_ = {{0, true, "oid", type::TypeId::INTEGER},
+                                                                  {1, true, "adrelid", type::TypeId::INTEGER},
+                                                                  {2, true, "adnum", type::TypeId::INTEGER},
+                                                                  {3, true, "adbin", type::TypeId::VARCHAR},
+                                                                  {4, false, "adsrc", type::TypeId::VARCHAR}};
 
 // Find entry with (row) oid and return it
-std::shared_ptr<AttrDefEntry> AttrDefHandle::GetAttrDefEntry(transaction::TransactionContext *txn, col_oid_t oid) {
+std::shared_ptr<AttrDefCatalogEntry> AttrDefCatalogTable::GetAttrDefEntry(transaction::TransactionContext *txn,
+                                                                          col_oid_t oid) {
   std::vector<type::TransientValue> search_vec, ret_row;
   search_vec.push_back(type::TransientValueFactory::GetInteger(!oid));
   ret_row = pg_attrdef_rw_->FindRow(txn, search_vec);
   if (ret_row.empty()) {
     return nullptr;
   }
-  return std::make_shared<AttrDefEntry>(oid, pg_attrdef_rw_, std::move(ret_row));
+  return std::make_shared<AttrDefCatalogEntry>(oid, pg_attrdef_rw_, std::move(ret_row));
 }
 
-void AttrDefHandle::DeleteEntries(transaction::TransactionContext *txn, table_oid_t table_oid) {
+void AttrDefCatalogTable::DeleteEntries(transaction::TransactionContext *txn, table_oid_t table_oid) {
   // auto layout = pg_attrdef_rw_->GetLayout();
   int32_t col_index = pg_attrdef_rw_->ColNameToIndex("adrelid");
 
@@ -50,8 +51,8 @@ void AttrDefHandle::DeleteEntries(transaction::TransactionContext *txn, table_oi
   }
 }
 
-SqlTableHelper *AttrDefHandle::Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,
-                                      const std::string &name) {
+SqlTableHelper *AttrDefCatalogTable::Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,
+                                            const std::string &name) {
   catalog::SqlTableHelper *pg_attrdef;
 
   // get an oid
@@ -60,7 +61,7 @@ SqlTableHelper *AttrDefHandle::Create(transaction::TransactionContext *txn, Cata
   // uninitialized storage
   pg_attrdef = new catalog::SqlTableHelper(pg_attrdef_oid);
 
-  for (auto col : AttrDefHandle::schema_cols_) {
+  for (auto col : AttrDefCatalogTable::schema_cols_) {
     pg_attrdef->DefineColumn(col.col_name, col.type_id, false, col_oid_t(catalog->GetNextOid()));
   }
 

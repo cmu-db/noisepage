@@ -18,7 +18,7 @@ struct SchemaCol;
 /**
  * A tablespace entry represent a row in pg_tablespace catalog.
  */
-class TablespaceEntry : public CatalogEntry<tablespace_oid_t> {
+class TablespaceCatalogEntry : public CatalogEntry<tablespace_oid_t> {
  public:
   /**
    * Constructor
@@ -26,7 +26,8 @@ class TablespaceEntry : public CatalogEntry<tablespace_oid_t> {
    * @param sql_table associated with this entry
    * @param entry a row in pg_tablespace that represents this table
    */
-  TablespaceEntry(tablespace_oid_t oid, catalog::SqlTableHelper *sql_table, std::vector<type::TransientValue> &&entry)
+  TablespaceCatalogEntry(tablespace_oid_t oid, catalog::SqlTableHelper *sql_table,
+                         std::vector<type::TransientValue> &&entry)
       : CatalogEntry(oid, sql_table, std::move(entry)) {}
 };
 
@@ -45,14 +46,14 @@ class TablespaceEntry : public CatalogEntry<tablespace_oid_t> {
  * TablespaceEntry instances provide accessors for individual rows of
  * pg_tablespace
  */
-class TablespaceHandle {
+class TablespaceCatalogTable {
  public:
   /**
    * Construct a tablespace handle. It keeps a pointer to the pg_tablespace sql table.
    * @param pg_tablespace a pointer to pg_tablespace
    * @param catalog pointer to the catalog class
    */
-  explicit TablespaceHandle(Catalog *catalog, SqlTableHelper *pg_tablespace)
+  explicit TablespaceCatalogTable(Catalog *catalog, SqlTableHelper *pg_tablespace)
       : catalog_(catalog), pg_tablespace_(pg_tablespace) {}
 
   /**
@@ -64,7 +65,8 @@ class TablespaceHandle {
    * @return a shared pointer to Tablespace entry; NULL if the tablespace doesn't exist in
    * the database
    */
-  std::shared_ptr<TablespaceEntry> GetTablespaceEntry(transaction::TransactionContext *txn, tablespace_oid_t oid);
+  std::shared_ptr<TablespaceCatalogEntry> GetTablespaceEntry(transaction::TransactionContext *txn,
+                                                             tablespace_oid_t oid);
 
   /**
    * Get a tablespace entry for a given tablespace. It's essentially equivalent to reading a
@@ -75,7 +77,8 @@ class TablespaceHandle {
    * @return a shared pointer to Tablespace entry; NULL if the tablespace doesn't exist in
    * the database
    */
-  std::shared_ptr<TablespaceEntry> GetTablespaceEntry(transaction::TransactionContext *txn, const std::string &name);
+  std::shared_ptr<TablespaceCatalogEntry> GetTablespaceEntry(transaction::TransactionContext *txn,
+                                                             const std::string &name);
 
   /**
    * Add a tablespace
