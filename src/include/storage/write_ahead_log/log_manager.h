@@ -60,11 +60,13 @@ class LogManager {
    * Must be called when no other threads are doing work
    */
   void Shutdown() {
+    // Process the remaining redo buffers
     Process();
     // Shutdown the log writer thread
     run_log_writer_thread_ = false;
-    persist_and_empty_queue_cv_.notify_one();
+    wake_writer_thread_cv_.notify_one();
     log_writer_->Shutdown();
+    // Close the buffers corresponding to the log file
     for (auto buf : buffers_) {
       buf.Close();
     }
@@ -140,7 +142,9 @@ class LogManager {
   // Synchronisation primitives to synchronise persisting buffers to disk
   std::mutex persist_lock_;
   std::condition_variable persist_cv_;
-  std::condition_variable persist_and_empty_queue_cv_;
+  // Condition variable to signal writer thread to wake up and flush buffers to disk or if shutdown has initiated,
+  // then quit
+  std::condition_variable wake_writer_thread_cv_;
 
   /**
    * Serialize out the record to the log
@@ -187,7 +191,9 @@ class LogManager {
    */
   void MarkBufferFull() {
     filled_buffer_queue_.Enqueue(buffer_to_write_);
-    persist_and_empty_queue_cv_.notify_one();
+    // Signal writer thread that a buffer is ready to be flushed to the disk
+    wake_writer_thread_cv_.notify_one();
+    // Mark that serialiser thread doesn't have a buffer in its possession to which it can write to
     buffer_to_write_ = nullptr;
   }
 };

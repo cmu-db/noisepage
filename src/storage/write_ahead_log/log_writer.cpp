@@ -15,6 +15,7 @@ void LogWriter::FlushAllBuffers() {
   }
   // Persist the buffers
   TERRIER_ASSERT(!(log_manager_->buffers_.empty()), "Buffers vector should not be empty until Shutdown");
+  // Force the buffers to be written to disk
   log_manager_->buffers_.front().Persist();
 }
 
@@ -25,11 +26,16 @@ void LogWriter::WriteToDisk() {
     BufferedLogWriter *buf;
     {
       std::unique_lock<std::mutex> lock(log_manager_->persist_lock_);
-      log_manager_->persist_and_empty_queue_cv_.wait(lock, [&] {
+      // Wake up the writer thread if:
+      // 1) The serialiser thread has signalled to persist all non-empty buffers to disk
+      // 2) There is a filled buffer to write to the disk
+      // 3) Logging shutdown has initiated
+      log_manager_->wake_writer_thread_cv_.wait(lock, [&] {
         return log_manager_->do_persist_ || !log_manager_->filled_buffer_queue_.Empty() ||
                !log_manager_->run_log_writer_thread_;
       });
     }
+    // Flush all the filled buffers
     while (!log_manager_->filled_buffer_queue_.Empty()) {
       log_manager_->filled_buffer_queue_.Dequeue(&buf);
       // Flush the buffer to the disk
@@ -45,6 +51,7 @@ void LogWriter::WriteToDisk() {
         std::unique_lock<std::mutex> lock(log_manager_->persist_lock_);
         log_manager_->do_persist_ = false;
       }
+      // Signal the serialiser thread that persist is over
       log_manager_->persist_cv_.notify_one();
     }
   }

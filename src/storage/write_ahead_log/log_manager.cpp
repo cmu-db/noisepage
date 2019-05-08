@@ -27,9 +27,9 @@ void LogManager::Process() {
 void LogManager::Flush() {
   {
     std::unique_lock<std::mutex> lock(persist_lock_);
-    // Set the flag for the log writer thread to persist the buffers to disk
+    // Signal the log writer thread to persist the buffers to disk
     do_persist_ = true;
-    persist_and_empty_queue_cv_.notify_one();
+    wake_writer_thread_cv_.notify_one();
 
     // Wait for the log writer thread to persist the logs
     persist_cv_.wait(lock, [&] { return !do_persist_; });
