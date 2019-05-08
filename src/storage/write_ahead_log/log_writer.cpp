@@ -27,7 +27,7 @@ void LogWriter::WriteToDisk() {
     {
       std::unique_lock<std::mutex> lock(log_manager_->persist_lock_);
       // Wake up the writer thread if:
-      // 1) The serialiser thread has signalled to persist all non-empty buffers to disk
+      // 1) The serializer thread has signalled to persist all non-empty buffers to disk
       // 2) There is a filled buffer to write to the disk
       // 3) Logging shutdown has initiated
       log_manager_->wake_writer_thread_cv_.wait(lock, [&] {
