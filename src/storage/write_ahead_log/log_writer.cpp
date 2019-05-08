@@ -37,7 +37,11 @@ void LogWriter::WriteToDisk() {
     if (log_manager_->do_persist_) {
       FlushAllBuffers();
       // Signal the main logger thread for completion of persistence
-      log_manager_->do_persist_ = false;
+      {
+        std::unique_lock<std::mutex> lock(log_manager_->persist_lock_);
+        log_manager_->do_persist_ = false;
+      }
+      log_manager_->persist_cv_.notify_one();
     }
   }
 }

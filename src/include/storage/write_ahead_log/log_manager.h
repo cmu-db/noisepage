@@ -137,6 +137,10 @@ class LogManager {
   // Flag used by the serializer thread to signal the log writer thread to persist the data on disk
   volatile bool do_persist_;
 
+  // Synchronisation primitives to synchronise persisting buffers to disk
+  std::mutex persist_lock_;
+  std::condition_variable persist_cv_;
+
   /**
    * Serialize out the record to the log
    * @param record the redo record to serialise
