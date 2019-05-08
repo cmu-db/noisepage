@@ -5,7 +5,7 @@ namespace terrier::storage {
 
 void LogWriter::FlushAllBuffers() {
   // Persist all the filled buffers to the disk
-  while(!log_manager_->filled_buffer_queue_.Empty()) {
+  while (!log_manager_->filled_buffer_queue_.Empty()) {
     // Dequeue filled buffers and flush them to disk
     BufferedLogWriter *buf;
     log_manager_->filled_buffer_queue_.Dequeue(&buf);
@@ -25,10 +25,12 @@ void LogWriter::WriteToDisk() {
     BufferedLogWriter *buf;
     {
       std::unique_lock<std::mutex> lock(log_manager_->persist_lock_);
-      log_manager_->persist_and_empty_queue_cv_.wait(lock, [&] { return log_manager_->do_persist_  ||
-        !log_manager_->filled_buffer_queue_.Empty(); });
+      log_manager_->persist_and_empty_queue_cv_.wait(lock, [&] {
+        return log_manager_->do_persist_ || !log_manager_->filled_buffer_queue_.Empty() ||
+               !log_manager_->run_log_writer_thread_;
+      });
     }
-    while(!log_manager_->filled_buffer_queue_.Empty()) {
+    while (!log_manager_->filled_buffer_queue_.Empty()) {
       log_manager_->filled_buffer_queue_.Dequeue(&buf);
       // Flush the buffer to the disk
       buf->FlushBuffer();

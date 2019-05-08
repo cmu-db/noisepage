@@ -63,16 +63,15 @@ class LogManager {
     Process();
     // Shutdown the log writer thread
     run_log_writer_thread_ = false;
+    persist_and_empty_queue_cv_.notify_one();
     log_writer_->Shutdown();
     for (auto buf : buffers_) {
       buf.Close();
     }
     // Clear buffer queues
     BufferedLogWriter *tmp;
-    while(!empty_buffer_queue_.Empty())
-      empty_buffer_queue_.Dequeue(&tmp);
-    while(!filled_buffer_queue_.Empty())
-      filled_buffer_queue_.Dequeue(&tmp);
+    while (!empty_buffer_queue_.Empty()) empty_buffer_queue_.Dequeue(&tmp);
+    while (!filled_buffer_queue_.Empty()) filled_buffer_queue_.Dequeue(&tmp);
     buffers_.clear();
     delete log_writer_;
   }
