@@ -2,7 +2,6 @@
 
 #include <memory>
 #include "gtest/gtest.h"
-#include "loggers/catalog_logger.h"
 #include "loggers/index_logger.h"
 #include "loggers/main_logger.h"
 #include "loggers/network_logger.h"
@@ -24,7 +23,6 @@ class TerrierTest : public ::testing::Test {
     terrier::network::init_network_logger();
     terrier::storage::init_storage_logger();
     terrier::transaction::init_transaction_logger();
-    terrier::catalog::init_catalog_logger();
 
     // only needed in the test framework.
     init_test_logger();

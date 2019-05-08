@@ -27,10 +27,5 @@ struct Settings {
    * Server connection backlog.
    */
   static const int CONNECTION_BACKLOG = 12;
-
-  /**
-   * Max. size of catalog varchar column
-   */
-  static const int CATALOG_VARCHAR_MAX_LEN = 1024;
 };
 }  // namespace terrier::common

@@ -141,14 +141,4 @@ std::vector<uint16_t> StorageUtil::ComputeBaseAttributeOffsets(const std::vector
   return offsets;
 }
 
-std::vector<storage::col_id_t> StorageUtil::ProjectionListAllColumns(const storage::BlockLayout &layout) {
-  std::vector<storage::col_id_t> col_ids(layout.NumColumns() - NUM_RESERVED_COLUMNS);
-  // Add all of the column ids from the layout to the projection list
-  // 0 is version vector so we skip it
-  for (uint16_t col = NUM_RESERVED_COLUMNS; col < layout.NumColumns(); col++) {
-    col_ids[col - NUM_RESERVED_COLUMNS] = storage::col_id_t(col);
-  }
-  return col_ids;
-}
-
 }  // namespace terrier::storage
