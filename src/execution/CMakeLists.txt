@@ -8,7 +8,6 @@ configure_file (
         "${PROJECT_BINARY_DIR}/execution/tpl.h"
 )
 
-
 # Find CLANG
 set(SUPPORTED_CLANGS "clang++-7" "clang++-6.0" "clang++")
 
@@ -22,6 +21,7 @@ endif ()
 # Setup compiler arguments to Clang
 # TODO(Amadou): Given all the CMAKE_CXX_FLAGS clang does not compile.
 # For now I just use copied these flags from the TPL repo. Eventually, we should probably figure out a way to pass this in automatically.
+# TODO(WAN): We really want -fno-rtti for execution, but the dummy catalog? is using TBB which needs it.
 set(CLANG_CXX_FLAGS -std=c++17 -Wall -Werror -mcx16 -march=native -fdiagnostics-color=auto -ggdb -O0 -fno-omit-frame-pointer -fno-optimize-sibling-calls)
 set(CLANG_IR_CXX_FLAGS ${CLANG_CXX_FLAGS} "-emit-llvm" "-c")
 separate_arguments(CLANG_IR_CXX_FLAGS)
@@ -90,9 +90,9 @@ add_custom_command(
 #
 ##################################################
 
-#set_target_properties(tpl gen_opt_bc terrier_shared
-#        PROPERTIES
-#        ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
-#        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
-#        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
-#        )
+set_target_properties(tpl gen_opt_bc
+        PROPERTIES
+        ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+        )
