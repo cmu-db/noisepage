@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
-#include "common/container/producer_consumer_queue.h"
+#include "common/container/concurrent_blocking_queue.h"
 #include "common/spin_latch.h"
 #include "common/strong_typedef.h"
 #include "storage/record_buffer.h"
@@ -37,8 +37,6 @@ class LogManager {
       : buffer_pool_(buffer_pool),
         log_file_path_(log_file_path),
         buffer_to_write_(nullptr),
-        empty_buffer_queue_(MAX_BUF, std::chrono::milliseconds(QUEUE_WAIT_TIME_MILLISECONDS)),
-        filled_buffer_queue_(MAX_BUF, std::chrono::milliseconds(QUEUE_WAIT_TIME_MILLISECONDS)),
         log_writer_(nullptr),
         run_log_writer_thread_(false),
         do_persist_(true) {}
@@ -52,7 +50,7 @@ class LogManager {
       buffers_.emplace_back(BufferedLogWriter(log_file_path_));
     }
     for (int i = 0; i < MAX_BUF; i++) {
-      empty_buffer_queue_.BlockingEnqueue(&buffers_[i]);
+      empty_buffer_queue_.Enqueue(&buffers_[i]);
     }
     run_log_writer_thread_ = true;
     log_writer_ = new LogWriter(this);
@@ -70,8 +68,11 @@ class LogManager {
       buf.Close();
     }
     // Clear buffer queues
-    empty_buffer_queue_.Clear();
-    filled_buffer_queue_.Clear();
+    BufferedLogWriter *tmp;
+    while(!empty_buffer_queue_.Empty())
+      empty_buffer_queue_.Dequeue(&tmp);
+    while(!filled_buffer_queue_.Empty())
+      filled_buffer_queue_.Dequeue(&tmp);
     buffers_.clear();
     delete log_writer_;
   }
@@ -126,9 +127,9 @@ class LogManager {
   // This is the buffer the serializer thread will write to
   BufferedLogWriter *buffer_to_write_;
   // The queue containing empty buffers which the serializer thread will use
-  common::ProducerConsumerQueue<BufferedLogWriter *> empty_buffer_queue_;
+  common::ConcurrentBlockingQueue<BufferedLogWriter *> empty_buffer_queue_;
   // The queue containing filled buffers pending flush to the disk
-  common::ProducerConsumerQueue<BufferedLogWriter *> filled_buffer_queue_;
+  common::ConcurrentBlockingQueue<BufferedLogWriter *> filled_buffer_queue_;
 
   // The log writer object which flushes filled buffers to the disk
   LogWriter *log_writer_;
@@ -140,6 +141,7 @@ class LogManager {
   // Synchronisation primitives to synchronise persisting buffers to disk
   std::mutex persist_lock_;
   std::condition_variable persist_cv_;
+  std::condition_variable persist_and_empty_queue_cv_;
 
   /**
    * Serialize out the record to the log
@@ -159,7 +161,7 @@ class LogManager {
    */
   BufferedLogWriter *GetBufferToWrite() {
     if (buffer_to_write_ == nullptr) {
-      empty_buffer_queue_.BlockingDequeue(&buffer_to_write_);
+      empty_buffer_queue_.Dequeue(&buffer_to_write_);
     }
     return buffer_to_write_;
   }
@@ -185,7 +187,8 @@ class LogManager {
    * Mark the current buffer that the serializer thread is writing to as filled
    */
   void MarkBufferFull() {
-    filled_buffer_queue_.BlockingEnqueue(buffer_to_write_);
+    filled_buffer_queue_.Enqueue(buffer_to_write_);
+    persist_and_empty_queue_cv_.notify_one();
     buffer_to_write_ = nullptr;
   }
 };
