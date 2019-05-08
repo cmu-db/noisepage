@@ -82,10 +82,13 @@ void CompilationContext::Prepare(const terrier::planner::AbstractPlanNode &op, t
   op_translators_.emplace(std::make_pair(&op, translator_factory_.CreateTranslator(op, pipeline)));
 }
 
-void CompilationContext::Prepare(const terrier::parser::AbstractExpression &ex) {
-  ex_translators_.emplace(std::make_pair(&ex, translator_factory_.CreateTranslator(ex)));
+// Prepare the translator for the given expression
+void CompilationContext::Prepare(const terrier::parser::AbstractExpression &exp) {
+  auto translator = translator_factory_.CreateTranslator(exp, *this);
+  ex_translators_.insert(std::make_pair(&exp, std::move(translator)));
 }
 
+// Get the registered translator for the given operator
 OperatorTranslator *CompilationContext::GetTranslator(const terrier::planner::AbstractPlanNode &op) const {
   auto iter = op_translators_.find(&op);
   return iter == op_translators_.end() ? nullptr : iter->second.get();

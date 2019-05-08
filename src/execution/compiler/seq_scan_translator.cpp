@@ -11,7 +11,7 @@ namespace tpl::compiler {
 void SeqScanTranslator::Produce() {
   CodeGen *codegen = pipeline_->GetCodeGen();
   auto row_id = (*codegen)->NewIdentifierExpr(DUMMY_POS, codegen->NewIdentifier());
-  RowBatch row_batch(row_id);
+  RowBatch row_batch(*pipeline_->GetCompilationContext(), row_id);
 
   auto target = row_batch.GetIdentifierExpr();
   auto table_name = (*codegen)->NewIdentifierExpr(DUMMY_POS, ast::Identifier("table_1"));

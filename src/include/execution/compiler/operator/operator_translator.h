@@ -19,7 +19,8 @@ class OperatorTranslator {
   virtual void TeardownQueryState() = 0;
 
   virtual void Produce() = 0;
-  virtual void Consume(const ConsumerContext *context, RowBatch *batch) const = 0;
+
+  virtual void Consume(const ConsumerContext *context, RowBatch &batch) const = 0;
 
  protected:
   Pipeline *pipeline_;
