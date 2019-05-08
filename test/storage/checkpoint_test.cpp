@@ -270,7 +270,7 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryWithHugeRow) {
   // initialize test
   auto tested = RandomSqlTableTestObject();
   std::default_random_engine random_generator(magic_seed);
-  auto table_pair = tested.GenerateAndPopulateRandomTable(num_columns, false, &random_generator, num_rows, null_bias);
+  auto table_pair = tested.GenerateAndPopulateRandomTable(num_columns, true, &random_generator, num_rows, null_bias);
 
   storage::SqlTable *table = table_pair.first;
   catalog::Schema *schema = table_pair.second;
