@@ -426,8 +426,6 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryNoVarlen) {
   checkpoint_manager_.UnlinkCheckpointFiles();
   delete recovered_table;
   delete log_manager_;
-  for (auto *txn : result.first) delete txn;
-  for (auto *txn : result.second) delete txn;
   unlink(LOG_FILE_NAME);
 }
 
