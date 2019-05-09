@@ -427,79 +427,79 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryNoVarlen) {
   unlink(LOG_FILE_NAME);
 }
 
-// NOLINTNEXTLINE
-TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryWithVarlen) {
-  checkpoint_manager_.UnlinkCheckpointFiles();
-  // First unlink log file and initialize log manager, to prevent existing log file affect the currrent test
-  unlink(LOG_FILE_NAME);
-  log_manager_ = new storage::LogManager{LOG_FILE_NAME, &pool_};
-  const uint32_t num_rows = 100;
-  const uint32_t num_columns = 10;
-  // initialize test
-  SqlLargeTransactionTestObject tested = SqlLargeTransactionTestObject::Builder()
-                                             .SetMaxColumns(num_columns)
-                                             .SetInitialTableSize(num_rows)
-                                             .SetTxnLength(5)
-                                             .SetUpdateSelectRatio({0.5, 0.5})
-                                             .SetBlockStore(&block_store_)
-                                             .SetBufferPool(&pool_)
-                                             .SetGenerator(&generator_)
-                                             .SetGcOn(true)
-                                             .SetBookkeeping(false)
-                                             .SetLogManager(log_manager_)
-                                             .SetVarlenAllowed(true)
-                                             .build();
-  StartGC(tested.GetTxnManager(), 10);
-  storage::SqlTable *table = tested.GetTable();
-  const catalog::Schema *schema = tested.Schema();
-  transaction::TransactionManager *txn_manager = tested.GetTxnManager();
-  // checkpoint
-  StartCheckpointingThread(txn_manager, 50, table, schema);
-  // Sleep for some time to ensure that the checkpoint thread has started at least one checkpoint.
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
-  EndCheckpointingThread();
-
-  // Run transactions to generate logs
-  StartLogging(10);
-  auto result = tested.SimulateOltp(100, 4);
-  EndLogging();
-
-  // read first run
-  transaction::TransactionContext *scan_txn = txn_manager->BeginTransaction();
-  std::vector<std::string> original_rows;
-  StorageTestUtil::PrintAllRows(scan_txn, table, &original_rows);
-  txn_manager->Commit(scan_txn, StorageTestUtil::EmptyCallback, nullptr);
-  // recovery to another table
-  std::pair<std::string, terrier::transaction::timestamp_t> checkpoint_pair =
-      checkpoint_manager_.GetLatestCheckpointFilename();
-  transaction::TransactionContext *recovery_txn = txn_manager->BeginTransaction();
-  storage::BlockStore block_store_{10000, 10000};
-  storage::SqlTable *recovered_table = new storage::SqlTable(&block_store_, *schema, catalog::table_oid_t(0));
-  checkpoint_manager_.StartRecovery(recovery_txn);
-  checkpoint_manager_.RegisterTable(recovered_table);
-  checkpoint_manager_.Recover(checkpoint_pair.first.c_str());
-  checkpoint_manager_.RecoverFromLogs(LOG_FILE_NAME, checkpoint_pair.second);
-  txn_manager->Commit(recovery_txn, StorageTestUtil::EmptyCallback, nullptr);
-  // read recovered table
-  transaction::TransactionContext *scan_txn_2 = txn_manager->BeginTransaction();
-  std::vector<std::string> recovered_rows;
-  StorageTestUtil::PrintAllRows(scan_txn_2, recovered_table, &recovered_rows);
-  txn_manager->Commit(scan_txn_2, StorageTestUtil::EmptyCallback, nullptr);
-  EndGC();
-  // compare
-  std::vector<std::string> diff1, diff2;
-  std::sort(original_rows.begin(), original_rows.end());
-  std::sort(recovered_rows.begin(), recovered_rows.end());
-  std::set_difference(original_rows.begin(), original_rows.end(), recovered_rows.begin(), recovered_rows.end(),
-                      std::inserter(diff1, diff1.begin()));
-  std::set_difference(recovered_rows.begin(), recovered_rows.end(), original_rows.begin(), original_rows.end(),
-                      std::inserter(diff2, diff2.begin()));
-  EXPECT_EQ(diff1.size(), 0);
-  EXPECT_EQ(diff2.size(), 0);
-  checkpoint_manager_.UnlinkCheckpointFiles();
-  delete recovered_table;
-  delete log_manager_;
-  unlink(LOG_FILE_NAME);
-}
+//// NOLINTNEXTLINE
+//TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryWithVarlen) {
+//  checkpoint_manager_.UnlinkCheckpointFiles();
+//  // First unlink log file and initialize log manager, to prevent existing log file affect the currrent test
+//  unlink(LOG_FILE_NAME);
+//  log_manager_ = new storage::LogManager{LOG_FILE_NAME, &pool_};
+//  const uint32_t num_rows = 100;
+//  const uint32_t num_columns = 10;
+//  // initialize test
+//  SqlLargeTransactionTestObject tested = SqlLargeTransactionTestObject::Builder()
+//                                             .SetMaxColumns(num_columns)
+//                                             .SetInitialTableSize(num_rows)
+//                                             .SetTxnLength(5)
+//                                             .SetUpdateSelectRatio({0.5, 0.5})
+//                                             .SetBlockStore(&block_store_)
+//                                             .SetBufferPool(&pool_)
+//                                             .SetGenerator(&generator_)
+//                                             .SetGcOn(true)
+//                                             .SetBookkeeping(false)
+//                                             .SetLogManager(log_manager_)
+//                                             .SetVarlenAllowed(true)
+//                                             .build();
+//  StartGC(tested.GetTxnManager(), 10);
+//  storage::SqlTable *table = tested.GetTable();
+//  const catalog::Schema *schema = tested.Schema();
+//  transaction::TransactionManager *txn_manager = tested.GetTxnManager();
+//  // checkpoint
+//  StartCheckpointingThread(txn_manager, 50, table, schema);
+//  // Sleep for some time to ensure that the checkpoint thread has started at least one checkpoint.
+//  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+//  EndCheckpointingThread();
+//
+//  // Run transactions to generate logs
+//  StartLogging(10);
+//  auto result = tested.SimulateOltp(100, 4);
+//  EndLogging();
+//
+//  // read first run
+//  transaction::TransactionContext *scan_txn = txn_manager->BeginTransaction();
+//  std::vector<std::string> original_rows;
+//  StorageTestUtil::PrintAllRows(scan_txn, table, &original_rows);
+//  txn_manager->Commit(scan_txn, StorageTestUtil::EmptyCallback, nullptr);
+//  // recovery to another table
+//  std::pair<std::string, terrier::transaction::timestamp_t> checkpoint_pair =
+//      checkpoint_manager_.GetLatestCheckpointFilename();
+//  transaction::TransactionContext *recovery_txn = txn_manager->BeginTransaction();
+//  storage::BlockStore block_store_{10000, 10000};
+//  storage::SqlTable *recovered_table = new storage::SqlTable(&block_store_, *schema, catalog::table_oid_t(0));
+//  checkpoint_manager_.StartRecovery(recovery_txn);
+//  checkpoint_manager_.RegisterTable(recovered_table);
+//  checkpoint_manager_.Recover(checkpoint_pair.first.c_str());
+//  checkpoint_manager_.RecoverFromLogs(LOG_FILE_NAME, checkpoint_pair.second);
+//  txn_manager->Commit(recovery_txn, StorageTestUtil::EmptyCallback, nullptr);
+//  // read recovered table
+//  transaction::TransactionContext *scan_txn_2 = txn_manager->BeginTransaction();
+//  std::vector<std::string> recovered_rows;
+//  StorageTestUtil::PrintAllRows(scan_txn_2, recovered_table, &recovered_rows);
+//  txn_manager->Commit(scan_txn_2, StorageTestUtil::EmptyCallback, nullptr);
+//  EndGC();
+//  // compare
+//  std::vector<std::string> diff1, diff2;
+//  std::sort(original_rows.begin(), original_rows.end());
+//  std::sort(recovered_rows.begin(), recovered_rows.end());
+//  std::set_difference(original_rows.begin(), original_rows.end(), recovered_rows.begin(), recovered_rows.end(),
+//                      std::inserter(diff1, diff1.begin()));
+//  std::set_difference(recovered_rows.begin(), recovered_rows.end(), original_rows.begin(), original_rows.end(),
+//                      std::inserter(diff2, diff2.begin()));
+//  EXPECT_EQ(diff1.size(), 0);
+//  EXPECT_EQ(diff2.size(), 0);
+//  checkpoint_manager_.UnlinkCheckpointFiles();
+//  delete recovered_table;
+//  delete log_manager_;
+//  unlink(LOG_FILE_NAME);
+//}
 
 }  // namespace terrier
