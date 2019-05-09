@@ -336,7 +336,7 @@ class RedoBuffer {
    * Destructs this buffer, releases all its segments back to the buffer pool it draws from.
    */
   ~RedoBuffer() {
-    buffer_pool_->Release(buffer_seg_);
+    if (buffer_seg_ != nullptr) buffer_pool_->Release(buffer_seg_);
   }
   /**
    * Reserve a redo record with the given size, in bytes. The returned pointer is guaranteed to be valid until NewEntry
