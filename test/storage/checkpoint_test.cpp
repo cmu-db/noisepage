@@ -386,7 +386,6 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryNoVarlen) {
   StartLogging(10);
   auto result = tested.SimulateOltp(100, 4);
   EndLogging();
-  EndGC();
 
   // read first run
   transaction::TransactionContext *scan_txn = txn_manager->BeginTransaction();
@@ -406,6 +405,7 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryNoVarlen) {
   checkpoint_manager_.Recover(checkpoint_pair.first.c_str());
   checkpoint_manager_.RecoverFromLogs(LOG_FILE_NAME, checkpoint_pair.second);
   txn_manager->Commit(recovery_txn, StorageTestUtil::EmptyCallback, nullptr);
+  EndGC();
   // read recovered table
   transaction::TransactionContext *scan_txn_2 = txn_manager->BeginTransaction();
   std::vector<std::string> recovered_rows;
@@ -426,6 +426,7 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryNoVarlen) {
   delete scan_txn;
   delete scan_txn_2;
   delete recovery_txn;
+  delete log_manager_;
   unlink(LOG_FILE_NAME);
 }
 
@@ -465,7 +466,6 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryWithVarlen) {
   StartLogging(10);
   auto result = tested.SimulateOltp(100, 4);
   EndLogging();
-  EndGC();
 
   // read first run
   transaction::TransactionContext *scan_txn = txn_manager->BeginTransaction();
@@ -483,6 +483,7 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryWithVarlen) {
   checkpoint_manager_.Recover(checkpoint_pair.first.c_str());
   checkpoint_manager_.RecoverFromLogs(LOG_FILE_NAME, checkpoint_pair.second);
   txn_manager->Commit(recovery_txn, StorageTestUtil::EmptyCallback, nullptr);
+  EndGC();
   // read recovered table
   transaction::TransactionContext *scan_txn_2 = txn_manager->BeginTransaction();
   std::vector<std::string> recovered_rows;
@@ -503,6 +504,7 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryWithVarlen) {
   delete scan_txn;
   delete scan_txn_2;
   delete recovery_txn;
+  delete log_manager_;
   unlink(LOG_FILE_NAME);
 }
 
