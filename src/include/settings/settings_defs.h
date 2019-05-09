@@ -9,12 +9,6 @@
 // Terrier port
 SETTING_int(port, "Terrier port (default: 15721)", 15721, 1024, 65535, false, DBMain::EmptyCallback)
 
-// Test string knob
-SETTING_string(db_name, "The name for this database", "Terrier", false, DBMain::EmptyCallback)
-
-// Test decimal knob
-SETTING_double(pi, "The value of pi", 3.14159, 3.0, 4.0, false, DBMain::EmptyCallback)
-
 // Maximum number of connections
 SETTING_int(max_connections, "Maximum number of connections (default: 64)", 64, 1, 512, true, DBMain::EmptyCallback)
 
@@ -192,3 +186,13 @@ SETTING_int(task_execution_timeout,                             // NOLINT
 
 // Display configuration
 SETTING_bool(display_settings, "Display settings (default: false)", false, true, DBMain::EmptyCallback)
+
+//===----------------------------------------------------------------------===//
+// Used only in Tests
+//===----------------------------------------------------------------------===//
+
+// Test string knob
+SETTING_string(db_name, "The name for this database", "Terrier", true, DBMain::EmptyCallback)
+
+// Test decimal knob
+SETTING_double(pi, "The value of pi", 3.14159, 3.0, 4.0, true, DBMain::EmptyCallback)
