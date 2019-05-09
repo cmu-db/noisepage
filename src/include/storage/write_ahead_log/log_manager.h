@@ -16,7 +16,6 @@
 
 // TODO(Utkarsh): Get rid of magic constants
 #define MAX_BUF 2
-#define QUEUE_WAIT_TIME_MILLISECONDS 10
 
 namespace terrier::storage {
 /**
