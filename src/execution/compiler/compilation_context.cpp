@@ -69,7 +69,7 @@ void CompilationContext::GeneratePlan(Query *query) {
 u32 CompilationContext::RegisterPipeline(Pipeline *pipeline) {
   auto pos = pipelines_.size();
   pipelines_.emplace_back(pipeline);
-  return pos;
+  return static_cast<u32>(pos);
 }
 
 ExecutionConsumer *CompilationContext::GetExecutionConsumer() { return consumer_; }

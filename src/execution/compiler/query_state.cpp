@@ -13,7 +13,7 @@ QueryState::Id QueryState::RegisterState(std::string name, ast::Expr *type, ast:
   auto id = states_.size();
   // TODO(WAN): fix naming conflicts here
   states_.emplace_back(std::move(name), type, value);
-  return id;
+  return static_cast<u32>(id);
 }
 
 ast::MemberExpr *QueryState::GetMember(tpl::compiler::CodeGen *codegen, Id id) {

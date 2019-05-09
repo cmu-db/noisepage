@@ -4,6 +4,7 @@
 #include <tuple>
 #include <utility>
 #include <vector>
+#include <execution/ast/ast_dump.h>
 
 #include "execution/compiler/query.h"
 #include "execution/compiler/compilation_context.h"
@@ -89,10 +90,11 @@ class PlanNodeJsonTest : public TerrierTest {
   }
 };
 
+/*
 // NOLINTNEXTLINE
 TEST_F(PlanNodeJsonTest, OutputSchemaJsonTest) {
   // Test Column serialization
-  OutputSchema::Column col("col1", type::TypeId::BOOLEAN, false /* nullable */, catalog::col_oid_t(0));
+  OutputSchema::Column col("col1", type::TypeId::BOOLEAN, false, catalog::col_oid_t(0));
   auto col_json = col.ToJson();
   EXPECT_FALSE(col_json.is_null());
 
@@ -800,6 +802,7 @@ TEST_F(PlanNodeJsonTest, ResultPlanNodeJsonTest) {
   auto result_plan = std::dynamic_pointer_cast<ResultPlanNode>(deserialized_plan);
   EXPECT_EQ(*plan_node, *result_plan);
 }
+*/
 
 // NOLINTNEXTLINE
 TEST_F(PlanNodeJsonTest, SeqScanPlanNodeJsonTest) {
@@ -817,8 +820,9 @@ TEST_F(PlanNodeJsonTest, SeqScanPlanNodeJsonTest) {
   tpl::compiler::Query query(*plan_node);
   tpl::compiler::CompilationContext ctx(&query, nullptr);
   ctx.GeneratePlan(&query);
+  tpl::ast::AstDump::Dump(query.GetCompiledFunction());
 }
-
+/*
 // NOLINTNEXTLINE
 TEST_F(PlanNodeJsonTest, SetOpPlanNodeJsonTest) {
   // Construct SetOpPlanNode
@@ -859,4 +863,5 @@ TEST_F(PlanNodeJsonTest, UpdatePlanNodeJsonTest) {
   auto update_plan = std::dynamic_pointer_cast<UpdatePlanNode>(deserialized_plan);
   EXPECT_EQ(*plan_node, *update_plan);
 }
+ */
 }  // namespace terrier::planner
