@@ -51,7 +51,7 @@ void LogWriter::WriteToDisk() {
         std::unique_lock<std::mutex> lock(log_manager_->persist_lock_);
         log_manager_->do_persist_ = false;
       }
-      // Signal the serialiser thread that persist is over
+      // Signal the serializer thread that persist is over
       log_manager_->persist_cv_.notify_one();
     }
   }

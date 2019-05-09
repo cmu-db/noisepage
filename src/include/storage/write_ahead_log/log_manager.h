@@ -62,9 +62,12 @@ class LogManager {
   void Shutdown() {
     // Process the remaining redo buffers
     Process();
-    // Shutdown the log writer thread
-    run_log_writer_thread_ = false;
-    wake_writer_thread_cv_.notify_one();
+    // Signal the log writer thread to shutdown
+    {
+      std::unique_lock<std::mutex> lock(persist_lock_);
+      run_log_writer_thread_ = false;
+      wake_writer_thread_cv_.notify_one();
+    }
     log_writer_->Shutdown();
     // Close the buffers corresponding to the log file
     for (auto buf : buffers_) {
@@ -192,8 +195,11 @@ class LogManager {
   void MarkBufferFull() {
     filled_buffer_queue_.Enqueue(buffer_to_write_);
     // Signal writer thread that a buffer is ready to be flushed to the disk
-    wake_writer_thread_cv_.notify_one();
-    // Mark that serialiser thread doesn't have a buffer in its possession to which it can write to
+    {
+      std::unique_lock<std::mutex> lock(persist_lock_);
+      wake_writer_thread_cv_.notify_one();
+    }
+    // Mark that serializer thread doesn't have a buffer in its possession to which it can write to
     buffer_to_write_ = nullptr;
   }
 };
