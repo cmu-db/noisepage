@@ -422,7 +422,6 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryNoVarlen) {
   EXPECT_EQ(diff1.size(), 0);
   EXPECT_EQ(diff2.size(), 0);
   checkpoint_manager_.UnlinkCheckpointFiles();
-  delete table;
   delete recovered_table;
   delete log_manager_;
   unlink(LOG_FILE_NAME);
@@ -498,7 +497,6 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryWithVarlen) {
   EXPECT_EQ(diff1.size(), 0);
   EXPECT_EQ(diff2.size(), 0);
   checkpoint_manager_.UnlinkCheckpointFiles();
-  delete table;
   delete recovered_table;
   delete log_manager_;
   unlink(LOG_FILE_NAME);
