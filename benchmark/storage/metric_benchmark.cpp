@@ -1,4 +1,5 @@
 #include <memory>
+#include <string>
 #include <thread>  //NOLINT
 #include <unordered_map>
 #include <vector>
