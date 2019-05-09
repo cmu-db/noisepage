@@ -7,8 +7,7 @@ namespace tpl::compiler {
 class SeqScanTranslator : public OperatorTranslator {
 
  public:
-  SeqScanTranslator(const terrier::planner::AbstractPlanNode &op, Pipeline *pipeline)
-  : OperatorTranslator(op, pipeline) {}
+  SeqScanTranslator(const terrier::planner::AbstractPlanNode &op, Pipeline *pipeline);
 
   void InitializeQueryState() override {}
   void TeardownQueryState() override {}

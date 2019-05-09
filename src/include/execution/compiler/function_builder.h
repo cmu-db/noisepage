@@ -27,6 +27,8 @@ class FunctionBuilder {
 
   void StartForInStmt(ast::Expr *target, ast::Expr *table, ast::Attributes *attributes);
 
+  void StartIfStmt(ast::Expr *condition);
+
   CodeGen &GetCodeGen() { return codegen_; }
 
   ast::FunctionDecl *Finish();

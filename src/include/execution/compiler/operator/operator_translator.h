@@ -12,7 +12,7 @@ class RowBatch;
 
 class OperatorTranslator {
  public:
-  OperatorTranslator(const terrier::planner::AbstractPlanNode &op, Pipeline *pipeline) : pipeline_(pipeline) {}
+  OperatorTranslator(const terrier::planner::AbstractPlanNode &op, Pipeline *pipeline) : plannode_(op), pipeline_(pipeline) {}
   virtual ~OperatorTranslator() = default;
 
   virtual void InitializeQueryState() = 0;
@@ -22,7 +22,13 @@ class OperatorTranslator {
 
   virtual void Consume(const ConsumerContext *context, RowBatch &batch) const = 0;
 
+  template <typename T>
+  const T &GetOperatorAs() const {
+    return static_cast<const T &>(plannode_);
+  }
+
  protected:
+  const terrier::planner::AbstractPlanNode &plannode_;
   Pipeline *pipeline_;
 };
 

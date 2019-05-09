@@ -20,6 +20,12 @@ void FunctionBuilder::StartForInStmt(ast::Expr *target, ast::Expr *table, ast::A
   SetInsertionPoint(forblock);
 }
 
+void FunctionBuilder::StartIfStmt(ast::Expr *condition) {
+  auto ifblock = codegen_.EmptyBlock();
+  Append(codegen_->NewIfStmt(DUMMY_POS, condition));
+  SetInsertionPoint(ifblock);
+}
+
 ast::FunctionDecl *FunctionBuilder::Finish() {
   auto fn_ty = codegen_->NewFunctionType(DUMMY_POS, std::move(fn_params_), fn_ret_type_);
   auto fn_lit = codegen_->NewFunctionLitExpr(fn_ty, fn_body_);
