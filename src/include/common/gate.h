@@ -46,7 +46,7 @@ class Gate {
    public:
     /**
      * Add a lock to the gate
-     * @param pointer to Gate to lock
+     * @param gate pointer to Gate to lock
      */
     explicit ScopedLock(Gate *const gate) : gate_(gate) { gate_->Lock(); }
 
@@ -68,7 +68,7 @@ class Gate {
    public:
     /**
      * Add requirement to traverse gate on destruction
-     * @param pointer to Gate that will be traversed
+     * @param gate pointer to Gate that will be traversed
      */
     explicit ScopedExit(Gate *const gate) : gate_(gate) {}
 
