@@ -23,6 +23,9 @@ terrier::parser::ExpressionType::OPERATOR_EXISTS))
 
 #define TUPLE_VAL(type) ((type) <= terrier::parser::ExpressionType::VALUE_TUPLE)
 
+#define NULL_OP(type) ((type) >= terrier::parser::ExpressionType::OPERATOR_IS_NULL && (type) \
+<= terrier::parser::ExpressionType::OPERATOR_IS_NOT_NULL)
+
 class CompilationContext;
 
 class ExpressionTranslator {

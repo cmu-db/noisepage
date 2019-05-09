@@ -7,6 +7,7 @@
 #include "execution/compiler/expression/comparison_translator.h"
 #include "execution/compiler/expression/conjunction_translator.h"
 #include "execution/compiler/expression/constant_translator.h"
+#include "execution/compiler/expression/null_check_translator.h"
 #include "execution/compiler/expression/tuple_value_translator.h"
 #include "execution/compiler/expression/unary_translator.h"
 #include "execution/compiler/compilation_context.h"
@@ -47,6 +48,10 @@ ExpressionTranslator *TranslatorFactory::CreateTranslator(const terrier::parser:
   }
   if(TUPLE_VAL(type)){
     auto ret = new (context.GetRegion()) TupleValueTranslator(&expression, context);
+    return reinterpret_cast<ExpressionTranslator*>(ret);
+  }
+  if(NULL_OP(type)){
+    auto ret = new (context.GetRegion()) NullCheckTranslator(&expression, context);
     return reinterpret_cast<ExpressionTranslator*>(ret);
   }
   TPL_ASSERT(false, "Unsupported expression");
