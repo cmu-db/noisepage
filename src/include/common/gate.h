@@ -84,7 +84,7 @@ class Gate {
   };
 
  private:
-  std::atomic<int64_t> count_;
+  std::atomic<int64_t> count_ = 0;
 };
 
 }  // namespace terrier::common
