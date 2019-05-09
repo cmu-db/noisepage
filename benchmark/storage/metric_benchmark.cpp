@@ -107,8 +107,8 @@ BENCHMARK_DEFINE_F(MetricBenchmark, AggregateMetric)(benchmark::State &state) {
     for (uint8_t j = 0; j < num_txns_; j++) {
       auto *txn = txn_manager_->BeginTransaction();
       // Simulation of reading a tuple
-      storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleRead(txn, database_oid, namespace_oid,
-                                                                                            table_oid);
+      storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleRead(txn, database_oid,
+                                                                                            namespace_oid, table_oid);
       txn_manager_->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
 
       // The Aggregate() function accounts for more than 99.5% of the total running time for this benchmark.
@@ -138,17 +138,17 @@ BENCHMARK_DEFINE_F(MetricBenchmark, CollectMetric)(benchmark::State &state) {
       for (uint32_t k = 0; k < num_ops_; k++) {
         auto op_type = std::uniform_int_distribution<uint8_t>(0, 3)(generator_);
         if (op_type == 0) {  // Read
-          storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleRead(txn, database_oid, namespace_oid,
-                                                                                                table_oid);
+          storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleRead(
+              txn, database_oid, namespace_oid, table_oid);
         } else if (op_type == 1) {  // Update
-          storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleUpdate(txn, database_oid, namespace_oid,
-                                                                                                  table_oid);
+          storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleUpdate(
+              txn, database_oid, namespace_oid, table_oid);
         } else if (op_type == 2) {  // Insert
-          storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleInsert(txn, database_oid, namespace_oid,
-                                                                                                  table_oid);
+          storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleInsert(
+              txn, database_oid, namespace_oid, table_oid);
         } else {  // Delete
-          storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleDelete(txn, database_oid, namespace_oid,
-                                                                                                  table_oid);
+          storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleDelete(
+              txn, database_oid, namespace_oid, table_oid);
         }
       }
       txn_manager_->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
