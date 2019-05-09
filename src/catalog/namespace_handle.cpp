@@ -61,9 +61,9 @@ TableCatalogView NamespaceCatalogTable::GetTableHandle(transaction::TransactionC
   std::string pg_class("pg_class");
   std::string pg_namespace("pg_namespace");
   std::string pg_tablespace("pg_tablespace");
-  return TableCatalogView(catalog_, ns_oid, catalog_->GetCatalogTable(db_oid_, pg_class),
-                          catalog_->GetCatalogTable(db_oid_, pg_namespace),
-                          catalog_->GetCatalogTable(db_oid_, pg_tablespace));
+  return TableCatalogView(catalog_, ns_oid, catalog_->GetCatalogTable(db_oid_, CatalogTableType::CLASS),
+                          catalog_->GetCatalogTable(db_oid_, CatalogTableType::NAMESPACE),
+                          catalog_->GetCatalogTable(db_oid_, CatalogTableType::TABLESPACE));
 }
 
 void NamespaceCatalogTable::AddEntry(transaction::TransactionContext *txn, const std::string &name) {
@@ -108,7 +108,7 @@ SqlTableHelper *NamespaceCatalogTable::Create(transaction::TransactionContext *t
 
   // now actually create, with the provided schema
   storage_table->Create();
-  catalog->AddToMaps(db_oid, storage_table_oid, name, storage_table);
+  catalog->AddToMap(db_oid, CatalogTableType::NAMESPACE, storage_table);
   return storage_table;
 }
 

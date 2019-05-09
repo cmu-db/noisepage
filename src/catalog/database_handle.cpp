@@ -38,29 +38,29 @@ DatabaseCatalogTable::DatabaseCatalogTable(Catalog *catalog, SqlTableHelper *pg_
 
 ClassCatalogTable DatabaseCatalogTable::GetClassTable(transaction::TransactionContext *txn, db_oid_t oid) {
   std::string pg_class("pg_class");
-  return ClassCatalogTable(catalog_, catalog_->GetCatalogTable(oid, pg_class));
+  return ClassCatalogTable(catalog_, catalog_->GetCatalogTable(oid, CatalogTableType::CLASS));
 }
 
 NamespaceCatalogTable DatabaseCatalogTable::GetNamespaceTable(transaction::TransactionContext *txn, db_oid_t oid) {
   std::string pg_namespace("pg_namespace");
-  return NamespaceCatalogTable(catalog_, oid, catalog_->GetCatalogTable(oid, pg_namespace));
+  return NamespaceCatalogTable(catalog_, oid, catalog_->GetCatalogTable(oid, CatalogTableType::NAMESPACE));
 }
 
 TypeCatalogTable DatabaseCatalogTable::GetTypeTable(transaction::TransactionContext *txn, db_oid_t oid) {
-  return TypeCatalogTable(catalog_, catalog_->GetCatalogTable(oid, "pg_type"));
+  return TypeCatalogTable(catalog_, catalog_->GetCatalogTable(oid, CatalogTableType::TYPE));
 }
 
 AttributeCatalogTable DatabaseCatalogTable::GetAttributeTable(transaction::TransactionContext *txn, db_oid_t oid) {
-  return AttributeCatalogTable(catalog_->GetCatalogTable(oid, "pg_attribute"));
+  return AttributeCatalogTable(catalog_->GetCatalogTable(oid, CatalogTableType::ATTRIBUTE));
 }
 
 AttrDefCatalogTable DatabaseCatalogTable::GetAttrDefTable(transaction::TransactionContext *txn, db_oid_t oid) {
-  return AttrDefCatalogTable(catalog_->GetCatalogTable(oid, "pg_attrdef"));
+  return AttrDefCatalogTable(catalog_->GetCatalogTable(oid, CatalogTableType::ATTRDEF));
 }
 
 std::shared_ptr<DatabaseCatalogEntry> DatabaseCatalogTable::GetDatabaseEntry(transaction::TransactionContext *txn,
                                                                              db_oid_t oid) {
-  auto pg_database_rw = catalog_->GetCatalogTable(oid, "pg_database");
+  auto pg_database_rw = catalog_->GetCatalogTable(oid, CatalogTableType::DATABASE);
 
   std::vector<type::TransientValue> search_vec;
   search_vec.push_back(type::TransientValueFactory::GetInteger(!oid));

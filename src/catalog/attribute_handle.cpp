@@ -92,7 +92,7 @@ SqlTableHelper *AttributeCatalogTable::Create(transaction::TransactionContext *t
 
   // now actually create, with the provided schema
   pg_attr->Create();
-  catalog->AddToMaps(db_oid, pg_attr_oid, name, pg_attr);
+  catalog->AddToMap(db_oid, CatalogTableType::ATTRIBUTE, pg_attr);
   return pg_attr;
 }
 

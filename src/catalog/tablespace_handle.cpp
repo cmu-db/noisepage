@@ -68,7 +68,7 @@ SqlTableHelper *TablespaceCatalogTable::Create(Catalog *catalog, db_oid_t db_oid
 
   // now actually create, with the provided schema
   storage_table->Create();
-  catalog->AddToMaps(db_oid, storage_table_oid, name, storage_table);
+  catalog->AddToMap(db_oid, CatalogTableType::TABLESPACE, storage_table);
   return storage_table;
 }
 

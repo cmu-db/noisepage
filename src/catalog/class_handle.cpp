@@ -128,7 +128,7 @@ SqlTableHelper *ClassCatalogTable::Create(transaction::TransactionContext *txn, 
 
   // now actually create, with the provided schema
   pg_class->Create();
-  catalog->AddToMaps(db_oid, pg_class_oid, name, pg_class);
+  catalog->AddToMap(db_oid, CatalogTableType::CLASS, pg_class);
   return pg_class;
 }
 

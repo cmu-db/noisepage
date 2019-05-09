@@ -67,7 +67,7 @@ SqlTableHelper *AttrDefCatalogTable::Create(transaction::TransactionContext *txn
 
   // now actually create, with the provided schema
   pg_attrdef->Create();
-  catalog->AddToMaps(db_oid, pg_attrdef_oid, name, pg_attrdef);
+  catalog->AddToMap(db_oid, CatalogTableType::ATTRDEF, pg_attrdef);
   return pg_attrdef;
 }
 

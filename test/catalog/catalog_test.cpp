@@ -108,7 +108,7 @@ TEST_F(CatalogTests, UserTableTest) {
   catalog_->DeleteUserTable(txn_, default_db_oid, public_ns_oid, "user_table_1");
   VerifyTableAbsent(default_db_oid, public_ns_oid, "user_table_1");
   catalog_->Dump(txn_, default_db_oid);
-  // delete table_p;
+  delete table_p;
 }
 
 /*

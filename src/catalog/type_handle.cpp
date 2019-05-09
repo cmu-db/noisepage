@@ -99,7 +99,7 @@ SqlTableHelper *TypeCatalogTable::Create(transaction::TransactionContext *txn, C
     pg_type->DefineColumn(col.col_name, col.type_id, false, col_oid_t(catalog->GetNextOid()));
   }
   pg_type->Create();
-  catalog->AddToMaps(db_oid, pg_type_oid, name, pg_type);
+  catalog->AddToMap(db_oid, CatalogTableType::TYPE, pg_type);
   return pg_type;
 }
 
