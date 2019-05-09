@@ -2,7 +2,7 @@
 #include <queue>
 #include <unordered_set>
 #include <utility>
-#include "common/shared_latch.h"
+#include "common/gate.h"
 #include "common/spin_latch.h"
 #include "common/strong_typedef.h"
 #include "storage/data_table.h"
@@ -99,7 +99,7 @@ class TransactionManager {
   std::atomic<timestamp_t> time_{timestamp_t(0)};
 
   // TODO(Tianyu): This is the famed HyPer Latch. We will need to re-evaluate performance later.
-  std::atomic<int> blocking_commit_ = 0;
+ common::Gate txn_gate_;
 
   // TODO(Matt): consider a different data structure if this becomes a measured bottleneck
   std::unordered_set<timestamp_t> curr_running_txns_;
