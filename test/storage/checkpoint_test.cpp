@@ -369,7 +369,7 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryNoVarlen) {
                                              .SetBufferPool(&pool_)
                                              .SetGenerator(&generator_)
                                              .SetGcOn(true)
-                                             .SetBookkeeping(true)
+                                             .SetBookkeeping(false)
                                              .SetLogManager(log_manager_)
                                              .build();
   StartGC(tested.GetTxnManager(), 10);
@@ -445,7 +445,7 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryWithVarlen) {
                                              .SetBufferPool(&pool_)
                                              .SetGenerator(&generator_)
                                              .SetGcOn(true)
-                                             .SetBookkeeping(true)
+                                             .SetBookkeeping(false)
                                              .SetLogManager(log_manager_)
                                              .SetVarlenAllowed(true)
                                              .build();
