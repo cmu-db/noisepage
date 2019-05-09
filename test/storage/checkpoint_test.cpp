@@ -48,6 +48,7 @@ class CheckpointTests : public TerrierTest {
   void StartGC(transaction::TransactionManager *txn_manager, uint32_t gc_period_milli) {
     gc_ = new storage::GarbageCollector(txn_manager);
     run_gc_ = true;
+    gc_on_ = true;
     gc_thread_ = std::thread([gc_period_milli, this] { GCThreadLoop(gc_period_milli); });
   }
   
@@ -79,7 +80,7 @@ class CheckpointTests : public TerrierTest {
       transaction::TransactionContext *txn = txn_manager_->BeginTransaction();
       checkpoint_manager_.Process(txn, *table_, *schema_);
       txn_manager_->Commit(txn, StorageTestUtil::EmptyCallback, nullptr);
-      delete txn;
+      if (!gc_on_) delete txn;
       std::this_thread::sleep_for(std::chrono::milliseconds(log_period_milli));
     }
   }
@@ -98,6 +99,7 @@ class CheckpointTests : public TerrierTest {
     }
   }
   
+  bool gc_on_ = false;
   bool enable_checkpointing_;
   std::thread checkpoint_thread_;
   const storage::SqlTable *table_;
@@ -370,7 +372,7 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryNoVarlen) {
                                              .SetBookkeeping(true)
                                              .SetLogManager(log_manager_)
                                              .build();
-
+  StartGC(tested.GetTxnManager(), 10);
   storage::SqlTable *table = tested.GetTable();
   const catalog::Schema *schema = tested.Schema();
   transaction::TransactionManager *txn_manager = tested.GetTxnManager();
@@ -382,7 +384,6 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryNoVarlen) {
 
   // Run transactions to generate logs
   StartLogging(10);
-  StartGC(tested.GetTxnManager(), 10);
   auto result = tested.SimulateOltp(100, 4);
   EndLogging();
   EndGC();
@@ -450,7 +451,7 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryWithVarlen) {
                                              .SetLogManager(log_manager_)
                                              .SetVarlenAllowed(true)
                                              .build();
-
+  StartGC(tested.GetTxnManager(), 10);
   storage::SqlTable *table = tested.GetTable();
   const catalog::Schema *schema = tested.Schema();
   transaction::TransactionManager *txn_manager = tested.GetTxnManager();
@@ -462,7 +463,6 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryWithVarlen) {
 
   // Run transactions to generate logs
   StartLogging(10);
-  StartGC(tested.GetTxnManager(), 10);
   auto result = tested.SimulateOltp(100, 4);
   EndLogging();
   EndGC();
