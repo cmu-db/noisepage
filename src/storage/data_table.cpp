@@ -17,6 +17,7 @@ DataTable::DataTable(BlockStore *const store, const BlockLayout &layout, const l
 }
 
 DataTable::~DataTable() {
+  STORAGE_LOG_ERROR("destucting data table")
   common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
   for (RawBlock *block : blocks_) {
     DeallocateVarlensOnShutdown(block);
