@@ -64,7 +64,7 @@ void CheckpointManager::Recover(const char *checkpoint_file_path) {
         }
       }
       TupleSlot new_slot = table->Insert(txn_, *row);
-      TERRIER_ASSERT(tuple_slot_map_.find(*new_slot) == tuple_slot_map_.end(),
+      TERRIER_ASSERT(tuple_slot_map_.find(new_slot) == tuple_slot_map_.end(),
                      "Any tuple slot during recovery should be encountered only once.");
       tuple_slot_map_[*slot] = new_slot;
     }
