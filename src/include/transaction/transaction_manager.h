@@ -99,7 +99,7 @@ class TransactionManager {
   std::atomic<timestamp_t> time_{timestamp_t(0)};
 
   // TODO(Tianyu): This is the famed HyPer Latch. We will need to re-evaluate performance later.
- common::Gate txn_gate_;
+  common::Gate txn_gate_;
 
   // TODO(Matt): consider a different data structure if this becomes a measured bottleneck
   std::unordered_set<timestamp_t> curr_running_txns_;
