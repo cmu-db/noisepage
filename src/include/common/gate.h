@@ -1,6 +1,9 @@
 #pragma once
 
 #include <immintrin.h>
+#include <atomic>
+
+#include "common/macros.h"
 
 namespace terrier::common {
 
@@ -30,7 +33,11 @@ class Gate {
    * Traverses the gate unless there are currently locks emplaced.  If there
    * are locks on the gate, spin until its free.
    */
-  void Traverse() { while(count_.load() > 0) { _mm_pause(); } }
+  void Traverse() {
+    while (count_.load() > 0) {
+      _mm_pause();
+    }
+  }
 
   /**
    * Scoped locking of the gate that guarantees unlocking on destruction
@@ -48,7 +55,7 @@ class Gate {
      */
     ~ScopedLock() { gate_->Unlock(); }
 
-    DISALLOW_COPY_AND_MOVE(ScopedLock)
+    DISALLOW_COPY_AND_MOVE(ScopedLock);
 
    private:
     Gate *const gate_;
@@ -70,7 +77,7 @@ class Gate {
      */
     ~ScopedExit() { gate_->Traverse(); }
 
-    DISALLOW_COPY_AND_MOVE(ScopedExit)
+    DISALLOW_COPY_AND_MOVE(ScopedExit);
 
    private:
     Gate *const gate_;

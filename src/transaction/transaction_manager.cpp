@@ -6,7 +6,7 @@
 namespace terrier::transaction {
 TransactionContext *TransactionManager::BeginTransaction() {
   // Ensure we do not return from this function if there are ongoing write commits
-  common::Gate::ScopedExit gate(txn_gate_);
+  common::Gate::ScopedExit gate(&txn_gate_);
 
   timestamp_t start_time;
   {
@@ -71,7 +71,7 @@ timestamp_t TransactionManager::ReadOnlyCommitCriticalSection(TransactionContext
 timestamp_t TransactionManager::UpdatingCommitCriticalSection(TransactionContext *const txn, const callback_fn callback,
                                                               void *const callback_arg) {
   // Lock the gate for new transactions
-  common::Gate::ScopedLock gate(txn_gate_);
+  common::Gate::ScopedLock gate(&txn_gate_);
   const timestamp_t commit_time = time_++;
 
   // TODO(Tianyu):
