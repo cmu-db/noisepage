@@ -64,12 +64,12 @@ class MetricTests : public TerrierTest {
     EndGC();
     const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
     auto db_handle = catalog_->GetDatabaseHandle();
-    auto table_handle = db_handle.GetNamespaceHandle(txn_, terrier_oid).GetTableHandle(txn_, "public");
-    auto table = table_handle.GetTable(txn_, "database_metric_table");
+    auto table_handle = db_handle.GetNamespaceHandle(txn_, terrier_oid).GetTableHandle(txn_, default_namespace_);
+    auto table = table_handle.GetTable(txn_, database_metric_table_);
     delete table;
     db_handle = catalog_->GetDatabaseHandle();
-    table_handle = db_handle.GetNamespaceHandle(txn_, terrier_oid).GetTableHandle(txn_, "public");
-    table = table_handle.GetTable(txn_, "txn_metric_table");
+    table_handle = db_handle.GetNamespaceHandle(txn_, terrier_oid).GetTableHandle(txn_, default_namespace_);
+    table = table_handle.GetTable(txn_, txn_metric_table_);
     delete table;
     delete catalog_;  // need to delete catalog_first
     delete txn_manager_;
@@ -91,6 +91,10 @@ class MetricTests : public TerrierTest {
   volatile bool run_gc_ = false;
   const std::chrono::milliseconds gc_period_{10};
   const std::chrono::milliseconds aggr_period_{1000};
+
+  const std::string default_namespace_{"public"};
+  const std::string database_metric_table_{"database_metric_table"};
+  const std::string txn_metric_table_{"txn_metric_table"};
 };
 
 /**
@@ -202,8 +206,8 @@ TEST_F(MetricTests, DatabaseMetricStorageTest) {
 
     const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
     auto db_handle = catalog_->GetDatabaseHandle();
-    auto table_handle = db_handle.GetNamespaceHandle(txn_, terrier_oid).GetTableHandle(txn_, "public");
-    auto table = table_handle.GetTable(txn_, "database_metric_table");
+    auto table_handle = db_handle.GetNamespaceHandle(txn_, terrier_oid).GetTableHandle(txn_, default_namespace_);
+    auto table = table_handle.GetTable(txn_, database_metric_table_);
 
     for (uint8_t j = 0; j < num_databases_; j++) {
       std::vector<type::TransientValue> search_vec;
@@ -227,6 +231,9 @@ TEST_F(MetricTests, TransactionMetricBasicTest) {
 
   catalog::table_oid_t table_oid = static_cast<catalog::table_oid_t>(2);  // any value
   const catalog::db_oid_t database_oid(catalog::DEFAULT_DATABASE_OID);
+  auto db_handle = catalog_->GetDatabaseHandle();
+  const catalog::namespace_oid_t namespace_oid =
+      db_handle.GetNamespaceHandle(txn_, database_oid).NameToOid(txn_, default_namespace_);
 
   for (uint8_t i = 0; i < num_iterations_; i++) {
     std::unordered_map<uint8_t, transaction::timestamp_t> id_map;
@@ -252,20 +259,20 @@ TEST_F(MetricTests, TransactionMetricBasicTest) {
       for (uint8_t k = 0; k < num_ops_; k++) {
         auto op_type = std::uniform_int_distribution<uint8_t>(0, 3)(generator_);
         if (op_type == 0) {  // Read
-          storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleRead(txn, database_oid,
-                                                                                                table_oid);
+          storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleRead(
+              txn, database_oid, namespace_oid, table_oid);
           read_map[txn_id]++;
         } else if (op_type == 1) {  // Update
-          storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleUpdate(txn, database_oid,
-                                                                                                  table_oid);
+          storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleUpdate(
+              txn, database_oid, namespace_oid, table_oid);
           update_map[txn_id]++;
         } else if (op_type == 2) {  // Insert
-          storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleInsert(txn, database_oid,
-                                                                                                  table_oid);
+          storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleInsert(
+              txn, database_oid, namespace_oid, table_oid);
           insert_map[txn_id]++;
         } else {  // Delete
-          storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleDelete(txn, database_oid,
-                                                                                                  table_oid);
+          storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleDelete(
+              txn, database_oid, namespace_oid, table_oid);
           delete_map[txn_id]++;
         }
       }
@@ -320,6 +327,9 @@ TEST_F(MetricTests, TransactionMetricStorageTest) {
 
   catalog::table_oid_t table_oid = static_cast<catalog::table_oid_t>(2);  // any value
   const catalog::db_oid_t database_oid(catalog::DEFAULT_DATABASE_OID);
+  auto db_handle = catalog_->GetDatabaseHandle();
+  const catalog::namespace_oid_t namespace_oid =
+      db_handle.GetNamespaceHandle(txn_, database_oid).NameToOid(txn_, default_namespace_);
 
   for (uint8_t i = 0; i < num_iterations_; i++) {
     std::unordered_map<uint8_t, transaction::timestamp_t> id_map;
@@ -345,20 +355,20 @@ TEST_F(MetricTests, TransactionMetricStorageTest) {
       for (uint8_t k = 0; k < num_ops_; k++) {
         auto op_type = std::uniform_int_distribution<uint8_t>(0, 3)(generator_);
         if (op_type == 0) {  // Read
-          storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleRead(txn, database_oid,
-                                                                                                table_oid);
+          storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleRead(
+              txn, database_oid, namespace_oid, table_oid);
           read_map[txn_id]++;
         } else if (op_type == 1) {  // Update
-          storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleUpdate(txn, database_oid,
-                                                                                                  table_oid);
+          storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleUpdate(
+              txn, database_oid, namespace_oid, table_oid);
           update_map[txn_id]++;
         } else if (op_type == 2) {  // Insert
-          storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleInsert(txn, database_oid,
-                                                                                                  table_oid);
+          storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleInsert(
+              txn, database_oid, namespace_oid, table_oid);
           insert_map[txn_id]++;
         } else {  // Delete
-          storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleDelete(txn, database_oid,
-                                                                                                  table_oid);
+          storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleDelete(
+              txn, database_oid, namespace_oid, table_oid);
           delete_map[txn_id]++;
         }
       }
@@ -377,8 +387,8 @@ TEST_F(MetricTests, TransactionMetricStorageTest) {
     aggregator.Aggregate(txn_);
 
     auto db_handle = catalog_->GetDatabaseHandle();
-    auto table_handle = db_handle.GetNamespaceHandle(txn_, database_oid).GetTableHandle(txn_, "public");
-    auto table = table_handle.GetTable(txn_, "txn_metric_table");
+    auto table_handle = db_handle.GetNamespaceHandle(txn_, database_oid).GetTableHandle(txn_, default_namespace_);
+    auto table = table_handle.GetTable(txn_, txn_metric_table_);
 
     for (uint8_t j = 0; j < num_txns_; j++) {
       auto txn_id = id_map[j];
@@ -411,6 +421,9 @@ TEST_F(MetricTests, MultiThreadTest) {
 
   catalog::table_oid_t table_oid = static_cast<catalog::table_oid_t>(2);  // any value
   const catalog::db_oid_t database_oid(catalog::DEFAULT_DATABASE_OID);
+  auto db_handle = catalog_->GetDatabaseHandle();
+  const catalog::namespace_oid_t namespace_oid =
+      db_handle.GetNamespaceHandle(txn_, database_oid).NameToOid(txn_, default_namespace_);
 
   for (uint8_t i = 0; i < num_iterations_; i++) {
     common::ConcurrentQueue<transaction::timestamp_t> txn_queue;
@@ -443,20 +456,20 @@ TEST_F(MetricTests, MultiThreadTest) {
           auto txn_id = txn->TxnId().load();
           txn_queue.Enqueue(txn_id);
           for (uint8_t k = 0; k < num_read; k++) {
-            storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleRead(txn, database_oid,
-                                                                                                  table_oid);
+            storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleRead(
+                txn, database_oid, namespace_oid, table_oid);
           }
           for (uint8_t k = 0; k < num_update; k++) {
-            storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleUpdate(txn, database_oid,
-                                                                                                    table_oid);
+            storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleUpdate(
+                txn, database_oid, namespace_oid, table_oid);
           }
           for (uint8_t k = 0; k < num_insert; k++) {
-            storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleInsert(txn, database_oid,
-                                                                                                    table_oid);
+            storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleInsert(
+                txn, database_oid, namespace_oid, table_oid);
           }
           for (uint8_t k = 0; k < num_delete; k++) {
-            storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleDelete(txn, database_oid,
-                                                                                                    table_oid);
+            storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleDelete(
+                txn, database_oid, namespace_oid, table_oid);
           }
           auto latency = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
                                                    std::chrono::high_resolution_clock::now() - start_min)
@@ -475,8 +488,8 @@ TEST_F(MetricTests, MultiThreadTest) {
     MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
 
     auto db_handle = catalog_->GetDatabaseHandle();
-    auto table_handle = db_handle.GetNamespaceHandle(txn_, database_oid).GetTableHandle(txn_, "public");
-    auto table = table_handle.GetTable(txn_, "txn_metric_table");
+    auto table_handle = db_handle.GetNamespaceHandle(txn_, database_oid).GetTableHandle(txn_, default_namespace_);
+    auto table = table_handle.GetTable(txn_, txn_metric_table_);
 
     while (!txn_queue.Empty()) {
       transaction::timestamp_t txn_id;

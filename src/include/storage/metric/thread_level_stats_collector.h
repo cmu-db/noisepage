@@ -100,177 +100,205 @@ class ThreadLevelStatsCollector {
    * Collector action on tuple read
    * @param txn context of the transaction performing read
    * @param database_oid OID of the database that the tuple read happens
+   * @param namespace_oid OID of the namespace that the tuple read happens
    * @param table_oid OID of the table that the tuple read happens
    */
   void CollectTupleRead(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid,
-                        catalog::table_oid_t table_oid) {
+                        catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) {
     for (auto &metric : metric_dispatch_[StatsEventType::TUPLE_READ])
-      metric->OnTupleRead(txn, {database_oid, table_oid});
+      metric->OnTupleRead(txn, database_oid, namespace_oid, table_oid);
   }
 
   /**
    * Collector action on tuple update
    * @param txn context of the transaction performing update
    * @param database_oid OID of the database that the tuple update happens
+   * @param namespace_oid OID of the namespace that the tuple update happens
    * @param table_oid OID of the table that the tuple update happens
    */
   void CollectTupleUpdate(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid,
-                          catalog::table_oid_t table_oid) {
+                          catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) {
     for (auto &metric : metric_dispatch_[StatsEventType::TUPLE_UPDATE])
-      metric->OnTupleUpdate(txn, {database_oid, table_oid});
+      metric->OnTupleUpdate(txn, database_oid, namespace_oid, table_oid);
   }
 
   /**
    * Collector action on tuple insert
    * @param txn context of the transaction performing insert
    * @param database_oid OID of the database that the tuple insert happens
+   * @param namespace_oid OID of the namespace that the tuple insert happens
    * @param table_oid OID of the table that the tuple insert happens
    */
   void CollectTupleInsert(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid,
-                          catalog::table_oid_t table_oid) {
+                          catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) {
     for (auto &metric : metric_dispatch_[StatsEventType::TUPLE_INSERT])
-      metric->OnTupleInsert(txn, {database_oid, table_oid});
+      metric->OnTupleInsert(txn, database_oid, namespace_oid, table_oid);
   }
 
   /**
    * Collector action on tuple delete
    * @param txn Context of the transaction performing delete
    * @param database_oid OID of the database that the tuple delete happens
+   * @param namespace_oid OID of the namespace that the tuple delete happens
    * @param table_oid OID of the table that the tuple delete happens
    */
   void CollectTupleDelete(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid,
-                          catalog::table_oid_t table_oid) {
+                          catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) {
     for (auto &metric : metric_dispatch_[StatsEventType::TUPLE_DELETE])
-      metric->OnTupleDelete(txn, {database_oid, table_oid});
+      metric->OnTupleDelete(txn, database_oid, namespace_oid, table_oid);
   }
 
   /**
    * Collector action on table memory allocation
    * @param database_oid OID of the database that the table memory allocation happens
+   * @param namespace_oid OID of the namespace that the table memory allocation happens
    * @param table_oid OID of the table that the table memory allocation happens
    * @param size number of bytes being allocated
    */
-  void CollectTableMemoryAlloc(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid, size_t size) {
+  void CollectTableMemoryAlloc(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                               catalog::table_oid_t table_oid, size_t size) {
     for (auto &metric : metric_dispatch_[StatsEventType::TABLE_MEMORY_ALLOC])
-      metric->OnTableMemoryAlloc({database_oid, table_oid}, size);
+      metric->OnTableMemoryAlloc(database_oid, namespace_oid, table_oid, size);
   }
 
   /**
    * Collector action on table memory free
    * @param database_oid OID of the database that the table memory free happens
+   * @param namespace_oid OID of the namespace that the table memory free happens
    * @param table_oid OID of the table that the table memory free happens
    * @param size number of bytes being freed
    */
-  void CollectTableMemoryFree(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid, size_t size) {
+  void CollectTableMemoryFree(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                              catalog::table_oid_t table_oid, size_t size) {
     for (auto &metric : metric_dispatch_[StatsEventType::TABLE_MEMORY_FREE])
-      metric->OnTableMemoryFree({database_oid, table_oid}, size);
+      metric->OnTableMemoryFree(database_oid, namespace_oid, table_oid, size);
   }
 
   /**
    * Collector action on table memory usage
    * @param database_oid OID of the database that the table memory usage happens
+   * @param namespace_oid OID of the namespace that the table memory usage happens
    * @param table_oid OID of the table that the table memory usage happens
    * @param size number of bytes being used
    */
-  void CollectTableMemoryUsage(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid, size_t size) {
+  void CollectTableMemoryUsage(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                               catalog::table_oid_t table_oid, size_t size) {
     for (auto &metric : metric_dispatch_[StatsEventType::TABLE_MEMORY_ALLOC])
-      metric->OnTableMemoryUsage({database_oid, table_oid}, size);
+      metric->OnTableMemoryUsage(database_oid, namespace_oid, table_oid, size);
   }
 
   /**
    * Collection action on table memory reclaim
    * @param database_oid OID of the database that the table memory reclaim happens
+   * @param namespace_oid OID of the namespace that the table memory reclaim happens
    * @param table_oid OID of the table that the table memory reclaim happens
    * @param size number of bytes being reclaim
    */
-  void CollectTableMemoryReclaim(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid, size_t size) {
+  void CollectTableMemoryReclaim(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                                 catalog::table_oid_t table_oid, size_t size) {
     for (auto &metric : metric_dispatch_[StatsEventType::TABLE_MEMORY_FREE])
-      metric->OnTableMemoryReclaim({database_oid, table_oid}, size);
+      metric->OnTableMemoryReclaim(database_oid, namespace_oid, table_oid, size);
   }
 
   /**
    * Collection action on index read
    * @param database_oid OID of the database that the index read happens
+   * @param namespace_oid OID of the namespace that the index read happens
    * @param index_oid OID of the index that the index read happens
    * @param num_read number of read happening
    */
-  void CollectIndexRead(catalog::db_oid_t database_oid, catalog::index_oid_t index_oid, size_t num_read) {
+  void CollectIndexRead(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                        catalog::index_oid_t index_oid, size_t num_read) {
     for (auto &metric : metric_dispatch_[StatsEventType::INDEX_READ])
-      metric->OnIndexRead({database_oid, index_oid}, num_read);
+      metric->OnIndexRead(database_oid, namespace_oid, index_oid, num_read);
   }
 
   /**
    * Collector action on index update
    * @param database_oid OID of the database that the index update happens
+   * @param namespace_oid OID of the namespace that the index update happens
    * @param index_oid OID of the index that the index update happens
    */
-  void CollectIndexUpdate(catalog::db_oid_t database_oid, catalog::index_oid_t index_oid) {
+  void CollectIndexUpdate(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                          catalog::index_oid_t index_oid, size_t num_read) {
     for (auto &metric : metric_dispatch_[StatsEventType::INDEX_UPDATE])
-      metric->OnIndexUpdate({database_oid, index_oid});
+      metric->OnIndexUpdate(database_oid, namespace_oid, index_oid);
   }
 
   /**
    * Collector action on index insert
    * @param database_oid OID of the database that the index insert happens
+   * @param namespace_oid OID of the namespace that the index insert happens
    * @param index_oid OID of the index that the index insert happens
    */
-  void CollectIndexInsert(catalog::db_oid_t database_oid, catalog::index_oid_t index_oid) {
+  void CollectIndexInsert(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                          catalog::index_oid_t index_oid) {
     for (auto &metric : metric_dispatch_[StatsEventType::INDEX_INSERT])
-      metric->OnIndexInsert({database_oid, index_oid});
+      metric->OnIndexInsert(database_oid, namespace_oid, index_oid);
   }
 
   /**
    * Collector action on index delete
    * @param database_oid OID of the database that the index delete happens
+   * @param namespace_oid OID of the namespace that the index delete happens
    * @param index_oid OID of the index that the index delete happens
    */
-  void CollectIndexDelete(catalog::db_oid_t database_oid, catalog::index_oid_t index_oid) {
+  void CollectIndexDelete(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                          catalog::index_oid_t index_oid) {
     for (auto &metric : metric_dispatch_[StatsEventType::INDEX_DELETE])
-      metric->OnIndexDelete({database_oid, index_oid});
+      metric->OnIndexDelete(database_oid, namespace_oid, index_oid);
   }
 
   /**
    * Collector action on index memory allocation
-   * @param database_oid OID of the database that the index memory alloc happens
-   * @param index_oid OID of the index that the index memory alloc happens
+   * @param database_oid OID of the database that the index memory allocation happens
+   * @param namespace_oid OID of the namespace that the index memory allocation happens
+   * @param index_oid OID of the index that the index memory allocation happens
    * @param size number of bytes being allocated
    */
-  void CollectIndexMemoryAlloc(catalog::db_oid_t database_oid, catalog::index_oid_t index_oid, size_t size) {
+  void CollectIndexMemoryAlloc(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                               catalog::index_oid_t index_oid, size_t size) {
     for (auto &metric : metric_dispatch_[StatsEventType::INDEX_MEMORY_ALLOC])
-      metric->OnIndexMemoryAlloc({database_oid, index_oid}, size);
+      metric->OnIndexMemoryAlloc(database_oid, namespace_oid, index_oid, size);
   }
 
   /**
    * Collector action on index memory usage
    * @param database_oid OID of the database that the index memory usage happens
+   * @param namespace_oid OID of the namespace that the index memory usage happens
    * @param index_oid OID of the index that the index memory usage happens
    * @param size number of bytes being used
    */
-  void CollectIndexMemoryUsage(catalog::db_oid_t database_oid, catalog::index_oid_t index_oid, size_t size) {
+  void CollectIndexMemoryUsage(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                               catalog::index_oid_t index_oid, size_t size) {
     for (auto &metric : metric_dispatch_[StatsEventType::INDEX_MEMORY_USAGE])
-      metric->OnIndexMemoryUsage({database_oid, index_oid}, size);
+      metric->OnIndexMemoryUsage(database_oid, namespace_oid, index_oid, size);
   }
 
   /**
    * Collector ation on index memory free
    * @param database_oid OID of the database that the index memory free happens
+   * @param namespace_oid OID of the namespace that the index memory free happens
    * @param index_oid OID of the index that the index memory free happens
    * @param size number of bytes being freed
    */
-  void CollectIndexMemoryFree(catalog::db_oid_t database_oid, catalog::index_oid_t index_oid, size_t size) {
+  void CollectIndexMemoryFree(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                              catalog::index_oid_t index_oid, size_t size) {
     for (auto &metric : metric_dispatch_[StatsEventType::INDEX_MEMORY_FREE])
-      metric->OnIndexMemoryFree({database_oid, index_oid}, size);
+      metric->OnIndexMemoryFree(database_oid, namespace_oid, index_oid, size);
   }
 
   /**
    * Collector action on index memory reclaim
    * @param database_oid OID of the database that the index memory reclaim happens
+   * @param namespace_oid OID of the namespace that the index memory reclaim happens
    * @param index_oid OID of the index that the index memory reclaim happens
    * @param size number of bytes being reclaim
    */
-  void CollectIndexMemoryReclaim(catalog::db_oid_t database_oid, catalog::index_oid_t index_oid, size_t size) {
+  void CollectIndexMemoryReclaim(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                                 catalog::index_oid_t index_oid, size_t size) {
     for (auto &metric : metric_dispatch_[StatsEventType::INDEX_MEMORY_RECLAIM])
-      metric->OnIndexMemoryReclaim({database_oid, index_oid}, size);
+      metric->OnIndexMemoryReclaim(database_oid, namespace_oid, index_oid, size);
   }
 
   /**

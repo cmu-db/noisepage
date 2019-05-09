@@ -178,41 +178,57 @@ class TransactionMetric : public AbstractMetric<TransactionMetricRawData> {
 
   /**
    * @param txn context of the transaction performing read
-   * @param src database and table id pair that the tuple read happens
+   * @param database_oid OID of the database that the tuple read happens
+   * @param namespace_oid OID of the namespace that the tuple read happens
+   * @param table_oid OID of the table that the tuple read happens
    */
-  void OnTupleRead(const transaction::TransactionContext *txn,
-                   std::pair<catalog::db_oid_t, catalog::table_oid_t> src) override {
-    (void)src;
+  void OnTupleRead(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid,
+                   catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) override {
+    (void)database_oid;
+    (void)namespace_oid;
+    (void)table_oid;
     GetRawData()->IncrementTupleRead(txn);
   }
 
   /**
    * @param txn context of the transaction performing update
-   * @param src database and table id pair that the tuple update happens
+   * @param database_oid OID of the database that the tuple delete happens
+   * @param namespace_oid OID of the namespace that the tuple delete happens
+   * @param table_oid OID of the table that the tuple delete happens
    */
-  void OnTupleUpdate(const transaction::TransactionContext *txn,
-                     std::pair<catalog::db_oid_t, catalog::table_oid_t> src) override {
-    (void)src;
+  void OnTupleUpdate(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid,
+                     catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) override {
+    (void)database_oid;
+    (void)namespace_oid;
+    (void)table_oid;
     GetRawData()->IncrementTupleUpdate(txn);
   }
 
   /**
    * @param txn context of the transaction performing insert
-   * @param src database and table id pair that the tuple insert happens
+   * @param database_oid OID of the database that the tuple delete happens
+   * @param namespace_oid OID of the namespace that the tuple delete happens
+   * @param table_oid OID of the table that the tuple delete happens
    */
-  void OnTupleInsert(const transaction::TransactionContext *txn,
-                     std::pair<catalog::db_oid_t, catalog::table_oid_t> src) override {
-    (void)src;
+  void OnTupleInsert(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid,
+                     catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) override {
+    (void)database_oid;
+    (void)namespace_oid;
+    (void)table_oid;
     GetRawData()->IncrementTupleInsert(txn);
   }
 
   /**
    * @param txn Context of the transaction performing delete
-   * @param src database and table id pair that the tuple delete happens
+   * @param database_oid OID of the database that the tuple delete happens
+   * @param namespace_oid OID of the namespace that the tuple delete happens
+   * @param table_oid OID of the table that the tuple delete happens
    */
-  void OnTupleDelete(const transaction::TransactionContext *txn,
-                     std::pair<catalog::db_oid_t, catalog::table_oid_t> src) override {
-    (void)src;
+  void OnTupleDelete(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid,
+                     catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) override {
+    (void)database_oid;
+    (void)namespace_oid;
+    (void)table_oid;
     GetRawData()->IncrementTupleDelete(txn);
   }
 };
