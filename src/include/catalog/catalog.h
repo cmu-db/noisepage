@@ -227,7 +227,7 @@ class Catalog {
    * Add a catalog to the catalog mapping
    * @param db_oid database oid
    * @param cttype system catalog table type
-   * @param table_rw_p catalog storage table
+   * @param table_p catalog storage table
    */
   void AddToMap(db_oid_t db_oid, CatalogTableType cttype, SqlTableHelper *table_p) {
     cat_map_[db_oid][cttype] = table_p;
