@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include "common/object_pool.h"
+#include "storage/garbage_collector.h"
 #include "storage/checkpoint_manager.h"
 #include "storage/sql_table.h"
 #include "storage/storage_util.h"
@@ -43,7 +44,28 @@ class CheckpointTests : public TerrierTest {
     log_thread_.join();
     log_manager_->Shutdown();
   }
-
+  
+  void StartGC(transaction::TransactionManager *txn_manager, uint32_t gc_period_milli) {
+    gc_ = new storage::GarbageCollector(txn_manager);
+    run_gc_ = true;
+    gc_thread_ = std::thread([gc_period_milli, this] { GCThreadLoop(gc_period_milli); });
+  }
+  
+  void EndGC() {
+    run_gc_ = false;
+    gc_thread_.join();
+    // Make sure all garbage is collected. This take 2 runs for unlink and deallocate
+    gc_->PerformGarbageCollection();
+    gc_->PerformGarbageCollection();
+    delete gc_;
+  }
+  
+  
+  // Members related to running gc.
+  volatile bool run_gc_ = false;
+  std::thread gc_thread_;
+  storage::GarbageCollector *gc_;
+  
   storage::CheckpointManager checkpoint_manager_{CHECKPOINT_FILE_PREFIX};
   transaction::TransactionManager *txn_manager_;
   std::default_random_engine generator_;
@@ -68,7 +90,14 @@ class CheckpointTests : public TerrierTest {
       log_manager_->Process();
     }
   }
-
+  
+  void GCThreadLoop(uint32_t gc_period_milli) {
+    while (run_gc_) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(gc_period_milli));
+      gc_->PerformGarbageCollection();
+    }
+  }
+  
   bool enable_checkpointing_;
   std::thread checkpoint_thread_;
   const storage::SqlTable *table_;
@@ -353,8 +382,10 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryNoVarlen) {
 
   // Run transactions to generate logs
   StartLogging(10);
+  StartGC(tested.GetTxnManager(), 10);
   auto result = tested.SimulateOltp(100, 4);
   EndLogging();
+  EndGC();
 
   // read first run
   transaction::TransactionContext *scan_txn = txn_manager->BeginTransaction();
@@ -431,8 +462,10 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryWithVarlen) {
 
   // Run transactions to generate logs
   StartLogging(10);
+  StartGC(tested.GetTxnManager(), 10);
   auto result = tested.SimulateOltp(100, 4);
   EndLogging();
+  EndGC();
 
   // read first run
   transaction::TransactionContext *scan_txn = txn_manager->BeginTransaction();
