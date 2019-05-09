@@ -90,7 +90,7 @@ class PlanNodeJsonTest : public TerrierTest {
 };
 
 // NOLINTNEXTLINE
-TEST(PlanNodeJsonTest, OutputSchemaJsonTest) {
+TEST_F(PlanNodeJsonTest, OutputSchemaJsonTest) {
   // Test Column serialization
   OutputSchema::Column col("col1", type::TypeId::BOOLEAN, false /* nullable */, catalog::col_oid_t(0));
   auto col_json = col.ToJson();
@@ -130,7 +130,7 @@ TEST(PlanNodeJsonTest, OutputSchemaJsonTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(PlanNodeJsonTest, AggregatePlanNodeJsonTest) {
+TEST_F(PlanNodeJsonTest, AggregatePlanNodeJsonTest) {
   // Construct AggregatePlanNode
 
   std::vector<std::shared_ptr<parser::AbstractExpression>> children;
@@ -157,7 +157,7 @@ TEST(PlanNodeJsonTest, AggregatePlanNodeJsonTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(PlanNodeJsonTest, AnalyzePlanNodeJsonTest) {
+TEST_F(PlanNodeJsonTest, AnalyzePlanNodeJsonTest) {
   // Construct AnalyzePlanNode
   AnalyzePlanNode::Builder builder;
   std::vector<catalog::col_oid_t> col_oids = {catalog::col_oid_t(1), catalog::col_oid_t(2), catalog::col_oid_t(3),
@@ -182,7 +182,7 @@ TEST(PlanNodeJsonTest, AnalyzePlanNodeJsonTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(PlanNodeJsonTest, CreateDatabasePlanNodeTest) {
+TEST_F(PlanNodeJsonTest, CreateDatabasePlanNodeTest) {
   // Construct CreateDatabasePlanNode
   CreateDatabasePlanNode::Builder builder;
   auto plan_node = builder.SetDatabaseName("test_db").Build();
@@ -200,7 +200,7 @@ TEST(PlanNodeJsonTest, CreateDatabasePlanNodeTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(PlanNodeJsonTest, CreateFunctionPlanNodeTest) {
+TEST_F(PlanNodeJsonTest, CreateFunctionPlanNodeTest) {
   // Construct CreateFunctionPlanNode
   CreateFunctionPlanNode::Builder builder;
   auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(1))
@@ -228,7 +228,7 @@ TEST(PlanNodeJsonTest, CreateFunctionPlanNodeTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(PlanNodeJsonTest, CreateIndexPlanNodeTest) {
+TEST_F(PlanNodeJsonTest, CreateIndexPlanNodeTest) {
   // Construct CreateIndexPlanNode
   CreateIndexPlanNode::Builder builder;
   auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(1))
@@ -253,7 +253,7 @@ TEST(PlanNodeJsonTest, CreateIndexPlanNodeTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(PlanNodeJsonTest, CreateNamespacePlanNodeTest) {
+TEST_F(PlanNodeJsonTest, CreateNamespacePlanNodeTest) {
   // Construct CreateNamespacePlanNode
   CreateNamespacePlanNode::Builder builder;
   auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(2)).SetNamespaceName("test_namespace").Build();
@@ -271,7 +271,7 @@ TEST(PlanNodeJsonTest, CreateNamespacePlanNodeTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(PlanNodeJsonTest, CreateTablePlanNodeTest) {
+TEST_F(PlanNodeJsonTest, CreateTablePlanNodeTest) {
   auto get_pk_info = []() {
     PrimaryKeyInfo pk = {.primary_key_cols_ = {"a"}, .constraint_name_ = "pk_a"};
 
@@ -360,7 +360,7 @@ TEST(PlanNodeJsonTest, CreateTablePlanNodeTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(PlanNodeJsonTest, CreateTriggerPlanNodeTest) {
+TEST_F(PlanNodeJsonTest, CreateTriggerPlanNodeTest) {
   // Construct CreateTriggerPlanNode
   CreateTriggerPlanNode::Builder builder;
   auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(2))
@@ -387,7 +387,7 @@ TEST(PlanNodeJsonTest, CreateTriggerPlanNodeTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(PlanNodeJsonTest, CreateViewPlanNodeTest) {
+TEST_F(PlanNodeJsonTest, CreateViewPlanNodeTest) {
   // Construct CreateViewPlanNode
   CreateViewPlanNode::Builder builder;
   std::shared_ptr<parser::SelectStatement> select_stmt = std::make_shared<parser::SelectStatement>();
@@ -410,7 +410,7 @@ TEST(PlanNodeJsonTest, CreateViewPlanNodeTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(PlanNodeJsonTest, CSVScanPlanNodeTest) {
+TEST_F(PlanNodeJsonTest, CSVScanPlanNodeTest) {
   // Construct CSVScanPlanNode
   CSVScanPlanNode::Builder builder;
   auto plan_node =
@@ -429,7 +429,7 @@ TEST(PlanNodeJsonTest, CSVScanPlanNodeTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(PlanNodeJsonTest, DeletePlanNodeTest) {
+TEST_F(PlanNodeJsonTest, DeletePlanNodeTest) {
   // Construct DeletePlanNode
   DeletePlanNode::Builder builder;
   auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(1))
@@ -451,7 +451,7 @@ TEST(PlanNodeJsonTest, DeletePlanNodeTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(PlanNodeJsonTest, DropDatabasePlanNodeTest) {
+TEST_F(PlanNodeJsonTest, DropDatabasePlanNodeTest) {
   // Construct DropDatabasePlanNode
   DropDatabasePlanNode::Builder builder;
   auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(7)).SetIfExist(true).Build();
@@ -469,7 +469,7 @@ TEST(PlanNodeJsonTest, DropDatabasePlanNodeTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(PlanNodeJsonTest, DropIndexPlanNodeTest) {
+TEST_F(PlanNodeJsonTest, DropIndexPlanNodeTest) {
   // Construct DropIndexPlanNode
   DropIndexPlanNode::Builder builder;
   auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(7))
@@ -491,7 +491,7 @@ TEST(PlanNodeJsonTest, DropIndexPlanNodeTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(PlanNodeJsonTest, DropNamespacePlanNodeTest) {
+TEST_F(PlanNodeJsonTest, DropNamespacePlanNodeTest) {
   // Construct DropNamespacePlanNode
   DropNamespacePlanNode::Builder builder;
   auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(8))
@@ -512,7 +512,7 @@ TEST(PlanNodeJsonTest, DropNamespacePlanNodeTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(PlanNodeJsonTest, DropTablePlanNodeTest) {
+TEST_F(PlanNodeJsonTest, DropTablePlanNodeTest) {
   // Construct DropTablePlanNode
   DropTablePlanNode::Builder builder;
   auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(9))
@@ -534,7 +534,7 @@ TEST(PlanNodeJsonTest, DropTablePlanNodeTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(PlanNodeJsonTest, DropTriggerPlanNodeTest) {
+TEST_F(PlanNodeJsonTest, DropTriggerPlanNodeTest) {
   // Construct DropTriggerPlanNode
   DropTriggerPlanNode::Builder builder;
   auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(10))
@@ -556,7 +556,7 @@ TEST(PlanNodeJsonTest, DropTriggerPlanNodeTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(PlanNodeJsonTest, DropViewPlanNodeTest) {
+TEST_F(PlanNodeJsonTest, DropViewPlanNodeTest) {
   // Construct DropViewPlanNode
   DropViewPlanNode::Builder builder;
   auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(11))
@@ -578,7 +578,7 @@ TEST(PlanNodeJsonTest, DropViewPlanNodeTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(PlanNodeJsonTest, ExportExternalFilePlanNodeJsonTest) {
+TEST_F(PlanNodeJsonTest, ExportExternalFilePlanNodeJsonTest) {
   // Construct ExportExternalFilePlanNode
   ExportExternalFilePlanNode::Builder builder;
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
@@ -601,7 +601,7 @@ TEST(PlanNodeJsonTest, ExportExternalFilePlanNodeJsonTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(PlanNodeJsonTest, HashJoinPlanNodeJoinTest) {
+TEST_F(PlanNodeJsonTest, HashJoinPlanNodeJoinTest) {
   // Construct HashJoinPlanNode
   HashJoinPlanNode::Builder builder;
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
@@ -625,7 +625,7 @@ TEST(PlanNodeJsonTest, HashJoinPlanNodeJoinTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(PlanNodeJsonTest, HashPlanNodeJsonTest) {
+TEST_F(PlanNodeJsonTest, HashPlanNodeJsonTest) {
   // Construct HashPlanNode
   HashPlanNode::Builder builder;
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
@@ -647,7 +647,7 @@ TEST(PlanNodeJsonTest, HashPlanNodeJsonTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(PlanNodeJsonTest, IndexScanPlanNodeJsonTest) {
+TEST_F(PlanNodeJsonTest, IndexScanPlanNodeJsonTest) {
   // Construct IndexScanPlanNode
   IndexScanPlanNode::Builder builder;
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
@@ -672,7 +672,7 @@ TEST(PlanNodeJsonTest, IndexScanPlanNodeJsonTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(PlanNodeJsonTest, InsertPlanNodeJsonTest) {
+TEST_F(PlanNodeJsonTest, InsertPlanNodeJsonTest) {
   // Construct InsertPlanNode
   std::vector<type::TransientValue> values;
   values.push_back(type::TransientValueFactory::GetInteger(0));
@@ -701,7 +701,7 @@ TEST(PlanNodeJsonTest, InsertPlanNodeJsonTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(PlanNodeJsonTest, LimitPlanNodeJsonTest) {
+TEST_F(PlanNodeJsonTest, LimitPlanNodeJsonTest) {
   // Construct LimitPlanNode
   LimitPlanNode::Builder builder;
   auto plan_node =
@@ -720,7 +720,7 @@ TEST(PlanNodeJsonTest, LimitPlanNodeJsonTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(PlanNodeJsonTest, NestedLoopJoinPlanNodeJoinTest) {
+TEST_F(PlanNodeJsonTest, NestedLoopJoinPlanNodeJoinTest) {
   // Construct NestedLoopJoinPlanNode
   NestedLoopJoinPlanNode::Builder builder;
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
@@ -741,7 +741,7 @@ TEST(PlanNodeJsonTest, NestedLoopJoinPlanNodeJoinTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(PlanNodeJsonTest, OrderByPlanNodeJsonTest) {
+TEST_F(PlanNodeJsonTest, OrderByPlanNodeJsonTest) {
   // Construct OrderByPlanNode
   OrderByPlanNode::Builder builder;
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
@@ -764,7 +764,7 @@ TEST(PlanNodeJsonTest, OrderByPlanNodeJsonTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(PlanNodeJsonTest, ProjectionPlanNodeJsonTest) {
+TEST_F(PlanNodeJsonTest, ProjectionPlanNodeJsonTest) {
   // Construct ProjectionPlanNode
   ProjectionPlanNode::Builder builder;
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema()).Build();
@@ -782,7 +782,7 @@ TEST(PlanNodeJsonTest, ProjectionPlanNodeJsonTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(PlanNodeJsonTest, ResultPlanNodeJsonTest) {
+TEST_F(PlanNodeJsonTest, ResultPlanNodeJsonTest) {
   // Construct ResultPlanNode
   ResultPlanNode::Builder builder;
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
@@ -802,7 +802,7 @@ TEST(PlanNodeJsonTest, ResultPlanNodeJsonTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(PlanNodeJsonTest, SeqScanPlanNodeJsonTest) {
+TEST_F(PlanNodeJsonTest, SeqScanPlanNodeJsonTest) {
   // Construct SeqScanPlanNode
   SeqScanPlanNode::Builder builder;
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
@@ -820,7 +820,7 @@ TEST(PlanNodeJsonTest, SeqScanPlanNodeJsonTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(PlanNodeJsonTest, SetOpPlanNodeJsonTest) {
+TEST_F(PlanNodeJsonTest, SetOpPlanNodeJsonTest) {
   // Construct SetOpPlanNode
   SetOpPlanNode::Builder builder;
   auto plan_node =
@@ -839,7 +839,7 @@ TEST(PlanNodeJsonTest, SetOpPlanNodeJsonTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(PlanNodeJsonTest, UpdatePlanNodeJsonTest) {
+TEST_F(PlanNodeJsonTest, UpdatePlanNodeJsonTest) {
   UpdatePlanNode::Builder builder;
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
       .SetDatabaseOid(catalog::db_oid_t(1000))

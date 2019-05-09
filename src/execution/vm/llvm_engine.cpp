@@ -32,9 +32,10 @@
 
 #include <iostream>
 #include "execution/ast/type.h"
-#include "execution/logging/logger.h"
 #include "execution/vm/bytecode_module.h"
 #include "execution/vm/bytecode_traits.h"
+
+#include "loggers/execution_logger.h"
 
 namespace tpl::vm {
 
@@ -45,14 +46,14 @@ namespace tpl::vm {
 class LLVMEngine::TPLMemoryManager : public llvm::SectionMemoryManager {
  public:
   llvm::JITSymbol findSymbol(const std::string &name) override {
-    LOG_TRACE("Resolving symbol '{}' ...", name);
+    EXECUTION_LOG_TRACE("Resolving symbol '{}' ...", name);
 
     if (const auto iter = symbols_.find(name); iter != symbols_.end()) {
-      LOG_TRACE("Symbol '{}' found in cache ...", name);
+      EXECUTION_LOG_TRACE("Symbol '{}' found in cache ...", name);
       return llvm::JITSymbol(iter->second);
     }
 
-    LOG_TRACE("Symbol '{}' not found in cache, checking process ...", name);
+    EXECUTION_LOG_TRACE("Symbol '{}' not found in cache, checking process ...", name);
 
     llvm::JITSymbol symbol = llvm::SectionMemoryManager::findSymbol(name);
     TPL_ASSERT(symbol.getAddress(), "Resolved symbol has no address!");
@@ -149,7 +150,7 @@ llvm::Type *LLVMEngine::TypeMap::GetLLVMType(const ast::Type *type) {
       } else if (t = module()->getTypeByName("class." + name); t != nullptr) {
         llvm_type = t;
       } else {
-        LOG_ERROR("Could not find LLVM type for TPL type '{}'", name);
+        EXECUTION_LOG_ERROR("Could not find LLVM type for TPL type '{}'", name);
       }
       break;
     }
@@ -268,7 +269,7 @@ llvm::Value *LLVMEngine::FunctionLocalsMap::GetArgumentById(LocalVar var) {
     return val;
   }
 
-  LOG_ERROR("No variable found at offset {}", var.GetOffset());
+  EXECUTION_LOG_ERROR("No variable found at offset {}", var.GetOffset());
 
   return nullptr;
 }
@@ -383,14 +384,14 @@ LLVMEngine::CompiledModuleBuilder::CompiledModuleBuilder(
     std::string error;
     auto *target = llvm::TargetRegistry::lookupTarget(triple, error);
     if (target == nullptr) {
-      LOG_ERROR("LLVM: Unable to find target with triple {}", triple);
+      EXECUTION_LOG_ERROR("LLVM: Unable to find target with triple {}", triple);
       return;
     }
 
     // Collect CPU features
     llvm::StringMap<bool> feature_map;
     if (bool success = llvm::sys::getHostCPUFeatures(feature_map); !success) {
-      LOG_ERROR("LLVM: Unable to find all CPU features");
+      EXECUTION_LOG_ERROR("LLVM: Unable to find all CPU features");
       return;
     }
 
@@ -399,7 +400,7 @@ LLVMEngine::CompiledModuleBuilder::CompiledModuleBuilder(
       target_features.AddFeature(entry.getKey(), entry.getValue());
     }
 
-    LOG_TRACE("LLVM: Discovered CPU features: {}", target_features.getString());
+    EXECUTION_LOG_TRACE("LLVM: Discovered CPU features: {}", target_features.getString());
 
     std::string cpu = llvm::sys::getHostCPUName();
     llvm::TargetOptions target_options;
@@ -421,14 +422,14 @@ LLVMEngine::CompiledModuleBuilder::CompiledModuleBuilder(
     auto memory_buffer =
         llvm::MemoryBuffer::getFile(options.GetBytecodeHandlersBcPath());
     if (auto error = memory_buffer.getError()) {
-      LOG_ERROR("There was an error loading the handler bytecode: {}",
+      EXECUTION_LOG_ERROR("There was an error loading the handler bytecode: {}",
                 error.message());
     }
 
     auto module = llvm::parseBitcodeFile(*(memory_buffer.get()), context());
     if (!module) {
       auto error = llvm::toString(module.takeError());
-      LOG_ERROR("{}", error);
+      EXECUTION_LOG_ERROR("{}", error);
       throw std::runtime_error(error);
     }
 
@@ -470,7 +471,7 @@ llvm::Function *LLVMEngine::CompiledModuleBuilder::LookupBytecodeHandler(
     auto error =
         fmt::format("No bytecode handler function '{}' for bytecode {}",
                     handler_name, Bytecodes::ToString(bytecode));
-    LOG_ERROR("{}", error);
+    EXECUTION_LOG_ERROR("{}", error);
     throw std::runtime_error(error);
   }
 #endif
@@ -567,9 +568,9 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(
   }
 
 #ifndef NDEBUG
-  LOG_TRACE("Found blocks:");
+  EXECUTION_LOG_TRACE("Found blocks:");
   for (auto &[pos, block] : blocks) {
-    LOG_TRACE("  Block {} @ {:x}", block->getName().str(), pos);
+    EXECUTION_LOG_TRACE("  Block {} @ {:x}", block->getName().str(), pos);
   }
 #endif
 
@@ -783,7 +784,7 @@ void LLVMEngine::CompiledModuleBuilder::Verify() {
   llvm::raw_string_ostream ostream(result);
   if (bool has_error = llvm::verifyModule(*module(), &ostream); has_error) {
     // TODO(pmenon): Do something more here ...
-    LOG_ERROR("ERROR IN MODULE:\n{}", result);
+    EXECUTION_LOG_ERROR("ERROR IN MODULE:\n{}", result);
   }
 }
 
@@ -882,7 +883,7 @@ LLVMEngine::CompiledModuleBuilder::EmitObject() {
     llvm::raw_svector_ostream obj_buffer_stream(obj_buffer);
     if (target_machine()->addPassesToEmitMC(pass_manager, mc_ctx,
                                             obj_buffer_stream)) {
-      LOG_ERROR("The target LLVM machine cannot emit a file of this type");
+      EXECUTION_LOG_ERROR("The target LLVM machine cannot emit a file of this type");
       return nullptr;
     }
 
@@ -901,7 +902,7 @@ void LLVMEngine::CompiledModuleBuilder::PersistObjectToFile(
   llvm::raw_fd_ostream dest(file_name, error_code, llvm::sys::fs::F_None);
 
   if (error_code) {
-    LOG_ERROR("Could not open file: {}", error_code.message());
+    EXECUTION_LOG_ERROR("Could not open file: {}", error_code.message());
     return;
   }
 
@@ -958,13 +959,13 @@ void LLVMEngine::CompiledModule::Load(const BytecodeModule &module) {
   if (object_code_ == nullptr) {
     llvm::SmallString<128> path;
     if (std::error_code error = llvm::sys::fs::current_path(path)) {
-      LOG_ERROR("LLVMEngine: Error reading current path '{}'", error.message());
+      EXECUTION_LOG_ERROR("LLVMEngine: Error reading current path '{}'", error.message());
       return;
     }
     llvm::sys::path::append(path, module.name(), ".to");
     auto file_buffer = llvm::MemoryBuffer::getFile(path);
     if (std::error_code error = file_buffer.getError()) {
-      LOG_ERROR("LLVMEngine: Error reading object file '{}'", error.message());
+      EXECUTION_LOG_ERROR("LLVMEngine: Error reading object file '{}'", error.message());
       return;
     }
     object_code_ = std::move(file_buffer.get());
@@ -979,7 +980,7 @@ void LLVMEngine::CompiledModule::Load(const BytecodeModule &module) {
   auto object = llvm::object::ObjectFile::createObjectFile(
       object_code_->getMemBufferRef());
   if (auto error = object.takeError()) {
-    LOG_ERROR("LLVMEngine: Error constructing object file '{}'",
+    EXECUTION_LOG_ERROR("LLVMEngine: Error constructing object file '{}'",
               llvm::toString(std::move(error)));
     return;
   }
@@ -987,7 +988,7 @@ void LLVMEngine::CompiledModule::Load(const BytecodeModule &module) {
   llvm::RuntimeDyld loader(*memory_manager_, *memory_manager_);
   loader.loadObject(*object.get());
   if (loader.hasError()) {
-    LOG_ERROR("LLVMEngine: Error loading object file {}",
+    EXECUTION_LOG_ERROR("LLVMEngine: Error loading object file {}",
               loader.getErrorString().str());
     return;
   }

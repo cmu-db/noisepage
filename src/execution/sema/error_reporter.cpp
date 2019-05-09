@@ -5,7 +5,8 @@
 
 #include "execution/ast/type.h"
 #include "execution/ast/type_visitor.h"
-#include "execution/logging/logger.h"
+
+#include "loggers/execution_logger.h"
 
 namespace tpl::sema {
 
@@ -92,7 +93,7 @@ void ErrorReporter::PrintErrors() {
     error_str.append(error.FormatMessage()).append("\n");
   }
 
-  LOG_ERROR("{}", error_str.c_str());
+  EXECUTION_LOG_ERROR("{}", error_str.c_str());
 }
 
 }  // namespace tpl::sema

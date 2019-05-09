@@ -17,7 +17,7 @@
 #include <iomanip>
 #include <sstream>
 
-#include "execution/logging/logger.h"
+#include "loggers/execution_logger.h"
 
 namespace tpl {
 
@@ -64,7 +64,7 @@ void CpuInfo::InitCpuInfo() {
   {
     size_t size = sizeof(num_cores_);
     if (sysctlbyname("hw.ncpu", &num_cores_, &size, nullptr, 0) < 0) {
-      LOG_ERROR("Cannot read # CPUs: {}", strerror(errno));
+      EXECUTION_LOG_ERROR("Cannot read # CPUs: {}", strerror(errno));
     }
   }
 
@@ -72,7 +72,7 @@ void CpuInfo::InitCpuInfo() {
     u64 freq = 0;
     size_t size = sizeof(freq);
     if (sysctlbyname("hw.cpufrequency", &freq, &size, nullptr, 0) < 0) {
-      LOG_ERROR("Cannot read CPU Mhz: {}", strerror(errno));
+      EXECUTION_LOG_ERROR("Cannot read CPU Mhz: {}", strerror(errno));
     }
     cpu_mhz_ = static_cast<double>(freq) / 1000000.0;
   }

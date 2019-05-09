@@ -23,7 +23,7 @@ double MultiArmedBandit::ExecuteAction(u32 action) {
     std::function<u32()> f;
     if (!module_->GetFunction(action_names_[action],
                               vm::ExecutionMode::Interpret, f)) {
-      LOG_ERROR("No {}() entry function found", action_names_[action]);
+      EXECUTION_LOG_ERROR("No {}() entry function found", action_names_[action]);
       return -1.0;
     }
 

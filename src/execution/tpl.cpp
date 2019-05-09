@@ -12,7 +12,6 @@
 #include "execution/ast/ast_dump.h"
 #include "execution/exec/execution_context.h"
 #include "execution/exec/output.h"
-#include "execution/logging/logger.h"
 #include "execution/parsing/parser.h"
 #include "execution/parsing/scanner.h"
 #include "execution/sema/error_reporter.h"
@@ -25,6 +24,8 @@
 #include "execution/vm/bytecode_module.h"
 #include "execution/vm/llvm_engine.h"
 #include "execution/vm/vm.h"
+
+#include "loggers/execution_logger.h"
 
 // ---------------------------------------------------------
 // CLI options
@@ -78,7 +79,7 @@ static void CompileAndRun(const std::string &source,
   }
 
   if (error_reporter.HasErrors()) {
-    LOG_ERROR("Parsing error!");
+    EXECUTION_LOG_ERROR("Parsing error!");
     error_reporter.PrintErrors();
     return;
   }
@@ -91,7 +92,7 @@ static void CompileAndRun(const std::string &source,
   }
 
   if (error_reporter.HasErrors()) {
-    LOG_ERROR("Type-checking error!");
+    EXECUTION_LOG_ERROR("Type-checking error!");
     error_reporter.PrintErrors();
     return;
   }
@@ -119,11 +120,11 @@ static void CompileAndRun(const std::string &source,
 
     std::function<u32()> main_func;
     if (!module->GetFunction("main", vm::ExecutionMode::Interpret, main_func)) {
-      LOG_ERROR("No main() entry function found with signature ()->int32");
+      EXECUTION_LOG_ERROR("No main() entry function found with signature ()->int32");
       return;
     }
 
-    LOG_INFO("VM main() returned: {}", main_func());
+    EXECUTION_LOG_INFO("VM main() returned: {}", main_func());
   }
 
   // JIT
@@ -132,15 +133,15 @@ static void CompileAndRun(const std::string &source,
 
     std::function<u32()> main_func;
     if (!module->GetFunction("main", vm::ExecutionMode::Jit, main_func)) {
-      LOG_ERROR("No main() entry function found with signature ()->int32");
+      EXECUTION_LOG_ERROR("No main() entry function found with signature ()->int32");
       return;
     }
 
-    LOG_INFO("JIT main() returned: {}", main_func());
+    EXECUTION_LOG_INFO("JIT main() returned: {}", main_func());
   }
 
   // Dump stats
-  LOG_INFO(
+  EXECUTION_LOG_INFO(
       "Parse: {} ms, Type-check: {} ms, Code-gen: {} ms, Exec.: {} ms, "
       "Jit+Exec.: {} ms",
       parse_ms, typecheck_ms, codegen_ms, exec_ms, jit_ms);
@@ -176,12 +177,12 @@ static void RunRepl() {
 static void RunFile(const std::string &filename) {
   auto file = llvm::MemoryBuffer::getFile(filename);
   if (std::error_code error = file.getError()) {
-    LOG_ERROR("There was an error reading file '{}': {}", filename,
+    EXECUTION_LOG_ERROR("There was an error reading file '{}': {}", filename,
               error.message());
     return;
   }
 
-  LOG_INFO("Compiling and running file: {}", filename);
+  EXECUTION_LOG_INFO("Compiling and running file: {}", filename);
 
   // Copy the source into a temporary, compile, and run
   CompileAndRun((*file)->getBuffer().str());
@@ -197,9 +198,9 @@ void InitTPL() {
 
   tpl::vm::LLVMEngine::Initialize();
 
-  LOG_INFO("TPL Bytecode Count: {}", tpl::vm::Bytecodes::NumBytecodes());
+  EXECUTION_LOG_INFO("TPL Bytecode Count: {}", tpl::vm::Bytecodes::NumBytecodes());
 
-  LOG_INFO("TPL initialized ...");
+  EXECUTION_LOG_INFO("TPL initialized ...");
 }
 
 /// Shutdown all TPL subsystems
@@ -208,7 +209,7 @@ void ShutdownTPL() {
 
   tpl::logging::ShutdownLogger();
 
-  LOG_INFO("TPL cleanly shutdown ...");
+  EXECUTION_LOG_INFO("TPL cleanly shutdown ...");
 }
 
 }  // namespace tpl
@@ -233,16 +234,16 @@ int main(int argc, char **argv) {  // NOLINT(bugprone-exception-escape)
   sigfillset(&sa.sa_mask);
 
   if (sigaction(SIGINT, &sa, nullptr) == -1) {
-    LOG_ERROR("Cannot handle SIGNIT: {}", strerror(errno));
+    EXECUTION_LOG_ERROR("Cannot handle SIGNIT: {}", strerror(errno));
     return errno;
   }
 
   // Init TPL
   tpl::InitTPL();
 
-  LOG_INFO("\n{}", tpl::CpuInfo::Instance()->PrettyPrintInfo());
+  EXECUTION_LOG_INFO("\n{}", tpl::CpuInfo::Instance()->PrettyPrintInfo());
 
-  LOG_INFO("Welcome to TPL (ver. {}.{})", TPL_VERSION_MAJOR, TPL_VERSION_MINOR);
+  EXECUTION_LOG_INFO("Welcome to TPL (ver. {}.{})", TPL_VERSION_MAJOR, TPL_VERSION_MINOR);
 
   // Either execute a TPL program from a source file, or run REPL
   if (!kInputFile.empty()) {

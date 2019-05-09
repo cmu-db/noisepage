@@ -9,12 +9,13 @@
 #include "llvm/Support/Memory.h"
 
 #include "execution/ast/type.h"
-#include "execution/logging/logger.h"
 #include "execution/util/memory.h"
 #include "execution/vm/bytecode_function_info.h"
 #include "execution/vm/bytecode_iterator.h"
 #include "execution/vm/llvm_engine.h"
 #include "execution/vm/vm.h"
+
+#include "loggers/execution_logger.h"
 
 namespace tpl::vm {
 

@@ -3,6 +3,7 @@
 #include <memory>
 #include "gtest/gtest.h"
 #include "loggers/index_logger.h"
+#include "loggers/execution_logger.h"
 #include "loggers/main_logger.h"
 #include "loggers/network_logger.h"
 #include "loggers/storage_logger.h"
@@ -19,8 +20,9 @@ class TerrierTest : public ::testing::Test {
 
     init_main_logger();
     // initialize namespace specific loggers
-    terrier::storage::init_index_logger();
+    terrier::execution::init_execution_logger();
     terrier::network::init_network_logger();
+    terrier::storage::init_index_logger();
     terrier::storage::init_storage_logger();
     terrier::transaction::init_transaction_logger();
 

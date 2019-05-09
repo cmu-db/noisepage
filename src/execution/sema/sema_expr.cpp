@@ -3,7 +3,8 @@
 #include "execution/ast/ast_node_factory.h"
 #include "execution/ast/context.h"
 #include "execution/ast/type.h"
-#include "execution/logging/logger.h"
+
+#include "loggers/execution_logger.h"
 
 namespace tpl::sema {
 
@@ -170,7 +171,7 @@ void Sema::VisitBinaryOpExpr(ast::BinaryOpExpr *node) {
       break;
     }
     default: {
-      LOG_ERROR("{} is not a binary operation!",
+      EXECUTION_LOG_ERROR("{} is not a binary operation!",
                 parsing::Token::GetString(node->op()));
     }
   }
@@ -200,7 +201,7 @@ void Sema::VisitComparisonOpExpr(ast::ComparisonOpExpr *node) {
       break;
     }
     default: {
-      LOG_ERROR("{} is not a comparison operation",
+      EXECUTION_LOG_ERROR("{} is not a comparison operation",
                 parsing::Token::GetString(node->op()));
     }
   }

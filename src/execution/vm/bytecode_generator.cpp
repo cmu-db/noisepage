@@ -9,12 +9,13 @@
 #include "execution/ast/builtins.h"
 #include "execution/ast/context.h"
 #include "execution/ast/type.h"
-#include "execution/logging/logger.h"
 #include "execution/sql/execution_structures.h"
 #include "execution/util/macros.h"
 #include "execution/vm/bytecode_label.h"
 #include "execution/vm/bytecode_module.h"
 #include "execution/vm/control_flow_builders.h"
+
+#include "loggers/execution_logger.h"
 
 namespace tpl::vm {
 
@@ -1065,7 +1066,7 @@ void BytecodeGenerator::VisitLitExpr(ast::LitExpr *node) {
       break;
     }
     default: {
-      LOG_ERROR("Non-bool or non-integer literals not supported in bytecode");
+      EXECUTION_LOG_ERROR("Non-bool or non-integer literals not supported in bytecode");
       break;
     }
   }

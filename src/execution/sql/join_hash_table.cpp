@@ -3,9 +3,10 @@
 #include <algorithm>
 #include <limits>
 
-#include "execution/logging/logger.h"
 #include "execution/util/cpu_info.h"
 #include "execution/util/memory.h"
+
+#include "loggers/execution_logger.h"
 
 // TODO(pmenon): Use HLL++ to better estimate size of CHT and GHT
 // TODO(pmenon): Use tagged insertions/probes if no bloom filter exists in GHT
@@ -475,7 +476,7 @@ void JoinHashTable::VerifyMainEntryOrder() {
     auto dest_idx = concise_hash_table_.NumFilledSlotsBefore(entry->cht_slot &
                                                              kCHTSlotMask);
     if (idx != dest_idx) {
-      LOG_ERROR("Entry {} has CHT slot {}. Found @ {}, but should be @ {}",
+      EXECUTION_LOG_ERROR("Entry {} has CHT slot {}. Found @ {}, but should be @ {}",
                 static_cast<void *>(entry), entry->cht_slot, idx, dest_idx);
     }
   }
@@ -495,7 +496,7 @@ void JoinHashTable::BuildConciseHashTableInternal() {
   // Build
   concise_hash_table_.Build();
 
-  LOG_INFO(
+  EXECUTION_LOG_INFO(
       "Concise Table Stats: {} entries, {} overflow ({} % overflow)",
       entries_.size(), concise_hash_table_.num_overflow(),
       100.0 * (static_cast<double>(concise_hash_table_.num_overflow()) * 1.0 / static_cast<double>(entries_.size())));

@@ -1,10 +1,11 @@
 #pragma once
 
-#include "execution/logging/logger.h"
 #include "execution/util/common.h"
 #include "execution/util/region_containers.h"
 #include "execution/vm/bytecode_function_info.h"
 #include "execution/vm/bytecodes.h"
+
+#include "loggers/execution_logger.h"
 
 namespace tpl::vm {
 

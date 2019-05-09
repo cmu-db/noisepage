@@ -191,7 +191,7 @@ void BytecodeModule::CreateFunctionTrampoline(const FunctionInfo &func,
   llvm::sys::MemoryBlock mem =
       llvm::sys::Memory::allocateMappedMemory(1 << 12, nullptr, flags, error);
   if (error) {
-    LOG_ERROR("There was an error allocating executable memory {}",
+    EXECUTION_LOG_ERROR("There was an error allocating executable memory {}",
               error.message());
     return;
   }
@@ -213,7 +213,7 @@ void BytecodeModule::CreateFunctionTrampoline(const FunctionInfo &func,
 void BytecodeModule::CreateFunctionTrampoline(FunctionId func_id) {
   // If a trampoline has already been setup, don't bother
   if (trampolines_[func_id].GetCode() != nullptr) {
-    LOG_DEBUG("Function {} has a trampoline; will not recreate", func_id);
+    EXECUTION_LOG_DEBUG("Function {} has a trampoline; will not recreate", func_id);
     return;
   }
 

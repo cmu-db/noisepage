@@ -9,10 +9,11 @@
 #include <utility>
 #include <vector>
 
-#include "execution/logging/logger.h"
 #include "execution/sql/data_types.h"
 #include "execution/sql/schema.h"
 #include "execution/sql/table.h"
+
+#include "loggers/execution_logger.h"
 
 namespace tpl::sql {
 
@@ -147,7 +148,7 @@ std::pair<byte *, u32 *> GenerateColumnData(const ColumnInsertMeta &col_meta,
 }
 
 void InitTable(const TableInsertMeta &table_meta, Table *table) {
-  LOG_INFO("Populating table instance '{}' with {} rows", table_meta.name,
+  EXECUTION_LOG_INFO("Populating table instance '{}' with {} rows", table_meta.name,
            table_meta.num_rows);
 
   u32 batch_size = 10000;
@@ -177,11 +178,11 @@ void InitTable(const TableInsertMeta &table_meta, Table *table) {
  * Create a catalog, setting up all tables.
  */
 Catalog::Catalog() {
-  LOG_INFO("Initializing catalog");
+  EXECUTION_LOG_INFO("Initializing catalog");
 
   // Insert tables into catalog
   for (const auto &meta : insert_meta) {
-    LOG_INFO("Creating table instance '{}' in catalog", meta.name);
+    EXECUTION_LOG_INFO("Creating table instance '{}' in catalog", meta.name);
 
     std::vector<Schema::ColumnInfo> cols;
     for (const auto &col_meta : meta.col_meta) {
@@ -198,7 +199,7 @@ Catalog::Catalog() {
     InitTable(table_meta, LookupTableById(table_meta.id));
   }
 
-  LOG_INFO("Catalog initialization complete");
+  EXECUTION_LOG_INFO("Catalog initialization complete");
 }
 
 // We need this here because a catalog has a map that stores unique pointers to

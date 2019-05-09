@@ -21,6 +21,7 @@ class Query {
   explicit Query(const terrier::planner::AbstractPlanNode &node) :
   node_(node), region_("QueryRegion"), code_ctx_(&region_), query_state_(ast::Identifier(GetQueryStateName().c_str())),
   compiled_fn_(nullptr) {}
+  ~Query() = default;
 
   const terrier::planner::AbstractPlanNode &GetPlan() { return node_; }
   CodeContext *GetCodeContext() { return &code_ctx_; }

@@ -63,7 +63,7 @@ class VM::Frame {
       std::string error_msg =
           fmt::format("Accessing local at offset {}, beyond frame of size {}",
                       var.GetOffset(), frame_size_);
-      LOG_ERROR("{}", error_msg);
+      EXECUTION_LOG_ERROR("{}", error_msg);
       throw std::runtime_error(error_msg);
     }
   }
@@ -161,12 +161,12 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
   };
 
 #ifdef TPL_DEBUG_TRACE_INSTRUCTIONS
-#define DEBUG_TRACE_INSTRUCTIONS(op)                                        \
-  do {                                                                      \
-    auto bytecode = Bytecodes::FromByte(op);                                \
-    bytecode_counts_[op]++;                                                 \
-    LOG_INFO("{0:p}: {1:s}", ip - sizeof(std::underlying_type_t<Bytecode>), \
-             Bytecodes::ToString(bytecode));                                \
+#define DEBUG_TRACE_INSTRUCTIONS(op)                                                  \
+  do {                                                                                \
+    auto bytecode = Bytecodes::FromByte(op);                                          \
+    bytecode_counts_[op]++;                                                           \
+    EXECUTION_LOG_INFO("{0:p}: {1:s}", ip - sizeof(std::underlying_type_t<Bytecode>), \
+             Bytecodes::ToString(bytecode));                                          \
   } while (false)
 #else
 #define DEBUG_TRACE_INSTRUCTIONS(op) (void)op
@@ -258,7 +258,7 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
     auto rhs = frame->LocalAt<type>(READ_LOCAL_ID());     \
     if ((test) && rhs == 0u) {                            \
       /* TODO(pmenon): Proper error */                    \
-      LOG_ERROR("Division by zero error!");               \
+      EXECUTION_LOG_ERROR("Division by zero error!");     \
     }                                                     \
     Op##op##_##type(dest, lhs, rhs);                      \
     DISPATCH_NEXT();                                      \

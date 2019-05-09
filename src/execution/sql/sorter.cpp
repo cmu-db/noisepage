@@ -5,8 +5,9 @@
 
 #include "ips4o/ips4o.hpp"
 
-#include "execution/logging/logger.h"
 #include "execution/util/timer.h"
+
+#include "loggers/execution_logger.h"
 
 namespace tpl::sql {
 
@@ -126,7 +127,7 @@ void Sorter::Sort() {
 
 #ifndef NDEBUG
   auto rate = (tuples_.size() / timer.elapsed()) / 1000.0;
-  LOG_DEBUG("Sorted %zu tuples in %.2f ms (%.2lf TPS)", tuples_.size(),
+  EXECUTION_LOG_DEBUG("Sorted %zu tuples in %.2f ms (%.2lf TPS)", tuples_.size(),
             timer.elapsed(), rate);
 #endif
 

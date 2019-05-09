@@ -62,6 +62,7 @@ void CompilationContext::GeneratePlan(Query *query) {
   }
 
   const auto compiled_fn = codegen_->NewBlockStmt(DUMMY_POS, DUMMY_POS, std::move(stmts));
+  (void) compiled_fn;
   query->SetCompiledFunction(compiled_fn);
 }
 
@@ -91,12 +92,12 @@ void CompilationContext::Prepare(const terrier::parser::AbstractExpression &exp)
 // Get the registered translator for the given operator
 OperatorTranslator *CompilationContext::GetTranslator(const terrier::planner::AbstractPlanNode &op) const {
   auto iter = op_translators_.find(&op);
-  return iter == op_translators_.end() ? nullptr : iter->second.get();
+  return iter == op_translators_.end() ? nullptr : iter->second;
 }
 
 ExpressionTranslator *CompilationContext::GetTranslator(const terrier::parser::AbstractExpression &ex) const {
   auto iter = ex_translators_.find(&ex);
-  return iter == ex_translators_.end() ? nullptr : iter->second.get();
+  return iter == ex_translators_.end() ? nullptr : iter->second;
 }
 
 }
