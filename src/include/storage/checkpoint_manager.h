@@ -186,6 +186,12 @@ class CheckpointManager {
   // Used in log_test, so put in public
   // TODO(zhaozhes): API should be refactored when oid is no longer hard-coded to 0. Should return oid as well
   // to identify the table to redo.
+  /**
+   * Deserialize a log record from the log file.
+   * @param in Buffered Log Reader that already opens a log file.
+   * @param varlen_contents loose varlen pointers are stored here, so that they can be freed later.
+   * @return A pointer to the next LogRecord.
+   */
   storage::LogRecord *ReadNextLogRecord(storage::BufferedLogReader *in, std::vector<byte *> *varlen_contents);
 
  private:

@@ -320,7 +320,7 @@ class BufferedTupleWriter {
       return;
     }
     AlignBufferOffset<uint64_t>();
-    if (block_size_ - page_offset_ > sizeof(uint32_t)) {
+    if (block_size_ - page_offset_ >= sizeof(uint32_t)) {
       // append a zero to the last record, so that during recovery it can be recognized as the end
       memset(buffer_ + page_offset_, 0, sizeof(uint32_t));
     }
@@ -477,12 +477,8 @@ class BufferedTupleReader {
       }
       // remaining buffer is not enough
       memcpy(tmp_buffer + already_read, buffer_ + page_offset_, remaining_buffer);
-      if (!ReadNextBlock()) {
-        // should not happen, unless the checkpoint file is corrupted.
-        // TODO(Mengyang): figure out what kind of exception to throw here.
-        loose_ptrs_.emplace_back(tmp_buffer);
-        return tmp_buffer;
-      }
+      bool hasNextBlock UNUSED_ATTRIBUTE = ReadNextBlock();
+      TERRIER_ASSERT(hasNextBlock, "Incomplete Checkpoint file");
       left_to_read -= remaining_buffer;
       already_read += remaining_buffer;
     }
