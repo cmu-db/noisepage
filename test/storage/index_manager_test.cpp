@@ -12,22 +12,14 @@ struct IndexManagerTest : public TerrierTest {
     TerrierTest::SetUp();
     txn_manager_ = new transaction::TransactionManager(&buffer_pool_, true, LOGGING_DISABLED);
     index_manager_ = new IndexManager();
-
-    txn_ = txn_manager_->BeginTransaction();
-    catalog_ = new catalog::Catalog(txn_manager_, txn_);
   }
 
   void TearDown() override {
     TerrierTest::TearDown();
-    delete catalog_;  // delete catalog first
+    delete index_manager_;
     delete txn_manager_;
-    delete txn_;
   }
-
-  catalog::Catalog *catalog_;
   storage::RecordBufferSegmentPool buffer_pool_{100, 100};
-
-  transaction::TransactionContext *txn_;
   transaction::TransactionManager *txn_manager_;
   IndexManager *index_manager_;
 };
@@ -35,12 +27,15 @@ struct IndexManagerTest : public TerrierTest {
 // Check the correctness of drop index
 // NOLINTNEXTLINE
 TEST_F(IndexManagerTest, DropIndexCorrectnessTest) {
+  auto txn0 = txn_manager_->BeginTransaction();
+  auto catalog_ = new catalog::Catalog(txn_manager_, txn0);
+
   // terrier has db_oid_t DEFAULT_DATABASE_OID
   const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
   auto db_handle = catalog_->GetDatabaseHandle();
-  auto ns_handle = db_handle.GetNamespaceHandle(txn_, terrier_oid);
-  auto table_handle = ns_handle.GetTableHandle(txn_, "public");
-  auto ns_oid = ns_handle.NameToOid(txn_, std::string("public"));
+  auto ns_handle = db_handle.GetNamespaceHandle(txn0, terrier_oid);
+  auto table_handle = ns_handle.GetTableHandle(txn0, "public");
+  auto ns_oid = ns_handle.NameToOid(txn0, std::string("public"));
 
   // define schema
   std::vector<catalog::Schema::Column> cols;
@@ -51,9 +46,9 @@ TEST_F(IndexManagerTest, DropIndexCorrectnessTest) {
   catalog::Schema schema(cols);
 
   // create table
-  auto table = table_handle.CreateTable(txn_, schema, "test_table");
-  auto table_oid = table_handle.NameToOid(txn_, "test_table");
-  auto table_entry = table_handle.GetTableEntry(txn_, "test_table");
+  auto table = table_handle.CreateTable(txn0, schema, "test_table");
+  auto table_oid = table_handle.NameToOid(txn0, "test_table");
+  auto table_entry = table_handle.GetTableEntry(txn0, "test_table");
   EXPECT_NE(table_entry, nullptr);
   std::string_view str = type::TransientValuePeeker::PeekVarChar(table_entry->GetColInRow(0));
   EXPECT_EQ(str, "public");
@@ -65,7 +60,7 @@ TEST_F(IndexManagerTest, DropIndexCorrectnessTest) {
   EXPECT_EQ(str, "pg_default");
 
   // Insert a few rows into the table
-  auto ptr = table_handle.GetTable(txn_, "test_table");
+  auto ptr = table_handle.GetTable(txn0, "test_table");
   EXPECT_EQ(ptr, table);
 
   for (int i = 0; i < 200; ++i) {
@@ -79,11 +74,11 @@ TEST_F(IndexManagerTest, DropIndexCorrectnessTest) {
     row.emplace_back(type::TransientValueFactory::GetInteger(i));
     row.emplace_back(type::TransientValueFactory::GetVarChar(name_string));
     row.emplace_back(type::TransientValueFactory::GetVarChar(address_string));
-    ptr->InsertRow(txn_, row);
+    ptr->InsertRow(txn0, row);
   }
 
   // Commit the setting transaction
-  txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
 
   // Set up index attributes and key attributes
   std::vector<std::string> index_attrs{"sex", "id", "name"};
@@ -112,6 +107,10 @@ TEST_F(IndexManagerTest, DropIndexCorrectnessTest) {
   index_entry = index_handle.GetIndexEntry(txn2, index_oid);
   EXPECT_EQ(index_entry, nullptr);
   txn_manager_->Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
+
+  delete table;
+  delete catalog_;
+  delete txn0;
   delete txn1;
   delete txn2;
 }

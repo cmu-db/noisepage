@@ -13,7 +13,6 @@ struct IndexBuilderTest : public TerrierTest {
     TerrierTest::SetUp();
     txn_manager_ = new transaction::TransactionManager(&buffer_pool_, true, LOGGING_DISABLED);
     index_manager_ = new IndexManager();
-
     txn_ = txn_manager_->BeginTransaction();
     catalog_ = new catalog::Catalog(txn_manager_, txn_);
   }
@@ -22,6 +21,7 @@ struct IndexBuilderTest : public TerrierTest {
     txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
     TerrierTest::TearDown();
     delete catalog_;  // delete catalog first
+    delete index_manager_;
     delete txn_manager_;
     delete txn_;
   }

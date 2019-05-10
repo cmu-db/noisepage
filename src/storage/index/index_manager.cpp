@@ -88,15 +88,18 @@ catalog::index_oid_t IndexManager::CreateConcurrently(catalog::db_oid_t db_oid, 
 
   // Start the second transaction to insert all keys into the index.
   // The second transaction set the building flag to true in the critical section.
-  transaction::TransactionContext *build_txn =
+  transaction::TransactionContext *txn2 =
       txn_mgr->BeginTransactionWithAction([&]() { SetIndexBuildingFlag(index_id, true); });
   // Change "indisready" to false and "indisvalid" to the result of populating the index in the catalog entry
-  index_handle.SetEntryColumn(build_txn, index_oid, "indisready", type::TransientValueFactory::GetBoolean(false));
+  index_handle.SetEntryColumn(txn2, index_oid, "indisready", type::TransientValueFactory::GetBoolean(false));
   index_handle.SetEntryColumn(
-      build_txn, index_oid, "indisvalid",
-      type::TransientValueFactory::GetBoolean(PopulateIndex(build_txn, *sql_table, index, unique_index)));
+      txn2, index_oid, "indisvalid",
+      type::TransientValueFactory::GetBoolean(PopulateIndex(txn2, *sql_table, index, unique_index)));
   // Commit the transaction
-  txn_mgr->Commit(build_txn, TestCallbacks::EmptyCallback, nullptr);
+  txn_mgr->Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
+  // FIXME(xueyuanz): Delete the txns to pass the test, since the GC is disabled.
+  delete txn1;
+  delete txn2;
   return index_oid;
 }
 
@@ -127,6 +130,9 @@ void IndexManager::Drop(catalog::db_oid_t db_oid, catalog::namespace_oid_t ns_oi
   // Now we can safely destruct the index_entry
   Index *index = reinterpret_cast<Index *>(index_entry->GetBigIntColumn("indexptr"));
   delete index;
+
+  // FIXME(xueyuanz): Delete the txns to pass the test, since the GC is disabled.
+  delete txn;
 }
 
 bool IndexManager::PopulateIndex(transaction::TransactionContext *txn, const SqlTable &sql_table, Index *index,
