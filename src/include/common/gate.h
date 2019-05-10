@@ -54,7 +54,6 @@ class Gate {
      * Undo the lock that was added in the constructor
      */
     ~ScopedLock() { gate_->Unlock(); }
-
     DISALLOW_COPY_AND_MOVE(ScopedLock);
 
    private:
@@ -76,7 +75,6 @@ class Gate {
      * Traverse the gate while being destructed
      */
     ~ScopedExit() { gate_->Traverse(); }
-
     DISALLOW_COPY_AND_MOVE(ScopedExit);
 
    private:
