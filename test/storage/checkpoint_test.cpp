@@ -73,6 +73,7 @@ class CheckpointTests : public TerrierTest {
   storage::RecordBufferSegmentPool pool_{2000, 100};
   storage::BlockStore block_store_{100, 100};
   storage::LogManager *log_manager_;
+  bool gc_on_ = false;
 
  private:
   void CheckpointThreadLoop(uint32_t log_period_milli) {
@@ -99,7 +100,6 @@ class CheckpointTests : public TerrierTest {
     }
   }
   
-  bool gc_on_ = false;
   bool enable_checkpointing_;
   std::thread checkpoint_thread_;
   const storage::SqlTable *table_;
@@ -357,8 +357,9 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryNoVarlen) {
   // First unlink log file and initialize log manager, to prevent existing log file affect the current test
   unlink(LOG_FILE_NAME);
   log_manager_ = new storage::LogManager{LOG_FILE_NAME, &pool_};
-  const uint32_t num_rows = 100;
+  const uint32_t num_rows = 1;
   const uint32_t num_columns = 10;
+  gc_on_ = true;
   // initialize test
   SqlLargeTransactionTestObject tested = SqlLargeTransactionTestObject::Builder()
                                              .SetMaxColumns(num_columns)
@@ -368,11 +369,10 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryNoVarlen) {
                                              .SetBlockStore(&block_store_)
                                              .SetBufferPool(&pool_)
                                              .SetGenerator(&generator_)
-                                             .SetGcOn(true)
-                                             .SetBookkeeping(false)
-                                             .SetLogManager(log_manager_)
+  					     .SetLogManager(log_manager_)
+					     .SetGcOn(true)
+                                             .SetBookkeeping(true)
                                              .build();
-  StartGC(tested.GetTxnManager(), 10);
   storage::SqlTable *table = tested.GetTable();
   const catalog::Schema *schema = tested.Schema();
   transaction::TransactionManager *txn_manager = tested.GetTxnManager();
@@ -382,11 +382,14 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryNoVarlen) {
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
   EndCheckpointingThread();
 
+  log_manager_->Process();
   // Run transactions to generate logs
-  StartLogging(10);
-  auto result = tested.SimulateOltp(100, 4);
-  EndLogging();
+  // StartLogging(10);
+//  auto result = tested.SimulateOltp(100, 4);
 
+//StartGC(tested.GetTxnManager(), 10);
+  // EndLogging();
+  
   // read first run
   transaction::TransactionContext *scan_txn = txn_manager->BeginTransaction();
   std::vector<std::string> original_rows;
@@ -403,7 +406,7 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryNoVarlen) {
   checkpoint_manager_.StartRecovery(recovery_txn);
   checkpoint_manager_.RegisterTable(recovered_table);
   checkpoint_manager_.Recover(checkpoint_pair.first.c_str());
-  checkpoint_manager_.RecoverFromLogs(LOG_FILE_NAME, checkpoint_pair.second);
+  //checkpoint_manager_.RecoverFromLogs(LOG_FILE_NAME, checkpoint_pair.second);
   txn_manager->Commit(recovery_txn, StorageTestUtil::EmptyCallback, nullptr);
   // read recovered table
   transaction::TransactionContext *scan_txn_2 = txn_manager->BeginTransaction();
@@ -412,7 +415,6 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryNoVarlen) {
   txn_manager->Commit(scan_txn_2, StorageTestUtil::EmptyCallback, nullptr);
   // Sleep for some time to ensure that the checkpoint thread has started at least one checkpoint. (Prevent racing)
   std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-  EndGC();
   // compare
   std::vector<std::string> diff1, diff2;
   std::sort(original_rows.begin(), original_rows.end());
@@ -424,11 +426,18 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryNoVarlen) {
   EXPECT_EQ(diff1.size(), 0);
   EXPECT_EQ(diff2.size(), 0);
   checkpoint_manager_.UnlinkCheckpointFiles();
+//  EndGC();
+
+    gc_ = new storage::GarbageCollector(txn_manager);
+      gc_->PerformGarbageCollection();
+        gc_->PerformGarbageCollection();  
   delete recovered_table;
+ delete gc_; 
   delete log_manager_;
-  for (auto *txn : result.first) delete txn;
-  for (auto *txn : result.second) delete txn;
-  unlink(LOG_FILE_NAME);
+  delete recovery_txn;
+ // for (auto *txn : result.first) delete txn;
+ // for (auto *txn : result.second) delete txn;
+//  unlink(LOG_FILE_NAME);
 }
 
 //// NOLINTNEXTLINE

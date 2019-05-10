@@ -59,7 +59,7 @@ timestamp_t TransactionManager::UpdatingCommitCriticalSection(TransactionContext
                                                               void *const callback_arg) {
   common::SharedLatch::ScopedExclusiveLatch guard(&commit_latch_);
   const timestamp_t commit_time = time_++;
-
+  STORAGE_LOG_ERROR("updating commit")
   // TODO(Tianyu):
   // WARNING: This operation has to happen in the critical section to make sure that commits appear in serial order
   // to the log manager. Otherwise there are rare races where:
