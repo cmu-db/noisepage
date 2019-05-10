@@ -15,7 +15,8 @@
 #undef __SETTING_GFLAGS_DEFINE__       // NOLINT
 
 // Construct settings param map from settings_defs.h
-static void ConstructParamMap(std::unordered_map<terrier::settings::Param, terrier::settings::ParamInfo> &param_map) {
+static void ConstructParamMap(                                                                // NOLINT
+    std::unordered_map<terrier::settings::Param, terrier::settings::ParamInfo> &param_map) {  // NOLINT
   /*
    * Populate gflag values to param map.
    * This will expand to a list of code like:

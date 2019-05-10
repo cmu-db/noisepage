@@ -104,8 +104,8 @@ void SettingsManager::SetInt(Param param, int32_t value, std::shared_ptr<ActionC
                              setter_callback_fn setter_callback) {
   common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
   const auto &param_info = db_->param_map_.find(param)->second;
-  int min_value = static_cast<int>(param_info.min_value);
-  int max_value = static_cast<int>(param_info.max_value);
+  auto min_value = static_cast<int>(param_info.min_value);
+  auto max_value = static_cast<int>(param_info.max_value);
   if (!(value >= min_value && value <= max_value)) {
     action_context->SetState(ActionState::FAILURE);
   } else {

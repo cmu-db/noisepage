@@ -119,7 +119,6 @@ TEST_F(SettingsTests, BasicTest) {
   EXPECT_EQ("Terrier", name);
   settings_manager_->SetString(Param::db_name, "PelotonSP", action_context, setter_callback);
   EXPECT_EQ("PelotonSP", settings_manager_->GetString(Param::db_name));
-
 }
 
 // NOLINTNEXTLINE
@@ -146,23 +145,22 @@ TEST_F(SettingsTests, CallbackTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(SettingsTests, ConcurrentModifyTest)
-{
+TEST_F(SettingsTests, ConcurrentModifyTest) {
   setter_callback_fn setter_callback = SettingsTests::EmptySetterCallback;
 
-  std::thread t1([&]{
+  std::thread t1([&] {
     std::shared_ptr<common::ActionContext> action_context = std::make_shared<common::ActionContext>(1);
     settings_manager_->SetDouble(Param::pi, 3.14, action_context, setter_callback);
     EXPECT_EQ(3.14, settings_manager_->GetDouble(Param::pi));
   });
 
-  std::thread t2([&]{
+  std::thread t2([&] {
     std::shared_ptr<common::ActionContext> action_context = std::make_shared<common::ActionContext>(2);
     settings_manager_->SetBool(Param::parallel_execution, false, action_context, setter_callback);
     EXPECT_FALSE(settings_manager_->GetBool(Param::parallel_execution));
   });
 
-  std::thread t3([&]{
+  std::thread t3([&] {
     std::shared_ptr<common::ActionContext> action_context = std::make_shared<common::ActionContext>(3);
     settings_manager_->SetString(Param::db_name, "PelotonSP", action_context, setter_callback);
     EXPECT_EQ("PelotonSP", settings_manager_->GetString(Param::db_name));
@@ -171,7 +169,6 @@ TEST_F(SettingsTests, ConcurrentModifyTest)
   t1.join();
   t2.join();
   t3.join();
-
 }
 
 }  // namespace terrier::settings
