@@ -55,7 +55,6 @@ class Gate {
      */
     ~ScopedLock() { gate_->Unlock(); }
     DISALLOW_COPY_AND_MOVE(ScopedLock);
-
    private:
     Gate *const gate_;
   };
@@ -76,7 +75,6 @@ class Gate {
      */
     ~ScopedExit() { gate_->Traverse(); }
     DISALLOW_COPY_AND_MOVE(ScopedExit);
-
    private:
     Gate *const gate_;
   };
