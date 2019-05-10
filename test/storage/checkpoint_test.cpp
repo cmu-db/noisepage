@@ -310,7 +310,7 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryWithHugeRow) {
   // checkpoint
   StartCheckpointingThread(txn_manager, 50, table, schema);
   // Sleep for some time to ensure that the checkpoint thread has started at least one checkpoint. (Prevent racing)
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
   EndCheckpointingThread();
   // read first run
   transaction::TransactionContext *scan_txn = txn_manager->BeginTransaction();
