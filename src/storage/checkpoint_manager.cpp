@@ -36,6 +36,10 @@ void CheckpointManager::Checkpoint(const SqlTable &table, const catalog::Schema 
 }
 
 void CheckpointManager::Recover(const char *checkpoint_file_path) {
+  if (strcmp(checkpoint_file_path, "") == 0) {
+    // No valid checkpoints till now. Directly return.
+    return;
+  }
   BufferedTupleReader reader(checkpoint_file_path);
 
   while (reader.ReadNextBlock()) {
@@ -136,9 +140,7 @@ void CheckpointManager::RecoverFromLogs(const char *log_file_path,
       }
     } else if (log_record->RecordType() == LogRecordType::REDO) {
       auto *redo_record = log_record->GetUnderlyingRecordBodyAs<storage::RedoRecord>();
-      TERRIER_ASSERT(tuple_slot_map_.find(redo_record->GetTupleSlot()) != tuple_slot_map_.end(),
-                     "Tuple slot in a log record should have appeared in checkpoints");
-      // Should be careful here.
+      // Should be careful about the logic here.
       // Under current circumstances, if a tuple slot is not seen before in a checkpointed table,
       // then we reason it to be an insert record, otherwise an update record.
       TupleSlot old_slot = redo_record->GetTupleSlot();
