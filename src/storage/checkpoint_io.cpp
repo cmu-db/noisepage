@@ -5,7 +5,7 @@
 namespace terrier::storage {
 
 void AsyncBlockWriter::Open(const char *log_file_path, int buffer_num) {
-  out_ = PosixIoWrappers::Open(log_file_path, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
+  out_ = PosixIoWrappers::Open(log_file_path, O_WRONLY | O_CREAT, S_IWUSR);
   block_size_ = CHECKPOINT_BLOCK_SIZE;
 
   for (int i = 0; i < buffer_num; ++i) {

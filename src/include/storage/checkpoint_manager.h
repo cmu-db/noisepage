@@ -36,7 +36,6 @@ class CheckpointManager {
    * @param table
    * @param schema
    */
-
   void Process(transaction::TransactionContext *txn, const SqlTable &table, const catalog::Schema &schema) {
     StartCheckpoint(txn);
     // TODO(zhaozhes): This should actually iterate through all tables, using catalog information
@@ -100,7 +99,6 @@ class CheckpointManager {
    * @return path to the latest checkpoint file (with largest transaction id)
    */
   std::pair<std::string, terrier::transaction::timestamp_t> GetLatestCheckpointFilename() {
-    // TODO(zhaozhes): checkpoint directory is currently hard-coded here
     char const *path = ".";
     std::string file_name;
     auto largest_timestamp = static_cast<terrier::transaction::timestamp_t>(0);
@@ -132,7 +130,6 @@ class CheckpointManager {
    * Delete all checkpoint files, mainly for test purposes.
    */
   void UnlinkCheckpointFiles() {
-    // TODO(zhaozhes) : checkpoint directory is currently hard-coded here
     char const *path = ".";
     DIR *dir;
     struct dirent *ent;
@@ -183,9 +180,16 @@ class CheckpointManager {
    */
   void RecoverFromLogs(const char *log_file_path, terrier::transaction::timestamp_t checkpoint_timestamp);
 
-  // Used in log_test, so put in public
-  // TODO(zhaozhes): API should be refactored when oid is no longer hard-coded to 0. Should return oid as well
-  // to identify the table to redo.
+  /**
+   * Read next log record from a log file.
+   * Used in log_test, so put in public
+   * TODO(zhaozhes): API should be refactored when oid is no longer hard-coded to 0. Should return oid as well
+   * to identify the table to redo.
+   * @param in Reader.
+   * @param varlen_contents A vector for returning varlen contents.
+   * The caller will judge whether the pointers should be freed
+   * @return A log record.
+   */
   storage::LogRecord *ReadNextLogRecord(storage::BufferedLogReader *in, std::vector<byte *> *varlen_contents);
 
  private:

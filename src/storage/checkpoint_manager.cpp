@@ -75,7 +75,6 @@ void CheckpointManager::Recover(const char *checkpoint_file_path) {
   }
 }
 
-// TODO(zhaozhes): varlen log is not yet supported in logs.
 void CheckpointManager::RecoverFromLogs(const char *log_file_path,
                                         terrier::transaction::timestamp_t checkpoint_timestamp) {
   // The recovery algorithm scans the log file twice.
