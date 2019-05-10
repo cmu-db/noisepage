@@ -20,7 +20,6 @@ namespace terrier::storage {
 /**
  * The header of a page in the checkpoint file.
  */
-// TODO(Zhaozhe, Mengyang): More fields can be added to header
 class PACKED CheckpointFilePage {
  public:
   /**
@@ -224,7 +223,21 @@ class BufferedTupleWriter {
   /**
    * Write the content of the buffer into disk.
    */
-  void Persist() { PersistBuffer(); }
+  void Persist() {
+    // TODO(zhaozhe): calculate CHECKSUM. Currently using default 0 as checksum
+    if (page_offset_ == sizeof(CheckpointFilePage)) {
+      // If the buffer has no contents, just return
+      return;
+    }
+    AlignBufferOffset<uint64_t>();
+    if (block_size_ - page_offset_ > sizeof(uint32_t)) {
+      // append a zero to the last record, so that during recovery it can be recognized as the end
+      memset(buffer_ + page_offset_, 0, sizeof(uint32_t));
+    }
+    async_writer_.WriteBuffer(buffer_);
+    buffer_ = async_writer_.GetBuffer();
+    ResetBuffer();
+  }
 
   /**
    * Close current file and release the buffer.
@@ -281,7 +294,7 @@ class BufferedTupleWriter {
   uint32_t flags_;
 
   /**
-   * Wirte a piece of data into the buffer. If the buffer is not enough, persist current buffer and allocate a new one.
+   * Write a piece of data into the buffer. If the buffer is not enough, persist current buffer and allocate a new one.
    * Note that alignment is not dealt in this function. It has to be done manually.
    * @param data to be written.
    * @param size of the data.
@@ -311,22 +324,6 @@ class BufferedTupleWriter {
     GetPage()->SetVersion(version_);
     GetPage()->SetTableOid(catalog::table_oid_t(table_oid_));
     GetPage()->SetFlags(flags_);
-  }
-
-  void PersistBuffer() {
-    // TODO(zhaozhe): calculate CHECKSUM. Currently using default 0 as checksum
-    if (page_offset_ == sizeof(CheckpointFilePage)) {
-      // If the buffer has no contents, just return
-      return;
-    }
-    AlignBufferOffset<uint64_t>();
-    if (block_size_ - page_offset_ >= sizeof(uint32_t)) {
-      // append a zero to the last record, so that during recovery it can be recognized as the end
-      memset(buffer_ + page_offset_, 0, sizeof(uint32_t));
-    }
-    async_writer_.WriteBuffer(buffer_);
-    buffer_ = async_writer_.GetBuffer();
-    ResetBuffer();
   }
 
   template <class T>
