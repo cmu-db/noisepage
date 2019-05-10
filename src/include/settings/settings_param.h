@@ -1,5 +1,6 @@
 #pragma once
 #include <type/transient_value.h>
+#include <memory>
 #include <string>
 #include <utility>
 

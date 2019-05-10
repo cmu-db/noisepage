@@ -116,8 +116,8 @@ void SettingsManager::SetInt(Param param, int32_t value, std::shared_ptr<ActionC
       ActionState action_state =
           InvokeCallback(param, static_cast<void *>(&old_value), static_cast<void *>(&value), action_context);
       if (action_state == ActionState::FAILURE) {
-        bool result = SetValue(param, ValueFactory::GetInteger(old_value));
-        TERRIER_ASSERT(result, "Resetting parameter value should not fail");
+        TERRIER_ASSERT(SetValue(param, ValueFactory::GetInteger(old_value)),
+                       "Resetting parameter value should not fail");
       }
     }
   }
@@ -140,8 +140,8 @@ void SettingsManager::SetDouble(Param param, double value, std::shared_ptr<Actio
       ActionState action_state =
           InvokeCallback(param, static_cast<void *>(&old_value), static_cast<void *>(&value), action_context);
       if (action_state == ActionState::FAILURE) {
-        bool result = SetValue(param, ValueFactory::GetDecimal(old_value));
-        TERRIER_ASSERT(result, "Resetting parameter value should not fail");
+        TERRIER_ASSERT(SetValue(param, ValueFactory::GetDecimal(old_value)),
+                       "Resetting parameter value should not fail");
       }
     }
   }
@@ -158,8 +158,7 @@ void SettingsManager::SetBool(Param param, bool value, std::shared_ptr<ActionCon
     ActionState action_state =
         InvokeCallback(param, static_cast<void *>(&old_value), static_cast<void *>(&value), action_context);
     if (action_state == ActionState::FAILURE) {
-      bool result = SetValue(param, ValueFactory::GetBoolean(old_value));
-      TERRIER_ASSERT(result, "Resetting parameter value should not fail");
+      TERRIER_ASSERT(SetValue(param, ValueFactory::GetBoolean(old_value)), "Resetting parameter value should not fail");
     }
   }
   setter_callback(action_context);
@@ -176,8 +175,7 @@ void SettingsManager::SetString(Param param, const std::string_view &value,
     ActionState action_state =
         InvokeCallback(param, static_cast<void *>(&old_value), static_cast<void *>(&new_value), action_context);
     if (action_state == ActionState::FAILURE) {
-      bool result = SetValue(param, ValueFactory::GetVarChar(old_value));
-      TERRIER_ASSERT(result, "Resetting parameter value should not fail");
+      TERRIER_ASSERT(SetValue(param, ValueFactory::GetVarChar(old_value)), "Resetting parameter value should not fail");
     }
   }
   setter_callback(action_context);
