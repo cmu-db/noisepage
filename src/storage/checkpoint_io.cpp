@@ -5,7 +5,7 @@
 namespace terrier::storage {
 
 void AsyncBlockWriter::Open(const char *log_file_path, int buffer_num) {
-  out_ = PosixIoWrappers::Open(log_file_path, O_WRONLY | O_CREAT, S_IWUSR);
+  out_ = PosixIoWrappers::Open(log_file_path, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
   block_size_ = CHECKPOINT_BLOCK_SIZE;
 
   for (int i = 0; i < buffer_num; ++i) {
@@ -68,8 +68,6 @@ void BufferedTupleWriter::SerializeTuple(ProjectedRow *row, const TupleSlot *slo
 
   // Serialize the row
   // First serialize row, then tupleslot, finally varlens (if any).
-  // TODO(mengyang): currently we persist the current buffer and allocate a new one, if the buffer is not enough. This
-  //                 can (should) be changed to save storage.
   AlignBufferOffset<uint64_t>();  // align for ProjectedRow
   uint32_t checkpoint_record_size = row->Size() + static_cast<uint32_t>(sizeof(TupleSlot)) + varlen_size;
   if (page_offset_ + checkpoint_record_size > block_size_) {

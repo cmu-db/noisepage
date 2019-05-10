@@ -180,6 +180,9 @@ class CheckpointManager {
    */
   void RecoverFromLogs(const char *log_file_path, terrier::transaction::timestamp_t checkpoint_timestamp);
 
+  // Used in log_test, so put in public
+  // TODO(zhaozhes): API should be refactored when oid is no longer hard-coded to 0. Should return oid as well
+  // to identify the table to redo.
   /**
    * Read next log record from a log file.
    * Used in log_test, so put in public
