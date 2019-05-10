@@ -70,27 +70,23 @@ timestamp_t TransactionManager::ReadOnlyCommitCriticalSection(TransactionContext
 
 timestamp_t TransactionManager::UpdatingCommitCriticalSection(TransactionContext *const txn, const callback_fn callback,
                                                               void *const callback_arg) {
-  // Lock the gate for new transactions
-  common::Gate::ScopedLock gate(&txn_gate_);
-  const timestamp_t commit_time = time_++;
-
-  // TODO(Tianyu):
-  // WARNING: This operation has to happen in the critical section to make sure that commits appear in serial order
-  // to the log manager. Otherwise there are rare races where:
+  // WARNING: This operation has to happen appear atomic to new transactions:
   // transaction 1        transaction 2
   //   begin
   //   write a
   //   commit
-  //                          begin
+  //   add to log             begin
   //                          read a
-  //                          ...
-  //                          commit
-  //                          add to log manager queue
-  //  add to queue
+  //   unlock a               ...
+  //                          read a
   //
-  //  Where transaction 2's commit can be logged out before transaction 1. If the system crashes between txn 2's
-  //  commit is written out and txn 1's commit is written out, we are toast.
-  //  Make sure you solve this problem before you remove this latch for whatever reason.
+  //  Transaction 2 will incorrectly read the original version of 'a' the first
+  //  time because transaction 1 hasn't made its writes visible and then reads
+  //  the correct version the second time, violating snapshot isolation.
+  //  Make sure you solve this problem before you remove this gate for whatever reason.
+  common::Gate::ScopedLock gate(&txn_gate_);
+  const timestamp_t commit_time = time_++;
+
   LogCommit(txn, commit_time, callback, callback_arg);
   // flip all timestamps to be committed
   for (auto &it : txn->undo_buffer_) it.Timestamp().store(commit_time);
