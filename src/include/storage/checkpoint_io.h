@@ -9,7 +9,7 @@
 namespace terrier::storage {
 // TODO(Zhaozhe): Should fetch block_size. Use magic number first.
 // The block size to output to disk every time
-#define CHECKPOINT_BLOCK_SIZE 4096
+#define CHECKPOINT_BLOCK_SIZE (512 * 1024)
 // TODO(Yuning): Should allow setting number of pre-allocated buffers.
 // Use magic number before we have a setting manager.
 #define CHECKPOINT_BUF_NUM 10
