@@ -3,7 +3,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/uio.h>
-#include <transaction/transaction_context.h>
 #include <unistd.h>
 #include <cerrno>
 #include <cstring>
