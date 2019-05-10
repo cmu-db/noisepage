@@ -50,6 +50,9 @@ TEST_F(AttributeHandleTests, BasicCorrectnessTest) {
   auto attribute_entry_ptr = attribute_handle.GetAttributeEntry(txn_, terrier_table_oid, "oid");
   EXPECT_NE(attribute_entry_ptr, nullptr);
 
+  attribute_entry_ptr = attribute_handle.GetAttributeEntry(txn_, terrier_table_oid, attribute_entry_ptr->GetOid());
+  EXPECT_NE(attribute_entry_ptr, nullptr);
+
   // the oid should belongs to pg_database table
   uint32_t rel_id = type::TransientValuePeeker::PeekInteger(attribute_entry_ptr->GetColumn(1));
   EXPECT_EQ(rel_id, !table_handle.NameToOid(txn_, "pg_database"));

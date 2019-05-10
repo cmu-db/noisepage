@@ -40,5 +40,8 @@ TEST_F(TablespaceHandleTests, BasicCorrectnessTest) {
   auto tsp_handle = catalog_->GetTablespaceHandle();
   auto tsp_entry_ptr = tsp_handle.GetTablespaceEntry(txn_, "pg_global");
   EXPECT_EQ("pg_global", type::TransientValuePeeker::PeekVarChar(tsp_entry_ptr->GetColumn(1)));
+
+  tsp_entry_ptr = tsp_handle.GetTablespaceEntry(txn_, tsp_entry_ptr->GetOid());
+  EXPECT_EQ("pg_global", type::TransientValuePeeker::PeekVarChar(tsp_entry_ptr->GetColumn(1)));
 }
 }  // namespace terrier
