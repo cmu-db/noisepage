@@ -317,7 +317,6 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryWithHugeRow) {
   std::vector<std::string> original_rows;
   StorageTestUtil::PrintAllRows(scan_txn, table, &original_rows);
   txn_manager->Commit(scan_txn, StorageTestUtil::EmptyCallback, nullptr);
-  log_manager_->Process();
   // recovery to another table
   std::pair<std::string, terrier::transaction::timestamp_t> checkpoint_pair =
       checkpoint_manager_.GetLatestCheckpointFilename();
