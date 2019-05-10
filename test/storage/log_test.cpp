@@ -189,7 +189,7 @@ TEST_F(WriteAheadLoggingTests, LargeLogTestWithVarlen) {
       // TODO(Tianyu): This is hacky, but it will be a pain to extract the initial transaction. The LargeTransactionTest
       //  harness probably needs some refactor (later after wal is in).
       // This the initial setup transaction.
-      for (auto varlen_content: varlen_contents) {
+      for (auto varlen_content : varlen_contents) {
         delete[] varlen_content;
       }
       delete[] reinterpret_cast<byte *>(log_record);
@@ -200,7 +200,7 @@ TEST_F(WriteAheadLoggingTests, LargeLogTestWithVarlen) {
     if (it == txns_map.end()) {
       // Okay to write out aborted transaction's redos, just cannot be a commit
       EXPECT_NE(log_record->RecordType(), storage::LogRecordType::COMMIT);
-      for (auto varlen_content: varlen_contents) {
+      for (auto varlen_content : varlen_contents) {
         delete[] varlen_content;
       }
       delete[] reinterpret_cast<byte *>(log_record);
@@ -223,7 +223,7 @@ TEST_F(WriteAheadLoggingTests, LargeLogTestWithVarlen) {
       delete[] reinterpret_cast<byte *>(update_it->second);
       it->second->Updates()->erase(update_it);
     }
-    for (auto varlen_content: varlen_contents) {
+    for (auto varlen_content : varlen_contents) {
       delete[] varlen_content;
     }
     delete[] reinterpret_cast<byte *>(log_record);

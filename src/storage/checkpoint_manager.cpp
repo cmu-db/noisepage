@@ -101,7 +101,7 @@ void CheckpointManager::RecoverFromLogs(const char *log_file_path,
         valid_begin_ts.insert(log_record->TxnBegin());
       }
     }
-    for (auto varlen_content: varlen_contents) {
+    for (auto varlen_content : varlen_contents) {
       delete[] varlen_content;
     }
     delete[] reinterpret_cast<byte *>(log_record);
@@ -117,7 +117,7 @@ void CheckpointManager::RecoverFromLogs(const char *log_file_path,
       // This record is from an uncommited transaction or out-of-date transaction.
       // Caution: We have to deallocate the varlen content first to prevent memory leak. We do not have to worry
       // about the valid log records, because they will be reclaimed by GC.
-      for (auto varlen_content: varlen_contents) {
+      for (auto varlen_content : varlen_contents) {
         delete[] varlen_content;
       }
       delete[] reinterpret_cast<byte *>(log_record);
@@ -159,8 +159,8 @@ void CheckpointManager::RecoverFromLogs(const char *log_file_path,
   }
 }
 
-storage::LogRecord *CheckpointManager::ReadNextLogRecord(
-  storage::BufferedLogReader *in, std::vector<byte *> &varlen_contents) {
+storage::LogRecord *CheckpointManager::ReadNextLogRecord(storage::BufferedLogReader *in,
+                                                         std::vector<byte *> &varlen_contents) {
   // TODO(Justin): Fit this to new serialization format after it is complete.
   auto size = in->ReadValue<uint32_t>();
   byte *buf = common::AllocationUtil::AllocateAligned(size);

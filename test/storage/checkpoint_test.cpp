@@ -4,8 +4,8 @@
 #include <string>
 #include <vector>
 #include "common/object_pool.h"
-#include "storage/garbage_collector.h"
 #include "storage/checkpoint_manager.h"
+#include "storage/garbage_collector.h"
 #include "storage/sql_table.h"
 #include "storage/storage_util.h"
 #include "util/random_test_util.h"
@@ -44,14 +44,14 @@ class CheckpointTests : public TerrierTest {
     log_thread_.join();
     log_manager_->Shutdown();
   }
-  
+
   void StartGC(transaction::TransactionManager *txn_manager, uint32_t gc_period_milli) {
     gc_ = new storage::GarbageCollector(txn_manager);
     run_gc_ = true;
     gc_on_ = true;
     gc_thread_ = std::thread([gc_period_milli, this] { GCThreadLoop(gc_period_milli); });
   }
-  
+
   void EndGC() {
     run_gc_ = false;
     gc_thread_.join();
@@ -60,13 +60,12 @@ class CheckpointTests : public TerrierTest {
     gc_->PerformGarbageCollection();
     delete gc_;
   }
-  
-  
+
   // Members related to running gc.
   volatile bool run_gc_ = false;
   std::thread gc_thread_;
   storage::GarbageCollector *gc_;
-  
+
   storage::CheckpointManager checkpoint_manager_{CHECKPOINT_FILE_PREFIX};
   transaction::TransactionManager *txn_manager_;
   std::default_random_engine generator_;
@@ -91,14 +90,14 @@ class CheckpointTests : public TerrierTest {
       log_manager_->Process();
     }
   }
-  
+
   void GCThreadLoop(uint32_t gc_period_milli) {
     while (run_gc_) {
       std::this_thread::sleep_for(std::chrono::milliseconds(gc_period_milli));
       gc_->PerformGarbageCollection();
     }
   }
-  
+
   bool gc_on_ = false;
   bool enable_checkpointing_;
   std::thread checkpoint_thread_;
@@ -372,7 +371,7 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryNoVarlen) {
                                              .SetBookkeeping(false)
                                              .SetLogManager(log_manager_)
                                              .build();
-  
+
   StartGC(tested.GetTxnManager(), 10);
   storage::SqlTable *table = tested.GetTable();
   const catalog::Schema *schema = tested.Schema();
@@ -410,7 +409,7 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryNoVarlen) {
   std::vector<std::string> recovered_rows;
   StorageTestUtil::PrintAllRows(scan_txn_2, recovered_table, &recovered_rows);
   txn_manager->Commit(scan_txn_2, StorageTestUtil::EmptyCallback, nullptr);
-  
+
   // Should be careful that we should not end logging earlier because we have to flush out
   // the recovery transaction. Or there will be memory leak.
   EndLogging();
