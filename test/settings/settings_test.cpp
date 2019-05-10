@@ -31,6 +31,7 @@ class SettingsTests : public TerrierTest {
   catalog::Catalog *catalog_;
   const uint64_t defaultBufferPoolSize = 100000;
   storage::RecordBufferSegmentPool buffer_pool_{defaultBufferPoolSize, 100};
+
   storage::GarbageCollector *gc_;
   volatile bool run_gc_;
   volatile bool gc_paused_;
