@@ -92,8 +92,10 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
                                              .SetLogManager(&log_manager_)
                                              .build();
   StartLogging(10);
+  StartGC(tested.GetTxnManager(), 10);
   auto result = tested.SimulateOltp(100, 4);
   EndLogging();
+  EndGC();
 
   checkpoint_manager_.RegisterTable(tested.GetTable());
   std::unordered_map<transaction::timestamp_t, SqlRandomWorkloadTransaction *> txns_map;
@@ -170,8 +172,10 @@ TEST_F(WriteAheadLoggingTests, LargeLogTestWithVarlen) {
                                              .SetVarlenAllowed(true)
                                              .build();
   StartLogging(10);
+  StartGC(tested.GetTxnManager(), 10);
   auto result = tested.SimulateOltp(100, 4);
   EndLogging();
+  EndGC();
 
   checkpoint_manager_.RegisterTable(tested.GetTable());
   std::unordered_map<transaction::timestamp_t, SqlRandomWorkloadTransaction *> txns_map;
