@@ -185,7 +185,7 @@ class SqlTable {
    * @return the data table underlying sqltable
    */
   storage::DataTable *get_data_table() { return table_.data_table; }
-  
+
   /**
    * This is a hacky backdoor for testing existing log infrastructure. Because the current transaction and logging
    * infrastructure are all based on data tables, but checkpointing is implemented on sql tables.
