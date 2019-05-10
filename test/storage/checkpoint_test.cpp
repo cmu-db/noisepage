@@ -317,6 +317,7 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryWithHugeRow) {
   std::vector<std::string> original_rows;
   StorageTestUtil::PrintAllRows(scan_txn, table, &original_rows);
   txn_manager->Commit(scan_txn, StorageTestUtil::EmptyCallback, nullptr);
+  log_manager_->Process();
   // recovery to another table
   std::pair<std::string, terrier::transaction::timestamp_t> checkpoint_pair =
       checkpoint_manager_.GetLatestCheckpointFilename();
@@ -386,7 +387,7 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryNoVarlen) {
   // Run transactions to generate logs
   StartLogging(10);
   auto result = tested.SimulateOltp(100, 4);
-
+  log_manager_->Process();
   // read first run
   transaction::TransactionContext *scan_txn = txn_manager->BeginTransaction();
   std::vector<std::string> original_rows;
@@ -468,7 +469,7 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryWithVarlen) {
   // Run transactions to generate logs
   StartLogging(10);
   auto result = tested.SimulateOltp(100, 4);
-
+  log_manager_->Process();
   // read first run
   transaction::TransactionContext *scan_txn = txn_manager->BeginTransaction();
   std::vector<std::string> original_rows;
@@ -520,28 +521,28 @@ TEST_F(CheckpointTests, SimpleRecoveryWithVarlenOnlyFromLogs) {
   const uint32_t num_columns = 10;
   // initialize test
   SqlLargeTransactionTestObject tested = SqlLargeTransactionTestObject::Builder()
-    .SetMaxColumns(num_columns)
-    .SetInitialTableSize(num_rows)
-    .SetTxnLength(5)
-    .SetUpdateSelectRatio({0.5, 0.5})
-    .SetBlockStore(&block_store_)
-    .SetBufferPool(&pool_)
-    .SetGenerator(&generator_)
-    .SetGcOn(true)
-    .SetBookkeeping(false)
-    .SetLogManager(log_manager_)
-    .SetVarlenAllowed(true)
-    .build();
+                                             .SetMaxColumns(num_columns)
+                                             .SetInitialTableSize(num_rows)
+                                             .SetTxnLength(5)
+                                             .SetUpdateSelectRatio({0.5, 0.5})
+                                             .SetBlockStore(&block_store_)
+                                             .SetBufferPool(&pool_)
+                                             .SetGenerator(&generator_)
+                                             .SetGcOn(true)
+                                             .SetBookkeeping(false)
+                                             .SetLogManager(log_manager_)
+                                             .SetVarlenAllowed(true)
+                                             .build();
   StartGC(tested.GetTxnManager(), 10);
   storage::SqlTable *table = tested.GetTable();
   const catalog::Schema *schema = tested.Schema();
   transaction::TransactionManager *txn_manager = tested.GetTxnManager();
   // No checkpoints in this test.
-  
+
   // Run transactions to generate logs
   StartLogging(10);
   auto result = tested.SimulateOltp(100, 4);
-  
+  log_manager_->Process();
   // read first run
   transaction::TransactionContext *scan_txn = txn_manager->BeginTransaction();
   std::vector<std::string> original_rows;
@@ -549,7 +550,7 @@ TEST_F(CheckpointTests, SimpleRecoveryWithVarlenOnlyFromLogs) {
   txn_manager->Commit(scan_txn, StorageTestUtil::EmptyCallback, nullptr);
   // recovery to another table
   std::pair<std::string, terrier::transaction::timestamp_t> checkpoint_pair =
-    checkpoint_manager_.GetLatestCheckpointFilename();
+      checkpoint_manager_.GetLatestCheckpointFilename();
   transaction::TransactionContext *recovery_txn = txn_manager->BeginTransaction();
   storage::BlockStore block_store_{10000, 10000};
   storage::SqlTable *recovered_table = new storage::SqlTable(&block_store_, *schema, catalog::table_oid_t(0));
