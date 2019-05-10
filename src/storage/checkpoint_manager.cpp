@@ -218,7 +218,6 @@ storage::LogRecord *CheckpointManager::ReadNextLogRecord(
       const auto varlen_attribute_size = in->ReadValue<uint32_t>();
       // Allocate a varlen entry of this many bytes.
       byte *varlen_content = common::AllocationUtil::AllocateAligned(varlen_attribute_size);
-      varlen_contents.push_back(varlen_content);
       // Fill the entry with the next bytes from the log file.
       in->Read(varlen_content, varlen_attribute_size);
       // The attribute value in the ProjectedRow will be a pointer to this varlen entry.
@@ -226,8 +225,12 @@ storage::LogRecord *CheckpointManager::ReadNextLogRecord(
       // Set the value to be the address of the varlen_entry.
       if (varlen_attribute_size > VarlenEntry::InlineThreshold()) {
         *entry = storage::VarlenEntry::Create(varlen_content, varlen_attribute_size, true);
+        // leave memory to be reclaimed outside, because we do not know whether GC is responsible for this now
+        varlen_contents.push_back(varlen_content);
       } else {
         *entry = storage::VarlenEntry::CreateInline(varlen_content, varlen_attribute_size);
+        // should reclaim memory for inclined entries
+        delete[] varlen_content;
       }
     } else {
       // For inlined attributes, just directly read into the ProjectedRow.
