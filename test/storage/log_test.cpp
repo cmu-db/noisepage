@@ -14,6 +14,7 @@
 #define LOG_FILE_NAME "test.log"
 #define CHECKPOINT_FILE_PREFIX "checkpoint_file_"
 
+// Note: make sure to clear log files before testing. Because logging's file operation is append.
 namespace terrier {
 class WriteAheadLoggingTests : public TerrierTest {
  public:

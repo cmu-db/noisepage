@@ -138,7 +138,7 @@ void CheckpointManager::RecoverFromLogs(const char *log_file_path,
       auto *redo_record = log_record->GetUnderlyingRecordBodyAs<storage::RedoRecord>();
       TERRIER_ASSERT(tuple_slot_map_.find(redo_record->GetTupleSlot()) != tuple_slot_map_.end(),
                      "Tuple slot in a log record should have appeared in checkpoints");
-      // Looks like hack here and requires scrutiny once implementation changes.
+      // Should be careful here.
       // Under current circumstances, if a tuple slot is not seen before in a checkpointed table,
       // then we reason it to be an insert record, otherwise an update record.
       TupleSlot old_slot = redo_record->GetTupleSlot();
