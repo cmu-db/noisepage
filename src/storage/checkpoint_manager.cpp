@@ -89,7 +89,8 @@ void CheckpointManager::RecoverFromLogs(const char *log_file_path,
   // First pass
   BufferedLogReader in(log_file_path);
   while (in.HasMore()) {
-    LogRecord *log_record = ReadNextLogRecord(&in);
+    std::vector<byte *> dummy_varlen_contents;
+    LogRecord *log_record = ReadNextLogRecord(&in, dummy_varlen_contents);
     if (log_record->RecordType() == LogRecordType::COMMIT) {
       TERRIER_ASSERT(valid_begin_ts.find(log_record->TxnBegin()) == valid_begin_ts.end(),
                      "Commit records should be mapped to unique begin timestamps.");
@@ -107,16 +108,22 @@ void CheckpointManager::RecoverFromLogs(const char *log_file_path,
   // Second pass
   in = BufferedLogReader(log_file_path);
   while (in.HasMore()) {
-    LogRecord *log_record = ReadNextLogRecord(&in);
+    std::vector<byte *> varlen_contents;
+    LogRecord *log_record = ReadNextLogRecord(&in, varlen_contents);
     if (valid_begin_ts.find(log_record->TxnBegin()) == valid_begin_ts.end()) {
       // This record is from an uncommited transaction or out-of-date transaction.
+      // Caution: We have to deallocate the varlen content first to prevent memory leak. We do not have to worry
+      // about the valid log records, because they will be reclaimed by GC.
+      for (auto varlen_content: varlen_contents) {
+        delete[] varlen_content;
+      }
       delete[] reinterpret_cast<byte *>(log_record);
       continue;
     }
 
     // TODO(zhaozhes): support for multi table. However, the log records stores data_table instead of
-    // sql_table, which should be modified I think, so I think we should not currently use the API from log records.
-    // For the above reasons, we currently can only support one table recovery, hard-coded as oid 0.
+    // sql_table, and always record table oid 0.
+    // For this reason, we currently can only support one table recovery, hard-coded as oid 0.
     SqlTable *table = GetTable(static_cast<catalog::table_oid_t>(0));
     if (log_record->RecordType() == LogRecordType::DELETE) {
       auto *delete_record = log_record->GetUnderlyingRecordBodyAs<storage::DeleteRecord>();
@@ -149,7 +156,8 @@ void CheckpointManager::RecoverFromLogs(const char *log_file_path,
   }
 }
 
-storage::LogRecord *CheckpointManager::ReadNextLogRecord(storage::BufferedLogReader *in) {
+storage::LogRecord *CheckpointManager::ReadNextLogRecord(
+  storage::BufferedLogReader *in, std::vector<byte *> &varlen_contents) {
   // TODO(Justin): Fit this to new serialization format after it is complete.
   auto size = in->ReadValue<uint32_t>();
   byte *buf = common::AllocationUtil::AllocateAligned(size);
@@ -207,6 +215,7 @@ storage::LogRecord *CheckpointManager::ReadNextLogRecord(storage::BufferedLogRea
       const auto varlen_attribute_size = in->ReadValue<uint32_t>();
       // Allocate a varlen entry of this many bytes.
       byte *varlen_content = common::AllocationUtil::AllocateAligned(varlen_attribute_size);
+      varlen_contents.push_back(varlen_content);
       // Fill the entry with the next bytes from the log file.
       in->Read(varlen_content, varlen_attribute_size);
       // The attribute value in the ProjectedRow will be a pointer to this varlen entry.

@@ -103,7 +103,8 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
   // At this point all the log records should have been written out, we can start reading stuff back in.
   storage::BufferedLogReader in(LOG_FILE_NAME);
   while (in.HasMore()) {
-    storage::LogRecord *log_record = checkpoint_manager_.ReadNextLogRecord(&in);
+    std::vector<byte *> dummy_varlen_contents;
+    storage::LogRecord *log_record = checkpoint_manager_.ReadNextLogRecord(&in, dummy_varlen_contents);
     if (log_record->TxnBegin() == transaction::timestamp_t(0)) {
       // TODO(Tianyu): This is hacky, but it will be a pain to extract the initial transaction. The LargeTransactionTest
       //  harness probably needs some refactor (later after wal is in).
@@ -181,7 +182,8 @@ TEST_F(WriteAheadLoggingTests, LargeLogTestWithVarlen) {
   // At this point all the log records should have been written out, we can start reading stuff back in.
   storage::BufferedLogReader in(LOG_FILE_NAME);
   while (in.HasMore()) {
-    storage::LogRecord *log_record = checkpoint_manager_.ReadNextLogRecord(&in);
+    std::vector<byte *> dummy_varlen_contents;
+    storage::LogRecord *log_record = checkpoint_manager_.ReadNextLogRecord(&in, dummy_varlen_contents);
     if (log_record->TxnBegin() == transaction::timestamp_t(0)) {
       // TODO(Tianyu): This is hacky, but it will be a pain to extract the initial transaction. The LargeTransactionTest
       //  harness probably needs some refactor (later after wal is in).
@@ -262,7 +264,8 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
   int log_records_count = 0;
   storage::BufferedLogReader in(LOG_FILE_NAME);
   while (in.HasMore()) {
-    storage::LogRecord *log_record = checkpoint_manager_.ReadNextLogRecord(&in);
+    std::vector<byte *> dummy_varlen_contents;
+    storage::LogRecord *log_record = checkpoint_manager_.ReadNextLogRecord(&in, dummy_varlen_contents);
     if (log_record->TxnBegin() == transaction::timestamp_t(0)) {
       // (TODO) Currently following pattern from LargeLogTest of skipping the initial transaction. When the transaction
       // testing framework changes, fix this.

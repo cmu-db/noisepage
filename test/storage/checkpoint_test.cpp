@@ -412,6 +412,9 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryNoVarlen) {
   txn_manager->Commit(scan_txn_2, StorageTestUtil::EmptyCallback, nullptr);
   // Sleep for some time to ensure that the checkpoint thread has started at least one checkpoint. (Prevent racing)
   std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  
+  // Should be careful that we should not end logging earlier because we have to flush out
+  // the recovery transaction. Or there will be memory leak.
   EndLogging();
   EndGC();
   // compare
