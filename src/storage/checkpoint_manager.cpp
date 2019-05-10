@@ -90,7 +90,7 @@ void CheckpointManager::RecoverFromLogs(const char *log_file_path,
   BufferedLogReader in(log_file_path);
   while (in.HasMore()) {
     std::vector<byte *> varlen_contents;
-    LogRecord *log_record = ReadNextLogRecord(&in, varlen_contents);
+    LogRecord *log_record = ReadNextLogRecord(&in, &varlen_contents);
     if (log_record->RecordType() == LogRecordType::COMMIT) {
       TERRIER_ASSERT(valid_begin_ts.find(log_record->TxnBegin()) == valid_begin_ts.end(),
                      "Commit records should be mapped to unique begin timestamps.");
@@ -112,7 +112,7 @@ void CheckpointManager::RecoverFromLogs(const char *log_file_path,
   in = BufferedLogReader(log_file_path);
   while (in.HasMore()) {
     std::vector<byte *> varlen_contents;
-    LogRecord *log_record = ReadNextLogRecord(&in, varlen_contents);
+    LogRecord *log_record = ReadNextLogRecord(&in, &varlen_contents);
     if (valid_begin_ts.find(log_record->TxnBegin()) == valid_begin_ts.end()) {
       // This record is from an uncommited transaction or out-of-date transaction.
       // Caution: We have to deallocate the varlen content first to prevent memory leak. We do not have to worry
@@ -160,7 +160,7 @@ void CheckpointManager::RecoverFromLogs(const char *log_file_path,
 }
 
 storage::LogRecord *CheckpointManager::ReadNextLogRecord(storage::BufferedLogReader *in,
-                                                         std::vector<byte *> &varlen_contents) {
+                                                         std::vector<byte *> *varlen_contents) {
   // TODO(Justin): Fit this to new serialization format after it is complete.
   auto size = in->ReadValue<uint32_t>();
   byte *buf = common::AllocationUtil::AllocateAligned(size);
@@ -226,7 +226,7 @@ storage::LogRecord *CheckpointManager::ReadNextLogRecord(storage::BufferedLogRea
       if (varlen_attribute_size > VarlenEntry::InlineThreshold()) {
         *entry = storage::VarlenEntry::Create(varlen_content, varlen_attribute_size, true);
         // leave memory to be reclaimed outside, because we do not know whether GC is responsible for this now
-        varlen_contents.push_back(varlen_content);
+        varlen_contents->push_back(varlen_content);
       } else {
         *entry = storage::VarlenEntry::CreateInline(varlen_content, varlen_attribute_size);
         // should reclaim memory for inclined entries

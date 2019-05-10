@@ -105,7 +105,7 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
   storage::BufferedLogReader in(LOG_FILE_NAME);
   while (in.HasMore()) {
     std::vector<byte *> dummy_varlen_contents;
-    storage::LogRecord *log_record = checkpoint_manager_.ReadNextLogRecord(&in, dummy_varlen_contents);
+    storage::LogRecord *log_record = checkpoint_manager_.ReadNextLogRecord(&in, &dummy_varlen_contents);
     if (log_record->TxnBegin() == transaction::timestamp_t(0)) {
       // TODO(Tianyu): This is hacky, but it will be a pain to extract the initial transaction. The LargeTransactionTest
       //  harness probably needs some refactor (later after wal is in).
@@ -184,7 +184,7 @@ TEST_F(WriteAheadLoggingTests, LargeLogTestWithVarlen) {
   storage::BufferedLogReader in(LOG_FILE_NAME);
   while (in.HasMore()) {
     std::vector<byte *> varlen_contents;
-    storage::LogRecord *log_record = checkpoint_manager_.ReadNextLogRecord(&in, varlen_contents);
+    storage::LogRecord *log_record = checkpoint_manager_.ReadNextLogRecord(&in, &varlen_contents);
     if (log_record->TxnBegin() == transaction::timestamp_t(0)) {
       // TODO(Tianyu): This is hacky, but it will be a pain to extract the initial transaction. The LargeTransactionTest
       //  harness probably needs some refactor (later after wal is in).
@@ -277,7 +277,7 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
   storage::BufferedLogReader in(LOG_FILE_NAME);
   while (in.HasMore()) {
     std::vector<byte *> dummy_varlen_contents;
-    storage::LogRecord *log_record = checkpoint_manager_.ReadNextLogRecord(&in, dummy_varlen_contents);
+    storage::LogRecord *log_record = checkpoint_manager_.ReadNextLogRecord(&in, &dummy_varlen_contents);
     if (log_record->TxnBegin() == transaction::timestamp_t(0)) {
       // (TODO) Currently following pattern from LargeLogTest of skipping the initial transaction. When the transaction
       // testing framework changes, fix this.

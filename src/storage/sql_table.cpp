@@ -1,5 +1,6 @@
 #include "storage/sql_table.h"
 #include <set>
+#include <utility>
 #include <vector>
 #include "common/macros.h"
 #include "storage/storage_util.h"

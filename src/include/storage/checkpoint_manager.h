@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 #include "common/spin_latch.h"
 #include "common/strong_typedef.h"
@@ -185,7 +186,7 @@ class CheckpointManager {
   // Used in log_test, so put in public
   // TODO(zhaozhes): API should be refactored when oid is no longer hard-coded to 0. Should return oid as well
   // to identify the table to redo.
-  storage::LogRecord *ReadNextLogRecord(storage::BufferedLogReader *in, std::vector<byte *> &varlen_contents);
+  storage::LogRecord *ReadNextLogRecord(storage::BufferedLogReader *in, std::vector<byte *> *varlen_contents);
 
  private:
   std::string checkpoint_file_path_prefix_;
