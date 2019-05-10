@@ -372,6 +372,7 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryNoVarlen) {
                                              .SetBookkeeping(false)
                                              .SetLogManager(log_manager_)
                                              .build();
+  
   StartGC(tested.GetTxnManager(), 10);
   storage::SqlTable *table = tested.GetTable();
   const catalog::Schema *schema = tested.Schema();
@@ -385,7 +386,6 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryNoVarlen) {
   // Run transactions to generate logs
   StartLogging(10);
   auto result = tested.SimulateOltp(100, 4);
-  EndLogging();
 
   // read first run
   transaction::TransactionContext *scan_txn = txn_manager->BeginTransaction();
@@ -412,6 +412,7 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryNoVarlen) {
   txn_manager->Commit(scan_txn_2, StorageTestUtil::EmptyCallback, nullptr);
   // Sleep for some time to ensure that the checkpoint thread has started at least one checkpoint. (Prevent racing)
   std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  EndLogging();
   EndGC();
   // compare
   std::vector<std::string> diff1, diff2;
