@@ -84,8 +84,16 @@ class PACKED CheckpointFilePage {
    */
   bool GetFlag(uint32_t pos) { return Bitmap().Test(pos); }
 
+  /**
+   * Set the version field of this page.
+   * @param version value of the table version (or the catalog type).
+   */
   void SetVersion(uint32_t version) { version_ = version; }
 
+  /**
+   * Get the value of the version field.
+   * @return Version number or catalog type.
+   */
   uint32_t GetVersion() { return version_; }
 
  private:
@@ -101,8 +109,16 @@ class PACKED CheckpointFilePage {
   uint32_t flags_;
   byte payload_[0];
 
+  /**
+   * Return the flags field as a Bitmap.
+   * @return Bitmap
+   */
   common::RawBitmap &Bitmap() { return *reinterpret_cast<common::RawBitmap *>(&flags_); }
 
+  /**
+   * Return the flags field as a Bitmap.
+   * @return Bitmap
+   */
   const common::RawBitmap &Bitmap() const { return *reinterpret_cast<const common::RawBitmap *>(&flags_); }
 };
 
@@ -317,6 +333,9 @@ class BufferedTupleWriter {
     }
   }
 
+  /**
+   * Reset the content of the buffer, including: initializing page header, setting the initial page offset.
+   */
   void ResetBuffer() {
     CheckpointFilePage::Initialize(reinterpret_cast<CheckpointFilePage *>(buffer_));
     page_offset_ = sizeof(CheckpointFilePage);
@@ -326,6 +345,11 @@ class BufferedTupleWriter {
     GetPage()->SetFlags(flags_);
   }
 
+  /**
+   * Align the buffer offset to multiples of the size of a type. Currently 2 types are used: uint32_t for reading
+   * sizes and tupleslots, uint64_t for reading a ProjectedRow.
+   * @tparam T type parameter indicating what to align.
+   */
   template <class T>
   void AlignBufferOffset() {
     page_offset_ = StorageUtil::PadUpToSize(alignof(T), page_offset_);
@@ -392,6 +416,10 @@ class BufferedTupleReader {
     return checkpoint_row;
   }
 
+  /**
+   * Read the next TupleSlot from the buffer.
+   * @return pointer to the TupleSlot.
+   */
   TupleSlot *ReadNextTupleSlot() {
     AlignBufferOffset<uintptr_t>();
     auto slot = reinterpret_cast<TupleSlot *>(ReadDataAcrossPages(sizeof(uintptr_t)));
@@ -482,6 +510,9 @@ class BufferedTupleReader {
     return tmp_buffer;
   }
 
+  /**
+   * Utility function to clear all the loose pointers created by reading huge row.
+   */
   void ClearLoosePointers() {
     for (auto ptr : loose_ptrs_) {
       delete[] ptr;
