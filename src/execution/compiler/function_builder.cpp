@@ -22,7 +22,7 @@ void FunctionBuilder::StartForInStmt(ast::Expr *target, ast::Expr *table, ast::A
 
 void FunctionBuilder::StartIfStmt(ast::Expr *condition) {
   auto ifblock = codegen_.EmptyBlock();
-  Append(codegen_->NewIfStmt(DUMMY_POS, condition));
+  Append(codegen_->NewIfStmt(DUMMY_POS, condition, ifblock, nullptr));
   SetInsertionPoint(ifblock);
 }
 
