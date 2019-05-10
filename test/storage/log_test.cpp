@@ -14,6 +14,7 @@
 #define LOG_FILE_NAME "test.log"
 #define CHECKPOINT_FILE_PREFIX "checkpoint_file_"
 
+// Note: make sure to clear log files before testing. Because logging's file operation is append.
 namespace terrier {
 class WriteAheadLoggingTests : public TerrierTest {
  public:
@@ -92,8 +93,10 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
                                              .SetLogManager(&log_manager_)
                                              .build();
   StartLogging(10);
+  StartGC(tested.GetTxnManager(), 10);
   auto result = tested.SimulateOltp(100, 4);
   EndLogging();
+  EndGC();
 
   checkpoint_manager_.RegisterTable(tested.GetTable());
   std::unordered_map<transaction::timestamp_t, SqlRandomWorkloadTransaction *> txns_map;
@@ -101,7 +104,8 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
   // At this point all the log records should have been written out, we can start reading stuff back in.
   storage::BufferedLogReader in(LOG_FILE_NAME);
   while (in.HasMore()) {
-    storage::LogRecord *log_record = checkpoint_manager_.ReadNextLogRecord(&in);
+    std::vector<byte *> dummy_varlen_contents;
+    storage::LogRecord *log_record = checkpoint_manager_.ReadNextLogRecord(&in, dummy_varlen_contents);
     if (log_record->TxnBegin() == transaction::timestamp_t(0)) {
       // TODO(Tianyu): This is hacky, but it will be a pain to extract the initial transaction. The LargeTransactionTest
       //  harness probably needs some refactor (later after wal is in).
@@ -179,11 +183,15 @@ TEST_F(WriteAheadLoggingTests, LargeLogTestWithVarlen) {
   // At this point all the log records should have been written out, we can start reading stuff back in.
   storage::BufferedLogReader in(LOG_FILE_NAME);
   while (in.HasMore()) {
-    storage::LogRecord *log_record = checkpoint_manager_.ReadNextLogRecord(&in);
+    std::vector<byte *> varlen_contents;
+    storage::LogRecord *log_record = checkpoint_manager_.ReadNextLogRecord(&in, varlen_contents);
     if (log_record->TxnBegin() == transaction::timestamp_t(0)) {
       // TODO(Tianyu): This is hacky, but it will be a pain to extract the initial transaction. The LargeTransactionTest
       //  harness probably needs some refactor (later after wal is in).
       // This the initial setup transaction.
+      for (auto varlen_content : varlen_contents) {
+        delete[] varlen_content;
+      }
       delete[] reinterpret_cast<byte *>(log_record);
       continue;
     }
@@ -192,6 +200,9 @@ TEST_F(WriteAheadLoggingTests, LargeLogTestWithVarlen) {
     if (it == txns_map.end()) {
       // Okay to write out aborted transaction's redos, just cannot be a commit
       EXPECT_NE(log_record->RecordType(), storage::LogRecordType::COMMIT);
+      for (auto varlen_content : varlen_contents) {
+        delete[] varlen_content;
+      }
       delete[] reinterpret_cast<byte *>(log_record);
       continue;
     }
@@ -212,6 +223,9 @@ TEST_F(WriteAheadLoggingTests, LargeLogTestWithVarlen) {
       delete[] reinterpret_cast<byte *>(update_it->second);
       it->second->Updates()->erase(update_it);
     }
+    for (auto varlen_content : varlen_contents) {
+      delete[] varlen_content;
+    }
     delete[] reinterpret_cast<byte *>(log_record);
   }
 
@@ -223,6 +237,10 @@ TEST_F(WriteAheadLoggingTests, LargeLogTestWithVarlen) {
   for (const auto &kv_pair : txns_map) {
     EXPECT_TRUE(kv_pair.second->Updates()->empty());
   }
+  // Cannot open GC earlier, because it would free transaction workload's varlen contents. Bookkeeping does not
+  // copy an entire varlen out.
+  StartGC(tested.GetTxnManager(), 10);
+  EndGC();
   unlink(LOG_FILE_NAME);
   for (auto *txn : result.first) delete txn;
   for (auto *txn : result.second) delete txn;
@@ -258,7 +276,8 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
   int log_records_count = 0;
   storage::BufferedLogReader in(LOG_FILE_NAME);
   while (in.HasMore()) {
-    storage::LogRecord *log_record = checkpoint_manager_.ReadNextLogRecord(&in);
+    std::vector<byte *> dummy_varlen_contents;
+    storage::LogRecord *log_record = checkpoint_manager_.ReadNextLogRecord(&in, dummy_varlen_contents);
     if (log_record->TxnBegin() == transaction::timestamp_t(0)) {
       // (TODO) Currently following pattern from LargeLogTest of skipping the initial transaction. When the transaction
       // testing framework changes, fix this.

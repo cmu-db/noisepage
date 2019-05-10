@@ -64,8 +64,8 @@ void CheckpointManager::Recover(const char *checkpoint_file_path) {
         }
       }
       TupleSlot new_slot = table->Insert(txn_, *row);
-      TERRIER_ASSERT(tuple_slot_map_.find(*slot) == tuple_slot_map_.end(),
-                     "Any tuple slot during recovery should be encounted only once.");
+      TERRIER_ASSERT(tuple_slot_map_.find(new_slot) == tuple_slot_map_.end(),
+                     "Any tuple slot during recovery should be encountered only once.");
       tuple_slot_map_[*slot] = new_slot;
     }
   }
@@ -89,7 +89,8 @@ void CheckpointManager::RecoverFromLogs(const char *log_file_path,
   // First pass
   BufferedLogReader in(log_file_path);
   while (in.HasMore()) {
-    LogRecord *log_record = ReadNextLogRecord(&in);
+    std::vector<byte *> varlen_contents;
+    LogRecord *log_record = ReadNextLogRecord(&in, varlen_contents);
     if (log_record->RecordType() == LogRecordType::COMMIT) {
       TERRIER_ASSERT(valid_begin_ts.find(log_record->TxnBegin()) == valid_begin_ts.end(),
                      "Commit records should be mapped to unique begin timestamps.");
@@ -100,6 +101,9 @@ void CheckpointManager::RecoverFromLogs(const char *log_file_path,
         valid_begin_ts.insert(log_record->TxnBegin());
       }
     }
+    for (auto varlen_content : varlen_contents) {
+      delete[] varlen_content;
+    }
     delete[] reinterpret_cast<byte *>(log_record);
   }
   // No need for in.Close(), because it is already closed log.io when the file has no more contents
@@ -107,16 +111,22 @@ void CheckpointManager::RecoverFromLogs(const char *log_file_path,
   // Second pass
   in = BufferedLogReader(log_file_path);
   while (in.HasMore()) {
-    LogRecord *log_record = ReadNextLogRecord(&in);
+    std::vector<byte *> varlen_contents;
+    LogRecord *log_record = ReadNextLogRecord(&in, varlen_contents);
     if (valid_begin_ts.find(log_record->TxnBegin()) == valid_begin_ts.end()) {
       // This record is from an uncommited transaction or out-of-date transaction.
+      // Caution: We have to deallocate the varlen content first to prevent memory leak. We do not have to worry
+      // about the valid log records, because they will be reclaimed by GC.
+      for (auto varlen_content : varlen_contents) {
+        delete[] varlen_content;
+      }
       delete[] reinterpret_cast<byte *>(log_record);
       continue;
     }
 
     // TODO(zhaozhes): support for multi table. However, the log records stores data_table instead of
-    // sql_table, which should be modified I think, so I think we should not currently use the API from log records.
-    // For the above reasons, we currently can only support one table recovery, hard-coded as oid 0.
+    // sql_table, and always record table oid 0.
+    // For this reason, we currently can only support one table recovery, hard-coded as oid 0.
     SqlTable *table = GetTable(static_cast<catalog::table_oid_t>(0));
     if (log_record->RecordType() == LogRecordType::DELETE) {
       auto *delete_record = log_record->GetUnderlyingRecordBodyAs<storage::DeleteRecord>();
@@ -128,7 +138,7 @@ void CheckpointManager::RecoverFromLogs(const char *log_file_path,
       auto *redo_record = log_record->GetUnderlyingRecordBodyAs<storage::RedoRecord>();
       TERRIER_ASSERT(tuple_slot_map_.find(redo_record->GetTupleSlot()) != tuple_slot_map_.end(),
                      "Tuple slot in a log record should have appeared in checkpoints");
-      // Looks like hack here and requires scrutiny once implementation changes.
+      // Should be careful here.
       // Under current circumstances, if a tuple slot is not seen before in a checkpointed table,
       // then we reason it to be an insert record, otherwise an update record.
       TupleSlot old_slot = redo_record->GetTupleSlot();
@@ -149,7 +159,8 @@ void CheckpointManager::RecoverFromLogs(const char *log_file_path,
   }
 }
 
-storage::LogRecord *CheckpointManager::ReadNextLogRecord(storage::BufferedLogReader *in) {
+storage::LogRecord *CheckpointManager::ReadNextLogRecord(storage::BufferedLogReader *in,
+                                                         std::vector<byte *> &varlen_contents) {
   // TODO(Justin): Fit this to new serialization format after it is complete.
   auto size = in->ReadValue<uint32_t>();
   byte *buf = common::AllocationUtil::AllocateAligned(size);
@@ -214,8 +225,12 @@ storage::LogRecord *CheckpointManager::ReadNextLogRecord(storage::BufferedLogRea
       // Set the value to be the address of the varlen_entry.
       if (varlen_attribute_size > VarlenEntry::InlineThreshold()) {
         *entry = storage::VarlenEntry::Create(varlen_content, varlen_attribute_size, true);
+        // leave memory to be reclaimed outside, because we do not know whether GC is responsible for this now
+        varlen_contents.push_back(varlen_content);
       } else {
         *entry = storage::VarlenEntry::CreateInline(varlen_content, varlen_attribute_size);
+        // should reclaim memory for inclined entries
+        delete[] varlen_content;
       }
     } else {
       // For inlined attributes, just directly read into the ProjectedRow.

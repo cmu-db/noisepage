@@ -5,6 +5,7 @@
 #include <vector>
 #include "common/object_pool.h"
 #include "storage/checkpoint_manager.h"
+#include "storage/garbage_collector.h"
 #include "storage/sql_table.h"
 #include "storage/storage_util.h"
 #include "util/random_test_util.h"
@@ -44,6 +45,27 @@ class CheckpointTests : public TerrierTest {
     log_manager_->Shutdown();
   }
 
+  void StartGC(transaction::TransactionManager *txn_manager, uint32_t gc_period_milli) {
+    gc_ = new storage::GarbageCollector(txn_manager);
+    run_gc_ = true;
+    gc_on_ = true;
+    gc_thread_ = std::thread([gc_period_milli, this] { GCThreadLoop(gc_period_milli); });
+  }
+
+  void EndGC() {
+    run_gc_ = false;
+    gc_thread_.join();
+    // Make sure all garbage is collected. This take 2 runs for unlink and deallocate
+    gc_->PerformGarbageCollection();
+    gc_->PerformGarbageCollection();
+    delete gc_;
+  }
+
+  // Members related to running gc.
+  volatile bool run_gc_ = false;
+  std::thread gc_thread_;
+  storage::GarbageCollector *gc_;
+
   storage::CheckpointManager checkpoint_manager_{CHECKPOINT_FILE_PREFIX};
   transaction::TransactionManager *txn_manager_;
   std::default_random_engine generator_;
@@ -57,7 +79,7 @@ class CheckpointTests : public TerrierTest {
       transaction::TransactionContext *txn = txn_manager_->BeginTransaction();
       checkpoint_manager_.Process(txn, *table_, *schema_);
       txn_manager_->Commit(txn, StorageTestUtil::EmptyCallback, nullptr);
-      delete txn;
+      if (!gc_on_) delete txn;
       std::this_thread::sleep_for(std::chrono::milliseconds(log_period_milli));
     }
   }
@@ -69,6 +91,14 @@ class CheckpointTests : public TerrierTest {
     }
   }
 
+  void GCThreadLoop(uint32_t gc_period_milli) {
+    while (run_gc_) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(gc_period_milli));
+      gc_->PerformGarbageCollection();
+    }
+  }
+
+  bool gc_on_ = false;
   bool enable_checkpointing_;
   std::thread checkpoint_thread_;
   const storage::SqlTable *table_;
@@ -338,10 +368,11 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryNoVarlen) {
                                              .SetBufferPool(&pool_)
                                              .SetGenerator(&generator_)
                                              .SetGcOn(true)
-                                             .SetBookkeeping(true)
+                                             .SetBookkeeping(false)
                                              .SetLogManager(log_manager_)
                                              .build();
 
+  StartGC(tested.GetTxnManager(), 10);
   storage::SqlTable *table = tested.GetTable();
   const catalog::Schema *schema = tested.Schema();
   transaction::TransactionManager *txn_manager = tested.GetTxnManager();
@@ -354,7 +385,6 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryNoVarlen) {
   // Run transactions to generate logs
   StartLogging(10);
   auto result = tested.SimulateOltp(100, 4);
-  EndLogging();
 
   // read first run
   transaction::TransactionContext *scan_txn = txn_manager->BeginTransaction();
@@ -379,6 +409,11 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryNoVarlen) {
   std::vector<std::string> recovered_rows;
   StorageTestUtil::PrintAllRows(scan_txn_2, recovered_table, &recovered_rows);
   txn_manager->Commit(scan_txn_2, StorageTestUtil::EmptyCallback, nullptr);
+
+  // Should be careful that we should not end logging earlier because we have to flush out
+  // the recovery transaction. Or there will be memory leak.
+  EndLogging();
+  EndGC();
   // compare
   std::vector<std::string> diff1, diff2;
   std::sort(original_rows.begin(), original_rows.end());
@@ -391,9 +426,9 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryNoVarlen) {
   EXPECT_EQ(diff2.size(), 0);
   checkpoint_manager_.UnlinkCheckpointFiles();
   delete recovered_table;
-  delete scan_txn;
-  delete scan_txn_2;
-  delete recovery_txn;
+  delete log_manager_;
+  for (auto *txn : result.first) delete txn;
+  for (auto *txn : result.second) delete txn;
   unlink(LOG_FILE_NAME);
 }
 
@@ -415,11 +450,11 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryWithVarlen) {
                                              .SetBufferPool(&pool_)
                                              .SetGenerator(&generator_)
                                              .SetGcOn(true)
-                                             .SetBookkeeping(true)
+                                             .SetBookkeeping(false)
                                              .SetLogManager(log_manager_)
                                              .SetVarlenAllowed(true)
                                              .build();
-
+  StartGC(tested.GetTxnManager(), 10);
   storage::SqlTable *table = tested.GetTable();
   const catalog::Schema *schema = tested.Schema();
   transaction::TransactionManager *txn_manager = tested.GetTxnManager();
@@ -432,7 +467,6 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryWithVarlen) {
   // Run transactions to generate logs
   StartLogging(10);
   auto result = tested.SimulateOltp(100, 4);
-  EndLogging();
 
   // read first run
   transaction::TransactionContext *scan_txn = txn_manager->BeginTransaction();
@@ -455,6 +489,8 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryWithVarlen) {
   std::vector<std::string> recovered_rows;
   StorageTestUtil::PrintAllRows(scan_txn_2, recovered_table, &recovered_rows);
   txn_manager->Commit(scan_txn_2, StorageTestUtil::EmptyCallback, nullptr);
+  EndLogging();
+  EndGC();
   // compare
   std::vector<std::string> diff1, diff2;
   std::sort(original_rows.begin(), original_rows.end());
@@ -467,9 +503,9 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryWithVarlen) {
   EXPECT_EQ(diff2.size(), 0);
   checkpoint_manager_.UnlinkCheckpointFiles();
   delete recovered_table;
-  delete scan_txn;
-  delete scan_txn_2;
-  delete recovery_txn;
+  delete log_manager_;
+  for (auto *txn : result.first) delete txn;
+  for (auto *txn : result.second) delete txn;
   unlink(LOG_FILE_NAME);
 }
 
