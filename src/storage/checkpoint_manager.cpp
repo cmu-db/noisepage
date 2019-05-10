@@ -89,8 +89,8 @@ void CheckpointManager::RecoverFromLogs(const char *log_file_path,
   // First pass
   BufferedLogReader in(log_file_path);
   while (in.HasMore()) {
-    std::vector<byte *> dummy_varlen_contents;
-    LogRecord *log_record = ReadNextLogRecord(&in, dummy_varlen_contents);
+    std::vector<byte *> varlen_contents;
+    LogRecord *log_record = ReadNextLogRecord(&in, varlen_contents);
     if (log_record->RecordType() == LogRecordType::COMMIT) {
       TERRIER_ASSERT(valid_begin_ts.find(log_record->TxnBegin()) == valid_begin_ts.end(),
                      "Commit records should be mapped to unique begin timestamps.");
@@ -100,6 +100,9 @@ void CheckpointManager::RecoverFromLogs(const char *log_file_path,
       if (commit_timestamp > checkpoint_timestamp) {
         valid_begin_ts.insert(log_record->TxnBegin());
       }
+    }
+    for (auto varlen_content: varlen_contents) {
+      delete[] varlen_content;
     }
     delete[] reinterpret_cast<byte *>(log_record);
   }
