@@ -386,7 +386,8 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryNoVarlen) {
   // Run transactions to generate logs
   StartLogging(10);
   auto result = tested.SimulateOltp(100, 4);
-  log_manager_->Process();
+  // Sleep to ensure logs are flushed
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
   // read first run
   transaction::TransactionContext *scan_txn = txn_manager->BeginTransaction();
   std::vector<std::string> original_rows;
@@ -468,7 +469,8 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryWithVarlen) {
   // Run transactions to generate logs
   StartLogging(10);
   auto result = tested.SimulateOltp(100, 4);
-  log_manager_->Process();
+  // Sleep to ensure logs are flushed
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
   // read first run
   transaction::TransactionContext *scan_txn = txn_manager->BeginTransaction();
   std::vector<std::string> original_rows;
@@ -541,7 +543,8 @@ TEST_F(CheckpointTests, SimpleRecoveryWithVarlenOnlyFromLogs) {
   // Run transactions to generate logs
   StartLogging(10);
   auto result = tested.SimulateOltp(100, 4);
-  log_manager_->Process();
+  // Sleep to ensure logs are flushed
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
   // read first run
   transaction::TransactionContext *scan_txn = txn_manager->BeginTransaction();
   std::vector<std::string> original_rows;
