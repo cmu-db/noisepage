@@ -173,7 +173,6 @@ TEST_F(WriteAheadLoggingTests, LargeLogTestWithVarlen) {
                                              .SetVarlenAllowed(true)
                                              .build();
   StartLogging(10);
-  StartGC(tested.GetTxnManager(), 10);
   auto result = tested.SimulateOltp(100, 4);
   EndLogging();
 
@@ -237,6 +236,9 @@ TEST_F(WriteAheadLoggingTests, LargeLogTestWithVarlen) {
   for (const auto &kv_pair : txns_map) {
     EXPECT_TRUE(kv_pair.second->Updates()->empty());
   }
+  // Cannot open GC earlier, because it would free transaction workload's varlen contents. Bookkeeping does not
+  // copy an entire varlen out.
+  StartGC(tested.GetTxnManager(), 10);
   EndGC();
   unlink(LOG_FILE_NAME);
   for (auto *txn : result.first) delete txn;
