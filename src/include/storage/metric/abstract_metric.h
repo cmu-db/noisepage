@@ -97,7 +97,7 @@ class Metric {
   /**
    * @param database_oid OID of the database that the index read happens
    * @param namespace_oid OID of the namespace that the index read happens
-   * @param index_oid OID of the table that the index read happens
+   * @param index_oid OID of the index that the index read happens
    * @param freq number of read happening
    */
   virtual void OnIndexRead(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
@@ -106,26 +106,26 @@ class Metric {
   /**
    * @param database_oid OID of the database that the index update happens
    * @param namespace_oid OID of the namespace that the index update happens
-   * @param index_oid OID of the table that the index update happens
+   * @param index_oid OID of the index that the index update happens
    */
   virtual void OnIndexUpdate(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                             catalog::index_oid_t table_oid) {}
+                             catalog::index_oid_t index_oid) {}
 
   /**
    * @param database_oid OID of the database that the index insert happens
    * @param namespace_oid OID of the namespace that the index insert happens
-   * @param index_oid OID of the table that the index insert happens
+   * @param index_oid OID of the index that the index insert happens
    */
   virtual void OnIndexInsert(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                             catalog::index_oid_t table_oid) {}
+                             catalog::index_oid_t index_oid) {}
 
   /**
    * @param database_oid OID of the database that the index delete happens
    * @param namespace_oid OID of the namespace that the index delete happens
-   * @param index_oid OID of the table that the index delete happens
+   * @param index_oid OID of the index that the index delete happens
    */
   virtual void OnIndexDelete(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                             catalog::index_oid_t table_oid) {}
+                             catalog::index_oid_t index_oid) {}
 
   /**
    * @param database_oid OID of the database that the table memory allocation happens

@@ -216,7 +216,7 @@ class ThreadLevelStatsCollector {
    * @param index_oid OID of the index that the index update happens
    */
   void CollectIndexUpdate(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                          catalog::index_oid_t index_oid, size_t num_read) {
+                          catalog::index_oid_t index_oid) {
     for (auto &metric : metric_dispatch_[StatsEventType::INDEX_UPDATE])
       metric->OnIndexUpdate(database_oid, namespace_oid, index_oid);
   }
