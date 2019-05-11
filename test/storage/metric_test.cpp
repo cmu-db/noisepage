@@ -71,7 +71,7 @@ class MetricTests : public TerrierTest {
     table_handle = db_handle.GetNamespaceHandle(txn_, terrier_oid).GetTableHandle(txn_, default_namespace_);
     table = table_handle.GetTable(txn_, txn_metric_table_);
     delete table;
-    delete catalog_;  // need to delete catalog_first
+    delete catalog_;  // need to delete catalog_ first
     delete txn_manager_;
   }
   settings::SettingsManager *settings_manager_;
