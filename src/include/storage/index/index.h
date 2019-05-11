@@ -16,7 +16,10 @@
 namespace terrier::storage::index {
 
 /**
- * Wrapper class for the various types of indexes in our system.
+ * Wrapper class for the various types of indexes in our system. Semantically, we expect updates on indexed attributes
+ * to be modeled as a delete and an insert (see bwtree_index_test.cpp CommitUpdate1, CommitUpdate2, etc.). This
+ * guarantees our snapshot isolation semantics by relying on the DataTable to enforce write-write conflicts and
+ * visibility issues.
  */
 class Index {
  private:
@@ -72,7 +75,7 @@ class Index {
   virtual bool Insert(transaction::TransactionContext *txn, const ProjectedRow &tuple, TupleSlot location) = 0;
 
   /**
-   * Inserts a key-value pair only if any matching keys have TupleSlots that don't conflict
+   * Inserts a key-value pair only if any matching keys have TupleSlots that don't conflict with the calling txn
    * @param txn txn context for the calling txn, used for visibility and write-write, and to register abort actions
    * @param tuple key
    * @param location value

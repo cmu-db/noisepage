@@ -149,6 +149,10 @@ class BwTreeIndex final : public Index {
     // Perform lookup in BwTree
     auto scan_itr = bwtree_->Begin(index_high_key);
     // Back up one element if we didn't match the high key
+    // This currently uses the BwTree's decrement operator on the iterator, which is not guaranteed to be
+    // constant time. In some cases it may be faster to do an ascending scan and then reverse the result vector. It
+    // depends on the visibility selectivity and final result set size. We can change the implementation in the future
+    // if it proves to be a problem.
     if (scan_itr.IsEnd() || bwtree_->KeyCmpGreater(scan_itr->first, index_high_key)) scan_itr--;
 
     while (!scan_itr.IsREnd() && (bwtree_->KeyCmpGreaterEqual(scan_itr->first, index_low_key))) {
@@ -192,7 +196,7 @@ class BwTreeIndex final : public Index {
 
     // Perform lookup in BwTree
     auto scan_itr = bwtree_->Begin(index_high_key);
-    // Back up one element if we didn't match the high key
+    // Back up one element if we didn't match the high key, see comment on line 152.
     if (scan_itr.IsEnd() || bwtree_->KeyCmpGreater(scan_itr->first, index_high_key)) scan_itr--;
 
     while (value_list->size() < limit && !scan_itr.IsREnd() &&

@@ -821,6 +821,7 @@ void CompactIntsKeyBasicTest(type::TypeId type_id, Random *const generator) {
   delete[] pr_buffer;
 }
 
+// Verify basic key construction and value setting and comparator, equality, and hash operations for various key sizes.
 // NOLINTNEXTLINE
 TEST_F(BwTreeKeyTests, CompactIntsKeyBasicTest) {
   CompactIntsKeyBasicTest<1, int8_t>(type::TypeId::TINYINT, &generator_);
