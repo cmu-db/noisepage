@@ -39,7 +39,7 @@ void DataTable::Scan(transaction::TransactionContext *const txn, SlotIterator *c
     ProjectedColumns::RowView row = out_buffer->InterpretAsRow(filled);
     const TupleSlot slot = **start_pos;
     // Only fill the buffer with valid, visible tuples
-    if (accessor_.Allocated(slot) && SelectIntoBuffer(txn, slot, &row)) {
+    if (SelectIntoBuffer(txn, slot, &row)) {
       out_buffer->TupleSlots()[filled] = slot;
       filled++;
     }
@@ -189,6 +189,8 @@ template <class RowType>
 bool DataTable::SelectIntoBuffer(transaction::TransactionContext *const txn, const TupleSlot slot,
                                  RowType *const out_buffer) const {
   TERRIER_ASSERT(out_buffer->NumColumns() > 0, "The output buffer should return at least one attribute.");
+  // This cannot be visible if it's already deallocated.
+  if (!accessor_.Allocated(slot)) return false;
 
   UndoRecord *version_ptr;
   bool visible;
@@ -203,11 +205,14 @@ bool DataTable::SelectIntoBuffer(transaction::TransactionContext *const txn, con
       }
       StorageUtil::CopyAttrIntoProjection(accessor_, slot, out_buffer, i);
     }
+
+    // TODO(Matt): might not need to read visible in the loop (move after?) but not confident without large random tests
+    // We still need to check the allocated bit because GC could have flipped it since last check
+    visible = Visible(slot, accessor_);
+
     // Here we will need to check that the version pointer did not change during our read. If it did, the content
     // we have read might have been rolled back and an abort has already unlinked the associated undo-record,
     // we will have to loop around to avoid a dirty read.
-    // TODO(Matt): might not need to read visible in the loop (move after?) but not confident without large random tests
-    visible = Visible(slot, accessor_);
   } while (version_ptr != AtomicallyReadVersionPtr(slot, accessor_));
 
   // Nullptr in version chain means no version visible to any transaction alive at this point.
