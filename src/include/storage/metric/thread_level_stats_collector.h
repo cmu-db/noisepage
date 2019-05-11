@@ -35,7 +35,7 @@ class ThreadLevelStatsCollector {
   using CollectorsMap = common::ConcurrentMap<std::thread::id, ThreadLevelStatsCollector *, std::hash<std::thread::id>>;
 
   /**
-   * @return the Collector for the calling thread
+   * @return the Collector for the calling thread, create a new Collector if one does not exist already
    */
   static ThreadLevelStatsCollector *GetCollectorForThread() {
     std::thread::id tid = std::this_thread::get_id();

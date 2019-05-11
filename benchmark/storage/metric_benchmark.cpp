@@ -1,6 +1,5 @@
 #include <memory>
 #include <string>
-#include <thread>  //NOLINT
 #include <unordered_map>
 #include <vector>
 #include "benchmark/benchmark.h"
@@ -18,8 +17,7 @@
 
 namespace terrier {
 
-// This benchmark measures the throughput of the Aggregator and the Collecter in the metric collection pipeline.
-
+// This benchmark measures the throughput of the Aggregator and the Collector in the metric collection pipeline.
 class MetricBenchmark : public benchmark::Fixture {
  public:
   void GCThreadLoop() {
@@ -69,6 +67,7 @@ class MetricBenchmark : public benchmark::Fixture {
     delete catalog_;  // need to delete catalog_first
     delete txn_manager_;
   }
+
   settings::SettingsManager *settings_manager_;
 
   catalog::Catalog *catalog_;

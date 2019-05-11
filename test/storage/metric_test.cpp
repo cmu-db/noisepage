@@ -441,8 +441,7 @@ TEST_F(MetricTests, MultiThreadTest) {
       if (id == 0) {  // aggregator thread
         std::this_thread::sleep_for(aggr_period_);
         aggregator.Aggregate(txn_);
-        auto iter = collectors.Begin();
-        for (; iter != collectors.End(); iter++) {
+        for (auto iter = collectors.Begin(); iter != collectors.End(); iter++) {
           delete *iter;
         }
       } else {  // normal thread
