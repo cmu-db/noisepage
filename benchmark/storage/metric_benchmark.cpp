@@ -64,7 +64,7 @@ class MetricBenchmark : public benchmark::Fixture {
     table_handle = db_handle.GetNamespaceHandle(txn_, terrier_oid).GetTableHandle(txn_, "public");
     table = table_handle.GetTable(txn_, "txn_metric_table");
     delete table;
-    delete catalog_;  // need to delete catalog_first
+    delete catalog_;  // need to delete catalog_ first
     delete txn_manager_;
   }
 
@@ -78,7 +78,6 @@ class MetricBenchmark : public benchmark::Fixture {
   std::default_random_engine generator_;
   const uint8_t num_txns_ = 1;
   const uint32_t num_ops_ = 10000000;
-  const int64_t acc_err = 5;
 
   std::thread gc_thread_;
   storage::GarbageCollector *gc_ = nullptr;
@@ -86,8 +85,6 @@ class MetricBenchmark : public benchmark::Fixture {
   const std::chrono::milliseconds gc_period_{10};
 
   const std::string default_namespace_{"public"};
-  const std::string database_metric_table_{"database_metric_table"};
-  const std::string txn_metric_table_{"txn_metric_table"};
 };
 
 //

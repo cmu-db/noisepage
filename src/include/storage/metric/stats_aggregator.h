@@ -19,7 +19,7 @@ namespace terrier {
 
 namespace settings {
 class SettingsManager;
-}
+}  // namespace settings
 
 namespace storage::metric {
 
