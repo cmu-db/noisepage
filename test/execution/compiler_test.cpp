@@ -821,8 +821,6 @@ TEST_F(PlanNodeJsonTest, SeqScanPlanNodeJsonTest) {
   tpl::compiler::Query query(*plan_node);
   tpl::compiler::CompilationContext ctx(&query, nullptr);
   ctx.GeneratePlan(&query);
-  tpl::sema::Sema type_check(ctx.GetCodeGen()->GetCodeContext()->GetAstContext());
-  type_check.Run(query.GetCompiledFunction());
 
   if (ctx.GetCodeGen()->GetCodeContext()->GetReporter()->HasErrors()) {
     EXECUTION_LOG_ERROR("Type-checking error!");

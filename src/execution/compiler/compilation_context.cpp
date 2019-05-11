@@ -12,6 +12,7 @@
 #include "execution/compiler/query_state.h"
 #include "execution/util/region_containers.h"
 #include "execution/parsing/token.h"
+#include "execution/sema/sema.h"
 
 namespace tpl::compiler {
 
@@ -109,8 +110,11 @@ void CompilationContext::GeneratePlan(Query *query) {
     decls.emplace_back(main_fn.Finish());
   }
 
+  tpl::sema::Sema type_check(codegen_.GetCodeContext()->GetAstContext());
+
   const auto compiled_fn = codegen_->NewFile(DUMMY_POS, std::move(decls));
   query->SetCompiledFunction(compiled_fn);
+  type_check.Run(query_->GetCompiledFunction());
 }
 
 u32 CompilationContext::RegisterPipeline(Pipeline *pipeline) {
