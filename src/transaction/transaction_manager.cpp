@@ -40,7 +40,7 @@ TransactionContext *TransactionManager::BeginTransactionWithAction(const Action 
   // This latch has to also protect addition of this transaction to the running transaction table. Otherwise,
   // the thread might get scheduled out while other transactions commit, and the GC will deallocate their version
   // chain which may be needed for this transaction, assuming that this transaction does not exist.
-  common::SharedLatch::ScopedSharedLatch guard(&commit_latch_);
+  common::Gate::ScopedExit gate(&txn_gate_);
   timestamp_t start_time = time_++;
 
   // TODO(Tianyu):
