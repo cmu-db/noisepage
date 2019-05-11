@@ -107,7 +107,7 @@ class TupleAccessStrategy {
    * @param raw pointer to the raw block to initialize
    * @param layout_version the layout version of this block
    */
-  void InitializeRawBlock(storage::DataTable *const data_table, RawBlock *raw, layout_version_t layout_version) const;
+  void InitializeRawBlock(storage::DataTable *data_table, RawBlock *raw, layout_version_t layout_version) const;
 
   /**
    * @param block block to access
