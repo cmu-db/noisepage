@@ -12,10 +12,6 @@
 
 namespace terrier {
 
-namespace transaction {
-class TransactionContext;
-}  // namespace transaction
-
 namespace storage::metric {
 /**
  * @brief Class responsible for collecting raw data on a single thread.
@@ -183,7 +179,7 @@ class ThreadLevelStatsCollector {
    */
   void CollectTableMemoryUsage(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                                catalog::table_oid_t table_oid, size_t size) {
-    for (auto &metric : metric_dispatch_[StatsEventType::TABLE_MEMORY_ALLOC])
+    for (auto &metric : metric_dispatch_[StatsEventType::TABLE_MEMORY_USAGE])
       metric->OnTableMemoryUsage(database_oid, namespace_oid, table_oid, size);
   }
 
@@ -196,7 +192,7 @@ class ThreadLevelStatsCollector {
    */
   void CollectTableMemoryReclaim(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                                  catalog::table_oid_t table_oid, size_t size) {
-    for (auto &metric : metric_dispatch_[StatsEventType::TABLE_MEMORY_FREE])
+    for (auto &metric : metric_dispatch_[StatsEventType::TABLE_MEMORY_RECLAIM])
       metric->OnTableMemoryReclaim(database_oid, namespace_oid, table_oid, size);
   }
 
@@ -276,7 +272,7 @@ class ThreadLevelStatsCollector {
   }
 
   /**
-   * Collector ation on index memory free
+   * Collector action on index memory free
    * @param database_oid OID of the database that the index memory free happens
    * @param namespace_oid OID of the namespace that the index memory free happens
    * @param index_oid OID of the index that the index memory free happens

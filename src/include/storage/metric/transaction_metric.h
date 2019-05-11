@@ -13,10 +13,6 @@
 
 namespace terrier {
 
-namespace transaction {
-class TransactionContext;
-}  // namespace transaction
-
 namespace storage::metric {
 
 /**
@@ -177,6 +173,7 @@ class TransactionMetric : public AbstractMetric<TransactionMetricRawData> {
   }
 
   /**
+   *
    * @param txn context of the transaction performing read
    * @param database_oid OID of the database that the tuple read happens
    * @param namespace_oid OID of the namespace that the tuple read happens
@@ -192,9 +189,9 @@ class TransactionMetric : public AbstractMetric<TransactionMetricRawData> {
 
   /**
    * @param txn context of the transaction performing update
-   * @param database_oid OID of the database that the tuple delete happens
-   * @param namespace_oid OID of the namespace that the tuple delete happens
-   * @param table_oid OID of the table that the tuple delete happens
+   * @param database_oid OID of the database that the tuple update happens
+   * @param namespace_oid OID of the namespace that the tuple update happens
+   * @param table_oid OID of the table that the tuple update happens
    */
   void OnTupleUpdate(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid,
                      catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) override {
@@ -206,9 +203,9 @@ class TransactionMetric : public AbstractMetric<TransactionMetricRawData> {
 
   /**
    * @param txn context of the transaction performing insert
-   * @param database_oid OID of the database that the tuple delete happens
-   * @param namespace_oid OID of the namespace that the tuple delete happens
-   * @param table_oid OID of the table that the tuple delete happens
+   * @param database_oid OID of the database that the tuple insert happens
+   * @param namespace_oid OID of the namespace that the tuple insert happens
+   * @param table_oid OID of the table that the tuple insert happens
    */
   void OnTupleInsert(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid,
                      catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) override {

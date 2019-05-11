@@ -12,10 +12,6 @@
 
 namespace terrier {
 
-namespace transaction {
-class TransactionContext;
-}  // namespace transaction
-
 namespace storage::metric {
 
 /**
