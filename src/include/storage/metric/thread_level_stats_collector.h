@@ -321,7 +321,7 @@ class ThreadLevelStatsCollector {
   /**
    * @return A vector of raw data, for each registered metric. Each piece of
    * data is guaranteed to be safe to read and remove, and the same type of
-   * metric is guaranteed to be in the same positopn in the returned vector
+   * metric is guaranteed to be in the same position in the returned vector
    * for different instances of Collector.
    */
   std::vector<std::shared_ptr<AbstractRawData>> GetDataToAggregate();
