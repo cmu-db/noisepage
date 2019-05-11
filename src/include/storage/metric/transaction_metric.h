@@ -25,6 +25,7 @@ class TransactionMetricRawData : public AbstractRawData {
    * @param txn transaction context of the relevant transaction
    */
   void SetTxnStart(const transaction::TransactionContext *txn) {
+    TERRIER_ASSERT(txn != nullptr, "Transaction context cannot be nullptr");
     data_[txn->TxnId().load()].start_ = std::chrono::high_resolution_clock::now();
   }
 
@@ -33,6 +34,7 @@ class TransactionMetricRawData : public AbstractRawData {
    * @param txn transaction context of the relevant transaction
    */
   void CalculateTxnLatency(const transaction::TransactionContext *txn) {
+    TERRIER_ASSERT(txn != nullptr, "Transaction context cannot be nullptr");
     auto end = std::chrono::high_resolution_clock::now();
     auto start = data_[txn->TxnId().load()].start_;
     data_[txn->TxnId().load()].latency_ =
@@ -43,25 +45,37 @@ class TransactionMetricRawData : public AbstractRawData {
    * Increment the number of tuples read by one
    * @param txn transaction context of the relevant transaction
    */
-  void IncrementTupleRead(const transaction::TransactionContext *txn) { data_[txn->TxnId().load()].tuple_read_++; }
+  void IncrementTupleRead(const transaction::TransactionContext *txn) {
+    TERRIER_ASSERT(txn != nullptr, "Transaction context cannot be nullptr");
+    data_[txn->TxnId().load()].tuple_read_++;
+  }
 
   /**
    * Increment the number of tuples updated by one
    * @param txn transaction context of the relevant transaction
    */
-  void IncrementTupleUpdate(const transaction::TransactionContext *txn) { data_[txn->TxnId().load()].tuple_update_++; }
+  void IncrementTupleUpdate(const transaction::TransactionContext *txn) {
+    TERRIER_ASSERT(txn != nullptr, "Transaction context cannot be nullptr");
+    data_[txn->TxnId().load()].tuple_update_++;
+  }
 
   /**
    * Increment the number of tuples inserted by one
    * @param txn transaction context of the relevant transaction
    */
-  void IncrementTupleInsert(const transaction::TransactionContext *txn) { data_[txn->TxnId().load()].tuple_insert_++; }
+  void IncrementTupleInsert(const transaction::TransactionContext *txn) {
+    TERRIER_ASSERT(txn != nullptr, "Transaction context cannot be nullptr");
+    data_[txn->TxnId().load()].tuple_insert_++;
+  }
 
   /**
    * Increment the number of tuples deleted by one
    * @param txn transaction context of the relevant transaction
    */
-  void IncrementTupleDelete(const transaction::TransactionContext *txn) { data_[txn->TxnId().load()].tuple_delete_++; }
+  void IncrementTupleDelete(const transaction::TransactionContext *txn) {
+    TERRIER_ASSERT(txn != nullptr, "Transaction context cannot be nullptr");
+    data_[txn->TxnId().load()].tuple_delete_++;
+  }
 
   /**
    * Aggregate collected data from another raw data object into this raw data object
