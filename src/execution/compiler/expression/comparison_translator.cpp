@@ -10,8 +10,8 @@ namespace tpl::compiler {
   };
 
   ast::Expr *ComparisonTranslator::DeriveExpr(const terrier::parser::AbstractExpression *expression, RowBatch &row) {
-    auto *right = row.DeriveValue(*expression->GetChild(0));
-    auto *left = row.DeriveValue(*expression->GetChild(1));
+    auto *left = row.DeriveValue(*expression->GetChild(0));
+    auto *right = row.DeriveValue(*expression->GetChild(1));
     parsing::Token::Type type;
     switch(expression->GetExpressionType()){
       case terrier::parser::ExpressionType::COMPARE_EQUAL:

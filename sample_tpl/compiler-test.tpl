@@ -7,7 +7,7 @@ fun query_init(qs: *query_state_struct) -> nil {
 
 fun query_produce(qs: *query_state_struct) -> nil {
   for (r0 in test_1) {
-    if (true) {
+    if (r0.colA < 500) {
 
     }
   }

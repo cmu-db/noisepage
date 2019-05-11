@@ -19,8 +19,8 @@ class CodeGen {
   friend class FunctionBuilder;
   friend class QueryState;
 
-  util::Region *GetRegion();
  public:
+  util::Region *GetRegion();
 
   CodeContext *GetCodeContext() { return ctx_; }
   explicit CodeGen(CodeContext *ctx);

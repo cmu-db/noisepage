@@ -89,6 +89,12 @@ class PlanNodeJsonTest : public TerrierTest {
         .SetNamespaceOid(catalog::namespace_oid_t(0))
         .Build();
   }
+
+  static std::shared_ptr<parser::AbstractExpression> BuildConstantComparisonPredicate(const std::string & table_name, const std::string & col_name, uint32_t val) {
+    auto tuple_expr = std::make_shared<parser::TupleValueExpression>(col_name, table_name);
+    auto val_expr = std::make_shared<parser::ConstantValueExpression>(type::TransientValueFactory::GetInteger(val));
+    return std::make_shared<parser::ComparisonExpression>(parser::ExpressionType::COMPARE_LESS_THAN, std::vector<std::shared_ptr<parser::AbstractExpression>>{tuple_expr, val_expr});
+  }
 };
 
 /*
@@ -809,8 +815,9 @@ TEST_F(PlanNodeJsonTest, ResultPlanNodeJsonTest) {
 TEST_F(PlanNodeJsonTest, SeqScanPlanNodeJsonTest) {
   // Construct SeqScanPlanNode
   SeqScanPlanNode::Builder builder;
+  std::string col_name("colA");
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
-      .SetScanPredicate(PlanNodeJsonTest::BuildDummyPredicate())
+      .SetScanPredicate(PlanNodeJsonTest::BuildConstantComparisonPredicate("test_1", col_name, 500))
       .SetIsParallelFlag(true)
       .SetIsForUpdateFlag(false)
       .SetDatabaseOid(catalog::db_oid_t(0))
@@ -821,13 +828,11 @@ TEST_F(PlanNodeJsonTest, SeqScanPlanNodeJsonTest) {
   tpl::compiler::Query query(*plan_node);
   tpl::compiler::CompilationContext ctx(&query, nullptr);
   ctx.GeneratePlan(&query);
-
   if (ctx.GetCodeGen()->GetCodeContext()->GetReporter()->HasErrors()) {
     EXECUTION_LOG_ERROR("Type-checking error!");
     ctx.GetCodeGen()->GetCodeContext()->GetReporter()->PrintErrors();
     return;
   }
-
   tpl::ast::AstDump::Dump(query.GetCompiledFunction());
 }
 /*

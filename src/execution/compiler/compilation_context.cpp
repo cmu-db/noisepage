@@ -113,6 +113,7 @@ void CompilationContext::GeneratePlan(Query *query) {
   tpl::sema::Sema type_check(codegen_.GetCodeContext()->GetAstContext());
 
   const auto compiled_fn = codegen_->NewFile(DUMMY_POS, std::move(decls));
+  //ast::AstDump::Dump(compiled_fn);
   query->SetCompiledFunction(compiled_fn);
   type_check.Run(query_->GetCompiledFunction());
 }
