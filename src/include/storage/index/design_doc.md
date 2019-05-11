@@ -67,3 +67,4 @@ is that it is the responsibility of index garbage collector to remove those keys
 * The building process (the scan of the table) can be parallelized in a multi-threading way. That will increase the performance of the building process in the non-blocking implementation.
 * The index builder can support several types of index and will select the best index given the key schema and constraint type before actual building the index.
 * Now we use busy waiting for building process and dropping process to wait for specific point. We need to make them more efficient.
+
