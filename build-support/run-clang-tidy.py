@@ -311,9 +311,15 @@ def main():
 
         # Fill the queue with files.
         for i, name in enumerate(files):
-            if file_name_re.search(name):
-                task_queue.put(name)
-            update_progress(i, len(files))
+            put_file = False
+            while not put_file:
+                try:
+                    if file_name_re.search(name):
+                        task_queue.put(name, block=True, timeout=300)
+                        put_file = True
+                    update_progress(i, len(files))
+                except queue.Full:
+                    print('Still waiting to put files into clang-tidy queue.')
 
         # Wait for all threads to be done.
         task_queue.join()
