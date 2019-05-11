@@ -83,7 +83,7 @@ class BwTreeIndex final : public Index {
                        !(location.GetBlock()->data_table_->IsVisible(*txn, location)),
                    "Called index delete on a TupleSlot that has a conflict with this txn or is still visible.");
 
-    // Register a deferred action for the GC with txn manager
+    // Register a deferred action for the GC with txn manager. See base function comment.
     auto *const txn_manager = txn->GetTransactionManager();
     txn->RegisterCommitAction([=]() {
       txn_manager->DeferAction([=]() {

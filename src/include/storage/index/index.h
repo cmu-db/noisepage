@@ -20,6 +20,9 @@ namespace terrier::storage::index {
  * to be modeled as a delete and an insert (see bwtree_index_test.cpp CommitUpdate1, CommitUpdate2, etc.). This
  * guarantees our snapshot isolation semantics by relying on the DataTable to enforce write-write conflicts and
  * visibility issues.
+ *
+ * Any future indexes should mimic the logic of bwtree_index.h, performing the same checks on all operations before
+ * modifying the underlying structure or returning results.
  */
 class Index {
  private:
