@@ -207,7 +207,6 @@ bool DataTable::SelectIntoBuffer(transaction::TransactionContext *const txn, con
       StorageUtil::CopyAttrIntoProjection(accessor_, slot, out_buffer, i);
     }
 
-    // TODO(Matt): might not need to read visible in the loop (move after?) but not confident without large random tests
     // We still need to check the allocated bit because GC could have flipped it since last check
     visible = Visible(slot, accessor_);
 
@@ -216,19 +215,15 @@ bool DataTable::SelectIntoBuffer(transaction::TransactionContext *const txn, con
     // we will have to loop around to avoid a dirty read.
   } while (version_ptr != AtomicallyReadVersionPtr(slot, accessor_));
 
-  // Nullptr in version chain means no version visible to any transaction alive at this point.
+  // Nullptr in version chain means no other versions visible to any transaction alive at this point.
   // Alternatively, if the current transaction holds the write lock, it should be able to read its own updates.
   if (version_ptr == nullptr || version_ptr->Timestamp().load() == txn->TxnId().load()) {
     return visible;
   }
 
   // Apply deltas until we reconstruct a version safe for us to read
-  // If the version chain becomes null, this tuple does not exist for this version, and the last delta
-  // record would be an undo for insert that sets the primary key to null, which is intended behavior.
   while (version_ptr != nullptr &&
          transaction::TransactionUtil::NewerThan(version_ptr->Timestamp().load(), txn->StartTime())) {
-    // TODO(Matt): It's possible that if we make some guarantees about where in the version chain INSERTs (last position
-    // in version chain) and DELETEs (first position in version chain) can appear that we can optimize this check
     switch (version_ptr->Type()) {
       case DeltaRecordType::UPDATE:
         // Normal delta to be applied. Does not modify the logical delete column.
@@ -329,26 +324,20 @@ bool DataTable::IsVisible(const transaction::TransactionContext &txn, const Tupl
   bool visible;
   do {
     version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
-    // Here we will need to check that the version pointer did not change during our read. If it did, the content
-    // we have read might have been rolled back and an abort has already unlinked the associated undo-record,
-    // we will have to loop around to avoid a dirty read.
-    // TODO(Matt): might not need to read visible in the loop (move after?) but not confident without large random tests
+    // Here we will need to check that the version pointer did not change during our read. If it did, the visibility of
+    // this tuple might have changed and we should check again.
     visible = Visible(slot, accessor_);
   } while (version_ptr != AtomicallyReadVersionPtr(slot, accessor_));
 
-  // Nullptr in version chain means no version visible to any transaction alive at this point.
+  // Nullptr in version chain means no other versions visible to any transaction alive at this point.
   // Alternatively, if the current transaction holds the write lock, it should be able to read its own updates.
   if (version_ptr == nullptr || version_ptr->Timestamp().load() == txn.TxnId().load()) {
     return visible;
   }
 
   // Apply deltas until we determine a version safe for us to read
-  // If the version chain becomes null, this tuple does not exist for this version, and the last delta
-  // record would be an undo for insert that sets the primary key to null, which is intended behavior.
   while (version_ptr != nullptr &&
          transaction::TransactionUtil::NewerThan(version_ptr->Timestamp().load(), txn.StartTime())) {
-    // TODO(Matt): It's possible that if we make some guarantees about where in the version chain INSERTs (last position
-    // in version chain) and DELETEs (first position in version chain) can appear that we can optimize this check
     switch (version_ptr->Type()) {
       case DeltaRecordType::UPDATE:
         // Normal delta to be applied. Does not modify the logical delete column.
