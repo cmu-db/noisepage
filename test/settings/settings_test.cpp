@@ -95,21 +95,38 @@ class SettingsTests : public TerrierTest {
 
 // NOLINTNEXTLINE
 TEST_F(SettingsTests, BasicTest) {
-  // Test immutable parameters.
-  auto port = static_cast<uint16_t>(settings_manager_->GetInt(Param::port));
-  EXPECT_EQ(port, 15721);
-
   const int32_t action_id = 1;
   setter_callback_fn setter_callback = SettingsTests::EmptySetterCallback;
   std::shared_ptr<common::ActionContext> action_context = std::make_shared<common::ActionContext>(action_id);
+
+  // Test immutable parameters.
+  auto port = static_cast<uint16_t>(settings_manager_->GetInt(Param::port));
+  EXPECT_EQ(port, 15721);
   settings_manager_->SetInt(Param::port, 23333, action_context, setter_callback);
   EXPECT_EQ(common::ActionState::FAILURE, action_context->GetState());
 
+  settings_manager_->SetBool(Param::fixed_bool, true, action_context, setter_callback);
+  EXPECT_EQ(common::ActionState::FAILURE, action_context->GetState());
+
+  settings_manager_->SetDouble(Param::fixed_double, 100.0, action_context, setter_callback);
+  EXPECT_EQ(common::ActionState::FAILURE, action_context->GetState());
+
+  settings_manager_->SetString(Param::fixed_string, "abcdefg", action_context, setter_callback);
+  EXPECT_EQ(common::ActionState::FAILURE, action_context->GetState());
+
   // Test tunable parameters.
+  settings_manager_->SetInt(Param::lucky_number, 1919810, action_context, setter_callback);
+  EXPECT_EQ(common::ActionState::FAILURE, action_context->GetState());
+  EXPECT_EQ(114, settings_manager_->GetInt(Param::lucky_number));
+  settings_manager_->SetInt(Param::lucky_number, 233, action_context, setter_callback);
+  EXPECT_EQ(233, settings_manager_->GetInt(Param::lucky_number));
+
   double pi = settings_manager_->GetDouble(Param::pi);
   EXPECT_EQ(pi, 3.14159);
   settings_manager_->SetDouble(Param::pi, 3.14, action_context, setter_callback);
   EXPECT_EQ(3.14, settings_manager_->GetDouble(Param::pi));
+  settings_manager_->SetDouble(Param::pi, 0.0, action_context, setter_callback);
+  EXPECT_EQ(common::ActionState::FAILURE, action_context->GetState());
 
   bool parallel = settings_manager_->GetBool(Param::parallel_execution);
   EXPECT_TRUE(parallel);

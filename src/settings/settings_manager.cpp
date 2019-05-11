@@ -181,14 +181,6 @@ void SettingsManager::SetString(Param param, const std::string_view &value,
   setter_callback(action_context);
 }
 
-const std::string SettingsManager::GetInfo() {
-  // TODO(Yuze): Return the string representation of the param map.
-  return "";
-}
-
-void SettingsManager::ShowInfo() { /*LOG_INFO("\n%s\n", GetInfo().c_str());*/
-}
-
 type::TransientValue &SettingsManager::GetValue(Param param) {
   auto &param_info = db_->param_map_.find(param)->second;
   return param_info.value;

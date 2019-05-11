@@ -116,17 +116,6 @@ class SettingsManager {
   void InitializeCatalog();
 
   /**
-   * Get current values of all the settings
-   * @return the string consists of the values
-   */
-  const std::string GetInfo();
-
-  /**
-   * Print current values of all the settings
-   */
-  void ShowInfo();
-
-  /**
    * Validate values from DBMain map
    */
   void ValidateParams();
