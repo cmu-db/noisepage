@@ -86,10 +86,15 @@ void CheckpointManager::RecoverFromLogs(const char *log_file_path,
   // On the second pass, the valid log records will be replayed sequentially from oldest to newest, because the logging
   // implementation guarantees that the update from the same transaction appears in order, and different transactions
   // appear in commit order.
+  //
+  // Garbage collection for varlen contents should be careful. If a tuple is inserted or updated into the table, GC
+  // will take care of reclaiming varlen contents. Otherwise, we should free them here.
 
   std::unordered_set<terrier::transaction::timestamp_t> valid_begin_ts;
 
   // First pass
+  // This first pass only needs commit timestamps and delete timestamps. If there is a performance bottleneck here,
+  // a special implementation of ReadNextLogRecord can be added to reduce other useless overhead.
   BufferedLogReader in(log_file_path);
   while (in.HasMore()) {
     std::vector<byte *> varlen_contents;
@@ -104,6 +109,7 @@ void CheckpointManager::RecoverFromLogs(const char *log_file_path,
         valid_begin_ts.insert(log_record->TxnBegin());
       }
     }
+    // Free up all varlen contents created in ReadNextLogRecord.
     for (auto varlen_content : varlen_contents) {
       delete[] varlen_content;
     }
@@ -230,7 +236,7 @@ storage::LogRecord *CheckpointManager::ReadNextLogRecord(storage::BufferedLogRea
         varlen_contents->push_back(varlen_content);
       } else {
         *entry = storage::VarlenEntry::CreateInline(varlen_content, varlen_attribute_size);
-        // should reclaim memory for inclined entries
+        // should free memory for inclined entries, because they are already memcpy-ed into the tuple
         delete[] varlen_content;
       }
     } else {
