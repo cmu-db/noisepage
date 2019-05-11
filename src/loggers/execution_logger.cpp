@@ -1,5 +1,3 @@
-#include "loggers/storage_logger.h"
-
 #include <memory>
 #include "loggers/main_logger.h"
 

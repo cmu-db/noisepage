@@ -48,8 +48,8 @@ class CompilationContext {
 
   std::vector<Pipeline *> pipelines_;
   TranslatorFactory translator_factory_;
-  std::unordered_map<const terrier::planner::AbstractPlanNode *, OperatorTranslator *> op_translators_;
   std::unordered_map<const terrier::parser::AbstractExpression *, ExpressionTranslator *> ex_translators_;
+  std::unordered_map<const terrier::planner::AbstractPlanNode *, OperatorTranslator *> op_translators_;
 };
 
 }

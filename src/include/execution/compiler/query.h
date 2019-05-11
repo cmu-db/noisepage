@@ -29,24 +29,26 @@ class Query {
   util::Region *GetRegion() { return &region_; }
 
   const std::string &GetQueryStateName() { return name_qs; }
+  const std::string &GetQueryStateStructName() { return name_qs_struct; }
   const std::string &GetQueryInitName() { return name_qinit; }
   const std::string &GetQueryProduceName() { return name_qproduce; }
   const std::string &GetQueryTeardownName() { return name_qteardown; }
 
-  void SetCompiledFunction(ast::BlockStmt *fn) { compiled_fn_ = fn; }
-  ast::BlockStmt *GetCompiledFunction() { return compiled_fn_; }
+  void SetCompiledFunction(ast::File *fn) { compiled_fn_ = fn; }
+  ast::File *GetCompiledFunction() { return compiled_fn_; }
 
  private:
   std::string name_qs = "query_state";
   std::string name_qinit = "query_init";
   std::string name_qproduce = "query_produce";
   std::string name_qteardown = "query_teardown";
+  std::string name_qs_struct = "query_state_struct";
 
   const terrier::planner::AbstractPlanNode &node_;
   util::Region region_;
   CodeContext code_ctx_;
   QueryState query_state_;
-  ast::BlockStmt *compiled_fn_;
+  ast::File *compiled_fn_;
 };
 
 }

@@ -21,6 +21,13 @@ class CodeContext {
   void SetCurrentFunction(FunctionBuilder *fn) { curr_fn_ = fn; }
   FunctionBuilder *GetCurrentFunction() const { return curr_fn_; }
 
+  sema::ErrorReporter * GetReporter() {
+    return &error_reporter_;
+  }
+
+  ast::Context * GetAstContext() {
+    return &ast_ctx_;
+  }
  private:
   util::Region *region_;
   sema::ErrorReporter error_reporter_;

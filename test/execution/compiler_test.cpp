@@ -47,6 +47,7 @@
 #include "type/transient_value.h"
 #include "type/transient_value_factory.h"
 #include "type/type_id.h"
+#include "execution/sema/sema.h"
 
 #include "util/test_harness.h"
 
@@ -820,6 +821,15 @@ TEST_F(PlanNodeJsonTest, SeqScanPlanNodeJsonTest) {
   tpl::compiler::Query query(*plan_node);
   tpl::compiler::CompilationContext ctx(&query, nullptr);
   ctx.GeneratePlan(&query);
+  tpl::sema::Sema type_check(ctx.GetCodeGen()->GetCodeContext()->GetAstContext());
+  type_check.Run(query.GetCompiledFunction());
+
+  if (ctx.GetCodeGen()->GetCodeContext()->GetReporter()->HasErrors()) {
+    EXECUTION_LOG_ERROR("Type-checking error!");
+    ctx.GetCodeGen()->GetCodeContext()->GetReporter()->PrintErrors();
+    return;
+  }
+
   tpl::ast::AstDump::Dump(query.GetCompiledFunction());
 }
 /*

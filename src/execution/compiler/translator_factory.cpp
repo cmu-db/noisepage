@@ -17,7 +17,7 @@ namespace tpl::compiler {
 OperatorTranslator *TranslatorFactory::CreateTranslator(const terrier::planner::AbstractPlanNode &op, Pipeline *pipeline) {
     switch (op.GetPlanNodeType()) {
       case terrier::planner::PlanNodeType::SEQSCAN: {
-        return new (pipeline->GetRegion()) SeqScanTranslator(op, pipeline);
+        return new SeqScanTranslator(op, pipeline);
       }
       default:
         TPL_ASSERT(false, "Unsupported plan node for translation");
@@ -27,31 +27,31 @@ OperatorTranslator *TranslatorFactory::CreateTranslator(const terrier::planner::
 ExpressionTranslator *TranslatorFactory::CreateTranslator(const terrier::parser::AbstractExpression &expression, CompilationContext &context) {
   auto type = expression.GetExpressionType();
   if(COMPARISON_OP(type)){
-    auto ret = new (context.GetRegion()) ComparisonTranslator(&expression, context);
+    auto ret = new ComparisonTranslator(&expression, context);
     return reinterpret_cast<ExpressionTranslator*>(ret);
   }
   if(ARITHMETIC_OP(type)){
-    auto ret = new (context.GetRegion()) ArithmeticTranslator(&expression, context);
+    auto ret = new ArithmeticTranslator(&expression, context);
     return reinterpret_cast<ExpressionTranslator*>(ret);
   }
   if(UNARY_OP(type)){
-    auto ret = new (context.GetRegion()) UnaryTranslator(&expression, context);
+    auto ret = new UnaryTranslator(&expression, context);
     return reinterpret_cast<ExpressionTranslator*>(ret);
   }
   if(CONJUNCTION_OP(type)){
-    auto ret = new (context.GetRegion()) ConjunctionTranslator(&expression, context);
+    auto ret = new ConjunctionTranslator(&expression, context);
     return reinterpret_cast<ExpressionTranslator*>(ret);
   }
   if(CONSTANT_VAL(type)){
-    auto ret = new (context.GetRegion()) ConstantTranslator(&expression, context);
+    auto ret = new ConstantTranslator(&expression, context);
     return reinterpret_cast<ExpressionTranslator*>(ret);
   }
   if(TUPLE_VAL(type)){
-    auto ret = new (context.GetRegion()) TupleValueTranslator(&expression, context);
+    auto ret = new TupleValueTranslator(&expression, context);
     return reinterpret_cast<ExpressionTranslator*>(ret);
   }
   if(NULL_OP(type)){
-    auto ret = new (context.GetRegion()) NullCheckTranslator(&expression, context);
+    auto ret = new NullCheckTranslator(&expression, context);
     return reinterpret_cast<ExpressionTranslator*>(ret);
   }
   TPL_ASSERT(false, "Unsupported expression");

@@ -22,14 +22,14 @@ ast::MemberExpr *QueryState::GetMember(tpl::compiler::CodeGen *codegen, Id id) {
   return (*codegen)->NewMemberExpr(DUMMY_POS, struct_name, member_name);
 }
 
-ast::Expr* QueryState::FinalizeType(tpl::compiler::CodeGen *codegen) {
-  if (constructed_type_ != nullptr) { return constructed_type_; }
+void QueryState::FinalizeType(tpl::compiler::CodeGen *codegen) {
+  if (constructed_type_ != nullptr) return;
   util::RegionVector<ast::FieldDecl *> members(codegen->GetRegion());
   members.reserve(states_.size());
   for (const auto &state : states_) {
     members.emplace_back((*codegen)->NewFieldDecl(DUMMY_POS, ast::Identifier(state.name.c_str()), state.type));
   }
-  return (*codegen)->NewStructType(DUMMY_POS, std::move(members));
+  constructed_type_ = (*codegen)->NewStructType(DUMMY_POS, std::move(members));
 }
 
 }

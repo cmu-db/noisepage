@@ -4,12 +4,6 @@
 #include <random>
 #include "catalog/catalog_defs.h"
 #include "catalog/catalog_sql_table.h"
-#include "loggers/catalog_logger.h"
-#include "loggers/index_logger.h"
-#include "loggers/main_logger.h"
-#include "loggers/storage_logger.h"
-#include "loggers/transaction_logger.h"
-#include "loggers/type_logger.h"
 #include "type/type_id.h"
 #include "execution/util/bit_util.h"
 #include "execution/util/common.h"
@@ -17,13 +11,6 @@
 
 namespace tpl::sql {
 ExecutionStructures::ExecutionStructures() {
-  init_main_logger();
-  catalog::init_catalog_logger();
-  storage::init_storage_logger();
-  type::init_type_logger();
-  transaction::init_transaction_logger();
-  storage::init_index_logger();
-
   block_store_ = std::make_unique<storage::BlockStore>(1000, 1000);
   buffer_pool_ =
       std::make_unique<storage::RecordBufferSegmentPool>(100000, 100000);

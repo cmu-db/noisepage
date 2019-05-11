@@ -20,9 +20,9 @@ class CodeGen {
   friend class QueryState;
 
   util::Region *GetRegion();
-  CodeContext *GetCodeContext() { return ctx_; }
-
  public:
+
+  CodeContext *GetCodeContext() { return ctx_; }
   explicit CodeGen(CodeContext *ctx);
 
   DISALLOW_COPY_AND_MOVE(CodeGen);

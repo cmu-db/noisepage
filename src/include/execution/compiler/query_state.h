@@ -19,8 +19,8 @@ class QueryState {
   Id RegisterState(std::string name, ast::Expr *type, ast::Expr *value);
   ast::MemberExpr *GetMember(tpl::compiler::CodeGen *codegen, Id id);
 
-  ast::Expr *FinalizeType(CodeGen *codegen);
-  ast::Expr *GetType() const { return constructed_type_; }
+  void FinalizeType(CodeGen *codegen);
+  ast::StructTypeRepr *GetType() const { return constructed_type_; }
 
  private:
   struct StateInfo {
@@ -33,9 +33,8 @@ class QueryState {
   };
 
   ast::Identifier state_name_;
-  ast::Expr *constructed_type_;
+  ast::StructTypeRepr *constructed_type_;
   std::vector<StateInfo> states_;
-
 
 };
 

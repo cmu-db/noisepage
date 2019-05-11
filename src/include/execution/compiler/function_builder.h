@@ -42,7 +42,7 @@ class FunctionBuilder {
   ast::Expr *fn_ret_type_;
 
   ast::BlockStmt *fn_body_;
-  ast::BlockStmt *&insertion_point_;
+  ast::BlockStmt *insertion_point_;
 };
 
 }

@@ -126,7 +126,7 @@ void Sorter::Sort() {
   timer.Stop();
 
 #ifndef NDEBUG
-  auto rate = (tuples_.size() / timer.elapsed()) / 1000.0;
+  auto rate = (static_cast<double>(tuples_.size()) / timer.elapsed()) / 1000.0;
   EXECUTION_LOG_DEBUG("Sorted %zu tuples in %.2f ms (%.2lf TPS)", tuples_.size(),
             timer.elapsed(), rate);
 #endif

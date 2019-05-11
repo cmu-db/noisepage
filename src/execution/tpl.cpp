@@ -26,6 +26,12 @@
 #include "execution/vm/vm.h"
 
 #include "loggers/execution_logger.h"
+#include "loggers/catalog_logger.h"
+#include "loggers/index_logger.h"
+#include "loggers/main_logger.h"
+#include "loggers/storage_logger.h"
+#include "loggers/transaction_logger.h"
+#include "loggers/type_logger.h"
 
 // ---------------------------------------------------------
 // CLI options
@@ -102,6 +108,8 @@ static void CompileAndRun(const std::string &source,
     ast::AstDump::Dump(root);
   }
 
+  // NOTE: Commented to just check ast generation.
+  /*
   // Codegen
   std::unique_ptr<vm::BytecodeModule> module;
   {
@@ -139,7 +147,7 @@ static void CompileAndRun(const std::string &source,
 
     EXECUTION_LOG_INFO("JIT main() returned: {}", main_func());
   }
-
+  */
   // Dump stats
   EXECUTION_LOG_INFO(
       "Parse: {} ms, Type-check: {} ms, Code-gen: {} ms, Exec.: {} ms, "
@@ -190,12 +198,17 @@ static void RunFile(const std::string &filename) {
 
 /// Initialize all TPL subsystems
 void InitTPL() {
-  tpl::logging::InitLogger();
-
   tpl::CpuInfo::Instance();
 
-  tpl::sql::ExecutionStructures::Instance();
+  init_main_logger();
+  terrier::catalog::init_catalog_logger();
+  terrier::storage::init_storage_logger();
+  terrier::type::init_type_logger();
+  terrier::transaction::init_transaction_logger();
+  terrier::storage::init_index_logger();
+  terrier::execution::init_execution_logger();
 
+  tpl::sql::ExecutionStructures::Instance();
   tpl::vm::LLVMEngine::Initialize();
 
   EXECUTION_LOG_INFO("TPL Bytecode Count: {}", tpl::vm::Bytecodes::NumBytecodes());
@@ -207,7 +220,6 @@ void InitTPL() {
 void ShutdownTPL() {
   tpl::vm::LLVMEngine::Shutdown();
 
-  tpl::logging::ShutdownLogger();
 
   EXECUTION_LOG_INFO("TPL cleanly shutdown ...");
 }

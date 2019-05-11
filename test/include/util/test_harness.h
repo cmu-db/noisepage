@@ -10,6 +10,7 @@
 #include "loggers/test_logger.h"
 #include "loggers/transaction_logger.h"
 #include "loggers/type_logger.h"
+#include "loggers/catalog_logger.h"
 
 namespace terrier {
 
@@ -25,6 +26,7 @@ class TerrierTest : public ::testing::Test {
     terrier::storage::init_index_logger();
     terrier::storage::init_storage_logger();
     terrier::transaction::init_transaction_logger();
+    terrier::catalog::init_catalog_logger();
 
     // only needed in the test framework.
     init_test_logger();
