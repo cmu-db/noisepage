@@ -35,11 +35,13 @@ struct SchemaCol;
  *
  * pg_index:
  *  indexrelid | indrelid | indnatts | indnkeyatts | indisunique | indisprimary |  indisvalid | indisready | indislive
+ *
+ * For more details, see PostgreSQL's documentation: https://www.postgresql.org/docs/current/catalog-pg-index.html
  */
 class IndexHandle {
  public:
   /**
-   * Construct a IndexHandle. It keeps a pointer to the pg_index sql table.
+   * Construct a IndexHandle. It keeps a pointer to the pg_index catalog.
    * @param catalog: The pointer to the catalog.
    * @param pg_index: The pointer to the pg_index sql table.
    */
@@ -54,7 +56,7 @@ class IndexHandle {
   std::shared_ptr<IndexEntry> GetIndexEntry(transaction::TransactionContext *txn, index_oid_t oid);
 
   /**
-   * Add an entry into the IndexHandle
+   * Add an entry into the pg_index catalog.
    * @param txn the transaction context
    * @param index_ptr the pointer to the index
    * @param indexrelid the id of index object
