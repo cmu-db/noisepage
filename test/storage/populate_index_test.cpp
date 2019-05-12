@@ -3,6 +3,7 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_sql_table.h"
 #include "catalog/index_handle.h"
+#include "catalog/namespace_handle.h"
 #include "storage/index/index_factory.h"
 #include "storage/index/index_manager.h"
 #include "util/test_harness.h"

@@ -2,13 +2,42 @@
 #include <string>
 #include <vector>
 #include "catalog/catalog_sql_table.h"
+#include "catalog/namespace_handle.h"
 #include "catalog/index_handle.h"
+#include "storage/garbage_collector.h"
 #include "storage/index/index_factory.h"
 #include "util/test_harness.h"
 #include "util/transaction_test_util.h"
 
 namespace terrier::storage::index {
 struct IndexManagerTest : public TerrierTest {
+  void StartGC(transaction::TransactionManager *const txn_manager) {
+    gc_ = new storage::GarbageCollector(txn_manager);
+    run_gc_ = true;
+    gc_thread_ = std::thread([this] { GCThreadLoop(); });
+  }
+
+  void EndGC() {
+    run_gc_ = false;
+    gc_thread_.join();
+    // Make sure all garbage is collected. This take 2 runs for unlink and deallocate
+    gc_->PerformGarbageCollection();
+    gc_->PerformGarbageCollection();
+    delete gc_;
+  }
+
+  std::thread gc_thread_;
+  storage::GarbageCollector *gc_ = nullptr;
+  volatile bool run_gc_ = false;
+  const std::chrono::milliseconds gc_period_{10};
+
+  void GCThreadLoop() {
+    while (run_gc_) {
+      std::this_thread::sleep_for(gc_period_);
+      gc_->PerformGarbageCollection();
+    }
+  }
+
   void SetUp() override {
     TerrierTest::SetUp();
     txn_manager_ = new transaction::TransactionManager(&buffer_pool_, true, LOGGING_DISABLED);
@@ -20,6 +49,7 @@ struct IndexManagerTest : public TerrierTest {
     delete index_manager_;
     delete txn_manager_;
   }
+
   storage::RecordBufferSegmentPool buffer_pool_{100, 100};
   transaction::TransactionManager *txn_manager_;
   IndexManager *index_manager_;
@@ -28,6 +58,7 @@ struct IndexManagerTest : public TerrierTest {
 // Check the basic functionality of create index concurrently
 // NOLINTNEXTLINE
 TEST_F(IndexManagerTest, CreateIndexConcurrentlyBasicTest) {
+  StartGC(txn_manager_);
   auto txn0 = txn_manager_->BeginTransaction();
   auto catalog_ = new catalog::Catalog(txn_manager_, txn0);
 
@@ -144,11 +175,9 @@ TEST_F(IndexManagerTest, CreateIndexConcurrentlyBasicTest) {
   }
   txn_manager_->Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
 
+  EndGC();
   delete table;
   delete catalog_;
-  delete txn0;
-  delete txn1;
-  delete txn2;
   delete index;
   delete[] key_buf_index;
   delete[] key_buf;
@@ -157,6 +186,7 @@ TEST_F(IndexManagerTest, CreateIndexConcurrentlyBasicTest) {
 // Check that throwed exceptions are properly handled
 // NOLINTNEXTLINE
 TEST_F(IndexManagerTest, CreateIndexConcurrentlyExceptionTest) {
+  StartGC(txn_manager_);
   auto txn0 = txn_manager_->BeginTransaction();
   auto catalog_ = new catalog::Catalog(txn_manager_, txn0);
 
@@ -214,14 +244,15 @@ TEST_F(IndexManagerTest, CreateIndexConcurrentlyExceptionTest) {
                                                       "test_index", index_attrs, key_attrs, txn_manager_, catalog_);
   EXPECT_EQ(!index_oid, 0);
 
+  EndGC();
   delete table;
   delete catalog_;
-  delete txn0;
 }
 
 // Check the correctness of drop index
 // NOLINTNEXTLINE
 TEST_F(IndexManagerTest, DropIndexCorrectnessTest) {
+  StartGC(txn_manager_);
   auto txn0 = txn_manager_->BeginTransaction();
   auto catalog_ = new catalog::Catalog(txn_manager_, txn0);
 
@@ -298,10 +329,8 @@ TEST_F(IndexManagerTest, DropIndexCorrectnessTest) {
   EXPECT_EQ(index_entry, nullptr);
   txn_manager_->Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
 
+  EndGC();
   delete table;
   delete catalog_;
-  delete txn0;
-  delete txn1;
-  delete txn2;
 }
 }  // namespace terrier::storage::index
