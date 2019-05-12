@@ -1,8 +1,9 @@
-#include "storage/index/index_manager.h"
 #include <memory>
 #include <string>
 #include <vector>
 #include "util/transaction_benchmark_util.h"
+#include "storage/index/index_manager.h"
+#include "catalog/index_handle.h"
 
 namespace terrier::storage::index {
 Index *IndexManager::GetEmptyIndex(catalog::index_oid_t index_oid, SqlTable *sql_table, bool unique_index,

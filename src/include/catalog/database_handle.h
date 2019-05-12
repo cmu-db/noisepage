@@ -5,19 +5,15 @@
 #include <utility>
 #include <vector>
 
-#include "catalog/attr_def_handle.h"
-#include "catalog/attribute_handle.h"
 #include "catalog/catalog.h"
-#include "catalog/class_handle.h"
-#include "catalog/index_handle.h"
-#include "catalog/namespace_handle.h"
-#include "catalog/type_handle.h"
+#include "catalog/catalog_entry.h"
 #include "storage/sql_table.h"
 #include "transaction/transaction_context.h"
 
 namespace terrier::catalog {
 
 class Catalog;
+class ClassHandle;
 class AttributeHandle;
 class AttrDefHandle;
 class NamespaceHandle;

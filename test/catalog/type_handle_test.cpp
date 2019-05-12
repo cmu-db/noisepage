@@ -3,6 +3,8 @@
 #include "type/transient_value_peeker.h"
 #include "util/test_harness.h"
 #include "util/transaction_test_util.h"
+#include "catalog/type_handle.h"
+
 namespace terrier {
 
 struct TypeHandleTest : public TerrierTest {
