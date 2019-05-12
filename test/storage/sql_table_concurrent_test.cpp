@@ -358,7 +358,6 @@ TEST_F(SqlTableConcurrentTests, ConcurrentSelectsWithSchemaChanges) {
 
     gc_.PerformGarbageCollection();
     gc_.PerformGarbageCollection();
-    gc_.PerformGarbageCollection();
   }
 }
 

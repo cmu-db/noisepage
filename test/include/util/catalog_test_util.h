@@ -91,15 +91,11 @@ struct CatalogTestUtil {
   template <typename Random>
   static void PopulateRandomRow(storage::ProjectedRow *row, const catalog::Schema &schema,
                                 const storage::ProjectionMap &pr_map, Random *const generator) {
-    for (auto &it : pr_map) {
-      row->SetNotNull(it.second);
-      byte *addr = row->AccessWithNullCheck(it.second);
-      uint8_t size = 0;
-      for (auto &col : schema.GetColumns()) {
-        if (col.GetOid() == it.first) {
-          size = col.GetAttrSize();
-        }
-      }
+    for (auto &col : schema.GetColumns()) {
+      auto col_id = pr_map.at(col.GetOid());
+      row->SetNotNull(col_id);
+      byte *addr = row->AccessWithNullCheck(col_id);
+      uint8_t size = col.GetAttrSize();
       StorageTestUtil::FillWithRandomBytes(size, addr, generator);
     }
   }
@@ -113,6 +109,7 @@ struct CatalogTestUtil {
       catalog::col_oid_t col_oid = it.first;
       uint8_t attr_size = 0;
       for (auto &col : schema.GetColumns()) {
+        TERRIER_ASSERT(col.GetAttrSize() < 128, "VARLEN columns not supported byt this framework");
         if (col.GetOid() == col_oid) {
           attr_size = col.GetAttrSize();
           break;
