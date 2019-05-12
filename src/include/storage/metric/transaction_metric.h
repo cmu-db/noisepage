@@ -11,9 +11,7 @@
 #include "storage/metric/abstract_metric.h"
 #include "transaction/transaction_defs.h"
 
-namespace terrier {
-
-namespace storage::metric {
+namespace terrier::storage::metric {
 
 /**
  * Raw data object for holding stats collected at transaction level
@@ -144,16 +142,34 @@ class TransactionMetricRawData : public AbstractRawData {
    * Collection of data related to a transaction
    */
   struct TransactionData {
+    /**
+     * Starting time of the transaction
+     */
     std::chrono::high_resolution_clock::time_point start_;
+    /**
+     * Latency of the transaction
+     */
     int64_t latency_;
+    /**
+     * Number of tuples read by the transaction
+     */
     int64_t tuple_read_;
+    /**
+     * Number of tuples inserted by the transaction
+     */
     int64_t tuple_insert_;
+    /**
+     * Number of tuples deleted by the transaction
+     */
     int64_t tuple_delete_;
+    /**
+     * Number of tuples updated by the transaction
+     */
     int64_t tuple_update_;
   };
 
   /**
-   * Maps from transaction id to relevant data.
+   * Map of transaction id to relevant data.
    */
   std::unordered_map<transaction::timestamp_t, struct TransactionData> data_;
 };
@@ -173,7 +189,8 @@ class TransactionMetric : public AbstractMetric<TransactionMetricRawData> {
    * @param database_oid OID of the database the transaction is running in
    */
   void OnTransactionCommit(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid) override {
-    (void)database_oid;
+    // Supress unused warning
+    ((void)database_oid);
     GetRawData()->CalculateTxnLatency(txn);
   }
 
@@ -182,7 +199,8 @@ class TransactionMetric : public AbstractMetric<TransactionMetricRawData> {
    * @param database_oid OID of the database the transaction is running in
    */
   void OnTransactionAbort(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid) override {
-    (void)database_oid;
+    // Supress unused warning
+    ((void)database_oid);
     GetRawData()->CalculateTxnLatency(txn);
   }
 
@@ -195,9 +213,10 @@ class TransactionMetric : public AbstractMetric<TransactionMetricRawData> {
    */
   void OnTupleRead(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid,
                    catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) override {
-    (void)database_oid;
-    (void)namespace_oid;
-    (void)table_oid;
+    // Supress unused warnings
+    ((void)database_oid);
+    ((void)namespace_oid);
+    ((void)table_oid);
     GetRawData()->IncrementTupleRead(txn);
   }
 
@@ -209,9 +228,10 @@ class TransactionMetric : public AbstractMetric<TransactionMetricRawData> {
    */
   void OnTupleUpdate(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid,
                      catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) override {
-    (void)database_oid;
-    (void)namespace_oid;
-    (void)table_oid;
+    // Supress unused warnings
+    ((void)database_oid);
+    ((void)namespace_oid);
+    ((void)table_oid);
     GetRawData()->IncrementTupleUpdate(txn);
   }
 
@@ -223,9 +243,10 @@ class TransactionMetric : public AbstractMetric<TransactionMetricRawData> {
    */
   void OnTupleInsert(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid,
                      catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) override {
-    (void)database_oid;
-    (void)namespace_oid;
-    (void)table_oid;
+    // Supress unused warnings
+    ((void)database_oid);
+    ((void)namespace_oid);
+    ((void)table_oid);
     GetRawData()->IncrementTupleInsert(txn);
   }
 
@@ -237,11 +258,11 @@ class TransactionMetric : public AbstractMetric<TransactionMetricRawData> {
    */
   void OnTupleDelete(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid,
                      catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) override {
-    (void)database_oid;
-    (void)namespace_oid;
-    (void)table_oid;
+    // Supress unused warnings
+    ((void)database_oid);
+    ((void)namespace_oid);
+    ((void)table_oid);
     GetRawData()->IncrementTupleDelete(txn);
   }
 };
-}  // namespace storage::metric
-}  // namespace terrier
+}  // namespace terrier::storage::metric

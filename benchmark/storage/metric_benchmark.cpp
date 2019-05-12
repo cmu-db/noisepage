@@ -87,7 +87,6 @@ class MetricBenchmark : public benchmark::Fixture {
   const std::string default_namespace_{"public"};
 };
 
-//
 // After completing each transaction, an Aggregation is performed.
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MetricBenchmark, AggregateMetric)(benchmark::State &state) {

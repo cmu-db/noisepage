@@ -72,7 +72,6 @@ class TestMetricRawData : public AbstractRawData {
 class TestMetric : public AbstractMetric<TestMetricRawData> {
  public:
   /**
-   *
    * @param num value to integrate with test raw data
    */
   void OnTest(int num) override { GetRawData()->Integrate(num); }

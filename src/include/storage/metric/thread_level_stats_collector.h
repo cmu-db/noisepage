@@ -10,9 +10,7 @@
 #include "storage/metric/metric_defs.h"
 #include "transaction/transaction_manager.h"
 
-namespace terrier {
-
-namespace storage::metric {
+namespace terrier::storage::metric {
 /**
  * @brief Class responsible for collecting raw data on a single thread.
  *
@@ -364,5 +362,4 @@ class ThreadLevelStatsCollector {
   std::thread::id thread_id_;
 };
 
-}  // namespace storage::metric
-}  // namespace terrier
+}  // namespace terrier::storage::metric
