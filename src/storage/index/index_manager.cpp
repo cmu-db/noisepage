@@ -5,9 +5,8 @@
 #include "util/transaction_benchmark_util.h"
 
 namespace terrier::storage::index {
-Index *IndexManager::GetEmptyIndex(transaction::TransactionContext *txn, catalog::db_oid_t db_oid,
-                                   catalog::index_oid_t index_oid, SqlTable *sql_table, bool unique_index,
-                                   const std::vector<std::string> &key_attrs, catalog::Catalog *catalog) {
+Index *IndexManager::GetEmptyIndex(catalog::index_oid_t index_oid, SqlTable *sql_table, bool unique_index,
+                                   const std::vector<std::string> &key_attrs) {
   // Setup the oid and constraint type for the index
   IndexFactory index_factory;
   ConstraintType constraint = (unique_index) ? ConstraintType::UNIQUE : ConstraintType::DEFAULT;
@@ -63,7 +62,7 @@ catalog::index_oid_t IndexManager::CreateConcurrently(catalog::db_oid_t db_oid, 
   bool indislive = false;
 
   // Intialize the index
-  Index *index = GetEmptyIndex(txn1, db_oid, index_oid, sql_table.get(), indisunique, key_attrs, catalog);
+  Index *index = GetEmptyIndex(index_oid, sql_table.get(), indisunique, key_attrs);
   // Initializing the index fails
   if (index == nullptr) {
     txn_mgr->Abort(txn1);

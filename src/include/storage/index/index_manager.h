@@ -19,7 +19,7 @@
 namespace terrier::storage::index {
 
 /**
- * An index builder is a class that creates an index on key attributes specified by users. It can create
+ * An index manager is a class that creates an index on key attributes specified by users. It can create
  * the index both in the non-blocking manner and the blocking manner, which is also determined by users.
  *
  * This class can only be used when creating an index.
@@ -30,18 +30,14 @@ class IndexManager {
    * The method sets the type of constraints and the key schema for the index. It finally returns an empty
    * index for further insertion.
    *
-   * @param txn the context of index building transaction
-   * @param db_oid the oid of the database
    * @param index_oid the oid of the index given by catalog
    * @param sql_table the target sql table
    * @param unique_index whether the index has unique constraint or not
    * @param key_attrs all attributes in the key
-   * @param catalog the pointer to the catalog
    * @return an empty index with metadata set
    */
-  Index *GetEmptyIndex(transaction::TransactionContext *txn, catalog::db_oid_t db_oid, catalog::index_oid_t index_oid,
-                       SqlTable *sql_table, bool unique_index, const std::vector<std::string> &key_attrs,
-                       catalog::Catalog *catalog);
+  Index *GetEmptyIndex(catalog::index_oid_t index_oid, SqlTable *sql_table, bool unique_index,
+                       const std::vector<std::string> &key_attrs);
 
   /**
    * Record the oid of db, the oid of namespace and the oid of index.
