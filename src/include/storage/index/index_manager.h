@@ -93,7 +93,7 @@ class IndexManager {
     common::SpinLatch::ScopedSpinLatch guard(&index_building_map_latch_);
     auto it = index_building_map_.find(key);
     if (it == index_building_map_.end()) return IndexBuildFlag::INVALID;
-    return it->second ? IndexBuildFlag::POST_SCAN_BARRIER : IndexBuildFlag::PRE_SCAN_BARRIER;
+    return it->second;
   }
 
   /**
