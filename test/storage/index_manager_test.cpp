@@ -11,6 +11,53 @@
 
 namespace terrier::storage::index {
 struct IndexManagerTest : public TerrierTest {
+
+  void InsertThread(catalog::Catalog *catalog, catalog::SqlTableHelper *table, catalog::index_oid_t index_oid, int idx) {
+    auto txn = txn_manager_->BeginTransaction();
+    std::vector<type::TransientValue> row;
+    row.emplace_back(type::TransientValueFactory::GetBoolean(idx % 2 == 0));
+    row.emplace_back(type::TransientValueFactory::GetInteger(idx));
+    row.emplace_back(type::TransientValueFactory::GetVarChar(fmt::format("name_%d", idx)));
+    row.emplace_back(type::TransientValueFactory::GetVarChar(fmt::format("address_%d", idx)));
+
+    // TODO(xueyuanz):
+    table->InsertRow(txn, row);
+    catalog::IndexHandle index_handle = catalog->GetDatabaseHandle().GetIndexHandle(txn, catalog::DEFAULT_DATABASE_OID);
+
+    auto index_entry = index_handle.GetIndexEntry(txn, index_oid);
+    auto index = reinterpret_cast<Index*>(index_entry->GetBigIntColumn("indexptr"));
+
+    // Create the projected row for index
+    const IndexMetadata &metadata = index->GetIndexMetadata();
+    const IndexKeySchema &index_key_schema = metadata.GetKeySchema();
+    const auto &pr_initializer = metadata.GetProjectedRowInitializer();
+    auto *key_buf_index = common::AllocationUtil::AllocateAligned(pr_initializer.ProjectedRowSize());
+    ProjectedRow *index_key = pr_initializer.InitializeRow(key_buf_index);
+
+    // Create the projected row for the sql table
+    std::vector<catalog::col_oid_t> col_oids;
+    col_oids.reserve(index_key_schema.size());
+    for (const auto &it : index_key_schema) {
+      col_oids.emplace_back(catalog::col_oid_t(!it.GetOid()));
+    }
+    auto init_and_map = table->GetSqlTable()->InitializerForProjectedRow(col_oids);
+    auto *key_buf = common::AllocationUtil::AllocateAligned(init_and_map.first.ProjectedRowSize());
+    ProjectedRow *key = init_and_map.first.InitializeRow(key_buf);
+
+    // Record the col_id of each column
+    std::vector<col_id_t> sql_table_cols;
+    sql_table_cols.reserve(key->NumColumns());
+    for (uint16_t i = 0; i < key->NumColumns(); ++i) {
+      sql_table_cols.emplace_back(key->ColumnIds()[i]);
+    }
+
+    // Check whether the index is valid.
+    bool is_valid = index_entry->GetBooleanColumn("indisvalid");
+    bool is_ready = index_entry->GetBooleanColumn("indisready");
+    // TODO(xueyuan): Find the correct Tuple Slot, generate the projected row and insert to the index
+
+
+  }
   void StartGC(transaction::TransactionManager *const txn_manager) {
     gc_ = new storage::GarbageCollector(txn_manager);
     run_gc_ = true;
@@ -333,4 +380,262 @@ TEST_F(IndexManagerTest, DropIndexCorrectnessTest) {
   delete table;
   delete catalog_;
 }
+
+// Check the basic functionality of create index concurrently
+// NOLINTNEXTLINE
+TEST_F(IndexManagerTest, CreateIndexConcurrentlyBasicTest) {
+  StartGC(txn_manager_);
+  auto txn0 = txn_manager_->BeginTransaction();
+  auto catalog_ = new catalog::Catalog(txn_manager_, txn0);
+
+  // terrier has db_oid_t DEFAULT_DATABASE_OID
+  const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
+  auto db_handle = catalog_->GetDatabaseHandle();
+  auto ns_handle = db_handle.GetNamespaceHandle(txn0, terrier_oid);
+  auto table_handle = ns_handle.GetTableHandle(txn0, "public");
+  auto ns_oid = ns_handle.NameToOid(txn0, std::string("public"));
+
+  // define schema
+  std::vector<catalog::Schema::Column> cols;
+  cols.emplace_back("sex", type::TypeId::BOOLEAN, false, catalog::col_oid_t(catalog_->GetNextOid()));
+  cols.emplace_back("id", type::TypeId::INTEGER, false, catalog::col_oid_t(catalog_->GetNextOid()));
+  cols.emplace_back("name", type::TypeId::VARCHAR, 100, false, catalog::col_oid_t(catalog_->GetNextOid()));
+  cols.emplace_back("address", type::TypeId::VARCHAR, 200, false, catalog::col_oid_t(catalog_->GetNextOid()));
+  catalog::Schema schema(cols);
+
+  // create table
+  auto table = table_handle.CreateTable(txn0, schema, "test_table");
+  auto table_oid = table_handle.NameToOid(txn0, "test_table");
+  auto table_entry = table_handle.GetTableEntry(txn0, "test_table");
+  EXPECT_NE(table_entry, nullptr);
+  std::string_view str = type::TransientValuePeeker::PeekVarChar(table_entry->GetColInRow(0));
+  EXPECT_EQ(str, "public");
+
+  str = type::TransientValuePeeker::PeekVarChar(table_entry->GetColInRow(1));
+  EXPECT_EQ(str, "test_table");
+
+  str = type::TransientValuePeeker::PeekVarChar(table_entry->GetColInRow(2));
+  EXPECT_EQ(str, "pg_default");
+
+  // Insert a few rows into the table
+  auto ptr = table_handle.GetTable(txn0, "test_table");
+  EXPECT_EQ(ptr, table);
+
+  for (int i = 0; i < 200; ++i) {
+    std::vector<type::TransientValue> row;
+    row.emplace_back(type::TransientValueFactory::GetBoolean(i % 2 == 0));
+    row.emplace_back(type::TransientValueFactory::GetInteger(i));
+    row.emplace_back(type::TransientValueFactory::GetVarChar(fmt::format("name_%d", i)));
+    row.emplace_back(type::TransientValueFactory::GetVarChar(fmt::format("address_%d", i)));
+    ptr->InsertRow(txn0, row);
+  }
+
+  // Commit the setting transaction
+  txn_manager_->Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
+
+  // Set up index attributes and key attributes
+  std::vector<std::string> index_attrs{"sex", "id", "name"};
+  std::vector<std::string> key_attrs{"id", "name"};
+
+  // Create the index
+  auto index_oid = index_manager_->CreateConcurrently(terrier_oid, ns_oid, table_oid, parser::IndexType::BWTREE, false,
+                                                      "test_index", index_attrs, key_attrs, txn_manager_, catalog_);
+  EXPECT_GT(!index_oid, 0);
+
+  // Test whether the catalog has the corresponding information
+  auto txn1 = txn_manager_->BeginTransaction();
+  auto index_handle = db_handle.GetIndexHandle(txn1, terrier_oid);
+  auto index_entry = index_handle.GetIndexEntry(txn1, index_oid);
+  EXPECT_NE(index_entry, nullptr);
+  auto ret = index_entry->GetIntegerColumn("indexrelid");
+  EXPECT_EQ(ret, !index_oid);
+  EXPECT_EQ(index_entry->GetIntegerColumn("indrelid"), !table_oid);
+  EXPECT_EQ(index_entry->GetBooleanColumn("indisready"), false);
+  EXPECT_EQ(index_entry->GetBooleanColumn("indisvalid"), true);
+  txn_manager_->Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
+
+  // Test whether index contains all entries inserted before
+  auto txn2 = txn_manager_->BeginTransaction();
+  Index *index = reinterpret_cast<Index *>(index_entry->GetBigIntColumn("indexptr"));
+  // Create the projected row for index
+  const IndexMetadata &metadata = index->GetIndexMetadata();
+  const IndexKeySchema &index_key_schema = metadata.GetKeySchema();
+  const auto &pr_initializer = metadata.GetProjectedRowInitializer();
+  auto *key_buf_index = common::AllocationUtil::AllocateAligned(pr_initializer.ProjectedRowSize());
+  ProjectedRow *index_key = pr_initializer.InitializeRow(key_buf_index);
+
+  // Create the projected row for the sql table
+  std::vector<catalog::col_oid_t> col_oids;
+  col_oids.reserve(index_key_schema.size());
+  for (const auto &it : index_key_schema) {
+    col_oids.emplace_back(catalog::col_oid_t(!it.GetOid()));
+  }
+  auto init_and_map = table->GetSqlTable()->InitializerForProjectedRow(col_oids);
+  auto *key_buf = common::AllocationUtil::AllocateAligned(init_and_map.first.ProjectedRowSize());
+  ProjectedRow *key = init_and_map.first.InitializeRow(key_buf);
+
+  // Record the col_id of each column
+  std::vector<col_id_t> sql_table_cols;
+  sql_table_cols.reserve(key->NumColumns());
+  for (uint16_t i = 0; i < key->NumColumns(); ++i) {
+    sql_table_cols.emplace_back(key->ColumnIds()[i]);
+  }
+  for (const auto &it : *table->GetSqlTable()) {
+    if (table->GetSqlTable()->Select(txn2, it, key)) {
+      for (uint16_t i = 0; i < key->NumColumns(); ++i) {
+        key->ColumnIds()[i] = index_key->ColumnIds()[i];
+      }
+      std::vector<TupleSlot> tup_slots;
+      index->ScanKey(*txn2, *key, &tup_slots);
+      bool flag = false;
+      for (const auto &tup_slot : tup_slots) {
+        if (it == tup_slot) {
+          flag = true;
+        }
+      }
+      EXPECT_EQ(flag, true);
+      for (uint16_t i = 0; i < key->NumColumns(); ++i) {
+        key->ColumnIds()[i] = sql_table_cols[i];
+      }
+    }
+  }
+  txn_manager_->Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
+
+  EndGC();
+  delete table;
+  delete catalog_;
+  delete index;
+  delete[] key_buf_index;
+  delete[] key_buf;
+}
+
+
+// Check the interleaving
+// NOLINTNEXTLINE
+TEST_F(IndexManagerTest, CreateIndexConcurrentlyFuzzyTest) {
+  StartGC(txn_manager_);
+  auto txn0 = txn_manager_->BeginTransaction();
+  auto catalog_ = new catalog::Catalog(txn_manager_, txn0);
+
+  // terrier has db_oid_t DEFAULT_DATABASE_OID
+  const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
+  auto db_handle = catalog_->GetDatabaseHandle();
+  auto ns_handle = db_handle.GetNamespaceHandle(txn0, terrier_oid);
+  auto table_handle = ns_handle.GetTableHandle(txn0, "public");
+  auto ns_oid = ns_handle.NameToOid(txn0, std::string("public"));
+
+  // define schema
+  std::vector<catalog::Schema::Column> cols;
+  cols.emplace_back("sex", type::TypeId::BOOLEAN, false, catalog::col_oid_t(catalog_->GetNextOid()));
+  cols.emplace_back("id", type::TypeId::INTEGER, false, catalog::col_oid_t(catalog_->GetNextOid()));
+  cols.emplace_back("name", type::TypeId::VARCHAR, 100, false, catalog::col_oid_t(catalog_->GetNextOid()));
+  cols.emplace_back("address", type::TypeId::VARCHAR, 200, false, catalog::col_oid_t(catalog_->GetNextOid()));
+  catalog::Schema schema(cols);
+
+  // create table
+  auto table = table_handle.CreateTable(txn0, schema, "test_table");
+  auto table_oid = table_handle.NameToOid(txn0, "test_table");
+  auto table_entry = table_handle.GetTableEntry(txn0, "test_table");
+  EXPECT_NE(table_entry, nullptr);
+  std::string_view str = type::TransientValuePeeker::PeekVarChar(table_entry->GetColInRow(0));
+  EXPECT_EQ(str, "public");
+
+  str = type::TransientValuePeeker::PeekVarChar(table_entry->GetColInRow(1));
+  EXPECT_EQ(str, "test_table");
+
+  str = type::TransientValuePeeker::PeekVarChar(table_entry->GetColInRow(2));
+  EXPECT_EQ(str, "pg_default");
+
+  // Insert a few rows into the table
+  auto ptr = table_handle.GetTable(txn0, "test_table");
+  EXPECT_EQ(ptr, table);
+
+  for (int i = 0; i < 200; ++i) {
+    std::vector<type::TransientValue> row;
+    row.emplace_back(type::TransientValueFactory::GetBoolean(i % 2 == 0));
+    row.emplace_back(type::TransientValueFactory::GetInteger(i));
+    row.emplace_back(type::TransientValueFactory::GetVarChar(fmt::format("name_%d", i)));
+    row.emplace_back(type::TransientValueFactory::GetVarChar(fmt::format("address_%d", i)));
+    ptr->InsertRow(txn0, row);
+  }
+
+  // Commit the setting transaction
+  txn_manager_->Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
+
+  // Set up index attributes and key attributes
+  std::vector<std::string> index_attrs{"sex", "id", "name"};
+  std::vector<std::string> key_attrs{"id", "name"};
+
+  // Create the index
+  auto index_oid = index_manager_->CreateConcurrently(terrier_oid, ns_oid, table_oid, parser::IndexType::BWTREE, false,
+                                                      "test_index", index_attrs, key_attrs, txn_manager_, catalog_);
+  EXPECT_GT(!index_oid, 0);
+
+  // Test whether the catalog has the corresponding information
+  auto txn1 = txn_manager_->BeginTransaction();
+  auto index_handle = db_handle.GetIndexHandle(txn1, terrier_oid);
+  auto index_entry = index_handle.GetIndexEntry(txn1, index_oid);
+  EXPECT_NE(index_entry, nullptr);
+  auto ret = index_entry->GetIntegerColumn("indexrelid");
+  EXPECT_EQ(ret, !index_oid);
+  EXPECT_EQ(index_entry->GetIntegerColumn("indrelid"), !table_oid);
+  EXPECT_EQ(index_entry->GetBooleanColumn("indisready"), false);
+  EXPECT_EQ(index_entry->GetBooleanColumn("indisvalid"), true);
+  txn_manager_->Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
+
+  // Test whether index contains all entries inserted before
+  auto txn2 = txn_manager_->BeginTransaction();
+  Index *index = reinterpret_cast<Index *>(index_entry->GetBigIntColumn("indexptr"));
+  // Create the projected row for index
+  const IndexMetadata &metadata = index->GetIndexMetadata();
+  const IndexKeySchema &index_key_schema = metadata.GetKeySchema();
+  const auto &pr_initializer = metadata.GetProjectedRowInitializer();
+  auto *key_buf_index = common::AllocationUtil::AllocateAligned(pr_initializer.ProjectedRowSize());
+  ProjectedRow *index_key = pr_initializer.InitializeRow(key_buf_index);
+
+  // Create the projected row for the sql table
+  std::vector<catalog::col_oid_t> col_oids;
+  col_oids.reserve(index_key_schema.size());
+  for (const auto &it : index_key_schema) {
+    col_oids.emplace_back(catalog::col_oid_t(!it.GetOid()));
+  }
+  auto init_and_map = table->GetSqlTable()->InitializerForProjectedRow(col_oids);
+  auto *key_buf = common::AllocationUtil::AllocateAligned(init_and_map.first.ProjectedRowSize());
+  ProjectedRow *key = init_and_map.first.InitializeRow(key_buf);
+
+  // Record the col_id of each column
+  std::vector<col_id_t> sql_table_cols;
+  sql_table_cols.reserve(key->NumColumns());
+  for (uint16_t i = 0; i < key->NumColumns(); ++i) {
+    sql_table_cols.emplace_back(key->ColumnIds()[i]);
+  }
+  for (const auto &it : *table->GetSqlTable()) {
+    if (table->GetSqlTable()->Select(txn2, it, key)) {
+      for (uint16_t i = 0; i < key->NumColumns(); ++i) {
+        key->ColumnIds()[i] = index_key->ColumnIds()[i];
+      }
+      std::vector<TupleSlot> tup_slots;
+      index->ScanKey(*txn2, *key, &tup_slots);
+      bool flag = false;
+      for (const auto &tup_slot : tup_slots) {
+        if (it == tup_slot) {
+          flag = true;
+        }
+      }
+      EXPECT_EQ(flag, true);
+      for (uint16_t i = 0; i < key->NumColumns(); ++i) {
+        key->ColumnIds()[i] = sql_table_cols[i];
+      }
+    }
+  }
+  txn_manager_->Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
+
+  EndGC();
+  delete table;
+  delete catalog_;
+  delete index;
+  delete[] key_buf_index;
+  delete[] key_buf;
+}
+
 }  // namespace terrier::storage::index
