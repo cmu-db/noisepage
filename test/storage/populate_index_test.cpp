@@ -9,7 +9,7 @@
 #include "util/transaction_test_util.h"
 
 namespace terrier::storage::index {
-struct IndexBuilderTest : public TerrierTest {
+struct PopulateIndexTest : public TerrierTest {
   void SetUp() override {
     TerrierTest::SetUp();
     txn_manager_ = new transaction::TransactionManager(&buffer_pool_, true, LOGGING_DISABLED);
@@ -35,9 +35,9 @@ struct IndexBuilderTest : public TerrierTest {
   IndexManager *index_manager_;
 };
 
-// Check the basic correctness of index builder
+// Check the basic correctness of populate index
 // NOLINTNEXTLINE
-TEST_F(IndexBuilderTest, BasicCorrectnessTest) {
+TEST_F(PopulateIndexTest, BasicCorrectnessTest) {
   // terrier has db_oid_t DEFAULT_DATABASE_OID
   const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
   auto db_handle = catalog_->GetDatabaseHandle();
