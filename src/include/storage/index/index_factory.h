@@ -2,7 +2,6 @@
 
 #include <utility>
 #include <vector>
-#include "bwtree/bwtree.h"
 #include "catalog/catalog_defs.h"
 #include "storage/index/bwtree_index.h"
 #include "storage/index/compact_ints_key.h"

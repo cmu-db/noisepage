@@ -1,9 +1,9 @@
+#include "storage/index/index_manager.h"
 #include <memory>
 #include <string>
 #include <vector>
-#include "util/transaction_benchmark_util.h"
-#include "storage/index/index_manager.h"
 #include "catalog/index_handle.h"
+#include "util/transaction_benchmark_util.h"
 
 namespace terrier::storage::index {
 Index *IndexManager::GetEmptyIndex(catalog::index_oid_t index_oid, SqlTable *sql_table, bool unique_index,
@@ -41,6 +41,11 @@ catalog::index_oid_t IndexManager::CreateConcurrently(catalog::db_oid_t db_oid, 
                                                       const std::vector<std::string> &key_attrs,
                                                       transaction::TransactionManager *txn_mgr,
                                                       catalog::Catalog *catalog) {
+  // currently only BwTree is supported
+  if (index_type != parser::IndexType::BWTREE) {
+    return catalog::index_oid_t(0);
+  }
+
   // First transaction to insert an entry for the index in the catalog
   transaction::TransactionContext *txn1 = txn_mgr->BeginTransaction();
   catalog::SqlTableHelper *sql_table_helper = catalog->GetUserTable(txn1, db_oid, ns_oid, table_oid);

@@ -1,9 +1,9 @@
+#include "catalog/type_handle.h"
 #include "catalog/catalog.h"
 #include "transaction/transaction_manager.h"
 #include "type/transient_value_peeker.h"
 #include "util/test_harness.h"
 #include "util/transaction_test_util.h"
-#include "catalog/type_handle.h"
 
 namespace terrier {
 

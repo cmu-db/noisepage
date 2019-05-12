@@ -2,10 +2,10 @@
 #include <string>
 #include <vector>
 #include "catalog/catalog_sql_table.h"
+#include "catalog/index_handle.h"
 #include "storage/index/index_factory.h"
 #include "util/test_harness.h"
 #include "util/transaction_test_util.h"
-#include "catalog/index_handle.h"
 
 namespace terrier::storage::index {
 struct IndexManagerTest : public TerrierTest {

@@ -4,9 +4,9 @@
 #include <string>
 #include <vector>
 #include "catalog/catalog_defs.h"
+#include "catalog/class_handle.h"
 #include "catalog/database_handle.h"
 #include "catalog/namespace_handle.h"
-#include "catalog/class_handle.h"
 #include "transaction/transaction_manager.h"
 #include "util/test_harness.h"
 #include "util/transaction_test_util.h"

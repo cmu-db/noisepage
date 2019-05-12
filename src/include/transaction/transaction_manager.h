@@ -39,6 +39,7 @@ class TransactionManager {
 
   /**
    * Begins a transaction with a predicate action.
+   * @param a action to be executed in the critical section
    * @return transaction context for the newly begun transaction
    */
   TransactionContext *BeginTransactionWithAction(const Action &a);

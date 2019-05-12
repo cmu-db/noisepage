@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "catalog/catalog_defs.h"
+#include "catalog/catalog_sql_table.h"
 #include "type/transient_value.h"
 
 namespace terrier::catalog {

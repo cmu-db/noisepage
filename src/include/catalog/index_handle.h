@@ -14,15 +14,15 @@
 namespace terrier::catalog {
 
 /**
- * A namespace entry represent a row in pg_namespace catalog.
+ * A index entry represent a row in pg_index catalog.
  */
 class IndexEntry : public CatalogEntry<index_oid_t> {
  public:
   /**
    * Constructor
-   * @param oid namespace def oid
+   * @param oid index oid
    * @param sql_table associated with this entry
-   * @param entry a row in pg_namespace that represents this table
+   * @param entry a row in pg_index that represents this table
    */
   IndexEntry(index_oid_t oid, catalog::SqlTableHelper *sql_table, std::vector<type::TransientValue> &&entry)
       : CatalogEntry(oid, sql_table, std::move(entry)) {}

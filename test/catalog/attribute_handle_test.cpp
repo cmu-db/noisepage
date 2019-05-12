@@ -1,10 +1,10 @@
+#include "catalog/attribute_handle.h"
 #include <algorithm>
 #include <random>
 #include <vector>
 #include "catalog/catalog.h"
 #include "catalog/class_handle.h"
 #include "catalog/namespace_handle.h"
-#include "catalog/attribute_handle.h"
 #include "transaction/transaction_manager.h"
 #include "util/test_harness.h"
 #include "util/transaction_test_util.h"

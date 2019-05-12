@@ -80,7 +80,7 @@ class IndexManager {
    * Get the status of index as building in the flag
    *
    * @param key the index_id representing the index
-   * @return true if the index is in the process of building otherwise false
+   * @return -1 if the index is not being built, 1 if the flag is set, and 0 if the flag is not set.
    */
   int GetIndexBuildingFlag(const index_id_t &key) {
     common::SpinLatch::ScopedSpinLatch guard(&index_building_map_latch_);
