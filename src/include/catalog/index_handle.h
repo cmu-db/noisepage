@@ -9,7 +9,6 @@
 #include "catalog/catalog_defs.h"
 #include "catalog/catalog_entry.h"
 #include "catalog/catalog_sql_table.h"
-#include "catalog/namespace_handle.h"
 
 namespace terrier::catalog {
 
@@ -29,6 +28,8 @@ class IndexEntry : public CatalogEntry<index_oid_t> {
 };
 
 class Catalog;
+struct SchemaCol;
+
 /**
  * An IndexHandle contains the information about indexes.
  *
