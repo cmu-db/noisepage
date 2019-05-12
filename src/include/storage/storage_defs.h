@@ -53,7 +53,8 @@ struct alignas(common::Constants::BLOCK_SIZE) RawBlock {
   DataTable *data_table_;
 
   /**
-   * Padding for flags or whatever we may want in the future.
+   * Padding for flags or whatever we may want in the future. Determined by size of layout_version below. See
+   * tuple_access_strategy.h for more details on Block header layout.
    */
   uint16_t padding_;
 
