@@ -54,8 +54,6 @@ catalog::index_oid_t IndexManager::CreateConcurrently(catalog::db_oid_t db_oid, 
   // user table does not exist
   if (sql_table_helper == nullptr) {
     txn_mgr->Abort(txn1);
-    // FIXME(xueyuanz): Delete the txns to pass the test, since the GC is disabled.
-    delete txn1;
     return catalog::index_oid_t(0);
   }
   std::shared_ptr<SqlTable> sql_table = sql_table_helper->GetSqlTable();
@@ -78,7 +76,6 @@ catalog::index_oid_t IndexManager::CreateConcurrently(catalog::db_oid_t db_oid, 
   } catch (const std::out_of_range &) {
     // keys do not exist in the table
     txn_mgr->Abort(txn1);
-    delete txn1;
     delete index;
     return catalog::index_oid_t(0);
   }
@@ -110,9 +107,6 @@ catalog::index_oid_t IndexManager::CreateConcurrently(catalog::db_oid_t db_oid, 
       type::TransientValueFactory::GetBoolean(PopulateIndex(txn2, *sql_table, index, unique_index)));
   // Commit the transaction
   txn_mgr->Commit(txn2, IndexManagerCallback::EmptyCallback, nullptr);
-  // FIXME(xueyuanz): Delete the txns to pass the test, since the GC is disabled.
-  delete txn1;
-  delete txn2;
   return index_oid;
 }
 
@@ -143,9 +137,6 @@ void IndexManager::Drop(catalog::db_oid_t db_oid, catalog::namespace_oid_t ns_oi
   // Now we can safely destruct the index_entry
   Index *index = reinterpret_cast<Index *>(index_entry->GetBigIntColumn("indexptr"));
   delete index;
-
-  // FIXME(xueyuanz): Delete the txns to pass the test, since the GC is disabled.
-  delete txn;
 }
 
 bool IndexManager::PopulateIndex(transaction::TransactionContext *txn, const SqlTable &sql_table, Index *index,
