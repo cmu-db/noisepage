@@ -2,8 +2,8 @@
 #include <string>
 #include <vector>
 #include "catalog/catalog_sql_table.h"
-#include "catalog/namespace_handle.h"
 #include "catalog/index_handle.h"
+#include "catalog/namespace_handle.h"
 #include "storage/garbage_collector.h"
 #include "storage/index/index_factory.h"
 #include "util/test_harness.h"

@@ -80,7 +80,7 @@ before_script:
       ASAN_OPTIONS=detect_container_overflow=0 make gflags_ep &&
       ASAN_OPTIONS=detect_container_overflow=0 make googletest_ep &&
       ASAN_OPTIONS=detect_container_overflow=0 make gbenchmark_ep &&
-      travis_wait 30 ASAN_OPTIONS=detect_container_overflow=0 make check-clang-tidy &&
+      ASAN_OPTIONS=detect_container_overflow=0 travis_wait 120 make check-clang-tidy &&
       ASAN_OPTIONS=detect_container_overflow=0 make check-format &&
       ASAN_OPTIONS=detect_container_overflow=0 make check-lint &&
       ASAN_OPTIONS=detect_container_overflow=0 make check-censored;

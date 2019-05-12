@@ -18,11 +18,20 @@
 
 namespace terrier::storage::index {
 
+/**
+ * Define callback functions of index manager
+ */
 struct IndexManagerCallback {
   IndexManagerCallback() = delete;
+  /**
+   * A empty callback function
+   */
   static void EmptyCallback(void * /*unused*/) {}
 };
 
+/**
+ * Flag indicating the status of building indexes.
+ */
 enum IndexBuildFlag { INVALID, PRE_SCAN_BARRIER, POST_SCAN_BARRIER };
 
 /**
