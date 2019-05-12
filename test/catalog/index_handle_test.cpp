@@ -109,4 +109,29 @@ TEST_F(IndexHandleTest, IndexHandleModificationTest) {
   EXPECT_EQ(index_entry->GetBooleanColumn("indisvalid"), true);
 }
 
+// NOLINTNEXTLINE
+TEST_F(IndexHandleTest, IndexHandleDeletionTest) {
+  // terrier has db_oid_t DEFAULT_DATABASE_OID
+  const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
+  auto db_handle = catalog_->GetDatabaseHandle();
+  auto index_handle = db_handle.GetIndexHandle(txn_, terrier_oid);
+  storage::index::Index *index_ptr = nullptr;
+  auto indexrelid = catalog::index_oid_t(catalog_->GetNextOid());
+  auto indrelid = catalog::table_oid_t(catalog_->GetNextOid());
+  int32_t indnatts = 123;
+  int32_t indnkeyatts = 456;
+  bool indisunique = true;
+  bool indisprimary = false;
+  bool indisvalid = false;
+  bool indisready = false;
+  bool indislive = true;
+  index_handle.AddEntry(txn_, index_ptr, indexrelid, indrelid, indnatts, indnkeyatts, indisunique, indisprimary,
+                        indisvalid, indisready, indislive);
+  auto index_entry = index_handle.GetIndexEntry(txn_, indexrelid);
+  EXPECT_NE(index_entry, nullptr);
+  index_handle.DeleteEntry(txn_, index_entry);
+  index_entry = index_handle.GetIndexEntry(txn_, indexrelid);
+  EXPECT_EQ(index_entry, nullptr);
+}
+
 }  // namespace terrier
