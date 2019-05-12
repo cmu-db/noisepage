@@ -71,15 +71,10 @@ TEST_F(PopulateIndexTest, BasicCorrectnessTest) {
 
   for (int i = 0; i < 100; ++i) {
     std::vector<type::TransientValue> row;
-    std::ostringstream stringStream;
-    stringStream << "name_" << i;
-    std::string name_string = stringStream.str();
-    stringStream << "address_" << i;
-    std::string address_string = stringStream.str();
     row.emplace_back(type::TransientValueFactory::GetBoolean(i % 2 == 0));
     row.emplace_back(type::TransientValueFactory::GetInteger(i));
-    row.emplace_back(type::TransientValueFactory::GetVarChar(name_string));
-    row.emplace_back(type::TransientValueFactory::GetVarChar(address_string));
+    row.emplace_back(type::TransientValueFactory::GetVarChar(fmt::format("name_%d", i)));
+    row.emplace_back(type::TransientValueFactory::GetVarChar(fmt::format("address_%d", i)));
     ptr->InsertRow(txn_, row);
   }
 
