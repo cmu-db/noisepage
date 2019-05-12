@@ -1,4 +1,5 @@
 #include "storage/index/index_manager.h"
+#include <exception>
 #include <memory>
 #include <string>
 #include <vector>
@@ -69,7 +70,15 @@ catalog::index_oid_t IndexManager::CreateConcurrently(catalog::db_oid_t db_oid, 
   bool indislive = false;
 
   // Intialize the index
-  Index *index = GetEmptyIndex(index_oid, sql_table.get(), indisunique, key_attrs);
+  Index *index = nullptr;
+  try {
+    index = GetEmptyIndex(index_oid, sql_table.get(), indisunique, key_attrs);
+  } catch (const std::out_of_range &) {
+    // keys do not exist in the table
+    txn_mgr->Abort(txn1);
+    delete index;
+    return catalog::index_oid_t(0);
+  }
   // Initializing the index fails
   if (index == nullptr) {
     txn_mgr->Abort(txn1);
