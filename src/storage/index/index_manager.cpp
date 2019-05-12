@@ -79,11 +79,6 @@ catalog::index_oid_t IndexManager::CreateConcurrently(catalog::db_oid_t db_oid, 
     delete index;
     return catalog::index_oid_t(0);
   }
-  // Initializing the index fails
-  if (index == nullptr) {
-    txn_mgr->Abort(txn1);
-    return catalog::index_oid_t(0);
-  }
 
   // Add IndexEntry
   index_handle.AddEntry(txn1, index, index_oid, table_oid, indnatts, indnkeyatts, indisunique, indisprimary, indisvalid,
