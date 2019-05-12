@@ -51,7 +51,6 @@ class SqlTableTestRW {
     col_oids_.clear();
     for (const auto &c : cols_) {
       col_oids_.emplace_back(c.GetOid());
-      // LOG_INFO("{}", !c.GetOid());
     }
 
     delete pri_;
@@ -563,7 +562,6 @@ TEST_F(SqlTableTests, UpdateTest) {
   EXPECT_EQ(new_val, 11001);
 
   // update (400, 10003, 42) -> (400, 11003, 420)
-  // LOG_INFO("----------------------------")
   update_oids.clear();
   update_oids.emplace_back(catalog::col_oid_t(1));
   update_oids.emplace_back(catalog::col_oid_t(2));
@@ -581,7 +579,6 @@ TEST_F(SqlTableTests, UpdateTest) {
   EXPECT_EQ(new_val, 420);
 
   // update (100, 10000, null) -> (100, 11000, 420)
-  // LOG_INFO("----------------------------")
   update_oids.clear();
   update_oids.emplace_back(catalog::col_oid_t(1));
   update_oids.emplace_back(catalog::col_oid_t(2));

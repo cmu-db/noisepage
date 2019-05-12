@@ -94,7 +94,7 @@ void SqlTable::UpdateSchema(const catalog::Schema &schema) {
       uint8_t attr_size = column.GetAttrSize();
       byte *temp = nullptr;
       if (default_value != nullptr) {
-        // clang's memory analyis has a false positive on this allocation.  All memory
+        // clang's memory analysis has a false positive on this allocation.  All memory
         // allocated here is placed into 'default_value_map_' and eventually freed
         // with the rest of the SqlTable object in the destructor (see line 20).
         // NOLINTNEXTLINE
@@ -129,16 +129,17 @@ bool SqlTable::Select(transaction::TransactionContext *const txn, const TupleSlo
                  "fewer attributes.");
 
   // The version of the current slot is the same as the version num
+  auto &curr_dt_version = tables_.Find(version_num)->second;
+
   if (old_version_num == version_num) {
-    return tables_.Find(version_num)->second.data_table->Select(txn, slot, out_buffer);
+    return curr_dt_version.data_table->Select(txn, slot, out_buffer);
   }
 
-  auto old_dt_version = tables_.Find(old_version_num)->second;
-  auto curr_dt_version = tables_.Find(version_num)->second;
+  auto &old_dt_version = tables_.Find(old_version_num)->second;
 
   // The slot version is not the same as the version_num
   col_id_t original_column_ids[out_buffer->NumColumns()];
-  ModifyProjectionHeaderForVersion(out_buffer, tables_.Find(version_num)->second, old_dt_version, original_column_ids);
+  ModifyProjectionHeaderForVersion(out_buffer, curr_dt_version, old_dt_version, original_column_ids);
 
   // Get the result and copy back the old header
   bool result = old_dt_version.data_table->Select(txn, slot, out_buffer);

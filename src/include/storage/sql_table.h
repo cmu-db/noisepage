@@ -1,6 +1,5 @@
 #pragma once
 #include <list>
-#include <map>
 #include <set>
 #include <unordered_set>
 #include <utility>
@@ -328,7 +327,6 @@ class SqlTable {
 
   /**
    * Given a set of col_oids, return a vector of corresponding col_ids to use for ProjectionInitialization
-   * Given a set of col_oids, return a vector of corresponding col_ids to use for ProjectionInitialization
    * @param col_oids set of col_oids, they must be in the table's ColumnMap
    * @param version the version of DataTable
    * @return vector of col_ids for these col_oids
@@ -350,8 +348,8 @@ class SqlTable {
    * Given a projected row/col translates the column id of each column to the column id of the version passed in
    * If a column doesn't exist in that version sets the column id to VERSION_POINTER_COLUMN_ID
    * @param out_buffer - projected row/col whose header to modify
-   * @param curr_dt_version - schema version of the passed in projected row/col
-   * @param old_dt_version - schema version that is desired
+   * @param curr_dt_version - version number of schema of the passed in projected row/col
+   * @param old_dt_version - version number of schema that is desired
    * @param original_col_id_store - array to store the original column id's on. Should have space to fill all column_ids
    */
   template <class RowType>
