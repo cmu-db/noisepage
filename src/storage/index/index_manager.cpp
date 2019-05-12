@@ -54,6 +54,8 @@ catalog::index_oid_t IndexManager::CreateConcurrently(catalog::db_oid_t db_oid, 
   // user table does not exist
   if (sql_table_helper == nullptr) {
     txn_mgr->Abort(txn1);
+    // FIXME(xueyuanz): Delete the txns to pass the test, since the GC is disabled.
+    delete txn1;
     return catalog::index_oid_t(0);
   }
   std::shared_ptr<SqlTable> sql_table = sql_table_helper->GetSqlTable();
