@@ -12,7 +12,7 @@ class CodeGen;
 
 class FunctionBuilder {
  public:
-  FunctionBuilder(CodeGen &code_ctx, ast::Identifier fn_name, util::RegionVector<ast::FieldDecl *> fn_params,
+  FunctionBuilder(CodeGen &codegen, ast::Identifier fn_name, util::RegionVector<ast::FieldDecl *> fn_params,
       ast::Expr *fn_ret_type);
 
   DISALLOW_COPY_AND_MOVE(FunctionBuilder);

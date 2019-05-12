@@ -25,6 +25,10 @@ ast::MemberExpr *QueryState::GetMember(tpl::compiler::CodeGen *codegen, Id id) {
 void QueryState::FinalizeType(tpl::compiler::CodeGen *codegen) {
   if (constructed_type_ != nullptr) return;
   util::RegionVector<ast::FieldDecl *> members(codegen->GetRegion());
+  // TODO(WAN): the alignment code freaks out if your struct is empty
+  if (states_.empty()) {
+    RegisterState("DUMMY_STATE", codegen->Ty_Bool(), (*codegen)->NewBoolLiteral(DUMMY_POS, false));
+  }
   members.reserve(states_.size());
   for (const auto &state : states_) {
     members.emplace_back((*codegen)->NewFieldDecl(DUMMY_POS, ast::Identifier(state.name.c_str()), state.type));

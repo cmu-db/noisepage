@@ -4,10 +4,17 @@
 #include <tuple>
 #include <utility>
 #include <vector>
-#include <execution/ast/ast_dump.h>
 
+#include "execution/ast/ast_dump.h"
 #include "execution/compiler/query.h"
 #include "execution/compiler/compilation_context.h"
+#include "execution/exec/execution_context.h"
+#include "execution/util/cpu_info.h"
+#include "execution/sema/sema.h"
+#include "execution/sql/execution_structures.h"
+#include "execution/vm/bytecode_module.h"
+#include "execution/vm/bytecode_generator.h"
+#include "execution/vm/llvm_engine.h"
 
 #include "parser/expression/comparison_expression.h"
 #include "parser/expression/conjunction_expression.h"
@@ -47,14 +54,55 @@
 #include "type/transient_value.h"
 #include "type/transient_value_factory.h"
 #include "type/type_id.h"
-#include "execution/sema/sema.h"
 
 #include "util/test_harness.h"
 
 namespace terrier::planner {
 
-class PlanNodeJsonTest : public TerrierTest {
+class CompilerTest : public TerrierTest {
  public:
+  static void CompileAndRun(terrier::planner::AbstractPlanNode *node, std::string schema="output1.tpl") {
+    std::cout << "Input Plan: " << std::endl;
+    std::cout << node->ToJson().dump(2) << std::endl << std::endl;
+
+    tpl::compiler::Query query(*node);
+    tpl::compiler::CompilationContext ctx(&query, nullptr);
+    ctx.GeneratePlan(&query);
+    if (ctx.GetCodeGen()->GetCodeContext()->GetReporter()->HasErrors()) {
+      EXECUTION_LOG_ERROR("Type-checking error!");
+      ctx.GetCodeGen()->GetCodeContext()->GetReporter()->PrintErrors();
+    }
+    auto ast = query.GetCompiledFunction();
+
+    std::cout << "Converted: " << std::endl;
+    tpl::ast::AstDump::Dump(ast);
+
+    // init TPL
+    tpl::CpuInfo::Instance();
+
+    tpl::sql::ExecutionStructures::Instance();
+    tpl::vm::LLVMEngine::Initialize();
+
+    auto exec = tpl::sql::ExecutionStructures::Instance();
+    auto *txn = exec->GetTxnManager()->BeginTransaction();
+    auto final = exec->GetFinalSchema(schema);
+    tpl::exec::OutputPrinter printer(*final);
+    auto exec_context =
+        std::make_shared<tpl::exec::ExecutionContext>(txn, printer, final);
+
+    std::function<u32()> main_func;
+    auto module = tpl::vm::BytecodeGenerator::Compile(ast, "main", exec_context);
+    if (!module->GetFunction("main", tpl::vm::ExecutionMode::Jit, main_func)) {
+      // TODO(WAN): throw error
+    }
+
+    std::cout << "Executed: " << std::endl;
+    main_func();
+
+    // shutdown TPL
+    tpl::vm::LLVMEngine::Shutdown();
+  }
+
   /**
    * Constructs a dummy OutputSchema object with a single column
    * @return dummy output schema
@@ -80,8 +128,8 @@ class PlanNodeJsonTest : public TerrierTest {
    */
   static std::shared_ptr<AbstractPlanNode> BuildDummySeqScanPlan() {
     SeqScanPlanNode::Builder builder;
-    return builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
-        .SetScanPredicate(PlanNodeJsonTest::BuildDummyPredicate())
+    return builder.SetOutputSchema(CompilerTest::BuildDummyOutputSchema())
+        .SetScanPredicate(CompilerTest::BuildDummyPredicate())
         .SetIsParallelFlag(true)
         .SetIsForUpdateFlag(false)
         .SetDatabaseOid(catalog::db_oid_t(0))
@@ -99,7 +147,7 @@ class PlanNodeJsonTest : public TerrierTest {
 
 /*
 // NOLINTNEXTLINE
-TEST_F(PlanNodeJsonTest, OutputSchemaJsonTest) {
+TEST_F(CompilerTest, OutputSchemaJsonTest) {
   // Test Column serialization
   OutputSchema::Column col("col1", type::TypeId::BOOLEAN, false, catalog::col_oid_t(0));
   auto col_json = col.ToJson();
@@ -112,7 +160,7 @@ TEST_F(PlanNodeJsonTest, OutputSchemaJsonTest) {
   // Test DerivedColumn serialization
   std::vector<std::shared_ptr<parser::AbstractExpression>> children;
   children.emplace_back(std::make_shared<parser::TupleValueExpression>("table1", "col1"));
-  children.emplace_back(PlanNodeJsonTest::BuildDummyPredicate());
+  children.emplace_back(CompilerTest::BuildDummyPredicate());
   auto expr =
       std::make_shared<parser::ComparisonExpression>(parser::ExpressionType::CONJUNCTION_OR, std::move(children));
 
@@ -139,17 +187,17 @@ TEST_F(PlanNodeJsonTest, OutputSchemaJsonTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(PlanNodeJsonTest, AggregatePlanNodeJsonTest) {
+TEST_F(CompilerTest, AggregatePlanNodeJsonTest) {
   // Construct AggregatePlanNode
 
   std::vector<std::shared_ptr<parser::AbstractExpression>> children;
-  children.push_back(PlanNodeJsonTest::BuildDummyPredicate());
+  children.push_back(CompilerTest::BuildDummyPredicate());
   auto agg_term = std::make_shared<parser::AggregateExpression>(parser::ExpressionType::AGGREGATE_COUNT_STAR,
                                                                 std::move(children), false);
   AggregatePlanNode::Builder builder;
-  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
+  auto plan_node = builder.SetOutputSchema(CompilerTest::BuildDummyOutputSchema())
       .SetAggregateStrategyType(AggregateStrategyType::HASH)
-      .SetHavingClausePredicate(PlanNodeJsonTest::BuildDummyPredicate())
+      .SetHavingClausePredicate(CompilerTest::BuildDummyPredicate())
       .AddAggregateTerm(std::move(agg_term))
       .Build();
 
@@ -166,12 +214,12 @@ TEST_F(PlanNodeJsonTest, AggregatePlanNodeJsonTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(PlanNodeJsonTest, AnalyzePlanNodeJsonTest) {
+TEST_F(CompilerTest, AnalyzePlanNodeJsonTest) {
   // Construct AnalyzePlanNode
   AnalyzePlanNode::Builder builder;
   std::vector<catalog::col_oid_t> col_oids = {catalog::col_oid_t(1), catalog::col_oid_t(2), catalog::col_oid_t(3),
                                               catalog::col_oid_t(4), catalog::col_oid_t(5)};
-  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
+  auto plan_node = builder.SetOutputSchema(CompilerTest::BuildDummyOutputSchema())
       .SetDatabaseOid(catalog::db_oid_t(1))
       .SetNamespaceOid(catalog::namespace_oid_t(0))
       .SetTableOid(catalog::table_oid_t(2))
@@ -191,7 +239,7 @@ TEST_F(PlanNodeJsonTest, AnalyzePlanNodeJsonTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(PlanNodeJsonTest, CreateDatabasePlanNodeTest) {
+TEST_F(CompilerTest, CreateDatabasePlanNodeTest) {
   // Construct CreateDatabasePlanNode
   CreateDatabasePlanNode::Builder builder;
   auto plan_node = builder.SetDatabaseName("test_db").Build();
@@ -209,7 +257,7 @@ TEST_F(PlanNodeJsonTest, CreateDatabasePlanNodeTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(PlanNodeJsonTest, CreateFunctionPlanNodeTest) {
+TEST_F(CompilerTest, CreateFunctionPlanNodeTest) {
   // Construct CreateFunctionPlanNode
   CreateFunctionPlanNode::Builder builder;
   auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(1))
@@ -237,7 +285,7 @@ TEST_F(PlanNodeJsonTest, CreateFunctionPlanNodeTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(PlanNodeJsonTest, CreateIndexPlanNodeTest) {
+TEST_F(CompilerTest, CreateIndexPlanNodeTest) {
   // Construct CreateIndexPlanNode
   CreateIndexPlanNode::Builder builder;
   auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(1))
@@ -262,7 +310,7 @@ TEST_F(PlanNodeJsonTest, CreateIndexPlanNodeTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(PlanNodeJsonTest, CreateNamespacePlanNodeTest) {
+TEST_F(CompilerTest, CreateNamespacePlanNodeTest) {
   // Construct CreateNamespacePlanNode
   CreateNamespacePlanNode::Builder builder;
   auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(2)).SetNamespaceName("test_namespace").Build();
@@ -280,7 +328,7 @@ TEST_F(PlanNodeJsonTest, CreateNamespacePlanNodeTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(PlanNodeJsonTest, CreateTablePlanNodeTest) {
+TEST_F(CompilerTest, CreateTablePlanNodeTest) {
   auto get_pk_info = []() {
     PrimaryKeyInfo pk = {.primary_key_cols_ = {"a"}, .constraint_name_ = "pk_a"};
 
@@ -369,7 +417,7 @@ TEST_F(PlanNodeJsonTest, CreateTablePlanNodeTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(PlanNodeJsonTest, CreateTriggerPlanNodeTest) {
+TEST_F(CompilerTest, CreateTriggerPlanNodeTest) {
   // Construct CreateTriggerPlanNode
   CreateTriggerPlanNode::Builder builder;
   auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(2))
@@ -379,7 +427,7 @@ TEST_F(PlanNodeJsonTest, CreateTriggerPlanNodeTest) {
       .SetTriggerFuncnames({"test_trigger_func"})
       .SetTriggerArgs({"a", "b"})
       .SetTriggerColumns({catalog::col_oid_t(0), catalog::col_oid_t(1)})
-      .SetTriggerWhen(PlanNodeJsonTest::BuildDummyPredicate())
+      .SetTriggerWhen(CompilerTest::BuildDummyPredicate())
       .SetTriggerType(23)
       .Build();
 
@@ -396,7 +444,7 @@ TEST_F(PlanNodeJsonTest, CreateTriggerPlanNodeTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(PlanNodeJsonTest, CreateViewPlanNodeTest) {
+TEST_F(CompilerTest, CreateViewPlanNodeTest) {
   // Construct CreateViewPlanNode
   CreateViewPlanNode::Builder builder;
   std::shared_ptr<parser::SelectStatement> select_stmt = std::make_shared<parser::SelectStatement>();
@@ -419,7 +467,7 @@ TEST_F(PlanNodeJsonTest, CreateViewPlanNodeTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(PlanNodeJsonTest, CSVScanPlanNodeTest) {
+TEST_F(CompilerTest, CSVScanPlanNodeTest) {
   // Construct CSVScanPlanNode
   CSVScanPlanNode::Builder builder;
   auto plan_node =
@@ -438,13 +486,13 @@ TEST_F(PlanNodeJsonTest, CSVScanPlanNodeTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(PlanNodeJsonTest, DeletePlanNodeTest) {
+TEST_F(CompilerTest, DeletePlanNodeTest) {
   // Construct DeletePlanNode
   DeletePlanNode::Builder builder;
   auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(1))
       .SetNamespaceOid(catalog::namespace_oid_t(0))
       .SetTableOid(catalog::table_oid_t(2))
-      .SetDeleteCondition(PlanNodeJsonTest::BuildDummyPredicate())
+      .SetDeleteCondition(CompilerTest::BuildDummyPredicate())
       .Build();
 
   // Serialize to Json
@@ -460,7 +508,7 @@ TEST_F(PlanNodeJsonTest, DeletePlanNodeTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(PlanNodeJsonTest, DropDatabasePlanNodeTest) {
+TEST_F(CompilerTest, DropDatabasePlanNodeTest) {
   // Construct DropDatabasePlanNode
   DropDatabasePlanNode::Builder builder;
   auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(7)).SetIfExist(true).Build();
@@ -478,7 +526,7 @@ TEST_F(PlanNodeJsonTest, DropDatabasePlanNodeTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(PlanNodeJsonTest, DropIndexPlanNodeTest) {
+TEST_F(CompilerTest, DropIndexPlanNodeTest) {
   // Construct DropIndexPlanNode
   DropIndexPlanNode::Builder builder;
   auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(7))
@@ -500,7 +548,7 @@ TEST_F(PlanNodeJsonTest, DropIndexPlanNodeTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(PlanNodeJsonTest, DropNamespacePlanNodeTest) {
+TEST_F(CompilerTest, DropNamespacePlanNodeTest) {
   // Construct DropNamespacePlanNode
   DropNamespacePlanNode::Builder builder;
   auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(8))
@@ -521,7 +569,7 @@ TEST_F(PlanNodeJsonTest, DropNamespacePlanNodeTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(PlanNodeJsonTest, DropTablePlanNodeTest) {
+TEST_F(CompilerTest, DropTablePlanNodeTest) {
   // Construct DropTablePlanNode
   DropTablePlanNode::Builder builder;
   auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(9))
@@ -543,7 +591,7 @@ TEST_F(PlanNodeJsonTest, DropTablePlanNodeTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(PlanNodeJsonTest, DropTriggerPlanNodeTest) {
+TEST_F(CompilerTest, DropTriggerPlanNodeTest) {
   // Construct DropTriggerPlanNode
   DropTriggerPlanNode::Builder builder;
   auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(10))
@@ -565,7 +613,7 @@ TEST_F(PlanNodeJsonTest, DropTriggerPlanNodeTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(PlanNodeJsonTest, DropViewPlanNodeTest) {
+TEST_F(CompilerTest, DropViewPlanNodeTest) {
   // Construct DropViewPlanNode
   DropViewPlanNode::Builder builder;
   auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(11))
@@ -587,10 +635,10 @@ TEST_F(PlanNodeJsonTest, DropViewPlanNodeTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(PlanNodeJsonTest, ExportExternalFilePlanNodeJsonTest) {
+TEST_F(CompilerTest, ExportExternalFilePlanNodeJsonTest) {
   // Construct ExportExternalFilePlanNode
   ExportExternalFilePlanNode::Builder builder;
-  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
+  auto plan_node = builder.SetOutputSchema(CompilerTest::BuildDummyOutputSchema())
       .SetFileName("test_file")
       .SetDelimiter(',')
       .SetEscape('"')
@@ -610,12 +658,12 @@ TEST_F(PlanNodeJsonTest, ExportExternalFilePlanNodeJsonTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(PlanNodeJsonTest, HashJoinPlanNodeJoinTest) {
+TEST_F(CompilerTest, HashJoinPlanNodeJoinTest) {
   // Construct HashJoinPlanNode
   HashJoinPlanNode::Builder builder;
-  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
+  auto plan_node = builder.SetOutputSchema(CompilerTest::BuildDummyOutputSchema())
       .SetJoinType(LogicalJoinType::INNER)
-      .SetJoinPredicate(PlanNodeJsonTest::BuildDummyPredicate())
+      .SetJoinPredicate(CompilerTest::BuildDummyPredicate())
       .AddLeftHashKey(std::make_shared<parser::TupleValueExpression>("col1", "table1"))
       .AddRightHashKey(std::make_shared<parser::TupleValueExpression>("col2", "table2"))
       .SetBuildBloomFilterFlag(false)
@@ -634,13 +682,13 @@ TEST_F(PlanNodeJsonTest, HashJoinPlanNodeJoinTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(PlanNodeJsonTest, HashPlanNodeJsonTest) {
+TEST_F(CompilerTest, HashPlanNodeJsonTest) {
   // Construct HashPlanNode
   HashPlanNode::Builder builder;
-  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
+  auto plan_node = builder.SetOutputSchema(CompilerTest::BuildDummyOutputSchema())
       .AddHashKey(std::make_shared<parser::TupleValueExpression>("col1", "table1"))
       .AddHashKey(std::make_shared<parser::TupleValueExpression>("col2", "table1"))
-      .AddChild(PlanNodeJsonTest::BuildDummySeqScanPlan())
+      .AddChild(CompilerTest::BuildDummySeqScanPlan())
       .Build();
 
   // Serialize to Json
@@ -656,11 +704,11 @@ TEST_F(PlanNodeJsonTest, HashPlanNodeJsonTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(PlanNodeJsonTest, IndexScanPlanNodeJsonTest) {
+TEST_F(CompilerTest, IndexScanPlanNodeJsonTest) {
   // Construct IndexScanPlanNode
   IndexScanPlanNode::Builder builder;
-  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
-      .SetScanPredicate(PlanNodeJsonTest::BuildDummyPredicate())
+  auto plan_node = builder.SetOutputSchema(CompilerTest::BuildDummyOutputSchema())
+      .SetScanPredicate(CompilerTest::BuildDummyPredicate())
       .SetIsParallelFlag(true)
       .SetIsForUpdateFlag(false)
       .SetDatabaseOid(catalog::db_oid_t(0))
@@ -681,13 +729,13 @@ TEST_F(PlanNodeJsonTest, IndexScanPlanNodeJsonTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(PlanNodeJsonTest, InsertPlanNodeJsonTest) {
+TEST_F(CompilerTest, InsertPlanNodeJsonTest) {
   // Construct InsertPlanNode
   std::vector<type::TransientValue> values;
   values.push_back(type::TransientValueFactory::GetInteger(0));
   values.push_back(type::TransientValueFactory::GetBoolean(true));
   InsertPlanNode::Builder builder;
-  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
+  auto plan_node = builder.SetOutputSchema(CompilerTest::BuildDummyOutputSchema())
       .SetDatabaseOid(catalog::db_oid_t(0))
       .SetNamespaceOid(catalog::namespace_oid_t(0))
       .SetTableOid(catalog::table_oid_t(1))
@@ -710,11 +758,11 @@ TEST_F(PlanNodeJsonTest, InsertPlanNodeJsonTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(PlanNodeJsonTest, LimitPlanNodeJsonTest) {
+TEST_F(CompilerTest, LimitPlanNodeJsonTest) {
   // Construct LimitPlanNode
   LimitPlanNode::Builder builder;
   auto plan_node =
-      builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema()).SetLimit(10).SetOffset(10).Build();
+      builder.SetOutputSchema(CompilerTest::BuildDummyOutputSchema()).SetLimit(10).SetOffset(10).Build();
 
   // Serialize to Json
   auto json = plan_node->ToJson();
@@ -729,12 +777,12 @@ TEST_F(PlanNodeJsonTest, LimitPlanNodeJsonTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(PlanNodeJsonTest, NestedLoopJoinPlanNodeJoinTest) {
+TEST_F(CompilerTest, NestedLoopJoinPlanNodeJoinTest) {
   // Construct NestedLoopJoinPlanNode
   NestedLoopJoinPlanNode::Builder builder;
-  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
+  auto plan_node = builder.SetOutputSchema(CompilerTest::BuildDummyOutputSchema())
       .SetJoinType(LogicalJoinType::INNER)
-      .SetJoinPredicate(PlanNodeJsonTest::BuildDummyPredicate())
+      .SetJoinPredicate(CompilerTest::BuildDummyPredicate())
       .Build();
 
   // Serialize to Json
@@ -750,10 +798,10 @@ TEST_F(PlanNodeJsonTest, NestedLoopJoinPlanNodeJoinTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(PlanNodeJsonTest, OrderByPlanNodeJsonTest) {
+TEST_F(CompilerTest, OrderByPlanNodeJsonTest) {
   // Construct OrderByPlanNode
   OrderByPlanNode::Builder builder;
-  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
+  auto plan_node = builder.SetOutputSchema(CompilerTest::BuildDummyOutputSchema())
       .AddSortKey(catalog::col_oid_t(0), OrderByOrderingType::ASC)
       .AddSortKey(catalog::col_oid_t(1), OrderByOrderingType::DESC)
       .SetLimit(10)
@@ -773,10 +821,10 @@ TEST_F(PlanNodeJsonTest, OrderByPlanNodeJsonTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(PlanNodeJsonTest, ProjectionPlanNodeJsonTest) {
+TEST_F(CompilerTest, ProjectionPlanNodeJsonTest) {
   // Construct ProjectionPlanNode
   ProjectionPlanNode::Builder builder;
-  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema()).Build();
+  auto plan_node = builder.SetOutputSchema(CompilerTest::BuildDummyOutputSchema()).Build();
 
   // Serialize to Json
   auto json = plan_node->ToJson();
@@ -791,11 +839,11 @@ TEST_F(PlanNodeJsonTest, ProjectionPlanNodeJsonTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(PlanNodeJsonTest, ResultPlanNodeJsonTest) {
+TEST_F(CompilerTest, ResultPlanNodeJsonTest) {
   // Construct ResultPlanNode
   ResultPlanNode::Builder builder;
-  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
-      .SetExpr(PlanNodeJsonTest::BuildDummyPredicate())
+  auto plan_node = builder.SetOutputSchema(CompilerTest::BuildDummyOutputSchema())
+      .SetExpr(CompilerTest::BuildDummyPredicate())
       .Build();
 
   // Serialize to Json
@@ -812,12 +860,12 @@ TEST_F(PlanNodeJsonTest, ResultPlanNodeJsonTest) {
 */
 
 // NOLINTNEXTLINE
-TEST_F(PlanNodeJsonTest, SeqScanPlanNodeJsonTest) {
+TEST_F(CompilerTest, SeqScanPlanNodeJsonTest) {
   // Construct SeqScanPlanNode
   SeqScanPlanNode::Builder builder;
   std::string col_name("colA");
-  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
-      .SetScanPredicate(PlanNodeJsonTest::BuildConstantComparisonPredicate("test_1", col_name, 500))
+  auto plan_node = builder.SetOutputSchema(CompilerTest::BuildDummyOutputSchema())
+      .SetScanPredicate(CompilerTest::BuildConstantComparisonPredicate("test_1", col_name, 500))
       .SetIsParallelFlag(true)
       .SetIsForUpdateFlag(false)
       .SetDatabaseOid(catalog::db_oid_t(0))
@@ -825,23 +873,15 @@ TEST_F(PlanNodeJsonTest, SeqScanPlanNodeJsonTest) {
       .SetTableOid(catalog::table_oid_t(0))
       .Build();
 
-  tpl::compiler::Query query(*plan_node);
-  tpl::compiler::CompilationContext ctx(&query, nullptr);
-  ctx.GeneratePlan(&query);
-  if (ctx.GetCodeGen()->GetCodeContext()->GetReporter()->HasErrors()) {
-    EXECUTION_LOG_ERROR("Type-checking error!");
-    ctx.GetCodeGen()->GetCodeContext()->GetReporter()->PrintErrors();
-    return;
-  }
-  tpl::ast::AstDump::Dump(query.GetCompiledFunction());
+  CompileAndRun(plan_node.get());
 }
 /*
 // NOLINTNEXTLINE
-TEST_F(PlanNodeJsonTest, SetOpPlanNodeJsonTest) {
+TEST_F(CompilerTest, SetOpPlanNodeJsonTest) {
   // Construct SetOpPlanNode
   SetOpPlanNode::Builder builder;
   auto plan_node =
-      builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema()).SetSetOp(SetOpType::INTERSECT).Build();
+      builder.SetOutputSchema(CompilerTest::BuildDummyOutputSchema()).SetSetOp(SetOpType::INTERSECT).Build();
 
   // Serialize to Json
   auto json = plan_node->ToJson();
@@ -856,9 +896,9 @@ TEST_F(PlanNodeJsonTest, SetOpPlanNodeJsonTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(PlanNodeJsonTest, UpdatePlanNodeJsonTest) {
+TEST_F(CompilerTest, UpdatePlanNodeJsonTest) {
   UpdatePlanNode::Builder builder;
-  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
+  auto plan_node = builder.SetOutputSchema(CompilerTest::BuildDummyOutputSchema())
       .SetDatabaseOid(catalog::db_oid_t(1000))
       .SetNamespaceOid(catalog::namespace_oid_t(0))
       .SetTableOid(catalog::table_oid_t(200))

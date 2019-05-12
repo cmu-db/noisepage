@@ -22,7 +22,7 @@ CompilationContext::CompilationContext(Query *query, ExecutionConsumer *consumer
 void CompilationContext::GeneratePlan(Query *query) {
   Pipeline main_pipeline(this);
   consumer_->Prepare(this);
-  // This doesn't recursively call on the rest of the nodes?
+
   Prepare(query->GetPlan(), &main_pipeline);
   query->GetQueryState()->FinalizeType(&codegen_);
   auto qs_type = query->GetQueryState()->GetType();
