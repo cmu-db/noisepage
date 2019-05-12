@@ -726,7 +726,8 @@ TEST_F(GarbageCollectorTests, SingleOLAP) {
     EXPECT_FALSE(tested.select_result_);
 
     txn_manager.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
-    // Unlink U4 as T0 committed and unlink read-only txn T0 and unlink INSERT as no active txn
+    // Unlink U3 as T0 committed and unlink INSERT as no active txn
+    // Unlink and deallocate read-only txn T0
     // Deallocate U1, U2
     EXPECT_EQ(std::make_pair(2u, 3u), gc.PerformGarbageCollection());
     // Deallocate INSERT, U3
@@ -995,10 +996,10 @@ TEST_F(GarbageCollectorTests, MultipleIntervalTest) {
     EXPECT_FALSE(tested.select_result_);
 
     // U1
-    auto *txn_e = txn_manager.BeginTransaction();
-    auto *update_tuple_e = tested.GenerateRandomTuple(&generator_);
-    tested.table_.Update(txn_e, slot, *update_tuple_e);
-    txn_manager.Commit(txn_e, TestCallbacks::EmptyCallback, nullptr);
+    auto *txn_u1 = txn_manager.BeginTransaction();
+    auto *update_tuple_u1 = tested.GenerateRandomTuple(&generator_);
+    tested.table_.Update(txn_u1, slot, *update_tuple_u1);
+    txn_manager.Commit(txn_u1, TestCallbacks::EmptyCallback, nullptr);
 
     tested.SelectIntoBuffer(txn1, slot);
     EXPECT_FALSE(tested.select_result_);
@@ -1007,39 +1008,39 @@ TEST_F(GarbageCollectorTests, MultipleIntervalTest) {
     auto *txn2 = txn_manager.BeginTransaction();
 
     // U2
-    auto *txn_d = txn_manager.BeginTransaction();
-    auto *update_tuple_d = tested.GenerateRandomTuple(&generator_);
-    tested.table_.Update(txn_d, slot, *update_tuple_d);
-    txn_manager.Commit(txn_d, TestCallbacks::EmptyCallback, nullptr);
+    auto *txn_u2 = txn_manager.BeginTransaction();
+    auto *update_tuple_u2 = tested.GenerateRandomTuple(&generator_);
+    tested.table_.Update(txn_u2, slot, *update_tuple_u2);
+    txn_manager.Commit(txn_u2, TestCallbacks::EmptyCallback, nullptr);
 
     auto *select_tuple = tested.SelectIntoBuffer(txn2, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple_e));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple_u1));
 
     // T3
     auto *txn3 = txn_manager.BeginTransaction();
 
     // U3
-    auto *txn_c = txn_manager.BeginTransaction();
+    auto *txn_u3 = txn_manager.BeginTransaction();
     auto *update_tuple = tested.GenerateRandomTuple(&generator_);
-    tested.table_.Update(txn_c, slot, *update_tuple);
-    txn_manager.Commit(txn_c, TestCallbacks::EmptyCallback, nullptr);
+    tested.table_.Update(txn_u3, slot, *update_tuple);
+    txn_manager.Commit(txn_u3, TestCallbacks::EmptyCallback, nullptr);
 
     select_tuple = tested.SelectIntoBuffer(txn3, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple_d));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple_u2));
 
     // U4
-    auto *txn_b = txn_manager.BeginTransaction();
+    auto *txn_u4 = txn_manager.BeginTransaction();
     update_tuple = tested.GenerateRandomTuple(&generator_);
-    tested.table_.Update(txn_b, slot, *update_tuple);
-    txn_manager.Commit(txn_b, TestCallbacks::EmptyCallback, nullptr);
+    tested.table_.Update(txn_u4, slot, *update_tuple);
+    txn_manager.Commit(txn_u4, TestCallbacks::EmptyCallback, nullptr);
 
     // U5
-    auto *txn_a = txn_manager.BeginTransaction();
+    auto *txn_u5 = txn_manager.BeginTransaction();
     update_tuple = tested.GenerateRandomTuple(&generator_);
-    tested.table_.Update(txn_a, slot, *update_tuple);
-    txn_manager.Commit(txn_a, TestCallbacks::EmptyCallback, nullptr);
+    tested.table_.Update(txn_u5, slot, *update_tuple);
+    txn_manager.Commit(txn_u5, TestCallbacks::EmptyCallback, nullptr);
 
     // Header
     auto *txn_header = txn_manager.BeginTransaction();
@@ -1053,11 +1054,11 @@ TEST_F(GarbageCollectorTests, MultipleIntervalTest) {
 
     select_tuple = tested.SelectIntoBuffer(txn2, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple_e));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple_u1));
 
     select_tuple = tested.SelectIntoBuffer(txn3, slot);
     EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple_d));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple_u2));
 
     // U5, U4, U3, U1 should be unlinked
     EXPECT_EQ(std::make_pair(0u, 4u), gc.PerformGarbageCollection());

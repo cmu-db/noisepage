@@ -1,7 +1,6 @@
 #pragma once
 
 #include <queue>
-#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -105,7 +104,7 @@ class GarbageCollector {
   uint32_t ProcessDeallocateQueue();
 
   /*
-   * Process deferred actions
+   * Process the deferred actions received from the Transaction Manager
    */
   void ProcessDeferredActions();
 
@@ -121,13 +120,13 @@ class GarbageCollector {
    * Given the data table and the tuple slot, try unlinking the version chain head for that tuple slot
    * @param table data table
    * @param slot tuple slot
-   * @param active_txns list of currently running active transactions
+   * @param active_txns vector of currently running active transactions
    */
   void ProcessTupleVersionChainHead(DataTable *table, TupleSlot slot,
                                     std::vector<transaction::timestamp_t> *active_txns);
 
   /**
-   * Given a UndoRecord that has been deemed safe to unlink by the GC, attempts to remove it from the version chain.
+   * Given an UndoRecord that has been deemed safe to unlink by the GC, attempts to remove it from the version chain.
    * It's possible that this process will fail because the GC is conservative with conflicts. If the UndoRecord in the
    * version chain to be updated in order to unlink the target UndoRecord is not yet committed, we will fail and
    * expect this txn to be requeued and we'll try again on the next GC invocation, hopefully after the conflicting txn
@@ -204,7 +203,7 @@ class GarbageCollector {
   storage::UndoBuffer *delta_record_compaction_buffer_;
   // Variable to mark that undo buffer to hold compacted undo records is empty so that it can be deallocated without
   // unlinking
-  bool compaction_buffer_empty;
+  bool compaction_buffer_empty_;
   // queue of undo buffers containing compacted undo records which are pending unlinking
   std::forward_list<storage::UndoBuffer *> buffers_to_unlink_;
   // queue of undo buffers containing compacted undo records which have been unlinked and are pending deallocation
