@@ -339,7 +339,7 @@ void GarbageCollector::ProcessTupleVersionChain(DataTable *const table, TupleSlo
 }
 
 void GarbageCollector::UnlinkUndoRecordVersion(UndoRecord *const undo_record) {
-  TERRIER_ASSERT(undo_record != nullptr, "Undo Record should not be NULL here");
+  TERRIER_ASSERT(undo_record != nullptr, "Undo Record should not be NULL while Unlinking");
   TERRIER_ASSERT(!undo_record->txnptr_.IsNull(), "Table should not be NULL here");
   ReclaimSlotIfDeleted(undo_record);
   ReclaimVarlen(undo_record);
@@ -361,7 +361,7 @@ void GarbageCollector::BeginCompaction(UndoRecord **start_record_ptr, UndoRecord
   //         INSERT is the last record in the version chain
   // Case 3: next is of type DELETE
   //         DELETE can only be the newest record in the version chain
-  TERRIER_ASSERT(next != NULL, "The next pointer sholuld not be NULL here");
+  TERRIER_ASSERT(next != NULL, "The next pointer should not be NULL while Unlinking");
   TERRIER_ASSERT(next->Type() != DeltaRecordType::DELETE, "Delete cannot be compacted");
   *start_record_ptr = curr;
   *interval_length_ptr = 1;
