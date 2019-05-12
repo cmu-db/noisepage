@@ -76,8 +76,6 @@ catalog::index_oid_t IndexManager::CreateConcurrently(catalog::db_oid_t db_oid, 
   } catch (const std::out_of_range &) {
     // keys do not exist in the table
     txn_mgr->Abort(txn1);
-    // FIXME(xueyuanz): Delete the txns to pass the test, since the GC is disabled.
-    delete txn1;
     delete index;
     return catalog::index_oid_t(0);
   }
@@ -121,8 +119,6 @@ void IndexManager::Drop(catalog::db_oid_t db_oid, catalog::namespace_oid_t ns_oi
   // user table does not exist
   if (sql_table_helper == nullptr) {
     txn_mgr->Abort(txn);
-    // FIXME(xueyuanz): Delete the txns to pass the test, since the GC is disabled.
-    delete txn;
     return;
   }
   std::shared_ptr<SqlTable> sql_table = sql_table_helper->GetSqlTable();
