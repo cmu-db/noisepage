@@ -76,6 +76,7 @@ catalog::index_oid_t IndexManager::CreateConcurrently(catalog::db_oid_t db_oid, 
   } catch (const std::out_of_range &) {
     // keys do not exist in the table
     txn_mgr->Abort(txn1);
+    delete txn1;
     delete index;
     return catalog::index_oid_t(0);
   }

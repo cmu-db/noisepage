@@ -25,9 +25,9 @@ struct IndexManagerTest : public TerrierTest {
   IndexManager *index_manager_;
 };
 
-// Check the correctness of create index concurrently
+// Check the basic functionality of create index concurrently
 // NOLINTNEXTLINE
-TEST_F(IndexManagerTest, CreateIndexConcurrentlyCorrectnessTest) {
+TEST_F(IndexManagerTest, CreateIndexConcurrentlyBasicTest) {
   auto txn0 = txn_manager_->BeginTransaction();
   auto catalog_ = new catalog::Catalog(txn_manager_, txn0);
 
@@ -152,6 +152,71 @@ TEST_F(IndexManagerTest, CreateIndexConcurrentlyCorrectnessTest) {
   delete index;
   delete[] key_buf_index;
   delete[] key_buf;
+}
+
+// Check that throwed exceptions are properly handled
+// NOLINTNEXTLINE
+TEST_F(IndexManagerTest, CreateIndexConcurrentlyExceptionTest) {
+  auto txn0 = txn_manager_->BeginTransaction();
+  auto catalog_ = new catalog::Catalog(txn_manager_, txn0);
+
+  // terrier has db_oid_t DEFAULT_DATABASE_OID
+  const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
+  auto db_handle = catalog_->GetDatabaseHandle();
+  auto ns_handle = db_handle.GetNamespaceHandle(txn0, terrier_oid);
+  auto table_handle = ns_handle.GetTableHandle(txn0, "public");
+  auto ns_oid = ns_handle.NameToOid(txn0, std::string("public"));
+
+  // define schema
+  std::vector<catalog::Schema::Column> cols;
+  cols.emplace_back("sex", type::TypeId::BOOLEAN, false, catalog::col_oid_t(catalog_->GetNextOid()));
+  cols.emplace_back("id", type::TypeId::INTEGER, false, catalog::col_oid_t(catalog_->GetNextOid()));
+  cols.emplace_back("name", type::TypeId::VARCHAR, 100, false, catalog::col_oid_t(catalog_->GetNextOid()));
+  cols.emplace_back("address", type::TypeId::VARCHAR, 200, false, catalog::col_oid_t(catalog_->GetNextOid()));
+  catalog::Schema schema(cols);
+
+  // create table
+  auto table = table_handle.CreateTable(txn0, schema, "test_table");
+  auto table_oid = table_handle.NameToOid(txn0, "test_table");
+  auto table_entry = table_handle.GetTableEntry(txn0, "test_table");
+  EXPECT_NE(table_entry, nullptr);
+  std::string_view str = type::TransientValuePeeker::PeekVarChar(table_entry->GetColInRow(0));
+  EXPECT_EQ(str, "public");
+
+  str = type::TransientValuePeeker::PeekVarChar(table_entry->GetColInRow(1));
+  EXPECT_EQ(str, "test_table");
+
+  str = type::TransientValuePeeker::PeekVarChar(table_entry->GetColInRow(2));
+  EXPECT_EQ(str, "pg_default");
+
+  // Insert a few rows into the table
+  auto ptr = table_handle.GetTable(txn0, "test_table");
+  EXPECT_EQ(ptr, table);
+
+  for (int i = 0; i < 200; ++i) {
+    std::vector<type::TransientValue> row;
+    row.emplace_back(type::TransientValueFactory::GetBoolean(i % 2 == 0));
+    row.emplace_back(type::TransientValueFactory::GetInteger(i));
+    row.emplace_back(type::TransientValueFactory::GetVarChar(fmt::format("name_%d", i)));
+    row.emplace_back(type::TransientValueFactory::GetVarChar(fmt::format("address_%d", i)));
+    ptr->InsertRow(txn0, row);
+  }
+
+  // Commit the setting transaction
+  txn_manager_->Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
+
+  // Set up index attributes and key attributes
+  std::vector<std::string> index_attrs{"sex", "id", "name"};
+  std::vector<std::string> key_attrs{"id", "non-exist"};
+
+  // Create the index
+  auto index_oid = index_manager_->CreateConcurrently(terrier_oid, ns_oid, table_oid, parser::IndexType::BWTREE, false,
+                                                      "test_index", index_attrs, key_attrs, txn_manager_, catalog_);
+  EXPECT_EQ(!index_oid, 0);
+
+  delete table;
+  delete catalog_;
+  delete txn0;
 }
 
 // Check the correctness of drop index
