@@ -23,6 +23,8 @@ struct IndexManagerCallback {
   static void EmptyCallback(void * /*unused*/) {}
 };
 
+enum IndexBuildFlag { INVALID, PRE_SCAN_BARRIER, POST_SCAN_BARRIER };
+
 /**
  * An index manager is a class that creates an index on key attributes specified by users. It can create
  * the index both in the non-blocking manner and the blocking manner, which is also determined by users.
@@ -53,7 +55,7 @@ class IndexManager {
   /**
    * A map from index_id to the status of the index (in the process of building or not)
    */
-  std::map<index_id_t, bool> index_building_map_;
+  std::map<index_id_t, IndexBuildFlag> index_building_map_;
   // FIXME(xueyuanz): This latch might not be necessary, the index_builing_map_ is also guarded by the commit_latch.
   common::SpinLatch index_building_map_latch_;
 
@@ -74,11 +76,11 @@ class IndexManager {
    * Set the status of index as building in the flag
    *
    * @param key the index_id representing the index
-   * @param value true if the index is in the process of building otherwise false
+   * @param flag true if the index is in the process of building otherwise false
    */
-  void SetIndexBuildingFlag(const index_id_t &key, bool value) {
+  void SetIndexBuildingFlag(const index_id_t &key, IndexBuildFlag flag) {
     common::SpinLatch::ScopedSpinLatch guard(&index_building_map_latch_);
-    index_building_map_[key] = value;
+    index_building_map_[key] = flag;
   }
 
   /**
@@ -87,11 +89,11 @@ class IndexManager {
    * @param key the index_id representing the index
    * @return -1 if the index is not being built, 1 if the flag is set, and 0 if the flag is not set.
    */
-  int GetIndexBuildingFlag(const index_id_t &key) {
+  IndexBuildFlag GetIndexBuildingFlag(const index_id_t &key) {
     common::SpinLatch::ScopedSpinLatch guard(&index_building_map_latch_);
     auto it = index_building_map_.find(key);
-    if (it == index_building_map_.end()) return -1;
-    return it->second ? 1 : 0;
+    if (it == index_building_map_.end()) return IndexBuildFlag::INVALID;
+    return it->second ? IndexBuildFlag::POST_SCAN_BARRIER : IndexBuildFlag::PRE_SCAN_BARRIER;
   }
 
   /**
