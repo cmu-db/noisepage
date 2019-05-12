@@ -11,8 +11,8 @@
 
 namespace terrier::storage::index {
 struct IndexManagerTest : public TerrierTest {
-
-  void InsertThread(catalog::Catalog *catalog, catalog::SqlTableHelper *table, catalog::index_oid_t index_oid, int idx) {
+  void InsertThread(catalog::Catalog *catalog, catalog::SqlTableHelper *table, catalog::index_oid_t index_oid,
+                    int idx) {
     auto txn = txn_manager_->BeginTransaction();
     std::vector<type::TransientValue> row;
     row.emplace_back(type::TransientValueFactory::GetBoolean(idx % 2 == 0));
@@ -25,7 +25,7 @@ struct IndexManagerTest : public TerrierTest {
     catalog::IndexHandle index_handle = catalog->GetDatabaseHandle().GetIndexHandle(txn, catalog::DEFAULT_DATABASE_OID);
 
     auto index_entry = index_handle.GetIndexEntry(txn, index_oid);
-    auto index = reinterpret_cast<Index*>(index_entry->GetBigIntColumn("indexptr"));
+    auto index = reinterpret_cast<Index *>(index_entry->GetBigIntColumn("indexptr"));
 
     // Create the projected row for index
     const IndexMetadata &metadata = index->GetIndexMetadata();
@@ -34,7 +34,6 @@ struct IndexManagerTest : public TerrierTest {
     auto *key_buf_index = common::AllocationUtil::AllocateAligned(pr_initializer.ProjectedRowSize());
     // FIXME(xueyuanz): fix unused variable
     ProjectedRow *index_key UNUSED_ATTRIBUTE = pr_initializer.InitializeRow(key_buf_index);
-
 
     // Create the projected row for the sql table
     std::vector<catalog::col_oid_t> col_oids;
@@ -59,8 +58,6 @@ struct IndexManagerTest : public TerrierTest {
     bool is_ready UNUSED_ATTRIBUTE = index_entry->GetBooleanColumn("indisready");
 
     // TODO(xueyuan): Find the correct Tuple Slot, generate the projected row and insert to the index
-
-
   }
   void StartGC(transaction::TransactionManager *const txn_manager) {
     gc_ = new storage::GarbageCollector(txn_manager);
