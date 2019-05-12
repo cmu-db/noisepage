@@ -18,6 +18,11 @@
 
 namespace terrier::storage::index {
 
+struct IndexManagerCallback {
+  IndexManagerCallback() = delete;
+  static void EmptyCallback(void * /*unused*/) {}
+};
+
 /**
  * An index manager is a class that creates an index on key attributes specified by users. It can create
  * the index both in the non-blocking manner and the blocking manner, which is also determined by users.

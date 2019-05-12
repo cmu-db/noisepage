@@ -6,6 +6,7 @@
 #include "util/transaction_benchmark_util.h"
 
 namespace terrier::storage::index {
+
 Index *IndexManager::GetEmptyIndex(catalog::index_oid_t index_oid, SqlTable *sql_table, bool unique_index,
                                    const std::vector<std::string> &key_attrs) {
   // Setup the oid and constraint type for the index
@@ -84,7 +85,7 @@ catalog::index_oid_t IndexManager::CreateConcurrently(catalog::db_oid_t db_oid, 
   SetIndexBuildingFlag(index_id, false);
 
   // Commit first transaction
-  transaction::timestamp_t commit_time = txn_mgr->Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
+  transaction::timestamp_t commit_time = txn_mgr->Commit(txn1, IndexManagerCallback::EmptyCallback, nullptr);
 
   // Wait for all transactions older than the timestamp of previous transaction commit
   // TODO(jiaqizuo): use more efficient way to wait for all previous transactions to complete.
@@ -101,7 +102,7 @@ catalog::index_oid_t IndexManager::CreateConcurrently(catalog::db_oid_t db_oid, 
       txn2, index_oid, "indisvalid",
       type::TransientValueFactory::GetBoolean(PopulateIndex(txn2, *sql_table, index, unique_index)));
   // Commit the transaction
-  txn_mgr->Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
+  txn_mgr->Commit(txn2, IndexManagerCallback::EmptyCallback, nullptr);
   // FIXME(xueyuanz): Delete the txns to pass the test, since the GC is disabled.
   delete txn1;
   delete txn2;
@@ -126,7 +127,7 @@ void IndexManager::Drop(catalog::db_oid_t db_oid, catalog::namespace_oid_t ns_oi
   // Delete the index entry from the index_handle
   index_handle.DeleteEntry(txn, index_entry);
   // Commit the transaction
-  transaction::timestamp_t commit_time = txn_mgr->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+  transaction::timestamp_t commit_time = txn_mgr->Commit(txn, IndexManagerCallback::EmptyCallback, nullptr);
 
   // Wait for all transactions older than the timestamp of previous transaction commit
   // TODO(xueyuanz): use more efficient way to wait for all previous transactions to complete.
