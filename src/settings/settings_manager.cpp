@@ -46,11 +46,11 @@ void SettingsManager::ValidateParams() {
 void SettingsManager::ValidateSetting(Param param, const type::TransientValue &min_value,
                                       const type::TransientValue &max_value) {
   const ParamInfo &info = db_->param_map_.find(param)->second;
-  if (!ValidateValue(info.value, min_value, max_value)) {
+  if (!ValidateValue(info.value_, min_value, max_value)) {
     SETTINGS_LOG_ERROR(
         "Value given for \"{}"
         "\" is not in its min-max bounds",
-        info.name);
+        info.name_);
     throw SETTINGS_EXCEPTION("Invalid setting value");
   }
 }
@@ -66,13 +66,12 @@ void SettingsManager::InitializeCatalog() {
     catalog::settings_oid_t oid(static_cast<uint32_t>(param));
     std::vector<type::TransientValue> entry;
     for (auto i = column_num; i > 0; --i) {
-      // NOLINTNEXTLINE
       entry.emplace_back(ValueFactory::GetNull(type::TypeId::VARCHAR));
     }
 
     entry[static_cast<int>(Index::OID)] = ValueFactory::GetInteger(!oid);
-    entry[static_cast<int>(Index::NAME)] = ValueFactory::GetVarChar(info.name.c_str());
-    entry[static_cast<int>(Index::SHORT_DESC)] = ValueFactory::GetVarChar(info.desc.c_str());
+    entry[static_cast<int>(Index::NAME)] = ValueFactory::GetVarChar(info.name_.c_str());
+    entry[static_cast<int>(Index::SHORT_DESC)] = ValueFactory::GetVarChar(info.desc_.c_str());
 
     settings_handle_.InsertRow(txn, entry);
   }
@@ -104,8 +103,8 @@ void SettingsManager::SetInt(Param param, int32_t value, std::shared_ptr<ActionC
                              setter_callback_fn setter_callback) {
   common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
   const auto &param_info = db_->param_map_.find(param)->second;
-  auto min_value = static_cast<int>(param_info.min_value);
-  auto max_value = static_cast<int>(param_info.max_value);
+  auto min_value = static_cast<int>(param_info.min_value_);
+  auto max_value = static_cast<int>(param_info.max_value_);
   if (!(value >= min_value && value <= max_value)) {
     action_context->SetState(ActionState::FAILURE);
   } else {
@@ -113,8 +112,7 @@ void SettingsManager::SetInt(Param param, int32_t value, std::shared_ptr<ActionC
     if (!SetValue(param, ValueFactory::GetInteger(value))) {
       action_context->SetState(ActionState::FAILURE);
     } else {
-      ActionState action_state =
-          InvokeCallback(param, static_cast<void *>(&old_value), static_cast<void *>(&value), action_context);
+      ActionState action_state = InvokeCallback(param, &old_value, &value, action_context);
       if (action_state == ActionState::FAILURE) {
         TERRIER_ASSERT(SetValue(param, ValueFactory::GetInteger(old_value)),
                        "Resetting parameter value should not fail");
@@ -128,8 +126,8 @@ void SettingsManager::SetDouble(Param param, double value, std::shared_ptr<Actio
                                 setter_callback_fn setter_callback) {
   common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
   const auto &param_info = db_->param_map_.find(param)->second;
-  double min_value = param_info.min_value;
-  double max_value = param_info.max_value;
+  double min_value = param_info.min_value_;
+  double max_value = param_info.max_value_;
   if (!(value >= min_value && value <= max_value)) {
     action_context->SetState(ActionState::FAILURE);
   } else {
@@ -137,8 +135,7 @@ void SettingsManager::SetDouble(Param param, double value, std::shared_ptr<Actio
     if (!SetValue(param, ValueFactory::GetDecimal(value))) {
       action_context->SetState(ActionState::FAILURE);
     } else {
-      ActionState action_state =
-          InvokeCallback(param, static_cast<void *>(&old_value), static_cast<void *>(&value), action_context);
+      ActionState action_state = InvokeCallback(param, &old_value, &value, action_context);
       if (action_state == ActionState::FAILURE) {
         TERRIER_ASSERT(SetValue(param, ValueFactory::GetDecimal(old_value)),
                        "Resetting parameter value should not fail");
@@ -155,8 +152,7 @@ void SettingsManager::SetBool(Param param, bool value, std::shared_ptr<ActionCon
   if (!SetValue(param, ValueFactory::GetBoolean(value))) {
     action_context->SetState(ActionState::FAILURE);
   } else {
-    ActionState action_state =
-        InvokeCallback(param, static_cast<void *>(&old_value), static_cast<void *>(&value), action_context);
+    ActionState action_state = InvokeCallback(param, &old_value, &value, action_context);
     if (action_state == ActionState::FAILURE) {
       TERRIER_ASSERT(SetValue(param, ValueFactory::GetBoolean(old_value)), "Resetting parameter value should not fail");
     }
@@ -172,8 +168,7 @@ void SettingsManager::SetString(Param param, const std::string_view &value,
     action_context->SetState(ActionState::FAILURE);
   } else {
     std::string_view new_value(value);
-    ActionState action_state =
-        InvokeCallback(param, static_cast<void *>(&old_value), static_cast<void *>(&new_value), action_context);
+    ActionState action_state = InvokeCallback(param, &old_value, &new_value, action_context);
     if (action_state == ActionState::FAILURE) {
       TERRIER_ASSERT(SetValue(param, ValueFactory::GetVarChar(old_value)), "Resetting parameter value should not fail");
     }
@@ -183,18 +178,18 @@ void SettingsManager::SetString(Param param, const std::string_view &value,
 
 type::TransientValue &SettingsManager::GetValue(Param param) {
   auto &param_info = db_->param_map_.find(param)->second;
-  return param_info.value;
+  return param_info.value_;
 }
 
 bool SettingsManager::SetValue(Param param, const type::TransientValue &value) {
   auto &param_info = db_->param_map_.find(param)->second;
 
-  if (!param_info.is_mutable) return false;
+  if (!param_info.is_mutable_) return false;
 
-  param_info.value = ValueFactory::GetCopy(value);
+  param_info.value_ = ValueFactory::GetCopy(value);
 
   auto txn = txn_manager_->BeginTransaction();
-  auto entry = settings_handle_.GetSettingsEntry(txn, param_info.name);
+  auto entry = settings_handle_.GetSettingsEntry(txn, param_info.name_);
   entry->SetColumn(static_cast<int32_t>(Index::SETTING), value);
   txn_manager_->Commit(txn, EmptyCallback, nullptr);
   return true;
@@ -216,7 +211,7 @@ bool SettingsManager::ValidateValue(const type::TransientValue &value, const typ
 
 common::ActionState SettingsManager::InvokeCallback(Param param, void *old_value, void *new_value,
                                                     std::shared_ptr<common::ActionContext> action_context) {
-  callback_fn callback = db_->param_map_.find(param)->second.callback;
+  callback_fn callback = db_->param_map_.find(param)->second.callback_;
   (db_->*callback)(old_value, new_value, action_context);
   ActionState action_state = action_context->GetState();
   TERRIER_ASSERT(action_state == ActionState::FAILURE || action_state == ActionState::SUCCESS,

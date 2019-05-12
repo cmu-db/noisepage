@@ -20,7 +20,7 @@ static void ConstructParamMap(                                                  
   /*
    * Populate gflag values to param map.
    * This will expand to a list of code like:
-   * param_map_.emplace(
+   * param_map.emplace(
    *     terrier::settings::Param::port,
    *     terrier::settings::ParamInfo(port, terrier::type::TransientValueFactory::GetInteger(FLAGS_port),
    *                                  "Terrier port (default: 15721)",

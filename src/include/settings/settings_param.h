@@ -46,25 +46,25 @@ class ParamInfo {
    */
   ParamInfo(std::string name, type::TransientValue &&value, std::string desc, type::TransientValue &&default_value,
             bool is_mutable, double min_value, double max_value, callback_fn callback)
-      : name(std::move(name)),
-        value(std::move(value)),
-        desc(std::move(desc)),
-        default_value(std::move(default_value)),
-        is_mutable(is_mutable),
-        min_value(min_value),
-        max_value(max_value),
-        callback(callback) {}
+      : name_(std::move(name)),
+        value_(std::move(value)),
+        desc_(std::move(desc)),
+        default_value_(std::move(default_value)),
+        is_mutable_(is_mutable),
+        min_value_(min_value),
+        max_value_(max_value),
+        callback_(callback) {}
 
  private:
   friend class SettingsManager;
-  std::string name;
-  type::TransientValue value;
-  std::string desc;
-  type::TransientValue default_value;
-  bool is_mutable;
-  double min_value;
-  double max_value;
-  callback_fn callback;
+  std::string name_;
+  type::TransientValue value_;
+  std::string desc_;
+  type::TransientValue default_value_;
+  bool is_mutable_;
+  double min_value_;
+  double max_value_;
+  callback_fn callback_;
 };
 
 }  // namespace terrier::settings

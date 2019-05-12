@@ -41,24 +41,24 @@ void DBMain::Init() {
 
   // create the global transaction mgr
   auto *buffer_pool = new storage::RecordBufferSegmentPool(100000, 10000);
-  terrier_txn_manager_ = new transaction::TransactionManager(buffer_pool, true, nullptr);
-  terrier::transaction::TransactionContext *txn_ = terrier_txn_manager_->BeginTransaction();
+  txn_manager_ = new transaction::TransactionManager(buffer_pool, true, nullptr);
+  terrier::transaction::TransactionContext *txn_ = txn_manager_->BeginTransaction();
   // create the (system) catalogs
-  terrier_catalog_ = new terrier::catalog::Catalog(terrier_txn_manager_, txn_);
-  terrier_settings_manager_ = new settings::SettingsManager(this, terrier_catalog_, terrier_txn_manager_);
+  catalog_ = new terrier::catalog::Catalog(txn_manager_, txn_);
+  settings_manager_ = new settings::SettingsManager(this, catalog_, txn_manager_);
   LOG_INFO("Initialization complete");
 }
 
 void DBMain::Run() {
-  terrier_server_.SetPort(static_cast<int16_t>(terrier_settings_manager_->GetInt(terrier::settings::Param::port)));
-  terrier_server_.SetupServer().ServerLoop();
+  server_.SetPort(static_cast<int16_t>(settings_manager_->GetInt(terrier::settings::Param::port)));
+  server_.SetupServer().ServerLoop();
 
   // server loop exited, begin cleaning up
   CleanUp();
 }
 
 void DBMain::ForceShutdown() {
-  terrier_server_.Close();
+  server_.Close();
   CleanUp();
 }
 
@@ -78,7 +78,7 @@ void DBMain::BufferPoolSizeCallback(void *old_value, void *new_value,
                                     const std::shared_ptr<common::ActionContext> &action_context) {
   action_context->SetState(common::ActionState::IN_PROGRESS);
   int new_size = *static_cast<int *>(new_value);
-  bool success = terrier_txn_manager_->SetBufferPoolSizeLimit(new_size);
+  bool success = txn_manager_->SetBufferPoolSizeLimit(new_size);
   if (success)
     action_context->SetState(common::ActionState::SUCCESS);
   else

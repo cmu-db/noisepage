@@ -72,7 +72,7 @@ class SettingsTests : public TerrierTest {
     db_ = new DBMain(std::move(param_map));
 
     txn_manager_ = new transaction::TransactionManager(&buffer_pool_, true, nullptr);
-    db_->terrier_txn_manager_ = txn_manager_;
+    db_->txn_manager_ = txn_manager_;
     StartGC(txn_manager_);
 
     txn_ = txn_manager_->BeginTransaction();

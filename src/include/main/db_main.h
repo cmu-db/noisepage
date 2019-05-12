@@ -1,12 +1,12 @@
 #pragma once
 
-#include <network/terrier_server.h>
 #include <memory>
 #include <unordered_map>
 #include <utility>
 #include "catalog/catalog.h"
 #include "common/action_context.h"
 #include "common/stat_registry.h"
+#include "network/terrier_server.h"
 #include "settings/settings_param.h"
 #include "transaction/transaction_manager.h"
 
@@ -82,10 +82,10 @@ class DBMain {
   friend class settings::SettingsTests;
   std::shared_ptr<common::StatisticsRegistry> main_stat_reg_;
   std::unordered_map<settings::Param, settings::ParamInfo> param_map_;
-  transaction::TransactionManager *terrier_txn_manager_;
-  catalog::Catalog *terrier_catalog_;
-  settings::SettingsManager *terrier_settings_manager_;
-  network::TerrierServer terrier_server_;
+  transaction::TransactionManager *txn_manager_;
+  catalog::Catalog *catalog_;
+  settings::SettingsManager *settings_manager_;
+  network::TerrierServer server_;
 
   /**
    * Initializes all loggers.
