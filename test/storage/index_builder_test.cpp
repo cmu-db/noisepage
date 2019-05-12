@@ -35,7 +35,7 @@ struct IndexBuilderTest : public TerrierTest {
   IndexManager *index_manager_;
 };
 
-// Check the basic correctness of index populator
+// Check the basic correctness of index builder
 // NOLINTNEXTLINE
 TEST_F(IndexBuilderTest, BasicCorrectnessTest) {
   // terrier has db_oid_t DEFAULT_DATABASE_OID

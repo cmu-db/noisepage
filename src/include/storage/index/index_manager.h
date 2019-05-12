@@ -58,7 +58,7 @@ class IndexManager {
    * @param db_oid the oid of database
    * @param namespace_oid the oid of namespace
    * @param index_oid the oid of the index
-   * @return
+   * @return the result data structure with the type of index_id_t
    */
   index_id_t make_index_id(catalog::db_oid_t db_oid, catalog::namespace_oid_t namespace_oid,
                            catalog::index_oid_t index_oid) {
