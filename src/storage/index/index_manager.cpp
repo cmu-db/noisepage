@@ -82,7 +82,7 @@ catalog::index_oid_t IndexManager::CreateConcurrently(catalog::db_oid_t db_oid, 
 
   // initialize the building flag to false
   auto index_id = make_index_id(db_oid, ns_oid, index_oid);
-  SetIndexBuildingFlag(index_id, false);
+  SetIndexBuildingFlag(index_id, IndexBuildFlag::PRE_SCAN_BARRIER);
 
   // Commit first transaction
   transaction::timestamp_t commit_time = txn_mgr->Commit(txn1, IndexManagerCallback::EmptyCallback, nullptr);
@@ -95,7 +95,7 @@ catalog::index_oid_t IndexManager::CreateConcurrently(catalog::db_oid_t db_oid, 
   // Start the second transaction to insert all keys into the index.
   // The second transaction set the building flag to true in the critical section.
   transaction::TransactionContext *txn2 =
-      txn_mgr->BeginTransactionWithAction([&]() { SetIndexBuildingFlag(index_id, true); });
+      txn_mgr->BeginTransactionWithAction([&]() { SetIndexBuildingFlag(index_id, IndexBuildFlag::POST_SCAN_BARRIER); });
   // Change "indisready" to false and "indisvalid" to the result of populating the index in the catalog entry
   index_handle.SetEntryColumn(txn2, index_oid, "indisready", type::TransientValueFactory::GetBoolean(false));
   index_handle.SetEntryColumn(
