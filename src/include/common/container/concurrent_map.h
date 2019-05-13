@@ -161,7 +161,7 @@ class ConcurrentMap {
   }
 
   /**
-   * Insert the specified key and value into the map. Overwrites mapping if a
+   * Insert the specified key and value into the map. Insertion fails if a
    * mapping already exists.
    * @param key key to insert
    * @param value value to insert
@@ -202,6 +202,11 @@ class ConcurrentMap {
    * @param key key to remove
    */
   void UnsafeErase(const K &key) { map_.unsafe_erase(key); }
+
+  /**
+   * Remove all elements
+   */
+  void Clear() { map_.clear(); }
 
   /**
    * @return const iterator to the first element

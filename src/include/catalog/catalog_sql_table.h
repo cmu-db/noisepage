@@ -163,7 +163,8 @@ class SqlTableHelper {
    */
   void DefineColumn(std::string name, type::TypeId type, bool nullable, catalog::col_oid_t oid) {
     if (type == type::TypeId::VARCHAR) {
-      cols_.emplace_back(name, type, common::Settings::CATALOG_VARCHAR_MAX_LEN, nullable, oid);
+      uint32_t max_len = common::Settings::CATALOG_VARCHAR_MAX_LEN;
+      cols_.emplace_back(name, type, max_len, nullable, oid);
     } else {
       cols_.emplace_back(name, type, nullable, oid);
     }
@@ -641,6 +642,11 @@ class SqlTableHelper {
         return (row_int_val == type::TransientValuePeeker::PeekInteger(search_vec[index]));
       } break;
 
+      case type::TypeId::BIGINT: {
+        auto row_int_val = *(reinterpret_cast<int64_t *>(col_p));
+        return (row_int_val == type::TransientValuePeeker::PeekBigInt(search_vec[index]));
+      } break;
+
       case type::TypeId::VARCHAR: {
         auto *vc_entry = reinterpret_cast<storage::VarlenEntry *>(col_p);
         uint32_t size = vc_entry->Size();
@@ -649,6 +655,18 @@ class SqlTableHelper {
           return false;
         }
         return strncmp(varchar.data(), reinterpret_cast<const char *>(vc_entry->Content()), size) == 0;
+      } break;
+
+      case type::TypeId::TIMESTAMP: {
+        throw NOT_IMPLEMENTED_EXCEPTION("unsupported type TIMESTAMP in ColEqualsValue");
+      } break;
+
+      case type::TypeId::DATE: {
+        throw NOT_IMPLEMENTED_EXCEPTION("unsupported type DATE in ColEqualsValue");
+      } break;
+
+      case type::TypeId::DECIMAL: {
+        throw NOT_IMPLEMENTED_EXCEPTION("unsupported type DECIMAL in ColEqualsValue");
       } break;
 
       default:

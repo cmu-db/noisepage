@@ -39,6 +39,9 @@ table_oid_t TableHandle::NameToOid(transaction::TransactionContext *txn, const s
   search_vec.emplace_back(type::TransientValueFactory::GetVarChar(name));
 
   std::vector<type::TransientValue> row = pg_class_->FindRow(txn, search_vec);
+  if (row.empty()) {
+    return INVALID_TABLE_OID;
+  }
   auto result = table_oid_t(type::TransientValuePeeker::PeekInteger(row[1]));
   return result;
 }
@@ -80,7 +83,11 @@ SqlTableHelper *TableHandle::GetTable(transaction::TransactionContext *txn, tabl
 }
 
 SqlTableHelper *TableHandle::GetTable(transaction::TransactionContext *txn, const std::string &name) {
-  return GetTable(txn, NameToOid(txn, name));
+  auto oid = NameToOid(txn, name);
+  if (oid == INVALID_TABLE_OID) {
+    return nullptr;
+  }
+  return GetTable(txn, oid);
 }
 
 }  // namespace terrier::catalog
