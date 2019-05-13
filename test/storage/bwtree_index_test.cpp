@@ -52,7 +52,7 @@ class BwTreeIndexTests : public TerrierTest {
   }
 
   storage::BlockStore block_store_{1000, 1000};
-  storage::RecordBufferSegmentPool buffer_pool_{100000, 100000};
+  storage::RecordBufferSegmentPool buffer_pool_{1000000, 1000000};
   const catalog::Schema table_schema_{
       catalog::Schema({{"attribute", type::TypeId::INTEGER, false, catalog::col_oid_t(0)}})};
   const IndexKeySchema key_schema_{{catalog::indexkeycol_oid_t(1), type::TypeId::INTEGER, false}};
