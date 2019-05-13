@@ -88,6 +88,8 @@ catalog::index_oid_t IndexManager::Create(catalog::db_oid_t db_oid, catalog::nam
   // initialize the building flag to false
   auto index_id = make_index_id(db_oid, ns_oid, index_oid);
   SetIndexBuildingFlag(index_id, IndexBuildFlag::PRE_SCAN_BARRIER);
+  // initialize the blocking flag
+  SetIndexBlockingFlag(index_id, indisblocking);
 
   // Commit first transaction
   transaction::timestamp_t commit_time = txn_mgr->Commit(txn1, IndexManagerCallback::EmptyCallback, nullptr);
@@ -108,6 +110,8 @@ catalog::index_oid_t IndexManager::Create(catalog::db_oid_t db_oid, catalog::nam
       type::TransientValueFactory::GetBoolean(PopulateIndex(txn2, *sql_table, index, unique_index)));
   // Commit the transaction
   txn_mgr->Commit(txn2, IndexManagerCallback::EmptyCallback, nullptr);
+  // Set the blocking flag to false
+  SetIndexBlockingFlag(index_id, false);
   return index_oid;
 }
 
