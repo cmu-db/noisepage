@@ -5,7 +5,7 @@
 #include <vector>
 #include "catalog/catalog_defs.h"
 #include "optimizer/operator_expression.h"
-#include "optimizer/operators.h"
+#include "optimizer/physical_operator.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/constant_value_expression.h"
 #include "parser/update_statement.h"

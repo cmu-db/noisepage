@@ -1,4 +1,4 @@
-#include "optimizer/operators.h"
+#include "optimizer/physical_operator.h"
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -10,9 +10,9 @@
 
 namespace terrier::optimizer {
 
-//===--------------------------------------------------------------------===//
-// TableFreeScan
-//===--------------------------------------------------------------------===//
+/**
+ * @return A TableFreeScan operator
+ */
 Operator TableFreeScan::make() {
   auto *table_free_scan = new TableFreeScan;
   return Operator(table_free_scan);
@@ -21,30 +21,30 @@ Operator TableFreeScan::make() {
 //===--------------------------------------------------------------------===//
 // SeqScan
 //===--------------------------------------------------------------------===//
-Operator SeqScan::make(std::shared_ptr<catalog::TableHandle> table, std::string alias,
-                       std::vector<AnnotatedExpression> predicates, bool update) {
+Operator SeqScan::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                       catalog::table_oid_t table_oid, std::vector<AnnotatedExpression> predicates, bool update) {
   auto *scan = new SeqScan;
-  scan->table_ = std::move(table);
-  scan->table_alias = std::move(alias);
-  scan->predicates = std::move(predicates);
-  scan->is_for_update = update;
-
+  scan->database_oid_ = database_oid;
+  scan->namespace_oid_ = namespace_oid;
+  scan->table_oid_ = table_oid;
+  scan->predicates_ = std::move(predicates);
+  scan->is_for_update_ = update;
   return Operator(scan);
 }
 
 bool SeqScan::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::SeqScan) return false;
   const SeqScan &node = *dynamic_cast<const SeqScan *>(&r);
-  if (predicates.size() != node.predicates.size()) return false;
-  for (size_t i = 0; i < predicates.size(); i++) {
-    if (!predicates[i].expr->ExactlyEquals(*node.predicates[i].expr)) return false;
+  if (predicates_.size() != node.predicates_.size()) return false;
+  for (size_t i = 0; i < predicates_.size(); i++) {
+    if (predicates_[i].expr_ != node.predicates_[i].expr_) return false;
   }
   return true;
 }
 
 common::hash_t SeqScan::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  for (auto &pred : predicates) hash = common::HashUtil::CombineHashes(hash, pred.expr->Hash());
+  for (auto &pred : predicates_) hash = common::HashUtil::CombineHashes(hash, pred.expr_->Hash());
   return hash;
 }
 

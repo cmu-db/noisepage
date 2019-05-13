@@ -1,6 +1,6 @@
 #pragma once
 
-#include "optimizer/operators.h"
+#include "optimizer/physical_operator.h"
 
 namespace terrier::optimizer {
 
@@ -12,7 +12,7 @@ class OperatorVisitor {
  public:
   virtual ~OperatorVisitor() = default;
 
-  // Physical operator
+  // Physical operators
   virtual void Visit(const TableFreeScan *table_free_scan) {}
   virtual void Visit(const SeqScan *seq_scan) {}
   virtual void Visit(const IndexScan *index_scan) {}

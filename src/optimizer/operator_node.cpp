@@ -43,4 +43,18 @@ bool Operator::operator==(const Operator &r) {
 
 bool Operator::IsDefined() const { return node != nullptr; }
 
+bool Operator::IsLogical() const {
+  if (IsDefined()) {
+    return node->IsLogical();
+  }
+  return false;
+}
+
+bool Operator::IsPhysical() const {
+  if (IsDefined()) {
+    return node->IsPhysical();
+  }
+  return false;
+}
+
 }  // namespace terrier::optimizer

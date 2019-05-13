@@ -19,45 +19,48 @@ class AbstractExpression;
 class UpdateClause;
 }  // namespace parser
 
-namespace catalog {
-class TableHandle;
-}
-
 namespace optimizer {
-class PropertySort;
-//===--------------------------------------------------------------------===//
-// TableFreeScan
-//===--------------------------------------------------------------------===//
+
+/**
+ * Operator for SELECT without FROM
+ */
 class TableFreeScan : public OperatorNode<TableFreeScan> {
  public:
+  /**
+   * @return A TableFreeScan operator
+   */
   static Operator make();
 };
 
-//===--------------------------------------------------------------------===//
-// SeqScan
-//===--------------------------------------------------------------------===//
+/**
+ * Operator for sequential scan
+ */
 class SeqScan : public OperatorNode<SeqScan> {
  public:
-  static Operator make(std::shared_ptr<catalog::TableHandle> table, std::string alias,
-                       std::vector<AnnotatedExpression> predicates, bool update);
+  /**
+   * @return A SeqScan operator
+   */
+  static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                       catalog::table_oid_t table_oid, std::vector<AnnotatedExpression> predicates, bool update);
 
   bool operator==(const BaseOperatorNode &r) override;
 
   common::hash_t Hash() const override;
 
-  std::vector<AnnotatedExpression> predicates;
-  std::string table_alias;
-  bool is_for_update;
-  std::shared_ptr<catalog::TableHandle> table_;
+  catalog::db_oid_t database_oid_;
+  catalog::namespace_oid_t namespace_oid_;
+  catalog::table_oid_t table_oid_;
+  std::vector<AnnotatedExpression> predicates_;
+  bool is_for_update_;
 };
 
-//===--------------------------------------------------------------------===//
-// IndexScan
-//===--------------------------------------------------------------------===//
+/**
+ * Operator for index scan
+ */
 class IndexScan : public OperatorNode<IndexScan> {
  public:
-  static Operator make(std::shared_ptr<catalog::TableHandle> table, std::string alias,
-                       std::vector<AnnotatedExpression> predicates, bool update, catalog::index_oid_t index_id,
+  static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                       catalog::index_oid_t index_oid, std::vector<AnnotatedExpression> predicates, bool update,
                        std::vector<catalog::col_oid_t> key_column_id_list,
                        std::vector<parser::ExpressionType> expr_type_list,
                        std::vector<type::TransientValue> value_list);
@@ -66,15 +69,16 @@ class IndexScan : public OperatorNode<IndexScan> {
 
   common::hash_t Hash() const override;
 
-  catalog::index_oid_t index_id;
-  std::vector<AnnotatedExpression> predicates;
-  std::string table_alias;
-  bool is_for_update;
-  std::shared_ptr<catalog::TableHandle> table_;
+  catalog::db_oid_t database_oid_;
+  catalog::namespace_oid_t namespace_oid_;
+  catalog::table_oid_t table_oid_;
+  catalog::index_oid_t index_oid_;
+  std::vector<AnnotatedExpression> predicates_;
+  bool is_for_update_;
 
-  std::vector<catalog::col_oid_t> key_column_id_list;
-  std::vector<parser::ExpressionType> expr_type_list;
-  std::vector<type::TransientValue> value_list;
+  std::vector<catalog::col_oid_t> key_column_id_list_;
+  std::vector<parser::ExpressionType> expr_type_list_;
+  std::vector<type::TransientValue> value_list_;
 };
 
 //===--------------------------------------------------------------------===//
@@ -90,11 +94,11 @@ class ExternalFileScan : public OperatorNode<ExternalFileScan> {
   common::hash_t Hash() const override;
 
   // identifier for all get operators
-  parser::ExternalFileFormat format;
-  std::string file_name;
-  char delimiter;
-  char quote;
-  char escape;
+  parser::ExternalFileFormat format_;
+  std::string file_name_;
+  char delimiter_;
+  char quote_;
+  char escape_;
 };
 
 //===--------------------------------------------------------------------===//
@@ -109,8 +113,8 @@ class QueryDerivedScan : public OperatorNode<QueryDerivedScan> {
 
   common::hash_t Hash() const override;
 
-  std::string table_alias;
-  std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>> alias_to_expr_map;
+  std::string table_alias_;
+  std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>> alias_to_expr_map_;
 };
 
 //===--------------------------------------------------------------------===//
@@ -128,14 +132,14 @@ class Limit : public OperatorNode<Limit> {
  public:
   static Operator make(int64_t offset, int64_t limit, std::vector<parser::AbstractExpression *> sort_columns,
                        std::vector<bool> sort_ascending);
-  int64_t offset;
-  int64_t limit;
+  int64_t offset_;
+  int64_t limit_;
   // When we get a query like "SELECT * FROM tab ORDER BY a LIMIT 5"
   // We'll let the limit operator keep the order by clause's content as an
   // internal order, then the limit operator will generate sort plan with
   // limit as a optimization.
-  std::vector<parser::AbstractExpression *> sort_exprs;
-  std::vector<bool> sort_acsending;
+  std::vector<parser::AbstractExpression *> sort_exprs_;
+  std::vector<bool> sort_acsending_;
 };
 
 //===--------------------------------------------------------------------===//
@@ -151,10 +155,10 @@ class InnerNLJoin : public OperatorNode<InnerNLJoin> {
 
   common::hash_t Hash() const override;
 
-  std::vector<std::unique_ptr<parser::AbstractExpression>> left_keys;
-  std::vector<std::unique_ptr<parser::AbstractExpression>> right_keys;
+  std::vector<std::unique_ptr<parser::AbstractExpression>> left_keys_;
+  std::vector<std::unique_ptr<parser::AbstractExpression>> right_keys_;
 
-  std::vector<AnnotatedExpression> join_predicates;
+  std::vector<AnnotatedExpression> join_predicates_;
 };
 
 //===--------------------------------------------------------------------===//
@@ -197,10 +201,10 @@ class InnerHashJoin : public OperatorNode<InnerHashJoin> {
 
   common::hash_t Hash() const override;
 
-  std::vector<std::unique_ptr<parser::AbstractExpression>> left_keys;
-  std::vector<std::unique_ptr<parser::AbstractExpression>> right_keys;
+  std::vector<std::unique_ptr<parser::AbstractExpression>> left_keys_;
+  std::vector<std::unique_ptr<parser::AbstractExpression>> right_keys_;
 
-  std::vector<AnnotatedExpression> join_predicates;
+  std::vector<AnnotatedExpression> join_predicates_;
 };
 
 //===--------------------------------------------------------------------===//
@@ -208,8 +212,8 @@ class InnerHashJoin : public OperatorNode<InnerHashJoin> {
 //===--------------------------------------------------------------------===//
 class LeftHashJoin : public OperatorNode<LeftHashJoin> {
  public:
-  std::shared_ptr<parser::AbstractExpression> join_predicate;
   static Operator make(std::shared_ptr<parser::AbstractExpression> join_predicate);
+  std::shared_ptr<parser::AbstractExpression> join_predicate_;
 };
 
 //===--------------------------------------------------------------------===//
@@ -217,8 +221,8 @@ class LeftHashJoin : public OperatorNode<LeftHashJoin> {
 //===--------------------------------------------------------------------===//
 class RightHashJoin : public OperatorNode<RightHashJoin> {
  public:
-  std::shared_ptr<parser::AbstractExpression> join_predicate;
   static Operator make(std::shared_ptr<parser::AbstractExpression> join_predicate);
+  std::shared_ptr<parser::AbstractExpression> join_predicate_;
 };
 
 //===--------------------------------------------------------------------===//
@@ -226,8 +230,8 @@ class RightHashJoin : public OperatorNode<RightHashJoin> {
 //===--------------------------------------------------------------------===//
 class OuterHashJoin : public OperatorNode<OuterHashJoin> {
  public:
-  std::shared_ptr<parser::AbstractExpression> join_predicate;
   static Operator make(std::shared_ptr<parser::AbstractExpression> join_predicate);
+  std::shared_ptr<parser::AbstractExpression> join_predicate_;
 };
 
 //===--------------------------------------------------------------------===//
@@ -235,13 +239,15 @@ class OuterHashJoin : public OperatorNode<OuterHashJoin> {
 //===--------------------------------------------------------------------===//
 class Insert : public OperatorNode<Insert> {
  public:
-  static Operator make(std::shared_ptr<catalog::TableHandle> target_table,
-                       std::vector<catalog::index_oid_t> &&target_index, const std::vector<std::string> *columns,
+  static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                       catalog::table_oid_t table_oid, std::vector<catalog::index_oid_t> &&target_index,
+                       const std::vector<std::string> *columns,
                        const std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> *values);
-  std::shared_ptr<catalog::TableHandle> target_table;
-  std::vector<catalog::index_oid_t> target_index;
-  const std::vector<std::string> *columns;
-  const std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> *values;
+  catalog::table_oid_t table_oid_;
+  std::vector<catalog::index_oid_t> index_oid_;
+
+  const std::vector<std::string> *columns_;
+  const std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> *values_;
 };
 
 //===--------------------------------------------------------------------===//
