@@ -43,10 +43,10 @@ class IndexMetadata {
         must_inline_varlen_(ComputeMustInlineVarlen(key_schema_)),
         compact_ints_offsets_(ComputeCompactIntsOffsets(attr_sizes_)),
         key_oid_to_offset_(ComputeKeyOidToOffset(key_schema_, ComputePROffsets(inlined_attr_sizes_))),
-        initializer_(ProjectedRowInitializer::CreateProjectedRowInitializerForIndexes(
-            GetRealAttrSizes(attr_sizes_), ComputePROffsets(inlined_attr_sizes_))),
-        inlined_initializer_(ProjectedRowInitializer::CreateProjectedRowInitializerForIndexes(
-            inlined_attr_sizes_, ComputePROffsets(inlined_attr_sizes_))) {}
+        initializer_(
+            ProjectedRowInitializer::Create(GetRealAttrSizes(attr_sizes_), ComputePROffsets(inlined_attr_sizes_))),
+        inlined_initializer_(
+            ProjectedRowInitializer::Create(inlined_attr_sizes_, ComputePROffsets(inlined_attr_sizes_))) {}
 
   /**
    * @return index key schema

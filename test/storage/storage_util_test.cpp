@@ -47,7 +47,7 @@ TEST_F(StorageUtilTests, CopyToProjectedRow) {
     // generate a random projectedRow
     std::vector<storage::col_id_t> update_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
     storage::ProjectedRowInitializer update_initializer =
-        storage::ProjectedRowInitializer::CreateProjectedRowInitializer(layout, update_col_ids);
+        storage::ProjectedRowInitializer::Create(layout, update_col_ids);
     auto *row_buffer = common::AllocationUtil::AllocateAligned(update_initializer.ProjectedRowSize());
     storage::ProjectedRow *row = update_initializer.InitializeRow(row_buffer);
 
@@ -121,8 +121,7 @@ TEST_F(StorageUtilTests, ApplyDelta) {
 
     // the old row
     std::vector<storage::col_id_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
-    storage::ProjectedRowInitializer initializer =
-        storage::ProjectedRowInitializer::CreateProjectedRowInitializer(layout, all_col_ids);
+    storage::ProjectedRowInitializer initializer = storage::ProjectedRowInitializer::Create(layout, all_col_ids);
     auto *old_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
     storage::ProjectedRow *old = initializer.InitializeRow(old_buffer);
     StorageTestUtil::PopulateRandomRow(old, layout, null_ratio_(generator_), &generator_);
@@ -134,8 +133,7 @@ TEST_F(StorageUtilTests, ApplyDelta) {
 
     // the delta change to apply
     std::vector<storage::col_id_t> rand_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout, &generator_);
-    storage::ProjectedRowInitializer rand_initializer =
-        storage::ProjectedRowInitializer::CreateProjectedRowInitializer(layout, rand_col_ids);
+    storage::ProjectedRowInitializer rand_initializer = storage::ProjectedRowInitializer::Create(layout, rand_col_ids);
     auto *delta_buffer = common::AllocationUtil::AllocateAligned(rand_initializer.ProjectedRowSize());
     storage::ProjectedRow *delta = rand_initializer.InitializeRow(delta_buffer);
     StorageTestUtil::PopulateRandomRow(delta, layout, null_ratio_(generator_), &generator_);
