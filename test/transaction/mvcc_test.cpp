@@ -41,7 +41,7 @@ class MVCCDataTableTestObject {
   storage::ProjectedRow *GenerateRandomUpdate(Random *generator) {
     std::vector<storage::col_id_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout_, generator);
     storage::ProjectedRowInitializer update_initializer =
-        storage::ProjectedRowInitializer::CreateProjectedRowInitializer(layout_, update_col_ids);
+        storage::ProjectedRowInitializer::Create(layout_, update_col_ids);
     auto *buffer = common::AllocationUtil::AllocateAligned(update_initializer.ProjectedRowSize());
     loose_pointers_.push_back(buffer);
     storage::ProjectedRow *update = update_initializer.InitializeRow(buffer);
@@ -75,8 +75,8 @@ class MVCCDataTableTestObject {
   const double null_bias_ = 0;
   std::vector<byte *> loose_pointers_;
   std::vector<transaction::TransactionContext *> loose_txns_;
-  storage::ProjectedRowInitializer redo_initializer = storage::ProjectedRowInitializer::CreateProjectedRowInitializer(
-      layout_, StorageTestUtil::ProjectionListAllColumns(layout_));
+  storage::ProjectedRowInitializer redo_initializer =
+      storage::ProjectedRowInitializer::Create(layout_, StorageTestUtil::ProjectionListAllColumns(layout_));
   byte *select_buffer_ = common::AllocationUtil::AllocateAligned(redo_initializer.ProjectedRowSize());
   bool select_result_;
 };
