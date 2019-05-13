@@ -92,7 +92,8 @@ class CompilerTest : public TerrierTest {
 
     std::function<u32()> main_func;
     auto module = tpl::vm::BytecodeGenerator::Compile(ast, "main", exec_context);
-    if (!module->GetFunction("main", tpl::vm::ExecutionMode::Jit, main_func)) {
+    if (!module->GetFunction("main", tpl::vm::ExecutionMode::Interpret, main_func)) {
+      EXECUTION_LOG_ERROR("Couldn't find main()?");
       // TODO(WAN): throw error
     }
 

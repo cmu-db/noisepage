@@ -27,14 +27,19 @@ void CompilationContext::GeneratePlan(Query *query) {
   query->GetQueryState()->FinalizeType(&codegen_);
   auto qs_type = query->GetQueryState()->GetType();
   auto qs_type_ptr = codegen_->NewPointerType(DUMMY_POS, qs_type);
-  ast::Identifier qs_id(query->GetQueryStateName().c_str());
+
+  auto *ast_ctx = query->GetCodeContext()->GetAstContext();
+  auto qs_id = ast_ctx->GetIdentifier(query->GetQueryStateName());
+  auto init_id = ast_ctx->GetIdentifier(query->GetQueryInitName());
+  auto produce_id = ast_ctx->GetIdentifier(query->GetQueryProduceName());
+  auto teardown_id = ast_ctx->GetIdentifier(query->GetQueryTeardownName());
 
   // List of top level declarations
   util::RegionVector<ast::Decl *> decls(query->GetRegion());
 
   {
     // 1. Declare the query state struct.
-    ast::Identifier qs_struct_id(query->GetQueryStateStructName().c_str());
+    auto qs_struct_id = ast_ctx->GetIdentifier(query->GetQueryStateStructName());
     decls.emplace_back(codegen_->NewStructDecl(DUMMY_POS, qs_struct_id, qs_type));
   }
 
@@ -42,8 +47,7 @@ void CompilationContext::GeneratePlan(Query *query) {
     // 2. Declare init function
     util::RegionVector<ast::FieldDecl *> params(query->GetRegion());
     params.emplace_back(codegen_->NewFieldDecl(DUMMY_POS, qs_id, qs_type_ptr));
-    FunctionBuilder
-        init_fn(codegen_, ast::Identifier(query->GetQueryInitName().c_str()), std::move(params), codegen_.Ty_Nil());
+    FunctionBuilder init_fn(codegen_, init_id, std::move(params), codegen_.Ty_Nil());
     consumer_->InitializeQueryState(this);
     for (const auto &it : op_translators_) {
       it.second->InitializeQueryState();
@@ -55,8 +59,7 @@ void CompilationContext::GeneratePlan(Query *query) {
     // 3. Declare produce function
     util::RegionVector<ast::FieldDecl *> params(query->GetRegion());
     params.emplace_back(codegen_->NewFieldDecl(DUMMY_POS, qs_id, qs_type_ptr));
-    FunctionBuilder
-        produce_fn(codegen_, ast::Identifier(query->GetQueryProduceName().c_str()), std::move(params), codegen_.Ty_Nil());
+    FunctionBuilder produce_fn(codegen_, produce_id, std::move(params), codegen_.Ty_Nil());
     GetTranslator(query->GetPlan())->Produce();
     decls.emplace_back(produce_fn.Finish());
   }
@@ -65,8 +68,7 @@ void CompilationContext::GeneratePlan(Query *query) {
     // 4. Declare teardown function
     util::RegionVector<ast::FieldDecl *> params(query->GetRegion());
     params.emplace_back(codegen_->NewFieldDecl(DUMMY_POS, qs_id, qs_type_ptr));
-    FunctionBuilder
-        teardown_fn(codegen_, ast::Identifier(query->GetQueryTeardownName().c_str()), std::move(params), codegen_.Ty_Nil());
+    FunctionBuilder teardown_fn(codegen_, teardown_id, std::move(params), codegen_.Ty_Nil());
     consumer_->TeardownQueryState(this);
     for (const auto &it : op_translators_) {
       it.second->TeardownQueryState();
@@ -77,13 +79,14 @@ void CompilationContext::GeneratePlan(Query *query) {
   {
     // 5. Define main function
     util::RegionVector<ast::FieldDecl *> main_params(query->GetRegion());
-    FunctionBuilder main_fn(codegen_, ast::Identifier("main"), std::move(main_params), codegen_.Ty_Int32());
+    auto main_id = ast_ctx->GetIdentifier("main");
+    FunctionBuilder main_fn(codegen_, main_id, std::move(main_params), codegen_.Ty_Int32());
     // 5.1 Declare the qs variable
     auto qs_decl = codegen_->NewDeclStmt(codegen_->NewVariableDecl(DUMMY_POS, qs_id, qs_type, nullptr));
     main_fn.Append(qs_decl);
     // 5.2 Call init_fn(&qs)
     util::RegionVector<ast::Expr *> init_params(query->GetRegion());
-    auto init_name = codegen_->NewIdentifierExpr(DUMMY_POS, ast::Identifier(query->GetQueryInitName().c_str()));
+    auto init_name = codegen_->NewIdentifierExpr(DUMMY_POS, init_id);
     auto init_qs_expr = codegen_->NewIdentifierExpr(DUMMY_POS, qs_id);
     init_params.emplace_back(codegen_->NewUnaryOpExpr(DUMMY_POS, parsing::Token::Type::AMPERSAND, init_qs_expr));
     main_fn.Append(codegen_->NewExpressionStmt(codegen_->NewCallExpr(init_name, std::move(init_params))));
@@ -91,7 +94,7 @@ void CompilationContext::GeneratePlan(Query *query) {
     // 5.3 Call produce_fn(&qs).
     // TODO(Amadou): See if the paramaters can be reused without creating memory issues.
     util::RegionVector<ast::Expr *> prod_params(query->GetRegion());
-    auto prod_name = codegen_->NewIdentifierExpr(DUMMY_POS, ast::Identifier(query->GetQueryProduceName().c_str()));
+    auto prod_name = codegen_->NewIdentifierExpr(DUMMY_POS, produce_id);
     auto prod_qs_expr = codegen_->NewIdentifierExpr(DUMMY_POS, qs_id);
     prod_params.emplace_back(codegen_->NewUnaryOpExpr(DUMMY_POS, parsing::Token::Type::AMPERSAND, prod_qs_expr));
     main_fn.Append(codegen_->NewExpressionStmt(codegen_->NewCallExpr(prod_name, std::move(prod_params))));
@@ -99,7 +102,7 @@ void CompilationContext::GeneratePlan(Query *query) {
     // 5.4 Call teardown_fn(&qs)
     // TODO(Amadou): See if the paramaters can be reused without creating memory issues.
     util::RegionVector<ast::Expr *> teardown_params(query->GetRegion());
-    auto teardown_name = codegen_->NewIdentifierExpr(DUMMY_POS, ast::Identifier(query->GetQueryTeardownName().c_str()));
+    auto teardown_name = codegen_->NewIdentifierExpr(DUMMY_POS, teardown_id);
     auto teardown_qs_expr = codegen_->NewIdentifierExpr(DUMMY_POS, qs_id);
     teardown_params.emplace_back(codegen_->NewUnaryOpExpr(DUMMY_POS, parsing::Token::Type::AMPERSAND, teardown_qs_expr));
     main_fn.Append(codegen_->NewExpressionStmt(codegen_->NewCallExpr(teardown_name, std::move(teardown_params))));

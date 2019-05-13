@@ -109,7 +109,7 @@ static void CompileAndRun(const std::string &source,
   }
 
   // NOTE: Commented to just check ast generation.
-  /*
+  
   // Codegen
   std::unique_ptr<vm::BytecodeModule> module;
   {
@@ -147,7 +147,7 @@ static void CompileAndRun(const std::string &source,
 
     EXECUTION_LOG_INFO("JIT main() returned: {}", main_func());
   }
-  */
+  
   // Dump stats
   EXECUTION_LOG_INFO(
       "Parse: {} ms, Type-check: {} ms, Code-gen: {} ms, Exec.: {} ms, "
