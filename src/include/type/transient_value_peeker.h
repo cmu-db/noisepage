@@ -103,19 +103,16 @@ class TransientValuePeeker {
 
   /**
    * @param value TransientValue with TypeId VARCHAR to generate a C type for
-   * @return C string representing the value of the TransientValue. This null-terminated C string lives on the heap, and
-   * should be freed after use by the caller.
+   * @return C string representing the value of the TransientValue. Should use the underlying raw pointer with care
    * @warning TransientValue must be non-NULL. @see TransientValue::Null() first
    */
-  static const char *const PeekVarChar(const TransientValue &value) {
+  static std::string_view PeekVarChar(const TransientValue &value) {
     TERRIER_ASSERT(!value.Null(), "Doesn't make sense to peek a NULL value.");
     TERRIER_ASSERT(value.Type() == TypeId::VARCHAR, "TypeId mismatch.");
-    const auto *const varchar = value.GetAs<const char *const>();
-    const uint32_t length = *reinterpret_cast<const uint32_t *const>(varchar);
-    auto *const cstring = new char[length + 1];
-    std::memcpy(cstring, varchar + sizeof(uint32_t), length);
-    cstring[length] = '\0';
-    return cstring;
+    const auto *varchar = value.GetAs<const char *>();
+    uint32_t length = *reinterpret_cast<const uint32_t *>(varchar);
+    const auto *ptr = varchar + sizeof(uint32_t);
+    return std::string_view(ptr, length);
   }
 };
 
