@@ -11,6 +11,7 @@
 #include "loggers/catalog_logger.h"
 #include "storage/sql_table.h"
 #include "storage/storage_util.h"
+#include "storage/storage_defs.h"
 #include "transaction/transaction_manager.h"
 #include "type/transient_value.h"
 #include "type/transient_value_factory.h"
@@ -342,7 +343,7 @@ class SqlTableHelper {
    * @param txn
    * @param row - vector of values to insert
    */
-  void InsertRow(transaction::TransactionContext *txn, const std::vector<type::TransientValue> &row) {
+  storage::TupleSlot InsertRow(transaction::TransactionContext *txn, const std::vector<type::TransientValue> &row) {
     TERRIER_ASSERT(pri_->NumColumns() == row.size(), "InsertRow: inserted row size != number of columns");
     // get buffer for insertion and use as a row
     auto insert_buffer = common::AllocationUtil::AllocateAligned(pri_->ProjectedRowSize());
@@ -351,9 +352,9 @@ class SqlTableHelper {
     for (size_t i = 0; i < row.size(); i++) {
       SqlTableHelper::SetColInRow(proj_row, static_cast<int32_t>(i), row[i]);
     }
-    table_->Insert(txn, *proj_row);
-
+    storage::TupleSlot ts = table_->Insert(txn, *proj_row);
     delete[] insert_buffer;
+    return ts;
   }
 
   /**
