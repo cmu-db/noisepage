@@ -75,7 +75,7 @@ class WriteAheadLoggingTests : public TerrierTest {
     }
 
     // Initialize the redo record.
-    auto initializer = storage::ProjectedRowInitializer::CreateProjectedRowInitializer(block_layout, col_ids);
+    auto initializer = storage::ProjectedRowInitializer::Create(block_layout, col_ids);
     // TODO(Justin): set a pointer to the correct data table? Will this even be useful for recovery?
     auto *result = storage::RedoRecord::Initialize(buf, txn_begin, nullptr, tuple_slot, initializer);
     auto *delta = result->GetUnderlyingRecordBodyAs<storage::RedoRecord>()->Delta();

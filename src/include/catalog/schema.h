@@ -172,6 +172,20 @@ class Schema {
     const uint32_t col_offset = col_oid_to_offset.at(col_oid);
     return columns_[col_offset];
   }
+
+  /**
+   * @param name name of the Column to access
+   * @return description of the schema for a specific column
+   * @throw std::out_of_range if the column doesn't exist.
+   */
+  Column GetColumn(const std::string &name) const {
+    for (auto &c : columns_) {
+      if (c.GetName() == name) {
+        return c;
+      }
+    }
+    throw std::out_of_range("Column name doesn't exist");
+  }
   /**
    * @return description of this SQL table's schema as a collection of Columns
    */

@@ -196,8 +196,7 @@ class ProjectedRowInitializer {
    * @param layout BlockLayout of the RawBlock to be accessed
    * @param col_ids projection list of column ids to map, should have all unique values (no repeats)
    */
-  static ProjectedRowInitializer CreateProjectedRowInitializer(const BlockLayout &layout,
-                                                               std::vector<col_id_t> col_ids);
+  static ProjectedRowInitializer Create(const BlockLayout &layout, std::vector<col_id_t> col_ids);
 
   /**
    * Constructs a ProjectedRowInitializer. Calculates the size of this ProjectedRow, including all members, values,
@@ -209,8 +208,7 @@ class ProjectedRowInitializer {
    * @param pr_offsets pr_offsets[i] = projection list offset of attr_sizes[i] after it gets sorted
    */
   template <typename AttrType>
-  static ProjectedRowInitializer CreateProjectedRowInitializerForIndexes(std::vector<AttrType> real_attr_sizes,
-                                                                         const std::vector<uint16_t> &pr_offsets);
+  static ProjectedRowInitializer Create(std::vector<AttrType> real_attr_sizes, const std::vector<uint16_t> &pr_offsets);
 
  private:
   /**
