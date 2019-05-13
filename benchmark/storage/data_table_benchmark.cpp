@@ -53,8 +53,8 @@ class DataTableBenchmark : public benchmark::Fixture {
   const storage::BlockLayout layout_{{column_size_, column_size_, column_size_}};
 
   // Tuple properties
-  const storage::ProjectedRowInitializer initializer_ = storage::ProjectedRowInitializer::CreateProjectedRowInitializer(
-      layout_, StorageTestUtil::ProjectionListAllColumns(layout_));
+  const storage::ProjectedRowInitializer initializer_ =
+      storage::ProjectedRowInitializer::Create(layout_, StorageTestUtil::ProjectionListAllColumns(layout_));
 
   // Workload
   const uint32_t num_inserts_ = 10000000;
