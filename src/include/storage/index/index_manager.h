@@ -68,6 +68,9 @@ class IndexManager {
   // FIXME(xueyuanz): This latch might not be necessary, the index_builing_map_ is also guarded by the commit_latch.
   common::SpinLatch index_building_map_latch_;
 
+  std::map<index_id_t, std::atomic<bool>> index_blocking_map_;
+  common::SpinLatch index_blocking_map_latch_;
+
  public:
   /**
    * Create the index_id_t using the oid of db, the oid of namespace and the oid of the index
@@ -103,6 +106,27 @@ class IndexManager {
     auto it = index_building_map_.find(key);
     if (it == index_building_map_.end()) return IndexBuildFlag::INVALID;
     return it->second;
+  }
+
+  /**
+   * Set the status of index blocking flag
+   * @param key the index_id representing the index
+   */
+  void SetIndexBlockingFlag(const index_id_t &key, bool value) {
+    common::SpinLatch::ScopedSpinLatch guard(&index_building_map_latch_);
+    index_blocking_map_[key].store(value);
+  }
+
+  /**
+   * Get the status of index blocking flag
+   * @param key the index_id representing the index
+   * @return the pointer to the corresponding status
+   */
+  std::atomic<bool> *GetIndexBlockingFlag(const index_id_t &key) {
+    common::SpinLatch::ScopedSpinLatch guard(&index_building_map_latch_);
+    auto it = index_blocking_map_.find(key);
+    if (it == index_blocking_map_.end()) return nullptr;
+    return &it->second;
   }
 
   /**

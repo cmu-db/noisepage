@@ -69,7 +69,7 @@ catalog::index_oid_t IndexManager::Create(catalog::db_oid_t db_oid, catalog::nam
   bool indisvalid = false;
   bool indisready = true;
   bool indislive = false;
-  bool indisblocking = false;
+  bool indisblocking = is_blocking;
 
   // Intialize the index
   Index *index = nullptr;

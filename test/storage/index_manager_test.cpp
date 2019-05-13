@@ -59,8 +59,8 @@ struct IndexManagerTest : public TerrierTest {
 
     index->Insert(txn, *key, ts);
     txn_manager_->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
-    delete key_buf;
-    delete key_buf_index;
+    delete[] key_buf;
+    delete[] key_buf_index;
   }
 
   void StartGC(transaction::TransactionManager *const txn_manager) {
