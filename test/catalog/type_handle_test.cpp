@@ -36,7 +36,7 @@ TEST_F(TypeHandleTest, BasicCorrectnessTest) {
   // terrier has db_oid_t DEFAULT_DATABASE_OID
   const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
   auto db_handle = catalog_->GetDatabaseHandle();
-  auto type_handle = db_handle.GetTypeHandle(txn_, terrier_oid);
+  auto type_handle = db_handle.GetTypeTable(txn_, terrier_oid);
 
   auto type_entry_ptr = type_handle.GetTypeEntry(txn_, "integer");
   EXPECT_NE(type_entry_ptr, nullptr);
@@ -50,7 +50,7 @@ TEST_F(TypeHandleTest, OidLookupTest) {
   // terrier has db_oid_t DEFAULT_DATABASE_OID
   const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
   auto db_handle = catalog_->GetDatabaseHandle();
-  auto type_handle = db_handle.GetTypeHandle(txn_, terrier_oid);
+  auto type_handle = db_handle.GetTypeTable(txn_, terrier_oid);
 
   // check name to oid for a valid name
   auto UNUSED_ATTRIBUTE type_oid = type_handle.TypeToOid(txn_, "integer");

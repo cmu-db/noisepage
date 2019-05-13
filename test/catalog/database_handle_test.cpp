@@ -41,7 +41,7 @@ TEST_F(DatabaseHandleTests, BasicCorrectnessTest) {
   const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
 
   // the handle provides accessors to the database
-  catalog::DatabaseHandle db_handle = catalog_->GetDatabaseHandle();
+  catalog::DatabaseCatalogTable db_handle = catalog_->GetDatabaseHandle();
 
   // lookup the default database
   auto db_entry_ptr = db_handle.GetDatabaseEntry(txn_, terrier_oid);
@@ -56,7 +56,7 @@ TEST_F(DatabaseHandleTests, BasicEntryTest) {
   // const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
 
   // the handle provides accessors to the database
-  catalog::DatabaseHandle db_handle = catalog_->GetDatabaseHandle();
+  catalog::DatabaseCatalogTable db_handle = catalog_->GetDatabaseHandle();
 
   // check absence
   auto no_entry_p = db_handle.GetDatabaseEntry(txn_, "test_db");

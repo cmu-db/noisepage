@@ -22,7 +22,8 @@ struct IndexManagerTest : public TerrierTest {
 
     // TODO(xueyuanz): Need to get the tuple slot.
     table->InsertRow(txn, row);
-    catalog::IndexHandle index_handle = catalog->GetDatabaseHandle().GetIndexHandle(txn, catalog::DEFAULT_DATABASE_OID);
+    catalog::IndexCatalogTable index_handle =
+        catalog->GetDatabaseHandle().GetIndexTable(txn, catalog::DEFAULT_DATABASE_OID);
 
     auto index_entry = index_handle.GetIndexEntry(txn, index_oid);
     auto index = reinterpret_cast<Index *>(index_entry->GetBigIntColumn("indexptr"));
@@ -113,7 +114,7 @@ TEST_F(IndexManagerTest, CreateIndexConcurrentlyBasicTest) {
   // terrier has db_oid_t DEFAULT_DATABASE_OID
   const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
   auto db_handle = catalog_->GetDatabaseHandle();
-  auto ns_handle = db_handle.GetNamespaceHandle(txn0, terrier_oid);
+  auto ns_handle = db_handle.GetNamespaceTable(txn0, terrier_oid);
   auto table_handle = ns_handle.GetTableHandle(txn0, "public");
   auto ns_oid = ns_handle.NameToOid(txn0, std::string("public"));
 
@@ -166,7 +167,7 @@ TEST_F(IndexManagerTest, CreateIndexConcurrentlyBasicTest) {
 
   // Test whether the catalog has the corresponding information
   auto txn1 = txn_manager_->BeginTransaction();
-  auto index_handle = db_handle.GetIndexHandle(txn1, terrier_oid);
+  auto index_handle = db_handle.GetIndexTable(txn1, terrier_oid);
   auto index_entry = index_handle.GetIndexEntry(txn1, index_oid);
   EXPECT_NE(index_entry, nullptr);
   auto ret = index_entry->GetIntegerColumn("indexrelid");
@@ -241,7 +242,7 @@ TEST_F(IndexManagerTest, CreateIndexConcurrentlyExceptionTest) {
   // terrier has db_oid_t DEFAULT_DATABASE_OID
   const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
   auto db_handle = catalog_->GetDatabaseHandle();
-  auto ns_handle = db_handle.GetNamespaceHandle(txn0, terrier_oid);
+  auto ns_handle = db_handle.GetNamespaceTable(txn0, terrier_oid);
   auto table_handle = ns_handle.GetTableHandle(txn0, "public");
   auto ns_oid = ns_handle.NameToOid(txn0, std::string("public"));
 
@@ -307,7 +308,7 @@ TEST_F(IndexManagerTest, DropIndexCorrectnessTest) {
   // terrier has db_oid_t DEFAULT_DATABASE_OID
   const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
   auto db_handle = catalog_->GetDatabaseHandle();
-  auto ns_handle = db_handle.GetNamespaceHandle(txn0, terrier_oid);
+  auto ns_handle = db_handle.GetNamespaceTable(txn0, terrier_oid);
   auto table_handle = ns_handle.GetTableHandle(txn0, "public");
   auto ns_oid = ns_handle.NameToOid(txn0, std::string("public"));
 
@@ -360,7 +361,7 @@ TEST_F(IndexManagerTest, DropIndexCorrectnessTest) {
   // Test whether the catalog has the corresponding information
   auto txn1 = txn_manager_->BeginTransaction();
   EXPECT_GT(!index_oid, 0);
-  auto index_handle = db_handle.GetIndexHandle(txn1, terrier_oid);
+  auto index_handle = db_handle.GetIndexTable(txn1, terrier_oid);
   auto index_entry = index_handle.GetIndexEntry(txn1, index_oid);
   EXPECT_NE(index_entry, nullptr);
   auto ret = index_entry->GetIntegerColumn("indexrelid");
@@ -392,7 +393,7 @@ TEST_F(IndexManagerTest, CreateIndexConcurrentlyFuzzyTest) {
   // terrier has db_oid_t DEFAULT_DATABASE_OID
   const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
   auto db_handle = catalog_->GetDatabaseHandle();
-  auto ns_handle = db_handle.GetNamespaceHandle(txn0, terrier_oid);
+  auto ns_handle = db_handle.GetNamespaceTable(txn0, terrier_oid);
   auto table_handle = ns_handle.GetTableHandle(txn0, "public");
   auto ns_oid = ns_handle.NameToOid(txn0, std::string("public"));
 
@@ -445,7 +446,7 @@ TEST_F(IndexManagerTest, CreateIndexConcurrentlyFuzzyTest) {
 
   // Test whether the catalog has the corresponding information
   auto txn1 = txn_manager_->BeginTransaction();
-  auto index_handle = db_handle.GetIndexHandle(txn1, terrier_oid);
+  auto index_handle = db_handle.GetIndexTable(txn1, terrier_oid);
   auto index_entry = index_handle.GetIndexEntry(txn1, index_oid);
   EXPECT_NE(index_entry, nullptr);
   auto ret = index_entry->GetIntegerColumn("indexrelid");

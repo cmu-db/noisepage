@@ -39,7 +39,7 @@ TEST_F(NamespaceHandleTests, BasicCorrectnessTest) {
   // terrier has db_oid_t DEFAULT_DATABASE_OID
   const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
   auto db_handle = catalog_->GetDatabaseHandle();
-  auto namespace_handle = db_handle.GetNamespaceHandle(txn_, terrier_oid);
+  auto namespace_handle = db_handle.GetNamespaceTable(txn_, terrier_oid);
 
   // get the pg_catalog namespace
   auto namespace_entry_ptr = namespace_handle.GetNamespaceEntry(txn_, "pg_catalog");
@@ -58,7 +58,7 @@ TEST_F(NamespaceHandleTests, CreateTest) {
   // terrier has db_oid_t DEFAULT_DATABASE_OID
   const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
   auto db_handle = catalog_->GetDatabaseHandle();
-  auto namespace_handle = db_handle.GetNamespaceHandle(txn_, terrier_oid);
+  auto namespace_handle = db_handle.GetNamespaceTable(txn_, terrier_oid);
   namespace_handle.AddEntry(txn_, "test_namespace");
 
   // verify correctly created
@@ -77,7 +77,7 @@ TEST_F(NamespaceHandleTests, OidLookupTest) {
   // terrier has db_oid_t DEFAULT_DATABASE_OID
   const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
   auto db_handle = catalog_->GetDatabaseHandle();
-  auto namespace_handle = db_handle.GetNamespaceHandle(txn_, terrier_oid);
+  auto namespace_handle = db_handle.GetNamespaceTable(txn_, terrier_oid);
   namespace_handle.AddEntry(txn_, "test_namespace");
 
   // verify that we can get to an oid

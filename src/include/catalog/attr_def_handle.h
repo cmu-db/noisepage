@@ -20,7 +20,7 @@ struct SchemaCol;
 /**
  * An AttrDefEntry is a row in pg_attrdef catalog
  */
-class AttrDefEntry : public CatalogEntry<col_oid_t> {
+class AttrDefCatalogEntry : public CatalogEntry<col_oid_t> {
  public:
   /**
    * Constructor
@@ -28,7 +28,7 @@ class AttrDefEntry : public CatalogEntry<col_oid_t> {
    * @param sql_table associated with this entry
    * @param entry a row in pg_attrdef that represents this table
    */
-  AttrDefEntry(col_oid_t oid, catalog::SqlTableHelper *sql_table, std::vector<type::TransientValue> &&entry)
+  AttrDefCatalogEntry(col_oid_t oid, catalog::SqlTableHelper *sql_table, std::vector<type::TransientValue> &&entry)
       : CatalogEntry(oid, sql_table, std::move(entry)) {}
 };
 
@@ -36,7 +36,7 @@ class AttrDefEntry : public CatalogEntry<col_oid_t> {
  * AttrDef (attribute default) contains the default value for attributes
  * (i.e. a column), where such a default has been defined.
  */
-class AttrDefHandle {
+class AttrDefCatalogTable {
  public:
   /**
    * Get a specific attrdef entry.
@@ -45,13 +45,13 @@ class AttrDefHandle {
    * @return a shared pointer to AttrDef entry;
    *         NULL if the entry doesn't exist.
    */
-  std::shared_ptr<AttrDefEntry> GetAttrDefEntry(transaction::TransactionContext *txn, col_oid_t oid);
+  std::shared_ptr<AttrDefCatalogEntry> GetAttrDefEntry(transaction::TransactionContext *txn, col_oid_t oid);
 
   /**
    * Constructor
    * @param pg_attrdef a pointer to pg_attrdef sql table rw helper instance
    */
-  explicit AttrDefHandle(SqlTableHelper *pg_attrdef) : pg_attrdef_rw_(pg_attrdef) {}
+  explicit AttrDefCatalogTable(SqlTableHelper *pg_attrdef) : pg_attrdef_rw_(pg_attrdef) {}
 
   /**
    * Delete all entries matching table_oid

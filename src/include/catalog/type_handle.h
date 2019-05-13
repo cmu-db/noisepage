@@ -17,7 +17,7 @@ class Catalog;
 /**
  * An TypeEntry is a row in pg_class catalog
  */
-class TypeEntry : public CatalogEntry<type_oid_t> {
+class TypeCatalogEntry : public CatalogEntry<type_oid_t> {
  public:
   /**
    * Constructor
@@ -25,7 +25,7 @@ class TypeEntry : public CatalogEntry<type_oid_t> {
    * @param sql_table associated with this entry
    * @param entry a row in pg_type that represents this table
    */
-  TypeEntry(type_oid_t oid, catalog::SqlTableHelper *sql_table, std::vector<type::TransientValue> &&entry)
+  TypeCatalogEntry(type_oid_t oid, catalog::SqlTableHelper *sql_table, std::vector<type::TransientValue> &&entry)
       : CatalogEntry(oid, sql_table, std::move(entry)) {}
 };
 
@@ -35,12 +35,12 @@ class TypeEntry : public CatalogEntry<type_oid_t> {
  * pg_type:
  *      oid | typname | typlen | typtype | typcategory
  */
-class TypeHandle {
+class TypeCatalogTable {
  public:
   /**
    * Construct a type handle. It keeps a pointer to the pg_type sql table.
    */
-  TypeHandle(Catalog *catalog, SqlTableHelper *pg_type);
+  TypeCatalogTable(Catalog *catalog, SqlTableHelper *pg_type);
 
   /**
    * Get the oid of a type given its name.
@@ -54,7 +54,7 @@ class TypeHandle {
    * @param oid type entry oid
    * @return a shared pointer to the type entry
    */
-  std::shared_ptr<TypeEntry> GetTypeEntry(transaction::TransactionContext *txn, type_oid_t oid);
+  std::shared_ptr<TypeCatalogEntry> GetTypeEntry(transaction::TransactionContext *txn, type_oid_t oid);
 
   /**
    * Add a type entry into pg_type handle.
@@ -65,7 +65,7 @@ class TypeHandle {
   /**
    * Get a type entry from pg_type handle by name.
    */
-  std::shared_ptr<TypeEntry> GetTypeEntry(transaction::TransactionContext *txn, const std::string &type);
+  std::shared_ptr<TypeCatalogEntry> GetTypeEntry(transaction::TransactionContext *txn, const std::string &type);
 
   /**
    * Create storage table
@@ -77,7 +77,7 @@ class TypeHandle {
    * Debug methods
    */
   void Dump(transaction::TransactionContext *txn) {
-    auto limit = static_cast<int32_t>(TypeHandle::schema_cols_.size());
+    auto limit = static_cast<int32_t>(TypeCatalogTable::schema_cols_.size());
     pg_type_rw_->Dump(txn, limit);
   }
 

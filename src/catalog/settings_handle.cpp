@@ -19,7 +19,7 @@ namespace terrier::catalog {
  *
  * See postgres documentation for more description of the fields
  */
-const std::vector<SchemaCol> SettingsHandle::schema_cols_ = {
+const std::vector<SchemaCol> SettingsCatalogTable::schema_cols_ = {
     {0, true, "oid", type::TypeId::INTEGER},         {1, true, "name", type::TypeId::VARCHAR},
     {2, true, "setting", type::TypeId::VARCHAR},     {3, true, "unit", type::TypeId::VARCHAR},
     {4, true, "category", type::TypeId::VARCHAR},    {5, true, "short_desc", type::TypeId::VARCHAR},
@@ -31,19 +31,19 @@ const std::vector<SchemaCol> SettingsHandle::schema_cols_ = {
     {16, true, "sourceline", type::TypeId::INTEGER}, {17, true, "pending_restart", type::TypeId::BOOLEAN}};
 
 // Find entry with (row) oid and return it
-std::shared_ptr<SettingsEntry> SettingsHandle::GetSettingsEntry(transaction::TransactionContext *txn,
-                                                                settings_oid_t oid) {
+std::shared_ptr<SettingsCatalogEntry> SettingsCatalogTable::GetSettingsEntry(transaction::TransactionContext *txn,
+                                                                             settings_oid_t oid) {
   std::vector<type::TransientValue> search_vec, ret_row;
   search_vec.push_back(type::TransientValueFactory::GetInteger(!oid));
   ret_row = pg_settings_->FindRow(txn, search_vec);
   if (ret_row.empty()) {
     return nullptr;
   }
-  return std::make_shared<SettingsEntry>(oid, pg_settings_, std::move(ret_row));
+  return std::make_shared<SettingsCatalogEntry>(oid, pg_settings_, std::move(ret_row));
 }
 
-SqlTableHelper *SettingsHandle::Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,
-                                       const std::string &name) {
+SqlTableHelper *SettingsCatalogTable::Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,
+                                             const std::string &name) {
   catalog::SqlTableHelper *pg_settings;
 
   // get an oid
@@ -53,7 +53,7 @@ SqlTableHelper *SettingsHandle::Create(transaction::TransactionContext *txn, Cat
   pg_settings = new catalog::SqlTableHelper(pg_settings_oid);
 
   // columns we use
-  for (auto col : SettingsHandle::schema_cols_) {
+  for (auto col : SettingsCatalogTable::schema_cols_) {
     pg_settings->DefineColumn(col.col_name, col.type_id, false, col_oid_t(catalog->GetNextOid()));
   }
 

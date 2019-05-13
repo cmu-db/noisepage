@@ -10,7 +10,7 @@
 
 namespace terrier::catalog {
 
-const std::vector<SchemaCol> IndexHandle::schema_cols_ = {
+const std::vector<SchemaCol> IndexCatalogTable::schema_cols_ = {
     {20, true, "indexptr", type::TypeId::BIGINT},
     {0, true, "indexrelid", type::TypeId::INTEGER},
     {1, true, "indrelid", type::TypeId::INTEGER},
@@ -34,10 +34,11 @@ const std::vector<SchemaCol> IndexHandle::schema_cols_ = {
     {19, false, "indpred", type::TypeId::BOOLEAN}        // Should be of type pg_node_tree
 };
 
-IndexHandle::IndexHandle(Catalog *catalog, catalog::SqlTableHelper *pg_index)
+IndexCatalogTable::IndexCatalogTable(Catalog *catalog, catalog::SqlTableHelper *pg_index)
     : catalog_(catalog), pg_index_rw_(pg_index) {}
 
-std::shared_ptr<IndexEntry> IndexHandle::GetIndexEntry(transaction::TransactionContext *txn, index_oid_t oid) {
+std::shared_ptr<IndexCatalogEntry> IndexCatalogTable::GetIndexEntry(transaction::TransactionContext *txn,
+                                                                    index_oid_t oid) {
   std::vector<type::TransientValue> search_vec, ret_row;
   search_vec.emplace_back(type::TransientValueFactory::GetNull(type::TypeId::BIGINT));
   search_vec.emplace_back(type::TransientValueFactory::GetInteger(!oid));
@@ -45,12 +46,13 @@ std::shared_ptr<IndexEntry> IndexHandle::GetIndexEntry(transaction::TransactionC
   if (ret_row.empty()) {
     return nullptr;
   }
-  return std::make_shared<IndexEntry>(oid, pg_index_rw_, std::move(ret_row));
+  return std::make_shared<IndexCatalogEntry>(oid, pg_index_rw_, std::move(ret_row));
 }
 
-void IndexHandle::AddEntry(transaction::TransactionContext *txn, storage::index::Index *index_ptr,
-                           index_oid_t indexrelid, table_oid_t indrelid, int32_t indnatts, int32_t indnkeyatts,
-                           bool indisunique, bool indisprimary, bool indisvalid, bool indisready, bool indislive) {
+void IndexCatalogTable::AddEntry(transaction::TransactionContext *txn, storage::index::Index *index_ptr,
+                                 index_oid_t indexrelid, table_oid_t indrelid, int32_t indnatts, int32_t indnkeyatts,
+                                 bool indisunique, bool indisprimary, bool indisvalid, bool indisready,
+                                 bool indislive) {
   std::vector<type::TransientValue> row;
   // FIXME(xueyuanz): Might be problematic since the columns are out of order.
   row.emplace_back(type::TransientValueFactory::GetBigInt(reinterpret_cast<int64_t>(index_ptr)));
@@ -63,12 +65,12 @@ void IndexHandle::AddEntry(transaction::TransactionContext *txn, storage::index:
   row.emplace_back(type::TransientValueFactory::GetBoolean(indisvalid));
   row.emplace_back(type::TransientValueFactory::GetBoolean(indisready));
   row.emplace_back(type::TransientValueFactory::GetBoolean(indislive));
-  catalog_->SetUnusedColumns(&row, IndexHandle::schema_cols_);
+  catalog_->SetUnusedColumns(&row, IndexCatalogTable::schema_cols_);
   pg_index_rw_->InsertRow(txn, row);
 }
 
-catalog::SqlTableHelper *IndexHandle::Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,
-                                             const std::string &name) {
+catalog::SqlTableHelper *IndexCatalogTable::Create(transaction::TransactionContext *txn, Catalog *catalog,
+                                                   db_oid_t db_oid, const std::string &name) {
   table_oid_t pg_index_oid(catalog->GetNextOid());
   auto *storage_table = new catalog::SqlTableHelper(pg_index_oid);
 
@@ -78,12 +80,13 @@ catalog::SqlTableHelper *IndexHandle::Create(transaction::TransactionContext *tx
   }
 
   storage_table->Create();
-  catalog->AddToMaps(db_oid, pg_index_oid, name, storage_table);
+  catalog->AddToMap(db_oid, CatalogTableType::INDEX, storage_table);
 
   return storage_table;
 }
 
-bool IndexHandle::DeleteEntry(transaction::TransactionContext *txn, const std::shared_ptr<IndexEntry> &entry) {
+bool IndexCatalogTable::DeleteEntry(transaction::TransactionContext *txn,
+                                    const std::shared_ptr<IndexCatalogEntry> &entry) {
   std::vector<type::TransientValue> search_vec;
   // get the oid of this row
   auto indexrel_oid = entry->GetIntegerColumn("indexrelid");
@@ -100,9 +103,9 @@ bool IndexHandle::DeleteEntry(transaction::TransactionContext *txn, const std::s
   return status;
 }
 
-void IndexHandle::SetEntryColumn(transaction::TransactionContext *txn, index_oid_t indexreloid, const std::string &col,
-                                 const type::TransientValue &value) {
-  std::shared_ptr<IndexEntry> entry = GetIndexEntry(txn, indexreloid);
+void IndexCatalogTable::SetEntryColumn(transaction::TransactionContext *txn, index_oid_t indexreloid,
+                                       const std::string &col, const type::TransientValue &value) {
+  std::shared_ptr<IndexCatalogEntry> entry = GetIndexEntry(txn, indexreloid);
   DeleteEntry(txn, entry);
   std::vector<type::TransientValue> new_values;
   new_values.reserve(schema_cols_.size());

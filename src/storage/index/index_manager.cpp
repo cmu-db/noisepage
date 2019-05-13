@@ -57,7 +57,7 @@ catalog::index_oid_t IndexManager::CreateConcurrently(catalog::db_oid_t db_oid, 
     return catalog::index_oid_t(0);
   }
   std::shared_ptr<SqlTable> sql_table = sql_table_helper->GetSqlTable();
-  catalog::IndexHandle index_handle = catalog->GetDatabaseHandle().GetIndexHandle(txn1, db_oid);
+  catalog::IndexCatalogTable index_handle = catalog->GetDatabaseHandle().GetIndexTable(txn1, db_oid);
 
   // placeholder args
   catalog::index_oid_t index_oid(catalog->GetNextOid());
@@ -79,7 +79,7 @@ catalog::index_oid_t IndexManager::CreateConcurrently(catalog::db_oid_t db_oid, 
     return catalog::index_oid_t(0);
   }
 
-  // Add IndexEntry
+  // Add IndexCatalogEntry
   index_handle.AddEntry(txn1, index, index_oid, table_oid, indnatts, indnkeyatts, indisunique, indisprimary, indisvalid,
                         indisready, indislive);
 
@@ -121,9 +121,9 @@ void IndexManager::Drop(catalog::db_oid_t db_oid, catalog::namespace_oid_t ns_oi
     return;
   }
   std::shared_ptr<SqlTable> sql_table = sql_table_helper->GetSqlTable();
-  catalog::IndexHandle index_handle = catalog->GetDatabaseHandle().GetIndexHandle(txn, db_oid);
+  catalog::IndexCatalogTable index_handle = catalog->GetDatabaseHandle().GetIndexTable(txn, db_oid);
   // Get the index entry to be deleted
-  std::shared_ptr<catalog::IndexEntry> index_entry = index_handle.GetIndexEntry(txn, index_oid);
+  std::shared_ptr<catalog::IndexCatalogEntry> index_entry = index_handle.GetIndexEntry(txn, index_oid);
   // Delete the index entry from the index_handle
   index_handle.DeleteEntry(txn, index_entry);
   // Commit the transaction

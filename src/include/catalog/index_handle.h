@@ -15,7 +15,7 @@ namespace terrier::catalog {
 /**
  * A index entry represent a row in pg_index catalog.
  */
-class IndexEntry : public CatalogEntry<index_oid_t> {
+class IndexCatalogEntry : public CatalogEntry<index_oid_t> {
  public:
   /**
    * Constructor
@@ -23,7 +23,7 @@ class IndexEntry : public CatalogEntry<index_oid_t> {
    * @param sql_table associated with this entry
    * @param entry a row in pg_index that represents this table
    */
-  IndexEntry(index_oid_t oid, catalog::SqlTableHelper *sql_table, std::vector<type::TransientValue> &&entry)
+  IndexCatalogEntry(index_oid_t oid, catalog::SqlTableHelper *sql_table, std::vector<type::TransientValue> &&entry)
       : CatalogEntry(oid, sql_table, std::move(entry)) {}
 };
 
@@ -38,14 +38,14 @@ struct SchemaCol;
  *
  * For more details, see PostgreSQL's documentation: https://www.postgresql.org/docs/current/catalog-pg-index.html
  */
-class IndexHandle {
+class IndexCatalogTable {
  public:
   /**
    * Construct a IndexHandle. It keeps a pointer to the pg_index catalog.
    * @param catalog: The pointer to the catalog.
    * @param pg_index: The pointer to the pg_index sql table.
    */
-  explicit IndexHandle(Catalog *catalog, catalog::SqlTableHelper *pg_index);
+  explicit IndexCatalogTable(Catalog *catalog, catalog::SqlTableHelper *pg_index);
 
   /**
    * Get the IndexEntry by oid from IndexHandle
@@ -53,7 +53,7 @@ class IndexHandle {
    * @param oid: the oid of index wanted.
    * @return: a pointer to the index entry wanted.
    */
-  std::shared_ptr<IndexEntry> GetIndexEntry(transaction::TransactionContext *txn, index_oid_t oid);
+  std::shared_ptr<IndexCatalogEntry> GetIndexEntry(transaction::TransactionContext *txn, index_oid_t oid);
 
   /**
    * Add an entry into the pg_index catalog.
@@ -92,7 +92,7 @@ class IndexHandle {
    * @param entry the target entry
    * @return true if successfull otherwise false
    */
-  bool DeleteEntry(transaction::TransactionContext *txn, const std::shared_ptr<IndexEntry> &entry);
+  bool DeleteEntry(transaction::TransactionContext *txn, const std::shared_ptr<IndexCatalogEntry> &entry);
 
   /**
    * Create storage table
@@ -109,7 +109,7 @@ class IndexHandle {
    * @param txn the transaction context
    */
   void Dump(transaction::TransactionContext *txn) {
-    auto limit = static_cast<int32_t>(IndexHandle::schema_cols_.size());
+    auto limit = static_cast<int32_t>(IndexCatalogTable::schema_cols_.size());
     pg_index_rw_->Dump(txn, limit);
   }
 

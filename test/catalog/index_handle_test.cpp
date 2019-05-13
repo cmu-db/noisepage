@@ -37,7 +37,7 @@ TEST_F(IndexHandleTest, BasicCorrectnessTest) {
   // terrier has db_oid_t DEFAULT_DATABASE_OID
   const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
   auto db_handle = catalog_->GetDatabaseHandle();
-  auto index_handle = db_handle.GetIndexHandle(txn_, terrier_oid);
+  auto index_handle = db_handle.GetIndexTable(txn_, terrier_oid);
 
   storage::index::Index *index_ptr = nullptr;
   auto indexrelid = catalog::index_oid_t(catalog_->GetNextOid());
@@ -76,7 +76,7 @@ TEST_F(IndexHandleTest, IndexHandleModificationTest) {
   // terrier has db_oid_t DEFAULT_DATABASE_OID
   const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
   auto db_handle = catalog_->GetDatabaseHandle();
-  auto index_handle = db_handle.GetIndexHandle(txn_, terrier_oid);
+  auto index_handle = db_handle.GetIndexTable(txn_, terrier_oid);
   storage::index::Index *index_ptr = nullptr;
   auto indexrelid = catalog::index_oid_t(catalog_->GetNextOid());
   auto indrelid = catalog::table_oid_t(catalog_->GetNextOid());
@@ -114,7 +114,7 @@ TEST_F(IndexHandleTest, IndexHandleDeletionTest) {
   // terrier has db_oid_t DEFAULT_DATABASE_OID
   const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
   auto db_handle = catalog_->GetDatabaseHandle();
-  auto index_handle = db_handle.GetIndexHandle(txn_, terrier_oid);
+  auto index_handle = db_handle.GetIndexTable(txn_, terrier_oid);
   storage::index::Index *index_ptr = nullptr;
   auto indexrelid = catalog::index_oid_t(catalog_->GetNextOid());
   auto indrelid = catalog::table_oid_t(catalog_->GetNextOid());

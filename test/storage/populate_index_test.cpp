@@ -42,7 +42,7 @@ TEST_F(PopulateIndexTest, BasicCorrectnessTest) {
   // terrier has db_oid_t DEFAULT_DATABASE_OID
   const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
   auto db_handle = catalog_->GetDatabaseHandle();
-  auto table_handle = db_handle.GetNamespaceHandle(txn_, terrier_oid).GetTableHandle(txn_, "public");
+  auto table_handle = db_handle.GetNamespaceTable(txn_, terrier_oid).GetTableHandle(txn_, "public");
 
   // define schema
   std::vector<catalog::Schema::Column> cols;

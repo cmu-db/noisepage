@@ -41,13 +41,13 @@ TEST_F(AttributeHandleTests, BasicCorrectnessTest) {
   // terrier has db_oid_t DEFAULT_DATABASE_OID
   const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
   auto db_handle = catalog_->GetDatabaseHandle();
-  auto class_handle = db_handle.GetClassHandle(txn_, terrier_oid);
-  auto attribute_handle = db_handle.GetAttributeHandle(txn_, terrier_oid);
+  auto class_handle = db_handle.GetClassTable(txn_, terrier_oid);
+  auto attribute_handle = db_handle.GetAttributeTable(txn_, terrier_oid);
   // lookup the table oid for pg_database
   auto class_entry = class_handle.GetClassEntry(txn_, "pg_database");
   const catalog::table_oid_t terrier_table_oid(!class_entry->GetOid());
 
-  auto table_handle = db_handle.GetNamespaceHandle(txn_, terrier_oid).GetTableHandle(txn_, "pg_catalog");
+  auto table_handle = db_handle.GetNamespaceTable(txn_, terrier_oid).GetTableHandle(txn_, "pg_catalog");
 
   // pg_database has columns: oid | datname
   auto attribute_entry_ptr = attribute_handle.GetAttributeEntry(txn_, terrier_table_oid, "oid");
