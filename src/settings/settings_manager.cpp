@@ -219,4 +219,22 @@ common::ActionState SettingsManager::InvokeCallback(Param param, void *old_value
   return action_state;
 }
 
+void SettingsManager::ConstructParamMap(
+    std::unordered_map<terrier::settings::Param, terrier::settings::ParamInfo> &param_map) {
+  /*
+   * Populate gflag values to param map.
+   * This will expand to a list of code like:
+   * param_map.emplace(
+   *     terrier::settings::Param::port,
+   *     terrier::settings::ParamInfo(port, terrier::type::TransientValueFactory::GetInteger(FLAGS_port),
+   *                                  "Terrier port (default: 15721)",
+   *                                  terrier::type::TransientValueFactory::GetInteger(15721), is_mutable));
+   */
+
+#define __SETTING_POPULATE__           // NOLINT
+#include "settings/settings_common.h"  // NOLINT
+#include "settings/settings_defs.h"    // NOLINT
+#undef __SETTING_POPULATE__            // NOLINT
+}
+
 }  // namespace terrier::settings

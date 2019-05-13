@@ -120,6 +120,12 @@ class SettingsManager {
    */
   void ValidateParams();
 
+  /**
+   * Construct settings param map from settings_defs.h
+   * @param param_map
+   */
+  static void ConstructParamMap(std::unordered_map<terrier::settings::Param, terrier::settings::ParamInfo> &param_map);
+
  private:
   DBMain *db_;
   catalog::SettingsHandle settings_handle_;

@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <utility>
 #include "main/db_main.h"
+#include "settings/settings_manager.h"
 
 /*
  * Define gflags configurations.
@@ -14,25 +15,6 @@
 #include "settings/settings_defs.h"    // NOLINT
 #undef __SETTING_GFLAGS_DEFINE__       // NOLINT
 
-// Construct settings param map from settings_defs.h
-static void ConstructParamMap(                                                                // NOLINT
-    std::unordered_map<terrier::settings::Param, terrier::settings::ParamInfo> &param_map) {  // NOLINT
-  /*
-   * Populate gflag values to param map.
-   * This will expand to a list of code like:
-   * param_map.emplace(
-   *     terrier::settings::Param::port,
-   *     terrier::settings::ParamInfo(port, terrier::type::TransientValueFactory::GetInteger(FLAGS_port),
-   *                                  "Terrier port (default: 15721)",
-   *                                  terrier::type::TransientValueFactory::GetInteger(15721), is_mutable));
-   */
-
-#define __SETTING_POPULATE__           // NOLINT
-#include "settings/settings_common.h"  // NOLINT
-#include "settings/settings_defs.h"    // NOLINT
-#undef __SETTING_POPULATE__            // NOLINT
-}
-
 int main(int argc, char *argv[]) {
   // initialize loggers
   // Parse Setting Values
@@ -43,7 +25,7 @@ int main(int argc, char *argv[]) {
   // initialize stat registry
   auto main_stat_reg = std::make_shared<terrier::common::StatisticsRegistry>();
 
-  ConstructParamMap(param_map);
+  terrier::settings::SettingsManager::ConstructParamMap(param_map);
   terrier::DBMain db(std::move(param_map));
   db.Init();
   db.Run();
