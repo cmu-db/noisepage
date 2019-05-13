@@ -135,8 +135,8 @@ TEST_F(SettingsTests, BasicTest) {
 
   std::string_view name = settings_manager_->GetString(Param::db_name);
   EXPECT_EQ("Terrier", name);
-  settings_manager_->SetString(Param::db_name, "PelotonSP", action_context, setter_callback);
-  EXPECT_EQ("PelotonSP", settings_manager_->GetString(Param::db_name));
+  settings_manager_->SetString(Param::db_name, "TerrierSP", action_context, setter_callback);
+  EXPECT_EQ("TerrierSP", settings_manager_->GetString(Param::db_name));
 }
 
 // NOLINTNEXTLINE
@@ -162,8 +162,9 @@ TEST_F(SettingsTests, CallbackTest) {
   EXPECT_EQ(bufferPoolSize, newBufferPoolSize);
 }
 
+// Test concurrent modification to different parameters.
 // NOLINTNEXTLINE
-TEST_F(SettingsTests, ConcurrentModifyTest) {
+TEST_F(SettingsTests, ConcurrentModifyTest1) {
   setter_callback_fn setter_callback = SettingsTests::EmptySetterCallback;
 
   std::thread t1([&] {
@@ -187,6 +188,32 @@ TEST_F(SettingsTests, ConcurrentModifyTest) {
   t1.join();
   t2.join();
   t3.join();
+}
+
+// Test concurrent modification to buffer pool size.
+// NOLINTNEXTLINE
+TEST_F(SettingsTests, ConcurrentModifyTest2) {
+  setter_callback_fn setter_callback = SettingsTests::EmptySetterCallback;
+
+  const int nthreads = 16;
+  std::thread threads[nthreads];
+  for (int i = 0; i < nthreads; i++) {
+    threads[i] = std::thread(
+        [&](int new_size) {
+          std::shared_ptr<common::ActionContext> action_context = std::make_shared<common::ActionContext>(1);
+          settings_manager_->SetInt(Param::buffer_pool_size, new_size, action_context, setter_callback);
+          EXPECT_EQ(action_context->GetState(), common::ActionState::SUCCESS);
+        },
+        i + 1000);
+  }
+
+  for (int i = 0; i < nthreads; i++) {
+    threads[i].join();
+  }
+
+  uint64_t bufferPoolSizeParam = static_cast<uint64_t>(settings_manager_->GetInt(Param::buffer_pool_size));
+  uint64_t bufferPoolSize = txn_manager_->GetBufferPoolSizeLimit();
+  EXPECT_EQ(bufferPoolSizeParam, bufferPoolSize);
 }
 
 }  // namespace terrier::settings
