@@ -642,6 +642,11 @@ class SqlTableHelper {
         return (row_int_val == type::TransientValuePeeker::PeekInteger(search_vec[index]));
       } break;
 
+      case type::TypeId::BIGINT: {
+        auto row_int_val = *(reinterpret_cast<int64_t *>(col_p));
+        return (row_int_val == type::TransientValuePeeker::PeekBigInt(search_vec[index]));
+      } break;
+
       case type::TypeId::VARCHAR: {
         auto *vc_entry = reinterpret_cast<storage::VarlenEntry *>(col_p);
         uint32_t size = vc_entry->Size();
