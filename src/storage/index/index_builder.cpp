@@ -1,8 +1,8 @@
-#include "storage/index/index_factory.h"
+#include "storage/index/index_builder.h"
 #include <utility>
 
 namespace terrier::storage::index {
-Index *IndexFactory::Build() const {
+Index *IndexBuilder::Build() const {
   TERRIER_ASSERT(!key_schema_.empty(), "Cannot build an index without a KeySchema.");
   TERRIER_ASSERT(constraint_type_ != ConstraintType::INVALID, "Cannot build an index without a ConstraintType.");
 
@@ -23,22 +23,22 @@ Index *IndexFactory::Build() const {
   return BuildBwTreeGenericKey(index_oid_, constraint_type_, std::move(metadata));
 }
 
-IndexFactory &IndexFactory::SetOid(const catalog::index_oid_t &index_oid) {
+IndexBuilder &IndexBuilder::SetOid(const catalog::index_oid_t &index_oid) {
   index_oid_ = index_oid;
   return *this;
 }
 
-IndexFactory &IndexFactory::SetConstraintType(const ConstraintType &constraint_type) {
+IndexBuilder &IndexBuilder::SetConstraintType(const ConstraintType &constraint_type) {
   constraint_type_ = constraint_type;
   return *this;
 }
 
-IndexFactory &IndexFactory::SetKeySchema(const IndexKeySchema &key_schema) {
+IndexBuilder &IndexBuilder::SetKeySchema(const IndexKeySchema &key_schema) {
   key_schema_ = key_schema;
   return *this;
 }
 
-Index *IndexFactory::BuildBwTreeIntsKey(catalog::index_oid_t index_oid, ConstraintType constraint_type,
+Index *IndexBuilder::BuildBwTreeIntsKey(catalog::index_oid_t index_oid, ConstraintType constraint_type,
                                         uint32_t key_size, IndexMetadata metadata) const {
   TERRIER_ASSERT(key_size <= sizeof(uint64_t) * INTSKEY_MAX_SLOTS, "Not enough slots for given key size.");
   Index *index = nullptr;
@@ -55,7 +55,7 @@ Index *IndexFactory::BuildBwTreeIntsKey(catalog::index_oid_t index_oid, Constrai
   return index;
 }
 
-Index *IndexFactory::BuildBwTreeGenericKey(catalog::index_oid_t index_oid, ConstraintType constraint_type,
+Index *IndexBuilder::BuildBwTreeGenericKey(catalog::index_oid_t index_oid, ConstraintType constraint_type,
                                            IndexMetadata metadata) const {
   const auto pr_size = metadata.GetProjectedRowInitializer().ProjectedRowSize();
   Index *index = nullptr;

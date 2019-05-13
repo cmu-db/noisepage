@@ -4,12 +4,14 @@
 #include "catalog/catalog_sql_table.h"
 #include "catalog/index_handle.h"
 #include "catalog/namespace_handle.h"
-#include "storage/index/index_factory.h"
+#include "storage/index/index.h"
+#include "storage/index/index_builder.h"
 #include "storage/index/index_manager.h"
 #include "util/test_harness.h"
 #include "util/transaction_test_util.h"
 
 namespace terrier::storage::index {
+
 struct PopulateIndexTest : public TerrierTest {
   void SetUp() override {
     TerrierTest::SetUp();
@@ -79,7 +81,7 @@ TEST_F(PopulateIndexTest, BasicCorrectnessTest) {
   }
 
   // Build an index on the first column of the table
-  IndexFactory index_factory;
+  IndexBuilder index_builder;
   catalog::index_oid_t index_oid_0(catalog_->GetNextOid());
 
   // Set up the IndexKeySchema
@@ -118,17 +120,17 @@ TEST_F(PopulateIndexTest, BasicCorrectnessTest) {
   auto index_key_schema = IndexKeySchema(key_cols_0);
 
   // Build the index
-  index_factory.SetOid(index_oid_0);
-  index_factory.SetConstraintType(ConstraintType::DEFAULT);
-  index_factory.SetKeySchema(index_key_schema);
-  auto index_0 = index_factory.Build();
+  index_builder.SetOid(index_oid_0);
+  index_builder.SetConstraintType(ConstraintType::DEFAULT);
+  index_builder.SetKeySchema(index_key_schema);
+  auto index_0 = index_builder.Build();
 
   // Populate the index
   bool success = index_manager_->PopulateIndex(txn_, *table->GetSqlTable(), index_0, false);
   EXPECT_EQ(success, true);
 
   // Create the projected row for index
-  const IndexMetadata &metadata_0 = index_0->GetIndexMetadata();
+  const IndexMetadata &metadata_0 = index_0->metadata_;
   const auto &pr_initializer = metadata_0.GetProjectedRowInitializer();
   auto *key_buf_index = common::AllocationUtil::AllocateAligned(pr_initializer.ProjectedRowSize());
   ProjectedRow *index_key = pr_initializer.InitializeRow(key_buf_index);

@@ -107,19 +107,7 @@ class TupleAccessStrategy {
    * @param raw pointer to the raw block to initialize
    * @param layout_version the layout version of this block
    */
-  void InitializeRawBlockForDataTable(storage::DataTable *data_table, RawBlock *raw,
-                                      layout_version_t layout_version) const;
-
-  /**
-   * Initializes a new block to conform to the layout given. This will write the
-   * headers and divide up the blocks into mini blocks(each mini block contains
-   * a column). The raw block needs to be 0-initialized (by default when given out
-   * from a block store), otherwise it will cause undefined behavior.
-   *
-   * @param raw pointer to the raw block to initialize
-   * @param layout_version the layout version of this block
-   */
-  void InitializeRawBlock(RawBlock *raw, layout_version_t layout_version) const;
+  void InitializeRawBlock(storage::DataTable *data_table, RawBlock *raw, layout_version_t layout_version) const;
 
   /**
    * @param block block to access

@@ -16,7 +16,13 @@
 namespace terrier::storage::index {
 
 /**
- * Wrapper class for the various types of indexes in our system.
+ * Wrapper class for the various types of indexes in our system. Semantically, we expect updates on indexed attributes
+ * to be modeled as a delete and an insert (see bwtree_index_test.cpp CommitUpdate1, CommitUpdate2, etc.). This
+ * guarantees our snapshot isolation semantics by relying on the DataTable to enforce write-write conflicts and
+ * visibility issues.
+ *
+ * Any future indexes should mimic the logic of bwtree_index.h, performing the same checks on all operations before
+ * modifying the underlying structure or returning results.
  */
 class Index {
  private:
@@ -28,8 +34,14 @@ class Index {
   friend class GenericKey<64>;
   friend class GenericKey<128>;
   friend class GenericKey<256>;
-  friend class BwTreeIndexTests;
+  friend class IndexManager;
   friend class BwTreeKeyTests;
+  FRIEND_TEST(PopulateIndexTest, BasicCorrectnessTest);
+  friend struct IndexManagerTest;
+  FRIEND_TEST(IndexManagerTest, CreateIndexConcurrentlyBasicTest);
+  FRIEND_TEST(IndexManagerTest, CreateIndexConcurrentlyExceptionTest);
+  FRIEND_TEST(IndexManagerTest, DropIndexCorrectnessTest);
+  FRIEND_TEST(IndexManagerTest, CreateIndexConcurrentlyFuzzyTest);
 
   const catalog::index_oid_t oid_;
   const ConstraintType constraint_type_;
@@ -73,7 +85,7 @@ class Index {
   virtual bool Insert(transaction::TransactionContext *txn, const ProjectedRow &tuple, TupleSlot location) = 0;
 
   /**
-   * Inserts a key-value pair only if any matching keys have TupleSlots that don't conflict
+   * Inserts a key-value pair only if any matching keys have TupleSlots that don't conflict with the calling txn
    * @param txn txn context for the calling txn, used for visibility and write-write, and to register abort actions
    * @param tuple key
    * @param location value
@@ -152,11 +164,6 @@ class Index {
    * @return oid of this index
    */
   catalog::index_oid_t GetOid() const { return oid_; }
-
-  /**
-   * @return reference to the metadata of this index
-   */
-  const IndexMetadata &GetIndexMetadata() const { return metadata_; }
 
   /**
    * @return mapping from key oid to projected row offset

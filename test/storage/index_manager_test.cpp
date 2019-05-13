@@ -5,7 +5,8 @@
 #include "catalog/index_handle.h"
 #include "catalog/namespace_handle.h"
 #include "storage/garbage_collector.h"
-#include "storage/index/index_factory.h"
+#include "storage/index/index.h"
+#include "storage/index/index_builder.h"
 #include "util/test_harness.h"
 #include "util/transaction_test_util.h"
 
@@ -29,7 +30,7 @@ struct IndexManagerTest : public TerrierTest {
     auto index = reinterpret_cast<Index *>(index_entry->GetBigIntColumn("indexptr"));
 
     // Create the projected row for index
-    const IndexMetadata &metadata = index->GetIndexMetadata();
+    const IndexMetadata &metadata = index->metadata_;
     const IndexKeySchema &index_key_schema = metadata.GetKeySchema();
     const auto &pr_initializer = metadata.GetProjectedRowInitializer();
     auto *key_buf_index = common::AllocationUtil::AllocateAligned(pr_initializer.ProjectedRowSize());
@@ -181,7 +182,7 @@ TEST_F(IndexManagerTest, CreateIndexConcurrentlyBasicTest) {
   auto txn2 = txn_manager_->BeginTransaction();
   Index *index = reinterpret_cast<Index *>(index_entry->GetBigIntColumn("indexptr"));
   // Create the projected row for index
-  const IndexMetadata &metadata = index->GetIndexMetadata();
+  const IndexMetadata &metadata = index->metadata_;
   const IndexKeySchema &index_key_schema = metadata.GetKeySchema();
   const auto &pr_initializer = metadata.GetProjectedRowInitializer();
   auto *key_buf_index = common::AllocationUtil::AllocateAligned(pr_initializer.ProjectedRowSize());
@@ -460,7 +461,7 @@ TEST_F(IndexManagerTest, CreateIndexConcurrentlyFuzzyTest) {
   auto txn2 = txn_manager_->BeginTransaction();
   Index *index = reinterpret_cast<Index *>(index_entry->GetBigIntColumn("indexptr"));
   // Create the projected row for index
-  const IndexMetadata &metadata = index->GetIndexMetadata();
+  const IndexMetadata &metadata = index->metadata_;
   const IndexKeySchema &index_key_schema = metadata.GetKeySchema();
   const auto &pr_initializer = metadata.GetProjectedRowInitializer();
   auto *key_buf_index = common::AllocationUtil::AllocateAligned(pr_initializer.ProjectedRowSize());

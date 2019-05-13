@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include "catalog/index_handle.h"
+#include "storage/index/index.h"
 #include "util/transaction_benchmark_util.h"
 
 namespace terrier::storage::index {
@@ -11,7 +12,7 @@ namespace terrier::storage::index {
 Index *IndexManager::GetEmptyIndex(catalog::index_oid_t index_oid, SqlTable *sql_table, bool unique_index,
                                    const std::vector<std::string> &key_attrs) {
   // Setup the oid and constraint type for the index
-  IndexFactory index_factory;
+  IndexBuilder index_factory;
   ConstraintType constraint = (unique_index) ? ConstraintType::UNIQUE : ConstraintType::DEFAULT;
   index_factory.SetOid(index_oid);
   index_factory.SetConstraintType(constraint);
@@ -141,7 +142,7 @@ void IndexManager::Drop(catalog::db_oid_t db_oid, catalog::namespace_oid_t ns_oi
 bool IndexManager::PopulateIndex(transaction::TransactionContext *txn, const SqlTable &sql_table, Index *index,
                                  bool unique_index) {
   // Create the projected row for the index
-  const IndexMetadata &metadata = index->GetIndexMetadata();
+  const IndexMetadata &metadata = index->metadata_;
   const IndexKeySchema &index_key_schema = metadata.GetKeySchema();
   const auto &index_pr_init = metadata.GetProjectedRowInitializer();
   auto *index_pr_buf = common::AllocationUtil::AllocateAligned(index_pr_init.ProjectedRowSize());

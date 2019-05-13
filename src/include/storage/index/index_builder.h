@@ -14,16 +14,16 @@
 namespace terrier::storage::index {
 
 /**
- * The IndexFactory automatically creates the best possible index for the given parameters.
+ * The IndexBuilder automatically creates the best possible index for the given parameters.
  */
-class IndexFactory {
+class IndexBuilder {
  private:
   catalog::index_oid_t index_oid_{0};
   ConstraintType constraint_type_ = ConstraintType::INVALID;
   IndexKeySchema key_schema_;
 
  public:
-  IndexFactory() = default;
+  IndexBuilder() = default;
 
   /**
    * @return a new best-possible index for the current parameters
@@ -34,19 +34,19 @@ class IndexFactory {
    * @param index_oid the index oid
    * @return the builder object
    */
-  IndexFactory &SetOid(const catalog::index_oid_t &index_oid);
+  IndexBuilder &SetOid(const catalog::index_oid_t &index_oid);
 
   /**
    * @param constraint_type the type of index
    * @return the builder object
    */
-  IndexFactory &SetConstraintType(const ConstraintType &constraint_type);
+  IndexBuilder &SetConstraintType(const ConstraintType &constraint_type);
 
   /**
    * @param key_schema the index key schema
    * @return the builder object
    */
-  IndexFactory &SetKeySchema(const IndexKeySchema &key_schema);
+  IndexBuilder &SetKeySchema(const IndexKeySchema &key_schema);
 
  private:
   /**

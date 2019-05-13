@@ -8,7 +8,7 @@
 #include "portable_endian/portable_endian.h"
 #include "storage/garbage_collector.h"
 #include "storage/index/compact_ints_key.h"
-#include "storage/index/index_factory.h"
+#include "storage/index/index_builder.h"
 #include "storage/projected_row.h"
 #include "storage/sql_table.h"
 #include "transaction/transaction_context.h"
@@ -52,7 +52,7 @@ class BwTreeIndexTests : public TerrierTest {
   }
 
   storage::BlockStore block_store_{1000, 1000};
-  storage::RecordBufferSegmentPool buffer_pool_{1000000, 1000000};
+  storage::RecordBufferSegmentPool buffer_pool_{100000, 100000};
   const catalog::Schema table_schema_{
       catalog::Schema({{"attribute", type::TypeId::INTEGER, false, catalog::col_oid_t(0)}})};
   const IndexKeySchema key_schema_{{catalog::indexkeycol_oid_t(1), type::TypeId::INTEGER, false}};
@@ -80,12 +80,12 @@ class BwTreeIndexTests : public TerrierTest {
 
     StartGC(&txn_manager_);
 
-    unique_index_ = (IndexFactory()
+    unique_index_ = (IndexBuilder()
                          .SetConstraintType(ConstraintType::UNIQUE)
                          .SetKeySchema(key_schema_)
                          .SetOid(catalog::index_oid_t(2)))
                         .Build();
-    default_index_ = (IndexFactory()
+    default_index_ = (IndexBuilder()
                           .SetConstraintType(ConstraintType::DEFAULT)
                           .SetKeySchema(key_schema_)
                           .SetOid(catalog::index_oid_t(2)))

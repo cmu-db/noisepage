@@ -16,7 +16,7 @@ namespace terrier::storage::index {
  */
 template <typename KeyType>
 class BwTreeIndex final : public Index {
-  friend class IndexFactory;
+  friend class IndexBuilder;
 
  private:
   BwTreeIndex(const catalog::index_oid_t oid, const ConstraintType constraint_type, IndexMetadata metadata)
@@ -83,7 +83,7 @@ class BwTreeIndex final : public Index {
                        !(location.GetBlock()->data_table_->IsVisible(*txn, location)),
                    "Called index delete on a TupleSlot that has a conflict with this txn or is still visible.");
 
-    // Register a deferred action for the GC with txn manager
+    // Register a deferred action for the GC with txn manager. See base function comment.
     auto *const txn_manager = txn->GetTransactionManager();
     txn->RegisterCommitAction([=]() {
       txn_manager->DeferAction([=]() {
@@ -149,6 +149,10 @@ class BwTreeIndex final : public Index {
     // Perform lookup in BwTree
     auto scan_itr = bwtree_->Begin(index_high_key);
     // Back up one element if we didn't match the high key
+    // This currently uses the BwTree's decrement operator on the iterator, which is not guaranteed to be
+    // constant time. In some cases it may be faster to do an ascending scan and then reverse the result vector. It
+    // depends on the visibility selectivity and final result set size. We can change the implementation in the future
+    // if it proves to be a problem.
     if (scan_itr.IsEnd() || bwtree_->KeyCmpGreater(scan_itr->first, index_high_key)) scan_itr--;
 
     while (!scan_itr.IsREnd() && (bwtree_->KeyCmpGreaterEqual(scan_itr->first, index_low_key))) {
@@ -192,7 +196,7 @@ class BwTreeIndex final : public Index {
 
     // Perform lookup in BwTree
     auto scan_itr = bwtree_->Begin(index_high_key);
-    // Back up one element if we didn't match the high key
+    // Back up one element if we didn't match the high key, see comment on line 152.
     if (scan_itr.IsEnd() || bwtree_->KeyCmpGreater(scan_itr->first, index_high_key)) scan_itr--;
 
     while (value_list->size() < limit && !scan_itr.IsREnd() &&

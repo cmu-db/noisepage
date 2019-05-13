@@ -8,7 +8,7 @@
 #include "portable_endian/portable_endian.h"
 #include "storage/garbage_collector.h"
 #include "storage/index/compact_ints_key.h"
-#include "storage/index/index_factory.h"
+#include "storage/index/index_builder.h"
 #include "storage/projected_row.h"
 #include "storage/sql_table.h"
 #include "transaction/transaction_context.h"
@@ -821,6 +821,7 @@ void CompactIntsKeyBasicTest(type::TypeId type_id, Random *const generator) {
   delete[] pr_buffer;
 }
 
+// Verify basic key construction and value setting and comparator, equality, and hash operations for various key sizes.
 // NOLINTNEXTLINE
 TEST_F(BwTreeKeyTests, CompactIntsKeyBasicTest) {
   CompactIntsKeyBasicTest<1, int8_t>(type::TypeId::TINYINT, &generator_);
@@ -1097,9 +1098,9 @@ TEST_F(BwTreeKeyTests, CompactIntsBuilderTest) {
   for (uint32_t i = 0; i < num_iters; i++) {
     const auto key_schema = StorageTestUtil::RandomCompactIntsKeySchema(&generator_);
 
-    IndexFactory factory;
-    factory.SetConstraintType(ConstraintType::DEFAULT).SetKeySchema(key_schema).SetOid(catalog::index_oid_t(i));
-    auto *index = factory.Build();
+    IndexBuilder builder;
+    builder.SetConstraintType(ConstraintType::DEFAULT).SetKeySchema(key_schema).SetOid(catalog::index_oid_t(i));
+    auto *index = builder.Build();
     BasicOps(index);
 
     delete index;
@@ -1118,9 +1119,9 @@ TEST_F(BwTreeKeyTests, GenericKeyBuilderTest) {
   for (uint32_t i = 0; i < num_iters; i++) {
     const auto key_schema = StorageTestUtil::RandomGenericKeySchema(10, generic_key_types, &generator_);
 
-    IndexFactory factory;
-    factory.SetConstraintType(ConstraintType::DEFAULT).SetKeySchema(key_schema).SetOid(catalog::index_oid_t(i));
-    auto *index = factory.Build();
+    IndexBuilder builder;
+    builder.SetConstraintType(ConstraintType::DEFAULT).SetKeySchema(key_schema).SetOid(catalog::index_oid_t(i));
+    auto *index = builder.Build();
     BasicOps(index);
 
     delete index;
