@@ -20,7 +20,7 @@ std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
   // Create the UndoBuffer for this GC run
   delta_record_compaction_buffer_ = new UndoBuffer(txn_manager_->buffer_pool_);
   // The compaction buffer is empty
-  compaction_buffer_empty = true;
+  compaction_buffer_empty_ = true;
 
   ProcessDeferredActions();
   uint32_t txns_deallocated = ProcessDeallocateQueue();
@@ -34,7 +34,7 @@ std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
                     static_cast<uint64_t>(last_unlinked_));
 
   // Handover compacted buffer for GC
-  if (compaction_buffer_empty) {
+  if (compaction_buffer_empty_) {
     // Can directly deallocate compaction buffer as it is empty
     delete delta_record_compaction_buffer_;
   } else {
@@ -339,6 +339,7 @@ void GarbageCollector::ProcessTupleVersionChain(DataTable *const table, TupleSlo
 }
 
 void GarbageCollector::UnlinkUndoRecordVersion(UndoRecord *const undo_record) {
+  TERRIER_ASSERT(undo_record != nullptr, "Undo Record should not be NULL while Unlinking");
   TERRIER_ASSERT(!undo_record->txnptr_.IsNull(), "Table should not be NULL here");
   ReclaimSlotIfDeleted(undo_record);
   ReclaimVarlen(undo_record);
@@ -360,6 +361,7 @@ void GarbageCollector::BeginCompaction(UndoRecord **start_record_ptr, UndoRecord
   //         INSERT is the last record in the version chain
   // Case 3: next is of type DELETE
   //         DELETE can only be the newest record in the version chain
+  TERRIER_ASSERT(next != NULL, "The next pointer should not be NULL while Unlinking");
   TERRIER_ASSERT(next->Type() != DeltaRecordType::DELETE, "Delete cannot be compacted");
   *start_record_ptr = curr;
   *interval_length_ptr = 1;
@@ -454,7 +456,7 @@ UndoRecord *GarbageCollector::InitializeUndoRecord(const transaction::timestamp_
   TERRIER_ASSERT(head != nullptr, "Delta Record Compaction Buffer should not fail to provide memory");
 
   // Undo record was empty, so mark the buffer as not empty
-  compaction_buffer_empty = false;
+  compaction_buffer_empty_ = false;
 
   // Initialize UndoRecord with the projected row
   auto *result = reinterpret_cast<UndoRecord *>(head);
