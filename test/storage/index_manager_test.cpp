@@ -162,8 +162,8 @@ TEST_F(IndexManagerTest, IndexTypeErrorTest) {
   std::vector<std::string> key_attrs{"id", "name"};
 
   // Create the index with unsupported type
-  auto index_oid = index_manager_->CreateConcurrently(terrier_oid, ns_oid, table_oid, parser::IndexType::INVALID, false,
-                                                      "test_index", index_attrs, key_attrs, txn_manager_, catalog_);
+  auto index_oid = index_manager_->Create(terrier_oid, ns_oid, table_oid, parser::IndexType::INVALID, false,
+                                          "test_index", index_attrs, key_attrs, txn_manager_, catalog_, false);
   EXPECT_EQ(!index_oid, 0);
   EndGC();
   delete table;
@@ -218,9 +218,8 @@ TEST_F(IndexManagerTest, TargetTableErrorTest) {
   std::vector<std::string> key_attrs{"id", "name"};
 
   // Given wrong information on the target table
-  auto index_oid =
-      index_manager_->CreateConcurrently(terrier_oid, ns_oid, table_oid + 1, parser::IndexType::BWTREE, false,
-                                         "test_index", index_attrs, key_attrs, txn_manager_, catalog_);
+  auto index_oid = index_manager_->Create(terrier_oid, ns_oid, table_oid + 1, parser::IndexType::BWTREE, false,
+                                          "test_index", index_attrs, key_attrs, txn_manager_, catalog_, false);
   EXPECT_EQ(!index_oid, 0);
   EndGC();
   delete table;
@@ -284,8 +283,8 @@ TEST_F(IndexManagerTest, CreateIndexConcurrentlyBasicTest) {
   std::vector<std::string> key_attrs{"id", "name"};
 
   // Create the index
-  auto index_oid = index_manager_->CreateConcurrently(terrier_oid, ns_oid, table_oid, parser::IndexType::BWTREE, false,
-                                                      "test_index", index_attrs, key_attrs, txn_manager_, catalog_);
+  auto index_oid = index_manager_->Create(terrier_oid, ns_oid, table_oid, parser::IndexType::BWTREE, false,
+                                          "test_index", index_attrs, key_attrs, txn_manager_, catalog_, false);
   EXPECT_GT(!index_oid, 0);
 
   // Test whether the catalog has the corresponding information
@@ -412,8 +411,8 @@ TEST_F(IndexManagerTest, CreateIndexConcurrentlyExceptionTest) {
   std::vector<std::string> key_attrs{"id", "non-exist"};
 
   // Create the index
-  auto index_oid = index_manager_->CreateConcurrently(terrier_oid, ns_oid, table_oid, parser::IndexType::BWTREE, false,
-                                                      "test_index", index_attrs, key_attrs, txn_manager_, catalog_);
+  auto index_oid = index_manager_->Create(terrier_oid, ns_oid, table_oid, parser::IndexType::BWTREE, false,
+                                          "test_index", index_attrs, key_attrs, txn_manager_, catalog_, false);
   EXPECT_EQ(!index_oid, 0);
 
   EndGC();
@@ -478,8 +477,8 @@ TEST_F(IndexManagerTest, DropIndexCorrectnessTest) {
   std::vector<std::string> key_attrs{"id", "name"};
 
   // Create the index
-  auto index_oid = index_manager_->CreateConcurrently(terrier_oid, ns_oid, table_oid, parser::IndexType::BWTREE, false,
-                                                      "test_index", index_attrs, key_attrs, txn_manager_, catalog_);
+  auto index_oid = index_manager_->Create(terrier_oid, ns_oid, table_oid, parser::IndexType::BWTREE, false,
+                                          "test_index", index_attrs, key_attrs, txn_manager_, catalog_, false);
 
   // Test whether the catalog has the corresponding information
   auto txn1 = txn_manager_->BeginTransaction();
@@ -567,8 +566,8 @@ TEST_F(IndexManagerTest, CreateIndexConcurrentlyFuzzyTest) {
   std::vector<std::string> key_attrs{"id", "name"};
 
   // Create the index
-  auto index_oid = index_manager_->CreateConcurrently(terrier_oid, ns_oid, table_oid, parser::IndexType::BWTREE, false,
-                                                      "test_index", index_attrs, key_attrs, txn_manager_, catalog_);
+  auto index_oid = index_manager_->Create(terrier_oid, ns_oid, table_oid, parser::IndexType::BWTREE, false,
+                                          "test_index", index_attrs, key_attrs, txn_manager_, catalog_, false);
   EXPECT_GT(!index_oid, 0);
 
   // Test whether the catalog has the corresponding information

@@ -37,13 +37,13 @@ Index *IndexManager::GetEmptyIndex(catalog::index_oid_t index_oid, SqlTable *sql
   return index_factory.Build();
 }
 
-catalog::index_oid_t IndexManager::CreateConcurrently(catalog::db_oid_t db_oid, catalog::namespace_oid_t ns_oid,
-                                                      catalog::table_oid_t table_oid, parser::IndexType index_type,
-                                                      bool unique_index, const std::string &index_name,
-                                                      const std::vector<std::string> &index_attrs,
-                                                      const std::vector<std::string> &key_attrs,
-                                                      transaction::TransactionManager *txn_mgr,
-                                                      catalog::Catalog *catalog) {
+catalog::index_oid_t IndexManager::Create(catalog::db_oid_t db_oid, catalog::namespace_oid_t ns_oid,
+                                          catalog::table_oid_t table_oid, parser::IndexType index_type,
+                                          bool unique_index, const std::string &index_name,
+                                          const std::vector<std::string> &index_attrs,
+                                          const std::vector<std::string> &key_attrs,
+                                          transaction::TransactionManager *txn_mgr, catalog::Catalog *catalog,
+                                          bool is_blocking) {
   // currently only BwTree is supported
   if (index_type != parser::IndexType::BWTREE) {
     return catalog::index_oid_t(0);

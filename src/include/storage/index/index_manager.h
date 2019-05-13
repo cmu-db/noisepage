@@ -106,9 +106,9 @@ class IndexManager {
   }
 
   /**
-   * The method can create the index in a non-blocking manner. It launches two transactions to build the index.
-   * The first transaction inserts a new entry on the index into catalog and creates an empty index with all metadata
-   * set. The second transaction inserts all keys in its snapshot into the index. Before the start of second
+   * The method can create the index in a blocking or non-blocking manner. It launches two transactions to build the
+   * index. The first transaction inserts a new entry on the index into catalog and creates an empty index with all
+   * metadata set. The second transaction inserts all keys in its snapshot into the index. Before the start of second
    * transaction, it needs to wait for all other transactions with timestamp smaller than the commit timestamp of the
    * first transaction to complete.
    *
@@ -122,14 +122,13 @@ class IndexManager {
    * @param key_attrs all attributes of the key
    * @param txn_mgr the pointer to the transaction manager
    * @param catalog the pointer to the catalog
+   * @param is_blocking if true, then create the index in a blocking manner
    * @return the index oid if create success otherwise 0
    */
-  catalog::index_oid_t CreateConcurrently(catalog::db_oid_t db_oid, catalog::namespace_oid_t ns_oid,
-                                          catalog::table_oid_t table_oid, parser::IndexType index_type,
-                                          bool unique_index, const std::string &index_name,
-                                          const std::vector<std::string> &index_attrs,
-                                          const std::vector<std::string> &key_attrs,
-                                          transaction::TransactionManager *txn_mgr, catalog::Catalog *catalog);
+  catalog::index_oid_t Create(catalog::db_oid_t db_oid, catalog::namespace_oid_t ns_oid, catalog::table_oid_t table_oid,
+                              parser::IndexType index_type, bool unique_index, const std::string &index_name,
+                              const std::vector<std::string> &index_attrs, const std::vector<std::string> &key_attrs,
+                              transaction::TransactionManager *txn_mgr, catalog::Catalog *catalog, bool is_blocking);
 
   /**
    * Drop the index. The method first deletes the entry about the index in the catalog in a transaction.
