@@ -142,8 +142,9 @@ class IndexManager {
    * @param index_name the name of the index
    * @param txn_mgr the pointer to the transaction manager
    * @param catalog the pointer to the catalog
+   * @return true if drop successes, otherwise false
    */
-  void Drop(catalog::db_oid_t db_oid, catalog::namespace_oid_t ns_oid, catalog::table_oid_t table_oid,
+  bool Drop(catalog::db_oid_t db_oid, catalog::namespace_oid_t ns_oid, catalog::table_oid_t table_oid,
             catalog::index_oid_t index_oid, const std::string &index_name, transaction::TransactionManager *txn_mgr,
             catalog::Catalog *catalog);
 
