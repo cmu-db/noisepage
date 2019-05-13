@@ -110,7 +110,7 @@ class TableCatalogEntry {
 };
 
 /**
- * A table handle contains information about all the tables in a database.
+ * A tablespace handle contains information about all the tables in a database.
  * It is equivalent to pg_tables in postgres, which is a view.
  * pg_tables (view):
  *      schemaname | tablename | tablespace

@@ -13,7 +13,6 @@
 namespace terrier::catalog {
 
 class Catalog;
-
 class AttributeCatalogTable;
 class AttrDefCatalogTable;
 class NamespaceCatalogTable;
@@ -84,12 +83,15 @@ class DatabaseCatalogTable {
   AttrDefCatalogTable GetAttrDefTable(transaction::TransactionContext *txn, db_oid_t oid);
 
   /**
+<<<<<<< HEAD
    * Get an index handle for the database.
    * @return
    */
   IndexCatalogTable GetIndexTable(transaction::TransactionContext *txn, db_oid_t oid);
 
   /**
+=======
+>>>>>>> origin/master
    * Get a database entry for a given db_oid. It's essentially equivalent to reading a
    * row from pg_database. It has to be executed in a transaction context.
    *

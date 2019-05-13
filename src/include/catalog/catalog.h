@@ -46,7 +46,7 @@ enum CatalogTableType {
   NAMESPACE = 5,
   SETTINGS = 6,
   TABLESPACE = 7,
-  TYPE = 8,
+  TYPE = 8
 };
 
 /**
@@ -362,12 +362,15 @@ class Catalog {
   void DeleteDatabaseTables(db_oid_t db_oid);
 
   /**
+<<<<<<< HEAD
    * During startup, create pg_index table (local to db_oid)
    * @param txn_manager the global transaction manager
    */
   void CreatePGIndex(transaction::TransactionContext *txn, db_oid_t db_oid);
 
   /**
+=======
+>>>>>>> origin/master
    * TODO(pakhtar): needs changes.
    * For catalog shutdown.
    * Delete all user created tables.

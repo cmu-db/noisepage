@@ -1,4 +1,3 @@
-#include "catalog/attribute_handle.h"
 #include <algorithm>
 #include <random>
 #include <vector>

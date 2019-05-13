@@ -7,11 +7,11 @@
 #include "catalog/catalog.h"
 #include "catalog/class_handle.h"
 #include "catalog/database_handle.h"
-#include "catalog/index_handle.h"
-#include "catalog/namespace_handle.h"
+#include "catalog/type_handle.h"
 #include "catalog/settings_handle.h"
 #include "catalog/tablespace_handle.h"
-#include "catalog/type_handle.h"
+#include "catalog/index_handle.h"
+#include "catalog/namespace_handle.h"
 #include "loggers/catalog_logger.h"
 #include "storage/storage_defs.h"
 #include "transaction/transaction_manager.h"
@@ -360,6 +360,8 @@ void Catalog::CreatePGClass(transaction::TransactionContext *txn, db_oid_t db_oi
 void Catalog::CreatePGType(transaction::TransactionContext *txn, db_oid_t db_oid) {
   TypeCatalogTable::Create(txn, this, db_oid, "pg_type");
 
+
+  std::vector<type::TransientValue> row;
   // TODO(Yesheng): get rid of this strange calling chain
   auto pg_type_handle = GetDatabaseHandle().GetTypeTable(txn, db_oid);
   auto catalog_ns_oid =
