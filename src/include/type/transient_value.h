@@ -169,6 +169,46 @@ class TransientValue {
     other.SetNull(true);
   }
 
+  /**
+   * @return transient value serialized to json
+   * @warning this method is ONLY used for serialization and deserialization. It should NOT be used to peek at the
+   * values
+   */
+  nlohmann::json ToJson() const {
+    nlohmann::json j;
+    j["type"] = type_;
+    j["data"] = data_;
+    if (Type() == TypeId::VARCHAR) {
+      const uint32_t length = *reinterpret_cast<const uint32_t *const>(data_);
+      auto varchar = std::string(reinterpret_cast<const char *const>(data_), length + sizeof(uint32_t));
+      j["data"] = varchar;
+    } else {
+      j["data"] = data_;
+    }
+    return j;
+  }
+
+  /**
+   * @param j json to deserialize
+   * @warning this method is ONLY used for serialization and deserialization. It should NOT be used to peek at the
+   * values
+   */
+  void FromJson(const nlohmann::json &j) {
+    type_ = j.at("type").get<TypeId>();
+    if (Type() == TypeId::VARCHAR) {
+      data_ = 0;
+      CopyVarChar(reinterpret_cast<const char *const>(j.at("data").get<std::string>().c_str()));
+
+    } else {
+      data_ = j.at("data").get<uintptr_t>();
+    }
+  }
+
+  /**
+   * Default constructor used for deserializing json
+   */
+  TransientValue() = default;
+
  private:
   // The following tests make sure that the private copy constructor and copy assignment operator work, so they need to
   // be friends of the TransientValue class.
@@ -199,11 +239,6 @@ class TransientValue {
   FRIEND_TEST(ValueTests, TimestampJsonTest);
   FRIEND_TEST(ValueTests, DateJsonTest);
   FRIEND_TEST(ValueTests, VarCharJsonTest);
-
-  /**
-   * Default constructor used for deserializing json
-   */
-  TransientValue() = default;
 
   template <typename T>
   TransientValue(const TypeId type, T data) {
@@ -300,44 +335,11 @@ class TransientValue {
     data_ = reinterpret_cast<uintptr_t>(varchar);
   }
 
-  /**
-   * @return transient value serialized to json
-   * @warning this method is made private to avoid serializing a TransientValue then
-   * deserializing it to bypass the TransientValuePeeker
-   */
-  nlohmann::json ToJson() const {
-    nlohmann::json j;
-    j["type"] = type_;
-    j["data"] = data_;
-    if (Type() == TypeId::VARCHAR) {
-      const uint32_t length = *reinterpret_cast<const uint32_t *const>(data_);
-      auto varchar = std::string(reinterpret_cast<const char *const>(data_), length + sizeof(uint32_t));
-      j["data"] = varchar;
-    } else {
-      j["data"] = data_;
-    }
-    return j;
-  }
-
-  /**
-   * @param j json to deserialize
-   * @warning this method is made private to avoid serializing a TransientValue then
-   * deserializing it to bypass the TransientValuePeeker
-   */
-  void FromJson(const nlohmann::json &j) {
-    type_ = j.at("type").get<TypeId>();
-    if (Type() == TypeId::VARCHAR) {
-      data_ = 0;
-      CopyVarChar(reinterpret_cast<const char *const>(j.at("data").get<std::string>().c_str()));
-
-    } else {
-      data_ = j.at("data").get<uintptr_t>();
-    }
-  }
-
   TypeId type_ = TypeId::INVALID;
   // TODO(Matt): we should consider padding 7 bytes to inline small varlens in the future if we want
   uintptr_t data_;
 };
+
+DEFINE_JSON_DECLARATIONS(TransientValue);
 
 }  // namespace terrier::type

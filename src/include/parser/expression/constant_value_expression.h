@@ -50,7 +50,7 @@ class ConstantValueExpression : public AbstractExpression {
    */
   nlohmann::json ToJson() const override {
     nlohmann::json j = AbstractExpression::ToJson();
-    j["value"] = value_.ToJson();
+    j["value"] = value_;
     return j;
   }
 
@@ -62,7 +62,7 @@ class ConstantValueExpression : public AbstractExpression {
    */
   void FromJson(const nlohmann::json &j) override {
     AbstractExpression::FromJson(j);
-    value_.FromJson(j.at("value"));
+    value_ = j.at("value").get<type::TransientValue>();
   }
 
  private:
