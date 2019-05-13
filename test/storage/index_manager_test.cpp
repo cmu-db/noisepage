@@ -15,29 +15,28 @@ struct IndexManagerTest : public TerrierTest {
   void InsertThread(catalog::Catalog *catalog, catalog::SqlTableHelper *table, catalog::index_oid_t index_oid,
                     int idx) {
     auto txn = txn_manager_->BeginTransaction();
+    // insert a row to SQLTable
     std::vector<type::TransientValue> row;
     row.emplace_back(type::TransientValueFactory::GetBoolean(idx % 2 == 0));
     row.emplace_back(type::TransientValueFactory::GetInteger(idx));
     row.emplace_back(type::TransientValueFactory::GetVarChar(fmt::format("name_%d", idx)));
     row.emplace_back(type::TransientValueFactory::GetVarChar(fmt::format("address_%d", idx)));
+    TupleSlot ts = table->InsertRow(txn, row);
 
-    // TODO(xueyuanz): Need to get the tuple slot.
-    table->InsertRow(txn, row);
+    // get pg_index handle
     catalog::IndexCatalogTable index_handle =
         catalog->GetDatabaseHandle().GetIndexTable(txn, catalog::DEFAULT_DATABASE_OID);
-
     auto index_entry = index_handle.GetIndexEntry(txn, index_oid);
     auto index = reinterpret_cast<Index *>(index_entry->GetBigIntColumn("indexptr"));
 
-    // Create the projected row for index
+    // create the projected row for index, only for metadata!
     const IndexMetadata &metadata = index->metadata_;
     const IndexKeySchema &index_key_schema = metadata.GetKeySchema();
     const auto &pr_initializer = metadata.GetProjectedRowInitializer();
     auto *key_buf_index = common::AllocationUtil::AllocateAligned(pr_initializer.ProjectedRowSize());
-    // FIXME(xueyuanz): fix unused variable
-    ProjectedRow *index_key UNUSED_ATTRIBUTE = pr_initializer.InitializeRow(key_buf_index);
+    ProjectedRow *index_key = pr_initializer.InitializeRow(key_buf_index);
 
-    // Create the projected row for the sql table
+    // create and fill the projected row for the sql table
     std::vector<catalog::col_oid_t> col_oids;
     col_oids.reserve(index_key_schema.size());
     for (const auto &it : index_key_schema) {
@@ -46,21 +45,24 @@ struct IndexManagerTest : public TerrierTest {
     auto init_and_map = table->GetSqlTable()->InitializerForProjectedRow(col_oids);
     auto *key_buf = common::AllocationUtil::AllocateAligned(init_and_map.first.ProjectedRowSize());
     ProjectedRow *key = init_and_map.first.InitializeRow(key_buf);
-
-    // Record the col_id of each column
-    std::vector<col_id_t> sql_table_cols;
-    sql_table_cols.reserve(key->NumColumns());
+    // select data into sql table key buf
+    table->GetSqlTable()->Select(txn, ts, key);
+    // set proper metadata in sql table key buf
     for (uint16_t i = 0; i < key->NumColumns(); ++i) {
-      sql_table_cols.emplace_back(key->ColumnIds()[i]);
+      key->ColumnIds()[i] = index_key->ColumnIds()[i];
     }
 
-    // Check whether the index is valid.
+    // check whether the index is valid.
     // FIXME(xueyuanz): fix unused variable
     bool is_valid UNUSED_ATTRIBUTE = index_entry->GetBooleanColumn("indisvalid");
     bool is_ready UNUSED_ATTRIBUTE = index_entry->GetBooleanColumn("indisready");
 
-    // TODO(xueyuan): Find the correct Tuple Slot, generate the projected row and insert to the index
+    index->Insert(txn, *key, ts);
+    txn_manager_->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+    delete key_buf;
+    delete key_buf_index;
   }
+
   void StartGC(transaction::TransactionManager *const txn_manager) {
     gc_ = new storage::GarbageCollector(txn_manager);
     run_gc_ = true;
@@ -100,7 +102,7 @@ struct IndexManagerTest : public TerrierTest {
     delete txn_manager_;
   }
 
-  storage::RecordBufferSegmentPool buffer_pool_{100, 100};
+  storage::RecordBufferSegmentPool buffer_pool_{1000, 1000};
   transaction::TransactionManager *txn_manager_;
   IndexManager *index_manager_;
 };
@@ -549,15 +551,6 @@ TEST_F(IndexManagerTest, CreateIndexConcurrentlyFuzzyTest) {
   auto ptr = table_handle.GetTable(txn0, "test_table");
   EXPECT_EQ(ptr, table);
 
-  for (int i = 0; i < 200; ++i) {
-    std::vector<type::TransientValue> row;
-    row.emplace_back(type::TransientValueFactory::GetBoolean(i % 2 == 0));
-    row.emplace_back(type::TransientValueFactory::GetInteger(i));
-    row.emplace_back(type::TransientValueFactory::GetVarChar(fmt::format("name_%d", i)));
-    row.emplace_back(type::TransientValueFactory::GetVarChar(fmt::format("address_%d", i)));
-    ptr->InsertRow(txn0, row);
-  }
-
   // Commit the setting transaction
   txn_manager_->Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
 
@@ -581,6 +574,11 @@ TEST_F(IndexManagerTest, CreateIndexConcurrentlyFuzzyTest) {
   EXPECT_EQ(index_entry->GetBooleanColumn("indisready"), false);
   EXPECT_EQ(index_entry->GetBooleanColumn("indisvalid"), true);
   txn_manager_->Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
+
+  // insert shits
+  for (int i = 0; i < 200; ++i) {
+    InsertThread(catalog_, table, index_oid, i);
+  }
 
   // Test whether index contains all entries inserted before
   auto txn2 = txn_manager_->BeginTransaction();
