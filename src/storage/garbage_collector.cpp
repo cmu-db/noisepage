@@ -361,7 +361,7 @@ void GarbageCollector::BeginCompaction(UndoRecord **start_record_ptr, UndoRecord
   //         INSERT is the last record in the version chain
   // Case 3: next is of type DELETE
   //         DELETE can only be the newest record in the version chain
-  TERRIER_ASSERT(next != NULL, "The next pointer should not be NULL while Unlinking");
+  TERRIER_ASSERT(next != nullptr, "The next pointer should not be NULL while Unlinking");
   TERRIER_ASSERT(next->Type() != DeltaRecordType::DELETE, "Delete cannot be compacted");
   *start_record_ptr = curr;
   *interval_length_ptr = 1;
