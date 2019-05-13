@@ -49,8 +49,9 @@ TEST_F(IndexHandleTest, BasicCorrectnessTest) {
   bool indisvalid = true;
   bool indisready = false;
   bool indislive = true;
+  bool indisblocking = false;
   index_handle.AddEntry(txn_, index_ptr, indexrelid, indrelid, indnatts, indnkeyatts, indisunique, indisprimary,
-                        indisvalid, indisready, indislive);
+                        indisvalid, indisready, indislive, indisblocking);
 
   auto index_entry = index_handle.GetIndexEntry(txn_, indexrelid);
 
@@ -69,6 +70,7 @@ TEST_F(IndexHandleTest, BasicCorrectnessTest) {
   EXPECT_EQ(type::TransientValuePeeker::PeekBoolean(index_entry->GetColumn(7)), indisvalid);
   EXPECT_EQ(type::TransientValuePeeker::PeekBoolean(index_entry->GetColumn(8)), indisready);
   EXPECT_EQ(type::TransientValuePeeker::PeekBoolean(index_entry->GetColumn(9)), indislive);
+  EXPECT_EQ(type::TransientValuePeeker::PeekBoolean(index_entry->GetColumn(10)), indisblocking);
 }
 
 // NOLINTNEXTLINE
@@ -87,8 +89,9 @@ TEST_F(IndexHandleTest, IndexHandleModificationTest) {
   bool indisvalid = false;
   bool indisready = false;
   bool indislive = true;
+  bool indisblocking = false;
   index_handle.AddEntry(txn_, index_ptr, indexrelid, indrelid, indnatts, indnkeyatts, indisunique, indisprimary,
-                        indisvalid, indisready, indislive);
+                        indisvalid, indisready, indislive, indisblocking);
   auto index_entry = index_handle.GetIndexEntry(txn_, indexrelid);
 
   EXPECT_NE(index_entry, nullptr);
@@ -103,6 +106,7 @@ TEST_F(IndexHandleTest, IndexHandleModificationTest) {
   EXPECT_EQ(index_entry->GetBooleanColumn("indisvalid"), indisvalid);
   EXPECT_EQ(index_entry->GetBooleanColumn("indisready"), indisready);
   EXPECT_EQ(index_entry->GetBooleanColumn("indislive"), indislive);
+  EXPECT_EQ(index_entry->GetBooleanColumn("indisblocking"), indisblocking);
 
   index_handle.SetEntryColumn(txn_, indexrelid, "indisvalid", type::TransientValueFactory::GetBoolean(true));
   index_entry = index_handle.GetIndexEntry(txn_, indexrelid);
@@ -125,8 +129,9 @@ TEST_F(IndexHandleTest, IndexHandleDeletionTest) {
   bool indisvalid = false;
   bool indisready = false;
   bool indislive = true;
+  bool indisblocking = false;
   index_handle.AddEntry(txn_, index_ptr, indexrelid, indrelid, indnatts, indnkeyatts, indisunique, indisprimary,
-                        indisvalid, indisready, indislive);
+                        indisvalid, indisready, indislive, indisblocking);
   auto index_entry = index_handle.GetIndexEntry(txn_, indexrelid);
   EXPECT_NE(index_entry, nullptr);
   index_handle.DeleteEntry(txn_, index_entry);

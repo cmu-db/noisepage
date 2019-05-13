@@ -68,10 +68,11 @@ class IndexCatalogTable {
    * @param indisvalid whether the index is valid
    * @param indisready whether the index is ready
    * @param indislive If false, the index is being dropped
+   * @param indblocking If true, the index is being created in the blocking manner
    */
   void AddEntry(transaction::TransactionContext *txn, storage::index::Index *index_ptr, index_oid_t indexrelid,
                 table_oid_t indrelid, int32_t indnatts, int32_t indnkeyatts, bool indisunique, bool indisprimary,
-                bool indisvalid, bool indisready, bool indislive);
+                bool indisvalid, bool indisready, bool indislive, bool indisblocking);
 
   /**
    *
