@@ -181,8 +181,8 @@ TEST_F(SettingsTests, ConcurrentModifyTest1) {
 
   std::thread t3([&] {
     std::shared_ptr<common::ActionContext> action_context = std::make_shared<common::ActionContext>(3);
-    settings_manager_->SetString(Param::db_name, "PelotonSP", action_context, setter_callback);
-    EXPECT_EQ("PelotonSP", settings_manager_->GetString(Param::db_name));
+    settings_manager_->SetString(Param::db_name, "TerrierSP", action_context, setter_callback);
+    EXPECT_EQ("TerrierSP", settings_manager_->GetString(Param::db_name));
   });
 
   t1.join();
