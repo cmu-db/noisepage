@@ -41,6 +41,13 @@ enum IndexBuildFlag { INVALID, PRE_SCAN_BARRIER, POST_SCAN_BARRIER };
  * This class can only be used when creating an index.
  */
 class IndexManager {
+ public:
+  /**
+   * Record the oid of db, the oid of namespace and the oid of index.
+   */
+  // FIXME(jiaqizuo): The data struture is not good and should use more clear data structure later
+  using index_id_t = std::pair<std::pair<catalog::db_oid_t, catalog::namespace_oid_t>, catalog::index_oid_t>;
+
  private:
   /**
    * The method sets the type of constraints and the key schema for the index. It finally returns an empty
@@ -54,12 +61,6 @@ class IndexManager {
    */
   Index *GetEmptyIndex(catalog::index_oid_t index_oid, SqlTable *sql_table, bool unique_index,
                        const std::vector<std::string> &key_attrs);
-
-  /**
-   * Record the oid of db, the oid of namespace and the oid of index.
-   */
-  // FIXME(jiaqizuo): The data struture is not good and should use more clear data structure later
-  using index_id_t = std::pair<std::pair<catalog::db_oid_t, catalog::namespace_oid_t>, catalog::index_oid_t>;
 
   /**
    * A map from index_id to the status of the index (in the process of building or not)
@@ -79,8 +80,8 @@ class IndexManager {
    * @param index_oid the oid of the index
    * @return the result data structure with the type of index_id_t
    */
-  index_id_t make_index_id(catalog::db_oid_t db_oid, catalog::namespace_oid_t namespace_oid,
-                           catalog::index_oid_t index_oid) {
+  static index_id_t make_index_id(catalog::db_oid_t db_oid, catalog::namespace_oid_t namespace_oid,
+                                  catalog::index_oid_t index_oid) {
     return std::make_pair(std::make_pair(db_oid, namespace_oid), index_oid);
   }
 

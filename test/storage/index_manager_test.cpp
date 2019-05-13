@@ -12,8 +12,8 @@
 
 namespace terrier::storage::index {
 struct IndexManagerTest : public TerrierTest {
-  void InsertThread(catalog::Catalog *catalog, catalog::SqlTableHelper *table, catalog::index_oid_t index_oid,
-                    int idx) {
+  void InsertThread(catalog::Catalog *catalog, catalog::SqlTableHelper *table, catalog::index_oid_t index_oid, int idx,
+                    IndexManager::index_id_t index_id) {
     auto txn = txn_manager_->BeginTransaction();
     // insert a row to SQLTable
     std::vector<type::TransientValue> row;
@@ -51,15 +51,31 @@ struct IndexManagerTest : public TerrierTest {
     for (uint16_t i = 0; i < key->NumColumns(); ++i) {
       key->ColumnIds()[i] = index_key->ColumnIds()[i];
     }
-
-    // check whether the index is valid.
-    // FIXME(xueyuanz): fix unused variable
-    bool is_valid UNUSED_ATTRIBUTE = index_entry->GetBooleanColumn("indisvalid");
-    bool is_ready UNUSED_ATTRIBUTE = index_entry->GetBooleanColumn("indisready");
-
-    index->Insert(txn, *key, ts);
-    txn_manager_->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
-    delete[] key_buf;
+    bool is_valid = index_entry->GetBooleanColumn("indisvalid");
+    bool is_ready = index_entry->GetBooleanColumn("indisready");
+    if (is_valid) {
+      // The create index has finished.
+      index->Insert(txn, *key, ts);
+      txn_manager_->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+      delete[] key_buf;
+    } else {
+      if (is_ready) {
+        // The index is still be built.
+        auto index_manager = index_manager_;
+        txn->RegisterCommitAction([index_manager, index_id, txn, ts, key, key_buf, index]() {
+          auto building_flag = index_manager->GetIndexBuildingFlag(index_id);
+          if (building_flag == IndexBuildFlag::PRE_SCAN_BARRIER) {
+            index->Insert(txn, *key, ts);
+          }
+          delete[] key_buf;
+        });
+      } else {
+        // Create index failed, the index is invalid.
+        // Do nothing to the index.
+        txn_manager_->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+        delete[] key_buf;
+      }
+    }
     delete[] key_buf_index;
   }
 
@@ -561,6 +577,8 @@ TEST_F(IndexManagerTest, CreateIndexConcurrentlyFuzzyTest) {
   // Create the index
   auto index_oid = index_manager_->Create(terrier_oid, ns_oid, table_oid, parser::IndexType::BWTREE, false,
                                           "test_index", index_attrs, key_attrs, txn_manager_, catalog_, false);
+  auto index_id = IndexManager::make_index_id(terrier_oid, ns_oid, index_oid);
+
   EXPECT_GT(!index_oid, 0);
 
   // Test whether the catalog has the corresponding information
@@ -577,7 +595,7 @@ TEST_F(IndexManagerTest, CreateIndexConcurrentlyFuzzyTest) {
 
   // insert shits
   for (int i = 0; i < 200; ++i) {
-    InsertThread(catalog_, table, index_oid, i);
+    InsertThread(catalog_, table, index_oid, i, index_id);
   }
 
   // Test whether index contains all entries inserted before
