@@ -64,11 +64,11 @@ class MetricTests : public TerrierTest {
     EndGC();
     const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
     auto db_handle = catalog_->GetDatabaseHandle();
-    auto table_handle = db_handle.GetNamespaceHandle(txn_, terrier_oid).GetTableHandle(txn_, default_namespace_);
+    auto table_handle = db_handle.GetNamespaceTable(txn_, terrier_oid).GetTableHandle(txn_, default_namespace_);
     auto table = table_handle.GetTable(txn_, database_metric_table_);
     delete table;
     db_handle = catalog_->GetDatabaseHandle();
-    table_handle = db_handle.GetNamespaceHandle(txn_, terrier_oid).GetTableHandle(txn_, default_namespace_);
+    table_handle = db_handle.GetNamespaceTable(txn_, terrier_oid).GetTableHandle(txn_, default_namespace_);
     table = table_handle.GetTable(txn_, txn_metric_table_);
     delete table;
     delete catalog_;  // need to delete catalog_ first
@@ -206,7 +206,7 @@ TEST_F(MetricTests, DatabaseMetricStorageTest) {
 
     const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
     auto db_handle = catalog_->GetDatabaseHandle();
-    auto table_handle = db_handle.GetNamespaceHandle(txn_, terrier_oid).GetTableHandle(txn_, default_namespace_);
+    auto table_handle = db_handle.GetNamespaceTable(txn_, terrier_oid).GetTableHandle(txn_, default_namespace_);
     auto table = table_handle.GetTable(txn_, database_metric_table_);
 
     for (uint8_t j = 0; j < num_databases_; j++) {
@@ -233,7 +233,7 @@ TEST_F(MetricTests, TransactionMetricBasicTest) {
   const catalog::db_oid_t database_oid(catalog::DEFAULT_DATABASE_OID);
   auto db_handle = catalog_->GetDatabaseHandle();
   const catalog::namespace_oid_t namespace_oid =
-      db_handle.GetNamespaceHandle(txn_, database_oid).NameToOid(txn_, default_namespace_);
+      db_handle.GetNamespaceTable(txn_, database_oid).NameToOid(txn_, default_namespace_);
 
   for (uint8_t i = 0; i < num_iterations_; i++) {
     std::unordered_map<uint8_t, transaction::timestamp_t> id_map;
@@ -329,7 +329,7 @@ TEST_F(MetricTests, TransactionMetricStorageTest) {
   const catalog::db_oid_t database_oid(catalog::DEFAULT_DATABASE_OID);
   auto db_handle = catalog_->GetDatabaseHandle();
   const catalog::namespace_oid_t namespace_oid =
-      db_handle.GetNamespaceHandle(txn_, database_oid).NameToOid(txn_, default_namespace_);
+      db_handle.GetNamespaceTable(txn_, database_oid).NameToOid(txn_, default_namespace_);
 
   for (uint8_t i = 0; i < num_iterations_; i++) {
     std::unordered_map<uint8_t, transaction::timestamp_t> id_map;
@@ -387,7 +387,7 @@ TEST_F(MetricTests, TransactionMetricStorageTest) {
     aggregator.Aggregate(txn_);
 
     auto db_handle = catalog_->GetDatabaseHandle();
-    auto table_handle = db_handle.GetNamespaceHandle(txn_, database_oid).GetTableHandle(txn_, default_namespace_);
+    auto table_handle = db_handle.GetNamespaceTable(txn_, database_oid).GetTableHandle(txn_, default_namespace_);
     auto table = table_handle.GetTable(txn_, txn_metric_table_);
 
     for (uint8_t j = 0; j < num_txns_; j++) {
@@ -423,7 +423,7 @@ TEST_F(MetricTests, MultiThreadTest) {
   const catalog::db_oid_t database_oid(catalog::DEFAULT_DATABASE_OID);
   auto db_handle = catalog_->GetDatabaseHandle();
   const catalog::namespace_oid_t namespace_oid =
-      db_handle.GetNamespaceHandle(txn_, database_oid).NameToOid(txn_, default_namespace_);
+      db_handle.GetNamespaceTable(txn_, database_oid).NameToOid(txn_, default_namespace_);
 
   for (uint8_t i = 0; i < num_iterations_; i++) {
     common::ConcurrentQueue<transaction::timestamp_t> txn_queue;
@@ -487,7 +487,7 @@ TEST_F(MetricTests, MultiThreadTest) {
     MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
 
     auto db_handle = catalog_->GetDatabaseHandle();
-    auto table_handle = db_handle.GetNamespaceHandle(txn_, database_oid).GetTableHandle(txn_, default_namespace_);
+    auto table_handle = db_handle.GetNamespaceTable(txn_, database_oid).GetTableHandle(txn_, default_namespace_);
     auto table = table_handle.GetTable(txn_, txn_metric_table_);
 
     while (!txn_queue.Empty()) {

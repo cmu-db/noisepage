@@ -57,11 +57,11 @@ class MetricBenchmark : public benchmark::Fixture {
     EndGC();
     const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
     auto db_handle = catalog_->GetDatabaseHandle();
-    auto table_handle = db_handle.GetNamespaceHandle(txn_, terrier_oid).GetTableHandle(txn_, "public");
+    auto table_handle = db_handle.GetNamespaceTable(txn_, terrier_oid).GetTableHandle(txn_, "public");
     auto table = table_handle.GetTable(txn_, "database_metric_table");
     delete table;
     db_handle = catalog_->GetDatabaseHandle();
-    table_handle = db_handle.GetNamespaceHandle(txn_, terrier_oid).GetTableHandle(txn_, "public");
+    table_handle = db_handle.GetNamespaceTable(txn_, terrier_oid).GetTableHandle(txn_, "public");
     table = table_handle.GetTable(txn_, "txn_metric_table");
     delete table;
     delete catalog_;  // need to delete catalog_ first
@@ -97,7 +97,7 @@ BENCHMARK_DEFINE_F(MetricBenchmark, AggregateMetric)(benchmark::State &state) {
   const catalog::db_oid_t database_oid(catalog::DEFAULT_DATABASE_OID);
   auto db_handle = catalog_->GetDatabaseHandle();
   const catalog::namespace_oid_t namespace_oid =
-      db_handle.GetNamespaceHandle(txn_, database_oid).NameToOid(txn_, default_namespace_);
+      db_handle.GetNamespaceTable(txn_, database_oid).NameToOid(txn_, default_namespace_);
   // NOLINTNEXTLINE
   for (auto _ : state) {
     for (uint8_t j = 0; j < num_txns_; j++) {
@@ -125,7 +125,7 @@ BENCHMARK_DEFINE_F(MetricBenchmark, CollectMetric)(benchmark::State &state) {
   const catalog::db_oid_t database_oid(catalog::DEFAULT_DATABASE_OID);
   auto db_handle = catalog_->GetDatabaseHandle();
   const catalog::namespace_oid_t namespace_oid =
-      db_handle.GetNamespaceHandle(txn_, database_oid).NameToOid(txn_, default_namespace_);
+      db_handle.GetNamespaceTable(txn_, database_oid).NameToOid(txn_, default_namespace_);
   // NOLINTNEXTLINE
   for (auto _ : state) {
     for (uint8_t j = 0; j < num_txns_; j++) {

@@ -147,7 +147,7 @@ class TableCatalogView {
    * Get the table oid for a given table name
    * @param txn the transaction context
    * @param name the table name
-   * @return table oid
+   * @return table oid; INVALID_TABLE_OID if the table doesn't exist in the database
    */
   table_oid_t NameToOid(transaction::TransactionContext *txn, const std::string &name);
 

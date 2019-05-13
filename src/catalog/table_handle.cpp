@@ -45,7 +45,7 @@ table_oid_t TableCatalogView::NameToOid(transaction::TransactionContext *txn, co
 
   std::vector<type::TransientValue> row = pg_class_->FindRow(txn, search_vec);
   if (row.empty()) {
-    throw CATALOG_EXCEPTION("table does not exist");
+    return INVALID_TABLE_OID;
   }
   auto result = table_oid_t(type::TransientValuePeeker::PeekInteger(row[1]));
   return result;

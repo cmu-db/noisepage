@@ -12,7 +12,7 @@ catalog::SqlTableHelper *TransactionMetricRawData::GetStatsTable(transaction::Tr
                                                                  transaction::TransactionContext *txn) {
   const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
   auto db_handle = catalog->GetDatabaseHandle();
-  auto table_handle = db_handle.GetNamespaceHandle(txn, terrier_oid).GetTableHandle(txn, "public");
+  auto table_handle = db_handle.GetNamespaceTable(txn, terrier_oid).GetTableHandle(txn, "public");
 
   // define schema
   std::vector<catalog::Schema::Column> cols;

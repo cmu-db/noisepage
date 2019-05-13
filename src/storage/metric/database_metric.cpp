@@ -11,7 +11,7 @@ catalog::SqlTableHelper *DatabaseMetricRawData::GetStatsTable(transaction::Trans
                                                               transaction::TransactionContext *const txn) {
   const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
   auto db_handle = catalog->GetDatabaseHandle();
-  auto ns_handle = db_handle.GetNamespaceHandle(txn, terrier_oid);
+  auto ns_handle = db_handle.GetNamespaceTable(txn, terrier_oid);
   auto table_handle = ns_handle.GetTableHandle(txn, "public");
 
   // define schema
