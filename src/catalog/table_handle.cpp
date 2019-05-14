@@ -14,7 +14,8 @@
 
 namespace terrier::catalog {
 
-std::shared_ptr<TableEntry> TableHandle::GetTableEntry(transaction::TransactionContext *txn, table_oid_t oid) {
+std::shared_ptr<TableCatalogEntry> TableCatalogView::GetTableEntry(transaction::TransactionContext *txn,
+                                                                   table_oid_t oid) {
   // get the namespace_oid of the table to check if it's a table under current namespace
   namespace_oid_t nsp_oid(0);
   std::vector<type::TransientValue> search_vec;
@@ -27,14 +28,15 @@ std::shared_ptr<TableEntry> TableHandle::GetTableEntry(transaction::TransactionC
   }
   nsp_oid = namespace_oid_t(type::TransientValuePeeker::PeekInteger(row[3]));
   if (nsp_oid != nsp_oid_) return nullptr;
-  return std::make_shared<TableEntry>(oid, std::move(row), txn, pg_namespace_, pg_tablespace_);
+  return std::make_shared<TableCatalogEntry>(oid, std::move(row), txn, pg_namespace_, pg_tablespace_);
 }
 
-std::shared_ptr<TableEntry> TableHandle::GetTableEntry(transaction::TransactionContext *txn, const std::string &name) {
+std::shared_ptr<TableCatalogEntry> TableCatalogView::GetTableEntry(transaction::TransactionContext *txn,
+                                                                   const std::string &name) {
   return GetTableEntry(txn, NameToOid(txn, name));
 }
 
-table_oid_t TableHandle::NameToOid(transaction::TransactionContext *txn, const std::string &name) {
+table_oid_t TableCatalogView::NameToOid(transaction::TransactionContext *txn, const std::string &name) {
   // TODO(yangjuns): repeated work if the row can be used later. Maybe cache can solve it.
   std::vector<type::TransientValue> search_vec;
   search_vec.emplace_back(type::TransientValueFactory::GetNull(type::TypeId::BIGINT));
@@ -49,8 +51,8 @@ table_oid_t TableHandle::NameToOid(transaction::TransactionContext *txn, const s
   return result;
 }
 
-SqlTableHelper *TableHandle::CreateTable(transaction::TransactionContext *txn, const Schema &schema,
-                                         const std::string &name) {
+SqlTableHelper *TableCatalogView::CreateTable(transaction::TransactionContext *txn, const Schema &schema,
+                                              const std::string &name) {
   std::vector<type::TransientValue> row;
   // TODO(yangjuns): error handling
   // Create SqlTable
@@ -71,7 +73,7 @@ SqlTableHelper *TableHandle::CreateTable(transaction::TransactionContext *txn, c
   return table;
 }
 
-SqlTableHelper *TableHandle::GetTable(transaction::TransactionContext *txn, table_oid_t oid) {
+SqlTableHelper *TableCatalogView::GetTable(transaction::TransactionContext *txn, table_oid_t oid) {
   // TODO(yangjuns): error handling
   // get the namespace_oid of the table to check if it's a table under current namespace
   std::vector<type::TransientValue> search_vec;
@@ -88,7 +90,7 @@ SqlTableHelper *TableHandle::GetTable(transaction::TransactionContext *txn, tabl
   return ptr;
 }
 
-SqlTableHelper *TableHandle::GetTable(transaction::TransactionContext *txn, const std::string &name) {
+SqlTableHelper *TableCatalogView::GetTable(transaction::TransactionContext *txn, const std::string &name) {
   return GetTable(txn, NameToOid(txn, name));
 }
 

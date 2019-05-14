@@ -17,7 +17,7 @@ class Catalog;
 /**
  * An SettingsEntry is a row in pg_setting catalog
  */
-class SettingsEntry : public CatalogEntry<settings_oid_t> {
+class SettingsCatalogEntry : public CatalogEntry<settings_oid_t> {
  public:
   /**
    * Constructor
@@ -25,14 +25,15 @@ class SettingsEntry : public CatalogEntry<settings_oid_t> {
    * @param sql_table associated with this entry
    * @param entry a row in pg_settings that represents this table
    */
-  SettingsEntry(settings_oid_t oid, catalog::SqlTableHelper *sql_table, std::vector<type::TransientValue> &&entry)
+  SettingsCatalogEntry(settings_oid_t oid, catalog::SqlTableHelper *sql_table,
+                       std::vector<type::TransientValue> &&entry)
       : CatalogEntry(oid, sql_table, std::move(entry)) {}
 };
 
 /**
  * The settings catalog contains, global settings.
  */
-class SettingsHandle {
+class SettingsCatalogTable {
  public:
   /**
    * Get a specific settings entry.
@@ -41,13 +42,13 @@ class SettingsHandle {
    * @return a shared pointer to Settings entry;
    *         NULL if the entry doesn't exist.
    */
-  std::shared_ptr<SettingsEntry> GetSettingsEntry(transaction::TransactionContext *txn, settings_oid_t oid);
+  std::shared_ptr<SettingsCatalogEntry> GetSettingsEntry(transaction::TransactionContext *txn, settings_oid_t oid);
 
   /**
    * Constructor
    * @param pg_settings a pointer to pg_settings sql table helper instance
    */
-  explicit SettingsHandle(SqlTableHelper *pg_settings) : pg_settings_(pg_settings) {}
+  explicit SettingsCatalogTable(SqlTableHelper *pg_settings) : pg_settings_(pg_settings) {}
 
   /**
    * Create the storage table
@@ -75,7 +76,8 @@ class SettingsHandle {
    * @param name settings name
    * @return settings entry
    */
-  std::shared_ptr<SettingsEntry> GetSettingsEntry(transaction::TransactionContext *txn, const std::string &name) {
+  std::shared_ptr<SettingsCatalogEntry> GetSettingsEntry(transaction::TransactionContext *txn,
+                                                         const std::string &name) {
     std::vector<type::TransientValue> search_vec, ret_row;
     search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
     search_vec.push_back(type::TransientValueFactory::GetVarChar(name.c_str()));
@@ -84,7 +86,7 @@ class SettingsHandle {
       return nullptr;
     }
     settings_oid_t oid(type::TransientValuePeeker::PeekInteger(ret_row[0]));
-    return std::make_shared<SettingsEntry>(oid, pg_settings_, std::move(ret_row));
+    return std::make_shared<SettingsCatalogEntry>(oid, pg_settings_, std::move(ret_row));
   }
 
   /**
@@ -98,27 +100,6 @@ class SettingsHandle {
  private:
   // storage for this table
   catalog::SqlTableHelper *pg_settings_;
-};
-
-enum class SettingsTableColumn {
-  OID = 0,
-  NAME = 1,
-  SETTING = 2,
-  UNIT = 3,
-  CATEGORY = 4,
-  SHORT_DESC = 5,
-  EXTRA_DESC = 6,
-  CONTEXT = 7,
-  VARTYPE = 8,
-  SOURCE = 9,
-  MIN_VAL = 10,
-  MAX_VAL = 11,
-  ENUMVALS = 12,
-  BOOT_VAL = 13,
-  RESET_VAL = 14,
-  SOURCEFILE = 15,
-  SOURCELINE = 16,
-  PENDING_RESTART = 17
 };
 
 }  // namespace terrier::catalog

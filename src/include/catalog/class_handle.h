@@ -19,7 +19,7 @@ struct SchemaCol;
 /**
  * An ClassEntry is a row in pg_class catalog
  */
-class ClassEntry : public CatalogEntry<col_oid_t> {
+class ClassCatalogEntry : public CatalogEntry<col_oid_t> {
  public:
   /**
    * Constructor
@@ -27,7 +27,7 @@ class ClassEntry : public CatalogEntry<col_oid_t> {
    * @param sql_table associated with this entry
    * @param entry a row in pg_class that represents this table
    */
-  ClassEntry(col_oid_t oid, catalog::SqlTableHelper *sql_table, std::vector<type::TransientValue> &&entry)
+  ClassCatalogEntry(col_oid_t oid, catalog::SqlTableHelper *sql_table, std::vector<type::TransientValue> &&entry)
       : CatalogEntry(oid, sql_table, std::move(entry)) {}
 };
 
@@ -35,14 +35,14 @@ class ClassEntry : public CatalogEntry<col_oid_t> {
  * Class (equiv. of pg_class) stores much of the metadata for
  * anything that has columns and is like a table.
  */
-class ClassHandle {
+class ClassCatalogTable {
  public:
   /**
    * Constructor
    * @param catalog the global catalog object
    * @param pg_class the pg_class sql table rw helper instance
    */
-  explicit ClassHandle(Catalog *catalog, SqlTableHelper *pg_class) : catalog_(catalog), pg_class_rw_(pg_class) {}
+  explicit ClassCatalogTable(Catalog *catalog, SqlTableHelper *pg_class) : catalog_(catalog), pg_class_rw_(pg_class) {}
 
   /**
    * Get a specific Class entry.
@@ -51,7 +51,7 @@ class ClassHandle {
    * @return a shared pointer to Class entry;
    *         NULL if the entry doesn't exist.
    */
-  std::shared_ptr<ClassEntry> GetClassEntry(transaction::TransactionContext *txn, col_oid_t oid);
+  std::shared_ptr<ClassCatalogEntry> GetClassEntry(transaction::TransactionContext *txn, col_oid_t oid);
 
   /**
    * Get a class entry by name
@@ -59,7 +59,7 @@ class ClassHandle {
    * @param name to lookup
    * @return a shared ptr to a Class entry.
    */
-  std::shared_ptr<ClassEntry> GetClassEntry(transaction::TransactionContext *txn, const char *name);
+  std::shared_ptr<ClassCatalogEntry> GetClassEntry(transaction::TransactionContext *txn, const char *name);
 
   /**
    * Get a class entry by name
@@ -68,8 +68,8 @@ class ClassHandle {
    * @param name to lookup
    * @return a shared ptr to a Class entry.
    */
-  std::shared_ptr<ClassEntry> GetClassEntry(transaction::TransactionContext *txn, namespace_oid_t ns_oid,
-                                            const char *name);
+  std::shared_ptr<ClassCatalogEntry> GetClassEntry(transaction::TransactionContext *txn, namespace_oid_t ns_oid,
+                                                   const char *name);
 
   /**
    * Add row into the Class table.
@@ -107,7 +107,7 @@ class ClassHandle {
    * Delete an entry in ClassHandle
    * @return true on success
    */
-  bool DeleteEntry(transaction::TransactionContext *txn, const std::shared_ptr<ClassEntry> &entry);
+  bool DeleteEntry(transaction::TransactionContext *txn, const std::shared_ptr<ClassCatalogEntry> &entry);
 
   /**
    * Debug methods

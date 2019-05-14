@@ -15,16 +15,16 @@
 
 namespace terrier::catalog {
 
-class DatabaseHandle;
-class TablespaceHandle;
-class SettingsHandle;
+class DatabaseCatalogTable;
+class TablespaceCatalogTable;
+class SettingsCatalogTable;
 
 /**
  * Schema column for used/unused schema rows.
- * This is only used to transfer schema definition information to the sql table for Create. Thereafter, the
- * this structure should not be used and schema information can be obtained from the catalog or from
- * sql table GetSchema.
- * Note that col_num is NOT used.
+ * This is only used to transfer schema definition information to the sql
+ * table for Create. Thereafter, the this structure should not be used and
+ * schema information can be obtained from the catalog or from
+ * sql table GetSchema. Note that col_num is NOT used.
  */
 struct SchemaCol {
   /** column no */
@@ -35,6 +35,18 @@ struct SchemaCol {
   const char *col_name;
   /** column type id */
   type::TypeId type_id;
+};
+
+enum CatalogTableType {
+  ATTRIBUTE = 0,
+  ATTRDEF = 1,
+  CLASS = 2,
+  DATABASE = 3,
+  INDEX = 4,  // future use
+  NAMESPACE = 5,
+  SETTINGS = 6,
+  TABLESPACE = 7,
+  TYPE = 8
 };
 
 /**
@@ -89,7 +101,7 @@ class Catalog {
    *
    * @param txn transaction to use
    * @param db_oid oid of database in which to create the namespace
-   * @param name of the namespace
+   * @param name of the namespaceBootstrapDatabase
    */
   namespace_oid_t CreateNameSpace(transaction::TransactionContext *txn, db_oid_t db_oid, const std::string &name);
 
@@ -139,19 +151,19 @@ class Catalog {
    * Return a database handle.
    * @return the database handle
    */
-  DatabaseHandle GetDatabaseHandle();
+  DatabaseCatalogTable GetDatabaseHandle();
 
   /**
    * Return a tablespace handle.
    * @return the tablespace handle
    */
-  TablespaceHandle GetTablespaceHandle();
+  TablespaceCatalogTable GetTablespaceHandle();
 
   /**
    * Return a settings handle.
    * @return the settings handle
    */
-  SettingsHandle GetSettingsHandle();
+  SettingsCatalogTable GetSettingsHandle();
 
   /**
    * Get a pointer to a user storage table.
@@ -194,10 +206,10 @@ class Catalog {
    * Destructor
    */
   ~Catalog() {
-    // TODO(pakhtar): do we put user databases in the maps? Should not.
-    // iterate over all databases
-    auto db_oid_map = map_.begin();
-    while (db_oid_map != map_.end()) {
+    // TODO(pakhtar): delete all user tables
+    // iterate over all databases and delete all system catalog tables
+    auto db_oid_map = cat_map_.begin();
+    while (db_oid_map != cat_map_.end()) {
       db_oid_t db_oid = db_oid_map->first;
       CATALOG_LOG_DEBUG("Deleting db_oid {}", !db_oid);
       // delete all non-global tables
@@ -214,15 +226,12 @@ class Catalog {
   /**
    * Add a catalog to the catalog mapping
    * @param db_oid database oid
-   * @param table_oid table oid
-   * @param name of the catalog
-   * @param table_rw_p catalog storage table
+   * @param cttype system catalog table type
+   * @param table_p catalog storage table
    */
-  void AddToMaps(db_oid_t db_oid, table_oid_t table_oid, const std::string &name, SqlTableHelper *table_rw_p) {
-    map_[db_oid][table_oid] = table_rw_p;
-    name_map_[db_oid][name] = table_oid;
+  void AddToMap(db_oid_t db_oid, CatalogTableType cttype, SqlTableHelper *table_p) {
+    cat_map_[db_oid][cttype] = table_p;
   }
-
   /**
    * Utility function for adding columns in a table to pg_attribute. To use this function, pg_attribute has to exist.
    * @param txn the transaction that's adding the columns
@@ -249,15 +258,14 @@ class Catalog {
 
  protected:
   /**
-   * Get a pointer to a catalog storage table helper, by table name. For use ONLY on catalog tables (which are in
+   * Get a pointer to a catalog storage table helper, by table type. For use ONLY on catalog tables (which are in
    * the pg_catalog namespace).
    *
    * @param db_oid database that owns the table
-   * @param table_name returns the storage table point for this table
-   * @return a pointer to the catalog
-   * @throw out_of_range exception if either oid doesn't exist or the catalog doesn't exist.
+   * @param cttype catalog table type
+   * @return a pointer to the sql table helper for the requested table
    */
-  SqlTableHelper *GetCatalogTable(db_oid_t db_oid, const std::string &table_name);
+  SqlTableHelper *GetCatalogTable(db_oid_t db_oid, CatalogTableType cttype);
 
  private:
   /**
@@ -362,23 +370,12 @@ class Catalog {
   void DestroyDB(db_oid_t oid);
 
   /**
-   * Get a pointer to a catalog storage table helper. For use ONLY on catalog tables (which are in the pg_catalog
-   * namespace).
-   *
-   * @param db_oid database that owns the table
-   * @param table_oid returns the storage table pointer for this table_oid
-   * @return a pointer to the catalog
-   * @throw out_of_range exception if either oid doesn't exist or the catalog doesn't exist.
-   */
-  SqlTableHelper *GetCatalogTable(db_oid_t db_oid, table_oid_t table_oid);
-
-  /**
    * @param txn transaction
    * @param db_oid
    * @param ns_oid
    * @return TableHandle
    */
-  TableHandle GetUserTableHandle(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid);
+  TableCatalogView GetUserTableHandle(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid);
 
   /**
    * Convert type id (type specified in storage layer schema) to the string used in catalog pg_type to identify
@@ -395,18 +392,18 @@ class Catalog {
   catalog::SqlTableHelper *pg_tablespace_;
   catalog::SqlTableHelper *pg_settings_;
 
-  // map from (db_oid, catalog table_oid_t) to sql table rw wrapper
-  std::unordered_map<db_oid_t, std::unordered_map<table_oid_t, catalog::SqlTableHelper *>> map_;
-
-  // map from (db_oid, catalog name) to table_oid
-  std::unordered_map<db_oid_t, std::unordered_map<std::string, table_oid_t>> name_map_;
+  // map from db_oid, catalog enum type to sql table rw wrapper. For
+  // system catalog tables only.
+  std::unordered_map<db_oid_t, std::unordered_map<enum CatalogTableType, catalog::SqlTableHelper *>> cat_map_;
 
   // all oid types are generated by this global counter
   std::atomic<uint32_t> oid_;
 
-  friend class DatabaseHandle;
-  friend class AttrDefHandle;
-  friend class NamespaceHandle;
+  friend class DatabaseCatalogTable;
+  friend class AttrDefCatalogTable;
+  friend class NamespaceCatalogTable;
 };
+
+extern std::shared_ptr<Catalog> terrier_catalog;
 
 }  // namespace terrier::catalog

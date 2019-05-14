@@ -45,7 +45,7 @@ BENCHMARK_DEFINE_F(CatalogBenchmark, DatabaseLookupTime)(benchmark::State &state
   search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
   search_vec.push_back(type::TransientValueFactory::GetVarChar("terrier"));
 
-  catalog::DatabaseHandle db_handle = catalog_->GetDatabaseHandle();
+  catalog::DatabaseCatalogTable db_handle = catalog_->GetDatabaseHandle();
 
   // NOLINTNEXTLINE
   for (auto _ : state) {

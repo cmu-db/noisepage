@@ -76,7 +76,7 @@ class RandomDataTableTestObject {
     // generate a random redo ProjectedRow to Update
     std::vector<storage::col_id_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout_, generator);
     storage::ProjectedRowInitializer update_initializer =
-        storage::ProjectedRowInitializer::CreateProjectedRowInitializer(layout_, update_col_ids);
+        storage::ProjectedRowInitializer::Create(layout_, update_col_ids);
     auto *update_buffer = common::AllocationUtil::AllocateAligned(update_initializer.ProjectedRowSize());
     storage::ProjectedRow *update = update_initializer.InitializeRow(update_buffer);
     StorageTestUtil::PopulateRandomRow(update, layout_, null_bias_, generator);
@@ -155,8 +155,8 @@ class RandomDataTableTestObject {
   std::vector<transaction::TransactionContext *> loose_txns_;
   double null_bias_;
   // These always over-provision in the case of partial selects or deltas, which is fine.
-  storage::ProjectedRowInitializer redo_initializer_ = storage::ProjectedRowInitializer::CreateProjectedRowInitializer(
-      layout_, StorageTestUtil::ProjectionListAllColumns(layout_));
+  storage::ProjectedRowInitializer redo_initializer_ =
+      storage::ProjectedRowInitializer::Create(layout_, StorageTestUtil::ProjectionListAllColumns(layout_));
   byte *select_buffer_ = common::AllocationUtil::AllocateAligned(redo_initializer_.ProjectedRowSize());
 };
 
