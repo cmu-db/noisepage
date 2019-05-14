@@ -48,6 +48,7 @@ ast::IdentifierExpr *CodeGen::BoutputFinalize() {
 
 ast::Expr *CodeGen::Ty_Nil() const { return ctx_->nil_type_; }
 ast::Expr *CodeGen::Ty_Bool() const { return ctx_->bool_type_; }
+ast::Expr *CodeGen::Ty_Integer() const { return ctx_->int_type_; }
 ast::Expr *CodeGen::Ty_Int8() const { return ctx_->i8_type_; }
 ast::Expr *CodeGen::Ty_Int16() const { return ctx_->i16_type_; }
 ast::Expr *CodeGen::Ty_Int32() const { return ctx_->i32_type_; }

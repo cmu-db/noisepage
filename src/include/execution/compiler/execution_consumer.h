@@ -27,16 +27,10 @@ class ExecutionConsumer {
       ast::Expr *type;
       switch (col.GetType()) {
         case terrier::type::TypeId::TINYINT:
-          type = codegen.Ty_Int8();
-          break;
         case terrier::type::TypeId::SMALLINT:
-          type = codegen.Ty_Int16();
-          break;
         case terrier::type::TypeId::INTEGER:
-          type = codegen.Ty_Int32();
-          break;
         case terrier::type::TypeId::BIGINT:
-          type = codegen.Ty_Int64();
+          type = codegen.Ty_Integer();
           break;
         case terrier::type::TypeId::BOOLEAN:
           type = codegen.Ty_Bool();
@@ -73,7 +67,7 @@ class ExecutionConsumer {
     // var out = @ptrCast(*output_struct, @outputAlloc())
     {
       util::RegionVector<ast::Expr *> args(context->GetCompilationContext()->GetRegion());
-      args.emplace_back(codegen->NewPointerType(DUMMY_POS, output_struct_ex));
+      args.emplace_back(codegen->NewUnaryOpExpr(DUMMY_POS, parsing::Token::Type::STAR, output_struct_ex));
       util::RegionVector<ast::Expr *> args2(context->GetCompilationContext()->GetRegion());
       args.emplace_back(codegen->NewCallExpr(codegen.BoutputAlloc(), std::move(args2)));
       auto output_init = codegen->NewCallExpr(codegen.BptrCast(), std::move(args));

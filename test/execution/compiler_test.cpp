@@ -132,7 +132,7 @@ class CompilerTest : public TerrierTest {
    * @return dummy output schema
    */
   static std::shared_ptr<OutputSchema> BuildDummyOutputSchema() {
-    OutputSchema::Column col("dummy_col", type::TypeId::INTEGER, true, catalog::col_oid_t(0));
+    OutputSchema::Column col("colA", type::TypeId::INTEGER, true, catalog::col_oid_t(0));
     std::vector<OutputSchema::Column> cols;
     cols.push_back(col);
     auto schema = std::make_shared<OutputSchema>(cols);

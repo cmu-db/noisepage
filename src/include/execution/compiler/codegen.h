@@ -33,6 +33,7 @@ class CodeGen {
 
   ast::Expr *Ty_Nil() const;
   ast::Expr *Ty_Bool() const;
+  ast::Expr *Ty_Integer() const;
   ast::Expr *Ty_Int8() const;
   ast::Expr *Ty_Int16() const;
   ast::Expr *Ty_Int32() const;

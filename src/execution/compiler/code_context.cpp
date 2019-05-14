@@ -10,6 +10,7 @@ curr_fn_(nullptr), decls_(region_),
     // lookup names must match ast/type.h's BUILTIN_TYPE_LIST
   nil_type_(ast_factory_.NewIdentifierExpr(DUMMY_POS, ast_ctx_.GetIdentifier("nil"))),
   bool_type_(ast_factory_.NewIdentifierExpr(DUMMY_POS, ast_ctx_.GetIdentifier("bool"))),
+  int_type_(ast_factory_.NewIdentifierExpr(DUMMY_POS, ast_ctx_.GetIdentifier("Integer"))),
   i8_type_(ast_factory_.NewIdentifierExpr(DUMMY_POS, ast_ctx_.GetIdentifier("int8"))),
   i16_type_(ast_factory_.NewIdentifierExpr(DUMMY_POS, ast_ctx_.GetIdentifier("int16"))),
   i32_type_(ast_factory_.NewIdentifierExpr(DUMMY_POS, ast_ctx_.GetIdentifier("int32"))),

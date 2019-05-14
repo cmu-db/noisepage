@@ -48,6 +48,7 @@ class CodeContext {
 
   ast::Expr *nil_type_;
   ast::Expr *bool_type_;
+  ast::Expr *int_type_;
   ast::Expr *i8_type_;
   ast::Expr *i16_type_;
   ast::Expr *i32_type_;
