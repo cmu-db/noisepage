@@ -352,6 +352,82 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryWithHugeRow) {
 }
 
 // NOLINTNEXTLINE
+TEST_F(CheckpointTests, MultipleTableCheckpointRecovery) {
+  checkpoint_manager_.UnlinkCheckpointFiles();
+  const uint32_t num_rows = 100;
+  const uint32_t num_columns = 3;  // single row size is greater than the page size
+  const uint32_t num_columns_2 = 4;
+  int magic_seed = 13523777;
+  double null_bias = 0.2;
+
+  // initialize test
+  auto tested = RandomSqlTableTestObject();
+  transaction::TransactionManager *txn_manager = tested.GetTxnManager();
+
+  std::default_random_engine random_generator(magic_seed);
+  auto table_pair = tested.GenerateAndPopulateRandomTable(num_columns, true, &random_generator, num_rows, null_bias);
+  storage::SqlTable *table = table_pair.first;
+  catalog::Schema *schema = table_pair.second;
+
+  auto table_pair_2 =
+      tested.GenerateAndPopulateRandomTable(num_columns_2, true, &random_generator, num_rows, null_bias);
+  storage::SqlTable *table2 = table_pair_2.first;
+  catalog::Schema *schema2 = table_pair_2.second;
+
+  // checkpoint
+  transaction::TransactionContext *txn = txn_manager->BeginTransaction();
+  checkpoint_manager_.StartCheckpoint(txn);
+  checkpoint_manager_.Checkpoint(*table, *schema);
+  checkpoint_manager_.Checkpoint(*table2, *schema2);
+  checkpoint_manager_.EndCheckpoint();
+  txn_manager->Commit(txn, StorageTestUtil::EmptyCallback, nullptr);
+
+  // read first run
+  transaction::TransactionContext *scan_txn = txn_manager->BeginTransaction();
+  std::vector<std::string> original_rows;
+  StorageTestUtil::PrintAllRows(scan_txn, table, &original_rows);
+  StorageTestUtil::PrintAllRows(scan_txn, table2, &original_rows);
+  txn_manager->Commit(scan_txn, StorageTestUtil::EmptyCallback, nullptr);
+  // recovery to another table
+  std::pair<std::string, terrier::transaction::timestamp_t> checkpoint_pair =
+      checkpoint_manager_.GetLatestCheckpointFilename();
+  transaction::TransactionContext *recovery_txn = txn_manager->BeginTransaction();
+  storage::BlockStore block_store_{10000, 10000};
+  auto *recovered_table = new storage::SqlTable(&block_store_, *schema, table->Oid());
+  auto *recovered_table2 = new storage::SqlTable(&block_store_, *schema2, table2->Oid());
+  checkpoint_manager_.StartRecovery(recovery_txn);
+  checkpoint_manager_.RegisterTable(recovered_table);
+  checkpoint_manager_.RegisterTable(recovered_table2);
+  checkpoint_manager_.Recover(checkpoint_pair.first.c_str());
+  txn_manager->Commit(recovery_txn, StorageTestUtil::EmptyCallback, nullptr);
+  // read recovered table
+  transaction::TransactionContext *scan_txn_2 = txn_manager->BeginTransaction();
+  std::vector<std::string> recovered_rows;
+  StorageTestUtil::PrintAllRows(scan_txn_2, recovered_table, &recovered_rows);
+  StorageTestUtil::PrintAllRows(scan_txn_2, recovered_table2, &recovered_rows);
+  txn_manager->Commit(scan_txn_2, StorageTestUtil::EmptyCallback, nullptr);
+  // compare
+  std::vector<std::string> diff1, diff2;
+  std::sort(original_rows.begin(), original_rows.end());
+  std::sort(recovered_rows.begin(), recovered_rows.end());
+  std::set_difference(original_rows.begin(), original_rows.end(), recovered_rows.begin(), recovered_rows.end(),
+                      std::inserter(diff1, diff1.begin()));
+  std::set_difference(recovered_rows.begin(), recovered_rows.end(), original_rows.begin(), original_rows.end(),
+                      std::inserter(diff2, diff2.begin()));
+  EXPECT_EQ(diff1.size(), 0);
+  EXPECT_EQ(diff2.size(), 0);
+  checkpoint_manager_.UnlinkCheckpointFiles();
+  delete recovered_table;
+  delete scan_txn;
+  delete scan_txn_2;
+  delete recovery_txn;
+  delete table;
+  delete schema;
+  delete table2;
+  delete schema2;
+}
+
+// NOLINTNEXTLINE
 TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryNoVarlen) {
   checkpoint_manager_.UnlinkCheckpointFiles();
   // First unlink log file and initialize log manager, to prevent existing log file affect the current test
