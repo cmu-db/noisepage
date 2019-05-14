@@ -128,7 +128,7 @@ class SettingsManager {
 
  private:
   DBMain *db_;
-  catalog::SettingsHandle settings_handle_;
+  catalog::SettingsCatalogTable settings_handle_;
   transaction::TransactionManager *txn_manager_;
   common::SharedLatch latch_;
 

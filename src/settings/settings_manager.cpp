@@ -57,7 +57,7 @@ void SettingsManager::ValidateSetting(Param param, const type::TransientValue &m
 
 void SettingsManager::InitializeCatalog() {
   auto txn = txn_manager_->BeginTransaction();
-  auto column_num = catalog::SettingsHandle::schema_cols_.size();
+  auto column_num = catalog::SettingsCatalogTable::schema_cols_.size();
 
   for (const auto &pair : db_->param_map_) {
     const Param param = pair.first;

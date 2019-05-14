@@ -135,6 +135,15 @@ class CatalogEntry {
   }
 
   /**
+   * Set the value for a given column
+   * @param col_num the column index
+   * @param value the value of the column
+   */
+  void SetColumn(int32_t col_num, const type::TransientValue &value) {
+    entry_[col_num] = type::TransientValueFactory::GetCopy(value);
+  }
+
+  /**
    * Get oid, e.g. tablespace_oid_t, table_oid_t.
    */
   Oid GetOid() { return oid_; }
