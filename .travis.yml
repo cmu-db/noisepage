@@ -63,7 +63,7 @@ before_script:
       docker exec build /bin/sh -c "cd /repo/build && make gflags_ep -j 4" &&
       docker exec build /bin/sh -c "cd /repo/build && make googletest_ep -j 4" &&
       docker exec build /bin/sh -c "cd /repo/build && make gbenchmark_ep -j 4" &&
-      docker exec build /bin/sh -c "cd /repo/build && make check-clang-tidy" &&
+      travis_wait 120 docker exec build /bin/sh -c "cd /repo/build && make check-clang-tidy" &&
       docker exec build /bin/sh -c "cd /repo/build && make check-format" &&
       docker exec build /bin/sh -c "cd /repo/build && make check-lint" &&
       docker exec build /bin/sh -c "cd /repo/build && make check-censored";
