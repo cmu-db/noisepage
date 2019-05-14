@@ -418,8 +418,10 @@ TEST_F(CheckpointTests, MultipleTableCheckpointRecovery) {
   EXPECT_EQ(diff2.size(), 0);
   checkpoint_manager_.UnlinkCheckpointFiles();
   delete recovered_table;
+  delete recovered_table2;
   delete scan_txn;
   delete scan_txn_2;
+  delete txn;
   delete recovery_txn;
   delete table;
   delete schema;
