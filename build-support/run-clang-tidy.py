@@ -295,19 +295,18 @@ def main():
 
         def update_progress(current_file, num_files):
             pct = int(current_file / num_files * 100)
-            if current_file == num_files or pct % max(2, num_files // 10) == 0:
-                stars = pct // 10
-                spaces = 10 - pct // 10
-                print('\rProgress: [{}{}] ({}% / File {} of {})'.format(
-                    'x' * stars,
-                    ' ' * spaces,
-                    pct,
-                    current_file,
-                    num_files
-                ), end='')
-                sys.stdout.flush()
-                if current_file == num_files:
-                    print()
+            stars = pct // 10
+            spaces = 10 - pct // 10
+            print('\rProgress: [{}{}] ({}% / File {} of {})'.format(
+                'x' * stars,
+                ' ' * spaces,
+                pct,
+                current_file,
+                num_files
+            ), end='')
+            sys.stdout.flush()
+            if current_file == num_files:
+                print()
 
         # Fill the queue with files.
         for i, name in enumerate(files):
