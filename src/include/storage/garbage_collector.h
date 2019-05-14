@@ -2,6 +2,7 @@
 
 #include <queue>
 #include <utility>
+#include "storage/access_observer.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
 #include "transaction/transaction_manager.h"
@@ -21,8 +22,8 @@ class GarbageCollector {
    * GC to invoke the TM's function for handing off the completed transactions queue.
    * @param txn_manager pointer to the TransactionManager
    */
-  explicit GarbageCollector(transaction::TransactionManager *txn_manager)
-      : txn_manager_(txn_manager), last_unlinked_{0} {
+  explicit GarbageCollector(transaction::TransactionManager *txn_manager, AccessObserver *observer = nullptr)
+      : txn_manager_(txn_manager), observer_(observer), last_unlinked_{0} {
     TERRIER_ASSERT(txn_manager_->GCEnabled(),
                    "The TransactionManager needs to be instantiated with gc_enabled true for GC to work!");
   }
@@ -63,6 +64,7 @@ class GarbageCollector {
   void TruncateVersionChain(DataTable *table, TupleSlot slot, transaction::timestamp_t oldest) const;
 
   transaction::TransactionManager *const txn_manager_;
+  AccessObserver *observer_;
   // timestamp of the last time GC unlinked anything. We need this to know when unlinked versions are safe to deallocate
   transaction::timestamp_t last_unlinked_;
   // queue of txns that have been unlinked, and should possible be deleted on next GC run

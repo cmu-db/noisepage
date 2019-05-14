@@ -13,6 +13,7 @@
 namespace terrier::storage {
 
 std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
+  if (observer_ != nullptr) observer_->ObserveGCInvocation();
   ProcessDeferredActions();
   uint32_t txns_deallocated = ProcessDeallocateQueue();
   STORAGE_LOG_TRACE("GarbageCollector::PerformGarbageCollection(): txns_deallocated: {}", txns_deallocated);
@@ -78,7 +79,10 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
   while (!txns_to_unlink_.empty()) {
     txn = txns_to_unlink_.front();
     txns_to_unlink_.pop_front();
-    if (txn->undo_buffer_.Empty()) {
+
+    if (txn->IsReadOnly()) {
+      // TODO(Tianyu): Deal with this edge case
+//      if (txn->compacted_ != nullptr && observer_ != nullptr) observer_->ObserveWrite(txn->compacted_);
       // This is a read-only transaction so this is safe to immediately delete
       delete txn;
       txns_processed++;
@@ -91,6 +95,7 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
       // Safe to garbage collect.
       for (auto &undo_record : txn->undo_buffer_) {
         DataTable *&table = undo_record.Table();
+        if (table == nullptr) throw std::runtime_error("committed transactions should not have undo records that point to null");
         // Each version chain needs to be traversed and truncated at most once every GC period. Check
         // if we have already visited this tuple slot; if not, proceed to prune the version chain.
         if (visited_slots.insert(undo_record.Slot()).second)
@@ -98,6 +103,7 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
         // Regardless of the version chain we will need to reclaim deleted slots and any dangling pointers to varlens.
         ReclaimSlotIfDeleted(&undo_record);
         ReclaimBufferIfVarlen(txn, &undo_record);
+        if (observer_ != nullptr) observer_->ObserveWrite(undo_record.Slot().GetBlock());
       }
       txns_to_deallocate_.push_front(txn);
       txns_processed++;

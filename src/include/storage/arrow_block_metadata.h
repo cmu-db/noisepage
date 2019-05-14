@@ -87,36 +87,38 @@ class ArrowVarlenColumn {
   /**
    * @return length of the offsets array
    */
-  uint32_t getOffsetsLength() const { return offsets_length_; }
+  uint32_t OffsetsLength() const { return offsets_length_; }
 
   /**
    * @return the values array
    */
-  byte *getValues() const { return values_; }
+  byte *Values() const { return values_; }
 
   /**
    * @return the offsets array
    */
-  uint32_t *getOffsets() const { return offsets_; }
+  uint32_t *Offsets() const { return offsets_; }
+
+  void Deallocate() {
+    delete[] values_;
+    values_ = nullptr;
+    delete[] offsets_;
+    offsets_ = nullptr;
+  }
 
  private:
   uint32_t values_length_ = 0, offsets_length_ = 0;
   byte *values_ = nullptr;
   uint32_t *offsets_ = nullptr;
+
 };
 
-/**
- * Stores information about accessing a column using the Arrow format. This includes the type of the column,
- * and pointers to various buffers if the column is variable length or compressed.
- */
 class ArrowColumnInfo {
  public:
-  ~ArrowColumnInfo() { delete[] indices_; }
-
   /**
    * @return type of the Arrow Column
    */
-  ArrowColumnType Type() const { return type_; }
+  ArrowColumnType &Type() { return type_; }
   /**
    * @return ArrowVarlenColumn object for the column
    */
@@ -127,10 +129,15 @@ class ArrowColumnInfo {
    * size of this array is equal to the number of slots in a block.
    * @return the indices array
    */
-  uint32_t *getIndices() const {
+  uint32_t *&Indices() {
     TERRIER_ASSERT(type_ == ArrowColumnType::DICTIONARY_COMPRESSED,
                    "this array is only meaningful if the column is dicationary compressed");
     return indices_;
+  }
+
+  void Deallocate() {
+    delete[] indices_;
+    varlen_column_.Deallocate();
   }
 
  private:

@@ -1,10 +1,12 @@
 #include "storage/data_table.h"
 #include <cstring>
 #include <unordered_map>
+#include <pthread.h>
 #include "common/allocator.h"
 #include "storage/storage_util.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_util.h"
+#include "storage/block_access_controller.h"
 
 namespace terrier::storage {
 DataTable::DataTable(BlockStore *const store, const BlockLayout &layout, const layout_version_t layout_version)
@@ -19,6 +21,8 @@ DataTable::~DataTable() {
   common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
   for (RawBlock *block : blocks_) {
     DeallocateVarlensOnShutdown(block);
+    for (col_id_t i : accessor_.GetBlockLayout().Varlens())
+      accessor_.GetArrowBlockMetadata(block).GetColumnInfo(accessor_.GetBlockLayout(), i).Deallocate();
     block_store_->Release(block);
   }
 }
@@ -82,6 +86,7 @@ bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSl
                  "The input buffer cannot change the reserved columns, so it should have fewer attributes.");
   TERRIER_ASSERT(redo.NumColumns() > 0, "The input buffer should modify at least one attribute.");
   UndoRecord *const undo = txn->UndoRecordForUpdate(this, slot, redo);
+  slot.GetBlock()->controller_.WaitUntilHot();
   UndoRecord *version_ptr;
   do {
     version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
@@ -145,6 +150,8 @@ void DataTable::InsertInto(transaction::TransactionContext *txn, const Projected
   // At this point, sequential scan down the block can still see this, except it thinks it is logically deleted if we 0
   // the primary key column
   UndoRecord *undo = txn->UndoRecordForInsert(this, dest);
+  TERRIER_ASSERT(dest.GetBlock()->controller_.CurrentBlockState() == BlockState::HOT,
+                 "Should only be able to insert into hot blocks");
   AtomicallyWriteVersionPtr(dest, accessor_, undo);
   // Set the logically deleted bit to present as the undo record is ready
   accessor_.AccessForceNotNull(dest, VERSION_POINTER_COLUMN_ID);
@@ -163,6 +170,7 @@ bool DataTable::Delete(transaction::TransactionContext *const txn, const TupleSl
   // call StageDelete before calling Delete?
   txn->StageDelete(this, slot);
   UndoRecord *const undo = txn->UndoRecordForDelete(this, slot);
+  slot.GetBlock()->controller_.WaitUntilHot();
   UndoRecord *version_ptr;
   do {
     version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
