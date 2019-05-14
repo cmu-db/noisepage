@@ -219,8 +219,8 @@ common::ActionState SettingsManager::InvokeCallback(Param param, void *old_value
   return action_state;
 }
 
-void SettingsManager::ConstructParamMap(
-    std::unordered_map<terrier::settings::Param, terrier::settings::ParamInfo> &param_map) {
+void SettingsManager::ConstructParamMap(                                                      // NOLINT
+    std::unordered_map<terrier::settings::Param, terrier::settings::ParamInfo> &param_map) {  // NOLINT
   /*
    * Populate gflag values to param map.
    * This will expand to a list of code like:

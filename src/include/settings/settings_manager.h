@@ -124,7 +124,8 @@ class SettingsManager {
    * Construct settings param map from settings_defs.h
    * @param param_map
    */
-  static void ConstructParamMap(std::unordered_map<terrier::settings::Param, terrier::settings::ParamInfo> &param_map);
+  static void ConstructParamMap(                                                               // NOLINT
+      std::unordered_map<terrier::settings::Param, terrier::settings::ParamInfo> &param_map);  // NOLINT
 
  private:
   DBMain *db_;
