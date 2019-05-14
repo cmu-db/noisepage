@@ -22,7 +22,7 @@ class CodeGen {
  public:
   util::Region *GetRegion();
 
-  CodeContext *GetCodeContext() { return ctx_; }
+  CodeContext *GetCodeContext() const { return ctx_; }
   explicit CodeGen(CodeContext *ctx);
 
   DISALLOW_COPY_AND_MOVE(CodeGen);

@@ -21,7 +21,7 @@ ast::BlockStmt *CodeGen::EmptyBlock() const {
 ast::Identifier CodeGen::NewIdentifier() {
   // Use the custom allocator because the id will outlive the std::string.
   std::string id = "id" + std::to_string(id_count_++);
-  char* id_str = GetRegion()->AllocateArray<char>(id.size() + 1);
+  auto* id_str = GetRegion()->AllocateArray<char>(id.size() + 1);
   std::memcpy(id_str, id.c_str(), id.size() + 1);
   return ctx_->GetAstContext()->GetIdentifier(id_str);
 }

@@ -19,18 +19,18 @@ constexpr const char *error_strings[] = {MESSAGE_LIST(F)};
 }  // namespace
 
 void ErrorReporter::MessageArgument::FormatMessageArgument(
-    std::string &str) const {
+    std::string *str) const {
   switch (kind()) {
     case Kind::CString: {
-      str.append(raw_str_);
+      str->append(raw_str_);
       break;
     }
     case MessageArgument::Kind::Int: {
-      str.append(std::to_string(integer_));
+      str->append(std::to_string(integer_));
       break;
     }
     case Kind::Position: {
-      str.append("[line/col: ")
+      str->append("[line/col: ")
           .append(std::to_string(pos_.line))
           .append("/")
           .append(std::to_string(pos_.column))
@@ -38,12 +38,12 @@ void ErrorReporter::MessageArgument::FormatMessageArgument(
       break;
     }
     case Kind::Token: {
-      str.append(parsing::Token::GetString(
+      str->append(parsing::Token::GetString(
           static_cast<parsing::Token::Type>(integer_)));
       break;
     }
     case Kind::Type: {
-      str.append(ast::Type::ToString(type_));
+      str->append(ast::Type::ToString(type_));
       break;
     }
   }
@@ -75,7 +75,7 @@ std::string ErrorReporter::MessageWithArgs::FormatMessage() const {
 
     msg.append(fmt, pos - fmt);
 
-    args_[arg_idx++].FormatMessageArgument(msg);
+    args_[arg_idx++].FormatMessageArgument(&msg);
 
     fmt = pos + 1;
     while (std::isalnum(*fmt) != 0) {

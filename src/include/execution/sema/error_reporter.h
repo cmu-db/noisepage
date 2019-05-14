@@ -21,7 +21,7 @@ namespace sema {
 namespace detail {
 template <typename T>
 struct PassArgument {
-  typedef T type;
+  using type = T;
 };
 
 }  // namespace detail
@@ -80,7 +80,7 @@ class ErrorReporter {
 
    private:
     friend class ErrorReporter;
-    void FormatMessageArgument(std::string &str) const;
+    void FormatMessageArgument(std::string *str) const;
 
    private:
     Kind kind_;

@@ -98,7 +98,7 @@ LocalVar BytecodeIterator::GetLocalOperand(u32 operand_index) const {
 }
 
 u16 BytecodeIterator::GetLocalCountOperand(
-    u32 operand_index, std::vector<LocalVar> &locals) const {
+    u32 operand_index, std::vector<LocalVar> *locals) const {
   TPL_ASSERT(OperandTypes::IsLocalCount(Bytecodes::GetNthOperandType(
                  CurrentBytecode(), operand_index)),
              "Operand type is not a local variable count");
@@ -114,7 +114,7 @@ u16 BytecodeIterator::GetLocalCountOperand(
 
   for (u32 i = 0; i < num_locals; i++) {
     auto encoded_val = *reinterpret_cast<const u32 *>(locals_address);
-    locals.push_back(LocalVar::Decode(encoded_val));
+    locals->push_back(LocalVar::Decode(encoded_val));
 
     locals_address += OperandTypeTraits<OperandType::Local>::kSize;
   }

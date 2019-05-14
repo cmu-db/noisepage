@@ -47,7 +47,7 @@ void CompilationContext::GeneratePlan(Query *query) {
     // 2. Declare init function
     util::RegionVector<ast::FieldDecl *> params(query->GetRegion());
     params.emplace_back(codegen_->NewFieldDecl(DUMMY_POS, qs_id, qs_type_ptr));
-    FunctionBuilder init_fn(codegen_, init_id, std::move(params), codegen_.Ty_Nil());
+    FunctionBuilder init_fn(&codegen_, init_id, std::move(params), codegen_.Ty_Nil());
     consumer_->InitializeQueryState(this);
     for (const auto &it : op_translators_) {
       it.second->InitializeQueryState();
@@ -59,7 +59,7 @@ void CompilationContext::GeneratePlan(Query *query) {
     // 3. Declare produce function
     util::RegionVector<ast::FieldDecl *> params(query->GetRegion());
     params.emplace_back(codegen_->NewFieldDecl(DUMMY_POS, qs_id, qs_type_ptr));
-    FunctionBuilder produce_fn(codegen_, produce_id, std::move(params), codegen_.Ty_Nil());
+    FunctionBuilder produce_fn(&codegen_, produce_id, std::move(params), codegen_.Ty_Nil());
     GetTranslator(query->GetPlan())->Produce();
     decls.emplace_back(produce_fn.Finish());
   }
@@ -68,7 +68,7 @@ void CompilationContext::GeneratePlan(Query *query) {
     // 4. Declare teardown function
     util::RegionVector<ast::FieldDecl *> params(query->GetRegion());
     params.emplace_back(codegen_->NewFieldDecl(DUMMY_POS, qs_id, qs_type_ptr));
-    FunctionBuilder teardown_fn(codegen_, teardown_id, std::move(params), codegen_.Ty_Nil());
+    FunctionBuilder teardown_fn(&codegen_, teardown_id, std::move(params), codegen_.Ty_Nil());
     consumer_->TeardownQueryState(this);
     for (const auto &it : op_translators_) {
       it.second->TeardownQueryState();
@@ -80,7 +80,7 @@ void CompilationContext::GeneratePlan(Query *query) {
     // 5. Define main function
     util::RegionVector<ast::FieldDecl *> main_params(query->GetRegion());
     auto main_id = ast_ctx->GetIdentifier("main");
-    FunctionBuilder main_fn(codegen_, main_id, std::move(main_params), codegen_.Ty_Int32());
+    FunctionBuilder main_fn(&codegen_, main_id, std::move(main_params), codegen_.Ty_Int32());
     // 5.1 Declare the qs variable
     auto qs_decl = codegen_->NewDeclStmt(codegen_->NewVariableDecl(DUMMY_POS, qs_id, qs_type, nullptr));
     main_fn.Append(qs_decl);

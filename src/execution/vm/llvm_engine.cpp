@@ -645,7 +645,7 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(
         }
         case OperandType::LocalCount: {
           std::vector<LocalVar> locals;
-          iter.GetLocalCountOperand(i, locals);
+          iter.GetLocalCountOperand(i, &locals);
           for (const auto local : locals) {
             args.push_back(locals_map.GetArgumentById(local));
           }

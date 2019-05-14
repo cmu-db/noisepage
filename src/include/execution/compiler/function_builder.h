@@ -12,7 +12,7 @@ class CodeGen;
 
 class FunctionBuilder {
  public:
-  FunctionBuilder(CodeGen &codegen, ast::Identifier fn_name, util::RegionVector<ast::FieldDecl *> fn_params,
+  FunctionBuilder(CodeGen *codegen, ast::Identifier fn_name, util::RegionVector<ast::FieldDecl *> fn_params,
       ast::Expr *fn_ret_type);
 
   DISALLOW_COPY_AND_MOVE(FunctionBuilder);
@@ -29,12 +29,12 @@ class FunctionBuilder {
 
   void StartIfStmt(ast::Expr *condition);
 
-  CodeGen &GetCodeGen() { return codegen_; }
+  CodeGen *GetCodeGen() { return codegen_; }
 
   ast::FunctionDecl *Finish();
 
  private:
-  CodeGen &codegen_;
+  CodeGen *codegen_;
   FunctionBuilder *prev_fn_;
 
   ast::Identifier fn_name_;
