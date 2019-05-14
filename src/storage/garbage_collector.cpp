@@ -361,7 +361,7 @@ void GarbageCollector::BeginCompaction(UndoRecord **start_record_ptr, UndoRecord
   //         INSERT is the last record in the version chain
   // Case 3: next is of type DELETE
   //         DELETE can only be the newest record in the version chain
-  TERRIER_ASSERT(next != NULL, "The next pointer should not be NULL while Unlinking");
+  TERRIER_ASSERT(next != nullptr, "The next pointer should not be NULL while Unlinking");
   TERRIER_ASSERT(next->Type() != DeltaRecordType::DELETE, "Delete cannot be compacted");
   *start_record_ptr = curr;
   *interval_length_ptr = 1;
@@ -447,7 +447,7 @@ UndoRecord *GarbageCollector::InitializeUndoRecord(const transaction::timestamp_
 
   // Initialize the projected row with the set of columns we have seen in the first pass
   std::vector<col_id_t> col_id_list(col_set_.begin(), col_set_.end());
-  auto init = storage::ProjectedRowInitializer::CreateProjectedRowInitializer(layout, col_id_list);
+  auto init = storage::ProjectedRowInitializer::Create(layout, col_id_list);
 
   // Get new entry for the undo record from the buffer
   uint32_t size = static_cast<uint32_t>(sizeof(UndoRecord)) + init.ProjectedRowSize();
