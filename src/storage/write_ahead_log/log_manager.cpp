@@ -58,9 +58,6 @@ void LogManager::SerializeRecord(const terrier::storage::LogRecord &record) {
       auto *record_body = record.GetUnderlyingRecordBodyAs<RedoRecord>();
       auto *data_table = record_body->GetDataTable();
       WriteValue(data_table->TableOid());
-
-      // TODO(Justin): Be careful about how tuple slot is interpreted during real recovery. Right now I think we kind of
-      //  sidestep the issue with "bookkeeping".
       WriteValue(record_body->GetTupleSlot());
 
       auto *delta = record_body->Delta();

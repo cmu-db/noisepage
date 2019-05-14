@@ -168,7 +168,6 @@ void CheckpointManager::RecoverFromLogs(const char *log_file_path,
 
 storage::LogRecord *CheckpointManager::ReadNextLogRecord(storage::BufferedLogReader *in,
                                                          std::vector<byte *> *varlen_contents) {
-  // TODO(Justin): Fit this to new serialization format after it is complete.
   auto size = in->ReadValue<uint32_t>();
   byte *buf = common::AllocationUtil::AllocateAligned(size);
   auto record_type = in->ReadValue<storage::LogRecordType>();
@@ -183,14 +182,14 @@ storage::LogRecord *CheckpointManager::ReadNextLogRecord(storage::BufferedLogRea
   auto table_oid = in->ReadValue<catalog::table_oid_t>();
   auto tuple_slot = in->ReadValue<storage::TupleSlot>();
   if (record_type == storage::LogRecordType::DELETE) {
-    // TODO(Justin): set a pointer to the correct data table? Will this even be useful for recovery?
+    // Use nullptr for the pointer to the data table in DeleteRecord, since recovery will not read that field.
     return storage::DeleteRecord::Initialize(buf, txn_begin, nullptr, tuple_slot);
   }
   // If code path reaches here, we have a REDO record.
   SqlTable *table = GetTable(table_oid);
   auto num_cols = in->ReadValue<uint16_t>();
 
-  // TODO(Justin): Could do this with just one read of (sizeof(col_id_t) * num_cols) bytes, and then index in. That's
+  // TODO(Yuning): Could do this with just one read of (sizeof(col_id_t) * num_cols) bytes, and then index in. That's
   //  probably faster, but stick with the more naive way for now. We need a vector, not just a col_id_t[], because
   //  that is what ProjectedRowInitializer needs.
   std::vector<catalog::col_oid_t> col_oids(num_cols);
@@ -200,7 +199,7 @@ storage::LogRecord *CheckpointManager::ReadNextLogRecord(storage::BufferedLogRea
   }
   // Initialize the redo record.
   auto row_pair = table->InitializerForProjectedRow(col_oids);
-  // TODO(Justin): set a pointer to the correct data table? Will this even be useful for recovery?
+  // Use nullptr for the pointer to the data table in RedoRecord, since recovery will not read that field.
   auto *result = storage::RedoRecord::Initialize(buf, txn_begin, nullptr, tuple_slot, row_pair.first);
   auto *delta = result->GetUnderlyingRecordBodyAs<storage::RedoRecord>()->Delta();
 
