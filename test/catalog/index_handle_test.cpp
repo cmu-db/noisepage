@@ -1,4 +1,5 @@
 #include "catalog/index_handle.h"
+#include <string>
 #include "catalog/catalog.h"
 #include "transaction/transaction_manager.h"
 #include "type/transient_value_factory.h"

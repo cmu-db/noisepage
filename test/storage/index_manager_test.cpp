@@ -99,6 +99,7 @@ struct IndexManagerTest : public TerrierTest {
   storage::GarbageCollector *gc_ = nullptr;
   volatile bool run_gc_ = false;
   const std::chrono::milliseconds gc_period_{10};
+  const int thread_num_ = 200;
 
   void GCThreadLoop() {
     while (run_gc_) {
@@ -596,11 +597,12 @@ TEST_F(IndexManagerTest, CreateIndexConcurrentlyFuzzyTest) {
 
   // insert table entries with multiple threads
   std::vector<std::thread> thds;
-  for (int i = 0; i < 200; ++i) {
+  thds.reserve(thread_num_);
+  for (int i = 0; i < thread_num_; ++i) {
     thds.emplace_back(InsertThread, catalog_, table, index_oid, i, index_id, txn_manager_, index_manager_);
   }
 
-  for (int i = 0; i < 200; ++i) {
+  for (int i = 0; i < thread_num_; ++i) {
     thds[i].join();
   }
 
