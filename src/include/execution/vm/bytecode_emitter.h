@@ -15,13 +15,13 @@ class BytecodeEmitter {
  public:
   /// Construct a bytecode emitter instance that emits bytecode operations into
   /// the provided bytecode vector
-  explicit BytecodeEmitter(std::vector<u8> &bytecode) : bytecode_(bytecode) {}
+  explicit BytecodeEmitter(std::vector<u8> *bytecode) : bytecode_(bytecode) {}
 
   /// Cannot copy or move this class
   DISALLOW_COPY_AND_MOVE(BytecodeEmitter);
 
   /// Access the current position of the emitter in the bytecode stream
-  std::size_t position() const { return bytecode_.size(); }
+  std::size_t position() const { return bytecode_->size(); }
 
   // -------------------------------------------------------
   // Derefs
@@ -127,8 +127,8 @@ class BytecodeEmitter {
   // Copy a scalar immediate value into the bytecode stream
   template <typename T>
   auto EmitScalarValue(T val) -> std::enable_if_t<std::is_integral_v<T>> {
-    bytecode_.insert(bytecode_.end(), sizeof(T), 0);
-    *reinterpret_cast<T *>(&*(bytecode_.end() - sizeof(T))) = val;
+    bytecode_->insert(bytecode_->end(), sizeof(T), 0);
+    *reinterpret_cast<T *>(&*(bytecode_->end() - sizeof(T))) = val;
   }
 
   // Emit a bytecode
@@ -155,7 +155,7 @@ class BytecodeEmitter {
   void EmitJump(BytecodeLabel *label);
 
  private:
-  std::vector<u8> &bytecode_;
+  std::vector<u8> *bytecode_;
 };
 
 }  // namespace tpl::vm

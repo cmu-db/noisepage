@@ -125,11 +125,11 @@ class BytecodeGenerator::BytecodePositionScope {
 // ---------------------------------------------------------
 
 BytecodeGenerator::BytecodeGenerator() noexcept
-    : emitter_(bytecode_), execution_result_(nullptr) {}
+    : emitter_(&bytecode_), execution_result_(nullptr) {}
 
 BytecodeGenerator::BytecodeGenerator(
     std::shared_ptr<exec::ExecutionContext> &exec_context) noexcept
-    : emitter_(bytecode_),
+    : emitter_(&bytecode_),
       execution_result_(nullptr),
       exec_context_(exec_context) {}
 

@@ -96,10 +96,10 @@ void BytecodeEmitter::Bind(BytecodeLabel *label) {
 
       auto delta = static_cast<i32>(curr_offset - jump_location);
       auto *raw_delta = reinterpret_cast<u8 *>(&delta);
-      bytecode_[jump_location] = raw_delta[0];
-      bytecode_[jump_location + 1] = raw_delta[1];
-      bytecode_[jump_location + 2] = raw_delta[2];
-      bytecode_[jump_location + 3] = raw_delta[3];
+      bytecode_->at(jump_location) = raw_delta[0];
+      bytecode_->at(jump_location + 1) = raw_delta[1];
+      bytecode_->at(jump_location + 2) = raw_delta[2];
+      bytecode_->at(jump_location + 3) = raw_delta[3];
     }
   }
 

@@ -8,8 +8,8 @@ ConciseHashTable::ConciseHashTable(u32 probe_threshold)
     : slot_groups_(nullptr),
       num_groups_(0),
       probe_limit_(probe_threshold),
-      num_overflow_(0),
-      built_(false) {}
+      num_overflow_(0)
+      {}
 
 ConciseHashTable::~ConciseHashTable() {
   if (slot_groups_ != nullptr) {

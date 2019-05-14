@@ -39,12 +39,12 @@ void OpAbortTransaction(terrier::transaction::TransactionContext **txn) {
 // ---------------------------------------------------------
 
 void OpTableVectorIteratorInit(tpl::sql::TableVectorIterator *iter, u32 db_oid,
-                               u32 table_id, uintptr_t exec_context_addr) {
+                               u32 table_oid, uintptr_t exec_context_addr) {
   TPL_ASSERT(iter != nullptr, "Null iterator to initialize");
   auto *exec_context =
       reinterpret_cast<tpl::exec::ExecutionContext *>(exec_context_addr);
   new (iter)
-      tpl::sql::TableVectorIterator(db_oid, table_id, exec_context->GetTxn());
+      tpl::sql::TableVectorIterator(db_oid, table_oid, exec_context->GetTxn());
 }
 
 void OpTableVectorIteratorPerformInit(tpl::sql::TableVectorIterator *iter) {
