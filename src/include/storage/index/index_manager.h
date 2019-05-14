@@ -112,6 +112,7 @@ class IndexManager {
   /**
    * Set the status of index blocking flag
    * @param key the index_id representing the index
+   * @param value the status of building index
    */
   void SetIndexBlockingFlag(const index_id_t &key, bool value) {
     common::SpinLatch::ScopedSpinLatch guard(&index_building_map_latch_);
