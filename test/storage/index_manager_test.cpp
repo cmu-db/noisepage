@@ -12,8 +12,11 @@
 
 namespace terrier::storage::index {
 struct IndexManagerTest : public TerrierTest {
+  static const int FUZZY_TEST_MILLIS = 10;
+
   static void InsertThread(catalog::Catalog *catalog, catalog::SqlTableHelper *table, const std::string &index_name,
                            int idx, transaction::TransactionManager *txn_manager_, IndexManager *index_manager_) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(FUZZY_TEST_MILLIS * idx));
     auto txn = txn_manager_->BeginTransaction();
     // binding
     const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
@@ -36,6 +39,7 @@ struct IndexManagerTest : public TerrierTest {
     // index does not exist
     if (index_entry == nullptr) {
       txn_manager_->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+      return;
     }
     auto index = reinterpret_cast<Index *>(index_entry->GetBigIntColumn("indexptr"));
     auto index_id = IndexManager::make_index_id(terrier_oid, ns_oid, index_entry->GetOid());
@@ -586,7 +590,15 @@ TEST_F(IndexManagerTest, CreateIndexConcurrentlyFuzzyTest) {
   std::vector<std::string> index_attrs{"sex", "id", "name"};
   std::vector<std::string> key_attrs{"id", "name"};
 
-  // Create the index
+  // insert table entries with multiple threads
+  std::vector<std::thread> thds;
+  thds.reserve(thread_num_);
+  for (int i = 0; i < thread_num_; ++i) {
+    thds.emplace_back(InsertThread, catalog_, table, "test_index", i, txn_manager_, index_manager_);
+  }
+
+  // Create the index, wait for half of the inserts to finish, and half are ready to fire
+  std::this_thread::sleep_for(std::chrono::milliseconds(FUZZY_TEST_MILLIS * thread_num_ / 2));
   auto index_oid = index_manager_->Create(terrier_oid, ns_oid, table_oid, parser::IndexType::BWTREE, false,
                                           "test_index", index_attrs, key_attrs, txn_manager_, catalog_, false);
   EXPECT_GT(!index_oid, 0);
@@ -603,13 +615,7 @@ TEST_F(IndexManagerTest, CreateIndexConcurrentlyFuzzyTest) {
   EXPECT_EQ(index_entry->GetBooleanColumn("indisvalid"), true);
   txn_manager_->Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
 
-  // insert table entries with multiple threads
-  std::vector<std::thread> thds;
-  thds.reserve(thread_num_);
-  for (int i = 0; i < thread_num_; ++i) {
-    thds.emplace_back(InsertThread, catalog_, table, "test_index", i, txn_manager_, index_manager_);
-  }
-
+  // wait for all txns
   for (int i = 0; i < thread_num_; ++i) {
     thds[i].join();
   }
