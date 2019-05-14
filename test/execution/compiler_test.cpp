@@ -9,10 +9,11 @@
 #include "execution/compiler/query.h"
 #include "execution/compiler/compilation_context.h"
 #include "execution/exec/execution_context.h"
+#include "execution/exec/output.h"
 #include "execution/sql/execution_structures.h"
+#include "execution/sql/value.h"
 #include "execution/util/cpu_info.h"
 #include "execution/sema/sema.h"
-#include "execution/sql/execution_structures.h"
 #include "execution/vm/bytecode_module.h"
 #include "execution/vm/bytecode_generator.h"
 #include "execution/vm/llvm_engine.h"
@@ -86,10 +87,23 @@ class CompilerTest : public TerrierTest {
 
     auto exec = tpl::sql::ExecutionStructures::Instance();
     auto *txn = exec->GetTxnManager()->BeginTransaction();
-    auto final = exec->GetFinalSchema(schema);
+    auto os_cols = query.GetPlan().GetOutputSchema()->GetColumns();
+
+    std::vector<catalog::Schema::Column> cols;
+    cols.reserve(os_cols.size());
+    std::unordered_map<u32, u32> offsets;
+    offsets.reserve(os_cols.size());
+    for (u32 i = 0, cur_sz = 0, col_sz = os_cols.size(); i < col_sz; ++i) {
+      auto column = os_cols[i];
+      cols.emplace_back(column.GetName(), column.GetType(), column.GetNullable(), column.GetOid());
+      offsets[i] = cur_sz;
+      cur_sz += tpl::sql::ValUtil::GetSqlSize(column.GetType());
+    }
+
+    auto final = std::make_shared<tpl::exec::FinalSchema>(cols, offsets);
+
     tpl::exec::OutputPrinter printer(*final);
-    auto exec_context =
-        std::make_shared<tpl::exec::ExecutionContext>(txn, printer, final);
+    auto exec_context = std::make_shared<tpl::exec::ExecutionContext>(txn, printer, final);
 
     std::function<u32()> main_func;
     auto module = tpl::vm::BytecodeGenerator::Compile(ast, "main", exec_context);
