@@ -30,6 +30,22 @@ ast::Stmt *CodeGen::Call(ast::FunctionDecl *fn, util::RegionVector<ast::Expr*> &
   return factory_->NewExpressionStmt(factory_->NewCallExpr(fn->function(), std::move(args)));
 }
 
+ast::IdentifierExpr *CodeGen::BptrCast() {
+  return factory_->NewIdentifierExpr(DUMMY_POS, ctx_->GetAstContext()->GetIdentifier(ptrCast));
+}
+
+ast::IdentifierExpr *CodeGen::BoutputAlloc() {
+  return factory_->NewIdentifierExpr(DUMMY_POS, ctx_->GetAstContext()->GetIdentifier(outputAlloc));
+}
+
+ast::IdentifierExpr *CodeGen::BoutputAdvance() {
+  return factory_->NewIdentifierExpr(DUMMY_POS, ctx_->GetAstContext()->GetIdentifier(outputAdvance));
+}
+
+ast::IdentifierExpr *CodeGen::BoutputFinalize() {
+  return factory_->NewIdentifierExpr(DUMMY_POS, ctx_->GetAstContext()->GetIdentifier(outputFinalize));
+}
+
 ast::Expr *CodeGen::Ty_Nil() const { return ctx_->nil_type_; }
 ast::Expr *CodeGen::Ty_Bool() const { return ctx_->bool_type_; }
 ast::Expr *CodeGen::Ty_Int8() const { return ctx_->i8_type_; }

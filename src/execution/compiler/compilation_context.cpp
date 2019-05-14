@@ -34,13 +34,10 @@ void CompilationContext::GeneratePlan(Query *query) {
   auto produce_id = ast_ctx->GetIdentifier(query->GetQueryProduceName());
   auto teardown_id = ast_ctx->GetIdentifier(query->GetQueryTeardownName());
 
-  // List of top level declarations
-  util::RegionVector<ast::Decl *> decls(query->GetRegion());
-
   {
     // 1. Declare the query state struct.
     auto qs_struct_id = ast_ctx->GetIdentifier(query->GetQueryStateStructName());
-    decls.emplace_back(codegen_->NewStructDecl(DUMMY_POS, qs_struct_id, qs_type));
+    codegen_.GetCodeContext()->AddTopDecl(codegen_->NewStructDecl(DUMMY_POS, qs_struct_id, qs_type));
   }
 
   {
@@ -52,7 +49,7 @@ void CompilationContext::GeneratePlan(Query *query) {
     for (const auto &it : op_translators_) {
       it.second->InitializeQueryState();
     }
-    decls.emplace_back(init_fn.Finish());
+    codegen_.GetCodeContext()->AddTopDecl(init_fn.Finish());
   }
 
   {
@@ -61,7 +58,7 @@ void CompilationContext::GeneratePlan(Query *query) {
     params.emplace_back(codegen_->NewFieldDecl(DUMMY_POS, qs_id, qs_type_ptr));
     FunctionBuilder produce_fn(&codegen_, produce_id, std::move(params), codegen_.Ty_Nil());
     GetTranslator(query->GetPlan())->Produce();
-    decls.emplace_back(produce_fn.Finish());
+    codegen_.GetCodeContext()->AddTopDecl(produce_fn.Finish());
   }
 
   {
@@ -73,7 +70,7 @@ void CompilationContext::GeneratePlan(Query *query) {
     for (const auto &it : op_translators_) {
       it.second->TeardownQueryState();
     }
-    decls.emplace_back(teardown_fn.Finish());
+    codegen_.GetCodeContext()->AddTopDecl(teardown_fn.Finish());
   }
 
   {
@@ -110,12 +107,12 @@ void CompilationContext::GeneratePlan(Query *query) {
     // 5.5 return 0
     auto return_stmt = codegen_->NewReturnStmt(DUMMY_POS, codegen_->NewIntLiteral(DUMMY_POS, 0));
     main_fn.Append(return_stmt);
-    decls.emplace_back(main_fn.Finish());
+    codegen_.GetCodeContext()->AddTopDecl(main_fn.Finish());
   }
 
   tpl::sema::Sema type_check(codegen_.GetCodeContext()->GetAstContext());
 
-  const auto compiled_fn = codegen_->NewFile(DUMMY_POS, std::move(decls));
+  const auto compiled_fn = codegen_.GetCodeContext()->CompileToFile(&codegen_);
   //ast::AstDump::Dump(compiled_fn);
   query->SetCompiledFunction(compiled_fn);
   type_check.Run(query_->GetCompiledFunction());

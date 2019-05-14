@@ -52,7 +52,18 @@ class CodeGen {
 
   ast::Stmt *Call(ast::FunctionDecl *fn, util::RegionVector<ast::Expr*> &&args);
 
+  // TODO(WAN): how to handle builtins?
+  ast::IdentifierExpr *BptrCast();
+  ast::IdentifierExpr *BoutputAlloc();
+  ast::IdentifierExpr *BoutputAdvance();
+  ast::IdentifierExpr *BoutputFinalize();
+
  private:
+  const std::string ptrCast = "ptrCast";
+  const std::string outputAlloc = "outputAlloc";
+  const std::string outputAdvance = "outputAdvance";
+  const std::string outputFinalize = "outputFinalize";
+
   u64 id_count_;
   CodeContext *ctx_;
   ast::AstNodeFactory *factory_;

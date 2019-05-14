@@ -31,8 +31,7 @@ void SeqScanTranslator::Produce() {
   auto table_oid = static_cast<uint32_t >(scan_node.GetTableOid());
   auto table_ident = pipeline_->GetCodeGen()->GetCodeContext()
       ->GetAstContext()->GetIdentifier(std::to_string(table_oid));
-  auto table_name = (*codegen)->NewIdentifierExpr(DUMMY_POS,
-      table_ident);
+  auto table_name = (*codegen)->NewIdentifierExpr(DUMMY_POS, table_ident);
   //auto table_name = (*codegen)->NewIdentifierExpr(DUMMY_POS, ast::Identifier("456"));
 
   util::RegionUnorderedMap<ast::Identifier, ast::Expr *> attr_map(codegen->GetRegion());

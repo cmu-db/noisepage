@@ -6,8 +6,9 @@
 #include <vector>
 
 #include "execution/ast/ast_dump.h"
-#include "execution/compiler/query.h"
 #include "execution/compiler/compilation_context.h"
+#include "execution/compiler/execution_consumer.h"
+#include "execution/compiler/query.h"
 #include "execution/exec/execution_context.h"
 #include "execution/exec/output.h"
 #include "execution/sql/execution_structures.h"
@@ -67,26 +68,11 @@ class CompilerTest : public TerrierTest {
     std::cout << "Input Plan: " << std::endl;
     std::cout << node->ToJson().dump(2) << std::endl << std::endl;
 
+    // Create the query object, whose region must outlive all the processing.
     tpl::compiler::Query query(*node);
-    tpl::compiler::CompilationContext ctx(&query, nullptr);
-    ctx.GeneratePlan(&query);
-    if (ctx.GetCodeGen()->GetCodeContext()->GetReporter()->HasErrors()) {
-      EXECUTION_LOG_ERROR("Type-checking error!");
-      ctx.GetCodeGen()->GetCodeContext()->GetReporter()->PrintErrors();
-    }
-    auto ast = query.GetCompiledFunction();
 
-    std::cout << "Converted: " << std::endl;
-    tpl::ast::AstDump::Dump(ast);
-
-    // init TPL
-    tpl::CpuInfo::Instance();
-
-    tpl::sql::ExecutionStructures::Instance();
-    tpl::vm::LLVMEngine::Initialize();
-
+    // Figure out the final schema.
     auto exec = tpl::sql::ExecutionStructures::Instance();
-    auto *txn = exec->GetTxnManager()->BeginTransaction();
     auto os_cols = query.GetPlan().GetOutputSchema()->GetColumns();
 
     std::vector<catalog::Schema::Column> cols;
@@ -99,8 +85,30 @@ class CompilerTest : public TerrierTest {
       offsets[i] = cur_sz;
       cur_sz += tpl::sql::ValUtil::GetSqlSize(column.GetType());
     }
-
     auto final = std::make_shared<tpl::exec::FinalSchema>(cols, offsets);
+
+    // Use the final schema to create the appropriate ExecutionConsumer.
+    tpl::compiler::ExecutionConsumer consumer(final);
+    tpl::compiler::CompilationContext ctx(&query, &consumer);
+    ctx.GeneratePlan(&query);
+    auto ast = query.GetCompiledFunction();
+    tpl::ast::AstDump::Dump(ast);
+    if (ctx.GetCodeGen()->GetCodeContext()->GetReporter()->HasErrors()) {
+      EXECUTION_LOG_ERROR("Type-checking error!");
+      ctx.GetCodeGen()->GetCodeContext()->GetReporter()->PrintErrors();
+    }
+//    auto ast = query.GetCompiledFunction();
+
+    std::cout << "Converted: " << std::endl;
+    tpl::ast::AstDump::Dump(ast);
+
+    // init TPL
+    tpl::CpuInfo::Instance();
+
+    tpl::sql::ExecutionStructures::Instance();
+    tpl::vm::LLVMEngine::Initialize();
+
+    auto *txn = exec->GetTxnManager()->BeginTransaction();
 
     tpl::exec::OutputPrinter printer(*final);
     auto exec_context = std::make_shared<tpl::exec::ExecutionContext>(txn, printer, final);
