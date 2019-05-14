@@ -34,7 +34,7 @@ class PostgresPacketWriter;
 // static const size_t EPOCH_LENGTH = 40;
 
 // For threads
-#define CONNECTION_THREAD_COUNT 1
+#define CONNECTION_THREAD_COUNT 4
 
 // Number of seconds to timeout on a client read
 #define READ_TIMEOUT (20 * 60)
