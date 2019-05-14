@@ -11,14 +11,23 @@
 namespace terrier::catalog {
 
 const std::vector<SchemaCol> IndexCatalogTable::schema_cols_ = {
-    {20, true, "indexptr", type::TypeId::BIGINT},       {0, true, "indexrelid", type::TypeId::INTEGER},
-    {1, true, "indrelid", type::TypeId::INTEGER},       {2, true, "indnatts", type::TypeId::INTEGER},
-    {3, true, "indnkeyatts", type::TypeId::INTEGER},    {4, true, "indisunique", type::TypeId::BOOLEAN},
-    {5, true, "indisprimary", type::TypeId::BOOLEAN},   {9, true, "indisvalid", type::TypeId::BOOLEAN},
-    {11, true, "indisready", type::TypeId::BOOLEAN},    {12, true, "indislive", type::TypeId::BOOLEAN},
-    {21, true, "indisblocking", type::TypeId::BOOLEAN}, {6, false, "indisexclusion", type::TypeId::BOOLEAN},
-    {7, false, "indimmediate", type::TypeId::BOOLEAN},  {8, false, "indisclustered", type::TypeId::BOOLEAN},
-    {10, false, "indcheckxmin", type::TypeId::BOOLEAN}, {13, false, "indisreplident", type::TypeId::BOOLEAN},
+    {20, true, "indexptr", type::TypeId::BIGINT},
+    {0, true, "indexrelid", type::TypeId::INTEGER},
+    {21, true, "indexname", type::TypeId::VARCHAR},
+    {1, true, "indrelid", type::TypeId::INTEGER},
+    {2, true, "indnatts", type::TypeId::INTEGER},
+    {3, true, "indnkeyatts", type::TypeId::INTEGER},
+    {4, true, "indisunique", type::TypeId::BOOLEAN},
+    {5, true, "indisprimary", type::TypeId::BOOLEAN},
+    {9, true, "indisvalid", type::TypeId::BOOLEAN},
+    {11, true, "indisready", type::TypeId::BOOLEAN},
+    {12, true, "indislive", type::TypeId::BOOLEAN},
+    {21, true, "indisblocking", type::TypeId::BOOLEAN},
+    {6, false, "indisexclusion", type::TypeId::BOOLEAN},
+    {7, false, "indimmediate", type::TypeId::BOOLEAN},
+    {8, false, "indisclustered", type::TypeId::BOOLEAN},
+    {10, false, "indcheckxmin", type::TypeId::BOOLEAN},
+    {13, false, "indisreplident", type::TypeId::BOOLEAN},
     {14, false, "indkey", type::TypeId::BOOLEAN},        // Should be of type int2vector
     {15, false, "indcollation", type::TypeId::BOOLEAN},  // Should be of type oidvector
     {16, false, "indclass", type::TypeId::BOOLEAN},      // Should be of type oidvector
@@ -42,14 +51,29 @@ std::shared_ptr<IndexCatalogEntry> IndexCatalogTable::GetIndexEntry(transaction:
   return std::make_shared<IndexCatalogEntry>(oid, pg_index_rw_, std::move(ret_row));
 }
 
+std::shared_ptr<IndexCatalogEntry> IndexCatalogTable::GetIndexEntry(transaction::TransactionContext *txn,
+                                                                    const std::string &index_name) {
+  std::vector<type::TransientValue> search_vec, ret_row;
+  search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::BIGINT));
+  search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
+  search_vec.push_back(type::TransientValueFactory::GetVarChar(index_name));
+  ret_row = pg_index_rw_->FindRow(txn, search_vec);
+  if (ret_row.empty()) {
+    return nullptr;
+  }
+  index_oid_t oid(type::TransientValuePeeker::PeekInteger(ret_row[0]));
+  return std::make_shared<IndexCatalogEntry>(oid, pg_index_rw_, std::move(ret_row));
+}
+
 void IndexCatalogTable::AddEntry(transaction::TransactionContext *txn, storage::index::Index *index_ptr,
-                                 index_oid_t indexrelid, table_oid_t indrelid, int32_t indnatts, int32_t indnkeyatts,
-                                 bool indisunique, bool indisprimary, bool indisvalid, bool indisready, bool indislive,
-                                 bool indisblocking) {
+                                 index_oid_t indexrelid, const std::string &indexname, table_oid_t indrelid,
+                                 int32_t indnatts, int32_t indnkeyatts, bool indisunique, bool indisprimary,
+                                 bool indisvalid, bool indisready, bool indislive, bool indisblocking) {
   std::vector<type::TransientValue> row;
   // FIXME(xueyuanz): Might be problematic since the columns are out of order.
   row.emplace_back(type::TransientValueFactory::GetBigInt(reinterpret_cast<int64_t>(index_ptr)));
   row.emplace_back(type::TransientValueFactory::GetInteger(!indexrelid));
+  row.emplace_back(type::TransientValueFactory::GetVarChar(indexname));
   row.emplace_back(type::TransientValueFactory::GetInteger(!indrelid));
   row.emplace_back(type::TransientValueFactory::GetInteger(indnatts));
   row.emplace_back(type::TransientValueFactory::GetInteger(indnkeyatts));

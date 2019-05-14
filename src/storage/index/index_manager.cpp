@@ -82,8 +82,8 @@ catalog::index_oid_t IndexManager::Create(catalog::db_oid_t db_oid, catalog::nam
   }
 
   // Add IndexCatalogEntry
-  index_handle.AddEntry(txn1, index, index_oid, table_oid, indnatts, indnkeyatts, indisunique, indisprimary, indisvalid,
-                        indisready, indislive, indisblocking);
+  index_handle.AddEntry(txn1, index, index_oid, index_name, table_oid, indnatts, indnkeyatts, indisunique, indisprimary,
+                        indisvalid, indisready, indislive, indisblocking);
 
   // initialize the building flag to false
   auto index_id = make_index_id(db_oid, ns_oid, index_oid);

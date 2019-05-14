@@ -56,6 +56,14 @@ class IndexCatalogTable {
   std::shared_ptr<IndexCatalogEntry> GetIndexEntry(transaction::TransactionContext *txn, index_oid_t oid);
 
   /**
+   * Get the IndexEntry by oid from IndexHandle
+   * @param txn the transaction context of current transaction.
+   * @param index_name the name of index wanted.
+   * @return a pointer to the index entry wanted.
+   */
+  std::shared_ptr<IndexCatalogEntry> GetIndexEntry(transaction::TransactionContext *txn, const std::string &index_name);
+
+  /**
    * Add an entry into the pg_index catalog.
    * @param txn the transaction context
    * @param index_ptr the pointer to the index
@@ -71,8 +79,9 @@ class IndexCatalogTable {
    * @param indisblocking If true, the index is being created in the blocking manner
    */
   void AddEntry(transaction::TransactionContext *txn, storage::index::Index *index_ptr, index_oid_t indexrelid,
-                table_oid_t indrelid, int32_t indnatts, int32_t indnkeyatts, bool indisunique, bool indisprimary,
-                bool indisvalid, bool indisready, bool indislive, bool indisblocking);
+                const std::string &indexname, table_oid_t indrelid, int32_t indnatts, int32_t indnkeyatts,
+                bool indisunique, bool indisprimary, bool indisvalid, bool indisready, bool indislive,
+                bool indisblocking);
 
   /**
    *
