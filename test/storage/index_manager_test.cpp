@@ -12,10 +12,15 @@
 
 namespace terrier::storage::index {
 struct IndexManagerTest : public TerrierTest {
-  static void InsertThread(catalog::Catalog *catalog, catalog::SqlTableHelper *table, catalog::index_oid_t index_oid,
-                           int idx, IndexManager::index_id_t index_id, transaction::TransactionManager *txn_manager_,
-                           IndexManager *index_manager_) {
+  static void InsertThread(catalog::Catalog *catalog, catalog::SqlTableHelper *table, const std::string &index_name,
+                           int idx, transaction::TransactionManager *txn_manager_, IndexManager *index_manager_) {
     auto txn = txn_manager_->BeginTransaction();
+    // binding
+    const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
+    auto db_handle = catalog->GetDatabaseHandle();
+    auto ns_handle = db_handle.GetNamespaceTable(txn, terrier_oid);
+    auto ns_oid = ns_handle.NameToOid(txn, "public");
+
     // insert a row to SQLTable
     std::vector<type::TransientValue> row;
     row.emplace_back(type::TransientValueFactory::GetBoolean(idx % 2 == 0));
@@ -27,8 +32,13 @@ struct IndexManagerTest : public TerrierTest {
     // get pg_index handle
     catalog::IndexCatalogTable index_handle =
         catalog->GetDatabaseHandle().GetIndexTable(txn, catalog::DEFAULT_DATABASE_OID);
-    auto index_entry = index_handle.GetIndexEntry(txn, index_oid);
+    auto index_entry = index_handle.GetIndexEntry(txn, index_name);
+    // index does not exist
+    if (index_entry == nullptr) {
+      txn_manager_->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+    }
     auto index = reinterpret_cast<Index *>(index_entry->GetBigIntColumn("indexptr"));
+    auto index_id = IndexManager::make_index_id(terrier_oid, ns_oid, index_entry->GetOid());
 
     // create the projected row for index, only for metadata!
     const IndexMetadata &metadata = index->metadata_;
@@ -579,8 +589,6 @@ TEST_F(IndexManagerTest, CreateIndexConcurrentlyFuzzyTest) {
   // Create the index
   auto index_oid = index_manager_->Create(terrier_oid, ns_oid, table_oid, parser::IndexType::BWTREE, false,
                                           "test_index", index_attrs, key_attrs, txn_manager_, catalog_, false);
-  auto index_id = IndexManager::make_index_id(terrier_oid, ns_oid, index_oid);
-
   EXPECT_GT(!index_oid, 0);
 
   // Test whether the catalog has the corresponding information
@@ -599,7 +607,7 @@ TEST_F(IndexManagerTest, CreateIndexConcurrentlyFuzzyTest) {
   std::vector<std::thread> thds;
   thds.reserve(thread_num_);
   for (int i = 0; i < thread_num_; ++i) {
-    thds.emplace_back(InsertThread, catalog_, table, index_oid, i, index_id, txn_manager_, index_manager_);
+    thds.emplace_back(InsertThread, catalog_, table, "test_index", i, txn_manager_, index_manager_);
   }
 
   for (int i = 0; i < thread_num_; ++i) {

@@ -61,7 +61,7 @@ std::shared_ptr<IndexCatalogEntry> IndexCatalogTable::GetIndexEntry(transaction:
   if (ret_row.empty()) {
     return nullptr;
   }
-  index_oid_t oid(type::TransientValuePeeker::PeekInteger(ret_row[0]));
+  index_oid_t oid(type::TransientValuePeeker::PeekInteger(ret_row[1]));
   return std::make_shared<IndexCatalogEntry>(oid, pg_index_rw_, std::move(ret_row));
 }
 
