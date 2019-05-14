@@ -1,12 +1,12 @@
 #include "storage/data_table.h"
+#include <pthread.h>
 #include <cstring>
 #include <unordered_map>
-#include <pthread.h>
 #include "common/allocator.h"
+#include "storage/block_access_controller.h"
 #include "storage/storage_util.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_util.h"
-#include "storage/block_access_controller.h"
 
 namespace terrier::storage {
 DataTable::DataTable(BlockStore *const store, const BlockLayout &layout, const layout_version_t layout_version)

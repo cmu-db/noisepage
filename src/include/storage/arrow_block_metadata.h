@@ -110,7 +110,6 @@ class ArrowVarlenColumn {
   uint32_t values_length_ = 0, offsets_length_ = 0;
   byte *values_ = nullptr;
   uint32_t *offsets_ = nullptr;
-
 };
 
 class ArrowColumnInfo {

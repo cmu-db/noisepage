@@ -13,6 +13,7 @@
 namespace terrier::storage {
 class GarbageCollector;
 class LogManager;
+class BlockCompactor;
 }  // namespace terrier::storage
 
 namespace terrier::transaction {
@@ -149,6 +150,7 @@ class TransactionContext {
   friend class storage::GarbageCollector;
   friend class TransactionManager;
   friend class storage::LogManager;
+  friend class storage::BlockCompactor;
   const timestamp_t start_time_;
   std::atomic<timestamp_t> txn_id_;
   storage::UndoBuffer undo_buffer_;

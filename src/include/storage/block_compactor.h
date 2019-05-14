@@ -12,7 +12,7 @@ namespace terrier::storage {
  * Typedef for a standard hash map with varlen entry as the key. The map uses deep equality checks (whether
  * the stored underlying byte string is the same) for key comparison.
  */
-template<class T>
+template <class T>
 using VarlenEntryMap = std::unordered_map<VarlenEntry, T, VarlenContentHasher, VarlenContentDeepEqual>;
 
 /**

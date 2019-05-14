@@ -3,9 +3,9 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
-#include "storage/sql_table.h"
 #include "storage/index/bwtree_index.h"
 #include "storage/index/index_defs.h"
+#include "storage/sql_table.h"
 namespace terrier::storage {
 namespace {
 // for empty callback
@@ -54,10 +54,10 @@ void BlockCompactor::ProcessCompactionQueue(transaction::TransactionManager *txn
       controller.GetBlockState()->store(BlockState::COOLING);
     }
 
-//    if (cg->txn_->IsReadOnly()) {
-//      cg->txn_->compacted_ = block;
-//      cg->txn_->table_ = block->data_table_;
-//    }
+    //    if (cg->txn_->IsReadOnly()) {
+    //      cg->txn_->compacted_ = block;
+    //      cg->txn_->table_ = block->data_table_;
+    //    }
     txn_manager->Commit(cg->txn_, NoOp, nullptr);
   } else {
     txn_manager->Abort(cg->txn_);
@@ -138,7 +138,6 @@ bool BlockCompactor::EliminateGaps(CompactionGroup *cg) {
 }
 
 bool BlockCompactor::MoveTuple(CompactionGroup *cg, TupleSlot from, TupleSlot to) {
-
   const TupleAccessStrategy &accessor = cg->table_->accessor_;
   const BlockLayout &layout = accessor.GetBlockLayout();
 
@@ -208,7 +207,6 @@ bool BlockCompactor::CheckForVersionsAndGaps(const TupleAccessStrategy &accessor
       return false;
     }
 
-
     // Check that there are no versions alive
     auto *record = version_ptrs[offset];
     if (record != nullptr) {
@@ -248,12 +246,7 @@ void BlockCompactor::GatherVarlens(transaction::TransactionContext *txn, RawBloc
         CopyToArrowVarlen(txn, &metadata, col_id, column_bitmap, &col_info, values);
         break;
       case ArrowColumnType::DICTIONARY_COMPRESSED:
-        BuildDictionary(txn,
-                        &metadata,
-                        col_id,
-                        column_bitmap,
-                        &col_info,
-                        values);
+        BuildDictionary(txn, &metadata, col_id, column_bitmap, &col_info, values);
         break;
       default:
         throw std::runtime_error("unexpected control flow");

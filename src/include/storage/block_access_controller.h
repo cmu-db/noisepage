@@ -96,7 +96,7 @@ class BlockAccessController {
             blocked = true;
             continue;
           }
-              // wait until the compactor finishes before doing anything
+          // wait until the compactor finishes before doing anything
           // intentional fall through
         case BlockState::FROZEN:
           GetBlockState()->store(BlockState::HOT);
@@ -115,9 +115,7 @@ class BlockAccessController {
   /**
    * @return state of the current block
    */
-  BlockState CurrentBlockState() {
-    return GetBlockState()->load();
-  }
+  BlockState CurrentBlockState() { return GetBlockState()->load(); }
 
  private:
   friend class BlockCompactor;

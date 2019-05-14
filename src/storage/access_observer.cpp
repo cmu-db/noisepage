@@ -15,9 +15,7 @@ void AccessObserver::ObserveGCInvocation() {
 }
 
 void AccessObserver::ObserveWrite(RawBlock *block) {
-  if (block->insert_head_ == block->data_table_->accessor_.GetBlockLayout().NumSlots())
-    last_touched_[block] = gc_epoch_;
+  if (block->insert_head_ == block->data_table_->GetBlockLayout().NumSlots()) last_touched_[block] = gc_epoch_;
 }
 
 }  // namespace terrier::storage
-

@@ -61,8 +61,8 @@ class AccessObserver {
   std::unordered_map<RawBlock *, uint64_t> last_touched_;
   // Sorted table references by epoch. We can easily do range scans on this data structure to get
   // cold blocks given current epoch and some threshold for a block to be cold.
-//  std::map<uint64_t, std::unordered_map<RawBlock *, DataTable *>> table_references_by_epoch_;
-//  std::unordered_set<RawBlock *> no_longer_insertable_;
+  //  std::map<uint64_t, std::unordered_map<RawBlock *, DataTable *>> table_references_by_epoch_;
+  //  std::unordered_set<RawBlock *> no_longer_insertable_;
   BlockCompactor *compactor_;
 };
 }  // namespace terrier::storage

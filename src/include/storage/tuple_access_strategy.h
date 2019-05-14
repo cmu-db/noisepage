@@ -231,6 +231,10 @@ class TupleAccessStrategy {
    */
   bool Allocate(RawBlock *block, TupleSlot *slot) const;
 
+  common::RawConcurrentBitmap *AllocationBitmap(RawBlock *block) const {
+    return reinterpret_cast<Block *>(block)->SlotAllocationBitmap(layout_);
+  }
+
   /**
    * Deallocates a slot.
    * @param slot the slot to free up

@@ -213,6 +213,12 @@ class DataTable {
    */
   DataTableCounter *GetDataTableCounter() { return &data_table_counter_; }
 
+  /**
+   * Returns a read-only view of this DataTable's BlockLayout.
+   * @return this DataTable's BlockLayout.
+   */
+  const BlockLayout &GetBlockLayout() const { return accessor_.GetBlockLayout(); }
+
  private:
   // The GarbageCollector needs to modify VersionPtrs when pruning version chains
   friend class GarbageCollector;
@@ -222,6 +228,9 @@ class DataTable {
   friend class index::Index;
   template <typename KeyType>
   friend class index::BwTreeIndex;
+  // The block compactor elides transactional protection in the gather/compression phase and
+  // needs raw access to the underlying table.
+  friend class BlockCompactor;
 
   BlockStore *const block_store_;
   const layout_version_t layout_version_;
