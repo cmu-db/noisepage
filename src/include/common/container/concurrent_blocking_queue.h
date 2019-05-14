@@ -43,7 +43,7 @@ class ConcurrentBlockingQueue {
    * an approximate size if there are concurrent modifications in flight.
    * @return the approximate number of items in the queue
    */
-  uint64_t UnsafeSize() const { return queue_.size(); }
+  int64_t UnsafeSize() const { return queue_.size(); }
 
  private:
   tbb::concurrent_bounded_queue<T, Alloc> queue_;
