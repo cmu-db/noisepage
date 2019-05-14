@@ -37,20 +37,23 @@ void DBMain::Init() {
   InitLoggers();
 
   // initialize stat registry
-  main_stat_reg_ = std::make_shared<terrier::common::StatisticsRegistry>();
+  main_stat_reg_ = std::make_shared<common::StatisticsRegistry>();
 
   // create the global transaction mgr
-  auto *buffer_pool = new storage::RecordBufferSegmentPool(100000, 10000);
+  auto *buffer_pool = new storage::RecordBufferSegmentPool(
+      type::TransientValuePeeker::PeekInteger(param_map_.find(settings::Param::buffer_pool_size)->second.value_),
+      10000);
   txn_manager_ = new transaction::TransactionManager(buffer_pool, true, nullptr);
-  terrier::transaction::TransactionContext *txn_ = txn_manager_->BeginTransaction();
+  transaction::TransactionContext *txn_ = txn_manager_->BeginTransaction();
   // create the (system) catalogs
-  catalog_ = new terrier::catalog::Catalog(txn_manager_, txn_);
+  catalog_ = new catalog::Catalog(txn_manager_, txn_);
   settings_manager_ = new settings::SettingsManager(this, catalog_, txn_manager_);
   LOG_INFO("Initialization complete");
 }
 
 void DBMain::Run() {
-  server_.SetPort(static_cast<int16_t>(settings_manager_->GetInt(terrier::settings::Param::port)));
+  server_.SetPort(static_cast<int16_t>(
+      type::TransientValuePeeker::PeekInteger(param_map_.find(settings::Param::port)->second.value_)));
   server_.SetupServer().ServerLoop();
 
   // server loop exited, begin cleaning up

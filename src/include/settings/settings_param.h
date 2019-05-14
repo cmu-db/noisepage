@@ -56,6 +56,7 @@ class ParamInfo {
         callback_(callback) {}
 
  private:
+  friend class terrier::DBMain;
   friend class SettingsManager;
   std::string name_;
   type::TransientValue value_;
