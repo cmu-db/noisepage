@@ -3,6 +3,8 @@
 #include <cstddef>
 #include <cstdint>
 
+#include <string>
+
 /// Common integral type shorthands
 using i8 = int8_t;
 using i16 = int16_t;
@@ -56,5 +58,9 @@ static constexpr const u32 kDefaultVectorSize = 2048;
 
 /// The default prefetch distance to use
 static constexpr const u32 kPrefetchDistance = 16;
+
+/// The key for the parser to use in attribute maps to signal
+/// whether or not a ForIn loop contains an OID iterator
+static const char *OID_KEY = "IS_OID";
 
 }  // namespace tpl

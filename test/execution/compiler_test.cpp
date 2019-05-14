@@ -9,6 +9,7 @@
 #include "execution/compiler/query.h"
 #include "execution/compiler/compilation_context.h"
 #include "execution/exec/execution_context.h"
+#include "execution/sql/execution_structures.h"
 #include "execution/util/cpu_info.h"
 #include "execution/sema/sema.h"
 #include "execution/sql/execution_structures.h"
@@ -133,8 +134,8 @@ class CompilerTest : public TerrierTest {
         .SetScanPredicate(CompilerTest::BuildDummyPredicate())
         .SetIsParallelFlag(true)
         .SetIsForUpdateFlag(false)
-        .SetDatabaseOid(catalog::db_oid_t(0))
-        .SetTableOid(catalog::table_oid_t(0))
+        .SetDatabaseOid(catalog::DEFAULT_DATABASE_OID)
+        .SetTableOid(catalog::table_oid_t())
         .SetNamespaceOid(catalog::namespace_oid_t(0))
         .Build();
   }
@@ -865,13 +866,15 @@ TEST_F(CompilerTest, SeqScanPlanNodeJsonTest) {
   // Construct SeqScanPlanNode
   SeqScanPlanNode::Builder builder;
   std::string col_name("colA");
+  auto table_oid = tpl::sql::ExecutionStructures::Instance()->
+      GetCatalog()->GetCatalogTable(catalog::DEFAULT_DATABASE_OID, "test_1")->Oid();
   auto plan_node = builder.SetOutputSchema(CompilerTest::BuildDummyOutputSchema())
       .SetScanPredicate(CompilerTest::BuildConstantComparisonPredicate("test_1", col_name, 500))
       .SetIsParallelFlag(true)
       .SetIsForUpdateFlag(false)
-      .SetDatabaseOid(catalog::db_oid_t(0))
+      .SetDatabaseOid(catalog::DEFAULT_DATABASE_OID)
       .SetNamespaceOid(catalog::namespace_oid_t(0))
-      .SetTableOid(catalog::table_oid_t(0))
+      .SetTableOid(table_oid)
       .Build();
 
   CompileAndRun(plan_node.get());

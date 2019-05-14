@@ -336,8 +336,15 @@ void BytecodeGenerator::VisitForInStmt(ast::ForInStmt *node) {
   auto *exec = sql::ExecutionStructures::Instance();
   ast::Identifier table_name = node->iter()->As<ast::IdentifierExpr>()->name();
   // Get the table from the catalog.
-  auto catalog_table = exec->GetCatalog()->GetCatalogTable(
-      terrier::catalog::DEFAULT_DATABASE_OID, table_name.data());
+  std::shared_ptr<catalog::SqlTableRW> catalog_table;
+  if(node->GetHasOid()) {
+    terrier::catalog::table_oid_t table_oid = static_cast<terrier::catalog::table_oid_t>(std::stoi(table_name.data()));
+    catalog_table = exec->GetCatalog()->GetCatalogTable(
+        terrier::catalog::DEFAULT_DATABASE_OID, table_oid);
+  } else {
+    catalog_table = exec->GetCatalog()->GetCatalogTable(
+        terrier::catalog::DEFAULT_DATABASE_OID, table_name.data());
+  }
   TPL_ASSERT(catalog_table != nullptr, "Table does not exist!");
 
   if (indexed) {

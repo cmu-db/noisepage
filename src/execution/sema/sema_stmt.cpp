@@ -92,8 +92,15 @@ void Sema::VisitForInStmt(ast::ForInStmt *node) {
 
   // Lookup the table in the catalog
   auto *exec = sql::ExecutionStructures::Instance();
-  auto catalog_table = exec->GetCatalog()->GetCatalogTable(
-      terrier::catalog::DEFAULT_DATABASE_OID, iter->name().data());
+  std::shared_ptr<terrier::catalog::SqlTableRW> catalog_table = nullptr;
+  if(node->GetHasOid()) {
+    terrier::catalog::table_oid_t table_oid = static_cast<terrier::catalog::table_oid_t>(std::stoi(iter->name().data()));
+    catalog_table = exec->GetCatalog()->GetCatalogTable(
+        terrier::catalog::DEFAULT_DATABASE_OID, table_oid);
+  } else {
+    catalog_table = exec->GetCatalog()->GetCatalogTable(
+        terrier::catalog::DEFAULT_DATABASE_OID, iter->name().data());
+  }
   if (catalog_table == nullptr) {
     error_reporter()->Report(iter->position(), ErrorMessages::kNonExistingTable,
                              iter->name());

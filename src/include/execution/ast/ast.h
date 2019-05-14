@@ -7,6 +7,7 @@
 
 #include "execution/ast/identifier.h"
 #include "execution/parsing/token.h"
+#include "execution/compiler/compiler_defs.h"
 #include "execution/util/common.h"
 #include "execution/util/region.h"
 #include "execution/util/region_containers.h"
@@ -467,6 +468,8 @@ class ForInStmt : public IterationStmt {
   Expr *iter() const { return iter_; }
 
   Attributes *attributes() const { return attributes_; }
+
+  bool GetHasOid() const { return attributes()->Contains(ast::Identifier(OID_KEY)); }
 
   static bool classof(const AstNode *node) {
     return node->kind() == Kind::ForInStmt;
