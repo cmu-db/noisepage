@@ -21,29 +21,4 @@ const std::vector<std::shared_ptr<OperatorExpression>> &OperatorExpression::Chil
 
 const Operator &OperatorExpression::Op() const { return op; }
 
-const std::string OperatorExpression::GetInfo() const {
-  std::string info = "{";
-  {
-    info += "\"Op\":";
-    info += "\"" + op.GetName() + "\",";
-    if (!children.empty()) {
-      info += "\"Children\":[";
-      {
-        bool is_first = true;
-        for (const auto &child : children) {
-          if (is_first) {
-            is_first = false;
-          } else {
-            info += ",";
-          }
-          info += child->GetInfo();
-        }
-      }
-      info += "]";
-    }
-  }
-  info += '}';
-  return info;
-}
-
 }  // namespace terrier::optimizer

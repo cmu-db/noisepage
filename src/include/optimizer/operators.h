@@ -71,7 +71,6 @@ class IndexScan : public OperatorNode<IndexScan> {
 
   catalog::db_oid_t database_oid_;
   catalog::namespace_oid_t namespace_oid_;
-  catalog::table_oid_t table_oid_;
   catalog::index_oid_t index_oid_;
   std::vector<AnnotatedExpression> predicates_;
   bool is_for_update_;
@@ -106,15 +105,18 @@ class ExternalFileScan : public OperatorNode<ExternalFileScan> {
 //===--------------------------------------------------------------------===//
 class QueryDerivedScan : public OperatorNode<QueryDerivedScan> {
  public:
-  static Operator make(std::string alias,
-                       std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>> alias_to_expr_map);
+  static Operator make(
+      catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
+      std::unordered_map<catalog::table_oid_t, std::shared_ptr<parser::AbstractExpression>> &&alias_to_expr_map);
 
   bool operator==(const BaseOperatorNode &r) override;
 
   common::hash_t Hash() const override;
 
-  std::string table_alias_;
-  std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>> alias_to_expr_map_;
+  catalog::db_oid_t database_oid_;
+  catalog::namespace_oid_t namespace_oid_;
+  catalog::table_oid_t table_oid_;
+  std::unordered_map<catalog::table_oid_t, std::shared_ptr<parser::AbstractExpression>> alias_to_expr_map_;
 };
 
 //===--------------------------------------------------------------------===//
@@ -166,7 +168,7 @@ class InnerNLJoin : public OperatorNode<InnerNLJoin> {
 //===--------------------------------------------------------------------===//
 class LeftNLJoin : public OperatorNode<LeftNLJoin> {
  public:
-  std::shared_ptr<parser::AbstractExpression> join_predicate;
+  std::shared_ptr<parser::AbstractExpression> join_predicate_;
   static Operator make(std::shared_ptr<parser::AbstractExpression> join_predicate);
 };
 
@@ -175,7 +177,7 @@ class LeftNLJoin : public OperatorNode<LeftNLJoin> {
 //===--------------------------------------------------------------------===//
 class RightNLJoin : public OperatorNode<RightNLJoin> {
  public:
-  std::shared_ptr<parser::AbstractExpression> join_predicate;
+  std::shared_ptr<parser::AbstractExpression> join_predicate_;
   static Operator make(std::shared_ptr<parser::AbstractExpression> join_predicate);
 };
 
@@ -184,7 +186,7 @@ class RightNLJoin : public OperatorNode<RightNLJoin> {
 //===--------------------------------------------------------------------===//
 class OuterNLJoin : public OperatorNode<OuterNLJoin> {
  public:
-  std::shared_ptr<parser::AbstractExpression> join_predicate;
+  std::shared_ptr<parser::AbstractExpression> join_predicate_;
   static Operator make(std::shared_ptr<parser::AbstractExpression> join_predicate);
 };
 
@@ -240,11 +242,13 @@ class OuterHashJoin : public OperatorNode<OuterHashJoin> {
 class Insert : public OperatorNode<Insert> {
  public:
   static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::table_oid_t table_oid, std::vector<catalog::index_oid_t> &&target_index,
+                       catalog::table_oid_t table_oid, std::vector<catalog::index_oid_t> &&index_oids,
                        const std::vector<std::string> *columns,
                        const std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> *values);
+  catalog::db_oid_t database_oid_;
+  catalog::namespace_oid_t namespace_oid;
   catalog::table_oid_t table_oid_;
-  std::vector<catalog::index_oid_t> index_oid_;
+  std::vector<catalog::index_oid_t> index_oids_;
 
   const std::vector<std::string> *columns_;
   const std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> *values_;
@@ -255,10 +259,13 @@ class Insert : public OperatorNode<Insert> {
 //===--------------------------------------------------------------------===//
 class InsertSelect : public OperatorNode<InsertSelect> {
  public:
-  static Operator make(std::shared_ptr<catalog::TableHandle> target_table,
-                       std::vector<catalog::index_oid_t> &&target_index);
+  static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                       catalog::table_oid_t table_oid, std::vector<catalog::index_oid_t> &&index_oids);
 
-  std::shared_ptr<catalog::TableHandle> target_table;
+  catalog::db_oid_t database_oid_;
+  catalog::namespace_oid_t namespace_oid;
+  catalog::table_oid_t table_oid_;
+  std::vector<catalog::index_oid_t> index_oids_;
   std::vector<catalog::index_oid_t> target_index;
 };
 
@@ -267,10 +274,13 @@ class InsertSelect : public OperatorNode<InsertSelect> {
 //===--------------------------------------------------------------------===//
 class Delete : public OperatorNode<Delete> {
  public:
-  static Operator make(std::shared_ptr<catalog::TableHandle> target_table,
-                       std::vector<catalog::index_oid_t> &&target_index);
+  static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                       catalog::table_oid_t table_oid, std::vector<catalog::index_oid_t> &&index_oids);
 
-  std::shared_ptr<catalog::TableHandle> target_table;
+  catalog::db_oid_t database_oid_;
+  catalog::namespace_oid_t namespace_oid;
+  catalog::table_oid_t table_oid_;
+  std::vector<catalog::index_oid_t> index_oids_;
   std::vector<catalog::index_oid_t> target_index;
 };
 
@@ -286,11 +296,11 @@ class ExportExternalFile : public OperatorNode<ExportExternalFile> {
 
   common::hash_t Hash() const override;
 
-  parser::ExternalFileFormat format;
-  std::string file_name;
-  char delimiter;
-  char quote;
-  char escape;
+  parser::ExternalFileFormat format_;
+  std::string file_name_;
+  char delimiter_;
+  char quote_;
+  char escape_;
 };
 
 //===--------------------------------------------------------------------===//
@@ -298,11 +308,14 @@ class ExportExternalFile : public OperatorNode<ExportExternalFile> {
 //===--------------------------------------------------------------------===//
 class Update : public OperatorNode<Update> {
  public:
-  static Operator make(std::shared_ptr<catalog::TableHandle> target_table,
-                       std::vector<catalog::index_oid_t> &&target_index,
+  static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                       catalog::table_oid_t table_oid, std::vector<catalog::index_oid_t> &&index_oids,
                        const std::vector<std::unique_ptr<parser::UpdateClause>> *updates);
 
-  std::shared_ptr<catalog::TableHandle> target_table;
+  catalog::db_oid_t database_oid_;
+  catalog::namespace_oid_t namespace_oid;
+  catalog::table_oid_t table_oid_;
+  std::vector<catalog::index_oid_t> index_oids_;
   std::vector<catalog::index_oid_t> target_index;
   const std::vector<std::unique_ptr<parser::UpdateClause>> *updates;
 };
@@ -318,8 +331,8 @@ class HashGroupBy : public OperatorNode<HashGroupBy> {
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
 
-  std::vector<std::shared_ptr<parser::AbstractExpression>> columns;
-  std::vector<AnnotatedExpression> having;
+  std::vector<std::shared_ptr<parser::AbstractExpression>> columns_;
+  std::vector<AnnotatedExpression> having_;
 };
 
 //===--------------------------------------------------------------------===//
@@ -333,8 +346,8 @@ class SortGroupBy : public OperatorNode<SortGroupBy> {
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
 
-  std::vector<std::shared_ptr<parser::AbstractExpression>> columns;
-  std::vector<AnnotatedExpression> having;
+  std::vector<std::shared_ptr<parser::AbstractExpression>> columns_;
+  std::vector<AnnotatedExpression> having_;
 };
 
 //===--------------------------------------------------------------------===//

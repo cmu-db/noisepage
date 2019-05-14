@@ -27,7 +27,7 @@ enum class PropertyType : uint8_t {
 };
 
 /**
- * Operator types
+ * Operator type
  */
 enum class OpType {
   Undefined = 0,
@@ -55,6 +55,9 @@ enum class OpType {
   LogicalDistinct,
   LogicalExportExternalFile,
 
+  // Separate between logical and physical ops
+  LogicalPhysicalDelimiter,
+
   // Physical Operators
   TableFreeScan,  // Scan Op for SELECT without FROM
   SeqScan,
@@ -81,6 +84,11 @@ enum class OpType {
   SortGroupBy,
   ExportExternalFile,
 };
+
+/**
+ * Operator category, logical or physical
+ */
+enum OpCategory { LOGICAL, PHYSICAL };
 
 // Augment abstract expression with a table OID set
 struct AnnotatedExpression {

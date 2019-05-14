@@ -53,11 +53,10 @@ struct OperatorNode : public BaseOperatorNode {
  */
 class Operator {
  public:
-
   /**
    * Default constructor
    */
-  Operator() = default;
+  Operator() noexcept;
 
   /**
    * Create a new operator from a BaseOperatorNode
