@@ -12,6 +12,11 @@
 
 namespace terrier::network {
 
+using traffic_cop::SqliteEngine;
+using traffic_cop::ResultSet;
+using traffic_cop::Statement;
+using traffic_cop::Portal;
+
 void LogAndWriteErrorMsg(const std::string &msg, PostgresPacketWriter *out) {
   NETWORK_LOG_ERROR(msg);
   out->WriteSingleErrorResponse(NetworkMessageType::HUMAN_READABLE_ERROR, msg);
@@ -22,7 +27,7 @@ void LogAndWriteErrorMsg(const std::string &msg, PostgresPacketWriter *out) {
  * @param result_set
  * @param out
  */
-void PostgresNetworkCommand::AcceptResults(const traffic_cop::ResultSet &result_set, PostgresPacketWriter *const out) {
+void PostgresNetworkCommand::AcceptResults(const ResultSet &result_set, PostgresPacketWriter *const out) {
   if (result_set.column_names_.empty()) {
     out->WriteEmptyQueryResponse();
     return;
@@ -43,9 +48,9 @@ Transition SimpleQueryCommand::Exec(PostgresProtocolInterpreter *interpreter, Po
   std::string query = in_.ReadString();
   NETWORK_LOG_TRACE("Execute SimpleQuery: {0}", query.c_str());
 
-  SimpleQueryCallback result_callback = AcceptResults;
+  SqliteEngine* execution_engine = t_cop->GetExecutionEngine();
+  execution_engine->ExecuteQuery(query.c_str(), out, AcceptResults);
 
-  t_cop->ExecuteQuery(query.c_str(), out, result_callback);
   out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
   return Transition::PROCEED;
 }
@@ -69,7 +74,6 @@ Transition ParseCommand::Exec(PostgresProtocolInterpreter *interpreter, Postgres
     param_types.push_back(static_cast<PostgresValueType>(oid));
   }
 
-
   // Benchmark: Special case for no-op benchmark
   if(query == ";")
   {
@@ -78,9 +82,17 @@ Transition ParseCommand::Exec(PostgresProtocolInterpreter *interpreter, Postgres
     return Transition::PROCEED;
   }
 
+  // if a statement with that name exists, return error
+  if(!stmt_name.empty() && connection->statements.count(stmt_name) > 0)
+  {
+    LogAndWriteErrorMsg("There is already a statement with name " + stmt_name, out);
+    return Transition::PROCEED;
+  }
 
-  // TODO(Weichen): Postgres protocol says that if a statement with that name exists, return error
-  traffic_cop::Statement stmt = t_cop->Parse(query, param_types);
+  SqliteEngine* execution_engine = t_cop->GetExecutionEngine();
+  sqlite3_stmt* sqlite_stmt = execution_engine->PrepareStatement(query);
+
+  Statement stmt(sqlite_stmt, param_types);
   connection->statements[stmt_name] = stmt;
 
   out->WriteParseComplete();
@@ -106,16 +118,22 @@ Transition BindCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresP
   }
 
   // Find out param formats (text/binary)
-  traffic_cop::Statement *statement = &statement_pair->second;
+  // You can find detailed documentation at
+  // https://www.postgresql.org/docs/9.3/protocol-message-formats.html
+
+  Statement *statement = &statement_pair->second;
   auto num_formats = static_cast<size_t>(in_.ReadValue<int16_t>());
   vector<int16_t> is_binary;
   size_t num_params = statement->NumParams();
   if (num_formats == 0) {
+    // All params are text
     is_binary = std::vector<int16_t>(num_params, 0);
   } else if (num_formats == 1) {
+    // the following number determines the format for all params (0=text, 1=binary)
     auto format = in_.ReadValue<int16_t>();
     is_binary = std::vector<int16_t>(num_params, format);
   } else if (num_formats == num_params) {
+    // a number for every param states its format (0=text, 1=binary)
     for (size_t i = 0; i < num_formats; i++) {
       auto format = in_.ReadValue<int16_t>();
       is_binary.push_back(format);
@@ -135,7 +153,8 @@ Transition BindCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresP
   if (num_params_from_query != num_params) {
     string error_msg = fmt::format(
         "Error: Numbers of parameters don't match. "
-        "{0} in statement, {1} in bind command",
+        "{0} in statement, {1} in bind command. "
+        "This could be a result that the Parse command required type inference, which we don't support yet.",
         num_params, num_params_from_query);
 
     LogAndWriteErrorMsg(error_msg, out);
@@ -210,7 +229,11 @@ Transition BindCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresP
     return Transition::PROCEED;
   }
 
-  traffic_cop::Portal portal = t_cop->Bind(*statement, params);
+  // With SQLite backend, we only produce a list of param values as the portal,
+  // because we cannot copy a sqlite3 statement.
+  Portal portal;
+  portal.sqlite_stmt_ = statement->sqlite3_stmt_;
+  portal.params = params;
   connection->portals[portal_name] = portal;
 
   out->WriteBindComplete();
@@ -224,6 +247,8 @@ Transition DescribeCommand::Exec(PostgresProtocolInterpreter *interpreter, Postg
   NETWORK_LOG_TRACE("Describe query: type = {0}, name = {1}", static_cast<char>(type), name.c_str());
   std::vector<std::string> column_names;
 
+  SqliteEngine* execution_engine = t_cop->GetExecutionEngine();
+
   if (type == DescribeCommandObjectType::STATEMENT) {
     auto p_statement = connection->statements.find(name);
     if (p_statement == connection->statements.end()) {
@@ -231,11 +256,11 @@ Transition DescribeCommand::Exec(PostgresProtocolInterpreter *interpreter, Postg
       LogAndWriteErrorMsg(error_msg, out);
       return Transition::PROCEED;
     }
-    traffic_cop::Statement &statement = p_statement->second;
+    Statement &statement = p_statement->second;
     out->WriteParameterDescription(statement.param_types_);
 
     if(statement.sqlite3_stmt_ != nullptr)
-      column_names = t_cop->DescribeColumns(statement);
+      column_names = execution_engine->DescribeColumns(statement.sqlite3_stmt_);
 
   } else if (type == DescribeCommandObjectType::PORTAL) {
     auto p_portal = connection->portals.find(name);
@@ -245,7 +270,7 @@ Transition DescribeCommand::Exec(PostgresProtocolInterpreter *interpreter, Postg
       return Transition::PROCEED;
     }
     if(p_portal->second.sqlite_stmt_ != nullptr)
-      column_names = t_cop->DescribeColumns(p_portal->second);
+      column_names = execution_engine->DescribeColumns(p_portal->second.sqlite_stmt_);
 
   } else {
     std::string error_msg = fmt::format("Wrong type: {0}, should be either 'S' or 'P'.", static_cast<char>(type));
@@ -274,17 +299,19 @@ Transition ExecuteCommand::Exec(PostgresProtocolInterpreter *interpreter, Postgr
     return Transition::PROCEED;
   }
 
+  Portal& portal = p_portal->second;
 
   // Benchmark: Special case for no-op benchmark
-  if(p_portal->second.sqlite_stmt_ == nullptr)
+  if(portal.sqlite_stmt_ == nullptr)
   {
     //out->WriteEmptyQueryResponse();
     out->WriteCommandComplete("");
     return Transition::PROCEED;
   }
 
-
-  traffic_cop::ResultSet result = t_cop->Execute(&(p_portal->second));
+  SqliteEngine* execution_engine = t_cop->GetExecutionEngine();
+  execution_engine->Bind(portal.sqlite_stmt_, portal.params);
+  ResultSet result = execution_engine->Execute(portal.sqlite_stmt_);
   for (const auto &row : result.rows_) out->WriteDataRow(row);
 
   out->WriteCommandComplete("");

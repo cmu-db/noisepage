@@ -14,32 +14,10 @@
 #include "loggers/main_logger.h"
 #include "network/connection_handle_factory.h"
 #include "traffic_cop/result_set.h"
+#include "traffic_cop/traffic_cop.h"
 #include "util/manual_packet_helpers.h"
 
-#define NUM_THREADS 1
-
 namespace terrier::network {
-
-/*
- * In networks tests, we use a fake traffic cop that always return empty results to avoid error msgs.
- * Maybe replace it to the real traffic cop later?
- */
-class FakeTrafficCop : public traffic_cop::TrafficCop {
- public:
-  void ExecuteQuery(const char *query, network::PostgresPacketWriter *out,
-                    const network::SimpleQueryCallback &callback) override {
-    traffic_cop::ResultSet empty_set;
-    callback(empty_set, out);
-  }
-  traffic_cop::Statement Parse(const std::string &query, const std::vector<PostgresValueType> &param_types) override {
-    return traffic_cop::Statement(nullptr, std::vector<PostgresValueType>());
-  }
-  traffic_cop::Portal Bind(const traffic_cop::Statement &stmt,
-                           const std::shared_ptr<std::vector<type::TransientValue>> &params) override {
-    return traffic_cop::Portal();
-  }
-  traffic_cop::ResultSet Execute(traffic_cop::Portal *portal) override { return traffic_cop::ResultSet(); }
-};
 
 class NetworkTests : public TerrierTest {
  protected:
@@ -65,7 +43,7 @@ class NetworkTests : public TerrierTest {
     }
 
     // Setup Traffic Cop
-    std::shared_ptr<FakeTrafficCop> t_cop(new FakeTrafficCop());
+    std::shared_ptr<traffic_cop::TrafficCop> t_cop(new traffic_cop::TrafficCop());
     ConnectionHandleFactory::GetInstance().SetTrafficCop(t_cop);
 
     TEST_LOG_DEBUG("Server initialized");

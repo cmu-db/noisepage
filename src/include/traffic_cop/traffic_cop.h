@@ -11,8 +11,7 @@ namespace terrier::traffic_cop {
 
 /**
  *
- * Traffic Cop of the database.
- * This is the reception of the backend execution system.
+ * Traffic Cop of the database. It provides access to all the backend components.
  *
  * *Should be a singleton*
  *
@@ -22,51 +21,7 @@ class TrafficCop {
  public:
   virtual ~TrafficCop() = default;
 
-  /**
-   * Execute a simple query.
-   * @param query the query string
-   * @param out the packet writer
-   * @param callback the callback function to write back the results
-   */
-  virtual void ExecuteQuery(const char *query, network::PostgresPacketWriter *out,
-                            const network::SimpleQueryCallback &callback);
-
-  /**
-   * Parse a query to a statement.
-   * @param query
-   * @param param_types
-   * @return
-   */
-  virtual Statement Parse(const std::string &query, const std::vector<network::PostgresValueType> &param_types);
-
-  /**
-   * Bind parameters to a statement to obtain a portal.
-   * @param stmt
-   * @param params
-   * @return
-   */
-  virtual Portal Bind(const Statement &stmt, const std::shared_ptr<std::vector<type::TransientValue>> &params);
-
-  /**
-   * Return descriptions of columns.
-   * @param stmt
-   * @return
-   */
-  virtual std::vector<std::string> DescribeColumns(const Statement &stmt);
-
-  /**
-   * Return descriptions of columns.
-   * @param stmt
-   * @return
-   */
-  virtual std::vector<std::string> DescribeColumns(const Portal &portal);
-
-  /**
-   * Execute a portal.
-   * @param portal
-   * @return
-   */
-  virtual ResultSet Execute(Portal *portal);
+  SqliteEngine* GetExecutionEngine(){return &sqlite_engine;}
 
  private:
   SqliteEngine sqlite_engine;

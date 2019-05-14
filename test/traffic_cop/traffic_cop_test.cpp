@@ -149,9 +149,6 @@ TEST_F(TrafficCopTests, ManualExtendedQueryTest) {
  *
  * */
 
-
-
-
 // NOLINTNEXTLINE
 TEST_F(TrafficCopTests, ManualRoundTripTest) {
   StartServer();
