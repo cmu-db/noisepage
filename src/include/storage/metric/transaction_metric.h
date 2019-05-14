@@ -188,9 +188,8 @@ class TransactionMetric : public AbstractMetric<TransactionMetricRawData> {
    * @param txn transaction context of the committing transaction
    * @param database_oid OID of the database the transaction is running in
    */
-  void OnTransactionCommit(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid) override {
-    // Supress unused warning
-    ((void)database_oid);
+  void OnTransactionCommit(const transaction::TransactionContext *txn,
+                           UNUSED_ATTRIBUTE catalog::db_oid_t database_oid) override {
     GetRawData()->CalculateTxnLatency(txn);
   }
 
@@ -198,9 +197,8 @@ class TransactionMetric : public AbstractMetric<TransactionMetricRawData> {
    * @param txn transaction context of the aborting transaction
    * @param database_oid OID of the database the transaction is running in
    */
-  void OnTransactionAbort(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid) override {
-    // Supress unused warning
-    ((void)database_oid);
+  void OnTransactionAbort(const transaction::TransactionContext *txn,
+                          UNUSED_ATTRIBUTE catalog::db_oid_t database_oid) override {
     GetRawData()->CalculateTxnLatency(txn);
   }
 
@@ -211,12 +209,9 @@ class TransactionMetric : public AbstractMetric<TransactionMetricRawData> {
    * @param namespace_oid OID of the namespace that the tuple read happens
    * @param table_oid OID of the table that the tuple read happens
    */
-  void OnTupleRead(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid,
-                   catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) override {
-    // Supress unused warnings
-    ((void)database_oid);
-    ((void)namespace_oid);
-    ((void)table_oid);
+  void OnTupleRead(const transaction::TransactionContext *txn, UNUSED_ATTRIBUTE catalog::db_oid_t database_oid,
+                   UNUSED_ATTRIBUTE catalog::namespace_oid_t namespace_oid,
+                   UNUSED_ATTRIBUTE catalog::table_oid_t table_oid) override {
     GetRawData()->IncrementTupleRead(txn);
   }
 
@@ -226,12 +221,9 @@ class TransactionMetric : public AbstractMetric<TransactionMetricRawData> {
    * @param namespace_oid OID of the namespace that the tuple update happens
    * @param table_oid OID of the table that the tuple update happens
    */
-  void OnTupleUpdate(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid,
-                     catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) override {
-    // Supress unused warnings
-    ((void)database_oid);
-    ((void)namespace_oid);
-    ((void)table_oid);
+  void OnTupleUpdate(const transaction::TransactionContext *txn, UNUSED_ATTRIBUTE catalog::db_oid_t database_oid,
+                     UNUSED_ATTRIBUTE catalog::namespace_oid_t namespace_oid,
+                     UNUSED_ATTRIBUTE catalog::table_oid_t table_oid) override {
     GetRawData()->IncrementTupleUpdate(txn);
   }
 
@@ -241,12 +233,9 @@ class TransactionMetric : public AbstractMetric<TransactionMetricRawData> {
    * @param namespace_oid OID of the namespace that the tuple insert happens
    * @param table_oid OID of the table that the tuple insert happens
    */
-  void OnTupleInsert(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid,
-                     catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) override {
-    // Supress unused warnings
-    ((void)database_oid);
-    ((void)namespace_oid);
-    ((void)table_oid);
+  void OnTupleInsert(const transaction::TransactionContext *txn, UNUSED_ATTRIBUTE catalog::db_oid_t database_oid,
+                     UNUSED_ATTRIBUTE catalog::namespace_oid_t namespace_oid,
+                     UNUSED_ATTRIBUTE catalog::table_oid_t table_oid) override {
     GetRawData()->IncrementTupleInsert(txn);
   }
 
@@ -256,12 +245,9 @@ class TransactionMetric : public AbstractMetric<TransactionMetricRawData> {
    * @param namespace_oid OID of the namespace that the tuple delete happens
    * @param table_oid OID of the table that the tuple delete happens
    */
-  void OnTupleDelete(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid,
-                     catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) override {
-    // Supress unused warnings
-    ((void)database_oid);
-    ((void)namespace_oid);
-    ((void)table_oid);
+  void OnTupleDelete(const transaction::TransactionContext *txn, UNUSED_ATTRIBUTE catalog::db_oid_t database_oid,
+                     UNUSED_ATTRIBUTE catalog::namespace_oid_t namespace_oid,
+                     UNUSED_ATTRIBUTE catalog::table_oid_t table_oid) override {
     GetRawData()->IncrementTupleDelete(txn);
   }
 };
