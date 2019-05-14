@@ -1,6 +1,7 @@
 #pragma once
 #include <map>
 #include <unordered_set>
+#include <utility>
 #include "storage/block_layout.h"
 #include "storage/storage_defs.h"
 #include "storage/storage_util.h"
@@ -16,7 +17,8 @@ enum class ArrowColumnType : uint8_t { FIXED_LENGTH = 0, GATHERED_VARLEN, DICTIO
 
 /**
  * Stores information about an Arrow varlen column. This class implements an Arrow list, with
- * a byte array of values and an array of offsets into the value array
+ * a byte array of values and an array of offsets into the value array. The null bitmap is stored
+ * in the block (the same as the null bitmap of actual column)
  */
 class ArrowVarlenColumn {
  public:
@@ -74,10 +76,7 @@ class ArrowVarlenColumn {
   /**
    * Destructs an ArrowVarlenColumn
    */
-  ~ArrowVarlenColumn() {
-    delete[] values_;
-    delete[] offsets_;
-  }
+  ~ArrowVarlenColumn() { Deallocate(); }
 
   /**
    * @return length of the values array
@@ -99,6 +98,9 @@ class ArrowVarlenColumn {
    */
   uint32_t *Offsets() const { return offsets_; }
 
+  /**
+   * Deallocates all associated buffers in the ArrowVarlenColumn
+   */
   void Deallocate() {
     delete[] values_;
     values_ = nullptr;
@@ -112,8 +114,51 @@ class ArrowVarlenColumn {
   uint32_t *offsets_ = nullptr;
 };
 
+/**
+ * An ArrowColumnInfo object contains everything needed to reason about Arrow storage of a column in the block.
+ *
+ * All columns has a type associated with it. Gathered varlen columns has an ArrowVarlenColumn. If the column
+ * is dictionary-compressed, it has an ArrowVarlenColumn that is the dictionary, and an indices array that encodes
+ * the values. Notice here that the meaning of the ArrowVarlenColumn is different for dictionary-encoded columns
+ * and simple gathered columns.
+ */
 class ArrowColumnInfo {
  public:
+  /**
+   * Default constructor for Arrow ColumnInfo
+   */
+  ArrowColumnInfo() = default;
+
+  /**
+   * Move constructor for ArrowColumnInfo
+   * @param other the object to move from
+   */
+  ArrowColumnInfo(ArrowColumnInfo &&other) noexcept
+      : type_(other.type_), varlen_column_(std::move(other.varlen_column_)), indices_(other.indices_) {
+    other.indices_ = nullptr;
+  }
+
+  /**
+   * Destructor for ArrowColumnInfo
+   */
+  ~ArrowColumnInfo() { Deallocate(); }
+
+  /**
+   * Move-assignment operator
+   * @param other the object to move from
+   * @return self-reference
+   */
+  ArrowColumnInfo &operator=(ArrowColumnInfo &&other) noexcept {
+    if (this != &other) {
+      type_ = other.type_;
+      varlen_column_ = std::move(other.varlen_column_);
+      delete[] indices_;
+      indices_ = other.indices_;
+      other.indices_ = nullptr;
+    }
+    return *this;
+  }
+
   /**
    * @return type of the Arrow Column
    */
@@ -134,6 +179,9 @@ class ArrowColumnInfo {
     return indices_;
   }
 
+  /**
+   * Deallocates all associated buffers in the ArrowVarlenColumn
+   */
   void Deallocate() {
     delete[] indices_;
     varlen_column_.Deallocate();

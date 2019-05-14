@@ -123,7 +123,12 @@ class TransactionContext {
     storage::DeleteRecord::Initialize(redo_buffer_.NewEntry(size), start_time_, table, slot);
   }
 
+  // TODO(Tianyu): We need to discuss what happens to the loose_ptrs field now that we have deferred actions.
+  /**
+   * @return whether the transaction is read-only
+   */
   bool IsReadOnly() const { return undo_buffer_.Empty() && loose_ptrs_.empty(); }
+
   /**
    * Defers an action to be called if and only if the transaction aborts.  Actions executed LIFO.
    * @param a the action to be executed

@@ -84,18 +84,13 @@ class BlockAccessController {
    * blocks until all in-place readers have left to be able to perform in-place modifications.
    */
   void WaitUntilHot() {
-    bool blocked = false;
     while (true) {
       BlockState current_state = GetBlockState()->load();
       switch (current_state) {
         case BlockState::FREEZING:
-          blocked = true;
           continue;  // Wait until the compactor finishes before doing anything
         case BlockState::COOLING:
-          if (!GetBlockState()->compare_exchange_strong(current_state, BlockState::HOT)) {
-            blocked = true;
-            continue;
-          }
+          if (!GetBlockState()->compare_exchange_strong(current_state, BlockState::HOT)) continue;
           // wait until the compactor finishes before doing anything
           // intentional fall through
         case BlockState::FROZEN:

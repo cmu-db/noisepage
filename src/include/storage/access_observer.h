@@ -48,8 +48,9 @@ class AccessObserver {
    *
    * Notice that not all writes will be captured in this case. For example, an aborted transaction might not show up
    * here. All committed transactions are guaranteed to show up here.
+   * @param block The block that was written to
    */
-  void ObserveWrite(RawBlock *slot);
+  void ObserveWrite(RawBlock *block);
 
  private:
   uint64_t gc_epoch_ = 0;  // estimate time using the number of times GC has run
@@ -59,10 +60,6 @@ class AccessObserver {
   // reused, that process should only be triggered through compaction, which happens only if the
   // reference to said block is identified as cold and leaves the table.
   std::unordered_map<RawBlock *, uint64_t> last_touched_;
-  // Sorted table references by epoch. We can easily do range scans on this data structure to get
-  // cold blocks given current epoch and some threshold for a block to be cold.
-  //  std::map<uint64_t, std::unordered_map<RawBlock *, DataTable *>> table_references_by_epoch_;
-  //  std::unordered_set<RawBlock *> no_longer_insertable_;
   BlockCompactor *compactor_;
 };
 }  // namespace terrier::storage

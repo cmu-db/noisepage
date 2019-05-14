@@ -75,12 +75,12 @@ class BlockCompactor {
   // Move a tuple and updated associated information in their respective blocks
   bool MoveTuple(CompactionGroup *cg, TupleSlot from, TupleSlot to);
 
-  void GatherVarlens(transaction::TransactionContext *txn, RawBlock *block, DataTable *table);
+  void GatherVarlens(std::vector<const byte *> *loose_ptrs, RawBlock *block, DataTable *table);
 
-  void CopyToArrowVarlen(transaction::TransactionContext *txn, ArrowBlockMetadata *metadata, col_id_t col_id,
+  void CopyToArrowVarlen(std::vector<const byte *> *loose_ptrs, ArrowBlockMetadata *metadata, col_id_t col_id,
                          common::RawConcurrentBitmap *column_bitmap, ArrowColumnInfo *col, VarlenEntry *values);
 
-  void BuildDictionary(transaction::TransactionContext *txn, ArrowBlockMetadata *metadata, col_id_t col_id,
+  void BuildDictionary(std::vector<const byte *> *loose_ptrs, ArrowBlockMetadata *metadata, col_id_t col_id,
                        common::RawConcurrentBitmap *column_bitmap, ArrowColumnInfo *col, VarlenEntry *values);
 
   void ComputeFilled(const BlockLayout &layout, std::vector<uint32_t> *filled, const std::vector<uint32_t> &empty) {

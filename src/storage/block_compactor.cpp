@@ -14,53 +14,54 @@ void NoOp(void * /* unused */) {}
 
 void BlockCompactor::ProcessCompactionQueue(transaction::TransactionManager *txn_manager) {
   std::forward_list<RawBlock *> to_process = std::move(compaction_queue_);
-  CompactionGroup *cg = nullptr;
   for (auto &block : to_process) {
     BlockAccessController &controller = block->controller_;
     switch (controller.CurrentBlockState()) {
       case BlockState::HOT: {
-        if (cg == nullptr) cg = new CompactionGroup(txn_manager->BeginTransaction(), block->data_table_);
-        if (block->data_table_ != cg->table_) throw std::runtime_error("need to remove hack");
-        // TODO(Tianyu): This is probably fine for now, but we will want to not only compact within a block
-        // but also across blocks to eventually free up slots
-        cg->blocks_to_compact_.emplace(block, std::vector<uint32_t>());
+        // TODO(Tianyu): The policy about how to group blocks together into compaction group can be a lot
+        // more sophisticated. Compacting more blocks together frees up more memory per compaction run,
+        // but makes the compaction transaction larger, which can have performance impact on the rest
+        // of the system. As it currently stands, no memory is freed from this one-block-per-group scheme.
+        CompactionGroup cg(txn_manager->BeginTransaction(), block->data_table_);
+        // TODO(Tianyu): Additionally, frozen blocks can still have empty slots within them. To make sure
+        // these memory are not gone forever, we still need to periodically shuffle tuples around within
+        // frozen blocks. Although code can be reused for doing the compaction, some logic needs to be
+        // written to enqueue these frozen blocks into the compaction queue.
+        cg.blocks_to_compact_.emplace(block, std::vector<uint32_t>());
+        if (EliminateGaps(&cg)) {
+          controller.GetBlockState()->store(BlockState::COOLING);
+          // If no compaction was performed, we still need to shut out any potentially racey transactions that
+          // are alive at the same time as us flipping the block status flag to cooling. However, we must manually
+          // ask the GC to enqueue this block, because no access will be observed from the empty compaction transaction.
+          if (cg.txn_->IsReadOnly()) txn_manager->DeferAction([this, block] { PutInQueue(block); });
+          txn_manager->Commit(cg.txn_, NoOp, nullptr);
+        } else {
+          txn_manager->Abort(cg.txn_);
+        }
         break;
       }
       case BlockState::COOLING: {
-        if (!CheckForVersionsAndGaps(block->data_table_->accessor_, block)) {
-          continue;
-        }
-        // TODO(Tianyu): The use of transaction here is pretty sketchy
-        transaction::TransactionContext *txn = txn_manager->BeginTransaction();
-        GatherVarlens(txn, block, block->data_table_);
+        if (!CheckForVersionsAndGaps(block->data_table_->accessor_, block)) continue;
+        // This is used to clean up any dangling pointers using a deferred action in GC.
+        // We need this piece of memory to live on the heap, so its life time extends to
+        // beyond this function call.
+        auto *loose_ptrs = new std::vector<const byte *>;
+        GatherVarlens(loose_ptrs, block, block->data_table_);
         controller.GetBlockState()->store(BlockState::FROZEN);
-        txn_manager->Commit(txn, NoOp, nullptr);
+        // When the old variable length values are no longer visible by running transactions, delete them.
+        txn_manager->DeferAction([=] {
+          for (auto *loose_ptr : *loose_ptrs) delete[] loose_ptr;
+          delete loose_ptrs;
+        });
         break;
       }
       case BlockState::FROZEN:
-        // okay
+        // This is okay. In a rare race, the block can show up in the compaction queue, be accessed, compacted,
+        // and show up again because of the early access.
         break;
       default:
         throw std::runtime_error("unexpected control flow");
     }
-  }
-  if (cg == nullptr) return;
-  if (EliminateGaps(cg)) {
-    // Has to mark block as cooling before transaction commit, so we have a guarantee that
-    // any older transactions
-    for (auto &entry : cg->blocks_to_compact_) {
-      RawBlock *block = entry.first;
-      BlockAccessController &controller = block->controller_;
-      controller.GetBlockState()->store(BlockState::COOLING);
-    }
-
-    //    if (cg->txn_->IsReadOnly()) {
-    //      cg->txn_->compacted_ = block;
-    //      cg->txn_->table_ = block->data_table_;
-    //    }
-    txn_manager->Commit(cg->txn_, NoOp, nullptr);
-  } else {
-    txn_manager->Abort(cg->txn_);
   }
 }
 
@@ -82,21 +83,19 @@ bool BlockCompactor::EliminateGaps(CompactionGroup *cg) {
       if (!bitmap->Test(offset)) empty_slots.push_back(offset);
   }
 
-  // TODO(Tianyu): This process can probably be optimized further for the least amount of movements of tuples. But we
-  // are probably close enough to optimal that it does not matter that much
   // Within a group, we can calculate the number of blocks exactly we need to store all the filled tuples (we may
   // or may not need to throw away extra blocks when we are done compacting). Then, the algorithm involves selecting
   // the blocks with the least number of empty slots as blocks to "fill into", and the rest as blocks to "take away
-  // from". These are not two disjoint sets as we will probably need to shuffle tuples within one block to have
-  // perfectly compact groups (but only one block within a group needs this)
+  // from". These are not two disjoint sets as we will probably need to shuffle tuples within one block (but only one
+  // block within a group needs this)
   std::vector<RawBlock *> all_blocks;
   for (auto &entry : cg->blocks_to_compact_) all_blocks.push_back(entry.first);
 
   // Sort all the blocks within a group based on the number of filled slots, in descending order.
   std::sort(all_blocks.begin(), all_blocks.end(), [&](RawBlock *a, RawBlock *b) {
+    // We know these finds will not return end() because we constructed the vector from the map
     auto a_empty = cg->blocks_to_compact_[a].size();
     auto b_empty = cg->blocks_to_compact_[b].size();
-    // We know these finds will not return end() because we constructed the vector from the map
     return a_empty < b_empty;
   });
 
@@ -133,10 +132,13 @@ bool BlockCompactor::EliminateGaps(CompactionGroup *cg) {
   // TODO(Tianyu): This compaction process could leave blocks empty within a group and we will need to figure out
   // how those blocks are garbage collected. These blocks should have the same life-cycle as the compacting
   // transaction itself. (i.e. when the txn context is being GCed, we should be able to free these blocks as well)
-  // For now we are not implementing this because each compaction group is one block.
+  // For now we are not implementing this because each compaction group is one block. This suggests the use of
+  // deferred action.
   return true;
 }
 
+// TODO(Tianyu): Eventually this needs to be rewritten to use the insert and delete executors, so indexes are
+// handled correctly.
 bool BlockCompactor::MoveTuple(CompactionGroup *cg, TupleSlot from, TupleSlot to) {
   const TupleAccessStrategy &accessor = cg->table_->accessor_;
   const BlockLayout &layout = accessor.GetBlockLayout();
@@ -158,7 +160,7 @@ bool BlockCompactor::MoveTuple(CompactionGroup *cg, TupleSlot from, TupleSlot to
     if (entry->Size() <= VarlenEntry::InlineThreshold()) {
       *entry = VarlenEntry::CreateInline(entry->Content(), entry->Size());
     } else {
-      // TODO(Tianyu): Copying for correctness. This can potentially be expensive
+      // TODO(Tianyu): Copying for correctness. This is not yet shown to be expensive, but might be in the future.
       byte *copied = common::AllocationUtil::AllocateAligned(entry->Size());
       std::memcpy(copied, entry->Content(), entry->Size());
       *entry = VarlenEntry::Create(copied, entry->Size(), true);
@@ -223,7 +225,7 @@ bool BlockCompactor::CheckForVersionsAndGaps(const TupleAccessStrategy &accessor
   return ret;
 }
 
-void BlockCompactor::GatherVarlens(transaction::TransactionContext *txn, RawBlock *block, DataTable *table) {
+void BlockCompactor::GatherVarlens(std::vector<const byte *> *loose_ptrs, RawBlock *block, DataTable *table) {
   const TupleAccessStrategy &accessor = table->accessor_;
   const BlockLayout &layout = accessor.GetBlockLayout();
   ArrowBlockMetadata &metadata = accessor.GetArrowBlockMetadata(block);
@@ -243,10 +245,10 @@ void BlockCompactor::GatherVarlens(transaction::TransactionContext *txn, RawBloc
     auto *values = reinterpret_cast<VarlenEntry *>(accessor.ColumnStart(block, col_id));
     switch (col_info.Type()) {
       case ArrowColumnType::GATHERED_VARLEN:
-        CopyToArrowVarlen(txn, &metadata, col_id, column_bitmap, &col_info, values);
+        CopyToArrowVarlen(loose_ptrs, &metadata, col_id, column_bitmap, &col_info, values);
         break;
       case ArrowColumnType::DICTIONARY_COMPRESSED:
-        BuildDictionary(txn, &metadata, col_id, column_bitmap, &col_info, values);
+        BuildDictionary(loose_ptrs, &metadata, col_id, column_bitmap, &col_info, values);
         break;
       default:
         throw std::runtime_error("unexpected control flow");
@@ -254,7 +256,7 @@ void BlockCompactor::GatherVarlens(transaction::TransactionContext *txn, RawBloc
   }
 }
 
-void BlockCompactor::CopyToArrowVarlen(transaction::TransactionContext *txn, ArrowBlockMetadata *metadata,
+void BlockCompactor::CopyToArrowVarlen(std::vector<const byte *> *loose_ptrs, ArrowBlockMetadata *metadata,
                                        col_id_t col_id, common::RawConcurrentBitmap *column_bitmap,
                                        ArrowColumnInfo *col, VarlenEntry *values) {
   uint32_t varlen_size = 0;
@@ -269,9 +271,9 @@ void BlockCompactor::CopyToArrowVarlen(transaction::TransactionContext *txn, Arr
       varlen_size += values[i].Size();
   }
 
-  // TODO(Tianyu): Rewrite
+  // We cannot deallocate the old information yet, because entries in the table may point to values within
+  // the old Arrow storage.
   ArrowVarlenColumn new_col(varlen_size, metadata->NumRecords() + 1);
-
   for (uint32_t i = 0, acc = 0; i < metadata->NumRecords(); i++) {
     if (!column_bitmap->Test(i)) continue;
     // Only do a gather operation if the column is varlen
@@ -280,7 +282,7 @@ void BlockCompactor::CopyToArrowVarlen(transaction::TransactionContext *txn, Arr
     new_col.Offsets()[i] = acc;
 
     // Need to GC
-    if (entry.NeedReclaim()) txn->loose_ptrs_.push_back(entry.Content());
+    if (entry.NeedReclaim()) loose_ptrs->push_back(entry.Content());
 
     // TODO(Tianyu): Describe why this is still safe
     if (entry.Size() > VarlenEntry::InlineThreshold())
@@ -291,7 +293,7 @@ void BlockCompactor::CopyToArrowVarlen(transaction::TransactionContext *txn, Arr
   col->VarlenColumn() = std::move(new_col);
 }
 
-void BlockCompactor::BuildDictionary(transaction::TransactionContext *txn, ArrowBlockMetadata *metadata,
+void BlockCompactor::BuildDictionary(std::vector<const byte *> *loose_ptrs, ArrowBlockMetadata *metadata,
                                      col_id_t col_id, common::RawConcurrentBitmap *column_bitmap, ArrowColumnInfo *col,
                                      VarlenEntry *values) {
   VarlenEntryMap<uint32_t> dictionary;
@@ -308,14 +310,12 @@ void BlockCompactor::BuildDictionary(transaction::TransactionContext *txn, Arrow
     // If the string has not been seen before, should add it to dictionary when counting total length.
     if (ret.second) varlen_size += values[i].Size();
   }
-
-  // TODO(Tianyu): Rewrite
-
-  uint32_t *new_indices = common::AllocationUtil::AllocateAligned<uint32_t>(metadata->NumRecords());
-  ArrowVarlenColumn new_col(varlen_size, metadata->NumRecords() + 1);
+  ArrowColumnInfo new_col_info;
+  new_col_info.Type() = col->Type();
+  auto &new_col = new_col_info.VarlenColumn() = {varlen_size, metadata->NumRecords() + 1};
 
   // TODO(Tianyu): This is retarded, but apparently you cannot retrieve the index of elements in your
-  // c++ map in constant time. Thus we are resorting to primitive means.
+  // c++ map in constant time. Thus we are resorting to primitive means to implement dictionary compression.
   std::vector<VarlenEntry> corpus;
   for (auto &entry : dictionary) corpus.push_back(entry.first);
   std::sort(corpus.begin(), corpus.end(), VarlenContentCompare());
@@ -336,8 +336,8 @@ void BlockCompactor::BuildDictionary(transaction::TransactionContext *txn, Arrow
     // Only do a gather operation if the column is varlen
     VarlenEntry &entry = values[i];
     // Need to GC
-    if (entry.NeedReclaim()) txn->loose_ptrs_.push_back(entry.Content());
-    uint32_t dictionary_code = new_indices[i] = dictionary[entry];
+    if (entry.NeedReclaim()) loose_ptrs->push_back(entry.Content());
+    uint32_t dictionary_code = new_col_info.Indices()[i] = dictionary[entry];
 
     byte *dictionary_word = new_col.Values() + new_col.Offsets()[dictionary_code];
     TERRIER_ASSERT(memcmp(dictionary_word, entry.Content(), entry.Size()) == 0,
@@ -346,9 +346,7 @@ void BlockCompactor::BuildDictionary(transaction::TransactionContext *txn, Arrow
     if (entry.Size() > VarlenEntry::InlineThreshold())
       entry = VarlenEntry::Create(dictionary_word, entry.Size(), false);
   }
-  col->Deallocate();
-  col->Indices() = new_indices;
-  col->VarlenColumn() = std::move(new_col);
+  *col = std::move(new_col_info);
 }
 
 }  // namespace terrier::storage
