@@ -12,8 +12,9 @@
 
 namespace terrier::storage::index {
 struct IndexManagerTest : public TerrierTest {
-  void InsertThread(catalog::Catalog *catalog, catalog::SqlTableHelper *table, catalog::index_oid_t index_oid, int idx,
-                    IndexManager::index_id_t index_id) {
+  static void InsertThread(catalog::Catalog *catalog, catalog::SqlTableHelper *table, catalog::index_oid_t index_oid,
+                           int idx, IndexManager::index_id_t index_id, transaction::TransactionManager *txn_manager_,
+                           IndexManager *index_manager_) {
     auto txn = txn_manager_->BeginTransaction();
     // insert a row to SQLTable
     std::vector<type::TransientValue> row;
@@ -593,9 +594,14 @@ TEST_F(IndexManagerTest, CreateIndexConcurrentlyFuzzyTest) {
   EXPECT_EQ(index_entry->GetBooleanColumn("indisvalid"), true);
   txn_manager_->Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
 
-  // insert shits
+  // insert table entries with multiple threads
+  std::vector<std::thread> thds;
   for (int i = 0; i < 200; ++i) {
-    InsertThread(catalog_, table, index_oid, i, index_id);
+    thds.emplace_back(InsertThread, catalog_, table, index_oid, i, index_id, txn_manager_, index_manager_);
+  }
+
+  for (int i = 0; i < 200; ++i) {
+    thds[i].join();
   }
 
   // Test whether index contains all entries inserted before
