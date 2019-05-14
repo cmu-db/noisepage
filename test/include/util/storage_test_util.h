@@ -578,6 +578,8 @@ class RandomSqlTableTestObject {
                                                                                    Random *generator,
                                                                                    const int num_rows,
                                                                                    const double null_bias) {
+    cols_.clear();
+    col_oids_.clear();
     GenerateRandomColumns(num_cols, varlen_allowed, generator);
     Create(catalog::table_oid_t(table_oid_));
     table_oid_++;
