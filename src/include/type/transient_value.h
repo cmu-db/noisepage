@@ -222,6 +222,24 @@ class TransientValue {
   FRIEND_TEST(ValueTests, DateTest);
   FRIEND_TEST(ValueTests, VarCharTest);
 
+  /**
+   * Constructor for NULL value
+   * @param type type id
+   */
+  explicit TransientValue(const TypeId type) : type_(type), data_(0) { SetNull(true); }
+
+  // The following tests make sure that json serialization  works, so they need to
+  // be friends of the TransientValue class.
+  FRIEND_TEST(ValueTests, BooleanJsonTest);
+  FRIEND_TEST(ValueTests, TinyIntJsonTest);
+  FRIEND_TEST(ValueTests, SmallIntJsonTest);
+  FRIEND_TEST(ValueTests, IntegerJsonTest);
+  FRIEND_TEST(ValueTests, BigIntJsonTest);
+  FRIEND_TEST(ValueTests, DecimalJsonTest);
+  FRIEND_TEST(ValueTests, TimestampJsonTest);
+  FRIEND_TEST(ValueTests, DateJsonTest);
+  FRIEND_TEST(ValueTests, VarCharJsonTest);
+
   template <typename T>
   TransientValue(const TypeId type, T data) {
     // clear internal buffer

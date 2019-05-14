@@ -39,7 +39,7 @@ void RandomWorkloadTransaction::RandomUpdate(Random *generator) {
   std::vector<storage::col_id_t> update_col_ids =
       StorageTestUtil::ProjectionListRandomColumns(test_object_->layout_, generator);
   storage::ProjectedRowInitializer initializer =
-      storage::ProjectedRowInitializer::CreateProjectedRowInitializer(test_object_->layout_, update_col_ids);
+      storage::ProjectedRowInitializer::Create(test_object_->layout_, update_col_ids);
   auto *update_buffer =
       test_object_->bookkeeping_ ? common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize()) : buffer_;
   storage::ProjectedRow *update = initializer.InitializeRow(update_buffer);
