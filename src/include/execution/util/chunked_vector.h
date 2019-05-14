@@ -131,8 +131,7 @@ class ChunkedVectorRandomIterator {
   using pointer = byte **;
   using reference = byte *&;
 
-  ChunkedVectorRandomIterator() noexcept
-      : chunks_iter_(), element_size_(0), curr_(nullptr) {}
+  ChunkedVectorRandomIterator() noexcept = default;
 
   ChunkedVectorRandomIterator(util::RegionVector<byte *>::iterator chunks_iter,
                               byte *position, std::size_t element_size) noexcept
@@ -173,7 +172,7 @@ class ChunkedVectorRandomIterator {
       // When offset is large, division can't be avoided. Force rounding towards
       // negative infinity when the offset is negative.
       chunk_offset =
-          (byte_offset - (offset < 0) * (chunk_size - 1)) / chunk_size;
+          (byte_offset - (offset < 0 ? 1 : 0) * (chunk_size - 1)) / chunk_size;
     }
 
     // Update the chunk pointer
@@ -294,7 +293,7 @@ class ChunkedVectorRandomIterator {
   difference_type operator-(const ChunkedVectorRandomIterator &that) const
       noexcept {
     const i64 chunk_size = ChunkedVector::ChunkAllocSize(element_size_);
-    const i64 elem_size = static_cast<i64>(element_size_);
+    const auto elem_size = static_cast<i64>(element_size_);
 
     return ((chunks_iter_ - that.chunks_iter_) * chunk_size +
             ((curr_ - *chunks_iter_) - (that.curr_ - *that.chunks_iter_))) /
@@ -303,8 +302,8 @@ class ChunkedVectorRandomIterator {
 
  private:
   util::RegionVector<byte *>::iterator chunks_iter_;
-  std::size_t element_size_;
-  byte *curr_;
+  std::size_t element_size_{0};
+  byte *curr_{nullptr};
 };
 
 // ---------------------------------------------------------
@@ -386,7 +385,7 @@ inline const byte *ChunkedVector::back() const noexcept {
 
 inline void ChunkedVector::AllocateChunk() {
   std::size_t alloc_size = ChunkAllocSize(element_size());
-  byte *new_chunk = static_cast<byte *>(region_->Allocate(alloc_size));
+  auto new_chunk = static_cast<byte *>(region_->Allocate(alloc_size));
   chunks_.push_back(new_chunk);
   active_chunk_idx_ = chunks_.size() - 1;
   position_ = new_chunk;
@@ -450,7 +449,7 @@ class ChunkedVectorT {
 
     explicit Iterator(ChunkedVectorRandomIterator iter) : iter_(iter) {}
 
-    Iterator() : iter_() {}
+    Iterator() = default;
 
     T &operator*() const noexcept { return *reinterpret_cast<T *>(*iter_); }
 
@@ -583,19 +582,19 @@ const T &ChunkedVectorT<T>::back() const noexcept {
 template <typename T>
 template <class... Args>
 inline void ChunkedVectorT<T>::emplace_back(Args &&... args) {
-  T *space = reinterpret_cast<T *>(vec_.append());
+  auto *space = reinterpret_cast<T *>(vec_.append());
   new (space) T(std::forward<Args>(args)...);
 }
 
 template <typename T>
 inline void ChunkedVectorT<T>::push_back(const T &elem) {
-  T *space = reinterpret_cast<T *>(vec_.append());
+  auto *space = reinterpret_cast<T *>(vec_.append());
   new (space) T(elem);
 }
 
 template <typename T>
 inline void ChunkedVectorT<T>::push_back(T &&elem) {
-  T *space = reinterpret_cast<T *>(vec_.append());
+  auto *space = reinterpret_cast<T *>(vec_.append());
   new (space) T(std::move(elem));
 }
 

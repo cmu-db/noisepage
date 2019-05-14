@@ -57,8 +57,7 @@ class LLVMEngine {
   /// Options to provide when compiling
   class CompilerOptions {
    public:
-    CompilerOptions()
-        : debug_(false), write_obj_file_(false), output_file_name_() {}
+    CompilerOptions() : debug_(false), write_obj_file_(false) {}
 
     CompilerOptions &SetDebug(bool debug) {
       debug_ = debug;
@@ -88,8 +87,8 @@ class LLVMEngine {
     }
 
    private:
-    bool debug_;
-    bool write_obj_file_;
+    bool debug_{false};
+    bool write_obj_file_{false};
     std::string output_file_name_;
   };
 

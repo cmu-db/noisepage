@@ -16,13 +16,13 @@ namespace tpl::sql {
 class CountAggregate {
  public:
   /// Construct
-  CountAggregate() : count_(0) {}
+  CountAggregate() = default;
 
   /// This class cannot be copied or moved
   DISALLOW_COPY_AND_MOVE(CountAggregate);
 
   /// Advance the count based on the NULLness of the input value
-  void Advance(const Val *val) { count_ += !val->is_null; }
+  void Advance(const Val *val) { count_ += (val->is_null ? 0 : 1); }
 
   /// Merge this count with the \a that count
   void Merge(const CountAggregate &that) { count_ += that.count_; }
@@ -34,7 +34,7 @@ class CountAggregate {
   Integer GetCountResult() const { return Integer(count_); }
 
  private:
-  u64 count_;
+  u64 count_{0};
 };
 
 // ---------------------------------------------------------
@@ -44,7 +44,7 @@ class CountAggregate {
 class CountStarAggregate {
  public:
   /// Construct
-  CountStarAggregate() : count_(0) {}
+  CountStarAggregate() = default;
 
   /// This class cannot be copied or moved
   DISALLOW_COPY_AND_MOVE(CountStarAggregate);
@@ -62,7 +62,7 @@ class CountStarAggregate {
   Integer GetCountResult() const { return Integer(count_); }
 
  private:
-  u64 count_;
+  u64 count_{0};
 };
 
 // ---------------------------------------------------------
@@ -73,7 +73,7 @@ class CountStarAggregate {
 class NullableAggregate {
  public:
   /// Construct
-  NullableAggregate() : num_updates_(0) {}
+  NullableAggregate() = default;
 
   /// This class cannot be copied or moved
   DISALLOW_COPY_AND_MOVE(NullableAggregate);
@@ -92,14 +92,14 @@ class NullableAggregate {
   u64 GetNumUpdates() const { return num_updates_; }
 
  private:
-  u64 num_updates_;
+  u64 num_updates_{0};
 };
 
 /// Integer Sums
 class IntegerSumAggregate : public NullableAggregate {
  public:
   /// Constructor
-  IntegerSumAggregate() : NullableAggregate(), sum_(0) {}
+  IntegerSumAggregate() = default;
 
   /// This class cannot be copied or moved
   DISALLOW_COPY_AND_MOVE(IntegerSumAggregate);
@@ -125,7 +125,7 @@ class IntegerSumAggregate : public NullableAggregate {
   }
 
  private:
-  i64 sum_;
+  i64 sum_{0};
 };
 
 inline void IntegerSumAggregate::AdvanceNullable(const Integer *val) {
@@ -153,7 +153,7 @@ class IntegerMaxAggregate : public NullableAggregate {
  public:
   /// Constructor
   IntegerMaxAggregate()
-      : NullableAggregate(), max_(std::numeric_limits<i64>::min()) {}
+      : max_(std::numeric_limits<i64>::min()) {}
 
   /// This class cannot be copied or moved
   DISALLOW_COPY_AND_MOVE(IntegerMaxAggregate);
@@ -207,7 +207,7 @@ class IntegerMinAggregate : public NullableAggregate {
  public:
   /// Constructor
   IntegerMinAggregate()
-      : NullableAggregate(), min_(std::numeric_limits<i64>::max()) {}
+      : min_(std::numeric_limits<i64>::max()) {}
 
   /// This class cannot be copied or moved
   DISALLOW_COPY_AND_MOVE(IntegerMinAggregate);
@@ -260,7 +260,7 @@ inline void IntegerMinAggregate::Merge(const IntegerMinAggregate &that) {
 class IntegerAvgAggregate : public IntegerSumAggregate {
  public:
   /// Constructor
-  IntegerAvgAggregate() : IntegerSumAggregate() {}
+  IntegerAvgAggregate() = default;
 
   /// This class cannot be copied or moved
   DISALLOW_COPY_AND_MOVE(IntegerAvgAggregate);

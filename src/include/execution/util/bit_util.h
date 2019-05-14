@@ -42,7 +42,7 @@ class BitUtil {
   /// \return True if set; false otherwise
   ALWAYS_INLINE static bool Test(const u32 bits[], const u32 idx) {
     const u32 mask = 1u << (idx % kBitWordSize);
-    return bits[idx / kBitWordSize] & mask;
+    return (bits[idx / kBitWordSize] & mask) != 0;
   }
 
   /// Set the bit at index \a idx to 1 in the bit vector \a bits
@@ -124,7 +124,7 @@ class BitVector : public BitVectorBase<BitVector> {
  public:
   // Create an uninitialized bit vector. Callers **must** use Init() before
   // interacting with the BitVector
-  BitVector() : owned_bits_(nullptr), bits_(nullptr), num_bits_(0) {}
+  BitVector() = default;
 
   // Create a new BitVector with the specified number of bits
   explicit BitVector(u32 num_bits)
@@ -156,11 +156,11 @@ class BitVector : public BitVectorBase<BitVector> {
   u32 *bits() const { return bits_; }
 
  private:
-  std::unique_ptr<u32[]> owned_bits_;
+  std::unique_ptr<u32[]> owned_bits_{nullptr};
 
-  u32 *bits_;
+  u32 *bits_{nullptr};
 
-  u32 num_bits_;
+  u32 num_bits_{0};
 };
 
 /// A bit vector that stores the bit set data inline in the class

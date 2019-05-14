@@ -152,7 +152,7 @@ inline HashTableEntry *GenericHashTable::FindChainHead(hash_t hash) const {
 inline HashTableEntry *GenericHashTable::FindChainHeadWithTag(
     hash_t hash) const {
   const HashTableEntry *const candidate = FindChainHead(hash);
-  auto exists_in_chain = reinterpret_cast<intptr_t>(candidate) & TagHash(hash);
+  auto exists_in_chain = (reinterpret_cast<intptr_t>(candidate) & TagHash(hash)) != 0;
   return (exists_in_chain ? UntagPointer(candidate) : nullptr);
 }
 

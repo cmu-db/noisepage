@@ -120,7 +120,7 @@ class BytecodeModule {
   class Trampoline {
    public:
     /// Create an empty/uninitialized trampoline
-    Trampoline() noexcept : mem_() {}
+    Trampoline() noexcept {};
 
     /// Create a trampoline over the given memory block
     explicit Trampoline(llvm::sys::OwningMemoryBlock &&mem) noexcept
@@ -188,24 +188,21 @@ inline bool BytecodeModule::GetFunction(
       func = [this, func_info](ArgTypes... args) -> RetT {
         if constexpr (std::is_void_v<RetT>) {
           // Create a temporary on-stack buffer and copy all arguments
-          u8 arg_buffer[(0ul + ... + sizeof(args))];
+          u8 arg_buffer[(0ul + ... +sizeof(args))];
           detail::CopyAll(arg_buffer, args...);
 
           // Invoke and finish
           VM::InvokeFunction(*this, func_info->id(), arg_buffer);
           return;
-        } else {
-          // The return value
-          RetT rv{};
-
-          // Create a temporary on-stack buffer and copy all arguments
-          u8 arg_buffer[sizeof(RetT *) + (0ul + ... + sizeof(args))];
-          detail::CopyAll(arg_buffer, &rv, args...);
-
-          // Invoke and finish
-          VM::InvokeFunction(*this, func_info->id(), arg_buffer);
-          return rv;
         }
+        // The return value
+        RetT rv{};
+        // Create a temporary on-stack buffer and copy all arguments
+        u8 arg_buffer[sizeof(RetT *) + (0ul + ... + sizeof(args))];
+        detail::CopyAll(arg_buffer, &rv, args...);
+        // Invoke and finish
+        VM::InvokeFunction(*this, func_info->id(), arg_buffer);
+        return rv;
       };
       break;
     }
@@ -223,12 +220,11 @@ inline bool BytecodeModule::GetFunction(
           auto *jit_f = reinterpret_cast<void (*)(ArgTypes...)>(raw_fn);
           jit_f(args...);
           return;
-        } else {
-          auto *jit_f = reinterpret_cast<void (*)(RetT *, ArgTypes...)>(raw_fn);
-          RetT rv{};
-          jit_f(&rv, args...);
-          return rv;
         }
+        auto *jit_f = reinterpret_cast<void (*)(RetT *, ArgTypes...)>(raw_fn);
+        RetT rv{};
+        jit_f(&rv, args...);
+        return rv;
       };
       break;
     }

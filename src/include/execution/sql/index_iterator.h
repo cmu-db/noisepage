@@ -7,12 +7,17 @@
 #include "storage/storage_defs.h"
 
 namespace tpl::sql {
-using namespace terrier;
+using terrier::transaction::TransactionContext;
+using terrier::storage::ProjectedRow;
+using terrier::storage::TupleSlot;
+using terrier::catalog::CatalogIndex;
+using terrier::catalog::SqlTableRW;
+
 class IndexIterator {
  public:
   // Constructs the iterator for the given index
   explicit IndexIterator(uint32_t index_oid,
-                         transaction::TransactionContext *txn = nullptr);
+                         TransactionContext *txn = nullptr);
 
   // Frees allocated resources.
   ~IndexIterator();
@@ -36,15 +41,15 @@ class IndexIterator {
   const T *Get(u32 col_idx, bool *null) const;
 
  private:
-  transaction::TransactionContext *txn_;
-  std::vector<storage::TupleSlot> index_values_;
+  TransactionContext *txn_;
+  std::vector<TupleSlot> index_values_;
   uint32_t curr_index_ = 0;
   byte *index_buffer_ = nullptr;
   byte *row_buffer_ = nullptr;
-  storage::ProjectedRow *index_pr_ = nullptr;
-  storage::ProjectedRow *row_pr_ = nullptr;
-  std::shared_ptr<catalog::CatalogIndex> catalog_index_ = nullptr;
-  std::shared_ptr<catalog::SqlTableRW> catalog_table_ = nullptr;
+  ProjectedRow *index_pr_ = nullptr;
+  ProjectedRow *row_pr_ = nullptr;
+  std::shared_ptr<CatalogIndex> catalog_index_ = nullptr;
+  std::shared_ptr<SqlTableRW> catalog_table_ = nullptr;
 };
 
 template <typename T, bool Nullable>

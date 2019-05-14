@@ -7,7 +7,11 @@
 #include "storage/sql_table.h"
 
 namespace tpl::sql {
-using namespace terrier;
+using terrier::catalog::db_oid_t;
+using terrier::catalog::table_oid_t ;
+using terrier::transaction::TransactionContext;
+using terrier::storage::DataTable;
+
 /// An iterator over a table's data in vector-wise fashion
 class TableVectorIterator {
  public:
@@ -33,9 +37,9 @@ class TableVectorIterator {
   ProjectedColumnsIterator *projected_columns_iterator() { return &pci_; }
 
  private:
-  const catalog::db_oid_t db_oid_;
-  const catalog::table_oid_t table_oid_;
-  transaction::TransactionContext *txn_ = nullptr;
+  const db_oid_t db_oid_;
+  const table_oid_t table_oid_;
+  TransactionContext *txn_ = nullptr;
 
   // TODO(Amadou): These are temporary variables until transactions are in
   // And until the Init() logic is in the bytecode emitter.
@@ -52,7 +56,7 @@ class TableVectorIterator {
   byte *buffer_ = nullptr;
   terrier::storage::ProjectedColumns *projected_columns_ = nullptr;
   // Iterator of the slots in the PC
-  std::unique_ptr<storage::DataTable::SlotIterator> iter_ = nullptr;
+  std::unique_ptr<DataTable::SlotIterator> iter_ = nullptr;
 };
 
 }  // namespace tpl::sql

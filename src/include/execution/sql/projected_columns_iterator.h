@@ -10,7 +10,8 @@
 #include "execution/util/macros.h"
 
 namespace tpl::sql {
-using namespace terrier;
+using terrier::storage::ProjectedColumns;
+using terrier::type::TypeId;
 /// An iterator over ProjectedColumns. A ProjectedColumnsIterator allows both
 /// tuple-at-a-time iteration over a ProjectedColumns and vector-at-a-time
 /// processing. There are two separate APIs for each and interleaving is
@@ -24,7 +25,7 @@ class ProjectedColumnsIterator {
   explicit ProjectedColumnsIterator();
 
   explicit ProjectedColumnsIterator(
-      storage::ProjectedColumns *projected_column);
+      ProjectedColumns *projected_column);
 
   /// This class cannot be copied or moved
   DISALLOW_COPY_AND_MOVE(ProjectedColumnsIterator);
@@ -35,7 +36,7 @@ class ProjectedColumnsIterator {
 
   /// Set the ProjectedColumns to iterate over
   /// \param projected_column The projected column
-  void SetProjectedColumn(storage::ProjectedColumns *projected_column);
+  void SetProjectedColumn(ProjectedColumns *projected_column);
 
   // -------------------------------------------------------
   // Tuple-at-a-time API
@@ -104,15 +105,15 @@ class ProjectedColumnsIterator {
     i64 bi;
   };
 
-  FilterVal MakeFilterVal(i64 val, type::TypeId type) {
+  FilterVal MakeFilterVal(i64 val, TypeId type) {
     switch (type) {
-      case type::TypeId::TINYINT:
+      case TypeId::TINYINT:
         return FilterVal{.ti = static_cast<i8>(val)};
-      case type::TypeId::SMALLINT:
+      case TypeId::SMALLINT:
         return FilterVal{.si = static_cast<i16>(val)};
-      case type::TypeId::INTEGER:
+      case TypeId::INTEGER:
         return FilterVal{.i = static_cast<i32>(val)};
-      case type::TypeId::BIGINT:
+      case TypeId::BIGINT:
         return FilterVal{.bi = static_cast<i64>(val)};
       default:
         throw std::runtime_error("Filter not supported on type");
@@ -138,7 +139,7 @@ class ProjectedColumnsIterator {
 
  private:
   // The projected column we are iterating over.
-  storage::ProjectedColumns *projected_column_;
+  ProjectedColumns *projected_column_;
 
   // The current raw position in the ProjectedColumns we're pointing to
   u32 curr_idx_;
@@ -185,7 +186,7 @@ inline void ProjectedColumnsIterator::AdvanceFiltered() {
 
 inline void ProjectedColumnsIterator::Match(bool matched) {
   selection_vector_[selection_vector_write_idx_] = curr_idx_;
-  selection_vector_write_idx_ += matched;
+  selection_vector_write_idx_ += matched ? 1 : 0;
 }
 
 inline bool ProjectedColumnsIterator::HasNext() const {

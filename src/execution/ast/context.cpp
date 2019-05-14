@@ -36,7 +36,7 @@ llvm::hash_code hash_value(const Field &field) {
   return llvm::hash_combine(field.name.data(), field.type);
 }
 
-using namespace terrier;
+using terrier::type::TypeId;
 
 struct StructTypeKeyInfo {
   struct KeyTy {
@@ -216,23 +216,23 @@ Identifier Context::GetIdentifier(llvm::StringRef str) {
 
 Type *Context::GetTplTypeFromSqlType(const terrier::type::TypeId &sql_type) {
   switch (sql_type) {
-    case type::TypeId::BOOLEAN: {
+    case TypeId::BOOLEAN: {
       return BuiltinType::Get(this, BuiltinType::Boolean);
     }
-    case type::TypeId::TINYINT:
-    case type::TypeId::SMALLINT:
-    case type::TypeId::INTEGER:
-    case type::TypeId::BIGINT: {
+    case TypeId::TINYINT:
+    case TypeId::SMALLINT:
+    case TypeId::INTEGER:
+    case TypeId::BIGINT: {
       return BuiltinType::Get(this, BuiltinType::Integer);
     }
-    case type::TypeId::DECIMAL: {
+    case TypeId::DECIMAL: {
       return BuiltinType::Get(this, BuiltinType::Decimal);
     }
-    case type::TypeId::VARCHAR:
-    case type::TypeId::VARBINARY: {
+    case TypeId::VARCHAR:
+    case TypeId::VARBINARY: {
       return BuiltinType::Get(this, BuiltinType::VarBuffer);
     }
-    case type::TypeId::DATE: {
+    case TypeId::DATE: {
       return BuiltinType::Get(this, BuiltinType::Date);
     }
     default: { throw std::runtime_error("No TPL type for sql type"); }
@@ -356,6 +356,7 @@ FunctionType *FunctionType::Get(util::RegionVector<Field> &&params, Type *ret) {
   const FunctionTypeKeyInfo::KeyTy key(ret, params);
 
   auto [iter, inserted] = ctx->impl()->func_types.insert_as(nullptr, key);
+  (void)iter;
 
   FunctionType *func_type = nullptr;
 

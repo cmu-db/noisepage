@@ -124,9 +124,9 @@ inline void ConciseHashTable::Insert(HashTableEntry *entry, const hash_t hash) {
   const u64 slot_idx = hash & slot_mask_;
   const u64 group_idx = slot_idx >> kLogSlotsPerGroup;
   const u64 num_bits_to_group = group_idx << kLogSlotsPerGroup;
-  u32 *group_bits = reinterpret_cast<u32 *>(&slot_groups_[group_idx].bits);
+  auto group_bits = reinterpret_cast<u32 *>(&slot_groups_[group_idx].bits);
 
-  u32 bit_idx = static_cast<u32>(slot_idx & kGroupBitMask);
+  auto bit_idx = static_cast<u32>(slot_idx & kGroupBitMask);
   u32 max_bit_idx = std::min(63u, bit_idx + probe_limit_);
   do {
     if (!util::BitUtil::Test(group_bits, bit_idx)) {
@@ -168,7 +168,7 @@ inline std::pair<bool, u64> ConciseHashTable::Lookup(const hash_t hash) const {
   const SlotGroup *slot_group = slot_groups_ + group_idx;
   const u64 bits_after_slot = slot_group->bits & (u64(-1) << bit_idx);
 
-  const bool exists = slot_group->bits & (1ull << bit_idx);
+  const bool exists = (slot_group->bits & (1ull << bit_idx)) != 0;
   const u64 pos = slot_group->count - util::BitUtil::CountBits(bits_after_slot);
 
   return std::pair(exists, pos);

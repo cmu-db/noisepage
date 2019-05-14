@@ -16,13 +16,13 @@ ProjectedColumnsIterator::ProjectedColumnsIterator()
 }
 
 ProjectedColumnsIterator::ProjectedColumnsIterator(
-    storage::ProjectedColumns *projected_column)
+    ProjectedColumns *projected_column)
     : ProjectedColumnsIterator() {
   SetProjectedColumn(projected_column);
 }
 
 void ProjectedColumnsIterator::SetProjectedColumn(
-    storage::ProjectedColumns *projected_column) {
+    ProjectedColumns *projected_column) {
   projected_column_ = projected_column;
   num_selected_ = projected_column_->NumTuples();
   curr_idx_ = 0;

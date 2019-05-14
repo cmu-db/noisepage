@@ -19,7 +19,7 @@ enum class Kind : u8 { EpsilonGreedy, Greedy, Random, UCB, FixedAction };
  */
 class Policy {
  public:
-  explicit Policy(Kind kind) : kind_(kind), generator_(time(0)) {}
+  explicit Policy(Kind kind) : kind_(kind), generator_(time(nullptr)) {}
 
   /**
    * Returns the next action according to the policy
@@ -46,7 +46,7 @@ class EpsilonGreedyPolicy : public Policy {
         epsilon_(epsilon),
         real_(std::uniform_real_distribution<double>(0, 1)) {}
 
-  virtual u32 NextAction(Agent *agent);
+  u32 NextAction(Agent *agent) override;
 
  private:
   double epsilon_;
@@ -82,7 +82,7 @@ class UCBPolicy : public Policy {
  public:
   explicit UCBPolicy(double c) : Policy(Kind::UCB), c_(c) {}
 
-  u32 NextAction(Agent *agent);
+  u32 NextAction(Agent *agent) override;
 
  private:
   // Hyperparameter that decides the weight of the penalty term.
@@ -98,7 +98,7 @@ class FixedActionPolicy : public Policy {
   explicit FixedActionPolicy(u32 action)
       : Policy(Kind::FixedAction), action_(action) {}
 
-  u32 NextAction(Agent *agent) { return action_; }
+  u32 NextAction(Agent *agent) override { return action_; }
 
  private:
   u32 action_;

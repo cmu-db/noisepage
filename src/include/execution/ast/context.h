@@ -15,10 +15,6 @@ namespace sema {
 class ErrorReporter;
 }  // namespace sema
 
-namespace sql {
-class Type;
-}  // namespace sql
-
 namespace ast {
 
 class AstNodeFactory;
