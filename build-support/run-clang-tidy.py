@@ -319,7 +319,8 @@ def main():
                         put_file = True
                     update_progress(i, len(files))
                 except queue.Full:
-                    print('Still waiting to put files into clang-tidy queue.', flush=True)
+                    print('Still waiting to put files into clang-tidy queue.')
+                    sys.stdout.flush()
 
         # Wait for all threads to be done.
         task_queue.join()
