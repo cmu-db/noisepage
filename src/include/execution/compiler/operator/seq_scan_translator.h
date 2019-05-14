@@ -11,7 +11,7 @@ class SeqScanTranslator : public OperatorTranslator {
 
   void InitializeQueryState() override {}
   void TeardownQueryState() override {}
-  void Consume(const ConsumerContext *context, RowBatch &batch) const override {}
+  void Consume(const ConsumerContext *context, RowBatch *batch) const override {}
 
   void Produce() override;
 };

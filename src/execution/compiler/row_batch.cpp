@@ -4,7 +4,7 @@
 namespace tpl::compiler {
   ast::Expr *RowBatch::DeriveValue(const terrier::parser::AbstractExpression &ex) {
     auto translator = context_.GetTranslator(ex);
-    auto ret = translator->DeriveExpr(&ex, *this);
+    auto ret = translator->DeriveExpr(&ex, this);
 
     //cache ret??
     return ret;

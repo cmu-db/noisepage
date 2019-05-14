@@ -9,8 +9,8 @@ namespace tpl::compiler {
 class ArithmeticTranslator : public ExpressionTranslator {
 
  public:
-  ArithmeticTranslator(const terrier::parser::AbstractExpression *expression, CompilationContext &context);
+  ArithmeticTranslator(const terrier::parser::AbstractExpression *expression, CompilationContext *context);
 
-  ast::Expr *DeriveExpr(const terrier::parser::AbstractExpression *expression, RowBatch &row) override;
+  ast::Expr *DeriveExpr(const terrier::parser::AbstractExpression *expression, RowBatch *row) override;
 };
 }

@@ -42,7 +42,7 @@ void SeqScanTranslator::Produce() {
   current_fn->StartForInStmt(target, table_name, attributes);
   const auto &predicate = scan_node.GetScanPredicate();
   auto predicate_expr = pipeline_->GetCompilationContext()
-      ->GetTranslator(*predicate)->DeriveExpr(predicate.get(), row_batch);
+      ->GetTranslator(*predicate)->DeriveExpr(predicate.get(), &row_batch);
     current_fn->StartIfStmt(predicate_expr);
   ConsumerContext ctx(pipeline_->GetCompilationContext(), pipeline_);
   ctx.Consume(&row_batch);

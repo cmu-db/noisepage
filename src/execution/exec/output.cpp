@@ -1,6 +1,7 @@
 #include "execution/exec/output.h"
 
 namespace tpl::exec {
+using terrier::type::TypeId;
 
 OutputBuffer::~OutputBuffer() { delete[] tuples_; }
 
@@ -28,10 +29,10 @@ void OutputPrinter::operator()(byte *tuples, u32 num_tuples, u32 tuple_size) {
     for (u16 col = 0; col < schema_.GetCols().size(); col++) {
       // TODO(Amadou): Figure out to print other types.
       switch (schema_.GetCols()[col].GetType()) {
-        case type::TypeId::TINYINT:
-        case type::TypeId::SMALLINT:
-        case type::TypeId::BIGINT:
-        case type::TypeId::INTEGER: {
+        case TypeId::TINYINT:
+        case TypeId::SMALLINT:
+        case TypeId::BIGINT:
+        case TypeId::INTEGER: {
           auto *val = reinterpret_cast<sql::Integer *>(
               tuples + row * tuple_size + schema_.GetOffset(col));
           if (val->is_null)
@@ -40,13 +41,13 @@ void OutputPrinter::operator()(byte *tuples, u32 num_tuples, u32 tuple_size) {
             ss << val->val;
           break;
         }
-        case type::TypeId::BOOLEAN: {
+        case TypeId::BOOLEAN: {
           auto *val = reinterpret_cast<sql::Integer *>(
               tuples + row * tuple_size + schema_.GetOffset(col));
           if (val->is_null) {
             ss << "NULL";
           } else {
-            if (val->val) {
+            if (val->val != 0) {
               ss << "true";
             } else {
               ss << "false";

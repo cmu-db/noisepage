@@ -13,7 +13,7 @@
 #include "execution/util/chunked_vector.h"
 
 namespace tpl::exec {
-using namespace terrier;
+using terrier::catalog::Schema;
 
 // Assumes the user of the callback knows the output schema
 // So it can get read attributes itself.
@@ -23,16 +23,16 @@ using OutputCallback = std::function<void(byte *, u32, u32)>;
 // The final schema outputted to the upper layer.
 class FinalSchema {
  public:
-  FinalSchema(std::vector<catalog::Schema::Column> cols,
+  FinalSchema(std::vector<Schema::Column> cols,
               std::unordered_map<u32, u32> offsets)
       : cols_(std::move(cols)), offsets_(std::move(offsets)) {}
 
-  const std::vector<catalog::Schema::Column> &GetCols() { return cols_; }
+  const std::vector<Schema::Column> &GetCols() const { return cols_; }
 
-  u32 GetOffset(u32 idx) { return offsets_.at(idx); }
+  u32 GetOffset(u32 idx) const { return offsets_.at(idx); }
 
  private:
-  const std::vector<catalog::Schema::Column> cols_;
+  const std::vector<Schema::Column> cols_;
   const std::unordered_map<u32, u32> offsets_;
 };
 
@@ -71,14 +71,14 @@ class OutputBuffer {
 // A OutputCallback that prints tuples to std::cout.
 class OutputPrinter {
  public:
-  explicit OutputPrinter(FinalSchema &schema) : schema_(schema) {}
+  explicit OutputPrinter(const FinalSchema &schema) : schema_(schema) {}
 
   // Prints the tuples in this batch.
   void operator()(byte *tuples, u32 num_tuples, u32 tuple_size);
 
  private:
   uint32_t printed_ = 0;
-  FinalSchema &schema_;
+  const FinalSchema &schema_;
 };
 
 }  // namespace tpl::exec

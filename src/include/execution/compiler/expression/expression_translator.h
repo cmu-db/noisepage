@@ -30,12 +30,12 @@ class CompilationContext;
 
 class ExpressionTranslator {
  public:
-  ExpressionTranslator(const terrier::parser::AbstractExpression *expression, CompilationContext &context)
+  ExpressionTranslator(const terrier::parser::AbstractExpression *expression, CompilationContext *context)
   : context_(context), expression_(*expression) {};
 
   virtual ~ExpressionTranslator() = default;
 
-  virtual ast::Expr *DeriveExpr(const terrier::parser::AbstractExpression *expression, RowBatch &row) = 0;
+  virtual ast::Expr *DeriveExpr(const terrier::parser::AbstractExpression *expression, RowBatch *row) = 0;
 
   template <typename T>
   const T &GetExpressionAs() const {
@@ -43,7 +43,7 @@ class ExpressionTranslator {
   }
 
  protected:
-  CompilationContext &context_;
+  CompilationContext *context_;
 
  private:
   const terrier::parser::AbstractExpression &expression_;

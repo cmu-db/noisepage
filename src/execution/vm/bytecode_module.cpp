@@ -183,7 +183,7 @@ class TrampolineGenerator : public Xbyak::CodeGenerator {
 }  // namespace
 
 void BytecodeModule::CreateFunctionTrampoline(const FunctionInfo &func,
-                                              Trampoline &trampoline) {
+                                              Trampoline *trampoline) {
   // Allocate memory
   std::error_code error;
   u32 flags = llvm::sys::Memory::ProtectionFlags::MF_READ |
@@ -207,7 +207,7 @@ void BytecodeModule::CreateFunctionTrampoline(const FunctionInfo &func,
                llvm::sys::Memory::ProtectionFlags::MF_EXEC);
 
   // Done
-  trampoline = Trampoline(llvm::sys::OwningMemoryBlock(mem));
+  *trampoline = Trampoline(llvm::sys::OwningMemoryBlock(mem));
 }
 
 void BytecodeModule::CreateFunctionTrampoline(FunctionId func_id) {
@@ -222,7 +222,7 @@ void BytecodeModule::CreateFunctionTrampoline(FunctionId func_id) {
 
   // Create the trampoline for the function
   Trampoline trampoline;
-  CreateFunctionTrampoline(*func_info, trampoline);
+  CreateFunctionTrampoline(*func_info, &trampoline);
 
   // Mark available
   trampolines_[func_id] = std::move(trampoline);

@@ -336,7 +336,7 @@ void BytecodeGenerator::VisitForInStmt(ast::ForInStmt *node) {
   auto *exec = sql::ExecutionStructures::Instance();
   ast::Identifier table_name = node->iter()->As<ast::IdentifierExpr>()->name();
   // Get the table from the catalog.
-  std::shared_ptr<catalog::SqlTableRW> catalog_table;
+  std::shared_ptr<SqlTableRW> catalog_table;
   if(node->GetHasOid()) {
     terrier::catalog::table_oid_t table_oid = static_cast<terrier::catalog::table_oid_t>(std::stoi(table_name.data()));
     catalog_table = exec->GetCatalog()->GetCatalogTable(
@@ -734,8 +734,8 @@ void BytecodeGenerator::VisitBuiltinFilterCall(ast::CallExpr *call,
   // Get the index and type of the column.
   auto *exec = sql::ExecutionStructures::Instance();
   auto catalog_table = exec->GetCatalog()->GetCatalogTable(
-      catalog::DEFAULT_DATABASE_OID, table_name);
-  type::TypeId col_type = type::TypeId::INVALID;
+      terrier::catalog::DEFAULT_DATABASE_OID, table_name);
+  TypeId col_type = TypeId::INVALID;
   uint32_t col_idx = 0;
   for (const auto &col :
        catalog_table->GetSqlTable()->GetSchema().GetColumns()) {
@@ -846,7 +846,7 @@ void BytecodeGenerator::VisitBuiltinOutputCall(ast::CallExpr *call,
 void BytecodeGenerator::VisitBuiltinIndexIteratorCall(ast::CallExpr *call,
                                                       ast::Builtin builtin) {
   exec::ExecutionContext *exec_context = exec_context_.get();
-  catalog::Catalog *catalog =
+  Catalog *catalog =
       sql::ExecutionStructures::Instance()->GetCatalog();
   // TODO(Amadou) Find a more elegant way to pass in the execution context
   auto exec_context_addr = reinterpret_cast<uintptr_t>(exec_context);
@@ -1549,18 +1549,18 @@ Bytecode BytecodeGenerator::GetIntTypedBytecode(Bytecode bytecode,
   return Bytecodes::FromByte(Bytecodes::ToByte(bytecode) + kind_idx);
 }
 
-Bytecode BytecodeGenerator::GetPCIColumnCode(catalog::SqlTableRW *catalog_table,
+Bytecode BytecodeGenerator::GetPCIColumnCode(SqlTableRW *catalog_table,
                                              u32 col_idx) {
   const auto &schema = catalog_table->GetSqlTable()->GetSchema();
   if (schema.GetColumns()[col_idx].GetNullable()) {
     switch (schema.GetColumns()[col_idx].GetType()) {
-      case type::TypeId::INTEGER:
+      case TypeId::INTEGER:
         return Bytecode::PCIGetIntegerNull;
-      case type::TypeId::SMALLINT:
+      case TypeId::SMALLINT:
         return Bytecode::PCIGetSmallIntNull;
-      case type::TypeId::BIGINT:
+      case TypeId::BIGINT:
         return Bytecode::PCIGetBigIntNull;
-      case type::TypeId::DECIMAL:
+      case TypeId::DECIMAL:
         return Bytecode::PCIGetDecimalNull;
       default:
         // TODO(Amadou): Handle errors here.
@@ -1568,13 +1568,13 @@ Bytecode BytecodeGenerator::GetPCIColumnCode(catalog::SqlTableRW *catalog_table,
     }
   } else {
     switch (schema.GetColumns()[col_idx].GetType()) {
-      case type::TypeId::INTEGER:
+      case TypeId::INTEGER:
         return Bytecode::PCIGetInteger;
-      case type::TypeId::SMALLINT:
+      case TypeId::SMALLINT:
         return Bytecode::PCIGetSmallInt;
-      case type::TypeId::BIGINT:
+      case TypeId::BIGINT:
         return Bytecode::PCIGetBigInt;
-      case type::TypeId::DECIMAL:
+      case TypeId::DECIMAL:
         return Bytecode::PCIGetDecimal;
       default:
         // TODO(Amadou): Handle errors here.
@@ -1584,17 +1584,17 @@ Bytecode BytecodeGenerator::GetPCIColumnCode(catalog::SqlTableRW *catalog_table,
 }
 
 Bytecode BytecodeGenerator::GetIndexIteratorColumnCode(
-    catalog::SqlTableRW *catalog_table, u32 col_idx) {
+    SqlTableRW *catalog_table, u32 col_idx) {
   const auto &schema = catalog_table->GetSqlTable()->GetSchema();
   if (schema.GetColumns()[col_idx].GetNullable()) {
     switch (schema.GetColumns()[col_idx].GetType()) {
-      case type::TypeId::INTEGER:
+      case TypeId::INTEGER:
         return Bytecode::IndexIteratorGetIntegerNull;
-      case type::TypeId::SMALLINT:
+      case TypeId::SMALLINT:
         return Bytecode::IndexIteratorGetSmallIntNull;
-      case type::TypeId::BIGINT:
+      case TypeId::BIGINT:
         return Bytecode::IndexIteratorGetBigIntNull;
-      case type::TypeId::DECIMAL:
+      case TypeId::DECIMAL:
         return Bytecode::IndexIteratorGetDecimalNull;
       default:
         // TODO(Amadou): Handle errors here.
@@ -1602,13 +1602,13 @@ Bytecode BytecodeGenerator::GetIndexIteratorColumnCode(
     }
   } else {
     switch (schema.GetColumns()[col_idx].GetType()) {
-      case type::TypeId::INTEGER:
+      case TypeId::INTEGER:
         return Bytecode::IndexIteratorGetInteger;
-      case type::TypeId::SMALLINT:
+      case TypeId::SMALLINT:
         return Bytecode::IndexIteratorGetSmallInt;
-      case type::TypeId::BIGINT:
+      case TypeId::BIGINT:
         return Bytecode::IndexIteratorGetBigInt;
-      case type::TypeId::DECIMAL:
+      case TypeId::DECIMAL:
         return Bytecode::IndexIteratorGetDecimal;
       default:
         // TODO(Amadou): Handle errors here.

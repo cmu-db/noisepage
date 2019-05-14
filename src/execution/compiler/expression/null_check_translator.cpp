@@ -2,15 +2,15 @@
 #include "execution/compiler/compilation_context.h"
 
 namespace tpl::compiler {
-NullCheckTranslator::NullCheckTranslator(const terrier::parser::AbstractExpression *expression, CompilationContext &context)
+NullCheckTranslator::NullCheckTranslator(const terrier::parser::AbstractExpression *expression, CompilationContext *context)
     : ExpressionTranslator(expression, context) {
-  context.Prepare(*expression->GetChild(0));
+  context->Prepare(*expression->GetChild(0));
 };
 
-ast::Expr *NullCheckTranslator::DeriveExpr(const terrier::parser::AbstractExpression *expression, RowBatch &row) {
+ast::Expr *NullCheckTranslator::DeriveExpr(const terrier::parser::AbstractExpression *expression, RowBatch *row) {
   auto type = expression->GetExpressionType();
-  auto codegen = context_.GetCodeGen();
-  auto child = row.DeriveValue(*expression->GetChild(0));
+  auto codegen = context_->GetCodeGen();
+  auto child = row->DeriveValue(*expression->GetChild(0));
   auto null_expr = (*codegen)->NewNilLiteral(DUMMY_POS);
   if(type == terrier::parser::ExpressionType::OPERATOR_IS_NULL){
     return (*codegen)->NewBinaryOpExpr(DUMMY_POS, parsing::Token::Type::EQUAL_EQUAL, null_expr, child);

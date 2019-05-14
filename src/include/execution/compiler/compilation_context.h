@@ -36,7 +36,7 @@ class CompilationContext {
   util::Region *GetRegion();
 
   void Prepare(const terrier::planner::AbstractPlanNode &op, Pipeline *pipeline);
-  void Prepare(const terrier::parser::AbstractExpression &ex);
+  void Prepare(const terrier::parser::AbstractExpression &exp);
 
   OperatorTranslator *GetTranslator(const terrier::planner::AbstractPlanNode &op) const;
   ExpressionTranslator *GetTranslator(const terrier::parser::AbstractExpression &ex) const;
@@ -47,7 +47,6 @@ class CompilationContext {
   CodeGen codegen_;
 
   std::vector<Pipeline *> pipelines_;
-  TranslatorFactory translator_factory_;
   std::unordered_map<const terrier::parser::AbstractExpression *, ExpressionTranslator *> ex_translators_;
   std::unordered_map<const terrier::planner::AbstractPlanNode *, OperatorTranslator *> op_translators_;
 };

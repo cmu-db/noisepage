@@ -20,7 +20,7 @@ class OperatorTranslator {
 
   virtual void Produce() = 0;
 
-  virtual void Consume(const ConsumerContext *context, RowBatch &batch) const = 0;
+  virtual void Consume(const ConsumerContext *context, RowBatch *batch) const = 0;
 
   template <typename T>
   const T &GetOperatorAs() const {

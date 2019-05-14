@@ -309,7 +309,9 @@ MapType *MapType::Get(Type *key_type, Type *value_type) {
 StructType *StructType::Get(Context *ctx, util::RegionVector<Field> &&fields) {
   const StructTypeKeyInfo::KeyTy key(fields);
 
-  auto [iter, inserted] = ctx->impl()->struct_types.insert_as(nullptr, key);
+  auto insert_res = ctx->impl()->struct_types.insert_as(nullptr, key);
+  auto iter = insert_res.first;
+  auto inserted = insert_res.second;
 
   StructType *struct_type = nullptr;
 
@@ -355,8 +357,9 @@ FunctionType *FunctionType::Get(util::RegionVector<Field> &&params, Type *ret) {
 
   const FunctionTypeKeyInfo::KeyTy key(ret, params);
 
-  auto [iter, inserted] = ctx->impl()->func_types.insert_as(nullptr, key);
-  (void)iter;
+  auto insert_res = ctx->impl()->func_types.insert_as(nullptr, key);
+  auto iter = insert_res.first;
+  auto inserted = insert_res.second;
 
   FunctionType *func_type = nullptr;
 

@@ -13,7 +13,7 @@ class OperatorTranslator;
 class TranslatorFactory {
  public:
   static OperatorTranslator *CreateTranslator(const terrier::planner::AbstractPlanNode &op, Pipeline *pipeline);
-  static ExpressionTranslator *CreateTranslator(const terrier::parser::AbstractExpression &ex, CompilationContext &context);
+  static ExpressionTranslator *CreateTranslator(const terrier::parser::AbstractExpression &expression, CompilationContext *context);
 };
 
 }

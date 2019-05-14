@@ -4,8 +4,8 @@
 namespace tpl::compiler {
 class TupleValueTranslator : public ExpressionTranslator {
  public:
-  TupleValueTranslator(const terrier::parser::AbstractExpression *expression, CompilationContext &context);
+  TupleValueTranslator(const terrier::parser::AbstractExpression *expression, CompilationContext *context);
 
-  ast::Expr *DeriveExpr(const terrier::parser::AbstractExpression *expression, RowBatch &row) override;
+  ast::Expr *DeriveExpr(const terrier::parser::AbstractExpression *expression, RowBatch *row) override;
 };
 }

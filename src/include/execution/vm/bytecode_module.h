@@ -53,7 +53,9 @@ class BytecodeModule {
   /// Retrieve an iterator over the bytecode for the given function \a func
   /// \return A pointer to the function's info if it exists; null otherwise
   BytecodeIterator BytecodeForFunction(const FunctionInfo &func) const {
-    auto [start, end] = func.bytecode_range();
+    auto range = func.bytecode_range();
+    auto start = range.first;
+    auto end = range.second;
     return BytecodeIterator(code_, start, end);
   }
 
@@ -103,8 +105,8 @@ class BytecodeModule {
   friend class LLVMEngine;
 
   const u8 *GetBytecodeForFunction(const FunctionInfo &func) const {
-    auto [start, _] = func.bytecode_range();
-    (void)_;
+    auto range = func.bytecode_range();
+    auto start = range.first;
     return &code_[start];
   }
 
@@ -112,7 +114,7 @@ class BytecodeModule {
   class Trampoline;
   void CreateFunctionTrampoline(FunctionId func_id);
   void CreateFunctionTrampoline(const FunctionInfo &func,
-                                Trampoline &trampoline);
+                                Trampoline *trampoline);
 
  private:
   /// A trampoline is a stub function that all calls into TPL code go through
@@ -120,7 +122,7 @@ class BytecodeModule {
   class Trampoline {
    public:
     /// Create an empty/uninitialized trampoline
-    Trampoline() noexcept {};
+    Trampoline() noexcept {}; // NOLINT
 
     /// Create a trampoline over the given memory block
     explicit Trampoline(llvm::sys::OwningMemoryBlock &&mem) noexcept

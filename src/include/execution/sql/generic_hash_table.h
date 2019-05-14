@@ -119,16 +119,16 @@ class GenericHashTable {
 
  private:
   // Main bucket table
-  std::atomic<HashTableEntry *> *entries_;
+  std::atomic<HashTableEntry *> *entries_{nullptr};
 
   // The mask to use to determine the bucket position of an entry given its hash
-  u64 mask_;
+  u64 mask_{0};
 
   // The capacity of the directory
-  u64 capacity_;
+  u64 capacity_{0};
 
   // The current number of elements stored in the table
-  u64 num_elems_;
+  u64 num_elems_{0};
 
   // The current load-factor
   float load_factor_;

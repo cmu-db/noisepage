@@ -18,7 +18,7 @@ void ConsumerContext::Consume(RowBatch *batch) {
   } else {
     // We're not at the end of the pipeline, push the batch through the stages
     do {
-      translator->Consume(this, *batch);
+      translator->Consume(this, batch);
       // When the call returns here, the pipeline position has been shifted to
       // the start of a new stage.
     } while ((translator = pipeline_->NextStep()) != nullptr);

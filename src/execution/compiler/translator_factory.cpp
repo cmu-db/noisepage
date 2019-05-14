@@ -24,7 +24,7 @@ OperatorTranslator *TranslatorFactory::CreateTranslator(const terrier::planner::
     }
   }
 
-ExpressionTranslator *TranslatorFactory::CreateTranslator(const terrier::parser::AbstractExpression &expression, CompilationContext &context) {
+ExpressionTranslator *TranslatorFactory::CreateTranslator(const terrier::parser::AbstractExpression &expression, CompilationContext *context) {
   auto type = expression.GetExpressionType();
   if(COMPARISON_OP(type)){
     auto ret = new ComparisonTranslator(&expression, context);

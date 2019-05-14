@@ -15,10 +15,6 @@ namespace ast {
 class Context;
 }  // namespace ast
 
-namespace sql {
-class Schema;
-}  // namespace sql
-
 namespace sema {
 
 /// This is the main class that performs semantic analysis of TPL programs. It

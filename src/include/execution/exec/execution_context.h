@@ -5,10 +5,11 @@
 #include "transaction/transaction_manager.h"
 
 namespace tpl::exec {
-using namespace terrier;
+using terrier::transaction::TransactionContext;
+
 class ExecutionContext {
  public:
-  ExecutionContext(transaction::TransactionContext *txn,
+  ExecutionContext(TransactionContext *txn,
                    OutputCallback callback,
                    const std::shared_ptr<FinalSchema> &final_schema)
       : txn_(txn),
@@ -16,7 +17,7 @@ class ExecutionContext {
                                                ComputeTupleSize(final_schema),
                                                callback)) {}
 
-  transaction::TransactionContext *GetTxn() { return txn_; }
+  TransactionContext *GetTxn() { return txn_; }
 
   OutputBuffer *GetOutputBuffer() { return buffer_.get(); }
 
@@ -30,7 +31,7 @@ class ExecutionContext {
   }
 
  private:
-  transaction::TransactionContext *txn_;
+  TransactionContext *txn_;
   std::unique_ptr<OutputBuffer> buffer_;
 };
 }  // namespace tpl::exec

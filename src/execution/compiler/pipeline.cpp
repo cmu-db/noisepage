@@ -8,9 +8,8 @@ namespace tpl::compiler {
  const OperatorTranslator *Pipeline::NextStep() {
    if (pipeline_index_ > 0) {
      return pipeline_[--pipeline_index_];
-   } else {
-     return nullptr;
    }
+   return nullptr;
  }
 
   util::Region *Pipeline::GetRegion() {

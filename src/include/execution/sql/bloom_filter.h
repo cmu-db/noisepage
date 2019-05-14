@@ -36,7 +36,7 @@ class BloomFilter {
   void Init(util::Region *region, u32 num_elems);
 
   /// Add an element to the bloom filter
-  void Add(hash_t);
+  void Add(hash_t hash);
 
   /// Check if the given element is contained in the filter
   /// \return True if the hash may be in the filter; false if definitely not
@@ -56,15 +56,15 @@ class BloomFilter {
 
  private:
   // The region allocator we use for all allocations
-  util::Region *region_;
+  util::Region *region_{nullptr};
 
   // The blocks. Note that this isn't allocated in a region and doesn't need to
   // be freed on destruction. That will be taken care of when the region gets
   // destroyed
-  Block *blocks_;
+  Block *blocks_{nullptr};
 
   // The mask used to determine which block a hash goes into
-  u32 block_mask_;
+  u32 block_mask_{0};
 
   util::RegionVector<hash_t> lazily_added_hashes_;
 };

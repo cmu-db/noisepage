@@ -14,7 +14,10 @@
 #include "execution/vm/bytecode_emitter.h"
 
 namespace tpl::vm {
-using namespace terrier;
+using terrier::catalog::Catalog;
+using terrier::catalog::SqlTableRW;
+using terrier::type::TypeId;
+
 class BytecodeModule;
 class LoopBuilder;
 
@@ -56,7 +59,7 @@ class BytecodeGenerator : public ast::AstVisitor<BytecodeGenerator> {
   // set up the row structure used in the body of the loop
   void VisitRowWiseIteration(ast::ForInStmt *node, LocalVar pci,
                              LoopBuilder *table_loop,
-                             catalog::SqlTableRW *table_catalog);
+                             SqlTableRW *catalog_table);
   void VisitVectorWiseIteration(ast::ForInStmt *node, LocalVar pci,
                                 LoopBuilder *table_loop);
   void VisitIndexedForInStmt(ast::ForInStmt *node, ast::Expr *index_expr,
@@ -150,14 +153,14 @@ class BytecodeGenerator : public ast::AstVisitor<BytecodeGenerator> {
    * @param col_idx the index of the column.
    * @return the byte used to Get an element from this column.
    */
-  Bytecode GetPCIColumnCode(catalog::SqlTableRW *catalog_table, u32 col_idx);
+  Bytecode GetPCIColumnCode(SqlTableRW *catalog_table, u32 col_idx);
 
   /**
    * @param catalog_table the table being processed.
    * @param col_idx the index of the column.
    * @return the byte used to Get an element from this column.
    */
-  Bytecode GetIndexIteratorColumnCode(catalog::SqlTableRW *catalog_table,
+  Bytecode GetIndexIteratorColumnCode(SqlTableRW *catalog_table,
                                       u32 col_idx);
 
  private:
@@ -174,10 +177,10 @@ class BytecodeGenerator : public ast::AstVisitor<BytecodeGenerator> {
   BytecodeEmitter emitter_;
 
   // RAII struct to capture semantics of expression evaluation
-  ExpressionResultScope *execution_result_;
+  ExpressionResultScope *execution_result_{nullptr};
 
   // Execution Context
-  std::shared_ptr<exec::ExecutionContext> exec_context_ = nullptr;
+  std::shared_ptr<exec::ExecutionContext> exec_context_{nullptr};
 };
 
 }  // namespace tpl::vm

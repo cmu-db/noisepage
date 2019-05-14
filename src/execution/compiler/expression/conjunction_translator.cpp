@@ -5,14 +5,14 @@
 namespace tpl::compiler {
 
   ConjunctionTranslator::ConjunctionTranslator(const terrier::parser::AbstractExpression *expression,
-      CompilationContext &context) : ExpressionTranslator(expression, context) {
-    context.Prepare(*expression->GetChild(0));
-    context.Prepare(*expression->GetChild(1));
+      CompilationContext *context) : ExpressionTranslator(expression, context) {
+    context->Prepare(*expression->GetChild(0));
+    context->Prepare(*expression->GetChild(1));
   }
 
-  ast::Expr *ConjunctionTranslator::DeriveExpr(const terrier::parser::AbstractExpression *expression, RowBatch &row) {
-    auto *left = row.DeriveValue(*expression->GetChild(0));
-    auto *right = row.DeriveValue(*expression->GetChild(1));
+  ast::Expr *ConjunctionTranslator::DeriveExpr(const terrier::parser::AbstractExpression *expression, RowBatch *row) {
+    auto *left = row->DeriveValue(*expression->GetChild(0));
+    auto *right = row->DeriveValue(*expression->GetChild(1));
     parsing::Token::Type type;
     switch(expression->GetExpressionType()){
       case terrier::parser::ExpressionType::CONJUNCTION_OR:
@@ -27,6 +27,6 @@ namespace tpl::compiler {
       default:
         TPL_ASSERT(false, "Unsupported expression");
     }
-    return (*context_.GetCodeGen())->NewBinaryOpExpr(DUMMY_POS, type, left, right);
+    return (*context_->GetCodeGen())->NewBinaryOpExpr(DUMMY_POS, type, left, right);
   }
 }

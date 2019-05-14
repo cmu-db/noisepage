@@ -123,7 +123,9 @@ llvm::Type *LLVMEngine::TypeMap::GetLLVMType(const ast::Type *type) {
   // update the returned iterator rather than performing another lookup.
   //
 
-  auto [iter, inserted] = type_map_.try_emplace(type->ToString(), nullptr);
+  auto emplace_result = type_map_.try_emplace(type->ToString(), nullptr);
+  auto iter = emplace_result.first;
+  auto inserted = emplace_result.second;
 
   if (!inserted) {
     return iter->second;

@@ -139,22 +139,22 @@ class ProjectedColumnsIterator {
 
  private:
   // The projected column we are iterating over.
-  ProjectedColumns *projected_column_;
+  ProjectedColumns *projected_column_{nullptr};
 
   // The current raw position in the ProjectedColumns we're pointing to
-  u32 curr_idx_;
+  u32 curr_idx_{0};
 
   // The number of tuples from the projection that have been selected (filtered)
-  u32 num_selected_;
+  u32 num_selected_{0};
 
   // The selection vector used to filter the ProjectedColumns
   u32 selection_vector_[kDefaultVectorSize];
 
   // The next slot in the selection vector to read from
-  u32 selection_vector_read_idx_;
+  u32 selection_vector_read_idx_{0};
 
   // The next slot in the selection vector to write into
-  u32 selection_vector_write_idx_;
+  u32 selection_vector_write_idx_{0};
 };
 
 // ---------------------------------------------------------

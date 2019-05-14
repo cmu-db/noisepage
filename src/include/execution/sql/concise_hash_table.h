@@ -98,22 +98,22 @@ class ConciseHashTable {
 
  private:
   // The array of groups. This array is managed by this class.
-  SlotGroup *slot_groups_;
+  SlotGroup *slot_groups_{nullptr};
 
   // The number of groups (of slots) in the table
-  u64 num_groups_;
+  u64 num_groups_{0};
 
   // The mask used to find a slot in the hash table
-  u64 slot_mask_;
+  u64 slot_mask_{0};
 
   // The maximum number of slots to probe
-  u32 probe_limit_;
+  u32 probe_limit_{0};
 
   // The number of entries in the overflow table
-  u32 num_overflow_;
+  u32 num_overflow_{0};
 
   // Flag indicating if the hash table has been built and is frozen (read-only)
-  bool built_;
+  bool built_{false};
 };
 
 // ---------------------------------------------------------

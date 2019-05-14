@@ -52,7 +52,7 @@ class BytecodeLabel {
  private:
   std::size_t offset_;
   std::vector<size_t> referrer_offsets_;
-  bool bound_;
+  bool bound_{false};
 };
 
 }  // namespace tpl::vm

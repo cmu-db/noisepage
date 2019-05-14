@@ -132,13 +132,13 @@ util::Region *CompilationContext::GetRegion() {
 }
 
 void CompilationContext::Prepare(const terrier::planner::AbstractPlanNode &op, tpl::compiler::Pipeline *pipeline) {
-  auto translator = translator_factory_.CreateTranslator(op, pipeline);
+  auto translator = TranslatorFactory::CreateTranslator(op, pipeline);
   op_translators_.emplace(std::make_pair(&op, translator));
 }
 
 // Prepare the translator for the given expression
 void CompilationContext::Prepare(const terrier::parser::AbstractExpression &exp) {
-  auto translator = translator_factory_.CreateTranslator(exp, *this);
+  auto translator = TranslatorFactory::CreateTranslator(exp, this);
   ex_translators_.insert(std::make_pair(&exp, translator));
 }
 

@@ -4,13 +4,13 @@
 #include "execution/compiler/compilation_context.h"
 
 namespace tpl::compiler {
-  ConstantTranslator::ConstantTranslator(const terrier::parser::AbstractExpression *expression, CompilationContext &context)
+  ConstantTranslator::ConstantTranslator(const terrier::parser::AbstractExpression *expression, CompilationContext *context)
       : ExpressionTranslator(expression, context) {};
 
-  ast::Expr *ConstantTranslator::DeriveExpr(const terrier::parser::AbstractExpression *expression, RowBatch &row) {
+  ast::Expr *ConstantTranslator::DeriveExpr(const terrier::parser::AbstractExpression *expression, RowBatch *row) {
     auto const_val = GetExpressionAs<terrier::parser::ConstantValueExpression>();
     auto trans_val = const_val.GetValue();
-    auto codegen = context_.GetCodeGen();
+    auto codegen = context_->GetCodeGen();
     auto type = trans_val.Type();
     switch (type) {
       case terrier::type::TypeId::TINYINT:

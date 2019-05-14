@@ -7,7 +7,7 @@
 
 namespace tpl::compiler {
 
-QueryState::QueryState(ast::Identifier state_name) : state_name_(state_name), constructed_type_(nullptr), states_() {}
+QueryState::QueryState(ast::Identifier state_name) : state_name_(state_name), constructed_type_(nullptr) {}
 
 QueryState::Id QueryState::RegisterState(std::string name, ast::Expr *type, ast::Expr *value) {
   auto id = states_.size();

@@ -57,10 +57,11 @@ class LLVMEngine {
   /// Options to provide when compiling
   class CompilerOptions {
    public:
-    CompilerOptions() : debug_(false), write_obj_file_(false) {}
+    CompilerOptions() : debug_(false), write_obj_file_(false) {} // NOLINT
 
     CompilerOptions &SetDebug(bool debug) {
       debug_ = debug;
+      (void)debug_;
       return *this;
     }
 

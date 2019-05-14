@@ -184,8 +184,9 @@ inline JoinHashTable::Iterator JoinHashTable::Lookup<false>(
 template <>
 inline JoinHashTable::Iterator JoinHashTable::Lookup<true>(
     const hash_t hash) const {
-  const auto [found, idx] = concise_hash_table_.Lookup(hash);
-  (void)found;
+  const auto lookup_res = concise_hash_table_.Lookup(hash);
+  auto found = lookup_res.first;
+  auto idx = lookup_res.second;
   auto *entry = (found ? EntryAt(idx) : nullptr);
   return JoinHashTable::Iterator(entry, hash);
 }

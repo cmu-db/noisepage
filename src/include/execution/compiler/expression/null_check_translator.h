@@ -4,8 +4,8 @@
 namespace tpl::compiler {
 class NullCheckTranslator : public ExpressionTranslator {
  public:
-  NullCheckTranslator(const terrier::parser::AbstractExpression *expression, CompilationContext &context);
+  NullCheckTranslator(const terrier::parser::AbstractExpression *expression, CompilationContext *context);
 
-  ast::Expr *DeriveExpr(const terrier::parser::AbstractExpression *expression, RowBatch &row) override;
+  ast::Expr *DeriveExpr(const terrier::parser::AbstractExpression *expression, RowBatch *row) override;
 };
 }

@@ -6,8 +6,8 @@ namespace tpl::compiler {
 class ConjunctionTranslator : public ExpressionTranslator {
 
  public:
-  ConjunctionTranslator(const terrier::parser::AbstractExpression *expression, CompilationContext &context);
+  ConjunctionTranslator(const terrier::parser::AbstractExpression *expression, CompilationContext *context);
 
-  ast::Expr *DeriveExpr(const terrier::parser::AbstractExpression *expression, RowBatch &row) override;
+  ast::Expr *DeriveExpr(const terrier::parser::AbstractExpression *expression, RowBatch *row) override;
 };
 }
