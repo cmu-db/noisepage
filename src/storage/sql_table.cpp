@@ -30,7 +30,7 @@ SqlTable::SqlTable(BlockStore *const store, const catalog::Schema &schema, const
   InverseColumnMap inv_col_map;
 
   // Build the maps between Schema column OIDs and underlying column IDs
-  for (const auto &column : schema_.GetColumns()) {
+  for (const auto &column : schema.GetColumns()) {
     switch (column.GetAttrSize()) {
       case VARLEN_COLUMN:
         inv_col_map[col_id_t(offsets[0])] = column.GetOid();
