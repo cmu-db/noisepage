@@ -330,14 +330,27 @@ struct ColumnDefinition {
  */
 class IndexAttr {
  public:
+  /**
+   * Create an index attribute on a column name.
+   */
   explicit IndexAttr(std::string name) : name_(std::move(name)), expr_(nullptr) {}
+
+  /**
+   * Create an index attribute on an expression.
+   */
   explicit IndexAttr(std::shared_ptr<AbstractExpression> expr) : name_(""), expr_(std::move(expr)) {}
 
+  /**
+   * @return the name of the column that we're indexed on
+   */
   std::string GetName() const {
     TERRIER_ASSERT(expr_ == nullptr, "Expressions don't come with names.");
     return name_;
   }
 
+  /**
+   * @return the expression that we're indexed on
+   */
   std::shared_ptr<AbstractExpression> GetExpression() const {
     TERRIER_ASSERT(expr_ != nullptr, "Names don't come with expressions.");
     return expr_;
