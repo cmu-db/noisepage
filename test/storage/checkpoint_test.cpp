@@ -386,7 +386,7 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryNoVarlen) {
   // Run transactions to generate logs
   StartLogging(10);
   auto result = tested.SimulateOltp(100, 4);
-  // Sleep to ensure logs are flushed
+  // Sleep to ensure logs are flushed so that we have all logs to recover
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
   // read first run
   transaction::TransactionContext *scan_txn = txn_manager->BeginTransaction();
@@ -413,7 +413,7 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryNoVarlen) {
   txn_manager->Commit(scan_txn_2, StorageTestUtil::EmptyCallback, nullptr);
 
   // Should be careful that we should not end logging earlier because we have to flush out
-  // the recovery transaction. Or there will be memory leak.
+  // the recovery transaction. Or there will be memory leak for that log entry.
   EndLogging();
   EndGC();
   // compare
@@ -469,7 +469,7 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryWithVarlen) {
   // Run transactions to generate logs
   StartLogging(10);
   auto result = tested.SimulateOltp(100, 4);
-  // Sleep to ensure logs are flushed
+  // Sleep to ensure logs are flushed so that we have all logs to recover
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
   // read first run
   transaction::TransactionContext *scan_txn = txn_manager->BeginTransaction();
@@ -492,6 +492,8 @@ TEST_F(CheckpointTests, SimpleCheckpointAndLogRecoveryWithVarlen) {
   std::vector<std::string> recovered_rows;
   StorageTestUtil::PrintAllRows(scan_txn_2, recovered_table, &recovered_rows);
   txn_manager->Commit(scan_txn_2, StorageTestUtil::EmptyCallback, nullptr);
+  // Should be careful that we should not end logging earlier because we have to flush out
+  // the recovery transaction. Or there will be memory leak for that log entry.
   EndLogging();
   EndGC();
   // compare

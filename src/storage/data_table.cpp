@@ -1,5 +1,4 @@
 #include "storage/data_table.h"
-#include <loggers/storage_logger.h>
 #include <cstring>
 #include <unordered_map>
 #include "common/allocator.h"

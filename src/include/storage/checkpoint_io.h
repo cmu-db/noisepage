@@ -20,7 +20,6 @@ namespace terrier::storage {
 /**
  * The header of a page in the checkpoint file.
  */
-// TODO(Zhaozhe, Mengyang): More fields can be added to header
 class PACKED CheckpointFilePage {
  public:
   /**
@@ -85,8 +84,16 @@ class PACKED CheckpointFilePage {
    */
   bool GetFlag(uint32_t pos) { return Bitmap().Test(pos); }
 
+  /**
+   * Set the version field of this page.
+   * @param version value of the table version (or the catalog type).
+   */
   void SetVersion(uint32_t version) { version_ = version; }
 
+  /**
+   * Get the value of the version field.
+   * @return Version number or catalog type.
+   */
   uint32_t GetVersion() { return version_; }
 
  private:
@@ -102,8 +109,16 @@ class PACKED CheckpointFilePage {
   uint32_t flags_;
   byte payload_[0];
 
+  /**
+   * Return the flags field as a Bitmap.
+   * @return Bitmap
+   */
   common::RawBitmap &Bitmap() { return *reinterpret_cast<common::RawBitmap *>(&flags_); }
 
+  /**
+   * Return the flags field as a Bitmap.
+   * @return Bitmap
+   */
   const common::RawBitmap &Bitmap() const { return *reinterpret_cast<const common::RawBitmap *>(&flags_); }
 };
 
@@ -224,7 +239,21 @@ class BufferedTupleWriter {
   /**
    * Write the content of the buffer into disk.
    */
-  void Persist() { PersistBuffer(); }
+  void Persist() {
+    // TODO(zhaozhe): calculate CHECKSUM. Currently using default 0 as checksum
+    if (page_offset_ == sizeof(CheckpointFilePage)) {
+      // If the buffer has no contents, just return
+      return;
+    }
+    AlignBufferOffset<uint64_t>();
+    if (block_size_ - page_offset_ > sizeof(uint32_t)) {
+      // append a zero to the last record, so that during recovery it can be recognized as the end
+      memset(buffer_ + page_offset_, 0, sizeof(uint32_t));
+    }
+    async_writer_.WriteBuffer(buffer_);
+    buffer_ = async_writer_.GetBuffer();
+    ResetBuffer();
+  }
 
   /**
    * Close current file and release the buffer.
@@ -238,6 +267,7 @@ class BufferedTupleWriter {
    * Serialize a tuple into the checkpoint file (buffer). The buffer will be persisted to the disk, if the remaining
    * size of the buffer is  not enough for this row.
    * @param row to be serialized
+   * @param slot TupleSlot of the row to be serialized
    * @param schema schema of the row
    * @param proj_map projection map of the schema.
    */
@@ -281,7 +311,7 @@ class BufferedTupleWriter {
   uint32_t flags_;
 
   /**
-   * Wirte a piece of data into the buffer. If the buffer is not enough, persist current buffer and allocate a new one.
+   * Write a piece of data into the buffer. If the buffer is not enough, persist current buffer and allocate a new one.
    * Note that alignment is not dealt in this function. It has to be done manually.
    * @param data to be written.
    * @param size of the data.
@@ -304,6 +334,9 @@ class BufferedTupleWriter {
     }
   }
 
+  /**
+   * Reset the content of the buffer, including: initializing page header, setting the initial page offset.
+   */
   void ResetBuffer() {
     CheckpointFilePage::Initialize(reinterpret_cast<CheckpointFilePage *>(buffer_));
     page_offset_ = sizeof(CheckpointFilePage);
@@ -313,22 +346,11 @@ class BufferedTupleWriter {
     GetPage()->SetFlags(flags_);
   }
 
-  void PersistBuffer() {
-    // TODO(zhaozhe): calculate CHECKSUM. Currently using default 0 as checksum
-    if (page_offset_ == sizeof(CheckpointFilePage)) {
-      // If the buffer has no contents, just return
-      return;
-    }
-    AlignBufferOffset<uint64_t>();
-    if (block_size_ - page_offset_ > sizeof(uint32_t)) {
-      // append a zero to the last record, so that during recovery it can be recognized as the end
-      memset(buffer_ + page_offset_, 0, sizeof(uint32_t));
-    }
-    async_writer_.WriteBuffer(buffer_);
-    buffer_ = async_writer_.GetBuffer();
-    ResetBuffer();
-  }
-
+  /**
+   * Align the buffer offset to multiples of the size of a type. Currently 2 types are used: uint32_t for reading
+   * sizes and tupleslots, uint64_t for reading a ProjectedRow.
+   * @tparam T type parameter indicating what to align.
+   */
   template <class T>
   void AlignBufferOffset() {
     page_offset_ = StorageUtil::PadUpToSize(alignof(T), page_offset_);
@@ -395,6 +417,10 @@ class BufferedTupleReader {
     return checkpoint_row;
   }
 
+  /**
+   * Read the next TupleSlot from the buffer.
+   * @return pointer to the TupleSlot.
+   */
   TupleSlot *ReadNextTupleSlot() {
     AlignBufferOffset<uintptr_t>();
     auto slot = reinterpret_cast<TupleSlot *>(ReadDataAcrossPages(sizeof(uintptr_t)));
@@ -477,18 +503,17 @@ class BufferedTupleReader {
       }
       // remaining buffer is not enough
       memcpy(tmp_buffer + already_read, buffer_ + page_offset_, remaining_buffer);
-      if (!ReadNextBlock()) {
-        // should not happen, unless the checkpoint file is corrupted.
-        // TODO(Mengyang): figure out what kind of exception to throw here.
-        loose_ptrs_.emplace_back(tmp_buffer);
-        return tmp_buffer;
-      }
+      bool hasNextBlock UNUSED_ATTRIBUTE = ReadNextBlock();
+      TERRIER_ASSERT(hasNextBlock, "Incomplete Checkpoint file");
       left_to_read -= remaining_buffer;
       already_read += remaining_buffer;
     }
     return tmp_buffer;
   }
 
+  /**
+   * Utility function to clear all the loose pointers created by reading huge row.
+   */
   void ClearLoosePointers() {
     for (auto ptr : loose_ptrs_) {
       delete[] ptr;

@@ -36,7 +36,6 @@ class CheckpointManager {
    * @param table
    * @param schema
    */
-
   void Process(transaction::TransactionContext *txn, const SqlTable &table, const catalog::Schema &schema) {
     StartCheckpoint(txn);
     // TODO(zhaozhes): This should actually iterate through all tables, using catalog information
@@ -100,7 +99,6 @@ class CheckpointManager {
    * @return path to the latest checkpoint file (with largest transaction id)
    */
   std::pair<std::string, terrier::transaction::timestamp_t> GetLatestCheckpointFilename() {
-    // TODO(zhaozhes): checkpoint directory is currently hard-coded here
     char const *path = ".";
     std::string file_name;
     auto largest_timestamp = static_cast<terrier::transaction::timestamp_t>(0);
@@ -132,7 +130,6 @@ class CheckpointManager {
    * Delete all checkpoint files, mainly for test purposes.
    */
   void UnlinkCheckpointFiles() {
-    // TODO(zhaozhes) : checkpoint directory is currently hard-coded here
     char const *path = ".";
     DIR *dir;
     struct dirent *ent;
@@ -169,14 +166,16 @@ class CheckpointManager {
   void RegisterTable(SqlTable *table) { tables_[table->Oid()] = table; }
 
   /**
-   * Read the content of a file, and reinsert all tuples into the tables already registered.
+   * Called after RegisterTable. Read the content of a file, and reinsert all tuples into the tables already registered.
    */
   void Recover(const char *checkpoint_file_path);
 
   /**
-   * Should be called after the tables are recovered from checkpoint files. This function will replay logs
-   * from the timestamp and recover all the logs. The caller should ensure that the tables are already recovered,
-   * and the tuple_slot_map_ is built. This function should be called after Recover().
+   * Should be called after Recover(), after the tables are registered and recovered. This function will replay logs
+   * from the timestamp and recover all the logs. The tuple_slot_map_ is built during Recover() phase. If there are
+   * no checkpoints, this function will recover blank tables from scratch.
+   *
+   *
    *
    * @param log_file_path log file path.
    * @param checkpoint_timestamp The checkpoint timestamp. All logs with smaller timestamps will be ignored.
@@ -186,6 +185,16 @@ class CheckpointManager {
   // Used in log_test, so put in public
   // TODO(zhaozhes): API should be refactored when oid is no longer hard-coded to 0. Should return oid as well
   // to identify the table to redo.
+  /**
+   * Read next log record from a log file.
+   * Used in checkpoint manager as well as log_test, so put as public function.
+   * TODO(zhaozhes): API should be refactored when oid is no longer hard-coded to 0. Should return oid as well
+   * to identify the table to redo.
+   * @param in Reader.
+   * @param varlen_contents A vector used for returning varlen contents. It is necessary for cleaning up memory.
+   * The caller will judge whether the pointers should be freed.
+   * @return A log record.
+   */
   storage::LogRecord *ReadNextLogRecord(storage::BufferedLogReader *in, std::vector<byte *> *varlen_contents);
 
  private:

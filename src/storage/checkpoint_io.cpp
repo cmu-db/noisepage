@@ -68,8 +68,6 @@ void BufferedTupleWriter::SerializeTuple(ProjectedRow *row, const TupleSlot *slo
 
   // Serialize the row
   // First serialize row, then tupleslot, finally varlens (if any).
-  // TODO(mengyang): currently we persist the current buffer and allocate a new one, if the buffer is not enough. This
-  //                 can (should) be changed to save storage.
   AlignBufferOffset<uint64_t>();  // align for ProjectedRow
   uint32_t checkpoint_record_size = row->Size() + static_cast<uint32_t>(sizeof(TupleSlot)) + varlen_size;
   if (page_offset_ + checkpoint_record_size > block_size_) {

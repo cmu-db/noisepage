@@ -81,8 +81,8 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
   // There are 5 columns. The table has 10 rows. Each transaction does 5 operations. The update-select ratio of
   // operations is 50%-50%.
   SqlLargeTransactionTestObject tested = SqlLargeTransactionTestObject::Builder()
-                                             .SetMaxColumns(5)
-                                             .SetInitialTableSize(10)
+                                             .SetMaxColumns(10)
+                                             .SetInitialTableSize(50)
                                              .SetTxnLength(5)
                                              .SetUpdateSelectRatio({0.5, 0.5})
                                              .SetBlockStore(&block_store_)
@@ -161,8 +161,8 @@ TEST_F(WriteAheadLoggingTests, LargeLogTestWithVarlen) {
   // There are 5 columns. The table has 10 rows. Each transaction does 5 operations. The update-select ratio of
   // operations is 50%-50%.
   SqlLargeTransactionTestObject tested = SqlLargeTransactionTestObject::Builder()
-                                             .SetMaxColumns(5)
-                                             .SetInitialTableSize(10)
+                                             .SetMaxColumns(10)
+                                             .SetInitialTableSize(50)
                                              .SetTxnLength(5)
                                              .SetUpdateSelectRatio({0.5, 0.5})
                                              .SetBlockStore(&block_store_)
@@ -253,7 +253,7 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
   // Each transaction is read-only (update-select ratio of 0-100). Also, no need for bookkeeping.
   SqlLargeTransactionTestObject tested = SqlLargeTransactionTestObject::Builder()
                                              .SetMaxColumns(5)
-                                             .SetInitialTableSize(1)
+                                             .SetInitialTableSize(10)
                                              .SetTxnLength(5)
                                              .SetUpdateSelectRatio({0.0, 1.0})
                                              .SetBlockStore(&block_store_)
