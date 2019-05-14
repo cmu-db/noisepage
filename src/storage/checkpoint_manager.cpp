@@ -50,7 +50,7 @@ void CheckpointManager::Recover(const char *checkpoint_file_path) {
 
     ProjectedRow *row = nullptr;
     while ((row = reader.ReadNextRow()) != nullptr) {
-      TupleSlot *slot UNUSED_ATTRIBUTE = reader.ReadNextTupleSlot();
+      TupleSlot *slot = reader.ReadNextTupleSlot();
       // loop through columns to deal with non-inlined varlens.
       for (uint16_t projection_list_idx = 0; projection_list_idx < row->NumColumns(); projection_list_idx++) {
         if (!row->IsNull(projection_list_idx)) {
