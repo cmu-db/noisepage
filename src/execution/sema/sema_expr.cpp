@@ -148,6 +148,8 @@ void Sema::VisitBinaryOpExpr(ast::BinaryOpExpr *node) {
   switch (node->op()) {
     case parsing::Token::Type::AND:
     case parsing::Token::Type::OR: {
+      //clang-tidy still has false-positives of unused fields in structured bindings
+      //NOLINTNEXTLINE
       auto [result_type, left, right] = CheckLogicalOperands(
           node->op(), node->position(), node->left(), node->right());
       node->set_type(result_type);
@@ -163,6 +165,8 @@ void Sema::VisitBinaryOpExpr(ast::BinaryOpExpr *node) {
     case parsing::Token::Type::STAR:
     case parsing::Token::Type::SLASH:
     case parsing::Token::Type::PERCENT: {
+      //clang-tidy still has false-positives of unused fields in structured bindings
+      //NOLINTNEXTLINE
       auto [result_type, left, right] = CheckArithmeticOperands(
           node->op(), node->position(), node->left(), node->right());
       node->set_type(result_type);
@@ -193,6 +197,8 @@ void Sema::VisitComparisonOpExpr(ast::ComparisonOpExpr *node) {
     case parsing::Token::Type::GREATER_EQUAL:
     case parsing::Token::Type::LESS:
     case parsing::Token::Type::LESS_EQUAL: {
+      //clang-tidy still has false-positives of unused fields in structured bindings
+      //NOLINTNEXTLINE
       auto [result_type, left, right] = CheckComparisonOperands(
           node->op(), node->position(), node->left(), node->right());
       node->set_type(result_type);

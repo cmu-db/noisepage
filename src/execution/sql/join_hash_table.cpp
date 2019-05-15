@@ -96,9 +96,9 @@ class ReorderBuffer {
   // Use a 16 KB internal buffer for temporary copies
   static constexpr const u32 kBufferSizeInBytes = 16 * 1024;
 
-  ReorderBuffer(util::ChunkedVector &entries, u64 max_elems, u64 begin_read_idx,
+  ReorderBuffer(util::ChunkedVector *entries, u64 max_elems, u64 begin_read_idx,
                 u64 end_read_idx) noexcept
-      : entry_size_(entries.element_size()),
+      : entry_size_(entries->element_size()),
         buf_idx_(0),
         max_elems_(std::min(max_elems, kBufferSizeInBytes / entry_size_) - 1),
         temp_buf_(buffer_ + (max_elems_ * entry_size_)),
@@ -138,7 +138,7 @@ class ReorderBuffer {
   /// Fill the buffer with unprocessed entries
   bool Fill() {
     while (buf_idx_ < max_elems_ && read_idx_ < end_read_idx_) {
-      auto *entry = reinterpret_cast<HashTableEntry *>(entries_[read_idx_++]);
+      auto *entry = reinterpret_cast<HashTableEntry *>((*entries_)[read_idx_++]);
 
       if (IsProcessed(entry)) {
         continue;
@@ -185,7 +185,7 @@ class ReorderBuffer {
   // The exclusive upper bound index to read from the entries list
   const u64 end_read_idx_;
 
-  util::ChunkedVector &entries_;
+  util::ChunkedVector *entries_;
 };
 
 }  // namespace
@@ -226,7 +226,7 @@ void JoinHashTable::ReorderMainEntries() noexcept {
   //
 
   HashTableEntry *targets[kDefaultVectorSize];
-  ReorderBuffer reorder_buf(entries_, kDefaultVectorSize, 0, overflow_idx);
+  ReorderBuffer reorder_buf(&entries_, kDefaultVectorSize, 0, overflow_idx);
 
   while (reorder_buf.Fill()) {
     const u64 num_buf_entries = reorder_buf.num_entries();
@@ -382,7 +382,7 @@ void JoinHashTable::ReorderOverflowEntries() noexcept {
   // index to write the overflow entry into.
   //
 
-  ReorderBuffer reorder_buf(entries_, kDefaultVectorSize, overflow_start_idx,
+  ReorderBuffer reorder_buf(&entries_, kDefaultVectorSize, overflow_start_idx,
                             num_entries);
   while (reorder_buf.Fill()) {
     const u64 num_buf_entries = reorder_buf.num_entries();

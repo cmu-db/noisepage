@@ -38,13 +38,13 @@ class BytecodeGenerator : public ast::AstVisitor<BytecodeGenerator> {
 
   static std::unique_ptr<BytecodeModule> Compile(
       ast::AstNode *root, const std::string &name,
-      std::shared_ptr<exec::ExecutionContext> &exec_context);
+      std::shared_ptr<exec::ExecutionContext> exec_context);
 
  private:
   // Private constructor to force users to call Compile()
   BytecodeGenerator() noexcept;
   explicit BytecodeGenerator(
-      std::shared_ptr<exec::ExecutionContext> &exec_context) noexcept;
+      std::shared_ptr<exec::ExecutionContext> exec_context) noexcept;
 
   class ExpressionResultScope;
   class LValueResultScope;

@@ -223,7 +223,7 @@ llvm::Type *LLVMEngine::TypeMap::GetLLVMType(const ast::Type *type) {
 class LLVMEngine::FunctionLocalsMap {
  public:
   FunctionLocalsMap(const FunctionInfo &func_info, llvm::Function *func,
-                    TypeMap *type_map, llvm::IRBuilder<> &ir_builder);
+                    TypeMap *type_map, llvm::IRBuilder<> *ir_builder);
 
   // Given a reference to a local variable in a function's local variable list,
   // return the corresponding LLVM value.
@@ -231,7 +231,7 @@ class LLVMEngine::FunctionLocalsMap {
 
  private:
   llvm::IRBuilder<llvm::ConstantFolder, llvm::IRBuilderDefaultInserter>
-      &ir_builder_;
+      *ir_builder_;
   std::unordered_map<u32, llvm::Value *> params_;
   std::unordered_map<u32, llvm::Value *> locals_;
 };
@@ -239,7 +239,7 @@ class LLVMEngine::FunctionLocalsMap {
 LLVMEngine::FunctionLocalsMap::FunctionLocalsMap(const FunctionInfo &func_info,
                                                  llvm::Function *func,
                                                  TypeMap *type_map,
-                                                 llvm::IRBuilder<> &ir_builder)
+                                                 llvm::IRBuilder<> *ir_builder)
     : ir_builder_(ir_builder) {
   u32 local_idx = 0;
   auto arg_iter = func->arg_begin();
@@ -251,7 +251,7 @@ LLVMEngine::FunctionLocalsMap::FunctionLocalsMap(const FunctionInfo &func_info,
 
   for (; local_idx < func_info.locals().size(); local_idx++) {
     const auto &local = func_info.locals()[local_idx];
-    auto *val = ir_builder.CreateAlloca(type_map->GetLLVMType(local.type()));
+    auto *val = ir_builder->CreateAlloca(type_map->GetLLVMType(local.type()));
     locals_[local.offset()] = val;
   }
 }
@@ -265,7 +265,7 @@ llvm::Value *LLVMEngine::FunctionLocalsMap::GetArgumentById(LocalVar var) {
     llvm::Value *val = iter->second;
 
     if (var.GetAddressMode() == LocalVar::AddressMode::Value) {
-      val = ir_builder_.CreateLoad(val);
+      val = ir_builder_->CreateLoad(val);
     }
 
     return val;
@@ -316,11 +316,11 @@ class LLVMEngine::CompiledModuleBuilder {
  private:
   // Given a TPL function, build a simple CFG using 'blocks' as an output param
   void BuildSimpleCFG(const FunctionInfo &func_info,
-                      std::map<std::size_t, llvm::BasicBlock *> &blocks);
+                      std::map<size_t, llvm::BasicBlock *> *blocks);
 
   // Convert one TPL function into an LLVM implementation
   void DefineFunction(const FunctionInfo &func_info,
-                      llvm::IRBuilder<> &ir_builder);
+                      llvm::IRBuilder<> *ir_builder);
 
   // Given a bytecode, lookup it's LLVM function handler in the module
   llvm::Function *LookupBytecodeHandler(Bytecode bytecode) const;
@@ -482,7 +482,7 @@ llvm::Function *LLVMEngine::CompiledModuleBuilder::LookupBytecodeHandler(
 
 void LLVMEngine::CompiledModuleBuilder::BuildSimpleCFG(
     const FunctionInfo &func_info,
-    std::map<std::size_t, llvm::BasicBlock *> &blocks) {
+    std::map<size_t, llvm::BasicBlock *> *blocks) {
   //
   // Before we can generate LLVM IR, we need to build a control-flow graph (CFG)
   // for the function. We do this construction directly from the TPL bytecode
@@ -509,8 +509,8 @@ void LLVMEngine::CompiledModuleBuilder::BuildSimpleCFG(
               iter.GetPosition() + Bytecodes::GetNthOperandOffset(bytecode, 0) +
               iter.GetJumpOffsetOperand(0);
 
-          if (blocks.find(branch_target_pos) == blocks.end()) {
-            blocks[branch_target_pos] = nullptr;
+          if (blocks->find(branch_target_pos) == blocks->end()) {
+            blocks->at(branch_target_pos) = nullptr;
             bb_begin_positions.push_back(branch_target_pos);
           }
         }
@@ -523,18 +523,18 @@ void LLVMEngine::CompiledModuleBuilder::BuildSimpleCFG(
         std::size_t fallthrough_pos =
             iter.GetPosition() + iter.CurrentBytecodeSize();
 
-        if (blocks.find(fallthrough_pos) == blocks.end()) {
+        if (blocks->find(fallthrough_pos) == blocks->end()) {
           bb_begin_positions.push_back(fallthrough_pos);
-          blocks[fallthrough_pos] = nullptr;
+          blocks->at(fallthrough_pos) = nullptr;
         }
 
         std::size_t branch_target_pos =
             iter.GetPosition() + Bytecodes::GetNthOperandOffset(bytecode, 1) +
             iter.GetJumpOffsetOperand(1);
 
-        if (blocks.find(branch_target_pos) == blocks.end()) {
+        if (blocks->find(branch_target_pos) == blocks->end()) {
           bb_begin_positions.push_back(branch_target_pos);
-          blocks[branch_target_pos] = nullptr;
+          blocks->at(branch_target_pos) = nullptr;
         }
 
         break;
@@ -544,8 +544,8 @@ void LLVMEngine::CompiledModuleBuilder::BuildSimpleCFG(
 }
 
 void LLVMEngine::CompiledModuleBuilder::DefineFunction(
-    const FunctionInfo &func_info, llvm::IRBuilder<> &ir_builder) {
-  llvm::LLVMContext &ctx = ir_builder.getContext();
+    const FunctionInfo &func_info, llvm::IRBuilder<> *ir_builder) {
+  llvm::LLVMContext &ctx = ir_builder->getContext();
   llvm::Function *func = module()->getFunction(func_info.name());
   llvm::BasicBlock *entry = llvm::BasicBlock::Create(ctx, "EntryBB", func);
 
@@ -557,7 +557,7 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(
   //
 
   std::map<std::size_t, llvm::BasicBlock *> blocks = {{0, entry}};
-  BuildSimpleCFG(func_info, blocks);
+  BuildSimpleCFG(func_info, &blocks);
 
   {
     u32 i = 1;
@@ -588,7 +588,7 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(
   // new block.
   //
 
-  ir_builder.SetInsertPoint(entry);
+  ir_builder->SetInsertPoint(entry);
 
   FunctionLocalsMap locals_map(func_info, func, type_map(), ir_builder);
 
@@ -667,7 +667,7 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(
         const u16 callee_func_id = iter.GetFunctionIdOperand(0);
         const auto &callee_info = tpl_module().GetFuncInfoById(callee_func_id);
         llvm::Function *callee = module()->getFunction(callee_info->name());
-        ir_builder.CreateCall(callee, args);
+        ir_builder->CreateCall(callee, args);
         break;
       }
 
@@ -685,7 +685,7 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(
             iter.GetJumpOffsetOperand(0);
         TPL_ASSERT(blocks[branch_target_bb_pos] != nullptr,
                    "Branch target does not point to valid basic block");
-        ir_builder.CreateBr(blocks[branch_target_bb_pos]);
+        ir_builder->CreateBr(blocks[branch_target_bb_pos]);
         break;
       }
 
@@ -707,20 +707,20 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(
                    "Branch target does not point to valid basic block");
 
         auto *check = llvm::ConstantInt::get(type_map()->Int8Type(), 1, false);
-        llvm::Value *cond = ir_builder.CreateICmpEQ(args[0], check);
+        llvm::Value *cond = ir_builder->CreateICmpEQ(args[0], check);
 
         if (bytecode == Bytecode::JumpIfTrue) {
-          ir_builder.CreateCondBr(cond, blocks[branch_target_bb_pos],
+          ir_builder->CreateCondBr(cond, blocks[branch_target_bb_pos],
                                   blocks[fallthrough_bb_pos]);
         } else {
-          ir_builder.CreateCondBr(cond, blocks[fallthrough_bb_pos],
+          ir_builder->CreateCondBr(cond, blocks[fallthrough_bb_pos],
                                   blocks[branch_target_bb_pos]);
         }
         break;
       }
 
       case Bytecode::Return: {
-        ir_builder.CreateRetVoid();
+        ir_builder->CreateRetVoid();
         break;
       }
 
@@ -739,15 +739,15 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(
             if (args[i]->getType() != arg->getType()) {
               if (args[i]->getType()->isIntegerTy()) {
                 args[i] =
-                    ir_builder.CreateIntCast(args[i], arg->getType(), true);
+                    ir_builder->CreateIntCast(args[i], arg->getType(), true);
               } else if (args[i]->getType()->isPointerTy()) {
-                args[i] = ir_builder.CreatePointerCast(args[i], arg->getType());
+                args[i] = ir_builder->CreatePointerCast(args[i], arg->getType());
               }
             }
           }
         }
 
-        ir_builder.CreateCall(handler, args);
+        ir_builder->CreateCall(handler, args);
         break;
       }
     }
@@ -762,9 +762,9 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(
     if (auto blocks_iter = blocks.find(next_bytecode_pos);
         blocks_iter != blocks.end()) {
       if (!Bytecodes::IsJump(bytecode) && !Bytecodes::IsTerminal(bytecode)) {
-        ir_builder.CreateBr(blocks_iter->second);
+        ir_builder->CreateBr(blocks_iter->second);
       }
-      ir_builder.SetInsertPoint(blocks_iter->second);
+      ir_builder->SetInsertPoint(blocks_iter->second);
     }
   }
 }
@@ -777,7 +777,7 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunctions() {
 
   llvm::IRBuilder<> ir_builder(context());
   for (const auto &func_info : tpl_module().functions()) {
-    DefineFunction(func_info, ir_builder);
+    DefineFunction(func_info, &ir_builder);
   }
 }
 

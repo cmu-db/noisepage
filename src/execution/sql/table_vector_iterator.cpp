@@ -3,10 +3,14 @@
 
 namespace tpl::sql {
 
-using namespace terrier;
+using terrier::transaction::TransactionContext;
+using terrier::catalog::Schema;
+using terrier::catalog::col_oid_t;
+using terrier::common::AllocationUtil;
+using terrier::storage::DataTable;
 
 TableVectorIterator::TableVectorIterator(u32 db_oid, u32 table_oid,
-                                         transaction::TransactionContext *txn)
+                                         TransactionContext *txn)
     : db_oid_(db_oid),
       table_oid_(table_oid),
       txn_(txn),
@@ -25,20 +29,21 @@ bool TableVectorIterator::Init() {
 
   // Initialize the projected column
   const auto &schema = catalog_table_->GetSqlTable()->GetSchema();
-  std::vector<catalog::col_oid_t> col_oids;
-  const std::vector<catalog::Schema::Column> &columns = schema.GetColumns();
+  std::vector<col_oid_t> col_oids;
+  const std::vector<Schema::Column> &columns = schema.GetColumns();
+  col_oids.reserve(columns.size());
   for (const auto &col : columns) {
     col_oids.emplace_back(col.GetOid());
   }
   auto pri_map = catalog_table_->GetSqlTable()->InitializerForProjectedColumns(
       col_oids, kDefaultVectorSize);
-  buffer_ = common::AllocationUtil::AllocateAligned(
+  buffer_ = AllocationUtil::AllocateAligned(
       pri_map.first.ProjectedColumnsSize());
   projected_columns_ = pri_map.first.Initialize(buffer_);
   initialized = true;
 
   // Begin iterating
-  iter_ = std::make_unique<storage::DataTable::SlotIterator>(
+  iter_ = std::make_unique<DataTable::SlotIterator>(
       catalog_table_->GetSqlTable()->begin());
   return true;
 }

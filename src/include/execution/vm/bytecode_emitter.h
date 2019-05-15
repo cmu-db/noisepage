@@ -101,7 +101,7 @@ class BytecodeEmitter {
   // -------------------------------------------------------
 
   void EmitTableIteratorInit(Bytecode bytecode, LocalVar iter, u32 db_oid,
-                             u32 table_id, uintptr_t exec_context);
+                             u32 table_oid, uintptr_t exec_context);
 
   // Reading integer values from an iterator
   void EmitPCIGet(Bytecode bytecode, LocalVar out, LocalVar pci, u32 col_idx);

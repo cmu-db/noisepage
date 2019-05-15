@@ -64,7 +64,7 @@ namespace terrier::planner {
 
 class CompilerTest : public TerrierTest {
  public:
-  static void CompileAndRun(terrier::planner::AbstractPlanNode *node, std::string schema="output1.tpl") {
+  static void CompileAndRun(terrier::planner::AbstractPlanNode *node, const std::string &schema="output1.tpl") {
     std::cout << "Input Plan: " << std::endl;
     std::cout << node->ToJson().dump(2) << std::endl << std::endl;
 

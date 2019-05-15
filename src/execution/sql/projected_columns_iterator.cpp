@@ -35,7 +35,7 @@ void ProjectedColumnsIterator::SetProjectedColumn(
 template <typename T, template <typename> typename Op>
 u32 ProjectedColumnsIterator::FilterColByValImpl(u32 col_idx, T val) {
   // Get the input column's data
-  const T *input =
+  const auto *input =
       reinterpret_cast<const T *>(projected_column_->ColumnStart(static_cast<u16>(col_idx)));
 
   // Use the existing selection vector if this PCI has been filtered

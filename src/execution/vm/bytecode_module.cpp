@@ -67,7 +67,7 @@ class TrampolineGenerator : public Xbyak::CodeGenerator {
   u32 ComputeRequiredStackSpace() const {
     // FunctionInfo tells us the amount of space we need for all input and
     // output arguments, so use that.
-    u32 required_stack_space = static_cast<u32>(func_.params_size());
+    auto required_stack_space = static_cast<u32>(func_.params_size());
 
     // If the function has a return type, we need to allocate a temporary
     // return value on the stack for that as well. However, if the return type
@@ -151,7 +151,7 @@ class TrampolineGenerator : public Xbyak::CodeGenerator {
 
   void InvokeVMFunction() {
     const ast::FunctionType *func_type = func_.func_type();
-    const u32 ret_type_size = static_cast<u32>(util::MathUtil::AlignTo(
+    const auto ret_type_size = static_cast<u32>(util::MathUtil::AlignTo(
         func_type->return_type()->size(), sizeof(intptr_t)));
 
     // Set up the arguments to VM::InvokeFunction(module, function ID, args)
@@ -257,14 +257,14 @@ void PrettyPrintFuncInfo(std::ostream &os, const FunctionInfo &func) {
 }
 
 void PrettyPrintFuncCode(std::ostream &os, const FunctionInfo &func,
-                         BytecodeIterator &iter) {
+                         BytecodeIterator *iter) {
   const u32 max_inst_len = Bytecodes::MaxBytecodeNameLength();
-  for (; !iter.Done(); iter.Advance()) {
-    Bytecode bytecode = iter.CurrentBytecode();
+  for (; !iter->Done(); iter->Advance()) {
+    Bytecode bytecode = iter->CurrentBytecode();
 
     // Print common bytecode info
     os << "  0x" << std::right << std::setfill('0') << std::setw(8) << std::hex
-       << iter.GetPosition();
+       << iter->GetPosition();
     os << std::setfill(' ') << "    " << std::dec << std::setw(max_inst_len)
        << std::left << Bytecodes::ToString(bytecode) << std::endl;
   }
@@ -277,7 +277,7 @@ void PrettyPrintFunc(std::ostream &os, const BytecodeModule &module,
   os << std::endl;
 
   auto iter = module.BytecodeForFunction(func);
-  PrettyPrintFuncCode(os, func, iter);
+  PrettyPrintFuncCode(os, func, &iter);
 
   os << std::endl;
 }

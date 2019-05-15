@@ -128,10 +128,10 @@ BytecodeGenerator::BytecodeGenerator() noexcept
     : emitter_(&bytecode_), execution_result_(nullptr) {}
 
 BytecodeGenerator::BytecodeGenerator(
-    std::shared_ptr<exec::ExecutionContext> &exec_context) noexcept
+    std::shared_ptr<exec::ExecutionContext> exec_context) noexcept
     : emitter_(&bytecode_),
       execution_result_(nullptr),
-      exec_context_(exec_context) {}
+      exec_context_(std::move(exec_context)) {}
 
 void BytecodeGenerator::VisitIfStmt(ast::IfStmt *node) {
   IfThenElseBuilder if_builder(this);
@@ -1620,8 +1620,8 @@ Bytecode BytecodeGenerator::GetIndexIteratorColumnCode(
 // static
 std::unique_ptr<BytecodeModule> BytecodeGenerator::Compile(
     ast::AstNode *root, const std::string &name,
-    std::shared_ptr<exec::ExecutionContext> &exec_context) {
-  BytecodeGenerator generator(exec_context);
+    std::shared_ptr<exec::ExecutionContext> exec_context) {
+  BytecodeGenerator generator(std::move(exec_context));
   generator.Visit(root);
 
   // NOLINTNEXTLINE

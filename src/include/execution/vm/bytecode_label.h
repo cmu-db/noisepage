@@ -19,7 +19,7 @@ class BytecodeLabel {
       std::numeric_limits<std::size_t>::max();
 
  public:
-  BytecodeLabel() : offset_(kInvalidOffset), bound_(false) {}
+  BytecodeLabel() : offset_(kInvalidOffset) {}
 
   bool is_bound() const { return bound_; }
 

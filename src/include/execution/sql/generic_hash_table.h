@@ -169,7 +169,8 @@ inline void GenericHashTable::Insert(HashTableEntry *new_entry, hash_t hash) {
     do {
       new_entry->next = old_entry;
     } while (!loc.compare_exchange_weak(old_entry, new_entry));
-  } else {
+    //clang-tidy complains about bad indentation in the next line
+  } else { // NOLINT
     std::atomic<HashTableEntry *> &loc = entries_[pos];
     HashTableEntry *old_entry = loc.load(std::memory_order_relaxed);
     new_entry->next = old_entry;
