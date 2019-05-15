@@ -68,6 +68,7 @@ class IndexCatalogTable {
    * @param txn the transaction context
    * @param index_ptr the pointer to the index
    * @param indexrelid the id of index object
+   * @param indexname name of the index
    * @param indrelid the id of indexed table
    * @param indnatts the number of index attributes
    * @param indnkeyatts the number of index key attributes
