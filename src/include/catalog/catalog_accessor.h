@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+#include <utility>
 #include <vector>
 
 #include "catalog/catalog_defs.h"

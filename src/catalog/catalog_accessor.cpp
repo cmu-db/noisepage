@@ -1,5 +1,8 @@
 #include "catalog/catalog_accessor.h"
 
+#include <string>
+#include <vector>
+
 #include "catalog/catalog.h"
 #include "type/type_util.h"
 

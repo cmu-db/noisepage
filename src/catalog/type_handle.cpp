@@ -107,6 +107,6 @@ SqlTableHelper *TypeCatalogTable::Create(transaction::TransactionContext *txn, C
 std::string_view TypeCatalogEntry::GetTypename() { return GetVarcharColumn("typname"); }
 int32_t TypeCatalogEntry::GetTypenamespace() { return GetIntegerColumn("typenamespace"); }
 int32_t TypeCatalogEntry::GetTypelen() { return GetIntegerColumn("typelen"); }
-std::string_view TypeCatalogEntry::GetTypetype() { return GetVarcharColumn("typtype"); };
+std::string_view TypeCatalogEntry::GetTypetype() { return GetVarcharColumn("typtype"); }
 
 }  // namespace terrier::catalog
