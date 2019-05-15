@@ -103,7 +103,7 @@ class TPCCBenchmark : public benchmark::Fixture {
 };
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(TPCCBenchmark, Basic)(benchmark::State &state) {
+BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4)(benchmark::State &state) {
   // one TPCC worker = one TPCC terminal = one thread
   std::vector<Worker> workers;
   workers.reserve(num_threads_);
@@ -221,5 +221,5 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, Basic)(benchmark::State &state) {
   }
 }
 
-BENCHMARK_REGISTER_F(TPCCBenchmark, Basic)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(10);
+BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(10);
 }  // namespace terrier::tpcc

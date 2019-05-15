@@ -320,7 +320,7 @@ class NewOrder {
 
     order_line_index_inserts_.clear();
 
-    double total_amount = 0;
+    double UNUSED_ATTRIBUTE total_amount = 0;
 
     auto *const txn = txn_manager->BeginTransaction();
 
@@ -411,7 +411,7 @@ class NewOrder {
     order_insert_tuple->SetNull(o_carrier_id_insert_pr_offset);
     *reinterpret_cast<int8_t *>(order_insert_tuple->AccessForceNotNull(o_ol_cnt_insert_pr_offset)) = args.ol_cnt;
     *reinterpret_cast<int8_t *>(order_insert_tuple->AccessForceNotNull(o_all_local_insert_pr_offset)) =
-        args.o_all_local;
+        static_cast<int8_t>(args.o_all_local);
 
     const auto order_slot = db->order_table_->Insert(txn, *order_insert_tuple);
 
@@ -497,7 +497,7 @@ class NewOrder {
       const auto s_data_str = s_data.StringView();
 
       const std::string UNUSED_ATTRIBUTE brand_generic =
-          i_data_str.find("ORIGINAL", 0) != std::string::npos && s_data_str.find("ORIGINAL", 0 != std::string::npos)
+          (i_data_str.find("ORIGINAL", 0) != std::string::npos && s_data_str.find("ORIGINAL", 0) != std::string::npos)
               ? "B"
               : "G";
 
