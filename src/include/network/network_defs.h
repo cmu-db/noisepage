@@ -34,7 +34,7 @@ class PostgresPacketWriter;
 // static const size_t EPOCH_LENGTH = 40;
 
 // For threads
-#define CONNECTION_THREAD_COUNT 4
+#define CONNECTION_THREAD_COUNT 11
 
 // Number of seconds to timeout on a client read
 #define READ_TIMEOUT (20 * 60)
@@ -60,7 +60,7 @@ using ByteBuf = std::vector<uchar>;
 
 using NetworkCallback = std::function<void(void)>;
 
-using TrafficCopPtr = std::shared_ptr<traffic_cop::TrafficCop>;
+using traffic_cop::TrafficCop;
 
 using SimpleQueryCallback = std::function<void(const traffic_cop::ResultSet &, network::PostgresPacketWriter *)>;
 

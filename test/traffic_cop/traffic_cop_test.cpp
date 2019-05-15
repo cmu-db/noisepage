@@ -20,7 +20,7 @@ class TrafficCopTests : public TerrierTest {
   network::TerrierServer server;
   uint16_t port = common::Settings::SERVER_PORT;
   std::thread server_thread;
-  network::TrafficCopPtr t_cop;
+  TrafficCop t_cop;
   network::CommandFactory command_factory;
 
   void StartServer() {
@@ -38,9 +38,7 @@ class TrafficCopTests : public TerrierTest {
     TEST_LOG_DEBUG("Server initialized");
     server_thread = std::thread([&]() { server.ServerLoop(); });
 
-    // Setup Traffic Cop
-    t_cop = std::make_shared<TrafficCop>();
-    network::ConnectionHandleFactory::GetInstance().SetConnectionDependencies(t_cop, &command_factory);
+    network::ConnectionHandleFactory::GetInstance().SetConnectionDependencies(&t_cop, &command_factory);
   }
 
   void StopServer() {

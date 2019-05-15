@@ -55,7 +55,7 @@ class ConnectionHandleFactory {
    * @param t_cop the pointer to the traffic cop.
    * @param command_factory the pointer to the factory
    */
-  void SetConnectionDependencies(const TrafficCopPtr &t_cop, CommandFactory *command_factory)
+  void SetConnectionDependencies(TrafficCop* t_cop, CommandFactory *command_factory)
   {
     traffic_cop_ = t_cop;
     command_factory_ = command_factory;
@@ -63,7 +63,7 @@ class ConnectionHandleFactory {
 
  private:
   std::unordered_map<int, ConnectionHandle> reusable_handles_;
-  TrafficCopPtr traffic_cop_;
+  TrafficCop *traffic_cop_;
   CommandFactory *command_factory_;
 };
 }  // namespace terrier::network

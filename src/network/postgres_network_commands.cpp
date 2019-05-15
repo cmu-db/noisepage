@@ -43,7 +43,7 @@ void PostgresNetworkCommand::AcceptResults(const ResultSet &result_set, Postgres
 }
 
 Transition SimpleQueryCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out,
-                                    TrafficCopPtr t_cop, ConnectionContext *connection, NetworkCallback callback) {
+                                    TrafficCop* t_cop, ConnectionContext *connection, NetworkCallback callback) {
   interpreter->protocol_type_ = NetworkProtocolType::POSTGRES_PSQL;
   std::string query = in_.ReadString();
   NETWORK_LOG_TRACE("Execute SimpleQuery: {0}", query.c_str());
@@ -55,7 +55,7 @@ Transition SimpleQueryCommand::Exec(PostgresProtocolInterpreter *interpreter, Po
   return Transition::PROCEED;
 }
 
-Transition ParseCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out, TrafficCopPtr t_cop,
+Transition ParseCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out, TrafficCop* t_cop,
                               ConnectionContext *connection, NetworkCallback callback) {
   std::string stmt_name = in_.ReadString();
   NETWORK_LOG_TRACE("ParseCommand Statement Name: {0}", stmt_name.c_str());
@@ -99,7 +99,7 @@ Transition ParseCommand::Exec(PostgresProtocolInterpreter *interpreter, Postgres
   return Transition::PROCEED;
 }
 
-Transition BindCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out, TrafficCopPtr t_cop,
+Transition BindCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out, TrafficCop* t_cop,
                              ConnectionContext *connection, NetworkCallback callback) {
   using std::pair;
   using std::string;
@@ -241,7 +241,7 @@ Transition BindCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresP
 }
 
 Transition DescribeCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out,
-                                 TrafficCopPtr t_cop, ConnectionContext *connection, NetworkCallback callback) {
+                                 TrafficCop* t_cop, ConnectionContext *connection, NetworkCallback callback) {
   auto type = in_.ReadValue<DescribeCommandObjectType>();
   std::string name = in_.ReadString();
   NETWORK_LOG_TRACE("Describe query: type = {0}, name = {1}", static_cast<char>(type), name.c_str());
@@ -286,7 +286,7 @@ Transition DescribeCommand::Exec(PostgresProtocolInterpreter *interpreter, Postg
 }
 
 Transition ExecuteCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out,
-                                TrafficCopPtr t_cop, ConnectionContext *connection, NetworkCallback callback) {
+                                TrafficCop* t_cop, ConnectionContext *connection, NetworkCallback callback) {
   using std::string;
   string portal_name = in_.ReadString();
   NETWORK_LOG_TRACE("ExecuteCommand portal name = {0}", portal_name);
@@ -318,14 +318,14 @@ Transition ExecuteCommand::Exec(PostgresProtocolInterpreter *interpreter, Postgr
   return Transition::PROCEED;
 }
 
-Transition SyncCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out, TrafficCopPtr t_cop,
+Transition SyncCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out, TrafficCop* t_cop,
                              ConnectionContext *connection, NetworkCallback callback) {
   NETWORK_LOG_TRACE("Sync query");
   out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
   return Transition::PROCEED;
 }
 
-Transition CloseCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out, TrafficCopPtr t_cop,
+Transition CloseCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out, TrafficCop* t_cop,
                               ConnectionContext *connection, NetworkCallback callback) {
   NETWORK_LOG_TRACE("Close Command");
   // Send close complete response
@@ -333,12 +333,12 @@ Transition CloseCommand::Exec(PostgresProtocolInterpreter *interpreter, Postgres
 }
 
 Transition TerminateCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out,
-                                  TrafficCopPtr t_cop, ConnectionContext *connection, NetworkCallback callback) {
+                                  TrafficCop* t_cop, ConnectionContext *connection, NetworkCallback callback) {
   NETWORK_LOG_TRACE("Terminated");
   return Transition::TERMINATE;
 }
 
-Transition EmptyCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out, TrafficCopPtr t_cop,
+Transition EmptyCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out, TrafficCop* t_cop,
                               ConnectionContext *connection, NetworkCallback callback) {
   NETWORK_LOG_TRACE("Empty Command");
   out->WriteEmptyQueryResponse();

@@ -10,7 +10,7 @@
   class name : public PostgresNetworkCommand {                                                                \
    public:                                                                                                    \
     explicit name(PostgresInputPacket *in) : PostgresNetworkCommand(in, flush) {}                             \
-    Transition Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out, TrafficCopPtr t_cop, \
+    Transition Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out, TrafficCop* t_cop, \
                     ConnectionContext *connection, NetworkCallback callback) override;                        \
   }
 
@@ -33,7 +33,7 @@ class PostgresNetworkCommand {
    * @param callback The callback function to trigger after
    * @return The next transition for the client's state machine
    */
-  virtual Transition Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out, TrafficCopPtr t_cop,
+  virtual Transition Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out, TrafficCop* t_cop,
                           ConnectionContext *connection, NetworkCallback callback) = 0;
 
   /**

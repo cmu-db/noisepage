@@ -46,7 +46,7 @@ class ConnectionHandle {
    * @param handler The handler responsible for this handle
    * @param t_cop The pointer to the traffic cop
    */
-  ConnectionHandle(int sock_fd, ConnectionHandlerTask *handler, TrafficCopPtr t_cop, CommandFactory* command_factory);
+  ConnectionHandle(int sock_fd, ConnectionHandlerTask *handler, TrafficCop* t_cop, CommandFactory* command_factory);
 
   ~ConnectionHandle() { context_.Reset(); }
 
@@ -219,7 +219,7 @@ class ConnectionHandle {
   StateMachine state_machine_{};
   struct event *network_event_ = nullptr, *workpool_event_ = nullptr;
 
-  TrafficCopPtr traffic_cop_;
+  TrafficCop* traffic_cop_;
 
   ConnectionContext context_;
 };
