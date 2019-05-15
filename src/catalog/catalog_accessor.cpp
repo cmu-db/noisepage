@@ -83,7 +83,6 @@ table_oid_t CatalogAccessor::CreateTable(namespace_oid_t ns, std::string table_n
     else
       catalogColumns.emplace_back(colDef.GetName(), colDef.GetType(), colDef.IsNullable(),
                                   col_oid_t(catalog_->GetNextOid()));
-
   }
 
   // Create the Schema object
@@ -143,12 +142,11 @@ std::vector<col_oid_t> CatalogAccessor::AddColumns(table_oid_t table, std::vecto
     // Case off of VARLEN_COLUMN since there exist two different constructors
     if (type::TypeUtil::GetTypeSize(colDef.GetType()) == VARLEN_COLUMN)
       catalog_columns.emplace_back(colDef.GetName(), colDef.GetType(), colDef.GetMaxVarlenSize(), colDef.IsNullable(),
-                                  col_oid_t(catalog_->GetNextOid()));
+                                   col_oid_t(catalog_->GetNextOid()));
     else
       catalog_columns.emplace_back(colDef.GetName(), colDef.GetType(), colDef.IsNullable(),
-                                  col_oid_t(catalog_->GetNextOid()));
+                                   col_oid_t(catalog_->GetNextOid()));
     col_oids.emplace_back(catalog_columns.back().GetOid());
-
   }
   // TODO(John): Implement this by inserting these into pg_attribute
 
@@ -251,4 +249,4 @@ storage::index::Index *SetIndexPointer(index_oid_t index) {
   return nullptr;
 }
 
-} // namespace terrier::catalog
+}  // namespace terrier::catalog

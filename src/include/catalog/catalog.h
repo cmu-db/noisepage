@@ -88,9 +88,7 @@ class Catalog {
    * @param txn the transaction context for this accessor
    * @param database the OID of the database
    */
-  CatalogAccessor GetAccessor(transaction::TransactionContext *txn, db_oid_t database) {
-    return {this, txn, database};
-  }
+  CatalogAccessor GetAccessor(transaction::TransactionContext *txn, db_oid_t database) { return {this, txn, database}; }
 
   /**
    * Instantiates a new accessor into the catalog for the given database.

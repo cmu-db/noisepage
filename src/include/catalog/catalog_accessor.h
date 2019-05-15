@@ -35,7 +35,6 @@ class Catalog;
  */
 class CatalogAccessor {
  public:
-
   /**
    * This class decouples the definition of a column from its existence in a
    * schema.  This allows us to delegate all OID assignments to the catalog
@@ -51,9 +50,7 @@ class CatalogAccessor {
      * @param nullable true if the column is nullable, false otherwise
      */
     ColumnDefinition(std::string name, const type::TypeId type, const bool nullable)
-        : name_(std::move(name)),
-          type_(type),
-          nullable_(nullable) {}
+        : name_(std::move(name)), type_(type), nullable_(nullable) {}
 
     /**
      * Instantiates a definition for a varlen column
@@ -63,10 +60,7 @@ class CatalogAccessor {
      * @param nullable true if the column is nullable, false otherwise
      */
     ColumnDefinition(std::string name, const type::TypeId type, const uint16_t max_varlen_size, const bool nullable)
-        : name_(std::move(name)),
-          type_(type),
-          max_varlen_size_(max_varlen_size),
-          nullable_(nullable) {}
+        : name_(std::move(name)), type_(type), max_varlen_size_(max_varlen_size), nullable_(nullable) {}
 
     /**
      * @return the name of the column
@@ -87,6 +81,7 @@ class CatalogAccessor {
      * @return whether the column can be NULL
      */
     const bool &IsNullable() const { return nullable_; }
+
    private:
     std::string name_;
     type::TypeId type_;
@@ -249,7 +244,7 @@ class CatalogAccessor {
    *
    * @note This will increment the schema version number by one, locking the table
    *       entry in the catalog until this is committed.  It will also lock all of
-  *        the corresponding column entries.
+   *        the corresponding column entries.
    */
   std::vector<bool> DropColumns(table_oid_t table, std::vector<col_oid_t> columns);
 
@@ -360,4 +355,4 @@ class CatalogAccessor {
   friend class Catalog;
 };
 
-} // namespace terrier::catalog
+}  // namespace terrier::catalog
