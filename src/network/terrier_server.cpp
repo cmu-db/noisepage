@@ -13,11 +13,10 @@
 
 namespace terrier::network {
 
-TerrierServer::TerrierServer() {
+TerrierServer::TerrierServer(ConnectionHandleFactory* connection_handle_factory)
+  : connection_handle_factory_(connection_handle_factory) {
   port_ = common::Settings::SERVER_PORT;
-  // settings::SettingsManager::GetInt(settings::SettingId::port);
   max_connections_ = common::Settings::MAX_CONNECTIONS;
-  // settings::SettingsManager::GetInt(settings::SettingId::max_connections);
 
   // For logging purposes
   //  event_enable_debug_mode();
@@ -57,7 +56,8 @@ TerrierServer &TerrierServer::SetupServer() {
   bind(listen_fd_, reinterpret_cast<struct sockaddr *>(&sin), sizeof(sin));
   listen(listen_fd_, conn_backlog);
 
-  dispatcher_task_ = std::make_shared<ConnectionDispatcherTask>(CONNECTION_THREAD_COUNT, listen_fd_, this);
+  dispatcher_task_ = std::make_shared<ConnectionDispatcherTask>(CONNECTION_THREAD_COUNT, listen_fd_, this,
+      connection_handle_factory_);
 
   NETWORK_LOG_INFO("Listening on port {0}", port_);
   return *this;
@@ -70,7 +70,7 @@ void TerrierServer::ServerLoop() {
 
 void TerrierServer::ShutDown() {
   terrier_close(listen_fd_);
-  ConnectionHandleFactory::GetInstance().TearDown();
+  connection_handle_factory_->TearDown();
   NETWORK_LOG_INFO("Server Closed");
 }
 

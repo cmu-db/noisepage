@@ -220,7 +220,6 @@ class ConnectionHandle {
   struct event *network_event_ = nullptr, *workpool_event_ = nullptr;
 
   TrafficCop* traffic_cop_;
-
   ConnectionContext context_;
 };
 }  // namespace terrier::network

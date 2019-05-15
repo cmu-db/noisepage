@@ -13,15 +13,15 @@
 
 namespace terrier::network {
 
+class ConnectionHandleFactory;
+
 /**
  * A ConnectionHandlerTask is responsible for interacting with a client
  * connection.
  *
- * A client connection, once taken by the dispatch, is sent to a handler. Then
- * all related
- * client events are registered in the handler task. All client interaction
- * happens on the
- * same ConnectionHandlerTask thread for the entire lifetime of the connection.
+ * A client connection, once taken by the dispatch, is sent to a handler.
+ * Then all related client events are registered in the handler task.
+ * All client interaction happens on the same ConnectionHandlerTask thread for the entire lifetime of the connection.
  */
 class ConnectionHandlerTask : public common::NotifiableTask {
  public:
@@ -29,7 +29,7 @@ class ConnectionHandlerTask : public common::NotifiableTask {
    * Constructs a new ConnectionHandlerTask instance.
    * @param task_id task_id a unique id assigned to this task.
    */
-  explicit ConnectionHandlerTask(int task_id);
+  explicit ConnectionHandlerTask(int task_id, ConnectionHandleFactory* connection_handle_factory);
 
   /**
    * @brief Notifies this ConnectionHandlerTask that a new client connection
@@ -58,6 +58,8 @@ class ConnectionHandlerTask : public common::NotifiableTask {
  private:
   // Notify new connection pipe(send end)
   int new_conn_send_fd_;
+
+  ConnectionHandleFactory* connection_handle_factory_;
 };
 
 }  // namespace terrier::network

@@ -17,11 +17,13 @@
 namespace terrier::traffic_cop {
 class TrafficCopTests : public TerrierTest {
  protected:
-  network::TerrierServer server;
+  std::unique_ptr<network::TerrierServer> server;
   uint16_t port = common::Settings::SERVER_PORT;
   std::thread server_thread;
-  TrafficCop t_cop;
-  network::CommandFactory command_factory;
+
+  std::unique_ptr<TrafficCop> t_cop;
+  std::unique_ptr<network::CommandFactory> command_factory;
+  std::unique_ptr<network::ConnectionHandleFactory> handle_factory;
 
   void StartServer() {
     network::network_logger->set_level(spdlog::level::trace);
@@ -29,21 +31,25 @@ class TrafficCopTests : public TerrierTest {
     spdlog::flush_every(std::chrono::seconds(1));
 
     try {
-      server.SetPort(port);
-      server.SetupServer();
+      t_cop = std::make_unique<TrafficCop>();
+      command_factory = std::make_unique<network::CommandFactory>();
+      handle_factory = std::make_unique<network::ConnectionHandleFactory>(t_cop.get(), command_factory.get());
+      server = std::make_unique<network::TerrierServer>(handle_factory.get());
+      server->SetPort(port);
+      server->SetupServer();
     } catch (NetworkProcessException &exception) {
       TEST_LOG_ERROR("[LaunchServer] exception when launching server");
       throw;
     }
     TEST_LOG_DEBUG("Server initialized");
-    server_thread = std::thread([&]() { server.ServerLoop(); });
+    server_thread = std::thread([&]() { server->ServerLoop(); });
 
-    network::ConnectionHandleFactory::GetInstance().SetConnectionDependencies(&t_cop, &command_factory);
   }
 
   void StopServer() {
-    server.Close();
+    server->Close();
     server_thread.join();
+    handle_factory->TearDown();
     TEST_LOG_DEBUG("Terrier has shut down");
 
     TerrierTest::TearDown();

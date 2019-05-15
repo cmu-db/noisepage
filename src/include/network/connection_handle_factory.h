@@ -2,11 +2,15 @@
 
 #include <unordered_map>
 
-#include "network/connection_handle.h"
-#include "network/terrier_server.h"
+#include "common/dedicated_thread_registry.h"
 #include "traffic_cop/traffic_cop.h"
+#include "network/command_factory.h"
+#include "network/connection_handler_task.h"
+#include "network/connection_handle.h"
 
 namespace terrier::network {
+
+class ConnectionHandlerTask;
 
 /**
  * @brief Factory class for constructing ConnectionHandle objects
@@ -21,13 +25,9 @@ namespace terrier::network {
 // doesn't cleanup raw pointers.
 class ConnectionHandleFactory {
  public:
-  /**
-   * @return The singleton instance of a ConnectionHandleFactory
-   */
-  static ConnectionHandleFactory &GetInstance() {
-    static ConnectionHandleFactory factory;
-    return factory;
-  }
+
+  ConnectionHandleFactory(TrafficCop* t_cop, CommandFactory* command_factory)
+    : traffic_cop_(t_cop), command_factory_(command_factory){};
 
   /**
    * @brief Creates or re-purpose a NetworkIoWrapper object for new use.
@@ -46,19 +46,6 @@ class ConnectionHandleFactory {
   void TearDown() {
     DedicatedThreadRegistry::GetInstance().TearDown();
     reusable_handles_.clear();
-  }
-
-  /**
-   * Tell the factory the dependencies of each connection handle.
-   * The current dependencies are: Traffic Cop Pointer, Command Factory Pointer.
-   * Then the factory will put them to every connection handle.
-   * @param t_cop the pointer to the traffic cop.
-   * @param command_factory the pointer to the factory
-   */
-  void SetConnectionDependencies(TrafficCop* t_cop, CommandFactory *command_factory)
-  {
-    traffic_cop_ = t_cop;
-    command_factory_ = command_factory;
   }
 
  private:

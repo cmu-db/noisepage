@@ -4,7 +4,8 @@
 
 namespace terrier::network {
 
-ConnectionHandlerTask::ConnectionHandlerTask(const int task_id) : NotifiableTask(task_id) {
+ConnectionHandlerTask::ConnectionHandlerTask(const int task_id, ConnectionHandleFactory* connection_handle_factory)
+  : NotifiableTask(task_id), connection_handle_factory_(connection_handle_factory) {
   int fds[2];
   if (pipe(fds) != 0) {
     NETWORK_LOG_ERROR("Can't create notify pipe to accept connections");
@@ -36,9 +37,7 @@ void ConnectionHandlerTask::HandleDispatch(int new_conn_recv_fd, int16_t) {  // 
       bytes_read += static_cast<size_t>(result);
     }
   }
-  ConnectionHandleFactory::GetInstance()
-      .NewConnectionHandle(*reinterpret_cast<int *>(client_fd), this)
-      .RegisterToReceiveEvents();
+  connection_handle_factory_->NewConnectionHandle(*reinterpret_cast<int *>(client_fd), this).RegisterToReceiveEvents();
 }
 
 }  // namespace terrier::network

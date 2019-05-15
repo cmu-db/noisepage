@@ -48,9 +48,12 @@ int main() {
 
   LOG_INFO("Initialization complete");
 
-  terrier::network::TerrierServer terrier_server;
-  terrier::network::TrafficCopPtr t_cop(new terrier::traffic_cop::TrafficCop());
-  terrier::network::ConnectionHandleFactory::GetInstance().SetConnectionDependencies(t_cop);
+  terrier::traffic_cop::TrafficCop t_cop;
+  terrier::network::CommandFactory command_factory;
+
+  terrier::network::ConnectionHandleFactory connection_handle_factory(&t_cop, &command_factory);
+  terrier::network::TerrierServer terrier_server(&connection_handle_factory);
+
   terrier_server.SetPort(terrier::common::Settings::SERVER_PORT);
   terrier_server.SetupServer().ServerLoop();
 

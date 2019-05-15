@@ -16,6 +16,7 @@
 #include "traffic_cop/result_set.h"
 #include "traffic_cop/traffic_cop.h"
 #include "util/manual_packet_helpers.h"
+#include "network/terrier_server.h"
 
 namespace terrier::network {
 
@@ -32,7 +33,8 @@ class FakeCommandFactory : public CommandFactory
 
 class NetworkTests : public TerrierTest {
  protected:
-  TerrierServer server;
+  std::unique_ptr<TerrierServer> server;
+  std::unique_ptr<ConnectionHandleFactory> handle_factory;
   uint16_t port = common::Settings::SERVER_PORT;
   std::thread server_thread;
   TrafficCop t_cop;
@@ -48,24 +50,25 @@ class NetworkTests : public TerrierTest {
     spdlog::flush_every(std::chrono::seconds(1));
 
     try {
-      server.SetPort(port);
-      server.SetupServer();
+      handle_factory = std::make_unique<ConnectionHandleFactory>(&t_cop, &fake_command_factory);
+      server = std::make_unique<TerrierServer>(handle_factory.get());
+      server->SetPort(port);
+      server->SetupServer();
     } catch (NetworkProcessException &exception) {
       TEST_LOG_ERROR("[LaunchServer] exception when launching server");
       throw;
     }
 
-    ConnectionHandleFactory::GetInstance().SetConnectionDependencies(&t_cop, &fake_command_factory);
 
     TEST_LOG_DEBUG("Server initialized");
-    server_thread = std::thread([&]() { server.ServerLoop(); });
+    server_thread = std::thread([&]() { server->ServerLoop(); });
   }
 
   void TearDown() override {
-    server.Close();
+    server->Close();
     server_thread.join();
+    handle_factory->TearDown();
     TEST_LOG_DEBUG("Terrier has shut down");
-
     TerrierTest::TearDown();
   }
 };

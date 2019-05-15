@@ -10,15 +10,16 @@
 namespace terrier::network {
 
 ConnectionDispatcherTask::ConnectionDispatcherTask(int num_handlers, int listen_fd,
-                                                   DedicatedThreadOwner *dedicatedThreadOwner)
-    : NotifiableTask(MASTER_THREAD_ID), next_handler_(0) {
+                                                   DedicatedThreadOwner *dedicatedThreadOwner,
+                                                   ConnectionHandleFactory* connection_handle_factory)
+    : NotifiableTask(MASTER_THREAD_ID), next_handler_(0), connection_handle_factory_(connection_handle_factory) {
   RegisterEvent(listen_fd, EV_READ | EV_PERSIST, METHOD_AS_CALLBACK(ConnectionDispatcherTask, DispatchConnection),
                 this);
   RegisterSignalEvent(SIGHUP, METHOD_AS_CALLBACK(NotifiableTask, ExitLoop), this);
 
   // create worker threads.
   for (int task_id = 0; task_id < num_handlers; task_id++) {
-    auto handler = std::make_shared<ConnectionHandlerTask>(task_id);
+    auto handler = std::make_shared<ConnectionHandlerTask>(task_id, connection_handle_factory);
     handlers_.push_back(handler);
     DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread<ConnectionHandlerTask>(dedicatedThreadOwner,
                                                                                           handler);
