@@ -22,14 +22,10 @@ The input of the index builder contains metadata about this index: key schema an
 
 ### Blocking manner
 
-A naive method to support building an index is locking the whole table to block any modifications on that table, building the index (including insertion a record into system catalogs) and releasing the lock of the table after building the index. Those operations can be done within a single transaction. The deletion of the index is a single transaction of deleting the corresponding record in system catalogs.
+A new attribute is added into the index entry in the system catalog, which is ```indisblocking``` showing whether the index is building in a blocking manner. At the same time, the index manager maintains a map from the id of the index to the boolean value representing whether the index is built in a blocking manner.
 
-The challenging part is the semantics of the lock. The semantics should be
-* During creation of an index, all modifications including insertion, deletion and update on the table should be blocked.
-* When the system is not creating the index, all modifications including insertion, deletion and update on the table should not block one another (at least snapshot isolation).
-* At any time, scan of the table should not be blocked.
-
-After that, a shared/exclusive lock with the granularity of a table corresponds that semantics. When creation of an index starts, the transaction should first acquire the exclusive lock on that table. When the transaction completes creating the index, it releases the exclusive lock. When any modifications to the table starts, it should first acquire the shared lock on that table. When the modification completes, it releases the shared lock. All scanning operations will not come to the lock manager and read the table directly.
+Other transactions will first access the system catalog to check whether the index they would like to access is built in a blocking manner. If true, they will access the index manager to check whether the status of index building. If the index is being built, those transactions will be
+blocked. An attribute in system catalog entry plus a map maintained by index manager showing the status of building can be view as the normal lock to block other transactions. However, the cost of the method is cheaper than trying to acquire a lock. 
 
 This design is simple and straightforward. It is also easy to implement correctly. However, it may create a huge overhead when building an index on a extremely large table.
 
