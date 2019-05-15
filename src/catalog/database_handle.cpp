@@ -100,4 +100,7 @@ bool DatabaseCatalogTable::DeleteEntry(transaction::TransactionContext *txn,
   return status;
 }
 
+// col_oid_t GetOid();
+std::string_view DatabaseCatalogEntry::GetDatname() { return GetVarcharColumn("datname"); }
+
 }  // namespace terrier::catalog

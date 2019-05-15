@@ -54,8 +54,8 @@ TEST_F(SettingsHandleTests, BasicTest) {
 
   // verify correctly created
   auto entry = settings_handle.GetSettingsEntry(txn_, "test_setting_name");
-  EXPECT_EQ(3, type::TransientValuePeeker::PeekInteger(entry->GetColumn(0)));
-  EXPECT_EQ("test_setting", type::TransientValuePeeker::PeekVarChar(entry->GetColumn(2)));
-  EXPECT_EQ(7, type::TransientValuePeeker::PeekInteger(entry->GetColumn(16)));
+  EXPECT_EQ(3, !entry->GetOid());
+  EXPECT_EQ("test_setting", entry->GetSetting());
+  EXPECT_EQ(7, entry->GetSourceline());
 }
 }  // namespace terrier

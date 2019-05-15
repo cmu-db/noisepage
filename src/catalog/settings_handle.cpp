@@ -63,4 +63,22 @@ SqlTableHelper *SettingsCatalogTable::Create(transaction::TransactionContext *tx
   return pg_settings;
 }
 
+std::string_view SettingsCatalogEntry::GetName() { return GetVarcharColumn("name"); }
+std::string_view SettingsCatalogEntry::GetSetting() { return GetVarcharColumn("setting"); }
+std::string_view SettingsCatalogEntry::GetUnit() { return GetVarcharColumn("unit"); }
+std::string_view SettingsCatalogEntry::GetCategory() { return GetVarcharColumn("category"); }
+std::string_view SettingsCatalogEntry::GetShortDesc() { return GetVarcharColumn("short_desc"); }
+std::string_view SettingsCatalogEntry::GetExtraDesc() { return GetVarcharColumn("extra_desc"); }
+std::string_view SettingsCatalogEntry::GetContext() { return GetVarcharColumn("context"); }
+std::string_view SettingsCatalogEntry::GetVartype() { return GetVarcharColumn("vartype"); }
+std::string_view SettingsCatalogEntry::GetSource() { return GetVarcharColumn("source"); }
+std::string_view SettingsCatalogEntry::GetMinval() { return GetVarcharColumn("min_val"); }
+std::string_view SettingsCatalogEntry::GetMaxval() { return GetVarcharColumn("max_val"); }
+std::string_view SettingsCatalogEntry::GetEnumvals() { return GetVarcharColumn("enumvals"); }
+std::string_view SettingsCatalogEntry::GetBootval() { return GetVarcharColumn("boot_val"); }
+std::string_view SettingsCatalogEntry::GetResetval() { return GetVarcharColumn("reset_val"); }
+std::string_view SettingsCatalogEntry::GetSourcefile() { return GetVarcharColumn("sourcefile"); }
+int32_t SettingsCatalogEntry::GetSourceline() { return GetIntegerColumn("sourceline"); }
+bool SettingsCatalogEntry::GetPendingrestart() { return GetBooleanColumn("pending_restart"); }
+
 }  // namespace terrier::catalog

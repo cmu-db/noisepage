@@ -29,6 +29,8 @@ class TablespaceCatalogEntry : public CatalogEntry<tablespace_oid_t> {
   TablespaceCatalogEntry(tablespace_oid_t oid, catalog::SqlTableHelper *sql_table,
                          std::vector<type::TransientValue> &&entry)
       : CatalogEntry(oid, sql_table, std::move(entry)) {}
+
+  // tablespace isn't used, column access methods omitted.
 };
 
 /**

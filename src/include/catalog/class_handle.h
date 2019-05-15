@@ -29,6 +29,12 @@ class ClassCatalogEntry : public CatalogEntry<col_oid_t> {
    */
   ClassCatalogEntry(col_oid_t oid, catalog::SqlTableHelper *sql_table, std::vector<type::TransientValue> &&entry)
       : CatalogEntry(oid, sql_table, std::move(entry)) {}
+
+  SqlTableHelper *GetPtr();
+  // col_oid_t GetOid();
+  std::string_view GetRelname();
+  col_oid_t GetRelnamespace();
+  col_oid_t GetReltablespace();
 };
 
 /**

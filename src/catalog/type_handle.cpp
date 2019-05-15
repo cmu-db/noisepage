@@ -48,7 +48,8 @@ TypeCatalogTable::TypeCatalogTable(Catalog *catalog, SqlTableHelper *pg_type)
 type_oid_t TypeCatalogTable::TypeToOid(transaction::TransactionContext *txn, const std::string &type) {
   auto te = GetTypeEntry(txn, type);
   if (te == nullptr) {
-    throw CATALOG_EXCEPTION("no such type");
+    // type does not exist
+    return type_oid_t(NULL_OID);
   }
   return type_oid_t(type::TransientValuePeeker::PeekInteger(te->GetColumn(0)));
 }
@@ -102,5 +103,10 @@ SqlTableHelper *TypeCatalogTable::Create(transaction::TransactionContext *txn, C
   catalog->AddToMap(db_oid, CatalogTableType::TYPE, pg_type);
   return pg_type;
 }
+
+std::string_view TypeCatalogEntry::GetTypename() { return GetVarcharColumn("typname"); }
+int32_t TypeCatalogEntry::GetTypenamespace() { return GetIntegerColumn("typenamespace"); }
+int32_t TypeCatalogEntry::GetTypelen() { return GetIntegerColumn("typelen"); }
+std::string_view TypeCatalogEntry::GetTypetype() { return GetVarcharColumn("typtype"); };
 
 }  // namespace terrier::catalog

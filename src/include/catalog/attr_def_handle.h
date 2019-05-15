@@ -30,6 +30,11 @@ class AttrDefCatalogEntry : public CatalogEntry<col_oid_t> {
    */
   AttrDefCatalogEntry(col_oid_t oid, catalog::SqlTableHelper *sql_table, std::vector<type::TransientValue> &&entry)
       : CatalogEntry(oid, sql_table, std::move(entry)) {}
+
+  // col_oid_t GetOid();
+  int32_t GetAdrelid();
+  int32_t GetAdnum();
+  std::string_view GetAdbin();
 };
 
 /**

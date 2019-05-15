@@ -71,4 +71,8 @@ SqlTableHelper *AttrDefCatalogTable::Create(transaction::TransactionContext *txn
   return pg_attrdef;
 }
 
+int32_t AttrDefCatalogEntry::GetAdrelid() { return GetIntegerColumn("adrelid"); }
+int32_t AttrDefCatalogEntry::GetAdnum() { return GetIntegerColumn("adnum"); }
+std::string_view AttrDefCatalogEntry::GetAdbin() { return GetVarcharColumn("adbin"); }
+
 }  // namespace terrier::catalog

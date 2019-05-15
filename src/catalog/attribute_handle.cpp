@@ -96,4 +96,10 @@ SqlTableHelper *AttributeCatalogTable::Create(transaction::TransactionContext *t
   return pg_attr;
 }
 
+int32_t AttributeCatalogEntry::GetAttrelid() { return GetIntegerColumn("attrelid"); }
+std::string_view AttributeCatalogEntry::GetAttname() { return GetVarcharColumn("attname"); }
+col_oid_t AttributeCatalogEntry::GetAtttypid() { return col_oid_t(GetIntegerColumn("atttypid")); }
+int32_t AttributeCatalogEntry::GetAttlen() { return GetIntegerColumn("attlen"); }
+int32_t AttributeCatalogEntry::GetAttnum() { return GetIntegerColumn("attnum"); }
+
 }  // namespace terrier::catalog

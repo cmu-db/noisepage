@@ -4,6 +4,7 @@
 
 namespace terrier::catalog {
 // refer to catalog/catalog.h for OID numbering scheme
+#define NULL_OID 0           // error return value
 #define START_OID 1001
 #define DEFAULT_DATABASE_OID db_oid_t(1)
 

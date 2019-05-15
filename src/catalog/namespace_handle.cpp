@@ -46,7 +46,8 @@ std::shared_ptr<NamespaceCatalogEntry> NamespaceCatalogTable::GetNamespaceEntry(
 namespace_oid_t NamespaceCatalogTable::NameToOid(transaction::TransactionContext *txn, const std::string &name) {
   auto nse = GetNamespaceEntry(txn, name);
   if (nse == nullptr) {
-    throw CATALOG_EXCEPTION("namespace does not exist");
+    // no such namespace
+    return namespace_oid_t(NULL_OID);
   }
   return namespace_oid_t(type::TransientValuePeeker::PeekInteger(nse->GetColumn(0)));
 }
@@ -111,5 +112,8 @@ SqlTableHelper *NamespaceCatalogTable::Create(transaction::TransactionContext *t
   catalog->AddToMap(db_oid, CatalogTableType::NAMESPACE, storage_table);
   return storage_table;
 }
+
+// col_oid_t NamespaceCatalogEntry::GetOid();
+std::string_view NamespaceCatalogEntry::GetNspname() { return GetVarcharColumn("nspname"); }
 
 }  // namespace terrier::catalog

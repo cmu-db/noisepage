@@ -29,6 +29,13 @@ class AttributeCatalogEntry : public CatalogEntry<col_oid_t> {
    */
   AttributeCatalogEntry(col_oid_t oid, catalog::SqlTableHelper *sql_table, std::vector<type::TransientValue> &&entry)
       : CatalogEntry(oid, sql_table, std::move(entry)) {}
+
+  // col_oid_t GetOid();
+  int32_t GetAttrelid();
+  std::string_view GetAttname();
+  col_oid_t GetAtttypid();
+  int32_t GetAttlen();
+  int32_t GetAttnum();
 };
 
 /**

@@ -52,6 +52,14 @@ class TableCatalogEntry {
     rows_[1] = std::move(row);
   }
 
+  std::string_view GetSchemaname();
+  std::string_view GetTablename();
+  /* future
+   * boolean GetHasindexes();
+   * boolean GetHasrules();
+   * boolean GetHastriggers();
+   */
+
   /**
    * Get the value for a given column number
    * @param col_num the column number

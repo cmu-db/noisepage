@@ -28,6 +28,25 @@ class SettingsCatalogEntry : public CatalogEntry<settings_oid_t> {
   SettingsCatalogEntry(settings_oid_t oid, catalog::SqlTableHelper *sql_table,
                        std::vector<type::TransientValue> &&entry)
       : CatalogEntry(oid, sql_table, std::move(entry)) {}
+
+  // settings_oid_t GetOid();
+  std::string_view GetName();
+  std::string_view GetSetting();
+  std::string_view GetUnit();
+  std::string_view GetCategory();
+  std::string_view GetShortDesc();
+  std::string_view GetExtraDesc();
+  std::string_view GetContext();
+  std::string_view GetVartype();
+  std::string_view GetSource();
+  std::string_view GetMinval();
+  std::string_view GetMaxval();
+  std::string_view GetEnumvals();
+  std::string_view GetBootval();
+  std::string_view GetResetval();
+  std::string_view GetSourcefile();
+  int32_t GetSourceline();
+  bool GetPendingrestart();
 };
 
 /**

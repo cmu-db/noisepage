@@ -45,7 +45,8 @@ table_oid_t TableCatalogView::NameToOid(transaction::TransactionContext *txn, co
 
   std::vector<type::TransientValue> row = pg_class_->FindRow(txn, search_vec);
   if (row.empty()) {
-    throw CATALOG_EXCEPTION("table does not exist");
+    // table does not exist
+    return table_oid_t(NULL_OID);
   }
   auto result = table_oid_t(type::TransientValuePeeker::PeekInteger(row[1]));
   return result;
@@ -92,6 +93,14 @@ SqlTableHelper *TableCatalogView::GetTable(transaction::TransactionContext *txn,
 
 SqlTableHelper *TableCatalogView::GetTable(transaction::TransactionContext *txn, const std::string &name) {
   return GetTable(txn, NameToOid(txn, name));
+}
+
+std::string_view TableCatalogEntry::GetSchemaname() {
+  return type::TransientValuePeeker::PeekVarChar(this->GetColInRow(0));
+}
+
+std::string_view TableCatalogEntry::GetTablename() {
+  return type::TransientValuePeeker::PeekVarChar(this->GetColInRow(1));
 }
 
 }  // namespace terrier::catalog

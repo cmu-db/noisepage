@@ -139,7 +139,7 @@ TEST_F(CatalogTests, NamespaceTest) {
   auto ns_handle = db_handle.GetNamespaceTable(txn_, default_db_oid);
   auto ns_entry = ns_handle.GetNamespaceEntry(txn_, "test_namespace");
   EXPECT_NE(nullptr, ns_entry);
-  EXPECT_EQ("test_namespace", ns_entry->GetVarcharColumn("nspname"));
+  EXPECT_EQ("test_namespace", ns_entry->GetNspname());
 
   catalog_->DeleteNameSpace(txn_, default_db_oid, ns_oid);
   ns_entry = ns_handle.GetNamespaceEntry(txn_, "test_namespace");

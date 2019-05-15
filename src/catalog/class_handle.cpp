@@ -132,4 +132,9 @@ SqlTableHelper *ClassCatalogTable::Create(transaction::TransactionContext *txn, 
   return pg_class;
 }
 
+SqlTableHelper *ClassCatalogEntry::GetPtr() { return reinterpret_cast<SqlTableHelper *>(GetBigIntColumn("__ptr")); }
+std::string_view ClassCatalogEntry::GetRelname() { return GetVarcharColumn("relname"); }
+col_oid_t ClassCatalogEntry::GetRelnamespace() { return col_oid_t(GetIntegerColumn("relnamespace")); }
+col_oid_t ClassCatalogEntry::GetReltablespace() { return col_oid_t(GetIntegerColumn("reltablespace")); }
+
 }  // namespace terrier::catalog

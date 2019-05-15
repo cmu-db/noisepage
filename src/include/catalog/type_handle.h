@@ -26,6 +26,12 @@ class TypeCatalogEntry : public CatalogEntry<type_oid_t> {
    */
   TypeCatalogEntry(type_oid_t oid, catalog::SqlTableHelper *sql_table, std::vector<type::TransientValue> &&entry)
       : CatalogEntry(oid, sql_table, std::move(entry)) {}
+
+  // type_oid_t GetOid();
+  std::string_view GetTypename();
+  int32_t GetTypenamespace();
+  int32_t GetTypelen();
+  std::string_view GetTypetype();
 };
 
 /**
