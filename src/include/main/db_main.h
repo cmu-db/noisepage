@@ -18,8 +18,8 @@ class SettingsTests;
 }  // namespace settings
 
 /**
- * The DBMain Class holds all the static functions, singleton pointers, etc.
- * It has the full knowledge of the whole database systems.
+ * The DBMain Class holds all the singleton pointers. It has the full knowledge
+ * of the whole database systems and serves as a global context of the system.
  * *Only the settings manager should be able to access the DBMain object.*
  */
 class DBMain {
