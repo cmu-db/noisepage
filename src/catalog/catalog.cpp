@@ -24,10 +24,11 @@ Catalog::Catalog(transaction::TransactionManager *txn_manager, transaction::Tran
   CATALOG_LOG_TRACE("=======Finished Bootstrapping ======");
 }
 
-void Catalog::CreateDatabase(transaction::TransactionContext *txn, const std::string &name) {
+db_oid_t Catalog::CreateDatabase(transaction::TransactionContext *txn, const std::string &name) {
   db_oid_t new_db_oid = db_oid_t(GetNextOid());
   Catalog::AddEntryToPGDatabase(txn, new_db_oid, name);
   BootstrapDatabase(txn, new_db_oid);
+  return new_db_oid;
 }
 
 void Catalog::DeleteDatabase(transaction::TransactionContext *txn, const std::string &db_name) {

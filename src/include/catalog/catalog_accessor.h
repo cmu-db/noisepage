@@ -2,7 +2,6 @@
 
 #include <vector>
 
-#include "catalog/catalog.h"
 #include "catalog/catalog_defs.h"
 #include "catalog/schema.h"
 #include "storage/index/index.h"
@@ -10,6 +9,7 @@
 #include "type/type_id.h"
 
 namespace terrier::catalog {
+class Catalog;
 
 /**
  * A stateful wrapper around the catalog that provides the primary mechanisms
@@ -95,20 +95,6 @@ class CatalogAccessor {
   };
 
   /**
-   * Instantiates a new accessor into the catalog for the given database.
-   * @param txn the transaction context for this accessor
-   * @param database the OID of the database
-   */
-  CatalogAccessor(transaction::TransactionContext *txn, db_oid_t database);
-
-  /**
-   * Instantiates a new accessor into the catalog for the given database.
-   * @param txn the transaction context for this accessor
-   * @param database the name of the database
-   */
-  CatalogAccessor(transaction::TransactionContext *txn, std::string database);
-
-  /**
    * Given a database name, resolve it to the corresponding OID
    * @param name of the database
    * @return OID for the database, INVALID_DATABASE_OID if the database does not exist
@@ -140,10 +126,8 @@ class CatalogAccessor {
    * Sets the search path of namespaces that should be checked when looking up an
    * index or table by name.
    * @param namespaces the namespaces to search given in priority order
-   *
-   * TODO(John): Based on PostgreSQL behavior, should this be a vector or single OID?
    */
-  void SetNamespace(std::vector<namespace_oid_t> namespaces);
+  void SetSearchPath(std::vector<namespace_oid_t> namespaces);
 
   /**
    * Given a namespace name, resolve it to the corresponding OID
@@ -161,7 +145,7 @@ class CatalogAccessor {
 
   /**
    * Drop all entries in the catalog that belong to the namespace, including the namespace entry
-   * @param namespace the OID of the namespace to drop
+   * @param ns the OID of the namespace to drop
    * @return true, unless there was no namespace entry with the given OID
    *
    * @warning This function does not handle deallocation and therefore must only
@@ -171,7 +155,7 @@ class CatalogAccessor {
    * because this call will effectively hide all of these objects from this
    * transaction once invoked.
    */
-  bool DropNamespace(namespace_oid_t namespace);
+  bool DropNamespace(namespace_oid_t ns);
 
   /**
    * Given a table name, resolve it to the corresponding OID
@@ -181,14 +165,22 @@ class CatalogAccessor {
   table_oid_t GetTableOid(std::string name);
 
   /**
+   * Given a table name and its owning namespace, resolve it to the corresponding OID
+   * @param ns in which to search for the table
+   * @param name of the table
+   * @return OID of the table, INVALID_TABLE_OID if the table was not found
+   */
+  table_oid_t GetTableOid(namespace_oid_t ns, std::string name);
+
+  /**
    * Given a table name, create a new table entry in the catalog and assign it an OID. This
    * function does not instantiate the storage object for the table.
-   * @param namespace in which the new table will exist
+   * @param ns in which the new table will exist
    * @param name of the new table
    * @param columns is the vector of definitions for the columns
    * @return OID for the table, INVALID_TABLE_OID if the table already exists
    */
-  table_oid_t CreateTable(namespace_oid_t namespace, std::string table_name, std::vector<ColumnDefinition> columns);
+  table_oid_t CreateTable(namespace_oid_t ns, std::string table_name, std::vector<ColumnDefinition> columns);
 
   /**
    * Rename the table from its current string to the new one.  The renaming could fail
@@ -303,6 +295,14 @@ class CatalogAccessor {
   index_oid_t GetIndexOid(std::string name);
 
   /**
+   * Given an index name and the owning namespace, resolve it to the corresponding OID
+   * @param ns in which to search for the index
+   * @param name of the index
+   * @return OID of the index, INVALID_INDEX_OID if the index was not found
+   */
+  index_oid_t GetIndexOid(namespace_oid_t ns, std::string name);
+
+  /**
    * Given a table, find all indexes for data in that table
    * @param table OID being queried
    * @return vector of index OIDs that reference the queried table
@@ -345,10 +345,19 @@ class CatalogAccessor {
   storage::index::Index *GetIndex(index_oid_t index);
 
  private:
+  Catalog *catalog_;
   db_oid_t db_;
   transaction::TransactionContext *txn_;
-  std::vector<namespace_oid_t> namespaces_;
+  std::vector<namespace_oid_t> search_path_;
 
+  /**
+   * Instantiates a new accessor into the catalog for the given database.
+   * @param catalog pointer to the catalog being accessed
+   * @param txn the transaction context for this accessor
+   * @param database the OID of the database
+   */
+  CatalogAccessor(Catalog *catalog, transaction::TransactionContext *txn, db_oid_t database);
+  friend class Catalog;
 };
 
 } // namespace terrier::catalog

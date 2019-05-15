@@ -8,11 +8,11 @@ namespace terrier::catalog {
 #define START_OID 1001
 #define DEFAULT_DATABASE_OID db_oid_t(1)
 
-#define INVALID_COLUMN_OID col_oid_t(UINT32_MAX)
-#define INVALID_DATABASE_OID db_oid_t(UINT32_MAX)
-#define INVALID_INDEX_OID index_oid_t(UINT32_MAX)
-#define INVALID_NAMESPACE_OID namespace_oid_t(UINT32_MAX)
-#define INVALID_TABLE_OID table_oid_t(UINT32_MAX)
+#define INVALID_COLUMN_OID col_oid_t(NULL_OID)
+#define INVALID_DATABASE_OID db_oid_t(NULL_OID)
+#define INVALID_INDEX_OID index_oid_t(NULL_OID)
+#define INVALID_NAMESPACE_OID namespace_oid_t(NULL_OID)
+#define INVALID_TABLE_OID table_oid_t(NULL_OID)
 
 // in name order
 STRONG_TYPEDEF(col_oid_t, uint32_t);

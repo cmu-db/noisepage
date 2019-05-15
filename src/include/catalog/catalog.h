@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
 #include "catalog/catalog_sql_table.h"
 #include "catalog/database_handle.h"
@@ -68,6 +69,10 @@ enum CatalogTableType {
  *
  */
 class Catalog {
+  // TODO(John):  With the new accessor class, we should relook which of these
+  // functions should be private/protected with the accessor as a friend of the
+  // catalog.  This will enforce the separation of the catalog backend from the
+  // API we want to expose in the accessor.
  public:
   /**
    * Creates the (global) catalog object, and bootstraps.
@@ -79,6 +84,22 @@ class Catalog {
   Catalog(transaction::TransactionManager *txn_manager, transaction::TransactionContext *txn);
 
   /**
+   * Instantiates a new accessor into the catalog for the given database.
+   * @param txn the transaction context for this accessor
+   * @param database the OID of the database
+   */
+  CatalogAccessor GetAccessor(transaction::TransactionContext *txn, db_oid_t database) {
+    return {this, txn, database};
+  }
+
+  /**
+   * Instantiates a new accessor into the catalog for the given database.
+   * @param txn the transaction context for this accessor
+   * @param database the name of the database
+   */
+  CatalogAccessor GetAccessor(transaction::TransactionContext *txn, std::string database);
+
+  /**
    * Create a database, and all its tables. Set initial content
    * for the tables, and update the catalogs to reflect the new
    * database (and its tables).
@@ -86,7 +107,7 @@ class Catalog {
    * @param txn transaction to use
    * @param name of the database
    */
-  void CreateDatabase(transaction::TransactionContext *txn, const std::string &name);
+  db_oid_t CreateDatabase(transaction::TransactionContext *txn, const std::string &name);
 
   /**
    * Delete a database.
