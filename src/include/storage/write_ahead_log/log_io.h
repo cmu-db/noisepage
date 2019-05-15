@@ -95,10 +95,13 @@ class BufferedLogWriter {
 
   /**
    * Write to the log file the given amount of bytes from the given location in memory, but buffer the write so the
-   * update is only written out when the BufferedLogWriter is persisted.
+   * update is only written out when the BufferedLogWriter is persisted. Note that this function writes to the buffer
+   * only until it is full. If buffer gets full, then call FlushBuffer() and call BufferWrite(..) again with the correct
+   * offset of the data, depending on the number of bytes that were already written.
    * @param data memory location of the bytes to write
    * @param size number of bytes to write
-   * @return number of bytes written
+   * @return number of bytes written. This function only writes until the buffer gets full, so this can be used as the
+   * offset when calling this function again after flushing.
    */
   uint32_t BufferWrite(const void *data, uint32_t size) {
     // If we still do not have buffer space after flush, the write is too large to be buffered. We partially write the

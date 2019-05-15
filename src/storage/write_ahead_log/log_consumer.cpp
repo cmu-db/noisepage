@@ -1,9 +1,9 @@
-#include "storage/write_ahead_log/log_writer.h"
+#include "storage/write_ahead_log/log_consumer.h"
 #include "storage/write_ahead_log/log_manager.h"
 
 namespace terrier::storage {
 
-void LogWriter::FlushAllBuffers() {
+void LogConsumer::FlushAllBuffers() {
   // Persist all the filled buffers to the disk
   while (!log_manager_->filled_buffer_queue_.Empty()) {
     // Dequeue filled buffers and flush them to disk
@@ -19,20 +19,20 @@ void LogWriter::FlushAllBuffers() {
   log_manager_->buffers_.front().Persist();
 }
 
-void LogWriter::WriteToDisk() {
-  // Log writer thread spins in this loop
+void LogConsumer::WriteToDisk() {
+  // Log Consumer thread spins in this loop
   // It dequeues a filled buffer and flushes it to disk
-  while (log_manager_->run_log_writer_thread_) {
+  while (log_manager_->run_log_consumer_thread_) {
     BufferedLogWriter *buf;
     {
       std::unique_lock<std::mutex> lock(log_manager_->persist_lock_);
-      // Wake up the writer thread if:
+      // Wake up the consumer thread if:
       // 1) The serializer thread has signalled to persist all non-empty buffers to disk
       // 2) There is a filled buffer to write to the disk
       // 3) Logging shutdown has initiated
-      log_manager_->wake_writer_thread_cv_.wait(lock, [&] {
+      log_manager_->wake_consumer_thread_cv_.wait(lock, [&] {
         return log_manager_->do_persist_ || !log_manager_->filled_buffer_queue_.Empty() ||
-               !log_manager_->run_log_writer_thread_;
+               !log_manager_->run_log_consumer_thread_;
       });
     }
     // Flush all the filled buffers

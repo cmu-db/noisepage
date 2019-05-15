@@ -9,9 +9,9 @@
 #include "common/spin_latch.h"
 #include "common/strong_typedef.h"
 #include "storage/record_buffer.h"
+#include "storage/write_ahead_log/log_consumer.h"
 #include "storage/write_ahead_log/log_io.h"
 #include "storage/write_ahead_log/log_record.h"
-#include "storage/write_ahead_log/log_writer.h"
 #include "transaction/transaction_defs.h"
 
 // TODO(Utkarsh): Get rid of magic constants
@@ -35,9 +35,9 @@ class LogManager {
   LogManager(const char *log_file_path, RecordBufferSegmentPool *const buffer_pool)
       : buffer_pool_(buffer_pool),
         log_file_path_(log_file_path),
-        buffer_to_write_(nullptr),
-        log_writer_(nullptr),
-        run_log_writer_thread_(false),
+        filled_buffer_(nullptr),
+        log_consumer_(nullptr),
+        run_log_consumer_thread_(false),
         do_persist_(true) {}
 
   /**
@@ -51,8 +51,8 @@ class LogManager {
     for (int i = 0; i < MAX_BUF; i++) {
       empty_buffer_queue_.Enqueue(&buffers_[i]);
     }
-    run_log_writer_thread_ = true;
-    log_writer_ = new LogWriter(this);
+    run_log_consumer_thread_ = true;
+    log_consumer_ = new LogConsumer(this);
   }
 
   /**
@@ -61,13 +61,13 @@ class LogManager {
   void Shutdown() {
     // Process the remaining redo buffers
     Process();
-    // Signal the log writer thread to shutdown
+    // Signal the log consumer thread to shutdown
     {
       std::unique_lock<std::mutex> lock(persist_lock_);
-      run_log_writer_thread_ = false;
-      wake_writer_thread_cv_.notify_one();
+      run_log_consumer_thread_ = false;
+      wake_consumer_thread_cv_.notify_one();
     }
-    log_writer_->Shutdown();
+    log_consumer_->Shutdown();
     // Close the buffers corresponding to the log file
     for (auto buf : buffers_) {
       buf.Close();
@@ -77,7 +77,7 @@ class LogManager {
     while (!empty_buffer_queue_.Empty()) empty_buffer_queue_.Dequeue(&tmp);
     while (!filled_buffer_queue_.Empty()) filled_buffer_queue_.Dequeue(&tmp);
     buffers_.clear();
-    delete log_writer_;
+    delete log_consumer_;
   }
 
   /**
@@ -109,7 +109,7 @@ class LogManager {
   void Flush();
 
  private:
-  friend class LogWriter;
+  friend class LogConsumer;
   // TODO(Tianyu): This can be changed later to be include things that are not necessarily backed by a disk
   //  (e.g. logs can be streamed out to the network for remote replication)
   RecordBufferSegmentPool *buffer_pool_;
@@ -125,28 +125,28 @@ class LogManager {
 
   // System path for log file
   const char *log_file_path_;
-  // This stores all the buffers the serializer or the log writer threads use
+  // This stores all the buffers the serializer or the log consumer threads use
   std::vector<BufferedLogWriter> buffers_;
   // This is the buffer the serializer thread will write to
-  BufferedLogWriter *buffer_to_write_;
+  BufferedLogWriter *filled_buffer_;
   // The queue containing empty buffers which the serializer thread will use
   common::ConcurrentBlockingQueue<BufferedLogWriter *> empty_buffer_queue_;
   // The queue containing filled buffers pending flush to the disk
   common::ConcurrentBlockingQueue<BufferedLogWriter *> filled_buffer_queue_;
 
-  // The log writer object which flushes filled buffers to the disk
-  LogWriter *log_writer_;
-  // Flag used by the serializer thread to signal shutdown to the log writer thread
-  volatile bool run_log_writer_thread_;
-  // Flag used by the serializer thread to signal the log writer thread to persist the data on disk
+  // The log consumer object which flushes filled buffers to the disk
+  LogConsumer *log_consumer_;
+  // Flag used by the serializer thread to signal shutdown to the log consumer thread
+  volatile bool run_log_consumer_thread_;
+  // Flag used by the serializer thread to signal the log consumer thread to persist the data on disk
   volatile bool do_persist_;
 
   // Synchronisation primitives to synchronise persisting buffers to disk
   std::mutex persist_lock_;
   std::condition_variable persist_cv_;
-  // Condition variable to signal writer thread to wake up and flush buffers to disk or if shutdown has initiated,
+  // Condition variable to signal consumer thread to wake up and flush buffers to disk or if shutdown has initiated,
   // then quit
-  std::condition_variable wake_writer_thread_cv_;
+  std::condition_variable wake_consumer_thread_cv_;
 
   /**
    * Serialize out the record to the log
@@ -156,19 +156,19 @@ class LogManager {
 
   /**
    * Serialize out the task buffer to the log
-   * @param task_buffer the iterator to the redo buffer to be serialized
+   * @param buffer_to_serialize the iterator to the redo buffer to be serialized
    */
-  void SerializeTaskBuffer(IterableBufferSegment<LogRecord> *task_buffer);
+  void SerializeBuffer(IterableBufferSegment<LogRecord> *buffer_to_serialize);
 
   /**
    * Used by the serializer thread to get a buffer to serialize data to
    * @return buffer to write to
    */
-  BufferedLogWriter *GetBufferToWrite() {
-    if (buffer_to_write_ == nullptr) {
-      empty_buffer_queue_.Dequeue(&buffer_to_write_);
+  BufferedLogWriter *GetCurrentWriteBuffer() {
+    if (filled_buffer_ == nullptr) {
+      empty_buffer_queue_.Dequeue(&filled_buffer_);
     }
-    return buffer_to_write_;
+    return filled_buffer_;
   }
 
   /**
@@ -191,15 +191,15 @@ class LogManager {
   /**
    * Mark the current buffer that the serializer thread is writing to as filled
    */
-  void MarkBufferFull() {
-    filled_buffer_queue_.Enqueue(buffer_to_write_);
-    // Signal writer thread that a buffer is ready to be flushed to the disk
+  void HandFilledBufferToWriter() {
+    filled_buffer_queue_.Enqueue(filled_buffer_);
+    // Signal consumer thread that a buffer is ready to be flushed to the disk
     {
       std::unique_lock<std::mutex> lock(persist_lock_);
-      wake_writer_thread_cv_.notify_one();
+      wake_consumer_thread_cv_.notify_one();
     }
     // Mark that serializer thread doesn't have a buffer in its possession to which it can write to
-    buffer_to_write_ = nullptr;
+    filled_buffer_ = nullptr;
   }
 };
 }  // namespace terrier::storage

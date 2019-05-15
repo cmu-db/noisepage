@@ -208,8 +208,7 @@ class DataTable {
   DataTableCounter *GetDataTableCounter() { return &data_table_counter_; }
 
   /**
-   * Returns a read-only view of this DataTable's BlockLayout.
-   * @return this DataTable's BlockLayout.
+   * @return read-only view of this DataTable's BlockLayout
    */
   const BlockLayout &GetBlockLayout() const { return accessor_.GetBlockLayout(); }
 
