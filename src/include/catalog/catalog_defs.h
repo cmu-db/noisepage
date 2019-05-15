@@ -13,6 +13,7 @@ namespace terrier::catalog {
 #define INVALID_INDEX_OID index_oid_t(NULL_OID)
 #define INVALID_NAMESPACE_OID namespace_oid_t(NULL_OID)
 #define INVALID_TABLE_OID table_oid_t(NULL_OID)
+#define INVALID_TYPE_OID type_oid_t(NULL_OID)
 
 // in name order
 STRONG_TYPEDEF(col_oid_t, uint32_t);

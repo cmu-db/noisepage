@@ -86,7 +86,7 @@ TEST_F(NamespaceHandleTests, OidLookupTest) {
   // delete it
   auto namespace_entry_ptr = namespace_handle.GetNamespaceEntry(txn_, "test_namespace");
   namespace_handle.DeleteEntry(txn_, namespace_entry_ptr);
-  EXPECT_THROW(namespace_handle.NameToOid(txn_, "test_namespace"), CatalogException);
+  EXPECT_EQ(namespace_handle.NameToOid(txn_, "test_namespace"), catalog::INVALID_NAMESPACE_OID);
 }
 
 }  // namespace terrier

@@ -53,7 +53,7 @@ TEST_F(TypeHandleTest, OidLookupTest) {
   // check name to oid for a valid name
   auto UNUSED_ATTRIBUTE type_oid = type_handle.TypeToOid(txn_, "integer");
 
-  EXPECT_THROW(type_handle.TypeToOid(txn_, "no_such_integer"), CatalogException);
+  EXPECT_EQ(type_handle.TypeToOid(txn_, "no_such_integer"), catalog::INVALID_TYPE_OID);
 }
 
 }  // namespace terrier
