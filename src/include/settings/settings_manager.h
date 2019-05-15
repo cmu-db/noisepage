@@ -66,7 +66,7 @@ class SettingsManager {
    * @param param setting name
    * @return current setting value
    */
-  std::string_view GetString(Param param);
+  std::string GetString(Param param);
 
   /**
    * Set the value of an integer setting

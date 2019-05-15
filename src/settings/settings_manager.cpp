@@ -94,9 +94,9 @@ bool SettingsManager::GetBool(Param param) {
   return ValuePeeker::PeekBoolean(GetValue(param));
 }
 
-std::string_view SettingsManager::GetString(Param param) {
+std::string SettingsManager::GetString(Param param) {
   common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
-  return ValuePeeker::PeekVarChar(GetValue(param));
+  return std::string(ValuePeeker::PeekVarChar(GetValue(param)));
 }
 
 void SettingsManager::SetInt(Param param, int32_t value, std::shared_ptr<ActionContext> action_context,
