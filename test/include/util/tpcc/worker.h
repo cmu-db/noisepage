@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/allocator.h"
-#include "tpcc/database.h"
+#include "util/tpcc/database.h"
 
 namespace terrier::tpcc {
 

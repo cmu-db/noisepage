@@ -6,8 +6,8 @@
 #include "common/macros.h"
 #include "storage/index/index_builder.h"
 #include "storage/sql_table.h"
-#include "tpcc/database.h"
-#include "tpcc/schemas.h"
+#include "util/tpcc/database.h"
+#include "util/tpcc/schemas.h"
 
 namespace terrier::tpcc {
 

@@ -6,19 +6,19 @@
 #include "common/worker_pool.h"
 #include "storage/garbage_collector.h"
 #include "storage/storage_defs.h"
-#include "tpcc/builder.h"
-#include "tpcc/database.h"
-#include "tpcc/delivery.h"
-#include "tpcc/loader.h"
-#include "tpcc/new_order.h"
-#include "tpcc/order_status.h"
-#include "tpcc/payment.h"
-#include "tpcc/stock_level.h"
-#include "tpcc/worker.h"
-#include "tpcc/workload.h"
 #include "transaction/transaction_manager.h"
+#include "util/tpcc/builder.h"
+#include "util/tpcc/database.h"
+#include "util/tpcc/delivery.h"
+#include "util/tpcc/loader.h"
+#include "util/tpcc/new_order.h"
+#include "util/tpcc/order_status.h"
+#include "util/tpcc/payment.h"
+#include "util/tpcc/stock_level.h"
+#include "util/tpcc/worker.h"
+#include "util/tpcc/workload.h"
 
-namespace terrier {
+namespace terrier::tpcc {
 
 #define LOG_FILE_NAME "./tpcc.log"
 
@@ -70,12 +70,7 @@ class TPCCBenchmark : public benchmark::Fixture {
   const int8_t num_threads_ = 4;  // defines the number of terminals (workers running txns) and warehouses for the
                                   // benchmark. Sometimes called scale factor
   const uint32_t num_precomputed_txns_per_worker_ = 100000;  // Number of txns to run per terminal (worker thread)
-
-  // Txn distribution. New Order is not provided because it's the implicit difference of the txns below from 100
-  const uint32_t w_payment = 43;
-  const uint32_t w_delivery = 4;
-  const uint32_t w_order_status = 4;
-  const uint32_t w_stock_level = 4;
+  TransactionWeights txn_weights;                            // default txn_weights. See definition for values
 
   // Toggle WAL on or off for the benchmark
   const bool logging_enabled_ = false;
@@ -110,7 +105,7 @@ class TPCCBenchmark : public benchmark::Fixture {
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(TPCCBenchmark, Basic)(benchmark::State &state) {
   // one TPCC worker = one TPCC terminal = one thread
-  std::vector<tpcc::Worker> workers;
+  std::vector<Worker> workers;
   workers.reserve(num_threads_);
 
   // Reset the worker pool
@@ -121,40 +116,11 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, Basic)(benchmark::State &state) {
   // we need transactions, TPCC database, and GC
   if (logging_enabled_) log_manager_ = new storage::LogManager(LOG_FILE_NAME, &buffer_pool_);
   transaction::TransactionManager txn_manager(&buffer_pool_, true, log_manager_);
-  auto tpcc_builder = tpcc::Builder(&block_store_);
+  auto tpcc_builder = Builder(&block_store_);
 
   // Precompute all of the input arguments for every txn to be run. We want to avoid the overhead at benchmark time
-  std::vector<std::vector<tpcc::TransactionArgs>> precomputed_args;
-  precomputed_args.reserve(workers.size());
-
-  tpcc::Deck deck(w_payment, w_order_status, w_delivery, w_stock_level);
-
-  for (int8_t warehouse_id = 1; warehouse_id <= num_threads_; warehouse_id++) {
-    std::vector<tpcc::TransactionArgs> txns;
-    txns.reserve(num_precomputed_txns_per_worker_);
-    for (uint32_t i = 0; i < num_precomputed_txns_per_worker_; i++) {
-      switch (deck.NextCard()) {
-        case tpcc::TransactionType::NewOrder:
-          txns.emplace_back(tpcc::BuildNewOrderArgs(&generator_, warehouse_id, num_threads_));
-          break;
-        case tpcc::TransactionType::Payment:
-          txns.emplace_back(tpcc::BuildPaymentArgs(&generator_, warehouse_id, num_threads_));
-          break;
-        case tpcc::TransactionType::OrderStatus:
-          txns.emplace_back(tpcc::BuildOrderStatusArgs(&generator_, warehouse_id, num_threads_));
-          break;
-        case tpcc::TransactionType::Delivery:
-          txns.emplace_back(tpcc::BuildDeliveryArgs(&generator_, warehouse_id, num_threads_));
-          break;
-        case tpcc::TransactionType::StockLevel:
-          txns.emplace_back(tpcc::BuildStockLevelArgs(&generator_, warehouse_id, num_threads_));
-          break;
-        default:
-          throw std::runtime_error("Unexpected transaction type.");
-      }
-    }
-    precomputed_args.emplace_back(txns);
-  }
+  const auto precomputed_args =
+      PrecomputeArgs(&generator_, txn_weights, num_threads_, num_precomputed_txns_per_worker_);
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
@@ -168,41 +134,41 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, Basic)(benchmark::State &state) {
     }
 
     // populate the tables and indexes
-    tpcc::Loader::PopulateDatabase(&txn_manager, &generator_, tpcc_db, workers);
+    Loader::PopulateDatabase(&txn_manager, &generator_, tpcc_db, workers);
     if (logging_enabled_) log_manager_->Process();  // log all of the Inserts from table creation
     StartGC(&txn_manager);
     if (logging_enabled_) StartLogging();
     std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
 
     // define the TPCC workload
-    auto tpcc_workload = [&](int8_t worker_id) {
-      auto new_order = tpcc::NewOrder(tpcc_db);
-      auto payment = tpcc::Payment(tpcc_db);
-      auto order_status = tpcc::OrderStatus(tpcc_db);
-      auto delivery = tpcc::Delivery(tpcc_db);
-      auto stock_level = tpcc::StockLevel(tpcc_db);
+    auto tpcc_workload = [&](const int8_t worker_id) {
+      auto new_order = NewOrder(tpcc_db);
+      auto payment = Payment(tpcc_db);
+      auto order_status = OrderStatus(tpcc_db);
+      auto delivery = Delivery(tpcc_db);
+      auto stock_level = StockLevel(tpcc_db);
 
       for (uint32_t i = 0; i < num_precomputed_txns_per_worker_; i++) {
         const auto &txn_args = precomputed_args[worker_id][i];
         switch (txn_args.type) {
-          case tpcc::TransactionType::NewOrder: {
-            new_order.Execute(&txn_manager, &generator_, tpcc_db, &workers[worker_id], txn_args);
+          case TransactionType::NewOrder: {
+            new_order.Execute(&txn_manager, tpcc_db, &workers[worker_id], txn_args);
             break;
           }
-          case tpcc::TransactionType::Payment: {
-            payment.Execute(&txn_manager, &generator_, tpcc_db, &workers[worker_id], txn_args);
+          case TransactionType::Payment: {
+            payment.Execute(&txn_manager, tpcc_db, &workers[worker_id], txn_args);
             break;
           }
-          case tpcc::TransactionType::OrderStatus: {
-            order_status.Execute(&txn_manager, &generator_, tpcc_db, &workers[worker_id], txn_args);
+          case TransactionType::OrderStatus: {
+            order_status.Execute(&txn_manager, tpcc_db, &workers[worker_id], txn_args);
             break;
           }
-          case tpcc::TransactionType::Delivery: {
-            delivery.Execute(&txn_manager, &generator_, tpcc_db, &workers[worker_id], txn_args);
+          case TransactionType::Delivery: {
+            delivery.Execute(&txn_manager, tpcc_db, &workers[worker_id], txn_args);
             break;
           }
-          case tpcc::TransactionType::StockLevel: {
-            stock_level.Execute(&txn_manager, &generator_, tpcc_db, &workers[worker_id], txn_args);
+          case TransactionType::StockLevel: {
+            stock_level.Execute(&txn_manager, tpcc_db, &workers[worker_id], txn_args);
             break;
           }
           default:
@@ -232,8 +198,8 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, Basic)(benchmark::State &state) {
   // Clean up the buffers from any non-inlined VarlenEntrys in the precomputed args
   for (const auto &worker_id : precomputed_args) {
     for (const auto &args : worker_id) {
-      if ((args.type == tpcc::TransactionType::Payment || args.type == tpcc::TransactionType::OrderStatus) &&
-          args.use_c_last && !args.c_last.IsInlined()) {
+      if ((args.type == TransactionType::Payment || args.type == TransactionType::OrderStatus) && args.use_c_last &&
+          !args.c_last.IsInlined()) {
         delete[] args.c_last.Content();
       }
     }
@@ -246,7 +212,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, Basic)(benchmark::State &state) {
     uint64_t num_new_orders = 0;
     for (const auto &worker_txns : precomputed_args) {
       for (const auto &txn : worker_txns) {
-        if (txn.type == tpcc::TransactionType::NewOrder) num_new_orders++;
+        if (txn.type == TransactionType::NewOrder) num_new_orders++;
       }
     }
     state.SetItemsProcessed(state.iterations() * num_new_orders);
@@ -256,4 +222,4 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, Basic)(benchmark::State &state) {
 }
 
 BENCHMARK_REGISTER_F(TPCCBenchmark, Basic)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(10);
-}  // namespace terrier
+}  // namespace terrier::tpcc

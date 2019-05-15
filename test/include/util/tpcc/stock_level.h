@@ -1,15 +1,15 @@
 #pragma once
 
 #include <unordered_map>
-
+#include <vector>
 #include "catalog/catalog_defs.h"
 #include "storage/sql_table.h"
 #include "storage/storage_defs.h"
-#include "tpcc/database.h"
-#include "tpcc/util.h"
-#include "tpcc/worker.h"
-#include "tpcc/workload.h"
 #include "transaction/transaction_manager.h"
+#include "util/tpcc/database.h"
+#include "util/tpcc/util.h"
+#include "util/tpcc/worker.h"
+#include "util/tpcc/workload.h"
 #include "util/transaction_benchmark_util.h"
 
 namespace terrier::tpcc {
@@ -62,9 +62,8 @@ class StockLevel {
             db->stock_primary_index_->GetKeyOidToOffsetMap().at(db->stock_primary_index_schema_.at(1).GetOid()))) {}
 
   // 2.4.2
-  template <class Random>
-  bool Execute(transaction::TransactionManager *const txn_manager, Random *const generator, Database *const db,
-               Worker *const worker, const TransactionArgs &args) const {
+  bool Execute(transaction::TransactionManager *const txn_manager, Database *const db, Worker *const worker,
+               const TransactionArgs &args) const {
     TERRIER_ASSERT(args.type == TransactionType::StockLevel, "Wrong transaction type.");
     // ARGS: W_ID, D_ID, S_QUANTITY_THRESHOLD
 

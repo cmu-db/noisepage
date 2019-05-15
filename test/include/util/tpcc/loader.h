@@ -7,10 +7,10 @@
 #include "storage/index/index.h"
 #include "storage/projected_row.h"
 #include "storage/sql_table.h"
-#include "tpcc/database.h"
-#include "tpcc/util.h"
-#include "tpcc/worker.h"
 #include "transaction/transaction_manager.h"
+#include "util/tpcc/database.h"
+#include "util/tpcc/util.h"
+#include "util/tpcc/worker.h"
 #include "util/transaction_benchmark_util.h"
 
 namespace terrier::tpcc {
@@ -33,6 +33,7 @@ struct Loader {
 
     // Item tuple
     const auto item_tuple_col_oids = Util::AllColOidsForSchema(db->item_schema_);
+    // NOLINTNEXTLINE
     const auto [item_tuple_pr_initializer, item_tuple_pr_map] =
         db->item_table_->InitializerForProjectedRow(item_tuple_col_oids);
 
@@ -42,6 +43,7 @@ struct Loader {
 
     // Warehouse tuple
     const auto warehouse_tuple_col_oids = Util::AllColOidsForSchema(db->warehouse_schema_);
+    // NOLINTNEXTLINE
     const auto [warehouse_tuple_pr_initializer, warehouse_tuple_pr_map] =
         db->warehouse_table_->InitializerForProjectedRow(warehouse_tuple_col_oids);
 
@@ -51,6 +53,7 @@ struct Loader {
 
     // Stock tuple
     const auto stock_tuple_col_oids = Util::AllColOidsForSchema(db->stock_schema_);
+    // NOLINTNEXTLINE
     const auto [stock_tuple_pr_initializer, stock_tuple_pr_map] =
         db->stock_table_->InitializerForProjectedRow(stock_tuple_col_oids);
 
@@ -60,6 +63,7 @@ struct Loader {
 
     // District tuple
     const auto district_tuple_col_oids = Util::AllColOidsForSchema(db->district_schema_);
+    // NOLINTNEXTLINE
     const auto [district_tuple_pr_initializer, district_tuple_pr_map] =
         db->district_table_->InitializerForProjectedRow(district_tuple_col_oids);
 
@@ -69,6 +73,7 @@ struct Loader {
 
     // Customer tuple
     const auto customer_tuple_col_oids = Util::AllColOidsForSchema(db->customer_schema_);
+    // NOLINTNEXTLINE
     const auto [customer_tuple_pr_initializer, customer_tuple_pr_map] =
         db->customer_table_->InitializerForProjectedRow(customer_tuple_col_oids);
 
@@ -82,11 +87,13 @@ struct Loader {
 
     // History tuple
     const auto history_tuple_col_oids = Util::AllColOidsForSchema(db->history_schema_);
+    // NOLINTNEXTLINE
     const auto [history_tuple_pr_initializer, history_tuple_pr_map] =
         db->history_table_->InitializerForProjectedRow(history_tuple_col_oids);
 
     // Order tuple
     const auto order_tuple_col_oids = Util::AllColOidsForSchema(db->order_schema_);
+    // NOLINTNEXTLINE
     const auto [order_tuple_pr_initializer, order_tuple_pr_map] =
         db->order_table_->InitializerForProjectedRow(order_tuple_col_oids);
 
@@ -100,6 +107,7 @@ struct Loader {
 
     // New Order tuple
     const auto new_order_tuple_col_oids = Util::AllColOidsForSchema(db->new_order_schema_);
+    // NOLINTNEXTLINE
     const auto [new_order_tuple_pr_initializer, new_order_tuple_pr_map] =
         db->new_order_table_->InitializerForProjectedRow(new_order_tuple_col_oids);
 
@@ -109,6 +117,7 @@ struct Loader {
 
     // Order Line tuple
     const auto order_line_tuple_col_oids = Util::AllColOidsForSchema(db->order_line_schema_);
+    // NOLINTNEXTLINE
     const auto [order_line_tuple_pr_initializer, order_line_tuple_pr_map] =
         db->order_line_table_->InitializerForProjectedRow(order_line_tuple_col_oids);
 

@@ -8,11 +8,11 @@
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
 #include "storage/storage_defs.h"
-#include "tpcc/database.h"
-#include "tpcc/util.h"
-#include "tpcc/worker.h"
-#include "tpcc/workload.h"
 #include "transaction/transaction_manager.h"
+#include "util/tpcc/database.h"
+#include "util/tpcc/util.h"
+#include "util/tpcc/worker.h"
+#include "util/tpcc/workload.h"
 #include "util/transaction_benchmark_util.h"
 
 /**
@@ -211,9 +211,8 @@ class Payment {
   {}
 
   // 2.4.2
-  template <class Random>
-  bool Execute(transaction::TransactionManager *const txn_manager, Random *const generator, Database *const db,
-               Worker *const worker, const TransactionArgs &args) const {
+  bool Execute(transaction::TransactionManager *const txn_manager, Database *const db, Worker *const worker,
+               const TransactionArgs &args) const {
     TERRIER_ASSERT(args.type == TransactionType::Payment, "Wrong transaction type.");
 
     auto *const txn = txn_manager->BeginTransaction();
