@@ -9,8 +9,6 @@
 
 namespace terrier::storage::index {
 
-static const int WAITING_TIMEOUT_MILLIS = 1000;
-
 Index *IndexManager::GetEmptyIndex(catalog::index_oid_t index_oid, SqlTable *sql_table, bool unique_index,
                                    const std::vector<std::string> &key_attrs) {
   // Setup the oid and constraint type for the index
@@ -99,7 +97,6 @@ catalog::index_oid_t IndexManager::Create(catalog::db_oid_t db_oid, catalog::nam
   // Wait for all transactions older than the timestamp of previous transaction commit
   // TODO(jiaqizuo): use more efficient way to wait for all previous transactions to complete.
   while (txn_mgr->OldestTransactionStartTime() < commit_time) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(WAITING_TIMEOUT_MILLIS));
   }
 
   // Start the second transaction to insert all keys into the index.
@@ -144,7 +141,6 @@ bool IndexManager::Drop(catalog::db_oid_t db_oid, catalog::namespace_oid_t ns_oi
   // Wait for all transactions older than the timestamp of previous transaction commit
   // TODO(xueyuanz): use more efficient way to wait for all previous transactions to complete.
   while (txn_mgr->OldestTransactionStartTime() < commit_time) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(WAITING_TIMEOUT_MILLIS));
   }
   // Now we can safely destruct the index_entry
   Index *index = reinterpret_cast<Index *>(index_entry->GetBigIntColumn("indexptr"));
