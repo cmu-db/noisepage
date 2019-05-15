@@ -49,14 +49,21 @@ class ConnectionHandleFactory {
   }
 
   /**
-   * Tell the factory the pointer of the traffic cop.
-   * Then the factory will put it to every connection handle.
+   * Tell the factory the dependencies of each connection handle.
+   * The current dependencies are: Traffic Cop Pointer, Command Factory Pointer.
+   * Then the factory will put them to every connection handle.
    * @param t_cop the pointer to the traffic cop.
+   * @param command_factory the pointer to the factory
    */
-  void SetTrafficCop(const TrafficCopPtr &t_cop) { traffic_cop_ = t_cop; }
+  void SetConnectionDependencies(const TrafficCopPtr &t_cop, CommandFactory *command_factory)
+  {
+    traffic_cop_ = t_cop;
+    command_factory_ = command_factory;
+  }
 
  private:
   std::unordered_map<int, ConnectionHandle> reusable_handles_;
   TrafficCopPtr traffic_cop_;
+  CommandFactory *command_factory_;
 };
 }  // namespace terrier::network

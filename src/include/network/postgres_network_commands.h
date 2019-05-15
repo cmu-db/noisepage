@@ -76,4 +76,6 @@ DEFINE_COMMAND(SyncCommand, true);
 DEFINE_COMMAND(CloseCommand, true);
 DEFINE_COMMAND(TerminateCommand, true);
 
+DEFINE_COMMAND(EmptyCommand, true);
+
 }  // namespace terrier::network

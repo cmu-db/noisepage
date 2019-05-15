@@ -8,7 +8,7 @@ ConnectionHandle &ConnectionHandleFactory::NewConnectionHandle(int conn_fd, Conn
   auto it = reusable_handles_.find(conn_fd);
   if (it == reusable_handles_.end()) {
     auto ret = reusable_handles_.emplace(std::piecewise_construct, std::forward_as_tuple(conn_fd),
-                                         std::forward_as_tuple(conn_fd, task, traffic_cop_));
+                                         std::forward_as_tuple(conn_fd, task, traffic_cop_, command_factory_));
     TERRIER_ASSERT(ret.second, "ret.second false");
     return ret.first->second;
   }
@@ -18,7 +18,7 @@ ConnectionHandle &ConnectionHandleFactory::NewConnectionHandle(int conn_fd, Conn
   reused_handle.network_event_ = nullptr;
   reused_handle.workpool_event_ = nullptr;
   reused_handle.io_wrapper_->Restart();
-  reused_handle.protocol_interpreter_ = std::make_unique<PostgresProtocolInterpreter>();
+  reused_handle.protocol_interpreter_ = std::make_unique<PostgresProtocolInterpreter>(command_factory_);
   reused_handle.state_machine_ = ConnectionHandle::StateMachine();
   reused_handle.context_.Reset();
   TERRIER_ASSERT(reused_handle.network_event_ == nullptr, "network_event_ != nullptr");

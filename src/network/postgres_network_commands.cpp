@@ -337,4 +337,13 @@ Transition TerminateCommand::Exec(PostgresProtocolInterpreter *interpreter, Post
   NETWORK_LOG_TRACE("Terminated");
   return Transition::TERMINATE;
 }
+
+Transition EmptyCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out, TrafficCopPtr t_cop,
+                              ConnectionContext *connection, NetworkCallback callback) {
+  NETWORK_LOG_TRACE("Empty Command");
+  out->WriteEmptyQueryResponse();
+  out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
+  return Transition::PROCEED;
+
+}
 }  // namespace terrier::network

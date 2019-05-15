@@ -19,11 +19,24 @@
 
 namespace terrier::network {
 
+/*
+ * The network tests does not check whether the result is correct. It only checks if the network layer works.
+ * So, in network tests, we use a fake command factory to return empty results for every query.
+ */
+class FakeCommandFactory : public CommandFactory
+{
+  std::shared_ptr<PostgresNetworkCommand> PacketToCommand(PostgresInputPacket *packet) override {
+    return std::static_pointer_cast<PostgresNetworkCommand, EmptyCommand>(std::make_shared<EmptyCommand>(packet));
+  }
+};
+
 class NetworkTests : public TerrierTest {
  protected:
   TerrierServer server;
   uint16_t port = common::Settings::SERVER_PORT;
   std::thread server_thread;
+  TrafficCopPtr t_cop;
+  FakeCommandFactory fake_command_factory;
 
   /**
    * Initialization
@@ -31,7 +44,7 @@ class NetworkTests : public TerrierTest {
   void SetUp() override {
     TerrierTest::SetUp();
 
-    network_logger->set_level(spdlog::level::debug);
+    network_logger->set_level(spdlog::level::trace);
     spdlog::flush_every(std::chrono::seconds(1));
 
     try {
@@ -43,8 +56,8 @@ class NetworkTests : public TerrierTest {
     }
 
     // Setup Traffic Cop
-    std::shared_ptr<traffic_cop::TrafficCop> t_cop(new traffic_cop::TrafficCop());
-    ConnectionHandleFactory::GetInstance().SetTrafficCop(t_cop);
+    t_cop = std::make_shared<traffic_cop::TrafficCop>();
+    ConnectionHandleFactory::GetInstance().SetConnectionDependencies(t_cop, &fake_command_factory);
 
     TEST_LOG_DEBUG("Server initialized");
     server_thread = std::thread([&]() { server.ServerLoop(); });
@@ -141,12 +154,12 @@ void TestExtendedQuery(uint16_t port) {
   auto type_oid = static_cast<int>(PostgresValueType::INTEGER);
   writer.WriteParseCommand(stmt_name, query, std::vector<int>(4, type_oid));
   io_socket->FlushAllWrites();
-  EXPECT_TRUE(ReadUntilMessageOrClose(io_socket, NetworkMessageType::PARSE_COMPLETE));
+  EXPECT_TRUE(ReadUntilReadyOrClose(io_socket));
 
   std::string portal_name;
   writer.WriteBindCommand(portal_name, stmt_name, {}, {}, {});
   io_socket->FlushAllWrites();
-  EXPECT_TRUE(ReadUntilMessageOrClose(io_socket, NetworkMessageType::BIND_COMPLETE));
+  EXPECT_TRUE(ReadUntilReadyOrClose(io_socket));
 
   writer.WriteExecuteCommand(portal_name, 0);
   io_socket->FlushAllWrites();

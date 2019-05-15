@@ -23,6 +23,7 @@
 
 #include "network/connection_context.h"
 #include "network/connection_handler_task.h"
+#include "network/command_factory.h"
 #include "network/network_io_wrapper.h"
 #include "network/network_types.h"
 #include "network/postgres_protocol_interpreter.h"
@@ -45,7 +46,7 @@ class ConnectionHandle {
    * @param handler The handler responsible for this handle
    * @param t_cop The pointer to the traffic cop
    */
-  ConnectionHandle(int sock_fd, ConnectionHandlerTask *handler, TrafficCopPtr t_cop);
+  ConnectionHandle(int sock_fd, ConnectionHandlerTask *handler, TrafficCopPtr t_cop, CommandFactory* command_factory);
 
   ~ConnectionHandle() { context_.Reset(); }
 

@@ -50,7 +50,7 @@ int main() {
 
   terrier::network::TerrierServer terrier_server;
   terrier::network::TrafficCopPtr t_cop(new terrier::traffic_cop::TrafficCop());
-  terrier::network::ConnectionHandleFactory::GetInstance().SetTrafficCop(t_cop);
+  terrier::network::ConnectionHandleFactory::GetInstance().SetConnectionDependencies(t_cop);
   terrier_server.SetPort(terrier::common::Settings::SERVER_PORT);
   terrier_server.SetupServer().ServerLoop();
 
