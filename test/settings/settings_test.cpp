@@ -133,7 +133,7 @@ TEST_F(SettingsTests, BasicTest) {
   settings_manager_->SetBool(Param::parallel_execution, false, action_context, setter_callback);
   EXPECT_FALSE(settings_manager_->GetBool(Param::parallel_execution));
 
-  std::string_view name = settings_manager_->GetString(Param::db_name);
+  std::string name = settings_manager_->GetString(Param::db_name);
   EXPECT_EQ("Terrier", name);
   settings_manager_->SetString(Param::db_name, "TerrierSP", action_context, setter_callback);
   EXPECT_EQ("TerrierSP", settings_manager_->GetString(Param::db_name));
