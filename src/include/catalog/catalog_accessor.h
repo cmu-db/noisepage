@@ -96,14 +96,14 @@ class CatalogAccessor {
    * @param name of the database
    * @return OID for the database, INVALID_DATABASE_OID if the database does not exist
    */
-  db_oid_t GetDatabaseOid(std::string name);
+  db_oid_t GetDatabaseOid(const std::string &name);
 
   /**
    * Given a database name, create a new database entry in the catalog and assign it an OID
    * @param name of the new database
    * @return OID for the database, INVALID_DATABASE_OID if the database already exists
    */
-  db_oid_t CreateDatabase(std::string name);
+  db_oid_t CreateDatabase(const std::string &name);
 
   /**
    * Drop all entries in the catalog that belong to the database, including the database entry
@@ -131,14 +131,14 @@ class CatalogAccessor {
    * @param name of the namespace
    * @return OID of the namespace, INVALID_NAMESPACE_OID if the namespace was not found
    */
-  namespace_oid_t GetNamespaceOid(std::string name);
+  namespace_oid_t GetNamespaceOid(const std::string &name);
 
   /**
    * Given a namespace name, resolve it to the corresponding OID
    * @param name of the namespace
    * @return OID of the namespace, INVALID_NAMESPACE_OID if the namespace was not found
    */
-  namespace_oid_t CreateNamespace(std::string name);
+  namespace_oid_t CreateNamespace(const std::string &name);
 
   /**
    * Drop all entries in the catalog that belong to the namespace, including the namespace entry
@@ -159,7 +159,7 @@ class CatalogAccessor {
    * @param name of the table
    * @return OID of the table, INVALID_TABLE_OID if the table was not found
    */
-  table_oid_t GetTableOid(std::string name);
+  table_oid_t GetTableOid(const std::string &name);
 
   /**
    * Given a table name and its owning namespace, resolve it to the corresponding OID
@@ -167,7 +167,7 @@ class CatalogAccessor {
    * @param name of the table
    * @return OID of the table, INVALID_TABLE_OID if the table was not found
    */
-  table_oid_t GetTableOid(namespace_oid_t ns, std::string name);
+  table_oid_t GetTableOid(namespace_oid_t ns, const std::string &name);
 
   /**
    * Given a table name, create a new table entry in the catalog and assign it an OID. This
@@ -177,7 +177,7 @@ class CatalogAccessor {
    * @param columns is the vector of definitions for the columns
    * @return OID for the table, INVALID_TABLE_OID if the table already exists
    */
-  table_oid_t CreateTable(namespace_oid_t ns, std::string table_name, std::vector<ColumnDefinition> columns);
+  table_oid_t CreateTable(namespace_oid_t ns, const std::string &table_name, std::vector<ColumnDefinition> columns);
 
   /**
    * Rename the table from its current string to the new one.  The renaming could fail
@@ -189,7 +189,7 @@ class CatalogAccessor {
    *
    * @note This operation will write-lock the table entry until the transaction closes.
    */
-  bool RenameTable(table_oid_t table, std::string new_table_name);
+  bool RenameTable(table_oid_t table, const std::string &new_table_name);
 
   /**
    * Drop the table and all corresponding indices from the catalog.
@@ -276,7 +276,7 @@ class CatalogAccessor {
    *
    * @note This operation will write-lock the column entry until the transaction closes.
    */
-  bool RenameColumn(table_oid_t table, col_oid_t column, std::string new_column_name);
+  bool RenameColumn(table_oid_t table, col_oid_t column, const std::string &new_column_name);
   // bool SetColumnDefaultValue(table_oid_t table, col_oid_t column, DefaultValue default);
 
   /**
@@ -289,7 +289,7 @@ class CatalogAccessor {
    * @param name of the index
    * @return OID of the index, INVALID_INDEX_OID if the index was not found
    */
-  index_oid_t GetIndexOid(std::string name);
+  index_oid_t GetIndexOid(const std::string &name);
 
   /**
    * Given an index name and the owning namespace, resolve it to the corresponding OID
@@ -297,7 +297,7 @@ class CatalogAccessor {
    * @param name of the index
    * @return OID of the index, INVALID_INDEX_OID if the index was not found
    */
-  index_oid_t GetIndexOid(namespace_oid_t ns, std::string name);
+  index_oid_t GetIndexOid(namespace_oid_t ns, const std::string &name);
 
   /**
    * Given a table, find all indexes for data in that table

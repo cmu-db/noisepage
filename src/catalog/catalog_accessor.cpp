@@ -1,6 +1,7 @@
 #include "catalog/catalog_accessor.h"
 
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "catalog/catalog.h"
@@ -8,13 +9,13 @@
 
 namespace terrier::catalog {
 
-db_oid_t CatalogAccessor::GetDatabaseOid(std::string name) {
+db_oid_t CatalogAccessor::GetDatabaseOid(const std::string &name) {
   // TODO(John):  Implement a function to lookup OIDs by name in the catalog
   TERRIER_ASSERT(true, "This function is not implemented yet");
   return INVALID_DATABASE_OID;
 }
 
-db_oid_t CatalogAccessor::CreateDatabase(std::string name) {
+db_oid_t CatalogAccessor::CreateDatabase(const std::string &name) {
   db_oid_t db_oid = GetDatabaseOid(name);
 
   // Check to see if the database exists since the catalog doesn't
@@ -30,15 +31,15 @@ bool CatalogAccessor::DropDatabase(db_oid_t db) {
 }
 
 // TODO(John): Should this function do some sanity checks on the OIDs passed?
-void CatalogAccessor::SetSearchPath(std::vector<namespace_oid_t> namespaces) { search_path_ = namespaces; }
+void CatalogAccessor::SetSearchPath(std::vector<namespace_oid_t> namespaces) { search_path_ = std::move(namespaces); }
 
-namespace_oid_t CatalogAccessor::GetNamespaceOid(std::string name) {
+namespace_oid_t CatalogAccessor::GetNamespaceOid(const std::string &name) {
   // TODO(John): Implement a function to lookup OIDs by name in the catalog
   TERRIER_ASSERT(true, "This function is not implemented yet");
   return INVALID_NAMESPACE_OID;
 }
 
-namespace_oid_t CatalogAccessor::CreateNamespace(std::string name) {
+namespace_oid_t CatalogAccessor::CreateNamespace(const std::string &name) {
   return catalog_->CreateNameSpace(txn_, db_, name);
 }
 
@@ -49,7 +50,7 @@ bool CatalogAccessor::DropNamespace(namespace_oid_t ns) {
   return true;
 }
 
-table_oid_t CatalogAccessor::GetTableOid(std::string name) {
+table_oid_t CatalogAccessor::GetTableOid(const std::string &name) {
   SqlTableHelper *wrapper;
 
   // Search the namespaces in the order specified by our search path
@@ -64,7 +65,7 @@ table_oid_t CatalogAccessor::GetTableOid(std::string name) {
   return INVALID_TABLE_OID;
 }
 
-table_oid_t CatalogAccessor::GetTableOid(namespace_oid_t ns, std::string name) {
+table_oid_t CatalogAccessor::GetTableOid(namespace_oid_t ns, const std::string &name) {
   // Search the specified namespace for the table
   SqlTableHelper *wrapper = catalog_->GetUserTable(txn_, db_, ns, name);
 
@@ -72,13 +73,13 @@ table_oid_t CatalogAccessor::GetTableOid(namespace_oid_t ns, std::string name) {
   return (wrapper != nullptr) ? wrapper->Oid() : INVALID_TABLE_OID;
 }
 
-table_oid_t CatalogAccessor::CreateTable(namespace_oid_t ns, std::string table_name,
+table_oid_t CatalogAccessor::CreateTable(namespace_oid_t ns, const std::string &table_name,
                                          std::vector<ColumnDefinition> columns) {
   std::vector<Schema::Column> catalogColumns;
   catalogColumns.reserve(columns.size());
 
   // Loop through the column definitions and create Schema::Columns by assigning OIDs
-  for (auto colDef : columns) {
+  for (auto const &colDef : columns) {
     // Case off of VARLEN_COLUMN since there exist two different constructors
     if (type::TypeUtil::GetTypeSize(colDef.GetType()) == VARLEN_COLUMN)
       catalogColumns.emplace_back(colDef.GetName(), colDef.GetType(), colDef.GetMaxVarlenSize(), colDef.IsNullable(),
@@ -93,7 +94,7 @@ table_oid_t CatalogAccessor::CreateTable(namespace_oid_t ns, std::string table_n
   return catalog_->CreateUserTable(txn_, db_, ns, table_name, schema);
 }
 
-bool CatalogAccessor::RenameTable(table_oid_t table, std::string new_table_name) {
+bool CatalogAccessor::RenameTable(table_oid_t table, const std::string &new_table_name) {
   // Since the name will be indexed, we'll need to do a delete and insert.
   // However, since the catalog does not expose an insert function where the
   // caller provides the OID, we'll need to manually execute the transaction on
@@ -141,7 +142,7 @@ std::vector<col_oid_t> CatalogAccessor::AddColumns(table_oid_t table, std::vecto
 
   std::vector<Schema::Column> catalog_columns;
   // Loop through the column definitions and create Schema::Columns by assigning OIDs
-  for (auto colDef : columns) {
+  for (auto const &colDef : columns) {
     // Case off of VARLEN_COLUMN since there exist two different constructors
     if (type::TypeUtil::GetTypeSize(colDef.GetType()) == VARLEN_COLUMN)
       catalog_columns.emplace_back(colDef.GetName(), colDef.GetType(), colDef.GetMaxVarlenSize(), colDef.IsNullable(),
@@ -184,7 +185,7 @@ bool CatalogAccessor::SetColumnNullable(table_oid_t table, col_oid_t column, boo
   return false;
 }
 
-bool CatalogAccessor::RenameColumn(table_oid_t table, col_oid_t column, std::string new_column_name) {
+bool CatalogAccessor::RenameColumn(table_oid_t table, col_oid_t column, const std::string &new_column_name) {
   // TODO(John):  Find the row in pg_attribute and update the name to the new name.  This will likely
   // need to be a delete and insert since the 'attname' column should be indexed.
   TERRIER_ASSERT(true, "This function is not implemented yet");
@@ -208,14 +209,14 @@ const Schema &CatalogAccessor::GetSchema(table_oid_t table) {
   return *schema;
 }
 
-index_oid_t GetIndexOid(std::string name) {
+index_oid_t GetIndexOid(const std::string &name) {
   // TODO(John): Implement this similar to GetTable
   // Blocked on the catalog supporting indexes
   TERRIER_ASSERT(true, "This function is not implemented yet");
   return INVALID_INDEX_OID;
 }
 
-index_oid_t GetIndexOid(namespace_oid_t ns, std::string name) {
+index_oid_t GetIndexOid(namespace_oid_t ns, const std::string &name) {
   // TODO(John): Implement this similar to GetTable
   // Blocked on the catalog supporting indexes
   TERRIER_ASSERT(true, "This function is not implemented yet");
