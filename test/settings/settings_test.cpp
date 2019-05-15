@@ -207,11 +207,11 @@ TEST_F(SettingsTests, ConcurrentModifyTest2) {
         i + 1000);
   }
 
-  for (int i = 0; i < nthreads; i++) {
-    threads[i].join();
+  for (auto &thread : threads) {
+    thread.join();
   }
 
-  uint64_t bufferPoolSizeParam = static_cast<uint64_t>(settings_manager_->GetInt(Param::buffer_pool_size));
+  auto bufferPoolSizeParam = static_cast<uint64_t>(settings_manager_->GetInt(Param::buffer_pool_size));
   uint64_t bufferPoolSize = txn_manager_->GetBufferPoolSizeLimit();
   EXPECT_EQ(bufferPoolSizeParam, bufferPoolSize);
 }
