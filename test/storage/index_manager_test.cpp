@@ -113,7 +113,7 @@ struct IndexManagerTest : public TerrierTest {
   storage::GarbageCollector *gc_ = nullptr;
   volatile bool run_gc_ = false;
   const std::chrono::milliseconds gc_period_{10};
-  const int thread_num_ = 200;
+  const int thread_num_ = 20;
 
   void GCThreadLoop() {
     while (run_gc_) {
