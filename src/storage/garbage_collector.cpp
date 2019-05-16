@@ -18,9 +18,7 @@ namespace terrier::storage {
 
 std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
   // Create the UndoBuffer for this GC run
-  delta_record_compaction_buffer_ = new UndoBuffer(txn_manager_->buffer_pool_);
-  // The compaction buffer is empty
-  compaction_buffer_empty_ = true;
+  delta_record_compaction_buffer_ = new UndoBuffer(txn_manager_->GetBufferPool());
 
   ProcessDeferredActions();
   uint32_t txns_deallocated = ProcessDeallocateQueue();
@@ -33,8 +31,10 @@ std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
   STORAGE_LOG_TRACE("GarbageCollector::PerformGarbageCollection(): last_unlinked_: {}",
                     static_cast<uint64_t>(last_unlinked_));
 
-  // Handover compacted buffer for GC
-  if (compaction_buffer_empty_) {
+  // The compaction buffer will contain compacted undo records created during the last run of Interval GC above.
+  // Handover the buffer containing compacted undo records to the GC.
+  // The GC will take care of deallocating the compacted undo records contained in the buffer and the buffer itself.
+  if (delta_record_compaction_buffer_->Empty()) {
     // Can directly deallocate compaction buffer as it is empty
     delete delta_record_compaction_buffer_;
   } else {
@@ -454,9 +454,6 @@ UndoRecord *GarbageCollector::InitializeUndoRecord(const transaction::timestamp_
   byte *head = delta_record_compaction_buffer_->NewEntry(size);
 
   TERRIER_ASSERT(head != nullptr, "Delta Record Compaction Buffer should not fail to provide memory");
-
-  // Undo record was empty, so mark the buffer as not empty
-  compaction_buffer_empty_ = false;
 
   // Initialize UndoRecord with the projected row
   auto *result = reinterpret_cast<UndoRecord *>(head);

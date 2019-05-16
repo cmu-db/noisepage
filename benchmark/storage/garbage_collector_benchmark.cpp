@@ -126,11 +126,9 @@ BENCHMARK_DEFINE_F(GarbageCollectorBenchmark, ReclaimTime)(benchmark::State &sta
   state.SetItemsProcessed(state.iterations() * num_txns);
 }
 
-/**
- * Run a large number of updates on a small table to generate contention with the GC. Measure the number of transactions
- * that the GC managed to free during the workload by subtracting the number of "lagging" transactions that still
- * remained to be cleaned up by the GC after the workload was done running.
- */
+// Run a large number of updates on a small table to generate contention with the GC. Measure the number of transactions
+// that the GC managed to free during the workload by subtracting the number of "lagging" transactions that still
+// remained to be cleaned up by the GC after the workload was done running.
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(GarbageCollectorBenchmark, HighContention)(benchmark::State &state) {
   uint64_t lag_count = 0;
@@ -150,12 +148,10 @@ BENCHMARK_DEFINE_F(GarbageCollectorBenchmark, HighContention)(benchmark::State &
   state.SetItemsProcessed(state.iterations() * num_txns - lag_count);
 }
 
-/**
- * Run a large number of updates on a table to generate long version chains. Measures the overhead of garbage collection
- * in long version chains.
- * Measure the number of transactions that the GC managed to free during the workload by subtracting the number of
- * "lagging" transactions that still remained to be cleaned up by the GC after the workload was done running.
- */
+// Run a large number of updates on a table to generate long version chains. Measures the overhead of garbage collection
+// in long version chains.
+// Measure the number of transactions that the GC managed to free during the workload by subtracting the number of
+// "lagging" transactions that still remained to be cleaned up by the GC after the workload was done running.
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(GarbageCollectorBenchmark, LongRunningOLAP)(benchmark::State &state) {
   uint64_t lag_count = 0;
