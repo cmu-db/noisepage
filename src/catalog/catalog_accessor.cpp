@@ -21,7 +21,7 @@ db_oid_t CatalogAccessor::GetDatabaseOid(const std::string &name) {
 
 db_oid_t CatalogAccessor::CreateDatabase(const std::string &name) {
   // Check to see if the database exists since the catalog doesn't
-  db_oid_t db_oid = GetDatabaseOid(name);
+  db_oid_t db_oid = catalog_->GetDatabaseOid(name);
   if (db_oid != INVALID_DATABASE_OID) return INVALID_DATABASE_OID;
 
   // Safe to call create
@@ -34,7 +34,7 @@ bool CatalogAccessor::DropDatabase(db_oid_t db) { return catalog_->DeleteDatabas
 void CatalogAccessor::SetSearchPath(std::vector<namespace_oid_t> namespaces) { search_path_ = std::move(namespaces); }
 
 namespace_oid_t CatalogAccessor::GetNamespaceOid(const std::string &name) {
-  auto db_handle = GetDatabaseHandle();
+  auto db_handle = catalog_->GetDatabaseHandle();
   auto ns_handle = db_handle.GetNamespaceTable(txn_, db_);
   auto ns_entry = ns_handle.GetNamespaceEntry(txn_, name);
 
