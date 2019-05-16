@@ -91,7 +91,7 @@ table_oid_t CatalogAccessor::CreateTable(namespace_oid_t ns, const std::string &
 
   // Create the Schema object
   Schema schema(catalogColumns);
-  return catalog_->CreateUserTable(txn_, db_, ns, table_name, schema);
+  return catalog_->CreateUserTable(txn_, db_, ns, name, schema);
 }
 
 bool CatalogAccessor::RenameTable(table_oid_t table, const std::string &new_table_name) {
