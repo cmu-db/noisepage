@@ -41,6 +41,8 @@ class CompilationContext {
   OperatorTranslator *GetTranslator(const terrier::planner::AbstractPlanNode &op) const;
   ExpressionTranslator *GetTranslator(const terrier::parser::AbstractExpression &ex) const;
 
+  Query *GetQuery() { return query_; }
+
  private:
   Query *query_;
   ExecutionConsumer *consumer_;

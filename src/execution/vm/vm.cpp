@@ -1007,6 +1007,17 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
   }
 
   // -------------------------------------------------------
+  // Inserts
+  // -------------------------------------------------------
+  OP(Insert) : {
+    auto db_id = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
+    auto table_id = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
+    auto values = frame->LocalAt<uintptr_t>(READ_LOCAL_ID());
+    OpInsert(db_id, table_id, values);
+    DISPATCH_NEXT();
+  }
+
+  // -------------------------------------------------------
   // Index Iterator
   // -------------------------------------------------------
   OP(IndexIteratorInit) : {

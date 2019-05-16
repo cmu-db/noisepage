@@ -843,6 +843,15 @@ void BytecodeGenerator::VisitBuiltinOutputCall(ast::CallExpr *call,
   }
 }
 
+void BytecodeGenerator::VisitBuiltinInsertCall(ast::CallExpr *call,
+                                               ast::Builtin builtin) {
+  auto args = call->arguments();
+  LocalVar db_id = VisitExpressionForRValue(args[0]);
+  LocalVar table_id = VisitExpressionForRValue(args[1]);
+  LocalVar values = VisitExpressionForRValue(args[2]);
+  emitter()->EmitInsert(Bytecode::Insert, db_id, table_id, values);
+}
+
 void BytecodeGenerator::VisitBuiltinIndexIteratorCall(ast::CallExpr *call,
                                                       ast::Builtin builtin) {
   exec::ExecutionContext *exec_context = exec_context_.get();
@@ -971,6 +980,9 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::OutputFinalize:
     case ast::Builtin::OutputSetNull:
       VisitBuiltinOutputCall(call, builtin);
+      break;
+    case ast::Builtin::Insert:
+      VisitBuiltinInsertCall(call, builtin);
       break;
     case ast::Builtin::IndexIteratorInit:
     case ast::Builtin::IndexIteratorScanKey:

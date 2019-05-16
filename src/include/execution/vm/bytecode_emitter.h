@@ -123,6 +123,11 @@ class BytecodeEmitter {
   void EmitIndexIteratorGet(Bytecode bytecode, LocalVar out, LocalVar iter,
                             u32 col_idx);
 
+  // --------------------------------------------
+  // Insert calls
+  // --------------------------------------------
+  void EmitInsert(Bytecode bytecode, LocalVar db_oid, LocalVar table_oid, LocalVar ptr);
+
  private:
   // Copy a scalar immediate value into the bytecode stream
   template <typename T>

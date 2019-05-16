@@ -179,6 +179,15 @@ void OpOutputFinalize(uintptr_t context_ptr) {
   exec_context->GetOutputBuffer()->Finalize();
 }
 
+// -------------------------------------------------------------
+// Insert
+// ------------------------------------------------------------
+void OpInsert(u32 db_oid, u32 table_oid, uintptr_t values_ptr) {
+  (void)values_ptr;
+  std::cout << "Inserting! " << std::to_string(db_oid) << " "
+  << std::to_string(table_oid) << "\n";
+}
+
 // -------------------------------------------------------------------
 // Index Iterator
 // -------------------------------------------------------------------

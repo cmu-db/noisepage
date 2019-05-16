@@ -63,7 +63,10 @@ namespace tpl::ast {
   /* Index */                                   \
   F(IndexIteratorInit, indexIteratorInit)       \
   F(IndexIteratorScanKey, indexIteratorScanKey) \
-  F(IndexIteratorFree, indexIteratorFree)
+  F(IndexIteratorFree, indexIteratorFree)       \
+                                                \
+  /* Insert */                                  \
+  F(Insert, insert)                             \
 
 enum class Builtin : u8 {
 #define ENTRY(Name, ...) Name,

@@ -643,6 +643,17 @@ void Sema::CheckBuiltinOutputFinalize(tpl::ast::CallExpr *call) {
   call->set_type(ast::BuiltinType::Get(context(), ast::BuiltinType::Nil));
 }
 
+void Sema::CheckBuiltinInsert(tpl::ast::CallExpr *call) {
+  if (call->num_args() != 3) {
+    error_reporter()->Report(call->position(),
+                             ErrorMessages::kMismatchedCallArgs,
+                             call->GetFuncName(), 3, call->num_args());
+  }
+  // Return nothing
+  call->set_type(ast::BuiltinType::Get(context(), ast::BuiltinType::Nil));
+}
+
+
 void Sema::CheckBuiltinOutputSetNull(tpl::ast::CallExpr *call) {
   if (call->num_args() != 1) {
     error_reporter()->Report(call->position(),
@@ -830,6 +841,10 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call, ast::Builtin builtin) {
     }
     case ast::Builtin::OutputFinalize: {
       CheckBuiltinOutputFinalize(call);
+      break;
+    }
+    case ast::Builtin::Insert: {
+      CheckBuiltinInsert(call);
       break;
     }
     case ast::Builtin::IndexIteratorInit: {

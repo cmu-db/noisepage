@@ -316,6 +316,11 @@ void BytecodeEmitter::EmitOutputSetNull(Bytecode bytecode, uintptr_t ptr,
   EmitAll(bytecode, ptr, idx);
 }
 
+void BytecodeEmitter::EmitInsert(Bytecode bytecode, LocalVar db_oid,
+                                 LocalVar table_oid, LocalVar ptr) {
+  EmitAll(bytecode, db_oid, table_oid, ptr);
+}
+
 void BytecodeEmitter::EmitIndexIteratorInit(Bytecode bytecode, LocalVar iter,
                                             uint32_t index_oid, uintptr_t ptr) {
   EmitAll(bytecode, iter, index_oid, ptr);

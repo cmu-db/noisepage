@@ -194,6 +194,8 @@ namespace tpl::vm {
   F(OutputFinalize, OperandType::Imm8)   \
   F(OutputSetNull, OperandType::Imm8, OperandType::Local)  \
   \
+  /* Insert */\
+  F(Insert, OperandType::UImm4, OperandType::UImm4, OperandType::Local) \
   /* Index Iterator */\
   F(IndexIteratorInit, OperandType::Local, OperandType::UImm4, OperandType::Imm8)\
   F(IndexIteratorScanKey, OperandType::Local, OperandType::Local)\
