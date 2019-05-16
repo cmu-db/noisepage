@@ -24,9 +24,11 @@ struct ConnectionContext {
   std::unordered_map<std::string, traffic_cop::Portal> portals;
 
   /**
-   * Cleans up this ConnectionContext
+   * Cleans up this ConnectionContext.
+   * This is called when its connection handle is reused to occupy another connection or destroyed.
    */
   void Reset() {
+    // Cleans up all the sqlite statements in this connection
     for (auto pair : statements) pair.second.Finalize();
 
     statements.clear();
