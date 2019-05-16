@@ -17,6 +17,7 @@ pipeline {
                         sh 'echo y | ./script/installation/packages.sh'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON .. && make gflags_ep -j 4 && make googletest_ep -j 4 && make gbenchmark_ep -j 4 && make -j4'
+                        sh 'cd build && make check-clang-tidy -j4'
                         sh 'cd build && make unittest -j4'
                     }
                 }
@@ -32,6 +33,7 @@ pipeline {
                         sh 'echo y | sudo ./script/installation/packages.sh'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON .. && make gflags_ep -j 4 && make googletest_ep -j 4 && make gbenchmark_ep -j 4 && make -j4'
+                        sh 'cd build && make check-clang-tidy -j4'
                         sh 'cd build && make unittest -j4'
                     }
                 }
