@@ -10,7 +10,6 @@
 #include "loggers/storage_logger.h"
 #include "loggers/test_logger.h"
 #include "loggers/transaction_logger.h"
-#include "loggers/type_logger.h"
 
 namespace terrier {
 
