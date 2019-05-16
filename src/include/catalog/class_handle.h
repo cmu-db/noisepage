@@ -101,19 +101,20 @@ class ClassCatalogTable {
                                 const std::string &name);
 
   /**
-   * Delete a entry from the class table
-   * @param txn transaction
-   * @param ns_oid namespace oid of entry to delete
-   * @param col_oid column oid of entry to delete
-   * @return true on success
-   */
-  bool DeleteEntry(transaction::TransactionContext *txn, namespace_oid_t ns_oid, col_oid_t col_oid);
-
-  /**
    * Delete an entry in ClassHandle
+   * @param txn transaction
+   * @param entry to be deleted from the class table
    * @return true on success
    */
   bool DeleteEntry(transaction::TransactionContext *txn, const std::shared_ptr<ClassCatalogEntry> &entry);
+
+  /**
+   * Delete a entry from the class table
+   * @param txn transaction
+   * @param col_oid column oid of entry to delete
+   * @return true on success
+   */
+  bool DeleteEntry(transaction::TransactionContext *txn, col_oid_t col_oid);
 
   /**
    * Debug methods

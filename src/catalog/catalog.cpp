@@ -112,17 +112,16 @@ table_oid_t Catalog::CreateUserTable(transaction::TransactionContext *txn, db_oi
   return tbl_rw->Oid();
 }
 
-void Catalog::DeleteUserTable(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid,
+bool Catalog::DeleteUserTable(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid,
                               const std::string &table_name) {
   // convert table name to table_oid
   auto user_tbl_p = GetUserTable(txn, db_oid, ns_oid, table_name);
   auto user_tbl_oid = user_tbl_p->Oid();
 
-  DeleteUserTable(txn, db_oid, ns_oid, user_tbl_oid);
+  return DeleteUserTable(txn, db_oid, user_tbl_oid);
 }
 
-void Catalog::DeleteUserTable(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid,
-                              table_oid_t tbl_oid) {
+bool Catalog::DeleteUserTable(transaction::TransactionContext *txn, db_oid_t db_oid, table_oid_t tbl_oid) {
   auto db_handle = GetDatabaseHandle();
   auto attr_handle = db_handle.GetAttributeTable(txn, db_oid);
   auto attrdef_handle = db_handle.GetAttrDefTable(txn, db_oid);
@@ -136,7 +135,7 @@ void Catalog::DeleteUserTable(transaction::TransactionContext *txn, db_oid_t db_
 
   // delete from pg_class
   auto col_oid = col_oid_t(!tbl_oid);
-  class_handle.DeleteEntry(txn, ns_oid, col_oid);
+  return class_handle.DeleteEntry(txn, col_oid);
 }
 
 DatabaseCatalogTable Catalog::GetDatabaseHandle() { return DatabaseCatalogTable(this, pg_database_); }

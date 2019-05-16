@@ -163,19 +163,19 @@ class Catalog {
    * @param db_oid database oid
    * @param ns_oid namespace oid
    * @param table_name
+   * @return true when entry deleted
    */
-  void DeleteUserTable(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid,
+  bool DeleteUserTable(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid,
                        const std::string &table_name);
 
   /**
    * Delete a user table, by oid
    * @param txn transaction
    * @param db_oid database oid
-   * @param ns_oid namespace oid
    * @param tbl_oid table oid
+   * @return true when entry deleted
    */
-  void DeleteUserTable(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid,
-                       table_oid_t tbl_oid);
+  bool DeleteUserTable(transaction::TransactionContext *txn, db_oid_t db_oid, table_oid_t tbl_oid);
 
   /**
    * Return a database handle.

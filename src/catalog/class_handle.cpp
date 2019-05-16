@@ -95,21 +95,14 @@ bool ClassCatalogTable::DeleteEntry(transaction::TransactionContext *txn,
   return status;
 }
 
-bool ClassCatalogTable::DeleteEntry(transaction::TransactionContext *txn, namespace_oid_t ns_oid, col_oid_t col_oid) {
+bool ClassCatalogTable::DeleteEntry(transaction::TransactionContext *txn, col_oid_t col_oid) {
   // find the entry
   auto class_entry = GetClassEntry(txn, col_oid);
   if (class_entry == nullptr) {
     return false;
   }
-  // verify namespace_oid matches
-  uint32_t found_ns_oid = class_entry->GetIntegerColumn("relnamespace");
-  if (found_ns_oid != !ns_oid) {
-    CATALOG_LOG_ERROR("Error deleting class entry, found ns oid {} != entry ns oid {}", found_ns_oid, !ns_oid);
-    TERRIER_ASSERT(found_ns_oid == !ns_oid, "non-matching namespace oid");
-  }
-  DeleteEntry(txn, class_entry);
 
-  return true;
+  return DeleteEntry(txn, class_entry);
 }
 
 SqlTableHelper *ClassCatalogTable::Create(transaction::TransactionContext *txn, Catalog *catalog, db_oid_t db_oid,

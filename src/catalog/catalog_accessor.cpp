@@ -110,14 +110,7 @@ bool CatalogAccessor::RenameTable(table_oid_t table, const std::string &new_tabl
   return false;
 }
 
-bool CatalogAccessor::DropTable(table_oid_t table) {
-  // Need to find the corresponding namespace for this table OID in order
-  // to call the catalog's delete function.
-
-  // TODO(John): Implement this via the description above.
-  TERRIER_ASSERT(true, "This function is not implemented yet");
-  return false;
-}
+bool CatalogAccessor::DropTable(table_oid_t table) { return catalog_->DeleteUserTable(txn_, db_, table); }
 
 bool CatalogAccessor::SetTablePointer(table_oid_t table, storage::SqlTable *table_ptr) {
   // TODO(John): Implementing this function is blocked on #380.
@@ -129,12 +122,17 @@ bool CatalogAccessor::SetTablePointer(table_oid_t table, storage::SqlTable *tabl
 }
 
 storage::SqlTable *CatalogAccessor::GetTable(table_oid_t table) {
-  // Need to find the corresponding namespace for this table OID in order
-  // to call the catalog's 'GetUserTable' function.
+  auto db_handle = catalog_->GetDatabaseHandle();
+  auto class_handle = db_handle.GetClassTable(txn_, db_);
 
-  // TODO(John): Implement this via the description above.
-  TERRIER_ASSERT(true, "This function is not implemented yet");
-  return nullptr;
+  // pg_class expects the OID as a 'col_oid_t' so we need to strip the
+  // 'table_oid_t' we have to a basic integer and reconstruct it as a column OID
+  auto class_entry = class_handle.GetClassEntry(txn_, col_oid_t(!table));
+
+  // Return a nullptr if needed, before dereferencing the helper pointer.
+  if (class_entry == nullptr) return nullptr;
+
+  return &*(class_entry->GetPtr()->GetSqlTable());
 }
 
 std::vector<col_oid_t> CatalogAccessor::AddColumns(table_oid_t table, std::vector<ColumnDefinition> columns) {
