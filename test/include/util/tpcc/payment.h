@@ -224,7 +224,7 @@ class Payment {
     *reinterpret_cast<int8_t *>(warehouse_key->AccessForceNotNull(0)) = args.w_id;
 
     std::vector<storage::TupleSlot> index_scan_results;
-    db->warehouse_primary_index_->ScanKey(*warehouse_key, &index_scan_results);
+    db->warehouse_primary_index_->ScanKey(*txn, *warehouse_key, &index_scan_results);
     TERRIER_ASSERT(index_scan_results.size() == 1, "Warehouse index lookup failed.");
 
     // Select W_NAME, W_STREET_1, W_STREET_2, W_CITY, W_STATE, W_ZIP, W_YTD in table
@@ -253,7 +253,7 @@ class Payment {
     *reinterpret_cast<int8_t *>(district_key->AccessForceNotNull(d_w_id_key_pr_offset)) = args.w_id;
 
     index_scan_results.clear();
-    db->district_primary_index_->ScanKey(*district_key, &index_scan_results);
+    db->district_primary_index_->ScanKey(*txn, *district_key, &index_scan_results);
     TERRIER_ASSERT(index_scan_results.size() == 1, "District index lookup failed.");
 
     // Select D_NAME, D_STREET_1, D_STREET_2, D_CITY, D_STATE, D_ZIP, D_YTD in table
@@ -283,7 +283,7 @@ class Payment {
       *reinterpret_cast<int8_t *>(customer_key->AccessForceNotNull(c_w_id_key_pr_offset)) = args.w_id;
 
       index_scan_results.clear();
-      db->customer_primary_index_->ScanKey(*customer_key, &index_scan_results);
+      db->customer_primary_index_->ScanKey(*txn, *customer_key, &index_scan_results);
       TERRIER_ASSERT(index_scan_results.size() == 1, "Customer index lookup failed.");
       customer_slot = index_scan_results[0];
     } else {
@@ -297,7 +297,7 @@ class Payment {
       *reinterpret_cast<int8_t *>(customer_name_key->AccessForceNotNull(c_w_id_name_key_pr_offset)) = args.w_id;
 
       index_scan_results.clear();
-      db->customer_secondary_index_->ScanKey(*customer_name_key, &index_scan_results);
+      db->customer_secondary_index_->ScanKey(*txn, *customer_name_key, &index_scan_results);
       TERRIER_ASSERT(!index_scan_results.empty(), "Customer Name index lookup failed.");
 
       if (index_scan_results.size() > 1) {

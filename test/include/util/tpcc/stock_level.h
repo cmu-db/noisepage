@@ -78,7 +78,7 @@ class StockLevel {
     *reinterpret_cast<int8_t *>(district_key->AccessForceNotNull(d_w_id_key_pr_offset)) = args.w_id;
 
     index_scan_results.clear();
-    db->district_primary_index_->ScanKey(*district_key, &index_scan_results);
+    db->district_primary_index_->ScanKey(*txn, *district_key, &index_scan_results);
     TERRIER_ASSERT(index_scan_results.size() == 1, "District index lookup failed.");
 
     auto *district_select_tuple = district_select_pr_initializer.InitializeRow(worker->district_tuple_buffer);
@@ -105,7 +105,7 @@ class StockLevel {
     *reinterpret_cast<int8_t *>(order_line_key_hi->AccessForceNotNull(ol_number_key_pr_offset)) = 15;  // max OL_NUMBER
 
     index_scan_results.clear();
-    db->order_line_primary_index_->Scan(*order_line_key_lo, *order_line_key_hi, &index_scan_results);
+    db->order_line_primary_index_->ScanAscending(*txn, *order_line_key_lo, *order_line_key_hi, &index_scan_results);
     TERRIER_ASSERT(index_scan_results.size() >= 100 && index_scan_results.size() <= 300,
                    "ol_number can be between 5 and 15, and we're looking up 20 previous orders.");
 
@@ -130,7 +130,7 @@ class StockLevel {
 
       std::vector<storage::TupleSlot> stock_index_scan_results;
       stock_index_scan_results.clear();
-      db->stock_primary_index_->ScanKey(*stock_key, &stock_index_scan_results);
+      db->stock_primary_index_->ScanKey(*txn, *stock_key, &stock_index_scan_results);
       TERRIER_ASSERT(stock_index_scan_results.size() == 1, "Couldn't find a matching stock item.");
 
       auto *const stock_select_tuple = stock_select_pr_initializer.InitializeRow(worker->stock_tuple_buffer);

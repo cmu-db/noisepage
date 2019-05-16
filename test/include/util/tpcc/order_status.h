@@ -158,7 +158,7 @@ class OrderStatus {
       *reinterpret_cast<int8_t *>(customer_key->AccessForceNotNull(c_w_id_key_pr_offset)) = args.w_id;
 
       index_scan_results.clear();
-      db->customer_primary_index_->ScanKey(*customer_key, &index_scan_results);
+      db->customer_primary_index_->ScanKey(*txn, *customer_key, &index_scan_results);
       TERRIER_ASSERT(index_scan_results.size() == 1, "Customer index lookup failed.");
       customer_slot = index_scan_results[0];
     } else {
@@ -172,7 +172,7 @@ class OrderStatus {
       *reinterpret_cast<int8_t *>(customer_name_key->AccessForceNotNull(c_w_id_name_key_pr_offset)) = args.w_id;
 
       index_scan_results.clear();
-      db->customer_secondary_index_->ScanKey(*customer_name_key, &index_scan_results);
+      db->customer_secondary_index_->ScanKey(*txn, *customer_name_key, &index_scan_results);
       TERRIER_ASSERT(!index_scan_results.empty(), "Customer Name index lookup failed.");
 
       if (index_scan_results.size() > 1) {
@@ -226,15 +226,15 @@ class OrderStatus {
         args.w_id;
     *reinterpret_cast<int32_t *>(order_secondary_high_key->AccessForceNotNull(o_c_id_secondary_key_pr_offset)) = c_id;
 
-    // TODO(Matt): replace this with ScanLimitDescending(1) after #356 is merged
     index_scan_results.clear();
-    db->order_secondary_index_->Scan(*order_secondary_low_key, *order_secondary_high_key, &index_scan_results);
-    TERRIER_ASSERT(!index_scan_results.empty(),
+    db->order_secondary_index_->ScanLimitDescending(*txn, *order_secondary_low_key, *order_secondary_high_key,
+                                                    &index_scan_results, 1);
+    TERRIER_ASSERT(index_scan_results.size() == 1,
                    "Order index lookup failed. There should always be at least one order for each customer.");
 
     // Select O_ID, O_ENTRY_D, O_CARRIER_ID from table for largest key (back of vector)
     auto *const order_select_tuple = order_select_pr_initializer.InitializeRow(worker->order_tuple_buffer);
-    select_result = db->order_table_->Select(txn, index_scan_results.back(), order_select_tuple);
+    select_result = db->order_table_->Select(txn, index_scan_results[0], order_select_tuple);
     TERRIER_ASSERT(select_result,
                    "Order select failed. This assertion assumes 1:1 mapping between warehouse and workers.");
 
@@ -257,7 +257,7 @@ class OrderStatus {
     *reinterpret_cast<int32_t *>(order_line_high_key->AccessForceNotNull(ol_o_id_key_pr_offset)) = o_id;
 
     index_scan_results.clear();
-    db->order_line_primary_index_->Scan(*order_line_low_key, *order_line_high_key, &index_scan_results);
+    db->order_line_primary_index_->ScanAscending(*txn, *order_line_low_key, *order_line_high_key, &index_scan_results);
 
     TERRIER_ASSERT(!index_scan_results.empty() && index_scan_results.size() <= 15,
                    "There should be at least 1 Order Line item, but no more than 15.");

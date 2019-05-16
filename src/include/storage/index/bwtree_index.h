@@ -206,23 +206,6 @@ class BwTreeIndex final : public Index {
       scan_itr--;
     }
   }
-
-  void ScanLimit(const ProjectedRow &low_key, const ProjectedRow &high_key, std::vector<TupleSlot> *value_list,
-                 const uint32_t limit) final {
-    TERRIER_ASSERT(
-        value_list->empty(),
-        "Result set should begin empty. This can be changed in the future if index scan behavior requires it.");
-    TERRIER_ASSERT(limit > 0, "Limit must be greater than 0.");
-    KeyType index_low_key, index_high_key;
-    index_low_key.SetFromProjectedRow(low_key, metadata_);
-    index_high_key.SetFromProjectedRow(high_key, metadata_);
-
-    for (auto scan_itr = bwtree_->Begin(index_low_key);
-         value_list->size() < limit && !scan_itr.IsEnd() && (bwtree_->KeyCmpLessEqual(scan_itr->first, index_high_key));
-         scan_itr++) {
-      value_list->emplace_back(scan_itr->second);
-    }
-  }
 };
 
 }  // namespace terrier::storage::index

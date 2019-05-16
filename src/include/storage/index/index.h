@@ -149,16 +149,6 @@ class Index {
                                    uint32_t limit) = 0;
 
   /**
-   * Finds all the values between the given keys in our index.
-   * @param low_key the key to start at
-   * @param high_key the key to end at
-   * @param[out] value_list the values associated with the keys
-   * @param limit upper bound of number of values to return
-   */
-  virtual void ScanLimit(const ProjectedRow &low_key, const ProjectedRow &high_key, std::vector<TupleSlot> *value_list,
-                         uint32_t limit) = 0;
-
-  /**
    * @return type of this index
    */
   ConstraintType GetConstraintType() const { return constraint_type_; }

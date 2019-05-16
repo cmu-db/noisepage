@@ -153,7 +153,8 @@ class Delivery {
       *reinterpret_cast<int8_t *>(new_order_key_hi->AccessForceNotNull(no_d_id_key_pr_offset)) = d_id;
       *reinterpret_cast<int32_t *>(new_order_key_hi->AccessForceNotNull(no_o_id_key_pr_offset)) = 10000000;  // max O_ID
 
-      db->new_order_primary_index_->ScanLimit(*new_order_key_lo, *new_order_key_hi, &index_scan_results, 1);
+      db->new_order_primary_index_->ScanLimitAscending(*txn, *new_order_key_lo, *new_order_key_hi, &index_scan_results,
+                                                       1);
       // If no matching row is found, then the delivery is skipped
       if (index_scan_results.empty()) {
         continue;
@@ -178,10 +179,7 @@ class Delivery {
       *reinterpret_cast<int8_t *>(new_order_delete_key->AccessForceNotNull(no_w_id_key_pr_offset)) = args.w_id;
       *reinterpret_cast<int8_t *>(new_order_delete_key->AccessForceNotNull(no_d_id_key_pr_offset)) = d_id;
       *reinterpret_cast<int32_t *>(new_order_delete_key->AccessForceNotNull(no_o_id_key_pr_offset)) = no_o_id;
-      delete_result = db->new_order_primary_index_->Delete(*new_order_delete_key, new_order_slot);
-      TERRIER_ASSERT(
-          delete_result,
-          "New Order index delete failed. This assertion assumes 1:1 mapping between warehouse and workers.");
+      db->new_order_primary_index_->Delete(txn, *new_order_delete_key, new_order_slot);
 
       // Look up O_W_ID, O_D_ID and O_ID
       const auto order_key_pr_initializer = db->order_primary_index_->GetProjectedRowInitializer();
@@ -192,7 +190,7 @@ class Delivery {
       *reinterpret_cast<int32_t *>(order_key->AccessForceNotNull(o_id_key_pr_offset)) = no_o_id;
 
       index_scan_results.clear();
-      db->order_primary_index_->ScanKey(*order_key, &index_scan_results);
+      db->order_primary_index_->ScanKey(*txn, *order_key, &index_scan_results);
       TERRIER_ASSERT(index_scan_results.size() == 1, "Order index lookup failed.");
 
       // Retrieve O_C_ID
@@ -229,7 +227,7 @@ class Delivery {
           15;  // max OL_NUMBER
 
       index_scan_results.clear();
-      db->order_line_primary_index_->Scan(*order_line_key_lo, *order_line_key_hi, &index_scan_results);
+      db->order_line_primary_index_->ScanAscending(*txn, *order_line_key_lo, *order_line_key_hi, &index_scan_results);
       TERRIER_ASSERT(!index_scan_results.empty() && index_scan_results.size() <= 15,
                      "There should be at least 1 Order Line item, but no more than 15.");
 
@@ -262,7 +260,7 @@ class Delivery {
 
       // Increase C_BALANCE by OL_AMOUNT, increase C_DELIVERY_CNT
       index_scan_results.clear();
-      db->customer_primary_index_->ScanKey(*customer_key, &index_scan_results);
+      db->customer_primary_index_->ScanKey(*txn, *customer_key, &index_scan_results);
       TERRIER_ASSERT(index_scan_results.size() == 1, "Customer index scan failed.");
 
       auto *const customer_select_tuple = customer_pr_initializer.InitializeRow(worker->customer_tuple_buffer);
