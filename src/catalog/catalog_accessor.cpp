@@ -10,45 +10,50 @@
 namespace terrier::catalog {
 
 db_oid_t CatalogAccessor::GetDatabaseOid(const std::string &name) {
-  // TODO(John):  Implement a function to lookup OIDs by name in the catalog
-  TERRIER_ASSERT(true, "This function is not implemented yet");
-  return INVALID_DATABASE_OID;
+  auto db_handle = catalog_->GetDatabaseHandle();
+  auto db_entry = db_handle.GetDatabaseEntry(txn_, name);
+
+  // If db_entry is nullptr, then the database couldn't be found and is invalid
+  if (db_entry == nullptr) return INVALID_DATABASE_OID;
+
+  return db_entry->GetOid();
 }
 
 db_oid_t CatalogAccessor::CreateDatabase(const std::string &name) {
-  db_oid_t db_oid = GetDatabaseOid(name);
-
   // Check to see if the database exists since the catalog doesn't
+  db_oid_t db_oid = GetDatabaseOid(name);
   if (db_oid != INVALID_DATABASE_OID) return INVALID_DATABASE_OID;
 
+  // Safe to call create
   return catalog_->CreateDatabase(txn_, name);
 }
 
-bool CatalogAccessor::DropDatabase(db_oid_t db) {
-  // TODO(John):  Need to translate the OID into a name for the call to the underlying catalog.
-  TERRIER_ASSERT(true, "This function is not implemented yet");
-  return false;
-}
+bool CatalogAccessor::DropDatabase(db_oid_t db) { return catalog_->DeleteDatabase(txn_, db); }
 
 // TODO(John): Should this function do some sanity checks on the OIDs passed?
 void CatalogAccessor::SetSearchPath(std::vector<namespace_oid_t> namespaces) { search_path_ = std::move(namespaces); }
 
 namespace_oid_t CatalogAccessor::GetNamespaceOid(const std::string &name) {
-  // TODO(John): Implement a function to lookup OIDs by name in the catalog
-  TERRIER_ASSERT(true, "This function is not implemented yet");
-  return INVALID_NAMESPACE_OID;
+  auto db_handle = GetDatabaseHandle();
+  auto ns_handle = db_handle.GetNamespaceTable(txn_, db_);
+  auto ns_entry = ns_handle.GetNamespaceEntry(txn_, name);
+
+  // If ns_entry is nullptr, then the database couldn't be found and is invalid
+  if (ns_entry == nullptr) return INVALID_NAMESPACE_OID;
+
+  return ns_entry->GetOid();
 }
 
 namespace_oid_t CatalogAccessor::CreateNamespace(const std::string &name) {
+  // Check to see if the namespace exists in the database
+  auto ns_oid = GetNamespaceOid(name);
+  if (ns_oid != INVALID_NAMESPACE_OID) return INVALID_NAMESPACE_OID;
+
+  // Safe to call create
   return catalog_->CreateNameSpace(txn_, db_, name);
 }
 
-bool CatalogAccessor::DropNamespace(namespace_oid_t ns) {
-  // TODO(John): Modify 'DeleteNameSpace' so that it returns whether or not
-  // anything was deleted.
-  catalog_->DeleteNameSpace(txn_, db_, ns);
-  return true;
-}
+bool CatalogAccessor::DropNamespace(namespace_oid_t ns) { return catalog_->DeleteNameSpace(txn_, db_, ns); }
 
 table_oid_t CatalogAccessor::GetTableOid(const std::string &name) {
   SqlTableHelper *wrapper;

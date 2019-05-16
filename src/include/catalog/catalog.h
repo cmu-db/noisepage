@@ -112,8 +112,18 @@ class Catalog {
    *
    * @param txn transaction to use
    * @param db_name of the database
+   * @return true when entry deleted
    */
-  void DeleteDatabase(transaction::TransactionContext *txn, const std::string &db_name);
+  bool DeleteDatabase(transaction::TransactionContext *txn, const std::string &db_name);
+
+  /**
+   * Delete a database.
+   *
+   * @param txn transaction to use
+   * @param db OID of the database
+   * @return true when entry deleted
+   */
+  bool DeleteDatabase(transaction::TransactionContext *txn, db_oid_t db);
 
   /**
    * Create a Namespace.
@@ -130,8 +140,9 @@ class Catalog {
    * @param txn transaction to use
    * @param db_oid oid of database from which to delete the namespace
    * @param ns_oid oid of namespace to delete
+   * @return true when entry deleted
    */
-  void DeleteNameSpace(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid);
+  bool DeleteNameSpace(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid);
 
   /**
    * Create a user table with schema

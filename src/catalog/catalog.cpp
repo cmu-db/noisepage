@@ -31,13 +31,16 @@ db_oid_t Catalog::CreateDatabase(transaction::TransactionContext *txn, const std
   return new_db_oid;
 }
 
-void Catalog::DeleteDatabase(transaction::TransactionContext *txn, const std::string &db_name) {
+bool Catalog::DeleteDatabase(transaction::TransactionContext *txn, const std::string &db_name) {
   // get database handle
   auto db_handle = GetDatabaseHandle();
   auto db_entry = db_handle.GetDatabaseEntry(txn, db_name);
+  if (db_entry == nullptr) return false;
+
   auto oid = db_entry->GetOid();
   // remove entry from pg_database
-  db_handle.DeleteEntry(txn, db_entry);
+  bool ret = db_handle.DeleteEntry(txn, db_entry);
+  if (!ret) return false;
 
   // TODO(pakhtar): delete all user tables
   // destroy all the non-global tables
@@ -46,6 +49,27 @@ void Catalog::DeleteDatabase(transaction::TransactionContext *txn, const std::st
 
   // delete from the map
   cat_map_.erase(oid);
+  return true;
+}
+
+bool Catalog::DeleteDatabase(transaction::TransactionContext *txn, db_oid_t db) {
+  // get database handle
+  auto db_handle = GetDatabaseHandle();
+  auto db_entry = db_handle.GetDatabaseEntry(txn, db);
+  if (db_entry == nullptr) return false;
+
+  // remove entry from pg_database
+  bool ret = db_handle.DeleteEntry(txn, db_entry);
+  if (!ret) return false;
+
+  // TODO(pakhtar): delete all user tables
+  // destroy all the non-global tables
+  // this should become just catalog tables
+  DeleteDatabaseTables(db);
+
+  // delete from the map
+  cat_map_.erase(db);
+  return true;
 }
 
 namespace_oid_t Catalog::CreateNameSpace(transaction::TransactionContext *txn, db_oid_t db_oid,
@@ -61,15 +85,15 @@ namespace_oid_t Catalog::CreateNameSpace(transaction::TransactionContext *txn, d
   return namespace_oid_t(ns_oid_int);
 }
 
-void Catalog::DeleteNameSpace(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid) {
+bool Catalog::DeleteNameSpace(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid) {
   auto db_handle = GetDatabaseHandle();
   auto ns_handle = db_handle.GetNamespaceTable(txn, db_oid);
 
   auto ns_entry = ns_handle.GetNamespaceEntry(txn, ns_oid);
   if (ns_entry == nullptr) {
-    return;
+    return false;
   }
-  ns_handle.DeleteEntry(txn, ns_entry);
+  return ns_handle.DeleteEntry(txn, ns_entry);
 }
 
 table_oid_t Catalog::CreateUserTable(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid,
