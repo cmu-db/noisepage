@@ -73,6 +73,11 @@ class TransactionManager {
   timestamp_t GetTimestamp() { return time_++; }
 
   /**
+   * @return buffer pool
+   */
+  storage::RecordBufferSegmentPool *GetBufferPool() { return buffer_pool_; }
+
+  /**
    * @return true if gc_enabled and storing completed txns in local queue, false otherwise
    */
   bool GCEnabled() const { return gc_enabled_; }
@@ -100,7 +105,6 @@ class TransactionManager {
   std::queue<std::pair<timestamp_t, Action>> DeferredActionsForGC();
 
  private:
-  friend class storage::GarbageCollector;
   storage::RecordBufferSegmentPool *buffer_pool_;
   // TODO(Tianyu): Timestamp generation needs to be more efficient (batches)
   // TODO(Tianyu): We don't handle timestamp wrap-arounds. I doubt this would be an issue though.

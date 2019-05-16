@@ -109,7 +109,43 @@ class GarbageCollector {
   void ProcessDeferredActions();
 
   /**
-   * Given a version chain, perform interval gc on all versions except the head of the chain
+   * @brief Given a version chain, perform interval gc on all versions except the head of the chain
+   *
+   * Assumes version chain is of the form D?U*I? (zero or one Delete, followed by zero or more Updates and ending with
+   * zero or one Insert)
+   *
+   * The function traverses the version chain, leaves the first committed undo record alone and does interval GC
+   * on the rest of the version chain. After interval GC is done processing the version chain, all the undo records
+   * which are invisible to any transaction get unlinked, and a contiguous chain of undo records sandwiched between
+   * two transactions gets compacted into a single undo record and the records are unlinked. The unlinked undo records
+   * are still a part of the version chain as other transaction may hold a reference to them and thus, they
+   * will be deallocated later.
+   *
+   * Consider a chain of committed undo records (U) with two transactions T1 and T2 shown with their visibility.
+   *
+   * HEAD
+   * U1
+   * U2
+   * U3
+   * T1 <- active txn
+   * U4
+   * U5
+   * T2 <- active txn
+   * U6
+   * U7
+   * U8
+   *
+   * After interval GC runs on this version chain, it will be as follows:
+   * HEAD
+   * C1
+   * T1 <- active txn
+   * C2
+   * T2 <- active txn
+   *
+   * The records U1, U2, U3 get compacted into C1
+   * The records U4, U5     get compacted into C2
+   * The records U6, U7, U8 get truncated
+   *
    * @param table data table
    * @param slot tuple slot
    * @param active_txns vector containing all active transactions
@@ -117,7 +153,11 @@ class GarbageCollector {
   void ProcessTupleVersionChain(DataTable *table, TupleSlot slot, std::vector<transaction::timestamp_t> *active_txns);
 
   /**
-   * Given the data table and the tuple slot, try unlinking the version chain head for that tuple slot
+   * @brief Given the data table and the tuple slot, try unlinking the version chain head for that tuple slot
+   *
+   * For a non empty version chain, the function checks if the version chain head is older than any active transaction.
+   * If this is so, it unlinks the version chain head using a compare-and-swap (contention on write lock).
+   *
    * @param table data table
    * @param slot tuple slot
    * @param active_txns vector of currently running active transactions
@@ -201,9 +241,6 @@ class GarbageCollector {
   transaction::TransactionQueue txns_to_unlink_;
   // Undo buffer to hold compacted undo records
   storage::UndoBuffer *delta_record_compaction_buffer_;
-  // Variable to mark that undo buffer to hold compacted undo records is empty so that it can be deallocated without
-  // unlinking
-  bool compaction_buffer_empty_;
   // queue of undo buffers containing compacted undo records which are pending unlinking
   std::forward_list<storage::UndoBuffer *> buffers_to_unlink_;
   // queue of undo buffers containing compacted undo records which have been unlinked and are pending deallocation
