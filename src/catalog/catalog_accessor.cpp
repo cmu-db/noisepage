@@ -73,7 +73,7 @@ table_oid_t CatalogAccessor::GetTableOid(namespace_oid_t ns, const std::string &
   return (wrapper != nullptr) ? wrapper->Oid() : INVALID_TABLE_OID;
 }
 
-table_oid_t CatalogAccessor::CreateTable(namespace_oid_t ns, const std::string &table_name,
+table_oid_t CatalogAccessor::CreateTable(namespace_oid_t ns, const std::string &name,
                                          std::vector<ColumnDefinition> columns) {
   std::vector<Schema::Column> catalogColumns;
   catalogColumns.reserve(columns.size());
