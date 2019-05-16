@@ -185,7 +185,7 @@ class CatalogAccessor {
    * is write-locked in the catalog.
    * @param table which is to be renamed
    * @param new_table_name is the string of the new name
-   * @param whether the renaming was successful.
+   * @return whether the renaming was successful.
    *
    * @note This operation will write-lock the table entry until the transaction closes.
    */
@@ -273,7 +273,7 @@ class CatalogAccessor {
    * @param table to which the column belongs
    * @param column which is to be renamed
    * @param new_column_name is the string of the new name
-   * @param whether the renaming was successful.
+   * @return whether the renaming was successful.
    *
    * @note This operation will write-lock the column entry until the transaction closes.
    */
