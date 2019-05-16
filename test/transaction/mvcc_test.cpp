@@ -1226,7 +1226,7 @@ TEST_F(MVCCTests, AbortUpdateDelete2) {
 //    R(X)   |        |
 //    W(X)   |        |
 //    R(X)   |        |
-//    R(X)   |        |
+//    W(X)   |        |
 //    COMMIT |        |
 //           | BEGIN  |
 //           | R(X)   |
@@ -1290,7 +1290,7 @@ TEST_F(MVCCTests, SimpleDelete1) {
 //    R(X)   |        |
 //    W(X)   |        |
 //    R(X)   |        |
-//    R(X)   |        |
+//    W(X)   |        |
 //    ABORT  |        |
 //           | BEGIN  |
 //           | R(X)   |
