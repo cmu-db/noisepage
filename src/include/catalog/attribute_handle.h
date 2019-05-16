@@ -60,14 +60,6 @@ class AttributeCatalogTable {
   explicit AttributeCatalogTable(SqlTableHelper *pg_attribute) : pg_attribute_hrw_(pg_attribute) {}
 
   /**
-   * Convert a attribute string to its oid representation
-   * @param name the attribute
-   * @param txn the transaction context
-   * @return the col oid
-   */
-  col_oid_t NameToOid(transaction::TransactionContext *txn, const std::string &name);
-
-  /**
    * Get an attribute entry.
    * @param txn transaction (required)
    * @param table_oid an attribute for this table
