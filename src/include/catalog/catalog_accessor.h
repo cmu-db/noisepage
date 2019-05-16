@@ -177,7 +177,7 @@ class CatalogAccessor {
    * @param columns is the vector of definitions for the columns
    * @return OID for the table, INVALID_TABLE_OID if the table already exists
    */
-  table_oid_t CreateTable(namespace_oid_t ns, const std::string &table_name, std::vector<ColumnDefinition> columns);
+  table_oid_t CreateTable(namespace_oid_t ns, const std::string &name, std::vector<ColumnDefinition> columns);
 
   /**
    * Rename the table from its current string to the new one.  The renaming could fail
@@ -256,6 +256,7 @@ class CatalogAccessor {
    * another transaction or because the column already has that nullability setting.
    * @param table OID to be modified
    * @param column that is affected
+   * @param nullable is whether the column can be null
    * @return success
    *
    * @note This will increment the schema version number by one, locking the table
