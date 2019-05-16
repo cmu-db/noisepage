@@ -495,7 +495,7 @@ void GarbageCollector::CopyVarlen(UndoRecord *undo_record) {
 }
 
 void GarbageCollector::ReclaimVarlen(UndoRecord *const undo_record) {
-  if (undo_record->txnptr_.IsCompacted()) {
+  if (undo_record->txnptr_.IsOwnedByGC()) {
     ReclaimBufferIfVarlenCompacted(undo_record);
   } else {
     ReclaimBufferIfVarlen(undo_record);
