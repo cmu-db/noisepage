@@ -34,6 +34,7 @@ class Index {
   friend class GenericKey<64>;
   friend class GenericKey<128>;
   friend class GenericKey<256>;
+
   friend class IndexManager;
   friend class BwTreeKeyTests;
   FRIEND_TEST(PopulateIndexTest, BasicCorrectnessTest);
