@@ -54,7 +54,7 @@ std::shared_ptr<AttributeCatalogEntry> AttributeCatalogTable::GetAttributeEntry(
   return std::make_shared<AttributeCatalogEntry>(oid, pg_attribute_hrw_, std::move(ret_row));
 }
 
-std::vector<col_oid_t> GetTableColumns(transaction::TransactionContext *txn, table_oid_t table) {
+std::vector<col_oid_t> AttributeCatalogTable::GetTableColumns(transaction::TransactionContext *txn, table_oid_t table) {
   int32_t oid_column = pg_attribute_hrw_->ColNameToIndex("oid");
   int32_t table_column = pg_attribute_hrw_->ColNameToIndex("attrelid");
 
@@ -66,12 +66,13 @@ std::vector<col_oid_t> GetTableColumns(transaction::TransactionContext *txn, tab
     storage::ProjectedColumns::RowView row_view = it->InterpretAsRow(0);
     byte *col_p = row_view.AccessWithNullCheck(pg_attribute_hrw_->ColNumToOffset(table_column));
     if (col_p == nullptr) continue;
-    if (*(reinterpret_cast<uint32_t *>(col_p)) == !table_oid) {
+    if (*(reinterpret_cast<uint32_t *>(col_p)) == !table) {
       col_p = row_view.AccessWithNullCheck(pg_attribute_hrw_->ColNumToOffset(oid_column));
       column_oids.emplace_back(*(reinterpret_cast<uint32_t *>(col_p)));
     }
     ++it;
   }
+  return column_oids;
 }
 
 void AttributeCatalogTable::DeleteEntries(transaction::TransactionContext *txn, table_oid_t table_oid) {

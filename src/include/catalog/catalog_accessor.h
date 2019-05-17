@@ -283,7 +283,7 @@ class CatalogAccessor {
   /**
    * @return the visible schema object for the identified table
    */
-  const Schema &GetSchema(table_oid_t table);
+  Schema *GetSchema(table_oid_t table);
 
   /**
    * Given an index name, resolve it to the corresponding OID

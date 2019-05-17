@@ -195,7 +195,7 @@ bool CatalogAccessor::RenameColumn(table_oid_t table, col_oid_t column, const st
   return false;
 }
 
-const Schema &CatalogAccessor::GetSchema(table_oid_t table) {
+Schema *CatalogAccessor::GetSchema(table_oid_t table) {
   // TODO(John): We should probably add a column to pg_class where we can store
   // a pointer to a pre-allocated one and handle deallocation through a more
   // complicated set of deferrals.

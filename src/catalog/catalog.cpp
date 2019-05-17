@@ -222,7 +222,7 @@ void Catalog::AddColumnsToPGAttribute(transaction::TransactionContext *txn, db_o
     // a Varlen since we do not need the size to build the Schema::Column
     // objects.
     int32_t attr_size;
-    if (type::TypeUtil::GetTypeSize(c.GetType()) == VARLEN_COLUMN) {
+    if (type::TypeUtil::GetTypeSize(c.GetType()) == VARLEN_COLUMN)
       attr_size = c.GetMaxVarlenSize();
     else
       attr_size = c.GetAttrSize();
