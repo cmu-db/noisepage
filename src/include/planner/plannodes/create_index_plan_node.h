@@ -101,7 +101,8 @@ class CreateIndexPlanNode : public AbstractPlanNode {
         std::vector<std::string> index_attrs_holder;
 
         for (auto &attr : create_stmt->GetIndexAttributes()) {
-          index_attrs_holder.push_back(attr);
+          // TODO(WAN/WEN): Wen, all yours. Note that it either has a name or an expression, not both.
+          index_attrs_holder.push_back(attr.GetName());
         }
 
         index_attrs_ = index_attrs_holder;
