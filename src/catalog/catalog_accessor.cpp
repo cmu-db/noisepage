@@ -240,21 +240,21 @@ Schema *CatalogAccessor::GetSchema(table_oid_t table) {
   return &*(class_entry->GetPtr()->GetSchema());
 }
 
-index_oid_t GetIndexOid(const std::string &name) {
+index_oid_t CatalogAccessor::GetIndexOid(const std::string &name) {
   // TODO(John): Implement this similar to GetTable
   // Blocked on the catalog supporting indexes
   TERRIER_ASSERT(true, "This function is not implemented yet");
   return INVALID_INDEX_OID;
 }
 
-index_oid_t GetIndexOid(namespace_oid_t ns, const std::string &name) {
+index_oid_t CatalogAccessor::GetIndexOid(namespace_oid_t ns, const std::string &name) {
   // TODO(John): Implement this similar to GetTable
   // Blocked on the catalog supporting indexes
   TERRIER_ASSERT(true, "This function is not implemented yet");
   return INVALID_INDEX_OID;
 }
 
-std::vector<index_oid_t> GetIndexOids(table_oid_t table) {
+std::vector<index_oid_t> CatalogAccessor::GetIndexOids(table_oid_t table) {
   // TODO(John): This should be a simple index search on pg_class
 
   std::vector<index_oid_t> indexes;
@@ -263,21 +263,21 @@ std::vector<index_oid_t> GetIndexOids(table_oid_t table) {
   return indexes;
 }
 
-bool DropIndex(index_oid_t index) {
+bool CatalogAccessor::DropIndex(index_oid_t index) {
   // TODO(John): Implement this similar to DropTable
   // Blocked on the catalog supporting indexes
   TERRIER_ASSERT(true, "This function is not implemented yet");
   return false;
 }
 
-bool SetIndexPointer(index_oid_t index, storage::index::Index *index_ptr) {
+bool CatalogAccessor::SetIndexPointer(index_oid_t index, storage::index::Index *index_ptr) {
   // TODO(John): Implement this similar to SetTablePointer
   // Blocked on the catalog supporting indexes
   TERRIER_ASSERT(true, "This function is not implemented yet");
   return false;
 }
 
-storage::index::Index *SetIndexPointer(index_oid_t index) {
+storage::index::Index *CatalogAccessor::GetIndex(index_oid_t index) {
   // TODO(John): Implement this once there is an API to use in the catalog
   // Blocked on the catalog supporting indexes
   TERRIER_ASSERT(true, "This function is not implemented yet");
