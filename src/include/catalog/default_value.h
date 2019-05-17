@@ -14,9 +14,11 @@ class DefaultValue {
   /**
    * Constructs a default value.  We perform a deep copy for now to make lifecycle
    * reasoning easier.  This may need to be updated if it becomes a bottleneck.
+   * @param type_id of the default value
+   * @param serialized_expression for calculating default value at runtime
    */
   explicit DefaultValue(type::TypeId type_id, std::string serialized_expression)
-      : type_(type_id), serialized_expression_(serialized_expression) {}
+      : type_(type_id), serialized_expression_(std::move(serialized_expression)) {}
 
   /**
    * @return the type of the default value

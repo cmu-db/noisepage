@@ -106,6 +106,7 @@ class CatalogAccessor {
      * @param name column name
      * @param type SQL type for this column (must be a type with fixed-width)
      * @param nullable true if the column is nullable, false otherwise
+     * @param serialzed_expression for calculating the key value for a tuple
      */
     IndexKeyDefinition(std::string name, const type::TypeId type_id, const bool nullable,
                        std::string serialized_expression)
@@ -120,6 +121,7 @@ class CatalogAccessor {
      * @param type SQL type for this column (must be a type with variable length)
      * @param max_varlen_size the maximum length of the varlen entry
      * @param nullable true if the column is nullable, false otherwise
+     * @param serialzed_expression for calculating the key value for a tuple
      */
     IndexKeyDefinition(std::string name, const type::TypeId type_id, const uint16_t max_varlen_size,
                        const bool nullable, std::string serialized_expression)

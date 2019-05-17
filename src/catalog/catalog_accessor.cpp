@@ -32,7 +32,7 @@ bool CatalogAccessor::DropDatabase(db_oid_t db) { return catalog_->DeleteDatabas
 
 // TODO(John): Should this function do some sanity checks on the OIDs passed?
 void CatalogAccessor::SetSearchPath(std::vector<namespace_oid_t> namespaces) {
-  TERRIER_ASSERT(namespaces.size() > 0, "Search path cannot be empty");
+  TERRIER_ASSERT(!namespaces.empty(), "Search path cannot be empty");
   search_path_ = std::move(namespaces);
 }
 
@@ -202,7 +202,7 @@ bool CatalogAccessor::SetColumnType(table_oid_t table, col_oid_t column, type::T
   return false;
 }
 
-bool CatalogAccessor::SetColumnDefaultValue(table_oid_t table, col_oid_t column, DefaultValue default_value) {
+bool CatalogAccessor::SetColumnDefaultValue(table_oid_t table, col_oid_t column, const DefaultValue &default_value) {
   // TODO(John): Implement this once the catalog has been refactored.
   TERRIER_ASSERT(true, "This function is not implemented yet");
   return false;
@@ -283,9 +283,9 @@ std::vector<index_oid_t> CatalogAccessor::GetIndexOids(table_oid_t table) {
   return indexes;
 }
 
-index_oid_t CatalogAccessor::CreateIndex(namespace_oid_t ns, std::string name,
+index_oid_t CatalogAccessor::CreateIndex(namespace_oid_t ns, const std::string &name,
                                          storage::index::ConstraintType constraint,
-                                         std::vector<IndexKeyDefinition> keys) {
+                                         const std::vector<IndexKeyDefinition> &keys) {
   // TODO(John): Implement this similar to CreateTable
   // Blocked on the catalog supporting indexes
   TERRIER_ASSERT(true, "This function is not implemented yet");
