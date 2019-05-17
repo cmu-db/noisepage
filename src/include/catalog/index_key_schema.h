@@ -92,4 +92,4 @@ class IndexKeyColumn {
  */
 using IndexKeySchema = std::vector<IndexKeyColumn>;
 
-} // namespace terrier::catalog
+}  // namespace terrier::catalog

@@ -7,8 +7,8 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
-#include "catalog/schema.h"
 #include "catalog/index_key_schema.h"
+#include "catalog/schema.h"
 #include "common/strong_typedef.h"
 #include "gtest/gtest.h"
 #include "storage/index/compact_ints_key.h"
@@ -334,9 +334,8 @@ struct StorageTestUtil {
    * Generates a random GenericKey-compatible schema with the given number of columns using the given types.
    */
   template <typename Random>
-  static catalog::IndexKeySchema RandomGenericKeySchema(const uint32_t num_cols,
-                                                               const std::vector<type::TypeId> &types,
-                                                               Random *generator) {
+  static catalog::IndexKeySchema RandomGenericKeySchema(const uint32_t num_cols, const std::vector<type::TypeId> &types,
+                                                        Random *generator) {
     uint32_t max_varlen_size = 20;
     TERRIER_ASSERT(num_cols > 0, "Must have at least one column in your key schema.");
 

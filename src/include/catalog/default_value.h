@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #include "type/type_id.h"
 
 namespace terrier::catalog {
@@ -25,8 +27,9 @@ class DefaultValue {
    * @return the expression that calculates the default value
    */
   const std::string &GetExpression() { return serialized_expression_; }
+
  private:
   type::TypeId type_;
   std::string serialized_expression_;
 };
-}
+}  // namespace terrier::catalog
