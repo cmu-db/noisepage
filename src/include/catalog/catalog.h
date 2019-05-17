@@ -325,7 +325,7 @@ class Catalog {
    * @param keys is a vector of definitions for the individual keys of the index
    * @return OID for the index, INVALID_INDEX_OID if the operation failed
    */
-  index_oid_t CreateIndex(namespace_oid_t ns, table_oid_t table, std::string name,
+  index_oid_t CreateIndex(namespace_oid_t ns, table_oid_t table, const std::string &name,
                           storage::index::ConstraintType constraint, IndexKeySchema schema) {
     // Grab my OID
     index_oid_t idx_oid(GetNextOid());

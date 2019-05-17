@@ -378,6 +378,7 @@ class CatalogAccessor {
   bool RenameColumn(table_oid_t table, col_oid_t column, const std::string &new_column_name);
 
   /**
+   * @param table corresponding to the requested schema
    * @return the visible schema object for the identified table
    */
   Schema *GetSchema(table_oid_t table);
@@ -409,15 +410,17 @@ class CatalogAccessor {
   /**
    * Given the index name and its specification, add it to the catalog
    * @param ns is the namespace in which the index will exist
+   * @param table on which this index exists
    * @param name of the index
    * @param constraint type of the index
    * @param keys is a vector of definitions for the individual keys of the index
    * @return OID for the index, INVALID_INDEX_OID if the operation failed
    */
-  index_oid_t CreateIndex(namespace_oid_t ns, table_oid_t, const std::string &name,
+  index_oid_t CreateIndex(namespace_oid_t ns, table_oid_t table, const std::string &name,
                           storage::index::ConstraintType constraint, const std::vector<IndexKeyDefinition> &keys);
 
   /**
+   * @param index corresponding to the requested key schema
    * @return the key schema for this index
    */
   IndexKeySchema *GetKeySchema(index_oid_t index);

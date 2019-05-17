@@ -280,7 +280,7 @@ index_oid_t CatalogAccessor::CreateIndex(namespace_oid_t ns, table_oid_t table, 
                                          const std::vector<IndexKeyDefinition> &keys) {
   // Need to create the key schema (assigning column OIDs in the process)
   IndexKeySchema schema;
-  for (auto keyCol : keys) {
+  for (auto const &keyCol : keys) {
     if (type::TypeUtil::GetTypeSize(keyCol.GetType()) == VARLEN_COLUMN)
       schema.emplace_back(indexkeycol_oid_t(catalog_->GetNextOid()), keyCol.GetType(), keyCol.IsNullable(),
                           keyCol.GetMaxVarlenSize());
