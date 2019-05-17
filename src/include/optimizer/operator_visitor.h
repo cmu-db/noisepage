@@ -4,10 +4,9 @@
 
 namespace terrier::optimizer {
 
-//===--------------------------------------------------------------------===//
-// Operator Visitor
-//===--------------------------------------------------------------------===//
-
+/**
+ * Utility class for visitor pattern
+ */
 class OperatorVisitor {
  public:
   virtual ~OperatorVisitor() = default;

@@ -22,12 +22,12 @@ class UpdateClause;
 namespace optimizer {
 
 /**
- * Operator for SELECT without FROM
+ * Operator for SELECT without FROM (e.g. SELECT 1;)
  */
 class TableFreeScan : public OperatorNode<TableFreeScan> {
  public:
   /**
-   * @return A TableFreeScan operator
+   * @return a TableFreeScan operator
    */
   static Operator make();
 };
@@ -38,19 +38,51 @@ class TableFreeScan : public OperatorNode<TableFreeScan> {
 class SeqScan : public OperatorNode<SeqScan> {
  public:
   /**
-   * @return A SeqScan operator
+   * @param database_oid OID of the database
+   * @param namespace_oid OID of the namespace
+   * @param table_oid OID of the table
+   * @param table_alias alias of the table
+   * @param predicates predicates for get
+   * @param update whether the scan is used for update
+   * @return a SeqScan operator
    */
   static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::table_oid_t table_oid, std::vector<AnnotatedExpression> predicates, bool update);
+                       catalog::table_oid_t table_oid, std::string table_alias,
+                       std::vector<AnnotatedExpression> predicates, bool update);
 
   bool operator==(const BaseOperatorNode &r) override;
 
   common::hash_t Hash() const override;
 
+ private:
+  /**
+   * OID of the database
+   */
   catalog::db_oid_t database_oid_;
+
+  /**
+   * OID of the namespace
+   */
   catalog::namespace_oid_t namespace_oid_;
+
+  /**
+   * OID of the table
+   */
   catalog::table_oid_t table_oid_;
+
+  /**
+   * SELECT predicates
+   */
   std::vector<AnnotatedExpression> predicates_;
+
+  /**
+   * Table alias
+   */
+  std::string table_alias_;
+
+  /**
+   * Whether the scan is used for update
+   */
   bool is_for_update_;
 };
 
@@ -59,8 +91,21 @@ class SeqScan : public OperatorNode<SeqScan> {
  */
 class IndexScan : public OperatorNode<IndexScan> {
  public:
+  /**
+   * @param database_oid OID of the database
+   * @param namespace_oid OID of the namespace
+   * @param index_oid OID of the index
+   * @param table_alias
+   * @param predicates
+   * @param update
+   * @param key_column_id_list
+   * @param expr_type_list
+   * @param value_list
+   * @return an IndexScan operator
+   */
   static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::index_oid_t index_oid, std::vector<AnnotatedExpression> predicates, bool update,
+                       catalog::index_oid_t index_oid, std::string table_alias,
+                       std::vector<AnnotatedExpression> predicates, bool update,
                        std::vector<catalog::col_oid_t> key_column_id_list,
                        std::vector<parser::ExpressionType> expr_type_list,
                        std::vector<type::TransientValue> value_list);
@@ -69,22 +114,66 @@ class IndexScan : public OperatorNode<IndexScan> {
 
   common::hash_t Hash() const override;
 
+ private:
+  /**
+   * OID of the database
+   */
   catalog::db_oid_t database_oid_;
+
+  /**
+   * OID of the namespace
+   */
   catalog::namespace_oid_t namespace_oid_;
+
+  /**
+   * OID of the index
+   */
   catalog::index_oid_t index_oid_;
+
+  /**
+   * SELECT predicates
+   */
   std::vector<AnnotatedExpression> predicates_;
+
+  /**
+   * Table alias
+   */
+  std::string table_alias_;
+
+  /**
+   * Whether the scan is used for update
+   */
   bool is_for_update_;
 
+  /**
+   * OIDs of key columns
+   */
   std::vector<catalog::col_oid_t> key_column_id_list_;
+
+  /**
+   * Expression types
+   */
   std::vector<parser::ExpressionType> expr_type_list_;
+
+  /**
+   * Parameter values
+   */
   std::vector<type::TransientValue> value_list_;
 };
 
-//===--------------------------------------------------------------------===//
-// Physical external file scan
-//===--------------------------------------------------------------------===//
+/**
+ * Operator for external file scan
+ */
 class ExternalFileScan : public OperatorNode<ExternalFileScan> {
  public:
+  /**
+   * @param format file format
+   * @param file_name file name
+   * @param delimiter character used as delimiter
+   * @param quote character used for quotation
+   * @param escape character used for escape sequences
+   * @return an ExternalFileScan operator
+   */
   static Operator make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote,
                        char escape);
 
@@ -92,22 +181,49 @@ class ExternalFileScan : public OperatorNode<ExternalFileScan> {
 
   common::hash_t Hash() const override;
 
-  // identifier for all get operators
+  /**
+   * File format
+   */
   parser::ExternalFileFormat format_;
+
+  /**
+   * File name
+   */
   std::string file_name_;
+
+  /**
+   * Character used as delimiter
+   */
   char delimiter_;
+
+  /**
+   * Character used for quotation
+   */
   char quote_;
+
+  /**
+   * Character used for escape sequences
+   */
   char escape_;
 };
 
-//===--------------------------------------------------------------------===//
-// Query derived get
-//===--------------------------------------------------------------------===//
+/**
+ * Operator for query derived scan (scan on result sets of subqueries)
+ */
 class QueryDerivedScan : public OperatorNode<QueryDerivedScan> {
  public:
+  /**
+   * @param database_oid
+   * @param namespace_oid
+   * @param table_oid
+   * @param table_alias
+   * @param alias_to_expr_map
+   * @return a QueryDerivedScan operator
+   */
   static Operator make(
       catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
-      std::unordered_map<catalog::table_oid_t, std::shared_ptr<parser::AbstractExpression>> &&alias_to_expr_map);
+      std::string table_alias,
+      std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>> &&alias_to_expr_map);
 
   bool operator==(const BaseOperatorNode &r) override;
 
@@ -116,7 +232,8 @@ class QueryDerivedScan : public OperatorNode<QueryDerivedScan> {
   catalog::db_oid_t database_oid_;
   catalog::namespace_oid_t namespace_oid_;
   catalog::table_oid_t table_oid_;
-  std::unordered_map<catalog::table_oid_t, std::shared_ptr<parser::AbstractExpression>> alias_to_expr_map_;
+  std::string table_alias_;
+  std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>> alias_to_expr_map_;
 };
 
 //===--------------------------------------------------------------------===//

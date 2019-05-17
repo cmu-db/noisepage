@@ -10,9 +10,9 @@
 
 namespace terrier::optimizer {
 
-/**
- * @return A TableFreeScan operator
- */
+//===--------------------------------------------------------------------===//
+// TableFreeScan
+//===--------------------------------------------------------------------===//
 Operator TableFreeScan::make() {
   auto *table_free_scan = new TableFreeScan;
   return Operator(table_free_scan);
@@ -22,18 +22,20 @@ Operator TableFreeScan::make() {
 // SeqScan
 //===--------------------------------------------------------------------===//
 Operator SeqScan::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::table_oid_t table_oid, std::vector<AnnotatedExpression> predicates, bool update) {
+                       catalog::table_oid_t table_oid, std::string table_alias,
+                       std::vector<AnnotatedExpression> predicates, bool update) {
   auto *scan = new SeqScan;
   scan->database_oid_ = database_oid;
   scan->namespace_oid_ = namespace_oid;
   scan->table_oid_ = table_oid;
   scan->predicates_ = std::move(predicates);
   scan->is_for_update_ = update;
+  scan->table_alias_ = std::move(table_alias);
   return Operator(scan);
 }
 
 bool SeqScan::operator==(const BaseOperatorNode &r) {
-  if (r.GetType() != OpType::SeqScan) return false;
+  if (r.GetType() != OpType::SEQSCAN) return false;
   const SeqScan &node = *dynamic_cast<const SeqScan *>(&r);
   if (predicates_.size() != node.predicates_.size()) return false;
   for (size_t i = 0; i < predicates_.size(); i++) {
@@ -52,7 +54,8 @@ common::hash_t SeqScan::Hash() const {
 // IndexScan
 //===--------------------------------------------------------------------===//
 Operator IndexScan::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                         catalog::index_oid_t index_oid, std::vector<AnnotatedExpression> predicates, bool update,
+                         catalog::index_oid_t index_oid, std::string table_alias,
+                         std::vector<AnnotatedExpression> predicates, bool update,
                          std::vector<catalog::col_oid_t> key_column_id_list,
                          std::vector<parser::ExpressionType> expr_type_list,
                          std::vector<type::TransientValue> value_list) {
@@ -61,6 +64,7 @@ Operator IndexScan::make(catalog::db_oid_t database_oid, catalog::namespace_oid_
   scan->namespace_oid_ = namespace_oid;
   scan->index_oid_ = index_oid;
   scan->is_for_update_ = update;
+  scan->table_alias_ = std::move(table_alias);
   scan->predicates_ = std::move(predicates);
   scan->key_column_id_list_ = std::move(key_column_id_list);
   scan->expr_type_list_ = std::move(expr_type_list);
@@ -70,7 +74,7 @@ Operator IndexScan::make(catalog::db_oid_t database_oid, catalog::namespace_oid_
 }
 
 bool IndexScan::operator==(const BaseOperatorNode &r) {
-  if (r.GetType() != OpType::IndexScan) return false;
+  if (r.GetType() != OpType::INDEXSCAN) return false;
   const IndexScan &node = *dynamic_cast<const IndexScan *>(&r);
   if (index_oid_ != node.index_oid_ || key_column_id_list_ != node.key_column_id_list_ ||
       expr_type_list_ != node.expr_type_list_ || predicates_.size() != node.predicates_.size())
@@ -106,7 +110,7 @@ Operator ExternalFileScan::make(parser::ExternalFileFormat format, std::string f
 }
 
 bool ExternalFileScan::operator==(const BaseOperatorNode &r) {
-  if (r.GetType() != OpType::ExternalFileScan) return false;
+  if (r.GetType() != OpType::EXTERNALFILESCAN) return false;
   const auto &get = *dynamic_cast<const ExternalFileScan *>(&r);
   return (format_ == get.format_ && file_name_ == get.file_name_ && delimiter_ == get.delimiter_ &&
           quote_ == get.quote_ && escape_ == get.escape_);
@@ -130,18 +134,20 @@ common::hash_t ExternalFileScan::Hash() const {
 //===--------------------------------------------------------------------===//
 Operator QueryDerivedScan::make(
     catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
-    std::unordered_map<catalog::table_oid_t, std::shared_ptr<parser::AbstractExpression>> &&alias_to_expr_map) {
+    std::string table_alias,
+    std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>> &&alias_to_expr_map) {
   auto *get = new QueryDerivedScan;
   get->database_oid_ = database_oid;
   get->namespace_oid_ = namespace_oid;
   get->table_oid_ = table_oid;
+  get->table_alias_ = table_alias;
   get->alias_to_expr_map_ = std::move(alias_to_expr_map);
 
   return Operator(get);
-}
+}  // namespace terrier::optimizer
 
 bool QueryDerivedScan::operator==(const BaseOperatorNode &r) {
-  if (r.GetType() != OpType::QueryDerivedScan) return false;
+  if (r.GetType() != OpType::QUERYDERIVEDSCAN) return false;
   const auto &get = *dynamic_cast<const QueryDerivedScan *>(&r);
   if (database_oid_ != get.database_oid_ || alias_to_expr_map_ != get.alias_to_expr_map_ ||
       namespace_oid_ != get.namespace_oid_ || table_oid_ != get.table_oid_)
@@ -203,7 +209,7 @@ common::hash_t InnerNLJoin::Hash() const {
 }
 
 bool InnerNLJoin::operator==(const BaseOperatorNode &r) {
-  if (r.GetType() != OpType::InnerNLJoin) return false;
+  if (r.GetType() != OpType::INNERNLJOIN) return false;
   const InnerNLJoin &node = *dynamic_cast<const InnerNLJoin *>(&r);
   if (join_predicates_.size() != node.join_predicates_.size() || left_keys_.size() != node.left_keys_.size() ||
       right_keys_.size() != node.right_keys_.size())
@@ -269,7 +275,7 @@ common::hash_t InnerHashJoin::Hash() const {
 }
 
 bool InnerHashJoin::operator==(const BaseOperatorNode &r) {
-  if (r.GetType() != OpType::InnerHashJoin) return false;
+  if (r.GetType() != OpType::INNERHASHJOIN) return false;
   const InnerHashJoin &node = *dynamic_cast<const InnerHashJoin *>(&r);
   if (join_predicates_.size() != node.join_predicates_.size() || left_keys_.size() != node.left_keys_.size() ||
       right_keys_.size() != node.right_keys_.size())
@@ -384,7 +390,7 @@ Operator ExportExternalFile::make(parser::ExternalFileFormat format, std::string
 }
 
 bool ExportExternalFile::operator==(const BaseOperatorNode &r) {
-  if (r.GetType() != OpType::ExportExternalFile) return false;
+  if (r.GetType() != OpType::EXPORTEXTERNALFILE) return false;
   const auto &export_op = *dynamic_cast<const ExportExternalFile *>(&r);
   return (format_ == export_op.format_ && file_name_ == export_op.file_name_ && delimiter_ == export_op.delimiter_ &&
           quote_ == export_op.quote_ && escape_ == export_op.escape_);
@@ -415,7 +421,7 @@ Operator HashGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpressio
 }
 
 bool HashGroupBy::operator==(const BaseOperatorNode &r) {
-  if (r.GetType() != OpType::HashGroupBy) return false;
+  if (r.GetType() != OpType::HASHGROUPBY) return false;
   const HashGroupBy &hash_op = *dynamic_cast<const HashGroupBy *>(&r);
   if (having_.size() != hash_op.having_.size() || columns_.size() != hash_op.columns_.size()) return false;
   for (size_t i = 0; i < having_.size(); i++) {
@@ -447,7 +453,7 @@ Operator SortGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpressio
 }
 
 bool SortGroupBy::operator==(const BaseOperatorNode &r) {
-  if (r.GetType() != OpType::SortGroupBy) return false;
+  if (r.GetType() != OpType::SORTGROUPBY) return false;
   const SortGroupBy &sort_op = *dynamic_cast<const SortGroupBy *>(&r);
   if (having_.size() != sort_op.having_.size() || columns_.size() != sort_op.columns_.size()) return false;
   for (size_t i = 0; i < having_.size(); i++) {
@@ -540,52 +546,62 @@ const char *OperatorNode<ExportExternalFile>::name_ = "ExportExternalFile";
 
 //===--------------------------------------------------------------------===//
 template <>
-OpType OperatorNode<TableFreeScan>::type_ = OpType::TableFreeScan;
+OpType OperatorNode<TableFreeScan>::type_ = OpType::TABLEFREESCAN;
 template <>
-OpType OperatorNode<SeqScan>::type_ = OpType::SeqScan;
+OpType OperatorNode<SeqScan>::type_ = OpType::SEQSCAN;
 template <>
-OpType OperatorNode<IndexScan>::type_ = OpType::IndexScan;
+OpType OperatorNode<IndexScan>::type_ = OpType::INDEXSCAN;
 template <>
-OpType OperatorNode<ExternalFileScan>::type_ = OpType::ExternalFileScan;
+OpType OperatorNode<ExternalFileScan>::type_ = OpType::EXTERNALFILESCAN;
 template <>
-OpType OperatorNode<QueryDerivedScan>::type_ = OpType::QueryDerivedScan;
+OpType OperatorNode<QueryDerivedScan>::type_ = OpType::QUERYDERIVEDSCAN;
 template <>
-OpType OperatorNode<OrderBy>::type_ = OpType::OrderBy;
+OpType OperatorNode<OrderBy>::type_ = OpType::ORDERBY;
 template <>
-OpType OperatorNode<Distinct>::type_ = OpType::Distinct;
+OpType OperatorNode<Distinct>::type_ = OpType::DISTINCT;
 template <>
-OpType OperatorNode<Limit>::type_ = OpType::Limit;
+OpType OperatorNode<Limit>::type_ = OpType::LIMIT;
 template <>
-OpType OperatorNode<InnerNLJoin>::type_ = OpType::InnerNLJoin;
+OpType OperatorNode<InnerNLJoin>::type_ = OpType::INNERNLJOIN;
 template <>
-OpType OperatorNode<LeftNLJoin>::type_ = OpType::LeftNLJoin;
+OpType OperatorNode<LeftNLJoin>::type_ = OpType::LEFTNLJOIN;
 template <>
-OpType OperatorNode<RightNLJoin>::type_ = OpType::RightNLJoin;
+OpType OperatorNode<RightNLJoin>::type_ = OpType::RIGHTNLJOIN;
 template <>
-OpType OperatorNode<OuterNLJoin>::type_ = OpType::OuterNLJoin;
+OpType OperatorNode<OuterNLJoin>::type_ = OpType::OUTERNLJOIN;
 template <>
-OpType OperatorNode<InnerHashJoin>::type_ = OpType::InnerHashJoin;
+OpType OperatorNode<InnerHashJoin>::type_ = OpType::INNERHASHJOIN;
 template <>
-OpType OperatorNode<LeftHashJoin>::type_ = OpType::LeftHashJoin;
+OpType OperatorNode<LeftHashJoin>::type_ = OpType::LEFTHASHJOIN;
 template <>
-OpType OperatorNode<RightHashJoin>::type_ = OpType::RightHashJoin;
+OpType OperatorNode<RightHashJoin>::type_ = OpType::RIGHTHASHJOIN;
 template <>
-OpType OperatorNode<OuterHashJoin>::type_ = OpType::OuterHashJoin;
+OpType OperatorNode<OuterHashJoin>::type_ = OpType::OUTERHASHJOIN;
 template <>
-OpType OperatorNode<Insert>::type_ = OpType::Insert;
+OpType OperatorNode<Insert>::type_ = OpType::INSERT;
 template <>
-OpType OperatorNode<InsertSelect>::type_ = OpType::InsertSelect;
+OpType OperatorNode<InsertSelect>::type_ = OpType::INSERTSELECT;
 template <>
-OpType OperatorNode<Delete>::type_ = OpType::Delete;
+OpType OperatorNode<Delete>::type_ = OpType::DELETE;
 template <>
-OpType OperatorNode<Update>::type_ = OpType::Update;
+OpType OperatorNode<Update>::type_ = OpType::UPDATE;
 template <>
-OpType OperatorNode<HashGroupBy>::type_ = OpType::HashGroupBy;
+OpType OperatorNode<HashGroupBy>::type_ = OpType::HASHGROUPBY;
 template <>
-OpType OperatorNode<SortGroupBy>::type_ = OpType::SortGroupBy;
+OpType OperatorNode<SortGroupBy>::type_ = OpType::SORTGROUPBY;
 template <>
-OpType OperatorNode<Aggregate>::type_ = OpType::Aggregate;
+OpType OperatorNode<Aggregate>::type_ = OpType::AGGREGATE;
 template <>
-OpType OperatorNode<ExportExternalFile>::type_ = OpType::ExportExternalFile;
+OpType OperatorNode<ExportExternalFile>::type_ = OpType::EXPORTEXTERNALFILE;
+
+template <typename T>
+bool OperatorNode<T>::IsLogical() const {
+  return type_ < OpType::LOGICALPHYSICALDELIMITER;
+}
+
+template <typename T>
+bool OperatorNode<T>::IsPhysical() const {
+  return type_ > OpType::LOGICALPHYSICALDELIMITER;
+}
 
 }  // namespace terrier::optimizer

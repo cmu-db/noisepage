@@ -4,7 +4,6 @@
 #include <string>
 #include <vector>
 #include "common/hash_util.h"
-#include "optimizer/property_set.h"
 #include "optimizer_defs.h"
 
 namespace terrier::optimizer {
@@ -14,37 +13,112 @@ namespace terrier::optimizer {
  */
 class OperatorVisitor;
 
-struct BaseOperatorNode {
+/**
+ * Base class for operators
+ */
+class BaseOperatorNode {
+ public:
+  /**
+   * Default constructor
+   */
   BaseOperatorNode() = default;
 
+  /**
+   * Default destructor
+   */
   virtual ~BaseOperatorNode() = default;
 
+  /**
+   * Utility method for visitor pattern
+   * @param v operator visitor for visitor pattern
+   */
   virtual void Accept(OperatorVisitor *v) const = 0;
 
+  /**
+   * @return the string name of this operator
+   */
   virtual std::string GetName() const = 0;
 
+  /**
+   * @return the type of this operator
+   */
   virtual OpType GetType() const = 0;
 
-  virtual std::vector<PropertySet> RequiredInputProperties() const { return {}; }
+  /**
+   * @return whether this operator is logical
+   */
+  virtual bool IsLogical() const = 0;
 
+  /**
+   * @return whether this operator is physical
+   */
+  virtual bool IsPhysical() const = 0;
+
+  /**
+   * @return the hashed value of this operator
+   */
   virtual common::hash_t Hash() const {
     OpType t = GetType();
     return common::HashUtil::Hash(&t);
   }
 
+  /**
+   * Equality check
+   * @param r other
+   * @return true if this operator is logically equal to other, false otherwise
+   */
   virtual bool operator==(const BaseOperatorNode &r) { return GetType() == r.GetType(); }
+
+  /**
+   * Inequality check
+   * @param r other
+   * @return true if this operator is logically not equal to other, false otherwise
+   */
+  virtual bool operator!=(const BaseOperatorNode &r) { return !operator==(r); }
 };
 
+/**
+ * A wrapper around operators to provide a universal interface for accessing the data within
+ * @tparam T an operator type
+ */
 template <typename T>
-struct OperatorNode : public BaseOperatorNode {
+class OperatorNode : public BaseOperatorNode {
+ protected:
+  /**
+   * Utility method for applying visitor pattern on the underlying operator
+   * @param v operator visitor for visitor pattern
+   */
   void Accept(OperatorVisitor *v) const override;
 
+  /**
+   * @return string name of the underlying operator
+   */
   std::string GetName() const override { return std::string(name_); }
 
+  /**
+   * @return type of the underlying operator
+   */
   OpType GetType() const override { return type_; }
 
+  /**
+   * @return whether the underlying operator is logical
+   */
+  bool IsLogical() const override;
+
+  /**
+   * @return whether the underlying operator is physical
+   */
+  bool IsPhysical() const override;
+
+ private:
+  /**
+   * Name of the operator
+   */
   static const char *name_;
 
+  /**
+   * Type of the operator
+   */
   static OpType type_;
 };
 
@@ -68,6 +142,11 @@ class Operator {
    * Calls corresponding visitor to this operator node
    */
   void Accept(OperatorVisitor *v) const;
+
+  /**
+   * @return string name of this operator
+   */
+  std::string GetName() const;
 
   /**
    * @return type of this operator

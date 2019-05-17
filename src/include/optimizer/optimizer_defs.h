@@ -30,74 +30,91 @@ enum class PropertyType : uint8_t {
  * Operator type
  */
 enum class OpType {
-  Undefined = 0,
+  UNDEFINED = 0,
 
   // Logical Operators
-  LogicalGet,
-  LogicalExternalFileGet,
-  LogicalQueryDerivedGet,
-  LogicalProjection,
-  LogicalFilter,
-  LogicalMarkJoin,
-  LogicalDependentJoin,
-  LogicalSingleJoin,
-  LogicalInnerJoin,
-  LogicalLeftJoin,
-  LogicalRightJoin,
-  LogicalOuterJoin,
-  LogicalSemiJoin,
-  LogicalAggregateAndGroupBy,
-  LogicalInsert,
-  LogicalInsertSelect,
-  LogicalDelete,
-  LogicalUpdate,
-  LogicalLimit,
-  LogicalDistinct,
-  LogicalExportExternalFile,
+  LOGICALGET,
+  LOGUCALEXTERNALFILEGET,
+  LOGICALQUERYDERIVEDGET,
+  LOGICALPROJECTION,
+  LOGICALFILTER,
+  LOGICALMARKJOIN,
+  LOGICALDEPENDENTJOIN,
+  LOGICALSINGLEJOIN,
+  LOGICALINNERJOIN,
+  LOGICALLEFTJOIN,
+  LOGICALRIGHTJOIN,
+  LOGICALOUTERJOIN,
+  LOGICALSEMIJOIN,
+  LOGICALAGGREGATEANDGROUPBY,
+  LOGICALINSERT,
+  LOGICALINSERTSELECT,
+  LOGICALDELETE,
+  LOGICALUPDATE,
+  LOGICALLIMIT,
+  LOGICALDISTINCT,
+  LOGICALEXPORTEXTERNALFILE,
 
-  // Separate between logical and physical ops
-  LogicalPhysicalDelimiter,
+  // Separation of logical and physical operators
+  LOGICALPHYSICALDELIMITER,
 
   // Physical Operators
-  TableFreeScan,  // Scan Op for SELECT without FROM
-  SeqScan,
-  IndexScan,
-  ExternalFileScan,
-  QueryDerivedScan,
-  OrderBy,
-  Limit,
-  Distinct,
-  InnerNLJoin,
-  LeftNLJoin,
-  RightNLJoin,
-  OuterNLJoin,
-  InnerHashJoin,
-  LeftHashJoin,
-  RightHashJoin,
-  OuterHashJoin,
-  Insert,
-  InsertSelect,
-  Delete,
-  Update,
-  Aggregate,
-  HashGroupBy,
-  SortGroupBy,
-  ExportExternalFile,
+  TABLEFREESCAN,  // Scan Op for SELECT without FROM
+  SEQSCAN,
+  INDEXSCAN,
+  EXTERNALFILESCAN,
+  QUERYDERIVEDSCAN,
+  ORDERBY,
+  LIMIT,
+  DISTINCT,
+  INNERNLJOIN,
+  LEFTNLJOIN,
+  RIGHTNLJOIN,
+  OUTERNLJOIN,
+  INNERHASHJOIN,
+  LEFTHASHJOIN,
+  RIGHTHASHJOIN,
+  OUTERHASHJOIN,
+  INSERT,
+  INSERTSELECT,
+  DELETE,
+  UPDATE,
+  AGGREGATE,
+  HASHGROUPBY,
+  SORTGROUPBY,
+  EXPORTEXTERNALFILE,
 };
 
 /**
- * Operator category, logical or physical
+ * Augmented expression with a set of table aliases
  */
-enum OpCategory { LOGICAL, PHYSICAL };
-
-// Augment abstract expression with a table OID set
-struct AnnotatedExpression {
+class AnnotatedExpression {
+ public:
+  /**
+   * Create an AnnotatedExpression
+   * @param expr expression to be annotated
+   * @param table_alias_set an unordered set of table aliases
+   */
   AnnotatedExpression(std::shared_ptr<parser::AbstractExpression> expr,
-                      std::unordered_set<catalog::table_oid_t> &&table_oid_set)
-      : expr_(std::move(expr)), table_oid_set_(std::move(table_oid_set)) {}
+                      std::unordered_set<std::string> &&table_alias_set)
+      : expr_(std::move(expr)), table_alias_set_(std::move(table_alias_set)) {}
+
+  /**
+   * Default copy constructor
+   * @param ant_expr reference to the AnnotatedExpression to copy from
+   */
   AnnotatedExpression(const AnnotatedExpression &ant_expr) = default;
+
+ private:
+  /**
+   * Expression to be annotated
+   */
   std::shared_ptr<parser::AbstractExpression> expr_;
-  std::unordered_set<catalog::table_oid_t> table_oid_set_;
+
+  /**
+   * Unordered set of table aliases
+   */
+  std::unordered_set<std::string> table_alias_set_;
 };
 
 }  // namespace optimizer

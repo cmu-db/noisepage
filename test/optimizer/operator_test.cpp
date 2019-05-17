@@ -1,4 +1,3 @@
-#include "optimizer/operators.h"
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -6,6 +5,7 @@
 #include <vector>
 #include "catalog/catalog_defs.h"
 #include "optimizer/operator_expression.h"
+#include "optimizer/operators.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/constant_value_expression.h"
 #include "parser/update_statement.h"
@@ -78,7 +78,7 @@ TEST(OperatorTests, BasicTest) {
   Operator query_derived_scan_3 =
       QueryDerivedScan::make("alias", std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>>());
 
-  EXPECT_EQ(query_derived_scan_1.GetType(), OpType::QueryDerivedScan);
+  EXPECT_EQ(query_derived_scan_1.GetType(), OpType::QUERYDERIVEDSCAN);
   EXPECT_EQ(query_derived_scan_1.GetName(), "QueryDerivedScan");
   EXPECT_TRUE(query_derived_scan_1 == query_derived_scan_2);
   EXPECT_FALSE(query_derived_scan_1 == query_derived_scan_3);
