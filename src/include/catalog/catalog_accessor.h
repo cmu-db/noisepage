@@ -307,7 +307,7 @@ class CatalogAccessor {
    *
    * TODO(John): Should this return the actual index pointers as well?
    */
-  std::vector<index_oid_t> GetIndexOIDs(table_oid_t table);
+  std::vector<index_oid_t> GetIndexOids(table_oid_t table);
   // index_oid_t CreateIndex(namespace_oid_t namespace, std::string index, [[constructor stuff]])
 
   /**

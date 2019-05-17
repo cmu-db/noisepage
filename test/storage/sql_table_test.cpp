@@ -15,7 +15,6 @@ namespace terrier {
  */
 class SqlTableRW {
  public:
-  explicit SqlTableRW(catalog::table_oid_t table_oid) : table_oid_(table_oid) {}
   ~SqlTableRW() {
     delete pri_;
     delete pr_map_;
@@ -251,7 +250,6 @@ class SqlTableRW {
   transaction::TransactionManager txn_manager_ = {&buffer_pool_, true, LOGGING_DISABLED};
 
   storage::BlockStore block_store_{100, 100};
-  catalog::table_oid_t table_oid_;
   storage::SqlTable *table_ = nullptr;
 
   catalog::Schema *schema_ = nullptr;
@@ -273,7 +271,7 @@ struct SqlTableTests : public TerrierTest {
 
 // NOLINTNEXTLINE
 TEST_F(SqlTableTests, SelectInsertTest) {
-  SqlTableRW table(catalog::table_oid_t(2));
+  SqlTableRW table;
 
   table.DefineColumn("id", type::TypeId::INTEGER, false, catalog::col_oid_t(0));
   table.DefineColumn("datname", type::TypeId::INTEGER, false, catalog::col_oid_t(1));
@@ -301,7 +299,7 @@ TEST_F(SqlTableTests, SelectInsertTest) {
 
 // NOLINTNEXTLINE
 TEST_F(SqlTableTests, VarlenInsertTest) {
-  SqlTableRW table(catalog::table_oid_t(2));
+  SqlTableRW table;
 
   table.DefineColumn("id", type::TypeId::INTEGER, false, catalog::col_oid_t(0));
   table.DefineColumn("datname", type::TypeId::VARCHAR, false, catalog::col_oid_t(1));
@@ -321,7 +319,7 @@ TEST_F(SqlTableTests, VarlenInsertTest) {
 
 // NOLINTNEXTLINE
 TEST_F(SqlTableTests, MultipleColumnWidths) {
-  SqlTableRW table(catalog::table_oid_t(2));
+  SqlTableRW table;
 
   table.DefineColumn("bigint", type::TypeId::BIGINT, false, catalog::col_oid_t(1001));
   table.DefineColumn("integer", type::TypeId::INTEGER, false, catalog::col_oid_t(1002));
