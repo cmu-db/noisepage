@@ -5,6 +5,8 @@
 #include <vector>
 
 #include "catalog/catalog_defs.h"
+#include "catalog/default_value.h"
+#include "catalog/index_key_schema.h"
 #include "catalog/schema.h"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
@@ -51,8 +53,8 @@ class CatalogAccessor {
      * @param type SQL type for this column (must be a type with fixed-width)
      * @param nullable true if the column is nullable, false otherwise
      */
-    ColumnDefinition(std::string name, const type::TypeId type, const bool nullable)
-        : name_(std::move(name)), type_(type), nullable_(nullable) {}
+    ColumnDefinition(std::string name, const type::TypeId type_id, const bool nullable)
+        : name_(std::move(name)), type_(type_id), nullable_(nullable) {}
 
     /**
      * Instantiates a definition for a varlen column
@@ -61,8 +63,8 @@ class CatalogAccessor {
      * @param max_varlen_size the maximum length of the varlen entry
      * @param nullable true if the column is nullable, false otherwise
      */
-    ColumnDefinition(std::string name, const type::TypeId type, const uint16_t max_varlen_size, const bool nullable)
-        : name_(std::move(name)), type_(type), max_varlen_size_(max_varlen_size), nullable_(nullable) {}
+    ColumnDefinition(std::string name, const type::TypeId type_id, const uint16_t max_varlen_size, const bool nullable)
+        : name_(std::move(name)), type_(type_id), max_varlen_size_(max_varlen_size), nullable_(nullable) {}
 
     /**
      * @return the name of the column
@@ -89,6 +91,70 @@ class CatalogAccessor {
     type::TypeId type_;
     uint16_t max_varlen_size_;
     bool nullable_;
+  };
+
+  /**
+   * This class decouples the definition of a column from its existence in a
+   * schema.  This allows us to delegate all OID assignments to the catalog
+   * (rather than requiring the caller to reason about them) and allows us to
+   * treat Schema and Column objects as immutable outside of the catalog.
+   */
+  class IndexKeyDefinition {
+   public:
+    /**
+     * Instantiates a definition for a fixed-width column
+     * @param name column name
+     * @param type SQL type for this column (must be a type with fixed-width)
+     * @param nullable true if the column is nullable, false otherwise
+     */
+    IndexKeyDefinition(std::string name, const type::TypeId type_id, const bool nullable,
+                       std::string serialized_expression)
+        : name_(std::move(name)),
+          type_(type_id),
+          nullable_(nullable),
+          serialized_expression_(std::move(serialized_expression)) {}
+
+    /**
+     * Instantiates a definition for a varlen column
+     * @param name column name
+     * @param type SQL type for this column (must be a type with variable length)
+     * @param max_varlen_size the maximum length of the varlen entry
+     * @param nullable true if the column is nullable, false otherwise
+     */
+    IndexKeyDefinition(std::string name, const type::TypeId type_id, const uint16_t max_varlen_size,
+                       const bool nullable, std::string serialized_expression)
+        : name_(std::move(name)),
+          type_(type_id),
+          max_varlen_size_(max_varlen_size),
+          nullable_(nullable),
+          serialized_expression_(std::move(serialized_expression)) {}
+
+    /**
+     * @return the name of the column
+     */
+    const std::string &GetName() const { return name_; }
+
+    /**
+     * @return the SQL type of the column
+     */
+    const type::TypeId &GetType() const { return type_; }
+
+    /**
+     * @return the max size of a varlen entry in this column (only valid for VARLEN columns)
+     */
+    const uint16_t &GetMaxVarlenSize() const { return max_varlen_size_; }
+
+    /**
+     * @return whether the column can be NULL
+     */
+    const bool &IsNullable() const { return nullable_; }
+
+   private:
+    std::string name_;
+    type::TypeId type_;
+    uint16_t max_varlen_size_;
+    bool nullable_;
+    std::string serialized_expression_;
   };
 
   /**
@@ -125,6 +191,11 @@ class CatalogAccessor {
    * @param namespaces the namespaces to search given in priority order
    */
   void SetSearchPath(std::vector<namespace_oid_t> namespaces);
+
+  /**
+   * @return the current default namespace (first one in search path)
+   */
+  namespace_oid_t GetDefaultNamespace() { return search_path_[0]; }
 
   /**
    * Given a namespace name, resolve it to the corresponding OID
@@ -264,7 +335,32 @@ class CatalogAccessor {
    *       column entry in the catalog.
    */
   bool SetColumnNullable(table_oid_t table, col_oid_t column, bool nullable);
-  // bool SetColumnType(table_oid_t table, col_oid_t column, type::TypeId new_type);
+
+  /**
+   * Updates the table's schema by changing the data type of the column.  The operation
+   * could fail because the column does not exist, the column entry is write-locked by
+   * another transaction, or because the column already has that type.
+   * @param table OID to be modified
+   * @param column that is affected
+   * @param new_type for the column
+   * @return success
+   *
+   * @note This will increment the schema version number by one, locking the table
+   *       entry in the catalog until this is committed.  It will also lock the
+   *       column entry in the catalog.
+   */
+  bool SetColumnType(table_oid_t table, col_oid_t column, type::TypeId new_type);
+
+  /**
+   * Updates the table's schema by changing the default value of the column.  The operation
+   * could fail because the column does not exist or the column entry is write-locked by
+   * another transaction.
+   * @param table OID to be modified
+   * @param column that is affected
+   * @param default value to be applied
+   * @return success
+   */
+  bool SetColumnDefaultValue(table_oid_t table, col_oid_t column, DefaultValue default_value);
 
   /**
    * Rename the column from its current string to the new one.  The renaming could fail
@@ -278,7 +374,6 @@ class CatalogAccessor {
    * @note This operation will write-lock the column entry until the transaction closes.
    */
   bool RenameColumn(table_oid_t table, col_oid_t column, const std::string &new_column_name);
-  // bool SetColumnDefaultValue(table_oid_t table, col_oid_t column, DefaultValue default);
 
   /**
    * @return the visible schema object for the identified table
@@ -308,7 +403,22 @@ class CatalogAccessor {
    * TODO(John): Should this return the actual index pointers as well?
    */
   std::vector<index_oid_t> GetIndexOids(table_oid_t table);
-  // index_oid_t CreateIndex(namespace_oid_t namespace, std::string index, [[constructor stuff]])
+
+  /**
+   * Given the index name and its specification, add it to the catalog
+   * @param ns is the namespace in which the index will exist
+   * @param name of the index
+   * @param constraint type of the index
+   * @param keys is a vector of definitions for the individual keys of the index
+   * @return OID for the index, INVALID_INDEX_OID if the operation failed
+   */
+  index_oid_t CreateIndex(namespace_oid_t ns, std::string name, storage::index::ConstraintType constraint,
+                          std::vector<IndexKeyDefinition> keys);
+
+  /**
+   * @return the key schema for this index
+   */
+  IndexKeySchema *GetKeySchema(index_oid_t index);
 
   /**
    * Drop the corresponding index from the catalog.

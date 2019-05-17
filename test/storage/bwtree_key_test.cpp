@@ -5,6 +5,7 @@
 #include <map>
 #include <random>
 #include <vector>
+#include "catalog/index_key_schema.h"
 #include "portable_endian/portable_endian.h"
 #include "storage/garbage_collector.h"
 #include "storage/index/compact_ints_key.h"
@@ -31,7 +32,7 @@ class BwTreeKeyTests : public TerrierTest {
    * Generates random data for the given type and writes it to both attr and reference.
    */
   template <typename Random>
-  void WriteRandomAttribute(const IndexKeyColumn &col, void *attr, void *reference, Random *generator) {
+  void WriteRandomAttribute(const catalog::IndexKeyColumn &col, void *attr, void *reference, Random *generator) {
     std::uniform_int_distribution<int64_t> rng(std::numeric_limits<int64_t>::min(),
                                                std::numeric_limits<int64_t>::max());
     const auto type = col.GetType();
@@ -418,7 +419,7 @@ TEST_F(BwTreeKeyTests, IndexMetadataCompactIntsKeyTest) {
   //    pr_offsets            { 1,  2,  0,  4,  3}
 
   catalog::indexkeycol_oid_t oid(20);
-  IndexKeySchema key_schema;
+  catalog::IndexKeySchema key_schema;
 
   // key_schema            {INTEGER, INTEGER, BIGINT, TINYINT, SMALLINT}
   // oids                  {20, 21, 22, 23, 24}
@@ -508,7 +509,7 @@ TEST_F(BwTreeKeyTests, IndexMetadataGenericKeyNoMustInlineVarlenTest) {
   //    pr_offsets            { 3,  0,  1,  4,  2}
 
   catalog::indexkeycol_oid_t oid(20);
-  IndexKeySchema key_schema;
+  catalog::IndexKeySchema key_schema;
 
   // key_schema            {INTEGER, VARCHAR(8), VARCHAR(0), TINYINT, VARCHAR(12)}
   // oids                  {20, 21, 22, 23, 24}
@@ -593,7 +594,7 @@ TEST_F(BwTreeKeyTests, IndexMetadataGenericKeyMustInlineVarlenTest) {
   //    pr_offsets            { 3,  1,  2,  4,  0}
 
   catalog::indexkeycol_oid_t oid(20);
-  IndexKeySchema key_schema;
+  catalog::IndexKeySchema key_schema;
 
   // key_schema            {INTEGER, VARCHAR(50), VARCHAR(8), TINYINT, VARCHAR(90)}
   // oids                  {20, 21, 22, 23, 24}
@@ -785,7 +786,7 @@ TEST_F(BwTreeKeyTests, RandomCompactIntsKeyTest) {
 
 template <uint8_t KeySize, typename CType, typename Random>
 void CompactIntsKeyBasicTest(type::TypeId type_id, Random *const generator) {
-  IndexKeySchema key_schema;
+  catalog::IndexKeySchema key_schema;
   const uint8_t num_cols = (sizeof(uint64_t) * KeySize) / sizeof(CType);
 
   for (uint8_t i = 0; i < num_cols; i++) {
@@ -847,7 +848,7 @@ TEST_F(BwTreeKeyTests, CompactIntsKeyBasicTest) {
 
 template <typename KeyType, typename CType>
 void NumericComparisons(const type::TypeId type_id, const bool nullable) {
-  IndexKeySchema key_schema;
+  catalog::IndexKeySchema key_schema;
   key_schema.emplace_back(catalog::indexkeycol_oid_t(0), type_id, true);
 
   const IndexMetadata metadata(key_schema);
@@ -936,7 +937,7 @@ TEST_F(BwTreeKeyTests, GenericKeyNumericComparisons) {
 
 // NOLINTNEXTLINE
 TEST_F(BwTreeKeyTests, GenericKeyInlineVarlenComparisons) {
-  IndexKeySchema key_schema;
+  catalog::IndexKeySchema key_schema;
   key_schema.emplace_back(catalog::indexkeycol_oid_t(0), type::TypeId::VARCHAR, true, 12);
 
   const IndexMetadata metadata(key_schema);
@@ -1042,7 +1043,7 @@ TEST_F(BwTreeKeyTests, GenericKeyInlineVarlenComparisons) {
 
 // NOLINTNEXTLINE
 TEST_F(BwTreeKeyTests, GenericKeyNonInlineVarlenComparisons) {
-  IndexKeySchema key_schema;
+  catalog::IndexKeySchema key_schema;
   key_schema.emplace_back(catalog::indexkeycol_oid_t(0), type::TypeId::VARCHAR, true, 20);
 
   const IndexMetadata metadata(key_schema);

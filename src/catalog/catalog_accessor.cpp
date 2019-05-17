@@ -31,7 +31,10 @@ db_oid_t CatalogAccessor::CreateDatabase(const std::string &name) {
 bool CatalogAccessor::DropDatabase(db_oid_t db) { return catalog_->DeleteDatabase(txn_, db); }
 
 // TODO(John): Should this function do some sanity checks on the OIDs passed?
-void CatalogAccessor::SetSearchPath(std::vector<namespace_oid_t> namespaces) { search_path_ = std::move(namespaces); }
+void CatalogAccessor::SetSearchPath(std::vector<namespace_oid_t> namespaces) {
+  TERRIER_ASSERT(namespaces.size() > 0, "Search path cannot be empty");
+  search_path_ = std::move(namespaces);
+}
 
 namespace_oid_t CatalogAccessor::GetNamespaceOid(const std::string &name) {
   auto db_handle = catalog_->GetDatabaseHandle();
@@ -193,6 +196,18 @@ bool CatalogAccessor::SetColumnNullable(table_oid_t table, col_oid_t column, boo
   return false;
 }
 
+bool CatalogAccessor::SetColumnType(table_oid_t table, col_oid_t column, type::TypeId new_type) {
+  // TODO(John): Implement this once the catalog has been refactored.
+  TERRIER_ASSERT(true, "This function is not implemented yet");
+  return false;
+}
+
+bool CatalogAccessor::SetColumnDefaultValue(table_oid_t table, col_oid_t column, DefaultValue default_value) {
+  // TODO(John): Implement this once the catalog has been refactored.
+  TERRIER_ASSERT(true, "This function is not implemented yet");
+  return false;
+}
+
 bool CatalogAccessor::RenameColumn(table_oid_t table, col_oid_t column, const std::string &new_column_name) {
   // TODO(John):  Find the row in pg_attribute and update the name to the new name.  This will likely
   // need to be a delete and insert since the 'attname' column should be indexed.
@@ -266,6 +281,22 @@ std::vector<index_oid_t> CatalogAccessor::GetIndexOids(table_oid_t table) {
   // Blocked on the catalog supporting indexes
   TERRIER_ASSERT(true, "This function is not implemented yet");
   return indexes;
+}
+
+index_oid_t CatalogAccessor::CreateIndex(namespace_oid_t ns, std::string name,
+                                         storage::index::ConstraintType constraint,
+                                         std::vector<IndexKeyDefinition> keys) {
+  // TODO(John): Implement this similar to CreateTable
+  // Blocked on the catalog supporting indexes
+  TERRIER_ASSERT(true, "This function is not implemented yet");
+  return INVALID_INDEX_OID;
+}
+
+IndexKeySchema *CatalogAccessor::GetKeySchema(index_oid_t index) {
+  // TODO(John): Implement this similar to GetTable
+  // Blocked on the catalog supporting indexes
+  TERRIER_ASSERT(true, "This function is not implemented yet");
+  return nullptr;
 }
 
 bool CatalogAccessor::DropIndex(index_oid_t index) {

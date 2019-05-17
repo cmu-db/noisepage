@@ -4,6 +4,7 @@
 #include <vector>
 #include "bwtree/bwtree.h"
 #include "catalog/catalog_defs.h"
+#include "catalog/index_key_schema.h"
 #include "storage/index/bwtree_index.h"
 #include "storage/index/compact_ints_key.h"
 #include "storage/index/generic_key.h"
@@ -21,7 +22,7 @@ class IndexBuilder {
  private:
   catalog::index_oid_t index_oid_{0};
   ConstraintType constraint_type_ = ConstraintType::INVALID;
-  IndexKeySchema key_schema_;
+  catalog::IndexKeySchema key_schema_;
 
  public:
   IndexBuilder() = default;
@@ -72,7 +73,7 @@ class IndexBuilder {
    * @param key_schema the index key schema
    * @return the builder object
    */
-  IndexBuilder &SetKeySchema(const IndexKeySchema &key_schema) {
+  IndexBuilder &SetKeySchema(const catalog::IndexKeySchema &key_schema) {
     key_schema_ = key_schema;
     return *this;
   }
