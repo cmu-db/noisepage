@@ -215,7 +215,7 @@ class BwTreeKeyTests : public TerrierTest {
     std::vector<catalog::Schema::Column> columns;
     columns.emplace_back("attribute", type::TypeId ::INTEGER, false, catalog::col_oid_t(0));
     catalog::Schema schema{columns};
-    storage::SqlTable sql_table(&block_store, schema, catalog::table_oid_t(1));
+    storage::SqlTable sql_table(&block_store, schema);
     const auto &tuple_initializer = sql_table.InitializerForProjectedRow({catalog::col_oid_t(0)}).first;
 
     transaction::TransactionManager txn_manager(&buffer_pool, true, LOGGING_DISABLED);

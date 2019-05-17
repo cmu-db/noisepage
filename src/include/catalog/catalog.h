@@ -269,7 +269,7 @@ class Catalog {
    * @param table the table which the columns belong to
    */
   void AddColumnsToPGAttribute(transaction::TransactionContext *txn, db_oid_t db_oid,
-                               const std::shared_ptr<storage::SqlTable> &table);
+                               SqlTableHelper *table);
 
   /**
    * Set values for unused columns.

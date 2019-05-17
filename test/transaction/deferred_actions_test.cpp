@@ -61,7 +61,7 @@ TEST_F(DeferredActionsTest, CommitAction) {
 
   storage::BlockStore block_store{100, 100};
   catalog::Schema schema(cols);
-  storage::SqlTable table(&block_store, schema, catalog::table_oid_t(24));
+  storage::SqlTable table(&block_store, schema);
 
   auto row_pair = table.InitializerForProjectedRow(col_oids);
   auto pri = new storage::ProjectedRowInitializer(std::get<0>(row_pair));
@@ -234,7 +234,7 @@ TEST_F(DeferredActionsTest, CommitBootstrapDefer) {
 
   storage::BlockStore block_store{100, 100};
   catalog::Schema schema(cols);
-  storage::SqlTable table(&block_store, schema, catalog::table_oid_t(24));
+  storage::SqlTable table(&block_store, schema);
 
   auto row_pair = table.InitializerForProjectedRow(col_oids);
   auto pri = new storage::ProjectedRowInitializer(std::get<0>(row_pair));

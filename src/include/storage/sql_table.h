@@ -38,18 +38,12 @@ class SqlTable {
    * @param schema the initial Schema of this SqlTable
    * @param oid unique identifier for this SqlTable
    */
-  SqlTable(BlockStore *store, const catalog::Schema &schema, catalog::table_oid_t oid);
+  SqlTable(BlockStore *store, const catalog::Schema &schema);
 
   /**
    * Destructs a SqlTable, frees all its members.
    */
   ~SqlTable() { delete table_.data_table; }
-
-  /**
-   * Get the schema use of the SQL table
-   * @return the schema
-   */
-  catalog::Schema &GetSchema() { return schema_; }
 
   /**
    * Materializes a single tuple from the given slot, as visible at the timestamp of the calling txn.
@@ -115,11 +109,6 @@ class SqlTable {
   }
 
   /**
-   * @return table's unique identifier
-   */
-  catalog::table_oid_t Oid() const { return oid_; }
-
-  /**
    * @return the first tuple slot contained in the underlying DataTable
    */
   DataTable::SlotIterator begin() const { return table_.data_table->begin(); }
@@ -177,9 +166,6 @@ class SqlTable {
 
  private:
   BlockStore *const block_store_;
-  const catalog::table_oid_t oid_;
-
-  catalog::Schema schema_;
 
   // Eventually we'll support adding more tables when schema changes. For now we'll always access the one DataTable.
   DataTableVersion table_;

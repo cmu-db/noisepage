@@ -62,7 +62,7 @@ class BwTreeIndexTests : public TerrierTest {
   const uint32_t num_threads_ = 4;
 
   // SqlTable
-  storage::SqlTable *const sql_table_{new storage::SqlTable(&block_store_, table_schema_, catalog::table_oid_t(1))};
+  storage::SqlTable *const sql_table_{new storage::SqlTable(&block_store_, table_schema_)};
   const storage::ProjectedRowInitializer tuple_initializer_{
       sql_table_->InitializerForProjectedRow({catalog::col_oid_t(0)}).first};
 

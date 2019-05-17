@@ -108,7 +108,7 @@ table_oid_t Catalog::CreateUserTable(transaction::TransactionContext *txn, db_oi
   // ct_map_ is for system tables only, so user tables are not added to it
 
   // enter attribute information
-  AddColumnsToPGAttribute(txn, db_oid, tbl_rw->GetSqlTable());
+  AddColumnsToPGAttribute(txn, db_oid, tbl_rw);
   return tbl_rw->Oid();
 }
 
@@ -198,9 +198,9 @@ void Catalog::Bootstrap(transaction::TransactionContext *txn) {
 
 // TODO(pakhtar): resolve second arg.
 void Catalog::AddColumnsToPGAttribute(transaction::TransactionContext *txn, db_oid_t db_oid,
-                                      const std::shared_ptr<storage::SqlTable> &table) {
-  Schema schema = table->GetSchema();
-  std::vector<Schema::Column> cols = schema.GetColumns();
+                                      SqlTableHelper *table) {
+  Schema *schema = table->GetSchema();
+  std::vector<Schema::Column> cols = schema->GetColumns();
   catalog::SqlTableHelper *pg_attribute = GetCatalogTable(db_oid, CatalogTableType::ATTRIBUTE);
   int32_t col_num = 0;
   for (auto &c : cols) {
@@ -288,7 +288,7 @@ void Catalog::BootstrapDatabase(transaction::TransactionContext *txn, db_oid_t d
   std::vector<CatalogTableType> c_tables = {DATABASE, TABLESPACE, ATTRIBUTE, NAMESPACE, CLASS, TYPE, ATTRDEF, SETTINGS};
   auto add_cols_to_pg_attr = [this, txn, db_oid](const CatalogTableType cttype) {
     auto table_p = GetCatalogTable(db_oid, cttype);
-    AddColumnsToPGAttribute(txn, db_oid, table_p->GetSqlTable());
+    AddColumnsToPGAttribute(txn, db_oid, table_p);
   };
   std::for_each(c_tables.begin(), c_tables.end(), add_cols_to_pg_attr);
 }
@@ -439,7 +439,7 @@ void Catalog::DestroyDB(db_oid_t oid) {
 
   // save information needed for (later) reading and writing
   std::vector<col_oid_t> col_oids;
-  for (const auto &c : pg_class_ptr->GetSchema().GetColumns()) {
+  for (const auto &c : pg_class->GetSchema()->GetColumns()) {
     col_oids.emplace_back(c.GetOid());
   }
   auto col_pair = pg_class_ptr->InitializerForProjectedColumns(col_oids, 100);

@@ -43,7 +43,7 @@ class SqlTableRW {
    */
   void Create() {
     schema_ = new catalog::Schema(cols_);
-    table_ = new storage::SqlTable(&block_store_, *schema_, table_oid_);
+    table_ = new storage::SqlTable(&block_store_, *schema_);
 
     for (const auto &c : cols_) {
       col_oids_.emplace_back(c.GetOid());

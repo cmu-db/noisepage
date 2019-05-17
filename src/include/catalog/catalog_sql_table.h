@@ -175,7 +175,7 @@ class SqlTableHelper {
    */
   void Create() {
     schema_ = new catalog::Schema(cols_);
-    table_ = std::make_shared<storage::SqlTable>(&block_store_, *schema_, table_oid_);
+    table_ = std::make_shared<storage::SqlTable>(&block_store_, *schema_);
 
     for (const auto &c : cols_) {
       col_oids_.emplace_back(c.GetOid());
@@ -298,7 +298,7 @@ class SqlTableHelper {
    */
   type::TransientValue GetColInRow(storage::ProjectedRow *p_row, int32_t col_num) {
     storage::col_id_t storage_col_id(static_cast<uint16_t>(col_num));
-    type::TypeId col_type = table_->GetSchema().GetColumn(col_num).GetType();
+    type::TypeId col_type = GetSchema()->GetColumn(col_num).GetType();
     byte *col_p = p_row->AccessForceNotNull(ColNumToOffset(col_num));
     // fix
     return CreateColValue(col_type, col_p);
@@ -316,7 +316,7 @@ class SqlTableHelper {
    * @return table oid  row_p = table.FindRow(txn, search_vec);
 
    */
-  catalog::table_oid_t Oid() { return table_->Oid(); }
+  catalog::table_oid_t Oid() { return table_oid_; }
 
   /**
    * Return a pointer to the projection map
