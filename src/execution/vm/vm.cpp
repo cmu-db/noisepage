@@ -1012,8 +1012,10 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
   OP(Insert) : {
     auto db_id = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
     auto table_id = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
-    auto values = frame->LocalAt<uintptr_t>(READ_LOCAL_ID());
-    OpInsert(db_id, table_id, values);
+    auto values = frame->LocalAt<byte*>(READ_LOCAL_ID());
+    auto exec_context = static_cast<uintptr_t>(READ_IMM8());
+    OpInsert(exec_context, db_id, table_id, values);
+    std::cout << "INSERTING";
     DISPATCH_NEXT();
   }
 

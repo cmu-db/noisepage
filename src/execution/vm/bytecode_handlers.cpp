@@ -182,10 +182,31 @@ void OpOutputFinalize(uintptr_t context_ptr) {
 // -------------------------------------------------------------
 // Insert
 // ------------------------------------------------------------
-void OpInsert(u32 db_oid, u32 table_oid, uintptr_t values_ptr) {
-  (void)values_ptr;
-  std::cout << "Inserting! " << std::to_string(db_oid) << " "
-  << std::to_string(table_oid) << "\n";
+void OpInsert(uintptr_t context_ptr, u32 db_oid, u32 table_oid, byte *values_ptr) {
+  auto exec_context =
+      reinterpret_cast<tpl::exec::ExecutionContext *>(context_ptr);
+  auto catalog = tpl::sql::ExecutionStructures::Instance()->GetCatalog();
+  auto table = catalog->GetCatalogTable(static_cast<terrier::catalog::db_oid_t>(db_oid),
+      static_cast<terrier::catalog::table_oid_t>(table_oid));
+  auto sql_table = table->GetSqlTable();
+  auto *const txn = exec_context->GetTxn();
+
+  auto *pri = table->GetPRI();
+  auto *insert_buffer =
+      terrier::common::AllocationUtil::AllocateAligned(pri->ProjectedRowSize());
+  auto *insert = pri->InitializeRow(insert_buffer);
+  auto schema_cols = sql_table->GetSchema().GetColumns();
+
+  uint16_t offset = 0;
+
+  for (auto &col : schema_cols) {
+    //TODO(tanujnay112): figure out nulls
+    uint8_t current_size = col.GetAttrSize();
+    byte * data = insert->AccessForceNotNull(offset);
+    std::memcpy(data, values_ptr + offset, current_size);
+    offset += static_cast<uint16_t>(current_size);
+  }
+  sql_table->Insert(txn, *insert);
 }
 
 // -------------------------------------------------------------------

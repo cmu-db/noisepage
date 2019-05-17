@@ -316,9 +316,9 @@ void BytecodeEmitter::EmitOutputSetNull(Bytecode bytecode, uintptr_t ptr,
   EmitAll(bytecode, ptr, idx);
 }
 
-void BytecodeEmitter::EmitInsert(Bytecode bytecode, LocalVar db_oid,
-                                 LocalVar table_oid, LocalVar ptr) {
-  EmitAll(bytecode, db_oid, table_oid, ptr);
+void BytecodeEmitter::EmitInsert(Bytecode bytecode, LocalVar db_oid, LocalVar table_oid, LocalVar values_ptr,
+    uintptr_t exec_context) {
+  EmitAll(bytecode, db_oid, table_oid, values_ptr, exec_context);
 }
 
 void BytecodeEmitter::EmitIndexIteratorInit(Bytecode bytecode, LocalVar iter,

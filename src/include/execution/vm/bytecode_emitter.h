@@ -126,8 +126,8 @@ class BytecodeEmitter {
   // --------------------------------------------
   // Insert calls
   // --------------------------------------------
-  void EmitInsert(Bytecode bytecode, LocalVar db_oid, LocalVar table_oid, LocalVar ptr);
-
+  void EmitInsert(Bytecode bytecode, LocalVar db_oid, LocalVar table_oid, LocalVar values_ptr,
+      uintptr_t exec_context);
  private:
   // Copy a scalar immediate value into the bytecode stream
   template <typename T>

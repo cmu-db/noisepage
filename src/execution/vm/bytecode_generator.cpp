@@ -849,7 +849,9 @@ void BytecodeGenerator::VisitBuiltinInsertCall(ast::CallExpr *call,
   LocalVar db_id = VisitExpressionForRValue(args[0]);
   LocalVar table_id = VisitExpressionForRValue(args[1]);
   LocalVar values = VisitExpressionForRValue(args[2]);
-  emitter()->EmitInsert(Bytecode::Insert, db_id, table_id, values);
+
+  auto exec_context_addr = reinterpret_cast<uintptr_t >(exec_context_.get());
+  emitter()->EmitInsert(Bytecode::Insert, db_id, table_id, values, exec_context_addr);
 }
 
 void BytecodeGenerator::VisitBuiltinIndexIteratorCall(ast::CallExpr *call,

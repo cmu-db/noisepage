@@ -834,7 +834,7 @@ VM_OP_HOT void OpTan(tpl::sql::Real *result, tpl::sql::Real *input) {
 // Insert Calls
 // ---------------------------------------------------------------
 
-void OpInsert(u32 db_oid, u32 table_oid, uintptr_t values_ptr);
+void OpInsert(uintptr_t context_ptr, u32 db_oid, u32 table_oid, byte *values_ptr);
 
 // ---------------------------------------------------------------
 // Output Calls
