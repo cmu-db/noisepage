@@ -10,6 +10,8 @@
 #include "catalog/schema.h"
 #include "common/strong_typedef.h"
 #include "gtest/gtest.h"
+#include "storage/index/compact_ints_key.h"
+#include "storage/index/index_defs.h"
 #include "storage/storage_defs.h"
 #include "storage/storage_util.h"
 #include "storage/tuple_access_strategy.h"
@@ -325,6 +327,90 @@ struct StorageTestUtil {
         EXPECT_TRUE(!memcmp(val_ptr, col_slot, layout.AttrSize(col_id)));
       }
     }
+  }
+
+  /**
+   * Generates a random GenericKey-compatible schema with the given number of columns using the given types.
+   */
+  template <typename Random>
+  static storage::index::IndexKeySchema RandomGenericKeySchema(const uint32_t num_cols,
+                                                               const std::vector<type::TypeId> &types,
+                                                               Random *generator) {
+    uint32_t max_varlen_size = 20;
+    TERRIER_ASSERT(num_cols > 0, "Must have at least one column in your key schema.");
+
+    std::vector<catalog::indexkeycol_oid_t> key_oids;
+    key_oids.reserve(num_cols);
+
+    for (uint32_t i = 0; i < num_cols; i++) {
+      key_oids.emplace_back(i);
+    }
+
+    std::shuffle(key_oids.begin(), key_oids.end(), *generator);
+
+    storage::index::IndexKeySchema key_schema;
+
+    for (uint32_t i = 0; i < num_cols; i++) {
+      auto key_oid = key_oids[i];
+      auto type = *RandomTestUtil::UniformRandomElement(types, generator);
+      auto is_nullable = static_cast<bool>(std::uniform_int_distribution(0, 1)(*generator));
+
+      switch (type) {
+        case type::TypeId::VARBINARY:
+        case type::TypeId::VARCHAR: {
+          auto varlen_size = std::uniform_int_distribution(0u, max_varlen_size)(*generator);
+          key_schema.emplace_back(key_oid, type, is_nullable, varlen_size);
+          break;
+        }
+        default:
+          key_schema.emplace_back(key_oid, type, is_nullable);
+          break;
+      }
+    }
+
+    return key_schema;
+  }
+
+  /**
+   * Generates a random CompactIntsKey-compatible schema.
+   */
+  template <typename Random>
+  static storage::index::IndexKeySchema RandomCompactIntsKeySchema(Random *generator) {
+    const uint16_t max_bytes = sizeof(uint64_t) * INTSKEY_MAX_SLOTS;
+    const auto key_size = std::uniform_int_distribution(static_cast<uint16_t>(1), max_bytes)(*generator);
+
+    const std::vector<type::TypeId> types{type::TypeId::TINYINT, type::TypeId::SMALLINT, type::TypeId::INTEGER,
+                                          type::TypeId::BIGINT};  // has to be sorted in ascending type size order
+
+    const uint16_t max_cols = max_bytes;  // could have up to max_bytes TINYINTs
+    std::vector<catalog::indexkeycol_oid_t> key_oids;
+    key_oids.reserve(max_cols);
+
+    for (auto i = 0; i < max_cols; i++) {
+      key_oids.emplace_back(i);
+    }
+
+    std::shuffle(key_oids.begin(), key_oids.end(), *generator);
+
+    storage::index::IndexKeySchema key_schema;
+
+    uint8_t col = 0;
+
+    for (uint16_t bytes_used = 0; bytes_used != key_size;) {
+      auto max_offset = static_cast<uint8_t>(types.size() - 1);
+      for (const auto &type : types) {
+        if (key_size - bytes_used < type::TypeUtil::GetTypeSize(type)) {
+          max_offset--;
+        }
+      }
+      const uint8_t type_offset = std::uniform_int_distribution(static_cast<uint8_t>(0), max_offset)(*generator);
+      const auto type = types[type_offset];
+
+      key_schema.emplace_back(key_oids[col++], type, false);
+      bytes_used = static_cast<uint16_t>(bytes_used + type::TypeUtil::GetTypeSize(type));
+    }
+
+    return key_schema;
   }
 
  private:

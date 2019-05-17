@@ -5,16 +5,24 @@
 #include <vector>
 #include "catalog/catalog_defs.h"
 #include "common/performance_counter.h"
+#include "storage/data_table.h"
 #include "storage/index/compact_ints_key.h"
 #include "storage/index/generic_key.h"
 #include "storage/index/index_defs.h"
 #include "storage/index/index_metadata.h"
 #include "storage/storage_defs.h"
+#include "transaction/transaction_context.h"
 
 namespace terrier::storage::index {
 
 /**
- * Wrapper class for the various types of indexes in our system.
+ * Wrapper class for the various types of indexes in our system. Semantically, we expect updates on indexed attributes
+ * to be modeled as a delete and an insert (see bwtree_index_test.cpp CommitUpdate1, CommitUpdate2, etc.). This
+ * guarantees our snapshot isolation semantics by relying on the DataTable to enforce write-write conflicts and
+ * visibility issues.
+ *
+ * Any future indexes should mimic the logic of bwtree_index.h, performing the same checks on all operations before
+ * modifying the underlying structure or returning results.
  */
 class Index {
  private:
@@ -26,7 +34,7 @@ class Index {
   friend class GenericKey<64>;
   friend class GenericKey<128>;
   friend class GenericKey<256>;
-  friend class BwTreeIndexTests;
+  friend class BwTreeKeyTests;
 
   const catalog::index_oid_t oid_;
   const ConstraintType constraint_type_;
@@ -36,6 +44,17 @@ class Index {
    * Cached metadata that allows for performance optimizations in the index keys.
    */
   const IndexMetadata metadata_;
+
+  /**
+   * Determine if a tuple is visible by asking the DataTable associated with the TupleSlot. Used for scans.
+   * @param txn the calling transaction
+   * @param slot the slot of the tuple to check visibility on
+   * @return true if tuple is visible to this txn, false otherwise
+   */
+  static bool IsVisible(const transaction::TransactionContext &txn, const TupleSlot slot) {
+    const auto *const data_table = slot.GetBlock()->data_table_;
+    return data_table->IsVisible(txn, slot);
+  }
 
   /**
    * Creates a new index wrapper.
@@ -50,46 +69,84 @@ class Index {
   virtual ~Index() = default;
 
   /**
-   * Inserts a new key-value pair into the index.
+   * Inserts a new key-value pair into the index, used for non-unique key indexes.
+   * @param txn txn context for the calling txn, used to register abort actions
    * @param tuple key
    * @param location value
    * @return false if the value already exists, true otherwise
    */
-  virtual bool Insert(const ProjectedRow &tuple, TupleSlot location) = 0;
+  virtual bool Insert(transaction::TransactionContext *txn, const ProjectedRow &tuple, TupleSlot location) = 0;
 
   /**
-   * Removes a key-value pair from the index.
+   * Inserts a key-value pair only if any matching keys have TupleSlots that don't conflict with the calling txn
+   * @param txn txn context for the calling txn, used for visibility and write-write, and to register abort actions
    * @param tuple key
    * @param location value
-   * @return false if the key-value pair did not exist, true if the deletion succeeds
-   */
-  virtual bool Delete(const ProjectedRow &tuple, TupleSlot location) = 0;
-
-  /**
-   * Inserts a key-value pair only if the predicate fails on all existing values.
-   * @param tuple key
-   * @param location value
-   * @param predicate predicate to check against all existing values
    * @return true if the value was inserted, false otherwise
    *         (either because value exists, or predicate returns true for one of the existing values)
    */
-  virtual bool ConditionalInsert(const ProjectedRow &tuple, TupleSlot location,
-                                 std::function<bool(const TupleSlot)> predicate) = 0;
+  virtual bool InsertUnique(transaction::TransactionContext *txn, const ProjectedRow &tuple, TupleSlot location) = 0;
+
+  /**
+   * Doesn't immediately call delete on the index. Registers a commit action in the txn that will eventually register a
+   * deferred action for the GC to safely call delete on the index when no more transactions need to access the key.
+   * @param txn txn context for the calling txn, used to register commit actions for deferred GC actions
+   * @param tuple key
+   * @param location value
+   */
+  virtual void Delete(transaction::TransactionContext *txn, const ProjectedRow &tuple, TupleSlot location) = 0;
 
   /**
    * Finds all the values associated with the given key in our index.
+   * @param txn txn context for the calling txn, used for visibility checks
    * @param key the key to look for
    * @param[out] value_list the values associated with the key
    */
-  virtual void ScanKey(const ProjectedRow &key, std::vector<TupleSlot> *value_list) = 0;
+  virtual void ScanKey(const transaction::TransactionContext &txn, const ProjectedRow &key,
+                       std::vector<TupleSlot> *value_list) = 0;
 
   /**
-   * Finds all the values between the given keys in our index.
+   * Finds all the values between the given keys in our index, sorted in ascending order.
+   * @param txn txn context for the calling txn, used for visibility checks
    * @param low_key the key to start at
    * @param high_key the key to end at
    * @param[out] value_list the values associated with the keys
    */
-  virtual void Scan(const ProjectedRow &low_key, const ProjectedRow &high_key, std::vector<TupleSlot> *value_list) = 0;
+  virtual void ScanAscending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
+                             const ProjectedRow &high_key, std::vector<TupleSlot> *value_list) = 0;
+
+  /**
+   * Finds all the values between the given keys in our index, sorted in descending order.
+   * @param txn txn context for the calling txn, used for visibility checks
+   * @param low_key the key to end at
+   * @param high_key the key to start at
+   * @param[out] value_list the values associated with the keys
+   */
+  virtual void ScanDescending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
+                              const ProjectedRow &high_key, std::vector<TupleSlot> *value_list) = 0;
+
+  /**
+   * Finds the first limit # of values between the given keys in our index, sorted in ascending order.
+   * @param txn txn context for the calling txn, used for visibility checks
+   * @param low_key the key to start at
+   * @param high_key the key to end at
+   * @param[out] value_list the values associated with the keys
+   * @param limit upper bound of number of values to return
+   */
+  virtual void ScanLimitAscending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
+                                  const ProjectedRow &high_key, std::vector<TupleSlot> *value_list, uint32_t limit) = 0;
+
+  /**
+   * Finds the first limit # of values between the given keys in our index, sorted in descending order.
+   * @param txn txn context for the calling txn, used for visibility checks
+   * @param low_key the key to end at
+   * @param high_key the key to start at
+   * @param[out] value_list the values associated with the keys
+   * @param limit upper bound of number of values to return
+   */
+  virtual void ScanLimitDescending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
+                                   const ProjectedRow &high_key, std::vector<TupleSlot> *value_list,
+                                   uint32_t limit) = 0;
 
   /**
    * @return type of this index
