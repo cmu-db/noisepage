@@ -139,12 +139,12 @@ static void CompileAndRun(const std::string &source,
   {
     util::ScopedTimer<std::milli> timer(&jit_ms);
 
-    std::function<u32()> main_func;
+    std::function<u32()>  main_func;
     if (!module->GetFunction("main", vm::ExecutionMode::Jit, main_func)) {
       EXECUTION_LOG_ERROR("No main() entry function found with signature ()->int32");
       return;
     }
-
+    EXECUTION_LOG_INFO("The JIT is currently broken");
     EXECUTION_LOG_INFO("JIT main() returned: {}", main_func());
   }
   

@@ -1,6 +1,3 @@
-#include <iostream>
-
-#include <planner/plannodes/seq_scan_plan_node.h>
 #include "execution/compiler/operator/seq_scan_translator.h"
 
 #include "execution/compiler/consumer_context.h"
@@ -11,6 +8,7 @@
 #include "execution/compiler/compilation_context.h"
 #include "execution/compiler/code_context.h"
 #include "execution/sql/execution_structures.h"
+#include "planner/plannodes/seq_scan_plan_node.h"
 
 namespace tpl::compiler {
 
@@ -32,7 +30,6 @@ void SeqScanTranslator::Produce() {
   auto table_ident = pipeline_->GetCodeGen()->GetCodeContext()
       ->GetAstContext()->GetIdentifier(std::to_string(table_oid));
   auto table_name = (*codegen)->NewIdentifierExpr(DUMMY_POS, table_ident);
-  //auto table_name = (*codegen)->NewIdentifierExpr(DUMMY_POS, ast::Identifier("456"));
 
   util::RegionUnorderedMap<ast::Identifier, ast::Expr *> attr_map(codegen->GetRegion());
   attr_map[ast::Identifier(OID_KEY)] = (*codegen)->NewBoolLiteral(DUMMY_POS, true);

@@ -30,14 +30,14 @@ class ExecutionConsumer {
         case terrier::type::TypeId::SMALLINT:
         case terrier::type::TypeId::INTEGER:
         case terrier::type::TypeId::BIGINT:
-          type = codegen.Ty_Integer();
+          type = codegen.TyInteger();
           break;
         case terrier::type::TypeId::BOOLEAN:
-          type = codegen.Ty_Bool();
+          type = codegen.TyBool();
           break;
         default:
           // TODO(WAN): throw some kinda error
-          type = codegen.Ty_Nil();
+          type = codegen.TyNil();
       }
       fields.emplace_back(codegen->NewFieldDecl(DUMMY_POS, field_name, type));
     }

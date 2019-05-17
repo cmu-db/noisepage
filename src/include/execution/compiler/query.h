@@ -38,6 +38,7 @@ class Query {
   ast::File *GetCompiledFunction() { return compiled_fn_; }
 
  private:
+  // TODO(WAN): in principle we can NewIdentifier() all these but then reading the AST dump is a nightmare
   std::string name_qs = "query_state";
   std::string name_qinit = "query_init";
   std::string name_qproduce = "query_produce";

@@ -1,9 +1,8 @@
-
 #include "execution/compiler/codegen.h"
+
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/code_context.h"
-
-#include "execution/compiler/codegen.h"
+#include "type/transient_value_peeker.h"
 
 namespace tpl::compiler {
 
@@ -46,21 +45,77 @@ ast::IdentifierExpr *CodeGen::BoutputFinalize() {
   return factory_->NewIdentifierExpr(DUMMY_POS, ctx_->GetAstContext()->GetIdentifier(outputFinalize));
 }
 
-ast::Expr *CodeGen::Ty_Nil() const { return ctx_->nil_type_; }
-ast::Expr *CodeGen::Ty_Bool() const { return ctx_->bool_type_; }
-ast::Expr *CodeGen::Ty_Integer() const { return ctx_->int_type_; }
-ast::Expr *CodeGen::Ty_Int8() const { return ctx_->i8_type_; }
-ast::Expr *CodeGen::Ty_Int16() const { return ctx_->i16_type_; }
-ast::Expr *CodeGen::Ty_Int32() const { return ctx_->i32_type_; }
-ast::Expr *CodeGen::Ty_Int64() const { return ctx_->i64_type_; }
-ast::Expr *CodeGen::Ty_Int128() const { return ctx_->i128_type_; }
-ast::Expr *CodeGen::Ty_UInt8() const { return ctx_->u8_type_; }
-ast::Expr *CodeGen::Ty_UInt16() const { return ctx_->u16_type_; }
-ast::Expr *CodeGen::Ty_UInt32() const { return ctx_->u32_type_; }
-ast::Expr *CodeGen::Ty_UInt64() const { return ctx_->u64_type_; }
-ast::Expr *CodeGen::Ty_UInt128() const { return ctx_->u128_type_; }
-ast::Expr *CodeGen::Ty_Float32() const { return ctx_->f32_type_; }
-ast::Expr *CodeGen::Ty_Float64() const { return ctx_->f64_type_; }
+ast::IdentifierExpr *CodeGen::Binsert() {
+  return factory_->NewIdentifierExpr(DUMMY_POS, ctx_->GetAstContext()->GetIdentifier(insert));
+}
+
+ast::Expr *CodeGen::PeekValue(const terrier::type::TransientValue &transient_val) const {
+  switch (transient_val.Type()) {
+    case terrier::type::TypeId::TINYINT: {
+      auto val = terrier::type::TransientValuePeeker::PeekTinyInt(transient_val);
+      return factory_->NewIntLiteral(DUMMY_POS, val);
+    }
+    case terrier::type::TypeId::SMALLINT: {
+      auto val = terrier::type::TransientValuePeeker::PeekSmallInt(transient_val);
+      return factory_->NewIntLiteral(DUMMY_POS, val);
+    }
+    case terrier::type::TypeId::INTEGER: {
+      auto val = terrier::type::TransientValuePeeker::PeekInteger(transient_val);
+      return factory_->NewIntLiteral(DUMMY_POS, val);
+    }
+    case terrier::type::TypeId::BIGINT: {
+      // TODO(WAN): the factory's IntLiteral only goes to i32
+      auto val = terrier::type::TransientValuePeeker::PeekBigInt(transient_val);
+      return factory_->NewIntLiteral(DUMMY_POS, val);
+    }
+    case terrier::type::TypeId::BOOLEAN: {
+      auto val = terrier::type::TransientValuePeeker::PeekBoolean(transient_val);
+      return factory_->NewIntLiteral(DUMMY_POS, val);
+    }
+    case terrier::type::TypeId::DATE:
+    case terrier::type::TypeId::TIMESTAMP:
+    case terrier::type::TypeId::DECIMAL:
+    case terrier::type::TypeId::VARCHAR:
+    case terrier::type::TypeId::VARBINARY:
+    case terrier::type::TypeId::INVALID:
+      // TODO(WAN): error out
+      return nullptr;
+  }
+}
+
+ast::Expr *CodeGen::TyConvert(terrier::type::TypeId type) const {
+  switch (type) {
+    case terrier::type::TypeId::TINYINT: { return TyInt8(); }
+    case terrier::type::TypeId::SMALLINT: { return TyInt16(); }
+    case terrier::type::TypeId::INTEGER: { return TyInt32(); }
+    case terrier::type::TypeId::BIGINT: { return TyInt64(); }
+    case terrier::type::TypeId::BOOLEAN: { return TyBool(); }
+    case terrier::type::TypeId::DATE:
+    case terrier::type::TypeId::TIMESTAMP:
+    case terrier::type::TypeId::DECIMAL:
+    case terrier::type::TypeId::VARCHAR:
+    case terrier::type::TypeId::VARBINARY:
+    case terrier::type::TypeId::INVALID:
+      // TODO(WAN): error out
+      return nullptr;
+  }
+}
+
+ast::Expr *CodeGen::TyNil() const { return ctx_->nil_type_; }
+ast::Expr *CodeGen::TyBool() const { return ctx_->bool_type_; }
+ast::Expr *CodeGen::TyInteger() const { return ctx_->int_type_; }
+ast::Expr *CodeGen::TyInt8() const { return ctx_->i8_type_; }
+ast::Expr *CodeGen::TyInt16() const { return ctx_->i16_type_; }
+ast::Expr *CodeGen::TyInt32() const { return ctx_->i32_type_; }
+ast::Expr *CodeGen::TyInt64() const { return ctx_->i64_type_; }
+ast::Expr *CodeGen::TyInt128() const { return ctx_->i128_type_; }
+ast::Expr *CodeGen::TyUInt8() const { return ctx_->u8_type_; }
+ast::Expr *CodeGen::TyUInt16() const { return ctx_->u16_type_; }
+ast::Expr *CodeGen::TyUInt32() const { return ctx_->u32_type_; }
+ast::Expr *CodeGen::TyUInt64() const { return ctx_->u64_type_; }
+ast::Expr *CodeGen::TyUInt128() const { return ctx_->u128_type_; }
+ast::Expr *CodeGen::TyFloat32() const { return ctx_->f32_type_; }
+ast::Expr *CodeGen::TyFloat64() const { return ctx_->f64_type_; }
 
 
 /*ast::FunctionDecl *GetFunction(std::string name, ast::Expr *ret_type, util::RegionVector<ast::FieldDecl *> args,

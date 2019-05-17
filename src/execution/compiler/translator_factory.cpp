@@ -1,8 +1,6 @@
 #include "execution/compiler/translator_factory.h"
 
-#include "execution/compiler/operator/seq_scan_translator.h"
-#include "execution/compiler/pipeline.h"
-#include "execution/util/macros.h"
+#include "execution/compiler/compilation_context.h"
 #include "execution/compiler/expression/arithmetic_translator.h"
 #include "execution/compiler/expression/comparison_translator.h"
 #include "execution/compiler/expression/conjunction_translator.h"
@@ -10,7 +8,10 @@
 #include "execution/compiler/expression/null_check_translator.h"
 #include "execution/compiler/expression/tuple_value_translator.h"
 #include "execution/compiler/expression/unary_translator.h"
-#include "execution/compiler/compilation_context.h"
+#include "execution/compiler/operator/insert_translator.h"
+#include "execution/compiler/operator/seq_scan_translator.h"
+#include "execution/compiler/pipeline.h"
+#include "execution/util/macros.h"
 
 namespace tpl::compiler {
 
@@ -18,6 +19,9 @@ OperatorTranslator *TranslatorFactory::CreateTranslator(const terrier::planner::
     switch (op.GetPlanNodeType()) {
       case terrier::planner::PlanNodeType::SEQSCAN: {
         return new SeqScanTranslator(op, pipeline);
+      }
+      case terrier::planner::PlanNodeType::INSERT: {
+        return new InsertTranslator(op, pipeline);
       }
       default:
         TPL_ASSERT(false, "Unsupported plan node for translation");

@@ -91,15 +91,14 @@ class CompilerTest : public TerrierTest {
     tpl::compiler::ExecutionConsumer consumer(final);
     tpl::compiler::CompilationContext ctx(&query, &consumer);
     ctx.GeneratePlan(&query);
-    auto ast = query.GetCompiledFunction();
-    tpl::ast::AstDump::Dump(ast);
+
     if (ctx.GetCodeGen()->GetCodeContext()->GetReporter()->HasErrors()) {
       EXECUTION_LOG_ERROR("Type-checking error!");
       ctx.GetCodeGen()->GetCodeContext()->GetReporter()->PrintErrors();
     }
-//    auto ast = query.GetCompiledFunction();
 
     std::cout << "Converted: " << std::endl;
+    auto ast = query.GetCompiledFunction();
     tpl::ast::AstDump::Dump(ast);
 
     // init TPL
@@ -751,36 +750,33 @@ TEST_F(CompilerTest, IndexScanPlanNodeJsonTest) {
   auto index_scan_plan = std::dynamic_pointer_cast<IndexScanPlanNode>(deserialized_plan);
   EXPECT_EQ(*plan_node, *index_scan_plan);
 }
-
+*/
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, InsertPlanNodeJsonTest) {
-  // Construct InsertPlanNode
   std::vector<type::TransientValue> values;
-  values.push_back(type::TransientValueFactory::GetInteger(0));
-  values.push_back(type::TransientValueFactory::GetBoolean(true));
+  values.emplace_back(type::TransientValueFactory::GetInteger(15));
+  values.emplace_back(type::TransientValueFactory::GetBoolean(false));
+
+  std::vector<OutputSchema::Column> cols;
+  cols.emplace_back("colA", type::TypeId::INTEGER, true, catalog::col_oid_t(13));
+  cols.emplace_back("colB", type::TypeId::BOOLEAN, true, catalog::col_oid_t(14));
+  auto schema = std::make_shared<OutputSchema>(cols);
+
   InsertPlanNode::Builder builder;
+
   auto plan_node = builder.SetOutputSchema(CompilerTest::BuildDummyOutputSchema())
-      .SetDatabaseOid(catalog::db_oid_t(0))
-      .SetNamespaceOid(catalog::namespace_oid_t(0))
-      .SetTableOid(catalog::table_oid_t(1))
+      .SetDatabaseOid(catalog::db_oid_t(1))
+      .SetNamespaceOid(catalog::namespace_oid_t(0))  // TODO(WAN): currently unused
+      .SetTableOid(catalog::table_oid_t(15))  // TODO(WAN): testing like this is miserable
       .SetValues(std::move(values))
-      .AddParameterInfo(0, 1, 2)
+      .AddParameterInfo(0, 1, 2)  // TODO(WAN): ask Gus if he needs this, I don't think we do
       .AddParameterInfo(3, 4, 5)
-      .SetBulkInsertCount(1)
+      .SetBulkInsertCount(1)  // TODO(WAN): this parameter still makes no sense
       .Build();
 
-  // Serialize to Json
-  auto json = plan_node->ToJson();
-  EXPECT_FALSE(json.is_null());
-
-  // Deserialize plan node
-  auto deserialized_plan = DeserializePlanNode(json);
-  EXPECT_TRUE(deserialized_plan != nullptr);
-  EXPECT_EQ(PlanNodeType::INSERT, deserialized_plan->GetPlanNodeType());
-  auto insert_plan = std::dynamic_pointer_cast<InsertPlanNode>(deserialized_plan);
-  EXPECT_EQ(*plan_node, *insert_plan);
+  CompileAndRun(plan_node.get());
 }
-
+/*
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, LimitPlanNodeJsonTest) {
   // Construct LimitPlanNode
@@ -887,11 +883,10 @@ TEST_F(CompilerTest, ResultPlanNodeJsonTest) {
 TEST_F(CompilerTest, SeqScanPlanNodeJsonTest) {
   // Construct SeqScanPlanNode
   SeqScanPlanNode::Builder builder;
-  std::string col_name("colA");
   auto table_oid = tpl::sql::ExecutionStructures::Instance()->
       GetCatalog()->GetCatalogTable(catalog::DEFAULT_DATABASE_OID, "test_1")->Oid();
   auto plan_node = builder.SetOutputSchema(CompilerTest::BuildDummyOutputSchema())
-      .SetScanPredicate(CompilerTest::BuildConstantComparisonPredicate("test_1", col_name, 500))
+      .SetScanPredicate(CompilerTest::BuildConstantComparisonPredicate("test_1", "colA", 500))
       .SetIsParallelFlag(true)
       .SetIsForUpdateFlag(false)
       .SetDatabaseOid(catalog::DEFAULT_DATABASE_OID)

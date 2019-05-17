@@ -223,7 +223,12 @@ void ExecutionStructures::InitTestTables() {
        {{"col1", TypeId::SMALLINT, false, Dist::Serial, 0, 0},
         {"col2", TypeId::INTEGER, true, Dist::Uniform, 0, 9},
         {"col3", TypeId::BIGINT, false, Dist::Uniform, 0, kDefaultVectorSize},
-        {"col4", TypeId::INTEGER, true, Dist::Uniform, 0, 2 * kDefaultVectorSize}}}
+        {"col4", TypeId::INTEGER, true, Dist::Uniform, 0, 2 * kDefaultVectorSize}}},
+
+      // Empty table with two columns
+      {"empty_table2", 0,
+       {{"colA", TypeId::INTEGER, false, Dist::Serial, 0, 0},
+        {"colB", TypeId::BOOLEAN, false, Dist::Uniform, 0, 0}}},
   };
 
   auto *txn = txn_manager_->BeginTransaction();
@@ -247,35 +252,50 @@ void ExecutionStructures::InitTestTables() {
 }
 
 void ExecutionStructures::InitTestSchemas() {
-  // Build output1.tpl's final schema (simple seq_scan)
-  auto catalog_table1 = catalog_->GetCatalogTable(terrier::catalog::DEFAULT_DATABASE_OID, "test_1");
-  const terrier::catalog::Schema & schema1 = catalog_table1->GetSqlTable()->GetSchema();
-  std::vector<terrier::catalog::Schema::Column> output_cols1{};
-  output_cols1.emplace_back(schema1.GetColumns()[0]);
-  output_cols1.emplace_back(schema1.GetColumns()[1]);
+  auto catalog_test_1 = catalog_->GetCatalogTable(terrier::catalog::DEFAULT_DATABASE_OID, "test_1");
+  const terrier::catalog::Schema &schema_test_1 = catalog_test_1->GetSqlTable()->GetSchema();
+  auto catalog_test_2 = catalog_->GetCatalogTable(terrier::catalog::DEFAULT_DATABASE_OID, "test_2");
+  const terrier::catalog::Schema &schema_test_2 = catalog_test_2->GetSqlTable()->GetSchema();
+  auto catalog_empty_table = catalog_->GetCatalogTable(terrier::catalog::DEFAULT_DATABASE_OID, "empty_table");
+  const terrier::catalog::Schema &schema_empty_table = catalog_empty_table->GetSqlTable()->GetSchema();
 
-  std::unordered_map<uint32_t, uint32_t> offsets1{};
-  offsets1[0] = 0;
-  offsets1[1] = sql::ValUtil::GetSqlSize(schema1.GetColumns()[0].GetType());
-  auto final_schema1 = std::make_shared<exec::FinalSchema>(output_cols1, offsets1);
+  // Build output1.tpl's final schema (simple seq_scan)
+  {
+    std::vector<terrier::catalog::Schema::Column> output_cols{};
+    output_cols.emplace_back(schema_test_1.GetColumns()[0]);
+    output_cols.emplace_back(schema_test_1.GetColumns()[1]);
+
+    std::unordered_map<uint32_t, uint32_t> offsets{};
+    offsets[0] = 0;
+    offsets[1] = sql::ValUtil::GetSqlSize(schema_test_1.GetColumns()[0].GetType());
+    auto final_schema = std::make_shared<exec::FinalSchema>(output_cols, offsets);
+    test_plan_nodes_["output1.tpl"] = final_schema;
+  }
 
   // Build output2.tpl's final schema (simple nested loop join)
-  auto catalog_table2 = catalog_->GetCatalogTable(terrier::catalog::DEFAULT_DATABASE_OID, "test_2");
-  const terrier::catalog::Schema & schema2 = catalog_table1->GetSqlTable()->GetSchema();
-  std::vector<terrier::catalog::Schema::Column> output_cols2{};
-  std::unordered_map<uint32_t, uint32_t> offsets2{};
-  output_cols2.emplace_back(schema1.GetColumns()[0]);
-  output_cols2.emplace_back(schema1.GetColumns()[1]);
-  output_cols2.emplace_back(schema2.GetColumns()[0]);
-  output_cols2.emplace_back(schema2.GetColumns()[1]);
-  offsets2[0] = 0;
-  offsets2[1] = sql::ValUtil::GetSqlSize(schema1.GetColumns()[0].GetType());
-  offsets2[2] = offsets2[1] + sql::ValUtil::GetSqlSize(schema1.GetColumns()[1].GetType());
-  offsets2[3] = offsets2[2] + sql::ValUtil::GetSqlSize(schema2.GetColumns()[0].GetType());
-  auto final_schema2 = std::make_shared<exec::FinalSchema>(output_cols2, offsets2);
+  {
+    std::vector<terrier::catalog::Schema::Column> output_cols{};
+    std::unordered_map<uint32_t, uint32_t> offsets{};
+    output_cols.emplace_back(schema_test_1.GetColumns()[0]);
+    output_cols.emplace_back(schema_test_1.GetColumns()[1]);
+    output_cols.emplace_back(schema_test_2.GetColumns()[0]);
+    output_cols.emplace_back(schema_test_2.GetColumns()[1]);
+    offsets[0] = 0;
+    offsets[1] = sql::ValUtil::GetSqlSize(schema_test_1.GetColumns()[0].GetType());
+    offsets[2] = offsets[1] + sql::ValUtil::GetSqlSize(schema_test_1.GetColumns()[1].GetType());
+    offsets[3] = offsets[2] + sql::ValUtil::GetSqlSize(schema_test_2.GetColumns()[0].GetType());
+    auto final_schema = std::make_shared<exec::FinalSchema>(output_cols, offsets);
+    test_plan_nodes_["output2.tpl"] = final_schema;
+  }
 
-  test_plan_nodes_["output1.tpl"] = final_schema1;
-  test_plan_nodes_["output2.tpl"] = final_schema2;
+  // Build insert.tpl's final schema (empty table)
+  std::vector<terrier::catalog::Schema::Column> output_cols{};
+  output_cols.emplace_back(schema_empty_table.GetColumns()[0]);
+
+  std::unordered_map<uint32_t, uint32_t> offsets{};
+  offsets[0] = 0;
+  auto final_schema = std::make_shared<exec::FinalSchema>(output_cols, offsets);
+  test_plan_nodes_["insert.tpl"] = final_schema;
 }
 
 

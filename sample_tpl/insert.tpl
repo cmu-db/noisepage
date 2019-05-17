@@ -2,23 +2,31 @@ struct row_struct {
   colA: Integer
 }
 
-//don't really know the structure of row structure yet
 fun main() -> int {
-  var ret: int = 0
-  //for (row in empty_table) {
-  //  ret = ret + 1
-  //}
-
-  var oldret: int = ret
-
-  //do the insert
-  var out : row_struct
-  out.colA = 0
-  @insert(1, 2, &out)
-
-  for (row in empty_table) {
-    var l : int = row.colA
-    ret = l
+  // expect no results
+  var oldcnt = 0
+  for (row1 in empty_table) {
+    oldcnt = oldcnt + 1
+    var out1 = @ptrCast(*row_struct, @outputAlloc())
+    out1.colA = row1.colA
+    @outputAdvance()
   }
-  return (ret - oldret)
+
+  var ins : row_struct
+  ins.colA = 15
+  @insert(1, 2, &ins)
+  ins.colA = 721
+  @insert(1, 2, &ins)
+
+  // expect two results
+  var cnt = 0
+  for (row2 in empty_table) {
+    cnt = cnt + 1
+    var out2 = @ptrCast(*row_struct, @outputAlloc())
+    out2.colA = row2.colA
+    @outputAdvance()
+  }
+  @outputFinalize()
+
+  return cnt
 }

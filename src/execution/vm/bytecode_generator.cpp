@@ -845,12 +845,12 @@ void BytecodeGenerator::VisitBuiltinOutputCall(ast::CallExpr *call,
 
 void BytecodeGenerator::VisitBuiltinInsertCall(ast::CallExpr *call,
                                                ast::Builtin builtin) {
-  auto args = call->arguments();
+  const auto &args = call->arguments();
   LocalVar db_id = VisitExpressionForRValue(args[0]);
   LocalVar table_id = VisitExpressionForRValue(args[1]);
   LocalVar values = VisitExpressionForRValue(args[2]);
 
-  auto exec_context_addr = reinterpret_cast<uintptr_t >(exec_context_.get());
+  auto exec_context_addr = reinterpret_cast<uintptr_t>(exec_context_.get());
   emitter()->EmitInsert(Bytecode::Insert, db_id, table_id, values, exec_context_addr);
 }
 

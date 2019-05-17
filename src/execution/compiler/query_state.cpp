@@ -27,7 +27,7 @@ void QueryState::FinalizeType(tpl::compiler::CodeGen *codegen) {
   util::RegionVector<ast::FieldDecl *> members(codegen->GetRegion());
   // TODO(WAN): the alignment code freaks out if your struct is empty
   if (states_.empty()) {
-    RegisterState("DUMMY_STATE", codegen->Ty_Bool(), (*codegen)->NewBoolLiteral(DUMMY_POS, false));
+    RegisterState("DUMMY_STATE", codegen->TyBool(), (*codegen)->NewBoolLiteral(DUMMY_POS, false));
   }
   members.reserve(states_.size());
   for (const auto &state : states_) {
