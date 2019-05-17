@@ -1,6 +1,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "catalog/attr_def_handle.h"

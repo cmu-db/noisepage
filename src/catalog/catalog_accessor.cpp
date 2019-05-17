@@ -273,14 +273,11 @@ index_oid_t CatalogAccessor::GetIndexOid(namespace_oid_t ns, const std::string &
   return catalog_->GetIndexOid(ns, name);
 }
 
-std::vector<index_oid_t> CatalogAccessor::GetIndexOids(table_oid_t table) {
-  return catalog_->GetIndexOids(table);
-}
+std::vector<index_oid_t> CatalogAccessor::GetIndexOids(table_oid_t table) { return catalog_->GetIndexOids(table); }
 
 index_oid_t CatalogAccessor::CreateIndex(namespace_oid_t ns, table_oid_t table, const std::string &name,
                                          storage::index::ConstraintType constraint,
                                          const std::vector<IndexKeyDefinition> &keys) {
-
   // Need to create the key schema (assigning column OIDs in the process)
   IndexKeySchema schema;
   for (auto keyCol : keys) {
@@ -294,20 +291,14 @@ index_oid_t CatalogAccessor::CreateIndex(namespace_oid_t ns, table_oid_t table, 
   return catalog_->CreateIndex(ns, table, name, constraint, schema);
 }
 
-IndexKeySchema *CatalogAccessor::GetKeySchema(index_oid_t index) {
-  return catalog_->GetKeySchema(index);
-}
+IndexKeySchema *CatalogAccessor::GetKeySchema(index_oid_t index) { return catalog_->GetKeySchema(index); }
 
-bool CatalogAccessor::DropIndex(index_oid_t index) {
-  return catalog_->DropIndex(index);
-}
+bool CatalogAccessor::DropIndex(index_oid_t index) { return catalog_->DropIndex(index); }
 
 bool CatalogAccessor::SetIndexPointer(index_oid_t index, storage::index::Index *index_ptr) {
   return catalog_->SetIndexPointer(index, index_ptr);
 }
 
-storage::index::Index *CatalogAccessor::GetIndex(index_oid_t index) {
-  return catalog_->GetIndex(index);
-}
+storage::index::Index *CatalogAccessor::GetIndex(index_oid_t index) { return catalog_->GetIndex(index); }
 
 }  // namespace terrier::catalog

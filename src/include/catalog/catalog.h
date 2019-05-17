@@ -2,6 +2,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 #include "catalog/catalog_accessor.h"
@@ -311,8 +312,7 @@ class Catalog {
     std::vector<index_oid_t> ret;
     if (iter == table_index_map_.end()) return ret;
 
-    for (auto &oid : iter->second)
-      ret.emplace_back(oid);
+    for (auto &oid : iter->second) ret.emplace_back(oid);
 
     return ret;
   }
@@ -343,7 +343,7 @@ class Catalog {
   /**
    * @return the key schema for this index
    */
-  IndexKeySchema *GetKeySchema(index_oid_t index){
+  IndexKeySchema *GetKeySchema(index_oid_t index) {
     auto iter = index_to_key_schema_map_.find(index);
     return (iter == index_to_key_schema_map_.end()) ? nullptr : &iter->second;
   }
