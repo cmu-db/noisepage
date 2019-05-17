@@ -113,12 +113,17 @@ bool CatalogAccessor::RenameTable(table_oid_t table, const std::string &new_tabl
 bool CatalogAccessor::DropTable(table_oid_t table) { return catalog_->DeleteUserTable(txn_, db_, table); }
 
 bool CatalogAccessor::SetTablePointer(table_oid_t table, storage::SqlTable *table_ptr) {
-  // TODO(John): Implementing this function is blocked on #380.
-  // Specifically, we need to decouple the catalog's internal wrapper of user
-  // tables from the storage layer to enable the SettingsManager and execution
-  // engine finer-grained control of the storage.
-  TERRIER_ASSERT(true, "This function is not implemented yet");
-  return false;
+  auto db_handle = catalog_->GetDatabaseHandle();
+  auto class_handle = db_handle.GetClassTable(txn_, db_);
+
+  // pg_class expects the OID as a 'col_oid_t' so we need to strip the
+  // 'table_oid_t' we have to a basic integer and reconstruct it as a column OID
+  auto class_entry = class_handle.GetClassEntry(txn_, col_oid_t(!table));
+
+  // Return false here to avoid dereferencing a nullptr.
+  if (class_entry == nullptr) return false;
+
+  return class_entry->GetPtr()->SetTablePointer(table_ptr);
 }
 
 storage::SqlTable *CatalogAccessor::GetTable(table_oid_t table) {

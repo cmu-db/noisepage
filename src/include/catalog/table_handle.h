@@ -190,6 +190,14 @@ class TableCatalogView {
   SqlTableHelper *CreateTable(transaction::TransactionContext *txn, const Schema &schema, const std::string &name);
 
   /**
+   * Create a user-defined SqlTable. The namespace of the table is the same as the TableHandle.
+   * @param txn the transaction context
+   * @param name the table name
+   * @param schema the table schema
+   */
+  SqlTableHelper *CreateUserTable(transaction::TransactionContext *txn, const Schema &schema, const std::string &name);
+
+  /**
    * Get a pointer to the table for read and write
    * @param txn the transaction context
    * @param oid the oid of the table

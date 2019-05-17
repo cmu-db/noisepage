@@ -103,7 +103,7 @@ table_oid_t Catalog::CreateUserTable(transaction::TransactionContext *txn, db_oi
   auto table_handle = ns_handle.GetTableHandle(txn, ns_oid);
 
   // creates the storage table and adds to pg_class
-  auto tbl_rw = table_handle.CreateTable(txn, schema, table_name);
+  auto tbl_rw = table_handle.CreateUserTable(txn, schema, table_name);
 
   // ct_map_ is for system tables only, so user tables are not added to it
 

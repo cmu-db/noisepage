@@ -74,6 +74,28 @@ SqlTableHelper *TableCatalogView::CreateTable(transaction::TransactionContext *t
   return table;
 }
 
+SqlTableHelper *TableCatalogView::CreateUserTable(transaction::TransactionContext *txn, const Schema &schema,
+                                                  const std::string &name) {
+  std::vector<type::TransientValue> row;
+  // TODO(yangjuns): error handling
+  // Create SqlTable
+  auto table = new SqlTableHelper(table_oid_t(catalog_->GetNextOid()));
+  auto cols = schema.GetColumns();
+  for (auto &col : cols) {
+    table->DefineColumn(col.GetName(), col.GetType(), col.GetNullable(), col.GetOid());
+  }
+  table->InitializeSchema();
+  // Add to pg_class
+  row.emplace_back(type::TransientValueFactory::GetBigInt(reinterpret_cast<int64_t>(table)));
+  row.emplace_back(type::TransientValueFactory::GetInteger(!table->Oid()));
+  row.emplace_back(type::TransientValueFactory::GetVarChar(name));
+  row.emplace_back(type::TransientValueFactory::GetInteger(!nsp_oid_));
+  row.emplace_back(type::TransientValueFactory::GetInteger(
+      !catalog_->GetTablespaceHandle().GetTablespaceEntry(txn, "pg_default")->GetOid()));
+  pg_class_->InsertRow(txn, row);
+  return table;
+}
+
 SqlTableHelper *TableCatalogView::GetTable(transaction::TransactionContext *txn, table_oid_t oid) {
   // TODO(yangjuns): error handling
   // get the namespace_oid of the table to check if it's a table under current namespace

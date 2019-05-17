@@ -27,7 +27,7 @@ class SqlTableHelper {
    * Constructor
    * @param table_oid the table oid of the underlying sql table
    */
-  explicit SqlTableHelper(catalog::table_oid_t table_oid) : table_oid_(table_oid) {}
+  explicit SqlTableHelper(catalog::table_oid_t table_oid) : table_oid_(table_oid), table_(nullptr) {}
   ~SqlTableHelper() {
     delete pri_;
     delete pr_map_;
@@ -168,6 +168,39 @@ class SqlTableHelper {
     } else {
       cols_.emplace_back(name, type, nullable, oid);
     }
+  }
+
+  /**
+   * Creates and stores the schema object for the helper
+   */
+  void InitializeSchema() { schema_ = new catalog::Schema(cols_); }
+
+  /**
+   * Sets the table pointer for the SqlTable helper to the given object
+   * @param table_ptr to the SqlTable object
+   * @return true if successful
+   */
+  bool SetTablePointer(storage::SqlTable *table_ptr) {
+    if (table_ != nullptr) return false;
+
+    table_ = std::shared_ptr<storage::SqlTable>(table_ptr);
+
+    for (const auto &c : cols_) {
+      col_oids_.emplace_back(c.GetOid());
+    }
+
+    init_pair_ = new std::pair<storage::ProjectedColumnsInitializer, storage::ProjectionMap>(
+        table_->InitializerForProjectedColumns(col_oids_, 1));
+    col_initer_ = &init_pair_->first;
+
+    // save information needed for (later) reading and writing
+    // TODO(pakhtar): review to see if still needed, since we are using
+    // projected columns
+    auto row_pair = table_->InitializerForProjectedRow(col_oids_);
+    pri_ = new storage::ProjectedRowInitializer(std::get<0>(row_pair));
+    pr_map_ = new storage::ProjectionMap(std::get<1>(row_pair));
+
+    return true;
   }
 
   /**
