@@ -174,6 +174,34 @@ TEST_F(ParserTestBase, CreateFunctionTest) {
 }
 
 // NOLINTNEXTLINE
+TEST_F(ParserTestBase, CreateIndexTest) {
+  std::string query = "CREATE INDEX IDX_ORDER ON oorder ((O_W_ID - 2), (O + W + O));";
+  auto stmt_list = pgparser.BuildParseTree(query);
+  auto create_stmt = reinterpret_cast<CreateStatement *>(stmt_list[0].get());
+
+  EXPECT_EQ(create_stmt->GetCreateType(), CreateStatement::kIndex);
+  EXPECT_EQ(create_stmt->GetIndexName(), "idx_order");
+  EXPECT_EQ(create_stmt->GetTableName(), "oorder");
+  EXPECT_EQ(create_stmt->GetIndexAttributes().size(), 2);
+  auto ia1 = create_stmt->GetIndexAttributes()[0].GetExpression();
+  EXPECT_EQ(ia1->GetExpressionType(), ExpressionType::OPERATOR_MINUS);
+  auto ia1l = reinterpret_cast<TupleValueExpression *>(ia1->GetChild(0).get());
+  EXPECT_EQ(ia1l->GetColumnName(), "o_w_id");
+  auto ia1r = reinterpret_cast<ConstantValueExpression *>(ia1->GetChild(1).get());
+  EXPECT_EQ(type::TransientValuePeeker::PeekInteger(ia1r->GetValue()), 2);
+  auto ia2 = create_stmt->GetIndexAttributes()[1].GetExpression();
+  EXPECT_EQ(ia2->GetExpressionType(), ExpressionType::OPERATOR_PLUS);
+  auto ia2l = reinterpret_cast<TupleValueExpression *>(ia2->GetChild(0).get());
+  EXPECT_EQ(ia2l->GetExpressionType(), ExpressionType::OPERATOR_PLUS);
+  auto ia2ll = reinterpret_cast<TupleValueExpression *>(ia2l->GetChild(0).get());
+  auto ia2lr = reinterpret_cast<TupleValueExpression *>(ia2l->GetChild(1).get());
+  auto ia2r = reinterpret_cast<TupleValueExpression *>(ia2->GetChild(1).get());
+  EXPECT_EQ(ia2ll->GetColumnName(), "o");
+  EXPECT_EQ(ia2lr->GetColumnName(), "w");
+  EXPECT_EQ(ia2r->GetColumnName(), "o");
+}
+
+// NOLINTNEXTLINE
 TEST_F(ParserTestBase, CreateTableTest) {
   std::string query =
       "CREATE TABLE Foo ("
@@ -1226,8 +1254,8 @@ TEST_F(ParserTestBase, OldCreateIndexTest) {
   EXPECT_TRUE(create_stmt->IsUniqueIndex());
   EXPECT_EQ(create_stmt->GetIndexName(), "idx_order");
   EXPECT_EQ(create_stmt->GetTableName(), "oorder");
-  EXPECT_EQ(create_stmt->GetIndexAttributes()[0], "o_w_id");
-  EXPECT_EQ(create_stmt->GetIndexAttributes()[1], "o_d_id");
+  EXPECT_EQ(create_stmt->GetIndexAttributes()[0].GetName(), "o_w_id");
+  EXPECT_EQ(create_stmt->GetIndexAttributes()[1].GetName(), "o_d_id");
 
   query = "CREATE INDEX ii ON t USING SKIPLIST (col);";
   stmt_list = pgparser.BuildParseTree(query);
