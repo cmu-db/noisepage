@@ -82,6 +82,10 @@ namespace_oid_t Catalog::CreateNameSpace(transaction::TransactionContext *txn, d
     ns_entry = ns_handle.GetNamespaceEntry(txn, name);
   }
   int32_t ns_oid_int = ns_entry->GetIntegerColumn("oid");
+
+  // Modification to support indexes
+  namespace_index_map_.emplace(namespace_oid_t(ns_oid_int), std::unordered_map<std::string, index_oid_t>());
+
   return namespace_oid_t(ns_oid_int);
 }
 
@@ -93,6 +97,10 @@ bool Catalog::DeleteNameSpace(transaction::TransactionContext *txn, db_oid_t db_
   if (ns_entry == nullptr) {
     return false;
   }
+
+  // Modification to support indexes
+  namespace_index_map_.erase(ns_oid);
+
   return ns_handle.DeleteEntry(txn, ns_entry);
 }
 
@@ -104,6 +112,9 @@ table_oid_t Catalog::CreateUserTable(transaction::TransactionContext *txn, db_oi
 
   // creates the storage table and adds to pg_class
   auto tbl_rw = table_handle.CreateUserTable(txn, schema, table_name);
+
+  // Modification to support indexes
+  table_index_map_.emplace(tbl_rw->Oid(), std::unordered_set<index_oid_t>());
 
   // ct_map_ is for system tables only, so user tables are not added to it
 
@@ -135,6 +146,10 @@ bool Catalog::DeleteUserTable(transaction::TransactionContext *txn, db_oid_t db_
 
   // delete from pg_class
   auto col_oid = col_oid_t(!tbl_oid);
+
+  // Modification to support indexes
+  table_index_map_.erase(tbl_oid);
+
   return class_handle.DeleteEntry(txn, col_oid);
 }
 

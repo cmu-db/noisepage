@@ -261,63 +261,53 @@ Schema *CatalogAccessor::GetSchema(table_oid_t table) {
 }
 
 index_oid_t CatalogAccessor::GetIndexOid(const std::string &name) {
-  // TODO(John): Implement this similar to GetTable
-  // Blocked on the catalog supporting indexes
-  TERRIER_ASSERT(true, "This function is not implemented yet");
+  for (auto &ns : search_path_) {
+    auto oid = GetIndexOid(ns, name);
+    if (oid != INVALID_INDEX_OID) return oid;
+  }
+
   return INVALID_INDEX_OID;
 }
 
 index_oid_t CatalogAccessor::GetIndexOid(namespace_oid_t ns, const std::string &name) {
-  // TODO(John): Implement this similar to GetTable
-  // Blocked on the catalog supporting indexes
-  TERRIER_ASSERT(true, "This function is not implemented yet");
-  return INVALID_INDEX_OID;
+  return catalog_->GetIndexOid(ns, name);
 }
 
 std::vector<index_oid_t> CatalogAccessor::GetIndexOids(table_oid_t table) {
-  // TODO(John): This should be a simple index search on pg_class
-
-  std::vector<index_oid_t> indexes;
-  // Blocked on the catalog supporting indexes
-  TERRIER_ASSERT(true, "This function is not implemented yet");
-  return indexes;
+  return catalog_->GetIndexOids(table);
 }
 
-index_oid_t CatalogAccessor::CreateIndex(namespace_oid_t ns, const std::string &name,
+index_oid_t CatalogAccessor::CreateIndex(namespace_oid_t ns, table_oid_t table, const std::string &name,
                                          storage::index::ConstraintType constraint,
                                          const std::vector<IndexKeyDefinition> &keys) {
-  // TODO(John): Implement this similar to CreateTable
-  // Blocked on the catalog supporting indexes
-  TERRIER_ASSERT(true, "This function is not implemented yet");
-  return INVALID_INDEX_OID;
+
+  // Need to create the key schema (assigning column OIDs in the process)
+  IndexKeySchema schema;
+  for (auto keyCol : keys) {
+    if (type::TypeUtil::GetTypeSize(keyCol.GetType()) == VARLEN_COLUMN)
+      schema.emplace_back(indexkeycol_oid_t(catalog_->GetNextOid()), keyCol.GetType(), keyCol.IsNullable(),
+                          keyCol.GetMaxVarlenSize());
+    else
+      schema.emplace_back(indexkeycol_oid_t(catalog_->GetNextOid()), keyCol.GetType(), keyCol.IsNullable());
+  }
+
+  return catalog_->CreateIndex(ns, table, name, constraint, schema);
 }
 
 IndexKeySchema *CatalogAccessor::GetKeySchema(index_oid_t index) {
-  // TODO(John): Implement this similar to GetTable
-  // Blocked on the catalog supporting indexes
-  TERRIER_ASSERT(true, "This function is not implemented yet");
-  return nullptr;
+  return catalog_->GetKeySchema(index);
 }
 
 bool CatalogAccessor::DropIndex(index_oid_t index) {
-  // TODO(John): Implement this similar to DropTable
-  // Blocked on the catalog supporting indexes
-  TERRIER_ASSERT(true, "This function is not implemented yet");
-  return false;
+  return catalog_->DropIndex(index);
 }
 
 bool CatalogAccessor::SetIndexPointer(index_oid_t index, storage::index::Index *index_ptr) {
-  // TODO(John): Implement this similar to SetTablePointer
-  // Blocked on the catalog supporting indexes
-  TERRIER_ASSERT(true, "This function is not implemented yet");
-  return false;
+  return catalog_->SetIndexPointer(index, index_ptr);
 }
 
 storage::index::Index *CatalogAccessor::GetIndex(index_oid_t index) {
-  // TODO(John): Implement this once there is an API to use in the catalog
-  // Blocked on the catalog supporting indexes
-  TERRIER_ASSERT(true, "This function is not implemented yet");
-  return nullptr;
+  return catalog_->GetIndex(index);
 }
 
 }  // namespace terrier::catalog

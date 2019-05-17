@@ -362,7 +362,7 @@ class CatalogAccessor {
    * @param default value to be applied
    * @return success
    */
-  bool SetColumnDefaultValue(table_oid_t table, col_oid_t column, DefaultValue default_value);
+  bool SetColumnDefaultValue(table_oid_t table, col_oid_t column, const DefaultValue &default_value);
 
   /**
    * Rename the column from its current string to the new one.  The renaming could fail
@@ -414,8 +414,8 @@ class CatalogAccessor {
    * @param keys is a vector of definitions for the individual keys of the index
    * @return OID for the index, INVALID_INDEX_OID if the operation failed
    */
-  index_oid_t CreateIndex(namespace_oid_t ns, std::string name, storage::index::ConstraintType constraint,
-                          std::vector<IndexKeyDefinition> keys);
+  index_oid_t CreateIndex(namespace_oid_t ns, table_oid_t, const std::string &name,
+                          storage::index::ConstraintType constraint, const std::vector<IndexKeyDefinition> &keys);
 
   /**
    * @return the key schema for this index
