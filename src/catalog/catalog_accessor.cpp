@@ -200,16 +200,44 @@ const Schema &CatalogAccessor::GetSchema(table_oid_t table) {
   // a pointer to a pre-allocated one and handle deallocation through a more
   // complicated set of deferrals.
 
-  std::vector<Schema::Column> columns;
-  // TODO(John): Actually build the schema from pg_attribute...
-  // This is blocked on efficiently fetching information without namespace OID
-  TERRIER_ASSERT(true, "This function is not implemented yet");
+  // std::vector<Schema::Column> columns;
+  // auto db_handle = GetDatabaseHandle();
+  // auto attr_handle = db_handle.GetAttributeTable(txn_, db_);
 
-  auto *schema = new Schema(columns);
-  txn_->RegisterAbortAction([&]() { delete schema; });
-  txn_->RegisterCommitAction([&]() { delete schema; });
+  // auto col_oids = attr_handle.GetTableColumns(txn_, table);
+  // for (auto col : col_oids) {
+  //   auto col_entry = attr_handle.GetAttributeEntry(txn_, table, col);
+  //   auto name = col_entry.GetAttname();
+  //   auto type = type::TypeID(static_cast<uint8_t>(!col_entry.GetAtttypid()));
+  //   columns.emplace_back(col_entry.GetAttname(), )
+  // }
+  // // TODO(John): Actually build the schema from pg_attribute...
+  // // This is blocked on efficiently fetching information without namespace OID
+  // TERRIER_ASSERT(true, "This function is not implemented yet");
 
-  return *schema;
+  // auto *schema = new Schema(columns);
+  // txn_->RegisterAbortAction([&]() { delete schema; });
+  // txn_->RegisterCommitAction([&]() { delete schema; });
+
+  // return *schema;
+
+  // TODO(John): Everything above is the correct way to do return a schema
+  // object (i.e. using the actual catalog).  However, since end-to-end testing
+  // needs to get this information and we don't want to enforce using the catalog
+  // instead of the SqlTable hack, we have this hack.  Someone can hunt me down
+  // and make me write a thousand catalogs as penance if this isn't fixed by
+  // September 2019.
+  auto db_handle = catalog_->GetDatabaseHandle();
+  auto class_handle = db_handle.GetClassTable(txn_, db_);
+
+  // pg_class expects the OID as a 'col_oid_t' so we need to strip the
+  // 'table_oid_t' we have to a basic integer and reconstruct it as a column OID
+  auto class_entry = class_handle.GetClassEntry(txn_, col_oid_t(!table));
+
+  // Return a nullptr if needed, before dereferencing the helper pointer.
+  if (class_entry == nullptr) return nullptr;
+
+  return &*(class_entry->GetPtr()->GetSchema());
 }
 
 index_oid_t GetIndexOid(const std::string &name) {

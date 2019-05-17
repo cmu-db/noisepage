@@ -216,8 +216,16 @@ void Catalog::AddColumnsToPGAttribute(transaction::TransactionContext *txn, db_o
     row.emplace_back(type::TransientValueFactory::GetInteger(!type_entry->GetOid()));
 
     // length of column type. Varlen columns have the sign bit set.
-    // TODO(pakhtar): resolve what to store for varlens.
-    auto attr_size = c.GetAttrSize();
+    // TODO(John): This is a hack to support Varlens until the catalog is
+    // backend is reimplemented.  Since we know attribute sizes via the C++
+    // interface, we can overload this column with the maxlen field when it's
+    // a Varlen since we do not need the size to build the Schema::Column
+    // objects.
+    int32_t attr_size;
+    if (type::TypeUtil::GetTypeSize(c.GetType()) == VARLEN_COLUMN) {
+      attr_size = c.GetMaxVarlenSize();
+    else
+      attr_size = c.GetAttrSize();
     row.emplace_back(type::TransientValueFactory::GetInteger(attr_size));
 
     // column number, starting from 1 for "real" columns.

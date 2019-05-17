@@ -562,6 +562,8 @@ class SqlTableHelper {
     delete[] buffer;
   }
 
+  Schema *GetSchema() { return schema_; }
+
  private:
   static void EmptyCallback(void * /*unused*/) {}
 

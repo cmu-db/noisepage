@@ -80,6 +80,14 @@ class AttributeCatalogTable {
                                                            const std::string &name);
 
   /**
+   * Get all of the column OIDs for a given table.
+   * @param txn transaction context for querying the catalog
+   * @param table OID owning the requested columns
+   * @return a vector of the visible column oids for this table.
+   */
+  std::vector<col_oid_t> GetTableColumns(transaction::TransactionContext *txn, table_oid_t table);
+
+  /**
    * Delete all entries matching table_oid
    * @param txn transaction
    * @param table_oid to match
