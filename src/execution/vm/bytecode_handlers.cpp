@@ -197,13 +197,15 @@ void OpInsert(uintptr_t context_ptr, u32 db_oid, u32 table_oid, byte *values_ptr
   auto *insert = pri->InitializeRow(insert_buffer);
   auto schema_cols = sql_table->GetSchema().GetColumns();
 
+  uint16_t index = 0;
   uint16_t offset = 0;
 
   for (auto &col : schema_cols) {
     //TODO(tanujnay112): figure out nulls
     uint8_t current_size = col.GetAttrSize();
-    byte * data = insert->AccessForceNotNull(offset);
+    byte * data = insert->AccessForceNotNull(index);
     std::memcpy(data, values_ptr + offset, current_size);
+    index += 1;
     offset += static_cast<uint16_t>(current_size);
   }
   sql_table->Insert(txn, *insert);

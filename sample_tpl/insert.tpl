@@ -1,17 +1,24 @@
 struct row_struct {
   colA: Integer
-  colB: Integer
-  colC: Integer
-  colD: Integer
 }
 
 //don't really know the structure of row structure yet
 fun main() -> int {
-  var out : *row_struct
-  out.colA = 11
-  out.colB = 22
-  out.colC = 33
-  out.colD = 44
-  //@insert(1, 7, &out)
-  return 0
+  var ret: int = 0
+  //for (row in empty_table) {
+  //  ret = ret + 1
+  //}
+
+  var oldret: int = ret
+
+  //do the insert
+  var out : row_struct
+  out.colA = 0
+  @insert(1, 2, &out)
+
+  for (row in empty_table) {
+    var l : int = row.colA
+    ret = l
+  }
+  return (ret - oldret)
 }

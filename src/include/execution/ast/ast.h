@@ -469,7 +469,8 @@ class ForInStmt : public IterationStmt {
 
   Attributes *attributes() const { return attributes_; }
 
-  bool GetHasOid() const { return attributes()->Contains(ast::Identifier(OID_KEY)); }
+  bool GetHasOid() const { return attributes() != nullptr
+        && attributes()->Contains(ast::Identifier(OID_KEY)); }
 
   static bool classof(const AstNode *node) {
     return node->kind() == Kind::ForInStmt;
