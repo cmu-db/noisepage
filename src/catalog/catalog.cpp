@@ -197,8 +197,7 @@ void Catalog::Bootstrap(transaction::TransactionContext *txn) {
 }
 
 // TODO(pakhtar): resolve second arg.
-void Catalog::AddColumnsToPGAttribute(transaction::TransactionContext *txn, db_oid_t db_oid,
-                                      SqlTableHelper *table) {
+void Catalog::AddColumnsToPGAttribute(transaction::TransactionContext *txn, db_oid_t db_oid, SqlTableHelper *table) {
   Schema *schema = table->GetSchema();
   std::vector<Schema::Column> cols = schema->GetColumns();
   catalog::SqlTableHelper *pg_attribute = GetCatalogTable(db_oid, CatalogTableType::ATTRIBUTE);

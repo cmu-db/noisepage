@@ -268,8 +268,7 @@ class Catalog {
    * @param db_oid the database the pg_attribute belongs to
    * @param table the table which the columns belong to
    */
-  void AddColumnsToPGAttribute(transaction::TransactionContext *txn, db_oid_t db_oid,
-                               SqlTableHelper *table);
+  void AddColumnsToPGAttribute(transaction::TransactionContext *txn, db_oid_t db_oid, SqlTableHelper *table);
 
   /**
    * Set values for unused columns.
