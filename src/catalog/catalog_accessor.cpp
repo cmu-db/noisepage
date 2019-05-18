@@ -301,4 +301,15 @@ bool CatalogAccessor::SetIndexPointer(index_oid_t index, storage::index::Index *
 
 storage::index::Index *CatalogAccessor::GetIndex(index_oid_t index) { return catalog_->GetIndex(index); }
 
+CatalogAccessor::CatalogAccessor(Catalog *catalog, transaction::TransactionContext *txn, db_oid_t database)
+    : catalog_(catalog), txn_(txn), db_(database) {
+  // Set the default namespace.  In Postgres this is [$user, 'public'], but we
+  // do not have users so we can't support this at the moment.  When we add users
+  // we may need to relook the constructor parameters.
+  auto ns = GetNamespaceOid("public");
+  TERRIER_ASSERT(ns != INVALID_NAMESPACE_OID, "Namespace 'public' is required");
+  std::vector<namespace_oid_t> searchpath;
+  searchpath.emplace_back(ns);
+  SetSearchPath(std::move(searchpath));
+}
 }  // namespace terrier::catalog
