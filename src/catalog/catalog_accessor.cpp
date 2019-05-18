@@ -303,6 +303,7 @@ storage::index::Index *CatalogAccessor::GetIndex(index_oid_t index) { return cat
 
 CatalogAccessor::CatalogAccessor(Catalog *catalog, transaction::TransactionContext *txn, db_oid_t database)
     : catalog_(catalog), txn_(txn), db_(database) {
+  TERRIER_ASSERT(db_ != INVALID_DATABASE_OID, "Cannot get an accessor to a non-existent database");
   // Set the default namespace.  In Postgres this is [$user, 'public'], but we
   // do not have users so we can't support this at the moment.  When we add users
   // we may need to relook the constructor parameters.

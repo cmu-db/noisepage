@@ -25,6 +25,12 @@ Catalog::Catalog(transaction::TransactionManager *txn_manager, transaction::Tran
   CATALOG_LOG_TRACE("=======Finished Bootstrapping ======");
 }
 
+CatalogAccessor Catalog::GetAccessor(transaction::TransactionContext *txn, std::string database) {
+  auto db_handle = GetDatabaseHandle();
+  auto db_entry = db_handle.GetDatabaseEntry(txn, database);
+  return GetAccessor(txn, db_entry->GetOid());
+}
+
 db_oid_t Catalog::CreateDatabase(transaction::TransactionContext *txn, const std::string &name) {
   db_oid_t new_db_oid = db_oid_t(GetNextOid());
   Catalog::AddEntryToPGDatabase(txn, new_db_oid, name);
