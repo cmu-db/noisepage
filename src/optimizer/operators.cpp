@@ -39,14 +39,14 @@ bool SeqScan::operator==(const BaseOperatorNode &r) {
   const SeqScan &node = *dynamic_cast<const SeqScan *>(&r);
   if (predicates_.size() != node.predicates_.size()) return false;
   for (size_t i = 0; i < predicates_.size(); i++) {
-    if (predicates_[i].expr_ != node.predicates_[i].expr_) return false;
+    if (predicates_[i].GetExpr() != node.predicates_[i].GetExpr()) return false;
   }
   return true;
 }
 
 common::hash_t SeqScan::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  for (auto &pred : predicates_) hash = common::HashUtil::CombineHashes(hash, pred.expr_->Hash());
+  for (auto &pred : predicates_) hash = common::HashUtil::CombineHashes(hash, pred.GetExpr()->Hash());
   return hash;
 }
 
@@ -81,7 +81,7 @@ bool IndexScan::operator==(const BaseOperatorNode &r) {
     return false;
 
   for (size_t i = 0; i < predicates_.size(); i++) {
-    if (predicates_[i].expr_ != node.predicates_[i].expr_) return false;
+    if (predicates_[i].GetExpr() != node.predicates_[i].GetExpr()) return false;
   }
   return true;
 }
@@ -91,7 +91,7 @@ common::hash_t IndexScan::Hash() const {
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&index_oid_));
-  for (auto &pred : predicates_) hash = common::HashUtil::CombineHashes(hash, pred.expr_->Hash());
+  for (auto &pred : predicates_) hash = common::HashUtil::CombineHashes(hash, pred.GetExpr()->Hash());
   return hash;
 }
 
@@ -204,7 +204,7 @@ common::hash_t InnerNLJoin::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
   for (auto &expr : left_keys_) hash = common::HashUtil::CombineHashes(hash, expr->Hash());
   for (auto &expr : right_keys_) hash = common::HashUtil::CombineHashes(hash, expr->Hash());
-  for (auto &pred : join_predicates_) hash = common::HashUtil::CombineHashes(hash, pred.expr_->Hash());
+  for (auto &pred : join_predicates_) hash = common::HashUtil::CombineHashes(hash, pred.GetExpr()->Hash());
   return hash;
 }
 
@@ -221,7 +221,7 @@ bool InnerNLJoin::operator==(const BaseOperatorNode &r) {
     if (right_keys_[i] != node.right_keys_[i]) return false;
   }
   for (size_t i = 0; i < join_predicates_.size(); i++) {
-    if (join_predicates_[i].expr_ != node.join_predicates_[i].expr_) return false;
+    if (join_predicates_[i].GetExpr() != node.join_predicates_[i].GetExpr()) return false;
   }
   return true;
 }
@@ -270,7 +270,7 @@ common::hash_t InnerHashJoin::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
   for (auto &expr : left_keys_) hash = common::HashUtil::CombineHashes(hash, expr->Hash());
   for (auto &expr : right_keys_) hash = common::HashUtil::CombineHashes(hash, expr->Hash());
-  for (auto &pred : join_predicates_) hash = common::HashUtil::CombineHashes(hash, pred.expr_->Hash());
+  for (auto &pred : join_predicates_) hash = common::HashUtil::CombineHashes(hash, pred.GetExpr()->Hash());
   return hash;
 }
 
@@ -287,7 +287,7 @@ bool InnerHashJoin::operator==(const BaseOperatorNode &r) {
     if (right_keys_[i] != node.right_keys_[i]) return false;
   }
   for (size_t i = 0; i < join_predicates_.size(); i++) {
-    if (join_predicates_[i].expr_ != node.join_predicates_[i].expr_) return false;
+    if (join_predicates_[i].GetExpr() != node.join_predicates_[i].GetExpr()) return false;
   }
   return true;
 }
@@ -425,7 +425,7 @@ bool HashGroupBy::operator==(const BaseOperatorNode &r) {
   const HashGroupBy &hash_op = *dynamic_cast<const HashGroupBy *>(&r);
   if (having_.size() != hash_op.having_.size() || columns_.size() != hash_op.columns_.size()) return false;
   for (size_t i = 0; i < having_.size(); i++) {
-    if (having_[i].expr_ != hash_op.having_[i].expr_) return false;
+    if (having_[i].GetExpr() != hash_op.having_[i].GetExpr()) return false;
   }
 
   std::unordered_set<std::shared_ptr<parser::AbstractExpression>> l_set, r_set;
@@ -436,7 +436,7 @@ bool HashGroupBy::operator==(const BaseOperatorNode &r) {
 
 common::hash_t HashGroupBy::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  for (auto &pred : having_) hash = common::HashUtil::CombineHashes(hash, pred.expr_->Hash());
+  for (auto &pred : having_) hash = common::HashUtil::CombineHashes(hash, pred.GetExpr()->Hash());
   for (auto &expr : columns_) hash = common::HashUtil::CombineHashes(hash, expr->Hash());
   return hash;
 }
@@ -457,7 +457,7 @@ bool SortGroupBy::operator==(const BaseOperatorNode &r) {
   const SortGroupBy &sort_op = *dynamic_cast<const SortGroupBy *>(&r);
   if (having_.size() != sort_op.having_.size() || columns_.size() != sort_op.columns_.size()) return false;
   for (size_t i = 0; i < having_.size(); i++) {
-    if (having_[i].expr_ != sort_op.having_[i].expr_) return false;
+    if (having_[i].GetExpr() != sort_op.having_[i].GetExpr()) return false;
   }
   std::unordered_set<std::shared_ptr<parser::AbstractExpression>> l_set, r_set;
   for (auto &expr : columns_) l_set.emplace(expr);
@@ -467,7 +467,7 @@ bool SortGroupBy::operator==(const BaseOperatorNode &r) {
 
 common::hash_t SortGroupBy::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  for (auto &pred : having_) hash = common::HashUtil::CombineHashes(hash, pred.expr_->Hash());
+  for (auto &pred : having_) hash = common::HashUtil::CombineHashes(hash, pred.GetExpr()->Hash());
   for (auto &expr : columns_) hash = common::HashUtil::CombineHashes(hash, expr->Hash());
   return hash;
 }

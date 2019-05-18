@@ -8,26 +8,46 @@
 
 namespace terrier::optimizer {
 
-//===--------------------------------------------------------------------===//
-// Operator Expr
-//===--------------------------------------------------------------------===//
+/**
+ * This class is used to represent nodes in the operator tree. The operator tree is generated
+ * by the binder by visiting the abstract syntax tree (AST) produced by the parser and servers
+ * as the input to the query optimizer.
+ */
 class OperatorExpression {
  public:
-  explicit OperatorExpression(Operator op);
+  /**
+   * Create an OperatorExpression
+   * @param op an operator to bind to this OperatorExpression node
+   * @param children children of this OperatorExpression
+   */
+  explicit OperatorExpression(Operator op, std::vector<std::shared_ptr<OperatorExpression>> &&children)
+      : op_(op), children_(std::move(children)) {}
 
-  void PushChild(std::shared_ptr<OperatorExpression> op);
+  /**
+   * @return vector of children
+   */
+  const std::vector<std::shared_ptr<OperatorExpression>> &GetChildren() const { return children_; }
 
-  void PopChild();
+  /**
+   * @return underlying operator
+   */
+  const Operator &GetOp() const { return op_; };
 
-  const std::vector<std::shared_ptr<OperatorExpression>> &Children() const;
-
-  const Operator &Op() const;
-
+  /**
+   * @return string respresentation of this OperatorExpression
+   */
   const std::string GetInfo() const;
 
  private:
-  Operator op;
-  std::vector<std::shared_ptr<OperatorExpression>> children;
+  /**
+   * Underlying operator
+   */
+  Operator op_;
+
+  /**
+   * Vector of children
+   */
+  std::vector<std::shared_ptr<OperatorExpression>> children_;
 };
 
 }  // namespace terrier::optimizer

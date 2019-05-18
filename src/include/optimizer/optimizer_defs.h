@@ -105,6 +105,16 @@ class AnnotatedExpression {
    */
   AnnotatedExpression(const AnnotatedExpression &ant_expr) = default;
 
+  /**
+   * @return the expresion to be annotated
+   */
+  std::shared_ptr<parser::AbstractExpression> GetExpr() const { return expr_; }
+
+  /**
+   * @return the unordered set of table aliases
+   */
+  const std::unordered_set<std::string> &GetTableAliasSet() const { return table_alias_set_; }
+
  private:
   /**
    * Expression to be annotated
