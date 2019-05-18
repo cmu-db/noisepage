@@ -437,10 +437,8 @@ void Catalog::CreatePGType(transaction::TransactionContext *txn, db_oid_t db_oid
 void Catalog::DeleteDatabaseTables(db_oid_t db_oid) {
   auto table_oid_map = cat_map_.at(db_oid);
   CATALOG_LOG_DEBUG("Deleting tables for db_oid {}", !db_oid);
-  auto tbl = table_oid_map.begin();
-  while (tbl != table_oid_map.end()) {
-    auto tbl_p = tbl->second;
-    tbl++;
+  while (table_oid_map.begin() != table_oid_map.end()) {
+    auto tbl_p = table_oid_map.begin()->second;
     if ((tbl_p == pg_database_) || (tbl_p == pg_tablespace_) || (tbl_p == pg_settings_)) {
       continue;
     }
@@ -448,13 +446,11 @@ void Catalog::DeleteDatabaseTables(db_oid_t db_oid) {
   }
 }
 
-void Catalog::DestroyDB(db_oid_t oid) {
+void Catalog::DestroyDB(transaction::TransactionContext *txn, db_oid_t oid) {
   // Note that we are using shared pointers for SqlTableHelper. Catalog class have references to all the catalog tables,
   // (i.e, tables that have namespace "pg_catalog") but not user created tables. We cannot use a shared pointer for a
   // user table because it will be automatically freed if no one holds it.
   // Since we don't automatically free these tables, we need to free tables when we destroy the database
-  auto txn = txn_manager_->BeginTransaction();
-
   auto pg_class = GetCatalogTable(oid, CatalogTableType::CLASS);
   auto pg_class_ptr = pg_class->GetSqlTable();
 
@@ -487,7 +483,6 @@ void Catalog::DestroyDB(db_oid_t oid) {
     }
   }
   delete[] buffer;
-  delete txn;
 }
 
 // private methods

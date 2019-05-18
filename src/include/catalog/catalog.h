@@ -509,9 +509,10 @@ class Catalog {
    * TODO(pakhtar): needs changes.
    * For catalog shutdown.
    * Delete all user created tables.
+   * @param txn context to handle database operations on shutdown
    * @param oid - database from which tables are to be deleted.
    */
-  void DestroyDB(db_oid_t oid);
+  void DestroyDB(transaction::TransactionContext *txn, db_oid_t oid);
 
   /**
    * @param txn transaction
