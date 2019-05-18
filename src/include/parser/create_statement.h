@@ -326,6 +326,42 @@ struct ColumnDefinition {
 };
 
 /**
+ * Represents an index attribute.
+ */
+class IndexAttr {
+ public:
+  /**
+   * Create an index attribute on a column name.
+   */
+  explicit IndexAttr(std::string name) : name_(std::move(name)), expr_(nullptr) {}
+
+  /**
+   * Create an index attribute on an expression.
+   */
+  explicit IndexAttr(std::shared_ptr<AbstractExpression> expr) : name_(""), expr_(std::move(expr)) {}
+
+  /**
+   * @return the name of the column that we're indexed on
+   */
+  std::string GetName() const {
+    TERRIER_ASSERT(expr_ == nullptr, "Expressions don't come with names.");
+    return name_;
+  }
+
+  /**
+   * @return the expression that we're indexed on
+   */
+  std::shared_ptr<AbstractExpression> GetExpression() const {
+    TERRIER_ASSERT(expr_ != nullptr, "Names don't come with expressions.");
+    return expr_;
+  }
+
+ private:
+  const std::string name_;
+  const std::shared_ptr<AbstractExpression> expr_;
+};
+
+/**
  * Represents the sql "CREATE ..."
  */
 class CreateStatement : public TableRefStatement {
@@ -360,7 +396,7 @@ class CreateStatement : public TableRefStatement {
    * @param index_attrs index attributes
    */
   CreateStatement(std::shared_ptr<TableInfo> table_info, IndexType index_type, bool unique, std::string index_name,
-                  std::vector<std::string> index_attrs)
+                  std::vector<IndexAttr> index_attrs)
       : TableRefStatement(StatementType::CREATE, std::move(table_info)),
         create_type_(kIndex),
         index_type_(index_type),
@@ -449,7 +485,7 @@ class CreateStatement : public TableRefStatement {
   /**
    * @return index attributes for [CREATE INDEX]
    */
-  std::vector<std::string> GetIndexAttributes() { return index_attrs_; }
+  std::vector<IndexAttr> GetIndexAttributes() { return index_attrs_; }
 
   /**
    * @return true if "IF NOT EXISTS" for [CREATE SCHEMA], false otherwise
@@ -508,7 +544,7 @@ class CreateStatement : public TableRefStatement {
   const IndexType index_type_ = IndexType::INVALID;
   const bool unique_index_ = false;
   const std::string index_name_;
-  const std::vector<std::string> index_attrs_;
+  const std::vector<IndexAttr> index_attrs_;
 
   // CREATE SCHEMA
   const bool if_not_exists_ = false;
