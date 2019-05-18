@@ -15,6 +15,12 @@ class TransactionManager;
 
 namespace terrier::storage {
 
+namespace index {
+class Index;
+template <typename KeyType>
+class BwTreeIndex;
+}  // namespace index
+
 // clang-format off
 #define DataTableCounterMembers(f) \
   f(uint64_t, NumSelect) \
@@ -218,6 +224,10 @@ class DataTable {
   friend class GarbageCollector;
   // The TransactionManager needs to modify VersionPtrs when rolling back aborts
   friend class transaction::TransactionManager;
+  // The index wrappers need access to IsVisible and HasConflict
+  friend class index::Index;
+  template <typename KeyType>
+  friend class index::BwTreeIndex;
 
   BlockStore *const block_store_;
   const layout_version_t layout_version_;
@@ -252,7 +262,10 @@ class DataTable {
   void AtomicallyWriteVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor, UndoRecord *desired);
 
   // Checks for Snapshot Isolation conflicts, used by Update
-  bool HasConflict(UndoRecord *version_ptr, const transaction::TransactionContext *txn) const;
+  bool HasConflict(const transaction::TransactionContext &txn, UndoRecord *version_ptr) const;
+
+  // Wrapper around the other HasConflict for indexes to call (they only have tuple slot, not the version pointer)
+  bool HasConflict(const transaction::TransactionContext &txn, TupleSlot slot) const;
 
   // Performs a visibility check on the designated TupleSlot. Note that this does not traverse a version chain, so this
   // information alone is not enough to determine visibility of a tuple to a transaction. This should be used along with
@@ -269,5 +282,15 @@ class DataTable {
   void NewBlock(RawBlock *expected_val);
 
   void DeallocateVarlensOnShutdown(RawBlock *block);
+
+  /**
+   * Determine if a Tuple is visible (present and not deleted) to the given transaction. It's effectively Select's logic
+   * (follow a version chain if present) without the materialization. If the logic of Select changes, this should change
+   * with it and vice versa.
+   * @param txn the calling transaction
+   * @param slot the slot of the tuple to check visibility on
+   * @return true if tuple is visible to this txn, false otherwise
+   */
+  bool IsVisible(const transaction::TransactionContext &txn, TupleSlot slot) const;
 };
 }  // namespace terrier::storage
