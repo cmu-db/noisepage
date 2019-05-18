@@ -14,7 +14,11 @@
 namespace tpl::compiler {
 
 InsertTranslator::InsertTranslator(const terrier::planner::AbstractPlanNode &op, Pipeline *pipeline)
-    : OperatorTranslator(op, pipeline), struct_ty_(nullptr) {}
+    : OperatorTranslator(op, pipeline), struct_ty_(nullptr) {
+  if(op.GetChildrenSize() == 1) {
+    pipeline->GetCompilationContext()->Prepare(*op.GetChild(0), pipeline);
+  }
+}
 
 void InsertTranslator::InitializeQueryState() {
   const auto &node = GetOperatorAs<terrier::planner::InsertPlanNode>();
@@ -54,6 +58,22 @@ void InsertTranslator::Produce() {
     auto asgn_stmt = codegen->NewAssignmentStmt(DUMMY_POS, dst, src);
     codegen.GetCurrentFunction()->Append(asgn_stmt);
   }
+
+  // @insert(db_oid, table_oid, &v)
+  util::RegionVector<ast::Expr *> args(pipeline_->GetRegion());
+  args.emplace_back(codegen->NewIntLiteral(DUMMY_POS, !node.GetDatabaseOid()));
+  args.emplace_back(codegen->NewIntLiteral(DUMMY_POS, !node.GetTableOid()));
+  args.emplace_back(codegen->NewUnaryOpExpr(DUMMY_POS, parsing::Token::Type::AMPERSAND, var_ex));
+  auto call_stmt = codegen->NewCallExpr(codegen.Binsert(), std::move(args));
+  codegen.GetCurrentFunction()->Append(codegen->NewExpressionStmt(call_stmt));
+}
+
+void InsertTranslator::Consume(const tpl::compiler::ConsumerContext *context, tpl::compiler::RowBatch *batch) const {
+  // generate the code for insert select
+  const auto &node = GetOperatorAs<terrier::planner::InsertPlanNode>();
+  auto &codegen = *pipeline_->GetCodeGen();
+
+  auto var_ex = batch->GetIdentifierExpr();
 
   // @insert(db_oid, table_oid, &v)
   util::RegionVector<ast::Expr *> args(pipeline_->GetRegion());

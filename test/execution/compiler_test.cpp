@@ -776,6 +776,44 @@ TEST_F(CompilerTest, InsertPlanNodeJsonTest) {
 
   CompileAndRun(plan_node.get());
 }
+
+TEST_F(CompilerTest, InsertSelectPlanNodeJsonTest) {
+std::vector<type::TransientValue> values;
+values.emplace_back(type::TransientValueFactory::GetInteger(15));
+values.emplace_back(type::TransientValueFactory::GetBoolean(false));
+
+std::vector<OutputSchema::Column> cols;
+cols.emplace_back("colA", type::TypeId::INTEGER, true, catalog::col_oid_t(13));
+cols.emplace_back("colB", type::TypeId::BOOLEAN, true, catalog::col_oid_t(14));
+auto schema = std::make_shared<OutputSchema>(cols);
+
+InsertPlanNode::Builder builder;
+
+SeqScanPlanNode::Builder seq_builder;
+auto table_oid = tpl::sql::ExecutionStructures::Instance()->
+    GetCatalog()->GetCatalogTable(catalog::DEFAULT_DATABASE_OID, "test_1")->Oid();
+auto seq_plan_node = seq_builder.SetOutputSchema(CompilerTest::BuildDummyOutputSchema())
+    .SetScanPredicate(CompilerTest::BuildConstantComparisonPredicate("test_1", "colA", 500))
+    .SetIsParallelFlag(true)
+    .SetIsForUpdateFlag(false)
+    .SetDatabaseOid(catalog::DEFAULT_DATABASE_OID)
+    .SetNamespaceOid(catalog::namespace_oid_t(0))
+    .SetTableOid(table_oid)
+    .Build();
+
+auto plan_node = builder.SetOutputSchema(CompilerTest::BuildDummyOutputSchema())
+    .SetDatabaseOid(catalog::db_oid_t(1))
+    .SetNamespaceOid(catalog::namespace_oid_t(0))  // TODO(WAN): currently unused
+    .SetTableOid(catalog::table_oid_t(15))  // TODO(WAN): testing like this is miserable
+    .SetValues(std::move(values))
+    .AddParameterInfo(0, 1, 2)  // TODO(WAN): ask Gus if he needs this, I don't think we do
+    .AddParameterInfo(3, 4, 5)
+    .SetBulkInsertCount(1)  // TODO(WAN): this parameter still makes no sense
+    .AddChild(seq_plan_node)
+    .Build();
+
+CompileAndRun(plan_node.get());
+}
 /*
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, LimitPlanNodeJsonTest) {

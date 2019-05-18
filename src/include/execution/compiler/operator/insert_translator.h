@@ -16,7 +16,7 @@ class InsertTranslator : public OperatorTranslator {
   void TeardownQueryState() override {}
 
   // TODO(WAN): in Peloton, insert-from-select would invoke the select to Produce() and then Consume() those tuples
-  void Consume(const ConsumerContext *context, RowBatch *batch) const override {}
+  void Consume(const ConsumerContext *context, RowBatch *batch) const override;
 
   void Produce() override;
  private:
