@@ -16,17 +16,6 @@ class AbstractExpression;
 
 namespace optimizer {
 /**
- * Property types.
- */
-enum class PropertyType : uint8_t {
-  INVALID,
-  COLUMNS,
-  DISTINCT,
-  SORT,
-  LIMIT,
-};
-
-/**
  * Operator type
  */
 enum class OpType {

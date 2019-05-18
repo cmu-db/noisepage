@@ -163,7 +163,7 @@ class Operator {
    * @param rhs other
    * @return true if the two operators are logically equal, false otherwise
    */
-  bool operator==(const Operator &rhs);
+  bool operator==(const Operator &r);
 
   /**
    * Logical inequality check

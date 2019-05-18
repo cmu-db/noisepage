@@ -36,17 +36,23 @@ Operator SeqScan::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t 
 
 bool SeqScan::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::SEQSCAN) return false;
+
   const SeqScan &node = *dynamic_cast<const SeqScan *>(&r);
+
   if (predicates_.size() != node.predicates_.size()) return false;
+
   for (size_t i = 0; i < predicates_.size(); i++) {
     if (predicates_[i].GetExpr() != node.predicates_[i].GetExpr()) return false;
   }
+
+  if ()
   return true;
 }
 
 common::hash_t SeqScan::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
   for (auto &pred : predicates_) hash = common::HashUtil::CombineHashes(hash, pred.GetExpr()->Hash());
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
   return hash;
 }
 
@@ -56,17 +62,17 @@ common::hash_t SeqScan::Hash() const {
 Operator IndexScan::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                          catalog::index_oid_t index_oid, std::string table_alias,
                          std::vector<AnnotatedExpression> predicates, bool update,
-                         std::vector<catalog::col_oid_t> key_column_id_list,
+                         std::vector<catalog::col_oid_t> key_column_oid_list,
                          std::vector<parser::ExpressionType> expr_type_list,
                          std::vector<type::TransientValue> value_list) {
   auto *scan = new IndexScan;
   scan->database_oid_ = database_oid;
   scan->namespace_oid_ = namespace_oid;
   scan->index_oid_ = index_oid;
-  scan->is_for_update_ = update;
   scan->table_alias_ = std::move(table_alias);
+  scan->is_for_update_ = update;
   scan->predicates_ = std::move(predicates);
-  scan->key_column_id_list_ = std::move(key_column_id_list);
+  scan->key_column_oid_list_ = std::move(key_column_oid_list);
   scan->expr_type_list_ = std::move(expr_type_list);
   scan->value_list_ = std::move(value_list);
 
@@ -76,7 +82,7 @@ Operator IndexScan::make(catalog::db_oid_t database_oid, catalog::namespace_oid_
 bool IndexScan::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::INDEXSCAN) return false;
   const IndexScan &node = *dynamic_cast<const IndexScan *>(&r);
-  if (index_oid_ != node.index_oid_ || key_column_id_list_ != node.key_column_id_list_ ||
+  if (database_oid_ != node.database_oid_ || namespace_oid_ != node.namespace_oid_ || index_oid_ != node.index_oid_ || key_column_oid_list_ != node.key_column_oid_list_ ||
       expr_type_list_ != node.expr_type_list_ || predicates_.size() != node.predicates_.size())
     return false;
 
@@ -91,7 +97,12 @@ common::hash_t IndexScan::Hash() const {
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&index_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&is_for_update_));
   for (auto &pred : predicates_) hash = common::HashUtil::CombineHashes(hash, pred.GetExpr()->Hash());
+  for (auto &col_oid : key_column_oid_list_) hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&col_oid));
+  for (auto &expr_type : expr_type_list_) hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&expr_type));
+  for (auto &val : value_list_) hash = common::HashUtil::CombineHashes(hash, val.Hash());
   return hash;
 }
 
@@ -133,34 +144,24 @@ common::hash_t ExternalFileScan::Hash() const {
 // Query derived get
 //===--------------------------------------------------------------------===//
 Operator QueryDerivedScan::make(
-    catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
     std::string table_alias,
     std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>> &&alias_to_expr_map) {
   auto *get = new QueryDerivedScan;
-  get->database_oid_ = database_oid;
-  get->namespace_oid_ = namespace_oid;
-  get->table_oid_ = table_oid;
-  get->table_alias_ = table_alias;
+  get->table_alias_ = std::move(table_alias);
   get->alias_to_expr_map_ = std::move(alias_to_expr_map);
 
   return Operator(get);
-}  // namespace terrier::optimizer
+}
 
 bool QueryDerivedScan::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::QUERYDERIVEDSCAN) return false;
   const auto &get = *dynamic_cast<const QueryDerivedScan *>(&r);
-  if (database_oid_ != get.database_oid_ || alias_to_expr_map_ != get.alias_to_expr_map_ ||
-      namespace_oid_ != get.namespace_oid_ || table_oid_ != get.table_oid_)
-    return false;
-  return true;
+  return alias_to_expr_map_ == get.alias_to_expr_map_;
 }
 
 common::hash_t QueryDerivedScan::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&namespace_oid_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&table_oid_));
-
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
   return hash;
 }
 
@@ -189,11 +190,11 @@ Operator Limit::make(int64_t offset, int64_t limit, std::vector<parser::Abstract
 //===--------------------------------------------------------------------===//
 // InnerNLJoin
 //===--------------------------------------------------------------------===//
-Operator InnerNLJoin::make(std::vector<AnnotatedExpression> conditions,
+Operator InnerNLJoin::make(std::vector<AnnotatedExpression> join_predicates,
                            std::vector<std::unique_ptr<parser::AbstractExpression>> &&left_keys,
                            std::vector<std::unique_ptr<parser::AbstractExpression>> &&right_keys) {
   auto *join = new InnerNLJoin();
-  join->join_predicates_ = std::move(conditions);
+  join->join_predicates_ = std::move(join_predicates);
   join->left_keys_ = std::move(left_keys);
   join->right_keys_ = std::move(right_keys);
 
@@ -256,11 +257,11 @@ Operator OuterNLJoin::make(std::shared_ptr<parser::AbstractExpression> join_pred
 //===--------------------------------------------------------------------===//
 // InnerHashJoin
 //===--------------------------------------------------------------------===//
-Operator InnerHashJoin::make(std::vector<AnnotatedExpression> conditions,
+Operator InnerHashJoin::make(std::vector<AnnotatedExpression> join_predicates,
                              std::vector<std::unique_ptr<parser::AbstractExpression>> &&left_keys,
                              std::vector<std::unique_ptr<parser::AbstractExpression>> &&right_keys) {
   auto *join = new InnerHashJoin();
-  join->join_predicates_ = std::move(conditions);
+  join->join_predicates_ = std::move(join_predicates);
   join->left_keys_ = std::move(left_keys);
   join->right_keys_ = std::move(right_keys);
   return Operator(join);
@@ -323,14 +324,14 @@ Operator OuterHashJoin::make(std::shared_ptr<parser::AbstractExpression> join_pr
 // Insert
 //===--------------------------------------------------------------------===//
 Operator Insert::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                      catalog::table_oid_t table_oid, std::vector<catalog::index_oid_t> &&index_oids,
-                      const std::vector<std::string> *columns,
+                      catalog::table_oid_t table_oid, const std::vector<catalog::col_oid_t> *columns,
                       const std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> *values) {
   auto *insert_op = new Insert;
   insert_op->database_oid_ = database_oid;
   insert_op->namespace_oid = namespace_oid;
   insert_op->table_oid_ = table_oid;
-  insert_op->index_oids_ = std::move(index_oids);
+  insert_op->columns_ = columns;
+  insert_op->values_ = values;
   return Operator(insert_op);
 }
 
@@ -338,12 +339,11 @@ Operator Insert::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t n
 // InsertSelect
 //===--------------------------------------------------------------------===//
 Operator InsertSelect::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                            catalog::table_oid_t table_oid, std::vector<catalog::index_oid_t> &&index_oids) {
+                            catalog::table_oid_t table_oid) {
   auto *insert_op = new InsertSelect;
   insert_op->database_oid_ = database_oid;
-  insert_op->namespace_oid = namespace_oid;
+  insert_op->namespace_oid_ = namespace_oid;
   insert_op->table_oid_ = table_oid;
-  insert_op->index_oids_ = std::move(index_oids);
   return Operator(insert_op);
 }
 
@@ -351,12 +351,12 @@ Operator InsertSelect::make(catalog::db_oid_t database_oid, catalog::namespace_o
 // Delete
 //===--------------------------------------------------------------------===//
 Operator Delete::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                      catalog::table_oid_t table_oid, std::vector<catalog::index_oid_t> &&index_oids) {
+                      catalog::table_oid_t table_oid, std::shared_ptr<parser::AbstractExpression> delete_condition) {
   auto *delete_op = new Delete;
   delete_op->database_oid_ = database_oid;
-  delete_op->namespace_oid = namespace_oid;
+  delete_op->namespace_oid_ = namespace_oid;
   delete_op->table_oid_ = table_oid;
-  delete_op->index_oids_ = std::move(index_oids);
+  delete_op->delete_condition_ = std::move(delete_condition);
   return Operator(delete_op);
 }
 
@@ -364,13 +364,12 @@ Operator Delete::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t n
 // Update
 //===--------------------------------------------------------------------===//
 Operator Update::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                      catalog::table_oid_t table_oid, std::vector<catalog::index_oid_t> &&index_oids,
+                      catalog::table_oid_t table_oid,
                       const std::vector<std::unique_ptr<parser::UpdateClause>> *updates) {
   auto *update_op = new Update;
   update_op->database_oid_ = database_oid;
   update_op->namespace_oid = namespace_oid;
   update_op->table_oid_ = table_oid;
-  update_op->index_oids_ = std::move(index_oids);
   update_op->updates = updates;
   return Operator(update_op);
 }

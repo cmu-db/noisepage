@@ -21,7 +21,7 @@ class OperatorExpression {
    * @param children children of this OperatorExpression
    */
   explicit OperatorExpression(Operator op, std::vector<std::shared_ptr<OperatorExpression>> &&children)
-      : op_(op), children_(std::move(children)) {}
+      : op_(std::move(op)), children_(std::move(children)) {}
 
   /**
    * @return vector of children
