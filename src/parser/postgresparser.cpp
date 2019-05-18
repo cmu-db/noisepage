@@ -1263,10 +1263,14 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateIndexTransform(IndexStmt *ro
   auto unique = root->unique;
   auto index_name = root->idxname;
 
-  std::vector<std::string> index_attrs;
+  std::vector<IndexAttr> index_attrs;
   for (auto cell = root->indexParams->head; cell != nullptr; cell = cell->next) {
-    std::string index_attr = reinterpret_cast<IndexElem *>(cell->data.ptr_value)->name;
-    index_attrs.emplace_back(index_attr);
+    auto *index_elem = reinterpret_cast<IndexElem *>(cell->data.ptr_value);
+    if (index_elem->expr == nullptr) {
+      index_attrs.emplace_back(index_elem->name);
+    } else {
+      index_attrs.emplace_back(ExprTransform(index_elem->expr));
+    }
   }
 
   auto table_name = root->relation->relname == nullptr ? "" : root->relation->relname;
