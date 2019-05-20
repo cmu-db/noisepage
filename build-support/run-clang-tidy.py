@@ -107,7 +107,6 @@ def get_tidy_invocation(f, clang_tidy_binary, checks, tmpdir, build_path,
     start.append(f)
     return start
 
-
 def merge_replacement_files(tmpdir, mergefile):
     """Merge all replacement files in a directory into a single file"""
     # The fixes suggested by clang-tidy >= 4.0.0 are given under
@@ -131,7 +130,6 @@ def merge_replacement_files(tmpdir, mergefile):
     else:
         # Empty the file:
         open(mergefile, 'w').close()
-
 
 def check_clang_apply_replacements_binary(args):
     """Checks if invoking supplied clang-apply-replacements binary works."""
@@ -159,6 +157,8 @@ def run_tidy(args, tmpdir, build_path, queue, lock, failed_files):
     """Takes filenames out of queue and runs clang-tidy on them."""
     while True:
         name = queue.get()
+        print("\r Checking: {}".format(name), end='')
+        sys.stdout.flush()
         invocation = get_tidy_invocation(name, args.clang_tidy_binary, args.checks,
                                          tmpdir, build_path, args.header_filter,
                                          args.extra_arg, args.extra_arg_before,
@@ -189,7 +189,6 @@ def run_tidy(args, tmpdir, build_path, queue, lock, failed_files):
                 sys.stdout.write('\n')
                 sys.stdout.write(output)
         queue.task_done()
-
 
 def main():
     parser = argparse.ArgumentParser(description='Runs clang-tidy over all files '
@@ -317,13 +316,14 @@ def main():
                     if file_name_re.search(name):
                         task_queue.put(name, block=True, timeout=300)
                         put_file = True
-                    update_progress(i, len(files))
+                    # update_progress(i, len(files))
                 except queue.Full:
                     print('Still waiting to put files into clang-tidy queue.')
+                    sys.stdout.flush()
 
         # Wait for all threads to be done.
         task_queue.join()
-        update_progress(100, 100)
+        # update_progress(100, 100)
         if len(failed_files):
             return_code = 1
             # TERRIER: We want to see the failed files
@@ -359,6 +359,8 @@ def main():
 
     if tmpdir:
         shutil.rmtree(tmpdir)
+    print("")
+    sys.stdout.flush()
     sys.exit(return_code)
 
 if __name__ == '__main__':
