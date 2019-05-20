@@ -22,26 +22,6 @@ void LogAndWriteErrorMsg(const std::string &msg, PostgresPacketWriter *out) {
   out->WriteSingleErrorResponse(NetworkMessageType::HUMAN_READABLE_ERROR, msg);
 }
 
-/**
- * Used in simple query. The callback to serialize a result set.
- * @param result_set
- * @param out
- */
-void PostgresNetworkCommand::AcceptResults(const ResultSet &result_set, PostgresPacketWriter *const out) {
-  if (result_set.column_names_.empty()) {
-    out->WriteEmptyQueryResponse();
-    return;
-  }
-
-  out->WriteRowDescription(result_set.column_names_);
-  for (auto &row : result_set.rows_) out->WriteDataRow(row);
-
-  // TODO(Weichen): We need somehow to know which kind of query it is. (INSERT? DELETE? SELECT?)
-  // and the number of rows. This is needed in the tag. Now we just use an empty string.
-
-  out->WriteCommandComplete("");
-}
-
 Transition SimpleQueryCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out,
                                     TrafficCop* t_cop, ConnectionContext *connection, NetworkCallback callback) {
   interpreter->protocol_type_ = NetworkProtocolType::POSTGRES_PSQL;
@@ -49,7 +29,20 @@ Transition SimpleQueryCommand::Exec(PostgresProtocolInterpreter *interpreter, Po
   NETWORK_LOG_TRACE("Execute SimpleQuery: {0}", query.c_str());
 
   SqliteEngine* execution_engine = t_cop->GetExecutionEngine();
-  execution_engine->ExecuteQuery(query.c_str(), out, AcceptResults);
+  sqlite3_stmt *stmt = execution_engine->PrepareStatement(query);
+  ResultSet result = execution_engine->Execute(stmt);
+  if (result.column_names_.empty()) {
+    out->WriteEmptyQueryResponse();
+  } else
+  {
+    out->WriteRowDescription(result.column_names_);
+    for (auto &row : result.rows_) out->WriteDataRow(row);
+
+    // TODO(Weichen): We need somehow to know which kind of query it is. (INSERT? DELETE? SELECT?)
+    // and the number of rows. This is needed in the tag. Now we just use an empty string.
+
+    out->WriteCommandComplete("");
+  }
 
   out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
   return Transition::PROCEED;

@@ -9,6 +9,7 @@
 #include "traffic_cop/result_set.h"
 #include "traffic_cop/sqlite.h"
 #include "type/transient_value.h"
+#include "type/transient_value_factory.h"
 #include "type/transient_value_peeker.h"
 
 namespace terrier::traffic_cop {
@@ -51,10 +52,10 @@ int SqliteEngine::StoreResults(void *result_set_void, int elem_count, char **val
 
   Row current_row;
   for (int i = 0; i < elem_count; i++) {
-    current_row.emplace_back(values[i]);
+    current_row.emplace_back(type::TransientValueFactory::GetVarChar(values[i]));
   }
 
-  result_set->rows_.push_back(current_row);
+  result_set->rows_.push_back(std::move(current_row));
 
   return 0;
 }
@@ -122,18 +123,35 @@ ResultSet SqliteEngine::Execute(sqlite3_stmt *stmt) {
   int result_code = sqlite3_step(stmt);
 
   while (result_code == SQLITE_ROW) {
-    std::vector<std::string> row;
+    Row row;
     for (int i = 0; i < column_cnt; i++) {
-      const unsigned char *result_cstring = sqlite3_column_text(stmt, i);
-      std::string result_str;
-      if (result_cstring == nullptr)
-        result_str = "NULL";
+      int type = sqlite3_column_type(stmt, i);
+      if(type == SQLITE_INTEGER)
+      {
+        int value = sqlite3_column_int(stmt, i);
+        row.push_back(type::TransientValueFactory::GetInteger(value));
+      }
+      else if(type == SQLITE_FLOAT)
+      {
+        double value = sqlite3_column_double(stmt, i);
+        row.push_back(type::TransientValueFactory::GetDecimal(value));
+      }
+      else if(type == SQLITE_TEXT)
+      {
+        const unsigned char *result_cstring = sqlite3_column_text(stmt, i);
+        auto *value = reinterpret_cast<const char *>(result_cstring);
+        row.push_back(type::TransientValueFactory::GetVarChar(value));
+      }
+      else if(type == SQLITE_NULL)
+      {
+        row.push_back(type::TransientValueFactory::GetVarChar("NULL"));
+      }
       else
-        result_str = std::string(reinterpret_cast<const char *>(result_cstring));
-
-      row.push_back(result_str);
+      {
+        LOG_ERROR("Unsupported Type: {0}", type);
+      }
     }
-    result_set.rows_.push_back(row);
+    result_set.rows_.push_back(std::move(row));
 
     result_code = sqlite3_step(stmt);
   }

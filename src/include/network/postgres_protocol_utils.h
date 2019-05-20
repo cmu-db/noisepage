@@ -8,6 +8,7 @@
 
 #include "network/network_defs.h"
 #include "network/network_io_utils.h"
+#include "type/transient_value_peeker.h"
 
 namespace terrier::network {
 
@@ -356,10 +357,22 @@ class PostgresPacketWriter {
    * Writes a data row.
    * @param values a row's values.
    */
-  void WriteDataRow(const std::vector<std::string> &values) {
+  void WriteDataRow(const traffic_cop::Row &values) {
+    using type::TransientValuePeeker;
+    using type::TypeId;
+    
     BeginPacket(NetworkMessageType::DATA_ROW).AppendValue<int16_t>(static_cast<int16_t>(values.size()));
     for (auto &value : values) {
-      AppendValue<int32_t>(static_cast<int32_t>(value.length())).AppendString(value, false);
+      // use text to represent values for now
+      std::string ret;
+      if(value.Type() == TypeId::INTEGER)
+        ret = std::to_string(TransientValuePeeker::PeekInteger(value));
+      else if(value.Type() == TypeId::DECIMAL)
+        ret = std::to_string(TransientValuePeeker::PeekDecimal(value));
+      else if(value.Type() == TypeId::VARCHAR)
+        ret = TransientValuePeeker::PeekVarChar(value);
+      
+      AppendValue<int32_t>(static_cast<int32_t>(ret.length())).AppendString(ret, false);
     }
     EndPacket();
   }

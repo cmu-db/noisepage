@@ -3,10 +3,11 @@
 #include <algorithm>
 #include <string>
 #include <vector>
+#include "type/transient_value.h"
 
 namespace terrier::traffic_cop {
 
-using Row = std::vector<std::string>;
+using Row = std::vector<type::TransientValue>;
 
 /**
  * The result set for a query
