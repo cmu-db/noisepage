@@ -7,11 +7,11 @@ namespace terrier::common {
  * All possible states of action.
  */
 enum class ActionState {
-  INITIATED = 0,
-  IN_PROGRESS = 1,
-  SUCCESS = 2,
-  FAILURE = 3,
-  DEFERRED = 4,
+  INITIATED,
+  IN_PROGRESS,
+  SUCCESS,
+  FAILURE,
+  DEFERRED,
 };
 
 /**
@@ -25,7 +25,7 @@ class ActionContext {
    * Constructor of ActionContext.
    * @param action_id id of this action.
    */
-  explicit ActionContext(int32_t action_id) : action_id_(action_id), state_(ActionState ::INITIATED) {}
+  explicit ActionContext(int32_t action_id) : action_id_(action_id), state_(ActionState::INITIATED) {}
 
   /**
    * Get the state of this action.

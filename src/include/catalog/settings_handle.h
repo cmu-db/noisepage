@@ -103,24 +103,24 @@ class SettingsCatalogTable {
 };
 
 enum class SettingsTableColumn {
-  OID = 0,
-  NAME = 1,
-  SETTING = 2,
-  UNIT = 3,
-  CATEGORY = 4,
-  SHORT_DESC = 5,
-  EXTRA_DESC = 6,
-  CONTEXT = 7,
-  VARTYPE = 8,
-  SOURCE = 9,
-  MIN_VAL = 10,
-  MAX_VAL = 11,
-  ENUMVALS = 12,
-  BOOT_VAL = 13,
-  RESET_VAL = 14,
-  SOURCEFILE = 15,
-  SOURCELINE = 16,
-  PENDING_RESTART = 17
+  OID,
+  NAME,
+  SETTING,
+  UNIT,
+  CATEGORY,
+  SHORT_DESC,
+  EXTRA_DESC,
+  CONTEXT,
+  VARTYPE,
+  SOURCE,
+  MIN_VAL,
+  MAX_VAL,
+  ENUMVALS,
+  BOOT_VAL,
+  RESET_VAL,
+  SOURCEFILE,
+  SOURCELINE,
+  PENDING_RESTART
 };
 
 }  // namespace terrier::catalog
