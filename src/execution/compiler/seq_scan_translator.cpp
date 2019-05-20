@@ -14,8 +14,11 @@ namespace tpl::compiler {
 
 SeqScanTranslator::SeqScanTranslator(const terrier::planner::AbstractPlanNode &op, Pipeline *pipeline)
     : OperatorTranslator(op, pipeline) {
-  pipeline->GetCompilationContext()
-  ->Prepare(*GetOperatorAs<terrier::planner::SeqScanPlanNode>().GetScanPredicate());
+  // TODO(WAN): is no predicate the same as nullptr scan predicate?
+  auto scan_predicate = GetOperatorAs<terrier::planner::SeqScanPlanNode>().GetScanPredicate();
+  if (scan_predicate != nullptr) {
+    pipeline->GetCompilationContext()->Prepare(*scan_predicate);
+  }
 }
 
 void SeqScanTranslator::Produce() {
@@ -38,9 +41,11 @@ void SeqScanTranslator::Produce() {
   auto current_fn = codegen->GetCurrentFunction();
   current_fn->StartForInStmt(target, table_name, attributes);
   const auto &predicate = scan_node.GetScanPredicate();
-  auto predicate_expr = pipeline_->GetCompilationContext()
-      ->GetTranslator(*predicate)->DeriveExpr(predicate.get(), &row_batch);
+  if (predicate != nullptr) {
+    auto predicate_expr = pipeline_->GetCompilationContext()
+        ->GetTranslator(*predicate)->DeriveExpr(predicate.get(), &row_batch);
     current_fn->StartIfStmt(predicate_expr);
+  }
   ConsumerContext ctx(pipeline_->GetCompilationContext(), pipeline_);
   ctx.Consume(&row_batch);
 }
