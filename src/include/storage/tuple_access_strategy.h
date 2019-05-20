@@ -9,6 +9,9 @@
 #include "storage/storage_util.h"
 
 namespace terrier::storage {
+
+class DataTable;
+
 /**
  * Code for accessing data within a block. This code is eventually compiled and
  * should be stateless, so no fields other than const BlockLayout.
@@ -40,11 +43,11 @@ class TupleAccessStrategy {
 
   /*
    * Block Header layout:
-   * ----------------------------------------------------------------------------------------------
-   * | layout_version (32) | insert_head (32) | control_block (64) |     ArrowBlockMetadata       |
-   * ----------------------------------------------------------------------------------------------
-   * | attr_offsets[num_col] (32) | bitmap for slots (64-bit aligned) |   data (64-bit aligned)   |
-   * ----------------------------------------------------------------------------------------------
+   * -----------------------------------------------------------------------------------------------------------------
+   * | data_table *(64) | padding (16) | layout_version (16) | insert_head (32) |        control_block (64)          |
+   * -----------------------------------------------------------------------------------------------------------------
+   * | ArrowBlockMetadata | attr_offsets[num_col] (32) | bitmap for slots (64-bit aligned) | data (64-bit aligned)   |
+   * -----------------------------------------------------------------------------------------------------------------
    *
    * Note that we will never need to span a tuple across multiple pages if we enforce
    * block size to be 1 MB and columns to be less than MAX_COL
@@ -100,10 +103,11 @@ class TupleAccessStrategy {
    * a column). The raw block needs to be 0-initialized (by default when given out
    * from a block store), otherwise it will cause undefined behavior.
    *
+   * @param data_table pointer to the DataTable to reference from this block
    * @param raw pointer to the raw block to initialize
    * @param layout_version the layout version of this block
    */
-  void InitializeRawBlock(RawBlock *raw, layout_version_t layout_version) const;
+  void InitializeRawBlock(storage::DataTable *data_table, RawBlock *raw, layout_version_t layout_version) const;
 
   /**
    * @param block block to access
