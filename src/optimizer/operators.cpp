@@ -11,6 +11,115 @@
 namespace terrier::optimizer {
 
 //===--------------------------------------------------------------------===//
+// Get
+//===--------------------------------------------------------------------===//
+Operator LogicalGet::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                          catalog::table_oid_t table_oid, std::vector<AnnotatedExpression> predicates,
+                          std::string table_alias, bool is_for_update) {
+  LogicalGet *get = new LogicalGet;
+  get->database_oid_ = database_oid;
+  get->namespace_oid_ = namespace_oid;
+  get->table_oid_ = table_oid;
+  get->predicates_ = std::move(predicates);
+  get->table_alias_ = std::move(table_alias);
+  get->is_for_update_ = is_for_update;
+  return Operator(get);
+}
+
+common::hash_t LogicalGet::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&table_oid_));
+  for (auto &pred : predicates_) {
+    hash = common::HashUtil::CombineHashes(hash, pred.GetExpr()->Hash());
+  }
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&is_for_update_));
+  return hash;
+}
+
+bool LogicalGet::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::LOGICALGET) return false;
+  const LogicalGet &node = *dynamic_cast<const LogicalGet *>(&r);
+  if (database_oid_ != node.database_oid_) return false;
+  if (namespace_oid_ != node.namespace_oid_) return false;
+  if (table_oid_ != node.table_oid_) return false;
+  if (predicates_.size() != node.predicates_.size()) return false;
+  for (size_t i = 0; i < predicates_.size(); i++) {
+    if (predicates_[i].GetExpr() != node.predicates_[i].GetExpr()) return false;
+  }
+  if (table_alias_ != node.table_alias_) return false;
+  return is_for_update_ == node.is_for_update_;
+}
+
+//===--------------------------------------------------------------------===//
+// External file get
+//===--------------------------------------------------------------------===//
+
+Operator LogicalExternalFileGet::make(parser::ExternalFileFormat format, std::string file_name, char delimiter,
+                                      char quote, char escape) {
+  auto *get = new LogicalExternalFileGet();
+  get->format_ = format;
+  get->file_name_ = std::move(file_name);
+  get->delimiter_ = delimiter;
+  get->quote_ = quote;
+  get->escape_ = escape;
+  return Operator(get);
+}
+
+bool LogicalExternalFileGet::operator==(const BaseOperatorNode &node) {
+  if (node.GetType() != OpType::LOGICALEXPORTEXTERNALFILE) return false;
+  const auto &get = *static_cast<const LogicalExternalFileGet *>(&node);
+  return (format_ == get.format_ && file_name_ == get.file_name_ && delimiter_ == get.delimiter_ &&
+          quote_ == get.quote_ && escape_ == get.escape_);
+}
+
+common::hash_t LogicalExternalFileGet::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&format_));
+  hash = common::HashUtil::CombineHashes(
+      hash, common::HashUtil::HashBytes(reinterpret_cast<const byte *>(file_name_.data()), file_name_.length()));
+  hash = common::HashUtil::CombineHashes(hash,
+                                         common::HashUtil::HashBytes(reinterpret_cast<const byte *>(&delimiter_), 1));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::HashBytes(reinterpret_cast<const byte *>(&quote_), 1));
+  hash =
+      common::HashUtil::CombineHashes(hash, common::HashUtil::HashBytes(reinterpret_cast<const byte *>(&escape_), 1));
+  return hash;
+}
+
+//===--------------------------------------------------------------------===//
+// Query derived get
+//===--------------------------------------------------------------------===//
+Operator LogicalQueryDerivedGet::make(std::string table_alias,
+    std::unordered_map<std::string,
+                       std::shared_ptr<parser::AbstractExpression>> &&
+    alias_to_expr_map) {
+  LogicalQueryDerivedGet *get = new LogicalQueryDerivedGet;
+  get->table_alias_ = std::move(table_alias);
+  get->alias_to_expr_map_ = std::move(alias_to_expr_map);
+  return Operator(get);
+}
+
+bool LogicalQueryDerivedGet::operator==(const BaseOperatorNode &node) {
+  if (node.GetType() != OpType::LOGICALQUERYDERIVEDGET) return false;
+  const LogicalQueryDerivedGet &r =
+      *static_cast<const LogicalQueryDerivedGet *>(&node);
+  if (table_alias_ != r.table_alias_) return false;
+  return alias_to_expr_map_ == r.alias_to_expr_map_;
+}
+
+common::hash_t LogicalQueryDerivedGet::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
+  for (auto iter = alias_to_expr_map_.begin(); iter != alias_to_expr_map_.end(); iter++) {
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(iter->first));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(iter->second));
+  }
+  return hash;
+}
+
+//===--------------------------------------------------------------------===//
 // TableFreeScan
 //===--------------------------------------------------------------------===//
 Operator TableFreeScan::make() {
@@ -45,7 +154,6 @@ bool SeqScan::operator==(const BaseOperatorNode &r) {
     if (predicates_[i].GetExpr() != node.predicates_[i].GetExpr()) return false;
   }
 
-  if ()
   return true;
 }
 
@@ -82,8 +190,9 @@ Operator IndexScan::make(catalog::db_oid_t database_oid, catalog::namespace_oid_
 bool IndexScan::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::INDEXSCAN) return false;
   const IndexScan &node = *dynamic_cast<const IndexScan *>(&r);
-  if (database_oid_ != node.database_oid_ || namespace_oid_ != node.namespace_oid_ || index_oid_ != node.index_oid_ || key_column_oid_list_ != node.key_column_oid_list_ ||
-      expr_type_list_ != node.expr_type_list_ || predicates_.size() != node.predicates_.size())
+  if (database_oid_ != node.database_oid_ || namespace_oid_ != node.namespace_oid_ || index_oid_ != node.index_oid_ ||
+      key_column_oid_list_ != node.key_column_oid_list_ || expr_type_list_ != node.expr_type_list_ ||
+      predicates_.size() != node.predicates_.size())
     return false;
 
   for (size_t i = 0; i < predicates_.size(); i++) {
@@ -100,8 +209,10 @@ common::hash_t IndexScan::Hash() const {
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&is_for_update_));
   for (auto &pred : predicates_) hash = common::HashUtil::CombineHashes(hash, pred.GetExpr()->Hash());
-  for (auto &col_oid : key_column_oid_list_) hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&col_oid));
-  for (auto &expr_type : expr_type_list_) hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&expr_type));
+  for (auto &col_oid : key_column_oid_list_)
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&col_oid));
+  for (auto &expr_type : expr_type_list_)
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&expr_type));
   for (auto &val : value_list_) hash = common::HashUtil::CombineHashes(hash, val.Hash());
   return hash;
 }
@@ -153,15 +264,21 @@ Operator QueryDerivedScan::make(
   return Operator(get);
 }
 
-bool QueryDerivedScan::operator==(const BaseOperatorNode &r) {
-  if (r.GetType() != OpType::QUERYDERIVEDSCAN) return false;
-  const auto &get = *dynamic_cast<const QueryDerivedScan *>(&r);
-  return alias_to_expr_map_ == get.alias_to_expr_map_;
+bool QueryDerivedScan::operator==(const BaseOperatorNode &node) {
+  if (node.GetType() != OpType::QUERYDERIVEDSCAN) return false;
+  const LogicalQueryDerivedGet &r =
+      *static_cast<const QueryDerivedScan *>(&node);
+  if (table_alias_ != r.table_alias_) return false;
+  return alias_to_expr_map_ == r.alias_to_expr_map_;
 }
 
 common::hash_t QueryDerivedScan::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
+  for (auto iter = alias_to_expr_map_.begin(); iter != alias_to_expr_map_.end(); iter++) {
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(iter->first));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(iter->second));
+  }
   return hash;
 }
 
@@ -494,6 +611,48 @@ void OperatorNode<T>::Accept(OperatorVisitor *v) const {
 }
 
 //===--------------------------------------------------------------------===//
+template <>
+const char *OperatorNode<LogicalGet>::name_ = "LogicalGet";
+template <>
+const char *OperatorNode<LogicalExternalFileGet>::name_ = "LogicalExternalFileGet";
+template <>
+const char *OperatorNode<LogicalQueryDerivedGet>::name_ = "LogicalQueryDerivedGet";
+template <>
+const char *OperatorNode<LogicalFilter>::name_ = "LogicalFilter";
+template <>
+const char *OperatorNode<LogicalProjection>::name_ = "LogicalProjection";
+template <>
+const char *OperatorNode<LogicalMarkJoin>::name_ = "LogicalMarkJoin";
+template <>
+const char *OperatorNode<LogicalSingleJoin>::name_ = "LogicalSingleJoin";
+template <>
+const char *OperatorNode<LogicalDependentJoin>::name_ = "LogicalDependentJoin";
+template <>
+const char *OperatorNode<LogicalInnerJoin>::name_ = "LogicalInnerJoin";
+template <>
+const char *OperatorNode<LogicalLeftJoin>::name_ = "LogicalLeftJoin";
+template <>
+const char *OperatorNode<LogicalRightJoin>::name_ = "LogicalRightJoin";
+template <>
+const char *OperatorNode<LogicalOuterJoin>::name_ = "LogicalOuterJoin";
+template <>
+const char *OperatorNode<LogicalSemiJoin>::name_ = "LogicalSemiJoin";
+template <>
+const char *OperatorNode<LogicalAggregateAndGroupBy>::name_ = "LogicalAggregateAndGroupBy";
+template <>
+const char *OperatorNode<LogicalInsert>::name_ = "LogicalInsert";
+template <>
+const char *OperatorNode<LogicalInsertSelect>::name_ = "LogicalInsertSelect";
+template <>
+const char *OperatorNode<LogicalUpdate>::name_ = "LogicalUpdate";
+template <>
+const char *OperatorNode<LogicalDelete>::name_ = "LogicalDelete";
+template <>
+const char *OperatorNode<LogicalLimit>::name_ = "LogicalLimit";
+template <>
+const char *OperatorNode<LogicalDistinct>::name_ = "LogicalDistinct";
+template <>
+const char *OperatorNode<LogicalExportExternalFile>::name_ = "LogicalExportExternalFile";
 template <>
 const char *OperatorNode<TableFreeScan>::name_ = "TableFreeScan";
 template <>

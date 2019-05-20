@@ -22,6 +22,368 @@ class UpdateClause;
 namespace optimizer {
 
 /**
+ * Logical operator for get
+ */
+class LogicalGet : public OperatorNode<LogicalGet> {
+ public:
+  /**
+   * @param database_oid OID of the database
+   * @param namespace_oid OID of the namespace
+   * @param table_oid OID of the table
+   * @param predicates predicates for get
+   * @param table_alias alias of table to get from
+   * @param is_for_update whether the scan is used for update
+   * @return
+   */
+  static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                       catalog::table_oid_t table_oid, std::vector<AnnotatedExpression> predicates,
+                       std::string table_alias, bool is_for_update);
+
+  bool operator==(const BaseOperatorNode &r) override;
+
+  common::hash_t Hash() const override;
+
+ private:
+  /**
+   * OID of the database
+   */
+  catalog::db_oid_t database_oid_;
+
+  /**
+   * OID of the namespace
+   */
+  catalog::namespace_oid_t namespace_oid_;
+
+  /**
+   * OID of the table
+   */
+  catalog::table_oid_t table_oid_;
+
+  /**
+   * Predicates for get
+   */
+  std::vector<AnnotatedExpression> predicates_;
+
+  /**
+   * Alias of the table to get from
+   */
+  std::string table_alias_;
+
+  /**
+   * Whether the scan is used for update
+   */
+  bool is_for_update_;
+};
+
+/**
+ * Logical operator for external file get
+ */
+class LogicalExternalFileGet : public OperatorNode<LogicalExternalFileGet> {
+ public:
+  /**
+   * @param format file format
+   * @param file_name file name
+   * @param delimiter character used as delimiter
+   * @param quote character used for quotation
+   * @param escape character used for escape sequences
+   * @return an LogicalExternalFileGet operator
+   */
+  static Operator make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote,
+                       char escape);
+
+  bool operator==(const BaseOperatorNode &r) override;
+
+  common::hash_t Hash() const override;
+
+ private:
+  /**
+   * File format
+   */
+  parser::ExternalFileFormat format_;
+
+  /**
+   * File name
+   */
+  std::string file_name_;
+
+  /**
+   * Character used as delimiter
+   */
+  char delimiter_;
+
+  /**
+   * Character used for quotation
+   */
+  char quote_;
+
+  /**
+   * Character used for escape sequences
+   */
+  char escape_;
+};
+
+/**
+ * Logical operator for query derived get (get on result sets of subqueries)
+ */
+class LogicalQueryDerivedGet : public OperatorNode<LogicalQueryDerivedGet> {
+ public:
+  /**
+   * @param table_alias alias of the table
+   * @param alias_to_expr_map map from table aliases to expressions of those tables
+   * @return a QueryDerivedGet operator
+   */
+  static Operator make(
+      std::string table_alias,
+      std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>> &&alias_to_expr_map);
+
+  bool operator==(const BaseOperatorNode &r) override;
+
+  common::hash_t Hash() const override;
+
+ private:
+  /**
+   * Table aliases
+   */
+  std::string table_alias_;
+
+  /**
+   * Map from table aliases to expressions
+   */
+  std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>> alias_to_expr_map_;
+};
+
+//===--------------------------------------------------------------------===//
+// Select
+//===--------------------------------------------------------------------===//
+class LogicalFilter : public OperatorNode<LogicalFilter> {
+ public:
+  static Operator make(std::vector<AnnotatedExpression> &filter);
+  std::vector<AnnotatedExpression> predicates;
+
+  bool operator==(const BaseOperatorNode &r) override;
+
+  hash_t Hash() const override;
+};
+
+//===--------------------------------------------------------------------===//
+// Project
+//===--------------------------------------------------------------------===//
+class LogicalProjection : public OperatorNode<LogicalProjection> {
+ public:
+  static Operator make(std::vector<std::shared_ptr<expression::AbstractExpression>> &elements);
+  std::vector<std::shared_ptr<expression::AbstractExpression>> expressions;
+};
+
+//===--------------------------------------------------------------------===//
+// DependentJoin
+//===--------------------------------------------------------------------===//
+class LogicalDependentJoin : public OperatorNode<LogicalDependentJoin> {
+ public:
+  static Operator make();
+
+  static Operator make(std::vector<AnnotatedExpression> &conditions);
+
+  bool operator==(const BaseOperatorNode &r) override;
+
+  hash_t Hash() const override;
+
+  std::vector<AnnotatedExpression> join_predicates;
+};
+
+//===--------------------------------------------------------------------===//
+// MarkJoin
+//===--------------------------------------------------------------------===//
+class LogicalMarkJoin : public OperatorNode<LogicalMarkJoin> {
+ public:
+  static Operator make();
+
+  static Operator make(std::vector<AnnotatedExpression> &conditions);
+
+  bool operator==(const BaseOperatorNode &r) override;
+
+  hash_t Hash() const override;
+
+  std::vector<AnnotatedExpression> join_predicates;
+};
+
+//===--------------------------------------------------------------------===//
+// SingleJoin
+//===--------------------------------------------------------------------===//
+class LogicalSingleJoin : public OperatorNode<LogicalSingleJoin> {
+ public:
+  static Operator make();
+
+  static Operator make(std::vector<AnnotatedExpression> &conditions);
+
+  bool operator==(const BaseOperatorNode &r) override;
+
+  hash_t Hash() const override;
+
+  std::vector<AnnotatedExpression> join_predicates;
+};
+
+//===--------------------------------------------------------------------===//
+// InnerJoin
+//===--------------------------------------------------------------------===//
+class LogicalInnerJoin : public OperatorNode<LogicalInnerJoin> {
+ public:
+  static Operator make();
+
+  static Operator make(std::vector<AnnotatedExpression> &conditions);
+
+  bool operator==(const BaseOperatorNode &r) override;
+
+  hash_t Hash() const override;
+
+  std::vector<AnnotatedExpression> join_predicates;
+};
+
+//===--------------------------------------------------------------------===//
+// LeftJoin
+//===--------------------------------------------------------------------===//
+class LogicalLeftJoin : public OperatorNode<LogicalLeftJoin> {
+ public:
+  static Operator make(expression::AbstractExpression *condition = nullptr);
+
+  std::shared_ptr<expression::AbstractExpression> join_predicate;
+};
+
+//===--------------------------------------------------------------------===//
+// RightJoin
+//===--------------------------------------------------------------------===//
+class LogicalRightJoin : public OperatorNode<LogicalRightJoin> {
+ public:
+  static Operator make(expression::AbstractExpression *condition = nullptr);
+
+  std::shared_ptr<expression::AbstractExpression> join_predicate;
+};
+
+//===--------------------------------------------------------------------===//
+// OuterJoin
+//===--------------------------------------------------------------------===//
+class LogicalOuterJoin : public OperatorNode<LogicalOuterJoin> {
+ public:
+  static Operator make(expression::AbstractExpression *condition = nullptr);
+
+  std::shared_ptr<expression::AbstractExpression> join_predicate;
+};
+
+//===--------------------------------------------------------------------===//
+// SemiJoin
+//===--------------------------------------------------------------------===//
+class LogicalSemiJoin : public OperatorNode<LogicalSemiJoin> {
+ public:
+  static Operator make(expression::AbstractExpression *condition = nullptr);
+
+  std::shared_ptr<expression::AbstractExpression> join_predicate;
+};
+
+//===--------------------------------------------------------------------===//
+// GroupBy
+//===--------------------------------------------------------------------===//
+class LogicalAggregateAndGroupBy : public OperatorNode<LogicalAggregateAndGroupBy> {
+ public:
+  static Operator make();
+
+  static Operator make(std::vector<std::shared_ptr<expression::AbstractExpression>> &columns);
+
+  static Operator make(std::vector<std::shared_ptr<expression::AbstractExpression>> &columns,
+                       std::vector<AnnotatedExpression> &having);
+
+  bool operator==(const BaseOperatorNode &r) override;
+  hash_t Hash() const override;
+
+  std::vector<std::shared_ptr<expression::AbstractExpression>> columns;
+  std::vector<AnnotatedExpression> having;
+};
+
+//===--------------------------------------------------------------------===//
+// Insert
+//===--------------------------------------------------------------------===//
+class LogicalInsert : public OperatorNode<LogicalInsert> {
+ public:
+  static Operator make(std::shared_ptr<catalog::TableCatalogEntry> target_table,
+                       const std::vector<std::string> *columns,
+                       const std::vector<std::vector<std::unique_ptr<expression::AbstractExpression>>> *values);
+
+  std::shared_ptr<catalog::TableCatalogEntry> target_table;
+  const std::vector<std::string> *columns;
+  const std::vector<std::vector<std::unique_ptr<expression::AbstractExpression>>> *values;
+};
+
+class LogicalInsertSelect : public OperatorNode<LogicalInsertSelect> {
+ public:
+  static Operator make(std::shared_ptr<catalog::TableCatalogEntry> target_table);
+
+  std::shared_ptr<catalog::TableCatalogEntry> target_table;
+};
+
+//===--------------------------------------------------------------------===//
+// LogicalDistinct
+//===--------------------------------------------------------------------===//
+class LogicalDistinct : public OperatorNode<LogicalDistinct> {
+ public:
+  static Operator make();
+};
+
+//===--------------------------------------------------------------------===//
+// LogicalLimit
+//===--------------------------------------------------------------------===//
+class LogicalLimit : public OperatorNode<LogicalLimit> {
+ public:
+  static Operator make(int64_t offset, int64_t limit, std::vector<expression::AbstractExpression *> &&sort_exprs,
+                       std::vector<bool> &&sort_ascending);
+  int64_t offset;
+  int64_t limit;
+  // When we get a query like "SELECT * FROM tab ORDER BY a LIMIT 5"
+  // We'll let the limit operator keep the order by clause's content as an
+  // internal order, then the limit operator will generate sort plan with
+  // limit as a optimization.
+  std::vector<expression::AbstractExpression *> sort_exprs;
+  std::vector<bool> sort_ascending;
+};
+
+//===--------------------------------------------------------------------===//
+// Delete
+//===--------------------------------------------------------------------===//
+class LogicalDelete : public OperatorNode<LogicalDelete> {
+ public:
+  static Operator make(std::shared_ptr<catalog::TableCatalogEntry> target_table);
+
+  std::shared_ptr<catalog::TableCatalogEntry> target_table;
+};
+
+//===--------------------------------------------------------------------===//
+// Update
+//===--------------------------------------------------------------------===//
+class LogicalUpdate : public OperatorNode<LogicalUpdate> {
+ public:
+  static Operator make(std::shared_ptr<catalog::TableCatalogEntry> target_table,
+                       const std::vector<std::unique_ptr<parser::UpdateClause>> *updates);
+
+  std::shared_ptr<catalog::TableCatalogEntry> target_table;
+  const std::vector<std::unique_ptr<parser::UpdateClause>> *updates;
+};
+
+//===--------------------------------------------------------------------===//
+// Export to external file
+//===--------------------------------------------------------------------===//
+class LogicalExportExternalFile : public OperatorNode<LogicalExportExternalFile> {
+ public:
+  static Operator make(ExternalFileFormat format, std::string file_name, char delimiter, char quote, char escape);
+
+  bool operator==(const BaseOperatorNode &r) override;
+
+  hash_t Hash() const override;
+
+  ExternalFileFormat format;
+  std::string file_name;
+  char delimiter;
+  char quote;
+  char escape;
+};
+
+/**
  * Physical operator for SELECT without FROM (e.g. SELECT 1;)
  */
 class TableFreeScan : public OperatorNode<TableFreeScan> {
@@ -43,12 +405,12 @@ class SeqScan : public OperatorNode<SeqScan> {
    * @param table_oid OID of the table
    * @param table_alias alias of the table
    * @param predicates predicates for get
-   * @param update whether the scan is used for update
+   * @param is_for_update whether the scan is used for update
    * @return a SeqScan operator
    */
   static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t table_oid, std::string table_alias,
-                       std::vector<AnnotatedExpression> predicates, bool update);
+                       std::vector<AnnotatedExpression> predicates, bool is_for_update);
 
   bool operator==(const BaseOperatorNode &r) override;
 
@@ -97,7 +459,7 @@ class IndexScan : public OperatorNode<IndexScan> {
    * @param index_oid OID of the index
    * @param table_alias alias of the table
    * @param predicates query predicates
-   * @param update whether the scan is used for update
+   * @param is_for_update whether the scan is used for update
    * @param key_column_id_list OID of key columns
    * @param expr_type_list expression types
    * @param value_list values to be scanned
@@ -105,7 +467,7 @@ class IndexScan : public OperatorNode<IndexScan> {
    */
   static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::index_oid_t index_oid, std::string table_alias,
-                       std::vector<AnnotatedExpression> predicates, bool update,
+                       std::vector<AnnotatedExpression> predicates, bool is_for_update,
                        std::vector<catalog::col_oid_t> key_column_oid_list,
                        std::vector<parser::ExpressionType> expr_type_list,
                        std::vector<type::TransientValue> value_list);
