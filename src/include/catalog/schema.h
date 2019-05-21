@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include "catalog/catalog_defs"
 #include "common/constants.h"
 #include "common/macros.h"
 #include "common/strong_typedef.h"
@@ -34,12 +35,12 @@ class Schema {
      * @param nullable true if the column is nullable, false otherwise
      * @param oid internal unique identifier for this column
      */
-    Column(std::string name, const type::TypeId type, const bool nullable, const col_oid_t oid)
+    Column(std::string name, const type::TypeId type, const bool nullable)
         : name_(std::move(name)),
           type_(type),
           attr_size_(type::TypeUtil::GetTypeSize(type_)),
           nullable_(nullable),
-          oid_(oid) {
+          oid_(INVALID_COLUMN_OID) {
       TERRIER_ASSERT(attr_size_ == 1 || attr_size_ == 2 || attr_size_ == 4 || attr_size_ == 8,
                      "This constructor is meant for non-VARLEN columns.");
       TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
@@ -53,14 +54,13 @@ class Schema {
      * @param nullable true if the column is nullable, false otherwise
      * @param oid internal unique identifier for this column
      */
-    Column(std::string name, const type::TypeId type, const uint16_t max_varlen_size, const bool nullable,
-           const col_oid_t oid)
+    Column(std::string name, const type::TypeId type, const uint16_t max_varlen_size, const bool nullable)
         : name_(std::move(name)),
           type_(type),
           attr_size_(type::TypeUtil::GetTypeSize(type_)),
           max_varlen_size_(max_varlen_size),
           nullable_(nullable),
-          oid_(oid) {
+          oid_(INVALID_COLUMN_OID) {
       TERRIER_ASSERT(attr_size_ == VARLEN_COLUMN, "This constructor is meant for VARLEN columns.");
       TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
     }
@@ -136,6 +136,10 @@ class Schema {
     col_oid_t oid_;
     // TODO(Matt): default value would go here
     // Value default_;
+
+    void SetOid(col_oid_t oid) { oid_ = oid; }
+
+    friend class Catalog;
   };
 
   /**

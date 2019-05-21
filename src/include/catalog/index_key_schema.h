@@ -17,7 +17,8 @@ class IndexKeyColumn {
    * @param nullable whether the column is nullable
    * @param type_id the non-varlen type of the column
    */
-  IndexKeyColumn(indexkeycol_oid_t oid, type::TypeId type_id, bool nullable) : oid_(oid), packed_type_(0) {
+  IndexKeyColumn(type::TypeId type_id, bool nullable)
+      : oid_(INVALID_INDEXKEYCOL_OID), packed_type_(0) {
     TERRIER_ASSERT(!(type_id == type::TypeId::VARCHAR || type_id == type::TypeId::VARBINARY),
                    "Non-varlen constructor.");
     SetTypeId(type_id);
@@ -31,8 +32,8 @@ class IndexKeyColumn {
    * @param type_id the varlen type of the column
    * @param max_varlen_size the maximum varlen size
    */
-  IndexKeyColumn(indexkeycol_oid_t oid, type::TypeId type_id, bool nullable, uint16_t max_varlen_size)
-      : oid_(oid), packed_type_(0) {
+  IndexKeyColumn(type::TypeId type_id, bool nullable, uint16_t max_varlen_size)
+      : oid_(INVALID_INDEXKEYCOL_OID), packed_type_(0) {
     TERRIER_ASSERT(type_id == type::TypeId::VARCHAR || type_id == type::TypeId::VARBINARY, "Varlen constructor.");
     SetTypeId(type_id);
     SetNullable(nullable);
@@ -69,6 +70,8 @@ class IndexKeyColumn {
   indexkeycol_oid_t oid_;
   uint32_t packed_type_;
 
+  void SetOid(indexkeycol_oid_t oid) { oid_ = oid; }
+
   void SetMaxVarlenSize(uint16_t max_varlen_size) {
     TERRIER_ASSERT((packed_type_ & MASK_VARLEN) == 0, "Should only set max varlen size once.");
     const auto varlen_bits = (max_varlen_size << OFFSET_VARLEN) & MASK_VARLEN;
@@ -84,6 +87,8 @@ class IndexKeyColumn {
     TERRIER_ASSERT((packed_type_ & MASK_NULLABLE) == 0, "Should only set nullability once.");
     packed_type_ = nullable ? packed_type_ | MASK_NULLABLE : packed_type_;
   }
+
+  friend class Catalog;
 };
 
 /**
