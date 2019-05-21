@@ -3,7 +3,7 @@
 #include "common/macros.h"
 #include "common/scoped_timer.h"
 #include "common/worker_pool.h"
-#include "storage/garbage_collector.h"
+#include "storage/garbage_collector_thread.h"
 #include "storage/storage_defs.h"
 #include "transaction/transaction_manager.h"
 #include "util/tpcc/builder.h"
@@ -36,21 +36,6 @@ class TPCCTests : public TerrierTest {
     log_manager_->Shutdown();
   }
 
-  void StartGC(transaction::TransactionManager *const txn_manager) {
-    gc_ = new storage::GarbageCollector(txn_manager);
-    run_gc_ = true;
-    gc_thread_ = std::thread([this] { GCThreadLoop(); });
-  }
-
-  void EndGC() {
-    run_gc_ = false;
-    gc_thread_.join();
-    // Make sure all garbage is collected. This take 2 runs for unlink and deallocate
-    gc_->PerformGarbageCollection();
-    gc_->PerformGarbageCollection();
-    delete gc_;
-  }
-
   void TearDown() final {
     TerrierTest::TearDown();
     if (logging_enabled_) unlink(LOG_FILE_NAME);
@@ -67,17 +52,18 @@ class TPCCTests : public TerrierTest {
   std::default_random_engine generator_;
   storage::LogManager *log_manager_ = nullptr;
 
-  const bool only_count_new_order_ = false;  // TPC-C specification is to only measure throughput for New Order in final
-  // result, but most academic papers use all txn types
   const int8_t num_threads_ = 4;  // defines the number of terminals (workers running txns) and warehouses for the
   // benchmark. Sometimes called scale factor
   const uint32_t num_precomputed_txns_per_worker_ = 10000;  // Number of txns to run per terminal (worker thread)
   TransactionWeights txn_weights;                           // default txn_weights. See definition for values
 
-  // Toggle WAL on or off for the benchmark
+  // Toggle WAL on or off for the test
   const bool logging_enabled_ = false;
 
   common::WorkerPool thread_pool_{static_cast<uint32_t>(num_threads_), {}};
+
+  storage::GarbageCollectorThread *gc_thread_ = nullptr;
+  const std::chrono::milliseconds gc_period_{10};
 
  private:
   std::thread log_thread_;
@@ -88,18 +74,6 @@ class TPCCTests : public TerrierTest {
     while (logging_) {
       std::this_thread::sleep_for(log_period_milli_);
       log_manager_->Process();
-    }
-  }
-
-  std::thread gc_thread_;
-  storage::GarbageCollector *gc_ = nullptr;
-  volatile bool run_gc_ = false;
-  const std::chrono::milliseconds gc_period_{10};
-
-  void GCThreadLoop() {
-    while (run_gc_) {
-      std::this_thread::sleep_for(gc_period_);
-      gc_->PerformGarbageCollection();
     }
   }
 };
@@ -136,7 +110,7 @@ TEST_F(TPCCTests, TPCCTest) {
   // populate the tables and indexes
   Loader::PopulateDatabase(&txn_manager, &generator_, tpcc_db, workers);
   if (logging_enabled_) log_manager_->Process();  // log all of the Inserts from table creation
-  StartGC(&txn_manager);
+  gc_thread_ = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
   if (logging_enabled_) StartLogging();
   std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
 
@@ -185,7 +159,7 @@ TEST_F(TPCCTests, TPCCTest) {
 
   // cleanup
   if (logging_enabled_) EndLogging();
-  EndGC();
+  delete gc_thread_;
   delete tpcc_db;
   if (logging_enabled_) delete log_manager_;
 

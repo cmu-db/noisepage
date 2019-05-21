@@ -4,7 +4,7 @@
 #include "common/macros.h"
 #include "common/scoped_timer.h"
 #include "common/worker_pool.h"
-#include "storage/garbage_collector.h"
+#include "storage/garbage_collector_thread.h"
 #include "storage/storage_defs.h"
 #include "transaction/transaction_manager.h"
 #include "util/tpcc/builder.h"
@@ -35,21 +35,6 @@ class TPCCBenchmark : public benchmark::Fixture {
     log_manager_->Shutdown();
   }
 
-  void StartGC(transaction::TransactionManager *const txn_manager) {
-    gc_ = new storage::GarbageCollector(txn_manager);
-    run_gc_ = true;
-    gc_thread_ = std::thread([this] { GCThreadLoop(); });
-  }
-
-  void EndGC() {
-    run_gc_ = false;
-    gc_thread_.join();
-    // Make sure all garbage is collected. This take 2 runs for unlink and deallocate
-    gc_->PerformGarbageCollection();
-    gc_->PerformGarbageCollection();
-    delete gc_;
-  }
-
   void TearDown(const benchmark::State &state) final {
     if (logging_enabled_) unlink(LOG_FILE_NAME);
   }
@@ -77,6 +62,9 @@ class TPCCBenchmark : public benchmark::Fixture {
 
   common::WorkerPool thread_pool_{static_cast<uint32_t>(num_threads_), {}};
 
+  storage::GarbageCollectorThread *gc_thread_ = nullptr;
+  const std::chrono::milliseconds gc_period_{10};
+
  private:
   std::thread log_thread_;
   volatile bool logging_ = false;
@@ -86,18 +74,6 @@ class TPCCBenchmark : public benchmark::Fixture {
     while (logging_) {
       std::this_thread::sleep_for(log_period_milli_);
       log_manager_->Process();
-    }
-  }
-
-  std::thread gc_thread_;
-  storage::GarbageCollector *gc_ = nullptr;
-  volatile bool run_gc_ = false;
-  const std::chrono::milliseconds gc_period_{10};
-
-  void GCThreadLoop() {
-    while (run_gc_) {
-      std::this_thread::sleep_for(gc_period_);
-      gc_->PerformGarbageCollection();
     }
   }
 };
@@ -136,7 +112,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4)(benchmark::State &state) {
     // populate the tables and indexes
     Loader::PopulateDatabase(&txn_manager, &generator_, tpcc_db, workers);
     if (logging_enabled_) log_manager_->Process();  // log all of the Inserts from table creation
-    StartGC(&txn_manager);
+    gc_thread_ = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
     if (logging_enabled_) StartLogging();
     std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
 
@@ -191,7 +167,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4)(benchmark::State &state) {
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
 
     // cleanup
-    EndGC();
+    delete gc_thread_;
     delete tpcc_db;
   }
 
