@@ -1,6 +1,6 @@
 #pragma once
 
-#include <chrono>
+#include <chrono>  //NOLINT
 #include <thread>  //NOLINT
 #include "storage/garbage_collector.h"
 
