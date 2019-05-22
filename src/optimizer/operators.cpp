@@ -177,6 +177,7 @@ common::hash_t LogicalProjection::Hash() const {
 Operator LogicalInsert::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                              catalog::table_oid_t table_oid, const std::vector<catalog::col_oid_t > &&columns,
                              const std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> &&values) {
+  TERRIER_ASSERT(columns.size() == values.size(), "Mismatched columns and values");
   LogicalInsert *op = new LogicalInsert;
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
@@ -267,6 +268,7 @@ common::hash_t LogicalDistinct::Hash() const {
 Operator LogicalLimit::make(size_t offset, size_t limit,
                             std::vector<std::shared_ptr<parser::AbstractExpression>> &&sort_exprs,
                             std::vector<planner::OrderByOrderingType> &&sort_directions) {
+  TERRIER_ASSERT(sort_exprs.size() == sort_directions.size(), "Mismatched ORDER BY expressions + directions");
   LogicalLimit *op = new LogicalLimit;
   op->offset_ = offset;
   op->limit_ = limit;
@@ -292,6 +294,70 @@ common::hash_t LogicalLimit::Hash() const {
   hash = common::HashUtil::CombineHashInRange(hash, sort_exprs_.begin(), sort_exprs_.end());
   hash = common::HashUtil::CombineHashInRange(hash, sort_directions_.begin(), sort_directions_.end());
   return hash;
+}
+
+//===--------------------------------------------------------------------===//
+// LogicalDelete
+//===--------------------------------------------------------------------===//
+
+Operator LogicalDelete::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                                   catalog::table_oid_t table_oid) {
+  LogicalDelete *op = new LogicalDelete;
+  op->database_oid_ = database_oid;
+  op->namespace_oid_ = namespace_oid;
+  op->table_oid_ = table_oid;
+  return Operator(op);
+}
+
+common::hash_t LogicalDelete::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&table_oid_));
+  return hash;
+}
+
+bool LogicalDelete::operator==(const BaseOperatorNode &node) {
+  if (node.GetType() != OpType::LOGICALDELETE) return false;
+  const LogicalDelete &r = *dynamic_cast<const LogicalDelete *>(&node);
+  if (database_oid_ != r.database_oid_) return false;
+  if (namespace_oid_ != r.namespace_oid_) return false;
+  if (table_oid_ != r.table_oid_) return false;
+  return (true);
+}
+
+//===--------------------------------------------------------------------===//
+// LogicalUpdate
+//===--------------------------------------------------------------------===//
+
+Operator LogicalUpdate::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                             catalog::table_oid_t table_oid,
+                             const std::vector<std::unique_ptr<parser::UpdateClause>> &&updates) {
+  LogicalUpdate *op = new LogicalUpdate;
+  op->database_oid_ = database_oid;
+  op->namespace_oid_ = namespace_oid;
+  op->table_oid_ = table_oid;
+  op->updates_ = std::move(updates);
+  return Operator(op);
+}
+
+common::hash_t LogicalUpdate::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&table_oid_));
+  hash = common::HashUtil::CombineHashInRange(hash, updates_.begin(), updates_.end());
+  return hash;
+}
+
+bool LogicalUpdate::operator==(const BaseOperatorNode &node) {
+  if (node.GetType() != OpType::LOGICALDELETE) return false;
+  const LogicalUpdate &r = *dynamic_cast<const LogicalUpdate *>(&node);
+  if (database_oid_ != r.database_oid_) return false;
+  if (namespace_oid_ != r.namespace_oid_) return false;
+  if (table_oid_ != r.table_oid_) return false;
+  if (updates_ != r.updates_) return false;
+  return (true);
 }
 
 //===--------------------------------------------------------------------===//

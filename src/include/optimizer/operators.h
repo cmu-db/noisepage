@@ -429,9 +429,17 @@ class LogicalDistinct : public OperatorNode<LogicalDistinct> {
 
 /**
  * Logical operator for LIMIT
+ * This supports embedded ORDER BY information
  */
 class LogicalLimit : public OperatorNode<LogicalLimit> {
  public:
+  /**
+   * @param offset offset of the LIMIT operator
+   * @param limit the max # of tuples to produce
+   * @param sort_exprs inlined ORDER BY expressions (can be empty)
+   * @param sort_directions inlined sort directions (can be empty)
+   * @return
+   */
   static Operator make(size_t offset, size_t limit,
       std::vector<std::shared_ptr<parser::AbstractExpression>> &&sort_exprs,
       std::vector<planner::OrderByOrderingType> &&sort_directions);
@@ -465,26 +473,80 @@ class LogicalLimit : public OperatorNode<LogicalLimit> {
   std::vector<planner::OrderByOrderingType> sort_directions_;
 };
 
-//===--------------------------------------------------------------------===//
-// Delete
-//===--------------------------------------------------------------------===//
+/**
+ * Logical operator for Delete
+ */
 class LogicalDelete : public OperatorNode<LogicalDelete> {
  public:
-  static Operator make(std::shared_ptr<catalog::TableCatalogEntry> target_table);
 
-  std::shared_ptr<catalog::TableCatalogEntry> target_table;
+  /**
+   * @param database_oid OID of the database
+   * @param namespace_oid OID of the namespace
+   * @param table_oid OID of the table
+   * @return
+   */
+  static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                       catalog::table_oid_t table_oid);
+
+  bool operator==(const BaseOperatorNode &node) override;
+  common::hash_t Hash() const override;
+
+ private:
+  /**
+   * OID of the database
+   */
+  catalog::db_oid_t database_oid_;
+
+  /**
+   * OID of the namespace
+   */
+  catalog::namespace_oid_t namespace_oid_;
+
+  /**
+   * OID of the table
+   */
+  catalog::table_oid_t table_oid_;
 };
 
-//===--------------------------------------------------------------------===//
-// Update
-//===--------------------------------------------------------------------===//
+/**
+ * Logical operator for Update
+ */
 class LogicalUpdate : public OperatorNode<LogicalUpdate> {
  public:
-  static Operator make(std::shared_ptr<catalog::TableCatalogEntry> target_table,
-                       const std::vector<std::unique_ptr<parser::UpdateClause>> *updates);
+  /**
+   * @param database_oid OID of the database
+   * @param namespace_oid OID of the namespace
+   * @param table_oid OID of the table
+   * @param updates the update clauses from the SET portion of the query
+   * @return
+   */
+  static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                       catalog::table_oid_t table_oid,
+                       const std::vector<std::unique_ptr<parser::UpdateClause>> &&updates);
 
-  std::shared_ptr<catalog::TableCatalogEntry> target_table;
-  const std::vector<std::unique_ptr<parser::UpdateClause>> *updates;
+  bool operator==(const BaseOperatorNode &node) override;
+  common::hash_t Hash() const override;
+
+ private:
+  /**
+   * OID of the database
+   */
+  catalog::db_oid_t database_oid_;
+
+  /**
+   * OID of the namespace
+   */
+  catalog::namespace_oid_t namespace_oid_;
+
+  /**
+   * OID of the table
+   */
+  catalog::table_oid_t table_oid_;
+
+  /**
+   * The update clauses from the SET portion of the query
+   */
+   std::vector<std::unique_ptr<parser::UpdateClause>> updates_;
 };
 
 //===--------------------------------------------------------------------===//
