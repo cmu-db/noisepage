@@ -549,22 +549,52 @@ class LogicalUpdate : public OperatorNode<LogicalUpdate> {
    std::vector<std::unique_ptr<parser::UpdateClause>> updates_;
 };
 
-//===--------------------------------------------------------------------===//
-// Export to external file
-//===--------------------------------------------------------------------===//
+/**
+ * Logical operator for exporting data to an external file
+ */
 class LogicalExportExternalFile : public OperatorNode<LogicalExportExternalFile> {
  public:
-  static Operator make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote, char escape);
+  /**
+   * @param format how the data should be formatted
+   * @param file_name the local file path to write the data
+   * @param delimiter the character to use to split each attribute
+   * @param quote the character to use to 'quote' each value
+   * @param escape the character to use to escape characters in values
+   * @return
+   */
+  static Operator make(parser::ExternalFileFormat format, std::string file_name,
+      char delimiter, char quote, char escape);
 
   bool operator==(const BaseOperatorNode &r) override;
-
   common::hash_t Hash() const override;
 
-  parser::ExternalFileFormat format;
-  std::string file_name;
-  char delimiter;
-  char quote;
-  char escape;
+ private:
+  /**
+   * How the data should be formatted
+   */
+  parser::ExternalFileFormat format_;
+
+  /**
+   * The local file path to write the data
+   * TODO: Switch this to std::filesystem::path when it becomes more widely available
+   */
+  std::string file_name_;
+
+  /**
+   * The character to use to split each attribute
+   */
+  char delimiter_;
+
+  /**
+   * The character to use to 'quote' each value
+   */
+  char quote_;
+
+  /**
+   * The character to use to escape characters in values that are the same as
+   * either the delimiter or quote characeter.
+   */
+  char escape_;
 };
 
 /**

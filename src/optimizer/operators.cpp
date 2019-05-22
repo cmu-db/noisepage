@@ -361,6 +361,42 @@ bool LogicalUpdate::operator==(const BaseOperatorNode &node) {
 }
 
 //===--------------------------------------------------------------------===//
+// LogicalExportExternalFile
+//===--------------------------------------------------------------------===//
+
+Operator LogicalExportExternalFile::make(parser::ExternalFileFormat format, std::string file_name,
+                                         char delimiter, char quote, char escape) {
+  LogicalExportExternalFile *op = new LogicalExportExternalFile;
+  op->format_ = format;
+  op->file_name_ = file_name;
+  op->delimiter_ = delimiter;
+  op->quote_ = quote;
+  op->escape_ = escape;
+  return Operator(op);
+}
+
+common::hash_t LogicalExportExternalFile::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&format_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&file_name_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&delimiter_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&quote_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&escape_));
+  return hash;
+}
+
+bool LogicalExportExternalFile::operator==(const BaseOperatorNode &node) {
+  if (node.GetType() != OpType::LOGICALEXPORTEXTERNALFILE) return false;
+  const LogicalExportExternalFile &r = *dynamic_cast<const LogicalExportExternalFile *>(&node);
+  if (format_ != r.format_) return false;
+  if (file_name_ != r.file_name_) return false;
+  if (delimiter_ != r.delimiter_) return false;
+  if (quote_ != r.quote_) return false;
+  if (escape_ != r.escape_) return false;
+  return (true);
+}
+
+//===--------------------------------------------------------------------===//
 // TableFreeScan
 //===--------------------------------------------------------------------===//
 Operator TableFreeScan::make() {
