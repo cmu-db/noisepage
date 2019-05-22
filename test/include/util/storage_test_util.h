@@ -10,6 +10,8 @@
 #include "catalog/schema.h"
 #include "common/strong_typedef.h"
 #include "gtest/gtest.h"
+#include "storage/index/compact_ints_key.h"
+#include "storage/index/index_defs.h"
 #include "storage/storage_defs.h"
 #include "storage/storage_util.h"
 #include "storage/tuple_access_strategy.h"
@@ -155,13 +157,52 @@ struct StorageTestUtil {
   }
 
   template <class Random>
+  static std::unordered_map<storage::TupleSlot, storage::ProjectedRow *> PopulateBlockRandomly(
+      const storage::BlockLayout &layout, storage::RawBlock *block, double empty_ratio, Random *const generator) {
+    std::unordered_map<storage::TupleSlot, storage::ProjectedRow *> result;
+    std::bernoulli_distribution coin(empty_ratio);
+    // TODO(Tianyu): Do we ever want to tune this for tests?
+    const double null_ratio = 0.1;
+    storage::TupleAccessStrategy accessor(layout);  // Have to construct one since we don't have access to data table
+    auto initializer =
+        storage::ProjectedRowInitializer::Create(layout, StorageTestUtil::ProjectionListAllColumns(layout));
+    for (uint32_t i = 0; i < layout.NumSlots(); i++) {
+      storage::TupleSlot slot;
+      bool ret UNUSED_ATTRIBUTE = accessor.Allocate(block, &slot);
+      TERRIER_ASSERT(ret && slot == storage::TupleSlot(block, i),
+                     "slot allocation should happen sequentially and succeed");
+      if (coin(*generator)) {
+        // slot will be marked empty
+        accessor.Deallocate(slot);
+        continue;
+      }
+      auto *redo_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+      storage::ProjectedRow *redo = initializer.InitializeRow(redo_buffer);
+      StorageTestUtil::PopulateRandomRow(redo, layout, null_ratio, generator);
+      result[slot] = redo;
+      // Copy without transactions to simulate a version-free block
+      accessor.SetNotNull(slot, VERSION_POINTER_COLUMN_ID);
+      for (uint16_t j = 0; j < redo->NumColumns(); j++)
+        storage::StorageUtil::CopyAttrFromProjection(accessor, slot, *redo, j);
+    }
+    TERRIER_ASSERT(block->insert_head_ == layout.NumSlots(), "The block should be considered full at this point");
+    return result;
+  }
+
+  template <class Random>
   static storage::ProjectedRowInitializer RandomInitializer(const storage::BlockLayout &layout, Random *generator) {
     return {layout, ProjectionListRandomColumns(layout, generator)};
   }
 
+  // Returns true iff the underlying varlen is bit-wise identical. Compressions schemes and other metadata are ignored.
+  static bool VarlenEntryEqualDeep(const storage::VarlenEntry &one, const storage::VarlenEntry &other) {
+    if (one.Size() != other.Size()) return false;
+    return memcmp(one.Content(), other.Content(), one.Size()) == 0;
+  }
+
   template <class RowType1, class RowType2>
-  static bool ProjectionListEqual(const storage::BlockLayout &layout, const RowType1 *const one,
-                                  const RowType2 *const other) {
+  static bool ProjectionListEqualDeep(const storage::BlockLayout &layout, const RowType1 *const one,
+                                      const RowType2 *const other) {
     if (one->NumColumns() != other->NumColumns()) return false;
     for (uint16_t projection_list_index = 0; projection_list_index < one->NumColumns(); projection_list_index++) {
       // Check that the two point at the same column
@@ -174,7 +215,45 @@ struct StorageTestUtil {
       const byte *one_content = one->AccessWithNullCheck(projection_list_index);
       const byte *other_content = other->AccessWithNullCheck(projection_list_index);
       // Either both are null or neither is null.
+
       if (one_content == nullptr || other_content == nullptr) {
+        if (one_content == other_content) continue;
+        return false;
+      }
+
+      if (layout.IsVarlen(one_id)) {
+        // Need to follow pointers and throw away metadata and padding for equality comparison
+        auto &one_entry = *reinterpret_cast<const storage::VarlenEntry *>(one_content),
+             &other_entry = *reinterpret_cast<const storage::VarlenEntry *>(other_content);
+        if (one_entry.Size() != other_entry.Size()) return false;
+        if (memcmp(one_entry.Content(), other_entry.Content(), one_entry.Size()) != 0) return false;
+      } else if (memcmp(one_content, other_content, attr_size) != 0) {
+        // Otherwise, they should be bit-wise identical.
+        return false;
+      }
+    }
+    return true;
+  }
+
+  template <class RowType1, class RowType2>
+  static bool ProjectionListEqualShallow(const storage::BlockLayout &layout, const RowType1 *const one,
+                                         const RowType2 *const other) {
+    EXPECT_EQ(one->NumColumns(), other->NumColumns());
+    if (one->NumColumns() != other->NumColumns()) return false;
+    for (uint16_t projection_list_index = 0; projection_list_index < one->NumColumns(); projection_list_index++) {
+      // Check that the two point at the same column
+      storage::col_id_t one_id = one->ColumnIds()[projection_list_index];
+      storage::col_id_t other_id = other->ColumnIds()[projection_list_index];
+      EXPECT_EQ(one_id, other_id);
+      if (one_id != other_id) return false;
+
+      // Check that the two have the same content bit-wise
+      uint8_t attr_size = layout.AttrSize(one_id);
+      const byte *one_content = one->AccessWithNullCheck(projection_list_index);
+      const byte *other_content = other->AccessWithNullCheck(projection_list_index);
+      // Either both are null or neither is null.
+      if (one_content == nullptr || other_content == nullptr) {
+        EXPECT_EQ(one_content, other_content);
         if (one_content == other_content) continue;
         return false;
       }
@@ -248,6 +327,90 @@ struct StorageTestUtil {
         EXPECT_TRUE(!memcmp(val_ptr, col_slot, layout.AttrSize(col_id)));
       }
     }
+  }
+
+  /**
+   * Generates a random GenericKey-compatible schema with the given number of columns using the given types.
+   */
+  template <typename Random>
+  static storage::index::IndexKeySchema RandomGenericKeySchema(const uint32_t num_cols,
+                                                               const std::vector<type::TypeId> &types,
+                                                               Random *generator) {
+    uint32_t max_varlen_size = 20;
+    TERRIER_ASSERT(num_cols > 0, "Must have at least one column in your key schema.");
+
+    std::vector<catalog::indexkeycol_oid_t> key_oids;
+    key_oids.reserve(num_cols);
+
+    for (uint32_t i = 0; i < num_cols; i++) {
+      key_oids.emplace_back(i);
+    }
+
+    std::shuffle(key_oids.begin(), key_oids.end(), *generator);
+
+    storage::index::IndexKeySchema key_schema;
+
+    for (uint32_t i = 0; i < num_cols; i++) {
+      auto key_oid = key_oids[i];
+      auto type = *RandomTestUtil::UniformRandomElement(types, generator);
+      auto is_nullable = static_cast<bool>(std::uniform_int_distribution(0, 1)(*generator));
+
+      switch (type) {
+        case type::TypeId::VARBINARY:
+        case type::TypeId::VARCHAR: {
+          auto varlen_size = std::uniform_int_distribution(0u, max_varlen_size)(*generator);
+          key_schema.emplace_back(key_oid, type, is_nullable, varlen_size);
+          break;
+        }
+        default:
+          key_schema.emplace_back(key_oid, type, is_nullable);
+          break;
+      }
+    }
+
+    return key_schema;
+  }
+
+  /**
+   * Generates a random CompactIntsKey-compatible schema.
+   */
+  template <typename Random>
+  static storage::index::IndexKeySchema RandomCompactIntsKeySchema(Random *generator) {
+    const uint16_t max_bytes = sizeof(uint64_t) * INTSKEY_MAX_SLOTS;
+    const auto key_size = std::uniform_int_distribution(static_cast<uint16_t>(1), max_bytes)(*generator);
+
+    const std::vector<type::TypeId> types{type::TypeId::TINYINT, type::TypeId::SMALLINT, type::TypeId::INTEGER,
+                                          type::TypeId::BIGINT};  // has to be sorted in ascending type size order
+
+    const uint16_t max_cols = max_bytes;  // could have up to max_bytes TINYINTs
+    std::vector<catalog::indexkeycol_oid_t> key_oids;
+    key_oids.reserve(max_cols);
+
+    for (auto i = 0; i < max_cols; i++) {
+      key_oids.emplace_back(i);
+    }
+
+    std::shuffle(key_oids.begin(), key_oids.end(), *generator);
+
+    storage::index::IndexKeySchema key_schema;
+
+    uint8_t col = 0;
+
+    for (uint16_t bytes_used = 0; bytes_used != key_size;) {
+      auto max_offset = static_cast<uint8_t>(types.size() - 1);
+      for (const auto &type : types) {
+        if (key_size - bytes_used < type::TypeUtil::GetTypeSize(type)) {
+          max_offset--;
+        }
+      }
+      const uint8_t type_offset = std::uniform_int_distribution(static_cast<uint8_t>(0), max_offset)(*generator);
+      const auto type = types[type_offset];
+
+      key_schema.emplace_back(key_oids[col++], type, false);
+      bytes_used = static_cast<uint16_t>(bytes_used + type::TypeUtil::GetTypeSize(type));
+    }
+
+    return key_schema;
   }
 
  private:

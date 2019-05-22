@@ -92,7 +92,7 @@ std::unique_ptr<SQLStatement> PostgresParser::NodeTransform(Node *node) {
     return nullptr;
   }
 
-  std::unique_ptr<SQLStatement> result = nullptr;
+  std::unique_ptr<SQLStatement> result;
   switch (node->type) {
     case T_CopyStmt: {
       result = CopyTransform(reinterpret_cast<CopyStmt *>(node));
@@ -1263,10 +1263,14 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateIndexTransform(IndexStmt *ro
   auto unique = root->unique;
   auto index_name = root->idxname;
 
-  std::vector<std::string> index_attrs;
+  std::vector<IndexAttr> index_attrs;
   for (auto cell = root->indexParams->head; cell != nullptr; cell = cell->next) {
-    std::string index_attr = reinterpret_cast<IndexElem *>(cell->data.ptr_value)->name;
-    index_attrs.emplace_back(index_attr);
+    auto *index_elem = reinterpret_cast<IndexElem *>(cell->data.ptr_value);
+    if (index_elem->expr == nullptr) {
+      index_attrs.emplace_back(index_elem->name);
+    } else {
+      index_attrs.emplace_back(ExprTransform(index_elem->expr));
+    }
   }
 
   auto table_name = root->relation->relname == nullptr ? "" : root->relation->relname;
@@ -1502,25 +1506,25 @@ std::unique_ptr<FuncParameter> PostgresParser::FunctionParameterTransform(Functi
   parser::FuncParameter::DataType data_type;
 
   if ((strcmp(name, "int") == 0) || (strcmp(name, "int4") == 0)) {
-    data_type = Parameter::DataType::INT;
+    data_type = BaseFunctionParameter::DataType::INT;
   } else if (strcmp(name, "varchar") == 0) {
-    data_type = Parameter::DataType::VARCHAR;
+    data_type = BaseFunctionParameter::DataType::VARCHAR;
   } else if (strcmp(name, "int8") == 0) {
-    data_type = Parameter::DataType::BIGINT;
+    data_type = BaseFunctionParameter::DataType::BIGINT;
   } else if (strcmp(name, "int2") == 0) {
-    data_type = Parameter::DataType::SMALLINT;
+    data_type = BaseFunctionParameter::DataType::SMALLINT;
   } else if ((strcmp(name, "double") == 0) || (strcmp(name, "float8") == 0)) {
-    data_type = Parameter::DataType::DOUBLE;
+    data_type = BaseFunctionParameter::DataType::DOUBLE;
   } else if ((strcmp(name, "real") == 0) || (strcmp(name, "float4") == 0)) {
-    data_type = Parameter::DataType::FLOAT;
+    data_type = BaseFunctionParameter::DataType::FLOAT;
   } else if (strcmp(name, "text") == 0) {
-    data_type = Parameter::DataType::TEXT;
+    data_type = BaseFunctionParameter::DataType::TEXT;
   } else if (strcmp(name, "bpchar") == 0) {
-    data_type = Parameter::DataType::CHAR;
+    data_type = BaseFunctionParameter::DataType::CHAR;
   } else if (strcmp(name, "tinyint") == 0) {
-    data_type = Parameter::DataType::TINYINT;
+    data_type = BaseFunctionParameter::DataType::TINYINT;
   } else if (strcmp(name, "bool") == 0) {
-    data_type = Parameter::DataType::BOOL;
+    data_type = BaseFunctionParameter::DataType::BOOL;
   } else {
     PARSER_LOG_AND_THROW("FunctionParameterTransform", "DataType", name);
   }
@@ -1536,25 +1540,25 @@ std::unique_ptr<ReturnType> PostgresParser::ReturnTypeTransform(TypeName *root) 
   ReturnType::DataType data_type;
 
   if ((strcmp(name, "int") == 0) || (strcmp(name, "int4") == 0)) {
-    data_type = Parameter::DataType::INT;
+    data_type = BaseFunctionParameter::DataType::INT;
   } else if (strcmp(name, "varchar") == 0) {
-    data_type = Parameter::DataType::VARCHAR;
+    data_type = BaseFunctionParameter::DataType::VARCHAR;
   } else if (strcmp(name, "int8") == 0) {
-    data_type = Parameter::DataType::BIGINT;
+    data_type = BaseFunctionParameter::DataType::BIGINT;
   } else if (strcmp(name, "int2") == 0) {
-    data_type = Parameter::DataType::SMALLINT;
+    data_type = BaseFunctionParameter::DataType::SMALLINT;
   } else if ((strcmp(name, "double") == 0) || (strcmp(name, "float8") == 0)) {
-    data_type = Parameter::DataType::DOUBLE;
+    data_type = BaseFunctionParameter::DataType::DOUBLE;
   } else if ((strcmp(name, "real") == 0) || (strcmp(name, "float4") == 0)) {
-    data_type = Parameter::DataType::FLOAT;
+    data_type = BaseFunctionParameter::DataType::FLOAT;
   } else if (strcmp(name, "text") == 0) {
-    data_type = Parameter::DataType::TEXT;
+    data_type = BaseFunctionParameter::DataType::TEXT;
   } else if (strcmp(name, "bpchar") == 0) {
-    data_type = Parameter::DataType::CHAR;
+    data_type = BaseFunctionParameter::DataType::CHAR;
   } else if (strcmp(name, "tinyint") == 0) {
-    data_type = Parameter::DataType::TINYINT;
+    data_type = BaseFunctionParameter::DataType::TINYINT;
   } else if (strcmp(name, "bool") == 0) {
-    data_type = Parameter::DataType::BOOL;
+    data_type = BaseFunctionParameter::DataType::BOOL;
   } else {
     PARSER_LOG_AND_THROW("ReturnTypeTransform", "ReturnType", name);
   }

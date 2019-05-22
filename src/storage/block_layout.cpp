@@ -3,6 +3,7 @@
 #include <functional>
 #include <utility>
 #include <vector>
+#include "storage/arrow_block_metadata.h"
 #include "storage/storage_util.h"
 
 namespace terrier::storage {
@@ -15,7 +16,7 @@ BlockLayout::BlockLayout(std::vector<uint8_t> attr_sizes)
   for (uint8_t size UNUSED_ATTRIBUTE : attr_sizes_)
     TERRIER_ASSERT(size == VARLEN_COLUMN || (size >= 0 && size <= INT8_MAX), "Invalid size of a column");
   TERRIER_ASSERT(!attr_sizes_.empty() && static_cast<uint16_t>(attr_sizes_.size()) <= common::Constants::MAX_COL,
-                 "number of columns must be between 1 and 32767");
+                 "number of columns must be between 1 and MAX_COL");
   TERRIER_ASSERT(num_slots_ != 0, "number of slots cannot be 0!");
   // sort the attributes when laying out memory to minimize impact of padding
   // skip the reserved columns because we still want those first and shouldn't mess up 8-byte alignment
@@ -32,19 +33,23 @@ uint32_t BlockLayout::ComputeTupleSize() const {
 }
 
 uint32_t BlockLayout::ComputeStaticHeaderSize() const {
-  auto unpadded_size =
-      static_cast<uint32_t>(sizeof(uint32_t) * 3  // layout_version, num_records, num_slots
-                            + NumColumns() * sizeof(uint32_t) + sizeof(uint16_t) + NumColumns() * sizeof(uint8_t));
+  auto unpadded_size = static_cast<uint32_t>(
+      sizeof(uintptr_t) + sizeof(uint16_t) + sizeof(layout_version_t) +  // datatable pointer, padding, layout_version
+      sizeof(uint32_t)                                                   // insert_head
+      + sizeof(BlockAccessController) + ArrowBlockMetadata::Size(NumColumns())  // access controller and metadata
+      + NumColumns() * sizeof(uint32_t));                                       // attr_offsets
   return StorageUtil::PadUpToSize(sizeof(uint64_t), unpadded_size);
 }
 
 uint32_t BlockLayout::ComputeNumSlots() const {
-  // TODO(Tianyu):
-  // We will have to subtract 8 bytes maximum padding for each column's bitmap. Subtracting another 1 to account for
-  // the padding at the end of each column. Somebody can come and fix
-  // this later, because I don't feel like thinking about this now.
-  return 8 * (common::Constants::BLOCK_SIZE - static_header_size_ - 2 * 8 * NumColumns()) /
-         (8 * tuple_size_ + NumColumns() + 1);
+  uint32_t bytes_available = common::Constants::BLOCK_SIZE - static_header_size_;
+  // account for paddings up to 64 bits-aligned. There is padding between every bitmap and value field.
+  // Each column has a bitmap and a value buffer. The first column can have padding against header. The
+  // last column has nothing to pad to.
+  bytes_available -= static_cast<uint32_t>(sizeof(uint64_t)) * 2 * NumColumns();
+  // Every column needs a bit for bitmap, plus a global presence bit for the whole tuple
+  uint32_t bits_per_tuple = BYTE_SIZE * tuple_size_ + NumColumns() + 1;
+  return BYTE_SIZE * bytes_available / bits_per_tuple;
 }
 
 uint32_t BlockLayout::ComputeHeaderSize() const {

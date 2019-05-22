@@ -1,7 +1,7 @@
 #include <vector>
 #include "benchmark/benchmark.h"
 #include "common/scoped_timer.h"
-#include "storage/garbage_collector.h"
+#include "storage/garbage_collector_thread.h"
 #include "storage/storage_defs.h"
 #include "storage/write_ahead_log/log_manager.h"
 #include "util/transaction_benchmark_util.h"
@@ -23,21 +23,6 @@ class LoggingBenchmark : public benchmark::Fixture {
     log_manager_->Shutdown();
   }
 
-  void StartGC(transaction::TransactionManager *const txn_manager) {
-    gc_ = new storage::GarbageCollector(txn_manager);
-    run_gc_ = true;
-    gc_thread_ = std::thread([this] { GCThreadLoop(); });
-  }
-
-  void EndGC() {
-    run_gc_ = false;
-    gc_thread_.join();
-    // Make sure all garbage is collected. This take 2 runs for unlink and deallocate
-    gc_->PerformGarbageCollection();
-    gc_->PerformGarbageCollection();
-    delete gc_;
-  }
-
   void TearDown(const benchmark::State &state) final { unlink(LOG_FILE_NAME); }
 
   const std::vector<uint8_t> attr_sizes = {8, 8, 8, 8, 8, 8, 8, 8, 8, 8};
@@ -48,6 +33,8 @@ class LoggingBenchmark : public benchmark::Fixture {
   std::default_random_engine generator_;
   const uint32_t num_concurrent_txns_ = 4;
   storage::LogManager *log_manager_ = nullptr;
+  storage::GarbageCollectorThread *gc_thread_ = nullptr;
+  const std::chrono::milliseconds gc_period_{10};
 
  private:
   std::thread log_thread_;
@@ -58,17 +45,6 @@ class LoggingBenchmark : public benchmark::Fixture {
     while (logging_) {
       std::this_thread::sleep_for(log_period_milli_);
       log_manager_->Process();
-    }
-  }
-  std::thread gc_thread_;
-  storage::GarbageCollector *gc_ = nullptr;
-  volatile bool run_gc_ = false;
-  const std::chrono::milliseconds gc_period_{10};
-
-  void GCThreadLoop() {
-    while (run_gc_) {
-      std::this_thread::sleep_for(gc_period_);
-      gc_->PerformGarbageCollection();
     }
   }
 };
@@ -87,7 +63,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, TPCCish)(benchmark::State &state) {
     LargeTransactionBenchmarkObject tested(attr_sizes, initial_table_size, txn_length, insert_update_select_ratio,
                                            &block_store_, &buffer_pool_, &generator_, true, log_manager_);
     log_manager_->Process();  // log all of the Inserts from table creation
-    StartGC(tested.GetTxnManager());
+    gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
     StartLogging();
     uint64_t elapsed_ms;
     {
@@ -96,7 +72,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, TPCCish)(benchmark::State &state) {
     }
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
     EndLogging();
-    EndGC();
+    delete gc_thread_;
     delete log_manager_;
   }
   state.SetItemsProcessed(state.iterations() * num_txns - abort_count);
@@ -117,7 +93,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, HighAbortRate)(benchmark::State &state) {
     LargeTransactionBenchmarkObject tested(attr_sizes, 1000, txn_length, insert_update_select_ratio, &block_store_,
                                            &buffer_pool_, &generator_, true, log_manager_);
     log_manager_->Process();  // log all of the Inserts from table creation
-    StartGC(tested.GetTxnManager());
+    gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
     StartLogging();
     uint64_t elapsed_ms;
     {
@@ -126,7 +102,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, HighAbortRate)(benchmark::State &state) {
     }
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
     EndLogging();
-    EndGC();
+    delete gc_thread_;
     delete log_manager_;
   }
   state.SetItemsProcessed(state.iterations() * num_txns - abort_count);
@@ -145,7 +121,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementInsert)(benchmark::State &st
     log_manager_ = new storage::LogManager(LOG_FILE_NAME, &buffer_pool_);
     LargeTransactionBenchmarkObject tested(attr_sizes, 0, txn_length, insert_update_select_ratio, &block_store_,
                                            &buffer_pool_, &generator_, true, log_manager_);
-    StartGC(tested.GetTxnManager());
+    gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
     StartLogging();
     uint64_t elapsed_ms;
     {
@@ -154,7 +130,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementInsert)(benchmark::State &st
     }
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
     EndLogging();
-    EndGC();
+    delete gc_thread_;
     delete log_manager_;
   }
   state.SetItemsProcessed(state.iterations() * num_txns - abort_count);
@@ -174,7 +150,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementUpdate)(benchmark::State &st
     LargeTransactionBenchmarkObject tested(attr_sizes, initial_table_size, txn_length, insert_update_select_ratio,
                                            &block_store_, &buffer_pool_, &generator_, true, log_manager_);
     log_manager_->Process();  // log all of the Inserts from table creation
-    StartGC(tested.GetTxnManager());
+    gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
     StartLogging();
     uint64_t elapsed_ms;
     {
@@ -183,7 +159,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementUpdate)(benchmark::State &st
     }
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
     EndLogging();
-    EndGC();
+    delete gc_thread_;
     delete log_manager_;
   }
   state.SetItemsProcessed(state.iterations() * num_txns - abort_count);
@@ -203,7 +179,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementSelect)(benchmark::State &st
     LargeTransactionBenchmarkObject tested(attr_sizes, initial_table_size, txn_length, insert_update_select_ratio,
                                            &block_store_, &buffer_pool_, &generator_, true, log_manager_);
     log_manager_->Process();  // log all of the Inserts from table creation
-    StartGC(tested.GetTxnManager());
+    gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
     StartLogging();
     uint64_t elapsed_ms;
     {
@@ -212,7 +188,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementSelect)(benchmark::State &st
     }
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
     EndLogging();
-    EndGC();
+    delete gc_thread_;
     delete log_manager_;
   }
   state.SetItemsProcessed(state.iterations() * num_txns - abort_count);

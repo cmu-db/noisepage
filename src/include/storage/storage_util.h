@@ -96,10 +96,13 @@ class StorageUtil {
    */
   // This const qualifier on ptr lies. Use this really only for pointer arithmetic.
   static byte *AlignedPtr(const uint8_t size, const void *ptr) {
+    TERRIER_ASSERT((size & (size - 1)) == 0, "word_size should be a power of two.");
+    // Because size is a power of two, mask is always all 1s up to the length of size.
+    // example, size is 8 (1000), mask is (0111)
+    uintptr_t mask = size - 1;
     auto ptr_value = reinterpret_cast<uintptr_t>(ptr);
-    uint64_t remainder = ptr_value % size;
-    return remainder == 0 ? reinterpret_cast<byte *>(ptr_value)
-                          : reinterpret_cast<byte *>(ptr_value + size - remainder);
+    // This is equivalent to (value + (size - 1)) / size.
+    return reinterpret_cast<byte *>((ptr_value + mask) & (~mask));
   }
 
   /**
@@ -114,14 +117,6 @@ class StorageUtil {
   }
 
   /**
-   * Given a schema, returns both a BlockLayout for the storage layer, and a mapping between each column's oid and the
-   * corresponding column id in the storage layer/BlockLayout
-   * @param schema Schema to generate a BlockLayout from. Columns should all have unique oids
-   * @return pair of BlockLayout and a map between col_oid_t and col_id
-   */
-  static std::pair<BlockLayout, ColumnMap> BlockLayoutFromSchema(const catalog::Schema &schema);
-
-  /**
    * Given attribute sizes which will be sorted descending, computes the starting offsets for each of them.
    *
    * e.g. attribute_sizes {1, 2, 2, VARLEN} sorts to {VARLEN, 2, 2, 1}
@@ -134,5 +129,13 @@ class StorageUtil {
    */
   static std::vector<uint16_t> ComputeBaseAttributeOffsets(const std::vector<uint8_t> &attr_sizes,
                                                            uint16_t num_reserved_columns);
+
+  /**
+   * Return a vector of all the column ids in the layout, excluding columns reserved by the storage layer
+   * for internal use.
+   * @param layout
+   * @return vector of column ids
+   */
+  static std::vector<storage::col_id_t> ProjectionListAllColumns(const storage::BlockLayout &layout);
 };
 }  // namespace terrier::storage

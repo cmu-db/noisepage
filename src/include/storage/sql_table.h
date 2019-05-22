@@ -38,17 +38,18 @@ class SqlTable {
    * @param schema the initial Schema of this SqlTable
    * @param oid unique identifier for this SqlTable
    */
-  SqlTable(BlockStore *const store, const catalog::Schema &schema, const catalog::table_oid_t oid)
-      : block_store_(store), oid_(oid) {
-    const auto layout_and_map = StorageUtil::BlockLayoutFromSchema(schema);
-    table_ = {new DataTable(block_store_, layout_and_map.first, layout_version_t(0)), layout_and_map.first,
-              layout_and_map.second};
-  }
+  SqlTable(BlockStore *store, const catalog::Schema &schema, catalog::table_oid_t oid);
 
   /**
    * Destructs a SqlTable, frees all its members.
    */
   ~SqlTable() { delete table_.data_table; }
+
+  /**
+   * Get the schema use of the SQL table
+   * @return the schema
+   */
+  catalog::Schema &GetSchema() { return schema_; }
 
   /**
    * Materializes a single tuple from the given slot, as visible at the timestamp of the calling txn.
@@ -100,7 +101,7 @@ class SqlTable {
    * Sequentially scans the table starting from the given iterator(inclusive) and materializes as many tuples as would
    * fit into the given buffer, as visible to the transaction given, according to the format described by the given
    * output buffer. The tuples materialized are guaranteed to be visible and valid, and the function makes best effort
-   * to fill the buffer, unless there are no more tuples. The given iterator is mutated to point to one slot passed the
+   * to fill the buffer, unless there are no more tuples. The given iterator is mutated to point to one slot past the
    * last slot scanned in the invocation.
    *
    * @param txn the calling transaction
@@ -167,8 +168,7 @@ class SqlTable {
     auto col_ids = ColIdsForOids(col_oids);
     TERRIER_ASSERT(col_ids.size() == col_oids.size(),
                    "Projection should be the same number of columns as requested col_oids.");
-    ProjectedRowInitializer initializer =
-        ProjectedRowInitializer::CreateProjectedRowInitializer(table_.layout, col_ids);
+    ProjectedRowInitializer initializer = ProjectedRowInitializer::Create(table_.layout, col_ids);
     auto projection_map = ProjectionMapForInitializer<ProjectedRowInitializer>(initializer);
     TERRIER_ASSERT(projection_map.size() == col_oids.size(),
                    "ProjectionMap be the same number of columns as requested col_oids.");
@@ -178,6 +178,8 @@ class SqlTable {
  private:
   BlockStore *const block_store_;
   const catalog::table_oid_t oid_;
+
+  catalog::Schema schema_;
 
   // Eventually we'll support adding more tables when schema changes. For now we'll always access the one DataTable.
   DataTableVersion table_;
