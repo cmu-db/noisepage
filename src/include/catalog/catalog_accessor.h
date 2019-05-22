@@ -31,11 +31,6 @@ class Catalog;
  * responsibilities allows for certain policy choices (lazy table instantiation)
  * as well as reinforces the design decision that the catalog is responsible
  * only for managing metadata and not the lifecycle of storage objects.
- *
- * TODO(John):  With this interface in-place, we should probably make the
- * constructors/destructors for Schema and Column private with the catalog
- * classes as the only friends.  However, this may break code (especially
- * tests).
  */
 class CatalogAccessor {
  public:
@@ -292,9 +287,6 @@ class CatalogAccessor {
    * @param index OID in the catalog
    * @param index_ptr to the memory where the index is
    * @return whether the operation was successful
-   *
-   * TODO(John): Should these pointers only be set once?  If so, then we should update
-   * "return" to state that false will be returned when the pointer was already set.
    */
   bool SetIndexPointer(index_oid_t index, storage::index::Index *index_ptr);
 
