@@ -135,7 +135,7 @@ class LogicalQueryDerivedGet : public OperatorNode<LogicalQueryDerivedGet> {
   /**
    * @param table_alias alias of the table
    * @param alias_to_expr_map map from table aliases to expressions of those tables
-   * @return a QueryDerivedGet operator
+   * @return a LogicalQueryDerivedGet operator
    */
   static Operator make(
       std::string table_alias,
@@ -157,26 +157,46 @@ class LogicalQueryDerivedGet : public OperatorNode<LogicalQueryDerivedGet> {
   std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>> alias_to_expr_map_;
 };
 
-//===--------------------------------------------------------------------===//
-// Select
-//===--------------------------------------------------------------------===//
+/**
+ * Logical operator to perform a filter during a scan
+ */
 class LogicalFilter : public OperatorNode<LogicalFilter> {
  public:
+  /**
+   * @param filter The list of predicates used to perform the scan
+   * @return a LogicalFilter operator
+   */
   static Operator make(std::vector<AnnotatedExpression> &filter);
-  std::vector<AnnotatedExpression> predicates;
 
   bool operator==(const BaseOperatorNode &r) override;
 
   common::hash_t Hash() const override;
+
+ private:
+  /**
+   * The list of predicates use to perform the scan.
+   * Since this is a logical operator, the order of the predicates
+   * in this list does not matter.
+   */
+  std::vector<AnnotatedExpression> predicates_;
 };
 
-//===--------------------------------------------------------------------===//
-// Project
-//===--------------------------------------------------------------------===//
+/**
+ * Logical operator for projections
+ */
 class LogicalProjection : public OperatorNode<LogicalProjection> {
  public:
+  /**
+   * @param elements list of AbstractExpressions in the projection list.
+   * @return a LogicalProjection operator
+   */
   static Operator make(std::vector<std::shared_ptr<parser::AbstractExpression>> &elements);
-  std::vector<std::shared_ptr<parser::AbstractExpression>> expressions;
+
+ private:
+  /**
+   * Each entry in the projection list is an AbstractExpression
+   */
+  std::vector<std::shared_ptr<parser::AbstractExpression>> expressions_;
 };
 
 //===--------------------------------------------------------------------===//
