@@ -181,6 +181,70 @@ bool LogicalMarkJoin::operator==(const BaseOperatorNode &r) {
 }
 
 //===--------------------------------------------------------------------===//
+// SingleJoin
+//===--------------------------------------------------------------------===//
+Operator LogicalSingleJoin::make() {
+  LogicalSingleJoin *join = new LogicalSingleJoin;
+  join->join_predicates_ = {};
+  return Operator(join);
+}
+
+Operator LogicalSingleJoin::make(std::vector<AnnotatedExpression> &&conditions) {
+  LogicalSingleJoin *join = new LogicalSingleJoin;
+  join->join_predicates_ = std::move(conditions);
+  return Operator(join);
+}
+
+common::hash_t LogicalSingleJoin::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  for (auto &pred : join_predicates_)
+    hash = common::HashUtil::CombineHashes(hash, pred.GetExpr()->Hash());
+  return hash;
+}
+
+bool LogicalSingleJoin::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::LOGICALSINGLEJOIN) return false;
+  const LogicalSingleJoin &node = *static_cast<const LogicalSingleJoin *>(&r);
+  if (join_predicates_.size() != node.join_predicates_.size()) return false;
+  for (size_t i = 0; i < join_predicates_.size(); i++) {
+    if (join_predicates_[i].GetExpr() != node.join_predicates_[i].GetExpr()) return false;
+  }
+  return true;
+}
+
+//===--------------------------------------------------------------------===//
+// InnerJoin
+//===--------------------------------------------------------------------===//
+Operator LogicalInnerJoin::make() {
+  LogicalInnerJoin *join = new LogicalInnerJoin;
+  join->join_predicates_ = {};
+  return Operator(join);
+}
+
+Operator LogicalInnerJoin::make(std::vector<AnnotatedExpression> &&conditions) {
+  LogicalInnerJoin *join = new LogicalInnerJoin;
+  join->join_predicates_ = std::move(conditions);
+  return Operator(join);
+}
+
+common::hash_t LogicalInnerJoin::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  for (auto &pred : join_predicates_)
+    hash = common::HashUtil::CombineHashes(hash, pred.GetExpr()->Hash());
+  return hash;
+}
+
+bool LogicalInnerJoin::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::LOGICALINNERJOIN) return false;
+  const LogicalInnerJoin &node = *static_cast<const LogicalInnerJoin *>(&r);
+  if (join_predicates_.size() != node.join_predicates_.size()) return false;
+  for (size_t i = 0; i < join_predicates_.size(); i++) {
+    if (join_predicates_[i].GetExpr() != node.join_predicates_[i].GetExpr()) return false;
+  }
+  return true;
+}
+
+//===--------------------------------------------------------------------===//
 // TableFreeScan
 //===--------------------------------------------------------------------===//
 Operator TableFreeScan::make() {
