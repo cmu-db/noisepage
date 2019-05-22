@@ -109,6 +109,12 @@ class AggregatePlanNode : public AbstractPlanNode {
    */
   AggregatePlanNode() = default;
 
+  ~AggregatePlanNode() {
+    for (auto* term : aggregate_terms_) {
+      delete term;
+    }
+  }
+
   DISALLOW_COPY_AND_MOVE(AggregatePlanNode)
 
   //===--------------------------------------------------------------------===//

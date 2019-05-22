@@ -147,6 +147,10 @@ class OutputSchema {
      */
     DerivedColumn() = default;
 
+    ~DerivedColumn() {
+      delete expr_;
+    }
+
     /**
      * Hash the current DerivedColumn.
      */

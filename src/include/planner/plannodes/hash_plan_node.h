@@ -71,6 +71,12 @@ class HashPlanNode : public AbstractPlanNode {
    */
   HashPlanNode() = default;
 
+  ~HashPlanNode() {
+    for (auto* key : hash_keys_) {
+      delete key;
+    }
+  }
+
   DISALLOW_COPY_AND_MOVE(HashPlanNode)
 
   /**
