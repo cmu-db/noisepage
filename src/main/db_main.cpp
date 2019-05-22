@@ -2,6 +2,8 @@
 #include <memory>
 #include "loggers/loggers_util.h"
 #include "settings/settings_manager.h"
+#include "transaction/transaction_manager.h"
+#include "transaction/transaction_util.h"
 
 namespace terrier {
 
@@ -16,10 +18,11 @@ void DBMain::Init() {
       type::TransientValuePeeker::PeekInteger(param_map_.find(settings::Param::buffer_pool_size)->second.value_),
       10000);
   txn_manager_ = new transaction::TransactionManager(buffer_pool, true, nullptr);
-  transaction::TransactionContext *txn_ = txn_manager_->BeginTransaction();
+  transaction::TransactionContext *txn = txn_manager_->BeginTransaction();
   // create the (system) catalogs
-  catalog_ = new catalog::Catalog(txn_manager_, txn_);
+  catalog_ = new catalog::Catalog(txn_manager_, txn);
   settings_manager_ = new settings::SettingsManager(this, catalog_);
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   LOG_INFO("Initialization complete");
 }
 
@@ -44,8 +47,8 @@ void DBMain::CleanUp() {
   LoggersUtil::ShutDown();
 }
 
-void DBMain::EmptyCallback(void *old_value, void *new_value,
-                           const std::shared_ptr<common::ActionContext> &action_context) {
+void DBMain::KnobCallback(void *old_value, void *new_value,
+                          const std::shared_ptr<common::ActionContext> &action_context) {
   action_context->SetState(common::ActionState::SUCCESS);
 }
 

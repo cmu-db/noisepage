@@ -35,8 +35,7 @@ class SettingsManager {
   /**
    * The constructor of settings manager
    * @param db a pointer to the DBMain
-   * @param catalog a shared pointer to the system catalog
-   * @param txn_manager a pointer to the transaction manager
+   * @param catalog a raw pointer to the system catalog
    */
   SettingsManager(DBMain *db, catalog::Catalog *catalog);
 

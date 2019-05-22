@@ -66,7 +66,7 @@ class DBMain {
    * @param new_value the new value of corresponding setting
    * @param action_context action context for empty callback
    */
-  void EmptyCallback(void *old_value, void *new_value, const std::shared_ptr<common::ActionContext> &action_context);
+  void KnobCallback(void *old_value, void *new_value, const std::shared_ptr<common::ActionContext> &action_context);
 
   /**
    * Buffer pool size callback used by settings manager
