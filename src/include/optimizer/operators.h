@@ -9,10 +9,15 @@
 #include "common/hash_util.h"
 #include "optimizer/operator_node.h"
 #include "parser/expression_defs.h"
+#include "parser/expression/abstract_expression.h"
 #include "parser/parser_defs.h"
 #include "type/transient_value.h"
 
 namespace terrier {
+
+namespace catalog {
+class TableCatalogEntry;
+}  // namespace catalog
 
 namespace parser {
 class AbstractExpression;
@@ -162,7 +167,7 @@ class LogicalFilter : public OperatorNode<LogicalFilter> {
 
   bool operator==(const BaseOperatorNode &r) override;
 
-  hash_t Hash() const override;
+  common::hash_t Hash() const override;
 };
 
 //===--------------------------------------------------------------------===//
@@ -170,8 +175,8 @@ class LogicalFilter : public OperatorNode<LogicalFilter> {
 //===--------------------------------------------------------------------===//
 class LogicalProjection : public OperatorNode<LogicalProjection> {
  public:
-  static Operator make(std::vector<std::shared_ptr<expression::AbstractExpression>> &elements);
-  std::vector<std::shared_ptr<expression::AbstractExpression>> expressions;
+  static Operator make(std::vector<std::shared_ptr<parser::AbstractExpression>> &elements);
+  std::vector<std::shared_ptr<parser::AbstractExpression>> expressions;
 };
 
 //===--------------------------------------------------------------------===//
@@ -185,7 +190,7 @@ class LogicalDependentJoin : public OperatorNode<LogicalDependentJoin> {
 
   bool operator==(const BaseOperatorNode &r) override;
 
-  hash_t Hash() const override;
+  common::hash_t Hash() const override;
 
   std::vector<AnnotatedExpression> join_predicates;
 };
@@ -201,7 +206,7 @@ class LogicalMarkJoin : public OperatorNode<LogicalMarkJoin> {
 
   bool operator==(const BaseOperatorNode &r) override;
 
-  hash_t Hash() const override;
+  common::hash_t Hash() const override;
 
   std::vector<AnnotatedExpression> join_predicates;
 };
@@ -217,7 +222,7 @@ class LogicalSingleJoin : public OperatorNode<LogicalSingleJoin> {
 
   bool operator==(const BaseOperatorNode &r) override;
 
-  hash_t Hash() const override;
+  common::hash_t Hash() const override;
 
   std::vector<AnnotatedExpression> join_predicates;
 };
@@ -233,7 +238,7 @@ class LogicalInnerJoin : public OperatorNode<LogicalInnerJoin> {
 
   bool operator==(const BaseOperatorNode &r) override;
 
-  hash_t Hash() const override;
+  common::hash_t Hash() const override;
 
   std::vector<AnnotatedExpression> join_predicates;
 };
@@ -243,9 +248,9 @@ class LogicalInnerJoin : public OperatorNode<LogicalInnerJoin> {
 //===--------------------------------------------------------------------===//
 class LogicalLeftJoin : public OperatorNode<LogicalLeftJoin> {
  public:
-  static Operator make(expression::AbstractExpression *condition = nullptr);
+  static Operator make(parser::AbstractExpression *condition = nullptr);
 
-  std::shared_ptr<expression::AbstractExpression> join_predicate;
+  std::shared_ptr<parser::AbstractExpression> join_predicate;
 };
 
 //===--------------------------------------------------------------------===//
@@ -253,9 +258,9 @@ class LogicalLeftJoin : public OperatorNode<LogicalLeftJoin> {
 //===--------------------------------------------------------------------===//
 class LogicalRightJoin : public OperatorNode<LogicalRightJoin> {
  public:
-  static Operator make(expression::AbstractExpression *condition = nullptr);
+  static Operator make(parser::AbstractExpression *condition = nullptr);
 
-  std::shared_ptr<expression::AbstractExpression> join_predicate;
+  std::shared_ptr<parser::AbstractExpression> join_predicate;
 };
 
 //===--------------------------------------------------------------------===//
@@ -263,9 +268,9 @@ class LogicalRightJoin : public OperatorNode<LogicalRightJoin> {
 //===--------------------------------------------------------------------===//
 class LogicalOuterJoin : public OperatorNode<LogicalOuterJoin> {
  public:
-  static Operator make(expression::AbstractExpression *condition = nullptr);
+  static Operator make(parser::AbstractExpression *condition = nullptr);
 
-  std::shared_ptr<expression::AbstractExpression> join_predicate;
+  std::shared_ptr<parser::AbstractExpression> join_predicate;
 };
 
 //===--------------------------------------------------------------------===//
@@ -273,9 +278,9 @@ class LogicalOuterJoin : public OperatorNode<LogicalOuterJoin> {
 //===--------------------------------------------------------------------===//
 class LogicalSemiJoin : public OperatorNode<LogicalSemiJoin> {
  public:
-  static Operator make(expression::AbstractExpression *condition = nullptr);
+  static Operator make(parser::AbstractExpression *condition = nullptr);
 
-  std::shared_ptr<expression::AbstractExpression> join_predicate;
+  std::shared_ptr<parser::AbstractExpression> join_predicate;
 };
 
 //===--------------------------------------------------------------------===//
@@ -285,15 +290,15 @@ class LogicalAggregateAndGroupBy : public OperatorNode<LogicalAggregateAndGroupB
  public:
   static Operator make();
 
-  static Operator make(std::vector<std::shared_ptr<expression::AbstractExpression>> &columns);
+  static Operator make(std::vector<std::shared_ptr<parser::AbstractExpression>> &columns);
 
-  static Operator make(std::vector<std::shared_ptr<expression::AbstractExpression>> &columns,
+  static Operator make(std::vector<std::shared_ptr<parser::AbstractExpression>> &columns,
                        std::vector<AnnotatedExpression> &having);
 
   bool operator==(const BaseOperatorNode &r) override;
-  hash_t Hash() const override;
+  common::hash_t Hash() const override;
 
-  std::vector<std::shared_ptr<expression::AbstractExpression>> columns;
+  std::vector<std::shared_ptr<parser::AbstractExpression>> columns;
   std::vector<AnnotatedExpression> having;
 };
 
@@ -304,11 +309,11 @@ class LogicalInsert : public OperatorNode<LogicalInsert> {
  public:
   static Operator make(std::shared_ptr<catalog::TableCatalogEntry> target_table,
                        const std::vector<std::string> *columns,
-                       const std::vector<std::vector<std::unique_ptr<expression::AbstractExpression>>> *values);
+                       const std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> *values);
 
   std::shared_ptr<catalog::TableCatalogEntry> target_table;
   const std::vector<std::string> *columns;
-  const std::vector<std::vector<std::unique_ptr<expression::AbstractExpression>>> *values;
+  const std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> *values;
 };
 
 class LogicalInsertSelect : public OperatorNode<LogicalInsertSelect> {
@@ -331,7 +336,7 @@ class LogicalDistinct : public OperatorNode<LogicalDistinct> {
 //===--------------------------------------------------------------------===//
 class LogicalLimit : public OperatorNode<LogicalLimit> {
  public:
-  static Operator make(int64_t offset, int64_t limit, std::vector<expression::AbstractExpression *> &&sort_exprs,
+  static Operator make(int64_t offset, int64_t limit, std::vector<parser::AbstractExpression *> &&sort_exprs,
                        std::vector<bool> &&sort_ascending);
   int64_t offset;
   int64_t limit;
@@ -339,7 +344,7 @@ class LogicalLimit : public OperatorNode<LogicalLimit> {
   // We'll let the limit operator keep the order by clause's content as an
   // internal order, then the limit operator will generate sort plan with
   // limit as a optimization.
-  std::vector<expression::AbstractExpression *> sort_exprs;
+  std::vector<parser::AbstractExpression *> sort_exprs;
   std::vector<bool> sort_ascending;
 };
 
@@ -370,13 +375,13 @@ class LogicalUpdate : public OperatorNode<LogicalUpdate> {
 //===--------------------------------------------------------------------===//
 class LogicalExportExternalFile : public OperatorNode<LogicalExportExternalFile> {
  public:
-  static Operator make(ExternalFileFormat format, std::string file_name, char delimiter, char quote, char escape);
+  static Operator make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote, char escape);
 
   bool operator==(const BaseOperatorNode &r) override;
 
-  hash_t Hash() const override;
+  common::hash_t Hash() const override;
 
-  ExternalFileFormat format;
+  parser::ExternalFileFormat format;
   std::string file_name;
   char delimiter;
   char quote;
