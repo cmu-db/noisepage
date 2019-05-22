@@ -3,10 +3,10 @@
 #include <unordered_map>
 
 #include "common/dedicated_thread_registry.h"
-#include "traffic_cop/traffic_cop.h"
 #include "network/command_factory.h"
-#include "network/connection_handler_task.h"
 #include "network/connection_handle.h"
+#include "network/connection_handler_task.h"
+#include "traffic_cop/traffic_cop.h"
 
 namespace terrier::network {
 
@@ -25,9 +25,8 @@ class ConnectionHandlerTask;
 // doesn't cleanup raw pointers.
 class ConnectionHandleFactory {
  public:
-
-  ConnectionHandleFactory(TrafficCop* t_cop, CommandFactory* command_factory)
-    : traffic_cop_(t_cop), command_factory_(command_factory){};
+  ConnectionHandleFactory(TrafficCop *t_cop, CommandFactory *command_factory)
+      : traffic_cop_(t_cop), command_factory_(command_factory) {}
 
   /**
    * @brief Creates or re-purpose a NetworkIoWrapper object for new use.
@@ -38,7 +37,7 @@ class ConnectionHandleFactory {
    * @param task The connection handler task to assign to returned ConnectionHandle object
    * @return A new ConnectionHandle object
    */
-  ConnectionHandle &NewConnectionHandle(int conn_fd, ConnectionHandlerTask *task);
+  ConnectionHandle &NewConnectionHandle(int conn_fd, NetworkProtocolType protocol_type, ConnectionHandlerTask *task);
 
   /**
    * Teardown for connection handle factory to clean up anything in reusable_handles_

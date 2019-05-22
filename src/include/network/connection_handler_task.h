@@ -10,6 +10,7 @@
 #include "common/exception.h"
 #include "common/notifiable_task.h"
 #include "loggers/main_logger.h"
+#include "network/network_defs.h"
 
 namespace terrier::network {
 
@@ -29,7 +30,7 @@ class ConnectionHandlerTask : public common::NotifiableTask {
    * Constructs a new ConnectionHandlerTask instance.
    * @param task_id task_id a unique id assigned to this task.
    */
-  explicit ConnectionHandlerTask(int task_id, ConnectionHandleFactory* connection_handle_factory);
+  explicit ConnectionHandlerTask(int task_id, ConnectionHandleFactory *connection_handle_factory);
 
   /**
    * @brief Notifies this ConnectionHandlerTask that a new client connection
@@ -41,7 +42,7 @@ class ConnectionHandlerTask : public common::NotifiableTask {
    *
    * @param conn_fd the client connection socket fd.
    */
-  void Notify(int conn_fd);
+  void Notify(int conn_fd, NetworkProtocolType protocol_type);
 
   /**
    * @brief Handles a new client assigned to this handler by the dispatcher.
@@ -56,10 +57,11 @@ class ConnectionHandlerTask : public common::NotifiableTask {
   void HandleDispatch(int new_conn_recv_fd, int16_t flags);
 
  private:
-  // Notify new connection pipe(send end)
-  int new_conn_send_fd_;
+  int client_fd_;
+  event *notify_event_;
+  NetworkProtocolType protocol_type_;
 
-  ConnectionHandleFactory* connection_handle_factory_;
+  ConnectionHandleFactory *connection_handle_factory_;
 };
 
 }  // namespace terrier::network

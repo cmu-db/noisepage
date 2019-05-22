@@ -21,12 +21,12 @@
 #include "common/exception.h"
 #include "loggers/network_logger.h"
 
+#include "network/command_factory.h"
 #include "network/connection_context.h"
 #include "network/connection_handler_task.h"
-#include "network/command_factory.h"
 #include "network/network_io_wrapper.h"
 #include "network/network_types.h"
-#include "network/postgres_protocol_interpreter.h"
+#include "network/postgres/postgres_protocol_interpreter.h"
 #include "network/protocol_interpreter.h"
 
 #include "traffic_cop/traffic_cop.h"
@@ -46,7 +46,8 @@ class ConnectionHandle {
    * @param handler The handler responsible for this handle
    * @param t_cop The pointer to the traffic cop
    */
-  ConnectionHandle(int sock_fd, ConnectionHandlerTask *handler, TrafficCop* t_cop, CommandFactory* command_factory);
+  ConnectionHandle(int sock_fd, ConnectionHandlerTask *handler, TrafficCop *t_cop, CommandFactory *command_factory,
+                   NetworkProtocolType protocol_type);
 
   ~ConnectionHandle() { context_.Reset(); }
 
@@ -211,6 +212,8 @@ class ConnectionHandle {
   friend class StateMachine;
   friend class ConnectionHandleFactory;
 
+  void BuildProtocolInterpreter(NetworkProtocolType protocol_type, CommandFactory *command_factory);
+
   // A raw pointer is used here because references cannot be rebound.
   ConnectionHandlerTask *conn_handler_;
   std::unique_ptr<NetworkIoWrapper> io_wrapper_;
@@ -219,7 +222,7 @@ class ConnectionHandle {
   StateMachine state_machine_{};
   struct event *network_event_ = nullptr, *workpool_event_ = nullptr;
 
-  TrafficCop* traffic_cop_;
+  TrafficCop *traffic_cop_;
   ConnectionContext context_;
 };
 }  // namespace terrier::network

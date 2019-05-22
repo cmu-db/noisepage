@@ -360,18 +360,18 @@ class PostgresPacketWriter {
   void WriteDataRow(const traffic_cop::Row &values) {
     using type::TransientValuePeeker;
     using type::TypeId;
-    
+
     BeginPacket(NetworkMessageType::DATA_ROW).AppendValue<int16_t>(static_cast<int16_t>(values.size()));
     for (auto &value : values) {
       // use text to represent values for now
       std::string ret;
-      if(value.Type() == TypeId::INTEGER)
+      if (value.Type() == TypeId::INTEGER)
         ret = std::to_string(TransientValuePeeker::PeekInteger(value));
-      else if(value.Type() == TypeId::DECIMAL)
+      else if (value.Type() == TypeId::DECIMAL)
         ret = std::to_string(TransientValuePeeker::PeekDecimal(value));
-      else if(value.Type() == TypeId::VARCHAR)
+      else if (value.Type() == TypeId::VARCHAR)
         ret = TransientValuePeeker::PeekVarChar(value);
-      
+
       AppendValue<int32_t>(static_cast<int32_t>(ret.length())).AppendString(ret, false);
     }
     EndPacket();

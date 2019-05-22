@@ -1,10 +1,10 @@
+#include <memory>
 #include "network/command_factory.h"
 namespace terrier::network {
 
-#define MAKE_COMMAND(type) \
-  std::static_pointer_cast<PostgresNetworkCommand, type>(std::make_shared<type>(packet))
+#define MAKE_COMMAND(type) std::static_pointer_cast<PostgresNetworkCommand, type>(std::make_shared<type>(packet))
 
-std::shared_ptr<PostgresNetworkCommand> CommandFactory::PacketToCommand(PostgresInputPacket *packet) {
+std::shared_ptr<PostgresNetworkCommand> CommandFactory::PostgresPacketToCommand(PostgresInputPacket *packet) {
   switch (packet->msg_type_) {
     case NetworkMessageType::SIMPLE_QUERY_COMMAND:
       return MAKE_COMMAND(SimpleQueryCommand);
@@ -25,7 +25,6 @@ std::shared_ptr<PostgresNetworkCommand> CommandFactory::PacketToCommand(Postgres
     default:
       throw NETWORK_PROCESS_EXCEPTION("Unexpected Packet Type: ");
   }
-
 }
 
-}
+}  // namespace terrier::network

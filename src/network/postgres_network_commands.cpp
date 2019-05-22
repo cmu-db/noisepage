@@ -1,9 +1,9 @@
-#include "network/postgres_network_commands.h"
+#include "network/postgres/postgres_network_commands.h"
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
-#include "network/postgres_protocol_interpreter.h"
+#include "network/postgres/postgres_protocol_interpreter.h"
 #include "network/terrier_server.h"
 #include "traffic_cop/portal.h"
 #include "traffic_cop/traffic_cop.h"
@@ -12,10 +12,10 @@
 
 namespace terrier::network {
 
-using traffic_cop::SqliteEngine;
-using traffic_cop::ResultSet;
-using traffic_cop::Statement;
 using traffic_cop::Portal;
+using traffic_cop::ResultSet;
+using traffic_cop::SqliteEngine;
+using traffic_cop::Statement;
 
 void LogAndWriteErrorMsg(const std::string &msg, PostgresPacketWriter *out) {
   NETWORK_LOG_ERROR(msg);
@@ -23,18 +23,16 @@ void LogAndWriteErrorMsg(const std::string &msg, PostgresPacketWriter *out) {
 }
 
 Transition SimpleQueryCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out,
-                                    TrafficCop* t_cop, ConnectionContext *connection, NetworkCallback callback) {
-  interpreter->protocol_type_ = NetworkProtocolType::POSTGRES_PSQL;
+                                    TrafficCop *t_cop, ConnectionContext *connection, NetworkCallback callback) {
   std::string query = in_.ReadString();
   NETWORK_LOG_TRACE("Execute SimpleQuery: {0}", query.c_str());
 
-  SqliteEngine* execution_engine = t_cop->GetExecutionEngine();
+  SqliteEngine *execution_engine = t_cop->GetExecutionEngine();
   sqlite3_stmt *stmt = execution_engine->PrepareStatement(query);
   ResultSet result = execution_engine->Execute(stmt);
   if (result.column_names_.empty()) {
     out->WriteEmptyQueryResponse();
-  } else
-  {
+  } else {
     out->WriteRowDescription(result.column_names_);
     for (auto &row : result.rows_) out->WriteDataRow(row);
 
@@ -48,7 +46,7 @@ Transition SimpleQueryCommand::Exec(PostgresProtocolInterpreter *interpreter, Po
   return Transition::PROCEED;
 }
 
-Transition ParseCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out, TrafficCop* t_cop,
+Transition ParseCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out, TrafficCop *t_cop,
                               ConnectionContext *connection, NetworkCallback callback) {
   std::string stmt_name = in_.ReadString();
   NETWORK_LOG_TRACE("ParseCommand Statement Name: {0}", stmt_name.c_str());
@@ -68,22 +66,20 @@ Transition ParseCommand::Exec(PostgresProtocolInterpreter *interpreter, Postgres
   }
 
   // Benchmark: Special case for no-op benchmark
-  if(query == ";")
-  {
+  if (query == ";") {
     connection->statements[stmt_name] = traffic_cop::Statement();
     out->WriteParseComplete();
     return Transition::PROCEED;
   }
 
   // if a statement with that name exists, return error
-  if(!stmt_name.empty() && connection->statements.count(stmt_name) > 0)
-  {
+  if (!stmt_name.empty() && connection->statements.count(stmt_name) > 0) {
     LogAndWriteErrorMsg("There is already a statement with name " + stmt_name, out);
     return Transition::PROCEED;
   }
 
-  SqliteEngine* execution_engine = t_cop->GetExecutionEngine();
-  sqlite3_stmt* sqlite_stmt = execution_engine->PrepareStatement(query);
+  SqliteEngine *execution_engine = t_cop->GetExecutionEngine();
+  sqlite3_stmt *sqlite_stmt = execution_engine->PrepareStatement(query);
 
   Statement stmt(sqlite_stmt, param_types);
   connection->statements[stmt_name] = stmt;
@@ -92,7 +88,7 @@ Transition ParseCommand::Exec(PostgresProtocolInterpreter *interpreter, Postgres
   return Transition::PROCEED;
 }
 
-Transition BindCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out, TrafficCop* t_cop,
+Transition BindCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out, TrafficCop *t_cop,
                              ConnectionContext *connection, NetworkCallback callback) {
   using std::pair;
   using std::string;
@@ -213,10 +209,8 @@ Transition BindCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresP
   // TODO(Weichen): Deal with requested response format. (text/binary)
   // Now they are all text.
 
-
   // Benchmark: Special case for no-op benchmark
-  if(statement->sqlite3_stmt_ == nullptr)
-  {
+  if (statement->sqlite3_stmt_ == nullptr) {
     connection->portals[portal_name] = traffic_cop::Portal();
     out->WriteBindComplete();
     return Transition::PROCEED;
@@ -233,14 +227,14 @@ Transition BindCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresP
   return Transition::PROCEED;
 }
 
-Transition DescribeCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out,
-                                 TrafficCop* t_cop, ConnectionContext *connection, NetworkCallback callback) {
+Transition DescribeCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out, TrafficCop *t_cop,
+                                 ConnectionContext *connection, NetworkCallback callback) {
   auto type = in_.ReadValue<DescribeCommandObjectType>();
   std::string name = in_.ReadString();
   NETWORK_LOG_TRACE("Describe query: type = {0}, name = {1}", static_cast<char>(type), name.c_str());
   std::vector<std::string> column_names;
 
-  SqliteEngine* execution_engine = t_cop->GetExecutionEngine();
+  SqliteEngine *execution_engine = t_cop->GetExecutionEngine();
 
   if (type == DescribeCommandObjectType::STATEMENT) {
     auto p_statement = connection->statements.find(name);
@@ -252,8 +246,7 @@ Transition DescribeCommand::Exec(PostgresProtocolInterpreter *interpreter, Postg
     Statement &statement = p_statement->second;
     out->WriteParameterDescription(statement.param_types_);
 
-    if(statement.sqlite3_stmt_ != nullptr)
-      column_names = execution_engine->DescribeColumns(statement.sqlite3_stmt_);
+    if (statement.sqlite3_stmt_ != nullptr) column_names = execution_engine->DescribeColumns(statement.sqlite3_stmt_);
 
   } else if (type == DescribeCommandObjectType::PORTAL) {
     auto p_portal = connection->portals.find(name);
@@ -262,7 +255,7 @@ Transition DescribeCommand::Exec(PostgresProtocolInterpreter *interpreter, Postg
       LogAndWriteErrorMsg(error_msg, out);
       return Transition::PROCEED;
     }
-    if(p_portal->second.sqlite_stmt_ != nullptr)
+    if (p_portal->second.sqlite_stmt_ != nullptr)
       column_names = execution_engine->DescribeColumns(p_portal->second.sqlite_stmt_);
 
   } else {
@@ -278,8 +271,8 @@ Transition DescribeCommand::Exec(PostgresProtocolInterpreter *interpreter, Postg
   return Transition::PROCEED;
 }
 
-Transition ExecuteCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out,
-                                TrafficCop* t_cop, ConnectionContext *connection, NetworkCallback callback) {
+Transition ExecuteCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out, TrafficCop *t_cop,
+                                ConnectionContext *connection, NetworkCallback callback) {
   using std::string;
   string portal_name = in_.ReadString();
   NETWORK_LOG_TRACE("ExecuteCommand portal name = {0}", portal_name);
@@ -292,17 +285,16 @@ Transition ExecuteCommand::Exec(PostgresProtocolInterpreter *interpreter, Postgr
     return Transition::PROCEED;
   }
 
-  Portal& portal = p_portal->second;
+  Portal &portal = p_portal->second;
 
   // Benchmark: Special case for no-op benchmark
-  if(portal.sqlite_stmt_ == nullptr)
-  {
-    //out->WriteEmptyQueryResponse();
+  if (portal.sqlite_stmt_ == nullptr) {
+    // out->WriteEmptyQueryResponse();
     out->WriteCommandComplete("");
     return Transition::PROCEED;
   }
 
-  SqliteEngine* execution_engine = t_cop->GetExecutionEngine();
+  SqliteEngine *execution_engine = t_cop->GetExecutionEngine();
   execution_engine->Bind(portal.sqlite_stmt_, portal.params);
   ResultSet result = execution_engine->Execute(portal.sqlite_stmt_);
   for (const auto &row : result.rows_) out->WriteDataRow(row);
@@ -311,14 +303,14 @@ Transition ExecuteCommand::Exec(PostgresProtocolInterpreter *interpreter, Postgr
   return Transition::PROCEED;
 }
 
-Transition SyncCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out, TrafficCop* t_cop,
+Transition SyncCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out, TrafficCop *t_cop,
                              ConnectionContext *connection, NetworkCallback callback) {
   NETWORK_LOG_TRACE("Sync query");
   out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
   return Transition::PROCEED;
 }
 
-Transition CloseCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out, TrafficCop* t_cop,
+Transition CloseCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out, TrafficCop *t_cop,
                               ConnectionContext *connection, NetworkCallback callback) {
   NETWORK_LOG_TRACE("Close Command");
   // Send close complete response
@@ -326,17 +318,16 @@ Transition CloseCommand::Exec(PostgresProtocolInterpreter *interpreter, Postgres
 }
 
 Transition TerminateCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out,
-                                  TrafficCop* t_cop, ConnectionContext *connection, NetworkCallback callback) {
+                                  TrafficCop *t_cop, ConnectionContext *connection, NetworkCallback callback) {
   NETWORK_LOG_TRACE("Terminated");
   return Transition::TERMINATE;
 }
 
-Transition EmptyCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out, TrafficCop* t_cop,
+Transition EmptyCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out, TrafficCop *t_cop,
                               ConnectionContext *connection, NetworkCallback callback) {
   NETWORK_LOG_TRACE("Empty Command");
   out->WriteEmptyQueryResponse();
   out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
   return Transition::PROCEED;
-
 }
 }  // namespace terrier::network

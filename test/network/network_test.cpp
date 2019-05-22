@@ -13,10 +13,10 @@
 #include "gtest/gtest.h"
 #include "loggers/main_logger.h"
 #include "network/connection_handle_factory.h"
+#include "network/terrier_server.h"
 #include "traffic_cop/result_set.h"
 #include "traffic_cop/traffic_cop.h"
 #include "util/manual_packet_helpers.h"
-#include "network/terrier_server.h"
 
 namespace terrier::network {
 
@@ -24,9 +24,8 @@ namespace terrier::network {
  * The network tests does not check whether the result is correct. It only checks if the network layer works.
  * So, in network tests, we use a fake command factory to return empty results for every query.
  */
-class FakeCommandFactory : public CommandFactory
-{
-  std::shared_ptr<PostgresNetworkCommand> PacketToCommand(PostgresInputPacket *packet) override {
+class FakeCommandFactory : public CommandFactory {
+  std::shared_ptr<PostgresNetworkCommand> PostgresPacketToCommand(PostgresInputPacket *packet) override {
     return std::static_pointer_cast<PostgresNetworkCommand, EmptyCommand>(std::make_shared<EmptyCommand>(packet));
   }
 };
@@ -58,7 +57,6 @@ class NetworkTests : public TerrierTest {
       TEST_LOG_ERROR("[LaunchServer] exception when launching server");
       throw;
     }
-
 
     TEST_LOG_DEBUG("Server initialized");
     server_thread = std::thread([&]() { server->ServerLoop(); });

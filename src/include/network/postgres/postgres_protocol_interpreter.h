@@ -5,11 +5,11 @@
 #include <unordered_map>
 #include <utility>
 #include "loggers/network_logger.h"
+#include "network/command_factory.h"
 #include "network/connection_context.h"
 #include "network/connection_handle.h"
-#include "network/postgres_network_commands.h"
 #include "network/protocol_interpreter.h"
-#include "network/command_factory.h"
+#include "network/postgres/postgres_network_commands.h"
 
 namespace terrier::network {
 
@@ -21,7 +21,7 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
   /**
    * Default constructor
    */
-  explicit PostgresProtocolInterpreter(CommandFactory* command_factory):command_factory_(command_factory){};
+  explicit PostgresProtocolInterpreter(CommandFactory *command_factory) : command_factory_(command_factory) {}
   /**
    * @see ProtocolIntepreter::Process
    * @param in
@@ -31,7 +31,7 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
    * @param the connection context
    * @return
    */
-  Transition Process(std::shared_ptr<ReadBuffer> in, std::shared_ptr<WriteQueue> out, TrafficCop* t_cop,
+  Transition Process(std::shared_ptr<ReadBuffer> in, std::shared_ptr<WriteQueue> out, TrafficCop *t_cop,
                      ConnectionContext *context, NetworkCallback callback) override;
 
   /**

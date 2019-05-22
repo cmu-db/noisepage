@@ -8,9 +8,9 @@
 
 #include "loggers/network_logger.h"
 
+#include "network/connection_handle_factory.h"
 #include "network/connection_handler_task.h"
 #include "network/network_types.h"
-#include "network/connection_handle_factory.h"
 
 namespace terrier::network {
 
@@ -33,8 +33,8 @@ class ConnectionDispatcherTask : public common::NotifiableTask {
    * @param listen_fd The server socket fd to listen on.
    * @param dedicatedThreadOwner The DedicatedThreadOwner associated with this task
    */
-  ConnectionDispatcherTask(int num_handlers, int listen_fd,
-      DedicatedThreadOwner *dedicatedThreadOwner, ConnectionHandleFactory *connection_handle_factory);
+  ConnectionDispatcherTask(int num_handlers, int listen_fd, DedicatedThreadOwner *dedicatedThreadOwner,
+                           ConnectionHandleFactory *connection_handle_factory);
 
   /**
    * @brief Dispatches the client connection at fd to a handler.
@@ -48,7 +48,7 @@ class ConnectionDispatcherTask : public common::NotifiableTask {
    * @param flags Unused. This is here to conform to libevent callback function
    * signature.
    */
-  void DispatchConnection(int fd, int16_t flags);
+  void DispatchPostgresConnection(int fd, int16_t flags);
 
   /**
    * Breaks the dispatcher and managed handlers from their event loops.
@@ -59,8 +59,6 @@ class ConnectionDispatcherTask : public common::NotifiableTask {
   std::vector<std::shared_ptr<ConnectionHandlerTask>> handlers_;
   // TODO(TianyuLi): have a smarter dispatch scheduler, we currently use round-robin
   std::atomic<uint64_t> next_handler_;
-
-  ConnectionHandleFactory *connection_handle_factory_;
 };
 
 }  // namespace terrier::network

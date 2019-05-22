@@ -2,9 +2,9 @@
 #include <sqlite3.h>
 #include <functional>
 #include <memory>
-#include <vector>
 #include <string>
-#include "network/postgres_protocol_utils.h"
+#include <vector>
+#include "network/postgres/postgres_protocol_utils.h"
 #include "traffic_cop/result_set.h"
 #include "type/transient_value.h"
 

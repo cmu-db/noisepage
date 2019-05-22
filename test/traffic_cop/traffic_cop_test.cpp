@@ -1,6 +1,7 @@
 #include <pqxx/pqxx> /* libpqxx is used to instantiate C++ client */
 #include <string>
 #include <vector>
+#include <memory>
 
 #include "common/settings.h"
 #include "gtest/gtest.h"
@@ -8,7 +9,7 @@
 #include "network/connection_handle_factory.h"
 #include "network/network_defs.h"
 #include "network/network_io_utils.h"
-#include "network/postgres_protocol_utils.h"
+#include "network/postgres/postgres_protocol_utils.h"
 #include "network/terrier_server.h"
 #include "traffic_cop/traffic_cop.h"
 #include "util/manual_packet_helpers.h"
@@ -21,8 +22,8 @@ class TrafficCopTests : public TerrierTest {
   uint16_t port = common::Settings::SERVER_PORT;
   std::thread server_thread;
 
-  std::unique_ptr<TrafficCop> t_cop;
-  std::unique_ptr<network::CommandFactory> command_factory;
+  TrafficCop t_cop;
+  network::CommandFactory command_factory;
   std::unique_ptr<network::ConnectionHandleFactory> handle_factory;
 
   void StartServer() {
@@ -31,9 +32,7 @@ class TrafficCopTests : public TerrierTest {
     spdlog::flush_every(std::chrono::seconds(1));
 
     try {
-      t_cop = std::make_unique<TrafficCop>();
-      command_factory = std::make_unique<network::CommandFactory>();
-      handle_factory = std::make_unique<network::ConnectionHandleFactory>(t_cop.get(), command_factory.get());
+      handle_factory = std::make_unique<network::ConnectionHandleFactory>(&t_cop, &command_factory);
       server = std::make_unique<network::TerrierServer>(handle_factory.get());
       server->SetPort(port);
       server->SetupServer();
@@ -43,7 +42,6 @@ class TrafficCopTests : public TerrierTest {
     }
     TEST_LOG_DEBUG("Server initialized");
     server_thread = std::thread([&]() { server->ServerLoop(); });
-
   }
 
   void StopServer() {
@@ -144,8 +142,6 @@ TEST_F(TrafficCopTests, ManualExtendedQueryTest) {
   StopServer();
 }
 
-
-
 // -------------------------------------------------------------------------
 
 /*
@@ -189,8 +185,7 @@ TEST_F(TrafficCopTests, ManualRoundTripTest) {
  * Please use manual tests before this is supported.
  */
 // NOLINTNEXTLINE
-TEST_F(TrafficCopTests, DISABLED_ExtendedQueryTest)
-{
+TEST_F(TrafficCopTests, DISABLED_ExtendedQueryTest) {
   StartServer();
   try {
     pqxx::connection connection(
@@ -221,9 +216,7 @@ TEST_F(TrafficCopTests, DISABLED_ExtendedQueryTest)
     res = txn.exec_prepared("", "blacktea");
     EXPECT_EQ(1, res.size());
     */
-
-  } catch (const std::exception &e)
-  {
+  } catch (const std::exception &e) {
     TEST_LOG_ERROR("Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);
   }

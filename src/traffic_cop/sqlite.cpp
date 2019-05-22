@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <utility>
 
 #include "loggers/main_logger.h"
 #include "network/network_defs.h"
@@ -126,28 +127,19 @@ ResultSet SqliteEngine::Execute(sqlite3_stmt *stmt) {
     Row row;
     for (int i = 0; i < column_cnt; i++) {
       int type = sqlite3_column_type(stmt, i);
-      if(type == SQLITE_INTEGER)
-      {
+      if (type == SQLITE_INTEGER) {
         int value = sqlite3_column_int(stmt, i);
         row.push_back(type::TransientValueFactory::GetInteger(value));
-      }
-      else if(type == SQLITE_FLOAT)
-      {
+      } else if (type == SQLITE_FLOAT) {
         double value = sqlite3_column_double(stmt, i);
         row.push_back(type::TransientValueFactory::GetDecimal(value));
-      }
-      else if(type == SQLITE_TEXT)
-      {
+      } else if (type == SQLITE_TEXT) {
         const unsigned char *result_cstring = sqlite3_column_text(stmt, i);
         auto *value = reinterpret_cast<const char *>(result_cstring);
         row.push_back(type::TransientValueFactory::GetVarChar(value));
-      }
-      else if(type == SQLITE_NULL)
-      {
+      } else if (type == SQLITE_NULL) {
         row.push_back(type::TransientValueFactory::GetVarChar("NULL"));
-      }
-      else
-      {
+      } else {
         LOG_ERROR("Unsupported Type: {0}", type);
       }
     }

@@ -21,8 +21,8 @@
 #include "common/exception.h"
 #include "common/notifiable_task.h"
 #include "network/connection_dispatcher_task.h"
-#include "network/network_types.h"
 #include "network/connection_handle_factory.h"
+#include "network/network_types.h"
 
 namespace terrier::network {
 
@@ -37,7 +37,8 @@ class TerrierServer : public DedicatedThreadOwner {
    * Note that SettingsManager must already be initialized when this constructor
    * is called.
    */
-  explicit TerrierServer(ConnectionHandleFactory* connection_handle_factory);
+  explicit TerrierServer(ConnectionHandleFactory *connection_handle_factory);
+  virtual ~TerrierServer() = default;
 
   /**
    * @brief Configure the server to spin up all its threads and start listening
@@ -93,7 +94,7 @@ class TerrierServer : public DedicatedThreadOwner {
   int listen_fd_ = -1;      // server socket fd that TerrierServer is listening on
   size_t max_connections_;  // maximum number of connections
 
-  ConnectionHandleFactory* connection_handle_factory_;
+  ConnectionHandleFactory *connection_handle_factory_;
 
   // For testing purposes
   std::shared_ptr<ConnectionDispatcherTask> dispatcher_task_;

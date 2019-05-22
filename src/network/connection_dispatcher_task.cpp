@@ -11,10 +11,10 @@ namespace terrier::network {
 
 ConnectionDispatcherTask::ConnectionDispatcherTask(int num_handlers, int listen_fd,
                                                    DedicatedThreadOwner *dedicatedThreadOwner,
-                                                   ConnectionHandleFactory* connection_handle_factory)
-    : NotifiableTask(MASTER_THREAD_ID), next_handler_(0), connection_handle_factory_(connection_handle_factory) {
-  RegisterEvent(listen_fd, EV_READ | EV_PERSIST, METHOD_AS_CALLBACK(ConnectionDispatcherTask, DispatchConnection),
-                this);
+                                                   ConnectionHandleFactory *connection_handle_factory)
+    : NotifiableTask(MASTER_THREAD_ID), next_handler_(0) {
+  RegisterEvent(listen_fd, EV_READ | EV_PERSIST,
+                METHOD_AS_CALLBACK(ConnectionDispatcherTask, DispatchPostgresConnection), this);
   RegisterSignalEvent(SIGHUP, METHOD_AS_CALLBACK(NotifiableTask, ExitLoop), this);
 
   // create worker threads.
@@ -26,7 +26,7 @@ ConnectionDispatcherTask::ConnectionDispatcherTask(int num_handlers, int listen_
   }
 }
 
-void ConnectionDispatcherTask::DispatchConnection(int fd, int16_t) {  // NOLINT
+void ConnectionDispatcherTask::DispatchPostgresConnection(int fd, int16_t) {  // NOLINT
   struct sockaddr_storage addr;
   socklen_t addrlen = sizeof(addr);
 
@@ -45,7 +45,7 @@ void ConnectionDispatcherTask::DispatchConnection(int fd, int16_t) {  // NOLINT
   std::shared_ptr<ConnectionHandlerTask> handler = handlers_[handler_id];
   NETWORK_LOG_TRACE("Dispatching connection to worker {0}", handler_id);
 
-  handler->Notify(new_conn_fd);
+  handler->Notify(new_conn_fd, NetworkProtocolType::POSTGRES_PSQL);
 }
 
 void ConnectionDispatcherTask::ExitLoop() {

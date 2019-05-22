@@ -1,6 +1,7 @@
 #include <unistd.h>
 #include <cstring>
 #include <utility>
+#include <memory>
 
 #include "network/connection_dispatcher_task.h"
 #include "network/connection_handle.h"
@@ -159,11 +160,11 @@ END_DEF
 }
 
 // TODO(Tianyu): Maybe use a factory to initialize protocol_interpreter here
-ConnectionHandle::ConnectionHandle(int sock_fd, ConnectionHandlerTask *handler, TrafficCop* t_cop, CommandFactory* command_factory)
-    : conn_handler_(handler),
-      io_wrapper_{new NetworkIoWrapper(sock_fd)},
-      protocol_interpreter_{new PostgresProtocolInterpreter(command_factory)},
-      traffic_cop_(t_cop) {}
+ConnectionHandle::ConnectionHandle(int sock_fd, ConnectionHandlerTask *handler, TrafficCop *t_cop,
+                                   CommandFactory *command_factory, NetworkProtocolType protocol_type)
+    : conn_handler_(handler), io_wrapper_{new NetworkIoWrapper(sock_fd)}, traffic_cop_(t_cop) {
+  BuildProtocolInterpreter(protocol_type, command_factory);
+}
 
 Transition ConnectionHandle::GetResult() {
   EventUtil::EventAdd(network_event_, nullptr);
@@ -184,6 +185,13 @@ Transition ConnectionHandle::TryCloseConnection() {
   conn_handler_->UnregisterEvent(workpool_event_);
 
   return Transition::NONE;
+}
+
+void ConnectionHandle::BuildProtocolInterpreter(NetworkProtocolType protocol_type, CommandFactory *command_factory) {
+  if (protocol_type == NetworkProtocolType::POSTGRES_PSQL)
+    protocol_interpreter_ = std::make_unique<PostgresProtocolInterpreter>(command_factory);
+  else
+    NETWORK_LOG_ERROR("Unsupported Protocol: {0}", static_cast<int>(protocol_type));
 }
 
 }  // namespace terrier::network
