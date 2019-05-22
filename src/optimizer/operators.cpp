@@ -412,11 +412,7 @@ Operator LogicalDependentJoin::make(std::vector<AnnotatedExpression> &&condition
 bool LogicalDependentJoin::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::LOGICALDEPENDENTJOIN) return false;
   const LogicalDependentJoin &node = *static_cast<const LogicalDependentJoin *>(&r);
-  if (join_predicates_.size() != node.join_predicates_.size()) return false;
-  for (size_t i = 0; i < join_predicates_.size(); i++) {
-    if (join_predicates_[i].GetExpr() != node.join_predicates_[i].GetExpr()) return false;
-  }
-  return true;
+  return (join_predicates_ == node.join_predicates_);
 }
 
 common::hash_t LogicalDependentJoin::Hash() const {
@@ -450,11 +446,7 @@ common::hash_t LogicalMarkJoin::Hash() const {
 bool LogicalMarkJoin::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::LOGICALMARKJOIN) return false;
   const LogicalMarkJoin &node = *static_cast<const LogicalMarkJoin *>(&r);
-  if (join_predicates_.size() != node.join_predicates_.size()) return false;
-  for (size_t i = 0; i < join_predicates_.size(); i++) {
-    if (join_predicates_[i].GetExpr() != node.join_predicates_[i].GetExpr()) return false;
-  }
-  return true;
+  return (join_predicates_ == node.join_predicates_);
 }
 
 //===--------------------------------------------------------------------===//
@@ -482,11 +474,7 @@ common::hash_t LogicalSingleJoin::Hash() const {
 bool LogicalSingleJoin::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::LOGICALSINGLEJOIN) return false;
   const LogicalSingleJoin &node = *static_cast<const LogicalSingleJoin *>(&r);
-  if (join_predicates_.size() != node.join_predicates_.size()) return false;
-  for (size_t i = 0; i < join_predicates_.size(); i++) {
-    if (join_predicates_[i].GetExpr() != node.join_predicates_[i].GetExpr()) return false;
-  }
-  return true;
+  return (join_predicates_ == node.join_predicates_);
 }
 
 //===--------------------------------------------------------------------===//
@@ -514,11 +502,7 @@ common::hash_t LogicalInnerJoin::Hash() const {
 bool LogicalInnerJoin::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::LOGICALINNERJOIN) return false;
   const LogicalInnerJoin &node = *static_cast<const LogicalInnerJoin *>(&r);
-  if (join_predicates_.size() != node.join_predicates_.size()) return false;
-  for (size_t i = 0; i < join_predicates_.size(); i++) {
-    if (join_predicates_[i].GetExpr() != node.join_predicates_[i].GetExpr()) return false;
-  }
-  return true;
+  return (join_predicates_ == node.join_predicates_);
 }
 
 //===--------------------------------------------------------------------===//
