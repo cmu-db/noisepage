@@ -98,5 +98,7 @@ class Catalog {
   std::atomic<db_oid_t> next_oid_
 
   transaction::Action debootstrap;
+
+  storage::BlockStore catalog_block_store_;
 };
 } // namespace terrier::catalog
