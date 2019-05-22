@@ -266,6 +266,26 @@ Operator LogicalRightJoin::make(parser::AbstractExpression *condition) {
 }
 
 //===--------------------------------------------------------------------===//
+// OuterJoin
+//===--------------------------------------------------------------------===//
+Operator LogicalOuterJoin::make(parser::AbstractExpression *condition) {
+  LogicalOuterJoin *join = new LogicalOuterJoin;
+  join->join_predicate_ =
+      std::shared_ptr<parser::AbstractExpression>(condition);
+  return Operator(join);
+}
+
+//===--------------------------------------------------------------------===//
+// SemiJoin
+//===--------------------------------------------------------------------===//
+Operator LogicalSemiJoin::make(parser::AbstractExpression *condition) {
+  LogicalSemiJoin *join = new LogicalSemiJoin;
+  join->join_predicate_ =
+      std::shared_ptr<parser::AbstractExpression>(condition);
+  return Operator(join);
+}
+
+//===--------------------------------------------------------------------===//
 // TableFreeScan
 //===--------------------------------------------------------------------===//
 Operator TableFreeScan::make() {

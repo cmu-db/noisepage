@@ -287,11 +287,15 @@ class LogicalInnerJoin : public OperatorNode<LogicalInnerJoin> {
  */
 class LogicalLeftJoin : public OperatorNode<LogicalLeftJoin> {
  public:
+  /**
+   * @param condition condition of the join
+   * @return a LeftJoin operator
+   */
   static Operator make(parser::AbstractExpression *condition = nullptr);
 
  private:
   /**
-   * Join predicates
+   * Join predicate
    */
   std::shared_ptr<parser::AbstractExpression> join_predicate_;
 };
@@ -301,33 +305,53 @@ class LogicalLeftJoin : public OperatorNode<LogicalLeftJoin> {
  */
 class LogicalRightJoin : public OperatorNode<LogicalRightJoin> {
  public:
+  /**
+   * @param condition condition of the join
+   * @return a RightJoin operator
+   */
   static Operator make(parser::AbstractExpression *condition = nullptr);
 
  private:
   /**
-   * Join predicates
+   * Join predicate
    */
   std::shared_ptr<parser::AbstractExpression> join_predicate_;
 };
 
-//===--------------------------------------------------------------------===//
-// OuterJoin
-//===--------------------------------------------------------------------===//
+/**
+ * Logical operator for outer join
+ */
 class LogicalOuterJoin : public OperatorNode<LogicalOuterJoin> {
- public:
-  static Operator make(expression::AbstractExpression *condition = nullptr);
+  public:
+   /**
+    * @param condition condition of the join
+    * @return a RightJoin operator
+    */
+   static Operator make(parser::AbstractExpression *condition = nullptr);
 
-  std::shared_ptr<expression::AbstractExpression> join_predicate;
+  private:
+   /**
+    * Join predicate
+    */
+   std::shared_ptr<parser::AbstractExpression> join_predicate_;
 };
 
-//===--------------------------------------------------------------------===//
-// SemiJoin
-//===--------------------------------------------------------------------===//
+/**
+ * Logical operator for semi join
+ */
 class LogicalSemiJoin : public OperatorNode<LogicalSemiJoin> {
  public:
-  static Operator make(expression::AbstractExpression *condition = nullptr);
+  /**
+    * @param condition condition of the join
+    * @return a RightJoin operator
+    */
+  static Operator make(parser::AbstractExpression *condition = nullptr);
 
-  std::shared_ptr<expression::AbstractExpression> join_predicate;
+ private:
+  /**
+   * Join predicate
+   */
+  std::shared_ptr<parser::AbstractExpression> join_predicate_;
 };
 
 //===--------------------------------------------------------------------===//
