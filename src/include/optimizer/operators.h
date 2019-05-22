@@ -354,23 +354,44 @@ class LogicalSemiJoin : public OperatorNode<LogicalSemiJoin> {
   std::shared_ptr<parser::AbstractExpression> join_predicate_;
 };
 
-//===--------------------------------------------------------------------===//
-// GroupBy
-//===--------------------------------------------------------------------===//
+/**
+ * Logical operator for aggregation or group by operation
+ */
 class LogicalAggregateAndGroupBy : public OperatorNode<LogicalAggregateAndGroupBy> {
  public:
+  /**
+   * @return a GroupBy operator
+   */
   static Operator make();
 
-  static Operator make(std::vector<std::shared_ptr<expression::AbstractExpression>> &columns);
+  /**
+   * @param columns columns to group by
+   * @return a GroupBy operator
+   */
+  static Operator make(std::vector<std::shared_ptr<parser::AbstractExpression>> &&columns);
 
-  static Operator make(std::vector<std::shared_ptr<expression::AbstractExpression>> &columns,
-                       std::vector<AnnotatedExpression> &having);
+  /**
+   * @param columns columns to group by
+   * @param having HAVING clause
+   * @return a GroupBy operator
+   */
+  static Operator make(std::vector<std::shared_ptr<parser::AbstractExpression>> &&columns,
+                       std::vector<AnnotatedExpression> &&having);
 
   bool operator==(const BaseOperatorNode &r) override;
-  hash_t Hash() const override;
 
-  std::vector<std::shared_ptr<expression::AbstractExpression>> columns;
-  std::vector<AnnotatedExpression> having;
+  common::hash_t Hash() const override;
+
+ private:
+  /**
+   * Columns to group by
+   */
+  std::vector<std::shared_ptr<parser::AbstractExpression>> columns_;
+
+  /**
+   * Expression of HAVING clause
+   */
+  std::vector<AnnotatedExpression> having_;
 };
 
 //===--------------------------------------------------------------------===//

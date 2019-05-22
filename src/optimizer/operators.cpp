@@ -286,6 +286,54 @@ Operator LogicalSemiJoin::make(parser::AbstractExpression *condition) {
 }
 
 //===--------------------------------------------------------------------===//
+// Aggregate
+//===--------------------------------------------------------------------===//
+Operator LogicalAggregateAndGroupBy::make() {
+  LogicalAggregateAndGroupBy *group_by = new LogicalAggregateAndGroupBy;
+  group_by->columns_ = {};
+  return Operator(group_by);
+}
+
+Operator LogicalAggregateAndGroupBy::make(
+    std::vector<std::shared_ptr<parser::AbstractExpression>> &&columns) {
+  LogicalAggregateAndGroupBy *group_by = new LogicalAggregateAndGroupBy;
+  group_by->columns_ = move(columns);
+  return Operator(group_by);
+}
+
+Operator LogicalAggregateAndGroupBy::make(
+    std::vector<std::shared_ptr<parser::AbstractExpression>> &&columns,
+    std::vector<AnnotatedExpression> &&having) {
+  LogicalAggregateAndGroupBy *group_by = new LogicalAggregateAndGroupBy;
+  group_by->columns_ = move(columns);
+  group_by->having_ = move(having);
+  return Operator(group_by);
+}
+
+bool LogicalAggregateAndGroupBy::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::LOGICALAGGREGATEANDGROUPBY) return false;
+  const LogicalAggregateAndGroupBy &node =
+      *static_cast<const LogicalAggregateAndGroupBy *>(&r);
+  if (having_.size() != node.having_.size() || columns_.size() != node.columns_.size())
+    return false;
+  for (size_t i = 0; i < having_.size(); i++) {
+    if (having_[i].GetExpr() != node.having_[i].GetExpr()) return false;
+  }
+  std::unordered_set<std::shared_ptr<parser::AbstractExpression>> l_set, r_set;
+  for (auto &expr : columns_) l_set.emplace(expr);
+  for (auto &expr : node.columns_) r_set.emplace(expr);
+  return l_set == r_set;
+}
+
+common::hash_t LogicalAggregateAndGroupBy::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  for (auto &pred : having_) hash = common::HashUtil::SumHashes(hash, pred.GetExpr()->Hash());
+  for (auto expr : columns_) hash = common::HashUtil::SumHashes(hash, expr->Hash());
+  return hash;
+}
+
+
+//===--------------------------------------------------------------------===//
 // TableFreeScan
 //===--------------------------------------------------------------------===//
 Operator TableFreeScan::make() {
