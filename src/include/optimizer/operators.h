@@ -162,7 +162,7 @@ class LogicalFilter : public OperatorNode<LogicalFilter> {
 
   bool operator==(const BaseOperatorNode &r) override;
 
-  hash_t Hash() const override;
+  common::hash_t Hash() const override;
 };
 
 //===--------------------------------------------------------------------===//
@@ -179,15 +179,26 @@ class LogicalProjection : public OperatorNode<LogicalProjection> {
 //===--------------------------------------------------------------------===//
 class LogicalDependentJoin : public OperatorNode<LogicalDependentJoin> {
  public:
+  /**
+   * @return a DependentJoin operator
+   */
   static Operator make();
 
-  static Operator make(std::vector<AnnotatedExpression> &conditions);
+  /**
+   * @param conditions condition of the join
+   * @return a DependentJoin operator
+   */
+  static Operator make(std::vector<AnnotatedExpression> &&conditions);
 
   bool operator==(const BaseOperatorNode &r) override;
 
-  hash_t Hash() const override;
+  common::hash_t Hash() const override;
 
-  std::vector<AnnotatedExpression> join_predicates;
+ private:
+  /**
+   * Join predicates
+   */
+  std::vector<AnnotatedExpression> join_predicates_;
 };
 
 //===--------------------------------------------------------------------===//
@@ -195,15 +206,26 @@ class LogicalDependentJoin : public OperatorNode<LogicalDependentJoin> {
 //===--------------------------------------------------------------------===//
 class LogicalMarkJoin : public OperatorNode<LogicalMarkJoin> {
  public:
+  /**
+   * @return a MarkJoin operator
+   */
   static Operator make();
 
-  static Operator make(std::vector<AnnotatedExpression> &conditions);
+  /**
+   * @param conditions conditions of the join
+   * @return a MarkJoin operator
+   */
+  static Operator make(std::vector<AnnotatedExpression> &&conditions);
 
   bool operator==(const BaseOperatorNode &r) override;
 
-  hash_t Hash() const override;
+  common::hash_t Hash() const override;
 
-  std::vector<AnnotatedExpression> join_predicates;
+ private:
+  /**
+   * Join predicates
+   */
+  std::vector<AnnotatedExpression> join_predicates_;
 };
 
 //===--------------------------------------------------------------------===//
@@ -211,13 +233,20 @@ class LogicalMarkJoin : public OperatorNode<LogicalMarkJoin> {
 //===--------------------------------------------------------------------===//
 class LogicalSingleJoin : public OperatorNode<LogicalSingleJoin> {
  public:
+  /**
+   * @return a SingleJoin operator
+   */
   static Operator make();
 
-  static Operator make(std::vector<AnnotatedExpression> &conditions);
+  /**
+   * @param conditions conditions of the join
+   * @return a SingleJoin operator
+   */
+  static Operator make(std::vector<AnnotatedExpression> &&conditions);
 
   bool operator==(const BaseOperatorNode &r) override;
 
-  hash_t Hash() const override;
+  common::hash_t Hash() const override;
 
   std::vector<AnnotatedExpression> join_predicates;
 };
@@ -1110,3 +1139,4 @@ class Distinct : public OperatorNode<Distinct> {
 
 }  // namespace optimizer
 }  // namespace terrier
+

@@ -68,9 +68,9 @@ Operator LogicalExternalFileGet::make(parser::ExternalFileFormat format, std::st
   return Operator(get);
 }
 
-bool LogicalExternalFileGet::operator==(const BaseOperatorNode &node) {
-  if (node.GetType() != OpType::LOGICALEXPORTEXTERNALFILE) return false;
-  const auto &get = *static_cast<const LogicalExternalFileGet *>(&node);
+bool LogicalExternalFileGet::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::LOGICALEXPORTEXTERNALFILE) return false;
+  const auto &get = *static_cast<const LogicalExternalFileGet *>(&r);
   return (format_ == get.format_ && file_name_ == get.file_name_ && delimiter_ == get.delimiter_ &&
           quote_ == get.quote_ && escape_ == get.escape_);
 }
@@ -91,10 +91,9 @@ common::hash_t LogicalExternalFileGet::Hash() const {
 //===--------------------------------------------------------------------===//
 // Query derived get
 //===--------------------------------------------------------------------===//
-Operator LogicalQueryDerivedGet::make(std::string table_alias,
-    std::unordered_map<std::string,
-                       std::shared_ptr<parser::AbstractExpression>> &&
-    alias_to_expr_map) {
+Operator LogicalQueryDerivedGet::make(
+    std::string table_alias,
+    std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>> &&alias_to_expr_map) {
   LogicalQueryDerivedGet *get = new LogicalQueryDerivedGet;
   get->table_alias_ = std::move(table_alias);
   get->alias_to_expr_map_ = std::move(alias_to_expr_map);
@@ -103,8 +102,7 @@ Operator LogicalQueryDerivedGet::make(std::string table_alias,
 
 bool LogicalQueryDerivedGet::operator==(const BaseOperatorNode &node) {
   if (node.GetType() != OpType::LOGICALQUERYDERIVEDGET) return false;
-  const LogicalQueryDerivedGet &r =
-      *static_cast<const LogicalQueryDerivedGet *>(&node);
+  const LogicalQueryDerivedGet &r = *static_cast<const LogicalQueryDerivedGet *>(&node);
   if (table_alias_ != r.table_alias_) return false;
   return alias_to_expr_map_ == r.alias_to_expr_map_;
 }
@@ -117,6 +115,69 @@ common::hash_t LogicalQueryDerivedGet::Hash() const {
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(iter->second));
   }
   return hash;
+}
+
+//===--------------------------------------------------------------------===//
+// Dependent Join
+//===--------------------------------------------------------------------===//
+Operator LogicalDependentJoin::make() {
+  LogicalDependentJoin *join = new LogicalDependentJoin;
+  join->join_predicates_ = {};
+  return Operator(join);
+}
+
+Operator LogicalDependentJoin::make(std::vector<AnnotatedExpression> &&conditions) {
+  LogicalDependentJoin *join = new LogicalDependentJoin;
+  join->join_predicates_ = std::move(conditions);
+  return Operator(join);
+}
+
+bool LogicalDependentJoin::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::LOGICALDEPENDENTJOIN) return false;
+  const LogicalDependentJoin &node = *static_cast<const LogicalDependentJoin *>(&r);
+  if (join_predicates_.size() != node.join_predicates_.size()) return false;
+  for (size_t i = 0; i < join_predicates_.size(); i++) {
+    if (join_predicates_[i].GetExpr() != node.join_predicates_[i].GetExpr()) return false;
+  }
+  return true;
+}
+
+common::hash_t LogicalDependentJoin::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  for (auto &pred : join_predicates_) hash = common::HashUtil::CombineHashes(hash, pred.GetExpr()->Hash());
+  return hash;
+}
+
+//===--------------------------------------------------------------------===//
+// MarkJoin
+//===--------------------------------------------------------------------===//
+Operator LogicalMarkJoin::make() {
+  LogicalMarkJoin *join = new LogicalMarkJoin;
+  join->join_predicates_ = {};
+  return Operator(join);
+}
+
+Operator LogicalMarkJoin::make(std::vector<AnnotatedExpression> &&conditions) {
+  LogicalMarkJoin *join = new LogicalMarkJoin;
+  join->join_predicates_ = std::move(conditions);
+  return Operator(join);
+}
+
+common::hash_t LogicalMarkJoin::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  for (auto &pred : join_predicates_)
+    hash = common::HashUtil::CombineHashes(hash, pred.GetExpr()->Hash());
+  return hash;
+}
+
+bool LogicalMarkJoin::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::LOGICALMARKJOIN) return false;
+  const LogicalMarkJoin &node = *static_cast<const LogicalMarkJoin *>(&r);
+  if (join_predicates_.size() != node.join_predicates_.size()) return false;
+  for (size_t i = 0; i < join_predicates_.size(); i++) {
+    if (join_predicates_[i].GetExpr() != node.join_predicates_[i].GetExpr()) return false;
+  }
+  return true;
 }
 
 //===--------------------------------------------------------------------===//
@@ -266,8 +327,7 @@ Operator QueryDerivedScan::make(
 
 bool QueryDerivedScan::operator==(const BaseOperatorNode &node) {
   if (node.GetType() != OpType::QUERYDERIVEDSCAN) return false;
-  const LogicalQueryDerivedGet &r =
-      *static_cast<const QueryDerivedScan *>(&node);
+  const LogicalQueryDerivedGet &r = *static_cast<const QueryDerivedScan *>(&node);
   if (table_alias_ != r.table_alias_) return false;
   return alias_to_expr_map_ == r.alias_to_expr_map_;
 }
@@ -763,3 +823,4 @@ bool OperatorNode<T>::IsPhysical() const {
 }
 
 }  // namespace terrier::optimizer
+
