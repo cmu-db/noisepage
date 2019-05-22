@@ -94,6 +94,9 @@ class Catalog {
   storage::SqlTable *databases_;
   storage::index::Index *databases_name_index_;
   storage::index::Index *databases_oid_index_;
+
+  std::atomic<db_oid_t> next_oid_
+
   transaction::Action debootstrap;
 };
 } // namespace terrier::catalog

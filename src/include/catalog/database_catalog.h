@@ -189,6 +189,7 @@ class DatabaseCatalog {
   storage::index::Index *constraints_index_index_;
   storage::index::Index *constraints_foreignkey_index_;
 
+  std::atomic<uint32_t> next_oid_;
   transaction::Action debootstrap;
 };
 } // namespace terrier::catalog
