@@ -195,14 +195,14 @@ common::hash_t LogicalInsert::Hash() const {
   return hash;
 }
 
-bool LogicalInsert::operator==(const BaseOperatorNode &node) {
-  if (node.GetType() != OpType::LOGICALINSERT) return false;
-  const LogicalInsert &r = *dynamic_cast<const LogicalInsert *>(&node);
-  if (database_oid_ != r.database_oid_) return false;
-  if (namespace_oid_ != r.namespace_oid_) return false;
-  if (table_oid_ != r.table_oid_) return false;
-  if (columns_ != r.columns_) return false;
-  if (values_ != r.values_) return false;
+bool LogicalInsert::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::LOGICALINSERT) return false;
+  const LogicalInsert &node = *dynamic_cast<const LogicalInsert *>(&r);
+  if (database_oid_ != node.database_oid_) return false;
+  if (namespace_oid_ != node.namespace_oid_) return false;
+  if (table_oid_ != node.table_oid_) return false;
+  if (columns_ != node.columns_) return false;
+  if (values_ != node.values_) return false;
   return (true);
 }
 
@@ -227,12 +227,12 @@ common::hash_t LogicalInsertSelect::Hash() const {
   return hash;
 }
 
-bool LogicalInsertSelect::operator==(const BaseOperatorNode &node) {
-  if (node.GetType() != OpType::LOGICALINSERTSELECT) return false;
-  const LogicalInsertSelect &r = *dynamic_cast<const LogicalInsertSelect *>(&node);
-  if (database_oid_ != r.database_oid_) return false;
-  if (namespace_oid_ != r.namespace_oid_) return false;
-  if (table_oid_ != r.table_oid_) return false;
+bool LogicalInsertSelect::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::LOGICALINSERTSELECT) return false;
+  const LogicalInsertSelect &node = *dynamic_cast<const LogicalInsertSelect *>(&r);
+  if (database_oid_ != node.database_oid_) return false;
+  if (namespace_oid_ != node.namespace_oid_) return false;
+  if (table_oid_ != node.table_oid_) return false;
   return (true);
 }
 
@@ -247,8 +247,8 @@ Operator LogicalDistinct::make() {
   return Operator(op);
 }
 
-bool LogicalDistinct::operator==(const BaseOperatorNode &node) {
-  if (node.GetType() != OpType::LOGICALDISTINCT) return false;
+bool LogicalDistinct::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::LOGICALDISTINCT) return false;
   // Again, there isn't any internal data so I guess we're always equal!
   return (true);
 }
@@ -275,13 +275,13 @@ Operator LogicalLimit::make(size_t offset, size_t limit,
   return Operator(op);
 }
 
-bool LogicalLimit::operator==(const BaseOperatorNode &node) {
-  if (node.GetType() != OpType::LOGICALLIMIT) return false;
-  const LogicalLimit &r = *static_cast<const LogicalLimit *>(&node);
-  if (offset_ != r.offset_) return false;
-  if (limit_ != r.limit_) return false;
-  if (sort_exprs_ != r.sort_exprs_) return false;
-  if (sort_directions_ != r.sort_directions_) return false;
+bool LogicalLimit::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::LOGICALLIMIT) return false;
+  const LogicalLimit &node = *static_cast<const LogicalLimit *>(&r);
+  if (offset_ != node.offset_) return false;
+  if (limit_ != node.limit_) return false;
+  if (sort_exprs_ != node.sort_exprs_) return false;
+  if (sort_directions_ != node.sort_directions_) return false;
   return (true);
 }
 
@@ -315,12 +315,12 @@ common::hash_t LogicalDelete::Hash() const {
   return hash;
 }
 
-bool LogicalDelete::operator==(const BaseOperatorNode &node) {
-  if (node.GetType() != OpType::LOGICALDELETE) return false;
-  const LogicalDelete &r = *dynamic_cast<const LogicalDelete *>(&node);
-  if (database_oid_ != r.database_oid_) return false;
-  if (namespace_oid_ != r.namespace_oid_) return false;
-  if (table_oid_ != r.table_oid_) return false;
+bool LogicalDelete::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::LOGICALDELETE) return false;
+  const LogicalDelete &node = *dynamic_cast<const LogicalDelete *>(&r);
+  if (database_oid_ != node.database_oid_) return false;
+  if (namespace_oid_ != node.namespace_oid_) return false;
+  if (table_oid_ != node.table_oid_) return false;
   return (true);
 }
 
@@ -348,13 +348,13 @@ common::hash_t LogicalUpdate::Hash() const {
   return hash;
 }
 
-bool LogicalUpdate::operator==(const BaseOperatorNode &node) {
-  if (node.GetType() != OpType::LOGICALDELETE) return false;
-  const LogicalUpdate &r = *dynamic_cast<const LogicalUpdate *>(&node);
-  if (database_oid_ != r.database_oid_) return false;
-  if (namespace_oid_ != r.namespace_oid_) return false;
-  if (table_oid_ != r.table_oid_) return false;
-  if (updates_ != r.updates_) return false;
+bool LogicalUpdate::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::LOGICALDELETE) return false;
+  const LogicalUpdate &node = *dynamic_cast<const LogicalUpdate *>(&r);
+  if (database_oid_ != node.database_oid_) return false;
+  if (namespace_oid_ != node.namespace_oid_) return false;
+  if (table_oid_ != node.table_oid_) return false;
+  if (updates_ != node.updates_) return false;
   return (true);
 }
 

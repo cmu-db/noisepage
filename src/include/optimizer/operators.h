@@ -442,7 +442,7 @@ class LogicalInsert : public OperatorNode<LogicalInsert> {
                        const std::vector<catalog::col_oid_t > &&columns,
                        const std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> &&values);
 
-  bool operator==(const BaseOperatorNode &node) override;
+  bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
 
  private:
@@ -488,7 +488,7 @@ class LogicalInsertSelect : public OperatorNode<LogicalInsertSelect> {
   static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t table_oid);
 
-  bool operator==(const BaseOperatorNode &node) override;
+  bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
 
  private:
@@ -520,7 +520,7 @@ class LogicalDistinct : public OperatorNode<LogicalDistinct> {
    */
   static Operator make();
 
-  bool operator==(const BaseOperatorNode &node) override;
+  bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
 };
 
@@ -541,7 +541,7 @@ class LogicalLimit : public OperatorNode<LogicalLimit> {
       std::vector<std::shared_ptr<parser::AbstractExpression>> &&sort_exprs,
       std::vector<planner::OrderByOrderingType> &&sort_directions);
 
-  bool operator==(const BaseOperatorNode &node) override;
+  bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
 
  private:
@@ -585,7 +585,7 @@ class LogicalDelete : public OperatorNode<LogicalDelete> {
   static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t table_oid);
 
-  bool operator==(const BaseOperatorNode &node) override;
+  bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
 
  private:
@@ -621,7 +621,7 @@ class LogicalUpdate : public OperatorNode<LogicalUpdate> {
                        catalog::table_oid_t table_oid,
                        const std::vector<std::unique_ptr<parser::UpdateClause>> &&updates);
 
-  bool operator==(const BaseOperatorNode &node) override;
+  bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
 
  private:
