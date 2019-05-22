@@ -25,8 +25,8 @@ class AbstractScanPlanNode : public AbstractPlanNode {
      * @param predicate predicate to use for scan
      * @return builder object
      */
-    ConcreteType &SetScanPredicate(std::shared_ptr<parser::AbstractExpression> predicate) {
-      scan_predicate_ = std::move(predicate);
+    ConcreteType &SetScanPredicate(parser::AbstractExpression *predicate) {
+      scan_predicate_ = predicate;
       return *dynamic_cast<ConcreteType *>(this);
     }
 
@@ -70,7 +70,7 @@ class AbstractScanPlanNode : public AbstractPlanNode {
     /**
      * Scan predicate
      */
-    std::shared_ptr<parser::AbstractExpression> scan_predicate_;
+    parser::AbstractExpression *scan_predicate_;
     /**
      * Is scan for update
      */
@@ -102,11 +102,11 @@ class AbstractScanPlanNode : public AbstractPlanNode {
    * @param namespace_oid OID of the namespace
    */
   AbstractScanPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
-                       std::shared_ptr<OutputSchema> output_schema,
-                       std::shared_ptr<parser::AbstractExpression> predicate, bool is_for_update, bool is_parallel,
-                       catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid)
+                       std::shared_ptr<OutputSchema> output_schema, parser::AbstractExpression *predicate,
+                       bool is_for_update, bool is_parallel, catalog::db_oid_t database_oid,
+                       catalog::namespace_oid_t namespace_oid)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
-        scan_predicate_(std::move(predicate)),
+        scan_predicate_(predicate),
         is_for_update_(is_for_update),
         is_parallel_(is_parallel),
         database_oid_(database_oid),
@@ -123,7 +123,7 @@ class AbstractScanPlanNode : public AbstractPlanNode {
   /**
    * @return predicate used for performing scan
    */
-  const std::shared_ptr<parser::AbstractExpression> &GetScanPredicate() const { return scan_predicate_; }
+  const parser::AbstractExpression *GetScanPredicate() const { return scan_predicate_; }
 
   /**
    * @return for update flag
@@ -158,7 +158,7 @@ class AbstractScanPlanNode : public AbstractPlanNode {
   /**
    * Selection predicate. We remove const to make it used when deserialization
    */
-  std::shared_ptr<parser::AbstractExpression> scan_predicate_;
+  parser::AbstractExpression *scan_predicate_;
 
   /**
    * Are the tuples produced by this plan intended for update?

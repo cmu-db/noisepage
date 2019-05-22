@@ -89,7 +89,7 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
                                                                             catalog::col_oid_t(1)))
                         .SetTableOid(catalog::table_oid_t(1))
                         .SetDatabaseOid(catalog::db_oid_t(0))
-                        .SetScanPredicate(std::make_shared<parser::StarExpression>())
+                        .SetScanPredicate(new parser::StarExpression())
                         .SetIsForUpdateFlag(false)
                         .SetIsParallelFlag(true)
                         .Build();
@@ -108,7 +108,7 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
 
                         .SetTableOid(catalog::table_oid_t(2))
                         .SetDatabaseOid(catalog::db_oid_t(0))
-                        .SetScanPredicate(std::make_shared<parser::StarExpression>())
+                        .SetScanPredicate(new parser::StarExpression())
                         .SetIsForUpdateFlag(false)
                         .SetIsParallelFlag(true)
                         .Build();
@@ -124,7 +124,7 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
   auto hash_plan = hash_builder
                        .SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col2", type::TypeId::INTEGER, false,
                                                                            catalog::col_oid_t(2)))
-                       .AddHashKey(std::make_shared<parser::TupleValueExpression>("col2", "table2"))
+                       .AddHashKey(new parser::TupleValueExpression("col2", "table2"))
                        .AddChild(std::move(seq_scan_2))
                        .Build();
 
@@ -133,16 +133,16 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
   EXPECT_EQ(1, hash_plan->GetHashKeys().size());
   EXPECT_EQ(parser::ExpressionType::VALUE_TUPLE, hash_plan->GetHashKeys()[0]->GetExpressionType());
 
-  std::vector<std::shared_ptr<parser::AbstractExpression>> expr_children;
-  expr_children.push_back(std::make_shared<parser::TupleValueExpression>("col1", "table1"));
-  expr_children.push_back(std::make_shared<parser::TupleValueExpression>("col2", "table2"));
+  std::vector<parser::AbstractExpression *> expr_children;
+  expr_children.push_back(new parser::TupleValueExpression("col1", "table1"));
+  expr_children.push_back(new parser::TupleValueExpression("col2", "table2"));
   auto cmp_expression =
-      std::make_shared<parser::ComparisonExpression>(parser::ExpressionType::COMPARE_EQUAL, std::move(expr_children));
+      new parser::ComparisonExpression(parser::ExpressionType::COMPARE_EQUAL, std::move(expr_children));
 
   auto hash_join_plan = hash_join_builder.SetJoinType(LogicalJoinType::INNER)
                             .SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER, false,
                                                                                 catalog::col_oid_t(1)))
-                            .SetJoinPredicate(std::move(cmp_expression))
+                            .SetJoinPredicate(cmp_expression)
                             .AddChild(std::move(seq_scan_1))
                             .AddChild(std::move(hash_plan))
                             .Build();

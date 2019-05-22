@@ -66,8 +66,8 @@ class PlanNodeJsonTest : public TerrierTest {
    * Constructs a dummy AbstractExpression predicate
    * @return dummy predicate
    */
-  static std::shared_ptr<parser::AbstractExpression> BuildDummyPredicate() {
-    return std::make_shared<parser::ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true));
+  static parser::AbstractExpression *BuildDummyPredicate() {
+    return new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
   }
 
   /**
@@ -98,11 +98,10 @@ TEST(PlanNodeJsonTest, OutputSchemaJsonTest) {
   EXPECT_EQ(col, deserialized_col);
 
   // Test DerivedColumn serialization
-  std::vector<std::shared_ptr<parser::AbstractExpression>> children;
-  children.emplace_back(std::make_shared<parser::TupleValueExpression>("table1", "col1"));
+  std::vector<parser::AbstractExpression *> children;
+  children.emplace_back(new parser::TupleValueExpression("table1", "col1"));
   children.emplace_back(PlanNodeJsonTest::BuildDummyPredicate());
-  auto expr =
-      std::make_shared<parser::ComparisonExpression>(parser::ExpressionType::CONJUNCTION_OR, std::move(children));
+  auto *expr = new parser::ComparisonExpression(parser::ExpressionType::CONJUNCTION_OR, std::move(children));
 
   OutputSchema::DerivedColumn derived_col(col, expr);
   auto derived_col_json = derived_col.ToJson();
@@ -130,15 +129,15 @@ TEST(PlanNodeJsonTest, OutputSchemaJsonTest) {
 TEST(PlanNodeJsonTest, AggregatePlanNodeJsonTest) {
   // Construct AggregatePlanNode
 
-  std::vector<std::shared_ptr<parser::AbstractExpression>> children;
+  std::vector<parser::AbstractExpression *> children;
   children.push_back(PlanNodeJsonTest::BuildDummyPredicate());
-  auto agg_term = std::make_shared<parser::AggregateExpression>(parser::ExpressionType::AGGREGATE_COUNT_STAR,
-                                                                std::move(children), false);
+  auto *agg_term =
+      new parser::AggregateExpression(parser::ExpressionType::AGGREGATE_COUNT_STAR, std::move(children), false);
   AggregatePlanNode::Builder builder;
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
                        .SetAggregateStrategyType(AggregateStrategyType::HASH)
                        .SetHavingClausePredicate(PlanNodeJsonTest::BuildDummyPredicate())
-                       .AddAggregateTerm(std::move(agg_term))
+                       .AddAggregateTerm(agg_term)
                        .Build();
 
   // Serialize to Json
@@ -604,8 +603,8 @@ TEST(PlanNodeJsonTest, HashJoinPlanNodeJoinTest) {
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
                        .SetJoinType(LogicalJoinType::INNER)
                        .SetJoinPredicate(PlanNodeJsonTest::BuildDummyPredicate())
-                       .AddLeftHashKey(std::make_shared<parser::TupleValueExpression>("col1", "table1"))
-                       .AddRightHashKey(std::make_shared<parser::TupleValueExpression>("col2", "table2"))
+                       .AddLeftHashKey(new parser::TupleValueExpression("col1", "table1"))
+                       .AddRightHashKey(new parser::TupleValueExpression("col2", "table2"))
                        .SetBuildBloomFilterFlag(false)
                        .Build();
 
@@ -626,8 +625,8 @@ TEST(PlanNodeJsonTest, HashPlanNodeJsonTest) {
   // Construct HashPlanNode
   HashPlanNode::Builder builder;
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
-                       .AddHashKey(std::make_shared<parser::TupleValueExpression>("col1", "table1"))
-                       .AddHashKey(std::make_shared<parser::TupleValueExpression>("col2", "table1"))
+                       .AddHashKey(new parser::TupleValueExpression("col1", "table1"))
+                       .AddHashKey(new parser::TupleValueExpression("col2", "table1"))
                        .AddChild(PlanNodeJsonTest::BuildDummySeqScanPlan())
                        .Build();
 

@@ -27,8 +27,8 @@ bool AggregatePlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   auto &other = static_cast<const AggregatePlanNode &>(rhs);
 
-  auto &pred = GetHavingClausePredicate();
-  auto &other_pred = other.GetHavingClausePredicate();
+  auto pred = GetHavingClausePredicate();
+  auto other_pred = other.GetHavingClausePredicate();
   if ((pred == nullptr && other_pred != nullptr) || (pred != nullptr && other_pred == nullptr)) return false;
   if (pred != nullptr && *pred != *other_pred) return false;
 
@@ -63,8 +63,7 @@ void AggregatePlanNode::FromJson(const nlohmann::json &j) {
   // Deserialize aggregate terms
   auto aggregate_term_jsons = j.at("aggregate_terms").get<std::vector<nlohmann::json>>();
   for (const auto &json : aggregate_term_jsons) {
-    aggregate_terms_.push_back(
-        std::dynamic_pointer_cast<parser::AggregateExpression>(parser::DeserializeExpression(json)));
+    aggregate_terms_.push_back(dynamic_cast<parser::AggregateExpression *>(parser::DeserializeExpression(json)));
   }
 
   aggregate_strategy_ = j.at("aggregate_strategy").get<AggregateStrategyType>();

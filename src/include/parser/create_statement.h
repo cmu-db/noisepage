@@ -84,15 +84,14 @@ struct ColumnDefinition {
    * @param varlen size of column if varlen
    */
   ColumnDefinition(std::string name, DataType type, bool is_primary, bool is_not_null, bool is_unique,
-                   std::shared_ptr<AbstractExpression> default_expr, std::shared_ptr<AbstractExpression> check_expr,
-                   size_t varlen)
+                   AbstractExpression *default_expr, AbstractExpression *check_expr, size_t varlen)
       : name_(std::move(name)),
         type_(type),
         is_primary_(is_primary),
         is_not_null_(is_not_null),
         is_unique_(is_unique),
-        default_expr_(std::move(default_expr)),
-        check_expr_(std::move(check_expr)),
+        default_expr_(default_expr),
+        check_expr_(check_expr),
         varlen_(varlen) {}
 
   virtual ~ColumnDefinition() = default;
@@ -257,12 +256,12 @@ struct ColumnDefinition {
   /**
    * @return default expression
    */
-  std::shared_ptr<AbstractExpression> GetDefaultExpression() { return default_expr_; }
+  const AbstractExpression *GetDefaultExpression() { return default_expr_; }
 
   /**
    * @return check expression
    */
-  std::shared_ptr<AbstractExpression> GetCheckExpression() { return check_expr_; }
+  const AbstractExpression *GetCheckExpression() { return check_expr_; }
 
   /**
    * @return varlen size
@@ -312,8 +311,8 @@ struct ColumnDefinition {
   bool is_primary_ = false;  // not const because of how the parser returns us columns and primary key info separately
   const bool is_not_null_ = false;
   const bool is_unique_ = false;
-  const std::shared_ptr<AbstractExpression> default_expr_ = nullptr;
-  const std::shared_ptr<AbstractExpression> check_expr_ = nullptr;
+  const AbstractExpression *default_expr_ = nullptr;
+  const AbstractExpression *check_expr_ = nullptr;
   const size_t varlen_ = 0;
 
   const std::vector<std::string> fk_sources_;
@@ -338,7 +337,7 @@ class IndexAttr {
   /**
    * Create an index attribute on an expression.
    */
-  explicit IndexAttr(std::shared_ptr<AbstractExpression> expr) : name_(""), expr_(std::move(expr)) {}
+  explicit IndexAttr(AbstractExpression *expr) : name_(""), expr_(expr) {}
 
   /**
    * @return the name of the column that we're indexed on
@@ -351,14 +350,14 @@ class IndexAttr {
   /**
    * @return the expression that we're indexed on
    */
-  std::shared_ptr<AbstractExpression> GetExpression() const {
+  const AbstractExpression *GetExpression() const {
     TERRIER_ASSERT(expr_ != nullptr, "Names don't come with expressions.");
     return expr_;
   }
 
  private:
   const std::string name_;
-  const std::shared_ptr<AbstractExpression> expr_;
+  const AbstractExpression *expr_;
 };
 
 /**
@@ -426,15 +425,14 @@ class CreateStatement : public TableRefStatement {
    */
   CreateStatement(std::shared_ptr<TableInfo> table_info, std::string trigger_name,
                   std::vector<std::string> trigger_funcnames, std::vector<std::string> trigger_args,
-                  std::vector<std::string> trigger_columns, std::shared_ptr<AbstractExpression> trigger_when,
-                  int16_t trigger_type)
+                  std::vector<std::string> trigger_columns, AbstractExpression *trigger_when, int16_t trigger_type)
       : TableRefStatement(StatementType::CREATE, std::move(table_info)),
         create_type_(kTrigger),
         trigger_name_(std::move(trigger_name)),
         trigger_funcnames_(std::move(trigger_funcnames)),
         trigger_args_(std::move(trigger_args)),
         trigger_columns_(std::move(trigger_columns)),
-        trigger_when_(std::move(trigger_when)),
+        trigger_when_(trigger_when),
         trigger_type_(trigger_type) {}
 
   /**
@@ -515,7 +513,7 @@ class CreateStatement : public TableRefStatement {
   /**
    * @return trigger when clause for [CREATE TRIGGER]
    */
-  std::shared_ptr<AbstractExpression> GetTriggerWhen() { return trigger_when_; }
+  const AbstractExpression *GetTriggerWhen() { return trigger_when_; }
 
   /**
    * @return trigger type, i.e. information about row, timing, events, access by pg_trigger
@@ -554,7 +552,7 @@ class CreateStatement : public TableRefStatement {
   const std::vector<std::string> trigger_funcnames_;
   const std::vector<std::string> trigger_args_;
   const std::vector<std::string> trigger_columns_;
-  const std::shared_ptr<AbstractExpression> trigger_when_;
+  const AbstractExpression *trigger_when_;
   const int16_t trigger_type_ = 0;
 
   // CREATE VIEW

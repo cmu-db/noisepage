@@ -21,7 +21,7 @@ class OperatorExpression : public AbstractExpression {
    * @param children vector containing arguments to the operator left to right
    */
   OperatorExpression(const ExpressionType expression_type, const type::TypeId return_value_type,
-                     std::vector<std::shared_ptr<AbstractExpression>> &&children)
+                     std::vector<AbstractExpression *> children)
       : AbstractExpression(expression_type, return_value_type, std::move(children)) {}
 
   /**
@@ -29,7 +29,13 @@ class OperatorExpression : public AbstractExpression {
    */
   OperatorExpression() = default;
 
-  std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<OperatorExpression>(*this); }
+  AbstractExpression *Copy() const override {
+    std::vector<AbstractExpression *> children;
+    for (const auto *child : GetChildren()) {
+      children.emplace_back(child->Copy());
+    }
+    return new OperatorExpression(GetExpressionType(), GetReturnValueType(), children);
+  }
 
   /**
    * @return expression serialized to json

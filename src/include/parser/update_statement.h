@@ -23,8 +23,7 @@ class UpdateClause {
    * @param column column to be updated
    * @param value value to update to
    */
-  UpdateClause(std::string column, std::shared_ptr<AbstractExpression> value)
-      : column_(std::move(column)), value_(std::move(value)) {}
+  UpdateClause(std::string column, AbstractExpression *value) : column_(std::move(column)), value_(value) {}
   ~UpdateClause() = default;
 
   /**
@@ -35,11 +34,11 @@ class UpdateClause {
   /**
    * @return value to update to
    */
-  std::shared_ptr<AbstractExpression> GetUpdateValue() { return value_; }
+  const AbstractExpression *GetUpdateValue() { return value_; }
 
  private:
   const std::string column_;
-  const std::shared_ptr<AbstractExpression> value_;
+  const AbstractExpression *value_;
 };
 
 /**
@@ -54,13 +53,10 @@ class UpdateStatement : public SQLStatement {
    * @param where update conditions
    */
   UpdateStatement(std::shared_ptr<TableRef> table, std::vector<std::shared_ptr<UpdateClause>> updates,
-                  std::shared_ptr<AbstractExpression> where)
-      : SQLStatement(StatementType::UPDATE),
-        table_(std::move(table)),
-        updates_(std::move(updates)),
-        where_(std::move(where)) {}
+                  AbstractExpression *where)
+      : SQLStatement(StatementType::UPDATE), table_(std::move(table)), updates_(std::move(updates)), where_(where) {}
 
-  UpdateStatement() : SQLStatement(StatementType::UPDATE), table_(nullptr), where_(nullptr) {}
+  UpdateStatement() : SQLStatement(StatementType::UPDATE), table_(nullptr) {}
 
   ~UpdateStatement() override = default;
 
@@ -79,12 +75,12 @@ class UpdateStatement : public SQLStatement {
   /**
    * @return update condition
    */
-  std::shared_ptr<AbstractExpression> GetUpdateCondition() { return where_; }
+  const AbstractExpression *GetUpdateCondition() { return where_; }
 
  private:
   const std::shared_ptr<TableRef> table_;
   const std::vector<std::shared_ptr<UpdateClause>> updates_;
-  const std::shared_ptr<AbstractExpression> where_ = nullptr;
+  const AbstractExpression *where_ = nullptr;
 };
 
 }  // namespace parser

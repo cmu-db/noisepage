@@ -19,7 +19,7 @@ class ComparisonExpression : public AbstractExpression {
    * @param cmp_type type of comparison
    * @param children vector containing exactly two children, left then right
    */
-  ComparisonExpression(const ExpressionType cmp_type, std::vector<std::shared_ptr<AbstractExpression>> &&children)
+  ComparisonExpression(const ExpressionType cmp_type, std::vector<AbstractExpression *> children)
       : AbstractExpression(cmp_type, type::TypeId::BOOLEAN, std::move(children)) {}
 
   /**
@@ -27,7 +27,13 @@ class ComparisonExpression : public AbstractExpression {
    */
   ComparisonExpression() = default;
 
-  std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<ComparisonExpression>(*this); }
+  AbstractExpression *Copy() const override {
+    std::vector<AbstractExpression *> children;
+    for (const auto *child : GetChildren()) {
+      children.emplace_back(child->Copy());
+    }
+    return new ComparisonExpression(GetExpressionType(), children);
+  }
 
   /**
    * @return expression serialized to json

@@ -23,9 +23,7 @@ class ParameterValueExpression : public AbstractExpression {
    */
   ParameterValueExpression() = default;
 
-  std::shared_ptr<AbstractExpression> Copy() const override {
-    return std::make_shared<ParameterValueExpression>(*this);
-  }
+  AbstractExpression *Copy() const override { return new ParameterValueExpression(value_idx_); }
 
   /**
    * @return offset in the expression

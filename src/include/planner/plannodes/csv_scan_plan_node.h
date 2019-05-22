@@ -118,12 +118,12 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
    * @param null_string the null string for the file
    */
   CSVScanPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
-                  std::shared_ptr<OutputSchema> output_schema, std::shared_ptr<parser::AbstractExpression> predicate,
+                  std::shared_ptr<OutputSchema> output_schema, parser::AbstractExpression *predicate,
                   bool is_for_update, bool is_parallel, catalog::db_oid_t database_oid,
                   catalog::namespace_oid_t namespace_oid, std::string file_name, char delimiter, char quote,
                   char escape, std::string null_string)
-      : AbstractScanPlanNode(std::move(children), std::move(output_schema), std::move(predicate), is_for_update,
-                             is_parallel, database_oid, namespace_oid),
+      : AbstractScanPlanNode(std::move(children), std::move(output_schema), predicate, is_for_update, is_parallel,
+                             database_oid, namespace_oid),
         file_name_(std::move(file_name)),
         delimiter_(delimiter),
         quote_(quote),

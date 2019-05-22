@@ -140,8 +140,7 @@ class OutputSchema {
      * @param column an intermediate column
      * @param expr the expression used to derive the intermediate column
      */
-    DerivedColumn(Column column, std::shared_ptr<parser::AbstractExpression> expr)
-        : column_(std::move(column)), expr_(std::move(expr)) {}
+    DerivedColumn(Column column, parser::AbstractExpression *expr) : column_(std::move(column)), expr_(expr) {}
 
     /**
      * Default constructor used for deserialization
@@ -201,7 +200,7 @@ class OutputSchema {
     /**
      * The expression used to derive the intermediate column
      */
-    std::shared_ptr<parser::AbstractExpression> expr_;
+    parser::AbstractExpression *expr_;
   };
 
   /**

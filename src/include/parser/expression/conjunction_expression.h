@@ -19,7 +19,7 @@ class ConjunctionExpression : public AbstractExpression {
    * @param cmp_type type of conjunction
    * @param children vector containing exactly two children, left then right
    */
-  ConjunctionExpression(const ExpressionType cmp_type, std::vector<std::shared_ptr<AbstractExpression>> &&children)
+  ConjunctionExpression(const ExpressionType cmp_type, std::vector<AbstractExpression *> children)
       : AbstractExpression(cmp_type, type::TypeId::BOOLEAN, std::move(children)) {}
 
   /**
@@ -27,7 +27,13 @@ class ConjunctionExpression : public AbstractExpression {
    */
   ConjunctionExpression() = default;
 
-  std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<ConjunctionExpression>(*this); }
+  AbstractExpression *Copy() const override {
+    std::vector<AbstractExpression *> children;
+    for (const auto *child : GetChildren()) {
+      children.emplace_back(child->Copy());
+    }
+    return new ConjunctionExpression(GetExpressionType(), children);
+  }
 
   /**
    * @return expression serialized to json

@@ -21,7 +21,7 @@ class ExecuteStatement : public SQLStatement {
    * @param name name of execute statement
    * @param parameters parameters for execute statement
    */
-  ExecuteStatement(std::string name, std::vector<std::shared_ptr<AbstractExpression>> parameters)
+  ExecuteStatement(std::string name, std::vector<AbstractExpression *> parameters)
       : SQLStatement(StatementType::EXECUTE), name_(std::move(name)), parameters_(std::move(parameters)) {}
 
   ~ExecuteStatement() override = default;
@@ -36,11 +36,11 @@ class ExecuteStatement : public SQLStatement {
   /**
    * @return execute statement parameters
    */
-  std::vector<std::shared_ptr<AbstractExpression>> GetParameters() { return parameters_; }
+  std::vector<AbstractExpression *> GetParameters() { return parameters_; }
 
  private:
   const std::string name_;
-  const std::vector<std::shared_ptr<AbstractExpression>> parameters_;
+  const std::vector<AbstractExpression *> parameters_;
 };
 
 }  // namespace parser

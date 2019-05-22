@@ -17,22 +17,34 @@ class CaseExpression : public AbstractExpression {
   /**
    * WHEN ... THEN ... clauses.
    */
-  struct WhenClause {
+  class WhenClause {
+   public:
+    /**
+     * @param condition condition to be met
+     * @param then action when condition is met
+     */
+    WhenClause(AbstractExpression *condition, AbstractExpression *then) : condition_(condition), then_(then) {}
+
+    /**
+     * Default constructor used for deserialization
+     */
+    WhenClause() = default;
+
     /**
      * The condition to be checked for this case expression.
      */
-    std::shared_ptr<AbstractExpression> condition;
+    AbstractExpression *condition_;
     /**
      * The value that this expression should have if the corresponding condition is true.
      */
-    std::shared_ptr<AbstractExpression> then;
+    AbstractExpression *then_;
 
     /**
      * Equality check
      * @param rhs the other WhenClause to compare to
      * @return if the two are equal
      */
-    bool operator==(const WhenClause &rhs) const { return *condition == *rhs.condition && *then == *rhs.then; }
+    bool operator==(const WhenClause &rhs) const { return *condition_ == *rhs.condition_ && *then_ == *rhs.then_; }
 
     /**
      * Inequality check
@@ -47,8 +59,8 @@ class CaseExpression : public AbstractExpression {
      */
     nlohmann::json ToJson() const {
       nlohmann::json j;
-      j["condition"] = condition;
-      j["then"] = then;
+      j["condition"] = condition_;
+      j["then"] = then_;
       return j;
     }
 
@@ -57,8 +69,8 @@ class CaseExpression : public AbstractExpression {
      * @param j json to deserialize
      */
     void FromJson(const nlohmann::json &j) {
-      condition = DeserializeExpression(j.at("condition"));
-      then = DeserializeExpression(j.at("then"));
+      condition_ = DeserializeExpression(j.at("condition"));
+      then_ = DeserializeExpression(j.at("then"));
     }
   };
 
@@ -68,11 +80,11 @@ class CaseExpression : public AbstractExpression {
    * @param when_clauses list of when clauses
    * @param default_expr default expression for this case
    */
-  CaseExpression(const type::TypeId return_value_type, std::vector<WhenClause> &&when_clauses,
-                 std::shared_ptr<AbstractExpression> default_expr)
+  CaseExpression(const type::TypeId return_value_type, std::vector<WhenClause> when_clauses,
+                 AbstractExpression *default_expr)
       : AbstractExpression(ExpressionType::OPERATOR_CASE_EXPR, return_value_type, {}),
         when_clauses_(std::move(when_clauses)),
-        default_expr_(std::move(default_expr)) {}
+        default_expr_(default_expr) {}
 
   /**
    * Default constructor for deserialization
@@ -82,8 +94,8 @@ class CaseExpression : public AbstractExpression {
   common::hash_t Hash() const override {
     common::hash_t hash = AbstractExpression::Hash();
     for (auto &clause : when_clauses_) {
-      hash = common::HashUtil::CombineHashes(hash, clause.condition->Hash());
-      hash = common::HashUtil::CombineHashes(hash, clause.then->Hash());
+      hash = common::HashUtil::CombineHashes(hash, clause.condition_->Hash());
+      hash = common::HashUtil::CombineHashes(hash, clause.then_->Hash());
     }
     if (default_expr_ != nullptr) {
       hash = common::HashUtil::CombineHashes(hash, default_expr_->Hash());
@@ -107,7 +119,13 @@ class CaseExpression : public AbstractExpression {
     return (*default_exp == *other_default_exp);
   }
 
-  std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<CaseExpression>(*this); }
+  AbstractExpression *Copy() const override {
+    std::vector<WhenClause> when_clauses;
+    for (const auto &clause : when_clauses_) {
+      when_clauses.emplace_back(clause.condition_->Copy(), clause.then_->Copy());
+    }
+    return new CaseExpression(GetReturnValueType(), when_clauses, default_expr_->Copy());
+  }
 
   /**
    * @return the number of when clauses
@@ -118,24 +136,24 @@ class CaseExpression : public AbstractExpression {
    * @param index index of when clause to get
    * @return condition at that index
    */
-  std::shared_ptr<AbstractExpression> GetWhenClauseCondition(size_t index) const {
+  AbstractExpression *GetWhenClauseCondition(size_t index) const {
     TERRIER_ASSERT(index < when_clauses_.size(), "Index must be in bounds.");
-    return when_clauses_[index].condition;
+    return when_clauses_[index].condition_;
   }
 
   /**
    * @param index index of when clause to get
    * @return result at that index
    */
-  std::shared_ptr<AbstractExpression> GetWhenClauseResult(size_t index) const {
+  AbstractExpression *GetWhenClauseResult(size_t index) const {
     TERRIER_ASSERT(index < when_clauses_.size(), "Index must be in bounds.");
-    return when_clauses_[index].then;
+    return when_clauses_[index].then_;
   }
 
   /**
    * @return default clause, if it exists
    */
-  std::shared_ptr<AbstractExpression> GetDefaultClause() const { return default_expr_; }
+  AbstractExpression *GetDefaultClause() const { return default_expr_; }
 
   /**
    * @return expression serialized to json
@@ -162,7 +180,7 @@ class CaseExpression : public AbstractExpression {
 
  private:
   std::vector<WhenClause> when_clauses_;
-  std::shared_ptr<AbstractExpression> default_expr_;
+  AbstractExpression *default_expr_;
 };
 
 DEFINE_JSON_DECLARATIONS(CaseExpression::WhenClause);

@@ -12,8 +12,8 @@ bool AbstractJoinPlanNode::operator==(const AbstractPlanNode &rhs) const {
   }
 
   // Check predicate
-  auto &pred = GetJoinPredicate();
-  auto &other_pred = other.GetJoinPredicate();
+  auto pred = GetJoinPredicate();
+  auto other_pred = other.GetJoinPredicate();
   if ((pred == nullptr && other_pred != nullptr) || (pred != nullptr && other_pred == nullptr)) {
     return false;
   }
