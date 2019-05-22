@@ -248,7 +248,12 @@ class SelectStatement : public SQLStatement {
         limit_(std::move(limit)),
         union_select_(nullptr) {}
 
-  ~SelectStatement() override = default;
+  ~SelectStatement() override {
+    for (auto* select : select_) {
+      delete select;
+    }
+    delete where_;
+  }
 
   /**
    * Default constructor for deserialization

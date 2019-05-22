@@ -39,14 +39,18 @@ class AbstractExpression {
   AbstractExpression() = default;
 
  public:
-  virtual ~AbstractExpression() = default;
+  virtual ~AbstractExpression() {
+    for (auto* child : children_) {
+      delete child;
+    }
+  }
 
   /**
    * Hashes the current abstract expression.
    */
   virtual common::hash_t Hash() const {
     common::hash_t hash = common::HashUtil::Hash(expression_type_);
-    for (auto const &child : children_) {
+    for (const auto* child : children_) {
       hash = common::HashUtil::CombineHashes(hash, child->Hash());
     }
     return hash;

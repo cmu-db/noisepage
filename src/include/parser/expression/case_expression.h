@@ -30,6 +30,11 @@ class CaseExpression : public AbstractExpression {
      */
     WhenClause() = default;
 
+    ~WhenClause() {
+      delete condition_;
+      delete then_;
+    }
+
     /**
      * The condition to be checked for this case expression.
      */
@@ -91,7 +96,9 @@ class CaseExpression : public AbstractExpression {
    */
   CaseExpression() = default;
 
-  ~CaseExpression() override = default;
+  ~CaseExpression() override {
+    delete default_expr_;
+  }
 
   common::hash_t Hash() const override {
     common::hash_t hash = AbstractExpression::Hash();
