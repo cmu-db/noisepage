@@ -326,25 +326,85 @@ class LogicalAggregateAndGroupBy : public OperatorNode<LogicalAggregateAndGroupB
   std::vector<AnnotatedExpression> having;
 };
 
-//===--------------------------------------------------------------------===//
-// Insert
-//===--------------------------------------------------------------------===//
+/**
+ * Logical operation for an Insert
+ */
 class LogicalInsert : public OperatorNode<LogicalInsert> {
  public:
-  static Operator make(std::shared_ptr<catalog::TableCatalogEntry> target_table,
-                       const std::vector<std::string> *columns,
-                       const std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> *values);
+  /**
+   * @param database_oid OID of the database
+   * @param namespace_oid OID of the namespace
+   * @param table_oid OID of the table
+   * @param columns list of columns to insert into
+   * @param values list of expressions that provide the values to insert into columns
+   * @return
+   */
+  static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                       catalog::table_oid_t table_oid,
+                       const std::vector<catalog::col_oid_t > &&columns,
+                       const std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> &&values);
 
-  std::shared_ptr<catalog::TableCatalogEntry> target_table;
-  const std::vector<std::string> *columns;
-  const std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> *values;
+  bool operator==(const BaseOperatorNode &node) override;
+  common::hash_t Hash() const override;
+
+ private:
+
+  /**
+   * OID of the database
+   */
+  catalog::db_oid_t database_oid_;
+
+  /**
+   * OID of the namespace
+   */
+  catalog::namespace_oid_t namespace_oid_;
+
+  /**
+   * OID of the table
+   */
+  catalog::table_oid_t table_oid_;
+
+  /**
+   * OIDs of the columns that this operator is inserting into for the target table
+   */
+  const std::vector<catalog::col_oid_t> columns_;
+
+  /**
+   * The expression objects to insert.
+   * The offset of an entry in this list corresponds to the offset in the columns_ list.
+   */
+  const std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> values_;
 };
 
+/**
+ * Logical operator for an Insert that uses the output from a Select
+ */
 class LogicalInsertSelect : public OperatorNode<LogicalInsertSelect> {
  public:
-  static Operator make(std::shared_ptr<catalog::TableCatalogEntry> target_table);
+  /**
+   * @param database_oid OID of the database
+   * @param namespace_oid OID of the namespace
+   * @param table_oid OID of the table
+   * @return
+   */
+  static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                       catalog::table_oid_t table_oid);
 
-  std::shared_ptr<catalog::TableCatalogEntry> target_table;
+ private:
+  /**
+   * OID of the database
+   */
+  catalog::db_oid_t database_oid_;
+
+  /**
+   * OID of the namespace
+   */
+  catalog::namespace_oid_t namespace_oid_;
+
+  /**
+   * OID of the table
+   */
+  catalog::table_oid_t table_oid_;
 };
 
 //===--------------------------------------------------------------------===//

@@ -160,8 +160,7 @@ Operator LogicalProjection::make(std::vector<std::shared_ptr<parser::AbstractExp
 
 bool LogicalProjection::operator==(const BaseOperatorNode &node) {
   if (node.GetType() != OpType::LOGICALPROJECTION) return false;
-  const LogicalProjection &r =
-      *static_cast<const LogicalProjection *>(&node);
+  const LogicalProjection &r = *static_cast<const LogicalProjection *>(&node);
   return (expressions_ == r.expressions_);
 }
 
@@ -171,6 +170,72 @@ common::hash_t LogicalProjection::Hash() const {
   return hash;
 }
 
+//===--------------------------------------------------------------------===//
+// LogicalInsert
+//===--------------------------------------------------------------------===//
+
+Operator LogicalInsert::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                             catalog::table_oid_t table_oid, const std::vector<catalog::col_oid_t > &&columns,
+                             const std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> &&values) {
+  LogicalInsert *op = new LogicalInsert;
+  op->database_oid_ = database_oid;
+  op->namespace_oid_ = namespace_oid;
+  op->table_oid_ = table_oid;
+  op->columns_ = std::move(columns);
+  op->values_ = std::move(values);
+  return Operator(op);
+}
+
+common::hash_t LogicalInsert::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&table_oid_));
+  hash = common::HashUtil::CombineHashInRange(hash, columns_.begin(), columns_.end());
+  hash = common::HashUtil::CombineHashInRange(hash, values_.begin(), values_.end());
+  return hash;
+}
+
+bool LogicalInsert::operator==(const BaseOperatorNode &node) {
+  if (node.GetType() != OpType::LOGICALINSERT) return false;
+  const LogicalInsert &r = *dynamic_cast<const LogicalInsert *>(&node);
+  if (database_oid_ != r.database_oid_) return false;
+  if (namespace_oid_ != r.namespace_oid_) return false;
+  if (table_oid_ != r.table_oid_) return false;
+  if (columns_ != r.columns_) return false;
+  if (values_ != r.values_) return false;
+  return (true);
+}
+
+//===--------------------------------------------------------------------===//
+// LogicalInsertSelect
+//===--------------------------------------------------------------------===//
+
+Operator LogicalInsertSelect::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                             catalog::table_oid_t table_oid) {
+  LogicalInsert *op = new LogicalInsert;
+  op->database_oid_ = database_oid;
+  op->namespace_oid_ = namespace_oid;
+  op->table_oid_ = table_oid;
+  return Operator(op);
+}
+
+common::hash_t LogicalInsertSelect::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&table_oid_));
+  return hash;
+}
+
+bool LogicalInsertSelect::operator==(const BaseOperatorNode &node) {
+  if (node.GetType() != OpType::LOGICALINSERTSELECT) return false;
+  const LogicalInsertSelect &r = *dynamic_cast<const LogicalInsertSelect *>(&node);
+  if (database_oid_ != r.database_oid_) return false;
+  if (namespace_oid_ != r.namespace_oid_) return false;
+  if (table_oid_ != r.table_oid_) return false;
+  return (true);
+}
 
 //===--------------------------------------------------------------------===//
 // TableFreeScan
