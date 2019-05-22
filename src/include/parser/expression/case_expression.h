@@ -183,7 +183,7 @@ class CaseExpression : public AbstractExpression {
   void FromJson(const nlohmann::json &j) override {
     AbstractExpression::FromJson(j);
     // Deserialize clauses
-    auto clauses_json = j.at("children").get<std::vector<nlohmann::json>>();
+    auto clauses_json = j.at("when_clauses").get<std::vector<nlohmann::json>>();
     for (const auto &clause_json : clauses_json) {
       auto* clause = new WhenClause();
       clause->FromJson(clause_json);
