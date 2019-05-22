@@ -24,7 +24,11 @@ class ExecuteStatement : public SQLStatement {
   ExecuteStatement(std::string name, std::vector<AbstractExpression *> parameters)
       : SQLStatement(StatementType::EXECUTE), name_(std::move(name)), parameters_(std::move(parameters)) {}
 
-  ~ExecuteStatement() override = default;
+  ~ExecuteStatement() override {
+    for (auto* parameter : parameters_) {
+      delete parameter;
+    }
+  }
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 

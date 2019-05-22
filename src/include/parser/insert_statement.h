@@ -50,7 +50,15 @@ class InsertStatement : public SQLStatement {
    */
   explicit InsertStatement(InsertType type) : SQLStatement(StatementType::INSERT), type_(type) {}
 
-  ~InsertStatement() override = default;
+  ~InsertStatement() override {
+    if (insert_values_ != nullptr) {
+      for (auto tuple : *insert_values_) {
+        for (auto *value : tuple) {
+          delete value;
+        }
+      }
+    }
+  }
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
