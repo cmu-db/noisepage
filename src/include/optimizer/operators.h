@@ -163,10 +163,10 @@ class LogicalQueryDerivedGet : public OperatorNode<LogicalQueryDerivedGet> {
 class LogicalFilter : public OperatorNode<LogicalFilter> {
  public:
   /**
-   * @param filter The list of predicates used to perform the scan
+   * @param predicates The list of predicates used to perform the scan
    * @return a LogicalFilter operator
    */
-  static Operator make(std::vector<AnnotatedExpression> &filter);
+  static Operator make(std::vector<AnnotatedExpression> &&predicates);
 
   bool operator==(const BaseOperatorNode &r) override;
 
@@ -187,10 +187,14 @@ class LogicalFilter : public OperatorNode<LogicalFilter> {
 class LogicalProjection : public OperatorNode<LogicalProjection> {
  public:
   /**
-   * @param elements list of AbstractExpressions in the projection list.
+   * @param expressions list of AbstractExpressions in the projection list.
    * @return a LogicalProjection operator
    */
-  static Operator make(std::vector<std::shared_ptr<parser::AbstractExpression>> &elements);
+  static Operator make(std::vector<std::shared_ptr<parser::AbstractExpression>> &&expressions);
+
+  bool operator==(const BaseOperatorNode &r) override;
+
+  common::hash_t Hash() const override;
 
  private:
   /**

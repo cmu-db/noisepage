@@ -120,6 +120,59 @@ common::hash_t LogicalQueryDerivedGet::Hash() const {
 }
 
 //===--------------------------------------------------------------------===//
+// LogicalFilter
+//===--------------------------------------------------------------------===//
+
+Operator LogicalFilter::make(std::vector<AnnotatedExpression> &&predicates) {
+  LogicalFilter *op = new LogicalFilter;
+  op->predicates_ = std::move(predicates);
+  return Operator(op);
+}
+
+bool LogicalFilter::operator==(const BaseOperatorNode &node) {
+  if (node.GetType() != OpType::LOGICALFILTER) return false;
+  const LogicalFilter &r =
+      *static_cast<const LogicalFilter *>(&node);
+
+  // This is technically incorrect because the predicates
+  // are supposed to be unsorted and this equals check is
+  // comparing values at each offset.
+  return (predicates_ == r.predicates_);
+}
+
+common::hash_t LogicalFilter::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  // Again, I think that this is wrong because the value of the hash is based
+  // on the location order of the expressions.
+  hash = common::HashUtil::CombineHashInRange(hash, predicates_.begin(), predicates_.end());
+  return hash;
+}
+
+//===--------------------------------------------------------------------===//
+// LogicalProjection
+//===--------------------------------------------------------------------===//
+
+Operator LogicalProjection::make(std::vector<std::shared_ptr<parser::AbstractExpression>> &&expressions) {
+  LogicalProjection *op = new LogicalProjection;
+  op->expressions_ = std::move(expressions);
+  return Operator(op);
+}
+
+bool LogicalProjection::operator==(const BaseOperatorNode &node) {
+  if (node.GetType() != OpType::LOGICALPROJECTION) return false;
+  const LogicalProjection &r =
+      *static_cast<const LogicalProjection *>(&node);
+  return (expressions_ == r.expressions_);
+}
+
+common::hash_t LogicalProjection::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashInRange(hash, expressions_.begin(), expressions_.end());
+  return hash;
+}
+
+
+//===--------------------------------------------------------------------===//
 // TableFreeScan
 //===--------------------------------------------------------------------===//
 Operator TableFreeScan::make() {
