@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <tuple>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 #include "catalog/schema.h"
@@ -13,85 +14,6 @@
 #include "type/transient_value_peeker.h"
 
 namespace terrier::planner {
-
-/**
- * Parameter Info
- */
-struct ParameterInfo {
-  /**
-   * Constructor
-   */
-  ParameterInfo(uint32_t tuple_index, uint32_t tuple_column_index, uint32_t value_index)
-      : tuple_index_(tuple_index), tuple_column_index_(tuple_column_index), value_index_(value_index) {}
-
-  /**
-   * Default constructor for deserialization
-   */
-  ParameterInfo() = default;
-
-  /**
-   * Index of tuple
-   */
-  uint32_t tuple_index_;
-
-  /**
-   * Column index
-   */
-  uint32_t tuple_column_index_;
-
-  /**
-   * Index of value
-   */
-  uint32_t value_index_;
-
-  /**
-   * @return the hashed value of this parameter info
-   */
-  common::hash_t Hash() const {
-    common::hash_t hash = common::HashUtil::Hash(tuple_index_);
-    hash = common::HashUtil::CombineHashes(hash, tuple_column_index_);
-    hash = common::HashUtil::CombineHashes(hash, value_index_);
-    return hash;
-  }
-
-  /**
-   * Logical equality check.
-   * @param rhs other
-   * @return true if the two parameter info are logically equal
-   */
-  bool operator==(const ParameterInfo &rhs) const {
-    return tuple_index_ == rhs.tuple_index_ && tuple_column_index_ == rhs.tuple_column_index_ &&
-           value_index_ == rhs.value_index_;
-  }
-
-  /**
-   * Logical inequality check.
-   * @param rhs other
-   * @return true if the two parameter info are not logically equal
-   */
-  bool operator!=(const ParameterInfo &rhs) const { return !(*this == rhs); }
-
-  /**
-   * @return serialized ParameterInfo
-   */
-  nlohmann::json ToJson() const {
-    nlohmann::json j;
-    j["tuple_index"] = tuple_index_;
-    j["tuple_column_index"] = tuple_column_index_;
-    j["value_index"] = value_index_;
-    return j;
-  }
-
-  /**
-   * Deserializes a ParameterInfo
-   * @param j serialized json of ParameterInfo
-   */
-  void FromJson(const nlohmann::json &j) {
-    tuple_index_ = j.at("tuple_index").get<uint32_t>();
-    tuple_column_index_ = j.at("tuple_column_index").get<uint32_t>();
-    value_index_ = j.at("value_index").get<uint32_t>();
-  }
-};
 
 /**
  * Plan node for insert
@@ -141,28 +63,18 @@ class InsertPlanNode : public AbstractPlanNode {
      * @param values values to insert
      * @return builder object
      */
-    Builder &SetValues(std::vector<type::TransientValue> &&values) {
-      values_ = std::move(values);
+    Builder &AddValues(std::vector<type::TransientValue> &&values) {
+      values_.emplace_back(std::move(values));
       return *this;
     }
 
     /**
-     * @param tuple_index Index of tuple
-     * @param tuple_column_index column index
-     * @param value_index Index of value
+     * @param value_idx index of value in values vector
+     * @param col_oid oid of column where value at value_idx should be inserted
      * @return builder object
      */
-    Builder &AddParameterInfo(uint32_t tuple_index, uint32_t tuple_column_index, uint32_t value_index) {
-      parameter_info_.emplace_back(tuple_index, tuple_column_index, value_index);
-      return *this;
-    }
-
-    /**
-     * @param bulk_insert_count number of times to insert
-     * @return builder object
-     */
-    Builder &SetBulkInsertCount(uint32_t bulk_insert_count) {
-      bulk_insert_count_ = bulk_insert_count;
+    Builder &AddParameterInfo(uint32_t value_idx, catalog::col_oid_t col_oid) {
+      parameter_info_.emplace(value_idx, col_oid);
       return *this;
     }
 
@@ -171,9 +83,11 @@ class InsertPlanNode : public AbstractPlanNode {
      * @return plan node
      */
     std::shared_ptr<InsertPlanNode> Build() {
-      return std::shared_ptr<InsertPlanNode>(
-          new InsertPlanNode(std::move(children_), std::move(output_schema_), database_oid_, namespace_oid_, table_oid_,
-                             std::move(values_), std::move(parameter_info_), bulk_insert_count_));
+      TERRIER_ASSERT(!values_.empty(), "Can't have an empty insert plan");
+      TERRIER_ASSERT(values_[0].size() == parameter_info_.size(), "Must have parameter info for each value");
+      return std::shared_ptr<InsertPlanNode>(new InsertPlanNode(std::move(children_), std::move(output_schema_),
+                                                                database_oid_, namespace_oid_, table_oid_,
+                                                                std::move(values_), std::move(parameter_info_)));
     }
 
    protected:
@@ -193,20 +107,17 @@ class InsertPlanNode : public AbstractPlanNode {
     catalog::table_oid_t table_oid_;
 
     /**
-     * values to insert
+     * vector of values to insert. Multiple vector of values corresponds to a bulk insert. Values for each tuple are
+     * ordered the same across tuples. Parameter info provides column mapping of values
      */
-    std::vector<type::TransientValue> values_;
-
-    // TODO(Gus,Wen) the storage layer is different now, need to whether reconsider this mapping approach is still valid
-    /**
-     * parameter information
-     */
-    std::vector<ParameterInfo> parameter_info_;
+    std::vector<std::vector<type::TransientValue>> values_;
 
     /**
-     * number of times to insert
+     * parameter information. Provides which column a value should be inserted into. For example, for a tuple t at
+     * values_[t], the value at index i (values_[t][i]) should be inserted into column parameter_info_[i]
+     * @warning This relies on the assumption that values are ordered the same for every tuple in the bulk insert
      */
-    uint32_t bulk_insert_count_;
+    std::unordered_map<uint32_t /* value index */, catalog::col_oid_t> parameter_info_;
   };
 
  private:
@@ -218,19 +129,17 @@ class InsertPlanNode : public AbstractPlanNode {
    * @param table_oid the OID of the target SQL table
    * @param values values to insert
    * @param parameter_info parameters information
-   * @param bulk_insert_count the number of times to insert
    */
   InsertPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
                  catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
-                 std::vector<type::TransientValue> &&values, std::vector<ParameterInfo> &&parameter_info,
-                 uint32_t bulk_insert_count)
+                 std::vector<std::vector<type::TransientValue>> &&values,
+                 std::unordered_map<uint32_t, catalog::col_oid_t> &&parameter_info)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         database_oid_(database_oid),
         namespace_oid_(namespace_oid),
         table_oid_(table_oid),
         values_(std::move(values)),
-        parameter_info_(std::move(parameter_info)),
-        bulk_insert_count_(bulk_insert_count) {}
+        parameter_info_(std::move(parameter_info)) {}
 
  public:
   DISALLOW_COPY_AND_MOVE(InsertPlanNode)
@@ -260,19 +169,26 @@ class InsertPlanNode : public AbstractPlanNode {
   catalog::table_oid_t GetTableOid() const { return table_oid_; }
 
   /**
+   * @param idx index of tuple in values vecor
    * @return values to be inserted
    */
-  const std::vector<type::TransientValue> &GetValues() const { return values_; }
+  const std::vector<type::TransientValue> &GetValues(uint32_t idx) const { return values_[idx]; }
 
   /**
    * @return the information of insert parameters
    */
-  const std::vector<ParameterInfo> &GetParameterInfo() const { return parameter_info_; }
+  const std::unordered_map<uint32_t, catalog::col_oid_t> &GetParameterInfo() const { return parameter_info_; }
+
+  /**
+   * @param value_idx index of value being inserted
+   * @return OID of column where value should be inserted
+   */
+  const catalog::col_oid_t GetColumnOidForValue(uint32_t value_idx) const { return parameter_info_.at(value_idx); }
 
   /**
    * @return number of times to insert
    */
-  uint32_t GetBulkInsertCount() const { return bulk_insert_count_; }
+  uint32_t GetBulkInsertCount() const { return values_.size(); }
 
   /**
    * @return the hashed value of this plan node
@@ -301,22 +217,19 @@ class InsertPlanNode : public AbstractPlanNode {
   catalog::table_oid_t table_oid_;
 
   /**
-   * values to insert
+   * vector of values to insert. Multiple vector of values corresponds to a bulk insert. Values for each tuple are
+   * ordered the same across tuples. Parameter info provides column mapping of values
    */
-  std::vector<type::TransientValue> values_;
+  std::vector<std::vector<type::TransientValue>> values_;
 
   /**
-   * parameter information
+   * parameter information. Provides which column a value should be inserted into. For example, for a tuple t at
+   * values_[t], the value at index i (values_[t][i]) should be inserted into column parameter_info_[i]
+   * @warning This relies on the assumption that values are ordered the same for every tuple in the bulk insert
    */
-  std::vector<ParameterInfo> parameter_info_;
-
-  /**
-   * name of time to insert
-   */
-  uint32_t bulk_insert_count_;
+  std::unordered_map<uint32_t /* value index */, catalog::col_oid_t> parameter_info_;
 };
 
 DEFINE_JSON_DECLARATIONS(InsertPlanNode);
-DEFINE_JSON_DECLARATIONS(ParameterInfo);
 
 }  // namespace terrier::planner
