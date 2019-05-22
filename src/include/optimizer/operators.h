@@ -255,9 +255,9 @@ class LogicalSingleJoin : public OperatorNode<LogicalSingleJoin> {
   std::vector<AnnotatedExpression> join_predicates_;
 };
 
-//===--------------------------------------------------------------------===//
-// InnerJoin
-//===--------------------------------------------------------------------===//
+/**
+ * Logical operator for inner join
+ */
 class LogicalInnerJoin : public OperatorNode<LogicalInnerJoin> {
  public:
   /**
@@ -282,24 +282,32 @@ class LogicalInnerJoin : public OperatorNode<LogicalInnerJoin> {
   std::vector<AnnotatedExpression> join_predicates_;
 };
 
-//===--------------------------------------------------------------------===//
-// LeftJoin
-//===--------------------------------------------------------------------===//
+/**
+ * Logical operator for left join
+ */
 class LogicalLeftJoin : public OperatorNode<LogicalLeftJoin> {
  public:
-  static Operator make(expression::AbstractExpression *condition = nullptr);
+  static Operator make(parser::AbstractExpression *condition = nullptr);
 
-  std::shared_ptr<expression::AbstractExpression> join_predicate;
+ private:
+  /**
+   * Join predicates
+   */
+  std::shared_ptr<parser::AbstractExpression> join_predicate_;
 };
 
-//===--------------------------------------------------------------------===//
-// RightJoin
-//===--------------------------------------------------------------------===//
+/**
+ * Logical operator for right join
+ */
 class LogicalRightJoin : public OperatorNode<LogicalRightJoin> {
  public:
-  static Operator make(expression::AbstractExpression *condition = nullptr);
+  static Operator make(parser::AbstractExpression *condition = nullptr);
 
-  std::shared_ptr<expression::AbstractExpression> join_predicate;
+ private:
+  /**
+   * Join predicates
+   */
+  std::shared_ptr<parser::AbstractExpression> join_predicate_;
 };
 
 //===--------------------------------------------------------------------===//

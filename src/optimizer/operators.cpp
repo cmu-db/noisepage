@@ -245,6 +245,27 @@ bool LogicalInnerJoin::operator==(const BaseOperatorNode &r) {
 }
 
 //===--------------------------------------------------------------------===//
+// LeftJoin
+//===--------------------------------------------------------------------===//
+Operator LogicalLeftJoin::make(parser::AbstractExpression *condition) {
+  LogicalLeftJoin *join = new LogicalLeftJoin;
+  join->join_predicate_ =
+      std::shared_ptr<parser::AbstractExpression>(condition);
+  return Operator(join);
+}
+
+
+//===--------------------------------------------------------------------===//
+// RightJoin
+//===--------------------------------------------------------------------===//
+Operator LogicalRightJoin::make(parser::AbstractExpression *condition) {
+  LogicalRightJoin *join = new LogicalRightJoin;
+  join->join_predicate_ =
+      std::shared_ptr<parser::AbstractExpression>(condition);
+  return Operator(join);
+}
+
+//===--------------------------------------------------------------------===//
 // TableFreeScan
 //===--------------------------------------------------------------------===//
 Operator TableFreeScan::make() {
