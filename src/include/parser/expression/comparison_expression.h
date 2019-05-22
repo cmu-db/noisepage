@@ -27,6 +27,8 @@ class ComparisonExpression : public AbstractExpression {
    */
   ComparisonExpression() = default;
 
+  ~ComparisonExpression() override = default;
+
   AbstractExpression *Copy() const override {
     std::vector<AbstractExpression *> children;
     for (const auto *child : GetChildren()) {

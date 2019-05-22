@@ -23,6 +23,8 @@ class ParameterValueExpression : public AbstractExpression {
    */
   ParameterValueExpression() = default;
 
+  ~ParameterValueExpression() override = default;
+
   AbstractExpression *Copy() const override { return new ParameterValueExpression(value_idx_); }
 
   /**

@@ -27,6 +27,8 @@ class ConjunctionExpression : public AbstractExpression {
    */
   ConjunctionExpression() = default;
 
+  ~ConjunctionExpression() override = default;
+
   AbstractExpression *Copy() const override {
     std::vector<AbstractExpression *> children;
     for (const auto *child : GetChildren()) {

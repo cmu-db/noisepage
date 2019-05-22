@@ -17,6 +17,8 @@ class StarExpression : public AbstractExpression {
    */
   StarExpression() : AbstractExpression(ExpressionType::STAR, type::TypeId::INVALID, {}) {}
 
+  ~StarExpression() override = default;
+
   AbstractExpression *Copy() const override {
     // TODO(Tianyu): This really should be a singleton object
     return new StarExpression();

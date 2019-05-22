@@ -28,6 +28,8 @@ class AggregateExpression : public AbstractExpression {
    */
   AggregateExpression() = default;
 
+  ~AggregateExpression() override = default;
+
   AbstractExpression *Copy() const override {
     std::vector<AbstractExpression *> children;
     for (const auto *child : GetChildren()) {

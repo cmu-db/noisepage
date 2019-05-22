@@ -24,6 +24,8 @@ class TypeCastExpression : public AbstractExpression {
    */
   TypeCastExpression() = default;
 
+  ~TypeCastExpression() override = default;
+
   AbstractExpression *Copy() const override {
     std::vector<AbstractExpression *> children;
     for (const auto *child : GetChildren()) {

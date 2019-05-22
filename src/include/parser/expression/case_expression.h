@@ -91,6 +91,8 @@ class CaseExpression : public AbstractExpression {
    */
   CaseExpression() = default;
 
+  ~CaseExpression() override = default;
+
   common::hash_t Hash() const override {
     common::hash_t hash = AbstractExpression::Hash();
     for (auto &clause : when_clauses_) {

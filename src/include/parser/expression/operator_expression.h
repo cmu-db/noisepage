@@ -29,6 +29,8 @@ class OperatorExpression : public AbstractExpression {
    */
   OperatorExpression() = default;
 
+  ~OperatorExpression() override = default;
+
   AbstractExpression *Copy() const override {
     std::vector<AbstractExpression *> children;
     for (const auto *child : GetChildren()) {

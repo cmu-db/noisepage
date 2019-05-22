@@ -30,6 +30,8 @@ class FunctionExpression : public AbstractExpression {
    */
   FunctionExpression() = default;
 
+  ~FunctionExpression() override = default;
+
   AbstractExpression *Copy() const override {
     std::vector<AbstractExpression *> children;
     for (const auto *child : GetChildren()) {

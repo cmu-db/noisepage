@@ -30,6 +30,8 @@ class TupleValueExpression : public AbstractExpression {
    */
   TupleValueExpression() = default;
 
+  ~TupleValueExpression() override = default;
+
   /**
    * @return column name
    */

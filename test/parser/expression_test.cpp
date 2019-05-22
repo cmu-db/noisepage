@@ -174,9 +174,12 @@ TEST(ExpressionTests, AggregateExpressionJsonTest) {
   EXPECT_FALSE(json.is_null());
 
   // Deserialize expression
-  auto deserialized_expression = DeserializeExpression(json);
+  auto* deserialized_expression = DeserializeExpression(json);
   EXPECT_EQ(*original_expr, *deserialized_expression);
   EXPECT_EQ(original_expr->IsDistinct(), static_cast<AggregateExpression *>(deserialized_expression)->IsDistinct());
+
+  delete original_expr;
+  delete deserialized_expression;
 }
 
 // NOLINTNEXTLINE
@@ -186,19 +189,22 @@ TEST(ExpressionTests, CaseExpressionTest) {
   std::vector<CaseExpression::WhenClause> when_clauses;
   CaseExpression::WhenClause when{const_expr, const_expr};
   when_clauses.push_back(when);
-  auto *case_expr = new CaseExpression(type::TypeId::BOOLEAN, std::move(when_clauses), const_expr);
+  auto *original_expr = new CaseExpression(type::TypeId::BOOLEAN, std::move(when_clauses), const_expr);
 
   // Serialize expression
-  auto json = case_expr->ToJson();
+  auto json = original_expr->ToJson();
   EXPECT_FALSE(json.is_null());
 
   // Deserialize expression
   auto deserialized_expression = DeserializeExpression(json);
-  EXPECT_EQ(*case_expr, *deserialized_expression);
+  EXPECT_EQ(*original_expr, *deserialized_expression);
   auto *deserialized_case_expr = static_cast<CaseExpression *>(deserialized_expression);
-  EXPECT_EQ(case_expr->GetReturnValueType(), deserialized_case_expr->GetReturnValueType());
+  EXPECT_EQ(original_expr->GetReturnValueType(), deserialized_case_expr->GetReturnValueType());
   EXPECT_TRUE(deserialized_case_expr->GetDefaultClause() != nullptr);
   EXPECT_EQ(const_expr->GetExpressionType(), deserialized_case_expr->GetDefaultClause()->GetExpressionType());
+
+  delete original_expr;
+  delete deserialized_expression;
 }
 
 // NOLINTNEXTLINE
@@ -217,6 +223,9 @@ TEST(ExpressionTests, FunctionExpressionJsonTest) {
   EXPECT_EQ(*original_expr, *deserialized_expression);
   EXPECT_EQ(static_cast<FunctionExpression *>(deserialized_expression)->GetFuncName(), "Funhouse");
   EXPECT_EQ(static_cast<FunctionExpression *>(deserialized_expression)->GetReturnValueType(), fn_ret_type);
+
+  delete original_expr;
+  delete deserialized_expression;
 }
 
 // NOLINTNEXTLINE
@@ -234,6 +243,9 @@ TEST(ExpressionTests, ConstantValueExpressionJsonTest) {
   auto deserialized_expression = DeserializeExpression(json);
   EXPECT_EQ(*original_expr, *deserialized_expression);
   EXPECT_EQ(static_cast<ConstantValueExpression *>(deserialized_expression)->GetValue(), value);
+
+  delete original_expr;
+  delete deserialized_expression;
 }
 
 // NOLINTNEXTLINE
@@ -259,6 +271,9 @@ TEST(ExpressionTests, OperatorExpressionJsonTest) {
     EXPECT_EQ(*original_expr, *deserialized_expression);
     EXPECT_EQ(static_cast<OperatorExpression *>(deserialized_expression)->GetExpressionType(), op);
     EXPECT_EQ(static_cast<OperatorExpression *>(deserialized_expression)->GetReturnValueType(), op_ret_type);
+
+    delete original_expr;
+    delete deserialized_expression;
   }
 }
 
@@ -278,6 +293,9 @@ TEST(ExpressionTests, TypeCastExpressionJsonTest) {
   auto deserialized_expression = DeserializeExpression(json);
   EXPECT_EQ(*original_expr, *deserialized_expression);
   EXPECT_EQ(original_expr->GetType(), static_cast<TypeCastExpression *>(deserialized_expression)->GetType());
+
+  delete original_expr;
+  delete deserialized_expression;
 }
 
 // NOLINTNEXTLINE
@@ -294,6 +312,9 @@ TEST(ExpressionTests, ParameterValueExpressionJsonTest) {
   EXPECT_EQ(*original_expr, *deserialized_expression);
   EXPECT_EQ(original_expr->GetValueIdx(),
             static_cast<ParameterValueExpression *>(deserialized_expression)->GetValueIdx());
+
+  delete original_expr;
+  delete deserialized_expression;
 }
 
 // NOLINTNEXTLINE
@@ -311,6 +332,9 @@ TEST(ExpressionTests, TupleValueExpressionJsonTest) {
   auto *expr = static_cast<TupleValueExpression *>(deserialized_expression);
   EXPECT_EQ(original_expr->GetColumnName(), expr->GetColumnName());
   EXPECT_EQ(original_expr->GetTableName(), expr->GetTableName());
+
+  delete original_expr;
+  delete deserialized_expression;
 }
 
 // NOLINTNEXTLINE
@@ -329,6 +353,9 @@ TEST(ExpressionTests, ComparisonExpressionJsonTest) {
   // Deserialize expression
   auto deserialized_expression = DeserializeExpression(json);
   EXPECT_EQ(*original_expr, *deserialized_expression);
+
+  delete original_expr;
+  delete deserialized_expression;
 }
 
 // NOLINTNEXTLINE
@@ -346,6 +373,9 @@ TEST(ExpressionTests, ConjunctionExpressionJsonTest) {
   // Deserialize expression
   auto deserialized_expression = DeserializeExpression(json);
   EXPECT_EQ(*original_expr, *deserialized_expression);
+
+  delete original_expr;
+  delete deserialized_expression;
 }
 
 // NOLINTNEXTLINE
@@ -376,6 +406,9 @@ TEST(ExpressionTests, SimpleSubqueryExpressionJsonTest) {
   EXPECT_EQ(1, deserialized_subquery_expr->GetSubselect()->GetSelectColumns().size());
   EXPECT_EQ(original_expr->GetSubselect()->GetSelectColumns()[0]->GetExpressionType(),
             deserialized_subquery_expr->GetSubselect()->GetSelectColumns()[0]->GetExpressionType());
+
+  delete original_expr;
+  delete deserialized_expression;
 }
 
 // NOLINTNEXTLINE
@@ -429,6 +462,9 @@ TEST(ExpressionTests, ComplexSubqueryExpressionJsonTest) {
             subselect->GetSelectTable()->GetJoin()->GetRightTable()->GetTableName());
   EXPECT_EQ(*original_expr->GetSubselect()->GetSelectTable()->GetJoin()->GetJoinCondition(),
             *subselect->GetSelectTable()->GetJoin()->GetJoinCondition());
+
+  delete original_expr;
+  delete deserialized_expression;
 }
 
 }  // namespace terrier::parser::expression
