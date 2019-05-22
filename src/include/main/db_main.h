@@ -7,7 +7,9 @@
 #include "common/action_context.h"
 #include "common/stat_registry.h"
 #include "network/terrier_server.h"
+#include "settings/settings_manager.h"
 #include "settings/settings_param.h"
+#include "storage/garbage_collector_thread.h"
 #include "transaction/transaction_manager.h"
 
 namespace terrier {
@@ -32,6 +34,14 @@ class DBMain {
    */
   explicit DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_map)
       : param_map_(std::move(param_map)) {}
+
+  ~DBMain() {
+    ForceShutdown();
+    delete gc_thread_;
+    delete settings_manager_;
+    delete catalog_;
+    delete txn_manager_;
+  }
 
   /**
    * This function boots the backend components.
@@ -59,7 +69,6 @@ class DBMain {
    */
   void ForceShutdown();
 
-  // TODO(Weichen): Use unique ptr is enough.
   /**
    * Basic empty callbacks used by settings manager
    * @param old_value the old value of corresponding setting
@@ -85,13 +94,8 @@ class DBMain {
   transaction::TransactionManager *txn_manager_;
   catalog::Catalog *catalog_;
   settings::SettingsManager *settings_manager_;
+  storage::GarbageCollectorThread *gc_thread_;
   network::TerrierServer server_;
-
-  /**
-   * Initializes all loggers.
-   * If you have a new logger to initialize, put it here.
-   */
-  void InitLoggers();
 
   /**
    * Cleans up and exit.

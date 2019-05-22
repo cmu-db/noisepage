@@ -2,6 +2,7 @@
 #include <memory>
 #include "loggers/loggers_util.h"
 #include "settings/settings_manager.h"
+#include "storage/garbage_collector_thread.h"
 #include "transaction/transaction_manager.h"
 #include "transaction/transaction_util.h"
 
@@ -18,6 +19,8 @@ void DBMain::Init() {
       type::TransientValuePeeker::PeekInteger(param_map_.find(settings::Param::buffer_pool_size)->second.value_),
       10000);
   txn_manager_ = new transaction::TransactionManager(buffer_pool, true, nullptr);
+  // TODO(Matt): gc interval should come from the settings manager
+  gc_thread_ = new storage::GarbageCollectorThread(txn_manager_, std::chrono::milliseconds{10});
   transaction::TransactionContext *txn = txn_manager_->BeginTransaction();
   // create the (system) catalogs
   catalog_ = new catalog::Catalog(txn_manager_, txn);
