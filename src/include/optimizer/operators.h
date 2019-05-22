@@ -8,11 +8,17 @@
 #include "catalog/catalog_defs.h"
 #include "common/hash_util.h"
 #include "optimizer/operator_node.h"
+#include "parser/expression/abstract_expression.h"
 #include "parser/expression_defs.h"
 #include "parser/parser_defs.h"
+#include "planner/plannodes/plan_node_defs.h"
 #include "type/transient_value.h"
 
 namespace terrier {
+
+namespace catalog {
+class TableCatalogEntry;
+}  // namespace catalog
 
 namespace parser {
 class AbstractExpression;
@@ -130,7 +136,7 @@ class LogicalQueryDerivedGet : public OperatorNode<LogicalQueryDerivedGet> {
   /**
    * @param table_alias alias of the table
    * @param alias_to_expr_map map from table aliases to expressions of those tables
-   * @return a QueryDerivedGet operator
+   * @return a LogicalQueryDerivedGet operator
    */
   static Operator make(
       std::string table_alias,
@@ -152,26 +158,50 @@ class LogicalQueryDerivedGet : public OperatorNode<LogicalQueryDerivedGet> {
   std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>> alias_to_expr_map_;
 };
 
-//===--------------------------------------------------------------------===//
-// Select
-//===--------------------------------------------------------------------===//
+/**
+ * Logical operator to perform a filter during a scan
+ */
 class LogicalFilter : public OperatorNode<LogicalFilter> {
  public:
-  static Operator make(std::vector<AnnotatedExpression> &filter);
-  std::vector<AnnotatedExpression> predicates;
+  /**
+   * @param predicates The list of predicates used to perform the scan
+   * @return a LogicalFilter operator
+   */
+  static Operator make(std::vector<AnnotatedExpression> &&predicates);
 
   bool operator==(const BaseOperatorNode &r) override;
 
   common::hash_t Hash() const override;
+
+ private:
+  /**
+   * The list of predicates use to perform the scan.
+   * Since this is a logical operator, the order of the predicates
+   * in this list does not matter.
+   */
+  std::vector<AnnotatedExpression> predicates_;
 };
 
-//===--------------------------------------------------------------------===//
-// Project
-//===--------------------------------------------------------------------===//
+/**
+ * Logical operator for projections
+ */
 class LogicalProjection : public OperatorNode<LogicalProjection> {
  public:
-  static Operator make(std::vector<std::shared_ptr<expression::AbstractExpression>> &elements);
-  std::vector<std::shared_ptr<expression::AbstractExpression>> expressions;
+  /**
+   * @param expressions list of AbstractExpressions in the projection list.
+   * @return a LogicalProjection operator
+   */
+  static Operator make(std::vector<std::shared_ptr<parser::AbstractExpression>> &&expressions);
+
+  bool operator==(const BaseOperatorNode &r) override;
+
+  common::hash_t Hash() const override;
+
+ private:
+  /**
+   * Each entry in the projection list is an AbstractExpression
+   */
+  std::vector<std::shared_ptr<parser::AbstractExpression>> expressions_;
 };
 
 /**
@@ -394,90 +424,274 @@ class LogicalAggregateAndGroupBy : public OperatorNode<LogicalAggregateAndGroupB
   std::vector<AnnotatedExpression> having_;
 };
 
-//===--------------------------------------------------------------------===//
-// Insert
-//===--------------------------------------------------------------------===//
+/**
+ * Logical operation for an Insert
+ */
 class LogicalInsert : public OperatorNode<LogicalInsert> {
  public:
-  static Operator make(std::shared_ptr<catalog::TableCatalogEntry> target_table,
-                       const std::vector<std::string> *columns,
-                       const std::vector<std::vector<std::unique_ptr<expression::AbstractExpression>>> *values);
+  /**
+   * @param database_oid OID of the database
+   * @param namespace_oid OID of the namespace
+   * @param table_oid OID of the table
+   * @param columns list of columns to insert into
+   * @param values list of expressions that provide the values to insert into columns
+   * @return
+   */
+  static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                       catalog::table_oid_t table_oid,
+                       const std::vector<catalog::col_oid_t > &&columns,
+                       const std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> &&values);
 
-  std::shared_ptr<catalog::TableCatalogEntry> target_table;
-  const std::vector<std::string> *columns;
-  const std::vector<std::vector<std::unique_ptr<expression::AbstractExpression>>> *values;
+  bool operator==(const BaseOperatorNode &node) override;
+  common::hash_t Hash() const override;
+
+ private:
+
+  /**
+   * OID of the database
+   */
+  catalog::db_oid_t database_oid_;
+
+  /**
+   * OID of the namespace
+   */
+  catalog::namespace_oid_t namespace_oid_;
+
+  /**
+   * OID of the table
+   */
+  catalog::table_oid_t table_oid_;
+
+  /**
+   * OIDs of the columns that this operator is inserting into for the target table
+   */
+  const std::vector<catalog::col_oid_t> columns_;
+
+  /**
+   * The expression objects to insert.
+   * The offset of an entry in this list corresponds to the offset in the columns_ list.
+   */
+  const std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> values_;
 };
 
+/**
+ * Logical operator for an Insert that uses the output from a Select
+ */
 class LogicalInsertSelect : public OperatorNode<LogicalInsertSelect> {
  public:
-  static Operator make(std::shared_ptr<catalog::TableCatalogEntry> target_table);
+  /**
+   * @param database_oid OID of the database
+   * @param namespace_oid OID of the namespace
+   * @param table_oid OID of the table
+   * @return
+   */
+  static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                       catalog::table_oid_t table_oid);
 
-  std::shared_ptr<catalog::TableCatalogEntry> target_table;
+  bool operator==(const BaseOperatorNode &node) override;
+  common::hash_t Hash() const override;
+
+ private:
+  /**
+   * OID of the database
+   */
+  catalog::db_oid_t database_oid_;
+
+  /**
+   * OID of the namespace
+   */
+  catalog::namespace_oid_t namespace_oid_;
+
+  /**
+   * OID of the table
+   */
+  catalog::table_oid_t table_oid_;
 };
 
-//===--------------------------------------------------------------------===//
-// LogicalDistinct
-//===--------------------------------------------------------------------===//
+/**
+ * Logical operator for DISTINCT
+ */
 class LogicalDistinct : public OperatorNode<LogicalDistinct> {
  public:
+  /**
+   * This generates the LogicalDistinct.
+   * It doesn't need to store any data. It is just a placeholder
+   * @return
+   */
   static Operator make();
+
+  bool operator==(const BaseOperatorNode &node) override;
+  common::hash_t Hash() const override;
 };
 
-//===--------------------------------------------------------------------===//
-// LogicalLimit
-//===--------------------------------------------------------------------===//
+/**
+ * Logical operator for LIMIT
+ * This supports embedded ORDER BY information
+ */
 class LogicalLimit : public OperatorNode<LogicalLimit> {
  public:
-  static Operator make(int64_t offset, int64_t limit, std::vector<expression::AbstractExpression *> &&sort_exprs,
-                       std::vector<bool> &&sort_ascending);
-  int64_t offset;
-  int64_t limit;
-  // When we get a query like "SELECT * FROM tab ORDER BY a LIMIT 5"
-  // We'll let the limit operator keep the order by clause's content as an
-  // internal order, then the limit operator will generate sort plan with
-  // limit as a optimization.
-  std::vector<expression::AbstractExpression *> sort_exprs;
-  std::vector<bool> sort_ascending;
+  /**
+   * @param offset offset of the LIMIT operator
+   * @param limit the max # of tuples to produce
+   * @param sort_exprs inlined ORDER BY expressions (can be empty)
+   * @param sort_directions inlined sort directions (can be empty)
+   * @return
+   */
+  static Operator make(size_t offset, size_t limit,
+      std::vector<std::shared_ptr<parser::AbstractExpression>> &&sort_exprs,
+      std::vector<planner::OrderByOrderingType> &&sort_directions);
+
+  bool operator==(const BaseOperatorNode &node) override;
+  common::hash_t Hash() const override;
+
+ private:
+
+  /**
+   * The offset of the LIMIT operator
+   */
+  size_t offset_;
+
+  /**
+   * The number of tuples to include as defined by the LIMIT
+   */
+  size_t limit_;
+
+  /**
+   * When we get a query like "SELECT * FROM tab ORDER BY a LIMIT 5",
+   * we'll let the limit operator keep the order by clause's content as an
+   * internal order, then the limit operator will generate sort plan with
+   * limit as a optimization.
+   */
+  std::vector<std::shared_ptr<parser::AbstractExpression>> sort_exprs_;
+
+  /**
+   * The sort direction of sort expressions
+   */
+  std::vector<planner::OrderByOrderingType> sort_directions_;
 };
 
-//===--------------------------------------------------------------------===//
-// Delete
-//===--------------------------------------------------------------------===//
+/**
+ * Logical operator for Delete
+ */
 class LogicalDelete : public OperatorNode<LogicalDelete> {
  public:
-  static Operator make(std::shared_ptr<catalog::TableCatalogEntry> target_table);
 
-  std::shared_ptr<catalog::TableCatalogEntry> target_table;
+  /**
+   * @param database_oid OID of the database
+   * @param namespace_oid OID of the namespace
+   * @param table_oid OID of the table
+   * @return
+   */
+  static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                       catalog::table_oid_t table_oid);
+
+  bool operator==(const BaseOperatorNode &node) override;
+  common::hash_t Hash() const override;
+
+ private:
+  /**
+   * OID of the database
+   */
+  catalog::db_oid_t database_oid_;
+
+  /**
+   * OID of the namespace
+   */
+  catalog::namespace_oid_t namespace_oid_;
+
+  /**
+   * OID of the table
+   */
+  catalog::table_oid_t table_oid_;
 };
 
-//===--------------------------------------------------------------------===//
-// Update
-//===--------------------------------------------------------------------===//
+/**
+ * Logical operator for Update
+ */
 class LogicalUpdate : public OperatorNode<LogicalUpdate> {
  public:
-  static Operator make(std::shared_ptr<catalog::TableCatalogEntry> target_table,
-                       const std::vector<std::unique_ptr<parser::UpdateClause>> *updates);
+  /**
+   * @param database_oid OID of the database
+   * @param namespace_oid OID of the namespace
+   * @param table_oid OID of the table
+   * @param updates the update clauses from the SET portion of the query
+   * @return
+   */
+  static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                       catalog::table_oid_t table_oid,
+                       const std::vector<std::unique_ptr<parser::UpdateClause>> &&updates);
 
-  std::shared_ptr<catalog::TableCatalogEntry> target_table;
-  const std::vector<std::unique_ptr<parser::UpdateClause>> *updates;
+  bool operator==(const BaseOperatorNode &node) override;
+  common::hash_t Hash() const override;
+
+ private:
+  /**
+   * OID of the database
+   */
+  catalog::db_oid_t database_oid_;
+
+  /**
+   * OID of the namespace
+   */
+  catalog::namespace_oid_t namespace_oid_;
+
+  /**
+   * OID of the table
+   */
+  catalog::table_oid_t table_oid_;
+
+  /**
+   * The update clauses from the SET portion of the query
+   */
+   std::vector<std::unique_ptr<parser::UpdateClause>> updates_;
 };
 
-//===--------------------------------------------------------------------===//
-// Export to external file
-//===--------------------------------------------------------------------===//
+/**
+ * Logical operator for exporting data to an external file
+ */
 class LogicalExportExternalFile : public OperatorNode<LogicalExportExternalFile> {
  public:
-  static Operator make(ExternalFileFormat format, std::string file_name, char delimiter, char quote, char escape);
+  /**
+   * @param format how the data should be formatted
+   * @param file_name the local file path to write the data
+   * @param delimiter the character to use to split each attribute
+   * @param quote the character to use to 'quote' each value
+   * @param escape the character to use to escape characters in values
+   * @return
+   */
+  static Operator make(parser::ExternalFileFormat format, std::string file_name,
+      char delimiter, char quote, char escape);
 
   bool operator==(const BaseOperatorNode &r) override;
+  common::hash_t Hash() const override;
 
-  hash_t Hash() const override;
+ private:
+  /**
+   * How the data should be formatted
+   */
+  parser::ExternalFileFormat format_;
 
-  ExternalFileFormat format;
-  std::string file_name;
-  char delimiter;
-  char quote;
-  char escape;
+  /**
+   * The local file path to write the data
+   * TODO: Switch this to std::filesystem::path when it becomes more widely available
+   */
+  std::string file_name_;
+
+  /**
+   * The character to use to split each attribute
+   */
+  char delimiter_;
+
+  /**
+   * The character to use to 'quote' each value
+   */
+  char quote_;
+
+  /**
+   * The character to use to escape characters in values that are the same as
+   * either the delimiter or quote characeter.
+   */
+  char escape_;
 };
 
 /**
