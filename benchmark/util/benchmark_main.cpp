@@ -18,24 +18,14 @@
 // Modified from the Apache Arrow project for the Terrier project.
 
 #include "benchmark/benchmark.h"
-#include "loggers/catalog_logger.h"
-#include "loggers/index_logger.h"
-#include "loggers/main_logger.h"
-#include "loggers/storage_logger.h"
-#include "loggers/transaction_logger.h"
+#include "loggers/loggers_util.h"
 
 int main(int argc, char **argv) {
-  // initialize loggers
-  init_main_logger();
-  terrier::storage::init_index_logger();
-  terrier::storage::init_storage_logger();
-  terrier::transaction::init_transaction_logger();
-  terrier::catalog::init_catalog_logger();
+  terrier::LoggersUtil::Initialize(true);
 
   benchmark::Initialize(&argc, argv);
   benchmark::RunSpecifiedBenchmarks();
 
-  // shutdown loggers
-  spdlog::shutdown();
+  terrier::LoggersUtil::ShutDown();
   return 0;
 }
