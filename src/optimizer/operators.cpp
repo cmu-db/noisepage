@@ -213,7 +213,7 @@ bool LogicalInsert::operator==(const BaseOperatorNode &node) {
 
 Operator LogicalInsertSelect::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                              catalog::table_oid_t table_oid) {
-  LogicalInsert *op = new LogicalInsert;
+  LogicalInsertSelect *op = new LogicalInsertSelect;
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
   op->table_oid_ = table_oid;
@@ -235,6 +235,63 @@ bool LogicalInsertSelect::operator==(const BaseOperatorNode &node) {
   if (namespace_oid_ != r.namespace_oid_) return false;
   if (table_oid_ != r.table_oid_) return false;
   return (true);
+}
+
+//===--------------------------------------------------------------------===//
+// LogicalDistinct
+//===--------------------------------------------------------------------===//
+
+Operator LogicalDistinct::make() {
+  LogicalDistinct *op = new LogicalDistinct;
+  // We don't have anything that we need to store, so we're just going
+  // to throw this mofo out to the world as is...
+  return Operator(op);
+}
+
+bool LogicalDistinct::operator==(const BaseOperatorNode &node) {
+  if (node.GetType() != OpType::LOGICALDISTINCT) return false;
+  // Again, there isn't any internal data so I guess we're always equal!
+  return (true);
+}
+
+common::hash_t LogicalDistinct::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  // I guess every LogicalDistinct object hashes to the same thing?
+  return hash;
+}
+
+//===--------------------------------------------------------------------===//
+// LogicalLimit
+//===--------------------------------------------------------------------===//
+
+Operator LogicalLimit::make(size_t offset, size_t limit,
+                            std::vector<std::shared_ptr<parser::AbstractExpression>> &&sort_exprs,
+                            std::vector<planner::OrderByOrderingType> &&sort_directions) {
+  LogicalLimit *op = new LogicalLimit;
+  op->offset_ = offset;
+  op->limit_ = limit;
+  op->sort_exprs_ = std::move(sort_exprs);
+  op->sort_directions_ = std::move(sort_directions);
+  return Operator(op);
+}
+
+bool LogicalLimit::operator==(const BaseOperatorNode &node) {
+  if (node.GetType() != OpType::LOGICALLIMIT) return false;
+  const LogicalLimit &r = *static_cast<const LogicalLimit *>(&node);
+  if (offset_ != r.offset_) return false;
+  if (limit_ != r.limit_) return false;
+  if (sort_exprs_ != r.sort_exprs_) return false;
+  if (sort_directions_ != r.sort_directions_) return false;
+  return (true);
+}
+
+common::hash_t LogicalLimit::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&offset_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&limit_));
+  hash = common::HashUtil::CombineHashInRange(hash, sort_exprs_.begin(), sort_exprs_.end());
+  hash = common::HashUtil::CombineHashInRange(hash, sort_directions_.begin(), sort_directions_.end());
+  return hash;
 }
 
 //===--------------------------------------------------------------------===//

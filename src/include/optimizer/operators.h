@@ -8,9 +8,10 @@
 #include "catalog/catalog_defs.h"
 #include "common/hash_util.h"
 #include "optimizer/operator_node.h"
-#include "parser/expression_defs.h"
 #include "parser/expression/abstract_expression.h"
+#include "parser/expression_defs.h"
 #include "parser/parser_defs.h"
+#include "planner/plannodes/plan_node_defs.h"
 #include "type/transient_value.h"
 
 namespace terrier {
@@ -390,6 +391,9 @@ class LogicalInsertSelect : public OperatorNode<LogicalInsertSelect> {
   static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t table_oid);
 
+  bool operator==(const BaseOperatorNode &node) override;
+  common::hash_t Hash() const override;
+
  private:
   /**
    * OID of the database
@@ -407,29 +411,58 @@ class LogicalInsertSelect : public OperatorNode<LogicalInsertSelect> {
   catalog::table_oid_t table_oid_;
 };
 
-//===--------------------------------------------------------------------===//
-// LogicalDistinct
-//===--------------------------------------------------------------------===//
+/**
+ * Logical operator for DISTINCT
+ */
 class LogicalDistinct : public OperatorNode<LogicalDistinct> {
  public:
+  /**
+   * This generates the LogicalDistinct.
+   * It doesn't need to store any data. It is just a placeholder
+   * @return
+   */
   static Operator make();
+
+  bool operator==(const BaseOperatorNode &node) override;
+  common::hash_t Hash() const override;
 };
 
-//===--------------------------------------------------------------------===//
-// LogicalLimit
-//===--------------------------------------------------------------------===//
+/**
+ * Logical operator for LIMIT
+ */
 class LogicalLimit : public OperatorNode<LogicalLimit> {
  public:
-  static Operator make(int64_t offset, int64_t limit, std::vector<parser::AbstractExpression *> &&sort_exprs,
-                       std::vector<bool> &&sort_ascending);
-  int64_t offset;
-  int64_t limit;
-  // When we get a query like "SELECT * FROM tab ORDER BY a LIMIT 5"
-  // We'll let the limit operator keep the order by clause's content as an
-  // internal order, then the limit operator will generate sort plan with
-  // limit as a optimization.
-  std::vector<parser::AbstractExpression *> sort_exprs;
-  std::vector<bool> sort_ascending;
+  static Operator make(size_t offset, size_t limit,
+      std::vector<std::shared_ptr<parser::AbstractExpression>> &&sort_exprs,
+      std::vector<planner::OrderByOrderingType> &&sort_directions);
+
+  bool operator==(const BaseOperatorNode &node) override;
+  common::hash_t Hash() const override;
+
+ private:
+
+  /**
+   * The offset of the LIMIT operator
+   */
+  size_t offset_;
+
+  /**
+   * The number of tuples to include as defined by the LIMIT
+   */
+  size_t limit_;
+
+  /**
+   * When we get a query like "SELECT * FROM tab ORDER BY a LIMIT 5",
+   * we'll let the limit operator keep the order by clause's content as an
+   * internal order, then the limit operator will generate sort plan with
+   * limit as a optimization.
+   */
+  std::vector<std::shared_ptr<parser::AbstractExpression>> sort_exprs_;
+
+  /**
+   * The sort direction of sort expressions
+   */
+  std::vector<planner::OrderByOrderingType> sort_directions_;
 };
 
 //===--------------------------------------------------------------------===//
