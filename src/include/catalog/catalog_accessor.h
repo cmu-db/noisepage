@@ -58,13 +58,6 @@ class CatalogAccessor {
    * Drop all entries in the catalog that belong to the database, including the database entry
    * @param db the OID of the database to drop
    * @return true, unless there was no database entry with the given OID
-   *
-   * @warning This function does not handle deallocation and therefore must only
-   * be called after the deallocation of indexes and tables in the database have
-   * been scheduled with the GC (or at a minimum the transaction has all necessary
-   * references).  Failure to handle this beforehand will cause a memory leak
-   * because this call will effectively hide all of these objects from this
-   * transaction once invoked.
    */
   bool DropDatabase(db_oid_t db);
 
@@ -98,13 +91,6 @@ class CatalogAccessor {
    * Drop all entries in the catalog that belong to the namespace, including the namespace entry
    * @param ns the OID of the namespace to drop
    * @return true, unless there was no namespace entry with the given OID
-   *
-   * @warning This function does not handle deallocation and therefore must only
-   * be called after the deallocation of indexes and tables in the namespace have
-   * been scheduled with the GC (or at a minimum the transaction has all necessary
-   * references).  Failure to handle this beforehand will cause a memory leak
-   * because this call will effectively hide all of these objects from this
-   * transaction once invoked.
    */
   bool DropNamespace(namespace_oid_t ns);
 
@@ -150,13 +136,6 @@ class CatalogAccessor {
    * @param table the OID of the table to drop
    * @return true, unless there was no table entry for the given OID or the entry
    *         was write-locked by a different transaction
-   *
-   * @warning This function does not handle deallocation and therefore must only
-   * be called after the deallocation of indexes and and the table have been
-   * scheduled with the GC (or at a minimum the transaction has all necessary
-   * references).  Failure to handle this beforehand will cause a memory leak
-   * because this call will effectively hide all of these objects from this
-   * transaction once invoked.
    */
   bool DropTable(table_oid_t table);
 
@@ -165,9 +144,6 @@ class CatalogAccessor {
    * @param table OID in the catalog
    * @param table_ptr to the memory where the storage is
    * @return whether the operation was successful
-   *
-   * TODO(John): Should these pointers only be set once?  If so, then we should
-   * update "return" to state that false will be returned when the pointer was already set.
    */
   bool SetTablePointer(table_oid_t table, storage::SqlTable *table_ptr);
 
@@ -283,8 +259,6 @@ class CatalogAccessor {
    * Given a table, find all indexes for data in that table
    * @param table OID being queried
    * @return vector of index OIDs that reference the queried table
-   *
-   * TODO(John): Should this return the actual index pointers as well?
    */
   std::vector<index_oid_t> GetIndexOids(table_oid_t table);
 
@@ -310,13 +284,6 @@ class CatalogAccessor {
    * Drop the corresponding index from the catalog.
    * @param index to be dropped
    * @return whether the operation succeeded
-   *
-   * @warning This operation does not handle deallocation of the index.  The
-   *          caller is responsible for scheduling the indexes deallocation with
-   *          the GC if this is successful and commits.  Additionally, the caller
-   *          should have a handle to the index prior to calling this function
-   *          because they will not be able to use 'GetIndex' to retrieve it
-   *          if this call succeeds.
    */
   bool DropIndex(index_oid_t index);
 

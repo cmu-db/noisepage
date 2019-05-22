@@ -19,6 +19,8 @@ namespace terrier::catalog {
 #define INVALID_TABLE_OID table_oid_t(NULL_OID)
 #define INVALID_TYPE_OID type_oid_t(NULL_OID)
 
+#define DEFAULT_DATABASE "terrier"
+
 // in name order
 STRONG_TYPEDEF(col_oid_t, uint32_t);
 STRONG_TYPEDEF(db_oid_t, uint32_t);
