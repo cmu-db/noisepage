@@ -41,9 +41,7 @@ class Parser {
     UNUSED Token::Type next = Next();
 #ifndef NDEBUG
     if (next != expected) {
-      error_reporter_->Report(scanner_->current_position(),
-                              sema::ErrorMessages::kUnexpectedToken, next,
-                              expected);
+      error_reporter_->Report(scanner_->current_position(), sema::ErrorMessages::kUnexpectedToken, next, expected);
     }
 #endif
   }
@@ -52,9 +50,7 @@ class Parser {
   void Expect(Token::Type expected) {
     Token::Type next = Next();
     if (next != expected) {
-      error_reporter_->Report(scanner_->current_position(),
-                              sema::ErrorMessages::kUnexpectedToken, next,
-                              expected);
+      error_reporter_->Report(scanner_->current_position(), sema::ErrorMessages::kUnexpectedToken, next, expected);
     }
   }
 

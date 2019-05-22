@@ -1,5 +1,8 @@
 #pragma once
 
+#include <string>
+#include <utility>
+#include <vector>
 #include "execution/ast/ast.h"
 #include "execution/util/common.h"
 
@@ -26,16 +29,14 @@ class QueryState {
   struct StateInfo {
     std::string name;
     ast::Expr *type;
-    ast::Expr *value; // only for local states?
+    ast::Expr *value;  // only for local states?
 
-    StateInfo(std::string name, ast::Expr *type, ast::Expr *value)
-    : name(std::move(name)), type(type), value(value) {}
+    StateInfo(std::string name, ast::Expr *type, ast::Expr *value) : name(std::move(name)), type(type), value(value) {}
   };
 
   ast::Identifier state_name_;
   ast::StructTypeRepr *constructed_type_;
   std::vector<StateInfo> states_;
-
 };
 
-}
+}  // namespace tpl::compiler

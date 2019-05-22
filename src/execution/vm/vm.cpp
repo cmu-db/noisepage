@@ -7,12 +7,12 @@
 #include <iostream>
 #include "execution/exec/execution_context.h"
 #include "execution/sql/value.h"
-#include "type/type_id.h"
 #include "execution/util/common.h"
 #include "execution/util/timer.h"
 #include "execution/vm/bytecode_function_info.h"
 #include "execution/vm/bytecode_handlers.h"
 #include "execution/vm/bytecode_module.h"
+#include "type/type_id.h"
 
 namespace tpl::vm {
 
@@ -27,8 +27,7 @@ class VM::Frame {
 
  public:
   /// Constructor
-  Frame(u8 *frame_data, std::size_t frame_size)
-      : frame_data_(frame_data), frame_size_(frame_size) {
+  Frame(u8 *frame_data, std::size_t frame_size) : frame_data_(frame_data), frame_size_(frame_size) {
     TPL_ASSERT(frame_data_ != nullptr, "Frame data cannot be null");
     TPL_ASSERT(frame_size_ >= 0, "Frame size must be >= 0");
   }
@@ -61,8 +60,7 @@ class VM::Frame {
   void EnsureInFrame(LocalVar var) const {
     if (var.GetOffset() >= frame_size_) {
       std::string error_msg =
-          fmt::format("Accessing local at offset {}, beyond frame of size {}",
-                      var.GetOffset(), frame_size_);
+          fmt::format("Accessing local at offset {}, beyond frame of size {}", var.GetOffset(), frame_size_);
       EXECUTION_LOG_ERROR("{}", error_msg);
       throw std::runtime_error(error_msg);
     }
@@ -91,8 +89,7 @@ static constexpr const u32 kSoftMaxStackAllocSize = 1ull << 12ull;
 VM::VM(const BytecodeModule &module) : module_(module) {}
 
 // static
-void VM::InvokeFunction(const BytecodeModule &module, const FunctionId func_id,
-                        const u8 args[]) {
+void VM::InvokeFunction(const BytecodeModule &module, const FunctionId func_id, const u8 args[]) {
   // The function's info
   const FunctionInfo *const func_info = module.GetFuncInfoById(func_id);
   TPL_ASSERT(func_info != nullptr, "Function doesn't exist in module!");
@@ -112,8 +109,7 @@ void VM::InvokeFunction(const BytecodeModule &module, const FunctionId func_id,
   }
 
   // Copy args into frame
-  std::memcpy(raw_frame + func_info->params_start_pos(), args,
-              func_info->params_size());
+  std::memcpy(raw_frame + func_info->params_start_pos(), args, func_info->params_size());
 
   // Let's go. First, create the virtual machine instance.
   VM vm(module);
@@ -152,7 +148,7 @@ inline ALWAYS_INLINE T Peek(const u8 **ip) {
 
 }  // namespace
 
-// NOLINTNEXTLINE(google-readability-function-size,readability-function-size)
+// NOLINTNEXTLINE (google-readability-function-size,readability-function-size)
 void VM::Interpret(const u8 *ip, Frame *frame) {
   static void *kDispatchTable[] = {
 #define ENTRY(name, ...) &&op_##name,
@@ -161,12 +157,11 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
   };
 
 #ifdef TPL_DEBUG_TRACE_INSTRUCTIONS
-#define DEBUG_TRACE_INSTRUCTIONS(op)                                                  \
-  do {                                                                                \
-    auto bytecode = Bytecodes::FromByte(op);                                          \
-    bytecode_counts_[op]++;                                                           \
-    EXECUTION_LOG_INFO("{0:p}: {1:s}", ip - sizeof(std::underlying_type_t<Bytecode>), \
-             Bytecodes::ToString(bytecode));                                          \
+#define DEBUG_TRACE_INSTRUCTIONS(op)                                                                                  \
+  do {                                                                                                                \
+    auto bytecode = Bytecodes::FromByte(op);                                                                          \
+    bytecode_counts_[op]++;                                                                                           \
+    EXECUTION_LOG_INFO("{0:p}: {1:s}", ip - sizeof(std::underlying_type_t<Bytecode>), Bytecodes::ToString(bytecode)); \
   } while (false)
 #else
 #define DEBUG_TRACE_INSTRUCTIONS(op) (void)op
@@ -419,22 +414,19 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
   // Transaction ops
   // -------------------------------------------------------
   OP(BeginTransaction) : {
-    auto *txn = frame->LocalAt<terrier::transaction::TransactionContext **>(
-        READ_LOCAL_ID());
+    auto *txn = frame->LocalAt<terrier::transaction::TransactionContext **>(READ_LOCAL_ID());
     OpBeginTransaction(txn);
     DISPATCH_NEXT();
   }
 
   OP(CommitTransaction) : {
-    auto *txn = frame->LocalAt<terrier::transaction::TransactionContext **>(
-        READ_LOCAL_ID());
+    auto *txn = frame->LocalAt<terrier::transaction::TransactionContext **>(READ_LOCAL_ID());
     OpCommitTransaction(txn);
     DISPATCH_NEXT();
   }
 
   OP(AbortTransaction) : {
-    auto *txn = frame->LocalAt<terrier::transaction::TransactionContext **>(
-        READ_LOCAL_ID());
+    auto *txn = frame->LocalAt<terrier::transaction::TransactionContext **>(READ_LOCAL_ID());
     OpAbortTransaction(txn);
     DISPATCH_NEXT();
   }
@@ -472,8 +464,7 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
   }
 
   OP(TableVectorIteratorGetPCI) : {
-    auto *pci =
-        frame->LocalAt<sql::ProjectedColumnsIterator **>(READ_LOCAL_ID());
+    auto *pci = frame->LocalAt<sql::ProjectedColumnsIterator **>(READ_LOCAL_ID());
     auto *iter = frame->LocalAt<sql::TableVectorIterator *>(READ_LOCAL_ID());
     OpTableVectorIteratorGetPCI(pci, iter);
     DISPATCH_NEXT();
@@ -485,22 +476,19 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
 
   OP(PCIHasNext) : {
     auto *has_more = frame->LocalAt<bool *>(READ_LOCAL_ID());
-    auto *iter =
-        frame->LocalAt<sql::ProjectedColumnsIterator *>(READ_LOCAL_ID());
+    auto *iter = frame->LocalAt<sql::ProjectedColumnsIterator *>(READ_LOCAL_ID());
     OpPCIHasNext(has_more, iter);
     DISPATCH_NEXT();
   }
 
   OP(PCIAdvance) : {
-    auto *iter =
-        frame->LocalAt<sql::ProjectedColumnsIterator *>(READ_LOCAL_ID());
+    auto *iter = frame->LocalAt<sql::ProjectedColumnsIterator *>(READ_LOCAL_ID());
     OpPCIAdvance(iter);
     DISPATCH_NEXT();
   }
 
   OP(PCIReset) : {
-    auto *iter =
-        frame->LocalAt<sql::ProjectedColumnsIterator *>(READ_LOCAL_ID());
+    auto *iter = frame->LocalAt<sql::ProjectedColumnsIterator *>(READ_LOCAL_ID());
     OpPCIReset(iter);
     DISPATCH_NEXT();
   }
@@ -509,22 +497,20 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
   // PCI element access
   // -------------------------------------------------------
 
-#define GEN_PCI_ACCESS(type_str, type)                                    \
-  OP(PCIGet##type_str) : {                                                \
-    auto *result = frame->LocalAt<type *>(READ_LOCAL_ID());               \
-    auto *pci =                                                           \
-        frame->LocalAt<sql::ProjectedColumnsIterator *>(READ_LOCAL_ID()); \
-    auto col_idx = READ_UIMM4();                                          \
-    OpPCIGet##type_str(result, pci, col_idx);                             \
-    DISPATCH_NEXT();                                                      \
-  }                                                                       \
-  OP(PCIGet##type_str##Null) : {                                          \
-    auto *result = frame->LocalAt<type *>(READ_LOCAL_ID());               \
-    auto *pci =                                                           \
-        frame->LocalAt<sql::ProjectedColumnsIterator *>(READ_LOCAL_ID()); \
-    auto col_idx = READ_UIMM4();                                          \
-    OpPCIGet##type_str##Null(result, pci, col_idx);                       \
-    DISPATCH_NEXT();                                                      \
+#define GEN_PCI_ACCESS(type_str, type)                                            \
+  OP(PCIGet##type_str) : {                                                        \
+    auto *result = frame->LocalAt<type *>(READ_LOCAL_ID());                       \
+    auto *pci = frame->LocalAt<sql::ProjectedColumnsIterator *>(READ_LOCAL_ID()); \
+    auto col_idx = READ_UIMM4();                                                  \
+    OpPCIGet##type_str(result, pci, col_idx);                                     \
+    DISPATCH_NEXT();                                                              \
+  }                                                                               \
+  OP(PCIGet##type_str##Null) : {                                                  \
+    auto *result = frame->LocalAt<type *>(READ_LOCAL_ID());                       \
+    auto *pci = frame->LocalAt<sql::ProjectedColumnsIterator *>(READ_LOCAL_ID()); \
+    auto col_idx = READ_UIMM4();                                                  \
+    OpPCIGet##type_str##Null(result, pci, col_idx);                               \
+    DISPATCH_NEXT();                                                              \
   }
   GEN_PCI_ACCESS(SmallInt, sql::Integer)
   GEN_PCI_ACCESS(Integer, sql::Integer)
@@ -532,16 +518,15 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
   GEN_PCI_ACCESS(Decimal, sql::Decimal)
 #undef GEN_PCI_ACCESS
 
-#define GEN_PCI_FILTER(Op)                                                \
-  OP(PCIFilter##Op) : {                                                   \
-    auto *size = frame->LocalAt<u32 *>(READ_LOCAL_ID());                  \
-    auto *iter =                                                          \
-        frame->LocalAt<sql::ProjectedColumnsIterator *>(READ_LOCAL_ID()); \
-    auto col_idx = READ_UIMM4();                                          \
-    auto type = READ_IMM1();                                              \
-    auto val = READ_IMM8();                                               \
-    OpPCIFilter##Op(size, iter, col_idx, type, val);                      \
-    DISPATCH_NEXT();                                                      \
+#define GEN_PCI_FILTER(Op)                                                         \
+  OP(PCIFilter##Op) : {                                                            \
+    auto *size = frame->LocalAt<u32 *>(READ_LOCAL_ID());                           \
+    auto *iter = frame->LocalAt<sql::ProjectedColumnsIterator *>(READ_LOCAL_ID()); \
+    auto col_idx = READ_UIMM4();                                                   \
+    auto type = READ_IMM1();                                                       \
+    auto val = READ_IMM8();                                                        \
+    OpPCIFilter##Op(size, iter, col_idx, type, val);                               \
+    DISPATCH_NEXT();                                                               \
   }
   GEN_PCI_FILTER(Equal)
   GEN_PCI_FILTER(GreaterThan)
@@ -870,8 +855,7 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
   // -------------------------------------------------------
 
   OP(JoinHashTableInit) : {
-    auto *join_hash_table =
-        frame->LocalAt<sql::JoinHashTable *>(READ_LOCAL_ID());
+    auto *join_hash_table = frame->LocalAt<sql::JoinHashTable *>(READ_LOCAL_ID());
     auto *region = frame->LocalAt<util::Region *>(READ_LOCAL_ID());
     auto tuple_size = frame->LocalAt<u32>(READ_LOCAL_ID());
     OpJoinHashTableInit(join_hash_table, region, tuple_size);
@@ -880,23 +864,20 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
 
   OP(JoinHashTableAllocTuple) : {
     auto *result = frame->LocalAt<byte **>(READ_LOCAL_ID());
-    auto *join_hash_table =
-        frame->LocalAt<sql::JoinHashTable *>(READ_LOCAL_ID());
+    auto *join_hash_table = frame->LocalAt<sql::JoinHashTable *>(READ_LOCAL_ID());
     auto hash = frame->LocalAt<hash_t>(READ_LOCAL_ID());
     OpJoinHashTableAllocTuple(result, join_hash_table, hash);
     DISPATCH_NEXT();
   }
 
   OP(JoinHashTableBuild) : {
-    auto *join_hash_table =
-        frame->LocalAt<sql::JoinHashTable *>(READ_LOCAL_ID());
+    auto *join_hash_table = frame->LocalAt<sql::JoinHashTable *>(READ_LOCAL_ID());
     OpJoinHashTableBuild(join_hash_table);
     DISPATCH_NEXT();
   }
 
   OP(JoinHashTableFree) : {
-    auto *join_hash_table =
-        frame->LocalAt<sql::JoinHashTable *>(READ_LOCAL_ID());
+    auto *join_hash_table = frame->LocalAt<sql::JoinHashTable *>(READ_LOCAL_ID());
     OpJoinHashTableFree(join_hash_table);
     DISPATCH_NEXT();
   }
@@ -911,8 +892,7 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
     auto cmp_func_id = frame->LocalAt<FunctionId>(READ_LOCAL_ID());
     auto tuple_size = frame->LocalAt<u32>(READ_LOCAL_ID());
 
-    auto cmp_fn = reinterpret_cast<sql::Sorter::ComparisonFunction>(
-        module().GetFuncTrampoline(cmp_func_id));
+    auto cmp_fn = reinterpret_cast<sql::Sorter::ComparisonFunction>(module().GetFuncTrampoline(cmp_func_id));
     OpSorterInit(sorter, region, cmp_fn, tuple_size);
     DISPATCH_NEXT();
   }
@@ -1068,7 +1048,7 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
     OpIndexIteratorGet##type_str(result, iter, col_idx);                \
     DISPATCH_NEXT();                                                    \
   }                                                                     \
-  OP(IndexIteratorGet##type_str##Null) : {                                 \
+  OP(IndexIteratorGet##type_str##Null) : {                              \
     auto *result = frame->LocalAt<type *>(READ_LOCAL_ID());             \
     auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID()); \
     auto col_idx = READ_UIMM4();                                        \

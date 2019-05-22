@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+#include <vector>
 #include "catalog/catalog_defs.h"
 #include "catalog/schema.h"
 #include "storage/projected_columns.h"
@@ -10,15 +12,12 @@
 namespace terrier::catalog {
 class SqlTableRW {
  public:
-  SqlTableRW(const Schema &schema, table_oid_t table_oid,
-             storage::BlockStore *block_store)
-      : table_oid_(table_oid) {
+  SqlTableRW(const Schema &schema, table_oid_t table_oid, storage::BlockStore *block_store) : table_oid_(table_oid) {
     for (const auto &col : schema.GetColumns()) {
       cols_.push_back(col);
     }
     schema_ = std::make_shared<Schema>(cols_);
-    table_ =
-        std::make_shared<storage::SqlTable>(block_store, *schema_, table_oid_);
+    table_ = std::make_shared<storage::SqlTable>(block_store, *schema_, table_oid_);
 
     for (const auto &c : cols_) {
       col_oids_.emplace_back(c.GetOid());
@@ -63,9 +62,7 @@ class SqlTableRW {
    * @param col_num the column number
    * @return the offset
    */
-  uint16_t ColNumToOffset(int32_t col_num) {
-    return pr_map_->at(col_oids_[col_num]);
-  }
+  uint16_t ColNumToOffset(int32_t col_num) { return pr_map_->at(col_oids_[col_num]); }
 
  private:
   catalog::table_oid_t table_oid_;

@@ -9,9 +9,8 @@ namespace tpl::sql {
 
 class BloomFilter {
   // The set of salt values we use to produce alternative hash values
-  alignas(CACHELINE_SIZE) static constexpr const u32 kSalts[8] = {
-      0x47b6137bU, 0x44974d91U, 0x8824ad5bU, 0xa2b7289dU,
-      0x705495c7U, 0x2df1424bU, 0x9efc4947U, 0x5c6bfb31U};
+  alignas(CACHELINE_SIZE) static constexpr const u32 kSalts[8] = {0x47b6137bU, 0x44974d91U, 0x8824ad5bU, 0xa2b7289dU,
+                                                                  0x705495c7U, 0x2df1424bU, 0x9efc4947U, 0x5c6bfb31U};
 
   static constexpr const u32 kBitsPerElement = 8;
 

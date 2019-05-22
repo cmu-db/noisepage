@@ -42,8 +42,7 @@ static constexpr const char *kLLVMCompiledUsed = "llvm.compiler.used";
 auto ReadIntoMemory(const char *filepath) {
   auto memory_buffer = llvm::MemoryBuffer::getFile(filepath);
   if (auto error = memory_buffer.getError()) {
-    fprintf(stderr, "Error loading bytecode handler bitcode file: %s\n",
-            error.message().c_str());
+    fprintf(stderr, "Error loading bytecode handler bitcode file: %s\n", error.message().c_str());
     exit(1);
   }
 
@@ -54,8 +53,7 @@ auto ParseIntoLLVMModule(llvm::LLVMContext *ctx, llvm::MemoryBuffer *buffer) {
   auto module = llvm::parseBitcodeFile(*buffer, *ctx);
   if (!module) {
     auto error = llvm::toString(module.takeError());
-    fprintf(stderr, "Error parsing bytecode handler bitcode file: %s\n",
-            error.c_str());
+    fprintf(stderr, "Error parsing bytecode handler bitcode file: %s\n", error.c_str());
     exit(1);
   }
 
@@ -105,8 +103,7 @@ void WriteCleanedModule(llvm::Module *module, const char *out_filepath) {
   llvm::raw_fd_ostream file_stream(out_filepath, error);
 
   if (error) {
-    fprintf(stderr, "Error opening output file '%s': %s\n", out_filepath,
-            error.message().c_str());
+    fprintf(stderr, "Error opening output file '%s': %s\n", out_filepath, error.message().c_str());
     exit(1);
   }
 

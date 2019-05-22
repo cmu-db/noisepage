@@ -49,19 +49,13 @@ class CpuInfo {
   u32 GetNumCores() const noexcept { return num_cores_; }
 
   /// Return the size of the cache at level \a level in bytes
-  u32 GetCacheSize(CacheLevel level) const noexcept {
-    return cache_sizes_[level];
-  }
+  u32 GetCacheSize(CacheLevel level) const noexcept { return cache_sizes_[level]; }
 
   /// Return the size of a cache line at level \a level
-  u32 GetCacheLineSize(CacheLevel level) const noexcept {
-    return cache_line_sizes_[level];
-  }
+  u32 GetCacheLineSize(CacheLevel level) const noexcept { return cache_line_sizes_[level]; }
 
   /// Does the CPU have the given hardware feature?
-  bool HasFeature(Feature feature) const noexcept {
-    return hardware_flags_.Test(feature);
-  }
+  bool HasFeature(Feature feature) const noexcept { return hardware_flags_.Test(feature); }
 
   /// Pretty print CPU information to a string
   std::string PrettyPrintInfo() const;

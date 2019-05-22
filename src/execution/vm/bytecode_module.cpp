@@ -15,8 +15,7 @@
 
 namespace tpl::vm {
 
-BytecodeModule::BytecodeModule(std::string name, std::vector<u8> &&code,
-                               std::vector<FunctionInfo> &&functions)
+BytecodeModule::BytecodeModule(std::string name, std::vector<u8> &&code, std::vector<FunctionInfo> &&functions)
     : name_(std::move(name)),
       code_(std::move(code)),
       functions_(std::move(functions)),
@@ -36,11 +35,8 @@ namespace {
 // TODO(pmenon): **LOTS** of shit to make this fully ABI compliant ....
 class TrampolineGenerator : public Xbyak::CodeGenerator {
  public:
-  TrampolineGenerator(const BytecodeModule &module,
-                      const FunctionInfo &func_info, void *mem)
-      : Xbyak::CodeGenerator(Xbyak::DEFAULT_MAX_CODE_SIZE, mem),
-        module_(module),
-        func_(func_info) {}
+  TrampolineGenerator(const BytecodeModule &module, const FunctionInfo &func_info, void *mem)
+      : Xbyak::CodeGenerator(Xbyak::DEFAULT_MAX_CODE_SIZE, mem), module_(module), func_(func_info) {}
 
   /// Generate trampoline code for the given function in the given module
   void Generate() {
@@ -76,8 +72,7 @@ class TrampolineGenerator : public Xbyak::CodeGenerator {
     // argument
     const ast::Type *return_type = func_.func_type()->return_type();
     if (!return_type->IsNilType()) {
-      required_stack_space +=
-          static_cast<u32>(util::MathUtil::AlignTo(return_type->size(), sizeof(intptr_t)));
+      required_stack_space += static_cast<u32>(util::MathUtil::AlignTo(return_type->size(), sizeof(intptr_t)));
     }
 
     // Always align
@@ -114,12 +109,10 @@ class TrampolineGenerator : public Xbyak::CodeGenerator {
   // placed on the stack.
   //
   void PushCallerArgsOntoStack() {
-    const Xbyak::Reg arg_regs[][6] = {{edi, esi, edx, ecx, r8d, r9d},
-                                      {rdi, rsi, rdx, rcx, r8, r9}};
+    const Xbyak::Reg arg_regs[][6] = {{edi, esi, edx, ecx, r8d, r9d}, {rdi, rsi, rdx, rcx, r8, r9}};
 
     const ast::FunctionType *func_type = func_.func_type();
-    TPL_ASSERT(func_type->num_params() < sizeof(arg_regs),
-               "Too many function arguments");
+    TPL_ASSERT(func_type->num_params() < sizeof(arg_regs), "Too many function arguments");
 
     u32 displacement = 0;
     u32 local_idx = 0;
@@ -129,10 +122,8 @@ class TrampolineGenerator : public Xbyak::CodeGenerator {
     // If the function returns a non-void value, insert the pointer now.
     //
 
-    if (const ast::Type *return_type = func_type->return_type();
-        !return_type->IsNilType()) {
-      displacement =
-          static_cast<u32>(util::MathUtil::AlignTo(return_type->size(), sizeof(intptr_t)));
+    if (const ast::Type *return_type = func_type->return_type(); !return_type->IsNilType()) {
+      displacement = static_cast<u32>(util::MathUtil::AlignTo(return_type->size(), sizeof(intptr_t)));
       mov(ptr[rsp + displacement], rsp);
       local_idx++;
     }
@@ -144,15 +135,14 @@ class TrampolineGenerator : public Xbyak::CodeGenerator {
     for (u32 idx = 0; idx < func_type->num_params(); idx++, local_idx++) {
       const auto &local_info = func_.locals()[local_idx];
       auto use_64bit_reg = static_cast<u32>(local_info.size() > sizeof(u32));
-      mov(ptr[rsp + displacement + local_info.offset()],
-          arg_regs[use_64bit_reg][idx]);
+      mov(ptr[rsp + displacement + local_info.offset()], arg_regs[use_64bit_reg][idx]);
     }
   }
 
   void InvokeVMFunction() {
     const ast::FunctionType *func_type = func_.func_type();
-    const auto ret_type_size = static_cast<u32>(util::MathUtil::AlignTo(
-        func_type->return_type()->size(), sizeof(intptr_t)));
+    const auto ret_type_size =
+        static_cast<u32>(util::MathUtil::AlignTo(func_type->return_type()->size(), sizeof(intptr_t)));
 
     // Set up the arguments to VM::InvokeFunction(module, function ID, args)
     mov(rdi, reinterpret_cast<std::size_t>(&module_));
@@ -163,8 +153,7 @@ class TrampolineGenerator : public Xbyak::CodeGenerator {
     mov(rax, reinterpret_cast<std::size_t>(&VM::InvokeFunction));
     call(rax);
 
-    if (const ast::Type *return_type = func_type->return_type();
-        !return_type->IsNilType()) {
+    if (const ast::Type *return_type = func_type->return_type(); !return_type->IsNilType()) {
       if (return_type->size() < 8) {
         mov(eax, ptr[rsp]);
       } else {
@@ -182,17 +171,13 @@ class TrampolineGenerator : public Xbyak::CodeGenerator {
 
 }  // namespace
 
-void BytecodeModule::CreateFunctionTrampoline(const FunctionInfo &func,
-                                              Trampoline *trampoline) {
+void BytecodeModule::CreateFunctionTrampoline(const FunctionInfo &func, Trampoline *trampoline) {
   // Allocate memory
   std::error_code error;
-  u32 flags = llvm::sys::Memory::ProtectionFlags::MF_READ |
-              llvm::sys::Memory::ProtectionFlags::MF_WRITE;
-  llvm::sys::MemoryBlock mem =
-      llvm::sys::Memory::allocateMappedMemory(1 << 12, nullptr, flags, error);
+  u32 flags = llvm::sys::Memory::ProtectionFlags::MF_READ | llvm::sys::Memory::ProtectionFlags::MF_WRITE;
+  llvm::sys::MemoryBlock mem = llvm::sys::Memory::allocateMappedMemory(1 << 12, nullptr, flags, error);
   if (error) {
-    EXECUTION_LOG_ERROR("There was an error allocating executable memory {}",
-              error.message());
+    EXECUTION_LOG_ERROR("There was an error allocating executable memory {}", error.message());
     return;
   }
 
@@ -203,8 +188,7 @@ void BytecodeModule::CreateFunctionTrampoline(const FunctionInfo &func,
   // Now that the code's been generated and finalized, let's remove write
   // protections and just make is read+exec.
   llvm::sys::Memory::protectMappedMemory(
-      mem, llvm::sys::Memory::ProtectionFlags::MF_READ |
-               llvm::sys::Memory::ProtectionFlags::MF_EXEC);
+      mem, llvm::sys::Memory::ProtectionFlags::MF_READ | llvm::sys::Memory::ProtectionFlags::MF_EXEC);
 
   // Done
   *trampoline = Trampoline(llvm::sys::OwningMemoryBlock(mem));
@@ -232,14 +216,12 @@ namespace {
 
 void PrettyPrintFuncInfo(std::ostream &os, const FunctionInfo &func) {
   os << "Function " << func.id() << " <" << func.name() << ">:" << std::endl;
-  os << "  Frame size " << func.frame_size() << " bytes (" << func.num_params()
-     << " parameter" << (func.num_params() > 1 ? "s, " : ", ")
-     << func.locals().size() << " locals)" << std::endl;
+  os << "  Frame size " << func.frame_size() << " bytes (" << func.num_params() << " parameter"
+     << (func.num_params() > 1 ? "s, " : ", ") << func.locals().size() << " locals)" << std::endl;
 
   u64 max_local_len = 0;
   for (const auto &local : func.locals()) {
-    max_local_len =
-        std::max(max_local_len, static_cast<u64>(local.name().length()));
+    max_local_len = std::max(max_local_len, static_cast<u64>(local.name().length()));
   }
   for (const auto &local : func.locals()) {
     if (local.is_parameter()) {
@@ -247,31 +229,26 @@ void PrettyPrintFuncInfo(std::ostream &os, const FunctionInfo &func) {
     } else {
       os << "    local  ";
     }
-    os << std::setw(static_cast<int>(max_local_len)) << std::right << local.name()
-       << ":  offset=" << std::setw(7) << std::left << local.offset()
-       << " size=" << std::setw(7) << std::left << local.size()
-       << " align=" << std::setw(7) << std::left << local.type()->alignment()
-       << " type=" << std::setw(7) << std::left
+    os << std::setw(static_cast<int>(max_local_len)) << std::right << local.name() << ":  offset=" << std::setw(7)
+       << std::left << local.offset() << " size=" << std::setw(7) << std::left << local.size()
+       << " align=" << std::setw(7) << std::left << local.type()->alignment() << " type=" << std::setw(7) << std::left
        << ast::Type::ToString(local.type()) << std::endl;
   }
 }
 
-void PrettyPrintFuncCode(std::ostream &os, const FunctionInfo &func,
-                         BytecodeIterator *iter) {
+void PrettyPrintFuncCode(std::ostream &os, const FunctionInfo &func, BytecodeIterator *iter) {
   const u32 max_inst_len = Bytecodes::MaxBytecodeNameLength();
   for (; !iter->Done(); iter->Advance()) {
     Bytecode bytecode = iter->CurrentBytecode();
 
     // Print common bytecode info
-    os << "  0x" << std::right << std::setfill('0') << std::setw(8) << std::hex
-       << iter->GetPosition();
-    os << std::setfill(' ') << "    " << std::dec << std::setw(max_inst_len)
-       << std::left << Bytecodes::ToString(bytecode) << std::endl;
+    os << "  0x" << std::right << std::setfill('0') << std::setw(8) << std::hex << iter->GetPosition();
+    os << std::setfill(' ') << "    " << std::dec << std::setw(max_inst_len) << std::left
+       << Bytecodes::ToString(bytecode) << std::endl;
   }
 }
 
-void PrettyPrintFunc(std::ostream &os, const BytecodeModule &module,
-                     const FunctionInfo &func) {
+void PrettyPrintFunc(std::ostream &os, const BytecodeModule &module, const FunctionInfo &func) {
   PrettyPrintFuncInfo(os, func);
 
   os << std::endl;

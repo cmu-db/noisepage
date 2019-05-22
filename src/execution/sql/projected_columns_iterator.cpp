@@ -1,7 +1,7 @@
 #include "execution/sql/projected_columns_iterator.h"
 #include <type/type_id.h>
-#include "storage/projected_columns.h"
 #include "execution/util/vector_util.h"
+#include "storage/projected_columns.h"
 
 namespace tpl::sql {
 
@@ -15,14 +15,11 @@ ProjectedColumnsIterator::ProjectedColumnsIterator()
   selection_vector_[0] = ProjectedColumnsIterator::kInvalidPos;
 }
 
-ProjectedColumnsIterator::ProjectedColumnsIterator(
-    ProjectedColumns *projected_column)
-    : ProjectedColumnsIterator() {
+ProjectedColumnsIterator::ProjectedColumnsIterator(ProjectedColumns *projected_column) : ProjectedColumnsIterator() {
   SetProjectedColumn(projected_column);
 }
 
-void ProjectedColumnsIterator::SetProjectedColumn(
-    ProjectedColumns *projected_column) {
+void ProjectedColumnsIterator::SetProjectedColumn(ProjectedColumns *projected_column) {
   projected_column_ = projected_column;
   num_selected_ = projected_column_->NumTuples();
   curr_idx_ = 0;
@@ -35,15 +32,14 @@ void ProjectedColumnsIterator::SetProjectedColumn(
 template <typename T, template <typename> typename Op>
 u32 ProjectedColumnsIterator::FilterColByValImpl(u32 col_idx, T val) {
   // Get the input column's data
-  const auto *input =
-      reinterpret_cast<const T *>(projected_column_->ColumnStart(static_cast<u16>(col_idx)));
+  const auto *input = reinterpret_cast<const T *>(projected_column_->ColumnStart(static_cast<u16>(col_idx)));
 
   // Use the existing selection vector if this PCI has been filtered
   const u32 *sel_vec = (IsFiltered() ? selection_vector_ : nullptr);
 
   // Filter!
-  selection_vector_write_idx_ = util::VectorUtil::FilterVectorByVal<T, Op>(
-      input, num_selected_, val, selection_vector_, sel_vec);
+  selection_vector_write_idx_ =
+      util::VectorUtil::FilterVectorByVal<T, Op>(input, num_selected_, val, selection_vector_, sel_vec);
 
   // After the filter has been run on the entire vector projection, we need to
   // ensure that we reset it so that clients can query the updated state of the
@@ -58,9 +54,7 @@ u32 ProjectedColumnsIterator::FilterColByValImpl(u32 col_idx, T val) {
 
 // Filter an entire column's data by the provided constant value
 template <template <typename> typename Op>
-u32 ProjectedColumnsIterator::FilterColByVal(u32 col_idx,
-                                             terrier::type::TypeId type,
-                                             FilterVal val) {
+u32 ProjectedColumnsIterator::FilterColByVal(u32 col_idx, terrier::type::TypeId type, FilterVal val) {
   switch (type) {
     case terrier::type::TypeId::SMALLINT: {
       return FilterColByValImpl<i16, Op>(col_idx, val.si);

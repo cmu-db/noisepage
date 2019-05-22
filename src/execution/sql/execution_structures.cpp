@@ -1,26 +1,26 @@
-#include "execution/sql/execution_structures.h"
 #include <iostream>
 #include <memory>
 #include <random>
+#include <algorithm>
+#include <vector>
+#include <unordered_map>
+#include <utility>
+#include "execution/sql/execution_structures.h"
 #include "catalog/catalog_defs.h"
 #include "catalog/catalog_sql_table.h"
-#include "type/type_id.h"
 #include "execution/util/bit_util.h"
 #include "execution/util/common.h"
 #include "execution/util/macros.h"
+#include "type/type_id.h"
 
 namespace tpl::sql {
 ExecutionStructures::ExecutionStructures() {
   block_store_ = std::make_unique<BlockStore>(1000, 1000);
-  buffer_pool_ =
-      std::make_unique<RecordBufferSegmentPool>(100000, 100000);
-  log_manager_ =
-      std::make_unique<LogManager>("log_file.log", buffer_pool_.get());
-  txn_manager_ = std::make_unique<TransactionManager>(
-      buffer_pool_.get(), true, log_manager_.get());
+  buffer_pool_ = std::make_unique<RecordBufferSegmentPool>(100000, 100000);
+  log_manager_ = std::make_unique<LogManager>("log_file.log", buffer_pool_.get());
+  txn_manager_ = std::make_unique<TransactionManager>(buffer_pool_.get(), true, log_manager_.get());
   gc_ = std::make_unique<GarbageCollector>(txn_manager_.get());
-  catalog_ = std::make_unique<Catalog>(txn_manager_.get(),
-                                                block_store_.get());
+  catalog_ = std::make_unique<Catalog>(txn_manager_.get(), block_store_.get());
   InitTestTables();
   InitTestSchemas();
   InitTestIndexes();
@@ -49,14 +49,8 @@ struct ColumnInsertMeta {
   u64 min;
   u64 max;
 
-  ColumnInsertMeta(const char *name, const TypeId type, bool nullable,
-                   Dist dist, u64 min, u64 max)
-      : name(name),
-        type_(type),
-        nullable(nullable),
-        dist(dist),
-        min(min),
-        max(max) {}
+  ColumnInsertMeta(const char *name, const TypeId type, bool nullable, Dist dist, u64 min, u64 max)
+      : name(name), type_(type), nullable(nullable), dist(dist), min(min), max(max) {}
 };
 
 /**
@@ -68,8 +62,7 @@ struct TableInsertMeta {
   u32 num_rows;
   std::vector<ColumnInsertMeta> col_meta;
 
-  TableInsertMeta(const char *name, u32 num_rows,
-                  std::vector<ColumnInsertMeta> col_meta)
+  TableInsertMeta(const char *name, u32 num_rows, std::vector<ColumnInsertMeta> col_meta)
       : name(name), num_rows(num_rows), col_meta(std::move(col_meta)) {}
 };
 
@@ -110,8 +103,7 @@ T *CreateNumberColumnData(Dist dist, u32 num_vals, u64 min, u64 max) {
   return val;
 }
 
-std::pair<byte *, u32 *> GenerateColumnData(const ColumnInsertMeta &col_meta,
-                                            u32 num_rows) {
+std::pair<byte *, u32 *> GenerateColumnData(const ColumnInsertMeta &col_meta, u32 num_rows) {
   // Create data
   byte *col_data = nullptr;
   switch (col_meta.type_) {
@@ -119,19 +111,19 @@ std::pair<byte *, u32 *> GenerateColumnData(const ColumnInsertMeta &col_meta,
       throw std::runtime_error("Implement me!");
     }
     case TypeId::SMALLINT: {
-      col_data = reinterpret_cast<byte *>(CreateNumberColumnData<i16>(
-          col_meta.dist, num_rows, col_meta.min, col_meta.max));
+      col_data =
+          reinterpret_cast<byte *>(CreateNumberColumnData<i16>(col_meta.dist, num_rows, col_meta.min, col_meta.max));
       break;
     }
     case TypeId::INTEGER: {
-      col_data = reinterpret_cast<byte *>(CreateNumberColumnData<i32>(
-          col_meta.dist, num_rows, col_meta.min, col_meta.max));
+      col_data =
+          reinterpret_cast<byte *>(CreateNumberColumnData<i32>(col_meta.dist, num_rows, col_meta.min, col_meta.max));
       break;
     }
     case TypeId::BIGINT:
     case TypeId::DECIMAL: {
-      col_data = reinterpret_cast<byte *>(CreateNumberColumnData<i64>(
-          col_meta.dist, num_rows, col_meta.min, col_meta.max));
+      col_data =
+          reinterpret_cast<byte *>(CreateNumberColumnData<i64>(col_meta.dist, num_rows, col_meta.min, col_meta.max));
       break;
     }
     default: { throw std::runtime_error("Implement me!"); }
@@ -155,15 +147,12 @@ std::pair<byte *, u32 *> GenerateColumnData(const ColumnInsertMeta &col_meta,
 }
 
 void FillTable(const std::shared_ptr<terrier::catalog::SqlTableRW> &catalog_table,
-               terrier::transaction::TransactionContext *txn,
-               const TableInsertMeta &table_meta) {
+               terrier::transaction::TransactionContext *txn, const TableInsertMeta &table_meta) {
   u32 batch_size = 10000;
-  u32 num_batches = table_meta.num_rows / batch_size +
-                    static_cast<u32>(table_meta.num_rows % batch_size != 0);
+  u32 num_batches = table_meta.num_rows / batch_size + static_cast<u32>(table_meta.num_rows % batch_size != 0);
   u32 val_written = 0;
   auto *pri = catalog_table->GetPRI();
-  auto *insert_buffer =
-      terrier::common::AllocationUtil::AllocateAligned(pri->ProjectedRowSize());
+  auto *insert_buffer = terrier::common::AllocationUtil::AllocateAligned(pri->ProjectedRowSize());
   auto *insert = pri->InitializeRow(insert_buffer);
   for (u32 i = 0; i < num_batches; i++) {
     std::vector<std::pair<byte *, u32 *>> column_data;
@@ -179,13 +168,11 @@ void FillTable(const std::shared_ptr<terrier::catalog::SqlTableRW> &catalog_tabl
     for (u32 j = 0; j < num_vals; j++) {
       for (u16 k = 0; k < column_data.size(); k++) {
         auto offset = catalog_table->ColNumToOffset(k);
-        if (table_meta.col_meta[k].nullable &&
-            util::BitUtil::Test(column_data[k].second, j)) {
+        if (table_meta.col_meta[k].nullable && util::BitUtil::Test(column_data[k].second, j)) {
           insert->SetNull(offset);
         } else {
           byte *data = insert->AccessForceNotNull(offset);
-          u32 elem_size =
-              terrier::type::TypeUtil::GetTypeSize(table_meta.col_meta[k].type_);
+          u32 elem_size = terrier::type::TypeUtil::GetTypeSize(table_meta.col_meta[k].type_);
           std::memcpy(data, column_data[k].first + j * elem_size, elem_size);
         }
       }
@@ -200,8 +187,7 @@ void FillTable(const std::shared_ptr<terrier::catalog::SqlTableRW> &catalog_tabl
     }
   }
   delete[] insert_buffer;
-  std::cout << "Create Table " << table_meta.name
-            << " with number of tuples = " << val_written << std::endl;
+  std::cout << "Create Table " << table_meta.name << " with number of tuples = " << val_written << std::endl;
 }
 
 void ExecutionStructures::InitTestTables() {
@@ -232,10 +218,10 @@ void ExecutionStructures::InitTestTables() {
   };
 
   auto *txn = txn_manager_->BeginTransaction();
-  for (const auto & table_meta: insert_meta) {
+  for (const auto & table_meta : insert_meta) {
     // Create Schema.
     std::vector<terrier::catalog::Schema::Column> cols;
-    for (const auto & col_meta: table_meta.col_meta) {
+    for (const auto & col_meta : table_meta.col_meta) {
       const terrier::catalog::col_oid_t col_oid(catalog_->GetNextOid());
       cols.emplace_back(col_meta.name, col_meta.type_, col_meta.nullable, col_oid);
     }
@@ -306,7 +292,7 @@ void ExecutionStructures::InitTestSchemas() {
 struct IndexColumn {
   const TypeId type_;
   bool nullable_;
-  uint32_t table_col_idx_; // index in the original table
+  uint32_t table_col_idx_;  // index in the original table
 
   IndexColumn(const TypeId type, bool nullable, uint32_t table_col_idx)
       : type_(type), nullable_(nullable), table_col_idx_(table_col_idx){}
@@ -336,7 +322,7 @@ void FillIndex(const std::shared_ptr<terrier::catalog::CatalogIndex> & catalog_i
   auto table_pr = row_pri->InitializeRow(table_buffer);
   auto index_pr = index_pri.InitializeRow(index_buffer);
   u32 num_inserted = 0;
-  for (const terrier::storage::TupleSlot & slot: *sql_table) {
+  for (const terrier::storage::TupleSlot & slot : *sql_table) {
     // Get table data
     sql_table->Select(txn, slot, table_pr);
     // Fill up the index data
@@ -383,15 +369,16 @@ void ExecutionStructures::InitTestIndexes() {
   };
   auto *txn = txn_manager_->BeginTransaction();
 
-  for (const auto & index_meta: index_metas) {
+  for (const auto & index_meta : index_metas) {
     // Create Index Schema
     terrier::storage::index::IndexKeySchema schema;
-    for (const auto & col_meta: index_meta.cols) {
+    for (const auto & col_meta : index_meta.cols) {
       const terrier::catalog::indexkeycol_oid_t index_oid(catalog_->GetNextOid());
       schema.emplace_back(index_oid, col_meta.type_, col_meta.nullable_);
     }
     // Create Index
-    auto index_oid = catalog_->CreateIndex(txn, terrier::storage::index::ConstraintType::DEFAULT, schema, index_meta.index_name);
+    auto index_oid = catalog_->CreateIndex(txn, terrier::storage::index::ConstraintType::DEFAULT,
+        schema, index_meta.index_name);
     auto catalog_index = catalog_->GetCatalogIndex(index_oid);
     auto catalog_table = catalog_->GetCatalogTable(terrier::catalog::DEFAULT_DATABASE_OID, index_meta.table_name);
     catalog_index->SetTable(terrier::catalog::DEFAULT_DATABASE_OID, catalog_table->Oid());

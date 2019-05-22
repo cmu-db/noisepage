@@ -93,19 +93,13 @@ class Token {
   static const u32 kTokenCount = static_cast<u32>(Type::Last) + 1;
 
   // Get the name of a given token type
-  static const char *GetName(Type type) {
-    return kTokenNames[static_cast<u32>(type)];
-  }
+  static const char *GetName(Type type) { return kTokenNames[static_cast<u32>(type)]; }
 
   // Get the stringified version of a given token type
-  static const char *GetString(Type type) {
-    return kTokenStrings[static_cast<u32>(type)];
-  }
+  static const char *GetString(Type type) { return kTokenStrings[static_cast<u32>(type)]; }
 
   // Get the precedence of a given token
-  static const u32 GetPrecedence(Type type) {
-    return kTokenPrecedence[static_cast<u32>(type)];
-  }
+  static const u32 GetPrecedence(Type type) { return kTokenPrecedence[static_cast<u32>(type)]; }
 
   // Get the lowest operator precedence we support
   static const u32 LowestPrecedence() { return 0; }
@@ -117,8 +111,7 @@ class Token {
   }
 
   static bool IsCallOrMemberOrIndex(Type op) {
-    return (op == Type::LEFT_PAREN || op == Type::DOT ||
-            op == Type::LEFT_BRACKET);
+    return (op == Type::LEFT_PAREN || op == Type::DOT || op == Type::LEFT_BRACKET);
   }
 
  private:

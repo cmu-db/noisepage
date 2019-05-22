@@ -13,8 +13,7 @@ namespace tpl::bandit {
 
 void Environment::Reset() { agent_->Reset(); }
 
-void Environment::Run(u32 num_trials, std::vector<double> *rewards,
-                      std::vector<u32> *actions, bool shuffle) {
+void Environment::Run(u32 num_trials, std::vector<double> *rewards, std::vector<u32> *actions, bool shuffle) {
   rewards->resize(num_trials, 0);
   actions->resize(num_trials, 0);
 

@@ -20,27 +20,22 @@ class Identifier {
   const char *data() const { return data_; }
 
   std::size_t length() const {
-    TPL_ASSERT(data_ != nullptr,
-               "Trying to get the length of an invalid identifier");
+    TPL_ASSERT(data_ != nullptr, "Trying to get the length of an invalid identifier");
     return std::strlen(data());
   }
 
   bool empty() const { return length() == 0; }
 
-  bool operator==(const Identifier &other) const {
-    return data() == other.data();
-  }
+  bool operator==(const Identifier &other) const { return data() == other.data(); }
 
   bool operator!=(const Identifier &other) const { return !(*this == other); }
 
   static Identifier GetEmptyKey() {
-    return Identifier(static_cast<const char *>(
-        llvm::DenseMapInfo<const void *>::getEmptyKey()));
+    return Identifier(static_cast<const char *>(llvm::DenseMapInfo<const void *>::getEmptyKey()));
   }
 
   static Identifier GetTombstoneKey() {
-    return Identifier(static_cast<const char *>(
-        llvm::DenseMapInfo<const void *>::getTombstoneKey()));
+    return Identifier(static_cast<const char *>(llvm::DenseMapInfo<const void *>::getTombstoneKey()));
   }
 
  private:
@@ -56,23 +51,15 @@ namespace llvm {
  */
 template <>
 struct DenseMapInfo<tpl::ast::Identifier> {
-  static inline tpl::ast::Identifier getEmptyKey() {
-    return tpl::ast::Identifier::GetEmptyKey();
-  }
+  static inline tpl::ast::Identifier getEmptyKey() { return tpl::ast::Identifier::GetEmptyKey(); }
 
-  static inline tpl::ast::Identifier getTombstoneKey() {
-    return tpl::ast::Identifier::GetTombstoneKey();
-  }
+  static inline tpl::ast::Identifier getTombstoneKey() { return tpl::ast::Identifier::GetTombstoneKey(); }
 
   static unsigned getHashValue(const tpl::ast::Identifier identifier) {
-    return DenseMapInfo<const void *>::getHashValue(
-        static_cast<const void *>(identifier.data()));
+    return DenseMapInfo<const void *>::getHashValue(static_cast<const void *>(identifier.data()));
   }
 
-  static bool isEqual(const tpl::ast::Identifier lhs,
-                      const tpl::ast::Identifier rhs) {
-    return lhs == rhs;
-  }
+  static bool isEqual(const tpl::ast::Identifier lhs, const tpl::ast::Identifier rhs) { return lhs == rhs; }
 };
 
 }  // namespace llvm

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+#include <utility>
 #include "storage/index/index.h"
 #include "storage/index/index_builder.h"
 #include "transaction/transaction_context.h"
@@ -8,13 +10,10 @@ namespace terrier::catalog {
 class CatalogIndex {
  public:
   CatalogIndex(transaction::TransactionContext *txn, index_oid_t index_oid,
-               storage::index::ConstraintType constraint_type,
-               const storage::index::IndexKeySchema &schema)
+               storage::index::ConstraintType constraint_type, const storage::index::IndexKeySchema &schema)
       : metadata_{schema} {
     storage::index::IndexBuilder builder;
-    builder.SetConstraintType(constraint_type)
-        .SetKeySchema(metadata_.GetKeySchema())
-        .SetOid(index_oid);
+    builder.SetConstraintType(constraint_type).SetKeySchema(metadata_.GetKeySchema()).SetOid(index_oid);
     index_.reset(builder.Build());
   }
 

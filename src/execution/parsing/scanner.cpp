@@ -6,11 +6,9 @@
 
 namespace tpl::parsing {
 
-Scanner::Scanner(const std::string &source)
-    : Scanner(source.data(), source.length()) {}
+Scanner::Scanner(const std::string &source) : Scanner(source.data(), source.length()) {}
 
-Scanner::Scanner(const char *source, uint64_t source_len)
-    : source_(source), source_len_(source_len), offset_(0) {
+Scanner::Scanner(const char *source, uint64_t source_len) : source_(source), source_len_(source_len), offset_(0) {
   // Setup current token information
   curr_.type = Token::Type::UNINIITIALIZED;
   curr_.offset = 0;
@@ -310,8 +308,7 @@ Token::Type Scanner::ScanIdentifierOrKeyword() {
   GROUP_START('v')                          \
   GROUP_ELEM("var", Token::Type::VAR)
 
-Token::Type Scanner::CheckIdentifierOrKeyword(const char *input,
-                                              uint32_t input_len) {
+Token::Type Scanner::CheckIdentifierOrKeyword(const char *input, uint32_t input_len) {
   static constexpr uint32_t kMinKeywordLen = 2;
   static constexpr uint32_t kMaxKeywordLen = 6;
 
@@ -323,16 +320,14 @@ Token::Type Scanner::CheckIdentifierOrKeyword(const char *input,
   break;               \
   case c:
 
-#define GROUP_ELEM(str, typ)                                \
-  {                                                         \
-    const uint64_t keyword_len = sizeof(str) - 1;           \
-    if (keyword_len == input_len && (str)[1] == input[1] && \
-        (keyword_len < 3 || (str)[2] == input[2]) &&        \
-        (keyword_len < 4 || (str)[3] == input[3]) &&        \
-        (keyword_len < 5 || (str)[4] == input[4]) &&        \
-        (keyword_len < 6 || (str)[5] == input[5])) {        \
-      return typ;                                           \
-    }                                                       \
+#define GROUP_ELEM(str, typ)                                                                             \
+  {                                                                                                      \
+    const uint64_t keyword_len = sizeof(str) - 1;                                                        \
+    if (keyword_len == input_len && (str)[1] == input[1] && (keyword_len < 3 || (str)[2] == input[2]) && \
+        (keyword_len < 4 || (str)[3] == input[3]) && (keyword_len < 5 || (str)[4] == input[4]) &&        \
+        (keyword_len < 6 || (str)[5] == input[5])) {                                                     \
+      return typ;                                                                                        \
+    }                                                                                                    \
   }
 
   // The main switch statement that outlines all keywords

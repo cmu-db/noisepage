@@ -2,10 +2,8 @@
 
 namespace tpl::sql {
 
-AggregationHashTable::AggregationHashTable(util::Region *region,
-                                           u32 tuple_size) noexcept
-    : entries_(region, tuple_size),
-      max_fill_(static_cast<u64>(static_cast<float>(kDefaultInitialTableSize) * 0.7f)) {
+AggregationHashTable::AggregationHashTable(util::Region *region, u32 tuple_size) noexcept
+    : entries_(region, tuple_size), max_fill_(static_cast<u64>(static_cast<float>(kDefaultInitialTableSize) * 0.7f)) {
   hash_table_.SetSize(kDefaultInitialTableSize);
 }
 

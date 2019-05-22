@@ -10,8 +10,7 @@ namespace tpl::vm {
  */
 class ControlFlowBuilder {
  public:
-  explicit ControlFlowBuilder(BytecodeGenerator *generator)
-      : generator_(generator) {}
+  explicit ControlFlowBuilder(BytecodeGenerator *generator) : generator_(generator) {}
 
   virtual ~ControlFlowBuilder() = default;
 
@@ -24,8 +23,7 @@ class ControlFlowBuilder {
 
 class BreakableBlockBuilder : public ControlFlowBuilder {
  public:
-  explicit BreakableBlockBuilder(BytecodeGenerator *generator)
-      : ControlFlowBuilder(generator) {}
+  explicit BreakableBlockBuilder(BytecodeGenerator *generator) : ControlFlowBuilder(generator) {}
 
   ~BreakableBlockBuilder() override;
 
@@ -42,8 +40,7 @@ class BreakableBlockBuilder : public ControlFlowBuilder {
 
 class LoopBuilder : public BreakableBlockBuilder {
  public:
-  explicit LoopBuilder(BytecodeGenerator *generator)
-      : BreakableBlockBuilder(generator) {}
+  explicit LoopBuilder(BytecodeGenerator *generator) : BreakableBlockBuilder(generator) {}
 
   ~LoopBuilder() override;
 
@@ -68,8 +65,7 @@ class LoopBuilder : public BreakableBlockBuilder {
  */
 class IfThenElseBuilder : public ControlFlowBuilder {
  public:
-  explicit IfThenElseBuilder(BytecodeGenerator *generator)
-      : ControlFlowBuilder(generator) {}
+  explicit IfThenElseBuilder(BytecodeGenerator *generator) : ControlFlowBuilder(generator) {}
 
   ~IfThenElseBuilder() override;
 

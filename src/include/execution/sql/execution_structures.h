@@ -1,24 +1,24 @@
 #pragma once
 
 #include <memory>
+#include <string>
 #include <unordered_map>
 #include "catalog/catalog.h"
 #include "execution/exec/output.h"
+#include "execution/util/common.h"
 #include "storage/garbage_collector.h"
 #include "storage/record_buffer.h"
 #include "storage/storage_defs.h"
 #include "storage/write_ahead_log/log_manager.h"
 #include "transaction/transaction_manager.h"
-#include "execution/util/common.h"
-#include "storage/garbage_collector.h"
 
 namespace tpl::sql {
-using terrier::storage::BlockStore;
-using terrier::storage::RecordBufferSegmentPool ;
-using terrier::storage::LogManager;
-using terrier::storage::GarbageCollector;
-using terrier::transaction::TransactionManager;
 using terrier::catalog::Catalog;
+using terrier::storage::BlockStore;
+using terrier::storage::GarbageCollector;
+using terrier::storage::LogManager;
+using terrier::storage::RecordBufferSegmentPool;
+using terrier::transaction::TransactionManager;
 
 using terrier::type::TypeId;
 /**
@@ -31,27 +31,20 @@ class ExecutionStructures {
 
   BlockStore *GetBlockStore() { return block_store_.get(); }
 
-  RecordBufferSegmentPool *GetBufferPool() {
-    return buffer_pool_.get();
-  }
+  RecordBufferSegmentPool *GetBufferPool() { return buffer_pool_.get(); }
 
   LogManager *GetLogManager() { return log_manager_.get(); }
 
   GarbageCollector *GetGC() { return gc_.get(); }
 
-  TransactionManager *GetTxnManager() {
-    return txn_manager_.get();
-  }
+  TransactionManager *GetTxnManager() { return txn_manager_.get(); }
 
   Catalog *GetCatalog() { return catalog_.get(); }
 
-  std::shared_ptr<exec::FinalSchema> GetFinalSchema(
-      const std::string &name) {
-    return test_plan_nodes_.at(name);
-  }
+  std::shared_ptr<exec::FinalSchema> GetFinalSchema(const std::string &name) { return test_plan_nodes_.at(name); }
 
  private:
-  explicit ExecutionStructures();
+  ExecutionStructures();
   void InitTestTables();
   void InitTestSchemas();
   void InitTestIndexes();
@@ -60,8 +53,7 @@ class ExecutionStructures {
   std::unique_ptr<LogManager> log_manager_;
   std::unique_ptr<TransactionManager> txn_manager_;
   std::unique_ptr<Catalog> catalog_;
-  std::unordered_map<std::string, std::shared_ptr<exec::FinalSchema>>
-      test_plan_nodes_;
+  std::unordered_map<std::string, std::shared_ptr<exec::FinalSchema>> test_plan_nodes_;
   std::unique_ptr<GarbageCollector> gc_;
 };
 

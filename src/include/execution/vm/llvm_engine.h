@@ -47,8 +47,7 @@ class LLVMEngine {
   /// JIT compile a TPL bytecode module to native code
   /// \param module The module to compile
   /// \return The JIT compiled module
-  static std::unique_ptr<CompiledModule> Compile(
-      const vm::BytecodeModule &module, const CompilerOptions &options = {});
+  static std::unique_ptr<CompiledModule> Compile(const vm::BytecodeModule &module, const CompilerOptions &options = {});
 
   // -------------------------------------------------------
   // Compiler Options
@@ -57,7 +56,7 @@ class LLVMEngine {
   /// Options to provide when compiling
   class CompilerOptions {
    public:
-    CompilerOptions() : debug_(false), write_obj_file_(false) {} // NOLINT
+    CompilerOptions() : debug_(false), write_obj_file_(false) {}  // NOLINT
 
     CompilerOptions &SetDebug(bool debug) {
       debug_ = debug;
@@ -79,13 +78,9 @@ class LLVMEngine {
       return *this;
     }
 
-    const std::string &GetOutputObjectFileName() const {
-      return output_file_name_;
-    }
+    const std::string &GetOutputObjectFileName() const { return output_file_name_; }
 
-    std::string GetBytecodeHandlersBcPath() const {
-      return "./bytecode_handlers_ir.bc";
-    }
+    std::string GetBytecodeHandlersBcPath() const { return "./bytecode_handlers_ir.bc"; }
 
    private:
     bool debug_{false};

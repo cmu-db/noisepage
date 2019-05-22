@@ -7,8 +7,7 @@ namespace tpl::sema {
 
 void Sema::VisitVariableDecl(ast::VariableDecl *node) {
   if (current_scope()->LookupLocal(node->name()) != nullptr) {
-    error_reporter()->Report(node->position(),
-                             ErrorMessages::kVariableRedeclared, node->name());
+    error_reporter()->Report(node->position(), ErrorMessages::kVariableRedeclared, node->name());
     return;
   }
 
@@ -38,9 +37,7 @@ void Sema::VisitVariableDecl(ast::VariableDecl *node) {
   }
 
   // The type should be resolved now
-  current_scope()->Declare(
-      node->name(),
-      (declared_type != nullptr ? declared_type : initializer_type));
+  current_scope()->Declare(node->name(), (declared_type != nullptr ? declared_type : initializer_type));
 }
 
 void Sema::VisitFieldDecl(ast::FieldDecl *node) { Visit(node->type_repr()); }

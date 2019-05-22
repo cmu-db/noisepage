@@ -15,8 +15,7 @@ namespace tpl::vm {
  * of the referring jump instruction.
  */
 class BytecodeLabel {
-  static constexpr const std::size_t kInvalidOffset =
-      std::numeric_limits<std::size_t>::max();
+  static constexpr const std::size_t kInvalidOffset = std::numeric_limits<std::size_t>::max();
 
  public:
   BytecodeLabel() : offset_(kInvalidOffset) {}
@@ -25,26 +24,20 @@ class BytecodeLabel {
 
   std::size_t offset() const { return offset_; }
 
-  const std::vector<size_t> &referrer_offsets() const {
-    return referrer_offsets_;
-  }
+  const std::vector<size_t> &referrer_offsets() const { return referrer_offsets_; }
 
-  bool IsForwardTarget() const {
-    return !is_bound() && !referrer_offsets().empty();
-  }
+  bool IsForwardTarget() const { return !is_bound() && !referrer_offsets().empty(); }
 
  private:
   friend class BytecodeEmitter;
 
   void set_referrer(std::size_t offset) {
-    TPL_ASSERT(!is_bound(),
-               "Cannot set offset reference for already bound label");
+    TPL_ASSERT(!is_bound(), "Cannot set offset reference for already bound label");
     referrer_offsets_.push_back(offset);
   }
 
   void BindTo(std::size_t offset) {
-    TPL_ASSERT(!is_bound() && offset != kInvalidOffset,
-               "Cannot rebind an already bound label!");
+    TPL_ASSERT(!is_bound() && offset != kInvalidOffset, "Cannot rebind an already bound label!");
     bound_ = true;
     offset_ = offset;
   }

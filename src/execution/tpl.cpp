@@ -25,8 +25,8 @@
 #include "execution/vm/llvm_engine.h"
 #include "execution/vm/vm.h"
 
-#include "loggers/execution_logger.h"
 #include "loggers/catalog_logger.h"
+#include "loggers/execution_logger.h"
 #include "loggers/index_logger.h"
 #include "loggers/main_logger.h"
 #include "loggers/storage_logger.h"
@@ -53,8 +53,7 @@ static constexpr const char *kExitKeyword = ".exit";
 /// compiled mode
 /// \param source The TPL source
 /// \param name The name of the module/program
-static void CompileAndRun(const std::string &source,
-                          const std::string &name = "tmp-tpl") {
+static void CompileAndRun(const std::string &source, const std::string &name = "tmp-tpl") {
   util::Region region("repl-ast");
   util::Region error_region("repl-error");
 
@@ -65,8 +64,7 @@ static void CompileAndRun(const std::string &source,
   parsing::Scanner scanner(source.data(), source.length());
   parsing::Parser parser(&scanner, &context);
 
-  double parse_ms = 0, typecheck_ms = 0, codegen_ms = 0, exec_ms = 0,
-         jit_ms = 0;
+  double parse_ms = 0, typecheck_ms = 0, codegen_ms = 0, exec_ms = 0, jit_ms = 0;
 
   // Make Execution Context
   auto exec = sql::ExecutionStructures::Instance();
@@ -74,8 +72,7 @@ static void CompileAndRun(const std::string &source,
   std::cout << "Output Name: " << kOutputName.data() << std::endl;
   auto final = exec->GetFinalSchema(kOutputName.data());
   exec::OutputPrinter printer(*final);
-  auto exec_context =
-      std::make_shared<exec::ExecutionContext>(txn, printer, final);
+  auto exec_context = std::make_shared<exec::ExecutionContext>(txn, printer, final);
 
   // Parse
   ast::AstNode *root;
@@ -109,7 +106,7 @@ static void CompileAndRun(const std::string &source,
   }
 
   // NOTE: Commented to just check ast generation.
-  
+
   // Codegen
   std::unique_ptr<vm::BytecodeModule> module;
   {
@@ -127,7 +124,7 @@ static void CompileAndRun(const std::string &source,
     util::ScopedTimer<std::milli> timer(&exec_ms);
 
     std::function<u32()> main_func;
-    if (!module->GetFunction("main", vm::ExecutionMode::Interpret, main_func)) {
+    if (!module->GetFunction("main", vm::ExecutionMode::Interpret, &main_func)) {
       EXECUTION_LOG_ERROR("No main() entry function found with signature ()->int32");
       return;
     }
@@ -139,21 +136,21 @@ static void CompileAndRun(const std::string &source,
   {
     util::ScopedTimer<std::milli> timer(&jit_ms);
 
-    std::function<u32()>  main_func;
-    if (!module->GetFunction("main", vm::ExecutionMode::Jit, main_func)) {
+    std::function<u32()> main_func;
+    if (!module->GetFunction("main", vm::ExecutionMode::Jit, &main_func)) {
       EXECUTION_LOG_ERROR("No main() entry function found with signature ()->int32");
       return;
     }
     EXECUTION_LOG_INFO("The JIT is currently broken");
     EXECUTION_LOG_INFO("JIT main() returned: {}", main_func());
   }
-  
+
   // Dump stats
   EXECUTION_LOG_INFO(
       "Parse: {} ms, Type-check: {} ms, Code-gen: {} ms, Exec.: {} ms, "
       "Jit+Exec.: {} ms",
       parse_ms, typecheck_ms, codegen_ms, exec_ms, jit_ms);
-  exec->GetTxnManager()->Commit(txn, [](void*){}, nullptr);
+  exec->GetTxnManager()->Commit(txn, [](void *) {}, nullptr);
   exec->GetLogManager()->Shutdown();
   exec->GetGC()->PerformGarbageCollection();
   exec->GetGC()->PerformGarbageCollection();
@@ -185,8 +182,7 @@ static void RunRepl() {
 static void RunFile(const std::string &filename) {
   auto file = llvm::MemoryBuffer::getFile(filename);
   if (std::error_code error = file.getError()) {
-    EXECUTION_LOG_ERROR("There was an error reading file '{}': {}", filename,
-              error.message());
+    EXECUTION_LOG_ERROR("There was an error reading file '{}': {}", filename, error.message());
     return;
   }
 
@@ -220,7 +216,6 @@ void InitTPL() {
 void ShutdownTPL() {
   tpl::vm::LLVMEngine::Shutdown();
 
-
   EXECUTION_LOG_INFO("TPL cleanly shutdown ...");
 }
 
@@ -233,7 +228,7 @@ void SignalHandler(i32 sig_num) {
   }
 }
 
-int main(int argc, char **argv) {  // NOLINT(bugprone-exception-escape)
+int main(int argc, char **argv) {  // NOLINT
   // Parse options
   llvm::cl::HideUnrelatedOptions(kTplOptionsCategory);
   llvm::cl::ParseCommandLineOptions(argc, argv);

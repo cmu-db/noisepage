@@ -32,9 +32,7 @@ class BitUtil {
   /// the given size
   /// \param num_bits The size of the bit vector, in bits
   /// \return The number of words needed to store a bit vector of the given size
-  ALWAYS_INLINE static u64 Num32BitWordsFor(u64 num_bits) {
-    return MathUtil::DivRoundUp(num_bits, kBitWordSize);
-  }
+  ALWAYS_INLINE static u64 Num32BitWordsFor(u64 num_bits) { return MathUtil::DivRoundUp(num_bits, kBitWordSize); }
 
   /// Test if the bit at index \a idx is set in the bit vector
   /// \param bits The bit vector
@@ -48,9 +46,7 @@ class BitUtil {
   /// Set the bit at index \a idx to 1 in the bit vector \a bits
   /// \param bits The bit vector
   /// \param idx The index of the bit to set to 1
-  ALWAYS_INLINE static void Set(u32 bits[], const u32 idx) {
-    bits[idx / kBitWordSize] |= 1u << (idx % kBitWordSize);
-  }
+  ALWAYS_INLINE static void Set(u32 bits[], const u32 idx) { bits[idx / kBitWordSize] |= 1u << (idx % kBitWordSize); }
 
   /// Set the bit at index \a idx to 0 in the bit vector \a bits
   /// \param bits The bit vector
@@ -62,9 +58,7 @@ class BitUtil {
   /// Flip the value of the bit at index \a idx in the bit vector
   /// \param bits The bit vector
   /// \param idx The index of the bit to flip
-  ALWAYS_INLINE static void Flip(u32 bits[], const u32 idx) {
-    bits[idx / kBitWordSize] ^= 1u << (idx % kBitWordSize);
-  }
+  ALWAYS_INLINE static void Flip(u32 bits[], const u32 idx) { bits[idx / kBitWordSize] ^= 1u << (idx % kBitWordSize); }
 
   /// Clear all bits in the bit vector
   /// \param bits The bit vector
@@ -128,8 +122,7 @@ class BitVector : public BitVectorBase<BitVector> {
 
   // Create a new BitVector with the specified number of bits
   explicit BitVector(u32 num_bits)
-      : owned_bits_(
-            std::make_unique<u32[]>(BitUtil::Num32BitWordsFor(num_bits))),
+      : owned_bits_(std::make_unique<u32[]>(BitUtil::Num32BitWordsFor(num_bits))),
         bits_(owned_bits_.get()),
         num_bits_(num_bits) {
     ClearAll();
@@ -137,13 +130,10 @@ class BitVector : public BitVectorBase<BitVector> {
 
   // Take over the given bits
   BitVector(std::unique_ptr<u32[]> bits, u32 num_bits)
-      : owned_bits_(std::move(bits)),
-        bits_(owned_bits_.get()),
-        num_bits_(num_bits) {}
+      : owned_bits_(std::move(bits)), bits_(owned_bits_.get()), num_bits_(num_bits) {}
 
   // Provide bit vector access to the given bits, not taking ownership of them
-  BitVector(u32 unowned_bits[], u32 num_bits)
-      : owned_bits_(nullptr), bits_(unowned_bits), num_bits_(num_bits) {}
+  BitVector(u32 unowned_bits[], u32 num_bits) : owned_bits_(nullptr), bits_(unowned_bits), num_bits_(num_bits) {}
 
   void Init(u32 num_bits) {
     owned_bits_ = std::make_unique<u32[]>(BitUtil::Num32BitWordsFor(num_bits));

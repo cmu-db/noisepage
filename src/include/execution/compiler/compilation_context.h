@@ -53,4 +53,4 @@ class CompilationContext {
   std::unordered_map<const terrier::planner::AbstractPlanNode *, OperatorTranslator *> op_translators_;
 };
 
-}
+}  // namespace tpl::compiler

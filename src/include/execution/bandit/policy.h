@@ -42,9 +42,7 @@ class Policy {
 class EpsilonGreedyPolicy : public Policy {
  public:
   explicit EpsilonGreedyPolicy(double epsilon, Kind kind = Kind::EpsilonGreedy)
-      : Policy(kind),
-        epsilon_(epsilon),
-        real_(std::uniform_real_distribution<double>(0, 1)) {}
+      : Policy(kind), epsilon_(epsilon), real_(std::uniform_real_distribution<double>(0, 1)) {}
 
   u32 NextAction(Agent *agent) override;
 
@@ -95,8 +93,7 @@ class UCBPolicy : public Policy {
  */
 class FixedActionPolicy : public Policy {
  public:
-  explicit FixedActionPolicy(u32 action)
-      : Policy(Kind::FixedAction), action_(action) {}
+  explicit FixedActionPolicy(u32 action) : Policy(Kind::FixedAction), action_(action) {}
 
   u32 NextAction(Agent *agent) override { return action_; }
 

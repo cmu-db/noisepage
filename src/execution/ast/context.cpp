@@ -17,13 +17,13 @@
 #include "execution/ast/type.h"
 #include "execution/sql/aggregation_hash_table.h"
 #include "execution/sql/aggregators.h"
+#include "execution/sql/index_iterator.h"
 #include "execution/sql/join_hash_table.h"
 #include "execution/sql/sorter.h"
 #include "execution/sql/table_vector_iterator.h"
 #include "execution/sql/value.h"
 #include "execution/util/common.h"
 #include "execution/util/math_util.h"
-#include "execution/sql/index_iterator.h"
 
 namespace tpl::ast {
 
@@ -32,9 +32,7 @@ namespace tpl::ast {
 // ---------------------------------------------------------
 
 /// Compute a hash_code for a field
-llvm::hash_code hash_value(const Field &field) {
-  return llvm::hash_combine(field.name.data(), field.type);
-}
+llvm::hash_code hash_value(const Field &field) { return llvm::hash_combine(field.name.data(), field.type); }
 
 using terrier::type::TypeId;
 
@@ -44,40 +42,29 @@ struct StructTypeKeyInfo {
 
     explicit KeyTy(const util::RegionVector<Field> &es) : elements(es) {}
 
-    explicit KeyTy(const StructType *struct_type)
-        : elements(struct_type->fields()) {}
+    explicit KeyTy(const StructType *struct_type) : elements(struct_type->fields()) {}
 
-    bool operator==(const KeyTy &that) const {
-      return elements == that.elements;
-    }
+    bool operator==(const KeyTy &that) const { return elements == that.elements; }
 
     bool operator!=(const KeyTy &that) const { return !this->operator==(that); }
   };
 
-  static inline StructType *getEmptyKey() {
-    return llvm::DenseMapInfo<StructType *>::getEmptyKey();
-  }
+  static inline StructType *getEmptyKey() { return llvm::DenseMapInfo<StructType *>::getEmptyKey(); }
 
-  static inline StructType *getTombstoneKey() {
-    return llvm::DenseMapInfo<StructType *>::getTombstoneKey();
-  }
+  static inline StructType *getTombstoneKey() { return llvm::DenseMapInfo<StructType *>::getTombstoneKey(); }
 
   static std::size_t getHashValue(const KeyTy &key) {
     return llvm::hash_combine_range(key.elements.begin(), key.elements.end());
   }
 
-  static std::size_t getHashValue(const StructType *struct_type) {
-    return getHashValue(KeyTy(struct_type));
-  }
+  static std::size_t getHashValue(const StructType *struct_type) { return getHashValue(KeyTy(struct_type)); }
 
   static bool isEqual(const KeyTy &lhs, const StructType *rhs) {
     if (rhs == getEmptyKey() || rhs == getTombstoneKey()) return false;
     return lhs == KeyTy(rhs);
   }
 
-  static bool isEqual(const StructType *lhs, const StructType *rhs) {
-    return lhs == rhs;
-  }
+  static bool isEqual(const StructType *lhs, const StructType *rhs) { return lhs == rhs; }
 };
 
 // ---------------------------------------------------------
@@ -89,43 +76,31 @@ struct FunctionTypeKeyInfo {
     Type *ret_type;
     const util::RegionVector<Field> &params;
 
-    explicit KeyTy(Type *ret_type, const util::RegionVector<Field> &ps)
-        : ret_type(ret_type), params(ps) {}
+    explicit KeyTy(Type *ret_type, const util::RegionVector<Field> &ps) : ret_type(ret_type), params(ps) {}
 
-    explicit KeyTy(const FunctionType *func_type)
-        : ret_type(func_type->return_type()), params(func_type->params()) {}
+    explicit KeyTy(const FunctionType *func_type) : ret_type(func_type->return_type()), params(func_type->params()) {}
 
     bool operator==(const KeyTy &that) const { return params == that.params; }
 
     bool operator!=(const KeyTy &that) const { return !this->operator==(that); }
   };
 
-  static inline FunctionType *getEmptyKey() {
-    return llvm::DenseMapInfo<FunctionType *>::getEmptyKey();
-  }
+  static inline FunctionType *getEmptyKey() { return llvm::DenseMapInfo<FunctionType *>::getEmptyKey(); }
 
-  static inline FunctionType *getTombstoneKey() {
-    return llvm::DenseMapInfo<FunctionType *>::getTombstoneKey();
-  }
+  static inline FunctionType *getTombstoneKey() { return llvm::DenseMapInfo<FunctionType *>::getTombstoneKey(); }
 
   static std::size_t getHashValue(const KeyTy &key) {
-    return llvm::hash_combine(
-        key.ret_type,
-        llvm::hash_combine_range(key.params.begin(), key.params.end()));
+    return llvm::hash_combine(key.ret_type, llvm::hash_combine_range(key.params.begin(), key.params.end()));
   }
 
-  static std::size_t getHashValue(const FunctionType *func_type) {
-    return getHashValue(KeyTy(func_type));
-  }
+  static std::size_t getHashValue(const FunctionType *func_type) { return getHashValue(KeyTy(func_type)); }
 
   static bool isEqual(const KeyTy &lhs, const FunctionType *rhs) {
     if (rhs == getEmptyKey() || rhs == getTombstoneKey()) return false;
     return lhs == KeyTy(rhs);
   }
 
-  static bool isEqual(const FunctionType *lhs, const FunctionType *rhs) {
-    return lhs == rhs;
-  }
+  static bool isEqual(const FunctionType *lhs, const FunctionType *rhs) { return lhs == rhs; }
 };
 
 struct Context::Implementation {
@@ -155,12 +130,10 @@ struct Context::Implementation {
   llvm::DenseSet<FunctionType *, FunctionTypeKeyInfo> func_types;
 
   explicit Implementation(Context *ctx)
-      : string_table(kDefaultStringTableCapacity,
-                     util::LLVMRegionAllocator(ctx->region())) {
+      : string_table(kDefaultStringTableCapacity, util::LLVMRegionAllocator(ctx->region())) {
     // Instantiate all the builtins
-#define F(BKind, CppType, ...)      \
-  BKind##Type = new (ctx->region()) \
-      BuiltinType(ctx, sizeof(CppType), alignof(CppType), BuiltinType::BKind);
+#define F(BKind, CppType, ...) \
+  BKind##Type = new (ctx->region()) BuiltinType(ctx, sizeof(CppType), alignof(CppType), BuiltinType::BKind);
     BUILTIN_TYPE_LIST(F, F, F)
 #undef F
 
@@ -179,10 +152,8 @@ Context::Context(util::Region *region, sema::ErrorReporter *error_reporter)
 #undef F
 
   // Put all builtins into cache by name
-#define PRIM(BKind, CppType, TplName) \
-  impl()->builtin_types[GetIdentifier(TplName)] = impl()->BKind##Type;
-#define OTHERS(BKind, CppType) \
-  impl()->builtin_types[GetIdentifier(#BKind)] = impl()->BKind##Type;
+#define PRIM(BKind, CppType, TplName) impl()->builtin_types[GetIdentifier(TplName)] = impl()->BKind##Type;
+#define OTHERS(BKind, CppType) impl()->builtin_types[GetIdentifier(#BKind)] = impl()->BKind##Type;
   BUILTIN_TYPE_LIST(PRIM, OTHERS, OTHERS)
 #undef OTHERS
 #undef PRIM
@@ -193,9 +164,8 @@ Context::Context(util::Region *region, sema::ErrorReporter *error_reporter)
   impl()->builtin_types[GetIdentifier("void")] = impl()->NilType;
 
   // Initialize builtin functions
-#define BUILTIN_FUNC(Name, ...)        \
-  impl()->builtin_funcs[GetIdentifier( \
-      Builtins::GetFunctionName(Builtin::Name))] = Builtin::Name;
+#define BUILTIN_FUNC(Name, ...) \
+  impl()->builtin_funcs[GetIdentifier(Builtins::GetFunctionName(Builtin::Name))] = Builtin::Name;
   BUILTINS_LIST(BUILTIN_FUNC)
 #undef BUILTIN_FUNC
 }
@@ -207,10 +177,7 @@ Identifier Context::GetIdentifier(llvm::StringRef str) {
     return Identifier(nullptr);
   }
 
-  auto iter =
-      impl()
-          ->string_table.insert(std::make_pair(str, static_cast<char>(0)))
-          .first;
+  auto iter = impl()->string_table.insert(std::make_pair(str, static_cast<char>(0))).first;
   return Identifier(iter->getKeyData());
 }
 
@@ -245,8 +212,7 @@ Type *Context::LookupBuiltinType(Identifier identifier) const {
 }
 
 bool Context::IsBuiltinFunction(Identifier identifier, Builtin *builtin) const {
-  if (auto iter = impl()->builtin_funcs.find(identifier);
-      iter != impl()->builtin_funcs.end()) {
+  if (auto iter = impl()->builtin_funcs.find(identifier); iter != impl()->builtin_funcs.end()) {
     if (builtin != nullptr) {
       *builtin = iter->second;
     }
@@ -259,9 +225,7 @@ bool Context::IsBuiltinFunction(Identifier identifier, Builtin *builtin) const {
 PointerType *Type::PointerTo() { return PointerType::Get(this); }
 
 // static
-BuiltinType *BuiltinType::Get(Context *ctx, BuiltinType::Kind kind) {
-  return ctx->impl()->builtin_types_list[kind];
-}
+BuiltinType *BuiltinType::Get(Context *ctx, BuiltinType::Kind kind) { return ctx->impl()->builtin_types_list[kind]; }
 
 // static
 StringType *StringType::Get(Context *ctx) { return ctx->impl()->string; }
@@ -334,8 +298,7 @@ StructType *StructType::Get(Context *ctx, util::RegionVector<Field> &&fields) {
       alignment = std::max(alignment, field.type->alignment());
     }
 
-    struct_type = new (ctx->region()) StructType(
-        ctx, size, alignment, std::move(fields), std::move(field_offsets));
+    struct_type = new (ctx->region()) StructType(ctx, size, alignment, std::move(fields), std::move(field_offsets));
     *iter = struct_type;
   } else {
     struct_type = *iter;
@@ -346,8 +309,7 @@ StructType *StructType::Get(Context *ctx, util::RegionVector<Field> &&fields) {
 
 // static
 StructType *StructType::Get(util::RegionVector<Field> &&fields) {
-  TPL_ASSERT(!fields.empty(),
-             "Cannot use StructType::Get(fields) with an empty list of fields");
+  TPL_ASSERT(!fields.empty(), "Cannot use StructType::Get(fields) with an empty list of fields");
   return StructType::Get(fields[0].type->context(), std::move(fields));
 }
 

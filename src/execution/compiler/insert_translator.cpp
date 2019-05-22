@@ -1,12 +1,12 @@
 #include "execution/compiler/operator/insert_translator.h"
 
-#include "execution/compiler/consumer_context.h"
+#include "execution/compiler/code_context.h"
 #include "execution/compiler/codegen.h"
+#include "execution/compiler/compilation_context.h"
+#include "execution/compiler/consumer_context.h"
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/pipeline.h"
 #include "execution/compiler/row_batch.h"
-#include "execution/compiler/compilation_context.h"
-#include "execution/compiler/code_context.h"
 #include "execution/sql/execution_structures.h"
 
 #include "planner/plannodes/insert_plan_node.h"
@@ -15,7 +15,7 @@ namespace tpl::compiler {
 
 InsertTranslator::InsertTranslator(const terrier::planner::AbstractPlanNode &op, Pipeline *pipeline)
     : OperatorTranslator(op, pipeline), struct_ty_(nullptr) {
-  if(op.GetChildrenSize() == 1) {
+  if (op.GetChildrenSize() == 1) {
     pipeline->GetCompilationContext()->Prepare(*op.GetChild(0), pipeline);
   }
 }
@@ -84,5 +84,4 @@ void InsertTranslator::Consume(const tpl::compiler::ConsumerContext *context, tp
   codegen.GetCurrentFunction()->Append(codegen->NewExpressionStmt(call_stmt));
 }
 
-
-} // namespace tpl::compiler
+}  // namespace tpl::compiler

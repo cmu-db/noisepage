@@ -17,9 +17,7 @@ BreakableBlockBuilder::~BreakableBlockBuilder() {
 
 void BreakableBlockBuilder::Break() { EmitJump(break_label()); }
 
-void BreakableBlockBuilder::EmitJump(BytecodeLabel *label) {
-  generator()->emitter()->EmitJump(Bytecode::Jump, label);
-}
+void BreakableBlockBuilder::EmitJump(BytecodeLabel *label) { generator()->emitter()->EmitJump(Bytecode::Jump, label); }
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
@@ -34,15 +32,12 @@ void LoopBuilder::LoopHeader() {
   generator()->emitter()->Bind(header_label());
 }
 
-void LoopBuilder::JumpToHeader() {
-  generator()->emitter()->EmitJump(Bytecode::Jump, header_label());
-}
+void LoopBuilder::JumpToHeader() { generator()->emitter()->EmitJump(Bytecode::Jump, header_label()); }
 
 void LoopBuilder::Continue() { EmitJump(continue_label()); }
 
 void LoopBuilder::BindContinueTarget() {
-  TPL_ASSERT(!continue_label()->is_bound(),
-             "Continue label can only be bound once");
+  TPL_ASSERT(!continue_label()->is_bound(), "Continue label can only be bound once");
   generator()->emitter()->Bind(continue_label());
 }
 
@@ -65,8 +60,6 @@ void IfThenElseBuilder::Then() { generator()->emitter()->Bind(then_label()); }
 
 void IfThenElseBuilder::Else() { generator()->emitter()->Bind(else_label()); }
 
-void IfThenElseBuilder::JumpToEnd() {
-  generator()->emitter()->EmitJump(Bytecode::Jump, end_label());
-}
+void IfThenElseBuilder::JumpToEnd() { generator()->emitter()->EmitJump(Bytecode::Jump, end_label()); }
 
 }  // namespace tpl::vm

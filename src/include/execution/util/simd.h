@@ -26,9 +26,9 @@ struct Lane {
 #define SIMD_TOP_LEVEL
 
 #if defined(__AVX512F__)
-#include "execution/util/simd/avx512.h"
+#include "execution/util/simd/avx512.h" // NOLINT
 #elif defined(__AVX2__)
-#include "execution/util/simd/avx2.h"
+#include "execution/util/simd/avx2.h" // NOLINT
 #else
 #error "Compiler must support at least AVX2"
 #endif

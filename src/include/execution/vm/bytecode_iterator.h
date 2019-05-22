@@ -21,8 +21,7 @@ class LocalVar;
 /// beginning of a bytecode instruction.
 class BytecodeIterator {
  public:
-  BytecodeIterator(const std::vector<u8> &bytecode, std::size_t start,
-                   std::size_t end);
+  BytecodeIterator(const std::vector<u8> &bytecode, std::size_t start, std::size_t end);
 
   /// Get the bytecode instruction the iterator is currently pointing to
   /// \return The current bytecode instruction
@@ -64,8 +63,7 @@ class BytecodeIterator {
   /// local variables appearing after this operand
   /// \param operand_index The index of the operand to retrieve
   /// \return The number of operands
-  u16 GetLocalCountOperand(u32 operand_index,
-                           std::vector<LocalVar> *locals) const;
+  u16 GetLocalCountOperand(u32 operand_index, std::vector<LocalVar> *locals) const;
 
   ///
   /// \param operand_index

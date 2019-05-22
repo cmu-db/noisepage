@@ -13,8 +13,7 @@ namespace tpl::bandit {
  */
 class Environment {
  public:
-  Environment(MultiArmedBandit *bandit, Agent *agent)
-      : bandit_(bandit), agent_(agent) {}
+  Environment(MultiArmedBandit *bandit, Agent *agent) : bandit_(bandit), agent_(agent) {}
 
   /**
    * Reset the state of the environment.
@@ -30,8 +29,7 @@ class Environment {
    * chosen randomly without replacement. Else, it is chosen from 0 to
    * num_trials.
    */
-  void Run(u32 num_trials, std::vector<double> *rewards,
-           std::vector<u32> *actions, bool shuffle = false);
+  void Run(u32 num_trials, std::vector<double> *rewards, std::vector<u32> *actions, bool shuffle = false);
 
  private:
   // Bandit that executes the actions.

@@ -1,9 +1,9 @@
 #pragma once
 
-#include "type/type_id.h"
 #include "execution/util/common.h"
 #include "execution/util/macros.h"
 #include "execution/util/math_util.h"
+#include "type/type_id.h"
 
 namespace tpl::sql {
 
@@ -66,9 +66,7 @@ struct Integer : public Val {
   }
 
   /// dumb division for now
-  Integer Divide(const Integer &denom) {
-    return Integer(this->val / denom.val);
-  }
+  Integer Divide(const Integer &denom) { return Integer(this->val / denom.val); }
 };
 
 // ---------------------------------------------------------
@@ -98,8 +96,7 @@ struct Decimal : public Val {
   u32 precision;
   u32 scale;
 
-  Decimal(u64 val, u32 precision, u32 scale) noexcept
-      : Val(false), val(val), precision(precision), scale(scale) {}
+  Decimal(u64 val, u32 precision, u32 scale) noexcept : Val(false), val(val), precision(precision), scale(scale) {}
 
   /// Return a NULL decimal value
   static Decimal Null() {
@@ -118,8 +115,7 @@ struct VarBuffer : public Val {
   u8 *str;
   u32 len;
 
-  VarBuffer(u8 *str, u32 len) noexcept
-      : Val(str == nullptr), str(str), len(len) {}
+  VarBuffer(u8 *str, u32 len) noexcept : Val(str == nullptr), str(str), len(len) {}
 
   /// Return a NULL varchar/string
   static VarBuffer Null() { return VarBuffer(nullptr, 0); }

@@ -26,8 +26,7 @@ enum class ExecutionMode : u8 { Interpret, Jit };
 class BytecodeModule {
  public:
   /// Construct
-  BytecodeModule(std::string name, std::vector<u8> &&code,
-                 std::vector<FunctionInfo> &&functions);
+  BytecodeModule(std::string name, std::vector<u8> &&code, std::vector<FunctionInfo> &&functions);
 
   /// This class cannot be copied or moved
   DISALLOW_COPY_AND_MOVE(BytecodeModule);
@@ -77,8 +76,7 @@ class BytecodeModule {
   /// \param[out] func The function wrapper we use to wrap the TPL function
   /// \return True if the function was found and the output parameter was set
   template <typename Ret, typename... ArgTypes>
-  bool GetFunction(const std::string &name, ExecutionMode exec_mode,
-                   std::function<Ret(ArgTypes...)> &func);
+  bool GetFunction(const std::string &name, ExecutionMode exec_mode, std::function<Ret(ArgTypes...)> *func);
 
   /// Pretty print all the module's contents into the provided output stream
   /// \param os The stream into which we dump the module's contents
@@ -113,8 +111,7 @@ class BytecodeModule {
   /// Create a trampoline function for the function with id \a func_id
   class Trampoline;
   void CreateFunctionTrampoline(FunctionId func_id);
-  void CreateFunctionTrampoline(const FunctionInfo &func,
-                                Trampoline *trampoline);
+  void CreateFunctionTrampoline(const FunctionInfo &func, Trampoline *trampoline);
 
  private:
   /// A trampoline is a stub function that all calls into TPL code go through
@@ -122,11 +119,10 @@ class BytecodeModule {
   class Trampoline {
    public:
     /// Create an empty/uninitialized trampoline
-    Trampoline() noexcept {}; // NOLINT
+    Trampoline() noexcept {};  // NOLINT
 
     /// Create a trampoline over the given memory block
-    explicit Trampoline(llvm::sys::OwningMemoryBlock &&mem) noexcept
-        : mem_(std::move(mem)) {}
+    explicit Trampoline(llvm::sys::OwningMemoryBlock &&mem) noexcept : mem_(std::move(mem)) {}
 
     /// Move assignment
     Trampoline &operator=(Trampoline &&other) noexcept {
@@ -169,9 +165,8 @@ inline void CopyAll(u8 *buffer, const HeadT &head, const RestT &... rest) {
 }  // namespace detail
 
 template <typename RetT, typename... ArgTypes>
-inline bool BytecodeModule::GetFunction(
-    const std::string &name, ExecutionMode exec_mode,
-    std::function<RetT(ArgTypes...)> &func) {
+inline bool BytecodeModule::GetFunction(const std::string &name, ExecutionMode exec_mode,
+                                        std::function<RetT(ArgTypes...)> *func) {
   const FunctionInfo *func_info = GetFuncInfoByName(name);
 
   // Check valid function
@@ -187,10 +182,10 @@ inline bool BytecodeModule::GetFunction(
 
   switch (exec_mode) {
     case ExecutionMode::Interpret: {
-      func = [this, func_info](ArgTypes... args) -> RetT {
+      *func = [this, func_info](ArgTypes... args) -> RetT {
         if constexpr (std::is_void_v<RetT>) {
           // Create a temporary on-stack buffer and copy all arguments
-          u8 arg_buffer[(0ul + ... +sizeof(args))];
+          u8 arg_buffer[(0ul + ... + sizeof(args))];
           detail::CopyAll(arg_buffer, args...);
 
           // Invoke and finish
@@ -209,7 +204,7 @@ inline bool BytecodeModule::GetFunction(
       break;
     }
     case ExecutionMode::Jit: {
-      func = [this, func_info](ArgTypes... args) -> RetT {
+      *func = [this, func_info](ArgTypes... args) -> RetT {
         // TODO(pmenon): Check if already compiled
 
         // JIT the module

@@ -82,7 +82,7 @@ void CpuInfo::InitCpuInfo() {
   std::ifstream infile("/proc/cpuinfo");
   while (std::getline(infile, line)) {
     llvm::StringRef str(line);
-
+    // NOLINTNEXTLINE
     auto [name, value] = str.split(":");
     value = value.trim(" ");
 
@@ -128,12 +128,9 @@ void CpuInfo::InitCacheInfo() {
   cache_sizes_[L2_CACHE] = static_cast<u32>(sysconf(_SC_LEVEL2_CACHE_SIZE));
   cache_sizes_[L3_CACHE] = static_cast<u32>(sysconf(_SC_LEVEL3_CACHE_SIZE));
 
-  cache_line_sizes_[L1_CACHE] =
-      static_cast<u32>(sysconf(_SC_LEVEL1_DCACHE_LINESIZE));
-  cache_line_sizes_[L2_CACHE] =
-      static_cast<u32>(sysconf(_SC_LEVEL2_CACHE_LINESIZE));
-  cache_line_sizes_[L3_CACHE] =
-      static_cast<u32>(sysconf(_SC_LEVEL3_CACHE_LINESIZE));
+  cache_line_sizes_[L1_CACHE] = static_cast<u32>(sysconf(_SC_LEVEL1_DCACHE_LINESIZE));
+  cache_line_sizes_[L2_CACHE] = static_cast<u32>(sysconf(_SC_LEVEL2_CACHE_LINESIZE));
+  cache_line_sizes_[L3_CACHE] = static_cast<u32>(sysconf(_SC_LEVEL3_CACHE_LINESIZE));
 #endif
 }
 

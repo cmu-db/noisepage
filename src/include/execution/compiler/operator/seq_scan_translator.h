@@ -15,5 +15,4 @@ class SeqScanTranslator : public OperatorTranslator {
   void Produce() override;
 };
 
-
-} // namespace tpl::compiler
+}  // namespace tpl::compiler

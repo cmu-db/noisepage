@@ -4,7 +4,9 @@
 #include <iostream>
 #include <memory>
 #include <sstream>
+#include <unordered_map>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 #include "catalog/catalog_defs.h"
 #include "catalog/schema.h"
@@ -23,8 +25,7 @@ using OutputCallback = std::function<void(byte *, u32, u32)>;
 // The final schema outputted to the upper layer.
 class FinalSchema {
  public:
-  FinalSchema(std::vector<Schema::Column> cols,
-              std::unordered_map<u32, u32> offsets)
+  FinalSchema(std::vector<Schema::Column> cols, std::unordered_map<u32, u32> offsets)
       : cols_(std::move(cols)), offsets_(std::move(offsets)) {}
 
   const std::vector<Schema::Column> &GetCols() const { return cols_; }

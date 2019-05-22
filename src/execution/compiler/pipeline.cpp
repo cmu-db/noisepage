@@ -5,22 +5,18 @@
 
 namespace tpl::compiler {
 
- const OperatorTranslator *Pipeline::NextStep() {
-   if (pipeline_index_ > 0) {
-     return pipeline_[--pipeline_index_];
-   }
-   return nullptr;
- }
-
-  util::Region *Pipeline::GetRegion() {
-    return ctx_->GetRegion();
-  };
-
-  CodeGen *Pipeline::GetCodeGen() {
-    return ctx_->GetCodeGen();
+const OperatorTranslator *Pipeline::NextStep() {
+  if (pipeline_index_ > 0) {
+    return pipeline_[--pipeline_index_];
   }
-
-  void Pipeline::Add(OperatorTranslator *translator, Pipeline::Parallelism parallelism) {
-    pipeline_.push_back(translator);
-  }
+  return nullptr;
 }
+
+util::Region *Pipeline::GetRegion() { return ctx_->GetRegion(); }
+
+CodeGen *Pipeline::GetCodeGen() { return ctx_->GetCodeGen(); }
+
+void Pipeline::Add(OperatorTranslator *translator, Pipeline::Parallelism parallelism) {
+  pipeline_.push_back(translator);
+}
+}  // namespace tpl::compiler

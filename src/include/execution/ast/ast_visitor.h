@@ -25,8 +25,7 @@ namespace tpl::ast {
 template <typename Subclass, typename RetType = void>
 class AstVisitor {
  public:
-#define DISPATCH(Type) \
-  return this->impl()->Visit##Type(static_cast<Type *>(node));
+#define DISPATCH(Type) return this->impl()->Visit##Type(static_cast<Type *>(node));
 
   RetType Visit(AstNode *node) {
     switch (node->kind()) {

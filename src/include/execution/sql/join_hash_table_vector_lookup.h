@@ -23,8 +23,7 @@ class JoinHashTableVectorLookup {
   void Prepare(ProjectedColumnsIterator *pci, HashFn hash_fn) noexcept;
 
   /// Return the next match, moving the input iterator if need be
-  const HashTableEntry *GetNextOutput(ProjectedColumnsIterator *pci,
-                                      KeyEqFn key_eq_fn) noexcept;
+  const HashTableEntry *GetNextOutput(ProjectedColumnsIterator *pci, KeyEqFn key_eq_fn) noexcept;
 
  private:
   const JoinHashTable &table_;
@@ -39,8 +38,8 @@ class JoinHashTableVectorLookup {
 
 // Because this function is a tuple-at-a-time, it's placed in the header to
 // reduce function call overhead.
-inline const HashTableEntry *JoinHashTableVectorLookup::GetNextOutput(
-    ProjectedColumnsIterator *pci, const KeyEqFn key_eq_fn) noexcept {
+inline const HashTableEntry *JoinHashTableVectorLookup::GetNextOutput(ProjectedColumnsIterator *pci,
+                                                                      const KeyEqFn key_eq_fn) noexcept {
   TPL_ASSERT(pci != nullptr, "No input PCI!");
   TPL_ASSERT(match_idx_ < pci->num_selected(), "Continuing past iteration!");
 
@@ -48,8 +47,7 @@ inline const HashTableEntry *JoinHashTableVectorLookup::GetNextOutput(
     // Continue along current chain until we find a match
     while (const auto *entry = entries_[match_idx_]) {
       entries_[match_idx_] = entry->next;
-      if (entry->hash == hashes_[match_idx_] &&
-          key_eq_fn(entry->payload, pci)) {
+      if (entry->hash == hashes_[match_idx_] && key_eq_fn(entry->payload, pci)) {
         return entry;
       }
     }

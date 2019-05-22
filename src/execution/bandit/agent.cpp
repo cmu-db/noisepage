@@ -27,8 +27,7 @@ void Agent::Observe(double reward) {
     g = gamma_;
   }
 
-  value_estimates_[last_action_] +=
-      g * (reward - value_estimates_[last_action_]);
+  value_estimates_[last_action_] += g * (reward - value_estimates_[last_action_]);
   timestep_++;
 }
 

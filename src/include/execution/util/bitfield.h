@@ -49,9 +49,7 @@ class BitFieldBase {
 
   static constexpr const S kMask = ((kOne << size) - 1) << shift;
 
-  ALWAYS_INLINE static constexpr S Encode(T val) {
-    return static_cast<S>(val) << shift;
-  }
+  ALWAYS_INLINE static constexpr S Encode(T val) { return static_cast<S>(val) << shift; }
 
   ALWAYS_INLINE static constexpr T Decode(S storage) {
     if constexpr (std::is_same_v<T, bool>) {
@@ -60,9 +58,7 @@ class BitFieldBase {
     return static_cast<T>((storage & kMask) >> shift);
   }
 
-  ALWAYS_INLINE static constexpr S Update(S curr_storage, T update) {
-    return (curr_storage & ~kMask) | Encode(update);
-  }
+  ALWAYS_INLINE static constexpr S Update(S curr_storage, T update) { return (curr_storage & ~kMask) | Encode(update); }
 
   static_assert((kNextBit - 1) / 8 < sizeof(S));
 };

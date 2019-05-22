@@ -1,11 +1,12 @@
 #pragma once
 
+#include <string>
 #include "execution/ast/ast.h"
 #include "execution/ast/ast_node_factory.h"
 #include "execution/util/common.h"
 #include "execution/util/macros.h"
-#include "type/type_id.h"
 #include "type/transient_value.h"
+#include "type/type_id.h"
 
 namespace tpl::util {
 class Region;
@@ -56,7 +57,7 @@ class CodeGen {
 
   ast::Identifier NewIdentifier();
 
-  ast::Stmt *Call(ast::FunctionDecl *fn, util::RegionVector<ast::Expr*> &&args);
+  ast::Stmt *Call(ast::FunctionDecl *fn, util::RegionVector<ast::Expr *> &&args);
 
   // TODO(WAN): how to handle builtins?
   ast::IdentifierExpr *BptrCast();
@@ -77,4 +78,4 @@ class CodeGen {
   ast::AstNodeFactory *factory_;
 };
 
-}
+}  // namespace tpl::compiler

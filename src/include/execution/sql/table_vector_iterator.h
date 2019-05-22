@@ -8,17 +8,15 @@
 
 namespace tpl::sql {
 using terrier::catalog::db_oid_t;
-using terrier::catalog::table_oid_t ;
-using terrier::transaction::TransactionContext;
+using terrier::catalog::table_oid_t;
 using terrier::storage::DataTable;
+using terrier::transaction::TransactionContext;
 
 /// An iterator over a table's data in vector-wise fashion
 class TableVectorIterator {
  public:
   /// Create a new vectorized iterator over the given table
-  explicit TableVectorIterator(
-      u32 db_oid, u32 table_oid,
-      terrier::transaction::TransactionContext *txn = nullptr);
+  explicit TableVectorIterator(u32 db_oid, u32 table_oid, terrier::transaction::TransactionContext *txn = nullptr);
 
   // Destructor
   ~TableVectorIterator();

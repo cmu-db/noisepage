@@ -15,8 +15,7 @@ class Sorter {
 
   /// Construct a sorter using the given allocator, configured to store input
   /// tuples of size \a tuple_size bytes
-  Sorter(util::Region *region, ComparisonFunction cmp_fn,
-         u32 tuple_size) noexcept;
+  Sorter(util::Region *region, ComparisonFunction cmp_fn, u32 tuple_size) noexcept;
 
   /// Destructor
   ~Sorter();
@@ -60,8 +59,7 @@ class Sorter {
 /// An iterator over the elements in a sorter instance
 class SorterIterator {
  public:
-  explicit SorterIterator(Sorter *sorter) noexcept
-      : iter_(sorter->tuples_.begin()) {}
+  explicit SorterIterator(Sorter *sorter) noexcept : iter_(sorter->tuples_.begin()) {}
 
   const byte *operator*() noexcept { return *iter_; }
 

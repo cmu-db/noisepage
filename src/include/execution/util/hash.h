@@ -15,8 +15,7 @@ enum class HashMethod { Fnv1, Murmur3, Crc };
 /// Utility class for hashing
 class Hasher {
  public:
-  static hash_t Hash(const u8 *buf, u64 len,
-                     HashMethod method = HashMethod::Crc);
+  static hash_t Hash(const u8 *buf, u64 len, HashMethod method = HashMethod::Crc);
 
  private:
   static hash_t HashFnv1(const u8 *buf, u64 len);

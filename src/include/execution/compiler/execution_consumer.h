@@ -1,5 +1,8 @@
 #pragma once
 
+#include <memory>
+#include <string>
+#include <utility>
 #include "execution/ast/context.h"
 #include "execution/compiler/code_context.h"
 #include "execution/compiler/consumer_context.h"
@@ -101,4 +104,4 @@ class ExecutionConsumer {
   ast::StructTypeRepr *output_ty_;
 };
 
-}
+}  // namespace tpl::compiler

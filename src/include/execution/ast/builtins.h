@@ -66,7 +66,7 @@ namespace tpl::ast {
   F(IndexIteratorFree, indexIteratorFree)       \
                                                 \
   /* Insert */                                  \
-  F(Insert, insert)                             \
+  F(Insert, insert)
 
 enum class Builtin : u8 {
 #define ENTRY(Name, ...) Name,
@@ -85,9 +85,7 @@ class Builtins {
   // Return the total number of bytecodes
   static constexpr u32 NumBuiltins() { return kBuiltinsCount; }
 
-  static const char *GetFunctionName(Builtin builtin) {
-    return kBuiltinFunctionNames[static_cast<u8>(builtin)];
-  }
+  static const char *GetFunctionName(Builtin builtin) { return kBuiltinFunctionNames[static_cast<u8>(builtin)]; }
 
  private:
   static const char *kBuiltinFunctionNames[];

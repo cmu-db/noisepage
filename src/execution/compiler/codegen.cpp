@@ -1,7 +1,9 @@
 #include "execution/compiler/codegen.h"
 
-#include "execution/compiler/function_builder.h"
+#include <string>
+#include <utility>
 #include "execution/compiler/code_context.h"
+#include "execution/compiler/function_builder.h"
 #include "type/transient_value_peeker.h"
 
 namespace tpl::compiler {
@@ -20,12 +22,12 @@ ast::BlockStmt *CodeGen::EmptyBlock() const {
 ast::Identifier CodeGen::NewIdentifier() {
   // Use the custom allocator because the id will outlive the std::string.
   std::string id = "id" + std::to_string(id_count_++);
-  auto* id_str = GetRegion()->AllocateArray<char>(id.size() + 1);
+  auto *id_str = GetRegion()->AllocateArray<char>(id.size() + 1);
   std::memcpy(id_str, id.c_str(), id.size() + 1);
   return ctx_->GetAstContext()->GetIdentifier(id_str);
 }
 
-ast::Stmt *CodeGen::Call(ast::FunctionDecl *fn, util::RegionVector<ast::Expr*> &&args) {
+ast::Stmt *CodeGen::Call(ast::FunctionDecl *fn, util::RegionVector<ast::Expr *> &&args) {
   return factory_->NewExpressionStmt(factory_->NewCallExpr(fn->function(), std::move(args)));
 }
 
@@ -85,11 +87,21 @@ ast::Expr *CodeGen::PeekValue(const terrier::type::TransientValue &transient_val
 
 ast::Expr *CodeGen::TyConvert(terrier::type::TypeId type) const {
   switch (type) {
-    case terrier::type::TypeId::TINYINT: { return TyInt8(); }
-    case terrier::type::TypeId::SMALLINT: { return TyInt16(); }
-    case terrier::type::TypeId::INTEGER: { return TyInt32(); }
-    case terrier::type::TypeId::BIGINT: { return TyInt64(); }
-    case terrier::type::TypeId::BOOLEAN: { return TyBool(); }
+    case terrier::type::TypeId::TINYINT: {
+      return TyInt8();
+    }
+    case terrier::type::TypeId::SMALLINT: {
+      return TyInt16();
+    }
+    case terrier::type::TypeId::INTEGER: {
+      return TyInt32();
+    }
+    case terrier::type::TypeId::BIGINT: {
+      return TyInt64();
+    }
+    case terrier::type::TypeId::BOOLEAN: {
+      return TyBool();
+    }
     case terrier::type::TypeId::DATE:
     case terrier::type::TypeId::TIMESTAMP:
     case terrier::type::TypeId::DECIMAL:
@@ -116,7 +128,6 @@ ast::Expr *CodeGen::TyUInt64() const { return ctx_->u64_type_; }
 ast::Expr *CodeGen::TyUInt128() const { return ctx_->u128_type_; }
 ast::Expr *CodeGen::TyFloat32() const { return ctx_->f32_type_; }
 ast::Expr *CodeGen::TyFloat64() const { return ctx_->f64_type_; }
-
 
 /*ast::FunctionDecl *GetFunction(std::string name, ast::Expr *ret_type, util::RegionVector<ast::FieldDecl *> args,
                                CodeBlock &block) {
@@ -168,4 +179,4 @@ ast::Expr *Modulo(ast::Expr *left, ast::Expr *right) const {
 
 ast::Stmt *Return(ast::Expr *val) const { return factory_->NewReturnStmt(DUMMY_POS, val); }*/
 
-} // namespace tpl::compiler
+}  // namespace tpl::compiler

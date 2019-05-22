@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+#include <vector>
 #include "catalog/catalog_defs.h"
 #include "catalog/catalog_index.h"
 #include "catalog/catalog_sql_table.h"
@@ -7,17 +9,16 @@
 #include "storage/storage_defs.h"
 
 namespace tpl::sql {
-using terrier::transaction::TransactionContext;
-using terrier::storage::ProjectedRow;
-using terrier::storage::TupleSlot;
 using terrier::catalog::CatalogIndex;
 using terrier::catalog::SqlTableRW;
+using terrier::storage::ProjectedRow;
+using terrier::storage::TupleSlot;
+using terrier::transaction::TransactionContext;
 
 class IndexIterator {
  public:
   // Constructs the iterator for the given index
-  explicit IndexIterator(uint32_t index_oid,
-                         TransactionContext *txn = nullptr);
+  explicit IndexIterator(uint32_t index_oid, TransactionContext *txn = nullptr);
 
   // Frees allocated resources.
   ~IndexIterator();

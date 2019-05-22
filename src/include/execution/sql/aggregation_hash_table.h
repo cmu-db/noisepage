@@ -44,9 +44,8 @@ class AggregationHashTable {
 // Implementation
 // ---------------------------------------------------------
 
-inline byte *AggregationHashTable::Lookup(
-    const hash_t hash, AggregationHashTable::KeyEqFn key_eq_fn,
-    const void *arg) noexcept {
+inline byte *AggregationHashTable::Lookup(const hash_t hash, AggregationHashTable::KeyEqFn key_eq_fn,
+                                          const void *arg) noexcept {
   auto *entry = hash_table_.FindChainHead(hash);
 
   while (entry != nullptr) {

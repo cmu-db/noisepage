@@ -8,8 +8,7 @@
 
 namespace tpl::parsing {
 
-static std::unordered_set<Token::Type> kTopLevelDecls = {Token::Type::STRUCT,
-                                                         Token::Type::FUN};
+static std::unordered_set<Token::Type> kTopLevelDecls = {Token::Type::STRUCT, Token::Type::FUN};
 
 Parser::Parser(Scanner *scanner, ast::Context *context)
     : scanner_(scanner),
@@ -48,8 +47,7 @@ ast::Expr *Parser::MakeExpr(ast::AstNode *node) {
   if (auto *expr_stmt = node->SafeAs<ast::ExpressionStmt>()) {
     return expr_stmt->expression();
   }
-  error_reporter_->Report(node->position(),
-      sema::ErrorMessages::kExpectingExpression);
+  error_reporter_->Report(node->position(), sema::ErrorMessages::kExpectingExpression);
   return nullptr;
 }
 
@@ -66,8 +64,7 @@ ast::Decl *Parser::ParseDecl() {
   }
 
   // Report error, sync up and try again
-  error_reporter_->Report(scanner_->current_position(),
-                          sema::ErrorMessages::kInvalidDeclaration);
+  error_reporter_->Report(scanner_->current_position(), sema::ErrorMessages::kInvalidDeclaration);
   Sync(kTopLevelDecls);
   return nullptr;
 }
@@ -104,8 +101,7 @@ ast::Decl *Parser::ParseStructDecl() {
   auto *struct_type = ParseStructType()->As<ast::StructTypeRepr>();
 
   // The declaration object
-  ast::StructDecl *decl =
-      node_factory_->NewStructDecl(position, name, struct_type);
+  ast::StructDecl *decl = node_factory_->NewStructDecl(position, name, struct_type);
 
   // Done
   return decl;
@@ -137,14 +133,11 @@ ast::Decl *Parser::ParseVariableDecl() {
   }
 
   if (type == nullptr && init == nullptr) {
-    error_reporter_->Report(scanner_->current_position(),
-                            sema::ErrorMessages::kMissingTypeAndInitialValue,
-                            name);
+    error_reporter_->Report(scanner_->current_position(), sema::ErrorMessages::kMissingTypeAndInitialValue, name);
   }
 
   // Create declaration object
-  ast::VariableDecl *decl =
-      node_factory_->NewVariableDecl(position, name, type, init);
+  ast::VariableDecl *decl = node_factory_->NewVariableDecl(position, name, type, init);
 
   // Done
   return decl;
@@ -209,8 +202,7 @@ ast::Stmt *Parser::ParseBlockStmt() {
   Expect(Token::Type::RIGHT_BRACE);
   const SourcePosition &end_position = scanner_->current_position();
 
-  return node_factory_->NewBlockStmt(start_position, end_position,
-                                     std::move(statements));
+  return node_factory_->NewBlockStmt(start_position, end_position, std::move(statements));
 }
 
 class Parser::ForHeader {
@@ -224,8 +216,7 @@ class Parser::ForHeader {
   }
 
   // Header for for-in loops
-  static ForHeader ForIn(ast::Expr *target, ast::Expr *iter,
-                         ast::Attributes *attributes) {
+  static ForHeader ForIn(ast::Expr *target, ast::Expr *iter, ast::Attributes *attributes) {
     return ForHeader(nullptr, nullptr, nullptr, target, iter, attributes);
   }
 
@@ -238,24 +229,17 @@ class Parser::ForHeader {
     return {init, cond, next};
   }
 
-  std::tuple<ast::Expr *, ast::Expr *, ast::Attributes *> GetForInElements()
-      const {
+  std::tuple<ast::Expr *, ast::Expr *, ast::Attributes *> GetForInElements() const {
     TPL_ASSERT(IsForIn(), "Loop isn't a for-in");
     return {target, iter, attributes};
   }
 
  private:
-  ForHeader(ast::Stmt *init, ast::Expr *cond, ast::Stmt *next,
-            ast::Expr *target, ast::Expr *iter, ast::Attributes *attributes)
-      : init(init),
-        cond(cond),
-        next(next),
-        target(target),
-        iter(iter),
-        attributes(attributes) {}
+  ForHeader(ast::Stmt *init, ast::Expr *cond, ast::Stmt *next, ast::Expr *target, ast::Expr *iter,
+            ast::Attributes *attributes)
+      : init(init), cond(cond), next(next), target(target), iter(iter), attributes(attributes) {}
 
-  ForHeader()
-      : ForHeader(nullptr, nullptr, nullptr, nullptr, nullptr, nullptr) {}
+  ForHeader() : ForHeader(nullptr, nullptr, nullptr, nullptr, nullptr, nullptr) {}
 
  private:
   ast::Stmt *init;
@@ -383,9 +367,7 @@ ast::Stmt *Parser::ParseReturnStmt() {
   return node_factory_->NewReturnStmt(position, ret);
 }
 
-ast::Expr *Parser::ParseExpr() {
-  return ParseBinaryOpExpr(Token::LowestPrecedence() + 1);
-}
+ast::Expr *Parser::ParseExpr() { return ParseBinaryOpExpr(Token::LowestPrecedence() + 1); }
 
 ast::Expr *Parser::ParseBinaryOpExpr(uint32_t min_prec) {
   TPL_ASSERT(min_prec > 0, "The minimum precedence cannot be 0");
@@ -469,8 +451,7 @@ ast::Expr *Parser::ParsePrimaryExpr() {
         // Member expression
         Consume(Token::Type::DOT);
         ast::Expr *member = ParseOperand();
-        result =
-            node_factory_->NewMemberExpr(result->position(), result, member);
+        result = node_factory_->NewMemberExpr(result->position(), result, member);
         break;
         // @ptrCast(*Row, expr)
       }
@@ -502,14 +483,12 @@ ast::Expr *Parser::ParseOperand() {
     case Token::Type::FALSE:
     case Token::Type::TRUE: {
       const bool bool_val = (Next() == Token::Type::TRUE);
-      return node_factory_->NewBoolLiteral(scanner_->current_position(),
-                                           bool_val);
+      return node_factory_->NewBoolLiteral(scanner_->current_position(), bool_val);
     }
     case Token::Type::BUILTIN_IDENTIFIER:
     case Token::Type::IDENTIFIER: {
       Next();
-      return node_factory_->NewIdentifierExpr(scanner_->current_position(),
-                                              GetSymbol());
+      return node_factory_->NewIdentifierExpr(scanner_->current_position(), GetSymbol());
     }
     case Token::Type::INTEGER: {
       Next();
@@ -527,8 +506,7 @@ ast::Expr *Parser::ParseOperand() {
     }
     case Token::Type::STRING: {
       Next();
-      return node_factory_->NewStringLiteral(scanner_->current_position(),
-                                             GetSymbol());
+      return node_factory_->NewStringLiteral(scanner_->current_position(), GetSymbol());
     }
     case Token::Type::FUN: {
       Next();
@@ -544,8 +522,7 @@ ast::Expr *Parser::ParseOperand() {
   }
 
   // Error
-  error_reporter_->Report(scanner_->current_position(),
-                          sema::ErrorMessages::kExpectingExpression);
+  error_reporter_->Report(scanner_->current_position(), sema::ErrorMessages::kExpectingExpression);
   Next();
   return node_factory_->NewBadExpr(scanner_->current_position());
 }
@@ -592,8 +569,7 @@ ast::Expr *Parser::ParseType() {
   }
 
   // Error
-  error_reporter_->Report(scanner_->current_position(),
-                          sema::ErrorMessages::kExpectingType);
+  error_reporter_->Report(scanner_->current_position(), sema::ErrorMessages::kExpectingType);
 
   return nullptr;
 }

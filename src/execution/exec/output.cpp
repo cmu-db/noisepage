@@ -33,8 +33,7 @@ void OutputPrinter::operator()(byte *tuples, u32 num_tuples, u32 tuple_size) {
         case TypeId::SMALLINT:
         case TypeId::BIGINT:
         case TypeId::INTEGER: {
-          auto *val = reinterpret_cast<sql::Integer *>(
-              tuples + row * tuple_size + schema_.GetOffset(col));
+          auto *val = reinterpret_cast<sql::Integer *>(tuples + row * tuple_size + schema_.GetOffset(col));
           if (val->is_null)
             ss << "NULL";
           else
@@ -42,8 +41,7 @@ void OutputPrinter::operator()(byte *tuples, u32 num_tuples, u32 tuple_size) {
           break;
         }
         case TypeId::BOOLEAN: {
-          auto *val = reinterpret_cast<sql::Integer *>(
-              tuples + row * tuple_size + schema_.GetOffset(col));
+          auto *val = reinterpret_cast<sql::Integer *>(tuples + row * tuple_size + schema_.GetOffset(col));
           if (val->is_null) {
             ss << "NULL";
           } else {

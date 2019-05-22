@@ -1,12 +1,13 @@
 #include "execution/compiler/operator/seq_scan_translator.h"
 
-#include "execution/compiler/consumer_context.h"
+#include <utility>
+#include "execution/compiler/code_context.h"
 #include "execution/compiler/codegen.h"
+#include "execution/compiler/compilation_context.h"
+#include "execution/compiler/consumer_context.h"
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/pipeline.h"
 #include "execution/compiler/row_batch.h"
-#include "execution/compiler/compilation_context.h"
-#include "execution/compiler/code_context.h"
 #include "execution/sql/execution_structures.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
 
@@ -29,9 +30,9 @@ void SeqScanTranslator::Produce() {
   auto &scan_node = GetOperatorAs<terrier::planner::SeqScanPlanNode>();
   auto target = row_batch.GetIdentifierExpr();
 
-  auto table_oid = static_cast<uint32_t >(scan_node.GetTableOid());
-  auto table_ident = pipeline_->GetCodeGen()->GetCodeContext()
-      ->GetAstContext()->GetIdentifier(std::to_string(table_oid));
+  auto table_oid = static_cast<uint32_t>(scan_node.GetTableOid());
+  auto table_ident =
+      pipeline_->GetCodeGen()->GetCodeContext()->GetAstContext()->GetIdentifier(std::to_string(table_oid));
   auto table_name = (*codegen)->NewIdentifierExpr(DUMMY_POS, table_ident);
 
   util::RegionUnorderedMap<ast::Identifier, ast::Expr *> attr_map(codegen->GetRegion());
@@ -42,12 +43,12 @@ void SeqScanTranslator::Produce() {
   current_fn->StartForInStmt(target, table_name, attributes);
   const auto &predicate = scan_node.GetScanPredicate();
   if (predicate != nullptr) {
-    auto predicate_expr = pipeline_->GetCompilationContext()
-        ->GetTranslator(*predicate)->DeriveExpr(predicate.get(), &row_batch);
+    auto predicate_expr =
+        pipeline_->GetCompilationContext()->GetTranslator(*predicate)->DeriveExpr(predicate.get(), &row_batch);
     current_fn->StartIfStmt(predicate_expr);
   }
   ConsumerContext ctx(pipeline_->GetCompilationContext(), pipeline_);
   ctx.Consume(&row_batch);
 }
 
-} // namespace tpl::compiler
+}  // namespace tpl::compiler

@@ -14,8 +14,7 @@ namespace tpl::util {
 // ---------------------------------------------------------
 
 inline void *MallocHuge(std::size_t size) {
-  void *ptr = mmap(nullptr, size, PROT_READ | PROT_WRITE,
-                   MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+  void *ptr = mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 #if !defined(__APPLE__)
   madvise(ptr, size, MADV_HUGEPAGE);
 #endif

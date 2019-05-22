@@ -4,10 +4,10 @@
 #include <type_traits>
 #include "storage/projected_columns.h"
 
-#include "type/type_id.h"
 #include "execution/util/bit_util.h"
 #include "execution/util/common.h"
 #include "execution/util/macros.h"
+#include "type/type_id.h"
 
 namespace tpl::sql {
 using terrier::storage::ProjectedColumns;
@@ -22,10 +22,9 @@ class ProjectedColumnsIterator {
   static constexpr const u32 kInvalidPos = std::numeric_limits<u32>::max();
 
  public:
-  explicit ProjectedColumnsIterator();
+  ProjectedColumnsIterator();
 
-  explicit ProjectedColumnsIterator(
-      ProjectedColumns *projected_column);
+  explicit ProjectedColumnsIterator(ProjectedColumns *projected_column);
 
   /// This class cannot be copied or moved
   DISALLOW_COPY_AND_MOVE(ProjectedColumnsIterator);
@@ -170,32 +169,24 @@ template <typename T, bool Nullable>
 inline const T *ProjectedColumnsIterator::Get(u32 col_idx, bool *null) const {
   if constexpr (Nullable) {
     TPL_ASSERT(null != nullptr, "Missing output variable for NULL indicator");
-    *null = !projected_column_->ColumnNullBitmap(static_cast<u16>(col_idx))
-                 ->Test(curr_idx_);
+    *null = !projected_column_->ColumnNullBitmap(static_cast<u16>(col_idx))->Test(curr_idx_);
   }
-  const T *col_data =
-      reinterpret_cast<T *>(projected_column_->ColumnStart(static_cast<u16>(col_idx)));
+  const T *col_data = reinterpret_cast<T *>(projected_column_->ColumnStart(static_cast<u16>(col_idx)));
   return &col_data[curr_idx_];
 }
 
 inline void ProjectedColumnsIterator::Advance() { curr_idx_++; }
 
-inline void ProjectedColumnsIterator::AdvanceFiltered() {
-  curr_idx_ = selection_vector_[++selection_vector_read_idx_];
-}
+inline void ProjectedColumnsIterator::AdvanceFiltered() { curr_idx_ = selection_vector_[++selection_vector_read_idx_]; }
 
 inline void ProjectedColumnsIterator::Match(bool matched) {
   selection_vector_[selection_vector_write_idx_] = curr_idx_;
   selection_vector_write_idx_ += matched ? 1 : 0;
 }
 
-inline bool ProjectedColumnsIterator::HasNext() const {
-  return curr_idx_ < projected_column_->NumTuples();
-}
+inline bool ProjectedColumnsIterator::HasNext() const { return curr_idx_ < projected_column_->NumTuples(); }
 
-inline bool ProjectedColumnsIterator::HasNextFiltered() const {
-  return selection_vector_read_idx_ < num_selected();
-}
+inline bool ProjectedColumnsIterator::HasNextFiltered() const { return selection_vector_read_idx_ < num_selected(); }
 
 inline void ProjectedColumnsIterator::Reset() {
   const auto next_idx = selection_vector_[0];
@@ -214,8 +205,7 @@ inline void ProjectedColumnsIterator::ResetFiltered() {
 template <typename F>
 inline void ProjectedColumnsIterator::ForEach(const F &fn) {
   // Ensure function conforms to expected form
-  static_assert(std::is_invocable_r_v<void, F>,
-                "Iteration function must be a no-arg void-return function");
+  static_assert(std::is_invocable_r_v<void, F>, "Iteration function must be a no-arg void-return function");
 
   if (IsFiltered()) {
     for (; HasNextFiltered(); AdvanceFiltered()) {
@@ -233,8 +223,7 @@ inline void ProjectedColumnsIterator::ForEach(const F &fn) {
 template <typename F>
 inline void ProjectedColumnsIterator::RunFilter(const F &filter) {
   // Ensure filter function conforms to expected form
-  static_assert(std::is_invocable_r_v<bool, F>,
-                "Filter function must be a no-arg function returning a bool");
+  static_assert(std::is_invocable_r_v<bool, F>, "Filter function must be a no-arg function returning a bool");
 
   if (IsFiltered()) {
     for (; HasNextFiltered(); AdvanceFiltered()) {

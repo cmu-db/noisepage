@@ -2,10 +2,10 @@
 
 #include <memory>
 
+#include "catalog/schema.h"
 #include "execution/ast/ast.h"
 #include "execution/ast/ast_visitor.h"
 #include "execution/ast/builtins.h"
-#include "catalog/schema.h"
 #include "execution/sema/error_reporter.h"
 #include "execution/sema/scope.h"
 
@@ -65,17 +65,14 @@ class Sema : public ast::AstVisitor<Sema> {
     ast::Expr *right;
   };
 
-  CheckResult CheckLogicalOperands(parsing::Token::Type op,
-                                   const SourcePosition &pos, ast::Expr *left,
+  CheckResult CheckLogicalOperands(parsing::Token::Type op, const SourcePosition &pos, ast::Expr *left,
                                    ast::Expr *right);
 
-  CheckResult CheckArithmeticOperands(parsing::Token::Type op,
-                                      const SourcePosition &pos,
-                                      ast::Expr *left, ast::Expr *right);
+  CheckResult CheckArithmeticOperands(parsing::Token::Type op, const SourcePosition &pos, ast::Expr *left,
+                                      ast::Expr *right);
 
-  CheckResult CheckComparisonOperands(parsing::Token::Type op,
-                                      const SourcePosition &pos,
-                                      ast::Expr *left, ast::Expr *right);
+  CheckResult CheckComparisonOperands(parsing::Token::Type op, const SourcePosition &pos, ast::Expr *left,
+                                      ast::Expr *right);
 
   // Dispatched from VisitCall() to handle builtin functions
   void CheckBuiltinCall(ast::CallExpr *call, ast::Builtin builtin);
@@ -137,10 +134,7 @@ class Sema : public ast::AstVisitor<Sema> {
   /// RAII scope class to track the current scope
   class SemaScope {
    public:
-    SemaScope(Sema *check, Scope::Kind scope_kind)
-        : check_(check), exited_(false) {
-      check->EnterScope(scope_kind);
-    }
+    SemaScope(Sema *check, Scope::Kind scope_kind) : check_(check), exited_(false) { check->EnterScope(scope_kind); }
 
     ~SemaScope() { Exit(); }
 
@@ -162,8 +156,7 @@ class Sema : public ast::AstVisitor<Sema> {
   class FunctionSemaScope {
    public:
     FunctionSemaScope(Sema *check, ast::FunctionLitExpr *func)
-        : prev_func_(check->current_function()),
-          block_scope_(check, Scope::Kind::Function) {
+        : prev_func_(check->current_function()), block_scope_(check, Scope::Kind::Function) {
       check->curr_func_ = func;
     }
 

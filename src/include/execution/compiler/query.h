@@ -18,9 +18,12 @@ namespace tpl::compiler {
 
 class Query {
  public:
-  explicit Query(const terrier::planner::AbstractPlanNode &node) :
-  node_(node), region_("QueryRegion"), code_ctx_(&region_), query_state_(ast::Identifier(GetQueryStateName().c_str())),
-  compiled_fn_(nullptr) {}
+  explicit Query(const terrier::planner::AbstractPlanNode &node)
+      : node_(node),
+        region_("QueryRegion"),
+        code_ctx_(&region_),
+        query_state_(ast::Identifier(GetQueryStateName().c_str())),
+        compiled_fn_(nullptr) {}
   ~Query() = default;
 
   const terrier::planner::AbstractPlanNode &GetPlan() { return node_; }
@@ -52,4 +55,4 @@ class Query {
   ast::File *compiled_fn_;
 };
 
-}
+}  // namespace tpl::compiler

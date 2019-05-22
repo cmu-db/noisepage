@@ -6,10 +6,10 @@
 #include <utility>
 #include <vector>
 
+#include "catalog/catalog.h"
 #include "execution/ast/ast.h"
 #include "execution/ast/ast_visitor.h"
 #include "execution/ast/builtins.h"
-#include "catalog/catalog.h"
 #include "execution/exec/execution_context.h"
 #include "execution/vm/bytecode_emitter.h"
 
@@ -36,15 +36,13 @@ class BytecodeGenerator : public ast::AstVisitor<BytecodeGenerator> {
   AST_NODES(DECLARE_VISIT_METHOD)
 #undef DECLARE_VISIT_METHOD
 
-  static std::unique_ptr<BytecodeModule> Compile(
-      ast::AstNode *root, const std::string &name,
-      std::shared_ptr<exec::ExecutionContext> exec_context);
+  static std::unique_ptr<BytecodeModule> Compile(ast::AstNode *root, const std::string &name,
+                                                 std::shared_ptr<exec::ExecutionContext> exec_context);
 
  private:
   // Private constructor to force users to call Compile()
   BytecodeGenerator() noexcept;
-  explicit BytecodeGenerator(
-      std::shared_ptr<exec::ExecutionContext> exec_context) noexcept;
+  explicit BytecodeGenerator(std::shared_ptr<exec::ExecutionContext> exec_context) noexcept;
 
   class ExpressionResultScope;
   class LValueResultScope;
@@ -52,18 +50,13 @@ class BytecodeGenerator : public ast::AstVisitor<BytecodeGenerator> {
   class BytecodePositionScope;
 
   // Allocate a new function ID
-  FunctionInfo *AllocateFunc(const std::string &func_name,
-                             ast::FunctionType *func_type);
+  FunctionInfo *AllocateFunc(const std::string &func_name, ast::FunctionType *func_type);
 
   // Dispatched from VisitForInStatement() when using tuple-at-time loops to
   // set up the row structure used in the body of the loop
-  void VisitRowWiseIteration(ast::ForInStmt *node, LocalVar pci,
-                             LoopBuilder *table_loop,
-                             SqlTableRW *catalog_table);
-  void VisitVectorWiseIteration(ast::ForInStmt *node, LocalVar pci,
-                                LoopBuilder *table_loop);
-  void VisitIndexedForInStmt(ast::ForInStmt *node, ast::Expr *index_expr,
-                             terrier::catalog::SqlTableRW *catalog_table);
+  void VisitRowWiseIteration(ast::ForInStmt *node, LocalVar pci, LoopBuilder *table_loop, SqlTableRW *catalog_table);
+  void VisitVectorWiseIteration(ast::ForInStmt *node, LocalVar pci, LoopBuilder *table_loop);
+  void VisitIndexedForInStmt(ast::ForInStmt *node, ast::Expr *index_expr, terrier::catalog::SqlTableRW *catalog_table);
 
   // Dispatched from VisitBuiltinCallExpr() to handle the various builtin
   // functions, including filtering, hash table interaction, sorting etc.
@@ -109,13 +102,11 @@ class BytecodeGenerator : public ast::AstVisitor<BytecodeGenerator> {
 
   enum class TestFallthrough : u8 { None, Then, Else };
 
-  void VisitExpressionForTest(ast::Expr *expr, BytecodeLabel *then_label,
-                              BytecodeLabel *else_label,
+  void VisitExpressionForTest(ast::Expr *expr, BytecodeLabel *then_label, BytecodeLabel *else_label,
                               TestFallthrough fallthrough);
 
   // Visit the body of an iteration statement
-  void VisitIterationStatement(ast::IterationStmt *iteration,
-                               LoopBuilder *loop_builder);
+  void VisitIterationStatement(ast::IterationStmt *iteration, LoopBuilder *loop_builder);
 
   // Dispatched from VisitCompareOp for SQL vs. primitive comparisons
   void VisitSqlCompareOpExpr(ast::ComparisonOpExpr *compare);
@@ -143,9 +134,7 @@ class BytecodeGenerator : public ast::AstVisitor<BytecodeGenerator> {
 
   ExpressionResultScope *execution_result() { return execution_result_; }
 
-  void set_execution_result(ExpressionResultScope *execution_result) {
-    execution_result_ = execution_result;
-  }
+  void set_execution_result(ExpressionResultScope *execution_result) { execution_result_ = execution_result; }
 
   FunctionInfo *current_function() { return &functions_.back(); }
 
@@ -161,8 +150,7 @@ class BytecodeGenerator : public ast::AstVisitor<BytecodeGenerator> {
    * @param col_idx the index of the column.
    * @return the byte used to Get an element from this column.
    */
-  Bytecode GetIndexIteratorColumnCode(SqlTableRW *catalog_table,
-                                      u32 col_idx);
+  Bytecode GetIndexIteratorColumnCode(SqlTableRW *catalog_table, u32 col_idx);
 
  private:
   // The bytecode generated during compilation

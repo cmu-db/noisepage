@@ -19,9 +19,9 @@ class InsertTranslator : public OperatorTranslator {
   void Consume(const ConsumerContext *context, RowBatch *batch) const override;
 
   void Produce() override;
+
  private:
   ast::StructTypeRepr *struct_ty_;
 };
 
-
-} // namespace tpl::compiler
+}  // namespace tpl::compiler

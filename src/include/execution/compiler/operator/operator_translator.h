@@ -12,7 +12,8 @@ class RowBatch;
 
 class OperatorTranslator {
  public:
-  OperatorTranslator(const terrier::planner::AbstractPlanNode &op, Pipeline *pipeline) : plannode_(op), pipeline_(pipeline) {}
+  OperatorTranslator(const terrier::planner::AbstractPlanNode &op, Pipeline *pipeline)
+      : plannode_(op), pipeline_(pipeline) {}
   virtual ~OperatorTranslator() = default;
 
   virtual void InitializeQueryState() = 0;
@@ -32,4 +33,4 @@ class OperatorTranslator {
   Pipeline *pipeline_;
 };
 
-}
+}  // namespace tpl::compiler

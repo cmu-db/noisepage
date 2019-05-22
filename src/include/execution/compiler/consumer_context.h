@@ -22,4 +22,4 @@ class ConsumerContext {
   CompilationContext *compilation_context_;
   Pipeline *pipeline_;
 };
-}
+}  // namespace tpl::compiler

@@ -6,8 +6,8 @@
 
 namespace tpl::compiler {
 
-ConsumerContext::ConsumerContext(CompilationContext *compilation_context,
-                               Pipeline *pipeline) : compilation_context_(compilation_context), pipeline_(pipeline) {}
+ConsumerContext::ConsumerContext(CompilationContext *compilation_context, Pipeline *pipeline)
+    : compilation_context_(compilation_context), pipeline_(pipeline) {}
 
 void ConsumerContext::Consume(RowBatch *batch) {
   auto *translator = pipeline_->NextStep();
@@ -25,4 +25,4 @@ void ConsumerContext::Consume(RowBatch *batch) {
   }
 }
 
-}
+}  // namespace tpl::compiler

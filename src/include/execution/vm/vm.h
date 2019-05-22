@@ -16,8 +16,7 @@ class VM {
  public:
   /// Invoke the function with ID \a func in the module \a module. \a args
   /// contains the output and input parameters stored contiguously.
-  static void InvokeFunction(const BytecodeModule &module, FunctionId func_id,
-                             const u8 args[]);
+  static void InvokeFunction(const BytecodeModule &module, FunctionId func_id, const u8 args[]);
 
  private:
   // Private constructor to force users to use InvokeFunction

@@ -15,10 +15,7 @@ namespace tpl::ast {
 class AstDumperImpl : public AstVisitor<AstDumperImpl> {
  public:
   explicit AstDumperImpl(AstNode *root, int out_fd)
-      : root_(root),
-        top_level_(true),
-        first_child_(true),
-        out_(out_fd, false) {}
+      : root_(root), top_level_(true), first_child_(true), out_(out_fd, false) {}
 
   void Run() { Visit(root_); }
 
@@ -30,10 +27,7 @@ class AstDumperImpl : public AstVisitor<AstDumperImpl> {
  private:
   class WithColor {
    public:
-    WithColor(AstDumperImpl *impl, llvm::raw_ostream::Colors color)
-        : impl(impl) {
-      impl->out_.changeColor(color);
-    }
+    WithColor(AstDumperImpl *impl, llvm::raw_ostream::Colors color) : impl(impl) { impl->out_.changeColor(color); }
     ~WithColor() { impl->out_.resetColor(); }
 
    private:
@@ -79,9 +73,7 @@ class AstDumperImpl : public AstVisitor<AstDumperImpl> {
     }
   }
 
-  void DumpToken(parsing::Token::Type type) {
-    out_ << "'" << parsing::Token::GetString(type) << "'";
-  }
+  void DumpToken(parsing::Token::Type type) { out_ << "'" << parsing::Token::GetString(type) << "'"; }
 
   template <typename T>
   void DumpPrimitive(const T &val) {
@@ -210,13 +202,9 @@ void AstDumperImpl::VisitBlockStmt(BlockStmt *node) {
   }
 }
 
-void AstDumperImpl::VisitDeclStmt(DeclStmt *node) {
-  AstVisitor<AstDumperImpl>::Visit(node->declaration());
-}
+void AstDumperImpl::VisitDeclStmt(DeclStmt *node) { AstVisitor<AstDumperImpl>::Visit(node->declaration()); }
 
-void AstDumperImpl::VisitExpressionStmt(ExpressionStmt *node) {
-  AstVisitor<AstDumperImpl>::Visit(node->expression());
-}
+void AstDumperImpl::VisitExpressionStmt(ExpressionStmt *node) { AstVisitor<AstDumperImpl>::Visit(node->expression()); }
 
 void AstDumperImpl::VisitForStmt(ForStmt *node) {
   DumpNodeCommon(node);

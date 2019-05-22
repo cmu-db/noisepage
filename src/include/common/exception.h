@@ -12,23 +12,15 @@ namespace terrier {
  * They record where the exception was generated.
  */
 
-#define NOT_IMPLEMENTED_EXCEPTION(msg) \
-  NotImplementedException(msg, __FILE__, __LINE__)
+#define NOT_IMPLEMENTED_EXCEPTION(msg) NotImplementedException(msg, __FILE__, __LINE__)
 #define CATALOG_EXCEPTION(msg) CatalogException(msg, __FILE__, __LINE__)
 #define PARSER_EXCEPTION(msg) ParserException(msg, __FILE__, __LINE__)
-#define NETWORK_PROCESS_EXCEPTION(msg) \
-  NetworkProcessException(msg, __FILE__, __LINE__)
+#define NETWORK_PROCESS_EXCEPTION(msg) NetworkProcessException(msg, __FILE__, __LINE__)
 
 /**
  * Exception types
  */
-enum class ExceptionType {
-  RESERVED = 0,
-  NOT_IMPLEMENTED = 1,
-  CATALOG = 2,
-  NETWORK = 3,
-  PARSER = 4
-};
+enum class ExceptionType { RESERVED = 0, NOT_IMPLEMENTED = 1, CATALOG = 2, NETWORK = 3, PARSER = 4 };
 
 /**
  * Exception base class.
@@ -42,8 +34,7 @@ class Exception : public std::runtime_error {
    * @param file name of the file in which the exception occurred
    * @param line line number at which the exception occurred
    */
-  Exception(const ExceptionType type, const char *msg, const char *file,
-            int line)
+  Exception(const ExceptionType type, const char *msg, const char *file, int line)
       : std::runtime_error(msg), type_(type), file_(file), line_(line) {}
 
   /**
@@ -105,13 +96,12 @@ class Exception : public std::runtime_error {
 // Derived exception types
 // -----------------------
 
-#define DEFINE_EXCEPTION(e_name, e_type)                \
-  class e_name : public Exception {                     \
-    e_name() = delete;                                  \
-                                                        \
-   public:                                              \
-    e_name(const char *msg, const char *file, int line) \
-        : Exception(e_type, msg, file, line) {}         \
+#define DEFINE_EXCEPTION(e_name, e_type)                                                        \
+  class e_name : public Exception {                                                             \
+    e_name() = delete;                                                                          \
+                                                                                                \
+   public:                                                                                      \
+    e_name(const char *msg, const char *file, int line) : Exception(e_type, msg, file, line) {} \
   }
 
 DEFINE_EXCEPTION(NotImplementedException, ExceptionType::NOT_IMPLEMENTED);

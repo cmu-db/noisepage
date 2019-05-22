@@ -8,4 +8,4 @@ class NullCheckTranslator : public ExpressionTranslator {
 
   ast::Expr *DeriveExpr(const terrier::parser::AbstractExpression *expression, RowBatch *row) override;
 };
-}
+}  // namespace tpl::compiler

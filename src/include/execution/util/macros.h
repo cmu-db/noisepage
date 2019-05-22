@@ -2,8 +2,8 @@
 
 #include <cassert>
 
-#include "llvm/Support/ErrorHandling.h"
 #include "common/macros.h"
+#include "llvm/Support/ErrorHandling.h"
 
 #define CACHELINE_SIZE 64
 
@@ -12,7 +12,6 @@
 #define NEVER_INLINE __attribute__((noinline))
 #define FALLTHROUGH LLVM_FALLTHROUGH
 #define PACKED __attribute__((packed))
-
 
 #define TPL_LIKELY(x) LLVM_LIKELY(x)
 #define TPL_UNLIKELY(x) LLVM_UNLIKELY(x)

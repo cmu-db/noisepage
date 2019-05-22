@@ -4,6 +4,5 @@
 
 namespace tpl::compiler {
 
-static constexpr SourcePosition DUMMY_POS{0,0};
-
+static constexpr SourcePosition DUMMY_POS{0, 0};
 }

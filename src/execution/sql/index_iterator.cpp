@@ -3,9 +3,7 @@
 
 namespace tpl::sql {
 
-IndexIterator::IndexIterator(uint32_t index_oid,
-                             TransactionContext *txn)
-    : txn_(txn) {
+IndexIterator::IndexIterator(uint32_t index_oid, TransactionContext *txn) : txn_(txn) {
   // Get index from the catalog
   auto *exec = ExecutionStructures::Instance();
   auto *catalog = exec->GetCatalog();
@@ -16,14 +14,11 @@ IndexIterator::IndexIterator(uint32_t index_oid,
   // Initialize projected rows for the index and the table
   auto &index_pri = catalog_index_->GetMetadata()->GetProjectedRowInitializer();
   auto &row_pri = *catalog_table_->GetPRI();
-  index_buffer_ =
-      terrier::common::AllocationUtil::AllocateAligned(index_pri.ProjectedRowSize());
-  row_buffer_ =
-      terrier::common::AllocationUtil::AllocateAligned(row_pri.ProjectedRowSize());
+  index_buffer_ = terrier::common::AllocationUtil::AllocateAligned(index_pri.ProjectedRowSize());
+  row_buffer_ = terrier::common::AllocationUtil::AllocateAligned(row_pri.ProjectedRowSize());
   index_pr_ = index_pri.InitializeRow(index_buffer_);
   row_pr_ = row_pri.InitializeRow(row_buffer_);
 }
-
 
 IndexIterator::~IndexIterator() {
   // Free allocated buffers
@@ -45,10 +40,9 @@ void IndexIterator::ScanKey(byte *sql_key) {
         if (index_col.IsNullable() && val->is_null) {
           index_pr_->SetNull(col_idx);
         } else {
-          //std::cout << "ScanKey val=" << val->val << std::endl;
+          // std::cout << "ScanKey val=" << val->val << std::endl;
           auto index_data = index_pr_->AccessForceNotNull(col_idx);
-          std::memcpy(index_data, &val->val,
-                      terrier::type::TypeUtil::GetTypeSize(index_col.GetType()));
+          std::memcpy(index_data, &val->val, terrier::type::TypeUtil::GetTypeSize(index_col.GetType()));
         }
         break;
       }
@@ -81,8 +75,7 @@ void IndexIterator::ScanKey(byte *sql_key) {
 
 void IndexIterator::Advance() {
   // Select the next tuple slot
-  catalog_table_->GetSqlTable()->Select(txn_, index_values_[curr_index_],
-                                        row_pr_);
+  catalog_table_->GetSqlTable()->Select(txn_, index_values_[curr_index_], row_pr_);
   ++curr_index_;
 }
 

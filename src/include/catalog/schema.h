@@ -212,4 +212,4 @@ class Schema {
 DEFINE_JSON_DECLARATIONS(Schema::Column);
 DEFINE_JSON_DECLARATIONS(Schema);
 
-} // namespace terrier::catalog
+}  // namespace terrier::catalog

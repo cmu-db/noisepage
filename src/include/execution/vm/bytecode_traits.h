@@ -25,13 +25,10 @@ OPERAND_TYPE_LIST(DECLARE_OPERAND_TYPE)
 template <OperandType... operands>
 struct BytecodeTraits {
   static constexpr const u32 kOperandCount = sizeof...(operands);
-  static constexpr const u32 kOperandsSize =
-      (0u + ... + OperandTypeTraits<operands>::kSize);
+  static constexpr const u32 kOperandsSize = (0u + ... + OperandTypeTraits<operands>::kSize);
   static constexpr const OperandType kOperandTypes[] = {operands...};
-  static constexpr const OperandSize kOperandSizes[] = {
-      OperandTypeTraits<operands>::kOperandSize...};
-  static constexpr const u32 kSize =
-      sizeof(std::underlying_type_t<Bytecode>) + kOperandsSize;
+  static constexpr const OperandSize kOperandSizes[] = {OperandTypeTraits<operands>::kOperandSize...};
+  static constexpr const u32 kSize = sizeof(std::underlying_type_t<Bytecode>) + kOperandsSize;
 };
 
 }  // namespace tpl::vm

@@ -6,8 +6,8 @@
 #include "llvm/Support/Casting.h"
 
 #include "execution/ast/identifier.h"
-#include "execution/parsing/token.h"
 #include "execution/compiler/compiler_defs.h"
+#include "execution/parsing/token.h"
 #include "execution/util/common.h"
 #include "execution/util/region.h"
 #include "execution/util/region_containers.h"
@@ -188,9 +188,7 @@ class File : public AstNode {
 
   util::RegionVector<Decl *> &declarations() { return decls_; }
 
-  static bool classof(const AstNode *node) {
-    return node->kind() == Kind::File;
-  }
+  static bool classof(const AstNode *node) { return node->kind() == Kind::File; }
 
  private:
   util::RegionVector<Decl *> decls_;
@@ -213,8 +211,7 @@ class Decl : public AstNode {
   Expr *type_repr() const { return type_repr_; }
 
   static bool classof(const AstNode *node) {
-    return node->kind() >= Kind::FieldDecl &&
-           node->kind() <= Kind::VariableDecl;
+    return node->kind() >= Kind::FieldDecl && node->kind() <= Kind::VariableDecl;
   }
 
  private:
@@ -228,22 +225,17 @@ class FieldDecl : public Decl {
   FieldDecl(const SourcePosition &pos, Identifier name, Expr *type_repr)
       : Decl(Kind::FieldDecl, pos, name, type_repr) {}
 
-  static bool classof(const AstNode *node) {
-    return node->kind() == Kind::FieldDecl;
-  }
+  static bool classof(const AstNode *node) { return node->kind() == Kind::FieldDecl; }
 };
 
 /// A function declaration
 class FunctionDecl : public Decl {
  public:
-  FunctionDecl(const SourcePosition &pos, Identifier name,
-               FunctionLitExpr *func);
+  FunctionDecl(const SourcePosition &pos, Identifier name, FunctionLitExpr *func);
 
   FunctionLitExpr *function() const { return func_; }
 
-  static bool classof(const AstNode *node) {
-    return node->kind() == Kind::FunctionDecl;
-  }
+  static bool classof(const AstNode *node) { return node->kind() == Kind::FunctionDecl; }
 
  private:
   FunctionLitExpr *func_;
@@ -252,19 +244,15 @@ class FunctionDecl : public Decl {
 /// A structure declaration
 class StructDecl : public Decl {
  public:
-  StructDecl(const SourcePosition &pos, Identifier name,
-             StructTypeRepr *type_repr);
+  StructDecl(const SourcePosition &pos, Identifier name, StructTypeRepr *type_repr);
 
-  static bool classof(const AstNode *node) {
-    return node->kind() == Kind::StructDecl;
-  }
+  static bool classof(const AstNode *node) { return node->kind() == Kind::StructDecl; }
 };
 
 /// A variable declaration
 class VariableDecl : public Decl {
  public:
-  VariableDecl(const SourcePosition &pos, Identifier name, Expr *type_repr,
-               Expr *init)
+  VariableDecl(const SourcePosition &pos, Identifier name, Expr *type_repr, Expr *init)
       : Decl(Kind::VariableDecl, pos, name, type_repr), init_(init) {}
 
   Expr *initial() const { return init_; }
@@ -274,9 +262,7 @@ class VariableDecl : public Decl {
 
   bool HasInitialValue() const { return init_ != nullptr; }
 
-  static bool classof(const AstNode *node) {
-    return node->kind() == Kind::VariableDecl;
-  }
+  static bool classof(const AstNode *node) { return node->kind() == Kind::VariableDecl; }
 
  private:
   Expr *init_;
@@ -297,8 +283,7 @@ class Stmt : public AstNode {
   static bool IsTerminating(Stmt *stmt);
 
   static bool classof(const AstNode *node) {
-    return node->kind() >= Kind::AssignmentStmt &&
-           node->kind() <= Kind::ReturnStmt;
+    return node->kind() >= Kind::AssignmentStmt && node->kind() <= Kind::ReturnStmt;
   }
 };
 
@@ -312,9 +297,7 @@ class AssignmentStmt : public Stmt {
 
   Expr *source() const { return src_; }
 
-  static bool classof(const AstNode *node) {
-    return node->kind() == Kind::AssignmentStmt;
-  }
+  static bool classof(const AstNode *node) { return node->kind() == Kind::AssignmentStmt; }
 
  private:
   friend class sema::Sema;
@@ -330,27 +313,20 @@ class AssignmentStmt : public Stmt {
 /// A block of statements
 class BlockStmt : public Stmt {
  public:
-  BlockStmt(const SourcePosition &pos, const SourcePosition &rbrace_pos,
-            util::RegionVector<Stmt *> &&statements)
-      : Stmt(Kind::BlockStmt, pos),
-        rbrace_pos_(rbrace_pos),
-        statements_(std::move(statements)) {}
+  BlockStmt(const SourcePosition &pos, const SourcePosition &rbrace_pos, util::RegionVector<Stmt *> &&statements)
+      : Stmt(Kind::BlockStmt, pos), rbrace_pos_(rbrace_pos), statements_(std::move(statements)) {}
 
   util::RegionVector<Stmt *> &statements() { return statements_; }
 
   const SourcePosition &right_brace_position() const { return rbrace_pos_; }
 
-  void AppendStmt(Stmt *stmt) {
-    statements_.emplace_back(stmt);
-  }
+  void AppendStmt(Stmt *stmt) { statements_.emplace_back(stmt); }
 
   bool IsEmpty() const { return statements_.empty(); }
 
   Stmt *LastStmt() { return (IsEmpty() ? nullptr : statements_.back()); }
 
-  static bool classof(const AstNode *node) {
-    return node->kind() == Kind::BlockStmt;
-  }
+  static bool classof(const AstNode *node) { return node->kind() == Kind::BlockStmt; }
 
  private:
   const SourcePosition rbrace_pos_;
@@ -360,14 +336,11 @@ class BlockStmt : public Stmt {
 /// A statement that is just a declaration
 class DeclStmt : public Stmt {
  public:
-  explicit DeclStmt(Decl *decl)
-      : Stmt(Kind::DeclStmt, decl->position()), decl_(decl) {}
+  explicit DeclStmt(Decl *decl) : Stmt(Kind::DeclStmt, decl->position()), decl_(decl) {}
 
   Decl *declaration() const { return decl_; }
 
-  static bool classof(const AstNode *node) {
-    return node->kind() == Kind::DeclStmt;
-  }
+  static bool classof(const AstNode *node) { return node->kind() == Kind::DeclStmt; }
 
  private:
   Decl *decl_;
@@ -380,9 +353,7 @@ class ExpressionStmt : public Stmt {
 
   Expr *expression() { return expr_; }
 
-  static bool classof(const AstNode *node) {
-    return node->kind() == Kind::ExpressionStmt;
-  }
+  static bool classof(const AstNode *node) { return node->kind() == Kind::ExpressionStmt; }
 
  private:
   Expr *expr_;
@@ -391,14 +362,11 @@ class ExpressionStmt : public Stmt {
 /// Base class for all iteration-based statements
 class IterationStmt : public Stmt {
  public:
-  IterationStmt(const SourcePosition &pos, AstNode::Kind kind, BlockStmt *body)
-      : Stmt(kind, pos), body_(body) {}
+  IterationStmt(const SourcePosition &pos, AstNode::Kind kind, BlockStmt *body) : Stmt(kind, pos), body_(body) {}
 
   BlockStmt *body() const { return body_; }
 
-  static bool classof(const AstNode *node) {
-    return node->kind() >= Kind::ForStmt && node->kind() <= Kind::ForInStmt;
-  }
+  static bool classof(const AstNode *node) { return node->kind() >= Kind::ForStmt && node->kind() <= Kind::ForInStmt; }
 
  private:
   BlockStmt *body_;
@@ -407,12 +375,8 @@ class IterationStmt : public Stmt {
 /// A for statement
 class ForStmt : public IterationStmt {
  public:
-  ForStmt(const SourcePosition &pos, Stmt *init, Expr *cond, Stmt *next,
-          BlockStmt *body)
-      : IterationStmt(pos, AstNode::Kind::ForStmt, body),
-        init_(init),
-        cond_(cond),
-        next_(next) {}
+  ForStmt(const SourcePosition &pos, Stmt *init, Expr *cond, Stmt *next, BlockStmt *body)
+      : IterationStmt(pos, AstNode::Kind::ForStmt, body), init_(init), cond_(cond), next_(next) {}
 
   Stmt *init() const { return init_; }
 
@@ -420,9 +384,7 @@ class ForStmt : public IterationStmt {
 
   Stmt *next() const { return next_; }
 
-  static bool classof(const AstNode *node) {
-    return node->kind() == Kind::ForStmt;
-  }
+  static bool classof(const AstNode *node) { return node->kind() == Kind::ForStmt; }
 
  private:
   Stmt *init_;
@@ -434,8 +396,7 @@ class ForStmt : public IterationStmt {
 /// nodes in the tree.
 class Attributes : public util::RegionObject {
  public:
-  explicit Attributes(util::RegionUnorderedMap<Identifier, Expr *> &&map)
-      : map_(std::move(map)) {}
+  explicit Attributes(util::RegionUnorderedMap<Identifier, Expr *> &&map) : map_(std::move(map)) {}
 
   Expr *Find(Identifier identifier) const {
     if (const auto iter = map_.find(identifier); iter != map_.end()) {
@@ -445,9 +406,7 @@ class Attributes : public util::RegionObject {
     return nullptr;
   }
 
-  bool Contains(Identifier identifier) const {
-    return Find(identifier) != nullptr;
-  }
+  bool Contains(Identifier identifier) const { return Find(identifier) != nullptr; }
 
  private:
   util::RegionUnorderedMap<Identifier, Expr *> map_;
@@ -456,12 +415,8 @@ class Attributes : public util::RegionObject {
 /// A range for statement
 class ForInStmt : public IterationStmt {
  public:
-  ForInStmt(const SourcePosition &pos, Expr *target, Expr *iter,
-            Attributes *attributes, BlockStmt *body)
-      : IterationStmt(pos, AstNode::Kind::ForInStmt, body),
-        target_(target),
-        iter_(iter),
-        attributes_(attributes) {}
+  ForInStmt(const SourcePosition &pos, Expr *target, Expr *iter, Attributes *attributes, BlockStmt *body)
+      : IterationStmt(pos, AstNode::Kind::ForInStmt, body), target_(target), iter_(iter), attributes_(attributes) {}
 
   Expr *target() const { return target_; }
 
@@ -469,12 +424,9 @@ class ForInStmt : public IterationStmt {
 
   Attributes *attributes() const { return attributes_; }
 
-  bool GetHasOid() const { return attributes() != nullptr
-        && attributes()->Contains(ast::Identifier(OID_KEY)); }
+  bool GetHasOid() const { return attributes() != nullptr && attributes()->Contains(ast::Identifier(OID_KEY)); }
 
-  static bool classof(const AstNode *node) {
-    return node->kind() == Kind::ForInStmt;
-  }
+  static bool classof(const AstNode *node) { return node->kind() == Kind::ForInStmt; }
 
  private:
   Expr *target_;
@@ -485,12 +437,8 @@ class ForInStmt : public IterationStmt {
 /// An if-then-else statement
 class IfStmt : public Stmt {
  public:
-  IfStmt(const SourcePosition &pos, Expr *cond, BlockStmt *then_stmt,
-         Stmt *else_stmt)
-      : Stmt(Kind::IfStmt, pos),
-        cond_(cond),
-        then_stmt_(then_stmt),
-        else_stmt_(else_stmt) {}
+  IfStmt(const SourcePosition &pos, Expr *cond, BlockStmt *then_stmt, Stmt *else_stmt)
+      : Stmt(Kind::IfStmt, pos), cond_(cond), then_stmt_(then_stmt), else_stmt_(else_stmt) {}
 
   Expr *condition() { return cond_; }
 
@@ -500,9 +448,7 @@ class IfStmt : public Stmt {
 
   bool HasElseStmt() const { return else_stmt_ != nullptr; }
 
-  static bool classof(const AstNode *node) {
-    return node->kind() == Kind::IfStmt;
-  }
+  static bool classof(const AstNode *node) { return node->kind() == Kind::IfStmt; }
 
  private:
   friend class sema::Sema;
@@ -520,16 +466,13 @@ class IfStmt : public Stmt {
 /// A return statement
 class ReturnStmt : public Stmt {
  public:
-  ReturnStmt(const SourcePosition &pos, Expr *ret)
-      : Stmt(Kind::ReturnStmt, pos), ret_(ret) {}
+  ReturnStmt(const SourcePosition &pos, Expr *ret) : Stmt(Kind::ReturnStmt, pos), ret_(ret) {}
 
   Expr *ret() { return ret_; }
 
   bool HasExpressionValue() const { return ret_ != nullptr; }
 
-  static bool classof(const AstNode *node) {
-    return node->kind() == Kind::ReturnStmt;
-  }
+  static bool classof(const AstNode *node) { return node->kind() == Kind::ReturnStmt; }
 
  private:
   Expr *ret_;
@@ -551,8 +494,7 @@ class Expr : public AstNode {
     Effect,
   };
 
-  Expr(Kind kind, const SourcePosition &pos, Type *type = nullptr)
-      : AstNode(kind, pos), type_(type) {}
+  Expr(Kind kind, const SourcePosition &pos, Type *type = nullptr) : AstNode(kind, pos), type_(type) {}
 
   Type *type() { return type_; }
   const Type *type() const { return type_; }
@@ -560,8 +502,7 @@ class Expr : public AstNode {
   void set_type(Type *type) { type_ = type; }
 
   static bool classof(const AstNode *node) {
-    return node->kind() >= Kind::BadExpr &&
-           node->kind() <= Kind::StructTypeRepr;
+    return node->kind() >= Kind::BadExpr && node->kind() <= Kind::StructTypeRepr;
   }
 
  private:
@@ -571,19 +512,15 @@ class Expr : public AstNode {
 /// A bad statement
 class BadExpr : public Expr {
  public:
-  explicit BadExpr(const SourcePosition &pos)
-      : Expr(AstNode::Kind::BadExpr, pos) {}
+  explicit BadExpr(const SourcePosition &pos) : Expr(AstNode::Kind::BadExpr, pos) {}
 
-  static bool classof(const AstNode *node) {
-    return node->kind() == Kind::BadExpr;
-  }
+  static bool classof(const AstNode *node) { return node->kind() == Kind::BadExpr; }
 };
 
 /// A binary expression with non-null left and right children and an operator
 class BinaryOpExpr : public Expr {
  public:
-  BinaryOpExpr(const SourcePosition &pos, parsing::Token::Type op, Expr *left,
-               Expr *right)
+  BinaryOpExpr(const SourcePosition &pos, parsing::Token::Type op, Expr *left, Expr *right)
       : Expr(Kind::BinaryOpExpr, pos), op_(op), left_(left), right_(right) {}
 
   parsing::Token::Type op() { return op_; }
@@ -592,9 +529,7 @@ class BinaryOpExpr : public Expr {
 
   Expr *right() { return right_; }
 
-  static bool classof(const AstNode *node) {
-    return node->kind() == Kind::BinaryOpExpr;
-  }
+  static bool classof(const AstNode *node) { return node->kind() == Kind::BinaryOpExpr; }
 
  private:
   friend class sema::Sema;
@@ -621,10 +556,7 @@ class CallExpr : public Expr {
   enum class CallKind : u8 { Regular, Builtin };
 
   CallExpr(Expr *func, util::RegionVector<Expr *> &&args)
-      : Expr(Kind::CallExpr, func->position()),
-        func_(func),
-        args_(std::move(args)),
-        call_kind_(CallKind::Regular) {}
+      : Expr(Kind::CallExpr, func->position()), func_(func), args_(std::move(args)), call_kind_(CallKind::Regular) {}
 
   /// Return the name of the function this node is calling
   Identifier GetFuncName() const;
@@ -641,9 +573,7 @@ class CallExpr : public Expr {
   /// Return the kind of call this node represents
   CallKind call_kind() const { return call_kind_; }
 
-  static bool classof(const AstNode *node) {
-    return node->kind() == Kind::CallExpr;
-  }
+  static bool classof(const AstNode *node) { return node->kind() == Kind::CallExpr; }
 
  private:
   friend class sema::Sema;
@@ -664,12 +594,8 @@ class CallExpr : public Expr {
 /// A binary comparison operator
 class ComparisonOpExpr : public Expr {
  public:
-  ComparisonOpExpr(const SourcePosition &pos, parsing::Token::Type op,
-                   Expr *left, Expr *right)
-      : Expr(Kind::ComparisonOpExpr, pos),
-        op_(op),
-        left_(left),
-        right_(right) {}
+  ComparisonOpExpr(const SourcePosition &pos, parsing::Token::Type op, Expr *left, Expr *right)
+      : Expr(Kind::ComparisonOpExpr, pos), op_(op), left_(left), right_(right) {}
 
   parsing::Token::Type op() { return op_; }
 
@@ -677,9 +603,7 @@ class ComparisonOpExpr : public Expr {
 
   Expr *right() { return right_; }
 
-  static bool classof(const AstNode *node) {
-    return node->kind() == Kind::ComparisonOpExpr;
-  }
+  static bool classof(const AstNode *node) { return node->kind() == Kind::ComparisonOpExpr; }
 
  private:
   friend class sema::Sema;
@@ -711,9 +635,7 @@ class FunctionLitExpr : public Expr {
 
   bool IsEmpty() const { return body()->IsEmpty(); }
 
-  static bool classof(const AstNode *node) {
-    return node->kind() == Kind::FunctionLitExpr;
-  }
+  static bool classof(const AstNode *node) { return node->kind() == Kind::FunctionLitExpr; }
 
  private:
   FunctionTypeRepr *type_repr_;
@@ -732,9 +654,7 @@ class IdentifierExpr : public Expr {
 
   bool is_bound() const { return decl_ != nullptr; }
 
-  static bool classof(const AstNode *node) {
-    return node->kind() == Kind::IdentifierExpr;
-  }
+  static bool classof(const AstNode *node) { return node->kind() == Kind::IdentifierExpr; }
 
  private:
   // TODO(pmenon) Should these two be a union since only one should be active?
@@ -769,18 +689,13 @@ class ImplicitCastExpr : public Expr {
 
   Expr *input() { return input_; }
 
-  static bool classof(const AstNode *node) {
-    return node->kind() == Kind::ImplicitCastExpr;
-  }
+  static bool classof(const AstNode *node) { return node->kind() == Kind::ImplicitCastExpr; }
 
  private:
   friend class AstNodeFactory;
 
-  ImplicitCastExpr(const SourcePosition &pos, CastKind cast_kind,
-                   Type *target_type, Expr *input)
-      : Expr(Kind::ImplicitCastExpr, pos, target_type),
-        cast_kind_(cast_kind),
-        input_(input) {}
+  ImplicitCastExpr(const SourcePosition &pos, CastKind cast_kind, Type *target_type, Expr *input)
+      : Expr(Kind::ImplicitCastExpr, pos, target_type), cast_kind_(cast_kind), input_(input) {}
 
  private:
   CastKind cast_kind_;
@@ -805,15 +720,12 @@ class IndexExpr : public Expr {
   /// \return True if for a map; false otherwise
   bool IsMapAccess() const;
 
-  static bool classof(const AstNode *node) {
-    return node->kind() == Kind::IndexExpr;
-  }
+  static bool classof(const AstNode *node) { return node->kind() == Kind::IndexExpr; }
 
  private:
   friend class AstNodeFactory;
 
-  IndexExpr(const SourcePosition &pos, Expr *obj, Expr *index)
-      : Expr(Kind::IndexExpr, pos), obj_(obj), index_(index) {}
+  IndexExpr(const SourcePosition &pos, Expr *obj, Expr *index) : Expr(Kind::IndexExpr, pos), obj_(obj), index_(index) {}
 
  private:
   Expr *obj_;
@@ -825,53 +737,42 @@ class LitExpr : public Expr {
  public:
   enum class LitKind : u8 { Nil, Boolean, Int, Float, String };
 
-  explicit LitExpr(const SourcePosition &pos)
-      : Expr(Kind::LitExpr, pos), lit_kind_(LitExpr::LitKind::Nil) {}
+  explicit LitExpr(const SourcePosition &pos) : Expr(Kind::LitExpr, pos), lit_kind_(LitExpr::LitKind::Nil) {}
 
   LitExpr(const SourcePosition &pos, bool val)
-      : Expr(Kind::LitExpr, pos),
-        lit_kind_(LitExpr::LitKind::Boolean),
-        boolean_(val) {}
+      : Expr(Kind::LitExpr, pos), lit_kind_(LitExpr::LitKind::Boolean), boolean_(val) {}
 
   LitExpr(const SourcePosition &pos, LitExpr::LitKind lit_kind, Identifier str)
       : Expr(Kind::LitExpr, pos), lit_kind_(lit_kind), str_(str) {}
 
-  LitExpr(const SourcePosition &pos, i32 num)
-      : Expr(Kind::LitExpr, pos), lit_kind_(LitKind::Int), int32_(num) {}
+  LitExpr(const SourcePosition &pos, i32 num) : Expr(Kind::LitExpr, pos), lit_kind_(LitKind::Int), int32_(num) {}
 
-  LitExpr(const SourcePosition &pos, f32 num)
-      : Expr(Kind::LitExpr, pos), lit_kind_(LitKind::Float), float32_(num) {}
+  LitExpr(const SourcePosition &pos, f32 num) : Expr(Kind::LitExpr, pos), lit_kind_(LitKind::Float), float32_(num) {}
 
   LitExpr::LitKind literal_kind() const { return lit_kind_; }
 
   bool bool_val() const {
-    TPL_ASSERT(literal_kind() == LitKind::Boolean,
-               "Getting boolean value from a non-bool expression!");
+    TPL_ASSERT(literal_kind() == LitKind::Boolean, "Getting boolean value from a non-bool expression!");
     return boolean_;
   }
 
   Identifier raw_string_val() const {
-    TPL_ASSERT(
-        literal_kind() != LitKind::Nil && literal_kind() != LitKind::Boolean,
-        "Getting a raw string value from a non-string or numeric value");
+    TPL_ASSERT(literal_kind() != LitKind::Nil && literal_kind() != LitKind::Boolean,
+               "Getting a raw string value from a non-string or numeric value");
     return str_;
   }
 
   i32 int32_val() const {
-    TPL_ASSERT(literal_kind() == LitKind::Int,
-               "Getting integer value from a non-integer literal expression");
+    TPL_ASSERT(literal_kind() == LitKind::Int, "Getting integer value from a non-integer literal expression");
     return int32_;
   }
 
   f32 float32_val() const {
-    TPL_ASSERT(literal_kind() == LitKind::Float,
-               "Getting float value from a non-float literal expression");
+    TPL_ASSERT(literal_kind() == LitKind::Float, "Getting float value from a non-float literal expression");
     return float32_;
   }
 
-  static bool classof(const AstNode *node) {
-    return node->kind() == Kind::LitExpr;
-  }
+  static bool classof(const AstNode *node) { return node->kind() == Kind::LitExpr; }
 
  private:
   LitKind lit_kind_;
@@ -908,9 +809,7 @@ class MemberExpr : public Expr {
 
   bool IsSugaredArrow() const;
 
-  static bool classof(const AstNode *node) {
-    return node->kind() == Kind::MemberExpr;
-  }
+  static bool classof(const AstNode *node) { return node->kind() == Kind::MemberExpr; }
 
  private:
   friend class AstNodeFactory;
@@ -933,9 +832,7 @@ class UnaryOpExpr : public Expr {
 
   Expr *expr() { return expr_; }
 
-  static bool classof(const AstNode *node) {
-    return node->kind() == Kind::UnaryOpExpr;
-  }
+  static bool classof(const AstNode *node) { return node->kind() == Kind::UnaryOpExpr; }
 
  private:
   parsing::Token::Type op_;
@@ -965,9 +862,7 @@ class ArrayTypeRepr : public Expr {
 
   bool HasLength() const { return len_ != nullptr; }
 
-  static bool classof(const AstNode *node) {
-    return node->kind() == Kind::ArrayTypeRepr;
-  }
+  static bool classof(const AstNode *node) { return node->kind() == Kind::ArrayTypeRepr; }
 
  private:
   Expr *len_;
@@ -977,22 +872,14 @@ class ArrayTypeRepr : public Expr {
 /// Function type
 class FunctionTypeRepr : public Expr {
  public:
-  FunctionTypeRepr(const SourcePosition &pos,
-                   util::RegionVector<FieldDecl *> &&param_types,
-                   Expr *ret_type)
-      : Expr(Kind::FunctionTypeRepr, pos),
-        param_types_(std::move(param_types)),
-        ret_type_(ret_type) {}
+  FunctionTypeRepr(const SourcePosition &pos, util::RegionVector<FieldDecl *> &&param_types, Expr *ret_type)
+      : Expr(Kind::FunctionTypeRepr, pos), param_types_(std::move(param_types)), ret_type_(ret_type) {}
 
-  const util::RegionVector<FieldDecl *> &parameters() const {
-    return param_types_;
-  }
+  const util::RegionVector<FieldDecl *> &parameters() const { return param_types_; }
 
   Expr *return_type() const { return ret_type_; }
 
-  static bool classof(const AstNode *node) {
-    return node->kind() == Kind::FunctionTypeRepr;
-  }
+  static bool classof(const AstNode *node) { return node->kind() == Kind::FunctionTypeRepr; }
 
  private:
   util::RegionVector<FieldDecl *> param_types_;
@@ -1002,16 +889,13 @@ class FunctionTypeRepr : public Expr {
 /// Map types
 class MapTypeRepr : public Expr {
  public:
-  MapTypeRepr(const SourcePosition &pos, Expr *key, Expr *val)
-      : Expr(Kind::MapTypeRepr, pos), key_(key), val_(val) {}
+  MapTypeRepr(const SourcePosition &pos, Expr *key, Expr *val) : Expr(Kind::MapTypeRepr, pos), key_(key), val_(val) {}
 
   Expr *key() const { return key_; }
 
   Expr *val() const { return val_; }
 
-  static bool classof(const AstNode *node) {
-    return node->kind() == Kind::MapTypeRepr;
-  }
+  static bool classof(const AstNode *node) { return node->kind() == Kind::MapTypeRepr; }
 
  private:
   Expr *key_;
@@ -1021,14 +905,11 @@ class MapTypeRepr : public Expr {
 /// Pointer type
 class PointerTypeRepr : public Expr {
  public:
-  PointerTypeRepr(const SourcePosition &pos, Expr *base)
-      : Expr(Kind::PointerTypeRepr, pos), base_(base) {}
+  PointerTypeRepr(const SourcePosition &pos, Expr *base) : Expr(Kind::PointerTypeRepr, pos), base_(base) {}
 
   Expr *base() const { return base_; }
 
-  static bool classof(const AstNode *node) {
-    return node->kind() == Kind::PointerTypeRepr;
-  }
+  static bool classof(const AstNode *node) { return node->kind() == Kind::PointerTypeRepr; }
 
  private:
   Expr *base_;
@@ -1037,15 +918,12 @@ class PointerTypeRepr : public Expr {
 /// Struct type
 class StructTypeRepr : public Expr {
  public:
-  StructTypeRepr(const SourcePosition &pos,
-                 util::RegionVector<FieldDecl *> &&fields)
+  StructTypeRepr(const SourcePosition &pos, util::RegionVector<FieldDecl *> &&fields)
       : Expr(Kind::StructTypeRepr, pos), fields_(std::move(fields)) {}
 
   const util::RegionVector<FieldDecl *> &fields() const { return fields_; }
 
-  static bool classof(const AstNode *node) {
-    return node->kind() == Kind::StructTypeRepr;
-  }
+  static bool classof(const AstNode *node) { return node->kind() == Kind::StructTypeRepr; }
 
  private:
   util::RegionVector<FieldDecl *> fields_;

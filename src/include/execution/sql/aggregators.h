@@ -85,9 +85,7 @@ class NullableAggregate {
   void ResetUpdateCount() { num_updates_ = 0; }
 
   /// Merge this sum with the one provided
-  void Merge(const NullableAggregate &that) {
-    num_updates_ += that.num_updates_;
-  }
+  void Merge(const NullableAggregate &that) { num_updates_ += that.num_updates_; }
 
   u64 GetNumUpdates() const { return num_updates_; }
 
@@ -152,8 +150,7 @@ inline void IntegerSumAggregate::Merge(const IntegerSumAggregate &that) {
 class IntegerMaxAggregate : public NullableAggregate {
  public:
   /// Constructor
-  IntegerMaxAggregate()
-      : max_(std::numeric_limits<i64>::min()) {}
+  IntegerMaxAggregate() : max_(std::numeric_limits<i64>::min()) {}
 
   /// This class cannot be copied or moved
   DISALLOW_COPY_AND_MOVE(IntegerMaxAggregate);
@@ -206,8 +203,7 @@ inline void IntegerMaxAggregate::Merge(const IntegerMaxAggregate &that) {
 class IntegerMinAggregate : public NullableAggregate {
  public:
   /// Constructor
-  IntegerMinAggregate()
-      : min_(std::numeric_limits<i64>::max()) {}
+  IntegerMinAggregate() : min_(std::numeric_limits<i64>::max()) {}
 
   /// This class cannot be copied or moved
   DISALLOW_COPY_AND_MOVE(IntegerMinAggregate);

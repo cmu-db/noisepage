@@ -48,16 +48,14 @@ class BytecodeEmitter {
   void Bind(BytecodeLabel *label);
 
   void EmitJump(Bytecode bytecode, BytecodeLabel *label);
-  void EmitConditionalJump(Bytecode bytecode, LocalVar cond,
-                           BytecodeLabel *label);
+  void EmitConditionalJump(Bytecode bytecode, LocalVar cond, BytecodeLabel *label);
 
   // -------------------------------------------------------
   // Load-effective-address
   // -------------------------------------------------------
 
   void EmitLea(LocalVar dest, LocalVar src, u32 offset);
-  void EmitLeaScaled(LocalVar dest, LocalVar src, LocalVar index, u32 scale,
-                     u32 offset);
+  void EmitLeaScaled(LocalVar dest, LocalVar src, LocalVar index, u32 scale, u32 offset);
 
   // -------------------------------------------------------
   // Calls and returns
@@ -71,8 +69,7 @@ class BytecodeEmitter {
   // -------------------------------------------------------
 
   void EmitUnaryOp(Bytecode bytecode, LocalVar dest, LocalVar input);
-  void EmitBinaryOp(Bytecode bytecode, LocalVar dest, LocalVar lhs,
-                    LocalVar rhs);
+  void EmitBinaryOp(Bytecode bytecode, LocalVar dest, LocalVar lhs, LocalVar rhs);
 
   // -------------------------------------------------------
   // Generic emissions
@@ -80,35 +77,28 @@ class BytecodeEmitter {
 
   void Emit(Bytecode bytecode, LocalVar operand_1);
   void Emit(Bytecode bytecode, LocalVar operand_1, LocalVar operand_2);
-  void Emit(Bytecode bytecode, LocalVar operand_1, LocalVar operand_2,
-            LocalVar operand_3);
-  void Emit(Bytecode bytecode, LocalVar operand_1, LocalVar operand_2,
-            LocalVar operand_3, LocalVar operand_4);
-  void Emit(Bytecode bytecode, LocalVar operand_1, LocalVar operand_2,
-            LocalVar operand_3, LocalVar operand_4, LocalVar operand_5);
-  void Emit(Bytecode bytecode, LocalVar operand_1, LocalVar operand_2,
-            LocalVar operand_3, LocalVar operand_4, LocalVar operand_5,
-            LocalVar operand_6);
-  void Emit(Bytecode bytecode, LocalVar operand_1, LocalVar operand_2,
-            LocalVar operand_3, LocalVar operand_4, LocalVar operand_5,
-            LocalVar operand_6, LocalVar operand_7);
-  void Emit(Bytecode bytecode, LocalVar operand_1, LocalVar operand_2,
-            LocalVar operand_3, LocalVar operand_4, LocalVar operand_5,
-            LocalVar operand_6, LocalVar operand_7, LocalVar operand_8);
+  void Emit(Bytecode bytecode, LocalVar operand_1, LocalVar operand_2, LocalVar operand_3);
+  void Emit(Bytecode bytecode, LocalVar operand_1, LocalVar operand_2, LocalVar operand_3, LocalVar operand_4);
+  void Emit(Bytecode bytecode, LocalVar operand_1, LocalVar operand_2, LocalVar operand_3, LocalVar operand_4,
+            LocalVar operand_5);
+  void Emit(Bytecode bytecode, LocalVar operand_1, LocalVar operand_2, LocalVar operand_3, LocalVar operand_4,
+            LocalVar operand_5, LocalVar operand_6);
+  void Emit(Bytecode bytecode, LocalVar operand_1, LocalVar operand_2, LocalVar operand_3, LocalVar operand_4,
+            LocalVar operand_5, LocalVar operand_6, LocalVar operand_7);
+  void Emit(Bytecode bytecode, LocalVar operand_1, LocalVar operand_2, LocalVar operand_3, LocalVar operand_4,
+            LocalVar operand_5, LocalVar operand_6, LocalVar operand_7, LocalVar operand_8);
 
   // -------------------------------------------------------
   // Tables
   // -------------------------------------------------------
 
-  void EmitTableIteratorInit(Bytecode bytecode, LocalVar iter, u32 db_oid,
-                             u32 table_oid, uintptr_t exec_context);
+  void EmitTableIteratorInit(Bytecode bytecode, LocalVar iter, u32 db_oid, u32 table_oid, uintptr_t exec_context);
 
   // Reading integer values from an iterator
   void EmitPCIGet(Bytecode bytecode, LocalVar out, LocalVar pci, u32 col_idx);
 
   // Filter a column in the iterator by a constant value
-  void EmitPCIVectorFilter(Bytecode bytecode, LocalVar selected, LocalVar pci,
-                           u32 col_idx, i8 type, i64 val);
+  void EmitPCIVectorFilter(Bytecode bytecode, LocalVar selected, LocalVar pci, u32 col_idx, i8 type, i64 val);
 
   // --------------------------------------------
   // Output calls
@@ -116,18 +106,16 @@ class BytecodeEmitter {
   void EmitOutputAlloc(Bytecode bytecode, uintptr_t ptr, LocalVar dest);
   void EmitOutputCall(Bytecode bytecode, uintptr_t ptr);
   void EmitOutputSetNull(Bytecode bytecode, uintptr_t ptr, LocalVar idx);
-  void EmitIndexIteratorInit(Bytecode bytecode, LocalVar iter,
-                             uint32_t index_oid, uintptr_t ptr);
+  void EmitIndexIteratorInit(Bytecode bytecode, LocalVar iter, uint32_t index_oid, uintptr_t ptr);
   void EmitIndexIteratorScanKey(Bytecode bytecode, LocalVar iter, LocalVar key);
   void EmitIndexIteratorFree(Bytecode bytecode, LocalVar iter);
-  void EmitIndexIteratorGet(Bytecode bytecode, LocalVar out, LocalVar iter,
-                            u32 col_idx);
+  void EmitIndexIteratorGet(Bytecode bytecode, LocalVar out, LocalVar iter, u32 col_idx);
 
   // --------------------------------------------
   // Insert calls
   // --------------------------------------------
-  void EmitInsert(Bytecode bytecode, LocalVar db_oid, LocalVar table_oid, LocalVar values_ptr,
-      uintptr_t exec_context);
+  void EmitInsert(Bytecode bytecode, LocalVar db_oid, LocalVar table_oid, LocalVar values_ptr, uintptr_t exec_context);
+
  private:
   // Copy a scalar immediate value into the bytecode stream
   template <typename T>
@@ -137,9 +125,7 @@ class BytecodeEmitter {
   }
 
   // Emit a bytecode
-  void EmitImpl(Bytecode bytecode) {
-    EmitScalarValue(Bytecodes::ToByte(bytecode));
-  }
+  void EmitImpl(Bytecode bytecode) { EmitScalarValue(Bytecodes::ToByte(bytecode)); }
 
   // Emit a local variable reference by encoding it into the bytecode stream
   void EmitImpl(LocalVar local) { EmitScalarValue(local.Encode()); }

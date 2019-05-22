@@ -94,22 +94,16 @@ class Scanner {
   //////////////////////////////////////////////////////////////////////////////
 
   // Is the current character a character?
-  static bool IsInRange(i32 c, i32 lower, i32 upper) {
-    return (c >= lower && c <= upper);
-  }
+  static bool IsInRange(i32 c, i32 lower, i32 upper) { return (c >= lower && c <= upper); }
 
   // Is the provided character an alphabetic character
-  static bool IsAlpha(i32 c) {
-    return IsInRange(c, 'a', 'z') || IsInRange(c, 'A', 'Z');
-  }
+  static bool IsAlpha(i32 c) { return IsInRange(c, 'a', 'z') || IsInRange(c, 'A', 'Z'); }
 
   // Is the current character a digit?
   static bool IsDigit(i32 c) { return IsInRange(c, '0', '9'); }
 
   // Is this character allowed in an identifier?
-  static bool IsIdentifierChar(i32 c) {
-    return IsAlpha(c) || IsDigit(c) || c == '_';
-  }
+  static bool IsIdentifierChar(i32 c) { return IsAlpha(c) || IsDigit(c) || c == '_'; }
 
  private:
   // The source input and its length

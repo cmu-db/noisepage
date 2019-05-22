@@ -1,5 +1,7 @@
 #include "execution/compiler/query_state.h"
 
+#include <string>
+#include <utility>
 #include "execution/ast/ast_node_factory.h"
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/compiler_defs.h"
@@ -36,4 +38,4 @@ void QueryState::FinalizeType(tpl::compiler::CodeGen *codegen) {
   constructed_type_ = (*codegen)->NewStructType(DUMMY_POS, std::move(members));
 }
 
-}
+}  // namespace tpl::compiler
