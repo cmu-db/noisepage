@@ -38,7 +38,7 @@ class SettingsManager {
    * @param catalog a shared pointer to the system catalog
    * @param txn_manager a pointer to the transaction manager
    */
-  SettingsManager(DBMain *db, catalog::Catalog *catalog, transaction::TransactionManager *txn_manager);
+  SettingsManager(DBMain *db, catalog::Catalog *catalog);
 
   /**
    * Get the value of an integer setting
@@ -108,13 +108,6 @@ class SettingsManager {
   void SetString(Param param, const std::string_view &value, std::shared_ptr<common::ActionContext> action_context,
                  setter_callback_fn setter_callback);
 
-  // Call this method in Catalog->Bootstrap
-  // to store information into pg_settings
-  /**
-   * Store initial value of settings into pg_settings
-   */
-  void InitializeCatalog();
-
   /**
    * Validate values from DBMain map
    */
@@ -130,7 +123,6 @@ class SettingsManager {
  private:
   DBMain *db_;
   catalog::SettingsCatalogTable settings_handle_;
-  transaction::TransactionManager *txn_manager_;
   common::SharedLatch latch_;
 
   void ValidateSetting(Param param, const type::TransientValue &min_value, const type::TransientValue &max_value);

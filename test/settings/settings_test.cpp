@@ -77,7 +77,7 @@ class SettingsTests : public TerrierTest {
 
     txn_ = txn_manager_->BeginTransaction();
     catalog_ = new catalog::Catalog(txn_manager_, txn_);
-    settings_manager_ = new SettingsManager(db_, catalog_, txn_manager_);
+    settings_manager_ = new SettingsManager(db_, catalog_);
   }
 
   void TearDown() override {

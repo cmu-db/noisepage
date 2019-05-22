@@ -19,7 +19,7 @@ void DBMain::Init() {
   transaction::TransactionContext *txn_ = txn_manager_->BeginTransaction();
   // create the (system) catalogs
   catalog_ = new catalog::Catalog(txn_manager_, txn_);
-  settings_manager_ = new settings::SettingsManager(this, catalog_, txn_manager_);
+  settings_manager_ = new settings::SettingsManager(this, catalog_);
   LOG_INFO("Initialization complete");
 }
 

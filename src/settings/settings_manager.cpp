@@ -15,7 +15,6 @@
 
 namespace terrier::settings {
 
-using Index = catalog::SettingsTableColumn;
 using ValueFactory = type::TransientValueFactory;
 using ValuePeeker = type::TransientValuePeeker;
 using ActionContext = common::ActionContext;
@@ -24,10 +23,9 @@ using ActionState = common::ActionState;
 // Used for building temporary transactions
 void EmptyCallback(void * /*unused*/) {}
 
-SettingsManager::SettingsManager(DBMain *db, catalog::Catalog *catalog, transaction::TransactionManager *txn_manager)
-    : db_(db), settings_handle_(catalog->GetSettingsHandle()), txn_manager_(txn_manager) {
+SettingsManager::SettingsManager(DBMain *db, catalog::Catalog *catalog)
+    : db_(db), settings_handle_(catalog->GetSettingsHandle()) {
   ValidateParams();
-  InitializeCatalog();
 }
 
 void SettingsManager::ValidateParams() {
@@ -53,30 +51,6 @@ void SettingsManager::ValidateSetting(Param param, const type::TransientValue &m
         info.name_);
     throw SETTINGS_EXCEPTION("Invalid setting value");
   }
-}
-
-void SettingsManager::InitializeCatalog() {
-  auto txn = txn_manager_->BeginTransaction();
-  auto column_num = catalog::SettingsCatalogTable::schema_cols_.size();
-
-  for (const auto &pair : db_->param_map_) {
-    const Param param = pair.first;
-    const ParamInfo &info = pair.second;
-
-    catalog::settings_oid_t oid(static_cast<uint32_t>(param));
-    std::vector<type::TransientValue> entry;
-    for (auto i = column_num; i > 0; --i) {
-      entry.emplace_back(ValueFactory::GetNull(type::TypeId::VARCHAR));
-    }
-
-    entry[static_cast<int>(Index::OID)] = ValueFactory::GetInteger(!oid);
-    entry[static_cast<int>(Index::NAME)] = ValueFactory::GetVarChar(info.name_.c_str());
-    entry[static_cast<int>(Index::SHORT_DESC)] = ValueFactory::GetVarChar(info.desc_.c_str());
-
-    settings_handle_.InsertRow(txn, entry);
-  }
-
-  txn_manager_->Commit(txn, EmptyCallback, nullptr);
 }
 
 int32_t SettingsManager::GetInt(Param param) {
@@ -187,11 +161,6 @@ bool SettingsManager::SetValue(Param param, const type::TransientValue &value) {
   if (!param_info.is_mutable_) return false;
 
   param_info.value_ = ValueFactory::GetCopy(value);
-
-  auto txn = txn_manager_->BeginTransaction();
-  auto entry = settings_handle_.GetSettingsEntry(txn, param_info.name_);
-  entry->SetColumn(static_cast<int32_t>(Index::SETTING), value);
-  txn_manager_->Commit(txn, EmptyCallback, nullptr);
   return true;
 }
 

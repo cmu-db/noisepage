@@ -102,25 +102,4 @@ class SettingsCatalogTable {
   catalog::SqlTableHelper *pg_settings_;
 };
 
-enum class SettingsTableColumn {
-  OID,
-  NAME,
-  SETTING,
-  UNIT,
-  CATEGORY,
-  SHORT_DESC,
-  EXTRA_DESC,
-  CONTEXT,
-  VARTYPE,
-  SOURCE,
-  MIN_VAL,
-  MAX_VAL,
-  ENUMVALS,
-  BOOT_VAL,
-  RESET_VAL,
-  SOURCEFILE,
-  SOURCELINE,
-  PENDING_RESTART
-};
-
 }  // namespace terrier::catalog
