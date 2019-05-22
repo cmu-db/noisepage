@@ -188,7 +188,7 @@ class InsertPlanNode : public AbstractPlanNode {
   /**
    * @return number of times to insert
    */
-  uint32_t GetBulkInsertCount() const { return values_.size(); }
+  size_t GetBulkInsertCount() const { return values_.size(); }
 
   /**
    * @return the hashed value of this plan node
