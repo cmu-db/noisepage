@@ -1,12 +1,14 @@
 #pragma once
 #include <atomic>
 
+#include "catalog/catalog_defs.h"
+
 namespace terrier::common {
 
 /**
  * All possible states of action.
  */
-enum class ActionState {
+enum class ActionState : uint8_t {
   INITIATED,
   IN_PROGRESS,
   SUCCESS,
@@ -31,7 +33,7 @@ class ActionContext {
    * Get the state of this action.
    * @return action state.
    */
-  ActionState GetState() { return state_.load(); }
+  ActionState GetState() const { return state_.load(); }
 
   /**
    * Set the state of this action.
@@ -43,10 +45,10 @@ class ActionContext {
    * Get action id.
    * @return action id.
    */
-  int32_t GetActionId() { return action_id_; }
+  catalog::action_oid_t GetActionId() const { return action_id_; }
 
  private:
-  int32_t action_id_;
+  catalog::action_oid_t action_id_;
   std::atomic<ActionState> state_;
 };
 

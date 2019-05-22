@@ -21,7 +21,7 @@ namespace terrier {
 /**
  * Exception types
  */
-enum class ExceptionType { RESERVED = 0, NOT_IMPLEMENTED = 1, CATALOG = 2, NETWORK = 3, PARSER = 4, SETTINGS = 5 };
+enum class ExceptionType : uint8_t { RESERVED, NOT_IMPLEMENTED, CATALOG, NETWORK, PARSER, SETTINGS };
 
 /**
  * Exception base class.
