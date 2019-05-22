@@ -34,7 +34,11 @@ class OrderByDescription {
    */
   OrderByDescription() = default;
 
-  virtual ~OrderByDescription() = default;
+  ~OrderByDescription() {
+	  for (auto* expr : exprs_) {
+		  delete expr;
+	  }
+  }
 
   // TODO(WAN): no SQLStatement? maybe a Description base class?
   /**
@@ -167,6 +171,13 @@ class GroupByDescription {
    * Default constructor for deserialization
    */
   GroupByDescription() = default;
+
+  ~GroupByDescription() {
+	  for (auto* col : columns_) {
+		  delete col;
+	  }
+	  delete having_;
+  }
 
   // TODO(WAN): not a SQLStatement?
   /**

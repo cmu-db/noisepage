@@ -35,6 +35,10 @@ class JoinDefinition {
    */
   JoinDefinition() = default;
 
+  ~JoinDefinition() {
+	  delete condition_;
+  }
+
   // TODO(WAN): not a SQLStatement?
   /**
    * @param v visitor
