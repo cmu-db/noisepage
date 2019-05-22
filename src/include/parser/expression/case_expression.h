@@ -85,7 +85,7 @@ class CaseExpression : public AbstractExpression {
    * @param when_clauses list of when clauses
    * @param default_expr default expression for this case
    */
-  CaseExpression(const type::TypeId return_value_type, std::vector<WhenClause> when_clauses,
+  CaseExpression(const type::TypeId return_value_type, std::vector<WhenClause*> when_clauses,
                  AbstractExpression *default_expr)
       : AbstractExpression(ExpressionType::OPERATOR_CASE_EXPR, return_value_type, {}),
         when_clauses_(std::move(when_clauses)),
@@ -97,14 +97,17 @@ class CaseExpression : public AbstractExpression {
   CaseExpression() = default;
 
   ~CaseExpression() override {
+    for (auto* clause : when_clauses_) {
+      delete clause;
+    }
     delete default_expr_;
   }
 
   common::hash_t Hash() const override {
     common::hash_t hash = AbstractExpression::Hash();
-    for (auto &clause : when_clauses_) {
-      hash = common::HashUtil::CombineHashes(hash, clause.condition_->Hash());
-      hash = common::HashUtil::CombineHashes(hash, clause.then_->Hash());
+    for (auto* clause : when_clauses_) {
+      hash = common::HashUtil::CombineHashes(hash, clause->condition_->Hash());
+      hash = common::HashUtil::CombineHashes(hash, clause->then_->Hash());
     }
     if (default_expr_ != nullptr) {
       hash = common::HashUtil::CombineHashes(hash, default_expr_->Hash());
@@ -119,7 +122,7 @@ class CaseExpression : public AbstractExpression {
     if (clause_size != other.GetWhenClauseSize()) return false;
 
     for (size_t i = 0; i < clause_size; i++)
-      if (when_clauses_[i] != other.when_clauses_[i]) return false;
+      if (*when_clauses_[i] != *other.when_clauses_[i]) return false;
 
     auto default_exp = GetDefaultClause();
     auto other_default_exp = other.GetDefaultClause();
@@ -129,9 +132,9 @@ class CaseExpression : public AbstractExpression {
   }
 
   AbstractExpression *Copy() const override {
-    std::vector<WhenClause> when_clauses;
-    for (const auto &clause : when_clauses_) {
-      when_clauses.emplace_back(clause.condition_->Copy(), clause.then_->Copy());
+    std::vector<WhenClause*> when_clauses;
+    for (const auto* clause : when_clauses_) {
+      when_clauses.push_back(new CaseExpression::WhenClause(clause->condition_->Copy(), clause->then_->Copy()));
     }
     return new CaseExpression(GetReturnValueType(), when_clauses, default_expr_->Copy());
   }
@@ -147,7 +150,7 @@ class CaseExpression : public AbstractExpression {
    */
   AbstractExpression *GetWhenClauseCondition(size_t index) const {
     TERRIER_ASSERT(index < when_clauses_.size(), "Index must be in bounds.");
-    return when_clauses_[index].condition_;
+    return when_clauses_[index]->condition_;
   }
 
   /**
@@ -156,7 +159,7 @@ class CaseExpression : public AbstractExpression {
    */
   AbstractExpression *GetWhenClauseResult(size_t index) const {
     TERRIER_ASSERT(index < when_clauses_.size(), "Index must be in bounds.");
-    return when_clauses_[index].then_;
+    return when_clauses_[index]->then_;
   }
 
   /**
@@ -169,11 +172,7 @@ class CaseExpression : public AbstractExpression {
    */
   nlohmann::json ToJson() const override {
     nlohmann::json j = AbstractExpression::ToJson();
-    std::vector<nlohmann::json> when_clauses_json;
-    for (const auto &when_clause : when_clauses_) {
-      when_clauses_json.push_back(when_clause.ToJson());
-    }
-    j["when_clauses"] = when_clauses_json;
+    j["when_clauses"] = when_clauses_;
     j["default_expr"] = default_expr_;
     return j;
   }
@@ -183,12 +182,18 @@ class CaseExpression : public AbstractExpression {
    */
   void FromJson(const nlohmann::json &j) override {
     AbstractExpression::FromJson(j);
-    when_clauses_ = j.at("when_clauses").get<std::vector<WhenClause>>();
+    // Deserialize clauses
+    auto clauses_json = j.at("children").get<std::vector<nlohmann::json>>();
+    for (const auto &clause_json : clauses_json) {
+      auto* clause = new WhenClause();
+      clause->FromJson(clause_json);
+      when_clauses_.push_back(clause);
+    }
     default_expr_ = DeserializeExpression(j.at("default_expr"));
   }
 
  private:
-  std::vector<WhenClause> when_clauses_;
+  std::vector<WhenClause*> when_clauses_;
   AbstractExpression *default_expr_;
 };
 

@@ -185,11 +185,13 @@ TEST(ExpressionTests, AggregateExpressionJsonTest) {
 // NOLINTNEXTLINE
 TEST(ExpressionTests, CaseExpressionTest) {
   // Create expression
-  auto *const_expr = new StarExpression();
-  std::vector<CaseExpression::WhenClause> when_clauses;
-  CaseExpression::WhenClause when{const_expr, const_expr};
-  when_clauses.push_back(when);
-  auto *original_expr = new CaseExpression(type::TypeId::BOOLEAN, std::move(when_clauses), const_expr);
+  auto *cond_expr = new StarExpression();
+  auto *then_expr = new StarExpression();
+  std::vector<CaseExpression::WhenClause*> when_clauses;
+  auto* when_clause = new CaseExpression::WhenClause(cond_expr, then_expr);
+  when_clauses.push_back(when_clause);
+  auto* default_expr = new StarExpression();
+  auto *original_expr = new CaseExpression(type::TypeId::BOOLEAN, when_clauses, default_expr);
 
   // Serialize expression
   auto json = original_expr->ToJson();
@@ -201,7 +203,7 @@ TEST(ExpressionTests, CaseExpressionTest) {
   auto *deserialized_case_expr = static_cast<CaseExpression *>(deserialized_expression);
   EXPECT_EQ(original_expr->GetReturnValueType(), deserialized_case_expr->GetReturnValueType());
   EXPECT_TRUE(deserialized_case_expr->GetDefaultClause() != nullptr);
-  EXPECT_EQ(const_expr->GetExpressionType(), deserialized_case_expr->GetDefaultClause()->GetExpressionType());
+  EXPECT_EQ(default_expr->GetExpressionType(), deserialized_case_expr->GetDefaultClause()->GetExpressionType());
 
   delete original_expr;
   delete deserialized_expression;
