@@ -451,6 +451,9 @@ AbstractExpression *PostgresParser::AExprTransform(A_Expr *root) {
     }
     default: {
       PARSER_LOG_DEBUG("AExprTransform: type {} unsupported", static_cast<int>(target_type));
+      for (auto* child : children) {
+	      delete child;
+      }
       throw PARSER_EXCEPTION("AExprTransform: unsupported type");
     }
   }
@@ -514,6 +517,7 @@ AbstractExpression *PostgresParser::CaseExprTransform(CaseExpr *root) {
   auto ret_val_type = clauses[0]->then_->GetReturnValueType();
 
   auto result = new CaseExpression(ret_val_type, std::move(clauses), default_expr);
+  delete arg_expr;
   return result;
 }
 
@@ -725,8 +729,8 @@ std::unique_ptr<SelectStatement> PostgresParser::SelectTransform(SelectStmt *roo
 
   switch (root->op) {
     case SETOP_NONE: {
-      auto target = TargetTransform(root->targetList);
       auto from = FromTransform(root);
+      auto target = TargetTransform(root->targetList);
       auto select_distinct = root->distinctClause != nullptr;
       auto groupby = GroupByTransform(root->groupClause, root->havingClause);
       auto orderby = OrderByTransform(root->sortClause);
@@ -1289,6 +1293,9 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateIndexTransform(IndexStmt *ro
     index_type = IndexType::ART;
   } else {
     PARSER_LOG_DEBUG("CreateIndexTransform: IndexType {} not supported", access_method);
+    for (auto* attr : index_attrs) {
+	    delete attr;
+    }
     throw NOT_IMPLEMENTED_EXCEPTION("CreateIndexTransform error");
   }
 
