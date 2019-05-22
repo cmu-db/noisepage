@@ -323,6 +323,10 @@ class LogicalLeftJoin : public OperatorNode<LogicalLeftJoin> {
    */
   static Operator make(parser::AbstractExpression *condition = nullptr);
 
+  bool operator==(const BaseOperatorNode &r) override;
+
+  common::hash_t Hash() const override;
+
  private:
   /**
    * Join predicate
@@ -340,6 +344,10 @@ class LogicalRightJoin : public OperatorNode<LogicalRightJoin> {
    * @return a RightJoin operator
    */
   static Operator make(parser::AbstractExpression *condition = nullptr);
+
+  bool operator==(const BaseOperatorNode &r) override;
+
+  common::hash_t Hash() const override;
 
  private:
   /**
@@ -359,6 +367,10 @@ class LogicalOuterJoin : public OperatorNode<LogicalOuterJoin> {
     */
    static Operator make(parser::AbstractExpression *condition = nullptr);
 
+   bool operator==(const BaseOperatorNode &r) override;
+
+   common::hash_t Hash() const override;
+
   private:
    /**
     * Join predicate
@@ -376,6 +388,10 @@ class LogicalSemiJoin : public OperatorNode<LogicalSemiJoin> {
     * @return a RightJoin operator
     */
   static Operator make(parser::AbstractExpression *condition = nullptr);
+
+  bool operator==(const BaseOperatorNode &r) override;
+
+  common::hash_t Hash() const override;
 
  private:
   /**
