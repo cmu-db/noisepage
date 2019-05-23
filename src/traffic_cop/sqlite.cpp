@@ -2,8 +2,8 @@
 #include <cstdio>
 #include <memory>
 #include <string>
-#include <vector>
 #include <utility>
+#include <vector>
 
 #include "loggers/main_logger.h"
 #include "network/network_defs.h"

@@ -43,6 +43,7 @@ Transition SimpleQueryCommand::Exec(PostgresProtocolInterpreter *interpreter, Po
   }
 
   out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
+  sqlite3_finalize(stmt);
   return Transition::PROCEED;
 }
 

@@ -8,8 +8,8 @@
 #include "network/command_factory.h"
 #include "network/connection_context.h"
 #include "network/connection_handle.h"
-#include "network/protocol_interpreter.h"
 #include "network/postgres/postgres_network_commands.h"
+#include "network/protocol_interpreter.h"
 
 namespace terrier::network {
 

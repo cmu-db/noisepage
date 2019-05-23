@@ -1,7 +1,7 @@
+#include <memory>
 #include <pqxx/pqxx> /* libpqxx is used to instantiate C++ client */
 #include <string>
 #include <vector>
-#include <memory>
 
 #include "common/settings.h"
 #include "gtest/gtest.h"

@@ -1,5 +1,5 @@
-#include <memory>
 #include "network/command_factory.h"
+#include <memory>
 namespace terrier::network {
 
 #define MAKE_COMMAND(type) std::static_pointer_cast<PostgresNetworkCommand, type>(std::make_shared<type>(packet))
