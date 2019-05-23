@@ -42,6 +42,7 @@ class DBMain {
       delete settings_manager_;
       delete catalog_;
       delete txn_manager_;
+      delete buffer_segment_pool_;
     }
   }
 
@@ -98,6 +99,7 @@ class DBMain {
   settings::SettingsManager *settings_manager_;
   storage::GarbageCollectorThread *gc_thread_;
   network::TerrierServer server_;
+  storage::RecordBufferSegmentPool *buffer_segment_pool_;
 
   bool running = false;
   bool initialized = false;

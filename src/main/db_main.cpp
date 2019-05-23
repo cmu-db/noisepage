@@ -15,10 +15,10 @@ void DBMain::Init() {
   main_stat_reg_ = std::make_shared<common::StatisticsRegistry>();
 
   // create the global transaction mgr
-  auto *buffer_pool = new storage::RecordBufferSegmentPool(
+  buffer_segment_pool_ = new storage::RecordBufferSegmentPool(
       type::TransientValuePeeker::PeekInteger(param_map_.find(settings::Param::buffer_pool_size)->second.value_),
       10000);
-  txn_manager_ = new transaction::TransactionManager(buffer_pool, true, nullptr);
+  txn_manager_ = new transaction::TransactionManager(buffer_segment_pool_, true, nullptr);
   // TODO(Matt): gc interval should come from the settings manager
   gc_thread_ = new storage::GarbageCollectorThread(txn_manager_, std::chrono::milliseconds{10});
   transaction::TransactionContext *txn = txn_manager_->BeginTransaction();
