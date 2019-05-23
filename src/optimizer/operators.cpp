@@ -129,8 +129,7 @@ Operator LogicalFilter::make(std::vector<AnnotatedExpression> &&predicates) {
 
 bool LogicalFilter::operator==(const BaseOperatorNode &node) {
   if (node.GetType() != OpType::LOGICALFILTER) return false;
-  const LogicalFilter &r =
-      *static_cast<const LogicalFilter *>(&node);
+  const LogicalFilter &r = *static_cast<const LogicalFilter *>(&node);
 
   // This is technically incorrect because the predicates
   // are supposed to be unsorted and this equals check is
@@ -173,8 +172,8 @@ common::hash_t LogicalProjection::Hash() const {
 //===--------------------------------------------------------------------===//
 
 Operator LogicalInsert::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                             catalog::table_oid_t table_oid, const std::vector<catalog::col_oid_t > &&columns,
-                             const std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> &&values) {
+                             catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&columns,
+                             std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> &&values) {
   TERRIER_ASSERT(columns.size() == values.size(), "Mismatched columns and values");
   LogicalInsert *op = new LogicalInsert;
   op->database_oid_ = database_oid;
@@ -211,7 +210,7 @@ bool LogicalInsert::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 
 Operator LogicalInsertSelect::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                             catalog::table_oid_t table_oid) {
+                                   catalog::table_oid_t table_oid) {
   LogicalInsertSelect *op = new LogicalInsertSelect;
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
@@ -299,7 +298,7 @@ common::hash_t LogicalLimit::Hash() const {
 //===--------------------------------------------------------------------===//
 
 Operator LogicalDelete::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                                   catalog::table_oid_t table_oid) {
+                             catalog::table_oid_t table_oid) {
   LogicalDelete *op = new LogicalDelete;
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
@@ -330,7 +329,7 @@ bool LogicalDelete::operator==(const BaseOperatorNode &r) {
 
 Operator LogicalUpdate::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                              catalog::table_oid_t table_oid,
-                             const std::vector<std::unique_ptr<parser::UpdateClause>> &&updates) {
+                             std::vector<std::unique_ptr<parser::UpdateClause>> &&updates) {
   LogicalUpdate *op = new LogicalUpdate;
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
@@ -362,8 +361,8 @@ bool LogicalUpdate::operator==(const BaseOperatorNode &r) {
 // LogicalExportExternalFile
 //===--------------------------------------------------------------------===//
 
-Operator LogicalExportExternalFile::make(parser::ExternalFileFormat format, std::string file_name,
-                                         char delimiter, char quote, char escape) {
+Operator LogicalExportExternalFile::make(parser::ExternalFileFormat format, std::string file_name, char delimiter,
+                                         char quote, char escape) {
   LogicalExportExternalFile *op = new LogicalExportExternalFile;
   op->format_ = format;
   op->file_name_ = file_name;
@@ -438,8 +437,7 @@ Operator LogicalMarkJoin::make(std::vector<AnnotatedExpression> &&conditions) {
 
 common::hash_t LogicalMarkJoin::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  for (auto &pred : join_predicates_)
-    hash = common::HashUtil::CombineHashes(hash, pred.GetExpr()->Hash());
+  for (auto &pred : join_predicates_) hash = common::HashUtil::CombineHashes(hash, pred.GetExpr()->Hash());
   return hash;
 }
 
@@ -466,8 +464,7 @@ Operator LogicalSingleJoin::make(std::vector<AnnotatedExpression> &&conditions) 
 
 common::hash_t LogicalSingleJoin::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  for (auto &pred : join_predicates_)
-    hash = common::HashUtil::CombineHashes(hash, pred.GetExpr()->Hash());
+  for (auto &pred : join_predicates_) hash = common::HashUtil::CombineHashes(hash, pred.GetExpr()->Hash());
   return hash;
 }
 
@@ -494,8 +491,7 @@ Operator LogicalInnerJoin::make(std::vector<AnnotatedExpression> &&conditions) {
 
 common::hash_t LogicalInnerJoin::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  for (auto &pred : join_predicates_)
-    hash = common::HashUtil::CombineHashes(hash, pred.GetExpr()->Hash());
+  for (auto &pred : join_predicates_) hash = common::HashUtil::CombineHashes(hash, pred.GetExpr()->Hash());
   return hash;
 }
 
@@ -510,8 +506,7 @@ bool LogicalInnerJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 Operator LogicalLeftJoin::make(parser::AbstractExpression *condition) {
   LogicalLeftJoin *join = new LogicalLeftJoin;
-  join->join_predicate_ =
-      std::shared_ptr<parser::AbstractExpression>(condition);
+  join->join_predicate_ = std::shared_ptr<parser::AbstractExpression>(condition);
   return Operator(join);
 }
 
@@ -532,8 +527,7 @@ bool LogicalLeftJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 Operator LogicalRightJoin::make(parser::AbstractExpression *condition) {
   LogicalRightJoin *join = new LogicalRightJoin;
-  join->join_predicate_ =
-      std::shared_ptr<parser::AbstractExpression>(condition);
+  join->join_predicate_ = std::shared_ptr<parser::AbstractExpression>(condition);
   return Operator(join);
 }
 
@@ -554,8 +548,7 @@ bool LogicalRightJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 Operator LogicalOuterJoin::make(parser::AbstractExpression *condition) {
   LogicalOuterJoin *join = new LogicalOuterJoin;
-  join->join_predicate_ =
-      std::shared_ptr<parser::AbstractExpression>(condition);
+  join->join_predicate_ = std::shared_ptr<parser::AbstractExpression>(condition);
   return Operator(join);
 }
 
@@ -576,8 +569,7 @@ bool LogicalOuterJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 Operator LogicalSemiJoin::make(parser::AbstractExpression *condition) {
   LogicalSemiJoin *join = new LogicalSemiJoin;
-  join->join_predicate_ =
-      std::shared_ptr<parser::AbstractExpression>(condition);
+  join->join_predicate_ = std::shared_ptr<parser::AbstractExpression>(condition);
   return Operator(join);
 }
 
@@ -602,16 +594,14 @@ Operator LogicalAggregateAndGroupBy::make() {
   return Operator(group_by);
 }
 
-Operator LogicalAggregateAndGroupBy::make(
-    std::vector<std::shared_ptr<parser::AbstractExpression>> &&columns) {
+Operator LogicalAggregateAndGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpression>> &&columns) {
   LogicalAggregateAndGroupBy *group_by = new LogicalAggregateAndGroupBy;
   group_by->columns_ = move(columns);
   return Operator(group_by);
 }
 
-Operator LogicalAggregateAndGroupBy::make(
-    std::vector<std::shared_ptr<parser::AbstractExpression>> &&columns,
-    std::vector<AnnotatedExpression> &&having) {
+Operator LogicalAggregateAndGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpression>> &&columns,
+                                          std::vector<AnnotatedExpression> &&having) {
   LogicalAggregateAndGroupBy *group_by = new LogicalAggregateAndGroupBy;
   group_by->columns_ = move(columns);
   group_by->having_ = move(having);
@@ -620,10 +610,8 @@ Operator LogicalAggregateAndGroupBy::make(
 
 bool LogicalAggregateAndGroupBy::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::LOGICALAGGREGATEANDGROUPBY) return false;
-  const LogicalAggregateAndGroupBy &node =
-      *static_cast<const LogicalAggregateAndGroupBy *>(&r);
-  if (having_.size() != node.having_.size() || columns_.size() != node.columns_.size())
-    return false;
+  const LogicalAggregateAndGroupBy &node = *static_cast<const LogicalAggregateAndGroupBy *>(&r);
+  if (having_.size() != node.having_.size() || columns_.size() != node.columns_.size()) return false;
   for (size_t i = 0; i < having_.size(); i++) {
     if (having_[i].GetExpr() != node.having_[i].GetExpr()) return false;
   }
@@ -639,7 +627,6 @@ common::hash_t LogicalAggregateAndGroupBy::Hash() const {
   for (auto expr : columns_) hash = common::HashUtil::SumHashes(hash, expr->Hash());
   return hash;
 }
-
 
 //===--------------------------------------------------------------------===//
 // TableFreeScan
@@ -786,11 +773,11 @@ Operator QueryDerivedScan::make(
   return Operator(get);
 }
 
-bool QueryDerivedScan::operator==(const BaseOperatorNode &node) {
-  if (node.GetType() != OpType::QUERYDERIVEDSCAN) return false;
-  const LogicalQueryDerivedGet &r = *static_cast<const QueryDerivedScan *>(&node);
-  if (table_alias_ != r.table_alias_) return false;
-  return alias_to_expr_map_ == r.alias_to_expr_map_;
+bool QueryDerivedScan::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::QUERYDERIVEDSCAN) return false;
+  const QueryDerivedScan &node = *static_cast<const QueryDerivedScan *>(&r);
+  if (table_alias_ != node.table_alias_) return false;
+  return alias_to_expr_map_ == node.alias_to_expr_map_;
 }
 
 common::hash_t QueryDerivedScan::Hash() const {
@@ -1284,4 +1271,3 @@ bool OperatorNode<T>::IsPhysical() const {
 }
 
 }  // namespace terrier::optimizer
-

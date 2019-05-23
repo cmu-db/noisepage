@@ -9,6 +9,7 @@
 #include "common/hash_util.h"
 #include "optimizer/operator_node.h"
 #include "parser/expression/abstract_expression.h"
+#include "parser/update_statement.h"
 #include "parser/expression_defs.h"
 #include "parser/parser_defs.h"
 #include "planner/plannodes/plan_node_defs.h"
@@ -360,22 +361,22 @@ class LogicalRightJoin : public OperatorNode<LogicalRightJoin> {
  * Logical operator for outer join
  */
 class LogicalOuterJoin : public OperatorNode<LogicalOuterJoin> {
-  public:
-   /**
-    * @param condition condition of the join
-    * @return a RightJoin operator
-    */
-   static Operator make(parser::AbstractExpression *condition = nullptr);
+ public:
+  /**
+   * @param condition condition of the join
+   * @return a RightJoin operator
+   */
+  static Operator make(parser::AbstractExpression *condition = nullptr);
 
-   bool operator==(const BaseOperatorNode &r) override;
+  bool operator==(const BaseOperatorNode &r) override;
 
-   common::hash_t Hash() const override;
+  common::hash_t Hash() const override;
 
-  private:
-   /**
-    * Join predicate
-    */
-   std::shared_ptr<parser::AbstractExpression> join_predicate_;
+ private:
+  /**
+   * Join predicate
+   */
+  std::shared_ptr<parser::AbstractExpression> join_predicate_;
 };
 
 /**
@@ -384,9 +385,9 @@ class LogicalOuterJoin : public OperatorNode<LogicalOuterJoin> {
 class LogicalSemiJoin : public OperatorNode<LogicalSemiJoin> {
  public:
   /**
-    * @param condition condition of the join
-    * @return a RightJoin operator
-    */
+   * @param condition condition of the join
+   * @return a RightJoin operator
+   */
   static Operator make(parser::AbstractExpression *condition = nullptr);
 
   bool operator==(const BaseOperatorNode &r) override;
@@ -454,15 +455,13 @@ class LogicalInsert : public OperatorNode<LogicalInsert> {
    * @return
    */
   static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::table_oid_t table_oid,
-                       const std::vector<catalog::col_oid_t > &&columns,
-                       const std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> &&values);
+                       catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&columns,
+                       std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> &&values);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
 
  private:
-
   /**
    * OID of the database
    */
@@ -481,13 +480,13 @@ class LogicalInsert : public OperatorNode<LogicalInsert> {
   /**
    * OIDs of the columns that this operator is inserting into for the target table
    */
-  const std::vector<catalog::col_oid_t> columns_;
+  std::vector<catalog::col_oid_t> columns_;
 
   /**
    * The expression objects to insert.
    * The offset of an entry in this list corresponds to the offset in the columns_ list.
    */
-  const std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> values_;
+  std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> values_;
 };
 
 /**
@@ -554,14 +553,13 @@ class LogicalLimit : public OperatorNode<LogicalLimit> {
    * @return
    */
   static Operator make(size_t offset, size_t limit,
-      std::vector<std::shared_ptr<parser::AbstractExpression>> &&sort_exprs,
-      std::vector<planner::OrderByOrderingType> &&sort_directions);
+                       std::vector<std::shared_ptr<parser::AbstractExpression>> &&sort_exprs,
+                       std::vector<planner::OrderByOrderingType> &&sort_directions);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
 
  private:
-
   /**
    * The offset of the LIMIT operator
    */
@@ -591,7 +589,6 @@ class LogicalLimit : public OperatorNode<LogicalLimit> {
  */
 class LogicalDelete : public OperatorNode<LogicalDelete> {
  public:
-
   /**
    * @param database_oid OID of the database
    * @param namespace_oid OID of the namespace
@@ -635,7 +632,7 @@ class LogicalUpdate : public OperatorNode<LogicalUpdate> {
    */
   static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t table_oid,
-                       const std::vector<std::unique_ptr<parser::UpdateClause>> &&updates);
+                       std::vector<std::unique_ptr<parser::UpdateClause>> &&updates);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
@@ -659,7 +656,7 @@ class LogicalUpdate : public OperatorNode<LogicalUpdate> {
   /**
    * The update clauses from the SET portion of the query
    */
-   std::vector<std::unique_ptr<parser::UpdateClause>> updates_;
+  std::vector<std::unique_ptr<parser::UpdateClause>> updates_;
 };
 
 /**
@@ -675,8 +672,8 @@ class LogicalExportExternalFile : public OperatorNode<LogicalExportExternalFile>
    * @param escape the character to use to escape characters in values
    * @return
    */
-  static Operator make(parser::ExternalFileFormat format, std::string file_name,
-      char delimiter, char quote, char escape);
+  static Operator make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote,
+                       char escape);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
@@ -991,7 +988,7 @@ class InnerNLJoin : public OperatorNode<InnerNLJoin> {
    * @param join_predicates predicates for join
    * @param left_keys left keys to join
    * @param right_keys right keys to join
-   * @return an IneerNLJoin operator
+   * @return an InnerNLJoin operator
    */
   static Operator make(std::vector<AnnotatedExpression> join_predicates,
                        std::vector<std::unique_ptr<parser::AbstractExpression>> &&left_keys,
@@ -1437,4 +1434,3 @@ class Distinct : public OperatorNode<Distinct> {
 
 }  // namespace optimizer
 }  // namespace terrier
-

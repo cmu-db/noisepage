@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 #include "common/hash_util.h"
-#include "optimizer_defs.h"
+#include "optimizer/optimizer_defs.h"
 
 namespace terrier::optimizer {
 
