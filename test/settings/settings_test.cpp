@@ -1,19 +1,8 @@
-#include <util/test_harness.h>
-#include <cstdio>
-#include <cstring>
-#include <memory>
-#include <pqxx/pqxx>  // NOLINT
-#include <string>
-#include <unordered_map>
-#include <utility>
-#include <vector>
+#include <thread>  // NOLINT
 #include "gtest/gtest.h"
-#include "loggers/main_logger.h"
 #include "main/db_main.h"
-#include "network/connection_handle_factory.h"
 #include "settings/settings_manager.h"
-#include "storage/garbage_collector.h"
-#include "util/transaction_test_util.h"
+#include "util/test_harness.h"
 
 #define __SETTING_GFLAGS_DEFINE__      // NOLINT
 #include "settings/settings_common.h"  // NOLINT
@@ -24,71 +13,22 @@ namespace terrier::settings {
 
 class SettingsTests : public TerrierTest {
  protected:
-  DBMain *db_;
+  DBMain *db_main_;
   SettingsManager *settings_manager_;
-  transaction::TransactionContext *txn_;
   transaction::TransactionManager *txn_manager_;
-  catalog::Catalog *catalog_;
   const uint64_t defaultBufferPoolSize = 100000;
-  storage::RecordBufferSegmentPool buffer_pool_{defaultBufferPoolSize, 100};
-
-  storage::GarbageCollector *gc_;
-  volatile bool run_gc_;
-  volatile bool gc_paused_;
-  std::thread gc_thread_;
-  const std::chrono::milliseconds gc_period_{10};
-
-  void GCThreadLoop() {
-    while (run_gc_) {
-      std::this_thread::sleep_for(gc_period_);
-      if (!gc_paused_) gc_->PerformGarbageCollection();
-    }
-  }
-
-  void StartGC(transaction::TransactionManager *const txn_manager) {
-    gc_ = new storage::GarbageCollector(txn_manager);
-    run_gc_ = true;
-    gc_thread_ = std::thread([this] { GCThreadLoop(); });
-  }
-
-  void EndGC() {
-    run_gc_ = false;
-    gc_thread_.join();
-    // Make sure all garbage is collected. This take 2 runs for unlink and deallocate
-    gc_->PerformGarbageCollection();
-    gc_->PerformGarbageCollection();
-    delete gc_;
-  }
 
   void SetUp() override {
-    TerrierTest::SetUp();
     std::unordered_map<Param, ParamInfo> param_map;
+    terrier::settings::SettingsManager::ConstructParamMap(param_map);
 
-#define __SETTING_POPULATE__           // NOLINT
-#include "settings/settings_common.h"  // NOLINT
-#include "settings/settings_defs.h"    // NOLINT
-#undef __SETTING_POPULATE__            // NOLINT
-
-    db_ = new DBMain(std::move(param_map));
-
-    txn_manager_ = new transaction::TransactionManager(&buffer_pool_, true, nullptr);
-    db_->txn_manager_ = txn_manager_;
-    StartGC(txn_manager_);
-
-    txn_ = txn_manager_->BeginTransaction();
-    catalog_ = new catalog::Catalog(txn_manager_, txn_);
-    settings_manager_ = new SettingsManager(db_, catalog_);
+    db_main_ = new DBMain(std::move(param_map));
+    db_main_->Init();
+    settings_manager_ = db_main_->settings_manager_;
+    txn_manager_ = db_main_->txn_manager_;
   }
 
-  void TearDown() override {
-    txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
-    EndGC();
-    TerrierTest::TearDown();
-    delete db_;
-    delete catalog_;
-    delete txn_manager_;
-    delete settings_manager_;
-  }
+  void TearDown() override { delete db_main_; }
 
   static void EmptySetterCallback(const std::shared_ptr<common::ActionContext> &action_context UNUSED_ATTRIBUTE) {}
 };
