@@ -186,7 +186,7 @@ class InsertPlanNode : public AbstractPlanNode {
   const catalog::col_oid_t GetColumnOidForValue(uint32_t value_idx) const { return parameter_info_.at(value_idx); }
 
   /**
-   * @return number of times to insert
+   * @return number of tuples to insert
    */
   size_t GetBulkInsertCount() const { return values_.size(); }
 
