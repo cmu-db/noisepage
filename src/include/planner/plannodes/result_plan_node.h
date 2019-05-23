@@ -72,7 +72,7 @@ class ResultPlanNode : public AbstractPlanNode {
    */
   ResultPlanNode() = default;
 
-  ~ResultPlanNode() { delete expr_; }
+  ~ResultPlanNode() override { delete expr_; }
 
   DISALLOW_COPY_AND_MOVE(ResultPlanNode)
 

@@ -174,7 +174,7 @@ class OutputSchema {
      * @param from DerivedColumn to be moved from
      * @warning DerivedColumn from will be left with a null expression.
      */
-    DerivedColumn(DerivedColumn &&from) {
+    DerivedColumn(DerivedColumn &&from) noexcept {
       column_ = from.column_;
       expr_ = from.expr_;
       from.expr_ = nullptr;
@@ -186,7 +186,7 @@ class OutputSchema {
      * @return self reference
      * @warning DerivedColumn from will be left with a null expression.
      */
-    DerivedColumn &operator=(DerivedColumn &&from) {
+    DerivedColumn &operator=(DerivedColumn &&from) noexcept {
       if (this == &from) {
         return *this;
       }

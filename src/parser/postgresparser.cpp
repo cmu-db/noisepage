@@ -496,25 +496,25 @@ AbstractExpression *PostgresParser::CaseExprTransform(CaseExpr *root) {
 
   auto arg_expr = ExprTransform(reinterpret_cast<Node *>(root->arg));
 
-  std::vector<CaseExpression::WhenClause *> clauses;
+  std::vector<CaseExpression::WhenClause> clauses;
   for (auto cell = root->args->head; cell != nullptr; cell = cell->next) {
     auto w = reinterpret_cast<CaseWhen *>(cell->data.ptr_value);
     auto when_expr = ExprTransform(reinterpret_cast<Node *>(w->expr));
     auto result_expr = ExprTransform(reinterpret_cast<Node *>(w->result));
 
     if (arg_expr == nullptr) {
-      clauses.push_back(new CaseExpression::WhenClause(when_expr, result_expr));
+      clauses.emplace_back(when_expr, result_expr);
     } else {
       std::vector<AbstractExpression *> children;
       children.emplace_back(arg_expr->Copy());
       children.emplace_back(when_expr);
       auto *cmp_expr = new ComparisonExpression(ExpressionType::COMPARE_EQUAL, std::move(children));
-      clauses.push_back(new CaseExpression::WhenClause(cmp_expr, result_expr));
+      clauses.emplace_back(cmp_expr, result_expr);
     }
   }
 
   auto default_expr = ExprTransform(reinterpret_cast<Node *>(root->defresult));
-  auto ret_val_type = clauses[0]->then_->GetReturnValueType();
+  auto ret_val_type = clauses[0].then_->GetReturnValueType();
 
   auto result = new CaseExpression(ret_val_type, std::move(clauses), default_expr);
   delete arg_expr;

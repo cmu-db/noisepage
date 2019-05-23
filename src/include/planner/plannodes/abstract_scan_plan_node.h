@@ -118,7 +118,7 @@ class AbstractScanPlanNode : public AbstractPlanNode {
    */
   AbstractScanPlanNode() = default;
 
-  ~AbstractScanPlanNode() { delete scan_predicate_; }
+  ~AbstractScanPlanNode() override { delete scan_predicate_; }
 
   DISALLOW_COPY_AND_MOVE(AbstractScanPlanNode)
 

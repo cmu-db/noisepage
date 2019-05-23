@@ -104,7 +104,7 @@ class HashJoinPlanNode : public AbstractJoinPlanNode {
    */
   HashJoinPlanNode() = default;
 
-  ~HashJoinPlanNode() {
+  ~HashJoinPlanNode() override {
     for (auto *key : left_hash_keys_) {
       delete key;
     }

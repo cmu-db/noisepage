@@ -109,7 +109,7 @@ class AggregatePlanNode : public AbstractPlanNode {
    */
   AggregatePlanNode() = default;
 
-  ~AggregatePlanNode() {
+  ~AggregatePlanNode() override {
     for (auto *term : aggregate_terms_) {
       delete term;
     }
