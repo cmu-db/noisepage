@@ -50,8 +50,8 @@ void DBMain::CleanUp() {
   LoggersUtil::ShutDown();
 }
 
-void DBMain::KnobCallback(void *old_value, void *new_value,
-                          const std::shared_ptr<common::ActionContext> &action_context) {
+void DBMain::SettingsCallback(void *old_value, void *new_value,
+                              const std::shared_ptr<common::ActionContext> &action_context) {
   action_context->SetState(common::ActionState::SUCCESS);
 }
 

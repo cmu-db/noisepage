@@ -38,12 +38,11 @@ class LoggersUtil {
 
       if (testing) {
         init_test_logger();
-      } else {
-        // TODO(Matt): this was originally only called in terrier.cpp, not in test harness. This just extends that
-        // logic. Flush all *registered* loggers using a worker thread. Registered loggers must be thread safe for this
-        // to work correctly
-        spdlog::flush_every(std::chrono::seconds(DEBUG_LOG_FLUSH_INTERVAL));
       }
+
+      // Flush all *registered* loggers using a worker thread. Registered loggers must be thread safe for this to work
+      // correctly
+      spdlog::flush_every(std::chrono::seconds(DEBUG_LOG_FLUSH_INTERVAL));
     } catch (const spdlog::spdlog_ex &ex) {
       std::cerr << "Debug logging initialization failed for " << ex.what() << std::endl;  // NOLINT
       throw ex;
