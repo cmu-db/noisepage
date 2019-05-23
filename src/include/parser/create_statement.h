@@ -345,6 +345,53 @@ class IndexAttr {
   ~IndexAttr() { delete expr_; }
 
   /**
+   * Copy constructor
+   * @param other IndexAttr to copy from
+   */
+  IndexAttr(const IndexAttr &other) {
+    name_ = other.name_;
+    expr_ = other.expr_ == nullptr ? nullptr : other.expr_->Copy();
+  }
+
+  /**
+   * Copy assignment operator
+   * @param other IndexAttr to copy from
+   * @return self reference
+   */
+  IndexAttr &operator=(const IndexAttr &other) {
+    name_ = other.name_;
+    expr_ = other.expr_ == nullptr ? nullptr : other.expr_->Copy();
+    return *this;
+  }
+
+  /**
+   * Move Constructor
+   * @param from IndexAttr to be moved from
+   * @warning IndexAttr from will be left with a null expression.
+   */
+  IndexAttr(IndexAttr &&from) noexcept {
+    name_ = from.name_;
+    expr_ = from.expr_;
+    from.expr_ = nullptr;
+  }
+
+  /**
+   * Move assignment operator
+   * @param from IndexAttr to be moved from
+   * @return self reference
+   * @warning IndexAttr from will be left with a null expression.
+   */
+  IndexAttr &operator=(IndexAttr &&from) noexcept {
+    if (this == &from) {
+      return *this;
+    }
+    name_ = from.name_;
+    expr_ = from.expr_;
+    from.expr_ = nullptr;
+    return *this;
+  }
+
+  /**
    * @return the name of the column that we're indexed on
    */
   std::string GetName() const {
@@ -361,8 +408,8 @@ class IndexAttr {
   }
 
  private:
-  const std::string name_;
-  const AbstractExpression *expr_;
+  std::string name_;
+  AbstractExpression *expr_;
 };
 
 /**
@@ -400,13 +447,13 @@ class CreateStatement : public TableRefStatement {
    * @param index_attrs index attributes
    */
   CreateStatement(std::shared_ptr<TableInfo> table_info, IndexType index_type, bool unique, std::string index_name,
-                  std::vector<IndexAttr *> index_attrs)
+                  std::vector<IndexAttr> index_attrs)
       : TableRefStatement(StatementType::CREATE, std::move(table_info)),
         create_type_(kIndex),
         index_type_(index_type),
         unique_index_(unique),
         index_name_(std::move(index_name)),
-        index_attrs_(std::move(index_attrs)) {}
+        index_attrs_(index_attrs) {}
 
   /**
    * CREATE SCHEMA
@@ -451,12 +498,7 @@ class CreateStatement : public TableRefStatement {
         view_name_(std::move(view_name)),
         view_query_(std::move(view_query)) {}
 
-  ~CreateStatement() override {
-    for (auto *attr : index_attrs_) {
-      delete attr;
-    }
-    delete trigger_when_;
-  }
+  ~CreateStatement() override { delete trigger_when_; }
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
@@ -493,7 +535,7 @@ class CreateStatement : public TableRefStatement {
   /**
    * @return index attributes for [CREATE INDEX]
    */
-  std::vector<IndexAttr *> GetIndexAttributes() { return index_attrs_; }
+  const std::vector<IndexAttr> &GetIndexAttributes() const { return index_attrs_; }
 
   /**
    * @return true if "IF NOT EXISTS" for [CREATE SCHEMA], false otherwise
@@ -552,7 +594,7 @@ class CreateStatement : public TableRefStatement {
   const IndexType index_type_ = IndexType::INVALID;
   const bool unique_index_ = false;
   const std::string index_name_;
-  const std::vector<IndexAttr *> index_attrs_;
+  const std::vector<IndexAttr> index_attrs_;
 
   // CREATE SCHEMA
   const bool if_not_exists_ = false;

@@ -155,7 +155,7 @@ class OutputSchema {
      */
     DerivedColumn(const DerivedColumn &other) {
       column_ = other.column_;
-      expr_ = other.expr_->Copy();
+      expr_ = other.expr_ == nullptr ? nullptr : other.expr_->Copy();
     }
 
     /**
@@ -165,7 +165,7 @@ class OutputSchema {
      */
     DerivedColumn &operator=(const DerivedColumn &other) {
       column_ = other.column_;
-      expr_ = other.expr_->Copy();
+      expr_ = other.expr_ == nullptr ? nullptr : other.expr_->Copy();
       return *this;
     }
 

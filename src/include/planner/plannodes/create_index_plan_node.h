@@ -102,7 +102,7 @@ class CreateIndexPlanNode : public AbstractPlanNode {
 
         for (auto &attr : create_stmt->GetIndexAttributes()) {
           // TODO(WAN/WEN): Wen, all yours. Note that it either has a name or an expression, not both.
-          index_attrs_holder.push_back(attr->GetName());
+          index_attrs_holder.push_back(attr.GetName());
         }
 
         index_attrs_ = index_attrs_holder;

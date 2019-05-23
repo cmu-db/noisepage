@@ -44,7 +44,7 @@ class CaseExpression : public AbstractExpression {
      */
     WhenClause(const WhenClause &other) {
       condition_ = other.condition_->Copy();
-      then_ = other.then_->Copy();
+      then_ = other.then_ == nullptr ? nullptr : other.then_->Copy();
     }
 
     /**
@@ -54,7 +54,7 @@ class CaseExpression : public AbstractExpression {
      */
     WhenClause &operator=(const WhenClause &other) {
       condition_ = other.condition_->Copy();
-      then_ = other.then_->Copy();
+      then_ = other.then_ == nullptr ? nullptr : other.then_->Copy();
       return *this;
     }
 

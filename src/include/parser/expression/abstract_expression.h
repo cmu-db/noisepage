@@ -81,7 +81,7 @@ class AbstractExpression {
   virtual bool operator!=(const AbstractExpression &rhs) const { return !operator==(rhs); }
 
   /**
-   * Creates a (shallow) copy of the current AbstractExpression.
+   * Creates a (deep) copy of the current AbstractExpression.
    */
   // It is incorrect to supply a default implementation here since that will return an object
   // of base type AbstractExpression instead of the desired non-abstract type.
