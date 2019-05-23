@@ -162,7 +162,7 @@ class CaseExpression : public AbstractExpression {
 
   common::hash_t Hash() const override {
     common::hash_t hash = AbstractExpression::Hash();
-    for (auto clause : when_clauses_) {
+    for (auto &clause : when_clauses_) {
       hash = common::HashUtil::CombineHashes(hash, clause.Hash());
     }
     if (default_expr_ != nullptr) {
