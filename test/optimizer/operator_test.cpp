@@ -38,10 +38,9 @@ TEST(OperatorTests, BasicSeqScanTest) {
   EXPECT_EQ(seq_scan_1.As<IndexScan>(), nullptr);
   EXPECT_TRUE(seq_scan_1 == seq_scan_2);
   EXPECT_FALSE(seq_scan_1 == seq_scan_3);
-
-  // TODO: ? add delete function for Operator class
 }
 
+// NOLINTNEXTLINE
 TEST(OperatorTests, BasicIndexScanTest) {
   //===--------------------------------------------------------------------===//
   // IndexScan
@@ -65,6 +64,7 @@ TEST(OperatorTests, BasicIndexScanTest) {
   EXPECT_FALSE(index_scan_1 == index_scan_3);
 }
 
+// NOLINTNEXTLINE
 TEST(OperatorTests, BasicExternalFileScanTest) {
   //===--------------------------------------------------------------------===//
   // ExternalFileScan
@@ -79,6 +79,7 @@ TEST(OperatorTests, BasicExternalFileScanTest) {
   EXPECT_FALSE(ext_file_scan_1 == ext_file_scan_3);
 }
 
+// NOLINTNEXTLINE
 TEST(OperatorTests, BasicQueryDerivedScanTest) {
   //===--------------------------------------------------------------------===//
   // QueryDerivedScan
@@ -101,6 +102,7 @@ TEST(OperatorTests, BasicQueryDerivedScanTest) {
 
 }
 
+// NOLINTNEXTLINE
 TEST(OperatorTests, BasicOrderByTest) {
   //===--------------------------------------------------------------------===//
   // OrderBy
@@ -111,6 +113,7 @@ TEST(OperatorTests, BasicOrderByTest) {
   EXPECT_EQ(order_by.GetName(), "OrderBy");
 }
 
+// NOLINTNEXTLINE
 TEST(OperatorTests, BasicLimitTest) {
   //===--------------------------------------------------------------------===//
   // Limit
@@ -121,6 +124,7 @@ TEST(OperatorTests, BasicLimitTest) {
   EXPECT_EQ(limit.GetName(), "Limit");
 }
 
+// NOLINTNEXTLINE
 TEST(OperatorTests, BasicInnerNLJoinTest) {
   //===--------------------------------------------------------------------===//
   // InnerNLJoin
@@ -137,6 +141,7 @@ TEST(OperatorTests, BasicInnerNLJoinTest) {
   EXPECT_TRUE(inner_nl_join_1 == inner_nl_join_2);
 }
 
+// NOLINTNEXTLINE
 TEST(OperatorTests, BasicLeftNLJoinTest) {
   //===--------------------------------------------------------------------===//
   // LeftNLJoin
@@ -147,6 +152,7 @@ TEST(OperatorTests, BasicLeftNLJoinTest) {
   EXPECT_EQ(left_nl_join.GetName(), "LeftNLJoin");
 }
 
+// NOLINTNEXTLINE
 TEST(OperatorTests, BasicRightNLJoinTest) {
   //===--------------------------------------------------------------------===//
   // RightNLJoin
@@ -157,6 +163,7 @@ TEST(OperatorTests, BasicRightNLJoinTest) {
   EXPECT_EQ(right_nl_join.GetName(), "RightNLJoin");
 }
 
+// NOLINTNEXTLINE
 TEST(OperatorTests, BasicOuterNLJoin) {
   //===--------------------------------------------------------------------===//
   // OuterNLJoin
@@ -167,6 +174,7 @@ TEST(OperatorTests, BasicOuterNLJoin) {
   EXPECT_EQ(outer_nl_join.GetName(), "OuterNLJoin");
 }
 
+// NOLINTNEXTLINE
 TEST(OperatorTests, BasicInnerHashJoinTest) {
   //===--------------------------------------------------------------------===//
   // InnerHashJoin
@@ -183,6 +191,7 @@ TEST(OperatorTests, BasicInnerHashJoinTest) {
   EXPECT_TRUE(inner_hash_join_1 == inner_hash_join_2);
 }
 
+// NOLINTNEXTLINE
 TEST(OperatorTests, BasicLeftHashJoinTest) {
   //===--------------------------------------------------------------------===//
   // LeftHashJoin
@@ -193,6 +202,7 @@ TEST(OperatorTests, BasicLeftHashJoinTest) {
   EXPECT_EQ(left_hash_join.GetName(), "LeftHashJoin");
 }
 
+// NOLINTNEXTLINE
 TEST(OperatorTests, BasicRightHashJoinTest) {
   //===--------------------------------------------------------------------===//
   // RightHashJoin
@@ -203,6 +213,7 @@ TEST(OperatorTests, BasicRightHashJoinTest) {
   EXPECT_EQ(right_hash_join.GetName(), "RightHashJoin");
 }
 
+// NOLINTNEXTLINE
 TEST(OperatorTests, BasicOuterHashJoinTest) {
   //===--------------------------------------------------------------------===//
   // OuterHashJoin
@@ -213,6 +224,7 @@ TEST(OperatorTests, BasicOuterHashJoinTest) {
   EXPECT_EQ(outer_hash_join.GetName(), "OuterHashJoin");
 }
 
+// NOLINTNEXTLINE
 TEST(OperatorTests, BasicInsertTest) {
   //===--------------------------------------------------------------------===//
   // Insert
@@ -229,6 +241,7 @@ TEST(OperatorTests, BasicInsertTest) {
   delete values;
 }
 
+// NOLINTNEXTLINE
 TEST(OperatorTests, BasicInsertSelectTest) {
   //===--------------------------------------------------------------------===//
   // InsertSelect
@@ -240,6 +253,7 @@ TEST(OperatorTests, BasicInsertSelectTest) {
   EXPECT_EQ(insert_select.GetName(), "InsertSelect");
 }
 
+// NOLINTNEXTLINE
 TEST(OperatorTests, BasicDeleteTest) {
   //===--------------------------------------------------------------------===//
   // Delete
@@ -250,6 +264,7 @@ TEST(OperatorTests, BasicDeleteTest) {
   EXPECT_EQ(del.GetName(), "Delete");
 }
 
+// NOLINTNEXTLINE
 TEST(OperatorTests, BasicExportExternalFileTest) {
   //===--------------------------------------------------------------------===//
   // ExportExternalFile
@@ -264,6 +279,7 @@ TEST(OperatorTests, BasicExportExternalFileTest) {
   EXPECT_FALSE(export_ext_file_1 == export_ext_file_3);
 }
 
+// NOLINTNEXTLINE
 TEST(OperatorTests, BasicUpdateTest) {
   //===--------------------------------------------------------------------===//
   // Update
@@ -277,6 +293,7 @@ TEST(OperatorTests, BasicUpdateTest) {
   delete updates;
 }
 
+// NOLINTNEXTLINE
 TEST(OperatorTests, BasicHashGroupByTest) {
   //===--------------------------------------------------------------------===//
   // HashGroupBy
@@ -296,6 +313,7 @@ TEST(OperatorTests, BasicHashGroupByTest) {
   EXPECT_FALSE(hash_group_by_1 == hash_group_by_3);
 }
 
+// NOLINTNEXTLINE
 TEST(OperatorTests, BasicSortGroupByTest) {
   //===--------------------------------------------------------------------===//
   // SortGroupBy
@@ -315,6 +333,7 @@ TEST(OperatorTests, BasicSortGroupByTest) {
   EXPECT_FALSE(sort_group_by_1 == sort_group_by_3);
 }
 
+// NOLINTNEXTLINE
 TEST(OperatorTests, BasicAggregateTest) {
   //===--------------------------------------------------------------------===//
   // Aggregate
@@ -325,6 +344,7 @@ TEST(OperatorTests, BasicAggregateTest) {
   EXPECT_EQ(aggr.GetName(), "Aggregate");
 }
 
+// NOLINTNEXTLINE
 TEST(OperatorTests, BasicDistinctTest) {
   //===--------------------------------------------------------------------===//
   // Distinct

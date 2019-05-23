@@ -110,9 +110,9 @@ bool LogicalQueryDerivedGet::operator==(const BaseOperatorNode &r) {
 common::hash_t LogicalQueryDerivedGet::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
-  for (auto iter = alias_to_expr_map_.begin(); iter != alias_to_expr_map_.end(); iter++) {
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(iter->first));
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(iter->second));
+  for (auto & iter : alias_to_expr_map_) {
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(iter.first));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(iter.second));
   }
   return hash;
 }
@@ -247,9 +247,8 @@ Operator LogicalDistinct::make() {
 }
 
 bool LogicalDistinct::operator==(const BaseOperatorNode &r) {
-  if (r.GetType() != OpType::LOGICALDISTINCT) return false;
+  return (r.GetType() == OpType::LOGICALDISTINCT);
   // Again, there isn't any internal data so I guess we're always equal!
-  return (true);
 }
 
 common::hash_t LogicalDistinct::Hash() const {
@@ -365,7 +364,7 @@ Operator LogicalExportExternalFile::make(parser::ExternalFileFormat format, std:
                                          char quote, char escape) {
   auto *op = new LogicalExportExternalFile;
   op->format_ = format;
-  op->file_name_ = file_name;
+  op->file_name_ = std::move(file_name);
   op->delimiter_ = delimiter;
   op->quote_ = quote;
   op->escape_ = escape;
@@ -624,7 +623,7 @@ bool LogicalAggregateAndGroupBy::operator==(const BaseOperatorNode &r) {
 common::hash_t LogicalAggregateAndGroupBy::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
   for (auto &pred : having_) hash = common::HashUtil::SumHashes(hash, pred.GetExpr()->Hash());
-  for (auto expr : columns_) hash = common::HashUtil::SumHashes(hash, expr->Hash());
+  for (auto &expr : columns_) hash = common::HashUtil::SumHashes(hash, expr->Hash());
   return hash;
 }
 
@@ -783,9 +782,9 @@ bool QueryDerivedScan::operator==(const BaseOperatorNode &r) {
 common::hash_t QueryDerivedScan::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
-  for (auto iter = alias_to_expr_map_.begin(); iter != alias_to_expr_map_.end(); iter++) {
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(iter->first));
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(iter->second));
+  for (auto & iter : alias_to_expr_map_) {
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(iter.first));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(iter.second));
   }
   return hash;
 }
