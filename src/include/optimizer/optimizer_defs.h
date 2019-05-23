@@ -104,6 +104,26 @@ class AnnotatedExpression {
    */
   const std::unordered_set<std::string> &GetTableAliasSet() const { return table_alias_set_; }
 
+  /**
+ * Logical equality check.
+ * @param rhs other
+ * @return true if the two expressions are logically equal
+ */
+  bool operator==(const AnnotatedExpression &rhs) const {
+    /**
+     * In the original code, the comparison was implemented in
+     * /src/optimizer/operators.cpp by comparing only the expr of the AnnotatedExpression
+     */
+    return expr_ == rhs.expr_;
+  }
+
+  /**
+   * Logical inequality check.
+   * @param rhs other
+   * @return true if the two expressions are logically not equal
+   */
+  bool operator!=(const AnnotatedExpression &rhs) const { return !operator==(rhs); }
+
  private:
   /**
    * Expression to be annotated
