@@ -27,6 +27,9 @@ void DBMain::Init() {
   settings_manager_ = new settings::SettingsManager(this, catalog_);
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   LOG_INFO("Initialization complete");
+
+  initialized = true;
+
 }
 
 void DBMain::Run() {

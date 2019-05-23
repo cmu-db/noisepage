@@ -36,11 +36,13 @@ class DBMain {
       : param_map_(std::move(param_map)) {}
 
   ~DBMain() {
-    ForceShutdown();
-    delete gc_thread_;
-    delete settings_manager_;
-    delete catalog_;
-    delete txn_manager_;
+    if (initialized) {
+      ForceShutdown();
+      delete gc_thread_;
+      delete settings_manager_;
+      delete catalog_;
+      delete txn_manager_;
+    }
   }
 
   /**
@@ -96,6 +98,8 @@ class DBMain {
   settings::SettingsManager *settings_manager_;
   storage::GarbageCollectorThread *gc_thread_;
   network::TerrierServer server_;
+
+  bool initialized = false;
 
   /**
    * Cleans up and exit.
