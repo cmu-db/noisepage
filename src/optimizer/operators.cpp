@@ -100,11 +100,11 @@ Operator LogicalQueryDerivedGet::make(
   return Operator(get);
 }
 
-bool LogicalQueryDerivedGet::operator==(const BaseOperatorNode &node) {
-  if (node.GetType() != OpType::LOGICALQUERYDERIVEDGET) return false;
-  const LogicalQueryDerivedGet &r = *static_cast<const LogicalQueryDerivedGet *>(&node);
-  if (table_alias_ != r.table_alias_) return false;
-  return alias_to_expr_map_ == r.alias_to_expr_map_;
+bool LogicalQueryDerivedGet::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::LOGICALQUERYDERIVEDGET) return false;
+  const LogicalQueryDerivedGet &node = *static_cast<const LogicalQueryDerivedGet *>(&r);
+  if (table_alias_ != node.table_alias_) return false;
+  return alias_to_expr_map_ == node.alias_to_expr_map_;
 }
 
 common::hash_t LogicalQueryDerivedGet::Hash() const {
@@ -127,14 +127,14 @@ Operator LogicalFilter::make(std::vector<AnnotatedExpression> &&predicates) {
   return Operator(op);
 }
 
-bool LogicalFilter::operator==(const BaseOperatorNode &node) {
-  if (node.GetType() != OpType::LOGICALFILTER) return false;
-  const LogicalFilter &r = *static_cast<const LogicalFilter *>(&node);
+bool LogicalFilter::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::LOGICALFILTER) return false;
+  const LogicalFilter &node = *static_cast<const LogicalFilter *>(&r);
 
   // This is technically incorrect because the predicates
   // are supposed to be unsorted and this equals check is
   // comparing values at each offset.
-  return (predicates_ == r.predicates_);
+  return (predicates_ == node.predicates_);
 }
 
 common::hash_t LogicalFilter::Hash() const {
@@ -155,10 +155,10 @@ Operator LogicalProjection::make(std::vector<std::shared_ptr<parser::AbstractExp
   return Operator(op);
 }
 
-bool LogicalProjection::operator==(const BaseOperatorNode &node) {
-  if (node.GetType() != OpType::LOGICALPROJECTION) return false;
-  const LogicalProjection &r = *static_cast<const LogicalProjection *>(&node);
-  return (expressions_ == r.expressions_);
+bool LogicalProjection::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::LOGICALPROJECTION) return false;
+  const LogicalProjection &node = *static_cast<const LogicalProjection *>(&r);
+  return (expressions_ == node.expressions_);
 }
 
 common::hash_t LogicalProjection::Hash() const {
@@ -382,14 +382,14 @@ common::hash_t LogicalExportExternalFile::Hash() const {
   return hash;
 }
 
-bool LogicalExportExternalFile::operator==(const BaseOperatorNode &node) {
-  if (node.GetType() != OpType::LOGICALEXPORTEXTERNALFILE) return false;
-  const LogicalExportExternalFile &r = *dynamic_cast<const LogicalExportExternalFile *>(&node);
-  if (format_ != r.format_) return false;
-  if (file_name_ != r.file_name_) return false;
-  if (delimiter_ != r.delimiter_) return false;
-  if (quote_ != r.quote_) return false;
-  if (escape_ != r.escape_) return false;
+bool LogicalExportExternalFile::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::LOGICALEXPORTEXTERNALFILE) return false;
+  const LogicalExportExternalFile &node = *dynamic_cast<const LogicalExportExternalFile *>(&r);
+  if (format_ != node.format_) return false;
+  if (file_name_ != node.file_name_) return false;
+  if (delimiter_ != node.delimiter_) return false;
+  if (quote_ != node.quote_) return false;
+  if (escape_ != node.escape_) return false;
   return (true);
 }
 
@@ -641,13 +641,13 @@ Operator TableFreeScan::make() {
 //===--------------------------------------------------------------------===//
 Operator SeqScan::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t table_oid, std::string table_alias,
-                       std::vector<AnnotatedExpression> predicates, bool update) {
+                       std::vector<AnnotatedExpression> predicates, bool is_for_update) {
   auto *scan = new SeqScan;
   scan->database_oid_ = database_oid;
   scan->namespace_oid_ = namespace_oid;
   scan->table_oid_ = table_oid;
   scan->predicates_ = std::move(predicates);
-  scan->is_for_update_ = update;
+  scan->is_for_update_ = is_for_update;
   scan->table_alias_ = std::move(table_alias);
   return Operator(scan);
 }
@@ -678,7 +678,7 @@ common::hash_t SeqScan::Hash() const {
 //===--------------------------------------------------------------------===//
 Operator IndexScan::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                          catalog::index_oid_t index_oid, std::string table_alias,
-                         std::vector<AnnotatedExpression> predicates, bool update,
+                         std::vector<AnnotatedExpression> predicates, bool is_for_update,
                          std::vector<catalog::col_oid_t> key_column_oid_list,
                          std::vector<parser::ExpressionType> expr_type_list,
                          std::vector<type::TransientValue> value_list) {
@@ -687,7 +687,7 @@ Operator IndexScan::make(catalog::db_oid_t database_oid, catalog::namespace_oid_
   scan->namespace_oid_ = namespace_oid;
   scan->index_oid_ = index_oid;
   scan->table_alias_ = std::move(table_alias);
-  scan->is_for_update_ = update;
+  scan->is_for_update_ = is_for_update;
   scan->predicates_ = std::move(predicates);
   scan->key_column_oid_list_ = std::move(key_column_oid_list);
   scan->expr_type_list_ = std::move(expr_type_list);
@@ -1211,6 +1211,48 @@ template <>
 const char *OperatorNode<ExportExternalFile>::name_ = "ExportExternalFile";
 
 //===--------------------------------------------------------------------===//
+template <>
+OpType OperatorNode<LogicalGet>::type_ = OpType::LOGICALGET;
+template <>
+OpType OperatorNode<LogicalExternalFileGet>::type_ = OpType::LOGICALEXTERNALFILEGET;
+template <>
+OpType OperatorNode<LogicalQueryDerivedGet>::type_ = OpType::LOGICALQUERYDERIVEDGET;
+template <>
+OpType OperatorNode<LogicalFilter>::type_ = OpType::LOGICALFILTER;
+template <>
+OpType OperatorNode<LogicalProjection>::type_ = OpType::LOGICALPROJECTION;
+template <>
+OpType OperatorNode<LogicalMarkJoin>::type_ = OpType::LOGICALMARKJOIN;
+template <>
+OpType OperatorNode<LogicalSingleJoin>::type_ = OpType::LOGICALSINGLEJOIN;
+template <>
+OpType OperatorNode<LogicalDependentJoin>::type_ = OpType::LOGICALDEPENDENTJOIN;
+template <>
+OpType OperatorNode<LogicalInnerJoin>::type_ = OpType::LOGICALINNERJOIN;
+template <>
+OpType OperatorNode<LogicalLeftJoin>::type_ = OpType::LOGICALLEFTJOIN;
+template <>
+OpType OperatorNode<LogicalRightJoin>::type_ = OpType::LOGICALRIGHTJOIN;
+template <>
+OpType OperatorNode<LogicalOuterJoin>::type_ = OpType::LOGICALOUTERJOIN;
+template <>
+OpType OperatorNode<LogicalSemiJoin>::type_ = OpType::LOGICALSEMIJOIN;
+template <>
+OpType OperatorNode<LogicalAggregateAndGroupBy>::type_ = OpType::LOGICALAGGREGATEANDGROUPBY;
+template <>
+OpType OperatorNode<LogicalInsert>::type_ = OpType::LOGICALINSERT;
+template <>
+OpType OperatorNode<LogicalInsertSelect>::type_ = OpType::LOGICALINSERTSELECT;
+template <>
+OpType OperatorNode<LogicalUpdate>::type_ = OpType::LOGICALUPDATE;
+template <>
+OpType OperatorNode<LogicalDelete>::type_ = OpType::LOGICALDELETE;
+template <>
+OpType OperatorNode<LogicalDistinct>::type_ = OpType::LOGICALDISTINCT;
+template <>
+OpType OperatorNode<LogicalLimit>::type_ = OpType::LOGICALLIMIT;
+template <>
+OpType OperatorNode<LogicalExportExternalFile>::type_ = OpType::LOGICALEXPORTEXTERNALFILE;
 template <>
 OpType OperatorNode<TableFreeScan>::type_ = OpType::TABLEFREESCAN;
 template <>

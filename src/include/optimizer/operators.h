@@ -9,9 +9,9 @@
 #include "common/hash_util.h"
 #include "optimizer/operator_node.h"
 #include "parser/expression/abstract_expression.h"
-#include "parser/update_statement.h"
 #include "parser/expression_defs.h"
 #include "parser/parser_defs.h"
+#include "parser/update_statement.h"
 #include "planner/plannodes/plan_node_defs.h"
 #include "type/transient_value.h"
 
@@ -631,8 +631,7 @@ class LogicalUpdate : public OperatorNode<LogicalUpdate> {
    * @return
    */
   static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::table_oid_t table_oid,
-                       std::vector<std::unique_ptr<parser::UpdateClause>> &&updates);
+                       catalog::table_oid_t table_oid, std::vector<std::unique_ptr<parser::UpdateClause>> &&updates);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;

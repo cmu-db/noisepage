@@ -4,8 +4,8 @@
 
 #include <memory>
 #include <string>
-#include <vector>
 #include <utility>
+#include <vector>
 
 namespace terrier::optimizer {
 

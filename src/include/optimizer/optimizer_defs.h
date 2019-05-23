@@ -23,7 +23,7 @@ enum class OpType {
 
   // Logical Operators
   LOGICALGET,
-  LOGUCALEXTERNALFILEGET,
+  LOGICALEXTERNALFILEGET,
   LOGICALQUERYDERIVEDGET,
   LOGICALPROJECTION,
   LOGICALFILTER,
@@ -105,10 +105,10 @@ class AnnotatedExpression {
   const std::unordered_set<std::string> &GetTableAliasSet() const { return table_alias_set_; }
 
   /**
- * Logical equality check.
- * @param rhs other
- * @return true if the two expressions are logically equal
- */
+   * Logical equality check.
+   * @param rhs other
+   * @return true if the two expressions are logically equal
+   */
   bool operator==(const AnnotatedExpression &rhs) const {
     /**
      * In the original code, the comparison was implemented in
