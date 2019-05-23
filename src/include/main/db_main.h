@@ -99,6 +99,7 @@ class DBMain {
   storage::GarbageCollectorThread *gc_thread_;
   network::TerrierServer server_;
 
+  bool running = false;
   bool initialized = false;
 
   /**
