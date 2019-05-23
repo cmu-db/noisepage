@@ -11,6 +11,9 @@
 #include "storage/record_buffer.h"
 
 namespace terrier::catalog {
+/**
+ * Catalog.
+ */
 class Catalog {
  public:
   explicit Catalog(transaction::TransactionManager *txn_manager) : oid_{0} {}

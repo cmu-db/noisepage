@@ -14,6 +14,9 @@ class FunctionDecl;
 namespace tpl::compiler {
 class FunctionBuilder;
 
+/**
+ * Storage information needed to generate code.
+ */
 class CodeContext {
   friend class CodeGen;
 

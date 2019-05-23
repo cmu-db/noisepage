@@ -2,6 +2,10 @@
 #include "execution/compiler/expression/expression_translator.h"
 
 namespace tpl::compiler {
+
+/**
+ * TupleValue Translator.
+ */
 class TupleValueTranslator : public ExpressionTranslator {
  public:
   TupleValueTranslator(const terrier::parser::AbstractExpression *expression, CompilationContext *context);

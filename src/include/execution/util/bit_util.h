@@ -9,6 +9,9 @@
 
 namespace tpl::util {
 
+/**
+ * Utility functions for bitvectors.
+ */
 class BitUtil {
  public:
   // The number of bits in one word

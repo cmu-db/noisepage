@@ -9,11 +9,12 @@ class CompilationContext;
 class OperatorTranslator;
 class CodeGen;
 
+/// A single pipeline
 class Pipeline {
  public:
   explicit Pipeline(CompilationContext *ctx) : ctx_(ctx), pipeline_index_(0) {}
 
-  enum class Parallelism : uint32_t { Serial = 0, Flexible = 1, Parallel = 2 }
+  enum class Parallelism : uint32_t { Serial = 0, Flexible = 1, Parallel = 2 };
 
   util::Region *GetRegion();
 

@@ -12,6 +12,9 @@ class JoinHashTableTest;
 
 namespace tpl::sql {
 
+/**
+ * Hash Table used for joins.
+ */
 class JoinHashTable {
  public:
   /// Construct a hash-table used for join processing using \a region as the

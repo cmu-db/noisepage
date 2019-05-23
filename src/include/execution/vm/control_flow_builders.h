@@ -21,6 +21,9 @@ class ControlFlowBuilder {
   BytecodeGenerator *generator_;
 };
 
+/**
+ * Builder for blocks that can be broken out of.
+ */
 class BreakableBlockBuilder : public ControlFlowBuilder {
  public:
   explicit BreakableBlockBuilder(BytecodeGenerator *generator) : ControlFlowBuilder(generator) {}
@@ -38,6 +41,9 @@ class BreakableBlockBuilder : public ControlFlowBuilder {
   BytecodeLabel break_label_;
 };
 
+/**
+ * Builder for blocks that represent loops.
+ */
 class LoopBuilder : public BreakableBlockBuilder {
  public:
   explicit LoopBuilder(BytecodeGenerator *generator) : BreakableBlockBuilder(generator) {}

@@ -323,14 +323,14 @@ inline ChunkedVectorRandomIterator ChunkedVector::end() noexcept {
   return ChunkedVectorRandomIterator(chunks_.end() - 1, position_, element_size());
 }
 
-inline byte *ChunkedVector::at(size_t idx) {
+inline byte *ChunkedVector::at(std::size_t idx) {
   if (idx > size()) {
     throw std::out_of_range("Out-of-range access");
   }
   return (*this)[idx];
 }
 
-inline const byte *ChunkedVector::at(size_t idx) const {
+inline const byte *ChunkedVector::at(std::size_t idx) const {
   if (idx > size()) {
     throw std::out_of_range("Out-of-range access");
   }
@@ -402,16 +402,15 @@ inline void ChunkedVector::pop_back() {
 // Templated ChunkedVector
 // ---------------------------------------------------------
 
-// A typed chunked vector. We use this to make the tests easier to understand.
+/// A typed chunked vector. We use this to make the tests easier to understand.
 template <typename T>
 class ChunkedVectorT {
  public:
   explicit ChunkedVectorT(util::Region *region) noexcept : vec_(region, sizeof(T)) {}
 
-  // -------------------------------------------------------
-  // Iterators
-  // -------------------------------------------------------
-
+  /**
+   * Iterator over ChunkedVector
+   */
   class Iterator {
    public:
     using difference_type = ChunkedVectorRandomIterator::difference_type;

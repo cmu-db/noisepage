@@ -5,6 +5,7 @@
 
 namespace tpl::sql {
 
+/// Hash table used for aggregation.
 class AggregationHashTable {
  public:
   static constexpr const u32 kDefaultInitialTableSize = 256;

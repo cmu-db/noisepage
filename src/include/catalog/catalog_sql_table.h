@@ -10,6 +10,10 @@
 #include "storage/storage_defs.h"
 
 namespace terrier::catalog {
+
+/**
+ * Wrapper around the storage layer's SqlTable.
+ */
 class SqlTableRW {
  public:
   SqlTableRW(const Schema &schema, table_oid_t table_oid, storage::BlockStore *block_store) : table_oid_(table_oid) {

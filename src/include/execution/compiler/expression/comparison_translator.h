@@ -3,6 +3,9 @@
 
 namespace tpl::compiler {
 
+/**
+ * Comparison Translator
+ */
 class ComparisonTranslator : public ExpressionTranslator {
  public:
   ComparisonTranslator(const terrier::parser::AbstractExpression *expression, CompilationContext *context);

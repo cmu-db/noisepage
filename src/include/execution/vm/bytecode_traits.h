@@ -5,6 +5,9 @@
 
 namespace tpl::vm {
 
+/**
+ * Properties of an operand type
+ */
 template <OperandType>
 struct OperandTypeTraits {
   static constexpr bool kIsSigned = false;
@@ -22,6 +25,10 @@ struct OperandTypeTraits {
 OPERAND_TYPE_LIST(DECLARE_OPERAND_TYPE)
 #undef DECLARE_OPERAND_TYPE
 
+/**
+ * Properties of a bytecode.
+ * @tparam operands of the bytecode .
+ */
 template <OperandType... operands>
 struct BytecodeTraits {
   static constexpr const u32 kOperandCount = sizeof...(operands);

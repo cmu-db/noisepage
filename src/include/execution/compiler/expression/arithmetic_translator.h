@@ -6,6 +6,9 @@
 
 namespace tpl::compiler {
 
+/**
+ * Arithmetic Translator
+ */
 class ArithmeticTranslator : public ExpressionTranslator {
  public:
   ArithmeticTranslator(const terrier::parser::AbstractExpression *expression, CompilationContext *context);

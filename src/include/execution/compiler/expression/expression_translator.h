@@ -36,6 +36,9 @@ namespace tpl::compiler {
 
 class CompilationContext;
 
+/**
+ * Expression Translator
+ */
 class ExpressionTranslator {
  public:
   ExpressionTranslator(const terrier::parser::AbstractExpression *expression, CompilationContext *context)

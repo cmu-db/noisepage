@@ -14,6 +14,9 @@ namespace tpl::compiler {
 class CompilationContext;
 class ConsumerContext;
 
+/**
+ * Consumer that generates code for outputting to upper layers.
+ */
 class ExecutionConsumer {
  public:
   explicit ExecutionConsumer(std::shared_ptr<exec::FinalSchema> schema) : schema_(std::move(schema)) {}

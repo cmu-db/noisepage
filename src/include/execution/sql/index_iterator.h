@@ -15,6 +15,9 @@ using terrier::storage::ProjectedRow;
 using terrier::storage::TupleSlot;
 using terrier::transaction::TransactionContext;
 
+/**
+ * Allows iteration for indices from TPL.
+ */
 class IndexIterator {
  public:
   // Constructs the iterator for the given index

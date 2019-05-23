@@ -12,6 +12,9 @@ class StringRef;
 
 namespace tpl {
 
+/**
+ * Info about the CPU.
+ */
 class CpuInfo {
  public:
   // -------------------------------------------------------

@@ -16,6 +16,9 @@ class BlockStmt;
 
 namespace tpl::compiler {
 
+/**
+ * Query to execute.
+ */
 class Query {
  public:
   explicit Query(const terrier::planner::AbstractPlanNode &node)

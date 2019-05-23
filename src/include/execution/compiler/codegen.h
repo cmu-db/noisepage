@@ -17,6 +17,9 @@ namespace tpl::compiler {
 class CodeContext;
 class FunctionBuilder;
 
+/**
+ * Bundles information needed by other classes during code generation.
+ */
 class CodeGen {
  private:
   friend class FunctionBuilder;

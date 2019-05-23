@@ -9,6 +9,7 @@
 
 namespace tpl::parsing {
 
+/// Text Scanner
 class Scanner {
   static constexpr i32 kEndOfInput = -1;
 

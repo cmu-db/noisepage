@@ -63,23 +63,23 @@ ast::Expr *CodeGen::PeekValue(const terrier::type::TransientValue &transient_val
     }
     case terrier::type::TypeId::INTEGER: {
       auto val = terrier::type::TransientValuePeeker::PeekInteger(transient_val);
-      return factory_->NewIntLiteral(DUMMY_POS, val);
+      return factory_->NewIntLiteral(DUMMY_POS, static_cast<i32>(val));
     }
     case terrier::type::TypeId::BIGINT: {
       // TODO(WAN): the factory's IntLiteral only goes to i32
       auto val = terrier::type::TransientValuePeeker::PeekBigInt(transient_val);
-      return factory_->NewIntLiteral(DUMMY_POS, val);
+      return factory_->NewIntLiteral(DUMMY_POS, static_cast<i32>(val));
     }
     case terrier::type::TypeId::BOOLEAN: {
       auto val = terrier::type::TransientValuePeeker::PeekBoolean(transient_val);
-      return factory_->NewIntLiteral(DUMMY_POS, val);
+      return factory_->NewBoolLiteral(DUMMY_POS, val);
     }
     case terrier::type::TypeId::DATE:
     case terrier::type::TypeId::TIMESTAMP:
     case terrier::type::TypeId::DECIMAL:
     case terrier::type::TypeId::VARCHAR:
     case terrier::type::TypeId::VARBINARY:
-    case terrier::type::TypeId::INVALID:
+    default:
       // TODO(WAN): error out
       return nullptr;
   }
@@ -107,7 +107,7 @@ ast::Expr *CodeGen::TyConvert(terrier::type::TypeId type) const {
     case terrier::type::TypeId::DECIMAL:
     case terrier::type::TypeId::VARCHAR:
     case terrier::type::TypeId::VARBINARY:
-    case terrier::type::TypeId::INVALID:
+    default:
       // TODO(WAN): error out
       return nullptr;
   }

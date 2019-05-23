@@ -9,10 +9,7 @@
 
 namespace tpl::sql {
 
-// ---------------------------------------------------------
-// Count
-// ---------------------------------------------------------
-
+/// Regular Count
 class CountAggregate {
  public:
   /// Construct
@@ -37,10 +34,7 @@ class CountAggregate {
   u64 count_{0};
 };
 
-// ---------------------------------------------------------
-// Count Star
-// ---------------------------------------------------------
-
+/// Count Star (ignore nulls)
 class CountStarAggregate {
  public:
   /// Construct

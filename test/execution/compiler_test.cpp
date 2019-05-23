@@ -80,7 +80,7 @@ class CompilerTest : public TerrierTest {
     cols.reserve(os_cols.size());
     std::unordered_map<u32, u32> offsets;
     offsets.reserve(os_cols.size());
-    for (u32 i = 0, cur_sz = 0, col_sz = os_cols.size(); i < col_sz; ++i) {
+    for (u32 i = 0, cur_sz = 0, col_sz = static_cast<u32>(os_cols.size()); i < col_sz; ++i) {
       auto column = os_cols[i];
       cols.emplace_back(column.GetName(), column.GetType(), column.GetNullable(), column.GetOid());
       offsets[i] = cur_sz;
@@ -788,6 +788,7 @@ TEST_F(CompilerTest, InsertPlanNodeJsonTest) {
   CompileAndRun(plan_node.get());
 }
 
+// NOLINTNEXTLINE
 TEST_F(CompilerTest, InsertSelectPlanNodeJsonTest) {
   std::vector<type::TransientValue> values;
   values.emplace_back(type::TransientValueFactory::GetInteger(15));
@@ -828,7 +829,8 @@ TEST_F(CompilerTest, InsertSelectPlanNodeJsonTest) {
   CompileAndRun(plan_node.get());
 }
 
-TEST_F(CompilerTest, TanujTest) {
+// NOLINTNEXTLINE
+TEST_F(CompilerTest, SimpleInsertTest) {
   auto empty_table2 = tpl::sql::ExecutionStructures::Instance()
                           ->GetCatalog()
                           ->GetCatalogTable(catalog::DEFAULT_DATABASE_OID, "empty_table2")

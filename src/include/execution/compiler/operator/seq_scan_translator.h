@@ -4,6 +4,9 @@
 
 namespace tpl::compiler {
 
+/**
+ * SeqScan Translator
+ */
 class SeqScanTranslator : public OperatorTranslator {
  public:
   SeqScanTranslator(const terrier::planner::AbstractPlanNode &op, Pipeline *pipeline);

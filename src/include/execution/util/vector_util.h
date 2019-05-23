@@ -27,7 +27,7 @@ class VectorUtil {
     static_assert(std::is_same_v<bool, std::invoke_result_t<Op<T>, T, T>>);
 
     u32 in_pos = 0;
-    u32 out_pos = simd::FilterVectorByVal<T, Op>(in, in_count, val, out, sel, in_pos);
+    u32 out_pos = simd::FilterVectorByVal<T, Op>(in, in_count, val, out, sel, &in_pos);
 
     if (sel == nullptr) {
       for (; in_pos < in_count; in_pos++) {

@@ -6,10 +6,10 @@
 
 namespace tpl::sql {
 
-// ---------------------------------------------------------
-// Generic Real Unary Functions
-// ---------------------------------------------------------
-
+/**
+ * Generic unary function on reals
+ * @tparam Function is the unary function
+ */
 template <double(Function)(double)>
 struct UnaryFunctionReal {
   // Generic implementation
@@ -31,12 +31,13 @@ struct UnaryFunctionReal {
   }
 };
 
-// ---------------------------------------------------------
-// Generic Real Binary Functions
-// ---------------------------------------------------------
-
+/**
+ * Generic binary function on reals
+ * @tparam Function is the binary function
+ */
 template <double(Function)(double, double)>
 struct BinaryFunctionReal {
+  // Generic Implementation
   template <bool UseBranchingNullCheck>
   static void Execute(const Real *arg_1, const Real *arg_2, Real *dest) {
     if constexpr (UseBranchingNullCheck) {

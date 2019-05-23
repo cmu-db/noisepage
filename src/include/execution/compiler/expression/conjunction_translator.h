@@ -3,6 +3,9 @@
 
 namespace tpl::compiler {
 
+/**
+ * Conjuction Translator
+ */
 class ConjunctionTranslator : public ExpressionTranslator {
  public:
   ConjunctionTranslator(const terrier::parser::AbstractExpression *expression, CompilationContext *context);

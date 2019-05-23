@@ -79,6 +79,9 @@ namespace tpl::parsing {
   /* End of stream */                              \
   T(EOS, "eos", 0)
 
+/**
+ * Stores information about TPL tokens.
+ */
 class Token {
  public:
   enum class Type : u8 {

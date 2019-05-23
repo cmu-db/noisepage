@@ -11,6 +11,9 @@ namespace tpl::vm {
 
 class BytecodeLabel;
 
+/**
+ * Defines functions that allow bytecode emission.
+ */
 class BytecodeEmitter {
  public:
   /// Construct a bytecode emitter instance that emits bytecode operations into

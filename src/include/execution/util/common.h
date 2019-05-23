@@ -61,6 +61,8 @@ static constexpr const u32 kPrefetchDistance = 16;
 
 /// The key for the parser to use in attribute maps to signal
 /// whether or not a ForIn loop contains an OID iterator
-static const char *OID_KEY = "IS_OID";
+// TODO(Amadou): Figure out why the linux compiler complains that this is unused
+// even though is used.
+static constexpr const char *OID_KEY = "IS_OID";
 
 }  // namespace tpl

@@ -10,6 +10,9 @@ namespace tpl::compiler {
 
 class CodeGen;
 
+/**
+ * Builder for functions.
+ */
 class FunctionBuilder {
  public:
   FunctionBuilder(CodeGen *codegen, ast::Identifier fn_name, util::RegionVector<ast::FieldDecl *> fn_params,

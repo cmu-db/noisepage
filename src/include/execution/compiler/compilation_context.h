@@ -23,6 +23,9 @@ namespace tpl::compiler {
 class ExecutionConsumer;
 class Query;
 
+/**
+ * CompilationContext: Stores info needed during compilaton.
+ */
 class CompilationContext {
  public:
   CompilationContext(Query *query, ExecutionConsumer *consumer);

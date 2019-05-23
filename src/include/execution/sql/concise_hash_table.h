@@ -11,6 +11,9 @@
 
 namespace tpl::sql {
 
+/**
+ * Represents a concise hash table.
+ */
 class ConciseHashTable {
  public:
   // The maximum probe length before falling back into the overflow table

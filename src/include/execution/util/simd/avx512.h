@@ -22,6 +22,7 @@ class Vec512b {
   explicit Vec512b(const __m512i &reg) : reg_(reg) {}
 
   // Type-cast operator so that Vec*'s can be used directly with intrinsics
+  // NOLINTNEXTLINE
   ALWAYS_INLINE operator __m512i() const { return reg_; }
 
   ALWAYS_INLINE void StoreUnaligned(void *ptr) const { _mm512_storeu_si512(ptr, reg()); }
@@ -136,10 +137,7 @@ ALWAYS_INLINE inline bool Vec8::AllBitsAtPositionsSet(const Vec8 &mask) const {
   return _mm512_testn_epi64_mask(reg(), mask) == 0;
 }
 
-// ---------------------------------------------------------
-// Vec16 Definition
-// ---------------------------------------------------------
-
+/// A vector with sixteen 32-bit values.
 class Vec16 : public Vec512b {
  public:
   Vec16() = default;
@@ -295,10 +293,7 @@ class Vec8Mask {
   __mmask8 mask_;
 };
 
-// ---------------------------------------------------------
-// Vec16Mask Definition
-// ---------------------------------------------------------
-
+/// Vec16Mask Definition
 class Vec16Mask {
  public:
   Vec16Mask() = default;
@@ -318,7 +313,7 @@ class Vec16Mask {
     return __builtin_popcountll(mask_);
   }
 
-  bool Extract(u32 index) const { return (static_cast<u32>(mask_) >> index) & 1; }
+  bool Extract(u32 index) const { return static_cast<bool>((static_cast<u32>(mask_) >> index) & 1); }
 
   bool operator[](u32 index) const { return Extract(index); }
 
@@ -559,33 +554,39 @@ ALWAYS_INLINE inline Vec16 &operator<<=(Vec16 &a, const Vec16 &b) {
 // Filter
 // ---------------------------------------------------------
 
+/// Generic Filter
 template <typename T, typename Enable = void>
 struct FilterVecSizer;
 
+/// i8 Filter
 template <>
 struct FilterVecSizer<i8> {
   using Vec = Vec16;
   using VecMask = Vec16Mask;
 };
 
+/// i16 Filter
 template <>
 struct FilterVecSizer<i16> {
   using Vec = Vec16;
   using VecMask = Vec16Mask;
 };
 
+/// i32 Filter
 template <>
 struct FilterVecSizer<i32> {
   using Vec = Vec16;
   using VecMask = Vec16Mask;
 };
 
+/// i64 Filter
 template <>
 struct FilterVecSizer<i64> {
   using Vec = Vec8;
   using VecMask = Vec8Mask;
 };
 
+/// Arbitrary Filter
 template <typename T>
 struct FilterVecSizer<T, std::enable_if_t<std::is_unsigned_v<T>>> : public FilterVecSizer<std::make_signed_t<T>> {};
 

@@ -10,6 +10,9 @@ class ConsumerContext;
 class Pipeline;
 class RowBatch;
 
+/**
+ * Generic Operator Translator
+ */
 class OperatorTranslator {
  public:
   OperatorTranslator(const terrier::planner::AbstractPlanNode &op, Pipeline *pipeline)

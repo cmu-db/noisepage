@@ -14,6 +14,9 @@ namespace tpl::compiler {
 
 class CodeGen;
 
+/**
+ * Represents the query_state of the plan.
+ */
 class QueryState {
  public:
   using Id = u32;

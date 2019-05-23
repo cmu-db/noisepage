@@ -7,6 +7,9 @@
 #include "transaction/transaction_context.h"
 
 namespace terrier::catalog {
+/**
+ * Wrapper around the storage layer's indexes.
+ */
 class CatalogIndex {
  public:
   CatalogIndex(transaction::TransactionContext *txn, index_oid_t index_oid,

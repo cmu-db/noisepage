@@ -8,6 +8,9 @@ class CompilationContext;
 class Pipeline;
 class RowBatch;
 
+/**
+ * ConsumerContext: pushes rows over a pipeline.
+ */
 class ConsumerContext {
  public:
   ConsumerContext(CompilationContext *compilation_context, Pipeline *pipeline);

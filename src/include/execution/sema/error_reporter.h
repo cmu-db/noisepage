@@ -19,6 +19,8 @@ class Type;
 namespace sema {
 
 namespace detail {
+
+/// Argument that's passed in
 template <typename T>
 struct PassArgument {
   using type = T;
@@ -26,6 +28,9 @@ struct PassArgument {
 
 }  // namespace detail
 
+/**
+ * Used to report errors found during compilation.
+ */
 class ErrorReporter {
  public:
   explicit ErrorReporter(util::Region *region) : region_(region), errors_(region) {}

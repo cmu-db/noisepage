@@ -17,10 +17,6 @@ struct Val {
   explicit Val(bool is_null = false) noexcept : is_null(is_null) {}
 };
 
-// ---------------------------------------------------------
-// Boolean
-// ---------------------------------------------------------
-
 /// A SQL boolean value
 struct BoolVal : public Val {
   bool val;
@@ -48,10 +44,6 @@ struct BoolVal : public Val {
   }
 };
 
-// ---------------------------------------------------------
-// Integer
-// ---------------------------------------------------------
-
 /// An integral SQL value
 struct Integer : public Val {
   i64 val;
@@ -69,10 +61,7 @@ struct Integer : public Val {
   Integer Divide(const Integer &denom) { return Integer(this->val / denom.val); }
 };
 
-// ---------------------------------------------------------
-// Real
-// ---------------------------------------------------------
-
+/// Real
 struct Real : public Val {
   double val;
 
@@ -85,10 +74,6 @@ struct Real : public Val {
     return real;
   }
 };
-
-// ---------------------------------------------------------
-// Decimal
-// ---------------------------------------------------------
 
 /// A decimal SQL value
 struct Decimal : public Val {
@@ -106,10 +91,6 @@ struct Decimal : public Val {
   }
 };
 
-// ---------------------------------------------------------
-// Strings
-// ---------------------------------------------------------
-
 /// A SQL string
 struct VarBuffer : public Val {
   u8 *str;
@@ -121,10 +102,7 @@ struct VarBuffer : public Val {
   static VarBuffer Null() { return VarBuffer(nullptr, 0); }
 };
 
-// ---------------------------------------------------------
-// Date
-// ---------------------------------------------------------
-
+/// Date
 struct Date : public Val {
   i32 date_val;
 
@@ -137,10 +115,7 @@ struct Date : public Val {
   }
 };
 
-// ---------------------------------------------------------
-// Timestamp
-// ---------------------------------------------------------
-
+/// Timestamp
 struct Timestamp : public Val {
   timespec time;
 
@@ -153,6 +128,9 @@ struct Timestamp : public Val {
   }
 };
 
+/**
+ * Utility functions for sql values
+ */
 struct ValUtil {
   static u32 GetSqlSize(terrier::type::TypeId type) {
     switch (type) {

@@ -66,6 +66,7 @@ class AstTraversalVisitor : public AstVisitor<Subclass> {
 
 #define RECURSE(call) this->impl()->call
 
+/// \cond DO_NOT_DOCUMENT
 template <typename Subclass>
 inline void AstTraversalVisitor<Subclass>::VisitBadExpr(BadExpr *node) {
   PROCESS_NODE(node);
@@ -279,5 +280,7 @@ inline void AstTraversalVisitor<Subclass>::VisitFunctionTypeRepr(FunctionTypeRep
   }
   RECURSE(Visit(node->return_type()));
 }
+/// \endcond
+
 
 }  // namespace tpl::ast

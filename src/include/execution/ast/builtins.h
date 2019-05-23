@@ -77,6 +77,9 @@ enum class Builtin : u8 {
 #undef COUNT_OP
 };
 
+/**
+ * Manages builtin functions
+ */
 class Builtins {
  public:
   // The total number of builtin functions

@@ -14,6 +14,9 @@ class Type;
 
 namespace sema {
 
+/**
+ * Stores variable that are in the current scope.
+ */
 class Scope {
  public:
   enum class Kind : u8 { Block, Function, File, Loop };

@@ -5,6 +5,9 @@
 
 namespace tpl::util::simd {
 
+/**
+ * Stores the width of a lane
+ */
 struct Bitwidth {
   static constexpr const u32
 #if defined(__AVX512F__)
@@ -16,6 +19,10 @@ struct Bitwidth {
 #endif
 };
 
+/**
+ * A simd lane
+ * @tparam T: type of individual elements
+ */
 template <typename T>
 struct Lane {
   static constexpr const u32 count = Bitwidth::value / (sizeof(T) * 8);

@@ -22,7 +22,9 @@ using terrier::catalog::Schema;
 // Params: tuples, null_bitmap, num_tuples, ;
 using OutputCallback = std::function<void(byte *, u32, u32)>;
 
-// The final schema outputted to the upper layer.
+/**
+ * The final schema outputted to the upper layer
+ */
 class FinalSchema {
  public:
   FinalSchema(std::vector<Schema::Column> cols, std::unordered_map<u32, u32> offsets)
@@ -37,7 +39,7 @@ class FinalSchema {
   const std::unordered_map<u32, u32> offsets_;
 };
 
-// A class that buffers the output and makes a callback for every batch.
+/// A class that buffers the output and makes a callback for every batch.
 class OutputBuffer {
  public:
   static constexpr uint32_t batch_size_ = 32;
@@ -68,8 +70,10 @@ class OutputBuffer {
   OutputCallback callback_;
 };
 
-// Only For Debugging.
-// A OutputCallback that prints tuples to std::cout.
+/**
+ * Only For Debugging.
+ * A OutputCallback that prints tuples to std::cout.
+ */
 class OutputPrinter {
  public:
   explicit OutputPrinter(const FinalSchema &schema) : schema_(schema) {}

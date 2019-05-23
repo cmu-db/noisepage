@@ -7,6 +7,9 @@
 namespace tpl::exec {
 using terrier::transaction::TransactionContext;
 
+/**
+ * Execution Context: Stores information handed in by upper layers.
+ */
 class ExecutionContext {
  public:
   ExecutionContext(TransactionContext *txn, OutputCallback callback, const std::shared_ptr<FinalSchema> &final_schema)

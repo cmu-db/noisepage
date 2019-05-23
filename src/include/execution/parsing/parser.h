@@ -12,6 +12,9 @@
 
 namespace tpl::parsing {
 
+/**
+ * Parses TPL files.
+ */
 class Parser {
  public:
   /// Build a parser instance using the given scanner and AST context

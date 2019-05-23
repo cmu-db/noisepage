@@ -7,6 +7,9 @@
 
 namespace tpl::sql {
 
+/**
+ * Bloom Filter
+ */
 class BloomFilter {
   // The set of salt values we use to produce alternative hash values
   alignas(CACHELINE_SIZE) static constexpr const u32 kSalts[8] = {0x47b6137bU, 0x44974d91U, 0x8824ad5bU, 0xa2b7289dU,

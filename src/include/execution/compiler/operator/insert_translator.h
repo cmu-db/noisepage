@@ -8,6 +8,9 @@ class StructTypeRepr;
 
 namespace tpl::compiler {
 
+/**
+ * Insert Translator
+ */
 class InsertTranslator : public OperatorTranslator {
  public:
   InsertTranslator(const terrier::planner::AbstractPlanNode &op, Pipeline *pipeline);

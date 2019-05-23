@@ -97,6 +97,7 @@ class ProjectedColumnsIterator {
   // Vectorized API
   // -------------------------------------------------------
 
+  /// Union to store the filter value according to its type.
   union FilterVal {
     i8 ti;
     i16 si;

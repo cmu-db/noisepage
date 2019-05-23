@@ -2,6 +2,10 @@
 #include "execution/compiler/expression/expression_translator.h"
 
 namespace tpl::compiler {
+
+/**
+ * Constant Translator
+ */
 class ConstantTranslator : public ExpressionTranslator {
  public:
   ConstantTranslator(const terrier::parser::AbstractExpression *expression, CompilationContext *context);

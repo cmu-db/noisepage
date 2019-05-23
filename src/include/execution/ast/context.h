@@ -20,6 +20,9 @@ namespace ast {
 class AstNodeFactory;
 class Type;
 
+/**
+ * Ast Context. Stores info about current ast.
+ */
 class Context {
  public:
   /// Constructor

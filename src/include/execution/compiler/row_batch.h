@@ -8,6 +8,10 @@
 namespace tpl::compiler {
 class CompilationContext;
 
+/**
+ * Represents a single tuple.
+ * TODO(Amadou): Rename to something more appropriate (like Row).
+ */
 class RowBatch {
  public:
   explicit RowBatch(const CompilationContext &context, ast::IdentifierExpr *row_expr)

@@ -10,6 +10,10 @@ namespace tpl::compiler {
 class Pipeline;
 class OperatorTranslator;
 
+
+/**
+ * Translator Factory
+ */
 class TranslatorFactory {
  public:
   static OperatorTranslator *CreateTranslator(const terrier::planner::AbstractPlanNode &op, Pipeline *pipeline);

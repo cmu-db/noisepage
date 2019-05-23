@@ -22,6 +22,7 @@ class Vec256b {
   explicit Vec256b(const __m256i &reg) : reg_(reg) {}
 
   // Type-cast operator so that Vec*'s can be used directly with intrinsics
+  // NOLINTNEXTLINE
   ALWAYS_INLINE operator __m256i() const { return reg_; }
 
   /// Store the contents of this vector into the provided unaligned pointer
@@ -102,7 +103,7 @@ ALWAYS_INLINE inline Vec4 &Vec4::Load(const T *ptr) {
 
 template <>
 ALWAYS_INLINE inline Vec4 &Vec4::Load<i32>(const i32 *ptr) {
-  auto tmp = _mm_loadu_si128((const __m128i *)ptr);
+  auto tmp = _mm_loadu_si128(reinterpret_cast<const __m128i *>(ptr));
   reg_ = _mm256_cvtepi32_epi64(tmp);
   return *this;
 }
@@ -112,7 +113,7 @@ ALWAYS_INLINE inline Vec4 &Vec4::Load<i64>(const i64 *ptr) {
   // Load aligned and unaligned have almost no performance different on AVX2
   // machines. To alleviate some pain from clients having to know this info
   // we always use an unaligned load.
-  reg_ = _mm256_loadu_si256((const __m256i *)ptr);
+  reg_ = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(ptr));
   return *this;
 }
 
@@ -210,21 +211,21 @@ ALWAYS_INLINE inline Vec8 &Vec8::Load(const T *ptr) {
 
 template <>
 ALWAYS_INLINE inline Vec8 &Vec8::Load<i8>(const i8 *ptr) {
-  auto tmp = _mm_loadu_si128((const __m128i *)ptr);
+  auto tmp = _mm_loadu_si128(reinterpret_cast<const __m128i *>(ptr));
   reg_ = _mm256_cvtepi8_epi32(tmp);
   return *this;
 }
 
 template <>
 ALWAYS_INLINE inline Vec8 &Vec8::Load<i16>(const i16 *ptr) {
-  auto tmp = _mm_loadu_si128((const __m128i *)ptr);
+  auto tmp = _mm_loadu_si128(reinterpret_cast<const __m128i *>(ptr));
   reg_ = _mm256_cvtepi16_epi32(tmp);
   return *this;
 }
 
 template <>
 ALWAYS_INLINE inline Vec8 &Vec8::Load<i32>(const i32 *ptr) {
-  reg_ = _mm256_loadu_si256((const __m256i *)ptr);
+  reg_ = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(ptr));
   return *this;
 }
 
@@ -326,16 +327,13 @@ ALWAYS_INLINE inline u32 Vec8Mask::ToPositions(u32 *positions, const tpl::util::
   return __builtin_popcount(mask);
 }
 
-// ---------------------------------------------------------
-// Vec4Mask Definition
-// ---------------------------------------------------------
-
+/// Vec4Mask Definition
 class Vec4Mask : public Vec4 {
  public:
   Vec4Mask() = default;
   explicit Vec4Mask(const __m256i &reg) : Vec4(reg) {}
 
-  i32 Extract(u32 index) const { return Vec4::Extract(index) != 0; }
+  i32 Extract(u32 index) const { return static_cast<i32>(Vec4::Extract(index) != 0); }
 
   i32 operator[](u32 index) const { return Extract(index); }
 
@@ -361,7 +359,7 @@ class Vec4Mask : public Vec4 {
       pos.Store(p_arr);
       for (u32 idx = 0, i = 0; i < 4; i++) {
         positions[idx] = static_cast<u32>(p_arr[i]);
-        idx += (m_arr[i] != 0);
+        idx += static_cast<u32>(m_arr[i] != 0);
       }
     }
 
@@ -597,43 +595,49 @@ ALWAYS_INLINE inline Vec8 &operator<<=(Vec8 &a, const Vec8 &b) {
 // Filter
 // ---------------------------------------------------------
 
+/// Generic Filter
 template <typename T, typename Enable = void>
 struct FilterVecSizer;
 
+/// i8 Filter
 template <>
 struct FilterVecSizer<i8> {
   using Vec = Vec8;
   using VecMask = Vec8Mask;
 };
 
+/// i16 Filter
 template <>
 struct FilterVecSizer<i16> {
   using Vec = Vec8;
   using VecMask = Vec8Mask;
 };
 
+/// i32 Filter
 template <>
 struct FilterVecSizer<i32> {
   using Vec = Vec8;
   using VecMask = Vec8Mask;
 };
 
+/// i64 Filter
 template <>
 struct FilterVecSizer<i64> {
   using Vec = Vec4;
   using VecMask = Vec4Mask;
 };
 
+/// Arbitrary Filter.
 template <typename T>
 struct FilterVecSizer<T, std::enable_if_t<std::is_unsigned_v<T>>> : public FilterVecSizer<std::make_signed_t<T>> {};
 
 template <typename T, template <typename> typename Compare>
 static inline u32 FilterVectorByVal(const T *RESTRICT in, u32 in_count, T val, u32 *RESTRICT out,
-                                    const u32 *RESTRICT sel, u32 &RESTRICT in_pos) {
+                                    const u32 *RESTRICT sel, u32 *RESTRICT in_pos) {
   using Vec = typename FilterVecSizer<T>::Vec;
   using VecMask = typename FilterVecSizer<T>::VecMask;
 
-  const Compare cmp;
+  const Compare cmp{};
 
   const Vec xval(val);
 
@@ -641,15 +645,15 @@ static inline u32 FilterVectorByVal(const T *RESTRICT in, u32 in_count, T val, u
 
   if (sel == nullptr) {
     Vec in_vec;
-    for (in_pos = 0; in_pos + Vec::Size() < in_count; in_pos += Vec::Size()) {
-      in_vec.Load(in + in_pos);
+    for (*in_pos = 0; *in_pos + Vec::Size() < in_count; *in_pos += Vec::Size()) {
+      in_vec.Load(in + *in_pos);
       VecMask mask = cmp(in_vec, xval);
-      out_pos += mask.ToPositions(out + out_pos, in_pos);
+      out_pos += mask.ToPositions(out + out_pos, *in_pos);
     }
   } else {
     Vec in_vec, sel_vec;
-    for (in_pos = 0; in_pos + Vec::Size() < in_count; in_pos += Vec::Size()) {
-      sel_vec.Load(sel + in_pos);
+    for (*in_pos = 0; *in_pos + Vec::Size() < in_count; in_pos += Vec::Size()) {
+      sel_vec.Load(sel + *in_pos);
       in_vec.Gather(in, sel_vec);
       VecMask mask = cmp(in_vec, xval);
       out_pos += mask.ToPositions(out + out_pos, sel_vec);

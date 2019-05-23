@@ -2,6 +2,10 @@
 #include "execution/compiler/expression/expression_translator.h"
 
 namespace tpl::compiler {
+
+/**
+ * Null Check Transalator
+ */
 class NullCheckTranslator : public ExpressionTranslator {
  public:
   NullCheckTranslator(const terrier::parser::AbstractExpression *expression, CompilationContext *context);
