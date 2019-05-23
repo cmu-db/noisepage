@@ -183,13 +183,13 @@ TEST_F(ParserTestBase, CreateIndexTest) {
   EXPECT_EQ(create_stmt->GetIndexName(), "idx_order");
   EXPECT_EQ(create_stmt->GetTableName(), "oorder");
   EXPECT_EQ(create_stmt->GetIndexAttributes().size(), 2);
-  auto *ia1 = create_stmt->GetIndexAttributes()[0].GetExpression();
+  auto *ia1 = create_stmt->GetIndexAttributes()[0]->GetExpression();
   EXPECT_EQ(ia1->GetExpressionType(), ExpressionType::OPERATOR_MINUS);
   auto ia1l = reinterpret_cast<TupleValueExpression *>(ia1->GetChild(0));
   EXPECT_EQ(ia1l->GetColumnName(), "o_w_id");
   auto ia1r = reinterpret_cast<ConstantValueExpression *>(ia1->GetChild(1));
   EXPECT_EQ(type::TransientValuePeeker::PeekInteger(ia1r->GetValue()), 2);
-  auto *ia2 = create_stmt->GetIndexAttributes()[1].GetExpression();
+  auto *ia2 = create_stmt->GetIndexAttributes()[1]->GetExpression();
   EXPECT_EQ(ia2->GetExpressionType(), ExpressionType::OPERATOR_PLUS);
   auto ia2l = reinterpret_cast<TupleValueExpression *>(ia2->GetChild(0));
   EXPECT_EQ(ia2l->GetExpressionType(), ExpressionType::OPERATOR_PLUS);
@@ -1251,8 +1251,8 @@ TEST_F(ParserTestBase, OldCreateIndexTest) {
   EXPECT_TRUE(create_stmt->IsUniqueIndex());
   EXPECT_EQ(create_stmt->GetIndexName(), "idx_order");
   EXPECT_EQ(create_stmt->GetTableName(), "oorder");
-  EXPECT_EQ(create_stmt->GetIndexAttributes()[0].GetName(), "o_w_id");
-  EXPECT_EQ(create_stmt->GetIndexAttributes()[1].GetName(), "o_d_id");
+  EXPECT_EQ(create_stmt->GetIndexAttributes()[0]->GetName(), "o_w_id");
+  EXPECT_EQ(create_stmt->GetIndexAttributes()[1]->GetName(), "o_d_id");
 
   query = "CREATE INDEX ii ON t USING SKIPLIST (col);";
   stmt_list = pgparser.BuildParseTree(query);

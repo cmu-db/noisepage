@@ -1263,13 +1263,13 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateIndexTransform(IndexStmt *ro
   auto unique = root->unique;
   auto index_name = root->idxname;
 
-  std::vector<IndexAttr> index_attrs;
+  std::vector<IndexAttr*> index_attrs;
   for (auto cell = root->indexParams->head; cell != nullptr; cell = cell->next) {
     auto *index_elem = reinterpret_cast<IndexElem *>(cell->data.ptr_value);
     if (index_elem->expr == nullptr) {
-      index_attrs.emplace_back(index_elem->name);
+      index_attrs.emplace_back(new IndexAttr(index_elem->name));
     } else {
-      index_attrs.emplace_back(ExprTransform(index_elem->expr));
+      index_attrs.emplace_back(new IndexAttr(ExprTransform(index_elem->expr)));
     }
   }
 
@@ -1293,6 +1293,9 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateIndexTransform(IndexStmt *ro
     index_type = IndexType::ART;
   } else {
     PARSER_LOG_DEBUG("CreateIndexTransform: IndexType {} not supported", access_method);
+    for (auto* attr : index_attrs) {
+      delete attr;
+    }
     throw NOT_IMPLEMENTED_EXCEPTION("CreateIndexTransform error");
   }
 
