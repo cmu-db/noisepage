@@ -40,7 +40,7 @@ class AbstractExpression {
 
  public:
   virtual ~AbstractExpression() {
-    for (auto* child : children_) {
+    for (auto *child : children_) {
       delete child;
     }
   }
@@ -50,7 +50,7 @@ class AbstractExpression {
    */
   virtual common::hash_t Hash() const {
     common::hash_t hash = common::HashUtil::Hash(expression_type_);
-    for (const auto* child : children_) {
+    for (const auto *child : children_) {
       hash = common::HashUtil::CombineHashes(hash, child->Hash());
     }
     return hash;

@@ -85,7 +85,7 @@ class CaseExpression : public AbstractExpression {
    * @param when_clauses list of when clauses
    * @param default_expr default expression for this case
    */
-  CaseExpression(const type::TypeId return_value_type, std::vector<WhenClause*> when_clauses,
+  CaseExpression(const type::TypeId return_value_type, std::vector<WhenClause *> when_clauses,
                  AbstractExpression *default_expr)
       : AbstractExpression(ExpressionType::OPERATOR_CASE_EXPR, return_value_type, {}),
         when_clauses_(std::move(when_clauses)),
@@ -97,7 +97,7 @@ class CaseExpression : public AbstractExpression {
   CaseExpression() = default;
 
   ~CaseExpression() override {
-    for (auto* clause : when_clauses_) {
+    for (auto *clause : when_clauses_) {
       delete clause;
     }
     delete default_expr_;
@@ -105,7 +105,7 @@ class CaseExpression : public AbstractExpression {
 
   common::hash_t Hash() const override {
     common::hash_t hash = AbstractExpression::Hash();
-    for (auto* clause : when_clauses_) {
+    for (auto *clause : when_clauses_) {
       hash = common::HashUtil::CombineHashes(hash, clause->condition_->Hash());
       hash = common::HashUtil::CombineHashes(hash, clause->then_->Hash());
     }
@@ -132,8 +132,8 @@ class CaseExpression : public AbstractExpression {
   }
 
   AbstractExpression *Copy() const override {
-    std::vector<WhenClause*> when_clauses;
-    for (const auto* clause : when_clauses_) {
+    std::vector<WhenClause *> when_clauses;
+    for (const auto *clause : when_clauses_) {
       when_clauses.push_back(new CaseExpression::WhenClause(clause->condition_->Copy(), clause->then_->Copy()));
     }
     return new CaseExpression(GetReturnValueType(), when_clauses, default_expr_->Copy());
@@ -185,7 +185,7 @@ class CaseExpression : public AbstractExpression {
     // Deserialize clauses
     auto clauses_json = j.at("when_clauses").get<std::vector<nlohmann::json>>();
     for (const auto &clause_json : clauses_json) {
-      auto* clause = new WhenClause();
+      auto *clause = new WhenClause();
       clause->FromJson(clause_json);
       when_clauses_.push_back(clause);
     }
@@ -193,7 +193,7 @@ class CaseExpression : public AbstractExpression {
   }
 
  private:
-  std::vector<WhenClause*> when_clauses_;
+  std::vector<WhenClause *> when_clauses_;
   AbstractExpression *default_expr_;
 };
 

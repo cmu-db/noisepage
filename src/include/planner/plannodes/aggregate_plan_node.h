@@ -110,7 +110,7 @@ class AggregatePlanNode : public AbstractPlanNode {
   AggregatePlanNode() = default;
 
   ~AggregatePlanNode() {
-    for (auto* term : aggregate_terms_) {
+    for (auto *term : aggregate_terms_) {
       delete term;
     }
     delete having_clause_predicate_;

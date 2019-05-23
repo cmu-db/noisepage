@@ -147,13 +147,11 @@ class OutputSchema {
      */
     DerivedColumn() = default;
 
-    ~DerivedColumn() {
-      delete expr_;
-    }
+    ~DerivedColumn() { delete expr_; }
 
     /**
      * Copy constructor
-     * @param other other derived column to copy from
+     * @param other derived column to copy from
      */
     DerivedColumn(const DerivedColumn &other) {
       column_ = other.column_;
@@ -162,10 +160,10 @@ class OutputSchema {
 
     /**
      * Copy assignment operator
-     * @param other
-     * @return
+     * @param other derived column to copy from
+     * @return self reference
      */
-    DerivedColumn& operator = (const DerivedColumn &other) {
+    DerivedColumn &operator=(const DerivedColumn &other) {
       column_ = other.column_;
       expr_ = other.expr_->Copy();
       return *this;
@@ -173,7 +171,8 @@ class OutputSchema {
 
     /**
      * Move Constructor
-     * @param from
+     * @param from DerivedColumn to be moved from
+     * @warning DerivedColumn from will be left with a null expression.
      */
     DerivedColumn(DerivedColumn &&from) {
       column_ = from.column_;
@@ -183,10 +182,11 @@ class OutputSchema {
 
     /**
      * Move assignment operator
-     * @param from
-     * @return
+     * @param from Derived column to be moved from
+     * @return self reference
+     * @warning DerivedColumn from will be left with a null expression.
      */
-    DerivedColumn& operator=(DerivedColumn &&from) {
+    DerivedColumn &operator=(DerivedColumn &&from) {
       if (this == &from) {
         return *this;
       }

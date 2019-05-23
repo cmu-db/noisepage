@@ -72,7 +72,7 @@ class HashPlanNode : public AbstractPlanNode {
   HashPlanNode() = default;
 
   ~HashPlanNode() {
-    for (auto* key : hash_keys_) {
+    for (auto *key : hash_keys_) {
       delete key;
     }
   }

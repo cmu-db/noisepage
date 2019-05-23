@@ -105,11 +105,11 @@ class HashJoinPlanNode : public AbstractJoinPlanNode {
   HashJoinPlanNode() = default;
 
   ~HashJoinPlanNode() {
-    for (auto* key : left_hash_keys_) {
+    for (auto *key : left_hash_keys_) {
       delete key;
     }
 
-    for (auto* key : right_hash_keys_) {
+    for (auto *key : right_hash_keys_) {
       delete key;
     }
   }

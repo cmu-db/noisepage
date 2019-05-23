@@ -69,9 +69,7 @@ class AbstractJoinPlanNode : public AbstractPlanNode {
    */
   AbstractJoinPlanNode() = default;
 
-  ~AbstractJoinPlanNode() {
-    delete join_predicate_;
-  }
+  ~AbstractJoinPlanNode() { delete join_predicate_; }
 
   DISALLOW_COPY_AND_MOVE(AbstractJoinPlanNode)
 

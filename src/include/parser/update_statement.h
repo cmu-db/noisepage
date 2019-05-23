@@ -25,9 +25,7 @@ class UpdateClause {
    */
   UpdateClause(std::string column, AbstractExpression *value) : column_(std::move(column)), value_(value) {}
 
-  ~UpdateClause() {
-    delete value_;
-  }
+  ~UpdateClause() { delete value_; }
 
   /**
    * @return column to be updated
@@ -61,9 +59,7 @@ class UpdateStatement : public SQLStatement {
 
   UpdateStatement() : SQLStatement(StatementType::UPDATE), table_(nullptr) {}
 
-  ~UpdateStatement() override {
-    delete where_;
-  }
+  ~UpdateStatement() override { delete where_; }
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 

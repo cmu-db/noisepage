@@ -126,12 +126,9 @@ class DeletePlanNode : public AbstractPlanNode {
    */
   DeletePlanNode() = default;
 
-  ~DeletePlanNode() {
-    delete delete_condition_;
-  }
+  ~DeletePlanNode() { delete delete_condition_; }
 
   DISALLOW_COPY_AND_MOVE(DeletePlanNode)
-
 
   /**
    * @return OID of the database

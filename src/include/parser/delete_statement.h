@@ -38,9 +38,7 @@ class DeleteStatement : public SQLStatement {
   explicit DeleteStatement(std::shared_ptr<TableRef> table)
       : SQLStatement(StatementType::DELETE), table_ref_(std::move(table)), expr_(nullptr) {}
 
-  ~DeleteStatement() override {
-    delete expr_;
-  }
+  ~DeleteStatement() override { delete expr_; }
 
   /**
    * @return deletion target table

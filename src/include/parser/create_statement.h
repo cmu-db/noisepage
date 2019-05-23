@@ -342,9 +342,7 @@ class IndexAttr {
    */
   explicit IndexAttr(AbstractExpression *expr) : name_(""), expr_(expr) {}
 
-  ~IndexAttr() {
-    delete expr_;
-  }
+  ~IndexAttr() { delete expr_; }
 
   /**
    * @return the name of the column that we're indexed on
@@ -402,7 +400,7 @@ class CreateStatement : public TableRefStatement {
    * @param index_attrs index attributes
    */
   CreateStatement(std::shared_ptr<TableInfo> table_info, IndexType index_type, bool unique, std::string index_name,
-                  std::vector<IndexAttr*> index_attrs)
+                  std::vector<IndexAttr *> index_attrs)
       : TableRefStatement(StatementType::CREATE, std::move(table_info)),
         create_type_(kIndex),
         index_type_(index_type),
@@ -454,7 +452,7 @@ class CreateStatement : public TableRefStatement {
         view_query_(std::move(view_query)) {}
 
   ~CreateStatement() override {
-    for (auto* attr : index_attrs_) {
+    for (auto *attr : index_attrs_) {
       delete attr;
     }
     delete trigger_when_;
@@ -495,7 +493,7 @@ class CreateStatement : public TableRefStatement {
   /**
    * @return index attributes for [CREATE INDEX]
    */
-  std::vector<IndexAttr*> GetIndexAttributes() { return index_attrs_; }
+  std::vector<IndexAttr *> GetIndexAttributes() { return index_attrs_; }
 
   /**
    * @return true if "IF NOT EXISTS" for [CREATE SCHEMA], false otherwise
@@ -554,7 +552,7 @@ class CreateStatement : public TableRefStatement {
   const IndexType index_type_ = IndexType::INVALID;
   const bool unique_index_ = false;
   const std::string index_name_;
-  const std::vector<IndexAttr*> index_attrs_;
+  const std::vector<IndexAttr *> index_attrs_;
 
   // CREATE SCHEMA
   const bool if_not_exists_ = false;

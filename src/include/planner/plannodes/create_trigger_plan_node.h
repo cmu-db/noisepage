@@ -229,9 +229,7 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
    */
   CreateTriggerPlanNode() = default;
 
-  ~CreateTriggerPlanNode() {
-    delete trigger_when_;
-  }
+  ~CreateTriggerPlanNode() { delete trigger_when_; }
 
   DISALLOW_COPY_AND_MOVE(CreateTriggerPlanNode)
 

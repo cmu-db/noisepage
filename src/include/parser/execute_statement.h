@@ -25,7 +25,7 @@ class ExecuteStatement : public SQLStatement {
       : SQLStatement(StatementType::EXECUTE), name_(std::move(name)), parameters_(std::move(parameters)) {}
 
   ~ExecuteStatement() override {
-    for (auto* parameter : parameters_) {
+    for (auto *parameter : parameters_) {
       delete parameter;
     }
   }

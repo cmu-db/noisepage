@@ -35,9 +35,9 @@ class OrderByDescription {
   OrderByDescription() = default;
 
   ~OrderByDescription() {
-	  for (auto* expr : exprs_) {
-		  delete expr;
-	  }
+    for (auto *expr : exprs_) {
+      delete expr;
+    }
   }
 
   // TODO(WAN): no SQLStatement? maybe a Description base class?
@@ -173,10 +173,10 @@ class GroupByDescription {
   GroupByDescription() = default;
 
   ~GroupByDescription() {
-	  for (auto* col : columns_) {
-		  delete col;
-	  }
-	  delete having_;
+    for (auto *col : columns_) {
+      delete col;
+    }
+    delete having_;
   }
 
   // TODO(WAN): not a SQLStatement?
@@ -260,7 +260,7 @@ class SelectStatement : public SQLStatement {
         union_select_(nullptr) {}
 
   ~SelectStatement() override {
-    for (auto* select : select_) {
+    for (auto *select : select_) {
       delete select;
     }
     delete where_;

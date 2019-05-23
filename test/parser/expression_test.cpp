@@ -174,7 +174,7 @@ TEST(ExpressionTests, AggregateExpressionJsonTest) {
   EXPECT_FALSE(json.is_null());
 
   // Deserialize expression
-  auto* deserialized_expression = DeserializeExpression(json);
+  auto *deserialized_expression = DeserializeExpression(json);
   EXPECT_EQ(*original_expr, *deserialized_expression);
   EXPECT_EQ(original_expr->IsDistinct(), static_cast<AggregateExpression *>(deserialized_expression)->IsDistinct());
 
@@ -187,10 +187,10 @@ TEST(ExpressionTests, CaseExpressionTest) {
   // Create expression
   auto *cond_expr = new StarExpression();
   auto *then_expr = new StarExpression();
-  std::vector<CaseExpression::WhenClause*> when_clauses;
-  auto* when_clause = new CaseExpression::WhenClause(cond_expr, then_expr);
+  std::vector<CaseExpression::WhenClause *> when_clauses;
+  auto *when_clause = new CaseExpression::WhenClause(cond_expr, then_expr);
   when_clauses.push_back(when_clause);
-  auto* default_expr = new StarExpression();
+  auto *default_expr = new StarExpression();
   auto *original_expr = new CaseExpression(type::TypeId::BOOLEAN, when_clauses, default_expr);
 
   // Serialize expression

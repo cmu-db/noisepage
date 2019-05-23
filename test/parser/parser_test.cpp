@@ -182,7 +182,7 @@ TEST_F(ParserTestBase, CreateIndexTest) {
   EXPECT_EQ(create_stmt->GetCreateType(), CreateStatement::kIndex);
   EXPECT_EQ(create_stmt->GetIndexName(), "idx_order");
   EXPECT_EQ(create_stmt->GetTableName(), "oorder");
-   EXPECT_EQ(create_stmt->GetIndexAttributes().size(), 2);
+  EXPECT_EQ(create_stmt->GetIndexAttributes().size(), 2);
   auto ia1 = create_stmt->GetIndexAttributes()[0]->GetExpression();
   EXPECT_EQ(ia1->GetExpressionType(), ExpressionType::OPERATOR_MINUS);
   auto ia1l = reinterpret_cast<TupleValueExpression *>(ia1->GetChild(0));
