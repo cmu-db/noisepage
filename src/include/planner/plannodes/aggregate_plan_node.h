@@ -113,6 +113,7 @@ class AggregatePlanNode : public AbstractPlanNode {
     for (auto* term : aggregate_terms_) {
       delete term;
     }
+    delete having_clause_predicate_;
   }
 
   DISALLOW_COPY_AND_MOVE(AggregatePlanNode)
