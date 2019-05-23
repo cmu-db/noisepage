@@ -1,4 +1,8 @@
+#include <memory>
+#include <string>
 #include <thread>  // NOLINT
+#include <unordered_map>
+#include <utility>
 #include "gtest/gtest.h"
 #include "main/db_main.h"
 #include "settings/settings_manager.h"
