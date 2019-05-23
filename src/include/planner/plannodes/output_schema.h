@@ -152,6 +152,51 @@ class OutputSchema {
     }
 
     /**
+     * Copy constructor
+     * @param other other derived column to copy from
+     */
+    DerivedColumn(const DerivedColumn &other) {
+      column_ = other.column_;
+      expr_ = other.expr_->Copy();
+    }
+
+    /**
+     * Copy assignment operator
+     * @param other
+     * @return
+     */
+    DerivedColumn& operator = (const DerivedColumn &other) {
+      column_ = other.column_;
+      expr_ = other.expr_->Copy();
+      return *this;
+    }
+
+    /**
+     * Move Constructor
+     * @param from
+     */
+    DerivedColumn(DerivedColumn &&from) {
+      column_ = from.column_;
+      expr_ = from.expr_;
+      from.expr_ = nullptr;
+    }
+
+    /**
+     * Move assignment operator
+     * @param from
+     * @return
+     */
+    DerivedColumn& operator=(DerivedColumn &&from) {
+      if (this == &from) {
+        return *this;
+      }
+      column_ = from.column_;
+      expr_ = from.expr_;
+      from.expr_ = nullptr;
+      return *this;
+    }
+
+    /**
      * Hash the current DerivedColumn.
      */
     common::hash_t Hash() const {
