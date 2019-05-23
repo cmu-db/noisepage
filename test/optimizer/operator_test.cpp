@@ -20,6 +20,7 @@ namespace terrier::optimizer {
 // Test the creation of operator objects
 // NOLINTNEXTLINE
 TEST(OperatorTests, BasicTest) {
+
   //===--------------------------------------------------------------------===//
   // SeqScan
   //===--------------------------------------------------------------------===//
@@ -50,7 +51,7 @@ TEST(OperatorTests, BasicTest) {
                       std::vector<AnnotatedExpression>(), false, std::vector<catalog::col_oid_t>(),
                       std::vector<parser::ExpressionType>(), std::vector<type::TransientValue>());
   Operator index_scan_3 =
-      IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3), "table",
+      IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(4), "table",
                       std::vector<AnnotatedExpression>(), false, std::vector<catalog::col_oid_t>(),
                       std::vector<parser::ExpressionType>(), std::vector<type::TransientValue>());
 
