@@ -69,7 +69,7 @@ Operator LogicalExternalFileGet::make(parser::ExternalFileFormat format, std::st
 }
 
 bool LogicalExternalFileGet::operator==(const BaseOperatorNode &r) {
-  if (r.GetType() != OpType::LOGICALEXPORTEXTERNALFILE) return false;
+  if (r.GetType() != OpType::LOGICALEXTERNALFILEGET) return false;
   const auto &get = *static_cast<const LogicalExternalFileGet *>(&r);
   return (format_ == get.format_ && file_name_ == get.file_name_ && delimiter_ == get.delimiter_ &&
           quote_ == get.quote_ && escape_ == get.escape_);

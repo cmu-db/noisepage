@@ -19,6 +19,87 @@ namespace terrier::optimizer {
 
 // Test the creation of operator objects
 // NOLINTNEXTLINE
+TEST(OperatorTests, BasicLogicalGetTest) {
+  //===--------------------------------------------------------------------===//
+  // LogicalGet
+  //===--------------------------------------------------------------------===//
+  Operator logical_get_1 = LogicalGet::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+                                      std::vector<AnnotatedExpression>(), "table", false);
+  Operator logical_get_2 = LogicalGet::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+                                          std::vector<AnnotatedExpression>(), "table", false);
+
+  auto annotated_expr = AnnotatedExpression(nullptr, std::unordered_set<std::string>());
+  Operator logical_get_3 = LogicalGet::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+                                            std::vector<AnnotatedExpression>{annotated_expr}, "table", false);
+
+  EXPECT_EQ(logical_get_1.GetType(), OpType::LOGICALGET);
+  EXPECT_EQ(logical_get_1.GetName(), "LogicalGet");
+  EXPECT_TRUE(logical_get_1 == logical_get_2);
+  EXPECT_FALSE(logical_get_1 == logical_get_3);
+}
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, BasicLogicalExternalFileGetTest) {
+  //===--------------------------------------------------------------------===//
+  // LogicalExternalFileGet
+  //===--------------------------------------------------------------------===//
+  Operator logical_ext_file_get_1 = LogicalExternalFileGet::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '\\');
+  Operator logical_ext_file_get_2 = LogicalExternalFileGet::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '\\');
+  Operator logical_ext_file_get_3 = LogicalExternalFileGet::make(parser::ExternalFileFormat::CSV, "file2.txt", ',', '"', '\\');
+  Operator logical_ext_file_get_4 = LogicalExternalFileGet::make(parser::ExternalFileFormat::BINARY, "file.txt", ',', '"', '\\');
+  Operator logical_ext_file_get_5 = LogicalExternalFileGet::make(parser::ExternalFileFormat::CSV, "file.txt", ' ', '"', '\\');
+  Operator logical_ext_file_get_6 = LogicalExternalFileGet::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '\'', '\\');
+  Operator logical_ext_file_get_7 = LogicalExternalFileGet::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '&');
+
+
+  EXPECT_EQ(logical_ext_file_get_1.GetType(), OpType::LOGICALEXTERNALFILEGET);
+  EXPECT_EQ(logical_ext_file_get_1.GetName(), "LogicalExternalFileGet");
+  EXPECT_TRUE(logical_ext_file_get_1 == logical_ext_file_get_2);
+  EXPECT_FALSE(logical_ext_file_get_1 == logical_ext_file_get_3);
+  EXPECT_FALSE(logical_ext_file_get_1 == logical_ext_file_get_4);
+  EXPECT_FALSE(logical_ext_file_get_1 == logical_ext_file_get_5);
+  EXPECT_FALSE(logical_ext_file_get_1 == logical_ext_file_get_6);
+  EXPECT_FALSE(logical_ext_file_get_1 == logical_ext_file_get_7);
+}
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, BasicLogicalQueryDerivedGetTest) {
+  //===--------------------------------------------------------------------===//
+  // LogicalQueryDerivedGet
+  //===--------------------------------------------------------------------===//
+  auto alias_to_expr_map_1 = std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>>();
+  auto alias_to_expr_map_2 = std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>>();
+  auto alias_to_expr_map_3 = std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>>();
+  auto alias_to_expr_map_4 = std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>>();
+  auto alias_to_expr_map_5 = std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>>();
+
+  auto expr1 = std::make_shared<parser::ConstantValueExpression>(type::TransientValueFactory::GetTinyInt(1));
+  auto expr2 = std::make_shared<parser::ConstantValueExpression>(type::TransientValueFactory::GetTinyInt(1));
+  alias_to_expr_map_1["constant expr"] = expr1;
+  alias_to_expr_map_2["constant expr"] = expr1;
+  alias_to_expr_map_3["constant expr"] = expr2;
+  alias_to_expr_map_4["constant expr2"] = expr1;
+  alias_to_expr_map_5["constant expr"] = expr1;
+  alias_to_expr_map_5["constant expr2"] = expr2;
+
+  Operator logical_query_derived_get_1 = LogicalQueryDerivedGet::make("alias", std::move(alias_to_expr_map_1));
+  Operator logical_query_derived_get_2 = LogicalQueryDerivedGet::make("alias", std::move(alias_to_expr_map_2));
+  Operator logical_query_derived_get_3 =
+      QueryDerivedScan::make("alias", std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>>());
+  Operator logical_query_derived_get_4 = LogicalQueryDerivedGet::make("alias", std::move(alias_to_expr_map_3));
+  Operator logical_query_derived_get_5 = LogicalQueryDerivedGet::make("alias", std::move(alias_to_expr_map_4));
+  Operator logical_query_derived_get_6 = LogicalQueryDerivedGet::make("alias", std::move(alias_to_expr_map_5));
+
+  EXPECT_EQ(logical_query_derived_get_1.GetType(), OpType::LOGICALQUERYDERIVEDGET);
+  EXPECT_EQ(logical_query_derived_get_1.GetName(), "LogicalQueryDerivedGet");
+  EXPECT_TRUE(logical_query_derived_get_1 == logical_query_derived_get_2);
+  EXPECT_FALSE(logical_query_derived_get_1 == logical_query_derived_get_3);
+  EXPECT_FALSE(logical_query_derived_get_1 == logical_query_derived_get_4);
+  EXPECT_FALSE(logical_query_derived_get_1 == logical_query_derived_get_5);
+  EXPECT_FALSE(logical_query_derived_get_1 == logical_query_derived_get_6);
+  }
+
+// NOLINTNEXTLINE
 TEST(OperatorTests, BasicSeqScanTest) {
   //===--------------------------------------------------------------------===//
   // SeqScan
@@ -68,9 +149,9 @@ TEST(OperatorTests, BasicExternalFileScanTest) {
   //===--------------------------------------------------------------------===//
   // ExternalFileScan
   //===--------------------------------------------------------------------===//
-  Operator ext_file_scan_1 = ExternalFileScan::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '\'');
-  Operator ext_file_scan_2 = ExternalFileScan::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '\'');
-  Operator ext_file_scan_3 = ExternalFileScan::make(parser::ExternalFileFormat::CSV, "file2.txt", ',', '"', '\'');
+  Operator ext_file_scan_1 = ExternalFileScan::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '\\');
+  Operator ext_file_scan_2 = ExternalFileScan::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '\\');
+  Operator ext_file_scan_3 = ExternalFileScan::make(parser::ExternalFileFormat::CSV, "file2.txt", ',', '"', '\\');
 
   EXPECT_EQ(ext_file_scan_1.GetType(), OpType::EXTERNALFILESCAN);
   EXPECT_EQ(ext_file_scan_1.GetName(), "ExternalFileScan");
