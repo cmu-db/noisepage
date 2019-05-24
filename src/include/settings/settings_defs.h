@@ -28,8 +28,6 @@ SETTING_int(num_worker_threads, "The number of worker pool threads (default: 4)"
 // Used only in Tests
 //===----------------------------------------------------------------------===//
 
-#ifndef NDEBUG
-
 SETTING_int(fixed_int, "(Test only) A fixed int param", 100, 10, 1000, false, terrier::settings::Callbacks::NoOp)
 
 SETTING_bool(fixed_bool, "(Test only) A fixed bool param", false, false, terrier::settings::Callbacks::NoOp)
@@ -51,5 +49,3 @@ SETTING_double(pi, "(Test only) The value of pi", 3.14159, 3.0, 4.0, true, terri
 
 // Test immutable boolean knob
 SETTING_bool(p_eq_np, "(Test only) Whether P=NP", false, true, terrier::settings::Callbacks::NoOp)
-
-#endif
