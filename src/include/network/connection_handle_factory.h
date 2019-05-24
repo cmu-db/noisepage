@@ -39,6 +39,7 @@ class ConnectionHandleFactory {
    * converted.
    * @see NetworkIoWrapper for details
    * @param conn_fd Client connection fd
+   * @param protocol_type The protocol type for this connection handle
    * @param task The connection handler task to assign to returned ConnectionHandle object
    * @return A new ConnectionHandle object
    */
