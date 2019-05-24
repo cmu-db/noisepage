@@ -49,7 +49,7 @@ bool Operator::operator==(const Operator &rhs) {
     return *node_ == *rhs.node_;
   }
 
-  return !IsDefined() && !r.IsDefined();
+  return !IsDefined() && !rhs.IsDefined();
 }
 
 bool Operator::IsDefined() const { return node_ != nullptr; }
