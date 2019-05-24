@@ -98,7 +98,8 @@ TEST_F(TrafficCopTests, ManualExtendedQueryTest) {
     io_socket->FlushAllWrites();
     ReadUntilReadyOrClose(io_socket);
 
-    writer.WriteSimpleQuery("CREATE TABLE TableA (a_int INT PRIMARY KEY, a_dec DECIMAL, a_text TEXT, a_time TIMESTAMP);");
+    writer.WriteSimpleQuery(
+        "CREATE TABLE TableA (a_int INT PRIMARY KEY, a_dec DECIMAL, a_text TEXT, a_time TIMESTAMP);");
     io_socket->FlushAllWrites();
     ReadUntilReadyOrClose(io_socket);
 
@@ -110,11 +111,10 @@ TEST_F(TrafficCopTests, ManualExtendedQueryTest) {
     std::string query = "SELECT * FROM TableA WHERE a_int = $1 AND a_dec = $2 AND a_text = $3 AND a_time = $4";
 
     writer.WriteParseCommand(stmt_name, query,
-                             std::vector<int>({
-                               static_cast<int32_t>(network::PostgresValueType::INTEGER),
-                               static_cast<int32_t>(network::PostgresValueType::DECIMAL),
-                               static_cast<int32_t>(network::PostgresValueType::VARCHAR),
-                               static_cast<int32_t>(network::PostgresValueType::TIMESTAMPS)}));
+                             std::vector<int>({static_cast<int32_t>(network::PostgresValueType::INTEGER),
+                                               static_cast<int32_t>(network::PostgresValueType::DECIMAL),
+                                               static_cast<int32_t>(network::PostgresValueType::VARCHAR),
+                                               static_cast<int32_t>(network::PostgresValueType::TIMESTAMPS)}));
     io_socket->FlushAllWrites();
 
     ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PARSE_COMPLETE);
@@ -123,7 +123,7 @@ TEST_F(TrafficCopTests, ManualExtendedQueryTest) {
     auto param1 = std::vector<char>({'1', '0', '0'});
     auto param2 = std::vector<char>({'3', '.', '1', '4'});
     auto param3 = std::vector<char>({'n', 'i', 'c', 'o'});
-    auto param4 = std::vector<char>({'1','1','4','5','1','4'});
+    auto param4 = std::vector<char>({'1', '1', '4', '5', '1', '4'});
 
     std::string portal_name = "test_portal";
     // Use text format, don't care about result column formats

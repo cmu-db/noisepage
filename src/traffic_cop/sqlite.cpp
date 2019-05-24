@@ -58,7 +58,8 @@ void SqliteEngine::Bind(sqlite3_stmt *stmt, const std::shared_ptr<std::vector<ty
       res = sqlite3_bind_double(stmt, i + 1, TransientValuePeeker::PeekDecimal(params[i]));
     } else if (type == TypeId::VARCHAR) {
       std::string_view varchar_value = TransientValuePeeker::PeekVarChar(params[i]);
-      res = sqlite3_bind_text(stmt, i + 1, varchar_value.data(), static_cast<int>(varchar_value.length()), SQLITE_STATIC);
+      res =
+          sqlite3_bind_text(stmt, i + 1, varchar_value.data(), static_cast<int>(varchar_value.length()), SQLITE_STATIC);
     } else if (type == TypeId::TIMESTAMP) {
       auto value = static_cast<int64_t>(!TransientValuePeeker::PeekTimestamp(params[i]));
       res = sqlite3_bind_int64(stmt, i + 1, value);
