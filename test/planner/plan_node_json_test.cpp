@@ -103,19 +103,21 @@ TEST(PlanNodeJsonTest, OutputSchemaJsonTest) {
   children.emplace_back(PlanNodeJsonTest::BuildDummyPredicate());
   auto *expr = new parser::ComparisonExpression(parser::ExpressionType::CONJUNCTION_OR, std::move(children));
 
-  OutputSchema::DerivedColumn derived_col(col, expr);
-  auto derived_col_json = derived_col.ToJson();
+  auto* derived_col = new OutputSchema::DerivedColumn(col, expr);
+  EXPECT_TRUE(derived_col != nullptr);
+  auto derived_col_json = derived_col->ToJson();
   EXPECT_FALSE(derived_col_json.is_null());
 
-  OutputSchema::DerivedColumn deserialized_derived_col;
-  deserialized_derived_col.FromJson(derived_col_json);
-  EXPECT_EQ(derived_col, deserialized_derived_col);
+  auto* deserialized_derived_col = new OutputSchema::DerivedColumn();
+  EXPECT_TRUE(deserialized_derived_col != nullptr);
+  deserialized_derived_col->FromJson(derived_col_json);
+  EXPECT_EQ(*derived_col, *deserialized_derived_col);
 
   // Test OutputSchema Serialization
   std::vector<OutputSchema::Column> cols;
   cols.push_back(col);
   std::vector<OutputSchema::DerivedTarget> targets;
-  targets.emplace_back(0, &derived_col);
+  targets.emplace_back(0, derived_col);
   auto output_schema = std::make_shared<OutputSchema>(cols, targets);
   auto output_schema_json = output_schema->ToJson();
   EXPECT_FALSE(output_schema_json.is_null());
@@ -123,6 +125,8 @@ TEST(PlanNodeJsonTest, OutputSchemaJsonTest) {
   std::shared_ptr<OutputSchema> deserialized_output_schema = std::make_shared<OutputSchema>();
   deserialized_output_schema->FromJson(output_schema_json);
   EXPECT_EQ(*output_schema, *deserialized_output_schema);
+
+  delete deserialized_derived_col;
 }
 
 // NOLINTNEXTLINE

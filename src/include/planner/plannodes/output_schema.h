@@ -250,6 +250,12 @@ class OutputSchema {
    */
   OutputSchema() = default;
 
+  ~OutputSchema() {
+	  for (const auto& pair : targets_) {
+		  delete pair.second;
+	  }
+  }
+
   /**
    * @param col_id offset into the schema specifying which Column to access
    * @return description of the schema for a specific column
@@ -296,7 +302,7 @@ class OutputSchema {
    */
   bool operator==(const OutputSchema &rhs) const {
     if (targets_.size() != rhs.targets_.size()) return false;
-    for (int i = 0; i < targets_.size(); i++) {
+    for (size_t i = 0; i < targets_.size(); i++) {
       // Check offsets are equal
       if (targets_[i].first != rhs.targets_[i].first) return false;
 
