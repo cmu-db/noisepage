@@ -24,9 +24,9 @@ TEST(OperatorTests, BasicLogicalGetTest) {
   // LogicalGet
   //===--------------------------------------------------------------------===//
   Operator logical_get_1 = LogicalGet::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
-                                      std::vector<AnnotatedExpression>(), "table", false);
+                                            std::vector<AnnotatedExpression>(), "table", false);
   Operator logical_get_2 = LogicalGet::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
-                                          std::vector<AnnotatedExpression>(), "table", false);
+                                            std::vector<AnnotatedExpression>(), "table", false);
 
   auto annotated_expr = AnnotatedExpression(nullptr, std::unordered_set<std::string>());
   Operator logical_get_3 = LogicalGet::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
@@ -43,14 +43,20 @@ TEST(OperatorTests, BasicLogicalExternalFileGetTest) {
   //===--------------------------------------------------------------------===//
   // LogicalExternalFileGet
   //===--------------------------------------------------------------------===//
-  Operator logical_ext_file_get_1 = LogicalExternalFileGet::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '\\');
-  Operator logical_ext_file_get_2 = LogicalExternalFileGet::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '\\');
-  Operator logical_ext_file_get_3 = LogicalExternalFileGet::make(parser::ExternalFileFormat::CSV, "file2.txt", ',', '"', '\\');
-  Operator logical_ext_file_get_4 = LogicalExternalFileGet::make(parser::ExternalFileFormat::BINARY, "file.txt", ',', '"', '\\');
-  Operator logical_ext_file_get_5 = LogicalExternalFileGet::make(parser::ExternalFileFormat::CSV, "file.txt", ' ', '"', '\\');
-  Operator logical_ext_file_get_6 = LogicalExternalFileGet::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '\'', '\\');
-  Operator logical_ext_file_get_7 = LogicalExternalFileGet::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '&');
-
+  Operator logical_ext_file_get_1 =
+      LogicalExternalFileGet::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '\\');
+  Operator logical_ext_file_get_2 =
+      LogicalExternalFileGet::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '\\');
+  Operator logical_ext_file_get_3 =
+      LogicalExternalFileGet::make(parser::ExternalFileFormat::CSV, "file2.txt", ',', '"', '\\');
+  Operator logical_ext_file_get_4 =
+      LogicalExternalFileGet::make(parser::ExternalFileFormat::BINARY, "file.txt", ',', '"', '\\');
+  Operator logical_ext_file_get_5 =
+      LogicalExternalFileGet::make(parser::ExternalFileFormat::CSV, "file.txt", ' ', '"', '\\');
+  Operator logical_ext_file_get_6 =
+      LogicalExternalFileGet::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '\'', '\\');
+  Operator logical_ext_file_get_7 =
+      LogicalExternalFileGet::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '&');
 
   EXPECT_EQ(logical_ext_file_get_1.GetType(), OpType::LOGICALEXTERNALFILEGET);
   EXPECT_EQ(logical_ext_file_get_1.GetName(), "LogicalExternalFileGet");
@@ -97,7 +103,7 @@ TEST(OperatorTests, BasicLogicalQueryDerivedGetTest) {
   EXPECT_FALSE(logical_query_derived_get_1 == logical_query_derived_get_4);
   EXPECT_FALSE(logical_query_derived_get_1 == logical_query_derived_get_5);
   EXPECT_FALSE(logical_query_derived_get_1 == logical_query_derived_get_6);
-  }
+}
 
 // NOLINTNEXTLINE
 TEST(OperatorTests, BasicSeqScanTest) {
