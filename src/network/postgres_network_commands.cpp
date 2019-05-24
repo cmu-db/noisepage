@@ -66,13 +66,6 @@ Transition ParseCommand::Exec(PostgresProtocolInterpreter *interpreter, Postgres
     param_types.push_back(static_cast<PostgresValueType>(oid));
   }
 
-  // Benchmark: Special case for no-op benchmark
-  if (query == ";") {
-    connection->statements[stmt_name] = traffic_cop::Statement();
-    out->WriteParseComplete();
-    return Transition::PROCEED;
-  }
-
   // if a statement with that name exists, return error
   if (!stmt_name.empty() && connection->statements.count(stmt_name) > 0) {
     LogAndWriteErrorMsg("There is already a statement with name " + stmt_name, out);
@@ -214,13 +207,6 @@ Transition BindCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresP
   // TODO(Weichen): Deal with requested response format. (text/binary)
   // Now they are all text.
 
-  // Benchmark: Special case for no-op benchmark
-  if (statement->sqlite3_stmt_ == nullptr) {
-    connection->portals[portal_name] = traffic_cop::Portal();
-    out->WriteBindComplete();
-    return Transition::PROCEED;
-  }
-
   // With SQLite backend, we only produce a list of param values as the portal,
   // because we cannot copy a sqlite3 statement.
   Portal portal;
@@ -291,13 +277,6 @@ Transition ExecuteCommand::Exec(PostgresProtocolInterpreter *interpreter, Postgr
   }
 
   Portal &portal = p_portal->second;
-
-  // Benchmark: Special case for no-op benchmark
-  if (portal.sqlite_stmt_ == nullptr) {
-    // out->WriteEmptyQueryResponse();
-    out->WriteCommandComplete("");
-    return Transition::PROCEED;
-  }
 
   SqliteEngine *execution_engine = t_cop->GetExecutionEngine();
   execution_engine->Bind(portal.sqlite_stmt_, portal.params);
