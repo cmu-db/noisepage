@@ -310,6 +310,16 @@ TEST_F(TrafficCopTests, ErrorHandlingTest) {
     io_socket->FlushAllWrites();
     ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::ERROR_RESPONSE);
   }
+
+  {
+    // A bad describe request
+    writer.BeginPacket(network::NetworkMessageType::DESCRIBE_COMMAND)
+        .AppendRawValue('?')
+        .AppendString(stmt_name)
+        .EndPacket();
+    io_socket->FlushAllWrites();
+    ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::ERROR_RESPONSE);
+  }
 }
 
 /**
