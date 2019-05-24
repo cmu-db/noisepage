@@ -9,7 +9,7 @@ SETTING_int(record_buffer_segment_size, "The maximum number of record buffer seg
 
 // RecordBufferSegmentPool reuse limit
 SETTING_int(record_buffer_segment_reuse, "The minimum number of record buffer segments to keep allocated in the system (default: 1000)",
-    1000, 1, 1000000, true, terrier::settings::Callbacks::BufferSegmentPoolSizeLimit)
+    1000, 1, 1000000, true, terrier::settings::Callbacks::BufferSegmentPoolReuseLimit)
 
 // If parallel execution is enabled
 SETTING_bool(parallel_execution, "Enable parallel execution of queries (default: true)", true, true,

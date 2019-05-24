@@ -77,19 +77,6 @@ class TransactionManager {
   TransactionQueue CompletedTransactionsForGC();
 
   /**
-   * Set the current buffer pool size
-   * @param new_size the new size of buffer pool
-   * @return true if the value is set successfully; false otherwise
-   */
-  bool SetBufferPoolSizeLimit(uint64_t new_size) { return buffer_pool_->SetSizeLimit(new_size); }
-
-  /**
-   * Get the current buffer pool size
-   * @return the current buffer pool size
-   */
-  uint64_t GetBufferPoolSizeLimit() const { return buffer_pool_->GetSizeLimit(); }
-
-  /**
    * Adds the action to a buffered list of deferred actions.  This action will
    * be triggered no sooner than when the epoch (timestamp of oldest running
    * transaction) is more recent than the time this function was called.

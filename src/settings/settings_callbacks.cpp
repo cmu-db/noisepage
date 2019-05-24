@@ -13,11 +13,19 @@ void Callbacks::BufferSegmentPoolSizeLimit(void *const old_value, void *const ne
                                            const std::shared_ptr<common::ActionContext> &action_context) {
   action_context->SetState(common::ActionState::IN_PROGRESS);
   int new_size = *static_cast<int *>(new_value);
-  bool success = db_main->txn_manager_->SetBufferPoolSizeLimit(new_size);
+  bool success = db_main->buffer_segment_pool_->SetSizeLimit(new_size);
   if (success)
     action_context->SetState(common::ActionState::SUCCESS);
   else
     action_context->SetState(common::ActionState::FAILURE);
+}
+
+void Callbacks::BufferSegmentPoolReuseLimit(void *const old_value, void *const new_value, DBMain *const db_main,
+                                            const std::shared_ptr<common::ActionContext> &action_context) {
+  action_context->SetState(common::ActionState::IN_PROGRESS);
+  int new_size = *static_cast<int *>(new_value);
+  db_main->buffer_segment_pool_->SetReuseLimit(new_size);
+  action_context->SetState(common::ActionState::SUCCESS);
 }
 
 }  // namespace terrier::settings
