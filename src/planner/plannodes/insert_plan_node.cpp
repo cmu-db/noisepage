@@ -1,6 +1,7 @@
 #include "planner/plannodes/insert_plan_node.h"
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 #include "parser/expression/constant_value_expression.h"
@@ -25,13 +26,17 @@ common::hash_t InsertPlanNode::Hash() const {
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&table_oid));
 
   // Hash parameter_info
-  for (const auto parameter : parameter_info_) {
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(parameter));
+  for (const auto pair : parameter_info_) {
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(pair.first));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(pair.second));
   }
 
-  // Hash bulk_insert_count
-  auto bulk_insert_count = GetBulkInsertCount();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&bulk_insert_count));
+  // Values
+  for (uint32_t i = 0; i < GetBulkInsertCount(); i++) {
+    for (const auto &value : GetValues(i)) {
+      hash = common::HashUtil::CombineHashes(hash, value.Hash());
+    }
+  }
 
   return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
 }
@@ -50,21 +55,16 @@ bool InsertPlanNode::operator==(const AbstractPlanNode &rhs) const {
   // Target table OID
   if (GetTableOid() != other.GetTableOid()) return false;
 
+  // Bulk insert count
+  if (GetBulkInsertCount() != other.GetBulkInsertCount()) return false;
+
   // Values
-  if (GetValues() != other.GetValues()) return false;
-
-  // Parameter info
-  const auto &parameter_info = GetParameterInfo();
-  const auto &other_parameter_info = other.GetParameterInfo();
-  if (parameter_info.size() != other_parameter_info.size()) return false;
-
-  for (size_t i = 0; i < parameter_info.size(); i++) {
-    if (parameter_info[i] != other_parameter_info[i]) {
-      return false;
-    }
+  for (uint32_t i = 0; i < GetBulkInsertCount(); i++) {
+    if (GetValues(i) != other.GetValues(i)) return false;
   }
 
-  if (GetBulkInsertCount() != other.GetBulkInsertCount()) return false;
+  // Parameter info
+  if (GetParameterInfo() != other.GetParameterInfo()) return false;
 
   return AbstractPlanNode::operator==(rhs);
 }
@@ -76,7 +76,6 @@ nlohmann::json InsertPlanNode::ToJson() const {
   j["table_oid"] = table_oid_;
   j["values"] = values_;
   j["parameter_info"] = parameter_info_;
-  j["bulk_insert_count"] = bulk_insert_count_;
   return j;
 }
 
@@ -85,9 +84,8 @@ void InsertPlanNode::FromJson(const nlohmann::json &j) {
   database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
   namespace_oid_ = j.at("namespace_oid").get<catalog::namespace_oid_t>();
   table_oid_ = j.at("table_oid").get<catalog::table_oid_t>();
-  values_ = j.at("values").get<std::vector<type::TransientValue>>();
-  parameter_info_ = j.at("parameter_info").get<std::vector<ParameterInfo>>();
-  bulk_insert_count_ = j.at("bulk_insert_count").get<uint32_t>();
+  values_ = j.at("values").get<std::vector<std::vector<type::TransientValue>>>();
+  parameter_info_ = j.at("parameter_info").get<std::unordered_map<uint32_t, catalog::col_oid_t>>();
 }
 
 }  // namespace terrier::planner
