@@ -1,8 +1,9 @@
 #include "common/hash_util.h"
 #include <cstring>
+#include <iostream>
 #include <limits>
-#include <string>
 #include <random>
+#include <string>
 #include <thread>  // NOLINT
 #include <unordered_set>
 #include <vector>
@@ -15,14 +16,16 @@ TEST(HashUtilTests, HashTest) {
   // INT
   std::vector<int> vals0 = {std::numeric_limits<int>::min(), 0, std::numeric_limits<int>::max() - 1};
   for (const auto &val : vals0) {
-    EXPECT_EQ(common::HashUtil::Hash(val), common::HashUtil::Hash(val));
+    auto copy = val;
+    EXPECT_EQ(common::HashUtil::Hash(val), common::HashUtil::Hash(copy));
     EXPECT_NE(common::HashUtil::Hash(val + 1), common::HashUtil::Hash(val));
   }
 
   // FLOAT
   std::vector<float> vals1 = {std::numeric_limits<float>::min(), 0.0f, std::numeric_limits<float>::max() - 1.0f};
   for (const auto &val : vals1) {
-    EXPECT_EQ(common::HashUtil::Hash(val), common::HashUtil::Hash(val));
+    auto copy = val;
+    EXPECT_EQ(common::HashUtil::Hash(val), common::HashUtil::Hash(copy));
     // This fails for max float value
     // EXPECT_NE(common::HashUtil::Hash(val+1.0f), common::HashUtil::Hash(val));
   }
@@ -30,16 +33,46 @@ TEST(HashUtilTests, HashTest) {
   // CHAR
   std::vector<char> vals2 = {'f', 'u', 'c', 'k', 't', 'k'};
   for (const auto &val : vals2) {
-    EXPECT_EQ(common::HashUtil::Hash(val), common::HashUtil::Hash(val));
+    auto copy = val;
+    EXPECT_EQ(common::HashUtil::Hash(val), common::HashUtil::Hash(copy));
     EXPECT_NE(common::HashUtil::Hash(val + 1), common::HashUtil::Hash(val));
   }
 
   // STRING
   std::vector<std::string> vals3 = {"XXX", "YYY", "ZZZ"};
   for (const auto &val : vals3) {
-    EXPECT_EQ(common::HashUtil::Hash(val), common::HashUtil::Hash(val));
+    auto copy = val;
+    EXPECT_EQ(common::HashUtil::Hash(val), common::HashUtil::Hash(copy));
     EXPECT_NE(common::HashUtil::Hash("WUTANG"), common::HashUtil::Hash(val));
   }
+  EXPECT_EQ(common::HashUtil::Hash("ABC"), common::HashUtil::Hash("ABC"));
+}
+
+// NOLINTNEXTLINE
+TEST(HashUtilTests, HashMixedTest) {
+  // There is nothing special about this test. It's just a sanity
+  // check for me to make sure that things are working correctly in
+  // another part of the system.
+  enum class wutang {RZA, GZA, RAEKWON, METHODMAN, GHOSTFACE, ODB, INSPECTAH};
+
+  common::hash_t hash0 = common::HashUtil::Hash(wutang::RAEKWON);
+  common::hash_t hash1 = common::HashUtil::Hash(wutang::RAEKWON);
+  EXPECT_EQ(hash0, hash1);
+
+  wutang val0 = wutang::ODB;
+  hash0 = common::HashUtil::CombineHashes(hash0, common::HashUtil::Hash(val0));
+  hash1 = common::HashUtil::CombineHashes(hash1, common::HashUtil::Hash(val0));
+  EXPECT_EQ(hash0, hash1);
+
+  std::string val1 = "protect-yo-neck.csv";
+  hash0 = common::HashUtil::CombineHashes(hash0, common::HashUtil::Hash(val1));
+  hash1 = common::HashUtil::CombineHashes(hash1, common::HashUtil::Hash(val1));
+  EXPECT_EQ(hash0, hash1);
+
+  char val2 = ',';
+  hash0 = common::HashUtil::CombineHashes(hash0, common::HashUtil::Hash(val2));
+  hash1 = common::HashUtil::CombineHashes(hash1, common::HashUtil::Hash(val2));
+  EXPECT_EQ(hash0, hash1);
 }
 
 // NOLINTNEXTLINE
