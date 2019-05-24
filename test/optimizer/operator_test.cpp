@@ -20,7 +20,6 @@ namespace terrier::optimizer {
 // Test the creation of operator objects
 // NOLINTNEXTLINE
 TEST(OperatorTests, BasicSeqScanTest) {
-
   //===--------------------------------------------------------------------===//
   // SeqScan
   //===--------------------------------------------------------------------===//
@@ -99,7 +98,6 @@ TEST(OperatorTests, BasicQueryDerivedScanTest) {
   EXPECT_EQ(query_derived_scan_1.GetName(), "QueryDerivedScan");
   EXPECT_TRUE(query_derived_scan_1 == query_derived_scan_2);
   EXPECT_FALSE(query_derived_scan_1 == query_derived_scan_3);
-
 }
 
 // NOLINTNEXTLINE

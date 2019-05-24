@@ -110,7 +110,7 @@ bool LogicalQueryDerivedGet::operator==(const BaseOperatorNode &r) {
 common::hash_t LogicalQueryDerivedGet::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
-  for (auto & iter : alias_to_expr_map_) {
+  for (auto &iter : alias_to_expr_map_) {
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(iter.first));
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(iter.second));
   }
@@ -782,7 +782,7 @@ bool QueryDerivedScan::operator==(const BaseOperatorNode &r) {
 common::hash_t QueryDerivedScan::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
-  for (auto & iter : alias_to_expr_map_) {
+  for (auto &iter : alias_to_expr_map_) {
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(iter.first));
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(iter.second));
   }
