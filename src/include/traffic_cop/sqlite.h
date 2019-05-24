@@ -51,7 +51,6 @@ class SqliteEngine {
  private:
   // SQLite database
   struct sqlite3 *sqlite_db_;
-  char *error_msg;
 };
 
 }  // namespace terrier::traffic_cop
