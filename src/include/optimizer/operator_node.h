@@ -218,7 +218,6 @@ namespace std {
  */
 template <>
 struct hash<terrier::optimizer::BaseOperatorNode> {
-
   /**
    * Argument type of the base operator
    */
