@@ -113,7 +113,8 @@ TEST(HashUtilTests, CombineHashInRangeTest) {
   std::vector<std::string> vals0 = {"XXX", "YYY", "ZZZ"};
   common::hash_t hash0 = 0;
   for (const auto &val : vals0) {
-    hash0 = common::HashUtil::CombineHashes(hash0, common::HashUtil::Hash(val));
+    auto copy = val;
+    hash0 = common::HashUtil::CombineHashes(hash0, common::HashUtil::Hash(copy));
   }
 
   common::hash_t hash1 = 0;
@@ -121,5 +122,18 @@ TEST(HashUtilTests, CombineHashInRangeTest) {
 
   EXPECT_EQ(hash0, hash1);
 }
+
+// NOLINTNEXTLINE
+TEST(HashUtilTests, SumHashesTest) {
+
+  common::hash_t hash0 = common::HashUtil::Hash("ABC");
+  common::hash_t hash1 = common::HashUtil::Hash("XYZ");
+
+  common::hash_t combined0 = common::HashUtil::SumHashes(hash0, hash1);
+  common::hash_t combined1 = common::HashUtil::SumHashes(hash1, hash0);
+
+  EXPECT_EQ(combined0, combined1);
+}
+
 
 }  // namespace terrier
