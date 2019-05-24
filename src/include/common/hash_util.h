@@ -84,6 +84,16 @@ class HashUtil {
   static hash_t Hash(const T &obj) {
     return HashBytes(reinterpret_cast<const byte *>(&obj), sizeof(T));
   }
+
+  /**
+   * Special case Hash method for strings. If you use the above version,
+   * you will hash the address of the string's data, which is not what you want.
+   * @param str the string to be hashed
+   * @return hash of the string
+   */
+  static hash_t Hash(const std::string &str) {
+    return HashBytes(reinterpret_cast<const byte *>(str.data()), str.size());
+  }
 };
 
 }  // namespace terrier::common

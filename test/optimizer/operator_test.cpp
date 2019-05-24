@@ -19,18 +19,29 @@ namespace terrier::optimizer {
 
 // NOLINTNEXTLINE
 TEST(OperatorTests, LogicalExportExternalFileTest) {
-  Operator op1 = LogicalExportExternalFile::make(parser::ExternalFileFormat::BINARY, "fakefile.txt", 'X', 'Y', 'Z');
-  EXPECT_EQ(op1.GetType(), OpType::LOGICALEXPORTEXTERNALFILE);
-  EXPECT_EQ(op1.As<LogicalExportExternalFile>()->GetFilename(), "fakefile.txt");
-  EXPECT_EQ(op1.As<LogicalExportExternalFile>()->GetDelimiter(), 'X');
-  EXPECT_EQ(op1.As<LogicalExportExternalFile>()->GetQuote(), 'Y');
-  EXPECT_EQ(op1.As<LogicalExportExternalFile>()->GetEscape(), 'Z');
+  std::string file_name = "fakefile.txt";
+  char delimiter = 'X';
+  char quote = 'Y';
+  char escape = 'Z';
 
-  Operator op2 = LogicalExportExternalFile::make(parser::ExternalFileFormat::BINARY, "fakefile.txt", 'X', 'Y', 'Z');
+  // Check that all of our GET methods work as expected
+  Operator op1 = LogicalExportExternalFile::make(parser::ExternalFileFormat::BINARY, file_name, delimiter, quote, escape);
+  EXPECT_EQ(op1.GetType(), OpType::LOGICALEXPORTEXTERNALFILE);
+  EXPECT_EQ(op1.As<LogicalExportExternalFile>()->GetFilename(), file_name);
+  EXPECT_EQ(op1.As<LogicalExportExternalFile>()->GetDelimiter(), delimiter);
+  EXPECT_EQ(op1.As<LogicalExportExternalFile>()->GetQuote(), quote);
+  EXPECT_EQ(op1.As<LogicalExportExternalFile>()->GetEscape(), escape);
+
+  // Check that if we make a new object with the same values, then it will
+  // be equal to our first object and have the same hash
+  std::string file_name_copy = file_name;
+  Operator op2 = LogicalExportExternalFile::make(parser::ExternalFileFormat::BINARY, file_name_copy, delimiter, quote, escape);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
-  Operator op3 = LogicalExportExternalFile::make(parser::ExternalFileFormat::CSV, "fakefile.txt", 'X', 'Y', 'Z');
+  // Lastly, make a different object and make sure that it is not equal
+  // and that it's hash is not the same!
+  Operator op3 = LogicalExportExternalFile::make(parser::ExternalFileFormat::CSV, file_name, delimiter, quote, escape);
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 }
