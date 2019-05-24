@@ -54,7 +54,7 @@ TEST(OperatorTests, LogicalGetTest) {
   EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetNamespaceOID(), catalog::namespace_oid_t(2));
   EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetTableOID(), catalog::table_oid_t(3));
   EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetPredicates(),std::vector<AnnotatedExpression>());
-  EXPECT_EQ(logical_get_3.As<LogicalGet>()->GetPredicates(),annotated_expr);
+  EXPECT_EQ(logical_get_3.As<LogicalGet>()->GetPredicates(),std::vector<AnnotatedExpression>{annotated_expr});
   EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetTableAlias(), "table");
   EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetIsForUpdate(), false);
   EXPECT_EQ(logical_get_1.GetName(), "LogicalGet");
@@ -111,6 +111,7 @@ TEST(OperatorTests, LogicalQueryDerivedGetTest) {
   // LogicalQueryDerivedGet
   //===--------------------------------------------------------------------===//
   auto alias_to_expr_map_1 = std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>>();
+  auto alias_to_expr_map_1_1 = std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>>();
   auto alias_to_expr_map_2 = std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>>();
   auto alias_to_expr_map_3 = std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>>();
   auto alias_to_expr_map_4 = std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>>();
@@ -119,6 +120,7 @@ TEST(OperatorTests, LogicalQueryDerivedGetTest) {
   auto expr1 = std::make_shared<parser::ConstantValueExpression>(type::TransientValueFactory::GetTinyInt(1));
   auto expr2 = std::make_shared<parser::ConstantValueExpression>(type::TransientValueFactory::GetTinyInt(1));
   alias_to_expr_map_1["constant expr"] = expr1;
+  alias_to_expr_map_1_1["constant expr"] = expr1;
   alias_to_expr_map_2["constant expr"] = expr1;
   alias_to_expr_map_3["constant expr"] = expr2;
   alias_to_expr_map_4["constant expr2"] = expr1;
@@ -128,18 +130,25 @@ TEST(OperatorTests, LogicalQueryDerivedGetTest) {
   Operator logical_query_derived_get_1 = LogicalQueryDerivedGet::make("alias", std::move(alias_to_expr_map_1));
   Operator logical_query_derived_get_2 = LogicalQueryDerivedGet::make("alias", std::move(alias_to_expr_map_2));
   Operator logical_query_derived_get_3 =
-      QueryDerivedScan::make("alias", std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>>());
+      LogicalQueryDerivedGet::make("alias", std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>>());
   Operator logical_query_derived_get_4 = LogicalQueryDerivedGet::make("alias", std::move(alias_to_expr_map_3));
   Operator logical_query_derived_get_5 = LogicalQueryDerivedGet::make("alias", std::move(alias_to_expr_map_4));
   Operator logical_query_derived_get_6 = LogicalQueryDerivedGet::make("alias", std::move(alias_to_expr_map_5));
 
   EXPECT_EQ(logical_query_derived_get_1.GetType(), OpType::LOGICALQUERYDERIVEDGET);
   EXPECT_EQ(logical_query_derived_get_1.GetName(), "LogicalQueryDerivedGet");
+  EXPECT_EQ(logical_query_derived_get_1.As<LogicalQueryDerivedGet>()->GetTableAlias(), "alias");
+  EXPECT_EQ(logical_query_derived_get_1.As<LogicalQueryDerivedGet>()->GetAliasToExprMap(), std::move(alias_to_expr_map_1_1));
   EXPECT_TRUE(logical_query_derived_get_1 == logical_query_derived_get_2);
   EXPECT_FALSE(logical_query_derived_get_1 == logical_query_derived_get_3);
   EXPECT_FALSE(logical_query_derived_get_1 == logical_query_derived_get_4);
   EXPECT_FALSE(logical_query_derived_get_1 == logical_query_derived_get_5);
   EXPECT_FALSE(logical_query_derived_get_1 == logical_query_derived_get_6);
+  EXPECT_TRUE(logical_query_derived_get_1.Hash() == logical_query_derived_get_2.Hash());
+  EXPECT_FALSE(logical_query_derived_get_1.Hash() == logical_query_derived_get_3.Hash());
+  EXPECT_FALSE(logical_query_derived_get_1.Hash() == logical_query_derived_get_4.Hash());
+  EXPECT_FALSE(logical_query_derived_get_1.Hash() == logical_query_derived_get_5.Hash());
+  EXPECT_FALSE(logical_query_derived_get_1.Hash() == logical_query_derived_get_6.Hash());
 }
 
 // NOLINTNEXTLINE

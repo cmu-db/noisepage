@@ -201,6 +201,16 @@ class LogicalQueryDerivedGet : public OperatorNode<LogicalQueryDerivedGet> {
 
   common::hash_t Hash() const override;
 
+  /**
+   * @return Alias of the table to get from
+   */
+  std::string GetTableAlias() const { return table_alias_; }
+
+  /**
+   * @return map from table aliases to expressions
+   */
+  std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>> GetAliasToExprMap() const { return alias_to_expr_map_; }
+
  private:
   /**
    * Table aliases
