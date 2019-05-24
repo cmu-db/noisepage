@@ -17,7 +17,7 @@ class IndexKeyColumn {
    * @param nullable whether the column is nullable
    * @param type_id the non-varlen type of the column
    */
-  IndexKeyColumn(type::TypeId type_id, bool nullable)
+  IndexKeyColumn(type::TypeId type_id, bool nullable, const std::string &serialized_expression)
       : oid_(INVALID_INDEXKEYCOL_OID), packed_type_(0) {
     TERRIER_ASSERT(!(type_id == type::TypeId::VARCHAR || type_id == type::TypeId::VARBINARY),
                    "Non-varlen constructor.");
@@ -32,7 +32,8 @@ class IndexKeyColumn {
    * @param type_id the varlen type of the column
    * @param max_varlen_size the maximum varlen size
    */
-  IndexKeyColumn(type::TypeId type_id, bool nullable, uint16_t max_varlen_size)
+  IndexKeyColumn(type::TypeId type_id, bool nullable, const std::string &serialized_expression,
+                 uint16_t max_varlen_size)
       : oid_(INVALID_INDEXKEYCOL_OID), packed_type_(0) {
     TERRIER_ASSERT(type_id == type::TypeId::VARCHAR || type_id == type::TypeId::VARBINARY, "Varlen constructor.");
     SetTypeId(type_id);
@@ -69,6 +70,8 @@ class IndexKeyColumn {
 
   indexkeycol_oid_t oid_;
   uint32_t packed_type_;
+  AbstractExpression *expresion;
+  std::string serialized_expression_;
 
   void SetOid(indexkeycol_oid_t oid) { oid_ = oid; }
 

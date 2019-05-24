@@ -161,6 +161,7 @@ class DatabaseCatalog {
    * @return the object with the index details
    */
   IndexDetails GetIndexDetails(transaction::TransactionContext *txn, index_oid_t index);
+
  private:
   storage::SqlTable *namespaces_;
   storage::index::Index *namespaces_oid_index_;
@@ -189,7 +190,7 @@ class DatabaseCatalog {
   storage::index::Index *constraints_index_index_;
   storage::index::Index *constraints_foreignkey_index_;
 
-  std::atomic<uint32_t> next_oid_;
   transaction::Action debootstrap;
+  std::atomic<uint32_t> next_oid_;
 };
 } // namespace terrier::catalog
