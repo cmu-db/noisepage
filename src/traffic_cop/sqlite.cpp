@@ -29,38 +29,6 @@ SqliteEngine::SqliteEngine() {
 
 SqliteEngine::~SqliteEngine() { sqlite3_close(sqlite_db_); }
 
-void SqliteEngine::ExecuteQuery(const char *query, network::PostgresPacketWriter *out,
-                                const network::SimpleQueryCallback &callback) {
-  ResultSet result_set;
-
-  sqlite3_exec(sqlite_db_, query, StoreResults, &result_set, &error_msg);
-  if (error_msg != nullptr) {
-    LOG_ERROR("Error msg from Sqlite3: " + std::string(error_msg));
-    sqlite3_free(error_msg);
-  }
-
-  callback(result_set, out);
-}
-
-int SqliteEngine::StoreResults(void *result_set_void, int elem_count, char **values, char **column_names) {
-  auto result_set = reinterpret_cast<ResultSet *>(result_set_void);
-
-  if (result_set->column_names_.empty()) {
-    for (int i = 0; i < elem_count; i++) {
-      result_set->column_names_.emplace_back(column_names[i]);
-    }
-  }
-
-  Row current_row;
-  for (int i = 0; i < elem_count; i++) {
-    current_row.emplace_back(type::TransientValueFactory::GetVarChar(values[i]));
-  }
-
-  result_set->rows_.push_back(std::move(current_row));
-
-  return 0;
-}
-
 sqlite3_stmt *SqliteEngine::PrepareStatement(std::string query) {
   // Replace "$" to "?"
   for (char &c : query)
@@ -89,8 +57,8 @@ void SqliteEngine::Bind(sqlite3_stmt *stmt, const std::shared_ptr<std::vector<ty
     } else if (type == TypeId::DECIMAL) {
       res = sqlite3_bind_double(stmt, i + 1, TransientValuePeeker::PeekDecimal(params[i]));
     } else if (type == TypeId::VARCHAR) {
-      std::string_view varchar_value = TransientValuePeeker::PeekVarChar(params[i]);
-      res = sqlite3_bind_text(stmt, i + 1, varchar_value.data(), -1, SQLITE_STATIC);
+      std::string varchar_value = std::string(TransientValuePeeker::PeekVarChar(params[i]));
+      res = sqlite3_bind_text(stmt, i + 1, varchar_value.c_str(), -1, SQLITE_STATIC);
     } else if (type == TypeId::TIMESTAMP) {
       auto value = static_cast<int64_t>(!TransientValuePeeker::PeekTimestamp(params[i]));
       res = sqlite3_bind_int64(stmt, i + 1, value);

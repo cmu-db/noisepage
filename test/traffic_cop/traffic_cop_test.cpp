@@ -98,29 +98,36 @@ TEST_F(TrafficCopTests, ManualExtendedQueryTest) {
     io_socket->FlushAllWrites();
     ReadUntilReadyOrClose(io_socket);
 
-    writer.WriteSimpleQuery("CREATE TABLE TableA (a_int INT PRIMARY KEY, a_dec DECIMAL, a_text TEXT);");
+    writer.WriteSimpleQuery("CREATE TABLE TableA (a_int INT PRIMARY KEY, a_dec DECIMAL, a_text TEXT, a_time TIMESTAMP);");
     io_socket->FlushAllWrites();
     ReadUntilReadyOrClose(io_socket);
 
-    writer.WriteSimpleQuery("INSERT INTO TableA VALUES(100, 3.14159, 'niconiconi')");
+    writer.WriteSimpleQuery("INSERT INTO TableA VALUES(100, 3.14, 'nico', 114514)");
     io_socket->FlushAllWrites();
     ReadUntilReadyOrClose(io_socket);
 
     std::string stmt_name = "test_statement";
-    std::string query = "SELECT * from TableA where a_int = $1";
+    std::string query = "SELECT * FROM TableA WHERE a_int = $1 AND a_dec = $2 AND a_text = $3 AND a_time = $4";
 
     writer.WriteParseCommand(stmt_name, query,
-                             std::vector<int>(1, static_cast<int32_t>(network::PostgresValueType::INTEGER)));
+                             std::vector<int>({
+                               static_cast<int32_t>(network::PostgresValueType::INTEGER),
+                               static_cast<int32_t>(network::PostgresValueType::DECIMAL),
+                               static_cast<int32_t>(network::PostgresValueType::VARCHAR),
+                               static_cast<int32_t>(network::PostgresValueType::TIMESTAMPS)}));
     io_socket->FlushAllWrites();
 
     ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PARSE_COMPLETE);
 
-    // Bind, param1 = "100" expressed in vector form
+    // Bind, param = "100", "3.14", "nico", "114514" expressed in vector form
     auto param1 = std::vector<char>({'1', '0', '0'});
+    auto param2 = std::vector<char>({'3', '.', '1', '4'});
+    auto param3 = std::vector<char>({'n', 'i', 'c', 'o'});
+    auto param4 = std::vector<char>({'1','1','4','5','1','4'});
 
     std::string portal_name = "test_portal";
     // Use text format, don't care about result column formats
-    writer.WriteBindCommand(portal_name, stmt_name, {}, {&param1}, {});
+    writer.WriteBindCommand(portal_name, stmt_name, {}, {&param1, &param2, &param3, &param4}, {});
     io_socket->FlushAllWrites();
     ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::BIND_COMPLETE);
 

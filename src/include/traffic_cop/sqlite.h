@@ -21,15 +21,6 @@ class SqliteEngine {
   virtual ~SqliteEngine();
 
   /**
-   * Execute a simple query.
-   * @param query The query string
-   * @param out The packet writer
-   * @param callback The callback function to accept the results
-   */
-  void ExecuteQuery(const char *query, network::PostgresPacketWriter *out,
-                    const network::SimpleQueryCallback &callback);
-
-  /**
    * Prepare the query to a statement.
    * @param query The query string
    * @return The statement
@@ -62,7 +53,6 @@ class SqliteEngine {
   struct sqlite3 *sqlite_db_;
   char *error_msg;
 
-  static int StoreResults(void *result_set_void, int elem_count, char **values, char **column_names);
 };
 
 }  // namespace terrier::traffic_cop
