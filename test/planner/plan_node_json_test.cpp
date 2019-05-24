@@ -115,7 +115,7 @@ TEST(PlanNodeJsonTest, OutputSchemaJsonTest) {
   std::vector<OutputSchema::Column> cols;
   cols.push_back(col);
   std::vector<OutputSchema::DerivedTarget> targets;
-  targets.emplace_back(0, derived_col);
+  targets.emplace_back(0, &derived_col);
   auto output_schema = std::make_shared<OutputSchema>(cols, targets);
   auto output_schema_json = output_schema->ToJson();
   EXPECT_FALSE(output_schema_json.is_null());

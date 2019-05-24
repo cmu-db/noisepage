@@ -150,53 +150,6 @@ class OutputSchema {
     ~DerivedColumn() { delete expr_; }
 
     /**
-     * Copy constructor
-     * @param other derived column to copy from
-     */
-    DerivedColumn(const DerivedColumn &other) {
-      column_ = other.column_;
-      expr_ = other.expr_ == nullptr ? nullptr : other.expr_->Copy();
-    }
-
-    /**
-     * Copy assignment operator
-     * @param other derived column to copy from
-     * @return self reference
-     */
-    DerivedColumn &operator=(const DerivedColumn &other) {
-      column_ = other.column_;
-      expr_ = other.expr_ == nullptr ? nullptr : other.expr_->Copy();
-      return *this;
-    }
-
-    /**
-     * Move Constructor
-     * @param from DerivedColumn to be moved from
-     * @warning DerivedColumn from will be left with a null expression.
-     */
-    DerivedColumn(DerivedColumn &&from) noexcept {
-      column_ = from.column_;
-      expr_ = from.expr_;
-      from.expr_ = nullptr;
-    }
-
-    /**
-     * Move assignment operator
-     * @param from Derived column to be moved from
-     * @return self reference
-     * @warning DerivedColumn from will be left with a null expression.
-     */
-    DerivedColumn &operator=(DerivedColumn &&from) noexcept {
-      if (this == &from) {
-        return *this;
-      }
-      column_ = from.column_;
-      expr_ = from.expr_;
-      from.expr_ = nullptr;
-      return *this;
-    }
-
-    /**
      * Hash the current DerivedColumn.
      */
     common::hash_t Hash() const {
@@ -221,6 +174,13 @@ class OutputSchema {
       }
       return true;
     }
+
+    /**
+ * Inequality check
+ * @param rhs other
+ * @return true if the two DerivedColumn are not equal
+ */
+    bool operator!=(const DerivedColumn &rhs) const { return !operator==(rhs); }
 
     /**
      * @return derived column serialized to json
@@ -256,7 +216,7 @@ class OutputSchema {
    * Define a mapping of an offset into a vector of columns of an OutputSchema to an intermediate column produced by a
    * plan node
    */
-  using DerivedTarget = std::pair<uint32_t, DerivedColumn>;
+  using DerivedTarget = std::pair<uint32_t, DerivedColumn*>;
 
   /**
    * Generic specification of a direct map between the columns of two output schema
@@ -319,7 +279,7 @@ class OutputSchema {
     }
     for (auto const &target : targets_) {
       hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(target.first));
-      hash = common::HashUtil::CombineHashes(hash, target.second.Hash());
+      hash = common::HashUtil::CombineHashes(hash, target.second->Hash());
     }
     for (auto const &direct_map : direct_map_list_) {
       hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(direct_map.first));
@@ -335,7 +295,22 @@ class OutputSchema {
    * @return true if the two OutputSchema are the same
    */
   bool operator==(const OutputSchema &rhs) const {
-    return (columns_ == rhs.columns_) && (targets_ == rhs.targets_) && (direct_map_list_ == rhs.direct_map_list_);
+    if (targets_.size() != rhs.targets_.size()) return false;
+    for (int i = 0; i < targets_.size(); i++) {
+      // Check offsets are equal
+      if (targets_[i].first != rhs.targets_[i].first) return false;
+
+      // Check DerivedColumns are equal
+      auto* col = targets_[i].second;
+      auto* other_col = rhs.targets_[i].second;
+      if ((col == nullptr && other_col != nullptr) || (col != nullptr && other_col == nullptr)) {
+        return false;
+      }
+      if (col != nullptr && *col != *other_col) {
+        return false;
+      }
+    }
+    return (columns_ == rhs.columns_) && (direct_map_list_ == rhs.direct_map_list_);
   }
 
   /**
@@ -361,7 +336,14 @@ class OutputSchema {
    */
   void FromJson(const nlohmann::json &j) {
     columns_ = j.at("columns").get<std::vector<Column>>();
-    targets_ = j.at("targets").get<std::vector<DerivedTarget>>();
+    //targets_ = j.at("targets").get<std::vector<DerivedTarget>>();
+    // Deserialize children
+    auto targets_json = j.at("targets").get<std::vector<std::pair<nlohmann::json, nlohmann::json>>>();
+    for (const auto &pair_json : targets_json) {
+      auto *derived_col = new DerivedColumn();
+      derived_col->FromJson(pair_json.second);
+      targets_.emplace_back(pair_json.first.get<uint32_t>(), derived_col);
+    }
     direct_map_list_ = j.at("direct_map_list").get<std::vector<DirectMap>>();
   }
 
