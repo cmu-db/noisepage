@@ -17,7 +17,24 @@
 
 namespace terrier::optimizer {
 
-// Test the creation of operator objects
+// NOLINTNEXTLINE
+TEST(OperatorTests, LogicalExportExternalFileTest) {
+  Operator op1 = LogicalExportExternalFile::make(parser::ExternalFileFormat::BINARY, "fakefile.txt", 'X', 'Y', 'Z');
+  EXPECT_EQ(op1.GetType(), OpType::LOGICALEXPORTEXTERNALFILE);
+  EXPECT_EQ(op1.As<LogicalExportExternalFile>()->GetFilename(), "fakefile.txt");
+  EXPECT_EQ(op1.As<LogicalExportExternalFile>()->GetDelimiter(), 'X');
+  EXPECT_EQ(op1.As<LogicalExportExternalFile>()->GetQuote(), 'Y');
+  EXPECT_EQ(op1.As<LogicalExportExternalFile>()->GetEscape(), 'Z');
+
+  Operator op2 = LogicalExportExternalFile::make(parser::ExternalFileFormat::BINARY, "fakefile.txt", 'X', 'Y', 'Z');
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+
+  Operator op3 = LogicalExportExternalFile::make(parser::ExternalFileFormat::CSV, "fakefile.txt", 'X', 'Y', 'Z');
+  EXPECT_FALSE(op1 == op3);
+  EXPECT_NE(op1.Hash(), op3.Hash());
+}
+
 // NOLINTNEXTLINE
 TEST(OperatorTests, BasicSeqScanTest) {
   //===--------------------------------------------------------------------===//
