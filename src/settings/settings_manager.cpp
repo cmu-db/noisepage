@@ -52,22 +52,22 @@ void SettingsManager::ValidateSetting(Param param, const type::TransientValue &m
 }
 
 int32_t SettingsManager::GetInt(Param param) {
-  common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
+  common::SharedLatch::ScopedSharedLatch guard(&latch_);
   return ValuePeeker::PeekInteger(GetValue(param));
 }
 
 double SettingsManager::GetDouble(Param param) {
-  common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
+  common::SharedLatch::ScopedSharedLatch guard(&latch_);
   return ValuePeeker::PeekDecimal(GetValue(param));
 }
 
 bool SettingsManager::GetBool(Param param) {
-  common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
+  common::SharedLatch::ScopedSharedLatch guard(&latch_);
   return ValuePeeker::PeekBoolean(GetValue(param));
 }
 
 std::string SettingsManager::GetString(Param param) {
-  common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
+  common::SharedLatch::ScopedSharedLatch guard(&latch_);
   return std::string(ValuePeeker::PeekVarChar(GetValue(param)));
 }
 
