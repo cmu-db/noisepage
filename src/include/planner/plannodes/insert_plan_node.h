@@ -216,7 +216,7 @@ class InsertPlanNode : public AbstractPlanNode {
    */
   catalog::table_oid_t table_oid_;
 
-  // TODO: As an optimization, we can flatten this 2d vector because each inner vector is the same size.
+  // TODO(Gus, Wan): As an optimization, we can flatten this 2d vector because each inner vector is the same size.
   /**
    * vector of values to insert. Multiple vector of values corresponds to a bulk insert. Values for each tuple are
    * ordered the same across tuples. Parameter info provides column mapping of values
