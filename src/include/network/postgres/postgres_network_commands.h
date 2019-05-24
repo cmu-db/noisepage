@@ -60,8 +60,6 @@ class PostgresNetworkCommand {
    */
   ReadBufferView in_;
 
-  static void AcceptResults(const traffic_cop::ResultSet &result_set, PostgresPacketWriter *out);
-
  private:
   bool flush_on_complete_;
 };

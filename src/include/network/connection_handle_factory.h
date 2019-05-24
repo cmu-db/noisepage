@@ -25,6 +25,11 @@ class ConnectionHandlerTask;
 // doesn't cleanup raw pointers.
 class ConnectionHandleFactory {
  public:
+  /**
+   * Builds a new connection handle factory.
+   * @param t_cop The pointer to the traffic cop
+   * @param command_factory The pointer to the command factory
+   */
   ConnectionHandleFactory(TrafficCop *t_cop, CommandFactory *command_factory)
       : traffic_cop_(t_cop), command_factory_(command_factory) {}
 

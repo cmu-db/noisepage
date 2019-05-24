@@ -29,6 +29,7 @@ class ConnectionHandlerTask : public common::NotifiableTask {
   /**
    * Constructs a new ConnectionHandlerTask instance.
    * @param task_id task_id a unique id assigned to this task.
+   * @param connection_handle_factory The pointer to the connection handle factory
    */
   explicit ConnectionHandlerTask(int task_id, ConnectionHandleFactory *connection_handle_factory);
 
@@ -41,6 +42,7 @@ class ConnectionHandlerTask : public common::NotifiableTask {
    * the necessary data structure so the handler thread is woken up.
    *
    * @param conn_fd the client connection socket fd.
+   * @param protocol_type the protocol used for this socket fd
    */
   void Notify(int conn_fd, NetworkProtocolType protocol_type);
 

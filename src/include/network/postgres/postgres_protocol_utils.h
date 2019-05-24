@@ -324,6 +324,10 @@ class PostgresPacketWriter {
    */
   void WriteNoData() { BeginPacket(NetworkMessageType::NO_DATA_RESPONSE).EndPacket(); }
 
+  /**
+   * Writes parameter description (used in Describe command)
+   * @param param_types The types of the parameters in the statement
+   */
   void WriteParameterDescription(const std::vector<PostgresValueType> &param_types) {
     BeginPacket(NetworkMessageType::PARAMETER_DESCRIPTION);
     AppendValue<int16_t>(static_cast<int16_t>(param_types.size()));

@@ -21,6 +21,10 @@ class TrafficCop {
  public:
   virtual ~TrafficCop() = default;
 
+  /**
+   * Returns the execution engine.
+   * @return the execution engine.
+   */
   SqliteEngine *GetExecutionEngine() { return &sqlite_engine; }
 
  private:

@@ -45,6 +45,8 @@ class ConnectionHandle {
    * @param sock_fd Client's connection fd
    * @param handler The handler responsible for this handle
    * @param t_cop The pointer to the traffic cop
+   * @param command_factory The command factory pointer
+   * @param protocol_type The network protocol type of this handler
    */
   ConnectionHandle(int sock_fd, ConnectionHandlerTask *handler, TrafficCop *t_cop, CommandFactory *command_factory,
                    NetworkProtocolType protocol_type);

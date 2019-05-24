@@ -164,8 +164,8 @@ Transition BindCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresP
     if (type == TypeId::INTEGER) {
       int32_t value;
       if (is_binary[i] == 0) {
-        char buf[len+1];
-        memset(buf, 0, len+1);
+        char buf[len + 1];
+        memset(buf, 0, len + 1);
         in_.Read(len, buf);
         value = std::stoi(buf);
       } else {
@@ -176,8 +176,8 @@ Transition BindCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresP
     } else if (type == TypeId::DECIMAL) {
       double value;
       if (is_binary[i] == 0) {
-        char buf[len+1];
-        memset(buf, 0, len+1);
+        char buf[len + 1];
+        memset(buf, 0, len + 1);
         in_.Read(len, buf);
         value = std::stod(buf);
       } else {
@@ -186,16 +186,16 @@ Transition BindCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresP
       params->push_back(TransientValueFactory::GetDecimal(value));
 
     } else if (type == TypeId::VARCHAR) {
-      char buf[len+1];
-      memset(buf, 0, len+1);
+      char buf[len + 1];
+      memset(buf, 0, len + 1);
       in_.Read(len, buf);
       params->push_back(TransientValueFactory::GetVarChar(buf));
 
     } else if (type == TypeId::TIMESTAMP) {
       type::timestamp_t timestamp;
       if (is_binary[i] == 0) {
-        char buf[len+1];
-        memset(buf, 0, len+1);
+        char buf[len + 1];
+        memset(buf, 0, len + 1);
         in_.Read(len, buf);
         timestamp = type::timestamp_t(std::stoull(buf));
       } else {
