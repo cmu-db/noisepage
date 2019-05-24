@@ -373,11 +373,11 @@ Operator LogicalExportExternalFile::make(parser::ExternalFileFormat format, std:
 
 common::hash_t LogicalExportExternalFile::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&format_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&file_name_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&delimiter_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&quote_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&escape_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(format_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(file_name_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(delimiter_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(quote_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(escape_));
   return hash;
 }
 

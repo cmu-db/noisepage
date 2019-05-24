@@ -59,7 +59,7 @@ class BaseOperatorNode {
    */
   virtual common::hash_t Hash() const {
     OpType t = GetType();
-    return common::HashUtil::Hash(&t);
+    return common::HashUtil::Hash(t);
   }
 
   /**
