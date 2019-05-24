@@ -17,6 +17,7 @@ namespace terrier {
 namespace settings {
 class SettingsManager;
 class SettingsTests;
+class Callbacks;
 }  // namespace settings
 
 /**
@@ -72,26 +73,10 @@ class DBMain {
    */
   void ForceShutdown();
 
-  /**
-   * Basic empty callbacks used by settings manager
-   * @param old_value the old value of corresponding setting
-   * @param new_value the new value of corresponding setting
-   * @param action_context action context for empty callback
-   */
-  void SettingsCallback(void *old_value, void *new_value, const std::shared_ptr<common::ActionContext> &action_context);
-
-  /**
-   * Buffer pool size callback used by settings manager
-   * @param old_value old value of buffer pool size
-   * @param new_value new value of buffer pool size
-   * @param action_context action context for changing buffer pool size
-   */
-  void BufferPoolSizeCallback(void *old_value, void *new_value,
-                              const std::shared_ptr<common::ActionContext> &action_context);
-
  private:
   friend class settings::SettingsManager;
   friend class settings::SettingsTests;
+  friend class settings::Callbacks;
   std::shared_ptr<common::StatisticsRegistry> main_stat_reg_;
   std::unordered_map<settings::Param, settings::ParamInfo> param_map_;
   transaction::TransactionManager *txn_manager_;

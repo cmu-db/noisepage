@@ -5,6 +5,7 @@
 
 #include "common/macros.h"
 #include "main/db_main.h"
+#include "settings/settings_callbacks.h"
 #include "settings/settings_manager.h"
 #include "type/transient_value_factory.h"
 
@@ -19,9 +20,6 @@ using ValueFactory = type::TransientValueFactory;
 using ValuePeeker = type::TransientValuePeeker;
 using ActionContext = common::ActionContext;
 using ActionState = common::ActionState;
-
-// Used for building temporary transactions
-void EmptyCallback(void * /*unused*/) {}
 
 SettingsManager::SettingsManager(DBMain *db, catalog::Catalog *catalog)
     : db_(db), settings_handle_(catalog->GetSettingsHandle()) {
@@ -181,7 +179,7 @@ bool SettingsManager::ValidateValue(const type::TransientValue &value, const typ
 common::ActionState SettingsManager::InvokeCallback(Param param, void *old_value, void *new_value,
                                                     std::shared_ptr<common::ActionContext> action_context) {
   callback_fn callback = db_->param_map_.find(param)->second.callback_;
-  (db_->*callback)(old_value, new_value, action_context);
+  (callback)(old_value, new_value, db_, action_context);
   ActionState action_state = action_context->GetState();
   TERRIER_ASSERT(action_state == ActionState::FAILURE || action_state == ActionState::SUCCESS,
                  "action context should have state of either SUCCESS or FAILURE on completion.");

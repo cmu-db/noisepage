@@ -14,10 +14,6 @@
 #include "type/transient_value.h"
 #include "type/transient_value_peeker.h"
 
-namespace terrier {
-class DBMain;
-}
-
 namespace terrier::settings {
 using setter_callback_fn = void (*)(const std::shared_ptr<common::ActionContext> &action_context);
 
