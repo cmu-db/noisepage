@@ -289,6 +289,11 @@ class LogicalDependentJoin : public OperatorNode<LogicalDependentJoin> {
 
   common::hash_t Hash() const override;
 
+  /**
+   * @return vector of join predicates
+   */
+  std::vector<AnnotatedExpression> GetJoinPredicates() const { return join_predicates_; }
+
  private:
   /**
    * Join predicates

@@ -31,11 +31,9 @@ common::hash_t LogicalGet::Hash() const {
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&table_oid_));
-  for (auto &pred : predicates_) {
-    hash = common::HashUtil::CombineHashes(hash, pred.GetExpr()->Hash());
-  }
+  hash = common::HashUtil::CombineHashInRange(hash, predicates_.begin(), predicates_.end());
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&is_for_update_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(is_for_update_));
   return hash;
 }
 
@@ -415,7 +413,7 @@ bool LogicalDependentJoin::operator==(const BaseOperatorNode &r) {
 
 common::hash_t LogicalDependentJoin::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  for (auto &pred : join_predicates_) hash = common::HashUtil::CombineHashes(hash, pred.GetExpr()->Hash());
+  hash = common::HashUtil::CombineHashInRange(hash, join_predicates_.begin(), join_predicates_.end());
   return hash;
 }
 
@@ -436,7 +434,7 @@ Operator LogicalMarkJoin::make(std::vector<AnnotatedExpression> &&conditions) {
 
 common::hash_t LogicalMarkJoin::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  for (auto &pred : join_predicates_) hash = common::HashUtil::CombineHashes(hash, pred.GetExpr()->Hash());
+  hash = common::HashUtil::CombineHashInRange(hash, join_predicates_.begin(), join_predicates_.end());
   return hash;
 }
 
@@ -463,7 +461,7 @@ Operator LogicalSingleJoin::make(std::vector<AnnotatedExpression> &&conditions) 
 
 common::hash_t LogicalSingleJoin::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  for (auto &pred : join_predicates_) hash = common::HashUtil::CombineHashes(hash, pred.GetExpr()->Hash());
+  hash = common::HashUtil::CombineHashInRange(hash, join_predicates_.begin(), join_predicates_.end());
   return hash;
 }
 
@@ -490,7 +488,7 @@ Operator LogicalInnerJoin::make(std::vector<AnnotatedExpression> &&conditions) {
 
 common::hash_t LogicalInnerJoin::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  for (auto &pred : join_predicates_) hash = common::HashUtil::CombineHashes(hash, pred.GetExpr()->Hash());
+  hash = common::HashUtil::CombineHashInRange(hash, join_predicates_.begin(), join_predicates_.end());
   return hash;
 }
 
