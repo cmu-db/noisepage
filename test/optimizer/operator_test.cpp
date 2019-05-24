@@ -72,7 +72,7 @@ TEST(OperatorTests, LogicalGetTest) {
   EXPECT_TRUE(logical_get_1 == logical_get_2);
   EXPECT_TRUE(logical_get_1.Hash() == logical_get_2.Hash());
   EXPECT_FALSE(logical_get_1 == logical_get_3);
-  //EXPECT_FALSE(logical_get_1.Hash() == logical_get_3.Hash());
+  EXPECT_FALSE(logical_get_1.Hash() == logical_get_3.Hash());
 }
 
 // NOLINTNEXTLINE
@@ -167,6 +167,7 @@ TEST(OperatorTests, LogicalDependentJoinTest) {
   //===--------------------------------------------------------------------===//
   // LogicalDependentJoin
   //===--------------------------------------------------------------------===//
+  Operator logical_dep_join_0 = LogicalDependentJoin::make();
   Operator logical_dep_join_1 = LogicalDependentJoin::make(std::vector<AnnotatedExpression>());
   Operator logical_dep_join_2 = LogicalDependentJoin::make(std::vector<AnnotatedExpression>());
   auto annotated_expr = AnnotatedExpression(nullptr, std::unordered_set<std::string>());
@@ -174,13 +175,37 @@ TEST(OperatorTests, LogicalDependentJoinTest) {
 
   EXPECT_EQ(logical_dep_join_1.GetType(), OpType::LOGICALDEPENDENTJOIN);
   EXPECT_EQ(logical_dep_join_3.GetType(), OpType::LOGICALDEPENDENTJOIN);
+  EXPECT_EQ(logical_dep_join_0.GetType(), OpType::LOGICALDEPENDENTJOIN);
   EXPECT_EQ(logical_dep_join_1.GetName(), "LogicalDependentJoin");
-  EXPECT_EQ(logical_dep_join_1.As<LogicalDependentJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>());
-  EXPECT_EQ(logical_dep_join_3.As<LogicalDependentJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>{annotated_expr});
-  EXPECT_TRUE(logical_dep_join_1 == logical_dep_join_2);
-  EXPECT_FALSE(logical_dep_join_1 == logical_dep_join_3);
+  EXPECT_TRUE(logical_dep_join_1 == logical_dep_join_0);
+  EXPECT_TRUE(logical_dep_join_1.Hash() == logical_dep_join_0.Hash());
   EXPECT_TRUE(logical_dep_join_1.Hash() == logical_dep_join_2.Hash());
   EXPECT_FALSE(logical_dep_join_1.Hash() == logical_dep_join_3.Hash());
+}
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, LogicalMarkJoinTest) {
+  //===--------------------------------------------------------------------===//
+  // LogicalMarkJoin
+  //===--------------------------------------------------------------------===//
+  Operator logical_mark_join_0 = LogicalMarkJoin::make();
+  Operator logical_mark_join_1 = LogicalMarkJoin::make(std::vector<AnnotatedExpression>());
+  Operator logical_mark_join_2 = LogicalMarkJoin::make(std::vector<AnnotatedExpression>());
+  auto annotated_expr = AnnotatedExpression(nullptr, std::unordered_set<std::string>());
+  Operator logical_mark_join_3 = LogicalMarkJoin::make(std::vector<AnnotatedExpression>{annotated_expr});
+
+  EXPECT_EQ(logical_mark_join_1.GetType(), OpType::LOGICALMARKJOIN);
+  EXPECT_EQ(logical_mark_join_3.GetType(), OpType::LOGICALMARKJOIN);
+  EXPECT_EQ(logical_mark_join_0.GetType(), OpType::LOGICALMARKJOIN);
+  EXPECT_EQ(logical_mark_join_1.GetName(), "LogicalMarkJoin");
+  EXPECT_EQ(logical_mark_join_1.As<LogicalMarkJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>());
+  EXPECT_EQ(logical_mark_join_3.As<LogicalMarkJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>{annotated_expr});
+  EXPECT_TRUE(logical_mark_join_1 == logical_mark_join_2);
+  EXPECT_FALSE(logical_mark_join_1 == logical_mark_join_3);
+  EXPECT_TRUE(logical_mark_join_1 == logical_mark_join_0);
+  EXPECT_TRUE(logical_mark_join_1.Hash() == logical_mark_join_0.Hash());
+  EXPECT_TRUE(logical_mark_join_1.Hash() == logical_mark_join_2.Hash());
+  EXPECT_FALSE(logical_mark_join_1.Hash() == logical_mark_join_3.Hash());
 }
 
 // NOLINTNEXTLINE
