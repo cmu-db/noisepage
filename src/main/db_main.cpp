@@ -16,11 +16,14 @@ void DBMain::Init() {
 
   // create the global transaction mgr
   buffer_segment_pool_ = new storage::RecordBufferSegmentPool(
-      type::TransientValuePeeker::PeekInteger(param_map_.find(settings::Param::buffer_pool_size)->second.value_),
-      10000);
+      type::TransientValuePeeker::PeekInteger(
+          param_map_.find(settings::Param::record_buffer_segment_size)->second.value_),
+      type::TransientValuePeeker::PeekInteger(
+          param_map_.find(settings::Param::record_buffer_segment_reuse)->second.value_));
   txn_manager_ = new transaction::TransactionManager(buffer_segment_pool_, true, nullptr);
-  // TODO(Matt): gc interval should come from the settings manager
-  gc_thread_ = new storage::GarbageCollectorThread(txn_manager_, std::chrono::milliseconds{10});
+  gc_thread_ = new storage::GarbageCollectorThread(txn_manager_,
+                                                   std::chrono::milliseconds{type::TransientValuePeeker::PeekInteger(
+                                                       param_map_.find(settings::Param::gc_interval)->second.value_)});
   transaction::TransactionContext *txn = txn_manager_->BeginTransaction();
   // create the (system) catalogs
   catalog_ = new catalog::Catalog(txn_manager_, txn);

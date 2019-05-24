@@ -50,12 +50,13 @@ class DBMain {
   /**
    * This function boots the backend components.
    * It initializes the following components in the following order:
-   *    SettingsManager
-   *    Garbage Collector
+   *    Debug loggers
+   *    Stats registry (counters)
+   *    Buffer segment pools
+   *    Transaction manager
+   *    Garbage collector thread
    *    Catalog
-   *    Worker Pool
-   *    Logging
-   *    Stats
+   *    Settings manager
    */
   void Init();
 

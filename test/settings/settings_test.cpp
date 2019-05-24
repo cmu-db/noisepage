@@ -85,7 +85,7 @@ TEST_F(SettingsTests, BasicTest) {
 
 // NOLINTNEXTLINE
 TEST_F(SettingsTests, CallbackTest) {
-  auto bufferPoolSize = static_cast<int64_t>(settings_manager_->GetInt(Param::buffer_pool_size));
+  auto bufferPoolSize = static_cast<int64_t>(settings_manager_->GetInt(Param::record_buffer_segment_size));
   EXPECT_EQ(bufferPoolSize, defaultBufferPoolSize);
 
   bufferPoolSize = txn_manager_->GetBufferPoolSizeLimit();
@@ -97,9 +97,9 @@ TEST_F(SettingsTests, CallbackTest) {
 
   // Setting new value should invoke callback.
   const int64_t newBufferPoolSize = defaultBufferPoolSize + 1;
-  settings_manager_->SetInt(Param::buffer_pool_size, static_cast<int32_t>(newBufferPoolSize), action_context,
+  settings_manager_->SetInt(Param::record_buffer_segment_size, static_cast<int32_t>(newBufferPoolSize), action_context,
                             setter_callback);
-  bufferPoolSize = static_cast<int64_t>(settings_manager_->GetInt(Param::buffer_pool_size));
+  bufferPoolSize = static_cast<int64_t>(settings_manager_->GetInt(Param::record_buffer_segment_size));
   EXPECT_EQ(bufferPoolSize, newBufferPoolSize);
 
   bufferPoolSize = txn_manager_->GetBufferPoolSizeLimit();
@@ -145,7 +145,7 @@ TEST_F(SettingsTests, ConcurrentModifyTest2) {
     threads[i] = std::thread(
         [&](int new_size) {
           std::shared_ptr<common::ActionContext> action_context = std::make_shared<common::ActionContext>(1);
-          settings_manager_->SetInt(Param::buffer_pool_size, new_size, action_context, setter_callback);
+          settings_manager_->SetInt(Param::record_buffer_segment_size, new_size, action_context, setter_callback);
           EXPECT_EQ(action_context->GetState(), common::ActionState::SUCCESS);
         },
         i + 1000);
@@ -155,7 +155,7 @@ TEST_F(SettingsTests, ConcurrentModifyTest2) {
     thread.join();
   }
 
-  auto bufferPoolSizeParam = static_cast<uint64_t>(settings_manager_->GetInt(Param::buffer_pool_size));
+  auto bufferPoolSizeParam = static_cast<uint64_t>(settings_manager_->GetInt(Param::record_buffer_segment_size));
   uint64_t bufferPoolSize = txn_manager_->GetBufferPoolSizeLimit();
   EXPECT_EQ(bufferPoolSizeParam, bufferPoolSize);
 }
