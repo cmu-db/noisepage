@@ -36,7 +36,7 @@ TEST(OperatorTests, LogicalExportExternalFileTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(OperatorTests, BasicLogicalGetTest) {
+TEST(OperatorTests, LogicalGetTest) {
   //===--------------------------------------------------------------------===//
   // LogicalGet
   //===--------------------------------------------------------------------===//
@@ -50,13 +50,21 @@ TEST(OperatorTests, BasicLogicalGetTest) {
                                             std::vector<AnnotatedExpression>{annotated_expr}, "table", false);
 
   EXPECT_EQ(logical_get_1.GetType(), OpType::LOGICALGET);
+  EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetDatabaseOID(), catalog::db_oid_t(1));
+  EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetNamespaceOID(), catalog::namespace_oid_t(2));
+  EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetTableOID(), catalog::table_oid_t(3));
+  EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetPredicates(),std::vector<AnnotatedExpression>());
+  EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetTableAlias(), "table");
+  EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetIsForUpdate(), false);
   EXPECT_EQ(logical_get_1.GetName(), "LogicalGet");
   EXPECT_TRUE(logical_get_1 == logical_get_2);
+  EXPECT_TRUE(logical_get_1.Hash() == logical_get_2.Hash());
   EXPECT_FALSE(logical_get_1 == logical_get_3);
+  EXPECT_FALSE(logical_get_1.Hash() == logical_get_2.Hash());
 }
 
 // NOLINTNEXTLINE
-TEST(OperatorTests, BasicLogicalExternalFileGetTest) {
+TEST(OperatorTests, LogicalExternalFileGetTest) {
   //===--------------------------------------------------------------------===//
   // LogicalExternalFileGet
   //===--------------------------------------------------------------------===//
@@ -86,7 +94,7 @@ TEST(OperatorTests, BasicLogicalExternalFileGetTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(OperatorTests, BasicLogicalQueryDerivedGetTest) {
+TEST(OperatorTests, LogicalQueryDerivedGetTest) {
   //===--------------------------------------------------------------------===//
   // LogicalQueryDerivedGet
   //===--------------------------------------------------------------------===//
@@ -123,7 +131,7 @@ TEST(OperatorTests, BasicLogicalQueryDerivedGetTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(OperatorTests, BasicSeqScanTest) {
+TEST(OperatorTests, SeqScanTest) {
   //===--------------------------------------------------------------------===//
   // SeqScan
   //===--------------------------------------------------------------------===//
@@ -144,7 +152,7 @@ TEST(OperatorTests, BasicSeqScanTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(OperatorTests, BasicIndexScanTest) {
+TEST(OperatorTests, IndexScanTest) {
   //===--------------------------------------------------------------------===//
   // IndexScan
   //===--------------------------------------------------------------------===//
@@ -168,7 +176,7 @@ TEST(OperatorTests, BasicIndexScanTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(OperatorTests, BasicExternalFileScanTest) {
+TEST(OperatorTests, ExternalFileScanTest) {
   //===--------------------------------------------------------------------===//
   // ExternalFileScan
   //===--------------------------------------------------------------------===//
@@ -183,7 +191,7 @@ TEST(OperatorTests, BasicExternalFileScanTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(OperatorTests, BasicQueryDerivedScanTest) {
+TEST(OperatorTests, QueryDerivedScanTest) {
   //===--------------------------------------------------------------------===//
   // QueryDerivedScan
   //===--------------------------------------------------------------------===//
@@ -205,7 +213,7 @@ TEST(OperatorTests, BasicQueryDerivedScanTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(OperatorTests, BasicOrderByTest) {
+TEST(OperatorTests, OrderByTest) {
   //===--------------------------------------------------------------------===//
   // OrderBy
   //===--------------------------------------------------------------------===//
@@ -216,7 +224,7 @@ TEST(OperatorTests, BasicOrderByTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(OperatorTests, BasicLimitTest) {
+TEST(OperatorTests, LimitTest) {
   //===--------------------------------------------------------------------===//
   // Limit
   //===--------------------------------------------------------------------===//
@@ -227,7 +235,7 @@ TEST(OperatorTests, BasicLimitTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(OperatorTests, BasicInnerNLJoinTest) {
+TEST(OperatorTests, InnerNLJoinTest) {
   //===--------------------------------------------------------------------===//
   // InnerNLJoin
   //===--------------------------------------------------------------------===//
@@ -244,7 +252,7 @@ TEST(OperatorTests, BasicInnerNLJoinTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(OperatorTests, BasicLeftNLJoinTest) {
+TEST(OperatorTests, LeftNLJoinTest) {
   //===--------------------------------------------------------------------===//
   // LeftNLJoin
   //===--------------------------------------------------------------------===//
@@ -255,7 +263,7 @@ TEST(OperatorTests, BasicLeftNLJoinTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(OperatorTests, BasicRightNLJoinTest) {
+TEST(OperatorTests, RightNLJoinTest) {
   //===--------------------------------------------------------------------===//
   // RightNLJoin
   //===--------------------------------------------------------------------===//
@@ -266,7 +274,7 @@ TEST(OperatorTests, BasicRightNLJoinTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(OperatorTests, BasicOuterNLJoin) {
+TEST(OperatorTests, OuterNLJoin) {
   //===--------------------------------------------------------------------===//
   // OuterNLJoin
   //===--------------------------------------------------------------------===//
@@ -277,7 +285,7 @@ TEST(OperatorTests, BasicOuterNLJoin) {
 }
 
 // NOLINTNEXTLINE
-TEST(OperatorTests, BasicInnerHashJoinTest) {
+TEST(OperatorTests, InnerHashJoinTest) {
   //===--------------------------------------------------------------------===//
   // InnerHashJoin
   //===--------------------------------------------------------------------===//
@@ -294,7 +302,7 @@ TEST(OperatorTests, BasicInnerHashJoinTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(OperatorTests, BasicLeftHashJoinTest) {
+TEST(OperatorTests, LeftHashJoinTest) {
   //===--------------------------------------------------------------------===//
   // LeftHashJoin
   //===--------------------------------------------------------------------===//
@@ -305,7 +313,7 @@ TEST(OperatorTests, BasicLeftHashJoinTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(OperatorTests, BasicRightHashJoinTest) {
+TEST(OperatorTests, RightHashJoinTest) {
   //===--------------------------------------------------------------------===//
   // RightHashJoin
   //===--------------------------------------------------------------------===//
@@ -316,7 +324,7 @@ TEST(OperatorTests, BasicRightHashJoinTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(OperatorTests, BasicOuterHashJoinTest) {
+TEST(OperatorTests, OuterHashJoinTest) {
   //===--------------------------------------------------------------------===//
   // OuterHashJoin
   //===--------------------------------------------------------------------===//
@@ -327,7 +335,7 @@ TEST(OperatorTests, BasicOuterHashJoinTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(OperatorTests, BasicInsertTest) {
+TEST(OperatorTests, InsertTest) {
   //===--------------------------------------------------------------------===//
   // Insert
   //===--------------------------------------------------------------------===//
@@ -344,7 +352,7 @@ TEST(OperatorTests, BasicInsertTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(OperatorTests, BasicInsertSelectTest) {
+TEST(OperatorTests, InsertSelectTest) {
   //===--------------------------------------------------------------------===//
   // InsertSelect
   //===--------------------------------------------------------------------===//
@@ -356,7 +364,7 @@ TEST(OperatorTests, BasicInsertSelectTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(OperatorTests, BasicDeleteTest) {
+TEST(OperatorTests, DeleteTest) {
   //===--------------------------------------------------------------------===//
   // Delete
   //===--------------------------------------------------------------------===//
@@ -367,7 +375,7 @@ TEST(OperatorTests, BasicDeleteTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(OperatorTests, BasicExportExternalFileTest) {
+TEST(OperatorTests, ExportExternalFileTest) {
   //===--------------------------------------------------------------------===//
   // ExportExternalFile
   //===--------------------------------------------------------------------===//
@@ -382,7 +390,7 @@ TEST(OperatorTests, BasicExportExternalFileTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(OperatorTests, BasicUpdateTest) {
+TEST(OperatorTests, UpdateTest) {
   //===--------------------------------------------------------------------===//
   // Update
   //===--------------------------------------------------------------------===//
@@ -396,7 +404,7 @@ TEST(OperatorTests, BasicUpdateTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(OperatorTests, BasicHashGroupByTest) {
+TEST(OperatorTests, HashGroupByTest) {
   //===--------------------------------------------------------------------===//
   // HashGroupBy
   //===--------------------------------------------------------------------===//
@@ -416,7 +424,7 @@ TEST(OperatorTests, BasicHashGroupByTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(OperatorTests, BasicSortGroupByTest) {
+TEST(OperatorTests, SortGroupByTest) {
   //===--------------------------------------------------------------------===//
   // SortGroupBy
   //===--------------------------------------------------------------------===//
@@ -436,7 +444,7 @@ TEST(OperatorTests, BasicSortGroupByTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(OperatorTests, BasicAggregateTest) {
+TEST(OperatorTests, AggregateTest) {
   //===--------------------------------------------------------------------===//
   // Aggregate
   //===--------------------------------------------------------------------===//
@@ -447,7 +455,7 @@ TEST(OperatorTests, BasicAggregateTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(OperatorTests, BasicDistinctTest) {
+TEST(OperatorTests, DistinctTest) {
   //===--------------------------------------------------------------------===//
   // Distinct
   //===--------------------------------------------------------------------===//

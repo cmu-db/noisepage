@@ -11,7 +11,7 @@
 namespace terrier::optimizer {
 
 //===--------------------------------------------------------------------===//
-// Get
+// Logical Get
 //===--------------------------------------------------------------------===//
 Operator LogicalGet::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                           catalog::table_oid_t table_oid, std::vector<AnnotatedExpression> predicates,
@@ -393,7 +393,7 @@ bool LogicalExportExternalFile::operator==(const BaseOperatorNode &r) {
 }
 
 //===--------------------------------------------------------------------===//
-// Dependent Join
+// Logical Dependent Join
 //===--------------------------------------------------------------------===//
 Operator LogicalDependentJoin::make() {
   auto *join = new LogicalDependentJoin;

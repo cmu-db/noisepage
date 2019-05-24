@@ -50,6 +50,36 @@ class LogicalGet : public OperatorNode<LogicalGet> {
 
   common::hash_t Hash() const override;
 
+  /**
+   * @return the OID of the database
+   */
+  catalog::db_oid_t GetDatabaseOID() const { return database_oid_; }
+
+  /**
+   * @return the OID of the namespace
+   */
+  catalog::namespace_oid_t GetNamespaceOID() const { return namespace_oid_; }
+
+  /**
+   * @return the OID of the table
+   */
+  catalog::table_oid_t GetTableOID() const { return table_oid_; }
+
+  /**
+   * @return the vector of predicates for get
+   */
+  std::vector<AnnotatedExpression> GetPredicates() const { return predicates_; }
+
+  /**
+   * @return the alias of the table to get from
+   */
+  std::string GetTableAlias() const { return table_alias_; }
+
+  /**
+   * @return whether the get operation is used for update
+   */
+  bool GetIsForUpdate() const { return is_for_update_; }
+
  private:
   /**
    * OID of the database
