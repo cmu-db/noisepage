@@ -54,6 +54,7 @@ TEST(OperatorTests, LogicalGetTest) {
   EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetNamespaceOID(), catalog::namespace_oid_t(2));
   EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetTableOID(), catalog::table_oid_t(3));
   EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetPredicates(),std::vector<AnnotatedExpression>());
+  EXPECT_EQ(logical_get_3.As<LogicalGet>()->GetPredicates(),annotated_expr);
   EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetTableAlias(), "table");
   EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetIsForUpdate(), false);
   EXPECT_EQ(logical_get_1.GetName(), "LogicalGet");
@@ -85,12 +86,23 @@ TEST(OperatorTests, LogicalExternalFileGetTest) {
 
   EXPECT_EQ(logical_ext_file_get_1.GetType(), OpType::LOGICALEXTERNALFILEGET);
   EXPECT_EQ(logical_ext_file_get_1.GetName(), "LogicalExternalFileGet");
+  EXPECT_EQ(logical_ext_file_get_1.As<LogicalExternalFileGet>()->GetFormat(), parser::ExternalFileFormat::CSV);
+  EXPECT_EQ(logical_ext_file_get_1.As<LogicalExternalFileGet>()->GetFilename(), "file.txt");
+  EXPECT_EQ(logical_ext_file_get_1.As<LogicalExternalFileGet>()->GetDelimiter(), ',');
+  EXPECT_EQ(logical_ext_file_get_1.As<LogicalExternalFileGet>()->GetQuote(), '"');
+  EXPECT_EQ(logical_ext_file_get_1.As<LogicalExternalFileGet>()->GetEscape(), '\\');
   EXPECT_TRUE(logical_ext_file_get_1 == logical_ext_file_get_2);
   EXPECT_FALSE(logical_ext_file_get_1 == logical_ext_file_get_3);
   EXPECT_FALSE(logical_ext_file_get_1 == logical_ext_file_get_4);
   EXPECT_FALSE(logical_ext_file_get_1 == logical_ext_file_get_5);
   EXPECT_FALSE(logical_ext_file_get_1 == logical_ext_file_get_6);
   EXPECT_FALSE(logical_ext_file_get_1 == logical_ext_file_get_7);
+  EXPECT_TRUE(logical_ext_file_get_1.Hash() == logical_ext_file_get_2.Hash());
+  EXPECT_FALSE(logical_ext_file_get_1.Hash() == logical_ext_file_get_3.Hash());
+  EXPECT_FALSE(logical_ext_file_get_1.Hash() == logical_ext_file_get_4.Hash());
+  EXPECT_FALSE(logical_ext_file_get_1.Hash() == logical_ext_file_get_5.Hash());
+  EXPECT_FALSE(logical_ext_file_get_1.Hash() == logical_ext_file_get_6.Hash());
+  EXPECT_FALSE(logical_ext_file_get_1.Hash() == logical_ext_file_get_7.Hash());
 }
 
 // NOLINTNEXTLINE
