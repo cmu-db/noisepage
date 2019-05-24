@@ -45,6 +45,16 @@ class Callbacks {
    */
   static void BufferSegmentPoolReuseLimit(void *old_value, void *new_value, DBMain *db_main,
                                           const std::shared_ptr<common::ActionContext> &action_context);
+
+  /**
+   * Changes the number of worker pool threads.
+   * @param old_value old settings value
+   * @param new_value new settings value
+   * @param db_main pointer to db_main
+   * @param action_context pointer to the action context for this settings change
+   */
+  static void WorkerPoolThreads(void *old_value, void *new_value, DBMain *db_main,
+                                const std::shared_ptr<common::ActionContext> &action_context);
 };
 
 }  // namespace terrier::settings

@@ -23,8 +23,16 @@ void Callbacks::BufferSegmentPoolSizeLimit(void *const old_value, void *const ne
 void Callbacks::BufferSegmentPoolReuseLimit(void *const old_value, void *const new_value, DBMain *const db_main,
                                             const std::shared_ptr<common::ActionContext> &action_context) {
   action_context->SetState(common::ActionState::IN_PROGRESS);
-  int new_size = *static_cast<int *>(new_value);
-  db_main->buffer_segment_pool_->SetReuseLimit(new_size);
+  int new_reuse = *static_cast<int *>(new_value);
+  db_main->buffer_segment_pool_->SetReuseLimit(new_reuse);
+  action_context->SetState(common::ActionState::SUCCESS);
+}
+
+void Callbacks::WorkerPoolThreads(void *const old_value, void *const new_value, DBMain *const db_main,
+                                  const std::shared_ptr<common::ActionContext> &action_context) {
+  action_context->SetState(common::ActionState::IN_PROGRESS);
+  int num_threads = *static_cast<int *>(new_value);
+  db_main->thread_pool_->SetNumWorkers(num_threads);
   action_context->SetState(common::ActionState::SUCCESS);
 }
 

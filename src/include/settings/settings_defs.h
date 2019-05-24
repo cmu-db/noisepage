@@ -8,15 +8,21 @@ SETTING_int(record_buffer_segment_size, "The maximum number of record buffer seg
     100000, 1, 1000000, true, terrier::settings::Callbacks::BufferSegmentPoolSizeLimit)
 
 // RecordBufferSegmentPool reuse limit
-SETTING_int(record_buffer_segment_reuse, "The minimum number of record buffer segments to keep allocated in the system (default: 1000)",
-    1000, 1, 1000000, true, terrier::settings::Callbacks::BufferSegmentPoolReuseLimit)
+SETTING_int(record_buffer_segment_reuse,
+    "The minimum number of record buffer segments to keep allocated in the system (default: 1000)", 1000, 1, 1000000,
+    true, terrier::settings::Callbacks::BufferSegmentPoolReuseLimit)
 
 // If parallel execution is enabled
 SETTING_bool(parallel_execution, "Enable parallel execution of queries (default: true)", true, true,
              terrier::settings::Callbacks::NoOp)
 
 // Garbage collector thread interval
-SETTING_int(gc_interval, "Garbage collector thread interval (default: 10)", 10, 1, 10000, false, terrier::settings::Callbacks::NoOp)
+SETTING_int(gc_interval, "Garbage collector thread interval (default: 10)", 10, 1, 10000, false,
+    terrier::settings::Callbacks::NoOp)
+
+// Number of worker pool threads
+SETTING_int(num_worker_threads, "The number of worker pool threads (default: 4)", 4, 1, 1000, true,
+    terrier::settings::Callbacks::WorkerPoolThreads)
 
 //===----------------------------------------------------------------------===//
 // Used only in Tests
@@ -28,9 +34,11 @@ SETTING_int(fixed_int, "(Test only) A fixed int param", 100, 10, 1000, false, te
 
 SETTING_bool(fixed_bool, "(Test only) A fixed bool param", false, false, terrier::settings::Callbacks::NoOp)
 
-SETTING_double(fixed_double, "(Test only) A fixed double param", 114.514, 100.0, 1000.0, false, terrier::settings::Callbacks::NoOp)
+SETTING_double(fixed_double, "(Test only) A fixed double param", 114.514, 100.0, 1000.0, false,
+    terrier::settings::Callbacks::NoOp)
 
-SETTING_string(fixed_string, "(Test only) A fixed string param", "You cannot change me", false, terrier::settings::Callbacks::NoOp)
+SETTING_string(fixed_string, "(Test only) A fixed string param", "You cannot change me", false,
+    terrier::settings::Callbacks::NoOp)
 
 // Test int knob
 SETTING_int(lucky_number, "(Test only) Your lucky number", 114, 114, 514, true, terrier::settings::Callbacks::NoOp)

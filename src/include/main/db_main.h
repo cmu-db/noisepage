@@ -6,6 +6,7 @@
 #include "catalog/catalog.h"
 #include "common/action_context.h"
 #include "common/stat_registry.h"
+#include "common/worker_pool.h"
 #include "network/terrier_server.h"
 #include "settings/settings_manager.h"
 #include "settings/settings_param.h"
@@ -44,6 +45,7 @@ class DBMain {
       delete catalog_;
       delete txn_manager_;
       delete buffer_segment_pool_;
+      delete thread_pool_;
     }
   }
 
@@ -57,6 +59,7 @@ class DBMain {
    *    Garbage collector thread
    *    Catalog
    *    Settings manager
+   *    Worker pool
    */
   void Init();
 
@@ -86,6 +89,7 @@ class DBMain {
   storage::GarbageCollectorThread *gc_thread_;
   network::TerrierServer server_;
   storage::RecordBufferSegmentPool *buffer_segment_pool_;
+  common::WorkerPool *thread_pool_;
 
   bool running = false;
   bool initialized = false;

@@ -29,6 +29,11 @@ void DBMain::Init() {
   catalog_ = new catalog::Catalog(txn_manager_, txn);
   settings_manager_ = new settings::SettingsManager(this, catalog_);
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  thread_pool_ = new common::WorkerPool(
+      type::TransientValuePeeker::PeekInteger(param_map_.find(settings::Param::num_worker_threads)->second.value_), {});
+  thread_pool_->Startup();
+
   LOG_INFO("Initialization complete");
 
   initialized = true;
@@ -53,9 +58,9 @@ void DBMain::ForceShutdown() {
 
 void DBMain::CleanUp() {
   main_stat_reg_->Shutdown(false);
-  LOG_INFO("Terrier has shut down.");
-
   LoggersUtil::ShutDown();
+  thread_pool_->Shutdown();
+  LOG_INFO("Terrier has shut down.");
 }
 
 }  // namespace terrier
