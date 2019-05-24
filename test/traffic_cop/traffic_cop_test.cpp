@@ -281,6 +281,13 @@ TEST_F(TrafficCopTests, ErrorHandlingTest) {
     io_socket->FlushAllWrites();
     ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::ERROR_RESPONSE);
   }
+  {
+    // Wrong number of parameters
+    auto param2 = std::vector<char>({'f', 'a', 'k', 'e'});
+    writer.WriteBindCommand(portal_name, stmt_name, {}, {&param1, &param2}, {});
+    io_socket->FlushAllWrites();
+    ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::ERROR_RESPONSE);
+  }
 
   writer.WriteBindCommand(portal_name, stmt_name, {}, {&param1}, {});
   io_socket->FlushAllWrites();
@@ -293,6 +300,13 @@ TEST_F(TrafficCopTests, ErrorHandlingTest) {
     ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::ERROR_RESPONSE);
 
     writer.WriteDescribeCommand(network::DescribeCommandObjectType::PORTAL, "FakePortalName");
+    io_socket->FlushAllWrites();
+    ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::ERROR_RESPONSE);
+  }
+
+  {
+    // Execute a portal that doesn't exist
+    writer.WriteExecuteCommand("FakePortal", 0);
     io_socket->FlushAllWrites();
     ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::ERROR_RESPONSE);
   }
