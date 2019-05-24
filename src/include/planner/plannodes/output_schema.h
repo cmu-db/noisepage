@@ -176,10 +176,10 @@ class OutputSchema {
     }
 
     /**
- * Inequality check
- * @param rhs other
- * @return true if the two DerivedColumn are not equal
- */
+     * Inequality check
+     * @param rhs other
+     * @return true if the two DerivedColumn are not equal
+     */
     bool operator!=(const DerivedColumn &rhs) const { return !operator==(rhs); }
 
     /**
@@ -216,7 +216,7 @@ class OutputSchema {
    * Define a mapping of an offset into a vector of columns of an OutputSchema to an intermediate column produced by a
    * plan node
    */
-  using DerivedTarget = std::pair<uint32_t, DerivedColumn*>;
+  using DerivedTarget = std::pair<uint32_t, DerivedColumn *>;
 
   /**
    * Generic specification of a direct map between the columns of two output schema
@@ -251,9 +251,9 @@ class OutputSchema {
   OutputSchema() = default;
 
   ~OutputSchema() {
-	  for (const auto& pair : targets_) {
-		  delete pair.second;
-	  }
+    for (const auto &pair : targets_) {
+      delete pair.second;
+    }
   }
 
   /**
@@ -307,8 +307,8 @@ class OutputSchema {
       if (targets_[i].first != rhs.targets_[i].first) return false;
 
       // Check DerivedColumns are equal
-      auto* col = targets_[i].second;
-      auto* other_col = rhs.targets_[i].second;
+      auto *col = targets_[i].second;
+      auto *other_col = rhs.targets_[i].second;
       if ((col == nullptr && other_col != nullptr) || (col != nullptr && other_col == nullptr)) {
         return false;
       }
@@ -342,7 +342,7 @@ class OutputSchema {
    */
   void FromJson(const nlohmann::json &j) {
     columns_ = j.at("columns").get<std::vector<Column>>();
-    //targets_ = j.at("targets").get<std::vector<DerivedTarget>>();
+    // targets_ = j.at("targets").get<std::vector<DerivedTarget>>();
     // Deserialize children
     auto targets_json = j.at("targets").get<std::vector<std::pair<nlohmann::json, nlohmann::json>>>();
     for (const auto &pair_json : targets_json) {

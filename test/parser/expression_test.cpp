@@ -187,8 +187,9 @@ TEST(ExpressionTests, CaseExpressionTest) {
   // Create expression
   auto *cond_expr = new StarExpression();
   auto *then_expr = new StarExpression();
-  std::vector<CaseExpression::WhenClause> when_clauses;
-  when_clauses.emplace_back(cond_expr, then_expr);
+  std::vector<CaseExpression::WhenClause *> when_clauses;
+  auto *clause = new CaseExpression::WhenClause(cond_expr, then_expr);
+  when_clauses.push_back(clause);
   auto *default_expr = new StarExpression();
   auto *original_expr = new CaseExpression(type::TypeId::BOOLEAN, when_clauses, default_expr);
 

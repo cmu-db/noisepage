@@ -496,7 +496,7 @@ AbstractExpression *PostgresParser::CaseExprTransform(CaseExpr *root) {
 
   auto arg_expr = ExprTransform(reinterpret_cast<Node *>(root->arg));
 
-  std::vector<CaseExpression::WhenClause*> clauses;
+  std::vector<CaseExpression::WhenClause *> clauses;
   for (auto cell = root->args->head; cell != nullptr; cell = cell->next) {
     auto w = reinterpret_cast<CaseWhen *>(cell->data.ptr_value);
     auto when_expr = ExprTransform(reinterpret_cast<Node *>(w->expr));
@@ -1263,7 +1263,7 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateIndexTransform(IndexStmt *ro
   auto unique = root->unique;
   auto index_name = root->idxname;
 
-  std::vector<IndexAttr*> index_attrs;
+  std::vector<IndexAttr *> index_attrs;
   for (auto cell = root->indexParams->head; cell != nullptr; cell = cell->next) {
     auto *index_elem = reinterpret_cast<IndexElem *>(cell->data.ptr_value);
     if (index_elem->expr == nullptr) {
@@ -1293,7 +1293,7 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateIndexTransform(IndexStmt *ro
     index_type = IndexType::ART;
   } else {
     PARSER_LOG_DEBUG("CreateIndexTransform: IndexType {} not supported", access_method);
-    for (auto* attr : index_attrs) {
+    for (auto *attr : index_attrs) {
       delete attr;
     }
     throw NOT_IMPLEMENTED_EXCEPTION("CreateIndexTransform error");

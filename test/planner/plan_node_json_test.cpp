@@ -103,12 +103,12 @@ TEST(PlanNodeJsonTest, OutputSchemaJsonTest) {
   children.emplace_back(PlanNodeJsonTest::BuildDummyPredicate());
   auto *expr = new parser::ComparisonExpression(parser::ExpressionType::CONJUNCTION_OR, std::move(children));
 
-  auto* derived_col = new OutputSchema::DerivedColumn(col, expr);
+  auto *derived_col = new OutputSchema::DerivedColumn(col, expr);
   EXPECT_TRUE(derived_col != nullptr);
   auto derived_col_json = derived_col->ToJson();
   EXPECT_FALSE(derived_col_json.is_null());
 
-  auto* deserialized_derived_col = new OutputSchema::DerivedColumn();
+  auto *deserialized_derived_col = new OutputSchema::DerivedColumn();
   EXPECT_TRUE(deserialized_derived_col != nullptr);
   deserialized_derived_col->FromJson(derived_col_json);
   EXPECT_EQ(*derived_col, *deserialized_derived_col);
