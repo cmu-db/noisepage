@@ -20,6 +20,8 @@ class SettingsTests : public TerrierTest {
   DBMain *db_main_;
   SettingsManager *settings_manager_;
   transaction::TransactionManager *txn_manager_;
+  storage::RecordBufferSegmentPool *buffer_segment_pool_;
+
   const uint64_t defaultBufferPoolSize = 100000;
 
   void SetUp() override {
@@ -30,6 +32,7 @@ class SettingsTests : public TerrierTest {
     db_main_->Init();
     settings_manager_ = db_main_->settings_manager_;
     txn_manager_ = db_main_->txn_manager_;
+    buffer_segment_pool_ = db_main_->buffer_segment_pool_;
   }
 
   void TearDown() override { delete db_main_; }
@@ -88,7 +91,7 @@ TEST_F(SettingsTests, CallbackTest) {
   auto bufferPoolSize = static_cast<int64_t>(settings_manager_->GetInt(Param::record_buffer_segment_size));
   EXPECT_EQ(bufferPoolSize, defaultBufferPoolSize);
 
-  bufferPoolSize = txn_manager_->GetBufferPoolSizeLimit();
+  bufferPoolSize = buffer_segment_pool_->GetSizeLimit();
   EXPECT_EQ(bufferPoolSize, defaultBufferPoolSize);
 
   const int32_t action_id = 1;
@@ -102,7 +105,7 @@ TEST_F(SettingsTests, CallbackTest) {
   bufferPoolSize = static_cast<int64_t>(settings_manager_->GetInt(Param::record_buffer_segment_size));
   EXPECT_EQ(bufferPoolSize, newBufferPoolSize);
 
-  bufferPoolSize = txn_manager_->GetBufferPoolSizeLimit();
+  bufferPoolSize = buffer_segment_pool_->GetSizeLimit();
   EXPECT_EQ(bufferPoolSize, newBufferPoolSize);
 }
 
@@ -156,7 +159,7 @@ TEST_F(SettingsTests, ConcurrentModifyTest2) {
   }
 
   auto bufferPoolSizeParam = static_cast<uint64_t>(settings_manager_->GetInt(Param::record_buffer_segment_size));
-  uint64_t bufferPoolSize = txn_manager_->GetBufferPoolSizeLimit();
+  uint64_t bufferPoolSize = buffer_segment_pool_->GetSizeLimit();
   EXPECT_EQ(bufferPoolSizeParam, bufferPoolSize);
 }
 
