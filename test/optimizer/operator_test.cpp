@@ -232,6 +232,42 @@ TEST(OperatorTests, LogicalSingleJoinTest) {
 }
 
 // NOLINTNEXTLINE
+TEST(OperatorTests, LogicalInnerJoinTest) {
+  //===--------------------------------------------------------------------===//
+  // LogicalInnerJoin
+  //===--------------------------------------------------------------------===//
+  Operator logical_inner_join_0 = LogicalInnerJoin::make();
+  Operator logical_inner_join_1 = LogicalInnerJoin::make(std::vector<AnnotatedExpression>());
+  Operator logical_inner_join_2 = LogicalInnerJoin::make(std::vector<AnnotatedExpression>());
+  auto annotated_expr = AnnotatedExpression(nullptr, std::unordered_set<std::string>());
+  Operator logical_inner_join_3 = LogicalInnerJoin::make(std::vector<AnnotatedExpression>{annotated_expr});
+
+  EXPECT_EQ(logical_inner_join_1.GetType(), OpType::LOGICALINNERJOIN);
+  EXPECT_EQ(logical_inner_join_3.GetType(), OpType::LOGICALINNERJOIN);
+  EXPECT_EQ(logical_inner_join_1.GetName(), "LogicalInnerJoin");
+  EXPECT_EQ(logical_inner_join_1.As<LogicalInnerJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>());
+  EXPECT_EQ(logical_inner_join_3.As<LogicalInnerJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>{annotated_expr});
+  EXPECT_TRUE(logical_inner_join_1 == logical_inner_join_2);
+  EXPECT_FALSE(logical_inner_join_1 == logical_inner_join_3);
+  EXPECT_TRUE(logical_inner_join_1 == logical_inner_join_0);
+  EXPECT_TRUE(logical_inner_join_1.Hash() == logical_inner_join_0.Hash());
+  EXPECT_TRUE(logical_inner_join_1.Hash() == logical_inner_join_2.Hash());
+  EXPECT_FALSE(logical_inner_join_1.Hash() == logical_inner_join_3.Hash());
+}
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, Logical) {
+  //===--------------------------------------------------------------------===//
+  // LeftNLJoin
+  //===--------------------------------------------------------------------===//
+  Operator left_nl_join = LeftNLJoin::make(std::shared_ptr<parser::AbstractExpression>());
+
+  EXPECT_EQ(left_nl_join.GetType(), OpType::LEFTNLJOIN);
+  EXPECT_EQ(left_nl_join.GetName(), "LeftNLJoin");
+}
+
+
+// NOLINTNEXTLINE
 TEST(OperatorTests, SeqScanTest) {
   //===--------------------------------------------------------------------===//
   // SeqScan

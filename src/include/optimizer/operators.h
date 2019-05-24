@@ -352,6 +352,7 @@ class LogicalSingleJoin : public OperatorNode<LogicalSingleJoin> {
   bool operator==(const BaseOperatorNode &r) override;
 
   common::hash_t Hash() const override;
+
   /**
    * @return vector of join predicates
    */
@@ -383,6 +384,11 @@ class LogicalInnerJoin : public OperatorNode<LogicalInnerJoin> {
   bool operator==(const BaseOperatorNode &r) override;
 
   common::hash_t Hash() const override;
+
+  /**
+   * @return vector of join predicates
+   */
+  std::vector<AnnotatedExpression> GetJoinPredicates() const { return join_predicates_; }
 
  private:
   /**
