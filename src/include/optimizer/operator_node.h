@@ -163,7 +163,7 @@ class Operator {
    * @param rhs other
    * @return true if the two operators are logically equal, false otherwise
    */
-  bool operator==(const Operator &r);
+  bool operator==(const Operator &rhs);
 
   /**
    * Logical inequality check
@@ -218,8 +218,17 @@ namespace std {
  */
 template <>
 struct hash<terrier::optimizer::BaseOperatorNode> {
+
+  /**
+   * Argument type of the base operator
+   */
   using argument_type = terrier::optimizer::BaseOperatorNode;
+
+  /**
+   * Result type of the base operator
+   */
   using result_type = std::size_t;
+
   /**
    * std::hash operator for BaseOperatorNode
    * @param s a BaseOperatorNode

@@ -783,7 +783,7 @@ class IndexScan : public OperatorNode<IndexScan> {
    * @param table_alias alias of the table
    * @param predicates query predicates
    * @param is_for_update whether the scan is used for update
-   * @param key_column_id_list OID of key columns
+   * @param key_column_oid_list OID of key columns
    * @param expr_type_list expression types
    * @param value_list values to be scanned
    * @return an IndexScan operator
