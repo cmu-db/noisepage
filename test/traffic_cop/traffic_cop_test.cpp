@@ -275,12 +275,14 @@ TEST_F(TrafficCopTests, ErrorHandlingTest) {
     io_socket->FlushAllWrites();
     ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::ERROR_RESPONSE);
   }
+
   {
     // Wrong number of format codes
     writer.WriteBindCommand(portal_name, stmt_name, {0, 0, 0, 0, 0}, {&param1}, {});
     io_socket->FlushAllWrites();
     ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::ERROR_RESPONSE);
   }
+  
   {
     // Wrong number of parameters
     auto param2 = std::vector<char>({'f', 'a', 'k', 'e'});
