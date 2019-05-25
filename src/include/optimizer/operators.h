@@ -635,6 +635,26 @@ class LogicalUpdate : public OperatorNode<LogicalUpdate> {
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
 
+  /**
+   * @return OID of the database
+   */
+  catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
+
+  /**
+   * @return OID of the namespace
+   */
+  catalog::namespace_oid_t GetNamespaceOid() const { return namespace_oid_; }
+
+  /**
+   * @return OID of the table
+   */
+  catalog::table_oid_t GetTableOid() const { return table_oid_; }
+
+  /**
+   * @return the update clauses from the SET portion of the query
+   */
+//  std::vector<std::unique_ptr<parser::UpdateClause>> GetUpdateClauses() const { return updates_; }
+
  private:
   /**
    * OID of the database

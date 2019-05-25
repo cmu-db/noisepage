@@ -18,6 +18,36 @@
 namespace terrier::optimizer {
 
 // NOLINTNEXTLINE
+TEST(OperatorTests, LogicalUpdateTest) {
+  std::string column = "abc";
+  std::shared_ptr<parser::AbstractExpression> value =
+      std::make_shared<parser::ConstantValueExpression>(type::TransientValueFactory::GetTinyInt(1));
+  catalog::db_oid_t database_oid(123);
+  catalog::namespace_oid_t namespace_oid(456);
+  catalog::table_oid_t table_oid(789);
+//  std::unique_ptr<parser::UpdateClause> clause =
+//      std::make_unique<parser::UpdateClause>(column, value);
+  std::vector<std::unique_ptr<parser::UpdateClause>> updates;
+
+  // Check that all of our GET methods work as expected
+//  Operator op1 = LogicalUpdate::make(database_oid, namespace_oid, table_oid, updates);
+//  EXPECT_EQ(op1.GetType(), OpType::LOGICALUPDATE);
+//  EXPECT_EQ(op1.As<LogicalExportExternalFile>()->GetFilename(), file_name);
+
+  // Check that if we make a new object with the same values, then it will
+  // be equal to our first object and have the same hash
+//  Operator op2 = LogicalExportExternalFile::make(parser::ExternalFileFormat::BINARY, file_name_copy, delimiter, quote, escape);
+//  EXPECT_TRUE(op1 == op2);
+//  EXPECT_EQ(op1.Hash(), op2.Hash());
+
+  // Lastly, make a different object and make sure that it is not equal
+  // and that it's hash is not the same!
+//  Operator op3 = LogicalExportExternalFile::make(parser::ExternalFileFormat::CSV, file_name, delimiter, quote, escape);
+//  EXPECT_FALSE(op1 == op3);
+//  EXPECT_NE(op1.Hash(), op3.Hash());
+}
+
+// NOLINTNEXTLINE
 TEST(OperatorTests, LogicalExportExternalFileTest) {
   std::string file_name = "fakefile.txt";
   char delimiter = 'X';
