@@ -2,7 +2,7 @@
 
 #include "gtest/gtest.h"
 #include "storage/data_table.h"
-#include "storage/garbage_collector.h"
+#include "storage/garbage_collector_thread.h"
 #include "storage/write_ahead_log/log_manager.h"
 #include "transaction/transaction_manager.h"
 #include "util/storage_test_util.h"
@@ -23,21 +23,6 @@ class WriteAheadLoggingTests : public TerrierTest {
     logging_ = false;
     log_thread_.join();
     log_manager_.Shutdown();
-  }
-
-  void StartGC(transaction::TransactionManager *txn_manager, uint32_t gc_period_milli) {
-    gc_ = new storage::GarbageCollector(txn_manager);
-    run_gc_ = true;
-    gc_thread_ = std::thread([gc_period_milli, this] { GCThreadLoop(gc_period_milli); });
-  }
-
-  void EndGC() {
-    run_gc_ = false;
-    gc_thread_.join();
-    // Make sure all garbage is collected. This take 2 runs for unlink and deallocate
-    gc_->PerformGarbageCollection();
-    gc_->PerformGarbageCollection();
-    delete gc_;
   }
 
   storage::LogRecord *ReadNextRecord(storage::BufferedLogReader *in) {
@@ -73,22 +58,15 @@ class WriteAheadLoggingTests : public TerrierTest {
   storage::LogManager log_manager_{LOG_FILE_NAME, &pool_};
   std::thread log_thread_;
   bool logging_;
-  volatile bool run_gc_ = false;
-  std::thread gc_thread_;
-  storage::GarbageCollector *gc_;
+
+  const std::chrono::milliseconds gc_period_{10};
+  storage::GarbageCollectorThread *gc_thread_;
 
  private:
   void LogThreadLoop(uint32_t log_period_milli) {
     while (logging_) {
       std::this_thread::sleep_for(std::chrono::milliseconds(log_period_milli));
       log_manager_.Process();
-    }
-  }
-
-  void GCThreadLoop(uint32_t gc_period_milli) {
-    while (run_gc_) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(gc_period_milli));
-      gc_->PerformGarbageCollection();
     }
   }
 };
@@ -111,10 +89,10 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
                                           .SetLogManager(&log_manager_)
                                           .build();
   StartLogging(10);
-  StartGC(tested.GetTxnManager(), 10);
+  gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
   auto result = tested.SimulateOltp(100, 4);
   EndLogging();
-  EndGC();
+  delete gc_thread_;
 
   std::unordered_map<transaction::timestamp_t, RandomWorkloadTransaction *> txns_map;
   for (auto *txn : result.first) txns_map[txn->BeginTimestamp()] = txn;
@@ -189,10 +167,10 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
                                           .build();
 
   StartLogging(10);
-  StartGC(tested.GetTxnManager(), 10);
+  gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
   auto result = tested.SimulateOltp(100, 4);
   EndLogging();
-  EndGC();
+  delete gc_thread_;
 
   // Read-only workload has completed. Read the log file back in to check that no records were produced for these
   // transactions.

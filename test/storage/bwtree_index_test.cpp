@@ -6,7 +6,7 @@
 #include <random>
 #include <vector>
 #include "portable_endian/portable_endian.h"
-#include "storage/garbage_collector.h"
+#include "storage/garbage_collector_thread.h"
 #include "storage/index/compact_ints_key.h"
 #include "storage/index/index_builder.h"
 #include "storage/projected_row.h"
@@ -24,32 +24,8 @@ namespace terrier::storage::index {
 
 class BwTreeIndexTests : public TerrierTest {
  private:
-  void StartGC(transaction::TransactionManager *const txn_manager) {
-    gc_ = new storage::GarbageCollector(txn_manager);
-    run_gc_ = true;
-    gc_thread_ = std::thread([this] { GCThreadLoop(); });
-  }
-
-  void EndGC() {
-    run_gc_ = false;
-    gc_thread_.join();
-    // Make sure all garbage is collected. This take 2 runs for unlink and deallocate
-    gc_->PerformGarbageCollection();
-    gc_->PerformGarbageCollection();
-    delete gc_;
-  }
-
-  std::thread gc_thread_;
-  storage::GarbageCollector *gc_ = nullptr;
-  volatile bool run_gc_ = false;
   const std::chrono::milliseconds gc_period_{10};
-
-  void GCThreadLoop() {
-    while (run_gc_) {
-      std::this_thread::sleep_for(gc_period_);
-      gc_->PerformGarbageCollection();
-    }
-  }
+  storage::GarbageCollectorThread *gc_thread_;
 
   storage::BlockStore block_store_{1000, 1000};
   storage::RecordBufferSegmentPool buffer_pool_{1000000, 1000000};
@@ -77,8 +53,7 @@ class BwTreeIndexTests : public TerrierTest {
  protected:
   void SetUp() override {
     TerrierTest::SetUp();
-
-    StartGC(&txn_manager_);
+    gc_thread_ = new storage::GarbageCollectorThread(&txn_manager_, gc_period_);
 
     unique_index_ = (IndexBuilder()
                          .SetConstraintType(ConstraintType::UNIQUE)
@@ -98,7 +73,7 @@ class BwTreeIndexTests : public TerrierTest {
         common::AllocationUtil::AllocateAligned(default_index_->GetProjectedRowInitializer().ProjectedRowSize());
   }
   void TearDown() override {
-    EndGC();
+    delete gc_thread_;
     delete sql_table_;
     delete default_index_;
     delete unique_index_;
