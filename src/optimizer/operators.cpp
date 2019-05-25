@@ -501,9 +501,9 @@ bool LogicalInnerJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // LeftJoin
 //===--------------------------------------------------------------------===//
-Operator LogicalLeftJoin::make(parser::AbstractExpression *condition) {
+Operator LogicalLeftJoin::make(std::shared_ptr<parser::AbstractExpression> &&condition) {
   auto *join = new LogicalLeftJoin;
-  join->join_predicate_ = std::shared_ptr<parser::AbstractExpression>(condition);
+  join->join_predicate_ = std::move(condition);
   return Operator(join);
 }
 

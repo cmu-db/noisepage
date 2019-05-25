@@ -406,11 +406,16 @@ class LogicalLeftJoin : public OperatorNode<LogicalLeftJoin> {
    * @param condition condition of the join
    * @return a LeftJoin operator
    */
-  static Operator make(parser::AbstractExpression *condition = nullptr);
+  static Operator make(std::shared_ptr<parser::AbstractExpression> &&condition = nullptr);
 
   bool operator==(const BaseOperatorNode &r) override;
 
   common::hash_t Hash() const override;
+
+  /**
+   * @return pointer to the join predicate expression
+   */
+  std::shared_ptr<parser::AbstractExpression> GetJoinPredicate() const { return join_predicate_; }
 
  private:
   /**
