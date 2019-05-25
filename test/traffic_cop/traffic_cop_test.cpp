@@ -282,7 +282,7 @@ TEST_F(TrafficCopTests, ErrorHandlingTest) {
     io_socket->FlushAllWrites();
     ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::ERROR_RESPONSE);
   }
-  
+
   {
     // Wrong number of parameters
     auto param2 = std::vector<char>({'f', 'a', 'k', 'e'});
