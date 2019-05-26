@@ -49,12 +49,11 @@ TEST(HashUtilTests, HashTest) {
 
 // NOLINTNEXTLINE
 TEST(HashUtilTests, HashStringsTest) {
-  std::string val = "ABC";
+  std::string val = "ABCXYZ";
   // EXPECT_EQ(common::HashUtil::Hash(val), common::HashUtil::Hash(val));
   common::hash_t hash0 = common::HashUtil::Hash(val);
-  common::hash_t hash1 = common::HashUtil::Hash("ABC");
+  common::hash_t hash1 = common::HashUtil::Hash("ABCXYZ");
   EXPECT_EQ(hash0, hash1);
-  // EXPECT_EQ(common::HashUtil::Hash(2), common::HashUtil::Hash(1+1));
 }
 
 // NOLINTNEXTLINE
