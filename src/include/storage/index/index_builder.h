@@ -4,7 +4,7 @@
 #include <vector>
 #include "bwtree/bwtree.h"
 #include "catalog/catalog_defs.h"
-#include "catalog/index_key_schema.h"
+#include "catalog/index_schema.h"
 #include "storage/index/bwtree_index.h"
 #include "storage/index/compact_ints_key.h"
 #include "storage/index/generic_key.h"

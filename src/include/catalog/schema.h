@@ -33,9 +33,10 @@ class Schema {
      * @param name column name
      * @param type SQL type for this column
      * @param nullable true if the column is nullable, false otherwise
-     * @param oid internal unique identifier for this column
+     * @param default_value for the column
      */
-    Column(std::string name, const type::TypeId type, const bool nullable)
+    Column(std::string name, const type::TypeId type, const bool nullable,
+           const parser::AbstractExpression &default_value)
         : name_(std::move(name)),
           type_(type),
           attr_size_(type::TypeUtil::GetTypeSize(type_)),
@@ -52,9 +53,10 @@ class Schema {
      * @param type SQL type for this column
      * @param max_varlen_size the maximum length of the varlen entry
      * @param nullable true if the column is nullable, false otherwise
-     * @param oid internal unique identifier for this column
+     * @param default_value for the column
      */
-    Column(std::string name, const type::TypeId type, const uint16_t max_varlen_size, const bool nullable)
+    Column(std::string name, const type::TypeId type, const uint16_t max_varlen_size, const bool nullable,
+           const parser::AbstractExpression &default_value)
         : name_(std::move(name)),
           type_(type),
           attr_size_(type::TypeUtil::GetTypeSize(type_)),

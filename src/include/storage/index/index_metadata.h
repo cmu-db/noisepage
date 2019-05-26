@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
-#include "catalog/index_key_schema.h"
+#include "catalog/index_schema.h"
 #include "common/macros.h"
 #include "storage/index/index_defs.h"
 #include "storage/projected_row.h"

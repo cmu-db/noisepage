@@ -5,7 +5,7 @@
 #include <map>
 #include <random>
 #include <vector>
-#include "catalog/index_key_schema.h"
+#include "catalog/index_schema.h"
 #include "portable_endian/portable_endian.h"
 #include "storage/garbage_collector.h"
 #include "storage/index/compact_ints_key.h"

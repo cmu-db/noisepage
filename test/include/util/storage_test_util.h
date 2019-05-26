@@ -7,7 +7,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
-#include "catalog/index_key_schema.h"
+#include "catalog/index_schema.h"
 #include "catalog/schema.h"
 #include "common/strong_typedef.h"
 #include "gtest/gtest.h"

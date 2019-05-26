@@ -109,10 +109,15 @@ class CatalogAccessor {
    * function does not instantiate the storage object for the table.
    * @param ns in which the new table will exist
    * @param name of the new table
-   * @param columns is the vector of definitions for the columns
+   * @param schema object describing the new table
    * @return OID for the table, INVALID_TABLE_OID if the table already exists
+   * @warning The catalog accessor assumes it takes ownership of the schema object
+   * that is passed.  As such, there is no guarantee that the pointer is still
+   * valid when this function returns.  If the caller needs to reference the
+   * schema object after this call, they should use the GetSchema function to
+   * obtain the authoritative schema for this table.
    */
-  table_oid_t CreateTable(namespace_oid_t ns, const std::string &name, std::vector<ColumnDefinition> columns);
+  table_oid_t CreateTable(namespace_oid_t ns, const std::string &name, Schema *schema);
 
   /**
    * Rename the table from its current string to the new one.  The renaming could fail
@@ -139,6 +144,9 @@ class CatalogAccessor {
    * @param table OID in the catalog
    * @param table_ptr to the memory where the storage is
    * @return whether the operation was successful
+   * @warning The table pointer that is passed in must be on the heap as the
+   * catalog will take ownership of it and schedule its deletion with the GC
+   * at the appropriate time.
    */
   bool SetTablePointer(table_oid_t table, storage::SqlTable *table_ptr);
 
@@ -150,90 +158,40 @@ class CatalogAccessor {
   storage::SqlTable *GetTable(table_oid_t table);
 
   /**
-   * Updates the table's schema to include the new columns
-   * @param table OID to be modified
-   * @param columns that are to be added
-   * @return vector of column OIDs returned in the same order as the definitions,
-   *         if any column could not be added, all of the values will be INVALID_COLUMN_OID.
-   *
-   * @note This will increment the schema version number by one, locking the table
-   *       entry in the catalog until this is committed
+   * Apply a new schema to the given table.  The changes should modify the latest
+   * schema as provided by the catalog.  There is no guarantee that the OIDs for
+   * modified columns will be stable across a schema change.
+   * @param table OID of the modified table
+   * @param new_schema object describing the table after modification
+   * @return true if the operation succeeded, false otherwise
+   * @warning The catalog accessor assumes it takes ownership of the schema object
+   * that is passed.  As such, there is no guarantee that the pointer is still
+   * valid when this function returns.  If the caller needs to reference the
+   * schema object after this call, they should use the GetSchema function to
+   * obtain the authoritative schema for this table.
    */
-  std::vector<col_oid_t> AddColumns(table_oid_t table, std::vector<ColumnDefinition> columns);
+  bool UpdateSchema(table_oid_t table, Schema *new_schema);
 
   /**
-   * Updates the table's schema to remove the listed columns
-   * @param table OID to be modified
-   * @param columns that are to be removed
-   * @return vector of booleans corresponding to whether each column could be removed,
-   *         false indicates the column could not be deleted because the entry was
-   *         write-locked by a different process.
-   *
-   * @note This will increment the schema version number by one, locking the table
-   *       entry in the catalog until this is committed.  It will also lock all of
-   *        the corresponding column entries.
-   */
-  std::vector<bool> DropColumns(table_oid_t table, std::vector<col_oid_t> columns);
-
-  /**
-   * Updates the table's schema by changing the nullability of the column.  The operation
-   * could fail because the column does not exist, the column entry is write-locked by
-   * another transaction or because the column already has that nullability setting.
-   * @param table OID to be modified
-   * @param column that is affected
-   * @param nullable is whether the column can be null
-   * @return success
-   *
-   * @note This will increment the schema version number by one, locking the table
-   *       entry in the catalog until this is committed.  It will also lock the
-   *       column entry in the catalog.
-   */
-  bool SetColumnNullable(table_oid_t table, col_oid_t column, bool nullable);
-
-  /**
-   * Updates the table's schema by changing the data type of the column.  The operation
-   * could fail because the column does not exist, the column entry is write-locked by
-   * another transaction, or because the column already has that type.
-   * @param table OID to be modified
-   * @param column that is affected
-   * @param new_type for the column
-   * @return success
-   *
-   * @note This will increment the schema version number by one, locking the table
-   *       entry in the catalog until this is committed.  It will also lock the
-   *       column entry in the catalog.
-   */
-  bool SetColumnType(table_oid_t table, col_oid_t column, type::TypeId new_type);
-
-  /**
-   * Updates the table's schema by changing the default value of the column.  The operation
-   * could fail because the column does not exist or the column entry is write-locked by
-   * another transaction.
-   * @param table OID to be modified
-   * @param column that is affected
-   * @param default value to be applied
-   * @return success
-   */
-  bool SetColumnDefaultValue(table_oid_t table, col_oid_t column, const DefaultValue &default_value);
-
-  /**
-   * Rename the column from its current string to the new one.  The renaming could fail
-   * if the column OID is invalid, the new name already exists, or the column entry
-   * is write-locked in the catalog.
-   * @param table to which the column belongs
-   * @param column which is to be renamed
-   * @param new_column_name is the string of the new name
-   * @return whether the renaming was successful.
-   *
-   * @note This operation will write-lock the column entry until the transaction closes.
-   */
-  bool RenameColumn(table_oid_t table, col_oid_t column, const std::string &new_column_name);
-
-  /**
+   * Get the visible schema describing the table.
    * @param table corresponding to the requested schema
    * @return the visible schema object for the identified table
    */
-  Schema *GetSchema(table_oid_t table);
+  const Schema &GetSchema(table_oid_t table);
+
+  /**
+   * A list of all constraints on this table
+   * @param table being queried
+   * @return vector of OIDs for all of the constraints that apply to this table
+   */
+  std::vector<constraint_oid_t> GetConstraints(table_oid_t);
+
+  /**
+   * A list of all indexes on the given table
+   * @param table being queried
+   * @return vector of OIDs for all of the indexes on this table
+   */
+  std::vector<index_oid_t> GetIndexes(table_oid_t);
 
   /**
    * Given an index name, resolve it to the corresponding OID
@@ -267,13 +225,14 @@ class CatalogAccessor {
    * @return OID for the index, INVALID_INDEX_OID if the operation failed
    */
   index_oid_t CreateIndex(namespace_oid_t ns, table_oid_t table, const std::string &name,
-                          storage::index::ConstraintType constraint, const std::vector<IndexKeyDefinition> &keys);
+                          storage::index::ConstraintType constraint, IndexSchema *IndexSchema);
 
   /**
+   * Gets the schema that was used to define the index
    * @param index corresponding to the requested key schema
    * @return the key schema for this index
    */
-  IndexKeySchema *GetKeySchema(index_oid_t index);
+  const IndexSchema &GetIndexSchema(index_oid_t index);
 
   /**
    * Drop the corresponding index from the catalog.
@@ -287,6 +246,9 @@ class CatalogAccessor {
    * @param index OID in the catalog
    * @param index_ptr to the memory where the index is
    * @return whether the operation was successful
+   * @warning The index pointer that is passed in must be on the heap as the
+   * catalog will take ownership of it and schedule its deletion with the GC
+   * at the appropriate time.
    */
   bool SetIndexPointer(index_oid_t index, storage::index::Index *index_ptr);
 
@@ -296,6 +258,13 @@ class CatalogAccessor {
    * @return the pointer to the index
    */
   storage::index::Index *GetIndex(index_oid_t index);
+
+  /**
+   * Gets the schema used to define the index
+   * @param index being queried
+   * @return the index schema
+   */
+  const IndexSchema &GetIndexSchema(index_oid_t index);
 
  private:
   Catalog *catalog_;

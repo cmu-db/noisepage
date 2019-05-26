@@ -108,14 +108,6 @@ class DatabaseCatalog {
   table_oid_t GetTableOid(transaction::TransactionContext *txn, namespace_oid_t ns, const std::string &name);
 
   /**
-   * Get an object with detailed access to a table
-   * @param txn for the operation
-   * @param table to get details for
-   * @return object wrapping the details
-   */
-  TableDetails GetTableDetails(transaction::TransactionContext *txn, table_oid_t table);
-
-  /**
    * Rename a table.
    * @param txn for the operation
    * @param table to be renamed
@@ -124,17 +116,58 @@ class DatabaseCatalog {
    */
   bool RenameTable(transaction::TransactionContext *txn, table_oid_t table, const std::string &name);
 
+
+  /**
+   * Apply a new schema to the given table.  The changes should modify the latest
+   * schema as provided by the catalog.  There is no guarantee that the OIDs for
+   * modified columns will be stable across a schema change.
+   * @param txn for the operation
+   * @param table OID of the modified table
+   * @param new_schema object describing the table after modification
+   * @return true if the operation succeeded, false otherwise
+   * @warning The catalog accessor assumes it takes ownership of the schema object
+   * that is passed.  As such, there is no guarantee that the pointer is still
+   * valid when this function returns.  If the caller needs to reference the
+   * schema object after this call, they should use the GetSchema function to
+   * obtain the authoritative schema for this table.
+   */
+  bool UpdateSchema(transaction::TransactionContext *txn, table_oid_t table, Schema *new_schema);
+
+  /**
+   * Get the visible schema describing the table.
+   * @param txn for the operation
+   * @param table corresponding to the requested schema
+   * @return the visible schema object for the identified table
+   */
+  const Schema &GetSchema(transaction::TransactionContext *txn, table_oid_t table);
+
+  /**
+   * A list of all constraints on this table
+   * @param txn for the operation
+   * @param table being queried
+   * @return vector of OIDs for all of the constraints that apply to this table
+   */
+  std::vector<constraint_oid_t> GetConstraints(transaction::TransactionContext *txn, table_oid_t);
+
+  /**
+   * A list of all indexes on the given table
+   * @param txn for the operation
+   * @param table being queried
+   * @return vector of OIDs for all of the indexes on this table
+   */
+  std::vector<index_oid_t> GetIndexes(transaction::TransactionContext *txn, table_oid_t);
+
   /**
    * Create the catalog entries for a new index.
    * @param txn for the operation
    * @param ns OID of the namespace under which the index will fall
    * @param name of the new index
    * @param table on which the new index exists
-   * @param key_schema describing the new index
+   * @param schema describing the new index
    * @return OID of the new index or INVALID_INDEX_OID if creation failed
    */
   index_oid_t CreateIndex(transaction::TransactionContext *txn, namespace_oid_t ns, const std::string &name,
-                          table_oid_t table, IndexKeySchema key_schema);
+                          table_oid_t table, IndexSchema *schema);
 
   /**
    * Delete an index.  Any constraints that utilize this index must be deleted
@@ -155,12 +188,12 @@ class DatabaseCatalog {
   index_oid_t GetIndexOid(transaction::TransactionContext *txn, namespace_oid_t ns, const std::string &name);
 
   /**
-   * Get an object with detailed access to an index
+   * Gets the schema used to define the index
    * @param txn for the operation
-   * @param index to get details for
-   * @return the object with the index details
+   * @param index being queried
+   * @return the index schema
    */
-  IndexDetails GetIndexDetails(transaction::TransactionContext *txn, index_oid_t index);
+  const IndexSchema &GetIndexSchema(transaction::TransactionContext *txn, index_oid_t index);
 
  private:
   storage::SqlTable *namespaces_;

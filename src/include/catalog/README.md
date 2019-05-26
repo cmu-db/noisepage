@@ -22,7 +22,7 @@ src/
             catalog_defs.h
             catalog_schema.dot
             database_catalog.h
-            index_key_schema.h
+            index_schema.h
             README.md
             schema.h
 ```

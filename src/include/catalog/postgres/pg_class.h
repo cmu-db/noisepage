@@ -1,6 +1,6 @@
 #pragma once
 
-#include "catalog/index_key_schema.h"
+#include "catalog/index_schema.h"
 #include "catalog/schema.h"
 #include "storage/projected_row.h"
 #include "storage/sql_table.h"
