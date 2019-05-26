@@ -1,6 +1,7 @@
 #pragma once
 
 #include "catalog/schema.h"
+#include "parser/expression/abstract_expression.h"
 #include "storage/projected_row.h"
 #include "storage/sql_table.h"
 #include "storage/storage_defs.h"
@@ -9,41 +10,37 @@
 namespace terrier::catalog::postgres {
 
 /*
- * Column names of the form "TYP[name]_COL_OID" are present in the PostgreSQL
- * catalog specification and columns of the form "TYP_[name]_COL_OID" are
+ * Column names of the form "ATT[name]_COL_OID" are present in the PostgreSQL
+ * catalog specification and columns of the form "ATT_[name]_COL_OID" are
  * terrier-specific addtions (generally pointers to internal objects).
  */
-#define TYPOID_COL_OID col_oid_t(1)       // INTEGER (pkey)
-#define TYPNAME_COL_OID col_oid_t(2)      // VARCHAR
-#define TYPNAMESPACE_COL_OID col_oid_t(3) // INTEGER (fkey: pg_namespace)
-#define TYPLEN_COL_OID col_oid_t(4)       // SMALLINT
-#define TYPBYVAL_COL_OID col_oid_t(5)     // BOOLEAN
-#define TYPTYPE_COL_OID col_oid_t(6)      // CHAR
-
-enum class Type : char {
-  BASE = 'b',
-  COMPOSITE = 'c',
-  DOMAIN = 'd',
-  ENUM = 'e',
-  PSEUDO = 'p',
-  RANGE = 'r',
-}
+#define ATTNUM_COL_OID col_oid_t(1)     // INTEGER (pkey) [col_oid_t]
+#define ATTRELID_COL_OID col_oid_t(2)   // INTEGER (fkey: pg_class) [table_oid_t]
+#define ATTNAME_COL_OID col_oid_t(3)    // VARCHAR
+#define ATTTYPID_COL_OID col_oid_t(4)   // INTEGER (fkey: pg_type) [type_oid_t]
+#define ATTLEN_COL_OID col_oid_t(5)     // SMALLINT
+#define ATTNOTNULL_COL_OID col_oid_t(6) // BOOLEAN
+// The following columns come from 'pg_attrdef' but are included here for
+// simplicity.  PostgreSQL splits out the table to allow more fine-grained
+// locking during DDL operations which is not an issue in this system
+#define ADBIN_COL_OID col_oid_t(7)      // BIGINT (assumes 64-bit pointers)
+#define ADSRC_COL_OID col_oid_t(8)      // VARCHAR
 
 /**
- * Get a new schema object that describes the pg_type table
- * @return the pg_type schema object
+ * Get a new schema object that describes the pg_attribute table
+ * @return the pg_attribute schema object
  */
-Schema GetTypeTableSchema();
+Schema GetAttributeTableSchema();
 
 /**
- * Instantiate a new SqlTable for pg_type
+ * Instantiate a new SqlTable for pg_attribute
  * @param block_store to back the table's memory requirements
- * @return pointer to the new pg_type table
+ * @return pointer to the new pg_attribute table
  */
-storage::SqlTable *CreateTypeTable(storage::BlockStore *block_store);
+storage::SqlTable *CreateAttributeTable(storage::BlockStore *block_store);
 
 /**
- * This is a thin wrapper around projections into pg_type.  The interface
+ * This is a thin wrapper around projections into pg_attribute.  The interface
  * is intended to  be generic enough that the underlying table schemas could
  * be replaced with a different implementation and not significantly affect
  * the core catalog code.
@@ -52,19 +49,19 @@ storage::SqlTable *CreateTypeTable(storage::BlockStore *block_store);
  * objects.  All other users of the catalog should be using the internal C++
  * API.
  */
-class TypeEntry {
+class AttributeEntry {
  public:
   /**
    * Prepares an object to wrap projections into the type table
    * @param txn owning all of the operations
-   * @param pg_type_table into which we are fetching entries
+   * @param pg_attribute_table into which we are fetching entries
    */
-  TypeEntry(transaction::TransactionContext *txn, storage::SqlTable *pg_type_table);
+  AttributeEntry(transaction::TransactionContext *txn, storage::SqlTable *pg_attribute_table);
 
   /**
-   * Destructor for the TypeEntry.
+   * Destructor for the AttributeEntry.
    */
-  ~TypeEntry() {
+  ~AttributeEntry() {
     delete projection_map_;
     delete[] row_;
   }
@@ -126,9 +123,9 @@ class TypeEntry {
   /**
    * @return the OID assigned to the given entry
    */
-  type_oid_t GetOid() {
-    type_oid_t *oid_ptr =
-      reinterpret_cast<type_oid_t *>(row_.AccessWithNullCheck(projection_map_[TYPOID_COL_OID]));
+  col_oid_t GetOid() {
+    col_oid_t *oid_ptr =
+      reinterpret_cast<col_oid_t *>(row_.AccessWithNullCheck(projection_map_[ATTNUM_COL_OID]));
     return (oid_ptr == nullptr) ? INVALID_TYPE_OID : *oid_ptr;
   }
 
@@ -138,13 +135,13 @@ class TypeEntry {
    * @warning Only the corresponding DatabaseCatalog object should ever call this
    * function as it is the deconfliction point for OIDs within a database.
    */
-  void SetOid(type_oid_t oid) {
-    col_oid_t *oid_ptr = reinterpret_cast<type_oid_t *>(row_.AccessForceNotNull(projection_map_[TYPOID_COL_OID]));
+  void SetOid(col_oid_t oid) {
+    col_oid_t *oid_ptr = reinterpret_cast<col_oid_t *>(row_.AccessForceNotNull(projection_map_[ATTNUM_COL_OID]));
     *oid_ptr = oid;
   }
 
   /**
-   * @return a string view of the type's name.
+   * @return a string view of the column's name.
    */
   const std::string_view GetName();
 
@@ -152,53 +149,75 @@ class TypeEntry {
    * Sets the name field of the entry.  This function must have complete ownership
    * of the string passed as it will transfer ownership to the underlying varlen
    * that it creates.
-   * @param name of the type
+   * @param name of the column
    */
   void SetName(std::string name);
 
   /**
-   * @return OID of owning namespace
+   * @return OID of owning table
    */
-  namespace_oid_t GetNamespace();
+  table_oid_t GetTable();
 
   /**
-   * Sets owning namespace for the current entry
-   * @param ns OID of namespace
+   * Sets owning table for the current entry
+   * @param table OID of table
    */
-  void SetNamespace(namespace_oid_t ns);
+  void SetTable(table_oid_t table);
 
   /**
-   * @return the field width of the type in bytes
-   */
-  uint16_t GetSize();
-
-  /**
-   * Sets the field width for the current entry
-   * @param type_size of the type in bytes
-   */
-  void SetSize(uint16_t type_size);
-
-  /**
-   * @return whether the type is passed by value (true) or by reference (false)
-   */
-  bool IsByValue();
-
-  /**
-   * Sets whether or not the type is passed by value
-   * @param is_by_value indicating whether the type gets passed by value
-   */
-  void SetByValue(bool is_by_value);
-
-  /**
-   * @return the type of type this is (basic, user-defined, etc.)
+   * @return the type of column this is (basic, user-defined, etc.)
    */
   Type GetType();
 
   /**
-   * Sets the type of this type
-   * @param type of the type
+   * Sets the type of this column
+   * @param type of the column
    */
   void SetType(Type type);
+
+  /**
+   * @return the field width of the column in bytes
+   */
+  uint16_t GetSize();
+
+  /**
+   * Sets the field width of the column
+   * @param type_size of the column in bytes
+   */
+  void SetSize(uint16_t type_size);
+
+  /**
+   * @return whether the column can be null (false)
+   */
+  bool IsNotNull();
+
+  /**
+   * Sets whether or not the column can be null
+   * @param is_not_null true if null values are not allowed in this column
+   */
+  void SetNotNull(bool is_not_null);
+
+  /**
+   * Set the pointer for the cached expression object
+   * @param expression to store
+   */
+  void SetExpressionPointer(const AbstractExpression *expression);
+
+  /**
+   * @return pointer to the cached expression object
+   */
+  const AbstractExpression *GetExpressionPointer();
+
+  /**
+   * Set the serialization of the expression
+   * @param expression to store
+   */
+  void SetExpressionString(const std::string &expression);
+
+  /**
+   * @return the serialized representation of the expression
+   */
+  const std::string_view GetExpressionString();
 
  private:
   storage::ProjectedRow *row_;

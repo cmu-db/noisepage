@@ -18,6 +18,7 @@ namespace terrier::catalog {
 #define INVALID_NAMESPACE_OID namespace_oid_t(NULL_OID)
 #define INVALID_TABLE_OID table_oid_t(NULL_OID)
 #define INVALID_TYPE_OID type_oid_t(NULL_OID)
+#define INVALID_CONSTRAINT_OID constraint_oid_t(NULL_OID)
 
 #define DEFAULT_DATABASE "terrier"
 
@@ -33,6 +34,7 @@ STRONG_TYPEDEF(tablespace_oid_t, uint32_t);
 STRONG_TYPEDEF(trigger_oid_t, uint32_t);
 STRONG_TYPEDEF(type_oid_t, uint32_t);
 STRONG_TYPEDEF(view_oid_t, uint32_t);
+STRONG_TYPEDEF(constraint_oid_t, uint32_t);
 
 /**
  * Wraps the concept of a default value expression into an object that can be
@@ -46,8 +48,8 @@ class DefaultValue {
    * @param type_id of the default value
    * @param serialized_expression for calculating default value at runtime
    */
-  explicit DefaultValue(type::TypeId type_id, std::string serialized_expression)
-      : type_(type_id), serialized_expression_(std::move(serialized_expression)) {}
+  explicit DefaultValue(type::TypeId type_id, const AbstractExpression *expression)
+      : type_(type_id), expression_(expression) {}
 
   /**
    * @return the type of the default value
@@ -57,10 +59,10 @@ class DefaultValue {
   /**
    * @return the expression that calculates the default value
    */
-  const std::string &GetExpression() { return serialized_expression_; }
+  const AbstractExpression *GetExpression() { return expression_; }
 
  private:
   type::TypeId type_;
-  std::string serialized_expression_;
+  const AbstractExpression *expression_;
 };
 }  // namespace terrier::catalog

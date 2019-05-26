@@ -9,28 +9,35 @@
 namespace terrier::catalog::postgres {
 
 /*
- * Column names of the form "NSP[name]_COL_OID" are present in the PostgreSQL
- * catalog specification and columns of the form "NSP_[name]_COL_OID" are
+ * Column names of the form "IND[name]_COL_OID" are present in the PostgreSQL
+ * catalog specification and columns of the form "IND_[name]_COL_OID" are
  * terrier-specific addtions (generally pointers to internal objects).
  */
-#define NSPOID_COL_OID col_oid_t(1)  // INTEGER (pkey)
-#define NSPNAME_COL_OID col_oid_t(2) // VARCHAR
+#define INDOID_COL_OID col_oid_t(1)         // INTEGER (pkey, fkey: pg_class)
+#define INDRELID_COL_OID col_oid_t(2)       // INTEGER (fkey: pg_class)
+#define INDISUNIQUE_COL_OID col_oid_t(3)    // BOOLEAN
+#define INDISPRIMARY_COL_OID col_oid_t(4)   // BOOLEAN
+#define INDISEXCLUSION_COL_OID col_oid_t(5) // BOOLEAN
+#define INDIMMEDIATE_COL_OID col_oid_t(6)   // BOOLEAN
+#define INDISVALID_COL_OID col_oid_t(7)     // BOOLEAN
+#define INDISREADY_COL_OID col_oid_t(8)     // BOOLEAN
+#define INDISLIVE_COL_OID col_oid_t(9)      // BOOLEAN
 
 /**
- * Get a new schema object that describes the pg_namespace table
- * @return the pg_namespace schema object
+ * Get a new schema object that describes the pg_index table
+ * @return the pg_index schema object
  */
 Schema GetNamespaceTableSchema();
 
 /**
- * Instantiate a new SqlTable for pg_namespace
+ * Instantiate a new SqlTable for pg_index
  * @param block_store to back the table's memory requirements
- * @return pointer to the new pg_namespace table
+ * @return pointer to the new pg_index table
  */
 storage::SqlTable *CreateNamespaceTable(storage::BlockStore *block_store);
 
 /**
- * This is a thin wrapper around projections into pg_namespace.  The interface
+ * This is a thin wrapper around projections into pg_index.  The interface
  * is intended to  be generic enough that the underlying table schemas could
  * be replaced with a different implementation and not significantly affect
  * the core catalog code.
@@ -39,19 +46,19 @@ storage::SqlTable *CreateNamespaceTable(storage::BlockStore *block_store);
  * objects.  All other users of the catalog should be using the internal C++
  * API.
  */
-class NamespaceEntry {
+class IndexEntry {
  public:
   /**
    * Prepares an object to wrap projections into the namespace table
    * @param txn owning all of the operations
-   * @param pg_namespace_table into which we are fetching entries
+   * @param pg_index_table into which we are fetching entries
    */
-  NamespaceEntry(transaction::TransactionContext *txn, storage::SqlTable *pg_namespace_table);
+  IndexEntry(transaction::TransactionContext *txn, storage::SqlTable *pg_index_table);
 
   /**
-   * Destructor for the NamespaceEntry.
+   * Destructor for the IndexEntry.
    */
-  ~NamespaceEntry() {
+  ~IndexEntry() {
     delete projection_map_;
     delete[] row_;
   }
@@ -116,7 +123,7 @@ class NamespaceEntry {
    */
   namespace_oid_t GetOid() {
     namespace_oid_t *oid_ptr =
-      reinterpret_cast<namespace_oid_t *>(row_.AccessWithNullCheck(projection_map_[NSPOID_COL_OID]));
+      reinterpret_cast<namespace_oid_t *>(row_.AccessWithNullCheck(projection_map_[INDOID_COL_OID]));
     return (oid_ptr == nullptr) ? INVALID_NAMESPACE_OID : *oid_ptr;
   }
 
@@ -127,22 +134,97 @@ class NamespaceEntry {
    * function as it is the deconfliction point for OIDs within a database.
    */
   void SetOid(namespace_oid_t oid) {
-    col_oid_t *oid_ptr = reinterpret_cast<namespace_oid_t *>(row_.AccessForceNotNull(projection_map_[NSPOID_COL_OID]));
+    col_oid_t *oid_ptr = reinterpret_cast<namespace_oid_t *>(row_.AccessForceNotNull(projection_map_[INDOID_COL_OID]));
     *oid_ptr = oid;
   }
 
   /**
-   * @return a string view of the namespace's name.
+   * @return OID of table which is indexed
    */
-  const std::string_view GetName();
+  table_oid_t GetTable();
 
   /**
-   * Sets the name field of the entry.  This function must have complete ownership
-   * of the string passed as it will transfer ownership to the underlying varlen
-   * that it creates.
-   * @param name of the namespace
+   * Sets the indexed table for the current entry
+   * @param table OID of table
    */
-  void SetName(std::string name);
+  void SetTable(table_oid_t table);
+
+  /**
+   * @return whether the index stores unique key entries
+   */
+  bool IsUnique();
+
+  /**
+   * Sets the field in the entry
+   * @param is_unique indicating whether only unique keys are allowed
+   */
+  void SetUnique(bool is_unique);
+
+  /**
+   * @return whether the index is on the primary key for the table
+   */
+  bool IsPrimary();
+
+  /**
+   * Sets the field in the entry
+   * @param is_primary indicating whether this indexes a primary key
+   */
+  void SetPrimary(bool is_primary);
+
+  /**
+   * @return whether the index lists excluded entries
+   */
+  bool IsExclusion();
+
+  /**
+   * Sets the field in the entry
+   * @param is_exclusion indicating whether prohibited values are indexed
+   */
+  void SetExclusion(bool is_exclusion);
+
+  /**
+   * @return whether the index will fail immediately if its a constraint
+   */
+  bool IsImmediate();
+
+  /**
+   * Sets the field in the entry
+   * @param is_immediate indicating whether the index will indicate failure immediately
+   */
+  void SetImmediate(bool is_immediate);
+
+  /**
+   * @return whether the index has been allocated and valid for inserts
+   */
+  bool IsValid();
+
+  /**
+   * Sets the field in the entry
+   * @param is_valid indicating whether the index can accept inserts
+   */
+  void SetValid(bool is_valid);
+
+  /**
+   * @return whether the index is ready for lookups
+   */
+  bool IsReady();
+
+  /**
+   * Sets the field in the entry
+   * @param is_ready indicating whether operations will succeed/fail correctly
+   */
+  void SetIsReady(bool is_ready);
+
+  /**
+   * @return whether the index is visible
+   */
+  bool IsLive();
+
+  /**
+   * Sets the field in the entry
+   * @param is_live indicating whether the index is visible
+   */
+  void SetLive(bool is_live);
 
  private:
   storage::ProjectedRow *row_;

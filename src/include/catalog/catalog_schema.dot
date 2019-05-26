@@ -117,7 +117,6 @@ digraph {
         IndexKeySchema;
     }
 
-    pgDatabase:datcatalog -> pgType [lhead=clusterDB];
     pgConstraint:connamespace -> pgNamespace:nspoid;
     pgConstraint:conindex -> pgClass:reloid;
     pgConstraint:contable -> pgClass:reloid;
@@ -134,6 +133,7 @@ digraph {
     pgIndex:indoid -> pgClass:reloid;
 
     edge[color="gray50"];
+    pgDatabase:datcatalog -> pgType [lhead=clusterDB];
     pgConstraint:conbin, pgAttribute:adbin -> AbstractExpression;
     pgClass:schema -> Schema, IndexKeySchema;
     pgClass:pointer -> SqlTable, Index;

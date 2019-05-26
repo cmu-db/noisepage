@@ -1,11 +1,13 @@
 #pragma once
 
+#include "catalog/schema.h"
 #include "storage/projected_row.h"
 #include "storage/sql_table.h"
 #include "storage/storage_defs.h"
 #include "transaction/transaction_context.h"
 
 namespace terrier::catalog::postgres {
+
 /*
  * Column names of the form "DAT[name]_COL_OID" are present in the PostgreSQL
  * catalog specification and columns of the form "DAT_[name]_COL_OID" are
@@ -45,7 +47,7 @@ class DatabaseEntry {
    * @param txn owning all of the operations
    * @param pg_namespace_table into which we are fetching entries
    */
-  DatabaseEntry(transaction::TransactionContext *txn_, storage::SqlTable *pg_database_table);
+  DatabaseEntry(transaction::TransactionContext *txn, storage::SqlTable *pg_database_table);
 
   /**
    * Destructor for the DatabaseEntry.
@@ -102,12 +104,20 @@ class DatabaseEntry {
   }
 
   /**
+   * Sets the corresponding field of the entry to null
+   * @param column OID of the field
+   */
+  void SetNull(col_oid_t column) {
+    row_.SetNull(projection_map_[column]);
+  }
+
+  /**
    * @return the OID assigned to the given entry
    */
   db_oid_t GetOid() {
     db_oid_t *oid_ptr =
       reinterpret_cast<db_oid_t *>(row_.AccessWithNullCheck(projection_map_[DATOID_COL_OID]));
-    return (oid_ptr == nullptr) ? INVALID_DATABASE_OID : *old_ptr;
+    return (oid_ptr == nullptr) ? INVALID_DATABASE_OID : *oid_ptr;
   }
 
   /**

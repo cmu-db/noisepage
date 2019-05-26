@@ -1,5 +1,7 @@
 #pragma once
 
+#include "catalog/index_key_schema.h"
+#include "catalog/schema.h"
 #include "storage/projected_row.h"
 #include "storage/sql_table.h"
 #include "storage/storage_defs.h"
@@ -31,20 +33,20 @@ enum class ClassKind : char {
 }
 
 /**
- * Get a new schema object that describes the pg_type table
- * @return the pg_type schema object
+ * Get a new schema object that describes the pg_class table
+ * @return the pg_class schema object
  */
-Schema GetDatabaseTableSchema();
+Schema GetClassTableSchema();
 
 /**
- * Instantiate a new SqlTable for pg_type
+ * Instantiate a new SqlTable for pg_class
  * @param block_store to back the table's memory requirements
- * @return pointer to the new pg_type table
+ * @return pointer to the new pg_class table
  */
-storage::SqlTable *CreateDatabaseTable(storage::BlockStore *block_store);
+storage::SqlTable *CreateClassTable(storage::BlockStore *block_store);
 
 /**
- * This is a thin wrapper around projections into pg_type.  The interface
+ * This is a thin wrapper around projections into pg_class.  The interface
  * is intended to  be generic enough that the underlying table schemas could
  * be replaced with a different implementation and not significantly affect
  * the core catalog code.
@@ -53,19 +55,19 @@ storage::SqlTable *CreateDatabaseTable(storage::BlockStore *block_store);
  * objects.  All other users of the catalog should be using the internal C++
  * API.
  */
-class TypeEntry {
+class ClassEntry {
  public:
   /**
-   * Prepares an object to wrap projections into the type table
+   * Prepares an object to wrap projections into the class table
    * @param txn owning all of the operations
-   * @param pg_namespace_table into which we are fetching entries
+   * @param pg_class_table into which we are fetching entries
    */
-  TypeEntry(transaction::TransactionContext *txn_, storage::SqlTable *pg_database_table);
+  ClassEntry(transaction::TransactionContext *txn, storage::SqlTable *pg_class_table);
 
   /**
-   * Destructor for the TypeEntry.
+   * Destructor for the ClassEntry.
    */
-  ~TypeEntry() {
+  ~ClassEntry() {
     delete projection_map_;
     delete[] row_;
   }
@@ -117,12 +119,20 @@ class TypeEntry {
   }
 
   /**
+   * Sets the corresponding field of the entry to null
+   * @param column OID of the field
+   */
+  void SetNull(col_oid_t column) {
+    row_.SetNull(projection_map_[column]);
+  }
+
+  /**
    * @return the OID assigned to the given entry
    */
   type_oid_t GetOid() {
     type_oid_t *oid_ptr =
-      reinterpret_cast<type_oid_t *>(row_.AccessWithNullCheck(projection_map_[DATOID_COL_OID]));
-    return (oid_ptr == nullptr) ? INVALID_TYPE_OID : *old_ptr;
+      reinterpret_cast<type_oid_t *>(row_.AccessWithNullCheck(projection_map_[RELOID_COL_OID]));
+    return (oid_ptr == nullptr) ? INVALID_TYPE_OID : *oid_ptr;
   }
 
   /**
@@ -132,7 +142,7 @@ class TypeEntry {
    * function as it is the deconfliction point for OIDs within a database.
    */
   void SetOid(type_oid_t oid) {
-    col_oid_t *oid_ptr = reinterpret_cast<type_oid_t *>(row_.AccessForceNotNull(projection_map_[DATOID_COL_OID]));
+    col_oid_t *oid_ptr = reinterpret_cast<type_oid_t *>(row_.AccessForceNotNull(projection_map_[RELOID_COL_OID]));
     *oid_ptr = oid;
   }
 
@@ -166,8 +176,8 @@ class TypeEntry {
   ClassKind GetKind();
 
   /**
-   * Sets owning namespace for the current entry
-   * @param type_size of the type in bytes
+   * Sets the kind of class this is
+   * @param kind of the class
    */
   void SetKind(ClassKind kind);
 
