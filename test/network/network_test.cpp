@@ -13,6 +13,7 @@
 #include "gtest/gtest.h"
 #include "loggers/main_logger.h"
 #include "network/connection_handle_factory.h"
+#include "settings/settings_manager.h"
 
 #define NUM_THREADS 1
 
