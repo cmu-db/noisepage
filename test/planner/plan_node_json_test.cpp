@@ -671,18 +671,23 @@ TEST(PlanNodeJsonTest, IndexScanPlanNodeJsonTest) {
 // NOLINTNEXTLINE
 TEST(PlanNodeJsonTest, InsertPlanNodeJsonTest) {
   // Construct InsertPlanNode
-  std::vector<type::TransientValue> values;
-  values.push_back(type::TransientValueFactory::GetInteger(0));
-  values.push_back(type::TransientValueFactory::GetBoolean(true));
+  std::vector<type::TransientValue> tuple_1;
+  tuple_1.push_back(type::TransientValueFactory::GetInteger(0));
+  tuple_1.push_back(type::TransientValueFactory::GetBoolean(true));
+
+  std::vector<type::TransientValue> tuple_2;
+  tuple_2.push_back(type::TransientValueFactory::GetInteger(1));
+  tuple_2.push_back(type::TransientValueFactory::GetBoolean(false));
+
   InsertPlanNode::Builder builder;
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
                        .SetDatabaseOid(catalog::db_oid_t(0))
                        .SetNamespaceOid(catalog::namespace_oid_t(0))
                        .SetTableOid(catalog::table_oid_t(1))
-                       .SetValues(std::move(values))
-                       .AddParameterInfo(0, 1, 2)
-                       .AddParameterInfo(3, 4, 5)
-                       .SetBulkInsertCount(1)
+                       .AddValues(std::move(tuple_1))
+                       .AddValues(std::move(tuple_2))
+                       .AddParameterInfo(0, catalog::col_oid_t(0))
+                       .AddParameterInfo(1, catalog::col_oid_t(1))
                        .Build();
 
   // Serialize to Json
