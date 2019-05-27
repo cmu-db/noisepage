@@ -51,10 +51,10 @@ class InsertStatement : public SQLStatement {
   explicit InsertStatement(InsertType type) : SQLStatement(StatementType::INSERT), type_(type) {}
 
   ~InsertStatement() override {
-      for (auto &tuple : insert_values_) {
-        for (auto *value : tuple) {
-          delete value;
-        }
+    for (auto &tuple : insert_values_) {
+      for (auto *value : tuple) {
+        delete value;
+      }
     }
   }
 
