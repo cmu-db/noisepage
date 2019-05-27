@@ -45,7 +45,15 @@ TEST(HashUtilTests, HashTest) {
     EXPECT_EQ(common::HashUtil::Hash(val), common::HashUtil::Hash(copy));
     EXPECT_NE(common::HashUtil::Hash("WUTANG"), common::HashUtil::Hash(val));
   }
-  EXPECT_EQ(common::HashUtil::Hash("ABC"), common::HashUtil::Hash("ABC"));
+}
+
+// NOLINTNEXTLINE
+TEST(HashUtilTests, HashStringsTest) {
+  std::string val = "ABCXYZ";
+  // EXPECT_EQ(common::HashUtil::Hash(val), common::HashUtil::Hash(val));
+  common::hash_t hash0 = common::HashUtil::Hash(val);
+  common::hash_t hash1 = common::HashUtil::Hash("ABCXYZ");
+  EXPECT_EQ(hash0, hash1);
 }
 
 // NOLINTNEXTLINE
@@ -134,6 +142,5 @@ TEST(HashUtilTests, SumHashesTest) {
 
   EXPECT_EQ(combined0, combined1);
 }
-
 
 }  // namespace terrier

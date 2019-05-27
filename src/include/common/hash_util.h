@@ -94,6 +94,18 @@ class HashUtil {
   static hash_t Hash(const std::string &str) {
     return HashBytes(reinterpret_cast<const byte *>(str.data()), str.size());
   }
+
+  /**
+   * Special case Hash method for string literals. This is dirty. We are
+   * just going to wrap the character array that you give us into a new
+   * std::string object.
+   * @param str the string to be hashed
+   * @return hash of the string
+   */
+  static hash_t Hash(const char *str) {
+    // HACK HACK HACK
+    return Hash(std::string(str));
+  }
 };
 
 }  // namespace terrier::common

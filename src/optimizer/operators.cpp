@@ -326,7 +326,7 @@ bool LogicalDelete::operator==(const BaseOperatorNode &r) {
 
 Operator LogicalUpdate::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                              catalog::table_oid_t table_oid,
-                             std::vector<std::unique_ptr<parser::UpdateClause>> &&updates) {
+                             std::vector<parser::UpdateClause*> &&updates) {
   auto *op = new LogicalUpdate;
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
@@ -337,15 +337,15 @@ Operator LogicalUpdate::make(catalog::db_oid_t database_oid, catalog::namespace_
 
 common::hash_t LogicalUpdate::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&namespace_oid_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&table_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
   hash = common::HashUtil::CombineHashInRange(hash, updates_.begin(), updates_.end());
   return hash;
 }
 
 bool LogicalUpdate::operator==(const BaseOperatorNode &r) {
-  if (r.GetType() != OpType::LOGICALDELETE) return false;
+  if (r.GetType() != OpType::LOGICALUPDATE) return false;
   const LogicalUpdate &node = *dynamic_cast<const LogicalUpdate *>(&r);
   if (database_oid_ != node.database_oid_) return false;
   if (namespace_oid_ != node.namespace_oid_) return false;
