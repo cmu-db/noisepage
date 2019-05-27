@@ -35,7 +35,7 @@ class ResultPlanNode : public AbstractPlanNode {
      * @param expr the expression used to derived the output tuple
      * @return builder object
      */
-    Builder &SetExpr(parser::AbstractExpression *expr) {
+    Builder &SetExpr(const parser::AbstractExpression *expr) {
       expr_ = expr;
       return *this;
     }
@@ -53,7 +53,7 @@ class ResultPlanNode : public AbstractPlanNode {
     /**
      * The expression used to derived the output tuple
      */
-    parser::AbstractExpression *expr_;
+    const parser::AbstractExpression *expr_;
   };
 
  private:
@@ -63,7 +63,7 @@ class ResultPlanNode : public AbstractPlanNode {
    * @param tuple the tuple in the storage layer
    */
   ResultPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
-                 parser::AbstractExpression *expr)
+                 const parser::AbstractExpression *expr)
       : AbstractPlanNode(std::move(children), std::move(output_schema)), expr_(expr) {}
 
  public:
@@ -100,7 +100,7 @@ class ResultPlanNode : public AbstractPlanNode {
   /**
    * Expression used to derived the output tuple
    */
-  parser::AbstractExpression *expr_;
+  const parser::AbstractExpression *expr_;
 };
 
 DEFINE_JSON_DECLARATIONS(ResultPlanNode);

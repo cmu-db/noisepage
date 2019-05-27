@@ -19,7 +19,7 @@ class StarExpression : public AbstractExpression {
 
   ~StarExpression() override = default;
 
-  AbstractExpression *Copy() const override {
+  const AbstractExpression *Copy() const override {
     // TODO(Tianyu): This really should be a singleton object
     return new StarExpression();
   }

@@ -133,7 +133,7 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
   EXPECT_EQ(1, hash_plan->GetHashKeys().size());
   EXPECT_EQ(parser::ExpressionType::VALUE_TUPLE, hash_plan->GetHashKeys()[0]->GetExpressionType());
 
-  std::vector<parser::AbstractExpression *> expr_children;
+  std::vector<const parser::AbstractExpression *> expr_children;
   expr_children.push_back(new parser::TupleValueExpression("col1", "table1"));
   expr_children.push_back(new parser::TupleValueExpression("col2", "table2"));
   auto cmp_expression =

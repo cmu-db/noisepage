@@ -44,7 +44,7 @@ class NestedLoopJoinPlanNode : public AbstractJoinPlanNode {
    */
   NestedLoopJoinPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
                          std::shared_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
-                         parser::AbstractExpression *predicate)
+                         const parser::AbstractExpression *predicate)
       : AbstractJoinPlanNode(std::move(children), std::move(output_schema), join_type, predicate) {}
 
  public:

@@ -16,7 +16,7 @@ class TypeCastExpression : public AbstractExpression {
   /**
    * Instantiates a new type cast expression.
    */
-  TypeCastExpression(type::TypeId type, std::vector<AbstractExpression *> children)
+  TypeCastExpression(type::TypeId type, std::vector<const AbstractExpression *> children)
       : AbstractExpression(ExpressionType::OPERATOR_CAST, type, std::move(children)), type_(type) {}
 
   /**
@@ -26,8 +26,8 @@ class TypeCastExpression : public AbstractExpression {
 
   ~TypeCastExpression() override = default;
 
-  AbstractExpression *Copy() const override {
-    std::vector<AbstractExpression *> children;
+  const AbstractExpression *Copy() const override {
+    std::vector<const AbstractExpression *> children;
     for (const auto *child : GetChildren()) {
       children.emplace_back(child->Copy());
     }

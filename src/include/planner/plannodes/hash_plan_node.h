@@ -33,7 +33,7 @@ class HashPlanNode : public AbstractPlanNode {
      * @param key Hash key to be added
      * @return builder object
      */
-    Builder &AddHashKey(parser::AbstractExpression *key) {
+    Builder &AddHashKey(const parser::AbstractExpression *key) {
       TERRIER_ASSERT(key != nullptr, "Can't add nullptr key to HashPlanNode");
       hash_keys_.emplace_back(key);
       return *this;
@@ -52,7 +52,7 @@ class HashPlanNode : public AbstractPlanNode {
     /**
      * keys to be hashed on
      */
-    std::vector<parser::AbstractExpression *> hash_keys_;
+    std::vector<const parser::AbstractExpression *> hash_keys_;
   };
 
  private:
@@ -62,7 +62,7 @@ class HashPlanNode : public AbstractPlanNode {
    * @param hash_keys keys to be hashed on
    */
   HashPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
-               std::vector<parser::AbstractExpression *> hash_keys)
+               std::vector<const parser::AbstractExpression *> hash_keys)
       : AbstractPlanNode(std::move(children), std::move(output_schema)), hash_keys_(std::move(hash_keys)) {}
 
  public:
@@ -87,7 +87,7 @@ class HashPlanNode : public AbstractPlanNode {
   /**
    * @return keys to be hashed on
    */
-  const std::vector<parser::AbstractExpression *> &GetHashKeys() const { return hash_keys_; }
+  const std::vector<const parser::AbstractExpression *> &GetHashKeys() const { return hash_keys_; }
 
   /**
    * @return the hashed value of this plan node
@@ -100,7 +100,7 @@ class HashPlanNode : public AbstractPlanNode {
   void FromJson(const nlohmann::json &j) override;
 
  private:
-  std::vector<parser::AbstractExpression *> hash_keys_;
+  std::vector<const parser::AbstractExpression *> hash_keys_;
 };
 
 DEFINE_JSON_DECLARATIONS(HashPlanNode);

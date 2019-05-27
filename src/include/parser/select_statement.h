@@ -26,7 +26,7 @@ class OrderByDescription {
    * @param types order by types
    * @param exprs order by expressions
    */
-  OrderByDescription(std::vector<OrderType> types, std::vector<AbstractExpression *> exprs)
+  OrderByDescription(std::vector<OrderType> types, std::vector<const AbstractExpression *> exprs)
       : types_(std::move(types)), exprs_(std::move(exprs)) {}
 
   /**
@@ -54,7 +54,7 @@ class OrderByDescription {
   /**
    * @return order by expressions
    */
-  std::vector<AbstractExpression *> GetOrderByExpressions() { return exprs_; }
+  std::vector<const AbstractExpression *> GetOrderByExpressions() { return exprs_; }
 
   /**
    * @return OrderByDescription serialized to json
@@ -82,7 +82,7 @@ class OrderByDescription {
 
  private:
   std::vector<OrderType> types_;
-  std::vector<AbstractExpression *> exprs_;
+  std::vector<const AbstractExpression *> exprs_;
 };
 
 DEFINE_JSON_DECLARATIONS(OrderByDescription);
@@ -164,7 +164,7 @@ class GroupByDescription {
    * @param columns group by columns
    * @param having having clause
    */
-  GroupByDescription(std::vector<AbstractExpression *> columns, AbstractExpression *having)
+  GroupByDescription(std::vector<const AbstractExpression *> columns, const AbstractExpression *having)
       : columns_(std::move(columns)), having_(having) {}
 
   /**
@@ -189,12 +189,12 @@ class GroupByDescription {
   /**
    * @return group by columns
    */
-  std::vector<AbstractExpression *> GetColumns() { return columns_; }
+  std::vector<const AbstractExpression *> GetColumns() { return columns_; }
 
   /**
    * @return having clause
    */
-  AbstractExpression *GetHaving() { return having_; }
+  const AbstractExpression *GetHaving() { return having_; }
 
   /**
    * @return GroupDescription serialized to json
@@ -223,8 +223,8 @@ class GroupByDescription {
   }
 
  private:
-  std::vector<AbstractExpression *> columns_;
-  AbstractExpression *having_;
+  std::vector<const AbstractExpression *> columns_;
+  const AbstractExpression *having_;
 };
 
 DEFINE_JSON_DECLARATIONS(GroupByDescription);
@@ -246,9 +246,10 @@ class SelectStatement : public SQLStatement {
    * @param order_by order by condition
    * @param limit limit condition
    */
-  SelectStatement(std::vector<AbstractExpression *> select, const bool &select_distinct, std::shared_ptr<TableRef> from,
-                  AbstractExpression *where, std::shared_ptr<GroupByDescription> group_by,
-                  std::shared_ptr<OrderByDescription> order_by, std::shared_ptr<LimitDescription> limit)
+  SelectStatement(std::vector<const AbstractExpression *> select, const bool &select_distinct,
+                  std::shared_ptr<TableRef> from, const AbstractExpression *where,
+                  std::shared_ptr<GroupByDescription> group_by, std::shared_ptr<OrderByDescription> order_by,
+                  std::shared_ptr<LimitDescription> limit)
       : SQLStatement(StatementType::SELECT),
         select_(std::move(select)),
         select_distinct_(select_distinct),
@@ -276,7 +277,7 @@ class SelectStatement : public SQLStatement {
   /**
    * @return select columns
    */
-  std::vector<AbstractExpression *> GetSelectColumns() { return select_; }
+  std::vector<const AbstractExpression *> GetSelectColumns() { return select_; }
 
   /**
    * @return true if "SELECT DISTINCT", false otherwise
@@ -291,7 +292,7 @@ class SelectStatement : public SQLStatement {
   /**
    * @return select condition
    */
-  AbstractExpression *GetSelectCondition() { return where_; }
+  const AbstractExpression *GetSelectCondition() { return where_; }
 
   /**
    * @return select group by
@@ -325,10 +326,10 @@ class SelectStatement : public SQLStatement {
   void FromJson(const nlohmann::json &j) override;
 
  private:
-  std::vector<AbstractExpression *> select_;
+  std::vector<const AbstractExpression *> select_;
   bool select_distinct_;
   std::shared_ptr<TableRef> from_;
-  AbstractExpression *where_;
+  const AbstractExpression *where_;
   std::shared_ptr<GroupByDescription> group_by_;
   std::shared_ptr<OrderByDescription> order_by_;
   std::shared_ptr<LimitDescription> limit_;

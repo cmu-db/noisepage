@@ -42,7 +42,7 @@ class TupleValueExpression : public AbstractExpression {
    */
   std::string GetTableName() const { return table_name_; }
 
-  AbstractExpression *Copy() const override { return new TupleValueExpression(col_name_, table_name_); }
+  const AbstractExpression *Copy() const override { return new TupleValueExpression(col_name_, table_name_); }
 
   bool operator==(const AbstractExpression &rhs) const override {
     if (!AbstractExpression::operator==(rhs)) return false;

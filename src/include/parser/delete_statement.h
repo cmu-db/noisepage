@@ -28,7 +28,7 @@ class DeleteStatement : public SQLStatement {
    * @param table deletion target
    * @param expr condition for deletion
    */
-  DeleteStatement(std::shared_ptr<TableRef> table, AbstractExpression *expr)
+  DeleteStatement(std::shared_ptr<TableRef> table, const AbstractExpression *expr)
       : SQLStatement(StatementType::DELETE), table_ref_(std::move(table)), expr_(expr) {}
 
   /**
@@ -48,13 +48,13 @@ class DeleteStatement : public SQLStatement {
   /**
    * @return expression that represents deletion condition
    */
-  AbstractExpression *GetDeleteCondition() { return expr_; }
+  const AbstractExpression *GetDeleteCondition() { return expr_; }
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
  private:
   std::shared_ptr<TableRef> table_ref_;
-  AbstractExpression *expr_;
+  const AbstractExpression *expr_;
 };
 
 }  // namespace terrier::parser

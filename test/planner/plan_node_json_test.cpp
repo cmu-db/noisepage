@@ -66,7 +66,7 @@ class PlanNodeJsonTest : public TerrierTest {
    * Constructs a dummy AbstractExpression predicate
    * @return dummy predicate
    */
-  static parser::AbstractExpression *BuildDummyPredicate() {
+  static const parser::AbstractExpression *BuildDummyPredicate() {
     return new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
   }
 
@@ -98,7 +98,7 @@ TEST(PlanNodeJsonTest, OutputSchemaJsonTest) {
   EXPECT_EQ(col, deserialized_col);
 
   // Test DerivedColumn serialization
-  std::vector<parser::AbstractExpression *> children;
+  std::vector<const parser::AbstractExpression *> children;
   children.emplace_back(new parser::TupleValueExpression("table1", "col1"));
   children.emplace_back(PlanNodeJsonTest::BuildDummyPredicate());
   auto *expr = new parser::ComparisonExpression(parser::ExpressionType::CONJUNCTION_OR, std::move(children));
@@ -133,7 +133,7 @@ TEST(PlanNodeJsonTest, OutputSchemaJsonTest) {
 TEST(PlanNodeJsonTest, AggregatePlanNodeJsonTest) {
   // Construct AggregatePlanNode
 
-  std::vector<parser::AbstractExpression *> children;
+  std::vector<const parser::AbstractExpression *> children;
   children.push_back(PlanNodeJsonTest::BuildDummyPredicate());
   auto *agg_term =
       new parser::AggregateExpression(parser::ExpressionType::AGGREGATE_COUNT_STAR, std::move(children), false);

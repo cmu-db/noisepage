@@ -23,7 +23,7 @@ class UpdateClause {
    * @param column column to be updated
    * @param value value to update to
    */
-  UpdateClause(std::string column, AbstractExpression *value) : column_(std::move(column)), value_(value) {}
+  UpdateClause(std::string column, const AbstractExpression *value) : column_(std::move(column)), value_(value) {}
 
   ~UpdateClause() { delete value_; }
 
@@ -54,7 +54,7 @@ class UpdateStatement : public SQLStatement {
    * @param where update conditions
    */
   UpdateStatement(std::shared_ptr<TableRef> table, std::vector<std::shared_ptr<UpdateClause>> updates,
-                  AbstractExpression *where)
+                  const AbstractExpression *where)
       : SQLStatement(StatementType::UPDATE), table_(std::move(table)), updates_(std::move(updates)), where_(where) {}
 
   UpdateStatement() : SQLStatement(StatementType::UPDATE), table_(nullptr) {}

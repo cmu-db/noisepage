@@ -185,17 +185,17 @@ TEST_F(ParserTestBase, CreateIndexTest) {
   EXPECT_EQ(create_stmt->GetIndexAttributes().size(), 2);
   auto *ia1 = create_stmt->GetIndexAttributes()[0]->GetExpression();
   EXPECT_EQ(ia1->GetExpressionType(), ExpressionType::OPERATOR_MINUS);
-  auto ia1l = reinterpret_cast<TupleValueExpression *>(ia1->GetChild(0));
+  auto ia1l = reinterpret_cast<const TupleValueExpression *>(ia1->GetChild(0));
   EXPECT_EQ(ia1l->GetColumnName(), "o_w_id");
-  auto ia1r = reinterpret_cast<ConstantValueExpression *>(ia1->GetChild(1));
+  auto ia1r = reinterpret_cast<const ConstantValueExpression *>(ia1->GetChild(1));
   EXPECT_EQ(type::TransientValuePeeker::PeekInteger(ia1r->GetValue()), 2);
   auto *ia2 = create_stmt->GetIndexAttributes()[1]->GetExpression();
   EXPECT_EQ(ia2->GetExpressionType(), ExpressionType::OPERATOR_PLUS);
-  auto ia2l = reinterpret_cast<TupleValueExpression *>(ia2->GetChild(0));
+  auto ia2l = reinterpret_cast<const TupleValueExpression *>(ia2->GetChild(0));
   EXPECT_EQ(ia2l->GetExpressionType(), ExpressionType::OPERATOR_PLUS);
-  auto ia2ll = reinterpret_cast<TupleValueExpression *>(ia2l->GetChild(0));
-  auto ia2lr = reinterpret_cast<TupleValueExpression *>(ia2l->GetChild(1));
-  auto ia2r = reinterpret_cast<TupleValueExpression *>(ia2->GetChild(1));
+  auto ia2ll = reinterpret_cast<const TupleValueExpression *>(ia2l->GetChild(0));
+  auto ia2lr = reinterpret_cast<const TupleValueExpression *>(ia2l->GetChild(1));
+  auto ia2r = reinterpret_cast<const TupleValueExpression *>(ia2->GetChild(1));
   EXPECT_EQ(ia2ll->GetColumnName(), "o");
   EXPECT_EQ(ia2lr->GetColumnName(), "w");
   EXPECT_EQ(ia2r->GetColumnName(), "o");
@@ -243,11 +243,12 @@ TEST_F(ParserTestBase, CreateViewTest) {
   EXPECT_EQ(view_query->GetSelectCondition()->GetChildrenSize(), 2);
   auto left_child = view_query->GetSelectCondition()->GetChild(0);
   EXPECT_EQ(left_child->GetExpressionType(), ExpressionType::VALUE_TUPLE);
-  EXPECT_EQ(reinterpret_cast<TupleValueExpression *>(left_child)->GetColumnName(), "baz");
+  EXPECT_EQ(reinterpret_cast<const TupleValueExpression *>(left_child)->GetColumnName(), "baz");
   auto right_child = view_query->GetSelectCondition()->GetChild(1);
   EXPECT_EQ(right_child->GetExpressionType(), ExpressionType::VALUE_CONSTANT);
-  EXPECT_EQ(
-      type::TransientValuePeeker::PeekInteger(reinterpret_cast<ConstantValueExpression *>(right_child)->GetValue()), 1);
+  EXPECT_EQ(type::TransientValuePeeker::PeekInteger(
+                reinterpret_cast<const ConstantValueExpression *>(right_child)->GetValue()),
+            1);
 }
 
 // NOLINTNEXTLINE
@@ -663,9 +664,9 @@ TEST_F(ParserTestBase, OldAggTest) {
     EXPECT_EQ("foo", statement->GetSelectTable()->GetTableName());
     EXPECT_EQ(ExpressionType::AGGREGATE_COUNT, statement->GetSelectColumns()[0]->GetExpressionType());
 
-    auto agg_expression = reinterpret_cast<AggregateExpression *>(statement->GetSelectColumns()[0]);
+    auto agg_expression = reinterpret_cast<const AggregateExpression *>(statement->GetSelectColumns()[0]);
     EXPECT_TRUE(agg_expression->IsDistinct());
-    auto child_expr = reinterpret_cast<TupleValueExpression *>(statement->GetSelectColumns()[0]->GetChild(0));
+    auto child_expr = reinterpret_cast<const TupleValueExpression *>(statement->GetSelectColumns()[0]->GetChild(0));
     EXPECT_EQ("id", child_expr->GetColumnName());
   }
 
@@ -714,15 +715,15 @@ TEST_F(ParserTestBase, OldGroupByTest) {
 
   EXPECT_EQ(2, columns.size());
   // Assume the parsed column order is the same as in the query
-  EXPECT_EQ("id", reinterpret_cast<TupleValueExpression *>(columns[0])->GetColumnName());
-  EXPECT_EQ("name", reinterpret_cast<TupleValueExpression *>(columns[1])->GetColumnName());
+  EXPECT_EQ("id", reinterpret_cast<const TupleValueExpression *>(columns[0])->GetColumnName());
+  EXPECT_EQ("name", reinterpret_cast<const TupleValueExpression *>(columns[1])->GetColumnName());
 
   auto having = statement->GetSelectGroupBy()->GetHaving();
   EXPECT_EQ(ExpressionType::COMPARE_GREATER_THAN, having->GetExpressionType());
   EXPECT_EQ(2, having->GetChildrenSize());
 
-  auto name_exp = reinterpret_cast<TupleValueExpression *>(having->GetChild(0));
-  auto value_exp = reinterpret_cast<ConstantValueExpression *>(having->GetChild(1));
+  auto name_exp = reinterpret_cast<const TupleValueExpression *>(having->GetChild(0));
+  auto value_exp = reinterpret_cast<const ConstantValueExpression *>(having->GetChild(1));
 
   EXPECT_EQ("id", name_exp->GetColumnName());
   EXPECT_EQ(type::TypeId::INTEGER, value_exp->GetValue().Type());
@@ -746,7 +747,7 @@ TEST_F(ParserTestBase, OldOrderByTest) {
     EXPECT_EQ(order_by->GetOrderByTypes().at(0), OrderType::kOrderAsc);
     auto expr = order_by->GetOrderByExpressions().at(0);
     EXPECT_EQ(expr->GetExpressionType(), ExpressionType::VALUE_TUPLE);
-    EXPECT_EQ((reinterpret_cast<TupleValueExpression *>(expr))->GetColumnName(), "id");
+    EXPECT_EQ((reinterpret_cast<const TupleValueExpression *>(expr))->GetColumnName(), "id");
   }
 
   {
@@ -763,7 +764,7 @@ TEST_F(ParserTestBase, OldOrderByTest) {
     EXPECT_EQ(order_by->GetOrderByTypes().at(0), OrderType::kOrderAsc);
     auto expr = order_by->GetOrderByExpressions().at(0);
     EXPECT_EQ(expr->GetExpressionType(), ExpressionType::VALUE_TUPLE);
-    EXPECT_EQ((reinterpret_cast<TupleValueExpression *>(expr))->GetColumnName(), "id");
+    EXPECT_EQ((reinterpret_cast<const TupleValueExpression *>(expr))->GetColumnName(), "id");
   }
 
   {
@@ -780,7 +781,7 @@ TEST_F(ParserTestBase, OldOrderByTest) {
     EXPECT_EQ(order_by->GetOrderByTypes().at(0), OrderType::kOrderDesc);
     auto expr = order_by->GetOrderByExpressions().at(0);
     EXPECT_EQ(expr->GetExpressionType(), ExpressionType::VALUE_TUPLE);
-    EXPECT_EQ((reinterpret_cast<TupleValueExpression *>(expr))->GetColumnName(), "id");
+    EXPECT_EQ((reinterpret_cast<const TupleValueExpression *>(expr))->GetColumnName(), "id");
   }
 
   {
@@ -798,10 +799,10 @@ TEST_F(ParserTestBase, OldOrderByTest) {
     EXPECT_EQ(order_by->GetOrderByTypes().at(1), OrderType::kOrderAsc);
     auto expr = order_by->GetOrderByExpressions().at(0);
     EXPECT_EQ(expr->GetExpressionType(), ExpressionType::VALUE_TUPLE);
-    EXPECT_EQ((reinterpret_cast<TupleValueExpression *>(expr))->GetColumnName(), "id");
+    EXPECT_EQ((reinterpret_cast<const TupleValueExpression *>(expr))->GetColumnName(), "id");
     expr = order_by->GetOrderByExpressions().at(1);
     EXPECT_EQ(expr->GetExpressionType(), ExpressionType::VALUE_TUPLE);
-    EXPECT_EQ((reinterpret_cast<TupleValueExpression *>(expr))->GetColumnName(), "name");
+    EXPECT_EQ((reinterpret_cast<const TupleValueExpression *>(expr))->GetColumnName(), "name");
   }
 
   {
@@ -819,10 +820,10 @@ TEST_F(ParserTestBase, OldOrderByTest) {
     EXPECT_EQ(order_by->GetOrderByTypes().at(1), OrderType::kOrderDesc);
     auto expr = order_by->GetOrderByExpressions().at(0);
     EXPECT_EQ(expr->GetExpressionType(), ExpressionType::VALUE_TUPLE);
-    EXPECT_EQ((reinterpret_cast<TupleValueExpression *>(expr))->GetColumnName(), "id");
+    EXPECT_EQ((reinterpret_cast<const TupleValueExpression *>(expr))->GetColumnName(), "id");
     expr = order_by->GetOrderByExpressions().at(1);
     EXPECT_EQ(expr->GetExpressionType(), ExpressionType::VALUE_TUPLE);
-    EXPECT_EQ((reinterpret_cast<TupleValueExpression *>(expr))->GetColumnName(), "name");
+    EXPECT_EQ((reinterpret_cast<const TupleValueExpression *>(expr))->GetColumnName(), "name");
   }
 }
 
@@ -843,7 +844,7 @@ TEST_F(ParserTestBase, OldConstTest) {
     auto correct_type = types[i];
 
     EXPECT_EQ(ExpressionType::VALUE_CONSTANT, column->GetExpressionType());
-    auto const_expression = reinterpret_cast<ConstantValueExpression *>(column);
+    auto const_expression = reinterpret_cast<const ConstantValueExpression *>(column);
     EXPECT_EQ(correct_type, const_expression->GetValue().Type());
   }
 }
@@ -863,10 +864,10 @@ TEST_F(ParserTestBase, OldJoinTest) {
     auto join_cond = join_table->GetJoin()->GetJoinCondition();
     EXPECT_EQ(join_cond->GetExpressionType(), ExpressionType::COMPARE_EQUAL);
     EXPECT_EQ(join_cond->GetChild(0)->GetExpressionType(), ExpressionType::VALUE_TUPLE);
-    auto jcl = reinterpret_cast<TupleValueExpression *>(join_cond->GetChild(0));
+    auto jcl = reinterpret_cast<const TupleValueExpression *>(join_cond->GetChild(0));
     EXPECT_EQ(jcl->GetTableName(), "foo");
     EXPECT_EQ(jcl->GetColumnName(), "id2");
-    auto jcr = reinterpret_cast<TupleValueExpression *>(join_cond->GetChild(1));
+    auto jcr = reinterpret_cast<const TupleValueExpression *>(join_cond->GetChild(1));
     EXPECT_EQ(jcr->GetTableName(), "baz");
     EXPECT_EQ(jcr->GetColumnName(), "id2");
 
@@ -948,7 +949,7 @@ TEST_F(ParserTestBase, OldMultiTableTest) {
   EXPECT_EQ(1, stmt_list.size());
   auto statement = reinterpret_cast<SelectStatement *>(stmt_list[0].get());
 
-  auto select_expression = reinterpret_cast<TupleValueExpression *>(statement->GetSelectColumns()[0]);
+  auto select_expression = reinterpret_cast<const TupleValueExpression *>(statement->GetSelectColumns()[0]);
   EXPECT_EQ("foo", select_expression->GetTableName());
   EXPECT_EQ("name", select_expression->GetColumnName());
 
@@ -967,8 +968,8 @@ TEST_F(ParserTestBase, OldMultiTableTest) {
   EXPECT_EQ(ExpressionType::COMPARE_EQUAL, where_expression->GetExpressionType());
   EXPECT_EQ(2, where_expression->GetChildrenSize());
 
-  auto child_0 = reinterpret_cast<TupleValueExpression *>(where_expression->GetChild(0));
-  auto child_1 = reinterpret_cast<TupleValueExpression *>(where_expression->GetChild(1));
+  auto child_0 = reinterpret_cast<const TupleValueExpression *>(where_expression->GetChild(0));
+  auto child_1 = reinterpret_cast<const TupleValueExpression *>(where_expression->GetChild(1));
   EXPECT_EQ("foo", child_0->GetTableName());
   EXPECT_EQ("id", child_0->GetColumnName());
   EXPECT_EQ("b", child_1->GetTableName());
@@ -1013,11 +1014,11 @@ TEST_F(ParserTestBase, OldColumnUpdateTest) {
     auto left_child = where_clause->GetChild(0);
     auto right_child = where_clause->GetChild(1);
     EXPECT_EQ(left_child->GetExpressionType(), ExpressionType::VALUE_TUPLE);
-    auto left_tuple = reinterpret_cast<TupleValueExpression *>(left_child);
+    auto left_tuple = reinterpret_cast<const TupleValueExpression *>(left_child);
     EXPECT_EQ(left_tuple->GetColumnName(), "c_w_id");
 
     EXPECT_EQ(right_child->GetExpressionType(), ExpressionType::VALUE_CONSTANT);
-    auto right_const = reinterpret_cast<ConstantValueExpression *>(right_child);
+    auto right_const = reinterpret_cast<const ConstantValueExpression *>(right_child);
     EXPECT_EQ(right_const->GetValue().Type(), type::TypeId::INTEGER);
     EXPECT_EQ(type::TransientValuePeeker::PeekInteger(right_const->GetValue()), 2);
   }
@@ -1042,9 +1043,9 @@ TEST_F(ParserTestBase, OldExpressionUpdateTest) {
   EXPECT_EQ(upd1->GetColumnName(), "s_ytd");
   auto op_expr = reinterpret_cast<const OperatorExpression *>(upd1->GetUpdateValue());
   EXPECT_EQ(op_expr->GetExpressionType(), ExpressionType::OPERATOR_PLUS);
-  auto child1 = reinterpret_cast<TupleValueExpression *>(op_expr->GetChild(0));
+  auto child1 = reinterpret_cast<const TupleValueExpression *>(op_expr->GetChild(0));
   EXPECT_EQ(child1->GetColumnName(), "s_ytd");
-  auto child2 = reinterpret_cast<ConstantValueExpression *>(op_expr->GetChild(1));
+  auto child2 = reinterpret_cast<const ConstantValueExpression *>(op_expr->GetChild(1));
   EXPECT_EQ(child2->GetValue().Type(), type::TypeId::INTEGER);
   EXPECT_EQ(type::TransientValuePeeker::PeekInteger(child2->GetValue()), 1);
 
@@ -1052,19 +1053,19 @@ TEST_F(ParserTestBase, OldExpressionUpdateTest) {
   auto where = reinterpret_cast<const OperatorExpression *>(update_stmt->GetUpdateCondition());
   EXPECT_EQ(where->GetExpressionType(), ExpressionType::CONJUNCTION_AND);
 
-  auto cond1 = reinterpret_cast<OperatorExpression *>(where->GetChild(0));
+  auto cond1 = reinterpret_cast<const OperatorExpression *>(where->GetChild(0));
   EXPECT_EQ(cond1->GetExpressionType(), ExpressionType::COMPARE_EQUAL);
-  auto column = reinterpret_cast<TupleValueExpression *>(cond1->GetChild(0));
+  auto column = reinterpret_cast<const TupleValueExpression *>(cond1->GetChild(0));
   EXPECT_EQ(column->GetColumnName(), "s_i_id");
-  constant = reinterpret_cast<ConstantValueExpression *>(cond1->GetChild(1));
+  constant = reinterpret_cast<const ConstantValueExpression *>(cond1->GetChild(1));
   EXPECT_EQ(constant->GetValue().Type(), type::TypeId::INTEGER);
   EXPECT_EQ(type::TransientValuePeeker::PeekInteger(constant->GetValue()), 68999);
 
-  auto cond2 = reinterpret_cast<OperatorExpression *>(where->GetChild(1));
+  auto cond2 = reinterpret_cast<const OperatorExpression *>(where->GetChild(1));
   EXPECT_EQ(cond2->GetExpressionType(), ExpressionType::COMPARE_EQUAL);
-  column = reinterpret_cast<TupleValueExpression *>(cond2->GetChild(0));
+  column = reinterpret_cast<const TupleValueExpression *>(cond2->GetChild(0));
   EXPECT_EQ(column->GetColumnName(), "s_w_id");
-  constant = reinterpret_cast<ConstantValueExpression *>(cond2->GetChild(1));
+  constant = reinterpret_cast<const ConstantValueExpression *>(cond2->GetChild(1));
   EXPECT_EQ(constant->GetValue().Type(), type::TypeId::INTEGER);
   EXPECT_EQ(type::TransientValuePeeker::PeekInteger(constant->GetValue()), 4);
 }
@@ -1102,19 +1103,21 @@ TEST_F(ParserTestBase, OldStringUpdateTest) {
   auto child10 = child1->GetChild(0);
   EXPECT_EQ(child00->GetExpressionType(), ExpressionType::VALUE_TUPLE);
   EXPECT_EQ(child10->GetExpressionType(), ExpressionType::VALUE_TUPLE);
-  EXPECT_EQ(reinterpret_cast<TupleValueExpression *>(child00)->GetColumnName(), "ol_o_id");
-  EXPECT_EQ(reinterpret_cast<TupleValueExpression *>(child10)->GetColumnName(), "ol_d_id");
+  EXPECT_EQ(reinterpret_cast<const TupleValueExpression *>(child00)->GetColumnName(), "ol_o_id");
+  EXPECT_EQ(reinterpret_cast<const TupleValueExpression *>(child10)->GetColumnName(), "ol_d_id");
 
   auto child01 = child0->GetChild(1);
   auto child11 = child1->GetChild(1);
   EXPECT_EQ(child01->GetExpressionType(), ExpressionType::VALUE_CONSTANT);
   EXPECT_EQ(child11->GetExpressionType(), ExpressionType::VALUE_CONSTANT);
-  EXPECT_EQ(reinterpret_cast<ConstantValueExpression *>(child01)->GetValue().Type(), type::TypeId::INTEGER);
-  EXPECT_EQ(type::TransientValuePeeker::PeekInteger(reinterpret_cast<ConstantValueExpression *>(child01)->GetValue()),
-            2101);
-  EXPECT_EQ(reinterpret_cast<ConstantValueExpression *>(child11)->GetValue().Type(), type::TypeId::INTEGER);
-  EXPECT_EQ(type::TransientValuePeeker::PeekInteger(reinterpret_cast<ConstantValueExpression *>(child11)->GetValue()),
-            2);
+  EXPECT_EQ(reinterpret_cast<const ConstantValueExpression *>(child01)->GetValue().Type(), type::TypeId::INTEGER);
+  EXPECT_EQ(
+      type::TransientValuePeeker::PeekInteger(reinterpret_cast<const ConstantValueExpression *>(child01)->GetValue()),
+      2101);
+  EXPECT_EQ(reinterpret_cast<const ConstantValueExpression *>(child11)->GetValue().Type(), type::TypeId::INTEGER);
+  EXPECT_EQ(
+      type::TransientValuePeeker::PeekInteger(reinterpret_cast<const ConstantValueExpression *>(child11)->GetValue()),
+      2);
 
   // Check update clause
   auto update_clause = update->GetUpdateClauses()[0];
@@ -1168,11 +1171,11 @@ TEST_F(ParserTestBase, OldInsertTest) {
   EXPECT_EQ(2, insert_stmt->GetValues()->size());
 
   // First item of first tuple is NULL
-  auto constant = reinterpret_cast<ConstantValueExpression *>(insert_stmt->GetValues()->at(0).at(0));
+  auto constant = reinterpret_cast<const ConstantValueExpression *>(insert_stmt->GetValues()->at(0).at(0));
   EXPECT_TRUE(constant->GetValue().Null());
 
   // Second item of second tuple == 5
-  constant = reinterpret_cast<ConstantValueExpression *>(insert_stmt->GetValues()->at(1).at(1));
+  constant = reinterpret_cast<const ConstantValueExpression *>(insert_stmt->GetValues()->at(1).at(1));
   EXPECT_EQ(constant->GetValue().Type(), type::TypeId::INTEGER);
   EXPECT_EQ(type::TransientValuePeeker::PeekInteger(constant->GetValue()), 5);
 }
@@ -1335,11 +1338,11 @@ TEST_F(ParserTestBase, OldCreateViewTest) {
 
   auto left_child = view_query->GetSelectCondition()->GetChild(0);
   EXPECT_EQ(left_child->GetExpressionType(), ExpressionType::VALUE_TUPLE);
-  EXPECT_EQ(reinterpret_cast<TupleValueExpression *>(left_child)->GetColumnName(), "kind");
+  EXPECT_EQ(reinterpret_cast<const TupleValueExpression *>(left_child)->GetColumnName(), "kind");
 
   auto right_child = view_query->GetSelectCondition()->GetChild(1);
   EXPECT_EQ(right_child->GetExpressionType(), ExpressionType::VALUE_CONSTANT);
-  auto right_value = reinterpret_cast<ConstantValueExpression *>(right_child)->GetValue();
+  auto right_value = reinterpret_cast<const ConstantValueExpression *>(right_child)->GetValue();
   auto string_view = type::TransientValuePeeker::PeekVarChar(right_value);
   EXPECT_EQ("Comedy", string_view);
 }
@@ -1353,9 +1356,9 @@ TEST_F(ParserTestBase, OldDistinctFromTest) {
   EXPECT_EQ(ExpressionType::COMPARE_IS_DISTINCT_FROM, where_expr->GetExpressionType());
   EXPECT_EQ(type::TypeId::BOOLEAN, where_expr->GetReturnValueType());
 
-  auto child0 = reinterpret_cast<TupleValueExpression *>(where_expr->GetChild(0));
+  auto child0 = reinterpret_cast<const TupleValueExpression *>(where_expr->GetChild(0));
   EXPECT_EQ("id", child0->GetColumnName());
-  auto child1 = reinterpret_cast<TupleValueExpression *>(where_expr->GetChild(1));
+  auto child1 = reinterpret_cast<const TupleValueExpression *>(where_expr->GetChild(1));
   EXPECT_EQ("value", child1->GetColumnName());
 }
 
@@ -1387,12 +1390,12 @@ TEST_F(ParserTestBase, OldConstraintTest) {
   EXPECT_EQ(default_expr->GetExpressionType(), ExpressionType::OPERATOR_PLUS);
   EXPECT_EQ(default_expr->GetChildrenSize(), 2);
 
-  auto child0 = reinterpret_cast<ConstantValueExpression *>(default_expr->GetChild(0));
+  auto child0 = reinterpret_cast<const ConstantValueExpression *>(default_expr->GetChild(0));
   EXPECT_NE(child0, nullptr);
   EXPECT_EQ(child0->GetValue().Type(), type::TypeId::INTEGER);
   EXPECT_EQ(type::TransientValuePeeker::PeekInteger(child0->GetValue()), 1);
 
-  auto child1 = reinterpret_cast<ConstantValueExpression *>(default_expr->GetChild(1));
+  auto child1 = reinterpret_cast<const ConstantValueExpression *>(default_expr->GetChild(1));
   EXPECT_NE(child1, nullptr);
   EXPECT_EQ(child1->GetValue().Type(), type::TypeId::INTEGER);
   EXPECT_EQ(type::TransientValuePeeker::PeekInteger(child1->GetValue()), 2);
@@ -1415,19 +1418,19 @@ TEST_F(ParserTestBase, OldConstraintTest) {
   EXPECT_EQ(column->GetCheckExpression()->GetExpressionType(), ExpressionType::COMPARE_GREATER_THAN);
   EXPECT_EQ(column->GetCheckExpression()->GetChildrenSize(), 2);
 
-  auto check_child1 = reinterpret_cast<OperatorExpression *>(column->GetCheckExpression()->GetChild(0));
+  auto check_child1 = reinterpret_cast<const OperatorExpression *>(column->GetCheckExpression()->GetChild(0));
   EXPECT_NE(check_child1, nullptr);
   EXPECT_EQ(check_child1->GetExpressionType(), ExpressionType::OPERATOR_PLUS);
   EXPECT_EQ(check_child1->GetChildrenSize(), 2);
-  auto plus_child1 = reinterpret_cast<TupleValueExpression *>(check_child1->GetChild(0));
+  auto plus_child1 = reinterpret_cast<const TupleValueExpression *>(check_child1->GetChild(0));
   EXPECT_NE(plus_child1, nullptr);
   EXPECT_EQ(plus_child1->GetColumnName(), "d");
-  auto plus_child2 = reinterpret_cast<ConstantValueExpression *>(check_child1->GetChild(1));
+  auto plus_child2 = reinterpret_cast<const ConstantValueExpression *>(check_child1->GetChild(1));
   EXPECT_NE(plus_child2, nullptr);
   EXPECT_EQ(plus_child2->GetValue().Type(), type::TypeId::INTEGER);
   EXPECT_EQ(type::TransientValuePeeker::PeekInteger(plus_child2->GetValue()), 1);
 
-  auto check_child2 = reinterpret_cast<ConstantValueExpression *>(column->GetCheckExpression()->GetChild(1));
+  auto check_child2 = reinterpret_cast<const ConstantValueExpression *>(column->GetCheckExpression()->GetChild(1));
   EXPECT_NE(check_child2, nullptr);
   EXPECT_EQ(check_child2->GetValue().Type(), type::TypeId::INTEGER);
   EXPECT_EQ(type::TransientValuePeeker::PeekInteger(check_child2->GetValue()), 0);
@@ -1533,11 +1536,11 @@ TEST_F(ParserTestBase, OldCreateTriggerTest) {
   auto left = when->GetChild(0);
   auto right = when->GetChild(1);
   EXPECT_EQ(left->GetExpressionType(), ExpressionType::VALUE_TUPLE);
-  EXPECT_EQ(reinterpret_cast<TupleValueExpression *>(left)->GetTableName(), "old");
-  EXPECT_EQ(reinterpret_cast<TupleValueExpression *>(left)->GetColumnName(), "balance");
+  EXPECT_EQ(reinterpret_cast<const TupleValueExpression *>(left)->GetTableName(), "old");
+  EXPECT_EQ(reinterpret_cast<const TupleValueExpression *>(left)->GetColumnName(), "balance");
   EXPECT_EQ(right->GetExpressionType(), ExpressionType::VALUE_TUPLE);
-  EXPECT_EQ(reinterpret_cast<TupleValueExpression *>(right)->GetTableName(), "new");
-  EXPECT_EQ(reinterpret_cast<TupleValueExpression *>(right)->GetColumnName(), "balance");
+  EXPECT_EQ(reinterpret_cast<const TupleValueExpression *>(right)->GetTableName(), "new");
+  EXPECT_EQ(reinterpret_cast<const TupleValueExpression *>(right)->GetColumnName(), "balance");
 
   EXPECT_TRUE(TRIGGER_FOR_ROW(create_trigger_stmt->GetTriggerType()));
 
@@ -1570,40 +1573,40 @@ TEST_F(ParserTestBase, OldFuncCallTest) {
   auto select_stmt = reinterpret_cast<SelectStatement *>(stmt_list[0].get());
 
   // Check ADD(1,a)
-  auto fun_expr = reinterpret_cast<FunctionExpression *>(select_stmt->GetSelectColumns()[0]);
+  auto fun_expr = reinterpret_cast<const FunctionExpression *>(select_stmt->GetSelectColumns()[0]);
   EXPECT_NE(fun_expr, nullptr);
   EXPECT_EQ(fun_expr->GetFuncName(), "add");
   EXPECT_EQ(fun_expr->GetChildrenSize(), 2);
 
-  auto const_expr = reinterpret_cast<ConstantValueExpression *>(fun_expr->GetChild(0));
+  auto const_expr = reinterpret_cast<const ConstantValueExpression *>(fun_expr->GetChild(0));
   EXPECT_NE(const_expr, nullptr);
   EXPECT_EQ(const_expr->GetValue().Type(), type::TypeId::INTEGER);
   EXPECT_EQ(type::TransientValuePeeker::PeekInteger(const_expr->GetValue()), 1);
 
-  auto tv_expr = reinterpret_cast<TupleValueExpression *>(fun_expr->GetChild(1));
+  auto tv_expr = reinterpret_cast<const TupleValueExpression *>(fun_expr->GetChild(1));
   EXPECT_NE(tv_expr, nullptr);
   EXPECT_EQ(tv_expr->GetColumnName(), "a");
 
   // Check chr(99)
-  fun_expr = reinterpret_cast<FunctionExpression *>(select_stmt->GetSelectColumns()[1]);
+  fun_expr = reinterpret_cast<const FunctionExpression *>(select_stmt->GetSelectColumns()[1]);
   EXPECT_NE(fun_expr, nullptr);
   EXPECT_EQ(fun_expr->GetFuncName(), "chr");
   EXPECT_EQ(fun_expr->GetChildrenSize(), 1);
 
   // Check FUN(b) > 2
-  auto op_expr = reinterpret_cast<OperatorExpression *>(select_stmt->GetSelectCondition());
+  auto op_expr = reinterpret_cast<const OperatorExpression *>(select_stmt->GetSelectCondition());
   EXPECT_NE(op_expr, nullptr);
   EXPECT_EQ(op_expr->GetExpressionType(), ExpressionType::COMPARE_GREATER_THAN);
 
-  fun_expr = reinterpret_cast<FunctionExpression *>(op_expr->GetChild(0));
+  fun_expr = reinterpret_cast<const FunctionExpression *>(op_expr->GetChild(0));
   EXPECT_NE(fun_expr, nullptr);
   EXPECT_EQ(fun_expr->GetFuncName(), "fun");
   EXPECT_EQ(fun_expr->GetChildrenSize(), 1);
-  tv_expr = reinterpret_cast<TupleValueExpression *>(fun_expr->GetChild(0));
+  tv_expr = reinterpret_cast<const TupleValueExpression *>(fun_expr->GetChild(0));
   EXPECT_NE(tv_expr, nullptr);
   EXPECT_EQ(tv_expr->GetColumnName(), "b");
 
-  const_expr = reinterpret_cast<ConstantValueExpression *>(op_expr->GetChild(1));
+  const_expr = reinterpret_cast<const ConstantValueExpression *>(op_expr->GetChild(1));
   EXPECT_NE(const_expr, nullptr);
   EXPECT_EQ(const_expr->GetValue().Type(), type::TypeId::INTEGER);
   EXPECT_EQ(type::TransientValuePeeker::PeekInteger(const_expr->GetValue()), 2);
@@ -1615,17 +1618,17 @@ TEST_F(ParserTestBase, OldUDFFuncCallTest) {
   auto stmt_list = pgparser.BuildParseTree(query);
   auto select_stmt = reinterpret_cast<SelectStatement *>(stmt_list[0].get());
 
-  auto fun_expr = reinterpret_cast<FunctionExpression *>(select_stmt->GetSelectColumns()[0]);
+  auto fun_expr = reinterpret_cast<const FunctionExpression *>(select_stmt->GetSelectColumns()[0]);
   EXPECT_NE(fun_expr, nullptr);
   EXPECT_EQ(fun_expr->GetFuncName(), "increment");
   EXPECT_EQ(fun_expr->GetChildrenSize(), 2);
 
-  auto const_expr = reinterpret_cast<ConstantValueExpression *>(fun_expr->GetChild(0));
+  auto const_expr = reinterpret_cast<const ConstantValueExpression *>(fun_expr->GetChild(0));
   EXPECT_NE(const_expr, nullptr);
   EXPECT_EQ(const_expr->GetValue().Type(), type::TypeId::INTEGER);
   EXPECT_EQ(type::TransientValuePeeker::PeekInteger(const_expr->GetValue()), 1);
 
-  auto tv_expr = reinterpret_cast<TupleValueExpression *>(fun_expr->GetChild(1));
+  auto tv_expr = reinterpret_cast<const TupleValueExpression *>(fun_expr->GetChild(1));
   EXPECT_NE(tv_expr, nullptr);
   EXPECT_EQ(tv_expr->GetColumnName(), "b");
 }
@@ -1657,10 +1660,10 @@ TEST_F(ParserTestBase, OldDateTypeTest) {
     auto stmt_list = pgparser.BuildParseTree(query);
     auto statement = reinterpret_cast<InsertStatement *>(stmt_list[0].get());
     auto values = *(statement->GetValues());
-    auto cast_expr = reinterpret_cast<TypeCastExpression *>(values[0][2]);
+    auto cast_expr = reinterpret_cast<const TypeCastExpression *>(values[0][2]);
     EXPECT_EQ(type::TypeId::DATE, cast_expr->GetReturnValueType());
 
-    auto const_expr = reinterpret_cast<ConstantValueExpression *>(cast_expr->GetChild(0));
+    auto const_expr = reinterpret_cast<const ConstantValueExpression *>(cast_expr->GetChild(0));
     type::TransientValue tmp_value = const_expr->GetValue();
     auto string_view = type::TransientValuePeeker::PeekVarChar(tmp_value);
     EXPECT_EQ("2017-01-01", string_view);
@@ -1695,7 +1698,7 @@ TEST_F(ParserTestBase, OldTypeCastTest) {
     auto stmt_list = pgparser.BuildParseTree(query);
     auto statement = reinterpret_cast<InsertStatement *>(stmt_list[0].get());
     auto values = *(statement->GetValues());
-    auto cast_expr = reinterpret_cast<ConstantValueExpression *>(values[0][2]);
+    auto cast_expr = reinterpret_cast<const ConstantValueExpression *>(values[0][2]);
     EXPECT_EQ(correct_type, cast_expr->GetReturnValueType());
   }
 }
@@ -1708,10 +1711,10 @@ TEST_F(ParserTestBase, OldTypeCastInExpressionTest) {
     auto stmt_list = pgparser.BuildParseTree(query);
     auto statement = reinterpret_cast<SelectStatement *>(stmt_list[0].get());
     auto where_expr = statement->GetSelectCondition();
-    auto cast_expr = reinterpret_cast<TypeCastExpression *>(where_expr->GetChild(1));
+    auto cast_expr = reinterpret_cast<const TypeCastExpression *>(where_expr->GetChild(1));
     EXPECT_EQ(type::TypeId::DATE, cast_expr->GetReturnValueType());
 
-    auto const_expr = reinterpret_cast<ConstantValueExpression *>(cast_expr->GetChild(0));
+    auto const_expr = reinterpret_cast<const ConstantValueExpression *>(cast_expr->GetChild(0));
     type::TransientValue tmp_value = const_expr->GetValue();
     auto string_view = type::TransientValuePeeker::PeekVarChar(tmp_value);
     EXPECT_EQ("2018-04-04", string_view);
@@ -1724,15 +1727,15 @@ TEST_F(ParserTestBase, OldTypeCastInExpressionTest) {
     auto column = statement->GetSelectColumns()[0];
     EXPECT_EQ(ExpressionType::OPERATOR_MINUS, column->GetExpressionType());
 
-    auto left_child = reinterpret_cast<TypeCastExpression *>(column->GetChild(0));
+    auto left_child = reinterpret_cast<const TypeCastExpression *>(column->GetChild(0));
     EXPECT_EQ(type::TypeId::INTEGER, left_child->GetReturnValueType());
 
-    auto value_expr = reinterpret_cast<ConstantValueExpression *>(left_child->GetChild(0));
+    auto value_expr = reinterpret_cast<const ConstantValueExpression *>(left_child->GetChild(0));
     type::TransientValue tmp_value = value_expr->GetValue();
     auto string_view = type::TransientValuePeeker::PeekVarChar(tmp_value);
     EXPECT_EQ("12345", string_view);
 
-    auto right_child = reinterpret_cast<ConstantValueExpression *>(column->GetChild(1));
+    auto right_child = reinterpret_cast<const ConstantValueExpression *>(column->GetChild(1));
     EXPECT_EQ(12, type::TransientValuePeeker::PeekInteger(right_child->GetValue()));
   }
 }

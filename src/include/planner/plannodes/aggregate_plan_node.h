@@ -47,7 +47,7 @@ class AggregatePlanNode : public AbstractPlanNode {
      * @param predicate having clause predicate to use for aggregate term
      * @return builder object
      */
-    Builder &SetHavingClausePredicate(parser::AbstractExpression *predicate) {
+    Builder &SetHavingClausePredicate(const parser::AbstractExpression *predicate) {
       having_clause_predicate_ = predicate;
       return *this;
     }
@@ -75,7 +75,7 @@ class AggregatePlanNode : public AbstractPlanNode {
     /**
      * Predicate for having clause if it exists
      */
-    parser::AbstractExpression *having_clause_predicate_;
+    const parser::AbstractExpression *having_clause_predicate_;
     /**
      * List of aggregate terms for aggregation
      */
@@ -95,7 +95,8 @@ class AggregatePlanNode : public AbstractPlanNode {
    * @param aggregate_strategy aggregation strategy to be used
    */
   AggregatePlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
-                    std::shared_ptr<OutputSchema> output_schema, parser::AbstractExpression *having_clause_predicate,
+                    std::shared_ptr<OutputSchema> output_schema,
+                    const parser::AbstractExpression *having_clause_predicate,
                     std::vector<parser::AggregateExpression *> aggregate_terms,
                     AggregateStrategyType aggregate_strategy)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
@@ -153,7 +154,7 @@ class AggregatePlanNode : public AbstractPlanNode {
   void FromJson(const nlohmann::json &j) override;
 
  private:
-  parser::AbstractExpression *having_clause_predicate_;
+  const parser::AbstractExpression *having_clause_predicate_;
   std::vector<parser::AggregateExpression *> aggregate_terms_;
   AggregateStrategyType aggregate_strategy_;
 };

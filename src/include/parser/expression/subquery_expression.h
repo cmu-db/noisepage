@@ -28,10 +28,10 @@ class SubqueryExpression : public AbstractExpression {
 
   ~SubqueryExpression() override = default;
 
-  AbstractExpression *Copy() const override {
+  const AbstractExpression *Copy() const override {
     // TODO(WAN): Previous codebase described as a hack, will we need a deep copy?
     // Tianyu: No need for deep copy if your objects are always immutable! (why even copy at all, but that's beyond me)
-    return new SubqueryExpression(std::make_shared<parser::SelectStatement>(*subselect_));
+    return new SubqueryExpression(subselect_);
   }
 
   /**

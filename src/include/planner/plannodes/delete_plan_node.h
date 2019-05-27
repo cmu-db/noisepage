@@ -56,7 +56,7 @@ class DeletePlanNode : public AbstractPlanNode {
      * @param delete_condition expression of delete condition
      * @return builder object
      */
-    Builder &SetDeleteCondition(parser::AbstractExpression *delete_condition) {
+    Builder &SetDeleteCondition(const parser::AbstractExpression *delete_condition) {
       delete_condition_ = delete_condition;
       return *this;
     }
@@ -99,7 +99,7 @@ class DeletePlanNode : public AbstractPlanNode {
     /**
      * expression of delete condition
      */
-    parser::AbstractExpression *delete_condition_;
+    const parser::AbstractExpression *delete_condition_;
   };
 
  private:
@@ -113,7 +113,7 @@ class DeletePlanNode : public AbstractPlanNode {
    */
   DeletePlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
                  catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
-                 parser::AbstractExpression *delete_condition)
+                 const parser::AbstractExpression *delete_condition)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         database_oid_(database_oid),
         namespace_oid_(namespace_oid),
@@ -148,7 +148,7 @@ class DeletePlanNode : public AbstractPlanNode {
   /**
    * @return the expression of delete condition
    */
-  parser::AbstractExpression *GetDeleteCondition() const { return delete_condition_; }
+  const parser::AbstractExpression *GetDeleteCondition() const { return delete_condition_; }
 
   /**
    * @return the type of this plan node
@@ -184,7 +184,7 @@ class DeletePlanNode : public AbstractPlanNode {
   /**
    * Expression of delete condition
    */
-  parser::AbstractExpression *delete_condition_;
+  const parser::AbstractExpression *delete_condition_;
 };
 
 DEFINE_JSON_DECLARATIONS(DeletePlanNode);

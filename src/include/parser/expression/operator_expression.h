@@ -21,7 +21,7 @@ class OperatorExpression : public AbstractExpression {
    * @param children vector containing arguments to the operator left to right
    */
   OperatorExpression(const ExpressionType expression_type, const type::TypeId return_value_type,
-                     std::vector<AbstractExpression *> children)
+                     std::vector<const AbstractExpression *> children)
       : AbstractExpression(expression_type, return_value_type, std::move(children)) {}
 
   /**
@@ -31,8 +31,8 @@ class OperatorExpression : public AbstractExpression {
 
   ~OperatorExpression() override = default;
 
-  AbstractExpression *Copy() const override {
-    std::vector<AbstractExpression *> children;
+  const AbstractExpression *Copy() const override {
+    std::vector<const AbstractExpression *> children;
     for (const auto *child : GetChildren()) {
       children.emplace_back(child->Copy());
     }

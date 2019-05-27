@@ -37,7 +37,7 @@ class ConstantValueExpression : public AbstractExpression {
     return value_ == const_expr.GetValue();
   }
 
-  AbstractExpression *Copy() const override { return new ConstantValueExpression(type::TransientValue(value_)); }
+  const AbstractExpression *Copy() const override { return new ConstantValueExpression(type::TransientValue(value_)); }
 
   /**
    * @return the constant value stored in this expression

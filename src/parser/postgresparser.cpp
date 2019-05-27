@@ -186,12 +186,12 @@ std::unique_ptr<SQLStatement> PostgresParser::NodeTransform(Node *node) {
   return result;
 }
 
-AbstractExpression *PostgresParser::ExprTransform(Node *node) {
+const AbstractExpression *PostgresParser::ExprTransform(Node *node) {
   if (node == nullptr) {
     return nullptr;
   }
 
-  AbstractExpression *expr = nullptr;
+  const AbstractExpression *expr = nullptr;
   switch (node->type) {
     case T_A_Const: {
       expr = ConstTransform(reinterpret_cast<A_Const *>(node));
@@ -397,7 +397,7 @@ ExpressionType PostgresParser::StringToExpressionType(const std::string &parser_
 }
 
 // Postgres.A_Expr -> terrier.AbstractExpression
-AbstractExpression *PostgresParser::AExprTransform(A_Expr *root) {
+const AbstractExpression *PostgresParser::AExprTransform(A_Expr *root) {
   // TODO(WAN): the old system says, need a function to transform strings of ops to peloton exprtype
   // e.g. > to COMPARE_GREATERTHAN
   if (root == nullptr) {
@@ -405,7 +405,7 @@ AbstractExpression *PostgresParser::AExprTransform(A_Expr *root) {
   }
 
   ExpressionType target_type;
-  std::vector<AbstractExpression *> children;
+  std::vector<const AbstractExpression *> children;
 
   if (root->kind == AEXPR_DISTINCT) {
     target_type = ExpressionType::COMPARE_IS_DISTINCT_FROM;
@@ -460,9 +460,9 @@ AbstractExpression *PostgresParser::AExprTransform(A_Expr *root) {
 }
 
 // Postgres.BoolExpr -> terrier.ConjunctionExpression
-AbstractExpression *PostgresParser::BoolExprTransform(BoolExpr *root) {
-  AbstractExpression *result;
-  std::vector<AbstractExpression *> children;
+const AbstractExpression *PostgresParser::BoolExprTransform(BoolExpr *root) {
+  const AbstractExpression *result;
+  std::vector<const AbstractExpression *> children;
   for (auto cell = root->args->head; cell != nullptr; cell = cell->next) {
     auto node = reinterpret_cast<Node *>(cell->data.ptr_value);
     children.emplace_back(ExprTransform(node));
@@ -489,7 +489,7 @@ AbstractExpression *PostgresParser::BoolExprTransform(BoolExpr *root) {
   return result;
 }
 
-AbstractExpression *PostgresParser::CaseExprTransform(CaseExpr *root) {
+const AbstractExpression *PostgresParser::CaseExprTransform(CaseExpr *root) {
   if (root == nullptr) {
     return nullptr;
   }
@@ -505,7 +505,7 @@ AbstractExpression *PostgresParser::CaseExprTransform(CaseExpr *root) {
     if (arg_expr == nullptr) {
       clauses.push_back(new CaseExpression::WhenClause(when_expr, result_expr));
     } else {
-      std::vector<AbstractExpression *> children;
+      std::vector<const AbstractExpression *> children;
       children.emplace_back(arg_expr->Copy());
       children.emplace_back(when_expr);
       auto *cmp_expr = new ComparisonExpression(ExpressionType::COMPARE_EQUAL, std::move(children));
@@ -522,8 +522,8 @@ AbstractExpression *PostgresParser::CaseExprTransform(CaseExpr *root) {
 }
 
 // Postgres.ColumnRef -> terrier.TupleValueExpression | terrier.StarExpression
-AbstractExpression *PostgresParser::ColumnRefTransform(ColumnRef *root) {
-  AbstractExpression *result;
+const AbstractExpression *PostgresParser::ColumnRefTransform(ColumnRef *root) {
+  const AbstractExpression *result;
   List *fields = root->fields;
   auto node = reinterpret_cast<Node *>(fields->head->data.ptr_value);
   switch (node->type) {
@@ -554,7 +554,7 @@ AbstractExpression *PostgresParser::ColumnRefTransform(ColumnRef *root) {
 }
 
 // Postgres.A_Const -> terrier.ConstantValueExpression
-AbstractExpression *PostgresParser::ConstTransform(A_Const *root) {
+const AbstractExpression *PostgresParser::ConstTransform(A_Const *root) {
   if (root == nullptr) {
     return nullptr;
   }
@@ -562,15 +562,15 @@ AbstractExpression *PostgresParser::ConstTransform(A_Const *root) {
 }
 
 // Postgres.FuncCall -> terrier.AbstractExpression
-AbstractExpression *PostgresParser::FuncCallTransform(FuncCall *root) {
+const AbstractExpression *PostgresParser::FuncCallTransform(FuncCall *root) {
   // TODO(WAN): change case?
   std::string func_name = reinterpret_cast<value *>(root->funcname->head->data.ptr_value)->val.str;
 
-  AbstractExpression *result;
+  const AbstractExpression *result;
   if (!IsAggregateFunction(func_name)) {
     // normal functions (built-in functions or UDFs)
     func_name = (reinterpret_cast<value *>(root->funcname->tail->data.ptr_value))->val.str;
-    std::vector<AbstractExpression *> children;
+    std::vector<const AbstractExpression *> children;
 
     if (root->args != nullptr) {
       for (auto cell = root->args->head; cell != nullptr; cell = cell->next) {
@@ -582,7 +582,7 @@ AbstractExpression *PostgresParser::FuncCallTransform(FuncCall *root) {
   } else {
     // aggregate function
     auto agg_fun_type = StringToExpressionType("AGGREGATE_" + func_name);
-    std::vector<AbstractExpression *> children;
+    std::vector<const AbstractExpression *> children;
     if (root->agg_star) {
       auto child = new StarExpression();
       children.emplace_back(child);
@@ -601,12 +601,12 @@ AbstractExpression *PostgresParser::FuncCallTransform(FuncCall *root) {
 }
 
 // Postgres.NullTest -> terrier.OperatorExpression
-AbstractExpression *PostgresParser::NullTestTransform(NullTest *root) {
+const AbstractExpression *PostgresParser::NullTestTransform(NullTest *root) {
   if (root == nullptr) {
     return nullptr;
   }
 
-  std::vector<AbstractExpression *> children;
+  std::vector<const AbstractExpression *> children;
 
   switch (root->arg->type) {
     case T_ColumnRef: {
@@ -640,22 +640,22 @@ AbstractExpression *PostgresParser::NullTestTransform(NullTest *root) {
 }
 
 // Postgres.ParamRef -> terrier.ParameterValueExpression
-AbstractExpression *PostgresParser::ParamRefTransform(ParamRef *root) {
+const AbstractExpression *PostgresParser::ParamRefTransform(ParamRef *root) {
   auto result = new ParameterValueExpression(root->number - 1);
   return result;
 }
 
 // Postgres.SubLink -> terrier.
-AbstractExpression *PostgresParser::SubqueryExprTransform(SubLink *node) {
+const AbstractExpression *PostgresParser::SubqueryExprTransform(SubLink *node) {
   if (node == nullptr) {
     return nullptr;
   }
 
   auto select_stmt = SelectTransform(reinterpret_cast<SelectStmt *>(node->subselect));
   auto subquery_expr = new SubqueryExpression(std::move(select_stmt));
-  std::vector<AbstractExpression *> children;
+  std::vector<const AbstractExpression *> children;
 
-  AbstractExpression *result;
+  const AbstractExpression *result;
 
   switch (node->subLinkType) {
     case ANY_SUBLINK: {
@@ -681,18 +681,18 @@ AbstractExpression *PostgresParser::SubqueryExprTransform(SubLink *node) {
 }
 
 // Postgres.TypeCast -> terrier.TypeCastExpression
-AbstractExpression *PostgresParser::TypeCastTransform(TypeCast *root) {
+const AbstractExpression *PostgresParser::TypeCastTransform(TypeCast *root) {
   auto type_name = reinterpret_cast<value *>(root->typeName->names->tail->data.ptr_value)->val.str;
   auto type = ColumnDefinition::StrToValueType(type_name);
-  std::vector<AbstractExpression *> children;
+  std::vector<const AbstractExpression *> children;
   children.emplace_back(ExprTransform(root->arg));
   auto result = new TypeCastExpression(type, std::move(children));
   return result;
 }
 
 // Postgres.value -> terrier.ConstantValueExpression
-AbstractExpression *PostgresParser::ValueTransform(value val) {
-  AbstractExpression *result;
+const AbstractExpression *PostgresParser::ValueTransform(value val) {
+  const AbstractExpression *result;
   switch (val.type) {
     case T_Integer: {
       auto v = type::TransientValueFactory::GetInteger(val.val.ival);
@@ -765,13 +765,13 @@ std::unique_ptr<SelectStatement> PostgresParser::SelectTransform(SelectStmt *roo
 }
 
 // Postgres.SelectStmt.whereClause -> terrier.SelectStatement.select_
-std::vector<AbstractExpression *> PostgresParser::TargetTransform(List *root) {
+std::vector<const AbstractExpression *> PostgresParser::TargetTransform(List *root) {
   // Postgres parses 'SELECT;' to nullptr
   if (root == nullptr) {
     throw PARSER_EXCEPTION("TargetTransform: root==null.");
   }
 
-  std::vector<AbstractExpression *> result;
+  std::vector<const AbstractExpression *> result;
   for (auto cell = root->head; cell != nullptr; cell = cell->next) {
     auto target = reinterpret_cast<ResTarget *>(cell->data.ptr_value);
     /*
@@ -848,14 +848,14 @@ std::unique_ptr<GroupByDescription> PostgresParser::GroupByTransform(List *group
     return nullptr;
   }
 
-  std::vector<AbstractExpression *> columns;
+  std::vector<const AbstractExpression *> columns;
   for (auto cell = group->head; cell != nullptr; cell = cell->next) {
     auto temp = reinterpret_cast<Node *>(cell->data.ptr_value);
     columns.emplace_back(ExprTransform(temp));
   }
 
   // TODO(WAN): old system says, having clauses not implemented, depends on AExprTransform
-  AbstractExpression *having = nullptr;
+  const AbstractExpression *having = nullptr;
   if (having_node != nullptr) {
     having = ExprTransform(having_node);
   }
@@ -871,7 +871,7 @@ std::unique_ptr<OrderByDescription> PostgresParser::OrderByTransform(List *order
   }
 
   std::vector<OrderType> types;
-  std::vector<AbstractExpression *> exprs;
+  std::vector<const AbstractExpression *> exprs;
 
   for (auto cell = order->head; cell != nullptr; cell = cell->next) {
     auto temp = reinterpret_cast<Node *>(cell->data.ptr_value);
@@ -905,7 +905,7 @@ std::unique_ptr<OrderByDescription> PostgresParser::OrderByTransform(List *order
 }
 
 // Postgres.SelectStmt.whereClause -> terrier.AbstractExpression
-AbstractExpression *PostgresParser::WhereTransform(Node *root) {
+const AbstractExpression *PostgresParser::WhereTransform(Node *root) {
   if (root == nullptr) {
     return nullptr;
   }
@@ -980,7 +980,7 @@ std::unique_ptr<JoinDefinition> PostgresParser::JoinTransform(JoinExpr *root) {
     default: { PARSER_LOG_AND_THROW("JoinTransform", "Right JoinArgType", root->rarg->type); }
   }
 
-  AbstractExpression *condition;
+  const AbstractExpression *condition;
 
   // TODO(WAN): quick fix to prevent segfaulting on the following test case
   // SELECT * FROM tab0 AS cor0 CROSS JOIN tab0 AS cor1 WHERE NULL IS NOT NULL;
@@ -1437,8 +1437,8 @@ PostgresParser::ColumnDefTransResult PostgresParser::ColumnDefTransform(ColumnDe
   bool is_primary = false;
   bool is_not_null = false;
   bool is_unique = false;
-  AbstractExpression *default_expr = nullptr;
-  AbstractExpression *check_expr = nullptr;
+  const AbstractExpression *default_expr = nullptr;
+  const AbstractExpression *check_expr = nullptr;
 
   if (root->constraints != nullptr) {
     for (auto cell = root->constraints->head; cell != nullptr; cell = cell->next) {
@@ -1570,11 +1570,11 @@ std::unique_ptr<ReturnType> PostgresParser::ReturnTypeTransform(TypeName *root) 
 }
 
 // Postgres.Node -> terrier.AbstractExpression
-AbstractExpression *PostgresParser::WhenTransform(Node *root) {
+const AbstractExpression *PostgresParser::WhenTransform(Node *root) {
   if (root == nullptr) {
     return nullptr;
   }
-  AbstractExpression *result;
+  const AbstractExpression *result;
   switch (root->type) {
     case T_A_Expr: {
       result = AExprTransform(reinterpret_cast<A_Expr *>(root));
@@ -1742,8 +1742,8 @@ std::unique_ptr<ExecuteStatement> PostgresParser::ExecuteTransform(ExecuteStmt *
   return result;
 }
 
-std::vector<AbstractExpression *> PostgresParser::ParamListTransform(List *root) {
-  std::vector<AbstractExpression *> result;
+std::vector<const AbstractExpression *> PostgresParser::ParamListTransform(List *root) {
+  std::vector<const AbstractExpression *> result;
 
   if (root == nullptr) {
     return result;
@@ -1822,11 +1822,11 @@ std::unique_ptr<std::vector<std::string>> PostgresParser::ColumnNameTransform(Li
 }
 
 // Transforms value lists into terrier equivalent. Nested vectors, because an InsertStmt may insert multiple tuples.
-std::unique_ptr<std::vector<std::vector<AbstractExpression *>>> PostgresParser::ValueListsTransform(List *root) {
-  auto result = std::make_unique<std::vector<std::vector<AbstractExpression *>>>();
+std::unique_ptr<std::vector<std::vector<const AbstractExpression *>>> PostgresParser::ValueListsTransform(List *root) {
+  auto result = std::make_unique<std::vector<std::vector<const AbstractExpression *>>>();
 
   for (auto value_list = root->head; value_list != nullptr; value_list = value_list->next) {
-    std::vector<AbstractExpression *> cur_result;
+    std::vector<const AbstractExpression *> cur_result;
 
     auto target = reinterpret_cast<List *>(value_list->data.ptr_value);
     for (auto cell = target->head; cell != nullptr; cell = cell->next) {

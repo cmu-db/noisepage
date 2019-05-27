@@ -23,7 +23,8 @@ class CaseExpression : public AbstractExpression {
      * @param condition condition to be met
      * @param then action when condition is met
      */
-    WhenClause(AbstractExpression *condition, AbstractExpression *then) : condition_(condition), then_(then) {
+    WhenClause(const AbstractExpression *condition, const AbstractExpression *then)
+        : condition_(condition), then_(then) {
       TERRIER_ASSERT(condition != nullptr, "Condition for case expression can't be null");
       TERRIER_ASSERT(then != nullptr, "Then for case expression can't be null");
     }
@@ -41,11 +42,11 @@ class CaseExpression : public AbstractExpression {
     /**
      * The condition to be checked for this case expression.
      */
-    AbstractExpression *condition_;
+    const AbstractExpression *condition_;
     /**
      * The value that this expression should have if the corresponding condition is true.
      */
-    AbstractExpression *then_;
+    const AbstractExpression *then_;
 
     /**
      * Equality check
@@ -99,7 +100,7 @@ class CaseExpression : public AbstractExpression {
    * @param default_expr default expression for this case
    */
   CaseExpression(const type::TypeId return_value_type, std::vector<WhenClause *> when_clauses,
-                 AbstractExpression *default_expr)
+                 const AbstractExpression *default_expr)
       : AbstractExpression(ExpressionType::OPERATOR_CASE_EXPR, return_value_type, {}),
         when_clauses_(std::move(when_clauses)),
         default_expr_(default_expr) {}
@@ -143,7 +144,7 @@ class CaseExpression : public AbstractExpression {
     return (*default_exp == *other_default_exp);
   }
 
-  AbstractExpression *Copy() const override {
+  const AbstractExpression *Copy() const override {
     return new CaseExpression(GetReturnValueType(), when_clauses_, default_expr_->Copy());
   }
 
@@ -156,7 +157,7 @@ class CaseExpression : public AbstractExpression {
    * @param index index of WhenClause to get
    * @return condition at that index
    */
-  AbstractExpression *GetWhenClauseCondition(size_t index) const {
+  const AbstractExpression *GetWhenClauseCondition(size_t index) const {
     TERRIER_ASSERT(index < when_clauses_.size(), "Index must be in bounds.");
     return when_clauses_[index]->condition_;
   }
@@ -165,7 +166,7 @@ class CaseExpression : public AbstractExpression {
    * @param index index of WhenClause to get
    * @return result at that index
    */
-  AbstractExpression *GetWhenClauseResult(size_t index) const {
+  const AbstractExpression *GetWhenClauseResult(size_t index) const {
     TERRIER_ASSERT(index < when_clauses_.size(), "Index must be in bounds.");
     return when_clauses_[index]->then_;
   }
@@ -173,7 +174,7 @@ class CaseExpression : public AbstractExpression {
   /**
    * @return default clause, if it exists
    */
-  AbstractExpression *GetDefaultClause() const { return default_expr_; }
+  const AbstractExpression *GetDefaultClause() const { return default_expr_; }
 
   /**
    * @return expression serialized to json
@@ -202,7 +203,7 @@ class CaseExpression : public AbstractExpression {
 
  private:
   std::vector<WhenClause *> when_clauses_;
-  AbstractExpression *default_expr_;
+  const AbstractExpression *default_expr_;
 };
 
 DEFINE_JSON_DECLARATIONS(CaseExpression::WhenClause);

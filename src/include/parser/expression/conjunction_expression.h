@@ -19,7 +19,7 @@ class ConjunctionExpression : public AbstractExpression {
    * @param cmp_type type of conjunction
    * @param children vector containing exactly two children, left then right
    */
-  ConjunctionExpression(const ExpressionType cmp_type, std::vector<AbstractExpression *> children)
+  ConjunctionExpression(const ExpressionType cmp_type, std::vector<const AbstractExpression *> children)
       : AbstractExpression(cmp_type, type::TypeId::BOOLEAN, std::move(children)) {}
 
   /**
@@ -29,8 +29,8 @@ class ConjunctionExpression : public AbstractExpression {
 
   ~ConjunctionExpression() override = default;
 
-  AbstractExpression *Copy() const override {
-    std::vector<AbstractExpression *> children;
+  const AbstractExpression *Copy() const override {
+    std::vector<const AbstractExpression *> children;
     for (const auto *child : GetChildren()) {
       children.emplace_back(child->Copy());
     }

@@ -95,7 +95,7 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
      * @param trigger_when trigger when clause
      * @return builder object
      */
-    Builder &SetTriggerWhen(parser::AbstractExpression *trigger_when) {
+    Builder &SetTriggerWhen(const parser::AbstractExpression *trigger_when) {
       trigger_when_ = trigger_when;
       return *this;
     }
@@ -184,7 +184,7 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
     /**
      * Trigger when claus
      */
-    parser::AbstractExpression *trigger_when_;
+    const parser::AbstractExpression *trigger_when_;
 
     /**
      * Type of trigger
@@ -211,7 +211,7 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
                         catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
                         std::string trigger_name, std::vector<std::string> &&trigger_funcnames,
                         std::vector<std::string> &&trigger_args, std::vector<catalog::col_oid_t> &&trigger_columns,
-                        parser::AbstractExpression *trigger_when, int16_t trigger_type)
+                        const parser::AbstractExpression *trigger_when, int16_t trigger_type)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         database_oid_(database_oid),
         namespace_oid_(namespace_oid),
@@ -276,7 +276,7 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
   /**
    * @return trigger when clause
    */
-  parser::AbstractExpression *GetTriggerWhen() const { return trigger_when_; }
+  const parser::AbstractExpression *GetTriggerWhen() const { return trigger_when_; }
 
   /**
    * @return trigger type, i.e. information about row, timing, events, access by pg_trigger
@@ -332,7 +332,7 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
   /**
    * Trigger when claus
    */
-  parser::AbstractExpression *trigger_when_;
+  const parser::AbstractExpression *trigger_when_;
 
   /**
    * Type of trigger

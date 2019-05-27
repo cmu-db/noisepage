@@ -24,7 +24,7 @@ class AbstractExpression {
    * @param children the list of children for this node
    */
   AbstractExpression(const ExpressionType expression_type, const type::TypeId return_value_type,
-                     std::vector<AbstractExpression *> children)
+                     std::vector<const AbstractExpression *> children)
       : expression_type_(expression_type), return_value_type_(return_value_type), children_(std::move(children)) {}
 
   /**
@@ -81,11 +81,11 @@ class AbstractExpression {
   virtual bool operator!=(const AbstractExpression &rhs) const { return !operator==(rhs); }
 
   /**
-   * Creates a (deep) copy of the current AbstractExpression.
+   * Creates a deep copy of the current AbstractExpression.
+   * @warning It is incorrect to supply a default implementation here since that will return an object of base type
+   * AbstractExpression instead of the desired non-abstract type.
    */
-  // It is incorrect to supply a default implementation here since that will return an object
-  // of base type AbstractExpression instead of the desired non-abstract type.
-  virtual AbstractExpression *Copy() const = 0;
+  virtual const AbstractExpression *Copy() const = 0;
 
   /**
    * @return type of this expression
@@ -105,13 +105,13 @@ class AbstractExpression {
   /**
    * @return children of this abstract expression
    */
-  const std::vector<AbstractExpression *> &GetChildren() const { return children_; }
+  const std::vector<const AbstractExpression *> &GetChildren() const { return children_; }
 
   /**
    * @param index index of child
    * @return child of abstract expression at that index
    */
-  AbstractExpression *GetChild(uint64_t index) const {
+  const AbstractExpression *GetChild(uint64_t index) const {
     TERRIER_ASSERT(index < children_.size(), "Index must be in bounds.");
     return children_[index];
   }
@@ -129,9 +129,9 @@ class AbstractExpression {
   virtual void FromJson(const nlohmann::json &j);
 
  private:
-  ExpressionType expression_type_;              // type of current expression
-  type::TypeId return_value_type_;              // type of return value
-  std::vector<AbstractExpression *> children_;  // list of children
+  ExpressionType expression_type_;                    // type of current expression
+  type::TypeId return_value_type_;                    // type of return value
+  std::vector<const AbstractExpression *> children_;  // list of children
 };
 
 DEFINE_JSON_DECLARATIONS(AbstractExpression);

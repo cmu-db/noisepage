@@ -20,7 +20,7 @@ class AggregateExpression : public AbstractExpression {
    * @param children children to be added
    * @param distinct whether to eliminate duplicate values in aggregate function calculations
    */
-  AggregateExpression(ExpressionType type, std::vector<AbstractExpression *> children, bool distinct)
+  AggregateExpression(ExpressionType type, std::vector<const AbstractExpression *> children, bool distinct)
       : AbstractExpression(type, type::TypeId::INVALID, std::move(children)), distinct_(distinct) {}
 
   /**
@@ -30,8 +30,8 @@ class AggregateExpression : public AbstractExpression {
 
   ~AggregateExpression() override = default;
 
-  AbstractExpression *Copy() const override {
-    std::vector<AbstractExpression *> children;
+  const AbstractExpression *Copy() const override {
+    std::vector<const AbstractExpression *> children;
     for (const auto *child : GetChildren()) {
       children.emplace_back(child->Copy());
     }

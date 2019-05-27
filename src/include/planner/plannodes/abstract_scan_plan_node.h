@@ -25,7 +25,7 @@ class AbstractScanPlanNode : public AbstractPlanNode {
      * @param predicate predicate to use for scan
      * @return builder object
      */
-    ConcreteType &SetScanPredicate(parser::AbstractExpression *predicate) {
+    ConcreteType &SetScanPredicate(const parser::AbstractExpression *predicate) {
       scan_predicate_ = predicate;
       return *dynamic_cast<ConcreteType *>(this);
     }
@@ -70,7 +70,7 @@ class AbstractScanPlanNode : public AbstractPlanNode {
     /**
      * Scan predicate
      */
-    parser::AbstractExpression *scan_predicate_;
+    const parser::AbstractExpression *scan_predicate_;
     /**
      * Is scan for update
      */
@@ -102,7 +102,7 @@ class AbstractScanPlanNode : public AbstractPlanNode {
    * @param namespace_oid OID of the namespace
    */
   AbstractScanPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
-                       std::shared_ptr<OutputSchema> output_schema, parser::AbstractExpression *predicate,
+                       std::shared_ptr<OutputSchema> output_schema, const parser::AbstractExpression *predicate,
                        bool is_for_update, bool is_parallel, catalog::db_oid_t database_oid,
                        catalog::namespace_oid_t namespace_oid)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
@@ -160,7 +160,7 @@ class AbstractScanPlanNode : public AbstractPlanNode {
   /**
    * Selection predicate. We remove const to make it used when deserialization
    */
-  parser::AbstractExpression *scan_predicate_;
+  const parser::AbstractExpression *scan_predicate_;
 
   /**
    * Are the tuples produced by this plan intended for update?

@@ -84,7 +84,7 @@ struct ColumnDefinition {
    * @param varlen size of column if varlen
    */
   ColumnDefinition(std::string name, DataType type, bool is_primary, bool is_not_null, bool is_unique,
-                   AbstractExpression *default_expr, AbstractExpression *check_expr, size_t varlen)
+                   const AbstractExpression *default_expr, const AbstractExpression *check_expr, size_t varlen)
       : name_(std::move(name)),
         type_(type),
         is_primary_(is_primary),
@@ -340,7 +340,7 @@ class IndexAttr {
   /**
    * Create an index attribute on an expression.
    */
-  explicit IndexAttr(AbstractExpression *expr) : name_(""), expr_(expr) {}
+  explicit IndexAttr(const AbstractExpression *expr) : name_(""), expr_(expr) {}
 
   ~IndexAttr() { delete expr_; }
 
@@ -362,7 +362,7 @@ class IndexAttr {
 
  private:
   std::string name_;
-  AbstractExpression *expr_;
+  const AbstractExpression *expr_;
 };
 
 /**
@@ -430,7 +430,8 @@ class CreateStatement : public TableRefStatement {
    */
   CreateStatement(std::shared_ptr<TableInfo> table_info, std::string trigger_name,
                   std::vector<std::string> trigger_funcnames, std::vector<std::string> trigger_args,
-                  std::vector<std::string> trigger_columns, AbstractExpression *trigger_when, int16_t trigger_type)
+                  std::vector<std::string> trigger_columns, const AbstractExpression *trigger_when,
+                  int16_t trigger_type)
       : TableRefStatement(StatementType::CREATE, std::move(table_info)),
         create_type_(kTrigger),
         trigger_name_(std::move(trigger_name)),

@@ -88,29 +88,29 @@ class PostgresParser {
   static std::unique_ptr<parser::SQLStatement> NodeTransform(Node *node);
 
   // expressions
-  static AbstractExpression *ExprTransform(Node *node);
+  static const AbstractExpression *ExprTransform(Node *node);
   static ExpressionType StringToExpressionType(const std::string &parser_str);
 
-  static AbstractExpression *AExprTransform(A_Expr *root);
-  static AbstractExpression *BoolExprTransform(BoolExpr *root);
-  static AbstractExpression *CaseExprTransform(CaseExpr *root);
-  static AbstractExpression *ColumnRefTransform(ColumnRef *root);
-  static AbstractExpression *ConstTransform(A_Const *root);
-  static AbstractExpression *FuncCallTransform(FuncCall *root);
-  static AbstractExpression *NullTestTransform(NullTest *root);
-  static AbstractExpression *ParamRefTransform(ParamRef *root);
-  static AbstractExpression *SubqueryExprTransform(SubLink *node);
-  static AbstractExpression *TypeCastTransform(TypeCast *root);
-  static AbstractExpression *ValueTransform(value val);
+  static const AbstractExpression *AExprTransform(A_Expr *root);
+  static const AbstractExpression *BoolExprTransform(BoolExpr *root);
+  static const AbstractExpression *CaseExprTransform(CaseExpr *root);
+  static const AbstractExpression *ColumnRefTransform(ColumnRef *root);
+  static const AbstractExpression *ConstTransform(A_Const *root);
+  static const AbstractExpression *FuncCallTransform(FuncCall *root);
+  static const AbstractExpression *NullTestTransform(NullTest *root);
+  static const AbstractExpression *ParamRefTransform(ParamRef *root);
+  static const AbstractExpression *SubqueryExprTransform(SubLink *node);
+  static const AbstractExpression *TypeCastTransform(TypeCast *root);
+  static const AbstractExpression *ValueTransform(value val);
 
   // SELECT statements
   static std::unique_ptr<SelectStatement> SelectTransform(SelectStmt *root);
   // SELECT helpers
-  static std::vector<AbstractExpression *> TargetTransform(List *root);
+  static std::vector<const AbstractExpression *> TargetTransform(List *root);
   static std::unique_ptr<TableRef> FromTransform(SelectStmt *select_root);
   static std::unique_ptr<GroupByDescription> GroupByTransform(List *group, Node *having_node);
   static std::unique_ptr<OrderByDescription> OrderByTransform(List *order);
-  static AbstractExpression *WhereTransform(Node *root);
+  static const AbstractExpression *WhereTransform(Node *root);
 
   // FromTransform helpers
   static std::unique_ptr<JoinDefinition> JoinTransform(JoinExpr *root);
@@ -142,7 +142,7 @@ class PostgresParser {
   static std::unique_ptr<ReturnType> ReturnTypeTransform(TypeName *root);
 
   // CREATE TRIGGER helpers
-  static AbstractExpression *WhenTransform(Node *root);
+  static const AbstractExpression *WhenTransform(Node *root);
 
   // DELETE statements
   static std::unique_ptr<DeleteStatement> DeleteTransform(DeleteStmt *root);
@@ -162,7 +162,7 @@ class PostgresParser {
   static std::unique_ptr<ExecuteStatement> ExecuteTransform(ExecuteStmt *root);
 
   // EXECUTE helpers
-  static std::vector<AbstractExpression *> ParamListTransform(List *root);
+  static std::vector<const AbstractExpression *> ParamListTransform(List *root);
 
   // EXPLAIN statements
   static std::unique_ptr<ExplainStatement> ExplainTransform(ExplainStmt *root);
@@ -172,7 +172,7 @@ class PostgresParser {
 
   // INSERT helpers
   static std::unique_ptr<std::vector<std::string>> ColumnNameTransform(List *root);
-  static std::unique_ptr<std::vector<std::vector<AbstractExpression *>>> ValueListsTransform(List *root);
+  static std::unique_ptr<std::vector<std::vector<const AbstractExpression *>>> ValueListsTransform(List *root);
 
   // PREPARE statements
   static std::unique_ptr<PrepareStatement> PrepareTransform(PrepareStmt *root);

@@ -27,7 +27,7 @@ class JoinDefinition {
    * @param condition join condition
    */
   JoinDefinition(JoinType type, std::shared_ptr<TableRef> left, std::shared_ptr<TableRef> right,
-                 AbstractExpression *condition)
+                 const AbstractExpression *condition)
       : type_(type), left_(std::move(left)), right_(std::move(right)), condition_(condition) {}
 
   /**
@@ -61,7 +61,7 @@ class JoinDefinition {
   /**
    * @return join condition
    */
-  AbstractExpression *GetJoinCondition() { return condition_; }
+  const AbstractExpression *GetJoinCondition() { return condition_; }
 
   /**
    * @return JoinDefinition serialized to json
@@ -77,7 +77,7 @@ class JoinDefinition {
   JoinType type_;
   std::shared_ptr<TableRef> left_;
   std::shared_ptr<TableRef> right_;
-  AbstractExpression *condition_;
+  const AbstractExpression *condition_;
 };
 
 DEFINE_JSON_DECLARATIONS(JoinDefinition);

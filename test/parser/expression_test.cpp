@@ -137,17 +137,17 @@ TEST(ExpressionTests, BasicTest) {
 
 // NOLINTNEXTLINE
 TEST(ExpressionTests, ConjunctionTest) {
-  std::vector<parser::AbstractExpression *> children1;
+  std::vector<const parser::AbstractExpression *> children1;
   children1.emplace_back(new ConstantValueExpression(type::TransientValueFactory::GetBoolean(true)));
   children1.emplace_back(new ConstantValueExpression(type::TransientValueFactory::GetBoolean(false)));
   auto c_expr_1 = new ConjunctionExpression(ExpressionType::CONJUNCTION_AND, std::move(children1));
 
-  std::vector<parser::AbstractExpression *> children2;
+  std::vector<const parser::AbstractExpression *> children2;
   children2.emplace_back(new ConstantValueExpression(type::TransientValueFactory::GetBoolean(true)));
   children2.emplace_back(new ConstantValueExpression(type::TransientValueFactory::GetBoolean(false)));
   auto c_expr_2 = new ConjunctionExpression(ExpressionType::CONJUNCTION_AND, std::move(children2));
 
-  std::vector<parser::AbstractExpression *> children3;
+  std::vector<const parser::AbstractExpression *> children3;
   children3.emplace_back(new ConstantValueExpression(type::TransientValueFactory::GetBoolean(true)));
   children3.emplace_back(new ConstantValueExpression(type::TransientValueFactory::GetBoolean(true)));
   auto c_expr_3 = new ConjunctionExpression(ExpressionType::CONJUNCTION_AND, std::move(children3));
@@ -163,7 +163,7 @@ TEST(ExpressionTests, ConjunctionTest) {
 // NOLINTNEXTLINE
 TEST(ExpressionTests, AggregateExpressionJsonTest) {
   // Create expression
-  std::vector<parser::AbstractExpression *> children;
+  std::vector<const parser::AbstractExpression *> children;
   auto child_expr = new StarExpression();
   children.push_back(child_expr);
   auto *original_expr =
@@ -212,7 +212,7 @@ TEST(ExpressionTests, CaseExpressionTest) {
 // NOLINTNEXTLINE
 TEST(ExpressionTests, FunctionExpressionJsonTest) {
   // Create expression
-  std::vector<parser::AbstractExpression *> children;
+  std::vector<const parser::AbstractExpression *> children;
   auto fn_ret_type = type::TypeId::VARCHAR;
   auto original_expr = new FunctionExpression("Funhouse", fn_ret_type, std::move(children));
 
@@ -260,7 +260,7 @@ TEST(ExpressionTests, OperatorExpressionJsonTest) {
 
   for (const auto &op : operators) {
     // Create expression
-    std::vector<parser::AbstractExpression *> children;
+    std::vector<const parser::AbstractExpression *> children;
     auto op_ret_type = type::TypeId::BOOLEAN;
     auto original_expr = new OperatorExpression(op, op_ret_type, std::move(children));
 
@@ -282,7 +282,7 @@ TEST(ExpressionTests, OperatorExpressionJsonTest) {
 // NOLINTNEXTLINE
 TEST(ExpressionTests, TypeCastExpressionJsonTest) {
   // Create expression
-  std::vector<parser::AbstractExpression *> children;
+  std::vector<const parser::AbstractExpression *> children;
   auto child_expr = new StarExpression();
   children.push_back(child_expr);
   auto *original_expr = new TypeCastExpression(type::TypeId::SMALLINT, std::move(children));
@@ -341,7 +341,7 @@ TEST(ExpressionTests, TupleValueExpressionJsonTest) {
 
 // NOLINTNEXTLINE
 TEST(ExpressionTests, ComparisonExpressionJsonTest) {
-  std::vector<parser::AbstractExpression *> children;
+  std::vector<const parser::AbstractExpression *> children;
   children.emplace_back(new ConstantValueExpression(type::TransientValueFactory::GetInteger(1)));
   children.emplace_back(new ConstantValueExpression(type::TransientValueFactory::GetInteger(2)));
 
@@ -363,7 +363,7 @@ TEST(ExpressionTests, ComparisonExpressionJsonTest) {
 // NOLINTNEXTLINE
 TEST(ExpressionTests, ConjunctionExpressionJsonTest) {
   // Create expression
-  std::vector<parser::AbstractExpression *> children;
+  std::vector<const parser::AbstractExpression *> children;
   children.emplace_back(new ConstantValueExpression(type::TransientValueFactory::GetBoolean(true)));
   children.emplace_back(new ConstantValueExpression(type::TransientValueFactory::GetBoolean(true)));
   auto *original_expr = new ConjunctionExpression(ExpressionType::CONJUNCTION_AND, std::move(children));

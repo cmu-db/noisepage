@@ -21,7 +21,7 @@ class FunctionExpression : public AbstractExpression {
    * @param children children arguments for the function
    */
   FunctionExpression(std::string func_name, const type::TypeId return_value_type,
-                     std::vector<AbstractExpression *> children)
+                     std::vector<const AbstractExpression *> children)
       : AbstractExpression(ExpressionType::FUNCTION, return_value_type, std::move(children)),
         func_name_(std::move(func_name)) {}
 
@@ -32,8 +32,8 @@ class FunctionExpression : public AbstractExpression {
 
   ~FunctionExpression() override = default;
 
-  AbstractExpression *Copy() const override {
-    std::vector<AbstractExpression *> children;
+  const AbstractExpression *Copy() const override {
+    std::vector<const AbstractExpression *> children;
     for (const auto *child : GetChildren()) {
       children.emplace_back(child->Copy());
     }

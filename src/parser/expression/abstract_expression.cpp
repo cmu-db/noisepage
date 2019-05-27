@@ -36,7 +36,6 @@ nlohmann::json AbstractExpression::ToJson() const {
 void AbstractExpression::FromJson(const nlohmann::json &j) {
   expression_type_ = j.at("expression_type").get<ExpressionType>();
   return_value_type_ = j.at("return_value_type").get<type::TypeId>();
-  children_ = {};
 
   // Deserialize children
   auto children_json = j.at("children").get<std::vector<nlohmann::json>>();

@@ -25,7 +25,7 @@ class ParameterValueExpression : public AbstractExpression {
 
   ~ParameterValueExpression() override = default;
 
-  AbstractExpression *Copy() const override { return new ParameterValueExpression(value_idx_); }
+  const AbstractExpression *Copy() const override { return new ParameterValueExpression(value_idx_); }
 
   /**
    * @return offset in the expression
