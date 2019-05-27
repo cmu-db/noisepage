@@ -1806,8 +1806,8 @@ std::unique_ptr<InsertStatement> PostgresParser::InsertTransform(InsertStmt *roo
 }
 
 // Postgres.List -> column names
-std::unique_ptr<std::vector<std::string>> PostgresParser::ColumnNameTransform(List *root) {
-  auto result = std::make_unique<std::vector<std::string>>();
+std::vector<std::string> PostgresParser::ColumnNameTransform(List *root) {
+  auto result = std::vector<std::string>();
 
   if (root == nullptr) {
     return result;
@@ -1815,15 +1815,15 @@ std::unique_ptr<std::vector<std::string>> PostgresParser::ColumnNameTransform(Li
 
   for (auto cell = root->head; cell != nullptr; cell = cell->next) {
     auto target = reinterpret_cast<ResTarget *>(cell->data.ptr_value);
-    result->push_back(target->name);
+    result.push_back(target->name);
   }
 
   return result;
 }
 
 // Transforms value lists into terrier equivalent. Nested vectors, because an InsertStmt may insert multiple tuples.
-std::unique_ptr<std::vector<std::vector<const AbstractExpression *>>> PostgresParser::ValueListsTransform(List *root) {
-  auto result = std::make_unique<std::vector<std::vector<const AbstractExpression *>>>();
+std::vector<std::vector<const AbstractExpression *>> PostgresParser::ValueListsTransform(List *root) {
+  auto result = std::vector<std::vector<const AbstractExpression *>>();
 
   for (auto value_list = root->head; value_list != nullptr; value_list = value_list->next) {
     std::vector<const AbstractExpression *> cur_result;
@@ -1851,7 +1851,7 @@ std::unique_ptr<std::vector<std::vector<const AbstractExpression *>>> PostgresPa
         default: { PARSER_LOG_AND_THROW("ValueListsTransform", "Value type", expr->type); }
       }
     }
-    result->emplace_back(std::move(cur_result));
+    result.emplace_back(std::move(cur_result));
   }
 
   return result;

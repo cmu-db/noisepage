@@ -171,8 +171,8 @@ class PostgresParser {
   static std::unique_ptr<InsertStatement> InsertTransform(InsertStmt *root);
 
   // INSERT helpers
-  static std::unique_ptr<std::vector<std::string>> ColumnNameTransform(List *root);
-  static std::unique_ptr<std::vector<std::vector<const AbstractExpression *>>> ValueListsTransform(List *root);
+  static std::vector<std::string> ColumnNameTransform(List *root);
+  static std::vector<std::vector<const AbstractExpression *>> ValueListsTransform(List *root);
 
   // PREPARE statements
   static std::unique_ptr<PrepareStatement> PrepareTransform(PrepareStmt *root);

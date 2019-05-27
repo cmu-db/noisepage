@@ -23,7 +23,7 @@ class InsertStatement : public SQLStatement {
    * @param table_ref table
    * @param select select statement to insert from
    */
-  InsertStatement(std::shared_ptr<std::vector<std::string>> columns, std::shared_ptr<TableRef> table_ref,
+  InsertStatement(std::vector<std::string> columns, std::shared_ptr<TableRef> table_ref,
                   std::shared_ptr<SelectStatement> select)
       : SQLStatement(StatementType::INSERT),
         type_(InsertType::SELECT),
@@ -37,8 +37,8 @@ class InsertStatement : public SQLStatement {
    * @param table_ref table
    * @param insert_values values to be inserted
    */
-  InsertStatement(std::shared_ptr<std::vector<std::string>> columns, std::shared_ptr<TableRef> table_ref,
-                  std::shared_ptr<std::vector<std::vector<const AbstractExpression *>>> insert_values)
+  InsertStatement(std::vector<std::string> columns, std::shared_ptr<TableRef> table_ref,
+                  std::vector<std::vector<const AbstractExpression *>> insert_values)
       : SQLStatement(StatementType::INSERT),
         type_(InsertType::VALUES),
         columns_(std::move(columns)),
@@ -51,12 +51,10 @@ class InsertStatement : public SQLStatement {
   explicit InsertStatement(InsertType type) : SQLStatement(StatementType::INSERT), type_(type) {}
 
   ~InsertStatement() override {
-    if (insert_values_ != nullptr) {
-      for (auto tuple : *insert_values_) {
+      for (auto &tuple : insert_values_) {
         for (auto *value : tuple) {
           delete value;
         }
-      }
     }
   }
 
@@ -70,7 +68,7 @@ class InsertStatement : public SQLStatement {
   /**
    * @return columns to insert into
    */
-  std::shared_ptr<std::vector<std::string>> GetInsertColumns() { return columns_; }
+  std::vector<std::string> GetInsertColumns() { return columns_; }
 
   /**
    * @return table to insert into
@@ -85,15 +83,15 @@ class InsertStatement : public SQLStatement {
   /**
    * @return values that we're inserting
    */
-  std::shared_ptr<std::vector<std::vector<const AbstractExpression *>>> GetValues() { return insert_values_; }
+  std::vector<std::vector<const AbstractExpression *>> GetValues() { return insert_values_; }
 
  private:
   const InsertType type_;
-  const std::shared_ptr<std::vector<std::string>> columns_;
+  const std::vector<std::string> columns_;
   const std::shared_ptr<TableRef> table_ref_;
   const std::shared_ptr<SelectStatement> select_;
   // TODO(WAN): unsure about this one.
-  const std::shared_ptr<std::vector<std::vector<const AbstractExpression *>>> insert_values_;
+  const std::vector<std::vector<const AbstractExpression *>> insert_values_;
 };
 
 }  // namespace parser

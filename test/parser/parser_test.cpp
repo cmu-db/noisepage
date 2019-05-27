@@ -322,12 +322,12 @@ TEST_F(ParserTestBase, InsertTest) {
   auto stmts = pgparser.BuildParseTree("INSERT INTO foo VALUES (1, 2, 3), (4, 5, 6);");
   auto insert_stmt = reinterpret_cast<InsertStatement *>(stmts.at(0).get());
   EXPECT_EQ(insert_stmt->GetInsertionTable()->GetTableName(), "foo");
-  EXPECT_EQ(insert_stmt->GetInsertColumns()->size(), 0);
+  EXPECT_EQ(insert_stmt->GetInsertColumns().size(), 0);
 
   stmts = pgparser.BuildParseTree("INSERT INTO foo (id,bar,entry) VALUES (1, 2, 3);");
   insert_stmt = reinterpret_cast<InsertStatement *>(stmts.at(0).get());
   EXPECT_EQ(insert_stmt->GetInsertionTable()->GetTableName(), "foo");
-  EXPECT_EQ(insert_stmt->GetInsertColumns()->size(), 3);
+  EXPECT_EQ(insert_stmt->GetInsertColumns().size(), 3);
 }
 
 // NOLINTNEXTLINE
@@ -1168,14 +1168,14 @@ TEST_F(ParserTestBase, OldInsertTest) {
   auto insert_stmt = reinterpret_cast<InsertStatement *>(stmt_list[0].get());
   EXPECT_EQ("foo", insert_stmt->GetInsertionTable()->GetTableName());
   // 2 tuples
-  EXPECT_EQ(2, insert_stmt->GetValues()->size());
+  EXPECT_EQ(2, insert_stmt->GetValues().size());
 
   // First item of first tuple is NULL
-  auto constant = reinterpret_cast<const ConstantValueExpression *>(insert_stmt->GetValues()->at(0).at(0));
+  auto constant = reinterpret_cast<const ConstantValueExpression *>(insert_stmt->GetValues().at(0).at(0));
   EXPECT_TRUE(constant->GetValue().Null());
 
   // Second item of second tuple == 5
-  constant = reinterpret_cast<const ConstantValueExpression *>(insert_stmt->GetValues()->at(1).at(1));
+  constant = reinterpret_cast<const ConstantValueExpression *>(insert_stmt->GetValues().at(1).at(1));
   EXPECT_EQ(constant->GetValue().Type(), type::TypeId::INTEGER);
   EXPECT_EQ(type::TransientValuePeeker::PeekInteger(constant->GetValue()), 5);
 }
@@ -1291,7 +1291,7 @@ TEST_F(ParserTestBase, OldInsertIntoSelectTest) {
   EXPECT_TRUE(stmt_list[0]->GetType() == StatementType::INSERT);
   auto insert_stmt = reinterpret_cast<InsertStatement *>(stmt_list[0].get());
   EXPECT_EQ(insert_stmt->GetInsertionTable()->GetTableName(), "foo");
-  EXPECT_EQ(insert_stmt->GetValues(), nullptr);
+  EXPECT_TRUE(insert_stmt->GetValues().empty());
   EXPECT_EQ(insert_stmt->GetSelect()->GetType(), StatementType::SELECT);
   EXPECT_EQ(insert_stmt->GetSelect()->GetSelectTable()->GetTableName(), "bar");
 }
@@ -1659,7 +1659,7 @@ TEST_F(ParserTestBase, OldDateTypeTest) {
     query = "INSERT INTO test_table VALUES (1, 2, '2017-01-01'::DATE);";
     auto stmt_list = pgparser.BuildParseTree(query);
     auto statement = reinterpret_cast<InsertStatement *>(stmt_list[0].get());
-    auto values = *(statement->GetValues());
+    auto values = statement->GetValues();
     auto cast_expr = reinterpret_cast<const TypeCastExpression *>(values[0][2]);
     EXPECT_EQ(type::TypeId::DATE, cast_expr->GetReturnValueType());
 
@@ -1697,7 +1697,7 @@ TEST_F(ParserTestBase, OldTypeCastTest) {
 
     auto stmt_list = pgparser.BuildParseTree(query);
     auto statement = reinterpret_cast<InsertStatement *>(stmt_list[0].get());
-    auto values = *(statement->GetValues());
+    auto values = statement->GetValues();
     auto cast_expr = reinterpret_cast<const ConstantValueExpression *>(values[0][2]);
     EXPECT_EQ(correct_type, cast_expr->GetReturnValueType());
   }
