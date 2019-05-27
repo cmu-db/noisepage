@@ -1815,7 +1815,7 @@ std::vector<std::string> PostgresParser::ColumnNameTransform(List *root) {
 
   for (auto cell = root->head; cell != nullptr; cell = cell->next) {
     auto target = reinterpret_cast<ResTarget *>(cell->data.ptr_value);
-    result.push_back(target->name);
+    result.emplace_back(target->name);
   }
 
   return result;
