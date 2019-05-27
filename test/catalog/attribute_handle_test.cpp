@@ -18,7 +18,7 @@ struct AttributeHandleTests : public TerrierTest {
   }
 
   void TearDown() override {
-    txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
+    txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
     TerrierTest::TearDown();
     delete catalog_;  // delete catalog first
     delete txn_manager_;
@@ -48,6 +48,9 @@ TEST_F(AttributeHandleTests, BasicCorrectnessTest) {
 
   // pg_database has columns: oid | datname
   auto attribute_entry_ptr = attribute_handle.GetAttributeEntry(txn_, terrier_table_oid, "oid");
+  EXPECT_NE(attribute_entry_ptr, nullptr);
+
+  attribute_entry_ptr = attribute_handle.GetAttributeEntry(txn_, terrier_table_oid, attribute_entry_ptr->GetOid());
   EXPECT_NE(attribute_entry_ptr, nullptr);
 
   // the oid should belongs to pg_database table
