@@ -156,6 +156,7 @@ struct StorageTestUtil {
     return col_ids;
   }
 
+  // Populate a block with random tuple according to the given parameters. Returns a mapping of the tuples in each slot.
   template <class Random>
   static std::unordered_map<storage::TupleSlot, storage::ProjectedRow *> PopulateBlockRandomly(
       const storage::BlockLayout &layout, storage::RawBlock *block, double empty_ratio, Random *const generator) {
@@ -180,6 +181,42 @@ struct StorageTestUtil {
       storage::ProjectedRow *redo = initializer.InitializeRow(redo_buffer);
       StorageTestUtil::PopulateRandomRow(redo, layout, null_ratio, generator);
       result[slot] = redo;
+      // Copy without transactions to simulate a version-free block
+      accessor.SetNotNull(slot, VERSION_POINTER_COLUMN_ID);
+      for (uint16_t j = 0; j < redo->NumColumns(); j++)
+        storage::StorageUtil::CopyAttrFromProjection(accessor, slot, *redo, j);
+    }
+    TERRIER_ASSERT(block->insert_head_ == layout.NumSlots(), "The block should be considered full at this point");
+    return result;
+  }
+
+  // Populate a block with random tuple according to the given parameters. Does not retain the values inserted for
+  // performance. Returns the number of non-empty slots in the block after population.
+  template <class Random>
+  static uint32_t PopulateBlockRandomlyNoBookkeeping(const storage::BlockLayout &layout, storage::RawBlock *block,
+                                                     double empty_ratio, Random *const generator) {
+    uint32_t result = 0;
+    std::bernoulli_distribution coin(empty_ratio);
+    // TODO(Tianyu): Do we ever want to tune this for tests?
+    const double null_ratio = 0.1;
+    storage::TupleAccessStrategy accessor(layout);  // Have to construct one since we don't have access to data table
+    accessor.InitializeRawBlock(block, storage::layout_version_t(0));
+    storage::ProjectedRowInitializer initializer =
+        storage::ProjectedRowInitializer::Create(layout, StorageTestUtil::ProjectionListAllColumns(layout));
+    auto *redo_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+    storage::ProjectedRow *redo = initializer.InitializeRow(redo_buffer);
+    for (uint32_t i = 0; i < layout.NumSlots(); i++) {
+      storage::TupleSlot slot;
+      bool ret UNUSED_ATTRIBUTE = accessor.Allocate(block, &slot);
+      TERRIER_ASSERT(ret && slot == storage::TupleSlot(block, i),
+                     "slot allocation should happen sequentially and succeed");
+      if (coin(*generator)) {
+        // slot will be marked empty
+        accessor.Deallocate(slot);
+        continue;
+      }
+      result++;
+      StorageTestUtil::PopulateRandomRow(redo, layout, null_ratio, generator);
       // Copy without transactions to simulate a version-free block
       accessor.SetNotNull(slot, VERSION_POINTER_COLUMN_ID);
       for (uint16_t j = 0; j < redo->NumColumns(); j++)
