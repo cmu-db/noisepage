@@ -44,9 +44,12 @@ class LLVMEngine {
   /// Shutdown the whole LLVM subsystem
   static void Shutdown();
 
-  /// JIT compile a TPL bytecode module to native code
-  /// \param module The module to compile
-  /// \return The JIT compiled module
+  /**
+   * JIT compile a TPL bytecode module to native code
+   * @param module The module to compile
+   * @param options compiler options
+   * @return The JIT compiled module
+   */
   static std::unique_ptr<CompiledModule> Compile(const vm::BytecodeModule &module, const CompilerOptions &options = {});
 
   // -------------------------------------------------------
@@ -56,30 +59,60 @@ class LLVMEngine {
   /// Options to provide when compiling
   class CompilerOptions {
    public:
+    /**
+     * Constructor. Turns off all options
+     */
     CompilerOptions() : debug_(false), write_obj_file_(false) {}  // NOLINT
 
+    /**
+     * Set the debug option
+     * @param debug debug options
+     * @return the updated object
+     */
     CompilerOptions &SetDebug(bool debug) {
       debug_ = debug;
       (void)debug_;
       return *this;
     }
 
+    /**
+     * @return whether debugging is on
+     */
     bool IsDebug() const { return debug_; }
 
+    /**
+     * Set the persisting option
+     * @param write_obj_file the persisting options
+     * @return the updated object
+     */
     CompilerOptions &SetPersistObjectFile(bool write_obj_file) {
       write_obj_file_ = write_obj_file;
       return *this;
     }
 
+    /**
+     * @return whether the persisting flag is on
+     */
     bool ShouldPersistObjectFile() const { return write_obj_file_; }
 
+    /**
+     * Set the output file name
+     * @param name name of the file
+     * @return the updated object
+     */
     CompilerOptions &SetOutputObjectFileName(const std::string &name) {
       output_file_name_ = name;
       return *this;
     }
 
+    /**
+     * @return the output file name
+     */
     const std::string &GetOutputObjectFileName() const { return output_file_name_; }
 
+    /**
+     * @return the path to the bytecode handlers bitcode file.
+     */
     std::string GetBytecodeHandlersBcPath() const { return "./bytecode_handlers_ir.bc"; }
 
    private:
@@ -98,6 +131,11 @@ class LLVMEngine {
    public:
     /// Constructor
     CompiledModule() : CompiledModule(nullptr) {}
+
+    /**
+     * Constructor with an already compiled object code
+     * @param object_code compiled object code.
+     */
     explicit CompiledModule(std::unique_ptr<llvm::MemoryBuffer> object_code);
 
     /// No copying or moving this class

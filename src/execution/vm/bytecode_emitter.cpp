@@ -250,19 +250,24 @@ void BytecodeEmitter::EmitPCIVectorFilter(Bytecode bytecode, LocalVar selected, 
   EmitAll(bytecode, selected, pci, col_idx, type, val);
 }
 
-void BytecodeEmitter::EmitOutputAlloc(Bytecode bytecode, uintptr_t ptr, LocalVar dest) { EmitAll(bytecode, ptr, dest); }
+void BytecodeEmitter::EmitOutputAlloc(Bytecode bytecode, uintptr_t exec_context, LocalVar dest) {
+  EmitAll(bytecode, exec_context, dest);
+}
 
-void BytecodeEmitter::EmitOutputCall(Bytecode bytecode, uintptr_t ptr) { EmitAll(bytecode, ptr); }
+void BytecodeEmitter::EmitOutputCall(Bytecode bytecode, uintptr_t exec_context) { EmitAll(bytecode, exec_context); }
 
-void BytecodeEmitter::EmitOutputSetNull(Bytecode bytecode, uintptr_t ptr, LocalVar idx) { EmitAll(bytecode, ptr, idx); }
+void BytecodeEmitter::EmitOutputSetNull(Bytecode bytecode, uintptr_t exec_context, LocalVar idx) {
+  EmitAll(bytecode, exec_context, idx);
+}
 
 void BytecodeEmitter::EmitInsert(Bytecode bytecode, LocalVar db_oid, LocalVar table_oid, LocalVar values_ptr,
                                  uintptr_t exec_context) {
   EmitAll(bytecode, db_oid, table_oid, values_ptr, exec_context);
 }
 
-void BytecodeEmitter::EmitIndexIteratorInit(Bytecode bytecode, LocalVar iter, uint32_t index_oid, uintptr_t ptr) {
-  EmitAll(bytecode, iter, index_oid, ptr);
+void BytecodeEmitter::EmitIndexIteratorInit(Bytecode bytecode, LocalVar iter, uint32_t index_oid,
+                                            uintptr_t exec_context) {
+  EmitAll(bytecode, iter, index_oid, exec_context);
 }
 
 void BytecodeEmitter::EmitIndexIteratorScanKey(Bytecode bytecode, LocalVar iter, LocalVar key) {

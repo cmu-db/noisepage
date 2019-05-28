@@ -30,10 +30,10 @@ class MathUtil {
   /// Return the next power of two greater than or equal to the input \a val
   static u64 PowerOf2Ceil(u64 val) { return llvm::PowerOf2Ceil(val); }
 
-  ///
+  /// Return the largest power of two less than or equal to the input \a val
   static u64 PowerOf2Floor(u64 val) { return llvm::PowerOf2Floor(val); }
 
-  /// Returns whether \param value is aligned to \param alignment. The desired
+  /// Returns whether \a value is aligned to \a alignment. The desired
   /// alignment is required to be a power of two.
   ///
   /// Examples:

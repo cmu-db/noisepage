@@ -32,6 +32,7 @@ using FunctionId = u16;
 /// its type and the machine architecture.
 class LocalInfo {
  public:
+  /// Kind of local variables: parameter, or normal variable
   enum class Kind : u8 { Var, Parameter };
 
   /// Construct a local with the given, name, type, offset and kind
@@ -106,6 +107,8 @@ class LocalVar {
   /// \return A "loaded" version of the variable
   LocalVar ValueOf() const { return LocalVar(GetOffset(), AddressMode::Value); }
 
+  /// Return a LocalVar that represents the address of the local
+  /// \return The address of the variable
   LocalVar AddressOf() const { return LocalVar(GetOffset(), AddressMode::Address); }
 
   /// Is this a valid local variable?
@@ -186,7 +189,7 @@ class FunctionInfo {
 
   /// Lookup the information for a local variable in this function by the
   /// variable's offset in the function's execution frame
-  /// \param local The offset in bytes of the local
+  /// \param offset The offset in bytes of the local
   /// \return A possible nullptr to the local's information
   const LocalInfo *LookupLocalInfoByOffset(u32 offset) const;
 

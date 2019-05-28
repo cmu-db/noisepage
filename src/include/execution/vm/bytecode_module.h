@@ -19,27 +19,44 @@
 
 namespace tpl::vm {
 
-/// An enumeration capturing different execution methods and optimization levels
+/**
+ * An enumeration capturing different execution methods and optimization levels
+ */
 enum class ExecutionMode : u8 { Interpret, Jit };
 
-/// A module represents all code in a single TPL source file
+/**
+ * A module represents all code in a single TPL source file
+ */
 class BytecodeModule {
  public:
-  /// Construct
+  /**
+   * Construct
+   * @param name name of the bytecode module
+   * @param code bytecodes
+   * @param functions list of functions
+   */
   BytecodeModule(std::string name, std::vector<u8> &&code, std::vector<FunctionInfo> &&functions);
 
-  /// This class cannot be copied or moved
+  /**
+   * This class cannot be copied or moved
+   */
   DISALLOW_COPY_AND_MOVE(BytecodeModule);
 
-  /// Look up a TPL function in this module by its ID
-  /// \return A pointer to the function's info if it exists; null otherwise
+  /**
+   * Look up a TPL function in this module by its ID
+   * @param func_id function id
+   * @return A pointer to the function's info if it exists; null otherwise
+   */
   const FunctionInfo *GetFuncInfoById(const FunctionId func_id) const {
     TPL_ASSERT(func_id < num_functions(), "Invalid function");
     return &functions_[func_id];
   }
 
-  /// Look up a TPL function in this module by its name
-  /// \return A pointer to the function's info if it exists; null otherwise
+  /**
+   * Look up a TPL function in this module by its name
+   * @param name function name
+   * @return A pointer to the function's info if it exists; null otherwise
+   */
   const FunctionInfo *GetFuncInfoByName(const std::string &name) const {
     for (const auto &func : functions_) {
       if (func.name() == name) {
@@ -49,8 +66,11 @@ class BytecodeModule {
     return nullptr;
   }
 
-  /// Retrieve an iterator over the bytecode for the given function \a func
-  /// \return A pointer to the function's info if it exists; null otherwise
+  /**
+   * Retrieve an iterator over the bytecode for the given function \a func
+   * @param func function to retrieve
+   * @return A pointer to the function's info if it exists; null otherwise
+   */
   BytecodeIterator BytecodeForFunction(const FunctionInfo &func) const {
     auto range = func.bytecode_range();
     auto start = range.first;
@@ -58,44 +78,59 @@ class BytecodeModule {
     return BytecodeIterator(code_, start, end);
   }
 
-  /// Get the trampoline for the bytecode function with id \a func_id
-  /// \return An opaque function pointer to the bytecode function
+  /**
+   * Get the trampoline for the bytecode function with id func_id
+   * @param func_id function is
+   * @return An opaque function pointer to the bytecode function
+   */
   void *GetFuncTrampoline(const FunctionId func_id) const {
     TPL_ASSERT(func_id < num_functions(), "Invalid function");
     return trampolines_[func_id].GetCode();
   }
 
-  /// Retrieve and wrap a TPL function inside a C++ function object, thus making
-  /// the TPL function callable as a C++ function. Callers can request different
-  /// versions of the TPL code including an interpreted version and a compiled
-  /// version.
-  /// \tparam Ret Ret The C/C++ return type of the function
-  /// \tparam ArgTypes ArgTypes The C/C++ argument types to the function
-  /// \param name The name of the function the caller wants
-  /// \param exec_mode The interpretation mode the caller desires
-  /// \param[out] func The function wrapper we use to wrap the TPL function
-  /// \return True if the function was found and the output parameter was set
+  /**
+   * Retrieve and wrap a TPL function inside a C++ function object, thus making
+   * the TPL function callable as a C++ function. Callers can request different
+   * versions of the TPL code including an interpreted version and a compiled
+   * version.
+   * @tparam Ret Ret The C/C++ return type of the function
+   * @tparam ArgTypes ArgTypes The C/C++ argument types to the function
+   * @param name The name of the function the caller wants
+   * @param exec_mode The interpretation mode the caller desires
+   * @param func The function wrapper we use to wrap the TPL function
+   * @return True if the function was found and the output parameter was set
+   */
   template <typename Ret, typename... ArgTypes>
   bool GetFunction(const std::string &name, ExecutionMode exec_mode, std::function<Ret(ArgTypes...)> *func);
 
-  /// Pretty print all the module's contents into the provided output stream
-  /// \param os The stream into which we dump the module's contents
+  /**
+   * Pretty print all the module's contents into the provided output stream
+   * @param os The stream into which we dump the module's contents
+   */
   void PrettyPrint(std::ostream &os);
 
   // -------------------------------------------------------
   // Accessors
   // -------------------------------------------------------
 
-  /// Return the name of the module
+  /**
+   * @return the name of the module
+   */
   const std::string &name() const { return name_; }
 
-  /// Return a constant view of all functions
+  /**
+   * @return a constant view of all functions
+   */
   const std::vector<FunctionInfo> &functions() const { return functions_; }
 
-  /// Return the number of bytecode instructions in this module
+  /**
+   * @return the number of bytecode instructions in this module
+   */
   std::size_t instruction_count() const { return code_.size(); }
 
-  /// Return the number of functions defined in this module
+  /**
+   * @return the number of functions defined in this module
+   */
   std::size_t num_functions() const { return functions_.size(); }
 
  private:
@@ -164,6 +199,15 @@ inline void CopyAll(u8 *buffer, const HeadT &head, const RestT &... rest) {
 
 }  // namespace detail
 
+/**
+ * Get a function by name
+ * @tparam RetT return type of the function
+ * @tparam ArgTypes types of the argurments to the functions
+ * @param name name of the function
+ * @param exec_mode execution mode (JIT or interpret)
+ * @param func output variable where the function address is store
+ * @return whether the function was found and the types match.
+ */
 template <typename RetT, typename... ArgTypes>
 inline bool BytecodeModule::GetFunction(const std::string &name, ExecutionMode exec_mode,
                                         std::function<RetT(ArgTypes...)> *func) {

@@ -10,11 +10,21 @@ namespace tpl::vm {
  */
 class ControlFlowBuilder {
  public:
+  /**
+   * Constructor
+   * @param generator bytecode generator to use when generating code.
+   */
   explicit ControlFlowBuilder(BytecodeGenerator *generator) : generator_(generator) {}
 
+  /**
+   * Destructor. Should be overriden,
+   */
   virtual ~ControlFlowBuilder() = default;
 
  protected:
+  /**
+   * @return the bytecode generator
+   */
   BytecodeGenerator *generator() { return generator_; }
 
  private:
@@ -26,15 +36,29 @@ class ControlFlowBuilder {
  */
 class BreakableBlockBuilder : public ControlFlowBuilder {
  public:
+  /**
+   * Constructor
+   * @param generator bytecode generator to use when generating code.
+   */
   explicit BreakableBlockBuilder(BytecodeGenerator *generator) : ControlFlowBuilder(generator) {}
 
   ~BreakableBlockBuilder() override;
 
+  /**
+   * Emits the byte for break out of the block.
+   */
   void Break();
 
+  /**
+   * @return the break label
+   */
   BytecodeLabel *break_label() { return &break_label_; }
 
  protected:
+  /**
+   * Helper method to jump to a label
+   * @param label label to jump to.
+   */
   void EmitJump(BytecodeLabel *label);
 
  private:
@@ -46,22 +70,47 @@ class BreakableBlockBuilder : public ControlFlowBuilder {
  */
 class LoopBuilder : public BreakableBlockBuilder {
  public:
+  /**
+   * Constructor
+   * @param generator bytecode generator to use when generating code.
+   */
   explicit LoopBuilder(BytecodeGenerator *generator) : BreakableBlockBuilder(generator) {}
 
   ~LoopBuilder() override;
 
+  /**
+   * Emit the loop header. This is the label to jump to when reiterating.
+   */
   void LoopHeader();
+
+  /**
+   * Emits the bytecode to jump to the loop header.
+   */
   void JumpToHeader();
 
+  /**
+   * Emits the bytecode used to "continue" during iteration.
+   */
   void Continue();
 
+  /**
+   * Binds the continue label. This defines the point to which to jump when "continue" is used.
+   */
   void BindContinueTarget();
 
  private:
+  /**
+   * @return the header label
+   */
   BytecodeLabel *header_label() { return &header_label_; }
+
+  /**
+   * @return the continue label
+   */
   BytecodeLabel *continue_label() { return &continue_label_; }
 
  private:
+  // These label allow us to jump to a specific point during iteration.
   BytecodeLabel header_label_;
   BytecodeLabel continue_label_;
 };
@@ -71,15 +120,37 @@ class LoopBuilder : public BreakableBlockBuilder {
  */
 class IfThenElseBuilder : public ControlFlowBuilder {
  public:
+  /**
+   * Constructor
+   * @param generator bytecode generator to use when generating code.
+   */
   explicit IfThenElseBuilder(BytecodeGenerator *generator) : ControlFlowBuilder(generator) {}
 
   ~IfThenElseBuilder() override;
 
+  /**
+   * Emit then label
+   */
   void Then();
+
+  /**
+   * Emit else label
+   */
   void Else();
+
+  /**
+   * Emit code to jump to the end of the statement.
+   */
   void JumpToEnd();
 
+  /**
+   * @return the then label
+   */
   BytecodeLabel *then_label() { return &then_label_; }
+
+  /**
+   * @return the else label
+   */
   BytecodeLabel *else_label() { return &else_label_; }
 
  private:

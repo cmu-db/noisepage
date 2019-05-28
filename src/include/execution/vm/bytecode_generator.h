@@ -21,14 +21,19 @@ using terrier::type::TypeId;
 class BytecodeModule;
 class LoopBuilder;
 
-/// This class is responsible for generating and compiling a parsed and
-/// type-checked TPL program (as an AST) into TPL bytecode (TBC) as a
-/// BytecodeModule. Once compiled, all functions defined in the module are
-/// fully executable. BytecodeGenerator exposes a single public static function
-/// \a Compile() that performs the heavy lifting and orchestration involved in
-/// the compilation process.
+/**
+ * This class is responsible for generating and compiling a parsed and
+ * type-checked TPL program (as an AST) into TPL bytecode (TBC) as a
+ * BytecodeModule. Once compiled, all functions defined in the module are
+ * fully executable. BytecodeGenerator exposes a single public static function
+ * \a Compile() that performs the heavy lifting and orchestration involved in
+ * the compilation process.
+ */
 class BytecodeGenerator : public ast::AstVisitor<BytecodeGenerator> {
  public:
+  /**
+   * Prevent copying and moving
+   */
   DISALLOW_COPY_AND_MOVE(BytecodeGenerator);
 
   // Declare all node visit methods here
@@ -36,6 +41,13 @@ class BytecodeGenerator : public ast::AstVisitor<BytecodeGenerator> {
   AST_NODES(DECLARE_VISIT_METHOD)
 #undef DECLARE_VISIT_METHOD
 
+  /**
+   * Compiles the AST into bytecodes
+   * @param root AST root
+   * @param name name of the bytecode module
+   * @param exec_context execution context
+   * @return the compiled bytecode module
+   */
   static std::unique_ptr<BytecodeModule> Compile(ast::AstNode *root, const std::string &name,
                                                  std::shared_ptr<exec::ExecutionContext> exec_context);
 
@@ -119,6 +131,9 @@ class BytecodeGenerator : public ast::AstVisitor<BytecodeGenerator> {
   Bytecode GetIntTypedBytecode(Bytecode bytecode, ast::Type *type);
 
  public:
+  /**
+   * @return the bytecode emitter
+   */
   BytecodeEmitter *emitter() { return &emitter_; }
 
  private:

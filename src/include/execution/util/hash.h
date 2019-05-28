@@ -9,12 +9,23 @@
 
 namespace tpl::util {
 
-/// Enumeration of the supported hashing methods
+/**
+ * Enumeration of the supported hashing methods
+ */
 enum class HashMethod { Fnv1, Murmur3, Crc };
 
-/// Utility class for hashing
+/**
+ * Utility class for hashing
+ */
 class Hasher {
  public:
+  /**
+   * Hashing function
+   * @param buf bytes to hash
+   * @param len length of the buffer
+   * @param method hashing method to use
+   * @return the hash value
+   */
   static hash_t Hash(const u8 *buf, u64 len, HashMethod method = HashMethod::Crc);
 
  private:

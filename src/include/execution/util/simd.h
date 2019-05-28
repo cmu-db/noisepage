@@ -9,6 +9,9 @@ namespace tpl::util::simd {
  * Stores the width of a lane
  */
 struct Bitwidth {
+  /**
+   * Width of a lane
+   */
   static constexpr const u32
 #if defined(__AVX512F__)
       value = 512;

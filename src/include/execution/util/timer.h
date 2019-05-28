@@ -52,6 +52,8 @@ class Timer {
 template <typename ResolutionRatio = std::milli>
 class ScopedTimer {
  public:
+  /// Constructor
+  /// \param elapsed output for the elapsed value.
   explicit ScopedTimer(double *elapsed) noexcept : elapsed_(elapsed) {
     *elapsed_ = 0;
     timer_.Start();

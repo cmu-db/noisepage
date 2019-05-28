@@ -586,6 +586,10 @@ inline void ChunkedVector::pop_back() {
 template <typename T>
 class ChunkedVectorT {
  public:
+  /**
+   * Constructor
+   * @param region region to use for allocation
+   */
   explicit ChunkedVectorT(util::Region *region) noexcept : vec_(region, sizeof(T)) {}
 
   /**

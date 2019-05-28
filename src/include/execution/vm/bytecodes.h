@@ -32,9 +32,9 @@ namespace tpl::vm {
 #define GET_BASE_FOR_FLOAT_TYPES(op) (op##_f32)
 #define GET_BASE_FOR_BOOL_TYPES(op) (op##_bool)
 
-///
-/// The master list of all bytecodes, flags and operands
-///
+/**
+ * The master list of all bytecodes, flags and operands
+ */
 #define BYTECODE_LIST(F)                                                                                              \
   /* Primitive operations */                                                                                          \
   CREATE_FOR_INT_TYPES(F, Add, OperandType::Local, OperandType::Local, OperandType::Local)                            \
@@ -224,7 +224,9 @@ namespace tpl::vm {
   F(Sin, OperandType::Local, OperandType::Local)                                                                      \
   F(Tan, OperandType::Local, OperandType::Local)
 
-/// The single enumeration of all possible bytecode instructions
+/**
+ * The single enumeration of all possible bytecode instructions
+ */
 enum class Bytecode : u32 {
 #define DECLARE_OP(inst, ...) inst,
   BYTECODE_LIST(DECLARE_OP)
@@ -234,70 +236,134 @@ enum class Bytecode : u32 {
 #undef COUNT_OP
 };
 
-/// Helper class for querying/interacting with bytecode instructions
+/**
+ * Helper class for querying/interacting with bytecode instructions
+ */
 class Bytecodes {
  public:
-  // The total number of bytecode instructions
+  /**
+   * The total number of bytecode instructions
+   */
   static constexpr const u32 kBytecodeCount = static_cast<u32>(Bytecode::Last) + 1;
 
+  /**
+   * @return total number of bytecode instructions
+   */
   static constexpr u32 NumBytecodes() { return kBytecodeCount; }
 
-  // Return the maximum length of any bytecode instruction in bytes
+  /**
+   * @return the maximum length of any bytecode instruction in bytes
+   */
   static u32 MaxBytecodeNameLength();
 
-  // Returns the string representation of the given bytecode
+  /**
+   * @param bytecode bytecode to convert
+   * @return the string representation of the given bytecode
+   */
   static const char *ToString(Bytecode bytecode) { return kBytecodeNames[static_cast<u32>(bytecode)]; }
 
-  // Return the number of operands a bytecode accepts
+  /**
+   * @param bytecode bytecode for the number of operands is needed
+   * @return the number of operands a bytecode accepts
+   */
   static u32 NumOperands(Bytecode bytecode) { return kBytecodeOperandCounts[static_cast<u32>(bytecode)]; }
 
-  // Return an array of the operand types to the given bytecode
+  /**
+   * @param bytecode for which the operand types are needed
+   * @return an array of the operand types to the given bytecode
+   */
   static const OperandType *GetOperandTypes(Bytecode bytecode) {
     return kBytecodeOperandTypes[static_cast<u32>(bytecode)];
   }
 
-  // Return an array of the sizes of all operands to the given bytecode
+  /**
+   * @param bytecode bytecode for which the operand sizes are needed.
+   * @return an array of the sizes of all operands to the given bytecode
+   */
   static const OperandSize *GetOperandSizes(Bytecode bytecode) {
     return kBytecodeOperandSizes[static_cast<u32>(bytecode)];
   }
 
-  // Return the type of the Nth operand to the given bytecode
+  /**
+   * Type of the Nth operand
+   * @param bytecode bytecode for which the Nth operand type is needed
+   * @param operand_index index of the operand
+   * @return the type of the operand at the given index
+   */
   static OperandType GetNthOperandType(Bytecode bytecode, u32 operand_index) {
     TPL_ASSERT(operand_index < NumOperands(bytecode), "Accessing out-of-bounds operand number for bytecode");
     return GetOperandTypes(bytecode)[operand_index];
   }
 
-  // Return the type of the Nth operand to the given bytecode
+  /**
+   * Nth operand size
+   * @param bytecode bytecode for which the Nth operand size is needed
+   * @param operand_index index of the operand
+   * @return the size of the operand at the given index
+   */
   static OperandSize GetNthOperandSize(Bytecode bytecode, u32 operand_index) {
     TPL_ASSERT(operand_index < NumOperands(bytecode), "Accessing out-of-bounds operand number for bytecode");
     return GetOperandSizes(bytecode)[operand_index];
   }
 
   // Return the offset of the Nth operand of the given bytecode
+  /**
+   * Nth operand offset
+   * @param bytecode bytecode for which the Nth operand offset is needed
+   * @param operand_index index of the operand
+   * @return the offset of the operand at the given index
+   */
   static u32 GetNthOperandOffset(Bytecode bytecode, u32 operand_index);
 
-  // Return the name of the bytecode handler function for this bytecode
+  /**
+   * @param bytecode bytecode for which the name is needed
+   * @return the name of the bytecode handler function for this bytecode
+   */
   static const char *GetBytecodeHandlerName(Bytecode bytecode) { return kBytecodeHandlerName[ToByte(bytecode)]; }
 
-  // Converts the given bytecode to a single-byte representation
+  /**
+   * Converts the given bytecode to a single-byte representation
+   * @param bytecode to convert
+   * @return byte representation of the given bytecode
+   */
   static constexpr std::underlying_type_t<Bytecode> ToByte(Bytecode bytecode) {
     TPL_ASSERT(bytecode <= Bytecode::Last, "Invalid bytecode");
     return static_cast<std::underlying_type_t<Bytecode>>(bytecode);
   }
 
   // Converts the given unsigned byte into the associated bytecode
+  /**
+   * Converts the given unsigned byte into the associated bytecode
+   * @param val value to convert
+   * @return Bytecode representating the given value
+   */
   static constexpr Bytecode FromByte(std::underlying_type_t<Bytecode> val) {
     auto bytecode = static_cast<Bytecode>(val);
     TPL_ASSERT(bytecode <= Bytecode::Last, "Invalid bytecode");
     return bytecode;
   }
 
+  /**
+   * Checks whether the given bytecode is a jump bytecode
+   * @param bytecode bytecode to check
+   * @return whether the given bytecode is a jump bytecode.
+   */
   static constexpr bool IsJump(Bytecode bytecode) {
     return (bytecode == Bytecode::Jump || bytecode == Bytecode::JumpIfFalse || bytecode == Bytecode::JumpIfTrue);
   }
 
+  /**
+   * Checks whether the given bytecode is a function call bytecode
+   * @param bytecode bytecode to check
+   * @return whether the given bytecode is a function call bytecode
+   */
   static constexpr bool IsCall(Bytecode bytecode) { return bytecode == Bytecode::Call; }
 
+  /**
+   * Checks whether the given bytecode is a terminal (return or unconditional jump) bytecode
+   * @param bytecode bytecode to check
+   * @return whether the given bytecode is a terminal bytecode.
+   */
   static constexpr bool IsTerminal(Bytecode bytecode) {
     return bytecode == Bytecode::Jump || bytecode == Bytecode::Return;
   }
