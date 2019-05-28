@@ -66,7 +66,7 @@ TEST(OperatorTests, LogicalExportExternalFileTest) {
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
-  std::string file_name_copy = file_name;
+  const std::string &file_name_copy = file_name;
   Operator op2 =
       LogicalExportExternalFile::make(parser::ExternalFileFormat::BINARY, file_name_copy, delimiter, quote, escape);
   EXPECT_TRUE(op1 == op2);
@@ -182,8 +182,7 @@ TEST(OperatorTests, LogicalQueryDerivedGetTest) {
   EXPECT_EQ(logical_query_derived_get_1.GetType(), OpType::LOGICALQUERYDERIVEDGET);
   EXPECT_EQ(logical_query_derived_get_1.GetName(), "LogicalQueryDerivedGet");
   EXPECT_EQ(logical_query_derived_get_1.As<LogicalQueryDerivedGet>()->GetTableAlias(), "alias");
-  EXPECT_EQ(logical_query_derived_get_1.As<LogicalQueryDerivedGet>()->GetAliasToExprMap(),
-            std::move(alias_to_expr_map_1_1));
+  EXPECT_EQ(logical_query_derived_get_1.As<LogicalQueryDerivedGet>()->GetAliasToExprMap(), alias_to_expr_map_1_1);
   EXPECT_TRUE(logical_query_derived_get_1 == logical_query_derived_get_2);
   EXPECT_FALSE(logical_query_derived_get_1 == logical_query_derived_get_3);
   EXPECT_FALSE(logical_query_derived_get_1 == logical_query_derived_get_4);
@@ -271,21 +270,41 @@ TEST(OperatorTests, LogicalInnerJoinTest) {
   //===--------------------------------------------------------------------===//
   // LogicalInnerJoin
   //===--------------------------------------------------------------------===//
+  auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+
+  std::shared_ptr<parser::AbstractExpression> x_1 = std::shared_ptr<parser::AbstractExpression>(expr_b_1);
+  std::shared_ptr<parser::AbstractExpression> x_2 = std::shared_ptr<parser::AbstractExpression>(expr_b_2);
+  std::shared_ptr<parser::AbstractExpression> x_3 = std::shared_ptr<parser::AbstractExpression>(expr_b_3);
+
+  auto annotated_expr_0 = AnnotatedExpression(nullptr, std::unordered_set<std::string>());
+  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
+  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
+  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
+
   Operator logical_inner_join_0 = LogicalInnerJoin::make();
   Operator logical_inner_join_1 = LogicalInnerJoin::make(std::vector<AnnotatedExpression>());
   Operator logical_inner_join_2 = LogicalInnerJoin::make(std::vector<AnnotatedExpression>());
-  auto annotated_expr = AnnotatedExpression(nullptr, std::unordered_set<std::string>());
-  Operator logical_inner_join_3 = LogicalInnerJoin::make(std::vector<AnnotatedExpression>{annotated_expr});
+  Operator logical_inner_join_3 = LogicalInnerJoin::make(std::vector<AnnotatedExpression>{annotated_expr_0});
+  Operator logical_inner_join_4 = LogicalInnerJoin::make(std::vector<AnnotatedExpression>{annotated_expr_1});
+  Operator logical_inner_join_5 = LogicalInnerJoin::make(std::vector<AnnotatedExpression>{annotated_expr_2});
+  Operator logical_inner_join_6 = LogicalInnerJoin::make(std::vector<AnnotatedExpression>{annotated_expr_3});
+
 
   EXPECT_EQ(logical_inner_join_1.GetType(), OpType::LOGICALINNERJOIN);
   EXPECT_EQ(logical_inner_join_3.GetType(), OpType::LOGICALINNERJOIN);
   EXPECT_EQ(logical_inner_join_1.GetName(), "LogicalInnerJoin");
   EXPECT_EQ(logical_inner_join_1.As<LogicalInnerJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>());
   EXPECT_EQ(logical_inner_join_3.As<LogicalInnerJoin>()->GetJoinPredicates(),
-            std::vector<AnnotatedExpression>{annotated_expr});
+            std::vector<AnnotatedExpression>{annotated_expr_0});
+  EXPECT_EQ(logical_inner_join_4.As<LogicalInnerJoin>()->GetJoinPredicates(),
+            std::vector<AnnotatedExpression>{annotated_expr_1});
+  EXPECT_TRUE(logical_inner_join_0 == logical_inner_join_1);
   EXPECT_TRUE(logical_inner_join_1 == logical_inner_join_2);
   EXPECT_FALSE(logical_inner_join_1 == logical_inner_join_3);
-  EXPECT_TRUE(logical_inner_join_1 == logical_inner_join_0);
+  EXPECT_TRUE(logical_inner_join_4 == logical_inner_join_5);
+  EXPECT_FALSE(logical_inner_join_4 == logical_inner_join_6);
   EXPECT_TRUE(logical_inner_join_1.Hash() == logical_inner_join_0.Hash());
   EXPECT_TRUE(logical_inner_join_1.Hash() == logical_inner_join_2.Hash());
   EXPECT_FALSE(logical_inner_join_1.Hash() == logical_inner_join_3.Hash());
@@ -299,14 +318,13 @@ TEST(OperatorTests, LogicalLeftJoinTest) {
   auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
   auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
   auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
-  parser::AbstractExpression *x_1 = expr_b_1;
-  parser::AbstractExpression *x_2 = expr_b_2;
-  parser::AbstractExpression *x_3 = expr_b_3;
+  std::shared_ptr<parser::AbstractExpression> x_1 = std::shared_ptr<parser::AbstractExpression>(expr_b_1);
+  std::shared_ptr<parser::AbstractExpression> x_2 = std::shared_ptr<parser::AbstractExpression>(expr_b_2);
+  std::shared_ptr<parser::AbstractExpression> x_3 = std::shared_ptr<parser::AbstractExpression>(expr_b_3);
 
-  // Operator logical_left_join_0 = LogicalLeftJoin::make();
-  Operator logical_left_join_1 = LogicalLeftJoin::make(expr_b_1);
-  Operator logical_left_join_2 = LogicalLeftJoin::make(expr_b_2);
-  Operator logical_left_join_3 = LogicalLeftJoin::make(expr_b_3);
+  Operator logical_left_join_1 = LogicalLeftJoin::make(x_1);
+  Operator logical_left_join_2 = LogicalLeftJoin::make(x_2);
+  Operator logical_left_join_3 = LogicalLeftJoin::make(x_3);
 
   EXPECT_EQ(logical_left_join_1.GetType(), OpType::LOGICALLEFTJOIN);
   EXPECT_EQ(logical_left_join_3.GetType(), OpType::LOGICALLEFTJOIN);
@@ -316,10 +334,36 @@ TEST(OperatorTests, LogicalLeftJoinTest) {
   EXPECT_EQ(*(logical_left_join_3.As<LogicalLeftJoin>()->GetJoinPredicate()), *x_3);
   EXPECT_TRUE(logical_left_join_1 == logical_left_join_2);
   EXPECT_FALSE(logical_left_join_1 == logical_left_join_3);
-  // EXPECT_TRUE(logical_left_join_1 == logical_left_join_0);
-  // EXPECT_TRUE(logical_left_join_1.Hash() == logical_left_join_0.Hash());
   EXPECT_TRUE(logical_left_join_1.Hash() == logical_left_join_2.Hash());
   EXPECT_FALSE(logical_left_join_1.Hash() == logical_left_join_3.Hash());
+}
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, LogicalRightJoinTest) {
+  //===--------------------------------------------------------------------===//
+  // LogicalRightJoin
+  //===--------------------------------------------------------------------===//
+  auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  std::shared_ptr<parser::AbstractExpression> x_1 = std::shared_ptr<parser::AbstractExpression>(expr_b_1);
+  std::shared_ptr<parser::AbstractExpression> x_2 = std::shared_ptr<parser::AbstractExpression>(expr_b_2);
+  std::shared_ptr<parser::AbstractExpression> x_3 = std::shared_ptr<parser::AbstractExpression>(expr_b_3);
+
+  Operator logical_right_join_1 = LogicalRightJoin::make(x_1);
+  Operator logical_right_join_2 = LogicalRightJoin::make(x_2);
+  Operator logical_right_join_3 = LogicalRightJoin::make(x_3);
+
+  EXPECT_EQ(logical_right_join_1.GetType(), OpType::LOGICALRIGHTJOIN);
+  EXPECT_EQ(logical_right_join_3.GetType(), OpType::LOGICALRIGHTJOIN);
+  EXPECT_EQ(logical_right_join_1.GetName(), "LogicalRightJoin");
+  EXPECT_EQ(*(logical_right_join_1.As<LogicalRightJoin>()->GetJoinPredicate()), *x_1);
+  EXPECT_EQ(*(logical_right_join_2.As<LogicalRightJoin>()->GetJoinPredicate()), *x_2);
+  EXPECT_EQ(*(logical_right_join_3.As<LogicalRightJoin>()->GetJoinPredicate()), *x_3);
+  EXPECT_TRUE(logical_right_join_1 == logical_right_join_2);
+  EXPECT_FALSE(logical_right_join_1 == logical_right_join_3);
+  EXPECT_TRUE(logical_right_join_1.Hash() == logical_right_join_2.Hash());
+  EXPECT_FALSE(logical_right_join_1.Hash() == logical_right_join_3.Hash());
 }
 
 // NOLINTNEXTLINE
