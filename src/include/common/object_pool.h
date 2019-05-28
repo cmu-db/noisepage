@@ -177,6 +177,11 @@ class ObjectPool {
     }
   }
 
+  /**
+   * @return size limit of the object pool
+   */
+  uint64_t GetSizeLimit() const { return size_limit_; }
+
  private:
   Allocator alloc_;
   SpinLatch latch_;
