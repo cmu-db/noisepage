@@ -497,9 +497,9 @@ bool LogicalInnerJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // LeftJoin
 //===--------------------------------------------------------------------===//
-Operator LogicalLeftJoin::make(parser::AbstractExpression *condition) {
-  auto *join = new LogicalLeftJoin;
-  join->join_predicate_ = std::shared_ptr<parser::AbstractExpression>(condition);
+Operator LogicalLeftJoin::make(std::shared_ptr<parser::AbstractExpression> join_predicate) {
+  auto *join = new LogicalLeftJoin();
+  join->join_predicate_ = std::move(join_predicate);
   return Operator(join);
 }
 
@@ -518,9 +518,9 @@ bool LogicalLeftJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // RightJoin
 //===--------------------------------------------------------------------===//
-Operator LogicalRightJoin::make(parser::AbstractExpression *condition) {
-  auto *join = new LogicalRightJoin;
-  join->join_predicate_ = std::shared_ptr<parser::AbstractExpression>(condition);
+Operator LogicalRightJoin::make(std::shared_ptr<parser::AbstractExpression> join_predicate) {
+  auto *join = new LogicalRightJoin();
+  join->join_predicate_ = std::move(join_predicate);
   return Operator(join);
 }
 
@@ -533,7 +533,7 @@ common::hash_t LogicalRightJoin::Hash() const {
 bool LogicalRightJoin::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::LOGICALRIGHTJOIN) return false;
   const LogicalRightJoin &node = *static_cast<const LogicalRightJoin *>(&r);
-  return (join_predicate_ == node.join_predicate_);
+  return (*join_predicate_ == *(node.join_predicate_));
 }
 
 //===--------------------------------------------------------------------===//

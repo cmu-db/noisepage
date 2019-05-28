@@ -7,6 +7,7 @@
 #include "catalog/catalog_defs.h"
 #include "common/macros.h"
 #include "parser/expression_defs.h"
+#include "parser/expression/abstract_expression.h"
 
 namespace terrier {
 
@@ -114,7 +115,11 @@ class AnnotatedExpression {
      * In the original code, the comparison was implemented in
      * /src/optimizer/operators.cpp by comparing only the expr of the AnnotatedExpression
      */
-    return expr_ == rhs.expr_;
+    if (!expr_ && !(rhs.expr_))
+      return true;
+    if (expr_ && rhs.expr_)
+      return *expr_ == *(rhs.expr_);
+    return false;
   }
 
   /**

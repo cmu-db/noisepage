@@ -41,7 +41,7 @@ TEST(HashUtilTests, HashTest) {
   // STRING
   std::vector<std::string> vals3 = {"XXX", "YYY", "ZZZ"};
   for (const auto &val : vals3) {
-    auto copy = val;
+    const auto &copy = val;
     EXPECT_EQ(common::HashUtil::Hash(val), common::HashUtil::Hash(copy));
     EXPECT_NE(common::HashUtil::Hash("WUTANG"), common::HashUtil::Hash(val));
   }
@@ -121,7 +121,7 @@ TEST(HashUtilTests, CombineHashInRangeTest) {
   std::vector<std::string> vals0 = {"XXX", "YYY", "ZZZ"};
   common::hash_t hash0 = 0;
   for (const auto &val : vals0) {
-    auto copy = val;
+    const auto &copy = val;
     hash0 = common::HashUtil::CombineHashes(hash0, common::HashUtil::Hash(copy));
   }
 
