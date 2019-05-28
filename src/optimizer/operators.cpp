@@ -173,8 +173,13 @@ common::hash_t LogicalProjection::Hash() const {
 
 Operator LogicalInsert::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                              catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&columns,
-                             std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> &&values) {
-  TERRIER_ASSERT(columns.size() == values.size(), "Mismatched columns and values");
+                             std::vector<std::vector<parser::AbstractExpression*>> &&values) {
+  // We need to check whether the number of values for each insert vector
+  // matches the number of columns
+  for (auto insert_vals : values) {
+    TERRIER_ASSERT(columns.size() == insert_vals.size(), "Mismatched number of columns and values");
+  }
+
   auto *op = new LogicalInsert;
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
@@ -186,11 +191,16 @@ Operator LogicalInsert::make(catalog::db_oid_t database_oid, catalog::namespace_
 
 common::hash_t LogicalInsert::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&namespace_oid_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&table_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
   hash = common::HashUtil::CombineHashInRange(hash, columns_.begin(), columns_.end());
-  hash = common::HashUtil::CombineHashInRange(hash, values_.begin(), values_.end());
+
+  // Perform a deep hash of the values
+  for (auto insert_vals : values_) {
+    hash = common::HashUtil::CombineHashInRange(hash, insert_vals.begin(), insert_vals.end());
+  }
+
   return hash;
 }
 
@@ -220,9 +230,9 @@ Operator LogicalInsertSelect::make(catalog::db_oid_t database_oid, catalog::name
 
 common::hash_t LogicalInsertSelect::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&namespace_oid_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&table_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
   return hash;
 }
 

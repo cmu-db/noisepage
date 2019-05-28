@@ -455,10 +455,25 @@ class LogicalInsert : public OperatorNode<LogicalInsert> {
    */
   static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&columns,
-                       std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> &&values);
+                       std::vector<std::vector<parser::AbstractExpression*>> &&values);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
+
+  /**
+ * @return OID of the database
+ */
+  const catalog::db_oid_t &GetDatabaseOid() const { return database_oid_; }
+
+  /**
+   * @return OID of the namespace
+   */
+  const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
+
+  /**
+   * @return OID of the table
+   */
+  const catalog::table_oid_t &GetTableOid() const { return table_oid_; }
 
  private:
   /**
@@ -485,7 +500,7 @@ class LogicalInsert : public OperatorNode<LogicalInsert> {
    * The expression objects to insert.
    * The offset of an entry in this list corresponds to the offset in the columns_ list.
    */
-  std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> values_;
+  std::vector<std::vector<parser::AbstractExpression*>> values_;
 };
 
 /**
@@ -504,6 +519,21 @@ class LogicalInsertSelect : public OperatorNode<LogicalInsertSelect> {
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
+
+  /**
+   * @return OID of the database
+   */
+  const catalog::db_oid_t &GetDatabaseOid() const { return database_oid_; }
+
+  /**
+   * @return OID of the namespace
+   */
+  const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
+
+  /**
+   * @return OID of the table
+   */
+  const catalog::table_oid_t &GetTableOid() const { return table_oid_; }
 
  private:
   /**
