@@ -21,8 +21,10 @@ TupleAccessStrategy::TupleAccessStrategy(BlockLayout layout)
   }
 }
 
-void TupleAccessStrategy::InitializeRawBlock(RawBlock *const raw, const layout_version_t layout_version) const {
+void TupleAccessStrategy::InitializeRawBlock(storage::DataTable *const data_table, RawBlock *const raw,
+                                             const layout_version_t layout_version) const {
   // Intentional unsafe cast
+  raw->data_table_ = data_table;
   raw->layout_version_ = layout_version;
   raw->insert_head_ = 0;
   auto *result = reinterpret_cast<TupleAccessStrategy::Block *>(raw);

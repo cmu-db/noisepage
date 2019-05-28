@@ -9,6 +9,7 @@ namespace terrier::catalog {
 #define INVALID_TABLE_OID table_oid_t(2)
 
 // in name order
+STRONG_TYPEDEF(action_oid_t, uint32_t);
 STRONG_TYPEDEF(col_oid_t, uint32_t);
 STRONG_TYPEDEF(db_oid_t, uint32_t);
 STRONG_TYPEDEF(index_oid_t, uint32_t);
