@@ -174,7 +174,7 @@ Operator LogicalInsert::make(catalog::db_oid_t database_oid, catalog::namespace_
                              std::vector<std::vector<parser::AbstractExpression *>> &&values) {
   // We need to check whether the number of values for each insert vector
   // matches the number of columns
-  for (auto insert_vals : values) {
+  for (const auto &insert_vals : values) {
     TERRIER_ASSERT(columns.size() == insert_vals.size(), "Mismatched number of columns and values");
   }
 
