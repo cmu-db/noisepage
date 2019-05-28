@@ -28,9 +28,9 @@ Operator LogicalGet::make(catalog::db_oid_t database_oid, catalog::namespace_oid
 
 common::hash_t LogicalGet::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&namespace_oid_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&table_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
   hash = common::HashUtil::CombineHashInRange(hash, predicates_.begin(), predicates_.end());
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(is_for_update_));
@@ -75,14 +75,11 @@ bool LogicalExternalFileGet::operator==(const BaseOperatorNode &r) {
 
 common::hash_t LogicalExternalFileGet::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&format_));
-  hash = common::HashUtil::CombineHashes(
-      hash, common::HashUtil::HashBytes(reinterpret_cast<const byte *>(file_name_.data()), file_name_.length()));
-  hash = common::HashUtil::CombineHashes(hash,
-                                         common::HashUtil::HashBytes(reinterpret_cast<const byte *>(&delimiter_), 1));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::HashBytes(reinterpret_cast<const byte *>(&quote_), 1));
-  hash =
-      common::HashUtil::CombineHashes(hash, common::HashUtil::HashBytes(reinterpret_cast<const byte *>(&escape_), 1));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(format_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(file_name_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(delimiter_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(quote_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(escape_));
   return hash;
 }
 
@@ -184,9 +181,9 @@ Operator LogicalInsert::make(catalog::db_oid_t database_oid, catalog::namespace_
 
 common::hash_t LogicalInsert::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&namespace_oid_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&table_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
   hash = common::HashUtil::CombineHashInRange(hash, columns_.begin(), columns_.end());
   hash = common::HashUtil::CombineHashInRange(hash, values_.begin(), values_.end());
   return hash;
@@ -218,9 +215,9 @@ Operator LogicalInsertSelect::make(catalog::db_oid_t database_oid, catalog::name
 
 common::hash_t LogicalInsertSelect::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&namespace_oid_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&table_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
   return hash;
 }
 
@@ -283,8 +280,8 @@ bool LogicalLimit::operator==(const BaseOperatorNode &r) {
 
 common::hash_t LogicalLimit::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&offset_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&limit_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(offset_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(limit_));
   hash = common::HashUtil::CombineHashInRange(hash, sort_exprs_.begin(), sort_exprs_.end());
   hash = common::HashUtil::CombineHashInRange(hash, sort_directions_.begin(), sort_directions_.end());
   return hash;
@@ -305,9 +302,9 @@ Operator LogicalDelete::make(catalog::db_oid_t database_oid, catalog::namespace_
 
 common::hash_t LogicalDelete::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&namespace_oid_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&table_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
   return hash;
 }
 
@@ -325,8 +322,7 @@ bool LogicalDelete::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 
 Operator LogicalUpdate::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                             catalog::table_oid_t table_oid,
-                             std::vector<parser::UpdateClause*> &&updates) {
+                             catalog::table_oid_t table_oid, std::vector<parser::UpdateClause *> &&updates) {
   auto *op = new LogicalUpdate;
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
@@ -501,9 +497,9 @@ bool LogicalInnerJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // LeftJoin
 //===--------------------------------------------------------------------===//
-Operator LogicalLeftJoin::make(std::shared_ptr<parser::AbstractExpression> &&condition) {
+Operator LogicalLeftJoin::make(parser::AbstractExpression *condition) {
   auto *join = new LogicalLeftJoin;
-  join->join_predicate_ = std::move(condition);
+  join->join_predicate_ = std::shared_ptr<parser::AbstractExpression>(condition);
   return Operator(join);
 }
 
@@ -516,7 +512,7 @@ common::hash_t LogicalLeftJoin::Hash() const {
 bool LogicalLeftJoin::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::LOGICALLEFTJOIN) return false;
   const LogicalLeftJoin &node = *static_cast<const LogicalLeftJoin *>(&r);
-  return (join_predicate_ == node.join_predicate_);
+  return (*join_predicate_ == *(node.join_predicate_));
 }
 
 //===--------------------------------------------------------------------===//

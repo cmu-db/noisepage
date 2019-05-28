@@ -209,7 +209,9 @@ class LogicalQueryDerivedGet : public OperatorNode<LogicalQueryDerivedGet> {
   /**
    * @return map from table aliases to expressions
    */
-  std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>> GetAliasToExprMap() const { return alias_to_expr_map_; }
+  std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>> GetAliasToExprMap() const {
+    return alias_to_expr_map_;
+  }
 
  private:
   /**
@@ -406,7 +408,7 @@ class LogicalLeftJoin : public OperatorNode<LogicalLeftJoin> {
    * @param condition condition of the join
    * @return a LeftJoin operator
    */
-  static Operator make(std::shared_ptr<parser::AbstractExpression> &&condition = nullptr);
+  static Operator make(parser::AbstractExpression *condition = nullptr);
 
   bool operator==(const BaseOperatorNode &r) override;
 
@@ -720,7 +722,7 @@ class LogicalUpdate : public OperatorNode<LogicalUpdate> {
    * @return
    */
   static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::table_oid_t table_oid, std::vector<parser::UpdateClause*> &&updates);
+                       catalog::table_oid_t table_oid, std::vector<parser::UpdateClause *> &&updates);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
@@ -743,7 +745,7 @@ class LogicalUpdate : public OperatorNode<LogicalUpdate> {
   /**
    * @return the update clauses from the SET portion of the query
    */
-  std::vector<parser::UpdateClause*> GetUpdateClauses() const { return updates_; }
+  std::vector<parser::UpdateClause *> GetUpdateClauses() const { return updates_; }
 
  private:
   /**
@@ -764,7 +766,7 @@ class LogicalUpdate : public OperatorNode<LogicalUpdate> {
   /**
    * The update clauses from the SET portion of the query
    */
-  std::vector<parser::UpdateClause*> updates_;
+  std::vector<parser::UpdateClause *> updates_;
 };
 
 /**

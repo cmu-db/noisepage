@@ -61,7 +61,7 @@ TEST(HashUtilTests, HashMixedTest) {
   // There is nothing special about this test. It's just a sanity
   // check for me to make sure that things are working correctly in
   // another part of the system.
-  enum class wutang {RZA, GZA, RAEKWON, METHODMAN, GHOSTFACE, ODB, INSPECTAH};
+  enum class wutang { RZA, GZA, RAEKWON, METHODMAN, GHOSTFACE, ODB, INSPECTAH };
 
   common::hash_t hash0 = common::HashUtil::Hash(wutang::RAEKWON);
   common::hash_t hash1 = common::HashUtil::Hash(wutang::RAEKWON);
@@ -133,7 +133,6 @@ TEST(HashUtilTests, CombineHashInRangeTest) {
 
 // NOLINTNEXTLINE
 TEST(HashUtilTests, SumHashesTest) {
-
   common::hash_t hash0 = common::HashUtil::Hash("ABC");
   common::hash_t hash1 = common::HashUtil::Hash("XYZ");
 

@@ -27,7 +27,7 @@ TEST(OperatorTests, LogicalUpdateTest) {
   catalog::table_oid_t table_oid(789);
 
   // Check that all of our GET methods work as expected
-  Operator op1 = LogicalUpdate::make(database_oid, namespace_oid, table_oid, { });
+  Operator op1 = LogicalUpdate::make(database_oid, namespace_oid, table_oid, {});
   EXPECT_EQ(op1.GetType(), OpType::LOGICALUPDATE);
   EXPECT_EQ(op1.As<LogicalUpdate>()->GetDatabaseOid(), database_oid);
   EXPECT_EQ(op1.As<LogicalUpdate>()->GetNamespaceOid(), namespace_oid);
@@ -36,14 +36,14 @@ TEST(OperatorTests, LogicalUpdateTest) {
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
-  Operator op2 = LogicalUpdate::make(database_oid, namespace_oid, table_oid, { });
+  Operator op2 = LogicalUpdate::make(database_oid, namespace_oid, table_oid, {});
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   // Lastly, make a different object and make sure that it is not equal
   // and that it's hash is not the same!
   catalog::db_oid_t other_database_oid(999);
-  Operator op3 = LogicalUpdate::make(other_database_oid, namespace_oid, table_oid, { });
+  Operator op3 = LogicalUpdate::make(other_database_oid, namespace_oid, table_oid, {});
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 }
@@ -56,7 +56,8 @@ TEST(OperatorTests, LogicalExportExternalFileTest) {
   char escape = 'Z';
 
   // Check that all of our GET methods work as expected
-  Operator op1 = LogicalExportExternalFile::make(parser::ExternalFileFormat::BINARY, file_name, delimiter, quote, escape);
+  Operator op1 =
+      LogicalExportExternalFile::make(parser::ExternalFileFormat::BINARY, file_name, delimiter, quote, escape);
   EXPECT_EQ(op1.GetType(), OpType::LOGICALEXPORTEXTERNALFILE);
   EXPECT_EQ(op1.As<LogicalExportExternalFile>()->GetFilename(), file_name);
   EXPECT_EQ(op1.As<LogicalExportExternalFile>()->GetDelimiter(), delimiter);
@@ -66,15 +67,16 @@ TEST(OperatorTests, LogicalExportExternalFileTest) {
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
   std::string file_name_copy = file_name;
-  Operator op2 = LogicalExportExternalFile::make(parser::ExternalFileFormat::BINARY, file_name_copy, delimiter, quote, escape);
+  Operator op2 =
+      LogicalExportExternalFile::make(parser::ExternalFileFormat::BINARY, file_name_copy, delimiter, quote, escape);
   EXPECT_TRUE(op1 == op2);
-  //  EXPECT_EQ(op1.Hash(), op2.Hash());
+  EXPECT_EQ(op1.Hash(), op2.Hash());
 
   // Lastly, make a different object and make sure that it is not equal
   // and that it's hash is not the same!
   Operator op3 = LogicalExportExternalFile::make(parser::ExternalFileFormat::CSV, file_name, delimiter, quote, escape);
   EXPECT_FALSE(op1 == op3);
-  //  EXPECT_NE(op1.Hash(), op3.Hash());
+  EXPECT_NE(op1.Hash(), op3.Hash());
 }
 
 // NOLINTNEXTLINE
@@ -95,15 +97,15 @@ TEST(OperatorTests, LogicalGetTest) {
   EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetDatabaseOID(), catalog::db_oid_t(1));
   EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetNamespaceOID(), catalog::namespace_oid_t(2));
   EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetTableOID(), catalog::table_oid_t(3));
-  EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetPredicates(),std::vector<AnnotatedExpression>());
-  EXPECT_EQ(logical_get_3.As<LogicalGet>()->GetPredicates(),std::vector<AnnotatedExpression>{annotated_expr});
+  EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetPredicates(), std::vector<AnnotatedExpression>());
+  EXPECT_EQ(logical_get_3.As<LogicalGet>()->GetPredicates(), std::vector<AnnotatedExpression>{annotated_expr});
   EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetTableAlias(), "table");
   EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetIsForUpdate(), false);
   EXPECT_EQ(logical_get_1.GetName(), "LogicalGet");
   EXPECT_TRUE(logical_get_1 == logical_get_2);
   EXPECT_FALSE(logical_get_1 == logical_get_3);
-  //  EXPECT_TRUE(logical_get_1.Hash() == logical_get_2.Hash());
-  //  EXPECT_FALSE(logical_get_1.Hash() == logical_get_3.Hash());
+  EXPECT_EQ(logical_get_1.Hash(), logical_get_2.Hash());
+  EXPECT_NE(logical_get_1.Hash(), logical_get_3.Hash());
 }
 
 // NOLINTNEXTLINE
@@ -139,12 +141,12 @@ TEST(OperatorTests, LogicalExternalFileGetTest) {
   EXPECT_FALSE(logical_ext_file_get_1 == logical_ext_file_get_5);
   EXPECT_FALSE(logical_ext_file_get_1 == logical_ext_file_get_6);
   EXPECT_FALSE(logical_ext_file_get_1 == logical_ext_file_get_7);
-  //  EXPECT_TRUE(logical_ext_file_get_1.Hash() == logical_ext_file_get_2.Hash());
-  //  EXPECT_FALSE(logical_ext_file_get_1.Hash() == logical_ext_file_get_3.Hash());
-  //  EXPECT_FALSE(logical_ext_file_get_1.Hash() == logical_ext_file_get_4.Hash());
-  //  EXPECT_FALSE(logical_ext_file_get_1.Hash() == logical_ext_file_get_5.Hash());
-  //  EXPECT_FALSE(logical_ext_file_get_1.Hash() == logical_ext_file_get_6.Hash());
-  //  EXPECT_FALSE(logical_ext_file_get_1.Hash() == logical_ext_file_get_7.Hash());
+  EXPECT_TRUE(logical_ext_file_get_1.Hash() == logical_ext_file_get_2.Hash());
+  EXPECT_FALSE(logical_ext_file_get_1.Hash() == logical_ext_file_get_3.Hash());
+  EXPECT_FALSE(logical_ext_file_get_1.Hash() == logical_ext_file_get_4.Hash());
+  EXPECT_FALSE(logical_ext_file_get_1.Hash() == logical_ext_file_get_5.Hash());
+  EXPECT_FALSE(logical_ext_file_get_1.Hash() == logical_ext_file_get_6.Hash());
+  EXPECT_FALSE(logical_ext_file_get_1.Hash() == logical_ext_file_get_7.Hash());
 }
 
 // NOLINTNEXTLINE
@@ -171,8 +173,8 @@ TEST(OperatorTests, LogicalQueryDerivedGetTest) {
 
   Operator logical_query_derived_get_1 = LogicalQueryDerivedGet::make("alias", std::move(alias_to_expr_map_1));
   Operator logical_query_derived_get_2 = LogicalQueryDerivedGet::make("alias", std::move(alias_to_expr_map_2));
-  Operator logical_query_derived_get_3 =
-      LogicalQueryDerivedGet::make("alias", std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>>());
+  Operator logical_query_derived_get_3 = LogicalQueryDerivedGet::make(
+      "alias", std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>>());
   Operator logical_query_derived_get_4 = LogicalQueryDerivedGet::make("alias", std::move(alias_to_expr_map_3));
   Operator logical_query_derived_get_5 = LogicalQueryDerivedGet::make("alias", std::move(alias_to_expr_map_4));
   Operator logical_query_derived_get_6 = LogicalQueryDerivedGet::make("alias", std::move(alias_to_expr_map_5));
@@ -180,17 +182,18 @@ TEST(OperatorTests, LogicalQueryDerivedGetTest) {
   EXPECT_EQ(logical_query_derived_get_1.GetType(), OpType::LOGICALQUERYDERIVEDGET);
   EXPECT_EQ(logical_query_derived_get_1.GetName(), "LogicalQueryDerivedGet");
   EXPECT_EQ(logical_query_derived_get_1.As<LogicalQueryDerivedGet>()->GetTableAlias(), "alias");
-  EXPECT_EQ(logical_query_derived_get_1.As<LogicalQueryDerivedGet>()->GetAliasToExprMap(), std::move(alias_to_expr_map_1_1));
+  EXPECT_EQ(logical_query_derived_get_1.As<LogicalQueryDerivedGet>()->GetAliasToExprMap(),
+            std::move(alias_to_expr_map_1_1));
   EXPECT_TRUE(logical_query_derived_get_1 == logical_query_derived_get_2);
   EXPECT_FALSE(logical_query_derived_get_1 == logical_query_derived_get_3);
   EXPECT_FALSE(logical_query_derived_get_1 == logical_query_derived_get_4);
   EXPECT_FALSE(logical_query_derived_get_1 == logical_query_derived_get_5);
   EXPECT_FALSE(logical_query_derived_get_1 == logical_query_derived_get_6);
-  //  EXPECT_TRUE(logical_query_derived_get_1.Hash() == logical_query_derived_get_2.Hash());
-  //  EXPECT_FALSE(logical_query_derived_get_1.Hash() == logical_query_derived_get_3.Hash());
-  //  EXPECT_FALSE(logical_query_derived_get_1.Hash() == logical_query_derived_get_4.Hash());
-  //  EXPECT_FALSE(logical_query_derived_get_1.Hash() == logical_query_derived_get_5.Hash());
-  //  EXPECT_FALSE(logical_query_derived_get_1.Hash() == logical_query_derived_get_6.Hash());
+  EXPECT_TRUE(logical_query_derived_get_1.Hash() == logical_query_derived_get_2.Hash());
+  EXPECT_FALSE(logical_query_derived_get_1.Hash() == logical_query_derived_get_3.Hash());
+  EXPECT_FALSE(logical_query_derived_get_1.Hash() == logical_query_derived_get_4.Hash());
+  EXPECT_FALSE(logical_query_derived_get_1.Hash() == logical_query_derived_get_5.Hash());
+  EXPECT_FALSE(logical_query_derived_get_1.Hash() == logical_query_derived_get_6.Hash());
 }
 
 // NOLINTNEXTLINE
@@ -208,9 +211,9 @@ TEST(OperatorTests, LogicalDependentJoinTest) {
   EXPECT_EQ(logical_dep_join_3.GetType(), OpType::LOGICALDEPENDENTJOIN);
   EXPECT_EQ(logical_dep_join_1.GetName(), "LogicalDependentJoin");
   EXPECT_TRUE(logical_dep_join_1 == logical_dep_join_0);
-  //  EXPECT_TRUE(logical_dep_join_1.Hash() == logical_dep_join_0.Hash());
-  //  EXPECT_TRUE(logical_dep_join_1.Hash() == logical_dep_join_2.Hash());
-  //  EXPECT_FALSE(logical_dep_join_1.Hash() == logical_dep_join_3.Hash());
+  EXPECT_TRUE(logical_dep_join_1.Hash() == logical_dep_join_0.Hash());
+  EXPECT_TRUE(logical_dep_join_1.Hash() == logical_dep_join_2.Hash());
+  EXPECT_FALSE(logical_dep_join_1.Hash() == logical_dep_join_3.Hash());
 }
 
 // NOLINTNEXTLINE
@@ -228,15 +231,15 @@ TEST(OperatorTests, LogicalMarkJoinTest) {
   EXPECT_EQ(logical_mark_join_3.GetType(), OpType::LOGICALMARKJOIN);
   EXPECT_EQ(logical_mark_join_1.GetName(), "LogicalMarkJoin");
   EXPECT_EQ(logical_mark_join_1.As<LogicalMarkJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>());
-  EXPECT_EQ(logical_mark_join_3.As<LogicalMarkJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>{annotated_expr});
+  EXPECT_EQ(logical_mark_join_3.As<LogicalMarkJoin>()->GetJoinPredicates(),
+            std::vector<AnnotatedExpression>{annotated_expr});
   EXPECT_TRUE(logical_mark_join_1 == logical_mark_join_2);
   EXPECT_FALSE(logical_mark_join_1 == logical_mark_join_3);
   EXPECT_TRUE(logical_mark_join_1 == logical_mark_join_0);
-  //  EXPECT_TRUE(logical_mark_join_1.Hash() == logical_mark_join_0.Hash());
-  //  EXPECT_TRUE(logical_mark_join_1.Hash() == logical_mark_join_2.Hash());
-  //  EXPECT_FALSE(logical_mark_join_1.Hash() == logical_mark_join_3.Hash());
+  EXPECT_TRUE(logical_mark_join_1.Hash() == logical_mark_join_0.Hash());
+  EXPECT_TRUE(logical_mark_join_1.Hash() == logical_mark_join_2.Hash());
+  EXPECT_FALSE(logical_mark_join_1.Hash() == logical_mark_join_3.Hash());
 }
-
 
 // NOLINTNEXTLINE
 TEST(OperatorTests, LogicalSingleJoinTest) {
@@ -253,13 +256,14 @@ TEST(OperatorTests, LogicalSingleJoinTest) {
   EXPECT_EQ(logical_single_join_3.GetType(), OpType::LOGICALSINGLEJOIN);
   EXPECT_EQ(logical_single_join_1.GetName(), "LogicalSingleJoin");
   EXPECT_EQ(logical_single_join_1.As<LogicalSingleJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>());
-  EXPECT_EQ(logical_single_join_3.As<LogicalSingleJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>{annotated_expr});
+  EXPECT_EQ(logical_single_join_3.As<LogicalSingleJoin>()->GetJoinPredicates(),
+            std::vector<AnnotatedExpression>{annotated_expr});
   EXPECT_TRUE(logical_single_join_1 == logical_single_join_2);
   EXPECT_FALSE(logical_single_join_1 == logical_single_join_3);
   EXPECT_TRUE(logical_single_join_1 == logical_single_join_0);
-  //  EXPECT_TRUE(logical_single_join_1.Hash() == logical_single_join_0.Hash());
-  //  EXPECT_TRUE(logical_single_join_1.Hash() == logical_single_join_2.Hash());
-  //  EXPECT_FALSE(logical_single_join_1.Hash() == logical_single_join_3.Hash());
+  EXPECT_TRUE(logical_single_join_1.Hash() == logical_single_join_0.Hash());
+  EXPECT_TRUE(logical_single_join_1.Hash() == logical_single_join_2.Hash());
+  EXPECT_FALSE(logical_single_join_1.Hash() == logical_single_join_3.Hash());
 }
 
 // NOLINTNEXTLINE
@@ -277,13 +281,14 @@ TEST(OperatorTests, LogicalInnerJoinTest) {
   EXPECT_EQ(logical_inner_join_3.GetType(), OpType::LOGICALINNERJOIN);
   EXPECT_EQ(logical_inner_join_1.GetName(), "LogicalInnerJoin");
   EXPECT_EQ(logical_inner_join_1.As<LogicalInnerJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>());
-  EXPECT_EQ(logical_inner_join_3.As<LogicalInnerJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>{annotated_expr});
+  EXPECT_EQ(logical_inner_join_3.As<LogicalInnerJoin>()->GetJoinPredicates(),
+            std::vector<AnnotatedExpression>{annotated_expr});
   EXPECT_TRUE(logical_inner_join_1 == logical_inner_join_2);
   EXPECT_FALSE(logical_inner_join_1 == logical_inner_join_3);
   EXPECT_TRUE(logical_inner_join_1 == logical_inner_join_0);
-  //  EXPECT_TRUE(logical_inner_join_1.Hash() == logical_inner_join_0.Hash());
-  //  EXPECT_TRUE(logical_inner_join_1.Hash() == logical_inner_join_2.Hash());
-  //  EXPECT_FALSE(logical_inner_join_1.Hash() == logical_inner_join_3.Hash());
+  EXPECT_TRUE(logical_inner_join_1.Hash() == logical_inner_join_0.Hash());
+  EXPECT_TRUE(logical_inner_join_1.Hash() == logical_inner_join_2.Hash());
+  EXPECT_FALSE(logical_inner_join_1.Hash() == logical_inner_join_3.Hash());
 }
 
 // NOLINTNEXTLINE
@@ -292,29 +297,30 @@ TEST(OperatorTests, LogicalLeftJoinTest) {
   // LogicalLeftJoin
   //===--------------------------------------------------------------------===//
   auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
-  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  parser::AbstractExpression *x_1 = expr_b_1;
+  parser::AbstractExpression *x_2 = expr_b_2;
+  parser::AbstractExpression *x_3 = expr_b_3;
 
-  Operator logical_left_join = LogicalLeftJoin::make(std::shared_ptr<parser::AbstractExpression>());
-
-  Operator logical_left_join_0 = LogicalLeftJoin::make();
+  // Operator logical_left_join_0 = LogicalLeftJoin::make();
   Operator logical_left_join_1 = LogicalLeftJoin::make(expr_b_1);
-  Operator logical_left_join_2 = LogicalLeftJoin::make(expr_b_3);
-  Operator logical_left_join_3 = LogicalLeftJoin::make(expr_b_2);
+  Operator logical_left_join_2 = LogicalLeftJoin::make(expr_b_2);
+  Operator logical_left_join_3 = LogicalLeftJoin::make(expr_b_3);
 
   EXPECT_EQ(logical_left_join_1.GetType(), OpType::LOGICALLEFTJOIN);
   EXPECT_EQ(logical_left_join_3.GetType(), OpType::LOGICALLEFTJOIN);
   EXPECT_EQ(logical_left_join_1.GetName(), "LogicalLeftJoin");
-  EXPECT_EQ(logical_left_join_1.As<LogicalLeftJoin>()->GetJoinPredicate(), std::vector<AnnotatedExpression>());
-  EXPECT_EQ(logical_left_join_3.As<LogicalLeftJoin>()->GetJoinPredicate(), std::vector<AnnotatedExpression>{annotated_expr});
+  EXPECT_EQ(*(logical_left_join_1.As<LogicalLeftJoin>()->GetJoinPredicate()), *x_1);
+  EXPECT_EQ(*(logical_left_join_2.As<LogicalLeftJoin>()->GetJoinPredicate()), *x_2);
+  EXPECT_EQ(*(logical_left_join_3.As<LogicalLeftJoin>()->GetJoinPredicate()), *x_3);
   EXPECT_TRUE(logical_left_join_1 == logical_left_join_2);
   EXPECT_FALSE(logical_left_join_1 == logical_left_join_3);
-  EXPECT_TRUE(logical_left_join_1 == logical_left_join_0);
-  //  EXPECT_TRUE(logical_left_join_1.Hash() == logical_left_join_0.Hash());
-  //  EXPECT_TRUE(logical_left_join_1.Hash() == logical_left_join_2.Hash());
-  //  EXPECT_FALSE(logical_left_join_1.Hash() == logical_left_join_3.Hash());
+  // EXPECT_TRUE(logical_left_join_1 == logical_left_join_0);
+  // EXPECT_TRUE(logical_left_join_1.Hash() == logical_left_join_0.Hash());
+  EXPECT_TRUE(logical_left_join_1.Hash() == logical_left_join_2.Hash());
+  EXPECT_FALSE(logical_left_join_1.Hash() == logical_left_join_3.Hash());
 }
-
 
 // NOLINTNEXTLINE
 TEST(OperatorTests, SeqScanTest) {
