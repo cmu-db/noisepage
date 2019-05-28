@@ -13,10 +13,6 @@
 #include "util/test_harness.h"
 
 namespace terrier {
-struct TestCallbacks {
-  TestCallbacks() = delete;
-  static void EmptyCallback(void * /*unused*/) {}
-};
 
 class LargeTransactionTestObject;
 class RandomWorkloadTransaction;
