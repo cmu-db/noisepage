@@ -43,14 +43,34 @@ namespace internal {
 template <typename S, typename T, u64 shift, u64 size>
 class BitFieldBase {
  public:
+  /**
+   * A bitfield with just the one bit set.
+   */
   static constexpr const S kOne = static_cast<S>(1U);
 
+  /**
+   * The next available bit position in a bitfield, i.e. if you were creating another field,
+   * this is the minimum amount of shift required so that the new field won't overlap with us.
+   */
   static constexpr const S kNextBit = shift + size;
 
+  /**
+   * A mask which is set for only the bits used by this field.
+   */
   static constexpr const S kMask = ((kOne << size) - 1) << shift;
 
+  /**
+   * Represent the given value as a bitfield.
+   * @param val the value to be encoded
+   * @return the bitfield which encodes the value
+   */
   ALWAYS_INLINE static constexpr S Encode(T val) { return static_cast<S>(val) << shift; }
 
+  /**
+   * Read the given bitfield as a value.
+   * @param storage the bitfield to be read
+   * @return the value encoded in the bitfield
+   */
   ALWAYS_INLINE static constexpr T Decode(S storage) {
     if constexpr (std::is_same_v<T, bool>) {
       return static_cast<T>(storage & kMask);
@@ -58,6 +78,12 @@ class BitFieldBase {
     return static_cast<T>((storage & kMask) >> shift);
   }
 
+  /**
+   * Create a new bitfield containing the updated value.
+   * @param curr_storage the old bitfield
+   * @param update the new value
+   * @return the updated bitfield
+   */
   ALWAYS_INLINE static constexpr S Update(S curr_storage, T update) { return (curr_storage & ~kMask) | Encode(update); }
 
   static_assert((kNextBit - 1) / 8 < sizeof(S));
