@@ -460,7 +460,7 @@ class LogicalOuterJoin : public OperatorNode<LogicalOuterJoin> {
  public:
   /**
    * @param join_predicate condition of the join
-   * @return a RightJoin operator
+   * @return an OuterJoin operator
    */
   static Operator make(std::shared_ptr<parser::AbstractExpression> join_predicate);
 
@@ -486,14 +486,19 @@ class LogicalOuterJoin : public OperatorNode<LogicalOuterJoin> {
 class LogicalSemiJoin : public OperatorNode<LogicalSemiJoin> {
  public:
   /**
-   * @param condition condition of the join
-   * @return a RightJoin operator
+   * @param join_predicate condition of the join
+   * @return a SemiJoin operator
    */
-  static Operator make(parser::AbstractExpression *condition = nullptr);
+  static Operator make(std::shared_ptr<parser::AbstractExpression> join_predicate);
 
   bool operator==(const BaseOperatorNode &r) override;
 
   common::hash_t Hash() const override;
+
+  /**
+   * @return pointer to the join predicate expression
+   */
+  std::shared_ptr<parser::AbstractExpression> GetJoinPredicate() const { return join_predicate_; }
 
  private:
   /**

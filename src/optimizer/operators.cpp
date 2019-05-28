@@ -560,9 +560,9 @@ bool LogicalOuterJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // SemiJoin
 //===--------------------------------------------------------------------===//
-Operator LogicalSemiJoin::make(parser::AbstractExpression *condition) {
+Operator LogicalSemiJoin::make(std::shared_ptr<parser::AbstractExpression> join_predicate) {
   auto *join = new LogicalSemiJoin;
-  join->join_predicate_ = std::shared_ptr<parser::AbstractExpression>(condition);
+  join->join_predicate_ = std::move(join_predicate);
   return Operator(join);
 }
 
@@ -575,7 +575,7 @@ common::hash_t LogicalSemiJoin::Hash() const {
 bool LogicalSemiJoin::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::LOGICALSEMIJOIN) return false;
   const LogicalSemiJoin &node = *static_cast<const LogicalSemiJoin *>(&r);
-  return (join_predicate_ == node.join_predicate_);
+  return (*join_predicate_ == *(node.join_predicate_));
 }
 
 //===--------------------------------------------------------------------===//

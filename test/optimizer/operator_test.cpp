@@ -291,7 +291,6 @@ TEST(OperatorTests, LogicalInnerJoinTest) {
   Operator logical_inner_join_5 = LogicalInnerJoin::make(std::vector<AnnotatedExpression>{annotated_expr_2});
   Operator logical_inner_join_6 = LogicalInnerJoin::make(std::vector<AnnotatedExpression>{annotated_expr_3});
 
-
   EXPECT_EQ(logical_inner_join_1.GetType(), OpType::LOGICALINNERJOIN);
   EXPECT_EQ(logical_inner_join_3.GetType(), OpType::LOGICALINNERJOIN);
   EXPECT_EQ(logical_inner_join_1.GetName(), "LogicalInnerJoin");
@@ -393,6 +392,35 @@ TEST(OperatorTests, LogicalOuterJoinTest) {
   EXPECT_TRUE(logical_outer_join_1.Hash() == logical_outer_join_2.Hash());
   EXPECT_FALSE(logical_outer_join_1.Hash() == logical_outer_join_3.Hash());
 }
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, LogicalSemiJoinTest) {
+  //===--------------------------------------------------------------------===//
+  // LogicalSemiJoin
+  //===--------------------------------------------------------------------===//
+  auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  std::shared_ptr<parser::AbstractExpression> x_1 = std::shared_ptr<parser::AbstractExpression>(expr_b_1);
+  std::shared_ptr<parser::AbstractExpression> x_2 = std::shared_ptr<parser::AbstractExpression>(expr_b_2);
+  std::shared_ptr<parser::AbstractExpression> x_3 = std::shared_ptr<parser::AbstractExpression>(expr_b_3);
+
+  Operator logical_semi_join_1 = LogicalSemiJoin::make(x_1);
+  Operator logical_semi_join_2 = LogicalSemiJoin::make(x_2);
+  Operator logical_semi_join_3 = LogicalSemiJoin::make(x_3);
+
+  EXPECT_EQ(logical_semi_join_1.GetType(), OpType::LOGICALSEMIJOIN);
+  EXPECT_EQ(logical_semi_join_3.GetType(), OpType::LOGICALSEMIJOIN);
+  EXPECT_EQ(logical_semi_join_1.GetName(), "LogicalSemiJoin");
+  EXPECT_EQ(*(logical_semi_join_1.As<LogicalSemiJoin>()->GetJoinPredicate()), *x_1);
+  EXPECT_EQ(*(logical_semi_join_2.As<LogicalSemiJoin>()->GetJoinPredicate()), *x_2);
+  EXPECT_EQ(*(logical_semi_join_3.As<LogicalSemiJoin>()->GetJoinPredicate()), *x_3);
+  EXPECT_TRUE(logical_semi_join_1 == logical_semi_join_2);
+  EXPECT_FALSE(logical_semi_join_1 == logical_semi_join_3);
+  EXPECT_TRUE(logical_semi_join_1.Hash() == logical_semi_join_2.Hash());
+  EXPECT_FALSE(logical_semi_join_1.Hash() == logical_semi_join_3.Hash());
+}
+
 // NOLINTNEXTLINE
 TEST(OperatorTests, SeqScanTest) {
   //===--------------------------------------------------------------------===//
