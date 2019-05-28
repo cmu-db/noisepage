@@ -562,10 +562,25 @@ class LogicalInsert : public OperatorNode<LogicalInsert> {
    */
   static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&columns,
-                       std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> &&values);
+                       std::vector<std::vector<parser::AbstractExpression*>> &&values);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
+
+  /**
+ * @return OID of the database
+ */
+  const catalog::db_oid_t &GetDatabaseOid() const { return database_oid_; }
+
+  /**
+   * @return OID of the namespace
+   */
+  const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
+
+  /**
+   * @return OID of the table
+   */
+  const catalog::table_oid_t &GetTableOid() const { return table_oid_; }
 
  private:
   /**
@@ -592,7 +607,7 @@ class LogicalInsert : public OperatorNode<LogicalInsert> {
    * The expression objects to insert.
    * The offset of an entry in this list corresponds to the offset in the columns_ list.
    */
-  std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> values_;
+  std::vector<std::vector<parser::AbstractExpression*>> values_;
 };
 
 /**
@@ -611,6 +626,21 @@ class LogicalInsertSelect : public OperatorNode<LogicalInsertSelect> {
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
+
+  /**
+   * @return OID of the database
+   */
+  const catalog::db_oid_t &GetDatabaseOid() const { return database_oid_; }
+
+  /**
+   * @return OID of the namespace
+   */
+  const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
+
+  /**
+   * @return OID of the table
+   */
+  const catalog::table_oid_t &GetTableOid() const { return table_oid_; }
 
  private:
   /**
@@ -664,6 +694,26 @@ class LogicalLimit : public OperatorNode<LogicalLimit> {
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
+
+  /**
+   * @return offset of the LIMIT operator
+   */
+  size_t GetOffset() const { return offset_; }
+
+  /**
+   * @return the max # of tuples to produce
+   */
+  size_t GetLimit() const { return limit_; }
+
+  /**
+   * @return inlined ORDER BY expressions (can be empty)
+   */
+  const std::vector<std::shared_ptr<parser::AbstractExpression>> &GetSortExpressions() const { return sort_exprs_; }
+
+  /**
+   * @return inlined sort directions (can be empty)
+   */
+  const std::vector<planner::OrderByOrderingType> &GetSortDirections() const { return sort_directions_; }
 
  private:
   /**
