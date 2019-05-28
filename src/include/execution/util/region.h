@@ -129,9 +129,12 @@ class Region {
 class RegionObject {
  public:
   // Region objects should always be allocated from and release a region
+  /// remove new without a region
   void *operator new(std::size_t size) = delete;
+  /// remove delete without a region
   void operator delete(void *ptr) = delete;
 
+  /// Actual new call that takes in a region
   void *operator new(std::size_t size, Region *region) { return region->Allocate(size); }
 
   /*
@@ -139,6 +142,7 @@ class RegionObject {
    * when the region is destroyed. You can invoke this behavior manually by
    * calling Region::FreeAll().
    */
+  /// This delete should never be called.
   void operator delete(UNUSED void *ptr, UNUSED Region *region) {
     UNREACHABLE("Calling \"delete\" on region object is forbidden!");
   }

@@ -19,8 +19,16 @@ class ConsumerContext;
  */
 class ExecutionConsumer {
  public:
+  /**
+   * Construction
+   * @param schema final schema returned to the upper layers
+   */
   explicit ExecutionConsumer(std::shared_ptr<exec::FinalSchema> schema) : schema_(std::move(schema)) {}
 
+  /**
+   * Generates the output struct.
+   * @param ctx compilation context to use
+   */
   void Prepare(CompilationContext *ctx) {
     auto &codegen = *ctx->GetCodeGen();
     auto *ast_ctx = ctx->GetCodeGen()->GetCodeContext()->GetAstContext();
@@ -52,7 +60,16 @@ class ExecutionConsumer {
     ctx->GetCodeGen()->GetCodeContext()->AddTopDecl(output_decl);
   }
 
+  /**
+   * Initializes query state. For now, this does not need any state.
+   * @param ctx compilation context to use
+   */
   void InitializeQueryState(CompilationContext *ctx) {}
+
+  /**
+   * Tears down the query state. For now, this just finalizes the output buffer.
+   * @param ctx compilation context to use
+   */
   void TeardownQueryState(CompilationContext *ctx) {
     auto &codegen = *(ctx->GetCodeGen());
 
@@ -62,6 +79,11 @@ class ExecutionConsumer {
     ctx->GetCodeGen()->GetCurrentFunction()->Append(codegen->NewExpressionStmt(call_ex));
   }
 
+  /**
+   * Consumes a tuple by adding to the output buffer
+   * @param context consumer context to use
+   * @param batch tuple to consume
+   */
   void ConsumeResult(ConsumerContext *context, RowBatch *batch) const {
     auto &codegen = *(context->GetCompilationContext()->GetCodeGen());
     auto *ast_ctx = context->GetCompilationContext()->GetCodeGen()->GetCodeContext()->GetAstContext();

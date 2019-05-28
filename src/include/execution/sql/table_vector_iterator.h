@@ -28,7 +28,7 @@ class TableVectorIterator {
   /// \return True if there is more data in the iterator; false otherwise
   bool Advance();
 
-  // TODO(Amadou): Ask Prashant what Init is for.
+  /// Initialize the iteration
   bool Init();
 
   /// Return the iterator over the current active ProjectedColumns

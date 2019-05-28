@@ -18,7 +18,7 @@ class BloomFilter {
   static constexpr const u32 kBitsPerElement = 8;
 
  public:
-  // A block in this filter (i.e., the sizes of the bloom filter partitions)
+  /// A block in this filter (i.e., the sizes of the bloom filter partitions)
   using Block = u32[8];
 
  public:

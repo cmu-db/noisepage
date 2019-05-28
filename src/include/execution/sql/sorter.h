@@ -11,6 +11,7 @@ class Sorter {
  public:
   friend class SorterIterator;
 
+  /// Comparison function
   using ComparisonFunction = i32 (*)(const byte *lhs, const byte *rhs);
 
   /// Construct a sorter using the given allocator, configured to store input
@@ -29,6 +30,7 @@ class Sorter {
 
   /// Tuple allocation for TopK
   byte *AllocInputTupleTopK(u64 top_k) noexcept;
+  /// Finish adding a tuple into th heap
   void AllocInputTupleTopKFinish(u64 top_k) noexcept;
 
   /// Sort all inserted entries
@@ -59,10 +61,13 @@ class Sorter {
 /// An iterator over the elements in a sorter instance
 class SorterIterator {
  public:
+  /// Constructs an iterator given an Sorter.
   explicit SorterIterator(Sorter *sorter) noexcept : iter_(sorter->tuples_.begin()) {}
 
+  /// Return the current item
   const byte *operator*() noexcept { return *iter_; }
 
+  /// Advance the iterator
   SorterIterator &operator++() noexcept {
     ++iter_;
     return *this;

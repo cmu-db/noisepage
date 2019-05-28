@@ -12,6 +12,11 @@ class TypeVisitor {
  public:
 #define DISPATCH(Type) return static_cast<Impl *>(this)->Visit##Type(static_cast<const Type *>(type));
 
+  /**
+   * Visits an arbitrary type
+   * @param type type to visit
+   * @return return value of the visitor (usually void)
+   */
   RetType Visit(const Type *type) {
     switch (type->type_id()) {
       default: { llvm_unreachable("Impossible node type"); }
@@ -23,6 +28,11 @@ class TypeVisitor {
     }
   }
 
+  /**
+   * Visitor for an abstract type, which does nothing
+   * @param type type to visit
+   * @return default return type (usually void)
+   */
   RetType VisitType(UNUSED const Type *type) { return RetType(); }
 
 #define T(Type) \

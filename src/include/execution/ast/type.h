@@ -141,6 +141,7 @@ class Type : public util::RegionObject {
     return llvm::cast<const T>(this);
   }
 
+  /// Same as above, without const.
   template <typename T>
   T *As() {
     return llvm::cast<T>(this);
@@ -164,6 +165,7 @@ class Type : public util::RegionObject {
     return llvm::dyn_cast<const T>(this);
   }
 
+  /// Same as above, without const
   template <typename T>
   T *SafeAs() {
     return llvm::dyn_cast<T>(this);
@@ -175,11 +177,17 @@ class Type : public util::RegionObject {
   TYPE_LIST(F)
 #undef F
 
+  /// Whether this is an arithmetic type.
   bool IsArithmetic() const;
+  /// Whether this is a builtin type of type kind
   bool IsSpecificBuiltin(u16 kind) const;
+  /// Whether this is the nil type.
   bool IsNilType() const;
+  /// Whether this is the bool type.
   bool IsBoolType() const;
+  /// Whether this is an integer type.
   bool IsIntegerType() const;
+  /// Whether this is a float type.
   bool IsFloatType() const;
 
   /// Return a new type that is a pointer to the current type
@@ -196,7 +204,7 @@ class Type : public util::RegionObject {
   static std::string ToString(const Type *type);
 
  protected:
-  // Protected to indicate abstract base
+  /// Protected to indicate abstract base
   Type(Context *ctx, u32 size, u32 alignment, TypeId type_id)
       : ctx_(ctx), size_(size), align_(alignment), type_id_(type_id) {}
 
@@ -215,6 +223,7 @@ class Type : public util::RegionObject {
 class BuiltinType : public Type {
  public:
 #define F(BKind, ...) BKind,
+  /// Enum of builtin types
   enum Kind : u16 { BUILTIN_TYPE_LIST(F, F, F) };
 #undef F
 
@@ -245,12 +254,15 @@ class BuiltinType : public Type {
   /// Return the kind of this builtin
   Kind kind() const { return kind_; }
 
+  /// Return a builtin of the given kind.
   static BuiltinType *Get(Context *ctx, Kind kind);
 
+  /// Whether this is the same as the given type
   static bool classof(const Type *type) { return type->type_id() == TypeId::BuiltinType; }
 
  private:
   friend class Context;
+  /// Private constructor
   BuiltinType(Context *ctx, u32 size, u32 alignment, Kind kind)
       : Type(ctx, size, alignment, TypeId::BuiltinType), kind_(kind) {}
 
@@ -270,25 +282,48 @@ class BuiltinType : public Type {
 /// String type
 class StringType : public Type {
  public:
+  /**
+   * Static Constructor
+   * @param ctx ast context to use
+   * @return a string type
+   */
   static StringType *Get(Context *ctx);
 
+  /**
+   * @param type checked type
+   * @return whether type is a string type.
+   */
   static bool classof(const Type *type) { return type->type_id() == TypeId::StringType; }
 
  private:
   friend class Context;
+  /// Private constructor
   explicit StringType(Context *ctx) : Type(ctx, sizeof(i8 *), alignof(i8 *), TypeId::StringType) {}
 };
 
 /// Pointer type
 class PointerType : public Type {
  public:
+  /**
+   * @return base type
+   */
   Type *base() const { return base_; }
 
+  /**
+   * Static Constructor
+   * @param base type
+   * @return pointer to base type
+   */
   static PointerType *Get(Type *base);
 
+  /**
+   * @param type checked type
+   * @return whether type is a pointer type.
+   */
   static bool classof(const Type *type) { return type->type_id() == TypeId::PointerType; }
 
  private:
+  /// Private constructor
   explicit PointerType(Type *base)
       : Type(base->context(), sizeof(i8 *), alignof(i8 *), TypeId::PointerType), base_(base) {}
 
@@ -299,15 +334,35 @@ class PointerType : public Type {
 /// Array type
 class ArrayType : public Type {
  public:
+  /**
+   * @return length of the array
+   */
   u64 length() const { return length_; }
 
+  /**
+   * @return element type
+   */
   Type *element_type() const { return elem_type_; }
 
+  /**
+   * Construction
+   * @param length of the array
+   * @param elem_type element type
+   * @return the array type
+   */
   static ArrayType *Get(u64 length, Type *elem_type);
 
+  /**
+   * @return whether type is an array type.
+   */
   static bool classof(const Type *type) { return type->type_id() == TypeId::ArrayType; }
 
  private:
+  /**
+   * Private constructor
+   * @param length of the array
+   * @param elem_type element type
+   */
   explicit ArrayType(u64 length, Type *elem_type)
       : Type(elem_type->context(), static_cast<u32>(elem_type->size() * length), elem_type->alignment(),
              TypeId::ArrayType),
@@ -322,28 +377,59 @@ class ArrayType : public Type {
 /// A field is a pair containing a name and a type. It is used to represent both
 /// fields within a struct, and parameters to a function.
 struct Field {
+  /// Name of the field
   Identifier name;
+  /// Type of the field
   Type *type;
 
+  /**
+   * Constructor
+   * @param name of the field
+   * @param type of the field
+   */
   Field(const Identifier &name, Type *type) : name(name), type(type) {}
 
+  /**
+   * @param other rhs of the comparison
+   * @return whether this == other
+   */
   bool operator==(const Field &other) const noexcept { return name == other.name && type == other.type; }
 };
 
 /// Function type
 class FunctionType : public Type {
  public:
+  /**
+   * @return list of parameters
+   */
   const util::RegionVector<Field> &params() const { return params_; }
 
+  /**
+   * @return numner of parameters
+   */
   u32 num_params() const { return static_cast<u32>(params().size()); }
 
+  /**
+   * @return return type of the function
+   */
   Type *return_type() const { return ret_; }
 
+  /**
+   * Static Constructor
+   * @param params list of parameters
+   * @param ret return type
+   * @return the function type
+   */
   static FunctionType *Get(util::RegionVector<Field> &&params, Type *ret);
 
+  /**
+   * @param type type to compare with
+   * @return whether type is of function type
+   */
   static bool classof(const Type *type) { return type->type_id() == TypeId::FunctionType; }
 
  private:
+  /// Private constructor
   explicit FunctionType(util::RegionVector<Field> &&params, Type *ret);
 
  private:
@@ -354,15 +440,32 @@ class FunctionType : public Type {
 /// Hash-map type
 class MapType : public Type {
  public:
+  /**
+   * @return type of the keys
+   */
   Type *key_type() const { return key_type_; }
 
+  /**
+   * @return type of values
+   */
   Type *value_type() const { return val_type_; }
 
+  /**
+   * Static Constructor
+   * @param key_type type of the keys
+   * @param value_type type of the values
+   * @return constructed map type
+   */
   static MapType *Get(Type *key_type, Type *value_type);
 
+  /**
+   * @param type to compare with
+   * @return whether type is of map type.
+   */
   static bool classof(const Type *type) { return type->type_id() == TypeId::MapType; }
 
  private:
+  /// Private Constructor
   MapType(Type *key_type, Type *val_type);
 
  private:
@@ -373,8 +476,15 @@ class MapType : public Type {
 /// Struct type
 class StructType : public Type {
  public:
+  /**
+   * @return list of fields
+   */
   const util::RegionVector<Field> &fields() const { return fields_; }
 
+  /**
+   * @param name field to lookup
+   * @return type of the field
+   */
   Type *LookupFieldByName(Identifier name) const {
     for (const auto &field : fields()) {
       if (field.name == name) {
@@ -384,6 +494,10 @@ class StructType : public Type {
     return nullptr;
   }
 
+  /**
+   * @param name field of to lookup
+   * @return offset of the field
+   */
   u32 GetOffsetOfFieldByName(Identifier name) const {
     for (u32 i = 0; i < fields_.size(); i++) {
       if (fields_[i].name == name) {
@@ -393,14 +507,35 @@ class StructType : public Type {
     return 0;
   }
 
+  /**
+   * @param other struct to compare to
+   * @return whether this and other are identical
+   */
   bool IsLayoutIdentical(const StructType &other) const { return (this == &other || fields() == other.fields()); }
 
+  /**
+   * Static constructor
+   * @param ctx ast context
+   * @param fields list of types
+   * @return constructor type
+   */
   static StructType *Get(Context *ctx, util::RegionVector<Field> &&fields);
+
+  /**
+   * Static constructor
+   * @param fields list of types
+   * @return constructor type
+   */
   static StructType *Get(util::RegionVector<Field> &&fields);
 
+  /**
+   * @param type checked type
+   * @return whether type is a struct type.
+   */
   static bool classof(const Type *type) { return type->type_id() == TypeId::StructType; }
 
  private:
+  /// Private constructor
   explicit StructType(Context *ctx, u32 size, u32 alignment, util::RegionVector<Field> &&fields,
                       util::RegionVector<u32> &&field_offsets);
 

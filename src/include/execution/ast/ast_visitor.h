@@ -27,6 +27,11 @@ class AstVisitor {
  public:
 #define DISPATCH(Type) return this->impl()->Visit##Type(static_cast<Type *>(node));
 
+  /**
+   * Visits an arbitrary node
+   * @param node node to visit
+   * @return return value of the node
+   */
   RetType Visit(AstNode *node) {
     switch (node->kind()) {
       default: { llvm_unreachable("Impossible node type"); }
@@ -39,8 +44,25 @@ class AstVisitor {
     }
   }
 
+  /**
+   * Visits a declaration node
+   * @param decl node to visit
+   * @return default return type
+   */
   RetType VisitDecl(UNUSED Decl *decl) { return RetType(); }
+
+  /**
+   * Visits a statement node
+   * @param stmt node to visit
+   * @return default return type
+   */
   RetType VisitStmt(UNUSED Stmt *stmt) { return RetType(); }
+
+  /**
+   * Visits a expression node
+   * @param expr node to visit
+   * @return default return type
+   */
   RetType VisitExpr(UNUSED Expr *expr) { return RetType(); }
 
 #define T(DeclType) \
@@ -61,6 +83,9 @@ class AstVisitor {
 #undef DISPATCH
 
  protected:
+  /**
+   * @return the actual implementation of this class
+   */
   Subclass *impl() { return static_cast<Subclass *>(this); }
 };
 

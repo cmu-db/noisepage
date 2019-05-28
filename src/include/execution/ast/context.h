@@ -56,12 +56,16 @@ class Context {
   // -------------------------------------------------------
 
   struct Implementation;
+  /// Return the implementation
   Implementation *impl() const { return impl_.get(); }
 
+  /// Return the ast node factory
   AstNodeFactory *node_factory() const { return node_factory_.get(); }
 
+  /// Return the error reporter
   sema::ErrorReporter *error_reporter() const { return error_reporter_; }
 
+  /// Return the region used for allocation
   util::Region *region() const { return region_; }
 
  private:

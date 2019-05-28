@@ -27,20 +27,47 @@ using terrier::type::TypeId;
  */
 class ExecutionStructures {
  public:
+  /**
+   * Static instantiation
+   * @return an instance of ExecutionStructures
+   */
   static ExecutionStructures *Instance();
 
+  /**
+   * @return the block store
+   */
   BlockStore *GetBlockStore() { return block_store_.get(); }
 
+  /**
+   * @return the record buffer segment pool
+   */
   RecordBufferSegmentPool *GetBufferPool() { return buffer_pool_.get(); }
 
+  /**
+   * @return the log manager
+   */
   LogManager *GetLogManager() { return log_manager_.get(); }
 
+  /**
+   * @return the garbage collector
+   */
   GarbageCollector *GetGC() { return gc_.get(); }
 
+  /**
+   * @return the transaction manager
+   */
   TransactionManager *GetTxnManager() { return txn_manager_.get(); }
 
+  /**
+   * @return the catalog
+   */
   Catalog *GetCatalog() { return catalog_.get(); }
 
+  /**
+   * Used for testing only
+   * @param name name of test the final schema
+   * @return associated final schema
+   */
   std::shared_ptr<exec::FinalSchema> GetFinalSchema(const std::string &name) { return test_plan_nodes_.at(name); }
 
  private:
@@ -57,7 +84,9 @@ class ExecutionStructures {
   std::unique_ptr<GarbageCollector> gc_;
 };
 
-// Keep small so that nested loop join won't run out of memory.
+/// Keep small so that nested loop join won't run out of memory.
+/// Size of the first table
 constexpr u32 test1_size = 10000;
+/// Size of the second table
 constexpr u32 test2_size = 100;
 }  // namespace tpl::sql

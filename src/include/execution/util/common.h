@@ -43,7 +43,9 @@ namespace tpl {
 /// A compact structure used during parsing to capture and describe the position
 /// in the source as 1-based line and column number
 struct SourcePosition {
+  /// Line number
   u64 line;
+  /// Column number
   u64 column;
 };
 
@@ -61,8 +63,6 @@ static constexpr const u32 kPrefetchDistance = 16;
 
 /// The key for the parser to use in attribute maps to signal
 /// whether or not a ForIn loop contains an OID iterator
-// TODO(Amadou): Figure out why the linux compiler complains that this is unused
-// even though is used.
 static constexpr const char *OID_KEY = "IS_OID";
 
 }  // namespace tpl

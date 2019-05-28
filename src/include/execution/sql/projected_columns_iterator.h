@@ -22,8 +22,10 @@ class ProjectedColumnsIterator {
   static constexpr const u32 kInvalidPos = std::numeric_limits<u32>::max();
 
  public:
+  /// Default Constructor. Does not set a ProjectedColumns
   ProjectedColumnsIterator();
 
+  /// Constructor with a ProjectedColumns.
   explicit ProjectedColumnsIterator(ProjectedColumns *projected_column);
 
   /// This class cannot be copied or moved
@@ -41,7 +43,7 @@ class ProjectedColumnsIterator {
   // Tuple-at-a-time API
   // -------------------------------------------------------
 
-  /// Get a pointer to the value in the column at index \ref col_idx
+  /// Get a pointer to the value in the column at index col_idx
   /// \tparam T The desired data type stored in the ProjectedColumns
   /// \tparam nullable Whether the column is NULLable
   /// \param col_idx The index of the column to read from
@@ -99,12 +101,19 @@ class ProjectedColumnsIterator {
 
   /// Union to store the filter value according to its type.
   union FilterVal {
+    /// an i8 filter value
     i8 ti;
+    /// an i16 filter value
     i16 si;
+    /// an i32 filter value
     i32 i;
+    /// an i64 filter value
     i64 bi;
   };
 
+  /// Creates a filter value according to the given type.
+  /// \param val filter value
+  /// \param type type of the value
   FilterVal MakeFilterVal(i64 val, TypeId type) {
     switch (type) {
       case TypeId::TINYINT:
@@ -123,6 +132,7 @@ class ProjectedColumnsIterator {
   /// Filter the given column by the given value
   /// \tparam Compare The comparison function
   /// \param col_idx The index of the column in projected column to filter
+  /// \param type the type of filter value
   /// \param val The value to filter on
   /// \return The number of selected elements
   template <template <typename> typename Op>

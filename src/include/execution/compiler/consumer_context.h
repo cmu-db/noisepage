@@ -13,12 +13,30 @@ class RowBatch;
  */
 class ConsumerContext {
  public:
+  /**
+   * Constructor
+   * @param compilation_context the compilation context to use
+   * @param pipeline the current pipeline
+   */
   ConsumerContext(CompilationContext *compilation_context, Pipeline *pipeline);
+
+  /// Prevent copy and move
   DISALLOW_COPY_AND_MOVE(ConsumerContext);
 
+  /**
+   * Pushes a row through the pipeline
+   * @param batch row to push
+   */
   void Consume(RowBatch *batch);
 
+  /**
+   * @return the compilation context
+   */
   CompilationContext *GetCompilationContext() { return compilation_context_; }
+
+  /**
+   * @return the current pipeline
+   */
   const Pipeline *GetPipeline() const { return pipeline_; }
 
  private:

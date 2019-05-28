@@ -16,8 +16,17 @@ namespace terrier::catalog {
  */
 class Catalog {
  public:
+  /**
+   * Constructor
+   * @param txn_manager the transaction manager
+   */
   explicit Catalog(transaction::TransactionManager *txn_manager) : oid_{0} {}
 
+  /**
+   * Constructor
+   * @param txn_manager the transaction manager
+   * @param block_store block store to use
+   */
   explicit Catalog(transaction::TransactionManager *txn_manager, storage::BlockStore *block_store)
       : oid_{0}, block_store_(block_store) {}
 
@@ -35,7 +44,7 @@ class Catalog {
    * Creates an index
    * @param txn transaction to use
    * @param constraint_type type of the constraint
-   * @param index_metadata metadata for this index
+   * @param schema schema for this index's key
    * @param name of the index
    * @return oid of the created index.
    */
@@ -71,9 +80,9 @@ class Catalog {
   std::shared_ptr<CatalogIndex> GetCatalogIndex(index_oid_t index_oid);
 
   /**
-   * Get a pointer to an index
-   * @param index_oid name of the index
-   * @return pointer to the index
+   * Get an index oid
+   * @param name name of the index
+   * @return oid of the index
    */
   index_oid_t GetCatalogIndexOid(const std::string &name);
 

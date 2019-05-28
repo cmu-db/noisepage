@@ -14,28 +14,39 @@ namespace tpl::bandit {
  */
 class Agent {
  public:
+  /// Constructor
   Agent(Policy *policy, u32 num_actions, double prior = 0, double gamma = -1)
       : policy_(policy), num_actions_(num_actions), prior_(prior), gamma_(gamma) {
     Reset();
   }
 
+  /// Resets all variables
   void Reset();
 
   /**
-   * Return the next action to be taken.
+   * @return the next action to be taken.
    */
   u32 NextAction();
 
   /**
-   * Update the state based on reward obtained by playing the action chosen
-   * earlier.
+   * Update the state based on reward obtained by playing the action chosen earlier.
+   * @param reward reward obtained
    */
   void Observe(double reward);
 
+  /**
+   * @return the value estimates
+   */
   const auto &value_estimates() { return value_estimates_; }
 
+  /**
+   * @return the action attempts
+   */
   const auto &action_attempts() { return action_attempts_; }
 
+  /**
+   * @return the current timestep
+   */
   auto timestep() { return timestep_; }
 
  private:

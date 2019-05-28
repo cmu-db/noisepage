@@ -12,7 +12,9 @@ class JoinHashTable;
 class JoinHashTableVectorLookup {
  public:
   // clang-format off
+  /// The hashing function
   using HashFn = hash_t (*)(ProjectedColumnsIterator *) noexcept;  // NOLINT it appears to parse the function as a cast
+  /// The equality function
   using KeyEqFn = bool (*)(const byte *, ProjectedColumnsIterator *) noexcept;
   // clang-format on
 

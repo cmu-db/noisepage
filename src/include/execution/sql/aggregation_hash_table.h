@@ -8,6 +8,7 @@ namespace tpl::sql {
 /// Hash table used for aggregation.
 class AggregationHashTable {
  public:
+  /// Default initial size
   static constexpr const u32 kDefaultInitialTableSize = 256;
 
   /// Constructor
@@ -19,15 +20,16 @@ class AggregationHashTable {
   /// Insert a new element into the table
   byte *Insert(hash_t hash) noexcept;
 
-  /// Lookup the first element in the chain of entries with the hash value
+  /// Comparison function
   using KeyEqFn = bool(const void *, const void *);
+  /// Lookup the first element in the chain of entries with the hash value
   byte *Lookup(hash_t hash, KeyEqFn key_eq_fn, const void *arg) noexcept;
 
  private:
-  // Does the hash table need to grow?
+  /// Does the hash table need to grow?
   bool NeedsToGrow() const { return hash_table_.num_elements() == max_fill_; }
 
-  // Grow the hash table
+  /// Grow the hash table
   void Grow();
 
  private:

@@ -20,22 +20,35 @@ using terrier::transaction::TransactionContext;
  */
 class IndexIterator {
  public:
-  // Constructs the iterator for the given index
+  /**
+   * Constructor
+   * @param index_oid oid of the index to over.
+   * @param txn running transaction
+   */
   explicit IndexIterator(uint32_t index_oid, TransactionContext *txn = nullptr);
 
-  // Frees allocated resources.
+  /**
+   * Frees allocated resources.
+   */
   ~IndexIterator();
 
-  // Wrapper around the index's ScanKey
+  /**
+   * Wrapper around the index's ScanKey
+   * @param sql_key key to scan.
+   */
   void ScanKey(byte *sql_key);
 
-  // Advances the iterator.
+  /**
+   * Advances the iterator.
+   */
   void Advance();
 
-  // Returns true iff there are TupleSlots left
+  /**
+   * @return true iff there are TupleSlots left
+   */
   bool HasNext();
 
-  /// Get a pointer to the value in the column at index \ref col_idx
+  /// Get a pointer to the value in the column at index col_idx
   /// \tparam T The desired data type stored in the ProjectedColumns
   /// \tparam nullable Whether the column is NULLable
   /// \param col_idx The index of the column to read from

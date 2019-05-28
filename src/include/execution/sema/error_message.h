@@ -136,6 +136,7 @@ enum class ErrorMessageId : u16 { MESSAGE_LIST(F) };
  */
 template <typename... ArgTypes>
 struct ErrorMessage {
+  /// Id of the error message
   const ErrorMessageId id;
 };
 

@@ -4,10 +4,15 @@
 namespace tpl::compiler {
 
 /**
- * Conjuction Translator
+ * Conjunction Translator
  */
 class ConjunctionTranslator : public ExpressionTranslator {
  public:
+  /**
+   * Constructor
+   * @param expression expression to translate
+   * @param context compilation context to use
+   */
   ConjunctionTranslator(const terrier::parser::AbstractExpression *expression, CompilationContext *context);
 
   ast::Expr *DeriveExpr(const terrier::parser::AbstractExpression *expression, RowBatch *row) override;

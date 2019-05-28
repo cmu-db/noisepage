@@ -22,7 +22,10 @@ struct HashTableEntry {
     u64 overflow_count;
   };
 
+  /// key hash
   hash_t hash;
+
+  /// payload
   byte payload[0];
 
   /// For testing!

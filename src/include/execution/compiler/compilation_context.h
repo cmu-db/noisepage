@@ -24,26 +24,72 @@ class ExecutionConsumer;
 class Query;
 
 /**
- * CompilationContext: Stores info needed during compilaton.
+ * CompilationContext is the main class that performs compilation through GeneratePlan.
  */
 class CompilationContext {
  public:
+  /**
+   * Constructor
+   * @param query query to compiler
+   * @param consumer consumer for upper layers
+   */
   CompilationContext(Query *query, ExecutionConsumer *consumer);
 
+  /**
+   * Generates the TPL ast for execution.
+   * @param query query to execute.
+   */
   void GeneratePlan(Query *query);
 
+  /**
+   * @param pipeline pipeline to add
+   * @return index of the added pipeline
+   */
   u32 RegisterPipeline(Pipeline *pipeline);
 
+  /**
+   * @return the execution consumer
+   */
   ExecutionConsumer *GetExecutionConsumer();
+
+  /**
+   * @return the code generator
+   */
   CodeGen *GetCodeGen();
+
+  /**
+   * @return the region used for allocation
+   */
   util::Region *GetRegion();
 
+  /**
+   * Adds the translator for a plan node.
+   * @param op plan node to translate
+   * @param pipeline pipeline containing the plan node
+   */
   void Prepare(const terrier::planner::AbstractPlanNode &op, Pipeline *pipeline);
+
+  /**
+   * Adds the translator for an expression.
+   * @param exp expression to translate.
+   */
   void Prepare(const terrier::parser::AbstractExpression &exp);
 
+  /**
+   * @param op the operator
+   * @return the translator for the operator
+   */
   OperatorTranslator *GetTranslator(const terrier::planner::AbstractPlanNode &op) const;
+
+  /**
+   * @param ex the expression
+   * @return the translator for the expression
+   */
   ExpressionTranslator *GetTranslator(const terrier::parser::AbstractExpression &ex) const;
 
+  /**
+   * @return the query being translated
+   */
   Query *GetQuery() { return query_; }
 
  private:

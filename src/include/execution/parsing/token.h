@@ -84,35 +84,41 @@ namespace tpl::parsing {
  */
 class Token {
  public:
+  /**
+   * Enum of possible tokens
+   */
   enum class Type : u8 {
 #define T(name, str, precedence) name,
     TOKENS(T, T)
 #undef T
+    // Set last to the number of tokens - 1.
 #define T(name, str, precedence) +1
         Last = -1 TOKENS(T, T)
 #undef T
   };
 
+  /// Number of tokens
   static const u32 kTokenCount = static_cast<u32>(Type::Last) + 1;
 
-  // Get the name of a given token type
+  /// Get the name of a given token type
   static const char *GetName(Type type) { return kTokenNames[static_cast<u32>(type)]; }
 
-  // Get the stringified version of a given token type
+  /// Get the stringified version of a given token type
   static const char *GetString(Type type) { return kTokenStrings[static_cast<u32>(type)]; }
 
-  // Get the precedence of a given token
+  /// Get the precedence of a given token
   static const u32 GetPrecedence(Type type) { return kTokenPrecedence[static_cast<u32>(type)]; }
 
-  // Get the lowest operator precedence we support
+  /// Get the lowest operator precedence we support
   static const u32 LowestPrecedence() { return 0; }
 
-  // Is the given token a comparison operator?
+  /// Is the given token a comparison operator?
   static bool IsCompareOp(Type op) {
     return (static_cast<u8>(Type::BANG_EQUAL) <= static_cast<u8>(op) &&
             static_cast<u8>(op) <= static_cast<u8>(Type::LESS_EQUAL));
   }
 
+  /// Is th given token a calling or struct access or indexing token?
   static bool IsCallOrMemberOrIndex(Type op) {
     return (op == Type::LEFT_PAREN || op == Type::DOT || op == Type::LEFT_BRACKET);
   }

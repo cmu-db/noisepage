@@ -17,10 +17,7 @@ namespace tpl {
  */
 class CpuInfo {
  public:
-  // -------------------------------------------------------
-  // CPU Features
-  // -------------------------------------------------------
-
+  /// CPU Features
   enum Feature : u8 {
     SSE_4_2 = 0,
     AVX = 1,
@@ -32,10 +29,10 @@ class CpuInfo {
   // Caches
   // -------------------------------------------------------
 
-  // Cache levels
+  /// Cache levels
   enum CacheLevel : u8 { L1_CACHE = 0, L2_CACHE = 1, L3_CACHE = 2 };
 
-  // Number of cache levels
+  /// Number of cache levels
   static constexpr const u32 kNumCacheLevels = CacheLevel::L3_CACHE + 1;
 
   // -------------------------------------------------------
@@ -64,13 +61,15 @@ class CpuInfo {
   std::string PrettyPrintInfo() const;
 
  private:
-  // Initialize
+  // Initialize cpu info
   void InitCpuInfo();
+  // Initialize cache info
   void InitCacheInfo();
-
+  // Parse cpu flags
   void ParseCpuFlags(llvm::StringRef flags);
 
  private:
+  // Constructor
   CpuInfo();
 
  private:

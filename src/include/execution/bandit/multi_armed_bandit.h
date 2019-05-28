@@ -16,18 +16,34 @@ namespace tpl::bandit {
  */
 class MultiArmedBandit {
  public:
+  /**
+   * Constructor
+   * TODO(Amadou): Ask Prashant what this optimal parameter is for.
+   * @param module bytecode module of the executing file
+   * @param action_names names of the actions to take
+   * @param optimal unused for now
+   */
   MultiArmedBandit(vm::BytecodeModule *module, std::vector<std::string> &&action_names, u32 optimal = 0)
       : module_(module), action_names_(std::move(action_names)) {}
 
+  /**
+   * Executes a given action
+   * @param action to execute
+   * @return reward of the action
+   */
   double ExecuteAction(u32 action);
 
   /**
    * Translates execution time to reward.
+   * @param time execution time
+   * @return reward
    */
   static double ExecutionTimeToReward(double time);
 
   /**
    * Translates reward to execution time.
+   * @param reward to translate
+   * @return execution time
    */
   static double RewardToExecutionTime(double reward);
 

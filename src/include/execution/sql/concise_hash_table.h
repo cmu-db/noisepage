@@ -16,20 +16,23 @@ namespace tpl::sql {
  */
 class ConciseHashTable {
  public:
-  // The maximum probe length before falling back into the overflow table
+  /// The maximum probe length before falling back into the overflow table
   static constexpr const u32 kProbeThreshold = 1;
 
-  // The default load factor
+  /// The default load factor
   static constexpr const u32 kLoadFactor = 8;
 
-  // A minimum of 4K slots
+  /// A minimum of 4K slots
   static constexpr const u64 kMinNumSlots = 1u << 12;
 
   // The number of CHT slots that belong to one group. This value should either
   // be 32 or 64 for (1) making computation simpler by bit-shifting and (2) to
   // ensure at most one cache-line read/write per insert/lookup.
+  /// Log of the number of slots
   static constexpr const u32 kLogSlotsPerGroup = 6;
+  /// Number of slots
   static constexpr const u32 kSlotsPerGroup = 1u << kLogSlotsPerGroup;
+  /// Bit mask for the slots (kLogSlotsPerGroup ones)
   static constexpr const u32 kGroupBitMask = kSlotsPerGroup - 1;
 
   /// Create a new uninitialized concise hash table. Callers **must** call

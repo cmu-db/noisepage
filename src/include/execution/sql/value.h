@@ -12,15 +12,22 @@ namespace tpl::sql {
 
 /// A generic base catch-all SQL value
 struct Val {
+  /// Whether the value is null
   bool is_null;
 
+  /// Constructs a generic value
   explicit Val(bool is_null = false) noexcept : is_null(is_null) {}
 };
 
 /// A SQL boolean value
 struct BoolVal : public Val {
+  /// raw boolean value
   bool val;
 
+  /**
+   * Non-null constructor
+   * @param val value of the boolean
+   */
   explicit BoolVal(bool val) noexcept : Val(false), val(val) {}
 
   /// Convert this SQL boolean into a primitive boolean. Thanks to SQL's
@@ -46,8 +53,13 @@ struct BoolVal : public Val {
 
 /// An integral SQL value
 struct Integer : public Val {
+  /// Raw integer value
   i64 val;
 
+  /**
+   * Non-null constructor
+   * @param val value of the integer
+   */
   explicit Integer(i64 val) noexcept : Val(false), val(val) {}
 
   /// Return a NULL integer value
@@ -63,11 +75,22 @@ struct Integer : public Val {
 
 /// Real
 struct Real : public Val {
+  /// raw double value
   double val;
 
+  /**
+   * Non-null float constructor
+   * @param val value of the real
+   */
   explicit Real(float val) noexcept : Val(false), val(val) {}
+
+  /**
+   * Non-null double constructor
+   * @param val value of the double
+   */
   explicit Real(double val) noexcept : Val(false), val(val) {}
 
+  /// Return a NULL real value
   static Real Null() {
     Real real(0.0);
     real.is_null = true;
@@ -77,10 +100,20 @@ struct Real : public Val {
 
 /// A decimal SQL value
 struct Decimal : public Val {
+  // TODO(Amadou): Check with Prashant to be sure of the meaning of val
+  /// bit representaion
   u64 val;
+  /// Precision of the decimal
   u32 precision;
+  /// Scale of the decimal
   u32 scale;
 
+  /**
+   * Constructor
+   * @param val bit representation
+   * @param precision precision of the decimal
+   * @param scale scale of the decimal
+   */
   Decimal(u64 val, u32 precision, u32 scale) noexcept : Val(false), val(val), precision(precision), scale(scale) {}
 
   /// Return a NULL decimal value
@@ -93,9 +126,16 @@ struct Decimal : public Val {
 
 /// A SQL string
 struct VarBuffer : public Val {
+  /// raw string
   u8 *str;
+  /// length of the string
   u32 len;
 
+  /**
+   * Constructor
+   * @param str raw string
+   * @param len length of the string
+   */
   VarBuffer(u8 *str, u32 len) noexcept : Val(str == nullptr), str(str), len(len) {}
 
   /// Return a NULL varchar/string
@@ -104,10 +144,16 @@ struct VarBuffer : public Val {
 
 /// Date
 struct Date : public Val {
+  /// Date value
   i32 date_val;
 
+  /**
+   * Constructor
+   * @param date date value
+   */
   explicit Date(i32 date) noexcept : Val(false), date_val(date) {}
 
+  /// Return a NULL Date.
   static Date Null() {
     Date date(0);
     date.is_null = true;
@@ -117,10 +163,16 @@ struct Date : public Val {
 
 /// Timestamp
 struct Timestamp : public Val {
+  /// Time value
   timespec time;
 
+  /**
+   * Constructor
+   * @param time time value
+   */
   explicit Timestamp(timespec time) noexcept : Val(false), time(time) {}
 
+  /// Return a NULL Timestamp
   static Timestamp Null() {
     Timestamp timestamp({0, 0});
     timestamp.is_null = true;
@@ -132,6 +184,11 @@ struct Timestamp : public Val {
  * Utility functions for sql values
  */
 struct ValUtil {
+
+  /**
+   * @param type a terrier type
+   * @return the size of the corresponding sql type
+   */
   static u32 GetSqlSize(terrier::type::TypeId type) {
     switch (type) {
       case terrier::type::TypeId::TINYINT:

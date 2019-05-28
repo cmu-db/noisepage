@@ -16,6 +16,12 @@ namespace terrier::catalog {
  */
 class SqlTableRW {
  public:
+  /**
+   * Constructor
+   * @param schema table's schema
+   * @param table_oid table's oid
+   * @param block_store table's blockstore
+   */
   SqlTableRW(const Schema &schema, table_oid_t table_oid, storage::BlockStore *block_store) : table_oid_(table_oid) {
     for (const auto &col : schema.GetColumns()) {
       cols_.push_back(col);
@@ -32,6 +38,9 @@ class SqlTableRW {
     pr_map_ = new storage::ProjectionMap(std::get<1>(row_pair));
   }
 
+  /**
+   * Destructor
+   */
   ~SqlTableRW() {
     delete pri_;
     delete pr_map_;
@@ -69,14 +78,19 @@ class SqlTableRW {
   uint16_t ColNumToOffset(int32_t col_num) { return pr_map_->at(col_oids_[col_num]); }
 
  private:
+  // Table's oid
   catalog::table_oid_t table_oid_;
+  // Sql Table
   std::shared_ptr<storage::SqlTable> table_ = nullptr;
-
+  // Schema
   std::shared_ptr<catalog::Schema> schema_ = nullptr;
+  // Columns
   std::vector<catalog::Schema::Column> cols_;
+  // Column oids
   std::vector<catalog::col_oid_t> col_oids_;
-
+  // PRI
   storage::ProjectedRowInitializer *pri_ = nullptr;
+  // PR_MAP
   storage::ProjectionMap *pr_map_ = nullptr;
 };
 };  // namespace terrier::catalog

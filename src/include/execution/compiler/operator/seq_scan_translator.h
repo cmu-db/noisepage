@@ -9,6 +9,11 @@ namespace tpl::compiler {
  */
 class SeqScanTranslator : public OperatorTranslator {
  public:
+  /**
+   * Constructor
+   * @param op plan node
+   * @param pipeline current pipeline
+   */
   SeqScanTranslator(const terrier::planner::AbstractPlanNode &op, Pipeline *pipeline);
 
   void InitializeQueryState() override {}

@@ -38,15 +38,15 @@ class AstTraversalVisitor : public AstVisitor<Subclass> {
     AstVisitor<Subclass>::Visit(root_);
   }
 
-  // Declare all node visit methods here
+  /// Declare all node visit methods here
 #define DECLARE_VISIT_METHOD(type) void Visit##type(ast::type *node);
   AST_NODES(DECLARE_VISIT_METHOD)
 #undef DECLARE_VISIT_METHOD
 
  protected:
-  // Should this iterator visit the given node? This method can be implemented
-  // in subclasses to skip some visiting some nodes. By default, we visit all
-  // nodes.
+  /// Should this iterator visit the given node? This method can be implemented
+  /// in subclasses to skip some visiting some nodes. By default, we visit all
+  /// nodes.
   bool VisitNode(AstNode *node) { return true; }
 
  private:

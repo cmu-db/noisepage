@@ -79,9 +79,13 @@ class JoinHashTable {
   /// tuple-at-a-time lookups from the hash table.
   class Iterator {
    public:
+    /// Constructor of the iterator
     Iterator(const HashTableEntry *initial, hash_t hash);
 
+    /// Equality function
     using KeyEq = bool(void *opaque_ctx, void *probe_tuple, void *table_tuple);
+
+    /// Return the next match of the given tuple.
     const HashTableEntry *NextMatch(KeyEq key_eq, void *opaque_ctx, void *probe_tuple);
 
    private:
@@ -161,6 +165,7 @@ class JoinHashTable {
 // JoinHashTable implementation
 // ---------------------------------------------------------
 
+/// Lookup for non-concise hash table
 template <>
 inline JoinHashTable::Iterator JoinHashTable::Lookup<false>(const hash_t hash) const {
   HashTableEntry *entry = generic_hash_table_.FindChainHead(hash);
@@ -170,6 +175,7 @@ inline JoinHashTable::Iterator JoinHashTable::Lookup<false>(const hash_t hash) c
   return JoinHashTable::Iterator(entry, hash);
 }
 
+/// Lookup for concise hash table
 template <>
 inline JoinHashTable::Iterator JoinHashTable::Lookup<true>(const hash_t hash) const {
   const auto lookup_res = concise_hash_table_.Lookup(hash);

@@ -8,11 +8,16 @@ namespace tpl::sql {
 
 /**
  * Generic unary function on reals
- * @tparam Function is the unary function
+ * @tparam Function the unary function
  */
 template <double(Function)(double)>
 struct UnaryFunctionReal {
-  // Generic implementation
+   /**
+    * Generic implementation
+    * @tparam UseBranchingNullCheck whether to use a branching or branch-free implementation
+    * @param src input of the function
+    * @param dest destination of the result
+    */
   template <bool UseBranchingNullCheck>
   static void Execute(Real *src, Real *dest) {
     if constexpr (UseBranchingNullCheck) {
@@ -33,11 +38,17 @@ struct UnaryFunctionReal {
 
 /**
  * Generic binary function on reals
- * @tparam Function is the binary function
+ * @tparam Function the binary function
  */
 template <double(Function)(double, double)>
 struct BinaryFunctionReal {
-  // Generic Implementation
+  /**
+    * Generic implementation
+    * @tparam UseBranchingNullCheck whether to use a branching or branch-free implementation
+    * @param arg_1 first input of the function
+    * @param arg_2 second input of the function
+    * @param dest destination of the result
+    */
   template <bool UseBranchingNullCheck>
   static void Execute(const Real *arg_1, const Real *arg_2, Real *dest) {
     if constexpr (UseBranchingNullCheck) {
@@ -60,7 +71,7 @@ struct BinaryFunctionReal {
 // Implementations
 // ---------------------------------------------------------
 
-// Cotangent
+/// Cotangent
 inline double cotan(const double arg) { return (1.0 / std::tan(arg)); }
 
 struct ACos : public UnaryFunctionReal<std::acos> {};

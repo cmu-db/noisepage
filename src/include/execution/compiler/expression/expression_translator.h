@@ -41,19 +41,37 @@ class CompilationContext;
  */
 class ExpressionTranslator {
  public:
+  /**
+   * Constructor
+   * @param expression expression to translate
+   * @param context compilation context to use.
+   */
   ExpressionTranslator(const terrier::parser::AbstractExpression *expression, CompilationContext *context)
       : context_(context), expression_(*expression) {}
 
+  /// Destructor
   virtual ~ExpressionTranslator() = default;
 
+  /**
+   * TODO(Amadou): Passing expression again here may be redundant? Check with Tanuj.
+   * @param expression expression to translate
+   * @param row row batch to use when translating
+   * @return resulting TPL expression
+   */
   virtual ast::Expr *DeriveExpr(const terrier::parser::AbstractExpression *expression, RowBatch *row) = 0;
 
+  /**
+   * Convert the generic expression to the given type.
+   * @tparam T type to convert to.
+   * @return the converted expression.
+   */
   template <typename T>
   const T &GetExpressionAs() const {
     return static_cast<const T &>(expression_);
   }
 
  protected:
+  /// Compilation context
   CompilationContext *context_;
 
  private:

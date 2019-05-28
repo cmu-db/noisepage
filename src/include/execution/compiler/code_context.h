@@ -15,24 +15,53 @@ namespace tpl::compiler {
 class FunctionBuilder;
 
 /**
- * Storage information needed to generate code.
+ * Stores information needed during code generation.
  */
 class CodeContext {
   friend class CodeGen;
 
  public:
+  /**
+   * Constructor
+   * @param region region to use for allocation
+   */
   explicit CodeContext(util::Region *region);
+
+  /// Preven copy and move
   DISALLOW_COPY_AND_MOVE(CodeContext);
 
+  /**
+   * Sets the current function being generated
+   * @param fn new current function
+   */
   void SetCurrentFunction(FunctionBuilder *fn) { curr_fn_ = fn; }
+
+  /**
+   * @return the current function
+   */
   FunctionBuilder *GetCurrentFunction() const { return curr_fn_; }
 
+  /**
+   * Add a top level declaration
+   * @param decl new declaration to add
+   */
   void AddTopDecl(ast::Decl *decl) { decls_.emplace_back(decl); }
 
+  /**
+   * Finalize compilation by creating a File node
+   * @param codegen code generator to use
+   * @return the created File node
+   */
   ast::File *CompileToFile(CodeGen *codegen) { return (*codegen)->NewFile(DUMMY_POS, std::move(decls_)); }
 
+  /**
+   * @return the error reporter
+   */
   sema::ErrorReporter *GetReporter() { return &error_reporter_; }
 
+  /**
+   * @return the ast context
+   */
   ast::Context *GetAstContext() { return &ast_ctx_; }
 
  private:

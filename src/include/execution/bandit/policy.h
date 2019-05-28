@@ -19,6 +19,10 @@ enum class Kind : u8 { EpsilonGreedy, Greedy, Random, UCB, FixedAction };
  */
 class Policy {
  public:
+  /**
+   * Cosntructor
+   * @param kind the kind of policy
+   */
   explicit Policy(Kind kind) : kind_(kind), generator_(time(nullptr)) {}
 
   /**
@@ -26,10 +30,15 @@ class Policy {
    */
   virtual u32 NextAction(Agent *agent) = 0;
 
+  /**
+   * @return the kind of policy
+   */
   auto kind() { return kind_; }
 
  protected:
+  /// The kind of policy
   Kind kind_;
+  /// The random number generator
   std::mt19937 generator_;
 };
 
@@ -41,6 +50,11 @@ class Policy {
  */
 class EpsilonGreedyPolicy : public Policy {
  public:
+  /**
+   * Construct
+   * @param epsilon epsilon value
+   * @param kind kind of policy
+   */
   explicit EpsilonGreedyPolicy(double epsilon, Kind kind = Kind::EpsilonGreedy)
       : Policy(kind), epsilon_(epsilon), real_(std::uniform_real_distribution<double>(0, 1)) {}
 
@@ -58,6 +72,7 @@ class EpsilonGreedyPolicy : public Policy {
  */
 class GreedyPolicy : public EpsilonGreedyPolicy {
  public:
+  /// Constructor
   GreedyPolicy() : EpsilonGreedyPolicy(0, Kind::Greedy) {}
 };
 
@@ -68,6 +83,7 @@ class GreedyPolicy : public EpsilonGreedyPolicy {
  */
 class RandomPolicy : public EpsilonGreedyPolicy {
  public:
+  /// Constructor
   RandomPolicy() : EpsilonGreedyPolicy(1, Kind::Random) {}
 };
 
@@ -78,6 +94,10 @@ class RandomPolicy : public EpsilonGreedyPolicy {
  */
 class UCBPolicy : public Policy {
  public:
+  /**
+   * Constructor
+   * @param c hyperparameter value
+   */
   explicit UCBPolicy(double c) : Policy(Kind::UCB), c_(c) {}
 
   u32 NextAction(Agent *agent) override;
@@ -93,6 +113,10 @@ class UCBPolicy : public Policy {
  */
 class FixedActionPolicy : public Policy {
  public:
+  /**
+   * Constructor
+   * @param action action to take
+   */
   explicit FixedActionPolicy(u32 action) : Policy(Kind::FixedAction), action_(action) {}
 
   u32 NextAction(Agent *agent) override { return action_; }

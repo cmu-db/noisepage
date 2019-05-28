@@ -13,6 +13,11 @@ namespace tpl::bandit {
  */
 class Environment {
  public:
+  /**
+   * Constructor
+   * @param bandit the running multi-armed bandit.
+   * @param agent agent managing the state.
+   */
   Environment(MultiArmedBandit *bandit, Agent *agent) : bandit_(bandit), agent_(agent) {}
 
   /**

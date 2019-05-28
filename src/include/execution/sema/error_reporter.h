@@ -23,6 +23,7 @@ namespace detail {
 /// Argument that's passed in
 template <typename T>
 struct PassArgument {
+  /// type of the argument
   using type = T;
 };
 
@@ -33,20 +34,26 @@ struct PassArgument {
  */
 class ErrorReporter {
  public:
+  /**
+   * Constructor
+   * @param region region to use for allocation
+   */
   explicit ErrorReporter(util::Region *region) : region_(region), errors_(region) {}
 
-  // Record an error
+  /// Record an error
   template <typename... ArgTypes>
   void Report(const SourcePosition &pos, const ErrorMessage<ArgTypes...> &message,
               typename detail::PassArgument<ArgTypes>::type... args) {
     errors_.emplace_back(region_, pos, message, std::forward<ArgTypes>(args)...);
   }
 
-  // Have any errors been reported?
+  /// Have any errors been reported?
   bool HasErrors() const { return !errors_.empty(); }
 
+  /// Clears the list of errors
   void Reset() { errors_.clear(); }
 
+  /// Outputs the list of errors
   void PrintErrors();
 
  private:

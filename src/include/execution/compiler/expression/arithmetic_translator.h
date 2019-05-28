@@ -11,6 +11,11 @@ namespace tpl::compiler {
  */
 class ArithmeticTranslator : public ExpressionTranslator {
  public:
+  /**
+   * Constructor
+   * @param expression expression to translate
+   * @param context compilation context to use
+   */
   ArithmeticTranslator(const terrier::parser::AbstractExpression *expression, CompilationContext *context);
 
   ast::Expr *DeriveExpr(const terrier::parser::AbstractExpression *expression, RowBatch *row) override;

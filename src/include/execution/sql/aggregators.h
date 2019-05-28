@@ -81,6 +81,7 @@ class NullableAggregate {
   /// Merge this sum with the one provided
   void Merge(const NullableAggregate &that) { num_updates_ += that.num_updates_; }
 
+  /// Return the number of updates in this aggregation.
   u64 GetNumUpdates() const { return num_updates_; }
 
  private:
@@ -98,6 +99,8 @@ class IntegerSumAggregate : public NullableAggregate {
 
   /// Advance the aggregate by the input value \a val
   void Advance(const Integer *val);
+
+  /// Advance the aggregate only if \a val is non null
   void AdvanceNullable(const Integer *val);
 
   /// Merge another aggregate in
@@ -151,6 +154,8 @@ class IntegerMaxAggregate : public NullableAggregate {
 
   /// Advance the aggregate by the input value \a val
   void Advance(const Integer *val);
+
+  /// Advance the aggregate only if \a val is non null
   void AdvanceNullable(const Integer *val);
 
   /// Merge another aggregate in
@@ -204,6 +209,8 @@ class IntegerMinAggregate : public NullableAggregate {
 
   /// Advance the aggregate by the input value \a val
   void Advance(const Integer *val);
+
+  /// Advance the aggregate only if \a val is non null
   void AdvanceNullable(const Integer *val);
 
   /// Merge another aggregate in
