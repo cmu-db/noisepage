@@ -12,12 +12,12 @@ namespace tpl::sql {
  */
 template <double(Function)(double)>
 struct UnaryFunctionReal {
-   /**
-    * Generic implementation
-    * @tparam UseBranchingNullCheck whether to use a branching or branch-free implementation
-    * @param src input of the function
-    * @param dest destination of the result
-    */
+  /**
+   * Generic implementation
+   * @tparam UseBranchingNullCheck whether to use a branching or branch-free implementation
+   * @param src input of the function
+   * @param dest destination of the result
+   */
   template <bool UseBranchingNullCheck>
   static void Execute(Real *src, Real *dest) {
     if constexpr (UseBranchingNullCheck) {
@@ -43,12 +43,12 @@ struct UnaryFunctionReal {
 template <double(Function)(double, double)>
 struct BinaryFunctionReal {
   /**
-    * Generic implementation
-    * @tparam UseBranchingNullCheck whether to use a branching or branch-free implementation
-    * @param arg_1 first input of the function
-    * @param arg_2 second input of the function
-    * @param dest destination of the result
-    */
+   * Generic implementation
+   * @tparam UseBranchingNullCheck whether to use a branching or branch-free implementation
+   * @param arg_1 first input of the function
+   * @param arg_2 second input of the function
+   * @param dest destination of the result
+   */
   template <bool UseBranchingNullCheck>
   static void Execute(const Real *arg_1, const Real *arg_2, Real *dest) {
     if constexpr (UseBranchingNullCheck) {

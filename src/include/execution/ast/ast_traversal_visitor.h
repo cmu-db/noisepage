@@ -282,5 +282,4 @@ inline void AstTraversalVisitor<Subclass>::VisitFunctionTypeRepr(FunctionTypeRep
 }
 /// \endcond
 
-
 }  // namespace tpl::ast

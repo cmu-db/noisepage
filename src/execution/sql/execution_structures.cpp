@@ -1,11 +1,11 @@
+#include "execution/sql/execution_structures.h"
+#include <algorithm>
 #include <iostream>
 #include <memory>
 #include <random>
-#include <algorithm>
-#include <vector>
 #include <unordered_map>
 #include <utility>
-#include "execution/sql/execution_structures.h"
+#include <vector>
 #include "catalog/catalog_defs.h"
 #include "catalog/catalog_sql_table.h"
 #include "execution/util/bit_util.h"

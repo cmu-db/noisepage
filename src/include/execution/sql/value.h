@@ -184,7 +184,6 @@ struct Timestamp : public Val {
  * Utility functions for sql values
  */
 struct ValUtil {
-
   /**
    * @param type a terrier type
    * @return the size of the corresponding sql type

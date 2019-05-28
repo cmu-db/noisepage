@@ -91,7 +91,7 @@ class Token {
 #define T(name, str, precedence) name,
     TOKENS(T, T)
 #undef T
-    // Set last to the number of tokens - 1.
+  // Set last to the number of tokens - 1.
 #define T(name, str, precedence) +1
         Last = -1 TOKENS(T, T)
 #undef T

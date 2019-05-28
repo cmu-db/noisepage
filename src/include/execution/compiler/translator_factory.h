@@ -10,7 +10,6 @@ namespace tpl::compiler {
 class Pipeline;
 class OperatorTranslator;
 
-
 /**
  * Translator Factory
  */

@@ -1,8 +1,8 @@
 #include <memory>
 #include <vector>
 
-#include "execution/sql/table_vector_iterator.h"
 #include "execution/sql/execution_structures.h"
+#include "execution/sql/table_vector_iterator.h"
 
 namespace tpl::sql {
 

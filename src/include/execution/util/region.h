@@ -58,20 +58,20 @@ class Region {
   // Accessors
   // -------------------------------------------------------
 
-  // The name of the region
+  /// The name of the region
   const std::string &name() const { return name_; }
 
-  // The number of bytes this region has given out
+  /// The number of bytes this region has given out
   u64 allocated() const { return allocated_; }
 
-  // The number of bytes wasted due to alignment requirements
+  /// The number of bytes wasted due to alignment requirements
   u64 alignment_waste() const { return alignment_waste_; }
 
-  // The total number of bytes acquired from the OS
+  /// The total number of bytes acquired from the OS
   u64 total_memory() const { return chunk_bytes_allocated_; }
 
  private:
-  // Expand the region
+  /// Expand the region
   uintptr_t Expand(std::size_t requested);
 
  private:

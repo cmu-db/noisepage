@@ -56,7 +56,6 @@ class CodeGen {
    */
   FunctionBuilder *GetCurrentFunction();
 
-
   /*
    * Convenience methods.
    */

@@ -1,13 +1,16 @@
+#include "execution/vm/llvm_engine.h"
 #include <fstream>
+#include <iostream>
 #include <map>
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
-#include <iostream>
+#include "execution/ast/type.h"
+#include "execution/vm/bytecode_module.h"
+#include "execution/vm/bytecode_traits.h"
 #include "llvm/ADT/StringMap.h"
-#include "execution/vm/llvm_engine.h"
 #include "llvm/Analysis/TargetLibraryInfo.h"
 #include "llvm/Analysis/TargetTransformInfo.h"
 #include "llvm/Bitcode/BitcodeReader.h"
@@ -28,9 +31,6 @@
 #include "llvm/Transforms/IPO/AlwaysInliner.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
 #include "llvm/Transforms/Scalar.h"
-#include "execution/ast/type.h"
-#include "execution/vm/bytecode_module.h"
-#include "execution/vm/bytecode_traits.h"
 
 #include "loggers/execution_logger.h"
 
