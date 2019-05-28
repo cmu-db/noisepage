@@ -257,7 +257,7 @@ class BwTreeKeyTests : public TerrierTest {
     index->ScanKey(*txn, *key, &results);
     EXPECT_TRUE(results.empty());
 
-    txn_manager.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+    txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     // Clean up
     gc_manager.PerformGarbageCollection();

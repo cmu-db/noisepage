@@ -15,7 +15,7 @@ struct TypeHandleTest : public TerrierTest {
   }
 
   void TearDown() override {
-    txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
+    txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
     TerrierTest::TearDown();
     delete catalog_;  // delete catalog first
     delete txn_manager_;

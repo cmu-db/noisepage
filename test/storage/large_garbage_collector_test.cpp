@@ -1,26 +1,11 @@
 #include <vector>
 #include "gtest/gtest.h"
-#include "storage/garbage_collector.h"
+#include "storage/garbage_collector_thread.h"
 #include "util/transaction_test_util.h"
 
 namespace terrier {
 class LargeGCTests : public TerrierTest {
  public:
-  void StartGC(transaction::TransactionManager *const txn_manager) {
-    gc_ = new storage::GarbageCollector(txn_manager);
-    run_gc_ = true;
-    gc_thread_ = std::thread([this] { GCThreadLoop(); });
-  }
-
-  void EndGC() {
-    run_gc_ = false;
-    gc_thread_.join();
-    // Make sure all garbage is collected. This take 2 runs for unlink and deallocate
-    gc_->PerformGarbageCollection();
-    gc_->PerformGarbageCollection();
-    delete gc_;
-  }
-
   const uint32_t num_iterations = 10;
   const uint16_t max_columns = 20;
   const uint32_t initial_table_size = 1000;
@@ -29,20 +14,8 @@ class LargeGCTests : public TerrierTest {
   storage::BlockStore block_store_{1000, 1000};
   storage::RecordBufferSegmentPool buffer_pool_{10000, 10000};
   std::default_random_engine generator_;
-  volatile bool run_gc_ = false;
-  volatile bool gc_paused_ = false;
-  std::thread gc_thread_;
-  storage::GarbageCollector *gc_ = nullptr;
 
- private:
-  const std::chrono::milliseconds gc_period_{10};
-
-  void GCThreadLoop() {
-    while (run_gc_) {
-      std::this_thread::sleep_for(gc_period_);
-      if (!gc_paused_) gc_->PerformGarbageCollection();
-    }
-  }
+  const std::chrono::milliseconds gc_period{10};
 };
 
 // These test cases generates random update-selects in concurrent transactions on a pre-populated database.
@@ -67,16 +40,15 @@ TEST_F(LargeGCTests, MixedReadWriteWithGC) {
                                             .SetBookkeeping(true)
                                             .SetVarlenAllowed(true)
                                             .build();
-    StartGC(tested.GetTxnManager());
+    storage::GarbageCollectorThread gc_thread(tested.GetTxnManager(), gc_period);
     for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
       auto result = tested.SimulateOltp(batch_size, num_concurrent_txns);
-      gc_paused_ = true;
+      gc_thread.PauseGC();
       tested.CheckReadsCorrect(&result.first);
       for (auto w : result.first) delete w;
       for (auto w : result.second) delete w;
-      gc_paused_ = false;
+      gc_thread.ResumeGC();
     }
-    EndGC();
   }
 }
 
@@ -99,16 +71,15 @@ TEST_F(LargeGCTests, MixedReadWriteHighThreadWithGC) {
                                             .SetBookkeeping(true)
                                             .SetVarlenAllowed(true)
                                             .build();
-    StartGC(tested.GetTxnManager());
+    storage::GarbageCollectorThread gc_thread(tested.GetTxnManager(), gc_period);
     for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
       auto result = tested.SimulateOltp(batch_size, num_concurrent_txns);
-      gc_paused_ = true;
+      gc_thread.PauseGC();
       tested.CheckReadsCorrect(&result.first);
       for (auto w : result.first) delete w;
       for (auto w : result.second) delete w;
-      gc_paused_ = false;
+      gc_thread.ResumeGC();
     }
-    EndGC();
   }
 }
 
@@ -131,16 +102,15 @@ TEST_F(LargeGCTests, LowAbortHighThroughputWithGC) {
                                             .SetBookkeeping(true)
                                             .SetVarlenAllowed(true)
                                             .build();
-    StartGC(tested.GetTxnManager());
+    storage::GarbageCollectorThread gc_thread(tested.GetTxnManager(), gc_period);
     for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
       auto result = tested.SimulateOltp(batch_size, num_concurrent_txns);
-      gc_paused_ = true;
+      gc_thread.PauseGC();
       tested.CheckReadsCorrect(&result.first);
       for (auto w : result.first) delete w;
       for (auto w : result.second) delete w;
-      gc_paused_ = false;
+      gc_thread.ResumeGC();
     }
-    EndGC();
   }
 }
 
@@ -163,16 +133,15 @@ TEST_F(LargeGCTests, LowAbortHighThroughputHighThreadWithGC) {
                                             .SetBookkeeping(true)
                                             .SetVarlenAllowed(true)
                                             .build();
-    StartGC(tested.GetTxnManager());
+    storage::GarbageCollectorThread gc_thread(tested.GetTxnManager(), gc_period);
     for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
       auto result = tested.SimulateOltp(batch_size, num_concurrent_txns);
-      gc_paused_ = true;
+      gc_thread.PauseGC();
       tested.CheckReadsCorrect(&result.first);
       for (auto w : result.first) delete w;
       for (auto w : result.second) delete w;
-      gc_paused_ = false;
+      gc_thread.ResumeGC();
     }
-    EndGC();
   }
 }
 
@@ -196,16 +165,15 @@ TEST_F(LargeGCTests, HighAbortRateWithGC) {
                                             .SetBookkeeping(true)
                                             .SetVarlenAllowed(true)
                                             .build();
-    StartGC(tested.GetTxnManager());
+    storage::GarbageCollectorThread gc_thread(tested.GetTxnManager(), gc_period);
     for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
       auto result = tested.SimulateOltp(batch_size, num_concurrent_txns);
-      gc_paused_ = true;
+      gc_thread.PauseGC();
       tested.CheckReadsCorrect(&result.first);
       for (auto w : result.first) delete w;
       for (auto w : result.second) delete w;
-      gc_paused_ = false;
+      gc_thread.ResumeGC();
     }
-    EndGC();
   }
 }
 
@@ -228,16 +196,15 @@ TEST_F(LargeGCTests, HighAbortRateHighThreadWithGC) {
                                             .SetBookkeeping(true)
                                             .SetVarlenAllowed(true)
                                             .build();
-    StartGC(tested.GetTxnManager());
+    storage::GarbageCollectorThread gc_thread(tested.GetTxnManager(), gc_period);
     for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
       auto result = tested.SimulateOltp(batch_size, num_concurrent_txns);
-      gc_paused_ = true;
+      gc_thread.PauseGC();
       tested.CheckReadsCorrect(&result.first);
       for (auto w : result.first) delete w;
       for (auto w : result.second) delete w;
-      gc_paused_ = false;
+      gc_thread.ResumeGC();
     }
-    EndGC();
   }
 }
 
@@ -260,16 +227,15 @@ TEST_F(LargeGCTests, TPCCishWithGC) {
                                             .SetBookkeeping(true)
                                             .SetVarlenAllowed(true)
                                             .build();
-    StartGC(tested.GetTxnManager());
+    storage::GarbageCollectorThread gc_thread(tested.GetTxnManager(), gc_period);
     for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
       auto result = tested.SimulateOltp(batch_size, num_concurrent_txns);
-      gc_paused_ = true;
+      gc_thread.PauseGC();
       tested.CheckReadsCorrect(&result.first);
       for (auto w : result.first) delete w;
       for (auto w : result.second) delete w;
-      gc_paused_ = false;
+      gc_thread.ResumeGC();
     }
-    EndGC();
   }
 }
 
@@ -292,16 +258,15 @@ TEST_F(LargeGCTests, TPCCishHighThreadWithGC) {
                                             .SetBookkeeping(true)
                                             .SetVarlenAllowed(true)
                                             .build();
-    StartGC(tested.GetTxnManager());
+    storage::GarbageCollectorThread gc_thread(tested.GetTxnManager(), gc_period);
     for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
       auto result = tested.SimulateOltp(batch_size, num_concurrent_txns);
-      gc_paused_ = true;
+      gc_thread.PauseGC();
       tested.CheckReadsCorrect(&result.first);
       for (auto w : result.first) delete w;
       for (auto w : result.second) delete w;
-      gc_paused_ = false;
+      gc_thread.ResumeGC();
     }
-    EndGC();
   }
 }
 }  // namespace terrier

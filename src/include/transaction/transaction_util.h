@@ -28,6 +28,11 @@ class TransactionUtil {
    * @return true if committed, false otherwise
    */
   static bool Committed(const timestamp_t timestamp) { return static_cast<int64_t>(!timestamp) >= 0; }
+
+  /**
+   * Used for internal transactions and tests when a callback to the network layer isn't necessary.
+   */
+  static void EmptyCallback(void * /*unused*/) {}
 };
 
 }  // namespace terrier::transaction

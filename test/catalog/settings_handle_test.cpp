@@ -18,7 +18,7 @@ struct SettingsHandleTests : public TerrierTest {
   }
 
   void TearDown() override {
-    txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
+    txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     TerrierTest::TearDown();
     delete catalog_;  // delete catalog first
@@ -54,6 +54,11 @@ TEST_F(SettingsHandleTests, BasicTest) {
 
   // verify correctly created
   auto entry = settings_handle.GetSettingsEntry(txn_, "test_setting_name");
+  EXPECT_EQ(3, type::TransientValuePeeker::PeekInteger(entry->GetColumn(0)));
+  EXPECT_EQ("test_setting", type::TransientValuePeeker::PeekVarChar(entry->GetColumn(2)));
+  EXPECT_EQ(7, type::TransientValuePeeker::PeekInteger(entry->GetColumn(16)));
+
+  entry = settings_handle.GetSettingsEntry(txn_, s_oid);
   EXPECT_EQ(3, type::TransientValuePeeker::PeekInteger(entry->GetColumn(0)));
   EXPECT_EQ("test_setting", type::TransientValuePeeker::PeekVarChar(entry->GetColumn(2)));
   EXPECT_EQ(7, type::TransientValuePeeker::PeekInteger(entry->GetColumn(16)));
