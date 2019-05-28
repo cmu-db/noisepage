@@ -16,6 +16,8 @@ class CommandFactory {
    * @return a shared_ptr to the converted command
    */
   virtual std::shared_ptr<PostgresNetworkCommand> PostgresPacketToCommand(PostgresInputPacket *packet);
+
+  virtual ~CommandFactory() = default;
 };
 
 }  // namespace terrier::network
