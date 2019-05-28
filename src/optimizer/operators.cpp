@@ -153,12 +153,15 @@ Operator LogicalProjection::make(std::vector<std::shared_ptr<parser::AbstractExp
 bool LogicalProjection::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::LOGICALPROJECTION) return false;
   const LogicalProjection &node = *static_cast<const LogicalProjection *>(&r);
-  return (expressions_ == node.expressions_);
+  for (size_t i = 0; i < expressions_.size(); i++) {
+    if (*(expressions_[i]) != *(node.expressions_[i])) return false;
+  }
+  return true;
 }
 
 common::hash_t LogicalProjection::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  hash = common::HashUtil::CombineHashInRange(hash, expressions_.begin(), expressions_.end());
+  for (auto &expr : expressions_) hash = common::HashUtil::SumHashes(hash, expr->Hash());
   return hash;
 }
 
@@ -168,7 +171,7 @@ common::hash_t LogicalProjection::Hash() const {
 
 Operator LogicalInsert::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                              catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&columns,
-                             std::vector<std::vector<parser::AbstractExpression*>> &&values) {
+                             std::vector<std::vector<parser::AbstractExpression *>> &&values) {
   // We need to check whether the number of values for each insert vector
   // matches the number of columns
   for (auto insert_vals : values) {
@@ -618,10 +621,20 @@ bool LogicalAggregateAndGroupBy::operator==(const BaseOperatorNode &r) {
   for (size_t i = 0; i < having_.size(); i++) {
     if (having_[i].GetExpr() != node.having_[i].GetExpr()) return false;
   }
-  std::unordered_set<std::shared_ptr<parser::AbstractExpression>> l_set, r_set;
-  for (auto &expr : columns_) l_set.emplace(expr);
-  for (auto &expr : node.columns_) r_set.emplace(expr);
-  return l_set == r_set;
+  // originally throw all entries from each vector to one set,
+  // and compare if the 2 sets are equal
+  // this solves the problem of order of expression within the same hierarchy
+  // however causing shared_ptrs to be compared by their memory location to which they points to
+  // rather than the content of the object they point to.
+
+  //  std::unordered_set<std::shared_ptr<parser::AbstractExpression>> l_set, r_set;
+  //  for (auto &expr : columns_) l_set.emplace(expr);
+  //  for (auto &expr : node.columns_) r_set.emplace(expr);
+  //  return l_set == r_set;
+  for (size_t i = 0; i < columns_.size(); i++) {
+    if (*(columns_[i]) != *(node.columns_[i])) return false;
+  }
+  return true;
 }
 
 common::hash_t LogicalAggregateAndGroupBy::Hash() const {

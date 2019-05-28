@@ -22,20 +22,17 @@ TEST(OperatorTests, LogicalInsertTest) {
   catalog::db_oid_t database_oid(123);
   catalog::namespace_oid_t namespace_oid(456);
   catalog::table_oid_t table_oid(789);
-  catalog::col_oid_t columns[] = { catalog::col_oid_t(1), catalog::col_oid_t(2) };
-  parser::AbstractExpression* raw_values[] = {
+  catalog::col_oid_t columns[] = {catalog::col_oid_t(1), catalog::col_oid_t(2)};
+  parser::AbstractExpression *raw_values[] = {
       new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1)),
-      new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(9))
-  };
-  std::vector<std::vector<parser::AbstractExpression*>> values = {
-      std::vector<parser::AbstractExpression*>(raw_values, std::end(raw_values))
-  };
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(9))};
+  std::vector<std::vector<parser::AbstractExpression *>> values = {
+      std::vector<parser::AbstractExpression *>(raw_values, std::end(raw_values))};
 
   // Check that all of our GET methods work as expected
   Operator op1 = LogicalInsert::make(database_oid, namespace_oid, table_oid,
-      std::vector<catalog::col_oid_t>(columns, std::end(columns)),
-      std::vector<std::vector<parser::AbstractExpression*>>(values)
-  );
+                                     std::vector<catalog::col_oid_t>(columns, std::end(columns)),
+                                     std::vector<std::vector<parser::AbstractExpression *>>(values));
   EXPECT_EQ(op1.GetType(), OpType::LOGICALINSERT);
   EXPECT_EQ(op1.As<LogicalInsert>()->GetDatabaseOid(), database_oid);
   EXPECT_EQ(op1.As<LogicalInsert>()->GetNamespaceOid(), namespace_oid);
@@ -44,39 +41,34 @@ TEST(OperatorTests, LogicalInsertTest) {
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
   Operator op2 = LogicalInsert::make(database_oid, namespace_oid, table_oid,
-       std::vector<catalog::col_oid_t>(columns, std::end(columns)),
-       std::vector<std::vector<parser::AbstractExpression*>>(values)
-  );
+                                     std::vector<catalog::col_oid_t>(columns, std::end(columns)),
+                                     std::vector<std::vector<parser::AbstractExpression *>>(values));
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   // For this last check, we are going to give it more rows to insert
   // This will make sure that our hash is going deep into the vectors
-  std::vector<std::vector<parser::AbstractExpression*>> other_values = {
-      std::vector<parser::AbstractExpression*>(raw_values, std::end(raw_values)),
-      std::vector<parser::AbstractExpression*>(raw_values, std::end(raw_values))
-  };
+  std::vector<std::vector<parser::AbstractExpression *>> other_values = {
+      std::vector<parser::AbstractExpression *>(raw_values, std::end(raw_values)),
+      std::vector<parser::AbstractExpression *>(raw_values, std::end(raw_values))};
   Operator op3 = LogicalInsert::make(database_oid, namespace_oid, table_oid,
-       std::vector<catalog::col_oid_t>(columns, std::end(columns)),
-       std::vector<std::vector<parser::AbstractExpression*>>(other_values)
-  );
+                                     std::vector<catalog::col_oid_t>(columns, std::end(columns)),
+                                     std::vector<std::vector<parser::AbstractExpression *>>(other_values));
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
   // Make sure that we catch when the insert values do not match the
   // number of columns that we are trying to insert into
-  parser::AbstractExpression* bad_raw_values[] = {
+  parser::AbstractExpression *bad_raw_values[] = {
       new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1)),
       new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(2)),
-      new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(3))
-  };
-  std::vector<std::vector<parser::AbstractExpression*>> bad_values = {
-      std::vector<parser::AbstractExpression*>(bad_raw_values, std::end(bad_raw_values))
-  };
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(3))};
+  std::vector<std::vector<parser::AbstractExpression *>> bad_values = {
+      std::vector<parser::AbstractExpression *>(bad_raw_values, std::end(bad_raw_values))};
   EXPECT_DEATH(LogicalInsert::make(database_oid, namespace_oid, table_oid,
-      std::vector<catalog::col_oid_t>(columns, std::end(columns)),
-      std::vector<std::vector<parser::AbstractExpression*>>(bad_values)),
-    "Mismatched");
+                                   std::vector<catalog::col_oid_t>(columns, std::end(columns)),
+                                   std::vector<std::vector<parser::AbstractExpression *>>(bad_values)),
+               "Mismatched");
 }
 
 // NOLINTNEXTLINE
@@ -124,11 +116,11 @@ TEST(OperatorTests, LogicalLimitTest) {
   size_t offset = 90;
   size_t limit = 22;
   std::shared_ptr<parser::AbstractExpression> sort_expr =
-    std::make_shared<parser::ConstantValueExpression>(type::TransientValueFactory::GetTinyInt(1));
+      std::make_shared<parser::ConstantValueExpression>(type::TransientValueFactory::GetTinyInt(1));
   planner::OrderByOrderingType sort_dir = planner::OrderByOrderingType::ASC;
 
   // Check that all of our GET methods work as expected
-  Operator op1 = LogicalLimit::make(offset, limit, { sort_expr }, { sort_dir });
+  Operator op1 = LogicalLimit::make(offset, limit, {sort_expr}, {sort_dir});
   EXPECT_EQ(op1.GetType(), OpType::LOGICALLIMIT);
   EXPECT_EQ(op1.As<LogicalLimit>()->GetOffset(), offset);
   EXPECT_EQ(op1.As<LogicalLimit>()->GetLimit(), limit);
@@ -137,17 +129,16 @@ TEST(OperatorTests, LogicalLimitTest) {
   EXPECT_EQ(op1.As<LogicalLimit>()->GetSortDirections().size(), 1);
   EXPECT_EQ(op1.As<LogicalLimit>()->GetSortDirections()[0], sort_dir);
 
-
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
-  Operator op2 = LogicalLimit::make(offset, limit, { sort_expr }, { sort_dir });
+  Operator op2 = LogicalLimit::make(offset, limit, {sort_expr}, {sort_dir});
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   // Lastly, make a different object and make sure that it is not equal
   // and that it's hash is not the same!
   size_t other_offset = 1111;
-  Operator op3 = LogicalLimit::make(other_offset, limit, { sort_expr }, { sort_dir });
+  Operator op3 = LogicalLimit::make(other_offset, limit, {sort_expr}, {sort_dir});
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 }
@@ -276,12 +267,12 @@ TEST(OperatorTests, LogicalExternalFileGetTest) {
   EXPECT_FALSE(logical_ext_file_get_1 == logical_ext_file_get_5);
   EXPECT_FALSE(logical_ext_file_get_1 == logical_ext_file_get_6);
   EXPECT_FALSE(logical_ext_file_get_1 == logical_ext_file_get_7);
-  EXPECT_TRUE(logical_ext_file_get_1.Hash() == logical_ext_file_get_2.Hash());
-  EXPECT_FALSE(logical_ext_file_get_1.Hash() == logical_ext_file_get_3.Hash());
-  EXPECT_FALSE(logical_ext_file_get_1.Hash() == logical_ext_file_get_4.Hash());
-  EXPECT_FALSE(logical_ext_file_get_1.Hash() == logical_ext_file_get_5.Hash());
-  EXPECT_FALSE(logical_ext_file_get_1.Hash() == logical_ext_file_get_6.Hash());
-  EXPECT_FALSE(logical_ext_file_get_1.Hash() == logical_ext_file_get_7.Hash());
+  EXPECT_EQ(logical_ext_file_get_1.Hash(), logical_ext_file_get_2.Hash());
+  EXPECT_NE(logical_ext_file_get_1.Hash(), logical_ext_file_get_3.Hash());
+  EXPECT_NE(logical_ext_file_get_1.Hash(), logical_ext_file_get_4.Hash());
+  EXPECT_NE(logical_ext_file_get_1.Hash(), logical_ext_file_get_5.Hash());
+  EXPECT_NE(logical_ext_file_get_1.Hash(), logical_ext_file_get_6.Hash());
+  EXPECT_NE(logical_ext_file_get_1.Hash(), logical_ext_file_get_7.Hash());
 }
 
 // NOLINTNEXTLINE
@@ -323,11 +314,61 @@ TEST(OperatorTests, LogicalQueryDerivedGetTest) {
   EXPECT_FALSE(logical_query_derived_get_1 == logical_query_derived_get_4);
   EXPECT_FALSE(logical_query_derived_get_1 == logical_query_derived_get_5);
   EXPECT_FALSE(logical_query_derived_get_1 == logical_query_derived_get_6);
-  EXPECT_TRUE(logical_query_derived_get_1.Hash() == logical_query_derived_get_2.Hash());
-  EXPECT_FALSE(logical_query_derived_get_1.Hash() == logical_query_derived_get_3.Hash());
-  EXPECT_FALSE(logical_query_derived_get_1.Hash() == logical_query_derived_get_4.Hash());
-  EXPECT_FALSE(logical_query_derived_get_1.Hash() == logical_query_derived_get_5.Hash());
-  EXPECT_FALSE(logical_query_derived_get_1.Hash() == logical_query_derived_get_6.Hash());
+  EXPECT_EQ(logical_query_derived_get_1.Hash(), logical_query_derived_get_2.Hash());
+  EXPECT_NE(logical_query_derived_get_1.Hash(), logical_query_derived_get_3.Hash());
+  EXPECT_NE(logical_query_derived_get_1.Hash(), logical_query_derived_get_4.Hash());
+  EXPECT_NE(logical_query_derived_get_1.Hash(), logical_query_derived_get_5.Hash());
+  EXPECT_NE(logical_query_derived_get_1.Hash(), logical_query_derived_get_6.Hash());
+}
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, LogicalFilterTest) {
+  //===--------------------------------------------------------------------===//
+  // LogicalFilter
+  //===--------------------------------------------------------------------===//
+  Operator logical_filter_1 = LogicalFilter::make(std::vector<AnnotatedExpression>());
+  Operator logical_filter_2 = LogicalFilter::make(std::vector<AnnotatedExpression>());
+  auto annotated_expr = AnnotatedExpression(nullptr, std::unordered_set<std::string>());
+  Operator logical_filter_3 = LogicalFilter::make(std::vector<AnnotatedExpression>{annotated_expr});
+
+  EXPECT_EQ(logical_filter_1.GetType(), OpType::LOGICALFILTER);
+  EXPECT_EQ(logical_filter_3.GetType(), OpType::LOGICALFILTER);
+  EXPECT_EQ(logical_filter_1.GetName(), "LogicalFilter");
+  EXPECT_EQ(logical_filter_1.Hash(), logical_filter_2.Hash());
+  EXPECT_NE(logical_filter_1.Hash(), logical_filter_3.Hash());
+}
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, LogicalProjectionTest) {
+  //===--------------------------------------------------------------------===//
+  // LogicalProjection
+  //===--------------------------------------------------------------------===//
+  auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+
+  std::shared_ptr<parser::AbstractExpression> x_1 = std::shared_ptr<parser::AbstractExpression>(expr_b_1);
+  std::shared_ptr<parser::AbstractExpression> x_2 = std::shared_ptr<parser::AbstractExpression>(expr_b_2);
+  std::shared_ptr<parser::AbstractExpression> x_3 = std::shared_ptr<parser::AbstractExpression>(expr_b_3);
+
+  Operator logical_projection_1 =
+      LogicalProjection::make(std::vector<std::shared_ptr<parser::AbstractExpression>>{x_1});
+  Operator logical_projection_2 =
+      LogicalProjection::make(std::vector<std::shared_ptr<parser::AbstractExpression>>{x_2});
+  Operator logical_projection_3 =
+      LogicalProjection::make(std::vector<std::shared_ptr<parser::AbstractExpression>>{x_3});
+
+  EXPECT_EQ(logical_projection_1.GetType(), OpType::LOGICALPROJECTION);
+  EXPECT_EQ(logical_projection_3.GetType(), OpType::LOGICALPROJECTION);
+  EXPECT_EQ(logical_projection_1.GetName(), "LogicalProjection");
+  EXPECT_EQ(logical_projection_1.As<LogicalProjection>()->GetExpressions(),
+            std::vector<std::shared_ptr<parser::AbstractExpression>>{x_1});
+  EXPECT_EQ(logical_projection_3.As<LogicalProjection>()->GetExpressions(),
+            std::vector<std::shared_ptr<parser::AbstractExpression>>{x_3});
+  EXPECT_TRUE(logical_projection_1 == logical_projection_2);
+  EXPECT_FALSE(logical_projection_1 == logical_projection_3);
+  EXPECT_EQ(logical_projection_1.Hash(), logical_projection_2.Hash());
+  EXPECT_NE(logical_projection_1.Hash(), logical_projection_3.Hash());
 }
 
 // NOLINTNEXTLINE
@@ -345,9 +386,9 @@ TEST(OperatorTests, LogicalDependentJoinTest) {
   EXPECT_EQ(logical_dep_join_3.GetType(), OpType::LOGICALDEPENDENTJOIN);
   EXPECT_EQ(logical_dep_join_1.GetName(), "LogicalDependentJoin");
   EXPECT_TRUE(logical_dep_join_1 == logical_dep_join_0);
-  EXPECT_TRUE(logical_dep_join_1.Hash() == logical_dep_join_0.Hash());
-  EXPECT_TRUE(logical_dep_join_1.Hash() == logical_dep_join_2.Hash());
-  EXPECT_FALSE(logical_dep_join_1.Hash() == logical_dep_join_3.Hash());
+  EXPECT_EQ(logical_dep_join_1.Hash(), logical_dep_join_0.Hash());
+  EXPECT_EQ(logical_dep_join_1.Hash(), logical_dep_join_2.Hash());
+  EXPECT_NE(logical_dep_join_1.Hash(), logical_dep_join_3.Hash());
 }
 
 // NOLINTNEXTLINE
@@ -370,9 +411,9 @@ TEST(OperatorTests, LogicalMarkJoinTest) {
   EXPECT_TRUE(logical_mark_join_1 == logical_mark_join_2);
   EXPECT_FALSE(logical_mark_join_1 == logical_mark_join_3);
   EXPECT_TRUE(logical_mark_join_1 == logical_mark_join_0);
-  EXPECT_TRUE(logical_mark_join_1.Hash() == logical_mark_join_0.Hash());
-  EXPECT_TRUE(logical_mark_join_1.Hash() == logical_mark_join_2.Hash());
-  EXPECT_FALSE(logical_mark_join_1.Hash() == logical_mark_join_3.Hash());
+  EXPECT_EQ(logical_mark_join_1.Hash(), logical_mark_join_0.Hash());
+  EXPECT_EQ(logical_mark_join_1.Hash(), logical_mark_join_2.Hash());
+  EXPECT_NE(logical_mark_join_1.Hash(), logical_mark_join_3.Hash());
 }
 
 // NOLINTNEXTLINE
@@ -395,9 +436,9 @@ TEST(OperatorTests, LogicalSingleJoinTest) {
   EXPECT_TRUE(logical_single_join_1 == logical_single_join_2);
   EXPECT_FALSE(logical_single_join_1 == logical_single_join_3);
   EXPECT_TRUE(logical_single_join_1 == logical_single_join_0);
-  EXPECT_TRUE(logical_single_join_1.Hash() == logical_single_join_0.Hash());
-  EXPECT_TRUE(logical_single_join_1.Hash() == logical_single_join_2.Hash());
-  EXPECT_FALSE(logical_single_join_1.Hash() == logical_single_join_3.Hash());
+  EXPECT_EQ(logical_single_join_1.Hash(), logical_single_join_0.Hash());
+  EXPECT_EQ(logical_single_join_1.Hash(), logical_single_join_2.Hash());
+  EXPECT_NE(logical_single_join_1.Hash(), logical_single_join_3.Hash());
 }
 
 // NOLINTNEXTLINE
@@ -439,9 +480,9 @@ TEST(OperatorTests, LogicalInnerJoinTest) {
   EXPECT_FALSE(logical_inner_join_1 == logical_inner_join_3);
   EXPECT_TRUE(logical_inner_join_4 == logical_inner_join_5);
   EXPECT_FALSE(logical_inner_join_4 == logical_inner_join_6);
-  EXPECT_TRUE(logical_inner_join_1.Hash() == logical_inner_join_0.Hash());
-  EXPECT_TRUE(logical_inner_join_1.Hash() == logical_inner_join_2.Hash());
-  EXPECT_FALSE(logical_inner_join_1.Hash() == logical_inner_join_3.Hash());
+  EXPECT_EQ(logical_inner_join_1.Hash(), logical_inner_join_0.Hash());
+  EXPECT_EQ(logical_inner_join_1.Hash(), logical_inner_join_2.Hash());
+  EXPECT_NE(logical_inner_join_1.Hash(), logical_inner_join_3.Hash());
 }
 
 // NOLINTNEXTLINE
@@ -468,8 +509,8 @@ TEST(OperatorTests, LogicalLeftJoinTest) {
   EXPECT_EQ(*(logical_left_join_3.As<LogicalLeftJoin>()->GetJoinPredicate()), *x_3);
   EXPECT_TRUE(logical_left_join_1 == logical_left_join_2);
   EXPECT_FALSE(logical_left_join_1 == logical_left_join_3);
-  EXPECT_TRUE(logical_left_join_1.Hash() == logical_left_join_2.Hash());
-  EXPECT_FALSE(logical_left_join_1.Hash() == logical_left_join_3.Hash());
+  EXPECT_EQ(logical_left_join_1.Hash(), logical_left_join_2.Hash());
+  EXPECT_NE(logical_left_join_1.Hash(), logical_left_join_3.Hash());
 }
 
 // NOLINTNEXTLINE
@@ -496,8 +537,8 @@ TEST(OperatorTests, LogicalRightJoinTest) {
   EXPECT_EQ(*(logical_right_join_3.As<LogicalRightJoin>()->GetJoinPredicate()), *x_3);
   EXPECT_TRUE(logical_right_join_1 == logical_right_join_2);
   EXPECT_FALSE(logical_right_join_1 == logical_right_join_3);
-  EXPECT_TRUE(logical_right_join_1.Hash() == logical_right_join_2.Hash());
-  EXPECT_FALSE(logical_right_join_1.Hash() == logical_right_join_3.Hash());
+  EXPECT_EQ(logical_right_join_1.Hash(), logical_right_join_2.Hash());
+  EXPECT_NE(logical_right_join_1.Hash(), logical_right_join_3.Hash());
 }
 
 // NOLINTNEXTLINE
@@ -524,8 +565,8 @@ TEST(OperatorTests, LogicalOuterJoinTest) {
   EXPECT_EQ(*(logical_outer_join_3.As<LogicalOuterJoin>()->GetJoinPredicate()), *x_3);
   EXPECT_TRUE(logical_outer_join_1 == logical_outer_join_2);
   EXPECT_FALSE(logical_outer_join_1 == logical_outer_join_3);
-  EXPECT_TRUE(logical_outer_join_1.Hash() == logical_outer_join_2.Hash());
-  EXPECT_FALSE(logical_outer_join_1.Hash() == logical_outer_join_3.Hash());
+  EXPECT_EQ(logical_outer_join_1.Hash(), logical_outer_join_2.Hash());
+  EXPECT_NE(logical_outer_join_1.Hash(), logical_outer_join_3.Hash());
 }
 
 // NOLINTNEXTLINE
@@ -552,8 +593,72 @@ TEST(OperatorTests, LogicalSemiJoinTest) {
   EXPECT_EQ(*(logical_semi_join_3.As<LogicalSemiJoin>()->GetJoinPredicate()), *x_3);
   EXPECT_TRUE(logical_semi_join_1 == logical_semi_join_2);
   EXPECT_FALSE(logical_semi_join_1 == logical_semi_join_3);
-  EXPECT_TRUE(logical_semi_join_1.Hash() == logical_semi_join_2.Hash());
-  EXPECT_FALSE(logical_semi_join_1.Hash() == logical_semi_join_3.Hash());
+  EXPECT_EQ(logical_semi_join_1.Hash(), logical_semi_join_2.Hash());
+  EXPECT_NE(logical_semi_join_1.Hash(), logical_semi_join_3.Hash());
+}
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, LogicalAggregateAndGroupByTest) {
+  //===--------------------------------------------------------------------===//
+  // LogicalAggregateAndGroupBy
+  //===--------------------------------------------------------------------===//
+  // ConstValueExpression subclass AbstractExpression
+  auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+
+  // columns: vector of shared_ptr of AbstractExpression
+  std::shared_ptr<parser::AbstractExpression> x_1 = std::shared_ptr<parser::AbstractExpression>(expr_b_1);
+  std::shared_ptr<parser::AbstractExpression> x_2 = std::shared_ptr<parser::AbstractExpression>(expr_b_2);
+  std::shared_ptr<parser::AbstractExpression> x_3 = std::shared_ptr<parser::AbstractExpression>(expr_b_3);
+
+  // havings: vector of AnnotatedExpression
+  auto annotated_expr_0 = AnnotatedExpression(nullptr, std::unordered_set<std::string>());
+  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
+  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
+  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
+
+  Operator logical_group_1_0 =
+      LogicalAggregateAndGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpression>>{x_1},
+                                       std::vector<AnnotatedExpression>{annotated_expr_0});
+  Operator logical_group_1_1 =
+      LogicalAggregateAndGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpression>>{x_1},
+                                       std::vector<AnnotatedExpression>{annotated_expr_1});
+  Operator logical_group_2_1 =
+      LogicalAggregateAndGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpression>>{x_2},
+                                       std::vector<AnnotatedExpression>{annotated_expr_1});
+  Operator logical_group_2_2 =
+      LogicalAggregateAndGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpression>>{x_2},
+                                       std::vector<AnnotatedExpression>{annotated_expr_2});
+  Operator logical_group_3_1 =
+      LogicalAggregateAndGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpression>>{x_3},
+                                       std::vector<AnnotatedExpression>{annotated_expr_1});
+  Operator logical_group_1_3 =
+      LogicalAggregateAndGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpression>>{x_1},
+                                       std::vector<AnnotatedExpression>{annotated_expr_3});
+
+  EXPECT_EQ(logical_group_1_1.GetType(), OpType::LOGICALAGGREGATEANDGROUPBY);
+  EXPECT_EQ(logical_group_3_1.GetType(), OpType::LOGICALAGGREGATEANDGROUPBY);
+  EXPECT_EQ(logical_group_1_0.GetName(), "LogicalAggregateAndGroupBy");
+  EXPECT_EQ(logical_group_1_1.As<LogicalAggregateAndGroupBy>()->GetColumns(),
+            std::vector<std::shared_ptr<parser::AbstractExpression>>{x_1});
+  EXPECT_EQ(logical_group_3_1.As<LogicalAggregateAndGroupBy>()->GetColumns(),
+            std::vector<std::shared_ptr<parser::AbstractExpression>>{x_3});
+  EXPECT_EQ(logical_group_1_1.As<LogicalAggregateAndGroupBy>()->GetHaving(),
+            std::vector<AnnotatedExpression>{annotated_expr_1});
+  EXPECT_EQ(logical_group_1_3.As<LogicalAggregateAndGroupBy>()->GetHaving(),
+            std::vector<AnnotatedExpression>{annotated_expr_3});
+  EXPECT_TRUE(logical_group_1_1 == logical_group_2_1);
+  EXPECT_FALSE(logical_group_1_1 == logical_group_3_1);
+  // EXPECT_FALSE(logical_group_1_0 == logical_group_1_1);
+  EXPECT_TRUE(logical_group_2_1 == logical_group_2_1);
+  EXPECT_FALSE(logical_group_1_1 == logical_group_1_3);
+
+  EXPECT_EQ(logical_group_1_1.Hash(), logical_group_2_1.Hash());
+  EXPECT_EQ(logical_group_2_1.Hash(), logical_group_2_2.Hash());
+  EXPECT_NE(logical_group_1_1.Hash(), logical_group_3_1.Hash());
+  // EXPECT_NE(logical_group_1_0.Hash(), logical_group_1_1.Hash());
+  EXPECT_NE(logical_group_1_1.Hash(), logical_group_1_3.Hash());
 }
 
 // NOLINTNEXTLINE
