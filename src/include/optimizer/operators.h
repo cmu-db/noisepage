@@ -558,6 +558,26 @@ class LogicalLimit : public OperatorNode<LogicalLimit> {
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
 
+  /**
+   * @return offset of the LIMIT operator
+   */
+  size_t GetOffset() const { return offset_; }
+
+  /**
+   * @return the max # of tuples to produce
+   */
+  size_t GetLimit() const { return limit_; }
+
+  /**
+   * @return inlined ORDER BY expressions (can be empty)
+   */
+  const std::vector<std::shared_ptr<parser::AbstractExpression>> &GetSortExpressions() const { return sort_exprs_; }
+
+  /**
+   * @return inlined sort directions (can be empty)
+   */
+  const std::vector<planner::OrderByOrderingType> &GetSortDirections() const { return sort_directions_; }
+
  private:
   /**
    * The offset of the LIMIT operator

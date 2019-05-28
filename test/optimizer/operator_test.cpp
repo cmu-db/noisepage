@@ -18,6 +18,52 @@
 namespace terrier::optimizer {
 
 // NOLINTNEXTLINE
+TEST(OperatorTests, LogicalDistinctTest) {
+  // DISTINCT operator does not have any data members.
+  // So we just need to make sure that all instantiations
+  // of the object are equivalent.
+  Operator op1 = LogicalDistinct::make();
+  EXPECT_EQ(op1.GetType(), OpType::LOGICALDISTINCT);
+
+  Operator op2 = LogicalDistinct::make();
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+}
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, LogicalLimitTest) {
+  size_t offset = 90;
+  size_t limit = 22;
+  std::shared_ptr<parser::AbstractExpression> sort_expr =
+    std::make_shared<parser::ConstantValueExpression>(type::TransientValueFactory::GetTinyInt(1));
+  planner::OrderByOrderingType sort_dir = planner::OrderByOrderingType::ASC;
+
+  // Check that all of our GET methods work as expected
+  Operator op1 = LogicalLimit::make(offset, limit, { sort_expr }, { sort_dir });
+  EXPECT_EQ(op1.GetType(), OpType::LOGICALLIMIT);
+  EXPECT_EQ(op1.As<LogicalLimit>()->GetOffset(), offset);
+  EXPECT_EQ(op1.As<LogicalLimit>()->GetLimit(), limit);
+  EXPECT_EQ(op1.As<LogicalLimit>()->GetSortExpressions().size(), 1);
+  EXPECT_EQ(op1.As<LogicalLimit>()->GetSortExpressions()[0], sort_expr);
+  EXPECT_EQ(op1.As<LogicalLimit>()->GetSortDirections().size(), 1);
+  EXPECT_EQ(op1.As<LogicalLimit>()->GetSortDirections()[0], sort_dir);
+
+
+  // Check that if we make a new object with the same values, then it will
+  // be equal to our first object and have the same hash
+  Operator op2 = LogicalLimit::make(offset, limit, { sort_expr }, { sort_dir });
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+
+  // Lastly, make a different object and make sure that it is not equal
+  // and that it's hash is not the same!
+  size_t other_offset = 1111;
+  Operator op3 = LogicalLimit::make(other_offset, limit, { sort_expr }, { sort_dir });
+  EXPECT_FALSE(op1 == op3);
+  EXPECT_NE(op1.Hash(), op3.Hash());
+}
+
+// NOLINTNEXTLINE
 TEST(OperatorTests, LogicalUpdateTest) {
   std::string column = "abc";
   std::shared_ptr<parser::AbstractExpression> value =

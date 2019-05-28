@@ -285,8 +285,8 @@ bool LogicalLimit::operator==(const BaseOperatorNode &r) {
 
 common::hash_t LogicalLimit::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&offset_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&limit_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(offset_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(limit_));
   hash = common::HashUtil::CombineHashInRange(hash, sort_exprs_.begin(), sort_exprs_.end());
   hash = common::HashUtil::CombineHashInRange(hash, sort_directions_.begin(), sort_directions_.end());
   return hash;
