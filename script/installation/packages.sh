@@ -80,6 +80,7 @@ install_mac() {
   brew ls --versions openssl || brew install openssl
   brew ls --versions postgresql || brew install postgresql
   brew ls --versions tbb || brew install tbb
+  brew ls --version ant || brew install ant
 }
 
 install_linux() {
@@ -104,8 +105,9 @@ install_linux() {
       llvm-6.0 \
       pkg-config \
       postgresql-client \
-	  sqlite3 \
-	  libsqlite3-dev
+      sqlite3 \
+      libsqlite3-dev \
+      ant
    #install libpqxx-6.2 manually
    apt-get -y install wget
    wget http://mirrors.kernel.org/ubuntu/pool/universe/libp/libpqxx/libpqxx-dev_6.2.4-4_amd64.deb
