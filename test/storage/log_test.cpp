@@ -15,6 +15,18 @@
 namespace terrier {
 class WriteAheadLoggingTests : public TerrierTest {
  public:
+  void SetUp() override {
+    // Unlink log file incase one exists from previous test iteration
+    unlink(LOG_FILE_NAME);
+    TerrierTest::SetUp();
+  }
+
+  void TearDown() override {
+    // Delete log file
+    unlink(LOG_FILE_NAME);
+    TerrierTest::TearDown();
+  }
+
   void StartLogging(uint32_t log_period_milli) {
     logging_ = true;
     log_manager_.Start();
@@ -205,7 +217,6 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
   for (const auto &kv_pair : txns_map) {
     EXPECT_TRUE(kv_pair.second->Updates()->empty());
   }
-  unlink(LOG_FILE_NAME);
   for (auto *txn : result.first) delete txn;
   for (auto *txn : result.second) delete txn;
 }
@@ -252,7 +263,6 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
   }
 
   EXPECT_EQ(log_records_count, 0);
-  unlink(LOG_FILE_NAME);
   for (auto *txn : result.first) delete txn;
   for (auto *txn : result.second) delete txn;
 }
