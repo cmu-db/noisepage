@@ -174,11 +174,14 @@ common::hash_t LogicalProjection::Hash() const {
 Operator LogicalInsert::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                              catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&columns,
                              std::vector<std::vector<parser::AbstractExpression *>> &&values) {
+
+#ifndef NDEBUG
   // We need to check whether the number of values for each insert vector
   // matches the number of columns
   for (const auto &insert_vals : values) {
     TERRIER_ASSERT(columns.size() == insert_vals.size(), "Mismatched number of columns and values");
   }
+#endif
 
   auto *op = new LogicalInsert;
   op->database_oid_ = database_oid;

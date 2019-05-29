@@ -220,7 +220,7 @@ TEST(OperatorTests, LogicalExportExternalFileTest) {
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
-  std::string file_name_copy = file_name;
+  std::string file_name_copy = file_name; // NOLINT
   Operator op2 =
       LogicalExportExternalFile::make(parser::ExternalFileFormat::BINARY, file_name_copy, delimiter, quote, escape);
   EXPECT_TRUE(op1 == op2);

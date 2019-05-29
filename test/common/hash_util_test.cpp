@@ -16,7 +16,7 @@ TEST(HashUtilTests, HashTest) {
   // INT
   std::vector<int> vals0 = {std::numeric_limits<int>::min(), 0, std::numeric_limits<int>::max() - 1};
   for (const auto &val : vals0) {
-    auto copy = val;
+    auto copy = val; // NOLINT
     EXPECT_EQ(common::HashUtil::Hash(val), common::HashUtil::Hash(copy));
     EXPECT_NE(common::HashUtil::Hash(val + 1), common::HashUtil::Hash(val));
   }
@@ -24,7 +24,7 @@ TEST(HashUtilTests, HashTest) {
   // FLOAT
   std::vector<float> vals1 = {std::numeric_limits<float>::min(), 0.0f, std::numeric_limits<float>::max() - 1.0f};
   for (const auto &val : vals1) {
-    auto copy = val;
+    auto copy = val; // NOLINT
     EXPECT_EQ(common::HashUtil::Hash(val), common::HashUtil::Hash(copy));
     // This fails for max float value
     // EXPECT_NE(common::HashUtil::Hash(val+1.0f), common::HashUtil::Hash(val));
@@ -33,7 +33,7 @@ TEST(HashUtilTests, HashTest) {
   // CHAR
   std::vector<char> vals2 = {'f', 'u', 'c', 'k', 't', 'k'};
   for (const auto &val : vals2) {
-    auto copy = val;
+    auto copy = val; // NOLINT
     EXPECT_EQ(common::HashUtil::Hash(val), common::HashUtil::Hash(copy));
     EXPECT_NE(common::HashUtil::Hash(val + 1), common::HashUtil::Hash(val));
   }
@@ -41,7 +41,7 @@ TEST(HashUtilTests, HashTest) {
   // STRING
   std::vector<std::string> vals3 = {"XXX", "YYY", "ZZZ"};
   for (const auto &val : vals3) {
-    auto copy = val;
+    auto copy = val; // NOLINT
     EXPECT_EQ(common::HashUtil::Hash(val), common::HashUtil::Hash(copy));
     EXPECT_NE(common::HashUtil::Hash("WUTANG"), common::HashUtil::Hash(val));
   }
@@ -121,7 +121,7 @@ TEST(HashUtilTests, CombineHashInRangeTest) {
   std::vector<std::string> vals0 = {"XXX", "YYY", "ZZZ"};
   common::hash_t hash0 = 0;
   for (const auto &val : vals0) {
-    auto copy = val;
+    auto copy = val; // NOLINT
     hash0 = common::HashUtil::CombineHashes(hash0, common::HashUtil::Hash(copy));
   }
 
