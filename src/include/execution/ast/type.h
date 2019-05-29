@@ -93,118 +93,191 @@ class Context;
 TYPE_LIST(F)
 #undef F
 
-/// The base of the TPL type hierarchy. Types, once created, are immutable. Only
-/// one instance of a particular type is ever created, and all instances are
-/// owned by the Context object that created it. Thus, one can use pointer
-/// equality to determine if two types are equal, but only if they were created
-/// within the same Context.
+/**
+ * The base of the TPL type hierarchy. Types, once created, are immutable. Only
+ * one instance of a particular type is ever created, and all instances are
+ * owned by the Context object that created it. Thus, one can use pointer
+ * equality to determine if two types are equal, but only if they were created
+ * within the same Context.
+ */
 class Type : public util::RegionObject {
  public:
-  /// The enumeration of all concrete types
+  /**
+   * The enumeration of all concrete types
+   */
   enum class TypeId : u8 {
 #define F(TypeId) TypeId,
     TYPE_LIST(F)
 #undef F
   };
 
-  /// Return the context this type was allocated in
+  /**
+   * @return the context this type was allocated in
+   */
   Context *context() const { return ctx_; }
 
-  /// Return the size of this type in bytes
+  /**
+   * @return the size of this type in bytes
+   */
   u32 size() const { return size_; }
 
-  /// Return the alignment of this type in bytes
+  /**
+   * @return the alignment of this type in bytes
+   */
   u32 alignment() const { return align_; }
 
-  /// Return the unique type ID of this type (e.g., int16, Array, Struct etc.)
+  /**
+   * @return the unique type ID of this type (e.g., int16, Array, Struct etc.)
+   */
   TypeId type_id() const { return type_id_; }
 
-  /// Perform an "checked cast" to convert an instance of this base Type class
-  /// into one of its derived types. If the target class isn't a subclass of
-  /// Type, an assertion failure is thrown in debug mode. In release mode, such
-  /// a call will fail.
-  ///
-  /// You should use this function when you have reasonable certainty that you
-  /// know the concrete type. Example:
-  ///
-  /// \code
-  /// if (!type->IsBuiltinType()) {
-  ///   return;
-  /// }
-  /// ...
-  /// auto *builtin_type = type->As<ast::BuiltinType>();
-  /// ...
-  /// \endcode
-  ///
+  /**
+   * Perform an "checked cast" to convert an instance of this base Type class
+   * into one of its derived types. If the target class isn't a subclass of
+   * Type, an assertion failure is thrown in debug mode. In release mode, such
+   * a call will fail.
+   *
+   * You should use this function when you have reasonable certainty that you
+   * know the concrete type. Example:
+   *
+   * @code
+   * if (!type->IsBuiltinType()) {
+   *   return;
+   * }
+   * ...
+   * auto *builtin_type = type->As<ast::BuiltinType>();
+   * ...
+   * @endcode
+   *
+   * @tparam T type to cast to
+   * @return casted pointer
+   */
   template <typename T>
   const T *As() const {
     return llvm::cast<const T>(this);
   }
 
-  /// Same as above, without const.
+  /**
+   * Perform an "checked cast" to convert an instance of this base Type class
+   * into one of its derived types.
+   * @tparam T type to cast to
+   * @return casted pointer
+   */
   template <typename T>
   T *As() {
     return llvm::cast<T>(this);
   }
 
-  /// Perform a "checking cast". This function checks to see if the target type
-  /// is a subclass of Type, returning a pointer to the subclass if so, or
-  /// returning a null pointer otherwise.
-  ///
-  /// You should use this in conditional or control-flow statements when you
-  /// want to check if a type is a specific subtype **AND** get a pointer to the
-  /// subtype, like so:
-  ///
-  /// \code
-  /// if (auto *builtin_type = SafeAs<ast::BuiltinType>()) {
-  ///   // ...
-  /// }
-  /// \endcode
+  /**
+   * Perform a "checking cast". This function checks to see if the target type
+   * is a subclass of Type, returning a pointer to the subclass if so, or
+   * returning a null pointer otherwise.
+   *
+   * You should use this in conditional or control-flow statements when you
+   * want to check if a type is a specific subtype **AND** get a pointer to the
+   * subtype, like so:
+   *
+   * @code
+   * if (auto *builtin_type = SafeAs<ast::BuiltinType>()) {
+   *   // ...
+   * }
+   * @endcode
+   *
+   *  * @tparam T type to cast to.
+   * @return casted pointer.
+   */
   template <typename T>
   const T *SafeAs() const {
     return llvm::dyn_cast<const T>(this);
   }
 
-  /// Same as above, without const
+  /**
+   * Perform a "checking cast". This function checks to see if the target type
+   * is a subclass of Type, returning a pointer to the subclass if so, or
+   * returning a null pointer otherwise.
+   * @tparam T type to cast to.
+   * @return casted pointer.
+   */
   template <typename T>
   T *SafeAs() {
     return llvm::dyn_cast<T>(this);
   }
 
-  /// Type checks
+  /*
+   * Type checks
+   */
 #define F(TypeClass) \
   bool Is##TypeClass() const { return llvm::isa<TypeClass>(this); }
   TYPE_LIST(F)
 #undef F
 
-  /// Whether this is an arithmetic type.
+  /**
+   * Checks whether this is an arithmetic type
+   * @return true iff this is an arithmetic type.
+   */
   bool IsArithmetic() const;
-  /// Whether this is a builtin type of type kind
+
+  /**
+   * Checks whether this is of the given builtin kind
+   * @param kind The kind to check
+   * @return true iff this is of the given kind.
+   */
   bool IsSpecificBuiltin(u16 kind) const;
-  /// Whether this is the nil type.
+
+  /**
+   * Checks whether this is a nil type
+   * @return true iff this is a nil type.
+   */
   bool IsNilType() const;
-  /// Whether this is the bool type.
+
+  /**
+   * Checks whether this is a bool type
+   * @return true iff this is a bool type.
+   */
   bool IsBoolType() const;
-  /// Whether this is an integer type.
+
+  /**
+   * Checks whether this is an integer type
+   * @return true iff this is an integer type.
+   */
   bool IsIntegerType() const;
-  /// Whether this is a float type.
+
+  /**
+   * Checks whether this is a float type
+   * @return true iff this is a float type.
+   */
   bool IsFloatType() const;
 
-  /// Return a new type that is a pointer to the current type
+  /**
+   * @return a type that is a pointer to the current type
+   */
   PointerType *PointerTo();
 
-  /// If this is a pointer type, return the type it points to, returning null
-  /// otherwise.
+  /**
+   * @return If this is a pointer type, return the type it points to, returning null otherwise.
+   */
   Type *GetPointeeType() const;
 
-  /// Get a string representation of this type
+  /**
+   * @return a string representation of the given type
+   */
   std::string ToString() const { return ToString(this); }
 
-  /// Get a string representation of the input type
+  /**
+   * Get a string representation of the input type
+   * @param type type to represent
+   * @return a string representation of the fiven type
+   */
   static std::string ToString(const Type *type);
 
  protected:
-  /// Protected to indicate abstract base
+  /**
+   * Protected constructor to indicate abstract base
+   * @param ctx ast context to use
+   * @param size size of the type
+   * @param alignment alignment of the type
+   * @param type_id id of the type
+   */
   Type(Context *ctx, u32 size, u32 alignment, TypeId type_id)
       : ctx_(ctx), size_(size), align_(alignment), type_id_(type_id) {}
 
@@ -219,50 +292,83 @@ class Type : public util::RegionObject {
   TypeId type_id_;
 };
 
-/// A builtin type
+/**
+ * A builtin type
+ */
 class BuiltinType : public Type {
  public:
 #define F(BKind, ...) BKind,
-  /// Enum of builtin types
+  /**
+   * Enum of builtin types
+   */
   enum Kind : u16 { BUILTIN_TYPE_LIST(F, F, F) };
 #undef F
 
-  /// Get the name of the builtin as it appears in TPL code
+  /**
+   * Get the name of the builtin as it appears in TPL code
+   * @return name of the builtin
+   */
   const char *tpl_name() const { return kTplNames[static_cast<u16>(kind_)]; }
 
-  /// Get the name of the C++ type that backs this builtin. For primitive
-  /// types like 32-bit integers, this will be 'int32'. For non-primitive types
-  /// this will be the fully-qualified name of the class (i.e., the class name
-  /// along with the namespace).
+  /**
+   * Get the name of the C++ type that backs this builtin. For primitive
+   * types like 32-bit integers, this will be 'int32'. For non-primitive types
+   * this will be the fully-qualified name of the class (i.e., the class name
+   * along with the namespace).
+   * @return the C++ type name
+   */
   const char *cpp_name() const { return kCppNames[static_cast<u16>(kind_)]; }
 
-  /// Get the size of this builtin in bytes
+  /**
+   * Get the size of this builtin in bytes
+   * @return size of the builtin type
+   */
   u64 size() const { return kSizes[static_cast<u16>(kind_)]; }
 
-  /// Get the required alignment of this builtin in bytes
+  /**
+   * Get the required alignment of this builtin in bytes
+   * @return alignment of this builtin type
+   */
   u64 alignment() const { return kAlignments[static_cast<u16>(kind_)]; }
 
-  /// Is this builtin a primitive?
+  /**
+   * @return Is this builtin a primitive?
+   */
   bool is_primitive() const { return kPrimitiveFlags[static_cast<u16>(kind_)]; }
 
-  /// Is this builtin a primitive integer?
+  /**
+   * @return Is this builtin a primitive integer?
+   */
   bool is_integer() const { return Kind::Int8 <= kind() && kind() <= Kind::Uint128; }
 
-  /// Is this builtin a primitive floating point number?
+  /**
+   * @return Is this builtin a primitive floating point number?
+   */
   bool is_floating_point() const { return kFloatingPointFlags[static_cast<u16>(kind_)]; }
 
-  /// Return the kind of this builtin
+  /**
+   * @return the kind of this builtin
+   */
   Kind kind() const { return kind_; }
 
-  /// Return a builtin of the given kind.
+  /**
+   * Return a builtin of the given kind.
+   * @param ctx ast context to use
+   * @param kind kind to get
+   * @return a builtin of the given kind.
+   */
   static BuiltinType *Get(Context *ctx, Kind kind);
 
-  /// Whether this is the same as the given type
+  /**
+   * Checks if this is the same as the given type
+   * @param type type to check
+   * @return true iff this is the same as the given type
+   */
   static bool classof(const Type *type) { return type->type_id() == TypeId::BuiltinType; }
 
  private:
   friend class Context;
-  /// Private constructor
+  // Private constructor
   BuiltinType(Context *ctx, u32 size, u32 alignment, Kind kind)
       : Type(ctx, size, alignment, TypeId::BuiltinType), kind_(kind) {}
 
@@ -279,7 +385,9 @@ class BuiltinType : public Type {
   static const bool kSignedFlags[];
 };
 
-/// String type
+/**
+ * String type
+ */
 class StringType : public Type {
  public:
   /**
@@ -297,11 +405,13 @@ class StringType : public Type {
 
  private:
   friend class Context;
-  /// Private constructor
+  // Private constructor
   explicit StringType(Context *ctx) : Type(ctx, sizeof(i8 *), alignof(i8 *), TypeId::StringType) {}
 };
 
-/// Pointer type
+/**
+ * Pointer type
+ */
 class PointerType : public Type {
  public:
   /**
@@ -323,7 +433,7 @@ class PointerType : public Type {
   static bool classof(const Type *type) { return type->type_id() == TypeId::PointerType; }
 
  private:
-  /// Private constructor
+  // Private constructor
   explicit PointerType(Type *base)
       : Type(base->context(), sizeof(i8 *), alignof(i8 *), TypeId::PointerType), base_(base) {}
 
@@ -331,7 +441,9 @@ class PointerType : public Type {
   Type *base_;
 };
 
-/// Array type
+/**
+ * Array type
+ */
 class ArrayType : public Type {
  public:
   /**
@@ -374,12 +486,19 @@ class ArrayType : public Type {
   Type *elem_type_;
 };
 
-/// A field is a pair containing a name and a type. It is used to represent both
-/// fields within a struct, and parameters to a function.
+/**
+ * A field is a pair containing a name and a type. It is used to represent both fields within a struct, and parameters
+ * to a function.
+ */
 struct Field {
-  /// Name of the field
+  /**
+   * Name of the field
+   */
   Identifier name;
-  /// Type of the field
+
+  /**
+   * Type of the field
+   */
   Type *type;
 
   /**
@@ -396,7 +515,9 @@ struct Field {
   bool operator==(const Field &other) const noexcept { return name == other.name && type == other.type; }
 };
 
-/// Function type
+/**
+ * Function type
+ */
 class FunctionType : public Type {
  public:
   /**
@@ -429,7 +550,7 @@ class FunctionType : public Type {
   static bool classof(const Type *type) { return type->type_id() == TypeId::FunctionType; }
 
  private:
-  /// Private constructor
+  // Private constructor
   explicit FunctionType(util::RegionVector<Field> &&params, Type *ret);
 
  private:
@@ -437,7 +558,9 @@ class FunctionType : public Type {
   Type *ret_;
 };
 
-/// Hash-map type
+/**
+ * Hash-map type
+ */
 class MapType : public Type {
  public:
   /**
@@ -465,7 +588,7 @@ class MapType : public Type {
   static bool classof(const Type *type) { return type->type_id() == TypeId::MapType; }
 
  private:
-  /// Private Constructor
+  // Private Constructor
   MapType(Type *key_type, Type *val_type);
 
  private:
@@ -473,7 +596,9 @@ class MapType : public Type {
   Type *val_type_;
 };
 
-/// Struct type
+/**
+ * Struct type
+ */
 class StructType : public Type {
  public:
   /**
@@ -535,7 +660,7 @@ class StructType : public Type {
   static bool classof(const Type *type) { return type->type_id() == TypeId::StructType; }
 
  private:
-  /// Private constructor
+  // Private constructor
   explicit StructType(Context *ctx, u32 size, u32 alignment, util::RegionVector<Field> &&fields,
                       util::RegionVector<u32> &&field_offsets);
 

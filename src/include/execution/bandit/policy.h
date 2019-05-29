@@ -36,9 +36,13 @@ class Policy {
   auto kind() { return kind_; }
 
  protected:
-  /// The kind of policy
+  /**
+   * The kind of policy
+   */
   Kind kind_;
-  /// The random number generator
+  /**
+   * The random number generator
+   */
   std::mt19937 generator_;
 };
 
@@ -72,7 +76,9 @@ class EpsilonGreedyPolicy : public Policy {
  */
 class GreedyPolicy : public EpsilonGreedyPolicy {
  public:
-  /// Constructor
+  /**
+   * Constructor
+   */
   GreedyPolicy() : EpsilonGreedyPolicy(0, Kind::Greedy) {}
 };
 
@@ -83,7 +89,9 @@ class GreedyPolicy : public EpsilonGreedyPolicy {
  */
 class RandomPolicy : public EpsilonGreedyPolicy {
  public:
-  /// Constructor
+  /**
+   * Constructor
+   */
   RandomPolicy() : EpsilonGreedyPolicy(1, Kind::Random) {}
 };
 

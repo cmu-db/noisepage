@@ -21,7 +21,9 @@ class AstNodeFactory {
    */
   explicit AstNodeFactory(util::Region *region) : region_(region) {}
 
-  /// Prevent copy and move
+  /**
+   * Prevent copy and move
+   */
   DISALLOW_COPY_AND_MOVE(AstNodeFactory);
 
   /**

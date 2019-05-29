@@ -10,18 +10,29 @@ namespace tpl::sql {
 #define AVG_PRECISION 3
 #define AVG_SCALE 6
 
-/// A generic base catch-all SQL value
+/**
+ * A generic base catch-all SQL value
+ */
 struct Val {
-  /// Whether the value is null
+  /**
+   * Whether the value is null
+   */
   bool is_null;
 
-  /// Constructs a generic value
+  /**
+   * Constructs a generic value
+   * @param is_null whether the value is null
+   */
   explicit Val(bool is_null = false) noexcept : is_null(is_null) {}
 };
 
-/// A SQL boolean value
+/**
+ * A SQL boolean value
+ */
 struct BoolVal : public Val {
-  /// raw boolean value
+  /**
+   * raw boolean value
+   */
   bool val;
 
   /**
@@ -30,20 +41,25 @@ struct BoolVal : public Val {
    */
   explicit BoolVal(bool val) noexcept : Val(false), val(val) {}
 
-  /// Convert this SQL boolean into a primitive boolean. Thanks to SQL's
-  /// three-valued logic, we implement the following truth table:
-  ///
-  ///   Value | NULL? | Output
-  /// +-------+-------+--------+
-  /// | false | false | false  |
-  /// | false | true  | false  |
-  /// | true  | false | true   |
-  /// | true  | true  | false  |
-  /// +-------+-------+--------+
-  ///
+  /**
+  * Convert this SQL boolean into a primitive boolean. Thanks to SQL's
+  * three-valued logic, we implement the following truth table:
+  *
+  *   Value | NULL? | Output
+  * +-------+-------+--------+
+  * | false | false | false  |
+  * | false | true  | false  |
+  * | true  | false | true   |
+  * | true  | true  | false  |
+  * +-------+-------+--------+
+  *
+   * @return converted value
+   */
   bool ForceTruth() const noexcept { return !is_null && val; }
 
-  /// Return a NULL boolean value
+  /**
+   * @return a NULL bool value
+   */
   static BoolVal Null() {
     BoolVal val(false);
     val.is_null = true;
@@ -51,9 +67,13 @@ struct BoolVal : public Val {
   }
 };
 
-/// An integral SQL value
+/**
+ * An integral SQL value
+ */
 struct Integer : public Val {
-  /// Raw integer value
+  /**
+   * Raw integer value
+   */
   i64 val;
 
   /**
@@ -62,20 +82,30 @@ struct Integer : public Val {
    */
   explicit Integer(i64 val) noexcept : Val(false), val(val) {}
 
-  /// Return a NULL integer value
+  /**
+   * @return a NULL integer value
+   */
   static Integer Null() {
     Integer val(0);
     val.is_null = true;
     return val;
   }
 
-  /// dumb division for now
+  /**
+   * Perform dumb division for now
+   * @param denom denominator of the division
+   * @return the result of the division
+   */
   Integer Divide(const Integer &denom) { return Integer(this->val / denom.val); }
 };
 
-/// Real
+/**
+ * Real
+ */
 struct Real : public Val {
-  /// raw double value
+  /**
+   * raw double value
+   */
   double val;
 
   /**
@@ -90,7 +120,9 @@ struct Real : public Val {
    */
   explicit Real(double val) noexcept : Val(false), val(val) {}
 
-  /// Return a NULL real value
+  /**
+   * @return a NULL real value
+   */
   static Real Null() {
     Real real(0.0);
     real.is_null = true;
@@ -98,14 +130,22 @@ struct Real : public Val {
   }
 };
 
-/// A decimal SQL value
+/**
+ * A decimal SQL value
+ */
 struct Decimal : public Val {
   // TODO(Amadou): Check with Prashant to be sure of the meaning of val
-  /// bit representaion
+  /**
+   * bit representaion
+   */
   u64 val;
-  /// Precision of the decimal
+  /**
+   * Precision of the decimal
+   */
   u32 precision;
-  /// Scale of the decimal
+  /**
+   * Scale of the decimal
+   */
   u32 scale;
 
   /**
@@ -116,7 +156,9 @@ struct Decimal : public Val {
    */
   Decimal(u64 val, u32 precision, u32 scale) noexcept : Val(false), val(val), precision(precision), scale(scale) {}
 
-  /// Return a NULL decimal value
+  /**
+   * @return a NULL decimal value
+   */
   static Decimal Null() {
     Decimal val(0, 0, 0);
     val.is_null = true;
@@ -124,11 +166,17 @@ struct Decimal : public Val {
   }
 };
 
-/// A SQL string
+/**
+ * A SQL string
+ */
 struct VarBuffer : public Val {
-  /// raw string
+  /**
+   * raw string
+   */
   u8 *str;
-  /// length of the string
+  /**
+   * length of the string
+   */
   u32 len;
 
   /**
@@ -138,13 +186,19 @@ struct VarBuffer : public Val {
    */
   VarBuffer(u8 *str, u32 len) noexcept : Val(str == nullptr), str(str), len(len) {}
 
-  /// Return a NULL varchar/string
+  /**
+   * @return a NULL varchar/string
+   */
   static VarBuffer Null() { return VarBuffer(nullptr, 0); }
 };
 
-/// Date
+/**
+ * Date
+ */
 struct Date : public Val {
-  /// Date value
+  /**
+   * Date value
+   */
   i32 date_val;
 
   /**
@@ -153,7 +207,9 @@ struct Date : public Val {
    */
   explicit Date(i32 date) noexcept : Val(false), date_val(date) {}
 
-  /// Return a NULL Date.
+  /**
+   * @return a NULL Date.
+   */
   static Date Null() {
     Date date(0);
     date.is_null = true;
@@ -161,9 +217,13 @@ struct Date : public Val {
   }
 };
 
-/// Timestamp
+/**
+ * Timestamp
+ */
 struct Timestamp : public Val {
-  /// Time value
+  /**
+   * Time value
+   */
   timespec time;
 
   /**
@@ -172,7 +232,9 @@ struct Timestamp : public Val {
    */
   explicit Timestamp(timespec time) noexcept : Val(false), time(time) {}
 
-  /// Return a NULL Timestamp
+  /**
+   * @return a NULL Timestamp
+   */
   static Timestamp Null() {
     Timestamp timestamp({0, 0});
     timestamp.is_null = true;

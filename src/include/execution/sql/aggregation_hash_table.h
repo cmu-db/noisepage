@@ -5,31 +5,53 @@
 
 namespace tpl::sql {
 
-/// Hash table used for aggregation.
+/**
+ * Hash table used for aggregation.
+ */
 class AggregationHashTable {
  public:
-  /// Default initial size
+  /**
+   * Default initial size
+   */
   static constexpr const u32 kDefaultInitialTableSize = 256;
 
-  /// Constructor
+  /**
+   * Constructor
+   * @param region region to use for allocation
+   * @param tuple_size size of the tuples
+   */
   AggregationHashTable(util::Region *region, u32 tuple_size) noexcept;
 
-  /// This class cannot be copied or moved
+  /**
+   * This class cannot be copied or moved
+   */
   DISALLOW_COPY_AND_MOVE(AggregationHashTable);
 
-  /// Insert a new element into the table
+  /**
+   * Insert a new element into the table
+   * @param hash hash of the new key
+   * @return byte array that can be written into
+   */
   byte *Insert(hash_t hash) noexcept;
 
-  /// Comparison function
+  /**
+   * Comparison function
+   */
   using KeyEqFn = bool(const void *, const void *);
-  /// Lookup the first element in the chain of entries with the hash value
+  /**
+   * Lookup the first element in the chain of entries with the hash value
+   * @param hash hash of the tuple to lookup
+   * @param key_eq_fn equality function to use
+   * @param arg tuple to lookup
+   * @return payload of the first element found
+   */
   byte *Lookup(hash_t hash, KeyEqFn key_eq_fn, const void *arg) noexcept;
 
  private:
-  /// Does the hash table need to grow?
+  // Does the hash table need to grow?
   bool NeedsToGrow() const { return hash_table_.num_elements() == max_fill_; }
 
-  /// Grow the hash table
+  // Grow the hash table
   void Grow();
 
  private:

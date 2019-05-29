@@ -4,7 +4,9 @@ namespace tpl::ast {
 
 class AstNode;
 
-/// Class to dump the AST to standard output
+/**
+ * Class to dump the AST to standard output
+ */
 class AstDump {
  public:
   /**

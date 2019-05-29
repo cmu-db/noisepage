@@ -68,7 +68,9 @@ namespace tpl::ast {
   /* Insert */                                  \
   F(Insert, insert)
 
-/// Enum of builtins
+/**
+ * Enum of builtins
+ */
 enum class Builtin : u8 {
 #define ENTRY(Name, ...) Name,
   BUILTINS_LIST(ENTRY)
@@ -83,13 +85,21 @@ enum class Builtin : u8 {
  */
 class Builtins {
  public:
-  /// The total number of builtin functions
+  /**
+   * The total number of builtin functions
+   */
   static const u32 kBuiltinsCount = static_cast<u32>(Builtin ::Last) + 1;
 
-  /// Return the total number of bytecodes
+  /**
+   * @return the total number of bytecodes
+   */
   static constexpr u32 NumBuiltins() { return kBuiltinsCount; }
 
-  /// Return the name of the builting
+  /**
+   * Return the name of the builtin
+   * @param builtin builtin to retrieve
+   * @return name of the builtin function
+   */
   static const char *GetFunctionName(Builtin builtin) { return kBuiltinFunctionNames[static_cast<u8>(builtin)]; }
 
  private:

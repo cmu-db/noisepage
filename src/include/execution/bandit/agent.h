@@ -14,13 +14,21 @@ namespace tpl::bandit {
  */
 class Agent {
  public:
-  /// Constructor
+  /**
+   * Constructor
+   * @param policy policy to use
+   * @param num_actions the number of actions
+   * @param prior prior value estimate of actions
+   * @param gamma hyperparameter to handle dynamic distrbutions
+   */
   Agent(Policy *policy, u32 num_actions, double prior = 0, double gamma = -1)
       : policy_(policy), num_actions_(num_actions), prior_(prior), gamma_(gamma) {
     Reset();
   }
 
-  /// Resets all variables
+  /**
+   * Resets all variables
+   */
   void Reset();
 
   /**

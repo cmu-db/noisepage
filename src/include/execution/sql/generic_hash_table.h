@@ -9,16 +9,18 @@
 
 namespace tpl::sql {
 
-/// GenericHashTable serves as a dead-simple hash table for joins and
-/// aggregations in TPL. It is a generic bytes-to-bytes hash table implemented
-/// as a bucket-chained table with pointer tagging. Pointer tagging uses the
-/// first \a kNumTagBits bits of the entry pointers in the main bucket directory
-/// as a bloom filter. It optionally supports concurrent inserts (and trivially
-/// concurrent probes). This class only stores pointers into externally managed
-/// storage, it does not store any hash table data internally at all.
-///
-/// Note that this class makes use of the \a HashTableEntry::next pointer to
-/// implement the linked list bucket chain.
+/**
+* GenericHashTable serves as a dead-simple hash table for joins and
+* aggregations in TPL. It is a generic bytes-to-bytes hash table implemented
+* as a bucket-chained table with pointer tagging. Pointer tagging uses the
+* first \a kNumTagBits bits of the entry pointers in the main bucket directory
+* as a bloom filter. It optionally supports concurrent inserts (and trivially
+* concurrent probes). This class only stores pointers into externally managed
+* storage, it does not store any hash table data internally at all.
+*
+* Note that this class makes use of the \a HashTableEntry::next pointer to
+* implement the linked list bucket chain.
+ */
 class GenericHashTable {
  private:
   static constexpr const u32 kNumTagBits = 16;
@@ -27,59 +29,85 @@ class GenericHashTable {
   static constexpr const u64 kMaskTag = (~0ull) << kNumPointerBits;
 
  public:
-  /// Constructor does not allocate memory. Callers must first call SetSize()
-  /// before using this hash map.
-  /// \param load_factor The desired load-factor for the table
+  /**
+   * Constructor does not allocate memory. Callers must first call SetSize()
+   * before using this hash map.
+   * @param load_factor The desired load-factor for the table
+   */
   explicit GenericHashTable(float load_factor = 0.7f) noexcept;
 
-  /// Cleanup
+  /**
+   * Cleanup
+   */
   ~GenericHashTable();
 
-  /// This class cannot be copied or moved
+  /**
+   * This class cannot be copied or moved
+   */
   DISALLOW_COPY_AND_MOVE(GenericHashTable);
 
-  /// Insert an entry into the hash table, ignoring tagging the pointer into the
-  /// bucket head
-  /// \tparam Concurrent Is the insert occurring concurrently with other inserts
-  /// \param[in] new_entry The entry to insert
-  /// \param[in] hash The hash value of the entry
+  /**
+   * Insert an entry into the hash table, ignoring tagging the pointer into the
+   * bucket head
+   * @tparam Concurrent Is the insert occurring concurrently with other inserts
+   * @param new_entry The entry to insert
+   * @param hash The hash value of the entry
+   */
   template <bool Concurrent>
   void Insert(HashTableEntry *new_entry, hash_t hash);
 
-  /// Insert an entry into the hash table, updating the tag in the bucket head
-  /// \tparam Concurrent Is the insert occurring concurrently with other inserts
-  /// \param[in] new_entry The entry to insert
-  /// \param[in] hash The hash value of the entry
+  /**
+   * Insert an entry into the hash table, updating the tag in the bucket head
+   * @tparam Concurrent Is the insert occurring concurrently with other inserts
+   * @param new_entry The entry to insert
+   * @param hash The hash value of the entry
+   */
   template <bool Concurrent>
   void InsertTagged(HashTableEntry *new_entry, hash_t hash);
 
-  /// Explicitly set the size of the hash map
-  /// \param[in] new_size The expected number of elements to size the table for
+  /**
+   * Explicitly set the size of the hash map
+   * @param new_size The expected number of elements to size the table for
+   */
   void SetSize(u64 new_size);
 
-  /// Prefetch the head of the bucket chain for the hash \a hash
+  /**
+   * Prefetch the head of the bucket chain for the given hash.
+   * @tparam ForRead whether the prefetching is for a reader
+   * @param hash hash to use for prefetching
+   */
   template <bool ForRead>
   void PrefetchChainHead(hash_t hash) const;
 
-  /// Given a hash value, return the head of the bucket chain ignoring any tag.
-  /// This probe is performed assuming no concurrent access into the table.
-  /// \param[in] hash The hash value of the element to find
-  /// \return The (potentially null) head of the bucket chain for the given hash
+  /**
+   * Given a hash value, return the head of the bucket chain ignoring any tag.
+   * This probe is performed assuming no concurrent access into the table.
+   * @param hash The hash value of the element to find
+   * @return The (potentially null) head of the bucket chain for the given hash
+   */
   HashTableEntry *FindChainHead(hash_t hash) const;
 
-  /// Given a hash value, return the head of the bucket chain removing the tag.
-  /// This probe is performed assuming no concurrent access into the table.
-  /// \param[in] hash The hash value of the element to find
-  /// \return The (potentially null) head of the bucket chain for the given hash
+  /**
+   * Given a hash value, return the head of the bucket chain removing the tag.
+   * This probe is performed assuming no concurrent access into the table.
+   * @param hash The hash value of the element to find
+   * @return The (potentially null) head of the bucket chain for the given hash
+   */
   HashTableEntry *FindChainHeadWithTag(hash_t hash) const;
 
-  /// Return the number of bytes this hash table has allocated
+  /**
+   * @return the number of bytes this hash table has allocated
+   */
   u64 GetTotalMemoryUsage() const { return sizeof(HashTableEntry *) * capacity(); }
 
-  /// Return the number of elements stored in this hash table
+  /**
+   * @return the number of elements stored in this hash table
+   */
   u64 num_elements() const { return num_elems_; }
 
-  /// Return the maximum capacity of this hash table in number of elements
+  /**
+   * @return the maximum capacity of this hash table in number of elements
+   */
   u64 capacity() const { return capacity_; }
 
  private:

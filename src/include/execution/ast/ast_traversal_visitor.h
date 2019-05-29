@@ -6,47 +6,64 @@
 
 namespace tpl::ast {
 
-/// A visitor that fully and recursively traverses an entire AST tree. Clients
-/// can control which AST nodes by implementing only the Visit() methods on the
-/// node types they're interested. Moreover, clients can cull visitations to
-/// whole classes of nodes by implementing VisitNode() and returning true
-/// only for those node types they're interested.
-///
-/// Usage:
-/// \code
-/// class ForStmtVisitor : public AstTraversalVisitor<ForStmtVisitor> {
-///  public:
-///    ForStmtVisitor(ast::AstNode *root) :
-///      AstTraversalVisitor<ForStmtVisitor>(root) {}
-///
-///   void VisitForStmt(ast::ForStmt *stmt) { ... }
-/// }
-/// \endcode
-/// The \a ForStmtVisitor class will find all for-statement nodes in an AST tree
+/**
+ * A visitor that fully and recursively traverses an entire AST tree. Clients
+ * can control which AST nodes by implementing only the Visit() methods on the
+ * node types they're interested. Moreover, clients can cull visitations to
+ * whole classes of nodes by implementing VisitNode() and returning true
+ * only for those node types they're interested.
+ *
+ * Usage:
+ * @code
+ * class ForStmtVisitor : public AstTraversalVisitor<ForStmtVisitor> {
+ *  public:
+ *    ForStmtVisitor(ast::AstNode *root) :
+ *      AstTraversalVisitor<ForStmtVisitor>(root) {}
+ *
+ *   void VisitForStmt(ast::ForStmt *stmt) { ... }
+ * }
+ * @endcode
+ * The a ForStmtVisitor class will find all for-statement nodes in an AST tree
+ *
+ * @tparam Subclass visitor subclass
+ */
 template <typename Subclass>
 class AstTraversalVisitor : public AstVisitor<Subclass> {
  public:
-  /// Construct a visitor over the AST rooted at \a root
+  /**
+   * Construct a visitor over the AST rooted at the given root
+   * @param root root of the AST
+   */
   explicit AstTraversalVisitor(AstNode *root) : root_(root) {}
 
-  /// This class cannot be copied or moved
+  /**
+   * This class cannot be copied or moved
+   */
   DISALLOW_COPY_AND_MOVE(AstTraversalVisitor);
 
-  /// Run the traversal
+  /**
+   * Run the traversal
+   */
   void Run() {
     TPL_ASSERT(root_ != nullptr, "Cannot run traversal on NULL tree");
     AstVisitor<Subclass>::Visit(root_);
   }
 
-  /// Declare all node visit methods here
+  /**
+   * Declare all node visit methods here
+   */
 #define DECLARE_VISIT_METHOD(type) void Visit##type(ast::type *node);
   AST_NODES(DECLARE_VISIT_METHOD)
 #undef DECLARE_VISIT_METHOD
 
  protected:
-  /// Should this iterator visit the given node? This method can be implemented
-  /// in subclasses to skip some visiting some nodes. By default, we visit all
-  /// nodes.
+  /**
+   * Should this iterator visit the given node? This method can be implemented
+   * in subclasses to skip some visiting some nodes. By default, we visit all
+   * nodes.
+   * @param node to visit
+   * @return whether the node should be visited
+   */
   bool VisitNode(AstNode *node) { return true; }
 
  private:
@@ -66,7 +83,9 @@ class AstTraversalVisitor : public AstVisitor<Subclass> {
 
 #define RECURSE(call) this->impl()->call
 
-/// \cond DO_NOT_DOCUMENT
+// TODO(Amadou): Doxygen complains that these function do not exist for some reason.
+// Figure out why
+// \cond DO_NOT_DOCUMENT
 template <typename Subclass>
 inline void AstTraversalVisitor<Subclass>::VisitBadExpr(BadExpr *node) {
   PROCESS_NODE(node);
@@ -280,6 +299,6 @@ inline void AstTraversalVisitor<Subclass>::VisitFunctionTypeRepr(FunctionTypeRep
   }
   RECURSE(Visit(node->return_type()));
 }
-/// \endcond
+// \endcond
 
 }  // namespace tpl::ast
