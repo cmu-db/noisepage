@@ -59,6 +59,8 @@ TEST(OperatorTests, LogicalInsertTest) {
 
   // Make sure that we catch when the insert values do not match the
   // number of columns that we are trying to insert into
+  // NOTE: We only do this for debug builds
+#ifndef NDEBUG
   parser::AbstractExpression *bad_raw_values[] = {
       new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1)),
       new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(2)),
@@ -69,6 +71,7 @@ TEST(OperatorTests, LogicalInsertTest) {
                                    std::vector<catalog::col_oid_t>(columns, std::end(columns)),
                                    std::vector<std::vector<parser::AbstractExpression *>>(bad_values)),
                "Mismatched");
+#endif
 }
 
 // NOLINTNEXTLINE
@@ -220,7 +223,7 @@ TEST(OperatorTests, LogicalExportExternalFileTest) {
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
-  std::string file_name_copy = file_name; // NOLINT
+  std::string file_name_copy = file_name;  // NOLINT
   Operator op2 =
       LogicalExportExternalFile::make(parser::ExternalFileFormat::BINARY, file_name_copy, delimiter, quote, escape);
   EXPECT_TRUE(op1 == op2);
