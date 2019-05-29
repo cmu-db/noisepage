@@ -13,13 +13,15 @@ namespace terrier {
  */
 
 #define NOT_IMPLEMENTED_EXCEPTION(msg) NotImplementedException(msg, __FILE__, __LINE__)
+#define CATALOG_EXCEPTION(msg) CatalogException(msg, __FILE__, __LINE__)
 #define PARSER_EXCEPTION(msg) ParserException(msg, __FILE__, __LINE__)
 #define NETWORK_PROCESS_EXCEPTION(msg) NetworkProcessException(msg, __FILE__, __LINE__)
+#define SETTINGS_EXCEPTION(msg) SettingsException(msg, __FILE__, __LINE__)
 
 /**
  * Exception types
  */
-enum class ExceptionType { RESERVED = 0, NOT_IMPLEMENTED = 1, PARSER = 2, NETWORK = 3 };
+enum class ExceptionType : uint8_t { RESERVED, NOT_IMPLEMENTED, CATALOG, NETWORK, PARSER, SETTINGS };
 
 /**
  * Exception base class.
@@ -54,10 +56,14 @@ class Exception : public std::runtime_error {
     switch (type_) {
       case ExceptionType::NOT_IMPLEMENTED:
         return "Not Implemented";
+      case ExceptionType::CATALOG:
+        return "Catalog";
       case ExceptionType::PARSER:
         return "Parser";
       case ExceptionType::NETWORK:
         return "Network";
+      case ExceptionType::SETTINGS:
+        return "Settings";
       default:
         return "Unknown exception type";
     }
@@ -101,7 +107,9 @@ class Exception : public std::runtime_error {
   }
 
 DEFINE_EXCEPTION(NotImplementedException, ExceptionType::NOT_IMPLEMENTED);
+DEFINE_EXCEPTION(CatalogException, ExceptionType::CATALOG);
 DEFINE_EXCEPTION(ParserException, ExceptionType::PARSER);
 DEFINE_EXCEPTION(NetworkProcessException, ExceptionType::NETWORK);
+DEFINE_EXCEPTION(SettingsException, ExceptionType::SETTINGS);
 
 }  // namespace terrier

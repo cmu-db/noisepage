@@ -31,8 +31,8 @@ class TupleAccessStrategyBenchmark : public benchmark::Fixture {
   const storage::BlockLayout layout_{{column_size_, column_size_, column_size_}};
 
   // Tuple properties
-  const storage::ProjectedRowInitializer initializer_ = storage::ProjectedRowInitializer::CreateProjectedRowInitializer(
-      layout_, StorageTestUtil::ProjectionListAllColumns(layout_));
+  const storage::ProjectedRowInitializer initializer_ =
+      storage::ProjectedRowInitializer::Create(layout_, StorageTestUtil::ProjectionListAllColumns(layout_));
 
   // Workload
   const uint32_t num_inserts_ = 10000000;
@@ -62,7 +62,7 @@ BENCHMARK_DEFINE_F(TupleAccessStrategyBenchmark, SimpleInsert)(benchmark::State 
       storage::RawBlock *raw_block = block_store_.Get();
       raw_blocks_.emplace_back(raw_block);
       std::memset(raw_block, 0, sizeof(storage::RawBlock));
-      tested.InitializeRawBlock(raw_block, storage::layout_version_t(0));
+      tested.InitializeRawBlock(nullptr, raw_block, storage::layout_version_t(0));
       for (uint32_t j = 0; j < layout_.NumSlots(); j++) {
         storage::TupleSlot slot;
         tested.Allocate(raw_block, &slot);
@@ -90,7 +90,7 @@ BENCHMARK_DEFINE_F(TupleAccessStrategyBenchmark, ConcurrentInsert)(benchmark::St
       storage::RawBlock *raw_block = block_store_.Get();
       raw_blocks_.emplace_back(raw_block);
       std::memset(raw_block, 0, sizeof(storage::RawBlock));
-      tested.InitializeRawBlock(raw_block, storage::layout_version_t(0));
+      tested.InitializeRawBlock(nullptr, raw_block, storage::layout_version_t(0));
 
       auto workload = [&](uint32_t id) {
         for (uint32_t j = 0; j < layout_.NumSlots() / num_threads_; j++) {

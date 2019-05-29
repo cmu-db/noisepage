@@ -34,8 +34,8 @@ class TupleAccessStrategyTestObject {
     EXPECT_TRUE(tested.Allocated(slot));
 
     // Generate a random ProjectedRow to insert
-    storage::ProjectedRowInitializer initializer = storage::ProjectedRowInitializer::CreateProjectedRowInitializer(
-        layout, StorageTestUtil::ProjectionListAllColumns(layout));
+    storage::ProjectedRowInitializer initializer =
+        storage::ProjectedRowInitializer::Create(layout, StorageTestUtil::ProjectionListAllColumns(layout));
     auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
     storage::ProjectedRow *row = initializer.InitializeRow(buffer);
     std::default_random_engine real_generator;
@@ -81,7 +81,7 @@ TEST_F(TupleAccessStrategyTests, Nulls) {
     storage::BlockLayout layout = StorageTestUtil::RandomLayoutNoVarlen(common::Constants::MAX_COL, &generator);
     storage::TupleAccessStrategy tested(layout);
     std::memset(reinterpret_cast<void *>(raw_block_), 0, sizeof(storage::RawBlock));
-    tested.InitializeRawBlock(raw_block_, storage::layout_version_t(0));
+    tested.InitializeRawBlock(nullptr, raw_block_, storage::layout_version_t(0));
 
     storage::TupleSlot slot;
     EXPECT_TRUE(tested.Allocate(raw_block_, &slot));
@@ -123,7 +123,7 @@ TEST_F(TupleAccessStrategyTests, SimpleInsert) {
     storage::BlockLayout layout = StorageTestUtil::RandomLayoutNoVarlen(max_cols, &generator);
     storage::TupleAccessStrategy tested(layout);
     std::memset(reinterpret_cast<void *>(raw_block_), 0, sizeof(storage::RawBlock));
-    tested.InitializeRawBlock(raw_block_, storage::layout_version_t(0));
+    tested.InitializeRawBlock(nullptr, raw_block_, storage::layout_version_t(0));
 
     uint32_t num_inserts = std::uniform_int_distribution<uint32_t>(1, layout.NumSlots())(generator);
 
@@ -159,7 +159,7 @@ TEST_F(TupleAccessStrategyTests, MemorySafety) {
     storage::TupleAccessStrategy tested(layout);
     // here we don't need to 0-initialize the block because we only
     // test layout, not the content.
-    tested.InitializeRawBlock(raw_block_, storage::layout_version_t(0));
+    tested.InitializeRawBlock(nullptr, raw_block_, storage::layout_version_t(0));
 
     // Skip header
     void *lower_bound = tested.ColumnNullBitmap(raw_block_, VERSION_POINTER_COLUMN_ID);
@@ -199,7 +199,7 @@ TEST_F(TupleAccessStrategyTests, Alignment) {
     storage::TupleAccessStrategy tested(layout);
     // here we don't need to 0-initialize the block because we only
     // test layout, not the content.
-    tested.InitializeRawBlock(raw_block_, storage::layout_version_t(0));
+    tested.InitializeRawBlock(nullptr, raw_block_, storage::layout_version_t(0));
 
     for (uint16_t i = 0; i < layout.NumColumns(); i++) {
       storage::col_id_t col_id(i);
@@ -226,7 +226,7 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsert) {
     storage::BlockLayout layout = StorageTestUtil::RandomLayoutNoVarlen(common::Constants::MAX_COL, &generator);
     storage::TupleAccessStrategy tested(layout);
     std::memset(reinterpret_cast<void *>(raw_block_), 0, sizeof(storage::RawBlock));
-    tested.InitializeRawBlock(raw_block_, storage::layout_version_t(0));
+    tested.InitializeRawBlock(nullptr, raw_block_, storage::layout_version_t(0));
 
     std::vector<std::unordered_map<storage::TupleSlot, storage::ProjectedRow *>> tuples(num_threads);
 
@@ -266,7 +266,7 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsertDelete) {
     storage::BlockLayout layout = StorageTestUtil::RandomLayoutNoVarlen(common::Constants::MAX_COL, &generator);
     storage::TupleAccessStrategy tested(layout);
     std::memset(reinterpret_cast<void *>(raw_block_), 0, sizeof(storage::RawBlock));
-    tested.InitializeRawBlock(raw_block_, storage::layout_version_t(0));
+    tested.InitializeRawBlock(nullptr, raw_block_, storage::layout_version_t(0));
 
     std::vector<std::vector<storage::TupleSlot>> slots(num_threads);
     std::vector<std::unordered_map<storage::TupleSlot, storage::ProjectedRow *>> tuples(num_threads);

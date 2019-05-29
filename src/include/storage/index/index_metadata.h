@@ -43,10 +43,10 @@ class IndexMetadata {
         must_inline_varlen_(ComputeMustInlineVarlen(key_schema_)),
         compact_ints_offsets_(ComputeCompactIntsOffsets(attr_sizes_)),
         key_oid_to_offset_(ComputeKeyOidToOffset(key_schema_, ComputePROffsets(inlined_attr_sizes_))),
-        initializer_(ProjectedRowInitializer::CreateProjectedRowInitializerForIndexes(
-            GetRealAttrSizes(attr_sizes_), ComputePROffsets(inlined_attr_sizes_))),
-        inlined_initializer_(ProjectedRowInitializer::CreateProjectedRowInitializerForIndexes(
-            inlined_attr_sizes_, ComputePROffsets(inlined_attr_sizes_))) {}
+        initializer_(
+            ProjectedRowInitializer::Create(GetRealAttrSizes(attr_sizes_), ComputePROffsets(inlined_attr_sizes_))),
+        inlined_initializer_(
+            ProjectedRowInitializer::Create(inlined_attr_sizes_, ComputePROffsets(inlined_attr_sizes_))) {}
 
   /**
    * @return index key schema
@@ -92,9 +92,9 @@ class IndexMetadata {
 
  private:
   DISALLOW_COPY(IndexMetadata);
-  FRIEND_TEST(BwTreeIndexTests, IndexMetadataCompactIntsKeyTest);
-  FRIEND_TEST(BwTreeIndexTests, IndexMetadataGenericKeyNoMustInlineVarlenTest);
-  FRIEND_TEST(BwTreeIndexTests, IndexMetadataGenericKeyMustInlineVarlenTest);
+  FRIEND_TEST(BwTreeKeyTests, IndexMetadataCompactIntsKeyTest);
+  FRIEND_TEST(BwTreeKeyTests, IndexMetadataGenericKeyNoMustInlineVarlenTest);
+  FRIEND_TEST(BwTreeKeyTests, IndexMetadataGenericKeyMustInlineVarlenTest);
 
   std::vector<IndexKeyColumn> key_schema_;                                      // for GenericKey
   std::vector<uint8_t> attr_sizes_;                                             // for CompactIntsKey
