@@ -24,6 +24,11 @@ class LoggingBenchmark : public benchmark::Fixture {
     log_manager_->Shutdown();
   }
 
+  void SetUp(const benchmark::State &state) final {
+    // Delete log file incase it exists
+    unlink(LOG_FILE_NAME);
+  }
+
   void TearDown(const benchmark::State &state) final { unlink(LOG_FILE_NAME); }
 
   const std::vector<uint8_t> attr_sizes = {8, 8, 8, 8, 8, 8, 8, 8, 8, 8};
