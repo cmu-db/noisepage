@@ -2,6 +2,7 @@
 
 #include <utility>
 #include "common/macros.h"
+#include "storage/index/index_defs.h"
 
 namespace terrier::storage {
 class SqlTable;

@@ -19,18 +19,18 @@ namespace terrier::tpcc {
 class Delivery {
  private:
   // New Order metadata
-  catalog::indexkeycol_oid_t no_o_id_key_oid;
-  catalog::indexkeycol_oid_t no_d_id_key_oid;
-  catalog::indexkeycol_oid_t no_w_id_key_oid;
+  const catalog::indexkeycol_oid_t no_o_id_key_oid;
+  const catalog::indexkeycol_oid_t no_d_id_key_oid;
+  const catalog::indexkeycol_oid_t no_w_id_key_oid;
   const storage::ProjectedRowInitializer new_order_pr_initializer;
   const uint8_t no_o_id_key_pr_offset;
   const uint8_t no_d_id_key_pr_offset;
   const uint8_t no_w_id_key_pr_offset;
 
   // Order metadata
-  catalog::indexkeycol_oid_t o_id_key_oid;
-  catalog::indexkeycol_oid_t o_d_id_key_oid;
-  catalog::indexkeycol_oid_t o_w_id_key_oid;
+  const catalog::indexkeycol_oid_t o_id_key_oid;
+  const catalog::indexkeycol_oid_t o_d_id_key_oid;
+  const catalog::indexkeycol_oid_t o_w_id_key_oid;
   const storage::ProjectedRowInitializer order_select_pr_initializer;
   const storage::ProjectedRowInitializer order_update_pr_initializer;
   const uint8_t o_id_key_pr_offset;
@@ -38,12 +38,12 @@ class Delivery {
   const uint8_t o_w_id_key_pr_offset;
 
   // Order Line metadata
-  catalog::col_oid_t ol_amount_oid;
-  catalog::col_oid_t ol_delivery_d_oid;
-  catalog::indexkeycol_oid_t ol_o_id_key_oid;
-  catalog::indexkeycol_oid_t ol_d_id_key_oid;
-  catalog::indexkeycol_oid_t ol_w_id_key_oid;
-  catalog::indexkeycol_oid_t ol_number_key_oid;
+  const catalog::col_oid_t ol_amount_oid;
+  const catalog::col_oid_t ol_delivery_d_oid;
+  const catalog::indexkeycol_oid_t ol_o_id_key_oid;
+  const catalog::indexkeycol_oid_t ol_d_id_key_oid;
+  const catalog::indexkeycol_oid_t ol_w_id_key_oid;
+  const catalog::indexkeycol_oid_t ol_number_key_oid;
   const storage::ProjectedRowInitializer order_line_select_pr_initializer;
   const storage::ProjectedRowInitializer order_line_update_pr_initializer;
   const uint8_t ol_o_id_key_pr_offset;
@@ -52,11 +52,11 @@ class Delivery {
   const uint8_t ol_number_key_pr_offset;
 
   // Customer metadata
-  catalog::col_oid_t c_balance_oid;
-  catalog::col_oid_t c_delivery_cnt_oid;
-  catalog::indexkeycol_oid_t c_id_key_oid;
-  catalog::indexkeycol_oid_t c_d_id_key_oid;
-  catalog::indexkeycol_oid_t c_w_id_key_oid;
+  const catalog::col_oid_t c_balance_oid;
+  const catalog::col_oid_t c_delivery_cnt_oid;
+  const catalog::indexkeycol_oid_t c_id_key_oid;
+  const catalog::indexkeycol_oid_t c_d_id_key_oid;
+  const catalog::indexkeycol_oid_t c_w_id_key_oid;
   const storage::ProjectedRowInitializer customer_pr_initializer;
   const storage::ProjectionMap customer_pr_map;
   const uint8_t c_balance_pr_offset;

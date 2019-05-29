@@ -135,8 +135,6 @@ class NewOrder {
   const uint8_t ol_w_id_key_pr_offset;
   const uint8_t ol_number_key_pr_offset;
 
-  std::vector<OrderLineIndexInserts> order_line_index_inserts_;
-
  public:
   explicit NewOrder(const Database *const db)
 
@@ -308,17 +306,12 @@ class NewOrder {
            static_cast<uint8_t>(stock_select_initializers[d_id].second.at(s_remote_cnt_oid)),
            static_cast<uint8_t>(stock_select_initializers[d_id].second.at(s_data_oid))});
     }
-
-    // Can't have more than 15 items in the order, so reserve maximum
-    order_line_index_inserts_.reserve(15);
   }
 
   // 2.4.2
   bool Execute(transaction::TransactionManager *const txn_manager, Database *const db, Worker *const worker,
-               const TransactionArgs &args) {
+               const TransactionArgs &args) const {
     TERRIER_ASSERT(args.type == TransactionType::NewOrder, "Wrong transaction type.");
-
-    order_line_index_inserts_.clear();
 
     double UNUSED_ATTRIBUTE total_amount = 0;
 
@@ -400,6 +393,18 @@ class NewOrder {
 
     const auto new_order_slot = db->new_order_table_->Insert(txn, *new_order_insert_tuple);
 
+    // insert in New Order index
+    const auto new_order_key_pr_initializer = db->new_order_primary_index_->GetProjectedRowInitializer();
+    auto *const new_order_key = new_order_key_pr_initializer.InitializeRow(worker->new_order_key_buffer);
+
+    *reinterpret_cast<int32_t *>(new_order_key->AccessForceNotNull(no_o_id_key_pr_offset)) = d_next_o_id;
+    *reinterpret_cast<int8_t *>(new_order_key->AccessForceNotNull(no_d_id_key_pr_offset)) = args.d_id;
+    *reinterpret_cast<int8_t *>(new_order_key->AccessForceNotNull(no_w_id_key_pr_offset)) = args.w_id;
+
+    bool UNUSED_ATTRIBUTE index_insert_result =
+        db->new_order_primary_index_->InsertUnique(txn, *new_order_key, new_order_slot);
+    TERRIER_ASSERT(index_insert_result, "New Order index insertion failed.");
+
     // Insert new row in Order
     auto *const order_insert_tuple = order_insert_pr_initializer.InitializeRow(worker->order_tuple_buffer);
 
@@ -414,6 +419,30 @@ class NewOrder {
         static_cast<int8_t>(args.o_all_local);
 
     const auto order_slot = db->order_table_->Insert(txn, *order_insert_tuple);
+
+    // insert in Order index
+    const auto order_key_pr_initializer = db->order_primary_index_->GetProjectedRowInitializer();
+    auto *const order_key = order_key_pr_initializer.InitializeRow(worker->order_key_buffer);
+
+    *reinterpret_cast<int32_t *>(order_key->AccessForceNotNull(o_id_key_pr_offset)) = d_next_o_id;
+    *reinterpret_cast<int8_t *>(order_key->AccessForceNotNull(o_d_id_key_pr_offset)) = args.d_id;
+    *reinterpret_cast<int8_t *>(order_key->AccessForceNotNull(o_w_id_key_pr_offset)) = args.w_id;
+
+    index_insert_result = db->order_primary_index_->InsertUnique(txn, *order_key, order_slot);
+    TERRIER_ASSERT(index_insert_result, "Order index insertion failed.");
+
+    // insert in Order secondary index
+    const auto order_secondary_key_pr_initializer = db->order_secondary_index_->GetProjectedRowInitializer();
+    auto *const order_secondary_key =
+        order_secondary_key_pr_initializer.InitializeRow(worker->order_secondary_key_buffer);
+
+    *reinterpret_cast<int32_t *>(order_secondary_key->AccessForceNotNull(o_id_secondary_key_pr_offset)) = d_next_o_id;
+    *reinterpret_cast<int8_t *>(order_secondary_key->AccessForceNotNull(o_d_id_secondary_key_pr_offset)) = args.d_id;
+    *reinterpret_cast<int8_t *>(order_secondary_key->AccessForceNotNull(o_w_id_secondary_key_pr_offset)) = args.w_id;
+    *reinterpret_cast<int32_t *>(order_secondary_key->AccessForceNotNull(o_c_id_secondary_key_pr_offset)) = args.c_id;
+
+    index_insert_result = db->order_secondary_index_->Insert(txn, *order_secondary_key, order_slot);
+    TERRIER_ASSERT(index_insert_result, "Order secondary index insertion failed.");
 
     // for each item in order
     int8_t ol_number = 1;
@@ -533,65 +562,20 @@ class NewOrder {
 
       const auto order_line_slot = db->order_line_table_->Insert(txn, *order_line_insert_tuple);
 
-      TERRIER_ASSERT(ol_number <= 15, "There should be at least 1 Order Line item, but no more than 15.");
-      order_line_index_inserts_.push_back({d_next_o_id, args.d_id, args.w_id, ol_number, order_line_slot});
-
-      ol_number++;
-      total_amount += ol_amount;
-    }
-
-    TERRIER_ASSERT(order_line_index_inserts_.size() == args.items.size(),
-                   "Didn't generate Order Line index inserts for every item.");
-
-    // Do all index insertions now that transaction is guaranteed to commit
-    // insert in New Order index
-    const auto new_order_key_pr_initializer = db->new_order_primary_index_->GetProjectedRowInitializer();
-    auto *const new_order_key = new_order_key_pr_initializer.InitializeRow(worker->new_order_key_buffer);
-
-    *reinterpret_cast<int32_t *>(new_order_key->AccessForceNotNull(no_o_id_key_pr_offset)) = d_next_o_id;
-    *reinterpret_cast<int8_t *>(new_order_key->AccessForceNotNull(no_d_id_key_pr_offset)) = args.d_id;
-    *reinterpret_cast<int8_t *>(new_order_key->AccessForceNotNull(no_w_id_key_pr_offset)) = args.w_id;
-
-    bool UNUSED_ATTRIBUTE index_insert_result =
-        db->new_order_primary_index_->InsertUnique(txn, *new_order_key, new_order_slot);
-    TERRIER_ASSERT(index_insert_result, "New Order index insertion failed.");
-
-    // insert in Order index
-    const auto order_key_pr_initializer = db->order_primary_index_->GetProjectedRowInitializer();
-    auto *const order_key = order_key_pr_initializer.InitializeRow(worker->order_key_buffer);
-
-    *reinterpret_cast<int32_t *>(order_key->AccessForceNotNull(o_id_key_pr_offset)) = d_next_o_id;
-    *reinterpret_cast<int8_t *>(order_key->AccessForceNotNull(o_d_id_key_pr_offset)) = args.d_id;
-    *reinterpret_cast<int8_t *>(order_key->AccessForceNotNull(o_w_id_key_pr_offset)) = args.w_id;
-
-    index_insert_result = db->order_primary_index_->InsertUnique(txn, *order_key, order_slot);
-    TERRIER_ASSERT(index_insert_result, "Order index insertion failed.");
-
-    // insert in Order secondary index
-    const auto order_secondary_key_pr_initializer = db->order_secondary_index_->GetProjectedRowInitializer();
-    auto *const order_secondary_key =
-        order_secondary_key_pr_initializer.InitializeRow(worker->order_secondary_key_buffer);
-
-    *reinterpret_cast<int32_t *>(order_secondary_key->AccessForceNotNull(o_id_secondary_key_pr_offset)) = d_next_o_id;
-    *reinterpret_cast<int8_t *>(order_secondary_key->AccessForceNotNull(o_d_id_secondary_key_pr_offset)) = args.d_id;
-    *reinterpret_cast<int8_t *>(order_secondary_key->AccessForceNotNull(o_w_id_secondary_key_pr_offset)) = args.w_id;
-    *reinterpret_cast<int32_t *>(order_secondary_key->AccessForceNotNull(o_c_id_secondary_key_pr_offset)) = args.c_id;
-
-    index_insert_result = db->order_secondary_index_->Insert(txn, *order_secondary_key, order_slot);
-    TERRIER_ASSERT(index_insert_result, "Order secondary index insertion failed.");
-
-    // insert in Order Line index
-    for (const auto &ol_item : order_line_index_inserts_) {
+      // insert in Order Line index
       const auto order_line_key_pr_initializer = db->order_line_primary_index_->GetProjectedRowInitializer();
       auto *const order_line_key = order_line_key_pr_initializer.InitializeRow(worker->order_line_key_buffer);
 
-      *reinterpret_cast<int8_t *>(order_line_key->AccessForceNotNull(ol_w_id_key_pr_offset)) = ol_item.w_id;
-      *reinterpret_cast<int8_t *>(order_line_key->AccessForceNotNull(ol_d_id_key_pr_offset)) = ol_item.d_id;
-      *reinterpret_cast<int32_t *>(order_line_key->AccessForceNotNull(ol_o_id_key_pr_offset)) = ol_item.o_id;
-      *reinterpret_cast<int8_t *>(order_line_key->AccessForceNotNull(ol_number_key_pr_offset)) = ol_item.ol_number;
+      *reinterpret_cast<int8_t *>(order_line_key->AccessForceNotNull(ol_w_id_key_pr_offset)) = args.w_id;
+      *reinterpret_cast<int8_t *>(order_line_key->AccessForceNotNull(ol_d_id_key_pr_offset)) = args.d_id;
+      *reinterpret_cast<int32_t *>(order_line_key->AccessForceNotNull(ol_o_id_key_pr_offset)) = d_next_o_id;
+      *reinterpret_cast<int8_t *>(order_line_key->AccessForceNotNull(ol_number_key_pr_offset)) = ol_number;
 
-      index_insert_result = db->order_line_primary_index_->InsertUnique(txn, *order_line_key, ol_item.slot);
+      index_insert_result = db->order_line_primary_index_->InsertUnique(txn, *order_line_key, order_line_slot);
       TERRIER_ASSERT(index_insert_result, "Order Line index insertion failed.");
+
+      ol_number++;
+      total_amount += ol_amount;
     }
 
     txn_manager->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
