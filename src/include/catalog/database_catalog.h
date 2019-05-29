@@ -225,5 +225,8 @@ class DatabaseCatalog {
 
   transaction::Action debootstrap;
   std::atomic<uint32_t> next_oid_;
+
+  table_oid_t AddTableToCatalog(const Schema &schema);
+  index_oid_t AddIndexToCatalog(const IndexSchema &schema);
 };
 } // namespace terrier::catalog

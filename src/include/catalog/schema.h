@@ -141,7 +141,7 @@ class Schema {
 
     void SetOid(col_oid_t oid) { oid_ = oid; }
 
-    friend class Catalog;
+    friend class DatabaseCatalog;
   };
 
   /**

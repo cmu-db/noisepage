@@ -97,7 +97,7 @@ class IndexSchema {
       packed_type_ = nullable ? packed_type_ | MASK_NULLABLE : packed_type_;
     }
 
-    friend class Catalog;
+    friend class DatabaseCatalog;
   };
 
   /**
