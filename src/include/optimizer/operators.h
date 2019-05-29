@@ -777,6 +777,21 @@ class LogicalDelete : public OperatorNode<LogicalDelete> {
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
 
+  /**
+   * @return OID of the database
+   */
+  const catalog::db_oid_t &GetDatabaseOid() const { return database_oid_; }
+
+  /**
+   * @return OID of the namespace
+   */
+  const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
+
+  /**
+   * @return OID of the table
+   */
+  const catalog::table_oid_t &GetTableOid() const { return table_oid_; }
+
  private:
   /**
    * OID of the database
@@ -807,7 +822,7 @@ class LogicalUpdate : public OperatorNode<LogicalUpdate> {
    * @return
    */
   static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::table_oid_t table_oid, std::vector<parser::UpdateClause *> &&updates);
+                       catalog::table_oid_t table_oid, std::vector<std::shared_ptr<parser::UpdateClause>> &&updates);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
@@ -830,7 +845,7 @@ class LogicalUpdate : public OperatorNode<LogicalUpdate> {
   /**
    * @return the update clauses from the SET portion of the query
    */
-  std::vector<parser::UpdateClause *> GetUpdateClauses() const { return updates_; }
+  std::vector<std::shared_ptr<parser::UpdateClause>> GetUpdateClauses() const { return updates_; }
 
  private:
   /**
@@ -851,7 +866,7 @@ class LogicalUpdate : public OperatorNode<LogicalUpdate> {
   /**
    * The update clauses from the SET portion of the query
    */
-  std::vector<parser::UpdateClause *> updates_;
+  std::vector<std::shared_ptr<parser::UpdateClause>> updates_;
 };
 
 /**

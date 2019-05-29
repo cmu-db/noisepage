@@ -59,6 +59,8 @@ TEST(OperatorTests, LogicalInsertTest) {
 
   // Make sure that we catch when the insert values do not match the
   // number of columns that we are trying to insert into
+  // NOTE: We only do this for debug builds
+#ifndef NDEBUG
   parser::AbstractExpression *bad_raw_values[] = {
       new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1)),
       new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(2)),
@@ -69,6 +71,7 @@ TEST(OperatorTests, LogicalInsertTest) {
                                    std::vector<catalog::col_oid_t>(columns, std::end(columns)),
                                    std::vector<std::vector<parser::AbstractExpression *>>(bad_values)),
                "Mismatched");
+#endif
 }
 
 // NOLINTNEXTLINE
@@ -144,32 +147,60 @@ TEST(OperatorTests, LogicalLimitTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(OperatorTests, LogicalUpdateTest) {
-  std::string column = "abc";
-  std::shared_ptr<parser::AbstractExpression> value =
-      std::make_shared<parser::ConstantValueExpression>(type::TransientValueFactory::GetTinyInt(1));
+TEST(OperatorTests, LogicalDeleteTest) {
   catalog::db_oid_t database_oid(123);
   catalog::namespace_oid_t namespace_oid(456);
   catalog::table_oid_t table_oid(789);
 
   // Check that all of our GET methods work as expected
-  Operator op1 = LogicalUpdate::make(database_oid, namespace_oid, table_oid, {});
-  EXPECT_EQ(op1.GetType(), OpType::LOGICALUPDATE);
-  EXPECT_EQ(op1.As<LogicalUpdate>()->GetDatabaseOid(), database_oid);
-  EXPECT_EQ(op1.As<LogicalUpdate>()->GetNamespaceOid(), namespace_oid);
-  EXPECT_EQ(op1.As<LogicalUpdate>()->GetTableOid(), table_oid);
-  EXPECT_EQ(op1.As<LogicalUpdate>()->GetUpdateClauses().size(), 0);
+  Operator op1 = LogicalDelete::make(database_oid, namespace_oid, table_oid);
+  EXPECT_EQ(op1.GetType(), OpType::LOGICALDELETE);
+  EXPECT_EQ(op1.As<LogicalDelete>()->GetDatabaseOid(), database_oid);
+  EXPECT_EQ(op1.As<LogicalDelete>()->GetNamespaceOid(), namespace_oid);
+  EXPECT_EQ(op1.As<LogicalDelete>()->GetTableOid(), table_oid);
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
-  Operator op2 = LogicalUpdate::make(database_oid, namespace_oid, table_oid, {});
+  Operator op2 = LogicalDelete::make(database_oid, namespace_oid, table_oid);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   // Lastly, make a different object and make sure that it is not equal
   // and that it's hash is not the same!
   catalog::db_oid_t other_database_oid(999);
-  Operator op3 = LogicalUpdate::make(other_database_oid, namespace_oid, table_oid, {});
+  Operator op3 = LogicalDelete::make(other_database_oid, namespace_oid, table_oid);
+  EXPECT_FALSE(op1 == op3);
+  EXPECT_NE(op1.Hash(), op3.Hash());
+}
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, LogicalUpdateTest) {
+  std::string column = "abc";
+  parser::AbstractExpression *value = new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1));
+  std::shared_ptr<parser::UpdateClause> update_clause =
+      std::make_shared<parser::UpdateClause>(column, std::shared_ptr<parser::AbstractExpression>(value));
+  catalog::db_oid_t database_oid(123);
+  catalog::namespace_oid_t namespace_oid(456);
+  catalog::table_oid_t table_oid(789);
+
+  // Check that all of our GET methods work as expected
+  Operator op1 = LogicalUpdate::make(database_oid, namespace_oid, table_oid, {update_clause});
+  EXPECT_EQ(op1.GetType(), OpType::LOGICALUPDATE);
+  EXPECT_EQ(op1.As<LogicalUpdate>()->GetDatabaseOid(), database_oid);
+  EXPECT_EQ(op1.As<LogicalUpdate>()->GetNamespaceOid(), namespace_oid);
+  EXPECT_EQ(op1.As<LogicalUpdate>()->GetTableOid(), table_oid);
+  EXPECT_EQ(op1.As<LogicalUpdate>()->GetUpdateClauses().size(), 1);
+  EXPECT_EQ(op1.As<LogicalUpdate>()->GetUpdateClauses()[0], update_clause);
+
+  // Check that if we make a new object with the same values, then it will
+  // be equal to our first object and have the same hash
+  Operator op2 = LogicalUpdate::make(database_oid, namespace_oid, table_oid, {update_clause});
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+
+  // Lastly, make a different object and make sure that it is not equal
+  // and that it's hash is not the same!
+  Operator op3 = LogicalUpdate::make(database_oid, namespace_oid, table_oid, {});
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 }
@@ -192,7 +223,7 @@ TEST(OperatorTests, LogicalExportExternalFileTest) {
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
-  const std::string &file_name_copy = file_name;
+  std::string file_name_copy = file_name;  // NOLINT
   Operator op2 =
       LogicalExportExternalFile::make(parser::ExternalFileFormat::BINARY, file_name_copy, delimiter, quote, escape);
   EXPECT_TRUE(op1 == op2);

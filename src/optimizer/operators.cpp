@@ -172,11 +172,13 @@ common::hash_t LogicalProjection::Hash() const {
 Operator LogicalInsert::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                              catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&columns,
                              std::vector<std::vector<parser::AbstractExpression *>> &&values) {
+#ifndef NDEBUG
   // We need to check whether the number of values for each insert vector
   // matches the number of columns
   for (const auto &insert_vals : values) {
     TERRIER_ASSERT(columns.size() == insert_vals.size(), "Mismatched number of columns and values");
   }
+#endif
 
   auto *op = new LogicalInsert;
   op->database_oid_ = database_oid;
@@ -195,7 +197,7 @@ common::hash_t LogicalInsert::Hash() const {
   hash = common::HashUtil::CombineHashInRange(hash, columns_.begin(), columns_.end());
 
   // Perform a deep hash of the values
-  for (auto insert_vals : values_) {
+  for (const auto &insert_vals : values_) {
     hash = common::HashUtil::CombineHashInRange(hash, insert_vals.begin(), insert_vals.end());
   }
 
@@ -335,7 +337,8 @@ bool LogicalDelete::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 
 Operator LogicalUpdate::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                             catalog::table_oid_t table_oid, std::vector<parser::UpdateClause *> &&updates) {
+                             catalog::table_oid_t table_oid,
+                             std::vector<std::shared_ptr<parser::UpdateClause>> &&updates) {
   auto *op = new LogicalUpdate;
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
