@@ -71,7 +71,10 @@ TEST(OperatorTests, LogicalInsertTest) {
                                    std::vector<catalog::col_oid_t>(columns, std::end(columns)),
                                    std::vector<std::vector<parser::AbstractExpression *>>(bad_values)),
                "Mismatched");
+  for (auto entry : bad_raw_values) delete entry;
 #endif
+
+  for (auto entry : raw_values) delete entry;
 }
 
 // NOLINTNEXTLINE
@@ -514,6 +517,8 @@ TEST(OperatorTests, LogicalInnerJoinTest) {
   EXPECT_EQ(logical_inner_join_1.Hash(), logical_inner_join_0.Hash());
   EXPECT_EQ(logical_inner_join_1.Hash(), logical_inner_join_2.Hash());
   EXPECT_NE(logical_inner_join_1.Hash(), logical_inner_join_3.Hash());
+  EXPECT_NE(logical_inner_join_4.Hash(), logical_inner_join_6.Hash());
+  EXPECT_EQ(logical_inner_join_4.Hash(), logical_inner_join_5.Hash());
 }
 
 // NOLINTNEXTLINE
@@ -637,59 +642,67 @@ TEST(OperatorTests, LogicalAggregateAndGroupByTest) {
   auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
   auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
   auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  auto expr_b_7 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
 
   // columns: vector of shared_ptr of AbstractExpression
   std::shared_ptr<parser::AbstractExpression> x_1 = std::shared_ptr<parser::AbstractExpression>(expr_b_1);
   std::shared_ptr<parser::AbstractExpression> x_2 = std::shared_ptr<parser::AbstractExpression>(expr_b_2);
   std::shared_ptr<parser::AbstractExpression> x_3 = std::shared_ptr<parser::AbstractExpression>(expr_b_3);
+  std::shared_ptr<parser::AbstractExpression> x_7 = std::shared_ptr<parser::AbstractExpression>(expr_b_7);
+
+  // ConstValueExpression subclass AbstractExpression
+  auto expr_b_4 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_5 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_8 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_6 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  std::shared_ptr<parser::AbstractExpression> x_4 = std::shared_ptr<parser::AbstractExpression>(expr_b_4);
+  std::shared_ptr<parser::AbstractExpression> x_5 = std::shared_ptr<parser::AbstractExpression>(expr_b_5);
+  std::shared_ptr<parser::AbstractExpression> x_6 = std::shared_ptr<parser::AbstractExpression>(expr_b_6);
+  std::shared_ptr<parser::AbstractExpression> x_8 = std::shared_ptr<parser::AbstractExpression>(expr_b_8);
 
   // havings: vector of AnnotatedExpression
   auto annotated_expr_0 = AnnotatedExpression(nullptr, std::unordered_set<std::string>());
-  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
-  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
-  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
+  auto annotated_expr_1 = AnnotatedExpression(x_4, std::unordered_set<std::string>());
+  auto annotated_expr_2 = AnnotatedExpression(x_5, std::unordered_set<std::string>());
+  auto annotated_expr_3 = AnnotatedExpression(x_6, std::unordered_set<std::string>());
+  auto annotated_expr_4 = AnnotatedExpression(x_8, std::unordered_set<std::string>());
 
+  //
   Operator logical_group_1_0 =
       LogicalAggregateAndGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpression>>{x_1},
                                        std::vector<AnnotatedExpression>{annotated_expr_0});
   Operator logical_group_1_1 =
       LogicalAggregateAndGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpression>>{x_1},
                                        std::vector<AnnotatedExpression>{annotated_expr_1});
-  Operator logical_group_2_1 =
-      LogicalAggregateAndGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpression>>{x_2},
-                                       std::vector<AnnotatedExpression>{annotated_expr_1});
   Operator logical_group_2_2 =
       LogicalAggregateAndGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpression>>{x_2},
                                        std::vector<AnnotatedExpression>{annotated_expr_2});
-  Operator logical_group_3_1 =
-      LogicalAggregateAndGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpression>>{x_3},
-                                       std::vector<AnnotatedExpression>{annotated_expr_1});
-  Operator logical_group_1_3 =
-      LogicalAggregateAndGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpression>>{x_1},
-                                       std::vector<AnnotatedExpression>{annotated_expr_3});
+  Operator logical_group_3 =
+      LogicalAggregateAndGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpression>>{x_3});
+  Operator logical_group_7_4 =
+      LogicalAggregateAndGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpression>>{x_7},
+                                       std::vector<AnnotatedExpression>{annotated_expr_4});
 
   EXPECT_EQ(logical_group_1_1.GetType(), OpType::LOGICALAGGREGATEANDGROUPBY);
-  EXPECT_EQ(logical_group_3_1.GetType(), OpType::LOGICALAGGREGATEANDGROUPBY);
-  EXPECT_EQ(logical_group_1_0.GetName(), "LogicalAggregateAndGroupBy");
+  EXPECT_EQ(logical_group_3.GetType(), OpType::LOGICALAGGREGATEANDGROUPBY);
+  EXPECT_EQ(logical_group_7_4.GetName(), "LogicalAggregateAndGroupBy");
   EXPECT_EQ(logical_group_1_1.As<LogicalAggregateAndGroupBy>()->GetColumns(),
             std::vector<std::shared_ptr<parser::AbstractExpression>>{x_1});
-  EXPECT_EQ(logical_group_3_1.As<LogicalAggregateAndGroupBy>()->GetColumns(),
+  EXPECT_EQ(logical_group_3.As<LogicalAggregateAndGroupBy>()->GetColumns(),
             std::vector<std::shared_ptr<parser::AbstractExpression>>{x_3});
   EXPECT_EQ(logical_group_1_1.As<LogicalAggregateAndGroupBy>()->GetHaving(),
             std::vector<AnnotatedExpression>{annotated_expr_1});
-  EXPECT_EQ(logical_group_1_3.As<LogicalAggregateAndGroupBy>()->GetHaving(),
-            std::vector<AnnotatedExpression>{annotated_expr_3});
-  EXPECT_TRUE(logical_group_1_1 == logical_group_2_1);
-  EXPECT_FALSE(logical_group_1_1 == logical_group_3_1);
-  // EXPECT_FALSE(logical_group_1_0 == logical_group_1_1);
-  EXPECT_TRUE(logical_group_2_1 == logical_group_2_1);
-  EXPECT_FALSE(logical_group_1_1 == logical_group_1_3);
+  EXPECT_EQ(logical_group_7_4.As<LogicalAggregateAndGroupBy>()->GetHaving(),
+            std::vector<AnnotatedExpression>{annotated_expr_4});
+  EXPECT_TRUE(logical_group_1_1 == logical_group_2_2);
+  EXPECT_FALSE(logical_group_1_1 == logical_group_7_4);
+  EXPECT_FALSE(logical_group_1_0 == logical_group_1_1);
+  EXPECT_FALSE(logical_group_3 == logical_group_7_4);
 
-  EXPECT_EQ(logical_group_1_1.Hash(), logical_group_2_1.Hash());
-  EXPECT_EQ(logical_group_2_1.Hash(), logical_group_2_2.Hash());
-  EXPECT_NE(logical_group_1_1.Hash(), logical_group_3_1.Hash());
-  // EXPECT_NE(logical_group_1_0.Hash(), logical_group_1_1.Hash());
-  EXPECT_NE(logical_group_1_1.Hash(), logical_group_1_3.Hash());
+  EXPECT_EQ(logical_group_1_1.Hash(), logical_group_2_2.Hash());
+  EXPECT_NE(logical_group_1_1.Hash(), logical_group_7_4.Hash());
+  //EXPECT_NE(logical_group_1_0.Hash(), logical_group_1_1.Hash());
+  EXPECT_NE(logical_group_3.Hash(), logical_group_7_4.Hash());
 }
 
 // NOLINTNEXTLINE

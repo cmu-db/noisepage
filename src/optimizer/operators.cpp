@@ -500,7 +500,11 @@ Operator LogicalInnerJoin::make(std::vector<AnnotatedExpression> &&conditions) {
 
 common::hash_t LogicalInnerJoin::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  hash = common::HashUtil::CombineHashInRange(hash, join_predicates_.begin(), join_predicates_.end());
+  for (auto &pred : join_predicates_) {
+    auto expr = pred.GetExpr();
+    if (expr) hash = common::HashUtil::SumHashes(hash, expr->Hash());
+    else hash = common::HashUtil::SumHashes(hash, BaseOperatorNode::Hash());
+  }
   return hash;
 }
 
@@ -600,29 +604,30 @@ bool LogicalSemiJoin::operator==(const BaseOperatorNode &r) {
 Operator LogicalAggregateAndGroupBy::make() {
   auto *group_by = new LogicalAggregateAndGroupBy;
   group_by->columns_ = {};
+  group_by->having_ = {};
   return Operator(group_by);
 }
 
 Operator LogicalAggregateAndGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpression>> &&columns) {
   auto *group_by = new LogicalAggregateAndGroupBy;
-  group_by->columns_ = move(columns);
+  group_by->columns_ = std::move(columns);
+  group_by->having_ = {};
   return Operator(group_by);
 }
 
 Operator LogicalAggregateAndGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpression>> &&columns,
                                           std::vector<AnnotatedExpression> &&having) {
   auto *group_by = new LogicalAggregateAndGroupBy;
-  group_by->columns_ = move(columns);
-  group_by->having_ = move(having);
+  group_by->columns_ = std::move(columns);
+  group_by->having_ = std::move(having);
   return Operator(group_by);
 }
-
 bool LogicalAggregateAndGroupBy::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::LOGICALAGGREGATEANDGROUPBY) return false;
   const LogicalAggregateAndGroupBy &node = *static_cast<const LogicalAggregateAndGroupBy *>(&r);
   if (having_.size() != node.having_.size() || columns_.size() != node.columns_.size()) return false;
   for (size_t i = 0; i < having_.size(); i++) {
-    if (having_[i].GetExpr() != node.having_[i].GetExpr()) return false;
+    if (having_[i] != node.having_[i]) return false;
   }
   // originally throw all entries from each vector to one set,
   // and compare if the 2 sets are equal
@@ -642,7 +647,11 @@ bool LogicalAggregateAndGroupBy::operator==(const BaseOperatorNode &r) {
 
 common::hash_t LogicalAggregateAndGroupBy::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  for (auto &pred : having_) hash = common::HashUtil::SumHashes(hash, pred.GetExpr()->Hash());
+  for (auto &pred : having_) {
+    auto expr = pred.GetExpr();
+    if (expr) hash = common::HashUtil::SumHashes(hash, expr->Hash());
+    else hash = common::HashUtil::SumHashes(hash, BaseOperatorNode::Hash());
+  }
   for (auto &expr : columns_) hash = common::HashUtil::SumHashes(hash, expr->Hash());
   return hash;
 }
