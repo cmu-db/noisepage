@@ -1,14 +1,3 @@
-//===----------------------------------------------------------------------===//
-//
-//                         Peloton
-//
-// InsertPSTest.java
-//
-// Identification: script/testing/junit/InsertPSTest.java
-//
-// Copyright (c) 2015-2018, Carnegie Mellon University Database Group
-//
-//===----------------------------------------------------------------------===//
 
 /**
  * 1 and 2 tuple, prepared insert statement tests.
@@ -21,7 +10,7 @@ import static org.junit.Assert.assertEquals;
 public class InsertPSTest extends PLTestBase {
     private Connection conn;
     private ResultSet rs;
-    private String s_sql = "SELECT * FROM tbl;";    
+    private String s_sql = "SELECT * FROM tbl;";
 
     private static final String SQL_DROP_TABLE =
             "DROP TABLE IF EXISTS tbl;";
@@ -48,7 +37,7 @@ public class InsertPSTest extends PLTestBase {
     private void getResultsPS() throws SQLException {
         rs = conn.prepareStatement(s_sql).executeQuery();
     }
-	
+
     @Before
     public void Setup() throws SQLException {
 	conn = makeDefaultConnection();
@@ -67,7 +56,7 @@ public class InsertPSTest extends PLTestBase {
      */
     @Test
     public void testPS_1Tuple_NCS() throws SQLException {
-	
+
         String sql = "INSERT INTO tbl VALUES (?, ?, ?);";
         PreparedStatement pstmt = conn.prepareStatement(sql);
 	setValues(pstmt, new int [] {1, 2, 3});
@@ -91,11 +80,11 @@ public class InsertPSTest extends PLTestBase {
      */
     @Test
     public void testPS_1Tuple_CS_1() throws SQLException {
-	
+
         String sql = "INSERT INTO tbl (c1, c2, c3) VALUES (?, ?, ?);";
         PreparedStatement pstmt = conn.prepareStatement(sql);
-	
-	setValues(pstmt, new int [] {1, 2, 3});	
+
+	setValues(pstmt, new int [] {1, 2, 3});
         pstmt.addBatch();
         pstmt.executeBatch();
 
@@ -113,11 +102,11 @@ public class InsertPSTest extends PLTestBase {
      */
     @Test
     public void testPS_1Tuple_CS_2() throws SQLException {
-	
+
         String sql = "INSERT INTO tbl (c3, c1, c2) VALUES (?, ?, ?);";
         PreparedStatement pstmt = conn.prepareStatement(sql);
-	
-	setValues(pstmt, new int [] {3, 1, 2});		
+
+	setValues(pstmt, new int [] {3, 1, 2});
         pstmt.addBatch();
         pstmt.executeBatch();
 
@@ -138,7 +127,7 @@ public class InsertPSTest extends PLTestBase {
 
         String sql = "INSERT INTO tbl (c3, c1, c2) VALUES (?, 1, ?);";
         PreparedStatement pstmt = conn.prepareStatement(sql);
-	setValues(pstmt, new int [] {3, 2});			
+	setValues(pstmt, new int [] {3, 2});
 
         pstmt.addBatch();
         pstmt.executeBatch();
@@ -160,7 +149,7 @@ public class InsertPSTest extends PLTestBase {
 
         String sql = "INSERT INTO tbl (c1, c3) VALUES (?, ?);";
         PreparedStatement pstmt = conn.prepareStatement(sql);
-	setValues(pstmt, new int [] {1, 3});	
+	setValues(pstmt, new int [] {1, 3});
 
         pstmt.addBatch();
         pstmt.executeBatch();
@@ -179,11 +168,11 @@ public class InsertPSTest extends PLTestBase {
      */
     @Test
     public void testPS_1Tuple_CS_5() throws SQLException {
-	
+
         String sql = "INSERT INTO tbl (c1, c2, c3) VALUES (?, 2, ?);";
         PreparedStatement pstmt = conn.prepareStatement(sql);
-	
-	setValues(pstmt, new int [] {1, 3});	
+
+	setValues(pstmt, new int [] {1, 3});
         pstmt.addBatch();
         pstmt.executeBatch();
 
@@ -194,20 +183,20 @@ public class InsertPSTest extends PLTestBase {
 		 new int [] {1, 2, 3});
         assertNoMoreRows(rs);
     }
-    
+
     /**
      * Prepared statement, 1 tuple insert, all constants
      */
     @Test
     public void testPS_1Tuple_CS_6() throws SQLException {
-	
+
         String sql = "INSERT INTO tbl (c1, c2, c3) VALUES (1, 2, 3);";
         PreparedStatement pstmt = conn.prepareStatement(sql);
-	
+
 	// setValues(pstmt, new int [] {});
 	// Todo: determine if this is 100% correct. addBatch call required
 	// as, internally, SetParameterValues is where the constants
-	// are inserted. 
+	// are inserted.
         pstmt.addBatch();
         pstmt.executeBatch();
 
@@ -218,7 +207,7 @@ public class InsertPSTest extends PLTestBase {
 		 new int [] {1, 2, 3});
         assertNoMoreRows(rs);
     }
-    
+
     /* --------------------------------------------
      * 2 tuple insertions
     * ---------------------------------------------
@@ -229,14 +218,14 @@ public class InsertPSTest extends PLTestBase {
      */
     @Test
     public void testPS_2Tuple_NCS() throws SQLException {
-	
+
         String sql = "INSERT INTO tbl VALUES (?, ?, ?);";
         PreparedStatement pstmt = conn.prepareStatement(sql);
-	setValues(pstmt, new int [] {1, 2, 3});	
+	setValues(pstmt, new int [] {1, 2, 3});
         pstmt.addBatch();
-	
-	setValues(pstmt, new int [] {11, 12, 13});		
-        pstmt.addBatch();	
+
+	setValues(pstmt, new int [] {11, 12, 13});
+        pstmt.addBatch();
         pstmt.executeBatch();
 
 	getResultsPS();
@@ -244,7 +233,7 @@ public class InsertPSTest extends PLTestBase {
 	checkRow(rs,
 		 new String [] {"c1", "c2", "c3"},
 		 new int [] {1, 2, 3});
-	
+
         rs.next();
 	checkRow(rs,
 		 new String [] {"c1", "c2", "c3"},
@@ -255,18 +244,18 @@ public class InsertPSTest extends PLTestBase {
     /**
      * Prepared statement, 2 tuple insert, with column inserted
      * in schema order
-     * 
+     *
      */
     @Test
     public void testPS_2Tuple_CS_1() throws SQLException {
-	
+
         String sql = "INSERT INTO tbl (c1, c2, c3) VALUES (?, ?, ?);";
         PreparedStatement pstmt = conn.prepareStatement(sql);
 	setValues(pstmt, new int [] {1, 2, 3});	
         pstmt.addBatch();
-	
-	setValues(pstmt, new int [] {11, 12, 13});		
-        pstmt.addBatch();	
+
+	setValues(pstmt, new int [] {11, 12, 13});
+        pstmt.addBatch();
         pstmt.executeBatch();
 
 	getResultsPS();
@@ -274,7 +263,7 @@ public class InsertPSTest extends PLTestBase {
 	checkRow(rs,
 		 new String [] {"c1", "c2", "c3"},
 		 new int [] {1, 2, 3});
-	
+
         rs.next();
 	checkRow(rs,
 		 new String [] {"c1", "c2", "c3"},
@@ -288,13 +277,13 @@ public class InsertPSTest extends PLTestBase {
      */
     @Test
     public void testPS_2Tuple_CS_2() throws SQLException {
-	
+
         String sql = "INSERT INTO tbl (c3, c1, c2) VALUES (?, ?, ?);";
         PreparedStatement pstmt = conn.prepareStatement(sql);
-	
+
 	setValues(pstmt, new int [] {3, 1, 2});
         pstmt.addBatch();
-	
+
 	setValues(pstmt, new int [] {13, 11, 12});
         pstmt.addBatch();
         pstmt.executeBatch();
@@ -322,9 +311,9 @@ public class InsertPSTest extends PLTestBase {
         PreparedStatement pstmt = conn.prepareStatement(sql);
 	setValues(pstmt, new int [] {1, 2});
         pstmt.addBatch();
-	
+
 	setValues(pstmt, new int [] {11, 12});
-        pstmt.addBatch();	
+        pstmt.addBatch();
         pstmt.executeBatch();
 
 	getResultsPS();
@@ -351,9 +340,9 @@ public class InsertPSTest extends PLTestBase {
         PreparedStatement pstmt = conn.prepareStatement(sql);
 	setValues(pstmt, new int [] {3, 1});
         pstmt.addBatch();
-	
+
 	setValues(pstmt, new int [] {13, 12});
-        pstmt.addBatch();	
+        pstmt.addBatch();
         pstmt.executeBatch();
 
 	getResultsPS();
@@ -367,7 +356,7 @@ public class InsertPSTest extends PLTestBase {
 		 new int [] {12, 2, 13});
         assertNoMoreRows(rs);
     }
-    
+
     /**
      * Prepared statement, 2 tuple insert, with columns inserted
      * in schema order, with 2nd column missing.
@@ -379,8 +368,8 @@ public class InsertPSTest extends PLTestBase {
         PreparedStatement pstmt = conn.prepareStatement(sql);
 	setValues(pstmt, new int [] {1, 3});
         pstmt.addBatch();
-	
-	setValues(pstmt, new int [] {11, 13});	
+
+	setValues(pstmt, new int [] {11, 13});
         pstmt.addBatch();
         pstmt.executeBatch();
 

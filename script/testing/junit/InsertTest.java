@@ -1,15 +1,3 @@
-//===----------------------------------------------------------------------===//
-//
-//                         Peloton
-//
-// InsertTest.java
-//
-// Identification: script/testing/junit/InsertTest.java
-//
-// Copyright (c) 2015-2018, Carnegie Mellon University Database Group
-//
-//===----------------------------------------------------------------------===//
-
 /**
  * Insert statement tests.
  */
@@ -21,7 +9,7 @@ import static org.junit.Assert.assertEquals;
 public class InsertTest extends PLTestBase {
     private Connection conn;
     private ResultSet rs;
-    private String s_sql = "SELECT * FROM tbl;";    
+    private String s_sql = "SELECT * FROM tbl;";
 
     private static final String SQL_DROP_TABLE =
             "DROP TABLE IF EXISTS tbl;";
@@ -45,10 +33,10 @@ public class InsertTest extends PLTestBase {
      * Get columns, for follow on value checking
      */
     private void getResults() throws SQLException {
-        Statement stmt = conn.createStatement();        
+        Statement stmt = conn.createStatement();
         rs = stmt.executeQuery(s_sql);
     }
-    
+
     @Before
     public void Setup() throws SQLException {
 	conn = makeDefaultConnection();
@@ -66,13 +54,13 @@ public class InsertTest extends PLTestBase {
      * Insert statement tests
      * ---------------------------------------------
      */
-    
+
     /**
      * 1 tuple insert, with no column specification.
      */
     @Test
     public void test_1Tuple_NCS() throws SQLException {
-	
+
         String sql = "INSERT INTO tbl VALUES (1, 2, 3);";
         Statement stmt = conn.createStatement();
         stmt.execute(sql);
@@ -90,7 +78,7 @@ public class InsertTest extends PLTestBase {
      */
     @Test
     public void test_1Tuple_CS_1() throws SQLException {
-	
+
         String sql = "INSERT INTO tbl (c1, c2, c3) VALUES (1, 2, 3);";
         Statement stmt = conn.createStatement();
         stmt.execute(sql);
@@ -108,7 +96,7 @@ public class InsertTest extends PLTestBase {
      */
     @Test
     public void test_1Tuple_CS_2() throws SQLException {
-	
+
         String sql = "INSERT INTO tbl (c3, c1, c2) VALUES (3, 1, 2);";
         Statement stmt = conn.createStatement();
         stmt.execute(sql);
@@ -122,13 +110,13 @@ public class InsertTest extends PLTestBase {
     }
 
     /* 2 tuple inserts */
-    
+
     /**
      * 2 tuple insert, with no column specification.
      */
     @Test
     public void test_2Tuple_NCS_1() throws SQLException {
-	
+
         String sql = "INSERT INTO tbl VALUES (1, 2, 3), (11, 12, 13);";
         Statement stmt = conn.createStatement();
         stmt.execute(sql);
@@ -138,7 +126,7 @@ public class InsertTest extends PLTestBase {
 	checkRow(rs,
 		 new String [] {"c1", "c2", "c3"},
 		 new int [] {1, 2, 3});
-        
+
         rs.next();
 	checkRow(rs,
 		 new String [] {"c1", "c2", "c3"},
@@ -152,7 +140,7 @@ public class InsertTest extends PLTestBase {
      */
     //@Test
     public void test_2Tuple_NCS_2() throws SQLException {
-	
+
         String sql = "INSERT INTO tbl VALUES (1), (11, 12);";
         Statement stmt = conn.createStatement();
         stmt.execute(sql);

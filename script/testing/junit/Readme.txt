@@ -32,8 +32,9 @@ For a description of arguments to the program
 One step run
 ------------
 
-Run using the python script. This will compile the tests, run peloton
-(provided it has been built in this development tree), and run the tests.
+Run using the python script. This will compile the tests, run the database
+server (provided it has been built in this development tree), and run the
+tests.
 
 ./run_junit.py
 
@@ -44,8 +45,9 @@ Manual run with the ant junit runner
 1. Compile the tests.
    ant compile
 
-2. To run the tests, first start Peloton manually in a separate shell, e.g. 
-   ./peloton
+2. To run the tests, first start the database server manually in a separate
+shell, e.g.
+   ./terrier
 
 3. Run the tests, (from this directory):
    ant test
@@ -61,8 +63,9 @@ later.
 1. Compile the tests.
    ant compile
 
-2. To run the tests, first start Peloton manually in a separate shell, e.g. 
-   ./peloton
+2. To run the tests, first start the database server manually in a separate
+shell, e.g.
+   ./terrier
 
 3. Run the tests, (from this directory):
    ant testconsole

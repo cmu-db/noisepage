@@ -1,36 +1,33 @@
-//===----------------------------------------------------------------------===//
-//
-//                         Peloton
-//
-// PLTestBase.java
-//
-// Identification: script/testing/junit/PLTestBase.java
-//
-// Copyright (c) 2015-2018, Carnegie Mellon University Database Group
-//
-//===----------------------------------------------------------------------===//
 
 /**
- * Base class (helper functions) for prepared statement tests 
+ * Base class (helper functions) for prepared statement tests
  */
 
 import java.sql.*;
 import org.junit.*;
+import java.util.Properties;
 import static org.junit.Assert.assertEquals;
-    
+
 public class PLTestBase {
-    
+
     public static Connection makeDefaultConnection() throws SQLException {
 	return makeConnection("localhost", 15721, "postgres", "postgres");
     }
-    
+
     public static Connection makeConnection(String host,
 					    int port,
 					    String username,
 					    String pass) throws SQLException {
-	String url = String.format("jdbc:postgresql://%s:%d/%s",
-				   host, port, username);
-	Connection conn = DriverManager.getConnection(url, username, pass);
+	String url = String.format("jdbc:postgresql://%s:%d/",
+				   host, port);
+        Properties props = new Properties();
+        props.setProperty("user", username);
+        props.setProperty("password", pass);
+        /*
+         * 0 => suppress switchover to binary protocol 
+         */
+        props.setProperty("prepareThreshold", "0");
+	Connection conn = DriverManager.getConnection(url, props);
 	return conn;
     }
 
@@ -63,8 +60,8 @@ public class PLTestBase {
 	    assertEquals(expected_values[i], rs.getInt(columns[i]));
 	}
     }
-    
-    
+
+
     public static void DumpSQLException(SQLException ex) {
 	System.err.println("Failed to execute test. Got " +
 			   ex.getClass().getSimpleName());

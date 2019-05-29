@@ -1,14 +1,3 @@
-//===----------------------------------------------------------------------===//
-//
-//                         Peloton
-//
-// UpdateTest.java
-//
-// Identification: script/testing/junit/UpdateTest.java
-//
-// Copyright (c) 2015-2018, Carnegie Mellon University Database Group
-//
-//===----------------------------------------------------------------------===//
 
 /**
  * 1 and 2 tuple, prepared insert statement tests.
@@ -20,7 +9,7 @@ import static org.junit.Assert.assertEquals;
 
 public class UpdateTest extends PLTestBase {
     private Connection conn;
-    private String s_sql = "SELECT * FROM tbl;";    
+    private String s_sql = "SELECT * FROM tbl;";
 
     private static final String SQL_DROP_TABLE =
             "DROP TABLE IF EXISTS tbl;";
@@ -65,17 +54,15 @@ public class UpdateTest extends PLTestBase {
 	    pstmt.setInt(col++, (int) values[i]);
 	}
     }
-    
     /**
      * Update columns in non-schema order. Exercises issue #1223.
      */
     // Disable until #1223 is fixed
     //@Test
     public void test_Update_1() throws SQLException {
-	
-        String sql_1 = "INSERT INTO tbl VALUES (5, 400);";	
+        String sql_1 = "INSERT INTO tbl VALUES (5, 400);";
         conn.createStatement().execute(sql_1);
-	
+
         ResultSet rs_1 = conn.createStatement().executeQuery(s_sql);
         rs_1.next();
 	checkRow(rs_1,

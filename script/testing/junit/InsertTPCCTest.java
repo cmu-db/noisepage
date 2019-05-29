@@ -1,17 +1,5 @@
-//===----------------------------------------------------------------------===//
-//
-//                         Peloton
-//
-// InsertTPCCTest.java
-//
-// Identification: script/testing/junit/InsertTPCCTest.java
-//
-// Copyright (c) 2015-2018, Carnegie Mellon University Database Group
-//
-//===----------------------------------------------------------------------===//
 
 import java.sql.*;
-    
 import org.junit.*;
 import static org.junit.Assert.assertEquals;
 
@@ -58,19 +46,19 @@ public class InsertTPCCTest extends PLTestBase {
 	stmt.execute(SQL_DROP_TABLE);
     }
 
-    
+
     @Test
     public void testPstmtCVInsert() throws SQLException {
 	int col;
 	Timestamp ts = new org.postgresql.util.PGTimestamp((long) 100);
-	
+
         String sql = "INSERT INTO oorder " +
 	    "(O_ID, O_D_ID, O_W_ID, O_C_ID, O_ENTRY_D, O_OL_CNT, O_ALL_LOCAL)"+
 	    " VALUES (?, ?, ?, ?, ?, ?, ?)";
-	
+
         PreparedStatement pstmt = conn.prepareStatement(sql);
 	col = 1;
-	
+
 	pstmt.setInt(col++, (int) 1);  //o_id
 	pstmt.setInt(col++, (int) 2);  //o_d_id
 	pstmt.setInt(col++, (int) 3);  //o_w_id
@@ -78,7 +66,7 @@ public class InsertTPCCTest extends PLTestBase {
 	pstmt.setTimestamp(col++, ts); //o_entry_d
 	pstmt.setInt(col++, (int) 6);  //o_ol_count
 	pstmt.setInt(col++, (int) 7);  //o_all_local
-	
+
 	pstmt.addBatch();
 	pstmt.executeBatch();
 
@@ -94,7 +82,7 @@ public class InsertTPCCTest extends PLTestBase {
 	// skip o_entry_d timestamp
 	assertEquals(rs.getInt("o_ol_cnt"), 6);
 	assertEquals(rs.getInt("o_all_local"), 7);
-	
+
 	assertNoMoreRows(rs);
     }
 }
