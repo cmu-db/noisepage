@@ -23,6 +23,12 @@ The tests are integrated into Travis and Jenkins. They may also be run
 manually. There are several different ways in which the tests may
 be run.
 
+Help
+----
+For a description of arguments to the program
+
+./run_junit.py --help
+
 One step run
 ------------
 

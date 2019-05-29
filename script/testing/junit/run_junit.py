@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import argparse
 import os.path
 import socket
 import subprocess
@@ -9,49 +10,69 @@ import traceback
 
 class RunJunit:
     """ Class to run Junit tests """
-    
-    def __init__(self):
+
+    def __init__(self, args):
         """ Locations and misc. variable initialization """
-        
-        # Peloton server output
-        self.peloton_output_file = "/tmp/peloton_log.txt"
+        self.args = args
+
+        # server output
+        self.db_server_output_file = "/tmp/db_server_log.txt"
         # Ant Junit execution output
         self.junit_output_file = "/tmp/junit_log.txt"
 
-        # location of Peloton, relative to this script
-        self.peloton_path = "../../../build/bin/peloton"
-        self.peloton_process = None
+        self._set_server_path()
+        self.db_server_process = None
 
-        # peloton server location
-        self.peloton_host = "localhost"
-        self.peloton_port = 15721
+        # db server location
+        self.db_server_host = "localhost"
+        self.db_server_port = 15721
         return
-    
-    def _check_peloton_binary(self):
-        """ Check that a Peloton binary is available """
-        if not os.path.exists(self.peloton_path):
-            abs_path = os.path.abspath(self.peloton_path)
-            msg = "No Peloton binary found at {}".format(abs_path)
+
+    def _set_server_path(self):
+        """ location of db server, relative to this script """
+
+        # builds on Jenkins are in build/<build_type>
+        # but CLion creates cmake-build-<build_type>/<build_type>
+        # determine what we have and set the server path accordingly
+        bin_name = "terrier"
+        build_type = args['build_type']
+        path_list = ["../../../build/{}".format(build_type),
+                     "../../../cmake-build-{}/{}".format(build_type, build_type)]
+        for dir in path_list:
+            path = os.path.join(dir, bin_name)
+            if os.path.exists(path):
+                self.db_server_path = path
+                return
+
+        msg = "No Db_Server binary found in {}".format(path_list)
+        raise RuntimeError(msg)
+        return
+
+    def _check_db_server_binary(self):
+        """ Check that a Db_Server binary is available """
+        if not os.path.exists(self.db_server_path):
+            abs_path = os.path.abspath(self.db_server_path)
+            msg = "No Db_Server binary found at {}".format(abs_path)
             raise RuntimeError(msg)
         return
 
-    def _run_peloton(self):
-        """ Start the Peloton server """
-        self.peloton_output_fd = open(self.peloton_output_file, "w+")
-        self.peloton_process = subprocess.Popen(self.peloton_path,
-                                                stdout=self.peloton_output_fd,
-                                                stderr=self.peloton_output_fd)
-        self._wait_for_peloton()
+    def _run_db_server(self):
+        """ Start the Db_Server server """
+        self.db_server_output_fd = open(self.db_server_output_file, "w+")
+        self.db_server_process = subprocess.Popen(self.db_server_path,
+                                                  stdout=self.db_server_output_fd,
+                                                  stderr=self.db_server_output_fd)
+        self._wait_for_db_server()
         return
 
-    def _wait_for_peloton(self):
-        """ Wait for the peloton server to come up.
+    def _wait_for_db_server(self):
+        """ Wait for the db_server server to come up.
         """
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # max wait of 10s in 0.1s increments
         for i in range(100):
             try:
-                s.connect((self.peloton_host, self.peloton_port))
+                s.connect((self.db_server_host, self.db_server_port))
                 s.close()
                 print ("connected to server in {} seconds".format(i*0.1))
                 return
@@ -60,20 +81,20 @@ class RunJunit:
                 continue
         return
 
-    def _stop_peloton(self):
-        """ Stop the Peloton server and print it's log file """
-        # get exit code, if any 
-        self.peloton_process.poll()
-        if self.peloton_process.returncode is not None:
-            # Peloton terminated already
-            self.peloton_output_fd.close()
-            self._print_output(self.peloton_output_file)            
-            msg = "Peloton terminated with return code {}".format(
-                self.peloton_process.returncode)
+    def _stop_db_server(self):
+        """ Stop the Db_Server server and print it's log file """
+        # get exit code, if any
+        self.db_server_process.poll()
+        if self.db_server_process.returncode is not None:
+            # Db_Server terminated already
+            self.db_server_output_fd.close()
+            self._print_output(self.db_server_output_file)
+            msg = "Db_Server terminated with return code {}".format(
+                self.db_server_process.returncode)
             raise RuntimeError(msg)
 
         # still (correctly) running, terminate it
-        self.peloton_process.terminate()
+        self.db_server_process.terminate()
         return
 
     def _print_output(self, filename):
@@ -89,10 +110,11 @@ class RunJunit:
         """ Run the JUnit tests, via ant """
         self.junit_output_fd = open(self.junit_output_file, "w+")
         # use ant's junit runner, until we deprecate Ubuntu 14.04.
+        # (i.e. ant test)
         # At that time switch to "ant testconsole" which invokes JUnitConsole
         # runner. It requires Java 1.8 or later, but has much cleaner
         # human readable output
-        ret_val = subprocess.call(["ant test"],
+        ret_val = subprocess.call(["ant testconsole"],
                                   stdout=self.junit_output_fd,
                                   stderr=self.junit_output_fd,
                                   shell=True)
@@ -101,19 +123,28 @@ class RunJunit:
 
     def run(self):
         """ Orchestrate the overall JUnit test execution """
-        self._check_peloton_binary()
-        self._run_peloton()
+        self._check_db_server_binary()
+        self._run_db_server()
         ret_val = self._run_junit()
         self._print_output(self.junit_output_file)
-        
-        self._stop_peloton()
+
+        self._stop_db_server()
         if ret_val:
-            # print the peloton log file, only if we had a failure
-            self._print_output(self.peloton_output_file)     
+            # print the db_server log file, only if we had a failure
+            self._print_output(self.db_server_output_file)
         return ret_val
 
 if __name__ == "__main__":
-    
+
+    aparser = argparse.ArgumentParser(description="junit runner")
+
+    aparser.add_argument('--build_type',
+                         default="debug",
+                         choices=['debug', 'release'],
+                         help="Build type (default: %(default)s")
+
+    args = vars(aparser.parse_args())
+
     # Make it so that we can invoke the script from any directory.
     # Actual execution has to be from the junit directory, so first
     # determine the absolute directory path to this script
@@ -122,11 +153,12 @@ if __name__ == "__main__":
     os.chdir(prog_dir)
 
     try:
-        exit_code = RunJunit().run()
+        junit = RunJunit(args)
+        exit_code = junit.run()
     except:
         print ("Exception trying to run junit tests")
         traceback.print_exc(file=sys.stdout)
         exit_code = 1
-        
+
     sys.exit(exit_code)
-    
+
