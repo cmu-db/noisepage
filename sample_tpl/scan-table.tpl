@@ -1,9 +1,16 @@
-fun main() -> int {
+fun main(execCtx: *ExecutionContext) -> int {
   var ret :int = 0
-  for (row in test_1) {
-    if (row.colA < 500) {
-      ret = ret + 1
+  var tvi: TableVectorIterator
+  for (@tableIterInit(&tvi, "test_1"); @tableIterAdvance(&tvi); ) {
+    var vpi = @tableIterGetVPI(&tvi)
+    for (; @vpiHasNext(vpi); @vpiAdvance(vpi)) {
+      var cola = @vpiGetInt(vpi, 0)
+      if (cola < 500) {
+        ret = ret + 1
+      }
     }
+    @vpiReset(vpi)
   }
+  @tableIterClose(&tvi)
   return ret
 }

@@ -1,0 +1,117 @@
+#!/bin/sh
+# Copyright 2015 The libcount Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License. See the AUTHORS file for names of
+# contributors.
+
+# Detects the operating system we're compiling on and outputs a file 
+# specified by the first argument, which in turn gets read while 
+# processing the Makefile.
+
+OUTPUT=$1
+PREFIX=$2
+
+# Ensure that the correct arguments were passed
+if test -z "$OUTPUT" || test -z "$PREFIX"; then
+  echo "usage: $0 <output-filename> <directory-prefix>" >&2
+  exit 1
+fi
+
+# Delete existing output, if it exists
+rm -f $OUTPUT
+touch $OUTPUT
+
+# Test for existence of the $CXX variable; if it hasn't been defined,
+# default to use g++.
+if test -z "$CXX"; then
+  CXX=g++
+fi
+
+# Same as above for CC
+if test -z "$CC"; then
+  CC=gcc
+fi
+
+# Test to see if the caller specified a lint tool; if not, we'll 
+# attempt to default to cpplint.py, but if that isn't present on
+# the system, we'll use 'fakelint', a do-nothing stub that lives
+# in the scripts/ subdirectory.
+if test -z "$LINT_TOOL"; then
+  CPPLINT_PY=`which cpplint.py`
+  if test -z "$CPPLINT_PY"; then
+    LINT_TOOL=./scripts/fakelint.sh
+  else
+    LINT_TOOL="cpplint.py"
+  fi
+fi
+
+# Detect target OS
+if test -z "$TARGET_OS"; then
+  TARGET_OS=`uname -s`
+fi
+
+# We may have platform-specific CXX flags
+PLATFORM_CXXFLAGS=""
+
+# MacOSX doesn't seem to ship with openssl-devel, so to build the demo
+# program, the library will have to be built from source. The default
+# install prefix puts the headers in /usr/local/ssl/include, so add
+# this to the include path if that directory exists.
+if [ -d "/usr/local/ssl" ]; then
+  PLATFORM_CXXFLAGS+=" -I/usr/local/ssl/include "
+fi
+
+# Determine OS-specifics
+case "$TARGET_OS" in
+  Darwin)
+    PLATFORM=OS_MACOSX
+    ;;
+  Linux)
+    PLATFORM=OS_LINUX
+    ;;
+  *)
+    PLATFORM=OS_GENERIC_UNIX
+    ;;
+esac
+
+# Source files live in the 'count' subdirectory.
+COUNT_DIR="$PREFIX/count"
+
+set -f # Disable globbing temporarily so that our patterns aren't expanded
+PRUNE_TEST="-name *test*.cc -prune"
+COUNT_FILES=`find $COUNT_DIR $PRUNE_TEST -o -name '*.cc' \
+  -print | sort | sed "s,^$PREFIX/,," | tr "\n" " "`
+set +f # Re-enable globbing
+
+# Build comprehensive list of files for cpplint
+
+LINT_INCLUDE=`find $PREFIX/include/count -name '*.h' \
+  -print | sort | sed "s,^$PREFIX/,," | tr "\n" " "`
+
+LINT_COUNT=`find $PREFIX/count -name '*.cc' \
+  -print | sort | sed "s,^$PREFIX/,," | tr "\n" " "`
+
+LINT_EXAMPLES=`find $PREFIX/examples -name '*.cc' \
+  -print | sort | sed "s,^$PREFIX/,," | tr "\n" " "`
+
+CPPLINT_SOURCES="$LINT_INCLUDE $LINT_COUNT $LINT_EXAMPLES "
+
+# Emit configuration variables
+echo "COUNT_FILES=$COUNT_FILES" >> $OUTPUT
+echo "CPPLINT_SOURCES=$CPPLINT_SOURCES" >> $OUTPUT
+echo "CC=$CC" >> $OUTPUT
+echo "CXX=$CXX" >> $OUTPUT
+echo "LINT_TOOL=$LINT_TOOL" >> $OUTPUT
+echo "PLATFORM=$PLATFORM" >> $OUTPUT
+echo "PLATFORM_CXXFLAGS=$PLATFORM_CXXFLAGS" >> $OUTPUT
+

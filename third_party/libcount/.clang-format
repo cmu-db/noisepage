@@ -1,0 +1,19 @@
+# We'll start with the Google standard, ensuring that we stay with an
+# indent width of 2, column limit of 80.
+BasedOnStyle: Google
+Language: Cpp
+IndentWidth: 2
+ColumnLimit: 80
+
+# Deviations from Google standard start below
+
+#AllowShortCaseLabelsOnASingleLine: true
+
+#AllowShortFunctionsOnASingleLine: false
+
+AllowShortIfStatementsOnASingleLine: false
+
+AllowShortLoopsOnASingleLine: false
+
+#BreakBeforeBraces: Linux
+

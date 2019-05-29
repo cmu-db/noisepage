@@ -1,7 +1,11 @@
-fun main() -> int {
-  var count = 0
-  for (vec in test_1@[batch=2048]) {
-    count = count + @filterLt(vec, "test_1.colA", 500)
+fun main(execCtx: *ExecutionContext) -> int {
+  var ret :int = 0
+  var tvi: TableVectorIterator
+  for (@tableIterInit(&tvi, "test_1"); @tableIterAdvance(&tvi);) {
+    var vpi = @tableIterGetVPI(&tvi)
+    ret = ret + @filterLt(vpi, "colA", 500)
+    @vpiReset(vpi)
   }
-  return count
+  @tableIterClose(&tvi)
+  return ret
 }

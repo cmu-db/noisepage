@@ -1,6 +1,10 @@
+struct State {
+  sorter: Sorter
+}
+
 struct Row {
-  a: int32
-  b: int32
+  a: Integer 
+  b: Integer
 }
 
 fun compareFn(lhs: *Row, rhs: *Row) -> int32 {
@@ -11,25 +15,60 @@ fun compareFn(lhs: *Row, rhs: *Row) -> int32 {
   }
 }
 
-fun main() -> int32 {
-  var alloc: RegionAlloc
-  @regionInit(&alloc)
+fun setUpState(execCtx: *ExecutionContext, state: *State) -> nil {
+  @sorterInit(&state.sorter, @execCtxGetMem(execCtx), compareFn, @sizeOf(Row))
+}
 
-  var sorter: Sorter
-  @sorterInit(&sorter, &alloc, compareFn, @sizeOf(Row))
+fun tearDownState(state: *State) -> nil {
+  @sorterFree(&state.sorter)
+}
 
-  for (row in test_1) {
-    if (row.colA < 500) {
-      var elem = @ptrCast(*Row, @sorterInsert(&sorter))
-      elem.a = row.colA
-      elem.b = row.colB
+fun pipeline_1(state: *State) -> nil {
+  var sorter = &state.sorter
+  var tvi: TableVectorIterator
+  for (@tableIterInit(&tvi, "test_1"); @tableIterAdvance(&tvi); ) {
+    var vpi = @tableIterGetVPI(&tvi)
+    @filterLt(vpi, "colA", 2000)
+    for (; @vpiHasNextFiltered(vpi); @vpiAdvanceFiltered(vpi)) {
+      var row = @ptrCast(*Row, @sorterInsert(sorter))
+      row.a = @vpiGetInt(vpi, 0)
+      row.b = @vpiGetInt(vpi, 1)
     }
+    @vpiResetFiltered(vpi)
   }
+  @tableIterClose(&tvi)
+}
 
-  @sorterSort(&sorter)
+fun pipeline_2(state: *State) -> int32 {
+  var ret = 0
+  var sort_iter: SorterIterator
+  for (@sorterIterInit(&sort_iter, &state.sorter);
+       @sorterIterHasNext(&sort_iter);
+       @sorterIterNext(&sort_iter)) {
+    var row = @ptrCast(*Row, @sorterIterGetRow(&sort_iter))
+    ret = ret + 1
+  }
+  @sorterIterClose(&sort_iter)
+  return ret
+}
 
-  @sorterFree(&sorter)
-  @regionFree(&alloc)
+fun main(execCtx: *ExecutionContext) -> int32 {
+  var state: State
 
-  return 0
+  // Initialize
+  setUpState(execCtx, &state)
+
+  // Pipeline 1
+  pipeline_1(&state)
+
+  // Pipeline 1 end
+  @sorterSort(&state.sorter)
+
+  // Pipeline 2
+  var ret = pipeline_2(&state)
+
+  // Cleanup
+  tearDownState(&state)
+
+  return ret
 }

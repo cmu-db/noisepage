@@ -416,6 +416,9 @@ class VariableDecl : public Decl {
   static bool classof(const AstNode *node) { return node->kind() == Kind::VariableDecl; }
 
  private:
+  friend class sema::Sema;
+  void set_initial(ast::Expr *initial) { init_ = initial; }
+ private:
   Expr *init_;
 };
 
@@ -469,12 +472,12 @@ class AssignmentStmt : public Stmt {
   /**
    * @return the destination of the assignment
    */
-  Expr *destination() const { return dest_; }
+  Expr *destination() { return dest_; }
 
   /**
    * @return the source of the assignment
    */
-  Expr *source() const { return src_; }
+  Expr *source() { return src_; }
 
   /**
    * Checks whether the given node is a AssignmentStmt.
@@ -673,39 +676,6 @@ class ForStmt : public IterationStmt {
 };
 
 /**
- * Generic grab bag of key-value attributes that can be associated with any AST nodes in the tree.
- */
-class Attributes : public util::RegionObject {
- public:
-  /**
-   * Construct
-   * @param map mapping from attribute name to expression
-   */
-  explicit Attributes(util::RegionUnorderedMap<Identifier, Expr *> &&map) : map_(std::move(map)) {}
-
-  /**
-   * @param identifier the attribute name
-   * @return the corresponding expression
-   */
-  Expr *Find(Identifier identifier) const {
-    if (const auto iter = map_.find(identifier); iter != map_.end()) {
-      return iter->second;
-    }
-
-    return nullptr;
-  }
-
-  /**
-   * @param identifier the attribute name
-   * @return whether the attribute is present in the mapping
-   */
-  bool Contains(Identifier identifier) const { return Find(identifier) != nullptr; }
-
- private:
-  util::RegionUnorderedMap<Identifier, Expr *> map_;
-};
-
-/**
  * A range for statement
  */
 class ForInStmt : public IterationStmt {
@@ -718,8 +688,8 @@ class ForInStmt : public IterationStmt {
    * @param attributes mapping of attributes
    * @param body loop body
    */
-  ForInStmt(const SourcePosition &pos, Expr *target, Expr *iter, Attributes *attributes, BlockStmt *body)
-      : IterationStmt(pos, AstNode::Kind::ForInStmt, body), target_(target), iter_(iter), attributes_(attributes) {}
+  ForInStmt(const SourcePosition &pos, Expr *target, Expr *iter, BlockStmt *body)
+      : IterationStmt(pos, AstNode::Kind::ForInStmt, body), target_(target), iter_(iter) {}
 
   /**
    * @return target variable
@@ -731,10 +701,6 @@ class ForInStmt : public IterationStmt {
    */
   Expr *iter() const { return iter_; }
 
-  /**
-   * @return mapping of attributes
-   */
-  Attributes *attributes() const { return attributes_; }
 
   /**
    * @return whether the attributes contain an oid
@@ -751,7 +717,6 @@ class ForInStmt : public IterationStmt {
  private:
   Expr *target_;
   Expr *iter_;
-  Attributes *attributes_;
 };
 
 /**

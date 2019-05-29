@@ -39,6 +39,30 @@ file(GLOB_RECURSE XBYAK_SOURCES
         )
 list(APPEND TERRIER_SRCS ${XBYAK})
 
+# xxHash
+option(BUILD_XXHSUM "Disable building xxhsum binary" OFF)
+option(XXHASH_BUNDLED_MODE "Indicate that we're building in bundled mode" ON)
+add_subdirectory(${THIRD_PARTY_DIR}/xxHash/cmake_unofficial)
+include_directories(SYSTEM "${THIRD_PARTY_DIR}/xxHash")
+
+# Libcount
+include(ExternalProject)
+ExternalProject_Add(
+        libcount_build
+        PREFIX "${THIRD_PARTY_DIR}/libcount"
+        SOURCE_DIR "${THIRD_PARTY_DIR}/libcount"
+        CONFIGURE_COMMAND ""
+        BUILD_COMMAND make
+        INSTALL_COMMAND ""
+        BUILD_IN_SOURCE 1
+        LOG_BUILD 1
+)
+add_library(libcount STATIC IMPORTED)
+set_property(TARGET libcount PROPERTY IMPORTED_LOCATION ${THIRD_PARTY_DIR}/libcount/libcount.a)
+add_dependencies(libcount libcount_build)
+
+include_directories(SYSTEM "${THIRD_PARTY_DIR}/libcount/include")
+list(APPEND TERRIER_LINK_LIBS libcount)
 
 ###############################################
 # Terrier library
