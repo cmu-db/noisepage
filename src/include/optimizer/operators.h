@@ -455,14 +455,14 @@ class LogicalInsert : public OperatorNode<LogicalInsert> {
    */
   static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&columns,
-                       std::vector<std::vector<parser::AbstractExpression*>> &&values);
+                       std::vector<std::vector<parser::AbstractExpression *>> &&values);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
 
   /**
- * @return OID of the database
- */
+   * @return OID of the database
+   */
   const catalog::db_oid_t &GetDatabaseOid() const { return database_oid_; }
 
   /**
@@ -500,7 +500,7 @@ class LogicalInsert : public OperatorNode<LogicalInsert> {
    * The expression objects to insert.
    * The offset of an entry in this list corresponds to the offset in the columns_ list.
    */
-  std::vector<std::vector<parser::AbstractExpression*>> values_;
+  std::vector<std::vector<parser::AbstractExpression *>> values_;
 };
 
 /**
@@ -695,8 +695,7 @@ class LogicalUpdate : public OperatorNode<LogicalUpdate> {
    * @return
    */
   static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::table_oid_t table_oid,
-                       std::vector<std::shared_ptr<parser::UpdateClause>> &&updates);
+                       catalog::table_oid_t table_oid, std::vector<std::shared_ptr<parser::UpdateClause>> &&updates);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;

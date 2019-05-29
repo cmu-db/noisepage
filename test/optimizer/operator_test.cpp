@@ -22,20 +22,17 @@ TEST(OperatorTests, LogicalInsertTest) {
   catalog::db_oid_t database_oid(123);
   catalog::namespace_oid_t namespace_oid(456);
   catalog::table_oid_t table_oid(789);
-  catalog::col_oid_t columns[] = { catalog::col_oid_t(1), catalog::col_oid_t(2) };
-  parser::AbstractExpression* raw_values[] = {
+  catalog::col_oid_t columns[] = {catalog::col_oid_t(1), catalog::col_oid_t(2)};
+  parser::AbstractExpression *raw_values[] = {
       new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1)),
-      new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(9))
-  };
-  std::vector<std::vector<parser::AbstractExpression*>> values = {
-      std::vector<parser::AbstractExpression*>(raw_values, std::end(raw_values))
-  };
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(9))};
+  std::vector<std::vector<parser::AbstractExpression *>> values = {
+      std::vector<parser::AbstractExpression *>(raw_values, std::end(raw_values))};
 
   // Check that all of our GET methods work as expected
   Operator op1 = LogicalInsert::make(database_oid, namespace_oid, table_oid,
-      std::vector<catalog::col_oid_t>(columns, std::end(columns)),
-      std::vector<std::vector<parser::AbstractExpression*>>(values)
-  );
+                                     std::vector<catalog::col_oid_t>(columns, std::end(columns)),
+                                     std::vector<std::vector<parser::AbstractExpression *>>(values));
   EXPECT_EQ(op1.GetType(), OpType::LOGICALINSERT);
   EXPECT_EQ(op1.As<LogicalInsert>()->GetDatabaseOid(), database_oid);
   EXPECT_EQ(op1.As<LogicalInsert>()->GetNamespaceOid(), namespace_oid);
@@ -44,39 +41,34 @@ TEST(OperatorTests, LogicalInsertTest) {
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
   Operator op2 = LogicalInsert::make(database_oid, namespace_oid, table_oid,
-       std::vector<catalog::col_oid_t>(columns, std::end(columns)),
-       std::vector<std::vector<parser::AbstractExpression*>>(values)
-  );
+                                     std::vector<catalog::col_oid_t>(columns, std::end(columns)),
+                                     std::vector<std::vector<parser::AbstractExpression *>>(values));
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   // For this last check, we are going to give it more rows to insert
   // This will make sure that our hash is going deep into the vectors
-  std::vector<std::vector<parser::AbstractExpression*>> other_values = {
-      std::vector<parser::AbstractExpression*>(raw_values, std::end(raw_values)),
-      std::vector<parser::AbstractExpression*>(raw_values, std::end(raw_values))
-  };
+  std::vector<std::vector<parser::AbstractExpression *>> other_values = {
+      std::vector<parser::AbstractExpression *>(raw_values, std::end(raw_values)),
+      std::vector<parser::AbstractExpression *>(raw_values, std::end(raw_values))};
   Operator op3 = LogicalInsert::make(database_oid, namespace_oid, table_oid,
-       std::vector<catalog::col_oid_t>(columns, std::end(columns)),
-       std::vector<std::vector<parser::AbstractExpression*>>(other_values)
-  );
+                                     std::vector<catalog::col_oid_t>(columns, std::end(columns)),
+                                     std::vector<std::vector<parser::AbstractExpression *>>(other_values));
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
   // Make sure that we catch when the insert values do not match the
   // number of columns that we are trying to insert into
-  parser::AbstractExpression* bad_raw_values[] = {
+  parser::AbstractExpression *bad_raw_values[] = {
       new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1)),
       new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(2)),
-      new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(3))
-  };
-  std::vector<std::vector<parser::AbstractExpression*>> bad_values = {
-      std::vector<parser::AbstractExpression*>(bad_raw_values, std::end(bad_raw_values))
-  };
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(3))};
+  std::vector<std::vector<parser::AbstractExpression *>> bad_values = {
+      std::vector<parser::AbstractExpression *>(bad_raw_values, std::end(bad_raw_values))};
   EXPECT_DEATH(LogicalInsert::make(database_oid, namespace_oid, table_oid,
-      std::vector<catalog::col_oid_t>(columns, std::end(columns)),
-      std::vector<std::vector<parser::AbstractExpression*>>(bad_values)),
-    "Mismatched");
+                                   std::vector<catalog::col_oid_t>(columns, std::end(columns)),
+                                   std::vector<std::vector<parser::AbstractExpression *>>(bad_values)),
+               "Mismatched");
 }
 
 // NOLINTNEXTLINE
@@ -124,11 +116,11 @@ TEST(OperatorTests, LogicalLimitTest) {
   size_t offset = 90;
   size_t limit = 22;
   std::shared_ptr<parser::AbstractExpression> sort_expr =
-    std::make_shared<parser::ConstantValueExpression>(type::TransientValueFactory::GetTinyInt(1));
+      std::make_shared<parser::ConstantValueExpression>(type::TransientValueFactory::GetTinyInt(1));
   planner::OrderByOrderingType sort_dir = planner::OrderByOrderingType::ASC;
 
   // Check that all of our GET methods work as expected
-  Operator op1 = LogicalLimit::make(offset, limit, { sort_expr }, { sort_dir });
+  Operator op1 = LogicalLimit::make(offset, limit, {sort_expr}, {sort_dir});
   EXPECT_EQ(op1.GetType(), OpType::LOGICALLIMIT);
   EXPECT_EQ(op1.As<LogicalLimit>()->GetOffset(), offset);
   EXPECT_EQ(op1.As<LogicalLimit>()->GetLimit(), limit);
@@ -137,17 +129,16 @@ TEST(OperatorTests, LogicalLimitTest) {
   EXPECT_EQ(op1.As<LogicalLimit>()->GetSortDirections().size(), 1);
   EXPECT_EQ(op1.As<LogicalLimit>()->GetSortDirections()[0], sort_dir);
 
-
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
-  Operator op2 = LogicalLimit::make(offset, limit, { sort_expr }, { sort_dir });
+  Operator op2 = LogicalLimit::make(offset, limit, {sort_expr}, {sort_dir});
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   // Lastly, make a different object and make sure that it is not equal
   // and that it's hash is not the same!
   size_t other_offset = 1111;
-  Operator op3 = LogicalLimit::make(other_offset, limit, { sort_expr }, { sort_dir });
+  Operator op3 = LogicalLimit::make(other_offset, limit, {sort_expr}, {sort_dir});
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 }
@@ -184,14 +175,13 @@ TEST(OperatorTests, LogicalUpdateTest) {
   std::string column = "abc";
   parser::AbstractExpression *value = new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1));
   std::shared_ptr<parser::UpdateClause> update_clause =
-      std::make_shared<parser::UpdateClause>(column,
-      std::shared_ptr<parser::AbstractExpression>(value));
+      std::make_shared<parser::UpdateClause>(column, std::shared_ptr<parser::AbstractExpression>(value));
   catalog::db_oid_t database_oid(123);
   catalog::namespace_oid_t namespace_oid(456);
   catalog::table_oid_t table_oid(789);
 
   // Check that all of our GET methods work as expected
-  Operator op1 = LogicalUpdate::make(database_oid, namespace_oid, table_oid, { update_clause });
+  Operator op1 = LogicalUpdate::make(database_oid, namespace_oid, table_oid, {update_clause});
   EXPECT_EQ(op1.GetType(), OpType::LOGICALUPDATE);
   EXPECT_EQ(op1.As<LogicalUpdate>()->GetDatabaseOid(), database_oid);
   EXPECT_EQ(op1.As<LogicalUpdate>()->GetNamespaceOid(), namespace_oid);
@@ -201,13 +191,13 @@ TEST(OperatorTests, LogicalUpdateTest) {
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
-  Operator op2 = LogicalUpdate::make(database_oid, namespace_oid, table_oid, { update_clause });
+  Operator op2 = LogicalUpdate::make(database_oid, namespace_oid, table_oid, {update_clause});
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   // Lastly, make a different object and make sure that it is not equal
   // and that it's hash is not the same!
-  Operator op3 = LogicalUpdate::make(database_oid, namespace_oid, table_oid, { });
+  Operator op3 = LogicalUpdate::make(database_oid, namespace_oid, table_oid, {});
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 }
@@ -220,7 +210,8 @@ TEST(OperatorTests, LogicalExportExternalFileTest) {
   char escape = 'Z';
 
   // Check that all of our GET methods work as expected
-  Operator op1 = LogicalExportExternalFile::make(parser::ExternalFileFormat::BINARY, file_name, delimiter, quote, escape);
+  Operator op1 =
+      LogicalExportExternalFile::make(parser::ExternalFileFormat::BINARY, file_name, delimiter, quote, escape);
   EXPECT_EQ(op1.GetType(), OpType::LOGICALEXPORTEXTERNALFILE);
   EXPECT_EQ(op1.As<LogicalExportExternalFile>()->GetFilename(), file_name);
   EXPECT_EQ(op1.As<LogicalExportExternalFile>()->GetDelimiter(), delimiter);
@@ -230,7 +221,8 @@ TEST(OperatorTests, LogicalExportExternalFileTest) {
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
   std::string file_name_copy = file_name;
-  Operator op2 = LogicalExportExternalFile::make(parser::ExternalFileFormat::BINARY, file_name_copy, delimiter, quote, escape);
+  Operator op2 =
+      LogicalExportExternalFile::make(parser::ExternalFileFormat::BINARY, file_name_copy, delimiter, quote, escape);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
