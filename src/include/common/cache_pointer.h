@@ -1,16 +1,5 @@
 #pragma once
-
-#include <atomic>
-#include <cstddef>
-#include <cstdint>
 #include <functional>
-#include <iosfwd>
-#include <string>
-#include <type_traits>
-#include <utility>
-
-#include "common/macros.h"
-
 namespace terrier::common {
 
 /**
