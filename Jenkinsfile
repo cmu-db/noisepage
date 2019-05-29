@@ -51,7 +51,7 @@ pipeline {
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make gflags_ep -j 4 && make googletest_ep -j 4 && make gbenchmark_ep -j 4 && make -j4'
                         sh 'cd build && make unittest -j4'
-                        sh 'cd build && python ../script/testing/junit/run_junit.py'
+                        sh 'cd build && python ../script/testing/junit/run_junit.py --build_type=release'
                     }
                 }
 
@@ -66,7 +66,7 @@ pipeline {
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_WARNING_LEVEL=Production .. && make gflags_ep -j 4 && make googletest_ep -j 4 && make gbenchmark_ep -j 4 && make -j4'
                         sh 'cd build && make unittest -j4'
-                        sh 'cd build && python ../script/testing/junit/run_junit.py'
+                        sh 'cd build && python ../script/testing/junit/run_junit.py --build_type=release'
                     }
                 }
 
