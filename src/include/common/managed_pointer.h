@@ -41,7 +41,8 @@ class ManagedPointer {
    * @return modified ManagedPointer
    */
   ManagedPointer &operator=(const ManagedPointer &other) {
-    underlying_ = other.underlying_;
+    if (this != &other)
+      underlying_ = other.underlying_;
     return *this;
   }
 
