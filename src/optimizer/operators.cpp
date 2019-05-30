@@ -144,7 +144,7 @@ common::hash_t LogicalFilter::Hash() const {
 // LogicalProjection
 //===--------------------------------------------------------------------===//
 
-Operator LogicalProjection::make(std::vector<std::shared_ptr<parser::AbstractExpression>> &&expressions) {
+Operator LogicalProjection::make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&expressions) {
   auto *op = new LogicalProjection;
   op->expressions_ = std::move(expressions);
   return Operator(op);

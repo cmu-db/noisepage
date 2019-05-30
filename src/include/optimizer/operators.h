@@ -264,7 +264,7 @@ class LogicalProjection : public OperatorNode<LogicalProjection> {
    * @param expressions list of AbstractExpressions in the projection list.
    * @return a LogicalProjection operator
    */
-  static Operator make(std::vector<std::shared_ptr<parser::AbstractExpression>> &&expressions);
+  static Operator make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&expressions);
 
   bool operator==(const BaseOperatorNode &r) override;
 
@@ -273,13 +273,13 @@ class LogicalProjection : public OperatorNode<LogicalProjection> {
   /**
    * @return vector of predicates
    */
-  std::vector<std::shared_ptr<parser::AbstractExpression>> GetExpressions() const { return expressions_; }
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> GetExpressions() const { return expressions_; }
 
  private:
   /**
    * Each entry in the projection list is an AbstractExpression
    */
-  std::vector<std::shared_ptr<parser::AbstractExpression>> expressions_;
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> expressions_;
 };
 
 /**

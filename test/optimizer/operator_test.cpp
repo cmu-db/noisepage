@@ -390,28 +390,32 @@ TEST(OperatorTests, LogicalProjectionTest) {
   auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
   auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
 
-  std::shared_ptr<parser::AbstractExpression> x_1 = std::shared_ptr<parser::AbstractExpression>(expr_b_1);
-  std::shared_ptr<parser::AbstractExpression> x_2 = std::shared_ptr<parser::AbstractExpression>(expr_b_2);
-  std::shared_ptr<parser::AbstractExpression> x_3 = std::shared_ptr<parser::AbstractExpression>(expr_b_3);
+  auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
+  auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
+  auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
   Operator logical_projection_1 =
-      LogicalProjection::make(std::vector<std::shared_ptr<parser::AbstractExpression>>{x_1});
+      LogicalProjection::make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1});
   Operator logical_projection_2 =
-      LogicalProjection::make(std::vector<std::shared_ptr<parser::AbstractExpression>>{x_2});
+      LogicalProjection::make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_2});
   Operator logical_projection_3 =
-      LogicalProjection::make(std::vector<std::shared_ptr<parser::AbstractExpression>>{x_3});
+      LogicalProjection::make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_3});
 
   EXPECT_EQ(logical_projection_1.GetType(), OpType::LOGICALPROJECTION);
   EXPECT_EQ(logical_projection_3.GetType(), OpType::LOGICALPROJECTION);
   EXPECT_EQ(logical_projection_1.GetName(), "LogicalProjection");
   EXPECT_EQ(logical_projection_1.As<LogicalProjection>()->GetExpressions(),
-            std::vector<std::shared_ptr<parser::AbstractExpression>>{x_1});
+            std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1});
   EXPECT_EQ(logical_projection_3.As<LogicalProjection>()->GetExpressions(),
-            std::vector<std::shared_ptr<parser::AbstractExpression>>{x_3});
+            std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_3});
   EXPECT_TRUE(logical_projection_1 == logical_projection_2);
   EXPECT_FALSE(logical_projection_1 == logical_projection_3);
   EXPECT_EQ(logical_projection_1.Hash(), logical_projection_2.Hash());
   EXPECT_NE(logical_projection_1.Hash(), logical_projection_3.Hash());
+
+  delete expr_b_1;
+  delete expr_b_2;
+  delete expr_b_3;
 }
 
 // NOLINTNEXTLINE
