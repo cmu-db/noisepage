@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
-#include "catalog/catalog_defs"
+#include "catalog/catalog_defs.h"
 #include "common/constants.h"
 #include "common/macros.h"
 #include "common/strong_typedef.h"
