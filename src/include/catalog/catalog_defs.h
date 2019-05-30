@@ -37,33 +37,4 @@ STRONG_TYPEDEF(type_oid_t, uint32_t);
 STRONG_TYPEDEF(view_oid_t, uint32_t);
 STRONG_TYPEDEF(constraint_oid_t, uint32_t);
 
-/**
- * Wraps the concept of a default value expression into an object that can be
- * passed between the catalog and the consumers of these expressions.
- */
-class DefaultValue {
- public:
-  /**
-   * Constructs a default value.  We perform a deep copy for now to make lifecycle
-   * reasoning easier.  This may need to be updated if it becomes a bottleneck.
-   * @param type_id of the default value
-   * @param serialized_expression for calculating default value at runtime
-   */
-  explicit DefaultValue(type::TypeId type_id, const AbstractExpression *expression)
-      : type_(type_id), expression_(expression) {}
-
-  /**
-   * @return the type of the default value
-   */
-  const type::TypeId &GetType() { return type_; }
-
-  /**
-   * @return the expression that calculates the default value
-   */
-  const AbstractExpression *GetExpression() { return expression_; }
-
- private:
-  type::TypeId type_;
-  const AbstractExpression *expression_;
-};
 }  // namespace terrier::catalog
