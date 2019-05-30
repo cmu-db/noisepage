@@ -322,8 +322,10 @@ TEST(OperatorTests, LogicalQueryDerivedGetTest) {
   auto alias_to_expr_map_4 = std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>>();
   auto alias_to_expr_map_5 = std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>>();
 
-  parser::AbstractExpression* expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1));
-  parser::AbstractExpression* expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1));
+  parser::AbstractExpression *expr_b_1 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1));
+  parser::AbstractExpression *expr_b_2 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1));
   auto expr1 = common::ManagedPointer(expr_b_1);
   auto expr2 = common::ManagedPointer(expr_b_2);
 
