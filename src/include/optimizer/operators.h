@@ -7,6 +7,7 @@
 #include <vector>
 #include "catalog/catalog_defs.h"
 #include "common/hash_util.h"
+#include "common/managed_pointer.h"
 #include "optimizer/operator_node.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression_defs.h"
@@ -195,7 +196,7 @@ class LogicalQueryDerivedGet : public OperatorNode<LogicalQueryDerivedGet> {
    */
   static Operator make(
       std::string table_alias,
-      std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>> &&alias_to_expr_map);
+      std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> &&alias_to_expr_map);
 
   bool operator==(const BaseOperatorNode &r) override;
 
@@ -209,7 +210,7 @@ class LogicalQueryDerivedGet : public OperatorNode<LogicalQueryDerivedGet> {
   /**
    * @return map from table aliases to expressions
    */
-  std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>> GetAliasToExprMap() const {
+  std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> GetAliasToExprMap() const {
     return alias_to_expr_map_;
   }
 
@@ -222,7 +223,7 @@ class LogicalQueryDerivedGet : public OperatorNode<LogicalQueryDerivedGet> {
   /**
    * Map from table aliases to expressions
    */
-  std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>> alias_to_expr_map_;
+  std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> alias_to_expr_map_;
 };
 
 /**
