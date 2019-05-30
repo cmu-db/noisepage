@@ -36,6 +36,16 @@ class ManagedPointer {
   Underlying *operator->() const { return underlying_; }
 
   /**
+   * Assign the current ManagedPointer from another ManagedPointer
+   * @param other the other pointer to be assigned from
+   * @return modified ManagedPointer
+   */
+  ManagedPointer &operator=(const ManagedPointer &other) {
+    underlying_ = other.underlying_;
+    return *this;
+  }
+
+  /**
    * Equality operator
    * @param other the other ManagedPointer to be compared with
    * @return true if the two ManagedPointers are equal, false otherwise.
