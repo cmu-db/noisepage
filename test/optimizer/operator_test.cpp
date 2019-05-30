@@ -250,7 +250,8 @@ TEST(OperatorTests, LogicalGetTest) {
   Operator logical_get_2 = LogicalGet::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
                                             std::vector<AnnotatedExpression>(), "table", false);
 
-  auto annotated_expr = AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
+  auto annotated_expr =
+      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
   Operator logical_get_3 = LogicalGet::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
                                             std::vector<AnnotatedExpression>{annotated_expr}, "table", false);
 
@@ -371,7 +372,8 @@ TEST(OperatorTests, LogicalFilterTest) {
   //===--------------------------------------------------------------------===//
   Operator logical_filter_1 = LogicalFilter::make(std::vector<AnnotatedExpression>());
   Operator logical_filter_2 = LogicalFilter::make(std::vector<AnnotatedExpression>());
-  auto annotated_expr = AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
+  auto annotated_expr =
+      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
   Operator logical_filter_3 = LogicalFilter::make(std::vector<AnnotatedExpression>{annotated_expr});
 
   EXPECT_EQ(logical_filter_1.GetType(), OpType::LOGICALFILTER);
@@ -426,7 +428,8 @@ TEST(OperatorTests, LogicalDependentJoinTest) {
   Operator logical_dep_join_0 = LogicalDependentJoin::make();
   Operator logical_dep_join_1 = LogicalDependentJoin::make(std::vector<AnnotatedExpression>());
   Operator logical_dep_join_2 = LogicalDependentJoin::make(std::vector<AnnotatedExpression>());
-  auto annotated_expr = AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
+  auto annotated_expr =
+      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
   Operator logical_dep_join_3 = LogicalDependentJoin::make(std::vector<AnnotatedExpression>{annotated_expr});
 
   EXPECT_EQ(logical_dep_join_1.GetType(), OpType::LOGICALDEPENDENTJOIN);
@@ -446,7 +449,8 @@ TEST(OperatorTests, LogicalMarkJoinTest) {
   Operator logical_mark_join_0 = LogicalMarkJoin::make();
   Operator logical_mark_join_1 = LogicalMarkJoin::make(std::vector<AnnotatedExpression>());
   Operator logical_mark_join_2 = LogicalMarkJoin::make(std::vector<AnnotatedExpression>());
-  auto annotated_expr = AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
+  auto annotated_expr =
+      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
   Operator logical_mark_join_3 = LogicalMarkJoin::make(std::vector<AnnotatedExpression>{annotated_expr});
 
   EXPECT_EQ(logical_mark_join_1.GetType(), OpType::LOGICALMARKJOIN);
@@ -471,7 +475,8 @@ TEST(OperatorTests, LogicalSingleJoinTest) {
   Operator logical_single_join_0 = LogicalSingleJoin::make();
   Operator logical_single_join_1 = LogicalSingleJoin::make(std::vector<AnnotatedExpression>());
   Operator logical_single_join_2 = LogicalSingleJoin::make(std::vector<AnnotatedExpression>());
-  auto annotated_expr = AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
+  auto annotated_expr =
+      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
   Operator logical_single_join_3 = LogicalSingleJoin::make(std::vector<AnnotatedExpression>{annotated_expr});
 
   EXPECT_EQ(logical_single_join_1.GetType(), OpType::LOGICALSINGLEJOIN);
@@ -501,7 +506,8 @@ TEST(OperatorTests, LogicalInnerJoinTest) {
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  auto annotated_expr_0 = AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
+  auto annotated_expr_0 =
+      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
   auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
   auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
   auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
@@ -698,7 +704,8 @@ TEST(OperatorTests, LogicalAggregateAndGroupByTest) {
   auto x_8 = common::ManagedPointer<parser::AbstractExpression>(expr_b_8);
 
   // havings: vector of AnnotatedExpression
-  auto annotated_expr_0 = AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
+  auto annotated_expr_0 =
+      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
   auto annotated_expr_1 = AnnotatedExpression(x_4, std::unordered_set<std::string>());
   auto annotated_expr_2 = AnnotatedExpression(x_5, std::unordered_set<std::string>());
   auto annotated_expr_3 = AnnotatedExpression(x_6, std::unordered_set<std::string>());
@@ -760,7 +767,8 @@ TEST(OperatorTests, SeqScanTest) {
   Operator seq_scan_2 = SeqScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
                                       "table", std::vector<AnnotatedExpression>(), false);
 
-  auto annotated_expr = AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
+  auto annotated_expr =
+      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
   Operator seq_scan_3 = SeqScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
                                       "table", std::vector<AnnotatedExpression>{annotated_expr}, false);
 

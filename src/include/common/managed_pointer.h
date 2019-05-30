@@ -17,7 +17,7 @@ namespace terrier::common {
 template <class Underlying>
 class ManagedPointer {
  public:
-  explicit ManagedPointer() = default;
+  ManagedPointer() = default;
 
   /**
    * Constructs a new ManagedPointer.
