@@ -46,6 +46,11 @@ class DBMain {
       delete txn_manager_;
       delete buffer_segment_pool_;
       delete thread_pool_;
+
+      delete connection_handle_factory_;
+      delete server_;
+      delete command_factory_;
+      delete t_cop_;
     }
   }
 
@@ -87,9 +92,12 @@ class DBMain {
   catalog::Catalog *catalog_;
   settings::SettingsManager *settings_manager_;
   storage::GarbageCollectorThread *gc_thread_;
-  network::TerrierServer server_;
+  network::TerrierServer *server_;
   storage::RecordBufferSegmentPool *buffer_segment_pool_;
   common::WorkerPool *thread_pool_;
+  terrier::traffic_cop::TrafficCop *t_cop_;
+  terrier::network::CommandFactory *command_factory_;
+  terrier::network::ConnectionHandleFactory *connection_handle_factory_;
 
   bool running = false;
   bool initialized = false;

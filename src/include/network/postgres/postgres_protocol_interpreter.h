@@ -5,7 +5,10 @@
 #include <unordered_map>
 #include <utility>
 #include "loggers/network_logger.h"
-#include "network/postgres_network_commands.h"
+#include "network/command_factory.h"
+#include "network/connection_context.h"
+#include "network/connection_handle.h"
+#include "network/postgres/postgres_network_commands.h"
 #include "network/protocol_interpreter.h"
 
 namespace terrier::network {
@@ -18,15 +21,18 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
   /**
    * Default constructor
    */
-  PostgresProtocolInterpreter() = default;
+  explicit PostgresProtocolInterpreter(CommandFactory *command_factory) : command_factory_(command_factory) {}
   /**
    * @see ProtocolIntepreter::Process
    * @param in
    * @param out
    * @param callback
+   * @param t_cop the traffic cop pointer
+   * @param context the connection context
    * @return
    */
-  Transition Process(std::shared_ptr<ReadBuffer> in, std::shared_ptr<WriteQueue> out, CallbackFunc callback) override;
+  Transition Process(std::shared_ptr<ReadBuffer> in, std::shared_ptr<WriteQueue> out, TrafficCop *t_cop,
+                     ConnectionContext *context, NetworkCallback callback) override;
 
   /**
    *
@@ -88,9 +94,9 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
   bool startup_ = true;
   PostgresInputPacket curr_input_packet_{};
   std::unordered_map<std::string, std::string> cmdline_options_;
+  CommandFactory *command_factory_;
   bool TryBuildPacket(const std::shared_ptr<ReadBuffer> &in);
   bool TryReadPacketHeader(const std::shared_ptr<ReadBuffer> &in);
-  std::shared_ptr<PostgresNetworkCommand> PacketToCommand();
 };
 
 }  // namespace terrier::network
