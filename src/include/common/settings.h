@@ -16,7 +16,7 @@ struct Settings {
   /**
    * Port on which the terrier server listens
    */
-  static const uint16_t SERVER_PORT = 2888;
+  static const uint16_t SERVER_PORT = 15721;
 
   /**
    * Maximum number of connections to the server.
