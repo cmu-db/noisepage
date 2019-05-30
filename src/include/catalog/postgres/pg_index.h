@@ -24,19 +24,6 @@ namespace terrier::catalog::postgres {
 #define INDISLIVE_COL_OID col_oid_t(9)      // BOOLEAN
 
 /**
- * Get a new schema object that describes the pg_index table
- * @return the pg_index schema object
- */
-Schema GetNamespaceTableSchema();
-
-/**
- * Instantiate a new SqlTable for pg_index
- * @param block_store to back the table's memory requirements
- * @return pointer to the new pg_index table
- */
-storage::SqlTable *CreateNamespaceTable(storage::BlockStore *block_store);
-
-/**
  * This is a thin wrapper around projections into pg_index.  The interface
  * is intended to  be generic enough that the underlying table schemas could
  * be replaced with a different implementation and not significantly affect

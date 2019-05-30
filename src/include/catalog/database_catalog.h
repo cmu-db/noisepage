@@ -22,16 +22,6 @@ namespace terrier::catalog {
 class DatabaseCatalog {
  public:
   /**
-   * Initializes the DatabaseCatalog object by creating bootstrapping the catalog
-   * tables and inserting the default namespace ("public") and types.  This also
-   * constructs the debootstrap logic (i.e. table deallocations) that gets
-   * deferred using the action framework in the destructor.
-   * @param txn with which to initialize the tables (necessary for GC)
-   * @param block_store to use to back catalog tables
-   */
-  DatabaseCatalog(transaction::TransactionContext *txn, storeage::BlockStore block_store);
-
-  /**
    * Handles destruction of the database catalog by deferring an event using
    * the event framework that handles deallocating all of the objects handled
    * or owned by the database catalog.
@@ -45,7 +35,9 @@ class DatabaseCatalog {
    * Catalog::DeleteDatabase to ensure the deallocation is done in a
    * transactionally safe manner.
    */
-  ~DatabaseCatalog();
+  ~DatabaseCatalog() {
+    debootstrap();
+  }
 
   /**
    * Creates a new namespace within the database
@@ -226,7 +218,8 @@ class DatabaseCatalog {
   transaction::Action debootstrap;
   std::atomic<uint32_t> next_oid_;
 
-  table_oid_t AddTableToCatalog(const Schema &schema);
-  index_oid_t AddIndexToCatalog(const IndexSchema &schema);
+  DatabaseCatalog();
+
+  friend class postgres::DatabaseBuilder;
 };
 } // namespace terrier::catalog

@@ -37,19 +37,6 @@ enum class ConstraintType : char {
 }
 
 /**
- * Get a new schema object that describes the pg_constraint table
- * @return the pg_constraint schema object
- */
-Schema GetConstraintTableSchema();
-
-/**
- * Instantiate a new SqlTable for pg_constraint
- * @param block_store to back the table's memory requirements
- * @return pointer to the new pg_constraint table
- */
-storage::SqlTable *CreateConstraintTable(storage::BlockStore *block_store);
-
-/**
  * This is a thin wrapper around projections into pg_constraint.  The interface
  * is intended to  be generic enough that the underlying table schemas could
  * be replaced with a different implementation and not significantly affect

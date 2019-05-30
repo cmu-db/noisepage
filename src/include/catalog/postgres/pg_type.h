@@ -30,19 +30,6 @@ enum class Type : char {
 }
 
 /**
- * Get a new schema object that describes the pg_type table
- * @return the pg_type schema object
- */
-Schema GetTypeTableSchema();
-
-/**
- * Instantiate a new SqlTable for pg_type
- * @param block_store to back the table's memory requirements
- * @return pointer to the new pg_type table
- */
-storage::SqlTable *CreateTypeTable(storage::BlockStore *block_store);
-
-/**
  * This is a thin wrapper around projections into pg_type.  The interface
  * is intended to  be generic enough that the underlying table schemas could
  * be replaced with a different implementation and not significantly affect

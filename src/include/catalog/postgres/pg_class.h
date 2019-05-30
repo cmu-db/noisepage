@@ -33,19 +33,6 @@ enum class ClassKind : char {
 }
 
 /**
- * Get a new schema object that describes the pg_class table
- * @return the pg_class schema object
- */
-Schema GetClassTableSchema();
-
-/**
- * Instantiate a new SqlTable for pg_class
- * @param block_store to back the table's memory requirements
- * @return pointer to the new pg_class table
- */
-storage::SqlTable *CreateClassTable(storage::BlockStore *block_store);
-
-/**
  * This is a thin wrapper around projections into pg_class.  The interface
  * is intended to  be generic enough that the underlying table schemas could
  * be replaced with a different implementation and not significantly affect

@@ -17,19 +17,6 @@ namespace terrier::catalog::postgres {
 #define NSPNAME_COL_OID col_oid_t(2) // VARCHAR
 
 /**
- * Get a new schema object that describes the pg_namespace table
- * @return the pg_namespace schema object
- */
-Schema GetNamespaceTableSchema();
-
-/**
- * Instantiate a new SqlTable for pg_namespace
- * @param block_store to back the table's memory requirements
- * @return pointer to the new pg_namespace table
- */
-storage::SqlTable *CreateNamespaceTable(storage::BlockStore *block_store);
-
-/**
  * This is a thin wrapper around projections into pg_namespace.  The interface
  * is intended to  be generic enough that the underlying table schemas could
  * be replaced with a different implementation and not significantly affect

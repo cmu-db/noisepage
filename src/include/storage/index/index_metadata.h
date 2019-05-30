@@ -37,7 +37,7 @@ class IndexMetadata {
    * Precomputes metadata for the given key schema.
    * @param key_schema index key schema
    */
-  explicit IndexMetadata(catalog::IndexKeySchema key_schema)
+  explicit IndexMetadata(catalog::IndexSchema key_schema)
       : key_schema_(std::move(key_schema)),
         attr_sizes_(ComputeAttributeSizes(key_schema_)),
         inlined_attr_sizes_(ComputeInlinedAttributeSizes(key_schema_)),

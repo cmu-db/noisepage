@@ -142,6 +142,7 @@ class Schema {
     void SetOid(col_oid_t oid) { oid_ = oid; }
 
     friend class DatabaseCatalog;
+    friend class postgres::Builder;
   };
 
   /**
