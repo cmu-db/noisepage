@@ -3,7 +3,6 @@
 #include <memory>
 #include <unordered_map>
 #include <utility>
-#include "catalog/catalog.h"
 #include "common/action_context.h"
 #include "common/stat_registry.h"
 #include "common/worker_pool.h"
@@ -42,7 +41,6 @@ class DBMain {
       ForceShutdown();
       delete gc_thread_;
       delete settings_manager_;
-      delete catalog_;
       delete txn_manager_;
       delete buffer_segment_pool_;
       delete thread_pool_;
@@ -89,7 +87,6 @@ class DBMain {
   std::shared_ptr<common::StatisticsRegistry> main_stat_reg_;
   std::unordered_map<settings::Param, settings::ParamInfo> param_map_;
   transaction::TransactionManager *txn_manager_;
-  catalog::Catalog *catalog_;
   settings::SettingsManager *settings_manager_;
   storage::GarbageCollectorThread *gc_thread_;
   network::TerrierServer *server_;

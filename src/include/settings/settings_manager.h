@@ -5,7 +5,6 @@
 #include <string>
 #include <unordered_map>
 #include <utility>
-#include "catalog/settings_handle.h"
 #include "common/action_context.h"
 #include "common/exception.h"
 #include "common/shared_latch.h"
@@ -33,7 +32,7 @@ class SettingsManager {
    * @param db a pointer to the DBMain
    * @param catalog a raw pointer to the system catalog
    */
-  SettingsManager(DBMain *db, catalog::Catalog *catalog);
+  explicit SettingsManager(DBMain *db);
 
   /**
    * Get the value of an integer setting
@@ -117,7 +116,6 @@ class SettingsManager {
 
  private:
   DBMain *db_;
-  catalog::SettingsCatalogTable settings_handle_;
   common::SharedLatch latch_;
 
   void ValidateSetting(Param param, const type::TransientValue &min_value, const type::TransientValue &max_value);
