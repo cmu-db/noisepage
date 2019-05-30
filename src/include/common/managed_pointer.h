@@ -17,7 +17,7 @@ namespace terrier::common {
 template <class Underlying>
 class ManagedPointer {
  public:
-  ManagedPointer() = default;
+  explicit ManagedPointer() = default;
 
   /**
    * Constructs a new ManagedPointer.
@@ -34,6 +34,11 @@ class ManagedPointer {
    * @return the underlying pointer
    */
   Underlying *operator->() const { return underlying_; }
+
+  /**
+   * @return True if it is not a nullptr, false otherwise
+   */
+  explicit operator bool() const { return underlying_; }
 
   /**
    * Equality operator

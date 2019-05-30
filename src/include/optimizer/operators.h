@@ -419,7 +419,7 @@ class LogicalLeftJoin : public OperatorNode<LogicalLeftJoin> {
    * @param join_predicate condition of the join
    * @return a LeftJoin operator
    */
-  static Operator make(std::shared_ptr<parser::AbstractExpression> join_predicate);
+  static Operator make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
 
   bool operator==(const BaseOperatorNode &r) override;
 
@@ -428,13 +428,13 @@ class LogicalLeftJoin : public OperatorNode<LogicalLeftJoin> {
   /**
    * @return pointer to the join predicate expression
    */
-  std::shared_ptr<parser::AbstractExpression> GetJoinPredicate() const { return join_predicate_; }
+  common::ManagedPointer<parser::AbstractExpression> GetJoinPredicate() const { return join_predicate_; }
 
  private:
   /**
    * Join predicate
    */
-  std::shared_ptr<parser::AbstractExpression> join_predicate_;
+  common::ManagedPointer<parser::AbstractExpression> join_predicate_;
 };
 
 /**
@@ -446,7 +446,7 @@ class LogicalRightJoin : public OperatorNode<LogicalRightJoin> {
    * @param join_predicate condition of the join
    * @return a RightJoin operator
    */
-  static Operator make(std::shared_ptr<parser::AbstractExpression> join_predicate);
+  static Operator make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
 
   bool operator==(const BaseOperatorNode &r) override;
 
@@ -455,13 +455,13 @@ class LogicalRightJoin : public OperatorNode<LogicalRightJoin> {
   /**
    * @return pointer to the join predicate expression
    */
-  std::shared_ptr<parser::AbstractExpression> GetJoinPredicate() const { return join_predicate_; }
+  common::ManagedPointer<parser::AbstractExpression> GetJoinPredicate() const { return join_predicate_; }
 
  private:
   /**
    * Join predicate
    */
-  std::shared_ptr<parser::AbstractExpression> join_predicate_;
+  common::ManagedPointer<parser::AbstractExpression> join_predicate_;
 };
 
 /**
@@ -473,7 +473,7 @@ class LogicalOuterJoin : public OperatorNode<LogicalOuterJoin> {
    * @param join_predicate condition of the join
    * @return an OuterJoin operator
    */
-  static Operator make(std::shared_ptr<parser::AbstractExpression> join_predicate);
+  static Operator make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
 
   bool operator==(const BaseOperatorNode &r) override;
 
@@ -482,13 +482,13 @@ class LogicalOuterJoin : public OperatorNode<LogicalOuterJoin> {
   /**
    * @return pointer to the join predicate expression
    */
-  std::shared_ptr<parser::AbstractExpression> GetJoinPredicate() const { return join_predicate_; }
+  common::ManagedPointer<parser::AbstractExpression> GetJoinPredicate() const { return join_predicate_; }
 
  private:
   /**
    * Join predicate
    */
-  std::shared_ptr<parser::AbstractExpression> join_predicate_;
+  common::ManagedPointer<parser::AbstractExpression> join_predicate_;
 };
 
 /**
@@ -500,7 +500,7 @@ class LogicalSemiJoin : public OperatorNode<LogicalSemiJoin> {
    * @param join_predicate condition of the join
    * @return a SemiJoin operator
    */
-  static Operator make(std::shared_ptr<parser::AbstractExpression> join_predicate);
+  static Operator make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
 
   bool operator==(const BaseOperatorNode &r) override;
 
@@ -509,13 +509,13 @@ class LogicalSemiJoin : public OperatorNode<LogicalSemiJoin> {
   /**
    * @return pointer to the join predicate expression
    */
-  std::shared_ptr<parser::AbstractExpression> GetJoinPredicate() const { return join_predicate_; }
+  common::ManagedPointer<parser::AbstractExpression> GetJoinPredicate() const { return join_predicate_; }
 
  private:
   /**
    * Join predicate
    */
-  std::shared_ptr<parser::AbstractExpression> join_predicate_;
+  common::ManagedPointer<parser::AbstractExpression> join_predicate_;
 };
 
 /**
@@ -532,14 +532,14 @@ class LogicalAggregateAndGroupBy : public OperatorNode<LogicalAggregateAndGroupB
    * @param columns columns to group by
    * @return a GroupBy operator
    */
-  static Operator make(std::vector<std::shared_ptr<parser::AbstractExpression>> &&columns);
+  static Operator make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns);
 
   /**
    * @param columns columns to group by
    * @param having HAVING clause
    * @return a GroupBy operator
    */
-  static Operator make(std::vector<std::shared_ptr<parser::AbstractExpression>> &&columns,
+  static Operator make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns,
                        std::vector<AnnotatedExpression> &&having);
 
   bool operator==(const BaseOperatorNode &r) override;
@@ -549,7 +549,7 @@ class LogicalAggregateAndGroupBy : public OperatorNode<LogicalAggregateAndGroupB
   /**
    * @return vector of columns
    */
-  std::vector<std::shared_ptr<parser::AbstractExpression>> GetColumns() const { return columns_; }
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> GetColumns() const { return columns_; }
 
   /**
    * @return vector of having expressions
@@ -560,7 +560,7 @@ class LogicalAggregateAndGroupBy : public OperatorNode<LogicalAggregateAndGroupB
   /**
    * Columns to group by
    */
-  std::vector<std::shared_ptr<parser::AbstractExpression>> columns_;
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> columns_;
 
   /**
    * Expression of HAVING clause

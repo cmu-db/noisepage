@@ -6,6 +6,7 @@
 #include <utility>
 #include "catalog/catalog_defs.h"
 #include "common/macros.h"
+#include "common/managed_pointer.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression_defs.h"
 
@@ -85,7 +86,7 @@ class AnnotatedExpression {
    * @param expr expression to be annotated
    * @param table_alias_set an unordered set of table aliases
    */
-  AnnotatedExpression(std::shared_ptr<parser::AbstractExpression> expr,
+  AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression> expr,
                       std::unordered_set<std::string> &&table_alias_set)
       : expr_(std::move(expr)), table_alias_set_(std::move(table_alias_set)) {}
 
@@ -98,7 +99,7 @@ class AnnotatedExpression {
   /**
    * @return the expresion to be annotated
    */
-  std::shared_ptr<parser::AbstractExpression> GetExpr() const { return expr_; }
+  common::ManagedPointer<parser::AbstractExpression> GetExpr() const { return expr_; }
 
   /**
    * @return the unordered set of table aliases
@@ -131,7 +132,7 @@ class AnnotatedExpression {
   /**
    * Expression to be annotated
    */
-  std::shared_ptr<parser::AbstractExpression> expr_;
+  common::ManagedPointer<parser::AbstractExpression> expr_;
 
   /**
    * Unordered set of table aliases
