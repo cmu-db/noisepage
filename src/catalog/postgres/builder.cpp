@@ -7,6 +7,7 @@
 #include "catalog/postgres/pg_index.h"
 #include "catalog/postgres/pg_namespace.h"
 #include "catalog/postgres/pg_type.h"
+#include "catalog/schema.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/constant_value_expression.h"
 #include "type/transient_value_factory.h"
