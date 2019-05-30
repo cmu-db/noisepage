@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 #include "catalog/catalog_defs.h"
+#include "common/managed_pointer.h"
 #include "optimizer/operator_expression.h"
 #include "optimizer/operators.h"
 #include "parser/expression/abstract_expression.h"
@@ -314,15 +315,18 @@ TEST(OperatorTests, LogicalQueryDerivedGetTest) {
   //===--------------------------------------------------------------------===//
   // LogicalQueryDerivedGet
   //===--------------------------------------------------------------------===//
-  auto alias_to_expr_map_1 = std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>>();
-  auto alias_to_expr_map_1_1 = std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>>();
-  auto alias_to_expr_map_2 = std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>>();
-  auto alias_to_expr_map_3 = std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>>();
-  auto alias_to_expr_map_4 = std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>>();
-  auto alias_to_expr_map_5 = std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>>();
+  auto alias_to_expr_map_1 = std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>>();
+  auto alias_to_expr_map_1_1 = std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>>();
+  auto alias_to_expr_map_2 = std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>>();
+  auto alias_to_expr_map_3 = std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>>();
+  auto alias_to_expr_map_4 = std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>>();
+  auto alias_to_expr_map_5 = std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>>();
 
-  auto expr1 = std::make_shared<parser::ConstantValueExpression>(type::TransientValueFactory::GetTinyInt(1));
-  auto expr2 = std::make_shared<parser::ConstantValueExpression>(type::TransientValueFactory::GetTinyInt(1));
+  parser::AbstractExpression* expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1));
+  parser::AbstractExpression* expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1));
+  auto expr1 = common::ManagedPointer(expr_b_1);
+  auto expr2 = common::ManagedPointer(expr_b_2);
+
   alias_to_expr_map_1["constant expr"] = expr1;
   alias_to_expr_map_1_1["constant expr"] = expr1;
   alias_to_expr_map_2["constant expr"] = expr1;
@@ -334,7 +338,7 @@ TEST(OperatorTests, LogicalQueryDerivedGetTest) {
   Operator logical_query_derived_get_1 = LogicalQueryDerivedGet::make("alias", std::move(alias_to_expr_map_1));
   Operator logical_query_derived_get_2 = LogicalQueryDerivedGet::make("alias", std::move(alias_to_expr_map_2));
   Operator logical_query_derived_get_3 = LogicalQueryDerivedGet::make(
-      "alias", std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>>());
+      "alias", std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>>());
   Operator logical_query_derived_get_4 = LogicalQueryDerivedGet::make("alias", std::move(alias_to_expr_map_3));
   Operator logical_query_derived_get_5 = LogicalQueryDerivedGet::make("alias", std::move(alias_to_expr_map_4));
   Operator logical_query_derived_get_6 = LogicalQueryDerivedGet::make("alias", std::move(alias_to_expr_map_5));
@@ -353,6 +357,9 @@ TEST(OperatorTests, LogicalQueryDerivedGetTest) {
   EXPECT_NE(logical_query_derived_get_1.Hash(), logical_query_derived_get_4.Hash());
   EXPECT_NE(logical_query_derived_get_1.Hash(), logical_query_derived_get_5.Hash());
   EXPECT_NE(logical_query_derived_get_1.Hash(), logical_query_derived_get_6.Hash());
+
+  delete expr_b_1;
+  delete expr_b_2;
 }
 
 // NOLINTNEXTLINE
