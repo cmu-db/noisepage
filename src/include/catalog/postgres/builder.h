@@ -25,7 +25,7 @@ class Builder {
    * @param catalog to bootstrap
    * @return an initialized DatabaseCatalog
    */
-  static void BootstrapCatalog(transaction::TransactionContext txn, DatabaseCatalog catalog);
+  static void BootstrapCatalog(transaction::TransactionContext *txn, DatabaseCatalog catalog);
 
   /**
    * Get the schema for pg_attribute
