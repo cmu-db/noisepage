@@ -67,10 +67,10 @@ TEST_F(DeferredActionsTest, CommitAction) {
   auto pri = new storage::ProjectedRowInitializer(std::get<0>(row_pair));
   auto pr_map = new storage::ProjectionMap(std::get<1>(row_pair));
 
-  auto insert_buffer = common::AllocationUtil::AllocateAligned(pri->ProjectedRowSize());
-  auto insert = pri->InitializeRow(insert_buffer);
-
   auto *txn = txn_mgr_.BeginTransaction();
+
+  auto insert_redo = txn->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), *pri);
+  auto insert = insert_redo->Delta();
 
   bool aborted = false;
   bool committed = false;
@@ -82,7 +82,7 @@ TEST_F(DeferredActionsTest, CommitAction) {
 
   auto *data = reinterpret_cast<int32_t *>(insert->AccessForceNotNull(pr_map->at(col_oid)));
   *data = 42;
-  table.Insert(txn, *insert);
+  table.Insert(txn, insert_redo);
 
   EXPECT_FALSE(aborted);
   EXPECT_FALSE(committed);
@@ -96,7 +96,6 @@ TEST_F(DeferredActionsTest, CommitAction) {
   gc_.PerformGarbageCollection();
 
   insert = nullptr;
-  delete[] insert_buffer;
   delete pr_map;
   delete pri;
 }
@@ -240,10 +239,10 @@ TEST_F(DeferredActionsTest, CommitBootstrapDefer) {
   auto pri = new storage::ProjectedRowInitializer(std::get<0>(row_pair));
   auto pr_map = new storage::ProjectionMap(std::get<1>(row_pair));
 
-  auto insert_buffer = common::AllocationUtil::AllocateAligned(pri->ProjectedRowSize());
-  auto insert = pri->InitializeRow(insert_buffer);
-
   auto *txn = txn_mgr_.BeginTransaction();
+
+  auto insert_redo = txn->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), *pri);
+  auto insert = insert_redo->Delta();
 
   bool defer1 = false;
   bool defer2 = false;
@@ -270,7 +269,7 @@ TEST_F(DeferredActionsTest, CommitBootstrapDefer) {
 
   auto *data = reinterpret_cast<int32_t *>(insert->AccessForceNotNull(pr_map->at(col_oid)));
   *data = 42;
-  table.Insert(txn, *insert);
+  table.Insert(txn, insert_redo);
 
   EXPECT_FALSE(aborted);
   EXPECT_FALSE(committed);
@@ -306,7 +305,6 @@ TEST_F(DeferredActionsTest, CommitBootstrapDefer) {
   EXPECT_TRUE(defer2);
 
   insert = nullptr;
-  delete[] insert_buffer;
   delete pr_map;
   delete pri;
 }

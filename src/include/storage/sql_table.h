@@ -8,6 +8,7 @@
 #include "storage/projected_columns.h"
 #include "storage/projected_row.h"
 #include "storage/storage_defs.h"
+#include "storage/write_ahead_log/log_record.h"
 
 namespace terrier::storage {
 
@@ -71,8 +72,8 @@ class SqlTable {
    * @param redo the desired change to be applied. This should be the after-image of the attributes of interest.
    * @return true if successful, false otherwise
    */
-  bool Update(transaction::TransactionContext *const txn, const TupleSlot slot, const ProjectedRow &redo) const {
-    return table_.data_table->Update(txn, slot, redo);
+  bool Update(transaction::TransactionContext *const txn, const TupleSlot slot, RedoRecord *const redo) const {
+    return table_.data_table->Update(txn, slot, *(redo->Delta()));
   }
 
   /**
@@ -83,8 +84,10 @@ class SqlTable {
    * @return the TupleSlot allocated for this insert, used to identify this tuple's physical location for indexes and
    * such.
    */
-  TupleSlot Insert(transaction::TransactionContext *const txn, const ProjectedRow &redo) const {
-    return table_.data_table->Insert(txn, redo);
+  TupleSlot Insert(transaction::TransactionContext *const txn, RedoRecord *const redo) const {
+    const auto slot = table_.data_table->Insert(txn, *(redo->Delta()));
+    redo->SetTupleSlot(slot);
+    return slot;
   }
 
   /**

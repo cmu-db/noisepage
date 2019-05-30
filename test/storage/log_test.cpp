@@ -42,7 +42,7 @@ class WriteAheadLoggingTests : public TerrierTest {
     auto tuple_slot = in->ReadValue<storage::TupleSlot>();
     auto result = storage::RedoRecord::PartialInitialize(buf, size, txn_begin,
                                                          // TODO(Tianyu): Hacky as hell
-                                                         nullptr, tuple_slot);
+                                                         catalog::db_oid_t(0), catalog::table_oid_t(0), tuple_slot);
     // TODO(Tianyu): For now, without inlined attributes, the delta portion is a straight memory copy. This
     // will obviously change in the future. Also, this is hacky as hell
     auto delta_size = in->ReadValue<uint32_t>();

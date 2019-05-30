@@ -46,7 +46,7 @@ class BwTreeIndexTests : public TerrierTest {
   Index *default_index_, *unique_index_;
   transaction::TransactionManager txn_manager_{&buffer_pool_, true, LOGGING_DISABLED};
 
-  byte *insert_buffer_, *key_buffer_1_, *key_buffer_2_;
+  byte *key_buffer_1_, *key_buffer_2_;
 
   common::WorkerPool thread_pool_{num_threads_, {}};
 
@@ -65,8 +65,6 @@ class BwTreeIndexTests : public TerrierTest {
                           .SetKeySchema(key_schema_)
                           .SetOid(catalog::index_oid_t(2)))
                          .Build();
-    insert_buffer_ =
-        common::AllocationUtil::AllocateAligned(default_index_->GetProjectedRowInitializer().ProjectedRowSize());
     key_buffer_1_ =
         common::AllocationUtil::AllocateAligned(default_index_->GetProjectedRowInitializer().ProjectedRowSize());
     key_buffer_2_ =
@@ -77,7 +75,6 @@ class BwTreeIndexTests : public TerrierTest {
     delete sql_table_;
     delete default_index_;
     delete unique_index_;
-    delete[] insert_buffer_;
     delete[] key_buffer_1_;
     delete[] key_buffer_2_;
     TerrierTest::TearDown();
@@ -93,9 +90,9 @@ class BwTreeIndexTests : public TerrierTest {
 TEST_F(BwTreeIndexTests, UniqueInsert) {
   const uint32_t num_inserts_ = 100000;  // number of tuples/primary keys for each worker to attempt to insert
   auto workload = [&](uint32_t worker_id) {
-    auto *const insert_buffer =
-        common::AllocationUtil::AllocateAligned(unique_index_->GetProjectedRowInitializer().ProjectedRowSize());
-    auto *const insert_tuple = tuple_initializer_.InitializeRow(insert_buffer);
+    //    auto *const insert_buffer =
+    //        common::AllocationUtil::AllocateAligned(unique_index_->GetProjectedRowInitializer().ProjectedRowSize());
+    //    auto *const insert_tuple = tuple_initializer_.InitializeRow(insert_buffer);
     auto *const key_buffer =
         common::AllocationUtil::AllocateAligned(unique_index_->GetProjectedRowInitializer().ProjectedRowSize());
     auto *const insert_key = unique_index_->GetProjectedRowInitializer().InitializeRow(key_buffer);
@@ -105,8 +102,11 @@ TEST_F(BwTreeIndexTests, UniqueInsert) {
     if (worker_id % 2 == 0) {
       for (uint32_t i = 0; i < num_inserts_; i++) {
         auto *const insert_txn = txn_manager_.BeginTransaction();
+        auto *const insert_redo =
+            insert_txn->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), tuple_initializer_);
+        auto *const insert_tuple = insert_redo->Delta();
         *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = i;
-        const auto tuple_slot = sql_table_->Insert(insert_txn, *insert_tuple);
+        const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
 
         *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = i;
         if (unique_index_->InsertUnique(insert_txn, *insert_key, tuple_slot)) {
@@ -119,8 +119,11 @@ TEST_F(BwTreeIndexTests, UniqueInsert) {
     } else {
       for (uint32_t i = num_inserts_ - 1; i < num_inserts_; i--) {
         auto *const insert_txn = txn_manager_.BeginTransaction();
+        auto *const insert_redo =
+            insert_txn->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), tuple_initializer_);
+        auto *const insert_tuple = insert_redo->Delta();
         *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = i;
-        const auto tuple_slot = sql_table_->Insert(insert_txn, *insert_tuple);
+        const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
 
         *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = i;
         if (unique_index_->InsertUnique(insert_txn, *insert_key, tuple_slot)) {
@@ -130,8 +133,6 @@ TEST_F(BwTreeIndexTests, UniqueInsert) {
         }
       }
     }
-
-    delete[] insert_buffer;
     delete[] key_buffer;
   };
 
@@ -167,9 +168,6 @@ TEST_F(BwTreeIndexTests, UniqueInsert) {
 TEST_F(BwTreeIndexTests, DefaultInsert) {
   const uint32_t num_inserts_ = 100000;  // number of tuples/primary keys for each worker to attempt to insert
   auto workload = [&](uint32_t worker_id) {
-    auto *const insert_buffer =
-        common::AllocationUtil::AllocateAligned(default_index_->GetProjectedRowInitializer().ProjectedRowSize());
-    auto *const insert_tuple = tuple_initializer_.InitializeRow(insert_buffer);
     auto *const key_buffer =
         common::AllocationUtil::AllocateAligned(default_index_->GetProjectedRowInitializer().ProjectedRowSize());
     auto *const insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer);
@@ -178,8 +176,11 @@ TEST_F(BwTreeIndexTests, DefaultInsert) {
     if (worker_id % 2 == 0) {
       for (uint32_t i = 0; i < num_inserts_; i++) {
         auto *const insert_txn = txn_manager_.BeginTransaction();
+        auto *const insert_redo =
+            insert_txn->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), tuple_initializer_);
+        auto *const insert_tuple = insert_redo->Delta();
         *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = i;
-        const auto tuple_slot = sql_table_->Insert(insert_txn, *insert_tuple);
+        const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
 
         *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = i;
         EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
@@ -188,8 +189,11 @@ TEST_F(BwTreeIndexTests, DefaultInsert) {
     } else {
       for (uint32_t i = num_inserts_ - 1; i < num_inserts_; i--) {
         auto *const insert_txn = txn_manager_.BeginTransaction();
+        auto *const insert_redo =
+            insert_txn->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), tuple_initializer_);
+        auto *const insert_tuple = insert_redo->Delta();
         *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = i;
-        const auto tuple_slot = sql_table_->Insert(insert_txn, *insert_tuple);
+        const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
 
         *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = i;
         EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
@@ -197,7 +201,6 @@ TEST_F(BwTreeIndexTests, DefaultInsert) {
       }
     }
 
-    delete[] insert_buffer;
     delete[] key_buffer;
   };
 
@@ -234,12 +237,14 @@ TEST_F(BwTreeIndexTests, ScanAscending) {
   std::map<int32_t, storage::TupleSlot> reference;
   auto *const insert_txn = txn_manager_.BeginTransaction();
   for (int32_t i = 0; i <= 20; i += 2) {
-    auto *const insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
+    auto *const insert_redo = insert_txn->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), tuple_initializer_);
+    auto *const insert_tuple = insert_redo->Delta();
     *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = i;
-    const auto tuple_slot = sql_table_->Insert(insert_txn, *insert_tuple);
+    const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
 
-    auto *const insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
+    auto *const insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
     *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = i;
+
     EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
     reference[i] = tuple_slot;
   }
@@ -305,11 +310,12 @@ TEST_F(BwTreeIndexTests, ScanDescending) {
   std::map<int32_t, storage::TupleSlot> reference;
   auto *const insert_txn = txn_manager_.BeginTransaction();
   for (int32_t i = 0; i <= 20; i += 2) {
-    auto *const insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
+    auto *const insert_redo = insert_txn->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), tuple_initializer_);
+    auto *const insert_tuple = insert_redo->Delta();
     *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = i;
-    const auto tuple_slot = sql_table_->Insert(insert_txn, *insert_tuple);
+    const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
 
-    auto *const insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
+    auto *const insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
     *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = i;
     EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
     reference[i] = tuple_slot;
@@ -376,11 +382,12 @@ TEST_F(BwTreeIndexTests, ScanLimitAscending) {
   std::map<int32_t, storage::TupleSlot> reference;
   auto *const insert_txn = txn_manager_.BeginTransaction();
   for (int32_t i = 0; i <= 20; i += 2) {
-    auto *const insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
+    auto *const insert_redo = insert_txn->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), tuple_initializer_);
+    auto *const insert_tuple = insert_redo->Delta();
     *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = i;
-    const auto tuple_slot = sql_table_->Insert(insert_txn, *insert_tuple);
+    const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
 
-    auto *const insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
+    auto *const insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
     *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = i;
     EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
     reference[i] = tuple_slot;
@@ -443,11 +450,12 @@ TEST_F(BwTreeIndexTests, ScanLimitDescending) {
   std::map<int32_t, storage::TupleSlot> reference;
   auto *const insert_txn = txn_manager_.BeginTransaction();
   for (int32_t i = 0; i <= 20; i += 2) {
-    auto *const insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
+    auto *const insert_redo = insert_txn->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), tuple_initializer_);
+    auto *const insert_tuple = insert_redo->Delta();
     *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = i;
-    const auto tuple_slot = sql_table_->Insert(insert_txn, *insert_tuple);
+    const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
 
-    auto *const insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
+    auto *const insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
     *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = i;
     EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
     reference[i] = tuple_slot;
@@ -506,12 +514,13 @@ TEST_F(BwTreeIndexTests, UniqueKey1) {
   auto *txn0 = txn_manager_.BeginTransaction();
 
   // txn 0 inserts into table
-  auto *insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
+  auto *insert_redo = txn0->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), tuple_initializer_);
+  auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
-  const auto tuple_slot = sql_table_->Insert(txn0, *insert_tuple);
+  const auto tuple_slot = sql_table_->Insert(txn0, insert_redo);
 
   // txn 0 inserts into index
-  auto *insert_key = unique_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
+  auto *insert_key = unique_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
   EXPECT_TRUE(unique_index_->InsertUnique(txn0, *insert_key, tuple_slot));
 
@@ -534,12 +543,13 @@ TEST_F(BwTreeIndexTests, UniqueKey1) {
   results.clear();
 
   // txn 1 inserts into table
-  insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
+  insert_redo = txn1->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), tuple_initializer_);
+  insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
-  const auto new_tuple_slot = sql_table_->Insert(txn1, *insert_tuple);
+  const auto new_tuple_slot = sql_table_->Insert(txn1, insert_redo);
 
   // txn 1 inserts into index and fails due to write-write conflict with txn 0
-  insert_key = unique_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
+  insert_key = unique_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
   EXPECT_FALSE(unique_index_->InsertUnique(txn1, *insert_key, new_tuple_slot));
 
@@ -564,12 +574,13 @@ TEST_F(BwTreeIndexTests, UniqueKey2) {
   auto *txn0 = txn_manager_.BeginTransaction();
 
   // txn 0 inserts into table
-  auto *insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
+  auto *insert_redo = txn0->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), tuple_initializer_);
+  auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
-  const auto tuple_slot = sql_table_->Insert(txn0, *insert_tuple);
+  const auto tuple_slot = sql_table_->Insert(txn0, insert_redo);
 
   // txn 0 inserts into index
-  auto *insert_key = unique_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
+  auto *insert_key = unique_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
   EXPECT_TRUE(unique_index_->InsertUnique(txn0, *insert_key, tuple_slot));
 
@@ -589,12 +600,13 @@ TEST_F(BwTreeIndexTests, UniqueKey2) {
   auto *txn1 = txn_manager_.BeginTransaction();
 
   // txn 1 inserts into table
-  insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
+  insert_redo = txn1->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), tuple_initializer_);
+  insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
-  const auto new_tuple_slot = sql_table_->Insert(txn1, *insert_tuple);
+  const auto new_tuple_slot = sql_table_->Insert(txn1, insert_redo);
 
   // txn 1 inserts into index and fails due to visible key conflict with txn 0
-  insert_key = unique_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
+  insert_key = unique_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
   EXPECT_FALSE(unique_index_->InsertUnique(txn1, *insert_key, new_tuple_slot));
 
@@ -617,12 +629,13 @@ TEST_F(BwTreeIndexTests, UniqueKey3) {
   auto *txn0 = txn_manager_.BeginTransaction();
 
   // txn 0 inserts into table
-  auto *insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
+  auto *insert_redo = txn0->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), tuple_initializer_);
+  auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
-  const auto tuple_slot = sql_table_->Insert(txn0, *insert_tuple);
+  const auto tuple_slot = sql_table_->Insert(txn0, insert_redo);
 
   // txn 0 inserts into index
-  auto *insert_key = unique_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
+  auto *insert_key = unique_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
   EXPECT_TRUE(unique_index_->InsertUnique(txn0, *insert_key, tuple_slot));
 
@@ -638,12 +651,13 @@ TEST_F(BwTreeIndexTests, UniqueKey3) {
   results.clear();
 
   // txn 0 inserts into table
-  insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
+  insert_redo = txn0->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), tuple_initializer_);
+  insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
-  const auto new_tuple_slot = sql_table_->Insert(txn0, *insert_tuple);
+  const auto new_tuple_slot = sql_table_->Insert(txn0, insert_redo);
 
   // txn 0 inserts into index and fails due to visible key conflict with txn 0
-  insert_key = unique_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
+  insert_key = unique_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
   EXPECT_FALSE(unique_index_->InsertUnique(txn0, *insert_key, new_tuple_slot));
 
@@ -665,12 +679,13 @@ TEST_F(BwTreeIndexTests, UniqueKey4) {
   auto *txn0 = txn_manager_.BeginTransaction();
 
   // txn 0 inserts into table
-  auto *insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
+  auto *insert_redo = txn0->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), tuple_initializer_);
+  auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
-  const auto tuple_slot = sql_table_->Insert(txn0, *insert_tuple);
+  const auto tuple_slot = sql_table_->Insert(txn0, insert_redo);
 
   // txn 0 inserts into index
-  auto *insert_key = unique_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
+  auto *insert_key = unique_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
   EXPECT_TRUE(unique_index_->InsertUnique(txn0, *insert_key, tuple_slot));
 
@@ -686,22 +701,24 @@ TEST_F(BwTreeIndexTests, UniqueKey4) {
   results.clear();
 
   // txn 0 deletes from table
+  txn0->StageDelete(catalog::db_oid_t(0), catalog::table_oid_t(0), tuple_slot);
   EXPECT_TRUE(sql_table_->Delete(txn0, tuple_slot));
 
   // txn 0 deletes from index
-  insert_key = unique_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
+  insert_key = unique_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
   unique_index_->Delete(txn0, *insert_key, tuple_slot);
 
   auto *txn1 = txn_manager_.BeginTransaction();
 
   // txn 1 inserts into table
-  insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
+  insert_redo = txn1->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), tuple_initializer_);
+  insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
-  const auto new_tuple_slot = sql_table_->Insert(txn1, *insert_tuple);
+  const auto new_tuple_slot = sql_table_->Insert(txn1, insert_redo);
 
   // txn 1 inserts into index and fails due to write-write conflict with txn 0
-  insert_key = unique_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
+  insert_key = unique_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
   EXPECT_FALSE(unique_index_->InsertUnique(txn1, *insert_key, new_tuple_slot));
 
@@ -743,12 +760,13 @@ TEST_F(BwTreeIndexTests, CommitInsert1) {
   auto *txn0 = txn_manager_.BeginTransaction();
 
   // txn 0 inserts into table
-  auto *const insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
+  auto *insert_redo = txn0->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), tuple_initializer_);
+  auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
-  const auto tuple_slot = sql_table_->Insert(txn0, *insert_tuple);
+  const auto tuple_slot = sql_table_->Insert(txn0, insert_redo);
 
   // txn 0 inserts into index
-  auto *const insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
+  auto *const insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
   EXPECT_TRUE(default_index_->Insert(txn0, *insert_key, tuple_slot));
 
@@ -815,12 +833,13 @@ TEST_F(BwTreeIndexTests, CommitInsert2) {
   auto *txn1 = txn_manager_.BeginTransaction();
 
   // txn 1 inserts into table
-  auto *const insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
+  auto *insert_redo = txn1->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), tuple_initializer_);
+  auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
-  const auto tuple_slot = sql_table_->Insert(txn1, *insert_tuple);
+  const auto tuple_slot = sql_table_->Insert(txn1, insert_redo);
 
   // txn 1 inserts into index
-  auto *const insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
+  auto *const insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
   EXPECT_TRUE(default_index_->Insert(txn1, *insert_key, tuple_slot));
 
@@ -884,12 +903,13 @@ TEST_F(BwTreeIndexTests, AbortInsert1) {
   auto *txn0 = txn_manager_.BeginTransaction();
 
   // txn 0 inserts into table
-  auto *const insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
+  auto *insert_redo = txn0->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), tuple_initializer_);
+  auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
-  const auto tuple_slot = sql_table_->Insert(txn0, *insert_tuple);
+  const auto tuple_slot = sql_table_->Insert(txn0, insert_redo);
 
   // txn 0 inserts into index
-  auto *const insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
+  auto *const insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
   EXPECT_TRUE(default_index_->Insert(txn0, *insert_key, tuple_slot));
 
@@ -955,12 +975,13 @@ TEST_F(BwTreeIndexTests, AbortInsert2) {
   auto *txn1 = txn_manager_.BeginTransaction();
 
   // txn 1 inserts into table
-  auto *const insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
+  auto *insert_redo = txn1->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), tuple_initializer_);
+  auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
-  const auto tuple_slot = sql_table_->Insert(txn1, *insert_tuple);
+  const auto tuple_slot = sql_table_->Insert(txn1, insert_redo);
 
   // txn 1 inserts into index
-  auto *const insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
+  auto *const insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
   EXPECT_TRUE(default_index_->Insert(txn1, *insert_key, tuple_slot));
 
@@ -1023,12 +1044,13 @@ TEST_F(BwTreeIndexTests, CommitUpdate1) {
   auto *insert_txn = txn_manager_.BeginTransaction();
 
   // insert_txn inserts into table
-  auto *insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
+  auto *insert_redo = insert_txn->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), tuple_initializer_);
+  auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
-  const auto tuple_slot = sql_table_->Insert(insert_txn, *insert_tuple);
+  const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
 
   // insert_txn inserts into index
-  auto *insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
+  auto *insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
   EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
 
@@ -1048,13 +1070,15 @@ TEST_F(BwTreeIndexTests, CommitUpdate1) {
   results.clear();
 
   // txn 0 updates in the table, which is really a delete and insert since it's an indexed attribute
+  txn0->StageDelete(catalog::db_oid_t(0), catalog::table_oid_t(0), results[0]);
   EXPECT_TRUE(sql_table_->Delete(txn0, results[0]));
   default_index_->Delete(txn0, *insert_key, results[0]);
 
-  insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
+  insert_redo = txn0->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), tuple_initializer_);
+  insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15445;
-  const auto new_tuple_slot = sql_table_->Insert(txn0, *insert_tuple);
-  insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
+  const auto new_tuple_slot = sql_table_->Insert(txn0, insert_redo);
+  insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15445;
   EXPECT_TRUE(default_index_->Insert(txn0, *insert_key, new_tuple_slot));
 
@@ -1145,12 +1169,13 @@ TEST_F(BwTreeIndexTests, CommitUpdate2) {
   auto *insert_txn = txn_manager_.BeginTransaction();
 
   // insert_txn inserts into table
-  auto *insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
+  auto *insert_redo = insert_txn->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), tuple_initializer_);
+  auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
-  const auto tuple_slot = sql_table_->Insert(insert_txn, *insert_tuple);
+  const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
 
   // insert_txn inserts into index
-  auto *insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
+  auto *insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
   EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
 
@@ -1170,13 +1195,15 @@ TEST_F(BwTreeIndexTests, CommitUpdate2) {
   EXPECT_EQ(tuple_slot, results[0]);
 
   // txn 1 updates in the table, which is really a delete and insert since it's an indexed attribute
+  txn1->StageDelete(catalog::db_oid_t(0), catalog::table_oid_t(0), results[0]);
   EXPECT_TRUE(sql_table_->Delete(txn1, results[0]));
   default_index_->Delete(txn1, *insert_key, results[0]);
 
-  insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
+  insert_redo = txn1->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), tuple_initializer_);
+  insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15445;
-  const auto new_tuple_slot = sql_table_->Insert(txn1, *insert_tuple);
-  insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
+  const auto new_tuple_slot = sql_table_->Insert(txn1, insert_redo);
+  insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15445;
   EXPECT_TRUE(default_index_->Insert(txn1, *insert_key, new_tuple_slot));
 
@@ -1267,12 +1294,13 @@ TEST_F(BwTreeIndexTests, AbortUpdate1) {
   auto *insert_txn = txn_manager_.BeginTransaction();
 
   // insert_txn inserts into table
-  auto *insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
+  auto *insert_redo = insert_txn->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), tuple_initializer_);
+  auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
-  const auto tuple_slot = sql_table_->Insert(insert_txn, *insert_tuple);
+  const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
 
   // insert_txn inserts into index
-  auto *insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
+  auto *insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
   EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
 
@@ -1292,13 +1320,15 @@ TEST_F(BwTreeIndexTests, AbortUpdate1) {
   results.clear();
 
   // txn 0 updates in the table, which is really a delete and insert since it's an indexed attribute
+  txn0->StageDelete(catalog::db_oid_t(0), catalog::table_oid_t(0), results[0]);
   EXPECT_TRUE(sql_table_->Delete(txn0, results[0]));
   default_index_->Delete(txn0, *insert_key, results[0]);
 
-  insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
+  insert_redo = txn0->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), tuple_initializer_);
+  insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15445;
-  const auto new_tuple_slot = sql_table_->Insert(txn0, *insert_tuple);
-  insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
+  const auto new_tuple_slot = sql_table_->Insert(txn0, insert_redo);
+  insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15445;
   EXPECT_TRUE(default_index_->Insert(txn0, *insert_key, new_tuple_slot));
 
@@ -1389,12 +1419,13 @@ TEST_F(BwTreeIndexTests, AbortUpdate2) {
   auto *insert_txn = txn_manager_.BeginTransaction();
 
   // insert_txn inserts into table
-  auto *insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
+  auto *insert_redo = insert_txn->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), tuple_initializer_);
+  auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
-  const auto tuple_slot = sql_table_->Insert(insert_txn, *insert_tuple);
+  const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
 
   // insert_txn inserts into index
-  auto *insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
+  auto *insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
   EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
 
@@ -1414,13 +1445,15 @@ TEST_F(BwTreeIndexTests, AbortUpdate2) {
   EXPECT_EQ(tuple_slot, results[0]);
 
   // txn 1 updates in the table, which is really a delete and insert since it's an indexed attribute
+  txn1->StageDelete(catalog::db_oid_t(0), catalog::table_oid_t(0), results[0]);
   EXPECT_TRUE(sql_table_->Delete(txn1, results[0]));
   default_index_->Delete(txn1, *insert_key, results[0]);
 
-  insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
+  insert_redo = txn1->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), tuple_initializer_);
+  insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15445;
-  const auto new_tuple_slot = sql_table_->Insert(txn1, *insert_tuple);
-  insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
+  const auto new_tuple_slot = sql_table_->Insert(txn1, insert_redo);
+  insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15445;
   EXPECT_TRUE(default_index_->Insert(txn1, *insert_key, new_tuple_slot));
 
@@ -1511,12 +1544,13 @@ TEST_F(BwTreeIndexTests, CommitDelete1) {
   auto *insert_txn = txn_manager_.BeginTransaction();
 
   // insert_txn inserts into table
-  auto *insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
+  auto *insert_redo = insert_txn->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), tuple_initializer_);
+  auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
-  const auto tuple_slot = sql_table_->Insert(insert_txn, *insert_tuple);
+  const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
 
   // insert_txn inserts into index
-  auto *insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
+  auto *insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
   EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
 
@@ -1536,6 +1570,7 @@ TEST_F(BwTreeIndexTests, CommitDelete1) {
   results.clear();
 
   // txn 0 deletes in the table and index
+  txn0->StageDelete(catalog::db_oid_t(0), catalog::table_oid_t(0), results[0]);
   EXPECT_TRUE(sql_table_->Delete(txn0, results[0]));
   default_index_->Delete(txn0, *insert_key, results[0]);
 
@@ -1600,12 +1635,13 @@ TEST_F(BwTreeIndexTests, CommitDelete2) {
   auto *insert_txn = txn_manager_.BeginTransaction();
 
   // insert_txn inserts into table
-  auto *insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
+  auto *insert_redo = insert_txn->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), tuple_initializer_);
+  auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
-  const auto tuple_slot = sql_table_->Insert(insert_txn, *insert_tuple);
+  const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
 
   // insert_txn inserts into index
-  auto *insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
+  auto *insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
   EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
 
@@ -1625,6 +1661,7 @@ TEST_F(BwTreeIndexTests, CommitDelete2) {
   EXPECT_EQ(tuple_slot, results[0]);
 
   // txn 1 deletes in the table and index
+  txn1->StageDelete(catalog::db_oid_t(0), catalog::table_oid_t(0), results[0]);
   EXPECT_TRUE(sql_table_->Delete(txn1, results[0]));
   default_index_->Delete(txn1, *insert_key, results[0]);
 
@@ -1689,12 +1726,13 @@ TEST_F(BwTreeIndexTests, AbortDelete1) {
   auto *insert_txn = txn_manager_.BeginTransaction();
 
   // insert_txn inserts into table
-  auto *insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
+  auto *insert_redo = insert_txn->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), tuple_initializer_);
+  auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
-  const auto tuple_slot = sql_table_->Insert(insert_txn, *insert_tuple);
+  const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
 
   // insert_txn inserts into index
-  auto *insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
+  auto *insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
   EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
 
@@ -1714,6 +1752,7 @@ TEST_F(BwTreeIndexTests, AbortDelete1) {
   results.clear();
 
   // txn 0 deletes in the table and index
+  txn0->StageDelete(catalog::db_oid_t(0), catalog::table_oid_t(0), results[0]);
   EXPECT_TRUE(sql_table_->Delete(txn0, results[0]));
   default_index_->Delete(txn0, *insert_key, results[0]);
 
@@ -1779,12 +1818,13 @@ TEST_F(BwTreeIndexTests, AbortDelete2) {
   auto *insert_txn = txn_manager_.BeginTransaction();
 
   // insert_txn inserts into table
-  auto *insert_tuple = tuple_initializer_.InitializeRow(insert_buffer_);
+  auto *insert_redo = insert_txn->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), tuple_initializer_);
+  auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
-  const auto tuple_slot = sql_table_->Insert(insert_txn, *insert_tuple);
+  const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
 
   // insert_txn inserts into index
-  auto *insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(insert_buffer_);
+  auto *insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
   EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
 
@@ -1804,6 +1844,7 @@ TEST_F(BwTreeIndexTests, AbortDelete2) {
   EXPECT_EQ(tuple_slot, results[0]);
 
   // txn 1 deletes in the table and index
+  txn1->StageDelete(catalog::db_oid_t(0), catalog::table_oid_t(0), results[0]);
   EXPECT_TRUE(sql_table_->Delete(txn1, results[0]));
   default_index_->Delete(txn1, *insert_key, results[0]);
 

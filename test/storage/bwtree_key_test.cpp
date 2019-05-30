@@ -221,12 +221,12 @@ class BwTreeKeyTests : public TerrierTest {
     transaction::TransactionManager txn_manager(&buffer_pool, true, LOGGING_DISABLED);
     storage::GarbageCollector gc_manager(&txn_manager);
 
-    // dummy tuple to insert for each key. We just need the visible TupleSlot
-    auto *const insert_buffer = common::AllocationUtil::AllocateAligned(tuple_initializer.ProjectedRowSize());
-    auto *const insert_tuple = tuple_initializer.InitializeRow(insert_buffer);
-    *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
-
     auto *const txn = txn_manager.BeginTransaction();
+
+    // dummy tuple to insert for each key. We just need the visible TupleSlot
+    auto *const insert_redo = txn->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), tuple_initializer);
+    auto *const insert_tuple = insert_redo->Delta();
+    *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
 
     // instantiate projected row and key
     const auto &metadata = index->metadata_;
@@ -242,7 +242,7 @@ class BwTreeKeyTests : public TerrierTest {
     index->ScanKey(*txn, *key, &results);
     EXPECT_TRUE(results.empty());
 
-    auto tuple_slot = sql_table.Insert(txn, *insert_tuple);
+    auto tuple_slot = sql_table.Insert(txn, insert_redo);
 
     EXPECT_TRUE(index->Insert(txn, *key, tuple_slot));
 
@@ -250,6 +250,7 @@ class BwTreeKeyTests : public TerrierTest {
     EXPECT_EQ(results.size(), 1);
     EXPECT_EQ(results[0], tuple_slot);
 
+    txn->StageDelete(catalog::db_oid_t(0), catalog::table_oid_t(0), tuple_slot);
     sql_table.Delete(txn, tuple_slot);
     index->Delete(txn, *key, tuple_slot);
 
@@ -263,7 +264,6 @@ class BwTreeKeyTests : public TerrierTest {
     gc_manager.PerformGarbageCollection();
     gc_manager.PerformGarbageCollection();
     delete[] key_buffer;
-    delete[] insert_buffer;
   }
 
   /**

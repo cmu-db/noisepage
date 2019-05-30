@@ -50,7 +50,8 @@ void RandomWorkloadTransaction::RandomUpdate(Random *generator) {
 
   // TODO(Tianyu): Hardly efficient, but will do for testing.
   if (test_object_->wal_on_ || test_object_->bookkeeping_) {
-    auto *record = txn_->StageWrite(&test_object_->table_, updated, initializer);
+    auto *record = txn_->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), initializer);
+    record->SetTupleSlot(updated);
     std::memcpy(reinterpret_cast<void *>(record->Delta()), update, update->Size());
   }
   auto result = test_object_->table_.Update(txn_, updated, *update);
@@ -207,7 +208,8 @@ void LargeTransactionTestObject::PopulateInitialTable(uint32_t num_tuples, Rando
     storage::TupleSlot inserted = table_.Insert(initial_txn_, *redo);
     // TODO(Tianyu): Hardly efficient, but will do for testing.
     if (wal_on_ || bookkeeping_) {
-      auto *record = initial_txn_->StageWrite(&table_, inserted, row_initializer_);
+      auto *record = initial_txn_->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), row_initializer_);
+      record->SetTupleSlot(inserted);
       std::memcpy(reinterpret_cast<void *>(record->Delta()), redo, redo->Size());
     }
     last_checked_version_.emplace_back(inserted, bookkeeping_ ? redo : nullptr);
