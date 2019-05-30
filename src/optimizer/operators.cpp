@@ -502,8 +502,10 @@ common::hash_t LogicalInnerJoin::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
   for (auto &pred : join_predicates_) {
     auto expr = pred.GetExpr();
-    if (expr) hash = common::HashUtil::SumHashes(hash, expr->Hash());
-    else hash = common::HashUtil::SumHashes(hash, BaseOperatorNode::Hash());
+    if (expr)
+      hash = common::HashUtil::SumHashes(hash, expr->Hash());
+    else
+      hash = common::HashUtil::SumHashes(hash, BaseOperatorNode::Hash());
   }
   return hash;
 }
@@ -649,8 +651,10 @@ common::hash_t LogicalAggregateAndGroupBy::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
   for (auto &pred : having_) {
     auto expr = pred.GetExpr();
-    if (expr) hash = common::HashUtil::SumHashes(hash, expr->Hash());
-    else hash = common::HashUtil::SumHashes(hash, BaseOperatorNode::Hash());
+    if (expr)
+      hash = common::HashUtil::SumHashes(hash, expr->Hash());
+    else
+      hash = common::HashUtil::SumHashes(hash, BaseOperatorNode::Hash());
   }
   for (auto &expr : columns_) hash = common::HashUtil::SumHashes(hash, expr->Hash());
   return hash;

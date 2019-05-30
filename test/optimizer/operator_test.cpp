@@ -701,7 +701,7 @@ TEST(OperatorTests, LogicalAggregateAndGroupByTest) {
 
   EXPECT_EQ(logical_group_1_1.Hash(), logical_group_2_2.Hash());
   EXPECT_NE(logical_group_1_1.Hash(), logical_group_7_4.Hash());
-  //EXPECT_NE(logical_group_1_0.Hash(), logical_group_1_1.Hash());
+  EXPECT_NE(logical_group_1_0.Hash(), logical_group_1_1.Hash());
   EXPECT_NE(logical_group_3.Hash(), logical_group_7_4.Hash());
 }
 
