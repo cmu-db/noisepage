@@ -147,10 +147,11 @@ class ProjectedColumnsIteratorTest : public TplTest {
 
     // Create the table in the catalog.
     terrier::catalog::Schema schema({col_a, col_b, col_c, col_d});
-    auto table_oid = catalog->CreateTable(txn_, terrier::catalog::DEFAULT_DATABASE_OID, "pci_test_table", schema);
+    auto test_db_ns = exec->GetTestDBAndNS();
+    auto table_oid = catalog->CreateUserTable(txn_, test_db_ns.first, test_db_ns.second, "pci_test_table", schema);
 
     // Get the table's information.
-    catalog_table_ = catalog->GetCatalogTable(terrier::catalog::DEFAULT_DATABASE_OID, table_oid);
+    catalog_table_ = catalog->GetUserTable(txn_, test_db_ns.first, test_db_ns.second, table_oid);
     auto sql_table = catalog_table_->GetSqlTable();
 
     // Create a ProjectedColumns
@@ -170,7 +171,8 @@ class ProjectedColumnsIteratorTest : public TplTest {
     auto *exec = sql::ExecutionStructures::Instance();
     auto *catalog = exec->GetCatalog();
     auto *txn_manager = exec->GetTxnManager();
-    catalog->DeleteTable(txn_, terrier::catalog::DEFAULT_DATABASE_OID, catalog_table_->Oid());
+    auto test_db_ns = exec->GetTestDBAndNS();
+    catalog->DeleteUserTable(txn_, test_db_ns.first, test_db_ns.second, catalog_table_->Oid());
     txn_manager->Commit(txn_, [](void *) { return; }, nullptr);
     delete txn_;
     delete[] buffer_;
@@ -194,7 +196,7 @@ class ProjectedColumnsIteratorTest : public TplTest {
   std::vector<ColData> data_;
   byte *buffer_ = nullptr;
   terrier::storage::ProjectedColumns *projected_columns_ = nullptr;
-  std::shared_ptr<terrier::catalog::SqlTableRW> catalog_table_ = nullptr;
+  terrier::catalog::SqlTableHelper * catalog_table_ = nullptr;
   terrier::transaction::TransactionContext *txn_ = nullptr;
 };
 

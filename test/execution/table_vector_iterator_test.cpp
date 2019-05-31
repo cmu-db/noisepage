@@ -14,9 +14,10 @@ TEST_F(TableVectorIteratorTest, EmptyIteratorTest) {
   // Check to see that iteration doesn't begin without an input block
   //
   auto *exec = sql::ExecutionStructures::Instance();
-  auto catalog_table = exec->GetCatalog()->GetCatalogTable(terrier::catalog::DEFAULT_DATABASE_OID, "empty_table");
+  auto test_db_ns = exec->GetTestDBAndNS();
   auto txn = exec->GetTxnManager()->BeginTransaction();
-  TableVectorIterator iter(!terrier::catalog::DEFAULT_DATABASE_OID,
+  auto catalog_table = exec->GetCatalog()->GetUserTable(txn, test_db_ns.first, test_db_ns.second, "empty_table");
+  TableVectorIterator iter(!test_db_ns.first, !test_db_ns.second,
                            !catalog_table->Oid(), txn);
   iter.Init();
   while (iter.Advance()) {
@@ -31,10 +32,10 @@ TEST_F(TableVectorIteratorTest, SimpleIteratorTest) {
   //
 
   auto *exec = sql::ExecutionStructures::Instance();
-  auto catalog_table = exec->GetCatalog()->GetCatalogTable(terrier::catalog::DEFAULT_DATABASE_OID, "test_1");
+  auto test_db_ns = exec->GetTestDBAndNS();
   auto txn = exec->GetTxnManager()->BeginTransaction();
-
-  TableVectorIterator iter(!terrier::catalog::DEFAULT_DATABASE_OID,
+  auto catalog_table = exec->GetCatalog()->GetUserTable(txn, test_db_ns.first, test_db_ns.second, "test_1");
+  TableVectorIterator iter(!test_db_ns.first, !test_db_ns.second,
                            !catalog_table->Oid(), txn);
   iter.Init();
   ProjectedColumnsIterator *pci = iter.projected_columns_iterator();
@@ -57,10 +58,10 @@ TEST_F(TableVectorIteratorTest, NullableTypesIteratorTest) {
   //
 
   auto *exec = sql::ExecutionStructures::Instance();
-  auto catalog_table = exec->GetCatalog()->GetCatalogTable(terrier::catalog::DEFAULT_DATABASE_OID, "test_2");
+  auto test_db_ns = exec->GetTestDBAndNS();
   auto txn = exec->GetTxnManager()->BeginTransaction();
-
-  TableVectorIterator iter(!terrier::catalog::DEFAULT_DATABASE_OID,
+  auto catalog_table = exec->GetCatalog()->GetUserTable(txn, test_db_ns.first, test_db_ns.second, "test_2");
+  TableVectorIterator iter(!test_db_ns.first, !test_db_ns.second,
                            !catalog_table->Oid(), txn);
   iter.Init();
   ProjectedColumnsIterator *pci = iter.projected_columns_iterator();

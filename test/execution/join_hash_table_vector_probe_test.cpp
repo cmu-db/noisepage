@@ -48,10 +48,11 @@ class JoinHashTableVectorProbeTest : public TplTest {
 
     // Create the table in the catalog.
     terrier::catalog::Schema schema({col_a, col_b});
-    auto table_oid = catalog->CreateTable(txn_, terrier::catalog::DEFAULT_DATABASE_OID, "hash_join_test_table", schema);
+    auto test_db_ns = exec->GetTestDBAndNS();
+    auto table_oid = catalog->CreateUserTable(txn_, test_db_ns.first, test_db_ns.second, "hash_join_test_table", schema);
 
     // Get the table's information.
-    catalog_table_ = catalog->GetCatalogTable(terrier::catalog::DEFAULT_DATABASE_OID, table_oid);
+    catalog_table_ = catalog->GetUserTable(txn_, test_db_ns.first, test_db_ns.second, table_oid);
     auto sql_table = catalog_table_->GetSqlTable();
 
     // Create a ProjectedColumns
@@ -71,8 +72,9 @@ class JoinHashTableVectorProbeTest : public TplTest {
     auto *exec = sql::ExecutionStructures::Instance();
     auto *catalog = exec->GetCatalog();
     auto *txn_manager = exec->GetTxnManager();
+    auto test_db_ns = exec->GetTestDBAndNS();
+    catalog->DeleteUserTable(txn_, test_db_ns.first, test_db_ns.second, catalog_table_->Oid());
     txn_manager->Commit(txn_, [](void *) { return; }, nullptr);
-    catalog->DeleteTable(txn_, terrier::catalog::DEFAULT_DATABASE_OID, catalog_table_->Oid());
     delete txn_;
     delete[] buffer_;
   }
@@ -122,7 +124,7 @@ class JoinHashTableVectorProbeTest : public TplTest {
   terrier::storage::ProjectedColumns *projected_columns_ = nullptr;
 
   byte *buffer_ = nullptr;
-  std::shared_ptr<terrier::catalog::SqlTableRW> catalog_table_ = nullptr;
+  terrier::catalog::SqlTableHelper * catalog_table_ = nullptr;
   terrier::transaction::TransactionContext *txn_ = nullptr;
 };
 
