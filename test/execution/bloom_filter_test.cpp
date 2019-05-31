@@ -12,8 +12,8 @@ namespace tpl::sql::test {
 class BloomFilterTest : public TplTest {};
 
 template <typename F>
-void GenerateRandom32(std::vector<u32> &vals, u32 n, const F &f) {
-  vals.resize(n);
+void GenerateRandom32(std::vector<u32> *vals, u32 n, const F &f) {
+  vals->resize(n);
   std::random_device random;
   auto genrand = [&random, &f]() {
     while (true) {
@@ -23,25 +23,25 @@ void GenerateRandom32(std::vector<u32> &vals, u32 n, const F &f) {
       }
     }
   };
-  std::generate(vals.begin(), vals.end(), genrand);
+  std::generate(vals->begin(), vals->end(), genrand);
 }
 
-void GenerateRandom32(std::vector<u32> &vals, u32 n) {
+void GenerateRandom32(std::vector<u32> *vals, u32 n) {
   GenerateRandom32(vals, n, [](auto r) { return true; });
 }
 
 // Mix in elements from source into the target vector with probability p
 template <typename T>
-void Mix(std::vector<T> &target, const std::vector<T> &source, double p) {
-  TPL_ASSERT(target.size() > source.size(), "Bad sizes!");
+void Mix(std::vector<T> *target, const std::vector<T> &source, double p) {
+  TPL_ASSERT(target->size() > source.size(), "Bad sizes!");
   std::random_device random;
   std::mt19937 g(random());
 
-  for (u32 i = 0; i < (p * static_cast<double>(target.size())); i++) {
-    target[i] = source[g() % source.size()];
+  for (u32 i = 0; i < (p * static_cast<double>(target->size())); i++) {
+    (*target)[i] = source[g() % source.size()];
   }
 
-  std::shuffle(target.begin(), target.end(), g);
+  std::shuffle(target->begin(), target->end(), g);
 }
 
 TEST_F(BloomFilterTest, ComprehensiveTest) {
@@ -50,7 +50,7 @@ TEST_F(BloomFilterTest, ComprehensiveTest) {
 
   // Create a vector of data to insert into the filter
   std::vector<u32> insertions;
-  GenerateRandom32(insertions, num_filter_elems);
+  GenerateRandom32(&insertions, num_filter_elems);
 
   // The validation set. We use this to check false negatives.
   std::unordered_set<u32> check(insertions.begin(), insertions.end());
@@ -73,8 +73,8 @@ TEST_F(BloomFilterTest, ComprehensiveTest) {
 
   for (auto prob_success : {0.00, 0.25, 0.50, 0.75, 1.00}) {
     std::vector<u32> lookups;
-    GenerateRandom32(lookups, num_filter_elems * lookup_scale_factor);
-    Mix(lookups, insertions, prob_success);
+    GenerateRandom32(&lookups, num_filter_elems * lookup_scale_factor);
+    Mix(&lookups, insertions, prob_success);
 
     auto expected_found = static_cast<u32>(prob_success * static_cast<double>(lookups.size()));
 

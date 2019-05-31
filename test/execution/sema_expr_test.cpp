@@ -8,8 +8,8 @@
 #include "execution/ast/context.h"
 #include "execution/ast/type.h"
 #include "execution/sema/sema.h"
-#include "execution/util/region_containers.h"
 #include "execution/sql/execution_structures.h"
+#include "execution/util/region_containers.h"
 
 namespace tpl::sema::test {
 

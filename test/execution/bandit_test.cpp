@@ -67,6 +67,7 @@ class BanditTest : public TplTest, public ::testing::WithParamInterface<TestConf
     std::vector<std::string> function_names;
 
     for (u32 i = 0; i < permuataions.size(); ++i) {
+      // NOLINTNEXTLINE
       auto [src, function_name] = CreateSampleTPLFunction(i, permuataions[i]);
       tpl_code += src;
       function_names.push_back(function_name);
@@ -127,13 +128,14 @@ TEST_P(BanditTest, DISABLED_SimpleTest) {
   this->SetPred1(conf.pred1);
   this->SetPred2(conf.pred2);
 
+  // NOLINTNEXTLINE
   auto [src, action_names] = CreateSampleTPLCode();
 
   ModuleCompiler compiler;
   auto *ast = compiler.CompileToAst(src);
 
   // Try generating bytecode for this declaration
-  auto module = std::make_unique<Module>(BytecodeGenerator::Compile(ast, "bandit"));
+  auto module = std::make_unique<Module>(BytecodeGenerator::Compile(ast, nullptr, "bandit"));
 
   auto bandit = bandit::MultiArmedBandit(module.get(), action_names);
 

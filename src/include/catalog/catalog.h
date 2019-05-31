@@ -5,15 +5,15 @@
 #include <utility>
 #include <vector>
 #include "catalog/catalog_defs.h"
+#include "catalog/catalog_index.h"
 #include "catalog/catalog_sql_table.h"
 #include "catalog/database_handle.h"
 #include "catalog/table_handle.h"
 #include "catalog/tablespace_handle.h"
 #include "common/strong_typedef.h"
 #include "loggers/catalog_logger.h"
-#include "storage/sql_table.h"
 #include "storage/index/index.h"
-#include "catalog/catalog_index.h"
+#include "storage/sql_table.h"
 
 namespace terrier::catalog {
 
@@ -270,7 +270,6 @@ class Catalog {
   index_oid_t CreateIndex(transaction::TransactionContext *txn, storage::index::ConstraintType constraint_type,
                           const storage::index::IndexKeySchema &schema, const std::string &name = "index");
 
-
   /**
    * Get a pointer to an index
    * TODO(Amadou): Add real support for indexes
@@ -278,7 +277,6 @@ class Catalog {
    * @return pointer to the index
    */
   std::shared_ptr<CatalogIndex> GetCatalogIndex(index_oid_t index_oid);
-
 
   /**
    * Get an index oid
@@ -416,7 +414,6 @@ class Catalog {
    * @return type name used by the catalog in pg_type
    */
   std::string ValueTypeIdToSchemaType(type::TypeId type_id);
-
 
  private:
   transaction::TransactionManager *txn_manager_;

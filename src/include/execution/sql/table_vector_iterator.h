@@ -87,11 +87,11 @@ class TableVectorIterator {
   const db_oid_t db_oid_;
   const namespace_oid_t ns_oid_;
   const table_oid_t table_oid_;
-  TransactionContext* txn_;
+  TransactionContext *txn_;
   bool initialized = false;
 
   // SqlTable to iterate over
-  terrier::catalog::SqlTableHelper * catalog_table_;
+  terrier::catalog::SqlTableHelper *catalog_table_;
 
   // The PCI
   ProjectedColumnsIterator pci_;

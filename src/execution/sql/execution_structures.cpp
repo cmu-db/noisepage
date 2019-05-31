@@ -27,7 +27,7 @@ ExecutionStructures::ExecutionStructures() {
   InitTestTables(catalog_txn);
   InitTestSchemas(catalog_txn);
   InitTestIndexes(catalog_txn);
-  txn_manager_->Commit(catalog_txn, [](void*){}, nullptr);
+  txn_manager_->Commit(catalog_txn, [](void *) {}, nullptr);
 }
 
 ExecutionStructures *ExecutionStructures::Instance() {
@@ -150,8 +150,8 @@ std::pair<byte *, u32 *> GenerateColumnData(const ColumnInsertMeta &col_meta, u3
   return {col_data, null_bitmap};
 }
 
-void FillTable(terrier::catalog::SqlTableHelper * catalog_table,
-               terrier::transaction::TransactionContext *txn, const TableInsertMeta &table_meta) {
+void FillTable(terrier::catalog::SqlTableHelper *catalog_table, terrier::transaction::TransactionContext *txn,
+               const TableInsertMeta &table_meta) {
   u32 batch_size = 10000;
   u32 num_batches = table_meta.num_rows / batch_size + static_cast<u32>(table_meta.num_rows % batch_size != 0);
   u32 val_written = 0;
@@ -193,7 +193,7 @@ void FillTable(terrier::catalog::SqlTableHelper * catalog_table,
   delete[] insert_buffer;
 }
 
-void ExecutionStructures::InitTestTables(terrier::transaction::TransactionContext * txn) {
+void ExecutionStructures::InitTestTables(terrier::transaction::TransactionContext *txn) {
   // clang-format off
   std::vector<TableInsertMeta> insert_meta {
       // The empty table
@@ -234,7 +234,10 @@ void ExecutionStructures::InitTestTables(terrier::transaction::TransactionContex
     if (catalog_table != nullptr) {
       FillTable(catalog_table, txn, table_meta);
     }
-    std::cout << "Create Table " << table_meta.name << " with oids = (" << !test_db_oid_ << ", " << !test_ns_oid_ << ", "  << !table_oid << ")" << std::endl;
+    std::cout << "Create Table " << table_meta.name
+              << " with oids = (" << !test_db_oid_
+              << ", " << !test_ns_oid_ << ", "
+              << !table_oid << ")" << std::endl;
   }
 }
 

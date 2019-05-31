@@ -1,5 +1,6 @@
-#include "execution/sql/generic_hash_table.h"
+#include <unordered_map>
 
+#include "execution/sql/generic_hash_table.h"
 #include "execution/util/math_util.h"
 
 namespace tpl::sql {
@@ -31,3 +32,4 @@ void GenericHashTable::SetSize(u64 new_size) {
 }
 
 }  // namespace tpl::sql
+

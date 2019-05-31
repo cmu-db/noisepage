@@ -5,15 +5,15 @@
 
 #include "execution/tpl_test.h"  // NOLINT
 
+#include "catalog/catalog.h"
+#include "execution/sql/execution_structures.h"
 #include "execution/sql/join_hash_table.h"
 #include "execution/sql/join_hash_table_vector_probe.h"
 #include "execution/sql/projected_columns_iterator.h"
 #include "execution/util/hash.h"
 #include "storage/projected_columns.h"
-#include "catalog/catalog.h"
 #include "transaction/transaction_defs.h"
 #include "type/type_id.h"
-#include "execution/sql/execution_structures.h"
 
 namespace tpl::sql::test {
 
@@ -43,13 +43,16 @@ class JoinHashTableVectorProbeTest : public TplTest {
     // Create column metadata for every column.
     terrier::catalog::col_oid_t col_oid_a(catalog->GetNextOid());
     terrier::catalog::col_oid_t col_oid_b(catalog->GetNextOid());
-    terrier::catalog::Schema::Column col_a = terrier::catalog::Schema::Column("col_a", terrier::type::TypeId::INTEGER, false, col_oid_a);
-    terrier::catalog::Schema::Column col_b = terrier::catalog::Schema::Column("col_b", terrier::type::TypeId::INTEGER, false, col_oid_b);
+    terrier::catalog::Schema::Column col_a =
+        terrier::catalog::Schema::Column("col_a", terrier::type::TypeId::INTEGER, false, col_oid_a);
+    terrier::catalog::Schema::Column col_b =
+        terrier::catalog::Schema::Column("col_b", terrier::type::TypeId::INTEGER, false, col_oid_b);
 
     // Create the table in the catalog.
     terrier::catalog::Schema schema({col_a, col_b});
     auto test_db_ns = exec->GetTestDBAndNS();
-    auto table_oid = catalog->CreateUserTable(txn_, test_db_ns.first, test_db_ns.second, "hash_join_test_table", schema);
+    auto table_oid =
+        catalog->CreateUserTable(txn_, test_db_ns.first, test_db_ns.second, "hash_join_test_table", schema);
 
     // Get the table's information.
     catalog_table_ = catalog->GetUserTable(txn_, test_db_ns.first, test_db_ns.second, table_oid);
@@ -124,7 +127,7 @@ class JoinHashTableVectorProbeTest : public TplTest {
   terrier::storage::ProjectedColumns *projected_columns_ = nullptr;
 
   byte *buffer_ = nullptr;
-  terrier::catalog::SqlTableHelper * catalog_table_ = nullptr;
+  terrier::catalog::SqlTableHelper *catalog_table_ = nullptr;
   terrier::transaction::TransactionContext *txn_ = nullptr;
 };
 

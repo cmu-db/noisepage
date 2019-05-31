@@ -290,8 +290,8 @@ void BytecodeEmitter::EmitOutputSetNull(Bytecode bytecode, LocalVar exec_ctx, Lo
   EmitAll(bytecode, exec_ctx, idx);
 }
 
-void BytecodeEmitter::EmitInsert(Bytecode bytecode, LocalVar db_oid, LocalVar ns_oid, LocalVar table_oid, LocalVar values_ptr,
-                                 LocalVar exec_ctx) {
+void BytecodeEmitter::EmitInsert(Bytecode bytecode, LocalVar db_oid, LocalVar ns_oid, LocalVar table_oid,
+                                 LocalVar values_ptr, LocalVar exec_ctx) {
   EmitAll(bytecode, db_oid, ns_oid, table_oid, values_ptr, exec_ctx);
 }
 

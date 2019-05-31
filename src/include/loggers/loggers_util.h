@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include "loggers/catalog_logger.h"
+#include "loggers/execution_logger.h"
 #include "loggers/index_logger.h"
 #include "loggers/main_logger.h"
 #include "loggers/network_logger.h"
@@ -10,7 +11,6 @@
 #include "loggers/storage_logger.h"
 #include "loggers/test_logger.h"
 #include "loggers/transaction_logger.h"
-#include "loggers/execution_logger.h"
 
 namespace terrier {
 

@@ -414,7 +414,8 @@ class BytecodeEmitter {
    * @param values_ptr list of values to insert
    * @param exec_ctx the execution context
    */
-  void EmitInsert(Bytecode bytecode, LocalVar db_oid, LocalVar ns_oid, LocalVar table_oid, LocalVar values_ptr, LocalVar exec_ctx);
+  void EmitInsert(Bytecode bytecode, LocalVar db_oid, LocalVar ns_oid, LocalVar table_oid, LocalVar values_ptr,
+                  LocalVar exec_ctx);
 
  private:
   // Copy a scalar immediate value into the bytecode stream

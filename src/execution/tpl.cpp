@@ -1,4 +1,5 @@
 #include <tbb/task_scheduler_init.h>  // NOLINT
+#include <gflags/gflags.h>
 #include <unistd.h>
 #include <algorithm>
 #include <csignal>
@@ -7,9 +8,9 @@
 #include <memory>
 #include <string>
 #include <utility>
+
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/MemoryBuffer.h"
-
 #include "execution/ast/ast_dump.h"
 #include "execution/exec/execution_context.h"
 #include "execution/exec/output.h"
@@ -29,7 +30,6 @@
 #include "execution/vm/vm.h"
 
 #include "loggers/loggers_util.h"
-#include <gflags/gflags.h>
 #include "settings/settings_manager.h"
 
 #define __SETTING_GFLAGS_DEFINE__      // NOLINT

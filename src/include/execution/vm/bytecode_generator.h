@@ -9,8 +9,8 @@
 #include "execution/ast/ast.h"
 #include "execution/ast/ast_visitor.h"
 #include "execution/ast/builtins.h"
-#include "execution/vm/bytecode_emitter.h"
 #include "execution/exec/execution_context.h"
+#include "execution/vm/bytecode_emitter.h"
 
 namespace tpl::vm {
 
@@ -42,16 +42,17 @@ class BytecodeGenerator : public ast::AstVisitor<BytecodeGenerator> {
   /**
    * Compile ast
    * @param root root of the ast to compile
+   * @param exec_ctx execution context of this query
    * @param name name of the module
    * @return compiled module
    */
-  static std::unique_ptr<BytecodeModule> Compile(ast::AstNode *root, exec::ExecutionContext* exec_ctx, const std::string &name);
+  static std::unique_ptr<BytecodeModule> Compile(ast::AstNode *root, exec::ExecutionContext *exec_ctx,
+                                                 const std::string &name);
 
  private:
   // Private constructor to force users to call Compile()
   BytecodeGenerator() noexcept;
-  explicit BytecodeGenerator(exec::ExecutionContext* exec_ctx) noexcept;
-
+  explicit BytecodeGenerator(exec::ExecutionContext *exec_ctx) noexcept;
 
   class ExpressionResultScope;
   class LValueResultScope;
@@ -172,7 +173,7 @@ class BytecodeGenerator : public ast::AstVisitor<BytecodeGenerator> {
   ExpressionResultScope *execution_result_;
 
   // The execution context for catalog queries
-  exec::ExecutionContext * exec_ctx_;
+  exec::ExecutionContext *exec_ctx_;
 };
 
 }  // namespace tpl::vm

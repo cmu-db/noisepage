@@ -68,7 +68,7 @@ class IndexIterator {
   ProjectedRow *index_pr_ = nullptr;
   ProjectedRow *row_pr_ = nullptr;
   std::shared_ptr<CatalogIndex> catalog_index_ = nullptr;
-  SqlTableHelper * catalog_table_ = nullptr;
+  SqlTableHelper *catalog_table_ = nullptr;
 };
 
 template <typename T, bool Nullable>

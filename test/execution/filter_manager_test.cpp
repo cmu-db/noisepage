@@ -10,9 +10,9 @@
 #include "execution/sql_test.h"  // NOLINT
 
 #include "catalog/catalog.h"
-#include "type/type_id.h"
 #include "execution/sql/filter_manager.h"
 #include "execution/sql/table_vector_iterator.h"
+#include "type/type_id.h"
 
 namespace tpl::sql::test {
 
@@ -60,7 +60,7 @@ TEST_F(FilterManagerTest, SimpleFilterManagerTest) {
       EXPECT_LT(cola, 500);
     });
   }
-  exec->GetTxnManager()->Commit(txn, [](void*){}, nullptr);
+  exec->GetTxnManager()->Commit(txn, [](void *) {}, nullptr);
 }
 
 TEST_F(FilterManagerTest, AdaptiveFilterManagerTest) {
@@ -88,7 +88,7 @@ TEST_F(FilterManagerTest, AdaptiveFilterManagerTest) {
 
   // The vectorized filter better be the optimal!
   EXPECT_EQ(1u, filter.GetOptimalFlavorForClause(0));
-  exec->GetTxnManager()->Commit(txn, [](void*){}, nullptr);
+  exec->GetTxnManager()->Commit(txn, [](void *) {}, nullptr);
 }
 
 }  // namespace tpl::sql::test

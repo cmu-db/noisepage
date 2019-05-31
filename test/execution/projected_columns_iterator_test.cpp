@@ -140,10 +140,14 @@ class ProjectedColumnsIteratorTest : public TplTest {
     terrier::catalog::col_oid_t col_oid_b(catalog->GetNextOid());
     terrier::catalog::col_oid_t col_oid_c(catalog->GetNextOid());
     terrier::catalog::col_oid_t col_oid_d(catalog->GetNextOid());
-    terrier::catalog::Schema::Column col_a = terrier::catalog::Schema::Column("col_a", terrier::type::TypeId::SMALLINT, false, col_oid_a);
-    terrier::catalog::Schema::Column col_b = terrier::catalog::Schema::Column("col_b", terrier::type::TypeId::INTEGER, true, col_oid_b);
-    terrier::catalog::Schema::Column col_c = terrier::catalog::Schema::Column("col_c", terrier::type::TypeId::INTEGER, false, col_oid_c);
-    terrier::catalog::Schema::Column col_d = terrier::catalog::Schema::Column("col_d", terrier::type::TypeId::BIGINT, true, col_oid_d);
+    terrier::catalog::Schema::Column col_a =
+        terrier::catalog::Schema::Column("col_a", terrier::type::TypeId::SMALLINT, false, col_oid_a);
+    terrier::catalog::Schema::Column col_b =
+        terrier::catalog::Schema::Column("col_b", terrier::type::TypeId::INTEGER, true, col_oid_b);
+    terrier::catalog::Schema::Column col_c =
+        terrier::catalog::Schema::Column("col_c", terrier::type::TypeId::INTEGER, false, col_oid_c);
+    terrier::catalog::Schema::Column col_d =
+        terrier::catalog::Schema::Column("col_d", terrier::type::TypeId::BIGINT, true, col_oid_d);
 
     // Create the table in the catalog.
     terrier::catalog::Schema schema({col_a, col_b, col_c, col_d});
@@ -196,7 +200,7 @@ class ProjectedColumnsIteratorTest : public TplTest {
   std::vector<ColData> data_;
   byte *buffer_ = nullptr;
   terrier::storage::ProjectedColumns *projected_columns_ = nullptr;
-  terrier::catalog::SqlTableHelper * catalog_table_ = nullptr;
+  terrier::catalog::SqlTableHelper *catalog_table_ = nullptr;
   terrier::transaction::TransactionContext *txn_ = nullptr;
 };
 

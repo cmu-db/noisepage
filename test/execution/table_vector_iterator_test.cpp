@@ -17,13 +17,12 @@ TEST_F(TableVectorIteratorTest, EmptyIteratorTest) {
   auto test_db_ns = exec->GetTestDBAndNS();
   auto txn = exec->GetTxnManager()->BeginTransaction();
   auto catalog_table = exec->GetCatalog()->GetUserTable(txn, test_db_ns.first, test_db_ns.second, "empty_table");
-  TableVectorIterator iter(!test_db_ns.first, !test_db_ns.second,
-                           !catalog_table->Oid(), txn);
+  TableVectorIterator iter(!test_db_ns.first, !test_db_ns.second, !catalog_table->Oid(), txn);
   iter.Init();
   while (iter.Advance()) {
     FAIL() << "Empty table should have no tuples";
   }
-  exec->GetTxnManager()->Commit(txn, [](void*){}, nullptr);
+  exec->GetTxnManager()->Commit(txn, [](void *) {}, nullptr);
 }
 
 TEST_F(TableVectorIteratorTest, SimpleIteratorTest) {
@@ -35,8 +34,7 @@ TEST_F(TableVectorIteratorTest, SimpleIteratorTest) {
   auto test_db_ns = exec->GetTestDBAndNS();
   auto txn = exec->GetTxnManager()->BeginTransaction();
   auto catalog_table = exec->GetCatalog()->GetUserTable(txn, test_db_ns.first, test_db_ns.second, "test_1");
-  TableVectorIterator iter(!test_db_ns.first, !test_db_ns.second,
-                           !catalog_table->Oid(), txn);
+  TableVectorIterator iter(!test_db_ns.first, !test_db_ns.second, !catalog_table->Oid(), txn);
   iter.Init();
   ProjectedColumnsIterator *pci = iter.projected_columns_iterator();
 
@@ -48,7 +46,7 @@ TEST_F(TableVectorIteratorTest, SimpleIteratorTest) {
     pci->Reset();
   }
   EXPECT_EQ(sql::test1_size, num_tuples);
-  exec->GetTxnManager()->Commit(txn, [](void*){}, nullptr);
+  exec->GetTxnManager()->Commit(txn, [](void *) {}, nullptr);
 }
 
 TEST_F(TableVectorIteratorTest, NullableTypesIteratorTest) {
@@ -61,8 +59,7 @@ TEST_F(TableVectorIteratorTest, NullableTypesIteratorTest) {
   auto test_db_ns = exec->GetTestDBAndNS();
   auto txn = exec->GetTxnManager()->BeginTransaction();
   auto catalog_table = exec->GetCatalog()->GetUserTable(txn, test_db_ns.first, test_db_ns.second, "test_2");
-  TableVectorIterator iter(!test_db_ns.first, !test_db_ns.second,
-                           !catalog_table->Oid(), txn);
+  TableVectorIterator iter(!test_db_ns.first, !test_db_ns.second, !catalog_table->Oid(), txn);
   iter.Init();
   ProjectedColumnsIterator *pci = iter.projected_columns_iterator();
 
@@ -74,7 +71,7 @@ TEST_F(TableVectorIteratorTest, NullableTypesIteratorTest) {
     pci->Reset();
   }
   EXPECT_EQ(sql::test2_size, num_tuples);
-  exec->GetTxnManager()->Commit(txn, [](void*){}, nullptr);
+  exec->GetTxnManager()->Commit(txn, [](void *) {}, nullptr);
 }
 
 }  // namespace tpl::sql::test

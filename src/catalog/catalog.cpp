@@ -5,15 +5,15 @@
 
 #include "catalog/attr_def_handle.h"
 #include "catalog/catalog.h"
+#include "catalog/catalog_index.h"
 #include "catalog/class_handle.h"
 #include "catalog/database_handle.h"
 #include "catalog/settings_handle.h"
 #include "catalog/tablespace_handle.h"
 #include "loggers/catalog_logger.h"
+#include "storage/index/index.h"
 #include "storage/storage_defs.h"
 #include "transaction/transaction_manager.h"
-#include "catalog/catalog_index.h"
-#include "storage/index/index.h"
 
 namespace terrier::catalog {
 

@@ -1,19 +1,17 @@
 #pragma once
 
-#include "gtest/gtest.h"
-#include "util/test_harness.h"
 #include "execution/util/common.h"
 #include "execution/util/cpu_info.h"
 #include "execution/util/timer.h"
+#include "gtest/gtest.h"
 #include "loggers/execution_logger.h"
+#include "util/test_harness.h"
 
 namespace tpl {
 
 class TplTest : public terrier::TerrierTest {
  public:
-  TplTest(): terrier::TerrierTest() {
-    CpuInfo::Instance();
-  }
+  TplTest() : terrier::TerrierTest() { CpuInfo::Instance(); }
 
   virtual ~TplTest() {}
 

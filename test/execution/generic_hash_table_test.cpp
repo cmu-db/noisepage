@@ -1,5 +1,6 @@
 #include <random>
 #include <vector>
+#include <unordered_map>
 
 #include "execution/tpl_test.h"  // NOLINT
 

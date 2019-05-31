@@ -212,7 +212,7 @@ TEST_F(JoinHashTableTest, DISABLED_PerfTest) {
 
     auto mtps = (num_tuples / timer.elapsed()) / 1000.0;
     auto size_in_kb = static_cast<double>(concise ? ConciseTableFor(&join_hash_table)->GetTotalMemoryUsage()
-                               : GenericTableFor(&join_hash_table)->GetTotalMemoryUsage()) /
+                                                  : GenericTableFor(&join_hash_table)->GetTotalMemoryUsage()) /
                       1024.0;
     EXECUTION_LOG_INFO("========== {} ==========", concise ? "Concise" : "Generic");
     EXECUTION_LOG_INFO("# Tuples    : {}", num_tuples)

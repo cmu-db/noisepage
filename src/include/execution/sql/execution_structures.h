@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include "catalog/catalog.h"
 #include "catalog/catalog_defs.h"
 #include "execution/exec/output.h"
@@ -72,16 +73,18 @@ class ExecutionStructures {
    */
   std::shared_ptr<exec::FinalSchema> GetFinalSchema(const std::string &name) { return test_plan_nodes_.at(name); }
 
-
+  /**
+   * Return the test db and namespace oid.
+   */
   std::pair<terrier::catalog::db_oid_t, terrier::catalog::namespace_oid_t> GetTestDBAndNS() {
     return {test_db_oid_, test_ns_oid_};
   }
 
  private:
   ExecutionStructures();
-  void InitTestTables(terrier::transaction::TransactionContext* txn);
-  void InitTestSchemas(terrier::transaction::TransactionContext* txn);
-  void InitTestIndexes(terrier::transaction::TransactionContext* txn);
+  void InitTestTables(terrier::transaction::TransactionContext *txn);
+  void InitTestSchemas(terrier::transaction::TransactionContext *txn);
+  void InitTestIndexes(terrier::transaction::TransactionContext *txn);
   std::unique_ptr<BlockStore> block_store_;
   std::unique_ptr<RecordBufferSegmentPool> buffer_pool_;
   std::unique_ptr<LogManager> log_manager_;

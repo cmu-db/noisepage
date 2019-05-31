@@ -174,7 +174,7 @@ void OpInsert(tpl::exec::ExecutionContext *exec_ctx, u32 db_oid, u32 ns_oid, u32
   auto catalog = tpl::sql::ExecutionStructures::Instance()->GetCatalog();
   auto table = catalog->GetUserTable(exec_ctx->GetTxn(), static_cast<terrier::catalog::db_oid_t>(db_oid),
                                      static_cast<terrier::catalog::namespace_oid_t>(ns_oid),
-                                        static_cast<terrier::catalog::table_oid_t>(table_oid));
+                                     static_cast<terrier::catalog::table_oid_t>(table_oid));
   auto sql_table = table->GetSqlTable();
   auto *const txn = exec_ctx->GetTxn();
 
