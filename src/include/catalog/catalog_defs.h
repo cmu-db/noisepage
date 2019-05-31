@@ -22,6 +22,7 @@ namespace terrier::catalog {
 #define DEFAULT_DATABASE "terrier"
 
 // in name order
+STRONG_TYPEDEF(action_oid_t, uint32_t);
 STRONG_TYPEDEF(col_oid_t, uint32_t);
 STRONG_TYPEDEF(db_oid_t, uint32_t);
 STRONG_TYPEDEF(index_oid_t, uint32_t);

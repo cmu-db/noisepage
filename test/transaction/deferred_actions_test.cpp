@@ -87,7 +87,7 @@ TEST_F(DeferredActionsTest, CommitAction) {
   EXPECT_FALSE(aborted);
   EXPECT_FALSE(committed);
 
-  txn_mgr_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+  txn_mgr_.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   EXPECT_TRUE(committed);
   EXPECT_FALSE(aborted);
@@ -284,7 +284,7 @@ TEST_F(DeferredActionsTest, CommitBootstrapDefer) {
   EXPECT_FALSE(defer1);
   EXPECT_FALSE(defer2);
 
-  txn_mgr_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+  txn_mgr_.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   EXPECT_FALSE(aborted);
   EXPECT_TRUE(committed);

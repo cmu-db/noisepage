@@ -110,7 +110,7 @@ TEST_F(BwTreeIndexTests, UniqueInsert) {
 
         *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = i;
         if (unique_index_->InsertUnique(insert_txn, *insert_key, tuple_slot)) {
-          txn_manager_.Commit(insert_txn, TestCallbacks::EmptyCallback, nullptr);
+          txn_manager_.Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
         } else {
           txn_manager_.Abort(insert_txn);
         }
@@ -124,7 +124,7 @@ TEST_F(BwTreeIndexTests, UniqueInsert) {
 
         *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = i;
         if (unique_index_->InsertUnique(insert_txn, *insert_key, tuple_slot)) {
-          txn_manager_.Commit(insert_txn, TestCallbacks::EmptyCallback, nullptr);
+          txn_manager_.Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
         } else {
           txn_manager_.Abort(insert_txn);
         }
@@ -155,7 +155,7 @@ TEST_F(BwTreeIndexTests, UniqueInsert) {
   unique_index_->ScanAscending(*scan_txn, *low_key_pr, *high_key_pr, &results);
   EXPECT_EQ(results.size(), num_inserts_);
 
-  txn_manager_.Commit(scan_txn, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(scan_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 /**
@@ -183,7 +183,7 @@ TEST_F(BwTreeIndexTests, DefaultInsert) {
 
         *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = i;
         EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
-        txn_manager_.Commit(insert_txn, TestCallbacks::EmptyCallback, nullptr);
+        txn_manager_.Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
       }
     } else {
       for (uint32_t i = num_inserts_ - 1; i < num_inserts_; i--) {
@@ -193,7 +193,7 @@ TEST_F(BwTreeIndexTests, DefaultInsert) {
 
         *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = i;
         EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
-        txn_manager_.Commit(insert_txn, TestCallbacks::EmptyCallback, nullptr);
+        txn_manager_.Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
       }
     }
 
@@ -221,7 +221,7 @@ TEST_F(BwTreeIndexTests, DefaultInsert) {
   default_index_->ScanAscending(*scan_txn, *low_key_pr, *high_key_pr, &results);
   EXPECT_EQ(results.size(), num_inserts_ * num_threads_);
 
-  txn_manager_.Commit(scan_txn, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(scan_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 /**
@@ -243,7 +243,7 @@ TEST_F(BwTreeIndexTests, ScanAscending) {
     EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
     reference[i] = tuple_slot;
   }
-  txn_manager_.Commit(insert_txn, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   auto *const scan_txn = txn_manager_.BeginTransaction();
 
@@ -292,7 +292,7 @@ TEST_F(BwTreeIndexTests, ScanAscending) {
   EXPECT_EQ(reference.at(20), results[2]);
   results.clear();
 
-  txn_manager_.Commit(scan_txn, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(scan_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 /**
@@ -314,7 +314,7 @@ TEST_F(BwTreeIndexTests, ScanDescending) {
     EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
     reference[i] = tuple_slot;
   }
-  txn_manager_.Commit(insert_txn, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   auto *const scan_txn = txn_manager_.BeginTransaction();
 
@@ -363,7 +363,7 @@ TEST_F(BwTreeIndexTests, ScanDescending) {
   EXPECT_EQ(reference.at(16), results[2]);
   results.clear();
 
-  txn_manager_.Commit(scan_txn, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(scan_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 /**
@@ -385,7 +385,7 @@ TEST_F(BwTreeIndexTests, ScanLimitAscending) {
     EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
     reference[i] = tuple_slot;
   }
-  txn_manager_.Commit(insert_txn, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   auto *const scan_txn = txn_manager_.BeginTransaction();
 
@@ -430,7 +430,7 @@ TEST_F(BwTreeIndexTests, ScanLimitAscending) {
   EXPECT_EQ(reference.at(18), results[1]);
   results.clear();
 
-  txn_manager_.Commit(scan_txn, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(scan_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 /**
@@ -452,7 +452,7 @@ TEST_F(BwTreeIndexTests, ScanLimitDescending) {
     EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
     reference[i] = tuple_slot;
   }
-  txn_manager_.Commit(insert_txn, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   auto *const scan_txn = txn_manager_.BeginTransaction();
 
@@ -497,7 +497,7 @@ TEST_F(BwTreeIndexTests, ScanLimitDescending) {
   EXPECT_EQ(reference.at(18), results[1]);
   results.clear();
 
-  txn_manager_.Commit(scan_txn, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(scan_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 // Verifies that primary key insert fails on write-write conflict
@@ -545,7 +545,7 @@ TEST_F(BwTreeIndexTests, UniqueKey1) {
 
   txn_manager_.Abort(txn1);
 
-  txn_manager_.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   auto *txn2 = txn_manager_.BeginTransaction();
 
@@ -555,7 +555,7 @@ TEST_F(BwTreeIndexTests, UniqueKey1) {
   EXPECT_EQ(tuple_slot, results[0]);
   results.clear();
 
-  txn_manager_.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 // Verifies that primary key insert fails on visible key conflict
@@ -584,7 +584,7 @@ TEST_F(BwTreeIndexTests, UniqueKey2) {
   EXPECT_EQ(tuple_slot, results[0]);
   results.clear();
 
-  txn_manager_.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   auto *txn1 = txn_manager_.BeginTransaction();
 
@@ -608,7 +608,7 @@ TEST_F(BwTreeIndexTests, UniqueKey2) {
   EXPECT_EQ(tuple_slot, results[0]);
   results.clear();
 
-  txn_manager_.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 // Verifies that primary key insert fails on same txn trying to insert key twice
@@ -656,7 +656,7 @@ TEST_F(BwTreeIndexTests, UniqueKey3) {
   EXPECT_EQ(results.size(), 0);
   results.clear();
 
-  txn_manager_.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 // Verifies that primary key insert fails even if conflicting transaction is an uncommitted delete
@@ -705,7 +705,7 @@ TEST_F(BwTreeIndexTests, UniqueKey4) {
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
   EXPECT_FALSE(unique_index_->InsertUnique(txn1, *insert_key, new_tuple_slot));
 
-  txn_manager_.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   txn_manager_.Abort(txn1);
 
@@ -716,7 +716,7 @@ TEST_F(BwTreeIndexTests, UniqueKey4) {
   EXPECT_EQ(results.size(), 0);
   results.clear();
 
-  txn_manager_.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 //    Txn #0 | Txn #1 | Txn #2 |
@@ -770,14 +770,14 @@ TEST_F(BwTreeIndexTests, CommitInsert1) {
   EXPECT_EQ(results.size(), 0);
   results.clear();
 
-  txn_manager_.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // txn 1 scans index and gets no visible result
   default_index_->ScanKey(*txn1, *scan_key_pr, &results);
   EXPECT_EQ(results.size(), 0);
   results.clear();
 
-  txn_manager_.Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   auto *txn2 = txn_manager_.BeginTransaction();
 
@@ -787,7 +787,7 @@ TEST_F(BwTreeIndexTests, CommitInsert1) {
   EXPECT_EQ(tuple_slot, results[0]);
   results.clear();
 
-  txn_manager_.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 //    Txn #0 | Txn #1 | Txn #2 |
@@ -840,14 +840,14 @@ TEST_F(BwTreeIndexTests, CommitInsert2) {
   EXPECT_EQ(tuple_slot, results[0]);
   results.clear();
 
-  txn_manager_.Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // txn 0 scans index and gets no visible result
   default_index_->ScanKey(*txn0, *scan_key_pr, &results);
   EXPECT_EQ(results.size(), 0);
   results.clear();
 
-  txn_manager_.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   auto *txn2 = txn_manager_.BeginTransaction();
 
@@ -857,7 +857,7 @@ TEST_F(BwTreeIndexTests, CommitInsert2) {
   EXPECT_EQ(tuple_slot, results[0]);
   results.clear();
 
-  txn_manager_.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 //    Txn #0 | Txn #1 | Txn #2 |
@@ -918,7 +918,7 @@ TEST_F(BwTreeIndexTests, AbortInsert1) {
   EXPECT_EQ(results.size(), 0);
   results.clear();
 
-  txn_manager_.Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   auto *txn2 = txn_manager_.BeginTransaction();
 
@@ -927,7 +927,7 @@ TEST_F(BwTreeIndexTests, AbortInsert1) {
   EXPECT_EQ(results.size(), 0);
   results.clear();
 
-  txn_manager_.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 //    Txn #0 | Txn #1 | Txn #2 |
@@ -987,7 +987,7 @@ TEST_F(BwTreeIndexTests, AbortInsert2) {
   EXPECT_EQ(results.size(), 0);
   results.clear();
 
-  txn_manager_.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   auto *txn2 = txn_manager_.BeginTransaction();
 
@@ -996,7 +996,7 @@ TEST_F(BwTreeIndexTests, AbortInsert2) {
   EXPECT_EQ(results.size(), 0);
   results.clear();
 
-  txn_manager_.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 //    Txn #0 | Txn #1 | Txn #2 |
@@ -1032,7 +1032,7 @@ TEST_F(BwTreeIndexTests, CommitUpdate1) {
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
   EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
 
-  txn_manager_.Commit(insert_txn, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   std::vector<storage::TupleSlot> results;
 
@@ -1086,7 +1086,7 @@ TEST_F(BwTreeIndexTests, CommitUpdate1) {
   EXPECT_EQ(results.size(), 0);
   results.clear();
 
-  txn_manager_.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // txn 1 scans index for 15721 and gets a visible, correct result
   *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15721;
@@ -1101,7 +1101,7 @@ TEST_F(BwTreeIndexTests, CommitUpdate1) {
   EXPECT_EQ(results.size(), 0);
   results.clear();
 
-  txn_manager_.Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   auto *txn2 = txn_manager_.BeginTransaction();
 
@@ -1118,7 +1118,7 @@ TEST_F(BwTreeIndexTests, CommitUpdate1) {
   EXPECT_EQ(new_tuple_slot, results[0]);
   results.clear();
 
-  txn_manager_.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 //    Txn #0 | Txn #1 | Txn #2 |
@@ -1154,7 +1154,7 @@ TEST_F(BwTreeIndexTests, CommitUpdate2) {
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
   EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
 
-  txn_manager_.Commit(insert_txn, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   std::vector<storage::TupleSlot> results;
 
@@ -1208,7 +1208,7 @@ TEST_F(BwTreeIndexTests, CommitUpdate2) {
   EXPECT_EQ(new_tuple_slot, results[0]);
   results.clear();
 
-  txn_manager_.Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // txn 0 scans index for 15721 and gets a visible, correct result
   *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15721;
@@ -1223,7 +1223,7 @@ TEST_F(BwTreeIndexTests, CommitUpdate2) {
   EXPECT_EQ(results.size(), 0);
   results.clear();
 
-  txn_manager_.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   auto *txn2 = txn_manager_.BeginTransaction();
 
@@ -1240,7 +1240,7 @@ TEST_F(BwTreeIndexTests, CommitUpdate2) {
   EXPECT_EQ(new_tuple_slot, results[0]);
   results.clear();
 
-  txn_manager_.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 //    Txn #0 | Txn #1 | Txn #2 |
@@ -1276,7 +1276,7 @@ TEST_F(BwTreeIndexTests, AbortUpdate1) {
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
   EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
 
-  txn_manager_.Commit(insert_txn, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   std::vector<storage::TupleSlot> results;
 
@@ -1345,7 +1345,7 @@ TEST_F(BwTreeIndexTests, AbortUpdate1) {
   EXPECT_EQ(results.size(), 0);
   results.clear();
 
-  txn_manager_.Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   auto *txn2 = txn_manager_.BeginTransaction();
 
@@ -1362,7 +1362,7 @@ TEST_F(BwTreeIndexTests, AbortUpdate1) {
   EXPECT_EQ(results.size(), 0);
   results.clear();
 
-  txn_manager_.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 //    Txn #0 | Txn #1 | Txn #2 |
@@ -1398,7 +1398,7 @@ TEST_F(BwTreeIndexTests, AbortUpdate2) {
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
   EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
 
-  txn_manager_.Commit(insert_txn, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   std::vector<storage::TupleSlot> results;
 
@@ -1467,7 +1467,7 @@ TEST_F(BwTreeIndexTests, AbortUpdate2) {
   EXPECT_EQ(results.size(), 0);
   results.clear();
 
-  txn_manager_.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   auto *txn2 = txn_manager_.BeginTransaction();
 
@@ -1484,7 +1484,7 @@ TEST_F(BwTreeIndexTests, AbortUpdate2) {
   EXPECT_EQ(results.size(), 0);
   results.clear();
 
-  txn_manager_.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 //    Txn #0 | Txn #1 | Txn #2 |
@@ -1520,7 +1520,7 @@ TEST_F(BwTreeIndexTests, CommitDelete1) {
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
   EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
 
-  txn_manager_.Commit(insert_txn, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   std::vector<storage::TupleSlot> results;
 
@@ -1554,7 +1554,7 @@ TEST_F(BwTreeIndexTests, CommitDelete1) {
   EXPECT_EQ(tuple_slot, results[0]);
   results.clear();
 
-  txn_manager_.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // txn 1 scans index for 15721 and gets a visible, correct result
   *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15721;
@@ -1563,7 +1563,7 @@ TEST_F(BwTreeIndexTests, CommitDelete1) {
   EXPECT_EQ(tuple_slot, results[0]);
   results.clear();
 
-  txn_manager_.Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   auto *txn2 = txn_manager_.BeginTransaction();
 
@@ -1573,7 +1573,7 @@ TEST_F(BwTreeIndexTests, CommitDelete1) {
   EXPECT_EQ(results.size(), 0);
   results.clear();
 
-  txn_manager_.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 //    Txn #0 | Txn #1 | Txn #2 |
@@ -1609,7 +1609,7 @@ TEST_F(BwTreeIndexTests, CommitDelete2) {
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
   EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
 
-  txn_manager_.Commit(insert_txn, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   std::vector<storage::TupleSlot> results;
 
@@ -1643,7 +1643,7 @@ TEST_F(BwTreeIndexTests, CommitDelete2) {
   EXPECT_EQ(results.size(), 0);
   results.clear();
 
-  txn_manager_.Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // txn 0 scans index for 15721 and gets a visible, correct result
   *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15721;
@@ -1652,7 +1652,7 @@ TEST_F(BwTreeIndexTests, CommitDelete2) {
   EXPECT_EQ(tuple_slot, results[0]);
   results.clear();
 
-  txn_manager_.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   auto *txn2 = txn_manager_.BeginTransaction();
 
@@ -1662,7 +1662,7 @@ TEST_F(BwTreeIndexTests, CommitDelete2) {
   EXPECT_EQ(results.size(), 0);
   results.clear();
 
-  txn_manager_.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 //    Txn #0 | Txn #1 | Txn #2 |
@@ -1698,7 +1698,7 @@ TEST_F(BwTreeIndexTests, AbortDelete1) {
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
   EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
 
-  txn_manager_.Commit(insert_txn, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   std::vector<storage::TupleSlot> results;
 
@@ -1741,7 +1741,7 @@ TEST_F(BwTreeIndexTests, AbortDelete1) {
   EXPECT_EQ(tuple_slot, results[0]);
   results.clear();
 
-  txn_manager_.Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   auto *txn2 = txn_manager_.BeginTransaction();
 
@@ -1752,7 +1752,7 @@ TEST_F(BwTreeIndexTests, AbortDelete1) {
   EXPECT_EQ(tuple_slot, results[0]);
   results.clear();
 
-  txn_manager_.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 //    Txn #0 | Txn #1 | Txn #2 |
@@ -1788,7 +1788,7 @@ TEST_F(BwTreeIndexTests, AbortDelete2) {
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
   EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
 
-  txn_manager_.Commit(insert_txn, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   std::vector<storage::TupleSlot> results;
 
@@ -1831,7 +1831,7 @@ TEST_F(BwTreeIndexTests, AbortDelete2) {
   EXPECT_EQ(tuple_slot, results[0]);
   results.clear();
 
-  txn_manager_.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   auto *txn2 = txn_manager_.BeginTransaction();
 
@@ -1842,7 +1842,7 @@ TEST_F(BwTreeIndexTests, AbortDelete2) {
   EXPECT_EQ(tuple_slot, results[0]);
   results.clear();
 
-  txn_manager_.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 }  // namespace terrier::storage::index
