@@ -1,6 +1,6 @@
 #include "execution/sql_test.h"  // NOLINT
 
-#include "execution/catalog/catalog_defs.h"
+#include "catalog/catalog_defs.h"
 #include "execution/sql/execution_structures.h"
 #include "execution/sql/table_vector_iterator.h"
 #include "execution/util/timer.h"
@@ -14,14 +14,15 @@ TEST_F(TableVectorIteratorTest, EmptyIteratorTest) {
   // Check to see that iteration doesn't begin without an input block
   //
   auto *exec = sql::ExecutionStructures::Instance();
-  auto catalog_table = exec->GetCatalog()->GetCatalogTable(catalog::DEFAULT_DATABASE_OID, "empty_table");
-
-  TableVectorIterator iter(static_cast<uint32_t>(catalog::DEFAULT_DATABASE_OID),
-                           static_cast<uint32_t>(catalog_table->Oid()));
+  auto catalog_table = exec->GetCatalog()->GetCatalogTable(terrier::catalog::DEFAULT_DATABASE_OID, "empty_table");
+  auto txn = exec->GetTxnManager()->BeginTransaction();
+  TableVectorIterator iter(!terrier::catalog::DEFAULT_DATABASE_OID,
+                           !catalog_table->Oid(), txn);
   iter.Init();
   while (iter.Advance()) {
     FAIL() << "Empty table should have no tuples";
   }
+  exec->GetTxnManager()->Commit(txn, [](void*){}, nullptr);
 }
 
 TEST_F(TableVectorIteratorTest, SimpleIteratorTest) {
@@ -30,10 +31,11 @@ TEST_F(TableVectorIteratorTest, SimpleIteratorTest) {
   //
 
   auto *exec = sql::ExecutionStructures::Instance();
-  auto catalog_table = exec->GetCatalog()->GetCatalogTable(catalog::DEFAULT_DATABASE_OID, "test_1");
+  auto catalog_table = exec->GetCatalog()->GetCatalogTable(terrier::catalog::DEFAULT_DATABASE_OID, "test_1");
+  auto txn = exec->GetTxnManager()->BeginTransaction();
 
-  TableVectorIterator iter(static_cast<uint32_t>(catalog::DEFAULT_DATABASE_OID),
-                           static_cast<uint32_t>(catalog_table->Oid()));
+  TableVectorIterator iter(!terrier::catalog::DEFAULT_DATABASE_OID,
+                           !catalog_table->Oid(), txn);
   iter.Init();
   ProjectedColumnsIterator *pci = iter.projected_columns_iterator();
 
@@ -45,6 +47,7 @@ TEST_F(TableVectorIteratorTest, SimpleIteratorTest) {
     pci->Reset();
   }
   EXPECT_EQ(sql::test1_size, num_tuples);
+  exec->GetTxnManager()->Commit(txn, [](void*){}, nullptr);
 }
 
 TEST_F(TableVectorIteratorTest, NullableTypesIteratorTest) {
@@ -54,10 +57,11 @@ TEST_F(TableVectorIteratorTest, NullableTypesIteratorTest) {
   //
 
   auto *exec = sql::ExecutionStructures::Instance();
-  auto catalog_table = exec->GetCatalog()->GetCatalogTable(catalog::DEFAULT_DATABASE_OID, "test_2");
+  auto catalog_table = exec->GetCatalog()->GetCatalogTable(terrier::catalog::DEFAULT_DATABASE_OID, "test_2");
+  auto txn = exec->GetTxnManager()->BeginTransaction();
 
-  TableVectorIterator iter(static_cast<uint32_t>(catalog::DEFAULT_DATABASE_OID),
-                           static_cast<uint32_t>(catalog_table->Oid()));
+  TableVectorIterator iter(!terrier::catalog::DEFAULT_DATABASE_OID,
+                           !catalog_table->Oid(), txn);
   iter.Init();
   ProjectedColumnsIterator *pci = iter.projected_columns_iterator();
 
@@ -69,6 +73,7 @@ TEST_F(TableVectorIteratorTest, NullableTypesIteratorTest) {
     pci->Reset();
   }
   EXPECT_EQ(sql::test2_size, num_tuples);
+  exec->GetTxnManager()->Commit(txn, [](void*){}, nullptr);
 }
 
 }  // namespace tpl::sql::test

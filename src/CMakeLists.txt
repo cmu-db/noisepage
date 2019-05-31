@@ -61,6 +61,7 @@ set_property(TARGET libcount PROPERTY IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/th
 add_dependencies(libcount libcount_build)
 
 include_directories(SYSTEM "${PROJECT_SOURCE_DIR}/third_party/libcount/include")
+list(APPEND TERRIER_STATIC_LINK_LIBS libcount)
 list(APPEND TERRIER_LINK_LIBS libcount)
 
 ###############################################

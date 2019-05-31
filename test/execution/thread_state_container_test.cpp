@@ -83,7 +83,7 @@ TEST_F(ThreadStateContainerTest, SimpleContainerTest) {
   // Manually collect and add
   {
     std::vector<u32 *> counts;
-    container.CollectThreadLocalStateElementsAs(counts, 0);
+    container.CollectThreadLocalStateElementsAs(&counts, 0);
     EXECUTION_LOG_INFO("{} thread states", counts.size());
 
     total = std::accumulate(counts.begin(), counts.end(), 0, [](auto partial, auto *c) { return partial + *c; });

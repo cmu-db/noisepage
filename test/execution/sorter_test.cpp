@@ -11,7 +11,7 @@
 
 #include "ips4o/ips4o.hpp"
 
-#include "execution/sql/execution_context.h"
+#include "execution/exec/execution_context.h"
 #include "execution/sql/sorter.h"
 #include "execution/sql/thread_state_container.h"
 
@@ -246,14 +246,15 @@ void TestParallelSort(const std::vector<u32> &sorter_sizes) {
 
   // Initialization and destruction function
   const auto init_sorter = [](void *ctx, void *s) {
-    new (s) Sorter(reinterpret_cast<ExecutionContext *>(ctx)->memory_pool(), cmp_fn, sizeof(TestTuple<N>));
+    new (s) Sorter(reinterpret_cast<exec::ExecutionContext *>(ctx)->GetMemoryPool(), cmp_fn, sizeof(TestTuple<N>));
   };
   const auto destroy_sorter = [](UNUSED void *ctx, void *s) { reinterpret_cast<Sorter *>(s)->~Sorter(); };
 
   // Create container
-  MemoryPool memory(nullptr);
-  ExecutionContext exec_ctx(&memory);
-  ThreadStateContainer container(&memory);
+  auto memory = std::make_unique<MemoryPool>(nullptr);
+  exec::ExecutionContext exec_ctx(nullptr, [](byte*, u32, u32){}, nullptr);
+  exec_ctx.SetMemoryPool(std::move(memory));
+  ThreadStateContainer container(exec_ctx.GetMemoryPool());
 
   container.Reset(sizeof(Sorter), init_sorter, destroy_sorter, &exec_ctx);
 
@@ -268,7 +269,7 @@ void TestParallelSort(const std::vector<u32> &sorter_sizes) {
   });
 
   // Main parallel sort
-  Sorter main(exec_ctx.memory_pool(), cmp_fn, sizeof(TestTuple<N>));
+  Sorter main(exec_ctx.GetMemoryPool(), cmp_fn, sizeof(TestTuple<N>));
   main.SortParallel(&container, 0);
 
   u32 expected_total_size =

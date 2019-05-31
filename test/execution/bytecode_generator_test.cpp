@@ -26,7 +26,7 @@ TEST_F(BytecodeGeneratorTest, SimpleTest) {
     ASSERT_TRUE(module != nullptr);
 
     std::function<bool()> func;
-    EXPECT_TRUE(module->GetFunction("test", ExecutionMode::Interpret, func));
+    EXPECT_TRUE(module->GetFunction("test", ExecutionMode::Interpret, &func));
     EXPECT_TRUE(func());
   }
 
@@ -37,7 +37,7 @@ TEST_F(BytecodeGeneratorTest, SimpleTest) {
     ASSERT_TRUE(module != nullptr);
 
     std::function<bool()> func;
-    EXPECT_TRUE(module->GetFunction("test", ExecutionMode::Interpret, func));
+    EXPECT_TRUE(module->GetFunction("test", ExecutionMode::Interpret, &func));
     EXPECT_FALSE(func());
   }
 
@@ -53,7 +53,7 @@ TEST_F(BytecodeGeneratorTest, SimpleTest) {
     ASSERT_TRUE(module != nullptr);
 
     std::function<u32(u32)> mul_20;
-    EXPECT_TRUE(module->GetFunction("mul20", ExecutionMode::Interpret, mul_20))
+    EXPECT_TRUE(module->GetFunction("mul20", ExecutionMode::Interpret, &mul_20))
         << "Function 'mul20' not found in module";
 
     EXPECT_EQ(20u, mul_20(1));
@@ -82,7 +82,7 @@ TEST_F(BytecodeGeneratorTest, BooleanEvaluationTest) {
     ASSERT_TRUE(module != nullptr);
 
     std::function<i32(bool)> f;
-    EXPECT_TRUE(module->GetFunction("test", ExecutionMode::Interpret, f)) << "Function 'test' not found in module";
+    EXPECT_TRUE(module->GetFunction("test", ExecutionMode::Interpret, &f)) << "Function 'test' not found in module";
     EXPECT_EQ(10, f(false));
     EXPECT_EQ(-10, f(true));
   }
@@ -104,7 +104,7 @@ TEST_F(BytecodeGeneratorTest, BooleanEvaluationTest) {
     ASSERT_TRUE(module != nullptr);
 
     std::function<bool()> f;
-    EXPECT_TRUE(module->GetFunction("test", ExecutionMode::Interpret, f)) << "Function 'test' not found in module";
+    EXPECT_TRUE(module->GetFunction("test", ExecutionMode::Interpret, &f)) << "Function 'test' not found in module";
     EXPECT_FALSE(f());
   }
 }
@@ -123,7 +123,7 @@ TEST_F(BytecodeGeneratorTest, SimpleArithmeticTest) {
     ASSERT_TRUE(module != nullptr);
 
     std::function<Type(Type, Type)> fn;
-    ASSERT_TRUE(module->GetFunction("test", ExecutionMode::Interpret, fn)) << "Function 'test' not found in module";
+    ASSERT_TRUE(module->GetFunction("test", ExecutionMode::Interpret, &fn)) << "Function 'test' not found in module";
 
     // Test the function
     cb(fn);
@@ -165,7 +165,7 @@ TEST_F(BytecodeGeneratorTest, ComparisonTest) {
     ASSERT_TRUE(module != nullptr);
 
     std::function<bool(Type, Type)> fn;
-    ASSERT_TRUE(module->GetFunction("test", ExecutionMode::Interpret, fn)) << "Function 'test' not found in module";
+    ASSERT_TRUE(module->GetFunction("test", ExecutionMode::Interpret, &fn)) << "Function 'test' not found in module";
 
     // Test the function
     cb(fn);
@@ -216,7 +216,7 @@ TEST_F(BytecodeGeneratorTest, ParameterPassingTest) {
   };
 
   std::function<bool(S *)> f;
-  EXPECT_TRUE(module->GetFunction("test", ExecutionMode::Interpret, f)) << "Function 'test' not found in module";
+  EXPECT_TRUE(module->GetFunction("test", ExecutionMode::Interpret, &f)) << "Function 'test' not found in module";
 
   S s{.a = 0, .b = 0};
   EXPECT_TRUE(f(&s));
@@ -258,7 +258,7 @@ TEST_F(BytecodeGeneratorTest, FunctionTypeCheckTest) {
     ASSERT_TRUE(module != nullptr);
 
     std::function<i32()> f;
-    EXPECT_TRUE(module->GetFunction("test", ExecutionMode::Interpret, f)) << "Function 'test' not found in module";
+    EXPECT_TRUE(module->GetFunction("test", ExecutionMode::Interpret, &f)) << "Function 'test' not found in module";
 
     EXPECT_EQ(10, f());
   }
@@ -274,7 +274,7 @@ TEST_F(BytecodeGeneratorTest, FunctionTypeCheckTest) {
     auto module = compiler.CompileToModule(src);
 
     std::function<i32()> f;
-    EXPECT_TRUE(module->GetFunction("test", ExecutionMode::Interpret, f)) << "Function 'test' not found in module";
+    EXPECT_TRUE(module->GetFunction("test", ExecutionMode::Interpret, &f)) << "Function 'test' not found in module";
 
     EXPECT_EQ(800, f());
   }
@@ -305,7 +305,7 @@ TEST_F(BytecodeGeneratorTest, FunctionTest) {
   };
 
   std::function<bool(S *)> f;
-  EXPECT_TRUE(module->GetFunction("test", ExecutionMode::Interpret, f)) << "Function 'test' not found in module";
+  EXPECT_TRUE(module->GetFunction("test", ExecutionMode::Interpret, &f)) << "Function 'test' not found in module";
 
   S s{.a = 0, .b = 0};
   EXPECT_TRUE(f(&s));

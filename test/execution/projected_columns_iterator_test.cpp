@@ -7,7 +7,7 @@
 
 #include "execution/tpl_test.h"  // NOLINT
 
-#include "execution/catalog/catalog.h"
+#include "catalog/catalog.h"
 #include "execution/sql/execution_structures.h"
 #include "execution/sql/projected_columns_iterator.h"
 
@@ -86,8 +86,12 @@ class ProjectedColumnsIteratorTest : public TplTest {
   };
 
  public:
-  ProjectedColumnsIteratorTest() : num_tuples_(kDefaultVectorSize) {
-    // NOTE: the storage layer reoder's these by size. So let's filter them now.
+  ProjectedColumnsIteratorTest() : num_tuples_(kDefaultVectorSize) {}
+
+  void SetUp() override {
+    TplTest::SetUp();
+
+    // NOTE: the storage layer reoder's columns by size. So let's filter them now.
     auto cola_data = CreateMonotonicallyIncreasing<i16>(num_tuples());
     auto colb_data = CreateRandom<i32>(num_tuples());
     auto colb_null = CreateRandomNullBitmap(num_tuples());
@@ -132,31 +136,31 @@ class ProjectedColumnsIteratorTest : public TplTest {
     // TODO(Amadou): Come up with an easier way to create ProjectedColumns.
     // This should be done after the perso_catalog PR is merged in.
     // Create column metadata for every column.
-    catalog::col_oid_t col_oid_a(catalog->GetNextOid());
-    catalog::col_oid_t col_oid_b(catalog->GetNextOid());
-    catalog::col_oid_t col_oid_c(catalog->GetNextOid());
-    catalog::col_oid_t col_oid_d(catalog->GetNextOid());
-    catalog::Schema::Column col_a = catalog::Schema::Column("col_a", type::TypeId::SMALLINT, false, col_oid_a);
-    catalog::Schema::Column col_b = catalog::Schema::Column("col_b", type::TypeId::INTEGER, true, col_oid_b);
-    catalog::Schema::Column col_c = catalog::Schema::Column("col_c", type::TypeId::INTEGER, false, col_oid_c);
-    catalog::Schema::Column col_d = catalog::Schema::Column("col_d", type::TypeId::BIGINT, true, col_oid_d);
+    terrier::catalog::col_oid_t col_oid_a(catalog->GetNextOid());
+    terrier::catalog::col_oid_t col_oid_b(catalog->GetNextOid());
+    terrier::catalog::col_oid_t col_oid_c(catalog->GetNextOid());
+    terrier::catalog::col_oid_t col_oid_d(catalog->GetNextOid());
+    terrier::catalog::Schema::Column col_a = terrier::catalog::Schema::Column("col_a", terrier::type::TypeId::SMALLINT, false, col_oid_a);
+    terrier::catalog::Schema::Column col_b = terrier::catalog::Schema::Column("col_b", terrier::type::TypeId::INTEGER, true, col_oid_b);
+    terrier::catalog::Schema::Column col_c = terrier::catalog::Schema::Column("col_c", terrier::type::TypeId::INTEGER, false, col_oid_c);
+    terrier::catalog::Schema::Column col_d = terrier::catalog::Schema::Column("col_d", terrier::type::TypeId::BIGINT, true, col_oid_d);
 
     // Create the table in the catalog.
-    catalog::Schema schema({col_a, col_b, col_c, col_d});
-    auto table_oid = catalog->CreateTable(txn_, catalog::DEFAULT_DATABASE_OID, "pci_test_table", schema);
+    terrier::catalog::Schema schema({col_a, col_b, col_c, col_d});
+    auto table_oid = catalog->CreateTable(txn_, terrier::catalog::DEFAULT_DATABASE_OID, "pci_test_table", schema);
 
     // Get the table's information.
-    catalog_table_ = catalog->GetCatalogTable(catalog::DEFAULT_DATABASE_OID, table_oid);
+    catalog_table_ = catalog->GetCatalogTable(terrier::catalog::DEFAULT_DATABASE_OID, table_oid);
     auto sql_table = catalog_table_->GetSqlTable();
 
     // Create a ProjectedColumns
-    std::vector<catalog::col_oid_t> col_oids;
+    std::vector<terrier::catalog::col_oid_t> col_oids;
     for (const auto &col : sql_table->GetSchema().GetColumns()) {
       col_oids.emplace_back(col.GetOid());
     }
     auto initializer_map = sql_table->InitializerForProjectedColumns(col_oids, kDefaultVectorSize);
 
-    buffer_ = common::AllocationUtil::AllocateAligned(initializer_map.first.ProjectedColumnsSize());
+    buffer_ = terrier::common::AllocationUtil::AllocateAligned(initializer_map.first.ProjectedColumnsSize());
     projected_columns_ = initializer_map.first.Initialize(buffer_);
     projected_columns_->SetNumTuples(kDefaultVectorSize);
   }
@@ -166,7 +170,7 @@ class ProjectedColumnsIteratorTest : public TplTest {
     auto *exec = sql::ExecutionStructures::Instance();
     auto *catalog = exec->GetCatalog();
     auto *txn_manager = exec->GetTxnManager();
-    catalog->DeleteTable(txn_, catalog::DEFAULT_DATABASE_OID, catalog_table_->Oid());
+    catalog->DeleteTable(txn_, terrier::catalog::DEFAULT_DATABASE_OID, catalog_table_->Oid());
     txn_manager->Commit(txn_, [](void *) { return; }, nullptr);
     delete txn_;
     delete[] buffer_;
@@ -178,7 +182,7 @@ class ProjectedColumnsIteratorTest : public TplTest {
  protected:
   u32 num_tuples() const { return num_tuples_; }
 
-  storage::ProjectedColumns *GetProjectedColumn() { return projected_columns_; }
+  terrier::storage::ProjectedColumns *GetProjectedColumn() { return projected_columns_; }
 
   // Compute the offset of the column
   u16 GetColOffset(ColId col) { return catalog_table_->ColNumToOffset(col); }
@@ -189,9 +193,9 @@ class ProjectedColumnsIteratorTest : public TplTest {
   u32 num_tuples_;
   std::vector<ColData> data_;
   byte *buffer_ = nullptr;
-  storage::ProjectedColumns *projected_columns_ = nullptr;
-  std::shared_ptr<catalog::SqlTableRW> catalog_table_ = nullptr;
-  transaction::TransactionContext *txn_ = nullptr;
+  terrier::storage::ProjectedColumns *projected_columns_ = nullptr;
+  std::shared_ptr<terrier::catalog::SqlTableRW> catalog_table_ = nullptr;
+  terrier::transaction::TransactionContext *txn_ = nullptr;
 };
 
 TEST_F(ProjectedColumnsIteratorTest, EmptyIteratorTest) {
@@ -405,7 +409,7 @@ TEST_F(ProjectedColumnsIteratorTest, SimpleVectorizedFilterTest) {
   }
 
   // Filter
-  iter.FilterColByVal<std::less>(GetColOffset(ColId::col_c), type::TypeId::INTEGER,
+  iter.FilterColByVal<std::less>(GetColOffset(ColId::col_c), terrier::type::TypeId::INTEGER,
                                  ProjectedColumnsIterator::FilterVal{.i = 100});
 
   // Check
@@ -433,9 +437,9 @@ TEST_F(ProjectedColumnsIteratorTest, MultipleVectorizedFilterTest) {
   ProjectedColumnsIterator iter(GetProjectedColumn());
   SetSize(kDefaultVectorSize);
 
-  iter.FilterColByVal<std::less>(GetColOffset(ColId::col_c), type::TypeId::INTEGER,
+  iter.FilterColByVal<std::less>(GetColOffset(ColId::col_c), terrier::type::TypeId::INTEGER,
                                  ProjectedColumnsIterator::FilterVal{.i = 750});
-  iter.FilterColByVal<std::less>(GetColOffset(ColId::col_a), type::TypeId::SMALLINT,
+  iter.FilterColByVal<std::less>(GetColOffset(ColId::col_a), terrier::type::TypeId::SMALLINT,
                                  ProjectedColumnsIterator::FilterVal{.si = 10});
 
   // Check
@@ -443,7 +447,7 @@ TEST_F(ProjectedColumnsIteratorTest, MultipleVectorizedFilterTest) {
   for (; iter.HasNextFiltered(); iter.AdvanceFiltered()) {
     auto col_a_val = *iter.Get<i16, false>(GetColOffset(ColId::col_a), nullptr);
     auto col_c_val = *iter.Get<i32, false>(GetColOffset(ColId::col_c), nullptr);
-    ASSERT_LT(col_a_val, 10);
+    EXPECT_LT(col_a_val, 10);
     EXPECT_LT(col_c_val, 750);
     count++;
   }

@@ -3,10 +3,10 @@
 #include <random>
 #include <vector>
 
-#include "tpl_test.h"  // NOLINT
+#include "execution/tpl_test.h"  // NOLINT
 
-#include "util/timer.h"
-#include "util/vector_util.h"
+#include "execution/util/timer.h"
+#include "execution/util/vector_util.h"
 
 namespace tpl::util::test {
 

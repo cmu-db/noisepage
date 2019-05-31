@@ -464,12 +464,18 @@ class ChunkedVector {
   /**
    * Access the last element in the vector. Undefined if the vector is empty.
    */
-  byte *back() noexcept;
+  byte *back() noexcept {
+    TPL_ASSERT(!empty(), "Accessing back() of empty vector");
+    return this->operator[](size() - 1);
+  }
 
   /**
    * Access the last element in the vector. Undefined if the vector is empty.
    */
-  const byte *back() const noexcept;
+  const byte *back() const noexcept {
+    TPL_ASSERT(!empty(), "Accessing back() of empty vector");
+    return this->operator[](size() - 1);
+  }
 
   // -------------------------------------------------------
   // Modification

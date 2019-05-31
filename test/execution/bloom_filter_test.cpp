@@ -37,7 +37,7 @@ void Mix(std::vector<T> &target, const std::vector<T> &source, double p) {
   std::random_device random;
   std::mt19937 g(random());
 
-  for (u32 i = 0; i < (p * target.size()); i++) {
+  for (u32 i = 0; i < (p * static_cast<double>(target.size())); i++) {
     target[i] = source[g() % source.size()];
   }
 
@@ -67,7 +67,7 @@ TEST_F(BloomFilterTest, ComprehensiveTest) {
   }
 
   auto bits_per_elem = static_cast<double>(filter.GetSizeInBits()) / num_filter_elems;
-  auto bit_set_prob = static_cast<double>(filter.GetTotalBitsSet()) / filter.GetSizeInBits();
+  auto bit_set_prob = static_cast<double>(filter.GetTotalBitsSet()) / static_cast<double>(filter.GetSizeInBits());
   EXECUTION_LOG_INFO("Filter: {} elements, {} bits, {} bits/element, {} bits set (p={:.2f})", num_filter_elems,
                      filter.GetSizeInBits(), bits_per_elem, filter.GetTotalBitsSet(), bit_set_prob);
 
@@ -76,7 +76,7 @@ TEST_F(BloomFilterTest, ComprehensiveTest) {
     GenerateRandom32(lookups, num_filter_elems * lookup_scale_factor);
     Mix(lookups, insertions, prob_success);
 
-    auto expected_found = static_cast<u32>(prob_success * lookups.size());
+    auto expected_found = static_cast<u32>(prob_success * static_cast<double>(lookups.size()));
 
     util::Timer<std::milli> timer;
     timer.Start();

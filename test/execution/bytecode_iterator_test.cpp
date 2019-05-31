@@ -19,7 +19,7 @@ class BytecodeIteratorTest : public TplTest {
 };
 
 TEST_F(BytecodeIteratorTest, SimpleIteratorTest) {
-  vm::BytecodeEmitter emitter(code());
+  vm::BytecodeEmitter emitter(&code());
 
   LocalVar v1(0, LocalVar::AddressMode::Address);
   LocalVar v2(8, LocalVar::AddressMode::Address);
@@ -57,7 +57,7 @@ TEST_F(BytecodeIteratorTest, SimpleIteratorTest) {
 }
 
 TEST_F(BytecodeIteratorTest, JumpTest) {
-  vm::BytecodeEmitter emitter(code());
+  vm::BytecodeEmitter emitter(&code());
 
   LocalVar v1(0, LocalVar::AddressMode::Address);
   LocalVar v2(8, LocalVar::AddressMode::Address);

@@ -17,8 +17,8 @@ using terrier::common::AllocationUtil;
 using terrier::storage::DataTable;
 using terrier::transaction::TransactionContext;
 
-TableVectorIterator::TableVectorIterator(u32 db_oid, u32 table_oid, exec::ExecutionContext *exec_ctx)
-    : db_oid_(db_oid), table_oid_(table_oid), exec_ctx_(exec_ctx) {}
+TableVectorIterator::TableVectorIterator(u32 db_oid, u32 table_oid, TransactionContext* txn)
+    : db_oid_(db_oid), table_oid_(table_oid), txn_(txn) {}
 
 TableVectorIterator::~TableVectorIterator() { delete[] buffer_; }
 
@@ -53,7 +53,7 @@ bool TableVectorIterator::Advance() {
     return false;
   }
   // Scan the table a set the projected column.
-  catalog_table_->GetSqlTable()->Scan(exec_ctx_->GetTxn(), iter_.get(), projected_columns_);
+  catalog_table_->GetSqlTable()->Scan(txn_, iter_.get(), projected_columns_);
   pci_.SetProjectedColumn(projected_columns_);
   return true;
 }

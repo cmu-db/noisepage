@@ -22,7 +22,7 @@ class ExecutionContext {
    */
   ExecutionContext(TransactionContext *txn, OutputCallback callback, const std::shared_ptr<FinalSchema> &final_schema)
       : txn_(txn),
-        buffer_(
+        buffer_( final_schema == nullptr ? nullptr :
             std::make_unique<OutputBuffer>(final_schema->GetCols().size(), ComputeTupleSize(final_schema), callback)) {}
 
   /**

@@ -9,6 +9,7 @@
 #include "execution/ast/type.h"
 #include "execution/sema/sema.h"
 #include "execution/util/region_containers.h"
+#include "execution/sql/execution_structures.h"
 
 namespace tpl::sema::test {
 

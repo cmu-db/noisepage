@@ -9,7 +9,8 @@
 
 #include "execution/sql_test.h"  // NOLINT
 
-#include "execution/sql/catalog.h"
+#include "catalog/catalog.h"
+#include "type/type_id.h"
 #include "execution/sql/filter_manager.h"
 #include "execution/sql/table_vector_iterator.h"
 
@@ -34,17 +35,19 @@ u32 Hobbled_TaaT_Lt_500(ProjectedColumnsIterator *pci) {
 
 u32 Vectorized_Lt_500(ProjectedColumnsIterator *pci) {
   ProjectedColumnsIterator::FilterVal param{.i = 500};
-  return pci->FilterColByVal<std::less>(Col::A, param);
+  return pci->FilterColByVal<std::less>(Col::A, terrier::type::TypeId ::INTEGER, param);
 }
 
 TEST_F(FilterManagerTest, SimpleFilterManagerTest) {
-  FilterManager filter(bandit::Policy::FixedAction);
+  FilterManager filter(bandit::Policy::Kind::FixedAction);
   filter.StartNewClause();
   filter.InsertClauseFlavor(TaaT_Lt_500);
   filter.InsertClauseFlavor(Vectorized_Lt_500);
   filter.Finalize();
-
-  TableVectorIterator tvi(static_cast<u16>(TableId::Test1));
+  auto exec = ExecutionStructures::Instance();
+  auto txn = exec->GetTxnManager()->BeginTransaction();
+  auto catalog_table = exec->GetCatalog()->GetCatalogTable(terrier::catalog::DEFAULT_DATABASE_OID, "test_1");
+  TableVectorIterator tvi(!terrier::catalog::DEFAULT_DATABASE_OID, !catalog_table->Oid(), txn);
   for (tvi.Init(); tvi.Advance();) {
     auto *pci = tvi.projected_columns_iterator();
 
@@ -57,18 +60,21 @@ TEST_F(FilterManagerTest, SimpleFilterManagerTest) {
       EXPECT_LT(cola, 500);
     });
   }
+  exec->GetTxnManager()->Commit(txn, [](void*){}, nullptr);
 }
 
 TEST_F(FilterManagerTest, AdaptiveFilterManagerTest) {
-  FilterManager filter(bandit::Policy::EpsilonGreedy);
+  FilterManager filter(bandit::Policy::Kind::EpsilonGreedy);
   filter.StartNewClause();
   filter.InsertClauseFlavor(Hobbled_TaaT_Lt_500);
   filter.InsertClauseFlavor(Vectorized_Lt_500);
   filter.Finalize();
-
-  TableVectorIterator tvi(static_cast<u16>(TableId::Test1));
+  auto exec = ExecutionStructures::Instance();
+  auto txn = exec->GetTxnManager()->BeginTransaction();
+  auto catalog_table = exec->GetCatalog()->GetCatalogTable(terrier::catalog::DEFAULT_DATABASE_OID, "test_1");
+  TableVectorIterator tvi(!terrier::catalog::DEFAULT_DATABASE_OID, !catalog_table->Oid(), txn);
   for (tvi.Init(); tvi.Advance();) {
-    auto *pci = tvi.vector_projection_iterator();
+    auto *pci = tvi.projected_columns_iterator();
 
     // Run the filters
     filter.RunFilters(pci);
@@ -82,6 +88,7 @@ TEST_F(FilterManagerTest, AdaptiveFilterManagerTest) {
 
   // The vectorized filter better be the optimal!
   EXPECT_EQ(1u, filter.GetOptimalFlavorForClause(0));
+  exec->GetTxnManager()->Commit(txn, [](void*){}, nullptr);
 }
 
 }  // namespace tpl::sql::test

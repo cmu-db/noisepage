@@ -29,9 +29,9 @@ class TableVectorIterator {
    * Create a new vectorized iterator over the given table
    * @param db_oid database oid of the table
    * @param table_oid oid of the table
-   * @param exec_ctx execution context to use
+   * @param txn transaction to use when scanning the table
    */
-  explicit TableVectorIterator(u32 db_oid, u32 table_oid, exec::ExecutionContext *exec_ctx);
+  explicit TableVectorIterator(u32 db_oid, u32 table_oid, TransactionContext *txn);
 
   /**
    * Destructor
@@ -84,7 +84,7 @@ class TableVectorIterator {
  private:
   const db_oid_t db_oid_;
   const table_oid_t table_oid_;
-  exec::ExecutionContext *exec_ctx_ = nullptr;
+  TransactionContext* txn_;
 
   // TODO(Amadou): These are temporary variables until transactions are in
   // And until the Init() logic is in the bytecode emitter.

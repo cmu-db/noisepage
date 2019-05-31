@@ -27,7 +27,7 @@ void OpThreadStateContainerFree(tpl::sql::ThreadStateContainer *const thread_sta
 void OpTableVectorIteratorInit(tpl::sql::TableVectorIterator *iter, u32 db_oid, u32 table_oid,
                                tpl::exec::ExecutionContext *exec_ctx) {
   TPL_ASSERT(iter != nullptr, "Null iterator to initialize");
-  new (iter) tpl::sql::TableVectorIterator(db_oid, table_oid, exec_ctx);
+  new (iter) tpl::sql::TableVectorIterator(db_oid, table_oid, exec_ctx->GetTxn());
 }
 
 void OpTableVectorIteratorPerformInit(tpl::sql::TableVectorIterator *iter) { iter->Init(); }

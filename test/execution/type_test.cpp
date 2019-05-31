@@ -1,5 +1,6 @@
 #include <string>
 #include <utility>
+#include <memory>
 
 #include "execution/tpl_test.h"  // NOLINT
 
@@ -12,18 +13,23 @@ namespace tpl::ast::test {
 
 class TypeTest : public TplTest {
  public:
-  TypeTest() : region_("ast_test"), errors_(&region_), ctx_(&region_, &errors_) {}
+  TypeTest() : region_("ast_test"), errors_(&region_) {}
+
+  void SetUp() override {
+    TplTest::SetUp();
+    ctx_ = std::make_unique<ast::Context>(&region_, &errors_);
+  };
 
   util::Region *region() { return &region_; }
 
-  ast::Context *ctx() { return &ctx_; }
+  ast::Context *ctx() { return ctx_.get(); }
 
   ast::Identifier Name(const std::string &s) { return ctx()->GetIdentifier(s); }
 
  private:
   util::Region region_;
   sema::ErrorReporter errors_;
-  ast::Context ctx_;
+  std::unique_ptr<ast::Context> ctx_ = nullptr;
 };
 
 TEST_F(TypeTest, StructPaddingTest) {

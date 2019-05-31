@@ -1,22 +1,21 @@
 #pragma once
 
 #include "gtest/gtest.h"
-
+#include "util/test_harness.h"
 #include "execution/util/common.h"
 #include "execution/util/cpu_info.h"
 #include "execution/util/timer.h"
-#include "logging/logger.h"
+#include "loggers/execution_logger.h"
 
 namespace tpl {
 
-class TplTest : public ::testing::Test {
+class TplTest : public terrier::TerrierTest {
  public:
-  TplTest() {
-    logging::InitLogger();
+  TplTest(): terrier::TerrierTest() {
     CpuInfo::Instance();
   }
 
-  virtual ~TplTest() { logging::ShutdownLogger(); }
+  virtual ~TplTest() {}
 
   const char *GetTestName() const { return ::testing::UnitTest::GetInstance()->current_test_info()->name(); }
 };

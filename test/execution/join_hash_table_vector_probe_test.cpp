@@ -3,13 +3,17 @@
 #include <random>
 #include <vector>
 
-#include "tpl_test.h"  // NOLINT
+#include "execution/tpl_test.h"  // NOLINT
 
-#include "sql/join_hash_table.h"
-#include "sql/join_hash_table_vector_probe.h"
-#include "sql/vector_projection.h"
-#include "sql/vector_projection_iterator.h"
-#include "util/hash.h"
+#include "execution/sql/join_hash_table.h"
+#include "execution/sql/join_hash_table_vector_probe.h"
+#include "execution/sql/projected_columns_iterator.h"
+#include "execution/util/hash.h"
+#include "storage/projected_columns.h"
+#include "catalog/catalog.h"
+#include "transaction/transaction_defs.h"
+#include "type/type_id.h"
+#include "execution/sql/execution_structures.h"
 
 namespace tpl::sql::test {
 
@@ -22,7 +26,12 @@ struct Tuple {
 
 class JoinHashTableVectorProbeTest : public TplTest {
  public:
-  JoinHashTableVectorProbeTest() : memory_(nullptr) { InitializeColumns(); }
+  JoinHashTableVectorProbeTest() : memory_(nullptr) {}
+
+  void SetUp() override {
+    TplTest::SetUp();
+    InitializeColumns();
+  }
 
   void InitializeColumns() {
     auto *exec = sql::ExecutionStructures::Instance();
@@ -32,27 +41,27 @@ class JoinHashTableVectorProbeTest : public TplTest {
     // TODO(Amadou): Come up with an easier way to create ProjectedColumns.
     // This should be done after the perso_catalog PR is merged in.
     // Create column metadata for every column.
-    catalog::col_oid_t col_oid_a(catalog->GetNextOid());
-    catalog::col_oid_t col_oid_b(catalog->GetNextOid());
-    catalog::Schema::Column col_a = catalog::Schema::Column("col_a", type::TypeId::INTEGER, false, col_oid_a);
-    catalog::Schema::Column col_b = catalog::Schema::Column("col_b", type::TypeId::INTEGER, false, col_oid_b);
+    terrier::catalog::col_oid_t col_oid_a(catalog->GetNextOid());
+    terrier::catalog::col_oid_t col_oid_b(catalog->GetNextOid());
+    terrier::catalog::Schema::Column col_a = terrier::catalog::Schema::Column("col_a", terrier::type::TypeId::INTEGER, false, col_oid_a);
+    terrier::catalog::Schema::Column col_b = terrier::catalog::Schema::Column("col_b", terrier::type::TypeId::INTEGER, false, col_oid_b);
 
     // Create the table in the catalog.
-    catalog::Schema schema({col_a, col_b});
-    auto table_oid = catalog->CreateTable(txn_, catalog::DEFAULT_DATABASE_OID, "hash_join_test_table", schema);
+    terrier::catalog::Schema schema({col_a, col_b});
+    auto table_oid = catalog->CreateTable(txn_, terrier::catalog::DEFAULT_DATABASE_OID, "hash_join_test_table", schema);
 
     // Get the table's information.
-    catalog_table_ = catalog->GetCatalogTable(catalog::DEFAULT_DATABASE_OID, table_oid);
+    catalog_table_ = catalog->GetCatalogTable(terrier::catalog::DEFAULT_DATABASE_OID, table_oid);
     auto sql_table = catalog_table_->GetSqlTable();
 
     // Create a ProjectedColumns
-    std::vector<catalog::col_oid_t> col_oids;
+    std::vector<terrier::catalog::col_oid_t> col_oids;
     for (const auto &col : sql_table->GetSchema().GetColumns()) {
       col_oids.emplace_back(col.GetOid());
     }
     auto initializer_map = sql_table->InitializerForProjectedColumns(col_oids, kDefaultVectorSize);
 
-    buffer_ = common::AllocationUtil::AllocateAligned(initializer_map.first.ProjectedColumnsSize());
+    buffer_ = terrier::common::AllocationUtil::AllocateAligned(initializer_map.first.ProjectedColumnsSize());
     projected_columns_ = initializer_map.first.Initialize(buffer_);
     projected_columns_->SetNumTuples(kDefaultVectorSize);
   }
@@ -63,14 +72,14 @@ class JoinHashTableVectorProbeTest : public TplTest {
     auto *catalog = exec->GetCatalog();
     auto *txn_manager = exec->GetTxnManager();
     txn_manager->Commit(txn_, [](void *) { return; }, nullptr);
-    catalog->DeleteTable(txn_, catalog::DEFAULT_DATABASE_OID, catalog_table_->Oid());
+    catalog->DeleteTable(txn_, terrier::catalog::DEFAULT_DATABASE_OID, catalog_table_->Oid());
     delete txn_;
     delete[] buffer_;
   }
 
   MemoryPool *memory() { return &memory_; }
 
-  storage::ProjectedColumns *GetProjectedColumns() { return projected_columns_; }
+  terrier::storage::ProjectedColumns *GetProjectedColumns() { return projected_columns_; }
 
  protected:
   template <u8 N, typename F>
@@ -102,7 +111,7 @@ class JoinHashTableVectorProbeTest : public TplTest {
    * The function to determine whether two tuples have equivalent keys
    */
   template <u8 N>
-  static bool CmpTupleInPCI(const byte *table_tuple, ProjectedColumnsIterator *pci) noexcept {
+  static bool CmpTupleInPCI(const void *table_tuple, ProjectedColumnsIterator *pci) noexcept {
     auto lhs_key = reinterpret_cast<const Tuple<N> *>(table_tuple)->build_key;
     auto rhs_key = *pci->Get<u32, false>(0, nullptr);
     return lhs_key == rhs_key;
@@ -110,11 +119,11 @@ class JoinHashTableVectorProbeTest : public TplTest {
 
  private:
   MemoryPool memory_;
-  storage::ProjectedColumns *projected_columns_ = nullptr;
+  terrier::storage::ProjectedColumns *projected_columns_ = nullptr;
 
   byte *buffer_ = nullptr;
-  std::shared_ptr<catalog::SqlTableRW> catalog_table_ = nullptr;
-  transaction::TransactionContext *txn_ = nullptr;
+  std::shared_ptr<terrier::catalog::SqlTableRW> catalog_table_ = nullptr;
+  terrier::transaction::TransactionContext *txn_ = nullptr;
 };
 
 // Sequential number functor
@@ -144,7 +153,7 @@ TEST_F(JoinHashTableVectorProbeTest, SimpleGenericLookupTest) {
   constexpr const u32 num_probe = num_build * 10;
 
   // Create test JHT
-  auto jht = InsertAndBuild<N>(region(), /*concise*/ false, num_build, Seq(0));
+  auto jht = InsertAndBuild<N>(/*concise*/ false, num_build, Seq(0));
 
   // Create test probe input
   auto probe_keys = std::vector<u32>(num_probe);
