@@ -880,4 +880,68 @@ static inline u32 FilterVectorByVal(const T *RESTRICT in, u32 in_count, T val, u
   return out_pos;
 }
 
+template <typename T, template <typename> typename Compare>
+static inline u32 FilterVectorByVal(const T *RESTRICT in, u32 in_count, T val, u32 *RESTRICT out,
+                                    const u32 *RESTRICT sel, u32 *RESTRICT in_pos) {
+  using Vec = typename FilterVecSizer<T>::Vec;
+  using VecMask = typename FilterVecSizer<T>::VecMask;
+
+  const Compare cmp{};
+
+  const Vec xval(val);
+
+  u32 out_pos = 0;
+
+  if (sel == nullptr) {
+    Vec in_vec;
+    for (*in_pos = 0; *in_pos + Vec::Size() < in_count; *in_pos += Vec::Size()) {
+      in_vec.Load(in + *in_pos);
+      VecMask mask = cmp(in_vec, xval);
+      out_pos += mask.ToPositions(out + out_pos, *in_pos);
+    }
+  } else {
+    Vec in_vec, sel_vec;
+    for (*in_pos = 0; *in_pos + Vec::Size() < in_count; *in_pos += Vec::Size()) {
+      sel_vec.Load(sel + *in_pos);
+      in_vec.Gather(in, sel_vec);
+      VecMask mask = cmp(in_vec, xval);
+      out_pos += mask.ToPositions(out + out_pos, sel_vec);
+    }
+  }
+
+  return out_pos;
+}
+
+template <typename T, template <typename> typename Compare>
+static inline u32 FilterVectorByVector(const T *RESTRICT in_1, const T *RESTRICT in_2, const u32 in_count,
+                                       u32 *RESTRICT out, const u32 *RESTRICT sel, u32 *RESTRICT in_pos) {
+  using Vec = typename FilterVecSizer<T>::Vec;
+  using VecMask = typename FilterVecSizer<T>::VecMask;
+
+  const Compare cmp;
+
+  u32 out_pos = 0;
+
+  if (sel == nullptr) {
+    Vec in_1_vec, in_2_vec;
+    for (*in_pos = 0; *in_pos + Vec::Size() < in_count; *in_pos += Vec::Size()) {
+      in_1_vec.Load(in_1 + *in_pos);
+      in_2_vec.Load(in_2 + *in_pos);
+      VecMask mask = cmp(in_1_vec, in_2_vec);
+      out_pos += mask.ToPositions(out + out_pos, *in_pos);
+    }
+  } else {
+    Vec in_1_vec, in_2_vec, sel_vec;
+    for (*in_pos = 0; *in_pos + Vec::Size() < in_count; *in_pos += Vec::Size()) {
+      sel_vec.Load(sel + *in_pos);
+      in_1_vec.Gather(in_1, sel_vec);
+      in_2_vec.Gather(in_2, sel_vec);
+      VecMask mask = cmp(in_1_vec, in_2_vec);
+      out_pos += mask.ToPositions(out + out_pos, sel_vec);
+    }
+  }
+
+  return out_pos;
+}
+
 }  // namespace tpl::util::simd

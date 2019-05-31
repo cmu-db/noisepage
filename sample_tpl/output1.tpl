@@ -4,16 +4,21 @@ struct output_struct {
 }
 
 // SELECT colB, colC from test_1 WHERE colA < 500
-fun main() -> int {
+fun main(execCtx: *ExecutionContext) -> int {
   var out : *output_struct
-  for (row in test_1) {
-    if (row.colA < 500) {
-      out = @ptrCast(*output_struct, @outputAlloc())
-      out.col1 = row.colA
-      out.col2 = row.colB
-      @outputAdvance()
+  var tvi: TableVectorIterator
+  for (@tableIterInit(&tvi, "test_1", execCtx); @tableIterAdvance(&tvi); ) {
+    var pci = @tableIterGetPCI(&tvi)
+    for (; @pciHasNext(pci); @pciAdvance(pci)) {
+      if (@pciGetInt(pci, 0) < 500) {
+        out = @ptrCast(*output_struct, @outputAlloc(execCtx))
+        out.col1 = @pciGetInt(pci, 0)
+        out.col2 = @pciGetInt(pci, 1)
+        @outputAdvance(execCtx)
+      }
     }
   }
-  @outputFinalize()
+  @outputFinalize(execCtx)
+  @tableIterClose(&tvi)
   return 0
 }

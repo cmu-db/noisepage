@@ -14,11 +14,11 @@ fun tearDownState(state: *State) -> nil {
   @joinHTFree(&state.table)
 }
 
-fun pipeline_1(state: *State) -> nil {
+fun pipeline_1(execCtx: *ExecutionContext, state: *State) -> nil {
   var jht: *JoinHashTable = &state.table
 
   var tvi: TableVectorIterator
-  for (@tableIterInit(&tvi, "test_1"); @tableIterAdvance(&tvi); ) {
+  for (@tableIterInit(&tvi, "test_1", execCtx); @tableIterAdvance(&tvi); ) {
     var vec = @tableIterGetPCI(&tvi)
 
     var hash_val = @hash(@pciGetInt(vec, 0))
@@ -30,9 +30,9 @@ fun pipeline_1(state: *State) -> nil {
   @tableIterClose(&tvi)
 }
 
-fun pipeline_2(state: *State) -> nil {
+fun pipeline_2(execCtx: *ExecutionContext, state: *State) -> nil {
   var tvi: TableVectorIterator
-  for (@tableIterInit(&tvi, "test_1"); @tableIterAdvance(&tvi); ) {
+  for (@tableIterInit(&tvi, "test_1", execCtx); @tableIterAdvance(&tvi); ) {
     var vec = @tableIterGetPCI(&tvi)
     @pciReset(vec)
   }
@@ -46,13 +46,13 @@ fun main(execCtx: *ExecutionContext) -> int32 {
   setUpState(execCtx, &state)
 
   // Run pipeline 1
-  pipeline_1(&state)
+  pipeline_1(execCtx, &state)
 
   // Build table
   @joinHTBuild(&state.table)
  
   // Run the second pipeline
-  pipeline_2(&state)
+  pipeline_2(execCtx, &state)
 
   // Cleanup
   tearDownState(&state)

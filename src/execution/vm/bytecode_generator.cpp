@@ -1072,7 +1072,7 @@ void BytecodeGenerator::VisitBuiltinSizeOfCall(ast::CallExpr *call) {
 }
 
 void BytecodeGenerator::VisitBuiltinOutputCall(ast::CallExpr *call, ast::Builtin builtin) {
-  LocalVar exec_ctx = VisitExpressionForRValue(call->arguments()[2]);
+  LocalVar exec_ctx = VisitExpressionForRValue(call->arguments()[0]);
   switch (builtin) {
     case ast::Builtin::OutputAlloc: {
       LocalVar dest = execution_result()->GetOrCreateDestination(call->type());
@@ -1084,7 +1084,7 @@ void BytecodeGenerator::VisitBuiltinOutputCall(ast::CallExpr *call, ast::Builtin
       break;
     }
     case ast::Builtin::OutputSetNull: {
-      LocalVar entry_size = VisitExpressionForRValue(call->arguments()[0]);
+      LocalVar entry_size = VisitExpressionForRValue(call->arguments()[1]);
       emitter()->EmitOutputSetNull(Bytecode::OutputSetNull, exec_ctx, entry_size);
       break;
     }

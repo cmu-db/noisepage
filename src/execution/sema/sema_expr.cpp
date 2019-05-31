@@ -879,7 +879,7 @@ void Sema::CheckBuiltinOutputAlloc(tpl::ast::CallExpr *call) {
     return;
   }
 
-  // The third call argument must an execution context
+  // The first call argument must an execution context
   auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
   if (!IsPointerToSpecificBuiltin(call->arguments()[0]->type(), exec_ctx_kind)) {
     ReportIncorrectCallArg(call, 0, GetBuiltinType(exec_ctx_kind)->PointerTo());
@@ -896,7 +896,7 @@ void Sema::CheckBuiltinOutputAdvance(tpl::ast::CallExpr *call) {
     return;
   }
 
-  // The third call argument must an execution context
+  // The first call argument must an execution context
   auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
   if (!IsPointerToSpecificBuiltin(call->arguments()[0]->type(), exec_ctx_kind)) {
     ReportIncorrectCallArg(call, 0, GetBuiltinType(exec_ctx_kind)->PointerTo());
@@ -912,7 +912,7 @@ void Sema::CheckBuiltinOutputFinalize(tpl::ast::CallExpr *call) {
     return;
   }
 
-  // The third call argument must an execution context
+  // The first call argument must an execution context
   auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
   if (!IsPointerToSpecificBuiltin(call->arguments()[0]->type(), exec_ctx_kind)) {
     ReportIncorrectCallArg(call, 0, GetBuiltinType(exec_ctx_kind)->PointerTo());
@@ -932,14 +932,21 @@ void Sema::CheckBuiltinInsert(tpl::ast::CallExpr *call) {
 }
 
 void Sema::CheckBuiltinOutputSetNull(tpl::ast::CallExpr *call) {
-  if (!CheckArgCount(call, 1)) {
+  if (!CheckArgCount(call, 2)) {
+    return;
+  }
+
+  // The first call argument must an execution context
+  auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
+  if (!IsPointerToSpecificBuiltin(call->arguments()[0]->type(), exec_ctx_kind)) {
+    ReportIncorrectCallArg(call, 0, GetBuiltinType(exec_ctx_kind)->PointerTo());
     return;
   }
 
   // The argument should be an integer
-  auto *entry_size_type = call->arguments()[0]->type();
+  auto *entry_size_type = call->arguments()[1]->type();
   if (!entry_size_type->IsIntegerType()) {
-    ReportIncorrectCallArg(call, 0, GetBuiltinType(ast::BuiltinType::Uint32));
+    ReportIncorrectCallArg(call, 1, GetBuiltinType(ast::BuiltinType::Uint32));
     return;
   }
   // Return nothing

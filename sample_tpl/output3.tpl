@@ -1,3 +1,5 @@
+// WORK IN PROGRESS: how the generated codegen code should look like
+
 struct query_state_struct {
   col1: Integer
   col2: Integer
