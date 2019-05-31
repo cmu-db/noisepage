@@ -39,7 +39,7 @@ void RandomWorkloadTransaction::RandomUpdate(Random *generator) {
   std::vector<storage::col_id_t> update_col_ids =
       StorageTestUtil::ProjectionListRandomColumns(test_object_->layout_, generator);
   storage::ProjectedRowInitializer initializer =
-      storage::ProjectedRowInitializer::CreateProjectedRowInitializer(test_object_->layout_, update_col_ids);
+      storage::ProjectedRowInitializer::Create(test_object_->layout_, update_col_ids);
   auto *update_buffer =
       test_object_->bookkeeping_ ? common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize()) : buffer_;
   storage::ProjectedRow *update = initializer.InitializeRow(update_buffer);
@@ -81,7 +81,7 @@ void RandomWorkloadTransaction::Finish() {
   if (aborted_)
     test_object_->txn_manager_.Abort(txn_);
   else
-    commit_time_ = test_object_->txn_manager_.Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
+    commit_time_ = test_object_->txn_manager_.Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 LargeTransactionTestObject::LargeTransactionTestObject(uint16_t max_columns, uint32_t initial_table_size,
@@ -212,7 +212,7 @@ void LargeTransactionTestObject::PopulateInitialTable(uint32_t num_tuples, Rando
     }
     last_checked_version_.emplace_back(inserted, bookkeeping_ ? redo : nullptr);
   }
-  txn_manager_.Commit(initial_txn_, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(initial_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
   // cleanup if not keeping track of all the inserts.
   if (!bookkeeping_) delete[] redo_buffer;
 }

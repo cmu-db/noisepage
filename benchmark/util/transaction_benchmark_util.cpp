@@ -29,7 +29,7 @@ void RandomWorkloadTransaction::RandomUpdate(Random *generator) {
   std::vector<storage::col_id_t> update_col_ids =
       StorageTestUtil::ProjectionListRandomColumns(test_object_->layout_, generator);
   storage::ProjectedRowInitializer initializer =
-      storage::ProjectedRowInitializer::CreateProjectedRowInitializer(test_object_->layout_, update_col_ids);
+      storage::ProjectedRowInitializer::Create(test_object_->layout_, update_col_ids);
   auto *update_buffer = buffer_;
   storage::ProjectedRow *update = initializer.InitializeRow(update_buffer);
 
@@ -48,7 +48,7 @@ void RandomWorkloadTransaction::RandomInsert(Random *generator) {
   if (aborted_) return;
   std::vector<storage::col_id_t> insert_col_ids = StorageTestUtil::ProjectionListAllColumns(test_object_->layout_);
   storage::ProjectedRowInitializer initializer =
-      storage::ProjectedRowInitializer::CreateProjectedRowInitializer(test_object_->layout_, insert_col_ids);
+      storage::ProjectedRowInitializer::Create(test_object_->layout_, insert_col_ids);
   auto *insert_buffer = buffer_;
   storage::ProjectedRow *insert = initializer.InitializeRow(insert_buffer);
 

@@ -13,10 +13,6 @@
 #include "util/test_harness.h"
 
 namespace terrier {
-struct TestCallbacks {
-  TestCallbacks() = delete;
-  static void EmptyCallback(void * /*unused*/) {}
-};
 
 class LargeTransactionTestObject;
 class RandomWorkloadTransaction;
@@ -317,7 +313,7 @@ class LargeTransactionTestObject {
   // tuple content is meaningless if bookkeeping is off.
   std::vector<TupleEntry> last_checked_version_;
   // so we don't have to calculate these over and over again
-  storage::ProjectedRowInitializer row_initializer_ = storage::ProjectedRowInitializer::CreateProjectedRowInitializer(
-      layout_, StorageTestUtil::ProjectionListAllColumns(layout_));
+  storage::ProjectedRowInitializer row_initializer_ =
+      storage::ProjectedRowInitializer::Create(layout_, StorageTestUtil::ProjectionListAllColumns(layout_));
 };
 }  // namespace terrier

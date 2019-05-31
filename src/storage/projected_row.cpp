@@ -61,8 +61,7 @@ ProjectedRow *ProjectedRowInitializer::InitializeRow(void *const head) const {
   return result;
 }
 
-ProjectedRowInitializer ProjectedRowInitializer::CreateProjectedRowInitializer(const BlockLayout &layout,
-                                                                               std::vector<col_id_t> col_ids) {
+ProjectedRowInitializer ProjectedRowInitializer::Create(const BlockLayout &layout, std::vector<col_id_t> col_ids) {
   TERRIER_ASSERT(col_ids.size() < layout.NumColumns(),
                  "ProjectedRow should have fewer columns than the table (can't read version vector)");
   // Sort the projection list for optimal space utilization and delta application performance
@@ -78,8 +77,8 @@ ProjectedRowInitializer ProjectedRowInitializer::CreateProjectedRowInitializer(c
 }
 
 template <typename AttrType>
-ProjectedRowInitializer ProjectedRowInitializer::CreateProjectedRowInitializerForIndexes(
-    std::vector<AttrType> real_attr_sizes, const std::vector<uint16_t> &pr_offsets) {
+ProjectedRowInitializer ProjectedRowInitializer::Create(std::vector<AttrType> real_attr_sizes,
+                                                        const std::vector<uint16_t> &pr_offsets) {
   std::sort(real_attr_sizes.begin(), real_attr_sizes.end(), std::greater<>());
   std::vector<col_id_t> col_ids;
   col_ids.reserve(pr_offsets.size());
@@ -89,9 +88,9 @@ ProjectedRowInitializer ProjectedRowInitializer::CreateProjectedRowInitializerFo
   return ProjectedRowInitializer(real_attr_sizes, col_ids);
 }
 
-template ProjectedRowInitializer ProjectedRowInitializer::CreateProjectedRowInitializerForIndexes(
-    std::vector<uint8_t> attr_sizes, const std::vector<uint16_t> &column_ids);
-template ProjectedRowInitializer ProjectedRowInitializer::CreateProjectedRowInitializerForIndexes(
-    std::vector<uint16_t> attr_sizes, const std::vector<uint16_t> &column_ids);
+template ProjectedRowInitializer ProjectedRowInitializer::Create(std::vector<uint8_t> real_attr_sizes,
+                                                                 const std::vector<uint16_t> &pr_offsets);
+template ProjectedRowInitializer ProjectedRowInitializer::Create(std::vector<uint16_t> real_attr_sizes,
+                                                                 const std::vector<uint16_t> &pr_offsets);
 
 }  // namespace terrier::storage
