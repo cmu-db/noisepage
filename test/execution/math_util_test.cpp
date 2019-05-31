@@ -4,6 +4,7 @@
 
 namespace tpl::util::test {
 
+// NOLINTNEXTLINE
 TEST(MathUtilTest, AlignToTest) {
   EXPECT_EQ(2u, MathUtil::AlignTo(1, 2));
   EXPECT_EQ(4u, MathUtil::AlignTo(4, 4));

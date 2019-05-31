@@ -12,6 +12,7 @@ namespace tpl::util::test {
 
 class VectorUtilTest : public TplTest {};
 
+// NOLINTNEXTLINE
 TEST_F(VectorUtilTest, AccessTest) {
   {
     simd::Vec8 in(44);
@@ -29,6 +30,7 @@ TEST_F(VectorUtilTest, AccessTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorUtilTest, ArithmeticTest) {
   // Addition
   {
@@ -76,6 +78,7 @@ TEST_F(VectorUtilTest, ArithmeticTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorUtilTest, BitwiseOperationsTest) {
   // Left shift
   {
@@ -108,6 +111,7 @@ TEST_F(VectorUtilTest, BitwiseOperationsTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorUtilTest, ComparisonsTest) {
   // Equality
   {
@@ -200,6 +204,7 @@ TEST_F(VectorUtilTest, ComparisonsTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorUtilTest, MaskToPositionTest) {
   simd::Vec8 vec(3, 0, 4, 1, 5, 2, 6, 2);
   simd::Vec8 val(2);
@@ -313,6 +318,7 @@ void SmallScale_MultiFilterTest() {
   EXPECT_EQ(actual_count, count);
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorUtilTest, SimpleFilterTest) {
   SmallScale_NeedleTest<i8>();
   SmallScale_NeedleTest<u8>();
@@ -324,6 +330,7 @@ TEST_F(VectorUtilTest, SimpleFilterTest) {
   SmallScale_NeedleTest<u64>();
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorUtilTest, MultiFilterTest) {
   SmallScale_MultiFilterTest<i8>();
   SmallScale_MultiFilterTest<u8>();
@@ -335,6 +342,7 @@ TEST_F(VectorUtilTest, MultiFilterTest) {
   SmallScale_MultiFilterTest<u64>();
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorUtilTest, VectorVectorFilterTest) {
   //
   // Test: two arrays, a1 and a2; a1 contains sequential numbers in the range
@@ -409,6 +417,7 @@ TEST_F(VectorUtilTest, VectorVectorFilterTest) {
 #undef CHECK
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorUtilTest, DISABLED_PerfSelectTest) {
   constexpr u32 num_elems = 128 * 1024u * 1024u;
   constexpr const u32 chunk_size = 4096;

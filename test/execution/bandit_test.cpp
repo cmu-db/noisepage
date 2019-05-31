@@ -120,6 +120,7 @@ void RunExperiment(bandit::MultiArmedBandit *bandit, bandit::Agent *agent, bool 
   *avg_total_time /= NUM_EXPERIMENTS;
 }
 
+// NOLINTNEXTLINE
 TEST_P(BanditTest, DISABLED_SimpleTest) {
   auto conf = GetParam();
 
@@ -139,7 +140,7 @@ TEST_P(BanditTest, DISABLED_SimpleTest) {
 
   auto bandit = bandit::MultiArmedBandit(module.get(), action_names);
 
-  u32 num_actions = static_cast<u32>(action_names.size());
+  auto num_actions = static_cast<u32>(action_names.size());
   u32 num_trials = 200;
 
   std::vector<double> exec_time_individual(num_actions, 0.0);

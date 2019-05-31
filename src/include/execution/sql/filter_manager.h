@@ -111,7 +111,7 @@ class FilterManager {
   // The agents, one per clause
   std::vector<bandit::Agent> agents_;
   // Has the manager's clauses been finalized?
-  bool finalized_;
+  bool finalized_{false};
 };
 
 }  // namespace tpl::sql

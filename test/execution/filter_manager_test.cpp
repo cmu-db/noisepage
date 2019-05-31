@@ -38,6 +38,7 @@ u32 Vectorized_Lt_500(ProjectedColumnsIterator *pci) {
   return pci->FilterColByVal<std::less>(Col::A, terrier::type::TypeId ::INTEGER, param);
 }
 
+// NOLINTNEXTLINE
 TEST_F(FilterManagerTest, SimpleFilterManagerTest) {
   FilterManager filter(bandit::Policy::Kind::FixedAction);
   filter.StartNewClause();
@@ -46,8 +47,9 @@ TEST_F(FilterManagerTest, SimpleFilterManagerTest) {
   filter.Finalize();
   auto exec = ExecutionStructures::Instance();
   auto txn = exec->GetTxnManager()->BeginTransaction();
-  auto catalog_table = exec->GetCatalog()->GetCatalogTable(terrier::catalog::DEFAULT_DATABASE_OID, "test_1");
-  TableVectorIterator tvi(!terrier::catalog::DEFAULT_DATABASE_OID, !catalog_table->Oid(), txn);
+  auto test_db_ns = exec->GetTestDBAndNS();
+  auto catalog_table = exec->GetCatalog()->GetUserTable(txn, test_db_ns.first, test_db_ns.second, "test_1");
+  TableVectorIterator tvi(!test_db_ns.first, !test_db_ns.second, !catalog_table->Oid(), txn);
   for (tvi.Init(); tvi.Advance();) {
     auto *pci = tvi.projected_columns_iterator();
 
@@ -63,6 +65,7 @@ TEST_F(FilterManagerTest, SimpleFilterManagerTest) {
   exec->GetTxnManager()->Commit(txn, [](void *) {}, nullptr);
 }
 
+// NOLINTNEXTLINE
 TEST_F(FilterManagerTest, AdaptiveFilterManagerTest) {
   FilterManager filter(bandit::Policy::Kind::EpsilonGreedy);
   filter.StartNewClause();
@@ -71,8 +74,9 @@ TEST_F(FilterManagerTest, AdaptiveFilterManagerTest) {
   filter.Finalize();
   auto exec = ExecutionStructures::Instance();
   auto txn = exec->GetTxnManager()->BeginTransaction();
-  auto catalog_table = exec->GetCatalog()->GetCatalogTable(terrier::catalog::DEFAULT_DATABASE_OID, "test_1");
-  TableVectorIterator tvi(!terrier::catalog::DEFAULT_DATABASE_OID, !catalog_table->Oid(), txn);
+  auto test_db_ns = exec->GetTestDBAndNS();
+  auto catalog_table = exec->GetCatalog()->GetUserTable(txn, test_db_ns.first, test_db_ns.second, "test_1");
+  TableVectorIterator tvi(!test_db_ns.first, !test_db_ns.second, !catalog_table->Oid(), txn);
   for (tvi.Init(); tvi.Advance();) {
     auto *pci = tvi.projected_columns_iterator();
 

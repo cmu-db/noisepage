@@ -18,6 +18,7 @@ class BytecodeIteratorTest : public TplTest {
   std::vector<u8> code_;
 };
 
+// NOLINTNEXTLINE
 TEST_F(BytecodeIteratorTest, SimpleIteratorTest) {
   vm::BytecodeEmitter emitter(&code());
 
@@ -56,6 +57,7 @@ TEST_F(BytecodeIteratorTest, SimpleIteratorTest) {
   EXPECT_TRUE(iter.Done());
 }
 
+// NOLINTNEXTLINE
 TEST_F(BytecodeIteratorTest, JumpTest) {
   vm::BytecodeEmitter emitter(&code());
 

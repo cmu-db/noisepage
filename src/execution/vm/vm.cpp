@@ -1370,8 +1370,8 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
 
 const u8 *VM::ExecuteCall(const u8 *ip, VM::Frame *caller) {
   // Read the function ID and the argument count to the function first
-  const u16 func_id = READ_FUNC_ID();
-  const u16 num_params = READ_UIMM2();
+  const auto func_id = READ_FUNC_ID();
+  const auto num_params = READ_UIMM2();
 
   // Lookup the function
   const FunctionInfo *func_info = module_->GetFuncInfoById(func_id);

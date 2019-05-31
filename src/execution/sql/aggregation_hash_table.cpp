@@ -183,7 +183,7 @@ void AggregationHashTable::ComputeHashAndLoadInitialImpl(ProjectedColumnsIterato
     for (u32 idx = 0; iters[0]->HasNextFiltered(); iters[0]->AdvanceFiltered()) {
       hashes[idx++] = hash_fn(iters);
     }
-  } else {
+  } else {  // NOLINT
     for (u32 idx = 0; iters[0]->HasNext(); iters[0]->Advance()) {
       hashes[idx++] = hash_fn(iters);
     }
@@ -196,10 +196,12 @@ void AggregationHashTable::ComputeHashAndLoadInitialImpl(ProjectedColumnsIterato
   for (u32 idx = 0, prefetch_idx = kPrefetchDistance; idx < num_elems; idx++, prefetch_idx++) {
     if constexpr (Prefetch) {
       if (TPL_LIKELY(prefetch_idx < num_elems)) {
+        // NOLINTNEXTLINE
         hash_table_.PrefetchChainHead<false>(hashes[prefetch_idx]);
       }
     }
     // Load chain head
+    // NOLINTNEXTLINE
     entries[idx] = hash_table_.FindChainHead(hashes[idx]);
   }
 }

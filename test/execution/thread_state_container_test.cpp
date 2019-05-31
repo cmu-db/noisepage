@@ -15,6 +15,7 @@ namespace tpl::sql::test {
 
 class ThreadStateContainerTest : public TplTest {};
 
+// NOLINTNEXTLINE
 TEST_F(ThreadStateContainerTest, ContainerResetTest) {
   // The container
   MemoryPool memory(nullptr);
@@ -52,6 +53,7 @@ TEST_F(ThreadStateContainerTest, ContainerResetTest) {
   EXPECT_EQ(init_num, count);
 }
 
+// NOLINTNEXTLINE
 TEST_F(ThreadStateContainerTest, SimpleContainerTest) {
   //
   // Test: Iterate a vector of elements, incrementing a count for each element.

@@ -44,6 +44,7 @@ void Mix(std::vector<T> *target, const std::vector<T> &source, double p) {
   std::shuffle(target->begin(), target->end(), g);
 }
 
+// NOLINTNEXTLINE
 TEST_F(BloomFilterTest, ComprehensiveTest) {
   const u32 num_filter_elems = 10000;
   const u32 lookup_scale_factor = 100;

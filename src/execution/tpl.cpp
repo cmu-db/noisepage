@@ -1,5 +1,5 @@
-#include <tbb/task_scheduler_init.h>  // NOLINT
 #include <gflags/gflags.h>
+#include <tbb/task_scheduler_init.h>  // NOLINT
 #include <unistd.h>
 #include <algorithm>
 #include <csignal>
@@ -9,8 +9,6 @@
 #include <string>
 #include <utility>
 
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/MemoryBuffer.h"
 #include "execution/ast/ast_dump.h"
 #include "execution/exec/execution_context.h"
 #include "execution/exec/output.h"
@@ -28,6 +26,8 @@
 #include "execution/vm/llvm_engine.h"
 #include "execution/vm/module.h"
 #include "execution/vm/vm.h"
+#include "llvm/Support/CommandLine.h"
+#include "llvm/Support/MemoryBuffer.h"
 
 #include "loggers/loggers_util.h"
 #include "settings/settings_manager.h"

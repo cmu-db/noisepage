@@ -11,9 +11,7 @@ namespace tpl {
 
 class TplTest : public terrier::TerrierTest {
  public:
-  TplTest() : terrier::TerrierTest() { CpuInfo::Instance(); }
-
-  virtual ~TplTest() {}
+  TplTest() { CpuInfo::Instance(); }
 
   const char *GetTestName() const { return ::testing::UnitTest::GetInstance()->current_test_info()->name(); }
 };

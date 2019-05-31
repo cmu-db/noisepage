@@ -153,10 +153,10 @@ class ConciseHashTable {
 
  private:
   // The array of groups. This array is managed by this class.
-  SlotGroup *slot_groups_;
+  SlotGroup *slot_groups_{nullptr};
 
   // The number of groups (of slots) in the table
-  u64 num_groups_;
+  u64 num_groups_{0};
 
   // The mask used to find a slot in the hash table
   u64 slot_mask_;
@@ -165,10 +165,10 @@ class ConciseHashTable {
   u32 probe_limit_;
 
   // The number of entries in the overflow table
-  u32 num_overflow_;
+  u32 num_overflow_{0};
 
   // Flag indicating if the hash table has been built and is frozen (read-only)
-  bool built_;
+  bool built_{false};
 };
 
 // ---------------------------------------------------------
@@ -179,9 +179,9 @@ inline void ConciseHashTable::Insert(HashTableEntry *entry, const hash_t hash) {
   const u64 slot_idx = hash & slot_mask_;
   const u64 group_idx = slot_idx >> kLogSlotsPerGroup;
   const u64 num_bits_to_group = group_idx << kLogSlotsPerGroup;
-  u32 *group_bits = reinterpret_cast<u32 *>(&slot_groups_[group_idx].bits);
+  auto *group_bits = reinterpret_cast<u32 *>(&slot_groups_[group_idx].bits);
 
-  u32 bit_idx = static_cast<u32>(slot_idx & kGroupBitMask);
+  auto bit_idx = static_cast<u32>(slot_idx & kGroupBitMask);
   u32 max_bit_idx = std::min(63u, bit_idx + probe_limit_);
   do {
     if (!util::BitUtil::Test(group_bits, bit_idx)) {
@@ -222,7 +222,7 @@ inline std::pair<bool, u64> ConciseHashTable::Lookup(const hash_t hash) const {
   const SlotGroup *slot_group = slot_groups_ + group_idx;
   const u64 bits_after_slot = slot_group->bits & (u64(-1) << bit_idx);
 
-  const bool exists = slot_group->bits & (1ull << bit_idx);
+  const auto exists = static_cast<bool>(slot_group->bits & (1ull << bit_idx));
   const u64 pos = slot_group->count - util::BitUtil::CountBits(bits_after_slot);
 
   return std::pair(exists, pos);

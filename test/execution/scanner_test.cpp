@@ -11,6 +11,7 @@ namespace tpl::parsing::test {
 
 class ScannerTest : public TplTest {};
 
+// NOLINTNEXTLINE
 TEST_F(ScannerTest, EmptySourceTest) {
   Scanner scanner("", 0);
   for (unsigned i = 0; i < 10; i++) {
@@ -18,6 +19,7 @@ TEST_F(ScannerTest, EmptySourceTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(ScannerTest, SimpleSourceTest) {
   const std::string source = "var x = 10";
   Scanner scanner(source.data(), source.length());
@@ -86,6 +88,7 @@ void RunTests(const std::vector<Test> &tests) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(ScannerTest, VariableSyntaxTest) {
   std::vector<test::Test> tests = {
       // Variable with no type
@@ -114,6 +117,7 @@ TEST_F(ScannerTest, VariableSyntaxTest) {
   RunTests(tests);
 }
 
+// NOLINTNEXTLINE
 TEST_F(ScannerTest, IfSyntaxTest) {
   std::vector<test::Test> tests = {
       {"if (x == 0) { }",
@@ -124,6 +128,7 @@ TEST_F(ScannerTest, IfSyntaxTest) {
   RunTests(tests);
 }
 
+// NOLINTNEXTLINE
 TEST_F(ScannerTest, ForSyntaxTest) {
   std::vector<test::Test> tests = {
       // Simple for
@@ -169,6 +174,7 @@ TEST_F(ScannerTest, ForSyntaxTest) {
   RunTests(tests);
 }
 
+// NOLINTNEXTLINE
 TEST_F(ScannerTest, FunctionSyntaxTest) {
   std::vector<test::Test> tests = {
       // Empty function test
@@ -194,6 +200,7 @@ TEST_F(ScannerTest, FunctionSyntaxTest) {
   RunTests(tests);
 }
 
+// NOLINTNEXTLINE
 TEST_F(ScannerTest, UnaryOpSyntaxTest) {
   std::vector<test::Test> tests = {
       // Empty function test
@@ -209,6 +216,7 @@ TEST_F(ScannerTest, UnaryOpSyntaxTest) {
   RunTests(tests);
 }
 
+// NOLINTNEXTLINE
 TEST_F(ScannerTest, BinOpSyntaxTest) {
   std::vector<test::Test> tests = {
       // Empty function test
@@ -229,6 +237,7 @@ TEST_F(ScannerTest, BinOpSyntaxTest) {
   RunTests(tests);
 }
 
+// NOLINTNEXTLINE
 TEST_F(ScannerTest, CommentTest) {
   std::vector<test::Test> tests = {
       // Empty function test

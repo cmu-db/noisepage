@@ -171,7 +171,7 @@ class ProjectedColumnsIteratorTest : public TplTest {
   }
 
   // Delete allocated objects and remove the created table.
-  ~ProjectedColumnsIteratorTest() {
+  ~ProjectedColumnsIteratorTest() override {
     auto *exec = sql::ExecutionStructures::Instance();
     auto *catalog = exec->GetCatalog();
     auto *txn_manager = exec->GetTxnManager();
@@ -204,6 +204,7 @@ class ProjectedColumnsIteratorTest : public TplTest {
   terrier::transaction::TransactionContext *txn_ = nullptr;
 };
 
+// NOLINTNEXTLINE
 TEST_F(ProjectedColumnsIteratorTest, EmptyIteratorTest) {
   //
   // Check to see that iteration doesn't begin without an input block
@@ -217,6 +218,7 @@ TEST_F(ProjectedColumnsIteratorTest, EmptyIteratorTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(ProjectedColumnsIteratorTest, SimpleIteratorTest) {
   //
   // Check to see that iteration iterates over all tuples in the projection
@@ -259,6 +261,7 @@ TEST_F(ProjectedColumnsIteratorTest, SimpleIteratorTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(ProjectedColumnsIteratorTest, ReadNullableColumnsTest) {
   //
   // Check to see that we can correctly count all NULL values in NULLable cols
@@ -278,6 +281,7 @@ TEST_F(ProjectedColumnsIteratorTest, ReadNullableColumnsTest) {
   EXPECT_EQ(column_data(ColId::col_b).num_nulls, num_nulls);
 }
 
+// NOLINTNEXTLINE
 TEST_F(ProjectedColumnsIteratorTest, ManualFilterTest) {
   //
   // Check to see that we can correctly manually apply a single filter on a
@@ -360,6 +364,7 @@ TEST_F(ProjectedColumnsIteratorTest, ManualFilterTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(ProjectedColumnsIteratorTest, ManagedFilterTest) {
   //
   // Check to see that we can correctly apply a single filter on a single
@@ -396,6 +401,7 @@ TEST_F(ProjectedColumnsIteratorTest, ManagedFilterTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(ProjectedColumnsIteratorTest, SimpleVectorizedFilterTest) {
   //
   // Check to see that we can correctly apply a single vectorized filter. Here
@@ -429,6 +435,7 @@ TEST_F(ProjectedColumnsIteratorTest, SimpleVectorizedFilterTest) {
   EXPECT_EQ(expected, count);
 }
 
+// NOLINTNEXTLINE
 TEST_F(ProjectedColumnsIteratorTest, MultipleVectorizedFilterTest) {
   //
   // Apply two filters in order:

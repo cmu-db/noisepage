@@ -860,12 +860,12 @@ static inline u32 FilterVectorByVal(const T *RESTRICT in, u32 in_count, T val, u
 }
 
 template <typename T, template <typename> typename Compare>
-static inline u32 FilterVectorByVector(const T *RESTRICT in_1, const T *RESTRICT in_2, const u32 in_count,
-                                       u32 *RESTRICT out, const u32 *RESTRICT sel, u32 *RESTRICT in_pos) {
+static inline u32 FilterVectorByVector(const T *RESTRICT in_1, const T *RESTRICT in_2, const u32 in_count,  // NOLINT
+                                       u32 *RESTRICT out, const u32 *RESTRICT sel, u32 *RESTRICT in_pos) {  // NOLINT
   using Vec = typename FilterVecSizer<T>::Vec;
   using VecMask = typename FilterVecSizer<T>::VecMask;
 
-  const Compare cmp;
+  const Compare cmp{};
 
   u32 out_pos = 0;
 

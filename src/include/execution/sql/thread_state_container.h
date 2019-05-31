@@ -156,9 +156,9 @@ class ThreadStateContainer {
 
    private:
     // Handle to container
-    ThreadStateContainer *container_;
+    ThreadStateContainer *container_{nullptr};
     // Owned memory
-    byte *state_;
+    byte *state_{nullptr};
   };
 
  private:

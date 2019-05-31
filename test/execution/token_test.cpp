@@ -8,6 +8,7 @@ namespace tpl::parsing::test {
 
 class TokenTest : public TplTest {};
 
+// NOLINTNEXTLINE
 TEST_F(TokenTest, ComparisonOpTest) {
   EXPECT_FALSE(Token::IsCompareOp(Token::Type::PLUS));
   EXPECT_FALSE(Token::IsCompareOp(Token::Type::MINUS));

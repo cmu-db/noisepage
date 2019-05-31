@@ -390,9 +390,9 @@ void OpFilterManagerInsertFlavor(tpl::sql::FilterManager *filter_manager, tpl::s
 
 void OpFilterManagerFinalize(tpl::sql::FilterManager *filter_manager);
 
-void OpFilterManagerRunFilters(tpl::sql::FilterManager *filter, tpl::sql::ProjectedColumnsIterator *pci);
+void OpFilterManagerRunFilters(tpl::sql::FilterManager *filter_manager, tpl::sql::ProjectedColumnsIterator *pci);
 
-void OpFilterManagerFree(tpl::sql::FilterManager *filter);
+void OpFilterManagerFree(tpl::sql::FilterManager *filter_manager);
 
 // ---------------------------------------------------------
 // Scalar SQL comparisons

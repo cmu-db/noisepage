@@ -1,6 +1,6 @@
+#include <memory>
 #include <random>
 #include <vector>
-#include <memory>
 
 #include "execution/tpl_test.h"  // NOLINT
 
@@ -12,6 +12,7 @@ namespace tpl::sql::test {
 
 class RealFunctionsTests : public TplTest {};
 
+// NOLINTNEXTLINE
 TEST_F(RealFunctionsTests, TrigFunctionsTest) {
   std::vector<double> inputs, arc_inputs;
 
@@ -50,6 +51,7 @@ TEST_F(RealFunctionsTests, TrigFunctionsTest) {
 #undef CHECK_FUNC
 }
 
+// NOLINTNEXTLINE
 TEST_F(RealFunctionsTests, DISABLED_PerfTrigFunctionsTest) {
   constexpr const u32 num_elems = 1000000;
   std::vector<std::unique_ptr<Real>> inputs(num_elems), arc_inputs(num_elems);

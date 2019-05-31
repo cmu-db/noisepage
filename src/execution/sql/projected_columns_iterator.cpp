@@ -5,13 +5,7 @@
 
 namespace tpl::sql {
 
-ProjectedColumnsIterator::ProjectedColumnsIterator()
-    : projected_column_(nullptr),
-      curr_idx_(0),
-      num_selected_(0),
-      selection_vector_{0},
-      selection_vector_read_idx_(0),
-      selection_vector_write_idx_(0) {
+ProjectedColumnsIterator::ProjectedColumnsIterator() : selection_vector_{0} {
   selection_vector_[0] = ProjectedColumnsIterator::kInvalidPos;
 }
 

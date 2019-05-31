@@ -74,6 +74,7 @@ class ForFinder : public AstTraversalVisitor<ForFinder<FindInfinite>> {
 
 }  // namespace
 
+// NOLINTNEXTLINE
 TEST_F(AstTraversalVisitorTest, CountForLoopsTest) {
   // No for-loops
   {
@@ -186,6 +187,7 @@ class FunctionFinder : public AstTraversalVisitor<FunctionFinder<CountLiterals>>
 
 }  // namespace
 
+// NOLINTNEXTLINE
 TEST_F(AstTraversalVisitorTest, CountFunctionsTest) {
   // Function declarations only
   {
@@ -247,6 +249,7 @@ class IfFinder : public AstTraversalVisitor<IfFinder> {
 
 }  // namespace
 
+// NOLINTNEXTLINE
 TEST_F(AstTraversalVisitorTest, CountIfTest) {
   // Nestes Ifs
   {

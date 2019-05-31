@@ -46,6 +46,7 @@ class AggregationHashTableTest : public TplTest {
   AggregationHashTable agg_table_;
 };
 
+// NOLINTNEXTLINE
 TEST_F(AggregationHashTableTest, SimpleRandomInsertionTest) {
   const u32 num_tuples = 1000;
 
@@ -85,6 +86,7 @@ TEST_F(AggregationHashTableTest, SimpleRandomInsertionTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(AggregationHashTableTest, SimplePartitionedInsertionTest) {
   const u32 num_tuples = 10000;
 

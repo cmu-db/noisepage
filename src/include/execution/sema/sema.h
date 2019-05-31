@@ -15,10 +15,6 @@ namespace ast {
 class Context;
 }  // namespace ast
 
-namespace sql {
-class Schema;
-}  // namespace sql
-
 namespace sema {
 
 /**
@@ -82,7 +78,7 @@ class Sema : public ast::AstVisitor<Sema> {
   ast::Type *GetRowTypeFromSqlSchema(const terrier::catalog::Schema &schema);
 
   // Create a builtin type
-  ast::Type *GetBuiltinType(const u16 builtin_kind);
+  ast::Type *GetBuiltinType(u16 builtin_kind);
 
   struct CheckResult {
     ast::Type *result_type;

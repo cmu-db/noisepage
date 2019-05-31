@@ -4,6 +4,7 @@
 
 namespace tpl::util::test {
 
+// NOLINTNEXTLINE
 TEST(BitfieldTest, SingleElementTest) {
   // Try to encode a single 8-bit character element in a 32-bit integer
   using TestField = BitField32<char, 0, sizeof(char) * kBitsPerByte>;
@@ -36,6 +37,7 @@ TEST(BitfieldTest, SingleElementTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST(BitfieldTest, MultiElementTest) {
   // Encode a 16-bit value and an 8-bit value in 32-bit storage
   using U16_BF = BitField32<u16, 0, sizeof(u16) * kBitsPerByte>;
@@ -66,6 +68,7 @@ TEST(BitfieldTest, MultiElementTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST(BitfieldTest, NegativeIntegerTest) {
   // Encode a 16-bit value and an 8-bit value in 32-bit storage
   using U16_BF = BitField32<i16, 0, sizeof(u16) * kBitsPerByte>;
@@ -74,6 +77,7 @@ TEST(BitfieldTest, NegativeIntegerTest) {
   EXPECT_EQ(-16, U16_BF::Decode(s));
 }
 
+// NOLINTNEXTLINE
 TEST(BitfieldTest, BooleanElementTest) {
   // Encode a boolean flag at the 32nd bit in a 64-bit bitfield
   using BF = BitField64<bool, 32, 1>;

@@ -13,7 +13,7 @@ class Timer {
   using TimePoint = std::chrono::time_point<Clock>;
 
  public:
-  Timer() noexcept : elapsed_(0) { Start(); }
+  Timer() noexcept { Start(); }
 
   /**
    * Start the timer
@@ -53,7 +53,7 @@ class Timer {
   TimePoint start_;
   TimePoint stop_;
 
-  double elapsed_;
+  double elapsed_{0};
 };
 
 /**

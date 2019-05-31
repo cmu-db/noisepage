@@ -7,6 +7,7 @@ namespace tpl::sql::test {
 
 class AggregatorsTest : public TplTest {};
 
+// NOLINTNEXTLINE
 TEST_F(AggregatorsTest, CountTest) {
   //
   // Count on empty input
@@ -32,6 +33,7 @@ TEST_F(AggregatorsTest, CountTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(AggregatorsTest, CountMergeTest) {
   // Even inputs are NULL
   CountAggregate count_1, count_2;
@@ -53,6 +55,7 @@ TEST_F(AggregatorsTest, CountMergeTest) {
   EXPECT_EQ(merged, count_1.GetCountResult().val);
 }
 
+// NOLINTNEXTLINE
 TEST_F(AggregatorsTest, SumIntegerTest) {
   //
   // SUM on empty input is null
@@ -96,6 +99,7 @@ TEST_F(AggregatorsTest, SumIntegerTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(AggregatorsTest, MergeSumIntegersTest) {
   IntegerSumAggregate sum1;
   EXPECT_TRUE(sum1.GetResultSum().is_null);
@@ -127,6 +131,7 @@ TEST_F(AggregatorsTest, MergeSumIntegersTest) {
   EXPECT_EQ(0, sum1.GetResultSum().val);
 }
 
+// NOLINTNEXTLINE
 TEST_F(AggregatorsTest, MaxIntegerTest) {
   IntegerMaxAggregate max;
   EXPECT_TRUE(max.GetResultMax().is_null);
@@ -176,6 +181,7 @@ TEST_F(AggregatorsTest, MaxIntegerTest) {
   EXPECT_EQ(43, max.GetResultMax().val);
 }
 
+// NOLINTNEXTLINE
 TEST_F(AggregatorsTest, MinIntegerTest) {
   IntegerMinAggregate min;
   EXPECT_TRUE(min.GetResultMin().is_null);
@@ -225,6 +231,7 @@ TEST_F(AggregatorsTest, MinIntegerTest) {
   EXPECT_EQ(-44, min.GetResultMin().val);
 }
 
+// NOLINTNEXTLINE
 TEST_F(AggregatorsTest, AvgIntegerTest) {
   IntegerAvgAggregate avg;
   EXPECT_TRUE(avg.GetResultAvg().is_null);

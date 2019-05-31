@@ -11,6 +11,7 @@ namespace tpl::ast::test {
 
 class ContextTest : public TplTest {};
 
+// NOLINTNEXTLINE
 TEST_F(ContextTest, CreateNewStringsTest) {
   util::Region region("test");
   sema::ErrorReporter error_reporter(&region);

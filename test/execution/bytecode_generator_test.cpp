@@ -18,6 +18,7 @@ class BytecodeGeneratorTest : public TplTest {
   util::Region region_;
 };
 
+// NOLINTNEXTLINE
 TEST_F(BytecodeGeneratorTest, SimpleTest) {
   {
     auto src = "fun test() -> bool { return true }";
@@ -62,6 +63,7 @@ TEST_F(BytecodeGeneratorTest, SimpleTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(BytecodeGeneratorTest, BooleanEvaluationTest) {
   //
   // Boolean complement check.
@@ -109,6 +111,7 @@ TEST_F(BytecodeGeneratorTest, BooleanEvaluationTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(BytecodeGeneratorTest, SimpleArithmeticTest) {
   const auto gen_compare_func = [](auto arg_type_name, auto dummy_arg, auto op, auto cb) {
     using Type = decltype(dummy_arg);
@@ -152,6 +155,7 @@ TEST_F(BytecodeGeneratorTest, SimpleArithmeticTest) {
 #undef CMP_TEST
 }
 
+// NOLINTNEXTLINE
 TEST_F(BytecodeGeneratorTest, ComparisonTest) {
   const auto gen_compare_func = [](auto arg_type_name, auto dummy_arg, auto op, auto cb) {
     using Type = decltype(dummy_arg);
@@ -195,6 +199,7 @@ TEST_F(BytecodeGeneratorTest, ComparisonTest) {
 #undef CMP_TEST
 }
 
+// NOLINTNEXTLINE
 TEST_F(BytecodeGeneratorTest, ParameterPassingTest) {
   auto src = R"(
     struct S {
@@ -224,6 +229,7 @@ TEST_F(BytecodeGeneratorTest, ParameterPassingTest) {
   EXPECT_EQ(20, s.b);
 }
 
+// NOLINTNEXTLINE
 TEST_F(BytecodeGeneratorTest, FunctionTypeCheckTest) {
   {
     auto src = R"(
@@ -280,6 +286,7 @@ TEST_F(BytecodeGeneratorTest, FunctionTypeCheckTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(BytecodeGeneratorTest, FunctionTest) {
   auto src = R"(
     struct S {

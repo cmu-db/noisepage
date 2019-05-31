@@ -169,16 +169,16 @@ class GenericHashTable {
 
  private:
   // Main bucket table
-  std::atomic<HashTableEntry *> *entries_;
+  std::atomic<HashTableEntry *> *entries_{nullptr};
 
   // The mask to use to determine the bucket position of an entry given its hash
-  u64 mask_;
+  u64 mask_{0};
 
   // The capacity of the directory
-  u64 capacity_;
+  u64 capacity_{0};
 
   // The current number of elements stored in the table
-  u64 num_elems_;
+  u64 num_elems_{0};
 
   // The current load-factor
   float load_factor_;
@@ -202,7 +202,7 @@ inline HashTableEntry *GenericHashTable::FindChainHead(hash_t hash) const {
 inline HashTableEntry *GenericHashTable::FindChainHeadWithTag(hash_t hash) const {
   const HashTableEntry *const candidate = FindChainHead(hash);
   auto exists_in_chain = reinterpret_cast<intptr_t>(candidate) & TagHash(hash);
-  return (exists_in_chain ? UntagPointer(candidate) : nullptr);
+  return (static_cast<bool>(exists_in_chain) ? UntagPointer(candidate) : nullptr);
 }
 
 template <bool Concurrent>
@@ -218,7 +218,7 @@ inline void GenericHashTable::Insert(HashTableEntry *new_entry, hash_t hash) {
     do {
       new_entry->next = old_entry;
     } while (!loc.compare_exchange_weak(old_entry, new_entry));
-  } else {
+  } else {  // NOLINT
     std::atomic<HashTableEntry *> &loc = entries_[pos];
     HashTableEntry *old_entry = loc.load(std::memory_order_relaxed);
     new_entry->next = old_entry;
@@ -243,7 +243,7 @@ inline void GenericHashTable::InsertTagged(HashTableEntry *new_entry, hash_t has
       new_entry = UpdateTag(old_entry, new_entry);
     } while (!loc.compare_exchange_weak(old_entry, new_entry));
 
-  } else {
+  } else {  // NOLINT
     std::atomic<HashTableEntry *> &loc = entries_[pos];
     HashTableEntry *old_entry = loc.load(std::memory_order_relaxed);
     new_entry->next = UntagPointer(old_entry);

@@ -32,6 +32,7 @@ class TypeTest : public TplTest {
   std::unique_ptr<ast::Context> ctx_ = nullptr;
 };
 
+// NOLINTNEXTLINE
 TEST_F(TypeTest, StructPaddingTest) {
   //
   // Summary: We create a TPL struct functionally equivalent to the C++ struct
@@ -79,6 +80,7 @@ TEST_F(TypeTest, StructPaddingTest) {
   EXPECT_EQ(offsetof(Test, g), type->GetOffsetOfFieldByName(Name("g")));
 }
 
+// NOLINTNEXTLINE
 TEST_F(TypeTest, PrimitiveTypeCacheTest) {
   //
   // In any one Context, we must have a cache of types. First, check all the
@@ -125,6 +127,7 @@ TEST_F(TypeTest, PrimitiveTypeCacheTest) {
   EXPECT_EQ(ast::BuiltinType::Get(ctx(), ast::BuiltinType::Nil), ast::BuiltinType::Get(ctx(), ast::BuiltinType::Nil));
 }
 
+// NOLINTNEXTLINE
 TEST_F(TypeTest, StructTypeCacheTest) {
   //
   // Create two structurally equivalent types and ensure only one struct
@@ -161,6 +164,7 @@ TEST_F(TypeTest, StructTypeCacheTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(TypeTest, PointerTypeCacheTest) {
   //
   // Pointer types should also be cached. Thus, two *i8 types should have
@@ -197,6 +201,7 @@ TEST_F(TypeTest, PointerTypeCacheTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(TypeTest, FunctionTypeCacheTest) {
   //
   // Check that even function types are cached in the context. In the first

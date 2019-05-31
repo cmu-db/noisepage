@@ -84,23 +84,22 @@ class TableVectorIterator {
                            u32 min_grain_size = kMinBlockRangeSize);
 
  private:
+  // The PCI
+  ProjectedColumnsIterator pci_;
   const db_oid_t db_oid_;
   const namespace_oid_t ns_oid_;
   const table_oid_t table_oid_;
-  TransactionContext *txn_;
-  bool initialized = false;
-
   // SqlTable to iterate over
   terrier::catalog::SqlTableHelper *catalog_table_;
-
-  // The PCI
-  ProjectedColumnsIterator pci_;
-
-  // A PC and its buffer of the PC.
+  // A PC and its buffer.
   byte *buffer_ = nullptr;
   terrier::storage::ProjectedColumns *projected_columns_ = nullptr;
+
   // Iterator of the slots in the PC
   std::unique_ptr<DataTable::SlotIterator> iter_ = nullptr;
+  TransactionContext *txn_;
+
+  bool initialized = false;
 };
 
 }  // namespace tpl::sql

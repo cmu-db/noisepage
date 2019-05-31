@@ -71,7 +71,7 @@ class JoinHashTableVectorProbeTest : public TplTest {
   }
 
   // Delete allocated objects and remove the created table.
-  ~JoinHashTableVectorProbeTest() {
+  ~JoinHashTableVectorProbeTest() override {
     auto *exec = sql::ExecutionStructures::Instance();
     auto *catalog = exec->GetCatalog();
     auto *txn_manager = exec->GetTxnManager();
@@ -152,6 +152,7 @@ struct Rand {
   u32 operator()() noexcept { return random(); }
 };
 
+// NOLINTNEXTLINE
 TEST_F(JoinHashTableVectorProbeTest, SimpleGenericLookupTest) {
   constexpr const u8 N = 1;
   constexpr const u32 num_build = 1000;
@@ -197,6 +198,7 @@ TEST_F(JoinHashTableVectorProbeTest, SimpleGenericLookupTest) {
   EXPECT_EQ(num_probe, count);
 }
 
+// NOLINTNEXTLINE
 TEST_F(JoinHashTableVectorProbeTest, DISABLED_PerfLookupTest) {
   auto bench = [this](bool concise) {
     constexpr const u8 N = 1;

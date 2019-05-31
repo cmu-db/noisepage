@@ -1,11 +1,11 @@
 #include <algorithm>
 #include <functional>
 #include <limits>
+#include <memory>
 #include <queue>
 #include <random>
-#include <vector>
 #include <utility>
-#include <memory>
+#include <vector>
 
 #include "execution/tpl_test.h"  // NOLINT
 
@@ -142,18 +142,21 @@ void TestTopKRandomTupleSize(const u32 num_iters, const u32 max_elems, Random *g
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(SorterTest, SortTest) {
   const uint32_t num_iters = 5;
   const uint32_t max_elems = 10000;
   TestAllIntegral(TestSortRandomTupleSize, num_iters, max_elems, &generator_);
 }
 
+// NOLINTNEXTLINE
 TEST_F(SorterTest, TopKTest) {
   const uint32_t num_iters = 5;
   const uint32_t max_elems = 10000;
   TestAllIntegral(TestTopKRandomTupleSize, num_iters, max_elems, &generator_);
 }
 
+// NOLINTNEXTLINE
 TEST_F(SorterTest, DISABLED_PerfSortTest) {
   // TODO(Amadou): Figure out a way to avoid manually changing this. Maybe
   // metaprogramming?
@@ -291,6 +294,7 @@ void TestParallelSort(const std::vector<u32> &sorter_sizes) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(SorterTest, BalancedParallelSortTest) {
   TestParallelSort<2>({1000});
   TestParallelSort<2>({1000, 1000});
@@ -298,6 +302,7 @@ TEST_F(SorterTest, BalancedParallelSortTest) {
   TestParallelSort<2>({1000, 1000, 1000, 1000});
 }
 
+// NOLINTNEXTLINE
 TEST_F(SorterTest, SingleThreadLocalParallelSortTest) {
   // Single thread-local sorter
   TestParallelSort<2>({0});
@@ -306,6 +311,7 @@ TEST_F(SorterTest, SingleThreadLocalParallelSortTest) {
   TestParallelSort<2>({100});
 }
 
+// NOLINTNEXTLINE
 TEST_F(SorterTest, UnbalancedParallelSortTest) {
   // All imbalance permutations
   for (u32 w : {0, 1, 10, 100, 1000}) {

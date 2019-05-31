@@ -37,7 +37,7 @@ class BloomFilter {
    * Create an uninitialized bloom filter. The bloom filter cannot be used
    * until a call to @em Init() is made.
    */
-  BloomFilter() noexcept;
+  BloomFilter();
 
   /**
    * Create an uninitialized bloom filter with the given memory pool
@@ -102,16 +102,16 @@ class BloomFilter {
 
  private:
   // The memory allocator we use for all allocations
-  MemoryPool *memory_;
+  MemoryPool *memory_{nullptr};
 
   // The blocks array
-  Block *blocks_;
+  Block *blocks_{nullptr};
 
   // The mask used to determine which block a hash goes into
-  u32 block_mask_;
+  u32 block_mask_{0};
 
   // Temporary vector of lazily added hashes for bulk loading
-  MemPoolVector<hash_t> lazily_added_hashes_;
+  MemPoolVector<hash_t> lazily_added_hashes_{nullptr};
 };
 
 #if 0

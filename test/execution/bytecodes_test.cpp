@@ -6,6 +6,7 @@ namespace tpl::vm::test {
 
 class BytecodesTest : public TplTest {};
 
+// NOLINTNEXTLINE
 TEST_F(BytecodesTest, OperandCountTest) {
   // Non-exhaustive test of operand counts for various op codes
 
@@ -31,6 +32,7 @@ TEST_F(BytecodesTest, OperandCountTest) {
   EXPECT_EQ(0u, Bytecodes::NumOperands(Bytecode::Return));
 }
 
+// NOLINTNEXTLINE
 TEST_F(BytecodesTest, OperandSizeTest) {
   // Non-exhaustive test of operand sizes for various op codes
 
@@ -55,6 +57,7 @@ TEST_F(BytecodesTest, OperandSizeTest) {
   EXPECT_EQ(OperandSize::Int, Bytecodes::GetNthOperandSize(Bytecode::Add_i32, 2));
 }
 
+// NOLINTNEXTLINE
 TEST_F(BytecodesTest, OperandOffsetTest) {
   // Non-exhaustive test of operand sizes for various op codes
 
@@ -77,6 +80,7 @@ TEST_F(BytecodesTest, OperandOffsetTest) {
   EXPECT_EQ(12u, Bytecodes::GetNthOperandOffset(Bytecode::Add_i32, 2));
 }
 
+// NOLINTNEXTLINE
 TEST_F(BytecodesTest, OperandTypesTest) {
   // Non-exhaustive test of operand types for various op codes
 

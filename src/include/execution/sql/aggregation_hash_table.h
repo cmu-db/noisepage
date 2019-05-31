@@ -207,7 +207,7 @@ class AggregationHashTable {
   util::ChunkedVector<MemoryPoolAllocator<byte>> entries_;
 
   // The hash index
-  GenericHashTable hash_table_;
+  GenericHashTable hash_table_{kDefaultLoadFactor};
 
   // Overflow partitions
   HashTableEntry **partition_heads_;

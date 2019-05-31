@@ -26,6 +26,7 @@ class ParserTest : public TplTest {
   ast::Context ctx_;
 };
 
+// NOLINTNEXTLINE
 TEST_F(ParserTest, RegularForStmtTest) {
   const std::string source = R"(
     fun main() -> nil { for (var idx = 0; idx < 10; idx = idx + 1) { } }
@@ -61,6 +62,7 @@ TEST_F(ParserTest, RegularForStmtTest) {
   ASSERT_NE(nullptr, for_stmt->next());
 }
 
+// NOLINTNEXTLINE
 TEST_F(ParserTest, ExhaustiveForStmtTest) {
   struct Test {
     const std::string source;
@@ -114,6 +116,7 @@ TEST_F(ParserTest, ExhaustiveForStmtTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(ParserTest, RegularForStmt_NoInitTest) {
   const std::string source = R"(
     fun main() -> nil {
@@ -157,6 +160,7 @@ TEST_F(ParserTest, RegularForStmt_NoInitTest) {
   ASSERT_NE(nullptr, for_stmt->next());
 }
 
+// NOLINTNEXTLINE
 TEST_F(ParserTest, RegularForStmt_WhileTest) {
   const std::string for_while_sources[] = {
       R"(
@@ -248,6 +252,7 @@ TEST_F(ParserTest, RegularForInStmtTest) {
 }
 */
 
+// NOLINTNEXTLINE
 TEST_F(ParserTest, ArrayTypeTest) {
   struct TestCase {
     std::string source;

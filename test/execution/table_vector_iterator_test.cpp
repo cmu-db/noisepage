@@ -9,6 +9,7 @@ namespace tpl::sql::test {
 
 class TableVectorIteratorTest : public SqlBasedTest {};
 
+// NOLINTNEXTLINE
 TEST_F(TableVectorIteratorTest, EmptyIteratorTest) {
   //
   // Check to see that iteration doesn't begin without an input block
@@ -25,6 +26,7 @@ TEST_F(TableVectorIteratorTest, EmptyIteratorTest) {
   exec->GetTxnManager()->Commit(txn, [](void *) {}, nullptr);
 }
 
+// NOLINTNEXTLINE
 TEST_F(TableVectorIteratorTest, SimpleIteratorTest) {
   //
   // Simple test to ensure we iterate over the whole table
@@ -49,6 +51,7 @@ TEST_F(TableVectorIteratorTest, SimpleIteratorTest) {
   exec->GetTxnManager()->Commit(txn, [](void *) {}, nullptr);
 }
 
+// NOLINTNEXTLINE
 TEST_F(TableVectorIteratorTest, NullableTypesIteratorTest) {
   //
   // Ensure we iterate over the whole table even the types of the columns are

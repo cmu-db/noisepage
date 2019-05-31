@@ -245,8 +245,8 @@ class Lambda<RetType(ArgTypes...)> {
   }
 
  private:
-  const vm::Module *module_;
-  FunctionId func_id_;
+  const vm::Module *module_{nullptr};
+  FunctionId func_id_{0};
 };
 
 namespace detail {
@@ -296,18 +296,17 @@ inline bool Module::GetFunction(const std::string &name, const ExecutionMode exe
           // Invoke and finish
           VM::InvokeFunction(this, func_info->id(), arg_buffer);
           return;
-        } else {
-          // The return value
-          Ret rv{};
-
-          // Create a temporary on-stack buffer and copy all arguments
-          u8 arg_buffer[sizeof(Ret *) + (0ul + ... + sizeof(args))];
-          detail::CopyAll(arg_buffer, &rv, args...);
-
-          // Invoke and finish
-          VM::InvokeFunction(this, func_info->id(), arg_buffer);
-          return rv;
         }
+        // The return value
+        Ret rv{};
+
+        // Create a temporary on-stack buffer and copy all arguments
+        u8 arg_buffer[sizeof(Ret *) + (0ul + ... + sizeof(args))];
+        detail::CopyAll(arg_buffer, &rv, args...);
+
+        // Invoke and finish
+        VM::InvokeFunction(this, func_info->id(), arg_buffer);
+        return rv;
       };
       break;
     }

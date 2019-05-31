@@ -35,7 +35,7 @@ class Hasher {
    */
   static hash_t CombineHashes(const hash_t first_hash, const hash_t second_hash) {
     // Based on Hash128to64() from cityhash.
-    static constexpr u64 kMul = u64(0x9ddfea08eb382d69);
+    static constexpr auto kMul = u64(0x9ddfea08eb382d69);
     hash_t a = (first_hash ^ second_hash) * kMul;
     a ^= (a >> 47u);
     hash_t b = (second_hash ^ a) * kMul;

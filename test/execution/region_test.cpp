@@ -6,6 +6,7 @@ namespace tpl::util::test {
 
 class RegionTest : public TplTest {};
 
+// NOLINTNEXTLINE
 TEST_F(RegionTest, Simple) {
   util::Region r("test");
 

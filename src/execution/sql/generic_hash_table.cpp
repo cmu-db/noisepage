@@ -5,8 +5,7 @@
 
 namespace tpl::sql {
 
-GenericHashTable::GenericHashTable(float load_factor) noexcept
-    : entries_(nullptr), mask_(0), capacity_(0), num_elems_(0), load_factor_(load_factor) {}
+GenericHashTable::GenericHashTable(float load_factor) noexcept : load_factor_(load_factor) {}
 
 GenericHashTable::~GenericHashTable() {
   if (entries_ != nullptr) {
@@ -32,4 +31,3 @@ void GenericHashTable::SetSize(u64 new_size) {
 }
 
 }  // namespace tpl::sql
-

@@ -225,23 +225,23 @@ class ProjectedColumnsIterator {
   u32 FilterColByColImpl(u32 col_idx_1, u32 col_idx_2);
 
  private:
+  // The selection vector used to filter the ProjectedColumns
+  alignas(CACHELINE_SIZE) u32 selection_vector_[kDefaultVectorSize];
+
   // The projected column we are iterating over.
   ProjectedColumns *projected_column_{nullptr};
 
   // The current raw position in the ProjectedColumns we're pointing to
-  u32 curr_idx_;
+  u32 curr_idx_{0};
 
   // The number of tuples from the projection that have been selected (filtered)
-  u32 num_selected_;
-
-  // The selection vector used to filter the ProjectedColumns
-  alignas(CACHELINE_SIZE) u32 selection_vector_[kDefaultVectorSize];
+  u32 num_selected_{0};
 
   // The next slot in the selection vector to read from
-  u32 selection_vector_read_idx_;
+  u32 selection_vector_read_idx_{0};
 
   // The next slot in the selection vector to write into
-  u32 selection_vector_write_idx_;
+  u32 selection_vector_write_idx_{0};
 };
 
 // ---------------------------------------------------------
@@ -270,7 +270,7 @@ inline void ProjectedColumnsIterator::SetPosition(u32 idx) {
     TPL_ASSERT(IsFiltered(), "Attempting to set position in unfiltered PCI");
     selection_vector_read_idx_ = idx;
     curr_idx_ = selection_vector_[selection_vector_read_idx_];
-  } else {
+  } else {  // NOLINT
     TPL_ASSERT(!IsFiltered(), "Attempting to set position in filtered PCI");
     curr_idx_ = idx;
   }

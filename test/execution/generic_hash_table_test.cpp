@@ -1,6 +1,6 @@
 #include <random>
-#include <vector>
 #include <unordered_map>
+#include <vector>
 
 #include "execution/tpl_test.h"  // NOLINT
 
@@ -12,11 +12,12 @@ namespace tpl::sql::test {
 class GenericHashTableTest : public TplTest {};
 
 struct TestEntry : public HashTableEntry {
-  u32 key, value;
-  TestEntry() : HashTableEntry(), key(0), value(0) {}
+  u32 key{0}, value{0};
+  TestEntry() : HashTableEntry() {}
   TestEntry(u32 key, u32 value) : HashTableEntry(), key(key), value(value) {}
 };
 
+// NOLINTNEXTLINE
 TEST_F(GenericHashTableTest, EmptyIteratorTest) {
   GenericHashTable table;
 
@@ -62,6 +63,7 @@ TEST_F(GenericHashTableTest, EmptyIteratorTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(GenericHashTableTest, SimpleIterationTest) {
   //
   // Test: insert a bunch of entries into the hash table, ensure iteration finds
@@ -123,6 +125,7 @@ TEST_F(GenericHashTableTest, SimpleIterationTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(GenericHashTableTest, LongChainIterationTest) {
   //
   // Test: insert a bunch of identifier entries into the hash table to form a
@@ -175,6 +178,7 @@ TEST_F(GenericHashTableTest, LongChainIterationTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(GenericHashTableTest, DISABLED_PerfIterationTest) {
   const u32 num_inserts = 5000000;
 

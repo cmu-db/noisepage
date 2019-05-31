@@ -8,8 +8,7 @@
 
 namespace tpl::sql {
 
-BloomFilter::BloomFilter() noexcept
-    : memory_(nullptr), blocks_(nullptr), block_mask_(0), lazily_added_hashes_(nullptr) {}
+BloomFilter::BloomFilter() = default;
 
 BloomFilter::BloomFilter(MemoryPool *memory)
     : memory_(memory), blocks_(nullptr), block_mask_(0), lazily_added_hashes_(nullptr) {}

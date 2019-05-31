@@ -111,7 +111,7 @@ class TrampolineGenerator : public Xbyak::CodeGenerator {
   u32 ComputeRequiredStackSpace() const {
     // FunctionInfo tells us the amount of space we need for all input and
     // output arguments, so use that.
-    u32 required_stack_space = static_cast<u32>(func_.params_size());
+    auto required_stack_space = static_cast<u32>(func_.params_size());
 
     // If the function has a return type, we need to allocate a temporary
     // return value on the stack for that as well. However, if the return type

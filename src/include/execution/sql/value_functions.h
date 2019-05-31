@@ -28,7 +28,7 @@ struct UnaryFunctionReal {
       } else {
         *dest = Real::Null();
       }
-    } else {
+    } else {  // NOLINT
       // Branch-free implementation
       dest->is_null = src->is_null;
       dest->val = Function(src->val);
@@ -59,7 +59,7 @@ struct BinaryFunctionReal {
       } else {
         *dest = Real::Null();
       }
-    } else {
+    } else {  // NOLINT
       // Branch-free implementation
       dest->is_null = arg_1->is_null || arg_2->is_null;
       dest->val = Function(arg_1->val, arg_2->val);

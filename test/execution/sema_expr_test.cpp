@@ -83,6 +83,7 @@ struct TestCase {
   ast::AstNode *tree;
 };
 
+// NOLINTNEXTLINE
 TEST_F(SemaExprTest, LogicalOperationTest) {
   SourcePosition empty{0, 0};
 
@@ -120,6 +121,7 @@ TEST_F(SemaExprTest, LogicalOperationTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(SemaExprTest, ComparisonOperationWithImplicitCastTest) {
   // clang-format off
 TestCase tests[] = {
@@ -160,6 +162,7 @@ TestCase tests[] = {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(SemaExprTest, ComparisonOperationWithPointersTest) {
   // clang-format off
 TestCase tests[] = {
@@ -209,6 +212,7 @@ TestCase tests[] = {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(SemaExprTest, ArrayIndexTest) {
   // clang-format off
 TestCase tests[] = {

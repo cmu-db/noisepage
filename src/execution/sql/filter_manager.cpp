@@ -40,8 +40,7 @@ std::unique_ptr<bandit::Policy> CreatePolicy(bandit::Policy::Kind policy_kind) {
 
 }  // namespace
 
-FilterManager::FilterManager(const bandit::Policy::Kind policy_kind)
-    : policy_(CreatePolicy(policy_kind)), finalized_(false) {}
+FilterManager::FilterManager(const bandit::Policy::Kind policy_kind) : policy_(CreatePolicy(policy_kind)) {}
 
 FilterManager::~FilterManager() = default;
 

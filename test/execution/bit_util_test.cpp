@@ -4,6 +4,7 @@
 
 namespace tpl::util::test {
 
+// NOLINTNEXTLINE
 TEST(BitUtilTest, BitVectorSizeTest) {
   // We need at least one word for 1 bit
   EXPECT_EQ(1u, BitUtil::Num32BitWordsFor(1));
@@ -16,6 +17,7 @@ TEST(BitUtilTest, BitVectorSizeTest) {
   EXPECT_EQ(2u, BitUtil::Num32BitWordsFor(33));
 }
 
+// NOLINTNEXTLINE
 TEST(BitUtilTest, EmptyBitVectorTest) {
   //
   // Create an empty bit vector, ensure all bits unset
@@ -27,6 +29,7 @@ TEST(BitUtilTest, EmptyBitVectorTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST(BitUtilTest, ClearBitsTest) {
   //
   // Create a bit vector, set all the bits, clear it, check
@@ -42,6 +45,7 @@ TEST(BitUtilTest, ClearBitsTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST(BitUtilTest, TestAndSetTest) {
   //
   // Create a BitVector, set every odd bit position
@@ -87,6 +91,7 @@ TEST(BitUtilTest, TestAndSetTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST(BitUtilTest, InlinedBitVectorTest) {
   InlinedBitVector<64> bits;
 

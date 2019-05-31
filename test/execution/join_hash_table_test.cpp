@@ -43,6 +43,7 @@ class JoinHashTableTest : public TplTest {
   MemoryPool memory_;
 };
 
+// NOLINTNEXTLINE
 TEST_F(JoinHashTableTest, LazyInsertionTest) {
   // Test data
   const u32 num_tuples = 10;
@@ -149,14 +150,19 @@ void BuildAndProbeTest(u32 num_tuples, u32 dup_scale_factor) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(JoinHashTableTest, UniqueKeyLookupTest) { BuildAndProbeTest<false>(400, 1); }
 
+// NOLINTNEXTLINE
 TEST_F(JoinHashTableTest, DuplicateKeyLookupTest) { BuildAndProbeTest<false>(400, 5); }
 
+// NOLINTNEXTLINE
 TEST_F(JoinHashTableTest, UniqueKeyConciseTableTest) { BuildAndProbeTest<true>(400, 1); }
 
+// NOLINTNEXTLINE
 TEST_F(JoinHashTableTest, DuplicateKeyLookupConciseTableTest) { BuildAndProbeTest<true>(400, 5); }
 
+// NOLINTNEXTLINE
 TEST_F(JoinHashTableTest, ParallelBuildTest) {
   const u32 num_tuples = 100000;
 
@@ -180,6 +186,7 @@ TEST_F(JoinHashTableTest, ParallelBuildTest) {
   main_jht.MergeParallel(&container, 0);
 }
 
+// NOLINTNEXTLINE
 TEST_F(JoinHashTableTest, DISABLED_PerfTest) {
   const u32 num_tuples = 10000000;
 

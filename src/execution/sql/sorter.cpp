@@ -196,7 +196,7 @@ void Sorter::SortParallel(const ThreadStateContainer *thread_state_container, co
   // found in each sorter, and each column indicates the set of splitter keys in
   // a single sorter. In other words, splitters[i][j] indicates the i-th
   // splitter key found in the j-th sorter instance.
-  const u32 num_buckets = static_cast<u32>(tl_sorters.size());
+  const auto num_buckets = static_cast<u32>(tl_sorters.size());
   std::vector<std::vector<const byte *>> splitters(num_buckets - 1);
   for (auto &splitter : splitters) {
     splitter.resize(tl_sorters.size());

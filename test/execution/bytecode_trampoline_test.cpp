@@ -28,6 +28,7 @@ class BytecodeTrampolineTest : public TplTest {
   }
 };
 
+// NOLINTNEXTLINE
 TEST_F(BytecodeTrampolineTest, VoidFunctionTest) {
   auto src = "fun test() -> nil { }";
   auto compiler = ModuleCompiler();
@@ -40,6 +41,7 @@ TEST_F(BytecodeTrampolineTest, VoidFunctionTest) {
   fn();
 }
 
+// NOLINTNEXTLINE
 TEST_F(BytecodeTrampolineTest, BooleanFunctionTest) {
   auto src = "fun lt(a: int32, b: int32) -> bool { return a < b }";
   auto compiler = ModuleCompiler();
@@ -53,6 +55,7 @@ TEST_F(BytecodeTrampolineTest, BooleanFunctionTest) {
   EXPECT_EQ(false, less_than(2, 1));
 }
 
+// NOLINTNEXTLINE
 TEST_F(BytecodeTrampolineTest, IntFunctionTest) {
   {
     auto src = "fun test() -> int32 { return 10 }";
@@ -98,6 +101,7 @@ TEST_F(BytecodeTrampolineTest, IntFunctionTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(BytecodeTrampolineTest, BigIntFunctionTest) {
   {
     auto src = R"(
@@ -117,6 +121,7 @@ TEST_F(BytecodeTrampolineTest, BigIntFunctionTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(BytecodeTrampolineTest, VoidReturnTest) {
   {
     auto src = R"(
@@ -142,6 +147,7 @@ TEST_F(BytecodeTrampolineTest, VoidReturnTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(BytecodeTrampolineTest, CodeGenComparisonFunctionSorterTest) {
   //
   // Test 1: Sort a list of signed 32-bit signed integers using a generated TPL
@@ -218,6 +224,7 @@ TEST_F(BytecodeTrampolineTest, CodeGenComparisonFunctionSorterTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(BytecodeTrampolineTest, DISABLED_PerfGenComparisonForSortTest) {
   // Try sorting through trampoline
   auto bench_trampoline = [this](auto &vec) {

@@ -19,6 +19,7 @@ class AstTest : public TplTest {
   SourcePosition pos_;
 };
 
+// NOLINTNEXTLINE
 TEST_F(AstTest, HierechyTest) {
   AstNodeFactory factory(region());
 

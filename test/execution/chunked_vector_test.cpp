@@ -13,6 +13,7 @@ namespace tpl::util::test {
 
 class ChunkedVectorTest : public TplTest {};
 
+// NOLINTNEXTLINE
 TEST_F(ChunkedVectorTest, InsertAndIndexTest) {
   const u32 num_elems = 10;
 
@@ -28,6 +29,7 @@ TEST_F(ChunkedVectorTest, InsertAndIndexTest) {
   EXPECT_EQ(num_elems, vec.size());
 }
 
+// NOLINTNEXTLINE
 TEST_F(ChunkedVectorTest, RandomLookupTest) {
   const u32 num_elems = 1000;
 
@@ -47,6 +49,7 @@ TEST_F(ChunkedVectorTest, RandomLookupTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(ChunkedVectorTest, IterationTest) {
   ChunkedVectorT<u32> vec;
 
@@ -62,6 +65,7 @@ TEST_F(ChunkedVectorTest, IterationTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(ChunkedVectorTest, PopBackTest) {
   ChunkedVectorT<u32> vec;
 
@@ -80,6 +84,7 @@ TEST_F(ChunkedVectorTest, PopBackTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(ChunkedVectorTest, FrontBackTest) {
   ChunkedVectorT<u32> vec;
 
@@ -100,6 +105,7 @@ TEST_F(ChunkedVectorTest, FrontBackTest) {
   EXPECT_EQ(8u, vec.back());
 }
 
+// NOLINTNEXTLINE
 TEST_F(ChunkedVectorTest, ChunkReuseTest) {
   util::Region tmp("tmp");
   ChunkedVectorT<u32, StlRegionAllocator<u32>> vec{StlRegionAllocator<u32>(&tmp)};
@@ -140,6 +146,7 @@ struct Simple {
 
 u32 Simple::count = 0;
 
+// NOLINTNEXTLINE
 TEST_F(ChunkedVectorTest, ElementConstructDestructTest) {
   util::Region tmp("tmp");
   ChunkedVectorT<Simple> vec;
@@ -158,6 +165,7 @@ TEST_F(ChunkedVectorTest, ElementConstructDestructTest) {
   EXPECT_EQ(0u, Simple::count);
 }
 
+// NOLINTNEXTLINE
 TEST_F(ChunkedVectorTest, MoveConstructorTest) {
   const u32 num_elems = 1000;
 
@@ -171,6 +179,7 @@ TEST_F(ChunkedVectorTest, MoveConstructorTest) {
   EXPECT_EQ(num_elems, vec2.size());
 }
 
+// NOLINTNEXTLINE
 TEST_F(ChunkedVectorTest, AssignmentMoveTest) {
   const u32 num_elems = 1000;
 
@@ -189,6 +198,8 @@ TEST_F(ChunkedVectorTest, AssignmentMoveTest) {
 }
 
 // Check that adding random integers to the iterator works.
+
+// NOLINTNEXTLINE
 TEST_F(ChunkedVectorTest, RandomIteratorAdditionTest) {
   const u32 num_elems = 1000;
   const u32 num_rolls = 1000000;  // Number of additions to make
@@ -210,6 +221,8 @@ TEST_F(ChunkedVectorTest, RandomIteratorAdditionTest) {
 }
 
 // Check that subtracting random integers from the iterator works.
+
+// NOLINTNEXTLINE
 TEST_F(ChunkedVectorTest, RandomIteratorSubtractionTest) {
   const u32 num_elems = 1000;
   const u32 num_rolls = 1000000;  // number of subtractions to make
@@ -232,6 +245,8 @@ TEST_F(ChunkedVectorTest, RandomIteratorSubtractionTest) {
 
 // Check that all binary operators are working.
 // <, <=, >, >=, ==, !=, -.
+
+// NOLINTNEXTLINE
 TEST_F(ChunkedVectorTest, RandomIteratorBinaryOpsTest) {
   const u32 num_elems = 1000;
   const u32 num_rolls = 1000000;  // Number of checks to make
@@ -260,6 +275,8 @@ TEST_F(ChunkedVectorTest, RandomIteratorBinaryOpsTest) {
 }
 
 // Check that pre-incrementing works.
+
+// NOLINTNEXTLINE
 TEST_F(ChunkedVectorTest, RandomIteratorPreIncrementTest) {
   const u32 num_elems = 512;
 
@@ -287,6 +304,8 @@ TEST_F(ChunkedVectorTest, RandomIteratorPreIncrementTest) {
 }
 
 // Check that pre-decrementing works.
+
+// NOLINTNEXTLINE
 TEST_F(ChunkedVectorTest, RandomIteratorPreDecrementTest) {
   const u32 num_elems = 512;
 
@@ -313,6 +332,7 @@ TEST_F(ChunkedVectorTest, RandomIteratorPreDecrementTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(ChunkedVectorTest, SortTest) {
   const u32 num_elems = 1000;
   util::Region tmp("tmp");
@@ -336,6 +356,7 @@ TEST_F(ChunkedVectorTest, SortTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(ChunkedVectorTest, DISABLED_PerfInsertTest) {
   auto stdvec_ms = Bench(3, []() {
     util::Region tmp("tmp");
@@ -367,6 +388,7 @@ TEST_F(ChunkedVectorTest, DISABLED_PerfInsertTest) {
   std::cout << "ChunkedVector: " << chunked_ms << " ms" << std::endl;
 }
 
+// NOLINTNEXTLINE
 TEST_F(ChunkedVectorTest, DISABLED_PerfScanTest) {
   static const u32 num_elems = 10000000;
 
@@ -410,6 +432,7 @@ TEST_F(ChunkedVectorTest, DISABLED_PerfScanTest) {
   std::cout << "ChunkedVector: " << chunked_ms << " ms" << std::endl;
 }
 
+// NOLINTNEXTLINE
 TEST_F(ChunkedVectorTest, DISABLED_PerfRandomAccessTest) {
   static const u32 num_elems = 10000000;
   std::default_random_engine generator;

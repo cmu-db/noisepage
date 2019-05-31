@@ -21,7 +21,7 @@ class CountAggregate {
   /**
    * Constructor
    */
-  CountAggregate() : count_(0) {}
+  CountAggregate() = default;
 
   /**
    * This class cannot be copied or moved
@@ -31,7 +31,7 @@ class CountAggregate {
   /**
    * Advance the count based on the NULLness of the input value
    */
-  void Advance(const Val *val) { count_ += !val->is_null; }
+  void Advance(const Val *val) { count_ += static_cast<u64>(!val->is_null); }
 
   /**
    * Merge this count with the \a that count
@@ -49,7 +49,7 @@ class CountAggregate {
   Integer GetCountResult() const { return Integer(count_); }
 
  private:
-  u64 count_;
+  u64 count_{0};
 };
 
 // ---------------------------------------------------------
@@ -63,7 +63,7 @@ class CountStarAggregate {
   /**
    * Constructor
    */
-  CountStarAggregate() : count_(0) {}
+  CountStarAggregate() = default;
 
   /**
    * This class cannot be copied or moved
@@ -91,7 +91,7 @@ class CountStarAggregate {
   Integer GetCountResult() const { return Integer(count_); }
 
  private:
-  u64 count_;
+  u64 count_{0};
 };
 
 // ---------------------------------------------------------
@@ -104,9 +104,9 @@ class CountStarAggregate {
 class NullableAggregate {
  public:
   /**
-   * Construct
+   * Constructor
    */
-  NullableAggregate() : num_updates_(0) {}
+  NullableAggregate() = default;
 
   /**
    * This class cannot be copied or moved
@@ -134,7 +134,7 @@ class NullableAggregate {
   u64 GetNumUpdates() const { return num_updates_; }
 
  private:
-  u64 num_updates_;
+  u64 num_updates_{0};
 };
 
 /**
@@ -145,7 +145,7 @@ class IntegerSumAggregate : public NullableAggregate {
   /**
    * Constructor
    */
-  IntegerSumAggregate() : NullableAggregate(), sum_(0) {}
+  IntegerSumAggregate() = default;
 
   /**
    * This class cannot be copied or moved
@@ -199,7 +199,7 @@ class IntegerSumAggregate : public NullableAggregate {
   }
 
  private:
-  i64 sum_;
+  i64 sum_{0};
 };
 
 // ---------------------------------------------------------
@@ -214,7 +214,7 @@ class IntegerMaxAggregate : public NullableAggregate {
   /**
    * Constructor
    */
-  IntegerMaxAggregate() : NullableAggregate(), max_(std::numeric_limits<i64>::min()) {}
+  IntegerMaxAggregate() = default;
 
   /**
    * This class cannot be copied or moved
@@ -268,7 +268,7 @@ class IntegerMaxAggregate : public NullableAggregate {
   }
 
  private:
-  i64 max_;
+  i64 max_{std::numeric_limits<i64>::min()};
 };
 
 // ---------------------------------------------------------
@@ -283,7 +283,7 @@ class IntegerMinAggregate : public NullableAggregate {
   /**
    * Constructor
    */
-  IntegerMinAggregate() : NullableAggregate(), min_(std::numeric_limits<i64>::max()) {}
+  IntegerMinAggregate() = default;
 
   /**
    * This class cannot be copied or moved
@@ -337,7 +337,7 @@ class IntegerMinAggregate : public NullableAggregate {
   }
 
  private:
-  i64 min_;
+  i64 min_{std::numeric_limits<i64>::max()};
 };
 
 // ---------------------------------------------------------
@@ -352,7 +352,7 @@ class IntegerAvgAggregate : public IntegerSumAggregate {
   /**
    * Constructor
    */
-  IntegerAvgAggregate() : IntegerSumAggregate() {}
+  IntegerAvgAggregate() = default;
 
   /**
    * This class cannot be copied or moved

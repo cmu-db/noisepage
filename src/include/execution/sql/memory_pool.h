@@ -58,7 +58,7 @@ class MemoryPool {
    * @em T
    */
   template <typename T>
-  T *AllocateArray(const std::size_t num_elems, std::size_t alignment, const bool clear) {
+  T *AllocateArray(std::size_t num_elems, std::size_t alignment, bool clear) {
     alignment = std::max(alignof(T), alignment);
     return reinterpret_cast<T *>(AllocateAligned(sizeof(T) * num_elems, alignment, clear));
   }
@@ -72,7 +72,7 @@ class MemoryPool {
    * @return An array pointer to at least @em num_elems elements of type @em T
    */
   template <typename T>
-  T *AllocateArray(const std::size_t num_elems, const bool clear) {
+  T *AllocateArray(std::size_t num_elems, bool clear) {
     return AllocateArray<T>(num_elems, alignof(T), clear);
   }
 
@@ -101,6 +101,11 @@ class MemoryPool {
    * @param size The size threshold.
    */
   static void SetMMapSizeThreshold(std::size_t size);
+
+  /**
+   * Get the tracker
+   */
+  MemoryTracker *GetTracker() { return tracker_; }
 
  private:
   // Metadata tracker for memory allocations

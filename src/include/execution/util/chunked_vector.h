@@ -109,7 +109,7 @@ class ChunkedVector {
     other.position_ = nullptr;
 
     end_ = other.end_;
-    other.end_ = 0;
+    other.end_ = nullptr;
 
     element_size_ = other.element_size_;
     other.element_size_ = 0;
@@ -552,7 +552,7 @@ class ChunkedVector {
   // Allocate a new chunk
   void AllocateChunk() {
     const std::size_t alloc_size = ChunkAllocSize(element_size());
-    byte *new_chunk = static_cast<byte *>(allocator_.allocate(alloc_size));
+    auto *new_chunk = static_cast<byte *>(allocator_.allocate(alloc_size));
     chunks_.push_back(new_chunk);
     active_chunk_idx_ = chunks_.size() - 1;
     position_ = new_chunk;
@@ -850,7 +850,7 @@ class ChunkedVectorT {
    */
   template <class... Args>
   void emplace_back(Args &&... args) {
-    T *space = reinterpret_cast<T *>(vec_.append());
+    auto *space = reinterpret_cast<T *>(vec_.append());
     new (space) T(std::forward<Args>(args)...);
   }
 
@@ -858,7 +858,7 @@ class ChunkedVectorT {
    * Copy construct the provided element @em to the end of the vector.
    */
   void push_back(const T &elem) {
-    T *space = reinterpret_cast<T *>(vec_.append());
+    auto *space = reinterpret_cast<T *>(vec_.append());
     new (space) T(elem);
   }
 
@@ -866,7 +866,7 @@ class ChunkedVectorT {
    * Move-construct the provided element @em to the end of the vector.
    */
   void push_back(T &&elem) {
-    T *space = reinterpret_cast<T *>(vec_.append());
+    auto *space = reinterpret_cast<T *>(vec_.append());
     new (space) T(std::move(elem));
   }
 
