@@ -4,8 +4,6 @@
 #include <utility>
 
 #include "common/strong_typedef.h"
-#include "parser/expression/abstract_expression.h"
-#include "type/type_id.h"
 
 namespace terrier::catalog {
 
