@@ -47,12 +47,6 @@ class SqlTable {
   ~SqlTable() { delete table_.data_table; }
 
   /**
-   * Get the schema use of the SQL table
-   * @return the schema
-   */
-  catalog::Schema &GetSchema() { return schema_; }
-
-  /**
    * Materializes a single tuple from the given slot, as visible at the timestamp of the calling txn.
    *
    * @param txn the calling transaction
@@ -181,8 +175,6 @@ class SqlTable {
  private:
   BlockStore *const block_store_;
   const catalog::table_oid_t oid_;
-
-  catalog::Schema schema_;
 
   // Eventually we'll support adding more tables when schema changes. For now we'll always access the one DataTable.
   DataTableVersion table_;
