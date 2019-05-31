@@ -88,7 +88,7 @@ class AnnotatedExpression {
    */
   AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression> expr,
                       std::unordered_set<std::string> &&table_alias_set)
-      : expr_(std::move(expr)), table_alias_set_(std::move(table_alias_set)) {}
+      : expr_(expr), table_alias_set_(std::move(table_alias_set)) {}
 
   /**
    * Default copy constructor

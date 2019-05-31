@@ -521,7 +521,7 @@ bool LogicalInnerJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 Operator LogicalLeftJoin::make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
   auto *join = new LogicalLeftJoin();
-  join->join_predicate_ = std::move(join_predicate);
+  join->join_predicate_ = join_predicate;
   return Operator(join);
 }
 
@@ -542,7 +542,7 @@ bool LogicalLeftJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 Operator LogicalRightJoin::make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
   auto *join = new LogicalRightJoin();
-  join->join_predicate_ = std::move(join_predicate);
+  join->join_predicate_ = join_predicate;
   return Operator(join);
 }
 
@@ -563,7 +563,7 @@ bool LogicalRightJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 Operator LogicalOuterJoin::make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
   auto *join = new LogicalOuterJoin;
-  join->join_predicate_ = std::move(join_predicate);
+  join->join_predicate_ = join_predicate;
   return Operator(join);
 }
 
@@ -584,7 +584,7 @@ bool LogicalOuterJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 Operator LogicalSemiJoin::make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
   auto *join = new LogicalSemiJoin;
-  join->join_predicate_ = std::move(join_predicate);
+  join->join_predicate_ = join_predicate;
   return Operator(join);
 }
 
