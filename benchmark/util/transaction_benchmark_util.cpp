@@ -5,6 +5,7 @@
 #include <vector>
 #include "common/allocator.h"
 #include "transaction/transaction_util.h"
+#include "util/catalog_test_util.h"
 
 namespace terrier {
 RandomWorkloadTransaction::RandomWorkloadTransaction(LargeTransactionBenchmarkObject *test_object)
@@ -29,7 +30,8 @@ void RandomWorkloadTransaction::RandomUpdate(Random *generator) {
   storage::ProjectedRowInitializer initializer =
       storage::ProjectedRowInitializer::Create(test_object_->layout_, update_col_ids);
 
-  auto *const record = txn_->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), initializer);
+  auto *const record =
+      txn_->StageWrite(CatalogTestUtil::generic_db_oid, CatalogTestUtil::generic_table_oid, initializer);
   record->SetTupleSlot(updated);
 
   StorageTestUtil::PopulateRandomRow(record->Delta(), test_object_->layout_, 0.0, generator);
@@ -40,7 +42,8 @@ void RandomWorkloadTransaction::RandomUpdate(Random *generator) {
 template <class Random>
 void RandomWorkloadTransaction::RandomInsert(Random *generator) {
   if (aborted_) return;
-  auto *const redo = txn_->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), test_object_->row_initializer_);
+  auto *const redo = txn_->StageWrite(CatalogTestUtil::generic_db_oid, CatalogTestUtil::generic_table_oid,
+                                      test_object_->row_initializer_);
   StorageTestUtil::PopulateRandomRow(redo->Delta(), test_object_->layout_, 0.0, generator);
   const storage::TupleSlot inserted = test_object_->table_.Insert(txn_, *(redo->Delta()));
   redo->SetTupleSlot(inserted);
@@ -139,7 +142,8 @@ void LargeTransactionBenchmarkObject::PopulateInitialTable(uint32_t num_tuples, 
   initial_txn_ = txn_manager_.BeginTransaction();
 
   for (uint32_t i = 0; i < num_tuples; i++) {
-    auto *const redo = initial_txn_->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), row_initializer_);
+    auto *const redo =
+        initial_txn_->StageWrite(CatalogTestUtil::generic_db_oid, CatalogTestUtil::generic_table_oid, row_initializer_);
     StorageTestUtil::PopulateRandomRow(redo->Delta(), layout_, 0.0, generator);
     const storage::TupleSlot inserted = table_.Insert(initial_txn_, *(redo->Delta()));
     redo->SetTupleSlot(inserted);

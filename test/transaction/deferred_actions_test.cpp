@@ -5,6 +5,7 @@
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
 #include "transaction/transaction_manager.h"
+#include "util/catalog_test_util.h"
 #include "util/test_harness.h"
 #include "util/transaction_test_util.h"
 
@@ -69,7 +70,7 @@ TEST_F(DeferredActionsTest, CommitAction) {
 
   auto *txn = txn_mgr_.BeginTransaction();
 
-  auto insert_redo = txn->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), *pri);
+  auto insert_redo = txn->StageWrite(CatalogTestUtil::generic_db_oid, CatalogTestUtil::generic_table_oid, *pri);
   auto insert = insert_redo->Delta();
 
   bool aborted = false;
@@ -241,7 +242,7 @@ TEST_F(DeferredActionsTest, CommitBootstrapDefer) {
 
   auto *txn = txn_mgr_.BeginTransaction();
 
-  auto insert_redo = txn->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), *pri);
+  auto insert_redo = txn->StageWrite(CatalogTestUtil::generic_db_oid, CatalogTestUtil::generic_table_oid, *pri);
   auto insert = insert_redo->Delta();
 
   bool defer1 = false;

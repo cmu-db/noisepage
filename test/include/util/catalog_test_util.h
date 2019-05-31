@@ -10,6 +10,8 @@
 
 namespace terrier {
 struct CatalogTestUtil {
+  CatalogTestUtil() = delete;
+
   // Returns a random Schema that is guaranteed to be valid for a single test instance. Multiple Schemas instantiated
   // with this function may have non-unique oids, but within a Schema, Column oids are unique.
   template <typename Random>
@@ -33,5 +35,10 @@ struct CatalogTestUtil {
     }
     return catalog::Schema(columns);
   }
+
+  // Define contants here for when you need to fake having a catalog in tests. These values may change as the catalog
+  // comes in, and tests should be modified accordingly.
+  static constexpr catalog::db_oid_t generic_db_oid = catalog::db_oid_t(101);
+  static constexpr catalog::table_oid_t generic_table_oid = catalog::table_oid_t(102);
 };
 }  // namespace terrier

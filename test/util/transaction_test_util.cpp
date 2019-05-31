@@ -5,6 +5,7 @@
 #include <vector>
 #include "common/allocator.h"
 #include "transaction/transaction_util.h"
+#include "util/catalog_test_util.h"
 
 namespace terrier {
 RandomWorkloadTransaction::RandomWorkloadTransaction(LargeTransactionTestObject *test_object)
@@ -50,7 +51,7 @@ void RandomWorkloadTransaction::RandomUpdate(Random *generator) {
 
   // TODO(Tianyu): Hardly efficient, but will do for testing.
   if (test_object_->wal_on_ || test_object_->bookkeeping_) {
-    auto *record = txn_->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), initializer);
+    auto *record = txn_->StageWrite(CatalogTestUtil::generic_db_oid, CatalogTestUtil::generic_table_oid, initializer);
     record->SetTupleSlot(updated);
     std::memcpy(reinterpret_cast<void *>(record->Delta()), update, update->Size());
   }
@@ -208,7 +209,8 @@ void LargeTransactionTestObject::PopulateInitialTable(uint32_t num_tuples, Rando
     storage::TupleSlot inserted = table_.Insert(initial_txn_, *redo);
     // TODO(Tianyu): Hardly efficient, but will do for testing.
     if (wal_on_ || bookkeeping_) {
-      auto *record = initial_txn_->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), row_initializer_);
+      auto *record = initial_txn_->StageWrite(CatalogTestUtil::generic_db_oid, CatalogTestUtil::generic_table_oid,
+                                              row_initializer_);
       record->SetTupleSlot(inserted);
       std::memcpy(reinterpret_cast<void *>(record->Delta()), redo, redo->Size());
     }

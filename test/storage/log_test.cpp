@@ -5,6 +5,7 @@
 #include "storage/garbage_collector_thread.h"
 #include "storage/write_ahead_log/log_manager.h"
 #include "transaction/transaction_manager.h"
+#include "util/catalog_test_util.h"
 #include "util/storage_test_util.h"
 #include "util/test_harness.h"
 #include "util/transaction_test_util.h"
@@ -42,7 +43,8 @@ class WriteAheadLoggingTests : public TerrierTest {
     auto tuple_slot = in->ReadValue<storage::TupleSlot>();
     auto result = storage::RedoRecord::PartialInitialize(buf, size, txn_begin,
                                                          // TODO(Tianyu): Hacky as hell
-                                                         catalog::db_oid_t(0), catalog::table_oid_t(0), tuple_slot);
+                                                         CatalogTestUtil::generic_db_oid,
+                                                         CatalogTestUtil::generic_table_oid, tuple_slot);
     // TODO(Tianyu): For now, without inlined attributes, the delta portion is a straight memory copy. This
     // will obviously change in the future. Also, this is hacky as hell
     auto delta_size = in->ReadValue<uint32_t>();

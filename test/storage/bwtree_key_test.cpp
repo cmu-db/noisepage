@@ -15,6 +15,7 @@
 #include "transaction/transaction_manager.h"
 #include "type/type_id.h"
 #include "type/type_util.h"
+#include "util/catalog_test_util.h"
 #include "util/random_test_util.h"
 #include "util/storage_test_util.h"
 #include "util/test_harness.h"
@@ -224,7 +225,8 @@ class BwTreeKeyTests : public TerrierTest {
     auto *const txn = txn_manager.BeginTransaction();
 
     // dummy tuple to insert for each key. We just need the visible TupleSlot
-    auto *const insert_redo = txn->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), tuple_initializer);
+    auto *const insert_redo =
+        txn->StageWrite(CatalogTestUtil::generic_db_oid, CatalogTestUtil::generic_table_oid, tuple_initializer);
     auto *const insert_tuple = insert_redo->Delta();
     *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
 
@@ -251,7 +253,7 @@ class BwTreeKeyTests : public TerrierTest {
     EXPECT_EQ(results.size(), 1);
     EXPECT_EQ(results[0], tuple_slot);
 
-    txn->StageDelete(catalog::db_oid_t(0), catalog::table_oid_t(0), tuple_slot);
+    txn->StageDelete(CatalogTestUtil::generic_db_oid, CatalogTestUtil::generic_table_oid, tuple_slot);
     sql_table.Delete(txn, tuple_slot);
     index->Delete(txn, *key, tuple_slot);
 
