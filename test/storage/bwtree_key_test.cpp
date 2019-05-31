@@ -242,7 +242,8 @@ class BwTreeKeyTests : public TerrierTest {
     index->ScanKey(*txn, *key, &results);
     EXPECT_TRUE(results.empty());
 
-    auto tuple_slot = sql_table.Insert(txn, insert_redo);
+    sql_table.Insert(txn, insert_redo);
+    const auto tuple_slot = insert_redo->GetTupleSlot();
 
     EXPECT_TRUE(index->Insert(txn, *key, tuple_slot));
 

@@ -147,6 +147,7 @@ class RedoRecord {
     auto *body = result->GetUnderlyingRecordBodyAs<RedoRecord>();
     body->db_oid_ = db_oid;
     body->table_oid_ = table_oid;
+    body->tuple_slot_ = TupleSlot(nullptr, 0);
     initializer.InitializeRow(body->Delta());
     return result;
   }

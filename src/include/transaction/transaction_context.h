@@ -79,7 +79,7 @@ class TransactionContext {
    * @return a persistent pointer to the head of a memory chunk large enough to hold the undo record
    */
   storage::UndoRecord *UndoRecordForInsert(storage::DataTable *const table, const storage::TupleSlot slot) {
-    byte *result = undo_buffer_.NewEntry(sizeof(storage::UndoRecord));
+    byte *const result = undo_buffer_.NewEntry(sizeof(storage::UndoRecord));
     return storage::UndoRecord::InitializeInsert(result, txn_id_.load(), slot, table);
   }
 
@@ -90,7 +90,7 @@ class TransactionContext {
    * @return a persistent pointer to the head of a memory chunk large enough to hold the undo record
    */
   storage::UndoRecord *UndoRecordForDelete(storage::DataTable *const table, const storage::TupleSlot slot) {
-    byte *result = undo_buffer_.NewEntry(sizeof(storage::UndoRecord));
+    byte *const result = undo_buffer_.NewEntry(sizeof(storage::UndoRecord));
     return storage::UndoRecord::InitializeDelete(result, txn_id_.load(), slot, table);
   }
 
@@ -104,8 +104,8 @@ class TransactionContext {
    */
   storage::RedoRecord *StageWrite(const catalog::db_oid_t db_oid, const catalog::table_oid_t table_oid,
                                   const storage::ProjectedRowInitializer &initializer) {
-    uint32_t size = storage::RedoRecord::Size(initializer);
-    auto *log_record =
+    const uint32_t size = storage::RedoRecord::Size(initializer);
+    auto *const log_record =
         storage::RedoRecord::Initialize(redo_buffer_.NewEntry(size), start_time_, db_oid, table_oid, initializer);
     return log_record->GetUnderlyingRecordBodyAs<storage::RedoRecord>();
   }
@@ -118,7 +118,7 @@ class TransactionContext {
    */
   void StageDelete(const catalog::db_oid_t db_oid, const catalog::table_oid_t table_oid,
                    const storage::TupleSlot slot) {
-    uint32_t size = storage::DeleteRecord::Size();
+    const uint32_t size = storage::DeleteRecord::Size();
     storage::DeleteRecord::Initialize(redo_buffer_.NewEntry(size), start_time_, db_oid, table_oid, slot);
   }
 
