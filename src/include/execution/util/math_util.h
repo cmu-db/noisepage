@@ -52,7 +52,7 @@ class MathUtil {
     return (value & (alignment - 1)) == 0;
   }
 
-  /// A generic version of alignment checking where @param alignment can be any
+  /// A generic version of alignment checking where alignment can be any
   /// positive integer.
   ///
   /// Examples:
@@ -86,10 +86,12 @@ class MathUtil {
   /// alignment.
   static u64 AlignTo(u64 value, u64 align) { return llvm::alignTo(value, align); }
 
-  /// Align @param addr to the given alignment @param alignment
-  /// \param addr The address fo align
-  /// \param alignment The desired alignment
-  /// \return The input address aligned to the desired alignment
+  /**
+   * Align addr to the given alignment
+   * @param addr address to align
+   * @param alignment desired alignment
+   * @return aligned address
+   */
   static constexpr uintptr_t AlignAddress(uintptr_t addr, std::size_t alignment) {
     TPL_ASSERT(alignment > 0 && MathUtil::IsPowerOf2(alignment), "Alignment is not a power of two!");
     return (addr + alignment - 1) & ~(alignment - 1);

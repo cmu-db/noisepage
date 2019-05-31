@@ -28,6 +28,9 @@ struct Bitwidth {
  */
 template <typename T>
 struct Lane {
+  /**
+   * Number of elements in the SIMD lane.
+   */
   static constexpr const u32 count = Bitwidth::value / (sizeof(T) * 8);
 };
 
