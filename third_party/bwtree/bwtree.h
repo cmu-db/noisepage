@@ -4934,7 +4934,11 @@ class BwTree : public BwTreeBase {
       if (snapshot_p->IsLeaf()) {
         INDEX_LOG_TRACE("The next node is a leaf (RO)");
 
-        NavigateLeafNode(context_p, *value_list_p);
+	if(value_list_p == nullptr) {
+	  NavigateSiblingChain(context_p);
+	} else {
+          NavigateLeafNode(context_p, *value_list_p);
+	}
 
         if (context_p->abort_flag) {
           INDEX_LOG_TRACE("NavigateLeafNode aborts (RO). ABORT");
@@ -8136,18 +8140,19 @@ class BwTree : public BwTreeBase {
       // currently buffered IteratorContext which will be destroyed
       // after new IteratorContext is created
       KeyType start_key = *start_key_p;
+      
+      EpochNode *epoch_node_p = p_tree_p->epoch_manager.JoinEpoch();
 
       while (1) {
         // First join the epoch to prevent physical nodes being deallocated
         // too early
-        EpochNode *epoch_node_p = p_tree_p->epoch_manager.JoinEpoch();
-
+        
         // This traversal has the following characteristics:
         //   1. It stops at the leaf level without traversing leaf with the key
         //   2. It DOES finish partial SMO, consolidate overlengthed chain, etc.
         //   3. It DOES traverse horizontally using sibling pointer
         Context context{start_key};
-        p_tree_p->Traverse(&context, nullptr, nullptr);
+        p_tree_p->TraverseReadOptimized(&context, nullptr);
 
         NodeSnapshot *snapshot_p = BwTree::GetLatestNodeSnapshot(&context);
         const BaseNode *node_p = snapshot_p->node_p;
@@ -8170,8 +8175,7 @@ class BwTree : public BwTreeBase {
         p_tree_p->CollectAllValuesOnLeaf(snapshot_p, ic_p->GetLeafNode());
 
         // Leave the epoch, since we have already had all information
-        p_tree_p->epoch_manager.LeaveEpoch(epoch_node_p);
-
+        
         // Find the lower bound of the current start search key
         // NOTE: Do not use start_key_p since the target it points to
         // might have been destroyed because we already released the reference
@@ -8200,6 +8204,8 @@ class BwTree : public BwTreeBase {
           start_key = ic_p->GetLeafNode()->GetHighKeyPair().first;
         }
       }  // while(1)
+
+      p_tree_p->epoch_manager.LeaveEpoch(epoch_node_p);
     }
 
     /*
