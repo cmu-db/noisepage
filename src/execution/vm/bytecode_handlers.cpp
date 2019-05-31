@@ -1,4 +1,5 @@
 #include "execution/vm/bytecode_handlers.h"
+#include "execution/sql/projected_columns_iterator.h"
 
 #include "catalog/catalog_defs.h"
 #include "execution/exec/execution_context.h"
@@ -7,29 +8,16 @@
 extern "C" {
 
 // ---------------------------------------------------------
-// Region
+// Thread State Container
 // ---------------------------------------------------------
 
-void OpRegionInit(tpl::util::Region *region) { new (region) tpl::util::Region("tmp"); }
-
-void OpRegionFree(tpl::util::Region *region) { region->~Region(); }
-
-// ---------------------------------------------------------
-// Transactions
-// ---------------------------------------------------------
-void OpBeginTransaction(terrier::transaction::TransactionContext **txn) {
-  auto *exec = tpl::sql::ExecutionStructures::Instance();
-  *txn = exec->GetTxnManager()->BeginTransaction();
+void OpThreadStateContainerInit(tpl::sql::ThreadStateContainer *const thread_state_container,
+                                tpl::sql::MemoryPool *const memory) {
+  new (thread_state_container) tpl::sql::ThreadStateContainer(memory);
 }
 
-void OpCommitTransaction(terrier::transaction::TransactionContext **txn) {
-  auto *exec = tpl::sql::ExecutionStructures::Instance();
-  exec->GetTxnManager()->Commit(*txn, [](void *) { return; }, nullptr);
-}
-
-void OpAbortTransaction(terrier::transaction::TransactionContext **txn) {
-  auto *exec = tpl::sql::ExecutionStructures::Instance();
-  exec->GetTxnManager()->Abort(*txn);
+void OpThreadStateContainerFree(tpl::sql::ThreadStateContainer *const thread_state_container) {
+  thread_state_container->~ThreadStateContainer();
 }
 
 // ---------------------------------------------------------
@@ -37,10 +25,9 @@ void OpAbortTransaction(terrier::transaction::TransactionContext **txn) {
 // ---------------------------------------------------------
 
 void OpTableVectorIteratorInit(tpl::sql::TableVectorIterator *iter, u32 db_oid, u32 table_oid,
-                               uintptr_t exec_context_addr) {
+                               tpl::exec::ExecutionContext *exec_ctx) {
   TPL_ASSERT(iter != nullptr, "Null iterator to initialize");
-  auto *exec_context = reinterpret_cast<tpl::exec::ExecutionContext *>(exec_context_addr);
-  new (iter) tpl::sql::TableVectorIterator(db_oid, table_oid, exec_context->GetTxn());
+  new (iter) tpl::sql::TableVectorIterator(db_oid, table_oid, exec_ctx);
 }
 
 void OpTableVectorIteratorPerformInit(tpl::sql::TableVectorIterator *iter) { iter->Init(); }
@@ -87,14 +74,39 @@ void OpPCIFilterNotEqual(u32 *size, tpl::sql::ProjectedColumnsIterator *iter, u3
 }
 
 // ---------------------------------------------------------
+// Filter Manager
+// ---------------------------------------------------------
+
+void OpFilterManagerInit(tpl::sql::FilterManager *filter_manager) { new (filter_manager) tpl::sql::FilterManager(); }
+
+void OpFilterManagerStartNewClause(tpl::sql::FilterManager *filter_manager) { filter_manager->StartNewClause(); }
+
+void OpFilterManagerInsertFlavor(tpl::sql::FilterManager *filter_manager, tpl::sql::FilterManager::MatchFn flavor) {
+  filter_manager->InsertClauseFlavor(flavor);
+}
+
+void OpFilterManagerFinalize(tpl::sql::FilterManager *filter_manager) { filter_manager->Finalize(); }
+
+void OpFilterManagerRunFilters(tpl::sql::FilterManager *filter_manager, tpl::sql::ProjectedColumnsIterator *pci) {
+  filter_manager->RunFilters(pci);
+}
+
+void OpFilterManagerFree(tpl::sql::FilterManager *filter_manager) { filter_manager->~FilterManager(); }
+
+// ---------------------------------------------------------
 // Join Hash Table
 // ---------------------------------------------------------
 
-void OpJoinHashTableInit(tpl::sql::JoinHashTable *join_hash_table, tpl::util::Region *region, u32 tuple_size) {
-  new (join_hash_table) tpl::sql::JoinHashTable(region, tuple_size);
+void OpJoinHashTableInit(tpl::sql::JoinHashTable *join_hash_table, tpl::sql::MemoryPool *memory, u32 tuple_size) {
+  new (join_hash_table) tpl::sql::JoinHashTable(memory, tuple_size);
 }
 
 void OpJoinHashTableBuild(tpl::sql::JoinHashTable *join_hash_table) { join_hash_table->Build(); }
+
+void OpJoinHashTableBuildParallel(tpl::sql::JoinHashTable *join_hash_table,
+                                  tpl::sql::ThreadStateContainer *thread_state_container, u32 jht_offset) {
+  join_hash_table->MergeParallel(thread_state_container, jht_offset);
+}
 
 void OpJoinHashTableFree(tpl::sql::JoinHashTable *join_hash_table) { join_hash_table->~JoinHashTable(); }
 
@@ -102,22 +114,35 @@ void OpJoinHashTableFree(tpl::sql::JoinHashTable *join_hash_table) { join_hash_t
 // Aggregation Hash Table
 // ---------------------------------------------------------
 
-void OpAggregationHashTableInit(tpl::sql::AggregationHashTable *agg_table, tpl::util::Region *region, u32 entry_size) {
-  new (agg_table) tpl::sql::AggregationHashTable(region, entry_size);
+void OpAggregationHashTableInit(tpl::sql::AggregationHashTable *const agg_hash_table,
+                                tpl::sql::MemoryPool *const memory, const u32 payload_size) {
+  new (agg_hash_table) tpl::sql::AggregationHashTable(memory, payload_size);
 }
 
-void OpAggregationHashTableFree(tpl::sql::AggregationHashTable *agg_table) { agg_table->~AggregationHashTable(); }
+void OpAggregationHashTableFree(tpl::sql::AggregationHashTable *const agg_hash_table) {
+  agg_hash_table->~AggregationHashTable();
+}
 
 // ---------------------------------------------------------
 // Sorters
 // ---------------------------------------------------------
 
-void OpSorterInit(tpl::sql::Sorter *sorter, tpl::util::Region *region, tpl::sql::Sorter::ComparisonFunction cmp_fn,
-                  u32 tuple_size) {
-  new (sorter) tpl::sql::Sorter(region, cmp_fn, tuple_size);
+void OpSorterInit(tpl::sql::Sorter *const sorter, tpl::sql::MemoryPool *const memory,
+                  const tpl::sql::Sorter::ComparisonFunction cmp_fn, const u32 tuple_size) {
+  new (sorter) tpl::sql::Sorter(memory, cmp_fn, tuple_size);
 }
 
 void OpSorterSort(tpl::sql::Sorter *sorter) { sorter->Sort(); }
+
+void OpSorterSortParallel(tpl::sql::Sorter *sorter, tpl::sql::ThreadStateContainer *thread_state_container,
+                          u32 sorter_offset) {
+  sorter->SortParallel(thread_state_container, sorter_offset);
+}
+
+void OpSorterSortTopKParallel(tpl::sql::Sorter *sorter, tpl::sql::ThreadStateContainer *thread_state_container,
+                              u32 sorter_offset, u64 top_k) {
+  sorter->SortTopKParallel(thread_state_container, sorter_offset, top_k);
+}
 
 void OpSorterFree(tpl::sql::Sorter *sorter) { sorter->~Sorter(); }
 
@@ -126,42 +151,31 @@ void OpSorterIteratorInit(tpl::sql::SorterIterator *iter, tpl::sql::Sorter *sort
 }
 
 void OpSorterIteratorFree(tpl::sql::SorterIterator *iter) { iter->~SorterIterator(); }
-
 // -------------------------------------------------------------
 // Output
 // ------------------------------------------------------------
-void OpOutputAlloc(uintptr_t context_ptr, byte **result) {
-  auto exec_context = reinterpret_cast<tpl::exec::ExecutionContext *>(context_ptr);
-  *result = exec_context->GetOutputBuffer()->AllocOutputSlot();
+void OpOutputAlloc(tpl::exec::ExecutionContext *exec_ctx, byte **result) {
+  *result = exec_ctx->GetOutputBuffer()->AllocOutputSlot();
 }
 
-void OpOutputAdvance(uintptr_t context_ptr) {
-  auto exec_context = reinterpret_cast<tpl::exec::ExecutionContext *>(context_ptr);
-  exec_context->GetOutputBuffer()->Advance();
+void OpOutputAdvance(tpl::exec::ExecutionContext *exec_ctx) { exec_ctx->GetOutputBuffer()->Advance(); }
+
+void OpOutputSetNull(tpl::exec::ExecutionContext *exec_ctx, u32 idx) {
+  exec_ctx->GetOutputBuffer()->SetNull(static_cast<u16>(idx), true);
 }
 
-void OpOutputSetNull(uintptr_t context_ptr, u32 idx) {
-  auto exec_context = reinterpret_cast<tpl::exec::ExecutionContext *>(context_ptr);
-  exec_context->GetOutputBuffer()->SetNull(static_cast<u16>(idx), true);
-}
-
-void OpOutputFinalize(uintptr_t context_ptr) {
-  auto exec_context = reinterpret_cast<tpl::exec::ExecutionContext *>(context_ptr);
-  exec_context->GetOutputBuffer()->Finalize();
-}
+void OpOutputFinalize(tpl::exec::ExecutionContext *exec_ctx) { exec_ctx->GetOutputBuffer()->Finalize(); }
 
 // -------------------------------------------------------------
 // Insert
 // ------------------------------------------------------------
-void OpInsert(uintptr_t context_ptr, u32 db_oid, u32 table_oid, byte *values_ptr) {
-  auto exec_context = reinterpret_cast<tpl::exec::ExecutionContext *>(context_ptr);
-
+void OpInsert(tpl::exec::ExecutionContext *exec_ctx, u32 db_oid, u32 table_oid, byte *values_ptr) {
   // find the table we want to insert to
   auto catalog = tpl::sql::ExecutionStructures::Instance()->GetCatalog();
   auto table = catalog->GetCatalogTable(static_cast<terrier::catalog::db_oid_t>(db_oid),
                                         static_cast<terrier::catalog::table_oid_t>(table_oid));
   auto sql_table = table->GetSqlTable();
-  auto *const txn = exec_context->GetTxn();
+  auto *const txn = exec_ctx->GetTxn();
 
   // create insertion buffer
   auto *pri = table->GetPRI();
@@ -188,9 +202,8 @@ void OpInsert(uintptr_t context_ptr, u32 db_oid, u32 table_oid, byte *values_ptr
 // -------------------------------------------------------------------
 // Index Iterator
 // -------------------------------------------------------------------
-void OpIndexIteratorInit(tpl::sql::IndexIterator *iter, uint32_t index_oid, uintptr_t context_ptr) {
-  auto exec_context = reinterpret_cast<tpl::exec::ExecutionContext *>(context_ptr);
-  new (iter) tpl::sql::IndexIterator(index_oid, exec_context->GetTxn());
+void OpIndexIteratorInit(tpl::sql::IndexIterator *iter, uint32_t index_oid, tpl::exec::ExecutionContext *exec_ctx) {
+  new (iter) tpl::sql::IndexIterator(index_oid, exec_ctx->GetTxn());
 }
 void OpIndexIteratorScanKey(tpl::sql::IndexIterator *iter, byte *key) { iter->ScanKey(key); }
 void OpIndexIteratorFree(tpl::sql::IndexIterator *iter) { iter->~IndexIterator(); }

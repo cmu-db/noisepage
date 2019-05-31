@@ -5,7 +5,6 @@
 #include "execution/ast/ast_node_factory.h"
 #include "execution/ast/context.h"
 #include "execution/ast/type.h"
-#include "execution/sql/execution_structures.h"
 
 namespace tpl::sema {
 
@@ -17,19 +16,16 @@ void Sema::VisitAssignmentStmt(ast::AssignmentStmt *node) {
     return;
   }
 
-  // Fast-path
-  if (src_type == dest_type) {
+  // Check assignment
+  ast::Expr *source = node->source();
+  if (!CheckAssignmentConstraints(dest_type, &source)) {
+    error_reporter_->Report(node->position(), ErrorMessages::kInvalidAssignment, src_type, dest_type);
     return;
   }
 
-  // The left and right types are no the same. If both types are integral, see
-  // if we can issue an integral cast.
-
-  if (src_type->IsIntegerType() || dest_type->IsIntegerType()) {
-    auto *cast_expr = context()->node_factory()->NewImplicitCastExpr(
-        node->source()->position(), ast::CastKind::IntegralCast, dest_type, node->source());
-    node->set_source(cast_expr);
-    return;
+  // Assignment looks good, but the source may have been casted
+  if (source != node->source()) {
+    node->set_source(source);
   }
 }
 
@@ -59,8 +55,13 @@ void Sema::VisitForStmt(ast::ForStmt *node) {
 
   if (node->condition() != nullptr) {
     ast::Type *cond_type = Resolve(node->condition());
+    // If unable to resolve condition type, there was some error
+    if (cond_type == nullptr) {
+      return;
+    }
+    // If the resolved type isn't a boolean, it's an error
     if (!cond_type->IsBoolType()) {
-      error_reporter()->Report(node->condition()->position(), ErrorMessages::kNonBoolForCondition);
+      error_reporter_->Report(node->condition()->position(), ErrorMessages::kNonBoolForCondition);
     }
   }
 
@@ -72,60 +73,7 @@ void Sema::VisitForStmt(ast::ForStmt *node) {
   Visit(node->body());
 }
 
-void Sema::VisitForInStmt(ast::ForInStmt *node) {
-  SemaScope for_scope(this, Scope::Kind::Loop);
-
-  if (!node->target()->IsIdentifierExpr()) {
-    error_reporter()->Report(node->target()->position(), ErrorMessages::kNonIdentifierTargetInForInLoop);
-    return;
-  }
-
-  if (!node->iter()->IsIdentifierExpr()) {
-    error_reporter()->Report(node->iter()->position(), ErrorMessages::kNonIdentifierIterator);
-    return;
-  }
-
-  auto *target = node->target()->As<ast::IdentifierExpr>();
-  auto *iter = node->iter()->As<ast::IdentifierExpr>();
-
-  // Lookup the table in the catalog
-  auto *exec = sql::ExecutionStructures::Instance();
-  std::shared_ptr<terrier::catalog::SqlTableRW> catalog_table = nullptr;
-  if (node->GetHasOid()) {
-    terrier::catalog::table_oid_t table_oid =
-        static_cast<terrier::catalog::table_oid_t>(std::stoi(iter->name().data()));
-    catalog_table = exec->GetCatalog()->GetCatalogTable(terrier::catalog::DEFAULT_DATABASE_OID, table_oid);
-  } else {
-    catalog_table = exec->GetCatalog()->GetCatalogTable(terrier::catalog::DEFAULT_DATABASE_OID, iter->name().data());
-  }
-  if (catalog_table == nullptr) {
-    error_reporter()->Report(iter->position(), ErrorMessages::kNonExistingTable, iter->name());
-    return;
-  }
-
-  // Now we resolve the type of the iterable. If the user wanted a row-at-a-time
-  // iteration, the type becomes a struct-equivalent representation of the row
-  // as stored in the table. If the user wanted a vector-at-a-time iteration,
-  // the iterable type becomes a ProjectedColumnsIterator.
-
-  ast::Type *iter_type = nullptr;
-  if (auto *attributes = node->attributes();
-      attributes != nullptr && attributes->Contains(context()->GetIdentifier("batch"))) {
-    iter_type = ast::BuiltinType::Get(context(), ast::BuiltinType::ProjectedColumnsIterator)->PointerTo();
-  } else {
-    iter_type = GetRowTypeFromSqlSchema(catalog_table->GetSqlTable()->GetSchema());
-    TPL_ASSERT(iter_type->IsStructType(), "Rows must be structs");
-  }
-
-  // Set the target iterators type
-  target->set_type(iter_type);
-
-  // Declare iteration variable
-  current_scope()->Declare(target->name(), iter_type);
-
-  // Process body
-  Visit(node->body());
-}
+void Sema::VisitForInStmt(ast::ForInStmt *node) { TPL_ASSERT(false, "Not supported"); }
 
 void Sema::VisitExpressionStmt(ast::ExpressionStmt *node) { Visit(node->expression()); }
 
@@ -153,7 +101,7 @@ void Sema::VisitIfStmt(ast::IfStmt *node) {
 
   // If the conditional isn't an explicit boolean type, error
   if (!node->condition()->type()->IsBoolType()) {
-    error_reporter()->Report(node->condition()->position(), ErrorMessages::kNonBoolIfCondition);
+    error_reporter_->Report(node->condition()->position(), ErrorMessages::kNonBoolIfCondition);
   }
 
   Visit(node->then_stmt());
@@ -167,7 +115,7 @@ void Sema::VisitDeclStmt(ast::DeclStmt *node) { Visit(node->declaration()); }
 
 void Sema::VisitReturnStmt(ast::ReturnStmt *node) {
   if (current_function() == nullptr) {
-    error_reporter()->Report(node->position(), ErrorMessages::kReturnOutsideFunction);
+    error_reporter_->Report(node->position(), ErrorMessages::kReturnOutsideFunction);
     return;
   }
 
@@ -175,7 +123,7 @@ void Sema::VisitReturnStmt(ast::ReturnStmt *node) {
   // check later if we need it.
 
   ast::Type *return_type = nullptr;
-  if (node->HasExpressionValue()) {
+  if (node->ret() != nullptr) {
     return_type = Resolve(node->ret());
   }
 
@@ -186,8 +134,8 @@ void Sema::VisitReturnStmt(ast::ReturnStmt *node) {
 
   if (func_type->return_type()->IsNilType()) {
     if (return_type != nullptr) {
-      error_reporter()->Report(node->position(), ErrorMessages::kMismatchedReturnType, return_type,
-                               func_type->return_type());
+      error_reporter_->Report(node->position(), ErrorMessages::kMismatchedReturnType, return_type,
+                              func_type->return_type());
     }
     return;
   }
@@ -196,15 +144,15 @@ void Sema::VisitReturnStmt(ast::ReturnStmt *node) {
   // resolved type of the expression in this return is compatible with the
   // return type of the function.
 
-  if (return_type != func_type->return_type()) {
-    // It's possible the return type is null (either because there was an error
-    // or there wasn't an expression)
-    if (return_type == nullptr) {
-      return_type = ast::BuiltinType::Get(context(), ast::BuiltinType::Nil);
-    }
+  if (return_type == nullptr) {
+    error_reporter_->Report(node->position(), ErrorMessages::kMissingReturn);
+    return;
+  }
 
-    error_reporter()->Report(node->position(), ErrorMessages::kMismatchedReturnType, return_type,
-                             func_type->return_type());
+  ast::Expr *ret = node->ret();
+  if (!CheckAssignmentConstraints(func_type->return_type(), &ret)) {
+    error_reporter_->Report(node->position(), ErrorMessages::kMismatchedReturnType, return_type,
+                            func_type->return_type());
     return;
   }
 }

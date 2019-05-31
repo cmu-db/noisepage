@@ -2,24 +2,39 @@
 
 #include <algorithm>
 #include <limits>
+#include <utility>
+#include <vector>
 
+// TBB
+#include <tbb/tbb.h>  // NOLINT
+
+// Libcount
+#include "libcount/include/count/hll.h"
+
+#include "execution/sql/memory_pool.h"
+#include "execution/sql/thread_state_container.h"
 #include "execution/util/cpu_info.h"
 #include "execution/util/memory.h"
-
+#include "execution/util/timer.h"
 #include "loggers/execution_logger.h"
-
-// TODO(pmenon): Use HLL++ to better estimate size of CHT and GHT
-// TODO(pmenon): Use tagged insertions/probes if no bloom filter exists in GHT
 
 namespace tpl::sql {
 
-JoinHashTable::JoinHashTable(util::Region *region, u32 tuple_size, bool use_concise_ht) noexcept
-    : entries_(region, sizeof(HashTableEntry) + tuple_size),
+JoinHashTable::JoinHashTable(MemoryPool *memory, u32 tuple_size, bool use_concise_ht)
+    : entries_(sizeof(HashTableEntry) + tuple_size, MemoryPoolAllocator<byte>(memory)),
       concise_hash_table_(0),
+      hll_estimator_(libcount::HLL::Create(kDefaultHLLPrecision)),
       built_(false),
       use_concise_ht_(use_concise_ht) {}
 
+// Needed because we forward-declared HLL from libcount
+JoinHashTable::~JoinHashTable() = default;
+
 byte *JoinHashTable::AllocInputTuple(const hash_t hash) {
+  // Add to unique_count estimation
+  hll_estimator_->Update(hash);
+
+  // Allocate space for a new tuple
   auto *entry = reinterpret_cast<HashTableEntry *>(entries_.append());
   entry->hash = hash;
   entry->next = nullptr;
@@ -82,18 +97,20 @@ namespace {
 // The bits we set in the entry to mark if the entry has been buffered in the
 // reorder buffer and whether the entry has been processed (i.e., if the entry
 // is in its final location in either the main or overflow arenas).
-constexpr const u64 kBufferedBit = 1ull << 62;
-constexpr const u64 kProcessedBit = 1ull << 63;
-constexpr const u64 kCHTSlotMask = kBufferedBit - 1;
+constexpr const u64 kBufferedBit = 1ull << 62ull;
+constexpr const u64 kProcessedBit = 1ull << 63ull;
 
-/// A reorder is a small piece of buffer space into which we temporarily buffer
-/// hash table entries for the purposes of reordering them.
+/**
+ * A reorder is a small piece of buffer space into which we temporarily buffer
+ * hash table entries for the purposes of reordering them.
+ */
 class ReorderBuffer {
  public:
   // Use a 16 KB internal buffer for temporary copies
   static constexpr const u32 kBufferSizeInBytes = 16 * 1024;
 
-  ReorderBuffer(util::ChunkedVector *entries, u64 max_elems, u64 begin_read_idx, u64 end_read_idx) noexcept
+  ReorderBuffer(util::ChunkedVector<MemoryPoolAllocator<byte>> *entries, u64 max_elems, u64 begin_read_idx,
+                u64 end_read_idx) noexcept
       : entry_size_(entries->element_size()),
         buf_idx_(0),
         max_elems_(std::min(max_elems, kBufferSizeInBytes / entry_size_) - 1),
@@ -102,30 +119,52 @@ class ReorderBuffer {
         end_read_idx_(end_read_idx),
         entries_(entries) {}
 
-  /// This class cannot be copied or moved
+  /**
+   * This class cannot be copied or moved
+   */
   DISALLOW_COPY_AND_MOVE(ReorderBuffer);
 
-  /// Retrieve an entry by index
+  /**
+   * Retrieve an entry in the buffer by its index in the buffer
+   * @tparam T The type to cast the resulting entry into
+   * @param idx The index of the entry to lookup
+   * @return A pointer to the entry
+   */
   template <typename T = byte>
   T *BufEntryAt(u64 idx) {
     return reinterpret_cast<T *>(buffer_ + (idx * entry_size_));
   }
 
-  /// Has the entry \a entry been processed?
-  ALWAYS_INLINE bool IsProcessed(HashTableEntry *entry) const noexcept {
+  /**
+   * Has the entry @em been processed? In other words, is the entry in its
+   * final location in the entry array?
+   */
+  ALWAYS_INLINE bool IsProcessed(const HashTableEntry *entry) const noexcept {
     return (entry->cht_slot & kProcessedBit) != 0u;
   }
 
-  /// Mark the entry \entry as processed
+  /**
+   * Mark the given entry as processed and in its final location
+   */
   ALWAYS_INLINE void SetProcessed(HashTableEntry *entry) const noexcept { entry->cht_slot |= kProcessedBit; }
 
-  /// Has the entry \a entry been buffered
-  ALWAYS_INLINE bool IsBuffered(HashTableEntry *entry) const noexcept { return (entry->cht_slot & kBufferedBit) != 0u; }
+  /**
+   * Has the entry @em entry been buffered in the reorder buffer?
+   */
+  ALWAYS_INLINE bool IsBuffered(const HashTableEntry *entry) const noexcept {
+    return (entry->cht_slot & kBufferedBit) != 0u;
+  }
 
-  /// Mark the entry \a entry as buffered
+  /**
+   * Mark the entry @em entry as buffered in the reorder buffer
+   */
   ALWAYS_INLINE void SetBuffered(HashTableEntry *entry) const noexcept { entry->cht_slot |= kBufferedBit; }
 
-  /// Fill the buffer with unprocessed entries
+  /**
+   * Fill this reorder buffer with as many entries as possible. Each entry that
+   * is inserted is marked/tagged as buffered.
+   * @return True if any entries were buffered; false otherwise
+   */
   bool Fill() {
     while (buf_idx_ < max_elems_ && read_idx_ < end_read_idx_) {
       auto *entry = reinterpret_cast<HashTableEntry *>((*entries_)[read_idx_++]);
@@ -142,7 +181,10 @@ class ReorderBuffer {
     return buf_idx_ > 0;
   }
 
-  /// Reset the index where the next buffered item goes
+  /**
+   * Reset the index where the next buffered entry goes. This is needed when,
+   * in the process of
+   */
   void Reset(const u64 new_buf_idx) noexcept { buf_idx_ = new_buf_idx; }
 
   // -------------------------------------------------------
@@ -175,7 +217,8 @@ class ReorderBuffer {
   // The exclusive upper bound index to read from the entries list
   const u64 end_read_idx_;
 
-  util::ChunkedVector *entries_;
+  // Source of all entries
+  util::ChunkedVector<MemoryPoolAllocator<byte>> *entries_;
 };
 
 }  // namespace
@@ -451,6 +494,8 @@ void JoinHashTable::ReorderOverflowEntries() noexcept {
 
 void JoinHashTable::VerifyMainEntryOrder() {
 #ifndef NDEBUG
+  constexpr const u64 kCHTSlotMask = kBufferedBit - 1;
+
   const u64 overflow_idx = entries_.size() - concise_hash_table_.num_overflow();
   for (u32 idx = 0; idx < overflow_idx; idx++) {
     auto *entry = reinterpret_cast<HashTableEntry *>(entries_[idx]);
@@ -518,17 +563,27 @@ void JoinHashTable::Build() {
     return;
   }
 
+  EXECUTION_LOG_DEBUG("Unique estimate: {}", hll_estimator_->Estimate());
+
+  util::Timer<> timer;
+  timer.Start();
+
+  // Build
   if (use_concise_hash_table()) {
     BuildConciseHashTable();
   } else {
     BuildGenericHashTable();
   }
 
+  timer.Stop();
+  UNUSED double tps = (static_cast<double>(num_elements()) / timer.elapsed()) / 1000.0;
+  EXECUTION_LOG_DEBUG("JHT: built {} tuples in {} ms ({:.2f} tps)", num_elements(), timer.elapsed(), tps);
+
   built_ = true;
 }
 
 template <bool Prefetch>
-void JoinHashTable::LookupBatchInGenericHashTableInternal(u32 num_tuples, const hash_t *hashes,
+void JoinHashTable::LookupBatchInGenericHashTableInternal(u32 num_tuples, const hash_t hashes[],
                                                           const HashTableEntry *results[]) const {
   // TODO(pmenon): Use tagged insertions/probes if no bloom filter exists
 
@@ -555,7 +610,7 @@ void JoinHashTable::LookupBatchInGenericHashTable(u32 num_tuples, const hash_t h
 }
 
 template <bool Prefetch>
-void JoinHashTable::LookupBatchInConciseHashTableInternal(u32 num_tuples, const hash_t *hashes,
+void JoinHashTable::LookupBatchInConciseHashTableInternal(u32 num_tuples, const hash_t hashes[],
                                                           const HashTableEntry *results[]) const {
   for (u32 idx = 0, prefetch_idx = kPrefetchDistance; idx < num_tuples; idx++, prefetch_idx++) {
     if constexpr (Prefetch) {
@@ -563,7 +618,6 @@ void JoinHashTable::LookupBatchInConciseHashTableInternal(u32 num_tuples, const 
         concise_hash_table_.PrefetchSlotGroup<true>(hashes[prefetch_idx]);
       }
     }
-
     // NOLINTNEXTLINE
     const auto [found, entry_idx] = concise_hash_table_.Lookup(hashes[idx]);
     results[idx] = (found ? EntryAt(entry_idx) : nullptr);
@@ -588,6 +642,67 @@ void JoinHashTable::LookupBatch(u32 num_tuples, const hash_t hashes[], const Has
   } else {
     LookupBatchInGenericHashTable(num_tuples, hashes, results);
   }
+}
+
+template <bool Prefetch, bool Concurrent>
+void JoinHashTable::MergeIncomplete(JoinHashTable *source) {
+  // Only generic table merges are supported
+  // TODO(pmenon): Support merging build of concise tables
+
+  // First, merge entries in the source table into ours
+  for (u64 idx = 0, prefetch_idx = kPrefetchDistance; idx < source->num_elements(); idx++, prefetch_idx++) {
+    if constexpr (Prefetch) {
+      if (TPL_LIKELY(prefetch_idx < source->num_elements())) {
+        auto *prefetch_entry = source->EntryAt(prefetch_idx);
+        generic_hash_table_.PrefetchChainHead<false>(prefetch_entry->hash);
+      }
+    }
+
+    HashTableEntry *entry = source->EntryAt(idx);
+    generic_hash_table_.Insert<Concurrent>(entry, entry->hash);
+  }
+
+  // Next, take ownership of source table's memory
+  {
+    util::SpinLatch::ScopedSpinLatch latch(&owned_latch_);
+    owned_.emplace_back(std::move(source->entries_));
+  }
+}
+
+void JoinHashTable::MergeParallel(const ThreadStateContainer *thread_state_container, const u32 jht_offset) {
+  // Collect thread-local hash tables
+  std::vector<JoinHashTable *> tl_join_tables;
+  thread_state_container->CollectThreadLocalStateElementsAs(&tl_join_tables, jht_offset);
+
+  // Combine HLL counts to get a global estimate
+  for (auto *jht : tl_join_tables) {
+    hll_estimator_->Merge(jht->hll_estimator_.get());
+  }
+
+  u64 num_elem_estimate = hll_estimator_->Estimate();
+  EXECUTION_LOG_INFO("Global unique count: {}", num_elem_estimate);
+
+  // Set size
+  generic_hash_table_.SetSize(num_elem_estimate);
+
+  // Resize the owned entries vector now to avoid resizing concurrently during
+  // merge. All the thread-local join table data will get placed into our
+  // owned entries vector
+  owned_.reserve(tl_join_tables.size());
+
+  // Is the global hash table out of cache? If so, we'll prefetch during build.
+  const u64 l3_size = CpuInfo::Instance()->GetCacheSize(CpuInfo::L3_CACHE);
+  const bool out_of_cache = (generic_hash_table_.GetTotalMemoryUsage() > l3_size);
+
+  // Merge all in parallel
+  tbb::task_scheduler_init sched;
+  tbb::parallel_for_each(tl_join_tables.begin(), tl_join_tables.end(), [this, out_of_cache](JoinHashTable *source) {
+    if (out_of_cache) {
+      MergeIncomplete<true, true>(source);
+    } else {
+      MergeIncomplete<false, true>(source);
+    }
+  });
 }
 
 }  // namespace tpl::sql

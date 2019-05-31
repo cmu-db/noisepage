@@ -10,7 +10,7 @@
 namespace tpl::util {
 
 /**
- * Utility functions for bitvectors.
+ * Utility class to deal with bit-level operations.
  */
 class BitUtil {
  public:
@@ -24,10 +24,11 @@ class BitUtil {
   static_assert(util::MathUtil::IsPowerOf2(kBitWordSize));
 
   /**
-   * Count the number of zeros from the most significant bit to the first 1
-   * @tparam T data type of input value
-   * @param val input value
-   * @return number of leading zeros
+   * Count the number of zeroes from the most significant bit to the first 1 in
+   * the input number @em val
+   * @tparam T The data type of the input value
+   * @param val The input number
+   * @return The number of leading zeros
    */
   template <typename T>
   ALWAYS_INLINE static u64 CountLeadingZeros(T val) {
@@ -35,17 +36,18 @@ class BitUtil {
   }
 
   /**
-   * Compute the number of 32-bit words necessary to store a bit vector of the given size
-   * @param num_bits size of bit vector, in bits
-   * @return number of 32-bit words required
+   * Calculate the number of 32-bit words are needed to store a bit vector of
+   * the given size
+   * @param num_bits The size of the bit vector, in bits
+   * @return The number of words needed to store a bit vector of the given size
    */
   ALWAYS_INLINE static u64 Num32BitWordsFor(u64 num_bits) { return MathUtil::DivRoundUp(num_bits, kBitWordSize); }
 
   /**
-   * Test if bit at index idx is set in the bit vector
-   * @param bits bit vector to be tested
-   * @param idx location to test
-   * @return true if bit is set, false otherwise
+   * Test if the bit at index \a idx is set in the bit vector
+   * @param bits The bit vector
+   * @param idx The index of the bit to check
+   * @return True if set; false otherwise
    */
   ALWAYS_INLINE static bool Test(const u32 bits[], const u32 idx) {
     const u32 mask = 1u << (idx % kBitWordSize);
@@ -53,9 +55,9 @@ class BitUtil {
   }
 
   /**
-   * Set the bit at index idx to 1 in the bit vector
-   * @param bits bit vector to be modified
-   * @param idx index of the bit to be set to 1
+   * Set the bit at index \a idx to 1 in the bit vector \a bits
+   * @param bits The bit vector
+   * @param idx The index of the bit to set to 1
    */
   ALWAYS_INLINE static void Set(u32 bits[], const u32 idx) { bits[idx / kBitWordSize] |= 1u << (idx % kBitWordSize); }
 

@@ -17,10 +17,13 @@
 #include "execution/ast/type.h"
 #include "execution/sql/aggregation_hash_table.h"
 #include "execution/sql/aggregators.h"
+#include "execution/sql/filter_manager.h"
 #include "execution/sql/index_iterator.h"
 #include "execution/sql/join_hash_table.h"
+#include "execution/sql/join_hash_table_vector_probe.h"
 #include "execution/sql/sorter.h"
 #include "execution/sql/table_vector_iterator.h"
+#include "execution/sql/thread_state_container.h"
 #include "execution/sql/value.h"
 #include "execution/util/common.h"
 #include "execution/util/math_util.h"
@@ -31,7 +34,9 @@ namespace tpl::ast {
 // Key type used in the cache for struct types in the context
 // ---------------------------------------------------------
 
-/// Compute a hash_code for a field
+/**
+ * Compute a hash_code for a field
+ */
 llvm::hash_code hash_value(const Field &field) { return llvm::hash_combine(field.name.data(), field.type); }
 
 using terrier::type::TypeId;

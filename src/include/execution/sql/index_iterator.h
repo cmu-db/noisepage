@@ -48,12 +48,14 @@ class IndexIterator {
    */
   bool HasNext();
 
-  /// Get a pointer to the value in the column at index col_idx
-  /// \tparam T The desired data type stored in the ProjectedColumns
-  /// \tparam nullable Whether the column is NULLable
-  /// \param col_idx The index of the column to read from
-  /// \param[out] null Whether the given column is null
-  /// \return The typed value at the current iterator position in the column
+  /**
+   * Get a pointer to the value in the column at index @em col_idx
+   * @tparam T The desired data type stored in the vector projection
+   * @tparam nullable Whether the column is NULLable
+   * @param col_idx The index of the column to read from
+   * @param[out] null null Whether the given column is null
+   * @return The typed value at the current iterator position in the column
+   */
   template <typename T, bool nullable>
   const T *Get(u32 col_idx, bool *null) const;
 

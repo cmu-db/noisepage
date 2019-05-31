@@ -1,10 +1,18 @@
 #pragma once
 
+#include <memory>
+#include <vector>
+
 #include "execution/sql/bloom_filter.h"
 #include "execution/sql/concise_hash_table.h"
 #include "execution/sql/generic_hash_table.h"
+#include "execution/sql/memory_pool.h"
 #include "execution/util/chunked_vector.h"
-#include "execution/util/region.h"
+#include "execution/util/spin_latch.h"
+
+namespace libcount {
+class HLL;
+}  // namespace libcount
 
 namespace tpl::sql::test {
 class JoinHashTableTest;
@@ -12,18 +20,28 @@ class JoinHashTableTest;
 
 namespace tpl::sql {
 
+class ThreadStateContainer;
+
 /**
- * Hash Table used for joins.
+ * The main join hash table. Join hash tables are bulk-loaded through calls to
+ * @em AllocInputTuple() and frozen after calling @em Build(). Thus, they're
+ * write-once read-many (WORM) structures.
  */
 class JoinHashTable {
  public:
   /**
-   * Construct a hash-table used for join processing using a region as the main memory allocator
-   * @param region region to use for allocation
-   * @param tuple_size size of the tuples
-   * @param use_concise_ht whether to use a concise implementation or not
+   * Default HLL precision
    */
-  JoinHashTable(util::Region *region, u32 tuple_size, bool use_concise_ht = false) noexcept;
+  static constexpr u32 kDefaultHLLPrecision = 10;
+
+  /**
+   * Construct a join hash table. All memory allocations are sourced from the
+   * injected @em memory, and thus, are ephemeral.
+   * @param memory The memory pool to allocate memory from
+   * @param tuple_size The size of the tuple stored in this join hash table
+   * @param use_concise_ht Whether to use a concise or generic join index
+   */
+  explicit JoinHashTable(MemoryPool *memory, u32 tuple_size, bool use_concise_ht = false);
 
   /**
    * This class cannot be copied or moved
@@ -31,50 +49,69 @@ class JoinHashTable {
   DISALLOW_COPY_AND_MOVE(JoinHashTable);
 
   /**
-  * Allocate storage in the hash table for an input tuple whose hash value is
-  * hash and whose size (in bytes) is tuple_size. Remember that this
-  * only performs an allocation from the table's memory pool. No insertion
-  * into the table is performed.
-   *
-   * @param hash hash value of the inserted tuple
-   * @return byte array where the tuple can be written into
+   * Destructor
+   */
+  ~JoinHashTable();
+
+  /**
+   * Allocate storage in the hash table for an input tuple whose hash value is
+   * @em hash. This function only performs an allocation from the table's memory
+   * pool. No insertion into the table is performed, meaning a subsequent
+   * @em Lookup() for the entry will not return the inserted entry.
+   * @param hash The hash value of the tuple to insert
+   * @return A memory region where the caller can materialize the tuple
    */
   byte *AllocInputTuple(hash_t hash);
 
   /**
-   * Fully construct the join hash table. If the join hash table has already been built, do nothing.
+   * Fully construct the join hash table. Nothing is done if the join hash table
+   * has already been built. After building, the table becomes read-only.
    */
   void Build();
 
   /**
-   * The tuple-at-a-time iterator
+   * The tuple-at-a-time iterator interface
    */
   class Iterator;
 
   /**
-   * Lookup a single entry with the given hash value returning an iterator
-   * @tparam UseCHT whether to use a concise implementation or not
-   * @param hash hash value to lookup
-   * @return iterator over the matches
+   * Lookup a single entry with hash value @em hash returning an iterator
+   * @tparam UseCHT Should the lookup use the concise or general table
+   * @param hash The hash value of the element to lookup
+   * @return An iterator over all elements that match the hash
    */
   template <bool UseCHT>
   Iterator Lookup(hash_t hash) const;
 
   /**
-   * Perform a vectorized lookup
-   * @param num_tuples batch size
-   * @param hashes hashes of the elements to lookup
-   * @param results matches found
+   * Perform a batch lookup of elements whose hash values are stored in @em
+   * hashes, storing the results in @em results
+   * @param num_tuples The number of tuples in the batch
+   * @param hashes The hash values of the probe elements
+   * @param results The heads of the bucket chain of the probed elements
    */
   void LookupBatch(u32 num_tuples, const hash_t hashes[], const HashTableEntry *results[]) const;
 
   /**
-   * @return the amount of memory the buffered tuples occupy
+   * Merge all thread-local hash tables stored in the state contained into this
+   * table. Perform the merge in parallel.
+   * @param thread_state_container The container for all thread-local tables
+   * @param jht_offset The offset in the state where the hash table is
+   */
+  void MergeParallel(const ThreadStateContainer *thread_state_container, u32 jht_offset);
+
+  // -------------------------------------------------------
+  // Accessors
+  // -------------------------------------------------------
+
+  /**
+   * Return the amount of memory the buffered tuples occupy
    */
   u64 GetBufferedTupleMemoryUsage() const noexcept { return entries_.size() * entries_.element_size(); }
 
   /**
-   * @return Get the amount of memory used by the join index only (i.e., excluding space used to store materialized build-side tuples)
+   * Get the amount of memory used by the join index only (i.e., excluding space
+   * used to store materialized build-side tuples)
    */
   u64 GetJoinIndexMemoryUsage() const noexcept {
     return use_concise_hash_table() ? concise_hash_table_.GetTotalMemoryUsage()
@@ -82,26 +119,22 @@ class JoinHashTable {
   }
 
   /**
-   * @return the total size of the join hash table in bytes
+   * Return the total size of the join hash table in bytes
    */
   u64 GetTotalMemoryUsage() const noexcept { return GetBufferedTupleMemoryUsage() + GetJoinIndexMemoryUsage(); }
 
-  // -------------------------------------------------------
-  // Simple Accessors
-  // -------------------------------------------------------
-
   /**
-   * @return the total number of inserted elements, including duplicates
+   * Return the total number of inserted elements, including duplicates
    */
   u64 num_elements() const noexcept { return entries_.size(); }
 
   /**
-   * @return Has the hash table been built?
+   * Has the hash table been built?
    */
   bool is_built() const noexcept { return built_; }
 
   /**
-   * @return Is this join using a concise hash table?
+   * Is this join using a concise hash table?
    */
   bool use_concise_hash_table() const noexcept { return use_concise_ht_; }
 
@@ -111,28 +144,31 @@ class JoinHashTable {
   // -------------------------------------------------------
 
   /**
-   * The iterator used for generic lookups. This class is used mostly for tuple-at-a-time lookups from the hash table.
+   * The iterator used for generic lookups. This class is used mostly for
+   * tuple-at-a-time lookups from the hash table.
    */
   class Iterator {
    public:
     /**
-     * Constructor of the iterator
-     * @param initial first entry in the iterator
-     * @param hash hash value of the matching tuple
+     * Construct an iterator beginning at the entry @em initial of the chain
+     * of entries matching the hash value @em hash. This iterator is returned
+     * from @em JoinHashTable::Lookup().
+     * @param initial The first matching entry in the chain of entries
+     * @param hash The hash value of the probe tuple
      */
     Iterator(const HashTableEntry *initial, hash_t hash);
 
     /**
-     * Equality function
+     * Function used to check equality of hash keys
      */
     using KeyEq = bool(void *opaque_ctx, void *probe_tuple, void *table_tuple);
 
     /**
-     * Return the next match of the given tuple.
-     * @param key_eq equality function to use
-     * @param opaque_ctx helper context used by the equality function
-     * @param probe_tuple the probe tuple
-     * @return the next match of the given tuple.
+     * Return the next match (of both hash and keys)
+     * @param key_eq The function used to determine key equality
+     * @param opaque_ctx An opaque context passed into the key equality function
+     * @param probe_tuple The probe tuple
+     * @return The next matching entry; null otherwise
      */
     const HashTableEntry *NextMatch(KeyEq key_eq, void *opaque_ctx, void *probe_tuple);
 
@@ -189,9 +225,18 @@ class JoinHashTable {
   void LookupBatchInConciseHashTableInternal(u32 num_tuples, const hash_t hashes[],
                                              const HashTableEntry *results[]) const;
 
+  // Merge the source hash table (which isn't built yet) into this one
+  template <bool Prefetch, bool Concurrent>
+  void MergeIncomplete(JoinHashTable *source);
+
  private:
   // The vector where we store the build-side input
-  util::ChunkedVector entries_;
+  util::ChunkedVector<MemoryPoolAllocator<byte>> entries_;
+
+  // To protect concurrent access to owned_entries
+  util::SpinLatch owned_latch_;
+  // List of entries this hash table has taken ownership of
+  std::vector<util::ChunkedVector<MemoryPoolAllocator<byte>>> owned_;
 
   // The generic hash table
   GenericHashTable generic_hash_table_;
@@ -201,6 +246,9 @@ class JoinHashTable {
 
   // The bloom filter
   BloomFilter bloom_filter_;
+
+  // Estimator of unique elements
+  std::unique_ptr<libcount::HLL> hll_estimator_;
 
   // Has the hash table been built?
   bool built_;
@@ -214,9 +262,7 @@ class JoinHashTable {
 // ---------------------------------------------------------
 
 /**
- * Lookup for non-concise hash table
- * @param hash hash value to lookup
- * @return iterator for matches found
+ * Lookup for non-concise implementations
  */
 template <>
 inline JoinHashTable::Iterator JoinHashTable::Lookup<false>(const hash_t hash) const {
@@ -228,15 +274,12 @@ inline JoinHashTable::Iterator JoinHashTable::Lookup<false>(const hash_t hash) c
 }
 
 /**
- * Lookup for concise hash table
- * @param hash hash value to lookup
- * @return iterator for matches found
+ * Lookup for concise implementations
  */
 template <>
 inline JoinHashTable::Iterator JoinHashTable::Lookup<true>(const hash_t hash) const {
-  const auto lookup_res = concise_hash_table_.Lookup(hash);
-  auto found = lookup_res.first;
-  auto idx = lookup_res.second;
+  // NOLINTNEXTLINE
+  const auto [found, idx] = concise_hash_table_.Lookup(hash);
   auto *entry = (found ? EntryAt(idx) : nullptr);
   return JoinHashTable::Iterator(entry, hash);
 }

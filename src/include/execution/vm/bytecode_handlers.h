@@ -1,16 +1,21 @@
 #pragma once
 
 #include <cstdint>
-#include "execution/sql/index_iterator.h"
+#include "execution/sql/projected_columns_iterator.h"
 
 #include "execution/util/common.h"
 
+#include "execution/exec/execution_context.h"
 #include "execution/sql/aggregation_hash_table.h"
 #include "execution/sql/aggregators.h"
+#include "execution/sql/filter_manager.h"
+#include "execution/sql/index_iterator.h"
 #include "execution/sql/join_hash_table.h"
 #include "execution/sql/sorter.h"
 #include "execution/sql/table_vector_iterator.h"
+#include "execution/sql/thread_state_container.h"
 #include "execution/sql/value_functions.h"
+#include "execution/util/hash.h"
 #include "execution/util/macros.h"
 
 // All VM bytecode op handlers must use this macro
@@ -49,6 +54,8 @@ extern "C" {
 INT_TYPES(COMPARISONS);
 
 #undef COMPARISONS
+
+VM_OP_HOT void OpNot(bool *const result, const bool input) { *result = !input; }
 
 // ---------------------------------------------------------
 // Primitive arithmetic
@@ -108,6 +115,10 @@ INT_TYPES(BITS);
 // Memory operations
 // ---------------------------------------------------------
 
+VM_OP_HOT void OpIsNullPtr(bool *result, const void *const ptr) { *result = (ptr == nullptr); }
+
+VM_OP_HOT void OpIsNotNullPtr(bool *result, const void *const ptr) { *result = (ptr != nullptr); }
+
 VM_OP_HOT void OpDeref1(i8 *dest, const i8 *const src) { *dest = *src; }
 
 VM_OP_HOT void OpDeref2(i16 *dest, const i16 *const src) { *dest = *src; }
@@ -142,36 +153,39 @@ VM_OP_HOT void OpLeaScaled(byte **dest, byte *base, u32 index, u32 scale, u32 of
 
 VM_OP_HOT bool OpJump() { return true; }
 
-VM_OP_HOT bool OpJumpLoop() { return true; }
-
 VM_OP_HOT bool OpJumpIfTrue(bool cond) { return cond; }
 
 VM_OP_HOT bool OpJumpIfFalse(bool cond) { return !cond; }
-
-void OpRegionInit(tpl::util::Region *region);
-
-void OpRegionFree(tpl::util::Region *region);
 
 VM_OP_HOT void OpCall(UNUSED u16 func_id, UNUSED u16 num_args) {}
 
 VM_OP_HOT void OpReturn() {}
 
 // ---------------------------------------------------------
-// Transactions
+// Execution Context
 // ---------------------------------------------------------
 
-VM_OP_COLD void OpBeginTransaction(terrier::transaction::TransactionContext **txn);
+VM_OP_HOT void OpExecutionContextGetMemoryPool(tpl::sql::MemoryPool **const memory,
+                                               tpl::exec::ExecutionContext *const exec_ctx) {
+  *memory = exec_ctx->GetMemoryPool();
+}
 
-VM_OP_COLD void OpCommitTransaction(terrier::transaction::TransactionContext **txn);
+void OpThreadStateContainerInit(tpl::sql::ThreadStateContainer *thread_state_container, tpl::sql::MemoryPool *memory);
 
-VM_OP_COLD void OpAbortTransaction(terrier::transaction::TransactionContext **txn);
+VM_OP_HOT void OpThreadStateContainerReset(tpl::sql::ThreadStateContainer *thread_state_container, u32 size,
+                                           tpl::sql::ThreadStateContainer::InitFn init_fn,
+                                           tpl::sql::ThreadStateContainer::DestroyFn destroy_fn, void *ctx) {
+  thread_state_container->Reset(size, init_fn, destroy_fn, ctx);
+}
+
+void OpThreadStateContainerFree(tpl::sql::ThreadStateContainer *thread_state_container);
 
 // ---------------------------------------------------------
 // Table Vector Iterator
 // ---------------------------------------------------------
 
 void OpTableVectorIteratorInit(tpl::sql::TableVectorIterator *iter, u32 db_oid, u32 table_oid,
-                               uintptr_t exec_context_addr);
+                               tpl::exec::ExecutionContext *exec_ctx);
 
 void OpTableVectorIteratorPerformInit(tpl::sql::TableVectorIterator *iter);
 
@@ -186,11 +200,31 @@ VM_OP_HOT void OpTableVectorIteratorGetPCI(tpl::sql::ProjectedColumnsIterator **
   *pci = iter->projected_columns_iterator();
 }
 
+VM_OP_HOT void OpParallelScanTable(const u32 db_oid, const u32 table_oid, tpl::exec::ExecutionContext *const ctx,
+                                   tpl::sql::ThreadStateContainer *const thread_state_container,
+                                   const tpl::sql::TableVectorIterator::ScanFn scanner) {
+  tpl::sql::TableVectorIterator::ParallelScan(db_oid, table_oid, ctx, thread_state_container, scanner);
+}
+
+VM_OP_HOT void OpPCIIsFiltered(bool *is_filtered, tpl::sql::ProjectedColumnsIterator *pci) {
+  *is_filtered = pci->IsFiltered();
+}
+
 VM_OP_HOT void OpPCIHasNext(bool *has_more, tpl::sql::ProjectedColumnsIterator *pci) { *has_more = pci->HasNext(); }
+
+VM_OP_HOT void OpPCIHasNextFiltered(bool *has_more, tpl::sql::ProjectedColumnsIterator *pci) {
+  *has_more = pci->HasNextFiltered();
+}
 
 VM_OP_HOT void OpPCIAdvance(tpl::sql::ProjectedColumnsIterator *pci) { pci->Advance(); }
 
+VM_OP_HOT void OpPCIAdvanceFiltered(tpl::sql::ProjectedColumnsIterator *pci) { pci->AdvanceFiltered(); }
+
+VM_OP_HOT void OpPCIMatch(tpl::sql::ProjectedColumnsIterator *pci, bool match) { pci->Match(match); }
+
 VM_OP_HOT void OpPCIReset(tpl::sql::ProjectedColumnsIterator *pci) { pci->Reset(); }
+
+VM_OP_HOT void OpPCIResetFiltered(tpl::sql::ProjectedColumnsIterator *pci) { pci->ResetFiltered(); }
 
 VM_OP_HOT void OpPCIGetSmallInt(tpl::sql::Integer *out, tpl::sql::ProjectedColumnsIterator *iter, u32 col_idx) {
   // Read
@@ -222,6 +256,26 @@ VM_OP_HOT void OpPCIGetBigInt(tpl::sql::Integer *out, tpl::sql::ProjectedColumns
   out->val = *ptr;
 }
 
+VM_OP_HOT void OpPCIGetReal(tpl::sql::Real *out, tpl::sql::ProjectedColumnsIterator *iter, u32 col_idx) {
+  // Read
+  auto *ptr = iter->Get<f32, false>(col_idx, nullptr);
+  TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read real value");
+
+  // Set
+  out->is_null = false;
+  out->val = *ptr;
+}
+
+VM_OP_HOT void OpPCIGetDouble(tpl::sql::Real *out, tpl::sql::ProjectedColumnsIterator *iter, u32 col_idx) {
+  // Read
+  auto *ptr = iter->Get<f64, false>(col_idx, nullptr);
+  TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read double value");
+
+  // Set
+  out->is_null = false;
+  out->val = *ptr;
+}
+
 VM_OP_HOT void OpPCIGetDecimal(tpl::sql::Decimal *out, UNUSED tpl::sql::ProjectedColumnsIterator *iter,
                                UNUSED u32 col_idx) {
   // Set
@@ -233,33 +287,55 @@ VM_OP_HOT void OpPCIGetSmallIntNull(tpl::sql::Integer *out, tpl::sql::ProjectedC
   // Read
   bool null = false;
   auto *ptr = iter->Get<i16, true>(col_idx, &null);
-  // TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
+  TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
 
   // Set
   out->is_null = null;
-  out->val = null ? 0 : *ptr;
+  out->val = *ptr;
 }
 
 VM_OP_HOT void OpPCIGetIntegerNull(tpl::sql::Integer *out, tpl::sql::ProjectedColumnsIterator *iter, u32 col_idx) {
   // Read
   bool null = false;
   auto *ptr = iter->Get<i32, true>(col_idx, &null);
-  // TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
+  TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
 
   // Set
   out->is_null = null;
-  out->val = null ? 0 : *ptr;
+  out->val = *ptr;
 }
 
 VM_OP_HOT void OpPCIGetBigIntNull(tpl::sql::Integer *out, tpl::sql::ProjectedColumnsIterator *iter, u32 col_idx) {
   // Read
   bool null = false;
   auto *ptr = iter->Get<i64, true>(col_idx, &null);
-  // TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
+  TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
 
   // Set
   out->is_null = null;
-  out->val = null ? 0 : *ptr;
+  out->val = *ptr;
+}
+
+VM_OP_HOT void OpPCIGetRealNull(tpl::sql::Real *out, tpl::sql::ProjectedColumnsIterator *iter, u32 col_idx) {
+  // Read
+  bool null = false;
+  auto *ptr = iter->Get<f32, true>(col_idx, &null);
+  TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read real value");
+
+  // Set
+  out->is_null = null;
+  out->val = *ptr;
+}
+
+VM_OP_HOT void OpPCIGetDoubleNull(tpl::sql::Real *out, tpl::sql::ProjectedColumnsIterator *iter, u32 col_idx) {
+  // Read
+  bool null = false;
+  auto *ptr = iter->Get<f64, true>(col_idx, &null);
+  TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read double value");
+
+  // Set
+  out->is_null = null;
+  out->val = *ptr;
 }
 
 VM_OP_HOT void OpPCIGetDecimalNull(tpl::sql::Decimal *out, tpl::sql::ProjectedColumnsIterator *iter, u32 col_idx) {
@@ -278,6 +354,45 @@ void OpPCIFilterLessThan(u32 *size, tpl::sql::ProjectedColumnsIterator *iter, u3
 void OpPCIFilterLessThanEqual(u32 *size, tpl::sql::ProjectedColumnsIterator *iter, u32 col_id, i8 type, i64 val);
 
 void OpPCIFilterNotEqual(u32 *size, tpl::sql::ProjectedColumnsIterator *iter, u32 col_id, i8 type, i64 val);
+
+// ---------------------------------------------------------
+// Hashing
+// ---------------------------------------------------------
+
+VM_OP_HOT void OpHashInt(hash_t *hash_val, tpl::sql::Integer *input) {
+  *hash_val = tpl::util::Hasher::Hash(reinterpret_cast<u8 *>(&input->val), sizeof(input->val));
+  *hash_val = input->is_null ? 0 : *hash_val;
+}
+
+VM_OP_HOT void OpHashReal(hash_t *hash_val, tpl::sql::Real *input) {
+  *hash_val = tpl::util::Hasher::Hash(reinterpret_cast<u8 *>(&input->val), sizeof(input->val));
+  *hash_val = input->is_null ? 0 : *hash_val;
+}
+
+VM_OP_HOT void OpHashString(hash_t *hash_val, tpl::sql::VarBuffer *input) {
+  *hash_val = tpl::util::Hasher::Hash(input->str, input->len);
+  *hash_val = input->is_null ? 0 : *hash_val;
+}
+
+VM_OP_HOT void OpHashCombine(hash_t *hash_val, hash_t new_hash_val) {
+  *hash_val = tpl::util::Hasher::CombineHashes(*hash_val, new_hash_val);
+}
+
+// ---------------------------------------------------------
+// Filter Manager
+// ---------------------------------------------------------
+
+void OpFilterManagerInit(tpl::sql::FilterManager *filter_manager);
+
+void OpFilterManagerStartNewClause(tpl::sql::FilterManager *filter_manager);
+
+void OpFilterManagerInsertFlavor(tpl::sql::FilterManager *filter_manager, tpl::sql::FilterManager::MatchFn flavor);
+
+void OpFilterManagerFinalize(tpl::sql::FilterManager *filter_manager);
+
+void OpFilterManagerRunFilters(tpl::sql::FilterManager *filter, tpl::sql::ProjectedColumnsIterator *pci);
+
+void OpFilterManagerFree(tpl::sql::FilterManager *filter);
 
 // ---------------------------------------------------------
 // Scalar SQL comparisons
@@ -339,6 +454,32 @@ VM_OP_HOT void OpNotEqualInteger(tpl::sql::BoolVal *const result, const tpl::sql
 // ---------------------------------------------------------
 // SQL Aggregations
 // ---------------------------------------------------------
+
+void OpAggregationHashTableInit(tpl::sql::AggregationHashTable *agg_hash_table, tpl::sql::MemoryPool *memory,
+                                u32 payload_size);
+
+VM_OP_HOT void OpAggregationHashTableInsert(byte **result, tpl::sql::AggregationHashTable *agg_hash_table,
+                                            hash_t hash_val) {
+  *result = agg_hash_table->Insert(hash_val);
+}
+
+VM_OP_HOT void OpAggregationHashTableLookup(byte **result, tpl::sql::AggregationHashTable *const agg_hash_table,
+                                            const hash_t hash_val,
+                                            const tpl::sql::AggregationHashTable::KeyEqFn key_eq_fn,
+                                            tpl::sql::ProjectedColumnsIterator *iters[]) {
+  *result = agg_hash_table->Lookup(hash_val, key_eq_fn, iters);
+}
+
+VM_OP_HOT void OpAggregationHashTableProcessBatch(tpl::sql::AggregationHashTable *const agg_hash_table,
+                                                  tpl::sql::ProjectedColumnsIterator *iters[],
+                                                  const tpl::sql::AggregationHashTable::HashFn hash_fn,
+                                                  const tpl::sql::AggregationHashTable::KeyEqFn key_eq_fn,
+                                                  const tpl::sql::AggregationHashTable::InitAggFn init_agg_fn,
+                                                  const tpl::sql::AggregationHashTable::AdvanceAggFn merge_agg_fn) {
+  agg_hash_table->ProcessBatch(iters, hash_fn, key_eq_fn, init_agg_fn, merge_agg_fn);
+}
+
+void OpAggregationHashTableFree(tpl::sql::AggregationHashTable *agg_hash_table);
 
 //
 // COUNT
@@ -502,7 +643,7 @@ VM_OP_HOT void OpIntegerAvgAggregateFree(tpl::sql::IntegerAvgAggregate *agg) { a
 // Hash Joins
 // ---------------------------------------------------------
 
-void OpJoinHashTableInit(tpl::sql::JoinHashTable *join_hash_table, tpl::util::Region *region, u32 tuple_size);
+void OpJoinHashTableInit(tpl::sql::JoinHashTable *join_hash_table, tpl::sql::MemoryPool *memory, u32 tuple_size);
 
 VM_OP_HOT void OpJoinHashTableAllocTuple(byte **result, tpl::sql::JoinHashTable *join_hash_table, hash_t hash) {
   *result = join_hash_table->AllocInputTuple(hash);
@@ -510,13 +651,16 @@ VM_OP_HOT void OpJoinHashTableAllocTuple(byte **result, tpl::sql::JoinHashTable 
 
 void OpJoinHashTableBuild(tpl::sql::JoinHashTable *join_hash_table);
 
+void OpJoinHashTableBuildParallel(tpl::sql::JoinHashTable *join_hash_table,
+                                  tpl::sql::ThreadStateContainer *thread_state_container, u32 jht_offset);
+
 void OpJoinHashTableFree(tpl::sql::JoinHashTable *join_hash_table);
 
 // ---------------------------------------------------------
 // Sorting
 // ---------------------------------------------------------
 
-void OpSorterInit(tpl::sql::Sorter *sorter, tpl::util::Region *region, tpl::sql::Sorter::ComparisonFunction cmp_fn,
+void OpSorterInit(tpl::sql::Sorter *sorter, tpl::sql::MemoryPool *memory, tpl::sql::Sorter::ComparisonFunction cmp_fn,
                   u32 tuple_size);
 
 VM_OP_HOT void OpSorterAllocTuple(byte **result, tpl::sql::Sorter *sorter) { *result = sorter->AllocInputTuple(); }
@@ -531,20 +675,50 @@ VM_OP_HOT void OpSorterAllocTupleTopKFinish(tpl::sql::Sorter *sorter, u64 top_k)
 
 void OpSorterSort(tpl::sql::Sorter *sorter);
 
+void OpSorterSortParallel(tpl::sql::Sorter *sorter, tpl::sql::ThreadStateContainer *thread_state_container,
+                          u32 sorter_offset);
+
+void OpSorterSortTopKParallel(tpl::sql::Sorter *sorter, tpl::sql::ThreadStateContainer *thread_state_container,
+                              u32 sorter_offset, u64 top_k);
+
 void OpSorterFree(tpl::sql::Sorter *sorter);
 
 void OpSorterIteratorInit(tpl::sql::SorterIterator *iter, tpl::sql::Sorter *sorter);
 
-VM_OP_HOT void OpSorterIteratorAdvance(tpl::sql::SorterIterator *iter) { iter->operator++(); }
+VM_OP_HOT void OpSorterIteratorHasNext(bool *has_more, tpl::sql::SorterIterator *iter) { *has_more = iter->HasNext(); }
 
-VM_OP_HOT void OpSorterIteratorGetRow(const byte **row, tpl::sql::SorterIterator *iter) { *row = iter->operator*(); }
+VM_OP_HOT void OpSorterIteratorNext(tpl::sql::SorterIterator *iter) { iter->Next(); }
+
+VM_OP_HOT void OpSorterIteratorGetRow(const byte **row, tpl::sql::SorterIterator *iter) { *row = iter->GetRow(); }
 
 void OpSorterIteratorFree(tpl::sql::SorterIterator *iter);
+
+// ---------------------------------------------------------
+// Trig functions
+// ---------------------------------------------------------
+
+VM_OP_HOT void OpAcos(tpl::sql::Real *result, tpl::sql::Real *input) { tpl::sql::ACos::Execute<true>(input, result); }
+
+VM_OP_HOT void OpAsin(tpl::sql::Real *result, tpl::sql::Real *input) { tpl::sql::ASin::Execute<true>(input, result); }
+
+VM_OP_HOT void OpAtan(tpl::sql::Real *result, tpl::sql::Real *input) { tpl::sql::ATan::Execute<true>(input, result); }
+
+VM_OP_HOT void OpAtan2(tpl::sql::Real *result, tpl::sql::Real *arg_1, tpl::sql::Real *arg_2) {
+  tpl::sql::ATan2::Execute<true>(arg_1, arg_2, result);
+}
+
+VM_OP_HOT void OpCos(tpl::sql::Real *result, tpl::sql::Real *input) { tpl::sql::Cos::Execute<true>(input, result); }
+
+VM_OP_HOT void OpCot(tpl::sql::Real *result, tpl::sql::Real *input) { tpl::sql::Cot::Execute<true>(input, result); }
+
+VM_OP_HOT void OpSin(tpl::sql::Real *result, tpl::sql::Real *input) { tpl::sql::Sin::Execute<true>(input, result); }
+
+VM_OP_HOT void OpTan(tpl::sql::Real *result, tpl::sql::Real *input) { tpl::sql::Tan::Execute<true>(input, result); }
 
 // ---------------------------------------------------------------
 // Index Iterator
 // ---------------------------------------------------------------
-void OpIndexIteratorInit(tpl::sql::IndexIterator *iter, uint32_t index_oid, uintptr_t context_ptr);
+void OpIndexIteratorInit(tpl::sql::IndexIterator *iter, uint32_t index_oid, tpl::exec::ExecutionContext *exec_ctx);
 void OpIndexIteratorScanKey(tpl::sql::IndexIterator *iter, byte *key);
 void OpIndexIteratorFree(tpl::sql::IndexIterator *iter);
 
@@ -627,44 +801,22 @@ VM_OP_HOT void OpIndexIteratorGetDecimalNull(tpl::sql::Decimal *out, tpl::sql::I
   out->is_null = false;
 }
 
-// ---------------------------------------------------------
-// Trig functions
-// ---------------------------------------------------------
-
-VM_OP_HOT void OpAcos(tpl::sql::Real *result, tpl::sql::Real *input) { tpl::sql::ACos::Execute<true>(input, result); }
-
-VM_OP_HOT void OpAsin(tpl::sql::Real *result, tpl::sql::Real *input) { tpl::sql::ASin::Execute<true>(input, result); }
-
-VM_OP_HOT void OpAtan(tpl::sql::Real *result, tpl::sql::Real *input) { tpl::sql::ATan::Execute<true>(input, result); }
-
-VM_OP_HOT void OpAtan2(tpl::sql::Real *result, tpl::sql::Real *arg_1, tpl::sql::Real *arg_2) {
-  tpl::sql::ATan2::Execute<true>(arg_1, arg_2, result);
-}
-
-VM_OP_HOT void OpCos(tpl::sql::Real *result, tpl::sql::Real *input) { tpl::sql::Cos::Execute<true>(input, result); }
-
-VM_OP_HOT void OpCot(tpl::sql::Real *result, tpl::sql::Real *input) { tpl::sql::Cot::Execute<true>(input, result); }
-
-VM_OP_HOT void OpSin(tpl::sql::Real *result, tpl::sql::Real *input) { tpl::sql::Sin::Execute<true>(input, result); }
-
-VM_OP_HOT void OpTan(tpl::sql::Real *result, tpl::sql::Real *input) { tpl::sql::Tan::Execute<true>(input, result); }
-
 // ---------------------------------------------------------------
 // Insert Calls
 // ---------------------------------------------------------------
 
-void OpInsert(uintptr_t context_ptr, u32 db_oid, u32 table_oid, byte *values_ptr);
+void OpInsert(tpl::exec::ExecutionContext *exec_ctx, u32 db_oid, u32 table_oid, byte *values_ptr);
 
 // ---------------------------------------------------------------
 // Output Calls
 // ---------------------------------------------------------------
 
-void OpOutputAlloc(uintptr_t context_ptr, byte **result);
+void OpOutputAlloc(tpl::exec::ExecutionContext *exec_ctx, byte **result);
 
-void OpOutputAdvance(uintptr_t context_ptr);
+void OpOutputAdvance(tpl::exec::ExecutionContext *exec_ctx);
 
-void OpOutputSetNull(uintptr_t context_ptr, u32 idx);
+void OpOutputSetNull(tpl::exec::ExecutionContext *exec_ctx, u32 idx);
 
-void OpOutputFinalize(uintptr_t context_ptr);
+void OpOutputFinalize(tpl::exec::ExecutionContext *exec_ctx);
 
 }  // extern "C"

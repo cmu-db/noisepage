@@ -11,7 +11,7 @@ const char *Token::kTokenStrings[] = {TOKENS(T, T)};
 #undef T
 
 #define T(name, str, precedence) precedence,
-const uint32_t Token::kTokenPrecedence[] = {TOKENS(T, T)};
+const u32 Token::kTokenPrecedence[] = {TOKENS(T, T)};
 #undef T
 
 }  // namespace tpl::parsing

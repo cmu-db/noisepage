@@ -1,6 +1,8 @@
 #pragma once
 #include <memory>
+#include <utility>
 #include "execution/exec/output.h"
+#include "execution/sql/memory_pool.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
 
@@ -34,6 +36,17 @@ class ExecutionContext {
   OutputBuffer *GetOutputBuffer() { return buffer_.get(); }
 
   /**
+   * @return the memory pool
+   */
+  sql::MemoryPool *GetMemoryPool() { return mem_pool_.get(); }
+
+  /**
+   * Set the memory pool
+   * @param mem_pool new memory pool
+   */
+  void SetMemoryPool(std::unique_ptr<sql::MemoryPool> &&mem_pool) { mem_pool_ = std::move(mem_pool); }
+
+  /**
    * @param final_schema the FinalSchema of the output
    * @return the size of tuple with this final_schema
    */
@@ -48,5 +61,6 @@ class ExecutionContext {
  private:
   TransactionContext *txn_;
   std::unique_ptr<OutputBuffer> buffer_;
+  std::unique_ptr<sql::MemoryPool> mem_pool_{nullptr};
 };
 }  // namespace tpl::exec

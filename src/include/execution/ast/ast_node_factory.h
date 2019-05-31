@@ -115,13 +115,11 @@ class AstNodeFactory {
    * @param pos source position
    * @param target variable in which tuples are stored
    * @param iter container (e.g. sql table) to iterate over
-   * @param attributes iteration attributes (vectorization, indexes, ...)
    * @param body loop body
    * @return created ForInStmt node
    */
-  ForInStmt *NewForInStmt(const SourcePosition &pos, Expr *target, Expr *iter, Attributes *attributes,
-                          BlockStmt *body) {
-    return new (region_) ForInStmt(pos, target, iter, attributes, body);
+  ForInStmt *NewForInStmt(const SourcePosition &pos, Expr *target, Expr *iter, BlockStmt *body) {
+    return new (region_) ForInStmt(pos, target, iter, body);
   }
 
   /**
@@ -180,6 +178,15 @@ class AstNodeFactory {
   }
 
   /**
+   * @param fun function being called
+   * @param args arguments to the function
+   * @return created CallExpr node
+   */
+  CallExpr *NewBuiltinCallExpr(Expr *fun, util::RegionVector<Expr *> &&args) {
+    return new (region_) CallExpr(fun, std::move(args), CallExpr::CallKind::Builtin);
+  }
+
+  /**
    * @param pos source position
    * @return create nil LitExpr node
    */
@@ -211,9 +218,7 @@ class AstNodeFactory {
    * @param str string value
    * @return created string LitExpr node
    */
-  LitExpr *NewStringLiteral(const SourcePosition &pos, Identifier str) {
-    return new (region_) LitExpr(pos, LitExpr::LitKind::String, str);
-  }
+  LitExpr *NewStringLiteral(const SourcePosition &pos, Identifier str) { return new (region_) LitExpr(pos, str); }
 
   /**
    * @param type_repr function type repr (param types, return type)

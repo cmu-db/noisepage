@@ -15,34 +15,34 @@ fun tearDownState(state: *State) -> nil {
   @aggHTFree(&state.table)
 }
 
-fun keyCheck(agg: *Agg, iters: [*]*VectorProjectionIterator) -> bool {
-  var key = @vpiGetInt(iters[0], 0)
+fun keyCheck(agg: *Agg, iters: [*]*ProjectedColumnsIterator) -> bool {
+  var key = @pciGetInt(iters[0], 0)
   return @sqlToBool(key == agg.key)
 }
 
-fun hashFn(iters: [*]*VectorProjectionIterator) -> uint64 {
-  return @hash(@vpiGetInt(iters[0], 0))
+fun hashFn(iters: [*]*ProjectedColumnsIterator) -> uint64 {
+  return @hash(@pciGetInt(iters[0], 0))
 }
 
-fun constructAgg(agg: *Agg, iters: [*]*VectorProjectionIterator) -> nil {
+fun constructAgg(agg: *Agg, iters: [*]*ProjectedColumnsIterator) -> nil {
   @aggInit(&agg.count)
 }
 
-fun updateAgg(agg: *Agg, iters: [*]*VectorProjectionIterator) -> nil {
-  var input = @vpiGetInt(iters[0], 0)
+fun updateAgg(agg: *Agg, iters: [*]*ProjectedColumnsIterator) -> nil {
+  var input = @pciGetInt(iters[0], 0)
   @aggAdvance(&agg.count, &input)
 }
 
-fun pipeline_1(state: *State) -> nil {
-  var iters: [1]*VectorProjectionIterator
+fun pipeline_1(execCtx: *ExecutionContext, state: *State) -> nil {
+  var iters: [1]*ProjectedColumnsIterator
 
   // The table
   var ht: *AggregationHashTable = &state.table
 
   // Setup the iterator and iterate
   var tvi: TableVectorIterator
-  for (@tableIterInit(&tvi, "test_1"); @tableIterAdvance(&tvi); ) {
-    var vec = @tableIterGetVPI(&tvi)
+  for (@tableIterInit(&tvi, "test_1", execCtx); @tableIterAdvance(&tvi); ) {
+    var vec = @tableIterGetPCI(&tvi)
     iters[0] = vec
     @aggHTProcessBatch(ht, &iters, hashFn, keyCheck, constructAgg, updateAgg)
   }
@@ -56,7 +56,7 @@ fun main(execCtx: *ExecutionContext) -> int32 {
   setUpState(execCtx, &state)
 
   // Run pipeline 1
-  pipeline_1(&state)
+  pipeline_1(execCtx, &state)
 
   // Cleanup
   tearDownState(&state)

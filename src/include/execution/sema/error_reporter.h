@@ -20,10 +20,15 @@ namespace sema {
 
 namespace detail {
 
-/// Argument that's passed in
+/**
+ * Argument that's passed in
+ * @tparam T type of the argument
+ */
 template <typename T>
 struct PassArgument {
-  /// type of the argument
+  /**
+   * type of the argument
+   */
   using type = T;
 };
 
@@ -40,20 +45,32 @@ class ErrorReporter {
    */
   explicit ErrorReporter(util::Region *region) : region_(region), errors_(region) {}
 
-  /// Record an error
+  /**
+   * Record an error
+   * @tparam ArgTypes types of the arguments
+   * @param pos source position
+   * @param message error message
+   * @param args arguments to pass
+   */
   template <typename... ArgTypes>
   void Report(const SourcePosition &pos, const ErrorMessage<ArgTypes...> &message,
               typename detail::PassArgument<ArgTypes>::type... args) {
     errors_.emplace_back(region_, pos, message, std::forward<ArgTypes>(args)...);
   }
 
-  /// Have any errors been reported?
+  /**
+   * Have any errors been reported?
+   */
   bool HasErrors() const { return !errors_.empty(); }
 
-  /// Clears the list of errors
+  /**
+   * Clears the list of errors
+   */
   void Reset() { errors_.clear(); }
 
-  /// Outputs the list of errors
+  /**
+   * Outputs the list of errors
+   */
   void PrintErrors();
 
  private:

@@ -17,16 +17,22 @@ namespace tpl::parsing {
  */
 class Parser {
  public:
-  /// Build a parser instance using the given scanner and AST context
-  /// \param scanner The scanner used to read input tokens
-  /// \param context The context
+  /**
+   * Build a parser instance using the given scanner and AST context
+   * @param scanner The scanner used to read input tokens
+   * @param context The context
+   */
   Parser(Scanner *scanner, ast::Context *context);
 
-  /// This class cannot be copied or moved
+  /**
+   * This class cannot be copied or moved
+   */
   DISALLOW_COPY_AND_MOVE(Parser);
 
-  /// Parse and generate an abstract syntax tree from the input TPL source code
-  /// \return The generated AST
+  /**
+   * Parse and generate an abstract syntax tree from the input TPL source code
+   * @return The generated AST
+   */
   ast::AstNode *Parse();
 
  private:
@@ -131,8 +137,6 @@ class Parser {
   ast::Expr *ParseStructType();
 
   ast::Expr *ParseMapType();
-
-  ast::Attributes *ParseAttributes();
 
  private:
   // The source code scanner

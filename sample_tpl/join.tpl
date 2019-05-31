@@ -19,13 +19,13 @@ fun pipeline_1(state: *State) -> nil {
 
   var tvi: TableVectorIterator
   for (@tableIterInit(&tvi, "test_1"); @tableIterAdvance(&tvi); ) {
-    var vec = @tableIterGetVPI(&tvi)
+    var vec = @tableIterGetPCI(&tvi)
 
-    var hash_val = @hash(@vpiGetInt(vec, 0))
+    var hash_val = @hash(@pciGetInt(vec, 0))
     var elem: *BuildRow = @joinHTInsert(jht, hash_val)
     elem.key = 44
 
-    @vpiReset(vec)
+    @pciReset(vec)
   }
   @tableIterClose(&tvi)
 }
@@ -33,8 +33,8 @@ fun pipeline_1(state: *State) -> nil {
 fun pipeline_2(state: *State) -> nil {
   var tvi: TableVectorIterator
   for (@tableIterInit(&tvi, "test_1"); @tableIterAdvance(&tvi); ) {
-    var vec = @tableIterGetVPI(&tvi)
-    @vpiReset(vec)
+    var vec = @tableIterGetPCI(&tvi)
+    @pciReset(vec)
   }
   @tableIterClose(&tvi)
 }

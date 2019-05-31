@@ -5,7 +5,9 @@
 
 #include <string>
 
-/// Common integral type shorthands
+/**
+ * Common integral type shorthands
+ */
 using i8 = int8_t;
 using i16 = int16_t;
 using i32 = int32_t;
@@ -40,29 +42,61 @@ using hash_t = u64;
 
 namespace tpl {
 
-/// A compact structure used during parsing to capture and describe the position
-/// in the source as 1-based line and column number
+/**
+ * A compact structure used during parsing to capture and describe the position in the source as 1-based line and column
+ * number
+ */
 struct SourcePosition {
-  /// Line number
+  /**
+   * Line number
+   */
   u64 line;
-  /// Column number
+  /**
+   * Column number
+   */
   u64 column;
 };
 
-/// Use to classify locality of reference for memory accesses
+/**
+ * Use to classify locality of reference for memory accesses
+ */
 enum class Locality : u8 { None = 0, Low = 1, Medium = 2, High = 3 };
 
-/// The number of bits per byte
+/**
+ * The number of bits per byte
+ */
 static constexpr const u32 kBitsPerByte = 8;
 
-/// The default vector size to use when performing vectorized iteration
+/**
+ * The default vector size to use when performing vectorized iteration
+ */
 static constexpr const u32 kDefaultVectorSize = 2048;
 
-/// The default prefetch distance to use
+/**
+ * The default prefetch distance to use
+ */
 static constexpr const u32 kPrefetchDistance = 16;
 
-/// The key for the parser to use in attribute maps to signal
-/// whether or not a ForIn loop contains an OID iterator
+/**
+ * The key for the parser to use in attribute maps to signal
+ * whether or not a ForIn loop contains an OID iterator
+ */
 static constexpr const char *OID_KEY = "IS_OID";
+
+// Common memory sizes
+/**
+ * KB
+ */
+static constexpr const u32 KB = 1024;
+
+/**
+ * MB
+ */
+static constexpr const u32 MB = KB * KB;
+
+/**
+ * GB
+ */
+static constexpr const u32 GB = KB * KB * KB;
 
 }  // namespace tpl

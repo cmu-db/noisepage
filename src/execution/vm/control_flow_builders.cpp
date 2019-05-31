@@ -4,11 +4,9 @@
 
 namespace tpl::vm {
 
-////////////////////////////////////////////////////////////////////////////////
-///
-/// Breakable blocks
-///
-////////////////////////////////////////////////////////////////////////////////
+// ---------------------------------------------------------
+// Breakable blocks
+// ---------------------------------------------------------
 
 BreakableBlockBuilder::~BreakableBlockBuilder() {
   TPL_ASSERT(!break_label()->is_bound(), "Break label cannot be bound!");
@@ -19,11 +17,9 @@ void BreakableBlockBuilder::Break() { EmitJump(break_label()); }
 
 void BreakableBlockBuilder::EmitJump(BytecodeLabel *label) { generator()->emitter()->EmitJump(Bytecode::Jump, label); }
 
-////////////////////////////////////////////////////////////////////////////////
-///
-/// Loop builder
-///
-////////////////////////////////////////////////////////////////////////////////
+// ---------------------------------------------------------
+// Loop Builders
+// ---------------------------------------------------------
 
 LoopBuilder::~LoopBuilder() = default;
 
@@ -41,11 +37,9 @@ void LoopBuilder::BindContinueTarget() {
   generator()->emitter()->Bind(continue_label());
 }
 
-////////////////////////////////////////////////////////////////////////////////
-///
-/// If-then-else
-///
-////////////////////////////////////////////////////////////////////////////////
+// ---------------------------------------------------------
+// If-Then-Else Builders
+// ---------------------------------------------------------
 
 IfThenElseBuilder::~IfThenElseBuilder() {
   if (!else_label()->is_bound()) {

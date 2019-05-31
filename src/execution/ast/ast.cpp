@@ -25,6 +25,52 @@ StructDecl::StructDecl(const SourcePosition &pos, Identifier name, StructTypeRep
 ExpressionStmt::ExpressionStmt(Expr *expr) : Stmt(Kind::ExpressionStmt, expr->position()), expr_(expr) {}
 
 // ---------------------------------------------------------
+// Expression
+// ---------------------------------------------------------
+
+bool Expr::IsNilLiteral() const {
+  if (auto *lit_expr = SafeAs<ast::LitExpr>()) {
+    return lit_expr->literal_kind() == ast::LitExpr::LitKind::Nil;
+  }
+  return false;
+}
+
+bool Expr::IsStringLiteral() const {
+  if (auto *lit_expr = SafeAs<ast::LitExpr>()) {
+    return lit_expr->literal_kind() == ast::LitExpr::LitKind::String;
+  }
+  return false;
+}
+
+bool Expr::IsIntegerLiteral() const {
+  if (auto *lit_expr = SafeAs<ast::LitExpr>()) {
+    return lit_expr->literal_kind() == ast::LitExpr::LitKind::Int;
+  }
+  return false;
+}
+
+// ---------------------------------------------------------
+// Comparison Expression
+// ---------------------------------------------------------
+
+namespace {
+
+// Catches: nil [ '==' | '!=' ] expr
+bool MatchIsLiteralCompareNil(Expr *left, parsing::Token::Type op, Expr *right, Expr **result) {
+  if (left->IsNilLiteral() && parsing::Token::IsCompareOp(op)) {
+    *result = right;
+    return true;
+  }
+  return false;
+}
+
+}  // namespace
+
+bool ComparisonOpExpr::IsLiteralCompareNil(Expr **result) const {
+  return MatchIsLiteralCompareNil(left_, op_, right_, result) || MatchIsLiteralCompareNil(right_, op_, left_, result);
+}
+
+// ---------------------------------------------------------
 // Function Literal Expressions
 // ---------------------------------------------------------
 

@@ -9,7 +9,10 @@
 
 namespace tpl::util {
 
-/// STL std::vectors backed by a region allocator
+/**
+ * STL std::vectors backed by a region allocator
+ * @tparam T type of the elements
+ */
 template <typename T>
 class RegionVector : public std::vector<T, StlRegionAllocator<T>> {
  public:
@@ -55,7 +58,13 @@ class RegionVector : public std::vector<T, StlRegionAllocator<T>> {
       : std::vector<T, StlRegionAllocator<T>>(first, last, StlRegionAllocator<T>(region)) {}
 };
 
-/// STL std::unordered_map hash maps backed by a region allocator
+/**
+ * STL std::unordered_map hash maps backed by a region allocator
+ * @tparam Key type of the keys
+ * @tparam Value type of the values
+ * @tparam Hash hash function
+ * @tparam KeyEqual equality function
+ */
 template <typename Key, typename Value, typename Hash = std::hash<Key>, typename KeyEqual = std::equal_to<Key>>
 class RegionUnorderedMap
     : public std::unordered_map<Key, Value, Hash, KeyEqual, StlRegionAllocator<std::pair<const Key, Value>>> {

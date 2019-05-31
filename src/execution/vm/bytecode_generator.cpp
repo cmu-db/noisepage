@@ -1,20 +1,19 @@
-#include "execution/vm/bytecode_generator.h"
-
 #include <iostream>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "catalog/catalog.h"
 #include "execution/ast/builtins.h"
 #include "execution/ast/context.h"
 #include "execution/ast/type.h"
+#include "execution/exec/execution_context.h"
 #include "execution/sql/execution_structures.h"
 #include "execution/util/macros.h"
 #include "execution/vm/bytecode_label.h"
 #include "execution/vm/bytecode_module.h"
 #include "execution/vm/control_flow_builders.h"
-
 #include "loggers/execution_logger.h"
 
 namespace tpl::vm {
@@ -23,14 +22,16 @@ namespace tpl::vm {
 // Expression Result Scope
 // ---------------------------------------------------------
 
-/// ExpressionResultScope is an RAII class that provides metadata about the
-/// usage of an expression and its result. Callers construct one of its
-/// subclasses to let children nodes know the context in which the expression's
-/// result is needed (i.e., whether the expression is an L-Value or R-Value).
-/// It also tracks **where** the result of an expression is, somewhat emulating
-/// destination-driven code generation.
-///
-/// This is a base class for both LValue and RValue result scope objects
+/**
+ * ExpressionResultScope is an RAII class that provides metadata about the
+ * usage of an expression and its result. Callers construct one of its
+ * subclasses to let children nodes know the context in which the expression's
+ * result is needed (i.e., whether the expression is an L-Value or R-Value).
+ * It also tracks **where** the result of an expression is, somewhat emulating
+ * destination-driven code generation.
+ *
+ * This is a base class for both LValue and RValue result scope objects
+ */
 class BytecodeGenerator::ExpressionResultScope {
  public:
   ExpressionResultScope(BytecodeGenerator *generator, ast::Expr::Context kind, LocalVar destination = LocalVar())
@@ -63,35 +64,29 @@ class BytecodeGenerator::ExpressionResultScope {
   ast::Expr::Context kind_;
 };
 
-// ---------------------------------------------------------
-// LValue Result Scope
-// ---------------------------------------------------------
-
-/// An expression result scope that indicates the result is used as an L-Value
+/**
+ * An expression result scope that indicates the result is used as an L-Value
+ */
 class BytecodeGenerator::LValueResultScope : public BytecodeGenerator::ExpressionResultScope {
  public:
   explicit LValueResultScope(BytecodeGenerator *generator, LocalVar dest = LocalVar())
       : ExpressionResultScope(generator, ast::Expr::Context::LValue, dest) {}
 };
 
-// ---------------------------------------------------------
-// RValue Result Scope
-// ---------------------------------------------------------
-
-/// An expression result scope that indicates the result is used as an R-Value
+/**
+ * An expression result scope that indicates the result is used as an R-Value
+ */
 class BytecodeGenerator::RValueResultScope : public BytecodeGenerator::ExpressionResultScope {
  public:
   explicit RValueResultScope(BytecodeGenerator *generator, LocalVar dest = LocalVar())
       : ExpressionResultScope(generator, ast::Expr::Context::RValue, dest) {}
 };
 
-// ---------------------------------------------------------
-// Bytecode Position Scope
-// ---------------------------------------------------------
-
-/// A handy scoped class that tracks the start and end positions in the bytecode
-/// for a given function, automatically setting the range in the function upon
-/// going out of scope.
+/**
+ * A handy scoped class that tracks the start and end positions in the bytecode
+ * for a given function, automatically setting the range in the function upon
+ * going out of scope.
+ */
 class BytecodeGenerator::BytecodePositionScope {
  public:
   BytecodePositionScope(BytecodeGenerator *generator, FunctionInfo *func)
@@ -113,9 +108,6 @@ class BytecodeGenerator::BytecodePositionScope {
 // ---------------------------------------------------------
 
 BytecodeGenerator::BytecodeGenerator() noexcept : emitter_(&bytecode_), execution_result_(nullptr) {}
-
-BytecodeGenerator::BytecodeGenerator(std::shared_ptr<exec::ExecutionContext> exec_context) noexcept
-    : emitter_(&bytecode_), execution_result_(nullptr), exec_context_(std::move(exec_context)) {}
 
 void BytecodeGenerator::VisitIfStmt(ast::IfStmt *node) {
   IfThenElseBuilder if_builder(this);
@@ -165,205 +157,8 @@ void BytecodeGenerator::VisitForStmt(ast::ForStmt *node) {
   loop_builder.JumpToHeader();
 }
 
-void BytecodeGenerator::VisitRowWiseIteration(ast::ForInStmt *node, LocalVar pci, LoopBuilder *table_loop,
-                                              terrier::catalog::SqlTableRW *catalog_table) {
-  // Allocate the row iteration variable
-  auto *row_type = node->target()->type()->As<ast::StructType>();
-  LocalVar row = current_function()->NewLocal(row_type, node->target()->As<ast::IdentifierExpr>()->name().data());
-
-  //
-  // Now, we generate a loop over every element in the PCI. In the beginning of
-  // each iteration, we pull out the column members into the allocated row
-  // structure in preparation for the body of the loop that expects rows.
-  //
-
-  {
-    LoopBuilder pci_loop(this);
-    pci_loop.LoopHeader();
-
-    ast::Context *ctx = row_type->context();
-    LocalVar cond = current_function()->NewLocal(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
-    emitter()->Emit(Bytecode::PCIHasNext, cond, pci);
-    emitter()->EmitConditionalJump(Bytecode::JumpIfFalse, cond.ValueOf(), pci_loop.break_label());
-
-    // Load fields
-    const auto &fields = row_type->fields();
-    for (u32 col_idx = 0, offset = 0; col_idx < fields.size(); col_idx++) {
-      LocalVar col_ptr = current_function()->NewLocal(fields[col_idx].type->PointerTo());
-      emitter()->EmitLea(col_ptr, row, offset);
-      // The storage layer may reorder columns, so we need to get the right
-      // index.
-      auto storage_idx = catalog_table->ColNumToOffset(col_idx);
-      emitter()->EmitPCIGet(GetPCIColumnCode(catalog_table, col_idx), col_ptr.ValueOf(), pci, storage_idx);
-      offset += fields[col_idx].type->size();
-    }
-
-    // Generate body
-    VisitIterationStatement(node, table_loop);
-
-    // Advance the PCI one row
-    emitter()->Emit(Bytecode::PCIAdvance, pci);
-
-    // Finish, loop back around
-    pci_loop.JumpToHeader();
-  }
-
-  // When we're done with one iteration of the loop, we reset the vector
-  // projection iterator
-  emitter()->Emit(Bytecode::PCIReset, pci);
-}
-
-void BytecodeGenerator::VisitVectorWiseIteration(ast::ForInStmt *node, LocalVar pci, LoopBuilder *table_loop) {
-  //
-  // When iterating vector-wise, we need to allocate a PCI* with the same name
-  // as the target variable for the loop. We copy the given PCI instance for
-  // each iteration
-  //
-
-  // Get the name and type of the target VPI iteration variable
-  auto *iter_type = node->target()->type();
-  auto *iter_name = node->target()->As<ast::IdentifierExpr>()->name().data();
-
-  // Create the variable and assign it the value of the given VPI
-  LocalVar iter = current_function()->NewLocal(iter_type, iter_name);
-  BuildAssign(iter, pci, iter_type);
-
-  // Generate body
-  VisitIterationStatement(node, table_loop);
-}
-
-void BytecodeGenerator::VisitIndexedForInStmt(ast::ForInStmt *node, ast::Expr *index_expr,
-                                              terrier::catalog::SqlTableRW *catalog_table) {
-  // Allocate the row iteration variable
-  LocalVar iterator = VisitExpressionForLValue(index_expr);
-  auto *row_type = node->target()->type()->As<ast::StructType>();
-  LocalVar row = current_function()->NewLocal(row_type, node->target()->As<ast::IdentifierExpr>()->name().data());
-
-  {
-    LoopBuilder index_loop(this);
-    index_loop.LoopHeader();
-
-    ast::Context *ctx = row_type->context();
-    LocalVar cond = current_function()->NewLocal(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
-    emitter()->Emit(Bytecode::IndexIteratorHasNext, cond, iterator);
-    emitter()->EmitConditionalJump(Bytecode::JumpIfFalse, cond.ValueOf(), index_loop.break_label());
-
-    // Advance the iterator one row
-    // This calls SqlTable::Select
-    emitter()->Emit(Bytecode::IndexIteratorAdvance, iterator);
-    // Load fields
-    const auto &fields = row_type->fields();
-    for (u32 col_idx = 0, offset = 0; col_idx < fields.size(); col_idx++) {
-      LocalVar col_ptr = current_function()->NewLocal(fields[col_idx].type->PointerTo());
-      emitter()->EmitLea(col_ptr, row, offset);
-      // The storage layer may reorder columns, so we need to get the right
-      // index.
-      auto storage_idx = catalog_table->ColNumToOffset(col_idx);
-      emitter()->EmitIndexIteratorGet(GetIndexIteratorColumnCode(catalog_table, col_idx), col_ptr.ValueOf(), iterator,
-                                      storage_idx);
-      offset += fields[col_idx].type->size();
-    }
-
-    // Generate body
-    VisitIterationStatement(node, &index_loop);
-
-    // Finish, loop back around
-    index_loop.JumpToHeader();
-  }
-}
-
-void BytecodeGenerator::VisitForInStmt(ast::ForInStmt *node) {
-  //
-  // For both tuple-at-a-time iteration and vector-at-a-time iteration, we need
-  // a TableVectorIterator which we allocate in the function first. We also need
-  // a ProjectedColumnsIterator (PCI) pointer to read individual rows; PCIs are
-  // also needed for vectorized processing because they allow consecutive
-  // iterations and track filtered tuples. Thus, we allocate a PCI* in the
-  // function, too, that we populate with the instance inside the TVI.
-  //
-
-  ast::Context *ctx = node->target()->type()->context();
-
-  bool vectorized = false;
-  bool indexed UNUSED_ATTRIBUTE = false;
-  if (auto *attributes = node->attributes(); attributes != nullptr) {
-    if (attributes->Contains(ctx->GetIdentifier("batch"))) {
-      vectorized = true;
-    }
-    if (attributes->Contains(ctx->GetIdentifier("index"))) {
-      indexed = true;
-    }
-  }
-
-  //
-  // We first initialize the TableVectorIterator and then pull out the PCI*
-  // from the iterator for use in the body of the loop.
-  //
-  auto *exec = sql::ExecutionStructures::Instance();
-  ast::Identifier table_name = node->iter()->As<ast::IdentifierExpr>()->name();
-  // Get the table from the catalog.
-  std::shared_ptr<SqlTableRW> catalog_table;
-  if (node->GetHasOid()) {
-    terrier::catalog::table_oid_t table_oid = static_cast<terrier::catalog::table_oid_t>(std::stoi(table_name.data()));
-    catalog_table = exec->GetCatalog()->GetCatalogTable(terrier::catalog::DEFAULT_DATABASE_OID, table_oid);
-  } else {
-    catalog_table = exec->GetCatalog()->GetCatalogTable(terrier::catalog::DEFAULT_DATABASE_OID, table_name.data());
-  }
-  TPL_ASSERT(catalog_table != nullptr, "Table does not exist!");
-
-  if (indexed) {
-    VisitIndexedForInStmt(node, node->attributes()->Find(ctx->GetIdentifier("index")), catalog_table.get());
-    return;
-  }
-  // Create TVI variable
-  ast::Type *table_iter_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::TableVectorIterator);
-  LocalVar table_iter = current_function()->NewLocal(table_iter_type, table_name.data());
-
-  // Bytecode for the constructor
-  exec::ExecutionContext *exec_context = exec_context_.get();
-  emitter()->EmitTableIteratorInit(Bytecode::TableVectorIteratorInit, table_iter,
-                                   uint32_t(terrier::catalog::DEFAULT_DATABASE_OID), uint32_t(catalog_table->Oid()),
-                                   reinterpret_cast<uintptr_t>(exec_context));
-
-  // Bytecode for init.
-  emitter()->Emit(Bytecode::TableVectorIteratorPerformInit, table_iter);
-
-  //
-  // Pull out the PCI from the TableVectorIterator we just initialized
-  //
-
-  ast::Type *pci_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::ProjectedColumnsIterator);
-  LocalVar pci = current_function()->NewLocal(pci_type->PointerTo(), "pci");
-
-  emitter()->Emit(Bytecode::TableVectorIteratorGetPCI, pci, table_iter);
-
-  //
-  // Now, we generate a loop while TableVectorIterator::Advance() returns true,
-  // indicating that  there is more input data. If the loop is non-vectorized,
-  // then we call into VisitRowWiseIteration() to handle iteration over the
-  // PCI, setting up the row pointer, resetting the PCI etc.
-  //
-
-  {
-    LoopBuilder table_loop(this);
-    table_loop.LoopHeader();
-
-    LocalVar cond = current_function()->NewLocal(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
-    emitter()->Emit(Bytecode::TableVectorIteratorNext, cond, table_iter);
-    emitter()->EmitConditionalJump(Bytecode::JumpIfFalse, cond.ValueOf(), table_loop.break_label());
-
-    if (vectorized) {
-      VisitVectorWiseIteration(node, pci.ValueOf(), &table_loop);
-    } else {
-      VisitRowWiseIteration(node, pci.ValueOf(), &table_loop, catalog_table.get());
-    }
-
-    // Finish, loop back around
-    table_loop.JumpToHeader();
-  }
-
-  // Cleanup
-  emitter()->Emit(Bytecode::TableVectorIteratorFree, table_iter);
+void BytecodeGenerator::VisitForInStmt(UNUSED ast::ForInStmt *node) {
+  TPL_ASSERT(false, "For-in statements not supported");
 }
 
 void BytecodeGenerator::VisitFieldDecl(ast::FieldDecl *node) { AstVisitor::VisitFieldDecl(node); }
@@ -386,25 +181,22 @@ void BytecodeGenerator::VisitFunctionDecl(ast::FunctionDecl *node) {
 }
 
 void BytecodeGenerator::VisitIdentifierExpr(ast::IdentifierExpr *node) {
-  //
   // Lookup the local in the current function. It must be there through a
   // previous variable declaration (or parameter declaration). What is returned
   // is a pointer to the variable.
-  //
 
-  LocalVar local = current_function()->LookupLocal(node->name().data());
+  const std::string local_name = node->name().data();
+  LocalVar local = current_function()->LookupLocal(local_name);
 
   if (execution_result()->IsLValue()) {
     execution_result()->set_destination(local);
     return;
   }
 
-  //
   // The caller wants the R-Value of the identifier. So, we need to load it. If
   // the caller did not provide a destination register, we're done. If the
   // caller provided a destination, we need to move the value of the identifier
   // into the provided destination.
-  //
 
   if (!execution_result()->HasDestination()) {
     execution_result()->set_destination(local.ValueOf());
@@ -412,7 +204,15 @@ void BytecodeGenerator::VisitIdentifierExpr(ast::IdentifierExpr *node) {
   }
 
   LocalVar dest = execution_result()->GetOrCreateDestination(node->type());
-  BuildDeref(dest, local, node->type());
+
+  // If the local we want the R-Value of is a parameter, we can't take its
+  // pointer for the deref, so we use an assignment. Otherwise, a deref is good.
+  if (auto *local_info = current_function()->LookupLocalInfoByName(local_name); local_info->is_parameter()) {
+    BuildAssign(dest, local.ValueOf(), node->type());
+  } else {
+    BuildDeref(dest, local, node->type());
+  }
+
   execution_result()->set_destination(dest);
 }
 
@@ -431,25 +231,32 @@ void BytecodeGenerator::VisitImplicitCastExpr(ast::ImplicitCastExpr *node) {
       execution_result()->set_destination(dest);
       break;
     }
+    case ast::CastKind::BitCast:
     case ast::CastKind::IntegralCast: {
       BuildAssign(dest, input, node->type());
+      execution_result()->set_destination(dest.ValueOf());
       break;
     }
     default: {
       // Implement me
-      throw std::runtime_error("Implement me");
+      throw std::runtime_error("Implement this cast type");
     }
   }
 }
 
 void BytecodeGenerator::VisitArrayIndexExpr(ast::IndexExpr *node) {
-  //
+  // The type and the element's size
+  auto *type = node->object()->type()->As<ast::ArrayType>();
+  auto elem_size = type->element_type()->size();
+
   // First, we need to get the base address of the array
-  //
+  LocalVar arr;
+  if (type->HasKnownLength()) {
+    arr = VisitExpressionForLValue(node->object());
+  } else {
+    arr = VisitExpressionForRValue(node->object());
+  }
 
-  LocalVar arr = VisitExpressionForLValue(node->object());
-
-  //
   // The next step is to compute the address of the element at the desired index
   // stored in the IndexExpr node. There are two cases we handle:
   //
@@ -462,15 +269,11 @@ void BytecodeGenerator::VisitArrayIndexExpr(ast::IndexExpr *node) {
   // If the index is not a constant, we need to evaluate the expression to
   // produce the index, then issue a LeaScaled instruction to compute the
   // address.
-  //
-
-  auto *type = node->object()->type()->As<ast::ArrayType>();
-  auto elem_size = type->element_type()->size();
 
   LocalVar elem_ptr = current_function()->NewLocal(node->type()->PointerTo());
 
-  if (auto *literal_index = node->index()->SafeAs<ast::LitExpr>()) {
-    i32 index = literal_index->int32_val();
+  if (node->index()->IsIntegerLiteral()) {
+    const i32 index = node->index()->As<ast::LitExpr>()->int32_val();
     TPL_ASSERT(index >= 0, "Array indexes must be non-negative");
     emitter()->EmitLea(elem_ptr, arr, (elem_size * index));
   } else {
@@ -485,11 +288,9 @@ void BytecodeGenerator::VisitArrayIndexExpr(ast::IndexExpr *node) {
     return;
   }
 
-  //
   // The caller wants the value of the array element. We just computed the
   // element's pointer (in element_ptr). Just dereference it into the desired
   // location and be done with it.
-  //
 
   LocalVar dest = execution_result()->GetOrCreateDestination(node->type());
   BuildDeref(dest, elem_ptr, node->type());
@@ -543,8 +344,7 @@ void BytecodeGenerator::VisitAddressOfExpr(ast::UnaryOpExpr *op) {
   TPL_ASSERT(execution_result()->IsRValue(), "Address-of expressions must be R-values!");
   LocalVar addr = VisitExpressionForLValue(op->expr());
   if (execution_result()->HasDestination()) {
-    // Despite the below function's name, we're just getting the destination
-    LocalVar dest = execution_result()->GetOrCreateDestination(op->type());
+    LocalVar dest = execution_result()->destination();
     BuildAssign(dest, addr, op->type());
   } else {
     execution_result()->set_destination(addr);
@@ -586,6 +386,13 @@ void BytecodeGenerator::VisitArithmeticUnaryExpr(ast::UnaryOpExpr *op) {
   execution_result()->set_destination(dest.ValueOf());
 }
 
+void BytecodeGenerator::VisitLogicalNotExpr(ast::UnaryOpExpr *op) {
+  LocalVar dest = execution_result()->GetOrCreateDestination(op->type());
+  LocalVar input = VisitExpressionForRValue(op->expr());
+  emitter()->EmitUnaryOp(Bytecode::Not, dest, input);
+  execution_result()->set_destination(dest.ValueOf());
+}
+
 void BytecodeGenerator::VisitUnaryOpExpr(ast::UnaryOpExpr *node) {
   switch (node->op()) {
     case parsing::Token::Type::AMPERSAND: {
@@ -599,6 +406,10 @@ void BytecodeGenerator::VisitUnaryOpExpr(ast::UnaryOpExpr *node) {
     case parsing::Token::Type::MINUS:
     case parsing::Token::Type::BIT_NOT: {
       VisitArithmeticUnaryExpr(node);
+      break;
+    }
+    case parsing::Token::Type::BANG: {
+      VisitLogicalNotExpr(node);
       break;
     }
     default: { UNREACHABLE("Impossible unary operation"); }
@@ -615,10 +426,7 @@ void BytecodeGenerator::VisitReturnStmt(ast::ReturnStmt *node) {
 }
 
 void BytecodeGenerator::VisitSqlConversionCall(ast::CallExpr *call, ast::Builtin builtin) {
-  TPL_ASSERT(execution_result()->IsRValue(), "SQL conversions must be R-Values");
-
-  auto *ctx = call->type()->context();
-
+  ast::Context *ctx = call->type()->context();
   switch (builtin) {
     case ast::Builtin::BoolToSql: {
       auto dest = execution_result()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Boolean));
@@ -642,9 +450,224 @@ void BytecodeGenerator::VisitSqlConversionCall(ast::CallExpr *call, ast::Builtin
       auto dest = execution_result()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
       auto input = VisitExpressionForRValue(call->arguments()[0]);
       emitter()->Emit(Bytecode::ForceBoolTruth, dest, input);
+      execution_result()->set_destination(dest.ValueOf());
       break;
     }
     default: { UNREACHABLE("Impossible SQL conversion call"); }
+  }
+}
+
+void BytecodeGenerator::VisitBuiltinTableIterCall(ast::CallExpr *call, ast::Builtin builtin) {
+  ast::Context *ctx = call->type()->context();
+
+  // The first argument to all calls is a pointer to the TVI
+  LocalVar iter = VisitExpressionForRValue(call->arguments()[0]);
+
+  switch (builtin) {
+    case ast::Builtin::TableIterInit: {
+      // The second argument is the table name as a literal string
+      TPL_ASSERT(call->arguments()[1]->IsStringLiteral(), "Table name must be a string literal");
+      ast::Identifier table_name = call->arguments()[1]->As<ast::LitExpr>()->raw_string_val();
+      sql::ExecutionStructures *exec = sql::ExecutionStructures::Instance();
+      auto catalog_table =
+          exec->GetCatalog()->GetCatalogTable(terrier::catalog::DEFAULT_DATABASE_OID, table_name.data());
+      TPL_ASSERT(catalog_table != nullptr, "Table does not exist!");
+      // The third argument should be the execution context
+      LocalVar exec_ctx = VisitExpressionForRValue(call->arguments()[2]);
+      // Emit the initialization codes
+      emitter()->EmitTableIterInit(Bytecode::TableVectorIteratorInit, iter, !(terrier::catalog::DEFAULT_DATABASE_OID),
+                                   !catalog_table->Oid(), exec_ctx);
+      emitter()->Emit(Bytecode::TableVectorIteratorPerformInit, iter);
+      break;
+    }
+    case ast::Builtin::TableIterAdvance: {
+      LocalVar cond = execution_result()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
+      emitter()->Emit(Bytecode::TableVectorIteratorNext, cond, iter);
+      execution_result()->set_destination(cond.ValueOf());
+      break;
+    }
+    case ast::Builtin::TableIterGetPCI: {
+      ast::Type *vpi_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::ProjectedColumnsIterator);
+      LocalVar vpi = execution_result()->GetOrCreateDestination(vpi_type);
+      emitter()->Emit(Bytecode::TableVectorIteratorGetPCI, vpi, iter);
+      execution_result()->set_destination(vpi.ValueOf());
+      break;
+    }
+    case ast::Builtin::TableIterClose: {
+      emitter()->Emit(Bytecode::TableVectorIteratorFree, iter);
+      break;
+    }
+    default: { UNREACHABLE("Impossible table iteration call"); }
+  }
+}
+
+void BytecodeGenerator::VisitBuiltinTableIterParallelCall(ast::CallExpr *call) {
+  // First is the table name as a string literal
+  const auto table_name = call->arguments()[0]->As<ast::LitExpr>()->raw_string_val();
+  sql::ExecutionStructures *exec = sql::ExecutionStructures::Instance();
+  auto catalog_table = exec->GetCatalog()->GetCatalogTable(terrier::catalog::DEFAULT_DATABASE_OID, table_name.data());
+  TPL_ASSERT(catalog_table != nullptr, "Table does not exist!");
+
+  // Next is the execution context
+  LocalVar exec_ctx = VisitExpressionForRValue(call->arguments()[1]);
+
+  // Next is the thread state container
+  LocalVar thread_state_container = VisitExpressionForRValue(call->arguments()[2]);
+
+  // Finally the scan function as an identifier
+  const auto scan_fn_name = call->arguments()[3]->As<ast::IdentifierExpr>()->name();
+
+  // Done
+  emitter()->EmitParallelTableScan(!terrier::catalog::DEFAULT_DATABASE_OID, !catalog_table->Oid(), exec_ctx,
+                                   thread_state_container, LookupFuncIdByName(scan_fn_name.data()));
+}
+
+void BytecodeGenerator::VisitBuiltinPCICall(ast::CallExpr *call, ast::Builtin builtin) {
+  ast::Context *ctx = call->type()->context();
+
+  // The first argument to all calls is a pointer to the TVI
+  LocalVar vpi = VisitExpressionForRValue(call->arguments()[0]);
+
+  switch (builtin) {
+    case ast::Builtin::PCIIsFiltered: {
+      LocalVar is_filtered =
+          execution_result()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
+      emitter()->Emit(Bytecode::PCIIsFiltered, is_filtered, vpi);
+      execution_result()->set_destination(is_filtered.ValueOf());
+      break;
+    }
+    case ast::Builtin::PCIHasNext:
+    case ast::Builtin::PCIHasNextFiltered: {
+      const Bytecode bytecode =
+          builtin == ast::Builtin::PCIHasNext ? Bytecode::PCIHasNext : Bytecode::PCIHasNextFiltered;
+      LocalVar cond = execution_result()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
+      emitter()->Emit(bytecode, cond, vpi);
+      execution_result()->set_destination(cond.ValueOf());
+      break;
+    }
+    case ast::Builtin::PCIAdvance:
+    case ast::Builtin::PCIAdvanceFiltered: {
+      const Bytecode bytecode =
+          builtin == ast::Builtin::PCIAdvance ? Bytecode::PCIAdvance : Bytecode::PCIAdvanceFiltered;
+      emitter()->Emit(bytecode, vpi);
+      break;
+    }
+    case ast::Builtin::PCIMatch: {
+      LocalVar match = VisitExpressionForRValue(call->arguments()[1]);
+      emitter()->Emit(Bytecode::PCIMatch, vpi, match);
+      break;
+    }
+    case ast::Builtin::PCIReset:
+    case ast::Builtin::PCIResetFiltered: {
+      const Bytecode bytecode = builtin == ast::Builtin::PCIReset ? Bytecode::PCIReset : Bytecode::PCIResetFiltered;
+      emitter()->Emit(bytecode, vpi);
+      break;
+    }
+    case ast::Builtin::PCIGetSmallInt: {
+      LocalVar val = execution_result()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Integer));
+      auto col_idx = call->arguments()[1]->As<ast::LitExpr>()->int32_val();
+      emitter()->EmitPCIGet(Bytecode::PCIGetSmallInt, val, vpi, col_idx);
+      break;
+    }
+    case ast::Builtin::PCIGetInt: {
+      LocalVar val = execution_result()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Integer));
+      auto col_idx = call->arguments()[1]->As<ast::LitExpr>()->int32_val();
+      emitter()->EmitPCIGet(Bytecode::PCIGetInteger, val, vpi, col_idx);
+      break;
+    }
+    case ast::Builtin::PCIGetBigInt: {
+      LocalVar val = execution_result()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Integer));
+      auto col_idx = call->arguments()[1]->As<ast::LitExpr>()->int32_val();
+      emitter()->EmitPCIGet(Bytecode::PCIGetBigInt, val, vpi, col_idx);
+      break;
+    }
+    case ast::Builtin::PCIGetReal: {
+      LocalVar val = execution_result()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Real));
+      auto col_idx = call->arguments()[1]->As<ast::LitExpr>()->int32_val();
+      emitter()->EmitPCIGet(Bytecode::PCIGetReal, val, vpi, col_idx);
+      break;
+    }
+    case ast::Builtin::PCIGetDouble: {
+      LocalVar val = execution_result()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Real));
+      auto col_idx = call->arguments()[1]->As<ast::LitExpr>()->int32_val();
+      emitter()->EmitPCIGet(Bytecode::PCIGetDouble, val, vpi, col_idx);
+      break;
+    }
+    default: { UNREACHABLE("Impossible table iteration call"); }
+  }
+}
+
+void BytecodeGenerator::VisitBuiltinHashCall(ast::CallExpr *call, UNUSED ast::Builtin builtin) {
+  TPL_ASSERT(call->type()->size() == sizeof(hash_t),
+             "Hash value size (from return type of @hash) doesn't match actual "
+             "size of hash_t type");
+
+  // hash_val is where we accumulate all the hash values passed to the @hash()
+  LocalVar hash_val = execution_result()->GetOrCreateDestination(call->type());
+
+  // Initialize it to 1
+  emitter()->EmitAssignImm8(hash_val, 1);
+
+  // tmp is a temporary variable we use to store individual hash values. We
+  // combine all values into hash_val above
+  LocalVar tmp = current_function()->NewLocal(call->type());
+
+  for (u32 idx = 0; idx < call->num_args(); idx++) {
+    LocalVar input = VisitExpressionForLValue(call->arguments()[idx]);
+    TPL_ASSERT(call->arguments()[idx]->type()->IsSqlValueType(), "Input to hash must be a SQL value type");
+    auto *type = call->arguments()[idx]->type()->As<ast::BuiltinType>();
+    switch (type->kind()) {
+      case ast::BuiltinType::Integer: {
+        emitter()->Emit(Bytecode::HashInt, tmp, input);
+        break;
+      }
+      case ast::BuiltinType::Real: {
+        emitter()->Emit(Bytecode::HashReal, tmp, input);
+        break;
+      }
+      case ast::BuiltinType::VarBuffer: {
+        emitter()->Emit(Bytecode::HashString, tmp, input);
+        break;
+      }
+      default: { UNREACHABLE("Hashing this type isn't supported!"); }
+    }
+    emitter()->Emit(Bytecode::HashCombine, hash_val, tmp.ValueOf());
+  }
+  execution_result()->set_destination(hash_val.ValueOf());
+}
+
+void BytecodeGenerator::VisitBuiltinFilterManagerCall(ast::CallExpr *call, ast::Builtin builtin) {
+  LocalVar filter_manager = VisitExpressionForRValue(call->arguments()[0]);
+  switch (builtin) {
+    case ast::Builtin::FilterManagerInit: {
+      emitter()->Emit(Bytecode::FilterManagerInit, filter_manager);
+      break;
+    }
+    case ast::Builtin::FilterManagerInsertFilter: {
+      emitter()->Emit(Bytecode::FilterManagerStartNewClause, filter_manager);
+
+      // Insert all flavors
+      for (u32 arg_idx = 1; arg_idx < call->num_args(); arg_idx++) {
+        const std::string func_name = call->arguments()[arg_idx]->As<ast::IdentifierExpr>()->name().data();
+        const FunctionId func_id = LookupFuncIdByName(func_name);
+        emitter()->EmitFilterManagerInsertFlavor(filter_manager, func_id);
+      }
+      break;
+    }
+    case ast::Builtin::FilterManagerFinalize: {
+      emitter()->Emit(Bytecode::FilterManagerFinalize, filter_manager);
+      break;
+    }
+    case ast::Builtin::FilterManagerRunFilters: {
+      LocalVar vpi = VisitExpressionForRValue(call->arguments()[1]);
+      emitter()->Emit(Bytecode::FilterManagerRunFilters, filter_manager, vpi);
+      break;
+    }
+    case ast::Builtin::FilterManagerFree: {
+      emitter()->Emit(Bytecode::FilterManagerFree, filter_manager);
+      break;
+    }
+    default: { UNREACHABLE("Impossible filter manager call"); }
   }
 }
 
@@ -674,7 +697,7 @@ void BytecodeGenerator::VisitBuiltinFilterCall(ast::CallExpr *call, ast::Builtin
   // Get the index and type of the column.
   auto *exec = sql::ExecutionStructures::Instance();
   auto catalog_table = exec->GetCatalog()->GetCatalogTable(terrier::catalog::DEFAULT_DATABASE_OID, table_name);
-  TypeId col_type = TypeId::INVALID;
+  auto col_type = terrier::type::TypeId::INVALID;
   uint32_t col_idx = 0;
   for (const auto &col : catalog_table->GetSqlTable()->GetSchema().GetColumns()) {
     if (col.GetName() == col_name) {
@@ -717,13 +740,131 @@ void BytecodeGenerator::VisitBuiltinFilterCall(ast::CallExpr *call, ast::Builtin
   emitter()->EmitPCIVectorFilter(bytecode, ret_val, pci, col_idx, static_cast<i8>(col_type), val);
 }
 
+void BytecodeGenerator::VisitBuiltinAggHashTableCall(ast::CallExpr *call, ast::Builtin builtin) {
+  switch (builtin) {
+    case ast::Builtin::AggHashTableInit: {
+      LocalVar agg_ht = VisitExpressionForRValue(call->arguments()[0]);
+      LocalVar memory = VisitExpressionForRValue(call->arguments()[1]);
+      LocalVar entry_size = VisitExpressionForRValue(call->arguments()[2]);
+      emitter()->Emit(Bytecode::AggregationHashTableInit, agg_ht, memory, entry_size);
+      break;
+    }
+    case ast::Builtin::AggHashTableInsert: {
+      LocalVar dest = execution_result()->GetOrCreateDestination(call->type());
+      LocalVar agg_ht = VisitExpressionForRValue(call->arguments()[0]);
+      LocalVar hash = VisitExpressionForRValue(call->arguments()[1]);
+      emitter()->Emit(Bytecode::AggregationHashTableInsert, dest, agg_ht, hash);
+      break;
+    }
+    case ast::Builtin::AggHashTableLookup: {
+      LocalVar dest = execution_result()->GetOrCreateDestination(call->type());
+      LocalVar agg_ht = VisitExpressionForRValue(call->arguments()[0]);
+      LocalVar hash = VisitExpressionForRValue(call->arguments()[1]);
+      auto key_eq_fn = LookupFuncIdByName(call->arguments()[2]->As<ast::IdentifierExpr>()->name().data());
+      LocalVar arg = VisitExpressionForRValue(call->arguments()[3]);
+      emitter()->EmitAggHashTableLookup(dest, agg_ht, hash, key_eq_fn, arg);
+      break;
+    }
+    case ast::Builtin::AggHashTableProcessBatch: {
+      LocalVar agg_ht = VisitExpressionForRValue(call->arguments()[0]);
+      LocalVar iters = VisitExpressionForRValue(call->arguments()[1]);
+      auto hash_fn = LookupFuncIdByName(call->arguments()[2]->As<ast::IdentifierExpr>()->name().data());
+      auto key_eq_fn = LookupFuncIdByName(call->arguments()[3]->As<ast::IdentifierExpr>()->name().data());
+      auto init_agg_fn = LookupFuncIdByName(call->arguments()[4]->As<ast::IdentifierExpr>()->name().data());
+      auto merge_agg_fn = LookupFuncIdByName(call->arguments()[5]->As<ast::IdentifierExpr>()->name().data());
+      emitter()->EmitAggHashTableProcessBatch(agg_ht, iters, hash_fn, key_eq_fn, init_agg_fn, merge_agg_fn);
+      break;
+    }
+    case ast::Builtin::AggHashTableFree: {
+      LocalVar agg_ht = VisitExpressionForRValue(call->arguments()[0]);
+      emitter()->Emit(Bytecode::AggregationHashTableFree, agg_ht);
+      break;
+    }
+    default: { UNREACHABLE("Impossible aggregation hash table bytecode"); }
+  }
+}
+
+namespace {
+
+#define AGG_CODES(F)                                                                                        \
+  F(CountAggregate, CountAggregateInit, CountAggregateAdvance, CountAggregateGetResult)                     \
+  F(CountStarAggregate, CountStarAggregateInit, CountStarAggregateAdvance, CountStarAggregateGetResult)     \
+  F(IntegerAvgAggregate, IntegerAvgAggregateInit, IntegerAvgAggregateAdvance, IntegerAvgAggregateGetResult) \
+  F(IntegerMaxAggregate, IntegerMaxAggregateInit, IntegerMaxAggregateAdvance, IntegerMaxAggregateGetResult) \
+  F(IntegerMinAggregate, IntegerMinAggregateInit, IntegerMinAggregateAdvance, IntegerMinAggregateGetResult) \
+  F(IntegerSumAggregate, IntegerSumAggregateInit, IntegerSumAggregateAdvance, IntegerSumAggregateGetResult)
+
+enum class AggOpKind : u8 { Init, Advance, GetResult };
+
+template <AggOpKind OpKind>
+Bytecode OpForAgg(ast::BuiltinType::Kind agg_kind) {
+  if constexpr (OpKind == AggOpKind::Init) {
+    switch (agg_kind) {
+      default: { UNREACHABLE("Impossible aggregate type"); }
+#define ENTRY(Type, Init, Advance, GetResult) \
+  case ast::BuiltinType::Type:                \
+    return Bytecode::Init;
+        AGG_CODES(ENTRY)
+#undef ENTRY
+    }
+  }
+
+  if constexpr (OpKind == AggOpKind::Advance) {
+    switch (agg_kind) {
+      default: { UNREACHABLE("Impossible aggregate type"); }
+#define ENTRY(Type, Init, Advance, GetResult) \
+  case ast::BuiltinType::Type:                \
+    return Bytecode::Advance;
+        AGG_CODES(ENTRY)
+#undef ENTRY
+    }
+  }
+
+  if constexpr (OpKind == AggOpKind::GetResult) {
+    switch (agg_kind) {
+      default: { UNREACHABLE("Impossible aggregate type"); }
+#define ENTRY(Type, Init, Advance, GetResult) \
+  case ast::BuiltinType::Type:                \
+    return Bytecode::GetResult;
+        AGG_CODES(ENTRY)
+#undef ENTRY
+    }
+  }
+}
+
+}  // namespace
+
+void BytecodeGenerator::VisitBuiltinAggregatorCall(ast::CallExpr *call, ast::Builtin builtin) {
+  switch (builtin) {
+    case ast::Builtin::AggInit: {
+      for (const auto &arg : call->arguments()) {
+        const auto agg_kind = arg->type()->GetPointeeType()->As<ast::BuiltinType>()->kind();
+        LocalVar input = VisitExpressionForRValue(arg);
+        Bytecode bytecode = OpForAgg<AggOpKind::Init>(agg_kind);
+        emitter()->Emit(bytecode, input);
+      }
+      break;
+    }
+    case ast::Builtin::AggAdvance: {
+      const auto &args = call->arguments();
+      const auto agg_kind = args[0]->type()->GetPointeeType()->As<ast::BuiltinType>()->kind();
+      LocalVar agg = VisitExpressionForRValue(args[0]);
+      LocalVar input = VisitExpressionForRValue(args[1]);
+      Bytecode bytecode = OpForAgg<AggOpKind::Advance>(agg_kind);
+      emitter()->Emit(bytecode, agg, input);
+      break;
+    }
+    default: { UNREACHABLE("Impossible aggregator call"); }
+  }
+}
+
 void BytecodeGenerator::VisitBuiltinJoinHashTableCall(ast::CallExpr *call, ast::Builtin builtin) {
   switch (builtin) {
     case ast::Builtin::JoinHashTableInit: {
       LocalVar join_hash_table = VisitExpressionForRValue(call->arguments()[0]);
-      LocalVar region = VisitExpressionForRValue(call->arguments()[1]);
+      LocalVar memory = VisitExpressionForRValue(call->arguments()[1]);
       LocalVar entry_size = VisitExpressionForRValue(call->arguments()[2]);
-      emitter()->Emit(Bytecode::JoinHashTableInit, join_hash_table, region, entry_size);
+      emitter()->Emit(Bytecode::JoinHashTableInit, join_hash_table, memory, entry_size);
       break;
     }
     case ast::Builtin::JoinHashTableInsert: {
@@ -738,6 +879,13 @@ void BytecodeGenerator::VisitBuiltinJoinHashTableCall(ast::CallExpr *call, ast::
       emitter()->Emit(Bytecode::JoinHashTableBuild, join_hash_table);
       break;
     }
+    case ast::Builtin::JoinHashTableBuildParallel: {
+      LocalVar join_hash_table = VisitExpressionForRValue(call->arguments()[0]);
+      LocalVar thread_local_container = VisitExpressionForRValue(call->arguments()[1]);
+      LocalVar jht_offset = VisitExpressionForRValue(call->arguments()[2]);
+      emitter()->Emit(Bytecode::JoinHashTableBuildParallel, join_hash_table, thread_local_container, jht_offset);
+      break;
+    }
     case ast::Builtin::JoinHashTableFree: {
       LocalVar join_hash_table = VisitExpressionForRValue(call->arguments()[0]);
       emitter()->Emit(Bytecode::JoinHashTableFree, join_hash_table);
@@ -747,27 +895,201 @@ void BytecodeGenerator::VisitBuiltinJoinHashTableCall(ast::CallExpr *call, ast::
   }
 }
 
+void BytecodeGenerator::VisitBuiltinSorterCall(ast::CallExpr *call, ast::Builtin builtin) {
+  switch (builtin) {
+    case ast::Builtin::SorterInit: {
+      // TODO(pmenon): Fix me so that the comparison function doesn't have be
+      // listed by name.
+      LocalVar sorter = VisitExpressionForRValue(call->arguments()[0]);
+      LocalVar memory = VisitExpressionForRValue(call->arguments()[1]);
+      const std::string cmp_func_name = call->arguments()[2]->As<ast::IdentifierExpr>()->name().data();
+      LocalVar entry_size = VisitExpressionForRValue(call->arguments()[3]);
+      emitter()->EmitSorterInit(Bytecode::SorterInit, sorter, memory, LookupFuncIdByName(cmp_func_name), entry_size);
+      break;
+    }
+    case ast::Builtin::SorterInsert: {
+      LocalVar dest = execution_result()->GetOrCreateDestination(call->type());
+      LocalVar sorter = VisitExpressionForRValue(call->arguments()[0]);
+      emitter()->Emit(Bytecode::SorterAllocTuple, dest, sorter);
+      break;
+    }
+    case ast::Builtin::SorterSort: {
+      LocalVar sorter = VisitExpressionForRValue(call->arguments()[0]);
+      emitter()->Emit(Bytecode::SorterSort, sorter);
+      break;
+    }
+    case ast::Builtin::SorterSortParallel: {
+      LocalVar sorter = VisitExpressionForRValue(call->arguments()[0]);
+      LocalVar thread_local_container = VisitExpressionForRValue(call->arguments()[1]);
+      LocalVar sorter_offset = VisitExpressionForRValue(call->arguments()[2]);
+      emitter()->Emit(Bytecode::SorterSortParallel, sorter, thread_local_container, sorter_offset);
+      break;
+    }
+    case ast::Builtin::SorterSortTopKParallel: {
+      LocalVar sorter = VisitExpressionForRValue(call->arguments()[0]);
+      LocalVar thread_local_container = VisitExpressionForRValue(call->arguments()[1]);
+      LocalVar sorter_offset = VisitExpressionForRValue(call->arguments()[2]);
+      LocalVar top_k = VisitExpressionForRValue(call->arguments()[3]);
+      emitter()->Emit(Bytecode::SorterSortTopKParallel, sorter, thread_local_container, sorter_offset, top_k);
+      break;
+    }
+    case ast::Builtin::SorterFree: {
+      LocalVar sorter = VisitExpressionForRValue(call->arguments()[0]);
+      emitter()->Emit(Bytecode::SorterFree, sorter);
+      break;
+    }
+    default: { UNREACHABLE("Impossible bytecode"); }
+  }
+}
+
+void BytecodeGenerator::VisitBuiltinSorterIterCall(ast::CallExpr *call, ast::Builtin builtin) {
+  ast::Context *ctx = call->type()->context();
+
+  // The first argument to all calls is the sorter iterator instance
+  const LocalVar sorter_iter = VisitExpressionForRValue(call->arguments()[0]);
+
+  switch (builtin) {
+    case ast::Builtin::SorterIterInit: {
+      LocalVar sorter = VisitExpressionForRValue(call->arguments()[1]);
+      emitter()->Emit(Bytecode::SorterIteratorInit, sorter_iter, sorter);
+      break;
+    }
+    case ast::Builtin::SorterIterHasNext: {
+      LocalVar cond = execution_result()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
+      emitter()->Emit(Bytecode::SorterIteratorHasNext, cond, sorter_iter);
+      execution_result()->set_destination(cond.ValueOf());
+      break;
+    }
+    case ast::Builtin::SorterIterNext: {
+      emitter()->Emit(Bytecode::SorterIteratorNext, sorter_iter);
+      break;
+    }
+    case ast::Builtin::SorterIterGetRow: {
+      LocalVar row_ptr =
+          execution_result()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Uint8)->PointerTo());
+      emitter()->Emit(Bytecode::SorterIteratorGetRow, row_ptr, sorter_iter);
+      execution_result()->set_destination(row_ptr.ValueOf());
+      break;
+    }
+    case ast::Builtin::SorterIterClose: {
+      emitter()->Emit(Bytecode::SorterIteratorFree, sorter_iter);
+      break;
+    }
+    default: { UNREACHABLE("Impossible table iteration call"); }
+  }
+}
+
+void BytecodeGenerator::VisitExecutionContextCall(ast::CallExpr *call, UNUSED ast::Builtin builtin) {
+  ast::Context *ctx = call->type()->context();
+
+  // The memory pool pointer
+  LocalVar mem_pool =
+      execution_result()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::MemoryPool)->PointerTo());
+
+  // The execution context pointer
+  LocalVar exec_ctx = VisitExpressionForRValue(call->arguments()[0]);
+
+  // Emit bytecode
+  emitter()->Emit(Bytecode::ExecutionContextGetMemoryPool, mem_pool, exec_ctx);
+
+  // Indicate where the result is
+  execution_result()->set_destination(mem_pool.ValueOf());
+}
+
+void BytecodeGenerator::VisitBuiltinThreadStateContainerCall(ast::CallExpr *call, ast::Builtin builtin) {
+  LocalVar tls = VisitExpressionForRValue(call->arguments()[0]);
+  switch (builtin) {
+    case ast::Builtin::ThreadStateContainerInit: {
+      LocalVar memory = VisitExpressionForRValue(call->arguments()[1]);
+      emitter()->Emit(Bytecode::ThreadStateContainerInit, tls, memory);
+      break;
+    }
+    case ast::Builtin::ThreadStateContainerReset: {
+      LocalVar entry_size = VisitExpressionForRValue(call->arguments()[1]);
+      FunctionId init_fn = LookupFuncIdByName(call->arguments()[2]->As<ast::IdentifierExpr>()->name().data());
+      FunctionId destroy_fn = LookupFuncIdByName(call->arguments()[3]->As<ast::IdentifierExpr>()->name().data());
+      LocalVar ctx = VisitExpressionForRValue(call->arguments()[4]);
+      emitter()->EmitThreadStateContainerReset(tls, entry_size, init_fn, destroy_fn, ctx);
+      break;
+    }
+    case ast::Builtin::ThreadStateContainerFree: {
+      emitter()->Emit(Bytecode::ThreadStateContainerFree, tls);
+      break;
+    }
+    default: { UNREACHABLE("Impossible thread state container call"); }
+  }
+}
+
+void BytecodeGenerator::VisitBuiltinTrigCall(ast::CallExpr *call, ast::Builtin builtin) {
+  ast::Context *ctx = call->type()->context();
+  LocalVar dest = execution_result()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Real));
+  LocalVar src = VisitExpressionForRValue(call->arguments()[0]);
+
+  switch (builtin) {
+    case ast::Builtin::ACos: {
+      emitter()->Emit(Bytecode::Acos, dest, src);
+      break;
+    }
+    case ast::Builtin::ASin: {
+      emitter()->Emit(Bytecode::Asin, dest, src);
+      break;
+    }
+    case ast::Builtin::ATan: {
+      emitter()->Emit(Bytecode::Atan, dest, src);
+      break;
+    }
+    case ast::Builtin::ATan2: {
+      emitter()->Emit(Bytecode::Atan2, dest, src);
+      break;
+    }
+    case ast::Builtin::Cos: {
+      emitter()->Emit(Bytecode::Cos, dest, src);
+      break;
+    }
+    case ast::Builtin::Cot: {
+      emitter()->Emit(Bytecode::Cot, dest, src);
+      break;
+    }
+    case ast::Builtin::Sin: {
+      emitter()->Emit(Bytecode::Sin, dest, src);
+      break;
+    }
+    case ast::Builtin::Tan: {
+      emitter()->Emit(Bytecode::Tan, dest, src);
+    }
+    default: { UNREACHABLE("Impossible trigonometric bytecode"); }
+  }
+
+  execution_result()->set_destination(dest.ValueOf());
+}
+
+void BytecodeGenerator::VisitBuiltinSizeOfCall(ast::CallExpr *call) {
+  ast::Type *target_type = call->arguments()[0]->type();
+  LocalVar size_var = execution_result()->GetOrCreateDestination(
+      ast::BuiltinType::Get(target_type->context(), ast::BuiltinType::Uint32));
+  emitter()->EmitAssignImm4(size_var, target_type->size());
+  execution_result()->set_destination(size_var.ValueOf());
+}
+
 void BytecodeGenerator::VisitBuiltinOutputCall(ast::CallExpr *call, ast::Builtin builtin) {
-  exec::ExecutionContext *exec_context = exec_context_.get();
-  // TODO(Amadou) Find a more elegant way to pass in the execution context
-  auto exec_context_addr = reinterpret_cast<uintptr_t>(exec_context);
+  LocalVar exec_ctx = VisitExpressionForRValue(call->arguments()[2]);
   switch (builtin) {
     case ast::Builtin::OutputAlloc: {
       LocalVar dest = execution_result()->GetOrCreateDestination(call->type());
-      emitter()->EmitOutputAlloc(Bytecode::OutputAlloc, exec_context_addr, dest);
+      emitter()->EmitOutputAlloc(Bytecode::OutputAlloc, exec_ctx, dest);
       break;
     }
     case ast::Builtin::OutputAdvance: {
-      emitter()->EmitOutputCall(Bytecode::OutputAdvance, exec_context_addr);
+      emitter()->EmitOutputCall(Bytecode::OutputAdvance, exec_ctx);
       break;
     }
     case ast::Builtin::OutputSetNull: {
       LocalVar entry_size = VisitExpressionForRValue(call->arguments()[0]);
-      emitter()->EmitOutputSetNull(Bytecode::OutputSetNull, exec_context_addr, entry_size);
+      emitter()->EmitOutputSetNull(Bytecode::OutputSetNull, exec_ctx, entry_size);
       break;
     }
     case ast::Builtin::OutputFinalize: {
-      emitter()->EmitOutputCall(Bytecode::OutputFinalize, exec_context_addr);
+      emitter()->EmitOutputCall(Bytecode::OutputFinalize, exec_ctx);
       break;
     }
     default: { UNREACHABLE("Impossible bytecode"); }
@@ -779,22 +1101,20 @@ void BytecodeGenerator::VisitBuiltinInsertCall(ast::CallExpr *call, ast::Builtin
   LocalVar db_id = VisitExpressionForRValue(args[0]);
   LocalVar table_id = VisitExpressionForRValue(args[1]);
   LocalVar values = VisitExpressionForRValue(args[2]);
+  LocalVar exec_ctx = VisitExpressionForRValue(call->arguments()[3]);
 
-  auto exec_context_addr = reinterpret_cast<uintptr_t>(exec_context_.get());
-  emitter()->EmitInsert(Bytecode::Insert, db_id, table_id, values, exec_context_addr);
+  emitter()->EmitInsert(Bytecode::Insert, db_id, table_id, values, exec_ctx);
 }
 
 void BytecodeGenerator::VisitBuiltinIndexIteratorCall(ast::CallExpr *call, ast::Builtin builtin) {
-  exec::ExecutionContext *exec_context = exec_context_.get();
-  Catalog *catalog = sql::ExecutionStructures::Instance()->GetCatalog();
-  // TODO(Amadou) Find a more elegant way to pass in the execution context
-  auto exec_context_addr = reinterpret_cast<uintptr_t>(exec_context);
+  terrier::catalog::Catalog *catalog = sql::ExecutionStructures::Instance()->GetCatalog();
   switch (builtin) {
     case ast::Builtin::IndexIteratorInit: {
       LocalVar iterator = VisitExpressionForRValue(call->arguments()[0]);
       std::string index_name(call->arguments()[1]->As<ast::LitExpr>()->raw_string_val().data());
       auto index_oid = catalog->GetCatalogIndexOid(index_name);
-      emitter()->EmitIndexIteratorInit(Bytecode::IndexIteratorInit, iterator, !index_oid, exec_context_addr);
+      LocalVar exec_ctx = VisitExpressionForRValue(call->arguments()[2]);
+      emitter()->EmitIndexIteratorInit(Bytecode::IndexIteratorInit, iterator, !index_oid, exec_ctx);
       break;
     }
     case ast::Builtin::IndexIteratorScanKey: {
@@ -810,56 +1130,6 @@ void BytecodeGenerator::VisitBuiltinIndexIteratorCall(ast::CallExpr *call, ast::
     }
     default: { UNREACHABLE("Impossible bytecode"); }
   }
-}
-
-void BytecodeGenerator::VisitBuiltinSorterCall(ast::CallExpr *call, ast::Builtin builtin) {
-  switch (builtin) {
-    case ast::Builtin::SorterInit: {
-      // TODO(pmenon): Fix me so that the comparison function doesn't have be
-      // listed by name.
-      LocalVar sorter = VisitExpressionForRValue(call->arguments()[0]);
-      LocalVar region = VisitExpressionForRValue(call->arguments()[1]);
-      // LocalVar cmp_fn = VisitExpressionForRValue(call->arguments()[2]);
-      const std::string cmp_func_name = call->arguments()[2]->As<ast::IdentifierExpr>()->name().data();
-      auto cmp_fn =
-          current_function()->NewLocal(ast::BuiltinType::Get(call->type()->context(), ast::BuiltinType::Uint16));
-      emitter()->EmitAssignImm2(cmp_fn, LookupFuncIdByName(cmp_func_name));
-      LocalVar entry_size = VisitExpressionForRValue(call->arguments()[3]);
-      emitter()->Emit(Bytecode::SorterInit, sorter, region, cmp_fn.ValueOf(), entry_size);
-      break;
-    }
-    case ast::Builtin::SorterInsert: {
-      LocalVar dest = execution_result()->GetOrCreateDestination(call->type());
-      LocalVar sorter = VisitExpressionForRValue(call->arguments()[0]);
-      emitter()->Emit(Bytecode::SorterAllocTuple, dest, sorter);
-      break;
-    }
-    case ast::Builtin::SorterSort: {
-      LocalVar sorter = VisitExpressionForRValue(call->arguments()[0]);
-      emitter()->Emit(Bytecode::SorterSort, sorter);
-      break;
-    }
-    case ast::Builtin::SorterFree: {
-      LocalVar sorter = VisitExpressionForRValue(call->arguments()[0]);
-      emitter()->Emit(Bytecode::SorterFree, sorter);
-      break;
-    }
-    default: { UNREACHABLE("Impossible bytecode"); }
-  }
-}
-
-void BytecodeGenerator::VisitBuiltinRegionCall(ast::CallExpr *call, ast::Builtin builtin) {
-  LocalVar region = VisitExpressionForRValue(call->arguments()[0]);
-  auto region_op = builtin == ast::Builtin::RegionInit ? Bytecode::RegionInit : Bytecode::RegionFree;
-  emitter()->Emit(region_op, region);
-}
-
-void BytecodeGenerator::VisitBuiltinSizeOfCall(ast::CallExpr *call) {
-  ast::Type *target_type = call->arguments()[0]->type();
-  LocalVar size_var = execution_result()->GetOrCreateDestination(
-      ast::BuiltinType::Get(target_type->context(), ast::BuiltinType::Uint32));
-  emitter()->EmitAssignImm4(size_var, target_type->size());
-  execution_result()->set_destination(size_var.ValueOf());
 }
 
 void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
@@ -885,16 +1155,110 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       VisitBuiltinFilterCall(call, builtin);
       break;
     }
-    case ast::Builtin::RegionInit:
-    case ast::Builtin::RegionFree: {
-      VisitBuiltinRegionCall(call, builtin);
+    case ast::Builtin::ExecutionContextGetMemoryPool: {
+      VisitExecutionContextCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::ThreadStateContainerInit:
+    case ast::Builtin::ThreadStateContainerReset:
+    case ast::Builtin::ThreadStateContainerFree: {
+      VisitBuiltinThreadStateContainerCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::TableIterInit:
+    case ast::Builtin::TableIterAdvance:
+    case ast::Builtin::TableIterGetPCI:
+    case ast::Builtin::TableIterClose: {
+      VisitBuiltinTableIterCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::TableIterParallel: {
+      VisitBuiltinTableIterParallelCall(call);
+      break;
+    }
+    case ast::Builtin::PCIIsFiltered:
+    case ast::Builtin::PCIHasNext:
+    case ast::Builtin::PCIHasNextFiltered:
+    case ast::Builtin::PCIAdvance:
+    case ast::Builtin::PCIAdvanceFiltered:
+    case ast::Builtin::PCIMatch:
+    case ast::Builtin::PCIReset:
+    case ast::Builtin::PCIResetFiltered:
+    case ast::Builtin::PCIGetSmallInt:
+    case ast::Builtin::PCIGetInt:
+    case ast::Builtin::PCIGetBigInt:
+    case ast::Builtin::PCIGetReal:
+    case ast::Builtin::PCIGetDouble: {
+      VisitBuiltinPCICall(call, builtin);
+      break;
+    }
+    case ast::Builtin::Hash: {
+      VisitBuiltinHashCall(call, builtin);
+      break;
+    };
+    case ast::Builtin::FilterManagerInit:
+    case ast::Builtin::FilterManagerInsertFilter:
+    case ast::Builtin::FilterManagerFinalize:
+    case ast::Builtin::FilterManagerRunFilters:
+    case ast::Builtin::FilterManagerFree: {
+      VisitBuiltinFilterManagerCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::AggHashTableInit:
+    case ast::Builtin::AggHashTableInsert:
+    case ast::Builtin::AggHashTableLookup:
+    case ast::Builtin::AggHashTableProcessBatch:
+    case ast::Builtin::AggHashTableFree: {
+      VisitBuiltinAggHashTableCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::AggInit:
+    case ast::Builtin::AggAdvance: {
+      VisitBuiltinAggregatorCall(call, builtin);
       break;
     }
     case ast::Builtin::JoinHashTableInit:
     case ast::Builtin::JoinHashTableInsert:
     case ast::Builtin::JoinHashTableBuild:
+    case ast::Builtin::JoinHashTableBuildParallel:
     case ast::Builtin::JoinHashTableFree: {
       VisitBuiltinJoinHashTableCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::SorterInit:
+    case ast::Builtin::SorterInsert:
+    case ast::Builtin::SorterSort:
+    case ast::Builtin::SorterSortParallel:
+    case ast::Builtin::SorterSortTopKParallel:
+    case ast::Builtin::SorterFree: {
+      VisitBuiltinSorterCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::SorterIterInit:
+    case ast::Builtin::SorterIterHasNext:
+    case ast::Builtin::SorterIterNext:
+    case ast::Builtin::SorterIterGetRow:
+    case ast::Builtin::SorterIterClose: {
+      VisitBuiltinSorterIterCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::ACos:
+    case ast::Builtin::ASin:
+    case ast::Builtin::ATan:
+    case ast::Builtin::ATan2:
+    case ast::Builtin::Cos:
+    case ast::Builtin::Cot:
+    case ast::Builtin::Sin:
+    case ast::Builtin::Tan: {
+      VisitBuiltinTrigCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::SizeOf: {
+      VisitBuiltinSizeOfCall(call);
+      break;
+    }
+    case ast::Builtin::PtrCast: {
+      Visit(call->arguments()[1]);
       break;
     }
     case ast::Builtin::OutputAlloc:
@@ -911,21 +1275,6 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::IndexIteratorFree:
       VisitBuiltinIndexIteratorCall(call, builtin);
       break;
-    case ast::Builtin::SorterInit:
-    case ast::Builtin::SorterInsert:
-    case ast::Builtin::SorterSort:
-    case ast::Builtin::SorterFree: {
-      VisitBuiltinSorterCall(call, builtin);
-      break;
-    }
-    case ast::Builtin::SizeOf: {
-      VisitBuiltinSizeOfCall(call);
-      break;
-    }
-    case ast::Builtin::PtrCast: {
-      Visit(call->arguments()[1]);
-      break;
-    }
     default: { UNREACHABLE("Builtin not supported!"); }
   }
 }
@@ -1124,6 +1473,7 @@ void BytecodeGenerator::VisitSqlCompareOpExpr(ast::ComparisonOpExpr *compare) {
   LocalVar dest = execution_result()->GetOrCreateDestination(compare->type());
   LocalVar left = VisitExpressionForLValue(compare->left());
   LocalVar right = VisitExpressionForLValue(compare->right());
+
   Bytecode code;
   switch (compare->op()) {
     case parsing::Token::Type::GREATER: {
@@ -1164,6 +1514,19 @@ void BytecodeGenerator::VisitPrimitiveCompareOpExpr(ast::ComparisonOpExpr *compa
   TPL_ASSERT(execution_result()->IsRValue(), "Comparison expressions must be R-Values!");
 
   LocalVar dest = execution_result()->GetOrCreateDestination(compare->type());
+
+  // nil comparison
+  if (ast::Expr * input_expr; compare->IsLiteralCompareNil(&input_expr)) {
+    LocalVar input = VisitExpressionForRValue(input_expr);
+    Bytecode bytecode =
+        compare->op() == parsing::Token::Type ::EQUAL_EQUAL ? Bytecode::IsNullPtr : Bytecode::IsNotNullPtr;
+    emitter()->Emit(bytecode, dest, input);
+    execution_result()->set_destination(dest.ValueOf());
+    return;
+  }
+
+  // regular comparison
+
   LocalVar left = VisitExpressionForRValue(compare->left());
   LocalVar right = VisitExpressionForRValue(compare->right());
 
@@ -1259,21 +1622,17 @@ LocalVar BytecodeGenerator::BuildLoadPointer(LocalVar double_ptr, ast::Type *typ
 }
 
 void BytecodeGenerator::VisitMemberExpr(ast::MemberExpr *node) {
-  //
   // We first need to compute the address of the object we're selecting into.
   // Thus, we get the L-Value of the object below.
-  //
 
   LocalVar obj_ptr = VisitExpressionForLValue(node->object());
 
-  //
   // We now need to compute the offset of the field in the composite type. TPL
   // unifies C's arrow and dot syntax for field/member access. Thus, the type
   // of the object may be either a pointer to a struct or the actual struct. If
   // the type is a pointer, then the L-Value of the object is actually a double
   // pointer and we need to dereference it; otherwise, we can use the address
   // as is.
-  //
 
   ast::StructType *obj_type = nullptr;
   if (auto *type = node->object()->type(); node->IsSugaredArrow()) {
@@ -1284,20 +1643,16 @@ void BytecodeGenerator::VisitMemberExpr(ast::MemberExpr *node) {
     obj_type = type->As<ast::StructType>();
   }
 
-  //
   // We're now ready to compute offset. Let's lookup the field's offset in the
   // struct type.
-  //
 
   auto *field_name = node->member()->As<ast::IdentifierExpr>();
   auto offset = obj_type->GetOffsetOfFieldByName(field_name->name());
 
-  //
   // Now that we have a pointer to the composite object, we need to compute a
   // pointer to the field within the object. If the offset of the field in the
   // object is zero, we needn't do anything - we can just reinterpret the object
   // pointer. If the field offset is greater than zero, we generate a LEA.
-  //
 
   LocalVar field_ptr;
   if (offset == 0) {
@@ -1314,12 +1669,10 @@ void BytecodeGenerator::VisitMemberExpr(ast::MemberExpr *node) {
     return;
   }
 
-  //
   // The caller wants the actual value of the field. We just computed a pointer
   // to the field in the object, so we need to load/dereference it. If the
   // caller provided a destination variable, use that; otherwise, create a new
   // temporary variable to store the value.
-  //
 
   LocalVar dest = execution_result()->GetOrCreateDestination(node->type());
   BuildDeref(dest, field_ptr, node->type());
@@ -1438,76 +1791,9 @@ Bytecode BytecodeGenerator::GetIntTypedBytecode(Bytecode bytecode, ast::Type *ty
   return Bytecodes::FromByte(Bytecodes::ToByte(bytecode) + kind_idx);
 }
 
-Bytecode BytecodeGenerator::GetPCIColumnCode(SqlTableRW *catalog_table, u32 col_idx) {
-  const auto &schema = catalog_table->GetSqlTable()->GetSchema();
-  if (schema.GetColumns()[col_idx].GetNullable()) {
-    switch (schema.GetColumns()[col_idx].GetType()) {
-      case TypeId::INTEGER:
-        return Bytecode::PCIGetIntegerNull;
-      case TypeId::SMALLINT:
-        return Bytecode::PCIGetSmallIntNull;
-      case TypeId::BIGINT:
-        return Bytecode::PCIGetBigIntNull;
-      case TypeId::DECIMAL:
-        return Bytecode::PCIGetDecimalNull;
-      default:
-        // TODO(Amadou): Handle errors here.
-        return Bytecode::PCIGetInteger;
-    }
-  } else {
-    switch (schema.GetColumns()[col_idx].GetType()) {
-      case TypeId::INTEGER:
-        return Bytecode::PCIGetInteger;
-      case TypeId::SMALLINT:
-        return Bytecode::PCIGetSmallInt;
-      case TypeId::BIGINT:
-        return Bytecode::PCIGetBigInt;
-      case TypeId::DECIMAL:
-        return Bytecode::PCIGetDecimal;
-      default:
-        // TODO(Amadou): Handle errors here.
-        return Bytecode::PCIGetInteger;
-    }
-  }
-}
-
-Bytecode BytecodeGenerator::GetIndexIteratorColumnCode(SqlTableRW *catalog_table, u32 col_idx) {
-  const auto &schema = catalog_table->GetSqlTable()->GetSchema();
-  if (schema.GetColumns()[col_idx].GetNullable()) {
-    switch (schema.GetColumns()[col_idx].GetType()) {
-      case TypeId::INTEGER:
-        return Bytecode::IndexIteratorGetIntegerNull;
-      case TypeId::SMALLINT:
-        return Bytecode::IndexIteratorGetSmallIntNull;
-      case TypeId::BIGINT:
-        return Bytecode::IndexIteratorGetBigIntNull;
-      case TypeId::DECIMAL:
-        return Bytecode::IndexIteratorGetDecimalNull;
-      default:
-        // TODO(Amadou): Handle errors here.
-        return Bytecode::IndexIteratorGetInteger;
-    }
-  } else {
-    switch (schema.GetColumns()[col_idx].GetType()) {
-      case TypeId::INTEGER:
-        return Bytecode::IndexIteratorGetInteger;
-      case TypeId::SMALLINT:
-        return Bytecode::IndexIteratorGetSmallInt;
-      case TypeId::BIGINT:
-        return Bytecode::IndexIteratorGetBigInt;
-      case TypeId::DECIMAL:
-        return Bytecode::IndexIteratorGetDecimal;
-      default:
-        // TODO(Amadou): Handle errors here.
-        return Bytecode::IndexIteratorGetInteger;
-    }
-  }
-}
-
 // static
-std::unique_ptr<BytecodeModule> BytecodeGenerator::Compile(ast::AstNode *root, const std::string &name,
-                                                           std::shared_ptr<exec::ExecutionContext> exec_context) {
-  BytecodeGenerator generator(std::move(exec_context));
+std::unique_ptr<BytecodeModule> BytecodeGenerator::Compile(ast::AstNode *root, const std::string &name) {
+  BytecodeGenerator generator;
   generator.Visit(root);
 
   // NOLINTNEXTLINE

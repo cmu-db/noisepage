@@ -53,6 +53,8 @@ namespace tpl::vm {
   CREATE_FOR_INT_TYPES(F, LessThan, OperandType::Local, OperandType::Local, OperandType::Local)                       \
   CREATE_FOR_INT_TYPES(F, LessThanEqual, OperandType::Local, OperandType::Local, OperandType::Local)                  \
   CREATE_FOR_INT_TYPES(F, NotEqual, OperandType::Local, OperandType::Local, OperandType::Local)                       \
+  /* Boolean compliment */                                                                                            \
+  F(Not, OperandType::Local, OperandType::Local)                                                                      \
                                                                                                                       \
   /* Branching */                                                                                                     \
   F(Jump, OperandType::JumpOffset)                                                                                    \
@@ -60,6 +62,8 @@ namespace tpl::vm {
   F(JumpIfFalse, OperandType::Local, OperandType::JumpOffset)                                                         \
                                                                                                                       \
   /* Memory/pointer operations */                                                                                     \
+  F(IsNullPtr, OperandType::Local, OperandType::Local)                                                                \
+  F(IsNotNullPtr, OperandType::Local, OperandType::Local)                                                             \
   F(Deref1, OperandType::Local, OperandType::Local)                                                                   \
   F(Deref2, OperandType::Local, OperandType::Local)                                                                   \
   F(Deref4, OperandType::Local, OperandType::Local)                                                                   \
@@ -76,36 +80,48 @@ namespace tpl::vm {
   F(Lea, OperandType::Local, OperandType::Local, OperandType::Imm4)                                                   \
   F(LeaScaled, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Imm4, OperandType::Imm4)      \
                                                                                                                       \
-  F(RegionInit, OperandType::Local)                                                                                   \
-  F(RegionFree, OperandType::Local)                                                                                   \
-                                                                                                                      \
   /* Function calls */                                                                                                \
   F(Call, OperandType::FunctionId, OperandType::LocalCount)                                                           \
   F(Return)                                                                                                           \
                                                                                                                       \
-  /* Transactions */                                                                                                  \
-  F(BeginTransaction, OperandType::Local)                                                                             \
-  F(CommitTransaction, OperandType::Local)                                                                            \
-  F(AbortTransaction, OperandType::Local)                                                                             \
+  /* Execution Context */                                                                                             \
+  F(ExecutionContextGetMemoryPool, OperandType::Local, OperandType::Local)                                            \
+                                                                                                                      \
+  /* Thread State Container */                                                                                        \
+  F(ThreadStateContainerInit, OperandType::Local, OperandType::Local)                                                 \
+  F(ThreadStateContainerReset, OperandType::Local, OperandType::Local, OperandType::FunctionId,                       \
+    OperandType::FunctionId, OperandType::Local)                                                                      \
+  F(ThreadStateContainerFree, OperandType::Local)                                                                     \
                                                                                                                       \
   /* Table Vector Iterator */                                                                                         \
-  F(TableVectorIteratorInit, OperandType::Local, OperandType::UImm4, OperandType::UImm4, OperandType::Imm8)           \
+  F(TableVectorIteratorInit, OperandType::Local, OperandType::UImm4, OperandType::UImm4, OperandType::Local)          \
   F(TableVectorIteratorPerformInit, OperandType::Local)                                                               \
   F(TableVectorIteratorNext, OperandType::Local, OperandType::Local)                                                  \
   F(TableVectorIteratorFree, OperandType::Local)                                                                      \
   F(TableVectorIteratorGetPCI, OperandType::Local, OperandType::Local)                                                \
+  F(ParallelScanTable, OperandType::UImm4, OperandType::UImm4, OperandType::Local, OperandType::Local,                \
+    OperandType::FunctionId)                                                                                          \
                                                                                                                       \
   /* ProjectedColumns Iterator (PCI) */                                                                               \
+  F(PCIIsFiltered, OperandType::Local, OperandType::Local)                                                            \
   F(PCIHasNext, OperandType::Local, OperandType::Local)                                                               \
+  F(PCIHasNextFiltered, OperandType::Local, OperandType::Local)                                                       \
   F(PCIAdvance, OperandType::Local)                                                                                   \
+  F(PCIAdvanceFiltered, OperandType::Local)                                                                           \
+  F(PCIMatch, OperandType::Local, OperandType::Local)                                                                 \
   F(PCIReset, OperandType::Local)                                                                                     \
+  F(PCIResetFiltered, OperandType::Local)                                                                             \
   F(PCIGetSmallInt, OperandType::Local, OperandType::Local, OperandType::UImm4)                                       \
   F(PCIGetInteger, OperandType::Local, OperandType::Local, OperandType::UImm4)                                        \
   F(PCIGetBigInt, OperandType::Local, OperandType::Local, OperandType::UImm4)                                         \
+  F(PCIGetReal, OperandType::Local, OperandType::Local, OperandType::UImm4)                                           \
+  F(PCIGetDouble, OperandType::Local, OperandType::Local, OperandType::UImm4)                                         \
   F(PCIGetDecimal, OperandType::Local, OperandType::Local, OperandType::UImm4)                                        \
   F(PCIGetSmallIntNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                   \
   F(PCIGetIntegerNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                    \
   F(PCIGetBigIntNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                     \
+  F(PCIGetRealNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                       \
+  F(PCIGetDoubleNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                     \
   F(PCIGetDecimalNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                    \
   F(PCIFilterEqual, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Imm1, OperandType::Imm8) \
   F(PCIFilterGreaterThan, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Imm1,              \
@@ -119,6 +135,14 @@ namespace tpl::vm {
   F(PCIFilterNotEqual, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Imm1,                 \
     OperandType::Imm8)                                                                                                \
                                                                                                                       \
+  /* Filter Manager */                                                                                                \
+  F(FilterManagerInit, OperandType::Local)                                                                            \
+  F(FilterManagerStartNewClause, OperandType::Local)                                                                  \
+  F(FilterManagerInsertFlavor, OperandType::Local, OperandType::FunctionId)                                           \
+  F(FilterManagerFinalize, OperandType::Local)                                                                        \
+  F(FilterManagerRunFilters, OperandType::Local, OperandType::Local)                                                  \
+  F(FilterManagerFree, OperandType::Local)                                                                            \
+                                                                                                                      \
   /* SQL type comparisons */                                                                                          \
   F(ForceBoolTruth, OperandType::Local, OperandType::Local)                                                           \
   F(InitBool, OperandType::Local, OperandType::Local)                                                                 \
@@ -131,7 +155,21 @@ namespace tpl::vm {
   F(EqualInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                         \
   F(NotEqualInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
                                                                                                                       \
-  /* Aggregations */                                                                                                  \
+  /* Hashing */                                                                                                       \
+  F(HashInt, OperandType::Local, OperandType::Local)                                                                  \
+  F(HashReal, OperandType::Local, OperandType::Local)                                                                 \
+  F(HashString, OperandType::Local, OperandType::Local)                                                               \
+  F(HashCombine, OperandType::Local, OperandType::Local)                                                              \
+                                                                                                                      \
+  /* Aggregation Hash Table */                                                                                        \
+  F(AggregationHashTableInit, OperandType::Local, OperandType::Local, OperandType::Local)                             \
+  F(AggregationHashTableInsert, OperandType::Local, OperandType::Local, OperandType::Local)                           \
+  F(AggregationHashTableLookup, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::FunctionId,  \
+    OperandType::Local)                                                                                               \
+  F(AggregationHashTableProcessBatch, OperandType::Local, OperandType::Local, OperandType::FunctionId,                \
+    OperandType::FunctionId, OperandType::FunctionId, OperandType::FunctionId)                                        \
+  F(AggregationHashTableFree, OperandType::Local)                                                                     \
+  /* Aggregates */                                                                                                    \
   F(CountAggregateInit, OperandType::Local)                                                                           \
   F(CountAggregateAdvance, OperandType::Local, OperandType::Local)                                                    \
   F(CountAggregateMerge, OperandType::Local, OperandType::Local)                                                      \
@@ -177,30 +215,44 @@ namespace tpl::vm {
   F(JoinHashTableInit, OperandType::Local, OperandType::Local, OperandType::Local)                                    \
   F(JoinHashTableAllocTuple, OperandType::Local, OperandType::Local, OperandType::Local)                              \
   F(JoinHashTableBuild, OperandType::Local)                                                                           \
+  F(JoinHashTableBuildParallel, OperandType::Local, OperandType::Local, OperandType::Local)                           \
   F(JoinHashTableFree, OperandType::Local)                                                                            \
                                                                                                                       \
   /* Sorting */                                                                                                       \
-  F(SorterInit, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                       \
+  F(SorterInit, OperandType::Local, OperandType::Local, OperandType::FunctionId, OperandType::Local)                  \
   F(SorterAllocTuple, OperandType::Local, OperandType::Local)                                                         \
   F(SorterAllocTupleTopK, OperandType::Local, OperandType::Local)                                                     \
   F(SorterAllocTupleTopKFinish, OperandType::Local, OperandType::Local)                                               \
   F(SorterSort, OperandType::Local)                                                                                   \
+  F(SorterSortParallel, OperandType::Local, OperandType::Local, OperandType::Local)                                   \
+  F(SorterSortTopKParallel, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)           \
   F(SorterFree, OperandType::Local)                                                                                   \
   F(SorterIteratorInit, OperandType::Local, OperandType::Local)                                                       \
   F(SorterIteratorGetRow, OperandType::Local, OperandType::Local)                                                     \
-  F(SorterIteratorAdvance, OperandType::Local)                                                                        \
+  F(SorterIteratorHasNext, OperandType::Local, OperandType::Local)                                                    \
+  F(SorterIteratorNext, OperandType::Local)                                                                           \
   F(SorterIteratorFree, OperandType::Local)                                                                           \
                                                                                                                       \
+  /* Trig functions */                                                                                                \
+  F(Acos, OperandType::Local, OperandType::Local)                                                                     \
+  F(Asin, OperandType::Local, OperandType::Local)                                                                     \
+  F(Atan, OperandType::Local, OperandType::Local)                                                                     \
+  F(Atan2, OperandType::Local, OperandType::Local, OperandType::Local)                                                \
+  F(Cos, OperandType::Local, OperandType::Local)                                                                      \
+  F(Cot, OperandType::Local, OperandType::Local)                                                                      \
+  F(Sin, OperandType::Local, OperandType::Local)                                                                      \
+  F(Tan, OperandType::Local, OperandType::Local)                                                                      \
+                                                                                                                      \
   /* Output */                                                                                                        \
-  F(OutputAlloc, OperandType::Imm8, OperandType::Local)                                                               \
-  F(OutputAdvance, OperandType::Imm8)                                                                                 \
-  F(OutputFinalize, OperandType::Imm8)                                                                                \
-  F(OutputSetNull, OperandType::Imm8, OperandType::Local)                                                             \
+  F(OutputAlloc, OperandType::Local, OperandType::Local)                                                              \
+  F(OutputAdvance, OperandType::Local)                                                                                \
+  F(OutputFinalize, OperandType::Local)                                                                               \
+  F(OutputSetNull, OperandType::Local, OperandType::Local)                                                            \
                                                                                                                       \
   /* Insert */                                                                                                        \
-  F(Insert, OperandType::UImm4, OperandType::UImm4, OperandType::Local)                                               \
+  F(Insert, OperandType::Local, OperandType::UImm4, OperandType::UImm4, OperandType::Local)                           \
   /* Index Iterator */                                                                                                \
-  F(IndexIteratorInit, OperandType::Local, OperandType::UImm4, OperandType::Imm8)                                     \
+  F(IndexIteratorInit, OperandType::Local, OperandType::UImm4, OperandType::Local)                                    \
   F(IndexIteratorScanKey, OperandType::Local, OperandType::Local)                                                     \
   F(IndexIteratorFree, OperandType::Local)                                                                            \
   F(IndexIteratorHasNext, OperandType::Local, OperandType::Local)                                                     \
@@ -212,17 +264,7 @@ namespace tpl::vm {
   F(IndexIteratorGetSmallIntNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                         \
   F(IndexIteratorGetIntegerNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                          \
   F(IndexIteratorGetBigIntNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                           \
-  F(IndexIteratorGetDecimalNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                          \
-                                                                                                                      \
-  /* Trig functions */                                                                                                \
-  F(Acos, OperandType::Local, OperandType::Local)                                                                     \
-  F(Asin, OperandType::Local, OperandType::Local)                                                                     \
-  F(Atan, OperandType::Local, OperandType::Local)                                                                     \
-  F(Atan2, OperandType::Local, OperandType::Local, OperandType::Local)                                                \
-  F(Cos, OperandType::Local, OperandType::Local)                                                                      \
-  F(Cot, OperandType::Local, OperandType::Local)                                                                      \
-  F(Sin, OperandType::Local, OperandType::Local)                                                                      \
-  F(Tan, OperandType::Local, OperandType::Local)
+  F(IndexIteratorGetDecimalNull, OperandType::Local, OperandType::Local, OperandType::UImm4)
 
 /**
  * The single enumeration of all possible bytecode instructions

@@ -28,12 +28,20 @@ void Sema::VisitVariableDecl(ast::VariableDecl *node) {
   }
 
   if (declared_type == nullptr && initializer_type == nullptr) {
-    // Error
     return;
   }
 
+  // If both are provided, check assignment
   if (declared_type != nullptr && initializer_type != nullptr) {
-    // Check compatibility
+    ast::Expr *init = node->initial();
+    if (!CheckAssignmentConstraints(declared_type, &init)) {
+      error_reporter()->Report(node->position(), ErrorMessages::kInvalidAssignment, declared_type, initializer_type);
+      return;
+    }
+    // If the check applied an implicit cast, reset the initializing expression
+    if (init != node->initial()) {
+      node->set_initial(init);
+    }
   }
 
   // The type should be resolved now

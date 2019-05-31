@@ -5,73 +5,99 @@
 #include <string>
 #include <type_traits>
 
+#include "execution/util/common.h"
 #include "execution/util/macros.h"
 #include "execution/util/math_util.h"
 
 namespace tpl::util {
 
-/// A region-based allocator supports fast O(1) time allocations of small chunks
-/// of memory. Individual de-allocations are not supported, but the entire
-/// region can be de-allocated in one fast operation upon destruction. Regions
-/// are used to hold ephemeral objects that are allocated once and freed all at
-/// once. This is the pattern used during parsing when generating AST nodes
-/// which are thrown away after compilation to bytecode.
+/**
+ * A region-based allocator supports fast O(1) time allocations of small chunks
+ * of memory. Individual de-allocations are not supported, but the entire
+ * region can be de-allocated in one fast operation upon destruction. Regions
+ * are used to hold ephemeral objects that are allocated once and freed all at
+ * once. This is the pattern used during parsing when generating AST nodes
+ * which are thrown away after compilation to bytecode.
+ */
 class Region {
  public:
-  /// Constructor. No allocations are done upon construction.
+  /**
+   * Construct a region with the given name @em name. No allocations are
+   * performed upon construction, only at the first call to @em Allocate().
+   */
   explicit Region(std::string name) noexcept;
 
-  /// Regions cannot be copied or moved
+  /**
+   * Regions cannot be copied or moved
+   */
   DISALLOW_COPY_AND_MOVE(Region);
 
-  /// Destructor. All allocated memory is freed here.
+  /**
+   * Destructor. All allocated memory is freed here.
+   */
   ~Region();
 
-  /// Allocate memory from this region
-  /// \param size The number of bytes to allocate
-  /// \param alignment The desired alignment
-  /// \return A pointer to the start of the allocated space
+  /**
+   * Allocate memory from this region
+   * @param size The number of bytes to allocate
+   * @param alignment The desired alignment
+   * @return A pointer to the start of the allocated space
+   */
   void *Allocate(std::size_t size, std::size_t alignment = kDefaultByteAlignment);
 
-  /// Allocate a (contiguous) array of elements of the given type
-  /// \tparam T The type of each element in the array
-  /// \param num_elems The number of requested elements in the array
-  /// \return A pointer to the allocated array
+  /**
+   * Allocate a (contiguous) array of elements of the given type
+   * @tparam T The type of each element in the array
+   * @param num_elems The number of requested elements in the array
+   * @return A pointer to the allocated array
+   */
   template <typename T>
   T *AllocateArray(std::size_t num_elems) {
     return static_cast<T *>(Allocate(num_elems * sizeof(T), alignof(T)));
   }
 
-  /// Individual de-allocations in a region-allocator are a no-op. All memory is
-  /// freed when the region is destroyed, or manually through a call to
-  /// \a FreeAll().
-  /// \param ptr The pointer to the memory we're de-allocating
-  /// \param size The number of bytes the pointer points to
+  /**
+   * Individual de-allocations in a region-allocator are a no-op. All memory is
+   * freed when the region is destroyed, or manually through a call to
+   * @em FreeAll().
+   * @param ptr The pointer to the memory we're de-allocating
+   * @param size The number of bytes the pointer points to
+   */
   void Deallocate(const void *ptr, std::size_t size) const {
     // No-op
   }
 
-  /// Free all allocated objects in one fell swoop
+  /**
+   * Free all allocated objects in one fell swoop
+   */
   void FreeAll();
 
   // -------------------------------------------------------
   // Accessors
   // -------------------------------------------------------
 
-  /// The name of the region
+  /**
+   * @return The name of the region
+   */
   const std::string &name() const { return name_; }
 
-  /// The number of bytes this region has given out
+  /**
+   * @return The number of bytes this region has given out
+   */
   u64 allocated() const { return allocated_; }
 
-  /// The number of bytes wasted due to alignment requirements
+  /**
+   * @return The number of bytes wasted due to alignment requirements
+   */
   u64 alignment_waste() const { return alignment_waste_; }
 
-  /// The total number of bytes acquired from the OS
+  /**
+   * @return The total number of bytes acquired from the OS
+   */
   u64 total_memory() const { return chunk_bytes_allocated_; }
 
  private:
-  /// Expand the region
+  // Expand the region
   uintptr_t Expand(std::size_t requested);
 
  private:
@@ -125,24 +151,35 @@ class Region {
   uintptr_t end_;
 };
 
-/// Base class for objects allocated from a region
+/**
+ * Base class for objects allocated from a region
+ */
 class RegionObject {
  public:
-  // Region objects should always be allocated from and release a region
-  /// remove new without a region
+  /**
+   * Should not be called
+   */
   void *operator new(std::size_t size) = delete;
-  /// remove delete without a region
+
+  /**
+   * Should not be called
+   */
   void operator delete(void *ptr) = delete;
 
-  /// Actual new call that takes in a region
+  /**
+   * Allocation
+   * @param size size of buffer to allocate
+   * @param region region to use for allocation
+   * @return pointer to allocated buffer
+   */
   void *operator new(std::size_t size, Region *region) { return region->Allocate(size); }
 
-  /*
-   * Objects from a Region shouldn't be deleted individually. They'll be deleted
-   * when the region is destroyed. You can invoke this behavior manually by
-   * calling Region::FreeAll().
+  // Objects from a Region shouldn't be deleted individually. They'll be deleted
+  // when the region is destroyed. You can invoke this behavior manually by
+  // calling Region::FreeAll().
+  /**
+   * Should not be called.
    */
-  /// This delete should never be called.
   void operator delete(UNUSED void *ptr, UNUSED Region *region) {
     UNREACHABLE("Calling \"delete\" on region object is forbidden!");
   }

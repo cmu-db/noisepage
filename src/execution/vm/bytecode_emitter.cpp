@@ -236,9 +236,19 @@ void BytecodeEmitter::Emit(Bytecode bytecode, LocalVar operand_1, LocalVar opera
   EmitAll(bytecode, operand_1, operand_2, operand_3, operand_4, operand_5, operand_6, operand_7, operand_8);
 }
 
-void BytecodeEmitter::EmitTableIteratorInit(Bytecode bytecode, LocalVar iter, u32 db_oid, u32 table_oid,
-                                            uintptr_t exec_context) {
-  EmitAll(bytecode, iter, db_oid, table_oid, exec_context);
+void BytecodeEmitter::EmitThreadStateContainerReset(LocalVar tls, LocalVar state_size, FunctionId init_fn,
+                                                    FunctionId destroy_fn, LocalVar ctx) {
+  EmitAll(Bytecode::ThreadStateContainerReset, tls, state_size, init_fn, destroy_fn, ctx);
+}
+
+void BytecodeEmitter::EmitTableIterInit(Bytecode bytecode, LocalVar iter, u32 db_oid, u32 table_oid,
+                                        LocalVar exec_ctx) {
+  EmitAll(bytecode, iter, db_oid, table_oid, exec_ctx);
+}
+
+void BytecodeEmitter::EmitParallelTableScan(u32 db_oid, u32 table_oid, LocalVar ctx, LocalVar thread_states,
+                                            FunctionId scan_fn) {
+  EmitAll(Bytecode::ParallelScanTable, db_oid, table_oid, ctx, thread_states, scan_fn);
 }
 
 void BytecodeEmitter::EmitPCIGet(Bytecode bytecode, LocalVar out, LocalVar pci, u32 col_idx) {
@@ -250,24 +260,43 @@ void BytecodeEmitter::EmitPCIVectorFilter(Bytecode bytecode, LocalVar selected, 
   EmitAll(bytecode, selected, pci, col_idx, type, val);
 }
 
-void BytecodeEmitter::EmitOutputAlloc(Bytecode bytecode, uintptr_t exec_context, LocalVar dest) {
-  EmitAll(bytecode, exec_context, dest);
+void BytecodeEmitter::EmitFilterManagerInsertFlavor(LocalVar fmb, FunctionId func) {
+  EmitAll(Bytecode::FilterManagerInsertFlavor, fmb, func);
 }
 
-void BytecodeEmitter::EmitOutputCall(Bytecode bytecode, uintptr_t exec_context) { EmitAll(bytecode, exec_context); }
+void BytecodeEmitter::EmitAggHashTableLookup(LocalVar dest, LocalVar agg_ht, LocalVar hash, FunctionId key_eq_fn,
+                                             LocalVar arg) {
+  EmitAll(Bytecode::AggregationHashTableLookup, dest, agg_ht, hash, key_eq_fn, arg);
+}
 
-void BytecodeEmitter::EmitOutputSetNull(Bytecode bytecode, uintptr_t exec_context, LocalVar idx) {
-  EmitAll(bytecode, exec_context, idx);
+void BytecodeEmitter::EmitAggHashTableProcessBatch(LocalVar agg_ht, LocalVar iters, FunctionId hash_fn,
+                                                   FunctionId key_eq_fn, FunctionId init_agg_fn,
+                                                   FunctionId merge_agg_fn) {
+  EmitAll(Bytecode::AggregationHashTableProcessBatch, agg_ht, iters, hash_fn, key_eq_fn, init_agg_fn, merge_agg_fn);
+}
+
+void BytecodeEmitter::EmitSorterInit(Bytecode bytecode, LocalVar sorter, LocalVar region, FunctionId cmp_fn,
+                                     LocalVar tuple_size) {
+  EmitAll(bytecode, sorter, region, cmp_fn, tuple_size);
+}
+
+void BytecodeEmitter::EmitOutputAlloc(Bytecode bytecode, LocalVar exec_ctx, LocalVar dest) {
+  EmitAll(bytecode, exec_ctx, dest);
+}
+
+void BytecodeEmitter::EmitOutputCall(Bytecode bytecode, LocalVar exec_ctx) { EmitAll(bytecode, exec_ctx); }
+
+void BytecodeEmitter::EmitOutputSetNull(Bytecode bytecode, LocalVar exec_ctx, LocalVar idx) {
+  EmitAll(bytecode, exec_ctx, idx);
 }
 
 void BytecodeEmitter::EmitInsert(Bytecode bytecode, LocalVar db_oid, LocalVar table_oid, LocalVar values_ptr,
-                                 uintptr_t exec_context) {
-  EmitAll(bytecode, db_oid, table_oid, values_ptr, exec_context);
+                                 LocalVar exec_ctx) {
+  EmitAll(bytecode, db_oid, table_oid, values_ptr, exec_ctx);
 }
 
-void BytecodeEmitter::EmitIndexIteratorInit(Bytecode bytecode, LocalVar iter, uint32_t index_oid,
-                                            uintptr_t exec_context) {
-  EmitAll(bytecode, iter, index_oid, exec_context);
+void BytecodeEmitter::EmitIndexIteratorInit(Bytecode bytecode, LocalVar iter, uint32_t index_oid, LocalVar exec_ctx) {
+  EmitAll(bytecode, iter, index_oid, exec_ctx);
 }
 
 void BytecodeEmitter::EmitIndexIteratorScanKey(Bytecode bytecode, LocalVar iter, LocalVar key) {

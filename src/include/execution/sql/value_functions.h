@@ -71,7 +71,9 @@ struct BinaryFunctionReal {
 // Implementations
 // ---------------------------------------------------------
 
-/// Cotangent
+/**
+ * Cotangent
+ */
 inline double cotan(const double arg) { return (1.0 / std::tan(arg)); }
 
 struct ACos : public UnaryFunctionReal<std::acos> {};

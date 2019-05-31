@@ -95,7 +95,9 @@ class LLVMRegionAllocator : public llvm::AllocatorBase<LLVMRegionAllocator> {
    */
   void *Allocate(std::size_t size, std::size_t alignment) { return region_->Allocate(size, alignment); }
 
-  /// Pull in base class overloads.
+  /**
+   * Pull in base class overloads.
+   */
   using AllocatorBase<LLVMRegionAllocator>::Allocate;
 
   /**
@@ -105,7 +107,9 @@ class LLVMRegionAllocator : public llvm::AllocatorBase<LLVMRegionAllocator> {
    */
   void Deallocate(const void *ptr, std::size_t size) { region_->Deallocate(ptr, size); }
 
-  /// Pull in base class overloads.
+  /**
+   * Pull in base class overloads.
+   */
   using AllocatorBase<LLVMRegionAllocator>::Deallocate;
 
  private:

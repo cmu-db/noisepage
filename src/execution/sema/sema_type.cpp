@@ -8,21 +8,20 @@
 namespace tpl::sema {
 
 void Sema::VisitArrayTypeRepr(ast::ArrayTypeRepr *node) {
-  uint64_t actual_length = 0;
+  u64 arr_len = 0;
   if (node->length() != nullptr) {
-    auto *len_expr = node->length()->SafeAs<ast::LitExpr>();
-    if (len_expr == nullptr || len_expr->literal_kind() != ast::LitExpr::LitKind::Int) {
+    if (!node->length()->IsIntegerLiteral()) {
       error_reporter()->Report(node->length()->position(), ErrorMessages::kNonIntegerArrayLength);
       return;
     }
 
-    auto len = len_expr->int32_val();
-    if (len < 0) {
+    auto length = node->length()->As<ast::LitExpr>()->int32_val();
+    if (length < 0) {
       error_reporter()->Report(node->length()->position(), ErrorMessages::kNegativeArrayLength);
       return;
     }
 
-    actual_length = static_cast<uint64_t>(len);
+    arr_len = static_cast<u64>(length);
   }
 
   ast::Type *elem_type = Resolve(node->element_type());
@@ -31,7 +30,7 @@ void Sema::VisitArrayTypeRepr(ast::ArrayTypeRepr *node) {
     return;
   }
 
-  node->set_type(ast::ArrayType::Get(actual_length, elem_type));
+  node->set_type(ast::ArrayType::Get(arr_len, elem_type));
 }
 
 void Sema::VisitFunctionTypeRepr(ast::FunctionTypeRepr *node) {

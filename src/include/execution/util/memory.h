@@ -7,6 +7,11 @@
 #include "execution/util/common.h"
 #include "execution/util/macros.h"
 
+// Needed for some Darwin machine that don't have MAP_ANONYMOUS
+#ifndef MAP_ANONYMOUS
+#define MAP_ANONYMOUS MAP_ANON
+#endif
+
 namespace tpl::util {
 
 // ---------------------------------------------------------
@@ -14,11 +19,20 @@ namespace tpl::util {
 // ---------------------------------------------------------
 
 inline void *MallocHuge(std::size_t size) {
+  // Attempt to map
   void *ptr = mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+
+  // If failed, return null. Let client worry.
+  if (ptr == MAP_FAILED) {
+    return nullptr;
+  }
+
+  // All good, advise to use huge pages
 #if !defined(__APPLE__)
   madvise(ptr, size, MADV_HUGEPAGE);
 #endif
-  std::memset(ptr, 0, size);
+
+  // Done
   return ptr;
 }
 

@@ -10,20 +10,25 @@ namespace tpl::bandit {
 class Agent;
 
 /**
- * An enumeration capturing different policies for choosing actions.
- */
-enum class Kind : u8 { EpsilonGreedy, Greedy, Random, UCB, FixedAction };
-
-/**
  * A policy prescribes an action to be taken based on the memory of an agent.
  */
 class Policy {
  public:
   /**
-   * Cosntructor
+   * An enumeration capturing different policies for choosing actions.
+   */
+  enum class Kind : u8 { EpsilonGreedy, Greedy, Random, UCB, FixedAction };
+
+  /**
+   * Constructor
    * @param kind the kind of policy
    */
-  explicit Policy(Kind kind) : kind_(kind), generator_(time(nullptr)) {}
+  explicit Policy(Kind kind);
+
+  /**
+   * Virtual destructor
+   */
+  virtual ~Policy() = default;
 
   /**
    * Returns the next action according to the policy
@@ -55,12 +60,17 @@ class Policy {
 class EpsilonGreedyPolicy : public Policy {
  public:
   /**
+   * Default epsilon value
+   */
+  static constexpr const double kDefaultEpsilon = 0.1;
+
+  /**
    * Construct
    * @param epsilon epsilon value
    * @param kind kind of policy
    */
   explicit EpsilonGreedyPolicy(double epsilon, Kind kind = Kind::EpsilonGreedy)
-      : Policy(kind), epsilon_(epsilon), real_(std::uniform_real_distribution<double>(0, 1)) {}
+      : Policy(kind), epsilon_(epsilon), real_(0, 1) {}
 
   u32 NextAction(Agent *agent) override;
 
@@ -102,6 +112,11 @@ class RandomPolicy : public EpsilonGreedyPolicy {
  */
 class UCBPolicy : public Policy {
  public:
+  /**
+   * Default ucb hyperparameter.
+   */
+  static constexpr const double kDefaultUCBHyperParam = 1.0;
+
   /**
    * Constructor
    * @param c hyperparameter value

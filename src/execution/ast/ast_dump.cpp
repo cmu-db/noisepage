@@ -238,7 +238,7 @@ void AstDumperImpl::VisitIfStmt(IfStmt *node) {
 
 void AstDumperImpl::VisitReturnStmt(ReturnStmt *node) {
   DumpNodeCommon(node);
-  if (node->HasExpressionValue()) {
+  if (node->ret() != nullptr) {
     DumpExpr(node->ret());
   }
 }
@@ -298,19 +298,31 @@ void AstDumperImpl::VisitImplicitCastExpr(ImplicitCastExpr *node) {
     WithColor color(this, llvm::raw_ostream::Colors::RED);
     switch (node->cast_kind()) {
       case CastKind::IntToSqlInt: {
-        DumpPrimitive("IntegerToSqlInteger");
+        DumpPrimitive("IntToSqlInt");
         break;
       }
       case CastKind::IntToSqlDecimal: {
-        DumpPrimitive("IntegerToSqlDecimal");
+        DumpPrimitive("IntToSqlDecimal");
         break;
       }
       case CastKind::SqlBoolToBool: {
-        DumpPrimitive("SqlBooleanToBoolean");
+        DumpPrimitive("SqlBoolToBool");
         break;
       }
       case CastKind::IntegralCast: {
         DumpPrimitive("IntegralCast");
+        break;
+      }
+      case CastKind::IntToFloat: {
+        DumpPrimitive("IntToFloat");
+        break;
+      }
+      case CastKind::FloatToInt: {
+        DumpPrimitive("FloatToInt");
+        break;
+      }
+      case CastKind::BitCast: {
+        DumpPrimitive("BitCast");
         break;
       }
     }

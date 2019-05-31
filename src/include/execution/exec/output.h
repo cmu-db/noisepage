@@ -53,10 +53,14 @@ class FinalSchema {
   const std::unordered_map<u32, u32> offsets_;
 };
 
-/// A class that buffers the output and makes a callback for every batch.
+/**
+ * A class that buffers the output and makes a callback for every batch.
+ */
 class OutputBuffer {
  public:
-  /// Batch size
+  /**
+   * Batch size
+   */
   static constexpr uint32_t batch_size_ = 32;
 
   /**
@@ -94,7 +98,9 @@ class OutputBuffer {
    */
   void Finalize();
 
-  /// Destructor
+  /**
+   * Destructor
+   */
   ~OutputBuffer();
 
  private:

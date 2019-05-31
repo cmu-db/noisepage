@@ -20,6 +20,17 @@ LocalInfo::LocalInfo(std::string name, ast::Type *type, u32 offset, LocalInfo::K
 // Function Information
 // ---------------------------------------------------------
 
+FunctionInfo::FunctionInfo(FunctionId id, std::string name, ast::FunctionType *func_type)
+    : id_(id),
+      name_(std::move(name)),
+      func_type_(func_type),
+      bytecode_range_(std::make_pair(0, 0)),
+      frame_size_(0),
+      params_start_pos_(0),
+      params_size_(0),
+      num_params_(0),
+      num_temps_(0) {}
+
 LocalVar FunctionInfo::NewLocal(ast::Type *type, const std::string &name, LocalInfo::Kind kind) {
   TPL_ASSERT(!name.empty(), "Local name cannot be empty");
 
@@ -50,6 +61,13 @@ LocalVar FunctionInfo::NewLocal(ast::Type *type, const std::string &name) {
   }
 
   return NewLocal(type, name, LocalInfo::Kind::Var);
+}
+
+LocalVar FunctionInfo::GetReturnValueLocal() const {
+  // This invocation only makes sense if the function actually returns a value
+  TPL_ASSERT(!func_type_->return_type()->IsNilType(),
+             "Cannot lookup local slot for function that does not have return value");
+  return LocalVar(0u, LocalVar::AddressMode::Address);
 }
 
 LocalVar FunctionInfo::LookupLocal(const std::string &name) const {

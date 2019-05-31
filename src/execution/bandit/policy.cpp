@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cfloat>
+#include <chrono>  // NOLINT
 #include <cmath>
 #include <limits>
 #include <vector>
@@ -12,6 +13,9 @@
 
 namespace tpl::bandit {
 
+Policy::Policy(Kind kind)
+    : kind_(kind), generator_(std::chrono::high_resolution_clock::now().time_since_epoch().count()) {}
+
 namespace {
 
 /**
@@ -19,8 +23,8 @@ namespace {
  * maximum, then the index of a random value from that subset is returned.
  */
 u32 ChooseBestIndex(const std::vector<double> &values, std::mt19937 *generator) {
-  auto max_value = *std::max_element(values.begin(), values.end());
-  std::vector<u32> best_indices;
+  const double max_value = *std::max_element(values.begin(), values.end());
+  std::vector<u32> best_indices{};
 
   for (u32 i = 0; i < values.size(); ++i) {
     if (std::fabs(values[i] - max_value) <= std::numeric_limits<double>::epsilon()) {
@@ -62,7 +66,7 @@ u32 UCBPolicy::NextAction(Agent *agent) {
 
   for (u32 i = 0; i < action_attempts.size(); ++i) {
     double exploration = action_attempts[i] == 0 ? MAX_EXPLORATION_VALUE
-                                                 : std::sqrt((std::log(agent->timestep() + 1) / action_attempts[i]));
+                                                 : std::sqrt((std::log(agent->time_step() + 1) / action_attempts[i]));
     values[i] = value_estimates[i] + c_ * exploration;
   }
 

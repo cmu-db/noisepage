@@ -3,14 +3,18 @@
 #include <unordered_map>
 #include <utility>
 
+#include "execution/exec/execution_context.h"
 #include "execution/sql/aggregation_hash_table.h"
 #include "execution/sql/aggregators.h"
+#include "execution/sql/filter_manager.h"
 #include "execution/sql/hash_table_entry.h"
 #include "execution/sql/index_iterator.h"
 #include "execution/sql/join_hash_table.h"
+#include "execution/sql/join_hash_table_vector_probe.h"
 #include "execution/sql/projected_columns_iterator.h"
 #include "execution/sql/sorter.h"
 #include "execution/sql/table_vector_iterator.h"
+#include "execution/sql/thread_state_container.h"
 #include "execution/sql/value.h"
 
 namespace tpl::ast {
@@ -21,8 +25,8 @@ namespace tpl::ast {
 
 // TODO(pmenon): Fix me
 bool Type::IsArithmetic() const {
-  return IsIntegerType() || IsSpecificBuiltin(BuiltinType::Integer) || IsFloatType() ||
-         IsSpecificBuiltin(BuiltinType::Decimal);
+  return IsIntegerType() || IsFloatType() || IsSpecificBuiltin(BuiltinType::Integer) ||
+         IsSpecificBuiltin(BuiltinType::Real) || IsSpecificBuiltin(BuiltinType::Decimal);
 }
 
 // ---------------------------------------------------------

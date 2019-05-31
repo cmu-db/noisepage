@@ -5,7 +5,6 @@
 #include <utility>
 
 #include "execution/util/memory.h"
-
 #include "loggers/execution_logger.h"
 
 namespace tpl::util {
@@ -19,7 +18,7 @@ Region::Region(std::string name) noexcept
       position_(0),
       end_(0) {}
 
-Region::~Region() { FreeAll(); }  // NOLINT
+Region::~Region() { FreeAll(); }  // NOLINT (bugprone-exception-escape)
 
 void *Region::Allocate(std::size_t size, std::size_t alignment) {
   TPL_ASSERT(alignment > 0, "Alignment must be greater than 0");
@@ -58,7 +57,7 @@ void Region::FreeAll() {
   Chunk *head = head_;
   while (head != nullptr) {
     Chunk *next = head->next;
-    util::FreeHuge(head, head->size);
+    std::free(static_cast<void *>(head));
     head = next;
   }
 
@@ -93,7 +92,7 @@ uintptr_t Region::Expand(std::size_t requested) {
 
   // Allocate a new chunk
   EXECUTION_LOG_TRACE("Allocating chunk of size {} KB", static_cast<double>(new_size) / 1024.0);
-  auto *new_chunk = static_cast<Chunk *>(util::MallocHuge(new_size));
+  auto *new_chunk = static_cast<Chunk *>(std::malloc(new_size));
   new_chunk->Init(head_, new_size);
 
   // Link it in

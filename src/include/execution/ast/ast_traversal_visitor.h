@@ -150,7 +150,7 @@ inline void AstTraversalVisitor<Subclass>::VisitUnaryOpExpr(UnaryOpExpr *node) {
 template <typename Subclass>
 inline void AstTraversalVisitor<Subclass>::VisitReturnStmt(ReturnStmt *node) {
   PROCESS_NODE(node);
-  if (node->HasExpressionValue()) {
+  if (node->ret() != nullptr) {
     RECURSE(Visit(node->ret()));
   }
 }

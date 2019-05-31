@@ -42,17 +42,17 @@ struct BoolVal : public Val {
   explicit BoolVal(bool val) noexcept : Val(false), val(val) {}
 
   /**
-  * Convert this SQL boolean into a primitive boolean. Thanks to SQL's
-  * three-valued logic, we implement the following truth table:
-  *
-  *   Value | NULL? | Output
-  * +-------+-------+--------+
-  * | false | false | false  |
-  * | false | true  | false  |
-  * | true  | false | true   |
-  * | true  | true  | false  |
-  * +-------+-------+--------+
-  *
+   * Convert this SQL boolean into a primitive boolean. Thanks to SQL's
+   * three-valued logic, we implement the following truth table:
+   *
+   *   Value | NULL? | Output
+   * +-------+-------+--------+
+   * | false | false | false  |
+   * | false | true  | false  |
+   * | true  | false | true   |
+   * | true  | true  | false  |
+   * +-------+-------+--------+
+   *
    * @return converted value
    */
   bool ForceTruth() const noexcept { return !is_null && val; }

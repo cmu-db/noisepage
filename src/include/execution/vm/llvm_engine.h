@@ -20,7 +20,9 @@ class BytecodeModule;
 class FunctionInfo;
 class LocalVar;
 
-/// The interface to LLVM to JIT compile TPL bytecode
+/**
+ * The interface to LLVM to JIT compile TPL bytecode
+ */
 class LLVMEngine {
  public:
   // -------------------------------------------------------
@@ -38,25 +40,31 @@ class LLVMEngine {
   // Public API
   // -------------------------------------------------------
 
-  /// Initialize the whole LLVM subsystem
+  /**
+   * Initialize the whole LLVM subsystem
+   */
   static void Initialize();
 
-  /// Shutdown the whole LLVM subsystem
+  /**
+   * Shutdown the whole LLVM subsystem
+   */
   static void Shutdown();
 
   /**
    * JIT compile a TPL bytecode module to native code
    * @param module The module to compile
-   * @param options compiler options
+   * @param options The compiler options
    * @return The JIT compiled module
    */
-  static std::unique_ptr<CompiledModule> Compile(const vm::BytecodeModule &module, const CompilerOptions &options = {});
+  static std::unique_ptr<CompiledModule> Compile(const BytecodeModule &module, const CompilerOptions &options = {});
 
   // -------------------------------------------------------
   // Compiler Options
   // -------------------------------------------------------
 
-  /// Options to provide when compiling
+  /**
+   * Options to provide when compiling
+   */
   class CompilerOptions {
    public:
     /**
@@ -125,34 +133,51 @@ class LLVMEngine {
   // Compiled Module
   // -------------------------------------------------------
 
-  /// A compiled module corresponds to a single TPL bytecode module that has
-  /// been JIT compiled into native code.
+  /**
+   * A compiled module corresponds to a single TPL bytecode module that has
+   * been JIT compiled into native code.
+   */
   class CompiledModule {
    public:
-    /// Constructor
+    /**
+     * Construct a module without an in-memory module. Users must call @em
+     * Load() to load in a pre-compiled shared object library for this compiled
+     * module before this module's functions can be invoked.
+     */
     CompiledModule() : CompiledModule(nullptr) {}
 
     /**
-     * Constructor with an already compiled object code
-     * @param object_code compiled object code.
+     * Construct a compiled module using the provided shared object file.
+     * @param object_code The object file containing code for this module.
      */
     explicit CompiledModule(std::unique_ptr<llvm::MemoryBuffer> object_code);
 
-    /// No copying or moving this class
+    /**
+     * This class cannot be copied or moved
+     */
     DISALLOW_COPY_AND_MOVE(CompiledModule);
 
-    /// Destroy
+    /**
+     * Destroy
+     */
     ~CompiledModule();
 
-    /// Get a pointer to the jitted function in this module with name \a name
-    /// \return A function pointer if a function exists with name \a name. If no
-    ///         function exists, returns null.
+    /**
+     * Get a pointer to the JIT-ed function in this module with name @em name.
+     * @return A function pointer if a function with the provided name exists.
+     *         If no such function exists, returns null.
+     */
     void *GetFunctionPointer(const std::string &name) const;
 
-    /// Load the given module \a module into memory
+    /**
+     * Load the given module @em module into memory. If this module has already
+     * been loaded, it will not be reloaded.
+     */
     void Load(const BytecodeModule &module);
 
-    /// Has this module been loaded into memory and linked?
+    /**
+     * Has this module been loaded into memory and linked?
+     */
     bool is_loaded() const { return loaded_; }
 
    private:

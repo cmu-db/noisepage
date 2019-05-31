@@ -377,3 +377,6 @@ set(TERRIER_BENCHMARK_LINK_LIBS
 add_subdirectory(src)
 add_subdirectory(test)
 add_subdirectory(benchmark)
+
+# xxHash (for TPL)
+add_subdirectory(third_party/xxHash/cmake_unofficial)

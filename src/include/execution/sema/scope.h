@@ -19,7 +19,9 @@ namespace sema {
  */
 class Scope {
  public:
-  /// The kind of scope
+  /**
+   * The kind of scope
+   */
   enum class Kind : u8 { Block, Function, File, Loop };
 
   /**
@@ -40,9 +42,15 @@ class Scope {
     decls_.clear();
   }
 
-  /// Declare an element with the given name and type in this scope. Return true
-  /// if successful and false if an element with the given name already exits in
-  /// the local scope.
+  /**
+   * Declare an element with the given name and type in this scope. Return true
+   * if successful and false if an element with the given name already exits in
+   * the local scope.
+
+   * @param decl_name element to declare
+   * @param type type of the element
+   * @return true iff declaration is successful
+   */
   bool Declare(ast::Identifier decl_name, ast::Type *type);
 
   /**

@@ -6,7 +6,7 @@
 #include "llvm/Support/Casting.h"
 
 #include "execution/ast/identifier.h"
-#include "execution/compiler/compiler_defs.h"
+// #include "execution/compiler/compiler_defs.h"
 #include "execution/parsing/token.h"
 #include "execution/util/common.h"
 #include "execution/util/region.h"
@@ -418,6 +418,7 @@ class VariableDecl : public Decl {
  private:
   friend class sema::Sema;
   void set_initial(ast::Expr *initial) { init_ = initial; }
+
  private:
   Expr *init_;
 };
@@ -685,7 +686,6 @@ class ForInStmt : public IterationStmt {
    * @param pos source position
    * @param target variable in which to store rows
    * @param iter container over which to iterate
-   * @param attributes mapping of attributes
    * @param body loop body
    */
   ForInStmt(const SourcePosition &pos, Expr *target, Expr *iter, BlockStmt *body)
@@ -700,12 +700,6 @@ class ForInStmt : public IterationStmt {
    * @return container over which to iterate
    */
   Expr *iter() const { return iter_; }
-
-
-  /**
-   * @return whether the attributes contain an oid
-   */
-  bool GetHasOid() const { return attributes() != nullptr && attributes()->Contains(ast::Identifier(OID_KEY)); }
 
   /**
    * Checks whether the given node is an ForInStmt.
@@ -792,11 +786,6 @@ class ReturnStmt : public Stmt {
   Expr *ret() { return ret_; }
 
   /**
-   * @return whether something is returned.
-   */
-  bool HasExpressionValue() const { return ret_ != nullptr; }
-
-  /**
    * Checks whether the given node is an ReturnStmt.
    * @param node node to check
    * @return true iff given node is an ReturnStmt.
@@ -850,6 +839,21 @@ class Expr : public AstNode {
    * @param type type of the expression
    */
   void set_type(Type *type) { type_ = type; }
+
+  /**
+   * @return Is this a nil literal?
+   */
+  bool IsNilLiteral() const;
+
+  /**
+   * @return Is this a string literal?
+   */
+  bool IsStringLiteral() const;
+
+  /**
+   * @return Is this an integer literal
+   */
+  bool IsIntegerLiteral() const;
 
   /**
    * Checks whether the given node is an Expr.
@@ -958,12 +962,20 @@ class CallExpr : public Expr {
   enum class CallKind : u8 { Regular, Builtin };
 
   /**
-   * Constructor
-   * @param func function being call
+   * Constructor for regular calls
+   * @param func function being called
    * @param args arguments to the function
    */
-  CallExpr(Expr *func, util::RegionVector<Expr *> &&args)
-      : Expr(Kind::CallExpr, func->position()), func_(func), args_(std::move(args)), call_kind_(CallKind::Regular) {}
+  CallExpr(Expr *func, util::RegionVector<Expr *> &&args) : CallExpr(func, std::move(args), CallKind::Regular) {}
+
+  /**
+   * Constructor for arbitrary calls
+   * @param func function being called
+   * @param args arguments to the function
+   * @param call_kind kind of call
+   */
+  CallExpr(Expr *func, util::RegionVector<Expr *> &&args, CallKind call_kind)
+      : Expr(Kind::CallExpr, func->position()), func_(func), args_(std::move(args)), call_kind_(call_kind) {}
 
   /**
    * @return the name of the function this node is calling
@@ -1051,6 +1063,14 @@ class ComparisonOpExpr : public Expr {
    * @return the rhs
    */
   Expr *right() { return right_; }
+
+  /**
+   * Is this a comparison between an expression and a nil literal?
+   * @param[out] result If this is a literal nil comparison, result will point
+   *                    to the expression we're checking nil against
+   * @return True if this is a nil comparison; false otherwise
+   */
+  bool IsLiteralCompareNil(Expr **result) const;
 
   /**
    * Checks whether the given node is an ComparisonOpExpr.
@@ -1186,6 +1206,15 @@ enum class CastKind : u8 {
   // numbers), excluding to boolean! Boils down to a bitcast, a truncation,
   // a sign-extension, or a zero-extension. The same as in C/C++.
   IntegralCast,
+
+  // An integer to float cast. Only allows widening.
+  IntToFloat,
+
+  // A float to integer cast. Only allows widening.
+  FloatToInt,
+
+  // A simple bit cast reinterpretation
+  BitCast,
 };
 
 /**
@@ -1307,11 +1336,10 @@ class LitExpr : public Expr {
   /**
    * String constructor
    * @param pos source possition
-   * @param lit_kind kind of the literal (always String?)
    * @param str string value
    */
-  LitExpr(const SourcePosition &pos, LitExpr::LitKind lit_kind, Identifier str)
-      : Expr(Kind::LitExpr, pos), lit_kind_(lit_kind), str_(str) {}
+  LitExpr(const SourcePosition &pos, Identifier str)
+      : Expr(Kind::LitExpr, pos), lit_kind_(LitKind::String), str_(str) {}
 
   /**
    * Integer constructor
@@ -1331,6 +1359,31 @@ class LitExpr : public Expr {
    * @return the literal kind
    */
   LitExpr::LitKind literal_kind() const { return lit_kind_; }
+
+  /**
+   * @return Is this a nil literal?
+   */
+  bool IsNilLitExpr() const { return lit_kind_ == LitKind::Nil; }
+
+  /**
+   * @return Is this a bool literal?
+   */
+  bool IsBoolLitExpr() const { return lit_kind_ == LitKind::Boolean; }
+
+  /**
+   * @return Is this an int literal?
+   */
+  bool IsIntLitExpr() const { return lit_kind_ == LitKind::Int; }
+
+  /**
+   * @return Is this a float literal?
+   */
+  bool IsFloatLitExpr() const { return lit_kind_ == LitKind::Float; }
+
+  /**
+   * @return Is this a string literal?
+   */
+  bool IsStringLitExpr() const { return lit_kind_ == LitKind::String; }
 
   /**
    * @return the boolean value

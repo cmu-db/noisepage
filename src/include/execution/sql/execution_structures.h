@@ -84,9 +84,13 @@ class ExecutionStructures {
   std::unique_ptr<GarbageCollector> gc_;
 };
 
-/// Keep small so that nested loop join won't run out of memory.
-/// Size of the first table
+// Keep small so that nested loop join won't run out of memory.
+/**
+ * Size of the first table
+ */
 constexpr u32 test1_size = 10000;
-/// Size of the second table
+/**
+ * Size of the second table
+ */
 constexpr u32 test2_size = 100;
 }  // namespace tpl::sql

@@ -55,17 +55,26 @@ class Context;
   /* Non-primitive builtins */                                           \
   NON_PRIM(AggregationHashTable, tpl::sql::AggregationHashTable)         \
   NON_PRIM(BloomFilter, tpl::sql::BloomFilter)                           \
-  NON_PRIM(CountAggregate, tpl::sql::CountAggregate)                     \
-  NON_PRIM(CountStarAggregate, tpl::sql::CountStarAggregate)             \
+  NON_PRIM(ExecutionContext, tpl::exec::ExecutionContext)                \
+  NON_PRIM(FilterManager, tpl::sql::FilterManager)                       \
   NON_PRIM(HashTableEntry, tpl::sql::HashTableEntry)                     \
-  NON_PRIM(IntegerSumAggregate, tpl::sql::IntegerSumAggregate)           \
   NON_PRIM(JoinHashTable, tpl::sql::JoinHashTable)                       \
-  NON_PRIM(RegionAlloc, tpl::util::Region)                               \
+  NON_PRIM(JoinHashTableVectorProbe, tpl::sql::JoinHashTableVectorProbe) \
+  NON_PRIM(MemoryPool, tpl::sql::MemoryPool)                             \
   NON_PRIM(Sorter, tpl::sql::Sorter)                                     \
   NON_PRIM(SorterIterator, tpl::sql::SorterIterator)                     \
   NON_PRIM(TableVectorIterator, tpl::sql::TableVectorIterator)           \
+  NON_PRIM(ThreadStateContainer, tpl::sql::ThreadStateContainer)         \
   NON_PRIM(ProjectedColumnsIterator, tpl::sql::ProjectedColumnsIterator) \
   NON_PRIM(IndexIterator, tpl::sql::IndexIterator)                       \
+                                                                         \
+  /* SQL Aggregate types (if you add, remember to update BuiltinType) */ \
+  NON_PRIM(CountAggregate, tpl::sql::CountAggregate)                     \
+  NON_PRIM(CountStarAggregate, tpl::sql::CountStarAggregate)             \
+  NON_PRIM(IntegerAvgAggregate, tpl::sql::IntegerAvgAggregate)           \
+  NON_PRIM(IntegerMaxAggregate, tpl::sql::IntegerMaxAggregate)           \
+  NON_PRIM(IntegerMinAggregate, tpl::sql::IntegerMinAggregate)           \
+  NON_PRIM(IntegerSumAggregate, tpl::sql::IntegerSumAggregate)           \
                                                                          \
   /* Non-primitive SQL Runtime Values */                                 \
   SQL(Boolean, tpl::sql::BoolVal)                                        \
@@ -183,7 +192,7 @@ class Type : public util::RegionObject {
    * }
    * @endcode
    *
-   *  * @tparam T type to cast to.
+   * @tparam T type to cast to.
    * @return casted pointer.
    */
   template <typename T>
@@ -249,6 +258,18 @@ class Type : public util::RegionObject {
   bool IsFloatType() const;
 
   /**
+   * Checks whether this is a sql value type
+   * @return true iff this is a sql value type.
+   */
+  bool IsSqlValueType() const;
+
+  /**
+   * Checks whether this is a sql aggregator type
+   * @return true iff this is a sql aggregator type.
+   */
+  bool IsSqlAggregatorType() const;
+
+  /**
    * @return a type that is a pointer to the current type
    */
   PointerType *PointerTo();
@@ -293,7 +314,7 @@ class Type : public util::RegionObject {
 };
 
 /**
- * A builtin type
+ * A builtin type (int32, float32, Integer, JoinHashTable etc.)
  */
 class BuiltinType : public Type {
  public:
@@ -345,6 +366,16 @@ class BuiltinType : public Type {
    * @return Is this builtin a primitive floating point number?
    */
   bool is_floating_point() const { return kFloatingPointFlags[static_cast<u16>(kind_)]; }
+
+  /**
+   * Is this type a SQL value type?
+   */
+  bool is_sql_value() const { return Kind::Boolean <= kind() && kind() <= Kind::Timestamp; }
+
+  /**
+   * Is this type a SQL aggregator type? IntegerSumAggregate, CountAggregate ...
+   */
+  bool is_sql_aggregator_type() const { return Kind::CountAggregate <= kind() && kind() <= Kind::IntegerSumAggregate; }
 
   /**
    * @return the kind of this builtin
@@ -457,6 +488,16 @@ class ArrayType : public Type {
   Type *element_type() const { return elem_type_; }
 
   /**
+   * @return whether the length is known
+   */
+  bool HasKnownLength() const { return length_ != 0; }
+
+  /**
+   * @return whether the length is unknown
+   */
+  bool HasUnknownLength() const { return !HasKnownLength(); }
+
+  /**
    * Construction
    * @param length of the array
    * @param elem_type element type
@@ -470,14 +511,10 @@ class ArrayType : public Type {
   static bool classof(const Type *type) { return type->type_id() == TypeId::ArrayType; }
 
  private:
-  /**
-   * Private constructor
-   * @param length of the array
-   * @param elem_type element type
-   */
+  // Private constructor
   explicit ArrayType(u64 length, Type *elem_type)
-      : Type(elem_type->context(), static_cast<u32>(elem_type->size() * length), elem_type->alignment(),
-             TypeId::ArrayType),
+      : Type(elem_type->context(), (length == 0 ? sizeof(u8 *) : elem_type->size() * static_cast<u32>(length)),
+             (length == 0 ? alignof(u8 *) : elem_type->alignment()), TypeId::ArrayType),
         length_(length),
         elem_type_(elem_type) {}
 
@@ -639,6 +676,7 @@ class StructType : public Type {
   bool IsLayoutIdentical(const StructType &other) const { return (this == &other || fields() == other.fields()); }
 
   /**
+   * Note: fields cannot be empty!
    * Static constructor
    * @param ctx ast context
    * @param fields list of types
@@ -701,6 +739,20 @@ inline bool Type::IsIntegerType() const {
 inline bool Type::IsFloatType() const {
   if (auto *builtin_type = SafeAs<BuiltinType>()) {
     return builtin_type->is_floating_point();
+  }
+  return false;
+}
+
+inline bool Type::IsSqlValueType() const {
+  if (auto *builtin_type = SafeAs<BuiltinType>()) {
+    return builtin_type->is_sql_value();
+  }
+  return false;
+}
+
+inline bool Type::IsSqlAggregatorType() const {
+  if (auto *builtin_type = SafeAs<BuiltinType>()) {
+    return builtin_type->is_sql_aggregator_type();
   }
   return false;
 }

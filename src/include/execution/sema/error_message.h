@@ -23,16 +23,20 @@ namespace sema {
   F(DuplicateArgName, "duplicate named argument '%0' in function '%0'", (ast::Identifier))                            \
   F(DuplicateStructFieldName, "duplicate field name '%0' in struct '%1'", (ast::Identifier, ast::Identifier))         \
   F(AssignmentUsedAsValue, "assignment '%0' = '%1' used as value", (ast::Identifier, ast::Identifier))                \
+  F(InvalidAssignment, "cannot assign type '%0' to type '%1'", (ast::Type *, ast::Type *))                            \
   F(ExpectingExpression, "expecting expression", ())                                                                  \
   F(ExpectingType, "expecting type", ())                                                                              \
   F(InvalidOperation, "invalid operation: '%0' on type '%1'", (parsing::Token::Type, ast::Type *))                    \
   F(VariableRedeclared, "'%0' redeclared in this block", (ast::Identifier))                                           \
   F(UndefinedVariable, "undefined: '%0'", (ast::Identifier))                                                          \
+  F(InvalidBuiltinFunction, "'%0' is not a known builtin function", (ast::Identifier))                                \
   F(NonFunction, "cannot call non-function '%0'", ())                                                                 \
-  F(MismatchedCallArgs, "Wrong number of arguments in call to '%0'. Expected %1, received %2.",                       \
+  F(MismatchedCallArgs, "wrong number of arguments in call to '%0': expected %1, received %2.",                       \
     (ast::Identifier, u32, u32))                                                                                      \
-  F(IncorrectCallArgType, "cannot use a '%0' as type '%1' in argument to '%2'",                                       \
-    (ast::Type *, ast::Type *, ast::Identifier))                                                                      \
+  F(IncorrectCallArgType,                                                                                             \
+    "function '%0' expects argument of type '%1' in position '%2', received "                                         \
+    "type '%3'",                                                                                                      \
+    (ast::Identifier, ast::Type *, u32, ast::Type *))                                                                 \
   F(NonBoolIfCondition, "non-bool used as if condition", ())                                                          \
   F(NonBoolForCondition, "non-bool used as for condition", ())                                                        \
   F(NonIntegerArrayLength, "non-integer literal used as array size", ())                                              \
@@ -53,53 +57,29 @@ namespace sema {
   F(NonExistingTable, "table with name '%0' does not exist", (ast::Identifier))                                       \
   F(ExpectedIdentifierForMember, "expected identifier for member expression", ())                                     \
   F(MemberObjectNotComposite, "object of member expression has type ('%0') which is not a composite", (ast::Type *))  \
-  F(FieldObjectDoesNotExist, "No field with name '%0' exists in composite type '%1'", (ast::Identifier, ast::Type *)) \
-  F(InvalidIndexOperation, "Invalid operation: type '%0' does not support indexing", (ast::Type *))                   \
-  F(InvalidArrayIndexValue, "Non-integer array index", ())                                                            \
-  F(InvalidCastToSqlInt, "Invalid cast of %0 to SQL integer", (ast::Type *))                                          \
-  F(InvalidCastToSqlDecimal, "Invalid cast of %0 to SQL decimal", (ast::Type *))                                      \
-  F(InvalidSqlCastToBool, "Invalid input to cast to native boolean: expected SQL boolean, got %0", (ast::Type *))     \
-  F(MissingReturn, "Missing return at end of function", ())                                                           \
-  F(InvalidDeclaration, "Non-declaration outside function", ())                                                       \
-  F(BadArgToFilter, "tpl_filter requires array argument, received '%0'", (ast::Type *))                               \
-  F(BadFuncToFilter,                                                                                                  \
-    "Filter function to tpl_filter expects input type '%0' and must return a "                                        \
-    "bool. Found input type '%1' and output type '%2'",                                                               \
-    (ast::Type *, ast::Type *, ast::Type *))                                                                          \
-  F(BadArgToHashTableInit,                                                                                            \
-    "Hash table initialization function expects three arguments: a pointer "                                          \
-    "to hash table, a pointer to a region, and an int32 for the entry size. "                                         \
-    "Received type '%0' in position %1",                                                                              \
-    (ast::Type *, u32))                                                                                               \
-  F(BadArgToHashTableInsert,                                                                                          \
-    "Hash table insert function expects two arguments: a pointer to hash "                                            \
-    "table and the hash value of the element to insert. Received type '%0' "                                          \
-    "in position %1",                                                                                                 \
-    (ast::Type *, u32))                                                                                               \
-  F(BadArgToHashTableBuild,                                                                                           \
-    "Hash table build function expects a pointer to a hash table. Received "                                          \
-    "type '%0'",                                                                                                      \
+  F(FieldObjectDoesNotExist, "no field with name '%0' exists in composite type '%1'", (ast::Identifier, ast::Type *)) \
+  F(InvalidIndexOperation, "invalid operation: type '%0' does not support indexing", (ast::Type *))                   \
+  F(InvalidArrayIndexValue, "non-integer array index", ())                                                            \
+  F(InvalidCastToSqlInt, "invalid cast of %0 to SQL integer", (ast::Type *))                                          \
+  F(InvalidCastToSqlDecimal, "invalid cast of %0 to SQL decimal", (ast::Type *))                                      \
+  F(InvalidSqlCastToBool, "invalid input to cast to native boolean: expected SQL boolean, got %0", (ast::Type *))     \
+  F(MissingReturn, "missing return at end of function", ())                                                           \
+  F(InvalidDeclaration, "non-declaration outside function", ())                                                       \
+  F(BadComparisonFunctionForSorter,                                                                                   \
+    "sorterInit requires a comparison function of type (*,*)->int32. "                                                \
+    "Received type '%0'",                                                                                             \
     (ast::Type *))                                                                                                    \
-  F(BadArgToRegionFunction,                                                                                           \
-    "All builtin region functions require a region pointer as the first "                                             \
-    "argument. Received type '%0'",                                                                                   \
+  F(BadArgToPtrCast,                                                                                                  \
+    "ptrCast() expects (compile-time *DestType, *T) arguments.  Received "                                            \
+    "type '%0' in position %1",                                                                                       \
+    (ast::Type *, u32))                                                                                               \
+  F(BadHashArg, "cannot hash type '%0'", (ast::Type *))                                                               \
+  F(MissingArrayLength, "missing array length (either compile-time number or '*')", ())                               \
+  F(NotASQLAggregate, "'%0' is not a SQL aggregator type", (ast::Type *))                                             \
+  F(BadParallelScanFunction,                                                                                          \
+    "parallel scan function must have type (*ExecutionContext, "                                                      \
+    "*TableVectorIterator)->nil, received '%0'",                                                                      \
     (ast::Type *))                                                                                                    \
-  F(BadArgToSorterInit,                                                                                               \
-    "sorterInit() expects (*Sorter, *Region, (*,*)->bool, u32) argument "                                             \
-    "types. Received type '%0' in position %1",                                                                       \
-    (ast::Type *, u32))                                                                                               \
-  F(BadArgToSorterInsert,                                                                                             \
-    "sorterInsert() expects (*Sorter) argument types. Received type '%0' in "                                         \
-    "position %1",                                                                                                    \
-    (ast::Type *, u32))                                                                                               \
-  F(BadArgToSorterSort,                                                                                               \
-    "sorterSort() expects (*Sorter) argument types. Received type '%0' in "                                           \
-    "position %1",                                                                                                    \
-    (ast::Type *, u32))                                                                                               \
-  F(BadArgToSorterFree,                                                                                               \
-    "sorterFree() expects (*Sorter) argument types. Received type '%0' in "                                           \
-    "position %1",                                                                                                    \
-    (ast::Type *, u32))                                                                                               \
   F(BadArgToOutputSetNull,                                                                                            \
     "outputSetNull() expects (bool) argument "                                                                        \
     "types. Received type '%0' in position %1",                                                                       \
@@ -115,10 +95,6 @@ namespace sema {
   F(BadArgToIndexIteratorFree,                                                                                        \
     "indexIteratorFree() expects (*IndexIterator) argument "                                                          \
     "types. Received type '%0' in position %1",                                                                       \
-    (ast::Type *, u32))                                                                                               \
-  F(BadArgToPtrCast,                                                                                                  \
-    "ptrCast() expects (compile-time *DestType, *T) arguments.  Received "                                            \
-    "type '%0' in position %1",                                                                                       \
     (ast::Type *, u32))
 
 /**
@@ -136,7 +112,9 @@ enum class ErrorMessageId : u16 { MESSAGE_LIST(F) };
  */
 template <typename... ArgTypes>
 struct ErrorMessage {
-  /// Id of the error message
+  /**
+   * Id of the error message
+   */
   const ErrorMessageId id;
 };
 

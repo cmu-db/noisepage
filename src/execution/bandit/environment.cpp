@@ -7,7 +7,7 @@
 #include "execution/bandit/agent.h"
 #include "execution/bandit/multi_armed_bandit.h"
 
-// extern u32 current_partition;
+u32 current_partition;
 
 namespace tpl::bandit {
 
@@ -32,7 +32,7 @@ void Environment::Run(u32 num_trials, std::vector<double> *rewards, std::vector<
 
   for (u32 i = 0; i < num_trials; ++i) {
     // TODO(siva): Hack! Fix me!
-    // current_partition = partitions[i];
+    current_partition = partitions[i];
     auto action = agent_->NextAction();
     auto reward = bandit_->ExecuteAction(action);
     agent_->Observe(reward);

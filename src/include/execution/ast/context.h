@@ -26,9 +26,9 @@ class Type;
 class Context {
  public:
   /**
-   * Constructor
-   * @param region region to use for allocation
-   * @param error_reporter reporter for errors
+   * Create a context
+   * @param region The region to allocate memory from
+   * @param error_reporter The diagnostic error reporter
    */
   Context(util::Region *region, sema::ErrorReporter *error_reporter);
 
@@ -43,17 +43,15 @@ class Context {
   ~Context();
 
   /**
-   * Return an identifier as a unique string in this context.
-   * If an identifier with the same name already exists, that name is reused.
-   * @param str name of the identifier
-   * @return an identifier with a unique string.
+   * Return @em str as a unique string in this context
+   * @param str The input string
+   * @return A uniqued (interned) version of the string in this context
    */
   Identifier GetIdentifier(llvm::StringRef str);
 
   /**
    * Is the type with name identifier a builtin type?
-   * @param identifier name of the type
-   * @return whether the type is a builtin type
+   * @return A non-null pointer to the Type if a valid builtin; null otherwise
    */
   Type *LookupBuiltinType(Identifier identifier) const;
 

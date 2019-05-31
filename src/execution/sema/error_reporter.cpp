@@ -62,7 +62,7 @@ std::string ErrorReporter::MessageWithArgs::FormatMessage() const {
   }
 
   // Need to format
-  uint32_t arg_idx = 0;
+  u32 arg_idx = 0;
   while (fmt != nullptr) {
     const char *pos = strchr(fmt, '%');
     if (pos == nullptr) {

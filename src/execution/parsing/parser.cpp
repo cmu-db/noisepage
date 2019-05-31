@@ -1,5 +1,6 @@
 #include "execution/parsing/parser.h"
 
+#include <string>
 #include <tuple>
 #include <unordered_set>
 #include <utility>
@@ -44,10 +45,13 @@ ast::Expr *Parser::MakeExpr(ast::AstNode *node) {
   if (node == nullptr) {
     return nullptr;
   }
+
   if (auto *expr_stmt = node->SafeAs<ast::ExpressionStmt>()) {
     return expr_stmt->expression();
   }
-  error_reporter_->Report(node->position(), sema::ErrorMessages::kExpectingExpression);
+
+  const auto err_msg = sema::ErrorMessages::kExpectingExpression;
+  error_reporter_->Report(node->position(), err_msg);
   return nullptr;
 }
 
@@ -212,12 +216,12 @@ class Parser::ForHeader {
 
   // Header for standard for-loops
   static ForHeader Standard(ast::Stmt *init, ast::Expr *cond, ast::Stmt *next) {
-    return ForHeader(init, cond, next, nullptr, nullptr, nullptr);
+    return ForHeader(init, cond, next, nullptr, nullptr);
   }
 
   // Header for for-in loops
-  static ForHeader ForIn(ast::Expr *target, ast::Expr *iter, ast::Attributes *attributes) {
-    return ForHeader(nullptr, nullptr, nullptr, target, iter, attributes);
+  static ForHeader ForIn(ast::Expr *target, ast::Expr *iter) {
+    return ForHeader(nullptr, nullptr, nullptr, target, iter);
   }
 
   bool IsForIn() const { return target != nullptr && iter != nullptr; }
@@ -229,17 +233,16 @@ class Parser::ForHeader {
     return {init, cond, next};
   }
 
-  std::tuple<ast::Expr *, ast::Expr *, ast::Attributes *> GetForInElements() const {
+  std::tuple<ast::Expr *, ast::Expr *> GetForInElements() const {
     TPL_ASSERT(IsForIn(), "Loop isn't a for-in");
-    return {target, iter, attributes};
+    return {target, iter};
   }
 
  private:
-  ForHeader(ast::Stmt *init, ast::Expr *cond, ast::Stmt *next, ast::Expr *target, ast::Expr *iter,
-            ast::Attributes *attributes)
-      : init(init), cond(cond), next(next), target(target), iter(iter), attributes(attributes) {}
+  ForHeader(ast::Stmt *init, ast::Expr *cond, ast::Stmt *next, ast::Expr *target, ast::Expr *iter)
+      : init(init), cond(cond), next(next), target(target), iter(iter) {}
 
-  ForHeader() : ForHeader(nullptr, nullptr, nullptr, nullptr, nullptr, nullptr) {}
+  ForHeader() : ForHeader(nullptr, nullptr, nullptr, nullptr, nullptr) {}
 
  private:
   ast::Stmt *init;
@@ -248,8 +251,6 @@ class Parser::ForHeader {
 
   ast::Expr *target;
   ast::Expr *iter;
-
-  ast::Attributes *attributes;
 };
 
 Parser::ForHeader Parser::ParseForHeader() {
@@ -277,14 +278,8 @@ Parser::ForHeader Parser::ParseForHeader() {
     TPL_ASSERT(cond != nullptr, "Must have parsed can't be null");
     ast::Expr *target = MakeExpr(cond);
     ast::Expr *iter = MakeExpr(ParseStmt());
-
-    ast::Attributes *attributes = nullptr;
-    if (Matches(Token::Type::AT)) {
-      attributes = ParseAttributes();
-    }
-
     Expect(Token::Type::RIGHT_PAREN);
-    return ForHeader::ForIn(target, iter, attributes);
+    return ForHeader::ForIn(target, iter);
   }
 
   // Parse either regular for or for-while
@@ -322,8 +317,9 @@ ast::Stmt *Parser::ParseForStmt() {
     const auto &[init, cond, next] = header.GetForElements();
     return node_factory_->NewForStmt(position, init, cond, next, body);
   }
-  const auto &[target, iter, attributes] = header.GetForInElements();
-  return node_factory_->NewForInStmt(position, target, iter, attributes, body);
+
+  const auto &[target, iter] = header.GetForInElements();
+  return node_factory_->NewForInStmt(position, target, iter, body);
 }
 
 ast::Stmt *Parser::ParseIfStmt() {
@@ -369,12 +365,12 @@ ast::Stmt *Parser::ParseReturnStmt() {
 
 ast::Expr *Parser::ParseExpr() { return ParseBinaryOpExpr(Token::LowestPrecedence() + 1); }
 
-ast::Expr *Parser::ParseBinaryOpExpr(uint32_t min_prec) {
+ast::Expr *Parser::ParseBinaryOpExpr(u32 min_prec) {
   TPL_ASSERT(min_prec > 0, "The minimum precedence cannot be 0");
 
   ast::Expr *left = ParseUnaryOpExpr();
 
-  for (uint32_t prec = Token::GetPrecedence(peek()); prec > min_prec; prec--) {
+  for (u32 prec = Token::GetPrecedence(peek()); prec > min_prec; prec--) {
     // It's possible that we reach a token that has lower precedence than the
     // minimum (e.g., EOS) so we check and early exit
     if (Token::GetPrecedence(peek()) < min_prec) {
@@ -485,7 +481,22 @@ ast::Expr *Parser::ParseOperand() {
       const bool bool_val = (Next() == Token::Type::TRUE);
       return node_factory_->NewBoolLiteral(scanner_->current_position(), bool_val);
     }
-    case Token::Type::BUILTIN_IDENTIFIER:
+    case Token::Type::BUILTIN_IDENTIFIER: {
+      // Builtin call expression
+      Next();
+      ast::Expr *func_name = node_factory_->NewIdentifierExpr(scanner_->current_position(), GetSymbol());
+      Consume(Token::Type::LEFT_PAREN);
+      util::RegionVector<ast::Expr *> args(region());
+      while (peek() != Token::Type::RIGHT_PAREN) {
+        ast::Expr *arg = ParseExpr();
+        args.push_back(arg);
+        if (peek() == Token::Type::COMMA) {
+          Next();
+        }
+      }
+      Expect(Token::Type::RIGHT_PAREN);
+      return node_factory_->NewBuiltinCallExpr(func_name, std::move(args));
+    }
     case Token::Type::IDENTIFIER: {
       Next();
       return node_factory_->NewIdentifierExpr(scanner_->current_position(), GetSymbol());
@@ -494,7 +505,7 @@ ast::Expr *Parser::ParseOperand() {
       Next();
       // Convert the number
       char *end = nullptr;
-      i32 num = static_cast<i32>(std::strtol(GetSymbol().data(), &end, 10));
+      i32 num = static_cast<u32>(std::strtol(GetSymbol().data(), &end, 10));
       return node_factory_->NewIntLiteral(scanner_->current_position(), num);
     }
     case Token::Type::FLOAT: {
@@ -578,9 +589,9 @@ ast::Expr *Parser::ParseFunctionType() {
   // FuncType = '(' { ParameterList } ')' '->' Type ;
   // ParameterList = { Ident ':' } Type ;
 
-  Consume(Token::Type::LEFT_PAREN);
-
   const SourcePosition &position = scanner_->current_position();
+
+  Consume(Token::Type::LEFT_PAREN);
 
   util::RegionVector<ast::FieldDecl *> params(region());
   params.reserve(4);
@@ -622,9 +633,9 @@ ast::Expr *Parser::ParseFunctionType() {
 ast::Expr *Parser::ParsePointerType() {
   // PointerTypeRepr = '*' Type ;
 
-  Expect(Token::Type::STAR);
-
   const SourcePosition &position = scanner_->current_position();
+
+  Expect(Token::Type::STAR);
 
   ast::Expr *base = ParseType();
 
@@ -632,18 +643,22 @@ ast::Expr *Parser::ParsePointerType() {
 }
 
 ast::Expr *Parser::ParseArrayType() {
-  // ArrayTypeRepr = '[' [ Length ] ']' Type ;
-  // Length = Expr ;
-
-  Consume(Token::Type::LEFT_BRACKET);
+  // ArrayTypeRepr = '[' Length ']' Type ;
+  // Length = [ '*' | Expr ] ;
 
   const SourcePosition &position = scanner_->current_position();
+
+  Consume(Token::Type::LEFT_BRACKET);
 
   // If the next token doesn't match a right bracket, it means we have a length
   ast::Expr *len = nullptr;
   if (!Matches(Token::Type::RIGHT_BRACKET)) {
-    len = ParseExpr();
+    if (!Matches(Token::Type::STAR)) {
+      len = ParseExpr();
+    }
     Expect(Token::Type::RIGHT_BRACKET);
+  } else {
+    error_reporter_->Report(position, sema::ErrorMessages::kMissingArrayLength);
   }
 
   // Now the type
@@ -701,30 +716,6 @@ ast::Expr *Parser::ParseMapType() {
   ast::Expr *value_type = ParseType();
 
   return node_factory_->NewMapType(position, key_type, value_type);
-}
-
-ast::Attributes *Parser::ParseAttributes() {
-  util::RegionUnorderedMap<ast::Identifier, ast::Expr *> attrs(region());
-
-  Consume(Token::Type::LEFT_BRACKET);
-
-  while (peek() != Token::Type::RIGHT_BRACKET) {
-    // First, the attribute name
-    Expect(Token::Type::IDENTIFIER);
-    ast::Identifier attribute_name = GetSymbol();
-
-    // Then '='
-    Expect(Token::Type::EQUAL);
-
-    // Then value
-    ast::Expr *expr = ParseOperand();
-
-    attrs.emplace(attribute_name, expr);
-  }
-
-  Consume(Token::Type::RIGHT_BRACKET);
-
-  return new (region()) ast::Attributes(std::move(attrs));
 }
 
 }  // namespace tpl::parsing

@@ -1,3 +1,4 @@
+#include <tbb/task_scheduler_init.h>  // NOLINT
 #include <unistd.h>
 #include <algorithm>
 #include <csignal>
@@ -5,7 +6,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
-
+#include <utility>
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/MemoryBuffer.h"
 
@@ -17,12 +18,14 @@
 #include "execution/sema/error_reporter.h"
 #include "execution/sema/sema.h"
 #include "execution/sql/execution_structures.h"
+#include "execution/sql/memory_pool.h"
 #include "execution/tpl.h"  // NOLINT
 #include "execution/util/cpu_info.h"
 #include "execution/util/timer.h"
 #include "execution/vm/bytecode_generator.h"
 #include "execution/vm/bytecode_module.h"
 #include "execution/vm/llvm_engine.h"
+#include "execution/vm/module.h"
 #include "execution/vm/vm.h"
 
 #include "loggers/catalog_logger.h"
@@ -43,28 +46,34 @@ llvm::cl::opt<std::string> kInputFile(llvm::cl::Positional, llvm::cl::desc("<inp
 llvm::cl::opt<bool> kPrintAst("print-ast", llvm::cl::desc("Print the programs AST"), llvm::cl::cat(kTplOptionsCategory));  // NOLINT
 llvm::cl::opt<bool> kPrintTbc("print-tbc", llvm::cl::desc("Print the generated TPL Bytecode"), llvm::cl::cat(kTplOptionsCategory));  // NOLINT
 llvm::cl::opt<std::string> kOutputName("output-name", llvm::cl::desc("Print the output name"), llvm::cl::init("output1.tpl"), llvm::cl::cat(kTplOptionsCategory));  // NOLINT
+llvm::cl::opt<bool> kIsSQL("sql", llvm::cl::desc("Is the input a SQL query?"), llvm::cl::cat(kTplOptionsCategory));  // NOLINT
 // clang-format on
+
+tbb::task_scheduler_init scheduler;
 
 namespace tpl {
 
 static constexpr const char *kExitKeyword = ".exit";
 
-/// Compile the TPL source in \a source and run it in both interpreted and JIT
-/// compiled mode
-/// \param source The TPL source
-/// \param name The name of the module/program
+/**
+ * Compile the TPL source in \a source and run it in both interpreted and JIT
+ * compiled mode
+ * @param source The TPL source
+ * @param name The name of the module/program
+ */
 static void CompileAndRun(const std::string &source, const std::string &name = "tmp-tpl") {
   util::Region region("repl-ast");
   util::Region error_region("repl-error");
 
-  // Let's parse the source
+  // Let's scan the source
   sema::ErrorReporter error_reporter(&error_region);
   ast::Context context(&region, &error_reporter);
 
   parsing::Scanner scanner(source.data(), source.length());
   parsing::Parser parser(&scanner, &context);
 
-  double parse_ms = 0, typecheck_ms = 0, codegen_ms = 0, exec_ms = 0, jit_ms = 0;
+  double parse_ms = 0.0, typecheck_ms = 0.0, codegen_ms = 0.0, interp_exec_ms = 0.0, adaptive_exec_ms = 0.0,
+         jit_exec_ms = 0.0;
 
   // Make Execution Context
   auto exec = sql::ExecutionStructures::Instance();
@@ -74,7 +83,10 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   exec::OutputPrinter printer(*final);
   auto exec_context = std::make_shared<exec::ExecutionContext>(txn, printer, final);
 
+  //
   // Parse
+  //
+
   ast::AstNode *root;
   {
     util::ScopedTimer<std::milli> timer(&parse_ms);
@@ -87,7 +99,10 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
     return;
   }
 
+  //
   // Type check
+  //
+
   {
     util::ScopedTimer<std::milli> timer(&typecheck_ms);
     sema::Sema type_check(&context);
@@ -105,58 +120,120 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
     ast::AstDump::Dump(root);
   }
 
-  // NOTE: Commented to just check ast generation.
+  //
+  // TBC generation
+  //
 
-  // Codegen
-  std::unique_ptr<vm::BytecodeModule> module;
+  std::unique_ptr<vm::BytecodeModule> bytecode_module;
   {
     util::ScopedTimer<std::milli> timer(&codegen_ms);
-    module = vm::BytecodeGenerator::Compile(root, name, exec_context);
+    bytecode_module = vm::BytecodeGenerator::Compile(root, name);
   }
 
   // Dump Bytecode
   if (kPrintTbc) {
-    module->PrettyPrint(std::cout);
+    bytecode_module->PrettyPrint(&std::cout);
   }
 
+  auto module = std::make_unique<vm::Module>(std::move(bytecode_module));
+
+  //
   // Interpret
+  //
+
   {
-    util::ScopedTimer<std::milli> timer(&exec_ms);
+    util::ScopedTimer<std::milli> timer(&interp_exec_ms);
 
-    std::function<u32()> main_func;
-    if (!module->GetFunction("main", vm::ExecutionMode::Interpret, &main_func)) {
-      EXECUTION_LOG_ERROR("No main() entry function found with signature ()->int32");
-      return;
+    if (kIsSQL) {
+      std::function<u32(exec::ExecutionContext *)> main;
+      if (!module->GetFunction("main", vm::ExecutionMode::Interpret, &main)) {
+        EXECUTION_LOG_ERROR(
+            "Missing 'main' entry function with signature "
+            "(*ExecutionContext)->int32");
+        return;
+      }
+      auto memory = std::make_unique<sql::MemoryPool>(nullptr);
+      exec_context->SetMemoryPool(std::move(memory));
+      EXECUTION_LOG_INFO("VM main() returned: {}", main(exec_context.get()));
+    } else {
+      std::function<u32()> main;
+      if (!module->GetFunction("main", vm::ExecutionMode::Interpret, &main)) {
+        EXECUTION_LOG_ERROR("Missing 'main' entry function with signature ()->int32");
+        return;
+      }
+      EXECUTION_LOG_INFO("VM main() returned: {}", main());
     }
-
-    EXECUTION_LOG_INFO("VM main() returned: {}", main_func());
   }
 
-  // JIT
-  {
-    util::ScopedTimer<std::milli> timer(&jit_ms);
+  //
+  // Adaptive
+  //
 
-    std::function<u32()> main_func;
-    if (!module->GetFunction("main", vm::ExecutionMode::Jit, &main_func)) {
-      EXECUTION_LOG_ERROR("No main() entry function found with signature ()->int32");
-      return;
+  {
+    util::ScopedTimer<std::milli> timer(&adaptive_exec_ms);
+
+    if (kIsSQL) {
+      std::function<u32(exec::ExecutionContext *)> main;
+      if (!module->GetFunction("main", vm::ExecutionMode::Adaptive, &main)) {
+        EXECUTION_LOG_ERROR(
+            "Missing 'main' entry function with signature "
+            "(*ExecutionContext)->int32");
+        return;
+      }
+      auto memory = std::make_unique<sql::MemoryPool>(nullptr);
+      exec_context->SetMemoryPool(std::move(memory));
+      EXECUTION_LOG_INFO("ADAPTIVE main() returned: {}", main(exec_context.get()));
+    } else {
+      std::function<u32()> main;
+      if (!module->GetFunction("main", vm::ExecutionMode::Adaptive, &main)) {
+        EXECUTION_LOG_ERROR("Missing 'main' entry function with signature ()->int32");
+        return;
+      }
+      EXECUTION_LOG_INFO("ADAPTIVE main() returned: {}", main());
     }
-    EXECUTION_LOG_INFO("The JIT is currently broken");
-    EXECUTION_LOG_INFO("JIT main() returned: {}", main_func());
+  }
+
+  //
+  // JIT
+  //
+  {
+    util::ScopedTimer<std::milli> timer(&jit_exec_ms);
+
+    if (kIsSQL) {
+      std::function<u32(exec::ExecutionContext *)> main;
+      if (!module->GetFunction("main", vm::ExecutionMode::Compiled, &main)) {
+        EXECUTION_LOG_ERROR(
+            "Missing 'main' entry function with signature "
+            "(*ExecutionContext)->int32");
+        return;
+      }
+      auto memory = std::make_unique<sql::MemoryPool>(nullptr);
+      exec_context->SetMemoryPool(std::move(memory));
+      EXECUTION_LOG_INFO("JIT main() returned: {}", main(exec_context.get()));
+    } else {
+      std::function<u32()> main;
+      if (!module->GetFunction("main", vm::ExecutionMode::Compiled, &main)) {
+        EXECUTION_LOG_ERROR("Missing 'main' entry function with signature ()->int32");
+        return;
+      }
+      EXECUTION_LOG_INFO("JIT main() returned: {}", main());
+    }
   }
 
   // Dump stats
   EXECUTION_LOG_INFO(
-      "Parse: {} ms, Type-check: {} ms, Code-gen: {} ms, Exec.: {} ms, "
-      "Jit+Exec.: {} ms",
-      parse_ms, typecheck_ms, codegen_ms, exec_ms, jit_ms);
+      "Parse: {} ms, Type-check: {} ms, Code-gen: {} ms, Interp. Exec.: {} ms, "
+      "Adaptive Exec.: {} ms, Jit+Exec.: {} ms",
+      parse_ms, typecheck_ms, codegen_ms, interp_exec_ms, adaptive_exec_ms, jit_exec_ms);
   exec->GetTxnManager()->Commit(txn, [](void *) {}, nullptr);
   exec->GetLogManager()->Shutdown();
   exec->GetGC()->PerformGarbageCollection();
   exec->GetGC()->PerformGarbageCollection();
 }
 
-/// Run the TPL REPL
+/**
+ * Run the TPL REPL
+ */
 static void RunRepl() {
   while (true) {
     std::string input;
@@ -177,8 +254,10 @@ static void RunRepl() {
   }
 }
 
-/// Compile and run the TPL program in the given filename
-/// \param filename The name of the file on disk to compile
+/**
+ * Compile and run the TPL program in the given filename
+ * @param filename The name of the file on disk to compile
+ */
 static void RunFile(const std::string &filename) {
   auto file = llvm::MemoryBuffer::getFile(filename);
   if (std::error_code error = file.getError()) {
@@ -192,7 +271,9 @@ static void RunFile(const std::string &filename) {
   CompileAndRun((*file)->getBuffer().str());
 }
 
-/// Initialize all TPL subsystems
+/**
+ * Initialize all TPL subsystems
+ */
 void InitTPL() {
   tpl::CpuInfo::Instance();
 
@@ -212,11 +293,15 @@ void InitTPL() {
   EXECUTION_LOG_INFO("TPL initialized ...");
 }
 
-/// Shutdown all TPL subsystems
+/**
+ * Shutdown all TPL subsystems
+ */
 void ShutdownTPL() {
   tpl::vm::LLVMEngine::Shutdown();
 
-  EXECUTION_LOG_INFO("TPL cleanly shutdown ...");
+  scheduler.terminate();
+
+  LOG_INFO("TPL cleanly shutdown ...");
 }
 
 }  // namespace tpl
@@ -228,7 +313,7 @@ void SignalHandler(i32 sig_num) {
   }
 }
 
-int main(int argc, char **argv) {  // NOLINT
+int main(int argc, char **argv) {  // NOLINT (bugprone-exception-escape)
   // Parse options
   llvm::cl::HideUnrelatedOptions(kTplOptionsCategory);
   llvm::cl::ParseCommandLineOptions(argc, argv);

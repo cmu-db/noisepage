@@ -1,15 +1,16 @@
+
 #pragma once
 
 #include <algorithm>
+#include <memory>
 #include <utility>
+#include <vector>
 
 #include "execution/util/common.h"
 #include "execution/util/region.h"
 #include "execution/util/region_containers.h"
 
 namespace tpl::util {
-
-class ChunkedVectorRandomIterator;
 
 /**
  * A ChunkedVector is similar to STL's std::vector, but with three important
@@ -31,6 +32,7 @@ class ChunkedVectorRandomIterator;
  * into the vector apriori. In fact, when the number of insertions is unknown,
  * a chunked vector will be roughly 2x faster than a std::vector.
  */
+template <typename Alloc = std::allocator<byte>>
 class ChunkedVector {
  public:
   // clang-format off
@@ -50,80 +52,422 @@ class ChunkedVector {
   // clang-format on
 
   /**
-   * Constructor
-   * @param region region to use for allocation
-   * @param element_size size of the elements
+   * Construct a chunked vector whose elements have size @em element_size in
+   * bytes using the provided allocator.
    */
-  ChunkedVector(util::Region *region, std::size_t element_size) noexcept;
+  explicit ChunkedVector(std::size_t element_size, Alloc allocator = {}) noexcept
+      : allocator_(allocator),
+        active_chunk_idx_(0),
+        position_(nullptr),
+        end_(nullptr),
+        element_size_(element_size),
+        num_elements_(0) {
+    chunks_.reserve(4);
+  }
 
   /**
-   * Destructor
+   * Move constructor
    */
-  ~ChunkedVector() noexcept;
+  ChunkedVector(ChunkedVector &&other) noexcept
+      : allocator_(std::move(other.allocator_)), chunks_(std::move(other.chunks_)) {
+    active_chunk_idx_ = other.active_chunk_idx_;
+    other.active_chunk_idx_ = 0;
 
-  // -------------------------------------------------------
-  // Iterators
-  // -------------------------------------------------------
+    position_ = other.position_;
+    other.position_ = nullptr;
+
+    end_ = other.end_;
+    other.end_ = nullptr;
+
+    element_size_ = other.element_size_;
+    other.element_size_ = 0;
+
+    num_elements_ = other.num_elements_;
+    other.num_elements_ = 0;
+  }
 
   /**
-   * @return beginning iterator
+   * Assignment
+   * @param other source chunked vector
+   * @return this updated.
    */
-  ChunkedVectorRandomIterator begin() noexcept;
+  ChunkedVector &operator=(ChunkedVector &&other) noexcept {
+    if (this == &other) {
+      return *this;
+    }
+
+    // Free anything we're allocate so far
+    DeallocateAll();
+
+    allocator_ = std::move(other.allocator_);
+    chunks_ = std::move(other.chunks_);
+
+    active_chunk_idx_ = other.active_chunk_idx_;
+    other.active_chunk_idx_ = 0;
+
+    position_ = other.position_;
+    other.position_ = nullptr;
+
+    end_ = other.end_;
+    other.end_ = 0;
+
+    element_size_ = other.element_size_;
+    other.element_size_ = 0;
+
+    num_elements_ = other.num_elements_;
+    other.num_elements_ = 0;
+
+    return *this;
+  }
 
   /**
-   * @return ending iterator
+   * Cleanup the vector, releasing all memory back to the allocator.
    */
-  ChunkedVectorRandomIterator end() noexcept;
+  ~ChunkedVector() noexcept { DeallocateAll(); }
+
+  /**
+   * An iterator over the elements in a generic chunked-vector
+   */
+  class Iterator {
+   public:
+    // Random Iterator typedefs.
+    /**
+     * Type of the difference between two iterators
+     */
+    using difference_type = i64;
+    /**
+     * Type of the values
+     */
+    using value_type = byte *;
+    /**
+     * Iterator category: this is a random access iterator
+     */
+    using iterator_category = std::random_access_iterator_tag;
+
+    /**
+     * Type of the pointers to the elements
+     */
+    using pointer = byte **;
+
+    /**
+     * Type of the references to the elements
+     */
+    using reference = byte *&;
+
+    /**
+     * Empty Constructor
+     */
+    Iterator() noexcept = default;
+
+    /**
+     * Constructor for existing vector
+     * @param chunks_iter iterator over the chunks
+     * @param position initial position to iterator from
+     * @param element_size size of individual elements
+     */
+    Iterator(std::vector<byte *>::iterator chunks_iter, byte *position, std::size_t element_size) noexcept
+        : chunks_iter_(chunks_iter), element_size_(element_size), curr_(position) {
+      if (*chunks_iter + ChunkAllocSize(element_size) == position) {
+        ++chunks_iter_;
+        curr_ = *chunks_iter_;
+      }
+    }
+
+    /**
+     * Dereference
+     * @return the current element
+     */
+    byte *operator*() const noexcept { return curr_; }
+
+    /**
+     * In place addition
+     * @param offset offset to add to the iterator
+     * @return the (same) updated iterator
+     */
+    Iterator &operator+=(const i64 &offset) {
+      // The size (in bytes) of one chunk
+      const i64 chunk_size = ChunkedVector::ChunkAllocSize(element_size_);
+
+      // The total number of bytes between the new and current position
+      const i64 byte_offset = offset * static_cast<i64>(element_size_) + (curr_ - *chunks_iter_);
+
+      // Offset of the new chunk relative to the current chunk
+      i64 chunk_offset;
+
+      // Optimize for the common case where offset is relatively small. This
+      // reduces the number of integer divisions.
+      if (byte_offset < chunk_size && byte_offset >= 0) {
+        chunk_offset = 0;
+      } else if (byte_offset >= chunk_size && byte_offset < 2 * chunk_size) {
+        chunk_offset = 1;
+      } else if (byte_offset < 0 && byte_offset > (-chunk_size)) {
+        chunk_offset = -1;
+      } else {
+        // When offset is large, division can't be avoided. Force rounding towards
+        // negative infinity when the offset is negative.
+        chunk_offset = (byte_offset - (offset < 0 ? 1 : 0) * (chunk_size - 1)) / chunk_size;
+      }
+
+      // Update the chunk pointer
+      chunks_iter_ += chunk_offset;
+
+      // Update the pointer within the new current chunk
+      curr_ = *chunks_iter_ + byte_offset - chunk_offset * chunk_size;
+
+      // Finish
+      return *this;
+    }
+
+    /**
+     * In place subtraction
+     * @param offset offset to subtract to the iterator
+     * @return the (same) updated iterator
+     */
+    Iterator &operator-=(const i64 &offset) {
+      *this += (-offset);
+      return *this;
+    }
+
+    /**
+     * Addition
+     * @param offset to add to the iterator
+     * @return the new iterator with the added offset
+     */
+    const Iterator operator+(const i64 &offset) const {
+      Iterator copy(*this);
+      copy += offset;
+      return copy;
+    }
+
+    /**
+     * Subtraction
+     * @param offset to subtract from the iterator
+     * @return the new iterator with the subtracted offset
+     */
+    const Iterator operator-(const i64 &offset) const {
+      Iterator copy(*this);
+      copy -= offset;
+      return copy;
+    }
+
+    /**
+     * Pre-increment
+     * NOTE: This is not implemented in terms of += to optimize for the cases when
+     * the offset is known.
+     * @return the (same) updated iterator
+     */
+    Iterator &operator++() noexcept {
+      const i64 chunk_size = ChunkedVector::ChunkAllocSize(element_size_);
+      const i64 byte_offset = static_cast<i64>(element_size_) + (curr_ - *chunks_iter_);
+      // NOTE: an explicit if statement is a bit faster despite the possibility of
+      // branch misprediction.
+      if (byte_offset >= chunk_size) {
+        ++chunks_iter_;
+        curr_ = *chunks_iter_ + (byte_offset - chunk_size);
+      } else {
+        curr_ += element_size_;
+      }
+      return *this;
+    }
+
+    /**
+     * Post-increment
+     * @return the new incremented iterator
+     */
+    const Iterator operator++(int) noexcept {
+      Iterator copy(*this);
+      ++(*this);
+      return copy;
+    }
+
+    /**
+     * Pre-decrement
+     * NOTE: This is not implemented in terms of += to optimize for the cases when
+     * the offset is known.
+     * @return the (same) updated iterator
+     */
+    Iterator &operator--() noexcept {
+      const i64 chunk_size = ChunkedVector::ChunkAllocSize(element_size_);
+      const i64 byte_offset = -static_cast<i64>(element_size_) + (curr_ - *chunks_iter_);
+      // NOTE: an explicit if statement is a bit faster despite the possibility of
+      // branch misprediction.
+      if (byte_offset < 0) {
+        --chunks_iter_;
+        curr_ = *chunks_iter_ + byte_offset + chunk_size;
+      } else {
+        curr_ -= element_size_;
+      }
+      return *this;
+    }
+
+    /**
+     * Post-decrement
+     * @return the new decremented operator
+     */
+    const Iterator operator--(int) noexcept {
+      Iterator copy(*this);
+      ++(*this);
+      return copy;
+    }
+
+    /**
+     * Indexing
+     * @param idx index to access
+     * @return the element that is idx away from the current position
+     */
+    byte *operator[](const i64 &idx) const noexcept { return *(*this + idx); }
+
+    /**
+     * Equality
+     * @param that other iterator to compare to
+     * @return whether the two iterators are in the same position
+     */
+    bool operator==(const Iterator &that) const noexcept { return curr_ == that.curr_; }
+
+    /**
+     * Difference
+     * @param that other iterator to compare to
+     * @return whether the two iterators are in different positions
+     */
+    bool operator!=(const Iterator &that) const noexcept { return !(this->operator==(that)); }
+
+    /**
+     * Less than
+     * @param that other iterator to compare to
+     * @return whether the current iterator is before the other one.
+     */
+    bool operator<(const Iterator &that) const noexcept {
+      if (chunks_iter_ != that.chunks_iter_) return chunks_iter_ < that.chunks_iter_;
+      return curr_ < that.curr_;
+    }
+
+    /**
+     * Greater than
+     * @param that other iterator to compare to
+     * @return whether the current iterator is after the other one.
+     */
+    bool operator>(const Iterator &that) const noexcept { return this->operator!=(that) && !(this->operator<(that)); }
+
+    /**
+     * Less than or equal to
+     * @param that other iterator to compare to
+     * @return whether the current iterator < or == to the other one
+     */
+    bool operator<=(const Iterator &that) const noexcept { return !(this->operator>(that)); }
+
+    /**
+     * Greater than or equal to
+     * @param that other iterator to compare to
+     * @return whether the current iterator > or == to the other one
+     */
+    bool operator>=(const Iterator &that) const noexcept { return !(this->operator<(that)); }
+
+    /**
+     * Difference between two iterators
+     * @param that other iterator to subtract
+     * @return the number of elements between the two iterators
+     */
+    difference_type operator-(const Iterator &that) const noexcept {
+      const i64 chunk_size = ChunkedVector::ChunkAllocSize(element_size_);
+      const auto elem_size = static_cast<i64>(element_size_);
+
+      return ((chunks_iter_ - that.chunks_iter_) * chunk_size +
+              ((curr_ - *chunks_iter_) - (that.curr_ - *that.chunks_iter_))) /
+             elem_size;
+    }
+
+   private:
+    std::vector<byte *>::iterator chunks_iter_;
+    std::size_t element_size_;
+    byte *curr_;
+  };
+
+  /**
+   * Return an iterator pointing to the first element in this vector.
+   */
+  Iterator begin() noexcept {
+    if (empty()) {
+      return Iterator();
+    }
+    return Iterator(chunks_.begin(), chunks_[0], element_size());
+  }
+
+  /**
+   * Return an iterator pointing to the element following the last in this
+   * vector.
+   */
+  Iterator end() noexcept {
+    if (empty()) {
+      return Iterator();
+    }
+    return Iterator(chunks_.end() - 1, position_, element_size());
+  }
 
   // -------------------------------------------------------
   // Element access
   // -------------------------------------------------------
 
   /**
-   * Checked index lookup
-   * @param idx index to lookup
-   * @return element at idx or throws an out of bound exception
+   * Access the element at index @em index, with a bounds check.
    */
-  byte *at(std::size_t idx);
+  byte *at(std::size_t idx) {
+    if (idx > size()) {
+      throw std::out_of_range("Out-of-range access");
+    }
+    return (*this)[idx];
+  }
 
   /**
-   * Checked index lookup
-   * @param idx index to lookup
-   * @return element at idx or throws an out of bound exception
+   * Access the element at index @em index, with a bounds check.
    */
-  const byte *at(std::size_t idx) const;
+  const byte *at(std::size_t idx) const {
+    if (idx > size()) {
+      throw std::out_of_range("Out-of-range access");
+    }
+    return (*this)[idx];
+  }
 
   /**
-   * Unchecked index lookup
-   * @param idx index to lookup
-   * @return element at idx
+   * Access the element at index @em index, skipping all bounds checking.
    */
-  byte *operator[](std::size_t idx) noexcept;
+  byte *operator[](std::size_t idx) noexcept {
+    const std::size_t chunk_idx = idx >> kLogNumElementsPerChunk;
+    const std::size_t chunk_pos = idx & kChunkPositionMask;
+    return chunks_[chunk_idx] + (element_size() * chunk_pos);
+  }
 
   /**
-   * Unchecked index lookup
-   * @param idx index to lookup
-   * @return element at idx
+   * Access the element at index @em index, skipping all bounds checking.
    */
-  const byte *operator[](std::size_t idx) const noexcept;
+  const byte *operator[](std::size_t idx) const noexcept {
+    const std::size_t chunk_idx = idx >> kLogNumElementsPerChunk;
+    const std::size_t chunk_pos = idx & kChunkPositionMask;
+    return chunks_[chunk_idx] + (element_size() * chunk_pos);
+  }
 
   /**
-   * @return first element of the array
+   * Access the first element in the vector. Undefined if the vector is empty.
    */
-  byte *front() noexcept;
+  byte *front() noexcept {
+    TPL_ASSERT(!empty(), "Accessing front() of empty vector");
+    return chunks_[0];
+  }
 
   /**
-   * @return first element of the array
+   * Access the first element in the vector. Undefined if the vector is empty.
    */
-  const byte *front() const noexcept;
+  const byte *front() const noexcept {
+    TPL_ASSERT(!empty(), "Accessing front() of empty vector");
+    return chunks_[0];
+  }
 
   /**
-   * @return last element of the array
+   * Access the last element in the vector. Undefined if the vector is empty.
    */
   byte *back() noexcept;
 
   /**
-   * @return last element of the array
+   * Access the last element in the vector. Undefined if the vector is empty.
    */
   const byte *back() const noexcept;
 
@@ -133,62 +477,98 @@ class ChunkedVector {
 
   /**
    * Append a new entry at the end of the vector, returning a contiguous memory
-   * space where the element can be written to by the caller
-   * @return pointer to inserted area
+   * space where the element can be written to by the caller.
    */
-  byte *append() noexcept;
+  byte *append() noexcept {
+    if (position_ == end_) {
+      if (chunks_.empty() || active_chunk_idx_ == chunks_.size() - 1) {
+        AllocateChunk();
+      } else {
+        position_ = chunks_[++active_chunk_idx_];
+        end_ = position_ + ChunkAllocSize(element_size());
+      }
+    }
+
+    byte *const result = position_;
+    position_ += element_size_;
+    num_elements_++;
+    return result;
+  }
 
   /**
-   * Push an element to the end of the vector
-   * @param elem element to push
+   * Copy-construct a new element to the end of the vector.
    */
-  void push_back(const byte *elem);
+  void push_back(const byte *elem) {
+    byte *dest = append();
+    std::memcpy(dest, elem, element_size());
+  }
 
   /**
-   * Pop the last element of the vector
+   * Remove the last element from the vector.
    */
-  void pop_back();
+  void pop_back() {
+    TPL_ASSERT(!empty(), "Popping empty vector");
+    if (position_ == chunks_[active_chunk_idx_]) {
+      end_ = chunks_[--active_chunk_idx_] + ChunkAllocSize(element_size());
+      position_ = end_;
+    }
+
+    position_ -= element_size();
+    num_elements_--;
+  }
 
   // -------------------------------------------------------
   // Size/Capacity
   // -------------------------------------------------------
 
   /**
-   * @return whether the vector is empty
+   * Is this vector empty?
    */
   bool empty() const noexcept { return size() == 0; }
 
   /**
-   * @return the number of elements in the chunked vector
+   * Return the number of elements currently in the vector
    */
   std::size_t size() const noexcept { return num_elements_; }
 
   /**
-   * Given the size (in bytes) of an individual element, compute the size of
-   * each chunk in the chunked vector
-   * @return chunk size
-   */
-  static constexpr std::size_t ChunkAllocSize(std::size_t element_size) { return kNumElementsPerChunk * element_size; }
-
-  // -------------------------------------------------------
-  // Accessors
-  // -------------------------------------------------------
-
-  /**
-   * @return the size of individual elements
+   * Return the sizes of the elements (in bytes) in the vector
    */
   std::size_t element_size() const noexcept { return element_size_; }
 
+  /**
+   * Given the size (in bytes) of an individual element, compute the size of
+   * each chunk in the chunked vector
+   */
+  static constexpr std::size_t ChunkAllocSize(std::size_t element_size) { return kNumElementsPerChunk * element_size; }
+
  private:
   // Allocate a new chunk
-  void AllocateChunk();
+  void AllocateChunk() {
+    const std::size_t alloc_size = ChunkAllocSize(element_size());
+    byte *new_chunk = static_cast<byte *>(allocator_.allocate(alloc_size));
+    chunks_.push_back(new_chunk);
+    active_chunk_idx_ = chunks_.size() - 1;
+    position_ = new_chunk;
+    end_ = new_chunk + alloc_size;
+  }
+
+  void DeallocateAll() {
+    const std::size_t chunk_size = ChunkAllocSize(element_size());
+    for (auto *chunk : chunks_) {
+      allocator_.deallocate(chunk, chunk_size);
+    }
+    chunks_.clear();
+    active_chunk_idx_ = 0;
+    position_ = end_ = nullptr;
+  }
 
  private:
   // The memory allocator we use to acquire memory chunks
-  util::Region *region_;
+  Alloc allocator_;
 
   // The list of pointers to all chunks
-  util::RegionVector<byte *> chunks_;
+  std::vector<byte *> chunks_;
 
   // The current position in the last chunk and the position of the end
   std::size_t active_chunk_idx_;
@@ -201,407 +581,37 @@ class ChunkedVector {
 };
 
 // ---------------------------------------------------------
-// GenericChunkedVector Iterator
-// ---------------------------------------------------------
-
-/**
- * An iterator over the elements in a generic chunked-vector
- */
-class ChunkedVectorRandomIterator {
- public:
-  // Random Iterator typedefs.
-  /**
-   * Type of the difference between two iterators
-   */
-  using difference_type = i64;
-  /**
-   * Type of the values
-   */
-  using value_type = byte *;
-  /**
-   * Iterator category: this is a random access iterator
-   */
-  using iterator_category = std::random_access_iterator_tag;
-
-  /**
-   * Type of the pointers to the elements
-   */
-  using pointer = byte **;
-
-  /**
-   * Type of the references to the elements
-   */
-  using reference = byte *&;
-
-  /**
-   * Empty Constructor
-   */
-  ChunkedVectorRandomIterator() noexcept = default;
-
-  /**
-   * Constructor for existing vector
-   * @param chunks_iter iterator over the chunks
-   * @param position initial position to iterator from
-   * @param element_size size of individual elements
-   */
-  ChunkedVectorRandomIterator(util::RegionVector<byte *>::iterator chunks_iter, byte *position,
-                              std::size_t element_size) noexcept
-      : chunks_iter_(chunks_iter), element_size_(element_size), curr_(position) {
-    if (*chunks_iter + ChunkedVector::ChunkAllocSize(element_size) == position) {
-      ++chunks_iter_;
-      curr_ = *chunks_iter_;
-    }
-  }
-
-  /**
-   * Dereference
-   * @return the current element
-   */
-  byte *operator*() const noexcept { return curr_; }
-
-  /**
-   * In place addition
-   * @param offset offset to add to the iterator
-   * @return the (same) updated iterator
-   */
-  ChunkedVectorRandomIterator &operator+=(const i64 &offset) {
-    // The size (in bytes) of one chunk
-    const i64 chunk_size = ChunkedVector::ChunkAllocSize(element_size_);
-
-    // The total number of bytes between the new and current position
-    const i64 byte_offset = offset * static_cast<i64>(element_size_) + (curr_ - *chunks_iter_);
-
-    // Offset of the new chunk relative to the current chunk
-    i64 chunk_offset;
-
-    // Optimize for the common case where offset is relatively small. This
-    // reduces the number of integer divisions.
-    if (byte_offset < chunk_size && byte_offset >= 0) {
-      chunk_offset = 0;
-    } else if (byte_offset >= chunk_size && byte_offset < 2 * chunk_size) {
-      chunk_offset = 1;
-    } else if (byte_offset < 0 && byte_offset > (-chunk_size)) {
-      chunk_offset = -1;
-    } else {
-      // When offset is large, division can't be avoided. Force rounding towards
-      // negative infinity when the offset is negative.
-      chunk_offset = (byte_offset - (offset < 0 ? 1 : 0) * (chunk_size - 1)) / chunk_size;
-    }
-
-    // Update the chunk pointer
-    chunks_iter_ += chunk_offset;
-
-    // Update the pointer within the new current chunk
-    curr_ = *chunks_iter_ + byte_offset - chunk_offset * chunk_size;
-
-    // Finish
-    return *this;
-  }
-
-  /**
-   * In place subtraction
-   * @param offset offset to subtract to the iterator
-   * @return the (same) updated iterator
-   */
-  ChunkedVectorRandomIterator &operator-=(const i64 &offset) {
-    *this += (-offset);
-    return *this;
-  }
-
-  /**
-   * Addition
-   * @param offset to add to the iterator
-   * @return the new iterator with the added offset
-   */
-  const ChunkedVectorRandomIterator operator+(const i64 &offset) const {
-    ChunkedVectorRandomIterator copy(*this);
-    copy += offset;
-    return copy;
-  }
-
-  /**
-   * Subtraction
-   * @param offset to subtract from the iterator
-   * @return the new iterator with the subtracted offset
-   */
-  const ChunkedVectorRandomIterator operator-(const i64 &offset) const {
-    ChunkedVectorRandomIterator copy(*this);
-    copy -= offset;
-    return copy;
-  }
-
-  /**
-   * Pre-increment
-   * NOTE: This is not implemented in terms of += to optimize for the cases when
-   * the offset is known.
-   * @return the (same) updated iterator
-   */
-  ChunkedVectorRandomIterator &operator++() noexcept {
-    const i64 chunk_size = ChunkedVector::ChunkAllocSize(element_size_);
-    const i64 byte_offset = static_cast<i64>(element_size_) + (curr_ - *chunks_iter_);
-    // NOTE: an explicit if statement is a bit faster despite the possibility of
-    // branch misprediction.
-    if (byte_offset >= chunk_size) {
-      ++chunks_iter_;
-      curr_ = *chunks_iter_ + (byte_offset - chunk_size);
-    } else {
-      curr_ += element_size_;
-    }
-    return *this;
-  }
-
-  /**
-   * Post-increment
-   * @return the new incremented iterator
-   */
-  const ChunkedVectorRandomIterator operator++(int) noexcept {
-    ChunkedVectorRandomIterator copy(*this);
-    ++(*this);
-    return copy;
-  }
-
-  /**
-   * Pre-decrement
-   * NOTE: This is not implemented in terms of += to optimize for the cases when
-   * the offset is known.
-   * @return the (same) updated iterator
-   */
-  ChunkedVectorRandomIterator &operator--() noexcept {
-    const i64 chunk_size = ChunkedVector::ChunkAllocSize(element_size_);
-    const i64 byte_offset = -static_cast<i64>(element_size_) + (curr_ - *chunks_iter_);
-    // NOTE: an explicit if statement is a bit faster despite the possibility of
-    // branch misprediction.
-    if (byte_offset < 0) {
-      --chunks_iter_;
-      curr_ = *chunks_iter_ + byte_offset + chunk_size;
-    } else {
-      curr_ -= element_size_;
-    }
-    return *this;
-  }
-
-  /**
-   * Post-decrement
-   * @return the new decremented operator
-   */
-  const ChunkedVectorRandomIterator operator--(int) noexcept {
-    ChunkedVectorRandomIterator copy(*this);
-    ++(*this);
-    return copy;
-  }
-
-  /**
-   * Indexing
-   * @param idx index to access
-   * @return the element that is idx away from the current position
-   */
-  byte *operator[](const i64 &idx) const noexcept { return *(*this + idx); }
-
-  /**
-   * Equality
-   * @param that other iterator to compare to
-   * @return whether the two iterators are in the same position
-   */
-  bool operator==(const ChunkedVectorRandomIterator &that) const noexcept { return curr_ == that.curr_; }
-
-  /**
-   * Difference
-   * @param that other iterator to compare to
-   * @return whether the two iterators are in different positions
-   */
-  bool operator!=(const ChunkedVectorRandomIterator &that) const noexcept { return !(this->operator==(that)); }
-
-  /**
-   * Less than
-   * @param that other iterator to compare to
-   * @return whether the current iterator is before the other one.
-   */
-  bool operator<(const ChunkedVectorRandomIterator &that) const noexcept {
-    if (chunks_iter_ != that.chunks_iter_) return chunks_iter_ < that.chunks_iter_;
-    return curr_ < that.curr_;
-  }
-
-  /**
-   * Greater than
-   * @param that other iterator to compare to
-   * @return whether the current iterator is after the other one.
-   */
-  bool operator>(const ChunkedVectorRandomIterator &that) const noexcept {
-    return this->operator!=(that) && !(this->operator<(that));
-  }
-
-  /**
-   * Less than or equal to
-   * @param that other iterator to compare to
-   * @return whether the current iterator < or == to the other one
-   */
-  bool operator<=(const ChunkedVectorRandomIterator &that) const noexcept { return !(this->operator>(that)); }
-
-  /**
-   * Greater than or equal to
-   * @param that other iterator to compare to
-   * @return whether the current iterator > or == to the other one
-   */
-  bool operator>=(const ChunkedVectorRandomIterator &that) const noexcept { return !(this->operator<(that)); }
-
-  /**
-   * Difference between two iterators
-   * @param that other iterator to subtract
-   * @return the number of elements between the two iterators
-   */
-  difference_type operator-(const ChunkedVectorRandomIterator &that) const noexcept {
-    const i64 chunk_size = ChunkedVector::ChunkAllocSize(element_size_);
-    const auto elem_size = static_cast<i64>(element_size_);
-
-    return ((chunks_iter_ - that.chunks_iter_) * chunk_size +
-            ((curr_ - *chunks_iter_) - (that.curr_ - *that.chunks_iter_))) /
-           elem_size;
-  }
-
- private:
-  util::RegionVector<byte *>::iterator chunks_iter_;
-  std::size_t element_size_{0};
-  byte *curr_{nullptr};
-};
-
-// ---------------------------------------------------------
-// ChunkedVector implementation
-// ---------------------------------------------------------
-
-inline ChunkedVector::ChunkedVector(util::Region *region, std::size_t element_size) noexcept
-    : region_(region),
-      chunks_(region),
-      active_chunk_idx_(0),
-      position_(nullptr),
-      end_(nullptr),
-      element_size_(element_size),
-      num_elements_(0) {
-  chunks_.reserve(4);
-}
-
-inline ChunkedVector::~ChunkedVector() noexcept {
-  const std::size_t chunk_size = ChunkAllocSize(element_size());
-  for (auto *chunk : chunks_) {
-    region_->Deallocate(chunk, chunk_size);
-  }
-}
-
-inline ChunkedVectorRandomIterator ChunkedVector::begin() noexcept {
-  if (empty()) {
-    return ChunkedVectorRandomIterator();
-  }
-  return ChunkedVectorRandomIterator(chunks_.begin(), chunks_[0], element_size());
-}
-
-inline ChunkedVectorRandomIterator ChunkedVector::end() noexcept {
-  if (empty()) {
-    return ChunkedVectorRandomIterator();
-  }
-  return ChunkedVectorRandomIterator(chunks_.end() - 1, position_, element_size());
-}
-
-inline byte *ChunkedVector::at(std::size_t idx) {
-  if (idx > size()) {
-    throw std::out_of_range("Out-of-range access");
-  }
-  return (*this)[idx];
-}
-
-inline const byte *ChunkedVector::at(std::size_t idx) const {
-  if (idx > size()) {
-    throw std::out_of_range("Out-of-range access");
-  }
-  return (*this)[idx];
-}
-
-inline byte *ChunkedVector::operator[](std::size_t idx) noexcept {
-  const std::size_t chunk_idx = idx >> kLogNumElementsPerChunk;
-  const std::size_t chunk_pos = idx & kChunkPositionMask;
-  return chunks_[chunk_idx] + (element_size() * chunk_pos);
-}
-
-inline const byte *ChunkedVector::operator[](std::size_t idx) const noexcept {
-  const std::size_t chunk_idx = idx >> kLogNumElementsPerChunk;
-  const std::size_t chunk_pos = idx & kChunkPositionMask;
-  return chunks_[chunk_idx] + (element_size() * chunk_pos);
-}
-
-inline byte *ChunkedVector::front() noexcept { return chunks_[0]; }
-
-inline const byte *ChunkedVector::front() const noexcept { return chunks_[0]; }
-
-inline byte *ChunkedVector::back() noexcept { return this->operator[](size() - 1); }
-
-inline const byte *ChunkedVector::back() const noexcept { return this->operator[](size() - 1); }
-
-inline void ChunkedVector::AllocateChunk() {
-  std::size_t alloc_size = ChunkAllocSize(element_size());
-  auto new_chunk = static_cast<byte *>(region_->Allocate(alloc_size));
-  chunks_.push_back(new_chunk);
-  active_chunk_idx_ = chunks_.size() - 1;
-  position_ = new_chunk;
-  end_ = new_chunk + alloc_size;
-}
-
-inline byte *ChunkedVector::append() noexcept {
-  if (position_ == end_) {
-    if (chunks_.empty() || active_chunk_idx_ == chunks_.size() - 1) {
-      AllocateChunk();
-    } else {
-      position_ = chunks_[++active_chunk_idx_];
-      end_ = position_ + ChunkAllocSize(element_size());
-    }
-  }
-
-  byte *const result = position_;
-  position_ += element_size_;
-  num_elements_++;
-  return result;
-}
-
-inline void ChunkedVector::push_back(const byte *const elem) {
-  byte *dest = append();
-  std::memcpy(dest, elem, element_size());
-}
-
-inline void ChunkedVector::pop_back() {
-  TPL_ASSERT(!empty(), "Popping empty vector");
-  if (position_ == chunks_[active_chunk_idx_]) {
-    end_ = chunks_[--active_chunk_idx_] + ChunkAllocSize(element_size());
-    position_ = end_;
-  }
-
-  position_ -= element_size();
-  num_elements_--;
-}
-
-// ---------------------------------------------------------
 // Templated ChunkedVector
 // ---------------------------------------------------------
 
 /**
- * A typed chunked vector. We use this to make the tests easier to understand.
- * @tparam T type of the elements
+ * A typed chunked vector.
  */
-template <typename T>
+template <typename T, typename Alloc = std::allocator<T>>
 class ChunkedVectorT {
+  // Type when we rebind the given template allocator to one needed by
+  // ChunkedVector
+  using ReboundAlloc = typename std::allocator_traits<Alloc>::template rebind_alloc<byte>;
+
+  // Iterator type over the base chunked vector when templating with our rebound
+  // allocator
+  using BaseChunkedVectorIterator = typename ChunkedVector<ReboundAlloc>::Iterator;
+
  public:
   /**
-   * Constructor
-   * @param region region to use for allocation
+   * Construct a vector using the given allocator
    */
-  explicit ChunkedVectorT(util::Region *region) noexcept : vec_(region, sizeof(T)) {}
+  explicit ChunkedVectorT(Alloc allocator = {}) noexcept : vec_(sizeof(T), ReboundAlloc(allocator)) {}
 
   /**
-   * Iterator over ChunkedVector
+   * Iterator over a typed chunked vector
    */
   class Iterator {
    public:
-    // Random Iterator typedefs.
     /**
      * Type of the difference between two iterators
      */
-    using difference_type = ChunkedVectorRandomIterator::difference_type;
+    using difference_type = typename BaseChunkedVectorIterator::difference_type;
     /**
      * Type of the values
      */
@@ -623,7 +633,7 @@ class ChunkedVectorT {
      * Constructor
      * @param iter iterator over a chunked vector
      */
-    explicit Iterator(ChunkedVectorRandomIterator iter) : iter_(iter) {}
+    explicit Iterator(BaseChunkedVectorIterator iter) : iter_(iter) {}
 
     /**
      * Empty constructor
@@ -757,7 +767,7 @@ class ChunkedVectorT {
     difference_type operator-(const Iterator &that) const { return iter_ - that.iter_; }
 
    private:
-    ChunkedVectorRandomIterator iter_;
+    BaseChunkedVectorIterator iter_;
   };
 
   /**
@@ -775,50 +785,52 @@ class ChunkedVectorT {
   // -------------------------------------------------------
 
   /**
-   * Unchecked index lookup
-   * @param idx index to lookup
-   * @return element at idx
+   * Return a read-write reference to the element at index @em idx, skipping any
+   * bounds check.
    */
-  T &operator[](std::size_t idx) noexcept;
+  T &operator[](std::size_t idx) noexcept { return *reinterpret_cast<T *>(vec_[idx]); }
 
   /**
-   * Unchecked index lookup
-   * @param idx index to lookup
-   * @return element at idx
+   * Return a read-only reference to the element at index @em idx, skipping any
+   * bounds check.
    */
-  const T &operator[](std::size_t idx) const noexcept;
+  const T &operator[](std::size_t idx) const noexcept { return *reinterpret_cast<T *>(vec_[idx]); }
 
   /**
-   * @return first element of the array
+   * Return a read-write reference to the first element in this vector. Has
+   * undefined behavior when accessing an empty vector.
    */
-  T &front() noexcept;
+  T &front() noexcept { return *reinterpret_cast<T *>(vec_.front()); }
 
   /**
-   * @return first element of the array
+   * Return a read-only reference to the first element in this vector. Has
+   * undefined behavior when accessing an empty vector.
    */
-  const T &front() const noexcept;
+  const T &front() const noexcept { return *reinterpret_cast<const T *>(vec_.front()); }
 
   /**
-   * @return last element of the array
+   * Return a read-write reference to the last element in the vector. Has
+   * undefined behavior when accessing an empty vector.
    */
-  T &back() noexcept;
+  T &back() noexcept { return *reinterpret_cast<T *>(vec_.back()); }
 
   /**
-   * @return last element of the array
+   * Return a read-only reference to the last element in the vector. Has
+   * undefined behavior when accessing an empty vector.
    */
-  const T &back() const noexcept;
+  const T &back() const noexcept { return *reinterpret_cast<const T *>(vec_.back()); }
 
   // -------------------------------------------------------
   // Size/Capacity
   // -------------------------------------------------------
 
   /**
-   * @return whether the vector is empty
+   * Is this vector empty (i.e., has zero elements)?
    */
   bool empty() const noexcept { return vec_.empty(); }
 
   /**
-   * @return the number of elements in the chunked vector
+   * Return the number of elements in this vector.
    */
   std::size_t size() const noexcept { return vec_.size(); }
 
@@ -827,95 +839,43 @@ class ChunkedVectorT {
   // -------------------------------------------------------
 
   /**
-   * Emplaces an element to the end of the vector
-   * @tparam Args types of the element constructor
-   * @param args arguments to the element constructor
+   * In-place construct an element using arguments @em args and append to the
+   * end of the vector.
    */
   template <class... Args>
-  void emplace_back(Args &&... args);
+  void emplace_back(Args &&... args) {
+    T *space = reinterpret_cast<T *>(vec_.append());
+    new (space) T(std::forward<Args>(args)...);
+  }
 
   /**
-   * Push an element to the end of the vector.
-   * This copies the element.
-   * @param elem element to push
+   * Copy construct the provided element @em to the end of the vector.
    */
-  void push_back(const T &elem);
+  void push_back(const T &elem) {
+    T *space = reinterpret_cast<T *>(vec_.append());
+    new (space) T(elem);
+  }
 
   /**
-   * Push an element to the end of the vector
-   * This moves the element.
-   * @param elem element to push
+   * Move-construct the provided element @em to the end of the vector.
    */
-  void push_back(T &&elem);
+  void push_back(T &&elem) {
+    T *space = reinterpret_cast<T *>(vec_.append());
+    new (space) T(std::move(elem));
+  }
 
   /**
-   * Pop the last element of the vector
+   * Remove the last element from the vector. Undefined if the vector is empty.
    */
-  void pop_back();
+  void pop_back() {
+    TPL_ASSERT(!empty(), "Popping from an empty vector");
+    T &removed = back();
+    vec_.pop_back();
+    removed.~T();
+  }
 
  private:
   // The generic vector
-  ChunkedVector vec_;
+  ChunkedVector<ReboundAlloc> vec_;
 };
-
-// ---------------------------------------------------------
-// ChunkedVectorT Implementation
-// ---------------------------------------------------------
-
-template <typename T>
-T &ChunkedVectorT<T>::operator[](std::size_t idx) noexcept {
-  return *reinterpret_cast<T *>(vec_[idx]);
-}
-
-template <typename T>
-const T &ChunkedVectorT<T>::operator[](std::size_t idx) const noexcept {
-  return *reinterpret_cast<T *>(vec_[idx]);
-}
-
-template <typename T>
-T &ChunkedVectorT<T>::front() noexcept {
-  return *reinterpret_cast<T *>(vec_.front());
-}
-
-template <typename T>
-const T &ChunkedVectorT<T>::front() const noexcept {
-  return *reinterpret_cast<const T *>(vec_.front());
-}
-
-template <typename T>
-T &ChunkedVectorT<T>::back() noexcept {
-  return *reinterpret_cast<T *>(vec_.back());
-}
-
-template <typename T>
-const T &ChunkedVectorT<T>::back() const noexcept {
-  return *reinterpret_cast<const T *>(vec_.back());
-}
-
-template <typename T>
-template <class... Args>
-inline void ChunkedVectorT<T>::emplace_back(Args &&... args) {
-  auto *space = reinterpret_cast<T *>(vec_.append());
-  new (space) T(std::forward<Args>(args)...);
-}
-
-template <typename T>
-inline void ChunkedVectorT<T>::push_back(const T &elem) {
-  auto *space = reinterpret_cast<T *>(vec_.append());
-  new (space) T(elem);
-}
-
-template <typename T>
-inline void ChunkedVectorT<T>::push_back(T &&elem) {
-  auto *space = reinterpret_cast<T *>(vec_.append());
-  new (space) T(std::move(elem));
-}
-
-template <typename T>
-inline void ChunkedVectorT<T>::pop_back() {
-  T &removed = back();
-  vec_.pop_back();
-  removed.~T();
-}
-
 }  // namespace tpl::util

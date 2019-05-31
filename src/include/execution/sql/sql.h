@@ -4,7 +4,9 @@
 
 namespace tpl::sql {
 
-/// The possible column encodings
+/**
+ * The possible column encodings
+ */
 enum class ColumnEncoding : u8 {
   None,
   Rle,
@@ -13,7 +15,9 @@ enum class ColumnEncoding : u8 {
   StringDict,
 };
 
-/// All possible JOIN types
+/**
+ * All possible JOIN types
+ */
 enum class JoinType : u8 { Inner, Outer, Left, Right, Anti, Semi };
 
 }  // namespace tpl::sql

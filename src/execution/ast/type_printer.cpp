@@ -70,7 +70,9 @@ void TypePrinter::VisitStructType(const StructType *type) {
 
 void TypePrinter::VisitArrayType(const ArrayType *type) {
   os() << "[";
-  if (type->length() != 0) {
+  if (type->HasUnknownLength()) {
+    os() << "*";
+  } else {
     os() << type->length();
   }
   os() << "]";

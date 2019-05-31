@@ -1,6 +1,7 @@
 #include "execution/sql/bloom_filter.h"
 
 #include <limits>
+#include <vector>
 
 #include "execution/util/bit_util.h"
 #include "execution/util/simd.h"
@@ -8,22 +9,26 @@
 namespace tpl::sql {
 
 BloomFilter::BloomFilter() noexcept
-    : region_(nullptr), blocks_(nullptr), block_mask_(0), lazily_added_hashes_(nullptr) {}
+    : memory_(nullptr), blocks_(nullptr), block_mask_(0), lazily_added_hashes_(nullptr) {}
 
-BloomFilter::BloomFilter(util::Region *region)
-    : region_(region), blocks_(nullptr), block_mask_(0), lazily_added_hashes_(nullptr) {}
+BloomFilter::BloomFilter(MemoryPool *memory)
+    : memory_(memory), blocks_(nullptr), block_mask_(0), lazily_added_hashes_(nullptr) {}
 
-BloomFilter::BloomFilter(util::Region *region, u32 num_elems) : BloomFilter() { Init(region, num_elems); }
+BloomFilter::BloomFilter(MemoryPool *memory, u32 num_elems) : BloomFilter() { Init(memory, num_elems); }
 
-void BloomFilter::Init(util::Region *region, u32 num_elems) {
-  region_ = region;
-  lazily_added_hashes_ = util::RegionVector<hash_t>(region);
+BloomFilter::~BloomFilter() {
+  const auto num_bytes = GetNumBlocks() * sizeof(Block);
+  memory_->Deallocate(blocks_, num_bytes);
+}
+
+void BloomFilter::Init(MemoryPool *memory, u32 num_elems) {
+  memory_ = memory;
+  lazily_added_hashes_ = MemPoolVector<hash_t>(memory_);
 
   u64 num_bits = util::MathUtil::PowerOf2Ceil(kBitsPerElement * num_elems);
   u64 num_blocks = util::MathUtil::DivRoundUp(num_bits, sizeof(Block) * kBitsPerByte);
   u64 num_bytes = num_blocks * sizeof(Block);
-  blocks_ = reinterpret_cast<Block *>(region->Allocate(num_bytes, CACHELINE_SIZE));
-  std::memset(blocks_, 0, num_bytes);
+  blocks_ = reinterpret_cast<Block *>(memory->AllocateAligned(num_bytes, CACHELINE_SIZE, true));
 
   block_mask_ = static_cast<u32>(num_blocks - 1);
 }

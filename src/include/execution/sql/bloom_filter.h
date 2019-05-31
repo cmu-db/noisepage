@@ -1,14 +1,23 @@
 #pragma once
 
+#include <vector>
+
+#include "execution/sql/memory_pool.h"
 #include "execution/util/common.h"
 #include "execution/util/macros.h"
-#include "execution/util/region.h"
-#include "execution/util/region_containers.h"
 
 namespace tpl::sql {
 
 /**
- * Bloom Filter
+ * A SIMD-optimized blocked bloom filter. The filter is composed of a contiguous
+ * set of partitions, known as blocks. A block is 64-bytes, and thus, fits
+ * within a cache line (in most systems). A block is further partitioned into
+ * eight 32-bit chunks.
+ *
+ * Elements are inserted into the filter by selecting a block using bits from
+ * the incoming hash value, computing eight derivative hash values from the
+ * input hash, and setting a bit in each of the eight sub-partitions of the
+ * block. This process is enhanced using SIMD instructions.
  */
 class BloomFilter {
   // The set of salt values we use to produce alternative hash values
@@ -18,57 +27,91 @@ class BloomFilter {
   static constexpr const u32 kBitsPerElement = 8;
 
  public:
-  /// A block in this filter (i.e., the sizes of the bloom filter partitions)
+  /**
+   * A block in this filter (i.e., the sizes of the bloom filter partitions)
+   */
   using Block = u32[8];
 
  public:
-  /// Create an uninitialized bloom filter
+  /**
+   * Create an uninitialized bloom filter. The bloom filter cannot be used
+   * until a call to @em Init() is made.
+   */
   BloomFilter() noexcept;
 
-  /// Create an uninitialized bloom filter with the given region allocator
-  explicit BloomFilter(util::Region *region);
+  /**
+   * Create an uninitialized bloom filter with the given memory pool
+   * @param memory The allocator where this filter's memory is sourced from
+   */
+  explicit BloomFilter(MemoryPool *memory);
 
-  /// Initialize this filter with the given size
-  BloomFilter(util::Region *region, u32 num_elems);
+  /**
+   * Create and initialize this filter with the given size @em num_elems
+   * @param memory The allocator where this filter's memory is sourced from
+   * @param num_elems The expected number of elements
+   */
+  BloomFilter(MemoryPool *memory, u32 num_elems);
 
-  /// This class cannot be copied or moved
+  /**
+   * This class cannot be copied or moved
+   */
   DISALLOW_COPY_AND_MOVE(BloomFilter);
 
-  /// Initialize this BloomFilter with the given size
-  void Init(util::Region *region, u32 num_elems);
+  /**
+   * Destructor
+   */
+  ~BloomFilter();
 
-  /// Add an element to the bloom filter
+  /**
+   * Initialize this bloom filter with the given size
+   * @param memory The allocator where this filter's memory is sourced from
+   * @param num_elems The expected number of elements
+   */
+  void Init(MemoryPool *memory, u32 num_elems);
+
+  /**
+   * Add an element to the bloom filter
+   * @param hash The hash of the element to add
+   */
   void Add(hash_t hash);
 
-  /// Check if the given element is contained in the filter
-  /// \return True if the hash may be in the filter; false if definitely not
+  /**
+   * Check if the given element is contained in the filter
+   * @param hash The hash value of the element to check
+   * @return True if an element may be in the filter; false if definitely not
+   */
   bool Contains(hash_t hash) const;
 
-  /// Return the size of this Bloom Filter in bytes
+  /**
+   * Return the size of the filter in bytes
+   */
   u64 GetSizeInBytes() const { return sizeof(Block) * GetNumBlocks(); }
 
-  /// Get the number of bits this Bloom Filter has
+  /**
+   * Return the number of bits in this filter
+   */
   u64 GetSizeInBits() const { return GetSizeInBytes() * kBitsPerByte; }
 
-  /// Return the number of bits set in the Bloom Filter
+  /**
+   * Return the number of set bits in this filter
+   */
   u64 GetTotalBitsSet() const;
 
  private:
   u32 GetNumBlocks() const { return block_mask_ + 1; }
 
  private:
-  // The region allocator we use for all allocations
-  util::Region *region_{nullptr};
+  // The memory allocator we use for all allocations
+  MemoryPool *memory_;
 
-  // The blocks. Note that this isn't allocated in a region and doesn't need to
-  // be freed on destruction. That will be taken care of when the region gets
-  // destroyed
-  Block *blocks_{nullptr};
+  // The blocks array
+  Block *blocks_;
 
   // The mask used to determine which block a hash goes into
-  u32 block_mask_{0};
+  u32 block_mask_;
 
-  util::RegionVector<hash_t> lazily_added_hashes_;
+  // Temporary vector of lazily added hashes for bulk loading
+  MemPoolVector<hash_t> lazily_added_hashes_;
 };
 
 #if 0

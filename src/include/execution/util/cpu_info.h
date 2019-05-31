@@ -17,7 +17,9 @@ namespace tpl {
  */
 class CpuInfo {
  public:
-  /// CPU Features
+  /**
+   * CPU Features
+   */
   enum Feature : u8 {
     SSE_4_2 = 0,
     AVX = 1,
@@ -29,35 +31,51 @@ class CpuInfo {
   // Caches
   // -------------------------------------------------------
 
-  /// Cache levels
+  /**
+   * Cache levels
+   */
   enum CacheLevel : u8 { L1_CACHE = 0, L2_CACHE = 1, L3_CACHE = 2 };
 
-  /// Number of cache levels
+  /**
+   * Number of cache levels
+   */
   static constexpr const u32 kNumCacheLevels = CacheLevel::L3_CACHE + 1;
 
   // -------------------------------------------------------
   // Main API
   // -------------------------------------------------------
 
-  /// Singletons are bad blah blah blah
+  /**
+   * Singletons are bad blah blah blah
+   */
   static CpuInfo *Instance() {
     static CpuInfo instance;
     return &instance;
   }
 
-  /// Return the number of logical cores in the system
+  /**
+   * Return the number of logical cores in the system
+   */
   u32 GetNumCores() const noexcept { return num_cores_; }
 
-  /// Return the size of the cache at level \a level in bytes
+  /**
+   * Return the size of the cache at level \a level in bytes
+   */
   u32 GetCacheSize(CacheLevel level) const noexcept { return cache_sizes_[level]; }
 
-  /// Return the size of a cache line at level \a level
+  /**
+   * Return the size of a cache line at level \a level
+   */
   u32 GetCacheLineSize(CacheLevel level) const noexcept { return cache_line_sizes_[level]; }
 
-  /// Does the CPU have the given hardware feature?
+  /**
+   * Does the CPU have the given hardware feature?
+   */
   bool HasFeature(Feature feature) const noexcept { return hardware_flags_.Test(feature); }
 
-  /// Pretty print CPU information to a string
+  /**
+   * Pretty print CPU information to a string
+   */
   std::string PrettyPrintInfo() const;
 
  private:

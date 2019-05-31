@@ -23,18 +23,18 @@ fun tearDownState(state: *State) -> nil {
   @sorterFree(&state.sorter)
 }
 
-fun pipeline_1(state: *State) -> nil {
+fun pipeline_1(execCtx: *ExecutionContext, state: *State) -> nil {
   var sorter = &state.sorter
   var tvi: TableVectorIterator
-  for (@tableIterInit(&tvi, "test_1"); @tableIterAdvance(&tvi); ) {
-    var vpi = @tableIterGetVPI(&tvi)
-    @filterLt(vpi, "colA", 2000)
-    for (; @vpiHasNextFiltered(vpi); @vpiAdvanceFiltered(vpi)) {
+  for (@tableIterInit(&tvi, "test_1", execCtx); @tableIterAdvance(&tvi); ) {
+    var pci = @tableIterGetPCI(&tvi)
+    @filterLt(pci, "test_1.colA", 2000)
+    for (; @pciHasNextFiltered(pci); @pciAdvanceFiltered(pci)) {
       var row = @ptrCast(*Row, @sorterInsert(sorter))
-      row.a = @vpiGetInt(vpi, 0)
-      row.b = @vpiGetInt(vpi, 1)
+      row.a = @pciGetInt(pci, 0)
+      row.b = @pciGetInt(pci, 1)
     }
-    @vpiResetFiltered(vpi)
+    @pciResetFiltered(pci)
   }
   @tableIterClose(&tvi)
 }
@@ -59,7 +59,7 @@ fun main(execCtx: *ExecutionContext) -> int32 {
   setUpState(execCtx, &state)
 
   // Pipeline 1
-  pipeline_1(&state)
+  pipeline_1(execCtx, &state)
 
   // Pipeline 1 end
   @sorterSort(&state.sorter)

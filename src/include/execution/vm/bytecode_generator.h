@@ -6,17 +6,12 @@
 #include <utility>
 #include <vector>
 
-#include "catalog/catalog.h"
 #include "execution/ast/ast.h"
 #include "execution/ast/ast_visitor.h"
 #include "execution/ast/builtins.h"
-#include "execution/exec/execution_context.h"
 #include "execution/vm/bytecode_emitter.h"
 
 namespace tpl::vm {
-using terrier::catalog::Catalog;
-using terrier::catalog::SqlTableRW;
-using terrier::type::TypeId;
 
 class BytecodeModule;
 class LoopBuilder;
@@ -26,35 +21,34 @@ class LoopBuilder;
  * type-checked TPL program (as an AST) into TPL bytecode (TBC) as a
  * BytecodeModule. Once compiled, all functions defined in the module are
  * fully executable. BytecodeGenerator exposes a single public static function
- * \a Compile() that performs the heavy lifting and orchestration involved in
+ * @em Compile() that performs the heavy lifting and orchestration involved in
  * the compilation process.
  */
 class BytecodeGenerator : public ast::AstVisitor<BytecodeGenerator> {
  public:
   /**
-   * Prevent copying and moving
+   * Prevent copy or move
    */
   DISALLOW_COPY_AND_MOVE(BytecodeGenerator);
 
-  // Declare all node visit methods here
+  /**
+   * Declare all node visit methods here
+   */
 #define DECLARE_VISIT_METHOD(type) void Visit##type(ast::type *node);
   AST_NODES(DECLARE_VISIT_METHOD)
 #undef DECLARE_VISIT_METHOD
 
   /**
-   * Compiles the AST into bytecodes
-   * @param root AST root
-   * @param name name of the bytecode module
-   * @param exec_context execution context
-   * @return the compiled bytecode module
+   * Compile ast
+   * @param root root of the ast to compile
+   * @param name name of the module
+   * @return compiled module
    */
-  static std::unique_ptr<BytecodeModule> Compile(ast::AstNode *root, const std::string &name,
-                                                 std::shared_ptr<exec::ExecutionContext> exec_context);
+  static std::unique_ptr<BytecodeModule> Compile(ast::AstNode *root, const std::string &name);
 
  private:
   // Private constructor to force users to call Compile()
   BytecodeGenerator() noexcept;
-  explicit BytecodeGenerator(std::shared_ptr<exec::ExecutionContext> exec_context) noexcept;
 
   class ExpressionResultScope;
   class LValueResultScope;
@@ -64,23 +58,27 @@ class BytecodeGenerator : public ast::AstVisitor<BytecodeGenerator> {
   // Allocate a new function ID
   FunctionInfo *AllocateFunc(const std::string &func_name, ast::FunctionType *func_type);
 
-  // Dispatched from VisitForInStatement() when using tuple-at-time loops to
-  // set up the row structure used in the body of the loop
-  void VisitRowWiseIteration(ast::ForInStmt *node, LocalVar pci, LoopBuilder *table_loop, SqlTableRW *catalog_table);
-  void VisitVectorWiseIteration(ast::ForInStmt *node, LocalVar pci, LoopBuilder *table_loop);
-  void VisitIndexedForInStmt(ast::ForInStmt *node, ast::Expr *index_expr, terrier::catalog::SqlTableRW *catalog_table);
-
   // Dispatched from VisitBuiltinCallExpr() to handle the various builtin
   // functions, including filtering, hash table interaction, sorting etc.
   void VisitSqlConversionCall(ast::CallExpr *call, ast::Builtin builtin);
+  void VisitBuiltinTableIterCall(ast::CallExpr *call, ast::Builtin builtin);
+  void VisitBuiltinTableIterParallelCall(ast::CallExpr *call);
+  void VisitBuiltinPCICall(ast::CallExpr *call, ast::Builtin builtin);
+  void VisitBuiltinHashCall(ast::CallExpr *call, ast::Builtin builtin);
+  void VisitBuiltinFilterManagerCall(ast::CallExpr *call, ast::Builtin builtin);
   void VisitBuiltinFilterCall(ast::CallExpr *call, ast::Builtin builtin);
+  void VisitBuiltinAggHashTableCall(ast::CallExpr *call, ast::Builtin builtin);
+  void VisitBuiltinAggregatorCall(ast::CallExpr *call, ast::Builtin builtin);
   void VisitBuiltinJoinHashTableCall(ast::CallExpr *call, ast::Builtin builtin);
+  void VisitBuiltinSorterCall(ast::CallExpr *call, ast::Builtin builtin);
+  void VisitBuiltinSorterIterCall(ast::CallExpr *call, ast::Builtin builtin);
+  void VisitExecutionContextCall(ast::CallExpr *call, ast::Builtin builtin);
+  void VisitBuiltinThreadStateContainerCall(ast::CallExpr *call, ast::Builtin builtin);
+  void VisitBuiltinSizeOfCall(ast::CallExpr *call);
+  void VisitBuiltinTrigCall(ast::CallExpr *call, ast::Builtin builtin);
   void VisitBuiltinOutputCall(ast::CallExpr *call, ast::Builtin builtin);
   void VisitBuiltinInsertCall(ast::CallExpr *call, ast::Builtin builtin);
   void VisitBuiltinIndexIteratorCall(ast::CallExpr *call, ast::Builtin builtin);
-  void VisitBuiltinSorterCall(ast::CallExpr *call, ast::Builtin builtin);
-  void VisitBuiltinRegionCall(ast::CallExpr *call, ast::Builtin builtin);
-  void VisitBuiltinSizeOfCall(ast::CallExpr *call);
 
   // Dispatched from VisitCallExpr() for handling builtins
   void VisitBuiltinCallExpr(ast::CallExpr *call);
@@ -95,6 +93,7 @@ class BytecodeGenerator : public ast::AstVisitor<BytecodeGenerator> {
   void VisitAddressOfExpr(ast::UnaryOpExpr *op);
   void VisitDerefExpr(ast::UnaryOpExpr *op);
   void VisitArithmeticUnaryExpr(ast::UnaryOpExpr *op);
+  void VisitLogicalNotExpr(ast::UnaryOpExpr *op);
 
   // Dispatched from VisitIndexExpr() to distinguish between array and map
   // access.
@@ -153,20 +152,6 @@ class BytecodeGenerator : public ast::AstVisitor<BytecodeGenerator> {
 
   FunctionInfo *current_function() { return &functions_.back(); }
 
-  /**
-   * @param catalog_table the table being processed.
-   * @param col_idx the index of the column.
-   * @return the byte used to Get an element from this column.
-   */
-  Bytecode GetPCIColumnCode(SqlTableRW *catalog_table, u32 col_idx);
-
-  /**
-   * @param catalog_table the table being processed.
-   * @param col_idx the index of the column.
-   * @return the byte used to Get an element from this column.
-   */
-  Bytecode GetIndexIteratorColumnCode(SqlTableRW *catalog_table, u32 col_idx);
-
  private:
   // The bytecode generated during compilation
   std::vector<u8> bytecode_;
@@ -181,10 +166,7 @@ class BytecodeGenerator : public ast::AstVisitor<BytecodeGenerator> {
   BytecodeEmitter emitter_;
 
   // RAII struct to capture semantics of expression evaluation
-  ExpressionResultScope *execution_result_{nullptr};
-
-  // Execution Context
-  std::shared_ptr<exec::ExecutionContext> exec_context_{nullptr};
+  ExpressionResultScope *execution_result_;
 };
 
 }  // namespace tpl::vm
