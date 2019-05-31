@@ -5,7 +5,6 @@
 #include <utility>
 #include <vector>
 #include "catalog/catalog_defs.h"
-#include "catalog/postgres/builder.h"
 #include "common/constants.h"
 #include "common/macros.h"
 #include "common/strong_typedef.h"
@@ -14,6 +13,10 @@
 #include "type/type_util.h"
 
 namespace terrier::catalog {
+
+namespace postgres {
+  class Builder;
+}
 
 /**
  * Internal object for representing SQL table schema. Currently minimal until we add more features to the system.
