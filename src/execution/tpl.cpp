@@ -28,13 +28,14 @@
 #include "execution/vm/module.h"
 #include "execution/vm/vm.h"
 
-#include "loggers/catalog_logger.h"
-#include "loggers/execution_logger.h"
-#include "loggers/index_logger.h"
-#include "loggers/main_logger.h"
-#include "loggers/storage_logger.h"
-#include "loggers/transaction_logger.h"
-#include "loggers/type_logger.h"
+#include "loggers/loggers_util.h"
+#include <gflags/gflags.h>
+#include "settings/settings_manager.h"
+
+#define __SETTING_GFLAGS_DEFINE__      // NOLINT
+#include "settings/settings_common.h"  // NOLINT
+#include "settings/settings_defs.h"    // NOLINT
+#undef __SETTING_GFLAGS_DEFINE__       // NOLINT
 
 // ---------------------------------------------------------
 // CLI options
@@ -127,7 +128,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   std::unique_ptr<vm::BytecodeModule> bytecode_module;
   {
     util::ScopedTimer<std::milli> timer(&codegen_ms);
-    bytecode_module = vm::BytecodeGenerator::Compile(root, name);
+    bytecode_module = vm::BytecodeGenerator::Compile(root, exec_context.get(), name);
   }
 
   // Dump Bytecode
@@ -277,13 +278,7 @@ static void RunFile(const std::string &filename) {
 void InitTPL() {
   tpl::CpuInfo::Instance();
 
-  init_main_logger();
-  terrier::catalog::init_catalog_logger();
-  terrier::storage::init_storage_logger();
-  terrier::type::init_type_logger();
-  terrier::transaction::init_transaction_logger();
-  terrier::storage::init_index_logger();
-  terrier::execution::init_execution_logger();
+  terrier::LoggersUtil::Initialize(false);
 
   tpl::sql::ExecutionStructures::Instance();
   tpl::vm::LLVMEngine::Initialize();
@@ -298,6 +293,7 @@ void InitTPL() {
  */
 void ShutdownTPL() {
   tpl::vm::LLVMEngine::Shutdown();
+  terrier::LoggersUtil::ShutDown();
 
   scheduler.terminate();
 

@@ -285,10 +285,11 @@ class BytecodeEmitter {
    * @param bytecode init bytecode
    * @param iter TVI to initialize
    * @param db_oid oid of the database
+   * @param ns_oid oid of the namespace
    * @param table_oid oid of the table
    * @param exec_ctx execution context
    */
-  void EmitTableIterInit(Bytecode bytecode, LocalVar iter, u32 db_oid, u32 table_oid, LocalVar exec_ctx);
+  void EmitTableIterInit(Bytecode bytecode, LocalVar iter, u32 db_oid, u32 ns_oid, u32 table_oid, LocalVar exec_ctx);
 
   /**
    * Emit a parallel table scan
@@ -408,11 +409,12 @@ class BytecodeEmitter {
    * Emit code to insert into a table.
    * @param bytecode insertion bytecode
    * @param db_oid oid of the database
+   * @param ns_oid oid of the namespace
    * @param table_oid oid of the table
    * @param values_ptr list of values to insert
    * @param exec_ctx the execution context
    */
-  void EmitInsert(Bytecode bytecode, LocalVar db_oid, LocalVar table_oid, LocalVar values_ptr, LocalVar exec_ctx);
+  void EmitInsert(Bytecode bytecode, LocalVar db_oid, LocalVar ns_oid, LocalVar table_oid, LocalVar values_ptr, LocalVar exec_ctx);
 
  private:
   // Copy a scalar immediate value into the bytecode stream

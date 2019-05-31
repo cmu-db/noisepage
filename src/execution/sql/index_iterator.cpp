@@ -10,7 +10,7 @@ IndexIterator::IndexIterator(uint32_t index_oid, TransactionContext *txn) : txn_
   catalog_index_ = catalog->GetCatalogIndex(terrier::catalog::index_oid_t(index_oid));
   // Get table from the catalog
   auto db_table = catalog_index_->GetTable();
-  catalog_table_ = catalog->GetCatalogTable(db_table.first, db_table.second);
+  catalog_table_ = catalog->GetUserTable(txn, std::get<0>(db_table), std::get<1>(db_table), std::get<2>(db_table));
   // Initialize projected rows for the index and the table
   auto &index_pri = catalog_index_->GetMetadata()->GetProjectedRowInitializer();
   auto &row_pri = *catalog_table_->GetPRI();
@@ -54,7 +54,7 @@ void IndexIterator::ScanKey(byte *sql_key) {
   // Scan the table
   curr_index_ = 0;
   index_values_.clear();
-  catalog_index_->GetIndex()->ScanKey(*index_pr_, &index_values_);
+  catalog_index_->GetIndex()->ScanKey(*txn_, *index_pr_, &index_values_);
   // FOR DEBUGGING ONLY: print to check if output is correct.
   /*if (!index_values_.empty()) std::cout << "Scan key rows:" << std::endl;
   for (const auto &slot : index_values_) {

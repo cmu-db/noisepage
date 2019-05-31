@@ -180,8 +180,6 @@ class SqlTable {
   const catalog::table_oid_t oid_;
   catalog::Schema schema_;
 
-  catalog::Schema schema_;
-
   // Eventually we'll support adding more tables when schema changes. For now we'll always access the one DataTable.
   DataTableVersion table_;
 

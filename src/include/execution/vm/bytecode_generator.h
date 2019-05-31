@@ -10,6 +10,7 @@
 #include "execution/ast/ast_visitor.h"
 #include "execution/ast/builtins.h"
 #include "execution/vm/bytecode_emitter.h"
+#include "execution/exec/execution_context.h"
 
 namespace tpl::vm {
 
@@ -44,11 +45,13 @@ class BytecodeGenerator : public ast::AstVisitor<BytecodeGenerator> {
    * @param name name of the module
    * @return compiled module
    */
-  static std::unique_ptr<BytecodeModule> Compile(ast::AstNode *root, const std::string &name);
+  static std::unique_ptr<BytecodeModule> Compile(ast::AstNode *root, exec::ExecutionContext* exec_ctx, const std::string &name);
 
  private:
   // Private constructor to force users to call Compile()
   BytecodeGenerator() noexcept;
+  explicit BytecodeGenerator(exec::ExecutionContext* exec_ctx) noexcept;
+
 
   class ExpressionResultScope;
   class LValueResultScope;
@@ -167,6 +170,9 @@ class BytecodeGenerator : public ast::AstVisitor<BytecodeGenerator> {
 
   // RAII struct to capture semantics of expression evaluation
   ExpressionResultScope *execution_result_;
+
+  // The execution context for catalog queries
+  exec::ExecutionContext * exec_ctx_;
 };
 
 }  // namespace tpl::vm

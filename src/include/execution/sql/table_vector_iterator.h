@@ -9,6 +9,7 @@
 
 namespace tpl::sql {
 using terrier::catalog::db_oid_t;
+using terrier::catalog::namespace_oid_t;
 using terrier::catalog::table_oid_t;
 using terrier::storage::DataTable;
 using terrier::transaction::TransactionContext;
@@ -28,10 +29,11 @@ class TableVectorIterator {
   /**
    * Create a new vectorized iterator over the given table
    * @param db_oid database oid of the table
+   * @param ns_oid oid of the namespace
    * @param table_oid oid of the table
    * @param txn transaction to use when scanning the table
    */
-  explicit TableVectorIterator(u32 db_oid, u32 table_oid, TransactionContext *txn);
+  explicit TableVectorIterator(u32 db_oid, u32 ns_oid, u32 table_oid, TransactionContext *txn);
 
   /**
    * Destructor
@@ -83,16 +85,13 @@ class TableVectorIterator {
 
  private:
   const db_oid_t db_oid_;
+  const namespace_oid_t ns_oid_;
   const table_oid_t table_oid_;
   TransactionContext* txn_;
-
-  // TODO(Amadou): These are temporary variables until transactions are in
-  // And until the Init() logic is in the bytecode emitter.
-  bool null_txn_;
   bool initialized = false;
 
   // SqlTable to iterate over
-  std::shared_ptr<terrier::catalog::SqlTableRW> catalog_table_;
+  terrier::catalog::SqlTableHelper * catalog_table_;
 
   // The PCI
   ProjectedColumnsIterator pci_;

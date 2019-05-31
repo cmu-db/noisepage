@@ -107,7 +107,9 @@ class BytecodeGenerator::BytecodePositionScope {
 // Bytecode Generator begins
 // ---------------------------------------------------------
 
-BytecodeGenerator::BytecodeGenerator() noexcept : emitter_(&bytecode_), execution_result_(nullptr) {}
+BytecodeGenerator::BytecodeGenerator() noexcept : BytecodeGenerator(nullptr) {}
+BytecodeGenerator::BytecodeGenerator(exec::ExecutionContext* exec_ctx) noexcept : emitter_(&bytecode_), execution_result_(nullptr), exec_ctx_(exec_ctx) {}
+
 
 void BytecodeGenerator::VisitIfStmt(ast::IfStmt *node) {
   IfThenElseBuilder if_builder(this);
@@ -469,13 +471,14 @@ void BytecodeGenerator::VisitBuiltinTableIterCall(ast::CallExpr *call, ast::Buil
       TPL_ASSERT(call->arguments()[1]->IsStringLiteral(), "Table name must be a string literal");
       ast::Identifier table_name = call->arguments()[1]->As<ast::LitExpr>()->raw_string_val();
       sql::ExecutionStructures *exec = sql::ExecutionStructures::Instance();
+      auto test_db_ns = exec->GetTestDBAndNS();
       auto catalog_table =
-          exec->GetCatalog()->GetCatalogTable(terrier::catalog::DEFAULT_DATABASE_OID, table_name.data());
+          exec->GetCatalog()->GetUserTable(exec_ctx_->GetTxn(), test_db_ns.first, test_db_ns.second, table_name.data());
       TPL_ASSERT(catalog_table != nullptr, "Table does not exist!");
       // The third argument should be the execution context
       LocalVar exec_ctx = VisitExpressionForRValue(call->arguments()[2]);
       // Emit the initialization codes
-      emitter()->EmitTableIterInit(Bytecode::TableVectorIteratorInit, iter, !(terrier::catalog::DEFAULT_DATABASE_OID),
+      emitter()->EmitTableIterInit(Bytecode::TableVectorIteratorInit, iter, !test_db_ns.first, !test_db_ns.second,
                                    !catalog_table->Oid(), exec_ctx);
       emitter()->Emit(Bytecode::TableVectorIteratorPerformInit, iter);
       break;
@@ -505,7 +508,8 @@ void BytecodeGenerator::VisitBuiltinTableIterParallelCall(ast::CallExpr *call) {
   // First is the table name as a string literal
   const auto table_name = call->arguments()[0]->As<ast::LitExpr>()->raw_string_val();
   sql::ExecutionStructures *exec = sql::ExecutionStructures::Instance();
-  auto catalog_table = exec->GetCatalog()->GetCatalogTable(terrier::catalog::DEFAULT_DATABASE_OID, table_name.data());
+  auto db_ns = exec->GetTestDBAndNS();
+  auto catalog_table = exec->GetCatalog()->GetUserTable(exec_ctx_->GetTxn(), db_ns.first, db_ns.second, table_name.data());
   TPL_ASSERT(catalog_table != nullptr, "Table does not exist!");
 
   // Next is the execution context
@@ -696,7 +700,8 @@ void BytecodeGenerator::VisitBuiltinFilterCall(ast::CallExpr *call, ast::Builtin
 
   // Get the index and type of the column.
   auto *exec = sql::ExecutionStructures::Instance();
-  auto catalog_table = exec->GetCatalog()->GetCatalogTable(terrier::catalog::DEFAULT_DATABASE_OID, table_name);
+  auto test_db_ns = exec->GetTestDBAndNS();
+  auto catalog_table = exec->GetCatalog()->GetUserTable(exec_ctx_->GetTxn(), test_db_ns.first, test_db_ns.second, table_name);
   auto col_type = terrier::type::TypeId::INVALID;
   uint32_t col_idx = 0;
   for (const auto &col : catalog_table->GetSqlTable()->GetSchema().GetColumns()) {
@@ -1100,10 +1105,11 @@ void BytecodeGenerator::VisitBuiltinInsertCall(ast::CallExpr *call, ast::Builtin
   const auto &args = call->arguments();
   LocalVar db_id = VisitExpressionForRValue(args[0]);
   LocalVar table_id = VisitExpressionForRValue(args[1]);
-  LocalVar values = VisitExpressionForRValue(args[2]);
-  LocalVar exec_ctx = VisitExpressionForRValue(call->arguments()[3]);
+  LocalVar ns_id = VisitExpressionForLValue(args[2]);
+  LocalVar values = VisitExpressionForRValue(args[3]);
+  LocalVar exec_ctx = VisitExpressionForRValue(call->arguments()[4]);
 
-  emitter()->EmitInsert(Bytecode::Insert, db_id, table_id, values, exec_ctx);
+  emitter()->EmitInsert(Bytecode::Insert, db_id, ns_id, table_id, values, exec_ctx);
 }
 
 void BytecodeGenerator::VisitBuiltinIndexIteratorCall(ast::CallExpr *call, ast::Builtin builtin) {
@@ -1792,8 +1798,8 @@ Bytecode BytecodeGenerator::GetIntTypedBytecode(Bytecode bytecode, ast::Type *ty
 }
 
 // static
-std::unique_ptr<BytecodeModule> BytecodeGenerator::Compile(ast::AstNode *root, const std::string &name) {
-  BytecodeGenerator generator;
+std::unique_ptr<BytecodeModule> BytecodeGenerator::Compile(ast::AstNode *root, exec::ExecutionContext* exec_ctx, const std::string &name) {
+  BytecodeGenerator generator{exec_ctx};
   generator.Visit(root);
 
   // NOLINTNEXTLINE

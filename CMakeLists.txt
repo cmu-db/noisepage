@@ -355,6 +355,7 @@ endif()
 
 set(TERRIER_LINK_LIBS
     ${TERRIER_LINK_LIBS}
+    gflags
     ${PTHREAD_LIBRARY}
     gflags
     pg_query)

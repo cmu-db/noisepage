@@ -64,6 +64,14 @@ include_directories(SYSTEM "${PROJECT_SOURCE_DIR}/third_party/libcount/include")
 list(APPEND TERRIER_STATIC_LINK_LIBS libcount)
 list(APPEND TERRIER_LINK_LIBS libcount)
 
+# Sqlite 3
+find_package(Sqlite3 REQUIRED)
+include_directories(SYSTEM ${SQLITE3_INCLUDE_DIRS})
+list(APPEND TERRIER_LINK_LIBS ${SQLITE3_LIBRARIES})
+
+# gflags
+list(APPEND TERRIER_STATIC_LINK_LIBS gflags)
+
 ###############################################
 # Terrier library
 ###############################################
@@ -80,7 +88,6 @@ ADD_TERRIER_LIB(terrier
 ###############################################
 # Terrier executable
 ###############################################
-set(TPL_LINK_LIBS "")
 add_executable(terrier main/terrier.cpp)
 target_link_libraries(terrier terrier_shared)
 

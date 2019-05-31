@@ -468,9 +468,10 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
   OP(TableVectorIteratorInit) : {
     auto *iter = frame->LocalAt<sql::TableVectorIterator *>(READ_LOCAL_ID());
     auto db_oid = READ_UIMM4();
+    auto ns_oid = READ_UIMM4();
     auto table_oid = READ_UIMM4();
     auto exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    OpTableVectorIteratorInit(iter, db_oid, table_oid, exec_ctx);
+    OpTableVectorIteratorInit(iter, db_oid, ns_oid, table_oid, exec_ctx);
     DISPATCH_NEXT();
   }
 
@@ -1292,10 +1293,11 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
   // -------------------------------------------------------
   OP(Insert) : {
     auto db_id = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
+    auto ns_id = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
     auto table_id = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
     auto values = frame->LocalAt<byte *>(READ_LOCAL_ID());
     auto exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    OpInsert(exec_ctx, db_id, table_id, values);
+    OpInsert(exec_ctx, db_id, ns_id, table_id, values);
     EXECUTION_LOG_TRACE("Inserted into table ", table_id);
     DISPATCH_NEXT();
   }

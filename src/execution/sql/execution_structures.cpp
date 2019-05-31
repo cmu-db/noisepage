@@ -20,10 +20,14 @@ ExecutionStructures::ExecutionStructures() {
   log_manager_ = std::make_unique<LogManager>("log_file.log", buffer_pool_.get());
   txn_manager_ = std::make_unique<TransactionManager>(buffer_pool_.get(), true, log_manager_.get());
   gc_ = std::make_unique<GarbageCollector>(txn_manager_.get());
-  catalog_ = std::make_unique<Catalog>(txn_manager_.get(), block_store_.get());
-  InitTestTables();
-  InitTestSchemas();
-  InitTestIndexes();
+  auto catalog_txn = txn_manager_->BeginTransaction();
+  catalog_ = std::make_unique<Catalog>(txn_manager_.get(), catalog_txn);
+  test_ns_oid_ = catalog_->CreateNameSpace(catalog_txn, test_db_oid_, "test_namespace");
+  std::cout << "Created test_namespace with oid = " << !test_ns_oid_ << std::endl;
+  InitTestTables(catalog_txn);
+  InitTestSchemas(catalog_txn);
+  InitTestIndexes(catalog_txn);
+  txn_manager_->Commit(catalog_txn, [](void*){}, nullptr);
 }
 
 ExecutionStructures *ExecutionStructures::Instance() {
@@ -146,7 +150,7 @@ std::pair<byte *, u32 *> GenerateColumnData(const ColumnInsertMeta &col_meta, u3
   return {col_data, null_bitmap};
 }
 
-void FillTable(const std::shared_ptr<terrier::catalog::SqlTableRW> &catalog_table,
+void FillTable(terrier::catalog::SqlTableHelper * catalog_table,
                terrier::transaction::TransactionContext *txn, const TableInsertMeta &table_meta) {
   u32 batch_size = 10000;
   u32 num_batches = table_meta.num_rows / batch_size + static_cast<u32>(table_meta.num_rows % batch_size != 0);
@@ -187,10 +191,9 @@ void FillTable(const std::shared_ptr<terrier::catalog::SqlTableRW> &catalog_tabl
     }
   }
   delete[] insert_buffer;
-  std::cout << "Create Table " << table_meta.name << " with number of tuples = " << val_written << std::endl;
 }
 
-void ExecutionStructures::InitTestTables() {
+void ExecutionStructures::InitTestTables(terrier::transaction::TransactionContext * txn) {
   // clang-format off
   std::vector<TableInsertMeta> insert_meta {
       // The empty table
@@ -217,7 +220,6 @@ void ExecutionStructures::InitTestTables() {
         {"colB", TypeId::BOOLEAN, false, Dist::Uniform, 0, 0}}},
   };
 
-  auto *txn = txn_manager_->BeginTransaction();
   for (const auto & table_meta : insert_meta) {
     // Create Schema.
     std::vector<terrier::catalog::Schema::Column> cols;
@@ -227,22 +229,21 @@ void ExecutionStructures::InitTestTables() {
     }
     terrier::catalog::Schema schema(cols);
     // Create Table.
-    auto table_oid = catalog_->CreateTable(txn, terrier::catalog::DEFAULT_DATABASE_OID, table_meta.name, schema);
-    auto catalog_table = catalog_->GetCatalogTable(terrier::catalog::DEFAULT_DATABASE_OID, table_oid);
+    auto table_oid = catalog_->CreateUserTable(txn, test_db_oid_, test_ns_oid_, table_meta.name, schema);
+    auto catalog_table = catalog_->GetUserTable(txn, test_db_oid_, test_ns_oid_, table_oid);
     if (catalog_table != nullptr) {
       FillTable(catalog_table, txn, table_meta);
     }
+    std::cout << "Create Table " << table_meta.name << " with oids = (" << !test_db_oid_ << ", " << !test_ns_oid_ << ", "  << !table_oid << ")" << std::endl;
   }
-  // Commit the transaction.
-  txn_manager_->Commit(txn, [](void*){}, nullptr);
 }
 
-void ExecutionStructures::InitTestSchemas() {
-  auto catalog_test_1 = catalog_->GetCatalogTable(terrier::catalog::DEFAULT_DATABASE_OID, "test_1");
+void ExecutionStructures::InitTestSchemas(terrier::transaction::TransactionContext * txn) {
+  auto catalog_test_1 = catalog_->GetUserTable(txn, test_db_oid_, test_ns_oid_, "test_1");
   const terrier::catalog::Schema &schema_test_1 = catalog_test_1->GetSqlTable()->GetSchema();
-  auto catalog_test_2 = catalog_->GetCatalogTable(terrier::catalog::DEFAULT_DATABASE_OID, "test_2");
+  auto catalog_test_2 = catalog_->GetUserTable(txn, test_db_oid_, test_ns_oid_, "test_2");
   const terrier::catalog::Schema &schema_test_2 = catalog_test_2->GetSqlTable()->GetSchema();
-  auto catalog_empty_table = catalog_->GetCatalogTable(terrier::catalog::DEFAULT_DATABASE_OID, "empty_table");
+  auto catalog_empty_table = catalog_->GetUserTable(txn, test_db_oid_, test_ns_oid_, "empty_table");
   const terrier::catalog::Schema &schema_empty_table = catalog_empty_table->GetSqlTable()->GetSchema();
 
   // Build output1.tpl's final schema (simple seq_scan)
@@ -307,7 +308,7 @@ struct IndexInsertMeta {
 };
 
 void FillIndex(const std::shared_ptr<terrier::catalog::CatalogIndex> & catalog_index,
-    const std::shared_ptr<terrier::catalog::SqlTableRW> & catalog_table,
+    terrier::catalog::SqlTableHelper * catalog_table,
     terrier::transaction::TransactionContext* txn,
     const IndexInsertMeta & index_meta) {
   // Initialize the projected column
@@ -342,7 +343,7 @@ void FillIndex(const std::shared_ptr<terrier::catalog::CatalogIndex> & catalog_i
       }
     }
     // Insert tuple into the index
-    catalog_index->GetIndex()->Insert(*index_pr, slot);
+    catalog_index->GetIndex()->Insert(txn, *index_pr, slot);
     num_inserted++;
   }
   // Cleanup
@@ -352,7 +353,7 @@ void FillIndex(const std::shared_ptr<terrier::catalog::CatalogIndex> & catalog_i
 }
 
 
-void ExecutionStructures::InitTestIndexes() {
+void ExecutionStructures::InitTestIndexes(terrier::transaction::TransactionContext* txn) {
   std::vector<IndexInsertMeta> index_metas = {
       // The empty table
       {"index_empty", "empty_table",
@@ -367,7 +368,6 @@ void ExecutionStructures::InitTestIndexes() {
        {{TypeId::INTEGER, true, 1},
         {TypeId::SMALLINT, false, 0}}}
   };
-  auto *txn = txn_manager_->BeginTransaction();
 
   for (const auto & index_meta : index_metas) {
     // Create Index Schema
@@ -380,13 +380,11 @@ void ExecutionStructures::InitTestIndexes() {
     auto index_oid = catalog_->CreateIndex(txn, terrier::storage::index::ConstraintType::DEFAULT,
         schema, index_meta.index_name);
     auto catalog_index = catalog_->GetCatalogIndex(index_oid);
-    auto catalog_table = catalog_->GetCatalogTable(terrier::catalog::DEFAULT_DATABASE_OID, index_meta.table_name);
-    catalog_index->SetTable(terrier::catalog::DEFAULT_DATABASE_OID, catalog_table->Oid());
+    auto catalog_table = catalog_->GetUserTable(txn, test_db_oid_, test_ns_oid_, index_meta.table_name);
+    catalog_index->SetTable(test_db_oid_, test_ns_oid_, catalog_table->Oid());
     // Fill up the index
     FillIndex(catalog_index, catalog_table, txn, index_meta);
   }
-  // Commit the transaction.
-  txn_manager_->Commit(txn, [](void*){}, nullptr);
 }
 
 

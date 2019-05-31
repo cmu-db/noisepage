@@ -17,15 +17,15 @@ using terrier::common::AllocationUtil;
 using terrier::storage::DataTable;
 using terrier::transaction::TransactionContext;
 
-TableVectorIterator::TableVectorIterator(u32 db_oid, u32 table_oid, TransactionContext* txn)
-    : db_oid_(db_oid), table_oid_(table_oid), txn_(txn) {}
+TableVectorIterator::TableVectorIterator(u32 db_oid, u32 ns_oid, u32 table_oid, TransactionContext* txn)
+    : db_oid_(db_oid), ns_oid_(ns_oid), table_oid_(table_oid), txn_(txn) {}
 
 TableVectorIterator::~TableVectorIterator() { delete[] buffer_; }
 
 bool TableVectorIterator::Init() {
   // Find the table
   auto *exec = ExecutionStructures::Instance();
-  catalog_table_ = exec->GetCatalog()->GetCatalogTable(db_oid_, table_oid_);
+  catalog_table_ = exec->GetCatalog()->GetUserTable(txn_, db_oid_, ns_oid_, table_oid_);
   if (catalog_table_ == nullptr) return false;
 
   // Initialize the projected column

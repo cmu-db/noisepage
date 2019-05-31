@@ -24,10 +24,10 @@ void OpThreadStateContainerFree(tpl::sql::ThreadStateContainer *const thread_sta
 // Table Vector Iterator
 // ---------------------------------------------------------
 
-void OpTableVectorIteratorInit(tpl::sql::TableVectorIterator *iter, u32 db_oid, u32 table_oid,
+void OpTableVectorIteratorInit(tpl::sql::TableVectorIterator *iter, u32 db_oid, u32 ns_oid, u32 table_oid,
                                tpl::exec::ExecutionContext *exec_ctx) {
   TPL_ASSERT(iter != nullptr, "Null iterator to initialize");
-  new (iter) tpl::sql::TableVectorIterator(db_oid, table_oid, exec_ctx->GetTxn());
+  new (iter) tpl::sql::TableVectorIterator(db_oid, ns_oid, table_oid, exec_ctx->GetTxn());
 }
 
 void OpTableVectorIteratorPerformInit(tpl::sql::TableVectorIterator *iter) { iter->Init(); }
@@ -169,10 +169,11 @@ void OpOutputFinalize(tpl::exec::ExecutionContext *exec_ctx) { exec_ctx->GetOutp
 // -------------------------------------------------------------
 // Insert
 // ------------------------------------------------------------
-void OpInsert(tpl::exec::ExecutionContext *exec_ctx, u32 db_oid, u32 table_oid, byte *values_ptr) {
+void OpInsert(tpl::exec::ExecutionContext *exec_ctx, u32 db_oid, u32 ns_oid, u32 table_oid, byte *values_ptr) {
   // find the table we want to insert to
   auto catalog = tpl::sql::ExecutionStructures::Instance()->GetCatalog();
-  auto table = catalog->GetCatalogTable(static_cast<terrier::catalog::db_oid_t>(db_oid),
+  auto table = catalog->GetUserTable(exec_ctx->GetTxn(), static_cast<terrier::catalog::db_oid_t>(db_oid),
+                                     static_cast<terrier::catalog::namespace_oid_t>(ns_oid),
                                         static_cast<terrier::catalog::table_oid_t>(table_oid));
   auto sql_table = table->GetSqlTable();
   auto *const txn = exec_ctx->GetTxn();

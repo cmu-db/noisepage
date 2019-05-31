@@ -63,10 +63,19 @@ tpl_compile_to_ir(vm/bytecode_handlers_ir.cpp)
 #
 ##################################################
 
+ADD_TERRIER_LIB(tpl
+        SOURCES ${TERRIER_SRCS}
+        SHARED_LINK_FLAGS ${TERRIER_SHARED_LINK_FLAGS}
+        SHARED_LINK_LIBS ${TERRIER_LINK_LIBS}
+        SHARED_PRIVATE_LINK_LIBS ${TERRIERSHARED_PRIVATE_LINK_LIBS}
+        STATIC_LINK_LIBS ${TERRIER_STATIC_LINK_LIBS}
+        STATIC_PRIVATE_LINK_LIBS ${TERRIER_STATIC_PRIVATE_LINK_LIBS}
+        )
+
 set(tpl_main "${PROJECT_SOURCE_DIR}/src/execution/tpl.cpp")
 add_executable(tpl ${tpl_main})
 add_dependencies(tpl gen_opt_bc)
-target_link_libraries(tpl terrier_shared ${TERRIER_LINK_LIBS})
+target_link_libraries(tpl tpl_shared)
 
 ##################################################
 #

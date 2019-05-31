@@ -4,6 +4,7 @@
 #include <string>
 #include <unordered_map>
 #include "catalog/catalog.h"
+#include "catalog/catalog_defs.h"
 #include "execution/exec/output.h"
 #include "execution/util/common.h"
 #include "storage/garbage_collector.h"
@@ -24,6 +25,7 @@ using terrier::type::TypeId;
 /**
  * This will hold all the pieces needed by the execution engine.
  * i.e Object pools, Txn Manager, Log Manager, Catalog, ...
+ * TODO(Amadou): This class was just a convenience singleton class. It should be removed and replace with DBMain.
  */
 class ExecutionStructures {
  public:
@@ -70,11 +72,16 @@ class ExecutionStructures {
    */
   std::shared_ptr<exec::FinalSchema> GetFinalSchema(const std::string &name) { return test_plan_nodes_.at(name); }
 
+
+  std::pair<terrier::catalog::db_oid_t, terrier::catalog::namespace_oid_t> GetTestDBAndNS() {
+    return {test_db_oid_, test_ns_oid_};
+  }
+
  private:
   ExecutionStructures();
-  void InitTestTables();
-  void InitTestSchemas();
-  void InitTestIndexes();
+  void InitTestTables(terrier::transaction::TransactionContext* txn);
+  void InitTestSchemas(terrier::transaction::TransactionContext* txn);
+  void InitTestIndexes(terrier::transaction::TransactionContext* txn);
   std::unique_ptr<BlockStore> block_store_;
   std::unique_ptr<RecordBufferSegmentPool> buffer_pool_;
   std::unique_ptr<LogManager> log_manager_;
@@ -82,6 +89,8 @@ class ExecutionStructures {
   std::unique_ptr<Catalog> catalog_;
   std::unordered_map<std::string, std::shared_ptr<exec::FinalSchema>> test_plan_nodes_;
   std::unique_ptr<GarbageCollector> gc_;
+  terrier::catalog::db_oid_t test_db_oid_ = terrier::catalog::DEFAULT_DATABASE_OID;
+  terrier::catalog::namespace_oid_t test_ns_oid_;
 };
 
 // Keep small so that nested loop join won't run out of memory.

@@ -10,7 +10,7 @@
 
 namespace tpl::sql {
 using terrier::catalog::CatalogIndex;
-using terrier::catalog::SqlTableRW;
+using terrier::catalog::SqlTableHelper;
 using terrier::storage::ProjectedRow;
 using terrier::storage::TupleSlot;
 using terrier::transaction::TransactionContext;
@@ -68,7 +68,7 @@ class IndexIterator {
   ProjectedRow *index_pr_ = nullptr;
   ProjectedRow *row_pr_ = nullptr;
   std::shared_ptr<CatalogIndex> catalog_index_ = nullptr;
-  std::shared_ptr<SqlTableRW> catalog_table_ = nullptr;
+  SqlTableHelper * catalog_table_ = nullptr;
 };
 
 template <typename T, bool Nullable>
