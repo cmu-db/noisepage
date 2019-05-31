@@ -17,7 +17,7 @@ class LogConsumer {
    * Constructs a new LogConsumer
    */
   explicit LogConsumer(LogManager *log_manager) : log_manager_(log_manager) {
-    log_consumer_thread_ = std::thread([this] { WriteToDisk(); });
+    log_consumer_thread_ = std::thread([this] { LogConsumerLoop(); });
   }
 
   /**
@@ -32,13 +32,19 @@ class LogConsumer {
   LogManager *const log_manager_;
 
   /**
-   * Flush all buffers in the filled buffers queue to the disk, followed by an fsync
+   * Main log consumer loop. Flushes buffers to disk when new buffers are handed to it via filled_buffer_queue_, or when
+   * notified by LogManager to persist buffers
+   */
+  void LogConsumerLoop();
+
+  /**
+   * Flush all buffers in the filled buffers queue to the log file
    */
   void FlushAllBuffers();
 
-  /**
-   * Write data to disk till shutdown. This is what the log consumer thread runs
+  /*
+   * Persists the log file on disk by calling fsync
    */
-  void WriteToDisk();
+  void PersistAllBuffers();
 };
 }  // namespace terrier::storage
