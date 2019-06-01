@@ -1,5 +1,6 @@
 #pragma once
 
+#include <deque>
 #include <sys/mman.h>
 #include <algorithm>
 #include <array>
@@ -2195,7 +2196,9 @@ class BwTree : public BwTreeBase {
         next_unused_node_id{1},
 
         // Initialize free NodeID stack
-        free_node_id_list{},
+        //free_node_id_list{},
+	node_id_list_lock{},
+	node_id_list{},
 
         // Statistical information
         insert_op_count{0},
@@ -2330,8 +2333,11 @@ class BwTree : public BwTreeBase {
    * DO NOT call this in worker thread!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    */
   inline void InvalidateNodeID(NodeID node_id) {
+    node_id_list_lock.lock();
     mapping_table[node_id] = nullptr;
-    free_node_id_list.SingleThreadPush(node_id);
+    node_id_list.push_back(node_id);
+    //free_node_id_list.SingleThreadPush(node_id);
+    node_id_list_lock.unlock();
   }
 
   /*
@@ -2574,16 +2580,26 @@ class BwTree : public BwTreeBase {
     // If the first element is true then the NodeID is a valid one
     // If the first element is false then NodeID is invalid and the
     // stack is either empty or being used (we cannot lock and wait)
-    auto ret_pair = free_node_id_list.Pop();
+    //auto ret_pair = free_node_id_list.Pop();
 
     // If there is no free node id
-    if (!ret_pair.first) {
+    //if (!ret_pair.first) {
       // fetch_add() returns the old value and increase the atomic
       // automatically
-      return next_unused_node_id.fetch_add(1);
-    }
+    //  return next_unused_node_id.fetch_add(1);
+    //}
 
-    return ret_pair.second;
+    //return ret_pair.second;
+    NodeID ret;
+    node_id_list_lock.lock();
+    if(node_id_list.size() == 0) {
+      ret = next_unused_node_id.fetch_add(1);
+    } else {
+      ret = node_id_list.front();
+      node_id_list.pop_front();
+    }
+    node_id_list_lock.unlock();
+    return ret;
   }
 
   /*
@@ -6831,7 +6847,10 @@ class BwTree : public BwTreeBase {
 
   // This list holds free NodeID which was removed by remove delta
   // We recycle NodeID in epoch manager
-  bwtree::AtomicStack<NodeID, MAPPING_TABLE_SIZE> free_node_id_list;
+  //bwtree::AtomicStack<NodeID, MAPPING_TABLE_SIZE> free_node_id_list;
+
+  std::mutex node_id_list_lock;
+  std::deque<NodeID> node_id_list;
 
   std::atomic<uint64_t> insert_op_count;
   std::atomic<uint64_t> insert_abort_count;
@@ -8141,18 +8160,16 @@ class BwTree : public BwTreeBase {
       // after new IteratorContext is created
       KeyType start_key = *start_key_p;
       
-      EpochNode *epoch_node_p = p_tree_p->epoch_manager.JoinEpoch();
-
       while (1) {
         // First join the epoch to prevent physical nodes being deallocated
         // too early
-        
+        EpochNode *epoch_node_p = p_tree_p->epoch_manager.JoinEpoch();
         // This traversal has the following characteristics:
         //   1. It stops at the leaf level without traversing leaf with the key
         //   2. It DOES finish partial SMO, consolidate overlengthed chain, etc.
         //   3. It DOES traverse horizontally using sibling pointer
         Context context{start_key};
-        p_tree_p->TraverseReadOptimized(&context, nullptr);
+        p_tree_p->Traverse(&context, nullptr, nullptr);
 
         NodeSnapshot *snapshot_p = BwTree::GetLatestNodeSnapshot(&context);
         const BaseNode *node_p = snapshot_p->node_p;
@@ -8175,7 +8192,8 @@ class BwTree : public BwTreeBase {
         p_tree_p->CollectAllValuesOnLeaf(snapshot_p, ic_p->GetLeafNode());
 
         // Leave the epoch, since we have already had all information
-        
+        p_tree_p->epoch_manager.LeaveEpoch(epoch_node_p);
+
         // Find the lower bound of the current start search key
         // NOTE: Do not use start_key_p since the target it points to
         // might have been destroyed because we already released the reference
@@ -8204,8 +8222,6 @@ class BwTree : public BwTreeBase {
           start_key = ic_p->GetLeafNode()->GetHighKeyPair().first;
         }
       }  // while(1)
-
-      p_tree_p->epoch_manager.LeaveEpoch(epoch_node_p);
     }
 
     /*
