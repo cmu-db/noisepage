@@ -37,7 +37,7 @@ class ConnectionDispatcherTask : public common::NotifiableTask {
   ConnectionDispatcherTask(int num_handlers, int listen_fd, DedicatedThreadOwner *dedicatedThreadOwner,
                            ConnectionHandleFactory *connection_handle_factory);
 
-  ~ConnectionDispatcherTask() {
+  ~ConnectionDispatcherTask() override {
     for (auto *handler : handlers_) {
       delete handler;
     }
