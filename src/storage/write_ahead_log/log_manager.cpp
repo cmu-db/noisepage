@@ -29,7 +29,7 @@ void LogManager::Flush() {
     std::unique_lock<std::mutex> lock(persist_lock_);
     // Signal the log consumer thread to persist the buffers to disk
     do_persist_ = true;
-    wake_consumer_thread_cv_.notify_one();
+    consumer_thread_cv_.notify_one();
 
     // Wait for the log consumer thread to persist the logs
     persist_cv_.wait(lock, [&] { return !do_persist_; });
@@ -37,6 +37,29 @@ void LogManager::Flush() {
   // Execute the callbacks for the transactions that have been persisted
   for (auto &callback : commits_in_buffer_) callback.first(callback.second);
   commits_in_buffer_.clear();
+}
+
+void LogManager::Shutdown() {
+  run_log_manager_ = false;
+
+  // Process will call Flush, which will force the log consumer to consume logs
+  Process();
+
+  // Signal the log consumer thread to shutdown
+  // This is a blocking call, and will return when the consumer task has shut down
+  DedicatedThreadRegistry::GetInstance().StopTask(this,
+                                                  common::ManagedPointer<DedicatedThreadTask>(log_consumer_task_));
+  TERRIER_ASSERT(filled_buffer_queue_.Empty(), "Consumer should have processed all filled buffers\n");
+
+  // Close the buffers corresponding to the log file
+  for (auto buf : buffers_) {
+    buf.Close();
+  }
+  // Clear buffer queues
+  BufferedLogWriter *tmp;
+  while (!empty_buffer_queue_.Empty()) empty_buffer_queue_.Dequeue(&tmp);
+  while (!filled_buffer_queue_.Empty()) filled_buffer_queue_.Dequeue(&tmp);
+  buffers_.clear();
 }
 
 void LogManager::SerializeBuffer(IterableBufferSegment<LogRecord> *buffer_to_serialize) {

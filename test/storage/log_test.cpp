@@ -24,6 +24,7 @@ class WriteAheadLoggingTests : public TerrierTest {
   void TearDown() override {
     // Delete log file
     unlink(LOG_FILE_NAME);
+    DedicatedThreadRegistry::GetInstance().TearDown();
     TerrierTest::TearDown();
   }
 

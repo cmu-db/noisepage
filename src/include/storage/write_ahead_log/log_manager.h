@@ -1,11 +1,14 @@
 #pragma once
 
+#include <memory>
 #include <queue>
 #include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 #include "common/container/concurrent_blocking_queue.h"
+#include "common/dedicated_thread_owner.h"
+#include "common/managed_pointer.h"
 #include "common/spin_latch.h"
 #include "common/strong_typedef.h"
 #include "storage/record_buffer.h"
@@ -22,7 +25,7 @@ namespace terrier::storage {
  * A LogManager is responsible for serializing log records out and keeping track of whether changes from a transaction
  * are persistent.
  */
-class LogManager {
+class LogManager : public DedicatedThreadOwner {
  public:
   /**
    * Constructs a new LogManager, writing its logs out to the given file.
@@ -33,12 +36,13 @@ class LogManager {
    *                    buffers from
    */
   LogManager(const char *log_file_path, RecordBufferSegmentPool *const buffer_pool)
-      : buffer_pool_(buffer_pool),
+      : run_log_manager_(false),
+        buffer_pool_(buffer_pool),
         log_file_path_(log_file_path),
         filled_buffer_(nullptr),
-        log_consumer_(nullptr),
-        run_log_consumer_thread_(false),
         do_persist_(true) {}
+
+  ~LogManager() { delete log_consumer_task_; }
 
   /**
    * Start logging
@@ -51,34 +55,19 @@ class LogManager {
     for (int i = 0; i < MAX_BUF; i++) {
       empty_buffer_queue_.Enqueue(&buffers_[i]);
     }
-    run_log_consumer_thread_ = true;
-    log_consumer_ = new LogConsumer(this);
+
+    run_log_manager_ = true;
+
+    // Register consumer task
+    log_consumer_task_ = new LogConsumerTask(this);
+    DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread(
+        this, common::ManagedPointer<DedicatedThreadTask>(log_consumer_task_));
   }
 
   /**
    * Must be called when no other threads are doing work
    */
-  void Shutdown() {
-    // Process the remaining redo buffers
-    Process();
-    // Signal the log consumer thread to shutdown
-    {
-      std::unique_lock<std::mutex> lock(persist_lock_);
-      run_log_consumer_thread_ = false;
-      wake_consumer_thread_cv_.notify_one();
-    }
-    log_consumer_->Shutdown();
-    // Close the buffers corresponding to the log file
-    for (auto buf : buffers_) {
-      buf.Close();
-    }
-    // Clear buffer queues
-    BufferedLogWriter *tmp;
-    while (!empty_buffer_queue_.Empty()) empty_buffer_queue_.Dequeue(&tmp);
-    while (!filled_buffer_queue_.Empty()) filled_buffer_queue_.Dequeue(&tmp);
-    buffers_.clear();
-    delete log_consumer_;
-  }
+  void Shutdown();
 
   /**
    * Returns a (perhaps partially) filled log buffer to the log manager to be consumed. Caller should drop its
@@ -109,7 +98,10 @@ class LogManager {
   void Flush();
 
  private:
-  friend class LogConsumer;
+  friend class LogConsumerTask;
+
+  bool run_log_manager_;
+
   // TODO(Tianyu): This can be changed later to be include things that are not necessarily backed by a disk
   //  (e.g. logs can be streamed out to the network for remote replication)
   RecordBufferSegmentPool *buffer_pool_;
@@ -134,10 +126,8 @@ class LogManager {
   // The queue containing filled buffers pending flush to the disk
   common::ConcurrentBlockingQueue<BufferedLogWriter *> filled_buffer_queue_;
 
-  // The log consumer object which flushes filled buffers to the disk
-  LogConsumer *log_consumer_;
-  // Flag used by the serializer thread to signal shutdown to the log consumer thread
-  volatile bool run_log_consumer_thread_;
+  // The log consumer task which flushes filled buffers to the disk
+  LogConsumerTask *log_consumer_task_ = nullptr;
   // Flag used by the serializer thread to signal the log consumer thread to persist the data on disk
   volatile bool do_persist_;
 
@@ -146,7 +136,7 @@ class LogManager {
   std::condition_variable persist_cv_;
   // Condition variable to signal consumer thread to wake up and flush buffers to disk or if shutdown has initiated,
   // then quit
-  std::condition_variable wake_consumer_thread_cv_;
+  std::condition_variable consumer_thread_cv_;
 
   /**
    * Serialize out the record to the log
@@ -196,10 +186,24 @@ class LogManager {
     // Signal consumer thread that a buffer is ready to be flushed to the disk
     {
       std::unique_lock<std::mutex> lock(persist_lock_);
-      wake_consumer_thread_cv_.notify_one();
+      consumer_thread_cv_.notify_one();
     }
     // Mark that serializer thread doesn't have a buffer in its possession to which it can write to
     filled_buffer_ = nullptr;
+  }
+
+  /**
+   * If the central dispatch removes our log consumer thread, we need to request a new one
+   * @param task the task that was removed by the registry from the thread we were originally using
+   */
+  void OnThreadRemoved(common::ManagedPointer<DedicatedThreadTask> task) override {
+    TERRIER_ASSERT(task == log_consumer_task_, "Log manager should only be given back it's log consumer task");
+    // Because the task itself does keep metadata, we can simply reuse the task. We don't want to register a task if the
+    // log manager is shutting down though.
+    if (run_log_manager_) {
+      DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread(
+          this, common::ManagedPointer<DedicatedThreadTask>(log_consumer_task_));
+    }
   }
 };
 }  // namespace terrier::storage
