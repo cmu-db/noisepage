@@ -37,6 +37,12 @@ class ConnectionDispatcherTask : public common::NotifiableTask {
   ConnectionDispatcherTask(int num_handlers, int listen_fd, DedicatedThreadOwner *dedicatedThreadOwner,
                            ConnectionHandleFactory *connection_handle_factory);
 
+  ~ConnectionDispatcherTask() {
+    for (auto *handler : handlers_) {
+      delete handler;
+    }
+  }
+
   /**
    * @brief Dispatches the client connection at fd to a handler.
    * Currently, the dispatch uses round-robin, and thread communication is
@@ -57,7 +63,7 @@ class ConnectionDispatcherTask : public common::NotifiableTask {
   void ExitLoop() override;
 
  private:
-  std::vector<std::shared_ptr<ConnectionHandlerTask>> handlers_;
+  std::vector<ConnectionHandlerTask *> handlers_;
   // TODO(TianyuLi): have a smarter dispatch scheduler, we currently use round-robin
   std::atomic<uint64_t> next_handler_;
 };
