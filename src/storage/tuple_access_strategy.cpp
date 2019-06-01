@@ -27,17 +27,15 @@ void TupleAccessStrategy::InitializeRawBlock(storage::DataTable *const data_tabl
   raw->data_table_ = data_table;
   raw->layout_version_ = layout_version;
   raw->insert_head_ = 0;
+  raw->controller_.Initialize();
   auto *result = reinterpret_cast<TupleAccessStrategy::Block *>(raw);
-  for (uint16_t i = 0; i < layout_.NumColumns(); i++) result->AttrOffsets()[i] = column_offsets_[i];
   result->GetArrowBlockMetadata().Initialize(GetBlockLayout().NumColumns());
-
-  for (uint16_t i = 0; i < layout_.NumColumns(); i++) result->AttrOffets(layout_)[i] = column_offsets_[i];
+  for (uint16_t i = 0; i < layout_.NumColumns(); i++) result->AttrOffsets(layout_)[i] = column_offsets_[i];
 
   result->SlotAllocationBitmap(layout_)->UnsafeClear(layout_.NumSlots());
   result->Column(layout_, VERSION_POINTER_COLUMN_ID)->NullBitmap()->UnsafeClear(layout_.NumSlots());
   // TODO(Tianyu): This can be a slight drag on insert performance. With the exception of some test cases where GC is
   // not enabled, we should be able to do this step in the GC and still be good.
-
   // Also need to clean up any potential dangling version pointers (in cases where GC is off, or when a table is deleted
   // and individual tuples in it are not)
   std::memset(ColumnStart(raw, VERSION_POINTER_COLUMN_ID), 0, sizeof(void *) * layout_.NumSlots());

@@ -36,7 +36,7 @@ class BlockCompactorBenchmark : public benchmark::Fixture {
       for (uint32_t i = 0; i < num_blocks_; i++) {
         storage::RawBlock *block = block_store_.Get();
         block->data_table_ = &table_;
-        num_tuples += StorageTestUtil::PopulateBlockRandomlyNoBookkeeping(layout_, block, percent_empty, &generator_);
+        num_tuples += StorageTestUtil::PopulateBlockRandomlyNoBookkeeping(&table_, block, percent_empty, &generator_);
         auto &arrow_metadata = accessor_.GetArrowBlockMetadata(block);
         for (storage::col_id_t col_id : layout_.AllColumns()) {
           if (layout_.IsVarlen(col_id))
@@ -67,15 +67,14 @@ class BlockCompactorBenchmark : public benchmark::Fixture {
   }
 
   // NOLINTNEXTLINE
-  void RunCompaction(benchmark::State &state, double percent_empty,
-                     storage::ArrowColumnType type = storage::ArrowColumnType::GATHERED_VARLEN) {
+  void RunCompaction(benchmark::State &state, double percent_empty, storage::ArrowColumnType type) {
     // NOLINTNEXTLINE
     for (auto _ : state) {
       std::vector<storage::RawBlock *> blocks;
       for (uint32_t i = 0; i < num_blocks_; i++) {
         storage::RawBlock *block = block_store_.Get();
         block->data_table_ = &table_;
-        StorageTestUtil::PopulateBlockRandomlyNoBookkeeping(layout_, block, percent_empty, &generator_);
+        StorageTestUtil::PopulateBlockRandomlyNoBookkeeping(&table_, block, percent_empty, &generator_);
         auto &arrow_metadata = accessor_.GetArrowBlockMetadata(block);
         for (storage::col_id_t col_id : layout_.AllColumns()) {
           if (layout_.IsVarlen(col_id))
@@ -108,7 +107,7 @@ class BlockCompactorBenchmark : public benchmark::Fixture {
       for (uint32_t i = 0; i < num_blocks_; i++) {
         storage::RawBlock *block = block_store_.Get();
         block->data_table_ = &table_;
-        StorageTestUtil::PopulateBlockRandomlyNoBookkeeping(layout_, block, percent_empty, &generator_);
+        StorageTestUtil::PopulateBlockRandomlyNoBookkeeping(&table_, block, percent_empty, &generator_);
         auto &arrow_metadata = accessor_.GetArrowBlockMetadata(block);
         for (storage::col_id_t col_id : layout_.AllColumns()) {
           if (layout_.IsVarlen(col_id))
@@ -138,46 +137,42 @@ class BlockCompactorBenchmark : public benchmark::Fixture {
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(BlockCompactorBenchmark, Compaction)(benchmark::State &state) {
   // Run compaction phase only
-  RunCompaction(state, 0.05);
+  RunCompaction(state, 0.1, storage::ArrowColumnType::GATHERED_VARLEN);
 }
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(BlockCompactorBenchmark, Gather)(benchmark::State &state) {
   // Run varlen gather phase only
-  RunGather(state, 0.05, storage::ArrowColumnType::GATHERED_VARLEN);
+  RunGather(state, 0.1, storage::ArrowColumnType::GATHERED_VARLEN);
 }
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(BlockCompactorBenchmark, DictionaryCompression)(benchmark::State &state) {
   // Run dictionary compression only
-  RunGather(state, 0.05, storage::ArrowColumnType::DICTIONARY_COMPRESSED);
+  RunGather(state, 0.1, storage::ArrowColumnType::DICTIONARY_COMPRESSED);
 }
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(BlockCompactorBenchmark, EndToEndGather)(benchmark::State &state) {
   // Run end to end with varlen gather backend.
-  RunFull(state, 0.05, storage::ArrowColumnType::GATHERED_VARLEN);
+  RunFull(state, 0.1, storage::ArrowColumnType::GATHERED_VARLEN);
 }
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(BlockCompactorBenchmark, EndToEndDict)(benchmark::State &state) {
   // Run end to end with dictionary compression backend.
-  RunFull(state, 0.05, storage::ArrowColumnType::DICTIONARY_COMPRESSED);
+  RunFull(state, 0.1, storage::ArrowColumnType::DICTIONARY_COMPRESSED);
 }
 
-BENCHMARK_REGISTER_F(BlockCompactorBenchmark, Compaction)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(2);
+BENCHMARK_REGISTER_F(BlockCompactorBenchmark, Compaction)->Unit(benchmark::kMillisecond)->UseManualTime();
 
-BENCHMARK_REGISTER_F(BlockCompactorBenchmark, Gather)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(2);
+BENCHMARK_REGISTER_F(BlockCompactorBenchmark, Gather)->Unit(benchmark::kMillisecond)->UseManualTime();
 
 BENCHMARK_REGISTER_F(BlockCompactorBenchmark, DictionaryCompression)
     ->Unit(benchmark::kMillisecond)
-    ->UseManualTime()
-    ->MinTime(2);
+    ->UseManualTime();
 
 BENCHMARK_REGISTER_F(BlockCompactorBenchmark, EndToEndGather)
     ->Unit(benchmark::kMillisecond)
-    ->UseManualTime()
-    ->MinTime(2);
-
-BENCHMARK_REGISTER_F(BlockCompactorBenchmark, EndToEndDict)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(2);
+    ->UseManualTime();
 }  // namespace terrier

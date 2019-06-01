@@ -27,97 +27,200 @@ struct BlockCompactorTest : public ::terrier::TerrierTest {
   double percent_empty_ = 0.01;
 };
 
-TEST_F(BlockCompactorTest, CompactionTest) {}
-
+// This tests generates random single blocks and compacts them. It then verifies that the tuples are reshuffled to be
+// compact and its contents unmodified.
 // NOLINTNEXTLINE
-TEST_F(BlockCompactorTest, SingleBlockDictionaryTest) {
+TEST_F(BlockCompactorTest, SingleBlockCompactionTest) {
   std::default_random_engine generator;
   storage::BlockStore block_store{1, 1};
   storage::BlockLayout layout({8, 8, VARLEN_COLUMN});
+  storage::TupleAccessStrategy accessor(layout);
   // Technically, the block above is not "in" the table, but since we don't sequential scan that does not matter
   storage::DataTable table(&block_store, layout, storage::layout_version_t(0));
 
-  storage::RawBlock *block = block_store.Get();
-  storage::TupleAccessStrategy accessor(layout);
-  accessor.InitializeRawBlock(block, storage::layout_version_t(0));
+  uint32_t repeat = 100;
+  for (uint32_t iteration = 0; iteration < repeat; iteration++) {
+    storage::RawBlock *block = block_store.Get();
+    accessor.InitializeRawBlock(&table_, block, storage::layout_version_t(0));
 
-  storage::RecordBufferSegmentPool buffer_pool{10000, 10000};
-  // Enable GC to cleanup transactions started by the block compactor
-  transaction::TransactionManager txn_manager(&buffer_pool, true, LOGGING_DISABLED);
-  storage::GarbageCollector gc(&txn_manager);
+    storage::RecordBufferSegmentPool buffer_pool{10000, 10000};
+    // Enable GC to cleanup transactions started by the block compactor
+    transaction::TransactionManager txn_manager(&buffer_pool, true, LOGGING_DISABLED);
+    storage::GarbageCollector gc(&txn_manager);
 
-  auto tuples = StorageTestUtil::PopulateBlockRandomly(layout, block, 0.1, &generator);
-  auto &arrow_metadata = accessor.GetArrowBlockMetadata(block);
-  for (storage::col_id_t col_id : layout.AllColumns()) {
-    if (layout.IsVarlen(col_id)) {
-      arrow_metadata.GetColumnInfo(layout, col_id).Type() = storage::ArrowColumnType::GATHERED_VARLEN;
-    } else {
-      arrow_metadata.GetColumnInfo(layout, col_id).Type() = storage::ArrowColumnType::FIXED_LENGTH;
-    }
-  }
-
-  storage::BlockCompactor compactor;
-  compactor.PutInQueue(block);
-  compactor.ProcessCompactionQueue(&txn_manager);  // should always succeed with no other threads
-
-  auto initializer =
-      storage::ProjectedRowInitializer::Create(layout, StorageTestUtil::ProjectionListAllColumns(layout));
-  byte *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
-  auto *read_row = initializer.InitializeRow(buffer);
-  std::vector<storage::ProjectedRow *> moved_rows;
-  // This transaction is guaranteed to start after the compacting one commits
-  transaction::TransactionContext *txn = txn_manager.BeginTransaction();
-  auto num_tuples = tuples.size();
-  for (uint32_t i = 0; i < layout.NumSlots(); i++) {
-    storage::TupleSlot slot(block, i);
-    bool visible = table.Select(txn, slot, read_row);
-    if (i >= num_tuples) {
-      EXPECT_FALSE(visible);  // Should be deleted after compaction
-    } else {
-      EXPECT_TRUE(visible);  // Should be filled after compaction
-      auto it = tuples.find(slot);
-      if (it != tuples.end()) {
-        // Here we can assume that the row is not moved. Check that everything is still equal. Has to be deep
-        // equality because varlens are moved.
-        EXPECT_TRUE(StorageTestUtil::ProjectionListEqualDeep(layout, it->second, read_row));
-        delete[] reinterpret_cast<byte *>(tuples[slot]);
-        tuples.erase(slot);
+    auto tuples = StorageTestUtil::PopulateBlockRandomly(&table_, block, percent_empty_, &generator);
+    auto &arrow_metadata = accessor.GetArrowBlockMetadata(block);
+    for (storage::col_id_t col_id : layout.AllColumns()) {
+      if (layout.IsVarlen(col_id)) {
+        arrow_metadata.GetColumnInfo(layout, col_id).Type() = storage::ArrowColumnType::GATHERED_VARLEN;
       } else {
-        // Need to copy and do quadratic comparison later.
-        byte *local_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
-        std::memcpy(local_buffer, read_row, initializer.ProjectedRowSize());
-        moved_rows.push_back(reinterpret_cast<storage::ProjectedRow *>(local_buffer));
+        arrow_metadata.GetColumnInfo(layout, col_id).Type() = storage::ArrowColumnType::FIXED_LENGTH;
       }
     }
-  }
-  txn_manager.Commit(txn, [](void *) -> void {}, nullptr);  // Commit: will be cleaned up by GC
-  delete[] buffer;
 
-  for (auto *moved_row : moved_rows) {
-    bool match_found = false;
-    for (auto &entry : tuples) {
-      // This comparison needs to be deep because varlens are moved.
-      if (StorageTestUtil::ProjectionListEqualDeep(layout, entry.second, moved_row)) {
-        // Here we can assume that the row is not moved. All good.
-        delete[] reinterpret_cast<byte *>(entry.second);
-        tuples.erase(entry.first);
-        match_found = true;
-        break;
+    storage::BlockCompactor compactor;
+    compactor.PutInQueue(block);
+    compactor.ProcessCompactionQueue(&txn_manager);  // should always succeed with no other threads
+
+    // Read out the rows one-by-one. Check that the tuples are laid out contiguously. If a tuple is not
+    // equal to its original value, we store it for later checks.
+    auto initializer =
+        storage::ProjectedRowInitializer::Create(layout, StorageTestUtil::ProjectionListAllColumns(layout));
+    byte *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+    auto *read_row = initializer.InitializeRow(buffer);
+    std::vector<storage::ProjectedRow *> moved_rows;
+    // This transaction is guaranteed to start after the compacting one commits
+    transaction::TransactionContext *txn = txn_manager.BeginTransaction();
+    auto num_tuples = tuples.size();
+    for (uint32_t i = 0; i < layout.NumSlots(); i++) {
+      storage::TupleSlot slot(block, i);
+      bool visible = table.Select(txn, slot, read_row);
+      if (i >= num_tuples) {
+        EXPECT_FALSE(visible);  // Should be deleted after compaction
+      } else {
+        EXPECT_TRUE(visible);  // Should be filled after compaction
+        auto it = tuples.find(slot);
+        if (it != tuples.end()) {
+          // Here we can assume that the row is not moved. Check that everything is still equal. Has to be deep
+          // equality because varlens are moved.
+          EXPECT_TRUE(StorageTestUtil::ProjectionListEqualDeep(layout, it->second, read_row));
+          delete[] reinterpret_cast<byte *>(tuples[slot]);
+          tuples.erase(slot);
+        } else {
+          // Need to copy and do quadratic comparison later.
+          byte *local_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+          std::memcpy(local_buffer, read_row, initializer.ProjectedRowSize());
+          moved_rows.push_back(reinterpret_cast<storage::ProjectedRow *>(local_buffer));
+        }
       }
     }
-    // the read tuple should be one of the original tuples that are moved.
-    EXPECT_TRUE(match_found);
-    delete[] reinterpret_cast<byte *>(moved_row);
+    txn_manager.Commit(txn, [](void *) -> void {}, nullptr);  // Commit: will be cleaned up by GC
+    delete[] buffer;
+
+    // Check that every moved row is accounted for as another row from the original block
+    for (auto *moved_row : moved_rows) {
+      bool match_found = false;
+      for (auto &entry : tuples) {
+        // This comparison needs to be deep because varlens are moved.
+        if (StorageTestUtil::ProjectionListEqualDeep(layout, entry.second, moved_row)) {
+          // Here we can assume that the row is not moved. All good.
+          delete[] reinterpret_cast<byte *>(entry.second);
+          tuples.erase(entry.first);
+          match_found = true;
+          break;
+        }
+      }
+      // the read tuple should be one of the original tuples that are moved.
+      EXPECT_TRUE(match_found);
+      delete[] reinterpret_cast<byte *>(moved_row);
+    }
+    // All tuples from the original block should have been accounted for.
+    EXPECT_TRUE(tuples.empty());
+    gc.PerformGarbageCollection();
+    gc.PerformGarbageCollection();  // Second call to deallocate.
+    block_store.Release(block);
   }
-  // All tuples from the original block should have been accounted for.
-  EXPECT_TRUE(tuples.empty());
-  gc.PerformGarbageCollection();
-  gc.PerformGarbageCollection();  // Second call to deallocate.
-  // Deallocated arrow buffers
-  for (const auto &col_id : layout.AllColumns()) {
-    arrow_metadata.GetColumnInfo(layout, col_id).Deallocate();
-  }
-  delete block;
 }
+
+// This tests generates random single blocks and compacts them. It then verifies that the tuples are reshuffled to be
+// compact and its contents unmodified.
+// NOLINTNEXTLINE
+//TEST_F(BlockCompactorTest, SingleBlockGatherTest) {
+//  std::default_random_engine generator;
+//  storage::BlockStore block_store{1, 1};
+//  storage::BlockLayout layout({8, 8, VARLEN_COLUMN});
+//  storage::TupleAccessStrategy accessor(layout);
+//  // Technically, the block above is not "in" the table, but since we don't sequential scan that does not matter
+//  storage::DataTable table(&block_store, layout, storage::layout_version_t(0));
+//
+//  uint32_t repeat = 100;
+//  for (uint32_t iteration = 0; iteration < repeat; iteration++) {
+//    storage::RawBlock *block = block_store.Get();
+//    accessor.InitializeRawBlock(&table_, block, storage::layout_version_t(0));
+//
+//    storage::RecordBufferSegmentPool buffer_pool{10000, 10000};
+//    // Enable GC to cleanup transactions started by the block compactor
+//    transaction::TransactionManager txn_manager(&buffer_pool, true, LOGGING_DISABLED);
+//    storage::GarbageCollector gc(&txn_manager);
+//
+//    auto tuples = StorageTestUtil::PopulateBlockRandomly(&table_, block, percent_empty_, &generator);
+//    auto &arrow_metadata = accessor.GetArrowBlockMetadata(block);
+//    for (storage::col_id_t col_id : layout.AllColumns()) {
+//      if (layout.IsVarlen(col_id)) {
+//        arrow_metadata.GetColumnInfo(layout, col_id).Type() = storage::ArrowColumnType::GATHERED_VARLEN;
+//      } else {
+//        arrow_metadata.GetColumnInfo(layout, col_id).Type() = storage::ArrowColumnType::FIXED_LENGTH;
+//      }
+//    }
+//
+//    storage::BlockCompactor compactor;
+//    compactor.PutInQueue(block);
+//    compactor.ProcessCompactionQueue(&txn_manager);  // compaction first
+//    gc.PerformGarbageCollection();  // unlink compaction undo records
+//    compactor.PutInQueue(block);
+//    compactor.ProcessCompactionQueue(&txn_manager);  // gathering
+//    // Read out the rows one-by-one. Check that the tuples are laid out contiguously. If a tuple is not
+//    // equal to its original value, we store it for later checks.
+//    auto initializer =
+//        storage::ProjectedRowInitializer::Create(layout, StorageTestUtil::ProjectionListAllColumns(layout));
+//    byte *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+//    auto *read_row = initializer.InitializeRow(buffer);
+//    std::vector<storage::ProjectedRow *> moved_rows;
+//    // This transaction is guaranteed to start after the compacting one commits
+//    transaction::TransactionContext *txn = txn_manager.BeginTransaction();
+//    auto num_tuples = tuples.size();
+//    for (uint32_t i = 0; i < layout.NumSlots(); i++) {
+//      storage::TupleSlot slot(block, i);
+//      bool visible = table.Select(txn, slot, read_row);
+//      if (i >= num_tuples) {
+//        EXPECT_FALSE(visible);  // Should be deleted after compaction
+//      } else {
+//        EXPECT_TRUE(visible);  // Should be filled after compaction
+//        auto it = tuples.find(slot);
+//        if (it != tuples.end()) {
+//          // Here we can assume that the row is not moved. Check that everything is still equal. Has to be deep
+//          // equality because varlens are moved.
+//          EXPECT_TRUE(StorageTestUtil::ProjectionListEqualDeep(layout, it->second, read_row));
+//          delete[] reinterpret_cast<byte *>(tuples[slot]);
+//          tuples.erase(slot);
+//        } else {
+//          // Need to copy and do quadratic comparison later.
+//          byte *local_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+//          std::memcpy(local_buffer, read_row, initializer.ProjectedRowSize());
+//          moved_rows.push_back(reinterpret_cast<storage::ProjectedRow *>(local_buffer));
+//        }
+//      }
+//    }
+//    txn_manager.Commit(txn, [](void *) -> void {}, nullptr);  // Commit: will be cleaned up by GC
+//    delete[] buffer;
+//
+//    // Check that every moved row is accounted for as another row from the original block
+//    for (auto *moved_row : moved_rows) {
+//      bool match_found = false;
+//      for (auto &entry : tuples) {
+//        // This comparison needs to be deep because varlens are moved.
+//        if (StorageTestUtil::ProjectionListEqualDeep(layout, entry.second, moved_row)) {
+//          // Here we can assume that the row is not moved. All good.
+//          delete[] reinterpret_cast<byte *>(entry.second);
+//          tuples.erase(entry.first);
+//          match_found = true;
+//          break;
+//        }
+//      }
+//      // the read tuple should be one of the original tuples that are moved.
+//      EXPECT_TRUE(match_found);
+//      delete[] reinterpret_cast<byte *>(moved_row);
+//    }
+//    // All tuples from the original block should have been accounted for.
+//    EXPECT_TRUE(tuples.empty());
+//    gc.PerformGarbageCollection();
+//    gc.PerformGarbageCollection();  // Second call to deallocate.
+//    // Deallocated arrow buffers
+//    for (const auto &col_id : layout.AllColumns()) {
+//      arrow_metadata.GetColumnInfo(layout, col_id).Deallocate();
+//    }
+//    delete block;
+//  }
+//}
 
 }  // namespace terrier

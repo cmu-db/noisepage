@@ -312,6 +312,7 @@ void BlockCompactor::BuildDictionary(std::vector<const byte *> *loose_ptrs, Arro
   }
   ArrowColumnInfo new_col_info;
   new_col_info.Type() = col->Type();
+  new_col_info.Indices() = common::AllocationUtil::AllocateAligned<uint32_t>(metadata->NumRecords());
   auto &new_col = new_col_info.VarlenColumn() = {varlen_size, metadata->NumRecords() + 1};
 
   // TODO(Tianyu): This is retarded, but apparently you cannot retrieve the index of elements in your
