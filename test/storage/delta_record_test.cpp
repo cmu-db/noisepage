@@ -45,7 +45,7 @@ TEST_F(DeltaRecordTests, UndoChainAccess) {
       storage::BlockLayout layout = StorageTestUtil::RandomLayoutNoVarlen(common::Constants::MAX_COL, &generator_);
       storage::TupleAccessStrategy tested(layout);
       std::memset(reinterpret_cast<void *>(raw_block_), 0, sizeof(storage::RawBlock));
-      tested.InitializeRawBlock(raw_block_, storage::layout_version_t(0));
+      tested.InitializeRawBlock(nullptr, raw_block_, storage::layout_version_t(0));
 
       // get data table
       storage::DataTable data_table(&block_store_, layout, storage::layout_version_t(0));
@@ -82,7 +82,7 @@ TEST_F(DeltaRecordTests, UndoGetProjectedRow) {
     storage::BlockLayout layout = StorageTestUtil::RandomLayoutNoVarlen(common::Constants::MAX_COL, &generator_);
     storage::TupleAccessStrategy tested(layout);
     std::memset(reinterpret_cast<void *>(raw_block_), 0, sizeof(storage::RawBlock));
-    tested.InitializeRawBlock(raw_block_, storage::layout_version_t(0));
+    tested.InitializeRawBlock(nullptr, raw_block_, storage::layout_version_t(0));
 
     // generate a random projectedRow
     std::vector<storage::col_id_t> update_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);

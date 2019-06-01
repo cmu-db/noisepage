@@ -59,7 +59,6 @@ SqlTableHelper *SettingsCatalogTable::Create(transaction::TransactionContext *tx
 
   // now actually create, with the provided schema
   pg_settings->Create();
-  // catalog->AddToMaps(db_oid, pg_settings_oid, name, pg_settings);
   return pg_settings;
 }
 

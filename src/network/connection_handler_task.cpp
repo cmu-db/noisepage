@@ -4,40 +4,22 @@
 
 namespace terrier::network {
 
-ConnectionHandlerTask::ConnectionHandlerTask(const int task_id) : NotifiableTask(task_id) {
-  int fds[2];
-  if (pipe(fds) != 0) {
-    NETWORK_LOG_ERROR("Can't create notify pipe to accept connections");
-    exit(1);
-  }
-  new_conn_send_fd_ = fds[1];
-  RegisterEvent(fds[0], EV_READ | EV_PERSIST, METHOD_AS_CALLBACK(ConnectionHandlerTask, HandleDispatch), this);
+ConnectionHandlerTask::ConnectionHandlerTask(const int task_id, ConnectionHandleFactory *connection_handle_factory)
+    : NotifiableTask(task_id), connection_handle_factory_(connection_handle_factory) {
+  notify_event_ =
+      RegisterEvent(-1, EV_READ | EV_PERSIST, METHOD_AS_CALLBACK(ConnectionHandlerTask, HandleDispatch), this);
 }
 
-void ConnectionHandlerTask::Notify(int conn_fd) {
-  int buf[1];
-  buf[0] = conn_fd;
-  if (write(new_conn_send_fd_, buf, sizeof(int)) != sizeof(int)) {
-    NETWORK_LOG_ERROR("Failed to write to thread notify pipe");
-  }
+void ConnectionHandlerTask::Notify(int conn_fd, NetworkProtocolType protocol_type) {
+  client_fd_ = conn_fd;
+  protocol_type_ = protocol_type;
+  int res = 0;         // Flags, unused attribute in event_active
+  int16_t ncalls = 0;  // Unused attribute in event_active
+  event_active(notify_event_, res, ncalls);
 }
 
-void ConnectionHandlerTask::HandleDispatch(int new_conn_recv_fd, int16_t) {  // NOLINT as we don't use the flags arg
-  // buffer used to receive messages from the main thread
-  char client_fd[sizeof(int)];
-  size_t bytes_read = 0;
-
-  // read fully
-  while (bytes_read < sizeof(int)) {
-    ssize_t result = read(new_conn_recv_fd, client_fd + bytes_read, sizeof(int) - bytes_read);
-    if (result < 0) {
-      NETWORK_LOG_ERROR("Error when reading from dispatch: errno {}", errno);
-    } else {
-      bytes_read += static_cast<size_t>(result);
-    }
-  }
-  ConnectionHandleFactory::GetInstance()
-      .NewConnectionHandle(*reinterpret_cast<int *>(client_fd), this)
+void ConnectionHandlerTask::HandleDispatch(int, int16_t) {  // NOLINT as we don't use the flags arg nor the fd
+  connection_handle_factory_->NewConnectionHandle(client_fd_, NetworkProtocolType::POSTGRES_PSQL, this)
       .RegisterToReceiveEvents();
 }
 
