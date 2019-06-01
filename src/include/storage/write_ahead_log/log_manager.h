@@ -198,9 +198,9 @@ class LogManager : public DedicatedThreadOwner {
    */
   void OnThreadRemoved(common::ManagedPointer<DedicatedThreadTask> task) override {
     TERRIER_ASSERT(task == log_consumer_task_, "Log manager should only be given back it's log consumer task");
-    // Because the task itself does keep metadata, we can simply reuse the task. We don't want to register a task if the
-    // log manager is shutting down though.
+    // We don't want to register a task if the log manager is shutting down though.
     if (run_log_manager_) {
+      // Because the task itself does not keep metadata, we can simply reuse the task.
       DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread(
           this, common::ManagedPointer<DedicatedThreadTask>(log_consumer_task_));
     }
