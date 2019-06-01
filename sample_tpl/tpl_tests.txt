@@ -37,8 +37,8 @@ while.tpl,false,10
 # TPL SQL tests
 ################################################################################
 
-agg.tpl,true,0
-agg-vec.tpl,true,0
+agg.tpl,true,10
+agg-vec.tpl,true,10
 agg-vec-filter.tpl,true,0
 join.tpl,true,0
 parallel-join.tpl,true,0

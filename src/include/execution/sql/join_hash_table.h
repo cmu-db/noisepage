@@ -236,7 +236,7 @@ class JoinHashTable {
   // To protect concurrent access to owned_entries
   util::SpinLatch owned_latch_;
   // List of entries this hash table has taken ownership of
-  std::vector<util::ChunkedVector<MemoryPoolAllocator<byte>>> owned_;
+  MemPoolVector<decltype(entries_)> owned_;
 
   // The generic hash table
   GenericHashTable generic_hash_table_;

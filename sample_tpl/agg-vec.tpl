@@ -1,5 +1,6 @@
 struct State {
   table: AggregationHashTable
+  count: int32
 }
 
 struct Agg {
@@ -16,15 +17,18 @@ fun tearDownState(state: *State) -> nil {
 }
 
 fun keyCheck(agg: *Agg, iters: [*]*ProjectedColumnsIterator) -> bool {
-  var key = @pciGetInt(iters[0], 0)
+  var key = @pciGetInt(iters[0], 1)
   return @sqlToBool(key == agg.key)
 }
 
 fun hashFn(iters: [*]*ProjectedColumnsIterator) -> uint64 {
-  return @hash(@pciGetInt(iters[0], 0))
+  return @hash(@pciGetInt(iters[0], 1))
 }
 
 fun constructAgg(agg: *Agg, iters: [*]*ProjectedColumnsIterator) -> nil {
+  // Set key
+  agg.key = @pciGetInt(iters[0], 1)
+  // Initialize aggregate
   @aggInit(&agg.count)
 }
 
@@ -49,8 +53,19 @@ fun pipeline_1(execCtx: *ExecutionContext, state: *State) -> nil {
   @tableIterClose(&tvi)
 }
 
+fun pipeline_2(execCtx: *ExecutionContext, state: *State) -> nil {
+  var agg_ht_iter: AggregationHashTableIterator
+  var iter = &agg_ht_iter
+  for (@aggHTIterInit(iter, &state.table); @aggHTIterHasNext(iter); @aggHTIterNext(iter)) {
+    var agg = @ptrCast(*Agg, @aggHTIterGetRow(iter))
+    state.count = state.count + 1
+  }
+  @aggHTIterClose(iter)
+}
+
 fun main(execCtx: *ExecutionContext) -> int32 {
   var state: State
+  state.count = 0
 
   // Initialize state
   setUpState(execCtx, &state)
@@ -58,8 +73,13 @@ fun main(execCtx: *ExecutionContext) -> int32 {
   // Run pipeline 1
   pipeline_1(execCtx, &state)
 
+  // Run pipeline 2
+  pipeline_2(execCtx, &state)
+
+  var ret = state.count
+
   // Cleanup
   tearDownState(&state)
 
-  return 0
+  return ret
 }

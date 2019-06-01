@@ -72,18 +72,25 @@ struct BoolVal : public Val {
  */
 struct Integer : public Val {
   /**
-   * Raw integer value
+   * raw integer value
    */
   i64 val;
 
   /**
-   * Non-null constructor
-   * @param val value of the integer
+   * Non-Null constructor
+   * @param val raw int value
    */
-  explicit Integer(i64 val) noexcept : Val(false), val(val) {}
+  explicit Integer(i64 val) noexcept : Integer(false, val) {}
 
   /**
-   * @return a NULL integer value
+   * Generic constructor
+   * @param null whether the value is NULL or not
+   * @param val the raw int value
+   */
+  explicit Integer(bool null, i64 val) noexcept : Val(null), val(val) {}
+
+  /**
+   * Create a NULL integer
    */
   static Integer Null() {
     Integer val(0);
@@ -92,11 +99,72 @@ struct Integer : public Val {
   }
 
   /**
-   * Perform dumb division for now
-   * @param denom denominator of the division
-   * @return the result of the division
+   * Perform addition
+   * @param that value to add
+   * @param[out] overflow whether an overflow occur
+   * @return result of addition
    */
-  Integer Divide(const Integer &denom) { return Integer(this->val / denom.val); }
+  Integer Add(const Integer &that, bool *overflow) const {
+    i64 result;
+    *overflow = __builtin_add_overflow(val, that.val, &result);
+    return Integer(is_null || that.is_null, result);
+  }
+
+  /**
+   * Perform subtraction
+   * @param that value to subtract
+   * @param[out] overflow whether an overflow occur
+   * @return result of subtraction
+   */
+  Integer Sub(const Integer &that, bool *overflow) const {
+    i64 result;
+    *overflow = __builtin_sub_overflow(val, that.val, &result);
+    return Integer(is_null || that.is_null, result);
+  }
+
+  /**
+   * Perform multiplication
+   * @param that value to multiply by
+   * @param[out] overflow whether an overflow occur
+   * @return result of multiplication
+   */
+  Integer Multiply(const Integer &that, bool *overflow) const {
+    i64 result;
+    *overflow = __builtin_mul_overflow(val, that.val, &result);
+    return Integer(is_null || that.is_null, result);
+  }
+
+  /**
+   * Perform division
+   * @param that value to divide by
+   * @return result of division
+   */
+  Integer Divide(const Integer &that) const {
+    Integer result(0);
+    if (that.val == 0) {
+      result.is_null = true;
+    } else {
+      result.val = (val / that.val);
+      result.is_null = false;
+    }
+    return result;
+  }
+
+  /**
+   * Perform modulo
+   * @param that value to mod by
+   * @return result of modulo
+   */
+  Integer Modulo(const Integer &that) const {
+    Integer result(0);
+    if (that.val == 0) {
+      result.is_null = true;
+    } else {
+      result.val = (val % that.val);
+      result.is_null = false;
+    }
+    return result;
+  }
 };
 
 /**

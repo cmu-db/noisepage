@@ -1,5 +1,11 @@
+// Perform:
+//
+// SELECT col_b, count(col_a) FROM test_1 GROUP BY col_b
+//
+
 struct State {
   table: AggregationHashTable
+  count: int32
 }
 
 struct Agg {
@@ -15,42 +21,53 @@ fun tearDownState(state: *State) -> nil {
   @aggHTFree(&state.table)
 }
 
-fun keyCheck(pci: *ProjectedColumnsIterator, agg: *Agg) -> bool {
-  var key = @pciGetInt(pci, 0)
+fun keyCheck(agg: *Agg, pci: *ProjectedColumnsIterator) -> bool {
+  var key = @pciGetInt(pci, 1)
   return @sqlToBool(key == agg.key)
 }
 
-fun constructAgg(pci: *ProjectedColumnsIterator, agg: *Agg) -> nil {
+fun constructAgg(agg: *Agg, pci: *ProjectedColumnsIterator) -> nil {
+  agg.key = @pciGetInt(pci, 1)
   @aggInit(&agg.count)
 }
 
-fun updateAgg(pci: *ProjectedColumnsIterator, agg: *Agg) -> nil {
+fun updateAgg(agg: *Agg, pci: *ProjectedColumnsIterator) -> nil {
   var input = @pciGetInt(pci, 0)
   @aggAdvance(&agg.count, &input)
 }
 
 fun pipeline_1(execCtx: *ExecutionContext, state: *State) -> nil {
-  var ht: *AggregationHashTable = &state.table
-
+  var ht = &state.table
   var tvi: TableVectorIterator
   for (@tableIterInit(&tvi, "test_1", execCtx); @tableIterAdvance(&tvi); ) {
     var vec = @tableIterGetPCI(&tvi)
     for (; @pciHasNext(vec); @pciAdvance(vec)) {
-      var hash_val = @hash(@pciGetInt(vec, 0))
+      var hash_val = @hash(@pciGetInt(vec, 1))
       var agg = @ptrCast(*Agg, @aggHTLookup(ht, hash_val, keyCheck, vec))
       if (agg == nil) {
         agg = @ptrCast(*Agg, @aggHTInsert(ht, hash_val))
-        constructAgg(vec, agg)
+        constructAgg(agg, vec)
       } else {
-        updateAgg(vec, agg)
+        updateAgg(agg, vec)
       }
     }
   }
   @tableIterClose(&tvi)
 }
 
+fun pipeline_2(execCtx: *ExecutionContext, state: *State) -> nil {
+  var agg_ht_iter: AggregationHashTableIterator
+  var iter = &agg_ht_iter
+  for (@aggHTIterInit(iter, &state.table); @aggHTIterHasNext(iter); @aggHTIterNext(iter)) {
+    var agg = @ptrCast(*Agg, @aggHTIterGetRow(iter))
+    state.count = state.count + 1
+  }
+  @aggHTIterClose(iter)
+}
+
 fun main(execCtx: *ExecutionContext) -> int32 {
   var state: State
+  state.count = 0
 
   // Initialize state
   setUpState(execCtx, &state)
@@ -58,8 +75,13 @@ fun main(execCtx: *ExecutionContext) -> int32 {
   // Run pipeline 1
   pipeline_1(execCtx, &state)
 
+  // Run pipeline 2
+  pipeline_2(execCtx, &state)
+
+  var ret = state.count
+
   // Cleanup
   tearDownState(&state)
 
-  return 0
+  return ret
 }

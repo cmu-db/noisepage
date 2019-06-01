@@ -63,9 +63,14 @@ class TableVectorIterator {
   ProjectedColumnsIterator *projected_columns_iterator() { return &pci_; }
 
   /**
-   * Scan function callback used to scan a partition of the table
+   * Scan function callback used to scan a partition of the table.
+   * Convention: First argument is the opaque query state, second argument is
+   *             the thread state, and last argument is the table vector
+   *             iterator configured to iterate a sub-range of the table. The
+   *             first two arguments are void because their types are only known
+   *             at runtime (i.e., defined in generated code).
    */
-  using ScanFn = void (*)(exec::ExecutionContext *, void *, TableVectorIterator *iter);
+  using ScanFn = void (*)(void *, void *, TableVectorIterator *iter);
 
   /**
    * Perform a parallel scan over the table with ID @em table_oid using the
@@ -74,14 +79,13 @@ class TableVectorIterator {
    * the whole table has been scanned. Iteration order is non-deterministic.
    * @param db_oid The ID of the database containing the table
    * @param table_oid The ID of the table
-   * @param exec_ctx The runtime context passed into the callback function
-   * @param thread_state_container The thread state container
-   * @param scanner The callback function invoked for vectors of table input
+   * @param query_state the query state
+   * @param thread_states the thread state container
+   * @param scan_fn The callback function invoked for vectors of table input
    * @param min_grain_size The minimum number of blocks to give a scan task
    */
-  static bool ParallelScan(u32 db_oid, u32 table_oid, exec::ExecutionContext *exec_ctx,
-                           ThreadStateContainer *thread_state_container, ScanFn scanner,
-                           u32 min_grain_size = kMinBlockRangeSize);
+  static bool ParallelScan(u32 db_oid, u32 table_oid, void *query_state, ThreadStateContainer *thread_states,
+                           ScanFn scan_fn, u32 min_grain_size = kMinBlockRangeSize);
 
  private:
   // The PCI

@@ -96,6 +96,29 @@ class VectorUtil {
     return out_pos;
   }
 
+  /**
+   * Gather potentially non-contiguous indexes from an input vector and store
+   * them into an output vector. Only elements whose indexes are stored in the
+   * index selection vector are gathered into the output vector.
+   * @tparam T The data type of the input vector.
+   * @param n The number of elements in the index selection vector.
+   * @param input The input vector to read from.
+   * @param indexes The index selection vector storing input vector indexes.
+   * @param out The output vector where results are stored.
+   * @return The number of elements that were gathered.
+   */
+  template <typename T>
+  static u32 Gather(const u32 n, const T *RESTRICT input, const u32 *RESTRICT indexes, T *RESTRICT out) {
+    TPL_ASSERT(input != nullptr, "Input cannot be null");
+    TPL_ASSERT(indexes != nullptr, "Indexes vector cannot be null");
+
+    for (std::size_t i = 0; i < n; i++) {
+      out[i] = input[indexes[i]];
+    }
+
+    return n;
+  }
+
   // -------------------------------------------------------
   // Generate specialized vectorized filters
   // -------------------------------------------------------

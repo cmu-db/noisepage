@@ -55,7 +55,7 @@ fun _1_pipelineWorker_TearDownThreadState(execCtx: *ExecutionContext, state: *Th
   @joinHTFree(&state.jht)
 }
 
-fun _1_pipelineWorker(ctx: *ExecutionContext, state: *ThreadState_1, tvi: *TableVectorIterator) -> nil {
+fun _1_pipelineWorker(queryState: *State, state: *ThreadState_1, tvi: *TableVectorIterator) -> nil {
   var filter = &state.filter
   var jht = &state.jht
   for (@tableIterAdvance(tvi)) {
@@ -85,7 +85,7 @@ fun main(execCtx: *ExecutionContext) -> int {
   @tlsReset(&tls, @sizeOf(ThreadState_1), _1_pipelineWorker_InitThreadState, _1_pipelineWorker_TearDownThreadState, execCtx)
 
   // Parallel scan
-  @iterateTableParallel("test_1", execCtx, &tls, _1_pipelineWorker)
+ @iterateTableParallel("test_1", &state, &tls, _1_pipelineWorker)
 
   // ---- Pipeline 1 End ---- //
   var off: uint32 = 0

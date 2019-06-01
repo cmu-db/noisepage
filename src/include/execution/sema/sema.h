@@ -118,6 +118,8 @@ class Sema : public ast::AstVisitor<Sema> {
   void CheckBuiltinSqlConversionCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinFilterCall(ast::CallExpr *call);
   void CheckBuiltinAggHashTableCall(ast::CallExpr *call, ast::Builtin builtin);
+  void CheckBuiltinAggHashTableIterCall(ast::CallExpr *call, ast::Builtin builtin);
+  void CheckBuiltinAggPartIterCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinAggregatorCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinJoinHashTableInit(ast::CallExpr *call);
   void CheckBuiltinJoinHashTableInsert(ast::CallExpr *call);

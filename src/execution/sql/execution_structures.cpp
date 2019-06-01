@@ -286,6 +286,8 @@ void ExecutionStructures::InitTestSchemas(terrier::transaction::TransactionConte
   offsets[0] = 0;
   auto final_schema = std::make_shared<exec::FinalSchema>(output_cols, offsets);
   test_plan_nodes_["insert.tpl"] = final_schema;
+  // q6 and insert.tpl have the same output schema
+  test_plan_nodes_["q6.tpl"] = final_schema;
 }
 
 

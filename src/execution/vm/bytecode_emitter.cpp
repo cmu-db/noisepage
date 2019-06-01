@@ -236,6 +236,10 @@ void BytecodeEmitter::Emit(Bytecode bytecode, LocalVar operand_1, LocalVar opera
   EmitAll(bytecode, operand_1, operand_2, operand_3, operand_4, operand_5, operand_6, operand_7, operand_8);
 }
 
+void BytecodeEmitter::EmitThreadStateContainerIterate(LocalVar tls, LocalVar ctx, FunctionId iterate_fn) {
+  EmitAll(Bytecode::ThreadStateContainerIterate, tls, ctx, iterate_fn);
+}
+
 void BytecodeEmitter::EmitThreadStateContainerReset(LocalVar tls, LocalVar state_size, FunctionId init_fn,
                                                     FunctionId destroy_fn, LocalVar ctx) {
   EmitAll(Bytecode::ThreadStateContainerReset, tls, state_size, init_fn, destroy_fn, ctx);
@@ -273,6 +277,16 @@ void BytecodeEmitter::EmitAggHashTableProcessBatch(LocalVar agg_ht, LocalVar ite
                                                    FunctionId key_eq_fn, FunctionId init_agg_fn,
                                                    FunctionId merge_agg_fn) {
   EmitAll(Bytecode::AggregationHashTableProcessBatch, agg_ht, iters, hash_fn, key_eq_fn, init_agg_fn, merge_agg_fn);
+}
+
+void BytecodeEmitter::EmitAggHashTableMovePartitions(LocalVar agg_ht, LocalVar tls, LocalVar aht_offset,
+                                                     FunctionId merge_part_fn) {
+  EmitAll(Bytecode::AggregationHashTableTransferPartitions, agg_ht, tls, aht_offset, merge_part_fn);
+}
+
+void BytecodeEmitter::EmitAggHashTableParallelPartitionedScan(LocalVar agg_ht, LocalVar context, LocalVar tls,
+                                                              FunctionId scan_part_fn) {
+  EmitAll(Bytecode::AggregationHashTableParallelPartitionedScan, agg_ht, context, tls, scan_part_fn);
 }
 
 void BytecodeEmitter::EmitSorterInit(Bytecode bytecode, LocalVar sorter, LocalVar region, FunctionId cmp_fn,

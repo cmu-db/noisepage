@@ -1,8 +1,8 @@
-#include <utility>
-
 #include <algorithm>
 #include <functional>
+#include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "execution/tpl_test.h"  // NOLINT
@@ -15,15 +15,20 @@ namespace tpl::parsing::test {
 
 class ParserTest : public TplTest {
  public:
-  ParserTest() : region_("test"), reporter_(&region_), ctx_(&region_, &reporter_) {}
+  void SetUp() override {
+    // Set up loggers
+    TplTest::SetUp();
+    reporter_ = std::make_unique<sema::ErrorReporter>(&region_);
+    ctx_ = std::make_unique<ast::Context>(&region_, reporter_.get());
+  }
 
-  ast::Context *context() { return &ctx_; }
-  sema::ErrorReporter *reporter() { return &reporter_; }
+  ast::Context *context() { return ctx_.get(); }
+  sema::ErrorReporter *reporter() { return reporter_.get(); }
 
  private:
-  util::Region region_;
-  sema::ErrorReporter reporter_;
-  ast::Context ctx_;
+  util::Region region_{"test"};
+  std::unique_ptr<sema::ErrorReporter> reporter_;
+  std::unique_ptr<ast::Context> ctx_;
 };
 
 // NOLINTNEXTLINE

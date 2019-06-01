@@ -1,3 +1,4 @@
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
@@ -15,14 +16,17 @@ namespace tpl::sema::test {
 
 class SemaExprTest : public TplTest {
  public:
-  SemaExprTest() : region_("test"), error_reporter_(&region_), ctx_(&region_, &error_reporter_) {
-    sql::ExecutionStructures::Instance();
+  void SetUp() override {
+    // Set up loggers
+    TplTest::SetUp();
+    error_reporter_ = std::make_unique<sema::ErrorReporter>(&region_);
+    ctx_ = std::make_unique<ast::Context>(&region_, error_reporter_.get());
   }
 
   util::Region *region() { return &region_; }
-  ErrorReporter *error_reporter() { return &error_reporter_; }
-  ast::Context *ctx() { return &ctx_; }
-  ast::AstNodeFactory *node_factory() { return ctx_.node_factory(); }
+  ErrorReporter *error_reporter() { return error_reporter_.get(); }
+  ast::Context *ctx() { return ctx_.get(); }
+  ast::AstNodeFactory *node_factory() { return ctx()->node_factory(); }
 
   ast::Identifier Ident(const std::string &s) { return ctx()->GetIdentifier(s); }
 
@@ -70,9 +74,9 @@ class SemaExprTest : public TplTest {
   void ResetErrorReporter() { error_reporter()->Reset(); }
 
  private:
-  util::Region region_;
-  ErrorReporter error_reporter_;
-  ast::Context ctx_;
+  util::Region region_{"test"};
+  std::unique_ptr<sema::ErrorReporter> error_reporter_;
+  std::unique_ptr<ast::Context> ctx_;
 
   SourcePosition empty_{0, 0};
 };

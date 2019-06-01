@@ -72,6 +72,8 @@ class BytecodeGenerator : public ast::AstVisitor<BytecodeGenerator> {
   void VisitBuiltinFilterManagerCall(ast::CallExpr *call, ast::Builtin builtin);
   void VisitBuiltinFilterCall(ast::CallExpr *call, ast::Builtin builtin);
   void VisitBuiltinAggHashTableCall(ast::CallExpr *call, ast::Builtin builtin);
+  void VisitBuiltinAggHashTableIterCall(ast::CallExpr *call, ast::Builtin builtin);
+  void VisitBuiltinAggPartIterCall(ast::CallExpr *call, ast::Builtin builtin);
   void VisitBuiltinAggregatorCall(ast::CallExpr *call, ast::Builtin builtin);
   void VisitBuiltinJoinHashTableCall(ast::CallExpr *call, ast::Builtin builtin);
   void VisitBuiltinSorterCall(ast::CallExpr *call, ast::Builtin builtin);
@@ -92,6 +94,10 @@ class BytecodeGenerator : public ast::AstVisitor<BytecodeGenerator> {
   // expressions and arithmetic expressions
   void VisitLogicalAndOrExpr(ast::BinaryOpExpr *node);
   void VisitArithmeticExpr(ast::BinaryOpExpr *node);
+
+  // Dispatched from VisitArithmeticExpr for or SQL vs. primitive arithmetic
+  void VisitPrimitiveArithmeticExpr(ast::BinaryOpExpr *node);
+  void VisitSqlArithmeticExpr(ast::BinaryOpExpr *node);
 
   // Dispatched from VisitUnaryOp()
   void VisitAddressOfExpr(ast::UnaryOpExpr *op);
@@ -142,9 +148,6 @@ class BytecodeGenerator : public ast::AstVisitor<BytecodeGenerator> {
  private:
   // Lookup a function's ID by its name
   FunctionId LookupFuncIdByName(const std::string &name) const;
-
-  // Lookup a function by its name
-  const FunctionInfo *LookupFuncInfoByName(const std::string &name) const;
 
   // -------------------------------------------------------
   // Accessors

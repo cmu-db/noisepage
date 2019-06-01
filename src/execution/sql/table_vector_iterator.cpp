@@ -100,8 +100,8 @@ class ScanTask {
 }  // namespace
 */
 
-bool TableVectorIterator::ParallelScan(u32 db_oid, u32 table_oid, exec::ExecutionContext *const exec_ctx,
-                                       ThreadStateContainer *const thread_state_container, const ScanFn scanner,
+bool TableVectorIterator::ParallelScan(u32 db_oid, u32 table_oid, void *const query_state,
+                                       ThreadStateContainer *const thread_states, const ScanFn scan_fn,
                                        const u32 min_grain_size) {
   // Lookup table
   /*const Table *table = Catalog::Instance()->LookupTableById(TableId(table_id));

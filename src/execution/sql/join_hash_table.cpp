@@ -5,10 +5,8 @@
 #include <utility>
 #include <vector>
 
-// TBB
 #include <tbb/tbb.h>  // NOLINT
 
-// Libcount
 #include "libcount/include/count/hll.h"
 
 #include "execution/sql/memory_pool.h"
@@ -22,6 +20,7 @@ namespace tpl::sql {
 
 JoinHashTable::JoinHashTable(MemoryPool *memory, u32 tuple_size, bool use_concise_ht)
     : entries_(sizeof(HashTableEntry) + tuple_size, MemoryPoolAllocator<byte>(memory)),
+      owned_(memory),
       concise_hash_table_(0),
       hll_estimator_(libcount::HLL::Create(kDefaultHLLPrecision)),
       built_(false),

@@ -314,12 +314,10 @@ TEST_F(SorterTest, SingleThreadLocalParallelSortTest) {
 // NOLINTNEXTLINE
 TEST_F(SorterTest, UnbalancedParallelSortTest) {
   // All imbalance permutations
-  for (u32 w : {0, 1, 10, 100, 1000}) {
-    for (u32 x : {0, 1, 10, 100, 1000}) {
-      for (u32 y : {0, 1, 10, 100, 1000}) {
-        for (u32 z : {0, 1, 10, 100, 1000}) {
-          TestParallelSort<2>({w, x, y, z});
-        }
+  for (u32 x : {0, 1, 10, 100, 1000}) {
+    for (u32 y : {0, 1, 10, 100, 1000}) {
+      for (u32 z : {0, 1, 10, 100, 1000}) {
+        TestParallelSort<2>({x, y, z});
       }
     }
   }

@@ -1,14 +1,26 @@
 #pragma once
 
+#include <functional>
+
 #include "execution/sql/generic_hash_table.h"
 #include "execution/sql/memory_pool.h"
 #include "execution/sql/projected_columns_iterator.h"
 #include "execution/util/chunked_vector.h"
 
+namespace libcount {
+class HLL;
+}  // namespace libcount
+
 namespace tpl::sql {
 
+class ThreadStateContainer;
+
+// Forward declare
+class AggregationHashTableIterator;
+class AggregationOverflowPartitionIterator;
+
 /**
- * Hash table used for aggregation.
+ * The hash table used when performing aggregations
  */
 class AggregationHashTable {
  public:
@@ -27,6 +39,11 @@ class AggregationHashTable {
    */
   static constexpr const u32 kDefaultNumPartitions = 512;
 
+  /**
+   * Default libcount precision
+   */
+  static constexpr u32 kDefaultHLLPrecision = 10;
+
   // -------------------------------------------------------
   // Callback functions to customize aggregations
   // -------------------------------------------------------
@@ -35,7 +52,7 @@ class AggregationHashTable {
    * Function to check the key equality of an input tuple and an existing entry
    * in the aggregation hash table.
    * Convention: First argument is the aggregate entry, second argument is the
-   *             input/probe tuple.
+   *             input tuple.
    */
   using KeyEqFn = bool (*)(const void *, const void *);
 
@@ -47,16 +64,34 @@ class AggregationHashTable {
   /**
    * Function to initialize a new aggregate.
    * Convention: First argument is the aggregate to initialize, second argument
-   *             is the input/probe tuple to initialize the aggregate with.
+   *             is the input tuple to initialize the aggregate with.
    */
   using InitAggFn = void (*)(void *, void *);
 
   /**
    * Function to advance an existing aggregate with a new input value.
    * Convention: First argument is the existing aggregate to update, second
-   *             argument is the input/probe tuple to update the aggregate with.
+   *             argument is the input tuple to update the aggregate with.
    */
   using AdvanceAggFn = void (*)(void *, void *);
+
+  /**
+   * Function to merge a set of overflow partitions into the given aggregation
+   * hash table.
+   * Convention: First argument is an opaque state object that the user
+   *             provides. The second argument is the aggregation to be built.
+   *             The third argument is the list of overflow partitions pointers,
+   *             and the fourth and fifth argument are the range of overflow
+   *             partitions to merge into the input aggregation hash table.
+   */
+  using MergePartitionFn = void (*)(void *, AggregationHashTable *, AggregationOverflowPartitionIterator *);
+
+  /**
+   * Function to scan an aggregation hash table.
+   * Convention: First argument is query state, second argument is thread-local
+   *             state, last argument is the aggregation hash table to scan.
+   */
+  using ScanPartitionFn = void (*)(void *, void *, const AggregationHashTable *);
 
   /**
    * Small class to capture various usage stats
@@ -83,7 +118,17 @@ class AggregationHashTable {
    * @param memory The memory pool to allocate memory from
    * @param payload_size The size of the elements in the hash table
    */
-  AggregationHashTable(MemoryPool *memory, u32 payload_size);
+  AggregationHashTable(MemoryPool *memory, std::size_t payload_size);
+
+  /**
+   * Construct an aggregation hash table using the provided memory pool,
+   * configured to store aggregates of size @em payload_size in bytes, and whose
+   * initial size allows for @em initial_size aggregates.
+   * @param memory The memory pool to allocate memory from
+   * @param payload_size The size of the elements in the hash table
+   * @param initial_size The initial number of aggregates to support.
+   */
+  AggregationHashTable(MemoryPool *memory, std::size_t payload_size, u32 initial_size);
 
   /**
    * This class cannot be copied or moved
@@ -122,7 +167,7 @@ class AggregationHashTable {
   byte *Lookup(hash_t hash, KeyEqFn key_eq_fn, const void *probe_tuple);
 
   /**
-   * Process an entire vector if input.
+   * Process an entire vector of input.
    * @param iters The input vectors
    * @param hash_fn Function to compute a hash of an input element
    * @param key_eq_fn Function to determine key equality of an input element and
@@ -132,6 +177,51 @@ class AggregationHashTable {
    */
   void ProcessBatch(ProjectedColumnsIterator *iters[], HashFn hash_fn, KeyEqFn key_eq_fn, InitAggFn init_agg_fn,
                     AdvanceAggFn advance_agg_fn);
+
+  /**
+   * Transfer all entries and overflow partitions stored in each thread-local
+   * aggregation hash table (in the thread state container) into this table.
+   *
+   * This function only moves memory around, no aggregation hash tables are
+   * built. It is used at the end of the build-portion of a parallel aggregation
+   * before the thread state container is reset for the next pipeline's thread-
+   * local state
+   *
+   * @param thread_states Container for all thread-local tables.
+   * @param agg_ht_offset The offset in the container to find the table.
+   * @param merge_partition_fn The partition merge function
+   */
+  void TransferMemoryAndPartitions(ThreadStateContainer *thread_states, std::size_t agg_ht_offset,
+                                   MergePartitionFn merge_partition_fn);
+
+  /**
+   * Execute a parallel scan over this partitioned hash table. It is assumed
+   * that this aggregation table was constructed in a partitioned manner. This
+   * function will build a new aggregation hash table for any non-empty overflow
+   * partition, merge the contents of the partition (using the merging function
+   * provided to the call to @em TransferMemoryAndPartitions()), and invoke the
+   * scan callback function to scan the newly built table. The building and
+   * scanning of the table will be performed entirely in parallel; hence, the
+   * callback function should be thread-safe.
+   *
+   * The thread states container is assumed to already have been configured
+   * prior to this scan call.
+   *
+   * The callback scan function accepts two opaque state objects: an query state
+   * and a thread state. The query state is provided as a function argument. The
+   * thread state will be pulled from the provided ThreadStateContainer object.
+   *
+   * @param query_state The (opaque) query state.
+   * @param thread_states The container holding all thread states.
+   * @param scan_fn The callback scan function that will scan one partition of
+   *                the partitioned aggregation hash table.
+   */
+  void ExecuteParallelPartitionedScan(void *query_state, ThreadStateContainer *thread_states, ScanPartitionFn scan_fn);
+
+  /**
+   * How many aggregates are in this table?
+   */
+  u64 NumElements() const { return hash_table_.num_elements(); }
 
   /**
    * Read-only access to hash table stats
@@ -153,6 +243,9 @@ class AggregationHashTable {
   // Flush all entries currently stored in the hash table into the overflow
   // partitions
   void FlushToOverflowPartitions();
+
+  // Allocate all overflow partition information if unallocated
+  void AllocateOverflowPartitions();
 
   // Compute the hash value and perform the table lookup for all elements in the
   // input vector projections.
@@ -199,27 +292,56 @@ class AggregationHashTable {
   void AdvanceGroups(ProjectedColumnsIterator *iters[], u32 num_elems, HashTableEntry *entries[],
                      AdvanceAggFn advance_agg_fn);
 
+  // Called during partitioned scan to build an aggregation hash table over a
+  // single partition.
+  AggregationHashTable *BuildTableOverPartition(void *query_state, u32 partition_idx);
+
  private:
-  // Allocator
+  // Memory allocator.
   MemoryPool *memory_;
 
-  // Where the aggregates are stored
+  // The size of the aggregates in bytes.
+  std::size_t payload_size_;
+
+  // Where the aggregates are stored.
   util::ChunkedVector<MemoryPoolAllocator<byte>> entries_;
 
-  // The hash index
-  GenericHashTable hash_table_{kDefaultLoadFactor};
+  // Entries taken from other tables.
+  MemPoolVector<decltype(entries_)> owned_entries_;
 
+  // The hash index.
+  GenericHashTable hash_table_;
+
+  // -------------------------------------------------------
   // Overflow partitions
+  // -------------------------------------------------------
+
+  // The function to merge a set of overflow partitions into one table.
+  MergePartitionFn merge_partition_fn_;
+  // The head and tail arrays over the overflow partition. These arrays are
+  // allocated from the pool. Their contents are pointers into pool-allocated
+  // memory, so they don't need to be deleted.
   HashTableEntry **partition_heads_;
   HashTableEntry **partition_tails_;
+  // The HyperLogLog++ estimated for each overflow partition. The array is
+  // allocated from the pool, but each element is new'd from libcount. Hence,
+  // the elements have to be deleted.
+  libcount::HLL **partition_estimates_;
+  // The aggregation hash table over each partition. The array and each element
+  // is allocated from the pool.
   AggregationHashTable **partition_tables_;
+  // The number of elements that can be inserted into the main hash table before
+  // we flush into the overflow partitions. We size this so that the entries
+  // are roughly L2-sized.
   u64 flush_threshold_;
-  u64 part_shift_bits_;
+  // The number of bits to shift the hash value to determine its overflow
+  // partition.
+  u64 partition_shift_bits_;
 
-  // Runtime stats
+  // Runtime stats.
   Stats stats_;
 
-  // The maximum number of elements in the table before a resize
+  // The maximum number of elements in the table before a resize.
   u64 max_fill_;
 };
 
@@ -284,6 +406,83 @@ class AggregationHashTableIterator {
   // The iterator over the aggregation hash table
   // TODO(pmenon): Switch to vectorized iterator when perf is better
   GenericHashTableIterator<false> iter_;
+};
+
+/**
+ * An iterator over a range of overflow partition entries in an aggregation hash
+ * table. The range is provided through the constructor. Each overflow entry's
+ * hash value is accessible through @em GetHash(), along with the opaque payload
+ * through @em GetPayload().
+ */
+class AggregationOverflowPartitionIterator {
+ public:
+  /**
+   * Construct an iterator over the given partition range.
+   * @param partitions_begin The beginning of the range.
+   * @param partitions_end The end of the range.
+   */
+  AggregationOverflowPartitionIterator(HashTableEntry **partitions_begin, HashTableEntry **partitions_end)
+      : partitions_iter_(partitions_begin), partitions_end_(partitions_end), curr_(nullptr) {
+    Next();
+  }
+
+  /**
+   * Are there more overflow entries?
+   * @return True if the iterator has more data; false otherwise
+   */
+  bool HasNext() const { return curr_ != nullptr; }
+
+  /**
+   * Move to the next overflow entry.
+   */
+  void Next() {
+    // Try to move along current partition
+    if (curr_ != nullptr) {
+      curr_ = curr_->next;
+      if (curr_ != nullptr) {
+        return;
+      }
+    }
+
+    // Find next non-empty partition
+    while (curr_ == nullptr && partitions_iter_ != partitions_end_) {
+      curr_ = *partitions_iter_++;
+    }
+  }
+
+  /**
+   * Get the hash value of the overflow entry the iterator is currently pointing
+   * to. It is assumed the caller has checked there is data in the iterator.
+   * @return The hash value of the current overflow entry.
+   */
+  const hash_t GetHash() const { return curr_->hash; }
+
+  /**
+   * Get the payload of the overflow entry the iterator is currently pointing
+   * to. It is assumed the caller has checked there is data in the iterator.
+   * @return The opaque payload associated with the current overflow entry.
+   */
+  const byte *GetPayload() const { return curr_->payload; }
+
+  /**
+   * Get the payload of the overflow entry the iterator is currently pointing
+   * to, but interpret it as the given template type @em T. It is assumed the
+   * caller has checked there is data in the iterator.
+   * @tparam T The type of the payload in the current overflow entry.
+   * @return The opaque payload associated with the current overflow entry.
+   */
+  template <typename T>
+  const T *GetPayloadAs() const {
+    return curr_->PayloadAs<T>();
+  }
+
+ private:
+  // The current position in the partitions array
+  HashTableEntry **partitions_iter_;
+  // The ending position in the partitions array
+  HashTableEntry **partitions_end_;
+  // The current overflow entry
+  HashTableEntry *curr_;
 };
 
 }  // namespace tpl::sql

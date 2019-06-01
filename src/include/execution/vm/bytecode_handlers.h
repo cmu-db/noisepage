@@ -178,6 +178,11 @@ VM_OP_HOT void OpThreadStateContainerReset(tpl::sql::ThreadStateContainer *threa
   thread_state_container->Reset(size, init_fn, destroy_fn, ctx);
 }
 
+VM_OP_HOT void OpThreadStateContainerIterate(tpl::sql::ThreadStateContainer *thread_state_container, void *const state,
+                                             tpl::sql::ThreadStateContainer::IterateFn iterate_fn) {
+  thread_state_container->IterateStates(state, iterate_fn);
+}
+
 void OpThreadStateContainerFree(tpl::sql::ThreadStateContainer *thread_state_container);
 
 // ---------------------------------------------------------
@@ -200,10 +205,10 @@ VM_OP_HOT void OpTableVectorIteratorGetPCI(tpl::sql::ProjectedColumnsIterator **
   *pci = iter->projected_columns_iterator();
 }
 
-VM_OP_HOT void OpParallelScanTable(const u32 db_oid, const u32 table_oid, tpl::exec::ExecutionContext *const ctx,
-                                   tpl::sql::ThreadStateContainer *const thread_state_container,
+VM_OP_HOT void OpParallelScanTable(const u32 db_oid, const u32 table_oid, void *const query_state,
+                                   tpl::sql::ThreadStateContainer *const thread_states,
                                    const tpl::sql::TableVectorIterator::ScanFn scanner) {
-  tpl::sql::TableVectorIterator::ParallelScan(db_oid, table_oid, ctx, thread_state_container, scanner);
+  tpl::sql::TableVectorIterator::ParallelScan(db_oid, table_oid, query_state, thread_states, scanner);
 }
 
 VM_OP_HOT void OpPCIIsFiltered(bool *is_filtered, tpl::sql::ProjectedColumnsIterator *pci) {
@@ -451,6 +456,34 @@ VM_OP_HOT void OpNotEqualInteger(tpl::sql::BoolVal *const result, const tpl::sql
   result->is_null = (left->is_null || right->is_null);
 }
 
+VM_OP_HOT void OpAddInteger(tpl::sql::Integer *const result, const tpl::sql::Integer *const left,
+                            const tpl::sql::Integer *const right) {
+  UNUSED bool overflow;
+  *result = left->Add(*right, &overflow);
+}
+
+VM_OP_HOT void OpSubInteger(tpl::sql::Integer *const result, const tpl::sql::Integer *const left,
+                            const tpl::sql::Integer *const right) {
+  UNUSED bool overflow;
+  *result = left->Sub(*right, &overflow);
+}
+
+VM_OP_HOT void OpMulInteger(tpl::sql::Integer *const result, const tpl::sql::Integer *const left,
+                            const tpl::sql::Integer *const right) {
+  UNUSED bool overflow;
+  *result = left->Multiply(*right, &overflow);
+}
+
+VM_OP_HOT void OpDivInteger(tpl::sql::Integer *const result, const tpl::sql::Integer *const left,
+                            const tpl::sql::Integer *const right) {
+  *result = left->Divide(*right);
+}
+
+VM_OP_HOT void OpRemInteger(tpl::sql::Integer *const result, const tpl::sql::Integer *const left,
+                            const tpl::sql::Integer *const right) {
+  *result = left->Modulo(*right);
+}
+
 // ---------------------------------------------------------
 // SQL Aggregations
 // ---------------------------------------------------------
@@ -479,7 +512,54 @@ VM_OP_HOT void OpAggregationHashTableProcessBatch(tpl::sql::AggregationHashTable
   agg_hash_table->ProcessBatch(iters, hash_fn, key_eq_fn, init_agg_fn, merge_agg_fn);
 }
 
+VM_OP_HOT void OpAggregationHashTableTransferPartitions(
+    tpl::sql::AggregationHashTable *const agg_hash_table, tpl::sql::ThreadStateContainer *const thread_state_container,
+    const u32 agg_ht_offset, const tpl::sql::AggregationHashTable::MergePartitionFn merge_partition_fn) {
+  agg_hash_table->TransferMemoryAndPartitions(thread_state_container, agg_ht_offset, merge_partition_fn);
+}
+
+VM_OP_HOT void OpAggregationHashTableParallelPartitionedScan(
+    tpl::sql::AggregationHashTable *const agg_hash_table, void *const query_state,
+    tpl::sql::ThreadStateContainer *const thread_state_container,
+    const tpl::sql::AggregationHashTable::ScanPartitionFn scan_partition_fn) {
+  agg_hash_table->ExecuteParallelPartitionedScan(query_state, thread_state_container, scan_partition_fn);
+}
+
 void OpAggregationHashTableFree(tpl::sql::AggregationHashTable *agg_hash_table);
+
+void OpAggregationHashTableIteratorInit(tpl::sql::AggregationHashTableIterator *iter,
+                                        tpl::sql::AggregationHashTable *agg_hash_table);
+
+VM_OP_HOT void OpAggregationHashTableIteratorHasNext(bool *has_more, tpl::sql::AggregationHashTableIterator *iter) {
+  *has_more = iter->HasNext();
+}
+
+VM_OP_HOT void OpAggregationHashTableIteratorNext(tpl::sql::AggregationHashTableIterator *iter) { iter->Next(); }
+
+VM_OP_HOT void OpAggregationHashTableIteratorGetRow(const byte **row, tpl::sql::AggregationHashTableIterator *iter) {
+  *row = iter->GetCurrentAggregateRow();
+}
+
+void OpAggregationHashTableIteratorFree(tpl::sql::AggregationHashTableIterator *iter);
+
+VM_OP_HOT void OpAggregationOverflowPartitionIteratorHasNext(bool *has_more,
+                                                             tpl::sql::AggregationOverflowPartitionIterator *iter) {
+  *has_more = iter->HasNext();
+}
+
+VM_OP_HOT void OpAggregationOverflowPartitionIteratorNext(tpl::sql::AggregationOverflowPartitionIterator *iter) {
+  iter->Next();
+}
+
+VM_OP_HOT void OpAggregationOverflowPartitionIteratorGetHash(hash_t *hash_val,
+                                                             tpl::sql::AggregationOverflowPartitionIterator *iter) {
+  *hash_val = iter->GetHash();
+}
+
+VM_OP_HOT void OpAggregationOverflowPartitionIteratorGetRow(const byte **row,
+                                                            tpl::sql::AggregationOverflowPartitionIterator *iter) {
+  *row = iter->GetPayload();
+}
 
 //
 // COUNT

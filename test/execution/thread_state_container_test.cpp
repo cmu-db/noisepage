@@ -13,7 +13,55 @@
 
 namespace tpl::sql::test {
 
-class ThreadStateContainerTest : public TplTest {};
+class ThreadStateContainerTest : public TplTest {
+ protected:
+  void ForceCreationOfThreadStates(ThreadStateContainer *container) {
+    std::vector<u32> input(2000);
+    tbb::task_scheduler_init sched;
+    tbb::parallel_for_each(input.begin(), input.end(),
+                           [&container](auto c) { container->AccessThreadStateOfCurrentThread(); });
+  }
+};
+
+// NOLINTNEXTLINE
+TEST_F(ThreadStateContainerTest, EmptyStateTest) {
+  MemoryPool memory(nullptr);
+  ThreadStateContainer container(&memory);
+  container.Reset(0, nullptr, nullptr, nullptr);
+  UNUSED auto *state = container.AccessThreadStateOfCurrentThread();
+  container.Clear();
+}
+
+// NOLINTNEXTLINE
+TEST_F(ThreadStateContainerTest, ComplexObjectContainerTest) {
+  struct Object {
+    u64 x{0};
+    u32 arr[10] = {0};
+    u32 arr_2[2] = {44, 23};
+    Object *next{nullptr};
+    bool initialized{false};
+  };
+
+  MemoryPool memory(nullptr);
+  ThreadStateContainer container(&memory);
+
+  container.Reset(sizeof(Object),
+                  [](UNUSED auto *_, auto *s) {
+                    // Set some stuff to indicate object is initialized
+                    auto obj = new (s) Object();
+                    obj->x = 10;
+                    obj->initialized = true;
+                  },
+                  nullptr, nullptr);
+  ForceCreationOfThreadStates(&container);
+
+  // Check
+  container.ForEach<Object>([](Object *obj) {
+    EXPECT_EQ(10u, obj->x);
+    EXPECT_EQ(nullptr, obj->next);
+    EXPECT_EQ(true, obj->initialized);
+  });
+}
 
 // NOLINTNEXTLINE
 TEST_F(ThreadStateContainerTest, ContainerResetTest) {
@@ -36,11 +84,7 @@ TEST_F(ThreadStateContainerTest, ContainerResetTest) {
     /* Reset the container, add/sub upon creation/destruction by amount */                                            \
     container.Reset(sizeof(u32), [](auto *ctx, UNUSED auto *s) { (*reinterpret_cast<decltype(count) *>(ctx)) += N; }, \
                     [](auto *ctx, UNUSED auto *s) { (*reinterpret_cast<decltype(count) *>(ctx)) -= N; }, &count);     \
-    /* Do some useless parallel work to create thread-local states */                                                 \
-    std::vector<u32> input(2000);                                                                                     \
-    tbb::task_scheduler_init sched;                                                                                   \
-    tbb::parallel_for_each(input.begin(), input.end(),                                                                \
-                           [&container](auto c) { container.AccessThreadStateOfCurrentThread(); });                   \
+    ForceCreationOfThreadStates(&container);                                                                          \
   }
 
   RESET(1)
@@ -86,9 +130,10 @@ TEST_F(ThreadStateContainerTest, SimpleContainerTest) {
   {
     std::vector<u32 *> counts;
     container.CollectThreadLocalStateElementsAs(&counts, 0);
-    EXECUTION_LOG_INFO("{} thread states", counts.size());
+    LOG_INFO("{} thread states", counts.size());
 
-    total = std::accumulate(counts.begin(), counts.end(), 0, [](auto partial, auto *c) { return partial + *c; });
+    total = static_cast<i32>(
+        std::accumulate(counts.begin(), counts.end(), u32(0), [](u32 partial, const u32 *c) { return partial + *c; }));
     EXPECT_EQ(input.size(), total);
   }
 }

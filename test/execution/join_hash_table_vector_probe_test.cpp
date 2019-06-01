@@ -39,7 +39,7 @@ class JoinHashTableVectorProbeTest : public TplTest {
     auto *txn_manager = exec->GetTxnManager();
     txn_ = txn_manager->BeginTransaction();
     // TODO(Amadou): Come up with an easier way to create ProjectedColumns.
-    // This should be done after the perso_catalog PR is merged in.
+    // This should be done after the catalog PR is merged in.
     // Create column metadata for every column.
     terrier::catalog::col_oid_t col_oid_a(catalog->GetNextOid());
     terrier::catalog::col_oid_t col_oid_b(catalog->GetNextOid());
@@ -124,11 +124,11 @@ class JoinHashTableVectorProbeTest : public TplTest {
 
  private:
   MemoryPool memory_;
-  terrier::storage::ProjectedColumns *projected_columns_ = nullptr;
+  terrier::storage::ProjectedColumns *projected_columns_{nullptr};
 
-  byte *buffer_ = nullptr;
-  terrier::catalog::SqlTableHelper *catalog_table_ = nullptr;
-  terrier::transaction::TransactionContext *txn_ = nullptr;
+  byte *buffer_{nullptr};
+  terrier::catalog::SqlTableHelper *catalog_table_{nullptr};
+  terrier::transaction::TransactionContext *txn_{nullptr};
 };
 
 // Sequential number functor

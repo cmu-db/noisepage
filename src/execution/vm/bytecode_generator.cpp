@@ -782,6 +782,22 @@ void BytecodeGenerator::VisitBuiltinAggHashTableCall(ast::CallExpr *call, ast::B
       emitter()->EmitAggHashTableProcessBatch(agg_ht, iters, hash_fn, key_eq_fn, init_agg_fn, merge_agg_fn);
       break;
     }
+    case ast::Builtin::AggHashTableMovePartitions: {
+      LocalVar agg_ht = VisitExpressionForRValue(call->arguments()[0]);
+      LocalVar tls = VisitExpressionForRValue(call->arguments()[1]);
+      LocalVar aht_offset = VisitExpressionForRValue(call->arguments()[2]);
+      auto merge_part_fn = LookupFuncIdByName(call->arguments()[3]->As<ast::IdentifierExpr>()->name().data());
+      emitter()->EmitAggHashTableMovePartitions(agg_ht, tls, aht_offset, merge_part_fn);
+      break;
+    }
+    case ast::Builtin::AggHashTableParallelPartitionedScan: {
+      LocalVar agg_ht = VisitExpressionForRValue(call->arguments()[0]);
+      LocalVar ctx = VisitExpressionForRValue(call->arguments()[1]);
+      LocalVar tls = VisitExpressionForRValue(call->arguments()[2]);
+      auto scan_part_fn = LookupFuncIdByName(call->arguments()[3]->As<ast::IdentifierExpr>()->name().data());
+      emitter()->EmitAggHashTableParallelPartitionedScan(agg_ht, ctx, tls, scan_part_fn);
+      break;
+    }
     case ast::Builtin::AggHashTableFree: {
       LocalVar agg_ht = VisitExpressionForRValue(call->arguments()[0]);
       emitter()->Emit(Bytecode::AggregationHashTableFree, agg_ht);
@@ -791,51 +807,154 @@ void BytecodeGenerator::VisitBuiltinAggHashTableCall(ast::CallExpr *call, ast::B
   }
 }
 
+void BytecodeGenerator::VisitBuiltinAggHashTableIterCall(ast::CallExpr *call, ast::Builtin builtin) {
+  switch (builtin) {
+    case ast::Builtin::AggHashTableIterInit: {
+      LocalVar agg_ht_iter = VisitExpressionForRValue(call->arguments()[0]);
+      LocalVar agg_ht = VisitExpressionForRValue(call->arguments()[1]);
+      emitter()->Emit(Bytecode::AggregationHashTableIteratorInit, agg_ht_iter, agg_ht);
+      break;
+    }
+    case ast::Builtin::AggHashTableIterHasNext: {
+      LocalVar has_more = execution_result()->GetOrCreateDestination(call->type());
+      LocalVar agg_ht_iter = VisitExpressionForRValue(call->arguments()[0]);
+      emitter()->Emit(Bytecode::AggregationHashTableIteratorHasNext, has_more, agg_ht_iter);
+      execution_result()->set_destination(has_more.ValueOf());
+      break;
+    }
+    case ast::Builtin::AggHashTableIterNext: {
+      LocalVar agg_ht_iter = VisitExpressionForRValue(call->arguments()[0]);
+      emitter()->Emit(Bytecode::AggregationHashTableIteratorNext, agg_ht_iter);
+      break;
+    }
+    case ast::Builtin::AggHashTableIterGetRow: {
+      LocalVar row_ptr = execution_result()->GetOrCreateDestination(call->type());
+      LocalVar agg_ht_iter = VisitExpressionForRValue(call->arguments()[0]);
+      emitter()->Emit(Bytecode::AggregationHashTableIteratorGetRow, row_ptr, agg_ht_iter);
+      execution_result()->set_destination(row_ptr.ValueOf());
+      break;
+    }
+    case ast::Builtin::AggHashTableIterClose: {
+      LocalVar agg_ht_iter = VisitExpressionForRValue(call->arguments()[0]);
+      emitter()->Emit(Bytecode::AggregationHashTableIteratorFree, agg_ht_iter);
+      break;
+    }
+    default: { UNREACHABLE("Impossible aggregation hash table iteration bytecode"); }
+  }
+}
+
+void BytecodeGenerator::VisitBuiltinAggPartIterCall(ast::CallExpr *call, ast::Builtin builtin) {
+  switch (builtin) {
+    case ast::Builtin::AggPartIterHasNext: {
+      LocalVar has_more = execution_result()->GetOrCreateDestination(call->type());
+      LocalVar iter = VisitExpressionForRValue(call->arguments()[0]);
+      emitter()->Emit(Bytecode::AggregationOverflowPartitionIteratorHasNext, has_more, iter);
+      execution_result()->set_destination(has_more.ValueOf());
+      break;
+    }
+    case ast::Builtin::AggPartIterNext: {
+      LocalVar iter = VisitExpressionForRValue(call->arguments()[0]);
+      emitter()->Emit(Bytecode::AggregationOverflowPartitionIteratorNext, iter);
+      break;
+    }
+    case ast::Builtin::AggPartIterGetRow: {
+      LocalVar row = execution_result()->GetOrCreateDestination(call->type());
+      LocalVar iter = VisitExpressionForRValue(call->arguments()[0]);
+      emitter()->Emit(Bytecode::AggregationOverflowPartitionIteratorGetRow, row, iter);
+      execution_result()->set_destination(row.ValueOf());
+      break;
+    }
+    case ast::Builtin::AggPartIterGetHash: {
+      LocalVar hash = execution_result()->GetOrCreateDestination(call->type());
+      LocalVar iter = VisitExpressionForRValue(call->arguments()[0]);
+      emitter()->Emit(Bytecode::AggregationOverflowPartitionIteratorGetHash, hash, iter);
+      execution_result()->set_destination(hash.ValueOf());
+      break;
+    }
+    default: { UNREACHABLE("Impossible aggregation partition iterator bytecode"); }
+  }
+}
+
 namespace {
 
-#define AGG_CODES(F)                                                                                        \
-  F(CountAggregate, CountAggregateInit, CountAggregateAdvance, CountAggregateGetResult)                     \
-  F(CountStarAggregate, CountStarAggregateInit, CountStarAggregateAdvance, CountStarAggregateGetResult)     \
-  F(IntegerAvgAggregate, IntegerAvgAggregateInit, IntegerAvgAggregateAdvance, IntegerAvgAggregateGetResult) \
-  F(IntegerMaxAggregate, IntegerMaxAggregateInit, IntegerMaxAggregateAdvance, IntegerMaxAggregateGetResult) \
-  F(IntegerMinAggregate, IntegerMinAggregateInit, IntegerMinAggregateAdvance, IntegerMinAggregateGetResult) \
-  F(IntegerSumAggregate, IntegerSumAggregateInit, IntegerSumAggregateAdvance, IntegerSumAggregateGetResult)
+#define AGG_CODES(F)                                                                                         \
+  F(CountAggregate, CountAggregateInit, CountAggregateAdvance, CountAggregateGetResult, CountAggregateMerge, \
+    CountAggregateReset)                                                                                     \
+  F(CountStarAggregate, CountStarAggregateInit, CountStarAggregateAdvance, CountStarAggregateGetResult,      \
+    CountStarAggregateMerge, CountStarAggregateReset)                                                        \
+  F(IntegerAvgAggregate, IntegerAvgAggregateInit, IntegerAvgAggregateAdvance, IntegerAvgAggregateGetResult,  \
+    IntegerAvgAggregateMerge, IntegerAvgAggregateReset)                                                      \
+  F(IntegerMaxAggregate, IntegerMaxAggregateInit, IntegerMaxAggregateAdvance, IntegerMaxAggregateGetResult,  \
+    IntegerMaxAggregateMerge, IntegerMaxAggregateReset)                                                      \
+  F(IntegerMinAggregate, IntegerMinAggregateInit, IntegerMinAggregateAdvance, IntegerMinAggregateGetResult,  \
+    IntegerMinAggregateMerge, IntegerMinAggregateReset)                                                      \
+  F(IntegerSumAggregate, IntegerSumAggregateInit, IntegerSumAggregateAdvance, IntegerSumAggregateGetResult,  \
+    IntegerSumAggregateMerge, IntegerSumAggregateReset)
 
-enum class AggOpKind : u8 { Init, Advance, GetResult };
+enum class AggOpKind : u8 { Init = 0, Advance = 1, GetResult = 2, Merge = 3, Reset = 4 };
 
+// Given an aggregate kind and the operation to perform on it, determine the
+// appropriate bytecode
 template <AggOpKind OpKind>
-Bytecode OpForAgg(ast::BuiltinType::Kind agg_kind) {
-  if constexpr (OpKind == AggOpKind::Init) {
-    switch (agg_kind) {
-      default: { UNREACHABLE("Impossible aggregate type"); }
-#define ENTRY(Type, Init, Advance, GetResult) \
-  case ast::BuiltinType::Type:                \
+Bytecode OpForAgg(ast::BuiltinType::Kind agg_kind);
+
+template <>
+Bytecode OpForAgg<AggOpKind::Init>(const ast::BuiltinType::Kind agg_kind) {
+  switch (agg_kind) {
+    default: { UNREACHABLE("Impossible aggregate type"); }
+#define ENTRY(Type, Init, Advance, GetResult, Merge, Reset) \
+  case ast::BuiltinType::Type:                              \
     return Bytecode::Init;
-        AGG_CODES(ENTRY)
+      AGG_CODES(ENTRY)
 #undef ENTRY
-    }
   }
+}
 
-  if constexpr (OpKind == AggOpKind::Advance) {
-    switch (agg_kind) {
-      default: { UNREACHABLE("Impossible aggregate type"); }
-#define ENTRY(Type, Init, Advance, GetResult) \
-  case ast::BuiltinType::Type:                \
+template <>
+Bytecode OpForAgg<AggOpKind::Advance>(const ast::BuiltinType::Kind agg_kind) {
+  switch (agg_kind) {
+    default: { UNREACHABLE("Impossible aggregate type"); }
+#define ENTRY(Type, Init, Advance, GetResult, Merge, Reset) \
+  case ast::BuiltinType::Type:                              \
     return Bytecode::Advance;
-        AGG_CODES(ENTRY)
+      AGG_CODES(ENTRY)
 #undef ENTRY
-    }
   }
+}
 
-  if constexpr (OpKind == AggOpKind::GetResult) {
-    switch (agg_kind) {
-      default: { UNREACHABLE("Impossible aggregate type"); }
-#define ENTRY(Type, Init, Advance, GetResult) \
-  case ast::BuiltinType::Type:                \
+template <>
+Bytecode OpForAgg<AggOpKind::GetResult>(const ast::BuiltinType::Kind agg_kind) {
+  switch (agg_kind) {
+    default: { UNREACHABLE("Impossible aggregate type"); }
+#define ENTRY(Type, Init, Advance, GetResult, Merge, Reset) \
+  case ast::BuiltinType::Type:                              \
     return Bytecode::GetResult;
-        AGG_CODES(ENTRY)
+      AGG_CODES(ENTRY)
 #undef ENTRY
-    }
+  }
+}
+
+template <>
+Bytecode OpForAgg<AggOpKind::Merge>(const ast::BuiltinType::Kind agg_kind) {
+  switch (agg_kind) {
+    default: { UNREACHABLE("Impossible aggregate type"); }
+#define ENTRY(Type, Init, Advance, GetResult, Merge, Reset) \
+  case ast::BuiltinType::Type:                              \
+    return Bytecode::Merge;
+      AGG_CODES(ENTRY)
+#undef ENTRY
+  }
+}
+
+template <>
+Bytecode OpForAgg<AggOpKind::Reset>(const ast::BuiltinType::Kind agg_kind) {
+  switch (agg_kind) {
+    default: { UNREACHABLE("Impossible aggregate type"); }
+#define ENTRY(Type, Init, Advance, GetResult, Merge, Reset) \
+  case ast::BuiltinType::Type:                              \
+    return Bytecode::Reset;
+      AGG_CODES(ENTRY)
+#undef ENTRY
   }
 }
 
@@ -843,11 +962,17 @@ Bytecode OpForAgg(ast::BuiltinType::Kind agg_kind) {
 
 void BytecodeGenerator::VisitBuiltinAggregatorCall(ast::CallExpr *call, ast::Builtin builtin) {
   switch (builtin) {
-    case ast::Builtin::AggInit: {
+    case ast::Builtin::AggInit:
+    case ast::Builtin::AggReset: {
       for (const auto &arg : call->arguments()) {
         const auto agg_kind = arg->type()->GetPointeeType()->As<ast::BuiltinType>()->kind();
         LocalVar input = VisitExpressionForRValue(arg);
-        Bytecode bytecode = OpForAgg<AggOpKind::Init>(agg_kind);
+        Bytecode bytecode;
+        if (builtin == ast::Builtin::AggInit) {
+          bytecode = OpForAgg<AggOpKind::Init>(agg_kind);
+        } else {
+          bytecode = OpForAgg<AggOpKind::Reset>(agg_kind);
+        }
         emitter()->Emit(bytecode, input);
       }
       break;
@@ -859,6 +984,24 @@ void BytecodeGenerator::VisitBuiltinAggregatorCall(ast::CallExpr *call, ast::Bui
       LocalVar input = VisitExpressionForRValue(args[1]);
       Bytecode bytecode = OpForAgg<AggOpKind::Advance>(agg_kind);
       emitter()->Emit(bytecode, agg, input);
+      break;
+    }
+    case ast::Builtin::AggMerge: {
+      const auto &args = call->arguments();
+      const auto agg_kind = args[0]->type()->GetPointeeType()->As<ast::BuiltinType>()->kind();
+      LocalVar agg_1 = VisitExpressionForRValue(args[0]);
+      LocalVar agg_2 = VisitExpressionForRValue(args[1]);
+      Bytecode bytecode = OpForAgg<AggOpKind::Merge>(agg_kind);
+      emitter()->Emit(bytecode, agg_1, agg_2);
+      break;
+    }
+    case ast::Builtin::AggResult: {
+      const auto &args = call->arguments();
+      const auto agg_kind = args[0]->type()->GetPointeeType()->As<ast::BuiltinType>()->kind();
+      LocalVar result = execution_result()->GetOrCreateDestination(call->type());
+      LocalVar agg = VisitExpressionForRValue(args[0]);
+      Bytecode bytecode = OpForAgg<AggOpKind::GetResult>(agg_kind);
+      emitter()->Emit(bytecode, result, agg);
       break;
     }
     default: { UNREACHABLE("Impossible aggregator call"); }
@@ -888,9 +1031,9 @@ void BytecodeGenerator::VisitBuiltinJoinHashTableCall(ast::CallExpr *call, ast::
     }
     case ast::Builtin::JoinHashTableBuildParallel: {
       LocalVar join_hash_table = VisitExpressionForRValue(call->arguments()[0]);
-      LocalVar thread_local_container = VisitExpressionForRValue(call->arguments()[1]);
+      LocalVar tls = VisitExpressionForRValue(call->arguments()[1]);
       LocalVar jht_offset = VisitExpressionForRValue(call->arguments()[2]);
-      emitter()->Emit(Bytecode::JoinHashTableBuildParallel, join_hash_table, thread_local_container, jht_offset);
+      emitter()->Emit(Bytecode::JoinHashTableBuildParallel, join_hash_table, tls, jht_offset);
       break;
     }
     case ast::Builtin::JoinHashTableFree: {
@@ -927,17 +1070,17 @@ void BytecodeGenerator::VisitBuiltinSorterCall(ast::CallExpr *call, ast::Builtin
     }
     case ast::Builtin::SorterSortParallel: {
       LocalVar sorter = VisitExpressionForRValue(call->arguments()[0]);
-      LocalVar thread_local_container = VisitExpressionForRValue(call->arguments()[1]);
+      LocalVar tls = VisitExpressionForRValue(call->arguments()[1]);
       LocalVar sorter_offset = VisitExpressionForRValue(call->arguments()[2]);
-      emitter()->Emit(Bytecode::SorterSortParallel, sorter, thread_local_container, sorter_offset);
+      emitter()->Emit(Bytecode::SorterSortParallel, sorter, tls, sorter_offset);
       break;
     }
     case ast::Builtin::SorterSortTopKParallel: {
       LocalVar sorter = VisitExpressionForRValue(call->arguments()[0]);
-      LocalVar thread_local_container = VisitExpressionForRValue(call->arguments()[1]);
+      LocalVar tls = VisitExpressionForRValue(call->arguments()[1]);
       LocalVar sorter_offset = VisitExpressionForRValue(call->arguments()[2]);
       LocalVar top_k = VisitExpressionForRValue(call->arguments()[3]);
-      emitter()->Emit(Bytecode::SorterSortTopKParallel, sorter, thread_local_container, sorter_offset, top_k);
+      emitter()->Emit(Bytecode::SorterSortTopKParallel, sorter, tls, sorter_offset, top_k);
       break;
     }
     case ast::Builtin::SorterFree: {
@@ -1009,6 +1152,12 @@ void BytecodeGenerator::VisitBuiltinThreadStateContainerCall(ast::CallExpr *call
     case ast::Builtin::ThreadStateContainerInit: {
       LocalVar memory = VisitExpressionForRValue(call->arguments()[1]);
       emitter()->Emit(Bytecode::ThreadStateContainerInit, tls, memory);
+      break;
+    }
+    case ast::Builtin::ThreadStateContainerIterate: {
+      LocalVar ctx = VisitExpressionForRValue(call->arguments()[1]);
+      FunctionId iterate_fn = LookupFuncIdByName(call->arguments()[2]->As<ast::IdentifierExpr>()->name().data());
+      emitter()->EmitThreadStateContainerIterate(tls, ctx, iterate_fn);
       break;
     }
     case ast::Builtin::ThreadStateContainerReset: {
@@ -1168,6 +1317,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       break;
     }
     case ast::Builtin::ThreadStateContainerInit:
+    case ast::Builtin::ThreadStateContainerIterate:
     case ast::Builtin::ThreadStateContainerReset:
     case ast::Builtin::ThreadStateContainerFree: {
       VisitBuiltinThreadStateContainerCall(call, builtin);
@@ -1216,12 +1366,32 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::AggHashTableInsert:
     case ast::Builtin::AggHashTableLookup:
     case ast::Builtin::AggHashTableProcessBatch:
+    case ast::Builtin::AggHashTableMovePartitions:
+    case ast::Builtin::AggHashTableParallelPartitionedScan:
     case ast::Builtin::AggHashTableFree: {
       VisitBuiltinAggHashTableCall(call, builtin);
       break;
     }
+    case ast::Builtin::AggPartIterHasNext:
+    case ast::Builtin::AggPartIterNext:
+    case ast::Builtin::AggPartIterGetRow:
+    case ast::Builtin::AggPartIterGetHash: {
+      VisitBuiltinAggPartIterCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::AggHashTableIterInit:
+    case ast::Builtin::AggHashTableIterHasNext:
+    case ast::Builtin::AggHashTableIterNext:
+    case ast::Builtin::AggHashTableIterGetRow:
+    case ast::Builtin::AggHashTableIterClose: {
+      VisitBuiltinAggHashTableIterCall(call, builtin);
+      break;
+    }
     case ast::Builtin::AggInit:
-    case ast::Builtin::AggAdvance: {
+    case ast::Builtin::AggAdvance:
+    case ast::Builtin::AggMerge:
+    case ast::Builtin::AggReset:
+    case ast::Builtin::AggResult: {
       VisitBuiltinAggregatorCall(call, builtin);
       break;
     }
@@ -1410,7 +1580,7 @@ void BytecodeGenerator::VisitLogicalAndOrExpr(ast::BinaryOpExpr *node) {
   execution_result()->set_destination(dest.ValueOf());
 }
 
-void BytecodeGenerator::VisitArithmeticExpr(ast::BinaryOpExpr *node) {
+void BytecodeGenerator::VisitPrimitiveArithmeticExpr(ast::BinaryOpExpr *node) {
   TPL_ASSERT(execution_result()->IsRValue(), "Arithmetic expressions must be R-Values!");
 
   LocalVar dest = execution_result()->GetOrCreateDestination(node->type());
@@ -1459,6 +1629,54 @@ void BytecodeGenerator::VisitArithmeticExpr(ast::BinaryOpExpr *node) {
 
   // Mark where the result is
   execution_result()->set_destination(dest.ValueOf());
+}
+
+void BytecodeGenerator::VisitSqlArithmeticExpr(ast::BinaryOpExpr *node) {
+  TPL_ASSERT(execution_result()->IsRValue(), "SQL comparison expressions must be R-Values!");
+
+  LocalVar dest = execution_result()->GetOrCreateDestination(node->type());
+  LocalVar left = VisitExpressionForLValue(node->left());
+  LocalVar right = VisitExpressionForLValue(node->right());
+
+  Bytecode bytecode;
+  switch (node->op()) {
+    case parsing::Token::Type::PLUS: {
+      bytecode = Bytecode::AddInteger;
+      break;
+    }
+    case parsing::Token::Type::MINUS: {
+      bytecode = Bytecode::SubInteger;
+      break;
+    }
+    case parsing::Token::Type::STAR: {
+      bytecode = Bytecode::MulInteger;
+      break;
+    }
+    case parsing::Token::Type::SLASH: {
+      bytecode = Bytecode::DivInteger;
+      break;
+    }
+    case parsing::Token::Type::PERCENT: {
+      bytecode = Bytecode::RemInteger;
+      break;
+    }
+    default: { UNREACHABLE("Impossible arithmetic SQL operation"); }
+  }
+
+  // Emit
+  emitter()->EmitBinaryOp(bytecode, dest, left, right);
+
+  // Mark where the result is
+  execution_result()->set_destination(dest);
+}
+
+void BytecodeGenerator::VisitArithmeticExpr(ast::BinaryOpExpr *node) {
+  TPL_ASSERT(execution_result()->IsRValue(), "Comparison expressions must be R-Values!");
+  if (node->type()->IsSqlValueType()) {
+    VisitSqlArithmeticExpr(node);
+  } else {
+    VisitPrimitiveArithmeticExpr(node);
+  }
 }
 
 void BytecodeGenerator::VisitBinaryOpExpr(ast::BinaryOpExpr *node) {
@@ -1745,14 +1963,6 @@ FunctionId BytecodeGenerator::LookupFuncIdByName(const std::string &name) const 
   return iter->second;
 }
 
-const FunctionInfo *BytecodeGenerator::LookupFuncInfoByName(const std::string &name) const {
-  const auto iter = func_map_.find(name);
-  if (iter == func_map_.end()) {
-    return nullptr;
-  }
-  return &functions_[iter->second];
-}
-
 LocalVar BytecodeGenerator::VisitExpressionForLValue(ast::Expr *expr) {
   LValueResultScope scope(this);
   Visit(expr);
@@ -1805,7 +2015,8 @@ std::unique_ptr<BytecodeModule> BytecodeGenerator::Compile(ast::AstNode *root, e
   BytecodeGenerator generator{exec_ctx};
   generator.Visit(root);
 
-  // NOLINTNEXTLINE
+  // Create the bytecode module. Note that we move the bytecode and functions
+  // array from the generator into the module.
   return std::make_unique<BytecodeModule>(name, std::move(generator.bytecode_), std::move(generator.functions_));
 }
 

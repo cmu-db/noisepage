@@ -1,16 +1,73 @@
 #include <sys/mman.h>
 #include <algorithm>
 #include <random>
+#include <utility>
 #include <vector>
 
 #include "execution/tpl_test.h"  // NOLINT
 
+#include "execution/sql/memory_pool.h"
 #include "execution/util/timer.h"
 #include "execution/util/vector_util.h"
 
 namespace tpl::util::test {
 
-class VectorUtilTest : public TplTest {};
+template <typename T>
+class PoolArray {
+ public:
+  PoolArray() = default;
+  PoolArray(sql::MemoryPool *memory, u32 num_elems)
+      : memory_(memory), arr_(memory_->AllocateArray<T>(num_elems, CACHELINE_SIZE, true)), size_(num_elems) {}
+  PoolArray(PoolArray &&other) noexcept : memory_(other.memory_), arr_(other.arr_), size_(other.size) {
+    other.memory_ = nullptr;
+    other.arr_ = nullptr;
+    other.size_ = 0;
+  }
+
+  PoolArray &operator=(PoolArray &&other) noexcept {
+    std::swap(memory_, other.memory_);
+    std::swap(arr_, other.arr_);
+    std::swap(size_, other.size_);
+  }
+
+  DISALLOW_COPY(PoolArray);
+
+  ~PoolArray() {
+    if (arr_ != nullptr) {
+      TPL_ASSERT(memory_ != nullptr, "No memory pool to return to!");
+      memory_->DeallocateArray(arr_, size_);
+    }
+    arr_ = nullptr;
+    size_ = 0;
+  }
+
+  T &operator[](std::size_t n) { return arr_[n]; }
+
+  T *raw() { return arr_; }
+  const T *raw() const { return arr_; }
+  u32 size() { return size_; }
+
+  T *begin() { return raw(); }
+  T *end() { return raw() + size(); }
+
+ private:
+  sql::MemoryPool *memory_{nullptr};
+  T *arr_{nullptr};
+  u32 size_{0};
+};
+
+class VectorUtilTest : public TplTest {
+ public:
+  VectorUtilTest() : pool_(nullptr) {}
+
+  template <typename T>
+  PoolArray<T> AllocateArray(const u32 num_elems) {
+    return PoolArray<T>(&pool_, num_elems);
+  }
+
+ private:
+  sql::MemoryPool pool_;
+};
 
 // NOLINTNEXTLINE
 TEST_F(VectorUtilTest, AccessTest) {
@@ -454,6 +511,26 @@ TEST_F(VectorUtilTest, DISABLED_PerfSelectTest) {
 
     std::cout << "Sel: " << (static_cast<double>(sel) / 100) << ", count: " << count << ", time: " << time << " ms"
               << std::endl;
+  }
+}
+
+// NOLINTNEXTLINE
+TEST_F(VectorUtilTest, GatherTest) {
+  auto array = AllocateArray<u32>(800000);
+  auto indexes = AllocateArray<u32>(1000);
+  auto output = AllocateArray<u32>(1000);
+
+  std::iota(array.begin(), array.end(), 0);
+
+  std::random_device random;
+  std::generate(indexes.begin(), indexes.end(), [&]() { return random() % array.size(); });
+
+  // Perform gather
+  VectorUtil::Gather(indexes.size(), array.raw(), indexes.raw(), output.raw());
+
+  // Check
+  for (u32 i = 0; i < indexes.size(); i++) {
+    EXPECT_EQ(array[indexes[i]], output[i]);
   }
 }
 

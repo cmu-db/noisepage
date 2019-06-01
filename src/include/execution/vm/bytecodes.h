@@ -89,6 +89,7 @@ namespace tpl::vm {
                                                                                                                       \
   /* Thread State Container */                                                                                        \
   F(ThreadStateContainerInit, OperandType::Local, OperandType::Local)                                                 \
+  F(ThreadStateContainerIterate, OperandType::Local, OperandType::Local, OperandType::FunctionId)                     \
   F(ThreadStateContainerReset, OperandType::Local, OperandType::Local, OperandType::FunctionId,                       \
     OperandType::FunctionId, OperandType::Local)                                                                      \
   F(ThreadStateContainerFree, OperandType::Local)                                                                     \
@@ -155,6 +156,11 @@ namespace tpl::vm {
   F(GreaterThanEqualInteger, OperandType::Local, OperandType::Local, OperandType::Local)                              \
   F(EqualInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                         \
   F(NotEqualInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
+  F(AddInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
+  F(SubInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
+  F(MulInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
+  F(DivInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
+  F(RemInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
                                                                                                                       \
   /* Hashing */                                                                                                       \
   F(HashInt, OperandType::Local, OperandType::Local)                                                                  \
@@ -169,7 +175,20 @@ namespace tpl::vm {
     OperandType::Local)                                                                                               \
   F(AggregationHashTableProcessBatch, OperandType::Local, OperandType::Local, OperandType::FunctionId,                \
     OperandType::FunctionId, OperandType::FunctionId, OperandType::FunctionId)                                        \
+  F(AggregationHashTableTransferPartitions, OperandType::Local, OperandType::Local, OperandType::Local,               \
+    OperandType::FunctionId)                                                                                          \
+  F(AggregationHashTableParallelPartitionedScan, OperandType::Local, OperandType::Local, OperandType::Local,          \
+    OperandType::FunctionId)                                                                                          \
   F(AggregationHashTableFree, OperandType::Local)                                                                     \
+  F(AggregationHashTableIteratorInit, OperandType::Local, OperandType::Local)                                         \
+  F(AggregationHashTableIteratorHasNext, OperandType::Local, OperandType::Local)                                      \
+  F(AggregationHashTableIteratorNext, OperandType::Local)                                                             \
+  F(AggregationHashTableIteratorGetRow, OperandType::Local, OperandType::Local)                                       \
+  F(AggregationHashTableIteratorFree, OperandType::Local)                                                             \
+  F(AggregationOverflowPartitionIteratorHasNext, OperandType::Local, OperandType::Local)                              \
+  F(AggregationOverflowPartitionIteratorNext, OperandType::Local)                                                     \
+  F(AggregationOverflowPartitionIteratorGetHash, OperandType::Local, OperandType::Local)                              \
+  F(AggregationOverflowPartitionIteratorGetRow, OperandType::Local, OperandType::Local)                               \
   /* Aggregates */                                                                                                    \
   F(CountAggregateInit, OperandType::Local)                                                                           \
   F(CountAggregateAdvance, OperandType::Local, OperandType::Local)                                                    \

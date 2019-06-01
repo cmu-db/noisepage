@@ -441,6 +441,17 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
     DISPATCH_NEXT();
   }
 
+  OP(ThreadStateContainerIterate) : {
+    auto *thread_state_container = frame->LocalAt<sql::ThreadStateContainer *>(READ_LOCAL_ID());
+    auto ctx = frame->LocalAt<void *>(READ_LOCAL_ID());
+    auto iterate_fn_id = READ_FUNC_ID();
+
+    auto iterate_fn =
+        reinterpret_cast<sql::ThreadStateContainer::IterateFn>(module_->GetRawFunctionImpl(iterate_fn_id));
+    OpThreadStateContainerIterate(thread_state_container, ctx, iterate_fn);
+    DISPATCH_NEXT();
+  }
+
   OP(ThreadStateContainerReset) : {
     auto *thread_state_container = frame->LocalAt<sql::ThreadStateContainer *>(READ_LOCAL_ID());
     auto size = frame->LocalAt<u32>(READ_LOCAL_ID());
@@ -504,12 +515,12 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
   OP(ParallelScanTable) : {
     auto db_oid = READ_UIMM4();
     auto table_oid = READ_UIMM4();
-    auto exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto query_state = frame->LocalAt<void *>(READ_LOCAL_ID());
     auto thread_state_container = frame->LocalAt<sql::ThreadStateContainer *>(READ_LOCAL_ID());
     auto scan_fn_id = READ_FUNC_ID();
 
     auto scan_fn = reinterpret_cast<sql::TableVectorIterator::ScanFn>(module_->GetRawFunctionImpl(scan_fn_id));
-    OpParallelScanTable(db_oid, table_oid, exec_ctx, thread_state_container, scan_fn);
+    OpParallelScanTable(db_oid, table_oid, query_state, thread_state_container, scan_fn);
     DISPATCH_NEXT();
   }
 
@@ -737,6 +748,21 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
   GEN_CMP(NotEqual);
 #undef GEN_CMP
 
+#define GEN_MATH_OPS(op)                                            \
+  OP(op##Integer) : {                                               \
+    auto *result = frame->LocalAt<sql::Integer *>(READ_LOCAL_ID()); \
+    auto *left = frame->LocalAt<sql::Integer *>(READ_LOCAL_ID());   \
+    auto *right = frame->LocalAt<sql::Integer *>(READ_LOCAL_ID());  \
+    Op##op##Integer(result, left, right);                           \
+    DISPATCH_NEXT();                                                \
+  }
+
+  GEN_MATH_OPS(Add)
+  GEN_MATH_OPS(Sub)
+  GEN_MATH_OPS(Mul)
+  GEN_MATH_OPS(Div)
+  GEN_MATH_OPS(Rem)
+
   // -------------------------------------------------------
   // Aggregations
   // -------------------------------------------------------
@@ -787,9 +813,94 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
     DISPATCH_NEXT();
   }
 
+  OP(AggregationHashTableTransferPartitions) : {
+    auto *agg_hash_table = frame->LocalAt<sql::AggregationHashTable *>(READ_LOCAL_ID());
+    auto *thread_state_container = frame->LocalAt<sql::ThreadStateContainer *>(READ_LOCAL_ID());
+    auto agg_ht_offset = frame->LocalAt<u32>(READ_LOCAL_ID());
+    auto merge_partition_fn_id = READ_FUNC_ID();
+
+    auto merge_partition_fn = reinterpret_cast<sql::AggregationHashTable::MergePartitionFn>(
+        module_->GetRawFunctionImpl(merge_partition_fn_id));
+    OpAggregationHashTableTransferPartitions(agg_hash_table, thread_state_container, agg_ht_offset, merge_partition_fn);
+    DISPATCH_NEXT();
+  }
+
+  OP(AggregationHashTableParallelPartitionedScan) : {
+    auto *agg_hash_table = frame->LocalAt<sql::AggregationHashTable *>(READ_LOCAL_ID());
+    auto *query_state = frame->LocalAt<void *>(READ_LOCAL_ID());
+    auto *thread_state_container = frame->LocalAt<sql::ThreadStateContainer *>(READ_LOCAL_ID());
+    auto scan_partition_fn_id = READ_FUNC_ID();
+
+    auto scan_partition_fn =
+        reinterpret_cast<sql::AggregationHashTable::ScanPartitionFn>(module_->GetRawFunctionImpl(scan_partition_fn_id));
+    OpAggregationHashTableParallelPartitionedScan(agg_hash_table, query_state, thread_state_container,
+                                                  scan_partition_fn);
+    DISPATCH_NEXT();
+  }
+
   OP(AggregationHashTableFree) : {
     auto *agg_hash_table = frame->LocalAt<sql::AggregationHashTable *>(READ_LOCAL_ID());
     OpAggregationHashTableFree(agg_hash_table);
+    DISPATCH_NEXT();
+  }
+
+  OP(AggregationHashTableIteratorInit) : {
+    auto *iter = frame->LocalAt<sql::AggregationHashTableIterator *>(READ_LOCAL_ID());
+    auto *agg_hash_table = frame->LocalAt<sql::AggregationHashTable *>(READ_LOCAL_ID());
+    OpAggregationHashTableIteratorInit(iter, agg_hash_table);
+    DISPATCH_NEXT();
+  }
+
+  OP(AggregationHashTableIteratorHasNext) : {
+    auto *has_more = frame->LocalAt<bool *>(READ_LOCAL_ID());
+    auto *iter = frame->LocalAt<sql::AggregationHashTableIterator *>(READ_LOCAL_ID());
+    OpAggregationHashTableIteratorHasNext(has_more, iter);
+    DISPATCH_NEXT();
+  }
+
+  OP(AggregationHashTableIteratorNext) : {
+    auto *agg_hash_table_iter = frame->LocalAt<sql::AggregationHashTableIterator *>(READ_LOCAL_ID());
+    OpAggregationHashTableIteratorNext(agg_hash_table_iter);
+    DISPATCH_NEXT();
+  }
+
+  OP(AggregationHashTableIteratorGetRow) : {
+    auto *row = frame->LocalAt<const byte **>(READ_LOCAL_ID());
+    auto *iter = frame->LocalAt<sql::AggregationHashTableIterator *>(READ_LOCAL_ID());
+    OpAggregationHashTableIteratorGetRow(row, iter);
+    DISPATCH_NEXT();
+  }
+
+  OP(AggregationHashTableIteratorFree) : {
+    auto *agg_hash_table_iter = frame->LocalAt<sql::AggregationHashTableIterator *>(READ_LOCAL_ID());
+    OpAggregationHashTableIteratorFree(agg_hash_table_iter);
+    DISPATCH_NEXT();
+  }
+
+  OP(AggregationOverflowPartitionIteratorHasNext) : {
+    auto *has_more = frame->LocalAt<bool *>(READ_LOCAL_ID());
+    auto *overflow_iter = frame->LocalAt<sql::AggregationOverflowPartitionIterator *>(READ_LOCAL_ID());
+    OpAggregationOverflowPartitionIteratorHasNext(has_more, overflow_iter);
+    DISPATCH_NEXT();
+  }
+
+  OP(AggregationOverflowPartitionIteratorNext) : {
+    auto *overflow_iter = frame->LocalAt<sql::AggregationOverflowPartitionIterator *>(READ_LOCAL_ID());
+    OpAggregationOverflowPartitionIteratorNext(overflow_iter);
+    DISPATCH_NEXT();
+  }
+
+  OP(AggregationOverflowPartitionIteratorGetHash) : {
+    auto *hash = frame->LocalAt<hash_t *>(READ_LOCAL_ID());
+    auto *overflow_iter = frame->LocalAt<sql::AggregationOverflowPartitionIterator *>(READ_LOCAL_ID());
+    OpAggregationOverflowPartitionIteratorGetHash(hash, overflow_iter);
+    DISPATCH_NEXT();
+  }
+
+  OP(AggregationOverflowPartitionIteratorGetRow) : {
+    auto *row = frame->LocalAt<const byte **>(READ_LOCAL_ID());
+    auto *overflow_iter = frame->LocalAt<sql::AggregationOverflowPartitionIterator *>(READ_LOCAL_ID());
+    OpAggregationOverflowPartitionIteratorGetRow(row, overflow_iter);
     DISPATCH_NEXT();
   }
 
@@ -1366,7 +1477,7 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
 
   // Impossible
   UNREACHABLE("Impossible to reach end of interpreter loop. Bad code!");
-}
+}  // NOLINT (function is too long)
 
 const u8 *VM::ExecuteCall(const u8 *ip, VM::Frame *caller) {
   // Read the function ID and the argument count to the function first

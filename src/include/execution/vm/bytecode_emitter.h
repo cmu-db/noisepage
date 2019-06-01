@@ -275,6 +275,11 @@ class BytecodeEmitter {
   // -------------------------------------------------------
 
   /**
+   * Iterate over all the states in the container
+   */
+  void EmitThreadStateContainerIterate(LocalVar tls, LocalVar ctx, FunctionId iterate_fn);
+
+  /**
    * Reset a thread state container with init and destroy functions
    */
   void EmitThreadStateContainerReset(LocalVar tls, LocalVar state_size, FunctionId init_fn, FunctionId destroy_fn,
@@ -332,6 +337,17 @@ class BytecodeEmitter {
    */
   void EmitAggHashTableProcessBatch(LocalVar agg_ht, LocalVar iters, FunctionId hash_fn, FunctionId key_eq_fn,
                                     FunctionId init_agg_fn, FunctionId merge_agg_fn);
+
+  /**
+   * Emit move partition code
+   */
+  void EmitAggHashTableMovePartitions(LocalVar agg_ht, LocalVar tls, LocalVar aht_offset, FunctionId merge_part_fn);
+
+  /**
+   * Emit parallel partition scan code
+   */
+  void EmitAggHashTableParallelPartitionedScan(LocalVar agg_ht, LocalVar context, LocalVar tls,
+                                               FunctionId scan_part_fn);
 
   /**
    * Initialize a sorter instance

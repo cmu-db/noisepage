@@ -35,54 +35,56 @@ class Context;
 //           implementations, but can also be created and manipulated from TPL
 //           code. We specialize these because we also want to add SQL-level
 //           type information to these builtins.
-#define BUILTIN_TYPE_LIST(PRIM, NON_PRIM, SQL)                           \
-  /* Primitive types */                                                  \
-  PRIM(Nil, u8, "nil")                                                   \
-  PRIM(Bool, bool, "bool")                                               \
-  PRIM(Int8, i8, "int8")                                                 \
-  PRIM(Int16, i16, "int16")                                              \
-  PRIM(Int32, i32, "int32")                                              \
-  PRIM(Int64, i64, "int64")                                              \
-  PRIM(Uint8, u8, "uint8")                                               \
-  PRIM(Uint16, u16, "uint16")                                            \
-  PRIM(Uint32, u32, "uint32")                                            \
-  PRIM(Uint64, u64, "uint64")                                            \
-  PRIM(Int128, i128, "int128")                                           \
-  PRIM(Uint128, u128, "uint128")                                         \
-  PRIM(Float32, f32, "float32")                                          \
-  PRIM(Float64, f64, "float64")                                          \
-                                                                         \
-  /* Non-primitive builtins */                                           \
-  NON_PRIM(AggregationHashTable, tpl::sql::AggregationHashTable)         \
-  NON_PRIM(BloomFilter, tpl::sql::BloomFilter)                           \
-  NON_PRIM(ExecutionContext, tpl::exec::ExecutionContext)                \
-  NON_PRIM(FilterManager, tpl::sql::FilterManager)                       \
-  NON_PRIM(HashTableEntry, tpl::sql::HashTableEntry)                     \
-  NON_PRIM(JoinHashTable, tpl::sql::JoinHashTable)                       \
-  NON_PRIM(JoinHashTableVectorProbe, tpl::sql::JoinHashTableVectorProbe) \
-  NON_PRIM(MemoryPool, tpl::sql::MemoryPool)                             \
-  NON_PRIM(Sorter, tpl::sql::Sorter)                                     \
-  NON_PRIM(SorterIterator, tpl::sql::SorterIterator)                     \
-  NON_PRIM(TableVectorIterator, tpl::sql::TableVectorIterator)           \
-  NON_PRIM(ThreadStateContainer, tpl::sql::ThreadStateContainer)         \
-  NON_PRIM(ProjectedColumnsIterator, tpl::sql::ProjectedColumnsIterator) \
-  NON_PRIM(IndexIterator, tpl::sql::IndexIterator)                       \
-                                                                         \
-  /* SQL Aggregate types (if you add, remember to update BuiltinType) */ \
-  NON_PRIM(CountAggregate, tpl::sql::CountAggregate)                     \
-  NON_PRIM(CountStarAggregate, tpl::sql::CountStarAggregate)             \
-  NON_PRIM(IntegerAvgAggregate, tpl::sql::IntegerAvgAggregate)           \
-  NON_PRIM(IntegerMaxAggregate, tpl::sql::IntegerMaxAggregate)           \
-  NON_PRIM(IntegerMinAggregate, tpl::sql::IntegerMinAggregate)           \
-  NON_PRIM(IntegerSumAggregate, tpl::sql::IntegerSumAggregate)           \
-                                                                         \
-  /* Non-primitive SQL Runtime Values */                                 \
-  SQL(Boolean, tpl::sql::BoolVal)                                        \
-  SQL(Integer, tpl::sql::Integer)                                        \
-  SQL(Real, tpl::sql::Real)                                              \
-  SQL(Decimal, tpl::sql::Decimal)                                        \
-  SQL(VarBuffer, tpl::sql::VarBuffer)                                    \
-  SQL(Date, tpl::sql::Date)                                              \
+#define BUILTIN_TYPE_LIST(PRIM, NON_PRIM, SQL)                                   \
+  /* Primitive types */                                                          \
+  PRIM(Nil, u8, "nil")                                                           \
+  PRIM(Bool, bool, "bool")                                                       \
+  PRIM(Int8, i8, "int8")                                                         \
+  PRIM(Int16, i16, "int16")                                                      \
+  PRIM(Int32, i32, "int32")                                                      \
+  PRIM(Int64, i64, "int64")                                                      \
+  PRIM(Uint8, u8, "uint8")                                                       \
+  PRIM(Uint16, u16, "uint16")                                                    \
+  PRIM(Uint32, u32, "uint32")                                                    \
+  PRIM(Uint64, u64, "uint64")                                                    \
+  PRIM(Int128, i128, "int128")                                                   \
+  PRIM(Uint128, u128, "uint128")                                                 \
+  PRIM(Float32, f32, "float32")                                                  \
+  PRIM(Float64, f64, "float64")                                                  \
+                                                                                 \
+  /* Non-primitive builtins */                                                   \
+  NON_PRIM(AggregationHashTable, tpl::sql::AggregationHashTable)                 \
+  NON_PRIM(AggregationHashTableIterator, tpl::sql::AggregationHashTableIterator) \
+  NON_PRIM(AggOverflowPartIter, tpl::sql::AggregationOverflowPartitionIterator)  \
+  NON_PRIM(BloomFilter, tpl::sql::BloomFilter)                                   \
+  NON_PRIM(ExecutionContext, tpl::exec::ExecutionContext)                        \
+  NON_PRIM(FilterManager, tpl::sql::FilterManager)                               \
+  NON_PRIM(HashTableEntry, tpl::sql::HashTableEntry)                             \
+  NON_PRIM(JoinHashTable, tpl::sql::JoinHashTable)                               \
+  NON_PRIM(JoinHashTableVectorProbe, tpl::sql::JoinHashTableVectorProbe)         \
+  NON_PRIM(MemoryPool, tpl::sql::MemoryPool)                                     \
+  NON_PRIM(Sorter, tpl::sql::Sorter)                                             \
+  NON_PRIM(SorterIterator, tpl::sql::SorterIterator)                             \
+  NON_PRIM(TableVectorIterator, tpl::sql::TableVectorIterator)                   \
+  NON_PRIM(ThreadStateContainer, tpl::sql::ThreadStateContainer)                 \
+  NON_PRIM(ProjectedColumnsIterator, tpl::sql::ProjectedColumnsIterator)         \
+  NON_PRIM(IndexIterator, tpl::sql::IndexIterator)                               \
+                                                                                 \
+  /* SQL Aggregate types (if you add, remember to update BuiltinType) */         \
+  NON_PRIM(CountAggregate, tpl::sql::CountAggregate)                             \
+  NON_PRIM(CountStarAggregate, tpl::sql::CountStarAggregate)                     \
+  NON_PRIM(IntegerAvgAggregate, tpl::sql::IntegerAvgAggregate)                   \
+  NON_PRIM(IntegerMaxAggregate, tpl::sql::IntegerMaxAggregate)                   \
+  NON_PRIM(IntegerMinAggregate, tpl::sql::IntegerMinAggregate)                   \
+  NON_PRIM(IntegerSumAggregate, tpl::sql::IntegerSumAggregate)                   \
+                                                                                 \
+  /* Non-primitive SQL Runtime Values */                                         \
+  SQL(Boolean, tpl::sql::BoolVal)                                                \
+  SQL(Integer, tpl::sql::Integer)                                                \
+  SQL(Real, tpl::sql::Real)                                                      \
+  SQL(Decimal, tpl::sql::Decimal)                                                \
+  SQL(VarBuffer, tpl::sql::VarBuffer)                                            \
+  SQL(Date, tpl::sql::Date)                                                      \
   SQL(Timestamp, tpl::sql::Timestamp)
 
 // Ignore a builtin
