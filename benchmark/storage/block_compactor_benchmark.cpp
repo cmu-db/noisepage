@@ -168,11 +168,7 @@ BENCHMARK_REGISTER_F(BlockCompactorBenchmark, Compaction)->Unit(benchmark::kMill
 
 BENCHMARK_REGISTER_F(BlockCompactorBenchmark, Gather)->Unit(benchmark::kMillisecond)->UseManualTime();
 
-BENCHMARK_REGISTER_F(BlockCompactorBenchmark, DictionaryCompression)
-    ->Unit(benchmark::kMillisecond)
-    ->UseManualTime();
+BENCHMARK_REGISTER_F(BlockCompactorBenchmark, DictionaryCompression)->Unit(benchmark::kMillisecond)->UseManualTime();
 
-BENCHMARK_REGISTER_F(BlockCompactorBenchmark, EndToEndGather)
-    ->Unit(benchmark::kMillisecond)
-    ->UseManualTime();
+BENCHMARK_REGISTER_F(BlockCompactorBenchmark, EndToEndGather)->Unit(benchmark::kMillisecond)->UseManualTime();
 }  // namespace terrier

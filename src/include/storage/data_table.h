@@ -232,7 +232,6 @@ class DataTable {
   // needs raw access to the underlying table.
   friend class BlockCompactor;
 
-
   BlockStore *const block_store_;
   const layout_version_t layout_version_;
   const TupleAccessStrategy accessor_;

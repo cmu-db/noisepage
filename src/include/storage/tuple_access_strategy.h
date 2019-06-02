@@ -87,7 +87,6 @@ class TupleAccessStrategy {
     RawBlock block_;
   };
 
-
  public:
   /**
    * Initializes a TupleAccessStrategy
