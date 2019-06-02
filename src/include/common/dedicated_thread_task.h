@@ -10,6 +10,8 @@ namespace terrier {
  */
 class DedicatedThreadTask {
  public:
+  virtual ~DedicatedThreadTask() = default;
+
   /**
    * Send a termination signal to the dedicated thread.
    *

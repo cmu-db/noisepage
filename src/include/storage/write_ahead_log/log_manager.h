@@ -42,7 +42,7 @@ class LogManager : public DedicatedThreadOwner {
         filled_buffer_(nullptr),
         do_persist_(true) {}
 
-  virtual ~LogManager() { delete log_consumer_task_; }
+  ~LogManager() { delete log_consumer_task_; }
 
   /**
    * Start logging

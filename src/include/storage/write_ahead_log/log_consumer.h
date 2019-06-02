@@ -20,10 +20,14 @@ class LogConsumerTask : public DedicatedThreadTask {
    */
   explicit LogConsumerTask(LogManager *log_manager) : log_manager_(log_manager) {}
 
-  virtual ~LogConsumerTask() = default;
-
+  /**
+   * Runs main log consumer loop. Called by thread registry upon initialization of thread
+   */
   void RunTask() override;
 
+  /**
+   * Signals task to stop. Called by thread registry upon termination of thread
+   */
   void Terminate() override;
 
  private:
