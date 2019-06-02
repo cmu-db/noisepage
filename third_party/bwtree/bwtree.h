@@ -1,6 +1,5 @@
 #pragma once
 
-#include <deque>
 #include <sys/mman.h>
 #include <algorithm>
 #include <array>
@@ -8,6 +7,7 @@
 #include <chrono>  // NOLINT
 #include <cinttypes>
 #include <cstddef>  // offsetof() is defined here
+#include <deque>
 #include <functional>
 #include <thread>  // NOLINT
 #include <unordered_set>
@@ -2196,9 +2196,8 @@ class BwTree : public BwTreeBase {
         next_unused_node_id{1},
 
         // Initialize free NodeID stack
-        //free_node_id_list{},
-	node_id_list_lock{},
-	node_id_list{},
+        node_id_list_lock{},
+        node_id_list{},
 
         // Statistical information
         insert_op_count{0},
@@ -2336,7 +2335,7 @@ class BwTree : public BwTreeBase {
     node_id_list_lock.lock();
     mapping_table[node_id] = nullptr;
     node_id_list.push_back(node_id);
-    //free_node_id_list.SingleThreadPush(node_id);
+    // free_node_id_list.SingleThreadPush(node_id);
     node_id_list_lock.unlock();
   }
 
@@ -2552,8 +2551,8 @@ class BwTree : public BwTreeBase {
    * the mapping table rather than CAS with nullptr
    */
   void InitMappingTable() {
-    mapping_table = (std::atomic<const BaseNode *> *)mmap(nullptr, sizeof(BaseNode *) * MAPPING_TABLE_SIZE, PROT_READ | PROT_WRITE,
-                                                          MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+    mapping_table = (std::atomic<const BaseNode *> *)mmap(nullptr, sizeof(BaseNode *) * MAPPING_TABLE_SIZE,
+                                                          PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
     // If allocation fails, we throw an error because this is uncoverable
     // The upper level functions should either catch this exception
     // and then use another index instead, or simply kill the system
@@ -2580,19 +2579,9 @@ class BwTree : public BwTreeBase {
     // If the first element is true then the NodeID is a valid one
     // If the first element is false then NodeID is invalid and the
     // stack is either empty or being used (we cannot lock and wait)
-    //auto ret_pair = free_node_id_list.Pop();
-
-    // If there is no free node id
-    //if (!ret_pair.first) {
-      // fetch_add() returns the old value and increase the atomic
-      // automatically
-    //  return next_unused_node_id.fetch_add(1);
-    //}
-
-    //return ret_pair.second;
     NodeID ret;
     node_id_list_lock.lock();
-    if(node_id_list.size() == 0) {
+    if (node_id_list.size() == 0) {
       ret = next_unused_node_id.fetch_add(1);
     } else {
       ret = node_id_list.front();
@@ -4774,7 +4763,9 @@ class BwTree : public BwTreeBase {
 
         return;
       }  // case Inner/LeafRemoveType
-      default: { return; }
+      default: {
+        return;
+      }
     }  // switch
 
     TERRIER_ASSERT(false, "Cannot reach here.");
@@ -4950,11 +4941,11 @@ class BwTree : public BwTreeBase {
       if (snapshot_p->IsLeaf()) {
         INDEX_LOG_TRACE("The next node is a leaf (RO)");
 
-	if(value_list_p == nullptr) {
-	  NavigateSiblingChain(context_p);
-	} else {
+        if (value_list_p == nullptr) {
+          NavigateSiblingChain(context_p);
+        } else {
           NavigateLeafNode(context_p, *value_list_p);
-	}
+        }
 
         if (context_p->abort_flag) {
           INDEX_LOG_TRACE("NavigateLeafNode aborts (RO). ABORT");
@@ -6847,7 +6838,6 @@ class BwTree : public BwTreeBase {
 
   // This list holds free NodeID which was removed by remove delta
   // We recycle NodeID in epoch manager
-  //bwtree::AtomicStack<NodeID, MAPPING_TABLE_SIZE> free_node_id_list;
 
   std::mutex node_id_list_lock;
   std::deque<NodeID> node_id_list;
@@ -8159,7 +8149,7 @@ class BwTree : public BwTreeBase {
       // currently buffered IteratorContext which will be destroyed
       // after new IteratorContext is created
       KeyType start_key = *start_key_p;
-      
+
       while (1) {
         // First join the epoch to prevent physical nodes being deallocated
         // too early
