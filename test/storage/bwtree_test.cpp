@@ -38,7 +38,7 @@ TEST_F(BwTreeTests, ReproduceNewOrderMemoryLeak) {
   for (int64_t i = 0; i < key_num; i++) {
     keys.emplace_back(i);
   }
-  std::shuffle(keys.begin(), keys.end(), std::mt19937{std::random_device{}()});
+  std::shuffle(keys.begin(), keys.end(), std::mt19937{std::random_device{}()});  // NOLINT
 
   const uint32_t chunk_size = 1024 * 1024;
 
