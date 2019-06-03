@@ -696,8 +696,8 @@ Operator TableFreeScan::make() {
 // SeqScan
 //===--------------------------------------------------------------------===//
 Operator SeqScan::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::table_oid_t table_oid, std::string table_alias,
-                       std::vector<AnnotatedExpression> predicates, bool is_for_update) {
+                       catalog::table_oid_t table_oid, std::vector<AnnotatedExpression> predicates,
+                       std::string table_alias, bool is_for_update) {
   auto *scan = new SeqScan;
   scan->database_oid_ = database_oid;
   scan->namespace_oid_ = namespace_oid;
@@ -723,8 +723,9 @@ bool SeqScan::operator==(const BaseOperatorNode &r) {
 }
 
 common::hash_t SeqScan::Hash() const {
+  // only hash with table_alias and predicates?
   common::hash_t hash = BaseOperatorNode::Hash();
-  for (auto &pred : predicates_) hash = common::HashUtil::CombineHashes(hash, pred.GetExpr()->Hash());
+  hash = common::HashUtil::CombineHashInRange(hash, predicates_.begin(), predicates_.end());
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
   return hash;
 }

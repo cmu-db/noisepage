@@ -928,20 +928,28 @@ TEST(OperatorTests, SeqScanTest) {
   // SeqScan
   //===--------------------------------------------------------------------===//
   Operator seq_scan_1 = SeqScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
-                                      "table", std::vector<AnnotatedExpression>(), false);
+                                            std::vector<AnnotatedExpression>(), "table", false);
   Operator seq_scan_2 = SeqScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
-                                      "table", std::vector<AnnotatedExpression>(), false);
+                                            std::vector<AnnotatedExpression>(), "table", false);
 
   auto annotated_expr =
       AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
   Operator seq_scan_3 = SeqScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
-                                      "table", std::vector<AnnotatedExpression>{annotated_expr}, false);
+                                            std::vector<AnnotatedExpression>{annotated_expr}, "table", false);
 
   EXPECT_EQ(seq_scan_1.GetType(), OpType::SEQSCAN);
+  EXPECT_EQ(seq_scan_1.As<SeqScan>()->GetDatabaseOID(), catalog::db_oid_t(1));
+  EXPECT_EQ(seq_scan_1.As<SeqScan>()->GetNamespaceOID(), catalog::namespace_oid_t(2));
+  EXPECT_EQ(seq_scan_1.As<SeqScan>()->GetTableOID(), catalog::table_oid_t(3));
+  EXPECT_EQ(seq_scan_1.As<SeqScan>()->GetPredicates(), std::vector<AnnotatedExpression>());
+  EXPECT_EQ(seq_scan_3.As<SeqScan>()->GetPredicates(), std::vector<AnnotatedExpression>{annotated_expr});
+  EXPECT_EQ(seq_scan_1.As<SeqScan>()->GetTableAlias(), "table");
+  EXPECT_EQ(seq_scan_1.As<SeqScan>()->GetIsForUpdate(), false);
   EXPECT_EQ(seq_scan_1.GetName(), "SeqScan");
-  EXPECT_EQ(seq_scan_1.As<IndexScan>(), nullptr);
   EXPECT_TRUE(seq_scan_1 == seq_scan_2);
   EXPECT_FALSE(seq_scan_1 == seq_scan_3);
+  EXPECT_EQ(seq_scan_1.Hash(), seq_scan_2.Hash());
+  EXPECT_NE(seq_scan_1.Hash(), seq_scan_3.Hash());
 }
 
 // NOLINTNEXTLINE
