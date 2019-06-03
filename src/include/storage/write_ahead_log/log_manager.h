@@ -42,17 +42,17 @@ class LogManager : public DedicatedThreadOwner {
         filled_buffer_(nullptr),
         do_persist_(true) {}
 
-  ~LogManager() { delete log_consumer_task_; }
+  ~LogManager() override { delete log_consumer_task_; }
 
   /**
    * Start logging
    */
   void Start() {
     // Initialize buffers for logging
-    for (int i = 0; i < num_buffers_; i++) {
+    for (size_t i = 0; i < num_buffers_; i++) {
       buffers_.emplace_back(BufferedLogWriter(log_file_path_));
     }
-    for (int i = 0; i < num_buffers_; i++) {
+    for (size_t i = 0; i < num_buffers_; i++) {
       empty_buffer_queue_.Enqueue(&buffers_[i]);
     }
 
