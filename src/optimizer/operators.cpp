@@ -136,7 +136,13 @@ common::hash_t LogicalFilter::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
   // Again, I think that this is wrong because the value of the hash is based
   // on the location order of the expressions.
-  hash = common::HashUtil::CombineHashInRange(hash, predicates_.begin(), predicates_.end());
+  for (auto &pred : predicates_) {
+    auto expr = pred.GetExpr();
+    if (expr)
+      hash = common::HashUtil::SumHashes(hash, expr->Hash());
+    else
+      hash = common::HashUtil::SumHashes(hash, BaseOperatorNode::Hash());
+  }
   return hash;
 }
 
@@ -425,7 +431,13 @@ bool LogicalDependentJoin::operator==(const BaseOperatorNode &r) {
 
 common::hash_t LogicalDependentJoin::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  hash = common::HashUtil::CombineHashInRange(hash, join_predicates_.begin(), join_predicates_.end());
+  for (auto &pred : join_predicates_) {
+    auto expr = pred.GetExpr();
+    if (expr)
+      hash = common::HashUtil::SumHashes(hash, expr->Hash());
+    else
+      hash = common::HashUtil::SumHashes(hash, BaseOperatorNode::Hash());
+  }
   return hash;
 }
 
@@ -446,7 +458,13 @@ Operator LogicalMarkJoin::make(std::vector<AnnotatedExpression> &&conditions) {
 
 common::hash_t LogicalMarkJoin::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  hash = common::HashUtil::CombineHashInRange(hash, join_predicates_.begin(), join_predicates_.end());
+  for (auto &pred : join_predicates_) {
+    auto expr = pred.GetExpr();
+    if (expr)
+      hash = common::HashUtil::SumHashes(hash, expr->Hash());
+    else
+      hash = common::HashUtil::SumHashes(hash, BaseOperatorNode::Hash());
+  }
   return hash;
 }
 
@@ -473,7 +491,13 @@ Operator LogicalSingleJoin::make(std::vector<AnnotatedExpression> &&conditions) 
 
 common::hash_t LogicalSingleJoin::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  hash = common::HashUtil::CombineHashInRange(hash, join_predicates_.begin(), join_predicates_.end());
+  for (auto &pred : join_predicates_) {
+    auto expr = pred.GetExpr();
+    if (expr)
+      hash = common::HashUtil::SumHashes(hash, expr->Hash());
+    else
+      hash = common::HashUtil::SumHashes(hash, BaseOperatorNode::Hash());
+  }
   return hash;
 }
 

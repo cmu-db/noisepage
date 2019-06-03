@@ -266,15 +266,15 @@ TEST(OperatorTests, LogicalGetTest) {
   auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
 
   Operator logical_get_01 = LogicalGet::make(catalog::db_oid_t(2), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
-                                            std::vector<AnnotatedExpression>(), "table", false);
+                                             std::vector<AnnotatedExpression>(), "table", false);
   Operator logical_get_02 = LogicalGet::make(catalog::db_oid_t(1), catalog::namespace_oid_t(3), catalog::table_oid_t(3),
-                                            std::vector<AnnotatedExpression>(), "table", false);
+                                             std::vector<AnnotatedExpression>(), "table", false);
   Operator logical_get_03 = LogicalGet::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(4),
-                                            std::vector<AnnotatedExpression>(), "table", false);
+                                             std::vector<AnnotatedExpression>(), "table", false);
   Operator logical_get_04 = LogicalGet::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
-                                            std::vector<AnnotatedExpression>(), "tableTable", false);
+                                             std::vector<AnnotatedExpression>(), "tableTable", false);
   Operator logical_get_05 = LogicalGet::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
-                                            std::vector<AnnotatedExpression>(), "table", true);
+                                             std::vector<AnnotatedExpression>(), "table", true);
   Operator logical_get_1 = LogicalGet::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
                                             std::vector<AnnotatedExpression>(), "table", false);
   Operator logical_get_2 = LogicalGet::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
@@ -423,17 +423,45 @@ TEST(OperatorTests, LogicalFilterTest) {
   //===--------------------------------------------------------------------===//
   // LogicalFilter
   //===--------------------------------------------------------------------===//
+  auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+
+  auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
+  auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
+  auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
+
+  auto annotated_expr_0 =
+      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
+  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
+  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
+  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
+
   Operator logical_filter_1 = LogicalFilter::make(std::vector<AnnotatedExpression>());
   Operator logical_filter_2 = LogicalFilter::make(std::vector<AnnotatedExpression>());
-  auto annotated_expr =
-      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
-  Operator logical_filter_3 = LogicalFilter::make(std::vector<AnnotatedExpression>{annotated_expr});
+  Operator logical_filter_3 = LogicalFilter::make(std::vector<AnnotatedExpression>{annotated_expr_0});
+  Operator logical_filter_4 = LogicalFilter::make(std::vector<AnnotatedExpression>{annotated_expr_1});
+  Operator logical_filter_5 = LogicalFilter::make(std::vector<AnnotatedExpression>{annotated_expr_2});
+  Operator logical_filter_6 = LogicalFilter::make(std::vector<AnnotatedExpression>{annotated_expr_3});
 
   EXPECT_EQ(logical_filter_1.GetType(), OpType::LOGICALFILTER);
   EXPECT_EQ(logical_filter_3.GetType(), OpType::LOGICALFILTER);
   EXPECT_EQ(logical_filter_1.GetName(), "LogicalFilter");
+  EXPECT_EQ(logical_filter_1.As<LogicalFilter>()->GetPredicates(), std::vector<AnnotatedExpression>());
+  EXPECT_EQ(logical_filter_3.As<LogicalFilter>()->GetPredicates(), std::vector<AnnotatedExpression>{annotated_expr_0});
+  EXPECT_EQ(logical_filter_4.As<LogicalFilter>()->GetPredicates(), std::vector<AnnotatedExpression>{annotated_expr_1});
+  EXPECT_TRUE(logical_filter_1 == logical_filter_2);
+  EXPECT_FALSE(logical_filter_1 == logical_filter_3);
+  EXPECT_TRUE(logical_filter_4 == logical_filter_5);
+  EXPECT_FALSE(logical_filter_4 == logical_filter_6);
   EXPECT_EQ(logical_filter_1.Hash(), logical_filter_2.Hash());
   EXPECT_NE(logical_filter_1.Hash(), logical_filter_3.Hash());
+  EXPECT_NE(logical_filter_4.Hash(), logical_filter_6.Hash());
+  EXPECT_EQ(logical_filter_4.Hash(), logical_filter_5.Hash());
+
+  delete expr_b_1;
+  delete expr_b_2;
+  delete expr_b_3;
 }
 
 // NOLINTNEXTLINE
@@ -478,20 +506,50 @@ TEST(OperatorTests, LogicalDependentJoinTest) {
   //===--------------------------------------------------------------------===//
   // LogicalDependentJoin
   //===--------------------------------------------------------------------===//
+  auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+
+  auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
+  auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
+  auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
+
+  auto annotated_expr_0 =
+      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
+  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
+  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
+  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
+
   Operator logical_dep_join_0 = LogicalDependentJoin::make();
   Operator logical_dep_join_1 = LogicalDependentJoin::make(std::vector<AnnotatedExpression>());
   Operator logical_dep_join_2 = LogicalDependentJoin::make(std::vector<AnnotatedExpression>());
-  auto annotated_expr =
-      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
-  Operator logical_dep_join_3 = LogicalDependentJoin::make(std::vector<AnnotatedExpression>{annotated_expr});
+  Operator logical_dep_join_3 = LogicalDependentJoin::make(std::vector<AnnotatedExpression>{annotated_expr_0});
+  Operator logical_dep_join_4 = LogicalDependentJoin::make(std::vector<AnnotatedExpression>{annotated_expr_1});
+  Operator logical_dep_join_5 = LogicalDependentJoin::make(std::vector<AnnotatedExpression>{annotated_expr_2});
+  Operator logical_dep_join_6 = LogicalDependentJoin::make(std::vector<AnnotatedExpression>{annotated_expr_3});
 
   EXPECT_EQ(logical_dep_join_1.GetType(), OpType::LOGICALDEPENDENTJOIN);
   EXPECT_EQ(logical_dep_join_3.GetType(), OpType::LOGICALDEPENDENTJOIN);
   EXPECT_EQ(logical_dep_join_1.GetName(), "LogicalDependentJoin");
-  EXPECT_TRUE(logical_dep_join_1 == logical_dep_join_0);
+  EXPECT_EQ(logical_dep_join_1.As<LogicalDependentJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>());
+  EXPECT_EQ(logical_dep_join_3.As<LogicalDependentJoin>()->GetJoinPredicates(),
+            std::vector<AnnotatedExpression>{annotated_expr_0});
+  EXPECT_EQ(logical_dep_join_4.As<LogicalDependentJoin>()->GetJoinPredicates(),
+            std::vector<AnnotatedExpression>{annotated_expr_1});
+  EXPECT_TRUE(logical_dep_join_0 == logical_dep_join_1);
+  EXPECT_TRUE(logical_dep_join_1 == logical_dep_join_2);
+  EXPECT_FALSE(logical_dep_join_1 == logical_dep_join_3);
+  EXPECT_TRUE(logical_dep_join_4 == logical_dep_join_5);
+  EXPECT_FALSE(logical_dep_join_4 == logical_dep_join_6);
   EXPECT_EQ(logical_dep_join_1.Hash(), logical_dep_join_0.Hash());
   EXPECT_EQ(logical_dep_join_1.Hash(), logical_dep_join_2.Hash());
   EXPECT_NE(logical_dep_join_1.Hash(), logical_dep_join_3.Hash());
+  EXPECT_NE(logical_dep_join_4.Hash(), logical_dep_join_6.Hash());
+  EXPECT_EQ(logical_dep_join_4.Hash(), logical_dep_join_5.Hash());
+
+  delete expr_b_1;
+  delete expr_b_2;
+  delete expr_b_3;
 }
 
 // NOLINTNEXTLINE
@@ -499,25 +557,50 @@ TEST(OperatorTests, LogicalMarkJoinTest) {
   //===--------------------------------------------------------------------===//
   // LogicalMarkJoin
   //===--------------------------------------------------------------------===//
+  auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+
+  auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
+  auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
+  auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
+
+  auto annotated_expr_0 =
+      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
+  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
+  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
+  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
+
   Operator logical_mark_join_0 = LogicalMarkJoin::make();
   Operator logical_mark_join_1 = LogicalMarkJoin::make(std::vector<AnnotatedExpression>());
   Operator logical_mark_join_2 = LogicalMarkJoin::make(std::vector<AnnotatedExpression>());
-  auto annotated_expr =
-      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
-  Operator logical_mark_join_3 = LogicalMarkJoin::make(std::vector<AnnotatedExpression>{annotated_expr});
+  Operator logical_mark_join_3 = LogicalMarkJoin::make(std::vector<AnnotatedExpression>{annotated_expr_0});
+  Operator logical_mark_join_4 = LogicalMarkJoin::make(std::vector<AnnotatedExpression>{annotated_expr_1});
+  Operator logical_mark_join_5 = LogicalMarkJoin::make(std::vector<AnnotatedExpression>{annotated_expr_2});
+  Operator logical_mark_join_6 = LogicalMarkJoin::make(std::vector<AnnotatedExpression>{annotated_expr_3});
 
   EXPECT_EQ(logical_mark_join_1.GetType(), OpType::LOGICALMARKJOIN);
   EXPECT_EQ(logical_mark_join_3.GetType(), OpType::LOGICALMARKJOIN);
   EXPECT_EQ(logical_mark_join_1.GetName(), "LogicalMarkJoin");
   EXPECT_EQ(logical_mark_join_1.As<LogicalMarkJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>());
   EXPECT_EQ(logical_mark_join_3.As<LogicalMarkJoin>()->GetJoinPredicates(),
-            std::vector<AnnotatedExpression>{annotated_expr});
+            std::vector<AnnotatedExpression>{annotated_expr_0});
+  EXPECT_EQ(logical_mark_join_4.As<LogicalMarkJoin>()->GetJoinPredicates(),
+            std::vector<AnnotatedExpression>{annotated_expr_1});
+  EXPECT_TRUE(logical_mark_join_0 == logical_mark_join_1);
   EXPECT_TRUE(logical_mark_join_1 == logical_mark_join_2);
   EXPECT_FALSE(logical_mark_join_1 == logical_mark_join_3);
-  EXPECT_TRUE(logical_mark_join_1 == logical_mark_join_0);
+  EXPECT_TRUE(logical_mark_join_4 == logical_mark_join_5);
+  EXPECT_FALSE(logical_mark_join_4 == logical_mark_join_6);
   EXPECT_EQ(logical_mark_join_1.Hash(), logical_mark_join_0.Hash());
   EXPECT_EQ(logical_mark_join_1.Hash(), logical_mark_join_2.Hash());
   EXPECT_NE(logical_mark_join_1.Hash(), logical_mark_join_3.Hash());
+  EXPECT_NE(logical_mark_join_4.Hash(), logical_mark_join_6.Hash());
+  EXPECT_EQ(logical_mark_join_4.Hash(), logical_mark_join_5.Hash());
+
+  delete expr_b_1;
+  delete expr_b_2;
+  delete expr_b_3;
 }
 
 // NOLINTNEXTLINE
@@ -525,25 +608,50 @@ TEST(OperatorTests, LogicalSingleJoinTest) {
   //===--------------------------------------------------------------------===//
   // LogicalSingleJoin
   //===--------------------------------------------------------------------===//
+  auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+
+  auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
+  auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
+  auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
+
+  auto annotated_expr_0 =
+      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
+  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
+  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
+  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
+
   Operator logical_single_join_0 = LogicalSingleJoin::make();
   Operator logical_single_join_1 = LogicalSingleJoin::make(std::vector<AnnotatedExpression>());
   Operator logical_single_join_2 = LogicalSingleJoin::make(std::vector<AnnotatedExpression>());
-  auto annotated_expr =
-      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
-  Operator logical_single_join_3 = LogicalSingleJoin::make(std::vector<AnnotatedExpression>{annotated_expr});
+  Operator logical_single_join_3 = LogicalSingleJoin::make(std::vector<AnnotatedExpression>{annotated_expr_0});
+  Operator logical_single_join_4 = LogicalSingleJoin::make(std::vector<AnnotatedExpression>{annotated_expr_1});
+  Operator logical_single_join_5 = LogicalSingleJoin::make(std::vector<AnnotatedExpression>{annotated_expr_2});
+  Operator logical_single_join_6 = LogicalSingleJoin::make(std::vector<AnnotatedExpression>{annotated_expr_3});
 
   EXPECT_EQ(logical_single_join_1.GetType(), OpType::LOGICALSINGLEJOIN);
   EXPECT_EQ(logical_single_join_3.GetType(), OpType::LOGICALSINGLEJOIN);
   EXPECT_EQ(logical_single_join_1.GetName(), "LogicalSingleJoin");
   EXPECT_EQ(logical_single_join_1.As<LogicalSingleJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>());
   EXPECT_EQ(logical_single_join_3.As<LogicalSingleJoin>()->GetJoinPredicates(),
-            std::vector<AnnotatedExpression>{annotated_expr});
+            std::vector<AnnotatedExpression>{annotated_expr_0});
+  EXPECT_EQ(logical_single_join_4.As<LogicalSingleJoin>()->GetJoinPredicates(),
+            std::vector<AnnotatedExpression>{annotated_expr_1});
+  EXPECT_TRUE(logical_single_join_0 == logical_single_join_1);
   EXPECT_TRUE(logical_single_join_1 == logical_single_join_2);
   EXPECT_FALSE(logical_single_join_1 == logical_single_join_3);
-  EXPECT_TRUE(logical_single_join_1 == logical_single_join_0);
+  EXPECT_TRUE(logical_single_join_4 == logical_single_join_5);
+  EXPECT_FALSE(logical_single_join_4 == logical_single_join_6);
   EXPECT_EQ(logical_single_join_1.Hash(), logical_single_join_0.Hash());
   EXPECT_EQ(logical_single_join_1.Hash(), logical_single_join_2.Hash());
   EXPECT_NE(logical_single_join_1.Hash(), logical_single_join_3.Hash());
+  EXPECT_NE(logical_single_join_4.Hash(), logical_single_join_6.Hash());
+  EXPECT_EQ(logical_single_join_4.Hash(), logical_single_join_5.Hash());
+
+  delete expr_b_1;
+  delete expr_b_2;
+  delete expr_b_3;
 }
 
 // NOLINTNEXTLINE

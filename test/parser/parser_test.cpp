@@ -432,7 +432,7 @@ TEST_F(ParserTestBase, UpdateTest) {
   // check expression here
   EXPECT_EQ(update_stmt->GetUpdateCondition(), nullptr);
 
-  for (auto clause : update_stmt->GetUpdateClauses()) delete clause->GetUpdateValue().get(); //NOLINT
+  for (auto clause : update_stmt->GetUpdateClauses()) delete clause->GetUpdateValue().get();  // NOLINT
 }
 
 // NOLINTNEXTLINE
@@ -1025,7 +1025,7 @@ TEST_F(ParserTestBase, OldColumnUpdateTest) {
     EXPECT_EQ(right_const->GetValue().Type(), type::TypeId::INTEGER);
     EXPECT_EQ(type::TransientValuePeeker::PeekInteger(right_const->GetValue()), 2);
 
-    for (auto clause : update_stmt->GetUpdateClauses()) delete clause->GetUpdateValue().get(); //NOLINT
+    for (auto clause : update_stmt->GetUpdateClauses()) delete clause->GetUpdateValue().get();  // NOLINT
   }
 }
 
@@ -1074,7 +1074,7 @@ TEST_F(ParserTestBase, OldExpressionUpdateTest) {
   EXPECT_EQ(constant->GetValue().Type(), type::TypeId::INTEGER);
   EXPECT_EQ(type::TransientValuePeeker::PeekInteger(constant->GetValue()), 4);
 
-  for (auto clause : update_stmt->GetUpdateClauses()) delete clause->GetUpdateValue().get(); //NOLINT
+  for (auto clause : update_stmt->GetUpdateClauses()) delete clause->GetUpdateValue().get();  // NOLINT
 }
 
 // NOLINTNEXTLINE
@@ -1137,7 +1137,7 @@ TEST_F(ParserTestBase, OldStringUpdateTest) {
   EXPECT_EQ("2016-11-15 15:07:37", string_view);
   EXPECT_EQ(type::TypeId::VARCHAR, value_expr->GetReturnValueType());
 
-  for (auto clause : update->GetUpdateClauses()) delete clause->GetUpdateValue().get(); //NOLINT
+  for (auto clause : update->GetUpdateClauses()) delete clause->GetUpdateValue().get();  // NOLINT
 }
 
 // NOLINTNEXTLINE
