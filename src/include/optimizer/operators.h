@@ -978,8 +978,8 @@ class SeqScan : public OperatorNode<SeqScan> {
    * @param database_oid OID of the database
    * @param namespace_oid OID of the namespace
    * @param table_oid OID of the table
-   * @param table_alias alias of the table
    * @param predicates predicates for get
+   * @param table_alias alias of the table
    * @param is_for_update whether the scan is used for update
    * @return a SeqScan operator
    */
@@ -1062,8 +1062,8 @@ class IndexScan : public OperatorNode<IndexScan> {
    * @param database_oid OID of the database
    * @param namespace_oid OID of the namespace
    * @param index_oid OID of the index
-   * @param table_alias alias of the table
    * @param predicates query predicates
+   * @param table_alias alias of the table
    * @param is_for_update whether the scan is used for update
    * @param key_column_oid_list OID of key columns
    * @param expr_type_list expression types
@@ -1080,6 +1080,52 @@ class IndexScan : public OperatorNode<IndexScan> {
   bool operator==(const BaseOperatorNode &r) override;
 
   common::hash_t Hash() const override;
+
+  /**
+   * @return the OID of the database
+   */
+  catalog::db_oid_t GetDatabaseOID() const { return database_oid_; }
+
+  /**
+   * @return the OID of the namespace
+   */
+  catalog::namespace_oid_t GetNamespaceOID() const { return namespace_oid_; }
+
+  /**
+   * @return the OID of the table
+   */
+  catalog::index_oid_t GetIndexOID() const { return index_oid_; }
+
+  /**
+   * @return the vector of predicates for get
+   */
+  std::vector<AnnotatedExpression> GetPredicates() const { return predicates_; }
+
+  /**
+   * @return the alias of the table to get from
+   */
+  std::string GetTableAlias() const { return table_alias_; }
+
+  /**
+   * @return whether the get operation is used for update
+   */
+  bool GetIsForUpdate() const { return is_for_update_; }
+
+  /**
+   * @return List of OIDs of key columns
+   */
+  std::vector<catalog::col_oid_t> GetKeyColumnOIDList() const { return key_column_oid_list_; }
+
+  /**
+   * @return List of expression types
+   */
+  std::vector<parser::ExpressionType> GetExprTypeList() const { return expr_type_list_; }
+
+  /**
+   * @return List of parameter values
+   */
+  std::vector<type::TransientValue> GetValueList() const { return value_list_; }
+
 
  private:
   /**
@@ -1129,7 +1175,7 @@ class IndexScan : public OperatorNode<IndexScan> {
 };
 
 /**
- * Physucal operator for external file scan
+ * Physical operator for external file scan
  */
 class ExternalFileScan : public OperatorNode<ExternalFileScan> {
  public:

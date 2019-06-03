@@ -1021,41 +1021,74 @@ TEST(OperatorTests, IndexScanTest) {
   auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
   auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
 
-  Operator index_scan_01 = IndexScan::make(catalog::db_oid_t(2), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
-                                       std::vector<AnnotatedExpression>(), "table", false);
-  Operator index_scan_02 = IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(3), catalog::table_oid_t(3),
-                                       std::vector<AnnotatedExpression>(), "table", false);
-  Operator index_scan_03 = IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(4),
-                                       std::vector<AnnotatedExpression>(), "table", false);
-  Operator index_scan_04 = IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
-                                       std::vector<AnnotatedExpression>(), "tableTable", false);
-  Operator index_scan_05 = IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
-                                       std::vector<AnnotatedExpression>(), "table", true);
-  Operator index_scan_06 = IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
-                                           std::vector<AnnotatedExpression>(), "table", false, );
+  // different from index_scan_1 in dbOID
+  Operator index_scan_01 = IndexScan::make(catalog::db_oid_t(2), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
+                                           std::vector<AnnotatedExpression>(), "table", false, std::vector<catalog::col_oid_t>(),
+                                           std::vector<parser::ExpressionType>(), std::vector<type::TransientValue>());
+  // different from index_scan_1 in namespace OID
+  Operator index_scan_02 = IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(3), catalog::index_oid_t(3),
+                                           std::vector<AnnotatedExpression>(), "table", false, std::vector<catalog::col_oid_t>(),
+                                           std::vector<parser::ExpressionType>(), std::vector<type::TransientValue>());
+  // different from index_scan_1 in index OID
+  Operator index_scan_03 = IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(4),
+                                           std::vector<AnnotatedExpression>(), "table", false, std::vector<catalog::col_oid_t>(),
+                                           std::vector<parser::ExpressionType>(), std::vector<type::TransientValue>());
+  // different from index_scan_1 in table alias
+  Operator index_scan_04 = IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
+                                           std::vector<AnnotatedExpression>(), "tableTable", false, std::vector<catalog::col_oid_t>(),
+                                           std::vector<parser::ExpressionType>(), std::vector<type::TransientValue>());
+  // different from index_scan_1 in 'is for update'
+  Operator index_scan_05 = IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
+                                           std::vector<AnnotatedExpression>(), "table", true, std::vector<catalog::col_oid_t>(),
+                                           std::vector<parser::ExpressionType>(), std::vector<type::TransientValue>());
+  // different from index_scan_1 in key column list
+  auto key_column = std::vector<catalog::col_oid_t>{catalog::col_oid_t(1), catalog::col_oid_t(2)};
+  Operator index_scan_06 = IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
+                                           std::vector<AnnotatedExpression>(), "table", false, key_column,
+                                           std::vector<parser::ExpressionType>(), std::vector<type::TransientValue>());
+  // different from index_scan_1 in expr type list
+  auto expr_type = std::vector<parser::ExpressionType>{parser::ExpressionType::COMPARE_IN};
+  Operator index_scan_07 = IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
+                                           std::vector<AnnotatedExpression>(), "table", false, std::vector<catalog::col_oid_t>(),
+                                           expr_type, std::vector<type::TransientValue>());
+  // different from index_scan_1 in value list
+  std::vector<type::TransientValue> value = {type::TransientValueFactory::GetTinyInt(1)};
+  Operator index_scan_08 = IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
+                                           std::vector<AnnotatedExpression>(), "table", false, std::vector<catalog::col_oid_t>(),
+                                           std::vector<parser::ExpressionType>(), value);
+
   Operator index_scan_1 = IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
                                       std::vector<AnnotatedExpression>(), "table", false, std::vector<catalog::col_oid_t>(),
                                       std::vector<parser::ExpressionType>(), std::vector<type::TransientValue>());
-  Operator index_scan_2 = IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
-                                      std::vector<AnnotatedExpression>(), "table", false);
-  Operator index_scan_3 = IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
-                                      std::vector<AnnotatedExpression>{annotated_expr_0}, "table", false);
-  Operator index_scan_4 = IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
-                                      std::vector<AnnotatedExpression>{annotated_expr_1}, "table", false);
-  Operator index_scan_5 = IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
-                                      std::vector<AnnotatedExpression>{annotated_expr_2}, "table", false);
-  Operator index_scan_6 = IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
-                                      std::vector<AnnotatedExpression>{annotated_expr_3}, "table", false);
+  Operator index_scan_2 = IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
+                                          std::vector<AnnotatedExpression>(), "table", false, std::vector<catalog::col_oid_t>(),
+                                          std::vector<parser::ExpressionType>(), std::vector<type::TransientValue>());
+  // different from index_scan_1 in predicates
+  Operator index_scan_3 = IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
+                                          std::vector<AnnotatedExpression>{annotated_expr_0}, "table", false, std::vector<catalog::col_oid_t>(),
+                                          std::vector<parser::ExpressionType>(), std::vector<type::TransientValue>());
+  Operator index_scan_4 = IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
+                                          std::vector<AnnotatedExpression>{annotated_expr_1}, "table", false, std::vector<catalog::col_oid_t>(),
+                                          std::vector<parser::ExpressionType>(), std::vector<type::TransientValue>());
+  Operator index_scan_5 = IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
+                                          std::vector<AnnotatedExpression>{annotated_expr_2}, "table", false, std::vector<catalog::col_oid_t>(),
+                                          std::vector<parser::ExpressionType>(), std::vector<type::TransientValue>());
+  Operator index_scan_6 = IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
+                                          std::vector<AnnotatedExpression>{annotated_expr_3}, "table", false, std::vector<catalog::col_oid_t>(),
+                                          std::vector<parser::ExpressionType>(), std::vector<type::TransientValue>());
 
-    EXPECT_EQ(index_scan_1.GetType(), OpType::INDEXSCAN );
+  EXPECT_EQ(index_scan_1.GetType(), OpType::INDEXSCAN );
   EXPECT_EQ(index_scan_1.As<IndexScan>()->GetDatabaseOID(), catalog::db_oid_t(1));
   EXPECT_EQ(index_scan_1.As<IndexScan>()->GetNamespaceOID(), catalog::namespace_oid_t(2));
-  EXPECT_EQ(index_scan_1.As<IndexScan>()->GetTableOID(), catalog::table_oid_t(3));
+  EXPECT_EQ(index_scan_1.As<IndexScan>()->GetIndexOID(), catalog::index_oid_t(3));
   EXPECT_EQ(index_scan_1.As<IndexScan>()->GetPredicates(), std::vector<AnnotatedExpression>());
   EXPECT_EQ(index_scan_3.As<IndexScan>()->GetPredicates(), std::vector<AnnotatedExpression>{annotated_expr_0});
   EXPECT_EQ(index_scan_4.As<IndexScan>()->GetPredicates(), std::vector<AnnotatedExpression>{annotated_expr_1});
   EXPECT_EQ(index_scan_1.As<IndexScan>()->GetTableAlias(), "table");
   EXPECT_EQ(index_scan_1.As<IndexScan>()->GetIsForUpdate(), false);
+  EXPECT_EQ(index_scan_06.As<IndexScan>()->GetKeyColumnOIDList(), key_column);
+  EXPECT_EQ(index_scan_07.As<IndexScan>()->GetExprTypeList(), expr_type);
+  EXPECT_EQ(index_scan_08.As<IndexScan>()->GetValueList(), value);
   EXPECT_EQ(index_scan_1.GetName(), "IndexScan");
   EXPECT_TRUE(index_scan_1 == index_scan_2);
   EXPECT_FALSE(index_scan_1 == index_scan_3);
@@ -1064,6 +1097,9 @@ TEST(OperatorTests, IndexScanTest) {
   EXPECT_FALSE(index_scan_1 == index_scan_03);
   EXPECT_FALSE(index_scan_1 == index_scan_04);
   EXPECT_FALSE(index_scan_1 == index_scan_05);
+  EXPECT_FALSE(index_scan_1 == index_scan_06);
+  EXPECT_FALSE(index_scan_1 == index_scan_07);
+  EXPECT_FALSE(index_scan_1 == index_scan_08);
   EXPECT_FALSE(index_scan_1 == index_scan_4);
   EXPECT_FALSE(index_scan_4 == index_scan_5);
   EXPECT_FALSE(index_scan_1 == index_scan_6);
@@ -1074,40 +1110,15 @@ TEST(OperatorTests, IndexScanTest) {
   EXPECT_NE(index_scan_1.Hash(), index_scan_03.Hash());
   EXPECT_NE(index_scan_1.Hash(), index_scan_04.Hash());
   EXPECT_NE(index_scan_1.Hash(), index_scan_05.Hash());
+  EXPECT_NE(index_scan_1.Hash(), index_scan_06.Hash());
+  EXPECT_NE(index_scan_1.Hash(), index_scan_07.Hash());
+  EXPECT_NE(index_scan_1.Hash(), index_scan_08.Hash());
   EXPECT_NE(index_scan_1.Hash(), index_scan_4.Hash());
   EXPECT_NE(index_scan_1.Hash(), index_scan_5.Hash());
   EXPECT_NE(index_scan_1.Hash(), index_scan_6.Hash());
   delete expr_b_1;
   delete expr_b_2;
   delete expr_b_3;
-
-
-
-
-
-
-
-
-
-
-
-  Operator index_scan_1 =
-      IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3), "table",
-                      std::vector<AnnotatedExpression>(), false, std::vector<catalog::col_oid_t>(),
-                      std::vector<parser::ExpressionType>(), std::vector<type::TransientValue>());
-  Operator index_scan_2 =
-      IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3), "table",
-                      std::vector<AnnotatedExpression>(), false, std::vector<catalog::col_oid_t>(),
-                      std::vector<parser::ExpressionType>(), std::vector<type::TransientValue>());
-  Operator index_scan_3 =
-      IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(4), "table",
-                      std::vector<AnnotatedExpression>(), false, std::vector<catalog::col_oid_t>(),
-                      std::vector<parser::ExpressionType>(), std::vector<type::TransientValue>());
-
-  EXPECT_EQ(index_scan_1.GetType(), OpType::INDEXSCAN);
-  EXPECT_EQ(index_scan_1.GetName(), "IndexScan");
-  EXPECT_TRUE(index_scan_1 == index_scan_2);
-  EXPECT_FALSE(index_scan_1 == index_scan_3);
 }
 
 // NOLINTNEXTLINE
