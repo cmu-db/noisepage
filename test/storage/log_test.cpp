@@ -20,6 +20,7 @@
 #undef __SETTING_GFLAGS_DEFINE__       // NOLINT
 
 #define LOG_FILE_NAME "test.log"
+#define NUM_LOG_BUFFERS 2
 
 namespace terrier::storage {
 class WriteAheadLoggingTests : public TerrierTest {
@@ -40,7 +41,7 @@ class WriteAheadLoggingTests : public TerrierTest {
   void SetUp() override {
     // Unlink log file incase one exists from previous test iteration
     unlink(LOG_FILE_NAME);
-    log_manager_ = new LogManager(LOG_FILE_NAME, 2, &pool_);
+    log_manager_ = new LogManager(LOG_FILE_NAME, NUM_LOG_BUFFERS, &pool_);
     TerrierTest::SetUp();
   }
 
