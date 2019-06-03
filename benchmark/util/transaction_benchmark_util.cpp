@@ -139,7 +139,7 @@ void LargeTransactionBenchmarkObject::SimulateOneTransaction(terrier::RandomWork
 template <class Random>
 void LargeTransactionBenchmarkObject::PopulateInitialTable(uint32_t num_tuples, Random *generator) {
   initial_txn_ = txn_manager_.BeginTransaction();
-  
+
   for (uint32_t i = 0; i < num_tuples; i++) {
     auto *const redo =
         initial_txn_->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, row_initializer_);

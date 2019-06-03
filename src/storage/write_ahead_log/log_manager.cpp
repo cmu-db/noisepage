@@ -99,6 +99,7 @@ void LogManager::SerializeRecord(const terrier::storage::LogRecord &record) {
   switch (record.RecordType()) {
     case LogRecordType::REDO: {
       auto *record_body = record.GetUnderlyingRecordBodyAs<RedoRecord>();
+      WriteValue(record_body->GetDatabaseOid());
       WriteValue(record_body->GetTableOid());
       WriteValue(record_body->GetTupleSlot());
 
@@ -146,6 +147,7 @@ void LogManager::SerializeRecord(const terrier::storage::LogRecord &record) {
     }
     case LogRecordType::DELETE: {
       auto *record_body = record.GetUnderlyingRecordBodyAs<DeleteRecord>();
+      WriteValue(record_body->GetDatabaseOid());
       WriteValue(record_body->GetTableOid());
       WriteValue(record_body->GetTupleSlot());
       break;

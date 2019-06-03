@@ -17,6 +17,7 @@ namespace terrier {
  */
 class DedicatedThreadOwner {
  public:
+  virtual ~DedicatedThreadOwner() = default;
   /**
    * @return the number of threads owned by this owner
    */
