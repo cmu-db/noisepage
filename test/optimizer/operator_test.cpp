@@ -988,21 +988,53 @@ TEST(OperatorTests, QueryDerivedScanTest) {
   //===--------------------------------------------------------------------===//
   // QueryDerivedScan
   //===--------------------------------------------------------------------===//
-  auto alias_to_expr_map_1 = std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>>();
-  auto alias_to_expr_map_2 = std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>>();
-  auto expr_query_derived_scan =
-      std::make_shared<parser::ConstantValueExpression>(type::TransientValueFactory::GetTinyInt(1));
-  alias_to_expr_map_1["constant expr"] = expr_query_derived_scan;
-  alias_to_expr_map_2["constant expr"] = expr_query_derived_scan;
+  auto alias_to_expr_map_1 = std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>>();
+  auto alias_to_expr_map_1_1 = std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>>();
+  auto alias_to_expr_map_2 = std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>>();
+  auto alias_to_expr_map_3 = std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>>();
+  auto alias_to_expr_map_4 = std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>>();
+  auto alias_to_expr_map_5 = std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>>();
+
+  parser::AbstractExpression *expr_b_1 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1));
+  parser::AbstractExpression *expr_b_2 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1));
+  auto expr1 = common::ManagedPointer(expr_b_1);
+  auto expr2 = common::ManagedPointer(expr_b_2);
+
+  alias_to_expr_map_1["constant expr"] = expr1;
+  alias_to_expr_map_1_1["constant expr"] = expr1;
+  alias_to_expr_map_2["constant expr"] = expr1;
+  alias_to_expr_map_3["constant expr"] = expr2;
+  alias_to_expr_map_4["constant expr2"] = expr1;
+  alias_to_expr_map_5["constant expr"] = expr1;
+  alias_to_expr_map_5["constant expr2"] = expr2;
+
   Operator query_derived_scan_1 = QueryDerivedScan::make("alias", std::move(alias_to_expr_map_1));
   Operator query_derived_scan_2 = QueryDerivedScan::make("alias", std::move(alias_to_expr_map_2));
-  Operator query_derived_scan_3 =
-      QueryDerivedScan::make("alias", std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>>());
+  Operator query_derived_scan_3 = QueryDerivedScan::make(
+      "alias", std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>>());
+  Operator query_derived_scan_4 = QueryDerivedScan::make("alias", std::move(alias_to_expr_map_3));
+  Operator query_derived_scan_5 = QueryDerivedScan::make("alias", std::move(alias_to_expr_map_4));
+  Operator query_derived_scan_6 = QueryDerivedScan::make("alias", std::move(alias_to_expr_map_5));
 
   EXPECT_EQ(query_derived_scan_1.GetType(), OpType::QUERYDERIVEDSCAN);
   EXPECT_EQ(query_derived_scan_1.GetName(), "QueryDerivedScan");
+  EXPECT_EQ(query_derived_scan_1.As<QueryDerivedScan>()->GetTableAlias(), "alias");
+  EXPECT_EQ(query_derived_scan_1.As<QueryDerivedScan>()->GetAliasToExprMap(), alias_to_expr_map_1_1);
   EXPECT_TRUE(query_derived_scan_1 == query_derived_scan_2);
   EXPECT_FALSE(query_derived_scan_1 == query_derived_scan_3);
+  EXPECT_FALSE(query_derived_scan_1 == query_derived_scan_4);
+  EXPECT_FALSE(query_derived_scan_1 == query_derived_scan_5);
+  EXPECT_FALSE(query_derived_scan_1 == query_derived_scan_6);
+  EXPECT_EQ(query_derived_scan_1.Hash(), query_derived_scan_2.Hash());
+  EXPECT_NE(query_derived_scan_1.Hash(), query_derived_scan_3.Hash());
+  EXPECT_NE(query_derived_scan_1.Hash(), query_derived_scan_4.Hash());
+  EXPECT_NE(query_derived_scan_1.Hash(), query_derived_scan_5.Hash());
+  EXPECT_NE(query_derived_scan_1.Hash(), query_derived_scan_6.Hash());
+
+  delete expr_b_1;
+  delete expr_b_2;
 }
 
 // NOLINTNEXTLINE

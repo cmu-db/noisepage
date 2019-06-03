@@ -821,10 +821,10 @@ common::hash_t ExternalFileScan::Hash() const {
 //===--------------------------------------------------------------------===//
 Operator QueryDerivedScan::make(
     std::string table_alias,
-    std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>> &&alias_to_expr_map) {
+    std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> &&alias_to_expr_map) {
   auto *get = new QueryDerivedScan;
   get->table_alias_ = std::move(table_alias);
-  get->alias_to_expr_map_ = std::move(alias_to_expr_map);
+  get->alias_to_expr_map_ = alias_to_expr_map;
 
   return Operator(get);
 }

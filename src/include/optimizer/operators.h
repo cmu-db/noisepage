@@ -1157,11 +1157,23 @@ class QueryDerivedScan : public OperatorNode<QueryDerivedScan> {
    */
   static Operator make(
       std::string table_alias,
-      std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>> &&alias_to_expr_map);
+      std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> &&alias_to_expr_map);
 
   bool operator==(const BaseOperatorNode &r) override;
 
   common::hash_t Hash() const override;
+
+  /**
+   * @return Alias of the table to get from
+   */
+  std::string GetTableAlias() const { return table_alias_; }
+
+  /**
+   * @return map from table aliases to expressions
+   */
+  std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> GetAliasToExprMap() const {
+    return alias_to_expr_map_;
+  }
 
  private:
   /**
@@ -1172,7 +1184,7 @@ class QueryDerivedScan : public OperatorNode<QueryDerivedScan> {
   /**
    * Map from table aliases to expressions
    */
-  std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>> alias_to_expr_map_;
+  std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> alias_to_expr_map_;
 };
 
 /**
