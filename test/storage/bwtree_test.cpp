@@ -22,6 +22,15 @@ struct BwTreeTests : public TerrierTest {
       MultiThreadTestUtil::HardwareConcurrency() + (MultiThreadTestUtil::HardwareConcurrency() % 2);
 };
 
+/**
+ * mbutrovi: this test was added in order to reproduce an issue we saw while using the BwTree as the index for NewOrder
+ * queries in TPC-C. Here is a description of the issue from Ziqi:
+ *
+ * We observed memory leaks while worker threads are inserting and scanning on the same leaf node. The leaked memory is
+ * always reported as being allocated inside the constructor of ForwardIterator, in which we perform a down traversal of
+ * the tree with the scan key. It seems that memory chunks allocated during this process is not properly added into the
+ * garbage chain or not properly released by the GC.
+ */
 // NOLINTNEXTLINE
 TEST_F(BwTreeTests, ReproduceNewOrderMemoryLeak) {
   TERRIER_ASSERT(num_threads_ % 2 == 0,
