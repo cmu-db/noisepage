@@ -34,6 +34,11 @@ void DBMain::Init() {
       type::TransientValuePeeker::PeekInteger(param_map_.find(settings::Param::num_worker_threads)->second.value_), {});
   thread_pool_->Startup();
 
+  t_cop_ = new terrier::traffic_cop::TrafficCop;
+  command_factory_ = new terrier::network::CommandFactory;
+  connection_handle_factory_ = new terrier::network::ConnectionHandleFactory(t_cop_, command_factory_);
+  server_ = new terrier::network::TerrierServer(connection_handle_factory_);
+
   LOG_INFO("Initialization complete");
 
   initialized = true;
@@ -41,9 +46,9 @@ void DBMain::Init() {
 
 void DBMain::Run() {
   running = true;
-  server_.SetPort(static_cast<int16_t>(
+  server_->SetPort(static_cast<int16_t>(
       type::TransientValuePeeker::PeekInteger(param_map_.find(settings::Param::port)->second.value_)));
-  server_.SetupServer().ServerLoop();
+  server_->SetupServer().ServerLoop();
 
   // server loop exited, begin cleaning up
   CleanUp();
@@ -51,7 +56,7 @@ void DBMain::Run() {
 
 void DBMain::ForceShutdown() {
   if (running) {
-    server_.Close();
+    server_->Close();
   }
   CleanUp();
 }
