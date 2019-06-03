@@ -77,31 +77,20 @@ class WriteAheadLoggingTests : public TerrierTest {
       // not read-only.
       return storage::CommitRecord::Initialize(buf, txn_begin, txn_commit, nullptr, nullptr, false, nullptr);
     }
+
     // TODO(Tianyu): Without a lookup mechanism this oid is not exactly meaningful. Implement lookup when possible
-    auto table_oid UNUSED_ATTRIBUTE = in->ReadValue<catalog::table_oid_t>();
+    auto database_oid = in->ReadValue<catalog::db_oid_t>();
+    auto table_oid = in->ReadValue<catalog::table_oid_t>();
     auto tuple_slot = in->ReadValue<storage::TupleSlot>();
 
     if (record_type == storage::LogRecordType::DELETE) {
-      // TODO(Justin): set a pointer to the correct data table? Will this even be useful for recovery?
-      return storage::DeleteRecord::Initialize(buf, txn_begin, nullptr, tuple_slot);
+      return storage::DeleteRecord::Initialize(buf, txn_begin, database_oid, table_oid, tuple_slot);
     }
+
     // If code path reaches here, we have a REDO record.
+    TERRIER_ASSERT(record_type == storage::LogRecordType::REDO, "Unknown record type during test deserialization");
     auto num_cols = in->ReadValue<uint16_t>();
 
-    auto result = storage::RedoRecord::PartialInitialize(buf, size, txn_begin,
-                                                         // TODO(Tianyu): Hacky as hell
-                                                         CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid,
-                                                         tuple_slot);
-    // TODO(Tianyu): For now, without inlined attributes, the delta portion is a straight memory copy. This
-    // will obviously change in the future. Also, this is hacky as hell
-    auto delta_size = in->ReadValue<uint32_t>();
-    byte *dest =
-        reinterpret_cast<byte *>(result->GetUnderlyingRecordBodyAs<storage::RedoRecord>()->Delta()) + sizeof(uint32_t);
-    in->Read(dest, delta_size - static_cast<uint32_t>(sizeof(uint32_t)));
-    return result;
-  }
-
-  
     // TODO(Justin): Could do this with just one read of (sizeof(col_id_t) * num_cols) bytes, and then index in. That's
     //  probably faster, but stick with the more naive way for now. We need a vector, not just a col_id_t[], because
     //  that is what ProjectedRowInitializer needs.
@@ -114,8 +103,10 @@ class WriteAheadLoggingTests : public TerrierTest {
     // Initialize the redo record.
     auto initializer = storage::ProjectedRowInitializer::Create(block_layout, col_ids);
     // TODO(Justin): set a pointer to the correct data table? Will this even be useful for recovery?
-    auto *result = storage::RedoRecord::Initialize(buf, txn_begin, nullptr, tuple_slot, initializer);
-    auto *delta = result->GetUnderlyingRecordBodyAs<storage::RedoRecord>()->Delta();
+    auto *result = storage::RedoRecord::Initialize(buf, txn_begin, database_oid, table_oid, initializer);
+    auto *record_body = result->GetUnderlyingRecordBodyAs<RedoRecord>();
+    record_body->SetTupleSlot(tuple_slot);
+    auto *delta = record_body->Delta();
 
     // Get an in memory copy of the record's null bitmap. Note: this is used to guide how the rest of the log file is
     // read in. It doesn't populate the delta's bitmap yet. This will happen naturally as we proceed column-by-column.

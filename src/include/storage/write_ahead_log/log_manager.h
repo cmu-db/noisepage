@@ -30,6 +30,7 @@ class LogManager : public DedicatedThreadOwner {
    *
    * @param log_file_path path to the desired log file location. If the log file does not exist, one will be created;
    *                      otherwise, changes are appended to the end of the file.
+   * @param num_buffers Number of buffers to use for buffering logs
    * @param buffer_pool the object pool to draw log buffers from. This must be the same pool transactions draw their
    *                    buffers from
    */
