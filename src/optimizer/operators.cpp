@@ -272,13 +272,13 @@ common::hash_t LogicalDistinct::Hash() const {
 //===--------------------------------------------------------------------===//
 
 Operator LogicalLimit::make(size_t offset, size_t limit,
-                            std::vector<std::shared_ptr<parser::AbstractExpression>> &&sort_exprs,
+                            std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_exprs,
                             std::vector<planner::OrderByOrderingType> &&sort_directions) {
   TERRIER_ASSERT(sort_exprs.size() == sort_directions.size(), "Mismatched ORDER BY expressions + directions");
   auto *op = new LogicalLimit;
   op->offset_ = offset;
   op->limit_ = limit;
-  op->sort_exprs_ = std::move(sort_exprs);
+  op->sort_exprs_ = sort_exprs;
   op->sort_directions_ = std::move(sort_directions);
   return Operator(op);
 }
@@ -338,12 +338,12 @@ bool LogicalDelete::operator==(const BaseOperatorNode &r) {
 
 Operator LogicalUpdate::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                              catalog::table_oid_t table_oid,
-                             std::vector<std::shared_ptr<parser::UpdateClause>> &&updates) {
+                             std::vector<common::ManagedPointer<parser::UpdateClause>> &&updates) {
   auto *op = new LogicalUpdate;
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
   op->table_oid_ = table_oid;
-  op->updates_ = std::move(updates);
+  op->updates_ = updates;
   return Operator(op);
 }
 

@@ -710,7 +710,7 @@ class LogicalLimit : public OperatorNode<LogicalLimit> {
    * @return
    */
   static Operator make(size_t offset, size_t limit,
-                       std::vector<std::shared_ptr<parser::AbstractExpression>> &&sort_exprs,
+                       std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_exprs,
                        std::vector<planner::OrderByOrderingType> &&sort_directions);
 
   bool operator==(const BaseOperatorNode &r) override;
@@ -729,7 +729,9 @@ class LogicalLimit : public OperatorNode<LogicalLimit> {
   /**
    * @return inlined ORDER BY expressions (can be empty)
    */
-  const std::vector<std::shared_ptr<parser::AbstractExpression>> &GetSortExpressions() const { return sort_exprs_; }
+  const std::vector<common::ManagedPointer<parser::AbstractExpression>> &GetSortExpressions() const {
+    return sort_exprs_;
+  }
 
   /**
    * @return inlined sort directions (can be empty)
@@ -753,7 +755,7 @@ class LogicalLimit : public OperatorNode<LogicalLimit> {
    * internal order, then the limit operator will generate sort plan with
    * limit as a optimization.
    */
-  std::vector<std::shared_ptr<parser::AbstractExpression>> sort_exprs_;
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> sort_exprs_;
 
   /**
    * The sort direction of sort expressions
@@ -823,7 +825,8 @@ class LogicalUpdate : public OperatorNode<LogicalUpdate> {
    * @return
    */
   static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::table_oid_t table_oid, std::vector<std::shared_ptr<parser::UpdateClause>> &&updates);
+                       catalog::table_oid_t table_oid,
+                       std::vector<common::ManagedPointer<parser::UpdateClause>> &&updates);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
@@ -846,7 +849,7 @@ class LogicalUpdate : public OperatorNode<LogicalUpdate> {
   /**
    * @return the update clauses from the SET portion of the query
    */
-  std::vector<std::shared_ptr<parser::UpdateClause>> GetUpdateClauses() const { return updates_; }
+  std::vector<common::ManagedPointer<parser::UpdateClause>> GetUpdateClauses() const { return updates_; }
 
  private:
   /**
@@ -867,7 +870,7 @@ class LogicalUpdate : public OperatorNode<LogicalUpdate> {
   /**
    * The update clauses from the SET portion of the query
    */
-  std::vector<std::shared_ptr<parser::UpdateClause>> updates_;
+  std::vector<common::ManagedPointer<parser::UpdateClause>> updates_;
 };
 
 /**

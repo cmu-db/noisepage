@@ -122,8 +122,8 @@ TEST(OperatorTests, LogicalDistinctTest) {
 TEST(OperatorTests, LogicalLimitTest) {
   size_t offset = 90;
   size_t limit = 22;
-  std::shared_ptr<parser::AbstractExpression> sort_expr =
-      std::make_shared<parser::ConstantValueExpression>(type::TransientValueFactory::GetTinyInt(1));
+  auto sort_expr_ori = new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1));
+  auto sort_expr = common::ManagedPointer<parser::AbstractExpression>(sort_expr_ori);
   planner::OrderByOrderingType sort_dir = planner::OrderByOrderingType::ASC;
 
   // Check that all of our GET methods work as expected
@@ -148,6 +148,8 @@ TEST(OperatorTests, LogicalLimitTest) {
   Operator op3 = LogicalLimit::make(other_offset, limit, {sort_expr}, {sort_dir});
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
+
+  delete sort_expr_ori;
 }
 
 // NOLINTNEXTLINE
@@ -181,8 +183,8 @@ TEST(OperatorTests, LogicalDeleteTest) {
 TEST(OperatorTests, LogicalUpdateTest) {
   std::string column = "abc";
   parser::AbstractExpression *value = new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1));
-  std::shared_ptr<parser::UpdateClause> update_clause =
-      std::make_shared<parser::UpdateClause>(column, std::shared_ptr<parser::AbstractExpression>(value));
+  auto raw_update_clause = new parser::UpdateClause(column, common::ManagedPointer<parser::AbstractExpression>(value));
+  auto update_clause = common::ManagedPointer(raw_update_clause);
   catalog::db_oid_t database_oid(123);
   catalog::namespace_oid_t namespace_oid(456);
   catalog::table_oid_t table_oid(789);
@@ -207,6 +209,9 @@ TEST(OperatorTests, LogicalUpdateTest) {
   Operator op3 = LogicalUpdate::make(database_oid, namespace_oid, table_oid, {});
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
+
+  delete value;
+  delete raw_update_clause;
 }
 
 // NOLINTNEXTLINE
@@ -229,6 +234,7 @@ TEST(OperatorTests, LogicalExportExternalFileTest) {
   // be equal to our first object and have the same hash
   std::string file_name_copy = file_name;  // NOLINT
   Operator op2 =
+
       LogicalExportExternalFile::make(parser::ExternalFileFormat::BINARY, file_name_copy, delimiter, quote, escape);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
