@@ -25,9 +25,7 @@ void DBMain::Init() {
                                                    std::chrono::milliseconds{type::TransientValuePeeker::PeekInteger(
                                                        param_map_.find(settings::Param::gc_interval)->second.value_)});
   transaction::TransactionContext *txn = txn_manager_->BeginTransaction();
-  // create the (system) catalogs
-  catalog_ = new catalog::Catalog(txn_manager_, txn);
-  settings_manager_ = new settings::SettingsManager(this, catalog_);
+  settings_manager_ = new settings::SettingsManager(this);
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   thread_pool_ = new common::WorkerPool(
