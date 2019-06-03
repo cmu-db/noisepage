@@ -70,7 +70,7 @@ TEST_F(DeferredActionsTest, CommitAction) {
 
   auto *txn = txn_mgr_.BeginTransaction();
 
-  auto insert_redo = txn->StageWrite(CatalogTestUtil::generic_db_oid, CatalogTestUtil::generic_table_oid, *pri);
+  auto insert_redo = txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, *pri);
   auto insert = insert_redo->Delta();
 
   bool aborted = false;
@@ -242,7 +242,7 @@ TEST_F(DeferredActionsTest, CommitBootstrapDefer) {
 
   auto *txn = txn_mgr_.BeginTransaction();
 
-  auto insert_redo = txn->StageWrite(CatalogTestUtil::generic_db_oid, CatalogTestUtil::generic_table_oid, *pri);
+  auto insert_redo = txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, *pri);
   auto insert = insert_redo->Delta();
 
   bool defer1 = false;

@@ -226,7 +226,7 @@ class BwTreeKeyTests : public TerrierTest {
 
     // dummy tuple to insert for each key. We just need the visible TupleSlot
     auto *const insert_redo =
-        txn->StageWrite(CatalogTestUtil::generic_db_oid, CatalogTestUtil::generic_table_oid, tuple_initializer);
+        txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer);
     auto *const insert_tuple = insert_redo->Delta();
     *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
 
@@ -253,7 +253,7 @@ class BwTreeKeyTests : public TerrierTest {
     EXPECT_EQ(results.size(), 1);
     EXPECT_EQ(results[0], tuple_slot);
 
-    txn->StageDelete(CatalogTestUtil::generic_db_oid, CatalogTestUtil::generic_table_oid, tuple_slot);
+    txn->StageDelete(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_slot);
     sql_table.Delete(txn, tuple_slot);
     index->Delete(txn, *key, tuple_slot);
 

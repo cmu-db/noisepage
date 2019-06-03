@@ -38,7 +38,7 @@ struct CatalogTestUtil {
 
   // Define contants here for when you need to fake having a catalog in tests. These values may change as the catalog
   // comes in, and tests should be modified accordingly.
-  static constexpr catalog::db_oid_t generic_db_oid = catalog::db_oid_t(101);
-  static constexpr catalog::table_oid_t generic_table_oid = catalog::table_oid_t(102);
+  static constexpr catalog::db_oid_t test_db_oid = catalog::db_oid_t(101);
+  static constexpr catalog::table_oid_t test_table_oid = catalog::table_oid_t(102);
 };
 }  // namespace terrier
