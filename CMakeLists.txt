@@ -249,6 +249,9 @@ if (UNIX)
   add_custom_target(check-censored
           grep --invert-match -n -e '^ *//' -e '^ *[*]' ${CENSOR_FILES} # check all uncommented lines w/ line num
           | grep -i -f ${BUILD_SUPPORT_DIR}/bad_words.txt               # for bad words, not case sensitive
+          # Words which are allowed in test/
+          | grep --invert-match -e '${CMAKE_SOURCE_DIR}/test/.*shared_ptr'
+          | grep --invert-match -e '${CMAKE_SOURCE_DIR}/test/.*make_shared'
           | grep --invert-match -e 'NOLINT'                             # the count of them that aren't NOLINT
           || exit 0                                                     # if nothing found, return 0
           && exit 1                                                     # else return 1, note || && left-associative
