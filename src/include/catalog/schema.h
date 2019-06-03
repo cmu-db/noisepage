@@ -33,6 +33,8 @@ class Schema {
      * @param type SQL type for this column
      * @param nullable true if the column is nullable, false otherwise
      * @param oid internal unique identifier for this column
+     * @warning this will soon have an extra argument for default value as an AbstractExpression. Write against this API
+     * with caution
      */
     Column(std::string name, const type::TypeId type, const bool nullable, const col_oid_t oid)
         : name_(std::move(name)),

@@ -158,10 +158,6 @@ void DataTable::InsertInto(transaction::TransactionContext *txn, const Projected
 
 bool DataTable::Delete(transaction::TransactionContext *const txn, const TupleSlot slot) {
   data_table_counter_.IncrementNumDelete(1);
-  // Create a redo
-  // TODO(Tianyu): Is it better to be consistent with the StageWrite behavior where we have caller explicitly
-  // call StageDelete before calling Delete?
-  txn->StageDelete(this, slot);
   UndoRecord *const undo = txn->UndoRecordForDelete(this, slot);
   UndoRecord *version_ptr;
   do {
