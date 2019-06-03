@@ -30,7 +30,6 @@ class SettingsManager {
   /**
    * The constructor of settings manager
    * @param db a pointer to the DBMain
-   * @param catalog a raw pointer to the system catalog
    */
   explicit SettingsManager(DBMain *db);
 

@@ -118,13 +118,6 @@ class DataTable {
    */
   ~DataTable();
 
-  // TODO(Matt): I think the concept of a DataTable oid is going away once SqlTable is merged, so this placeholder will
-  // go away
-  /**
-   * @return table oid of this data table
-   */
-  catalog::table_oid_t TableOid() const { return catalog::table_oid_t{0}; }
-
   /**
    * Materializes a single tuple from the given slot, as visible to the transaction given, according to the format
    * described by the given output buffer.

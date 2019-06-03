@@ -9,6 +9,7 @@
 #include "storage/write_ahead_log/log_manager.h"
 #include "transaction/transaction_manager.h"
 #include "type/transient_value_factory.h"
+#include "util/catalog_test_util.h"
 #include "util/storage_test_util.h"
 #include "util/test_harness.h"
 #include "util/transaction_test_util.h"
@@ -79,6 +80,7 @@ class WriteAheadLoggingTests : public TerrierTest {
     // TODO(Tianyu): Without a lookup mechanism this oid is not exactly meaningful. Implement lookup when possible
     auto table_oid UNUSED_ATTRIBUTE = in->ReadValue<catalog::table_oid_t>();
     auto tuple_slot = in->ReadValue<storage::TupleSlot>();
+
     if (record_type == storage::LogRecordType::DELETE) {
       // TODO(Justin): set a pointer to the correct data table? Will this even be useful for recovery?
       return storage::DeleteRecord::Initialize(buf, txn_begin, nullptr, tuple_slot);
@@ -86,6 +88,20 @@ class WriteAheadLoggingTests : public TerrierTest {
     // If code path reaches here, we have a REDO record.
     auto num_cols = in->ReadValue<uint16_t>();
 
+    auto result = storage::RedoRecord::PartialInitialize(buf, size, txn_begin,
+                                                         // TODO(Tianyu): Hacky as hell
+                                                         CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid,
+                                                         tuple_slot);
+    // TODO(Tianyu): For now, without inlined attributes, the delta portion is a straight memory copy. This
+    // will obviously change in the future. Also, this is hacky as hell
+    auto delta_size = in->ReadValue<uint32_t>();
+    byte *dest =
+        reinterpret_cast<byte *>(result->GetUnderlyingRecordBodyAs<storage::RedoRecord>()->Delta()) + sizeof(uint32_t);
+    in->Read(dest, delta_size - static_cast<uint32_t>(sizeof(uint32_t)));
+    return result;
+  }
+
+  
     // TODO(Justin): Could do this with just one read of (sizeof(col_id_t) * num_cols) bytes, and then index in. That's
     //  probably faster, but stick with the more naive way for now. We need a vector, not just a col_id_t[], because
     //  that is what ProjectedRowInitializer needs.

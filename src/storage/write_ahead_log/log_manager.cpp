@@ -99,11 +99,7 @@ void LogManager::SerializeRecord(const terrier::storage::LogRecord &record) {
   switch (record.RecordType()) {
     case LogRecordType::REDO: {
       auto *record_body = record.GetUnderlyingRecordBodyAs<RedoRecord>();
-      auto *data_table = record_body->GetDataTable();
-      WriteValue(data_table->TableOid());
-
-      // TODO(Justin): Be careful about how tuple slot is interpreted during real recovery. Right now I think we kind of
-      //  sidestep the issue with "bookkeeping".
+      WriteValue(record_body->GetTableOid());
       WriteValue(record_body->GetTupleSlot());
 
       auto *delta = record_body->Delta();
@@ -150,8 +146,7 @@ void LogManager::SerializeRecord(const terrier::storage::LogRecord &record) {
     }
     case LogRecordType::DELETE: {
       auto *record_body = record.GetUnderlyingRecordBodyAs<DeleteRecord>();
-      auto *data_table = record_body->GetDataTable();
-      WriteValue(data_table->TableOid());
+      WriteValue(record_body->GetTableOid());
       WriteValue(record_body->GetTupleSlot());
       break;
     }
