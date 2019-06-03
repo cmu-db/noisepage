@@ -251,29 +251,76 @@ TEST(OperatorTests, LogicalGetTest) {
   //===--------------------------------------------------------------------===//
   // LogicalGet
   //===--------------------------------------------------------------------===//
+  auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+
+  auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
+  auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
+  auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
+
+  auto annotated_expr_0 =
+      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
+  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
+  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
+  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
+
+  Operator logical_get_01 = LogicalGet::make(catalog::db_oid_t(2), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+                                            std::vector<AnnotatedExpression>(), "table", false);
+  Operator logical_get_02 = LogicalGet::make(catalog::db_oid_t(1), catalog::namespace_oid_t(3), catalog::table_oid_t(3),
+                                            std::vector<AnnotatedExpression>(), "table", false);
+  Operator logical_get_03 = LogicalGet::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(4),
+                                            std::vector<AnnotatedExpression>(), "table", false);
+  Operator logical_get_04 = LogicalGet::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+                                            std::vector<AnnotatedExpression>(), "tableTable", false);
+  Operator logical_get_05 = LogicalGet::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+                                            std::vector<AnnotatedExpression>(), "table", true);
   Operator logical_get_1 = LogicalGet::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
                                             std::vector<AnnotatedExpression>(), "table", false);
   Operator logical_get_2 = LogicalGet::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
                                             std::vector<AnnotatedExpression>(), "table", false);
-
-  auto annotated_expr =
-      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
   Operator logical_get_3 = LogicalGet::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
-                                            std::vector<AnnotatedExpression>{annotated_expr}, "table", false);
+                                            std::vector<AnnotatedExpression>{annotated_expr_0}, "table", false);
+  Operator logical_get_4 = LogicalGet::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+                                            std::vector<AnnotatedExpression>{annotated_expr_1}, "table", false);
+  Operator logical_get_5 = LogicalGet::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+                                            std::vector<AnnotatedExpression>{annotated_expr_2}, "table", false);
+  Operator logical_get_6 = LogicalGet::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+                                            std::vector<AnnotatedExpression>{annotated_expr_3}, "table", false);
 
   EXPECT_EQ(logical_get_1.GetType(), OpType::LOGICALGET);
   EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetDatabaseOID(), catalog::db_oid_t(1));
   EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetNamespaceOID(), catalog::namespace_oid_t(2));
   EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetTableOID(), catalog::table_oid_t(3));
   EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetPredicates(), std::vector<AnnotatedExpression>());
-  EXPECT_EQ(logical_get_3.As<LogicalGet>()->GetPredicates(), std::vector<AnnotatedExpression>{annotated_expr});
+  EXPECT_EQ(logical_get_3.As<LogicalGet>()->GetPredicates(), std::vector<AnnotatedExpression>{annotated_expr_0});
+  EXPECT_EQ(logical_get_4.As<LogicalGet>()->GetPredicates(), std::vector<AnnotatedExpression>{annotated_expr_1});
   EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetTableAlias(), "table");
   EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetIsForUpdate(), false);
   EXPECT_EQ(logical_get_1.GetName(), "LogicalGet");
   EXPECT_TRUE(logical_get_1 == logical_get_2);
   EXPECT_FALSE(logical_get_1 == logical_get_3);
+  EXPECT_FALSE(logical_get_1 == logical_get_01);
+  EXPECT_FALSE(logical_get_1 == logical_get_02);
+  EXPECT_FALSE(logical_get_1 == logical_get_03);
+  EXPECT_FALSE(logical_get_1 == logical_get_04);
+  EXPECT_FALSE(logical_get_1 == logical_get_05);
+  EXPECT_FALSE(logical_get_1 == logical_get_4);
+  EXPECT_FALSE(logical_get_4 == logical_get_5);
+  EXPECT_FALSE(logical_get_1 == logical_get_6);
   EXPECT_EQ(logical_get_1.Hash(), logical_get_2.Hash());
   EXPECT_NE(logical_get_1.Hash(), logical_get_3.Hash());
+  EXPECT_NE(logical_get_1.Hash(), logical_get_01.Hash());
+  EXPECT_NE(logical_get_1.Hash(), logical_get_02.Hash());
+  EXPECT_NE(logical_get_1.Hash(), logical_get_03.Hash());
+  EXPECT_NE(logical_get_1.Hash(), logical_get_04.Hash());
+  EXPECT_NE(logical_get_1.Hash(), logical_get_05.Hash());
+  EXPECT_NE(logical_get_1.Hash(), logical_get_4.Hash());
+  EXPECT_NE(logical_get_1.Hash(), logical_get_5.Hash());
+  EXPECT_NE(logical_get_1.Hash(), logical_get_6.Hash());
+  delete expr_b_1;
+  delete expr_b_2;
+  delete expr_b_3;
 }
 
 // NOLINTNEXTLINE
