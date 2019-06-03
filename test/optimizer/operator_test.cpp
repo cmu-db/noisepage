@@ -1126,14 +1126,40 @@ TEST(OperatorTests, ExternalFileScanTest) {
   //===--------------------------------------------------------------------===//
   // ExternalFileScan
   //===--------------------------------------------------------------------===//
-  Operator ext_file_scan_1 = ExternalFileScan::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '\\');
-  Operator ext_file_scan_2 = ExternalFileScan::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '\\');
-  Operator ext_file_scan_3 = ExternalFileScan::make(parser::ExternalFileFormat::CSV, "file2.txt", ',', '"', '\\');
+  Operator ext_file_scan_1 =
+      ExternalFileScan::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '\\');
+  Operator ext_file_scan_2 =
+      ExternalFileScan::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '\\');
+  Operator ext_file_scan_3 =
+      ExternalFileScan::make(parser::ExternalFileFormat::CSV, "file2.txt", ',', '"', '\\');
+  Operator ext_file_scan_4 =
+      ExternalFileScan::make(parser::ExternalFileFormat::BINARY, "file.txt", ',', '"', '\\');
+  Operator ext_file_scan_5 =
+      ExternalFileScan::make(parser::ExternalFileFormat::CSV, "file.txt", ' ', '"', '\\');
+  Operator ext_file_scan_6 =
+      ExternalFileScan::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '\'', '\\');
+  Operator ext_file_scan_7 =
+      ExternalFileScan::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '&');
 
   EXPECT_EQ(ext_file_scan_1.GetType(), OpType::EXTERNALFILESCAN);
-  EXPECT_EQ(ext_file_scan_1.GetName(), "ExternalFileScan");
+  EXPECT_EQ(ext_file_scan_1.GetName(), "EXTERNALFILESCAN");
+  EXPECT_EQ(ext_file_scan_1.As<ExternalFileScan>()->GetFormat(), parser::ExternalFileFormat::CSV);
+  EXPECT_EQ(ext_file_scan_1.As<ExternalFileScan>()->GetFilename(), "file.txt");
+  EXPECT_EQ(ext_file_scan_1.As<ExternalFileScan>()->GetDelimiter(), ',');
+  EXPECT_EQ(ext_file_scan_1.As<ExternalFileScan>()->GetQuote(), '"');
+  EXPECT_EQ(ext_file_scan_1.As<ExternalFileScan>()->GetEscape(), '\\');
   EXPECT_TRUE(ext_file_scan_1 == ext_file_scan_2);
   EXPECT_FALSE(ext_file_scan_1 == ext_file_scan_3);
+  EXPECT_FALSE(ext_file_scan_1 == ext_file_scan_4);
+  EXPECT_FALSE(ext_file_scan_1 == ext_file_scan_5);
+  EXPECT_FALSE(ext_file_scan_1 == ext_file_scan_6);
+  EXPECT_FALSE(ext_file_scan_1 == ext_file_scan_7);
+  EXPECT_EQ(ext_file_scan_1.Hash(), ext_file_scan_2.Hash());
+  EXPECT_NE(ext_file_scan_1.Hash(), ext_file_scan_3.Hash());
+  EXPECT_NE(ext_file_scan_1.Hash(), ext_file_scan_4.Hash());
+  EXPECT_NE(ext_file_scan_1.Hash(), ext_file_scan_5.Hash());
+  EXPECT_NE(ext_file_scan_1.Hash(), ext_file_scan_6.Hash());
+  EXPECT_NE(ext_file_scan_1.Hash(), ext_file_scan_7.Hash());
 }
 
 // NOLINTNEXTLINE

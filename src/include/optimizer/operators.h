@@ -1194,6 +1194,31 @@ class ExternalFileScan : public OperatorNode<ExternalFileScan> {
 
   common::hash_t Hash() const override;
 
+  /**
+   * @return how the data should be formatted
+   */
+  parser::ExternalFileFormat GetFormat() const { return format_; }
+
+  /**
+   * @return the local file path to read the data
+   */
+  std::string GetFilename() const { return file_name_; }
+
+  /**
+   * @return the character to use to split each attribute
+   */
+  char GetDelimiter() const { return delimiter_; }
+
+  /**
+   * @return the character to use to 'quote' each value
+   */
+  char GetQuote() const { return quote_; }
+
+  /**
+   * @return the character to use to escape characters in values
+   */
+  char GetEscape() const { return escape_; }
+
  private:
   /**
    * File format
