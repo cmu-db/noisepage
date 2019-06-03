@@ -116,7 +116,7 @@ void LogManager::SerializeRecord(const terrier::storage::LogRecord &record) {
       WriteValue(&(delta->Bitmap()), common::RawBitmap::SizeInBytes(delta->NumColumns()));
 
       // We need the block layout to determine the size of each attribute.
-      const auto &block_layout = data_table->GetBlockLayout();
+      const auto &block_layout = record_body->GetTupleSlot().GetBlock()->data_table_->GetBlockLayout();
       for (uint16_t i = 0; i < delta->NumColumns(); i++) {
         const auto *column_value_address = delta->AccessWithNullCheck(i);
         if (column_value_address == nullptr) {

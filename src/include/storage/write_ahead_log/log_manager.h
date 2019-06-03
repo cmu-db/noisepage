@@ -11,14 +11,12 @@
 #include "common/managed_pointer.h"
 #include "common/spin_latch.h"
 #include "common/strong_typedef.h"
+#include "settings/settings_manager.h"
 #include "storage/record_buffer.h"
 #include "storage/write_ahead_log/log_consumer.h"
 #include "storage/write_ahead_log/log_io.h"
 #include "storage/write_ahead_log/log_record.h"
 #include "transaction/transaction_defs.h"
-
-// TODO(Utkarsh): Get rid of magic constants
-#define MAX_BUF 2
 
 namespace terrier::storage {
 /**
@@ -35,10 +33,11 @@ class LogManager : public DedicatedThreadOwner {
    * @param buffer_pool the object pool to draw log buffers from. This must be the same pool transactions draw their
    *                    buffers from
    */
-  LogManager(const char *log_file_path, RecordBufferSegmentPool *const buffer_pool)
+  LogManager(const char *log_file_path, uint64_t num_buffers, RecordBufferSegmentPool *const buffer_pool)
       : run_log_manager_(false),
-        buffer_pool_(buffer_pool),
         log_file_path_(log_file_path),
+        num_buffers_(num_buffers),
+        buffer_pool_(buffer_pool),
         filled_buffer_(nullptr),
         do_persist_(true) {}
 
@@ -49,10 +48,10 @@ class LogManager : public DedicatedThreadOwner {
    */
   void Start() {
     // Initialize buffers for logging
-    for (int i = 0; i < MAX_BUF; i++) {
+    for (int i = 0; i < num_buffers_; i++) {
       buffers_.emplace_back(BufferedLogWriter(log_file_path_));
     }
-    for (int i = 0; i < MAX_BUF; i++) {
+    for (int i = 0; i < num_buffers_; i++) {
       empty_buffer_queue_.Enqueue(&buffers_[i]);
     }
 
@@ -82,6 +81,33 @@ class LogManager : public DedicatedThreadOwner {
   }
 
   /**
+   * For testing only
+   * @return number of buffers used for logging
+   */
+  uint64_t TestGetNumBuffers() { return num_buffers_; }
+
+  /**
+   * Set the number of buffers used for buffering logs.
+   *
+   * The operation fails if the LogManager has already allocated more buffers than the new size
+   *
+   * @param new_num_buffers the new number of buffers the log manager can use
+   * @return true if new_num_buffers is successfully set and false the operation fails
+   */
+  bool SetNumBuffers(uint64_t new_num_buffers) {
+    if (new_num_buffers >= num_buffers_) {
+      // Add in new buffers
+      for (size_t i = 0; i < new_num_buffers - num_buffers_; i++) {
+        buffers_.emplace_back(BufferedLogWriter(log_file_path_));
+        empty_buffer_queue_.Enqueue(&buffers_[num_buffers_ + i]);
+      }
+      num_buffers_ = new_num_buffers;
+      return true;
+    }
+    return false;
+  }
+
+  /**
    * Process all the accumulated log records and serialize them out to disk. A flush will always happen at the end.
    * (Beware the performance consequences of calling flush too frequently) This method should only be called from a
    * dedicated
@@ -102,6 +128,15 @@ class LogManager : public DedicatedThreadOwner {
 
   bool run_log_manager_;
 
+  // Settings Manager
+  settings::SettingsManager *settings_manager_;
+
+  // System path for log file
+  const char *log_file_path_;
+
+  // Number of buffers to use for buffering logs
+  uint64_t num_buffers_;
+
   // TODO(Tianyu): This can be changed later to be include things that are not necessarily backed by a disk
   //  (e.g. logs can be streamed out to the network for remote replication)
   RecordBufferSegmentPool *buffer_pool_;
@@ -115,8 +150,6 @@ class LogManager : public DedicatedThreadOwner {
   // These do not need to be thread safe since the only thread adding or removing from it is the flushing thread
   std::vector<std::pair<transaction::callback_fn, void *>> commits_in_buffer_;
 
-  // System path for log file
-  const char *log_file_path_;
   // This stores all the buffers the serializer or the log consumer threads use
   std::vector<BufferedLogWriter> buffers_;
   // This is the buffer the serializer thread will write to

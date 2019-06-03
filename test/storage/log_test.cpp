@@ -1,23 +1,45 @@
 #include <unordered_map>
 #include <vector>
-
 #include "gtest/gtest.h"
+#include "main/db_main.h"
+#include "settings/settings_callbacks.h"
+#include "settings/settings_manager.h"
 #include "storage/data_table.h"
 #include "storage/garbage_collector_thread.h"
 #include "storage/write_ahead_log/log_manager.h"
 #include "transaction/transaction_manager.h"
+#include "type/transient_value_factory.h"
 #include "util/storage_test_util.h"
 #include "util/test_harness.h"
 #include "util/transaction_test_util.h"
 
+#define __SETTING_GFLAGS_DEFINE__      // NOLINT
+#include "settings/settings_common.h"  // NOLINT
+#include "settings/settings_defs.h"    // NOLINT
+#undef __SETTING_GFLAGS_DEFINE__       // NOLINT
+
 #define LOG_FILE_NAME "test.log"
 
-namespace terrier {
+namespace terrier::storage {
 class WriteAheadLoggingTests : public TerrierTest {
- public:
+ protected:
+  storage::LogManager *log_manager_;
+
+  std::default_random_engine generator_;
+  storage::RecordBufferSegmentPool pool_{2000, 100};
+  storage::BlockStore block_store_{100, 100};
+
+  // Members related to running gc / logging.
+  std::thread log_thread_;
+  bool logging_;
+
+  const std::chrono::milliseconds gc_period_{10};
+  storage::GarbageCollectorThread *gc_thread_;
+
   void SetUp() override {
     // Unlink log file incase one exists from previous test iteration
     unlink(LOG_FILE_NAME);
+    log_manager_ = new LogManager(LOG_FILE_NAME, 2, &pool_);
     TerrierTest::SetUp();
   }
 
@@ -25,19 +47,20 @@ class WriteAheadLoggingTests : public TerrierTest {
     // Delete log file
     unlink(LOG_FILE_NAME);
     DedicatedThreadRegistry::GetInstance().TearDown();
+    delete log_manager_;
     TerrierTest::TearDown();
   }
 
   void StartLogging(uint32_t log_period_milli) {
     logging_ = true;
-    log_manager_.Start();
+    log_manager_->Start();
     log_thread_ = std::thread([log_period_milli, this] { LogThreadLoop(log_period_milli); });
   }
 
   void EndLogging() {
     logging_ = false;
     log_thread_.join();
-    log_manager_.Shutdown();
+    log_manager_->Shutdown();
   }
 
   storage::LogRecord *ReadNextRecord(storage::BufferedLogReader *in, const storage::BlockLayout &block_layout) {
@@ -124,23 +147,11 @@ class WriteAheadLoggingTests : public TerrierTest {
     return result;
   }
 
-  std::default_random_engine generator_;
-  storage::RecordBufferSegmentPool pool_{2000, 100};
-  storage::BlockStore block_store_{100, 100};
-  storage::LogManager log_manager_{LOG_FILE_NAME, &pool_};
-
-  // Members related to running gc / logging.
-  std::thread log_thread_;
-  bool logging_;
-
-  const std::chrono::milliseconds gc_period_{10};
-  storage::GarbageCollectorThread *gc_thread_;
-
  private:
   void LogThreadLoop(uint32_t log_period_milli) {
     while (logging_) {
       std::this_thread::sleep_for(std::chrono::milliseconds(log_period_milli));
-      log_manager_.Process();
+      log_manager_->Process();
     }
   }
 };
@@ -160,7 +171,7 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
                                           .SetGenerator(&generator_)
                                           .SetGcOn(true)
                                           .SetBookkeeping(true)
-                                          .SetLogManager(&log_manager_)
+                                          .SetLogManager(log_manager_)
                                           .build();
   StartLogging(10);
   gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
@@ -237,7 +248,7 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
                                           .SetGenerator(&generator_)
                                           .SetGcOn(true)
                                           .SetBookkeeping(false)
-                                          .SetLogManager(&log_manager_)
+                                          .SetLogManager(log_manager_)
                                           .build();
 
   StartLogging(10);
@@ -267,4 +278,4 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
   for (auto *txn : result.first) delete txn;
   for (auto *txn : result.second) delete txn;
 }
-}  // namespace terrier
+}  // namespace terrier::storage
