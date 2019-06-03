@@ -6,3 +6,5 @@
 \bstd::cout\b
 \bcout\b
 \bprintf(
+\bshared_ptr\b
+\bmake_shared\b
