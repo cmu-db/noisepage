@@ -927,29 +927,76 @@ TEST(OperatorTests, SeqScanTest) {
   //===--------------------------------------------------------------------===//
   // SeqScan
   //===--------------------------------------------------------------------===//
+  auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+
+  auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
+  auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
+  auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
+
+  auto annotated_expr_0 =
+      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
+  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
+  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
+  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
+
+  Operator seq_scan_01 = SeqScan::make(catalog::db_oid_t(2), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+                                             std::vector<AnnotatedExpression>(), "table", false);
+  Operator seq_scan_02 = SeqScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(3), catalog::table_oid_t(3),
+                                             std::vector<AnnotatedExpression>(), "table", false);
+  Operator seq_scan_03 = SeqScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(4),
+                                             std::vector<AnnotatedExpression>(), "table", false);
+  Operator seq_scan_04 = SeqScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+                                             std::vector<AnnotatedExpression>(), "tableTable", false);
+  Operator seq_scan_05 = SeqScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+                                             std::vector<AnnotatedExpression>(), "table", true);
   Operator seq_scan_1 = SeqScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
                                             std::vector<AnnotatedExpression>(), "table", false);
   Operator seq_scan_2 = SeqScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
                                             std::vector<AnnotatedExpression>(), "table", false);
-
-  auto annotated_expr =
-      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
   Operator seq_scan_3 = SeqScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
-                                            std::vector<AnnotatedExpression>{annotated_expr}, "table", false);
+                                            std::vector<AnnotatedExpression>{annotated_expr_0}, "table", false);
+  Operator seq_scan_4 = SeqScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+                                            std::vector<AnnotatedExpression>{annotated_expr_1}, "table", false);
+  Operator seq_scan_5 = SeqScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+                                            std::vector<AnnotatedExpression>{annotated_expr_2}, "table", false);
+  Operator seq_scan_6 = SeqScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+                                            std::vector<AnnotatedExpression>{annotated_expr_3}, "table", false);
 
-  EXPECT_EQ(seq_scan_1.GetType(), OpType::SEQSCAN);
+  EXPECT_EQ(seq_scan_1.GetType(), OpType::SEQSCAN );
   EXPECT_EQ(seq_scan_1.As<SeqScan>()->GetDatabaseOID(), catalog::db_oid_t(1));
   EXPECT_EQ(seq_scan_1.As<SeqScan>()->GetNamespaceOID(), catalog::namespace_oid_t(2));
   EXPECT_EQ(seq_scan_1.As<SeqScan>()->GetTableOID(), catalog::table_oid_t(3));
   EXPECT_EQ(seq_scan_1.As<SeqScan>()->GetPredicates(), std::vector<AnnotatedExpression>());
-  EXPECT_EQ(seq_scan_3.As<SeqScan>()->GetPredicates(), std::vector<AnnotatedExpression>{annotated_expr});
+  EXPECT_EQ(seq_scan_3.As<SeqScan>()->GetPredicates(), std::vector<AnnotatedExpression>{annotated_expr_0});
+  EXPECT_EQ(seq_scan_4.As<SeqScan>()->GetPredicates(), std::vector<AnnotatedExpression>{annotated_expr_1});
   EXPECT_EQ(seq_scan_1.As<SeqScan>()->GetTableAlias(), "table");
   EXPECT_EQ(seq_scan_1.As<SeqScan>()->GetIsForUpdate(), false);
   EXPECT_EQ(seq_scan_1.GetName(), "SeqScan");
   EXPECT_TRUE(seq_scan_1 == seq_scan_2);
   EXPECT_FALSE(seq_scan_1 == seq_scan_3);
+  EXPECT_FALSE(seq_scan_1 == seq_scan_01);
+  EXPECT_FALSE(seq_scan_1 == seq_scan_02);
+  EXPECT_FALSE(seq_scan_1 == seq_scan_03);
+  EXPECT_FALSE(seq_scan_1 == seq_scan_04);
+  EXPECT_FALSE(seq_scan_1 == seq_scan_05);
+  EXPECT_FALSE(seq_scan_1 == seq_scan_4);
+  EXPECT_FALSE(seq_scan_4 == seq_scan_5);
+  EXPECT_FALSE(seq_scan_1 == seq_scan_6);
   EXPECT_EQ(seq_scan_1.Hash(), seq_scan_2.Hash());
   EXPECT_NE(seq_scan_1.Hash(), seq_scan_3.Hash());
+  EXPECT_NE(seq_scan_1.Hash(), seq_scan_01.Hash());
+  EXPECT_NE(seq_scan_1.Hash(), seq_scan_02.Hash());
+  EXPECT_NE(seq_scan_1.Hash(), seq_scan_03.Hash());
+  EXPECT_NE(seq_scan_1.Hash(), seq_scan_04.Hash());
+  EXPECT_NE(seq_scan_1.Hash(), seq_scan_05.Hash());
+  EXPECT_NE(seq_scan_1.Hash(), seq_scan_4.Hash());
+  EXPECT_NE(seq_scan_1.Hash(), seq_scan_5.Hash());
+  EXPECT_NE(seq_scan_1.Hash(), seq_scan_6.Hash());
+  delete expr_b_1;
+  delete expr_b_2;
+  delete expr_b_3;
 }
 
 // NOLINTNEXTLINE
@@ -957,6 +1004,93 @@ TEST(OperatorTests, IndexScanTest) {
   //===--------------------------------------------------------------------===//
   // IndexScan
   //===--------------------------------------------------------------------===//
+
+
+  // predicates
+  auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+
+  auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
+  auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
+  auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
+
+  auto annotated_expr_0 =
+      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
+  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
+  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
+  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
+
+  Operator index_scan_01 = IndexScan::make(catalog::db_oid_t(2), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+                                       std::vector<AnnotatedExpression>(), "table", false);
+  Operator index_scan_02 = IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(3), catalog::table_oid_t(3),
+                                       std::vector<AnnotatedExpression>(), "table", false);
+  Operator index_scan_03 = IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(4),
+                                       std::vector<AnnotatedExpression>(), "table", false);
+  Operator index_scan_04 = IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+                                       std::vector<AnnotatedExpression>(), "tableTable", false);
+  Operator index_scan_05 = IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+                                       std::vector<AnnotatedExpression>(), "table", true);
+  Operator index_scan_06 = IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+                                           std::vector<AnnotatedExpression>(), "table", false, );
+  Operator index_scan_1 = IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
+                                      std::vector<AnnotatedExpression>(), "table", false, std::vector<catalog::col_oid_t>(),
+                                      std::vector<parser::ExpressionType>(), std::vector<type::TransientValue>());
+  Operator index_scan_2 = IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+                                      std::vector<AnnotatedExpression>(), "table", false);
+  Operator index_scan_3 = IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+                                      std::vector<AnnotatedExpression>{annotated_expr_0}, "table", false);
+  Operator index_scan_4 = IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+                                      std::vector<AnnotatedExpression>{annotated_expr_1}, "table", false);
+  Operator index_scan_5 = IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+                                      std::vector<AnnotatedExpression>{annotated_expr_2}, "table", false);
+  Operator index_scan_6 = IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+                                      std::vector<AnnotatedExpression>{annotated_expr_3}, "table", false);
+
+    EXPECT_EQ(index_scan_1.GetType(), OpType::INDEXSCAN );
+  EXPECT_EQ(index_scan_1.As<IndexScan>()->GetDatabaseOID(), catalog::db_oid_t(1));
+  EXPECT_EQ(index_scan_1.As<IndexScan>()->GetNamespaceOID(), catalog::namespace_oid_t(2));
+  EXPECT_EQ(index_scan_1.As<IndexScan>()->GetTableOID(), catalog::table_oid_t(3));
+  EXPECT_EQ(index_scan_1.As<IndexScan>()->GetPredicates(), std::vector<AnnotatedExpression>());
+  EXPECT_EQ(index_scan_3.As<IndexScan>()->GetPredicates(), std::vector<AnnotatedExpression>{annotated_expr_0});
+  EXPECT_EQ(index_scan_4.As<IndexScan>()->GetPredicates(), std::vector<AnnotatedExpression>{annotated_expr_1});
+  EXPECT_EQ(index_scan_1.As<IndexScan>()->GetTableAlias(), "table");
+  EXPECT_EQ(index_scan_1.As<IndexScan>()->GetIsForUpdate(), false);
+  EXPECT_EQ(index_scan_1.GetName(), "IndexScan");
+  EXPECT_TRUE(index_scan_1 == index_scan_2);
+  EXPECT_FALSE(index_scan_1 == index_scan_3);
+  EXPECT_FALSE(index_scan_1 == index_scan_01);
+  EXPECT_FALSE(index_scan_1 == index_scan_02);
+  EXPECT_FALSE(index_scan_1 == index_scan_03);
+  EXPECT_FALSE(index_scan_1 == index_scan_04);
+  EXPECT_FALSE(index_scan_1 == index_scan_05);
+  EXPECT_FALSE(index_scan_1 == index_scan_4);
+  EXPECT_FALSE(index_scan_4 == index_scan_5);
+  EXPECT_FALSE(index_scan_1 == index_scan_6);
+  EXPECT_EQ(index_scan_1.Hash(), index_scan_2.Hash());
+  EXPECT_NE(index_scan_1.Hash(), index_scan_3.Hash());
+  EXPECT_NE(index_scan_1.Hash(), index_scan_01.Hash());
+  EXPECT_NE(index_scan_1.Hash(), index_scan_02.Hash());
+  EXPECT_NE(index_scan_1.Hash(), index_scan_03.Hash());
+  EXPECT_NE(index_scan_1.Hash(), index_scan_04.Hash());
+  EXPECT_NE(index_scan_1.Hash(), index_scan_05.Hash());
+  EXPECT_NE(index_scan_1.Hash(), index_scan_4.Hash());
+  EXPECT_NE(index_scan_1.Hash(), index_scan_5.Hash());
+  EXPECT_NE(index_scan_1.Hash(), index_scan_6.Hash());
+  delete expr_b_1;
+  delete expr_b_2;
+  delete expr_b_3;
+
+
+
+
+
+
+
+
+
+
+
   Operator index_scan_1 =
       IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3), "table",
                       std::vector<AnnotatedExpression>(), false, std::vector<catalog::col_oid_t>(),

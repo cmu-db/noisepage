@@ -734,8 +734,8 @@ common::hash_t SeqScan::Hash() const {
 // IndexScan
 //===--------------------------------------------------------------------===//
 Operator IndexScan::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                         catalog::index_oid_t index_oid, std::string table_alias,
-                         std::vector<AnnotatedExpression> predicates, bool is_for_update,
+                         catalog::index_oid_t index_oid, std::vector<AnnotatedExpression> predicates,
+                         std::string table_alias, bool is_for_update,
                          std::vector<catalog::col_oid_t> key_column_oid_list,
                          std::vector<parser::ExpressionType> expr_type_list,
                          std::vector<type::TransientValue> value_list) {
