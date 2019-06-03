@@ -225,6 +225,7 @@ TEST(OperatorTests, LogicalExportExternalFileTest) {
   Operator op1 =
       LogicalExportExternalFile::make(parser::ExternalFileFormat::BINARY, file_name, delimiter, quote, escape);
   EXPECT_EQ(op1.GetType(), OpType::LOGICALEXPORTEXTERNALFILE);
+  EXPECT_EQ(op1.As<LogicalExportExternalFile>()->GetFormat(), parser::ExternalFileFormat::BINARY);
   EXPECT_EQ(op1.As<LogicalExportExternalFile>()->GetFilename(), file_name);
   EXPECT_EQ(op1.As<LogicalExportExternalFile>()->GetDelimiter(), delimiter);
   EXPECT_EQ(op1.As<LogicalExportExternalFile>()->GetQuote(), quote);

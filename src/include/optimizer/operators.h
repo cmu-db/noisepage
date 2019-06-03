@@ -54,27 +54,27 @@ class LogicalGet : public OperatorNode<LogicalGet> {
   /**
    * @return the OID of the database
    */
-  catalog::db_oid_t GetDatabaseOID() const { return database_oid_; }
+  const catalog::db_oid_t &GetDatabaseOID() const { return database_oid_; }
 
   /**
    * @return the OID of the namespace
    */
-  catalog::namespace_oid_t GetNamespaceOID() const { return namespace_oid_; }
+  const catalog::namespace_oid_t &GetNamespaceOID() const { return namespace_oid_; }
 
   /**
    * @return the OID of the table
    */
-  catalog::table_oid_t GetTableOID() const { return table_oid_; }
+  const catalog::table_oid_t &GetTableOID() const { return table_oid_; }
 
   /**
    * @return the vector of predicates for get
    */
-  std::vector<AnnotatedExpression> GetPredicates() const { return predicates_; }
+  const std::vector<AnnotatedExpression> &GetPredicates() const { return predicates_; }
 
   /**
    * @return the alias of the table to get from
    */
-  std::string GetTableAlias() const { return table_alias_; }
+  const std::string &GetTableAlias() const { return table_alias_; }
 
   /**
    * @return whether the get operation is used for update
@@ -135,12 +135,12 @@ class LogicalExternalFileGet : public OperatorNode<LogicalExternalFileGet> {
   /**
    * @return how the data should be formatted
    */
-  parser::ExternalFileFormat GetFormat() const { return format_; }
+  const parser::ExternalFileFormat &GetFormat() const { return format_; }
 
   /**
    * @return the local file path to read the data
    */
-  std::string GetFilename() const { return file_name_; }
+  const std::string &GetFilename() const { return file_name_; }
 
   /**
    * @return the character to use to split each attribute
@@ -205,12 +205,12 @@ class LogicalQueryDerivedGet : public OperatorNode<LogicalQueryDerivedGet> {
   /**
    * @return Alias of the table to get from
    */
-  std::string GetTableAlias() const { return table_alias_; }
+  const std::string &GetTableAlias() const { return table_alias_; }
 
   /**
    * @return map from table aliases to expressions
    */
-  std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> GetAliasToExprMap() const {
+  const std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> &GetAliasToExprMap() const {
     return alias_to_expr_map_;
   }
 
@@ -244,7 +244,7 @@ class LogicalFilter : public OperatorNode<LogicalFilter> {
   /**
    * @return vector of predicates
    */
-  std::vector<AnnotatedExpression> GetPredicates() const { return predicates_; }
+  const std::vector<AnnotatedExpression> &GetPredicates() const { return predicates_; }
 
  private:
   /**
@@ -273,7 +273,7 @@ class LogicalProjection : public OperatorNode<LogicalProjection> {
   /**
    * @return vector of predicates
    */
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> GetExpressions() const { return expressions_; }
+  const std::vector<common::ManagedPointer<parser::AbstractExpression>> &GetExpressions() const { return expressions_; }
 
  private:
   /**
@@ -305,7 +305,7 @@ class LogicalDependentJoin : public OperatorNode<LogicalDependentJoin> {
   /**
    * @return vector of join predicates
    */
-  std::vector<AnnotatedExpression> GetJoinPredicates() const { return join_predicates_; }
+  const std::vector<AnnotatedExpression> &GetJoinPredicates() const { return join_predicates_; }
 
  private:
   /**
@@ -337,7 +337,7 @@ class LogicalMarkJoin : public OperatorNode<LogicalMarkJoin> {
   /**
    * @return vector of join predicates
    */
-  std::vector<AnnotatedExpression> GetJoinPredicates() const { return join_predicates_; }
+  const std::vector<AnnotatedExpression> &GetJoinPredicates() const { return join_predicates_; }
 
  private:
   /**
@@ -369,7 +369,7 @@ class LogicalSingleJoin : public OperatorNode<LogicalSingleJoin> {
   /**
    * @return vector of join predicates
    */
-  std::vector<AnnotatedExpression> GetJoinPredicates() const { return join_predicates_; }
+  const std::vector<AnnotatedExpression> &GetJoinPredicates() const { return join_predicates_; }
 
  private:
   /**
@@ -401,7 +401,7 @@ class LogicalInnerJoin : public OperatorNode<LogicalInnerJoin> {
   /**
    * @return vector of join predicates
    */
-  std::vector<AnnotatedExpression> GetJoinPredicates() const { return join_predicates_; }
+  const std::vector<AnnotatedExpression> &GetJoinPredicates() const { return join_predicates_; }
 
  private:
   /**
@@ -428,7 +428,7 @@ class LogicalLeftJoin : public OperatorNode<LogicalLeftJoin> {
   /**
    * @return pointer to the join predicate expression
    */
-  common::ManagedPointer<parser::AbstractExpression> GetJoinPredicate() const { return join_predicate_; }
+  const common::ManagedPointer<parser::AbstractExpression> &GetJoinPredicate() const { return join_predicate_; }
 
  private:
   /**
@@ -455,7 +455,7 @@ class LogicalRightJoin : public OperatorNode<LogicalRightJoin> {
   /**
    * @return pointer to the join predicate expression
    */
-  common::ManagedPointer<parser::AbstractExpression> GetJoinPredicate() const { return join_predicate_; }
+  const common::ManagedPointer<parser::AbstractExpression> &GetJoinPredicate() const { return join_predicate_; }
 
  private:
   /**
@@ -482,7 +482,7 @@ class LogicalOuterJoin : public OperatorNode<LogicalOuterJoin> {
   /**
    * @return pointer to the join predicate expression
    */
-  common::ManagedPointer<parser::AbstractExpression> GetJoinPredicate() const { return join_predicate_; }
+  const common::ManagedPointer<parser::AbstractExpression> &GetJoinPredicate() const { return join_predicate_; }
 
  private:
   /**
@@ -509,7 +509,7 @@ class LogicalSemiJoin : public OperatorNode<LogicalSemiJoin> {
   /**
    * @return pointer to the join predicate expression
    */
-  common::ManagedPointer<parser::AbstractExpression> GetJoinPredicate() const { return join_predicate_; }
+  const common::ManagedPointer<parser::AbstractExpression> &GetJoinPredicate() const { return join_predicate_; }
 
  private:
   /**
@@ -549,12 +549,12 @@ class LogicalAggregateAndGroupBy : public OperatorNode<LogicalAggregateAndGroupB
   /**
    * @return vector of columns
    */
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> GetColumns() const { return columns_; }
+  const std::vector<common::ManagedPointer<parser::AbstractExpression>> &GetColumns() const { return columns_; }
 
   /**
    * @return vector of having expressions
    */
-  std::vector<AnnotatedExpression> GetHaving() const { return having_; }
+  const std::vector<AnnotatedExpression> &GetHaving() const { return having_; }
 
  private:
   /**
@@ -834,22 +834,22 @@ class LogicalUpdate : public OperatorNode<LogicalUpdate> {
   /**
    * @return OID of the database
    */
-  catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
+  const catalog::db_oid_t &GetDatabaseOid() const { return database_oid_; }
 
   /**
    * @return OID of the namespace
    */
-  catalog::namespace_oid_t GetNamespaceOid() const { return namespace_oid_; }
+  const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
 
   /**
    * @return OID of the table
    */
-  catalog::table_oid_t GetTableOid() const { return table_oid_; }
+  const catalog::table_oid_t &GetTableOid() const { return table_oid_; }
 
   /**
    * @return the update clauses from the SET portion of the query
    */
-  std::vector<common::ManagedPointer<parser::UpdateClause>> GetUpdateClauses() const { return updates_; }
+  const std::vector<common::ManagedPointer<parser::UpdateClause>> &GetUpdateClauses() const { return updates_; }
 
  private:
   /**
@@ -895,12 +895,12 @@ class LogicalExportExternalFile : public OperatorNode<LogicalExportExternalFile>
   /**
    * @return how the data should be formatted
    */
-  parser::ExternalFileFormat GetFormat() const { return format_; }
+  const parser::ExternalFileFormat &GetFormat() const { return format_; }
 
   /**
    * @return the local file path to write the data
    */
-  std::string GetFilename() const { return file_name_; }
+  const std::string &GetFilename() const { return file_name_; }
 
   /**
    * @return the character to use to split each attribute
