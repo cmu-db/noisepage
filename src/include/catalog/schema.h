@@ -8,6 +8,7 @@
 #include "common/constants.h"
 #include "common/macros.h"
 #include "common/strong_typedef.h"
+#include "parser/expression/abstract_expression.h"
 #include "storage/storage_defs.h"
 #include "type/type_id.h"
 #include "type/type_util.h"

@@ -55,12 +55,29 @@ class Builder {
    * Get the schema for pg_namespace
    * @return schema object for pg_namespace table
    */
-  static Schema GetNamespaceTable();
+  static Schema GetNamespaceTableSchema();
 
   /**
    * Get the schema for pg_type
    * @return schema object for pg_type table
    */
-  static Schema GetTypeTable();
+  static Schema GetTypeTableSchema();
+
+  static IndexSchema GetNamepaceOidIndexSchema();
+  static IndexSchema GetNamespaceNameIndexSchema();
+  static IndexSchema GetClassOidIndexSchema();
+  static IndexSchema GetClassNameIndexSchema();
+  static IndexSchema GetIndexOidIndexSchema();
+  static IndexSchema GetIndexTableIndexSchema();
+  static IndexSchema GetColumnOidIndexSchema();
+  static IndexSchema GetColumnNameIndexSchema();
+  static IndexSchema GetTypeOidIndexSchema();
+  static IndexSchema GetTypeNameIndexSchema();
+  static IndexSchema GetConstaintOidIndexSchema();
+  static IndexSchema GetConstraintNameIndexSchema();
+  static IndexSchema GetConstraintTableIndexSchema();
+  static IndexSchema GetConstraintIndexIndexSchema();
+  static IndexSchema GetConstraintForeignKeyIndexSchema();
+
 };
 }

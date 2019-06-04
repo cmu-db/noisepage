@@ -8,6 +8,7 @@
 #include "catalog/default_value.h"
 #include "catalog/index_key_schema.h"
 #include "catalog/schema.h"
+#include "common/managed_pointer.h"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
 #include "type/type_id.h"
@@ -155,7 +156,7 @@ class CatalogAccessor {
    * @param table to which we want the storage object
    * @return the storage object corresponding to the passed OID
    */
-  storage::SqlTable *GetTable(table_oid_t table);
+  common::ManagedPointer<storage::SqlTable *> GetTable(table_oid_t table);
 
   /**
    * Apply a new schema to the given table.  The changes should modify the latest
@@ -257,7 +258,7 @@ class CatalogAccessor {
    * @param index to which we want a pointer
    * @return the pointer to the index
    */
-  storage::index::Index *GetIndex(index_oid_t index);
+  common::ManagedPointer<storage::index::Index *> GetIndex(index_oid_t index);
 
   /**
    * Gets the schema used to define the index

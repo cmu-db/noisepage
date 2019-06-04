@@ -79,7 +79,7 @@ class Catalog {
    * @return DatabaseCatalog object which has catalog information for the
    *   specific database
    */
-  const DatabaseCatalog &GetDatabaseCatalog(transaction::TransactionContext *txn, db_oid_t database);
+  common::ManagedPointer<DatabaseCatalog *> GetDatabaseCatalog(transaction::TransactionContext *txn, db_oid_t database);
 
   /**
    * Gets the database-specific catalog object.
@@ -88,7 +88,7 @@ class Catalog {
    * @return DatabaseCatalog object which has catalog information for the
    *   specific database
    */
-  const DatabaseCatalog &GetDatabaseCatalog(transaction::TransactionContext *txn, const std::string &name);
+  common::ManagedPointer<DatabaseCatalog *> GetDatabaseCatalog(transaction::TransactionContext *txn, const std::string &name);
 
  private:
   storage::SqlTable *databases_;

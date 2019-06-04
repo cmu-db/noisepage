@@ -6,6 +6,7 @@
 #include "storage/sql_table.h"
 #include "storage/storage_defs.h"
 #include "transaction/transaction_context.h"
+#include "type/type_id.h"
 
 namespace terrier::catalog::postgres {
 
@@ -154,13 +155,13 @@ class AttributeEntry {
   /**
    * @return the type of column this is (basic, user-defined, etc.)
    */
-  Type GetType();
+  type::TypeId GetType();
 
   /**
    * Sets the type of this column
    * @param type of the column
    */
-  void SetType(Type type);
+  void SetType(type::TypeId type);
 
   /**
    * @return the field width of the column in bytes
