@@ -31,7 +31,7 @@ class ComparisonExpression : public AbstractExpression {
 
   const AbstractExpression *Copy() const override {
     std::vector<const AbstractExpression *> children;
-    for (const auto *child : GetChildren()) {
+    for (const auto *child : children_) {
       children.emplace_back(child->Copy());
     }
     return new ComparisonExpression(GetExpressionType(), children);

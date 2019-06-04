@@ -126,7 +126,9 @@ class AggregatePlanNode : public AbstractPlanNode {
   /**
    * @return pointer to predicate for having clause
    */
-  const parser::AbstractExpression *GetHavingClausePredicate() const { return having_clause_predicate_; }
+  common::ManagedPointer<const parser::AbstractExpression> GetHavingClausePredicate() const {
+    return common::ManagedPointer<const parser::AbstractExpression>(having_clause_predicate_);
+  }
 
   /**
    * @return vector of aggregate terms

@@ -52,9 +52,16 @@ class OrderByDescription {
   std::vector<OrderType> GetOrderByTypes() { return types_; }
 
   /**
-   * @return order by expressions
+   * @return number of order by expressions
    */
-  std::vector<const AbstractExpression *> GetOrderByExpressions() { return exprs_; }
+  size_t GetOrderByExpressionsSize() const { return exprs_.size(); }
+
+  /**
+   * @return order by expression
+   */
+  common::ManagedPointer<const AbstractExpression> GetOrderByExpression(size_t idx) {
+    return common::ManagedPointer<const AbstractExpression>(exprs_[idx]);
+  }
 
   /**
    * @return OrderByDescription serialized to json
@@ -187,14 +194,24 @@ class GroupByDescription {
   void Accept(SqlNodeVisitor *v) { v->Visit(this); }
 
   /**
-   * @return group by columns
+   * @return number of columns to group by
    */
-  std::vector<const AbstractExpression *> GetColumns() { return columns_; }
+  size_t GetGroupByColumnsSize() const { return columns_.size(); }
+
+  /**
+   * @param idx index of column
+   * @return group by column
+   */
+  common::ManagedPointer<const AbstractExpression> GetGroupByColumn(size_t idx) {
+    return common::ManagedPointer<const AbstractExpression>(columns_[idx]);
+  }
 
   /**
    * @return having clause
    */
-  const AbstractExpression *GetHaving() { return having_; }
+  common::ManagedPointer<const AbstractExpression> GetHaving() {
+    return common::ManagedPointer<const AbstractExpression>(having_);
+  }
 
   /**
    * @return GroupDescription serialized to json
@@ -275,9 +292,17 @@ class SelectStatement : public SQLStatement {
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
   /**
-   * @return select columns
+   * @return number of columns to select
    */
-  std::vector<const AbstractExpression *> GetSelectColumns() { return select_; }
+  size_t GetSelectColumnsSize() const { return select_.size(); }
+
+  /**
+   * @param idx index of select column
+   * @return select column
+   */
+  common::ManagedPointer<const AbstractExpression> GetSelectColumn(size_t idx) {
+    return common::ManagedPointer<const AbstractExpression>(select_[idx]);
+  }
 
   /**
    * @return true if "SELECT DISTINCT", false otherwise
@@ -292,7 +317,9 @@ class SelectStatement : public SQLStatement {
   /**
    * @return select condition
    */
-  const AbstractExpression *GetSelectCondition() { return where_; }
+  common::ManagedPointer<const AbstractExpression> GetSelectCondition() {
+    return common::ManagedPointer<const AbstractExpression>(where_);
+  }
 
   /**
    * @return select group by

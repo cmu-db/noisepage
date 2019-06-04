@@ -61,7 +61,9 @@ class JoinDefinition {
   /**
    * @return join condition
    */
-  const AbstractExpression *GetJoinCondition() { return condition_; }
+  common::ManagedPointer<const AbstractExpression> GetJoinCondition() {
+    return common::ManagedPointer<const AbstractExpression>(condition_);
+  }
 
   /**
    * @return JoinDefinition serialized to json

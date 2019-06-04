@@ -94,7 +94,9 @@ class AbstractJoinPlanNode : public AbstractPlanNode {
   /**
    * @return pointer to predicate used for join
    */
-  const parser::AbstractExpression *GetJoinPredicate() const { return join_predicate_; }
+  common::ManagedPointer<const parser::AbstractExpression> GetJoinPredicate() const {
+    return common::ManagedPointer<const parser::AbstractExpression>(join_predicate_);
+  }
 
  private:
   LogicalJoinType join_type_;

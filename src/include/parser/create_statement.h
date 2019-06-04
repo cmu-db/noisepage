@@ -259,12 +259,16 @@ struct ColumnDefinition {
   /**
    * @return default expression
    */
-  const AbstractExpression *GetDefaultExpression() { return default_expr_; }
+  common::ManagedPointer<const AbstractExpression> GetDefaultExpression() {
+    return common::ManagedPointer<const AbstractExpression>(default_expr_);
+  }
 
   /**
    * @return check expression
    */
-  const AbstractExpression *GetCheckExpression() { return check_expr_; }
+  common::ManagedPointer<const AbstractExpression> GetCheckExpression() {
+    return common::ManagedPointer<const AbstractExpression>(check_expr_);
+  }
 
   /**
    * @return varlen size
@@ -355,9 +359,9 @@ class IndexAttr {
   /**
    * @return the expression that we're indexed on
    */
-  const AbstractExpression *GetExpression() const {
+  common::ManagedPointer<const AbstractExpression> GetExpression() const {
     TERRIER_ASSERT(expr_ != nullptr, "Names don't come with expressions.");
-    return expr_;
+    return common::ManagedPointer<const AbstractExpression>(expr_);
   }
 
  private:
@@ -524,7 +528,9 @@ class CreateStatement : public TableRefStatement {
   /**
    * @return trigger when clause for [CREATE TRIGGER]
    */
-  const AbstractExpression *GetTriggerWhen() { return trigger_when_; }
+  common::ManagedPointer<const AbstractExpression> GetTriggerWhen() {
+    return common::ManagedPointer<const AbstractExpression>(trigger_when_);
+  }
 
   /**
    * @return trigger type, i.e. information about row, timing, events, access by pg_trigger

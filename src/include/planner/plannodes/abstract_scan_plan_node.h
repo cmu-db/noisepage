@@ -125,7 +125,9 @@ class AbstractScanPlanNode : public AbstractPlanNode {
   /**
    * @return predicate used for performing scan
    */
-  const parser::AbstractExpression *GetScanPredicate() const { return scan_predicate_; }
+  common::ManagedPointer<const parser::AbstractExpression> GetScanPredicate() const {
+    return common::ManagedPointer<const parser::AbstractExpression>(scan_predicate_);
+  }
 
   /**
    * @return for update flag

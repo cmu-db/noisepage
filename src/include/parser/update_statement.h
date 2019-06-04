@@ -35,7 +35,9 @@ class UpdateClause {
   /**
    * @return value to update to
    */
-  const AbstractExpression *GetUpdateValue() { return value_; }
+  common::ManagedPointer<const AbstractExpression> GetUpdateValue() {
+    return common::ManagedPointer<const AbstractExpression>(value_);
+  }
 
  private:
   const std::string column_;
@@ -76,7 +78,9 @@ class UpdateStatement : public SQLStatement {
   /**
    * @return update condition
    */
-  const AbstractExpression *GetUpdateCondition() { return where_; }
+  common::ManagedPointer<const AbstractExpression> GetUpdateCondition() {
+    return common::ManagedPointer<const AbstractExpression>(where_);
+  }
 
  private:
   const std::shared_ptr<TableRef> table_;

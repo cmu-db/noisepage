@@ -276,7 +276,9 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
   /**
    * @return trigger when clause
    */
-  const parser::AbstractExpression *GetTriggerWhen() const { return trigger_when_; }
+  common::ManagedPointer<const parser::AbstractExpression> GetTriggerWhen() const {
+    return common::ManagedPointer<const parser::AbstractExpression>(trigger_when_);
+  }
 
   /**
    * @return trigger type, i.e. information about row, timing, events, access by pg_trigger

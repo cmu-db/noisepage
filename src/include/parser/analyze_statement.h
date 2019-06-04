@@ -42,6 +42,7 @@ class AnalyzeStatement : public SQLStatement {
   std::vector<std::string> GetAnalyzeColumns() { return analyze_columns_; }
 
  private:
+  // TODO(Gus): Remove shared pointer
   const std::shared_ptr<TableRef> analyze_table_;
   const std::vector<std::string> analyze_columns_;
 };

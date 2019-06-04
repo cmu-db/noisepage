@@ -403,11 +403,11 @@ TEST(ExpressionTests, SimpleSubqueryExpressionJsonTest) {
   EXPECT_TRUE(deserialized_subquery_expr->GetSubselect()->GetSelectTable() != nullptr);
   EXPECT_EQ(original_expr->GetSubselect()->GetSelectTable()->GetTableName(),
             deserialized_subquery_expr->GetSubselect()->GetSelectTable()->GetTableName());
-  EXPECT_EQ(original_expr->GetSubselect()->GetSelectColumns().size(),
-            deserialized_subquery_expr->GetSubselect()->GetSelectColumns().size());
-  EXPECT_EQ(1, deserialized_subquery_expr->GetSubselect()->GetSelectColumns().size());
-  EXPECT_EQ(original_expr->GetSubselect()->GetSelectColumns()[0]->GetExpressionType(),
-            deserialized_subquery_expr->GetSubselect()->GetSelectColumns()[0]->GetExpressionType());
+  EXPECT_EQ(original_expr->GetSubselect()->GetSelectColumnsSize(),
+            deserialized_subquery_expr->GetSubselect()->GetSelectColumnsSize());
+  EXPECT_EQ(1, deserialized_subquery_expr->GetSubselect()->GetSelectColumnsSize());
+  EXPECT_EQ(original_expr->GetSubselect()->GetSelectColumn(0)->GetExpressionType(),
+            deserialized_subquery_expr->GetSubselect()->GetSelectColumn(0)->GetExpressionType());
 
   delete original_expr;
   delete deserialized_expression;
@@ -450,8 +450,8 @@ TEST(ExpressionTests, ComplexSubqueryExpressionJsonTest) {
   EXPECT_TRUE(subselect->GetSelectGroupBy() != nullptr);
 
   // Check SELECT *
-  EXPECT_EQ(original_expr->GetSubselect()->GetSelectColumns().size(), subselect->GetSelectColumns().size());
-  EXPECT_EQ(1, subselect->GetSelectColumns().size());
+  EXPECT_EQ(original_expr->GetSubselect()->GetSelectColumnsSize(), subselect->GetSelectColumnsSize());
+  EXPECT_EQ(1, subselect->GetSelectColumnsSize());
 
   // Check join
   EXPECT_TRUE(subselect->GetSelectTable() != nullptr);

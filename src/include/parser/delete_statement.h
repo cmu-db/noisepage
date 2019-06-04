@@ -48,7 +48,9 @@ class DeleteStatement : public SQLStatement {
   /**
    * @return expression that represents deletion condition
    */
-  const AbstractExpression *GetDeleteCondition() { return expr_; }
+  common::ManagedPointer<const AbstractExpression> GetDeleteCondition() {
+    return common::ManagedPointer<const AbstractExpression>(expr_);
+  }
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 

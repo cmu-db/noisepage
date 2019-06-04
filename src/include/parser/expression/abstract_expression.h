@@ -6,6 +6,7 @@
 #include <vector>
 #include "common/hash_util.h"
 #include "common/json.h"
+#include "common/managed_pointer.h"
 #include "parser/expression_defs.h"
 #include "type/transient_value.h"
 #include "type/type_id.h"
@@ -82,6 +83,8 @@ class AbstractExpression {
 
   /**
    * Creates a deep copy of the current AbstractExpression.
+   * @warning Should be called sparingly and under careful consideration. A shallow copy will do most times. Consider
+   * that AbstractExpression trees can be very large, and a deep copy can be expensive
    * @warning It is incorrect to supply a default implementation here since that will return an object of base type
    * AbstractExpression instead of the desired non-abstract type.
    */
@@ -103,17 +106,12 @@ class AbstractExpression {
   size_t GetChildrenSize() const { return children_.size(); }
 
   /**
-   * @return children of this abstract expression
-   */
-  const std::vector<const AbstractExpression *> &GetChildren() const { return children_; }
-
-  /**
    * @param index index of child
    * @return child of abstract expression at that index
    */
-  const AbstractExpression *GetChild(uint64_t index) const {
+  common::ManagedPointer<const AbstractExpression> GetChild(uint64_t index) const {
     TERRIER_ASSERT(index < children_.size(), "Index must be in bounds.");
-    return children_[index];
+    return common::ManagedPointer<const AbstractExpression>(children_[index]);
   }
 
   /**
@@ -128,10 +126,21 @@ class AbstractExpression {
    */
   virtual void FromJson(const nlohmann::json &j);
 
- private:
-  ExpressionType expression_type_;                    // type of current expression
-  type::TypeId return_value_type_;                    // type of return value
-  std::vector<const AbstractExpression *> children_;  // list of children
+ protected:
+  /**
+   * type of current expression
+   */
+  ExpressionType expression_type_;
+
+  /**
+   * type of return value
+   */
+  type::TypeId return_value_type_;
+
+  /**
+   * list of children
+   */
+  std::vector<const AbstractExpression *> children_;
 };
 
 DEFINE_JSON_DECLARATIONS(AbstractExpression);

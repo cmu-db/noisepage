@@ -81,11 +81,28 @@ class InsertStatement : public SQLStatement {
   std::shared_ptr<SelectStatement> GetSelect() const { return select_; }
 
   /**
-   * @return values that we're inserting
+   * @return number of tuples being inserted
    */
-  std::vector<std::vector<const AbstractExpression *>> GetValues() { return insert_values_; }
+  size_t GetBulkInsertSize() const { return insert_values_.size(); }
+
+  /**
+   * @return number of attributes to insert on for each row
+   */
+  size_t GetAttributesSize() const { return GetBulkInsertSize() > 0 ? insert_values_[0].size() : 0; }
+
+  /**
+   * @param tuple_idx index of tuple containing value
+   * @param attr_idx index of attribute in the tuple
+   * @return value to insert
+   */
+  common::ManagedPointer<const AbstractExpression> GetValue(size_t tuple_idx, size_t attr_idx) const {
+    TERRIER_ASSERT(tuple_idx < GetBulkInsertSize(), "Tuple index must be less than number of tuples");
+    TERRIER_ASSERT(attr_idx < GetAttributesSize(), "Attribute index must be less than number of attributes");
+    return common::ManagedPointer<const AbstractExpression>(insert_values_[tuple_idx][attr_idx]);
+  }
 
  private:
+  // TODO(Gus): Get rid of shared pointers
   const InsertType type_;
   const std::vector<std::string> columns_;
   const std::shared_ptr<TableRef> table_ref_;

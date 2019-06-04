@@ -157,24 +157,26 @@ class CaseExpression : public AbstractExpression {
    * @param index index of WhenClause to get
    * @return condition at that index
    */
-  const AbstractExpression *GetWhenClauseCondition(size_t index) const {
+  common::ManagedPointer<const AbstractExpression> GetWhenClauseCondition(size_t index) const {
     TERRIER_ASSERT(index < when_clauses_.size(), "Index must be in bounds.");
-    return when_clauses_[index]->condition_;
+    return common::ManagedPointer<const AbstractExpression>(when_clauses_[index]->condition_);
   }
 
   /**
    * @param index index of WhenClause to get
    * @return result at that index
    */
-  const AbstractExpression *GetWhenClauseResult(size_t index) const {
+  common::ManagedPointer<const AbstractExpression> GetWhenClauseResult(size_t index) const {
     TERRIER_ASSERT(index < when_clauses_.size(), "Index must be in bounds.");
-    return when_clauses_[index]->then_;
+    return common::ManagedPointer<const AbstractExpression>(when_clauses_[index]->then_);
   }
 
   /**
    * @return default clause, if it exists
    */
-  const AbstractExpression *GetDefaultClause() const { return default_expr_; }
+  common::ManagedPointer<const AbstractExpression> GetDefaultClause() const {
+    return common::ManagedPointer<const AbstractExpression>(default_expr_);
+  }
 
   /**
    * @return expression serialized to json

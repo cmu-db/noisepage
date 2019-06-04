@@ -62,15 +62,6 @@ class DeletePlanNode : public AbstractPlanNode {
     }
 
     /**
-     * @param delete_stmt the SQL DELETE statement
-     * @return builder object
-     */
-    Builder &SetFromDeleteStatement(parser::DeleteStatement *delete_stmt) {
-      delete_condition_ = delete_stmt->GetDeleteCondition();
-      return *this;
-    }
-
-    /**
      * Build the delete plan node
      * @return plan node
      */
@@ -148,7 +139,9 @@ class DeletePlanNode : public AbstractPlanNode {
   /**
    * @return the expression of delete condition
    */
-  const parser::AbstractExpression *GetDeleteCondition() const { return delete_condition_; }
+  common::ManagedPointer<const parser::AbstractExpression> GetDeleteCondition() const {
+    return common::ManagedPointer<const parser::AbstractExpression>(delete_condition_);
+  }
 
   /**
    * @return the type of this plan node

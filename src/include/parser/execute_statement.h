@@ -38,9 +38,18 @@ class ExecuteStatement : public SQLStatement {
   std::string GetName() { return name_; }
 
   /**
-   * @return execute statement parameters
+   * @return number of execute statement parameters
    */
-  std::vector<const AbstractExpression *> GetParameters() { return parameters_; }
+  size_t GetParametersSize() const { return parameters_.size(); }
+
+  /**
+   * @param idx index of parameter
+   * @return execute statement parameter
+   */
+  common::ManagedPointer<const AbstractExpression> GetParameter(size_t idx) {
+    TERRIER_ASSERT(idx < GetParametersSize(), "Index must be less than number of parameters");
+    return common::ManagedPointer<const AbstractExpression>(parameters_[idx]);
+  }
 
  private:
   const std::string name_;

@@ -58,6 +58,7 @@ class SubqueryExpression : public AbstractExpression {
   }
 
  private:
+  // TODO(Gus): Remove shared pointer
   std::shared_ptr<parser::SelectStatement> subselect_;
 };
 

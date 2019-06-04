@@ -79,7 +79,9 @@ class ResultPlanNode : public AbstractPlanNode {
   /**
    * @return the tuple in the storage layer
    */
-  const parser::AbstractExpression *GetExpression() const { return expr_; }
+  common::ManagedPointer<const parser::AbstractExpression> GetExpression() const {
+    return common::ManagedPointer<const parser::AbstractExpression>(expr_);
+  }
 
   /**
    * @return the type of this plan node

@@ -1894,7 +1894,7 @@ std::unique_ptr<PrepareStatement> PostgresParser::PrepareTransform(PrepareStmt *
   auto query = NodeTransform(root->query);
 
   // TODO(WAN): why isn't this populated?
-  std::vector<std::shared_ptr<ParameterValueExpression>> placeholders;
+  std::vector<const ParameterValueExpression *> placeholders;
 
   auto result = std::make_unique<PrepareStatement>(name, std::move(query), std::move(placeholders));
   return result;
