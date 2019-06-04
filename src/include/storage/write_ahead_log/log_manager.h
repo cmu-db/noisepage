@@ -13,7 +13,7 @@
 #include "common/strong_typedef.h"
 #include "settings/settings_manager.h"
 #include "storage/record_buffer.h"
-#include "storage/write_ahead_log/log_consumer.h"
+#include "storage/write_ahead_log/disk_log_writer_task.h"
 #include "storage/write_ahead_log/log_io.h"
 #include "storage/write_ahead_log/log_record.h"
 #include "transaction/transaction_defs.h"
@@ -42,7 +42,7 @@ class LogManager : public DedicatedThreadOwner {
         filled_buffer_(nullptr),
         do_persist_(true) {}
 
-  ~LogManager() override { delete log_consumer_task_; }
+  ~LogManager() override { delete disk_log_writer_task_; }
 
   /**
    * Start logging
@@ -58,10 +58,10 @@ class LogManager : public DedicatedThreadOwner {
 
     run_log_manager_ = true;
 
-    // Register consumer task
-    log_consumer_task_ = new LogConsumerTask(this);
+    // Register disk log writer task
+    disk_log_writer_task_ = new DiskLogWriterTask(this);
     DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread(
-        this, common::ManagedPointer<DedicatedThreadTask>(log_consumer_task_));
+        this, common::ManagedPointer<DedicatedThreadTask>(disk_log_writer_task_));
   }
 
   /**
@@ -125,7 +125,7 @@ class LogManager : public DedicatedThreadOwner {
   void Flush();
 
  private:
-  friend class LogConsumerTask;
+  friend class DiskLogWriterTask;
 
   bool run_log_manager_;
 
@@ -161,16 +161,16 @@ class LogManager : public DedicatedThreadOwner {
   common::ConcurrentBlockingQueue<BufferedLogWriter *> filled_buffer_queue_;
 
   // The log consumer task which flushes filled buffers to the disk
-  LogConsumerTask *log_consumer_task_ = nullptr;
-  // Flag used by the serializer thread to signal the log consumer thread to persist the data on disk
+  DiskLogWriterTask *disk_log_writer_task_ = nullptr;
+  // Flag used by the serializer thread to signal the disk log writer task thread to persist the data on disk
   volatile bool do_persist_;
 
   // Synchronisation primitives to synchronise persisting buffers to disk
   std::mutex persist_lock_;
   std::condition_variable persist_cv_;
-  // Condition variable to signal consumer thread to wake up and flush buffers to disk or if shutdown has initiated,
-  // then quit
-  std::condition_variable consumer_thread_cv_;
+  // Condition variable to signal disk log writer task  thread to wake up and flush buffers to disk or if shutdown has
+  // initiated, then quit
+  std::condition_variable disk_log_writer_thread_cv_;
 
   /**
    * Serialize out the record to the log
@@ -217,26 +217,26 @@ class LogManager : public DedicatedThreadOwner {
    */
   void HandFilledBufferToWriter() {
     filled_buffer_queue_.Enqueue(filled_buffer_);
-    // Signal consumer thread that a buffer is ready to be flushed to the disk
+    // Signal disk log writer task  thread that a buffer is ready to be flushed to the disk
     {
       std::unique_lock<std::mutex> lock(persist_lock_);
-      consumer_thread_cv_.notify_one();
+      disk_log_writer_thread_cv_.notify_one();
     }
     // Mark that serializer thread doesn't have a buffer in its possession to which it can write to
     filled_buffer_ = nullptr;
   }
 
   /**
-   * If the central dispatch removes our log consumer thread, we need to request a new one
+   * If the central dispatch removes our thread used for the disk log writer tas, we need to request a new one
    * @param task the task that was removed by the registry from the thread we were originally using
    */
   void OnThreadRemoved(common::ManagedPointer<DedicatedThreadTask> task) override {
-    TERRIER_ASSERT(task == log_consumer_task_, "Log manager should only be given back it's log consumer task");
+    TERRIER_ASSERT(task == disk_log_writer_task_, "Log manager should only be given back it's disk log writer task ");
     // We don't want to register a task if the log manager is shutting down though.
     if (run_log_manager_) {
       // Because the task itself does not keep metadata, we can simply reuse the task.
       DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread(
-          this, common::ManagedPointer<DedicatedThreadTask>(log_consumer_task_));
+          this, common::ManagedPointer<DedicatedThreadTask>(disk_log_writer_task_));
     }
   }
 };
