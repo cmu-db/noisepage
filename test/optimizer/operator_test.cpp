@@ -31,9 +31,9 @@ TEST(OperatorTests, LogicalInsertTest) {
       std::vector<common::ManagedPointer<parser::AbstractExpression>>(raw_values, std::end(raw_values))};
 
   // Check that all of our GET methods work as expected
-  Operator op1 = LogicalInsert::make(database_oid, namespace_oid, table_oid,
-                                     std::vector<catalog::col_oid_t>(columns, std::end(columns)),
-                                     std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(values));
+  Operator op1 = LogicalInsert::make(
+      database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
+      std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(values));
   EXPECT_EQ(op1.GetType(), OpType::LOGICALINSERT);
   EXPECT_EQ(op1.As<LogicalInsert>()->GetDatabaseOid(), database_oid);
   EXPECT_EQ(op1.As<LogicalInsert>()->GetNamespaceOid(), namespace_oid);
@@ -41,9 +41,9 @@ TEST(OperatorTests, LogicalInsertTest) {
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
-  Operator op2 = LogicalInsert::make(database_oid, namespace_oid, table_oid,
-                                     std::vector<catalog::col_oid_t>(columns, std::end(columns)),
-                                     std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(values));
+  Operator op2 = LogicalInsert::make(
+      database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
+      std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(values));
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
@@ -52,9 +52,9 @@ TEST(OperatorTests, LogicalInsertTest) {
   std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> other_values = {
       std::vector<common::ManagedPointer<parser::AbstractExpression>>(raw_values, std::end(raw_values)),
       std::vector<common::ManagedPointer<parser::AbstractExpression>>(raw_values, std::end(raw_values))};
-  Operator op3 = LogicalInsert::make(database_oid, namespace_oid, table_oid,
-                                     std::vector<catalog::col_oid_t>(columns, std::end(columns)),
-                                     std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(other_values));
+  Operator op3 = LogicalInsert::make(
+      database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
+      std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(other_values));
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
@@ -68,9 +68,9 @@ TEST(OperatorTests, LogicalInsertTest) {
       new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(3))};
   std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> bad_values = {
       std::vector<common::ManagedPointer<parser::AbstractExpression>>(bad_raw_values, std::end(bad_raw_values))};
-  EXPECT_DEATH(LogicalInsert::make(database_oid, namespace_oid, table_oid,
-                                   std::vector<catalog::col_oid_t>(columns, std::end(columns)),
-                                   std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(bad_values)),
+  EXPECT_DEATH(LogicalInsert::make(
+                   database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
+                   std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(bad_values)),
                "Mismatched");
   for (auto entry : bad_raw_values) delete entry;
 #endif
