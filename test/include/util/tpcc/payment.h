@@ -238,10 +238,11 @@ class Payment {
     TERRIER_ASSERT(w_ytd >= 300000.0, "Invalid w_ytd read from the Warehouse table.");
 
     // Increase W_YTD by H_AMOUNT in table
-    auto *const warehouse_update_tuple = warehouse_update_pr_initializer.InitializeRow(worker->warehouse_tuple_buffer);
-    *reinterpret_cast<double *>(warehouse_update_tuple->AccessForceNotNull(0)) = w_ytd + args.h_amount;
-
-    bool UNUSED_ATTRIBUTE result = db->warehouse_table_->Update(txn, index_scan_results[0], *warehouse_update_tuple);
+    auto *const warehouse_update_redo =
+        txn->StageWrite(db->db_oid_, db->warehouse_table_oid_, warehouse_update_pr_initializer);
+    *reinterpret_cast<double *>(warehouse_update_redo->Delta()->AccessForceNotNull(0)) = w_ytd + args.h_amount;
+    warehouse_update_redo->SetTupleSlot(index_scan_results[0]);
+    bool UNUSED_ATTRIBUTE result = db->warehouse_table_->Update(txn, warehouse_update_redo);
     TERRIER_ASSERT(result,
                    "Warehouse update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
 
@@ -266,10 +267,11 @@ class Payment {
     TERRIER_ASSERT(d_ytd >= 30000.0, "Invalid d_ytd read from the District table.");
 
     // Increase D_YTD by H_AMOUNT in table
-    auto *const district_update_tuple = district_update_pr_initializer.InitializeRow(worker->district_tuple_buffer);
-    *reinterpret_cast<double *>(district_update_tuple->AccessForceNotNull(0)) = d_ytd + args.h_amount;
-
-    result = db->district_table_->Update(txn, index_scan_results[0], *district_update_tuple);
+    auto *const district_update_redo =
+        txn->StageWrite(db->db_oid_, db->district_table_oid_, district_update_pr_initializer);
+    *reinterpret_cast<double *>(district_update_redo->Delta()->AccessForceNotNull(0)) = d_ytd + args.h_amount;
+    district_update_redo->SetTupleSlot(index_scan_results[0]);
+    result = db->district_table_->Update(txn, district_update_redo);
     TERRIER_ASSERT(result, "District update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
 
     storage::TupleSlot customer_slot;
@@ -341,22 +343,25 @@ class Payment {
     TERRIER_ASSERT(c_id >= 1 && c_id <= 3000, "Invalid c_id read from the Customer table.");
 
     // Update customer
-    auto *customer_update_tuple = customer_update_pr_initializer.InitializeRow(worker->customer_tuple_buffer);
+    auto *const customer_update_redo =
+        txn->StageWrite(db->db_oid_, db->customer_table_oid_, customer_update_pr_initializer);
+    auto *const customer_update_tuple = customer_update_redo->Delta();
     *reinterpret_cast<double *>(customer_update_tuple->AccessForceNotNull(c_balance_update_pr_offset)) =
         c_balance - args.h_amount;
     *reinterpret_cast<double *>(customer_update_tuple->AccessForceNotNull(c_ytd_payment_update_pr_offset)) =
         c_ytd_payment + args.h_amount;
     *reinterpret_cast<int16_t *>(customer_update_tuple->AccessForceNotNull(c_payment_cnt_update_pr_offset)) =
         static_cast<int16_t>(c_payment_cnt + 1);
-
-    result = db->customer_table_->Update(txn, customer_slot, *customer_update_tuple);
+    customer_update_redo->SetTupleSlot(customer_slot);
+    result = db->customer_table_->Update(txn, customer_update_redo);
     TERRIER_ASSERT(result, "Customer update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
 
     const auto c_credit_str = c_credit.StringView();
     TERRIER_ASSERT(c_credit_str.compare("BC") == 0 || c_credit_str.compare("GC") == 0,
                    "Invalid c_credit read from the Customer table.");
     if (c_credit_str.compare("BC") == 0) {
-      auto *const c_data_update_tuple = c_data_pr_initializer.InitializeRow(worker->customer_tuple_buffer);
+      auto *const c_data_update_redo = txn->StageWrite(db->db_oid_, db->customer_table_oid_, c_data_pr_initializer);
+
       const auto c_data_str = c_data.StringView();
       auto new_c_data = std::to_string(c_id);
       new_c_data.append(std::to_string(args.c_d_id));
@@ -370,9 +375,10 @@ class Payment {
       std::memcpy(varlen, new_c_data.data(), new_c_data_length);
       const auto varlen_entry = storage::VarlenEntry::Create(varlen, static_cast<uint32_t>(new_c_data_length), true);
 
-      *reinterpret_cast<storage::VarlenEntry *>(c_data_update_tuple->AccessForceNotNull(0)) = varlen_entry;
+      *reinterpret_cast<storage::VarlenEntry *>(c_data_update_redo->Delta()->AccessForceNotNull(0)) = varlen_entry;
 
-      result = db->customer_table_->Update(txn, customer_slot, *c_data_update_tuple);
+      c_data_update_redo->SetTupleSlot(customer_slot);
+      result = db->customer_table_->Update(txn, c_data_update_redo);
       TERRIER_ASSERT(result,
                      "Customer update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
     }
@@ -386,7 +392,9 @@ class Payment {
     const auto h_data = storage::VarlenEntry::Create(varlen, static_cast<uint32_t>(h_data_length), true);
 
     // Insert in History table
-    auto *const history_insert_tuple = history_insert_pr_initializer.InitializeRow(worker->history_tuple_buffer);
+    auto *const history_insert_redo =
+        txn->StageWrite(db->db_oid_, db->history_table_oid_, history_insert_pr_initializer);
+    auto *const history_insert_tuple = history_insert_redo->Delta();
     *reinterpret_cast<int32_t *>(history_insert_tuple->AccessForceNotNull(h_c_id_insert_pr_offset)) = c_id;
     *reinterpret_cast<int8_t *>(history_insert_tuple->AccessForceNotNull(h_c_d_id_insert_pr_offset)) = args.c_d_id;
     *reinterpret_cast<int8_t *>(history_insert_tuple->AccessForceNotNull(h_c_w_id_insert_pr_offset)) = args.c_w_id;
@@ -397,7 +405,7 @@ class Payment {
     *reinterpret_cast<storage::VarlenEntry *>(history_insert_tuple->AccessForceNotNull(h_data_insert_pr_offset)) =
         h_data;
 
-    db->history_table_->Insert(txn, *history_insert_tuple);
+    db->history_table_->Insert(txn, history_insert_redo);
 
     txn_manager->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
 
