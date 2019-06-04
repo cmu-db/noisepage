@@ -30,7 +30,7 @@
     if (FLAGS_##name == static_cast<int>(default_value)) {                                      \
       return true;                                                                              \
     }                                                                                           \
-    std::cerr << "Value for \"" << #name << "\" has been set to " << FLAGS_##name << std::endl; \
+    SETTINGS_LOG_ERROR("Value for {} has been set to {}", #name, FLAGS_##name);                 \
     return false;                                                                               \
   }
 
@@ -39,7 +39,7 @@
     if (FLAGS_##name == static_cast<double>(default_value)) {                                   \
       return true;                                                                              \
     }                                                                                           \
-    std::cerr << "Value for \"" << #name << "\" has been set to " << FLAGS_##name << std::endl; \
+    SETTINGS_LOG_ERROR("Value for {} has been set to {}", #name, FLAGS_##name);                 \
     return false;                                                                               \
   }
 

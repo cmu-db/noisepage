@@ -5,12 +5,12 @@
 namespace terrier::settings {
 
 void Callbacks::NoOp(void *old_value, void *new_value, DBMain *const db_main,
-                     const std::shared_ptr<common::ActionContext> &action_context) {
+                     const common::ManagedPointer<common::ActionContext> &action_context) {
   action_context->SetState(common::ActionState::SUCCESS);
 }
 
 void Callbacks::BufferSegmentPoolSizeLimit(void *const old_value, void *const new_value, DBMain *const db_main,
-                                           const std::shared_ptr<common::ActionContext> &action_context) {
+                                           const common::ManagedPointer<common::ActionContext> &action_context) {
   action_context->SetState(common::ActionState::IN_PROGRESS);
   int new_size = *static_cast<int *>(new_value);
   bool success = db_main->buffer_segment_pool_->SetSizeLimit(new_size);
@@ -21,7 +21,7 @@ void Callbacks::BufferSegmentPoolSizeLimit(void *const old_value, void *const ne
 }
 
 void Callbacks::BufferSegmentPoolReuseLimit(void *const old_value, void *const new_value, DBMain *const db_main,
-                                            const std::shared_ptr<common::ActionContext> &action_context) {
+                                            const common::ManagedPointer<common::ActionContext> &action_context) {
   action_context->SetState(common::ActionState::IN_PROGRESS);
   int new_reuse = *static_cast<int *>(new_value);
   db_main->buffer_segment_pool_->SetReuseLimit(new_reuse);
@@ -29,7 +29,7 @@ void Callbacks::BufferSegmentPoolReuseLimit(void *const old_value, void *const n
 }
 
 void Callbacks::WorkerPoolThreads(void *const old_value, void *const new_value, DBMain *const db_main,
-                                  const std::shared_ptr<common::ActionContext> &action_context) {
+                                  const common::ManagedPointer<common::ActionContext> &action_context) {
   action_context->SetState(common::ActionState::IN_PROGRESS);
   int num_threads = *static_cast<int *>(new_value);
   db_main->thread_pool_->SetNumWorkers(num_threads);

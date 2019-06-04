@@ -68,7 +68,7 @@ std::string SettingsManager::GetString(Param param) {
   return std::string(ValuePeeker::PeekVarChar(GetValue(param)));
 }
 
-void SettingsManager::SetInt(Param param, int32_t value, std::shared_ptr<ActionContext> action_context,
+void SettingsManager::SetInt(Param param, int32_t value, common::ManagedPointer<ActionContext> action_context,
                              setter_callback_fn setter_callback) {
   common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
   const auto &param_info = db_->param_map_.find(param)->second;
@@ -91,7 +91,7 @@ void SettingsManager::SetInt(Param param, int32_t value, std::shared_ptr<ActionC
   setter_callback(action_context);
 }
 
-void SettingsManager::SetDouble(Param param, double value, std::shared_ptr<ActionContext> action_context,
+void SettingsManager::SetDouble(Param param, double value, common::ManagedPointer<ActionContext> action_context,
                                 setter_callback_fn setter_callback) {
   common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
   const auto &param_info = db_->param_map_.find(param)->second;
@@ -114,7 +114,7 @@ void SettingsManager::SetDouble(Param param, double value, std::shared_ptr<Actio
   setter_callback(action_context);
 }
 
-void SettingsManager::SetBool(Param param, bool value, std::shared_ptr<ActionContext> action_context,
+void SettingsManager::SetBool(Param param, bool value, common::ManagedPointer<ActionContext> action_context,
                               setter_callback_fn setter_callback) {
   common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
   bool old_value = ValuePeeker::PeekBoolean(GetValue(param));
@@ -130,7 +130,7 @@ void SettingsManager::SetBool(Param param, bool value, std::shared_ptr<ActionCon
 }
 
 void SettingsManager::SetString(Param param, const std::string_view &value,
-                                std::shared_ptr<ActionContext> action_context, setter_callback_fn setter_callback) {
+                                common::ManagedPointer<ActionContext> action_context, setter_callback_fn setter_callback) {
   common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
   std::string_view old_value = ValuePeeker::PeekVarChar(GetValue(param));
   if (!SetValue(param, ValueFactory::GetVarChar(value))) {
@@ -174,7 +174,7 @@ bool SettingsManager::ValidateValue(const type::TransientValue &value, const typ
 }
 
 common::ActionState SettingsManager::InvokeCallback(Param param, void *old_value, void *new_value,
-                                                    std::shared_ptr<common::ActionContext> action_context) {
+                                                    common::ManagedPointer<common::ActionContext> action_context) {
   callback_fn callback = db_->param_map_.find(param)->second.callback_;
   (callback)(old_value, new_value, db_, action_context);
   ActionState action_state = action_context->GetState();

@@ -37,20 +37,21 @@ class SettingsTests : public TerrierTest {
 
   void TearDown() override { delete db_main_; }
 
-  static void EmptySetterCallback(const std::shared_ptr<common::ActionContext> &action_context UNUSED_ATTRIBUTE) {}
+  static void EmptySetterCallback(const common::ManagedPointer<common::ActionContext> &action_context UNUSED_ATTRIBUTE) {}
 };
 
 // NOLINTNEXTLINE
 TEST_F(SettingsTests, BasicTest) {
   const int32_t action_id = 1;
   setter_callback_fn setter_callback = SettingsTests::EmptySetterCallback;
-  std::shared_ptr<common::ActionContext> action_context = std::make_shared<common::ActionContext>(action_id);
+  auto *action_context = new common::ActionContext(action_id);
 
   // Test immutable parameters.
   auto port = static_cast<uint16_t>(settings_manager_->GetInt(Param::port));
   EXPECT_EQ(port, 15721);
-  settings_manager_->SetInt(Param::port, 23333, action_context, setter_callback);
+  settings_manager_->SetInt(Param::port, 23333, common::ManagedPointer(action_context), setter_callback);
   EXPECT_EQ(common::ActionState::FAILURE, action_context->GetState());
+  delete action_context;
 }
 
 // NOLINTNEXTLINE
@@ -63,17 +64,18 @@ TEST_F(SettingsTests, CallbackTest) {
 
   const int32_t action_id = 1;
   setter_callback_fn setter_callback = SettingsTests::EmptySetterCallback;
-  std::shared_ptr<common::ActionContext> action_context = std::make_shared<common::ActionContext>(action_id);
+  auto *action_context = new common::ActionContext(action_id);
 
   // Setting new value should invoke callback.
   const int64_t newBufferPoolSize = defaultBufferPoolSize + 1;
-  settings_manager_->SetInt(Param::record_buffer_segment_size, static_cast<int32_t>(newBufferPoolSize), action_context,
+  settings_manager_->SetInt(Param::record_buffer_segment_size, static_cast<int32_t>(newBufferPoolSize), common::ManagedPointer(action_context),
                             setter_callback);
   bufferPoolSize = static_cast<int64_t>(settings_manager_->GetInt(Param::record_buffer_segment_size));
   EXPECT_EQ(bufferPoolSize, newBufferPoolSize);
 
   bufferPoolSize = buffer_segment_pool_->GetSizeLimit();
   EXPECT_EQ(bufferPoolSize, newBufferPoolSize);
+  delete action_context;
 }
 
 // Test concurrent modification to buffer pool size.
@@ -86,9 +88,10 @@ TEST_F(SettingsTests, ConcurrentModifyTest) {
   for (int i = 0; i < nthreads; i++) {
     threads[i] = std::thread(
         [&](int new_size) {
-          std::shared_ptr<common::ActionContext> action_context = std::make_shared<common::ActionContext>(1);
-          settings_manager_->SetInt(Param::record_buffer_segment_size, new_size, action_context, setter_callback);
+          auto *action_context = new common::ActionContext(1);
+          settings_manager_->SetInt(Param::record_buffer_segment_size, new_size, common::ManagedPointer(action_context), setter_callback);
           EXPECT_EQ(action_context->GetState(), common::ActionState::SUCCESS);
+          delete action_context;
         },
         i + 1000);
   }

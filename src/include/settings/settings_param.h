@@ -1,8 +1,9 @@
 #pragma once
-#include <type/transient_value.h>
 #include <memory>
 #include <string>
 #include <utility>
+#include "common/managed_pointer.h"
+#include "type/transient_value.h"
 
 namespace terrier {
 class DBMain;
@@ -10,7 +11,7 @@ class DBMain;
 
 namespace terrier::settings {
 
-using callback_fn = void (*)(void *, void *, DBMain *, const std::shared_ptr<common::ActionContext> &action_context);
+using callback_fn = void (*)(void *, void *, DBMain *, const common::ManagedPointer<common::ActionContext> &action_context);
 
 /**
  * Param is a enum class, where all the setting names
