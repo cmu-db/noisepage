@@ -994,27 +994,27 @@ class SeqScan : public OperatorNode<SeqScan> {
   /**
    * @return the OID of the database
    */
-  catalog::db_oid_t GetDatabaseOID() const { return database_oid_; }
+  const catalog::db_oid_t &GetDatabaseOID() const { return database_oid_; }
 
   /**
    * @return the OID of the namespace
    */
-  catalog::namespace_oid_t GetNamespaceOID() const { return namespace_oid_; }
+  const catalog::namespace_oid_t &GetNamespaceOID() const { return namespace_oid_; }
 
   /**
    * @return the OID of the table
    */
-  catalog::table_oid_t GetTableOID() const { return table_oid_; }
+  const catalog::table_oid_t &GetTableOID() const { return table_oid_; }
 
   /**
    * @return the vector of predicates for get
    */
-  std::vector<AnnotatedExpression> GetPredicates() const { return predicates_; }
+  const std::vector<AnnotatedExpression> &GetPredicates() const { return predicates_; }
 
   /**
    * @return the alias of the table to get from
    */
-  std::string GetTableAlias() const { return table_alias_; }
+  const std::string &GetTableAlias() const { return table_alias_; }
 
   /**
    * @return whether the get operation is used for update
@@ -1084,27 +1084,27 @@ class IndexScan : public OperatorNode<IndexScan> {
   /**
    * @return the OID of the database
    */
-  catalog::db_oid_t GetDatabaseOID() const { return database_oid_; }
+  const catalog::db_oid_t &GetDatabaseOID() const { return database_oid_; }
 
   /**
    * @return the OID of the namespace
    */
-  catalog::namespace_oid_t GetNamespaceOID() const { return namespace_oid_; }
+  const catalog::namespace_oid_t &GetNamespaceOID() const { return namespace_oid_; }
 
   /**
    * @return the OID of the table
    */
-  catalog::index_oid_t GetIndexOID() const { return index_oid_; }
+  const catalog::index_oid_t &GetIndexOID() const { return index_oid_; }
 
   /**
    * @return the vector of predicates for get
    */
-  std::vector<AnnotatedExpression> GetPredicates() const { return predicates_; }
+  const std::vector<AnnotatedExpression> &GetPredicates() const { return predicates_; }
 
   /**
    * @return the alias of the table to get from
    */
-  std::string GetTableAlias() const { return table_alias_; }
+  const std::string &GetTableAlias() const { return table_alias_; }
 
   /**
    * @return whether the get operation is used for update
@@ -1114,17 +1114,17 @@ class IndexScan : public OperatorNode<IndexScan> {
   /**
    * @return List of OIDs of key columns
    */
-  std::vector<catalog::col_oid_t> GetKeyColumnOIDList() const { return key_column_oid_list_; }
+  const std::vector<catalog::col_oid_t> &GetKeyColumnOIDList() const { return key_column_oid_list_; }
 
   /**
    * @return List of expression types
    */
-  std::vector<parser::ExpressionType> GetExprTypeList() const { return expr_type_list_; }
+  const std::vector<parser::ExpressionType> &GetExprTypeList() const { return expr_type_list_; }
 
   /**
    * @return List of parameter values
    */
-  std::vector<type::TransientValue> GetValueList() const { return value_list_; }
+  const std::vector<type::TransientValue> &GetValueList() const { return value_list_; }
 
 
  private:
@@ -1197,12 +1197,12 @@ class ExternalFileScan : public OperatorNode<ExternalFileScan> {
   /**
    * @return how the data should be formatted
    */
-  parser::ExternalFileFormat GetFormat() const { return format_; }
+  const parser::ExternalFileFormat &GetFormat() const { return format_; }
 
   /**
    * @return the local file path to read the data
    */
-  std::string GetFilename() const { return file_name_; }
+  const std::string &GetFilename() const { return file_name_; }
 
   /**
    * @return the character to use to split each attribute
@@ -1267,12 +1267,12 @@ class QueryDerivedScan : public OperatorNode<QueryDerivedScan> {
   /**
    * @return Alias of the table to get from
    */
-  std::string GetTableAlias() const { return table_alias_; }
+  const std::string &GetTableAlias() const { return table_alias_; }
 
   /**
    * @return map from table aliases to expressions
    */
-  std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> GetAliasToExprMap() const {
+  const std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> &GetAliasToExprMap() const {
     return alias_to_expr_map_;
   }
 
@@ -1311,8 +1311,30 @@ class Limit : public OperatorNode<Limit> {
    * @param sort_ascending sorting order
    * @return a Limit operator
    */
-  static Operator make(int64_t offset, int64_t limit, std::vector<parser::AbstractExpression *> sort_columns,
+  static Operator make(int64_t offset, int64_t limit, std::vector<common::ManagedPointer<parser::AbstractExpression>> sort_columns,
                        std::vector<bool> sort_ascending);
+
+  /**
+  * @return offset of the LIMIT operator
+  */
+  size_t GetOffset() const { return offset_; }
+
+  /**
+   * @return the max # of tuples to produce
+   */
+  size_t GetLimit() const { return limit_; }
+
+  /**
+   * @return inlined ORDER BY expressions (can be empty)
+   */
+  const std::vector<common::ManagedPointer<parser::AbstractExpression>> &GetSortExpressions() const {
+    return sort_exprs_;
+  }
+
+  /**
+   * @return sorting orders (if ascending)
+   */
+  const std::vector<bool> &GetSortAscending() const { return sort_ascending_; }
 
  private:
   /**
@@ -1335,12 +1357,12 @@ class Limit : public OperatorNode<Limit> {
   /**
    * Columns on which to sort
    */
-  std::vector<parser::AbstractExpression *> sort_exprs_;
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> sort_exprs_;
 
   /**
    * Sorting order
    */
-  std::vector<bool> sort_acsending_;
+  std::vector<bool> sort_ascending_;
 };
 
 /**

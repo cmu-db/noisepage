@@ -1232,10 +1232,35 @@ TEST(OperatorTests, LimitTest) {
   //===--------------------------------------------------------------------===//
   // Limit
   //===--------------------------------------------------------------------===//
-  Operator limit = Limit::make(0, 0, std::vector<parser::AbstractExpression *>(), std::vector<bool>());
+  size_t offset = 90;
+  size_t limit = 22;
+  auto sort_expr_ori = new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1));
+  auto sort_expr = common::ManagedPointer<parser::AbstractExpression>(sort_expr_ori);
 
-  EXPECT_EQ(limit.GetType(), OpType::LIMIT);
-  EXPECT_EQ(limit.GetName(), "Limit");
+  // Check that all of our GET methods work as expected
+  Operator op1 = Limit::make(offset, limit, {sort_expr}, {true});
+  EXPECT_EQ(op1.GetType(), OpType::LIMIT);
+  EXPECT_EQ(op1.As<Limit>()->GetOffset(), offset);
+  EXPECT_EQ(op1.As<Limit>()->GetLimit(), limit);
+  EXPECT_EQ(op1.As<Limit>()->GetSortExpressions().size(), 1);
+  EXPECT_EQ(op1.As<Limit>()->GetSortExpressions()[0], sort_expr);
+  EXPECT_EQ(op1.As<Limit>()->GetSortAscending().size(), 1);
+  EXPECT_EQ(op1.As<Limit>()->GetSortAscending()[0], true);
+
+  // Check that if we make a new object with the same values, then it will
+  // be equal to our first object and have the same hash
+  Operator op2 = Limit::make(offset, limit, {sort_expr}, {true});
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+
+  // Lastly, make a different object and make sure that it is not equal
+  // and that it's hash is not the same!
+  size_t other_offset = 1111;
+  Operator op3 = Limit::make(other_offset, limit, {sort_expr}, {true});
+  EXPECT_FALSE(op1 == op3);
+  EXPECT_NE(op1.Hash(), op3.Hash());
+
+  delete sort_expr_ori;
 }
 
 // NOLINTNEXTLINE

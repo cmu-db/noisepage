@@ -748,7 +748,7 @@ Operator IndexScan::make(catalog::db_oid_t database_oid, catalog::namespace_oid_
   scan->predicates_ = std::move(predicates);
   scan->key_column_oid_list_ = std::move(key_column_oid_list);
   scan->expr_type_list_ = std::move(expr_type_list);
-  scan->value_list_ = std::move(value_list);
+  scan->value_list_ = calstd::move(value_list);
 
   return Operator(scan);
 }
@@ -859,13 +859,13 @@ Operator OrderBy::make() {
 //===--------------------------------------------------------------------===//
 // PhysicalLimit
 //===--------------------------------------------------------------------===//
-Operator Limit::make(int64_t offset, int64_t limit, std::vector<parser::AbstractExpression *> sort_columns,
+Operator Limit::make(int64_t offset, int64_t limit, std::vector<common::ManagedPointer<parser::AbstractExpression>> sort_columns,
                      std::vector<bool> sort_ascending) {
   auto *limit_op = new Limit;
   limit_op->offset_ = offset;
   limit_op->limit_ = limit;
   limit_op->sort_exprs_ = std::move(sort_columns);
-  limit_op->sort_acsending_ = std::move(sort_ascending);
+  limit_op->sort_ascending_ = std::move(sort_ascending);
   return Operator(limit_op);
 }
 
