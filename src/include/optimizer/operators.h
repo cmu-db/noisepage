@@ -1566,13 +1566,22 @@ class LeftHashJoin : public OperatorNode<LeftHashJoin> {
    * @param join_predicate predicate for join
    * @return a LeftHashJoin operator
    */
-  static Operator make(std::shared_ptr<parser::AbstractExpression> join_predicate);
+  static Operator make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
+
+  bool operator==(const BaseOperatorNode &r) override;
+
+  common::hash_t Hash() const override;
+
+  /**
+   * @return Predicate for the join
+   */
+  const common::ManagedPointer<parser::AbstractExpression> GetJoinPredicate() const { return join_predicate_; }
 
  private:
   /**
    * Predicate for join
    */
-  std::shared_ptr<parser::AbstractExpression> join_predicate_;
+  common::ManagedPointer<parser::AbstractExpression> join_predicate_;
 };
 
 /**

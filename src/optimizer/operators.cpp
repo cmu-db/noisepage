@@ -1054,10 +1054,22 @@ bool InnerHashJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // LeftHashJoin
 //===--------------------------------------------------------------------===//
-Operator LeftHashJoin::make(std::shared_ptr<parser::AbstractExpression> join_predicate) {
+Operator LeftHashJoin::make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
   auto *join = new LeftHashJoin();
-  join->join_predicate_ = std::move(join_predicate);
+  join->join_predicate_ = join_predicate;
   return Operator(join);
+}
+
+common::hash_t LeftHashJoin::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, join_predicate_->Hash());
+  return hash;
+}
+
+bool LeftHashJoin::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::LEFTHASHJOIN) return false;
+  const LeftHashJoin &node = *static_cast<const LeftHashJoin *>(&r);
+  return (*join_predicate_ == *(node.join_predicate_));
 }
 
 //===--------------------------------------------------------------------===//

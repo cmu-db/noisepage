@@ -1512,10 +1512,32 @@ TEST(OperatorTests, LeftHashJoinTest) {
   //===--------------------------------------------------------------------===//
   // LeftHashJoin
   //===--------------------------------------------------------------------===//
-  Operator left_hash_join = LeftHashJoin::make(std::shared_ptr<parser::AbstractExpression>());
+  auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
 
-  EXPECT_EQ(left_hash_join.GetType(), OpType::LEFTHASHJOIN);
-  EXPECT_EQ(left_hash_join.GetName(), "LeftHashJoin");
+  auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
+  auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
+  auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
+
+  Operator left_hash_join_1 = LeftHashJoin::make(x_1);
+  Operator left_hash_join_2 = LeftHashJoin::make(x_2);
+  Operator left_hash_join_3 = LeftHashJoin::make(x_3);
+
+  EXPECT_EQ(left_hash_join_1.GetType(), OpType::LEFTHASHJOIN);
+  EXPECT_EQ(left_hash_join_3.GetType(), OpType::LEFTHASHJOIN);
+  EXPECT_EQ(left_hash_join_1.GetName(), "LeftHashJoin");
+  EXPECT_EQ(*(left_hash_join_1.As<LeftHashJoin>()->GetJoinPredicate()), *x_1);
+  EXPECT_EQ(*(left_hash_join_2.As<LeftHashJoin>()->GetJoinPredicate()), *x_2);
+  EXPECT_EQ(*(left_hash_join_3.As<LeftHashJoin>()->GetJoinPredicate()), *x_3);
+  EXPECT_TRUE(left_hash_join_1 == left_hash_join_2);
+  EXPECT_FALSE(left_hash_join_1 == left_hash_join_3);
+  EXPECT_EQ(left_hash_join_1.Hash(), left_hash_join_2.Hash());
+  EXPECT_NE(left_hash_join_1.Hash(), left_hash_join_3.Hash());
+
+  delete expr_b_1;
+  delete expr_b_2;
+  delete expr_b_3;
 }
 
 // NOLINTNEXTLINE
