@@ -1545,10 +1545,32 @@ TEST(OperatorTests, RightHashJoinTest) {
   //===--------------------------------------------------------------------===//
   // RightHashJoin
   //===--------------------------------------------------------------------===//
-  Operator right_hash_join = RightHashJoin::make(std::shared_ptr<parser::AbstractExpression>());
+  auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
 
-  EXPECT_EQ(right_hash_join.GetType(), OpType::RIGHTHASHJOIN);
-  EXPECT_EQ(right_hash_join.GetName(), "RightHashJoin");
+  auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
+  auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
+  auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
+
+  Operator right_hash_join_1 = RightHashJoin::make(x_1);
+  Operator right_hash_join_2 = RightHashJoin::make(x_2);
+  Operator right_hash_join_3 = RightHashJoin::make(x_3);
+
+  EXPECT_EQ(right_hash_join_1.GetType(), OpType::RIGHTHASHJOIN);
+  EXPECT_EQ(right_hash_join_3.GetType(), OpType::RIGHTHASHJOIN);
+  EXPECT_EQ(right_hash_join_1.GetName(), "RightHashJoin");
+  EXPECT_EQ(*(right_hash_join_1.As<RightHashJoin>()->GetJoinPredicate()), *x_1);
+  EXPECT_EQ(*(right_hash_join_2.As<RightHashJoin>()->GetJoinPredicate()), *x_2);
+  EXPECT_EQ(*(right_hash_join_3.As<RightHashJoin>()->GetJoinPredicate()), *x_3);
+  EXPECT_TRUE(right_hash_join_1 == right_hash_join_2);
+  EXPECT_FALSE(right_hash_join_1 == right_hash_join_3);
+  EXPECT_EQ(right_hash_join_1.Hash(), right_hash_join_2.Hash());
+  EXPECT_NE(right_hash_join_1.Hash(), right_hash_join_3.Hash());
+
+  delete expr_b_1;
+  delete expr_b_2;
+  delete expr_b_3;
 }
 
 // NOLINTNEXTLINE
