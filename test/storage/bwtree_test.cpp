@@ -23,6 +23,70 @@ struct BwTreeTests : public TerrierTest {
 };
 
 /**
+ * mbutrovi: this test was added in order to reproduce an issue we saw while using the BwTree as the index for NewOrder
+ * queries in TPC-C. Here is a description of the issue from Ziqi:
+ *
+ * We observed memory leaks while worker threads are inserting and scanning on the same leaf node. The leaked memory is
+ * always reported as being allocated inside the constructor of ForwardIterator, in which we perform a down traversal of
+ * the tree with the scan key. It seems that memory chunks allocated during this process is not properly added into the
+ * garbage chain or not properly released by the GC.
+ */
+// NOLINTNEXTLINE
+TEST_F(BwTreeTests, ReproduceNewOrderMemoryLeak) {
+  TERRIER_ASSERT(num_threads_ % 2 == 0,
+                 "This test requires an even number of threads. This should have been handled when it was assigned.");
+
+  // This defines the key space (0 ~ (1M - 1))
+  const uint32_t key_num = 1024 * 1024 * num_threads_;
+  common::WorkerPool thread_pool(num_threads_, {});
+  auto *const tree = new third_party::bwtree::BwTree<int64_t, int64_t>;
+
+  std::vector<int64_t> keys;
+  keys.reserve(key_num);
+
+  for (int64_t i = 0; i < key_num; i++) {
+    keys.emplace_back(i);
+  }
+  std::shuffle(keys.begin(), keys.end(), std::mt19937{std::random_device{}()});  // NOLINT
+
+  const uint32_t chunk_size = 1024 * 1024;
+
+  auto workload = [&](uint32_t id) {
+    const uint32_t chunk_offset = chunk_size * id;
+
+    if ((id % 2) == 0) {
+      // Insert random keys
+      for (uint32_t i = 0; i < chunk_size && chunk_offset + i < key_num; i++) {
+        const auto key = keys[chunk_offset + i];
+        tree->Insert(key, key);
+      }
+    } else {
+      std::vector<int64_t> scan_results;
+      // Do ascending limit scans and delete the smallest element found in the range
+      for (uint32_t i = 0; i < chunk_size - 1 && chunk_offset + i + 1 < key_num; i++) {
+        const auto low_key = std::min(keys[chunk_offset + i], keys[chunk_offset + i + 1]);
+        const auto high_key = std::max(keys[chunk_offset + i], keys[chunk_offset + i + 1]);
+
+        const auto scan_limit = 1;
+        scan_results.clear();
+
+        for (auto scan_itr = tree->Begin(low_key); scan_results.size() < scan_limit && !scan_itr.IsEnd() &&
+                                                   (tree->KeyCmpLessEqual(scan_itr->first, high_key));
+             scan_itr++) {
+          scan_results.emplace_back(scan_itr->second);
+        }
+
+        if (!scan_results.empty()) tree->Delete(scan_results[0], scan_results[0]);
+      }
+    }
+  };
+
+  MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, workload);
+
+  delete tree;
+}
+
+/**
  * Adapted from https://github.com/wangziqi2013/BwTree/blob/master/stl_test/bloom_filter.cpp
  * Modified to have Inserts live on the heap, because that's required according to Ziqi
  */
