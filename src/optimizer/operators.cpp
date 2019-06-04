@@ -1162,13 +1162,31 @@ bool InsertSelect::operator==(const BaseOperatorNode &r) {
 // Delete
 //===--------------------------------------------------------------------===//
 Operator Delete::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                      catalog::table_oid_t table_oid, std::shared_ptr<parser::AbstractExpression> delete_condition) {
+                      catalog::table_oid_t table_oid, common::ManagedPointer<parser::AbstractExpression> delete_condition) {
   auto *delete_op = new Delete;
   delete_op->database_oid_ = database_oid;
   delete_op->namespace_oid_ = namespace_oid;
   delete_op->table_oid_ = table_oid;
-  delete_op->delete_condition_ = std::move(delete_condition);
+  delete_op->delete_condition_ = delete_condition;
   return Operator(delete_op);
+}
+
+common::hash_t Delete::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
+  hash = common::HashUtil::CombineHashes(hash, delete_condition_->Hash());
+  return hash;
+}
+
+bool Delete::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::DELETE) return false;
+  const Delete &node = *dynamic_cast<const Delete *>(&r);
+  if (database_oid_ != node.database_oid_) return false;
+  if (namespace_oid_ != node.namespace_oid_) return false;
+  if (table_oid_ != node.table_oid_) return false;
+  return (*delete_condition_ == *(node.delete_condition_));
 }
 
 //===--------------------------------------------------------------------===//
