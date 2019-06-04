@@ -81,7 +81,7 @@ TEST_F(BlockCompactorTest, SingleBlockCompactionTest) {
 
     // Enable GC to cleanup transactions started by the block compactor
     transaction::TransactionManager txn_manager(&buffer_pool_, true, LOGGING_DISABLED);
-    storage::GarbageCollector gc(&txn_manager);
+    storage::GarbageCollector gc(&txn_manager, nullptr);
 
     auto tuples = StorageTestUtil::PopulateBlockRandomly(&table, block, percent_empty_, &generator_);
     auto num_tuples = tuples.size();
@@ -155,7 +155,7 @@ TEST_F(BlockCompactorTest, GatherTest) {
 
     // Enable GC to cleanup transactions started by the block compactor
     transaction::TransactionManager txn_manager(&buffer_pool_, true, LOGGING_DISABLED);
-    storage::GarbageCollector gc(&txn_manager);
+    storage::GarbageCollector gc(&txn_manager, nullptr);
 
     auto tuples = StorageTestUtil::PopulateBlockRandomly(&table, block, percent_empty_, &generator_);
     auto num_tuples = tuples.size();
@@ -251,7 +251,7 @@ TEST_F(BlockCompactorTest, DictionaryCompressionTest) {
 
     // Enable GC to cleanup transactions started by the block compactor
     transaction::TransactionManager txn_manager(&buffer_pool_, true, LOGGING_DISABLED);
-    storage::GarbageCollector gc(&txn_manager);
+    storage::GarbageCollector gc(&txn_manager, nullptr);
 
     auto tuples = StorageTestUtil::PopulateBlockRandomly(&table, block, percent_empty_, &generator_);
     auto num_tuples = tuples.size();

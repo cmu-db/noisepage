@@ -220,7 +220,7 @@ class BwTreeKeyTests : public TerrierTest {
     const auto &tuple_initializer = sql_table.InitializerForProjectedRow({catalog::col_oid_t(0)}).first;
 
     transaction::TransactionManager txn_manager(&buffer_pool, true, LOGGING_DISABLED);
-    storage::GarbageCollector gc_manager(&txn_manager);
+    storage::GarbageCollector gc_manager(&txn_manager, nullptr);
 
     auto *const txn = txn_manager.BeginTransaction();
 

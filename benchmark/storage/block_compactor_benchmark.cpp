@@ -20,7 +20,7 @@ class BlockCompactorBenchmark : public benchmark::Fixture {
 
   storage::DataTable table_{&block_store_, layout_, storage::layout_version_t(0)};
   transaction::TransactionManager txn_manager_{&buffer_pool_, true, LOGGING_DISABLED};
-  storage::GarbageCollector gc_{&txn_manager_};
+  storage::GarbageCollector gc_{&txn_manager_, nullptr};
   storage::BlockCompactor compactor_;
 
   uint32_t num_blocks_ = 500;
@@ -30,7 +30,6 @@ class BlockCompactorBenchmark : public benchmark::Fixture {
     uint32_t num_tuples = 0;
     // NOLINTNEXTLINE
     for (auto _ : state) {
-      compactor_.tuples_moved_ = 0;
       num_tuples = 0;
       std::vector<storage::RawBlock *> blocks;
       for (uint32_t i = 0; i < num_blocks_; i++) {

@@ -19,7 +19,7 @@ class GarbageCollectorThread {
   GarbageCollectorThread(transaction::TransactionManager *const txn_manager, const std::chrono::milliseconds gc_period)
       : run_gc_(true),
         gc_paused_(false),
-        gc_(txn_manager),
+        gc_(txn_manager, nullptr),
         gc_period_(gc_period),
         gc_thread_(std::thread([this] { GCThreadLoop(); })) {}
 

@@ -177,7 +177,6 @@ bool BlockCompactor::MoveTuple(CompactionGroup *cg, TupleSlot from, TupleSlot to
   // the case.
   bool ret = cg->table_->Delete(cg->txn_, from);
   if (!ret) return false;
-  tuples_moved_++;
   return true;
 }
 
