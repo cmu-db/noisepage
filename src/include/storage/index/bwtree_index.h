@@ -28,6 +28,8 @@ class BwTreeIndex final : public Index {
  public:
   ~BwTreeIndex() final { delete bwtree_; }
 
+  void PerformGarbageCollection() final { bwtree_->PerformGarbageCollection(); };
+
   bool Insert(transaction::TransactionContext *const txn, const ProjectedRow &tuple, const TupleSlot location) final {
     TERRIER_ASSERT(GetConstraintType() == ConstraintType::DEFAULT,
                    "This Insert is designed for secondary indexes with no uniqueness constraints.");
