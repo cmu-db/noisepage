@@ -1,5 +1,7 @@
 #pragma once
 #include <functional>
+#include "macros.h"
+
 namespace terrier::common {
 
 /**
@@ -70,6 +72,16 @@ class ManagedPointer {
    * @return modified output stream.
    */
   friend std::ostream &operator<<(std::ostream &os, const ManagedPointer &pointer) { return os << pointer.underlying_; }
+
+  /**
+   * Performs a static cast on underlying pointer of a ManagedPointer to a different type
+   * @tparam NewType type to cast to. Underlying type must be convertible to new type
+   * @return ManagedPointer holding the new type
+   */
+  template <class NewType>
+  ManagedPointer<NewType> CastManagedPointerTo() const {
+    return ManagedPointer<NewType>(static_cast<NewType *>(underlying_));
+  }
 
  private:
   Underlying *underlying_;
