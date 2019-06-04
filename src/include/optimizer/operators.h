@@ -984,7 +984,7 @@ class SeqScan : public OperatorNode<SeqScan> {
    * @return a SeqScan operator
    */
   static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::table_oid_t table_oid, std::vector<AnnotatedExpression> predicates,
+                       catalog::table_oid_t table_oid, std::vector<AnnotatedExpression> &&predicates,
                        std::string table_alias, bool is_for_update);
 
   bool operator==(const BaseOperatorNode &r) override;
@@ -1071,11 +1071,11 @@ class IndexScan : public OperatorNode<IndexScan> {
    * @return an IndexScan operator
    */
   static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::index_oid_t index_oid, std::vector<AnnotatedExpression> predicates,
+                       catalog::index_oid_t index_oid, std::vector<AnnotatedExpression> &&predicates,
                        std::string table_alias, bool is_for_update,
-                       std::vector<catalog::col_oid_t> key_column_oid_list,
-                       std::vector<parser::ExpressionType> expr_type_list,
-                       std::vector<type::TransientValue> value_list);
+                       std::vector<catalog::col_oid_t> &&key_column_oid_list,
+                       std::vector<parser::ExpressionType> &&expr_type_list,
+                       std::vector<type::TransientValue> &&value_list);
 
   bool operator==(const BaseOperatorNode &r) override;
 
@@ -1311,8 +1311,8 @@ class Limit : public OperatorNode<Limit> {
    * @param sort_ascending sorting order
    * @return a Limit operator
    */
-  static Operator make(int64_t offset, int64_t limit, std::vector<common::ManagedPointer<parser::AbstractExpression>> sort_columns,
-                       std::vector<bool> sort_ascending);
+  static Operator make(int64_t offset, int64_t limit, std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_columns,
+                       std::vector<bool> &&sort_ascending);
 
   /**
   * @return offset of the LIMIT operator

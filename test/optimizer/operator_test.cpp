@@ -1042,20 +1042,25 @@ TEST(OperatorTests, IndexScanTest) {
                                            std::vector<AnnotatedExpression>(), "table", true, std::vector<catalog::col_oid_t>(),
                                            std::vector<parser::ExpressionType>(), std::vector<type::TransientValue>());
   // different from index_scan_1 in key column list
-  auto key_column = std::vector<catalog::col_oid_t>{catalog::col_oid_t(1), catalog::col_oid_t(2)};
+  std::vector<catalog::col_oid_t> key_column1 = {catalog::col_oid_t(1), catalog::col_oid_t(2)};
+  std::vector<catalog::col_oid_t> key_column2 = {catalog::col_oid_t(1), catalog::col_oid_t(2)};
   Operator index_scan_06 = IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
-                                           std::vector<AnnotatedExpression>(), "table", false, key_column,
+                                           std::vector<AnnotatedExpression>(), "table", false, std::move(key_column1),
                                            std::vector<parser::ExpressionType>(), std::vector<type::TransientValue>());
   // different from index_scan_1 in expr type list
-  auto expr_type = std::vector<parser::ExpressionType>{parser::ExpressionType::COMPARE_IN};
+  std::vector<parser::ExpressionType> expr_type1 = {parser::ExpressionType::COMPARE_IN};
+  std::vector<parser::ExpressionType> expr_type2 = {parser::ExpressionType::COMPARE_IN};
   Operator index_scan_07 = IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
                                            std::vector<AnnotatedExpression>(), "table", false, std::vector<catalog::col_oid_t>(),
-                                           expr_type, std::vector<type::TransientValue>());
+                                           std::move(expr_type1), std::vector<type::TransientValue>());
   // different from index_scan_1 in value list
-  std::vector<type::TransientValue> value = {type::TransientValueFactory::GetTinyInt(1)};
+  std::vector<type::TransientValue> value1;
+  std::vector<type::TransientValue> value2;
+  value1.push_back(type::TransientValueFactory::GetInteger(1));
+  value2.push_back(type::TransientValueFactory::GetInteger(1));
   Operator index_scan_08 = IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
                                            std::vector<AnnotatedExpression>(), "table", false, std::vector<catalog::col_oid_t>(),
-                                           std::vector<parser::ExpressionType>(), value);
+                                           std::vector<parser::ExpressionType>(), std::move(value1));
 
   Operator index_scan_1 = IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
                                       std::vector<AnnotatedExpression>(), "table", false, std::vector<catalog::col_oid_t>(),
@@ -1086,9 +1091,9 @@ TEST(OperatorTests, IndexScanTest) {
   EXPECT_EQ(index_scan_4.As<IndexScan>()->GetPredicates(), std::vector<AnnotatedExpression>{annotated_expr_1});
   EXPECT_EQ(index_scan_1.As<IndexScan>()->GetTableAlias(), "table");
   EXPECT_EQ(index_scan_1.As<IndexScan>()->GetIsForUpdate(), false);
-  EXPECT_EQ(index_scan_06.As<IndexScan>()->GetKeyColumnOIDList(), key_column);
-  EXPECT_EQ(index_scan_07.As<IndexScan>()->GetExprTypeList(), expr_type);
-  EXPECT_EQ(index_scan_08.As<IndexScan>()->GetValueList(), value);
+  EXPECT_EQ(index_scan_06.As<IndexScan>()->GetKeyColumnOIDList(), std::move(key_column2));
+  EXPECT_EQ(index_scan_07.As<IndexScan>()->GetExprTypeList(), std::move(expr_type2));
+  EXPECT_EQ(index_scan_08.As<IndexScan>()->GetValueList(), std::move(value2));
   EXPECT_EQ(index_scan_1.GetName(), "IndexScan");
   EXPECT_TRUE(index_scan_1 == index_scan_2);
   EXPECT_FALSE(index_scan_1 == index_scan_3);

@@ -696,7 +696,7 @@ Operator TableFreeScan::make() {
 // SeqScan
 //===--------------------------------------------------------------------===//
 Operator SeqScan::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::table_oid_t table_oid, std::vector<AnnotatedExpression> predicates,
+                       catalog::table_oid_t table_oid, std::vector<AnnotatedExpression> &&predicates,
                        std::string table_alias, bool is_for_update) {
   auto *scan = new SeqScan;
   scan->database_oid_ = database_oid;
@@ -734,11 +734,11 @@ common::hash_t SeqScan::Hash() const {
 // IndexScan
 //===--------------------------------------------------------------------===//
 Operator IndexScan::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                         catalog::index_oid_t index_oid, std::vector<AnnotatedExpression> predicates,
+                         catalog::index_oid_t index_oid, std::vector<AnnotatedExpression> &&predicates,
                          std::string table_alias, bool is_for_update,
-                         std::vector<catalog::col_oid_t> key_column_oid_list,
-                         std::vector<parser::ExpressionType> expr_type_list,
-                         std::vector<type::TransientValue> value_list) {
+                         std::vector<catalog::col_oid_t> &&key_column_oid_list,
+                         std::vector<parser::ExpressionType> &&expr_type_list,
+                         std::vector<type::TransientValue> &&value_list) {
   auto *scan = new IndexScan;
   scan->database_oid_ = database_oid;
   scan->namespace_oid_ = namespace_oid;
@@ -859,8 +859,8 @@ Operator OrderBy::make() {
 //===--------------------------------------------------------------------===//
 // PhysicalLimit
 //===--------------------------------------------------------------------===//
-Operator Limit::make(int64_t offset, int64_t limit, std::vector<common::ManagedPointer<parser::AbstractExpression>> sort_columns,
-                     std::vector<bool> sort_ascending) {
+Operator Limit::make(int64_t offset, int64_t limit, std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_columns,
+                     std::vector<bool> &&sort_ascending) {
   auto *limit_op = new Limit;
   limit_op->offset_ = offset;
   limit_op->limit_ = limit;
