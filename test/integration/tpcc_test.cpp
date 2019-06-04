@@ -122,8 +122,7 @@ TEST_F(TPCCTests, TPCCTest) {
     auto delivery = Delivery(tpcc_db);
     auto stock_level = StockLevel(tpcc_db);
 
-    for (uint32_t i = 0; i < num_precomputed_txns_per_worker_; i++) {
-      const auto &txn_args = precomputed_args[worker_id][i];
+    for (const auto &txn_args : precomputed_args[worker_id]) {
       switch (txn_args.type) {
         case TransactionType::NewOrder: {
           new_order.Execute(&txn_manager, tpcc_db, &workers[worker_id], txn_args);
@@ -163,15 +162,7 @@ TEST_F(TPCCTests, TPCCTest) {
   delete tpcc_db;
   if (logging_enabled_) delete log_manager_;
 
-  // Clean up the buffers from any non-inlined VarlenEntrys in the precomputed args
-  for (const auto &worker_id : precomputed_args) {
-    for (const auto &args : worker_id) {
-      if ((args.type == TransactionType::Payment || args.type == TransactionType::OrderStatus) && args.use_c_last &&
-          !args.c_last.IsInlined()) {
-        delete[] args.c_last.Content();
-      }
-    }
-  }
+  CleanUpVarlensInPrecomputedArgs(&precomputed_args);
 }
 
 }  // namespace terrier::tpcc

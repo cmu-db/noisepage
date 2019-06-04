@@ -171,15 +171,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4)(benchmark::State &state) {
     delete tpcc_db;
   }
 
-  // Clean up the buffers from any non-inlined VarlenEntrys in the precomputed args
-  for (const auto &worker_id : precomputed_args) {
-    for (const auto &args : worker_id) {
-      if ((args.type == TransactionType::Payment || args.type == TransactionType::OrderStatus) && args.use_c_last &&
-          !args.c_last.IsInlined()) {
-        delete[] args.c_last.Content();
-      }
-    }
-  }
+  CleanUpVarlensInPrecomputedArgs(&precomputed_args);
 
   if (logging_enabled_) delete log_manager_;
 

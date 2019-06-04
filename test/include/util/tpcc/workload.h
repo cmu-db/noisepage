@@ -289,4 +289,19 @@ std::vector<std::vector<TransactionArgs>> PrecomputeArgs(Random *const generator
 
   return precomputed_args;
 }
+
+/**
+ * Clean up the buffers from any non-inlined VarlenEntrys in the precomputed args
+ * @param precomputed_args
+ */
+void CleanUpVarlensInPrecomputedArgs(const std::vector<std::vector<TransactionArgs>> *const precomputed_args) {
+  for (const auto &worker_id : *precomputed_args) {
+    for (const auto &args : worker_id) {
+      if ((args.type == TransactionType::Payment || args.type == TransactionType::OrderStatus) && args.use_c_last &&
+          !args.c_last.IsInlined()) {
+        delete[] args.c_last.Content();
+      }
+    }
+  }
+}
 }  // namespace terrier::tpcc
