@@ -882,13 +882,32 @@ common::hash_t OrderBy::Hash() const {
 // PhysicalLimit
 //===--------------------------------------------------------------------===//
 Operator Limit::make(size_t offset, size_t limit, std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_columns,
-                     std::vector<bool> &&sort_ascending) {
+                     std::vector<planner::OrderByOrderingType> &&sort_directions) {
   auto *limit_op = new Limit;
   limit_op->offset_ = offset;
   limit_op->limit_ = limit;
   limit_op->sort_exprs_ = std::move(sort_columns);
-  limit_op->sort_ascending_ = std::move(sort_ascending);
+  limit_op->sort_directions_ = std::move(sort_directions);
   return Operator(limit_op);
+}
+
+bool Limit::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::LIMIT) return false;
+  const Limit &node = *static_cast<const Limit *>(&r);
+  if (offset_ != node.offset_) return false;
+  if (limit_ != node.limit_) return false;
+  if (sort_exprs_ != node.sort_exprs_) return false;
+  if (sort_directions_ != node.sort_directions_) return false;
+  return (true);
+}
+
+common::hash_t Limit::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(offset_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(limit_));
+  hash = common::HashUtil::CombineHashInRange(hash, sort_exprs_.begin(), sort_exprs_.end());
+  hash = common::HashUtil::CombineHashInRange(hash, sort_directions_.begin(), sort_directions_.end());
+  return hash;
 }
 
 //===--------------------------------------------------------------------===//
@@ -940,6 +959,17 @@ Operator LeftNLJoin::make(common::ManagedPointer<parser::AbstractExpression> joi
   return Operator(join);
 }
 
+common::hash_t LeftNLJoin::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, join_predicate_->Hash());
+  return hash;
+}
+
+bool LeftNLJoin::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::LEFTNLJOIN) return false;
+  const LeftNLJoin &node = *static_cast<const LeftNLJoin *>(&r);
+  return (*join_predicate_ == *(node.join_predicate_));
+}
 //===--------------------------------------------------------------------===//
 // RightNLJoin
 //===--------------------------------------------------------------------===//
@@ -949,13 +979,37 @@ Operator RightNLJoin::make(common::ManagedPointer<parser::AbstractExpression> jo
   return Operator(join);
 }
 
+common::hash_t RightNLJoin::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, join_predicate_->Hash());
+  return hash;
+}
+
+bool RightNLJoin::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::RIGHTNLJOIN) return false;
+  const RightNLJoin &node = *static_cast<const RightNLJoin *>(&r);
+  return (*join_predicate_ == *(node.join_predicate_));
+}
+
 //===--------------------------------------------------------------------===//
 // OuterNLJoin
 //===--------------------------------------------------------------------===//
-Operator OuterNLJoin::make(std::shared_ptr<parser::AbstractExpression> join_predicate) {
+Operator OuterNLJoin::make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
   auto *join = new OuterNLJoin();
   join->join_predicate_ = std::move(join_predicate);
   return Operator(join);
+}
+
+common::hash_t OuterNLJoin::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, join_predicate_->Hash());
+  return hash;
+}
+
+bool OuterNLJoin::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::OUTERNLJOIN) return false;
+  const OuterNLJoin &node = *static_cast<const OuterNLJoin *>(&r);
+  return (*join_predicate_ == *(node.join_predicate_));
 }
 
 //===--------------------------------------------------------------------===//

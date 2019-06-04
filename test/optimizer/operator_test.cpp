@@ -1254,27 +1254,28 @@ TEST(OperatorTests, LimitTest) {
   size_t limit = 22;
   auto sort_expr_ori = new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1));
   auto sort_expr = common::ManagedPointer<parser::AbstractExpression>(sort_expr_ori);
+  planner::OrderByOrderingType sort_dir = planner::OrderByOrderingType::ASC;
 
   // Check that all of our GET methods work as expected
-  Operator op1 = Limit::make(offset, limit, {sort_expr}, {true});
+  Operator op1 = Limit::make(offset, limit, {sort_expr}, {sort_dir});
   EXPECT_EQ(op1.GetType(), OpType::LIMIT);
   EXPECT_EQ(op1.As<Limit>()->GetOffset(), offset);
   EXPECT_EQ(op1.As<Limit>()->GetLimit(), limit);
   EXPECT_EQ(op1.As<Limit>()->GetSortExpressions().size(), 1);
   EXPECT_EQ(op1.As<Limit>()->GetSortExpressions()[0], sort_expr);
   EXPECT_EQ(op1.As<Limit>()->GetSortAscending().size(), 1);
-  EXPECT_EQ(op1.As<Limit>()->GetSortAscending()[0], true);
+  EXPECT_EQ(op1.As<Limit>()->GetSortAscending()[0], sort_dir);
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
-  Operator op2 = Limit::make(offset, limit, {sort_expr}, {true});
+  Operator op2 = Limit::make(offset, limit, {sort_expr}, {sort_dir});
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   // Lastly, make a different object and make sure that it is not equal
   // and that it's hash is not the same!
   size_t other_offset = 1111;
-  Operator op3 = Limit::make(other_offset, limit, {sort_expr}, {true});
+  Operator op3 = Limit::make(other_offset, limit, {sort_expr}, {sort_dir});
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
@@ -1415,10 +1416,32 @@ TEST(OperatorTests, OuterNLJoin) {
   //===--------------------------------------------------------------------===//
   // OuterNLJoin
   //===--------------------------------------------------------------------===//
-  Operator outer_nl_join = OuterNLJoin::make(std::shared_ptr<parser::AbstractExpression>());
+  auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
 
-  EXPECT_EQ(outer_nl_join.GetType(), OpType::OUTERNLJOIN);
-  EXPECT_EQ(outer_nl_join.GetName(), "OuterNLJoin");
+  auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
+  auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
+  auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
+
+  Operator outer_nl_join_1 = OuterNLJoin::make(x_1);
+  Operator outer_nl_join_2 = OuterNLJoin::make(x_2);
+  Operator outer_nl_join_3 = OuterNLJoin::make(x_3);
+
+  EXPECT_EQ(outer_nl_join_1.GetType(), OpType::OUTERNLJOIN);
+  EXPECT_EQ(outer_nl_join_3.GetType(), OpType::OUTERNLJOIN);
+  EXPECT_EQ(outer_nl_join_1.GetName(), "OuterNLJoin");
+  EXPECT_EQ(*(outer_nl_join_1.As<OuterNLJoin>()->GetJoinPredicate()), *x_1);
+  EXPECT_EQ(*(outer_nl_join_2.As<OuterNLJoin>()->GetJoinPredicate()), *x_2);
+  EXPECT_EQ(*(outer_nl_join_3.As<OuterNLJoin>()->GetJoinPredicate()), *x_3);
+  EXPECT_TRUE(outer_nl_join_1 == outer_nl_join_2);
+  EXPECT_FALSE(outer_nl_join_1 == outer_nl_join_3);
+  EXPECT_EQ(outer_nl_join_1.Hash(), outer_nl_join_2.Hash());
+  EXPECT_NE(outer_nl_join_1.Hash(), outer_nl_join_3.Hash());
+
+  delete expr_b_1;
+  delete expr_b_2;
+  delete expr_b_3;
 }
 
 // NOLINTNEXTLINE

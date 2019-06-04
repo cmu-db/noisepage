@@ -1318,7 +1318,10 @@ class Limit : public OperatorNode<Limit> {
    * @return a Limit operator
    */
   static Operator make(size_t offset, size_t limit, std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_columns,
-                       std::vector<bool> &&sort_ascending);
+                       std::vector<planner::OrderByOrderingType> &&sort_directions);
+
+  bool operator==(const BaseOperatorNode &r) override;
+  common::hash_t Hash() const override;
 
   /**
   * @return offset of the LIMIT operator
@@ -1340,18 +1343,18 @@ class Limit : public OperatorNode<Limit> {
   /**
    * @return sorting orders (if ascending)
    */
-  const std::vector<bool> &GetSortAscending() const { return sort_ascending_; }
+  const std::vector<planner::OrderByOrderingType> &GetSortAscending() const { return sort_directions_; }
 
  private:
   /**
    * Number of offset rows to skip
    */
-  int64_t offset_;
+  size_t offset_;
 
   /**
    * Number of rows to return
    */
-  int64_t limit_;
+  size_t limit_;
 
   /**
    * When we get a query like "SELECT * FROM tab ORDER BY a LIMIT 5"
@@ -1368,7 +1371,7 @@ class Limit : public OperatorNode<Limit> {
   /**
    * Sorting order
    */
-  std::vector<bool> sort_ascending_;
+  std::vector<planner::OrderByOrderingType> sort_directions_;
 };
 
 /**
@@ -1433,6 +1436,10 @@ class LeftNLJoin : public OperatorNode<LeftNLJoin> {
    */
   static Operator make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
 
+  bool operator==(const BaseOperatorNode &r) override;
+
+  common::hash_t Hash() const override;
+
   /**
    * @return Predicate for the join
    */
@@ -1456,6 +1463,10 @@ class RightNLJoin : public OperatorNode<RightNLJoin> {
    */
   static Operator make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
 
+  bool operator==(const BaseOperatorNode &r) override;
+
+  common::hash_t Hash() const override;
+
   /**
    * @return Predicate for the join
    */
@@ -1477,13 +1488,22 @@ class OuterNLJoin : public OperatorNode<OuterNLJoin> {
    * @param join_predicate predicate for join
    * @return a OuterNLJoin operator
    */
-  static Operator make(std::shared_ptr<parser::AbstractExpression> join_predicate);
+  static Operator make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
+
+  bool operator==(const BaseOperatorNode &r) override;
+
+  common::hash_t Hash() const override;
+
+  /**
+   * @return Predicate for the join
+   */
+  const common::ManagedPointer<parser::AbstractExpression> GetJoinPredicate() const { return join_predicate_; }
 
  private:
   /**
    * Predicate for join
    */
-  std::shared_ptr<parser::AbstractExpression> join_predicate_;
+  common::ManagedPointer<parser::AbstractExpression> join_predicate_;
 };
 
 /**
