@@ -1449,16 +1449,62 @@ TEST(OperatorTests, InnerHashJoinTest) {
   //===--------------------------------------------------------------------===//
   // InnerHashJoin
   //===--------------------------------------------------------------------===//
-  Operator inner_hash_join_1 = InnerHashJoin::make(std::vector<AnnotatedExpression>(),
-                                                   std::vector<std::unique_ptr<parser::AbstractExpression>>(),
-                                                   std::vector<std::unique_ptr<parser::AbstractExpression>>());
-  Operator inner_hash_join_2 = InnerHashJoin::make(std::vector<AnnotatedExpression>(),
-                                                   std::vector<std::unique_ptr<parser::AbstractExpression>>(),
-                                                   std::vector<std::unique_ptr<parser::AbstractExpression>>());
+  auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+
+  auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
+  auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
+  auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
+
+  auto annotated_expr_0 =
+      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
+  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
+  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
+  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
+
+  Operator inner_hash_join_1 = InnerHashJoin::make(std::vector<AnnotatedExpression>(), {x_1}, {x_1});
+  Operator inner_hash_join_2 = InnerHashJoin::make(std::vector<AnnotatedExpression>(), {x_1}, {x_1});
+  Operator inner_hash_join_3 = InnerHashJoin::make(std::vector<AnnotatedExpression>{annotated_expr_0}, {x_1}, {x_1});
+  Operator inner_hash_join_4 = InnerHashJoin::make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_1}, {x_1});
+  Operator inner_hash_join_5 = InnerHashJoin::make(std::vector<AnnotatedExpression>{annotated_expr_2}, {x_2}, {x_1});
+  Operator inner_hash_join_6 = InnerHashJoin::make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_1}, {x_2});
+  Operator inner_hash_join_7 = InnerHashJoin::make(std::vector<AnnotatedExpression>{annotated_expr_3}, {x_1}, {x_1});
+  Operator inner_hash_join_8 = InnerHashJoin::make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_3}, {x_1});
+  Operator inner_hash_join_9 = InnerHashJoin::make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_1}, {x_3});
 
   EXPECT_EQ(inner_hash_join_1.GetType(), OpType::INNERHASHJOIN);
+  EXPECT_EQ(inner_hash_join_3.GetType(), OpType::INNERHASHJOIN);
   EXPECT_EQ(inner_hash_join_1.GetName(), "InnerHashJoin");
+  EXPECT_EQ(inner_hash_join_1.As<InnerHashJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>());
+  EXPECT_EQ(inner_hash_join_3.As<InnerHashJoin>()->GetJoinPredicates(),
+            std::vector<AnnotatedExpression>{annotated_expr_0});
+  EXPECT_EQ(inner_hash_join_4.As<InnerHashJoin>()->GetJoinPredicates(),
+            std::vector<AnnotatedExpression>{annotated_expr_1});
+  EXPECT_EQ(inner_hash_join_1.As<InnerHashJoin>()->GetLeftKeys(),
+            std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1});
+  EXPECT_EQ(inner_hash_join_9.As<InnerHashJoin>()->GetRightKeys(),
+            std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_3});
   EXPECT_TRUE(inner_hash_join_1 == inner_hash_join_2);
+  EXPECT_FALSE(inner_hash_join_1 == inner_hash_join_3);
+  EXPECT_FALSE(inner_hash_join_4 == inner_hash_join_3);
+  EXPECT_TRUE(inner_hash_join_4 == inner_hash_join_5);
+  EXPECT_TRUE(inner_hash_join_4 == inner_hash_join_6);
+  EXPECT_FALSE(inner_hash_join_4 == inner_hash_join_7);
+  EXPECT_FALSE(inner_hash_join_4 == inner_hash_join_8);
+  EXPECT_FALSE(inner_hash_join_4 == inner_hash_join_9);
+  EXPECT_EQ(inner_hash_join_1.Hash(), inner_hash_join_2.Hash());
+  EXPECT_NE(inner_hash_join_1.Hash(), inner_hash_join_3.Hash());
+  EXPECT_NE(inner_hash_join_4.Hash(), inner_hash_join_3.Hash());
+  EXPECT_EQ(inner_hash_join_4.Hash(), inner_hash_join_5.Hash());
+  EXPECT_EQ(inner_hash_join_4.Hash(), inner_hash_join_6.Hash());
+  EXPECT_NE(inner_hash_join_4.Hash(), inner_hash_join_7.Hash());
+  EXPECT_NE(inner_hash_join_4.Hash(), inner_hash_join_8.Hash());
+  EXPECT_NE(inner_hash_join_4.Hash(), inner_hash_join_9.Hash());
+
+  delete expr_b_1;
+  delete expr_b_2;
+  delete expr_b_3;
 }
 
 // NOLINTNEXTLINE

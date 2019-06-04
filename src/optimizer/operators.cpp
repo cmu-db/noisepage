@@ -1015,9 +1015,9 @@ bool OuterNLJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // InnerHashJoin
 //===--------------------------------------------------------------------===//
-Operator InnerHashJoin::make(std::vector<AnnotatedExpression> join_predicates,
-                             std::vector<std::unique_ptr<parser::AbstractExpression>> &&left_keys,
-                             std::vector<std::unique_ptr<parser::AbstractExpression>> &&right_keys) {
+Operator InnerHashJoin::make(std::vector<AnnotatedExpression> &&join_predicates,
+                             std::vector<common::ManagedPointer<parser::AbstractExpression>> &&left_keys,
+                             std::vector<common::ManagedPointer<parser::AbstractExpression>> &&right_keys) {
   auto *join = new InnerHashJoin();
   join->join_predicates_ = std::move(join_predicates);
   join->left_keys_ = std::move(left_keys);
