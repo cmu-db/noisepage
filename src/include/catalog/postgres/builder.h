@@ -2,6 +2,7 @@
 
 #include <utility>
 
+#include "catalog/index_schema.h"
 #include "catalog/schema.h"
 #include "storage/storage_defs.h"
 #include "storage/sql_table.h"
