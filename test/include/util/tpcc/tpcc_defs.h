@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 namespace terrier::tpcc {
 
 enum class TransactionType : uint8_t { NewOrder, Payment, OrderStatus, Delivery, StockLevel };
