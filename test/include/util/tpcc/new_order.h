@@ -358,10 +358,11 @@ class NewOrder {
     TERRIER_ASSERT(d_next_o_id >= 3001, "Invalid d_next_o_id read from the District table.");
 
     // Increment D_NEXT_O_ID in table
-    auto *const district_update_tuple = district_update_pr_initializer.InitializeRow(worker->district_tuple_buffer);
-    *reinterpret_cast<int32_t *>(district_update_tuple->AccessForceNotNull(0)) = d_next_o_id + 1;
-
-    bool UNUSED_ATTRIBUTE result = db->district_table_->Update(txn, index_scan_results[0], *district_update_tuple);
+    auto *const district_update_redo =
+        txn->StageWrite(db->db_oid_, db->district_table_oid_, district_update_pr_initializer);
+    *reinterpret_cast<int32_t *>(district_update_redo->Delta()->AccessForceNotNull(0)) = d_next_o_id + 1;
+    district_update_redo->SetTupleSlot(index_scan_results[0]);
+    bool UNUSED_ATTRIBUTE result = db->district_table_->Update(txn, district_update_redo);
     TERRIER_ASSERT(result, "District update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
 
     // Look up C_ID, D_ID, W_ID in index
@@ -385,15 +386,18 @@ class NewOrder {
     TERRIER_ASSERT(c_discount >= 0 && c_discount <= 0.5, "Invalid c_discount read from the Customer table.");
 
     // Insert new row in New Order
-    auto *const new_order_insert_tuple = new_order_insert_pr_initializer.InitializeRow(worker->new_order_key_buffer);
+    auto *const new_order_insert_redo =
+        txn->StageWrite(db->db_oid_, db->new_order_table_oid_, new_order_insert_pr_initializer);
+    auto *const new_order_insert_tuple = new_order_insert_redo->Delta();
 
     *reinterpret_cast<int32_t *>(new_order_insert_tuple->AccessForceNotNull(no_o_id_insert_pr_offset)) = d_next_o_id;
     *reinterpret_cast<int8_t *>(new_order_insert_tuple->AccessForceNotNull(no_d_id_insert_pr_offset)) = args.d_id;
     *reinterpret_cast<int8_t *>(new_order_insert_tuple->AccessForceNotNull(no_w_id_insert_pr_offset)) = args.w_id;
 
-    const auto new_order_slot = db->new_order_table_->Insert(txn, *new_order_insert_tuple);
+    db->new_order_table_->Insert(txn, new_order_insert_redo);
 
     // insert in New Order index
+    const auto new_order_slot = new_order_insert_redo->GetTupleSlot();
     const auto new_order_key_pr_initializer = db->new_order_primary_index_->GetProjectedRowInitializer();
     auto *const new_order_key = new_order_key_pr_initializer.InitializeRow(worker->new_order_key_buffer);
 
@@ -406,7 +410,8 @@ class NewOrder {
     TERRIER_ASSERT(index_insert_result, "New Order index insertion failed.");
 
     // Insert new row in Order
-    auto *const order_insert_tuple = order_insert_pr_initializer.InitializeRow(worker->order_tuple_buffer);
+    auto *const order_insert_redo = txn->StageWrite(db->db_oid_, db->order_table_oid_, order_insert_pr_initializer);
+    auto *const order_insert_tuple = order_insert_redo->Delta();
 
     *reinterpret_cast<int32_t *>(order_insert_tuple->AccessForceNotNull(o_id_insert_pr_offset)) = d_next_o_id;
     *reinterpret_cast<int8_t *>(order_insert_tuple->AccessForceNotNull(o_d_id_insert_pr_offset)) = args.d_id;
@@ -418,9 +423,10 @@ class NewOrder {
     *reinterpret_cast<int8_t *>(order_insert_tuple->AccessForceNotNull(o_all_local_insert_pr_offset)) =
         static_cast<int8_t>(args.o_all_local);
 
-    const auto order_slot = db->order_table_->Insert(txn, *order_insert_tuple);
+    db->order_table_->Insert(txn, order_insert_redo);
 
     // insert in Order index
+    const auto order_slot = order_insert_redo->GetTupleSlot();
     const auto order_key_pr_initializer = db->order_primary_index_->GetProjectedRowInitializer();
     auto *const order_key = order_key_pr_initializer.InitializeRow(worker->order_key_buffer);
 
@@ -502,7 +508,9 @@ class NewOrder {
           stock_select_tuple->AccessWithNullCheck(stock_select_pr_offsets[args.d_id - 1].s_data_select_pr_offset));
 
       // Update S_QUANTITY, S_YTD, S_ORDER_CNT, S_REMOTE_CNT
-      auto *const stock_update_tuple = stock_update_pr_initializer.InitializeRow(worker->stock_tuple_buffer);
+      auto *const stock_update_redo = txn->StageWrite(db->db_oid_, db->stock_table_oid_, stock_update_pr_initializer);
+      auto *const stock_update_tuple = stock_update_redo->Delta();
+
       *reinterpret_cast<int16_t *>(stock_update_tuple->AccessForceNotNull(s_quantity_update_pr_offset)) =
           static_cast<int16_t>((s_quantity >= item.ol_quantity + 10) ? s_quantity - item.ol_quantity
                                                                      : s_quantity - item.ol_quantity + 91);
@@ -512,8 +520,8 @@ class NewOrder {
           static_cast<int16_t>(s_order_cnt + 1);
       *reinterpret_cast<int16_t *>(stock_update_tuple->AccessForceNotNull(s_remote_cnt_update_pr_offset)) =
           static_cast<int16_t>(item.remote ? s_remote_cnt + 1 : s_remote_cnt);
-
-      result = db->stock_table_->Update(txn, index_scan_results[0], *stock_update_tuple);
+      stock_update_redo->SetTupleSlot(index_scan_results[0]);
+      result = db->stock_table_->Update(txn, stock_update_redo);
       if (!result) {
         // This can fail due to remote orders
         txn_manager->Abort(txn);
@@ -531,8 +539,9 @@ class NewOrder {
               : "G";
 
       // Insert new row in Order Line
-      auto *const order_line_insert_tuple =
-          order_line_insert_pr_initializer.InitializeRow(worker->order_line_tuple_buffer);
+      auto *const order_line_insert_redo =
+          txn->StageWrite(db->db_oid_, db->order_line_table_oid_, order_line_insert_pr_initializer);
+      auto *const order_line_insert_tuple = order_line_insert_redo->Delta();
 
       *reinterpret_cast<int32_t *>(order_line_insert_tuple->AccessForceNotNull(ol_o_id_insert_pr_offset)) = d_next_o_id;
       *reinterpret_cast<int8_t *>(order_line_insert_tuple->AccessForceNotNull(ol_d_id_insert_pr_offset)) = args.d_id;
@@ -560,9 +569,10 @@ class NewOrder {
             order_line_insert_tuple->AccessForceNotNull(ol_dist_info_insert_pr_offset)) = varlen_entry;
       }
 
-      const auto order_line_slot = db->order_line_table_->Insert(txn, *order_line_insert_tuple);
+      db->order_line_table_->Insert(txn, order_line_insert_redo);
 
       // insert in Order Line index
+      const auto order_line_slot = order_line_insert_redo->GetTupleSlot();
       const auto order_line_key_pr_initializer = db->order_line_primary_index_->GetProjectedRowInitializer();
       auto *const order_line_key = order_line_key_pr_initializer.InitializeRow(worker->order_line_key_buffer);
 
