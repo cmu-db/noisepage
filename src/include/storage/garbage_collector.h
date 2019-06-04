@@ -21,8 +21,12 @@ class GarbageCollector {
    * Constructor for the Garbage Collector that requires a pointer to the TransactionManager. This is necessary for the
    * GC to invoke the TM's function for handing off the completed transactions queue.
    * @param txn_manager pointer to the TransactionManager
+   * @param observer the access observer attached to this GC. The GC reports every record gc-ed to the observer if
+   *                 it is not null. The observer can then gain insight invoke other components to perform actions.
+   *                 The observer's function implementation needs to be lightweight because it is called on the GC
+   *                 thread.
    */
-  explicit GarbageCollector(transaction::TransactionManager *txn_manager, AccessObserver *observer = nullptr)
+  explicit GarbageCollector(transaction::TransactionManager *txn_manager, AccessObserver *observer)
       : txn_manager_(txn_manager), observer_(observer), last_unlinked_{0} {
     TERRIER_ASSERT(txn_manager_->GCEnabled(),
                    "The TransactionManager needs to be instantiated with gc_enabled true for GC to work!");

@@ -59,13 +59,9 @@ class BlockCompactor {
   // TODO(Tianyu): Should a block know about its own data table? We seem to need this back pointer awfully often.
   /**
    * Adds a block associated with a data table to the compaction to be processed in the future.
-   * @param entry the block (and its parent data table) that needs to be processed by the compactor
+   * @param block the block that needs to be processed by the compactor
    */
   void PutInQueue(RawBlock *block) { compaction_queue_.push_front(block); }
-
-  void EmptyQueue() { compaction_queue_.clear(); }
-
-  uint32_t tuples_moved_ = 0;
 
  private:
   bool EliminateGaps(CompactionGroup *cg);

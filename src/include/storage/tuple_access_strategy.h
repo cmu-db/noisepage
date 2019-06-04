@@ -228,6 +228,10 @@ class TupleAccessStrategy {
    */
   bool Allocate(RawBlock *block, TupleSlot *slot) const;
 
+  /**
+   * @param block the block to access
+   * @return pointer to the allocation bitmap of the block
+   */
   common::RawConcurrentBitmap *AllocationBitmap(RawBlock *block) const {
     return reinterpret_cast<Block *>(block)->SlotAllocationBitmap(layout_);
   }
