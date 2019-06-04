@@ -1240,8 +1240,8 @@ common::hash_t ExportExternalFile::Hash() const {
 //===--------------------------------------------------------------------===//
 // HashGroupBy
 //===--------------------------------------------------------------------===//
-Operator HashGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpression>> columns,
-                           std::vector<AnnotatedExpression> having) {
+Operator HashGroupBy::make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns,
+                           std::vector<AnnotatedExpression> &&having) {
   auto *agg = new HashGroupBy;
   agg->columns_ = std::move(columns);
   agg->having_ = std::move(having);
@@ -1256,7 +1256,7 @@ bool HashGroupBy::operator==(const BaseOperatorNode &r) {
     if (having_[i].GetExpr() != hash_op.having_[i].GetExpr()) return false;
   }
 
-  std::unordered_set<std::shared_ptr<parser::AbstractExpression>> l_set, r_set;
+  std::unordered_set<common::ManagedPointer<parser::AbstractExpression>> l_set, r_set;
   for (auto &expr : columns_) l_set.emplace(expr);
   for (auto &expr : hash_op.columns_) r_set.emplace(expr);
   return l_set == r_set;

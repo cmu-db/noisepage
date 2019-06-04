@@ -1706,14 +1706,32 @@ TEST(OperatorTests, ExportExternalFileTest) {
   //===--------------------------------------------------------------------===//
   // ExportExternalFile
   //===--------------------------------------------------------------------===//
-  Operator export_ext_file_1 = ExportExternalFile::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '\'');
-  Operator export_ext_file_2 = ExportExternalFile::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '\'');
-  Operator export_ext_file_3 = ExportExternalFile::make(parser::ExternalFileFormat::CSV, "file2.txt", ',', '"', '\'');
+  std::string file_name = "fakefile.txt";
+  char delimiter = 'X';
+  char quote = 'Y';
+  char escape = 'Z';
 
-  EXPECT_EQ(export_ext_file_1.GetType(), OpType::EXPORTEXTERNALFILE);
-  EXPECT_EQ(export_ext_file_1.GetName(), "ExportExternalFile");
-  EXPECT_TRUE(export_ext_file_1 == export_ext_file_2);
-  EXPECT_FALSE(export_ext_file_1 == export_ext_file_3);
+  // Check that all of our GET methods work as expected
+  Operator op1 = ExportExternalFile::make(parser::ExternalFileFormat::BINARY, file_name, delimiter, quote, escape);
+  EXPECT_EQ(op1.GetType(), OpType::LOGICALEXPORTEXTERNALFILE);
+  EXPECT_EQ(op1.As<ExportExternalFile>()->GetFilename(), file_name);
+  EXPECT_EQ(op1.As<ExportExternalFile>()->GetFormat(), parser::ExternalFileFormat::BINARY);
+  EXPECT_EQ(op1.As<ExportExternalFile>()->GetDelimiter(), delimiter);
+  EXPECT_EQ(op1.As<ExportExternalFile>()->GetQuote(), quote);
+  EXPECT_EQ(op1.As<ExportExternalFile>()->GetEscape(), escape);
+
+  // Check that if we make a new object with the same values, then it will
+  // be equal to our first object and have the same hash
+  std::string file_name_copy = file_name;  // NOLINT
+  Operator op2 = ExportExternalFile::make(parser::ExternalFileFormat::BINARY, file_name_copy, delimiter, quote, escape);
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+
+  // Lastly, make a different object and make sure that it is not equal
+  // and that it's hash is not the same!
+  Operator op3 = ExportExternalFile::make(parser::ExternalFileFormat::CSV, file_name, delimiter, quote, escape);
+  EXPECT_FALSE(op1 == op3);
+  EXPECT_NE(op1.Hash(), op3.Hash());
 }
 
 // NOLINTNEXTLINE
@@ -1735,19 +1753,75 @@ TEST(OperatorTests, HashGroupByTest) {
   //===--------------------------------------------------------------------===//
   // HashGroupBy
   //===--------------------------------------------------------------------===//
-  Operator hash_group_by_1 =
-      HashGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpression>>(), std::vector<AnnotatedExpression>());
-  Operator hash_group_by_2 =
-      HashGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpression>>(), std::vector<AnnotatedExpression>());
-  auto expr_hash_group_by =
-      std::make_shared<parser::ConstantValueExpression>(type::TransientValueFactory::GetTinyInt(1));
-  Operator hash_group_by_3 = HashGroupBy::make(
-      std::vector<std::shared_ptr<parser::AbstractExpression>>{expr_hash_group_by}, std::vector<AnnotatedExpression>());
+  // ConstValueExpression subclass AbstractExpression
+  auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  auto expr_b_7 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
 
-  EXPECT_EQ(hash_group_by_1.GetType(), OpType::HASHGROUPBY);
-  EXPECT_EQ(hash_group_by_2.GetName(), "HashGroupBy");
-  EXPECT_TRUE(hash_group_by_1 == hash_group_by_2);
-  EXPECT_FALSE(hash_group_by_1 == hash_group_by_3);
+  // columns: vector of shared_ptr of AbstractExpression
+  auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
+  auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
+  auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
+  auto x_7 = common::ManagedPointer<parser::AbstractExpression>(expr_b_7);
+
+  // ConstValueExpression subclass AbstractExpression
+  auto expr_b_4 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_5 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_8 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_6 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  auto x_4 = common::ManagedPointer<parser::AbstractExpression>(expr_b_4);
+  auto x_5 = common::ManagedPointer<parser::AbstractExpression>(expr_b_5);
+  auto x_6 = common::ManagedPointer<parser::AbstractExpression>(expr_b_6);
+  auto x_8 = common::ManagedPointer<parser::AbstractExpression>(expr_b_8);
+
+  // havings: vector of AnnotatedExpression
+  auto annotated_expr_0 =
+      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
+  auto annotated_expr_1 = AnnotatedExpression(x_4, std::unordered_set<std::string>());
+  auto annotated_expr_2 = AnnotatedExpression(x_5, std::unordered_set<std::string>());
+  auto annotated_expr_3 = AnnotatedExpression(x_6, std::unordered_set<std::string>());
+  auto annotated_expr_4 = AnnotatedExpression(x_8, std::unordered_set<std::string>());
+
+  Operator group_by_1_0 = HashGroupBy::make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1},
+                                       std::vector<AnnotatedExpression>{annotated_expr_0});
+  Operator group_by_1_1 = HashGroupBy::make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1},
+                                       std::vector<AnnotatedExpression>{annotated_expr_1});
+  Operator group_by_2_2 = HashGroupBy::make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_2},
+                                       std::vector<AnnotatedExpression>{annotated_expr_2});
+  Operator group_by_3 = HashGroupBy::make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_3}, std::vector<AnnotatedExpression>{annotated_expr_3});
+  Operator group_by_7_4 = HashGroupBy::make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_7},
+                                       std::vector<AnnotatedExpression>{annotated_expr_4});
+
+  EXPECT_EQ(group_by_1_1.GetType(), OpType::HASHGROUPBY);
+  EXPECT_EQ(group_by_3.GetType(), OpType::HASHGROUPBY);
+  EXPECT_EQ(group_by_7_4.GetName(), "HashGroupBy");
+  EXPECT_EQ(group_by_1_1.As<HashGroupBy>()->GetColumns(),
+            std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1});
+  EXPECT_EQ(group_by_3.As<HashGroupBy>()->GetColumns(),
+            std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_3});
+  EXPECT_EQ(group_by_1_1.As<HashGroupBy>()->GetHaving(),
+            std::vector<AnnotatedExpression>{annotated_expr_1});
+  EXPECT_EQ(group_by_7_4.As<HashGroupBy>()->GetHaving(),
+            std::vector<AnnotatedExpression>{annotated_expr_4});
+  EXPECT_TRUE(group_by_1_1 == group_by_2_2);
+  EXPECT_FALSE(group_by_1_1 == group_by_7_4);
+  EXPECT_FALSE(group_by_1_0 == group_by_1_1);
+  EXPECT_FALSE(group_by_3 == group_by_7_4);
+
+  EXPECT_EQ(group_by_1_1.Hash(), group_by_2_2.Hash());
+  EXPECT_NE(group_by_1_1.Hash(), group_by_7_4.Hash());
+  EXPECT_NE(group_by_1_0.Hash(), group_by_1_1.Hash());
+  EXPECT_NE(group_by_3.Hash(), group_by_7_4.Hash());
+
+  delete expr_b_1;
+  delete expr_b_2;
+  delete expr_b_3;
+  delete expr_b_4;
+  delete expr_b_5;
+  delete expr_b_6;
+  delete expr_b_7;
+  delete expr_b_8;
 }
 
 // NOLINTNEXTLINE

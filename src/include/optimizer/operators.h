@@ -784,7 +784,7 @@ class LogicalDelete : public OperatorNode<LogicalDelete> {
    * @param database_oid OID of the database
    * @param namespace_oid OID of the namespace
    * @param table_oid OID of the table
-   * @return
+   * @returnl
    */
   static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t table_oid);
@@ -1811,6 +1811,31 @@ class ExportExternalFile : public OperatorNode<ExportExternalFile> {
 
   common::hash_t Hash() const override;
 
+  /**
+   * @return how the data should be formatted
+   */
+  const parser::ExternalFileFormat &GetFormat() const { return format_; }
+
+  /**
+   * @return the local file path to read the data
+   */
+  const std::string &GetFilename() const { return file_name_; }
+
+  /**
+   * @return the character to use to split each attribute
+   */
+  char GetDelimiter() const { return delimiter_; }
+
+  /**
+   * @return the character to use to 'quote' each value
+   */
+  char GetQuote() const { return quote_; }
+
+  /**
+   * @return the character to use to escape characters in values
+   */
+  char GetEscape() const { return escape_; }
+
  private:
   /**
    * File format
@@ -1885,17 +1910,28 @@ class HashGroupBy : public OperatorNode<HashGroupBy> {
    * @param having expression of HAVING clause
    * @return a HashGroupBy operator
    */
-  static Operator make(std::vector<std::shared_ptr<parser::AbstractExpression>> columns,
-                       std::vector<AnnotatedExpression> having);
+  static Operator make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns,
+                       std::vector<AnnotatedExpression> &&having);
 
   bool operator==(const BaseOperatorNode &r) override;
 
   common::hash_t Hash() const override;
 
   /**
+   * @return vector of columns
+   */
+  const std::vector<common::ManagedPointer<parser::AbstractExpression>> &GetColumns() const { return columns_; }
+
+  /**
+   * @return vector of having expressions
+   */
+  const std::vector<AnnotatedExpression> &GetHaving() const { return having_; }
+
+ private:
+  /**
    * Columns to group by
    */
-  std::vector<std::shared_ptr<parser::AbstractExpression>> columns_;
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> columns_;
 
   /**
    * Expression of HAVING clause
