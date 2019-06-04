@@ -41,7 +41,7 @@ class TestConfig(object):
 
         # percentage difference permissible, if using historical data
         # i.e. if min_ref_values are available
-        self.ref_tolerance = 10
+        self.ref_tolerance = 20
 
         # if fewer than min_ref_values are available
         self.lax_tolerance = 30

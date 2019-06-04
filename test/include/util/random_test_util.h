@@ -9,8 +9,8 @@ namespace terrier {
 /**
  * Utility class for random element selection
  */
-class RandomTestUtil {
- public:
+struct RandomTestUtil {
+  RandomTestUtil() = delete;
   /**
    * Selects an element from the supplied vector uniformly at random, using the
    * given random generator.

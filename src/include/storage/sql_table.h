@@ -8,6 +8,7 @@
 #include "storage/projected_columns.h"
 #include "storage/projected_row.h"
 #include "storage/storage_defs.h"
+#include "storage/write_ahead_log/log_record.h"
 
 namespace terrier::storage {
 
@@ -61,24 +62,25 @@ class SqlTable {
    * Update the tuple according to the redo buffer given.
    *
    * @param txn the calling transaction
-   * @param slot the slot of the tuple to update.
-   * @param redo the desired change to be applied. This should be the after-image of the attributes of interest.
+   * @param redo the desired change to be applied. This should be the after-image of the attributes of interest. The
+   * TupleSlot in this RedoRecord must be set to the intended tuple.
    * @return true if successful, false otherwise
    */
-  bool Update(transaction::TransactionContext *const txn, const TupleSlot slot, const ProjectedRow &redo) const {
-    return table_.data_table->Update(txn, slot, redo);
+  bool Update(transaction::TransactionContext *const txn, RedoRecord *const redo) const {
+    TERRIER_ASSERT(redo->GetTupleSlot() != TupleSlot(nullptr, 0), "TupleSlot was never set in this RedoRecord.");
+    return table_.data_table->Update(txn, redo->GetTupleSlot(), *(redo->Delta()));
   }
 
   /**
    * Inserts a tuple, as given in the redo, and return the slot allocated for the tuple.
    *
    * @param txn the calling transaction
-   * @param redo after-image of the inserted tuple.
-   * @return the TupleSlot allocated for this insert, used to identify this tuple's physical location for indexes and
-   * such.
+   * @param redo after-image of the inserted tuple. The TupleSlot in this RedoRecord will be set to the inserted
+   * location.
    */
-  TupleSlot Insert(transaction::TransactionContext *const txn, const ProjectedRow &redo) const {
-    return table_.data_table->Insert(txn, redo);
+  void Insert(transaction::TransactionContext *const txn, RedoRecord *const redo) const {
+    const auto slot = table_.data_table->Insert(txn, *(redo->Delta()));
+    redo->SetTupleSlot(slot);
   }
 
   /**
@@ -166,6 +168,7 @@ class SqlTable {
 
  private:
   BlockStore *const block_store_;
+  const catalog::table_oid_t oid_;
 
   // Eventually we'll support adding more tables when schema changes. For now we'll always access the one DataTable.
   DataTableVersion table_;

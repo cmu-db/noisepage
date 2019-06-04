@@ -47,7 +47,7 @@ void LogManager::SerializeRecord(const terrier::storage::LogRecord &record) {
   switch (record.RecordType()) {
     case LogRecordType::REDO: {
       auto *record_body = record.GetUnderlyingRecordBodyAs<RedoRecord>();
-      WriteValue(record_body->GetDataTable()->TableOid());
+      WriteValue(record_body->GetTableOid());
       WriteValue(record_body->GetTupleSlot());
       // TODO(Tianyu): Need to inline varlen or other things, and figure out a better representation.
       out_.BufferWrite(record_body->Delta(), record_body->Delta()->Size());
@@ -55,7 +55,7 @@ void LogManager::SerializeRecord(const terrier::storage::LogRecord &record) {
     }
     case LogRecordType::DELETE: {
       auto *record_body = record.GetUnderlyingRecordBodyAs<DeleteRecord>();
-      WriteValue(record_body->GetDataTable()->TableOid());
+      WriteValue(record_body->GetTableOid());
       WriteValue(record_body->GetTupleSlot());
       break;
     }

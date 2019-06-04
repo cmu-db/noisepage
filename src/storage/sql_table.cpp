@@ -6,7 +6,8 @@
 
 namespace terrier::storage {
 
-SqlTable::SqlTable(BlockStore *const store, const catalog::Schema &schema) : block_store_(store) {
+SqlTable::SqlTable(BlockStore *const store, const catalog::Schema &schema, const catalog::table_oid_t oid)
+    : block_store_(store), oid_(oid) {
   // Begin with the NUM_RESERVED_COLUMNS in the attr_sizes
   std::vector<uint8_t> attr_sizes;
   attr_sizes.reserve(NUM_RESERVED_COLUMNS + schema.GetColumns().size());
