@@ -48,7 +48,7 @@ class DBMain {
       delete txn_manager_;
       delete buffer_segment_pool_;
       delete thread_pool_;
-
+      delete log_manager_;
       delete connection_handle_factory_;
       delete server_;
       delete command_factory_;
