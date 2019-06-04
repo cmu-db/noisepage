@@ -157,6 +157,12 @@ class Schema {
     TERRIER_ASSERT(!columns_.empty() && columns_.size() <= common::Constants::MAX_COL,
                    "Number of columns must be between 1 and MAX_COL.");
     for (uint32_t i = 0; i < columns_.size(); i++) {
+      // If not all columns assigned OIDs, then clear the map because this is
+      // a definition of a new/modified table not a catalog generated schema.
+      if (columns_[i].GetOid() == catalog::INVALID_COLUMN_OID) {
+        col_oid_to_offset.clear();
+        return;
+      }
       col_oid_to_offset[columns_[i].GetOid()] = i;
     }
   }
@@ -195,6 +201,8 @@ class Schema {
         return c;
       }
     }
+    // TODO(John): Should this be a TERRIER_ASSERT to have the same semantics
+    // as the other accessor methods above?
     throw std::out_of_range("Column name doesn't exist");
   }
   /**

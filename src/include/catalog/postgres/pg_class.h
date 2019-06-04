@@ -14,12 +14,13 @@ namespace terrier::catalog::postgres {
  * catalog specification and columns of the form "REL_[name]_COL_OID" are
  * terrier-specific addtions (generally pointers to internal objects).
  */
-#define RELOID_COL_OID col_oid_t(1)       // INTEGER (pkey)
-#define RELNAME_COL_OID col_oid_t(2)      // VARCHAR
-#define RELNAMESPACE_COL_OID col_oid_t(3) // INTEGER (fkey: pg_namespace)
-#define RELKIND_COL_OID col_oid_t(4)      // CHAR
-#define REL_SCHEMA_COL_OID col_oid_t(5)   // BIGINT (assumes 64-bit pointers)
-#define REL_PTR_COL_OID col_oid_t(6)      // BIGINT (assumes 64-bit pointers)
+#define RELOID_COL_OID col_oid_t(1)         // INTEGER (pkey)
+#define RELNAME_COL_OID col_oid_t(2)        // VARCHAR
+#define RELNAMESPACE_COL_OID col_oid_t(3)   // INTEGER (fkey: pg_namespace)
+#define RELKIND_COL_OID col_oid_t(4)        // CHAR
+#define REL_SCHEMA_COL_OID col_oid_t(5)     // BIGINT (assumes 64-bit pointers)
+#define REL_PTR_COL_OID col_oid_t(6)        // BIGINT (assumes 64-bit pointers)
+#define REL_NEXTCOLOID_COL_OID col_oid_t(7) // INTEGER
 
 enum class ClassKind : char {
   REGULAR_TABLE = 'r',

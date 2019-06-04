@@ -91,6 +91,9 @@ static Schema Builder::GetClassTableSchema() {
   columns.emplace_back("pointer", type::TypeId::BIGINT, true, MakeNull(type::TypeId::BIGINT));
   columns.back().SetOid(REL_PTR_COL_OID);
 
+  columns.emplace_back("nextcoloid", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(REL_NEXTCOLOID_COL_OID);
+
   return Schema(columns);
 }
 
