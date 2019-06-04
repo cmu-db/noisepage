@@ -1272,8 +1272,8 @@ common::hash_t HashGroupBy::Hash() const {
 //===--------------------------------------------------------------------===//
 // SortGroupBy
 //===--------------------------------------------------------------------===//
-Operator SortGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpression>> columns,
-                           std::vector<AnnotatedExpression> having) {
+Operator SortGroupBy::make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns,
+                           std::vector<AnnotatedExpression> &&having) {
   auto *agg = new SortGroupBy;
   agg->columns_ = std::move(columns);
   agg->having_ = move(having);
@@ -1287,7 +1287,7 @@ bool SortGroupBy::operator==(const BaseOperatorNode &r) {
   for (size_t i = 0; i < having_.size(); i++) {
     if (having_[i].GetExpr() != sort_op.having_[i].GetExpr()) return false;
   }
-  std::unordered_set<std::shared_ptr<parser::AbstractExpression>> l_set, r_set;
+  std::unordered_set<common::ManagedPointer<parser::AbstractExpression>> l_set, r_set;
   for (auto &expr : columns_) l_set.emplace(expr);
   for (auto &expr : sort_op.columns_) r_set.emplace(expr);
   return l_set == r_set;

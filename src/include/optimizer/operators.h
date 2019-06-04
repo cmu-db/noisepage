@@ -1949,17 +1949,28 @@ class SortGroupBy : public OperatorNode<SortGroupBy> {
    * @param having HAVING clause
    * @return a SortGroupBy operator
    */
-  static Operator make(std::vector<std::shared_ptr<parser::AbstractExpression>> columns,
-                       std::vector<AnnotatedExpression> having);
+  static Operator make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns,
+                       std::vector<AnnotatedExpression> &&having);
 
   bool operator==(const BaseOperatorNode &r) override;
 
   common::hash_t Hash() const override;
 
   /**
+   * @return vector of columns
+   */
+  const std::vector<common::ManagedPointer<parser::AbstractExpression>> &GetColumns() const { return columns_; }
+
+  /**
+   * @return vector of having expressions
+   */
+  const std::vector<AnnotatedExpression> &GetHaving() const { return having_; }
+
+ private:
+  /**
    * Columns to group by
    */
-  std::vector<std::shared_ptr<parser::AbstractExpression>> columns_;
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> columns_;
 
   /**
    * Expression of HAVING clause

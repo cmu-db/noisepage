@@ -1789,9 +1789,11 @@ TEST(OperatorTests, HashGroupByTest) {
                                        std::vector<AnnotatedExpression>{annotated_expr_1});
   Operator group_by_2_2 = HashGroupBy::make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_2},
                                        std::vector<AnnotatedExpression>{annotated_expr_2});
-  Operator group_by_3 = HashGroupBy::make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_3}, std::vector<AnnotatedExpression>{annotated_expr_3});
+  Operator group_by_3 = HashGroupBy::make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_3}, std::vector<AnnotatedExpression>());
   Operator group_by_7_4 = HashGroupBy::make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_7},
                                        std::vector<AnnotatedExpression>{annotated_expr_4});
+  Operator group_by_4 = HashGroupBy::make(std::vector<common::ManagedPointer<parser::AbstractExpression>>(),
+                                            std::vector<AnnotatedExpression>{annotated_expr_1});
 
   EXPECT_EQ(group_by_1_1.GetType(), OpType::HASHGROUPBY);
   EXPECT_EQ(group_by_3.GetType(), OpType::HASHGROUPBY);
@@ -1808,11 +1810,13 @@ TEST(OperatorTests, HashGroupByTest) {
   EXPECT_FALSE(group_by_1_1 == group_by_7_4);
   EXPECT_FALSE(group_by_1_0 == group_by_1_1);
   EXPECT_FALSE(group_by_3 == group_by_7_4);
+  EXPECT_FALSE(group_by_4 == group_by_1_1);
 
   EXPECT_EQ(group_by_1_1.Hash(), group_by_2_2.Hash());
   EXPECT_NE(group_by_1_1.Hash(), group_by_7_4.Hash());
   EXPECT_NE(group_by_1_0.Hash(), group_by_1_1.Hash());
   EXPECT_NE(group_by_3.Hash(), group_by_7_4.Hash());
+  EXPECT_NE(group_by_4.Hash(), group_by_1_1.Hash());
 
   delete expr_b_1;
   delete expr_b_2;
@@ -1829,19 +1833,79 @@ TEST(OperatorTests, SortGroupByTest) {
   //===--------------------------------------------------------------------===//
   // SortGroupBy
   //===--------------------------------------------------------------------===//
-  Operator sort_group_by_1 =
-      SortGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpression>>(), std::vector<AnnotatedExpression>());
-  Operator sort_group_by_2 =
-      SortGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpression>>(), std::vector<AnnotatedExpression>());
-  auto expr_sort_group_by =
-      std::make_shared<parser::ConstantValueExpression>(type::TransientValueFactory::GetTinyInt(1));
-  Operator sort_group_by_3 = SortGroupBy::make(
-      std::vector<std::shared_ptr<parser::AbstractExpression>>{expr_sort_group_by}, std::vector<AnnotatedExpression>());
+  // ConstValueExpression subclass AbstractExpression
+  auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  auto expr_b_7 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
 
-  EXPECT_EQ(sort_group_by_1.GetType(), OpType::SORTGROUPBY);
-  EXPECT_EQ(sort_group_by_1.GetName(), "SortGroupBy");
-  EXPECT_TRUE(sort_group_by_1 == sort_group_by_2);
-  EXPECT_FALSE(sort_group_by_1 == sort_group_by_3);
+  // columns: vector of shared_ptr of AbstractExpression
+  auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
+  auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
+  auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
+  auto x_7 = common::ManagedPointer<parser::AbstractExpression>(expr_b_7);
+
+  // ConstValueExpression subclass AbstractExpression
+  auto expr_b_4 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_5 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_8 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_6 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  auto x_4 = common::ManagedPointer<parser::AbstractExpression>(expr_b_4);
+  auto x_5 = common::ManagedPointer<parser::AbstractExpression>(expr_b_5);
+  auto x_6 = common::ManagedPointer<parser::AbstractExpression>(expr_b_6);
+  auto x_8 = common::ManagedPointer<parser::AbstractExpression>(expr_b_8);
+
+  // havings: vector of AnnotatedExpression
+  auto annotated_expr_0 =
+      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
+  auto annotated_expr_1 = AnnotatedExpression(x_4, std::unordered_set<std::string>());
+  auto annotated_expr_2 = AnnotatedExpression(x_5, std::unordered_set<std::string>());
+  auto annotated_expr_3 = AnnotatedExpression(x_6, std::unordered_set<std::string>());
+  auto annotated_expr_4 = AnnotatedExpression(x_8, std::unordered_set<std::string>());
+
+  Operator group_by_1_0 = SortGroupBy::make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1},
+                                            std::vector<AnnotatedExpression>{annotated_expr_0});
+  Operator group_by_1_1 = SortGroupBy::make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1},
+                                            std::vector<AnnotatedExpression>{annotated_expr_1});
+  Operator group_by_2_2 = SortGroupBy::make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_2},
+                                            std::vector<AnnotatedExpression>{annotated_expr_2});
+  Operator group_by_3 = SortGroupBy::make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_3}, std::vector<AnnotatedExpression>());
+  Operator group_by_7_4 = SortGroupBy::make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_7},
+                                            std::vector<AnnotatedExpression>{annotated_expr_4});
+  Operator group_by_4 = SortGroupBy::make(std::vector<common::ManagedPointer<parser::AbstractExpression>>(),
+                                          std::vector<AnnotatedExpression>{annotated_expr_1});
+
+  EXPECT_EQ(group_by_1_1.GetType(), OpType::SORTGROUPBY);
+  EXPECT_EQ(group_by_3.GetType(), OpType::SORTGROUPBY);
+  EXPECT_EQ(group_by_7_4.GetName(), "SortGroupBy");
+  EXPECT_EQ(group_by_1_1.As<SortGroupBy>()->GetColumns(),
+            std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1});
+  EXPECT_EQ(group_by_3.As<SortGroupBy>()->GetColumns(),
+            std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_3});
+  EXPECT_EQ(group_by_1_1.As<SortGroupBy>()->GetHaving(),
+            std::vector<AnnotatedExpression>{annotated_expr_1});
+  EXPECT_EQ(group_by_7_4.As<SortGroupBy>()->GetHaving(),
+            std::vector<AnnotatedExpression>{annotated_expr_4});
+  EXPECT_TRUE(group_by_1_1 == group_by_2_2);
+  EXPECT_FALSE(group_by_1_1 == group_by_7_4);
+  EXPECT_FALSE(group_by_1_0 == group_by_1_1);
+  EXPECT_FALSE(group_by_3 == group_by_7_4);
+  EXPECT_FALSE(group_by_4 == group_by_1_1);
+
+  EXPECT_EQ(group_by_1_1.Hash(), group_by_2_2.Hash());
+  EXPECT_NE(group_by_1_1.Hash(), group_by_7_4.Hash());
+  EXPECT_NE(group_by_1_0.Hash(), group_by_1_1.Hash());
+  EXPECT_NE(group_by_3.Hash(), group_by_7_4.Hash());
+  EXPECT_NE(group_by_4.Hash(), group_by_1_1.Hash());
+
+  delete expr_b_1;
+  delete expr_b_2;
+  delete expr_b_3;
+  delete expr_b_4;
+  delete expr_b_5;
+  delete expr_b_6;
+  delete expr_b_7;
+  delete expr_b_8;
 }
 
 // NOLINTNEXTLINE
