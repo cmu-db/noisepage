@@ -16,7 +16,7 @@ namespace terrier::tpcc {
  */
 class Builder {
  public:
-  explicit Builder(storage::BlockStore *const store) : store_(store), oid_counter_(0) {}
+  explicit Builder(storage::BlockStore *const store) : store_(store), oid_counter_(1) {}
   Database *Build() {
     // generate all of the table schemas
     auto item_schema = Schemas::BuildItemTableSchema(&oid_counter_);
@@ -126,6 +126,18 @@ class Builder {
     auto *const item_index = BuildPrimaryIndex(item_primary_index_schema);
     auto *const stock_index = BuildPrimaryIndex(stock_primary_index_schema);
 
+    const catalog::db_oid_t db_oid(++oid_counter_);
+
+    const catalog::table_oid_t item_table_oid(++oid_counter_);
+    const catalog::table_oid_t warehouse_table_oid(++oid_counter_);
+    const catalog::table_oid_t stock_table_oid(++oid_counter_);
+    const catalog::table_oid_t district_table_oid(++oid_counter_);
+    const catalog::table_oid_t customer_table_oid(++oid_counter_);
+    const catalog::table_oid_t history_table_oid(++oid_counter_);
+    const catalog::table_oid_t new_order_table_oid(++oid_counter_);
+    const catalog::table_oid_t order_table_oid(++oid_counter_);
+    const catalog::table_oid_t order_line_table_oid(++oid_counter_);
+
     return new Database(item_schema, warehouse_schema, stock_schema, district_schema, customer_schema, history_schema,
                         new_order_schema, order_schema, order_line_schema,
 
@@ -138,8 +150,12 @@ class Builder {
                         order_line_primary_index_schema,
 
                         item_index, warehouse_index, stock_index, district_index, customer_index,
-                        customer_secondary_index, new_order_index, order_index, order_secondary_index,
-                        order_line_index);
+                        customer_secondary_index, new_order_index, order_index, order_secondary_index, order_line_index,
+
+                        db_oid,
+
+                        item_table_oid, warehouse_table_oid, stock_table_oid, district_table_oid, customer_table_oid,
+                        history_table_oid, new_order_table_oid, order_table_oid, order_line_table_oid);
   }
 
  private:

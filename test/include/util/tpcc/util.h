@@ -8,6 +8,7 @@
 #include <vector>
 #include "catalog/schema.h"
 #include "storage/projected_row.h"
+#include "util/catalog_test_util.h"
 
 namespace terrier::tpcc {
 

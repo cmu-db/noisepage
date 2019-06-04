@@ -1,6 +1,7 @@
 #pragma once
 
 #include <utility>
+#include "catalog/catalog_defs.h"
 #include "common/macros.h"
 #include "storage/index/index_defs.h"
 
@@ -87,6 +88,18 @@ class Database {
   storage::index::Index *const order_secondary_index_;
   storage::index::Index *const order_line_primary_index_;
 
+  const catalog::db_oid_t db_oid_;
+
+  const catalog::table_oid_t item_table_oid_;
+  const catalog::table_oid_t warehouse_table_oid_;
+  const catalog::table_oid_t stock_table_oid_;
+  const catalog::table_oid_t district_table_oid_;
+  const catalog::table_oid_t customer_table_oid_;
+  const catalog::table_oid_t history_table_oid_;
+  const catalog::table_oid_t new_order_table_oid_;
+  const catalog::table_oid_t order_table_oid_;
+  const catalog::table_oid_t order_line_table_oid_;
+
  private:
   friend class Builder;
 
@@ -113,7 +126,16 @@ class Database {
            storage::index::Index *const stock_index, storage::index::Index *const district_index,
            storage::index::Index *const customer_index, storage::index::Index *const customer_name_index,
            storage::index::Index *const new_order_index, storage::index::Index *const order_index,
-           storage::index::Index *const order_secondary_index, storage::index::Index *const order_line_index)
+           storage::index::Index *const order_secondary_index, storage::index::Index *const order_line_index,
+
+           const catalog::db_oid_t db_oid,
+
+           const catalog::table_oid_t item_table_oid, const catalog::table_oid_t warehouse_table_oid,
+           const catalog::table_oid_t stock_table_oid, const catalog::table_oid_t district_table_oid,
+           const catalog::table_oid_t customer_table_oid, const catalog::table_oid_t history_table_oid,
+           const catalog::table_oid_t new_order_table_oid, const catalog::table_oid_t order_table_oid,
+           const catalog::table_oid_t order_line_table_oid)
+
       : item_schema_(std::move(item_schema)),
         warehouse_schema_(std::move(warehouse_schema)),
         stock_schema_(std::move(stock_schema)),
@@ -151,7 +173,17 @@ class Database {
         new_order_primary_index_(new_order_index),
         order_primary_index_(order_index),
         order_secondary_index_(order_secondary_index),
-        order_line_primary_index_(order_line_index) {}
+        order_line_primary_index_(order_line_index),
+        db_oid_(db_oid),
+        item_table_oid_(item_table_oid),
+        warehouse_table_oid_(warehouse_table_oid),
+        stock_table_oid_(stock_table_oid),
+        district_table_oid_(district_table_oid),
+        customer_table_oid_(customer_table_oid),
+        history_table_oid_(history_table_oid),
+        new_order_table_oid_(new_order_table_oid),
+        order_table_oid_(order_table_oid),
+        order_line_table_oid_(order_line_table_oid) {}
 };
 
 }  // namespace terrier::tpcc
