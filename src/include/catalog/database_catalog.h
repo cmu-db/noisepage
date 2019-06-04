@@ -79,7 +79,7 @@ class DatabaseCatalog {
    * @see src/include/catalog/table_details.h
    */
   table_oid_t CreateTable(transaction::TransactionContext *txn, namespace_oid_t ns, const std::string &name,
-                          std::vector<Schema::Column> columns);
+                          const Schema &schema);
 
   /**
    * Deletes a table and all child objects (i.e columns, indexes, etc.) from
