@@ -1141,6 +1141,23 @@ Operator InsertSelect::make(catalog::db_oid_t database_oid, catalog::namespace_o
   return Operator(insert_op);
 }
 
+common::hash_t InsertSelect::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
+  return hash;
+}
+
+bool InsertSelect::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::INSERTSELECT) return false;
+  const InsertSelect &node = *dynamic_cast<const InsertSelect *>(&r);
+  if (database_oid_ != node.database_oid_) return false;
+  if (namespace_oid_ != node.namespace_oid_) return false;
+  if (table_oid_ != node.table_oid_) return false;
+  return (true);
+}
+
 //===--------------------------------------------------------------------===//
 // Delete
 //===--------------------------------------------------------------------===//

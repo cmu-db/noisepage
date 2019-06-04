@@ -1628,11 +1628,29 @@ TEST(OperatorTests, InsertSelectTest) {
   //===--------------------------------------------------------------------===//
   // InsertSelect
   //===--------------------------------------------------------------------===//
-  Operator insert_select =
-      InsertSelect::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3));
+  catalog::db_oid_t database_oid(123);
+  catalog::namespace_oid_t namespace_oid(456);
+  catalog::table_oid_t table_oid(789);
 
-  EXPECT_EQ(insert_select.GetType(), OpType::INSERTSELECT);
-  EXPECT_EQ(insert_select.GetName(), "InsertSelect");
+  // Check that all of our GET methods work as expected
+  Operator op1 = InsertSelect::make(database_oid, namespace_oid, table_oid);
+  EXPECT_EQ(op1.GetType(), OpType::INSERTSELECT);
+  EXPECT_EQ(op1.As<InsertSelect>()->GetDatabaseOid(), database_oid);
+  EXPECT_EQ(op1.As<InsertSelect>()->GetNamespaceOid(), namespace_oid);
+  EXPECT_EQ(op1.As<InsertSelect>()->GetTableOid(), table_oid);
+
+  // Check that if we make a new object with the same values, then it will
+  // be equal to our first object and have the same hash
+  Operator op2 = InsertSelect::make(database_oid, namespace_oid, table_oid);
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+
+  // Lastly, make a different object and make sure that it is not equal
+  // and that it's hash is not the same!
+  catalog::db_oid_t other_database_oid(999);
+  Operator op3 = InsertSelect::make(other_database_oid, namespace_oid, table_oid);
+  EXPECT_FALSE(op1 == op3);
+  EXPECT_NE(op1.Hash(), op3.Hash());
 }
 
 // NOLINTNEXTLINE
