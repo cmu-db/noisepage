@@ -130,7 +130,8 @@ void SettingsManager::SetBool(Param param, bool value, common::ManagedPointer<Ac
 }
 
 void SettingsManager::SetString(Param param, const std::string_view &value,
-                                common::ManagedPointer<ActionContext> action_context, setter_callback_fn setter_callback) {
+                                common::ManagedPointer<ActionContext> action_context,
+                                setter_callback_fn setter_callback) {
   common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
   std::string_view old_value = ValuePeeker::PeekVarChar(GetValue(param));
   if (!SetValue(param, ValueFactory::GetVarChar(value))) {

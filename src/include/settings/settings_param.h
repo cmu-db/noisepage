@@ -11,7 +11,8 @@ class DBMain;
 
 namespace terrier::settings {
 
-using callback_fn = void (*)(void *, void *, DBMain *, const common::ManagedPointer<common::ActionContext> &action_context);
+using callback_fn = void (*)(void *, void *, DBMain *,
+                             const common::ManagedPointer<common::ActionContext> &action_context);
 
 /**
  * Param is a enum class, where all the setting names

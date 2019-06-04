@@ -99,8 +99,8 @@ class SettingsManager {
    * @param action_context action context for setting a string param
    * @param setter_callback callback from caller
    */
-  void SetString(Param param, const std::string_view &value, common::ManagedPointer<common::ActionContext> action_context,
-                 setter_callback_fn setter_callback);
+  void SetString(Param param, const std::string_view &value,
+                 common::ManagedPointer<common::ActionContext> action_context, setter_callback_fn setter_callback);
 
   /**
    * Validate values from DBMain map
