@@ -748,7 +748,7 @@ Operator IndexScan::make(catalog::db_oid_t database_oid, catalog::namespace_oid_
   scan->predicates_ = std::move(predicates);
   scan->key_column_oid_list_ = std::move(key_column_oid_list);
   scan->expr_type_list_ = std::move(expr_type_list);
-  scan->value_list_ = calstd::move(value_list);
+  scan->value_list_ = std::move(value_list);
 
   return Operator(scan);
 }
@@ -873,8 +873,8 @@ Operator Limit::make(int64_t offset, int64_t limit, std::vector<common::ManagedP
 // InnerNLJoin
 //===--------------------------------------------------------------------===//
 Operator InnerNLJoin::make(std::vector<AnnotatedExpression> join_predicates,
-                           std::vector<std::unique_ptr<parser::AbstractExpression>> &&left_keys,
-                           std::vector<std::unique_ptr<parser::AbstractExpression>> &&right_keys) {
+                           std::vector<common::ManagedPointer<parser::AbstractExpression>> &&left_keys,
+                           std::vector<common::ManagedPointer<parser::AbstractExpression>> &&right_keys) {
   auto *join = new InnerNLJoin();
   join->join_predicates_ = std::move(join_predicates);
   join->left_keys_ = std::move(left_keys);
