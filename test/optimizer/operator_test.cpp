@@ -923,6 +923,19 @@ TEST(OperatorTests, LogicalAggregateAndGroupByTest) {
 }
 
 // NOLINTNEXTLINE
+TEST(OperatorTests, TableFreeScanTest) {
+  // TableFreeScan operator does not have any data members.
+  // So we just need to make sure that all instantiations
+  // of the object are equivalent.
+  Operator op1 = TableFreeScan::make();
+  EXPECT_EQ(op1.GetType(), OpType::TABLEFREESCAN);
+
+  Operator op2 = TableFreeScan::make();
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+}
+
+// NOLINTNEXTLINE
 TEST(OperatorTests, SeqScanTest) {
   //===--------------------------------------------------------------------===//
   // SeqScan
@@ -1004,8 +1017,6 @@ TEST(OperatorTests, IndexScanTest) {
   //===--------------------------------------------------------------------===//
   // IndexScan
   //===--------------------------------------------------------------------===//
-
-
   // predicates
   auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
   auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
@@ -1223,13 +1234,15 @@ TEST(OperatorTests, QueryDerivedScanTest) {
 
 // NOLINTNEXTLINE
 TEST(OperatorTests, OrderByTest) {
-  //===--------------------------------------------------------------------===//
-  // OrderBy
-  //===--------------------------------------------------------------------===//
-  Operator order_by = OrderBy::make();
+  // OrderBy operator does not have any data members.
+  // So we just need to make sure that all instantiations
+  // of the object are equivalent.
+  Operator op1 = OrderBy::make();
+  EXPECT_EQ(op1.GetType(), OpType::ORDERBY);
 
-  EXPECT_EQ(order_by.GetType(), OpType::ORDERBY);
-  EXPECT_EQ(order_by.GetName(), "OrderBy");
+  Operator op2 = OrderBy::make();
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
 }
 
 // NOLINTNEXTLINE
@@ -1336,10 +1349,32 @@ TEST(OperatorTests, LeftNLJoinTest) {
   //===--------------------------------------------------------------------===//
   // LeftNLJoin
   //===--------------------------------------------------------------------===//
-  Operator left_nl_join = LeftNLJoin::make(std::shared_ptr<parser::AbstractExpression>());
+  auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
 
-  EXPECT_EQ(left_nl_join.GetType(), OpType::LEFTNLJOIN);
-  EXPECT_EQ(left_nl_join.GetName(), "LeftNLJoin");
+  auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
+  auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
+  auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
+
+  Operator left_nl_join_1 = LeftNLJoin::make(x_1);
+  Operator left_nl_join_2 = LeftNLJoin::make(x_2);
+  Operator left_nl_join_3 = LeftNLJoin::make(x_3);
+
+  EXPECT_EQ(left_nl_join_1.GetType(), OpType::LEFTNLJOIN);
+  EXPECT_EQ(left_nl_join_3.GetType(), OpType::LEFTNLJOIN);
+  EXPECT_EQ(left_nl_join_1.GetName(), "LeftNLJoin");
+  EXPECT_EQ(*(left_nl_join_1.As<LeftNLJoin>()->GetJoinPredicate()), *x_1);
+  EXPECT_EQ(*(left_nl_join_2.As<LeftNLJoin>()->GetJoinPredicate()), *x_2);
+  EXPECT_EQ(*(left_nl_join_3.As<LeftNLJoin>()->GetJoinPredicate()), *x_3);
+  EXPECT_TRUE(left_nl_join_1 == left_nl_join_2);
+  EXPECT_FALSE(left_nl_join_1 == left_nl_join_3);
+  EXPECT_EQ(left_nl_join_1.Hash(), left_nl_join_2.Hash());
+  EXPECT_NE(left_nl_join_1.Hash(), left_nl_join_3.Hash());
+
+  delete expr_b_1;
+  delete expr_b_2;
+  delete expr_b_3;
 }
 
 // NOLINTNEXTLINE
@@ -1347,10 +1382,32 @@ TEST(OperatorTests, RightNLJoinTest) {
   //===--------------------------------------------------------------------===//
   // RightNLJoin
   //===--------------------------------------------------------------------===//
-  Operator right_nl_join = RightNLJoin::make(std::shared_ptr<parser::AbstractExpression>());
+  auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
 
-  EXPECT_EQ(right_nl_join.GetType(), OpType::RIGHTNLJOIN);
-  EXPECT_EQ(right_nl_join.GetName(), "RightNLJoin");
+  auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
+  auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
+  auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
+
+  Operator right_nl_join_1 = RightNLJoin::make(x_1);
+  Operator right_nl_join_2 = RightNLJoin::make(x_2);
+  Operator right_nl_join_3 = RightNLJoin::make(x_3);
+
+  EXPECT_EQ(right_nl_join_1.GetType(), OpType::RIGHTNLJOIN);
+  EXPECT_EQ(right_nl_join_3.GetType(), OpType::RIGHTNLJOIN);
+  EXPECT_EQ(right_nl_join_1.GetName(), "RightNLJoin");
+  EXPECT_EQ(*(right_nl_join_1.As<RightNLJoin>()->GetJoinPredicate()), *x_1);
+  EXPECT_EQ(*(right_nl_join_2.As<RightNLJoin>()->GetJoinPredicate()), *x_2);
+  EXPECT_EQ(*(right_nl_join_3.As<RightNLJoin>()->GetJoinPredicate()), *x_3);
+  EXPECT_TRUE(right_nl_join_1 == right_nl_join_2);
+  EXPECT_FALSE(right_nl_join_1 == right_nl_join_3);
+  EXPECT_EQ(right_nl_join_1.Hash(), right_nl_join_2.Hash());
+  EXPECT_NE(right_nl_join_1.Hash(), right_nl_join_3.Hash());
+
+  delete expr_b_1;
+  delete expr_b_2;
+  delete expr_b_3;
 }
 
 // NOLINTNEXTLINE

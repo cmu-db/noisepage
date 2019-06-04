@@ -967,6 +967,9 @@ class TableFreeScan : public OperatorNode<TableFreeScan> {
    * @return a TableFreeScan operator
    */
   static Operator make();
+
+  bool operator==(const BaseOperatorNode &r) override;
+  common::hash_t Hash() const override;
 };
 
 /**
@@ -1297,6 +1300,9 @@ class OrderBy : public OperatorNode<OrderBy> {
    * @return an OrderBy operator
    */
   static Operator make();
+
+  bool operator==(const BaseOperatorNode &r) override;
+  common::hash_t Hash() const override;
 };
 
 /**
@@ -1311,7 +1317,7 @@ class Limit : public OperatorNode<Limit> {
    * @param sort_ascending sorting order
    * @return a Limit operator
    */
-  static Operator make(int64_t offset, int64_t limit, std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_columns,
+  static Operator make(size_t offset, size_t limit, std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_columns,
                        std::vector<bool> &&sort_ascending);
 
   /**
@@ -1376,7 +1382,7 @@ class InnerNLJoin : public OperatorNode<InnerNLJoin> {
    * @param right_keys right keys to join
    * @return an InnerNLJoin operator
    */
-  static Operator make(std::vector<AnnotatedExpression> join_predicates,
+  static Operator make(std::vector<AnnotatedExpression> &&join_predicates,
                        std::vector<common::ManagedPointer<parser::AbstractExpression>> &&left_keys,
                        std::vector<common::ManagedPointer<parser::AbstractExpression>> &&right_keys);
 
@@ -1425,13 +1431,18 @@ class LeftNLJoin : public OperatorNode<LeftNLJoin> {
    * @param join_predicate predicate for join
    * @return a LeftNLJoin operator
    */
-  static Operator make(std::shared_ptr<parser::AbstractExpression> join_predicate);
+  static Operator make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
+
+  /**
+   * @return Predicate for the join
+   */
+  const common::ManagedPointer<parser::AbstractExpression> GetJoinPredicate() const { return join_predicate_; }
 
  private:
   /**
    * Predicate for join
    */
-  std::shared_ptr<parser::AbstractExpression> join_predicate_;
+  common::ManagedPointer<parser::AbstractExpression> join_predicate_;
 };
 
 /**
@@ -1443,13 +1454,18 @@ class RightNLJoin : public OperatorNode<RightNLJoin> {
    * @param join_predicate predicate for join
    * @return a RightNLJoin operator
    */
-  static Operator make(std::shared_ptr<parser::AbstractExpression> join_predicate);
+  static Operator make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
+
+  /**
+   * @return Predicate for the join
+   */
+  const common::ManagedPointer<parser::AbstractExpression> GetJoinPredicate() const { return join_predicate_; }
 
  private:
   /**
    * Predicate for join
    */
-  std::shared_ptr<parser::AbstractExpression> join_predicate_;
+  common::ManagedPointer<parser::AbstractExpression> join_predicate_;
 };
 
 /**

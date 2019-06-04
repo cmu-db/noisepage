@@ -692,6 +692,17 @@ Operator TableFreeScan::make() {
   return Operator(table_free_scan);
 }
 
+bool TableFreeScan::operator==(const BaseOperatorNode &r) {
+    return (r.GetType() == OpType::TABLEFREESCAN);
+  // Again, there isn't any internal data so I guess we're always equal!
+}
+
+common::hash_t TableFreeScan::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  // I guess every TableFreeScan object hashes to the same thing?
+  return hash;
+}
+
 //===--------------------------------------------------------------------===//
 // SeqScan
 //===--------------------------------------------------------------------===//
@@ -818,7 +829,7 @@ common::hash_t ExternalFileScan::Hash() const {
 }
 
 //===--------------------------------------------------------------------===//
-// Query derived get
+// Query derived scan
 //===--------------------------------------------------------------------===//
 Operator QueryDerivedScan::make(
     std::string table_alias,
@@ -856,10 +867,21 @@ Operator OrderBy::make() {
   return Operator(order_by);
 }
 
+bool OrderBy::operator==(const BaseOperatorNode &r) {
+  return (r.GetType() == OpType::ORDERBY);
+  // Again, there isn't any internal data so I guess we're always equal!
+}
+
+common::hash_t OrderBy::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  // I guess every TableFreeScan object hashes to the same thing?
+  return hash;
+}
+
 //===--------------------------------------------------------------------===//
 // PhysicalLimit
 //===--------------------------------------------------------------------===//
-Operator Limit::make(int64_t offset, int64_t limit, std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_columns,
+Operator Limit::make(size_t offset, size_t limit, std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_columns,
                      std::vector<bool> &&sort_ascending) {
   auto *limit_op = new Limit;
   limit_op->offset_ = offset;
@@ -872,7 +894,7 @@ Operator Limit::make(int64_t offset, int64_t limit, std::vector<common::ManagedP
 //===--------------------------------------------------------------------===//
 // InnerNLJoin
 //===--------------------------------------------------------------------===//
-Operator InnerNLJoin::make(std::vector<AnnotatedExpression> join_predicates,
+Operator InnerNLJoin::make(std::vector<AnnotatedExpression> &&join_predicates,
                            std::vector<common::ManagedPointer<parser::AbstractExpression>> &&left_keys,
                            std::vector<common::ManagedPointer<parser::AbstractExpression>> &&right_keys) {
   auto *join = new InnerNLJoin();
@@ -912,18 +934,18 @@ bool InnerNLJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // LeftNLJoin
 //===--------------------------------------------------------------------===//
-Operator LeftNLJoin::make(std::shared_ptr<parser::AbstractExpression> join_predicate) {
+Operator LeftNLJoin::make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
   auto *join = new LeftNLJoin();
-  join->join_predicate_ = std::move(join_predicate);
+  join->join_predicate_ = join_predicate;
   return Operator(join);
 }
 
 //===--------------------------------------------------------------------===//
 // RightNLJoin
 //===--------------------------------------------------------------------===//
-Operator RightNLJoin::make(std::shared_ptr<parser::AbstractExpression> join_predicate) {
+Operator RightNLJoin::make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
   auto *join = new RightNLJoin();
-  join->join_predicate_ = std::move(join_predicate);
+  join->join_predicate_ = join_predicate;
   return Operator(join);
 }
 
