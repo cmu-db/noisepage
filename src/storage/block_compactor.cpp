@@ -275,11 +275,12 @@ void BlockCompactor::CopyToArrowVarlen(std::vector<const byte *> *loose_ptrs, Ar
   // the old Arrow storage.
   ArrowVarlenColumn new_col(varlen_size, metadata->NumRecords() + 1);
   for (uint32_t i = 0, acc = 0; i < metadata->NumRecords(); i++) {
+    new_col.Offsets()[i] = acc;
     if (!column_bitmap->Test(i)) continue;
+
     // Only do a gather operation if the column is varlen
     VarlenEntry &entry = values[i];
     std::memcpy(new_col.Values() + acc, entry.Content(), entry.Size());
-    new_col.Offsets()[i] = acc;
 
     // Need to GC
     if (entry.NeedReclaim()) loose_ptrs->push_back(entry.Content());

@@ -97,7 +97,7 @@ struct StorageTestUtil {
     std::bernoulli_distribution coin(1 - null_bias);
     // TODO(Tianyu): I don't think this matters as a tunable thing?
     // Make sure we have a mix of inlined and non-inlined values
-    std::uniform_int_distribution<uint32_t> varlen_size(1, 2 * storage::VarlenEntry::InlineThreshold());
+    std::uniform_int_distribution<uint32_t> varlen_size(1, 5 * storage::VarlenEntry::InlineThreshold());
     // For every column in the project list, populate its attribute with random bytes or set to null based on coin flip
     for (uint16_t projection_list_idx = 0; projection_list_idx < row->NumColumns(); projection_list_idx++) {
       storage::col_id_t col = row->ColumnIds()[projection_list_idx];
@@ -184,7 +184,7 @@ struct StorageTestUtil {
       auto *redo_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
       storage::ProjectedRow *redo = initializer.InitializeRow(redo_buffer);
       StorageTestUtil::PopulateRandomRow(redo, layout, null_ratio, generator);
-      result[slot] = redo;
+      result[slot] = StorageTestUtil::ProjectedRowDeepCopy(layout, *redo);
       // Copy without transactions to simulate a version-free block
       accessor.SetNotNull(slot, VERSION_POINTER_COLUMN_ID);
       for (uint16_t j = 0; j < redo->NumColumns(); j++)
@@ -304,6 +304,33 @@ struct StorageTestUtil {
       if (memcmp(one_content, other_content, attr_size) != 0) return false;
     }
     return true;
+  }
+
+  static storage::ProjectedRow *ProjectedRowDeepCopy(const storage::BlockLayout &layout,
+                                                     const storage::ProjectedRow &original) {
+    byte *result_buf = common::AllocationUtil::AllocateAligned(original.Size());
+    std::memcpy(result_buf, &original, original.Size());
+    auto *result = reinterpret_cast<storage::ProjectedRow *>(result_buf);
+
+    for (uint16_t projection_list_index = 0; projection_list_index < original.NumColumns(); projection_list_index++) {
+      storage::col_id_t col_id = result->ColumnIds()[projection_list_index];
+      const byte *original_val = original.AccessWithNullCheck(projection_list_index);
+      if (!layout.IsVarlen(col_id)) continue;
+
+      auto *original_entry = reinterpret_cast<const storage::VarlenEntry *>(original_val);
+      if (original_entry == nullptr) continue;
+
+      auto *copied_entry = reinterpret_cast<storage::VarlenEntry *>(result->AccessForceNotNull(projection_list_index));
+      if (original_entry->IsInlined()) {
+        *copied_entry = *original_entry;
+      } else {
+        byte *copied_content = common::AllocationUtil::AllocateAligned(original_entry->Size());
+        std::memcpy(copied_content, original_entry->Content(), original_entry->Size());
+        // Always needs reclaim because we just made a copy
+        *copied_entry = storage::VarlenEntry::Create(copied_content, original_entry->Size(), true);
+      }
+    }
+    return result;
   }
 
   template <class RowType>
