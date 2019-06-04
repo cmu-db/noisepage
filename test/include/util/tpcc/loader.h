@@ -139,12 +139,13 @@ struct Loader {
       for (int32_t i_id = 0; i_id < 100000; i_id++) {
         // 100,000 rows in the ITEM table
         // insert in table
-        const auto *const item_tuple =
-            BuildItemTuple(i_id + 1, item_original[i_id], worker->item_tuple_buffer, item_tuple_pr_initializer,
-                           item_tuple_pr_map, db->item_schema_, generator);
-        const auto item_slot = db->item_table_->Insert(txn, *item_tuple);
+        auto *const item_redo = txn->StageWrite(db->db_oid_, db->item_table_oid_, item_tuple_pr_initializer);
+        BuildItemTuple(i_id + 1, item_original[i_id], item_redo->Delta(), item_tuple_pr_map, db->item_schema_,
+                       generator);
+        db->item_table_->Insert(txn, item_redo);
 
         // insert in index
+        const auto item_slot = item_redo->GetTupleSlot();
         const auto *const item_key = BuildItemKey(i_id + 1, worker->item_key_buffer, item_key_pr_initializer,
                                                   item_key_pr_map, db->item_primary_index_schema_);
         bool UNUSED_ATTRIBUTE index_insert_result = db->item_primary_index_->InsertUnique(txn, *item_key, item_slot);
@@ -155,12 +156,14 @@ struct Loader {
     for (int8_t w_id = 0; w_id < num_warehouses; w_id++) {
       // 1 row in the WAREHOUSE table for each configured warehouse
       // insert in table
-      const auto *const warehouse_tuple =
-          BuildWarehouseTuple(static_cast<int8_t>(w_id + 1), worker->warehouse_tuple_buffer,
-                              warehouse_tuple_pr_initializer, warehouse_tuple_pr_map, db->warehouse_schema_, generator);
-      const auto warehouse_slot = db->warehouse_table_->Insert(txn, *warehouse_tuple);
+      auto *const warehouse_redo =
+          txn->StageWrite(db->db_oid_, db->warehouse_table_oid_, warehouse_tuple_pr_initializer);
+      BuildWarehouseTuple(static_cast<int8_t>(w_id + 1), warehouse_redo->Delta(), warehouse_tuple_pr_map,
+                          db->warehouse_schema_, generator);
+      db->warehouse_table_->Insert(txn, warehouse_redo);
 
       // insert in index
+      const auto warehouse_slot = warehouse_redo->GetTupleSlot();
       const auto *const warehouse_key =
           BuildWarehouseKey(static_cast<int8_t>(w_id + 1), worker->warehouse_key_buffer, warehouse_key_pr_initializer,
                             warehouse_key_pr_map, db->warehouse_primary_index_schema_);
@@ -182,12 +185,13 @@ struct Loader {
           // 100,000 rows in the STOCK table
 
           // insert in table
-          const auto *const stock_tuple = BuildStockTuple(
-              s_i_id + 1, static_cast<int8_t>(w_id + 1), stock_original[s_i_id], worker->stock_tuple_buffer,
-              stock_tuple_pr_initializer, stock_tuple_pr_map, db->stock_schema_, generator);
-          const auto stock_slot = db->stock_table_->Insert(txn, *stock_tuple);
+          auto *const stock_redo = txn->StageWrite(db->db_oid_, db->stock_table_oid_, stock_tuple_pr_initializer);
+          BuildStockTuple(s_i_id + 1, static_cast<int8_t>(w_id + 1), stock_original[s_i_id], stock_redo->Delta(),
+                          stock_tuple_pr_map, db->stock_schema_, generator);
+          db->stock_table_->Insert(txn, stock_redo);
 
           // insert in index
+          const auto stock_slot = stock_redo->GetTupleSlot();
           const auto *const stock_key =
               BuildStockKey(s_i_id + 1, static_cast<int8_t>(w_id + 1), worker->stock_key_buffer,
                             stock_key_pr_initializer, stock_key_pr_map, db->stock_primary_index_schema_);
@@ -201,12 +205,14 @@ struct Loader {
         // 10 rows in the DISTRICT table
 
         // insert in table
-        const auto *const district_tuple = BuildDistrictTuple(
-            static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), worker->district_tuple_buffer,
-            district_tuple_pr_initializer, district_tuple_pr_map, db->district_schema_, generator);
-        const auto district_slot = db->district_table_->Insert(txn, *district_tuple);
+        auto *const district_redo =
+            txn->StageWrite(db->db_oid_, db->district_table_oid_, district_tuple_pr_initializer);
+        BuildDistrictTuple(static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), district_redo->Delta(),
+                           district_tuple_pr_map, db->district_schema_, generator);
+        db->district_table_->Insert(txn, district_redo);
 
         // insert in index
+        const auto district_slot = district_redo->GetTupleSlot();
         const auto *const district_key =
             BuildDistrictKey(static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), worker->district_key_buffer,
                              district_key_pr_initializer, district_key_pr_map, db->district_primary_index_schema_);
@@ -231,13 +237,14 @@ struct Loader {
           // 3,000 rows in the CUSTOMER table
 
           // insert in table
-          const auto *const customer_tuple =
-              BuildCustomerTuple(c_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), c_credit[c_id],
-                                 worker->customer_tuple_buffer, customer_tuple_pr_initializer, customer_tuple_pr_map,
-                                 db->customer_schema_, generator);
-          const auto customer_slot = db->customer_table_->Insert(txn, *customer_tuple);
+          auto *const customer_redo =
+              txn->StageWrite(db->db_oid_, db->customer_table_oid_, customer_tuple_pr_initializer);
+          BuildCustomerTuple(c_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), c_credit[c_id],
+                             customer_redo->Delta(), customer_tuple_pr_map, db->customer_schema_, generator);
+          db->customer_table_->Insert(txn, customer_redo);
 
           // insert in index
+          const auto customer_slot = customer_redo->GetTupleSlot();
           const auto *const customer_key = BuildCustomerKey(
               c_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), worker->customer_key_buffer,
               customer_key_pr_initializer, customer_key_pr_map, db->customer_primary_index_schema_);
@@ -246,7 +253,7 @@ struct Loader {
 
           // insert in customer name index
           const auto c_last_tuple =
-              *reinterpret_cast<const storage::VarlenEntry *const>(customer_tuple->AccessWithNullCheck(
+              *reinterpret_cast<const storage::VarlenEntry *const>(customer_redo->Delta()->AccessWithNullCheck(
                   customer_tuple_pr_map.at(db->customer_schema_.GetColumn(5).GetOid())));
 
           storage::ProjectedRow *customer_name_key = nullptr;
@@ -271,22 +278,24 @@ struct Loader {
 
           // For each row in the CUSTOMER table:
           // 1 row in the HISTORY table
-          db->history_table_->Insert(
-              txn, *BuildHistoryTuple(c_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1),
-                                      worker->history_tuple_buffer, history_tuple_pr_initializer, history_tuple_pr_map,
-                                      db->history_schema_, generator));
+          auto *const history_redo = txn->StageWrite(db->db_oid_, db->history_table_oid_, history_tuple_pr_initializer);
+          BuildHistoryTuple(c_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1),
+                            history_redo->Delta(), history_tuple_pr_map, db->history_schema_, generator);
+          db->history_table_->Insert(txn, history_redo);
 
           // For each row in the DISTRICT table:
           // 3,000 rows in the ORDER table
 
           // insert in table
           const auto o_id = c_id;
-          const auto order_results = BuildOrderTuple(
-              o_id + 1, o_c_ids[c_id], static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1),
-              worker->order_tuple_buffer, order_tuple_pr_initializer, order_tuple_pr_map, db->order_schema_, generator);
-          const auto order_slot = db->order_table_->Insert(txn, *(order_results.pr));
+          auto *const order_redo = txn->StageWrite(db->db_oid_, db->order_table_oid_, order_tuple_pr_initializer);
+          const auto order_results =
+              BuildOrderTuple(o_id + 1, o_c_ids[c_id], static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1),
+                              order_redo->Delta(), order_tuple_pr_map, db->order_schema_, generator);
+          db->order_table_->Insert(txn, order_redo);
 
           // insert in index
+          const auto order_slot = order_redo->GetTupleSlot();
           const auto *const order_key = BuildOrderKey(
               o_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), worker->order_key_buffer,
               order_key_pr_initializer, order_key_pr_map, db->order_primary_index_schema_);
@@ -306,13 +315,15 @@ struct Loader {
           // data generation of the New-Order transaction (see Clause 2.4.1)
           for (int8_t ol_number = 0; ol_number < order_results.o_ol_cnt; ol_number++) {
             // insert in table
-            const auto *const order_line_tuple = BuildOrderLineTuple(
-                o_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1),
-                static_cast<int8_t>(ol_number + 1), order_results.o_entry_d, worker->order_line_tuple_buffer,
-                order_line_tuple_pr_initializer, order_line_tuple_pr_map, db->order_line_schema_, generator);
-            const auto order_line_slot = db->order_line_table_->Insert(txn, *order_line_tuple);
+            auto *const order_line_redo =
+                txn->StageWrite(db->db_oid_, db->order_line_table_oid_, order_line_tuple_pr_initializer);
+            BuildOrderLineTuple(o_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1),
+                                static_cast<int8_t>(ol_number + 1), order_results.o_entry_d, order_line_redo->Delta(),
+                                order_line_tuple_pr_map, db->order_line_schema_, generator);
+            db->order_line_table_->Insert(txn, order_line_redo);
 
             // insert in index
+            const auto order_line_slot = order_line_redo->GetTupleSlot();
             const auto *const order_line_key = BuildOrderLineKey(
                 o_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1),
                 static_cast<int8_t>(ol_number + 1), worker->order_line_key_buffer, order_line_key_pr_initializer,
@@ -326,12 +337,14 @@ struct Loader {
           // (i.e., with NO_O_ID between 2,101 and 3,000)
           if (o_id + 1 >= 2101) {
             // insert in table
-            const auto *const new_order_tuple = BuildNewOrderTuple(
-                o_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), worker->new_order_tuple_buffer,
-                new_order_tuple_pr_initializer, new_order_tuple_pr_map, db->new_order_schema_);
-            const auto new_order_slot = db->new_order_table_->Insert(txn, *new_order_tuple);
+            auto *const new_order_redo =
+                txn->StageWrite(db->db_oid_, db->new_order_table_oid_, new_order_tuple_pr_initializer);
+            BuildNewOrderTuple(o_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1),
+                               new_order_redo->Delta(), new_order_tuple_pr_map, db->new_order_schema_);
+            db->new_order_table_->Insert(txn, new_order_redo);
 
             // insert in index
+            const auto new_order_slot = new_order_redo->GetTupleSlot();
             const auto *const new_order_key = BuildNewOrderKey(
                 o_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), worker->new_order_key_buffer,
                 new_order_key_pr_initializer, new_order_key_pr_map, db->new_order_primary_index_schema_);
@@ -346,14 +359,11 @@ struct Loader {
   }
 
   template <class Random>
-  static storage::ProjectedRow *BuildItemTuple(const int32_t i_id, const bool original, byte *const buffer,
-                                               const storage::ProjectedRowInitializer &pr_initializer,
-                                               const storage::ProjectionMap &projection_map,
-                                               const catalog::Schema &schema, Random *const generator) {
+  static void BuildItemTuple(const int32_t i_id, const bool original, storage::ProjectedRow *const pr,
+                             const storage::ProjectionMap &projection_map, const catalog::Schema &schema,
+                             Random *const generator) {
     TERRIER_ASSERT(i_id >= 1 && i_id <= 100000, "Invalid i_id.");
-    TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
-
-    auto *const pr = pr_initializer.InitializeRow(buffer);
+    TERRIER_ASSERT(pr != nullptr, "ProjectedRow is nullptr.");
 
     uint32_t col_offset = 0;
 
@@ -388,8 +398,6 @@ struct Loader {
     }
 
     TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for Item tuple.");
-
-    return pr;
   }
 
   static storage::ProjectedRow *BuildItemKey(const int32_t i_id, byte *const buffer,
@@ -412,14 +420,11 @@ struct Loader {
   }
 
   template <class Random>
-  static storage::ProjectedRow *BuildWarehouseTuple(const int8_t w_id, byte *const buffer,
-                                                    const storage::ProjectedRowInitializer &pr_initializer,
-                                                    const storage::ProjectionMap &projection_map,
-                                                    const catalog::Schema &schema, Random *const generator) {
+  static void BuildWarehouseTuple(const int8_t w_id, storage::ProjectedRow *const pr,
+                                  const storage::ProjectionMap &projection_map, const catalog::Schema &schema,
+                                  Random *const generator) {
     TERRIER_ASSERT(w_id >= 1, "Invalid w_id.");
-    TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
-
-    auto *const pr = pr_initializer.InitializeRow(buffer);
+    TERRIER_ASSERT(pr != nullptr, "ProjectedRow is nullptr.");
 
     uint32_t col_offset = 0;
 
@@ -467,8 +472,6 @@ struct Loader {
     Util::SetTupleAttribute<double>(schema, col_offset++, projection_map, pr, 300000.0);
 
     TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for Warehouse tuple.");
-
-    return pr;
   }
 
   static storage::ProjectedRow *BuildWarehouseKey(
@@ -491,16 +494,13 @@ struct Loader {
   }
 
   template <class Random>
-  static storage::ProjectedRow *BuildStockTuple(const int32_t s_i_id, const int8_t w_id, const bool original,
-                                                byte *const buffer,
-                                                const storage::ProjectedRowInitializer &pr_initializer,
-                                                const storage::ProjectionMap &projection_map,
-                                                const catalog::Schema &schema, Random *const generator) {
+  static void BuildStockTuple(const int32_t s_i_id, const int8_t w_id, const bool original,
+
+                              storage::ProjectedRow *const pr, const storage::ProjectionMap &projection_map,
+                              const catalog::Schema &schema, Random *const generator) {
     TERRIER_ASSERT(s_i_id >= 1 && s_i_id <= 100000, "Invalid s_i_id.");
     TERRIER_ASSERT(w_id >= 1, "Invalid w_id.");
-    TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
-
-    auto *const pr = pr_initializer.InitializeRow(buffer);
+    TERRIER_ASSERT(pr != nullptr, "ProjectedRow is nullptr.");
 
     uint32_t col_offset = 0;
 
@@ -591,8 +591,6 @@ struct Loader {
     }
 
     TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for Stock tuple.");
-
-    return pr;
   }
 
   static storage::ProjectedRow *BuildStockKey(const int32_t s_i_id, const int8_t w_id, byte *const buffer,
@@ -617,15 +615,12 @@ struct Loader {
   }
 
   template <class Random>
-  static storage::ProjectedRow *BuildDistrictTuple(const int8_t d_id, const int8_t w_id, byte *const buffer,
-                                                   const storage::ProjectedRowInitializer &pr_initializer,
-                                                   const storage::ProjectionMap &projection_map,
-                                                   const catalog::Schema &schema, Random *const generator) {
+  static void BuildDistrictTuple(const int8_t d_id, const int8_t w_id, storage::ProjectedRow *const pr,
+                                 const storage::ProjectionMap &projection_map, const catalog::Schema &schema,
+                                 Random *const generator) {
     TERRIER_ASSERT(d_id >= 1 && d_id <= 10, "Invalid d_id.");
     TERRIER_ASSERT(w_id >= 1, "Invalid w_id.");
-    TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
-
-    auto *const pr = pr_initializer.InitializeRow(buffer);
+    TERRIER_ASSERT(pr != nullptr, "ProjectedRow is nullptr.");
 
     uint32_t col_offset = 0;
 
@@ -681,8 +676,6 @@ struct Loader {
     Util::SetTupleAttribute<int32_t>(schema, col_offset++, projection_map, pr, 3001);
 
     TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for District tuple.");
-
-    return pr;
   }
 
   static storage::ProjectedRow *BuildDistrictKey(const int8_t d_id, const int8_t w_id, byte *const buffer,
@@ -707,17 +700,13 @@ struct Loader {
   }
 
   template <class Random>
-  static storage::ProjectedRow *BuildCustomerTuple(const int32_t c_id, const int8_t d_id, const int8_t w_id,
-                                                   const bool good_credit, byte *const buffer,
-                                                   const storage::ProjectedRowInitializer &pr_initializer,
-                                                   const storage::ProjectionMap &projection_map,
-                                                   const catalog::Schema &schema, Random *const generator) {
+  static void BuildCustomerTuple(const int32_t c_id, const int8_t d_id, const int8_t w_id, const bool good_credit,
+                                 storage::ProjectedRow *const pr, const storage::ProjectionMap &projection_map,
+                                 const catalog::Schema &schema, Random *const generator) {
     TERRIER_ASSERT(c_id >= 1 && c_id <= 3000, "Invalid c_id.");
     TERRIER_ASSERT(d_id >= 1 && d_id <= 10, "Invalid d_id.");
     TERRIER_ASSERT(w_id >= 1, "Invalid w_id.");
-    TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
-
-    auto *const pr = pr_initializer.InitializeRow(buffer);
+    TERRIER_ASSERT(pr != nullptr, "ProjectedRow is nullptr.");
 
     uint32_t col_offset = 0;
 
@@ -836,8 +825,6 @@ struct Loader {
                                                   Util::AlphaNumericVarlenEntry(300, 500, false, generator));
 
     TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for Customer tuple.");
-
-    return pr;
   }
 
   static storage::ProjectedRow *BuildCustomerKey(const int32_t c_id, const int8_t d_id, const int8_t w_id,
@@ -888,17 +875,13 @@ struct Loader {
   }
 
   template <class Random>
-  static storage::ProjectedRow *BuildHistoryTuple(const int32_t c_id, const int8_t d_id, const int8_t w_id,
-                                                  byte *const buffer,
-                                                  const storage::ProjectedRowInitializer &pr_initializer,
-                                                  const storage::ProjectionMap &projection_map,
-                                                  const catalog::Schema &schema, Random *const generator) {
+  static void BuildHistoryTuple(const int32_t c_id, const int8_t d_id, const int8_t w_id,
+                                storage::ProjectedRow *const pr, const storage::ProjectionMap &projection_map,
+                                const catalog::Schema &schema, Random *const generator) {
     TERRIER_ASSERT(c_id >= 1 && c_id <= 3000, "Invalid c_id.");
     TERRIER_ASSERT(d_id >= 1 && d_id <= 10, "Invalid d_id.");
     TERRIER_ASSERT(w_id >= 1, "Invalid w_id.");
-    TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
-
-    auto *const pr = pr_initializer.InitializeRow(buffer);
+    TERRIER_ASSERT(pr != nullptr, "ProjectedRow is nullptr.");
 
     uint32_t col_offset = 0;
 
@@ -936,21 +919,15 @@ struct Loader {
                                                   Util::AlphaNumericVarlenEntry(12, 24, false, generator));
 
     TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for History tuple.");
-
-    return pr;
   }
 
-  static storage::ProjectedRow *BuildNewOrderTuple(const int32_t o_id, const int8_t d_id, const int8_t w_id,
-                                                   byte *const buffer,
-                                                   const storage::ProjectedRowInitializer &pr_initializer,
-                                                   const storage::ProjectionMap &projection_map,
-                                                   const catalog::Schema &schema) {
+  static void BuildNewOrderTuple(const int32_t o_id, const int8_t d_id, const int8_t w_id,
+                                 storage::ProjectedRow *const pr, const storage::ProjectionMap &projection_map,
+                                 const catalog::Schema &schema) {
     TERRIER_ASSERT(o_id >= 2101 && o_id <= 3000, "Invalid o_id.");
     TERRIER_ASSERT(d_id >= 1 && d_id <= 10, "Invalid d_id.");
     TERRIER_ASSERT(w_id >= 1, "Invalid w_id.");
-    TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
-
-    auto *const pr = pr_initializer.InitializeRow(buffer);
+    TERRIER_ASSERT(pr != nullptr, "ProjectedRow is nullptr.");
 
     uint32_t col_offset = 0;
 
@@ -967,8 +944,6 @@ struct Loader {
     Util::SetTupleAttribute<int8_t>(schema, col_offset++, projection_map, pr, w_id);
 
     TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for New Order tuple.");
-
-    return pr;
   }
 
   static storage::ProjectedRow *BuildNewOrderKey(const int32_t o_id, const int8_t d_id, const int8_t w_id,
@@ -996,23 +971,20 @@ struct Loader {
   }
 
   struct OrderTupleResults {
-    storage::ProjectedRow *const pr;
     uint64_t o_entry_d;
     int8_t o_ol_cnt;
   };
 
   template <class Random>
   static OrderTupleResults BuildOrderTuple(const int32_t o_id, const int32_t c_id, const int8_t d_id, const int8_t w_id,
-                                           byte *const buffer, const storage::ProjectedRowInitializer &pr_initializer,
+                                           storage::ProjectedRow *const pr,
                                            const storage::ProjectionMap &projection_map, const catalog::Schema &schema,
                                            Random *const generator) {
     TERRIER_ASSERT(o_id >= 1 && o_id <= 3000, "Invalid o_id.");
     TERRIER_ASSERT(c_id >= 1 && c_id <= 3000, "Invalid c_id.");
     TERRIER_ASSERT(d_id >= 1 && d_id <= 10, "Invalid d_id.");
     TERRIER_ASSERT(w_id >= 1, "Invalid w_id.");
-    TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
-
-    auto *const pr = pr_initializer.InitializeRow(buffer);
+    TERRIER_ASSERT(pr != nullptr, "ProjectedRow is nullptr.");
 
     uint32_t col_offset = 0;
 
@@ -1059,7 +1031,7 @@ struct Loader {
 
     TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for Order tuple.");
 
-    return {pr, entry_d, static_cast<int8_t>(ol_cnt)};
+    return {entry_d, static_cast<int8_t>(ol_cnt)};
   }
 
   static storage::ProjectedRow *BuildOrderKey(const int32_t o_id, const int8_t d_id, const int8_t w_id,
@@ -1113,18 +1085,14 @@ struct Loader {
   }
 
   template <class Random>
-  static storage::ProjectedRow *BuildOrderLineTuple(const int32_t o_id, const int8_t d_id, const int8_t w_id,
-                                                    const int8_t ol_number, const uint64_t o_entry_d,
-                                                    byte *const buffer,
-                                                    const storage::ProjectedRowInitializer &pr_initializer,
-                                                    const storage::ProjectionMap &projection_map,
-                                                    const catalog::Schema &schema, Random *const generator) {
+  static void BuildOrderLineTuple(const int32_t o_id, const int8_t d_id, const int8_t w_id, const int8_t ol_number,
+                                  const uint64_t o_entry_d, storage::ProjectedRow *const pr,
+                                  const storage::ProjectionMap &projection_map, const catalog::Schema &schema,
+                                  Random *const generator) {
     TERRIER_ASSERT(o_id >= 1 && o_id <= 3000, "Invalid o_id.");
     TERRIER_ASSERT(d_id >= 1 && d_id <= 10, "Invalid d_id.");
     TERRIER_ASSERT(w_id >= 1, "Invalid w_id.");
-    TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
-
-    auto *const pr = pr_initializer.InitializeRow(buffer);
+    TERRIER_ASSERT(pr != nullptr, "ProjectedRow is nullptr.");
 
     uint32_t col_offset = 0;
 
@@ -1183,8 +1151,6 @@ struct Loader {
                                                   Util::AlphaNumericVarlenEntry(24, 24, false, generator));
 
     TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for Order Line tuple.");
-
-    return pr;
   }
 
   static storage::ProjectedRow *BuildOrderLineKey(
