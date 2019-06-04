@@ -22,6 +22,10 @@ namespace terrier::tpcc {
 
 #define LOG_FILE_NAME "./tpcc.log"
 
+/**
+ * The behavior in these benchmarks mimics that of /test/integration/tpcc_test.cpp. If something changes here, it should
+ * probably change there as well.
+ */
 class TPCCBenchmark : public benchmark::Fixture {
  public:
   void StartLogging() {

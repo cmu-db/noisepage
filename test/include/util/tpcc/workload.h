@@ -261,54 +261,20 @@ std::vector<std::vector<TransactionArgs>> PrecomputeArgs(Random *const generator
   return precomputed_args;
 }
 
-void Workload(const int8_t worker_id, Database *const tpcc_db, transaction::TransactionManager *const txn_manager,
-              const std::vector<std::vector<TransactionArgs>> &precomputed_args, std::vector<Worker> *const workers) {
-  auto new_order = NewOrder(tpcc_db);
-  auto payment = Payment(tpcc_db);
-  auto order_status = OrderStatus(tpcc_db);
-  auto delivery = Delivery(tpcc_db);
-  auto stock_level = StockLevel(tpcc_db);
-
-  for (const auto &txn_args : precomputed_args[worker_id]) {
-    switch (txn_args.type) {
-      case TransactionType::NewOrder: {
-        new_order.Execute(txn_manager, tpcc_db, &((*workers)[worker_id]), txn_args);
-        break;
-      }
-      case TransactionType::Payment: {
-        payment.Execute(txn_manager, tpcc_db, &((*workers)[worker_id]), txn_args);
-        break;
-      }
-      case TransactionType::OrderStatus: {
-        order_status.Execute(txn_manager, tpcc_db, &((*workers)[worker_id]), txn_args);
-        break;
-      }
-      case TransactionType::Delivery: {
-        delivery.Execute(txn_manager, tpcc_db, &((*workers)[worker_id]), txn_args);
-        break;
-      }
-      case TransactionType::StockLevel: {
-        stock_level.Execute(txn_manager, tpcc_db, &((*workers)[worker_id]), txn_args);
-        break;
-      }
-      default:
-        throw std::runtime_error("Unexpected transaction type.");
-    }
-  }
-}
+/**
+ * Function to invoke for a single worker thread to invoke its TPC-C workload to completion
+ * @param worker_id 1-indexed thread id
+ * @param tpcc_db pointer to the database
+ * @param txn_manager pointer to the txn_manager
+ * @param precomputed_args all of the precomputed args for this TPC-C run
+ * @param workers preallocated workers with buffers to use for execution
+ */
+void Workload(int8_t worker_id, Database *tpcc_db, transaction::TransactionManager *txn_manager,
+              const std::vector<std::vector<TransactionArgs>> &precomputed_args, std::vector<Worker> *workers);
 
 /**
  * Clean up the buffers from any non-inlined VarlenEntrys in the precomputed args
  * @param precomputed_args args to look for non-inlined VarlenEntrys to free
  */
-void CleanUpVarlensInPrecomputedArgs(const std::vector<std::vector<TransactionArgs>> *const precomputed_args) {
-  for (const auto &worker_id : *precomputed_args) {
-    for (const auto &args : worker_id) {
-      if ((args.type == TransactionType::Payment || args.type == TransactionType::OrderStatus) && args.use_c_last &&
-          !args.c_last.IsInlined()) {
-        delete[] args.c_last.Content();
-      }
-    }
-  }
-}
+void CleanUpVarlensInPrecomputedArgs(const std::vector<std::vector<TransactionArgs>> *precomputed_args);
 }  // namespace terrier::tpcc

@@ -3,13 +3,11 @@
 #include <utility>
 #include "catalog/catalog_defs.h"
 #include "common/macros.h"
+#include "storage/index/index.h"
 #include "storage/index/index_defs.h"
 
 namespace terrier::storage {
 class SqlTable;
-namespace index {
-class Index;
-}
 }  // namespace terrier::storage
 
 namespace terrier::catalog {
@@ -19,7 +17,8 @@ class Schema;
 namespace terrier::tpcc {
 
 /*
- * Contains all of the tables, indexes, and associated schemas for the TPC-C benchmark. Created by the Builder class.
+ * Contains all of the tables, indexes, and associated schemas for the TPC-C benchmark. This is effectively a
+ * replacement for not having a catalog. Created by the Builder class.
  */
 class Database {
  public:
