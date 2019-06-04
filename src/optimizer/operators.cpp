@@ -1096,10 +1096,22 @@ bool RightHashJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // OuterHashJoin
 //===--------------------------------------------------------------------===//
-Operator OuterHashJoin::make(std::shared_ptr<parser::AbstractExpression> join_predicate) {
+Operator OuterHashJoin::make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
   auto *join = new OuterHashJoin();
-  join->join_predicate_ = std::move(join_predicate);
+  join->join_predicate_ = join_predicate;
   return Operator(join);
+}
+
+common::hash_t OuterHashJoin::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, join_predicate_->Hash());
+  return hash;
+}
+
+bool OuterHashJoin::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::OUTERHASHJOIN) return false;
+  const OuterHashJoin &node = *static_cast<const OuterHashJoin *>(&r);
+  return (*join_predicate_ == *(node.join_predicate_));
 }
 
 //===--------------------------------------------------------------------===//
