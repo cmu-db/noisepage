@@ -5,6 +5,7 @@
 #include <utility>
 #include "gtest/gtest.h"
 #include "main/db_main.h"
+#include "settings/settings_callbacks.h"
 #include "settings/settings_manager.h"
 #include "util/test_harness.h"
 
@@ -19,6 +20,7 @@ class SettingsTests : public TerrierTest {
  protected:
   DBMain *db_main_;
   SettingsManager *settings_manager_;
+  storage::LogManager *log_manager_;
   transaction::TransactionManager *txn_manager_;
   storage::RecordBufferSegmentPool *buffer_segment_pool_;
 
@@ -31,6 +33,7 @@ class SettingsTests : public TerrierTest {
     db_main_ = new DBMain(std::move(param_map));
     db_main_->Init();
     settings_manager_ = db_main_->settings_manager_;
+    log_manager_ = db_main_->log_manager_;
     txn_manager_ = db_main_->txn_manager_;
     buffer_segment_pool_ = db_main_->buffer_segment_pool_;
   }
@@ -74,6 +77,23 @@ TEST_F(SettingsTests, CallbackTest) {
 
   bufferPoolSize = buffer_segment_pool_->GetSizeLimit();
   EXPECT_EQ(bufferPoolSize, newBufferPoolSize);
+}
+
+// NOLINTNEXTLINE
+TEST_F(SettingsTests, LogManagerSettingsTest) {
+  // Check default value is correctly passed to log manager
+  auto num_buffers = settings_manager_->GetInt(Param::num_log_manager_buffers);
+  EXPECT_EQ(num_buffers, log_manager_->TestGetNumBuffers());
+
+  // Change value
+  auto new_num_buffers = num_buffers + 1;
+  std::shared_ptr<common::ActionContext> action_context = std::make_shared<common::ActionContext>(1);
+  setter_callback_fn setter_callback = SettingsTests::EmptySetterCallback;
+  settings_manager_->SetInt(Param::num_log_manager_buffers, new_num_buffers, action_context, setter_callback);
+
+  // Check new value is propagated
+  EXPECT_EQ(new_num_buffers, settings_manager_->GetInt(Param::num_log_manager_buffers));
+  EXPECT_EQ(new_num_buffers, log_manager_->TestGetNumBuffers());
 }
 
 // Test concurrent modification to buffer pool size.
