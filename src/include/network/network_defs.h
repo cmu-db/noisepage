@@ -20,15 +20,18 @@
 #include "common/macros.h"
 #include "loggers/main_logger.h"
 #include "parser/pg_trigger.h"
+#include "traffic_cop/result_set.h"
 #include "type/type_id.h"
 
-namespace terrier::network {
+namespace terrier::traffic_cop {
+class TrafficCop;
+}
 
-// For epoch
-// static const size_t EPOCH_LENGTH = 40;
+namespace terrier::network {
+class PostgresPacketWriter;
 
 // For threads
-#define CONNECTION_THREAD_COUNT 1
+#define CONNECTION_THREAD_COUNT 4
 
 // Number of seconds to timeout on a client read
 #define READ_TIMEOUT (20 * 60)
@@ -52,7 +55,11 @@ using uchar = unsigned char;
 /* type for buffer of bytes */
 using ByteBuf = std::vector<uchar>;
 
-using CallbackFunc = std::function<void(void)>;
+using NetworkCallback = std::function<void(void)>;
+
+using traffic_cop::TrafficCop;
+
+using SimpleQueryCallback = std::function<void(const traffic_cop::ResultSet &, network::PostgresPacketWriter *)>;
 
 enum class NetworkProtocolType {
   POSTGRES_JDBC,
@@ -69,7 +76,7 @@ enum class NetworkMessageType : unsigned char {
   NULL_COMMAND = '0',
 
   // Messages that don't have headers (like Startup message)
-  NO_HEADER,
+  NO_HEADER = 255,
 
   // Responses
   PARSE_COMPLETE = '1',
@@ -82,6 +89,7 @@ enum class NetworkMessageType : unsigned char {
   EMPTY_QUERY_RESPONSE = 'I',
   NO_DATA_RESPONSE = 'n',
   READY_FOR_QUERY = 'Z',
+  PARAMETER_DESCRIPTION = 't',
   ROW_DESCRIPTION = 'T',
   DATA_ROW = 'D',
   // Errors
@@ -105,7 +113,7 @@ enum class NetworkMessageType : unsigned char {
 // Describe Message Types
 //===--------------------------------------------------------------------===//
 
-enum class ExtendedQueryObjectType : unsigned char { PORTAL = 'P', PREPARED = 'S' };
+enum class DescribeCommandObjectType : unsigned char { PORTAL = 'P', STATEMENT = 'S' };
 
 //===--------------------------------------------------------------------===//
 // Query Types

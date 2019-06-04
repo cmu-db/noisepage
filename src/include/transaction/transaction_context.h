@@ -80,7 +80,7 @@ class TransactionContext {
    * @return a persistent pointer to the head of a memory chunk large enough to hold the undo record
    */
   storage::UndoRecord *UndoRecordForInsert(storage::DataTable *const table, const storage::TupleSlot slot) {
-    byte *result = undo_buffer_.NewEntry(sizeof(storage::UndoRecord));
+    byte *const result = undo_buffer_.NewEntry(sizeof(storage::UndoRecord));
     return storage::UndoRecord::InitializeInsert(result, txn_id_.load(), slot, table);
   }
 
@@ -91,36 +91,36 @@ class TransactionContext {
    * @return a persistent pointer to the head of a memory chunk large enough to hold the undo record
    */
   storage::UndoRecord *UndoRecordForDelete(storage::DataTable *const table, const storage::TupleSlot slot) {
-    byte *result = undo_buffer_.NewEntry(sizeof(storage::UndoRecord));
+    byte *const result = undo_buffer_.NewEntry(sizeof(storage::UndoRecord));
     return storage::UndoRecord::InitializeDelete(result, txn_id_.load(), slot, table);
   }
 
   /**
    * Expose a record that can hold a change, described by the initializer given, that will be logged out to disk.
    * The change can either be copied into this space, or written in the space and then used to change the DataTable.
-   * // TODO(Matt): this isn't ideal for Insert since have to call that first and then log it after have a TupleSlot,
-   * but it is safe and correct from WAL standpoint
-   * @param table the DataTable that this record changes
-   * @param slot the slot that this record changes
+   * @param db_oid the database oid that this record changes
+   * @param table_oid the table oid that this record changes
    * @param initializer the initializer to use for the underlying record
    * @return pointer to the initialized redo record.
    */
-  storage::RedoRecord *StageWrite(storage::DataTable *const table, const storage::TupleSlot slot,
+  storage::RedoRecord *StageWrite(const catalog::db_oid_t db_oid, const catalog::table_oid_t table_oid,
                                   const storage::ProjectedRowInitializer &initializer) {
-    uint32_t size = storage::RedoRecord::Size(initializer);
-    auto *log_record =
-        storage::RedoRecord::Initialize(redo_buffer_.NewEntry(size), start_time_, table, slot, initializer);
+    const uint32_t size = storage::RedoRecord::Size(initializer);
+    auto *const log_record =
+        storage::RedoRecord::Initialize(redo_buffer_.NewEntry(size), start_time_, db_oid, table_oid, initializer);
     return log_record->GetUnderlyingRecordBodyAs<storage::RedoRecord>();
   }
 
   /**
    * Initialize a record that logs a delete, that will be logged out to disk
-   * @param table the DataTable that this record changes
+   * @param db_oid the database oid that this record changes
+   * @param table_oid the table oid that this record changes
    * @param slot the slot that this record changes
    */
-  void StageDelete(storage::DataTable *const table, const storage::TupleSlot slot) {
-    uint32_t size = storage::DeleteRecord::Size();
-    storage::DeleteRecord::Initialize(redo_buffer_.NewEntry(size), start_time_, table, slot);
+  void StageDelete(const catalog::db_oid_t db_oid, const catalog::table_oid_t table_oid,
+                   const storage::TupleSlot slot) {
+    const uint32_t size = storage::DeleteRecord::Size();
+    storage::DeleteRecord::Initialize(redo_buffer_.NewEntry(size), start_time_, db_oid, table_oid, slot);
   }
 
   // TODO(Tianyu): We need to discuss what happens to the loose_ptrs field now that we have deferred actions.
