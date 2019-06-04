@@ -146,7 +146,8 @@ bool BlockCompactor::MoveTuple(CompactionGroup *cg, TupleSlot from, TupleSlot to
   // Read out the tuple to copy
 
   if (!cg->table_->Select(cg->txn_, from, cg->read_buffer_)) return false;
-  RedoRecord *record = cg->txn_->StageWrite(cg->table_, to, cg->all_cols_initializer_);
+  // TODO(Tianyu): FIXME
+  RedoRecord *record = cg->txn_->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), cg->all_cols_initializer_);
   std::memcpy(record->Delta(), cg->read_buffer_, cg->all_cols_initializer_.ProjectedRowSize());
 
   // Because the GC will assume all varlen pointers are unique and deallocate the same underlying
@@ -314,7 +315,7 @@ void BlockCompactor::BuildDictionary(std::vector<const byte *> *loose_ptrs, Arro
   ArrowColumnInfo new_col_info;
   new_col_info.Type() = col->Type();
   new_col_info.Indices() = common::AllocationUtil::AllocateAligned<uint32_t>(metadata->NumRecords());
-  auto &new_col = new_col_info.VarlenColumn() = {varlen_size, metadata->NumRecords() + 1};
+  auto &new_col = new_col_info.VarlenColumn() = {varlen_size, static_cast<uint32_t>(dictionary.size() + 1)};
 
   // TODO(Tianyu): This is retarded, but apparently you cannot retrieve the index of elements in your
   // c++ map in constant time. Thus we are resorting to primitive means to implement dictionary compression.
@@ -330,7 +331,7 @@ void BlockCompactor::BuildDictionary(std::vector<const byte *> *loose_ptrs, Arro
     new_col.Offsets()[i] = acc;
     acc += entry.Size();
   }
-  new_col.Offsets()[metadata->NumRecords()] = new_col.ValuesLength();
+  new_col.Offsets()[corpus.size()] = new_col.ValuesLength();
 
   // Swing all references in the table to point there, and build the encoded column
   for (uint32_t i = 0; i < metadata->NumRecords(); i++) {
