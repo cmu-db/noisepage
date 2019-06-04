@@ -204,9 +204,10 @@ class Delivery {
       TERRIER_ASSERT(o_c_id >= 1 && o_c_id <= 3000, "Invalid o_c_id read from the Order table.");
 
       // update O_CARRIER_ID
-      auto *order_update_tuple = order_update_pr_initializer.InitializeRow(worker->order_tuple_buffer);
-      *reinterpret_cast<int8_t *>(order_update_tuple->AccessForceNotNull(0)) = args.o_carrier_id;
-      bool update_result UNUSED_ATTRIBUTE = db->order_table_->Update(txn, order_slot, *order_update_tuple);
+      auto *const order_update_redo = txn->StageWrite(db->db_oid_, db->order_table_oid_, order_update_pr_initializer);
+      *reinterpret_cast<int8_t *>(order_update_redo->Delta()->AccessForceNotNull(0)) = args.o_carrier_id;
+      order_update_redo->SetTupleSlot(order_slot);
+      bool update_result UNUSED_ATTRIBUTE = db->order_table_->Update(txn, order_update_redo);
       TERRIER_ASSERT(select_result,
                      "Order update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
 
@@ -232,20 +233,22 @@ class Delivery {
                      "There should be at least 1 Order Line item, but no more than 15.");
 
       // Retrieve sum of all OL_AMOUNT, update every OL_DELIVERY_D to current system time
-      storage::ProjectedRow *order_line_select_tuple, *order_line_update_tuple;
+      storage::ProjectedRow *order_line_select_tuple;
       double ol_amount_sum = 0.0;
-      for (const auto &tuple_slot : index_scan_results) {
+      for (const auto &order_line_slot : index_scan_results) {
         order_line_select_tuple = order_line_select_pr_initializer.InitializeRow(worker->order_line_tuple_buffer);
-        select_result = db->order_line_table_->Select(txn, tuple_slot, order_line_select_tuple);
+        select_result = db->order_line_table_->Select(txn, order_line_slot, order_line_select_tuple);
         TERRIER_ASSERT(select_result,
                        "Order Line select failed. This assertion assumes 1:1 mapping between warehouse and workers.");
         const auto ol_amount = *reinterpret_cast<double *>(order_line_select_tuple->AccessForceNotNull(0));
         ol_amount_sum += ol_amount;
         TERRIER_ASSERT(ol_amount >= 0.01 && ol_amount <= 9999.99, "Invalid ol_amount read from the Order Line table.");
 
-        order_line_update_tuple = order_line_update_pr_initializer.InitializeRow(worker->order_line_tuple_buffer);
-        *reinterpret_cast<uint64_t *>(order_line_update_tuple->AccessForceNotNull(0)) = args.ol_delivery_d;
-        update_result = db->order_line_table_->Update(txn, tuple_slot, *order_line_update_tuple);
+        auto *const order_line_update_redo =
+            txn->StageWrite(db->db_oid_, db->order_line_table_oid_, order_line_update_pr_initializer);
+        *reinterpret_cast<uint64_t *>(order_line_update_redo->Delta()->AccessForceNotNull(0)) = args.ol_delivery_d;
+        order_line_update_redo->SetTupleSlot(order_line_slot);
+        update_result = db->order_line_table_->Update(txn, order_line_update_redo);
         TERRIER_ASSERT(update_result,
                        "Order Line update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
       }
@@ -263,14 +266,16 @@ class Delivery {
       db->customer_primary_index_->ScanKey(*txn, *customer_key, &index_scan_results);
       TERRIER_ASSERT(index_scan_results.size() == 1, "Customer index scan failed.");
 
-      auto *const customer_select_tuple = customer_pr_initializer.InitializeRow(worker->customer_tuple_buffer);
+      auto *const customer_update_redo = txn->StageWrite(db->db_oid_, db->customer_table_oid_, customer_pr_initializer);
+      auto *const customer_update_tuple = customer_update_redo->Delta();
 
-      select_result = db->customer_table_->Select(txn, index_scan_results[0], customer_select_tuple);
+      select_result = db->customer_table_->Select(txn, index_scan_results[0], customer_update_tuple);
       TERRIER_ASSERT(select_result,
                      "Customer select failed. This assertion assumes 1:1 mapping between warehouse and workers.");
-      *reinterpret_cast<double *>(customer_select_tuple->AccessForceNotNull(c_balance_pr_offset)) += ol_amount_sum;
-      (*reinterpret_cast<int16_t *>(customer_select_tuple->AccessForceNotNull(c_delivery_cnt_pr_offset)))++;
-      update_result = db->customer_table_->Update(txn, index_scan_results[0], *customer_select_tuple);
+      *reinterpret_cast<double *>(customer_update_tuple->AccessForceNotNull(c_balance_pr_offset)) += ol_amount_sum;
+      (*reinterpret_cast<int16_t *>(customer_update_tuple->AccessForceNotNull(c_delivery_cnt_pr_offset)))++;
+      customer_update_redo->SetTupleSlot(index_scan_results[0]);
+      update_result = db->customer_table_->Update(txn, customer_update_redo);
       TERRIER_ASSERT(update_result,
                      "Customer update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
     }

@@ -8,12 +8,12 @@
 #include "transaction/transaction_manager.h"
 #include "util/tpcc/builder.h"
 #include "util/tpcc/database.h"
-//#include "util/tpcc/delivery.h"
+#include "util/tpcc/delivery.h"
 #include "util/tpcc/loader.h"
-//#include "util/tpcc/new_order.h"
-//#include "util/tpcc/order_status.h"
-//#include "util/tpcc/payment.h"
-//#include "util/tpcc/stock_level.h"
+#include "util/tpcc/new_order.h"
+#include "util/tpcc/order_status.h"
+#include "util/tpcc/payment.h"
+#include "util/tpcc/stock_level.h"
 #include "util/tpcc/worker.h"
 #include "util/tpcc/workload.h"
 
@@ -115,47 +115,47 @@ TEST_F(TPCCTests, TPCCTest) {
   std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
 
   // define the TPCC workload
-  //  auto tpcc_workload = [&](const int8_t worker_id) {
-  //    auto new_order = NewOrder(tpcc_db);
-  //    auto payment = Payment(tpcc_db);
-  //    auto order_status = OrderStatus(tpcc_db);
-  //    auto delivery = Delivery(tpcc_db);
-  //    auto stock_level = StockLevel(tpcc_db);
-  //
-  //    for (uint32_t i = 0; i < num_precomputed_txns_per_worker_; i++) {
-  //      const auto &txn_args = precomputed_args[worker_id][i];
-  //      switch (txn_args.type) {
-  //        case TransactionType::NewOrder: {
-  //          new_order.Execute(&txn_manager, tpcc_db, &workers[worker_id], txn_args);
-  //          break;
-  //        }
-  //        case TransactionType::Payment: {
-  //          payment.Execute(&txn_manager, tpcc_db, &workers[worker_id], txn_args);
-  //          break;
-  //        }
-  //        case TransactionType::OrderStatus: {
-  //          order_status.Execute(&txn_manager, tpcc_db, &workers[worker_id], txn_args);
-  //          break;
-  //        }
-  //        case TransactionType::Delivery: {
-  //          delivery.Execute(&txn_manager, tpcc_db, &workers[worker_id], txn_args);
-  //          break;
-  //        }
-  //        case TransactionType::StockLevel: {
-  //          stock_level.Execute(&txn_manager, tpcc_db, &workers[worker_id], txn_args);
-  //          break;
-  //        }
-  //        default:
-  //          throw std::runtime_error("Unexpected transaction type.");
-  //      }
-  //    }
-  //  };
+  auto tpcc_workload = [&](const int8_t worker_id) {
+    auto new_order = NewOrder(tpcc_db);
+    auto payment = Payment(tpcc_db);
+    auto order_status = OrderStatus(tpcc_db);
+    auto delivery = Delivery(tpcc_db);
+    auto stock_level = StockLevel(tpcc_db);
+
+    for (uint32_t i = 0; i < num_precomputed_txns_per_worker_; i++) {
+      const auto &txn_args = precomputed_args[worker_id][i];
+      switch (txn_args.type) {
+        case TransactionType::NewOrder: {
+          new_order.Execute(&txn_manager, tpcc_db, &workers[worker_id], txn_args);
+          break;
+        }
+        case TransactionType::Payment: {
+          payment.Execute(&txn_manager, tpcc_db, &workers[worker_id], txn_args);
+          break;
+        }
+        case TransactionType::OrderStatus: {
+          order_status.Execute(&txn_manager, tpcc_db, &workers[worker_id], txn_args);
+          break;
+        }
+        case TransactionType::Delivery: {
+          delivery.Execute(&txn_manager, tpcc_db, &workers[worker_id], txn_args);
+          break;
+        }
+        case TransactionType::StockLevel: {
+          stock_level.Execute(&txn_manager, tpcc_db, &workers[worker_id], txn_args);
+          break;
+        }
+        default:
+          throw std::runtime_error("Unexpected transaction type.");
+      }
+    }
+  };
 
   // run the TPCC workload to completion
-  //  for (int8_t i = 0; i < num_threads_; i++) {
-  //    thread_pool_.SubmitTask([i, &tpcc_workload] { tpcc_workload(i); });
-  //  }
-  //  thread_pool_.WaitUntilAllFinished();
+  for (int8_t i = 0; i < num_threads_; i++) {
+    thread_pool_.SubmitTask([i, &tpcc_workload] { tpcc_workload(i); });
+  }
+  thread_pool_.WaitUntilAllFinished();
 
   // cleanup
   if (logging_enabled_) EndLogging();
