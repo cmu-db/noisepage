@@ -583,7 +583,7 @@ class LogicalInsert : public OperatorNode<LogicalInsert> {
    */
   static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&columns,
-                       std::vector<std::vector<parser::AbstractExpression *>> &&values);
+                       std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &&values);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
@@ -628,7 +628,7 @@ class LogicalInsert : public OperatorNode<LogicalInsert> {
    * The expression objects to insert.
    * The offset of an entry in this list corresponds to the offset in the columns_ list.
    */
-  std::vector<std::vector<parser::AbstractExpression *>> values_;
+  std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> values_;
 };
 
 /**
