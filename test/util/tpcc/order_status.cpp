@@ -62,7 +62,7 @@ bool OrderStatus::Execute(transaction::TransactionManager *const txn_manager, Da
 
   // Select customer in table
   auto *const customer_select_tuple = customer_select_pr_initializer.InitializeRow(worker->customer_tuple_buffer);
-  bool select_result = db->customer_table_->Select(txn, customer_slot, customer_select_tuple);
+  bool UNUSED_ATTRIBUTE select_result = db->customer_table_->Select(txn, customer_slot, customer_select_tuple);
   TERRIER_ASSERT(select_result, "Customer table doesn't change (no new entries). All lookups should succeed.");
 
   const auto UNUSED_ATTRIBUTE c_id =
