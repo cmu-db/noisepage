@@ -114,9 +114,9 @@ class IndexSchema {
         is_primary_(is_primary),
         is_exclusion_(is_exclusion),
         is_immediate_(is_immediate),
-        is_valid(false),
-        is_ready(false),
-        is_live(true) {}
+        is_valid_(false),
+        is_ready_(false),
+        is_live_(true) {}
 
  private:
   const std::vector<Column> columns_;

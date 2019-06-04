@@ -189,12 +189,12 @@ class AttributeEntry {
    * Set the pointer for the cached expression object
    * @param expression to store
    */
-  void SetExpressionPointer(const AbstractExpression *expression);
+  void SetExpressionPointer(const parser::AbstractExpression *expression);
 
   /**
    * @return pointer to the cached expression object
    */
-  const AbstractExpression *GetExpressionPointer();
+  const parser::AbstractExpression *GetExpressionPointer();
 
   /**
    * Set the serialization of the expression

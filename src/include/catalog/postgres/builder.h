@@ -2,6 +2,7 @@
 
 #include <utility>
 
+#include "catalog/database_catalog.h"
 #include "catalog/index_schema.h"
 #include "catalog/schema.h"
 #include "storage/storage_defs.h"
