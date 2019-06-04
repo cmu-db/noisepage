@@ -50,7 +50,7 @@ class TPCCTests : public TerrierTest {
   storage::BlockStore block_store_{blockstore_size_limit_, blockstore_reuse_limit_};
   storage::RecordBufferSegmentPool buffer_pool_{buffersegment_size_limit_, buffersegment_reuse_limit_};
   std::default_random_engine generator_;
-  storage::LogManager *log_manager_ = LOGGING_DISABLED;
+  storage::LogManager *log_manager_ = LOGGING_DISABLED;  // logging enabled will override this value
 
   const int8_t num_threads_ = 4;  // defines the number of terminals (workers running txns) and warehouses for the
   // benchmark. Sometimes called scale factor
