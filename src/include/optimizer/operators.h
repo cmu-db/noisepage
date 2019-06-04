@@ -196,7 +196,7 @@ class LogicalQueryDerivedGet : public OperatorNode<LogicalQueryDerivedGet> {
    */
   static Operator make(
       std::string table_alias,
-      std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> &&alias_to_expr_map);
+      std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> alias_to_expr_map);
 
   bool operator==(const BaseOperatorNode &r) override;
 
