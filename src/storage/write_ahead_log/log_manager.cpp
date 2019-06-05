@@ -27,11 +27,11 @@ void LogManager::Process() {
 void LogManager::Flush() {
   {
     std::unique_lock<std::mutex> lock(persist_lock_);
-    // Signal the log consumer thread to persist the buffers to disk
+    // Signal the disk log writer task thread to persist the buffers to disk
     do_persist_ = true;
-    consumer_thread_cv_.notify_one();
+    disk_log_writer_thread_cv_.notify_one();
 
-    // Wait for the log consumer thread to persist the logs
+    // Wait for the disk log writer task thread to persist the logs
     persist_cv_.wait(lock, [&] { return !do_persist_; });
   }
   // Execute the callbacks for the transactions that have been persisted
@@ -42,14 +42,14 @@ void LogManager::Flush() {
 void LogManager::Shutdown() {
   run_log_manager_ = false;
 
-  // Process will call Flush, which will force the log consumer to consume logs
+  // Process will call Flush, which will force the disk log writer task to consume logs
   Process();
 
-  // Signal the log consumer thread to shutdown
-  // This is a blocking call, and will return when the consumer task has shut down
+  // Signal the disk log writer task thread to shutdown
+  // This is a blocking call, and will return when the disk log writer task has shut down
   DedicatedThreadRegistry::GetInstance().StopTask(this,
-                                                  common::ManagedPointer<DedicatedThreadTask>(log_consumer_task_));
-  TERRIER_ASSERT(filled_buffer_queue_.Empty(), "Consumer should have processed all filled buffers\n");
+                                                  common::ManagedPointer<DedicatedThreadTask>(disk_log_writer_task_));
+  TERRIER_ASSERT(filled_buffer_queue_.Empty(), "Disk log writer task should have processed all filled buffers\n");
 
   // Close the buffers corresponding to the log file
   for (auto buf : buffers_) {
@@ -166,7 +166,7 @@ void LogManager::WriteValue(const void *val, uint32_t size) {
     const byte *val_byte = reinterpret_cast<const byte *>(val) + size_written;
     size_written += out->BufferWrite(val_byte, size - size_written);
     if (out->IsBufferFull()) {
-      // Mark the buffer full for the log consumer thread to flush it
+      // Mark the buffer full for the disk log writer task thread to flush it
       HandFilledBufferToWriter();
       // Get an empty buffer for writing this value
       out = GetCurrentWriteBuffer();
