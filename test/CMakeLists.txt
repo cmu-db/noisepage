@@ -19,5 +19,6 @@ if (TERRIER_BUILD_TESTS)
     add_subdirectory(settings)
     add_subdirectory(planner)
     add_subdirectory(traffic_cop)
-endif()
+    add_subdirectory(integration)
+endif ()
 
