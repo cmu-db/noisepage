@@ -4,6 +4,7 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace terrier::optimizer {
@@ -31,7 +32,7 @@ class OperatorExpression {
   /**
    * @return underlying operator
    */
-  const Operator &GetOp() const { return op_; };
+  const Operator &GetOp() const { return op_; }
 
   /**
    * @return string respresentation of this OperatorExpression

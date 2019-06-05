@@ -44,12 +44,12 @@ common::hash_t Operator::Hash() const {
   return 0;
 }
 
-bool Operator::operator==(const Operator &r) {
-  if (IsDefined() && r.IsDefined()) {
-    return *node_ == *r.node_;
+bool Operator::operator==(const Operator &rhs) {
+  if (IsDefined() && rhs.IsDefined()) {
+    return *node_ == *rhs.node_;
   }
 
-  return !IsDefined() && !r.IsDefined();
+  return !IsDefined() && !rhs.IsDefined();
 }
 
 bool Operator::IsDefined() const { return node_ != nullptr; }

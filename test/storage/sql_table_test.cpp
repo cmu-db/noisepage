@@ -71,7 +71,7 @@ class SqlTableRW {
     auto txn = txn_manager_.BeginTransaction();
     auto slot = table_->Insert(txn, *insert_);
     insert_ = nullptr;
-    txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+    txn_manager_.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     delete[] insert_buffer_;
     delete txn;
@@ -90,7 +90,7 @@ class SqlTableRW {
     storage::ProjectedRow *read = pri_->InitializeRow(read_buffer);
     table_->Select(txn, slot, read);
     byte *col_p = read->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
-    txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+    txn_manager_.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
     auto ret_val = *(reinterpret_cast<uint32_t *>(col_p));
 
     delete txn;
@@ -110,7 +110,7 @@ class SqlTableRW {
     storage::ProjectedRow *read = pri_->InitializeRow(read_buffer);
     table_->Select(txn, slot, read);
     byte *col_p = read->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
-    txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+    txn_manager_.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
     auto ret_val = *(reinterpret_cast<uint64_t *>(col_p));
 
     delete txn;
@@ -130,7 +130,7 @@ class SqlTableRW {
     storage::ProjectedRow *read = pri_->InitializeRow(read_buffer);
     table_->Select(txn, slot, read);
     byte *col_p = read->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
-    txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+    txn_manager_.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
     auto ret_val = *(reinterpret_cast<uint16_t *>(col_p));
 
     delete txn;
@@ -150,7 +150,7 @@ class SqlTableRW {
     storage::ProjectedRow *read = pri_->InitializeRow(read_buffer);
     table_->Select(txn, slot, read);
     byte *col_p = read->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
-    txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+    txn_manager_.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
     auto ret_val = *(reinterpret_cast<uint8_t *>(col_p));
 
     delete txn;
@@ -220,7 +220,7 @@ class SqlTableRW {
     std::memcpy(ret_st, entry->Content(), size);
     // add the null terminator
     *(ret_st + size - 1) = 0;
-    txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+    txn_manager_.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
     delete txn;
     delete[] read_buffer;
     return ret_st;

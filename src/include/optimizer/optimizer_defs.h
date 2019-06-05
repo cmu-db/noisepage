@@ -6,6 +6,8 @@
 #include <utility>
 #include "catalog/catalog_defs.h"
 #include "common/macros.h"
+#include "common/managed_pointer.h"
+#include "parser/expression/abstract_expression.h"
 #include "parser/expression_defs.h"
 
 namespace terrier {
@@ -23,7 +25,7 @@ enum class OpType {
 
   // Logical Operators
   LOGICALGET,
-  LOGUCALEXTERNALFILEGET,
+  LOGICALEXTERNALFILEGET,
   LOGICALQUERYDERIVEDGET,
   LOGICALPROJECTION,
   LOGICALFILTER,
@@ -84,9 +86,9 @@ class AnnotatedExpression {
    * @param expr expression to be annotated
    * @param table_alias_set an unordered set of table aliases
    */
-  AnnotatedExpression(std::shared_ptr<parser::AbstractExpression> expr,
+  AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression> expr,
                       std::unordered_set<std::string> &&table_alias_set)
-      : expr_(std::move(expr)), table_alias_set_(std::move(table_alias_set)) {}
+      : expr_(expr), table_alias_set_(std::move(table_alias_set)) {}
 
   /**
    * Default copy constructor
@@ -97,18 +99,40 @@ class AnnotatedExpression {
   /**
    * @return the expresion to be annotated
    */
-  std::shared_ptr<parser::AbstractExpression> GetExpr() const { return expr_; }
+  common::ManagedPointer<parser::AbstractExpression> GetExpr() const { return expr_; }
 
   /**
    * @return the unordered set of table aliases
    */
   const std::unordered_set<std::string> &GetTableAliasSet() const { return table_alias_set_; }
 
+  /**
+   * Logical equality check.
+   * @param rhs other
+   * @return true if the two expressions are logically equal
+   */
+  bool operator==(const AnnotatedExpression &rhs) const {
+    /**
+     * In the original code, the comparison was implemented in
+     * /src/optimizer/operators.cpp by comparing only the expr of the AnnotatedExpression
+     */
+    if (!expr_ && !(rhs.expr_)) return true;
+    if (expr_ && rhs.expr_) return *expr_ == *(rhs.expr_);
+    return false;
+  }
+
+  /**
+   * Logical inequality check.
+   * @param rhs other
+   * @return true if the two expressions are logically not equal
+   */
+  bool operator!=(const AnnotatedExpression &rhs) const { return !operator==(rhs); }
+
  private:
   /**
    * Expression to be annotated
    */
-  std::shared_ptr<parser::AbstractExpression> expr_;
+  common::ManagedPointer<parser::AbstractExpression> expr_;
 
   /**
    * Unordered set of table aliases

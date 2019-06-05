@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 #include "common/hash_util.h"
-#include "optimizer_defs.h"
+#include "optimizer/optimizer_defs.h"
 
 namespace terrier::optimizer {
 
@@ -59,7 +59,7 @@ class BaseOperatorNode {
    */
   virtual common::hash_t Hash() const {
     OpType t = GetType();
-    return common::HashUtil::Hash(&t);
+    return common::HashUtil::Hash(t);
   }
 
   /**
@@ -163,7 +163,7 @@ class Operator {
    * @param rhs other
    * @return true if the two operators are logically equal, false otherwise
    */
-  bool operator==(const Operator &r);
+  bool operator==(const Operator &rhs);
 
   /**
    * Logical inequality check
@@ -218,8 +218,16 @@ namespace std {
  */
 template <>
 struct hash<terrier::optimizer::BaseOperatorNode> {
+  /**
+   * Argument type of the base operator
+   */
   using argument_type = terrier::optimizer::BaseOperatorNode;
+
+  /**
+   * Result type of the base operator
+   */
   using result_type = std::size_t;
+
   /**
    * std::hash operator for BaseOperatorNode
    * @param s a BaseOperatorNode

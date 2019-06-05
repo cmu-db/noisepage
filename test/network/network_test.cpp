@@ -13,25 +13,31 @@
 #include "gtest/gtest.h"
 #include "loggers/main_logger.h"
 #include "network/connection_handle_factory.h"
-
-#define NUM_THREADS 1
-
-/*
- * Read and write buffer size for the test
- */
-#define TEST_BUF_SIZE 1000
+#include "network/terrier_server.h"
+#include "traffic_cop/result_set.h"
+#include "traffic_cop/traffic_cop.h"
+#include "util/manual_packet_helpers.h"
 
 namespace terrier::network {
 
-//===--------------------------------------------------------------------===//
-// Simple Query Tests
-//===--------------------------------------------------------------------===//
+/*
+ * The network tests does not check whether the result is correct. It only checks if the network layer works.
+ * So, in network tests, we use a fake command factory to return empty results for every query.
+ */
+class FakeCommandFactory : public CommandFactory {
+  std::shared_ptr<PostgresNetworkCommand> PostgresPacketToCommand(PostgresInputPacket *packet) override {
+    return std::static_pointer_cast<PostgresNetworkCommand, EmptyCommand>(std::make_shared<EmptyCommand>(packet));
+  }
+};
 
 class NetworkTests : public TerrierTest {
  protected:
-  TerrierServer server;
+  std::unique_ptr<TerrierServer> server;
+  std::unique_ptr<ConnectionHandleFactory> handle_factory;
   uint16_t port = common::Settings::SERVER_PORT;
   std::thread server_thread;
+  TrafficCop t_cop;
+  FakeCommandFactory fake_command_factory;
 
   /**
    * Initialization
@@ -39,25 +45,28 @@ class NetworkTests : public TerrierTest {
   void SetUp() override {
     TerrierTest::SetUp();
 
-    network_logger->set_level(spdlog::level::debug);
+    network_logger->set_level(spdlog::level::trace);
     spdlog::flush_every(std::chrono::seconds(1));
 
     try {
-      server.SetPort(port);
-      server.SetupServer();
+      handle_factory = std::make_unique<ConnectionHandleFactory>(&t_cop, &fake_command_factory);
+      server = std::make_unique<TerrierServer>(handle_factory.get());
+      server->SetPort(port);
+      server->SetupServer();
     } catch (NetworkProcessException &exception) {
       TEST_LOG_ERROR("[LaunchServer] exception when launching server");
       throw;
     }
+
     TEST_LOG_DEBUG("Server initialized");
-    server_thread = std::thread([&]() { server.ServerLoop(); });
+    server_thread = std::thread([&]() { server->ServerLoop(); });
   }
 
   void TearDown() override {
-    server.Close();
+    server->Close();
     server_thread.join();
+    handle_factory->TearDown();
     TEST_LOG_DEBUG("Terrier has shut down");
-
     TerrierTest::TearDown();
   }
 };
@@ -87,91 +96,6 @@ TEST_F(NetworkTests, SimpleQueryTest) {
     EXPECT_TRUE(false);
   }
   TEST_LOG_DEBUG("[SimpleQueryTest] Client has closed");
-}
-
-/**
- * Read packet from the server (without parsing) until receiving ReadyForQuery or the connection is closed.
- * @param io_socket
- * @return true if reads ReadyForQuery, false for closed.
- */
-bool ReadUntilReadyOrClose(const std::shared_ptr<NetworkIoWrapper> &io_socket) {
-  while (true) {
-    Transition trans = io_socket->FillReadBuffer();
-    if (trans == Transition::TERMINATE) return false;
-
-    // Check if the last message is ReadyForQuery, whose length is fixed 6, without parsing the whole packet.
-    // Sometimes there are more than one message in one packet, so don't simply check the first character.
-    if (io_socket->in_->BytesAvailable() >= 6) {
-      io_socket->in_->Skip(io_socket->in_->BytesAvailable() - 6);
-      if (io_socket->in_->ReadValue<NetworkMessageType>() == NetworkMessageType::READY_FOR_QUERY) return true;
-    }
-  }
-}
-
-/* strlcpy based on OpenBSDs strlcpy.
- * this is a safer version of strcpy.
- * clang-tidy does not accept strcpy so we need this function.
- *
- * Copy src to string dst of size siz.  At most siz-1 characters
- * will be copied.  Always NUL terminates (unless siz == 0).
- * Returns strlen(src); if retval >= siz, truncation occurred.
- */
-size_t strlcpy(char *dst, const char *src, size_t siz) {
-  char *d = dst;
-  const char *s = src;
-  size_t n = siz;
-
-  /* Copy as many bytes as will fit */
-  if (n != 0 && --n != 0) {
-    do {
-      if ((*d++ = *s++) == 0) break;
-    } while (--n != 0);
-  }
-
-  /* Not enough room in dst, add NUL and traverse rest of src */
-  if (n == 0) {
-    if (siz != 0) *d = '\0'; /* NUL-terminate dst */
-    while ((*s++) != 0) {
-    }
-  }
-
-  return (s - src - 1); /* count does not include NUL */
-}
-
-std::shared_ptr<NetworkIoWrapper> StartConnection(uint16_t port) {
-  // Manually open a socket
-  int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
-
-  struct sockaddr_in serv_addr;
-  memset(&serv_addr, 0, sizeof(serv_addr));
-  serv_addr.sin_family = AF_INET;
-  serv_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
-  serv_addr.sin_port = htons(port);
-
-  int64_t ret = connect(socket_fd, reinterpret_cast<sockaddr *>(&serv_addr), sizeof(serv_addr));
-  if (ret < 0) TEST_LOG_ERROR("Connection Error");
-
-  auto io_socket = std::make_shared<NetworkIoWrapper>(socket_fd);
-  PostgresPacketWriter writer(io_socket->out_);
-
-  std::unordered_map<std::string, std::string> params{
-      {"user", "postgres"}, {"database", "postgres"}, {"application_name", "psql"}};
-
-  writer.WriteStartupRequest(params);
-  io_socket->FlushAllWrites();
-
-  ReadUntilReadyOrClose(io_socket);
-  return io_socket;
-}
-
-void TerminateConnection(int socket_fd) {
-  char out_buffer[TEST_BUF_SIZE] = {};
-  // Build a correct query message, "SELECT A FROM B"
-  memset(out_buffer, 0, sizeof(out_buffer));
-  out_buffer[0] = 'X';
-  int len = sizeof(int32_t) + sizeof(char);
-  reinterpret_cast<int32_t *>(out_buffer + 1)[0] = htonl(len);
-  ssize_t res UNUSED_ATTRIBUTE = write(socket_fd, nullptr, len + 1);
 }
 
 // NOLINTNEXTLINE
@@ -222,26 +146,26 @@ TEST_F(NetworkTests, NoSSLTest) {
 void TestExtendedQuery(uint16_t port) {
   std::shared_ptr<NetworkIoWrapper> io_socket = StartConnection(port);
   io_socket->out_->Reset();
-  std::string stmtName = "preparedTest";
+  std::string stmt_name = "prepared_test";
   std::string query = "INSERT INTO foo VALUES($1, $2, $3, $4);";
 
   PostgresPacketWriter writer(io_socket->out_);
-  writer.WriteParseCommand(stmtName, query, {});
+  auto type_oid = static_cast<int>(PostgresValueType::INTEGER);
+  writer.WriteParseCommand(stmt_name, query, std::vector<int>(4, type_oid));
   io_socket->FlushAllWrites();
   EXPECT_TRUE(ReadUntilReadyOrClose(io_socket));
 
-  std::string dest;
-  std::string source;
-  writer.WriteBindCommand(dest, source, {}, {}, {});
+  std::string portal_name;
+  writer.WriteBindCommand(portal_name, stmt_name, {}, {}, {});
   io_socket->FlushAllWrites();
   EXPECT_TRUE(ReadUntilReadyOrClose(io_socket));
 
-  writer.WriteExecuteCommand(stmtName, 0);
+  writer.WriteExecuteCommand(portal_name, 0);
   io_socket->FlushAllWrites();
   EXPECT_TRUE(ReadUntilReadyOrClose(io_socket));
 
   // DescribeCommand
-  writer.WriteDescribeCommand(ExtendedQueryObjectType::PREPARED, stmtName);
+  writer.WriteDescribeCommand(DescribeCommandObjectType::STATEMENT, stmt_name);
   io_socket->FlushAllWrites();
   EXPECT_TRUE(ReadUntilReadyOrClose(io_socket));
 
@@ -251,7 +175,7 @@ void TestExtendedQuery(uint16_t port) {
   EXPECT_TRUE(ReadUntilReadyOrClose(io_socket));
 
   // CloseCommand
-  writer.WriteCloseCommand(ExtendedQueryObjectType::PREPARED, stmtName);
+  writer.WriteCloseCommand(DescribeCommandObjectType::STATEMENT, stmt_name);
   io_socket->FlushAllWrites();
   EXPECT_TRUE(ReadUntilReadyOrClose(io_socket));
 
