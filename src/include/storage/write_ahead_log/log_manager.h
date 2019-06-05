@@ -20,13 +20,17 @@
 
 namespace terrier::storage {
 
+// Forward declaration for class DiskLogWriterTask
+class DiskLogWriterTask;
+
 /**
  * Callback functionn and arguments to be called when record is persisted
  */
 using CommitCallback = std::pair<transaction::callback_fn, void *>;
 
 /**
- * A BufferedLogWriter containing serialized logs, as well as all commit callbacks for transaction's whose commit are serialized in this BufferedLogWriter
+ * A BufferedLogWriter containing serialized logs, as well as all commit callbacks for transaction's whose commit are
+ * serialized in this BufferedLogWriter
  */
 using SerializedLogs = std::pair<BufferedLogWriter *, std::vector<CommitCallback>>;
 
@@ -53,8 +57,6 @@ class LogManager : public DedicatedThreadOwner {
         filled_buffer_(nullptr),
         do_persist_(true) {}
 
-  ~LogManager() override { delete disk_log_writer_task_; }
-
   /**
    * Start logging
    */
@@ -70,9 +72,8 @@ class LogManager : public DedicatedThreadOwner {
     run_log_manager_ = true;
 
     // Register disk log writer task
-    disk_log_writer_task_ = new DiskLogWriterTask(this);
-    DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread(
-        this, common::ManagedPointer<DedicatedThreadTask>(disk_log_writer_task_));
+    disk_log_writer_task_ = DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread<DiskLogWriterTask>(
+        this /* requester */, this /* argument to task constructor */);
   }
 
   /**
@@ -120,15 +121,15 @@ class LogManager : public DedicatedThreadOwner {
   }
 
   /**
-   * Process all the accumulated log records and serialize them to log consumer tasks. This method should only be called from a
-   * dedicated
-   * logging thread.
+   * Process all the accumulated log records and serialize them to log consumer tasks. This method should only be called
+   * from a dedicated logging thread.
    */
   void Process();
 
   /**
    * Flush the logs to make sure all serialized records before this invocation are persistent. Callbacks from committed
-   * transactions are invoked by log consumers when the commit records are persisted on disk. This method should only be called from a dedicated logging thread or during Shutdown
+   * transactions are invoked by log consumers when the commit records are persisted on disk. This method should only be
+   * called from a dedicated logging thread or during Shutdown
    * @warning Beware the performance consequences of calling flush too frequently
    */
   void ForceFlush();
@@ -170,7 +171,7 @@ class LogManager : public DedicatedThreadOwner {
   common::ConcurrentBlockingQueue<SerializedLogs> filled_buffer_queue_;
 
   // The log consumer task which flushes filled buffers to the disk
-  DiskLogWriterTask *disk_log_writer_task_ = nullptr;
+  common::ManagedPointer<DiskLogWriterTask> disk_log_writer_task_ = common::ManagedPointer<DiskLogWriterTask>(nullptr);
   // Flag used by the serializer thread to signal the disk log writer task thread to persist the data on disk
   volatile bool do_persist_;
 
@@ -246,9 +247,8 @@ class LogManager : public DedicatedThreadOwner {
     if (GetThreadCount() == 0) {
       // Register disk log writer task
       TERRIER_ASSERT(disk_log_writer_task_ == nullptr, "We should not have a task if we don't own a thread for it yet");
-      disk_log_writer_task_ = new DiskLogWriterTask(this);
-      DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread(
-          this, common::ManagedPointer<DedicatedThreadTask>(disk_log_writer_task_));
+      disk_log_writer_task_ = DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread<DiskLogWriterTask>(
+          this /* requester */, this /* argument to task constructor */);
       return true;
     }
     return false;
@@ -260,7 +260,6 @@ class LogManager : public DedicatedThreadOwner {
    * @return true if we allowed thread to be removed, else false
    */
   bool OnThreadRemoved(common::ManagedPointer<DedicatedThreadTask> task) override {
-    TERRIER_ASSERT(task.operator==(disk_log_writer_task_), "Log manager should only be given back it's disk log writer task ");
     // We don't want to register a task if the log manager is shutting down though.
     return !run_log_manager_;
   }
