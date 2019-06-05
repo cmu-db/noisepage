@@ -11,5 +11,6 @@ if (TERRIER_BUILD_BENCHMARKS)
     add_dependencies(benchmark_util gtest)
 
     add_subdirectory(storage)
+    add_subdirectory(integration)
     add_subdirectory(transaction)
 endif()
