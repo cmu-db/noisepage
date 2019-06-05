@@ -874,7 +874,7 @@ bool OrderBy::operator==(const BaseOperatorNode &r) {
 
 common::hash_t OrderBy::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  // I guess every TableFreeScan object hashes to the same thing?
+  // I guess every OrderBy object hashes to the same thing?
   return hash;
 }
 
@@ -1308,6 +1308,17 @@ Operator Aggregate::make() {
   return Operator(agg);
 }
 
+bool Aggregate::operator==(const BaseOperatorNode &r) {
+  return (r.GetType() == OpType::AGGREGATE);
+  // Again, there isn't any internal data so I guess we're always equal!
+}
+
+common::hash_t Aggregate::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  // I guess every Aggregate object hashes to the same thing?
+  return hash;
+}
+
 //===--------------------------------------------------------------------===//
 // Hash
 //===--------------------------------------------------------------------===//
@@ -1315,6 +1326,18 @@ Operator Distinct::make() {
   auto *hash = new Distinct;
   return Operator(hash);
 }
+
+bool Distinct::operator==(const BaseOperatorNode &r) {
+  return (r.GetType() == OpType::DISTINCT);
+  // Again, there isn't any internal data so I guess we're always equal!
+}
+
+common::hash_t Distinct::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  // I guess every Aggregate object hashes to the same thing?
+  return hash;
+}
+
 
 //===--------------------------------------------------------------------===//
 template <typename T>

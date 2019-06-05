@@ -1987,6 +1987,9 @@ class Aggregate : public OperatorNode<Aggregate> {
    * @return an Aggregate operator
    */
   static Operator make();
+
+  bool operator==(const BaseOperatorNode &r) override;
+  common::hash_t Hash() const override;
 };
 
 /**
@@ -1998,6 +2001,9 @@ class Distinct : public OperatorNode<Distinct> {
    * @return a distinct operator
    */
   static Operator make();
+
+  bool operator==(const BaseOperatorNode &r) override;
+  common::hash_t Hash() const override;
 };
 
 }  // namespace optimizer

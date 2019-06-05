@@ -924,6 +924,9 @@ TEST(OperatorTests, LogicalAggregateAndGroupByTest) {
 
 // NOLINTNEXTLINE
 TEST(OperatorTests, TableFreeScanTest) {
+  //===--------------------------------------------------------------------===//
+  // TableFreeScan
+  //===--------------------------------------------------------------------===//
   // TableFreeScan operator does not have any data members.
   // So we just need to make sure that all instantiations
   // of the object are equivalent.
@@ -1913,10 +1916,15 @@ TEST(OperatorTests, AggregateTest) {
   //===--------------------------------------------------------------------===//
   // Aggregate
   //===--------------------------------------------------------------------===//
-  Operator aggr = Aggregate::make();
+  // Aggregate operator does not have any data members.
+  // So we just need to make sure that all instantiations
+  // of the object are equivalent.
+  Operator op1 = Aggregate::make();
+  EXPECT_EQ(op1.GetType(), OpType::AGGREGATE);
 
-  EXPECT_EQ(aggr.GetType(), OpType::AGGREGATE);
-  EXPECT_EQ(aggr.GetName(), "Aggregate");
+  Operator op2 = Aggregate::make();
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
 }
 
 // NOLINTNEXTLINE
@@ -1924,10 +1932,15 @@ TEST(OperatorTests, DistinctTest) {
   //===--------------------------------------------------------------------===//
   // Distinct
   //===--------------------------------------------------------------------===//
-  Operator distinct = Distinct::make();
+  // Distinct operator does not have any data members.
+  // So we just need to make sure that all instantiations
+  // of the object are equivalent.
+  Operator op1 = Distinct::make();
+  EXPECT_EQ(op1.GetType(), OpType::DISTINCT);
 
-  EXPECT_EQ(distinct.GetType(), OpType::DISTINCT);
-  EXPECT_EQ(distinct.GetName(), "Distinct");
+  Operator op2 = Distinct::make();
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
 }
 
 }  // namespace terrier::optimizer
