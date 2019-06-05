@@ -1616,16 +1616,65 @@ TEST(OperatorTests, InsertTest) {
   //===--------------------------------------------------------------------===//
   // Insert
   //===--------------------------------------------------------------------===//
-  auto columns = new std::vector<catalog::col_oid_t>;
-  auto values = new std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>>;
-  Operator insert =
-      Insert::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), columns, values);
+  catalog::db_oid_t database_oid(123);
+  catalog::namespace_oid_t namespace_oid(456);
+  catalog::table_oid_t table_oid(789);
+  catalog::col_oid_t columns[] = {catalog::col_oid_t(1), catalog::col_oid_t(2)};
+  parser::AbstractExpression *raw_values[] = {
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1)),
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(9))};
+  std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> values = {
+      std::vector<common::ManagedPointer<parser::AbstractExpression>>(raw_values, std::end(raw_values))};
 
-  EXPECT_EQ(insert.GetType(), OpType::INSERT);
-  EXPECT_EQ(insert.GetName(), "Insert");
+  // Check that all of our GET methods work as expected
+  Operator op1 = Insert::make(database_oid, namespace_oid, table_oid,
+                                     std::vector<catalog::col_oid_t>(columns, std::end(columns)),
+                                     std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(values));
+  EXPECT_EQ(op1.GetType(), OpType::INSERT);
+  EXPECT_EQ(op1.As<Insert>()->GetDatabaseOid(), database_oid);
+  EXPECT_EQ(op1.As<Insert>()->GetNamespaceOid(), namespace_oid);
+  EXPECT_EQ(op1.As<Insert>()->GetTableOid(), table_oid);
+  EXPECT_EQ(op1.As<Insert>()->GetValues(), values);
+  EXPECT_EQ(op1.As<Insert>()->GetColumns(), (std::vector<catalog::col_oid_t>(columns, std::end(columns))));
 
-  delete columns;
-  delete values;
+
+  // Check that if we make a new object with the same values, then it will
+  // be equal to our first object and have the same hash
+  Operator op2 = Insert::make(database_oid, namespace_oid, table_oid,
+                                     std::vector<catalog::col_oid_t>(columns, std::end(columns)),
+                              std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(values));
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+
+  // For this last check, we are going to give it more rows to insert
+  // This will make sure that our hash is going deep into the vectors
+  std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> other_values = {
+      std::vector<common::ManagedPointer<parser::AbstractExpression>>(raw_values, std::end(raw_values)),
+      std::vector<common::ManagedPointer<parser::AbstractExpression>>(raw_values, std::end(raw_values))};
+  Operator op3 = Insert::make(database_oid, namespace_oid, table_oid,
+                                     std::vector<catalog::col_oid_t>(columns, std::end(columns)),
+                              std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(other_values));
+  EXPECT_FALSE(op1 == op3);
+  EXPECT_NE(op1.Hash(), op3.Hash());
+
+  // Make sure that we catch when the insert values do not match the
+  // number of columns that we are trying to insert into
+  // NOTE: We only do this for debug builds
+#ifndef NDEBUG
+  parser::AbstractExpression *bad_raw_values[] = {
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1)),
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(2)),
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(3))};
+  std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> bad_values = {
+      std::vector<common::ManagedPointer<parser::AbstractExpression>>(bad_raw_values, std::end(bad_raw_values))};
+  EXPECT_DEATH(Insert::make(database_oid, namespace_oid, table_oid,
+                                   std::vector<catalog::col_oid_t>(columns, std::end(columns)),
+                            std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(bad_values)),
+               "Mismatched");
+  for (auto entry : bad_raw_values) delete entry;
+#endif
+
+  for (auto entry : raw_values) delete entry;
 }
 
 // NOLINTNEXTLINE

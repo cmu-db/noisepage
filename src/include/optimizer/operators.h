@@ -1652,8 +1652,36 @@ class Insert : public OperatorNode<Insert> {
    * @return an Insert operator
    */
   static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::table_oid_t table_oid, const std::vector<catalog::col_oid_t> *columns,
-                       const std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> *values);
+                       catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&columns,
+                       std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &&values);
+
+  bool operator==(const BaseOperatorNode &r) override;
+  common::hash_t Hash() const override;
+
+  /**
+   * @return OID of the database
+   */
+  const catalog::db_oid_t &GetDatabaseOid() const { return database_oid_; }
+
+  /**
+   * @return OID of the namespace
+   */
+  const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
+
+  /**
+   * @return OID of the table
+   */
+  const catalog::table_oid_t &GetTableOid() const { return table_oid_; }
+
+  /**
+   * @return Columns to insert into
+   */
+  const std::vector<catalog::col_oid_t> &GetColumns() const { return columns_; }
+
+  /**
+   * @return Expressions of values to insert
+   */
+  const std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &GetValues() const { return values_; }
 
  private:
   /**
@@ -1664,7 +1692,7 @@ class Insert : public OperatorNode<Insert> {
   /**
    * OID of the namespace
    */
-  catalog::namespace_oid_t namespace_oid;
+  catalog::namespace_oid_t namespace_oid_;
 
   /**
    * OID of the table
@@ -1674,12 +1702,12 @@ class Insert : public OperatorNode<Insert> {
   /**
    * Columns to insert into
    */
-  const std::vector<catalog::col_oid_t> *columns_;
+  std::vector<catalog::col_oid_t> columns_;
 
   /**
    * Expressions of values to insert
    */
-  const std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> *values_;
+  std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> values_;
 };
 
 /**

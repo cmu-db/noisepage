@@ -1119,15 +1119,50 @@ bool OuterHashJoin::operator==(const BaseOperatorNode &r) {
 // Insert
 //===--------------------------------------------------------------------===//
 Operator Insert::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                      catalog::table_oid_t table_oid, const std::vector<catalog::col_oid_t> *columns,
-                      const std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> *values) {
-  auto *insert_op = new Insert;
-  insert_op->database_oid_ = database_oid;
-  insert_op->namespace_oid = namespace_oid;
-  insert_op->table_oid_ = table_oid;
-  insert_op->columns_ = columns;
-  insert_op->values_ = values;
-  return Operator(insert_op);
+                      catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&columns,
+                      std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &&values) {
+#ifndef NDEBUG
+  // We need to check whether the number of values for each insert vector
+  // matches the number of columns
+  for (const auto &insert_vals : values) {
+    TERRIER_ASSERT(columns.size() == insert_vals.size(), "Mismatched number of columns and values");
+  }
+#endif
+
+  auto *op = new Insert;
+  op->database_oid_ = database_oid;
+  op->namespace_oid_ = namespace_oid;
+  op->table_oid_ = table_oid;
+  op->columns_ = std::move(columns);
+  op->values_ = std::move(values);
+  return Operator(op);
+}
+
+
+common::hash_t Insert::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
+  hash = common::HashUtil::CombineHashInRange(hash, columns_.begin(), columns_.end());
+
+  // Perform a deep hash of the values
+  for (const auto &insert_vals : values_) {
+    hash = common::HashUtil::CombineHashInRange(hash, insert_vals.begin(), insert_vals.end());
+  }
+
+  return hash;
+}
+
+bool Insert::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::INSERT) return false;
+  const Insert &node = *dynamic_cast<const Insert *>(&r);
+  if (database_oid_ != node.database_oid_) return false;
+  if (namespace_oid_ != node.namespace_oid_) return false;
+  if (table_oid_ != node.table_oid_) return false;
+  if (columns_ != node.columns_) return false;
+  if (values_ != node.values_) return false;
+  return (true);
 }
 
 //===--------------------------------------------------------------------===//
