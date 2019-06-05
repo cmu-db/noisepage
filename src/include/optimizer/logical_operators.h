@@ -784,7 +784,7 @@ class LogicalDelete : public OperatorNode<LogicalDelete> {
    * @param database_oid OID of the database
    * @param namespace_oid OID of the namespace
    * @param table_oid OID of the table
-   * @returnl
+   * @return
    */
   static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t table_oid);

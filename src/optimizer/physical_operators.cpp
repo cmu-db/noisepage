@@ -47,23 +47,26 @@ Operator SeqScan::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t 
 
 bool SeqScan::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::SEQSCAN) return false;
-
   const SeqScan &node = *dynamic_cast<const SeqScan *>(&r);
-
+  if (database_oid_ != node.database_oid_) return false;
+  if (namespace_oid_ != node.namespace_oid_) return false;
+  if (table_oid_ != node.table_oid_) return false;
   if (predicates_.size() != node.predicates_.size()) return false;
-
   for (size_t i = 0; i < predicates_.size(); i++) {
     if (predicates_[i].GetExpr() != node.predicates_[i].GetExpr()) return false;
   }
-
-  return true;
+  if (table_alias_ != node.table_alias_) return false;
+  return is_for_update_ == node.is_for_update_;
 }
 
 common::hash_t SeqScan::Hash() const {
-  // only hash with table_alias and predicates?
   common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
   hash = common::HashUtil::CombineHashInRange(hash, predicates_.begin(), predicates_.end());
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(is_for_update_));
   return hash;
 }
 
@@ -94,13 +97,18 @@ bool IndexScan::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::INDEXSCAN) return false;
   const IndexScan &node = *dynamic_cast<const IndexScan *>(&r);
   if (database_oid_ != node.database_oid_ || namespace_oid_ != node.namespace_oid_ || index_oid_ != node.index_oid_ ||
-      key_column_oid_list_ != node.key_column_oid_list_ || expr_type_list_ != node.expr_type_list_ ||
-      predicates_.size() != node.predicates_.size())
+      table_alias_ != node.table_alias_ || key_column_oid_list_ != node.key_column_oid_list_ ||
+      expr_type_list_ != node.expr_type_list_ || predicates_.size() != node.predicates_.size() ||
+      key_column_oid_list_.size() != node.key_column_oid_list_.size() ||
+      expr_type_list_.size() != node.expr_type_list_.size() || value_list_.size() != node.value_list_.size())
     return false;
 
   for (size_t i = 0; i < predicates_.size(); i++) {
     if (predicates_[i].GetExpr() != node.predicates_[i].GetExpr()) return false;
   }
+  if (key_column_oid_list_ != node.key_column_oid_list_) return false;
+  if (expr_type_list_ != node.expr_type_list_) return false;
+  if (value_list_ != node.value_list_) return false;
   return true;
 }
 
@@ -111,7 +119,13 @@ common::hash_t IndexScan::Hash() const {
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&index_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&is_for_update_));
-  for (auto &pred : predicates_) hash = common::HashUtil::CombineHashes(hash, pred.GetExpr()->Hash());
+  for (auto &pred : predicates_) {
+    auto expr = pred.GetExpr();
+    if (expr)
+      hash = common::HashUtil::SumHashes(hash, expr->Hash());
+    else
+      hash = common::HashUtil::SumHashes(hash, BaseOperatorNode::Hash());
+  }
   for (auto &col_oid : key_column_oid_list_)
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&col_oid));
   for (auto &expr_type : expr_type_list_)
@@ -727,48 +741,6 @@ void OperatorNode<T>::Accept(OperatorVisitor *v) const {
 
 //===--------------------------------------------------------------------===//
 template <>
-const char *OperatorNode<LogicalGet>::name_ = "LogicalGet";
-template <>
-const char *OperatorNode<LogicalExternalFileGet>::name_ = "LogicalExternalFileGet";
-template <>
-const char *OperatorNode<LogicalQueryDerivedGet>::name_ = "LogicalQueryDerivedGet";
-template <>
-const char *OperatorNode<LogicalFilter>::name_ = "LogicalFilter";
-template <>
-const char *OperatorNode<LogicalProjection>::name_ = "LogicalProjection";
-template <>
-const char *OperatorNode<LogicalMarkJoin>::name_ = "LogicalMarkJoin";
-template <>
-const char *OperatorNode<LogicalSingleJoin>::name_ = "LogicalSingleJoin";
-template <>
-const char *OperatorNode<LogicalDependentJoin>::name_ = "LogicalDependentJoin";
-template <>
-const char *OperatorNode<LogicalInnerJoin>::name_ = "LogicalInnerJoin";
-template <>
-const char *OperatorNode<LogicalLeftJoin>::name_ = "LogicalLeftJoin";
-template <>
-const char *OperatorNode<LogicalRightJoin>::name_ = "LogicalRightJoin";
-template <>
-const char *OperatorNode<LogicalOuterJoin>::name_ = "LogicalOuterJoin";
-template <>
-const char *OperatorNode<LogicalSemiJoin>::name_ = "LogicalSemiJoin";
-template <>
-const char *OperatorNode<LogicalAggregateAndGroupBy>::name_ = "LogicalAggregateAndGroupBy";
-template <>
-const char *OperatorNode<LogicalInsert>::name_ = "LogicalInsert";
-template <>
-const char *OperatorNode<LogicalInsertSelect>::name_ = "LogicalInsertSelect";
-template <>
-const char *OperatorNode<LogicalUpdate>::name_ = "LogicalUpdate";
-template <>
-const char *OperatorNode<LogicalDelete>::name_ = "LogicalDelete";
-template <>
-const char *OperatorNode<LogicalLimit>::name_ = "LogicalLimit";
-template <>
-const char *OperatorNode<LogicalDistinct>::name_ = "LogicalDistinct";
-template <>
-const char *OperatorNode<LogicalExportExternalFile>::name_ = "LogicalExportExternalFile";
-template <>
 const char *OperatorNode<TableFreeScan>::name_ = "TableFreeScan";
 template <>
 const char *OperatorNode<SeqScan>::name_ = "SeqScan";
@@ -818,48 +790,6 @@ template <>
 const char *OperatorNode<ExportExternalFile>::name_ = "ExportExternalFile";
 
 //===--------------------------------------------------------------------===//
-template <>
-OpType OperatorNode<LogicalGet>::type_ = OpType::LOGICALGET;
-template <>
-OpType OperatorNode<LogicalExternalFileGet>::type_ = OpType::LOGICALEXTERNALFILEGET;
-template <>
-OpType OperatorNode<LogicalQueryDerivedGet>::type_ = OpType::LOGICALQUERYDERIVEDGET;
-template <>
-OpType OperatorNode<LogicalFilter>::type_ = OpType::LOGICALFILTER;
-template <>
-OpType OperatorNode<LogicalProjection>::type_ = OpType::LOGICALPROJECTION;
-template <>
-OpType OperatorNode<LogicalMarkJoin>::type_ = OpType::LOGICALMARKJOIN;
-template <>
-OpType OperatorNode<LogicalSingleJoin>::type_ = OpType::LOGICALSINGLEJOIN;
-template <>
-OpType OperatorNode<LogicalDependentJoin>::type_ = OpType::LOGICALDEPENDENTJOIN;
-template <>
-OpType OperatorNode<LogicalInnerJoin>::type_ = OpType::LOGICALINNERJOIN;
-template <>
-OpType OperatorNode<LogicalLeftJoin>::type_ = OpType::LOGICALLEFTJOIN;
-template <>
-OpType OperatorNode<LogicalRightJoin>::type_ = OpType::LOGICALRIGHTJOIN;
-template <>
-OpType OperatorNode<LogicalOuterJoin>::type_ = OpType::LOGICALOUTERJOIN;
-template <>
-OpType OperatorNode<LogicalSemiJoin>::type_ = OpType::LOGICALSEMIJOIN;
-template <>
-OpType OperatorNode<LogicalAggregateAndGroupBy>::type_ = OpType::LOGICALAGGREGATEANDGROUPBY;
-template <>
-OpType OperatorNode<LogicalInsert>::type_ = OpType::LOGICALINSERT;
-template <>
-OpType OperatorNode<LogicalInsertSelect>::type_ = OpType::LOGICALINSERTSELECT;
-template <>
-OpType OperatorNode<LogicalUpdate>::type_ = OpType::LOGICALUPDATE;
-template <>
-OpType OperatorNode<LogicalDelete>::type_ = OpType::LOGICALDELETE;
-template <>
-OpType OperatorNode<LogicalDistinct>::type_ = OpType::LOGICALDISTINCT;
-template <>
-OpType OperatorNode<LogicalLimit>::type_ = OpType::LOGICALLIMIT;
-template <>
-OpType OperatorNode<LogicalExportExternalFile>::type_ = OpType::LOGICALEXPORTEXTERNALFILE;
 template <>
 OpType OperatorNode<TableFreeScan>::type_ = OpType::TABLEFREESCAN;
 template <>

@@ -384,7 +384,7 @@ class Limit : public OperatorNode<Limit> {
    * @param offset number of offset rows to skip
    * @param limit number of rows to return
    * @param sort_columns columns on which to sort
-   * @param sort_ascending sorting order
+   * @param sort_directions sorting order
    * @return a Limit operator
    */
   static Operator make(size_t offset, size_t limit,
