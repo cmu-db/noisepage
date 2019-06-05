@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <mutex>
 #include <thread>  // NOLINT
 #include <unordered_map>
 #include <unordered_set>
