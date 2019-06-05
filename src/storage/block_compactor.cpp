@@ -147,6 +147,14 @@ bool BlockCompactor::MoveTuple(CompactionGroup *cg, TupleSlot from, TupleSlot to
 
   if (!cg->table_->Select(cg->txn_, from, cg->read_buffer_)) return false;
   // TODO(Tianyu): FIXME
+  // This is a relic from the days when the logs interacted directly with the DataTable. Since we changed the log
+  // records to only have oids, the Compactor no longer has the relevant information to directly construct
+  // log records.
+  //
+  // The right thing to do is this: Instead of directly manipulating the DataTable to do a move, the Compactor needs
+  // to go through the query engine logic to get a plan and execute said plan. It probably needs to implement its
+  // own special operators that takes physical locations instead of predicates, but it should share logic with the rest
+  // of the system when it comes to index updates and such.
   RedoRecord *record = cg->txn_->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), cg->all_cols_initializer_);
   std::memcpy(record->Delta(), cg->read_buffer_, cg->all_cols_initializer_.ProjectedRowSize());
 

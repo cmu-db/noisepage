@@ -69,7 +69,10 @@ struct BlockCompactorTest : public ::terrier::TerrierTest {
 // This tests generates random single blocks and compacts them. It then verifies that the tuples are reshuffled to be
 // compact and its contents unmodified.
 // NOLINTNEXTLINE
-TEST_F(BlockCompactorTest, SingleBlockCompactionTest) {
+TEST_F(BlockCompactorTest, CompactionTest) {
+  // TODO(Tianyu): This test currently still only tests one block at a time. We do this because the implementation
+  // only compacts block-at-a-time, although the logic handles more blocks. When we change that to have a more
+  // intelligent policy, we need to rewrite this test as well.
   uint32_t repeat = 10;
   for (uint32_t iteration = 0; iteration < repeat; iteration++) {
     storage::BlockLayout layout = StorageTestUtil::RandomLayoutWithVarlens(100, &generator_);
