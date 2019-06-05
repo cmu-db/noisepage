@@ -46,7 +46,7 @@ void LogManager::Shutdown() {
   // Signal the disk log writer task thread to shutdown
   // This is a blocking call, and will return when the disk log writer task has shut down
   DedicatedThreadRegistry::GetInstance().StopTask(this,
-                                                  common::ManagedPointer<DedicatedThreadTask>(disk_log_writer_task_));
+                                                  disk_log_writer_task_.CastManagedPointerTo<DedicatedThreadTask>());
   TERRIER_ASSERT(filled_buffer_queue_.Empty(), "Disk log writer task should have processed all filled buffers\n");
 
   // Close the buffers corresponding to the log file
@@ -54,9 +54,8 @@ void LogManager::Shutdown() {
     buf.Close();
   }
   // Clear buffer queues
-  BufferedLogWriter *tmp;
-  while (!empty_buffer_queue_.Empty()) empty_buffer_queue_.Dequeue(&tmp);
-  while (!filled_buffer_queue_.Empty()) filled_buffer_queue_.Dequeue(&tmp);
+  empty_buffer_queue_.Clear();
+  filled_buffer_queue_.Clear();
   buffers_.clear();
 }
 

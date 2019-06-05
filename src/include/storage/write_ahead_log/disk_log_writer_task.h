@@ -1,6 +1,8 @@
 #pragma once
 
-#include <common/dedicated_thread_registry.h>
+#include <utility>
+#include <vector>
+#include "common/dedicated_thread_registry.h"
 #include "storage/write_ahead_log/log_io.h"
 #include "storage/write_ahead_log/log_manager.h"
 
@@ -8,6 +10,11 @@ namespace terrier::storage {
 
 // Forward declaration for class LogManager
 class LogManager;
+
+/**
+ * Callback functionn and arguments to be called when record is persisted
+ */
+using CommitCallback = std::pair<transaction::callback_fn, void *>;
 
 /**
  * A DiskLogWriterTask is responsible for writing serialized log records out to disk by processing buffers in the log
@@ -49,7 +56,8 @@ class DiskLogWriterTask : public DedicatedThreadTask {
   void FlushAllBuffers();
 
   /*
-   * Persists the log file on disk by calling fsync, as well as calling callbacks for all committed transactions that were persisted
+   * Persists the log file on disk by calling fsync, as well as calling callbacks for all committed transactions that
+   * were persisted
    */
   void PersistAllBuffers();
 };

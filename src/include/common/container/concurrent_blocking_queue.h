@@ -26,6 +26,11 @@ class ConcurrentBlockingQueue {
   bool Empty() { return queue_.empty(); }
 
   /**
+   * Clears all elements from the queue
+   */
+  void Clear() { queue_.clear(); }
+
+  /**
    * Puts the element at the tail of the queue
    * @param elem the element to enqueue
    */

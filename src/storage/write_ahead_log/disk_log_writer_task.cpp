@@ -19,7 +19,7 @@ void DiskLogWriterTask::FlushAllBuffers() {
     // Dequeue filled buffers and flush them to disk, as well as storing commit callbacks
     log_manager_->filled_buffer_queue_.Dequeue(&logs);
     logs.first->FlushBuffer();
-    commit_callbacks_.insert(commit_callbacks_.end(), logs.second.front(), logs.second.end());
+    commit_callbacks_.insert(commit_callbacks_.end(), logs.second.begin(), logs.second.end());
     // Enqueue the flushed buffer to the empty buffer queue
     log_manager_->empty_buffer_queue_.Enqueue(logs.first);
   }
