@@ -89,16 +89,24 @@ class RedoRecord {
   MEM_REINTERPRETATION_ONLY(RedoRecord)
 
   /**
-   * @return pointer to the DataTable that this Redo is concerned with
-   */
-  DataTable *GetDataTable() const { return table_; }
-
-  /**
    * @return the tuple slot changed by this redo record
    */
   TupleSlot GetTupleSlot() const { return tuple_slot_; }
 
-  // TODO(Tianyu): Potentially need a setter for Inserts, because we know the TupleSlot after insert
+  /**
+   * @return database oid for this redo record
+   */
+  catalog::db_oid_t GetDatabaseOid() const { return db_oid_; }
+
+  /**
+   * @return table oid for this redo record
+   */
+  catalog::table_oid_t GetTableOid() const { return table_oid_; }
+
+  /**
+   * @return the tuple slot changed by this redo record
+   */
+  void SetTupleSlot(const TupleSlot tuple_slot) { tuple_slot_ = tuple_slot; }
 
   /**
    * @return inlined delta that (was/is to be) applied to the tuple in the table
@@ -127,17 +135,19 @@ class RedoRecord {
    * Initialize an entire LogRecord (header included) to have an underlying redo record, using the parameters supplied
    * @param head pointer location to initialize, this is also the returned address (reinterpreted)
    * @param txn_begin begin timestamp of the transaction that generated this log record
-   * @param table the DataTable that this Redo is concerned with
-   * @param tuple_slot the tuple slot changed by this redo record
+   * @param db_oid database oid of this redo record
+   * @param table_oid table oid of this redo record
    * @param initializer the initializer to use for the underlying
    * @return pointer to the initialized log record, always equal in value to the given head
    */
-  static LogRecord *Initialize(byte *const head, const transaction::timestamp_t txn_begin, DataTable *const table,
-                               const TupleSlot tuple_slot, const ProjectedRowInitializer &initializer) {
+  static LogRecord *Initialize(byte *const head, const transaction::timestamp_t txn_begin,
+                               const catalog::db_oid_t db_oid, const catalog::table_oid_t table_oid,
+                               const ProjectedRowInitializer &initializer) {
     LogRecord *result = LogRecord::InitializeHeader(head, LogRecordType::REDO, Size(initializer), txn_begin);
     auto *body = result->GetUnderlyingRecordBodyAs<RedoRecord>();
-    body->table_ = table;
-    body->tuple_slot_ = tuple_slot;
+    body->db_oid_ = db_oid;
+    body->table_oid_ = table_oid;
+    body->tuple_slot_ = TupleSlot(nullptr, 0);
     initializer.InitializeRow(body->Delta());
     return result;
   }
@@ -150,15 +160,18 @@ class RedoRecord {
    * @param head
    * @param size
    * @param txn_begin
-   * @param table
+   * @param db_oid database oid of this redo record
+   * @param table_oid table oid of this redo record
    * @param tuple_slot
    * @return
    */
   static LogRecord *PartialInitialize(byte *const head, const uint32_t size, const transaction::timestamp_t txn_begin,
-                                      DataTable *const table, TupleSlot tuple_slot) {
+                                      const catalog::db_oid_t db_oid, const catalog::table_oid_t table_oid,
+                                      const TupleSlot tuple_slot) {
     LogRecord *result = LogRecord::InitializeHeader(head, LogRecordType::REDO, size, txn_begin);
     auto *body = result->GetUnderlyingRecordBodyAs<RedoRecord>();
-    body->table_ = table;
+    body->db_oid_ = db_oid;
+    body->table_oid_ = table_oid;
     body->tuple_slot_ = tuple_slot;
     return result;
   }
@@ -168,7 +181,8 @@ class RedoRecord {
   // (varlen? compressed? from an outdated schema?) For now we just assume we can serialize everything out as-is,
   // and the reader still have access to the layout on recovery and can deserialize. This is why we are not
   // just taking an oid.
-  DataTable *table_;
+  catalog::db_oid_t db_oid_;
+  catalog::table_oid_t table_oid_;
   TupleSlot tuple_slot_;
   // This needs to be aligned to 8 bytes to ensure the real size of RedoRecord (plus actual ProjectedRow) is also
   // a multiple of 8.
@@ -201,32 +215,40 @@ class DeleteRecord {
    *
    * @param head pointer location to initialize, this is also the returned address (reinterpreted)
    * @param txn_begin begin timestamp of the transaction that generated this log record
-   * @param table the data table this delete points to
+   * @param db_oid database oid of this delete record
+   * @param table_oid table oid of this delete record
    * @param slot the tuple slot this delete applies to
    * @return pointer to the initialized log record, always equal in value to the given head
    */
-  static LogRecord *Initialize(byte *const head, const transaction::timestamp_t txn_begin, DataTable *const table,
-                               TupleSlot slot) {
+  static LogRecord *Initialize(byte *const head, const transaction::timestamp_t txn_begin,
+                               const catalog::db_oid_t db_oid, const catalog::table_oid_t table_oid,
+                               const TupleSlot slot) {
     auto *result = LogRecord::InitializeHeader(head, LogRecordType::DELETE, Size(), txn_begin);
     auto *body = result->GetUnderlyingRecordBodyAs<DeleteRecord>();
-    body->table_ = table;
+    body->db_oid_ = db_oid;
+    body->table_oid_ = table_oid;
     body->tuple_slot_ = slot;
     return result;
   }
-
-  /**
-   * @return pointer to the DataTable that this delete is concerned with
-   */
-  DataTable *GetDataTable() const { return table_; }
 
   /**
    * @return the tuple slot changed by this delete record
    */
   TupleSlot GetTupleSlot() const { return tuple_slot_; }
 
+  /**
+   * @return database oid for this delete record
+   */
+  catalog::db_oid_t GetDatabaseOid() const { return db_oid_; }
+
+  /**
+   * @return table oid for this delete record
+   */
+  catalog::table_oid_t GetTableOid() const { return table_oid_; }
+
  private:
-  // TODO(Tianyu): Change to oid maybe?
-  DataTable *table_;
+  catalog::db_oid_t db_oid_;
+  catalog::table_oid_t table_oid_;
   TupleSlot tuple_slot_;
 };
 
@@ -265,7 +287,8 @@ class CommitRecord {
   // Note that however when reading log records back in we will not have a proper transaction.
   static LogRecord *Initialize(byte *const head, const transaction::timestamp_t txn_begin,
                                const transaction::timestamp_t txn_commit, transaction::callback_fn callback,
-                               void *callback_arg, bool is_read_only, transaction::TransactionContext *txn) {
+                               void *callback_arg, const bool is_read_only,
+                               transaction::TransactionContext *const txn) {
     auto *result = LogRecord::InitializeHeader(head, LogRecordType::COMMIT, Size(), txn_begin);
     auto *body = result->GetUnderlyingRecordBodyAs<CommitRecord>();
     body->txn_commit_ = txn_commit;

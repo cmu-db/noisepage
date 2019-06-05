@@ -34,14 +34,15 @@ class TestConfig(object):
                                "garbage_collector_benchmark",
                                "large_transaction_benchmark",
                                "logging_benchmark",
-                               "tuple_access_strategy_benchmark"]
+                               "tuple_access_strategy_benchmark",
+                               "tpcc_benchmark"]
 
         # how many historical values are "required".
         self.min_ref_values = 10
 
         # percentage difference permissible, if using historical data
         # i.e. if min_ref_values are available
-        self.ref_tolerance = 10
+        self.ref_tolerance = 20
 
         # if fewer than min_ref_values are available
         self.lax_tolerance = 30
@@ -714,7 +715,8 @@ class RunMicroBenchmarks(object):
                                "garbage_collector_benchmark",
                                "large_transaction_benchmark",
                                "logging_benchmark",
-                               "tuple_access_strategy_benchmark"]
+                               "tuple_access_strategy_benchmark",
+                               "tpcc_benchmark"]
 
         # minimum run time for the benchmark
         self.min_time = 10
