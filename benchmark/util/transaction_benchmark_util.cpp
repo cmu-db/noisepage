@@ -5,6 +5,7 @@
 #include <vector>
 #include "common/allocator.h"
 #include "transaction/transaction_util.h"
+#include "util/catalog_test_util.h"
 
 namespace terrier {
 RandomWorkloadTransaction::RandomWorkloadTransaction(LargeTransactionBenchmarkObject *test_object)
@@ -18,54 +19,40 @@ RandomWorkloadTransaction::RandomWorkloadTransaction(LargeTransactionBenchmarkOb
 RandomWorkloadTransaction::~RandomWorkloadTransaction() {
   if (!test_object_->gc_on_) delete txn_;
   delete[] buffer_;
-  for (auto &entry : updates_) delete[] reinterpret_cast<byte *>(entry.second);
 }
 
 template <class Random>
 void RandomWorkloadTransaction::RandomUpdate(Random *generator) {
   if (aborted_) return;
-  storage::TupleSlot updated =
-      RandomTestUtil::UniformRandomElement(test_object_->last_checked_version_, generator)->first;
+  const storage::TupleSlot updated = *(RandomTestUtil::UniformRandomElement(test_object_->inserted_tuples_, generator));
   std::vector<storage::col_id_t> update_col_ids =
       StorageTestUtil::ProjectionListRandomColumns(test_object_->layout_, generator);
   storage::ProjectedRowInitializer initializer =
       storage::ProjectedRowInitializer::Create(test_object_->layout_, update_col_ids);
-  auto *update_buffer = buffer_;
-  storage::ProjectedRow *update = initializer.InitializeRow(update_buffer);
 
-  StorageTestUtil::PopulateRandomRow(update, test_object_->layout_, 0.0, generator);
-  // TODO(Tianyu): Hardly efficient, but will do for testing.
-  if (test_object_->wal_on_) {
-    auto *record = txn_->StageWrite(&test_object_->table_, updated, initializer);
-    std::memcpy(record->Delta(), update, update->Size());
-  }
-  auto result = test_object_->table_.Update(txn_, updated, *update);
+  auto *const record = txn_->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, initializer);
+  record->SetTupleSlot(updated);
+
+  StorageTestUtil::PopulateRandomRow(record->Delta(), test_object_->layout_, 0.0, generator);
+  auto result = test_object_->table_.Update(txn_, updated, *(record->Delta()));
   aborted_ = !result;
 }
 
 template <class Random>
 void RandomWorkloadTransaction::RandomInsert(Random *generator) {
   if (aborted_) return;
-  std::vector<storage::col_id_t> insert_col_ids = StorageTestUtil::ProjectionListAllColumns(test_object_->layout_);
-  storage::ProjectedRowInitializer initializer =
-      storage::ProjectedRowInitializer::Create(test_object_->layout_, insert_col_ids);
-  auto *insert_buffer = buffer_;
-  storage::ProjectedRow *insert = initializer.InitializeRow(insert_buffer);
-
-  StorageTestUtil::PopulateRandomRow(insert, test_object_->layout_, 0.0, generator);
-  storage::TupleSlot inserted = test_object_->table_.Insert(txn_, *insert);
-  // TODO(Tianyu): Hardly efficient, but will do for testing.
-  if (test_object_->wal_on_) {
-    auto *record = txn_->StageWrite(&test_object_->table_, inserted, initializer);
-    std::memcpy(record->Delta(), insert, insert->Size());
-  }
+  auto *const redo =
+      txn_->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, test_object_->row_initializer_);
+  StorageTestUtil::PopulateRandomRow(redo->Delta(), test_object_->layout_, 0.0, generator);
+  const storage::TupleSlot inserted = test_object_->table_.Insert(txn_, *(redo->Delta()));
+  redo->SetTupleSlot(inserted);
 }
 
 template <class Random>
 void RandomWorkloadTransaction::RandomSelect(Random *generator) {
   if (aborted_) return;
-  storage::TupleSlot selected =
-      RandomTestUtil::UniformRandomElement(test_object_->last_checked_version_, generator)->first;
+  const storage::TupleSlot selected =
+      *(RandomTestUtil::UniformRandomElement(test_object_->inserted_tuples_, generator));
   auto *select_buffer = buffer_;
   storage::ProjectedRow *select = test_object_->row_initializer_.InitializeRow(select_buffer);
   test_object_->table_.Select(txn_, selected, select);
@@ -92,7 +79,6 @@ LargeTransactionBenchmarkObject::LargeTransactionBenchmarkObject(const std::vect
       table_(block_store, layout_, storage::layout_version_t(0)),
       txn_manager_(buffer_pool, gc_on, log_manager),
       gc_on_(gc_on),
-      wal_on_(log_manager != LOGGING_DISABLED),
       abort_count_(0) {
   // Bootstrap the table to have the specified number of tuples
   PopulateInitialTable(initial_table_size, generator_);
@@ -153,24 +139,15 @@ void LargeTransactionBenchmarkObject::SimulateOneTransaction(terrier::RandomWork
 template <class Random>
 void LargeTransactionBenchmarkObject::PopulateInitialTable(uint32_t num_tuples, Random *generator) {
   initial_txn_ = txn_manager_.BeginTransaction();
-  byte *redo_buffer = nullptr;
-
-  redo_buffer = common::AllocationUtil::AllocateAligned(row_initializer_.ProjectedRowSize());
-  row_initializer_.InitializeRow(redo_buffer);
 
   for (uint32_t i = 0; i < num_tuples; i++) {
-    auto *const redo = reinterpret_cast<storage::ProjectedRow *>(redo_buffer);
-    StorageTestUtil::PopulateRandomRow(redo, layout_, 0.0, generator);
-    storage::TupleSlot inserted = table_.Insert(initial_txn_, *redo);
-    // TODO(Tianyu): Hardly efficient, but will do for testing.
-    if (wal_on_) {
-      auto *record = initial_txn_->StageWrite(nullptr, inserted, row_initializer_);
-      std::memcpy(record->Delta(), redo, redo->Size());
-    }
-    last_checked_version_.emplace_back(inserted, nullptr);
+    auto *const redo =
+        initial_txn_->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, row_initializer_);
+    StorageTestUtil::PopulateRandomRow(redo->Delta(), layout_, 0.0, generator);
+    const storage::TupleSlot inserted = table_.Insert(initial_txn_, *(redo->Delta()));
+    redo->SetTupleSlot(inserted);
+    inserted_tuples_.emplace_back(inserted);
   }
   txn_manager_.Commit(initial_txn_, TestCallbacks::EmptyCallback, nullptr);
-  // cleanup if not keeping track of all the inserts.
-  delete[] redo_buffer;
 }
 }  // namespace terrier
