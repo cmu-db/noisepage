@@ -1627,9 +1627,9 @@ TEST(OperatorTests, InsertTest) {
       std::vector<common::ManagedPointer<parser::AbstractExpression>>(raw_values, std::end(raw_values))};
 
   // Check that all of our GET methods work as expected
-  Operator op1 = Insert::make(database_oid, namespace_oid, table_oid,
-                                     std::vector<catalog::col_oid_t>(columns, std::end(columns)),
-                                     std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(values));
+  Operator op1 =
+      Insert::make(database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
+                   std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(values));
   EXPECT_EQ(op1.GetType(), OpType::INSERT);
   EXPECT_EQ(op1.As<Insert>()->GetDatabaseOid(), database_oid);
   EXPECT_EQ(op1.As<Insert>()->GetNamespaceOid(), namespace_oid);
@@ -1637,12 +1637,11 @@ TEST(OperatorTests, InsertTest) {
   EXPECT_EQ(op1.As<Insert>()->GetValues(), values);
   EXPECT_EQ(op1.As<Insert>()->GetColumns(), (std::vector<catalog::col_oid_t>(columns, std::end(columns))));
 
-
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
-  Operator op2 = Insert::make(database_oid, namespace_oid, table_oid,
-                                     std::vector<catalog::col_oid_t>(columns, std::end(columns)),
-                              std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(values));
+  Operator op2 =
+      Insert::make(database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
+                   std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(values));
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
@@ -1651,9 +1650,9 @@ TEST(OperatorTests, InsertTest) {
   std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> other_values = {
       std::vector<common::ManagedPointer<parser::AbstractExpression>>(raw_values, std::end(raw_values)),
       std::vector<common::ManagedPointer<parser::AbstractExpression>>(raw_values, std::end(raw_values))};
-  Operator op3 = Insert::make(database_oid, namespace_oid, table_oid,
-                                     std::vector<catalog::col_oid_t>(columns, std::end(columns)),
-                              std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(other_values));
+  Operator op3 =
+      Insert::make(database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
+                   std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(other_values));
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
@@ -1667,10 +1666,10 @@ TEST(OperatorTests, InsertTest) {
       new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(3))};
   std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> bad_values = {
       std::vector<common::ManagedPointer<parser::AbstractExpression>>(bad_raw_values, std::end(bad_raw_values))};
-  EXPECT_DEATH(Insert::make(database_oid, namespace_oid, table_oid,
-                                   std::vector<catalog::col_oid_t>(columns, std::end(columns)),
-                            std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(bad_values)),
-               "Mismatched");
+  EXPECT_DEATH(
+      Insert::make(database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
+                   std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(bad_values)),
+      "Mismatched");
   for (auto entry : bad_raw_values) delete entry;
 #endif
 
@@ -1794,13 +1793,37 @@ TEST(OperatorTests, UpdateTest) {
   //===--------------------------------------------------------------------===//
   // Update
   //===--------------------------------------------------------------------===//
-  auto updates = new std::vector<std::unique_ptr<parser::UpdateClause>>;
-  Operator update = Update::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), updates);
+  std::string column = "abc";
+  parser::AbstractExpression *value = new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1));
+  auto raw_update_clause = new parser::UpdateClause(column, common::ManagedPointer<parser::AbstractExpression>(value));
+  auto update_clause = common::ManagedPointer(raw_update_clause);
+  catalog::db_oid_t database_oid(123);
+  catalog::namespace_oid_t namespace_oid(456);
+  catalog::table_oid_t table_oid(789);
 
-  EXPECT_EQ(update.GetType(), OpType::UPDATE);
-  EXPECT_EQ(update.GetName(), "Update");
+  // Check that all of our GET methods work as expected
+  Operator op1 = Update::make(database_oid, namespace_oid, table_oid, {update_clause});
+  EXPECT_EQ(op1.GetType(), OpType::UPDATE);
+  EXPECT_EQ(op1.As<Update>()->GetDatabaseOid(), database_oid);
+  EXPECT_EQ(op1.As<Update>()->GetNamespaceOid(), namespace_oid);
+  EXPECT_EQ(op1.As<Update>()->GetTableOid(), table_oid);
+  EXPECT_EQ(op1.As<Update>()->GetUpdateClauses().size(), 1);
+  EXPECT_EQ(op1.As<Update>()->GetUpdateClauses()[0], update_clause);
 
-  delete updates;
+  // Check that if we make a new object with the same values, then it will
+  // be equal to our first object and have the same hash
+  Operator op2 = Update::make(database_oid, namespace_oid, table_oid, {update_clause});
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+
+  // Lastly, make a different object and make sure that it is not equal
+  // and that it's hash is not the same!
+  Operator op3 = Update::make(database_oid, namespace_oid, table_oid, {});
+  EXPECT_FALSE(op1 == op3);
+  EXPECT_NE(op1.Hash(), op3.Hash());
+
+  delete value;
+  delete raw_update_clause;
 }
 
 // NOLINTNEXTLINE

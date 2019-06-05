@@ -1138,7 +1138,6 @@ Operator Insert::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t n
   return Operator(op);
 }
 
-
 common::hash_t Insert::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
@@ -1231,13 +1230,32 @@ bool Delete::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 Operator Update::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                       catalog::table_oid_t table_oid,
-                      const std::vector<std::unique_ptr<parser::UpdateClause>> *updates) {
-  auto *update_op = new Update;
-  update_op->database_oid_ = database_oid;
-  update_op->namespace_oid = namespace_oid;
-  update_op->table_oid_ = table_oid;
-  update_op->updates = updates;
-  return Operator(update_op);
+                      std::vector<common::ManagedPointer<parser::UpdateClause>> &&updates) {
+  auto *op = new Update;
+  op->database_oid_ = database_oid;
+  op->namespace_oid_ = namespace_oid;
+  op->table_oid_ = table_oid;
+  op->updates_ = updates;
+  return Operator(op);
+}
+
+common::hash_t Update::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
+  hash = common::HashUtil::CombineHashInRange(hash, updates_.begin(), updates_.end());
+  return hash;
+}
+
+bool Update::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::UPDATE) return false;
+  const Update &node = *dynamic_cast<const Update *>(&r);
+  if (database_oid_ != node.database_oid_) return false;
+  if (namespace_oid_ != node.namespace_oid_) return false;
+  if (table_oid_ != node.table_oid_) return false;
+  if (updates_ != node.updates_) return false;
+  return (true);
 }
 
 //===--------------------------------------------------------------------===//

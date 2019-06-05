@@ -1681,7 +1681,9 @@ class Insert : public OperatorNode<Insert> {
   /**
    * @return Expressions of values to insert
    */
-  const std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &GetValues() const { return values_; }
+  const std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &GetValues() const {
+    return values_;
+  }
 
  private:
   /**
@@ -1906,8 +1908,32 @@ class Update : public OperatorNode<Update> {
    */
   static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t table_oid,
-                       const std::vector<std::unique_ptr<parser::UpdateClause>> *updates);
+                       std::vector<common::ManagedPointer<parser::UpdateClause>> &&updates);
 
+  bool operator==(const BaseOperatorNode &r) override;
+  common::hash_t Hash() const override;
+
+  /**
+   * @return OID of the database
+   */
+  const catalog::db_oid_t &GetDatabaseOid() const { return database_oid_; }
+
+  /**
+   * @return OID of the namespace
+   */
+  const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
+
+  /**
+   * @return OID of the table
+   */
+  const catalog::table_oid_t &GetTableOid() const { return table_oid_; }
+
+  /**
+   * @return the update clauses from the SET portion of the query
+   */
+  const std::vector<common::ManagedPointer<parser::UpdateClause>> &GetUpdateClauses() const { return updates_; }
+
+ private:
   /**
    * OID of the database
    */
@@ -1916,7 +1942,7 @@ class Update : public OperatorNode<Update> {
   /**
    * OID of the namespace
    */
-  catalog::namespace_oid_t namespace_oid;
+  catalog::namespace_oid_t namespace_oid_;
 
   /**
    * OID of the table
@@ -1926,7 +1952,7 @@ class Update : public OperatorNode<Update> {
   /**
    * Update clauses
    */
-  const std::vector<std::unique_ptr<parser::UpdateClause>> *updates;
+  std::vector<common::ManagedPointer<parser::UpdateClause>> updates_;
 };
 
 /**
