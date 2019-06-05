@@ -227,17 +227,31 @@ class LogManager : public DedicatedThreadOwner {
   }
 
   /**
-   * If the central dispatch removes our thread used for the disk log writer tas, we need to request a new one
-   * @param task the task that was removed by the registry from the thread we were originally using
+   * If the central thread registry grants us a thread, we accept if we currently don't have a thread to run the task.
+   * Else we don't need the thread, so we respectfully decline
+   * @return true if we accepted the thread, else false
    */
-  void OnThreadRemoved(common::ManagedPointer<DedicatedThreadTask> task) override {
-    TERRIER_ASSERT(task == disk_log_writer_task_, "Log manager should only be given back it's disk log writer task ");
-    // We don't want to register a task if the log manager is shutting down though.
-    if (run_log_manager_) {
-      // Because the task itself does not keep metadata, we can simply reuse the task.
+  bool OnThreadGranted() override {
+    if (GetThreadCount() == 0) {
+      // Register disk log writer task
+      TERRIER_ASSERT(disk_log_writer_task_ == nullptr, "We should not have a task if we don't own a thread for it yet");
+      disk_log_writer_task_ = new DiskLogWriterTask(this);
       DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread(
           this, common::ManagedPointer<DedicatedThreadTask>(disk_log_writer_task_));
+      return true;
     }
+    return false;
+  }
+
+  /**
+   * If the central registry wants to removes our thread used for the disk log writer task, we only allow removal if we
+   * are in shut down, else we need to keep the task, so we reject the removal
+   * @return true if we allowed thread to be removed, else false
+   */
+  bool OnThreadRemoved(common::ManagedPointer<DedicatedThreadTask> task) override {
+    TERRIER_ASSERT(task == disk_log_writer_task_, "Log manager should only be given back it's disk log writer task ");
+    // We don't want to register a task if the log manager is shutting down though.
+    return !run_log_manager_;
   }
 };
 }  // namespace terrier::storage

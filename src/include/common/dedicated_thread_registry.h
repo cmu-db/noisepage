@@ -55,8 +55,8 @@ class DedicatedThreadRegistry {
 
   /**
    *
-   * Register a thread under requester to run the given task. Requester owns task object, and thus handles it's
-   * lifecycle
+   * Register a thread under requester to run the given task. Should be called be requester. Requester owns task object,
+   * and thus handles it's lifecycle.
    *
    * @param requester The owner to assign the new thread to
    * @param task The task to run in the dedicated thread
@@ -64,7 +64,7 @@ class DedicatedThreadRegistry {
   void RegisterDedicatedThread(DedicatedThreadOwner *requester, common::ManagedPointer<DedicatedThreadTask> task) {
     std::unique_lock<std::mutex> lock(table_latch_);
     thread_owners_table_[requester].insert(task);
-    requester->NotifyNewThread();
+    requester->GrantNewThread();
     TERRIER_ASSERT(threads_table_.find(task) == threads_table_.end(), "Task is already registered");
     threads_table_.emplace(task, std::thread([=] { task->RunTask(); }));
   }
@@ -74,14 +74,18 @@ class DedicatedThreadRegistry {
    * @param requester the owner who registered the task
    * @param task the task that was registered
    * @warning StopTask should not be called multiple times with the same task
+   * @return true if task was stopped, false otherwise
    */
-  void StopTask(DedicatedThreadOwner *requester, common::ManagedPointer<DedicatedThreadTask> task) {
+  bool StopTask(DedicatedThreadOwner *requester, common::ManagedPointer<DedicatedThreadTask> task) {
     std::thread *task_thread;
     {
       std::unique_lock<std::mutex> lock(table_latch_);
       TERRIER_ASSERT(threads_table_.find(task) != threads_table_.end(), "Task is not registered");
       task_thread = &threads_table_[task];
     }
+
+    // Notify requester of removal
+    if (!requester->NotifyThreadRemoved(task)) return false;
 
     // Terminate task, unlock during termination of thread since we aren't touching the metadata tables
     task->Terminate();
@@ -90,12 +94,11 @@ class DedicatedThreadRegistry {
     // Clear Metadata
     {
       std::unique_lock<std::mutex> lock(table_latch_);
+      requester->RemoveThread();
       threads_table_.erase(task);
       thread_owners_table_[requester].erase(task);
     }
-
-    // Notify requester of removal
-    requester->NotifyThreadRemoved(task);
+    return true;
   }
 
   // TODO(tianyu, gus): Add code for thread removal from thread owner without specifying task
