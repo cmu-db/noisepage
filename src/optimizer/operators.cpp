@@ -693,7 +693,7 @@ Operator TableFreeScan::make() {
 }
 
 bool TableFreeScan::operator==(const BaseOperatorNode &r) {
-    return (r.GetType() == OpType::TABLEFREESCAN);
+  return (r.GetType() == OpType::TABLEFREESCAN);
   // Again, there isn't any internal data so I guess we're always equal!
 }
 
@@ -881,7 +881,8 @@ common::hash_t OrderBy::Hash() const {
 //===--------------------------------------------------------------------===//
 // PhysicalLimit
 //===--------------------------------------------------------------------===//
-Operator Limit::make(size_t offset, size_t limit, std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_columns,
+Operator Limit::make(size_t offset, size_t limit,
+                     std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_columns,
                      std::vector<planner::OrderByOrderingType> &&sort_directions) {
   auto *limit_op = new Limit;
   limit_op->offset_ = offset;
@@ -1162,7 +1163,8 @@ bool InsertSelect::operator==(const BaseOperatorNode &r) {
 // Delete
 //===--------------------------------------------------------------------===//
 Operator Delete::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                      catalog::table_oid_t table_oid, common::ManagedPointer<parser::AbstractExpression> delete_condition) {
+                      catalog::table_oid_t table_oid,
+                      common::ManagedPointer<parser::AbstractExpression> delete_condition) {
   auto *delete_op = new Delete;
   delete_op->database_oid_ = database_oid;
   delete_op->namespace_oid_ = namespace_oid;
@@ -1337,7 +1339,6 @@ common::hash_t Distinct::Hash() const {
   // I guess every Aggregate object hashes to the same thing?
   return hash;
 }
-
 
 //===--------------------------------------------------------------------===//
 template <typename T>

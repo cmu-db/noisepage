@@ -1129,7 +1129,6 @@ class IndexScan : public OperatorNode<IndexScan> {
    */
   const std::vector<type::TransientValue> &GetValueList() const { return value_list_; }
 
-
  private:
   /**
    * OID of the database
@@ -1317,15 +1316,16 @@ class Limit : public OperatorNode<Limit> {
    * @param sort_ascending sorting order
    * @return a Limit operator
    */
-  static Operator make(size_t offset, size_t limit, std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_columns,
+  static Operator make(size_t offset, size_t limit,
+                       std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_columns,
                        std::vector<planner::OrderByOrderingType> &&sort_directions);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
 
   /**
-  * @return offset of the LIMIT operator
-  */
+   * @return offset of the LIMIT operator
+   */
   size_t GetOffset() const { return offset_; }
 
   /**
@@ -1744,7 +1744,8 @@ class Delete : public OperatorNode<Delete> {
    * @return an InsertSelect operator
    */
   static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::table_oid_t table_oid, common::ManagedPointer<parser::AbstractExpression> delete_condition);
+                       catalog::table_oid_t table_oid,
+                       common::ManagedPointer<parser::AbstractExpression> delete_condition);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
