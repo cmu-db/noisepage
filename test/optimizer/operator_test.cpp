@@ -1681,6 +1681,7 @@ TEST(OperatorTests, DeleteTest) {
   EXPECT_EQ(op1.As<Delete>()->GetDatabaseOid(), database_oid);
   EXPECT_EQ(op1.As<Delete>()->GetNamespaceOid(), namespace_oid);
   EXPECT_EQ(op1.As<Delete>()->GetTableOid(), table_oid);
+  EXPECT_EQ(op1.As<Delete>()->GetDeleteCondition(), x_1);
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash

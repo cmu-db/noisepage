@@ -1443,7 +1443,7 @@ class LeftNLJoin : public OperatorNode<LeftNLJoin> {
   /**
    * @return Predicate for the join
    */
-  const common::ManagedPointer<parser::AbstractExpression> GetJoinPredicate() const { return join_predicate_; }
+  const common::ManagedPointer<parser::AbstractExpression> &GetJoinPredicate() const { return join_predicate_; }
 
  private:
   /**
@@ -1470,7 +1470,7 @@ class RightNLJoin : public OperatorNode<RightNLJoin> {
   /**
    * @return Predicate for the join
    */
-  const common::ManagedPointer<parser::AbstractExpression> GetJoinPredicate() const { return join_predicate_; }
+  const common::ManagedPointer<parser::AbstractExpression> &GetJoinPredicate() const { return join_predicate_; }
 
  private:
   /**
@@ -1497,7 +1497,7 @@ class OuterNLJoin : public OperatorNode<OuterNLJoin> {
   /**
    * @return Predicate for the join
    */
-  const common::ManagedPointer<parser::AbstractExpression> GetJoinPredicate() const { return join_predicate_; }
+  const common::ManagedPointer<parser::AbstractExpression> &GetJoinPredicate() const { return join_predicate_; }
 
  private:
   /**
@@ -1575,7 +1575,7 @@ class LeftHashJoin : public OperatorNode<LeftHashJoin> {
   /**
    * @return Predicate for the join
    */
-  const common::ManagedPointer<parser::AbstractExpression> GetJoinPredicate() const { return join_predicate_; }
+  const common::ManagedPointer<parser::AbstractExpression> &GetJoinPredicate() const { return join_predicate_; }
 
  private:
   /**
@@ -1602,7 +1602,7 @@ class RightHashJoin : public OperatorNode<RightHashJoin> {
   /**
    * @return Predicate for the join
    */
-  const common::ManagedPointer<parser::AbstractExpression> GetJoinPredicate() const { return join_predicate_; }
+  const common::ManagedPointer<parser::AbstractExpression> &GetJoinPredicate() const { return join_predicate_; }
 
  private:
   /**
@@ -1629,7 +1629,7 @@ class OuterHashJoin : public OperatorNode<OuterHashJoin> {
   /**
    * @return Predicate for the join
    */
-  const common::ManagedPointer<parser::AbstractExpression> GetJoinPredicate() const { return join_predicate_; }
+  const common::ManagedPointer<parser::AbstractExpression> &GetJoinPredicate() const { return join_predicate_; }
 
  private:
   /**
