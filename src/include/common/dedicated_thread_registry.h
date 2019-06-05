@@ -32,6 +32,7 @@ class DedicatedThreadRegistry {
    * TearDown function to clear the thread registry and stop all dedicated threads gracefully
    */
   void TearDown() {
+    std::unique_lock<std::mutex> lock(table_latch_);
     for (auto &entry : thread_owners_table_) {
       for (auto task : entry.second) {
         task->Terminate();
@@ -60,6 +61,7 @@ class DedicatedThreadRegistry {
    * @param task The task to run in the dedicated thread
    */
   void RegisterDedicatedThread(DedicatedThreadOwner *requester, common::ManagedPointer<DedicatedThreadTask> task) {
+    std::unique_lock<std::mutex> lock(table_latch_);
     thread_owners_table_[requester].insert(task);
     requester->NotifyNewThread();
     TERRIER_ASSERT(threads_table_.find(task) == threads_table_.end(), "Task is already registered");
@@ -70,25 +72,36 @@ class DedicatedThreadRegistry {
    * Stop a registered task
    * @param requester the owner who registered the task
    * @param task the task that was registered
+   * @warning StopTask should not be called multiple times with the same task
    */
   void StopTask(DedicatedThreadOwner *requester, common::ManagedPointer<DedicatedThreadTask> task) {
-    TERRIER_ASSERT(threads_table_.find(task) != threads_table_.end(), "Task is not registered");
+    std::thread *task_thread;
+    {
+      std::unique_lock<std::mutex> lock(table_latch_);
+      TERRIER_ASSERT(threads_table_.find(task) != threads_table_.end(), "Task is not registered");
+      task_thread = &threads_table_[task];
+    }
 
-    // Terminate task
+    // Terminate task, unlock during termination of thread since we aren't touching the metadata tables
     task->Terminate();
-    threads_table_[task].join();
+    task_thread->join();
 
     // Clear Metadata
-    threads_table_.erase(task);
-    thread_owners_table_[requester].erase(task);
+    {
+      std::unique_lock<std::mutex> lock(table_latch_);
+      threads_table_.erase(task);
+      thread_owners_table_[requester].erase(task);
+    }
 
     // Notify requester of removal
     requester->NotifyThreadRemoved(task);
   }
 
-  // TODO(tianyu): Add code for thread removal
+  // TODO(tianyu, gus): Add code for thread removal from thread owner without specifying task
 
  private:
+  // Latch to protect internal tables
+  std::mutex table_latch_;
   // Using raw pointer is okay since we never dereference said pointer,
   // but only use it as a lookup key
   std::unordered_map<common::ManagedPointer<DedicatedThreadTask>, std::thread> threads_table_;
