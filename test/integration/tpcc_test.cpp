@@ -139,7 +139,7 @@ TEST_F(TPCCTests, WithLogging) {
   thread_pool_.Startup();
 
   // we need transactions, TPCC database, and GC
-  log_manager_ = new storage::LogManager(LOG_FILE_NAME, &buffer_pool_);
+  log_manager_ = new storage::LogManager(LOG_FILE_NAME, 4, &buffer_pool_);
   transaction::TransactionManager txn_manager(&buffer_pool_, true, log_manager_);
   auto tpcc_builder = Builder(&block_store_);
 
