@@ -19,6 +19,17 @@
 #include "transaction/transaction_defs.h"
 
 namespace terrier::storage {
+
+/**
+ * Callback functionn and arguments to be called when record is persisted
+ */
+using CommitCallback = std::pair<transaction::callback_fn, void *>;
+
+/**
+ * A BufferedLogWriter containing serialized logs, as well as all commit callbacks for transaction's whose commit are serialized in this BufferedLogWriter
+ */
+using SerializedLogs = std::pair<BufferedLogWriter *, std::vector<CommitCallback>>;
+
 /**
  * A LogManager is responsible for serializing log records out and keeping track of whether changes from a transaction
  * are persistent.
@@ -65,7 +76,7 @@ class LogManager : public DedicatedThreadOwner {
   }
 
   /**
-   * Must be called when no other threads are doing work
+   * Must be called when no other threads are doing work. Processes and persists all unpersisted logs.
    */
   void Shutdown();
 
@@ -109,8 +120,7 @@ class LogManager : public DedicatedThreadOwner {
   }
 
   /**
-   * Process all the accumulated log records and serialize them out to disk. A flush will always happen at the end.
-   * (Beware the performance consequences of calling flush too frequently) This method should only be called from a
+   * Process all the accumulated log records and serialize them to log consumer tasks. This method should only be called from a
    * dedicated
    * logging thread.
    */
@@ -118,11 +128,10 @@ class LogManager : public DedicatedThreadOwner {
 
   /**
    * Flush the logs to make sure all serialized records before this invocation are persistent. Callbacks from committed
-   * transactions are also invoked when possible. This method should only be called from a dedicated logging thread.
-   *
-   * Usually this method is called from Process(), but can also be called by itself if need be.
+   * transactions are invoked by log consumers when the commit records are persisted on disk. This method should only be called from a dedicated logging thread or during Shutdown
+   * @warning Beware the performance consequences of calling flush too frequently
    */
-  void Flush();
+  void ForceFlush();
 
  private:
   friend class DiskLogWriterTask;
@@ -158,7 +167,7 @@ class LogManager : public DedicatedThreadOwner {
   // The queue containing empty buffers which the serializer thread will use
   common::ConcurrentBlockingQueue<BufferedLogWriter *> empty_buffer_queue_;
   // The queue containing filled buffers pending flush to the disk
-  common::ConcurrentBlockingQueue<BufferedLogWriter *> filled_buffer_queue_;
+  common::ConcurrentBlockingQueue<SerializedLogs> filled_buffer_queue_;
 
   // The log consumer task which flushes filled buffers to the disk
   DiskLogWriterTask *disk_log_writer_task_ = nullptr;
@@ -191,6 +200,7 @@ class LogManager : public DedicatedThreadOwner {
   BufferedLogWriter *GetCurrentWriteBuffer() {
     if (filled_buffer_ == nullptr) {
       empty_buffer_queue_.Dequeue(&filled_buffer_);
+      TERRIER_ASSERT(commits_in_buffer_.empty(), "Commit callbacks should have been handed off to log consumer");
     }
     return filled_buffer_;
   }
@@ -216,7 +226,7 @@ class LogManager : public DedicatedThreadOwner {
    * Mark the current buffer that the serializer thread is writing to as filled
    */
   void HandFilledBufferToWriter() {
-    filled_buffer_queue_.Enqueue(filled_buffer_);
+    filled_buffer_queue_.Enqueue(std::make_pair(filled_buffer_, commits_in_buffer_));
     // Signal disk log writer task  thread that a buffer is ready to be flushed to the disk
     {
       std::unique_lock<std::mutex> lock(persist_lock_);
@@ -224,6 +234,7 @@ class LogManager : public DedicatedThreadOwner {
     }
     // Mark that serializer thread doesn't have a buffer in its possession to which it can write to
     filled_buffer_ = nullptr;
+    commits_in_buffer_.clear();
   }
 
   /**
@@ -249,7 +260,7 @@ class LogManager : public DedicatedThreadOwner {
    * @return true if we allowed thread to be removed, else false
    */
   bool OnThreadRemoved(common::ManagedPointer<DedicatedThreadTask> task) override {
-    TERRIER_ASSERT(task == disk_log_writer_task_, "Log manager should only be given back it's disk log writer task ");
+    TERRIER_ASSERT(task.operator==(disk_log_writer_task_), "Log manager should only be given back it's disk log writer task ");
     // We don't want to register a task if the log manager is shutting down though.
     return !run_log_manager_;
   }

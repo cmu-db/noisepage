@@ -21,10 +21,10 @@ void LogManager::Process() {
   if (filled_buffer_ != nullptr) {
     HandFilledBufferToWriter();
   }
-  Flush();
 }
 
-void LogManager::Flush() {
+// TODO(Gus): When should the dedicated thread call ForceFlush?
+void LogManager::ForceFlush() {
   {
     std::unique_lock<std::mutex> lock(persist_lock_);
     // Signal the disk log writer task thread to persist the buffers to disk
@@ -34,16 +34,14 @@ void LogManager::Flush() {
     // Wait for the disk log writer task thread to persist the logs
     persist_cv_.wait(lock, [&] { return !do_persist_; });
   }
-  // Execute the callbacks for the transactions that have been persisted
-  for (auto &callback : commits_in_buffer_) callback.first(callback.second);
-  commits_in_buffer_.clear();
 }
 
 void LogManager::Shutdown() {
   run_log_manager_ = false;
 
-  // Process will call Flush, which will force the disk log writer task to consume logs
+  // Process and persist all outstanding logs
   Process();
+  ForceFlush();
 
   // Signal the disk log writer task thread to shutdown
   // This is a blocking call, and will return when the disk log writer task has shut down

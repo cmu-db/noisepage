@@ -1,5 +1,4 @@
 #include "storage/write_ahead_log/disk_log_writer_task.h"
-#include "storage/write_ahead_log/log_manager.h"
 
 namespace terrier::storage {
 
@@ -15,13 +14,14 @@ void DiskLogWriterTask::Terminate() {
 
 void DiskLogWriterTask::FlushAllBuffers() {
   // Persist all the filled buffers to the disk
-  BufferedLogWriter *buf;
+  SerializedLogs logs;
   while (!log_manager_->filled_buffer_queue_.Empty()) {
-    // Dequeue filled buffers and flush them to disk
-    log_manager_->filled_buffer_queue_.Dequeue(&buf);
-    buf->FlushBuffer();
+    // Dequeue filled buffers and flush them to disk, as well as storing commit callbacks
+    log_manager_->filled_buffer_queue_.Dequeue(&logs);
+    logs.first->FlushBuffer();
+    commit_callbacks_.insert(commit_callbacks_.end(), logs.second.front(), logs.second.end());
     // Enqueue the flushed buffer to the empty buffer queue
-    log_manager_->empty_buffer_queue_.Enqueue(buf);
+    log_manager_->empty_buffer_queue_.Enqueue(logs.first);
   }
 }
 
@@ -30,6 +30,8 @@ void DiskLogWriterTask::PersistAllBuffers() {
   // Force the buffers to be written to disk. Because all buffers log to the same file, it suffices to call persist on
   // any buffer.
   log_manager_->buffers_.front().Persist();
+  // Execute the callbacks for the transactions that have been persisted
+  for (auto &callback : commit_callbacks_) callback.first(callback.second);
 }
 
 void DiskLogWriterTask::DiskLogWriterTaskLoop() {

@@ -2,6 +2,7 @@
 
 #include <common/dedicated_thread_registry.h>
 #include "storage/write_ahead_log/log_io.h"
+#include "storage/write_ahead_log/log_manager.h"
 
 namespace terrier::storage {
 
@@ -34,6 +35,7 @@ class DiskLogWriterTask : public DedicatedThreadTask {
   // Log manager that created this task
   LogManager *const log_manager_;
   bool run_task_;
+  std::vector<CommitCallback> commit_callbacks_;
 
   /**
    * Main disk log writer task loop. Flushes buffers to disk when new buffers are handed to it via filled_buffer_queue_,
@@ -47,7 +49,7 @@ class DiskLogWriterTask : public DedicatedThreadTask {
   void FlushAllBuffers();
 
   /*
-   * Persists the log file on disk by calling fsync
+   * Persists the log file on disk by calling fsync, as well as calling callbacks for all committed transactions that were persisted
    */
   void PersistAllBuffers();
 };
