@@ -38,6 +38,8 @@ TEST(OperatorTests, LogicalInsertTest) {
   EXPECT_EQ(op1.As<LogicalInsert>()->GetDatabaseOid(), database_oid);
   EXPECT_EQ(op1.As<LogicalInsert>()->GetNamespaceOid(), namespace_oid);
   EXPECT_EQ(op1.As<LogicalInsert>()->GetTableOid(), table_oid);
+  EXPECT_EQ(op1.As<LogicalInsert>()->GetColumns(), (std::vector<catalog::col_oid_t>{catalog::col_oid_t(1), catalog::col_oid_t(2)}));
+  EXPECT_EQ(op1.As<LogicalInsert>()->GetValues(), values);
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash

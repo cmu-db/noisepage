@@ -603,6 +603,18 @@ class LogicalInsert : public OperatorNode<LogicalInsert> {
    */
   const catalog::table_oid_t &GetTableOid() const { return table_oid_; }
 
+  /**
+   * @return OIDs of the columns that this operator is inserting into for the target table
+   */
+  const std::vector<catalog::col_oid_t> &GetColumns() const { return columns_; }
+
+  /**
+   * @return The expression objects to insert
+   */
+  const std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &GetValues() const {
+    return values_;
+  }
+
  private:
   /**
    * OID of the database
