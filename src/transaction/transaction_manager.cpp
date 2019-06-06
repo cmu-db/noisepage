@@ -1,6 +1,7 @@
 #include "transaction/transaction_manager.h"
 #include <algorithm>
 #include <queue>
+#include <unordered_set>
 #include <utility>
 
 namespace terrier::transaction {
@@ -117,20 +118,39 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
   return result;
 }
 
-void TransactionManager::Abort(TransactionContext *const txn) {
+timestamp_t TransactionManager::Abort(TransactionContext *const txn) {
   // Immediately clear the abort actions stack
   while (!txn->abort_actions_.empty()) {
     txn->abort_actions_.front()();
     txn->abort_actions_.pop_front();
   }
 
-  // no commit latch required here since all operations are transaction-local
-  for (auto &it : txn->undo_buffer_) Rollback(txn, it);
+  // We need to beware not to rollback a version chain multiple times, as that is just wasted computation
+  std::unordered_set<storage::TupleSlot> slots_rolled_back;
+  for (auto &record : txn->undo_buffer_) {
+    auto it = slots_rolled_back.find(record.Slot());
+    if (it == slots_rolled_back.end()) {
+      slots_rolled_back.insert(record.Slot());
+      Rollback(txn, record);
+    }
+  }
+
+  // Now that the in-place versions have been restored, we neeed to check out an abort timestamp as well. This serves
+  // to force the rest of the system to acknowledge the rollback, lest a reader suffers from an a-b-a problem in the
+  // version record
+  const timestamp_t abort_time = time_++;
+  // There is no need to flip these timestamps in a critical section, because readers can never see the aborted
+  // version either way, unlike in the commit case, where unrepeatable reads may occur.
+  for (auto &it : txn->undo_buffer_) it.Timestamp().store(abort_time);
+  txn->TxnId().store(abort_time);
+  txn->aborted_ = true;
+
   // The last update might not have been installed, and thus Rollback would miss it if it contains a
   // varlen entry whose memory content needs to be freed. We have to check for this case manually.
   GCLastUpdateOnAbort(txn);
   // Discard the redo buffer that is not yet logged out
   txn->redo_buffer_.Finalize(false);
+  // Since there is nothing to log, we can mark it as processed
   txn->log_processed_ = true;
   {
     // In a critical section, remove this transaction from the table of running transactions
@@ -140,6 +160,7 @@ void TransactionManager::Abort(TransactionContext *const txn) {
     TERRIER_ASSERT(ret == 1, "Aborted transaction did not exist in global transactions table");
     if (gc_enabled_) completed_txns_.push_front(txn);
   }
+  return abort_time;
 }
 
 void TransactionManager::GCLastUpdateOnAbort(TransactionContext *const txn) {
@@ -208,47 +229,38 @@ void TransactionManager::Rollback(TransactionContext *txn, const storage::UndoRe
   }
   const storage::TupleSlot slot = record.Slot();
   const storage::TupleAccessStrategy &accessor = table->accessor_;
-  // This is slightly weird because we don't necessarily undo the record given, but a record by this txn at the
-  // given slot. It ends up being correct because we call the correct number of rollbacks.
-  storage::UndoRecord *const version_ptr = table->AtomicallyReadVersionPtr(slot, accessor);
-  TERRIER_ASSERT(version_ptr != nullptr && version_ptr->Timestamp().load() == txn->txn_id_.load(),
+  storage::UndoRecord *undo_record = table->AtomicallyReadVersionPtr(slot, accessor);
+  // In a loop, we will need to undo all updates belonging to this transaction. Because we do not unlink undo records,
+  // otherwise this ends up being a quadratic operation to rollback the first record not yet rolled back in the chain.
+  TERRIER_ASSERT(undo_record != nullptr && undo_record->Timestamp().load() == txn->txn_id_.load(),
                  "Attempting to rollback on a TupleSlot where this txn does not hold the write lock!");
-
-  switch (version_ptr->Type()) {
-    case storage::DeltaRecordType::UPDATE:
-      // Re-apply the before image
-      for (uint16_t i = 0; i < version_ptr->Delta()->NumColumns(); i++) {
-        // Need to deallocate any possible varlen.
-        DeallocateColumnUpdateIfVarlen(txn, version_ptr, i, accessor);
-        storage::StorageUtil::CopyAttrFromProjection(accessor, slot, *(version_ptr->Delta()), i);
-      }
-      break;
-    case storage::DeltaRecordType::INSERT:
-      // Same as update, need to deallocate possible varlens.
-      DeallocateInsertedTupleIfVarlen(txn, version_ptr, accessor);
-      accessor.SetNull(slot, VERSION_POINTER_COLUMN_ID);
-      accessor.Deallocate(slot);
-      break;
-    case storage::DeltaRecordType::DELETE:
-      accessor.SetNotNull(slot, VERSION_POINTER_COLUMN_ID);
-      break;
-    default:
-      throw std::runtime_error("unexpected delta record type");
+  while (undo_record != nullptr && undo_record->Timestamp().load() == txn->txn_id_.load()) {
+    switch (undo_record->Type()) {
+      case storage::DeltaRecordType::UPDATE:
+        // Re-apply the before image
+        for (uint16_t i = 0; i < undo_record->Delta()->NumColumns(); i++) {
+          // Need to deallocate any possible varlen.
+          DeallocateColumnUpdateIfVarlen(txn, undo_record, i, accessor);
+          storage::StorageUtil::CopyAttrFromProjection(accessor, slot, *(undo_record->Delta()), i);
+        }
+        //      version_ptr->Type() = storage::DeltaRecordType::ABORTED_UPDATE;
+        break;
+      case storage::DeltaRecordType::INSERT:
+        // Same as update, need to deallocate possible varlens.
+        DeallocateInsertedTupleIfVarlen(txn, undo_record, accessor);
+        accessor.SetNull(slot, VERSION_POINTER_COLUMN_ID);
+        accessor.Deallocate(slot);
+        //      version_ptr->Type() = storage::DeltaRecordType::ABORTED_INSERT;
+        break;
+      case storage::DeltaRecordType::DELETE:
+        accessor.SetNotNull(slot, VERSION_POINTER_COLUMN_ID);
+        //      version_ptr->Type() = storage::DeltaRecordType::ABORTED_DELETE;
+        break;
+      default:
+        throw std::runtime_error("unexpected delta record type");
+    }
+    undo_record = undo_record->Next();
   }
-
-  // Because the garbage collector can be concurrently truncating the version chain, it is important we check
-  // that the value we write is not changing.
-  storage::UndoRecord *next;
-  do {
-    next = version_ptr->Next();
-    // Remove this delta record from the version chain, effectively releasing the lock. At this point, the tuple
-    // has been restored to its original form. No CAS needed since we still hold the write lock at time of the atomic
-    // write.
-    table->AtomicallyWriteVersionPtr(slot, accessor, next);
-    // It is still safe at this point if the garbage collector changes the next record from under us, because
-    // as long as the abort function does not return, GC cannot deallocate these stale records. We just need
-    // to make sure we get them before returning.
-  } while (next != version_ptr->Next());
 }
 
 void TransactionManager::DeallocateColumnUpdateIfVarlen(TransactionContext *txn, storage::UndoRecord *undo,
