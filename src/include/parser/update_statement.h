@@ -28,7 +28,6 @@ class UpdateClause {
 
   ~UpdateClause() { delete value_; }
 
-
   /**
    * @return column to be updated
    */
