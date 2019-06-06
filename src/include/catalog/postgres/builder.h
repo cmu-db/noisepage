@@ -19,7 +19,7 @@ class Builder {
    * @param block_store for backing the new catalog tables
    * @return an initialized DatabaseCatalog
    */
-  static DatabaseCatalog *AllocateCatalog(storage::BlockStore block_store);
+  static DatabaseCatalog *CreateDatabaseCatalog(storage::BlockStore *block_store);
 
   /**
    * Bootstraps the catalog's own metadata into itself
@@ -27,7 +27,7 @@ class Builder {
    * @param catalog to bootstrap
    * @return an initialized DatabaseCatalog
    */
-  static void BootstrapCatalog(transaction::TransactionContext *txn, DatabaseCatalog catalog);
+  static void BootstrapDatabaseCatalog(transaction::TransactionContext *txn, DatabaseCatalog *catalog);
 
   /**
    * Get the schema for pg_attribute
@@ -80,6 +80,23 @@ class Builder {
   static IndexSchema GetConstraintTableIndexSchema();
   static IndexSchema GetConstraintIndexIndexSchema();
   static IndexSchema GetConstraintForeignKeyIndexSchema();
+
+ private:
+  storage::index::Index *BuildUniqueIndex(const IndexSchema &key_schema, index_oid_t oid) {
+    storage::index::IndexBuilder index_builder;
+    index_builder.SetOid(oid)
+        .SetKeySchema(key_schema)
+        .SetConstraintType(storage::index::ConstraintType::UNIQUE);
+    return index_builder.Build();
+  }
+
+  storage::index::Index *BuildLookupIndex(const IndexSchema &key_schema, index_oid_t oid) {
+    storage::index::IndexBuilder index_builder;
+    index_builder.SetOid(oid)
+        .SetKeySchema(key_schema)
+        .SetConstraintType(storage::index::ConstraintType::DEFAULT);
+    return index_builder.Build();
+  }
 
 };
 }

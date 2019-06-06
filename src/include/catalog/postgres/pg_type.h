@@ -8,6 +8,10 @@
 
 namespace terrier::catalog::postgres {
 
+#define TYPE_TABLE_OID table_oid_t(51);
+#define TYPE_OID_INDEX_OID index_oid_t(52);
+#define TYPE_NAME_INDEX_OID index_oid_t(53);
+
 /*
  * Column names of the form "TYP[name]_COL_OID" are present in the PostgreSQL
  * catalog specification and columns of the form "TYP_[name]_COL_OID" are

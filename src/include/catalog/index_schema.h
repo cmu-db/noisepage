@@ -6,6 +6,11 @@
 #include "type/type_id.h"
 
 namespace terrier::catalog {
+
+namespace postgres {
+  class Builder;
+}
+
 /**
  * A schema for an index.  It contains the definitions for the columns in the
  * key as well as additional metdata.
@@ -79,6 +84,7 @@ class IndexSchema {
     AbstractExpression *expresion;
     std::string serialized_expression_;
 
+    // TODO(John): Should these "OIDS" be implicitly set by the index in the columns?
     void SetOid(indexkeycol_oid_t oid) { oid_ = oid; }
 
     void SetMaxVarlenSize(uint16_t max_varlen_size) {
@@ -98,6 +104,7 @@ class IndexSchema {
     }
 
     friend class DatabaseCatalog;
+    friend class postgres::Builder;
   };
 
   /**

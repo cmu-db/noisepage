@@ -22,22 +22,14 @@ namespace terrier::catalog {
 class DatabaseCatalog {
  public:
   /**
-   * Handles destruction of the database catalog by deferring an event using
-   * the event framework that handles deallocating all of the objects handled
-   * or owned by the database catalog.
-   * @warning This destructor assumes that any logically visible user objects
-   * referenced by the catalog during destruction need to be deallocated by the
-   * deferred action.  Therefore, there cannot be any live transactions when
-   * the debootstrap event executes.
+   * Physically deletes the tree of objects (SqlTables and Indexes) underneath
+   * this database.
    *
-   * @warning This is not transactional.  If the database is being logically
-   * deleted (and not just deallocated on shutdown), the user must call
-   * Catalog::DeleteDatabase to ensure the deallocation is done in a
-   * transactionally safe manner.
+   * @warning This destructor should only be called when it can be guaranteed
+   * that there are no live transactions or physical actions on the underlying
+   * tables and indexes.
    */
-  ~DatabaseCatalog() {
-    debootstrap();
-  }
+  ~DatabaseCatalog();
 
   /**
    * Creates a new namespace within the database

@@ -42,6 +42,9 @@ class Catalog {
    * referenced by the catalog during destruction need to be deallocated by the
    * deferred action.  Therefore, there cannot be any live transactions when
    * the debootstrap event executes.
+   * @note The debootstrap function will begin and commit a read-only transaction
+   * through the transaction manager and therefore must be called before the
+   * transaction manager is destructed.
    */
   ~Catalog();
 
@@ -52,8 +55,8 @@ class Catalog {
    * @return OID of the database or INVALID_DATABASE_OID if the operation failed
    *   (which should only occur if there is already a database with that name)
    */
-
   db_oid_t CreateDatabase(transaction::TransactionContext *txn, const std::string &name);
+
   /**
    * Deletes the given database.  This operation will fail if there is any DDL
    * operation currently in-flight because it will cause a write-write conflict.

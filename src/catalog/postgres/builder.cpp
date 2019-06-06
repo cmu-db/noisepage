@@ -16,7 +16,7 @@ namespace terrier::storage::postgres {
 
 #define MAX_NAME_LENGTH 63 // This mimics PostgreSQL behavior
 
-static DatabaseCatalog Builder::NewCatalog(transaction::TransactionContext *txn, storage::BlockStore block_store) {
+static DatabaseCatalog *Builder::CreateDatabaseCatalog(storage::BlockStore *block_store) {
   auto dbc = new DatabaseCatalog();
 
   dbc.namespaces_ = new SqlTable(block_store, Builder::GetNamespaceTableSchema());
@@ -26,9 +26,52 @@ static DatabaseCatalog Builder::NewCatalog(transaction::TransactionContext *txn,
   dbc.types_ = new SqlTable(block_store, Builder::GetTypeTableSchema());
   dbc.constraints_ = new SqlTable(block_store, Builder::GetConstraintTableSchema());
 
-  // Instantiate all of the indexes
+  // Indexes on pg_namespace
+  dbc.namespaces_oid_index_ = Builder::BuildUniqueIndex(Builder::GetNamespaceOidIndexSchema(), NAMESPACE_OID_INDEX_OID);
+  dbc.namespaces_name_index_ = Builder::BuildUniqueIndex(Builder::GetNamespaceNameIndexSchema(),
+    NAMESPACE_NAME_INDEX_OID);
+
+  // Indexes on pg_class
+  dbc.classes_oid_index_ = Builder::BuildUniqueIndex(Builder::GetClassOidIndexSchema(), CLASS_OID_INDEX_OID);
+  dbc.classes_name_index_ = Builder::BuildUniqueIndex(Builder::GetClassNameIndexSchema(), CLASS_NAME_INDEX_OID);
+
+  // Indexes on pg_index
+  dbc.indexes_oid_index_ = Builder::BuildUniqueIndex(Builder::GetIndexOidIndexSchema(), INDEX_OID_INDEX_OID);
+  dbc.indexes_table_index_ = Builder::BuildLookupIndex(Builder::GetIndexTableIndexSchema(), INDEX_TABLE_INDEX_OID);
+
+  // Indexes on pg_attribute
+  dbc.columns_oid_index_ = Builder::BuildUniqueIndex(Builder::GetColumnOidIndexSchema(), COLUMN_OID_INDEX_OID);
+  dbc.columns_name_index_ = Builder::BuildUniqueIndex(Builder::GetColumnNameIndexSchema(), COLUMN_NAME_INDEX_OID);
+
+  // Indexes on pg_type
+  dbc.types_oid_index_ = Builder::BuildUniqueIndex(Builder::GetTypeOidIndexSchema(), TYPE_OID_INDEX_OID);
+  dbc.types_name_index_ = Builder::BuildUniqueIndex(Builder::GetTypeNameIndexSchema(), TYPE_NAME_INDEX_OID);
+
+  // Indexes on pg_constraint
+  dbc.constraints_oid_index_ = Builder::BuildUniqueIndex(Builder::GetConstraintOidIndexSchema(),
+    CONSTRAINT_OID_INDEX_OID);
+  dbc.constraints_name_index_ = Builder::BuildUniqueIndex(Builder::GetConstraintNameIndexSchema(),
+    CONSTRAINT_NAME_INDEX_OID);
+  dbc.constraints_table_index_ = Builder::BuildLookupIndex(Builder::GetConstraintTableIndexSchema(),
+    CONSTRAINT_TABLE_INDEX_OID);
+  dbc.constraints_index_index_ = Builder::BuildLookupIndex(Builder::GetConstraintIndexIndexSchema(),
+    CONSTRAINT_INDEX_INDEX_OID);
+  dbc.constraints_foreignkey_index_ = Builder::BuildLookupIndex(Builder::GetConstraintForeignKeyIndexSchema(),
+    CONSTRAINT_FOREIGNKEY_INDEX_OID);
 
   return dbc;
+}
+
+static void BootstrapDatabaseCatalog(transaction::TransactionContext *txn, DatabaseCatalog *catalog) {
+  // TODO (John):  Actually implement this...
+  // General flow:
+  //   Add namespaces:  pg_catalog, public
+  //   Add types:  in pg_catalog namespace with OIDs corresponding to internal enum values
+  //   Add tables and indexes to pg_class
+  //   Add columns to pg_attribute
+  //   Add index metadata to pg_index
+  //   Add constraints
+  //   Update pg_class to include pointers (necessary to trigger special-cased logic during recovery/replication)
 }
 
 /**
@@ -206,6 +249,251 @@ static Schema Builder::GetTypeTableSchema()  {
   columns.back().SetOid(TYPTYPE_COL_OID);
 
   return Schema(columns);
+}
+
+static IndexSchema Builder::GetNamespaceOidIndexSchema() {
+  std::vector<IndexSchema::Column> columns;
+
+  columns.emplace_back(type::TypeId::Integer, false,
+    new parser::ColumnValueExpression(NAMESPACE_TABLE_OID, NSPOID_COL_OID));
+  columns.back().SetOid(col_oid_t(1));
+
+  // Primary
+  IndexSchema schema(columns, true, true, false, true);
+  schema.SetValid(true);
+  schema.SetReady(true);
+
+  return schema;
+}
+
+static IndexSchema Builder::GetNamespaceNameIndexSchema() {
+  std::vector<IndexSchema::Column> columns;
+
+  columns.emplace_back(type::TypeId::VARCHAR, false,
+    new parser::ColumnValueExpression(NAMESPACE_TABLE_OID, NSPNAME_COL_OID));
+  columns.back().SetOid(col_oid_t(1));
+
+  // Unique, not primary
+  IndexSchema schema(columns, true, false, false, true);
+  schema.SetValid(true);
+  schema.SetReady(true);
+
+  return schema;
+}
+
+static IndexSchema Builder::GetClassOidIndexSchema() {
+  std::vector<IndexSchema::Column> columns;
+
+  columns.emplace_back(type::TypeId::INTEGER, false,
+    new parser::ColumnValueExpression(CLASS_TABLE_OID, RELOID_COL_OID));
+  columns.back().SetOid(col_oid_t(1));
+
+  // Primary
+  IndexSchema schema(columns, true, true, false, true);
+  schema.SetValid(true);
+  schema.SetReady(true);
+
+  return schema;
+}
+
+static IndexSchema Builder::GetClassNameIndexSchema() {
+  std::vector<IndexSchema::Column> columns;
+
+  columns.emplace_back(type::TypeId::Integer, false,
+    new parser::ColumnValueExpression(CLASS_TABLE_OID, RELNAMESPACE_COL_OID));
+  columns.back().SetOid(col_oid_t(1));
+
+  columns.emplace_back(type::TypeId::VARCHAR, false,
+    new parser::ColumnValueExpression(CLASS_TABLE_OID, RELNAME_COL_OID));
+  columns.back().SetOid(col_oid_t(2));
+
+  // Unique, not primary
+  IndexSchema schema(columns, true, false, false, true);
+  schema.SetValid(true);
+  schema.SetReady(true);
+
+  return schema;
+}
+
+static IndexSchema Builder::GetIndexOidIndexSchema() {
+  std::vector<IndexSchema::Column> columns;
+
+  columns.emplace_back(type::TypeId::INTEGER, false,
+    new parser::ColumnValueExpression(INDEX_TABLE_OID, INDOID_COL_OID));
+  columns.back().SetOid(col_oid_t(1));
+
+  // Primary
+  IndexSchema schema(columns, true, true, false, true);
+  schema.SetValid(true);
+  schema.SetReady(true);
+
+  return schema;
+}
+
+static IndexSchema Builder::GetIndexTableIndexSchema() {
+  std::vector<IndexSchema::Column> columns;
+
+  columns.emplace_back(type::TypeId::INTEGER, false,
+    new parser::ColumnValueExpression(INDEX_TABLE_OID, INDRELID_COL_OID));
+  columns.back().SetOid(col_oid_t(1));
+
+  // Not unique
+  IndexSchema schema(columns, false, false, false, true);
+  schema.SetValid(true);
+  schema.SetReady(true);
+
+  return schema;
+}
+
+static IndexSchema Builder::GetColumnOidIndexSchema() {
+  std::vector<IndexSchema::Column> columns;
+
+  columns.emplace_back(type::TypeId::INTEGER, false,
+    new parser::ColumnValueExpression(COLUMN_TABLE_OID, ATTRELID_COL_OID));
+  columns.back().SetOid(col_oid_t(1));
+
+  columns.emplace_back(type::TypeId::INTEGER, false,
+    new parser::ColumnValueExpression(COLUMN_TABLE_OID, ATTNUM_COL_OID));
+  columns.back().SetOid(col_oid_t(2));
+
+  // Primary
+  IndexSchema schema(columns, true, true, false, true);
+  schema.SetValid(true);
+  schema.SetReady(true);
+
+  return schema;
+}
+
+static IndexSchema Builder::GetColumnNameIndexSchema() {
+  std::vector<IndexSchema::Column> columns;
+
+  columns.emplace_back(type::TypeId::INTEGER, false,
+    new parser::ColumnValueExpression(COLUMN_TABLE_OID, ATTRELID_COL_OID));
+  columns.back().SetOid(col_oid_t(1));
+
+  columns.emplace_back(type::TypeId::VARCHAR, false,
+    new parser::ColumnValueExpression(COLUMN_TABLE_OID, ATTNAME_COL_OID));
+  columns.back().SetOid(col_oid_t(2));
+
+  // Unique, not primary
+  IndexSchema schema(columns, true, false, false, true);
+  schema.SetValid(true);
+  schema.SetReady(true);
+
+  return schema;
+}
+
+static IndexSchema Builder::GetTypeOidIndexSchema() {
+  std::vector<IndexSchema::Column> columns;
+
+  columns.emplace_back(type::TypeId::INTEGER, false,
+    new parser::ColumnValueExpression(TYPE_TABLE_OID, TYPOID_COL_OID));
+  columns.back().SetOid(col_oid_t(1));
+
+  // Primary
+  IndexSchema schema(columns, true, true, false, true);
+  schema.SetValid(true);
+  schema.SetReady(true);
+
+  return schema;
+}
+
+static IndexSchema Builder::GetTypeNameIndexSchema() {
+  std::vector<IndexSchema::Column> columns;
+
+  columns.emplace_back(type::TypeId::Integer, false,
+    new parser::ColumnValueExpression(TYPE_TABLE_OID, TYPNAMESPACE_COL_OID));
+  columns.back().SetOid(col_oid_t(1));
+
+  columns.emplace_back(type::TypeId::VARCHAR, false,
+    new parser::ColumnValueExpression(TYPE_TABLE_OID, TYPNAME_COL_OID));
+  columns.back().SetOid(col_oid_t(2));
+
+  // Unique, not primary
+  IndexSchema schema(columns, true, false, false, true);
+  schema.SetValid(true);
+  schema.SetReady(true);
+
+  return schema;
+}
+
+static IndexSchema Builder::GetConstraintOidIndexSchema() {
+  std::vector<IndexSchema::Column> columns;
+
+  columns.emplace_back(type::TypeId::INTEGER, false,
+    new parser::ColumnValueExpression(CONSTRAINT_TABLE_OID, CONOID_COL_OID));
+  columns.back().SetOid(col_oid_t(1));
+
+  // Primary
+  IndexSchema schema(columns, true, true, false, true);
+  schema.SetValid(true);
+  schema.SetReady(true);
+
+  return schema;
+}
+
+static IndexSchema Builder::GetConstraintNameIndexSchema() {
+  std::vector<IndexSchema::Column> columns;
+
+  columns.emplace_back(type::TypeId::Integer, false,
+    new parser::ColumnValueExpression(CONSTRAINT_TABLE_OID, CONNAMESPACE_COL_OID));
+  columns.back().SetOid(col_oid_t(1));
+
+  columns.emplace_back(type::TypeId::VARCHAR, false,
+    new parser::ColumnValueExpression(CONSTRAINT_TABLE_OID, CONNAME_COL_OID));
+  columns.back().SetOid(col_oid_t(2));
+
+  // Unique, not primary
+  IndexSchema schema(columns, true, false, false, true);
+  schema.SetValid(true);
+  schema.SetReady(true);
+
+  return schema;
+}
+
+static IndexSchema Builder::GetConstraintTableIndexSchema() {
+  std::vector<IndexSchema::Column> columns;
+
+  columns.emplace_back(type::TypeId::INTEGER, false,
+    new parser::ColumnValueExpression(CONSTRAINT_TABLE_OID, CONRELID_COL_OID));
+  columns.back().SetOid(col_oid_t(1));
+
+  // Not unique
+  IndexSchema schema(columns, false, false, false, true);
+  schema.SetValid(true);
+  schema.SetReady(true);
+
+  return schema;
+}
+
+static IndexSchema Builder::GetConstraintIndexIndexSchema() {
+  std::vector<IndexSchema::Column> columns;
+
+  columns.emplace_back(type::TypeId::INTEGER, false,
+    new parser::ColumnValueExpression(CONSTRAINT_TABLE_OID, CONINDID_COL_OID));
+  columns.back().SetOid(col_oid_t(1));
+
+  // Not unique
+  IndexSchema schema(columns, false, false, false, true);
+  schema.SetValid(true);
+  schema.SetReady(true);
+
+  return schema;
+}
+
+static IndexSchema Builder::GetConstraintForeignTableIndexSchema() {
+  std::vector<IndexSchema::Column> columns;
+
+  columns.emplace_back(type::TypeId::INTEGER, false,
+    new parser::ColumnValueExpression(CONSTRAINT_TABLE_OID, CONFRELID_COL_OID));
+  columns.back().SetOid(col_oid_t(1));
+
+  // Not unique
+  IndexSchema schema(columns, false, false, false, true);
+  schema.SetValid(true);
+  schema.SetReady(true);
+
+  return schema;
 }
 
 } // namespace terrier::storage::postgres

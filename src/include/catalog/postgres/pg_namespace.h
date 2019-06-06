@@ -8,6 +8,9 @@
 
 namespace terrier::catalog::postgres {
 
+#define NAMESPACE_TABLE_OID table_oid_t(11);
+#define NAMESPACE_OID_INDEX_OID index_oid_t(12);
+#define NAMESPACE_NAME_INDEX_OID index_oid_t(13);
 /*
  * Column names of the form "NSP[name]_COL_OID" are present in the PostgreSQL
  * catalog specification and columns of the form "NSP_[name]_COL_OID" are
