@@ -32,19 +32,6 @@ class TPCCTests : public TerrierTest {
     unlink(LOG_FILE_NAME);
   }
 
-  void StartLogging() {
-    TERRIER_ASSERT(log_manager_ != LOGGING_DISABLED, "LogManager cannot be nullptr.");
-    logging_ = true;
-    log_thread_ = std::thread([this] { LogThreadLoop(); });
-  }
-
-  void EndLogging() {
-    TERRIER_ASSERT(log_manager_ != LOGGING_DISABLED, "LogManager cannot be nullptr.");
-    logging_ = false;
-    log_thread_.join();
-    log_manager_->Shutdown();
-  }
-
   const uint64_t blockstore_size_limit_ =
       1000;  // May need to increase this if num_threads_ or num_precomputed_txns_per_worker_ are greatly increased
   // (table sizes grow with a bigger workload)
@@ -63,20 +50,16 @@ class TPCCTests : public TerrierTest {
 
   common::WorkerPool thread_pool_{static_cast<uint32_t>(num_threads_), {}};
 
+  // Settings for log manager
+  const uint64_t num_log_buffers_ = 2;
+  const std::chrono::milliseconds log_serialization_interval_{10};
+  const std::chrono::milliseconds log_flushing_interval_{20};
+
   storage::GarbageCollectorThread *gc_thread_ = nullptr;
   const std::chrono::milliseconds gc_period_{10};
 
  private:
   std::thread log_thread_;
-  volatile bool logging_ = false;
-  const std::chrono::milliseconds log_period_milli_{10};
-
-  void LogThreadLoop() {
-    while (logging_) {
-      std::this_thread::sleep_for(log_period_milli_);
-      log_manager_->Process();
-    }
-  }
 };
 
 // NOLINTNEXTLINE
@@ -139,7 +122,9 @@ TEST_F(TPCCTests, WithLogging) {
   thread_pool_.Startup();
 
   // we need transactions, TPCC database, and GC
-  log_manager_ = new storage::LogManager(LOG_FILE_NAME, 4, &buffer_pool_);
+  log_manager_ = new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_,
+                                         log_flushing_interval_, &buffer_pool_);
+  log_manager_->Start();
   transaction::TransactionManager txn_manager(&buffer_pool_, true, log_manager_);
   auto tpcc_builder = Builder(&block_store_);
 
@@ -156,12 +141,14 @@ TEST_F(TPCCTests, WithLogging) {
     workers.emplace_back(tpcc_db);
   }
 
-  // populate the tables and indexes
+  // populate the tables and indexes, as well as force log manager to log all changes
   Loader::PopulateDatabase(&txn_manager, &generator_, tpcc_db, workers);
-  log_manager_->Process();  // log all of the Inserts from table creation
+  log_manager_->Shutdown();
+
+  // Let GC clean up
   gc_thread_ = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
-  StartLogging();
-  std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
+  log_manager_->Start();
+  std::this_thread::sleep_for(std::chrono::seconds(2));
 
   // run the TPCC workload to completion
   for (int8_t i = 0; i < num_threads_; i++) {
@@ -172,9 +159,9 @@ TEST_F(TPCCTests, WithLogging) {
   thread_pool_.WaitUntilAllFinished();
 
   // cleanup
-  EndLogging();
-  delete gc_thread_;
+  log_manager_->Shutdown();
   delete log_manager_;
+  delete gc_thread_;
   delete tpcc_db;
 
   CleanUpVarlensInPrecomputedArgs(&precomputed_args);

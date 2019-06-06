@@ -30,11 +30,12 @@ void DBMain::Init() {
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // Create LogManager
-  log_manager_ = new storage::LogManager(settings_manager_->GetString(settings::Param::log_file_path).c_str(),
-                                         settings_manager_->GetInt(settings::Param::num_log_manager_buffers),
-                                         std::chrono::milliseconds{settings_manager_->GetInt(settings::Param::log_serialization_interval)},
-                                         std::chrono::milliseconds{settings_manager_->GetInt(settings::Param::log_flushing_interval)},
-                                         buffer_segment_pool_);
+  log_manager_ = new storage::LogManager(
+      settings_manager_->GetString(settings::Param::log_file_path).c_str(),
+      settings_manager_->GetInt(settings::Param::num_log_manager_buffers),
+      std::chrono::milliseconds{settings_manager_->GetInt(settings::Param::log_serialization_interval)},
+      std::chrono::milliseconds{settings_manager_->GetInt(settings::Param::log_flushing_interval)},
+      buffer_segment_pool_);
   log_manager_->Start();
 
   thread_pool_ = new common::WorkerPool(
