@@ -338,7 +338,7 @@ bool RightNLJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 Operator OuterNLJoin::make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
   auto *join = new OuterNLJoin();
-  join->join_predicate_ =join_predicate;
+  join->join_predicate_ = join_predicate;
   return Operator(join);
 }
 
