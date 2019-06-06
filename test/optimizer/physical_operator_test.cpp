@@ -427,8 +427,8 @@ TEST(OperatorTests, InnerNLJoinTest) {
   EXPECT_TRUE(inner_nl_join_1 == inner_nl_join_2);
   EXPECT_FALSE(inner_nl_join_1 == inner_nl_join_3);
   EXPECT_FALSE(inner_nl_join_4 == inner_nl_join_3);
-  //EXPECT_TRUE(inner_nl_join_4 == inner_nl_join_5);
-  //EXPECT_TRUE(inner_nl_join_4 == inner_nl_join_6);
+  EXPECT_TRUE(inner_nl_join_4 == inner_nl_join_5);
+  EXPECT_TRUE(inner_nl_join_4 == inner_nl_join_6);
   EXPECT_FALSE(inner_nl_join_4 == inner_nl_join_7);
   EXPECT_FALSE(inner_nl_join_4 == inner_nl_join_8);
   EXPECT_FALSE(inner_nl_join_4 == inner_nl_join_9);

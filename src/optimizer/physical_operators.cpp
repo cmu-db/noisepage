@@ -99,7 +99,7 @@ bool IndexScan::operator==(const BaseOperatorNode &r) {
   if (database_oid_ != node.database_oid_ || namespace_oid_ != node.namespace_oid_ || index_oid_ != node.index_oid_ ||
       table_alias_ != node.table_alias_ || key_column_oid_list_ != node.key_column_oid_list_ ||
       expr_type_list_ != node.expr_type_list_ || predicates_.size() != node.predicates_.size() ||
-      key_column_oid_list_.size() != node.key_column_oid_list_.size() ||
+      key_column_oid_list_.size() != node.key_column_oid_list_.size() || is_for_update_ != node.is_for_update_ ||
       expr_type_list_.size() != node.expr_type_list_.size() || value_list_.size() != node.value_list_.size())
     return false;
 
@@ -114,11 +114,11 @@ bool IndexScan::operator==(const BaseOperatorNode &r) {
 
 common::hash_t IndexScan::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&namespace_oid_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&index_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(index_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&is_for_update_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(is_for_update_));
   for (auto &pred : predicates_) {
     auto expr = pred.GetExpr();
     if (expr)
