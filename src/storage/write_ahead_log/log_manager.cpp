@@ -18,13 +18,13 @@ void LogManager::Start() {
   disk_log_writer_task_ = DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread<DiskLogWriterTask>(
       this /* requester */, this /* argument to task constructor */);
 
-  // Register LogSerializerTask
-  log_serializer_task_ = DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread<LogSerializerTask>(
-      this /* requester */, this /* argument to task constructor */, serialization_interval_);
-
   // Register LogFlusherTask
   log_flusher_task_ = DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread<LogFlusherTask>(
       this /* requester */, this /* argument to task constructor */, flushing_interval_);
+
+  // Register LogSerializerTask
+  log_serializer_task_ = DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread<LogSerializerTask>(
+      this /* requester */, this /* argument to task constructor */, serialization_interval_);
 }
 
 void LogManager::Shutdown() {
@@ -148,7 +148,7 @@ void LogManager::SerializeRecord(const terrier::storage::LogRecord &record) {
 
         if (block_layout.IsVarlen(col_id)) {
           // Inline column value is a pointer to a VarlenEntry, so reinterpret as such.
-          const auto *varlen_entry = reinterpret_cast<const VarlenEntry *>(*column_value_address);
+          const auto *varlen_entry = reinterpret_cast<const VarlenEntry *>(column_value_address);
           // Serialize out length of the varlen entry.
           WriteValue(varlen_entry->Size());
           if (varlen_entry->IsInlined()) {

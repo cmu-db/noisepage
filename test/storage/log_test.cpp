@@ -29,7 +29,7 @@ class WriteAheadLoggingTests : public TerrierTest {
   // Settings for log manager
   const uint64_t num_log_buffers_ = 2;
   const std::chrono::milliseconds log_serialization_interval_{10};
-  const std::chrono::milliseconds log_flushing_interval{20};
+  const std::chrono::milliseconds log_flushing_interval_{20};
 
   std::default_random_engine generator_;
   storage::RecordBufferSegmentPool pool_{2000, 100};
@@ -45,7 +45,8 @@ class WriteAheadLoggingTests : public TerrierTest {
   void SetUp() override {
     // Unlink log file incase one exists from previous test iteration
     unlink(LOG_FILE_NAME);
-    log_manager_ = new LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_flushing_interval, &pool_);
+    log_manager_ =
+        new LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_flushing_interval_, &pool_);
     TerrierTest::SetUp();
   }
 
@@ -56,7 +57,7 @@ class WriteAheadLoggingTests : public TerrierTest {
     DedicatedThreadRegistry::GetInstance().TearDown();
     TerrierTest::TearDown();
   }
-  
+
   storage::LogRecord *ReadNextRecord(storage::BufferedLogReader *in, const storage::BlockLayout &block_layout) {
     // TODO(Justin): Fit this to new serialization format after it is complete.
     auto size = in->ReadValue<uint32_t>();
@@ -132,9 +133,9 @@ class WriteAheadLoggingTests : public TerrierTest {
           varlen_entry = storage::VarlenEntry::Create(varlen_attribute_content, varlen_attribute_size, true);
         }
         // The attribute value in the ProjectedRow will be a pointer to this varlen entry.
-        auto *dest = reinterpret_cast<storage::VarlenEntry **>(column_value_address);
+        auto *dest = reinterpret_cast<storage::VarlenEntry *>(column_value_address);
         // Set the value to be the address of the varlen_entry.
-        *dest = &varlen_entry;
+        *dest = varlen_entry;
       } else {
         // For inlined attributes, just directly read into the ProjectedRow.
         in->Read(column_value_address, block_layout.AttrSize(col_ids[i]));
@@ -162,13 +163,12 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
                                           .SetBufferPool(&pool_)
                                           .SetGenerator(&generator_)
                                           .SetGcOn(true)
+                                          .SetVarlenAllowed(true)
                                           .SetBookkeeping(true)
                                           .SetLogManager(log_manager_)
                                           .build();
   log_manager_->Start();
-  gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
   auto result = tested.SimulateOltp(100, 4);
-  delete gc_thread_;
   log_manager_->Shutdown();
 
   std::unordered_map<transaction::timestamp_t, RandomWorkloadTransaction *> txns_map;
@@ -206,7 +206,7 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
       // so we are not checking it
       auto update_it = it->second->Updates()->find(redo->GetTupleSlot());
       EXPECT_NE(it->second->Updates()->end(), update_it);
-      EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), update_it->second, redo->Delta()));
+      EXPECT_TRUE(StorageTestUtil::ProjectionListEqualDeep(tested.Layout(), update_it->second, redo->Delta()));
       delete[] reinterpret_cast<byte *>(update_it->second);
       it->second->Updates()->erase(update_it);
     }
@@ -221,6 +221,12 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
   for (const auto &kv_pair : txns_map) {
     EXPECT_TRUE(kv_pair.second->Updates()->empty());
   }
+
+  // We perform GC at the end because we need the transactions to compare against the deserialized logs, thus we can
+  // only reclaim their resources after that's done
+  gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
+  delete gc_thread_;
+
   for (auto *txn : result.first) delete txn;
   for (auto *txn : result.second) delete txn;
 }
@@ -243,10 +249,8 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
                                           .SetLogManager(log_manager_)
                                           .build();
 
-  gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
   log_manager_->Start();
   auto result = tested.SimulateOltp(100, 4);
-  delete gc_thread_;
   log_manager_->Shutdown();
 
   // Read-only workload has completed. Read the log file back in to check that no records were produced for these
@@ -265,6 +269,11 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
     log_records_count += 1;
     delete[] reinterpret_cast<byte *>(log_record);
   }
+
+  // We perform GC at the end because we need the transactions to compare against the deserialized logs, thus we can
+  // only reclaim their resources after that's done
+  gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
+  delete gc_thread_;
 
   EXPECT_EQ(log_records_count, 0);
   for (auto *txn : result.first) delete txn;

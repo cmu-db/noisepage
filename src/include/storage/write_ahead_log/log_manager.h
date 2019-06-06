@@ -139,9 +139,6 @@ class LogManager : public DedicatedThreadOwner {
 
   bool run_log_manager_;
 
-  // Settings Manager
-  settings::SettingsManager *settings_manager_;
-
   // System path for log file
   const char *log_file_path_;
 
@@ -209,7 +206,6 @@ class LogManager : public DedicatedThreadOwner {
   BufferedLogWriter *GetCurrentWriteBuffer() {
     if (filled_buffer_ == nullptr) {
       empty_buffer_queue_.Dequeue(&filled_buffer_);
-      TERRIER_ASSERT(commits_in_buffer_.empty(), "Commit callbacks should have been handed off to log consumer");
     }
     return filled_buffer_;
   }
@@ -242,8 +238,8 @@ class LogManager : public DedicatedThreadOwner {
       disk_log_writer_thread_cv_.notify_one();
     }
     // Mark that serializer thread doesn't have a buffer in its possession to which it can write to
-    filled_buffer_ = nullptr;
     commits_in_buffer_.clear();
+    filled_buffer_ = nullptr;
   }
 
   /**
