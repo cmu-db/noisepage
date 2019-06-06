@@ -641,22 +641,27 @@ Operator HashGroupBy::make(std::vector<common::ManagedPointer<parser::AbstractEx
 
 bool HashGroupBy::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::HASHGROUPBY) return false;
-  const HashGroupBy &hash_op = *dynamic_cast<const HashGroupBy *>(&r);
-  if (having_.size() != hash_op.having_.size() || columns_.size() != hash_op.columns_.size()) return false;
+  const HashGroupBy &node = *static_cast<const HashGroupBy *>(&r);
+  if (having_.size() != node.having_.size() || columns_.size() != node.columns_.size()) return false;
   for (size_t i = 0; i < having_.size(); i++) {
-    if (having_[i].GetExpr() != hash_op.having_[i].GetExpr()) return false;
+    if (having_[i] != node.having_[i]) return false;
   }
-
-  std::unordered_set<common::ManagedPointer<parser::AbstractExpression>> l_set, r_set;
-  for (auto &expr : columns_) l_set.emplace(expr);
-  for (auto &expr : hash_op.columns_) r_set.emplace(expr);
-  return l_set == r_set;
+  for (size_t i = 0; i < columns_.size(); i++) {
+    if (*(columns_[i].get()) != *(node.columns_[i].get())) return false;
+  }
+  return true;
 }
 
 common::hash_t HashGroupBy::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  for (auto &pred : having_) hash = common::HashUtil::CombineHashes(hash, pred.GetExpr()->Hash());
-  for (auto &expr : columns_) hash = common::HashUtil::CombineHashes(hash, expr->Hash());
+  for (auto &pred : having_) {
+    auto expr = pred.GetExpr();
+    if (expr)
+      hash = common::HashUtil::SumHashes(hash, expr->Hash());
+    else
+      hash = common::HashUtil::SumHashes(hash, BaseOperatorNode::Hash());
+  }
+  for (auto &expr : columns_) hash = common::HashUtil::SumHashes(hash, expr->Hash());
   return hash;
 }
 
