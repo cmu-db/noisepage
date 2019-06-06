@@ -620,14 +620,11 @@ bool ExportExternalFile::operator==(const BaseOperatorNode &r) {
 
 common::hash_t ExportExternalFile::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&format_));
-  hash = common::HashUtil::CombineHashes(
-      hash, common::HashUtil::HashBytes(reinterpret_cast<const byte *>(file_name_.data()), file_name_.length()));
-  hash = common::HashUtil::CombineHashes(hash,
-                                         common::HashUtil::HashBytes(reinterpret_cast<const byte *>(&delimiter_), 1));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::HashBytes(reinterpret_cast<const byte *>(&quote_), 1));
-  hash =
-      common::HashUtil::CombineHashes(hash, common::HashUtil::HashBytes(reinterpret_cast<const byte *>(&escape_), 1));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(format_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(file_name_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(delimiter_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(quote_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(escape_));
   return hash;
 }
 

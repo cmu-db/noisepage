@@ -863,7 +863,7 @@ TEST(OperatorTests, ExportExternalFileTest) {
 
   // Check that all of our GET methods work as expected
   Operator op1 = ExportExternalFile::make(parser::ExternalFileFormat::BINARY, file_name, delimiter, quote, escape);
-  EXPECT_EQ(op1.GetType(), OpType::LOGICALEXPORTEXTERNALFILE);
+  EXPECT_EQ(op1.GetType(), OpType::EXPORTEXTERNALFILE);
   EXPECT_EQ(op1.As<ExportExternalFile>()->GetFilename(), file_name);
   EXPECT_EQ(op1.As<ExportExternalFile>()->GetFormat(), parser::ExternalFileFormat::BINARY);
   EXPECT_EQ(op1.As<ExportExternalFile>()->GetDelimiter(), delimiter);
