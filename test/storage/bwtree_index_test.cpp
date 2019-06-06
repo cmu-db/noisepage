@@ -67,8 +67,8 @@ class BwTreeIndexTests : public TerrierTest {
                           .SetOid(catalog::index_oid_t(2)))
                          .Build();
 
-    gc_thread_->gc_.RegisterIndexForGC(unique_index_);
-    gc_thread_->gc_.RegisterIndexForGC(default_index_);
+    gc_thread_->GetGarbageCollector().RegisterIndexForGC(unique_index_);
+    gc_thread_->GetGarbageCollector().RegisterIndexForGC(default_index_);
 
     key_buffer_1_ =
         common::AllocationUtil::AllocateAligned(default_index_->GetProjectedRowInitializer().ProjectedRowSize());
@@ -76,8 +76,8 @@ class BwTreeIndexTests : public TerrierTest {
         common::AllocationUtil::AllocateAligned(default_index_->GetProjectedRowInitializer().ProjectedRowSize());
   }
   void TearDown() override {
-    gc_thread_->gc_.UnregisterIndexForGC(unique_index_);
-    gc_thread_->gc_.UnregisterIndexForGC(default_index_);
+    gc_thread_->GetGarbageCollector().UnregisterIndexForGC(unique_index_);
+    gc_thread_->GetGarbageCollector().UnregisterIndexForGC(default_index_);
 
     delete gc_thread_;
     delete sql_table_;

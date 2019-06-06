@@ -49,11 +49,12 @@ class GarbageCollectorThread {
   }
 
   /**
-   * Access the underlying GC object, mostly to register indexes currently.
+   * @return the underlying GC object, mostly to register indexes currently.
    */
-  storage::GarbageCollector gc_;
+  GarbageCollector &GetGarbageCollector() { return gc_; }
 
  private:
+  storage::GarbageCollector gc_;
   volatile bool run_gc_;
   volatile bool gc_paused_;
   std::chrono::milliseconds gc_period_;
