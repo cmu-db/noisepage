@@ -49,8 +49,9 @@ class TransactionManager {
   /**
    * Aborts a transaction, rolling back its changes (if any).
    * @param txn the transaction to abort.
+   * @return abort timestamp of this transaction.
    */
-  void Abort(TransactionContext *txn);
+  timestamp_t Abort(TransactionContext *txn);
 
   /**
    * Get the oldest transaction alive in the system at this time. Because of concurrent operations, it

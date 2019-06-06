@@ -82,22 +82,21 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
       // This is a read-only transaction so this is safe to immediately delete
       delete txn;
       txns_processed++;
-    } else if (!transaction::TransactionUtil::Committed(txn->TxnId().load())) {
-      // This is an aborted txn. There is nothing to unlink because Rollback() handled that already, but we still need
-      // to safely free the txn
-      txns_to_deallocate_.push_front(txn);
-      txns_processed++;
     } else if (transaction::TransactionUtil::NewerThan(oldest_txn, txn->TxnId().load())) {
       // Safe to garbage collect.
       for (auto &undo_record : txn->undo_buffer_) {
+        // It is possible for the table field to be null, for aborted transaction's last conflicting record
         DataTable *&table = undo_record.Table();
         // Each version chain needs to be traversed and truncated at most once every GC period. Check
         // if we have already visited this tuple slot; if not, proceed to prune the version chain.
-        if (visited_slots.insert(undo_record.Slot()).second)
+        if (table != nullptr && visited_slots.insert(undo_record.Slot()).second)
           TruncateVersionChain(table, undo_record.Slot(), oldest_txn);
-        // Regardless of the version chain we will need to reclaim deleted slots and any dangling pointers to varlens.
-        ReclaimSlotIfDeleted(&undo_record);
-        ReclaimBufferIfVarlen(txn, &undo_record);
+        // Regardless of the version chain we will need to reclaim deleted slots and any dangling pointers to varlens,
+        // unless the transaction is aborted, and the record holds a version that is still visible.
+        if (!txn->Aborted()) {
+          ReclaimSlotIfDeleted(&undo_record);
+          ReclaimBufferIfVarlen(txn, &undo_record);
+        }
       }
       txns_to_deallocate_.push_front(txn);
       txns_processed++;
