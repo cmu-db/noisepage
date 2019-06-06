@@ -87,7 +87,8 @@ void TerminateConnection(int socket_fd) {
   out_buffer[0] = 'X';
   int len = sizeof(int32_t) + sizeof(char);
   reinterpret_cast<int32_t *>(out_buffer + 1)[0] = htonl(len);
-  write(socket_fd, nullptr, len + 1);
+  ssize_t i = write(socket_fd, nullptr, len + 1);
+  ASSERT_GE(i, 0);
 }
 
 }  // namespace terrier::network
