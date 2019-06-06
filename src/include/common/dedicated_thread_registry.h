@@ -72,7 +72,7 @@ class DedicatedThreadRegistry {
     std::unique_lock<std::mutex> lock(table_latch_);
 
     // Create task
-    T *task = new T(args...);
+    auto *task = new T(args...);
     thread_owners_table_[requester].insert(task);
     requester->GrantNewThread();
     threads_table_.emplace(task, std::thread([=] { task->RunTask(); }));
