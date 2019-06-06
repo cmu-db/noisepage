@@ -72,14 +72,23 @@ class LogManager : public DedicatedThreadOwner {
         do_persist_(true) {}
 
   /**
-   * Starts logging
+   * Starts log manager. Does the following in order:
+   *    1. Initialize buffers to pass serialized logs to log consumers
+   *    2. Starts up DiskLogWriterTask
+   *    3. Starts up LogFlusherTask
+   *    4. Starts up LogSerializerTask
    */
   void Start();
 
   /**
-   * Must be called when no other threads are doing work. Processes and persists all unpersisted logs.
+   * Persists all unpersisted logs and stops the log manager. Does what Start() does in reverse order:
+   *    1. Stops LogSerializerTask
+   *    2. Stops LogFlusherTask
+   *    3. Stops DiskLogWriterTask
+   *    2. Closes all open buffers
+   * Start() can be called after to run the log manager again, a new log manager does not need to be instatiated.
    */
-  void Shutdown();
+  void PersistAndStop();
 
   /**
    * Returns a (perhaps partially) filled log buffer to the log manager to be consumed. Caller should drop its
@@ -120,23 +129,12 @@ class LogManager : public DedicatedThreadOwner {
     return false;
   }
 
-  /**
-   * Process all the accumulated log records and serialize them to log consumer tasks. This method should only be called
-   * from a dedicated logging thread.
-   */
-  void Process();
-
-  /**
-   * Flush the logs to make sure all serialized records before this invocation are persistent. Callbacks from committed
-   * transactions are invoked by log consumers when the commit records are persisted on disk. This method should only be
-   * called from a dedicated logging thread or during Shutdown
-   * @warning Beware the performance consequences of calling flush too frequently
-   */
-  void ForceFlush();
-
  private:
   friend class DiskLogWriterTask;
+  friend class LogSerializerTask;
+  friend class LogFlusherTask;
 
+  // Flag to tell us when the log manager is running or during termination
   bool run_log_manager_;
 
   // System path for log file
@@ -188,6 +186,20 @@ class LogManager : public DedicatedThreadOwner {
   std::condition_variable disk_log_writer_thread_cv_;
 
   /**
+ * Process all the accumulated log records and serialize them to log consumer tasks. This method should only be called
+ * from a dedicated logging thread.
+ */
+  void Process();
+
+  /**
+   * Flush the logs to make sure all serialized records before this invocation are persistent. Callbacks from committed
+   * transactions are invoked by log consumers when the commit records are persisted on disk. This method should only be
+   * called from a dedicated logging thread or during Shutdown
+   * @warning Beware the performance consequences of calling flush too frequently
+   */
+  void ForceFlush();
+
+  /**
    * Serialize out the record to the log
    * @param record the redo record to serialise
    */
@@ -228,7 +240,7 @@ class LogManager : public DedicatedThreadOwner {
   void WriteValue(const void *val, uint32_t size);
 
   /**
-   * Mark the current buffer that the serializer thread is writing to as filled
+   * Hand over the current buffer and commit callbacks for commit records in that buffer to the log consumer task
    */
   void HandFilledBufferToWriter() {
     filled_buffer_queue_.Enqueue(std::make_pair(filled_buffer_, commits_in_buffer_));

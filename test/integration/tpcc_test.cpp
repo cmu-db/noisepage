@@ -57,9 +57,6 @@ class TPCCTests : public TerrierTest {
 
   storage::GarbageCollectorThread *gc_thread_ = nullptr;
   const std::chrono::milliseconds gc_period_{10};
-
- private:
-  std::thread log_thread_;
 };
 
 // NOLINTNEXTLINE
@@ -143,7 +140,7 @@ TEST_F(TPCCTests, WithLogging) {
 
   // populate the tables and indexes, as well as force log manager to log all changes
   Loader::PopulateDatabase(&txn_manager, &generator_, tpcc_db, workers);
-  log_manager_->Shutdown();
+  log_manager_->PersistAndStop();
 
   // Let GC clean up
   gc_thread_ = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
@@ -159,7 +156,7 @@ TEST_F(TPCCTests, WithLogging) {
   thread_pool_.WaitUntilAllFinished();
 
   // cleanup
-  log_manager_->Shutdown();
+  log_manager_->PersistAndStop();
   delete log_manager_;
   delete gc_thread_;
   delete tpcc_db;

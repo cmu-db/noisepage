@@ -27,7 +27,7 @@ void LogManager::Start() {
       this /* requester */, this /* argument to task constructor */, serialization_interval_);
 }
 
-void LogManager::Shutdown() {
+void LogManager::PersistAndStop() {
   run_log_manager_ = false;
 
   // Signal all tasks to stop. The shutdown of the tasks will trigger a process and flush. The order in which we do

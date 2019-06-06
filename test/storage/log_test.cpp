@@ -35,10 +35,6 @@ class WriteAheadLoggingTests : public TerrierTest {
   storage::RecordBufferSegmentPool pool_{2000, 100};
   storage::BlockStore block_store_{100, 100};
 
-  // Members related to running gc / logging.
-  std::thread log_thread_;
-  bool logging_;
-
   const std::chrono::milliseconds gc_period_{10};
   storage::GarbageCollectorThread *gc_thread_;
 
@@ -169,7 +165,7 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
                                           .build();
   log_manager_->Start();
   auto result = tested.SimulateOltp(100, 4);
-  log_manager_->Shutdown();
+  log_manager_->PersistAndStop();
 
   std::unordered_map<transaction::timestamp_t, RandomWorkloadTransaction *> txns_map;
   for (auto *txn : result.first) txns_map[txn->BeginTimestamp()] = txn;
@@ -251,7 +247,7 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
 
   log_manager_->Start();
   auto result = tested.SimulateOltp(100, 4);
-  log_manager_->Shutdown();
+  log_manager_->PersistAndStop();
 
   // Read-only workload has completed. Read the log file back in to check that no records were produced for these
   // transactions.

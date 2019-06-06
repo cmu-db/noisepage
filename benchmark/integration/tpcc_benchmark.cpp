@@ -28,17 +28,6 @@ namespace terrier::tpcc {
  */
 class TPCCBenchmark : public benchmark::Fixture {
  public:
-  void StartLogging() {
-    logging_ = true;
-    log_thread_ = std::thread([this] { LogThreadLoop(); });
-  }
-
-  void EndLogging() {
-    logging_ = false;
-    log_thread_.join();
-    log_manager_->Shutdown();
-  }
-
   const uint64_t blockstore_size_limit_ =
       1000;  // May need to increase this if num_threads_ or num_precomputed_txns_per_worker_ are greatly increased
              // (table sizes grow with a bigger workload)
@@ -49,6 +38,11 @@ class TPCCBenchmark : public benchmark::Fixture {
   storage::RecordBufferSegmentPool buffer_pool_{buffersegment_size_limit_, buffersegment_reuse_limit_};
   std::default_random_engine generator_;
   storage::LogManager *log_manager_ = LOGGING_DISABLED;  // logging enabled will override this value
+
+  // Settings for log manager
+  const uint64_t num_log_buffers_ = 2;
+  const std::chrono::milliseconds log_serialization_interval_{10};
+  const std::chrono::milliseconds log_flushing_interval_{20};
 
   const bool only_count_new_order_ = false;  // TPC-C specification is to only measure throughput for New Order in final
                                              // result, but most academic papers use all txn types
@@ -61,18 +55,6 @@ class TPCCBenchmark : public benchmark::Fixture {
 
   storage::GarbageCollectorThread *gc_thread_ = nullptr;
   const std::chrono::milliseconds gc_period_{10};
-
- private:
-  std::thread log_thread_;
-  volatile bool logging_ = false;
-  const std::chrono::milliseconds log_period_milli_{10};
-
-  void LogThreadLoop() {
-    while (logging_) {
-      std::this_thread::sleep_for(log_period_milli_);
-      log_manager_->Process();
-    }
-  }
 };
 
 // NOLINTNEXTLINE
@@ -169,7 +151,8 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
   for (auto _ : state) {
     unlink(LOG_FILE_NAME);
     // we need transactions, TPCC database, and GC
-    log_manager_ = new storage::LogManager(LOG_FILE_NAME, 4, &buffer_pool_);
+    log_manager_ = new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_flushing_interval_, &buffer_pool_);
+    log_manager_->Start();
     transaction::TransactionManager txn_manager(&buffer_pool_, true, log_manager_);
 
     // build the TPCC database
@@ -183,9 +166,9 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
 
     // populate the tables and indexes
     Loader::PopulateDatabase(&txn_manager, &generator_, tpcc_db, workers);
-    log_manager_->Process();  // log all of the Inserts from table creation
+    log_manager_->PersistAndStop();
+    log_manager_->Start();
     gc_thread_ = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
-    StartLogging();
     std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
 
     // run the TPCC workload to completion, timing the execution
@@ -198,7 +181,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
         });
       }
       thread_pool_.WaitUntilAllFinished();
-      EndLogging();  // need to wait for logs to finish flushing
+      log_manager_->PersistAndStop();
     }
 
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
