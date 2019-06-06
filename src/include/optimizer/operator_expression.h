@@ -34,6 +34,13 @@ class OperatorExpression {
    */
   const Operator &GetOp() const { return op_; }
 
+  /**
+   * destructor that delete its children
+   */
+  ~OperatorExpression() {
+    for (auto child : children_) delete child;
+  }
+
  private:
   /**
    * Underlying operator
