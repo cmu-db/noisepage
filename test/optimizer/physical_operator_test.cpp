@@ -212,9 +212,9 @@ TEST(OperatorTests, IndexScanTest) {
   EXPECT_EQ(index_scan_4.As<IndexScan>()->GetPredicates(), std::vector<AnnotatedExpression>{annotated_expr_1});
   EXPECT_EQ(index_scan_1.As<IndexScan>()->GetTableAlias(), "table");
   EXPECT_EQ(index_scan_1.As<IndexScan>()->GetIsForUpdate(), false);
-  EXPECT_EQ(index_scan_06.As<IndexScan>()->GetKeyColumnOIDList(), std::move(key_column2));
-  EXPECT_EQ(index_scan_07.As<IndexScan>()->GetExprTypeList(), std::move(expr_type2));
-  EXPECT_EQ(index_scan_08.As<IndexScan>()->GetValueList(), std::move(value2));
+  EXPECT_EQ(index_scan_06.As<IndexScan>()->GetKeyColumnOIDList(), key_column2);
+  EXPECT_EQ(index_scan_07.As<IndexScan>()->GetExprTypeList(), expr_type2);
+  EXPECT_EQ(index_scan_08.As<IndexScan>()->GetValueList(), value2);
   EXPECT_EQ(index_scan_1.GetName(), "IndexScan");
   EXPECT_TRUE(index_scan_1 == index_scan_2);
   EXPECT_FALSE(index_scan_1 == index_scan_3);

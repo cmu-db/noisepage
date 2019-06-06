@@ -272,13 +272,16 @@ common::hash_t InnerNLJoin::Hash() const {
       hash = common::HashUtil::SumHashes(hash, expr->Hash());
     else
       hash = common::HashUtil::SumHashes(hash, BaseOperatorNode::Hash());
-  }  return hash;
+  }
+  return hash;
 }
 
 bool InnerNLJoin::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::INNERNLJOIN) return false;
   const InnerNLJoin &node = *dynamic_cast<const InnerNLJoin *>(&r);
-  if (left_keys_.size() != node.left_keys_.size() || right_keys_.size() != node.right_keys_.size() || join_predicates_.size() != node.join_predicates_.size()) return false;
+  if (left_keys_.size() != node.left_keys_.size() || right_keys_.size() != node.right_keys_.size() ||
+      join_predicates_.size() != node.join_predicates_.size())
+    return false;
   if (join_predicates_ != node.join_predicates_) return false;
   for (size_t i = 0; i < left_keys_.size(); i++) {
     if (*(left_keys_[i]) != *(node.left_keys_[i])) return false;
@@ -335,7 +338,7 @@ bool RightNLJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 Operator OuterNLJoin::make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
   auto *join = new OuterNLJoin();
-  join->join_predicate_ = std::move(join_predicate);
+  join->join_predicate_ =join_predicate;
   return Operator(join);
 }
 
@@ -374,13 +377,16 @@ common::hash_t InnerHashJoin::Hash() const {
       hash = common::HashUtil::SumHashes(hash, expr->Hash());
     else
       hash = common::HashUtil::SumHashes(hash, BaseOperatorNode::Hash());
-  }  return hash;
+  }
+  return hash;
 }
 
 bool InnerHashJoin::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::INNERHASHJOIN) return false;
   const InnerHashJoin &node = *dynamic_cast<const InnerHashJoin *>(&r);
-  if (left_keys_.size() != node.left_keys_.size() || right_keys_.size() != node.right_keys_.size() || join_predicates_.size() != node.join_predicates_.size()) return false;
+  if (left_keys_.size() != node.left_keys_.size() || right_keys_.size() != node.right_keys_.size() ||
+      join_predicates_.size() != node.join_predicates_.size())
+    return false;
   if (join_predicates_ != node.join_predicates_) return false;
   for (size_t i = 0; i < left_keys_.size(); i++) {
     if (*(left_keys_[i]) != *(node.left_keys_[i])) return false;

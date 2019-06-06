@@ -69,7 +69,7 @@ bool LogicalExternalFileGet::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::LOGICALEXTERNALFILEGET) return false;
   const auto &get = *static_cast<const LogicalExternalFileGet *>(&r);
   return (format_ == get.format_ && file_name_ == get.file_name_ && delimiter_ == get.delimiter_ &&
-      quote_ == get.quote_ && escape_ == get.escape_);
+          quote_ == get.quote_ && escape_ == get.escape_);
 }
 
 common::hash_t LogicalExternalFileGet::Hash() const {
