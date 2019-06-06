@@ -21,8 +21,8 @@ class OperatorExpression {
    * @param op an operator to bind to this OperatorExpression node
    * @param children children of this OperatorExpression
    */
-  explicit OperatorExpression(Operator op, std::vector<OperatorExpression *> &&children)
-      : op_(std::move(op)), children_(std::move(children)) {}
+  explicit OperatorExpression(Operator &&op, std::vector<OperatorExpression *> &&children)
+      : op_(op), children_(std::move(children)) {}
 
   /**
    * @return vector of children
