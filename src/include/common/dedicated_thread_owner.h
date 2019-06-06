@@ -1,9 +1,9 @@
 #pragma once
 #include <memory>
-#include <mutex>   // NOLINT
 #include <thread>  // NOLINT
 #include "common/dedicated_thread_task.h"
 #include "common/managed_pointer.h"
+#include "common/spin_latch.h"
 
 namespace terrier {
 /**
@@ -23,7 +23,7 @@ class DedicatedThreadOwner {
    * @return the number of threads owned by this owner
    */
   size_t GetThreadCount() {
-    std::unique_lock<std::mutex> lock(thread_count_latch_);
+    common::SpinLatch::ScopedSpinLatch guard(&thread_count_latch_);
     return thread_count_;
   }
 
@@ -39,7 +39,7 @@ class DedicatedThreadOwner {
    * Notifies the owner that a new thread has been given to it
    */
   void GrantNewThread() {
-    std::unique_lock<std::mutex> lock(thread_count_latch_);
+    common::SpinLatch::ScopedSpinLatch guard(&thread_count_latch_);
     thread_count_++;
   }
 
@@ -55,7 +55,7 @@ class DedicatedThreadOwner {
    * Notifies the owner that a new thread has removed from them
    */
   void RemoveThread() {
-    std::unique_lock<std::mutex> lock(thread_count_latch_);
+    common::SpinLatch::ScopedSpinLatch guard(&thread_count_latch_);
     thread_count_--;
   }
 
@@ -76,7 +76,9 @@ class DedicatedThreadOwner {
   virtual bool OnThreadRemoved(common::ManagedPointer<DedicatedThreadTask> task) { return false; }
 
  private:
-  std::mutex thread_count_latch_;
+  // Latch to protect thread count
+  common::SpinLatch thread_count_latch_;
+  // Number of threads this owner has been granted
   size_t thread_count_ = 0;
 };
 }  // namespace terrier

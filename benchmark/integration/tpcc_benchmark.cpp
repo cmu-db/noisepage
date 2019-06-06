@@ -151,7 +151,8 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
   for (auto _ : state) {
     unlink(LOG_FILE_NAME);
     // we need transactions, TPCC database, and GC
-    log_manager_ = new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_flushing_interval_, &buffer_pool_);
+    log_manager_ = new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_,
+                                           log_flushing_interval_, &buffer_pool_);
     log_manager_->Start();
     transaction::TransactionManager txn_manager(&buffer_pool_, true, log_manager_);
 

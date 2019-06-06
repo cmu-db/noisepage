@@ -181,14 +181,14 @@ class LogManager : public DedicatedThreadOwner {
   // Synchronisation primitives to synchronise persisting buffers to disk
   std::mutex persist_lock_;
   std::condition_variable persist_cv_;
-  // Condition variable to signal disk log writer task  thread to wake up and flush buffers to disk or if shutdown has
+  // Condition variable to signal disk log writer task thread to wake up and flush buffers to disk or if shutdown has
   // initiated, then quit
   std::condition_variable disk_log_writer_thread_cv_;
 
   /**
- * Process all the accumulated log records and serialize them to log consumer tasks. This method should only be called
- * from a dedicated logging thread.
- */
+   * Process all the accumulated log records and serialize them to log consumer tasks. This method should only be called
+   * from a dedicated logging thread.
+   */
   void Process();
 
   /**
