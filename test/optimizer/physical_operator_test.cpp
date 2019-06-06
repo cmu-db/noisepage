@@ -261,7 +261,7 @@ TEST(OperatorTests, ExternalFileScanTest) {
   Operator ext_file_scan_7 = ExternalFileScan::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '&');
 
   EXPECT_EQ(ext_file_scan_1.GetType(), OpType::EXTERNALFILESCAN);
-  EXPECT_EQ(ext_file_scan_1.GetName(), "EXTERNALFILESCAN");
+  EXPECT_EQ(ext_file_scan_1.GetName(), "ExternalFileScan");
   EXPECT_EQ(ext_file_scan_1.As<ExternalFileScan>()->GetFormat(), parser::ExternalFileFormat::CSV);
   EXPECT_EQ(ext_file_scan_1.As<ExternalFileScan>()->GetFilename(), "file.txt");
   EXPECT_EQ(ext_file_scan_1.As<ExternalFileScan>()->GetDelimiter(), ',');
