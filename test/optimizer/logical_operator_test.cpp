@@ -395,13 +395,13 @@ TEST(OperatorTests, LogicalQueryDerivedGetTest) {
   alias_to_expr_map_5["constant expr"] = expr1;
   alias_to_expr_map_5["constant expr2"] = expr2;
 
-  Operator logical_query_derived_get_1 = LogicalQueryDerivedGet::make("alias", alias_to_expr_map_1);
-  Operator logical_query_derived_get_2 = LogicalQueryDerivedGet::make("alias", alias_to_expr_map_2);
+  Operator logical_query_derived_get_1 = LogicalQueryDerivedGet::make("alias", std::move(alias_to_expr_map_1));
+  Operator logical_query_derived_get_2 = LogicalQueryDerivedGet::make("alias", std::move(alias_to_expr_map_2));
   Operator logical_query_derived_get_3 = LogicalQueryDerivedGet::make(
       "alias", std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>>());
-  Operator logical_query_derived_get_4 = LogicalQueryDerivedGet::make("alias", alias_to_expr_map_3);
-  Operator logical_query_derived_get_5 = LogicalQueryDerivedGet::make("alias", alias_to_expr_map_4);
-  Operator logical_query_derived_get_6 = LogicalQueryDerivedGet::make("alias", alias_to_expr_map_5);
+  Operator logical_query_derived_get_4 = LogicalQueryDerivedGet::make("alias", std::move(alias_to_expr_map_3));
+  Operator logical_query_derived_get_5 = LogicalQueryDerivedGet::make("alias", std::move(alias_to_expr_map_4));
+  Operator logical_query_derived_get_6 = LogicalQueryDerivedGet::make("alias", std::move(alias_to_expr_map_5));
 
   EXPECT_EQ(logical_query_derived_get_1.GetType(), OpType::LOGICALQUERYDERIVEDGET);
   EXPECT_EQ(logical_query_derived_get_1.GetName(), "LogicalQueryDerivedGet");
