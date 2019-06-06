@@ -96,11 +96,16 @@ class TransactionContext {
 
   /**
    * Expose a record that can hold a change, described by the initializer given, that will be logged out to disk.
-   * The change can either be copied into this space, or written in the space and then used to change the DataTable.
+   * The change should be written in the space and then used to change the SqlTable.
    * @param db_oid the database oid that this record changes
    * @param table_oid the table oid that this record changes
    * @param initializer the initializer to use for the underlying record
    * @return pointer to the initialized redo record.
+   * @warning RedoRecords returned by StageWrite are not guaranteed to remain valid forever. If you call StageWrite
+   * again, the previous RedoRecord's buffer may be swapped out, written to disk, and handed back out to another
+   * transaction.
+   * @warning If you call StageWrite, its contents WILL be logged to disk. If you StageWrite anything that you didn't
+   * succeed in writing into the table or decide you don't want to use, the transaction MUST abort.
    */
   storage::RedoRecord *StageWrite(const catalog::db_oid_t db_oid, const catalog::table_oid_t table_oid,
                                   const storage::ProjectedRowInitializer &initializer) {
