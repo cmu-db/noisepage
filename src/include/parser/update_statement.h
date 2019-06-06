@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 
+#include "common/managed_pointer.h"
 #include "common/sql_node_visitor.h"
 #include "expression/abstract_expression.h"
 #include "parser/sql_statement.h"
@@ -26,6 +27,7 @@ class UpdateClause {
   UpdateClause(std::string column, const AbstractExpression *value) : column_(std::move(column)), value_(value) {}
 
   ~UpdateClause() { delete value_; }
+
 
   /**
    * @return column to be updated

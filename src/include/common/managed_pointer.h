@@ -37,6 +37,16 @@ class ManagedPointer {
   Underlying *operator->() const { return underlying_; }
 
   /**
+   * @return the underlying pointer
+   */
+  Underlying *get() const { return underlying_; }
+
+  /**
+   * @return True if it is not a nullptr, false otherwise
+   */
+  explicit operator bool() const { return underlying_; }
+
+  /**
    * Equality operator
    * @param other the other ManagedPointer to be compared with
    * @return true if the two ManagedPointers are equal, false otherwise.
