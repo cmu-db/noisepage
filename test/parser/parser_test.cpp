@@ -3,6 +3,7 @@
 #include <utility>
 #include <vector>
 #include "common/exception.h"
+#include "common/managed_pointer.h"
 #include "parser/expression/aggregate_expression.h"
 #include "parser/expression/case_expression.h"
 #include "parser/expression/comparison_expression.h"
@@ -430,6 +431,8 @@ TEST_F(ParserTestBase, UpdateTest) {
   EXPECT_EQ(update_stmt->GetUpdateTable()->GetTableName(), "students");
   // check expression here
   EXPECT_EQ(update_stmt->GetUpdateCondition(), nullptr);
+
+  for (auto clause : update_stmt->GetUpdateClauses()) delete clause->GetUpdateValue().get();  // NOLINT
 }
 
 // NOLINTNEXTLINE
@@ -1021,6 +1024,8 @@ TEST_F(ParserTestBase, OldColumnUpdateTest) {
     auto right_const = reinterpret_cast<ConstantValueExpression *>(right_child.get());
     EXPECT_EQ(right_const->GetValue().Type(), type::TypeId::INTEGER);
     EXPECT_EQ(type::TransientValuePeeker::PeekInteger(right_const->GetValue()), 2);
+
+    for (auto clause : update_stmt->GetUpdateClauses()) delete clause->GetUpdateValue().get();  // NOLINT
   }
 }
 
@@ -1068,6 +1073,8 @@ TEST_F(ParserTestBase, OldExpressionUpdateTest) {
   constant = reinterpret_cast<ConstantValueExpression *>(cond2->GetChild(1).get());
   EXPECT_EQ(constant->GetValue().Type(), type::TypeId::INTEGER);
   EXPECT_EQ(type::TransientValuePeeker::PeekInteger(constant->GetValue()), 4);
+
+  for (auto clause : update_stmt->GetUpdateClauses()) delete clause->GetUpdateValue().get();  // NOLINT
 }
 
 // NOLINTNEXTLINE
@@ -1129,6 +1136,8 @@ TEST_F(ParserTestBase, OldStringUpdateTest) {
   auto string_view = type::TransientValuePeeker::PeekVarChar(tmp_value);
   EXPECT_EQ("2016-11-15 15:07:37", string_view);
   EXPECT_EQ(type::TypeId::VARCHAR, value_expr->GetReturnValueType());
+
+  for (auto clause : update->GetUpdateClauses()) delete clause->GetUpdateValue().get();  // NOLINT
 }
 
 // NOLINTNEXTLINE
