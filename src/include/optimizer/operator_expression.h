@@ -21,13 +21,13 @@ class OperatorExpression {
    * @param op an operator to bind to this OperatorExpression node
    * @param children children of this OperatorExpression
    */
-  explicit OperatorExpression(Operator op, std::vector<common::ManagedPointer<OperatorExpression>> &&children)
+  explicit OperatorExpression(Operator op, std::vector<OperatorExpression *> &&children)
       : op_(std::move(op)), children_(std::move(children)) {}
 
   /**
    * @return vector of children
    */
-  const std::vector<common::ManagedPointer<OperatorExpression>> &GetChildren() const { return children_; }
+  const std::vector<OperatorExpression *> &GetChildren() const { return children_; }
 
   /**
    * @return underlying operator
@@ -43,7 +43,7 @@ class OperatorExpression {
   /**
    * Vector of children
    */
-  std::vector<common::ManagedPointer<OperatorExpression>> children_;
+  std::vector<OperatorExpression *> children_;
 };
 
 }  // namespace terrier::optimizer
