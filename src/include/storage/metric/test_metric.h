@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdio>
-#include "catalog/catalog.h"
 #include "storage/metric/abstract_metric.h"
 #include "storage/metric/abstract_raw_data.h"
 
@@ -25,28 +24,6 @@ class TestMetricRawData : public AbstractRawData {
   void Aggregate(AbstractRawData *other) override {
     auto other_test = dynamic_cast<TestMetricRawData *>(other);
     value_ += other_test->GetCount();
-  }
-
-  /**
-   * Make necessary updates to the metric raw data and persist the content of
-   * this RawData into internal SQL tables. Expect this object
-   * to be garbage-collected after this method is called.
-   * @param txn_manager transaction manager of the system
-   * @param catalog catalog of the system
-   * @param txn transaction context used for table lookup/creation
-   */
-  void UpdateAndPersist(transaction::TransactionManager *txn_manager, catalog::Catalog *catalog,
-                        transaction::TransactionContext *txn) override {}
-
-  /**
-   * Get the SQL table for persisting collected data, create a new table if necessary
-   * @param txn_manager transaction manager of the system
-   * @param catalog catalog of the system
-   * @param txn transaction context used for table lookup/creation
-   */
-  catalog::SqlTableHelper *GetStatsTable(transaction::TransactionManager *txn_manager, catalog::Catalog *catalog,
-                                         transaction::TransactionContext *txn) override {
-    return nullptr;
   }
 
   /**

@@ -4,7 +4,6 @@
 #include <unordered_map>
 #include <utility>
 
-#include "catalog/catalog.h"
 #include "catalog/catalog_defs.h"
 #include "storage/metric/abstract_metric.h"
 #include "type/transient_value_factory.h"
@@ -44,17 +43,6 @@ class DatabaseMetricRawData : public AbstractRawData {
   }
 
   /**
-   * Make necessary updates to the metric raw data and persist the content of
-   * this RawData into internal SqlTables. Expect this object
-   * to be garbage-collected after this method is called.
-   * @param txn_manager transaction manager of the system
-   * @param catalog catalog of the system
-   * @param txn transaction context used for accessing SqlTables
-   */
-  void UpdateAndPersist(transaction::TransactionManager *txn_manager, catalog::Catalog *catalog,
-                        transaction::TransactionContext *txn) override;
-
-  /**
    * @return the type of the metric this object is holding the data for
    */
   MetricType GetMetricType() const override { return MetricType::DATABASE; }
@@ -68,15 +56,6 @@ class DatabaseMetricRawData : public AbstractRawData {
    * @return the number of aborted transaction in a database
    */
   int64_t GetAbortCount(catalog::db_oid_t db_oid) { return data_[db_oid].abort_cnt_; }
-
-  /**
-   * Get the SQL table for persisting collected data, create a new table if necessary
-   * @param txn_manager transaction manager of the system
-   * @param catalog catalog of the system
-   * @param txn transaction context used for table lookup/creation
-   */
-  catalog::SqlTableHelper *GetStatsTable(transaction::TransactionManager *txn_manager, catalog::Catalog *catalog,
-                                         transaction::TransactionContext *txn) override;
 
  private:
   /**

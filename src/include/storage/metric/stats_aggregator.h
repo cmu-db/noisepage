@@ -7,8 +7,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include "catalog/catalog.h"
-#include "catalog/namespace_handle.h"
 #include "catalog/schema.h"
 #include "common/macros.h"
 #include "storage/metric/abstract_raw_data.h"
@@ -37,9 +35,8 @@ class StatsAggregator {
    * @param catalog catalog of the system for SqlTable lookups/creation
    * @param settings_manager settings manager of the system for retrieving relevant settings
    */
-  explicit StatsAggregator(transaction::TransactionManager *txn_manager, catalog::Catalog *catalog,
-                           settings::SettingsManager *settings_manager)
-      : txn_manager_(txn_manager), catalog_(catalog), settings_manager_(settings_manager) {}
+  explicit StatsAggregator(transaction::TransactionManager *txn_manager, settings::SettingsManager *settings_manager)
+      : txn_manager_(txn_manager), settings_manager_(settings_manager) {}
 
   /**
    * Aggregate metrics from all threads which have collected stats,
@@ -65,11 +62,6 @@ class StatsAggregator {
   transaction::TransactionManager *const GetTxnManager() { return txn_manager_; }
 
   /**
-   * @return catalog of the system
-   */
-  catalog::Catalog *const GetCatalog() { return catalog_; }
-
-  /**
    * @return settings manager of the system
    */
   settings::SettingsManager *const GetSettingsManager() { return settings_manager_; }
@@ -79,11 +71,6 @@ class StatsAggregator {
    * Transaction manager of the system
    */
   transaction::TransactionManager *const txn_manager_;
-
-  /**
-   * Catalog of the system
-   */
-  catalog::Catalog *const catalog_;
 
   /**
    * Settings manager of the system

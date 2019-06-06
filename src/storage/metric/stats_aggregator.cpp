@@ -23,8 +23,8 @@ RawDataCollect StatsAggregator::AggregateRawData() {
 
 void StatsAggregator::Aggregate(transaction::TransactionContext *txn) {
   auto acc = AggregateRawData();
-  for (auto &raw_data : acc) {
-    raw_data->UpdateAndPersist(txn_manager_, catalog_, txn);
+  for (auto &raw_data UNUSED_ATTRIBUTE : acc) {
+    //    raw_data->UpdateAndPersist(txn_manager_, txn);
   }
 }
 }  // namespace terrier::storage::metric

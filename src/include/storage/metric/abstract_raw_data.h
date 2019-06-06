@@ -1,6 +1,5 @@
 #pragma once
 
-#include "catalog/catalog.h"
 #include "common/macros.h"
 #include "storage/metric/metric_defs.h"
 #include "transaction/transaction_manager.h"
@@ -31,28 +30,8 @@ class AbstractRawData {
   virtual void Aggregate(AbstractRawData *other) = 0;
 
   /**
-   * Make necessary updates to the metric raw data and persist the content of
-   * this RawData into internal SqlTables. Expect this object
-   * to be garbage-collected after this method is called.
-   * @param txn_manager transaction manager of the system
-   * @param catalog catalog of the system
-   * @param txn transaction context used for accessing SqlTables
-   */
-  virtual void UpdateAndPersist(transaction::TransactionManager *txn_manager, catalog::Catalog *catalog,
-                                transaction::TransactionContext *txn) = 0;
-
-  /**
    * @return the type of the metric this object is holding the data for
    */
   virtual MetricType GetMetricType() const = 0;
-
-  /**
-   * Get the SQL table for persisting collected data, create a new table if necessary
-   * @param txn_manager transaction manager of the system
-   * @param catalog catalog of the system
-   * @param txn transaction context used for table lookup/creation
-   */
-  virtual catalog::SqlTableHelper *GetStatsTable(transaction::TransactionManager *txn_manager,
-                                                 catalog::Catalog *catalog, transaction::TransactionContext *txn) = 0;
 };
 }  // namespace terrier::storage::metric
