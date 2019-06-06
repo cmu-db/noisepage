@@ -90,10 +90,9 @@ bool NewOrder::Execute(transaction::TransactionManager *const txn_manager, Datab
   *reinterpret_cast<int8_t *>(new_order_insert_tuple->AccessForceNotNull(no_d_id_insert_pr_offset)) = args.d_id;
   *reinterpret_cast<int8_t *>(new_order_insert_tuple->AccessForceNotNull(no_w_id_insert_pr_offset)) = args.w_id;
 
-  db->new_order_table_->Insert(txn, new_order_insert_redo);
+  const auto new_order_slot = db->new_order_table_->Insert(txn, new_order_insert_redo);
 
   // insert in New Order index
-  const auto new_order_slot = new_order_insert_redo->GetTupleSlot();
   const auto new_order_key_pr_initializer = db->new_order_primary_index_->GetProjectedRowInitializer();
   auto *const new_order_key = new_order_key_pr_initializer.InitializeRow(worker->new_order_key_buffer);
 
@@ -119,10 +118,9 @@ bool NewOrder::Execute(transaction::TransactionManager *const txn_manager, Datab
   *reinterpret_cast<int8_t *>(order_insert_tuple->AccessForceNotNull(o_all_local_insert_pr_offset)) =
       static_cast<int8_t>(args.o_all_local);
 
-  db->order_table_->Insert(txn, order_insert_redo);
+  const auto order_slot = db->order_table_->Insert(txn, order_insert_redo);
 
   // insert in Order index
-  const auto order_slot = order_insert_redo->GetTupleSlot();
   const auto order_key_pr_initializer = db->order_primary_index_->GetProjectedRowInitializer();
   auto *const order_key = order_key_pr_initializer.InitializeRow(worker->order_key_buffer);
 
@@ -263,10 +261,9 @@ bool NewOrder::Execute(transaction::TransactionManager *const txn_manager, Datab
           order_line_insert_tuple->AccessForceNotNull(ol_dist_info_insert_pr_offset)) = varlen_entry;
     }
 
-    db->order_line_table_->Insert(txn, order_line_insert_redo);
+    const auto order_line_slot = db->order_line_table_->Insert(txn, order_line_insert_redo);
 
     // insert in Order Line index
-    const auto order_line_slot = order_line_insert_redo->GetTupleSlot();
     const auto order_line_key_pr_initializer = db->order_line_primary_index_->GetProjectedRowInitializer();
     auto *const order_line_key = order_line_key_pr_initializer.InitializeRow(worker->order_line_key_buffer);
 

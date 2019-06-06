@@ -75,12 +75,13 @@ class SqlTable {
    * Inserts a tuple, as given in the redo, and return the slot allocated for the tuple.
    *
    * @param txn the calling transaction
-   * @param redo after-image of the inserted tuple. The TupleSlot in this RedoRecord will be set to the inserted
-   * location.
+   * @param redo after-image of the inserted tuple.
+   * @return TupleSlot for the inserted tuple
    */
-  void Insert(transaction::TransactionContext *const txn, RedoRecord *const redo) const {
+  TupleSlot Insert(transaction::TransactionContext *const txn, RedoRecord *const redo) const {
     const auto slot = table_.data_table->Insert(txn, *(redo->Delta()));
     redo->SetTupleSlot(slot);
+    return slot;
   }
 
   /**
