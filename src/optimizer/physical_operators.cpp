@@ -647,7 +647,7 @@ bool HashGroupBy::operator==(const BaseOperatorNode &r) {
     if (having_[i] != node.having_[i]) return false;
   }
   for (size_t i = 0; i < columns_.size(); i++) {
-    if (*(columns_[i].get()) != *(node.columns_[i].get())) return false;
+    if (*(columns_[i]) != *(node.columns_[i])) return false;
   }
   return true;
 }
@@ -678,21 +678,27 @@ Operator SortGroupBy::make(std::vector<common::ManagedPointer<parser::AbstractEx
 
 bool SortGroupBy::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::SORTGROUPBY) return false;
-  const SortGroupBy &sort_op = *dynamic_cast<const SortGroupBy *>(&r);
-  if (having_.size() != sort_op.having_.size() || columns_.size() != sort_op.columns_.size()) return false;
+  const SortGroupBy &node = *static_cast<const SortGroupBy *>(&r);
+  if (having_.size() != node.having_.size() || columns_.size() != node.columns_.size()) return false;
   for (size_t i = 0; i < having_.size(); i++) {
-    if (having_[i].GetExpr() != sort_op.having_[i].GetExpr()) return false;
+    if (having_[i] != node.having_[i]) return false;
   }
-  std::unordered_set<common::ManagedPointer<parser::AbstractExpression>> l_set, r_set;
-  for (auto &expr : columns_) l_set.emplace(expr);
-  for (auto &expr : sort_op.columns_) r_set.emplace(expr);
-  return l_set == r_set;
+  for (size_t i = 0; i < columns_.size(); i++) {
+    if (*(columns_[i]) != *(node.columns_[i])) return false;
+  }
+  return true;
 }
 
 common::hash_t SortGroupBy::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  for (auto &pred : having_) hash = common::HashUtil::CombineHashes(hash, pred.GetExpr()->Hash());
-  for (auto &expr : columns_) hash = common::HashUtil::CombineHashes(hash, expr->Hash());
+  for (auto &pred : having_) {
+    auto expr = pred.GetExpr();
+    if (expr)
+      hash = common::HashUtil::SumHashes(hash, expr->Hash());
+    else
+      hash = common::HashUtil::SumHashes(hash, BaseOperatorNode::Hash());
+  }
+  for (auto &expr : columns_) hash = common::HashUtil::SumHashes(hash, expr->Hash());
   return hash;
 }
 
