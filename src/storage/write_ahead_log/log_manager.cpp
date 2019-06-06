@@ -2,6 +2,54 @@
 #include <transaction/transaction_context.h>
 
 namespace terrier::storage {
+
+void LogManager::Start() {
+  // Initialize buffers for logging
+  for (size_t i = 0; i < num_buffers_; i++) {
+    buffers_.emplace_back(BufferedLogWriter(log_file_path_));
+  }
+  for (size_t i = 0; i < num_buffers_; i++) {
+    empty_buffer_queue_.Enqueue(&buffers_[i]);
+  }
+
+  run_log_manager_ = true;
+
+  // Register DiskLogWriterTask
+  disk_log_writer_task_ = DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread<DiskLogWriterTask>(
+      this /* requester */, this /* argument to task constructor */);
+
+  // Register LogSerializerTask
+  log_serializer_task_ = DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread<LogSerializerTask>(
+      this /* requester */, this /* argument to task constructor */, serialization_interval_);
+
+  // Register LogFlusherTask
+  log_flusher_task_ = DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread<LogFlusherTask>(
+      this /* requester */, this /* argument to task constructor */, flushing_interval_);
+}
+
+void LogManager::Shutdown() {
+  run_log_manager_ = false;
+
+  // Signal all tasks to stop. The shutdown of the tasks will trigger a process and flush. The order in which we do
+  // these is important, we must first process, then flush, then shutdown the disk writer task
+  DedicatedThreadRegistry::GetInstance().StopTask(this,
+                                                  log_serializer_task_.CastManagedPointerTo<DedicatedThreadTask>());
+  DedicatedThreadRegistry::GetInstance().StopTask(this, log_flusher_task_.CastManagedPointerTo<DedicatedThreadTask>());
+  DedicatedThreadRegistry::GetInstance().StopTask(this,
+                                                  disk_log_writer_task_.CastManagedPointerTo<DedicatedThreadTask>());
+  TERRIER_ASSERT(flush_queue_.empty(), "Termination of LogSerializerTask should hand off all buffers to consumers");
+  TERRIER_ASSERT(filled_buffer_queue_.Empty(), "Disk log writer task should have processed all filled buffers\n");
+
+  // Close the buffers corresponding to the log file
+  for (auto buf : buffers_) {
+    buf.Close();
+  }
+  // Clear buffer queues
+  empty_buffer_queue_.Clear();
+  filled_buffer_queue_.Clear();
+  buffers_.clear();
+}
+
 void LogManager::Process() {
   while (true) {
     RecordBufferSegment *buffer;
@@ -34,29 +82,6 @@ void LogManager::ForceFlush() {
     // Wait for the disk log writer task thread to persist the logs
     persist_cv_.wait(lock, [&] { return !do_persist_; });
   }
-}
-
-void LogManager::Shutdown() {
-  run_log_manager_ = false;
-
-  // Process and persist all outstanding logs
-  Process();
-  ForceFlush();
-
-  // Signal the disk log writer task thread to shutdown
-  // This is a blocking call, and will return when the disk log writer task has shut down
-  DedicatedThreadRegistry::GetInstance().StopTask(this,
-                                                  disk_log_writer_task_.CastManagedPointerTo<DedicatedThreadTask>());
-  TERRIER_ASSERT(filled_buffer_queue_.Empty(), "Disk log writer task should have processed all filled buffers\n");
-
-  // Close the buffers corresponding to the log file
-  for (auto buf : buffers_) {
-    buf.Close();
-  }
-  // Clear buffer queues
-  empty_buffer_queue_.Clear();
-  filled_buffer_queue_.Clear();
-  buffers_.clear();
 }
 
 void LogManager::SerializeBuffer(IterableBufferSegment<LogRecord> *buffer_to_serialize) {
