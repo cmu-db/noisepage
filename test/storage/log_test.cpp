@@ -19,13 +19,17 @@
 #include "settings/settings_defs.h"    // NOLINT
 #undef __SETTING_GFLAGS_DEFINE__       // NOLINT
 
-#define LOG_FILE_NAME "test.log"
-#define NUM_LOG_BUFFERS 2
+#define LOG_FILE_NAME "./test.log"
 
 namespace terrier::storage {
 class WriteAheadLoggingTests : public TerrierTest {
  protected:
   storage::LogManager *log_manager_;
+
+  // Settings for log manager
+  const uint64_t num_log_buffers_ = 2;
+  const std::chrono::milliseconds log_serialization_interval_{10};
+  const std::chrono::milliseconds log_flushing_interval{20};
 
   std::default_random_engine generator_;
   storage::RecordBufferSegmentPool pool_{2000, 100};
@@ -41,30 +45,18 @@ class WriteAheadLoggingTests : public TerrierTest {
   void SetUp() override {
     // Unlink log file incase one exists from previous test iteration
     unlink(LOG_FILE_NAME);
-    log_manager_ = new LogManager(LOG_FILE_NAME, NUM_LOG_BUFFERS, &pool_);
+    log_manager_ = new LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_flushing_interval, &pool_);
     TerrierTest::SetUp();
   }
 
   void TearDown() override {
     // Delete log file
     unlink(LOG_FILE_NAME);
-    DedicatedThreadRegistry::GetInstance().TearDown();
     delete log_manager_;
+    DedicatedThreadRegistry::GetInstance().TearDown();
     TerrierTest::TearDown();
   }
-
-  void StartLogging(uint32_t log_period_milli) {
-    logging_ = true;
-    log_manager_->Start();
-    log_thread_ = std::thread([log_period_milli, this] { LogThreadLoop(log_period_milli); });
-  }
-
-  void EndLogging() {
-    logging_ = false;
-    log_thread_.join();
-    log_manager_->Shutdown();
-  }
-
+  
   storage::LogRecord *ReadNextRecord(storage::BufferedLogReader *in, const storage::BlockLayout &block_layout) {
     // TODO(Justin): Fit this to new serialization format after it is complete.
     auto size = in->ReadValue<uint32_t>();
@@ -154,14 +146,6 @@ class WriteAheadLoggingTests : public TerrierTest {
 
     return result;
   }
-
- private:
-  void LogThreadLoop(uint32_t log_period_milli) {
-    while (logging_) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(log_period_milli));
-      log_manager_->Process();
-    }
-  }
 };
 
 // This test uses the LargeTransactionTestObject to simulate some number of transactions with logging turned on, and
@@ -181,11 +165,11 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
                                           .SetBookkeeping(true)
                                           .SetLogManager(log_manager_)
                                           .build();
-  StartLogging(10);
+  log_manager_->Start();
   gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
   auto result = tested.SimulateOltp(100, 4);
-  EndLogging();
   delete gc_thread_;
+  log_manager_->Shutdown();
 
   std::unordered_map<transaction::timestamp_t, RandomWorkloadTransaction *> txns_map;
   for (auto *txn : result.first) txns_map[txn->BeginTimestamp()] = txn;
@@ -259,11 +243,11 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
                                           .SetLogManager(log_manager_)
                                           .build();
 
-  StartLogging(10);
   gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
+  log_manager_->Start();
   auto result = tested.SimulateOltp(100, 4);
-  EndLogging();
   delete gc_thread_;
+  log_manager_->Shutdown();
 
   // Read-only workload has completed. Read the log file back in to check that no records were produced for these
   // transactions.

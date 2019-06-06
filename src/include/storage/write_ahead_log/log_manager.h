@@ -22,6 +22,8 @@ namespace terrier::storage {
 
 // Forward declaration for class DiskLogWriterTask
 class DiskLogWriterTask;
+class LogSerializerTask;
+class LogFlusherTask;
 
 /**
  * Callback functionn and arguments to be called when record is persisted
@@ -33,80 +35,6 @@ using CommitCallback = std::pair<transaction::callback_fn, void *>;
  * serialized in this BufferedLogWriter
  */
 using SerializedLogs = std::pair<BufferedLogWriter *, std::vector<CommitCallback>>;
-
-/**
- * Task that processes buffers handed over by transactions and serializes them into consumer buffers
- */
-class LogSerializerTask : public DedicatedThreadTask {
- public:
-  explicit LogSerializerTask(LogManager *log_manager, const std::chrono::milliseconds serialization_interval)
-      : log_manager_(log_manager), serialization_interval_(serialization_interval), run_task_(false) {}
-
-  /**
-   * Runs main disk log writer loop. Called by thread registry upon initialization of thread
-   */
-  void RunTask() override {
-    run_task_ = true;
-    LogSerializerTaskLoop();
-  }
-
-  /**
-   * Signals task to stop. Called by thread registry upon termination of thread
-   */
-  void Terminate() override { run_task_ = false; }
-
- private:
-  LogManager *log_manager_;
-  const std::chrono::milliseconds serialization_interval_;
-  bool run_task_;
-
-  /**
-   * Main serialization loop. Calls Process on LogManager every interval
-   */
-  void LogSerializerTaskLoop() {
-    while (run_task_) {
-      std::this_thread::sleep_for(serialization_interval_);
-      log_manager_->Process();
-    }
-  }
-};
-
-/**
- * Task signals disk log consumer to flush logs into disk
- */
-class LogFlusherTask : public DedicatedThreadTask {
- public:
-  explicit LogFlusherTask(LogManager *log_manager, const std::chrono::milliseconds flushing_interval)
-      : log_manager_(log_manager), flushing_interval_(flushing_interval), run_task_(false) {}
-
-  /**
-   * Runs main disk log writer loop. Called by thread registry upon initialization of thread
-   */
-  void RunTask() override {
-    run_task_ = true;
-    LogFlusherTaskLoop();
-  }
-
-  /**
-   * Signals task to stop. Called by thread registry upon termination of thread
-   */
-  void Terminate() override { run_task_ = false; }
-
- private:
-  LogManager *log_manager_;
-  const std::chrono::milliseconds flushing_interval_;
-  bool run_task_;
-
-  /**
-   * Main log flush loop. Calls ForceFlush on LogManager every interval
-   */
-  void LogFlusherTaskLoop() {
-    while (run_task_) {
-      std::this_thread::sleep_for(flushing_interval_);
-      log_manager_->ForceFlush();
-    }
-  }
-};
 
 /**
  * A LogManager is responsible for serializing log records out and keeping track of whether changes from a transaction
@@ -137,10 +65,10 @@ class LogManager : public DedicatedThreadOwner {
       : run_log_manager_(false),
         log_file_path_(log_file_path),
         num_buffers_(num_buffers),
-        serialization_interval_(serialization_interval),
-        flushing_interval_(flushing_interval),
         buffer_pool_(buffer_pool),
         filled_buffer_(nullptr),
+        serialization_interval_(serialization_interval),
+        flushing_interval_(flushing_interval),
         do_persist_(true) {}
 
   /**
@@ -344,4 +272,79 @@ class LogManager : public DedicatedThreadOwner {
     return !run_log_manager_;
   }
 };
+
+/**
+ * Task that processes buffers handed over by transactions and serializes them into consumer buffers
+ */
+class LogSerializerTask : public DedicatedThreadTask {
+ public:
+  explicit LogSerializerTask(LogManager *log_manager, const std::chrono::milliseconds serialization_interval)
+      : log_manager_(log_manager), serialization_interval_(serialization_interval), run_task_(false) {}
+
+  /**
+   * Runs main disk log writer loop. Called by thread registry upon initialization of thread
+   */
+  void RunTask() override {
+    run_task_ = true;
+    LogSerializerTaskLoop();
+  }
+
+  /**
+   * Signals task to stop. Called by thread registry upon termination of thread
+   */
+  void Terminate() override { run_task_ = false; }
+
+ private:
+  LogManager *log_manager_;
+  const std::chrono::milliseconds serialization_interval_;
+  bool run_task_;
+
+  /**
+   * Main serialization loop. Calls Process on LogManager every interval
+   */
+  void LogSerializerTaskLoop() {
+    while (run_task_) {
+      std::this_thread::sleep_for(serialization_interval_);
+      log_manager_->Process();
+    }
+  }
+};
+
+/**
+ * Task signals disk log consumer to flush logs into disk
+ */
+class LogFlusherTask : public DedicatedThreadTask {
+ public:
+  explicit LogFlusherTask(LogManager *log_manager, const std::chrono::milliseconds flushing_interval)
+      : log_manager_(log_manager), flushing_interval_(flushing_interval), run_task_(false) {}
+
+  /**
+   * Runs main disk log writer loop. Called by thread registry upon initialization of thread
+   */
+  void RunTask() override {
+    run_task_ = true;
+    LogFlusherTaskLoop();
+  }
+
+  /**
+   * Signals task to stop. Called by thread registry upon termination of thread
+   */
+  void Terminate() override { run_task_ = false; }
+
+ private:
+  LogManager *log_manager_;
+  const std::chrono::milliseconds flushing_interval_;
+  bool run_task_;
+
+  /**
+   * Main log flush loop. Calls ForceFlush on LogManager every interval
+   */
+  void LogFlusherTaskLoop() {
+    while (run_task_) {
+      std::this_thread::sleep_for(flushing_interval_);
+      log_manager_->ForceFlush();
+    }
+  }
+};
+
 }  // namespace terrier::storage
