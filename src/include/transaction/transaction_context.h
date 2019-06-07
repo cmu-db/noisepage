@@ -44,6 +44,14 @@ class TransactionContext {
   ~TransactionContext() {
     for (const byte *ptr : loose_ptrs_) delete[] ptr;
   }
+
+  /**
+   * @warning Unless you are the garbage collector, this method is unlikely to be of use.
+   * @return whether this transaction has been aborted. Note that this is different from being "uncommitted". Some one
+   *         needs to have called Abort() explicitly on this transaction for this function to return true.
+   */
+  bool Aborted() const { return aborted_; }
+
   /**
    * @return start time of this transaction
    */
@@ -167,5 +175,8 @@ class TransactionContext {
   // log manager will set this to be true when log records are processed (not necessarily flushed, but will not be read
   // again in the future), so it can be garbage-collected safely.
   bool log_processed_ = false;
+  // We need to know if the transaction is aborted. Even aborted transactions need an "abort" timestamp in order to
+  // eliminate the a-b-a race described in DataTable::Select.
+  bool aborted_ = false;
 };
 }  // namespace terrier::transaction
