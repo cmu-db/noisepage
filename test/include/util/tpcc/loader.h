@@ -142,10 +142,9 @@ struct Loader {
         auto *const item_redo = txn->StageWrite(db->db_oid_, db->item_table_oid_, item_tuple_pr_initializer);
         BuildItemTuple(i_id + 1, item_original[i_id], item_redo->Delta(), item_tuple_pr_map, db->item_schema_,
                        generator);
-        db->item_table_->Insert(txn, item_redo);
+        const auto item_slot = db->item_table_->Insert(txn, item_redo);
 
         // insert in index
-        const auto item_slot = item_redo->GetTupleSlot();
         const auto *const item_key = BuildItemKey(i_id + 1, worker->item_key_buffer, item_key_pr_initializer,
                                                   item_key_pr_map, db->item_primary_index_schema_);
         bool UNUSED_ATTRIBUTE index_insert_result = db->item_primary_index_->InsertUnique(txn, *item_key, item_slot);
@@ -160,10 +159,9 @@ struct Loader {
           txn->StageWrite(db->db_oid_, db->warehouse_table_oid_, warehouse_tuple_pr_initializer);
       BuildWarehouseTuple(static_cast<int8_t>(w_id + 1), warehouse_redo->Delta(), warehouse_tuple_pr_map,
                           db->warehouse_schema_, generator);
-      db->warehouse_table_->Insert(txn, warehouse_redo);
+      const auto warehouse_slot = db->warehouse_table_->Insert(txn, warehouse_redo);
 
       // insert in index
-      const auto warehouse_slot = warehouse_redo->GetTupleSlot();
       const auto *const warehouse_key =
           BuildWarehouseKey(static_cast<int8_t>(w_id + 1), worker->warehouse_key_buffer, warehouse_key_pr_initializer,
                             warehouse_key_pr_map, db->warehouse_primary_index_schema_);
@@ -188,10 +186,9 @@ struct Loader {
           auto *const stock_redo = txn->StageWrite(db->db_oid_, db->stock_table_oid_, stock_tuple_pr_initializer);
           BuildStockTuple(s_i_id + 1, static_cast<int8_t>(w_id + 1), stock_original[s_i_id], stock_redo->Delta(),
                           stock_tuple_pr_map, db->stock_schema_, generator);
-          db->stock_table_->Insert(txn, stock_redo);
+          const auto stock_slot = db->stock_table_->Insert(txn, stock_redo);
 
           // insert in index
-          const auto stock_slot = stock_redo->GetTupleSlot();
           const auto *const stock_key =
               BuildStockKey(s_i_id + 1, static_cast<int8_t>(w_id + 1), worker->stock_key_buffer,
                             stock_key_pr_initializer, stock_key_pr_map, db->stock_primary_index_schema_);
@@ -209,10 +206,9 @@ struct Loader {
             txn->StageWrite(db->db_oid_, db->district_table_oid_, district_tuple_pr_initializer);
         BuildDistrictTuple(static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), district_redo->Delta(),
                            district_tuple_pr_map, db->district_schema_, generator);
-        db->district_table_->Insert(txn, district_redo);
+        const auto district_slot = db->district_table_->Insert(txn, district_redo);
 
         // insert in index
-        const auto district_slot = district_redo->GetTupleSlot();
         const auto *const district_key =
             BuildDistrictKey(static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), worker->district_key_buffer,
                              district_key_pr_initializer, district_key_pr_map, db->district_primary_index_schema_);
@@ -241,10 +237,9 @@ struct Loader {
               txn->StageWrite(db->db_oid_, db->customer_table_oid_, customer_tuple_pr_initializer);
           BuildCustomerTuple(c_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), c_credit[c_id],
                              customer_redo->Delta(), customer_tuple_pr_map, db->customer_schema_, generator);
-          db->customer_table_->Insert(txn, customer_redo);
+          const auto customer_slot = db->customer_table_->Insert(txn, customer_redo);
 
           // insert in index
-          const auto customer_slot = customer_redo->GetTupleSlot();
           const auto *const customer_key = BuildCustomerKey(
               c_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), worker->customer_key_buffer,
               customer_key_pr_initializer, customer_key_pr_map, db->customer_primary_index_schema_);
@@ -292,10 +287,9 @@ struct Loader {
           const auto order_results =
               BuildOrderTuple(o_id + 1, o_c_ids[c_id], static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1),
                               order_redo->Delta(), order_tuple_pr_map, db->order_schema_, generator);
-          db->order_table_->Insert(txn, order_redo);
+          const auto order_slot = db->order_table_->Insert(txn, order_redo);
 
           // insert in index
-          const auto order_slot = order_redo->GetTupleSlot();
           const auto *const order_key = BuildOrderKey(
               o_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), worker->order_key_buffer,
               order_key_pr_initializer, order_key_pr_map, db->order_primary_index_schema_);
@@ -320,10 +314,9 @@ struct Loader {
             BuildOrderLineTuple(o_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1),
                                 static_cast<int8_t>(ol_number + 1), order_results.o_entry_d, order_line_redo->Delta(),
                                 order_line_tuple_pr_map, db->order_line_schema_, generator);
-            db->order_line_table_->Insert(txn, order_line_redo);
+            const auto order_line_slot = db->order_line_table_->Insert(txn, order_line_redo);
 
             // insert in index
-            const auto order_line_slot = order_line_redo->GetTupleSlot();
             const auto *const order_line_key = BuildOrderLineKey(
                 o_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1),
                 static_cast<int8_t>(ol_number + 1), worker->order_line_key_buffer, order_line_key_pr_initializer,
@@ -341,10 +334,9 @@ struct Loader {
                 txn->StageWrite(db->db_oid_, db->new_order_table_oid_, new_order_tuple_pr_initializer);
             BuildNewOrderTuple(o_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1),
                                new_order_redo->Delta(), new_order_tuple_pr_map, db->new_order_schema_);
-            db->new_order_table_->Insert(txn, new_order_redo);
+            const auto new_order_slot = db->new_order_table_->Insert(txn, new_order_redo);
 
             // insert in index
-            const auto new_order_slot = new_order_redo->GetTupleSlot();
             const auto *const new_order_key = BuildNewOrderKey(
                 o_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), worker->new_order_key_buffer,
                 new_order_key_pr_initializer, new_order_key_pr_map, db->new_order_primary_index_schema_);
