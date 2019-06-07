@@ -255,11 +255,11 @@ class LogManager : public DedicatedThreadOwner {
   }
 
   /**
-   * If the central thread registry grants us a thread, we accept if we currently don't have a thread to run the task.
-   * Else we don't need the thread, so we respectfully decline
+   * If the central thread registry grants us a thread, we accept if we currently don't have a thread to run the disk
+   * consumer task. Else we don't need the thread, so we respectfully decline.
    * @return true if we accepted the thread, else false
    */
-  bool OnThreadGranted() override {
+  bool OnThreadOffered() override {
     if (GetThreadCount() == 0) {
       // Register disk log writer task
       TERRIER_ASSERT(disk_log_writer_task_ == nullptr, "We should not have a task if we don't own a thread for it yet");
@@ -275,7 +275,7 @@ class LogManager : public DedicatedThreadOwner {
    * are in shut down, else we need to keep the task, so we reject the removal
    * @return true if we allowed thread to be removed, else false
    */
-  bool OnThreadRemoved(common::ManagedPointer<DedicatedThreadTask> task) override {
+  bool OnThreadRemoval(common::ManagedPointer<DedicatedThreadTask> task) override {
     // We don't want to register a task if the log manager is shutting down though.
     return !run_log_manager_;
   }

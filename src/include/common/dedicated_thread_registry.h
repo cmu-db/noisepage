@@ -12,10 +12,14 @@
 namespace terrier {
 
 /**
- * Singleton class responsible for maintaining and dispensing long running
- * (dedicated) threads to other system components. The class also serves
- * as a control panel for the brain component to be able to collect information
- * on threads in the system and modify how threads are allocated.
+ * @brief Singleton class responsible for maintaining and dispensing long running
+ * (dedicated) threads to other system components.
+ *
+ * The class also serves as a control panel for the brain component to be able to collect information on threads in the
+ * system and modify how threads are allocated.
+ *
+ * Additionally, task owners are able to register or stop threads by calling RegisterDedicatedThread or StopTask
+ * respectively.
  */
 class DedicatedThreadRegistry {
  public:
@@ -58,7 +62,7 @@ class DedicatedThreadRegistry {
   /**
    *
    * Register a task on a thread. The thread registry will initialize the task and run it on a dedicated thread. The
-   * registry owns the task object and is incharge of deleting it. The requester only receives a ManagedPointer to the
+   * registry owns the task object and is in charge of deleting it. The requester only receives a ManagedPointer to the
    * task
    *
    * @tparam T task type to initialize and run
@@ -70,18 +74,17 @@ class DedicatedThreadRegistry {
   template <class T, class... Targs>
   common::ManagedPointer<T> RegisterDedicatedThread(DedicatedThreadOwner *requester, Targs... args) {
     common::SpinLatch::ScopedSpinLatch guard(&table_latch_);
-    // Create task
-    auto *task = new T(args...);
+    auto *task = new T(args...);  // Create task
     thread_owners_table_[requester].insert(task);
-    requester->GrantNewThread();
     threads_table_.emplace(task, std::thread([=] { task->RunTask(); }));
-
+    requester->AddThread();
     return common::ManagedPointer(task);
   }
 
   /**
-   * Stop a registered task. This function will free the task if it is stopped, thus, it is up to the requester (as well
-   * as the task's Terminate method) to do any necessary cleanup to the task before calling StopTask
+   * Stop a registered task. This is a blocking call, and will only return once the task is terminated and the thread returns. This function will free the task if it is stopped, thus, it is up to the requester (as well
+   * as the task's Terminate method) to do any necessary cleanup to the task before calling StopTask. StopTask will call
+   * the owners OnThreadRemoval method in order to allow the owner to clean up the task.
    * @param requester the owner who registered the task
    * @param task the task that was registered
    * @warning StopTask should not be called multiple times with the same task.
@@ -100,7 +103,7 @@ class DedicatedThreadRegistry {
     }
 
     // Notify requester of removal
-    if (!requester->NotifyThreadRemoved(task)) return false;
+    if (!requester->OnThreadRemoval(task)) return false;
 
     // Terminate task, unlock during termination of thread since we aren't touching the metadata tables
     task->Terminate();
@@ -117,8 +120,11 @@ class DedicatedThreadRegistry {
     return true;
   }
 
-  // TODO(tianyu, gus): Add code for thread removal from thread owner without specifying task. In this case, the task
-  // owner can decide which task to sacrifice
+  // TODO(Gus, Tianyu): When the self driving infrastructure is in, add code to grant owners threads. This code should
+  // call OnThreadGranted.
+
+  // TODO(tianyu, gus): When self driving infrastructure is in, add code for thread removal from thread owner without
+  // specifying task. In this case, the task owner can decide which task to sacrifice.
 
  private:
   // Latch to protect internal tables

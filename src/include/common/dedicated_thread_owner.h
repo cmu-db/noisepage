@@ -10,9 +10,28 @@ namespace terrier {
  * @brief DedicatedThreadOwner is the base class for all components that
  * needs to manage long running threads inside the system (e.g. GC, thread pool)
  *
- * The interface exposes necessary behavior to @see DedicatedThreadRegistry, so
- * that the system has a centralized record over all the threads currently
- * running, and retains control over those threads for tuning purposes.
+ * The interface exposes necessary behavior to @see DedicatedThreadRegistry, so that the system has a centralized record
+ * over all the threads currently running, and retains control over those threads for tuning purposes.
+ *
+ * Owners themselves are able to request threads by calling RegisterDedicatedThread on the central registry. (For now)
+ * These requests are always granted, so owners should only request threads they absolutely need. Similarly, owners are
+ * able to remove, or give up, threads by calling StopTask on the central registry.
+ *
+ * The central registry also has the power to grant/remove threads to/from owners. To do so, the central registry first
+ * proposes the granting or removal of a thread by calling OnThreadOffered or OnThreadRemoval respectively. The
+ * OnThreadOffered and OnThreadRemoval methods are custom code written by the owner that allow it to accept or decline a
+ * thread command made by the registry. An owner should only accept a thread if it has a use for it (example: adding
+ * more workers for better performance). Similarly, it should only reject a thread removal if it absolutely needs the
+ * thread (example: a component needed at minimum some number of workers).
+ *
+ * If the owner accepts the granting of a thread, the owner is responsible of calling RegisterDedicatedThread on the
+ * registry to claim the thread. RegisterDedicatedThread will call AddThread to let the owner know it has claimed the
+ * thread.
+ *
+ * If the owner accepts the removal of a thread, then the registry will stop the task
+ * running on the task, clean it up, and call RemoveThread to let the owner know the thread was removed.
+ *
+ *
  *
  * TODO(tianyu): also add some statistics of thread utilization for tuning
  */
@@ -27,29 +46,19 @@ class DedicatedThreadOwner {
     return thread_count_;
   }
 
+ private:
   /**
-   * Notifies the owner that a new thread can be given to it. The thread owner has the opportunity to decline the new
-   * thread if it does not need it
-   * @warning Should only be called by self driving infrastructure.
-   * @return true if owner accepts thread, false if it declines it
+   * Only the DedicatedThreadRegistry should be allowed to call these methods on an owner
    */
-  bool NotifyNewThread() { return OnThreadGranted(); }
+  friend class DedicatedThreadRegistry;
 
   /**
    * Notifies the owner that a new thread has been given to it
    */
-  void GrantNewThread() {
+  void AddThread() {
     common::SpinLatch::ScopedSpinLatch guard(&thread_count_latch_);
     thread_count_++;
   }
-
-  /**
-   * Notifies the owner that the thread running task will be terminated. The owner has the opportunity to reject the
-   * removal of the thread if it needs it
-   * @param task the task to be terminated
-   * @return true if owner accepts thread removal, false if it rejects
-   */
-  bool NotifyThreadRemoved(common::ManagedPointer<DedicatedThreadTask> task) { return OnThreadRemoved(task); }
 
   /**
    * Notifies the owner that a new thread has removed from them
@@ -59,21 +68,24 @@ class DedicatedThreadOwner {
     thread_count_--;
   }
 
- protected:
   /**
-   * Custom code to be run when offered a thread by each owner. The owner has the option to decline the new thread if it
-   * does not need it. If the owner accepts, its up to the owner to call RegisterDedicatedThread to register their task
+   * Custom code to be run by each owner when offered a thread by the registry. The owner has the option to decline the
+   * new thread if it does not need it. If the owner accepts, its up to the owner to call RegisterDedicatedThread to
+   * register their task
    * @return true if owner accepts thread, false if it declines it
    */
-  virtual bool OnThreadGranted() { return false; }
+  virtual bool OnThreadOffered() { return false; }
 
   /**
-   * Custom code to be run when removing a thread by each owner. It is expected
-   * that this function blocks until the thread can be dropped safely.
-   * @param task task that was removed from thread
-   * @return
+   * Custom code to be run by each owner when the registry would like to remove its thread running the specific task. It
+   * is expected that this function blocks until the thread can be dropped safely and accepts the request, or the owner
+   * rejects the request to drop its thread.
+   * @param task task running on thread that is to be removed
+   * @warning After this method returns, the registry is free to delete the task. It is the owner's responsability to
+   * properly clean up the task beforehand.
+   * @return true if owner allows registry to remove thread, false otherwise
    */
-  virtual bool OnThreadRemoved(common::ManagedPointer<DedicatedThreadTask> task) { return false; }
+  virtual bool OnThreadRemoval(common::ManagedPointer<DedicatedThreadTask> task) { return false; }
 
  private:
   // Latch to protect thread count
