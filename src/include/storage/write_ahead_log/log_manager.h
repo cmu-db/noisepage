@@ -57,6 +57,8 @@ class LogManager : public DedicatedThreadOwner {
    * @param log_file_path path to the desired log file location. If the log file does not exist, one will be created;
    *                      otherwise, changes are appended to the end of the file.
    * @param num_buffers Number of buffers to use for buffering logs
+   * @param serialization_interval Interval time between log serializations
+   * @param flushing_interval Interval time between log flushing
    * @param buffer_pool the object pool to draw log buffers from. This must be the same pool transactions draw their
    *                    buffers from
    */
@@ -287,6 +289,10 @@ class LogManager : public DedicatedThreadOwner {
  */
 class LogSerializerTask : public DedicatedThreadTask {
  public:
+  /**
+   * @param log_manager Pointer to log manager
+   * @param serialization_interval Interval time for when to trigger serialization
+   */
   explicit LogSerializerTask(LogManager *log_manager, const std::chrono::milliseconds serialization_interval)
       : log_manager_(log_manager), serialization_interval_(serialization_interval), run_task_(false) {}
 
@@ -324,6 +330,10 @@ class LogSerializerTask : public DedicatedThreadTask {
  */
 class LogFlusherTask : public DedicatedThreadTask {
  public:
+  /**
+   * @param log_manager Pointer to log manager
+   * @param flushing_interval interval time for when to trigger flushing
+   */
   explicit LogFlusherTask(LogManager *log_manager, const std::chrono::milliseconds flushing_interval)
       : log_manager_(log_manager), flushing_interval_(flushing_interval), run_task_(false) {}
 
