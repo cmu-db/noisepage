@@ -168,12 +168,14 @@ class LogManager : public DedicatedThreadOwner {
   common::ConcurrentBlockingQueue<SerializedLogs> filled_buffer_queue_;
 
   // Log serializer task that processes buffers handed over by transactions and serializes them into consumer buffers
-  const std::chrono::milliseconds serialization_interval_;
   common::ManagedPointer<LogSerializerTask> log_serializer_task_;
+  // Interval used by log serialization task
+  const std::chrono::milliseconds serialization_interval_;
 
   // Log flusher task that periodically forces the DiskLogConsumerTask to persist the log file on disk
-  const std::chrono::milliseconds flushing_interval_;
   common::ManagedPointer<LogFlusherTask> log_flusher_task_;
+  // Interval used by log flushing task
+  const std::chrono::milliseconds flushing_interval_;
 
   // The log consumer task which flushes filled buffers to the disk
   common::ManagedPointer<DiskLogConsumerTask> disk_log_writer_task_ =
