@@ -110,6 +110,7 @@ TEST_F(TPCCTests, WithoutLogging) {
   // populate the tables and indexes
   Loader::PopulateDatabase(&txn_manager, &generator_, tpcc_db, workers);
   gc_thread_ = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
+  Util::RegisterIndexesForGC(&(gc_thread_->GetGarbageCollector()), tpcc_db);
   std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
 
   // run the TPCC workload to completion
@@ -160,6 +161,7 @@ TEST_F(TPCCTests, WithLogging) {
   Loader::PopulateDatabase(&txn_manager, &generator_, tpcc_db, workers);
   log_manager_->Process();  // log all of the Inserts from table creation
   gc_thread_ = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
+  Util::RegisterIndexesForGC(&(gc_thread_->GetGarbageCollector()), tpcc_db);
   StartLogging();
   std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
 
