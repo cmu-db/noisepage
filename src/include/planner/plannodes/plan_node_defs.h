@@ -81,6 +81,7 @@ enum class AggregateStrategyType {
 // Order by Orderings
 //===--------------------------------------------------------------------===//
 
+// FIXME: Move to optimizer_defs
 enum class OrderByOrderingType { ASC, DESC };
 
 //===--------------------------------------------------------------------===//
