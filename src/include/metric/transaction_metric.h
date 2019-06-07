@@ -7,7 +7,7 @@
 
 #include "catalog/catalog_defs.h"
 #include "common/scoped_timer.h"
-#include "storage/metric/abstract_metric.h"
+#include "metric/abstract_metric.h"
 #include "transaction/transaction_defs.h"
 
 namespace terrier::storage::metric {

@@ -7,8 +7,8 @@
 #include <utility>
 
 #include "catalog/catalog_defs.h"
-#include "storage/metric/abstract_raw_data.h"
-#include "storage/metric/metric_defs.h"
+#include "metric/abstract_raw_data.h"
+#include "metric/metric_defs.h"
 
 namespace terrier {
 

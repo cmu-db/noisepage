@@ -5,9 +5,9 @@
 #include <vector>
 #include "catalog/catalog_defs.h"
 #include "common/container/concurrent_map.h"
-#include "storage/metric/abstract_metric.h"
-#include "storage/metric/abstract_raw_data.h"
-#include "storage/metric/metric_defs.h"
+#include "metric/abstract_metric.h"
+#include "metric/abstract_raw_data.h"
+#include "metric/metric_defs.h"
 #include "transaction/transaction_manager.h"
 
 namespace terrier::storage::metric {

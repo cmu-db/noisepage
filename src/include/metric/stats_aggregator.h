@@ -9,8 +9,8 @@
 
 #include "catalog/schema.h"
 #include "common/macros.h"
-#include "storage/metric/abstract_raw_data.h"
-#include "storage/metric/thread_level_stats_collector.h"
+#include "metric/abstract_raw_data.h"
+#include "metric/thread_level_stats_collector.h"
 #include "util/transaction_test_util.h"
 
 namespace terrier {

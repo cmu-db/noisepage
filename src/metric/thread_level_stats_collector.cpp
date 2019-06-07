@@ -1,10 +1,10 @@
-#include "storage/metric/thread_level_stats_collector.h"
-#include <storage/metric/transaction_metric.h>
+#include "metric/thread_level_stats_collector.h"
 #include <memory>
 #include <vector>
-#include "storage/metric/database_metric.h"
-#include "storage/metric/metric_defs.h"
-#include "storage/metric/test_metric.h"
+#include "metric/transaction_metric.h"
+#include "metric/database_metric.h"
+#include "metric/metric_defs.h"
+#include "metric/test_metric.h"
 
 namespace terrier::storage::metric {
 

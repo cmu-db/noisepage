@@ -1,6 +1,6 @@
 #include "util/metric_test_util.h"
-#include "storage/metric/stats_aggregator.h"
-#include "storage/metric/test_metric.h"
+#include "metric/stats_aggregator.h"
+#include "metric/test_metric.h"
 
 namespace terrier {
 

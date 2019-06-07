@@ -1,8 +1,8 @@
 #pragma once
 
 #include <cstdio>
-#include "storage/metric/abstract_metric.h"
-#include "storage/metric/abstract_raw_data.h"
+#include "metric/abstract_metric.h"
+#include "metric/abstract_raw_data.h"
 
 namespace terrier::storage::metric {
 

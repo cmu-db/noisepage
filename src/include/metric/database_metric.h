@@ -5,7 +5,7 @@
 #include <utility>
 
 #include "catalog/catalog_defs.h"
-#include "storage/metric/abstract_metric.h"
+#include "metric/abstract_metric.h"
 #include "type/transient_value_factory.h"
 #include "type/transient_value_peeker.h"
 

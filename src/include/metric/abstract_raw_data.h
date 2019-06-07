@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/macros.h"
-#include "storage/metric/metric_defs.h"
+#include "metric/metric_defs.h"
 #include "transaction/transaction_manager.h"
 
 namespace terrier::storage::metric {
