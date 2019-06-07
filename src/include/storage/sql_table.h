@@ -59,7 +59,8 @@ class SqlTable {
   }
 
   /**
-   * Update the tuple according to the redo buffer given.
+   * Update the tuple according to the redo buffer given. StageWrite must have been called as well in order for the
+   * operation to be logged.
    *
    * @param txn the calling transaction
    * @param redo the desired change to be applied. This should be the after-image of the attributes of interest. The
@@ -72,7 +73,8 @@ class SqlTable {
   }
 
   /**
-   * Inserts a tuple, as given in the redo, and return the slot allocated for the tuple.
+   * Inserts a tuple, as given in the redo, and return the slot allocated for the tuple. StageWrite must have been
+   * called as well in order for the operation to be logged.
    *
    * @param txn the calling transaction
    * @param redo after-image of the inserted tuple.
@@ -85,7 +87,7 @@ class SqlTable {
   }
 
   /**
-   * Deletes the given TupleSlot, this will call StageWrite on the provided txn to generate the RedoRecord for delete.
+   * Deletes the given TupleSlot. StageDelete must have been called as well in order for the operation to be logged.
    * @param txn the calling transaction
    * @param slot the slot of the tuple to delete
    * @return true if successful, false otherwise

@@ -104,7 +104,7 @@ class TransactionContext {
 
   /**
    * Expose a record that can hold a change, described by the initializer given, that will be logged out to disk.
-   * The change should be written in the space and then used to change the SqlTable.
+   * The change must be written in this space and then used to change the SqlTable.
    * @param db_oid the database oid that this record changes
    * @param table_oid the table oid that this record changes
    * @param initializer the initializer to use for the underlying record
@@ -112,7 +112,7 @@ class TransactionContext {
    * @warning RedoRecords returned by StageWrite are not guaranteed to remain valid forever. If you call StageWrite
    * again, the previous RedoRecord's buffer may be swapped out, written to disk, and handed back out to another
    * transaction.
-   * @warning If you call StageWrite, its contents WILL be logged to disk. If you StageWrite anything that you didn't
+   * @warning If you call StageWrite, the operation WILL be logged to disk. If you StageWrite anything that you didn't
    * succeed in writing into the table or decide you don't want to use, the transaction MUST abort.
    */
   storage::RedoRecord *StageWrite(const catalog::db_oid_t db_oid, const catalog::table_oid_t table_oid,
@@ -128,6 +128,8 @@ class TransactionContext {
    * @param db_oid the database oid that this record changes
    * @param table_oid the table oid that this record changes
    * @param slot the slot that this record changes
+   * @warning If you call StageDelete, the operation WILL be logged to disk. If you StageDelete anything that you didn't
+   * succeed in writing into the table or decide you don't want to use, the transaction MUST abort.
    */
   void StageDelete(const catalog::db_oid_t db_oid, const catalog::table_oid_t table_oid,
                    const storage::TupleSlot slot) {
