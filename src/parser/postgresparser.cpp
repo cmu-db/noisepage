@@ -1883,8 +1883,10 @@ std::vector<std::shared_ptr<parser::UpdateClause>> PostgresParser::UpdateTargetT
   for (auto cell = root->head; cell != nullptr; cell = cell->next) {
     auto target = reinterpret_cast<ResTarget *>(cell->data.ptr_value);
     auto column = target->name;
-    auto value = ExprTransform(target->val);
-    result.push_back(std::make_shared<UpdateClause>(column, std::move(value)));
+    // TODO(LING): Wrapped managedPointer around, ExprTransform returns unique_ptr
+    //             Only doing this as we are not using smart ptr in UpdateClause
+    auto value = common::ManagedPointer<AbstractExpression>(ExprTransform(target->val).release());
+    result.push_back(std::make_shared<UpdateClause>(column, value));
   }
   return result;
 }

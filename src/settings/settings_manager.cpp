@@ -21,10 +21,7 @@ using ValuePeeker = type::TransientValuePeeker;
 using ActionContext = common::ActionContext;
 using ActionState = common::ActionState;
 
-SettingsManager::SettingsManager(DBMain *db, catalog::Catalog *catalog)
-    : db_(db), settings_handle_(catalog->GetSettingsHandle()) {
-  ValidateParams();
-}
+SettingsManager::SettingsManager(DBMain *db) : db_(db) { ValidateParams(); }
 
 void SettingsManager::ValidateParams() {
   // This will expand to invoke settings_manager::DefineSetting on
