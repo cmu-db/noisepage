@@ -9,6 +9,7 @@
 #include "storage/projected_row.h"
 #include "storage/storage_defs.h"
 #include "storage/write_ahead_log/log_record.h"
+#include "transaction/transaction_context.h"
 
 namespace terrier::storage {
 
@@ -69,6 +70,10 @@ class SqlTable {
    */
   bool Update(transaction::TransactionContext *const txn, RedoRecord *const redo) const {
     TERRIER_ASSERT(redo->GetTupleSlot() != TupleSlot(nullptr, 0), "TupleSlot was never set in this RedoRecord.");
+    TERRIER_ASSERT(redo == reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
+                               ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
+                   "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
+                   "immediately before?");
     return table_.data_table->Update(txn, redo->GetTupleSlot(), *(redo->Delta()));
   }
 
@@ -81,6 +86,11 @@ class SqlTable {
    * @return TupleSlot for the inserted tuple
    */
   TupleSlot Insert(transaction::TransactionContext *const txn, RedoRecord *const redo) const {
+    TERRIER_ASSERT(redo->GetTupleSlot() == TupleSlot(nullptr, 0), "TupleSlot was set in this RedoRecord.");
+    TERRIER_ASSERT(redo == reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
+                               ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
+                   "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
+                   "immediately before?");
     const auto slot = table_.data_table->Insert(txn, *(redo->Delta()));
     redo->SetTupleSlot(slot);
     return slot;
@@ -93,6 +103,11 @@ class SqlTable {
    * @return true if successful, false otherwise
    */
   bool Delete(transaction::TransactionContext *const txn, const TupleSlot slot) {
+    TERRIER_ASSERT(
+        reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
+                ->GetUnderlyingRecordBodyAs<DeleteRecord>()
+                ->GetTupleSlot() == slot,
+        "This Delete is not the most recent entry in the txn's RedoBuffer. Was StageDelete called immediately before?");
     return table_.data_table->Delete(txn, slot);
   }
 
