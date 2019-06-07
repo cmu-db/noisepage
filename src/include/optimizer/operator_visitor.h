@@ -1,6 +1,7 @@
 #pragma once
 
-#include "optimizer/operators.h"
+#include "optimizer/logical_operators.h"
+#include "optimizer/physical_operators.h"
 
 namespace terrier::optimizer {
 

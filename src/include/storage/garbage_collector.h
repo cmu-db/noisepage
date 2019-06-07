@@ -1,7 +1,10 @@
 #pragma once
 
 #include <queue>
+#include <unordered_set>
 #include <utility>
+#include "common/shared_latch.h"
+#include "storage/index/index.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
 #include "transaction/transaction_manager.h"
@@ -38,6 +41,18 @@ class GarbageCollector {
    */
   std::pair<uint32_t, uint32_t> PerformGarbageCollection();
 
+  /**
+   * Register an index to be periodically garbage collected
+   * @param index pointer to the index to register
+   */
+  void RegisterIndexForGC(index::Index *index);
+
+  /**
+   * Unregister an index to be periodically garbage collected
+   * @param index pointer to the index to unregister
+   */
+  void UnregisterIndexForGC(index::Index *index);
+
  private:
   /**
    * Process the deallocate queue
@@ -62,6 +77,8 @@ class GarbageCollector {
 
   void TruncateVersionChain(DataTable *table, TupleSlot slot, transaction::timestamp_t oldest) const;
 
+  void ProcessIndexes();
+
   transaction::TransactionManager *const txn_manager_;
   // timestamp of the last time GC unlinked anything. We need this to know when unlinked versions are safe to deallocate
   transaction::timestamp_t last_unlinked_;
@@ -71,6 +88,9 @@ class GarbageCollector {
   transaction::TransactionQueue txns_to_unlink_;
   // queue of unexecuted deferred actions
   std::queue<std::pair<transaction::timestamp_t, transaction::Action>> deferred_actions_;
+
+  std::unordered_set<index::Index *> indexes_;
+  common::SharedLatch indexes_latch_;
 };
 
 }  // namespace terrier::storage
