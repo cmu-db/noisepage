@@ -1021,7 +1021,6 @@ TEST_F(ParserTestBase, OldColumnUpdateTest) {
     auto right_const = right_child.CastManagedPointerTo<const ConstantValueExpression>();
     EXPECT_EQ(right_const->GetValue().Type(), type::TypeId::INTEGER);
     EXPECT_EQ(type::TransientValuePeeker::PeekInteger(right_const->GetValue()), 2);
-
   }
 }
 
@@ -1069,7 +1068,6 @@ TEST_F(ParserTestBase, OldExpressionUpdateTest) {
   constant = cond2->GetChild(1).CastManagedPointerTo<const ConstantValueExpression>();
   EXPECT_EQ(constant->GetValue().Type(), type::TypeId::INTEGER);
   EXPECT_EQ(type::TransientValuePeeker::PeekInteger(constant->GetValue()), 4);
-
 }
 
 // NOLINTNEXTLINE
@@ -1131,7 +1129,6 @@ TEST_F(ParserTestBase, OldStringUpdateTest) {
   auto string_view = type::TransientValuePeeker::PeekVarChar(tmp_value);
   EXPECT_EQ("2016-11-15 15:07:37", string_view);
   EXPECT_EQ(type::TypeId::VARCHAR, value_expr->GetReturnValueType());
-
 }
 
 // NOLINTNEXTLINE
