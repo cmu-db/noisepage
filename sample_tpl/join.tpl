@@ -47,7 +47,6 @@ fun pipeline_1(execCtx: *ExecutionContext, state: *State) -> nil {
 fun pipeline_2(execCtx: *ExecutionContext, state: *State) -> nil {
   var probe_row: ProbeRow
   var build_row: *BuildRow
-  var hti: JoinHashTableIterator
   var tvi: TableVectorIterator
   for (@tableIterInit(&tvi, "test_1", execCtx); @tableIterAdvance(&tvi); ) {
     var vec = @tableIterGetPCI(&tvi)
@@ -59,10 +58,12 @@ fun pipeline_2(execCtx: *ExecutionContext, state: *State) -> nil {
         var hash_val = @hash(val)
 
         // Iterate through matches.
+        var hti: JoinHashTableIterator
         for (@joinHTIterInit(&hti, &state.table, hash_val); @joinHTIterHasNext(&hti, checkKey, execCtx, &probe_row); ) {
           build_row = @ptrCast(*BuildRow, @joinHTIterGetRow(&hti))
           state.num_matches = state.num_matches + 1
         }
+        @joinHTIterClose(&hti)
       }
     }
   }

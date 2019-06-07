@@ -118,7 +118,6 @@ fun pipeline1(execCtx: *ExecutionContext, state: *State) -> nil {
 fun pipeline2(execCtx: *ExecutionContext, state: *State) -> nil {
   var lineitem_row: LineItemRow
   var tvi : TableVectorIterator
-  var hti: JoinHashTableIterator
   var orders_row: *OrdersRow
   // Step 1: Sequential Scan
   for (@tableIterInit(&tvi, "test_1", execCtx); @tableIterAdvance(&tvi); ) {
@@ -130,6 +129,7 @@ fun pipeline2(execCtx: *ExecutionContext, state: *State) -> nil {
       if (lineitem_row.l_orderkey < 500) {
         // Step 2: Probe Join Hash Table
         var hash_val = @hash(lineitem_row.l_orderkey)
+        var hti: JoinHashTableIterator
         for (@joinHTIterInit(&hti, &state.join_table, hash_val); @joinHTIterHasNext(&hti, checkJoinKey, execCtx, &lineitem_row);) {
           orders_row = @ptrCast(*OrdersRow, @joinHTIterGetRow(&hti))
           // Step 3: Build Agg Hash Table
@@ -142,6 +142,7 @@ fun pipeline2(execCtx: *ExecutionContext, state: *State) -> nil {
             updateAgg(agg, orders_row)
           }
         }
+        @joinHTIterClose(&hti)
       }
     }
   }
