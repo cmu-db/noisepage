@@ -13,15 +13,15 @@
 #include "common/strong_typedef.h"
 #include "settings/settings_manager.h"
 #include "storage/record_buffer.h"
-#include "storage/write_ahead_log/disk_log_writer_task.h"
+#include "storage/write_ahead_log/disk_log_consumer_task.h"
 #include "storage/write_ahead_log/log_io.h"
 #include "storage/write_ahead_log/log_record.h"
 #include "transaction/transaction_defs.h"
 
 namespace terrier::storage {
 
-// Forward declaration for class DiskLogWriterTask
-class DiskLogWriterTask;
+// Forward declaration for class DiskLogConsumerTask
+class DiskLogConsumerTask;
 class LogSerializerTask;
 class LogFlusherTask;
 
@@ -45,7 +45,7 @@ using SerializedLogs = std::pair<BufferedLogWriter *, std::vector<CommitCallback
  * and hand them over to the consumer queue (filled_buffer_queue_). The reason this is done offline and not as soon as
  * logs are received is to reduce the amount of time a transaction spends interacting with the log manager
  *      3. When a buffer of logs is handed over to a consumer, the consumer will wake up and process the logs. In the
- * case of the DiskLogWriterTask, this means writing it to the log file.
+ * case of the DiskLogConsumerTask, this means writing it to the log file.
  *      4. The LogFlusher task will periodically call ForceFlush() to persist the log file to disk using fsync. Once
  * this is done, the commit callback on any persisted logs will be called.
  */
@@ -74,7 +74,7 @@ class LogManager : public DedicatedThreadOwner {
   /**
    * Starts log manager. Does the following in order:
    *    1. Initialize buffers to pass serialized logs to log consumers
-   *    2. Starts up DiskLogWriterTask
+   *    2. Starts up DiskLogConsumerTask
    *    3. Starts up LogFlusherTask
    *    4. Starts up LogSerializerTask
    */
@@ -84,7 +84,7 @@ class LogManager : public DedicatedThreadOwner {
    * Persists all unpersisted logs and stops the log manager. Does what Start() does in reverse order:
    *    1. Stops LogSerializerTask
    *    2. Stops LogFlusherTask
-   *    3. Stops DiskLogWriterTask
+   *    3. Stops DiskLogConsumerTask
    *    2. Closes all open buffers
    * Start() can be called after to run the log manager again, a new log manager does not need to be instatiated.
    */
@@ -130,7 +130,7 @@ class LogManager : public DedicatedThreadOwner {
   }
 
  private:
-  friend class DiskLogWriterTask;
+  friend class DiskLogConsumerTask;
   friend class LogSerializerTask;
   friend class LogFlusherTask;
 
@@ -169,19 +169,20 @@ class LogManager : public DedicatedThreadOwner {
   const std::chrono::milliseconds serialization_interval_;
   common::ManagedPointer<LogSerializerTask> log_serializer_task_;
 
-  // Log flusher task that periodically forces the DiskLogWriterTask to persist the log file on disk
+  // Log flusher task that periodically forces the DiskLogConsumerTask to persist the log file on disk
   const std::chrono::milliseconds flushing_interval_;
   common::ManagedPointer<LogFlusherTask> log_flusher_task_;
 
   // The log consumer task which flushes filled buffers to the disk
-  common::ManagedPointer<DiskLogWriterTask> disk_log_writer_task_ = common::ManagedPointer<DiskLogWriterTask>(nullptr);
-  // Flag used by the serializer thread to signal the disk log writer task thread to persist the data on disk
+  common::ManagedPointer<DiskLogConsumerTask> disk_log_writer_task_ =
+      common::ManagedPointer<DiskLogConsumerTask>(nullptr);
+  // Flag used by the serializer thread to signal the disk log consumer task thread to persist the data on disk
   volatile bool do_persist_;
 
   // Synchronisation primitives to synchronise persisting buffers to disk
   std::mutex persist_lock_;
   std::condition_variable persist_cv_;
-  // Condition variable to signal disk log writer task thread to wake up and flush buffers to disk or if shutdown has
+  // Condition variable to signal disk log consumer task thread to wake up and flush buffers to disk or if shutdown has
   // initiated, then quit
   std::condition_variable disk_log_writer_thread_cv_;
 
@@ -244,7 +245,7 @@ class LogManager : public DedicatedThreadOwner {
    */
   void HandFilledBufferToWriter() {
     filled_buffer_queue_.Enqueue(std::make_pair(filled_buffer_, commits_in_buffer_));
-    // Signal disk log writer task  thread that a buffer is ready to be flushed to the disk
+    // Signal disk log consumer task  thread that a buffer is ready to be flushed to the disk
     {
       std::unique_lock<std::mutex> lock(persist_lock_);
       disk_log_writer_thread_cv_.notify_one();
@@ -261,9 +262,9 @@ class LogManager : public DedicatedThreadOwner {
    */
   bool OnThreadOffered() override {
     if (GetThreadCount() == 0) {
-      // Register disk log writer task
+      // Register disk log consumer task
       TERRIER_ASSERT(disk_log_writer_task_ == nullptr, "We should not have a task if we don't own a thread for it yet");
-      disk_log_writer_task_ = DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread<DiskLogWriterTask>(
+      disk_log_writer_task_ = DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread<DiskLogConsumerTask>(
           this /* requester */, this /* argument to task constructor */);
       return true;
     }
@@ -271,8 +272,8 @@ class LogManager : public DedicatedThreadOwner {
   }
 
   /**
-   * If the central registry wants to removes our thread used for the disk log writer task, we only allow removal if we
-   * are in shut down, else we need to keep the task, so we reject the removal
+   * If the central registry wants to removes our thread used for the disk log consumer task, we only allow removal if
+   * we are in shut down, else we need to keep the task, so we reject the removal
    * @return true if we allowed thread to be removed, else false
    */
   bool OnThreadRemoval(common::ManagedPointer<DedicatedThreadTask> task) override {

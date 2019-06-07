@@ -17,16 +17,16 @@ class LogManager;
 using CommitCallback = std::pair<transaction::callback_fn, void *>;
 
 /**
- * A DiskLogWriterTask is responsible for writing serialized log records out to disk by processing buffers in the log
+ * A DiskLogConsumerTask is responsible for writing serialized log records out to disk by processing buffers in the log
  * manager's filled buffer queue
  */
-class DiskLogWriterTask : public DedicatedThreadTask {
+class DiskLogConsumerTask : public DedicatedThreadTask {
  public:
   /**
-   * Constructs a new DiskLogWriterTask
+   * Constructs a new DiskLogConsumerTask
    * @param log_manager pointer to the LogManager
    */
-  explicit DiskLogWriterTask(LogManager *log_manager) : log_manager_(log_manager) {}
+  explicit DiskLogConsumerTask(LogManager *log_manager) : log_manager_(log_manager) {}
 
   /**
    * Runs main disk log writer loop. Called by thread registry upon initialization of thread
@@ -45,10 +45,10 @@ class DiskLogWriterTask : public DedicatedThreadTask {
   std::vector<CommitCallback> commit_callbacks_;
 
   /**
-   * Main disk log writer task loop. Flushes buffers to disk when new buffers are handed to it via filled_buffer_queue_,
-   * or when notified by LogManager to persist buffers
+   * Main disk log consumer task loop. Flushes buffers to disk when new buffers are handed to it via
+   * filled_buffer_queue_, or when notified by LogManager to persist buffers
    */
-  void DiskLogWriterTaskLoop();
+  void DiskLogConsumerTaskLoop();
 
   /**
    * Flush all buffers in the filled buffers queue to the log file

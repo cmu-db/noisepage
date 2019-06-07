@@ -82,9 +82,10 @@ class DedicatedThreadRegistry {
   }
 
   /**
-   * Stop a registered task. This is a blocking call, and will only return once the task is terminated and the thread returns. This function will free the task if it is stopped, thus, it is up to the requester (as well
-   * as the task's Terminate method) to do any necessary cleanup to the task before calling StopTask. StopTask will call
-   * the owners OnThreadRemoval method in order to allow the owner to clean up the task.
+   * Stop a registered task. This is a blocking call, and will only return once the task is terminated and the thread
+   * returns. This function will free the task if it is stopped, thus, it is up to the requester (as well as the task's
+   * Terminate method) to do any necessary cleanup to the task before calling StopTask. StopTask will call the owners
+   * OnThreadRemoval method in order to allow the owner to clean up the task.
    * @param requester the owner who registered the task
    * @param task the task that was registered
    * @warning StopTask should not be called multiple times with the same task.

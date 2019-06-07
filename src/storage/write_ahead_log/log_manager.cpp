@@ -14,8 +14,8 @@ void LogManager::Start() {
 
   run_log_manager_ = true;
 
-  // Register DiskLogWriterTask
-  disk_log_writer_task_ = DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread<DiskLogWriterTask>(
+  // Register DiskLogConsumerTask
+  disk_log_writer_task_ = DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread<DiskLogConsumerTask>(
       this /* requester */, this /* argument to task constructor */);
 
   // Register LogFlusherTask
@@ -31,14 +31,14 @@ void LogManager::PersistAndStop() {
   run_log_manager_ = false;
 
   // Signal all tasks to stop. The shutdown of the tasks will trigger a process and flush. The order in which we do
-  // these is important, we must first process, then flush, then shutdown the disk writer task
+  // these is important, we must first process, then flush, then shutdown the disk consumer task
   DedicatedThreadRegistry::GetInstance().StopTask(this,
                                                   log_serializer_task_.CastManagedPointerTo<DedicatedThreadTask>());
   DedicatedThreadRegistry::GetInstance().StopTask(this, log_flusher_task_.CastManagedPointerTo<DedicatedThreadTask>());
   DedicatedThreadRegistry::GetInstance().StopTask(this,
                                                   disk_log_writer_task_.CastManagedPointerTo<DedicatedThreadTask>());
   TERRIER_ASSERT(flush_queue_.empty(), "Termination of LogSerializerTask should hand off all buffers to consumers");
-  TERRIER_ASSERT(filled_buffer_queue_.Empty(), "Disk log writer task should have processed all filled buffers\n");
+  TERRIER_ASSERT(filled_buffer_queue_.Empty(), "disk log consumer task should have processed all filled buffers\n");
 
   // Close the buffers corresponding to the log file
   for (auto buf : buffers_) {
@@ -71,15 +71,14 @@ void LogManager::Process() {
   }
 }
 
-// TODO(Gus): When should the dedicated thread call ForceFlush?
 void LogManager::ForceFlush() {
   {
     std::unique_lock<std::mutex> lock(persist_lock_);
-    // Signal the disk log writer task thread to persist the buffers to disk
+    // Signal the disk log consumer task thread to persist the buffers to disk
     do_persist_ = true;
     disk_log_writer_thread_cv_.notify_one();
 
-    // Wait for the disk log writer task thread to persist the logs
+    // Wait for the disk log consumer task thread to persist the logs
     persist_cv_.wait(lock, [&] { return !do_persist_; });
   }
 }
@@ -188,7 +187,7 @@ void LogManager::WriteValue(const void *val, uint32_t size) {
     const byte *val_byte = reinterpret_cast<const byte *>(val) + size_written;
     size_written += out->BufferWrite(val_byte, size - size_written);
     if (out->IsBufferFull()) {
-      // Mark the buffer full for the disk log writer task thread to flush it
+      // Mark the buffer full for the disk log consumer task thread to flush it
       HandFilledBufferToWriter();
       // Get an empty buffer for writing this value
       out = GetCurrentWriteBuffer();

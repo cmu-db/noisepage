@@ -1,18 +1,18 @@
-#include "storage/write_ahead_log/disk_log_writer_task.h"
+#include "storage/write_ahead_log/disk_log_consumer_task.h"
 
 namespace terrier::storage {
 
-void DiskLogWriterTask::RunTask() {
+void DiskLogConsumerTask::RunTask() {
   run_task_ = true;
-  DiskLogWriterTaskLoop();
+  DiskLogConsumerTaskLoop();
 }
 
-void DiskLogWriterTask::Terminate() {
+void DiskLogConsumerTask::Terminate() {
   run_task_ = false;
   log_manager_->disk_log_writer_thread_cv_.notify_one();
 }
 
-void DiskLogWriterTask::FlushAllBuffers() {
+void DiskLogConsumerTask::FlushAllBuffers() {
   // Persist all the filled buffers to the disk
   SerializedLogs logs;
   while (!log_manager_->filled_buffer_queue_.Empty()) {
@@ -25,7 +25,7 @@ void DiskLogWriterTask::FlushAllBuffers() {
   }
 }
 
-void DiskLogWriterTask::PersistAllBuffers() {
+void DiskLogConsumerTask::PersistAllBuffers() {
   TERRIER_ASSERT(!(log_manager_->buffers_.empty()), "Buffers vector should not be empty until Shutdown");
   // Force the buffers to be written to disk. Because all buffers log to the same file, it suffices to call persist on
   // any buffer.
@@ -34,8 +34,8 @@ void DiskLogWriterTask::PersistAllBuffers() {
   for (auto &callback : commit_callbacks_) callback.first(callback.second);
 }
 
-void DiskLogWriterTask::DiskLogWriterTaskLoop() {
-  // Disk log writer task thread spins in this loop
+void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
+  // disk log consumer task thread spins in this loop
   // It dequeues a filled buffer and flushes it to disk
   while (run_task_) {
     // Wait until we are told to flush buffers
