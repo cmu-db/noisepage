@@ -21,12 +21,14 @@ class BwTreeIndex final : public Index {
  private:
   BwTreeIndex(const catalog::index_oid_t oid, const ConstraintType constraint_type, IndexMetadata metadata)
       : Index(oid, constraint_type, std::move(metadata)),
-        bwtree_{new third_party::bwtree::BwTree<KeyType, TupleSlot>{true}} {}
+        bwtree_{new third_party::bwtree::BwTree<KeyType, TupleSlot>{false}} {}
 
   third_party::bwtree::BwTree<KeyType, TupleSlot> *const bwtree_;
 
  public:
   ~BwTreeIndex() final { delete bwtree_; }
+
+  void PerformGarbageCollection() final { bwtree_->PerformGarbageCollection(); };
 
   bool Insert(transaction::TransactionContext *const txn, const ProjectedRow &tuple, const TupleSlot location) final {
     TERRIER_ASSERT(GetConstraintType() == ConstraintType::DEFAULT,

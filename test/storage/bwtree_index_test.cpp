@@ -66,12 +66,19 @@ class BwTreeIndexTests : public TerrierTest {
                           .SetKeySchema(key_schema_)
                           .SetOid(catalog::index_oid_t(2)))
                          .Build();
+
+    gc_thread_->GetGarbageCollector().RegisterIndexForGC(unique_index_);
+    gc_thread_->GetGarbageCollector().RegisterIndexForGC(default_index_);
+
     key_buffer_1_ =
         common::AllocationUtil::AllocateAligned(default_index_->GetProjectedRowInitializer().ProjectedRowSize());
     key_buffer_2_ =
         common::AllocationUtil::AllocateAligned(default_index_->GetProjectedRowInitializer().ProjectedRowSize());
   }
   void TearDown() override {
+    gc_thread_->GetGarbageCollector().UnregisterIndexForGC(unique_index_);
+    gc_thread_->GetGarbageCollector().UnregisterIndexForGC(default_index_);
+
     delete gc_thread_;
     delete sql_table_;
     delete default_index_;
