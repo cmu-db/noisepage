@@ -258,7 +258,6 @@ void ExecutionStructures::InitTPCHOutputSchemas(terrier::transaction::Transactio
 
   // Q1 (ten Integers)
   {
-
     std::vector<terrier::catalog::Schema::Column> output_cols{};
     std::unordered_map<uint32_t, uint32_t> offsets{};
     for (u32 i = 0; i < u32(10); i++) {
@@ -267,6 +266,18 @@ void ExecutionStructures::InitTPCHOutputSchemas(terrier::transaction::Transactio
     }
     auto final_schema = std::make_shared<exec::FinalSchema>(output_cols, offsets);
     test_plan_nodes_["q1.tpl"] = final_schema;
+  }
+
+  // Q4 (two Integers)
+  {
+    std::vector<terrier::catalog::Schema::Column> output_cols{};
+    std::unordered_map<uint32_t, uint32_t> offsets{};
+    for (u32 i = 0; i < u32(2); i++) {
+      output_cols.emplace_back(schema_empty_table.GetColumns()[0]);
+      offsets[i] = i * sql::ValUtil::GetSqlSize(schema_empty_table.GetColumns()[0].GetType());
+    }
+    auto final_schema = std::make_shared<exec::FinalSchema>(output_cols, offsets);
+    test_plan_nodes_["q4.tpl"] = final_schema;
   }
 }
 

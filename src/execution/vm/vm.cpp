@@ -788,7 +788,7 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
     auto *agg_hash_table = frame->LocalAt<sql::AggregationHashTable *>(READ_LOCAL_ID());
     auto hash = frame->LocalAt<hash_t>(READ_LOCAL_ID());
     auto key_eq_fn_id = READ_FUNC_ID();
-    auto *iters = frame->LocalAt<sql::ProjectedColumnsIterator **>(READ_LOCAL_ID());
+    auto *iters = frame->LocalAt<void **>(READ_LOCAL_ID());
 
     auto key_eq_fn = reinterpret_cast<sql::AggregationHashTable::KeyEqFn>(module_->GetRawFunctionImpl(key_eq_fn_id));
     OpAggregationHashTableLookup(result, agg_hash_table, hash, key_eq_fn, iters);
@@ -1183,6 +1183,38 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
     auto *join_hash_table = frame->LocalAt<sql::JoinHashTable *>(READ_LOCAL_ID());
     auto hash = frame->LocalAt<hash_t>(READ_LOCAL_ID());
     OpJoinHashTableAllocTuple(result, join_hash_table, hash);
+    DISPATCH_NEXT();
+  }
+
+  OP(JoinHashTableIterInit) : {
+    auto *iterator = frame->LocalAt<sql::JoinHashTableIterator *>(READ_LOCAL_ID());
+    auto *join_hash_table = frame->LocalAt<sql::JoinHashTable *>(READ_LOCAL_ID());
+    auto hash = frame->LocalAt<hash_t>(READ_LOCAL_ID());
+    OpJoinHashTableIterInit(iterator, join_hash_table, hash);
+    DISPATCH_NEXT();
+  }
+
+  OP(JoinHashTableIterHasNext) : {
+    auto *has_more = frame->LocalAt<bool *>(READ_LOCAL_ID());
+    auto *iterator = frame->LocalAt<sql::JoinHashTableIterator *>(READ_LOCAL_ID());
+    auto cmp_func_id = READ_FUNC_ID();
+    auto cmp_fn = reinterpret_cast<sql::JoinHashTableIterator::KeyEq>(module_->GetRawFunctionImpl(cmp_func_id));
+    auto *opaque_ctx = frame->LocalAt<void *>(READ_LOCAL_ID());
+    auto *probe_tuple = frame->LocalAt<void *>(READ_LOCAL_ID());
+    OpJoinHashTableIterHasNext(has_more, iterator, cmp_fn, opaque_ctx, probe_tuple);
+    DISPATCH_NEXT();
+  }
+
+  OP(JoinHashTableIterGetRow) : {
+    auto *result = frame->LocalAt<const byte **>(READ_LOCAL_ID());
+    auto *iterator = frame->LocalAt<sql::JoinHashTableIterator *>(READ_LOCAL_ID());
+    OpJoinHashTableIterGetRow(result, iterator);
+    DISPATCH_NEXT();
+  }
+
+  OP(JoinHashTableIterClose) : {
+    auto *iterator = frame->LocalAt<sql::JoinHashTableIterator *>(READ_LOCAL_ID());
+    OpJoinHashTableIterClose(iterator);
     DISPATCH_NEXT();
   }
 

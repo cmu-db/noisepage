@@ -86,6 +86,10 @@ namespace tpl::ast {
   /* Joins */                                                   \
   F(JoinHashTableInit, joinHTInit)                              \
   F(JoinHashTableInsert, joinHTInsert)                          \
+  F(JoinHashTableIterInit, joinHTIterInit)                      \
+  F(JoinHashTableIterHasNext, joinHTIterHasNext)                \
+  F(JoinHashTableIterGetRow, joinHTIterGetRow)                  \
+  F(JoinHashTableIterClose, joinHTIterClose)                    \
   F(JoinHashTableBuild, joinHTBuild)                            \
   F(JoinHashTableBuildParallel, joinHTBuildParallel)            \
   F(JoinHashTableFree, joinHTFree)                              \

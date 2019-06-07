@@ -21,6 +21,7 @@ class JoinHashTableTest;
 namespace tpl::sql {
 
 class ThreadStateContainer;
+class JoinHashTableIterator;
 
 /**
  * The main join hash table. Join hash tables are bulk-loaded through calls to
@@ -70,18 +71,13 @@ class JoinHashTable {
   void Build();
 
   /**
-   * The tuple-at-a-time iterator interface
-   */
-  class Iterator;
-
-  /**
    * Lookup a single entry with hash value @em hash returning an iterator
    * @tparam UseCHT Should the lookup use the concise or general table
    * @param hash The hash value of the element to lookup
    * @return An iterator over all elements that match the hash
    */
   template <bool UseCHT>
-  Iterator Lookup(hash_t hash) const;
+  JoinHashTableIterator Lookup(hash_t hash) const;
 
   /**
    * Perform a batch lookup of elements whose hash values are stored in @em
@@ -137,47 +133,6 @@ class JoinHashTable {
    * Is this join using a concise hash table?
    */
   bool use_concise_hash_table() const noexcept { return use_concise_ht_; }
-
- public:
-  // -------------------------------------------------------
-  // Tuple-at-a-time Iterator
-  // -------------------------------------------------------
-
-  /**
-   * The iterator used for generic lookups. This class is used mostly for
-   * tuple-at-a-time lookups from the hash table.
-   */
-  class Iterator {
-   public:
-    /**
-     * Construct an iterator beginning at the entry @em initial of the chain
-     * of entries matching the hash value @em hash. This iterator is returned
-     * from @em JoinHashTable::Lookup().
-     * @param initial The first matching entry in the chain of entries
-     * @param hash The hash value of the probe tuple
-     */
-    Iterator(const HashTableEntry *initial, hash_t hash);
-
-    /**
-     * Function used to check equality of hash keys
-     */
-    using KeyEq = bool(void *opaque_ctx, void *probe_tuple, void *table_tuple);
-
-    /**
-     * Return the next match (of both hash and keys)
-     * @param key_eq The function used to determine key equality
-     * @param opaque_ctx An opaque context passed into the key equality function
-     * @param probe_tuple The probe tuple
-     * @return The next matching entry; null otherwise
-     */
-    const HashTableEntry *NextMatch(KeyEq key_eq, void *opaque_ctx, void *probe_tuple);
-
-   private:
-    // The next element the iterator produces
-    const HashTableEntry *next_;
-    // The hash value we're looking up
-    hash_t hash_;
-  };
 
  private:
   friend class tpl::sql::test::JoinHashTableTest;
@@ -257,6 +212,47 @@ class JoinHashTable {
   bool use_concise_ht_;
 };
 
+/**
+ * The iterator used for generic lookups. This class is used mostly for
+ * tuple-at-a-time lookups from the hash table.
+ */
+class JoinHashTableIterator {
+ public:
+  /**
+   * Construct an iterator beginning at the entry @em initial of the chain
+   * of entries matching the hash value @em hash. This iterator is returned
+   * from @em JoinHashTable::Lookup().
+   * @param initial The first matching entry in the chain of entries
+   * @param hash The hash value of the probe tuple
+   */
+  JoinHashTableIterator(const HashTableEntry *initial, hash_t hash);
+
+  /**
+   * Function used to check equality of hash keys
+   */
+  using KeyEq = bool (*)(void *opaque_ctx, void *probe_tuple, void *table_tuple);
+
+  /**
+   * Advance to the next match and return true if it is found.
+   * @param key_eq The function used to determine key equality
+   * @param opaque_ctx An opaque context passed into the key equality function
+   * @param probe_tuple The probe tuple
+   * @return true iff there is a next match.
+   */
+  bool HasNext(KeyEq key_eq, void *opaque_ctx, void *probe_tuple);
+
+  /**
+   * Return the next match.
+   */
+  const HashTableEntry *NextMatch();
+
+ private:
+  // The next element the iterator produces
+  const HashTableEntry *next_;
+  // The hash value we're looking up
+  hash_t hash_;
+};
+
 // ---------------------------------------------------------
 // JoinHashTable implementation
 // ---------------------------------------------------------
@@ -265,43 +261,47 @@ class JoinHashTable {
  * Lookup for non-concise implementations
  */
 template <>
-inline JoinHashTable::Iterator JoinHashTable::Lookup<false>(const hash_t hash) const {
+inline JoinHashTableIterator JoinHashTable::Lookup<false>(const hash_t hash) const {
   HashTableEntry *entry = generic_hash_table_.FindChainHead(hash);
   while (entry != nullptr && entry->hash != hash) {
     entry = entry->next;
   }
-  return JoinHashTable::Iterator(entry, hash);
+  return JoinHashTableIterator(entry, hash);
 }
 
 /**
  * Lookup for concise implementations
  */
 template <>
-inline JoinHashTable::Iterator JoinHashTable::Lookup<true>(const hash_t hash) const {
+inline JoinHashTableIterator JoinHashTable::Lookup<true>(const hash_t hash) const {
   // NOLINTNEXTLINE
   const auto [found, idx] = concise_hash_table_.Lookup(hash);
   auto *entry = (found ? EntryAt(idx) : nullptr);
-  return JoinHashTable::Iterator(entry, hash);
+  return JoinHashTableIterator(entry, hash);
 }
 
 // ---------------------------------------------------------
 // JoinHashTable's Iterator implementation
 // ---------------------------------------------------------
 
-inline JoinHashTable::Iterator::Iterator(const HashTableEntry *initial, hash_t hash) : next_(initial), hash_(hash) {}
+inline JoinHashTableIterator::JoinHashTableIterator(const HashTableEntry *initial, hash_t hash)
+    : next_(initial), hash_(hash) {}
 
-inline const HashTableEntry *JoinHashTable::Iterator::NextMatch(JoinHashTable::Iterator::KeyEq key_eq, void *opaque_ctx,
-                                                                void *probe_tuple) {
-  const HashTableEntry *result = next_;
-  while (result != nullptr) {
-    next_ = next_->next;
-    if (result->hash == hash_ &&
-        key_eq(opaque_ctx, probe_tuple, reinterpret_cast<void *>(const_cast<byte *>(result->payload)))) {
-      break;
-    }
-    result = next_;
-  }
+inline const HashTableEntry *JoinHashTableIterator::NextMatch() {
+  auto result = next_;
+  next_ = next_->next;
   return result;
+}
+
+inline bool JoinHashTableIterator::HasNext(JoinHashTableIterator::KeyEq key_eq, void *opaque_ctx, void *probe_tuple) {
+  while (next_ != nullptr) {
+    if (next_->hash == hash_ &&
+        key_eq(opaque_ctx, probe_tuple, reinterpret_cast<void *>(const_cast<byte *>(next_->payload)))) {
+      return true;
+    }
+    next_ = next_->next;
+  }
+  return false;
 }
 
 }  // namespace tpl::sql

@@ -234,6 +234,11 @@ namespace tpl::vm {
   /* Hash Joins */                                                                                                    \
   F(JoinHashTableInit, OperandType::Local, OperandType::Local, OperandType::Local)                                    \
   F(JoinHashTableAllocTuple, OperandType::Local, OperandType::Local, OperandType::Local)                              \
+  F(JoinHashTableIterInit, OperandType::Local, OperandType::Local, OperandType::Local)                                \
+  F(JoinHashTableIterHasNext, OperandType::Local, OperandType::Local, OperandType::FunctionId, OperandType::Local,    \
+    OperandType::Local)                                                                                               \
+  F(JoinHashTableIterGetRow, OperandType::Local, OperandType::Local)                                                  \
+  F(JoinHashTableIterClose, OperandType::Local)                                                                       \
   F(JoinHashTableBuild, OperandType::Local)                                                                           \
   F(JoinHashTableBuildParallel, OperandType::Local, OperandType::Local, OperandType::Local)                           \
   F(JoinHashTableFree, OperandType::Local)                                                                            \

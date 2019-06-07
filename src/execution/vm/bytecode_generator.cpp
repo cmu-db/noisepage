@@ -1029,6 +1029,35 @@ void BytecodeGenerator::VisitBuiltinJoinHashTableCall(ast::CallExpr *call, ast::
       emitter()->Emit(Bytecode::JoinHashTableBuild, join_hash_table);
       break;
     }
+    case ast::Builtin::JoinHashTableIterInit: {
+      LocalVar iterator = VisitExpressionForRValue(call->arguments()[0]);
+      LocalVar join_hash_table = VisitExpressionForRValue(call->arguments()[1]);
+      LocalVar hash = VisitExpressionForRValue(call->arguments()[2]);
+      emitter()->Emit(Bytecode::JoinHashTableIterInit, iterator, join_hash_table, hash);
+      break;
+    }
+    case ast::Builtin::JoinHashTableIterHasNext: {
+      LocalVar has_more = execution_result()->GetOrCreateDestination(call->type());
+      LocalVar iterator = VisitExpressionForRValue(call->arguments()[0]);
+      const std::string key_eq_name = call->arguments()[1]->As<ast::IdentifierExpr>()->name().data();
+      LocalVar opaque_ctx = VisitExpressionForRValue(call->arguments()[2]);
+      LocalVar probe_tuple = VisitExpressionForRValue(call->arguments()[3]);
+      emitter()->EmitJoinHashTableIterHasNext(has_more, iterator, LookupFuncIdByName(key_eq_name), opaque_ctx,
+                                              probe_tuple);
+      execution_result()->set_destination(has_more.ValueOf());
+      break;
+    }
+    case ast::Builtin::JoinHashTableIterGetRow: {
+      LocalVar dest = execution_result()->GetOrCreateDestination(call->type());
+      LocalVar iterator = VisitExpressionForRValue(call->arguments()[0]);
+      emitter()->Emit(Bytecode::JoinHashTableIterGetRow, dest, iterator);
+      break;
+    }
+    case ast::Builtin::JoinHashTableIterClose: {
+      LocalVar iterator = VisitExpressionForRValue(call->arguments()[0]);
+      emitter()->Emit(Bytecode::JoinHashTableIterClose, iterator);
+      break;
+    }
     case ast::Builtin::JoinHashTableBuildParallel: {
       LocalVar join_hash_table = VisitExpressionForRValue(call->arguments()[0]);
       LocalVar tls = VisitExpressionForRValue(call->arguments()[1]);
@@ -1397,6 +1426,10 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     }
     case ast::Builtin::JoinHashTableInit:
     case ast::Builtin::JoinHashTableInsert:
+    case ast::Builtin::JoinHashTableIterInit:
+    case ast::Builtin::JoinHashTableIterGetRow:
+    case ast::Builtin::JoinHashTableIterHasNext:
+    case ast::Builtin::JoinHashTableIterClose:
     case ast::Builtin::JoinHashTableBuild:
     case ast::Builtin::JoinHashTableBuildParallel:
     case ast::Builtin::JoinHashTableFree: {

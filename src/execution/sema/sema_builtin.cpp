@@ -446,6 +446,114 @@ void Sema::CheckBuiltinJoinHashTableInsert(ast::CallExpr *call) {
   call->set_type(ast::BuiltinType::Get(context(), byte_kind)->PointerTo());
 }
 
+void Sema::CheckBuiltinJoinHashTableIterInit(ast::CallExpr *call) {
+  if (!CheckArgCount(call, 3)) {
+    return;
+  }
+
+  const auto &args = call->arguments();
+
+  // First argument is a pointer to a JoinHashTableIterator
+  const auto jht_iterator_kind = ast::BuiltinType::JoinHashTableIterator;
+  if (!IsPointerToSpecificBuiltin(args[0]->type(), jht_iterator_kind)) {
+    ReportIncorrectCallArg(call, 0, GetBuiltinType(jht_iterator_kind)->PointerTo());
+    return;
+  }
+
+  // Second argument is a pointer to a JoinHashTable
+  const auto jht_kind = ast::BuiltinType::JoinHashTable;
+  if (!IsPointerToSpecificBuiltin(args[1]->type(), jht_kind)) {
+    ReportIncorrectCallArg(call, 1, GetBuiltinType(jht_kind)->PointerTo());
+    return;
+  }
+
+  // Third argument is a 64-bit unsigned hash value
+  if (!args[2]->type()->IsSpecificBuiltin(ast::BuiltinType::Uint64)) {
+    ReportIncorrectCallArg(call, 2, GetBuiltinType(ast::BuiltinType::Uint64));
+    return;
+  }
+
+  // This call returns nothing
+  call->set_type(ast::BuiltinType::Get(context(), ast::BuiltinType::Nil));
+}
+
+void Sema::CheckBuiltinJoinHashTableIterHasNext(ast::CallExpr *call) {
+  if (!CheckArgCount(call, 4)) {
+    return;
+  }
+
+  const auto &args = call->arguments();
+
+  // First argument is a pointer to a JoinHashTableIterator
+  const auto jht_iterator_kind = ast::BuiltinType::JoinHashTableIterator;
+  if (!IsPointerToSpecificBuiltin(args[0]->type(), jht_iterator_kind)) {
+    ReportIncorrectCallArg(call, 0, GetBuiltinType(jht_iterator_kind)->PointerTo());
+    return;
+  }
+
+  // Second argument is a key equality function
+  auto *const key_eq_type = args[1]->type()->SafeAs<ast::FunctionType>();
+  if (key_eq_type == nullptr || key_eq_type->num_params() != 3 ||
+      !key_eq_type->return_type()->IsSpecificBuiltin(ast::BuiltinType::Bool) ||
+      !key_eq_type->params()[0].type->IsPointerType() || !key_eq_type->params()[1].type->IsPointerType() ||
+      !key_eq_type->params()[2].type->IsPointerType()) {
+    error_reporter()->Report(call->position(), ErrorMessages::kBadEqualityFunctionForJHTGetNext, args[1]->type(), 1);
+    return;
+  }
+
+  // Third argument is an arbitrary pointer
+  if (!args[2]->type()->IsPointerType()) {
+    error_reporter()->Report(call->position(), ErrorMessages::kBadPointerForJHTGetNext, args[2]->type(), 2);
+    return;
+  }
+
+  // Fourth argument is an arbitrary pointer
+  if (!args[3]->type()->IsPointerType()) {
+    error_reporter()->Report(call->position(), ErrorMessages::kBadPointerForJHTGetNext, args[3]->type(), 3);
+    return;
+  }
+
+  // This call returns a bool
+  call->set_type(ast::BuiltinType::Get(context(), ast::BuiltinType::Bool));
+}
+
+void Sema::CheckBuiltinJoinHashTableIterGetRow(tpl::ast::CallExpr *call) {
+  if (!CheckArgCount(call, 1)) {
+    return;
+  }
+
+  const auto &args = call->arguments();
+
+  // The first argument is a pointer to a JoinHashTableIterator
+  const auto jht_iterator_kind = ast::BuiltinType::JoinHashTableIterator;
+  if (!IsPointerToSpecificBuiltin(args[0]->type(), jht_iterator_kind)) {
+    ReportIncorrectCallArg(call, 0, GetBuiltinType(jht_iterator_kind)->PointerTo());
+    return;
+  }
+
+  // This call returns a byte pointer
+  const auto byte_kind = ast::BuiltinType::Uint8;
+  call->set_type(ast::BuiltinType::Get(context(), byte_kind)->PointerTo());
+}
+
+void Sema::CheckBuiltinJoinHashTableIterClose(tpl::ast::CallExpr *call) {
+  if (!CheckArgCount(call, 1)) {
+    return;
+  }
+
+  const auto &args = call->arguments();
+
+  // The first argument is a pointer to a JoinHashTableIterator
+  const auto jht_iterator_kind = ast::BuiltinType::JoinHashTableIterator;
+  if (!IsPointerToSpecificBuiltin(args[0]->type(), jht_iterator_kind)) {
+    ReportIncorrectCallArg(call, 0, GetBuiltinType(jht_iterator_kind)->PointerTo());
+    return;
+  }
+
+  // This call returns nothing
+  call->set_type(ast::BuiltinType::Get(context(), ast::BuiltinType::Nil));
+}
+
 void Sema::CheckBuiltinJoinHashTableBuild(ast::CallExpr *call, ast::Builtin builtin) {
   if (!CheckArgCountAtLeast(call, 1)) {
     return;
@@ -1321,6 +1429,22 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     }
     case ast::Builtin::JoinHashTableInsert: {
       CheckBuiltinJoinHashTableInsert(call);
+      break;
+    }
+    case ast::Builtin::JoinHashTableIterInit: {
+      CheckBuiltinJoinHashTableIterInit(call);
+      break;
+    }
+    case ast::Builtin::JoinHashTableIterHasNext: {
+      CheckBuiltinJoinHashTableIterHasNext(call);
+      break;
+    }
+    case ast::Builtin::JoinHashTableIterGetRow: {
+      CheckBuiltinJoinHashTableIterGetRow(call);
+      break;
+    }
+    case ast::Builtin::JoinHashTableIterClose: {
+      CheckBuiltinJoinHashTableIterClose(call);
       break;
     }
     case ast::Builtin::JoinHashTableBuild:

@@ -127,7 +127,9 @@ void BuildAndProbeTest(u32 num_tuples, u32 dup_scale_factor) {
     u32 count = 0;
     const HashTableEntry *entry = nullptr;
     for (auto iter = join_hash_table.Lookup<UseConciseHashTable>(hash_val);
-         (entry = iter.NextMatch(TupleKeyEq, nullptr, reinterpret_cast<void *>(&probe_tuple)));) {
+         iter.HasNext(TupleKeyEq, nullptr, reinterpret_cast<void *>(&probe_tuple));) {
+      entry = iter.NextMatch();
+      ASSERT_TRUE(entry != nullptr);
       auto *matched = reinterpret_cast<const Tuple *>(entry->payload);
       EXPECT_EQ(i, matched->a);
       count++;
@@ -144,7 +146,7 @@ void BuildAndProbeTest(u32 num_tuples, u32 dup_scale_factor) {
     auto hash_val = util::Hasher::Hash(reinterpret_cast<const u8 *>(&i), sizeof(i));
     Tuple probe_tuple = {i, 0, 0, 0};
     for (auto iter = join_hash_table.Lookup<UseConciseHashTable>(hash_val);
-         iter.NextMatch(TupleKeyEq, nullptr, reinterpret_cast<void *>(&probe_tuple));) {
+         iter.HasNext(TupleKeyEq, nullptr, reinterpret_cast<void *>(&probe_tuple));) {
       FAIL() << "Should not find any matches for key [" << i << "] that was not inserted into the join hash table";
     }
   }

@@ -498,8 +498,7 @@ VM_OP_HOT void OpAggregationHashTableInsert(byte **result, tpl::sql::Aggregation
 
 VM_OP_HOT void OpAggregationHashTableLookup(byte **result, tpl::sql::AggregationHashTable *const agg_hash_table,
                                             const hash_t hash_val,
-                                            const tpl::sql::AggregationHashTable::KeyEqFn key_eq_fn,
-                                            tpl::sql::ProjectedColumnsIterator *iters[]) {
+                                            const tpl::sql::AggregationHashTable::KeyEqFn key_eq_fn, void *iters[]) {
   *result = agg_hash_table->Lookup(hash_val, key_eq_fn, iters);
 }
 
@@ -733,6 +732,25 @@ void OpJoinHashTableBuild(tpl::sql::JoinHashTable *join_hash_table);
 
 void OpJoinHashTableBuildParallel(tpl::sql::JoinHashTable *join_hash_table,
                                   tpl::sql::ThreadStateContainer *thread_state_container, u32 jht_offset);
+
+VM_OP_HOT void OpJoinHashTableIterInit(tpl::sql::JoinHashTableIterator *result,
+                                       tpl::sql::JoinHashTable *join_hash_table, hash_t hash) {
+  *result = join_hash_table->Lookup<false>(hash);
+}
+
+VM_OP_HOT void OpJoinHashTableIterHasNext(bool *has_more, tpl::sql::JoinHashTableIterator *iterator,
+                                          tpl::sql::JoinHashTableIterator::KeyEq key_eq, void *opaque_ctx,
+                                          void *probe_tuple) {
+  *has_more = iterator->HasNext(key_eq, opaque_ctx, probe_tuple);
+}
+
+VM_OP_HOT void OpJoinHashTableIterGetRow(const byte **result, tpl::sql::JoinHashTableIterator *iterator) {
+  *result = iterator->NextMatch()->payload;
+}
+
+VM_OP_HOT void OpJoinHashTableIterClose(tpl::sql::JoinHashTableIterator *iterator) {
+  iterator->~JoinHashTableIterator();
+}
 
 void OpJoinHashTableFree(tpl::sql::JoinHashTable *join_hash_table);
 

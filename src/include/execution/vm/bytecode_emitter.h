@@ -350,6 +350,12 @@ class BytecodeEmitter {
                                                FunctionId scan_part_fn);
 
   /**
+   * Emit join table iteration code
+   */
+  void EmitJoinHashTableIterHasNext(LocalVar has_more, LocalVar iterator, FunctionId key_eq, LocalVar opaque_ctx,
+                                    LocalVar probe_tuple);
+
+  /**
    * Initialize a sorter instance
    */
   void EmitSorterInit(Bytecode bytecode, LocalVar sorter, LocalVar region, FunctionId cmp_fn, LocalVar tuple_size);

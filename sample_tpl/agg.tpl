@@ -3,11 +3,6 @@
 // SELECT col_b, count(col_a) FROM test_1 GROUP BY col_b
 //
 
-struct OutputStruct {
-    col1 : Integer
-    col2 : Integer
-}
-
 struct State {
   table: AggregationHashTable
   count: int32
@@ -20,6 +15,7 @@ struct Agg {
 
 fun setUpState(execCtx: *ExecutionContext, state: *State) -> nil {
   @aggHTInit(&state.table, @execCtxGetMem(execCtx), @sizeOf(Agg))
+  state.count = 0
 }
 
 fun tearDownState(state: *State) -> nil {
@@ -61,19 +57,13 @@ fun pipeline_1(execCtx: *ExecutionContext, state: *State) -> nil {
 }
 
 fun pipeline_2(execCtx: *ExecutionContext, state: *State) -> nil {
-  var out : *OutputStruct
   var agg_ht_iter: AggregationHashTableIterator
   var iter = &agg_ht_iter
 
   for (@aggHTIterInit(iter, &state.table); @aggHTIterHasNext(iter); @aggHTIterNext(iter)) {
     var agg = @ptrCast(*Agg, @aggHTIterGetRow(iter))
-    out = @ptrCast(*OutputStruct, @outputAlloc(execCtx))
-    out.col1 = agg.key
-    out.col2 = @aggResult(&agg.count)
-    @outputAdvance(execCtx)
     state.count = state.count + 1
   }
-  @outputFinalize(execCtx)
   @aggHTIterClose(iter)
 }
 

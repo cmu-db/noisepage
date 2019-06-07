@@ -83,7 +83,7 @@ class ExecutionStructures {
  private:
   ExecutionStructures();
   void InitTestTables(terrier::transaction::TransactionContext *txn);
-  void InitTPCHOutputSchemas(terrier::transaction::TransactionContext * txn);
+  void InitTPCHOutputSchemas(terrier::transaction::TransactionContext *txn);
   void InitTestSchemas(terrier::transaction::TransactionContext *txn);
   void InitTestIndexes(terrier::transaction::TransactionContext *txn);
   std::unique_ptr<BlockStore> block_store_;

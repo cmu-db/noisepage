@@ -95,6 +95,13 @@ namespace sema {
   F(BadArgToIndexIteratorFree,                                                                                        \
     "indexIteratorFree() expects (*IndexIterator) argument "                                                          \
     "types. Received type '%0' in position %1",                                                                       \
+    (ast::Type *, u32))                                                                                               \
+  F(BadResultForJHTGetNext,                                                                                           \
+    "joinHTGetNext() expects a double pointer argument type. Received type '%0' in position %1", (ast::Type *, u32))  \
+  F(BadEqualityFunctionForJHTGetNext,                                                                                 \
+    "joinHTGetNext() expects a (void*, void*, void*)->bool function. Received type '%0' in position %1",              \
+    (ast::Type *, u32))                                                                                               \
+  F(BadPointerForJHTGetNext, "joinHTGetNext() expects a pointer argument type. Received type '%0' in position %1",    \
     (ast::Type *, u32))
 
 /**
