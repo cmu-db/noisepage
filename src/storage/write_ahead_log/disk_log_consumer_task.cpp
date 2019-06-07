@@ -32,6 +32,7 @@ void DiskLogConsumerTask::PersistAllBuffers() {
   log_manager_->buffers_.front().Persist();
   // Execute the callbacks for the transactions that have been persisted
   for (auto &callback : commit_callbacks_) callback.first(callback.second);
+  commit_callbacks_.clear();
 }
 
 void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
