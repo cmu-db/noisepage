@@ -47,10 +47,4 @@ void ConnectionDispatcherTask::DispatchPostgresConnection(int fd, int16_t) {  //
 
   handler->Notify(new_conn_fd, NetworkProtocolType::POSTGRES_PSQL);
 }
-
-void ConnectionDispatcherTask::ExitLoop() {
-  NotifiableTask::ExitLoop();
-  for (auto &handler : handlers_) handler->ExitLoop();
-}
-
 }  // namespace terrier::network
