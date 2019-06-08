@@ -106,6 +106,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementInsert)(benchmark::State &st
   uint64_t abort_count = 0;
   const uint32_t txn_length = 1;
   const std::vector<double> insert_update_select_ratio = {1, 0, 0};
+  // NOLINTNEXTLINE
   for (auto _ : state) {
     log_manager_ = new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_,
                                            log_flushing_interval_, &buffer_pool_);
