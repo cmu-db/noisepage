@@ -31,7 +31,7 @@ void LogManager::PersistAndStop() {
   run_log_manager_ = false;
 
   // Signal all tasks to stop. The shutdown of the tasks will trigger a process and flush. The order in which we do
-  // these is important, we must first process, then flush, then shutdown the disk consumer task
+  // these is important, we must first serialize, then flush, then shutdown the disk consumer task
   DedicatedThreadRegistry::GetInstance().StopTask(this,
                                                   log_serializer_task_.CastManagedPointerTo<DedicatedThreadTask>());
   DedicatedThreadRegistry::GetInstance().StopTask(this, log_flusher_task_.CastManagedPointerTo<DedicatedThreadTask>());

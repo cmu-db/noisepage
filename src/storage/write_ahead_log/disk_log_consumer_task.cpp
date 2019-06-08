@@ -8,6 +8,10 @@ void DiskLogConsumerTask::RunTask() {
 }
 
 void DiskLogConsumerTask::Terminate() {
+  // If the task hasn't run yet, sleep
+  // TODO(Gus): Get rid of magic number
+  while (!run_task_) std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  TERRIER_ASSERT(run_task_, "Cant terminate a task that isnt running");
   run_task_ = false;
   log_manager_->disk_log_writer_thread_cv_.notify_one();
 }
@@ -38,7 +42,7 @@ void DiskLogConsumerTask::PersistAllBuffers() {
 void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
   // disk log consumer task thread spins in this loop
   // It dequeues a filled buffer and flushes it to disk
-  while (run_task_) {
+  do {
     // Wait until we are told to flush buffers
     {
       std::unique_lock<std::mutex> lock(log_manager_->persist_lock_);
@@ -65,6 +69,6 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
       // Signal the serializer thread that persist is over
       log_manager_->persist_cv_.notify_one();
     }
-  }
+  } while (run_task_);
 }
 }  // namespace terrier::storage

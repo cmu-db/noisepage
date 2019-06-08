@@ -309,7 +309,12 @@ class LogSerializerTask : public DedicatedThreadTask {
   /**
    * Signals task to stop. Called by thread registry upon termination of thread
    */
-  void Terminate() override { run_task_ = false; }
+  void Terminate() override {
+    // If the task hasn't run yet, sleep
+    while (!run_task_) std::this_thread::sleep_for(serialization_interval_);
+    TERRIER_ASSERT(run_task_, "Cant terminate a task that isnt running");
+    run_task_ = false;
+  }
 
  private:
   LogManager *log_manager_;
@@ -320,10 +325,11 @@ class LogSerializerTask : public DedicatedThreadTask {
    * Main serialization loop. Calls Process on LogManager every interval
    */
   void LogSerializerTaskLoop() {
-    while (run_task_) {
+    do {
       std::this_thread::sleep_for(serialization_interval_);
       log_manager_->Process();
     }
+    while (run_task_);
   }
 };
 
@@ -350,7 +356,12 @@ class LogFlusherTask : public DedicatedThreadTask {
   /**
    * Signals task to stop. Called by thread registry upon termination of thread
    */
-  void Terminate() override { run_task_ = false; }
+  void Terminate() override {
+    // If the task hasn't run yet, sleep
+    while (!run_task_) std::this_thread::sleep_for(flushing_interval_);
+    TERRIER_ASSERT(run_task_, "Cant terminate a task that isnt running");
+    run_task_ = false;
+  }
 
  private:
   LogManager *log_manager_;
@@ -361,10 +372,10 @@ class LogFlusherTask : public DedicatedThreadTask {
    * Main log flush loop. Calls ForceFlush on LogManager every interval
    */
   void LogFlusherTaskLoop() {
-    while (run_task_) {
+    do {
       std::this_thread::sleep_for(flushing_interval_);
       log_manager_->ForceFlush();
-    }
+    } while (run_task_);
   }
 };
 
