@@ -52,7 +52,7 @@ class IndexMetadata {
   /**
    * @return index key schema
    */
-  const std::vector<catalog::IndexKeyColumn> &GetKeySchema() const { return key_schema_; }
+  const IndexSchema &GetSchema() const { return key_schema_; }
 
   /**
    * @return unsorted index attribute sizes (key schema order), varlens are marked
@@ -97,7 +97,7 @@ class IndexMetadata {
   FRIEND_TEST(BwTreeKeyTests, IndexMetadataGenericKeyNoMustInlineVarlenTest);
   FRIEND_TEST(BwTreeKeyTests, IndexMetadataGenericKeyMustInlineVarlenTest);
 
-  std::vector<catalog::IndexKeyColumn> key_schema_;                             // for GenericKey
+  catalog::IndexSchema key_schema_;                                             // for GenericKey
   std::vector<uint8_t> attr_sizes_;                                             // for CompactIntsKey
   std::vector<uint16_t> inlined_attr_sizes_;                                    // for GenericKey
   bool must_inline_varlen_;                                                     // for GenericKey
@@ -111,7 +111,7 @@ class IndexMetadata {
    * e.g.   if key_schema is {INTEGER, INTEGER, BIGINT, TINYINT, SMALLINT}
    *        then attr_sizes returned is {4, 4, 8, 1, 2}
    */
-  static std::vector<uint8_t> ComputeAttributeSizes(const catalog::IndexKeySchema &key_schema) {
+  static std::vector<uint8_t> ComputeAttributeSizes(const catalog::IndexSchema &key_schema) {
     std::vector<uint8_t> attr_sizes;
     attr_sizes.reserve(key_schema.size());
     for (const auto &key : key_schema) {
@@ -126,7 +126,7 @@ class IndexMetadata {
    * e.g.   if key_schema is {INTEGER, VARCHAR(8), VARCHAR(0), TINYINT, VARCHAR(12)}
    *        then attr_sizes returned is {4, 16, 16, 1, 16}
    */
-  static std::vector<uint16_t> ComputeInlinedAttributeSizes(const catalog::IndexKeySchema &key_schema) {
+  static std::vector<uint16_t> ComputeInlinedAttributeSizes(const catalog::IndexSchema &key_schema) {
     std::vector<uint16_t> inlined_attr_sizes;
     inlined_attr_sizes.reserve(key_schema.size());
     for (const auto &key : key_schema) {
@@ -151,7 +151,7 @@ class IndexMetadata {
   /**
    * Computes whether we need to manually inline varlen attributes, i.e. too big for VarlenEntry::CreateInline.
    */
-  static bool ComputeMustInlineVarlen(const catalog::IndexKeySchema &key_schema) {
+  static bool ComputeMustInlineVarlen(const catalog::IndexSchema &key_schema) {
     return std::any_of(key_schema.begin(), key_schema.end(), [](const auto &key) -> bool {
       switch (key.GetType()) {
         case type::TypeId::VARBINARY:
@@ -210,7 +210,7 @@ class IndexMetadata {
    * Computes the mapping from key oid to projected row offset.
    */
   static std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> ComputeKeyOidToOffset(
-      const catalog::IndexKeySchema &key_schema, const std::vector<uint16_t> &pr_offsets) {
+      const catalog::schema &key_schema, const std::vector<uint16_t> &pr_offsets) {
     std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> key_oid_to_offset;
     key_oid_to_offset.reserve(key_schema.size());
     for (uint16_t i = 0; i < key_schema.size(); i++) {
