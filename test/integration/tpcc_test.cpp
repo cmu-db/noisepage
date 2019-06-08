@@ -51,7 +51,7 @@ class TPCCTests : public TerrierTest {
   common::WorkerPool thread_pool_{static_cast<uint32_t>(num_threads_), {}};
 
   // Settings for log manager
-  const uint64_t num_log_buffers_ = 2;
+  const uint64_t num_log_buffers_ = 100;
   const std::chrono::milliseconds log_serialization_interval_{10};
   const std::chrono::milliseconds log_flushing_interval_{20};
 

@@ -40,7 +40,7 @@ class TPCCBenchmark : public benchmark::Fixture {
   storage::LogManager *log_manager_ = LOGGING_DISABLED;  // logging enabled will override this value
 
   // Settings for log manager
-  const uint64_t num_log_buffers_ = 2;
+  const uint64_t num_log_buffers_ = 100;
   const std::chrono::milliseconds log_serialization_interval_{10};
   const std::chrono::milliseconds log_flushing_interval_{20};
 
