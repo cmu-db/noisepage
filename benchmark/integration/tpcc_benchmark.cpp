@@ -41,8 +41,8 @@ class TPCCBenchmark : public benchmark::Fixture {
 
   // Settings for log manager
   const uint64_t num_log_buffers_ = 100;
-  const std::chrono::milliseconds log_serialization_interval_{10};
-  const std::chrono::milliseconds log_flushing_interval_{20};
+  const std::chrono::milliseconds log_serialization_interval_{5};
+  const std::chrono::milliseconds log_flushing_interval_{10};
 
   const bool only_count_new_order_ = false;  // TPC-C specification is to only measure throughput for New Order in final
                                              // result, but most academic papers use all txn types
