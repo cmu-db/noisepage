@@ -5,6 +5,9 @@
 #include "catalog/catalog_defs.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
+#include "storage/index/index.h"
+#include "storage/sql_table.h"
+
 
 namespace terrier::catalog {
 
@@ -201,6 +204,7 @@ class DatabaseCatalog {
   storage::SqlTable *types_;
   storage::index::Index *types_oid_index_;
   storage::index::Index *types_name_index_; // indexed on namespace OID and name
+  storage::index::Index *types_namespace_index_;
 
   storage::SqlTable *constraints_;
   storage::index::Index *constraints_oid_index_;
