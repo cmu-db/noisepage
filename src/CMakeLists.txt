@@ -55,6 +55,7 @@ ExternalProject_Add(
         INSTALL_COMMAND ""
         BUILD_IN_SOURCE 1
         LOG_BUILD 1
+        BUILD_BYPRODUCTS "${PROJECT_SOURCE_DIR}/third_party/libcount/libcount.a"
 )
 add_library(libcount SHARED IMPORTED)
 set_property(TARGET libcount PROPERTY IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/third_party/libcount/libcount.a)
@@ -63,6 +64,7 @@ add_dependencies(libcount libcount_build)
 include_directories(SYSTEM "${PROJECT_SOURCE_DIR}/third_party/libcount/include")
 list(APPEND TERRIER_STATIC_LINK_LIBS libcount)
 list(APPEND TERRIER_LINK_LIBS libcount)
+
 
 # Sqlite 3
 find_package(Sqlite3 REQUIRED)
