@@ -4,10 +4,10 @@
 
 namespace terrier {
 
-std::shared_ptr<spdlog::logger> test_logger;
+std::shared_ptr<spdlog::logger> test_logger;  // NOLINT
 
 void init_test_logger() {
-  test_logger = std::make_shared<spdlog::logger>("test_logger", ::default_sink);
+  test_logger = std::make_shared<spdlog::logger>("test_logger", ::default_sink);  // NOLINT
   spdlog::register_logger(test_logger);
 }
 

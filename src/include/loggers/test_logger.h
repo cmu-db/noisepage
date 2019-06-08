@@ -5,7 +5,7 @@
 #include "spdlog/spdlog.h"
 
 namespace terrier {
-extern std::shared_ptr<spdlog::logger> test_logger;
+extern std::shared_ptr<spdlog::logger> test_logger;  // NOLINT
 
 void init_test_logger();
 }  // namespace terrier

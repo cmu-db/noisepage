@@ -5,7 +5,7 @@
 #include "spdlog/spdlog.h"
 
 namespace terrier::settings {
-extern std::shared_ptr<spdlog::logger> settings_logger;
+extern std::shared_ptr<spdlog::logger> settings_logger;  // NOLINT
 
 void init_settings_logger();
 }  // namespace terrier::settings

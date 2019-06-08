@@ -5,7 +5,7 @@
 #include "spdlog/spdlog.h"
 
 namespace terrier::storage {
-extern std::shared_ptr<spdlog::logger> index_logger;
+extern std::shared_ptr<spdlog::logger> index_logger;  // NOLINT
 
 void init_index_logger();
 }  // namespace terrier::storage

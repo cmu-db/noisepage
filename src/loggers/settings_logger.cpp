@@ -4,10 +4,10 @@
 
 namespace terrier::settings {
 
-std::shared_ptr<spdlog::logger> settings_logger;
+std::shared_ptr<spdlog::logger> settings_logger;  // NOLINT
 
 void init_settings_logger() {
-  settings_logger = std::make_shared<spdlog::logger>("settings_logger", ::default_sink);
+  settings_logger = std::make_shared<spdlog::logger>("settings_logger", ::default_sink);  // NOLINT
   spdlog::register_logger(settings_logger);
   settings_logger->set_level(spdlog::level::trace);
 }

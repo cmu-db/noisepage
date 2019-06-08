@@ -4,10 +4,10 @@
 
 namespace terrier::transaction {
 
-std::shared_ptr<spdlog::logger> transaction_logger;
+std::shared_ptr<spdlog::logger> transaction_logger;  // NOLINT
 
 void init_transaction_logger() {
-  transaction_logger = std::make_shared<spdlog::logger>("transaction_logger", ::default_sink);
+  transaction_logger = std::make_shared<spdlog::logger>("transaction_logger", ::default_sink);  // NOLINT
   spdlog::register_logger(transaction_logger);
 }
 

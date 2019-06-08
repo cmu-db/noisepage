@@ -5,7 +5,7 @@
 #include "spdlog/spdlog.h"
 
 namespace terrier::catalog {
-extern std::shared_ptr<spdlog::logger> catalog_logger;
+extern std::shared_ptr<spdlog::logger> catalog_logger;  // NOLINT
 
 void init_catalog_logger();
 }  // namespace terrier::catalog
