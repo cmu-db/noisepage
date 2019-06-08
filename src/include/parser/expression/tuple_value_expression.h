@@ -25,6 +25,8 @@ class TupleValueExpression : public AbstractExpression {
         col_name_(std::move(col_name)),
         table_name_(std::move(table_name)) {}
 
+
+
   /**
    * Default constructor for deserialization
    */
