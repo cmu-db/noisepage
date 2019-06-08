@@ -34,6 +34,7 @@ static DatabaseCatalog *Builder::CreateDatabaseCatalog(storage::BlockStore *bloc
   // Indexes on pg_class
   dbc.classes_oid_index_ = Builder::BuildUniqueIndex(Builder::GetClassOidIndexSchema(), CLASS_OID_INDEX_OID);
   dbc.classes_name_index_ = Builder::BuildUniqueIndex(Builder::GetClassNameIndexSchema(), CLASS_NAME_INDEX_OID);
+  dbc.classes_namespace_index_ = Builder::BuildLookupIndex(Builder::GetClassNamespaceIndexSchema(), CLASS_NAMESPACE_INDEX_OID);
 
   // Indexes on pg_index
   dbc.indexes_oid_index_ = Builder::BuildUniqueIndex(Builder::GetIndexOidIndexSchema(), INDEX_OID_INDEX_OID);
@@ -46,12 +47,15 @@ static DatabaseCatalog *Builder::CreateDatabaseCatalog(storage::BlockStore *bloc
   // Indexes on pg_type
   dbc.types_oid_index_ = Builder::BuildUniqueIndex(Builder::GetTypeOidIndexSchema(), TYPE_OID_INDEX_OID);
   dbc.types_name_index_ = Builder::BuildUniqueIndex(Builder::GetTypeNameIndexSchema(), TYPE_NAME_INDEX_OID);
+  dbc.types_namespace_index_ = Builder::BuildLookupIndex(Builder::GetTypeNamespaceIndexSchema(), TYPE_NAMESPACE_INDEX_OID);
 
   // Indexes on pg_constraint
   dbc.constraints_oid_index_ = Builder::BuildUniqueIndex(Builder::GetConstraintOidIndexSchema(),
     CONSTRAINT_OID_INDEX_OID);
   dbc.constraints_name_index_ = Builder::BuildUniqueIndex(Builder::GetConstraintNameIndexSchema(),
     CONSTRAINT_NAME_INDEX_OID);
+  dbc.constraints_namespace_index_ = Builder::BuildLookupIndex(Builder::GetConstraintNamespaceIndexSchema(),
+    CONSTRAINT_NAMESPACE_INDEX_OID);
   dbc.constraints_table_index_ = Builder::BuildLookupIndex(Builder::GetConstraintTableIndexSchema(),
     CONSTRAINT_TABLE_INDEX_OID);
   dbc.constraints_index_index_ = Builder::BuildLookupIndex(Builder::GetConstraintIndexIndexSchema(),
@@ -315,6 +319,21 @@ static IndexSchema Builder::GetClassNameIndexSchema() {
   return schema;
 }
 
+static IndexSchema Builder::GetClassNamespaceIndexSchema() {
+  std::vector<IndexSchema::Column> columns;
+
+  columns.emplace_back(type::TypeId::Integer, false,
+    new parser::ColumnValueExpression(CLASS_TABLE_OID, RELNAMESPACE_COL_OID));
+  columns.back().SetOid(col_oid_t(1));
+
+  // Unique, not primary
+  IndexSchema schema(columns, false, false, false, true);
+  schema.SetValid(true);
+  schema.SetReady(true);
+
+  return schema;
+}
+
 static IndexSchema Builder::GetIndexOidIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
@@ -383,6 +402,21 @@ static IndexSchema Builder::GetColumnNameIndexSchema() {
   return schema;
 }
 
+static IndexSchema Builder::GetColumnClassIndexSchema() {
+  std::vector<IndexSchema::Column> columns;
+
+  columns.emplace_back(type::TypeId::INTEGER, false,
+    new parser::ColumnValueExpression(COLUMN_TABLE_OID, ATTRELID_COL_OID));
+  columns.back().SetOid(col_oid_t(1));
+
+  // Not unique
+  IndexSchema schema(columns, false, false, false, true);
+  schema.SetValid(true);
+  schema.SetReady(true);
+
+  return schema;
+}
+
 static IndexSchema Builder::GetTypeOidIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
@@ -417,6 +451,21 @@ static IndexSchema Builder::GetTypeNameIndexSchema() {
   return schema;
 }
 
+static IndexSchema Builder::GetTypeNamespaceIndexSchema() {
+  std::vector<IndexSchema::Column> columns;
+
+  columns.emplace_back(type::TypeId::Integer, false,
+    new parser::ColumnValueExpression(TYPE_TABLE_OID, TYPNAMESPACE_COL_OID));
+  columns.back().SetOid(col_oid_t(1));
+
+  // Unique, not primary
+  IndexSchema schema(columns, false, false, false, true);
+  schema.SetValid(true);
+  schema.SetReady(true);
+
+  return schema;
+}
+
 static IndexSchema Builder::GetConstraintOidIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
@@ -445,6 +494,21 @@ static IndexSchema Builder::GetConstraintNameIndexSchema() {
 
   // Unique, not primary
   IndexSchema schema(columns, true, false, false, true);
+  schema.SetValid(true);
+  schema.SetReady(true);
+
+  return schema;
+}
+
+static IndexSchema Builder::GetConstraintNamespaceIndexSchema() {
+  std::vector<IndexSchema::Column> columns;
+
+  columns.emplace_back(type::TypeId::Integer, false,
+    new parser::ColumnValueExpression(CONSTRAINT_TABLE_OID, CONNAMESPACE_COL_OID));
+  columns.back().SetOid(col_oid_t(1));
+
+  // Unique, not primary
+  IndexSchema schema(columns, false, false, false, true);
   schema.SetValid(true);
   schema.SetReady(true);
 

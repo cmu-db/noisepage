@@ -13,6 +13,7 @@ namespace terrier::catalog::postgres {
 #define COLUMN_TABLE_OID table_oid_t(41);
 #define COLUMN_OID_INDEX_OID index_oid_t(42);
 #define COLUMN_NAME_INDEX_OID index_oid_t(43);
+#define COLUMN_CLASS_INDEX_OID index_oid_t(44);
 
 /*
  * Column names of the form "ATT[name]_COL_OID" are present in the PostgreSQL

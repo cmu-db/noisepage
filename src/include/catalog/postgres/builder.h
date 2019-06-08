@@ -30,58 +30,138 @@ class Builder {
   static void BootstrapDatabaseCatalog(transaction::TransactionContext *txn, DatabaseCatalog *catalog);
 
   /**
-   * Get the schema for pg_attribute
    * @return schema object for pg_attribute table
    */
   static Schema GetAttributeTableSchema();
 
   /**
-   * Get the schema for pg_class
    * @return schema object for pg_class table
    */
   static Schema GetClassTableSchema();
 
   /**
-   * Get the schema for pg_constraint
    * @return schema object for pg_constraints table
    */
   static Schema GetConstraintTableSchema();
 
   /**
-   * Get the schema for pg_index
    * @return schema object for index table
    */
   static Schema GetIndexTableSchema();
 
   /**
-   * Get the schema for pg_namespace
    * @return schema object for pg_namespace table
    */
   static Schema GetNamespaceTableSchema();
 
   /**
-   * Get the schema for pg_type
    * @return schema object for pg_type table
    */
   static Schema GetTypeTableSchema();
 
+  /**
+   * @return schema object for the oid index on pg_namespace
+   */
   static IndexSchema GetNamepaceOidIndexSchema();
+
+  /**
+   * @return schema object for the name index on pg_namespace
+   */
   static IndexSchema GetNamespaceNameIndexSchema();
+
+  /**
+   * @return schema object for the oid index on pg_class
+   */
   static IndexSchema GetClassOidIndexSchema();
+
+  /**
+   * @return schema object for the namespace/name index on pg_class
+   */
   static IndexSchema GetClassNameIndexSchema();
+
+  /**
+   * @return schema object for the namespace index on pg_class
+   */
+  static IndexSchema GetClassNamespaceIndexSchema();
+
+
+  /**
+   * @return schema object for the oid index on pg_index
+   */
   static IndexSchema GetIndexOidIndexSchema();
+
+  /**
+   * @return schema object for table index on pg_index
+   */
   static IndexSchema GetIndexTableIndexSchema();
+
+  /**
+   * @return schema object for the table/oid index on pg_attribute
+   */
   static IndexSchema GetColumnOidIndexSchema();
+
+  /**
+   * @return schema object for the namespace/name index on pg_attribute
+   */
   static IndexSchema GetColumnNameIndexSchema();
+
+  /**
+   * @return schema object for the class (index and table) index on pg_attribute
+   */
+  static IndexSchema GetColumnClassIndexSchema();
+
+  /**
+   * @return schema object for the oid index on pg_type
+   */
   static IndexSchema GetTypeOidIndexSchema();
+
+  /**
+   * @return schema object for the namespace/name index on pg_type
+   */
   static IndexSchema GetTypeNameIndexSchema();
-  static IndexSchema GetConstaintOidIndexSchema();
+
+  /**
+   * @return schema object for the namespace index on pg_type
+   */
+  static IndexSchema GetTypeNamespaceIndexSchema();
+
+  /**
+   * @return schema object for the oid index on pg_constraint
+   */
+  static IndexSchema GetConstraintOidIndexSchema();
+
+  /**
+   * @return schema object for the namespace/name index on pg_constraint
+   */
   static IndexSchema GetConstraintNameIndexSchema();
+
+  /**
+   * @return schema object for the namespace index on pg_constraint
+   */
+  static IndexSchema GetConstraintNamespaceIndexSchema();
+
+  /**
+   * @return schema object for the table index on pg_constraint
+   */
   static IndexSchema GetConstraintTableIndexSchema();
+
+  /**
+   * @return schema object for the index index on pg_constraint
+   */
   static IndexSchema GetConstraintIndexIndexSchema();
+
+  /**
+   * @return schema object for the foreign key index on pg_constraint
+   */
   static IndexSchema GetConstraintForeignKeyIndexSchema();
 
  private:
+  /**
+   * Instantiate a new unique index with the given schema and oid
+   * @param key_schema for the index
+   * @param oid for the new index
+   * @return pointer to the new index
+   */
   storage::index::Index *BuildUniqueIndex(const IndexSchema &key_schema, index_oid_t oid) {
     storage::index::IndexBuilder index_builder;
     index_builder.SetOid(oid)
@@ -90,6 +170,12 @@ class Builder {
     return index_builder.Build();
   }
 
+  /**
+   * Instantiate a new non-unique index with the given schema and oid
+   * @param key_schema for the index
+   * @param oid for the new index
+   * @return pointer to the new index
+   */
   storage::index::Index *BuildLookupIndex(const IndexSchema &key_schema, index_oid_t oid) {
     storage::index::IndexBuilder index_builder;
     index_builder.SetOid(oid)

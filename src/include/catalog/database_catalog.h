@@ -187,6 +187,7 @@ class DatabaseCatalog {
   storage::SqlTable *classes_;
   storage::index::Index *classes_oid_index_;
   storage::index::Index *classes_name_index_; // indexed on namespace OID and name
+  storage::index::Index *classes_namespace_index_;
 
   storage::SqlTable *indexes_;
   storage::index::Index *indexes_oid_index_;
@@ -195,6 +196,7 @@ class DatabaseCatalog {
   storage::SqlTable *columns_;
   storage::index::Index *columns_oid_index_; // indexed on class OID and column OID
   storage::index::Index *columns_name_index_; // indexed on class OID and column name
+  storage::index::Index *columns_class_index_;
 
   storage::SqlTable *types_;
   storage::index::Index *types_oid_index_;
@@ -203,6 +205,7 @@ class DatabaseCatalog {
   storage::SqlTable *constraints_;
   storage::index::Index *constraints_oid_index_;
   storage::index::Index *constraints_name_index_; // indexed on namespace OID and name
+  storage::index::Index *constraints_namespace_index_;
   storage::index::Index *constraints_table_index_;
   storage::index::Index *constraints_index_index_;
   storage::index::Index *constraints_foreignkey_index_;
