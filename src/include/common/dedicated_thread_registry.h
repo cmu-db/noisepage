@@ -70,7 +70,8 @@ class DedicatedThreadRegistry {
    * @param requester The owner to assign the new thread to
    * @param args arguments to pass to constructor of task
    * @return ManagedPointer to task object
-   * @warning RegisterDedicatedThread only registers the thread, it does not guarantee that the thread has been started yet
+   * @warning RegisterDedicatedThread only registers the thread, it does not guarantee that the thread has been started
+   * yet
    */
   template <class T, class... Targs>
   common::ManagedPointer<T> RegisterDedicatedThread(DedicatedThreadOwner *requester, Targs... args) {

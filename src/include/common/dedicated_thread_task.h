@@ -18,7 +18,8 @@ class DedicatedThreadTask {
    * The thread must then wrap up and exit from its Run function. The
    * termination is guaranteed to be communicated to the owner.
    *
-   * @warning Terminate should not assume that RunTask has already been called. Its possible that has been registered, but has not started yet.
+   * @warning Terminate should not assume that RunTask has already been called. Its possible that has been registered,
+   * but has not started yet.
    */
   virtual void Terminate() = 0;
 
