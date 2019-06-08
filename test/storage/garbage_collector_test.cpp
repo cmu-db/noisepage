@@ -1,4 +1,4 @@
-#include "storage/garbage_collector.h"
+#include "storage/version_chain_maintanence.h"
 #include <cstring>
 #include <unordered_map>
 #include <utility>
@@ -91,7 +91,7 @@ struct GarbageCollectorTests : public ::terrier::TerrierTest {
 // NOLINTNEXTLINE
 TEST_F(GarbageCollectorTests, SingleInsert) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TransactionManager txn_manager(&buffer_pool_, true, LOGGING_DISABLED);
+    transaction::TransactionManager txn_manager(&buffer_pool_, true, DISABLED);
     GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
     storage::GarbageCollector gc(&txn_manager);
 

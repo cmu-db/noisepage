@@ -6,7 +6,7 @@
 #include <random>
 #include <vector>
 #include "portable_endian/portable_endian.h"
-#include "storage/garbage_collector.h"
+#include "storage/version_chain_maintanence.h"
 #include "storage/index/compact_ints_key.h"
 #include "storage/index/index_builder.h"
 #include "storage/projected_row.h"

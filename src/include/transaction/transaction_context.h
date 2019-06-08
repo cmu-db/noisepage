@@ -12,6 +12,7 @@
 
 namespace terrier::storage {
 class GarbageCollector;
+class VersionChainGC;
 class LogManager;
 class SqlTable;
 }  // namespace terrier::storage
@@ -34,13 +35,11 @@ class TransactionContext {
    * @param transaction_manager pointer to transaction manager in the system (used for action framework)
    */
   TransactionContext(const timestamp_t start, const timestamp_t txn_id,
-                     storage::RecordBufferSegmentPool *const buffer_pool, storage::LogManager *const log_manager,
-                     TransactionManager *transaction_manager)
+                     storage::RecordBufferSegmentPool *const buffer_pool, storage::LogManager *const log_manager)
       : start_time_(start),
         txn_id_(txn_id),
         undo_buffer_(buffer_pool),
-        redo_buffer_(log_manager, buffer_pool),
-        txn_mgr_(transaction_manager) {}
+        redo_buffer_(log_manager, buffer_pool) {}
 
   ~TransactionContext() {
     for (const byte *ptr : loose_ptrs_) delete[] ptr;
@@ -151,17 +150,8 @@ class TransactionContext {
    */
   void RegisterCommitAction(const Action &a) { commit_actions_.push_front(a); }
 
-  /**
-   * Get the transaction manager responsible for this context (should be singleton).
-   * @warning This should only be used to support dynamically generating deferred actions
-   *          at abort or commit.  We need to expose the transaction manager because that
-   *          is where the deferred actions queue exists.
-   * @return the transaction manager
-   */
-  TransactionManager *GetTransactionManager() { return txn_mgr_; }
-
  private:
-  friend class storage::GarbageCollector;
+  friend class storage::VersionChainGC;
   friend class TransactionManager;
   friend class storage::LogManager;
   friend class storage::SqlTable;
@@ -176,10 +166,6 @@ class TransactionContext {
   // These actions will be triggered (not deferred) at abort/commit.
   std::forward_list<Action> abort_actions_;
   std::forward_list<Action> commit_actions_;
-
-  // Need this reference because the transaction manager is center point for
-  // adding epoch trigger deferrals.
-  TransactionManager *txn_mgr_;
 
   // log manager will set this to be true when log records are processed (not necessarily flushed, but will not be read
   // again in the future), so it can be garbage-collected safely.

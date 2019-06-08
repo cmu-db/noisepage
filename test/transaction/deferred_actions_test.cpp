@@ -1,5 +1,5 @@
 #include <vector>
-#include "storage/garbage_collector.h"
+#include "storage/version_chain_maintanence.h"
 #include "storage/sql_table.h"
 #include "storage/storage_defs.h"
 #include "transaction/transaction_context.h"

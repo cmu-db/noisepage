@@ -42,6 +42,8 @@ class DBMain {
       delete gc_thread_;
       delete settings_manager_;
       delete txn_manager_;
+      delete timestamp_manager_;
+      delete deferred_action_manager_;
       delete buffer_segment_pool_;
       delete thread_pool_;
 
@@ -86,7 +88,9 @@ class DBMain {
   friend class settings::Callbacks;
   std::shared_ptr<common::StatisticsRegistry> main_stat_reg_;
   std::unordered_map<settings::Param, settings::ParamInfo> param_map_;
+  transaction::TimestampManager *timestamp_manager_;
   transaction::TransactionManager *txn_manager_;
+  transaction::DeferredActionManager *deferred_action_manager_;
   settings::SettingsManager *settings_manager_;
   storage::GarbageCollectorThread *gc_thread_;
   network::TerrierServer *server_;

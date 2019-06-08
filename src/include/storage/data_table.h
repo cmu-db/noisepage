@@ -14,7 +14,7 @@ class TransactionManager;
 }  // namespace terrier::transaction
 
 namespace terrier::storage {
-
+class VersionChainGC;
 namespace index {
 class Index;
 template <typename KeyType>
@@ -208,7 +208,7 @@ class DataTable {
 
  private:
   // The GarbageCollector needs to modify VersionPtrs when pruning version chains
-  friend class GarbageCollector;
+  friend class VersionChainGC;
   // The TransactionManager needs to modify VersionPtrs when rolling back aborts
   friend class transaction::TransactionManager;
   // The index wrappers need access to IsVisible and HasConflict
@@ -220,9 +220,6 @@ class DataTable {
   const layout_version_t layout_version_;
   const TupleAccessStrategy accessor_;
 
-  // TODO(Tianyu): For now, on insertion, we simply sequentially go through a block and allocate a
-  // new one when the current one is full. Needless to say, we will need to revisit this when extending GC to handle
-  // deleted tuples and recycle slots
   // TODO(Tianyu): Now that we are switching to a linked list, there probably isn't a reason for it
   // to be latched. Could just easily write a lock-free one if there's performance gain(probably not). vector->list has
   // negligible difference in insert performance (within margin of error) when benchmarked.
@@ -279,5 +276,6 @@ class DataTable {
    * @return true if tuple is visible to this txn, false otherwise
    */
   bool IsVisible(const transaction::TransactionContext &txn, TupleSlot slot) const;
+
 };
 }  // namespace terrier::storage

@@ -8,9 +8,12 @@
 #include "storage/data_table.h"
 #include "storage/record_buffer.h"
 #include "storage/undo_record.h"
+#include "storage/version_chain_gc.h"
 #include "storage/write_ahead_log/log_manager.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
+#include "transaction/timestamp_manager.h"
+#include "transaction/deferred_action_manager.h"
 
 namespace terrier::transaction {
 /**
@@ -27,9 +30,18 @@ class TransactionManager {
    * @param gc_enabled true if txns should be stored in a local queue to hand off to the GC, false otherwise
    * @param log_manager the log manager in the system, or LOGGING_DISABLED(nulllptr) if logging is turned off.
    */
-  TransactionManager(storage::RecordBufferSegmentPool *const buffer_pool, const bool gc_enabled,
+  TransactionManager(TimestampManager *timestamp_manager,
+                     storage::RecordBufferSegmentPool *const buffer_pool,
+                     DeferredActionManager *deferred_action_manager,
+                     storage::VersionChainGC *version_chain_gc,
                      storage::LogManager *log_manager)
-      : buffer_pool_(buffer_pool), gc_enabled_(gc_enabled), log_manager_(log_manager) {}
+      : timestamp_manager_(timestamp_manager),
+        buffer_pool_(buffer_pool),
+        deferred_action_manager_(deferred_action_manager),
+        version_chain_gc_(version_chain_gc),
+        log_manager_(log_manager) {
+    TERRIER_ASSERT(timestamp_manager_ != DISABLED, "TransactionManager cannot function without a timestamp manager");
+  }
 
   /**
    * Begins a transaction.
@@ -44,6 +56,9 @@ class TransactionManager {
    * @param callback_arg a void * argument that can be passed to the callback function when invoked
    * @return commit timestamp of this transaction
    */
+  // TODO(Tianyu): In case anyone wonders, we are taking a C-style function pointer instead of more modern lambdas
+  // because we embed the callback information into commit records, and lambdas are not PODs we can initialize
+  // from any junk memory
   timestamp_t Commit(TransactionContext *txn, transaction::callback_fn callback, void *callback_arg);
 
   /**
@@ -53,64 +68,13 @@ class TransactionManager {
    */
   timestamp_t Abort(TransactionContext *txn);
 
-  /**
-   * Get the oldest transaction alive in the system at this time. Because of concurrent operations, it
-   * is not guaranteed that upon return the txn is still alive. However, it is guaranteed that the return
-   * timestamp is older than any transactions live.
-   * @return timestamp that is older than any transactions alive
-   */
-  timestamp_t OldestTransactionStartTime() const;
-
-  /**
-   * @return unique timestamp based on current time, and advances one tick
-   */
-  timestamp_t GetTimestamp() { return time_++; }
-
-  /**
-   * @return true if gc_enabled and storing completed txns in local queue, false otherwise
-   */
-  bool GCEnabled() const { return gc_enabled_; }
-
-  /**
-   * Return a copy of the completed txns queue and empty the local version
-   * @return copy of the completed txns for the GC to process
-   */
-  TransactionQueue CompletedTransactionsForGC();
-
-  /**
-   * Adds the action to a buffered list of deferred actions.  This action will
-   * be triggered no sooner than when the epoch (timestamp of oldest running
-   * transaction) is more recent than the time this function was called.
-   * @param a functional implementation of the action that is deferred
-   */
-  void DeferAction(Action a);
-
-  /**
-   * Transfers the buffered list of deferred actions to the GC for eventual
-   * execution.
-   * @return the deferred actions as a sorted queue of pairs where the timestamp is
-   *         earliest epoch the associated action can safely fire
-   */
-  std::queue<std::pair<timestamp_t, Action>> DeferredActionsForGC();
-
  private:
+  TimestampManager *timestamp_manager_;
   storage::RecordBufferSegmentPool *buffer_pool_;
-  // TODO(Tianyu): Timestamp generation needs to be more efficient (batches)
-  // TODO(Tianyu): We don't handle timestamp wrap-arounds. I doubt this would be an issue though.
-  std::atomic<timestamp_t> time_{timestamp_t(0)};
-
-  common::Gate txn_gate_;
-
-  // TODO(Matt): consider a different data structure if this becomes a measured bottleneck
-  std::unordered_set<timestamp_t> curr_running_txns_;
-  mutable common::SpinLatch curr_running_txns_latch_;
-
-  bool gc_enabled_ = false;
-  TransactionQueue completed_txns_;
+  DeferredActionManager *deferred_action_manager_;
+  storage::VersionChainGC *version_chain_gc_;
   storage::LogManager *const log_manager_;
-
-  std::queue<std::pair<timestamp_t, Action>> deferred_actions_;
-  mutable common::SpinLatch deferred_actions_latch_;
+  common::Gate txn_gate_;
 
   timestamp_t ReadOnlyCommitCriticalSection(TransactionContext *txn, transaction::callback_fn callback,
                                             void *callback_arg);
@@ -121,14 +85,15 @@ class TransactionManager {
   void LogCommit(TransactionContext *txn, timestamp_t commit_time, transaction::callback_fn callback,
                  void *callback_arg);
 
-  void Rollback(TransactionContext *txn, const storage::UndoRecord &record) const;
+  static void Rollback(TransactionContext *txn, const storage::UndoRecord &record);
 
-  void DeallocateColumnUpdateIfVarlen(TransactionContext *txn, storage::UndoRecord *undo,
+  static void DeallocateColumnUpdateIfVarlen(TransactionContext *txn, storage::UndoRecord *undo,
                                       uint16_t projection_list_index,
-                                      const storage::TupleAccessStrategy &accessor) const;
+                                      const storage::TupleAccessStrategy &accessor);
 
-  void DeallocateInsertedTupleIfVarlen(TransactionContext *txn, storage::UndoRecord *undo,
-                                       const storage::TupleAccessStrategy &accessor) const;
-  void GCLastUpdateOnAbort(TransactionContext *txn);
+  static void DeallocateInsertedTupleIfVarlen(TransactionContext *txn, storage::UndoRecord *undo,
+                                       const storage::TupleAccessStrategy &accessor);
+
+  static void RecaimLastUpdateOnAbort(TransactionContext *txn);
 };
 }  // namespace terrier::transaction

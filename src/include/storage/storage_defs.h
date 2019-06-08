@@ -17,9 +17,6 @@
 #include "storage/block_access_controller.h"
 
 namespace terrier::storage {
-// Write Ahead Logging:
-#define LOGGING_DISABLED nullptr
-#define ACTION_FRAMEWORK_DISABLED nullptr
 
 // All tuples potentially visible to txns should have a non-null attribute of version vector.
 // This is not to be confused with a non-null version vector that has value nullptr (0).

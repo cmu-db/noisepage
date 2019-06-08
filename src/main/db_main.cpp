@@ -20,8 +20,15 @@ void DBMain::Init() {
           param_map_.find(settings::Param::record_buffer_segment_size)->second.value_),
       type::TransientValuePeeker::PeekInteger(
           param_map_.find(settings::Param::record_buffer_segment_reuse)->second.value_));
-  txn_manager_ = new transaction::TransactionManager(buffer_segment_pool_, true, nullptr);
-  gc_thread_ = new storage::GarbageCollectorThread(txn_manager_,
+
+  timestamp_manager_ = new transaction::TimestampManager();
+  deferred_action_manager_ = new transaction::DeferredActionManager(timestamp_manager_);
+  txn_manager_ = new transaction::TransactionManager(timestamp_manager_,
+                                                     buffer_segment_pool_,
+                                                     DISABLED, DISABLED, DISABLED);
+
+  gc_thread_ = new storage::GarbageCollectorThread(deferred_action_manager_,
+                                                   DISABLED,
                                                    std::chrono::milliseconds{type::TransientValuePeeker::PeekInteger(
                                                        param_map_.find(settings::Param::gc_interval)->second.value_)});
   transaction::TransactionContext *txn = txn_manager_->BeginTransaction();

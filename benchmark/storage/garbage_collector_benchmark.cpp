@@ -3,7 +3,7 @@
 
 #include "benchmark/benchmark.h"
 #include "common/scoped_timer.h"
-#include "storage/garbage_collector.h"
+#include "storage/version_chain_maintanence.h"
 #include "util/transaction_benchmark_util.h"
 
 namespace terrier {
