@@ -5,6 +5,7 @@
 #include "catalog/database_catalog.h"
 #include "catalog/index_schema.h"
 #include "catalog/schema.h"
+#include "storage/index/index_builder.h"
 #include "storage/storage_defs.h"
 #include "storage/sql_table.h"
 #include "transaction/transaction_context.h"

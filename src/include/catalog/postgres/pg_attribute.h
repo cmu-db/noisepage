@@ -54,10 +54,7 @@ class AttributeEntry {
   /**
    * Destructor for the AttributeEntry.
    */
-  ~AttributeEntry() {
-    delete projection_map_;
-    delete[] row_;
-  }
+  ~AttributeEntry();
 
   /**
    * Loads the indicated row into the entry instance

@@ -113,8 +113,9 @@ class IndexMetadata {
    */
   static std::vector<uint8_t> ComputeAttributeSizes(const catalog::IndexSchema &key_schema) {
     std::vector<uint8_t> attr_sizes;
-    attr_sizes.reserve(key_schema.size());
-    for (const auto &key : key_schema) {
+    auto key_cols = key_schema.GetColumns();
+    attr_sizes.reserve(key_cols.size());
+    for (const auto &key : key_cols) {
       attr_sizes.emplace_back(type::TypeUtil::GetTypeSize(key.GetType()));
     }
     return attr_sizes;
@@ -128,8 +129,9 @@ class IndexMetadata {
    */
   static std::vector<uint16_t> ComputeInlinedAttributeSizes(const catalog::IndexSchema &key_schema) {
     std::vector<uint16_t> inlined_attr_sizes;
-    inlined_attr_sizes.reserve(key_schema.size());
-    for (const auto &key : key_schema) {
+    auto key_cols = key_schema.GetColumns();
+    attr_sizes.reserve(key_cols.size());
+    for (const auto &key : key_cols) {
       auto key_type = key.GetType();
       switch (key_type) {
         case type::TypeId::VARBINARY:
@@ -152,7 +154,8 @@ class IndexMetadata {
    * Computes whether we need to manually inline varlen attributes, i.e. too big for VarlenEntry::CreateInline.
    */
   static bool ComputeMustInlineVarlen(const catalog::IndexSchema &key_schema) {
-    return std::any_of(key_schema.begin(), key_schema.end(), [](const auto &key) -> bool {
+    auto key_cols = key_schema.GetColumns();
+    return std::any_of(key_cols.begin(), key_cols.end(), [](const auto &key) -> bool {
       switch (key.GetType()) {
         case type::TypeId::VARBINARY:
         case type::TypeId::VARCHAR:

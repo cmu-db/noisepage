@@ -36,13 +36,13 @@ class GenericKey {
    * @param metadata index information, key_schema used to interpret PR data correctly
    */
   void SetFromProjectedRow(const storage::ProjectedRow &from, const IndexMetadata &metadata) {
-    TERRIER_ASSERT(from.NumColumns() == metadata.GetKeySchema().size(),
+    TERRIER_ASSERT(from.NumColumns() == metadata.GetSchema().GetColumns().size(),
                    "ProjectedRow should have the same number of columns at the original key schema.");
     metadata_ = &metadata;
     std::memset(key_data_, 0, key_size_byte);
 
     if (metadata.MustInlineVarlen()) {
-      const auto &key_schema = metadata.GetKeySchema();
+      const auto &key_schema = metadata.GetSchema();
       const auto &inlined_attr_sizes = metadata.GetInlinedAttributeSizes();
 
       const ProjectedRowInitializer &generic_key_initializer = metadata.GetInlinedPRInitializer();
@@ -50,7 +50,8 @@ class GenericKey {
       auto *const pr = GetProjectedRow();
       generic_key_initializer.InitializeRow(pr);
 
-      for (uint16_t i = 0; i < key_schema.size(); i++) {
+      auto key_cols = key_schema.GetColumns();
+      for (uint16_t i = 0; i < key_cols.size(); i++) {
         const auto offset = static_cast<uint16_t>(from.ColumnIds()[i]);
         TERRIER_ASSERT(offset == static_cast<uint16_t>(pr->ColumnIds()[i]), "PRs must have the same comparison order!");
         const byte *const from_attr = from.AccessWithNullCheck(offset);
@@ -216,7 +217,7 @@ struct hash<terrier::storage::index::GenericKey<KeySize>> {
   size_t operator()(terrier::storage::index::GenericKey<KeySize> const &key) const {
     const auto &metadata = key.GetIndexMetadata();
 
-    const auto &key_schema = metadata.GetKeySchema();
+    const auto &key_schema = metadata.GetSchema();
     const auto &inlined_attr_sizes = metadata.GetInlinedAttributeSizes();
 
     uint64_t running_hash = terrier::common::HashUtil::Hash(metadata);
@@ -227,7 +228,8 @@ struct hash<terrier::storage::index::GenericKey<KeySize>> {
     running_hash =
         terrier::common::HashUtil::CombineHashes(running_hash, terrier::common::HashUtil::Hash(pr->NumColumns()));
 
-    for (uint16_t i = 0; i < key_schema.size(); i++) {
+    auto key_cols = key_schema.GetColumns();
+    for (uint16_t i = 0; i < key_cols.size(); i++) {
       const auto offset = static_cast<uint16_t>(pr->ColumnIds()[i]);
       const byte *const attr = pr->AccessWithNullCheck(offset);
       if (attr == nullptr) {
@@ -258,9 +260,10 @@ struct equal_to<terrier::storage::index::GenericKey<KeySize>> {
    */
   bool operator()(const terrier::storage::index::GenericKey<KeySize> &lhs,
                   const terrier::storage::index::GenericKey<KeySize> &rhs) const {
-    const auto &key_schema = lhs.GetIndexMetadata().GetKeySchema();
+    const auto &key_schema = lhs.GetIndexMetadata().GetSchema();
 
-    for (uint16_t i = 0; i < key_schema.size(); i++) {
+    auto key_cols = key_schema.GetColumns();
+    for (uint16_t i = 0; i < key_cols.size(); i++) {
       const auto *const lhs_pr = lhs.GetProjectedRow();
       const auto *const rhs_pr = rhs.GetProjectedRow();
 
@@ -312,9 +315,10 @@ struct less<terrier::storage::index::GenericKey<KeySize>> {
    */
   bool operator()(const terrier::storage::index::GenericKey<KeySize> &lhs,
                   const terrier::storage::index::GenericKey<KeySize> &rhs) const {
-    const auto &key_schema = lhs.GetIndexMetadata().GetKeySchema();
+    const auto &key_schema = lhs.GetIndexMetadata().GetSchema();
 
-    for (uint16_t i = 0; i < key_schema.size(); i++) {
+    auto key_cols = key_schema.GetColumns();
+    for (uint16_t i = 0; i < key_cols.size(); i++) {
       const auto *const lhs_pr = lhs.GetProjectedRow();
       const auto *const rhs_pr = rhs.GetProjectedRow();
 

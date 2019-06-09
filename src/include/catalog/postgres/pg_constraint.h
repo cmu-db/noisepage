@@ -66,10 +66,7 @@ class ConstraintEntry {
   /**
    * Destructor for the ConstraintEntry.
    */
-  ~ConstraintEntry() {
-    delete projection_map_;
-    delete[] row_;
-  }
+  ~ConstraintEntry();
 
   /**
    * Loads the indicated row into the entry instance

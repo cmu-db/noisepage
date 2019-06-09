@@ -56,10 +56,7 @@ class DatabaseEntry {
   /**
    * Destructor for the DatabaseEntry.
    */
-  ~DatabaseEntry() {
-    delete projection_map_;
-    delete[] row_;
-  }
+  ~DatabaseEntry();
 
   /**
    * Loads the indicated row into the entry instance

@@ -56,10 +56,7 @@ class TypeEntry {
   /**
    * Destructor for the TypeEntry.
    */
-  ~TypeEntry() {
-    delete projection_map_;
-    delete[] row_;
-  }
+  ~TypeEntry();
 
   /**
    * Loads the indicated row into the entry instance

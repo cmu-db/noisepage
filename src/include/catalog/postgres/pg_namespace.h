@@ -41,10 +41,7 @@ class NamespaceEntry {
   /**
    * Destructor for the NamespaceEntry.
    */
-  ~NamespaceEntry() {
-    delete projection_map_;
-    delete[] row_;
-  }
+  ~NamespaceEntry();
 
   /**
    * Loads the indicated row into the entry instance

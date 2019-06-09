@@ -60,10 +60,7 @@ class ClassEntry {
   /**
    * Destructor for the ClassEntry.
    */
-  ~ClassEntry() {
-    delete projection_map_;
-    delete[] row_;
-  }
+  ~ClassEntry();
 
   /**
    * Loads the indicated row into the entry instance

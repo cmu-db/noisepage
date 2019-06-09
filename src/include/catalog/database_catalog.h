@@ -221,6 +221,6 @@ class DatabaseCatalog {
 
   DatabaseCatalog();
 
-  friend class postgres::DatabaseBuilder;
+  friend class postgres::Builder;
 };
 } // namespace terrier::catalog

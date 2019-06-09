@@ -125,6 +125,8 @@ class IndexSchema {
         is_ready_(false),
         is_live_(true) {}
 
+  const std::vector<Column> &GetColumns() { return columns_; }
+
  private:
   const std::vector<Column> columns_;
   bool is_unique_;

@@ -49,10 +49,7 @@ class IndexEntry {
   /**
    * Destructor for the IndexEntry.
    */
-  ~IndexEntry() {
-    delete projection_map_;
-    delete[] row_;
-  }
+  ~IndexEntry();
 
   /**
    * Loads the indicated row into the entry instance
