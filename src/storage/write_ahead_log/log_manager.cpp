@@ -7,7 +7,7 @@ void LogManager::Start() {
   TERRIER_ASSERT(!run_log_manager_, "Can't call Start on already started LogManager");
   // Initialize buffers for logging
   for (size_t i = 0; i < num_buffers_; i++) {
-    buffers_.emplace_back(BufferedLogWriter(log_file_path_));
+    buffers_.emplace_back(BufferedLogWriter(log_file_path_.c_str()));
   }
   for (size_t i = 0; i < num_buffers_; i++) {
     empty_buffer_queue_.Enqueue(&buffers_[i]);

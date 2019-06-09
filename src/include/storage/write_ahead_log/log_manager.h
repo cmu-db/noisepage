@@ -62,7 +62,7 @@ class LogManager : public DedicatedThreadOwner {
    * @param buffer_pool the object pool to draw log buffers from. This must be the same pool transactions draw their
    *                    buffers from
    */
-  LogManager(const char *log_file_path, uint64_t num_buffers, const std::chrono::milliseconds serialization_interval,
+  LogManager(std::string log_file_path, uint64_t num_buffers, const std::chrono::milliseconds serialization_interval,
              const std::chrono::milliseconds flushing_interval, RecordBufferSegmentPool *const buffer_pool)
       : run_log_manager_(false),
         log_file_path_(log_file_path),
@@ -84,8 +84,8 @@ class LogManager : public DedicatedThreadOwner {
 
   /**
    * Flush the logs to make sure all serialized records before this invocation are persistent. Callbacks from committed
-   * transactions are invoked by log consumers when the commit records are persisted on disk. This method should only be
-   * called from a dedicated logging thread, during shut down, or during testing
+   * transactions are invoked by log consumers when the commit records are persisted on disk.
+   * @warning This method should only be called from a dedicated flushing thread or during testing
    * @warning Beware the performance consequences of calling flush too frequently
    */
   void ForceFlush();
@@ -130,7 +130,7 @@ class LogManager : public DedicatedThreadOwner {
     if (new_num_buffers >= num_buffers_) {
       // Add in new buffers
       for (size_t i = 0; i < new_num_buffers - num_buffers_; i++) {
-        buffers_.emplace_back(BufferedLogWriter(log_file_path_));
+        buffers_.emplace_back(BufferedLogWriter(log_file_path_.c_str()));
         empty_buffer_queue_.Enqueue(&buffers_[num_buffers_ + i]);
       }
       num_buffers_ = new_num_buffers;
@@ -148,7 +148,7 @@ class LogManager : public DedicatedThreadOwner {
   bool run_log_manager_;
 
   // System path for log file
-  const char *log_file_path_;
+  std::string log_file_path_;
 
   // Number of buffers to use for buffering logs
   uint64_t num_buffers_;
