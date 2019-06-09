@@ -52,7 +52,7 @@ class IndexMetadata {
   /**
    * @return index key schema
    */
-  const IndexSchema &GetSchema() const { return key_schema_; }
+  const catalog::IndexSchema &GetSchema() const { return key_schema_; }
 
   /**
    * @return unsorted index attribute sizes (key schema order), varlens are marked
@@ -210,7 +210,7 @@ class IndexMetadata {
    * Computes the mapping from key oid to projected row offset.
    */
   static std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> ComputeKeyOidToOffset(
-      const catalog::schema &key_schema, const std::vector<uint16_t> &pr_offsets) {
+      const catalog::IndexSchema &key_schema, const std::vector<uint16_t> &pr_offsets) {
     std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> key_oid_to_offset;
     key_oid_to_offset.reserve(key_schema.size());
     for (uint16_t i = 0; i < key_schema.size(); i++) {
