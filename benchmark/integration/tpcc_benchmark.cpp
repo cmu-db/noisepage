@@ -189,9 +189,9 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
 
     // cleanup
-    delete gc_thread_;
     log_manager_->PersistAndStop();
     delete log_manager_;
+    delete gc_thread_;
     delete tpcc_db;
     unlink(LOG_FILE_NAME);
   }

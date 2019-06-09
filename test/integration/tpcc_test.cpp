@@ -141,12 +141,11 @@ TEST_F(TPCCTests, WithLogging) {
 
   // populate the tables and indexes, as well as force log manager to log all changes
   Loader::PopulateDatabase(&txn_manager, &generator_, tpcc_db, workers);
-  log_manager_->PersistAndStop();
+  log_manager_->ForceFlush();
 
   // Let GC clean up
   gc_thread_ = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
   Util::RegisterIndexesForGC(&(gc_thread_->GetGarbageCollector()), tpcc_db);
-  log_manager_->Start();
   std::this_thread::sleep_for(std::chrono::seconds(2));
 
   // run the TPCC workload to completion

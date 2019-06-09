@@ -58,8 +58,8 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, TPCCish)(benchmark::State &state) {
     }
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
     log_manager_->PersistAndStop();
-    delete gc_thread_;
     delete log_manager_;
+    delete gc_thread_;
   }
   state.SetItemsProcessed(state.iterations() * num_txns - abort_count);
 }
@@ -92,8 +92,8 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, HighAbortRate)(benchmark::State &state) {
     }
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
     log_manager_->PersistAndStop();
-    delete gc_thread_;
     delete log_manager_;
+    delete gc_thread_;
   }
   state.SetItemsProcessed(state.iterations() * num_txns - abort_count);
 }
@@ -125,8 +125,8 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementInsert)(benchmark::State &st
     }
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
     log_manager_->PersistAndStop();
-    delete gc_thread_;
     delete log_manager_;
+    delete gc_thread_;
   }
   state.SetItemsProcessed(state.iterations() * num_txns - abort_count);
 }
@@ -158,8 +158,8 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementUpdate)(benchmark::State &st
     }
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
     log_manager_->PersistAndStop();
-    delete gc_thread_;
     delete log_manager_;
+    delete gc_thread_;
   }
   state.SetItemsProcessed(state.iterations() * num_txns - abort_count);
 }
@@ -191,8 +191,8 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementSelect)(benchmark::State &st
     }
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
     log_manager_->PersistAndStop();
-    delete gc_thread_;
     delete log_manager_;
+    delete gc_thread_;
   }
   state.SetItemsProcessed(state.iterations() * num_txns - abort_count);
 }
