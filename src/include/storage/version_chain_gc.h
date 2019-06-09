@@ -1,11 +1,11 @@
 #pragma once
-#include <vector>
 #include <unordered_set>
 #include <utility>
+#include <vector>
 #include "storage/data_table.h"
+#include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
-#include "transaction/deferred_action_manager.h"
 
 namespace terrier::storage {
 class VersionChainGC {
@@ -53,10 +53,9 @@ class VersionChainGC {
   // wasteful traversals of the version chain.
   transaction::DeferredActionManager *deferred_action_manager_;
   std::unordered_set<TupleSlot> visited_slots_;
-  transaction::timestamp_t curr_safe_epoch_{-1}; // invalid epoch to start
+  transaction::timestamp_t curr_safe_epoch_{-1};  // invalid epoch to start
 
-  static void TruncateVersionChain(DataTable *const table,
-                                   const TupleSlot slot,
+  static void TruncateVersionChain(DataTable *const table, const TupleSlot slot,
                                    const transaction::timestamp_t oldest) {
     const TupleAccessStrategy &accessor = table->accessor_;
     UndoRecord *const version_ptr = table->AtomicallyReadVersionPtr(slot, accessor);
@@ -106,7 +105,8 @@ class VersionChainGC {
     const TupleAccessStrategy &accessor = undo_record->Table()->accessor_;
     const BlockLayout &layout = accessor.GetBlockLayout();
     switch (undo_record->Type()) {
-      case DeltaRecordType::INSERT:return;  // no possibility of outdated varlen to gc
+      case DeltaRecordType::INSERT:
+        return;  // no possibility of outdated varlen to gc
       case DeltaRecordType::DELETE:
         // TODO(Tianyu): Potentially need to be more efficient than linear in column size?
         for (uint16_t i = 0; i < layout.NumColumns(); i++) {

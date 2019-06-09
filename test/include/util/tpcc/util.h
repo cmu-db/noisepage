@@ -7,7 +7,6 @@
 #include <unordered_map>
 #include <vector>
 #include "catalog/schema.h"
-#include "storage/version_chain_maintanence.h"
 #include "storage/projected_row.h"
 #include "util/catalog_test_util.h"
 

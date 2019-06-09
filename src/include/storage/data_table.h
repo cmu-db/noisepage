@@ -276,6 +276,5 @@ class DataTable {
    * @return true if tuple is visible to this txn, false otherwise
    */
   bool IsVisible(const transaction::TransactionContext &txn, TupleSlot slot) const;
-
 };
 }  // namespace terrier::storage

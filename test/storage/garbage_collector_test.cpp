@@ -1,4 +1,3 @@
-#include "storage/version_chain_maintanence.h"
 #include <cstring>
 #include <unordered_map>
 #include <utility>
@@ -6,6 +5,7 @@
 #include "common/object_pool.h"
 #include "storage/data_table.h"
 #include "storage/storage_util.h"
+#include "storage/version_chain_maintanence.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
 #include "util/storage_test_util.h"

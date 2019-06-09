@@ -9,6 +9,7 @@
 #include "storage/undo_record.h"
 #include "storage/write_ahead_log/log_record.h"
 #include "transaction/transaction_util.h"
+#include "deferred_action_manager.h"
 
 namespace terrier::storage {
 class GarbageCollector;
@@ -34,12 +35,16 @@ class TransactionContext {
    * @param log_manager pointer to log manager in the system, or nullptr, if logging is disabled
    * @param transaction_manager pointer to transaction manager in the system (used for action framework)
    */
-  TransactionContext(const timestamp_t start, const timestamp_t txn_id,
-                     storage::RecordBufferSegmentPool *const buffer_pool, storage::LogManager *const log_manager)
+  TransactionContext(const timestamp_t start,
+                     const timestamp_t txn_id,
+                     storage::RecordBufferSegmentPool *const buffer_pool,
+                     DeferredActionManager *deferred_action_manager,
+                     storage::LogManager *const log_manager)
       : start_time_(start),
         txn_id_(txn_id),
         undo_buffer_(buffer_pool),
-        redo_buffer_(log_manager, buffer_pool) {}
+        redo_buffer_(log_manager, buffer_pool),
+        deferred_action_manager_(deferred_action_manager) {}
 
   ~TransactionContext() {
     for (const byte *ptr : loose_ptrs_) delete[] ptr;
@@ -150,6 +155,10 @@ class TransactionContext {
    */
   void RegisterCommitAction(const Action &a) { commit_actions_.push_front(a); }
 
+  DeferredActionManager *GetDeferredActionManager() const {
+    return deferred_action_manager_;
+  }
+
  private:
   friend class storage::VersionChainGC;
   friend class TransactionManager;
@@ -160,9 +169,8 @@ class TransactionContext {
   storage::UndoBuffer undo_buffer_;
   storage::RedoBuffer redo_buffer_;
   // TODO(Tianyu): Maybe not so much of a good idea to do this. Make explicit queue in GC?
-  //
   std::vector<const byte *> loose_ptrs_;
-
+  transaction::DeferredActionManager *deferred_action_manager_;
   // These actions will be triggered (not deferred) at abort/commit.
   std::forward_list<Action> abort_actions_;
   std::forward_list<Action> commit_actions_;

@@ -23,12 +23,10 @@ void DBMain::Init() {
 
   timestamp_manager_ = new transaction::TimestampManager();
   deferred_action_manager_ = new transaction::DeferredActionManager(timestamp_manager_);
-  txn_manager_ = new transaction::TransactionManager(timestamp_manager_,
-                                                     buffer_segment_pool_,
-                                                     DISABLED, DISABLED, DISABLED);
+  txn_manager_ =
+      new transaction::TransactionManager(timestamp_manager_, buffer_segment_pool_, DISABLED, DISABLED, DISABLED);
 
-  gc_thread_ = new storage::GarbageCollectorThread(deferred_action_manager_,
-                                                   DISABLED,
+  gc_thread_ = new storage::GarbageCollectorThread(deferred_action_manager_, DISABLED,
                                                    std::chrono::milliseconds{type::TransientValuePeeker::PeekInteger(
                                                        param_map_.find(settings::Param::gc_interval)->second.value_)});
   transaction::TransactionContext *txn = txn_manager_->BeginTransaction();

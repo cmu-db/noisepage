@@ -7,7 +7,8 @@
 namespace terrier::transaction {
 TransactionContext *TransactionManager::BeginTransaction() {
   timestamp_t start_time = timestamp_manager_->BeginTransaction();
-  auto *const result = new TransactionContext(start_time, start_time + INT64_MIN, buffer_pool_, log_manager_);
+  auto *const result =
+      new TransactionContext(start_time, start_time + INT64_MIN, buffer_pool_, deferred_action_manager_, log_manager_);
   // Ensure we do not return from this function if there are ongoing write commits
   common::Gate::ScopedExit gate(&txn_gate_);
   return result;

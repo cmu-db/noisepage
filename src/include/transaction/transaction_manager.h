@@ -10,10 +10,10 @@
 #include "storage/undo_record.h"
 #include "storage/version_chain_gc.h"
 #include "storage/write_ahead_log/log_manager.h"
+#include "transaction/deferred_action_manager.h"
+#include "transaction/timestamp_manager.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
-#include "transaction/timestamp_manager.h"
-#include "transaction/deferred_action_manager.h"
 
 namespace terrier::transaction {
 /**
@@ -30,10 +30,8 @@ class TransactionManager {
    * @param gc_enabled true if txns should be stored in a local queue to hand off to the GC, false otherwise
    * @param log_manager the log manager in the system, or LOGGING_DISABLED(nulllptr) if logging is turned off.
    */
-  TransactionManager(TimestampManager *timestamp_manager,
-                     storage::RecordBufferSegmentPool *const buffer_pool,
-                     DeferredActionManager *deferred_action_manager,
-                     storage::VersionChainGC *version_chain_gc,
+  TransactionManager(TimestampManager *timestamp_manager, storage::RecordBufferSegmentPool *const buffer_pool,
+                     DeferredActionManager *deferred_action_manager, storage::VersionChainGC *version_chain_gc,
                      storage::LogManager *log_manager)
       : timestamp_manager_(timestamp_manager),
         buffer_pool_(buffer_pool),
@@ -88,11 +86,11 @@ class TransactionManager {
   static void Rollback(TransactionContext *txn, const storage::UndoRecord &record);
 
   static void DeallocateColumnUpdateIfVarlen(TransactionContext *txn, storage::UndoRecord *undo,
-                                      uint16_t projection_list_index,
-                                      const storage::TupleAccessStrategy &accessor);
+                                             uint16_t projection_list_index,
+                                             const storage::TupleAccessStrategy &accessor);
 
   static void DeallocateInsertedTupleIfVarlen(TransactionContext *txn, storage::UndoRecord *undo,
-                                       const storage::TupleAccessStrategy &accessor);
+                                              const storage::TupleAccessStrategy &accessor);
 
   static void RecaimLastUpdateOnAbort(TransactionContext *txn);
 };

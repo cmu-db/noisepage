@@ -1,14 +1,16 @@
 #pragma once
-#include "transaction/transaction_defs.h"
+#include <queue>
+#include <utility>
+#include <vector>
 #include "transaction/timestamp_manager.h"
+#include "transaction/transaction_defs.h"
 
 namespace terrier::transaction {
 class DeferredActionManager {
  public:
-  explicit DeferredActionManager(TimestampManager *timestamp_manager)
-      : timestamp_manager_(timestamp_manager) {}
+  explicit DeferredActionManager(TimestampManager *timestamp_manager) : timestamp_manager_(timestamp_manager) {}
 
-  timestamp_t RegisterDeferredAction(Action a) {
+  timestamp_t RegisterDeferredAction(const DeferredAction &a) {
     timestamp_t result = timestamp_manager_->CurrentTime();
     {
       common::SpinLatch::ScopedSpinLatch guard(&deferred_actions_latch_);
@@ -33,14 +35,14 @@ class DeferredActionManager {
   TimestampManager *timestamp_manager_;
   // TODO(Tianyu): We might want to change this data structure to be more specialized than std::queue
   // Both queue should stay sorted in timestamp
-  std::queue<std::pair<timestamp_t, Action>> new_deferred_actions_, back_log_;
-  std::vector<Action> retry_;
+  std::queue<std::pair<timestamp_t, DeferredAction>> new_deferred_actions_, back_log_;
+  std::vector<DeferredAction> retry_;
   common::SpinLatch deferred_actions_latch_;
 
   uint32_t Retry(timestamp_t oldest_txn) {
     uint32_t processed = 0;
-    std::vector<Action> local_retry = std::move(retry_);
-    for (Action &a : local_retry) {
+    std::vector<DeferredAction> local_retry = std::move(retry_);
+    for (DeferredAction &a : local_retry) {
       if (!a(oldest_txn))
         retry_.push_back(a);
       else
@@ -68,7 +70,7 @@ class DeferredActionManager {
     uint32_t processed = 0;
     // swap the new actions queue with a local queue, so the rest of the system can continue
     // while we process actions
-    std::queue<std::pair<timestamp_t, Action>> new_actions_local;
+    std::queue<std::pair<timestamp_t, DeferredAction>> new_actions_local;
     {
       common::SpinLatch::ScopedSpinLatch guard(&deferred_actions_latch_);
       new_actions_local = std::move(new_deferred_actions_);
@@ -91,6 +93,5 @@ class DeferredActionManager {
     }
     return processed;
   }
-
 };
 }  // namespace terrier::transaction

@@ -18,5 +18,7 @@ class TransactionContext;
 using TransactionQueue = std::forward_list<transaction::TransactionContext *>;
 using callback_fn = void (*)(void *);
 
-using Action = std::function<bool(timestamp_t)>;
+using Action = std::function<void(void)>;
+using DeferredAction = std::function<bool(timestamp_t)>;
+
 }  // namespace terrier::transaction

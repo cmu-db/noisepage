@@ -8,12 +8,11 @@ namespace terrier::transaction {
 class DeferredActionThread {
  public:
   DeferredActionThread(DeferredActionManager *manager, const std::chrono::milliseconds run_period)
-    : manager_(manager), run_period_(run_period) {}
+      : manager_(manager), run_period_(run_period) {}
 
   ~DeferredActionThread() {
     run_ = false;
     thread_.join();
-
   }
 
   void Pause() {
@@ -40,4 +39,4 @@ class DeferredActionThread {
     }
   }
 };
-}
+}  // namespace terrier::transaction

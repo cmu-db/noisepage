@@ -109,7 +109,7 @@ class LargeTransactionBenchmarkObject {
                                   uint32_t txn_length, std::vector<double> operation_ratio,
                                   storage::BlockStore *block_store, storage::RecordBufferSegmentPool *buffer_pool,
                                   std::default_random_engine *generator, bool gc_on,
-                                  storage::LogManager *log_manager = LOGGING_DISABLED);
+                                  storage::LogManager *log_manager = DISABLED);
 
   /**
    * Destructs a LargeTransactionBenchmarkObject

@@ -6,11 +6,11 @@
 #include <random>
 #include <vector>
 #include "portable_endian/portable_endian.h"
-#include "storage/version_chain_maintanence.h"
 #include "storage/index/compact_ints_key.h"
 #include "storage/index/index_builder.h"
 #include "storage/projected_row.h"
 #include "storage/sql_table.h"
+#include "storage/version_chain_maintanence.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
 #include "type/type_id.h"

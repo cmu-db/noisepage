@@ -2,9 +2,8 @@
 
 #include <chrono>  //NOLINT
 #include <thread>  //NOLINT
-#include "transaction/deferred_action_manager.h"
 #include "storage/index/index_gc.h"
-
+#include "transaction/deferred_action_manager.h"
 
 // TODO(Tianyu): Should this be in the storage namespace?
 namespace terrier::storage {
@@ -19,15 +18,11 @@ class GarbageCollectorThread {
    * @param txn_manager pointer to the txn manager for the GC to communicate with
    * @param gc_period sleep time between GC invocations
    */
-  GarbageCollectorThread(transaction::DeferredActionManager *deferred_action_manager,
-                         storage::index::IndexGC *index_gc,
+  GarbageCollectorThread(transaction::DeferredActionManager *deferred_action_manager, storage::index::IndexGC *index_gc,
                          const std::chrono::milliseconds gc_period)
       : deferred_action_manager_(deferred_action_manager),
         index_gc_(index_gc),
-        run_gc_(true),
-        gc_paused_(false),
-        gc_period_(gc_period),
-        gc_thread_(std::thread([this] { GCThreadLoop(); })) {}
+        gc_period_(gc_period) {}
 
   ~GarbageCollectorThread() {
     run_gc_ = false;
@@ -37,7 +32,7 @@ class GarbageCollectorThread {
     // should be put into the destructor of the deferred action manager, such that the
     // transaction manager's dependency on it ensures that the transaction manager is shut down before
     // the deferred action manager.
-    while (deferred_action_manager_->Process() != 0);
+    while (deferred_action_manager_->Process() != 0) {}
   }
 
   /**
@@ -55,7 +50,6 @@ class GarbageCollectorThread {
     TERRIER_ASSERT(gc_paused_, "GC should already be paused.");
     gc_paused_ = false;
   }
-
 
  private:
   transaction::DeferredActionManager *deferred_action_manager_;
