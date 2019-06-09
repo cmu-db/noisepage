@@ -11,11 +11,11 @@
 #include "common/notifiable_task.h"
 #include "loggers/main_logger.h"
 #include "network/network_defs.h"
+#include "network/protocol_interpreter.h"
 
 namespace terrier::network {
 
 class ConnectionHandleFactory;
-
 /**
  * A ConnectionHandlerTask is responsible for interacting with a client
  * connection.
@@ -31,7 +31,7 @@ class ConnectionHandlerTask : public common::NotifiableTask {
    * @param task_id task_id a unique id assigned to this task.
    * @param connection_handle_factory The pointer to the connection handle factory
    */
-  explicit ConnectionHandlerTask(int task_id, ConnectionHandleFactory *connection_handle_factory);
+  ConnectionHandlerTask(int task_id, common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory);
 
   /**
    * @brief Notifies this ConnectionHandlerTask that a new client connection
@@ -44,7 +44,7 @@ class ConnectionHandlerTask : public common::NotifiableTask {
    * @param conn_fd the client connection socket fd.
    * @param protocol_type the protocol used for this socket fd
    */
-  void Notify(int conn_fd, NetworkProtocolType protocol_type);
+  void Notify(int conn_fd, std::unique_ptr<ProtocolInterpreter> protocol_interpreter);
 
   /**
    * @brief Handles a new client assigned to this handler by the dispatcher.
@@ -59,11 +59,11 @@ class ConnectionHandlerTask : public common::NotifiableTask {
   void HandleDispatch(int new_conn_recv_fd, int16_t flags);
 
  private:
+  // TODO(Tianyu): This is broken and needs to be fixed. See #413
   int client_fd_;
+  std::unique_ptr<ProtocolInterpreter> protocol_interpreter_;
   event *notify_event_;
-  NetworkProtocolType protocol_type_;
-
-  ConnectionHandleFactory *connection_handle_factory_;
+  common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory_;
 };
 
 }  // namespace terrier::network

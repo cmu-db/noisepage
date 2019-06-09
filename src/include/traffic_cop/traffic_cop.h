@@ -7,7 +7,7 @@
 #include "traffic_cop/sqlite.h"
 #include "traffic_cop/statement.h"
 
-namespace terrier::traffic_cop {
+namespace terrier::tcop {
 
 /**
  *
@@ -31,4 +31,4 @@ class TrafficCop {
   SqliteEngine sqlite_engine;
 };
 
-}  // namespace terrier::traffic_cop
+}  // namespace terrier::tcop

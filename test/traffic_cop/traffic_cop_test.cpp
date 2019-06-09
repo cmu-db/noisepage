@@ -16,7 +16,7 @@
 #include "util/manual_packet_helpers.h"
 #include "util/test_harness.h"
 
-namespace terrier::traffic_cop {
+namespace terrier::tcop {
 class TrafficCopTests : public TerrierTest {
  protected:
   std::unique_ptr<network::TerrierServer> server;
@@ -24,7 +24,7 @@ class TrafficCopTests : public TerrierTest {
   std::thread server_thread;
 
   TrafficCop t_cop;
-  network::CommandFactory command_factory;
+  network::PostgresCommandFactory command_factory;
   std::unique_ptr<network::ConnectionHandleFactory> handle_factory;
 
   void StartServer() {
@@ -33,8 +33,8 @@ class TrafficCopTests : public TerrierTest {
     spdlog::flush_every(std::chrono::seconds(1));
 
     try {
-      handle_factory = std::make_unique<network::ConnectionHandleFactory>(&t_cop, &command_factory);
-      server = std::make_unique<network::TerrierServer>(handle_factory.get());
+      handle_factory = std::make_unique<network::ConnectionHandleFactory>(common::ManagedPointer(&t_cop));
+      server = std::make_unique<network::TerrierServer>(common::ManagedPointer(handle_factory.get()));
       server->SetPort(port);
       server->SetupServer();
     } catch (NetworkProcessException &exception) {
@@ -366,4 +366,4 @@ TEST_F(TrafficCopTests, DISABLED_ExtendedQueryTest) {
   }
 }
 
-}  // namespace terrier::traffic_cop
+}  // namespace terrier::tcop

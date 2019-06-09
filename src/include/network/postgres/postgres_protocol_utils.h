@@ -361,7 +361,7 @@ class PostgresPacketWriter {
    * Writes a data row.
    * @param values a row's values.
    */
-  void WriteDataRow(const traffic_cop::Row &values) {
+  void WriteDataRow(const tcop::Row &values) {
     using type::TransientValuePeeker;
     using type::TypeId;
 

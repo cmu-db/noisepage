@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <utility>
 #include "loggers/network_logger.h"
-#include "network/command_factory.h"
+#include "postgres_command_factory.h"
 #include "network/connection_context.h"
 #include "network/connection_handle.h"
 #include "network/postgres/postgres_network_commands.h"
@@ -18,10 +18,23 @@ namespace terrier::network {
  */
 class PostgresProtocolInterpreter : public ProtocolInterpreter {
  public:
+
+  struct Provider : public ProtocolInterpreter::Provider {
+   public:
+    Provider(common::ManagedPointer<PostgresCommandFactory> command_factory) : command_factory_(command_factory) {}
+
+    std::unique_ptr<ProtocolInterpreter> Get() override {
+      return std::make_unique<PostgresProtocolInterpreter>(command_factory_);
+    }
+   private:
+    common::ManagedPointer<PostgresCommandFactory> command_factory_;
+  };
+
   /**
    * Default constructor
    */
-  explicit PostgresProtocolInterpreter(CommandFactory *command_factory) : command_factory_(command_factory) {}
+  explicit PostgresProtocolInterpreter(common::ManagedPointer<PostgresCommandFactory> command_factory)
+      : command_factory_(command_factory) {}
   /**
    * @see ProtocolIntepreter::Process
    * @param in
@@ -31,28 +44,30 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
    * @param context the connection context
    * @return
    */
-  Transition Process(std::shared_ptr<ReadBuffer> in, std::shared_ptr<WriteQueue> out, TrafficCop *t_cop,
-                     ConnectionContext *context, NetworkCallback callback) override;
+  Transition Process(std::shared_ptr<ReadBuffer> in,
+                     std::shared_ptr<WriteQueue> out,
+                     common::ManagedPointer<tcop::TrafficCop> t_cop,
+                     ConnectionContext *context,
+                     NetworkCallback callback) override;
 
   /**
    *
    * @param out
    */
   void GetResult(std::shared_ptr<WriteQueue> out) override {
-    // TODO(Tianyu): The difference between these two methods are unclear to me
-
     PostgresPacketWriter writer(out);
-    switch (protocol_type_) {
-      case NetworkProtocolType::POSTGRES_JDBC:
-        NETWORK_LOG_TRACE("JDBC result");
-        ExecExecuteMessageGetResult(&writer, ResultType::SUCCESS);
-        break;
-      case NetworkProtocolType::POSTGRES_PSQL:
-        NETWORK_LOG_TRACE("PSQL result");
-        ExecQueryMessageGetResult(&writer, ResultType::SUCCESS);
-      default:
-        throw NETWORK_PROCESS_EXCEPTION("Unsupported protocol type");
-    }
+    ExecQueryMessageGetResult(&writer, ResultType::SUCCESS);
+    // TODO(Tianyu): This looks wrong. JDBC and PSQL should be united under one wire protocol. This field was set
+    // statically for all connections before I removed it. Also, the difference between these two methods look
+    // superficial. Some one should dig deeper to figure out what's going on here.
+//    switch (protocol_type_) {
+//      case NetworkProtocolType::POSTGRES_JDBC:NETWORK_LOG_TRACE("JDBC result");
+//        ExecExecuteMessageGetResult(&writer, ResultType::SUCCESS);
+//        break;
+//      case NetworkProtocolType::POSTGRES_PSQL:NETWORK_LOG_TRACE("PSQL result");
+//        ExecQueryMessageGetResult(&writer, ResultType::SUCCESS);
+//      default:throw NETWORK_PROCESS_EXCEPTION("Unsupported protocol type");
+//    }
   }
 
   /**
@@ -85,16 +100,12 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
    */
   void ExecExecuteMessageGetResult(PostgresPacketWriter *out, ResultType status);
 
-  /**
-   * The protocol type being used
-   */
-  NetworkProtocolType protocol_type_;
-
  private:
   bool startup_ = true;
   PostgresInputPacket curr_input_packet_{};
   std::unordered_map<std::string, std::string> cmdline_options_;
-  CommandFactory *command_factory_;
+  common::ManagedPointer<PostgresCommandFactory> command_factory_;
+
   bool TryBuildPacket(const std::shared_ptr<ReadBuffer> &in);
   bool TryReadPacketHeader(const std::shared_ptr<ReadBuffer> &in);
 };

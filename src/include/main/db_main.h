@@ -92,8 +92,8 @@ class DBMain {
   network::TerrierServer *server_;
   storage::RecordBufferSegmentPool *buffer_segment_pool_;
   common::WorkerPool *thread_pool_;
-  terrier::traffic_cop::TrafficCop *t_cop_;
-  terrier::network::CommandFactory *command_factory_;
+  terrier::tcop::TrafficCop *t_cop_;
+  terrier::network::PostgresCommandFactory *command_factory_;
   terrier::network::ConnectionHandleFactory *connection_handle_factory_;
 
   bool running = false;

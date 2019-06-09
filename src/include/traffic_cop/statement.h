@@ -6,7 +6,7 @@
 #include "network/postgres/postgres_protocol_utils.h"
 #include "type/transient_value.h"
 
-namespace terrier::traffic_cop {
+namespace terrier::tcop {
 
 /**
  * Statement contains a prepared statement by the backend.
@@ -49,4 +49,4 @@ class Statement {
   void Finalize() { sqlite3_finalize(sqlite3_stmt_); }
 };
 
-}  // namespace terrier::traffic_cop
+}  // namespace terrier::tcop

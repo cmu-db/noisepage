@@ -1,6 +1,6 @@
 #include <sys/socket.h>
 #include <sys/types.h>
-#include <util/test_harness.h>
+#include "util/test_harness.h"
 #include <pqxx/pqxx> /* libpqxx is used to instantiate C++ client */
 
 #include <cstdio>
@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include <vector>
 #include "common/settings.h"
+#include "common/managed_pointer.h"
 #include "gtest/gtest.h"
 #include "loggers/main_logger.h"
 #include "network/connection_handle_factory.h"
@@ -24,7 +25,7 @@ namespace terrier::network {
  * The network tests does not check whether the result is correct. It only checks if the network layer works.
  * So, in network tests, we use a fake command factory to return empty results for every query.
  */
-class FakeCommandFactory : public CommandFactory {
+class FakeCommandFactory : public PostgresCommandFactory {
   std::shared_ptr<PostgresNetworkCommand> PostgresPacketToCommand(PostgresInputPacket *packet) override {
     return std::static_pointer_cast<PostgresNetworkCommand, EmptyCommand>(std::make_shared<EmptyCommand>(packet));
   }
@@ -36,7 +37,7 @@ class NetworkTests : public TerrierTest {
   std::unique_ptr<ConnectionHandleFactory> handle_factory;
   uint16_t port = common::Settings::SERVER_PORT;
   std::thread server_thread;
-  TrafficCop t_cop;
+  tcop::TrafficCop t_cop;
   FakeCommandFactory fake_command_factory;
 
   /**
@@ -49,8 +50,8 @@ class NetworkTests : public TerrierTest {
     spdlog::flush_every(std::chrono::seconds(1));
 
     try {
-      handle_factory = std::make_unique<ConnectionHandleFactory>(&t_cop, &fake_command_factory);
-      server = std::make_unique<TerrierServer>(handle_factory.get());
+      handle_factory = std::make_unique<ConnectionHandleFactory>(common::ManagedPointer(&t_cop));
+      server = std::make_unique<TerrierServer>(common::ManagedPointer(handle_factory.get()));
       server->SetPort(port);
       server->SetupServer();
     } catch (NetworkProcessException &exception) {

@@ -34,8 +34,11 @@ class ConnectionDispatcherTask : public common::NotifiableTask {
    * @param dedicatedThreadOwner The DedicatedThreadOwner associated with this task
    * @param connection_handle_factory The connection handle factory pointer to pass down to the handlers
    */
-  ConnectionDispatcherTask(int num_handlers, int listen_fd, DedicatedThreadOwner *dedicatedThreadOwner,
-                           ConnectionHandleFactory *connection_handle_factory);
+  ConnectionDispatcherTask(int num_handlers,
+                           int listen_fd,
+                           DedicatedThreadOwner *dedicatedThreadOwner,
+                           common::ManagedPointer<ProtocolInterpreter::Provider> interpreter_provider,
+                           common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory);
 
   /**
    * @brief Dispatches the client connection at fd to a handler.
@@ -57,6 +60,7 @@ class ConnectionDispatcherTask : public common::NotifiableTask {
   void ExitLoop() override;
 
  private:
+  common::ManagedPointer<ProtocolInterpreter::Provider> interpreter_provider_;
   std::vector<std::shared_ptr<ConnectionHandlerTask>> handlers_;
   // TODO(TianyuLi): have a smarter dispatch scheduler, we currently use round-robin
   std::atomic<uint64_t> next_handler_;

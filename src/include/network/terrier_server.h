@@ -37,7 +37,7 @@ class TerrierServer : public DedicatedThreadOwner {
    * Note that SettingsManager must already be initialized when this constructor
    * is called.
    */
-  explicit TerrierServer(ConnectionHandleFactory *connection_handle_factory);
+  explicit TerrierServer(common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory);
   virtual ~TerrierServer() = default;
 
   /**
@@ -94,8 +94,11 @@ class TerrierServer : public DedicatedThreadOwner {
   int listen_fd_ = -1;      // server socket fd that TerrierServer is listening on
   size_t max_connections_;  // maximum number of connections
 
-  ConnectionHandleFactory *connection_handle_factory_;
+  common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory_;
 
+  std::unique_ptr<PostgresCommandFactory> command_factory_{std::make_unique<PostgresCommandFactory>()};
+  std::unique_ptr<ProtocolInterpreter::Provider> provider_
+      {std::make_unique<PostgresProtocolInterpreter::Provider>(common::ManagedPointer(command_factory_.get()))};
   // For testing purposes
   std::shared_ptr<ConnectionDispatcherTask> dispatcher_task_;
 };

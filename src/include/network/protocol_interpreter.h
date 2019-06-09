@@ -4,6 +4,7 @@
 #include "network/connection_context.h"
 #include "network/network_io_utils.h"
 #include "network/network_types.h"
+#include "common/managed_pointer.h"
 //
 namespace terrier::network {
 
@@ -14,6 +15,10 @@ class ConnectionHandle;
  */
 class ProtocolInterpreter {
  public:
+  struct Provider {
+    virtual ~Provider() = default;
+    virtual std::unique_ptr<ProtocolInterpreter> Get() = 0;
+  };
   /**
    * Processes client's input that has been fed into the given ReadBufer
    * @param in The ReadBuffer to read input from
@@ -23,7 +28,9 @@ class ProtocolInterpreter {
    * @param callback The callback function to trigger on completion
    * @return The next transition for the client's associated state machine
    */
-  virtual Transition Process(std::shared_ptr<ReadBuffer> in, std::shared_ptr<WriteQueue> out, TrafficCop *t_cop,
+  virtual Transition Process(std::shared_ptr<ReadBuffer> in,
+                             std::shared_ptr<WriteQueue> out,
+                             common::ManagedPointer<tcop::TrafficCop> t_cop,
                              ConnectionContext *context, NetworkCallback callback) = 0;
 
   /**

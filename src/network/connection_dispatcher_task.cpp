@@ -9,10 +9,12 @@
 
 namespace terrier::network {
 
-ConnectionDispatcherTask::ConnectionDispatcherTask(int num_handlers, int listen_fd,
+ConnectionDispatcherTask::ConnectionDispatcherTask(int num_handlers,
+                                                   int listen_fd,
                                                    DedicatedThreadOwner *dedicatedThreadOwner,
-                                                   ConnectionHandleFactory *connection_handle_factory)
-    : NotifiableTask(MASTER_THREAD_ID), next_handler_(0) {
+                                                   common::ManagedPointer<ProtocolInterpreter::Provider> interpreter_provider,
+                                                   common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory)
+    : NotifiableTask(MASTER_THREAD_ID), interpreter_provider_(interpreter_provider), next_handler_(0) {
   RegisterEvent(listen_fd, EV_READ | EV_PERSIST,
                 METHOD_AS_CALLBACK(ConnectionDispatcherTask, DispatchPostgresConnection), this);
   RegisterSignalEvent(SIGHUP, METHOD_AS_CALLBACK(NotifiableTask, ExitLoop), this);
@@ -21,8 +23,7 @@ ConnectionDispatcherTask::ConnectionDispatcherTask(int num_handlers, int listen_
   for (int task_id = 0; task_id < num_handlers; task_id++) {
     auto handler = std::make_shared<ConnectionHandlerTask>(task_id, connection_handle_factory);
     handlers_.push_back(handler);
-    DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread<ConnectionHandlerTask>(dedicatedThreadOwner,
-                                                                                          handler);
+    DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread<ConnectionHandlerTask>(dedicatedThreadOwner, handler);
   }
 }
 
@@ -45,7 +46,7 @@ void ConnectionDispatcherTask::DispatchPostgresConnection(int fd, int16_t) {  //
   std::shared_ptr<ConnectionHandlerTask> handler = handlers_[handler_id];
   NETWORK_LOG_TRACE("Dispatching connection to worker {0}", handler_id);
 
-  handler->Notify(new_conn_fd, NetworkProtocolType::POSTGRES_PSQL);
+  handler->Notify(new_conn_fd, interpreter_provider_->Get());
 }
 
 void ConnectionDispatcherTask::ExitLoop() {
