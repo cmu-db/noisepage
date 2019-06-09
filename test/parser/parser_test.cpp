@@ -8,6 +8,7 @@
 #include "parser/expression/case_expression.h"
 #include "parser/expression/comparison_expression.h"
 #include "parser/expression/constant_value_expression.h"
+#include "parser/expression/default_value_expression.h"
 #include "parser/expression/function_expression.h"
 #include "parser/expression/operator_expression.h"
 #include "parser/expression/tuple_value_expression.h"
@@ -325,10 +326,11 @@ TEST_F(ParserTestBase, InsertTest) {
   EXPECT_EQ(insert_stmt->GetInsertionTable()->GetTableName(), "foo");
   EXPECT_EQ(insert_stmt->GetInsertColumns()->size(), 0);
 
-  stmts = pgparser.BuildParseTree("INSERT INTO foo (id,bar,entry) VALUES (1, 2, 3);");
+  stmts = pgparser.BuildParseTree("INSERT INTO foo (id,bar,entry) VALUES (DEFAULT, 2, 3);");
   insert_stmt = reinterpret_cast<InsertStatement *>(stmts.at(0).get());
   EXPECT_EQ(insert_stmt->GetInsertionTable()->GetTableName(), "foo");
   EXPECT_EQ(insert_stmt->GetInsertColumns()->size(), 3);
+  EXPECT_EQ((*insert_stmt->GetValues())[0][0]->GetExpressionType(), ExpressionType::VALUE_DEFAULT);
 }
 
 // NOLINTNEXTLINE
