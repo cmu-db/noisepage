@@ -1,12 +1,12 @@
 #pragma once
 
-#include <emmintrin.h>
 #include <atomic>
 #include <memory>
 #include <string>
 #include <utility>
 
 #include "catalog/catalog_defs.h"
+#include "common/spin_latch.h"
 #include "metric/abstract_raw_data.h"
 #include "metric/metric_defs.h"
 
@@ -263,7 +263,7 @@ class RawDataWrapper {
   /**
    * Unblock aggregator
    */
-  ~RawDataWrapper() { *safe_ = true; }
+  ~RawDataWrapper() { latch_->Unlock(); }
 
   /**
    * Don't allow RawDataWrapper to be copied, only allow change of ownership (move)
@@ -281,9 +281,9 @@ class RawDataWrapper {
    * @param ptr the pointer it wraps around
    * @param safe the boolean variable it uses to signal its lifetime
    */
-  RawDataWrapper(DataType *ptr, std::atomic<bool> *safe) : ptr_(ptr), safe_(safe) {}
+  RawDataWrapper(DataType *ptr, common::SpinLatch *latch) : ptr_(ptr), latch_(latch) {}
   DataType *ptr_;
-  std::atomic<bool> *safe_;
+  common::SpinLatch *latch_;
 };
 
 /**
@@ -300,7 +300,7 @@ class AbstractMetric : public Metric {
   /**
    * Instantiate an abstract metric object with the templated data type
    */
-  AbstractMetric() : raw_data_(new DataType()), safe_(std::atomic<bool>(true)) {}
+  AbstractMetric() : raw_data_(new DataType()) {}
   /**
    * De-allocate pointer to raw data
    */
@@ -320,7 +320,7 @@ class AbstractMetric : public Metric {
     // We will need to wait for last writer to finish before it's safe
     // to start reading the content. It is okay to block since this
     // method should only be called from the aggregator thread.
-    while (!safe_) _mm_pause();
+    common::SpinLatch::ScopedSpinLatch guard(&latch_);
     return std::shared_ptr<AbstractRawData>(old_data);
   }
 
@@ -336,8 +336,8 @@ class AbstractMetric : public Metric {
     // that the aggregator would always be blocked when it tries to swap out if
     // there is a reader. At most one instance of this should be live at any
     // given time.
-    safe_ = false;
-    return {raw_data_.load(), &safe_};
+    latch_.Lock();
+    return {raw_data_.load(), &latch_};
   }
 
  private:
@@ -348,7 +348,7 @@ class AbstractMetric : public Metric {
   /**
    * Indicate whether it is safe to read the raw data, similar to a latch
    */
-  std::atomic<bool> safe_;
+  common::SpinLatch latch_;
 };
 }  // namespace storage::metric
 }  // namespace terrier
