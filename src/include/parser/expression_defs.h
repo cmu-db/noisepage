@@ -45,6 +45,7 @@ enum class ExpressionType : uint8_t {
   VALUE_NULL,
   VALUE_VECTOR,
   VALUE_SCALAR,
+  VALUE_DEFAULT,
 
   AGGREGATE_COUNT,
   AGGREGATE_COUNT_STAR,
