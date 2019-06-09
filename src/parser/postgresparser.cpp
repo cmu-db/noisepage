@@ -18,6 +18,7 @@
 #include "parser/expression/comparison_expression.h"
 #include "parser/expression/conjunction_expression.h"
 #include "parser/expression/constant_value_expression.h"
+#include "parser/expression/default_value_expression.h"
 #include "parser/expression/function_expression.h"
 #include "parser/expression/operator_expression.h"
 #include "parser/expression/parameter_value_expression.h"
@@ -1843,10 +1844,10 @@ std::unique_ptr<std::vector<std::vector<std::shared_ptr<AbstractExpression>>>> P
           cur_result.emplace_back(TypeCastTransform(reinterpret_cast<TypeCast *>(expr)));
           break;
         }
-        /*
-         * case T_SetToDefault: {
-         * TODO(WAN): old system says it wanted to add corresponding expr for default to cur_reuslt
-         */
+        case T_SetToDefault: {
+          cur_result.emplace_back(std::make_unique<DefaultValueExpression>());
+          break;
+        }
         default: { PARSER_LOG_AND_THROW("ValueListsTransform", "Value type", expr->type); }
       }
     }
