@@ -1,11 +1,11 @@
 #pragma once
 
+#include <memory>
 #include <unordered_map>
-
 #include "common/dedicated_thread_registry.h"
-#include "network/postgres/postgres_command_factory.h"
 #include "network/connection_handle.h"
 #include "network/connection_handler_task.h"
+#include "network/postgres/postgres_command_factory.h"
 #include "traffic_cop/traffic_cop.h"
 
 namespace terrier::network {
@@ -29,7 +29,7 @@ class ConnectionHandleFactory {
    * Builds a new connection handle factory.
    * @param t_cop The pointer to the traffic cop
    */
-  ConnectionHandleFactory(common::ManagedPointer<tcop::TrafficCop> tcop) : traffic_cop_(tcop) {}
+  explicit ConnectionHandleFactory(common::ManagedPointer<tcop::TrafficCop> tcop) : traffic_cop_(tcop) {}
 
   /**
    * @brief Creates or re-purpose a NetworkIoWrapper object for new use.
@@ -41,8 +41,7 @@ class ConnectionHandleFactory {
    * @param handler The connection handler task to assign to returned ConnectionHandle object
    * @return A new ConnectionHandle object
    */
-  ConnectionHandle &NewConnectionHandle(int conn_fd,
-                                        std::unique_ptr<ProtocolInterpreter> interpreter,
+  ConnectionHandle &NewConnectionHandle(int conn_fd, std::unique_ptr<ProtocolInterpreter> interpreter,
                                         common::ManagedPointer<ConnectionHandlerTask> handler);
 
   /**

@@ -1,6 +1,5 @@
 #include <sys/socket.h>
 #include <sys/types.h>
-#include "util/test_harness.h"
 #include <pqxx/pqxx> /* libpqxx is used to instantiate C++ client */
 
 #include <cstdio>
@@ -9,8 +8,8 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include "common/settings.h"
 #include "common/managed_pointer.h"
+#include "common/settings.h"
 #include "gtest/gtest.h"
 #include "loggers/main_logger.h"
 #include "network/connection_handle_factory.h"
@@ -18,6 +17,7 @@
 #include "traffic_cop/result_set.h"
 #include "traffic_cop/traffic_cop.h"
 #include "util/manual_packet_helpers.h"
+#include "util/test_harness.h"
 
 namespace terrier::network {
 
@@ -39,6 +39,8 @@ class NetworkTests : public TerrierTest {
   std::thread server_thread;
   tcop::TrafficCop t_cop;
   FakeCommandFactory fake_command_factory;
+  PostgresProtocolInterpreter::Provider protocol_provider_{
+      common::ManagedPointer<PostgresCommandFactory>(&fake_command_factory)};
 
   /**
    * Initialization
@@ -51,7 +53,9 @@ class NetworkTests : public TerrierTest {
 
     try {
       handle_factory = std::make_unique<ConnectionHandleFactory>(common::ManagedPointer(&t_cop));
-      server = std::make_unique<TerrierServer>(common::ManagedPointer(handle_factory.get()));
+      server =
+          std::make_unique<TerrierServer>(common::ManagedPointer<ProtocolInterpreter::Provider>(&protocol_provider_),
+                                          common::ManagedPointer(handle_factory.get()));
       server->SetPort(port);
       server->SetupServer();
     } catch (NetworkProcessException &exception) {

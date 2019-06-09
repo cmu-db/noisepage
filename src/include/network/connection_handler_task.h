@@ -4,8 +4,8 @@
 #include <event2/bufferevent.h>
 #include <event2/event.h>
 #include <event2/listener.h>
-
 #include <unistd.h>
+#include <memory>
 
 #include "common/exception.h"
 #include "common/notifiable_task.h"

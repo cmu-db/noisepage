@@ -22,11 +22,11 @@
 #include "common/managed_pointer.h"
 #include "loggers/network_logger.h"
 
-#include "network/postgres/postgres_command_factory.h"
 #include "network/connection_context.h"
 #include "network/connection_handler_task.h"
 #include "network/network_io_wrapper.h"
 #include "network/network_types.h"
+#include "network/postgres/postgres_command_factory.h"
 #include "network/postgres/postgres_protocol_interpreter.h"
 #include "network/protocol_interpreter.h"
 
@@ -49,10 +49,8 @@ class ConnectionHandle {
    * @param command_factory The command factory pointer
    * @param protocol_type The network protocol type of this handler
    */
-  ConnectionHandle(int sock_fd,
-                   common::ManagedPointer<ConnectionHandlerTask> handler,
-                   common::ManagedPointer<tcop::TrafficCop> t_cop,
-                   std::unique_ptr<ProtocolInterpreter> interpreter)
+  ConnectionHandle(int sock_fd, common::ManagedPointer<ConnectionHandlerTask> handler,
+                   common::ManagedPointer<tcop::TrafficCop> t_cop, std::unique_ptr<ProtocolInterpreter> interpreter)
       : io_wrapper_(std::make_unique<NetworkIoWrapper>(sock_fd)),
         conn_handler_(handler),
         traffic_cop_(t_cop),
@@ -118,10 +116,9 @@ class ConnectionHandle {
    * @return The transition to trigger in the state machine after
    */
   Transition Process() {
-    return protocol_interpreter_->Process(io_wrapper_->GetReadBuffer(),
-                                          io_wrapper_->GetWriteQueue(),
-                                          traffic_cop_,
-                                          &context_, [=] { event_active(workpool_event_, EV_WRITE, 0); });
+    return protocol_interpreter_->Process(io_wrapper_->GetReadBuffer(), io_wrapper_->GetWriteQueue(), traffic_cop_,
+                                          common::ManagedPointer(&context_),
+                                          [=] { event_active(workpool_event_, EV_WRITE, 0); });
   }
 
   /**

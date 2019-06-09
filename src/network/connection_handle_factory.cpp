@@ -11,8 +11,7 @@ ConnectionHandle &ConnectionHandleFactory::NewConnectionHandle(int conn_fd,
                                                                common::ManagedPointer<ConnectionHandlerTask> handler) {
   auto it = reusable_handles_.find(conn_fd);
   if (it == reusable_handles_.end()) {
-    auto ret = reusable_handles_.try_emplace(conn_fd,
-                                             conn_fd, handler, traffic_cop_, std::move(interpreter));
+    auto ret = reusable_handles_.try_emplace(conn_fd, conn_fd, handler, traffic_cop_, std::move(interpreter));
     TERRIER_ASSERT(ret.second, "ret.second false");
     return ret.first->second;
   }

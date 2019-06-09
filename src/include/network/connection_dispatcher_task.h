@@ -34,9 +34,7 @@ class ConnectionDispatcherTask : public common::NotifiableTask {
    * @param dedicatedThreadOwner The DedicatedThreadOwner associated with this task
    * @param connection_handle_factory The connection handle factory pointer to pass down to the handlers
    */
-  ConnectionDispatcherTask(int num_handlers,
-                           int listen_fd,
-                           DedicatedThreadOwner *dedicatedThreadOwner,
+  ConnectionDispatcherTask(int num_handlers, int listen_fd, DedicatedThreadOwner *dedicatedThreadOwner,
                            common::ManagedPointer<ProtocolInterpreter::Provider> interpreter_provider,
                            common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory);
 

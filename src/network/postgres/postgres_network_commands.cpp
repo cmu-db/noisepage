@@ -20,8 +20,7 @@ void LogAndWriteErrorMsg(const std::string &msg, common::ManagedPointer<Postgres
 Transition SimpleQueryCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter> interpreter,
                                     common::ManagedPointer<PostgresPacketWriter> out,
                                     common::ManagedPointer<tcop::TrafficCop> t_cop,
-                                    common::ManagedPointer<ConnectionContext> connection,
-                                    NetworkCallback callback) {
+                                    common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) {
   std::string query = in_.ReadString();
   NETWORK_LOG_TRACE("Execute SimpleQuery: {0}", query.c_str());
 
@@ -48,8 +47,7 @@ Transition SimpleQueryCommand::Exec(common::ManagedPointer<PostgresProtocolInter
 Transition ParseCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter> interpreter,
                               common::ManagedPointer<PostgresPacketWriter> out,
                               common::ManagedPointer<tcop::TrafficCop> t_cop,
-                              common::ManagedPointer<ConnectionContext> connection,
-                              NetworkCallback callback) {
+                              common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) {
   std::string stmt_name = in_.ReadString();
   NETWORK_LOG_TRACE("ParseCommand Statement Name: {0}", stmt_name.c_str());
 
@@ -86,8 +84,7 @@ Transition ParseCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter
 Transition BindCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter> interpreter,
                              common::ManagedPointer<PostgresPacketWriter> out,
                              common::ManagedPointer<tcop::TrafficCop> t_cop,
-                             common::ManagedPointer<ConnectionContext> connection,
-                             NetworkCallback callback) {
+                             common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) {
   using std::pair;
   using std::string;
   using std::vector;
@@ -225,8 +222,7 @@ Transition BindCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter>
 Transition DescribeCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter> interpreter,
                                  common::ManagedPointer<PostgresPacketWriter> out,
                                  common::ManagedPointer<tcop::TrafficCop> t_cop,
-                                 common::ManagedPointer<ConnectionContext> connection,
-                                 NetworkCallback callback) {
+                                 common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) {
   auto type = in_.ReadValue<DescribeCommandObjectType>();
   std::string name = in_.ReadString();
   NETWORK_LOG_TRACE("Describe query: type = {0}, name = {1}", static_cast<char>(type), name.c_str());
@@ -272,8 +268,7 @@ Transition DescribeCommand::Exec(common::ManagedPointer<PostgresProtocolInterpre
 Transition ExecuteCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter> interpreter,
                                 common::ManagedPointer<PostgresPacketWriter> out,
                                 common::ManagedPointer<tcop::TrafficCop> t_cop,
-                                common::ManagedPointer<ConnectionContext> connection,
-                                NetworkCallback callback) {
+                                common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) {
   using std::string;
   string portal_name = in_.ReadString();
   NETWORK_LOG_TRACE("ExecuteCommand portal name = {0}", portal_name);
@@ -300,8 +295,7 @@ Transition ExecuteCommand::Exec(common::ManagedPointer<PostgresProtocolInterpret
 Transition SyncCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter> interpreter,
                              common::ManagedPointer<PostgresPacketWriter> out,
                              common::ManagedPointer<tcop::TrafficCop> t_cop,
-                             common::ManagedPointer<ConnectionContext> connection,
-                             NetworkCallback callback) {
+                             common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) {
   NETWORK_LOG_TRACE("Sync query");
   out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
   return Transition::PROCEED;
@@ -310,8 +304,7 @@ Transition SyncCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter>
 Transition CloseCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter> interpreter,
                               common::ManagedPointer<PostgresPacketWriter> out,
                               common::ManagedPointer<tcop::TrafficCop> t_cop,
-                              common::ManagedPointer<ConnectionContext> connection,
-                              NetworkCallback callback) {
+                              common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) {
   NETWORK_LOG_TRACE("Close Command");
   // Send close complete response
   return Transition::PROCEED;
@@ -320,8 +313,7 @@ Transition CloseCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter
 Transition TerminateCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter> interpreter,
                                   common::ManagedPointer<PostgresPacketWriter> out,
                                   common::ManagedPointer<tcop::TrafficCop> t_cop,
-                                  common::ManagedPointer<ConnectionContext> connection,
-                                  NetworkCallback callback) {
+                                  common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) {
   NETWORK_LOG_TRACE("Terminated");
   return Transition::TERMINATE;
 }
@@ -329,8 +321,7 @@ Transition TerminateCommand::Exec(common::ManagedPointer<PostgresProtocolInterpr
 Transition EmptyCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter> interpreter,
                               common::ManagedPointer<PostgresPacketWriter> out,
                               common::ManagedPointer<tcop::TrafficCop> t_cop,
-                              common::ManagedPointer<ConnectionContext> connection,
-                              NetworkCallback callback) {
+                              common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) {
   NETWORK_LOG_TRACE("Empty Command");
   out->WriteEmptyQueryResponse();
   out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);

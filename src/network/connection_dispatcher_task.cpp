@@ -9,11 +9,10 @@
 
 namespace terrier::network {
 
-ConnectionDispatcherTask::ConnectionDispatcherTask(int num_handlers,
-                                                   int listen_fd,
-                                                   DedicatedThreadOwner *dedicatedThreadOwner,
-                                                   common::ManagedPointer<ProtocolInterpreter::Provider> interpreter_provider,
-                                                   common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory)
+ConnectionDispatcherTask::ConnectionDispatcherTask(
+    int num_handlers, int listen_fd, DedicatedThreadOwner *dedicatedThreadOwner,
+    common::ManagedPointer<ProtocolInterpreter::Provider> interpreter_provider,
+    common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory)
     : NotifiableTask(MASTER_THREAD_ID), interpreter_provider_(interpreter_provider), next_handler_(0) {
   RegisterEvent(listen_fd, EV_READ | EV_PERSIST,
                 METHOD_AS_CALLBACK(ConnectionDispatcherTask, DispatchPostgresConnection), this);
@@ -23,7 +22,8 @@ ConnectionDispatcherTask::ConnectionDispatcherTask(int num_handlers,
   for (int task_id = 0; task_id < num_handlers; task_id++) {
     auto handler = std::make_shared<ConnectionHandlerTask>(task_id, connection_handle_factory);
     handlers_.push_back(handler);
-    DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread<ConnectionHandlerTask>(dedicatedThreadOwner, handler);
+    DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread<ConnectionHandlerTask>(dedicatedThreadOwner,
+                                                                                          handler);
   }
 }
 

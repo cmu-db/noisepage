@@ -34,8 +34,11 @@ void DBMain::Init() {
 
   t_cop_ = new terrier::tcop::TrafficCop;
   command_factory_ = new terrier::network::PostgresCommandFactory;
+
   connection_handle_factory_ = new terrier::network::ConnectionHandleFactory(common::ManagedPointer(t_cop_));
-  server_ = new terrier::network::TerrierServer(common::ManagedPointer(connection_handle_factory_));
+  provider_ = new terrier::network::PostgresProtocolInterpreter::Provider(common::ManagedPointer(command_factory_));
+  server_ = new terrier::network::TerrierServer(common::ManagedPointer(provider_),
+                                                common::ManagedPointer(connection_handle_factory_));
 
   LOG_INFO("Initialization complete");
 

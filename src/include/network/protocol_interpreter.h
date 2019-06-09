@@ -1,10 +1,10 @@
 #pragma once
 #include <functional>
 #include <memory>
+#include "common/managed_pointer.h"
 #include "network/connection_context.h"
 #include "network/network_io_utils.h"
 #include "network/network_types.h"
-#include "common/managed_pointer.h"
 //
 namespace terrier::network {
 
@@ -28,10 +28,9 @@ class ProtocolInterpreter {
    * @param callback The callback function to trigger on completion
    * @return The next transition for the client's associated state machine
    */
-  virtual Transition Process(std::shared_ptr<ReadBuffer> in,
-                             std::shared_ptr<WriteQueue> out,
+  virtual Transition Process(std::shared_ptr<ReadBuffer> in, std::shared_ptr<WriteQueue> out,
                              common::ManagedPointer<tcop::TrafficCop> t_cop,
-                             ConnectionContext *context, NetworkCallback callback) = 0;
+                             common::ManagedPointer<ConnectionContext> context, NetworkCallback callback) = 0;
 
   /**
    * Sends a result
