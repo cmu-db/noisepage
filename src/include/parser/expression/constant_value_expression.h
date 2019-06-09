@@ -18,7 +18,7 @@ class ConstantValueExpression : public AbstractExpression {
    * @param value value to be held
    */
   explicit ConstantValueExpression(type::TransientValue value)
-      : AbstractExpression(ExpressionType::VALUE_CONSTANT, value.Type(), {}), value_(std::move(value) {}
+      : AbstractExpression(ExpressionType::VALUE_CONSTANT, value.Type(), {}), value_(std::move(value)) {}
 
   /**
    * Default constructor for deserialization

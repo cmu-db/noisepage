@@ -16,6 +16,21 @@ class Builder {
   Builder() = delete;
 
   /**
+   * @return schema object for pg_database
+   */
+  static Schema GetDatabaseTableSchema();
+
+  /**
+   * @return schema object for the oid index on pg_database
+   */
+  static IndexSchema GetDatabaseOidIndexSchema();
+
+  /**
+   * @return schema object for the name index on pg_database
+   */
+  static IndexSchema GetDatabaseNameIndexSchema();
+
+  /**
    * Allocates a new database catalog that roughly conforms to PostgreSQL's catalog layout
    * @param block_store for backing the new catalog tables
    * @return an initialized DatabaseCatalog

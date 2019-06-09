@@ -168,7 +168,6 @@ class SqlTable {
 
  private:
   BlockStore *const block_store_;
-  const catalog::table_oid_t oid_;
 
   // Eventually we'll support adding more tables when schema changes. For now we'll always access the one DataTable.
   DataTableVersion table_;

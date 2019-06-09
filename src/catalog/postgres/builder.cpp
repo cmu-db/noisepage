@@ -16,6 +16,49 @@ namespace terrier::storage::postgres {
 
 #define MAX_NAME_LENGTH 63 // This mimics PostgreSQL behavior
 
+static Schema Builder::GetDatabaseTableSchema() {
+  std::vector<Schema::Column> columns;
+
+  columns.emplace_back("datoid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(DATOID_COL_OID);
+
+  columns.emplace_back("datname", type::TypeId::VARCHAR, false, MakeNull(type::TypeId::VARCHAR));
+  columns.back().SetOid(DATNAME_COL_OID);
+
+  return Schema(columns);
+}
+
+static IndexSchema Builder::GetDatabaseOidIndexSchema() {
+  std::vector<IndexSchema::Column> columns;
+
+  columns.emplace_back(type::TypeId::Integer, false,
+    new parser::ColumnValueExpression(DATABASE_TABLE_OID, DATOID_COL_OID));
+  columns.back().SetOid(col_oid_t(1));
+
+  // Primary
+  IndexSchema schema(columns, true, true, false, true);
+  schema.SetValid(true);
+  schema.SetReady(true);
+
+  return schema;
+}
+
+static IndexSchema Builder::GetDatabaseNameIndexSchema() {
+  std::vector<IndexSchema::Column> columns;
+
+  columns.emplace_back(type::TypeId::VARCHAR, false,
+    new parser::ColumnValueExpression(DATABASE_TABLE_OID, DATNAME_COL_OID));
+  columns.back().SetOid(col_oid_t(1));
+
+  // Unique, not primary
+  IndexSchema schema(columns, true, false, false, true);
+  schema.SetValid(true);
+  schema.SetReady(true);
+
+  return schema;
+}
+
+
 static DatabaseCatalog *Builder::CreateDatabaseCatalog(storage::BlockStore *block_store) {
   auto dbc = new DatabaseCatalog();
 
@@ -71,6 +114,7 @@ static void BootstrapDatabaseCatalog(transaction::TransactionContext *txn, Datab
   // General flow:
   //   Add namespaces:  pg_catalog, public
   //   Add types:  in pg_catalog namespace with OIDs corresponding to internal enum values
+  // [[After this can be deferred as it is not necessary for basic functionality]]
   //   Add tables and indexes to pg_class
   //   Add columns to pg_attribute
   //   Add index metadata to pg_index
