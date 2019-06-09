@@ -47,17 +47,17 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, TPCCish)(benchmark::State &state) {
                                            &block_store_, &buffer_pool_, &generator_, true, log_manager_);
     // log all of the Inserts from table creation
     log_manager_->Start();
-    log_manager_->PersistAndStop();
+    log_manager_->ForceFlush();
 
     gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
-    log_manager_->Start();
     uint64_t elapsed_ms;
     {
       common::ScopedTimer timer(&elapsed_ms);
       abort_count += tested.SimulateOltp(num_txns, num_concurrent_txns_);
-      log_manager_->PersistAndStop();
+      log_manager_->ForceFlush();
     }
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+    log_manager_->PersistAndStop();
     delete gc_thread_;
     delete log_manager_;
   }
@@ -81,17 +81,17 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, HighAbortRate)(benchmark::State &state) {
                                            &buffer_pool_, &generator_, true, log_manager_);
     // log all of the Inserts from table creation
     log_manager_->Start();
-    log_manager_->PersistAndStop();
+    log_manager_->ForceFlush();
 
     gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
-    log_manager_->Start();
     uint64_t elapsed_ms;
     {
       common::ScopedTimer timer(&elapsed_ms);
       abort_count += tested.SimulateOltp(num_txns, num_concurrent_txns_);
-      log_manager_->PersistAndStop();
+      log_manager_->ForceFlush();
     }
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+    log_manager_->PersistAndStop();
     delete gc_thread_;
     delete log_manager_;
   }
@@ -114,17 +114,17 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementInsert)(benchmark::State &st
                                            &buffer_pool_, &generator_, true, log_manager_);
     // log all of the Inserts from table creation
     log_manager_->Start();
-    log_manager_->PersistAndStop();
+    log_manager_->ForceFlush();
 
     gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
-    log_manager_->Start();
     uint64_t elapsed_ms;
     {
       common::ScopedTimer timer(&elapsed_ms);
       abort_count += tested.SimulateOltp(num_txns, num_concurrent_txns_);
-      log_manager_->PersistAndStop();
+      log_manager_->ForceFlush();
     }
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+    log_manager_->PersistAndStop();
     delete gc_thread_;
     delete log_manager_;
   }
@@ -147,17 +147,17 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementUpdate)(benchmark::State &st
                                            &block_store_, &buffer_pool_, &generator_, true, log_manager_);
     // log all of the Inserts from table creation
     log_manager_->Start();
-    log_manager_->PersistAndStop();
+    log_manager_->ForceFlush();
 
     gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
-    log_manager_->Start();
     uint64_t elapsed_ms;
     {
       common::ScopedTimer timer(&elapsed_ms);
       abort_count += tested.SimulateOltp(num_txns, num_concurrent_txns_);
-      log_manager_->PersistAndStop();
+      log_manager_->ForceFlush();
     }
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+    log_manager_->PersistAndStop();
     delete gc_thread_;
     delete log_manager_;
   }
@@ -180,17 +180,17 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementSelect)(benchmark::State &st
                                            &block_store_, &buffer_pool_, &generator_, true, log_manager_);
     // log all of the Inserts from table creation
     log_manager_->Start();
-    log_manager_->PersistAndStop();
+    log_manager_->ForceFlush();
 
     gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
-    log_manager_->Start();
     uint64_t elapsed_ms;
     {
       common::ScopedTimer timer(&elapsed_ms);
       abort_count += tested.SimulateOltp(num_txns, num_concurrent_txns_);
-      log_manager_->PersistAndStop();
+      log_manager_->ForceFlush();
     }
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+    log_manager_->PersistAndStop();
     delete gc_thread_;
     delete log_manager_;
   }

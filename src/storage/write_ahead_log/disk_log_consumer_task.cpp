@@ -12,6 +12,7 @@ void DiskLogConsumerTask::Terminate() {
   // TODO(Gus): Get rid of magic number
   while (!run_task_) std::this_thread::sleep_for(std::chrono::milliseconds(10));
   TERRIER_ASSERT(run_task_, "Cant terminate a task that isnt running");
+  // Signal to terminate and force a flush so task persists before LogManager closes buffers
   run_task_ = false;
   log_manager_->disk_log_writer_thread_cv_.notify_one();
 }
@@ -66,8 +67,8 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
         PersistAllBuffers();
         log_manager_->do_persist_ = false;
       }
-      // Signal the serializer thread that persist is over
-      log_manager_->persist_cv_.notify_one();
+      // Signal anyone who forced a flush that the flush has terminated
+      log_manager_->persist_cv_.notify_all();
     }
   } while (run_task_);
 }

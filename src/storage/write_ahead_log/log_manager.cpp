@@ -4,6 +4,7 @@
 namespace terrier::storage {
 
 void LogManager::Start() {
+  TERRIER_ASSERT(!run_log_manager_, "Can't call Start on already started LogManager");
   // Initialize buffers for logging
   for (size_t i = 0; i < num_buffers_; i++) {
     buffers_.emplace_back(BufferedLogWriter(log_file_path_));
@@ -28,15 +29,21 @@ void LogManager::Start() {
 }
 
 void LogManager::PersistAndStop() {
+  TERRIER_ASSERT(run_log_manager_, "Can't call PersistAndStop on an un-started LogManager");
   run_log_manager_ = false;
 
   // Signal all tasks to stop. The shutdown of the tasks will trigger a process and flush. The order in which we do
   // these is important, we must first serialize, then flush, then shutdown the disk consumer task
-  DedicatedThreadRegistry::GetInstance().StopTask(this,
-                                                  log_serializer_task_.CastManagedPointerTo<DedicatedThreadTask>());
-  DedicatedThreadRegistry::GetInstance().StopTask(this, log_flusher_task_.CastManagedPointerTo<DedicatedThreadTask>());
-  DedicatedThreadRegistry::GetInstance().StopTask(this,
-                                                  disk_log_writer_task_.CastManagedPointerTo<DedicatedThreadTask>());
+  auto result = DedicatedThreadRegistry::GetInstance().StopTask(
+      this, log_serializer_task_.CastManagedPointerTo<DedicatedThreadTask>());
+  TERRIER_ASSERT(result, "LogFlusherTask should have been stopped");
+  result = DedicatedThreadRegistry::GetInstance().StopTask(
+      this, log_flusher_task_.CastManagedPointerTo<DedicatedThreadTask>());
+  TERRIER_ASSERT(result, "DiskLogWriterTask should have been stopped");
+
+  result = DedicatedThreadRegistry::GetInstance().StopTask(
+      this, disk_log_writer_task_.CastManagedPointerTo<DedicatedThreadTask>());
+  TERRIER_ASSERT(result, "LogSerializerTask should have been stopped");
   TERRIER_ASSERT(flush_queue_.empty(), "Termination of LogSerializerTask should hand off all buffers to consumers");
   TERRIER_ASSERT(filled_buffer_queue_.Empty(), "disk log consumer task should have processed all filled buffers\n");
 

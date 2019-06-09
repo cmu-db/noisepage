@@ -168,8 +168,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
 
     // populate the tables and indexes
     Loader::PopulateDatabase(&txn_manager, &generator_, tpcc_db, workers);
-    log_manager_->PersistAndStop();
-    log_manager_->Start();
+    log_manager_->ForceFlush();
     gc_thread_ = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
     Util::RegisterIndexesForGC(&(gc_thread_->GetGarbageCollector()), tpcc_db);
     std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
@@ -184,13 +183,14 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
         });
       }
       thread_pool_.WaitUntilAllFinished();
-      log_manager_->PersistAndStop();
+      log_manager_->ForceFlush();
     }
 
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
 
     // cleanup
     delete gc_thread_;
+    log_manager_->PersistAndStop();
     delete log_manager_;
     delete tpcc_db;
     unlink(LOG_FILE_NAME);

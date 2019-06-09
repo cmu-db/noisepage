@@ -83,6 +83,14 @@ class LogManager : public DedicatedThreadOwner {
   void Start();
 
   /**
+   * Flush the logs to make sure all serialized records before this invocation are persistent. Callbacks from committed
+   * transactions are invoked by log consumers when the commit records are persisted on disk. This method should only be
+   * called from a dedicated logging thread, during shut down, or during testing
+   * @warning Beware the performance consequences of calling flush too frequently
+   */
+  void ForceFlush();
+
+  /**
    * Persists all unpersisted logs and stops the log manager. Does what Start() does in reverse order:
    *    1. Stops LogSerializerTask
    *    2. Stops LogFlusherTask
@@ -195,14 +203,6 @@ class LogManager : public DedicatedThreadOwner {
    * from a dedicated logging thread.
    */
   void Process();
-
-  /**
-   * Flush the logs to make sure all serialized records before this invocation are persistent. Callbacks from committed
-   * transactions are invoked by log consumers when the commit records are persisted on disk. This method should only be
-   * called from a dedicated logging thread or during Shutdown
-   * @warning Beware the performance consequences of calling flush too frequently
-   */
-  void ForceFlush();
 
   /**
    * Serialize out the record to the log
@@ -319,7 +319,7 @@ class LogSerializerTask : public DedicatedThreadTask {
  private:
   LogManager *log_manager_;
   const std::chrono::milliseconds serialization_interval_;
-  bool run_task_;
+  std::atomic<bool> run_task_;
 
   /**
    * Main serialization loop. Calls Process on LogManager every interval
@@ -365,7 +365,7 @@ class LogFlusherTask : public DedicatedThreadTask {
  private:
   LogManager *log_manager_;
   const std::chrono::milliseconds flushing_interval_;
-  bool run_task_;
+  std::atomic<bool> run_task_;
 
   /**
    * Main log flush loop. Calls ForceFlush on LogManager every interval
