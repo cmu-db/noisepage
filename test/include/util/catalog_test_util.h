@@ -40,5 +40,6 @@ struct CatalogTestUtil {
   // comes in, and tests should be modified accordingly.
   static constexpr catalog::db_oid_t test_db_oid = catalog::db_oid_t(101);
   static constexpr catalog::table_oid_t test_table_oid = catalog::table_oid_t(102);
+  static constexpr catalog::namespace_oid_t test_namespace_oid = catalog::namespace_oid_t(103);
 };
 }  // namespace terrier
