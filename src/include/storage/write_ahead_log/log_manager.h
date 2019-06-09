@@ -65,7 +65,7 @@ class LogManager : public DedicatedThreadOwner {
   LogManager(std::string log_file_path, uint64_t num_buffers, const std::chrono::milliseconds serialization_interval,
              const std::chrono::milliseconds flushing_interval, RecordBufferSegmentPool *const buffer_pool)
       : run_log_manager_(false),
-        log_file_path_(log_file_path),
+        log_file_path_(std::move(log_file_path)),
         num_buffers_(num_buffers),
         buffer_pool_(buffer_pool),
         filled_buffer_(nullptr),
