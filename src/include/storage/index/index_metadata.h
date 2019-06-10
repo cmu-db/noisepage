@@ -130,7 +130,7 @@ class IndexMetadata {
   static std::vector<uint16_t> ComputeInlinedAttributeSizes(const catalog::IndexSchema &key_schema) {
     std::vector<uint16_t> inlined_attr_sizes;
     auto key_cols = key_schema.GetColumns();
-    attr_sizes.reserve(key_cols.size());
+    inlined_attr_sizes.reserve(key_cols.size());
     for (const auto &key : key_cols) {
       auto key_type = key.GetType();
       switch (key_type) {
@@ -215,9 +215,10 @@ class IndexMetadata {
   static std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> ComputeKeyOidToOffset(
       const catalog::IndexSchema &key_schema, const std::vector<uint16_t> &pr_offsets) {
     std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> key_oid_to_offset;
-    key_oid_to_offset.reserve(key_schema.size());
-    for (uint16_t i = 0; i < key_schema.size(); i++) {
-      key_oid_to_offset[key_schema[i].GetOid()] = pr_offsets[i];
+    auto key_cols = key_schema.GetColumns();
+    key_oid_to_offset.reserve(key_cols.size());
+    for (uint16_t i = 0; i < key_cols.size(); i++) {
+      key_oid_to_offset[key_cols[i].GetOid()] = pr_offsets[i];
     }
     return key_oid_to_offset;
   }

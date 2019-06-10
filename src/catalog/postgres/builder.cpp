@@ -1,5 +1,6 @@
 #include <utility>
 
+#include "catalog/index_schema.h"
 #include "catalog/postgres/builder.h"
 #include "catalog/postgres/pg_attribute.h"
 #include "catalog/postgres/pg_class.h"

@@ -125,8 +125,16 @@ class IndexSchema {
         is_ready_(false),
         is_live_(true) {}
 
-  const std::vector<Column> &GetColumns() { return columns_; }
+  /**
+   * @return the columns which define the index's schema
+   */
+  const std::vector<Column> &GetColumns() const { return columns_; }
 
+  /**
+   * @param index in the column vector for the requested column
+   * @return requested key column
+   */
+  const Column &GetColumn(int index) const { return columns_.at(index); }
  private:
   const std::vector<Column> columns_;
   bool is_unique_;

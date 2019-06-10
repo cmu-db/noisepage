@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <vector>
 #include "catalog/schema.h"
+#include "catalog/index_schema.h"
 #include "storage/projected_row.h"
 #include "util/catalog_test_util.h"
 
@@ -37,12 +38,13 @@ struct Util {
   }
 
   template <typename T>
-  static void SetKeyAttribute(const storage::index::IndexKeySchema &schema, const uint32_t col_offset,
+  static void SetKeyAttribute(const catalog::IndexSchema &schema, const uint32_t col_offset,
                               const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &projection_map,
                               storage::ProjectedRow *const pr, T value) {
-    TERRIER_ASSERT((type::TypeUtil::GetTypeSize(schema.at(col_offset).GetType()) & INT8_MAX) == sizeof(T),
+    auto key_cols = schema.GetColumns();
+    TERRIER_ASSERT((type::TypeUtil::GetTypeSize(key_cols.at(col_offset).GetType()) & INT8_MAX) == sizeof(T),
                    "Invalid attribute size.");
-    const auto col_oid = schema.at(col_offset).GetOid();
+    const auto col_oid = key_cols.at(col_offset).GetOid();
     const auto attr_offset = static_cast<uint16_t>(projection_map.at(col_oid));
     auto *const attr = pr->AccessForceNotNull(attr_offset);
     *reinterpret_cast<T *>(attr) = value;
