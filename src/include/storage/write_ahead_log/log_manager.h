@@ -107,7 +107,7 @@ class LogManager : public DedicatedThreadOwner {
    *
    * @param buffer_segment the (perhaps partially) filled log buffer ready to be consumed
    */
-  void AddBufferToFlushQueue(RecordBufferSegment *const buffer_segment);
+  void AddBufferToFlushQueue(RecordBufferSegment *buffer_segment);
 
   /**
    * For testing only
