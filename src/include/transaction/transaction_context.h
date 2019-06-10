@@ -14,6 +14,7 @@ namespace terrier::storage {
 class GarbageCollector;
 class LogManager;
 class BlockCompactor;
+class SqlTable;
 }  // namespace terrier::storage
 
 namespace terrier::transaction {
@@ -45,6 +46,14 @@ class TransactionContext {
   ~TransactionContext() {
     for (const byte *ptr : loose_ptrs_) delete[] ptr;
   }
+
+  /**
+   * @warning Unless you are the garbage collector, this method is unlikely to be of use.
+   * @return whether this transaction has been aborted. Note that this is different from being "uncommitted". Some one
+   *         needs to have called Abort() explicitly on this transaction for this function to return true.
+   */
+  bool Aborted() const { return aborted_; }
+
   /**
    * @return start time of this transaction
    */
@@ -97,11 +106,16 @@ class TransactionContext {
 
   /**
    * Expose a record that can hold a change, described by the initializer given, that will be logged out to disk.
-   * The change can either be copied into this space, or written in the space and then used to change the DataTable.
+   * The change must be written in this space and then used to change the SqlTable.
    * @param db_oid the database oid that this record changes
    * @param table_oid the table oid that this record changes
    * @param initializer the initializer to use for the underlying record
    * @return pointer to the initialized redo record.
+   * @warning RedoRecords returned by StageWrite are not guaranteed to remain valid forever. If you call StageWrite
+   * again, the previous RedoRecord's buffer may be swapped out, written to disk, and handed back out to another
+   * transaction.
+   * @warning If you call StageWrite, the operation WILL be logged to disk. If you StageWrite anything that you didn't
+   * succeed in writing into the table or decide you don't want to use, the transaction MUST abort.
    */
   storage::RedoRecord *StageWrite(const catalog::db_oid_t db_oid, const catalog::table_oid_t table_oid,
                                   const storage::ProjectedRowInitializer &initializer) {
@@ -116,6 +130,8 @@ class TransactionContext {
    * @param db_oid the database oid that this record changes
    * @param table_oid the table oid that this record changes
    * @param slot the slot that this record changes
+   * @warning If you call StageDelete, the operation WILL be logged to disk. If you StageDelete anything that you didn't
+   * succeed in writing into the table or decide you don't want to use, the transaction MUST abort.
    */
   void StageDelete(const catalog::db_oid_t db_oid, const catalog::table_oid_t table_oid,
                    const storage::TupleSlot slot) {
@@ -156,6 +172,7 @@ class TransactionContext {
   friend class TransactionManager;
   friend class storage::LogManager;
   friend class storage::BlockCompactor;
+  friend class storage::SqlTable;
   const timestamp_t start_time_;
   std::atomic<timestamp_t> txn_id_;
   storage::UndoBuffer undo_buffer_;
@@ -175,5 +192,8 @@ class TransactionContext {
   // log manager will set this to be true when log records are processed (not necessarily flushed, but will not be read
   // again in the future), so it can be garbage-collected safely.
   bool log_processed_ = false;
+  // We need to know if the transaction is aborted. Even aborted transactions need an "abort" timestamp in order to
+  // eliminate the a-b-a race described in DataTable::Select.
+  bool aborted_ = false;
 };
 }  // namespace terrier::transaction

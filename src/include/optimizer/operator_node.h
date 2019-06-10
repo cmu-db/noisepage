@@ -188,9 +188,14 @@ class Operator {
   bool IsPhysical() const;
 
   /**
+   * default destructor, the content of the Operator should be explicitly managed
+   */
+  ~Operator() = default;
+
+  /**
    * Re-interpret the operator
-   * @tparam T the type of the operator to be re-interpretted as
-   * @return pointer to the re-interpretted operator, nullptr if the types mismatch
+   * @tparam T the type of the operator to be re-interpreted as
+   * @return pointer to the re-interpreted operator, nullptr if the types mismatch
    */
   template <typename T>
   const T *As() const {

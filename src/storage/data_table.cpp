@@ -217,6 +217,28 @@ bool DataTable::SelectIntoBuffer(transaction::TransactionContext *const txn, con
     // Here we will need to check that the version pointer did not change during our read. If it did, the content
     // we have read might have been rolled back and an abort has already unlinked the associated undo-record,
     // we will have to loop around to avoid a dirty read.
+    //
+    // There is still an a-b-a problem if aborting transactions unlink themselves. Thus, in the system aborting
+    // transactions still check out a timestamp and "commit" after rolling back their changes to guard against this,
+    // The exact interleaving is this:
+    //
+    //      transaction 1         transaction 2
+    //          begin
+    //    read version_ptr
+    //                                begin
+    //                             write a -> a1
+    //          read a1
+    //                            rollback a1 -> a
+    //    check version_ptr
+    //         return a1
+    //
+    // For this to manifest, there has to be high contention on a given tuple slot, and insufficient CPU resources
+    // (way more threads than there are cores, around 8x seems to work) such that threads are frequently swapped
+    // out. compare-and-swap along with the pointer reduces the probability of this happening to be essentially
+    // infinitesimal, but it's still a probabilistic fix. To 100% prevent this race, we have to wait until no
+    // concurrent transaction with the abort that could have had a dirty read is alive to unlink this. The easiest
+    // way to achieve that is to take a timestamp as well when all changes have been rolled back for an aborted
+    // transaction, and let GC handle the unlinking.
   } while (version_ptr != AtomicallyReadVersionPtr(slot, accessor_));
 
   // Nullptr in version chain means no other versions visible to any transaction alive at this point.
@@ -242,8 +264,6 @@ bool DataTable::SelectIntoBuffer(transaction::TransactionContext *const txn, con
       default:
         throw std::runtime_error("unexpected delta record type");
     }
-    // TODO(Matt): This logic might need revisiting if we start recycling slots and a chain can have a delete later in
-    // the chain than an insert.
     version_ptr = version_ptr->Next();
   }
 
@@ -352,8 +372,6 @@ bool DataTable::IsVisible(const transaction::TransactionContext &txn, const Tupl
       case DeltaRecordType::DELETE:
         visible = true;
     }
-    // TODO(Matt): This logic might need revisiting if we start recycling slots and a chain can have a delete later in
-    // the chain than an insert.
     version_ptr = version_ptr->Next();
   }
 
