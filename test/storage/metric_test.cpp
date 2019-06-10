@@ -191,214 +191,165 @@ TEST_F(MetricTests, DatabaseMetricStorageTest) {
       }
     }
     aggregator.Aggregate(txn_);
-
-    //    const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
-    //    auto db_handle = catalog_->GetDatabaseHandle();
-    //    auto table_handle = db_handle.GetNamespaceTable(txn_, terrier_oid).GetTableHandle(txn_, default_namespace_);
-    //    auto table = table_handle.GetTable(txn_, database_metric_table_);
-    //
-    //    for (uint8_t j = 0; j < num_databases_; j++) {
-    //      std::vector<type::TransientValue> search_vec;
-    //      search_vec.emplace_back(type::TransientValueFactory::GetInteger(static_cast<uint32_t>(j)));
-    //      auto row = table->FindRow(txn_, search_vec);
-    //      auto commit_cnt = type::TransientValuePeeker::PeekBigInt(row[1]);
-    //      auto abort_cnt = type::TransientValuePeeker::PeekBigInt(row[2]);
-    //      EXPECT_EQ(commit_cnt, commit_map[j]);
-    //      EXPECT_EQ(abort_cnt, abort_map[j]);
-    //    }
   }
 }
-//
-///**
-// * Basic test for testing transaction metric registration and stats collection, single thread
-// */
-//// NOLINTNEXTLINE
-// TEST_F(MetricTests, TransactionMetricBasicTest) {
-//  auto stats_collector = storage::metric::ThreadLevelStatsCollector();
-//  storage::metric::StatsAggregator aggregator(txn_manager_, catalog_, nullptr);
-//
-//  catalog::table_oid_t table_oid = static_cast<catalog::table_oid_t>(2);  // any value
-//  const catalog::db_oid_t database_oid(catalog::DEFAULT_DATABASE_OID);
-//  auto db_handle = catalog_->GetDatabaseHandle();
-//  const catalog::namespace_oid_t namespace_oid =
-//      db_handle.GetNamespaceTable(txn_, database_oid).NameToOid(txn_, default_namespace_);
-//
-//  for (uint8_t i = 0; i < num_iterations_; i++) {
-//    std::unordered_map<uint8_t, transaction::timestamp_t> id_map;
-//    std::unordered_map<transaction::timestamp_t, int64_t> read_map;
-//    std::unordered_map<transaction::timestamp_t, int64_t> update_map;
-//    std::unordered_map<transaction::timestamp_t, int64_t> insert_map;
-//    std::unordered_map<transaction::timestamp_t, int64_t> delete_map;
-//    std::unordered_map<transaction::timestamp_t, int64_t> latency_min_map;
-//    std::unordered_map<transaction::timestamp_t, int64_t> latency_max_map;
-//    for (uint8_t j = 0; j < num_txns_; j++) {
-//      auto start_max = std::chrono::high_resolution_clock::now();
-//      auto *txn = txn_manager_->BeginTransaction();
-//      storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTransactionBegin(txn);
-//      auto start_min = std::chrono::high_resolution_clock::now();
-//      auto txn_id = txn->TxnId().load();
-//      id_map[j] = txn_id;
-//      read_map[txn_id] = 0;
-//      update_map[txn_id] = 0;
-//      insert_map[txn_id] = 0;
-//      delete_map[txn_id] = 0;
-//
-//      auto num_ops_ = static_cast<uint8_t>(std::uniform_int_distribution<uint8_t>(1, UINT8_MAX)(generator_));
-//      for (uint8_t k = 0; k < num_ops_; k++) {
-//        auto op_type = std::uniform_int_distribution<uint8_t>(0, 3)(generator_);
-//        if (op_type == 0) {  // Read
-//          storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleRead(
-//              txn, database_oid, namespace_oid, table_oid);
-//          read_map[txn_id]++;
-//        } else if (op_type == 1) {  // Update
-//          storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleUpdate(
-//              txn, database_oid, namespace_oid, table_oid);
-//          update_map[txn_id]++;
-//        } else if (op_type == 2) {  // Insert
-//          storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleInsert(
-//              txn, database_oid, namespace_oid, table_oid);
-//          insert_map[txn_id]++;
-//        } else {  // Delete
-//          storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleDelete(
-//              txn, database_oid, namespace_oid, table_oid);
-//          delete_map[txn_id]++;
-//        }
-//      }
-//      auto latency = static_cast<uint64_t>(
-//          std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_min)
-//              .count());
-//      latency_min_map[txn_id] = latency;
-//      storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTransactionCommit(txn,
-//      database_oid); txn_manager_->Commit(txn, TestCallbacks::EmptyCallback, nullptr); latency =
-//      static_cast<uint64_t>(
-//          std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_max)
-//              .count());
-//      latency_max_map[txn_id] = latency;
-//    }
-//
-//    auto result = aggregator.AggregateRawData();
-//    EXPECT_FALSE(result.empty());
-//
-//    for (auto &raw_data : result) {
-//      if (raw_data->GetMetricType() == storage::metric::MetricType::TRANSACTION) {
-//        for (uint8_t j = 0; j < num_txns_; j++) {
-//          auto txn_id = id_map[j];
-//          auto read_cnt =
-//              dynamic_cast<storage::metric::TransactionMetricRawData *>(raw_data.get())->GetTupleRead(txn_id);
-//          auto update_cnt =
-//              dynamic_cast<storage::metric::TransactionMetricRawData *>(raw_data.get())->GetTupleUpdate(txn_id);
-//          auto insert_cnt =
-//              dynamic_cast<storage::metric::TransactionMetricRawData *>(raw_data.get())->GetTupleInsert(txn_id);
-//          auto delete_cnt =
-//              dynamic_cast<storage::metric::TransactionMetricRawData *>(raw_data.get())->GetTupleDelete(txn_id);
-//          auto latency = dynamic_cast<storage::metric::TransactionMetricRawData
-//          *>(raw_data.get())->GetLatency(txn_id);
-//
-//          EXPECT_EQ(read_cnt, read_map[txn_id]);
-//          EXPECT_EQ(update_cnt, update_map[txn_id]);
-//          EXPECT_EQ(insert_cnt, insert_map[txn_id]);
-//          EXPECT_EQ(delete_cnt, delete_map[txn_id]);
-//          EXPECT_GE(latency_max_map[txn_id], latency);
-//          EXPECT_LE(latency_min_map[txn_id], latency);
-//        }
-//      }
-//    }
-//  }
-//}
-//
-///**
-// *  Testing transaction metric stats collection and persistence, single thread
-// */
-//// NOLINTNEXTLINE
-// TEST_F(MetricTests, TransactionMetricStorageTest) {
-//  auto stats_collector = storage::metric::ThreadLevelStatsCollector();
-//  storage::metric::StatsAggregator aggregator(txn_manager_, catalog_, nullptr);
-//
-//  catalog::table_oid_t table_oid = static_cast<catalog::table_oid_t>(2);  // any value
-//  const catalog::db_oid_t database_oid(catalog::DEFAULT_DATABASE_OID);
-//  auto db_handle = catalog_->GetDatabaseHandle();
-//  const catalog::namespace_oid_t namespace_oid =
-//      db_handle.GetNamespaceTable(txn_, database_oid).NameToOid(txn_, default_namespace_);
-//
-//  for (uint8_t i = 0; i < num_iterations_; i++) {
-//    std::unordered_map<uint8_t, transaction::timestamp_t> id_map;
-//    std::unordered_map<transaction::timestamp_t, int64_t> read_map;
-//    std::unordered_map<transaction::timestamp_t, int64_t> update_map;
-//    std::unordered_map<transaction::timestamp_t, int64_t> insert_map;
-//    std::unordered_map<transaction::timestamp_t, int64_t> delete_map;
-//    std::unordered_map<transaction::timestamp_t, int64_t> latency_min_map;
-//    std::unordered_map<transaction::timestamp_t, int64_t> latency_max_map;
-//    for (uint8_t j = 0; j < num_txns_; j++) {
-//      auto start_max = std::chrono::high_resolution_clock::now();
-//      auto *txn = txn_manager_->BeginTransaction();
-//      storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTransactionBegin(txn);
-//      auto start_min = std::chrono::high_resolution_clock::now();
-//      auto txn_id = txn->TxnId().load();
-//      id_map[j] = txn_id;
-//      read_map[txn_id] = 0;
-//      update_map[txn_id] = 0;
-//      insert_map[txn_id] = 0;
-//      delete_map[txn_id] = 0;
-//
-//      auto num_ops_ = static_cast<uint8_t>(std::uniform_int_distribution<uint8_t>(1, UINT8_MAX)(generator_));
-//      for (uint8_t k = 0; k < num_ops_; k++) {
-//        auto op_type = std::uniform_int_distribution<uint8_t>(0, 3)(generator_);
-//        if (op_type == 0) {  // Read
-//          storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleRead(
-//              txn, database_oid, namespace_oid, table_oid);
-//          read_map[txn_id]++;
-//        } else if (op_type == 1) {  // Update
-//          storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleUpdate(
-//              txn, database_oid, namespace_oid, table_oid);
-//          update_map[txn_id]++;
-//        } else if (op_type == 2) {  // Insert
-//          storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleInsert(
-//              txn, database_oid, namespace_oid, table_oid);
-//          insert_map[txn_id]++;
-//        } else {  // Delete
-//          storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleDelete(
-//              txn, database_oid, namespace_oid, table_oid);
-//          delete_map[txn_id]++;
-//        }
-//      }
-//      auto latency = static_cast<uint64_t>(
-//          std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_min)
-//              .count());
-//      latency_min_map[txn_id] = latency;
-//      storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTransactionCommit(txn,
-//      database_oid); txn_manager_->Commit(txn, TestCallbacks::EmptyCallback, nullptr); latency =
-//      static_cast<uint64_t>(
-//          std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_max)
-//              .count());
-//      latency_max_map[txn_id] = latency;
-//    }
-//
-//    aggregator.Aggregate(txn_);
-//
-//    auto db_handle = catalog_->GetDatabaseHandle();
-//    auto table_handle = db_handle.GetNamespaceTable(txn_, database_oid).GetTableHandle(txn_, default_namespace_);
-//    auto table = table_handle.GetTable(txn_, txn_metric_table_);
-//
-//    for (uint8_t j = 0; j < num_txns_; j++) {
-//      auto txn_id = id_map[j];
-//      std::vector<type::TransientValue> search_vec;
-//      search_vec.emplace_back(
-//          type::TransientValueFactory::GetBigInt(static_cast<int64_t>(static_cast<uint64_t>(txn_id))));
-//      auto row = table->FindRow(txn_, search_vec);
-//      auto latency = type::TransientValuePeeker::PeekBigInt(row[1]);
-//      auto read_cnt = type::TransientValuePeeker::PeekBigInt(row[2]);
-//      auto insert_cnt = type::TransientValuePeeker::PeekBigInt(row[3]);
-//      auto delete_cnt = type::TransientValuePeeker::PeekBigInt(row[4]);
-//      auto update_cnt = type::TransientValuePeeker::PeekBigInt(row[5]);
-//      EXPECT_EQ(read_cnt, read_map[txn_id]);
-//      EXPECT_EQ(update_cnt, update_map[txn_id]);
-//      EXPECT_EQ(insert_cnt, insert_map[txn_id]);
-//      EXPECT_EQ(delete_cnt, delete_map[txn_id]);
-//      EXPECT_GE(latency_max_map[txn_id], latency);
-//      EXPECT_LE(latency_min_map[txn_id], latency);
-//    }
-//  }
-//}
+
+/**
+ * Basic test for testing transaction metric registration and stats collection, single thread
+ */
+// NOLINTNEXTLINE
+TEST_F(MetricTests, TransactionMetricBasicTest) {
+  auto stats_collector = storage::metric::ThreadLevelStatsCollector();
+  storage::metric::StatsAggregator aggregator(txn_manager_, nullptr);
+
+  for (uint8_t i = 0; i < num_iterations_; i++) {
+    std::unordered_map<uint8_t, transaction::timestamp_t> id_map;
+    std::unordered_map<transaction::timestamp_t, int64_t> read_map;
+    std::unordered_map<transaction::timestamp_t, int64_t> update_map;
+    std::unordered_map<transaction::timestamp_t, int64_t> insert_map;
+    std::unordered_map<transaction::timestamp_t, int64_t> delete_map;
+    std::unordered_map<transaction::timestamp_t, int64_t> latency_min_map;
+    std::unordered_map<transaction::timestamp_t, int64_t> latency_max_map;
+    for (uint8_t j = 0; j < num_txns_; j++) {
+      auto start_max = std::chrono::high_resolution_clock::now();
+      auto *txn = txn_manager_->BeginTransaction();
+      storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTransactionBegin(txn);
+      auto start_min = std::chrono::high_resolution_clock::now();
+      auto txn_id = txn->TxnId().load();
+      id_map[j] = txn_id;
+      read_map[txn_id] = 0;
+      update_map[txn_id] = 0;
+      insert_map[txn_id] = 0;
+      delete_map[txn_id] = 0;
+
+      auto num_ops_ = static_cast<uint8_t>(std::uniform_int_distribution<uint8_t>(1, UINT8_MAX)(generator_));
+      for (uint8_t k = 0; k < num_ops_; k++) {
+        auto op_type = std::uniform_int_distribution<uint8_t>(0, 3)(generator_);
+        if (op_type == 0) {  // Read
+          storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleRead(
+              txn, CatalogTestUtil::test_db_oid, CatalogTestUtil::test_namespace_oid, CatalogTestUtil::test_table_oid);
+          read_map[txn_id]++;
+        } else if (op_type == 1) {  // Update
+          storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleUpdate(
+              txn, CatalogTestUtil::test_db_oid, CatalogTestUtil::test_namespace_oid, CatalogTestUtil::test_table_oid);
+          update_map[txn_id]++;
+        } else if (op_type == 2) {  // Insert
+          storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleInsert(
+              txn, CatalogTestUtil::test_db_oid, CatalogTestUtil::test_namespace_oid, CatalogTestUtil::test_table_oid);
+          insert_map[txn_id]++;
+        } else {  // Delete
+          storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleDelete(
+              txn, CatalogTestUtil::test_db_oid, CatalogTestUtil::test_namespace_oid, CatalogTestUtil::test_table_oid);
+          delete_map[txn_id]++;
+        }
+      }
+      auto latency = static_cast<uint64_t>(
+          std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_min)
+              .count());
+      latency_min_map[txn_id] = latency;
+      storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTransactionCommit(
+          txn, CatalogTestUtil::test_db_oid);
+      txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+      latency = static_cast<uint64_t>(
+          std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_max)
+              .count());
+      latency_max_map[txn_id] = latency;
+    }
+
+    auto result = aggregator.AggregateRawData();
+    EXPECT_FALSE(result.empty());
+
+    for (auto &raw_data : result) {
+      if (raw_data->GetMetricType() == storage::metric::MetricType::TRANSACTION) {
+        for (uint8_t j = 0; j < num_txns_; j++) {
+          auto txn_id = id_map[j];
+          auto read_cnt =
+              dynamic_cast<storage::metric::TransactionMetricRawData *>(raw_data.get())->GetTupleRead(txn_id);
+          auto update_cnt =
+              dynamic_cast<storage::metric::TransactionMetricRawData *>(raw_data.get())->GetTupleUpdate(txn_id);
+          auto insert_cnt =
+              dynamic_cast<storage::metric::TransactionMetricRawData *>(raw_data.get())->GetTupleInsert(txn_id);
+          auto delete_cnt =
+              dynamic_cast<storage::metric::TransactionMetricRawData *>(raw_data.get())->GetTupleDelete(txn_id);
+          auto latency = dynamic_cast<storage::metric::TransactionMetricRawData *>(raw_data.get())->GetLatency(txn_id);
+
+          EXPECT_EQ(read_cnt, read_map[txn_id]);
+          EXPECT_EQ(update_cnt, update_map[txn_id]);
+          EXPECT_EQ(insert_cnt, insert_map[txn_id]);
+          EXPECT_EQ(delete_cnt, delete_map[txn_id]);
+          EXPECT_GE(latency_max_map[txn_id], latency);
+          EXPECT_LE(latency_min_map[txn_id], latency);
+        }
+      }
+    }
+  }
+}
+
+/**
+ *  Testing transaction metric stats collection and persistence, single thread
+ */
+// NOLINTNEXTLINE
+TEST_F(MetricTests, TransactionMetricStorageTest) {
+  auto stats_collector = storage::metric::ThreadLevelStatsCollector();
+  storage::metric::StatsAggregator aggregator(txn_manager_, nullptr);
+
+  for (uint8_t i = 0; i < num_iterations_; i++) {
+    std::unordered_map<uint8_t, transaction::timestamp_t> id_map;
+    std::unordered_map<transaction::timestamp_t, int64_t> read_map;
+    std::unordered_map<transaction::timestamp_t, int64_t> update_map;
+    std::unordered_map<transaction::timestamp_t, int64_t> insert_map;
+    std::unordered_map<transaction::timestamp_t, int64_t> delete_map;
+    std::unordered_map<transaction::timestamp_t, int64_t> latency_min_map;
+    std::unordered_map<transaction::timestamp_t, int64_t> latency_max_map;
+    for (uint8_t j = 0; j < num_txns_; j++) {
+      auto start_max = std::chrono::high_resolution_clock::now();
+      auto *txn = txn_manager_->BeginTransaction();
+      storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTransactionBegin(txn);
+      auto start_min = std::chrono::high_resolution_clock::now();
+      auto txn_id = txn->TxnId().load();
+      id_map[j] = txn_id;
+      read_map[txn_id] = 0;
+      update_map[txn_id] = 0;
+      insert_map[txn_id] = 0;
+      delete_map[txn_id] = 0;
+
+      auto num_ops_ = static_cast<uint8_t>(std::uniform_int_distribution<uint8_t>(1, UINT8_MAX)(generator_));
+      for (uint8_t k = 0; k < num_ops_; k++) {
+        auto op_type = std::uniform_int_distribution<uint8_t>(0, 3)(generator_);
+        if (op_type == 0) {  // Read
+          storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleRead(
+              txn, CatalogTestUtil::test_db_oid, CatalogTestUtil::test_namespace_oid, CatalogTestUtil::test_table_oid);
+          read_map[txn_id]++;
+        } else if (op_type == 1) {  // Update
+          storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleUpdate(
+              txn, CatalogTestUtil::test_db_oid, CatalogTestUtil::test_namespace_oid, CatalogTestUtil::test_table_oid);
+          update_map[txn_id]++;
+        } else if (op_type == 2) {  // Insert
+          storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleInsert(
+              txn, CatalogTestUtil::test_db_oid, CatalogTestUtil::test_namespace_oid, CatalogTestUtil::test_table_oid);
+          insert_map[txn_id]++;
+        } else {  // Delete
+          storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleDelete(
+              txn, CatalogTestUtil::test_db_oid, CatalogTestUtil::test_namespace_oid, CatalogTestUtil::test_table_oid);
+          delete_map[txn_id]++;
+        }
+      }
+      auto latency = static_cast<uint64_t>(
+          std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_min)
+              .count());
+      latency_min_map[txn_id] = latency;
+      storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTransactionCommit(
+          txn, CatalogTestUtil::test_db_oid);
+      txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+      latency = static_cast<uint64_t>(
+          std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_max)
+              .count());
+      latency_max_map[txn_id] = latency;
+    }
+
+    aggregator.Aggregate(txn_);
+  }
+}
 
 /**
  *  Testing metric stats collection and persistence, multiple threads
