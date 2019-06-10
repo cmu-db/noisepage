@@ -81,13 +81,12 @@ class LogSerializerTask : public DedicatedThreadTask {
   void LogSerializerTaskLoop();
 
   /**
-   * Process all the accumulated log records and serialize them to log consumer tasks. This method should only be called
-   * from a dedicated logging thread.
+   * Process all the accumulated log records and serialize them to log consumer tasks.
    */
   void Process();
 
   /**
-   * Serialize out the task buffer to the log
+   * Serialize out the task buffer to the current serialization buffer
    * @param buffer_to_serialize the iterator to the redo buffer to be serialized
    */
   void SerializeBuffer(IterableBufferSegment<LogRecord> *buffer_to_serialize);

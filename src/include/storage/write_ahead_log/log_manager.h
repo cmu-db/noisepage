@@ -41,10 +41,10 @@ using SerializedLogs = std::pair<BufferedLogWriter *, std::vector<CommitCallback
  * A LogManager is responsible for serializing log records out and keeping track of whether changes from a transaction
  * are persistent. The standard flow of a log record from a transaction all the way to disk is as follows:
  *      1. The LogManager receives buffers containing records from transactions via the AddBufferToFlushQueue, and
- * adds them to a flush queue (flush_queue_)
- *      2. The LogSerializerTask will periodically call Process() to process and serialize buffers in the flush queue
- * and hand them over to the consumer queue (filled_buffer_queue_). The reason this is done offline and not as soon as
- * logs are received is to reduce the amount of time a transaction spends interacting with the log manager
+ * adds them to the serializer task's flush queue (flush_queue_)
+ *      2. The LogSerializerTask will periodically process and serialize buffers in its flush queue
+ * and hand them over to the consumer queue (filled_buffer_queue_). The reason this is done in the background and not as
+ * soon as logs are received is to reduce the amount of time a transaction spends interacting with the log manager
  *      3. When a buffer of logs is handed over to a consumer, the consumer will wake up and process the logs. In the
  * case of the DiskLogConsumerTask, this means writing it to the log file.
  *      4. The LogFlusher task will periodically call ForceFlush() to persist the log file to disk using fsync. Once
