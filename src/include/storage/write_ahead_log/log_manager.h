@@ -96,7 +96,7 @@ class LogManager : public DedicatedThreadOwner {
    *    2. Stops LogFlusherTask
    *    3. Stops DiskLogConsumerTask
    *    2. Closes all open buffers
-   * Start() can be called after to run the log manager again, a new log manager does not need to be instatiated.
+   * @note Start() can be called to run the log manager again, a new log manager does not need to be initialized.
    */
   void PersistAndStop();
 
@@ -116,9 +116,8 @@ class LogManager : public DedicatedThreadOwner {
   uint64_t TestGetNumBuffers() { return num_buffers_; }
 
   /**
-   * Set the number of buffers used for buffering logs.
-   *
-   * The operation fails if the LogManager has already allocated more buffers than the new size
+   * Set the number of buffers used for buffering logs. The operation fails if the LogManager has already allocated more
+   * buffers than the new size
    *
    * @param new_num_buffers the new number of buffers the log manager can use
    * @return true if new_num_buffers is successfully set and false the operation fails

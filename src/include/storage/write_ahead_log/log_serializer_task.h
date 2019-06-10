@@ -1,5 +1,8 @@
 #pragma once
 
+#include <queue>
+#include <utility>
+#include <vector>
 #include "storage/write_ahead_log/log_manager.h"
 #include "storage/write_ahead_log/log_record.h"
 
