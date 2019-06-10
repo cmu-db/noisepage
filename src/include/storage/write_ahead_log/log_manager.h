@@ -329,6 +329,8 @@ class LogSerializerTask : public DedicatedThreadTask {
       std::this_thread::sleep_for(serialization_interval_);
       log_manager_->Process();
     } while (run_task_);
+    // To be extra sure we processed everything
+    log_manager_->Process();
   }
 };
 

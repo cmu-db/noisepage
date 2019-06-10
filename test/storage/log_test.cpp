@@ -164,9 +164,8 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
                                           .SetLogManager(log_manager_)
                                           .build();
   log_manager_->Start();
-  auto result = tested.SimulateOltp(10, 4);
-  std::this_thread::sleep_for(log_serialization_interval_ * 2);
-  log_manager_->ForceFlush();
+  auto result = tested.SimulateOltp(100, 4);
+  log_manager_->PersistAndStop();
 
   std::unordered_map<transaction::timestamp_t, RandomWorkloadTransaction *> txns_map;
   for (auto *txn : result.first) txns_map[txn->BeginTimestamp()] = txn;
@@ -224,8 +223,6 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
   gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
   delete gc_thread_;
 
-  log_manager_->PersistAndStop();
-
   for (auto *txn : result.first) delete txn;
   for (auto *txn : result.second) delete txn;
 }
@@ -249,9 +246,8 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
                                           .build();
 
   log_manager_->Start();
-  auto result = tested.SimulateOltp(10, 4);
-  std::this_thread::sleep_for(log_serialization_interval_ * 2);
-  log_manager_->ForceFlush();
+  auto result = tested.SimulateOltp(1000, 4);
+  log_manager_->PersistAndStop();
 
   // Read-only workload has completed. Read the log file back in to check that no records were produced for these
   // transactions.
@@ -276,7 +272,6 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
   delete gc_thread_;
 
   EXPECT_EQ(log_records_count, 0);
-  log_manager_->PersistAndStop();
   for (auto *txn : result.first) delete txn;
   for (auto *txn : result.second) delete txn;
 }
