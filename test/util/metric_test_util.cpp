@@ -8,14 +8,15 @@ int TestingStatsUtil::AggregateTestCounts() {
   storage::metric::StatsAggregator aggregator(nullptr, nullptr);
   auto result = aggregator.AggregateRawData();
 
-  if (result.empty()) return 0;
+  int count = 0;
 
-  for (auto &raw_data : result) {
+  for (auto raw_data : result) {
     if (raw_data->GetMetricType() == storage::metric::MetricType::TEST) {
-      return dynamic_cast<storage::metric::TestMetricRawData *>(raw_data)->GetCount();
+      count = dynamic_cast<storage::metric::TestMetricRawData *>(raw_data)->GetCount();
     }
+    delete raw_data;
   }
-  return 0;
+  return count;
 }
 
 }  // namespace terrier

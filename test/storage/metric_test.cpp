@@ -373,9 +373,6 @@ TEST_F(MetricTests, MultiThreadTest) {
       if (id == 0) {  // aggregator thread
         std::this_thread::sleep_for(aggr_period_);
         aggregator.Aggregate(txn_);
-        for (auto iter = collectors.Begin(); iter != collectors.End(); iter++) {
-          delete *iter;
-        }
       } else {  // normal thread
         auto *stats_collector = new storage::metric::ThreadLevelStatsCollector();
         collectors.PushBack(stats_collector);
@@ -421,6 +418,9 @@ TEST_F(MetricTests, MultiThreadTest) {
       }
     };
     MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
+    for (auto iter = collectors.Begin(); iter != collectors.End(); iter++) {
+      delete *iter;
+    }
   }
 }
 }  // namespace terrier
