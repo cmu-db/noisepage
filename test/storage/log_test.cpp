@@ -55,7 +55,6 @@ class WriteAheadLoggingTests : public TerrierTest {
   }
 
   storage::LogRecord *ReadNextRecord(storage::BufferedLogReader *in, const storage::BlockLayout &block_layout) {
-    // TODO(Justin): Fit this to new serialization format after it is complete.
     auto size = in->ReadValue<uint32_t>();
     byte *buf = common::AllocationUtil::AllocateAligned(size);
     auto record_type = in->ReadValue<storage::LogRecordType>();
@@ -79,11 +78,10 @@ class WriteAheadLoggingTests : public TerrierTest {
 
     // If code path reaches here, we have a REDO record.
     TERRIER_ASSERT(record_type == storage::LogRecordType::REDO, "Unknown record type during test deserialization");
-    auto num_cols = in->ReadValue<uint16_t>();
 
-    // TODO(Justin): Could do this with just one read of (sizeof(col_id_t) * num_cols) bytes, and then index in. That's
-    //  probably faster, but stick with the more naive way for now. We need a vector, not just a col_id_t[], because
-    //  that is what ProjectedRowInitializer needs.
+    // Read in col_ids
+    // IDs read individually since we can't guarantee memory layout of vector
+    auto num_cols = in->ReadValue<uint16_t>();
     std::vector<storage::col_id_t> col_ids(num_cols);
     for (uint16_t i = 0; i < num_cols; i++) {
       const auto col_id = in->ReadValue<storage::col_id_t>();
@@ -92,7 +90,6 @@ class WriteAheadLoggingTests : public TerrierTest {
 
     // Initialize the redo record.
     auto initializer = storage::ProjectedRowInitializer::Create(block_layout, col_ids);
-    // TODO(Justin): set a pointer to the correct data table? Will this even be useful for recovery?
     auto *result = storage::RedoRecord::Initialize(buf, txn_begin, database_oid, table_oid, initializer);
     auto *record_body = result->GetUnderlyingRecordBodyAs<RedoRecord>();
     record_body->SetTupleSlot(tuple_slot);
