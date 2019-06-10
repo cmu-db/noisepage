@@ -14,8 +14,7 @@ class DefaultValueExpression : public AbstractExpression {
   /**
    * Instantiates a new default value expression.
    */
-  DefaultValueExpression()
-      : AbstractExpression(ExpressionType::VALUE_DEFAULT, type::TypeId::INVALID, {}) {}
+  DefaultValueExpression() : AbstractExpression(ExpressionType::VALUE_DEFAULT, type::TypeId::INVALID, {}) {}
 
   std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<DefaultValueExpression>(*this); }
 
