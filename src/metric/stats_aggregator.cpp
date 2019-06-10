@@ -1,12 +1,11 @@
 #include "metric/stats_aggregator.h"
-#include <memory>
+
 #include <vector>
 
 namespace terrier::storage::metric {
 
-using RawDataCollect = std::vector<std::shared_ptr<AbstractRawData>>;
-RawDataCollect StatsAggregator::AggregateRawData() {
-  RawDataCollect acc = std::vector<std::shared_ptr<AbstractRawData>>();
+std::vector<AbstractRawData *> StatsAggregator::AggregateRawData() {
+  std::vector<AbstractRawData *> acc;
   auto collector_map = ThreadLevelStatsCollector::GetAllCollectors();
   for (auto iter = collector_map.Begin(); iter != collector_map.End(); ++iter) {
     auto data_block = iter->second->GetDataToAggregate();
@@ -14,7 +13,8 @@ RawDataCollect StatsAggregator::AggregateRawData() {
       acc = data_block;
     } else {
       for (size_t i = 0; i < data_block.size(); i++) {
-        acc[i]->Aggregate(data_block[i].get());
+        acc[i]->Aggregate(data_block[i]);
+        delete data_block[i];
       }
     }
   }
@@ -23,8 +23,9 @@ RawDataCollect StatsAggregator::AggregateRawData() {
 
 void StatsAggregator::Aggregate(transaction::TransactionContext *txn) {
   auto acc = AggregateRawData();
-  for (auto &raw_data UNUSED_ATTRIBUTE : acc) {
+  for (auto raw_data : acc) {
     //    raw_data->UpdateAndPersist(txn_manager_, txn);
+    delete raw_data;
   }
 }
 }  // namespace terrier::storage::metric

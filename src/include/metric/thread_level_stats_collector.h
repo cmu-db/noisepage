@@ -1,6 +1,5 @@
 #pragma once
 
-#include <memory>
 #include <unordered_map>
 #include <vector>
 #include "catalog/catalog_defs.h"
@@ -322,7 +321,7 @@ class ThreadLevelStatsCollector {
    * metric is guaranteed to be in the same position in the returned vector
    * for different instances of Collector.
    */
-  std::vector<std::shared_ptr<AbstractRawData>> GetDataToAggregate();
+  std::vector<AbstractRawData *> GetDataToAggregate();
 
  private:
   /**
@@ -332,22 +331,22 @@ class ThreadLevelStatsCollector {
    * @param types A list of event types to receive updates about.
    */
   template <typename metric>
-  void RegisterMetric(std::vector<StatsEventType> types) {
-    auto m = std::make_shared<metric>();
+  void RegisterMetric(const std::vector<StatsEventType> &types) {
+    auto *const m = new metric;
     metrics_.push_back(m);
     for (StatsEventType type : types) metric_dispatch_[type].push_back(m);
   }
 
-  using RegisteredMetric = std::vector<std::shared_ptr<Metric>>;
+  using RegisteredMetric = std::vector<Metric *>;
 
   /**
-   * Vector of all registered metrics
+   * Vector of all registered metrics, this owns the metric objects and frees them at object destruction
    */
   RegisteredMetric metrics_;
 
   /**
    * Mapping from each type of event to a list of metrics registered to
-   * receive updates from that type of event.
+   * receive updates from that type of event. This does NOT own the registered metrics
    */
   std::unordered_map<StatsEventType, RegisteredMetric, EnumHash<StatsEventType>> metric_dispatch_;
 

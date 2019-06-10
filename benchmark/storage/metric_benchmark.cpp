@@ -4,11 +4,11 @@
 #include <vector>
 #include "benchmark/benchmark.h"
 #include "common/strong_typedef.h"
-#include "storage/garbage_collector.h"
 #include "metric/database_metric.h"
 #include "metric/stats_aggregator.h"
 #include "metric/thread_level_stats_collector.h"
 #include "metric/transaction_metric.h"
+#include "storage/garbage_collector.h"
 #include "transaction/transaction_defs.h"
 #include "transaction/transaction_manager.h"
 #include "util/metric_test_util.h"

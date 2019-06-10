@@ -12,7 +12,7 @@ int TestingStatsUtil::AggregateTestCounts() {
 
   for (auto &raw_data : result) {
     if (raw_data->GetMetricType() == storage::metric::MetricType::TEST) {
-      return dynamic_cast<storage::metric::TestMetricRawData *>(raw_data.get())->GetCount();
+      return dynamic_cast<storage::metric::TestMetricRawData *>(raw_data)->GetCount();
     }
   }
   return 0;

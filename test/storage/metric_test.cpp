@@ -141,17 +141,18 @@ TEST_F(MetricTests, DatabaseMetricBasicTest) {
     auto result = aggregator.AggregateRawData();
     EXPECT_FALSE(result.empty());
 
-    for (auto &raw_data : result) {
+    for (auto raw_data : result) {
       if (raw_data->GetMetricType() == storage::metric::MetricType::DATABASE) {
         for (uint8_t j = 0; j < num_databases_; j++) {
-          auto commit_cnt = dynamic_cast<storage::metric::DatabaseMetricRawData *>(raw_data.get())
-                                ->GetCommitCount(static_cast<catalog::db_oid_t>(j));
-          auto abort_cnt = dynamic_cast<storage::metric::DatabaseMetricRawData *>(raw_data.get())
-                               ->GetAbortCount(static_cast<catalog::db_oid_t>(j));
+          auto commit_cnt = dynamic_cast<storage::metric::DatabaseMetricRawData *>(raw_data)->GetCommitCount(
+              static_cast<catalog::db_oid_t>(j));
+          auto abort_cnt = dynamic_cast<storage::metric::DatabaseMetricRawData *>(raw_data)->GetAbortCount(
+              static_cast<catalog::db_oid_t>(j));
           EXPECT_EQ(commit_cnt, commit_map[j]);
           EXPECT_EQ(abort_cnt, abort_map[j]);
         }
       }
+      delete raw_data;
     }
   }
 }
@@ -259,19 +260,15 @@ TEST_F(MetricTests, TransactionMetricBasicTest) {
     auto result = aggregator.AggregateRawData();
     EXPECT_FALSE(result.empty());
 
-    for (auto &raw_data : result) {
+    for (auto raw_data : result) {
       if (raw_data->GetMetricType() == storage::metric::MetricType::TRANSACTION) {
         for (uint8_t j = 0; j < num_txns_; j++) {
           auto txn_id = id_map[j];
-          auto read_cnt =
-              dynamic_cast<storage::metric::TransactionMetricRawData *>(raw_data.get())->GetTupleRead(txn_id);
-          auto update_cnt =
-              dynamic_cast<storage::metric::TransactionMetricRawData *>(raw_data.get())->GetTupleUpdate(txn_id);
-          auto insert_cnt =
-              dynamic_cast<storage::metric::TransactionMetricRawData *>(raw_data.get())->GetTupleInsert(txn_id);
-          auto delete_cnt =
-              dynamic_cast<storage::metric::TransactionMetricRawData *>(raw_data.get())->GetTupleDelete(txn_id);
-          auto latency = dynamic_cast<storage::metric::TransactionMetricRawData *>(raw_data.get())->GetLatency(txn_id);
+          auto read_cnt = dynamic_cast<storage::metric::TransactionMetricRawData *>(raw_data)->GetTupleRead(txn_id);
+          auto update_cnt = dynamic_cast<storage::metric::TransactionMetricRawData *>(raw_data)->GetTupleUpdate(txn_id);
+          auto insert_cnt = dynamic_cast<storage::metric::TransactionMetricRawData *>(raw_data)->GetTupleInsert(txn_id);
+          auto delete_cnt = dynamic_cast<storage::metric::TransactionMetricRawData *>(raw_data)->GetTupleDelete(txn_id);
+          auto latency = dynamic_cast<storage::metric::TransactionMetricRawData *>(raw_data)->GetLatency(txn_id);
 
           EXPECT_EQ(read_cnt, read_map[txn_id]);
           EXPECT_EQ(update_cnt, update_map[txn_id]);
@@ -281,6 +278,7 @@ TEST_F(MetricTests, TransactionMetricBasicTest) {
           EXPECT_LE(latency_min_map[txn_id], latency);
         }
       }
+      delete raw_data;
     }
   }
 }

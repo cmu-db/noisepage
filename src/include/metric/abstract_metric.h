@@ -1,7 +1,7 @@
 #pragma once
 
 #include <atomic>
-#include <memory>
+
 #include <string>
 #include <utility>
 
@@ -236,7 +236,7 @@ class Metric {
    *
    * @return a shared pointer to the old AbstractRawData
    */
-  virtual std::shared_ptr<AbstractRawData> Swap() = 0;
+  virtual AbstractRawData *Swap() = 0;
 };
 
 /**
@@ -312,7 +312,7 @@ class AbstractMetric : public Metric {
    * access the underlying raw data
    * @return a shared pointer to the old AbstractRawData
    */
-  std::shared_ptr<AbstractRawData> Swap() override {
+  AbstractRawData *Swap() override {
     // After this point, the collector thread can not see old data on new
     // events, but will still be able to write to it, if they loaded the
     // pointer before this operation but haven't written to it yet.
@@ -321,7 +321,7 @@ class AbstractMetric : public Metric {
     // to start reading the content. It is okay to block since this
     // method should only be called from the aggregator thread.
     common::SpinLatch::ScopedSpinLatch guard(&latch_);
-    return std::shared_ptr<AbstractRawData>(old_data);
+    return old_data;
   }
 
  protected:

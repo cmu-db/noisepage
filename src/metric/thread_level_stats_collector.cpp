@@ -1,10 +1,9 @@
 #include "metric/thread_level_stats_collector.h"
-#include <memory>
 #include <vector>
-#include "metric/transaction_metric.h"
 #include "metric/database_metric.h"
 #include "metric/metric_defs.h"
 #include "metric/test_metric.h"
+#include "metric/transaction_metric.h"
 
 namespace terrier::storage::metric {
 
@@ -21,13 +20,12 @@ ThreadLevelStatsCollector::ThreadLevelStatsCollector() {
 }
 
 ThreadLevelStatsCollector::~ThreadLevelStatsCollector() {
-  metrics_.clear();
-  metric_dispatch_.clear();
+  for (auto m : metrics_) delete m;
   collector_map_.UnsafeErase(thread_id_);
 }
 
-std::vector<std::shared_ptr<AbstractRawData>> ThreadLevelStatsCollector::GetDataToAggregate() {
-  std::vector<std::shared_ptr<AbstractRawData>> result;
+std::vector<AbstractRawData *> ThreadLevelStatsCollector::GetDataToAggregate() {
+  std::vector<AbstractRawData *> result;
   for (auto &metric : metrics_) result.emplace_back(metric->Swap());
   return result;
 }

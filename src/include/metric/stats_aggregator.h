@@ -2,7 +2,7 @@
 
 #include <fstream>
 #include <map>
-#include <memory>
+
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -54,7 +54,7 @@ class StatsAggregator {
    * Worker method for Aggregate() that performs stats collection
    * @return raw data collected from all threads
    */
-  std::vector<std::shared_ptr<AbstractRawData>> AggregateRawData();
+  std::vector<AbstractRawData *> AggregateRawData();
 
   /**
    * @return txn_manager of the system
