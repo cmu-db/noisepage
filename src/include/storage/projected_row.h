@@ -133,7 +133,7 @@ class PACKED ProjectedRow {
 
  private:
   friend class ProjectedRowInitializer;
-  friend class LogManager;
+  friend class LogSerializerTask;
   uint32_t size_;
   uint16_t num_cols_;
   byte varlen_contents_[0];

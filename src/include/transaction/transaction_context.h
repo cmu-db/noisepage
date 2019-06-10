@@ -12,7 +12,7 @@
 
 namespace terrier::storage {
 class GarbageCollector;
-class LogManager;
+class LogSerializerTask;
 class SqlTable;
 }  // namespace terrier::storage
 
@@ -163,7 +163,7 @@ class TransactionContext {
  private:
   friend class storage::GarbageCollector;
   friend class TransactionManager;
-  friend class storage::LogManager;
+  friend class storage::LogSerializerTask;
   friend class storage::SqlTable;
   const timestamp_t start_time_;
   std::atomic<timestamp_t> txn_id_;

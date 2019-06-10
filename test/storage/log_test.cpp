@@ -147,6 +147,7 @@ class WriteAheadLoggingTests : public TerrierTest {
 // NOLINTNEXTLINE
 TEST_F(WriteAheadLoggingTests, LargeLogTest) {
   // Each transaction does 5 operations. The update-select ratio of operations is 50%-50%.
+  log_manager_->Start();
   LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
                                           .SetMaxColumns(5)
                                           .SetInitialTableSize(1)
@@ -160,7 +161,6 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
                                           .SetBookkeeping(true)
                                           .SetLogManager(log_manager_)
                                           .build();
-  log_manager_->Start();
   auto result = tested.SimulateOltp(100, 4);
   log_manager_->PersistAndStop();
 
@@ -229,6 +229,7 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
 // NOLINTNEXTLINE
 TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
   // Each transaction is read-only (update-select ratio of 0-100). Also, no need for bookkeeping.
+  log_manager_->Start();
   LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
                                           .SetMaxColumns(5)
                                           .SetInitialTableSize(1)
@@ -242,7 +243,6 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
                                           .SetLogManager(log_manager_)
                                           .build();
 
-  log_manager_->Start();
   auto result = tested.SimulateOltp(1000, 4);
   log_manager_->PersistAndStop();
 

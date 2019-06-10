@@ -43,10 +43,10 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, TPCCish)(benchmark::State &state) {
   for (auto _ : state) {
     log_manager_ = new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_,
                                            log_flushing_interval_, &buffer_pool_);
+    log_manager_->Start();
     LargeTransactionBenchmarkObject tested(attr_sizes, initial_table_size, txn_length, insert_update_select_ratio,
                                            &block_store_, &buffer_pool_, &generator_, true, log_manager_);
     // log all of the Inserts from table creation
-    log_manager_->Start();
     log_manager_->ForceFlush();
 
     gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
@@ -77,10 +77,10 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, HighAbortRate)(benchmark::State &state) {
     // use a smaller table to make aborts more likely
     log_manager_ = new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_,
                                            log_flushing_interval_, &buffer_pool_);
+    log_manager_->Start();
     LargeTransactionBenchmarkObject tested(attr_sizes, 1000, txn_length, insert_update_select_ratio, &block_store_,
                                            &buffer_pool_, &generator_, true, log_manager_);
     // log all of the Inserts from table creation
-    log_manager_->Start();
     log_manager_->ForceFlush();
 
     gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
@@ -110,10 +110,10 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementInsert)(benchmark::State &st
   for (auto _ : state) {
     log_manager_ = new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_,
                                            log_flushing_interval_, &buffer_pool_);
+    log_manager_->Start();
     LargeTransactionBenchmarkObject tested(attr_sizes, 0, txn_length, insert_update_select_ratio, &block_store_,
                                            &buffer_pool_, &generator_, true, log_manager_);
     // log all of the Inserts from table creation
-    log_manager_->Start();
     log_manager_->ForceFlush();
 
     gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
@@ -143,10 +143,10 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementUpdate)(benchmark::State &st
   for (auto _ : state) {
     log_manager_ = new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_,
                                            log_flushing_interval_, &buffer_pool_);
+    log_manager_->Start();
     LargeTransactionBenchmarkObject tested(attr_sizes, initial_table_size, txn_length, insert_update_select_ratio,
                                            &block_store_, &buffer_pool_, &generator_, true, log_manager_);
     // log all of the Inserts from table creation
-    log_manager_->Start();
     log_manager_->ForceFlush();
 
     gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
@@ -176,10 +176,10 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementSelect)(benchmark::State &st
   for (auto _ : state) {
     log_manager_ = new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_,
                                            log_flushing_interval_, &buffer_pool_);
+    log_manager_->Start();
     LargeTransactionBenchmarkObject tested(attr_sizes, initial_table_size, txn_length, insert_update_select_ratio,
                                            &block_store_, &buffer_pool_, &generator_, true, log_manager_);
     // log all of the Inserts from table creation
-    log_manager_->Start();
     log_manager_->ForceFlush();
 
     gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);

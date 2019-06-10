@@ -69,7 +69,6 @@ class LogManager : public DedicatedThreadOwner {
         log_file_path_(std::move(log_file_path)),
         num_buffers_(num_buffers),
         buffer_pool_(buffer_pool),
-        filled_buffer_(nullptr),
         serialization_interval_(serialization_interval),
         flushing_interval_(flushing_interval),
         do_persist_(true) {}
@@ -108,10 +107,7 @@ class LogManager : public DedicatedThreadOwner {
    *
    * @param buffer_segment the (perhaps partially) filled log buffer ready to be consumed
    */
-  void AddBufferToFlushQueue(RecordBufferSegment *const buffer_segment) {
-    common::SpinLatch::ScopedSpinLatch guard(&flush_queue_latch_);
-    flush_queue_.push(buffer_segment);
-  }
+  void AddBufferToFlushQueue(RecordBufferSegment *const buffer_segment);
 
   /**
    * For testing only
@@ -151,44 +147,37 @@ class LogManager : public DedicatedThreadOwner {
   // System path for log file
   std::string log_file_path_;
 
-  // Number of buffers to use for buffering logs
+  // Number of buffers to use for buffering and serializing logs
   uint64_t num_buffers_;
 
   // TODO(Tianyu): This can be changed later to be include things that are not necessarily backed by a disk
   //  (e.g. logs can be streamed out to the network for remote replication)
   RecordBufferSegmentPool *buffer_pool_;
 
-  // TODO(Tianyu): Might not be necessary, since commit on txn manager is already protected with a latch
-  common::SpinLatch flush_queue_latch_;
-  // TODO(Tianyu): benchmark for if these should be concurrent data structures, and if we should apply the same
-  //  optimization we applied to the GC queue.
-  std::queue<RecordBufferSegment *> flush_queue_;
-
   // These do not need to be thread safe since the only thread adding or removing from it is the flushing thread
   std::vector<std::pair<transaction::callback_fn, void *>> commits_in_buffer_;
 
-  // This stores all the buffers the serializer or the log consumer threads use
+  // This stores a reference to all the buffers the serializer or the log consumer threads use
   std::vector<BufferedLogWriter> buffers_;
-  // This is the buffer the serializer thread will write to
-  BufferedLogWriter *filled_buffer_;
   // The queue containing empty buffers which the serializer thread will use
   common::ConcurrentBlockingQueue<BufferedLogWriter *> empty_buffer_queue_;
   // The queue containing filled buffers pending flush to the disk
   common::ConcurrentBlockingQueue<SerializedLogs> filled_buffer_queue_;
 
   // Log serializer task that processes buffers handed over by transactions and serializes them into consumer buffers
-  common::ManagedPointer<LogSerializerTask> log_serializer_task_;
+  common::ManagedPointer<LogSerializerTask> log_serializer_task_ = common::ManagedPointer<LogSerializerTask>(nullptr);
   // Interval used by log serialization task
   const std::chrono::milliseconds serialization_interval_;
 
   // Log flusher task that periodically forces the DiskLogConsumerTask to persist the log file on disk
-  common::ManagedPointer<LogFlusherTask> log_flusher_task_;
+  common::ManagedPointer<LogFlusherTask> log_flusher_task_ = common::ManagedPointer<LogFlusherTask>(nullptr);
   // Interval used by log flushing task
   const std::chrono::milliseconds flushing_interval_;
 
   // The log consumer task which flushes filled buffers to the disk
   common::ManagedPointer<DiskLogConsumerTask> disk_log_writer_task_ =
       common::ManagedPointer<DiskLogConsumerTask>(nullptr);
+
   // Flag used by the serializer thread to signal the disk log consumer task thread to persist the data on disk
   volatile bool do_persist_;
 
@@ -200,83 +189,6 @@ class LogManager : public DedicatedThreadOwner {
   std::condition_variable disk_log_writer_thread_cv_;
 
   /**
-   * Process all the accumulated log records and serialize them to log consumer tasks. This method should only be called
-   * from a dedicated logging thread.
-   */
-  void Process();
-
-  /**
-   * Serialize out the record to the log
-   * @param record the redo record to serialise
-   */
-  void SerializeRecord(const LogRecord &record);
-
-  /**
-   * Serialize out the task buffer to the log
-   * @param buffer_to_serialize the iterator to the redo buffer to be serialized
-   */
-  void SerializeBuffer(IterableBufferSegment<LogRecord> *buffer_to_serialize);
-
-  /**
-   * Used by the serializer thread to get a buffer to serialize data to
-   * @return buffer to write to
-   */
-  BufferedLogWriter *GetCurrentWriteBuffer() {
-    if (filled_buffer_ == nullptr) {
-      empty_buffer_queue_.Dequeue(&filled_buffer_);
-    }
-    return filled_buffer_;
-  }
-
-  /**
-   * Serialize the data pointed to by val to a buffer
-   * @tparam T Type of the value
-   * @param val The value to write to the buffer
-   */
-  template <class T>
-  void WriteValue(const T &val) {
-    WriteValue(&val, sizeof(T));
-  }
-
-  /**
-   * Serialize the data pointed to by val to a buffer
-   * @param val the value
-   * @param size size of the value to serialize
-   */
-  void WriteValue(const void *val, uint32_t size);
-
-  /**
-   * Hand over the current buffer and commit callbacks for commit records in that buffer to the log consumer task
-   */
-  void HandFilledBufferToWriter() {
-    filled_buffer_queue_.Enqueue(std::make_pair(filled_buffer_, commits_in_buffer_));
-    // Signal disk log consumer task  thread that a buffer is ready to be flushed to the disk
-    {
-      std::unique_lock<std::mutex> lock(persist_lock_);
-      disk_log_writer_thread_cv_.notify_one();
-    }
-    // Mark that serializer thread doesn't have a buffer in its possession to which it can write to
-    commits_in_buffer_.clear();
-    filled_buffer_ = nullptr;
-  }
-
-  /**
-   * If the central thread registry grants us a thread, we accept if we currently don't have a thread to run the disk
-   * consumer task. Else we don't need the thread, so we respectfully decline.
-   * @return true if we accepted the thread, else false
-   */
-  bool OnThreadOffered() override {
-    if (GetThreadCount() == 0) {
-      // Register disk log consumer task
-      TERRIER_ASSERT(disk_log_writer_task_ == nullptr, "We should not have a task if we don't own a thread for it yet");
-      disk_log_writer_task_ = DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread<DiskLogConsumerTask>(
-          this /* requester */, this /* argument to task constructor */);
-      return true;
-    }
-    return false;
-  }
-
-  /**
    * If the central registry wants to removes our thread used for the disk log consumer task, we only allow removal if
    * we are in shut down, else we need to keep the task, so we reject the removal
    * @return true if we allowed thread to be removed, else false
@@ -284,54 +196,6 @@ class LogManager : public DedicatedThreadOwner {
   bool OnThreadRemoval(common::ManagedPointer<DedicatedThreadTask> task) override {
     // We don't want to register a task if the log manager is shutting down though.
     return !run_log_manager_;
-  }
-};
-
-/**
- * Task that processes buffers handed over by transactions and serializes them into consumer buffers
- */
-class LogSerializerTask : public DedicatedThreadTask {
- public:
-  /**
-   * @param log_manager Pointer to log manager
-   * @param serialization_interval Interval time for when to trigger serialization
-   */
-  explicit LogSerializerTask(LogManager *log_manager, const std::chrono::milliseconds serialization_interval)
-      : log_manager_(log_manager), serialization_interval_(serialization_interval), run_task_(false) {}
-
-  /**
-   * Runs main disk log writer loop. Called by thread registry upon initialization of thread
-   */
-  void RunTask() override {
-    run_task_ = true;
-    LogSerializerTaskLoop();
-  }
-
-  /**
-   * Signals task to stop. Called by thread registry upon termination of thread
-   */
-  void Terminate() override {
-    // If the task hasn't run yet, sleep
-    while (!run_task_) std::this_thread::sleep_for(serialization_interval_);
-    TERRIER_ASSERT(run_task_, "Cant terminate a task that isnt running");
-    run_task_ = false;
-  }
-
- private:
-  LogManager *log_manager_;
-  const std::chrono::milliseconds serialization_interval_;
-  std::atomic<bool> run_task_;
-
-  /**
-   * Main serialization loop. Calls Process on LogManager every interval
-   */
-  void LogSerializerTaskLoop() {
-    do {
-      std::this_thread::sleep_for(serialization_interval_);
-      log_manager_->Process();
-    } while (run_task_);
-    // To be extra sure we processed everything
-    log_manager_->Process();
   }
 };
 
