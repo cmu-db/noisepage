@@ -119,9 +119,9 @@ class Payment {
 
         // District metadata
         d_id_key_pr_offset(static_cast<uint8_t>(
-            db->district_primary_index_->GetKeyOidToOffsetMap().at(db->district_primary_index_schema_.at(1).GetOid()))),
+            db->district_primary_index_->GetKeyOidToOffsetMap().at(db->district_primary_index_schema_.GetColumn(1).GetOid()))),
         d_w_id_key_pr_offset(static_cast<uint8_t>(
-            db->district_primary_index_->GetKeyOidToOffsetMap().at(db->district_primary_index_schema_.at(0).GetOid()))),
+            db->district_primary_index_->GetKeyOidToOffsetMap().at(db->district_primary_index_schema_.GetColumn(0).GetOid()))),
 
         d_name_oid(db->district_schema_.GetColumn(2).GetOid()),
         d_street_1_oid(db->district_schema_.GetColumn(3).GetOid()),
@@ -144,17 +144,17 @@ class Payment {
 
         // Customer metadata
         c_id_key_pr_offset(static_cast<uint8_t>(
-            db->customer_primary_index_->GetKeyOidToOffsetMap().at(db->customer_primary_index_schema_.at(2).GetOid()))),
+            db->customer_primary_index_->GetKeyOidToOffsetMap().at(db->customer_primary_index_schema_.GetColumn(2).GetOid()))),
         c_d_id_key_pr_offset(static_cast<uint8_t>(
-            db->customer_primary_index_->GetKeyOidToOffsetMap().at(db->customer_primary_index_schema_.at(1).GetOid()))),
+            db->customer_primary_index_->GetKeyOidToOffsetMap().at(db->customer_primary_index_schema_.GetColumn(1).GetOid()))),
         c_w_id_key_pr_offset(static_cast<uint8_t>(
-            db->customer_primary_index_->GetKeyOidToOffsetMap().at(db->customer_primary_index_schema_.at(0).GetOid()))),
+            db->customer_primary_index_->GetKeyOidToOffsetMap().at(db->customer_primary_index_schema_.GetColumn(0).GetOid()))),
         c_last_name_key_pr_offset(static_cast<uint8_t>(db->customer_secondary_index_->GetKeyOidToOffsetMap().at(
-            db->customer_secondary_index_schema_.at(2).GetOid()))),
+            db->customer_secondary_index_schema_.GetColumn(2).GetOid()))),
         c_d_id_name_key_pr_offset(static_cast<uint8_t>(db->customer_secondary_index_->GetKeyOidToOffsetMap().at(
-            db->customer_secondary_index_schema_.at(1).GetOid()))),
+            db->customer_secondary_index_schema_.GetColumn(1).GetOid()))),
         c_w_id_name_key_pr_offset(static_cast<uint8_t>(db->customer_secondary_index_->GetKeyOidToOffsetMap().at(
-            db->customer_secondary_index_schema_.at(0).GetOid()))),
+            db->customer_secondary_index_schema_.GetColumn(0).GetOid()))),
         c_first_pr_initializer(
             db->customer_table_->InitializerForProjectedRow({db->customer_schema_.GetColumn(3).GetOid()}).first),
         customer_select_pr_initializer(
