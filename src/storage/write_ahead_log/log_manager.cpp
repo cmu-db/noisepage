@@ -47,7 +47,7 @@ void LogManager::PersistAndStop() {
 
   // Signal all tasks to stop. The shutdown of the tasks will trigger a process and flush. The order in which we do
   // these is important, we must first serialize, then flush, then shutdown the disk consumer task
-  auto result = DedicatedThreadRegistry::GetInstance().StopTask(
+  auto result UNUSED_ATTRIBUTE = DedicatedThreadRegistry::GetInstance().StopTask(
       this, log_serializer_task_.CastManagedPointerTo<DedicatedThreadTask>());
   TERRIER_ASSERT(result, "LogFlusherTask should have been stopped");
   result = DedicatedThreadRegistry::GetInstance().StopTask(
