@@ -6,7 +6,6 @@ namespace terrier::catalog {
 // refer to catalog/catalog.h for OID numbering scheme
 #define START_OID 1001
 #define DEFAULT_DATABASE_OID db_oid_t(1)
-#define INVALID_TABLE_OID table_oid_t(2)
 
 // in name order
 STRONG_TYPEDEF(action_oid_t, uint32_t);
