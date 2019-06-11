@@ -1,4 +1,5 @@
 #include "metric/thread_level_stats_collector.h"
+#include <memory>
 #include <vector>
 #include "metric/database_metric.h"
 #include "metric/metric_defs.h"
@@ -24,8 +25,8 @@ ThreadLevelStatsCollector::~ThreadLevelStatsCollector() {
   collector_map_.UnsafeErase(thread_id_);
 }
 
-std::vector<AbstractRawData *> ThreadLevelStatsCollector::GetDataToAggregate() {
-  std::vector<AbstractRawData *> result;
+std::vector<std::unique_ptr<AbstractRawData>> ThreadLevelStatsCollector::GetDataToAggregate() {
+  std::vector<std::unique_ptr<AbstractRawData>> result;
   for (auto &metric : metrics_) result.emplace_back(metric->Swap());
   return result;
 }

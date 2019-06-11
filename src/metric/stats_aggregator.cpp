@@ -1,20 +1,20 @@
 #include "metric/stats_aggregator.h"
-
+#include <memory>
+#include <utility>
 #include <vector>
 
 namespace terrier::metric {
 
-std::vector<AbstractRawData *> StatsAggregator::AggregateRawData() {
-  std::vector<AbstractRawData *> acc;
+std::vector<std::unique_ptr<AbstractRawData>> StatsAggregator::AggregateRawData() {
+  std::vector<std::unique_ptr<AbstractRawData>> acc;
   auto collector_map = ThreadLevelStatsCollector::GetAllCollectors();
   for (auto iter = collector_map.Begin(); iter != collector_map.End(); ++iter) {
     auto data_block = iter->second->GetDataToAggregate();
     if (acc.empty()) {
-      acc = data_block;
+      acc = std::move(data_block);
     } else {
       for (size_t i = 0; i < data_block.size(); i++) {
-        acc[i]->Aggregate(data_block[i]);
-        delete data_block[i];
+        acc[i]->Aggregate(data_block[i].get());
       }
     }
   }
@@ -23,9 +23,8 @@ std::vector<AbstractRawData *> StatsAggregator::AggregateRawData() {
 
 void StatsAggregator::Aggregate() {
   auto acc = AggregateRawData();
-  for (auto raw_data : acc) {
+  for (const auto &raw_data UNUSED_ATTRIBUTE : acc) {
     //    raw_data->UpdateAndPersist(txn_manager_, txn);
-    delete raw_data;
   }
 }
 }  // namespace terrier::metric

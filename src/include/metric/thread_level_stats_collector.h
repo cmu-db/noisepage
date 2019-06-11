@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <unordered_map>
 #include <vector>
 #include "catalog/catalog_defs.h"
@@ -321,7 +322,7 @@ class ThreadLevelStatsCollector {
    * metric is guaranteed to be in the same position in the returned vector
    * for different instances of Collector.
    */
-  std::vector<AbstractRawData *> GetDataToAggregate();
+  std::vector<std::unique_ptr<AbstractRawData>> GetDataToAggregate();
 
  private:
   /**

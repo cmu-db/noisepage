@@ -10,11 +10,10 @@ int TestingStatsUtil::AggregateTestCounts() {
 
   int count = 0;
 
-  for (auto raw_data : result) {
+  for (const auto &raw_data : result) {
     if (raw_data->GetMetricType() == MetricType::TEST) {
-      count = dynamic_cast<TestMetricRawData *>(raw_data)->GetCount();
+      count = dynamic_cast<TestMetricRawData *>(raw_data.get())->GetCount();
     }
-    delete raw_data;
   }
   return count;
 }

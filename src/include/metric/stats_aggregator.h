@@ -1,17 +1,10 @@
 #pragma once
 
-#include <fstream>
-#include <map>
-
-#include <string>
-#include <unordered_map>
+#include <memory>
 #include <vector>
 
-#include "catalog/schema.h"
-#include "common/macros.h"
 #include "metric/abstract_raw_data.h"
 #include "metric/thread_level_stats_collector.h"
-#include "util/transaction_test_util.h"
 
 namespace terrier::metric {
 
@@ -37,9 +30,7 @@ class StatsAggregator {
    * Worker method for Aggregate() that performs stats collection
    * @return raw data collected from all threads
    */
-  std::vector<AbstractRawData *> AggregateRawData();
-
- private:
+  std::vector<std::unique_ptr<AbstractRawData>> AggregateRawData();
 };
 
 }  // namespace terrier::metric

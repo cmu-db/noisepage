@@ -97,18 +97,17 @@ TEST_F(MetricTests, DatabaseMetricBasicTest) {
     auto result = aggregator.AggregateRawData();
     EXPECT_FALSE(result.empty());
 
-    for (auto raw_data : result) {
+    for (const auto &raw_data : result) {
       if (raw_data->GetMetricType() == MetricType::DATABASE) {
         for (uint8_t j = 0; j < num_databases_; j++) {
-          auto commit_cnt = dynamic_cast<DatabaseMetricRawData *>(raw_data)->GetCommitCount(
-              static_cast<catalog::db_oid_t>(j));
-          auto abort_cnt = dynamic_cast<DatabaseMetricRawData *>(raw_data)->GetAbortCount(
-              static_cast<catalog::db_oid_t>(j));
+          auto commit_cnt =
+              dynamic_cast<DatabaseMetricRawData *>(raw_data.get())->GetCommitCount(static_cast<catalog::db_oid_t>(j));
+          auto abort_cnt =
+              dynamic_cast<DatabaseMetricRawData *>(raw_data.get())->GetAbortCount(static_cast<catalog::db_oid_t>(j));
           EXPECT_EQ(commit_cnt, commit_map[j]);
           EXPECT_EQ(abort_cnt, abort_map[j]);
         }
       }
-      delete raw_data;
     }
   }
 }
@@ -204,8 +203,7 @@ TEST_F(MetricTests, TransactionMetricBasicTest) {
           std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_min)
               .count());
       latency_min_map[txn_id] = latency;
-      ThreadLevelStatsCollector::GetCollectorForThread()->CollectTransactionCommit(
-          txn, CatalogTestUtil::test_db_oid);
+      ThreadLevelStatsCollector::GetCollectorForThread()->CollectTransactionCommit(txn, CatalogTestUtil::test_db_oid);
       txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
       latency = static_cast<uint64_t>(
           std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_max)
@@ -216,15 +214,15 @@ TEST_F(MetricTests, TransactionMetricBasicTest) {
     auto result = aggregator.AggregateRawData();
     EXPECT_FALSE(result.empty());
 
-    for (auto raw_data : result) {
+    for (const auto &raw_data : result) {
       if (raw_data->GetMetricType() == MetricType::TRANSACTION) {
         for (uint8_t j = 0; j < num_txns_; j++) {
           auto txn_id = id_map[j];
-          auto read_cnt = dynamic_cast<TransactionMetricRawData *>(raw_data)->GetTupleRead(txn_id);
-          auto update_cnt = dynamic_cast<TransactionMetricRawData *>(raw_data)->GetTupleUpdate(txn_id);
-          auto insert_cnt = dynamic_cast<TransactionMetricRawData *>(raw_data)->GetTupleInsert(txn_id);
-          auto delete_cnt = dynamic_cast<TransactionMetricRawData *>(raw_data)->GetTupleDelete(txn_id);
-          auto latency = dynamic_cast<TransactionMetricRawData *>(raw_data)->GetLatency(txn_id);
+          auto read_cnt = dynamic_cast<TransactionMetricRawData *>(raw_data.get())->GetTupleRead(txn_id);
+          auto update_cnt = dynamic_cast<TransactionMetricRawData *>(raw_data.get())->GetTupleUpdate(txn_id);
+          auto insert_cnt = dynamic_cast<TransactionMetricRawData *>(raw_data.get())->GetTupleInsert(txn_id);
+          auto delete_cnt = dynamic_cast<TransactionMetricRawData *>(raw_data.get())->GetTupleDelete(txn_id);
+          auto latency = dynamic_cast<TransactionMetricRawData *>(raw_data.get())->GetLatency(txn_id);
 
           EXPECT_EQ(read_cnt, read_map[txn_id]);
           EXPECT_EQ(update_cnt, update_map[txn_id]);
@@ -234,7 +232,6 @@ TEST_F(MetricTests, TransactionMetricBasicTest) {
           EXPECT_LE(latency_min_map[txn_id], latency);
         }
       }
-      delete raw_data;
     }
   }
 }
@@ -292,8 +289,7 @@ TEST_F(MetricTests, TransactionMetricStorageTest) {
           std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_min)
               .count());
       latency_min_map[txn_id] = latency;
-      ThreadLevelStatsCollector::GetCollectorForThread()->CollectTransactionCommit(
-          txn, CatalogTestUtil::test_db_oid);
+      ThreadLevelStatsCollector::GetCollectorForThread()->CollectTransactionCommit(txn, CatalogTestUtil::test_db_oid);
       txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
       latency = static_cast<uint64_t>(
           std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_max)
@@ -340,31 +336,31 @@ TEST_F(MetricTests, MultiThreadTest) {
           auto txn_id = txn->TxnId().load();
           txn_queue.Enqueue(txn_id);
           for (uint8_t k = 0; k < num_read; k++) {
-            ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleRead(
-                txn, CatalogTestUtil::test_db_oid, CatalogTestUtil::test_namespace_oid,
-                CatalogTestUtil::test_table_oid);
+            ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleRead(txn, CatalogTestUtil::test_db_oid,
+                                                                                 CatalogTestUtil::test_namespace_oid,
+                                                                                 CatalogTestUtil::test_table_oid);
           }
           for (uint8_t k = 0; k < num_update; k++) {
-            ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleUpdate(
-                txn, CatalogTestUtil::test_db_oid, CatalogTestUtil::test_namespace_oid,
-                CatalogTestUtil::test_table_oid);
+            ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleUpdate(txn, CatalogTestUtil::test_db_oid,
+                                                                                   CatalogTestUtil::test_namespace_oid,
+                                                                                   CatalogTestUtil::test_table_oid);
           }
           for (uint8_t k = 0; k < num_insert; k++) {
-            ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleInsert(
-                txn, CatalogTestUtil::test_db_oid, CatalogTestUtil::test_namespace_oid,
-                CatalogTestUtil::test_table_oid);
+            ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleInsert(txn, CatalogTestUtil::test_db_oid,
+                                                                                   CatalogTestUtil::test_namespace_oid,
+                                                                                   CatalogTestUtil::test_table_oid);
           }
           for (uint8_t k = 0; k < num_delete; k++) {
-            ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleDelete(
-                txn, CatalogTestUtil::test_db_oid, CatalogTestUtil::test_namespace_oid,
-                CatalogTestUtil::test_table_oid);
+            ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleDelete(txn, CatalogTestUtil::test_db_oid,
+                                                                                   CatalogTestUtil::test_namespace_oid,
+                                                                                   CatalogTestUtil::test_table_oid);
           }
           auto latency = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
                                                    std::chrono::high_resolution_clock::now() - start_min)
                                                    .count());
           latency_min_map.Insert(txn_id, latency);
-          ThreadLevelStatsCollector::GetCollectorForThread()->CollectTransactionCommit(
-              txn, CatalogTestUtil::test_db_oid);
+          ThreadLevelStatsCollector::GetCollectorForThread()->CollectTransactionCommit(txn,
+                                                                                       CatalogTestUtil::test_db_oid);
           txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
           latency = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
                                               std::chrono::high_resolution_clock::now() - start_max)
