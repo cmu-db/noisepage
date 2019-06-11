@@ -16,24 +16,24 @@ void LogSerializerTask::LogSerializerTaskLoop() {
 }
 
 void LogSerializerTask::Process() {
-  while (true) {
-    RecordBufferSegment *buffer;
-    // In a short critical section, try to dequeue an item
-    {
-      common::SpinLatch::ScopedSpinLatch guard(&flush_queue_latch_);
-      if (flush_queue_.empty()) break;
-      buffer = flush_queue_.front();
-      flush_queue_.pop();
-    }
+  // In a short critical section, get all buffers to serialize. We move them to a temp queue to reduce contention on the queue transactions interact with
+  std::queue<RecordBufferSegment *> temp_flush_queue;
+  {
+    common::SpinLatch::ScopedSpinLatch guard(&flush_queue_latch_);
+    temp_flush_queue = std::move(flush_queue_);
+  }
+  while (!temp_flush_queue.empty()) {
+    RecordBufferSegment *buffer = temp_flush_queue.front();
+    temp_flush_queue.pop();
+
     // Serialize the Redo buffer and release it to the buffer pool
     IterableBufferSegment<LogRecord> task_buffer(buffer);
     SerializeBuffer(&task_buffer);
     log_manager_->buffer_pool_->Release(buffer);
   }
+
   // Mark the last buffer that was written to as full
-  if (filled_buffer_ != nullptr) {
-    HandFilledBufferToWriter();
-  }
+  if (filled_buffer_ != nullptr) HandFilledBufferToWriter();
 }
 
 /**
