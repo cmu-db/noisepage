@@ -41,7 +41,7 @@ class DiskLogConsumerTask : public DedicatedThreadTask {
  private:
   // Log manager that created this task
   LogManager *const log_manager_;
-  std::atomic<bool> run_task_;
+  bool run_task_;
   std::vector<CommitCallback> commit_callbacks_;
 
   /**

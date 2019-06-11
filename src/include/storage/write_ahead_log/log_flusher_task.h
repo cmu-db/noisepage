@@ -40,7 +40,7 @@ class LogFlusherTask : public DedicatedThreadTask {
  private:
   LogManager *log_manager_;
   const std::chrono::milliseconds flushing_interval_;
-  std::atomic<bool> run_task_;
+  bool run_task_;
 
   /**
    * Main log flush loop. Calls ForceFlush on LogManager every interval

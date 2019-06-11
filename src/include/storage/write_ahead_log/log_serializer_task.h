@@ -59,7 +59,7 @@ class LogSerializerTask : public DedicatedThreadTask {
   // Interval for serialization
   const std::chrono::milliseconds serialization_interval_;
   // Flag to signal task to run or stop
-  std::atomic<bool> run_task_;
+  bool run_task_;
 
   // TODO(Tianyu): Might not be necessary, since commit on txn manager is already protected with a latch
   // TODO(Tianyu): benchmark for if these should be concurrent data structures, and if we should apply the same
@@ -81,7 +81,9 @@ class LogSerializerTask : public DedicatedThreadTask {
   void LogSerializerTaskLoop();
 
   /**
-   * Process all the accumulated log records and serialize them to log consumer tasks.
+   * Process all the accumulated log records and serialize them to log consumer tasks. It's important that we serialize
+   * the logs in order to ensure that a single transaction's logs are ordered. Only a single thread can serialize the
+   * logs (without more sophisticated ordering checks).
    */
   void Process();
 
