@@ -1,5 +1,5 @@
-
 #include "storage/write_ahead_log/log_serializer_task.h"
+#include <queue>
 #include <utility>
 #include "transaction/transaction_context.h"
 
@@ -30,7 +30,7 @@ void LogSerializerTask::Process() {
     // Serialize the Redo buffer and release it to the buffer pool
     IterableBufferSegment<LogRecord> task_buffer(buffer);
     SerializeBuffer(&task_buffer);
-    log_manager_->buffer_pool_->Release(buffer);
+    buffer_pool_->Release(buffer);
   }
 
   // Mark the last buffer that was written to as full
@@ -43,7 +43,7 @@ void LogSerializerTask::Process() {
  */
 BufferedLogWriter *LogSerializerTask::GetCurrentWriteBuffer() {
   if (filled_buffer_ == nullptr) {
-    log_manager_->empty_buffer_queue_.Dequeue(&filled_buffer_);
+    empty_buffer_queue_->Dequeue(&filled_buffer_);
   }
   return filled_buffer_;
 }
@@ -52,13 +52,11 @@ BufferedLogWriter *LogSerializerTask::GetCurrentWriteBuffer() {
  * Hand over the current buffer and commit callbacks for commit records in that buffer to the log consumer task
  */
 void LogSerializerTask::HandFilledBufferToWriter() {
-  log_manager_->filled_buffer_queue_.Enqueue(std::make_pair(filled_buffer_, commits_in_buffer_));
-  // Signal disk log consumer task  thread that a buffer is ready to be flushed to the disk
-  {
-    std::unique_lock<std::mutex> lock(log_manager_->persist_lock_);
-    log_manager_->disk_log_writer_thread_cv_.notify_one();
-  }
-  // Mark that serializer thread doesn't have a buffer in its possession to which it can write to
+  // Hand over the filled buffer
+  filled_buffer_queue_->Enqueue(std::make_pair(filled_buffer_, commits_in_buffer_));
+  // Signal disk log consumer task thread that a buffer has been handed over
+  disk_log_writer_thread_cv_->notify_one();
+  // Mark that the task doesn't have a buffer in its possession to which it can write to
   commits_in_buffer_.clear();
   filled_buffer_ = nullptr;
 }

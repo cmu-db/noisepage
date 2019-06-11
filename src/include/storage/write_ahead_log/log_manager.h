@@ -158,10 +158,11 @@ class LogManager : public DedicatedThreadOwner {
 
   // This stores a reference to all the buffers the serializer or the log consumer threads use
   std::vector<BufferedLogWriter> buffers_;
-  // The queue containing empty buffers which the serializer thread will use
+  // The queue containing empty buffers which the serializer thread will use. We use a blocking queue because the
+  // serializer thread should block when requesting a new buffer until it receives an empty buffer
   common::ConcurrentBlockingQueue<BufferedLogWriter *> empty_buffer_queue_;
   // The queue containing filled buffers pending flush to the disk
-  common::ConcurrentBlockingQueue<SerializedLogs> filled_buffer_queue_;
+  common::ConcurrentQueue<SerializedLogs> filled_buffer_queue_;
 
   // Log serializer task that processes buffers handed over by transactions and serializes them into consumer buffers
   common::ManagedPointer<LogSerializerTask> log_serializer_task_ = common::ManagedPointer<LogSerializerTask>(nullptr);

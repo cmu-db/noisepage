@@ -20,11 +20,18 @@ class LogSerializerTask : public DedicatedThreadTask {
    * @param log_manager Pointer to log manager
    * @param serialization_interval Interval time for when to trigger serialization
    */
-  explicit LogSerializerTask(LogManager *log_manager, const std::chrono::milliseconds serialization_interval)
-      : log_manager_(log_manager),
-        serialization_interval_(serialization_interval),
+  explicit LogSerializerTask(const std::chrono::milliseconds serialization_interval,
+                             RecordBufferSegmentPool *buffer_pool,
+                             common::ConcurrentBlockingQueue<BufferedLogWriter *> *empty_buffer_queue,
+                             common::ConcurrentQueue<SerializedLogs> *filled_buffer_queue,
+                             std::condition_variable *disk_log_writer_thread_cv)
+      : serialization_interval_(serialization_interval),
+        buffer_pool_(buffer_pool),
         run_task_(false),
-        filled_buffer_(nullptr) {}
+        filled_buffer_(nullptr),
+        empty_buffer_queue_(empty_buffer_queue),
+        filled_buffer_queue_(filled_buffer_queue),
+        disk_log_writer_thread_cv_(disk_log_writer_thread_cv) {}
 
   /**
    * Runs main disk log writer loop. Called by thread registry upon initialization of thread
@@ -54,12 +61,13 @@ class LogSerializerTask : public DedicatedThreadTask {
   }
 
  private:
-  // LogManager that created task
-  LogManager *log_manager_;
   // Interval for serialization
   const std::chrono::milliseconds serialization_interval_;
   // Flag to signal task to run or stop
   bool run_task_;
+
+  // Used to release processed buffers
+  RecordBufferSegmentPool *buffer_pool_;
 
   // TODO(Tianyu): Might not be necessary, since commit on txn manager is already protected with a latch
   // TODO(Tianyu): benchmark for if these should be concurrent data structures, and if we should apply the same
@@ -73,6 +81,14 @@ class LogSerializerTask : public DedicatedThreadTask {
   BufferedLogWriter *filled_buffer_;
   // Commit callbacks for commit records currently in filled_buffer
   std::vector<std::pair<transaction::callback_fn, void *>> commits_in_buffer_;
+
+  // The queue containing empty buffers. Task will dequeue a buffer from this queue when it needs a new buffer
+  common::ConcurrentBlockingQueue<BufferedLogWriter *> *empty_buffer_queue_;
+  // The queue containing filled buffers. Task should push filled serialized buffers into this queue
+  common::ConcurrentQueue<SerializedLogs> *filled_buffer_queue_;
+
+  // Condition variable to signal disk log consumer task thread that a new full buffer has been pushed to the queue
+  std::condition_variable *disk_log_writer_thread_cv_;
 
   /**
    * Main serialization loop. Calls Process every interval. Processes all the accumulated log records and
