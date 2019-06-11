@@ -27,7 +27,6 @@ class SettingsManager;
  */
 class MetricTests : public TerrierTest {
  public:
-
   void SetUp() override {
     TerrierTest::SetUp();
     txn_manager_ = new transaction::TransactionManager(&buffer_pool_, true, LOGGING_DISABLED);
@@ -58,10 +57,6 @@ class MetricTests : public TerrierTest {
  */
 // NOLINTNEXTLINE
 TEST_F(MetricTests, BasicTest) {
-  storage::metric::StatsAggregator aggregator(txn_manager_, nullptr);
-  EXPECT_EQ(aggregator.GetTxnManager(), txn_manager_);
-  EXPECT_EQ(aggregator.GetSettingsManager(), settings_manager_);
-
   auto test_num_1 = std::uniform_int_distribution<int32_t>(0, INT32_MAX)(generator_);
   auto test_num_2 = std::uniform_int_distribution<int32_t>(0, INT32_MAX)(generator_);
   auto stats_collector = storage::metric::ThreadLevelStatsCollector();
@@ -79,7 +74,7 @@ TEST_F(MetricTests, DatabaseMetricBasicTest) {
   const uint32_t num_threads = MultiThreadTestUtil::HardwareConcurrency();
   common::WorkerPool thread_pool(num_threads, {});
   auto stats_collector = storage::metric::ThreadLevelStatsCollector();
-  storage::metric::StatsAggregator aggregator(txn_manager_, nullptr);
+  storage::metric::StatsAggregator aggregator;
   for (uint8_t i = 0; i < num_iterations_; i++) {
     std::unordered_map<uint8_t, int64_t> commit_map;
     std::unordered_map<uint8_t, int64_t> abort_map;
@@ -130,7 +125,7 @@ TEST_F(MetricTests, DatabaseMetricBasicTest) {
 // NOLINTNEXTLINE
 TEST_F(MetricTests, DatabaseMetricStorageTest) {
   auto stats_collector = storage::metric::ThreadLevelStatsCollector();
-  storage::metric::StatsAggregator aggregator(txn_manager_, nullptr);
+  storage::metric::StatsAggregator aggregator;
   std::unordered_map<uint8_t, int32_t> commit_map;
   std::unordered_map<uint8_t, int32_t> abort_map;
   for (uint8_t j = 0; j < num_databases_; j++) {
@@ -158,7 +153,7 @@ TEST_F(MetricTests, DatabaseMetricStorageTest) {
         }
       }
     }
-    aggregator.Aggregate(txn_);
+    aggregator.Aggregate();
   }
 }
 
@@ -168,7 +163,7 @@ TEST_F(MetricTests, DatabaseMetricStorageTest) {
 // NOLINTNEXTLINE
 TEST_F(MetricTests, TransactionMetricBasicTest) {
   auto stats_collector = storage::metric::ThreadLevelStatsCollector();
-  storage::metric::StatsAggregator aggregator(txn_manager_, nullptr);
+  storage::metric::StatsAggregator aggregator;
 
   for (uint8_t i = 0; i < num_iterations_; i++) {
     std::unordered_map<uint8_t, transaction::timestamp_t> id_map;
@@ -256,7 +251,7 @@ TEST_F(MetricTests, TransactionMetricBasicTest) {
 // NOLINTNEXTLINE
 TEST_F(MetricTests, TransactionMetricStorageTest) {
   auto stats_collector = storage::metric::ThreadLevelStatsCollector();
-  storage::metric::StatsAggregator aggregator(txn_manager_, nullptr);
+  storage::metric::StatsAggregator aggregator;
 
   for (uint8_t i = 0; i < num_iterations_; i++) {
     std::unordered_map<uint8_t, transaction::timestamp_t> id_map;
@@ -312,7 +307,7 @@ TEST_F(MetricTests, TransactionMetricStorageTest) {
       latency_max_map[txn_id] = latency;
     }
 
-    aggregator.Aggregate(txn_);
+    aggregator.Aggregate();
   }
 }
 
@@ -328,7 +323,7 @@ TEST_F(MetricTests, MultiThreadTest) {
     common::ConcurrentQueue<transaction::timestamp_t> txn_queue;
     common::ConcurrentMap<transaction::timestamp_t, int64_t> latency_max_map;
     common::ConcurrentMap<transaction::timestamp_t, int64_t> latency_min_map;
-    storage::metric::StatsAggregator aggregator(txn_manager_, nullptr);
+    storage::metric::StatsAggregator aggregator;
     common::ConcurrentVector<storage::metric::ThreadLevelStatsCollector *> collectors;
     auto num_read = static_cast<uint8_t>(std::uniform_int_distribution<uint8_t>(1, UINT8_MAX)(generator_));
     auto num_update = static_cast<uint8_t>(std::uniform_int_distribution<uint8_t>(1, UINT8_MAX)(generator_));
@@ -339,7 +334,7 @@ TEST_F(MetricTests, MultiThreadTest) {
       // NOTICE: thread level collector must be alive while aggregating
       if (id == 0) {  // aggregator thread
         std::this_thread::sleep_for(aggr_period_);
-        aggregator.Aggregate(txn_);
+        aggregator.Aggregate();
       } else {  // normal thread
         auto *stats_collector = new storage::metric::ThreadLevelStatsCollector();
         collectors.PushBack(stats_collector);

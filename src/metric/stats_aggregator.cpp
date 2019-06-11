@@ -21,7 +21,7 @@ std::vector<AbstractRawData *> StatsAggregator::AggregateRawData() {
   return acc;
 }
 
-void StatsAggregator::Aggregate(transaction::TransactionContext *txn) {
+void StatsAggregator::Aggregate() {
   auto acc = AggregateRawData();
   for (auto raw_data : acc) {
     //    raw_data->UpdateAndPersist(txn_manager_, txn);
