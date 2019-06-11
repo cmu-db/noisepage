@@ -22,19 +22,6 @@ namespace terrier::catalog::postgres {
 #define DAT_CATALOG_COL_OID col_oid_t(3) // BIGINT (assumes 64-bit pointers)
 
 /**
- * Get a new schema object that describes the pg_database table
- * @return the pg_database schema object
- */
-Schema GetDatabaseTableSchema();
-
-/**
- * Instantiate a new SqlTable for pg_database
- * @param block_store to back the table's memory requirements
- * @return pointer to the new pg_database table
- */
-storage::SqlTable *CreateDatabaseTable(storage::BlockStore *block_store);
-
-/**
  * This is a thin wrapper around projections into pg_database.  The interface
  * is intended to  be generic enough that the underlying table schemas could
  * be replaced with a different implementation and not significantly affect
@@ -51,7 +38,7 @@ class DatabaseEntry {
    * @param txn owning all of the operations
    * @param pg_namespace_table into which we are fetching entries
    */
-  DatabaseEntry(transaction::TransactionContext *txn, storage::SqlTable *pg_database_table);
+  DatabaseEntry(transaction::TransactionContext *txn, catalog::Catalog *pg_catalog);
 
   /**
    * Destructor for the DatabaseEntry.
@@ -167,11 +154,22 @@ class DatabaseEntry {
   }
 
  private:
+  byte *row_buffer_;
   storage::ProjectedRow *row_;
   storage::ProjectionMap *projection_map_;
+  storage::SqlTable *pg_database_;
+
+  storage::index::Index *oid_index_;
+  byte *oid_index_row_buffer_;
+  storage::ProjectedRow *oid_index_row_;
+  const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &oid_index_oid_map_;
+
+  storage::index::Index *name_index_;
+  byte *name_index_row_buffer_;
+  storage::ProjectedRow *name_index_row_;
+  const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &name_index_oid_map_;
 
   transaction::TransactionContext *txn_;
-  storage::SqlTable *table_;
 
   storage::TupleSlot slot_;
 };

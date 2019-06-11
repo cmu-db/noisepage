@@ -1,15 +1,20 @@
 # Catalog Design Documention
 
+TODO(John): Port this document over to the new format.
+
 ## File Hierarchy
 ```
 src/
     catalog/
+        postgres/
+            builder.cpp
         catalog.cpp
         catalog_accessor.cpp
         database_catalog.cpp
     include/
         catalog/
             postgres/
+                builder.h
                 pg_attribute.h
                 pg_class.h
                 pg_constraint.h
@@ -51,6 +56,9 @@ Analog to `Schema::Column` but idempotent (except for OIDs) after creation.
 
 ### [Table]Entry
 Stateful wrapper around a projected row for each of the implemented _PostgreSQL_ catalog tables that provides strongly typed accessor methods for each column to allow compile-time type checking.
+
+### postgres::Builder
+A static helper class that exists to enable certain aspects required for bootstrapping such as self-assigning OIDs and other public API circumventing activities.
 
 ## Design
 

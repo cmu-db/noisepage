@@ -334,7 +334,7 @@ struct StorageTestUtil {
    * Generates a random GenericKey-compatible schema with the given number of columns using the given types.
    */
   template <typename Random>
-  static catalog::IndexKeySchema RandomGenericKeySchema(const uint32_t num_cols, const std::vector<type::TypeId> &types,
+  static catalog::IndexSchema RandomGenericKeySchema(const uint32_t num_cols, const std::vector<type::TypeId> &types,
                                                         Random *generator) {
     uint32_t max_varlen_size = 20;
     TERRIER_ASSERT(num_cols > 0, "Must have at least one column in your key schema.");
@@ -348,7 +348,7 @@ struct StorageTestUtil {
 
     std::shuffle(key_oids.begin(), key_oids.end(), *generator);
 
-    catalog::IndexKeySchema key_schema;
+    std::vector<catalog::IndexSchema::Column> key_cols;
 
     for (uint32_t i = 0; i < num_cols; i++) {
       auto key_oid = key_oids[i];
@@ -359,16 +359,16 @@ struct StorageTestUtil {
         case type::TypeId::VARBINARY:
         case type::TypeId::VARCHAR: {
           auto varlen_size = std::uniform_int_distribution(0u, max_varlen_size)(*generator);
-          key_schema.emplace_back(key_oid, type, is_nullable, varlen_size);
+          key_cols.emplace_back(key_oid, type, is_nullable, varlen_size);
           break;
         }
         default:
-          key_schema.emplace_back(key_oid, type, is_nullable);
+          key_cols.emplace_back(key_oid, type, is_nullable);
           break;
       }
     }
 
-    return key_schema;
+    return IndexSchema(key_cols, false, false, false, true);
   }
 
   /**
