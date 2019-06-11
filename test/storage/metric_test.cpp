@@ -23,14 +23,38 @@ namespace terrier::metric {
  */
 class MetricTests : public TerrierTest {
  public:
+  void GCThreadLoop() {
+    while (run_gc_) {
+      std::this_thread::sleep_for(gc_period_);
+      gc_->PerformGarbageCollection();
+    }
+  }
+
+  void StartGC(transaction::TransactionManager *const txn_manager) {
+    gc_ = new storage::GarbageCollector(txn_manager);
+    run_gc_ = true;
+    gc_thread_ = std::thread([this] { GCThreadLoop(); });
+  }
+
+  void EndGC() {
+    run_gc_ = false;
+    gc_thread_.join();
+    // Make sure all garbage is collected. This take 2 runs for unlink and deallocate
+    gc_->PerformGarbageCollection();
+    gc_->PerformGarbageCollection();
+    delete gc_;
+  }
+
   void SetUp() override {
     TerrierTest::SetUp();
     txn_manager_ = new transaction::TransactionManager(&buffer_pool_, true, LOGGING_DISABLED);
+    StartGC(txn_manager_);
     txn_ = txn_manager_->BeginTransaction();
   }
 
   void TearDown() override {
     txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
+    EndGC();
     delete txn_manager_;
     TerrierTest::TearDown();
   }
@@ -44,6 +68,11 @@ class MetricTests : public TerrierTest {
   const uint8_t num_databases_ = 5;
   const uint8_t num_txns_ = 100;
   const std::chrono::milliseconds aggr_period_{1000};
+
+  std::thread gc_thread_;
+  storage::GarbageCollector *gc_ = nullptr;
+  volatile bool run_gc_ = false;
+  const std::chrono::milliseconds gc_period_{10};
 };
 
 /**
