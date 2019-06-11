@@ -10,7 +10,7 @@
 #include "metric/abstract_metric.h"
 #include "transaction/transaction_defs.h"
 
-namespace terrier::storage::metric {
+namespace terrier::metric {
 
 /**
  * Raw data object for holding stats collected at transaction level
@@ -230,4 +230,4 @@ class TransactionMetric : public AbstractMetric<TransactionMetricRawData> {
     GetRawData()->IncrementTupleDelete(txn);
   }
 };
-}  // namespace terrier::storage::metric
+}  // namespace terrier::metric

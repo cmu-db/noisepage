@@ -4,7 +4,7 @@
 #include "metric/abstract_metric.h"
 #include "metric/abstract_raw_data.h"
 
-namespace terrier::storage::metric {
+namespace terrier::metric {
 
 /**
  * @brief raw data type for testing purpose
@@ -54,4 +54,4 @@ class TestMetric : public AbstractMetric<TestMetricRawData> {
   void OnTest(int num) override { GetRawData()->Integrate(num); }
 };
 
-}  // namespace terrier::storage::metric
+}  // namespace terrier::metric

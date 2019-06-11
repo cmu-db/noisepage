@@ -5,10 +5,10 @@
 #include "metric/stats_aggregator.h"
 #include "metric/test_metric.h"
 
-namespace terrier {
+namespace terrier::metric {
 
 class TestingStatsUtil {
  public:
   static int AggregateTestCounts();
 };
-}  // namespace terrier
+}  // namespace terrier::metric

@@ -5,7 +5,7 @@
 #include "metric/test_metric.h"
 #include "metric/transaction_metric.h"
 
-namespace terrier::storage::metric {
+namespace terrier::metric {
 
 ThreadLevelStatsCollector::CollectorsMap ThreadLevelStatsCollector::collector_map_ = CollectorsMap();
 
@@ -29,4 +29,4 @@ std::vector<AbstractRawData *> ThreadLevelStatsCollector::GetDataToAggregate() {
   for (auto &metric : metrics_) result.emplace_back(metric->Swap());
   return result;
 }
-}  // namespace terrier::storage::metric
+}  // namespace terrier::metric

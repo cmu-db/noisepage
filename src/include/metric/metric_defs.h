@@ -4,7 +4,7 @@
 #include <vector>
 #include "common/strong_typedef.h"
 
-namespace terrier::storage::metric {
+namespace terrier::metric {
 
 /**
  * Metric types
@@ -68,4 +68,4 @@ class EnumHash {
   }
 };
 
-}  // namespace terrier::storage::metric
+}  // namespace terrier::metric

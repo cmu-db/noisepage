@@ -9,7 +9,7 @@
 #include "type/transient_value_factory.h"
 #include "type/transient_value_peeker.h"
 
-namespace terrier::storage::metric {
+namespace terrier::metric {
 
 /**
  * Raw data object for holding stats collected at the database level
@@ -94,4 +94,4 @@ class DatabaseMetric : public AbstractMetric<DatabaseMetricRawData> {
     GetRawData()->IncrementTxnAborted(database_oid);
   }
 };
-}  // namespace terrier::storage::metric
+}  // namespace terrier::metric

@@ -15,7 +15,7 @@
 #include "util/test_harness.h"
 #include "util/transaction_test_util.h"
 
-namespace terrier {
+namespace terrier::metric {
 
 // This benchmark measures the throughput of the Aggregator and the Collector in the metric collection pipeline.
 class MetricBenchmark : public benchmark::Fixture {
@@ -44,24 +44,16 @@ class MetricBenchmark : public benchmark::Fixture {
 
   void SetUp(const benchmark::State &state) final {
     txn_manager_ = new transaction::TransactionManager(&buffer_pool_, true, LOGGING_DISABLED);
-
-    txn_ = txn_manager_->BeginTransaction();
-    settings_manager_ = nullptr;
     StartGC(txn_manager_);
   }
 
   void TearDown(const benchmark::State &state) final {
-    txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
-
     EndGC();
     delete txn_manager_;
   }
 
-  settings::SettingsManager *settings_manager_;
-
   storage::RecordBufferSegmentPool buffer_pool_{100, 100};
 
-  transaction::TransactionContext *txn_ = nullptr;
   transaction::TransactionManager *txn_manager_;
   std::default_random_engine generator_;
   const uint8_t num_txns_ = 1;
@@ -71,28 +63,26 @@ class MetricBenchmark : public benchmark::Fixture {
   storage::GarbageCollector *gc_ = nullptr;
   volatile bool run_gc_ = false;
   const std::chrono::milliseconds gc_period_{10};
-
-  const std::string default_namespace_{"public"};
 };
 
 // After completing each transaction, an Aggregation is performed.
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MetricBenchmark, AggregateMetric)(benchmark::State &state) {
-  auto stats_collector = storage::metric::ThreadLevelStatsCollector();
-  storage::metric::StatsAggregator aggregator(txn_manager_, nullptr);
+  auto stats_collector = ThreadLevelStatsCollector();
+  StatsAggregator aggregator;
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
     for (uint8_t j = 0; j < num_txns_; j++) {
       auto *txn = txn_manager_->BeginTransaction();
       // Simulation of reading a tuple
-      storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleRead(
+      ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleRead(
           txn, catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3));
       txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
       // The Aggregate() function accounts for more than 99.5% of the total running time for this benchmark.
       // So the throughput of this benchmark can be viewed as the throughput of the Aggeragate() function.
-      aggregator.Aggregate(txn_);
+      aggregator.Aggregate();
     }
   }
   // The number of transactions is equal to the number of aggregations in this benchmark.
@@ -101,8 +91,8 @@ BENCHMARK_DEFINE_F(MetricBenchmark, AggregateMetric)(benchmark::State &state) {
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MetricBenchmark, CollectMetric)(benchmark::State &state) {
-  auto stats_collector = storage::metric::ThreadLevelStatsCollector();
-  storage::metric::StatsAggregator aggregator(txn_manager_, nullptr);
+  auto stats_collector = ThreadLevelStatsCollector();
+  StatsAggregator aggregator;
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
@@ -112,27 +102,27 @@ BENCHMARK_DEFINE_F(MetricBenchmark, CollectMetric)(benchmark::State &state) {
       for (uint32_t k = 0; k < num_ops_; k++) {
         auto op_type = std::uniform_int_distribution<uint8_t>(0, 3)(generator_);
         if (op_type == 0) {  // Read
-          storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleRead(
+          ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleRead(
               txn, catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3));
         } else if (op_type == 1) {  // Update
-          storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleUpdate(
+          ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleUpdate(
               txn, catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3));
         } else if (op_type == 2) {  // Insert
-          storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleInsert(
+          ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleInsert(
               txn, catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3));
         } else {  // Delete
-          storage::metric::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleDelete(
+          ThreadLevelStatsCollector::GetCollectorForThread()->CollectTupleDelete(
               txn, catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3));
         }
       }
       txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
     }
 
-    aggregator.Aggregate(txn_);
+    aggregator.Aggregate();
   }
   state.SetItemsProcessed(state.iterations() * num_ops_ * num_txns_);
 }
 
 BENCHMARK_REGISTER_F(MetricBenchmark, AggregateMetric)->Unit(benchmark::kMillisecond)->UseRealTime();
 BENCHMARK_REGISTER_F(MetricBenchmark, CollectMetric)->Unit(benchmark::kMillisecond)->UseRealTime();
-}  // namespace terrier
+}  // namespace terrier::metric

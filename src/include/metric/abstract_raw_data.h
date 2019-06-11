@@ -4,7 +4,7 @@
 #include "metric/metric_defs.h"
 #include "transaction/transaction_manager.h"
 
-namespace terrier::storage::metric {
+namespace terrier::metric {
 /**
  * @brief An always-consistent storage unit for intermediate stats results.
  *
@@ -34,4 +34,4 @@ class AbstractRawData {
    */
   virtual MetricType GetMetricType() const = 0;
 };
-}  // namespace terrier::storage::metric
+}  // namespace terrier::metric

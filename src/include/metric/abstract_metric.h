@@ -16,7 +16,7 @@ namespace transaction {
 class TransactionContext;
 }  // namespace transaction
 
-namespace storage::metric {
+namespace metric {
 /**
  * @brief Interface representing a metric.
  * A metric is defined to be some piece of logic that processes events generated
@@ -350,5 +350,5 @@ class AbstractMetric : public Metric {
    */
   common::SpinLatch latch_;
 };
-}  // namespace storage::metric
+}  // namespace metric
 }  // namespace terrier

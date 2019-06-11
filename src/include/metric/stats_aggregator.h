@@ -13,13 +13,7 @@
 #include "metric/thread_level_stats_collector.h"
 #include "util/transaction_test_util.h"
 
-namespace terrier {
-
-namespace settings {
-class SettingsManager;
-}  // namespace settings
-
-namespace storage::metric {
+namespace terrier::metric {
 
 /**
  * Background thread that periodically collects data from thread level collectors
@@ -48,5 +42,4 @@ class StatsAggregator {
  private:
 };
 
-}  // namespace storage::metric
-}  // namespace terrier
+}  // namespace terrier::metric
