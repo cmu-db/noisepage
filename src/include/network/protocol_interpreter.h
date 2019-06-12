@@ -15,8 +15,18 @@ class ConnectionHandle;
  */
 class ProtocolInterpreter {
  public:
+  /**
+   * A Provider interface is a strategy object for construction.
+   *
+   * It encapsulates creation logic that can be passed around as polymorphic objects. Inject the
+   * approriate subclass of this object to the connection dispatcher in order to bind them to
+   * the correct protocol type.
+   */
   struct Provider {
     virtual ~Provider() = default;
+    /**
+     * @return a constructed instance of protocol interpreter
+     */
     virtual std::unique_ptr<ProtocolInterpreter> Get() = 0;
   };
   /**
@@ -30,7 +40,8 @@ class ProtocolInterpreter {
    */
   virtual Transition Process(std::shared_ptr<ReadBuffer> in, std::shared_ptr<WriteQueue> out,
                              common::ManagedPointer<tcop::TrafficCop> t_cop,
-                             common::ManagedPointer<ConnectionContext> context, NetworkCallback callback) = 0;
+                             common::ManagedPointer<ConnectionContext> context,
+                             NetworkCallback callback) = 0;
 
   /**
    * Sends a result
