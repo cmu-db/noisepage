@@ -53,7 +53,8 @@ class TPCCTests : public TerrierTest {
   // Settings for log manager
   const uint64_t num_log_buffers_ = 100;
   const std::chrono::milliseconds log_serialization_interval_{10};
-  const std::chrono::milliseconds log_flushing_interval_{20};
+  const std::chrono::milliseconds log_persist_interval_{20};
+  const uint64_t log_persist_threshold_ = (1 << 20);  // 1MB
 
   storage::GarbageCollectorThread *gc_thread_ = nullptr;
   const std::chrono::milliseconds gc_period_{10};
@@ -121,7 +122,7 @@ TEST_F(TPCCTests, WithLogging) {
 
   // we need transactions, TPCC database, and GC
   log_manager_ = new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_,
-                                         log_flushing_interval_, &buffer_pool_);
+                                         log_persist_interval_, log_persist_threshold_, &buffer_pool_);
   log_manager_->Start();
   transaction::TransactionManager txn_manager(&buffer_pool_, true, log_manager_);
   auto tpcc_builder = Builder(&block_store_);

@@ -7,8 +7,8 @@
 #include <cerrno>
 #include <cstring>
 #include <string>
-#include "common/macros.h"
 #include "common/constants.h"
+#include "common/macros.h"
 #include "loggers/storage_logger.h"
 
 namespace terrier::storage {
@@ -122,10 +122,13 @@ class BufferedLogWriter {
 
   /**
    * Flush any buffered writes.
+   * @return amount of data flushed
    */
-  void FlushBuffer() {
+  uint64_t FlushBuffer() {
+    auto size = buffer_size_;
     WriteUnsynced(buffer_, buffer_size_);
     buffer_size_ = 0;
+    return size;
   }
 
   /**

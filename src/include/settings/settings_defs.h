@@ -30,4 +30,7 @@ SETTING_int(num_log_manager_buffers, "The number of buffers the log manager uses
 SETTING_int(log_serialization_interval, "Log serialization task interval (ms) (default: 10)", 10, 1, 10000, false, terrier::settings::Callbacks::NoOp)
 
 // Log file persisting interval
-SETTING_int(log_persist_interval, "Log flushing task interval (ms) (default: 10)", 10, 1, 10000, false, terrier::settings::Callbacks::NoOp)
+SETTING_int(log_persist_interval, "Log file persisiting interval (ms) (default: 10)", 10, 1, 10000, false, terrier::settings::Callbacks::NoOp)
+
+// Log file persisting threshold
+SETTING_int(log_persist_threshold, "Log file persisting write threshold (bytes) (default: 1MB)", (1 << 20) /* 1MB */, (1 << 12) /* 4KB */, (1 << 24) /* 16MB */, false, terrier::settings::Callbacks::NoOp)

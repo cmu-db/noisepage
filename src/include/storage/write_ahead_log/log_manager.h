@@ -48,13 +48,15 @@ class LogManager : public DedicatedThreadOwner {
    *                    buffers from
    */
   LogManager(std::string log_file_path, uint64_t num_buffers, const std::chrono::milliseconds serialization_interval,
-             const std::chrono::milliseconds persist_interval, RecordBufferSegmentPool *const buffer_pool)
+             const std::chrono::milliseconds persist_interval, uint64_t persist_threshold,
+             RecordBufferSegmentPool *const buffer_pool)
       : run_log_manager_(false),
         log_file_path_(std::move(log_file_path)),
         num_buffers_(num_buffers),
         buffer_pool_(buffer_pool),
         serialization_interval_(serialization_interval),
-        persist_interval_(persist_interval) {}
+        persist_interval_(persist_interval),
+        persist_threshold_(persist_threshold) {}
 
   /**
    * Starts log manager. Does the following in order:
@@ -151,6 +153,8 @@ class LogManager : public DedicatedThreadOwner {
       common::ManagedPointer<DiskLogConsumerTask>(nullptr);
   // Interval used by disk consumer task
   const std::chrono::milliseconds persist_interval_;
+  // Threshold used by disk consumer task
+  uint64_t persist_threshold_;
 
   /**
    * If the central registry wants to removes our thread used for the disk log consumer task, we only allow removal if

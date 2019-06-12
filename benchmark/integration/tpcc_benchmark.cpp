@@ -42,7 +42,8 @@ class TPCCBenchmark : public benchmark::Fixture {
   // Settings for log manager
   const uint64_t num_log_buffers_ = 100;
   const std::chrono::milliseconds log_serialization_interval_{5};
-  const std::chrono::milliseconds log_flushing_interval_{10};
+  const std::chrono::milliseconds log_persist_interval_{10};
+  const uint64_t log_persist_threshold_ = (1 << 20);  // 1MB
 
   const bool only_count_new_order_ = false;  // TPC-C specification is to only measure throughput for New Order in final
                                              // result, but most academic papers use all txn types
@@ -153,7 +154,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
     unlink(LOG_FILE_NAME);
     // we need transactions, TPCC database, and GC
     log_manager_ = new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_,
-                                           log_flushing_interval_, &buffer_pool_);
+                                           log_persist_interval_, log_persist_threshold_, &buffer_pool_);
     log_manager_->Start();
     transaction::TransactionManager txn_manager(&buffer_pool_, true, log_manager_);
 

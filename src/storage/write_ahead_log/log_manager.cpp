@@ -18,7 +18,8 @@ void LogManager::Start() {
 
   // Register DiskLogConsumerTask
   disk_log_writer_task_ = DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread<DiskLogConsumerTask>(
-      this /* requester */, persist_interval_, &buffers_, &empty_buffer_queue_, &filled_buffer_queue_);
+      this /* requester */, persist_interval_, persist_threshold_, &buffers_, &empty_buffer_queue_,
+      &filled_buffer_queue_);
 
   // Register LogSerializerTask
   log_serializer_task_ = DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread<LogSerializerTask>(

@@ -28,7 +28,8 @@ class LoggingBenchmark : public benchmark::Fixture {
   // Settings for log manager
   const uint64_t num_log_buffers_ = 100;
   const std::chrono::milliseconds log_serialization_interval_{5};
-  const std::chrono::milliseconds log_flushing_interval_{10};
+  const std::chrono::milliseconds log_persist_interval_{10};
+  const uint64_t log_persist_threshold_ = (1 << 20);  // 1MB
 };
 
 /**
@@ -42,7 +43,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, TPCCish)(benchmark::State &state) {
   // NOLINTNEXTLINE
   for (auto _ : state) {
     log_manager_ = new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_,
-                                           log_flushing_interval_, &buffer_pool_);
+                                           log_persist_interval_, log_persist_threshold_, &buffer_pool_);
     log_manager_->Start();
     LargeTransactionBenchmarkObject tested(attr_sizes, initial_table_size, txn_length, insert_update_select_ratio,
                                            &block_store_, &buffer_pool_, &generator_, true, log_manager_);
@@ -76,7 +77,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, HighAbortRate)(benchmark::State &state) {
   for (auto _ : state) {
     // use a smaller table to make aborts more likely
     log_manager_ = new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_,
-                                           log_flushing_interval_, &buffer_pool_);
+                                           log_persist_interval_, log_persist_threshold_, &buffer_pool_);
     log_manager_->Start();
     LargeTransactionBenchmarkObject tested(attr_sizes, 1000, txn_length, insert_update_select_ratio, &block_store_,
                                            &buffer_pool_, &generator_, true, log_manager_);
@@ -109,7 +110,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementInsert)(benchmark::State &st
   // NOLINTNEXTLINE
   for (auto _ : state) {
     log_manager_ = new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_,
-                                           log_flushing_interval_, &buffer_pool_);
+                                           log_persist_interval_, log_persist_threshold_, &buffer_pool_);
     log_manager_->Start();
     LargeTransactionBenchmarkObject tested(attr_sizes, 0, txn_length, insert_update_select_ratio, &block_store_,
                                            &buffer_pool_, &generator_, true, log_manager_);
@@ -142,7 +143,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementUpdate)(benchmark::State &st
   // NOLINTNEXTLINE
   for (auto _ : state) {
     log_manager_ = new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_,
-                                           log_flushing_interval_, &buffer_pool_);
+                                           log_persist_interval_, log_persist_threshold_, &buffer_pool_);
     log_manager_->Start();
     LargeTransactionBenchmarkObject tested(attr_sizes, initial_table_size, txn_length, insert_update_select_ratio,
                                            &block_store_, &buffer_pool_, &generator_, true, log_manager_);
@@ -175,7 +176,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementSelect)(benchmark::State &st
   // NOLINTNEXTLINE
   for (auto _ : state) {
     log_manager_ = new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_,
-                                           log_flushing_interval_, &buffer_pool_);
+                                           log_persist_interval_, log_persist_threshold_, &buffer_pool_);
     log_manager_->Start();
     LargeTransactionBenchmarkObject tested(attr_sizes, initial_table_size, txn_length, insert_update_select_ratio,
                                            &block_store_, &buffer_pool_, &generator_, true, log_manager_);

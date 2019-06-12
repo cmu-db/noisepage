@@ -35,7 +35,7 @@ void DBMain::Init() {
       settings_manager_->GetInt(settings::Param::num_log_manager_buffers),
       std::chrono::milliseconds{settings_manager_->GetInt(settings::Param::log_serialization_interval)},
       std::chrono::milliseconds{settings_manager_->GetInt(settings::Param::log_persist_interval)},
-      buffer_segment_pool_);
+      settings_manager_->GetInt(settings::Param::log_persist_threshold), buffer_segment_pool_);
   log_manager_->Start();
 
   thread_pool_ = new common::WorkerPool(
