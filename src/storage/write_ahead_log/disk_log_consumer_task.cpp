@@ -54,7 +54,6 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
       // 2) There is a filled buffer to write to the disk
       // 3) LogManager has shut down the task
       // 4) Our persist interval timed out
-      // TODO(Gus): Should we wake up EVERY time we receive a buffer?
       timeout = disk_log_writer_thread_cv_.wait_for(
           lock, persist_interval_, [&] { return do_persist_ || !filled_buffer_queue_->Empty() || !run_task_; });
     }

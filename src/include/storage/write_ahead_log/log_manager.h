@@ -44,6 +44,7 @@ class LogManager : public DedicatedThreadOwner {
    * @param num_buffers Number of buffers to use for buffering logs
    * @param serialization_interval Interval time between log serializations
    * @param persist_interval Interval time between log flushing
+   * @param persist_threshold data written threshold to trigger log file persist
    * @param buffer_pool the object pool to draw log buffers from. This must be the same pool transactions draw their
    *                    buffers from
    */
