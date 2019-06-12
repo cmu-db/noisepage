@@ -8,11 +8,10 @@
 #include <cstring>
 #include <string>
 #include "common/macros.h"
+#include "common/constants.h"
 #include "loggers/storage_logger.h"
 
 namespace terrier::storage {
-// TODO(Tianyu): Get rid of magic constant
-#define BUFFER_SIZE (1 << 12)
 
 /**
  * Modernized wrappers around Posix I/O sys calls to hide away the ugliness and use exceptions for error reporting.
@@ -107,7 +106,7 @@ class BufferedLogWriter {
     // If we still do not have buffer space after flush, the write is too large to be buffered. We partially write the
     // buffer and return the number of bytes written
     if (!CanBuffer(size)) {
-      size = BUFFER_SIZE - buffer_size_;
+      size = common::Constants::LOG_BUFFER_SIZE - buffer_size_;
     }
     std::memcpy(buffer_ + buffer_size_, data, size);
     buffer_size_ += size;
@@ -132,15 +131,15 @@ class BufferedLogWriter {
   /**
    * @return if the buffer is full
    */
-  bool IsBufferFull() { return buffer_size_ == BUFFER_SIZE; }
+  bool IsBufferFull() { return buffer_size_ == common::Constants::LOG_BUFFER_SIZE; }
 
  private:
   int out_;  // fd of the output files
-  char buffer_[BUFFER_SIZE];
+  char buffer_[common::Constants::LOG_BUFFER_SIZE];
 
   uint32_t buffer_size_ = 0;
 
-  bool CanBuffer(uint32_t size) { return BUFFER_SIZE - buffer_size_ >= size; }
+  bool CanBuffer(uint32_t size) { return common::Constants::LOG_BUFFER_SIZE - buffer_size_ >= size; }
 
   void WriteUnsynced(const void *data, uint32_t size) { PosixIoWrappers::WriteFully(out_, data, size); }
 };
@@ -190,7 +189,7 @@ class BufferedLogReader {
  private:
   int in_;  // or -1 if closed
   uint32_t read_head_ = 0, filled_size_ = 0;
-  char buffer_[BUFFER_SIZE];
+  char buffer_[common::Constants::LOG_BUFFER_SIZE];
 
   void ReadFromBuffer(void *dest, uint32_t size) {
     TERRIER_ASSERT(read_head_ + size <= filled_size_, "Not enough bytes in buffer for the read");
