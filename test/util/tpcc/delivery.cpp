@@ -42,6 +42,7 @@ bool Delivery::Execute(transaction::TransactionManager *const txn_manager, Datab
     const auto no_o_id = *reinterpret_cast<int32_t *>(new_order_select_tuple->AccessWithNullCheck(0));
 
     // Delete the corresponding New Order table row
+    txn->StageDelete(db->db_oid_, db->order_table_oid_, new_order_slot);
     bool delete_result UNUSED_ATTRIBUTE = db->new_order_table_->Delete(txn, new_order_slot);
     TERRIER_ASSERT(delete_result,
                    "New Order delete failed. This assertion assumes 1:1 mapping between warehouse and workers.");

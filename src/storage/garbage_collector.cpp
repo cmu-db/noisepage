@@ -1,7 +1,6 @@
 #include "storage/garbage_collector.h"
 #include <unordered_set>
 #include <utility>
-#include "common/container/concurrent_queue.h"
 #include "common/macros.h"
 #include "loggers/storage_logger.h"
 #include "storage/data_table.h"
@@ -25,6 +24,7 @@ std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
   }
   STORAGE_LOG_TRACE("GarbageCollector::PerformGarbageCollection(): last_unlinked_: {}",
                     static_cast<uint64_t>(last_unlinked_));
+  ProcessIndexes();
   return std::make_pair(txns_deallocated, txns_unlinked);
 }
 
@@ -82,22 +82,21 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
       // This is a read-only transaction so this is safe to immediately delete
       delete txn;
       txns_processed++;
-    } else if (!transaction::TransactionUtil::Committed(txn->TxnId().load())) {
-      // This is an aborted txn. There is nothing to unlink because Rollback() handled that already, but we still need
-      // to safely free the txn
-      txns_to_deallocate_.push_front(txn);
-      txns_processed++;
     } else if (transaction::TransactionUtil::NewerThan(oldest_txn, txn->TxnId().load())) {
       // Safe to garbage collect.
       for (auto &undo_record : txn->undo_buffer_) {
+        // It is possible for the table field to be null, for aborted transaction's last conflicting record
         DataTable *&table = undo_record.Table();
         // Each version chain needs to be traversed and truncated at most once every GC period. Check
         // if we have already visited this tuple slot; if not, proceed to prune the version chain.
-        if (visited_slots.insert(undo_record.Slot()).second)
+        if (table != nullptr && visited_slots.insert(undo_record.Slot()).second)
           TruncateVersionChain(table, undo_record.Slot(), oldest_txn);
-        // Regardless of the version chain we will need to reclaim deleted slots and any dangling pointers to varlens.
-        ReclaimSlotIfDeleted(&undo_record);
-        ReclaimBufferIfVarlen(txn, &undo_record);
+        // Regardless of the version chain we will need to reclaim deleted slots and any dangling pointers to varlens,
+        // unless the transaction is aborted, and the record holds a version that is still visible.
+        if (!txn->Aborted()) {
+          ReclaimSlotIfDeleted(&undo_record);
+          ReclaimBufferIfVarlen(txn, &undo_record);
+        }
       }
       txns_to_deallocate_.push_front(txn);
       txns_processed++;
@@ -207,4 +206,24 @@ void GarbageCollector::ReclaimBufferIfVarlen(transaction::TransactionContext *co
       throw std::runtime_error("unexpected delta record type");
   }
 }
+
+void GarbageCollector::RegisterIndexForGC(index::Index *const index) {
+  TERRIER_ASSERT(index != nullptr, "Index cannot be nullptr.");
+  common::SharedLatch::ScopedExclusiveLatch guard(&indexes_latch_);
+  TERRIER_ASSERT(indexes_.count(index) == 0, "Trying to register an index that has already been registered.");
+  indexes_.insert(index);
+}
+
+void GarbageCollector::UnregisterIndexForGC(index::Index *const index) {
+  TERRIER_ASSERT(index != nullptr, "Index cannot be nullptr.");
+  common::SharedLatch::ScopedExclusiveLatch guard(&indexes_latch_);
+  TERRIER_ASSERT(indexes_.count(index) == 1, "Trying to unregister an index that has not been registered.");
+  indexes_.erase(index);
+}
+
+void GarbageCollector::ProcessIndexes() {
+  common::SharedLatch::ScopedSharedLatch guard(&indexes_latch_);
+  for (const auto &index : indexes_) index->PerformGarbageCollection();
+}
+
 }  // namespace terrier::storage
