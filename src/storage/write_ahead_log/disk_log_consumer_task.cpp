@@ -8,9 +8,8 @@ void DiskLogConsumerTask::RunTask() {
 }
 
 void DiskLogConsumerTask::Terminate() {
-  // If the task hasn't run yet, sleep
-  // TODO(Gus): Get rid of magic number
-  while (!run_task_) std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  // If the task hasn't run yet, yield the thread until it's started
+  while (!run_task_) std::this_thread::yield();
   TERRIER_ASSERT(run_task_, "Cant terminate a task that isnt running");
   // Signal to terminate and force a flush so task persists before LogManager closes buffers
   run_task_ = false;

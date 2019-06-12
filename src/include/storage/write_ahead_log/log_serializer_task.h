@@ -44,8 +44,8 @@ class LogSerializerTask : public DedicatedThreadTask {
    * Signals task to stop. Called by thread registry upon termination of thread
    */
   void Terminate() override {
-    // If the task hasn't run yet, sleep
-    while (!run_task_) std::this_thread::sleep_for(serialization_interval_);
+    // If the task hasn't run yet, yield the thread until it's started
+    while (!run_task_) std::this_thread::yield();
     TERRIER_ASSERT(run_task_, "Cant terminate a task that isnt running");
     run_task_ = false;
   }
