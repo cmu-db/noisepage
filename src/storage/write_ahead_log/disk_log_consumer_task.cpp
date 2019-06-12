@@ -77,5 +77,8 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
       persist_cv_.notify_all();
     }
   } while (run_task_);
+  // Be extra sure we processed everything
+  WriteBuffersToLogFile();
+  PersistLogFile();
 }
 }  // namespace terrier::storage
