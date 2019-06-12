@@ -70,12 +70,12 @@ class DiskLogConsumerTask : public DedicatedThreadTask {
   /**
    * Flush all buffers in the filled buffers queue to the log file
    */
-  void FlushAllBuffers();
+  void WriteBuffersToLogFile();
 
   /*
    * Persists the log file on disk by calling fsync, as well as calling callbacks for all committed transactions that
    * were persisted
    */
-  void PersistAllBuffers();
+  void PersistLogFile();
 };
 }  // namespace terrier::storage

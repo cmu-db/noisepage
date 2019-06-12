@@ -17,7 +17,7 @@ void DiskLogConsumerTask::Terminate() {
   disk_log_writer_thread_cv_.notify_one();
 }
 
-void DiskLogConsumerTask::FlushAllBuffers() {
+void DiskLogConsumerTask::WriteBuffersToLogFile() {
   // Persist all the filled buffers to the disk
   SerializedLogs logs;
   while (!filled_buffer_queue_->Empty()) {
@@ -30,7 +30,7 @@ void DiskLogConsumerTask::FlushAllBuffers() {
   }
 }
 
-void DiskLogConsumerTask::PersistAllBuffers() {
+void DiskLogConsumerTask::PersistLogFile() {
   TERRIER_ASSERT(!buffers_->empty(), "Buffers vector should not be empty until Shutdown");
   // Force the buffers to be written to disk. Because all buffers log to the same file, it suffices to call persist on
   // any buffer.
@@ -55,19 +55,18 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
                                       [&] { return do_persist_ || !filled_buffer_queue_->Empty() || !run_task_; });
     }
 
-    // Flush all the buffers
-    FlushAllBuffers();
+    // Flush all the buffers to the log file
+    WriteBuffersToLogFile();
 
     // If the log manager has signaled to persist the buffers or the task is getting shut down, persist all the filled
     // buffers.
     if (do_persist_ || !run_task_) {
-      // Signal the main logger thread for completion of persistence
       {
         std::unique_lock<std::mutex> lock(persist_lock_);
-        PersistAllBuffers();
+        PersistLogFile();
         do_persist_ = false;
       }
-      // Signal anyone who forced a flush that the flush has terminated
+      // Signal anyone who forced a persist that the persist has finished
       persist_cv_.notify_all();
     }
   } while (run_task_);
