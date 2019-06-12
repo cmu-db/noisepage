@@ -24,11 +24,10 @@ SETTING_int(num_worker_threads, "The number of worker pool threads (default: 4)"
 SETTING_string(log_file_path, "The path to the log file for the WAL (default: wal.log)", "wal.log", false, terrier::settings::Callbacks::NoOp)
 
 // Number of buffers log manager can use to buffer logs
-// TODO(Gus): reason about max, default value
 SETTING_int(num_log_manager_buffers, "The number of buffers the log manager uses to buffer logs to hand off to log consumer(s) (default: 4)", 100, 2, 10000, true, terrier::settings::Callbacks::NumLogManagerBuffers)
 
-// Log Serialization and processing thread interval
+// Log Serialization interval
 SETTING_int(log_serialization_interval, "Log serialization task interval (ms) (default: 10)", 10, 1, 10000, false, terrier::settings::Callbacks::NoOp)
 
-// Log flushing and persisting thread interval
-SETTING_int(log_flushing_interval, "Log flushing task interval (ms) (default: 10)", 10, 1, 10000, false, terrier::settings::Callbacks::NoOp)
+// Log file persisting interval
+SETTING_int(log_persist_interval, "Log flushing task interval (ms) (default: 10)", 10, 1, 10000, false, terrier::settings::Callbacks::NoOp)

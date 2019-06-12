@@ -14,16 +14,12 @@
 #include "settings/settings_manager.h"
 #include "storage/record_buffer.h"
 #include "storage/write_ahead_log/disk_log_consumer_task.h"
-#include "storage/write_ahead_log/log_flusher_task.h"
 #include "storage/write_ahead_log/log_io.h"
 #include "storage/write_ahead_log/log_record.h"
 #include "storage/write_ahead_log/log_serializer_task.h"
 #include "transaction/transaction_defs.h"
 
 namespace terrier::storage {
-
-// TODO(Gus): Remove this once we get rid of LogFlusherTask
-class LogFlusherTask;
 
 /**
  * A LogManager is responsible for serializing log records out and keeping track of whether changes from a transaction
@@ -47,25 +43,24 @@ class LogManager : public DedicatedThreadOwner {
    *                      otherwise, changes are appended to the end of the file.
    * @param num_buffers Number of buffers to use for buffering logs
    * @param serialization_interval Interval time between log serializations
-   * @param flushing_interval Interval time between log flushing
+   * @param persist_interval Interval time between log flushing
    * @param buffer_pool the object pool to draw log buffers from. This must be the same pool transactions draw their
    *                    buffers from
    */
   LogManager(std::string log_file_path, uint64_t num_buffers, const std::chrono::milliseconds serialization_interval,
-             const std::chrono::milliseconds flushing_interval, RecordBufferSegmentPool *const buffer_pool)
+             const std::chrono::milliseconds persist_interval, RecordBufferSegmentPool *const buffer_pool)
       : run_log_manager_(false),
         log_file_path_(std::move(log_file_path)),
         num_buffers_(num_buffers),
         buffer_pool_(buffer_pool),
         serialization_interval_(serialization_interval),
-        flushing_interval_(flushing_interval) {}
+        persist_interval_(persist_interval) {}
 
   /**
    * Starts log manager. Does the following in order:
    *    1. Initialize buffers to pass serialized logs to log consumers
    *    2. Starts up DiskLogConsumerTask
-   *    3. Starts up LogFlusherTask
-   *    4. Starts up LogSerializerTask
+   *    3. Starts up LogSerializerTask
    */
   void Start();
 
@@ -80,9 +75,8 @@ class LogManager : public DedicatedThreadOwner {
   /**
    * Persists all unpersisted logs and stops the log manager. Does what Start() does in reverse order:
    *    1. Stops LogSerializerTask
-   *    2. Stops LogFlusherTask
-   *    3. Stops DiskLogConsumerTask
-   *    2. Closes all open buffers
+   *    2. Stops DiskLogConsumerTask
+   *    3. Closes all open buffers
    * @note Start() can be called to run the log manager again, a new log manager does not need to be initialized.
    */
   void PersistAndStop();
@@ -152,14 +146,11 @@ class LogManager : public DedicatedThreadOwner {
   // Interval used by log serialization task
   const std::chrono::milliseconds serialization_interval_;
 
-  // Log flusher task that periodically forces the DiskLogConsumerTask to persist the log file on disk
-  common::ManagedPointer<LogFlusherTask> log_flusher_task_ = common::ManagedPointer<LogFlusherTask>(nullptr);
-  // Interval used by log flushing task
-  const std::chrono::milliseconds flushing_interval_;
-
   // The log consumer task which flushes filled buffers to the disk
   common::ManagedPointer<DiskLogConsumerTask> disk_log_writer_task_ =
       common::ManagedPointer<DiskLogConsumerTask>(nullptr);
+  // Interval used by disk consumer task
+  const std::chrono::milliseconds persist_interval_;
 
   /**
    * If the central registry wants to removes our thread used for the disk log consumer task, we only allow removal if

@@ -18,11 +18,7 @@ void LogManager::Start() {
 
   // Register DiskLogConsumerTask
   disk_log_writer_task_ = DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread<DiskLogConsumerTask>(
-      this /* requester */, &buffers_, &empty_buffer_queue_, &filled_buffer_queue_);
-
-  // Register LogFlusherTask
-  log_flusher_task_ = DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread<LogFlusherTask>(
-      this /* requester */, this /* argument to task constructor */, flushing_interval_);
+      this /* requester */, persist_interval_, &buffers_, &empty_buffer_queue_, &filled_buffer_queue_);
 
   // Register LogSerializerTask
   log_serializer_task_ = DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread<LogSerializerTask>(
@@ -44,18 +40,16 @@ void LogManager::PersistAndStop() {
   TERRIER_ASSERT(run_log_manager_, "Can't call PersistAndStop on an un-started LogManager");
   run_log_manager_ = false;
 
-  // Signal all tasks to stop. The shutdown of the tasks will trigger a process and flush. The order in which we do
-  // these is important, we must first serialize, then flush, then shutdown the disk consumer task
+  // Signal all tasks to stop. The shutdown of the tasks will trigger any remaining logs to be serialized, writen to the
+  // log file, and persisted. The order in which we shut down the tasks is important, we must first serialize, then
+  // shutdown the disk consumer task (reverse order of Start())
   auto result UNUSED_ATTRIBUTE = DedicatedThreadRegistry::GetInstance().StopTask(
       this, log_serializer_task_.CastManagedPointerTo<DedicatedThreadTask>());
-  TERRIER_ASSERT(result, "LogFlusherTask should have been stopped");
-  result = DedicatedThreadRegistry::GetInstance().StopTask(
-      this, log_flusher_task_.CastManagedPointerTo<DedicatedThreadTask>());
-  TERRIER_ASSERT(result, "DiskLogWriterTask should have been stopped");
+  TERRIER_ASSERT(result, "LogSerializerTask should have been stopped");
 
   result = DedicatedThreadRegistry::GetInstance().StopTask(
       this, disk_log_writer_task_.CastManagedPointerTo<DedicatedThreadTask>());
-  TERRIER_ASSERT(result, "LogSerializerTask should have been stopped");
+  TERRIER_ASSERT(result, "DiskLogConsumerTask should have been stopped");
   TERRIER_ASSERT(filled_buffer_queue_.Empty(), "disk log consumer task should have processed all filled buffers\n");
 
   // Close the buffers corresponding to the log file

@@ -19,10 +19,12 @@ class DiskLogConsumerTask : public DedicatedThreadTask {
    * Constructs a new DiskLogConsumerTask
    * @param log_manager pointer to the LogManager
    */
-  explicit DiskLogConsumerTask(std::vector<BufferedLogWriter> *buffers,
+  explicit DiskLogConsumerTask(const std::chrono::milliseconds persist_interval,
+                               std::vector<BufferedLogWriter> *buffers,
                                common::ConcurrentBlockingQueue<BufferedLogWriter *> *empty_buffer_queue,
                                common::ConcurrentQueue<storage::SerializedLogs> *filled_buffer_queue)
       : run_task_(false),
+        persist_interval_(persist_interval),
         buffers_(buffers),
         empty_buffer_queue_(empty_buffer_queue),
         filled_buffer_queue_(filled_buffer_queue) {}
@@ -43,6 +45,9 @@ class DiskLogConsumerTask : public DedicatedThreadTask {
   bool run_task_;
   // Stores callbacks for commit records written to disk but not yet persisted
   std::vector<storage::CommitCallback> commit_callbacks_;
+
+  // Interval time for when to persist log file
+  const std::chrono::milliseconds persist_interval_;
 
   // This stores a reference to all the buffers the log manager has created. Used for persisting
   std::vector<BufferedLogWriter> *buffers_;
