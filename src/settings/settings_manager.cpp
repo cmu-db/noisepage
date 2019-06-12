@@ -1,6 +1,7 @@
 #include <gflags/gflags.h>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "common/macros.h"
@@ -150,12 +151,12 @@ type::TransientValue &SettingsManager::GetValue(Param param) {
   return param_info.value_;
 }
 
-bool SettingsManager::SetValue(Param param, const type::TransientValue &value) {
+bool SettingsManager::SetValue(Param param, type::TransientValue value) {
   auto &param_info = db_->param_map_.find(param)->second;
 
   if (!param_info.is_mutable_) return false;
 
-  param_info.value_ = ValueFactory::GetCopy(value);
+  param_info.value_ = std::move(value);
   return true;
 }
 
