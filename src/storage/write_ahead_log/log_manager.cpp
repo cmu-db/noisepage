@@ -18,7 +18,7 @@ void LogManager::Start() {
 
   // Register DiskLogConsumerTask
   disk_log_writer_task_ = DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread<DiskLogConsumerTask>(
-      this /* requester */, this /* argument to task constructor */);
+      this /* requester */, &buffers_, &empty_buffer_queue_, &filled_buffer_queue_);
 
   // Register LogFlusherTask
   log_flusher_task_ = DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread<LogFlusherTask>(
@@ -27,19 +27,17 @@ void LogManager::Start() {
   // Register LogSerializerTask
   log_serializer_task_ = DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread<LogSerializerTask>(
       this /* requester */, serialization_interval_, buffer_pool_, &empty_buffer_queue_, &filled_buffer_queue_,
-      &disk_log_writer_thread_cv_);
+      &disk_log_writer_task_->disk_log_writer_thread_cv_);
 }
 
 void LogManager::ForceFlush() {
-  {
-    std::unique_lock<std::mutex> lock(persist_lock_);
-    // Signal the disk log consumer task thread to persist the buffers to disk
-    do_persist_ = true;
-    disk_log_writer_thread_cv_.notify_one();
+  std::unique_lock<std::mutex> lock(disk_log_writer_task_->persist_lock_);
+  // Signal the disk log consumer task thread to persist the buffers to disk
+  disk_log_writer_task_->do_persist_ = true;
+  disk_log_writer_task_->disk_log_writer_thread_cv_.notify_one();
 
-    // Wait for the disk log consumer task thread to persist the logs
-    persist_cv_.wait(lock, [&] { return !do_persist_; });
-  }
+  // Wait for the disk log consumer task thread to persist the logs
+  disk_log_writer_task_->persist_cv_.wait(lock, [&] { return !disk_log_writer_task_->do_persist_; });
 }
 
 void LogManager::PersistAndStop() {

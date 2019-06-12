@@ -3,13 +3,12 @@
 #include <queue>
 #include <utility>
 #include <vector>
-#include "storage/write_ahead_log/log_manager.h"
+#include "common/container/concurrent_blocking_queue.h"
+#include "common/dedicated_thread_task.h"
+#include "storage/record_buffer.h"
 #include "storage/write_ahead_log/log_record.h"
 
 namespace terrier::storage {
-
-// Forward declaration of LogManager
-class LogManager;
 
 /**
  * Task that processes buffers handed over by transactions and serializes them into consumer buffers
@@ -23,11 +22,11 @@ class LogSerializerTask : public DedicatedThreadTask {
   explicit LogSerializerTask(const std::chrono::milliseconds serialization_interval,
                              RecordBufferSegmentPool *buffer_pool,
                              common::ConcurrentBlockingQueue<BufferedLogWriter *> *empty_buffer_queue,
-                             common::ConcurrentQueue<SerializedLogs> *filled_buffer_queue,
+                             common::ConcurrentQueue<storage::SerializedLogs> *filled_buffer_queue,
                              std::condition_variable *disk_log_writer_thread_cv)
-      : serialization_interval_(serialization_interval),
+      : run_task_(false),
+        serialization_interval_(serialization_interval),
         buffer_pool_(buffer_pool),
-        run_task_(false),
         filled_buffer_(nullptr),
         empty_buffer_queue_(empty_buffer_queue),
         filled_buffer_queue_(filled_buffer_queue),
@@ -61,10 +60,10 @@ class LogSerializerTask : public DedicatedThreadTask {
   }
 
  private:
-  // Interval for serialization
-  const std::chrono::milliseconds serialization_interval_;
   // Flag to signal task to run or stop
   bool run_task_;
+  // Interval for serialization
+  const std::chrono::milliseconds serialization_interval_;
 
   // Used to release processed buffers
   RecordBufferSegmentPool *buffer_pool_;

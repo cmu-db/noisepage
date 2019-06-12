@@ -17,25 +17,13 @@
 #include "storage/write_ahead_log/log_flusher_task.h"
 #include "storage/write_ahead_log/log_io.h"
 #include "storage/write_ahead_log/log_record.h"
+#include "storage/write_ahead_log/log_serializer_task.h"
 #include "transaction/transaction_defs.h"
 
 namespace terrier::storage {
 
-// Forward declaration for class DiskLogConsumerTask
-class DiskLogConsumerTask;
-class LogSerializerTask;
+// TODO(Gus): Remove this once we get rid of LogFlusherTask
 class LogFlusherTask;
-
-/**
- * Callback functionn and arguments to be called when record is persisted
- */
-using CommitCallback = std::pair<transaction::callback_fn, void *>;
-
-/**
- * A BufferedLogWriter containing serialized logs, as well as all commit callbacks for transaction's whose commit are
- * serialized in this BufferedLogWriter
- */
-using SerializedLogs = std::pair<BufferedLogWriter *, std::vector<CommitCallback>>;
 
 /**
  * A LogManager is responsible for serializing log records out and keeping track of whether changes from a transaction
@@ -70,8 +58,7 @@ class LogManager : public DedicatedThreadOwner {
         num_buffers_(num_buffers),
         buffer_pool_(buffer_pool),
         serialization_interval_(serialization_interval),
-        flushing_interval_(flushing_interval),
-        do_persist_(true) {}
+        flushing_interval_(flushing_interval) {}
 
   /**
    * Starts log manager. Does the following in order:
@@ -136,10 +123,6 @@ class LogManager : public DedicatedThreadOwner {
   }
 
  private:
-  friend class DiskLogConsumerTask;
-  friend class LogSerializerTask;
-  friend class LogFlusherTask;
-
   // Flag to tell us when the log manager is running or during termination
   bool run_log_manager_;
 
@@ -177,16 +160,6 @@ class LogManager : public DedicatedThreadOwner {
   // The log consumer task which flushes filled buffers to the disk
   common::ManagedPointer<DiskLogConsumerTask> disk_log_writer_task_ =
       common::ManagedPointer<DiskLogConsumerTask>(nullptr);
-
-  // Flag used by the serializer thread to signal the disk log consumer task thread to persist the data on disk
-  volatile bool do_persist_;
-
-  // Synchronisation primitives to synchronise persisting buffers to disk
-  std::mutex persist_lock_;
-  std::condition_variable persist_cv_;
-  // Condition variable to signal disk log consumer task thread to wake up and flush buffers to disk or if shutdown has
-  // initiated, then quit
-  std::condition_variable disk_log_writer_thread_cv_;
 
   /**
    * If the central registry wants to removes our thread used for the disk log consumer task, we only allow removal if
