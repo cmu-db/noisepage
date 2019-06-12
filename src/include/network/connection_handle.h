@@ -45,15 +45,14 @@ class ConnectionHandle {
    * Constructs a new ConnectionHandle
    * @param sock_fd Client's connection fd
    * @param handler The handler responsible for this handle
-   * @param t_cop The pointer to the traffic cop
-   * @param command_factory The command factory pointer
-   * @param protocol_type The network protocol type of this handler
+   * @param tcop The pointer to the traffic cop
+   * @param interpreter protocol interpreter to use for this connection handle
    */
   ConnectionHandle(int sock_fd, common::ManagedPointer<ConnectionHandlerTask> handler,
-                   common::ManagedPointer<tcop::TrafficCop> t_cop, std::unique_ptr<ProtocolInterpreter> interpreter)
+                   common::ManagedPointer<tcop::TrafficCop> tcop, std::unique_ptr<ProtocolInterpreter> interpreter)
       : io_wrapper_(std::make_unique<NetworkIoWrapper>(sock_fd)),
         conn_handler_(handler),
-        traffic_cop_(t_cop),
+        traffic_cop_(tcop),
         protocol_interpreter_(std::move(interpreter)) {}
 
   ~ConnectionHandle() { context_.Reset(); }

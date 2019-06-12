@@ -10,7 +10,7 @@
 namespace terrier::network {
 
 ConnectionDispatcherTask::ConnectionDispatcherTask(
-    int num_handlers, int listen_fd, DedicatedThreadOwner *dedicatedThreadOwner,
+    int num_handlers, int listen_fd, DedicatedThreadOwner *dedicated_thread_owner,
     common::ManagedPointer<ProtocolInterpreter::Provider> interpreter_provider,
     common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory)
     : NotifiableTask(MASTER_THREAD_ID), interpreter_provider_(interpreter_provider), next_handler_(0) {
@@ -22,7 +22,7 @@ ConnectionDispatcherTask::ConnectionDispatcherTask(
   for (int task_id = 0; task_id < num_handlers; task_id++) {
     auto handler = std::make_shared<ConnectionHandlerTask>(task_id, connection_handle_factory);
     handlers_.push_back(handler);
-    DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread<ConnectionHandlerTask>(dedicatedThreadOwner,
+    DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread<ConnectionHandlerTask>(dedicated_thread_owner,
                                                                                           handler);
   }
 }

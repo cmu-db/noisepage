@@ -59,11 +59,6 @@ using NetworkCallback = std::function<void(void)>;
 
 using SimpleQueryCallback = std::function<void(const tcop::ResultSet &, network::PostgresPacketWriter *)>;
 
-enum class NetworkProtocolType {
-  POSTGRES_JDBC,
-  POSTGRES_PSQL,
-};
-
 //===--------------------------------------------------------------------===//
 // Network Message Types
 //===--------------------------------------------------------------------===//

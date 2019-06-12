@@ -7,8 +7,8 @@
 #include "loggers/network_logger.h"
 #include "network/connection_context.h"
 #include "network/connection_handle.h"
+#include "network/postgres/postgres_command_factory.h"
 #include "network/postgres/postgres_network_commands.h"
-#include "network/postgres_command_factory.h"
 #include "network/protocol_interpreter.h"
 
 namespace terrier::network {
@@ -18,11 +18,21 @@ namespace terrier::network {
  */
 class PostgresProtocolInterpreter : public ProtocolInterpreter {
  public:
+  /**
+   * The provider encapsulates the creation logic of a protocol interpreter into an object
+   */
   struct Provider : public ProtocolInterpreter::Provider {
    public:
+    /**
+     * Constructs a new provider
+     * @param command_factory The command factory to use for the constructed protocol interpreters
+     */
     explicit Provider(common::ManagedPointer<PostgresCommandFactory> command_factory)
         : command_factory_(command_factory) {}
 
+    /**
+     * @return an instance of the protocol interpreter
+     */
     std::unique_ptr<ProtocolInterpreter> Get() override {
       return std::make_unique<PostgresProtocolInterpreter>(command_factory_);
     }
@@ -36,6 +46,7 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
    */
   explicit PostgresProtocolInterpreter(common::ManagedPointer<PostgresCommandFactory> command_factory)
       : command_factory_(command_factory) {}
+
   /**
    * @see ProtocolIntepreter::Process
    * @param in
@@ -49,6 +60,7 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
                      common::ManagedPointer<tcop::TrafficCop> t_cop, common::ManagedPointer<ConnectionContext> context,
                      NetworkCallback callback) override;
 
+  // TODO(Tianyu): Fill in the following documentation at some point
   /**
    *
    * @param out

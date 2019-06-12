@@ -42,7 +42,7 @@ class ConnectionHandlerTask : public common::NotifiableTask {
    * the necessary data structure so the handler thread is woken up.
    *
    * @param conn_fd the client connection socket fd.
-   * @param protocol_type the protocol used for this socket fd
+   * @param protocol_interpreter the protocol interpreter handlers should use to process this request
    */
   void Notify(int conn_fd, std::unique_ptr<ProtocolInterpreter> protocol_interpreter);
 

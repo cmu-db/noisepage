@@ -16,7 +16,7 @@
 #include "network/terrier_server.h"
 #include "traffic_cop/result_set.h"
 #include "traffic_cop/traffic_cop.h"
-#include "util/manual_packet_helpers.h"
+#include "util/manual_packet_util.h"
 #include "util/test_harness.h"
 
 namespace terrier::network {
@@ -33,14 +33,14 @@ class FakeCommandFactory : public PostgresCommandFactory {
 
 class NetworkTests : public TerrierTest {
  protected:
-  std::unique_ptr<TerrierServer> server;
-  std::unique_ptr<ConnectionHandleFactory> handle_factory;
-  uint16_t port = common::Settings::SERVER_PORT;
-  std::thread server_thread;
-  tcop::TrafficCop t_cop;
-  FakeCommandFactory fake_command_factory;
+  std::unique_ptr<TerrierServer> server_;
+  std::unique_ptr<ConnectionHandleFactory> handle_factory_;
+  uint16_t port_ = common::Settings::SERVER_PORT;
+  std::thread server_thread_;
+  tcop::TrafficCop tcop_;
+  FakeCommandFactory fake_command_factory_;
   PostgresProtocolInterpreter::Provider protocol_provider_{
-      common::ManagedPointer<PostgresCommandFactory>(&fake_command_factory)};
+      common::ManagedPointer<PostgresCommandFactory>(&fake_command_factory_)};
 
   /**
    * Initialization
@@ -52,27 +52,66 @@ class NetworkTests : public TerrierTest {
     spdlog::flush_every(std::chrono::seconds(1));
 
     try {
-      handle_factory = std::make_unique<ConnectionHandleFactory>(common::ManagedPointer(&t_cop));
-      server =
+      handle_factory_ = std::make_unique<ConnectionHandleFactory>(common::ManagedPointer(&tcop_));
+      server_ =
           std::make_unique<TerrierServer>(common::ManagedPointer<ProtocolInterpreter::Provider>(&protocol_provider_),
-                                          common::ManagedPointer(handle_factory.get()));
-      server->SetPort(port);
-      server->SetupServer();
+                                          common::ManagedPointer(handle_factory_.get()));
+      server_->SetPort(port_);
+      server_->SetupServer();
     } catch (NetworkProcessException &exception) {
       TEST_LOG_ERROR("[LaunchServer] exception when launching server");
       throw;
     }
 
     TEST_LOG_DEBUG("Server initialized");
-    server_thread = std::thread([&]() { server->ServerLoop(); });
+    server_thread_ = std::thread([&]() { server_->ServerLoop(); });
   }
 
   void TearDown() override {
-    server->Close();
-    server_thread.join();
-    handle_factory->TearDown();
+    server_->Close();
+    server_thread_.join();
+    handle_factory_->TearDown();
     TEST_LOG_DEBUG("Terrier has shut down");
     TerrierTest::TearDown();
+  }
+
+  void TestExtendedQuery(uint16_t port) {
+    std::shared_ptr<NetworkIoWrapper> io_socket = ManualPacketUtil::StartConnection(port);
+    io_socket->GetWriteQueue()->Reset();
+    std::string stmt_name = "prepared_test";
+    std::string query = "INSERT INTO foo VALUES($1, $2, $3, $4);";
+
+    PostgresPacketWriter writer(io_socket->GetWriteQueue());
+    auto type_oid = static_cast<int>(PostgresValueType::INTEGER);
+    writer.WriteParseCommand(stmt_name, query, std::vector<int>(4, type_oid));
+    io_socket->FlushAllWrites();
+    EXPECT_TRUE(ManualPacketUtil::ReadUntilReadyOrClose(io_socket));
+
+    std::string portal_name;
+    writer.WriteBindCommand(portal_name, stmt_name, {}, {}, {});
+    io_socket->FlushAllWrites();
+    EXPECT_TRUE(ManualPacketUtil::ReadUntilReadyOrClose(io_socket));
+
+    writer.WriteExecuteCommand(portal_name, 0);
+    io_socket->FlushAllWrites();
+    EXPECT_TRUE(ManualPacketUtil::ReadUntilReadyOrClose(io_socket));
+
+    // DescribeCommand
+    writer.WriteDescribeCommand(DescribeCommandObjectType::STATEMENT, stmt_name);
+    io_socket->FlushAllWrites();
+    EXPECT_TRUE(ManualPacketUtil::ReadUntilReadyOrClose(io_socket));
+
+    // SyncCommand
+    writer.WriteSyncCommand();
+    io_socket->FlushAllWrites();
+    EXPECT_TRUE(ManualPacketUtil::ReadUntilReadyOrClose(io_socket));
+
+    // CloseCommand
+    writer.WriteCloseCommand(DescribeCommandObjectType::STATEMENT, stmt_name);
+    io_socket->FlushAllWrites();
+    EXPECT_TRUE(ManualPacketUtil::ReadUntilReadyOrClose(io_socket));
+
+    ManualPacketUtil::TerminateConnection(io_socket->GetSocketFd());
   }
 };
 
@@ -86,7 +125,7 @@ class NetworkTests : public TerrierTest {
 TEST_F(NetworkTests, SimpleQueryTest) {
   try {
     pqxx::connection C(
-        fmt::format("host=127.0.0.1 port={0} user=postgres sslmode=disable application_name=psql", port));
+        fmt::format("host=127.0.0.1 port={0} user=postgres sslmode=disable application_name=psql", port_));
 
     pqxx::work txn1(C);
     txn1.exec("INSERT INTO employee VALUES (1, 'Han LI');");
@@ -107,23 +146,23 @@ TEST_F(NetworkTests, SimpleQueryTest) {
 TEST_F(NetworkTests, BadQueryTest) {
   try {
     TEST_LOG_INFO("[BadQueryTest] Starting, expect errors to be logged");
-    std::shared_ptr<NetworkIoWrapper> io_socket = StartConnection(port);
-    PostgresPacketWriter writer(io_socket->out_);
+    std::shared_ptr<NetworkIoWrapper> io_socket = ManualPacketUtil::StartConnection(port_);
+    PostgresPacketWriter writer(io_socket->GetWriteQueue());
 
     // Build a correct query message, "SELECT A FROM B"
     std::string query = "SELECT A FROM B;";
     writer.WriteSimpleQuery(query);
     io_socket->FlushAllWrites();
-    bool is_ready = ReadUntilReadyOrClose(io_socket);
+    bool is_ready = ManualPacketUtil::ReadUntilReadyOrClose(io_socket);
     EXPECT_TRUE(is_ready);  // should be okay
 
     // Send a bad query packet
     std::string bad_query = "a_random_bad_packet";
-    io_socket->out_->Reset();
-    io_socket->out_->BufferWriteRaw(bad_query.data(), bad_query.length());
+    io_socket->GetWriteQueue()->Reset();
+    io_socket->GetWriteQueue()->BufferWriteRaw(bad_query.data(), bad_query.length());
     io_socket->FlushAllWrites();
 
-    is_ready = ReadUntilReadyOrClose(io_socket);
+    is_ready = ManualPacketUtil::ReadUntilReadyOrClose(io_socket);
     EXPECT_FALSE(is_ready);
     io_socket->Close();
   } catch (const std::exception &e) {
@@ -136,7 +175,7 @@ TEST_F(NetworkTests, BadQueryTest) {
 // NOLINTNEXTLINE
 TEST_F(NetworkTests, NoSSLTest) {
   try {
-    pqxx::connection C(fmt::format("host=127.0.0.1 port={0} user=postgres application_name=psql", port));
+    pqxx::connection C(fmt::format("host=127.0.0.1 port={0} user=postgres application_name=psql", port_));
 
     pqxx::work txn1(C);
     txn1.exec("INSERT INTO employee VALUES (1, 'Han LI');");
@@ -148,49 +187,10 @@ TEST_F(NetworkTests, NoSSLTest) {
   }
 }
 
-void TestExtendedQuery(uint16_t port) {
-  std::shared_ptr<NetworkIoWrapper> io_socket = StartConnection(port);
-  io_socket->out_->Reset();
-  std::string stmt_name = "prepared_test";
-  std::string query = "INSERT INTO foo VALUES($1, $2, $3, $4);";
-
-  PostgresPacketWriter writer(io_socket->out_);
-  auto type_oid = static_cast<int>(PostgresValueType::INTEGER);
-  writer.WriteParseCommand(stmt_name, query, std::vector<int>(4, type_oid));
-  io_socket->FlushAllWrites();
-  EXPECT_TRUE(ReadUntilReadyOrClose(io_socket));
-
-  std::string portal_name;
-  writer.WriteBindCommand(portal_name, stmt_name, {}, {}, {});
-  io_socket->FlushAllWrites();
-  EXPECT_TRUE(ReadUntilReadyOrClose(io_socket));
-
-  writer.WriteExecuteCommand(portal_name, 0);
-  io_socket->FlushAllWrites();
-  EXPECT_TRUE(ReadUntilReadyOrClose(io_socket));
-
-  // DescribeCommand
-  writer.WriteDescribeCommand(DescribeCommandObjectType::STATEMENT, stmt_name);
-  io_socket->FlushAllWrites();
-  EXPECT_TRUE(ReadUntilReadyOrClose(io_socket));
-
-  // SyncCommand
-  writer.WriteSyncCommand();
-  io_socket->FlushAllWrites();
-  EXPECT_TRUE(ReadUntilReadyOrClose(io_socket));
-
-  // CloseCommand
-  writer.WriteCloseCommand(DescribeCommandObjectType::STATEMENT, stmt_name);
-  io_socket->FlushAllWrites();
-  EXPECT_TRUE(ReadUntilReadyOrClose(io_socket));
-
-  TerminateConnection(io_socket->sock_fd_);
-}
-
 // NOLINTNEXTLINE
 TEST_F(NetworkTests, PgNetworkCommandsTest) {
   try {
-    TestExtendedQuery(port);
+    TestExtendedQuery(port_);
   } catch (const std::exception &e) {
     TEST_LOG_ERROR("[PgNetworkCommandsTest] Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);
@@ -201,7 +201,7 @@ TEST_F(NetworkTests, PgNetworkCommandsTest) {
 TEST_F(NetworkTests, LargePacketsTest) {
   try {
     pqxx::connection C(
-        fmt::format("host=127.0.0.1 port={0} user=postgres sslmode=disable application_name=psql", port));
+        fmt::format("host=127.0.0.1 port={0} user=postgres sslmode=disable application_name=psql", port_));
 
     pqxx::work txn1(C);
     std::string longQueryPacketString(255555, 'a');

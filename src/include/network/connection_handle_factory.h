@@ -27,7 +27,7 @@ class ConnectionHandleFactory {
  public:
   /**
    * Builds a new connection handle factory.
-   * @param t_cop The pointer to the traffic cop
+   * @param tcop The pointer to the traffic cop
    */
   explicit ConnectionHandleFactory(common::ManagedPointer<tcop::TrafficCop> tcop) : traffic_cop_(tcop) {}
 
@@ -37,7 +37,7 @@ class ConnectionHandleFactory {
    * converted.
    * @see NetworkIoWrapper for details
    * @param conn_fd Client connection fd
-   * @param protocol_type The protocol type for this connection handle
+   * @param interpreter The protocol interpreter to use for this connection handle
    * @param handler The connection handler task to assign to returned ConnectionHandle object
    * @return A new ConnectionHandle object
    */
