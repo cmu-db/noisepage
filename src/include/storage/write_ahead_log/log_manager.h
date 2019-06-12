@@ -133,9 +133,6 @@ class LogManager : public DedicatedThreadOwner {
   //  (e.g. logs can be streamed out to the network for remote replication)
   RecordBufferSegmentPool *buffer_pool_;
 
-  // These do not need to be thread safe since the only thread adding or removing from it is the flushing thread
-  std::vector<std::pair<transaction::callback_fn, void *>> commits_in_buffer_;
-
   // This stores a reference to all the buffers the serializer or the log consumer threads use
   std::vector<BufferedLogWriter> buffers_;
   // The queue containing empty buffers which the serializer thread will use. We use a blocking queue because the
