@@ -22,9 +22,7 @@ void TransactionManager::LogCommit(TransactionContext *const txn, const timestam
     // Here we will manually add a commit record and flush the buffer to ensure the logger
     // sees this record.
     byte *const commit_record = txn->redo_buffer_.NewEntry(storage::CommitRecord::Size());
-    const bool is_read_only = txn->undo_buffer_.Empty();
-    storage::CommitRecord::Initialize(commit_record, txn->StartTime(), commit_time, callback, callback_arg,
-                                      is_read_only, txn);
+    storage::CommitRecord::Initialize(commit_record, txn, callback, callback_arg);
     // Signal to the log manager that we are ready to be logged out
   } else {
     // Otherwise, logging is disabled. We should pretend to have flushed the record so the rest of the system proceeds
@@ -38,7 +36,7 @@ void TransactionManager::LogCommit(TransactionContext *const txn, const timestam
 timestamp_t TransactionManager::ReadOnlyCommitCriticalSection(TransactionContext *const txn, const callback_fn callback,
                                                               void *const callback_arg) {
   // No records to update. No commit will ever depend on us. We can do all the work outside of the critical section
-  const timestamp_t commit_time = timestamp_manager_->CheckoutTimestamp();
+  const timestamp_t commit_time = timestamp_manager_->CheckOutTimestamp();
   // TODO(Tianyu): Notice here that for a read-only transaction, it is necessary to communicate the commit with the
   // LogManager, so speculative reads are handled properly,  but there is no need to actually write out the read-only
   // transaction's commit record to disk.
@@ -63,7 +61,7 @@ timestamp_t TransactionManager::UpdatingCommitCriticalSection(TransactionContext
   //  the correct version the second time, violating snapshot isolation.
   //  Make sure you solve this problem before you remove this gate for whatever reason.
   common::Gate::ScopedLock gate(&txn_gate_);
-  const timestamp_t commit_time = timestamp_manager_->CheckoutTimestamp();
+  const timestamp_t commit_time = timestamp_manager_->CheckOutTimestamp();
 
   LogCommit(txn, commit_time, callback, callback_arg);
   // flip all timestamps to be committed
@@ -77,7 +75,7 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
   const timestamp_t result = txn->undo_buffer_.Empty() ? ReadOnlyCommitCriticalSection(txn, callback, callback_arg)
                                                        : UpdatingCommitCriticalSection(txn, callback, callback_arg);
   while (!txn->commit_actions_.empty()) {
-    txn->commit_actions_.front()(result);
+    txn->commit_actions_.front()(deferred_action_manager_);
     txn->commit_actions_.pop_front();
   }
 
@@ -124,7 +122,7 @@ timestamp_t TransactionManager::Abort(TransactionContext *const txn) {
 
   // Clear the abort actions stack
   while (!txn->abort_actions_.empty()) {
-    txn->abort_actions_.front()(abort_time);
+    txn->abort_actions_.front()(deferred_action_manager_);
     txn->abort_actions_.pop_front();
   }
 
@@ -135,7 +133,6 @@ timestamp_t TransactionManager::Abort(TransactionContext *const txn) {
     // Because the timestamp may have advanced between now and commit time, we may be overly conservative
     deferred_action_manager_->RegisterDeferredAction([=](timestamp_t oldest_txn) {
       version_chain_gc_->Unlink(txn, oldest_txn);
-      return true;
     });
   }
 

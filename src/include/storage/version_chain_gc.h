@@ -2,6 +2,7 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
+#include <thread>
 #include "storage/data_table.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_context.h"
@@ -41,9 +42,11 @@ class VersionChainGC {
     // Delete only after no threads can see the unlinked version
     deferred_action_manager_->RegisterDeferredAction([=](transaction::timestamp_t) {
       // If the log manager is not done with this transaction, it is not safe to deallocate
-      if (!txn->log_processed_) return false;
+      // TODO(Tianyu): Instead of doing any other heavy-weight fixes, we assume here that
+      // it is rare that the GC is much faster than logging when it comes to processing
+      // records. It is therefore okay to wait on this. (Is it?)
+      while (!txn->log_processed_) std::this_thread::yield();
       delete txn;
-      return true;
     });
   }
 

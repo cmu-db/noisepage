@@ -23,9 +23,7 @@ class DeferredActionManager {
     uint32_t processed = 0;
     // Check out a timestamp from the transaction manager to determine the progress of
     // running transactions in the system.
-    timestamp_t oldest_txn = timestamp_manager_->CheckoutTimestamp();
-    // Attempt to clear the retry queue first
-    processed += Retry(oldest_txn);
+    timestamp_t oldest_txn = timestamp_manager_->CheckOutTimestamp();
     processed += ClearBacklog(oldest_txn);
     processed += ProcessNewActions(oldest_txn);
     return processed;
@@ -36,31 +34,16 @@ class DeferredActionManager {
   // TODO(Tianyu): We might want to change this data structure to be more specialized than std::queue
   // Both queue should stay sorted in timestamp
   std::queue<std::pair<timestamp_t, DeferredAction>> new_deferred_actions_, back_log_;
-  std::vector<DeferredAction> retry_;
   common::SpinLatch deferred_actions_latch_;
 
-  uint32_t Retry(timestamp_t oldest_txn) {
-    uint32_t processed = 0;
-    std::vector<DeferredAction> local_retry = std::move(retry_);
-    for (DeferredAction &a : local_retry) {
-      if (!a(oldest_txn))
-        retry_.push_back(a);
-      else
-        processed++;
-    }
-    return processed;
-  }
 
   uint32_t ClearBacklog(timestamp_t oldest_txn) {
     uint32_t processed = 0;
     // Execute as many deferred actions as we can at this time from the backlog.
     // Stop traversing
     while (!back_log_.empty() && back_log_.front().first <= oldest_txn) {
-      bool success = back_log_.front().second(oldest_txn);
-      if (success)
-        processed++;
-      else
-        retry_.push_back(back_log_.front().second);
+      back_log_.front().second(oldest_txn);
+      processed++;
       back_log_.pop();
     }
     return processed;
@@ -78,11 +61,8 @@ class DeferredActionManager {
 
     // Iterate through the new actions queue and execute as many as possible
     while (!new_actions_local.empty() && new_actions_local.front().first <= oldest_txn) {
-      bool success = !new_actions_local.front().second(oldest_txn);
-      if (success)
-        processed++;
-      else
-        retry_.push_back(back_log_.front().second);
+      new_actions_local.front().second(oldest_txn);
+      processed++;
       new_actions_local.pop();
     }
 

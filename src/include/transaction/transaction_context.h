@@ -7,15 +7,16 @@
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
-#include "storage/write_ahead_log/log_record.h"
 #include "transaction/transaction_util.h"
-#include "deferred_action_manager.h"
+#include "transaction/deferred_action_manager.h"
 
 namespace terrier::storage {
 class GarbageCollector;
 class VersionChainGC;
 class LogManager;
 class SqlTable;
+class RedoRecord;
+class CommitRecord;
 }  // namespace terrier::storage
 
 namespace terrier::transaction {
@@ -120,13 +121,8 @@ class TransactionContext {
    * @warning If you call StageWrite, the operation WILL be logged to disk. If you StageWrite anything that you didn't
    * succeed in writing into the table or decide you don't want to use, the transaction MUST abort.
    */
-  storage::RedoRecord *StageWrite(const catalog::db_oid_t db_oid, const catalog::table_oid_t table_oid,
-                                  const storage::ProjectedRowInitializer &initializer) {
-    const uint32_t size = storage::RedoRecord::Size(initializer);
-    auto *const log_record =
-        storage::RedoRecord::Initialize(redo_buffer_.NewEntry(size), start_time_, db_oid, table_oid, initializer);
-    return log_record->GetUnderlyingRecordBodyAs<storage::RedoRecord>();
-  }
+  storage::RedoRecord *StageWrite(catalog::db_oid_t db_oid, catalog::table_oid_t table_oid,
+                                  const storage::ProjectedRowInitializer &initializer);
 
   /**
    * Initialize a record that logs a delete, that will be logged out to disk
@@ -136,11 +132,9 @@ class TransactionContext {
    * @warning If you call StageDelete, the operation WILL be logged to disk. If you StageDelete anything that you didn't
    * succeed in writing into the table or decide you don't want to use, the transaction MUST abort.
    */
-  void StageDelete(const catalog::db_oid_t db_oid, const catalog::table_oid_t table_oid,
-                   const storage::TupleSlot slot) {
-    const uint32_t size = storage::DeleteRecord::Size();
-    storage::DeleteRecord::Initialize(redo_buffer_.NewEntry(size), start_time_, db_oid, table_oid, slot);
-  }
+  void StageDelete(catalog::db_oid_t db_oid,
+                   catalog::table_oid_t table_oid,
+                   storage::TupleSlot slot);
 
   /**
    * Defers an action to be called if and only if the transaction aborts.  Actions executed LIFO.
@@ -162,6 +156,7 @@ class TransactionContext {
  private:
   friend class storage::VersionChainGC;
   friend class TransactionManager;
+  friend class storage::CommitRecord;
   friend class storage::LogManager;
   friend class storage::SqlTable;
   const timestamp_t start_time_;
@@ -174,7 +169,6 @@ class TransactionContext {
   // These actions will be triggered (not deferred) at abort/commit.
   std::forward_list<Action> abort_actions_;
   std::forward_list<Action> commit_actions_;
-
   // log manager will set this to be true when log records are processed (not necessarily flushed, but will not be read
   // again in the future), so it can be garbage-collected safely.
   bool log_processed_ = false;

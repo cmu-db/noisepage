@@ -12,7 +12,7 @@ class TimestampManager {
   /**
    * @return unique timestamp based on current time, and advances one tick
    */
-  timestamp_t CheckoutTimestamp() { return time_++; }
+  timestamp_t CheckOutTimestamp() { return time_++; }
 
   timestamp_t CurrentTime() const { return time_.load(); }
 

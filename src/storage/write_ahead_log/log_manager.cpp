@@ -1,5 +1,5 @@
 #include "storage/write_ahead_log/log_manager.h"
-#include <transaction/transaction_context.h>
+#include "transaction/transaction_context.h"
 
 namespace terrier::storage {
 void LogManager::Process() {
