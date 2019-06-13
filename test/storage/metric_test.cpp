@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <vector>
 #include "metric/metrics_manager.h"
-#include "metric/thread_level_metrics_store.h"
+#include "metric/metrics_store.h"
 #include "metric/transaction_metric.h"
 #include "storage/garbage_collector.h"
 #include "transaction/transaction_defs.h"
@@ -92,7 +92,7 @@ TEST_F(MetricTests, TransactionMetricBasicTest) {
     for (uint8_t j = 0; j < num_txns_; j++) {
       auto start_max = std::chrono::high_resolution_clock::now();
       auto *txn = txn_manager_->BeginTransaction();
-      metrics_store->CollectTransactionBegin(txn);
+      metrics_store->RecordTransactionBegin(txn);
       auto start_min = std::chrono::high_resolution_clock::now();
       auto txn_id = txn->TxnId().load();
       id_map[j] = txn_id;
@@ -105,20 +105,20 @@ TEST_F(MetricTests, TransactionMetricBasicTest) {
       for (uint8_t k = 0; k < num_ops_; k++) {
         auto op_type = std::uniform_int_distribution<uint8_t>(0, 3)(generator_);
         if (op_type == 0) {  // Read
-          metrics_store->CollectTupleRead(txn, CatalogTestUtil::test_db_oid, CatalogTestUtil::test_namespace_oid,
-                                          CatalogTestUtil::test_table_oid);
+          metrics_store->RecordTupleRead(txn, CatalogTestUtil::test_db_oid, CatalogTestUtil::test_namespace_oid,
+                                         CatalogTestUtil::test_table_oid);
           read_map[txn_id]++;
         } else if (op_type == 1) {  // Update
-          metrics_store->CollectTupleUpdate(txn, CatalogTestUtil::test_db_oid, CatalogTestUtil::test_namespace_oid,
-                                            CatalogTestUtil::test_table_oid);
+          metrics_store->RecordTupleUpdate(txn, CatalogTestUtil::test_db_oid, CatalogTestUtil::test_namespace_oid,
+                                           CatalogTestUtil::test_table_oid);
           update_map[txn_id]++;
         } else if (op_type == 2) {  // Insert
-          metrics_store->CollectTupleInsert(txn, CatalogTestUtil::test_db_oid, CatalogTestUtil::test_namespace_oid,
-                                            CatalogTestUtil::test_table_oid);
+          metrics_store->RecordTupleInsert(txn, CatalogTestUtil::test_db_oid, CatalogTestUtil::test_namespace_oid,
+                                           CatalogTestUtil::test_table_oid);
           insert_map[txn_id]++;
         } else {  // Delete
-          metrics_store->CollectTupleDelete(txn, CatalogTestUtil::test_db_oid, CatalogTestUtil::test_namespace_oid,
-                                            CatalogTestUtil::test_table_oid);
+          metrics_store->RecordTupleDelete(txn, CatalogTestUtil::test_db_oid, CatalogTestUtil::test_namespace_oid,
+                                           CatalogTestUtil::test_table_oid);
           delete_map[txn_id]++;
         }
       }
@@ -126,7 +126,7 @@ TEST_F(MetricTests, TransactionMetricBasicTest) {
           std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_min)
               .count());
       latency_min_map[txn_id] = latency;
-      metrics_store->CollectTransactionCommit(txn, CatalogTestUtil::test_db_oid);
+      metrics_store->RecordTransactionCommit(txn, CatalogTestUtil::test_db_oid);
       txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
       latency = static_cast<uint64_t>(
           std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_max)
@@ -181,7 +181,7 @@ TEST_F(MetricTests, TransactionMetricStorageTest) {
     for (uint8_t j = 0; j < num_txns_; j++) {
       auto start_max = std::chrono::high_resolution_clock::now();
       auto *txn = txn_manager_->BeginTransaction();
-      metrics_store->CollectTransactionBegin(txn);
+      metrics_store->RecordTransactionBegin(txn);
       auto start_min = std::chrono::high_resolution_clock::now();
       auto txn_id = txn->TxnId().load();
       id_map[j] = txn_id;
@@ -194,20 +194,20 @@ TEST_F(MetricTests, TransactionMetricStorageTest) {
       for (uint8_t k = 0; k < num_ops_; k++) {
         auto op_type = std::uniform_int_distribution<uint8_t>(0, 3)(generator_);
         if (op_type == 0) {  // Read
-          metrics_store->CollectTupleRead(txn, CatalogTestUtil::test_db_oid, CatalogTestUtil::test_namespace_oid,
-                                          CatalogTestUtil::test_table_oid);
+          metrics_store->RecordTupleRead(txn, CatalogTestUtil::test_db_oid, CatalogTestUtil::test_namespace_oid,
+                                         CatalogTestUtil::test_table_oid);
           read_map[txn_id]++;
         } else if (op_type == 1) {  // Update
-          metrics_store->CollectTupleUpdate(txn, CatalogTestUtil::test_db_oid, CatalogTestUtil::test_namespace_oid,
-                                            CatalogTestUtil::test_table_oid);
+          metrics_store->RecordTupleUpdate(txn, CatalogTestUtil::test_db_oid, CatalogTestUtil::test_namespace_oid,
+                                           CatalogTestUtil::test_table_oid);
           update_map[txn_id]++;
         } else if (op_type == 2) {  // Insert
-          metrics_store->CollectTupleInsert(txn, CatalogTestUtil::test_db_oid, CatalogTestUtil::test_namespace_oid,
-                                            CatalogTestUtil::test_table_oid);
+          metrics_store->RecordTupleInsert(txn, CatalogTestUtil::test_db_oid, CatalogTestUtil::test_namespace_oid,
+                                           CatalogTestUtil::test_table_oid);
           insert_map[txn_id]++;
         } else {  // Delete
-          metrics_store->CollectTupleDelete(txn, CatalogTestUtil::test_db_oid, CatalogTestUtil::test_namespace_oid,
-                                            CatalogTestUtil::test_table_oid);
+          metrics_store->RecordTupleDelete(txn, CatalogTestUtil::test_db_oid, CatalogTestUtil::test_namespace_oid,
+                                           CatalogTestUtil::test_table_oid);
           delete_map[txn_id]++;
         }
       }
@@ -215,7 +215,7 @@ TEST_F(MetricTests, TransactionMetricStorageTest) {
           std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_min)
               .count());
       latency_min_map[txn_id] = latency;
-      metrics_store->CollectTransactionCommit(txn, CatalogTestUtil::test_db_oid);
+      metrics_store->RecordTransactionCommit(txn, CatalogTestUtil::test_db_oid);
       txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
       latency = static_cast<uint64_t>(
           std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_max)
@@ -257,31 +257,31 @@ TEST_F(MetricTests, MultiThreadTest) {
         for (uint8_t j = 0; j < num_txns_; j++) {
           auto start_max = std::chrono::high_resolution_clock::now();
           auto *txn = txn_manager_->BeginTransaction();
-          metrics_store->CollectTransactionBegin(txn);
+          metrics_store->RecordTransactionBegin(txn);
           auto start_min = std::chrono::high_resolution_clock::now();
           auto txn_id = txn->TxnId().load();
           txn_queue.Enqueue(txn_id);
           for (uint8_t k = 0; k < num_read; k++) {
-            metrics_store->CollectTupleRead(txn, CatalogTestUtil::test_db_oid, CatalogTestUtil::test_namespace_oid,
-                                            CatalogTestUtil::test_table_oid);
+            metrics_store->RecordTupleRead(txn, CatalogTestUtil::test_db_oid, CatalogTestUtil::test_namespace_oid,
+                                           CatalogTestUtil::test_table_oid);
           }
           for (uint8_t k = 0; k < num_update; k++) {
-            metrics_store->CollectTupleUpdate(txn, CatalogTestUtil::test_db_oid, CatalogTestUtil::test_namespace_oid,
-                                              CatalogTestUtil::test_table_oid);
+            metrics_store->RecordTupleUpdate(txn, CatalogTestUtil::test_db_oid, CatalogTestUtil::test_namespace_oid,
+                                             CatalogTestUtil::test_table_oid);
           }
           for (uint8_t k = 0; k < num_insert; k++) {
-            metrics_store->CollectTupleInsert(txn, CatalogTestUtil::test_db_oid, CatalogTestUtil::test_namespace_oid,
-                                              CatalogTestUtil::test_table_oid);
+            metrics_store->RecordTupleInsert(txn, CatalogTestUtil::test_db_oid, CatalogTestUtil::test_namespace_oid,
+                                             CatalogTestUtil::test_table_oid);
           }
           for (uint8_t k = 0; k < num_delete; k++) {
-            metrics_store->CollectTupleDelete(txn, CatalogTestUtil::test_db_oid, CatalogTestUtil::test_namespace_oid,
-                                              CatalogTestUtil::test_table_oid);
+            metrics_store->RecordTupleDelete(txn, CatalogTestUtil::test_db_oid, CatalogTestUtil::test_namespace_oid,
+                                             CatalogTestUtil::test_table_oid);
           }
           auto latency = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
                                                    std::chrono::high_resolution_clock::now() - start_min)
                                                    .count());
           latency_min_map.Insert(txn_id, latency);
-          metrics_store->CollectTransactionCommit(txn, CatalogTestUtil::test_db_oid);
+          metrics_store->RecordTransactionCommit(txn, CatalogTestUtil::test_db_oid);
           txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
           latency = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
                                               std::chrono::high_resolution_clock::now() - start_max)

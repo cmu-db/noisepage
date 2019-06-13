@@ -28,18 +28,18 @@ class MetricsManager;
  * is unsafe! Therefore, ThreadLevelStatsCollector should have the same scope as the worker pool.
  * When the worker pool resizes, the CollectorsMap needs to be resized as well.
  */
-class ThreadLevelMetricsStore {
+class MetricsStore {
  public:
   /**
    * Destructor of collector
    */
-  ~ThreadLevelMetricsStore();
+  ~MetricsStore();
 
   /**
    * Collector action on transaction begin
    * @param txn context of the transaction beginning
    */
-  void CollectTransactionBegin(const transaction::TransactionContext *txn) {
+  void RecordTransactionBegin(const transaction::TransactionContext *txn) {
     for (auto &metric : metric_dispatch_[MetricsEventType::TXN_BEGIN]) metric->OnTransactionBegin(txn);
   }
 
@@ -48,7 +48,7 @@ class ThreadLevelMetricsStore {
    * @param txn context of the transaction committing
    * @param database_oid OID of the database where the txn happens.
    */
-  void CollectTransactionCommit(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid) {
+  void RecordTransactionCommit(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid) {
     for (auto &metric : metric_dispatch_[MetricsEventType::TXN_COMMIT]) metric->OnTransactionCommit(txn, database_oid);
   }
 
@@ -57,7 +57,7 @@ class ThreadLevelMetricsStore {
    * @param txn context of the transaction aborting
    * @param database_oid OID of the database where the txn happens.
    */
-  void CollectTransactionAbort(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid) {
+  void RecordTransactionAbort(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid) {
     for (auto &metric : metric_dispatch_[MetricsEventType::TXN_ABORT]) metric->OnTransactionAbort(txn, database_oid);
   }
 
@@ -68,8 +68,8 @@ class ThreadLevelMetricsStore {
    * @param namespace_oid OID of the namespace that the tuple read happens
    * @param table_oid OID of the table that the tuple read happens
    */
-  void CollectTupleRead(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid,
-                        catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) {
+  void RecordTupleRead(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid,
+                       catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) {
     for (auto &metric : metric_dispatch_[MetricsEventType::TUPLE_READ])
       metric->OnTupleRead(txn, database_oid, namespace_oid, table_oid);
   }
@@ -81,8 +81,8 @@ class ThreadLevelMetricsStore {
    * @param namespace_oid OID of the namespace that the tuple update happens
    * @param table_oid OID of the table that the tuple update happens
    */
-  void CollectTupleUpdate(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid,
-                          catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) {
+  void RecordTupleUpdate(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid,
+                         catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) {
     for (auto &metric : metric_dispatch_[MetricsEventType::TUPLE_UPDATE])
       metric->OnTupleUpdate(txn, database_oid, namespace_oid, table_oid);
   }
@@ -94,8 +94,8 @@ class ThreadLevelMetricsStore {
    * @param namespace_oid OID of the namespace that the tuple insert happens
    * @param table_oid OID of the table that the tuple insert happens
    */
-  void CollectTupleInsert(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid,
-                          catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) {
+  void RecordTupleInsert(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid,
+                         catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) {
     for (auto &metric : metric_dispatch_[MetricsEventType::TUPLE_INSERT])
       metric->OnTupleInsert(txn, database_oid, namespace_oid, table_oid);
   }
@@ -107,8 +107,8 @@ class ThreadLevelMetricsStore {
    * @param namespace_oid OID of the namespace that the tuple delete happens
    * @param table_oid OID of the table that the tuple delete happens
    */
-  void CollectTupleDelete(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid,
-                          catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) {
+  void RecordTupleDelete(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid,
+                         catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) {
     for (auto &metric : metric_dispatch_[MetricsEventType::TUPLE_DELETE])
       metric->OnTupleDelete(txn, database_oid, namespace_oid, table_oid);
   }
@@ -119,7 +119,7 @@ class ThreadLevelMetricsStore {
   /**
    * Constructor of collector
    */
-  explicit ThreadLevelMetricsStore(std::thread::id);
+  explicit MetricsStore(std::thread::id);
 
   /**
    * @return A vector of raw data, for each registered metric. Each piece of
