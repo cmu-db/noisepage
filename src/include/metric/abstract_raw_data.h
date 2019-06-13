@@ -32,6 +32,6 @@ class AbstractRawData {
   /**
    * @return the type of the metric this object is holding the data for
    */
-  virtual MetricType GetMetricType() const = 0;
+  virtual MetricsScope GetMetricType() const = 0;
 };
 }  // namespace terrier::metric

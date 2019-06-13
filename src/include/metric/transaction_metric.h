@@ -89,7 +89,7 @@ class TransactionMetricRawData : public AbstractRawData {
   /**
    * @return the type of the metric this object is holding the data for
    */
-  MetricType GetMetricType() const override { return MetricType::TRANSACTION; }
+  MetricsScope GetMetricType() const override { return MetricsScope::TRANSACTION; }
 
   /**
    * @return the latency of the given transaction
