@@ -39,7 +39,8 @@ class TerrierServer : public DedicatedThreadOwner {
    */
   explicit TerrierServer(common::ManagedPointer<ProtocolInterpreter::Provider> protocol_provider,
                          common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory);
-  virtual ~TerrierServer() = default;
+
+  ~TerrierServer() override = default;
 
   /**
    * @brief Configure the server to spin up all its threads and start listening

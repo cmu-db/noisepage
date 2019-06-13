@@ -1,4 +1,5 @@
 #include "main/db_main.h"
+#include <settings/settings_param.h>
 #include <memory>
 #include "loggers/loggers_util.h"
 #include "settings/settings_manager.h"
@@ -27,6 +28,15 @@ void DBMain::Init() {
   transaction::TransactionContext *txn = txn_manager_->BeginTransaction();
   settings_manager_ = new settings::SettingsManager(this);
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  // Create LogManager
+  log_manager_ = new storage::LogManager(
+      settings_manager_->GetString(settings::Param::log_file_path),
+      settings_manager_->GetInt(settings::Param::num_log_manager_buffers),
+      std::chrono::milliseconds{settings_manager_->GetInt(settings::Param::log_serialization_interval)},
+      std::chrono::milliseconds{settings_manager_->GetInt(settings::Param::log_persist_interval)},
+      settings_manager_->GetInt(settings::Param::log_persist_threshold), buffer_segment_pool_);
+  log_manager_->Start();
 
   thread_pool_ = new common::WorkerPool(
       type::TransientValuePeeker::PeekInteger(param_map_.find(settings::Param::num_worker_threads)->second.value_), {});
@@ -65,6 +75,7 @@ void DBMain::ForceShutdown() {
 void DBMain::CleanUp() {
   main_stat_reg_->Shutdown(false);
   LoggersUtil::ShutDown();
+  log_manager_->PersistAndStop();
   thread_pool_->Shutdown();
   LOG_INFO("Terrier has shut down.");
 }

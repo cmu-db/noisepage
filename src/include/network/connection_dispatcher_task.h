@@ -18,10 +18,8 @@ namespace terrier::network {
  * @brief A ConnectionDispatcherTask on the main server thread and dispatches
  * incoming connections to handler threads.
  *
- * On construction, the dispatcher also spawns a number of handlers running on
- * their own threads. The dispatcher is
- * then responsible for maintain, and when shutting down, shutting down the
- * spawned handlers also.
+ * On construction, the dispatcher registers a number of handlers with the dedicated thread registry. The registered
+ * handlers will shut down during the teardown of the thread registry
  */
 class ConnectionDispatcherTask : public common::NotifiableTask {
  public:
@@ -53,14 +51,9 @@ class ConnectionDispatcherTask : public common::NotifiableTask {
    */
   void DispatchPostgresConnection(int fd, int16_t flags);
 
-  /**
-   * Breaks the dispatcher and managed handlers from their event loops.
-   */
-  void ExitLoop() override;
-
  private:
   common::ManagedPointer<ProtocolInterpreter::Provider> interpreter_provider_;
-  std::vector<std::shared_ptr<ConnectionHandlerTask>> handlers_;
+  std::vector<common::ManagedPointer<ConnectionHandlerTask>> handlers_;
   // TODO(TianyuLi): have a smarter dispatch scheduler, we currently use round-robin
   std::atomic<uint64_t> next_handler_;
 };
