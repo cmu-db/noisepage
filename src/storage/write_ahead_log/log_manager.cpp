@@ -1,67 +1,71 @@
 #include "storage/write_ahead_log/log_manager.h"
-#include <transaction/transaction_context.h>
+#include "storage/write_ahead_log/log_serializer_task.h"
+#include "transaction/transaction_context.h"
 
 namespace terrier::storage {
-void LogManager::Process() {
-  while (true) {
-    RecordBufferSegment *buffer;
-    // In a short critical section, try to dequeue an item
-    {
-      common::SpinLatch::ScopedSpinLatch guard(&flush_queue_latch_);
-      if (flush_queue_.empty()) break;
-      buffer = flush_queue_.front();
-      flush_queue_.pop();
-    }
-    for (LogRecord &record : IterableBufferSegment<LogRecord>(buffer)) {
-      if (record.RecordType() == LogRecordType::COMMIT) {
-        auto *commit_record = record.GetUnderlyingRecordBodyAs<CommitRecord>();
 
-        // If a transaction is read-only, then the only record it generates is its commit record. This commit record is
-        // necessary for the transaction's callback function to be invoked, but there is no need to serialize it, as
-        // it corresponds to a transaction with nothing to redo.
-        if (!commit_record->IsReadOnly()) SerializeRecord(record);
-        commits_in_buffer_.emplace_back(commit_record->Callback(), commit_record->CallbackArg());
-        // Not safe to mark read only transactions as the transactions are deallocated preemptively without waiting for
-        // logging (there is nothing to log after all)
-        if (!commit_record->IsReadOnly()) commit_record->Txn()->log_processed_ = true;
-      } else {
-        // Any record that is not a commit record is always serialized.`
-        SerializeRecord(record);
-      }
-    }
-    buffer_pool_->Release(buffer);
+void LogManager::Start() {
+  TERRIER_ASSERT(!run_log_manager_, "Can't call Start on already started LogManager");
+  // Initialize buffers for logging
+  for (size_t i = 0; i < num_buffers_; i++) {
+    buffers_.emplace_back(BufferedLogWriter(log_file_path_.c_str()));
   }
-  Flush();
+  for (size_t i = 0; i < num_buffers_; i++) {
+    empty_buffer_queue_.Enqueue(&buffers_[i]);
+  }
+
+  run_log_manager_ = true;
+
+  // Register DiskLogConsumerTask
+  disk_log_writer_task_ = DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread<DiskLogConsumerTask>(
+      this /* requester */, persist_interval_, persist_threshold_, &buffers_, &empty_buffer_queue_,
+      &filled_buffer_queue_);
+
+  // Register LogSerializerTask
+  log_serializer_task_ = DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread<LogSerializerTask>(
+      this /* requester */, serialization_interval_, buffer_pool_, &empty_buffer_queue_, &filled_buffer_queue_,
+      &disk_log_writer_task_->disk_log_writer_thread_cv_);
 }
 
-void LogManager::Flush() {
-  out_.Persist();
-  for (auto &callback : commits_in_buffer_) callback.first(callback.second);
-  commits_in_buffer_.clear();
+void LogManager::ForceFlush() {
+  std::unique_lock<std::mutex> lock(disk_log_writer_task_->persist_lock_);
+  // Signal the disk log consumer task thread to persist the buffers to disk
+  disk_log_writer_task_->do_persist_ = true;
+  disk_log_writer_task_->disk_log_writer_thread_cv_.notify_one();
+
+  // Wait for the disk log consumer task thread to persist the logs
+  disk_log_writer_task_->persist_cv_.wait(lock, [&] { return !disk_log_writer_task_->do_persist_; });
 }
 
-void LogManager::SerializeRecord(const terrier::storage::LogRecord &record) {
-  WriteValue(record.Size());
-  WriteValue(record.RecordType());
-  WriteValue(record.TxnBegin());
-  switch (record.RecordType()) {
-    case LogRecordType::REDO: {
-      auto *record_body = record.GetUnderlyingRecordBodyAs<RedoRecord>();
-      WriteValue(record_body->GetTableOid());
-      WriteValue(record_body->GetTupleSlot());
-      // TODO(Tianyu): Need to inline varlen or other things, and figure out a better representation.
-      out_.BufferWrite(record_body->Delta(), record_body->Delta()->Size());
-      break;
-    }
-    case LogRecordType::DELETE: {
-      auto *record_body = record.GetUnderlyingRecordBodyAs<DeleteRecord>();
-      WriteValue(record_body->GetTableOid());
-      WriteValue(record_body->GetTupleSlot());
-      break;
-    }
-    case LogRecordType::COMMIT:
-      WriteValue(record.GetUnderlyingRecordBodyAs<CommitRecord>()->CommitTime());
+void LogManager::PersistAndStop() {
+  TERRIER_ASSERT(run_log_manager_, "Can't call PersistAndStop on an un-started LogManager");
+  run_log_manager_ = false;
+
+  // Signal all tasks to stop. The shutdown of the tasks will trigger any remaining logs to be serialized, writen to the
+  // log file, and persisted. The order in which we shut down the tasks is important, we must first serialize, then
+  // shutdown the disk consumer task (reverse order of Start())
+  auto result UNUSED_ATTRIBUTE = DedicatedThreadRegistry::GetInstance().StopTask(
+      this, log_serializer_task_.CastManagedPointerTo<DedicatedThreadTask>());
+  TERRIER_ASSERT(result, "LogSerializerTask should have been stopped");
+
+  result = DedicatedThreadRegistry::GetInstance().StopTask(
+      this, disk_log_writer_task_.CastManagedPointerTo<DedicatedThreadTask>());
+  TERRIER_ASSERT(result, "DiskLogConsumerTask should have been stopped");
+  TERRIER_ASSERT(filled_buffer_queue_.Empty(), "disk log consumer task should have processed all filled buffers\n");
+
+  // Close the buffers corresponding to the log file
+  for (auto buf : buffers_) {
+    buf.Close();
   }
+  // Clear buffer queues
+  empty_buffer_queue_.Clear();
+  filled_buffer_queue_.Clear();
+  buffers_.clear();
+}
+
+void LogManager::AddBufferToFlushQueue(RecordBufferSegment *const buffer_segment) {
+  TERRIER_ASSERT(run_log_manager_, "Must call Start on log manager before handing it buffers");
+  log_serializer_task_->AddBufferToFlushQueue(buffer_segment);
 }
 
 }  // namespace terrier::storage
