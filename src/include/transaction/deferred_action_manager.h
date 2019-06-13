@@ -36,7 +36,6 @@ class DeferredActionManager {
   std::queue<std::pair<timestamp_t, DeferredAction>> new_deferred_actions_, back_log_;
   common::SpinLatch deferred_actions_latch_;
 
-
   uint32_t ClearBacklog(timestamp_t oldest_txn) {
     uint32_t processed = 0;
     // Execute as many deferred actions as we can at this time from the backlog.

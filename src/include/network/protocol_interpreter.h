@@ -15,7 +15,7 @@ class ConnectionHandle;
 class ProtocolInterpreter {
  public:
   /**
-   * Processes client's input that has been fed into the given ReadBufer
+   * Processes client's input that has been fed into the given ReadBuffer
    * @param in The ReadBuffer to read input from
    * @param out The WriteQueue to communicate with the client through
    * @param t_cop The traffic cop pointer

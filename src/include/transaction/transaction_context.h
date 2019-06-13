@@ -7,8 +7,8 @@
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
-#include "transaction/transaction_util.h"
 #include "transaction/deferred_action_manager.h"
+#include "transaction/transaction_util.h"
 
 namespace terrier::storage {
 class GarbageCollector;
@@ -36,11 +36,9 @@ class TransactionContext {
    * @param log_manager pointer to log manager in the system, or nullptr, if logging is disabled
    * @param transaction_manager pointer to transaction manager in the system (used for action framework)
    */
-  TransactionContext(const timestamp_t start,
-                     const timestamp_t txn_id,
+  TransactionContext(const timestamp_t start, const timestamp_t txn_id,
                      storage::RecordBufferSegmentPool *const buffer_pool,
-                     DeferredActionManager *deferred_action_manager,
-                     storage::LogManager *const log_manager)
+                     DeferredActionManager *deferred_action_manager, storage::LogManager *const log_manager)
       : start_time_(start),
         txn_id_(txn_id),
         undo_buffer_(buffer_pool),
@@ -132,9 +130,7 @@ class TransactionContext {
    * @warning If you call StageDelete, the operation WILL be logged to disk. If you StageDelete anything that you didn't
    * succeed in writing into the table or decide you don't want to use, the transaction MUST abort.
    */
-  void StageDelete(catalog::db_oid_t db_oid,
-                   catalog::table_oid_t table_oid,
-                   storage::TupleSlot slot);
+  void StageDelete(catalog::db_oid_t db_oid, catalog::table_oid_t table_oid, storage::TupleSlot slot);
 
   /**
    * Defers an action to be called if and only if the transaction aborts.  Actions executed LIFO.
@@ -149,9 +145,7 @@ class TransactionContext {
    */
   void RegisterCommitAction(const Action &a) { commit_actions_.push_front(a); }
 
-  DeferredActionManager *GetDeferredActionManager() const {
-    return deferred_action_manager_;
-  }
+  DeferredActionManager *GetDeferredActionManager() const { return deferred_action_manager_; }
 
  private:
   friend class storage::VersionChainGC;

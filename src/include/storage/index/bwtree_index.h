@@ -39,7 +39,7 @@ class BwTreeIndex final : public Index {
 
     if (result) {
       // Register an abort action with the txn context in case of rollback
-      txn->RegisterAbortAction([=] (transaction::timestamp_t) {
+      txn->RegisterAbortAction([=](transaction::timestamp_t) {
         const bool UNUSED_ATTRIBUTE result = bwtree_->Delete(index_key, location);
         TERRIER_ASSERT(result, "Delete on the index failed.");
       });
@@ -68,7 +68,7 @@ class BwTreeIndex final : public Index {
 
     if (result) {
       // Register an abort action with the txn context in case of rollback
-      txn->RegisterAbortAction([=] (transaction::timestamp_t) {
+      txn->RegisterAbortAction([=](transaction::timestamp_t) {
         const bool UNUSED_ATTRIBUTE result = bwtree_->Delete(index_key, location);
         TERRIER_ASSERT(result, "Delete on the index failed.");
       });
@@ -86,8 +86,8 @@ class BwTreeIndex final : public Index {
                    "Called index delete on a TupleSlot that has a conflict with this txn or is still visible.");
 
     // Register a deferred action for the GC with txn manager. See base function comment.
-    txn->RegisterCommitAction([=] (transaction::DeferredActionManager *deferred_action_manager) {
-      deferred_action_manager->RegisterDeferredAction([=] (transaction::timestamp_t) {
+    txn->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
+      deferred_action_manager->RegisterDeferredAction([=](transaction::timestamp_t) {
         const bool UNUSED_ATTRIBUTE result = bwtree_->Delete(index_key, location);
         TERRIER_ASSERT(result, "Deferred delete on the index failed.");
       });

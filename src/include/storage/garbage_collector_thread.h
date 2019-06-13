@@ -20,9 +20,7 @@ class GarbageCollectorThread {
    */
   GarbageCollectorThread(transaction::DeferredActionManager *deferred_action_manager, storage::index::IndexGC *index_gc,
                          const std::chrono::milliseconds gc_period)
-      : deferred_action_manager_(deferred_action_manager),
-        index_gc_(index_gc),
-        gc_period_(gc_period) {}
+      : deferred_action_manager_(deferred_action_manager), index_gc_(index_gc), gc_period_(gc_period) {}
 
   ~GarbageCollectorThread() {
     run_gc_ = false;
@@ -32,7 +30,8 @@ class GarbageCollectorThread {
     // should be put into the destructor of the deferred action manager, such that the
     // transaction manager's dependency on it ensures that the transaction manager is shut down before
     // the deferred action manager.
-    while (deferred_action_manager_->Process() != 0) {}
+    while (deferred_action_manager_->Process() != 0) {
+    }
   }
 
   /**

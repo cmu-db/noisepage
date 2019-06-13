@@ -1,7 +1,7 @@
 #pragma once
-#include "transaction/transaction_context.h"
 #include "storage/data_table.h"
 #include "storage/projected_row.h"
+#include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
 
 namespace terrier::storage {
@@ -282,10 +282,8 @@ class CommitRecord {
    *
    * @return pointer to the initialized log record, always equal in value to the given head
    */
-  static LogRecord *Initialize(byte *const head,
-                               transaction::TransactionContext *const txn,
-                               transaction::callback_fn callback,
-                               void *callback_arg) {
+  static LogRecord *Initialize(byte *const head, transaction::TransactionContext *const txn,
+                               transaction::callback_fn callback, void *callback_arg) {
     auto *result = LogRecord::InitializeHeader(head, LogRecordType::COMMIT, Size(), txn->StartTime());
     auto *body = result->GetUnderlyingRecordBodyAs<CommitRecord>();
     body->callback_ = callback;
@@ -323,6 +321,5 @@ class CommitRecord {
   transaction::callback_fn callback_;
   void *callback_arg_;
   transaction::TransactionContext *txn_;
-
 };
 }  // namespace terrier::storage

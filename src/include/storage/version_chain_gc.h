@@ -1,8 +1,8 @@
 #pragma once
+#include <thread> // NOLINT
 #include <unordered_set>
 #include <utility>
 #include <vector>
-#include <thread>
 #include "storage/data_table.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_context.h"

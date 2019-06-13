@@ -131,9 +131,8 @@ timestamp_t TransactionManager::Abort(TransactionContext *const txn) {
   if (deferred_action_manager_ != DISABLED && version_chain_gc_ != DISABLED) {
     // Register to be unlinked when the records are no longer visible.
     // Because the timestamp may have advanced between now and commit time, we may be overly conservative
-    deferred_action_manager_->RegisterDeferredAction([=](timestamp_t oldest_txn) {
-      version_chain_gc_->Unlink(txn, oldest_txn);
-    });
+    deferred_action_manager_->RegisterDeferredAction(
+        [=](timestamp_t oldest_txn) { version_chain_gc_->Unlink(txn, oldest_txn); });
   }
 
   return abort_time;
@@ -205,10 +204,12 @@ void TransactionManager::Rollback(TransactionContext *txn, const storage::UndoRe
         accessor.Deallocate(slot);
         //      version_ptr->Type() = storage::DeltaRecordType::ABORTED_INSERT;
         break;
-      case storage::DeltaRecordType::DELETE:accessor.SetNotNull(slot, VERSION_POINTER_COLUMN_ID);
+      case storage::DeltaRecordType::DELETE:
+        accessor.SetNotNull(slot, VERSION_POINTER_COLUMN_ID);
         //      version_ptr->Type() = storage::DeltaRecordType::ABORTED_DELETE;
         break;
-      default:throw std::runtime_error("unexpected delta record type");
+      default:
+        throw std::runtime_error("unexpected delta record type");
     }
     undo_record = undo_record->Next();
   }
