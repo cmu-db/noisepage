@@ -5,17 +5,17 @@
 
 namespace terrier::common {
 /**
- * A thread-safe queue implementation
+ * A thread-safe blocking queue implementation
  * @tparam T element type
  * @tparam Alloc allocator used
  * @warning Consider the non-trivial overhead associated with a concurrent data structure before defaulting to its use.
  */
 template <typename T, typename Alloc = tbb::cache_aligned_allocator<T>>
-class ConcurrentQueue {
+class ConcurrentBlockingQueue {
   // This wrapper is here so we are free to swap out underlying implementation
   // of the data structure or hand-craft it ourselves. Compiler should inline
   // most of it for us anyway and incur minimal overhead. (Currently using tbb
-  // see https://software.intel.com/en-us/node/506200)
+  // see https://software.intel.com/en-us/node/506201)
   //
   // Keep the interface minimalistic until we figure out what implementation to use.
  public:
@@ -37,20 +37,20 @@ class ConcurrentQueue {
   void Enqueue(T elem) { queue_.push(elem); }
 
   /**
-   * If value is available, remove the element at the head of the queue and assign
-   * it to the destination.
-   * @param dest if an element exists.
+   * Block until a value is available, remove the element at the head of the
+   * queue and assign it to the destination.
+   * @param dest an element.
    */
-  bool Dequeue(T *dest) { return queue_.try_pop(*dest); }
+  void Dequeue(T *dest) { queue_.pop(*dest); }
 
   /**
    * Returns the number of items in the queue. The method is allowed to return
    * an approximate size if there are concurrent modifications in flight.
    * @return the approximate number of items in the queue
    */
-  uint64_t UnsafeSize() const { return queue_.unsafe_size(); }
+  uint64_t UnsafeSize() const { return queue_.size(); }
 
  private:
-  tbb::concurrent_queue<T, Alloc> queue_;
+  tbb::concurrent_bounded_queue<T, Alloc> queue_;
 };
 }  // namespace terrier::common

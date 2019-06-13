@@ -91,8 +91,6 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
       for (auto &undo_record : txn->undo_buffer_) {
         // It is possible for the table field to be null, for aborted transaction's last conflicting record
         DataTable *&table = undo_record.Table();
-        if (table == nullptr)
-          throw std::runtime_error("committed transactions should not have undo records that point to null");
         // Each version chain needs to be traversed and truncated at most once every GC period. Check
         // if we have already visited this tuple slot; if not, proceed to prune the version chain.
         if (table != nullptr && visited_slots.insert(undo_record.Slot()).second)

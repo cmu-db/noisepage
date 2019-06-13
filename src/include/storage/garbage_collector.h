@@ -3,8 +3,8 @@
 #include <queue>
 #include <unordered_set>
 #include <utility>
-#include "storage/access_observer.h"
 #include "common/shared_latch.h"
+#include "storage/access_observer.h"
 #include "storage/index/index.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"

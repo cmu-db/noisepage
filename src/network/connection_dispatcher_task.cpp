@@ -19,10 +19,10 @@ ConnectionDispatcherTask::ConnectionDispatcherTask(int num_handlers, int listen_
 
   // create worker threads.
   for (int task_id = 0; task_id < num_handlers; task_id++) {
-    auto handler = std::make_shared<ConnectionHandlerTask>(task_id, connection_handle_factory);
+    // auto handler = new ConnectionHandlerTask(task_id, connection_handle_factory);
+    auto handler = DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread<ConnectionHandlerTask>(
+        dedicatedThreadOwner, task_id, connection_handle_factory);
     handlers_.push_back(handler);
-    DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread<ConnectionHandlerTask>(dedicatedThreadOwner,
-                                                                                          handler);
   }
 }
 
@@ -42,15 +42,9 @@ void ConnectionDispatcherTask::DispatchPostgresConnection(int fd, int16_t) {  //
   // update next threadID
   next_handler_ = (next_handler_ + 1) % handlers_.size();
 
-  std::shared_ptr<ConnectionHandlerTask> handler = handlers_[handler_id];
+  auto handler = handlers_[handler_id];
   NETWORK_LOG_TRACE("Dispatching connection to worker {0}", handler_id);
 
   handler->Notify(new_conn_fd, NetworkProtocolType::POSTGRES_PSQL);
 }
-
-void ConnectionDispatcherTask::ExitLoop() {
-  NotifiableTask::ExitLoop();
-  for (auto &handler : handlers_) handler->ExitLoop();
-}
-
 }  // namespace terrier::network
