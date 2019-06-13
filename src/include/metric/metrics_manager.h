@@ -36,7 +36,7 @@ class MetricsManager {
   MetricsStore *const RegisterThread() {
     const auto thread_id = std::this_thread::get_id();
     TERRIER_ASSERT(stores_map_.Find(thread_id) == stores_map_.End(), "This thread was already registered.");
-    auto *const metrics_store = new MetricsStore(thread_id);
+    auto *const metrics_store = new MetricsStore();
     auto result UNUSED_ATTRIBUTE = stores_map_.Insert(thread_id, metrics_store);
     TERRIER_ASSERT(result.second, "Insertion to concurrent map failed.");
     return metrics_store;
