@@ -55,6 +55,9 @@ class MetricsManager {
     delete metrics_store;
   }
 
+  /**
+   * @return aggregated metrics
+   */
   const std::vector<std::unique_ptr<AbstractRawData>> &AggregatedMetrics() const { return aggregated_metrics_; }
 
  private:

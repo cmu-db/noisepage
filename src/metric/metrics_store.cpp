@@ -6,7 +6,7 @@
 
 namespace terrier::metric {
 
-MetricsStore::MetricsStore(const std::thread::id) {
+MetricsStore::MetricsStore() {
   RegisterMetric<TransactionMetric>({MetricsEventType::TXN_BEGIN, MetricsEventType::TXN_COMMIT,
                                      MetricsEventType::TXN_ABORT, MetricsEventType::TUPLE_READ,
                                      MetricsEventType::TUPLE_UPDATE, MetricsEventType::TUPLE_INSERT,

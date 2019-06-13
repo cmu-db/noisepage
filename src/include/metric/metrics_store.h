@@ -119,7 +119,7 @@ class MetricsStore {
   /**
    * Constructor of collector
    */
-  explicit MetricsStore(std::thread::id);
+  MetricsStore();
 
   /**
    * @return A vector of raw data, for each registered metric. Each piece of
@@ -154,11 +154,6 @@ class MetricsStore {
    * receive updates from that type of event. This does NOT own the registered metrics
    */
   std::unordered_map<MetricsEventType, RegisteredMetric> metric_dispatch_;
-
-  /**
-   * Thread ID of the thread initially registered this collector
-   */
-  std::thread::id thread_id_;
 };
 
 }  // namespace terrier::metric
