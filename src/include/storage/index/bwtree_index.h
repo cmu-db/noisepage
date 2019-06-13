@@ -39,7 +39,7 @@ class BwTreeIndex final : public Index {
 
     if (result) {
       // Register an abort action with the txn context in case of rollback
-      txn->RegisterAbortAction([=](transaction::timestamp_t) {
+      txn->RegisterAbortAction([=](transaction::DeferredActionManager *) {
         const bool UNUSED_ATTRIBUTE result = bwtree_->Delete(index_key, location);
         TERRIER_ASSERT(result, "Delete on the index failed.");
       });
@@ -68,7 +68,7 @@ class BwTreeIndex final : public Index {
 
     if (result) {
       // Register an abort action with the txn context in case of rollback
-      txn->RegisterAbortAction([=](transaction::timestamp_t) {
+      txn->RegisterAbortAction([=](transaction::DeferredActionManager *) {
         const bool UNUSED_ATTRIBUTE result = bwtree_->Delete(index_key, location);
         TERRIER_ASSERT(result, "Delete on the index failed.");
       });

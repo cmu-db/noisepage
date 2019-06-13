@@ -14,7 +14,9 @@ class LargeGCTests : public TerrierTest {
   storage::BlockStore block_store_{1000, 1000};
   storage::RecordBufferSegmentPool buffer_pool_{10000, 10000};
   std::default_random_engine generator_;
-
+  transaction::TimestampManager timestamp_manager_;
+  transaction::DeferredActionManager deferred_action_manager_{&timestamp_manager_};
+  storage::VersionChainGC version_chain_gc_{&deferred_action_manager_};
   const std::chrono::milliseconds gc_period{10};
 };
 
@@ -36,11 +38,13 @@ TEST_F(LargeGCTests, MixedReadWriteWithGC) {
                                             .SetBlockStore(&block_store_)
                                             .SetBufferPool(&buffer_pool_)
                                             .SetGenerator(&generator_)
-                                            .SetGcOn(true)
+                                            .SetTimestampManager(&timestamp_manager_)
+                                            .SetDeferredActionManager(&deferred_action_manager_)
+                                            .SetVersionChainGC(&version_chain_gc_)
                                             .SetBookkeeping(true)
                                             .SetVarlenAllowed(true)
                                             .build();
-    storage::GarbageCollectorThread gc_thread(tested.GetTxnManager(), gc_period);
+    storage::GarbageCollectorThread gc_thread(&deferred_action_manager_, DISABLED, gc_period);
     for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
       auto result = tested.SimulateOltp(batch_size, num_concurrent_txns);
       gc_thread.PauseGC();
@@ -67,11 +71,13 @@ TEST_F(LargeGCTests, MixedReadWriteHighThreadWithGC) {
                                             .SetBlockStore(&block_store_)
                                             .SetBufferPool(&buffer_pool_)
                                             .SetGenerator(&generator_)
-                                            .SetGcOn(true)
+                                            .SetTimestampManager(&timestamp_manager_)
+                                            .SetDeferredActionManager(&deferred_action_manager_)
+                                            .SetVersionChainGC(&version_chain_gc_)
                                             .SetBookkeeping(true)
                                             .SetVarlenAllowed(true)
                                             .build();
-    storage::GarbageCollectorThread gc_thread(tested.GetTxnManager(), gc_period);
+    storage::GarbageCollectorThread gc_thread(&deferred_action_manager_, DISABLED, gc_period);
     for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
       auto result = tested.SimulateOltp(batch_size, num_concurrent_txns);
       gc_thread.PauseGC();
@@ -98,11 +104,13 @@ TEST_F(LargeGCTests, LowAbortHighThroughputWithGC) {
                                             .SetBlockStore(&block_store_)
                                             .SetBufferPool(&buffer_pool_)
                                             .SetGenerator(&generator_)
-                                            .SetGcOn(true)
+                                            .SetTimestampManager(&timestamp_manager_)
+                                            .SetDeferredActionManager(&deferred_action_manager_)
+                                            .SetVersionChainGC(&version_chain_gc_)
                                             .SetBookkeeping(true)
                                             .SetVarlenAllowed(true)
                                             .build();
-    storage::GarbageCollectorThread gc_thread(tested.GetTxnManager(), gc_period);
+    storage::GarbageCollectorThread gc_thread(&deferred_action_manager_, DISABLED, gc_period);
     for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
       auto result = tested.SimulateOltp(batch_size, num_concurrent_txns);
       gc_thread.PauseGC();
@@ -129,11 +137,13 @@ TEST_F(LargeGCTests, LowAbortHighThroughputHighThreadWithGC) {
                                             .SetBlockStore(&block_store_)
                                             .SetBufferPool(&buffer_pool_)
                                             .SetGenerator(&generator_)
-                                            .SetGcOn(true)
+                                            .SetTimestampManager(&timestamp_manager_)
+                                            .SetDeferredActionManager(&deferred_action_manager_)
+                                            .SetVersionChainGC(&version_chain_gc_)
                                             .SetBookkeeping(true)
                                             .SetVarlenAllowed(true)
                                             .build();
-    storage::GarbageCollectorThread gc_thread(tested.GetTxnManager(), gc_period);
+    storage::GarbageCollectorThread gc_thread(&deferred_action_manager_, DISABLED, gc_period);
     for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
       auto result = tested.SimulateOltp(batch_size, num_concurrent_txns);
       gc_thread.PauseGC();
@@ -161,11 +171,13 @@ TEST_F(LargeGCTests, HighAbortRateWithGC) {
                                             .SetBlockStore(&block_store_)
                                             .SetBufferPool(&buffer_pool_)
                                             .SetGenerator(&generator_)
-                                            .SetGcOn(true)
+                                            .SetTimestampManager(&timestamp_manager_)
+                                            .SetDeferredActionManager(&deferred_action_manager_)
+                                            .SetVersionChainGC(&version_chain_gc_)
                                             .SetBookkeeping(true)
                                             .SetVarlenAllowed(true)
                                             .build();
-    storage::GarbageCollectorThread gc_thread(tested.GetTxnManager(), gc_period);
+    storage::GarbageCollectorThread gc_thread(&deferred_action_manager_, DISABLED, gc_period);
     for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
       auto result = tested.SimulateOltp(batch_size, num_concurrent_txns);
       gc_thread.PauseGC();
@@ -192,11 +204,13 @@ TEST_F(LargeGCTests, HighAbortRateHighThreadWithGC) {
                                             .SetBlockStore(&block_store_)
                                             .SetBufferPool(&buffer_pool_)
                                             .SetGenerator(&generator_)
-                                            .SetGcOn(true)
+                                            .SetTimestampManager(&timestamp_manager_)
+                                            .SetDeferredActionManager(&deferred_action_manager_)
+                                            .SetVersionChainGC(&version_chain_gc_)
                                             .SetBookkeeping(true)
                                             .SetVarlenAllowed(true)
                                             .build();
-    storage::GarbageCollectorThread gc_thread(tested.GetTxnManager(), gc_period);
+    storage::GarbageCollectorThread gc_thread(&deferred_action_manager_, DISABLED, gc_period);
     for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
       auto result = tested.SimulateOltp(batch_size, num_concurrent_txns);
       gc_thread.PauseGC();
@@ -223,11 +237,13 @@ TEST_F(LargeGCTests, TPCCishWithGC) {
                                             .SetBlockStore(&block_store_)
                                             .SetBufferPool(&buffer_pool_)
                                             .SetGenerator(&generator_)
-                                            .SetGcOn(true)
+                                            .SetTimestampManager(&timestamp_manager_)
+                                            .SetDeferredActionManager(&deferred_action_manager_)
+                                            .SetVersionChainGC(&version_chain_gc_)
                                             .SetBookkeeping(true)
                                             .SetVarlenAllowed(true)
                                             .build();
-    storage::GarbageCollectorThread gc_thread(tested.GetTxnManager(), gc_period);
+    storage::GarbageCollectorThread gc_thread(&deferred_action_manager_, DISABLED, gc_period);
     for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
       auto result = tested.SimulateOltp(batch_size, num_concurrent_txns);
       gc_thread.PauseGC();
@@ -254,11 +270,13 @@ TEST_F(LargeGCTests, TPCCishHighThreadWithGC) {
                                             .SetBlockStore(&block_store_)
                                             .SetBufferPool(&buffer_pool_)
                                             .SetGenerator(&generator_)
-                                            .SetGcOn(true)
+                                            .SetTimestampManager(&timestamp_manager_)
+                                            .SetDeferredActionManager(&deferred_action_manager_)
+                                            .SetVersionChainGC(&version_chain_gc_)
                                             .SetBookkeeping(true)
                                             .SetVarlenAllowed(true)
                                             .build();
-    storage::GarbageCollectorThread gc_thread(tested.GetTxnManager(), gc_period);
+    storage::GarbageCollectorThread gc_thread(&deferred_action_manager_, DISABLED, gc_period);
     for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
       auto result = tested.SimulateOltp(batch_size, num_concurrent_txns);
       gc_thread.PauseGC();

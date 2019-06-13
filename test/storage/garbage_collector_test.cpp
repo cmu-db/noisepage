@@ -5,13 +5,12 @@
 #include "common/object_pool.h"
 #include "storage/data_table.h"
 #include "storage/storage_util.h"
-#include "storage/version_chain_maintanence.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
 #include "util/storage_test_util.h"
 #include "util/test_harness.h"
 #include "util/transaction_test_util.h"
-
+/*
 namespace terrier {
 // Not thread-safe
 class GarbageCollectorDataTableTestObject {
@@ -91,7 +90,14 @@ struct GarbageCollectorTests : public ::terrier::TerrierTest {
 // NOLINTNEXTLINE
 TEST_F(GarbageCollectorTests, SingleInsert) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TransactionManager txn_manager(&buffer_pool_, true, DISABLED);
+    transaction::TimestampManager timestamp_manager;
+    transaction::DeferredActionManager deferred_action_manager{&timestamp_manager};
+    storage::VersionChainGC version_chain_gc{&deferred_action_manager};
+    transaction::TransactionManager txn_manager(&timestamp_manager,
+                                                &buffer_pool_,
+                                                &deferred_action_manager,
+                                                &version_chain_gc,
+                                                DISABLED);
     GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
     storage::GarbageCollector gc(&txn_manager);
 
@@ -119,9 +125,15 @@ TEST_F(GarbageCollectorTests, SingleInsert) {
 // NOLINTNEXTLINE
 TEST_F(GarbageCollectorTests, ReadOnly) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TransactionManager txn_manager(&buffer_pool_, true, LOGGING_DISABLED);
-    GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
-    storage::GarbageCollector gc(&txn_manager);
+    transaction::TimestampManager timestamp_manager;
+    transaction::DeferredActionManager deferred_action_manager{&timestamp_manager};
+    storage::VersionChainGC version_chain_gc{&deferred_action_manager};
+    transaction::TransactionManager txn_manager(&timestamp_manager,
+                                                &buffer_pool_,
+                                                &deferred_action_manager,
+                                                &version_chain_gc,
+                                                DISABLED);    GarbageCollectorDataTableTestObject tested(&block_store_,
+max_columns_, &generator_); storage::GarbageCollector gc(&txn_manager);
 
     auto *txn0 = txn_manager.BeginTransaction();
     txn_manager.Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -136,9 +148,15 @@ TEST_F(GarbageCollectorTests, ReadOnly) {
 // NOLINTNEXTLINE
 TEST_F(GarbageCollectorTests, CommitInsert1) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TransactionManager txn_manager(&buffer_pool_, true, LOGGING_DISABLED);
-    GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
-    storage::GarbageCollector gc(&txn_manager);
+    transaction::TimestampManager timestamp_manager;
+    transaction::DeferredActionManager deferred_action_manager{&timestamp_manager};
+    storage::VersionChainGC version_chain_gc{&deferred_action_manager};
+    transaction::TransactionManager txn_manager(&timestamp_manager,
+                                                &buffer_pool_,
+                                                &deferred_action_manager,
+                                                &version_chain_gc,
+                                                DISABLED);    GarbageCollectorDataTableTestObject tested(&block_store_,
+max_columns_, &generator_); storage::GarbageCollector gc(&txn_manager);
 
     auto *txn0 = txn_manager.BeginTransaction();
 
@@ -487,7 +505,7 @@ TEST_F(GarbageCollectorTests, CommitUpdate2) {
 // NOLINTNEXTLINE
 TEST_F(GarbageCollectorTests, AbortUpdate1) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TransactionManager txn_manager(&buffer_pool_, true, LOGGING_DISABLED);
+    transaction::TransactionManager txn_manager(&buffer_pool_, true, DISABLED);
     GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
     storage::GarbageCollector gc(&txn_manager);
 
@@ -557,7 +575,7 @@ TEST_F(GarbageCollectorTests, AbortUpdate1) {
 // NOLINTNEXTLINE
 TEST_F(GarbageCollectorTests, AbortUpdate2) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TransactionManager txn_manager(&buffer_pool_, true, LOGGING_DISABLED);
+    transaction::TransactionManager txn_manager(&buffer_pool_, true, DISABLED);
     GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
     storage::GarbageCollector gc(&txn_manager);
 
@@ -664,3 +682,4 @@ TEST_F(GarbageCollectorTests, InsertUpdate1) {
   }
 }
 }  // namespace terrier
+ */

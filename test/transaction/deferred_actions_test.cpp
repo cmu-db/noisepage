@@ -1,7 +1,6 @@
 #include <vector>
 #include "storage/sql_table.h"
 #include "storage/storage_defs.h"
-#include "storage/version_chain_maintanence.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
 #include "transaction/transaction_manager.h"
@@ -13,19 +12,18 @@ namespace terrier {
 
 class DeferredActionsTest : public TerrierTest {
  protected:
-  DeferredActionsTest() : gc_(&txn_mgr_) {}
-
-  void SetUp() override { TerrierTest::SetUp(); }
-
   void TearDown() override {
-    gc_.PerformGarbageCollection();
-    gc_.PerformGarbageCollection();
+    while (deferred_action_manager_.Process() != 0) {
+    }
     TerrierTest::TearDown();
   }
 
   storage::RecordBufferSegmentPool buffer_pool_ = {100, 100};
-  transaction::TransactionManager txn_mgr_ = {&buffer_pool_, true, LOGGING_DISABLED};
-  storage::GarbageCollector gc_;
+  transaction::TimestampManager timestamp_manager_;
+  transaction::DeferredActionManager deferred_action_manager_{&timestamp_manager_};
+  storage::VersionChainGC version_chain_gc_{&deferred_action_manager_};
+  transaction::TransactionManager txn_mgr_ = {&timestamp_manager_, &buffer_pool_, &deferred_action_manager_,
+                                              &version_chain_gc_, DISABLED};
 };
 
 // Test that abort actions do not execute before the transaction aborts and that
@@ -36,8 +34,8 @@ TEST_F(DeferredActionsTest, AbortAction) {
 
   bool aborted = false;
   bool committed = false;
-  txn->RegisterAbortAction([&]() { aborted = true; });
-  txn->RegisterCommitAction([&]() { committed = true; });
+  txn->RegisterAbortAction([&](transaction::DeferredActionManager *) { aborted = true; });
+  txn->RegisterCommitAction([&](transaction::DeferredActionManager *) { committed = true; });
 
   EXPECT_FALSE(aborted);
   EXPECT_FALSE(committed);
@@ -75,8 +73,8 @@ TEST_F(DeferredActionsTest, CommitAction) {
 
   bool aborted = false;
   bool committed = false;
-  txn->RegisterAbortAction([&]() { aborted = true; });
-  txn->RegisterCommitAction([&]() { committed = true; });
+  txn->RegisterAbortAction([&](transaction::DeferredActionManager *) { aborted = true; });
+  txn->RegisterCommitAction([&](transaction::DeferredActionManager *) { committed = true; });
 
   EXPECT_FALSE(aborted);
   EXPECT_FALSE(committed);
@@ -93,9 +91,6 @@ TEST_F(DeferredActionsTest, CommitAction) {
   EXPECT_TRUE(committed);
   EXPECT_FALSE(aborted);
 
-  gc_.PerformGarbageCollection();
-  gc_.PerformGarbageCollection();
-
   insert = nullptr;
   delete pr_map;
   delete pri;
@@ -105,12 +100,11 @@ TEST_F(DeferredActionsTest, CommitAction) {
 // NOLINTNEXTLINE
 TEST_F(DeferredActionsTest, SimpleDefer) {
   bool deferred = false;
-  txn_mgr_.DeferAction([&]() { deferred = true; });
+  deferred_action_manager_.RegisterDeferredAction([&](transaction::timestamp_t) { deferred = true; });
 
   EXPECT_FALSE(deferred);
 
-  gc_.PerformGarbageCollection();
-
+  EXPECT_EQ(1, deferred_action_manager_.Process());
   EXPECT_TRUE(deferred);
 }
 
@@ -122,17 +116,17 @@ TEST_F(DeferredActionsTest, DelayedDefer) {
   auto *txn = txn_mgr_.BeginTransaction();
 
   bool deferred = false;
-  txn_mgr_.DeferAction([&]() { deferred = true; });
+  deferred_action_manager_.RegisterDeferredAction([&](transaction::timestamp_t) { deferred = true; });
 
   EXPECT_FALSE(deferred);
 
-  gc_.PerformGarbageCollection();
+  EXPECT_EQ(0, deferred_action_manager_.Process());
 
   EXPECT_FALSE(deferred);  // txn is still open
 
   txn_mgr_.Abort(txn);
 
-  gc_.PerformGarbageCollection();
+  EXPECT_EQ(1, deferred_action_manager_.Process());
 
   EXPECT_TRUE(deferred);
 }
@@ -144,20 +138,20 @@ TEST_F(DeferredActionsTest, ChainedDefer) {
   bool defer1 = false;
   bool defer2 = false;
 
-  txn_mgr_.DeferAction([&]() {
+  deferred_action_manager_.RegisterDeferredAction([&](transaction::timestamp_t) {
     defer1 = true;
-    txn_mgr_.DeferAction([&]() { defer2 = true; });
+    deferred_action_manager_.RegisterDeferredAction([&](transaction::timestamp_t) { defer2 = true; });
   });
 
   EXPECT_FALSE(defer1);
   EXPECT_FALSE(defer2);
 
-  gc_.PerformGarbageCollection();
+  EXPECT_EQ(1, deferred_action_manager_.Process());
 
   EXPECT_TRUE(defer1);
   EXPECT_FALSE(defer2);  // Sitting in txn_mgr_'s deferral queue
 
-  gc_.PerformGarbageCollection();
+  EXPECT_EQ(1, deferred_action_manager_.Process());
 
   EXPECT_TRUE(defer1);
   EXPECT_TRUE(defer2);
@@ -174,16 +168,15 @@ TEST_F(DeferredActionsTest, AbortBootstrapDefer) {
   bool aborted = false;
   bool committed = false;
 
-  txn->RegisterCommitAction([&]() { committed = true; });
+  txn->RegisterCommitAction([&](transaction::DeferredActionManager *) { committed = true; });
 
   // Bootstrap into the lamda.  Need to eliminate the reference to txn since
   // it could get garbage collected before the lambda derefernces it.
-  auto tm = txn->GetTransactionManager();
-  txn->RegisterAbortAction([&, tm]() {
+  txn->RegisterAbortAction([&](transaction::DeferredActionManager *deferred_action_manager) {
     aborted = true;
-    tm->DeferAction([&, tm]() {
+    deferred_action_manager->RegisterDeferredAction([&, deferred_action_manager](transaction::timestamp_t) {
       defer1 = true;
-      tm->DeferAction([&]() { defer2 = true; });
+      deferred_action_manager->RegisterDeferredAction([&](transaction::timestamp_t) { defer2 = true; });
     });
   });
 
@@ -192,7 +185,7 @@ TEST_F(DeferredActionsTest, AbortBootstrapDefer) {
   EXPECT_FALSE(defer1);
   EXPECT_FALSE(defer2);
 
-  gc_.PerformGarbageCollection();
+  EXPECT_EQ(0, deferred_action_manager_.Process());
 
   EXPECT_FALSE(aborted);
   EXPECT_FALSE(committed);
@@ -206,14 +199,14 @@ TEST_F(DeferredActionsTest, AbortBootstrapDefer) {
   EXPECT_FALSE(defer1);
   EXPECT_FALSE(defer2);
 
-  gc_.PerformGarbageCollection();
+  EXPECT_EQ(1, deferred_action_manager_.Process());
 
   EXPECT_TRUE(aborted);
   EXPECT_FALSE(committed);
   EXPECT_TRUE(defer1);
   EXPECT_FALSE(defer2);
 
-  gc_.PerformGarbageCollection();
+  EXPECT_EQ(1, deferred_action_manager_.Process());
 
   EXPECT_TRUE(aborted);
   EXPECT_FALSE(committed);
@@ -250,16 +243,15 @@ TEST_F(DeferredActionsTest, CommitBootstrapDefer) {
   bool aborted = false;
   bool committed = false;
 
-  txn->RegisterAbortAction([&]() { aborted = true; });
+  txn->RegisterAbortAction([&](transaction::DeferredActionManager *) { aborted = true; });
 
   // Bootstrap into the lamda.  Need to eliminate the reference to txn since
   // it could get garbage collected before the lambda derefernces it.
-  auto tm = txn->GetTransactionManager();
-  txn->RegisterCommitAction([&, tm]() {
+  txn->RegisterCommitAction([&](transaction::DeferredActionManager *deferred_action_manager) {
     committed = true;
-    tm->DeferAction([&, tm]() {
+    deferred_action_manager->RegisterDeferredAction([&, deferred_action_manager](transaction::timestamp_t) {
       defer1 = true;
-      tm->DeferAction([&]() { defer2 = true; });
+      deferred_action_manager->RegisterDeferredAction([&](transaction::timestamp_t) { defer2 = true; });
     });
   });
 
@@ -277,7 +269,7 @@ TEST_F(DeferredActionsTest, CommitBootstrapDefer) {
   EXPECT_FALSE(defer1);
   EXPECT_FALSE(defer2);
 
-  gc_.PerformGarbageCollection();
+  EXPECT_EQ(0, deferred_action_manager_.Process());
 
   EXPECT_FALSE(aborted);
   EXPECT_FALSE(committed);
@@ -291,14 +283,14 @@ TEST_F(DeferredActionsTest, CommitBootstrapDefer) {
   EXPECT_FALSE(defer1);
   EXPECT_FALSE(defer2);
 
-  gc_.PerformGarbageCollection();
+  EXPECT_EQ(1, deferred_action_manager_.Process());
 
   EXPECT_FALSE(aborted);
   EXPECT_TRUE(committed);
   EXPECT_TRUE(defer1);
   EXPECT_FALSE(defer2);
 
-  gc_.PerformGarbageCollection();
+  EXPECT_EQ(1, deferred_action_manager_.Process());
 
   EXPECT_FALSE(aborted);
   EXPECT_TRUE(committed);

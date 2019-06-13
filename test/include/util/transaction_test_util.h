@@ -1,5 +1,4 @@
 #pragma once
-#include <algorithm>
 #include <map>
 #include <unordered_map>
 #include <utility>
@@ -171,12 +170,18 @@ class LargeTransactionTestObject {
       return *this;
     }
 
-    /**
-     * @param gc_on whether gc is enabled
-     * @return self-reference for method chaining
-     */
-    Builder &SetGcOn(bool gc_on) {
-      builder_gc_on_ = gc_on;
+    Builder &SetTimestampManager(transaction::TimestampManager *timestamp_manager) {
+      builder_timestamp_manager_ = timestamp_manager;
+      return *this;
+    }
+
+    Builder &SetDeferredActionManager(transaction::DeferredActionManager *deferred_action_manager) {
+      builder_deferred_action_manager_ = deferred_action_manager;
+      return *this;
+    }
+
+    Builder &SetVersionChainGC(storage::VersionChainGC *version_chain_gc) {
+      builder_version_chain_gc_ = version_chain_gc;
       return *this;
     }
 
@@ -204,7 +209,7 @@ class LargeTransactionTestObject {
      * @return self-reference for method chaining
      */
     Builder &SetVarlenAllowed(bool varlen_allowed) {
-      varlen_allowed_ = varlen_allowed;
+      builder_varlen_allowed_ = varlen_allowed;
       return *this;
     }
 
@@ -222,10 +227,12 @@ class LargeTransactionTestObject {
     storage::BlockStore *builder_block_store_ = nullptr;
     storage::RecordBufferSegmentPool *builder_buffer_pool_ = nullptr;
     std::default_random_engine *builder_generator_ = nullptr;
-    bool builder_gc_on_ = true;
+    transaction::TimestampManager *builder_timestamp_manager_ = DISABLED;
+    transaction::DeferredActionManager *builder_deferred_action_manager_ = DISABLED;
+    storage::VersionChainGC *builder_version_chain_gc_ = DISABLED;
+    storage::LogManager *builder_log_manager_ = DISABLED;
     bool builder_bookkeeping_ = true;
-    storage::LogManager *builder_log_manager_ = LOGGING_DISABLED;
-    bool varlen_allowed_ = false;
+    bool builder_varlen_allowed_ = false;
   };
 
   /**
@@ -282,7 +289,10 @@ class LargeTransactionTestObject {
   LargeTransactionTestObject(uint16_t max_columns, uint32_t initial_table_size, uint32_t txn_length,
                              std::vector<double> update_select_ratio, storage::BlockStore *block_store,
                              storage::RecordBufferSegmentPool *buffer_pool, std::default_random_engine *generator,
-                             bool gc_on, bool bookkeeping, storage::LogManager *log_manager, bool varlen_allowed);
+                             transaction::TimestampManager *timestamp_manager,
+                             transaction::DeferredActionManager *deferred_action_manager,
+                             storage::VersionChainGC *version_chain_gc, storage::LogManager *log_manager,
+                             bool bookkeeping, bool varlen_allowed);
 
   void SimulateOneTransaction(RandomWorkloadTransaction *txn, uint32_t txn_id);
 

@@ -48,7 +48,7 @@ class TPCCBenchmark : public benchmark::Fixture {
   storage::BlockStore block_store_{blockstore_size_limit_, blockstore_reuse_limit_};
   storage::RecordBufferSegmentPool buffer_pool_{buffersegment_size_limit_, buffersegment_reuse_limit_};
   std::default_random_engine generator_;
-  storage::LogManager *log_manager_ = LOGGING_DISABLED;  // logging enabled will override this value
+  storage::LogManager *log_manager_ = DISABLED;  // logging enabled will override this value
 
   const bool only_count_new_order_ = false;  // TPC-C specification is to only measure throughput for New Order in final
                                              // result, but most academic papers use all txn types
@@ -59,7 +59,6 @@ class TPCCBenchmark : public benchmark::Fixture {
 
   common::WorkerPool thread_pool_{static_cast<uint32_t>(num_threads_), {}};
 
-  storage::GarbageCollectorThread *gc_thread_ = nullptr;
   const std::chrono::milliseconds gc_period_{10};
 
  private:
@@ -96,7 +95,15 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithoutLogging)(benchmark::State &
   for (auto _ : state) {
     unlink(LOG_FILE_NAME);
     // we need transactions, TPCC database, and GC
-    transaction::TransactionManager txn_manager(&buffer_pool_, true, log_manager_);
+    transaction::TimestampManager timestamp_manager;
+    transaction::DeferredActionManager deferred_action_manager(&timestamp_manager);
+    storage::VersionChainGC version_chain_gc(&deferred_action_manager);
+    storage::index::IndexGC index_gc;
+    transaction::TransactionManager txn_manager(&timestamp_manager,
+                                                &buffer_pool_,
+                                                &deferred_action_manager,
+                                                &version_chain_gc,
+                                                log_manager_);
 
     // build the TPCC database
     auto *const tpcc_db = tpcc_builder.Build();
@@ -109,8 +116,8 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithoutLogging)(benchmark::State &
 
     // populate the tables and indexes
     Loader::PopulateDatabase(&txn_manager, &generator_, tpcc_db, workers);
-    gc_thread_ = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
-    Util::RegisterIndexesForGC(&(gc_thread_->GetGarbageCollector()), tpcc_db);
+    storage::GarbageCollectorThread gc_thread(&deferred_action_manager, &index_gc, gc_period_);
+    Util::RegisterIndexesForGC(&index_gc, tpcc_db);
     std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
 
     // run the TPCC workload to completion, timing the execution
@@ -128,7 +135,6 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithoutLogging)(benchmark::State &
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
 
     // cleanup
-    delete gc_thread_;
     delete tpcc_db;
     unlink(LOG_FILE_NAME);
   }
@@ -171,7 +177,15 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
     unlink(LOG_FILE_NAME);
     // we need transactions, TPCC database, and GC
     log_manager_ = new storage::LogManager(LOG_FILE_NAME, &buffer_pool_);
-    transaction::TransactionManager txn_manager(&buffer_pool_, true, log_manager_);
+    transaction::TimestampManager timestamp_manager;
+    transaction::DeferredActionManager deferred_action_manager(&timestamp_manager);
+    storage::VersionChainGC version_chain_gc(&deferred_action_manager);
+    storage::index::IndexGC index_gc;
+    transaction::TransactionManager txn_manager(&timestamp_manager,
+                                                &buffer_pool_,
+                                                &deferred_action_manager,
+                                                &version_chain_gc,
+                                                log_manager_);
 
     // build the TPCC database
     auto *const tpcc_db = tpcc_builder.Build();
@@ -185,8 +199,8 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
     // populate the tables and indexes
     Loader::PopulateDatabase(&txn_manager, &generator_, tpcc_db, workers);
     log_manager_->Process();  // log all of the Inserts from table creation
-    gc_thread_ = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
-    Util::RegisterIndexesForGC(&(gc_thread_->GetGarbageCollector()), tpcc_db);
+    storage::GarbageCollectorThread gc_thread(&deferred_action_manager, &index_gc, gc_period_);
+    Util::RegisterIndexesForGC(&index_gc, tpcc_db);
     StartLogging();
     std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
 
@@ -206,7 +220,6 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
 
     // cleanup
-    delete gc_thread_;
     delete log_manager_;
     delete tpcc_db;
     unlink(LOG_FILE_NAME);

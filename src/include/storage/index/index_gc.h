@@ -11,7 +11,7 @@ class IndexGC {
    * Register an index to be periodically garbage collected
    * @param index pointer to the index to register
    */
-  void RegisterIndexForGC(index::Index *index) {
+  void Register(index::Index *index) {
     TERRIER_ASSERT(index != nullptr, "Index cannot be nullptr.");
     common::SharedLatch::ScopedExclusiveLatch guard(&indexes_latch_);
     TERRIER_ASSERT(indexes_.count(index) == 0, "Trying to register an index that has already been registered.");
@@ -22,7 +22,7 @@ class IndexGC {
    * Unregister an index to be periodically garbage collected
    * @param index pointer to the index to unregister
    */
-  void UnregisterIndexForGC(index::Index *index) {
+  void Unregister(index::Index *index) {
     TERRIER_ASSERT(index != nullptr, "Index cannot be nullptr.");
     common::SharedLatch::ScopedExclusiveLatch guard(&indexes_latch_);
     TERRIER_ASSERT(indexes_.count(index) == 1, "Trying to unregister an index that has not been registered.");

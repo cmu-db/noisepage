@@ -86,22 +86,21 @@ void RandomWorkloadTransaction::Finish() {
     commit_time_ = test_object_->txn_manager_.Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
-LargeTransactionTestObject::LargeTransactionTestObject(uint16_t max_columns, uint32_t initial_table_size,
-                                                       uint32_t txn_length, std::vector<double> update_select_ratio,
-                                                       storage::BlockStore *block_store,
-                                                       storage::RecordBufferSegmentPool *buffer_pool,
-                                                       std::default_random_engine *generator, bool gc_on,
-                                                       bool bookkeeping, storage::LogManager *log_manager,
-                                                       bool varlen_allowed)
+LargeTransactionTestObject::LargeTransactionTestObject(
+    uint16_t max_columns, uint32_t initial_table_size, uint32_t txn_length, std::vector<double> update_select_ratio,
+    storage::BlockStore *block_store, storage::RecordBufferSegmentPool *buffer_pool,
+    std::default_random_engine *generator, transaction::TimestampManager *timestamp_manager,
+    transaction::DeferredActionManager *deferred_action_manager, storage::VersionChainGC *version_chain_gc,
+    storage::LogManager *log_manager, bool bookkeeping, bool varlen_allowed)
     : txn_length_(txn_length),
       update_select_ratio_(std::move(update_select_ratio)),
       generator_(generator),
       layout_(varlen_allowed ? StorageTestUtil::RandomLayoutWithVarlens(max_columns, generator_)
                              : StorageTestUtil::RandomLayoutNoVarlen(max_columns, generator_)),
       table_(block_store, layout_, storage::layout_version_t(0)),
-      txn_manager_(buffer_pool, gc_on, log_manager),
-      gc_on_(gc_on),
-      wal_on_(log_manager != LOGGING_DISABLED),
+      txn_manager_(timestamp_manager, buffer_pool, deferred_action_manager, version_chain_gc, log_manager),
+      gc_on_(deferred_action_manager != DISABLED && version_chain_gc != DISABLED),
+      wal_on_(log_manager != DISABLED),
       bookkeeping_(bookkeeping) {
   // Bootstrap the table to have the specified number of tuples
   PopulateInitialTable(initial_table_size, generator_);
@@ -277,9 +276,11 @@ void LargeTransactionTestObject::UpdateLastCheckedVersion(const TableSnapshot &s
 }
 
 LargeTransactionTestObject LargeTransactionTestObject::Builder::build() {
-  return {builder_max_columns_, builder_initial_table_size_, builder_txn_length_, builder_update_select_ratio_,
-          builder_block_store_, builder_buffer_pool_,        builder_generator_,  builder_gc_on_,
-          builder_bookkeeping_, builder_log_manager_,        varlen_allowed_};
+  return {builder_max_columns_,         builder_initial_table_size_, builder_txn_length_,
+          builder_update_select_ratio_, builder_block_store_,        builder_buffer_pool_,
+          builder_generator_,           builder_timestamp_manager_,  builder_deferred_action_manager_,
+          builder_version_chain_gc_,    builder_log_manager_,        builder_bookkeeping_,
+          builder_varlen_allowed_};
 }
 
 }  // namespace terrier

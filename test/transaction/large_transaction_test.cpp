@@ -12,6 +12,7 @@ class LargeTransactionTests : public TerrierTest {
   storage::BlockStore block_store_{1000, 1000};
   storage::RecordBufferSegmentPool buffer_pool_{20000, 20000};
   std::default_random_engine generator_;
+  transaction::TimestampManager timestamp_manager_;
 };
 
 // These test cases generates random update-selects in concurrent transactions on a pre-populated database.
@@ -32,7 +33,7 @@ TEST_F(LargeTransactionTests, MixedReadWrite) {
                                             .SetBlockStore(&block_store_)
                                             .SetBufferPool(&buffer_pool_)
                                             .SetGenerator(&generator_)
-                                            .SetGcOn(false)
+                                            .SetTimestampManager(&timestamp_manager_)
                                             .SetBookkeeping(true)
                                             .build();
     auto result = tested.SimulateOltp(num_txns, num_concurrent_txns);
@@ -57,7 +58,7 @@ TEST_F(LargeTransactionTests, MixedReadWriteHighThread) {
                                             .SetBlockStore(&block_store_)
                                             .SetBufferPool(&buffer_pool_)
                                             .SetGenerator(&generator_)
-                                            .SetGcOn(false)
+                                            .SetTimestampManager(&timestamp_manager_)
                                             .SetBookkeeping(true)
                                             .build();
     auto result = tested.SimulateOltp(num_txns, num_concurrent_txns);
@@ -82,7 +83,7 @@ TEST_F(LargeTransactionTests, LowAbortHighThroughput) {
                                             .SetBlockStore(&block_store_)
                                             .SetBufferPool(&buffer_pool_)
                                             .SetGenerator(&generator_)
-                                            .SetGcOn(false)
+                                            .SetTimestampManager(&timestamp_manager_)
                                             .SetBookkeeping(true)
                                             .build();
     auto result = tested.SimulateOltp(num_txns, num_concurrent_txns);
@@ -107,7 +108,7 @@ TEST_F(LargeTransactionTests, LowAbortHighThroughputHighThread) {
                                             .SetBlockStore(&block_store_)
                                             .SetBufferPool(&buffer_pool_)
                                             .SetGenerator(&generator_)
-                                            .SetGcOn(false)
+                                            .SetTimestampManager(&timestamp_manager_)
                                             .SetBookkeeping(true)
                                             .build();
     auto result = tested.SimulateOltp(num_txns, num_concurrent_txns);
@@ -133,7 +134,7 @@ TEST_F(LargeTransactionTests, HighAbortRate) {
                                             .SetBlockStore(&block_store_)
                                             .SetBufferPool(&buffer_pool_)
                                             .SetGenerator(&generator_)
-                                            .SetGcOn(false)
+                                            .SetTimestampManager(&timestamp_manager_)
                                             .SetBookkeeping(true)
                                             .build();
     auto result = tested.SimulateOltp(num_txns, num_concurrent_txns);
@@ -158,7 +159,7 @@ TEST_F(LargeTransactionTests, HighAbortRateHighThread) {
                                             .SetBlockStore(&block_store_)
                                             .SetBufferPool(&buffer_pool_)
                                             .SetGenerator(&generator_)
-                                            .SetGcOn(false)
+                                            .SetTimestampManager(&timestamp_manager_)
                                             .SetBookkeeping(true)
                                             .build();
     auto result = tested.SimulateOltp(num_txns, num_concurrent_txns);
@@ -183,7 +184,7 @@ TEST_F(LargeTransactionTests, TPCCish) {
                                             .SetBlockStore(&block_store_)
                                             .SetBufferPool(&buffer_pool_)
                                             .SetGenerator(&generator_)
-                                            .SetGcOn(false)
+                                            .SetTimestampManager(&timestamp_manager_)
                                             .SetBookkeeping(true)
                                             .build();
     auto result = tested.SimulateOltp(num_txns, num_concurrent_txns);
@@ -208,7 +209,7 @@ TEST_F(LargeTransactionTests, TPCCishHighThread) {
                                             .SetBlockStore(&block_store_)
                                             .SetBufferPool(&buffer_pool_)
                                             .SetGenerator(&generator_)
-                                            .SetGcOn(false)
+                                            .SetTimestampManager(&timestamp_manager_)
                                             .SetBookkeeping(true)
                                             .build();
     auto result = tested.SimulateOltp(num_txns, num_concurrent_txns);

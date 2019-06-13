@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <vector>
 #include "catalog/schema.h"
+#include "storage/index/index_gc.h"
 #include "storage/projected_row.h"
 #include "util/catalog_test_util.h"
 
@@ -15,17 +16,17 @@ namespace terrier::tpcc {
 struct Util {
   Util() = delete;
 
-  static void RegisterIndexesForGC(storage::GarbageCollector *const gc, Database *const tpcc_db) {
-    gc->RegisterIndexForGC(tpcc_db->item_primary_index_);
-    gc->RegisterIndexForGC(tpcc_db->warehouse_primary_index_);
-    gc->RegisterIndexForGC(tpcc_db->stock_primary_index_);
-    gc->RegisterIndexForGC(tpcc_db->district_primary_index_);
-    gc->RegisterIndexForGC(tpcc_db->customer_primary_index_);
-    gc->RegisterIndexForGC(tpcc_db->customer_secondary_index_);
-    gc->RegisterIndexForGC(tpcc_db->new_order_primary_index_);
-    gc->RegisterIndexForGC(tpcc_db->order_primary_index_);
-    gc->RegisterIndexForGC(tpcc_db->order_secondary_index_);
-    gc->RegisterIndexForGC(tpcc_db->order_line_primary_index_);
+  static void RegisterIndexesForGC(storage::index::IndexGC *const gc, Database *const tpcc_db) {
+    gc->Register(tpcc_db->item_primary_index_);
+    gc->Register(tpcc_db->warehouse_primary_index_);
+    gc->Register(tpcc_db->stock_primary_index_);
+    gc->Register(tpcc_db->district_primary_index_);
+    gc->Register(tpcc_db->customer_primary_index_);
+    gc->Register(tpcc_db->customer_secondary_index_);
+    gc->Register(tpcc_db->new_order_primary_index_);
+    gc->Register(tpcc_db->order_primary_index_);
+    gc->Register(tpcc_db->order_secondary_index_);
+    gc->Register(tpcc_db->order_line_primary_index_);
   }
 
   static std::vector<catalog::col_oid_t> AllColOidsForSchema(const catalog::Schema &schema) {

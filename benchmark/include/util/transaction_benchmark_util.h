@@ -108,8 +108,10 @@ class LargeTransactionBenchmarkObject {
   LargeTransactionBenchmarkObject(const std::vector<uint8_t> &attr_sizes, uint32_t initial_table_size,
                                   uint32_t txn_length, std::vector<double> operation_ratio,
                                   storage::BlockStore *block_store, storage::RecordBufferSegmentPool *buffer_pool,
-                                  std::default_random_engine *generator, bool gc_on,
-                                  storage::LogManager *log_manager = DISABLED);
+                                  std::default_random_engine *generator,
+                                  transaction::TimestampManager *timestamp_manager,
+                                  transaction::DeferredActionManager *deferred_action_manager,
+                                  storage::VersionChainGC *version_chain_gc, storage::LogManager *log_manager);
 
   /**
    * Destructs a LargeTransactionBenchmarkObject

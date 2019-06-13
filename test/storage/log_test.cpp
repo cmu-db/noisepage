@@ -33,10 +33,11 @@ class WriteAheadLoggingTests : public TerrierTest {
     auto txn_begin = in->ReadValue<transaction::timestamp_t>();
     if (record_type == storage::LogRecordType::COMMIT) {
       auto txn_commit = in->ReadValue<transaction::timestamp_t>();
+      transaction::TransactionContext txn(txn_begin, txn_commit, nullptr, nullptr);
       // Okay to fill in null since nobody will invoke the callback.
       // is_read_only argument is set to false, because we do not write out a commit record for a transaction if it is
       // not read-only.
-      return storage::CommitRecord::Initialize(buf, txn_begin, txn_commit, nullptr, nullptr, false, nullptr);
+      return storage::CommitRecord::Initialize(buf, &txn, nullptr, nullptr);
     }
     // TODO(Tianyu): Without a lookup mechanism this oid is not exactly meaningful. Implement lookup when possible
     auto table_oid UNUSED_ATTRIBUTE = in->ReadValue<catalog::table_oid_t>();
@@ -57,6 +58,9 @@ class WriteAheadLoggingTests : public TerrierTest {
   std::default_random_engine generator_;
   storage::RecordBufferSegmentPool pool_{2000, 100};
   storage::BlockStore block_store_{100, 100};
+  transaction::TimestampManager timestamp_manager_;
+  transaction::DeferredActionManager deferred_action_manager_{&timestamp_manager_};
+  storage::VersionChainGC version_chain_gc_{&deferred_action_manager_};
   storage::LogManager log_manager_{LOG_FILE_NAME, &pool_};
   std::thread log_thread_;
   bool logging_;
@@ -86,12 +90,13 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
                                           .SetBlockStore(&block_store_)
                                           .SetBufferPool(&pool_)
                                           .SetGenerator(&generator_)
-                                          .SetGcOn(true)
-                                          .SetBookkeeping(true)
+                                          .SetTimestampManager(&timestamp_manager_)
+                                          .SetDeferredActionManager(&deferred_action_manager_)
+                                          .SetVersionChainGC(&version_chain_gc_)
                                           .SetLogManager(&log_manager_)
                                           .build();
   StartLogging(10);
-  gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
+  gc_thread_ = new storage::GarbageCollectorThread(&deferred_action_manager_, DISABLED, gc_period_);
   auto result = tested.SimulateOltp(100, 4);
   EndLogging();
   delete gc_thread_;
@@ -163,13 +168,15 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
                                           .SetBlockStore(&block_store_)
                                           .SetBufferPool(&pool_)
                                           .SetGenerator(&generator_)
-                                          .SetGcOn(true)
+                                          .SetTimestampManager(&timestamp_manager_)
+                                          .SetDeferredActionManager(&deferred_action_manager_)
+                                          .SetVersionChainGC(&version_chain_gc_)
                                           .SetBookkeeping(false)
                                           .SetLogManager(&log_manager_)
                                           .build();
 
   StartLogging(10);
-  gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
+  gc_thread_ = new storage::GarbageCollectorThread(&deferred_action_manager_, DISABLED, gc_period_);
   auto result = tested.SimulateOltp(100, 4);
   EndLogging();
   delete gc_thread_;

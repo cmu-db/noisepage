@@ -65,20 +65,19 @@ void RandomWorkloadTransaction::Finish() {
     commit_time_ = test_object_->txn_manager_.Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
 }
 
-LargeTransactionBenchmarkObject::LargeTransactionBenchmarkObject(const std::vector<uint8_t> &attr_sizes,
-                                                                 uint32_t initial_table_size, uint32_t txn_length,
-                                                                 std::vector<double> operation_ratio,
-                                                                 storage::BlockStore *block_store,
-                                                                 storage::RecordBufferSegmentPool *buffer_pool,
-                                                                 std::default_random_engine *generator, bool gc_on,
-                                                                 storage::LogManager *log_manager)
+LargeTransactionBenchmarkObject::LargeTransactionBenchmarkObject(
+    const std::vector<uint8_t> &attr_sizes, uint32_t initial_table_size, uint32_t txn_length,
+    std::vector<double> operation_ratio, storage::BlockStore *block_store,
+    storage::RecordBufferSegmentPool *buffer_pool, std::default_random_engine *generator,
+    transaction::TimestampManager *timestamp_manager, transaction::DeferredActionManager *deferred_action_manager,
+    storage::VersionChainGC *version_chain_gc, storage::LogManager *log_manager)
     : txn_length_(txn_length),
       operation_ratio_(std::move(operation_ratio)),
       generator_(generator),
       layout_({attr_sizes}),
       table_(block_store, layout_, storage::layout_version_t(0)),
-      txn_manager_(buffer_pool, gc_on, log_manager),
-      gc_on_(gc_on),
+      txn_manager_(timestamp_manager, buffer_pool, deferred_action_manager, version_chain_gc, log_manager),
+      gc_on_(deferred_action_manager != DISABLED && version_chain_gc != DISABLED),
       abort_count_(0) {
   // Bootstrap the table to have the specified number of tuples
   PopulateInitialTable(initial_table_size, generator_);
