@@ -10,6 +10,7 @@
 #include "loggers/storage_logger.h"
 #include "loggers/test_logger.h"
 #include "loggers/transaction_logger.h"
+#include "loggers/optimizer_logger.h"
 
 namespace terrier {
 
@@ -35,6 +36,7 @@ class LoggersUtil {
       settings::init_settings_logger();
       parser::init_parser_logger();
       network::init_network_logger();
+      optimizer::init_optimizer_logger();
 
       if (testing) {
         init_test_logger();

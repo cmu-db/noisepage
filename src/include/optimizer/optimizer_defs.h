@@ -11,17 +11,16 @@
 #include "parser/expression_defs.h"
 
 namespace terrier {
-
-namespace parser {
-class AbstractExpression;
-}
-
 namespace optimizer {
+
 /**
  * Operator type
  */
 enum class OpType {
   UNDEFINED = 0,
+
+  // Special wildcard
+  LEAF,
 
   // Logical Operators
   LOGICALGET,
@@ -139,6 +138,65 @@ class AnnotatedExpression {
    */
   std::unordered_set<std::string> table_alias_set_;
 };
+
+using GroupID = int32_t;
+const GroupID UNDEFINED_GROUP = -1;
+
+enum class ExternalFileFormat {
+  CSV,
+};
+
+struct ExprEqualCmp {
+  /**
+   * Checks two AbstractExpression for equality
+   * @param lhs one of the AbstractExpression
+   * @param rhs the other AbstractExpression
+   * @return whether the two are equal
+   *
+   * @pre lhs != nullptr && rhs != nullptr
+   */
+  bool operator()(terrier::parser::AbstractExpression* lhs,
+                  terrier::parser::AbstractExpression* rhs) {
+    TERRIER_ASSERT(lhs != nullptr && rhs != nullptr, "AbstractExpressions should not be null");
+    return (*lhs == *rhs);
+  }
+
+  /**
+   * Checks two AbstractExpression for equality (const version)
+   * @param lhs one of the AbstractExpression
+   * @param rhs the other AbstractExpression
+   * @return whether the two are equal
+   *
+   * @pre lhs != nullptr && rhs != nullptr
+   */
+  bool operator()(const terrier::parser::AbstractExpression* lhs,
+                  const terrier::parser::AbstractExpression* rhs) const {
+    TERRIER_ASSERT(lhs != nullptr && rhs != nullptr, "AbstractExpressions should not be null");
+    return (*lhs == *rhs);
+  }
+};
+
+struct ExprHasher {
+  /**
+   * Hashes the given expression
+   * @param expr the expression to hash
+   * @return hash code of the given expression
+   *
+   * @pre expr != nullptr
+   */
+  size_t operator()(const terrier::parser::AbstractExpression* expr) const {
+    TERRIER_ASSERT(expr != nullptr, "AbstractExpression should not be null");
+    return expr->Hash();
+  }
+};
+
+using MultiTablePredicates = std::vector<AnnotatedExpression>;
+
+// Mapping of Expression -> Column Offset created by operator
+using ExprMap = std::unordered_map<const parser::AbstractExpression*, unsigned, ExprHasher, ExprEqualCmp>;
+
+// Used in optimizer to speed up expression comparsion
+using ExprSet = std::unordered_set<const parser::AbstractExpression*, ExprHasher, ExprEqualCmp>;
 
 }  // namespace optimizer
 }  // namespace terrier

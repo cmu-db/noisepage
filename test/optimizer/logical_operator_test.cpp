@@ -186,6 +186,7 @@ TEST(OperatorTests, LogicalDeleteTest) {
 TEST(OperatorTests, LogicalUpdateTest) {
   std::string column = "abc";
   parser::AbstractExpression *value = new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1));
+
   auto raw_update_clause = new parser::UpdateClause(column, common::ManagedPointer<parser::AbstractExpression>(value));
   auto update_clause = common::ManagedPointer(raw_update_clause);
   catalog::db_oid_t database_oid(123);
@@ -238,7 +239,6 @@ TEST(OperatorTests, LogicalExportExternalFileTest) {
   // be equal to our first object and have the same hash
   std::string file_name_copy = file_name;  // NOLINT
   Operator op2 =
-
       LogicalExportExternalFile::make(parser::ExternalFileFormat::BINARY, file_name_copy, delimiter, quote, escape);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());

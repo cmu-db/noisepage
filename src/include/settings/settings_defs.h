@@ -34,3 +34,9 @@ SETTING_int(log_persist_interval, "Log file persisiting interval (ms) (default: 
 
 // Log file persisting threshold
 SETTING_int(log_persist_threshold, "Log file persisting write threshold (bytes) (default: 1MB)", (1 << 20) /* 1MB */, (1 << 12) /* 4KB */, (1 << 24) /* 16MB */, false, terrier::settings::Callbacks::NoOp)
+
+// Optimizer timeout
+SETTING_int(task_execution_timeout,
+            "Maximum allowed length of time (in ms) for task execution step of optimizer, "
+            "assuming one plan has been found (default 5000)",
+            5000, 1000, 60000, false, terrier::settings::Callbacks::NoOp)

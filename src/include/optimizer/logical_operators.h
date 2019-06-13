@@ -18,16 +18,32 @@
 
 namespace terrier {
 
-namespace catalog {
-class TableCatalogEntry;
-}  // namespace catalog
-
 namespace parser {
 class AbstractExpression;
 class UpdateClause;
 }  // namespace parser
 
 namespace optimizer {
+
+/**
+ * Operator that represents another group
+ */
+class LeafOperator : OperatorNode<LeafOperator> {
+ public:
+  /**
+   * @param group Group to wrap
+   */
+  static Operator make(GroupID group);
+
+  bool operator==(const BaseOperatorNode &r) override;
+
+  common::hash_t Hash() const override;
+
+  GroupID GetOriginGroup() const { return origin_group_; }
+
+ private:
+  GroupID origin_group_;
+};
 
 /**
  * Logical operator for get
