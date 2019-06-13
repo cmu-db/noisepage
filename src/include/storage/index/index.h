@@ -68,6 +68,11 @@ class Index {
   virtual ~Index() = default;
 
   /**
+   * Invoke garbage collection on the index. For some underlying index types this may be a no-op.
+   */
+  virtual void PerformGarbageCollection() = 0;
+
+  /**
    * Inserts a new key-value pair into the index, used for non-unique key indexes.
    * @param txn txn context for the calling txn, used to register abort actions
    * @param tuple key

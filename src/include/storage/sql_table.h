@@ -9,6 +9,7 @@
 #include "storage/projected_row.h"
 #include "storage/storage_defs.h"
 #include "storage/write_ahead_log/log_record.h"
+#include "transaction/transaction_context.h"
 
 namespace terrier::storage {
 
@@ -59,7 +60,8 @@ class SqlTable {
   }
 
   /**
-   * Update the tuple according to the redo buffer given.
+   * Update the tuple according to the redo buffer given. StageWrite must have been called as well in order for the
+   * operation to be logged.
    *
    * @param txn the calling transaction
    * @param redo the desired change to be applied. This should be the after-image of the attributes of interest. The
@@ -68,28 +70,44 @@ class SqlTable {
    */
   bool Update(transaction::TransactionContext *const txn, RedoRecord *const redo) const {
     TERRIER_ASSERT(redo->GetTupleSlot() != TupleSlot(nullptr, 0), "TupleSlot was never set in this RedoRecord.");
+    TERRIER_ASSERT(redo == reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
+                               ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
+                   "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
+                   "immediately before?");
     return table_.data_table->Update(txn, redo->GetTupleSlot(), *(redo->Delta()));
   }
 
   /**
-   * Inserts a tuple, as given in the redo, and return the slot allocated for the tuple.
+   * Inserts a tuple, as given in the redo, and return the slot allocated for the tuple. StageWrite must have been
+   * called as well in order for the operation to be logged.
    *
    * @param txn the calling transaction
-   * @param redo after-image of the inserted tuple. The TupleSlot in this RedoRecord will be set to the inserted
-   * location.
+   * @param redo after-image of the inserted tuple.
+   * @return TupleSlot for the inserted tuple
    */
-  void Insert(transaction::TransactionContext *const txn, RedoRecord *const redo) const {
+  TupleSlot Insert(transaction::TransactionContext *const txn, RedoRecord *const redo) const {
+    TERRIER_ASSERT(redo->GetTupleSlot() == TupleSlot(nullptr, 0), "TupleSlot was set in this RedoRecord.");
+    TERRIER_ASSERT(redo == reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
+                               ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
+                   "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
+                   "immediately before?");
     const auto slot = table_.data_table->Insert(txn, *(redo->Delta()));
     redo->SetTupleSlot(slot);
+    return slot;
   }
 
   /**
-   * Deletes the given TupleSlot, this will call StageWrite on the provided txn to generate the RedoRecord for delete.
+   * Deletes the given TupleSlot. StageDelete must have been called as well in order for the operation to be logged.
    * @param txn the calling transaction
    * @param slot the slot of the tuple to delete
    * @return true if successful, false otherwise
    */
   bool Delete(transaction::TransactionContext *const txn, const TupleSlot slot) {
+    TERRIER_ASSERT(
+        reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
+                ->GetUnderlyingRecordBodyAs<DeleteRecord>()
+                ->GetTupleSlot() == slot,
+        "This Delete is not the most recent entry in the txn's RedoBuffer. Was StageDelete called immediately before?");
     return table_.data_table->Delete(txn, slot);
   }
 
