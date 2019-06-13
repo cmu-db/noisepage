@@ -134,7 +134,8 @@ TEST_F(MetricTests, TransactionMetricBasicTest) {
       latency_max_map[txn_id] = latency;
     }
 
-    auto result = aggregator.AggregateRawData();
+    aggregator.Aggregate();
+    const auto &result = aggregator.AggregatedMetrics();
     EXPECT_FALSE(result.empty());
 
     for (const auto &raw_data : result) {

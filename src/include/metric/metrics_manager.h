@@ -55,11 +55,7 @@ class MetricsManager {
     delete metrics_store;
   }
 
-  /**
-   * Worker method for Aggregate() that performs stats collection
-   * @return raw data collected from all threads
-   */
-  std::vector<std::unique_ptr<AbstractRawData>> AggregateRawData();
+  const std::vector<std::unique_ptr<AbstractRawData>> &AggregatedMetrics() const { return aggregated_metrics_; }
 
  private:
   /**
@@ -68,6 +64,8 @@ class MetricsManager {
   using StoresMap = common::ConcurrentMap<std::thread::id, MetricsStore *const, std::hash<std::thread::id>>;
 
   StoresMap stores_map_;
+
+  std::vector<std::unique_ptr<AbstractRawData>> aggregated_metrics_;
 };
 
 }  // namespace terrier::metric
