@@ -42,6 +42,9 @@ class MetricsManager {
     return metrics_store;
   }
 
+  /**
+   * Remove thread from metrics map and deallocate its metrics store
+   */
   void UnregisterThread() {
     const auto thread_id = std::this_thread::get_id();
     const auto metrics_store_it = stores_map_.Find(thread_id);
@@ -57,6 +60,8 @@ class MetricsManager {
    * @return raw data collected from all threads
    */
   std::vector<std::unique_ptr<AbstractRawData>> AggregateRawData();
+
+ private:
   /**
    * Concurrent unordered map between thread ID and pointer to an instance of this class
    */

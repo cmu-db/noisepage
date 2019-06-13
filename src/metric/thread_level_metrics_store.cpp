@@ -7,9 +7,10 @@
 namespace terrier::metric {
 
 ThreadLevelMetricsStore::ThreadLevelMetricsStore(const std::thread::id) {
-  RegisterMetric<TransactionMetric>({MetricsEventType::TXN_BEGIN, MetricsEventType::TXN_COMMIT, MetricsEventType::TXN_ABORT,
-                                     MetricsEventType::TUPLE_READ, MetricsEventType::TUPLE_UPDATE,
-                                     MetricsEventType::TUPLE_INSERT, MetricsEventType::TUPLE_DELETE});
+  RegisterMetric<TransactionMetric>({MetricsEventType::TXN_BEGIN, MetricsEventType::TXN_COMMIT,
+                                     MetricsEventType::TXN_ABORT, MetricsEventType::TUPLE_READ,
+                                     MetricsEventType::TUPLE_UPDATE, MetricsEventType::TUPLE_INSERT,
+                                     MetricsEventType::TUPLE_DELETE});
 }
 
 ThreadLevelMetricsStore::~ThreadLevelMetricsStore() {
