@@ -12,7 +12,7 @@
 
 namespace terrier::network {
 Transition PostgresProtocolInterpreter::Process(std::shared_ptr<ReadBuffer> in, std::shared_ptr<WriteQueue> out,
-                                                common::ManagedPointer<tcop::TrafficCop> t_cop,
+                                                common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                                                 common::ManagedPointer<ConnectionContext> context,
                                                 NetworkCallback callback) {
   try {

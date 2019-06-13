@@ -39,7 +39,7 @@ class ProtocolInterpreter {
    * @return The next transition for the client's associated state machine
    */
   virtual Transition Process(std::shared_ptr<ReadBuffer> in, std::shared_ptr<WriteQueue> out,
-                             common::ManagedPointer<tcop::TrafficCop> t_cop,
+                             common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                              common::ManagedPointer<ConnectionContext> context,
                              NetworkCallback callback) = 0;
 

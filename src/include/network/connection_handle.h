@@ -49,7 +49,7 @@ class ConnectionHandle {
    * @param interpreter protocol interpreter to use for this connection handle
    */
   ConnectionHandle(int sock_fd, common::ManagedPointer<ConnectionHandlerTask> handler,
-                   common::ManagedPointer<tcop::TrafficCop> tcop, std::unique_ptr<ProtocolInterpreter> interpreter)
+                   common::ManagedPointer<trafficcop::TrafficCop> tcop, std::unique_ptr<ProtocolInterpreter> interpreter)
       : io_wrapper_(std::make_unique<NetworkIoWrapper>(sock_fd)),
         conn_handler_(handler),
         traffic_cop_(tcop),
@@ -222,7 +222,7 @@ class ConnectionHandle {
   std::unique_ptr<NetworkIoWrapper> io_wrapper_;
   // A raw pointer is used here because references cannot be rebound.
   common::ManagedPointer<ConnectionHandlerTask> conn_handler_;
-  common::ManagedPointer<tcop::TrafficCop> traffic_cop_;
+  common::ManagedPointer<trafficcop::TrafficCop> traffic_cop_;
   std::unique_ptr<ProtocolInterpreter> protocol_interpreter_;
 
   StateMachine state_machine_{};

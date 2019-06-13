@@ -32,7 +32,7 @@ void DBMain::Init() {
       type::TransientValuePeeker::PeekInteger(param_map_.find(settings::Param::num_worker_threads)->second.value_), {});
   thread_pool_->Startup();
 
-  t_cop_ = new terrier::tcop::TrafficCop;
+  t_cop_ = new terrier::trafficcop::TrafficCop;
   command_factory_ = new terrier::network::PostgresCommandFactory;
 
   connection_handle_factory_ = new terrier::network::ConnectionHandleFactory(common::ManagedPointer(t_cop_));

@@ -17,7 +17,7 @@
 #include "util/manual_packet_util.h"
 #include "util/test_harness.h"
 
-namespace terrier::tcop {
+namespace terrier::trafficcop {
 class TrafficCopTests : public TerrierTest {
  protected:
   std::unique_ptr<network::TerrierServer> server_;
@@ -446,4 +446,4 @@ TEST_F(TrafficCopTests, DISABLED_ExtendedQueryTest) {
   }
 }
 
-}  // namespace terrier::tcop
+}  // namespace terrier::trafficcop

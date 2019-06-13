@@ -1,6 +1,4 @@
-/*
- * This header includes some handy helper functions when testing with manual constructed packets.
- * */
+
 
 #pragma once
 
@@ -13,7 +11,11 @@
 #include "util/manual_packet_util.h"
 
 namespace terrier::network {
-struct ManualPacketUtil {
+/*
+ * This util class includes some handy helper functions when testing with manual constructed packets.
+ * */
+class ManualPacketUtil {
+ public:
   ManualPacketUtil() = delete;
 
   /**

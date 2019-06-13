@@ -29,7 +29,7 @@ class ConnectionHandleFactory {
    * Builds a new connection handle factory.
    * @param tcop The pointer to the traffic cop
    */
-  explicit ConnectionHandleFactory(common::ManagedPointer<tcop::TrafficCop> tcop) : traffic_cop_(tcop) {}
+  explicit ConnectionHandleFactory(common::ManagedPointer<trafficcop::TrafficCop> tcop) : traffic_cop_(tcop) {}
 
   /**
    * @brief Creates or re-purpose a NetworkIoWrapper object for new use.
@@ -54,6 +54,6 @@ class ConnectionHandleFactory {
 
  private:
   std::unordered_map<int, ConnectionHandle> reusable_handles_;
-  common::ManagedPointer<tcop::TrafficCop> traffic_cop_;
+  common::ManagedPointer<trafficcop::TrafficCop> traffic_cop_;
 };
 }  // namespace terrier::network

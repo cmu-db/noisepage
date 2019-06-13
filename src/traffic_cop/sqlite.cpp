@@ -13,7 +13,7 @@
 #include "type/transient_value_factory.h"
 #include "type/transient_value_peeker.h"
 
-namespace terrier::tcop {
+namespace terrier::trafficcop {
 
 SqliteEngine::SqliteEngine() {
   auto rc = sqlite3_open_v2("sqlite.db", &sqlite_db_, SQLITE_OPEN_NOMUTEX | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE,
@@ -121,4 +121,4 @@ ResultSet SqliteEngine::Execute(sqlite3_stmt *stmt) {
   return result_set;
 }
 
-}  // namespace terrier::tcop
+}  // namespace terrier::trafficcop

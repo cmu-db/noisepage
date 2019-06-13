@@ -11,7 +11,7 @@
    public:                                                                                                            \
     explicit name(PostgresInputPacket *in) : PostgresNetworkCommand(in, flush) {}                                     \
     Transition Exec(common::ManagedPointer<PostgresProtocolInterpreter> interpreter,                                  \
-                    common::ManagedPointer<PostgresPacketWriter> out, common::ManagedPointer<tcop::TrafficCop> t_cop, \
+                    common::ManagedPointer<PostgresPacketWriter> out, common::ManagedPointer<trafficcop::TrafficCop> t_cop, \
                     common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) override;         \
   }
 
@@ -36,7 +36,7 @@ class PostgresNetworkCommand {
    */
   virtual Transition Exec(common::ManagedPointer<PostgresProtocolInterpreter> interpreter,
                           common::ManagedPointer<PostgresPacketWriter> out,
-                          common::ManagedPointer<tcop::TrafficCop> t_cop,
+                          common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                           common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) = 0;
 
   /**

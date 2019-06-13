@@ -10,7 +10,7 @@
 
 struct sqlite3;
 
-namespace terrier::tcop {
+namespace terrier::trafficcop {
 
 /**
  * The sqlite3 execution engine
@@ -53,4 +53,4 @@ class SqliteEngine {
   struct sqlite3 *sqlite_db_;
 };
 
-}  // namespace terrier::tcop
+}  // namespace terrier::trafficcop
