@@ -38,7 +38,7 @@ class TerrierServer : public DedicatedThreadOwner {
    * is called.
    */
   explicit TerrierServer(ConnectionHandleFactory *connection_handle_factory);
-  virtual ~TerrierServer() = default;
+  ~TerrierServer() override = default;
 
   /**
    * @brief Configure the server to spin up all its threads and start listening
