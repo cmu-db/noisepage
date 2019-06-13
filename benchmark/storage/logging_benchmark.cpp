@@ -42,6 +42,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, TPCCish)(benchmark::State &state) {
   const std::vector<double> insert_update_select_ratio = {0.1, 0.4, 0.5};
   // NOLINTNEXTLINE
   for (auto _ : state) {
+    unlink(LOG_FILE_NAME);
     log_manager_ = new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_,
                                            log_persist_interval_, log_persist_threshold_, &buffer_pool_);
     log_manager_->Start();
@@ -61,6 +62,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, TPCCish)(benchmark::State &state) {
     log_manager_->PersistAndStop();
     delete log_manager_;
     delete gc_thread_;
+    unlink(LOG_FILE_NAME);
   }
   state.SetItemsProcessed(state.iterations() * num_txns - abort_count);
 }
@@ -75,6 +77,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, HighAbortRate)(benchmark::State &state) {
   const std::vector<double> insert_update_select_ratio = {0.0, 0.8, 0.2};
   // NOLINTNEXTLINE
   for (auto _ : state) {
+    unlink(LOG_FILE_NAME);
     // use a smaller table to make aborts more likely
     log_manager_ = new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_,
                                            log_persist_interval_, log_persist_threshold_, &buffer_pool_);
@@ -95,6 +98,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, HighAbortRate)(benchmark::State &state) {
     log_manager_->PersistAndStop();
     delete log_manager_;
     delete gc_thread_;
+    unlink(LOG_FILE_NAME);
   }
   state.SetItemsProcessed(state.iterations() * num_txns - abort_count);
 }
@@ -109,6 +113,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementInsert)(benchmark::State &st
   const std::vector<double> insert_update_select_ratio = {1, 0, 0};
   // NOLINTNEXTLINE
   for (auto _ : state) {
+    unlink(LOG_FILE_NAME);
     log_manager_ = new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_,
                                            log_persist_interval_, log_persist_threshold_, &buffer_pool_);
     log_manager_->Start();
@@ -128,6 +133,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementInsert)(benchmark::State &st
     log_manager_->PersistAndStop();
     delete log_manager_;
     delete gc_thread_;
+    unlink(LOG_FILE_NAME);
   }
   state.SetItemsProcessed(state.iterations() * num_txns - abort_count);
 }
@@ -142,6 +148,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementUpdate)(benchmark::State &st
   const std::vector<double> insert_update_select_ratio = {0, 1, 0};
   // NOLINTNEXTLINE
   for (auto _ : state) {
+    unlink(LOG_FILE_NAME);
     log_manager_ = new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_,
                                            log_persist_interval_, log_persist_threshold_, &buffer_pool_);
     log_manager_->Start();
@@ -161,6 +168,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementUpdate)(benchmark::State &st
     log_manager_->PersistAndStop();
     delete log_manager_;
     delete gc_thread_;
+    unlink(LOG_FILE_NAME);
   }
   state.SetItemsProcessed(state.iterations() * num_txns - abort_count);
 }
@@ -175,6 +183,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementSelect)(benchmark::State &st
   const std::vector<double> insert_update_select_ratio = {0, 0, 1};
   // NOLINTNEXTLINE
   for (auto _ : state) {
+    unlink(LOG_FILE_NAME);
     log_manager_ = new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_,
                                            log_persist_interval_, log_persist_threshold_, &buffer_pool_);
     log_manager_->Start();
@@ -194,6 +203,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementSelect)(benchmark::State &st
     log_manager_->PersistAndStop();
     delete log_manager_;
     delete gc_thread_;
+    unlink(LOG_FILE_NAME);
   }
   state.SetItemsProcessed(state.iterations() * num_txns - abort_count);
 }
