@@ -6,8 +6,9 @@
 namespace terrier::metric {
 
 void MetricsManager::Aggregate() {
-  for (auto iter = stores_map_.Begin(); iter != stores_map_.End(); ++iter) {
-    auto data_block = iter->second->GetDataToAggregate();
+  common::SpinLatch::ScopedSpinLatch guard(&stores_latch_);
+  for (auto iter : stores_map_) {
+    auto data_block = iter.second->GetDataToAggregate();
     if (aggregated_metrics_.empty()) {
       aggregated_metrics_ = std::move(data_block);
     } else {

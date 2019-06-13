@@ -1,8 +1,10 @@
 #pragma once
 
 #include <memory>
+#include <unordered_map>
 #include <vector>
 
+#include "common/spin_latch.h"
 #include "metric/abstract_raw_data.h"
 #include "metric/metrics_store.h"
 
@@ -24,8 +26,9 @@ class MetricsManager {
   void Aggregate();
 
   ~MetricsManager() {
-    for (auto iter = stores_map_.Begin(); iter != stores_map_.End(); ++iter) {
-      auto *const metrics_store = iter->second;
+    common::SpinLatch::ScopedSpinLatch guard(&stores_latch_);
+    for (auto iter : stores_map_) {
+      auto *const metrics_store = iter.second;
       delete metrics_store;
     }
   }
@@ -34,10 +37,11 @@ class MetricsManager {
    * @return the Collector for the calling thread
    */
   MetricsStore *const RegisterThread() {
+    common::SpinLatch::ScopedSpinLatch guard(&stores_latch_);
     const auto thread_id = std::this_thread::get_id();
-    TERRIER_ASSERT(stores_map_.Find(thread_id) == stores_map_.End(), "This thread was already registered.");
+    TERRIER_ASSERT(stores_map_.count(thread_id) == 0, "This thread was already registered.");
     auto *const metrics_store = new MetricsStore();
-    auto result UNUSED_ATTRIBUTE = stores_map_.Insert(thread_id, metrics_store);
+    auto result UNUSED_ATTRIBUTE = stores_map_.emplace(thread_id, metrics_store);
     TERRIER_ASSERT(result.second, "Insertion to concurrent map failed.");
     return metrics_store;
   }
@@ -46,12 +50,12 @@ class MetricsManager {
    * Remove thread from metrics map and deallocate its metrics store
    */
   void UnregisterThread() {
+    common::SpinLatch::ScopedSpinLatch guard(&stores_latch_);
     const auto thread_id = std::this_thread::get_id();
-    const auto metrics_store_it = stores_map_.Find(thread_id);
-    TERRIER_ASSERT(metrics_store_it != stores_map_.End(), "This thread was never registered.");
-    auto *const metrics_store = metrics_store_it->second;
-    stores_map_.UnsafeErase(thread_id);
-    TERRIER_ASSERT(stores_map_.Find(thread_id) == stores_map_.End(), "Deletion from concurrent map failed.");
+    TERRIER_ASSERT(stores_map_.count(thread_id) == 1, "This thread was never registered.");
+    auto *const metrics_store = stores_map_.find(thread_id)->second;
+    stores_map_.erase(thread_id);
+    TERRIER_ASSERT(stores_map_.count(thread_id) == 0, "Deletion from concurrent map failed.");
     delete metrics_store;
   }
 
@@ -61,12 +65,8 @@ class MetricsManager {
   const std::vector<std::unique_ptr<AbstractRawData>> &AggregatedMetrics() const { return aggregated_metrics_; }
 
  private:
-  /**
-   * Concurrent unordered map between thread ID and pointer to an instance of this class
-   */
-  using StoresMap = common::ConcurrentMap<std::thread::id, MetricsStore *const, std::hash<std::thread::id>>;
-
-  StoresMap stores_map_;
+  common::SpinLatch stores_latch_;
+  std::unordered_map<std::thread::id, MetricsStore *const> stores_map_;
 
   std::vector<std::unique_ptr<AbstractRawData>> aggregated_metrics_;
 };
