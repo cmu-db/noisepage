@@ -284,6 +284,7 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
 
 // This test simulates a transaction that has previously flushed its buffer, and then aborts. We then check that it
 // correctly flushed out an abort record
+// NOLINTNEXTLINE
 TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
   log_manager_->Start();
 
@@ -352,10 +353,12 @@ TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
   // Perform GC, will clean up transactions for us
   gc_thread_ = new storage::GarbageCollectorThread(&txn_manager_, gc_period_);
   delete gc_thread_;
+  delete second_txn;
   delete sql_table;
 }
 
 // This test verifies that we don't write an abort record for an aborted transaction that never flushed its redo buffer
+// NOLINTNEXTLINE
 TEST_F(WriteAheadLoggingTests, NoAbortRecordTest) {
   log_manager_->Start();
 

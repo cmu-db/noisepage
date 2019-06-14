@@ -343,9 +343,9 @@ class RedoBuffer {
   /**
    * Flush all contents of the redo buffer to be logged out, effectively closing this redo buffer. No further entries
    * can be written to this redo buffer after the function returns.
-   * @param committed whether the transaction holding this RedoBuffer is committed
+   * @param flush_buffer whether the transaction holding this RedoBuffer should flush the its redo buffer
    */
-  void Finalize(bool committed);
+  void Finalize(bool flush_buffer);
 
   /**
    * @return a pointer to the beginning of the last record requested, or nullptr if no record exists.
