@@ -330,7 +330,7 @@ class RedoBuffer {
    * @param buffer_pool The buffer pool to draw buffer segments from. Must be the same buffer pool the log manager uses.
    */
   RedoBuffer(LogManager *log_manager, RecordBufferSegmentPool *buffer_pool)
-      : log_manager_(log_manager), buffer_pool_(buffer_pool) {}
+      : has_flushed_(false), log_manager_(log_manager), buffer_pool_(buffer_pool) {}
 
   /**
    * Reserve a redo record with the given size, in bytes. The returned pointer is guaranteed to be valid until NewEntry
@@ -352,7 +352,15 @@ class RedoBuffer {
    */
   byte *LastRecord() const { return last_record_; }
 
+  /**
+   * @return true if this buffer has previously flushed to the log manager
+   */
+  bool HasFlushed() const { return has_flushed_; }
+
  private:
+  // Flag to denote if this RedoBuffer has flushed records to the log manager already. Used to determine if we should
+  // write an abort record
+  bool has_flushed_;
   LogManager *const log_manager_;
   RecordBufferSegmentPool *const buffer_pool_;
   RecordBufferSegment *buffer_seg_ = nullptr;
