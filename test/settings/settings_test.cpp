@@ -106,17 +106,18 @@ TEST_F(SettingsTests, InvalidValueTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(SettingsTests, CallbackStateTest) {
-  // Invoke a special callbacks to make sure that our callbacks get invoked correctly
-  // and that our ActionContexts have the proper state set
+TEST_F(SettingsTests, SetterCallbackTest) {
+  // Invoke a setter callbacks to make sure that our callbacks get invoked correctly
+  // and that our ActionContexts have the proper state set.
+  // Note that the SetterCallback is *always* invoked regardless of whether
+  // the param update is successful or not.
 
-  // SUCCESS -- The callback should be invoked
+  // SUCCESS
   const int32_t action_id = 1;
   std::shared_ptr<common::ActionContext> context0 = std::make_shared<common::ActionContext>(action_id);
   EXPECT_EQ(context0->GetState(), common::ActionState::INITIATED);
   SettingsTests::invoked_ = false;
   auto callback0 = +[](const std::shared_ptr<common::ActionContext> &action_context) -> void {
-    // TODO(pavlo): What should be the state of the action *before* we invoke the callback?
     EXPECT_EQ(action_context->GetState(), common::ActionState::SUCCESS);
     SettingsTests::invoked_ = true;
   };
@@ -124,23 +125,23 @@ TEST_F(SettingsTests, CallbackStateTest) {
   EXPECT_EQ(context0->GetState(), common::ActionState::SUCCESS);
   EXPECT_TRUE(SettingsTests::invoked_);
 
-  // FAILURE -- The callback should *not* be invoked
+  // FAILURE
   const int32_t id1 = 1;
   std::shared_ptr<common::ActionContext> context1 = std::make_shared<common::ActionContext>(id1);
   EXPECT_EQ(context1->GetState(), common::ActionState::INITIATED);
   SettingsTests::invoked_ = false;
   auto callback1 = +[](const std::shared_ptr<common::ActionContext> &action_context) -> void {
-    // We should never get invoked!
+    EXPECT_EQ(action_context->GetState(), common::ActionState::FAILURE);
     SettingsTests::invoked_ = true;
   };
   settings_manager_->SetInt(Param::port, 9999, context1, callback1);
   EXPECT_EQ(context1->GetState(), common::ActionState::FAILURE);
-  // FIXME: EXPECT_FALSE(SettingsTests::invoked_);
+  EXPECT_TRUE(SettingsTests::invoked_);
 }
 
 // NOLINTNEXTLINE
-TEST_F(SettingsTests, CallbackTest) {
-  // Check that if we set a parameter with a callback that it gets propagated to the object
+TEST_F(SettingsTests, ParamCallbackTest) {
+  // Check that if we set a parameter with a callback that the change gets propagated to the object
 
   auto bufferPoolSize = static_cast<int64_t>(settings_manager_->GetInt(Param::record_buffer_segment_size));
   EXPECT_EQ(bufferPoolSize, defaultBufferPoolSize);
