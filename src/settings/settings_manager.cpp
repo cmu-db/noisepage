@@ -71,6 +71,13 @@ std::string SettingsManager::GetString(Param param) {
 
 void SettingsManager::SetInt(Param param, int32_t value, std::shared_ptr<ActionContext> action_context,
                              setter_callback_fn setter_callback) {
+  // The ActionContext state must be set to INITIATED to prevent
+  // somebody from reusing it for multiple invocations
+  if (action_context->GetState() != ActionState::INITIATED) {
+    SETTINGS_LOG_ERROR("ActionContext state is not set to INITIATED");
+    throw SETTINGS_EXCEPTION("Invalid ActionContext");
+  }
+
   common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
   const auto &param_info = db_->param_map_.find(param)->second;
   auto min_value = static_cast<int>(param_info.min_value_);
@@ -94,6 +101,13 @@ void SettingsManager::SetInt(Param param, int32_t value, std::shared_ptr<ActionC
 
 void SettingsManager::SetDouble(Param param, double value, std::shared_ptr<ActionContext> action_context,
                                 setter_callback_fn setter_callback) {
+  // The ActionContext state must be set to INITIATED to prevent
+  // somebody from reusing it for multiple invocations
+  if (action_context->GetState() != ActionState::INITIATED) {
+    SETTINGS_LOG_ERROR("ActionContext state is not set to INITIATED");
+    throw SETTINGS_EXCEPTION("Invalid ActionContext");
+  }
+
   common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
   const auto &param_info = db_->param_map_.find(param)->second;
   double min_value = param_info.min_value_;
@@ -117,6 +131,13 @@ void SettingsManager::SetDouble(Param param, double value, std::shared_ptr<Actio
 
 void SettingsManager::SetBool(Param param, bool value, std::shared_ptr<ActionContext> action_context,
                               setter_callback_fn setter_callback) {
+  // The ActionContext state must be set to INITIATED to prevent
+  // somebody from reusing it for multiple invocations
+  if (action_context->GetState() != ActionState::INITIATED) {
+    SETTINGS_LOG_ERROR("ActionContext state is not set to INITIATED");
+    throw SETTINGS_EXCEPTION("Invalid ActionContext");
+  }
+
   common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
   bool old_value = ValuePeeker::PeekBoolean(GetValue(param));
   if (!SetValue(param, ValueFactory::GetBoolean(value))) {
@@ -132,6 +153,13 @@ void SettingsManager::SetBool(Param param, bool value, std::shared_ptr<ActionCon
 
 void SettingsManager::SetString(Param param, const std::string_view &value,
                                 std::shared_ptr<ActionContext> action_context, setter_callback_fn setter_callback) {
+  // The ActionContext state must be set to INITIATED to prevent
+  // somebody from reusing it for multiple invocations
+  if (action_context->GetState() != ActionState::INITIATED) {
+    SETTINGS_LOG_ERROR("ActionContext state is not set to INITIATED");
+    throw SETTINGS_EXCEPTION("Invalid ActionContext");
+  }
+
   common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
   std::string_view old_value = ValuePeeker::PeekVarChar(GetValue(param));
   if (!SetValue(param, ValueFactory::GetVarChar(value))) {
