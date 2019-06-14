@@ -143,7 +143,7 @@ class AbstractPlanNode {
    */
   virtual common::hash_t Hash() const {
     auto type = GetPlanNodeType();
-    common::hash_t hash = common::HashUtil::Hash(&type);
+    common::hash_t hash = common::HashUtil::Hash(type);
     hash = common::HashUtil::CombineHashes(hash, GetOutputSchema()->Hash());
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(GetPlanNodeType()));
     for (auto &child : GetChildren()) {

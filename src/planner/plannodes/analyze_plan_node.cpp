@@ -13,19 +13,19 @@ common::hash_t AnalyzePlanNode::Hash() const {
 
   // Hash database_oid
   auto database_oid = GetDatabaseOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid));
 
   // Hash namespace oid
   auto namespace_oid = GetNamespaceOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&namespace_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid));
 
   // Hash table_oid
   auto table_oid = GetTableOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&table_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid));
 
   // Hash column_names
   for (const auto column_oid : column_oids_) {
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&column_oid));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(column_oid));
   }
 
   return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
@@ -45,16 +45,8 @@ bool AnalyzePlanNode::operator==(const AbstractPlanNode &rhs) const {
   // Target table OID
   if (GetTableOid() != other.GetTableOid()) return false;
 
-  // Column names
-  const auto &column_oids = GetColumnOids();
-  const auto &other_column_oids = other.GetColumnOids();
-  if (column_oids.size() != other_column_oids.size()) return false;
-
-  for (size_t i = 0; i < column_oids.size(); i++) {
-    if (column_oids[i] != other_column_oids[i]) {
-      return false;
-    }
-  }
+  // Column Oids
+  if (GetColumnOids() != other.GetColumnOids()) return false;
 
   return AbstractPlanNode::operator==(rhs);
 }
