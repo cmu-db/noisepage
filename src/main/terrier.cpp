@@ -38,7 +38,8 @@ int main(int argc, char *argv[]) {
 //  db.Init();
 //  db.Run();
   auto injector = [] {
-    return boost::di::make_injector(boost::di::bind<Foo>().in(terrier::terrier_module).to<Bar>());
+    return boost::di::make_injector<terrier::di::StrictBinding>(terrier::di::bind<Foo>()
+        .in(terrier::di::terrier_module).to<Bar>());
   };
 
   auto injector1 = injector();

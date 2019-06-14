@@ -2,9 +2,10 @@
 #include "common/managed_pointer.h"
 #include "boost/di/di.h"
 #define DECLARE_ANNOTATION(name) static constexpr auto name = []{}
-namespace di = boost::di;
 
-namespace terrier {
+namespace terrier::di {
+// Effectively merges the boost::di namespace with terrier-specific helpers and wrappers
+using namespace boost::di;
 /*
  * This policy ensures that no default values is used, and all parameters being injected are bound
  */
@@ -101,5 +102,11 @@ class TerrierModule {
   };
 };
 
+/**
+ * Use this as the scope object to use for TerrierModule.
+ *
+ * Pretty much always, you should use this as the default scope over boost:di provided ones.
+ */
 static TerrierModule UNUSED_ATTRIBUTE terrier_module{};
-}  // namespace terrier
+
+}  // namespace terrier::di
