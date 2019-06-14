@@ -354,7 +354,7 @@ class AbortRecord {
   static uint32_t Size() { return static_cast<uint32_t>(sizeof(LogRecord) + sizeof(AbortRecord)); }
 
   /**
-   * Initialize an entire LogRecord (header included) to have an underlying commit record, using the parameters
+   * Initialize an entire LogRecord (header included) to have an underlying abort record, using the parameters
    * supplied.
    *
    * @param head pointer location to initialize, this is also the returned address (reinterpreted)
@@ -378,7 +378,7 @@ class AbortRecord {
   transaction::timestamp_t AbortTime() const { return txn_abort_; }
 
   /**
-   * @return pointer to the committing transaction.
+   * @return pointer to the aborting transaction.
    */
   transaction::TransactionContext *Txn() const { return txn_; }
 
