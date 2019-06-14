@@ -47,7 +47,7 @@ class SettingsTests : public TerrierTest {
    * If you use this in the tests below, then you have to make sure that reset it before
    * you use it.
    */
-  inline static bool invoked_;
+  inline static bool invoked_; // NOLINT
 };
 
 // NOLINTNEXTLINE
