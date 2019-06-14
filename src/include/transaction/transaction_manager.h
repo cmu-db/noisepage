@@ -11,6 +11,7 @@
 #include "storage/write_ahead_log/log_manager.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
+#include "di/di_help.h"
 
 namespace terrier::transaction {
 /**
@@ -20,6 +21,7 @@ namespace terrier::transaction {
 class TransactionManager {
   // TODO(Tianyu): Implement the global transaction tables
  public:
+  DECLARE_ANNOTATION(GC_ENABLED);
   /**
    * Initializes a new transaction manager. Transactions will use the given object pool as source of their undo
    * buffers.
@@ -27,8 +29,10 @@ class TransactionManager {
    * @param gc_enabled true if txns should be stored in a local queue to hand off to the GC, false otherwise
    * @param log_manager the log manager in the system, or LOGGING_DISABLED(nulllptr) if logging is turned off.
    */
-  TransactionManager(storage::RecordBufferSegmentPool *const buffer_pool, const bool gc_enabled,
-                     storage::LogManager *log_manager)
+  BOOST_DI_INJECT(TransactionManager,
+                  storage::RecordBufferSegmentPool *buffer_pool,
+                  (named = GC_ENABLED) bool gc_enabled,
+                  storage::LogManager *log_manager)
       : buffer_pool_(buffer_pool), gc_enabled_(gc_enabled), log_manager_(log_manager) {}
 
   /**

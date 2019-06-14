@@ -9,6 +9,8 @@ using namespace boost::di;
 /*
  * This policy ensures that no default values is used, and all parameters being injected are bound
  */
+// TODO(Tianyu): I believe this will just ensure there is at least a bind clause for anything injected.
+// Does't matter whether it's in() or to().
 class StrictBinding : public di::config {
  public:
   /**

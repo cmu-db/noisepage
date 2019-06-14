@@ -7,6 +7,7 @@
 #include "common/container/concurrent_queue.h"
 #include "common/spin_latch.h"
 #include "common/strong_typedef.h"
+#include "di/di_help.h"
 
 namespace terrier::common {
 // TODO(Yangjun): this class should be moved somewhere else.
@@ -63,6 +64,8 @@ class AllocatorFailureException : public std::exception {
 template <typename T, class Allocator = ByteAlignedAllocator<T>>
 class ObjectPool {
  public:
+  DECLARE_ANNOTATION(SIZE_LIMIT);
+  DECLARE_ANNOTATION(REUSE_LIMIT);
   /**
    * Initializes a new object pool with the supplied limit to the number of
    * objects reused.
@@ -70,7 +73,9 @@ class ObjectPool {
    * @param size_limit the maximum number of objects the object pool controls
    * @param reuse_limit the maximum number of reusable objects
    */
-  ObjectPool(const uint64_t size_limit, const uint64_t reuse_limit)
+  BOOST_DI_INJECT(ObjectPool,
+                  (named = SIZE_LIMIT) uint64_t size_limit,
+                  (named = REUSE_LIMIT) uint64_t reuse_limit)
       : size_limit_(size_limit), reuse_limit_(reuse_limit), current_size_(0) {}
 
   /**
