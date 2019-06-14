@@ -79,8 +79,8 @@ void SettingsManager::SetInt(Param param, int32_t value, std::shared_ptr<ActionC
   }
 
   const auto &param_info = db_->param_map_.find(param)->second;
-  auto min_value = static_cast<int>(param_info.min_value_);
-  auto max_value = static_cast<int>(param_info.max_value_);
+  auto min_value = static_cast<const int>(param_info.min_value_);
+  auto max_value = static_cast<const int>(param_info.max_value_);
 
   common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
   if (!(value >= min_value && value <= max_value)) {
@@ -93,9 +93,10 @@ void SettingsManager::SetInt(Param param, int32_t value, std::shared_ptr<ActionC
       ActionState action_state = InvokeCallback(param, &old_value, &value, action_context);
       if (action_state == ActionState::FAILURE) {
         bool result = SetValue(param, ValueFactory::GetInteger(old_value));
-        if (result == false)
+        if (!result) {
           SETTINGS_LOG_ERROR("Failed to revert parameter \"{}\"", param_info.name_);
           throw SETTINGS_EXCEPTION("Failed to reset parameter");
+        }
       }
     }
   }
@@ -112,8 +113,8 @@ void SettingsManager::SetDouble(Param param, double value, std::shared_ptr<Actio
   }
 
   const auto &param_info = db_->param_map_.find(param)->second;
-  double min_value = param_info.min_value_;
-  double max_value = param_info.max_value_;
+  auto min_value = static_cast<const int>(param_info.min_value_);
+  auto max_value = static_cast<const int>(param_info.max_value_);
 
   common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
   if (!(value >= min_value && value <= max_value)) {
@@ -126,7 +127,7 @@ void SettingsManager::SetDouble(Param param, double value, std::shared_ptr<Actio
       ActionState action_state = InvokeCallback(param, &old_value, &value, action_context);
       if (action_state == ActionState::FAILURE) {
         bool result = SetValue(param, ValueFactory::GetDecimal(old_value));
-        if (result == false) {
+        if (!result) {
           SETTINGS_LOG_ERROR("Failed to revert parameter \"{}\"", param_info.name_);
           throw SETTINGS_EXCEPTION("Failed to reset parameter");
         }
@@ -155,7 +156,7 @@ void SettingsManager::SetBool(Param param, bool value, std::shared_ptr<ActionCon
     ActionState action_state = InvokeCallback(param, &old_value, &value, action_context);
     if (action_state == ActionState::FAILURE) {
       bool result = SetValue(param, ValueFactory::GetBoolean(old_value));
-      if (result == false) {
+      if (!result) {
         SETTINGS_LOG_ERROR("Failed to revert parameter \"{}\"", param_info.name_);
         throw SETTINGS_EXCEPTION("Failed to reset parameter");
       }
@@ -184,7 +185,7 @@ void SettingsManager::SetString(Param param, const std::string_view &value,
     ActionState action_state = InvokeCallback(param, &old_value, &new_value, action_context);
     if (action_state == ActionState::FAILURE) {
       bool result = SetValue(param, ValueFactory::GetVarChar(old_value));
-      if (result == false) {
+      if (!result) {
         SETTINGS_LOG_ERROR("Failed to revert parameter \"{}\"", param_info.name_);
         throw SETTINGS_EXCEPTION("Failed to reset parameter");
       }
