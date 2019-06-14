@@ -5,11 +5,21 @@
 namespace terrier::planner {
 
 common::hash_t CSVScanPlanNode::Hash() const {
-  common::hash_t hash = AbstractScanPlanNode::Hash();
+  common::hash_t hash = AbstractPlanNode::Hash();
+
+  // Filename
   hash = common::HashUtil::CombineHashes(hash, std::hash<std::string>{}(file_name_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&delimiter_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&quote_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&escape_));
+
+  // Delimiter
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(delimiter_));
+
+  // Quote Char
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(quote_));
+
+  // Escape Char
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(escape_));
+
+  // Null String
   hash = common::HashUtil::CombineHashes(hash, std::hash<std::string>{}(null_string_));
 
   return hash;

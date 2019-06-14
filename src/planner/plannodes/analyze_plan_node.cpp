@@ -8,8 +8,7 @@
 namespace terrier::planner {
 
 common::hash_t AnalyzePlanNode::Hash() const {
-  auto type = GetPlanNodeType();
-  common::hash_t hash = common::HashUtil::Hash(&type);
+  common::hash_t hash = AbstractPlanNode::Hash();
 
   // Hash database_oid
   auto database_oid = GetDatabaseOid();
@@ -28,7 +27,7 @@ common::hash_t AnalyzePlanNode::Hash() const {
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(column_oid));
   }
 
-  return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
+  return hash;
 }
 
 bool AnalyzePlanNode::operator==(const AbstractPlanNode &rhs) const {

@@ -27,9 +27,11 @@ bool AbstractJoinPlanNode::operator==(const AbstractPlanNode &rhs) const {
 common::hash_t AbstractJoinPlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
 
+  // Join Type
   auto join_type = GetLogicalJoinType();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&join_type));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(join_type));
 
+  // Predicate
   if (GetJoinPredicate() != nullptr) {
     hash = common::HashUtil::CombineHashes(hash, GetJoinPredicate()->Hash());
   }

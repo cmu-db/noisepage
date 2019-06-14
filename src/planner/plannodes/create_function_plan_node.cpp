@@ -6,20 +6,19 @@
 namespace terrier::planner {
 
 common::hash_t CreateFunctionPlanNode::Hash() const {
-  auto type = GetPlanNodeType();
-  common::hash_t hash = common::HashUtil::Hash(&type);
+  common::hash_t hash = AbstractPlanNode::Hash();
 
   // Hash database_oid
   auto database_oid = GetDatabaseOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid));
 
   // Hash namespace oid
   auto namespace_oid = GetNamespaceOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&namespace_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid));
 
   // Hash language
   auto language = GetUDFLanguage();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&language));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(language));
 
   // Hash function_param_names
   for (const auto &function_param_name : function_param_names_) {
@@ -38,18 +37,18 @@ common::hash_t CreateFunctionPlanNode::Hash() const {
   }
 
   // Hash is_replace
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&is_replace_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(is_replace_));
 
   // Hash function_name
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(function_name_));
 
   // Hash return_type
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&return_type_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(return_type_));
 
   // Hash param_count
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&param_count_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(param_count_));
 
-  return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
+  return hash;
 }
 
 bool CreateFunctionPlanNode::operator==(const AbstractPlanNode &rhs) const {

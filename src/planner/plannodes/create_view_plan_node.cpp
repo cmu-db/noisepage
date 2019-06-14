@@ -5,24 +5,24 @@
 #include <vector>
 
 namespace terrier::planner {
+
 common::hash_t CreateViewPlanNode::Hash() const {
-  auto type = GetPlanNodeType();
-  common::hash_t hash = common::HashUtil::Hash(&type);
+  common::hash_t hash = AbstractPlanNode::Hash();
 
   // Hash database_oid
   auto database_oid = GetDatabaseOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid));
 
   // Hash namespace_oid
   auto namespace_oid = GetNamespaceOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&namespace_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid));
 
   // Hash view_name
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(view_name_));
 
   // TODO(Gus,Wen) missing Hash for select statement
 
-  return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
+  return hash;
 }
 
 bool CreateViewPlanNode::operator==(const AbstractPlanNode &rhs) const {

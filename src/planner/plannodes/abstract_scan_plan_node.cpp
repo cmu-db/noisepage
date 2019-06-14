@@ -32,19 +32,19 @@ common::hash_t AbstractScanPlanNode::Hash() const {
 
   // Hash update flag
   auto is_for_update = IsForUpdate();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&is_for_update));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(is_for_update));
 
   // Hash parallel flag
   auto is_parallel = IsParallel();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&is_parallel));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(is_parallel));
 
   // Hash database oid
   auto database_oid = GetDatabaseOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid));
 
   // Hash namespace oid
   auto namespace_oid = GetNamespaceOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&namespace_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid));
 
   return hash;
 }

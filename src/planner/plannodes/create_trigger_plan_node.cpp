@@ -8,21 +8,21 @@
 #include "parser/parser_defs.h"
 
 namespace terrier::planner {
+
 common::hash_t CreateTriggerPlanNode::Hash() const {
-  auto type = GetPlanNodeType();
-  common::hash_t hash = common::HashUtil::Hash(&type);
+  common::hash_t hash = AbstractPlanNode::Hash();
 
   // Hash database_oid
   auto database_oid = GetDatabaseOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid));
 
   // Hash namespace oid
   auto namespace_oid = GetNamespaceOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&namespace_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid));
 
   // Hash table_oid
   auto table_oid = GetTableOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&table_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid));
 
   // Hash trigger_name
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(trigger_name_));
@@ -41,9 +41,9 @@ common::hash_t CreateTriggerPlanNode::Hash() const {
 
   // Hash trigger_type
   auto trigger_type = GetTriggerType();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&trigger_type));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(trigger_type));
 
-  return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
+  return hash;
 }
 
 bool CreateTriggerPlanNode::operator==(const AbstractPlanNode &rhs) const {

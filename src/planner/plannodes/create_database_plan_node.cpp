@@ -5,14 +5,14 @@
 #include <vector>
 
 namespace terrier::planner {
+
 common::hash_t CreateDatabasePlanNode::Hash() const {
-  auto type = GetPlanNodeType();
-  common::hash_t hash = common::HashUtil::Hash(&type);
+  common::hash_t hash = AbstractPlanNode::Hash();
 
   // Hash database_name
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(GetDatabaseName()));
 
-  return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
+  return hash;
 }
 
 bool CreateDatabasePlanNode::operator==(const AbstractPlanNode &rhs) const {

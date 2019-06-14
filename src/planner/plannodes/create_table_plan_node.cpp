@@ -6,17 +6,17 @@
 #include "parser/parser_defs.h"
 
 namespace terrier::planner {
+
 common::hash_t CreateTablePlanNode::Hash() const {
-  auto type = GetPlanNodeType();
-  common::hash_t hash = common::HashUtil::Hash(&type);
+  common::hash_t hash = AbstractPlanNode::Hash();
 
   // Hash database_oid
   auto database_oid = GetDatabaseOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid));
 
   // Hash namespace_oid
   auto namespace_oid = GetNamespaceOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&namespace_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid));
 
   // Hash table_name
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(GetTableName()));
@@ -25,7 +25,7 @@ common::hash_t CreateTablePlanNode::Hash() const {
 
   // Hash has primary_key
   auto has_primary_key = HasPrimaryKey();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&has_primary_key));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(has_primary_key));
 
   // Hash primary_key
   hash = common::HashUtil::CombineHashes(hash, primary_key_.Hash());
@@ -45,7 +45,7 @@ common::hash_t CreateTablePlanNode::Hash() const {
     hash = common::HashUtil::CombineHashes(hash, con_check.Hash());
   }
 
-  return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
+  return hash;
 }
 
 bool CreateTablePlanNode::operator==(const AbstractPlanNode &rhs) const {

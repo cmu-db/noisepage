@@ -5,25 +5,25 @@
 #include <vector>
 
 namespace terrier::planner {
+
 common::hash_t CreateIndexPlanNode::Hash() const {
-  auto type = GetPlanNodeType();
-  common::hash_t hash = common::HashUtil::Hash(&type);
+  common::hash_t hash = AbstractPlanNode::Hash();
 
   // Hash database_oid
   auto database_oid = GetDatabaseOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid));
 
   // Hash namespace oid
   auto namespace_oid = GetNamespaceOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&namespace_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid));
 
   // Hash table_oid
   auto table_oid = GetTableOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&table_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid));
 
   // Hash index_type
   auto index_type = GetIndexType();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&index_type));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(index_type));
 
   // Hash index_attrs
   hash = common::HashUtil::CombineHashInRange(hash, index_attrs_.begin(), index_attrs_.end());
@@ -33,12 +33,12 @@ common::hash_t CreateIndexPlanNode::Hash() const {
 
   // Hash unique_index
   auto unique_index = IsUniqueIndex();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&unique_index));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(unique_index));
 
   // Hash index_name
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(GetIndexName()));
 
-  return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
+  return hash;
 }
 
 bool CreateIndexPlanNode::operator==(const AbstractPlanNode &rhs) const {

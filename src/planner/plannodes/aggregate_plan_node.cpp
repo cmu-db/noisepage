@@ -4,7 +4,6 @@
 
 namespace terrier::planner {
 
-// TODO(Gus,Wen): include hash for schema
 common::hash_t AggregatePlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
 
