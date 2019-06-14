@@ -1120,11 +1120,11 @@ std::unique_ptr<CopyStatement> PostgresParser::CopyTransform(ParseResult *parse_
 }
 
 // Postgres.CreateStmt -> terrier.CreateStatement
-std::unique_ptr<SQLStatement> PostgresParser::CreateTransform(ParseResult *parse_result, CreateStmt *root) {
-  RangeVar *relation = root->relation_;
-  auto table_name = relation->relname_ != nullptr ? relation->relname_ : "";
-  auto schema_name = relation->schemaname_ != nullptr ? relation->schemaname_ : "";
-  auto database_name = relation->schemaname_ != nullptr ? relation->catalogname_ : "";
+std::unique_ptr<SQLStatement> PostgresParser::CreateTransform(CreateStmt *root) {
+  RangeVar *relation = root->relation;
+  auto table_name = relation->relname != nullptr ? relation->relname : "";
+  auto schema_name = relation->schemaname != nullptr ? relation->schemaname : "";
+  auto database_name = relation->catalogname != nullptr ? relation->catalogname : "";
   std::unique_ptr<TableInfo> table_info = std::make_unique<TableInfo>(table_name, schema_name, database_name);
 
   std::unordered_set<std::string> primary_keys;
