@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <vector>
 #include "catalog/catalog_defs.h"
+#include "common/managed_pointer.h"
 #include "metric/abstract_metric.h"
 #include "metric/abstract_raw_data.h"
 #include "metric/metric_defs.h"
@@ -26,7 +27,7 @@ class MetricsStore {
   /**
    * Destructor of collector
    */
-  ~MetricsStore();
+  ~MetricsStore() = default;
 
   /**
    * Collector action on transaction begin
@@ -130,23 +131,20 @@ class MetricsStore {
    */
   template <typename metric>
   void RegisterMetric(const std::vector<MetricsEventType> &types) {
-    auto *const m = new metric;
-    metrics_.push_back(m);
-    for (MetricsEventType type : types) metric_dispatch_[type].push_back(m);
+    const auto &m = metrics_.emplace_back(new metric);
+    for (MetricsEventType type : types) metric_dispatch_[type].emplace_back(m);
   }
-
-  using RegisteredMetric = std::vector<Metric *>;
 
   /**
    * Vector of all registered metrics, this owns the metric objects and frees them at object destruction
    */
-  RegisteredMetric metrics_;
+  std::vector<std::unique_ptr<Metric>> metrics_;
 
   /**
    * Mapping from each type of event to a list of metrics registered to
    * receive updates from that type of event. This does NOT own the registered metrics
    */
-  std::unordered_map<MetricsEventType, RegisteredMetric> metric_dispatch_;
+  std::unordered_map<MetricsEventType, std::vector<common::ManagedPointer<Metric>>> metric_dispatch_;
 };
 
 }  // namespace terrier::metric

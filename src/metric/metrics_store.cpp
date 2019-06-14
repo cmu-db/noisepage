@@ -13,10 +13,6 @@ MetricsStore::MetricsStore() {
                                      MetricsEventType::TUPLE_DELETE});
 }
 
-MetricsStore::~MetricsStore() {
-  for (auto m : metrics_) delete m;
-}
-
 std::vector<std::unique_ptr<AbstractRawData>> MetricsStore::GetDataToAggregate() {
   std::vector<std::unique_ptr<AbstractRawData>> result;
   for (auto &metric : metrics_) result.emplace_back(metric->Swap());
