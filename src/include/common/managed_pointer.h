@@ -26,6 +26,12 @@ class ManagedPointer {
   explicit ManagedPointer(Underlying *ptr) : underlying_(ptr) {}
 
   /**
+   * Constructs a new ManagedPointer.
+   * @param smart_ptr the pointer value this ManagedPointer wraps
+   */
+  explicit ManagedPointer(const std::unique_ptr<Underlying> &smart_ptr) : underlying_(smart_ptr.get()) {}
+
+  /**
    * @return the underlying pointer
    */
   Underlying &operator*() const { return *underlying_; }
