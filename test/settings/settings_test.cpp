@@ -52,7 +52,7 @@ class SettingsTests : public TerrierTest {
 
 // NOLINTNEXTLINE
 TEST_F(SettingsTests, BasicTest) {
-  const int32_t action_id = 1;
+  const common::action_id_t action_id(1);
   setter_callback_fn setter_callback = SettingsTests::EmptySetterCallback;
   std::shared_ptr<common::ActionContext> action_context = std::make_shared<common::ActionContext>(action_id);
 
@@ -79,7 +79,7 @@ TEST_F(SettingsTests, BasicTest) {
 
 // NOLINTNEXTLINE
 TEST_F(SettingsTests, ImmutableValueTest) {
-  const int32_t action_id = 1;
+  const common::action_id_t action_id(1);
   setter_callback_fn setter_callback = SettingsTests::EmptySetterCallback;
   std::shared_ptr<common::ActionContext> action_context = std::make_shared<common::ActionContext>(action_id);
 
@@ -94,7 +94,7 @@ TEST_F(SettingsTests, ImmutableValueTest) {
 
 // NOLINTNEXTLINE
 TEST_F(SettingsTests, InvalidValueTest) {
-  const int32_t action_id = 1;
+  const common::action_id_t action_id(1);
   setter_callback_fn setter_callback = SettingsTests::EmptySetterCallback;
   std::shared_ptr<common::ActionContext> action_context = std::make_shared<common::ActionContext>(action_id);
 
@@ -112,8 +112,9 @@ TEST_F(SettingsTests, SetterCallbackTest) {
   // Note that the SetterCallback is *always* invoked regardless of whether
   // the param update is successful or not.
 
+  const common::action_id_t action_id(1);
+
   // SUCCESS
-  const int32_t action_id = 1;
   std::shared_ptr<common::ActionContext> context0 = std::make_shared<common::ActionContext>(action_id);
   EXPECT_EQ(context0->GetState(), common::ActionState::INITIATED);
   SettingsTests::invoked_ = false;
@@ -121,13 +122,12 @@ TEST_F(SettingsTests, SetterCallbackTest) {
     EXPECT_EQ(action_context->GetState(), common::ActionState::SUCCESS);
     SettingsTests::invoked_ = true;
   };
-  settings_manager_->SetInt(Param::num_worker_threads, 10, context0, callback0);
+  settings_manager_->SetInt(Param::record_buffer_segment_reuse, 10, context0, callback0);
   EXPECT_EQ(context0->GetState(), common::ActionState::SUCCESS);
   EXPECT_TRUE(SettingsTests::invoked_);
 
   // FAILURE
-  const int32_t id1 = 1;
-  std::shared_ptr<common::ActionContext> context1 = std::make_shared<common::ActionContext>(id1);
+  std::shared_ptr<common::ActionContext> context1 = std::make_shared<common::ActionContext>(action_id);
   EXPECT_EQ(context1->GetState(), common::ActionState::INITIATED);
   SettingsTests::invoked_ = false;
   auto callback1 = +[](const std::shared_ptr<common::ActionContext> &action_context) -> void {
@@ -149,7 +149,7 @@ TEST_F(SettingsTests, ParamCallbackTest) {
   bufferPoolSize = buffer_segment_pool_->GetSizeLimit();
   EXPECT_EQ(bufferPoolSize, defaultBufferPoolSize);
 
-  const int32_t action_id = 1;
+  const common::action_id_t action_id(1);
   setter_callback_fn setter_callback = SettingsTests::EmptySetterCallback;
   std::shared_ptr<common::ActionContext> action_context = std::make_shared<common::ActionContext>(action_id);
 
@@ -166,13 +166,16 @@ TEST_F(SettingsTests, ParamCallbackTest) {
 
 // NOLINTNEXTLINE
 TEST_F(SettingsTests, LogManagerSettingsTest) {
+  const common::action_id_t action_id(1);
+
   // Check default value is correctly passed to log manager
   auto num_buffers = settings_manager_->GetInt(Param::num_log_manager_buffers);
   EXPECT_EQ(num_buffers, log_manager_->TestGetNumBuffers());
 
   // Change value
   auto new_num_buffers = num_buffers + 1;
-  std::shared_ptr<common::ActionContext> action_context = std::make_shared<common::ActionContext>(1);
+
+  std::shared_ptr<common::ActionContext> action_context = std::make_shared<common::ActionContext>(action_id);
   setter_callback_fn setter_callback = SettingsTests::EmptySetterCallback;
   settings_manager_->SetInt(Param::num_log_manager_buffers, new_num_buffers, action_context, setter_callback);
 
@@ -185,13 +188,14 @@ TEST_F(SettingsTests, LogManagerSettingsTest) {
 // NOLINTNEXTLINE
 TEST_F(SettingsTests, ConcurrentModifyTest) {
   setter_callback_fn setter_callback = SettingsTests::EmptySetterCallback;
+  const common::action_id_t action_id(1);
 
   const int nthreads = 16;
   std::thread threads[nthreads];
   for (int i = 0; i < nthreads; i++) {
     threads[i] = std::thread(
         [&](int new_size) {
-          std::shared_ptr<common::ActionContext> action_context = std::make_shared<common::ActionContext>(1);
+          std::shared_ptr<common::ActionContext> action_context = std::make_shared<common::ActionContext>(action_id);
           settings_manager_->SetInt(Param::record_buffer_segment_size, new_size, action_context, setter_callback);
           EXPECT_EQ(action_context->GetState(), common::ActionState::SUCCESS);
         },

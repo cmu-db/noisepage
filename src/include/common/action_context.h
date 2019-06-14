@@ -2,8 +2,18 @@
 #include <atomic>
 
 #include "catalog/catalog_defs.h"
+#include "common/strong_typedef.h"
 
 namespace terrier::common {
+
+/**
+ * An action's id is an internal identifier of the invocation of an action in the system.
+ * It is like a transaction id, but we need to make sure that these two types of ids
+ * are distinct from each other so that people don't try to mix them.
+ *
+ * <b>Important: action_id_t != timestamp_t</b>
+ */
+STRONG_TYPEDEF(action_id_t, uint64_t);
 
 /**
  * All possible states of action.
@@ -27,7 +37,7 @@ class ActionContext {
    * Constructor of ActionContext.
    * @param action_id id of this action.
    */
-  explicit ActionContext(int32_t action_id) : action_id_(action_id), state_(ActionState::INITIATED) {}
+  explicit ActionContext(action_id_t action_id) : action_id_(action_id), state_(ActionState::INITIATED) {}
 
   /**
    * Get the state of this action.
@@ -45,10 +55,10 @@ class ActionContext {
    * Get action id.
    * @return action id.
    */
-  catalog::action_oid_t GetActionId() const { return action_id_; }
+  action_id_t GetActionId() const { return action_id_; }
 
  private:
-  catalog::action_oid_t action_id_;
+  action_id_t action_id_;
   std::atomic<ActionState> state_;
 };
 
