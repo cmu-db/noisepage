@@ -35,8 +35,8 @@ class ResultPlanNode : public AbstractPlanNode {
      * @param expr the expression used to derived the output tuple
      * @return builder object
      */
-    Builder &SetExpr(std::shared_ptr<parser::AbstractExpression> expr) {
-      expr_ = std::move(expr);
+    Builder &SetExpr(const parser::AbstractExpression *expr) {
+      expr_ = expr;
       return *this;
     }
 
@@ -46,14 +46,14 @@ class ResultPlanNode : public AbstractPlanNode {
      */
     std::shared_ptr<ResultPlanNode> Build() {
       return std::shared_ptr<ResultPlanNode>(
-          new ResultPlanNode(std::move(children_), std::move(output_schema_), std::move(expr_)));
+          new ResultPlanNode(std::move(children_), std::move(output_schema_), expr_));
     }
 
    protected:
     /**
      * The expression used to derived the output tuple
      */
-    std::shared_ptr<parser::AbstractExpression> expr_;
+    const parser::AbstractExpression *expr_;
   };
 
  private:
@@ -63,8 +63,8 @@ class ResultPlanNode : public AbstractPlanNode {
    * @param tuple the tuple in the storage layer
    */
   ResultPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
-                 std::shared_ptr<parser::AbstractExpression> expr)
-      : AbstractPlanNode(std::move(children), std::move(output_schema)), expr_(std::move(expr)) {}
+                 const parser::AbstractExpression *expr)
+      : AbstractPlanNode(std::move(children), std::move(output_schema)), expr_(expr) {}
 
  public:
   /**
@@ -72,12 +72,16 @@ class ResultPlanNode : public AbstractPlanNode {
    */
   ResultPlanNode() = default;
 
+  ~ResultPlanNode() override { delete expr_; }
+
   DISALLOW_COPY_AND_MOVE(ResultPlanNode)
 
   /**
    * @return the tuple in the storage layer
    */
-  const std::shared_ptr<parser::AbstractExpression> GetExpression() const { return expr_; }
+  common::ManagedPointer<const parser::AbstractExpression> GetExpression() const {
+    return common::ManagedPointer<const parser::AbstractExpression>(expr_);
+  }
 
   /**
    * @return the type of this plan node
@@ -98,7 +102,7 @@ class ResultPlanNode : public AbstractPlanNode {
   /**
    * Expression used to derived the output tuple
    */
-  std::shared_ptr<parser::AbstractExpression> expr_;
+  const parser::AbstractExpression *expr_;
 };
 
 DEFINE_JSON_DECLARATIONS(ResultPlanNode);

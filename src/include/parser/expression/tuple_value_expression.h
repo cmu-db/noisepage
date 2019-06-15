@@ -30,6 +30,8 @@ class TupleValueExpression : public AbstractExpression {
    */
   TupleValueExpression() = default;
 
+  ~TupleValueExpression() override = default;
+
   /**
    * @return column name
    */
@@ -40,7 +42,7 @@ class TupleValueExpression : public AbstractExpression {
    */
   std::string GetTableName() const { return table_name_; }
 
-  std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<TupleValueExpression>(*this); }
+  const AbstractExpression *Copy() const override { return new TupleValueExpression(col_name_, table_name_); }
 
   bool operator==(const AbstractExpression &rhs) const override {
     if (!AbstractExpression::operator==(rhs)) return false;

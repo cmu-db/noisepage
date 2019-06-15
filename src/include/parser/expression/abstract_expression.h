@@ -6,6 +6,7 @@
 #include <vector>
 #include "common/hash_util.h"
 #include "common/json.h"
+#include "common/managed_pointer.h"
 #include "parser/expression_defs.h"
 #include "type/transient_value.h"
 #include "type/type_id.h"
@@ -24,7 +25,7 @@ class AbstractExpression {
    * @param children the list of children for this node
    */
   AbstractExpression(const ExpressionType expression_type, const type::TypeId return_value_type,
-                     std::vector<std::shared_ptr<AbstractExpression>> &&children)
+                     std::vector<const AbstractExpression *> children)
       : expression_type_(expression_type), return_value_type_(return_value_type), children_(std::move(children)) {}
 
   /**
@@ -39,14 +40,18 @@ class AbstractExpression {
   AbstractExpression() = default;
 
  public:
-  virtual ~AbstractExpression() = default;
+  virtual ~AbstractExpression() {
+    for (auto *child : children_) {
+      delete child;
+    }
+  }
 
   /**
    * Hashes the current abstract expression.
    */
   virtual common::hash_t Hash() const {
     common::hash_t hash = common::HashUtil::Hash(expression_type_);
-    for (auto const &child : children_) {
+    for (const auto *child : children_) {
       hash = common::HashUtil::CombineHashes(hash, child->Hash());
     }
     return hash;
@@ -77,11 +82,13 @@ class AbstractExpression {
   virtual bool operator!=(const AbstractExpression &rhs) const { return !operator==(rhs); }
 
   /**
-   * Creates a (shallow) copy of the current AbstractExpression.
+   * Creates a deep copy of the current AbstractExpression.
+   * @warning Should be called sparingly and under careful consideration. A shallow copy will do most times. Consider
+   * that AbstractExpression trees can be very large, and a deep copy can be expensive
+   * @warning It is incorrect to supply a default implementation here since that will return an object of base type
+   * AbstractExpression instead of the desired non-abstract type.
    */
-  // It is incorrect to supply a default implementation here since that will return an object
-  // of base type AbstractExpression instead of the desired non-abstract type.
-  virtual std::shared_ptr<AbstractExpression> Copy() const = 0;
+  virtual const AbstractExpression *Copy() const = 0;
 
   /**
    * @return type of this expression
@@ -99,17 +106,12 @@ class AbstractExpression {
   size_t GetChildrenSize() const { return children_.size(); }
 
   /**
-   * @return children of this abstract expression
-   */
-  const std::vector<std::shared_ptr<AbstractExpression>> &GetChildren() const { return children_; }
-
-  /**
    * @param index index of child
    * @return child of abstract expression at that index
    */
-  std::shared_ptr<AbstractExpression> GetChild(uint64_t index) const {
+  common::ManagedPointer<const AbstractExpression> GetChild(uint64_t index) const {
     TERRIER_ASSERT(index < children_.size(), "Index must be in bounds.");
-    return children_[index];
+    return common::ManagedPointer<const AbstractExpression>(children_[index]);
   }
 
   /**
@@ -124,10 +126,21 @@ class AbstractExpression {
    */
   virtual void FromJson(const nlohmann::json &j);
 
- private:
-  ExpressionType expression_type_;                             // type of current expression
-  type::TypeId return_value_type_;                             // type of return value
-  std::vector<std::shared_ptr<AbstractExpression>> children_;  // list of children
+ protected:
+  /**
+   * type of current expression
+   */
+  ExpressionType expression_type_;
+
+  /**
+   * type of return value
+   */
+  type::TypeId return_value_type_;
+
+  /**
+   * list of children
+   */
+  std::vector<const AbstractExpression *> children_;
 };
 
 DEFINE_JSON_DECLARATIONS(AbstractExpression);
@@ -137,7 +150,7 @@ DEFINE_JSON_DECLARATIONS(AbstractExpression);
  * @param json json to deserialize
  * @return pointer to deserialized expression
  */
-std::shared_ptr<AbstractExpression> DeserializeExpression(const nlohmann::json &j);
+AbstractExpression *DeserializeExpression(const nlohmann::json &j);
 
 }  // namespace terrier::parser
 

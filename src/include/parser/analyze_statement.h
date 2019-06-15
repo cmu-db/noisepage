@@ -22,7 +22,7 @@ class AnalyzeStatement : public SQLStatement {
    * @param analyze_table table to be analyzed
    * @param analyze_columns columns to be analyzed
    */
-  AnalyzeStatement(std::shared_ptr<TableRef> analyze_table, std::shared_ptr<std::vector<std::string>> analyze_columns)
+  AnalyzeStatement(std::shared_ptr<TableRef> analyze_table, std::vector<std::string> analyze_columns)
       : SQLStatement(StatementType::ANALYZE),
         analyze_table_(std::move(analyze_table)),
         analyze_columns_(std::move(analyze_columns)) {}
@@ -39,11 +39,12 @@ class AnalyzeStatement : public SQLStatement {
   /**
    * @return analyze columns
    */
-  std::shared_ptr<std::vector<std::string>> GetAnalyzeColumns() { return analyze_columns_; }
+  std::vector<std::string> GetAnalyzeColumns() { return analyze_columns_; }
 
  private:
+  // TODO(Gus): Remove shared pointer
   const std::shared_ptr<TableRef> analyze_table_;
-  const std::shared_ptr<std::vector<std::string>> analyze_columns_;
+  const std::vector<std::string> analyze_columns_;
 };
 
 }  // namespace parser

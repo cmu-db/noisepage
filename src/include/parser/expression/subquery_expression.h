@@ -26,10 +26,12 @@ class SubqueryExpression : public AbstractExpression {
    */
   SubqueryExpression() = default;
 
-  std::shared_ptr<AbstractExpression> Copy() const override {
+  ~SubqueryExpression() override = default;
+
+  const AbstractExpression *Copy() const override {
     // TODO(WAN): Previous codebase described as a hack, will we need a deep copy?
     // Tianyu: No need for deep copy if your objects are always immutable! (why even copy at all, but that's beyond me)
-    return std::make_shared<SubqueryExpression>(*this);
+    return new SubqueryExpression(subselect_);
   }
 
   /**
@@ -56,6 +58,7 @@ class SubqueryExpression : public AbstractExpression {
   }
 
  private:
+  // TODO(Gus): Remove shared pointer
   std::shared_ptr<parser::SelectStatement> subselect_;
 };
 

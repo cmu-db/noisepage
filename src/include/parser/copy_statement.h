@@ -84,6 +84,7 @@ class CopyStatement : public SQLStatement {
   char GetEscapeChar() { return escape_; }
 
  private:
+  // TODO(Gus): Remove shared pointer
   const std::shared_ptr<TableRef> table_;
   const std::shared_ptr<SelectStatement> select_stmt_;
   const std::string file_path_;

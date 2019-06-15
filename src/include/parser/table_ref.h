@@ -27,13 +27,15 @@ class JoinDefinition {
    * @param condition join condition
    */
   JoinDefinition(JoinType type, std::shared_ptr<TableRef> left, std::shared_ptr<TableRef> right,
-                 std::shared_ptr<AbstractExpression> condition)
-      : type_(type), left_(std::move(left)), right_(std::move(right)), condition_(std::move(condition)) {}
+                 const AbstractExpression *condition)
+      : type_(type), left_(std::move(left)), right_(std::move(right)), condition_(condition) {}
 
   /**
    * Default constructor used for deserialization
    */
   JoinDefinition() = default;
+
+  ~JoinDefinition() { delete condition_; }
 
   // TODO(WAN): not a SQLStatement?
   /**
@@ -59,7 +61,9 @@ class JoinDefinition {
   /**
    * @return join condition
    */
-  std::shared_ptr<AbstractExpression> GetJoinCondition() { return condition_; }
+  common::ManagedPointer<const AbstractExpression> GetJoinCondition() {
+    return common::ManagedPointer<const AbstractExpression>(condition_);
+  }
 
   /**
    * @return JoinDefinition serialized to json
@@ -75,7 +79,7 @@ class JoinDefinition {
   JoinType type_;
   std::shared_ptr<TableRef> left_;
   std::shared_ptr<TableRef> right_;
-  std::shared_ptr<AbstractExpression> condition_;
+  const AbstractExpression *condition_;
 };
 
 DEFINE_JSON_DECLARATIONS(JoinDefinition);

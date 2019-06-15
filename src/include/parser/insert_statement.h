@@ -23,7 +23,7 @@ class InsertStatement : public SQLStatement {
    * @param table_ref table
    * @param select select statement to insert from
    */
-  InsertStatement(std::shared_ptr<std::vector<std::string>> columns, std::shared_ptr<TableRef> table_ref,
+  InsertStatement(std::vector<std::string> columns, std::shared_ptr<TableRef> table_ref,
                   std::shared_ptr<SelectStatement> select)
       : SQLStatement(StatementType::INSERT),
         type_(InsertType::SELECT),
@@ -37,8 +37,8 @@ class InsertStatement : public SQLStatement {
    * @param table_ref table
    * @param insert_values values to be inserted
    */
-  InsertStatement(std::shared_ptr<std::vector<std::string>> columns, std::shared_ptr<TableRef> table_ref,
-                  std::shared_ptr<std::vector<std::vector<std::shared_ptr<AbstractExpression>>>> insert_values)
+  InsertStatement(std::vector<std::string> columns, std::shared_ptr<TableRef> table_ref,
+                  std::vector<std::vector<const AbstractExpression *>> insert_values)
       : SQLStatement(StatementType::INSERT),
         type_(InsertType::VALUES),
         columns_(std::move(columns)),
@@ -50,7 +50,13 @@ class InsertStatement : public SQLStatement {
    */
   explicit InsertStatement(InsertType type) : SQLStatement(StatementType::INSERT), type_(type) {}
 
-  ~InsertStatement() override = default;
+  ~InsertStatement() override {
+    for (auto &tuple : insert_values_) {
+      for (auto *value : tuple) {
+        delete value;
+      }
+    }
+  }
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
@@ -62,7 +68,7 @@ class InsertStatement : public SQLStatement {
   /**
    * @return columns to insert into
    */
-  std::shared_ptr<std::vector<std::string>> GetInsertColumns() { return columns_; }
+  std::vector<std::string> GetInsertColumns() { return columns_; }
 
   /**
    * @return table to insert into
@@ -75,17 +81,34 @@ class InsertStatement : public SQLStatement {
   std::shared_ptr<SelectStatement> GetSelect() const { return select_; }
 
   /**
-   * @return values that we're inserting
+   * @return number of tuples being inserted
    */
-  std::shared_ptr<std::vector<std::vector<std::shared_ptr<AbstractExpression>>>> GetValues() { return insert_values_; }
+  size_t GetBulkInsertSize() const { return insert_values_.size(); }
+
+  /**
+   * @return number of attributes to insert on for each row
+   */
+  size_t GetAttributesSize() const { return GetBulkInsertSize() > 0 ? insert_values_[0].size() : 0; }
+
+  /**
+   * @param tuple_idx index of tuple containing value
+   * @param attr_idx index of attribute in the tuple
+   * @return value to insert
+   */
+  common::ManagedPointer<const AbstractExpression> GetValue(size_t tuple_idx, size_t attr_idx) const {
+    TERRIER_ASSERT(tuple_idx < GetBulkInsertSize(), "Tuple index must be less than number of tuples");
+    TERRIER_ASSERT(attr_idx < GetAttributesSize(), "Attribute index must be less than number of attributes");
+    return common::ManagedPointer<const AbstractExpression>(insert_values_[tuple_idx][attr_idx]);
+  }
 
  private:
+  // TODO(Gus): Get rid of shared pointers
   const InsertType type_;
-  const std::shared_ptr<std::vector<std::string>> columns_;
+  const std::vector<std::string> columns_;
   const std::shared_ptr<TableRef> table_ref_;
   const std::shared_ptr<SelectStatement> select_;
   // TODO(WAN): unsure about this one.
-  const std::shared_ptr<std::vector<std::vector<std::shared_ptr<AbstractExpression>>>> insert_values_;
+  const std::vector<std::vector<const AbstractExpression *>> insert_values_;
 };
 
 }  // namespace parser

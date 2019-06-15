@@ -149,6 +149,7 @@ class CreateFunctionStatement : public SQLStatement {
   AsType GetAsType() { return as_type_; }
 
  private:
+  // TODO(Gus): Remove shared pointer
   const bool replace_ = false;
   const std::string func_name_;
   const std::shared_ptr<ReturnType> return_type_;

@@ -25,6 +25,8 @@ class ConstantValueExpression : public AbstractExpression {
    */
   ConstantValueExpression() = default;
 
+  ~ConstantValueExpression() override = default;
+
   common::hash_t Hash() const override {
     return common::HashUtil::CombineHashes(AbstractExpression::Hash(), value_.Hash());
   }
@@ -35,7 +37,7 @@ class ConstantValueExpression : public AbstractExpression {
     return value_ == const_expr.GetValue();
   }
 
-  std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<ConstantValueExpression>(*this); }
+  const AbstractExpression *Copy() const override { return new ConstantValueExpression(type::TransientValue(value_)); }
 
   /**
    * @return the constant value stored in this expression

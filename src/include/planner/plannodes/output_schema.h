@@ -140,13 +140,14 @@ class OutputSchema {
      * @param column an intermediate column
      * @param expr the expression used to derive the intermediate column
      */
-    DerivedColumn(Column column, std::shared_ptr<parser::AbstractExpression> expr)
-        : column_(std::move(column)), expr_(std::move(expr)) {}
+    DerivedColumn(Column column, const parser::AbstractExpression *expr) : column_(std::move(column)), expr_(expr) {}
 
     /**
      * Default constructor used for deserialization
      */
     DerivedColumn() = default;
+
+    ~DerivedColumn() { delete expr_; }
 
     /**
      * Hash the current DerivedColumn.
@@ -175,6 +176,13 @@ class OutputSchema {
     }
 
     /**
+     * Inequality check
+     * @param rhs other
+     * @return true if the two DerivedColumn are not equal
+     */
+    bool operator!=(const DerivedColumn &rhs) const { return !operator==(rhs); }
+
+    /**
      * @return derived column serialized to json
      */
     nlohmann::json ToJson() const {
@@ -201,14 +209,14 @@ class OutputSchema {
     /**
      * The expression used to derive the intermediate column
      */
-    std::shared_ptr<parser::AbstractExpression> expr_;
+    const parser::AbstractExpression *expr_;
   };
 
   /**
    * Define a mapping of an offset into a vector of columns of an OutputSchema to an intermediate column produced by a
    * plan node
    */
-  using DerivedTarget = std::pair<uint32_t, DerivedColumn>;
+  using DerivedTarget = std::pair<uint32_t, DerivedColumn *>;
 
   /**
    * Generic specification of a direct map between the columns of two output schema
@@ -242,6 +250,12 @@ class OutputSchema {
    */
   OutputSchema() = default;
 
+  ~OutputSchema() {
+    for (const auto &pair : targets_) {
+      delete pair.second;
+    }
+  }
+
   /**
    * @param col_id offset into the schema specifying which Column to access
    * @return description of the schema for a specific column
@@ -271,7 +285,7 @@ class OutputSchema {
     }
     for (auto const &target : targets_) {
       hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(target.first));
-      hash = common::HashUtil::CombineHashes(hash, target.second.Hash());
+      hash = common::HashUtil::CombineHashes(hash, target.second->Hash());
     }
     for (auto const &direct_map : direct_map_list_) {
       hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(direct_map.first));
@@ -287,7 +301,22 @@ class OutputSchema {
    * @return true if the two OutputSchema are the same
    */
   bool operator==(const OutputSchema &rhs) const {
-    return (columns_ == rhs.columns_) && (targets_ == rhs.targets_) && (direct_map_list_ == rhs.direct_map_list_);
+    if (targets_.size() != rhs.targets_.size()) return false;
+    for (size_t i = 0; i < targets_.size(); i++) {
+      // Check offsets are equal
+      if (targets_[i].first != rhs.targets_[i].first) return false;
+
+      // Check DerivedColumns are equal
+      auto *col = targets_[i].second;
+      auto *other_col = rhs.targets_[i].second;
+      if ((col == nullptr && other_col != nullptr) || (col != nullptr && other_col == nullptr)) {
+        return false;
+      }
+      if (col != nullptr && *col != *other_col) {
+        return false;
+      }
+    }
+    return (columns_ == rhs.columns_) && (direct_map_list_ == rhs.direct_map_list_);
   }
 
   /**
@@ -313,7 +342,14 @@ class OutputSchema {
    */
   void FromJson(const nlohmann::json &j) {
     columns_ = j.at("columns").get<std::vector<Column>>();
-    targets_ = j.at("targets").get<std::vector<DerivedTarget>>();
+    // targets_ = j.at("targets").get<std::vector<DerivedTarget>>();
+    // Deserialize children
+    auto targets_json = j.at("targets").get<std::vector<std::pair<nlohmann::json, nlohmann::json>>>();
+    for (const auto &pair_json : targets_json) {
+      auto *derived_col = new DerivedColumn();
+      derived_col->FromJson(pair_json.second);
+      targets_.emplace_back(pair_json.first.get<uint32_t>(), derived_col);
+    }
     direct_map_list_ = j.at("direct_map_list").get<std::vector<DirectMap>>();
   }
 

@@ -186,8 +186,7 @@ TEST(OperatorTests, LogicalDeleteTest) {
 TEST(OperatorTests, LogicalUpdateTest) {
   std::string column = "abc";
   parser::AbstractExpression *value = new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1));
-
-  auto raw_update_clause = new parser::UpdateClause(column, common::ManagedPointer<parser::AbstractExpression>(value));
+  auto raw_update_clause = new parser::UpdateClause(column, value);
   auto update_clause = common::ManagedPointer(raw_update_clause);
   catalog::db_oid_t database_oid(123);
   catalog::namespace_oid_t namespace_oid(456);
@@ -214,7 +213,6 @@ TEST(OperatorTests, LogicalUpdateTest) {
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
-  delete value;
   delete raw_update_clause;
 }
 

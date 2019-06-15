@@ -1,5 +1,6 @@
 #pragma once
 #include <functional>
+
 namespace terrier::common {
 
 /**
