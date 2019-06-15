@@ -1,0 +1,42 @@
+-- The CXX compiler identification is AppleClang 10.0.1.10010046
+-- Check for working CXX compiler: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++
+-- Check for working CXX compiler: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ -- works
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- The C compiler identification is AppleClang 10.0.1.10010046
+-- Check for working C compiler: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc
+-- Check for working C compiler: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -- works
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Looking for C++ include unistd.h
+-- Looking for C++ include unistd.h - found
+-- Looking for C++ include stdint.h
+-- Looking for C++ include stdint.h - found
+-- Looking for C++ include inttypes.h
+-- Looking for C++ include inttypes.h - found
+-- Looking for C++ include sys/types.h
+-- Looking for C++ include sys/types.h - found
+-- Looking for C++ include sys/stat.h
+-- Looking for C++ include sys/stat.h - found
+-- Looking for C++ include fnmatch.h
+-- Looking for C++ include fnmatch.h - found
+-- Looking for C++ include stddef.h
+-- Looking for C++ include stddef.h - found
+-- Check size of uint32_t
+-- Check size of uint32_t - done
+-- Looking for strtoll
+-- Looking for strtoll - found
+-- Looking for pthread.h
+-- Looking for pthread.h - found
+-- Looking for pthread_create
+-- Looking for pthread_create - found
+-- Found Threads: TRUE  
+-- Check size of pthread_rwlock_t
+-- Check size of pthread_rwlock_t - done
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /Users/vivianhuang/desktop/terrier/release/gflags_ep-prefix/src/gflags_ep

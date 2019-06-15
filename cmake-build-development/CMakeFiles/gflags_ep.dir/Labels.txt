@@ -1,0 +1,13 @@
+# Target labels
+ gflags_ep
+# Source files and their labels
+/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles/gflags_ep
+/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles/gflags_ep.rule
+/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles/gflags_ep-complete.rule
+/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep-stamp/gflags_ep-install.rule
+/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep-stamp/gflags_ep-mkdir.rule
+/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep-stamp/gflags_ep-download.rule
+/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep-stamp/gflags_ep-update.rule
+/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep-stamp/gflags_ep-patch.rule
+/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep-stamp/gflags_ep-configure.rule
+/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep-stamp/gflags_ep-build.rule

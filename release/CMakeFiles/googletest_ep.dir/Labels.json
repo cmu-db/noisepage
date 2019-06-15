@@ -1,0 +1,43 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/Users/vivianhuang/desktop/terrier/release/CMakeFiles/googletest_ep"
+		},
+		{
+			"file" : "/Users/vivianhuang/desktop/terrier/release/CMakeFiles/googletest_ep.rule"
+		},
+		{
+			"file" : "/Users/vivianhuang/desktop/terrier/release/CMakeFiles/googletest_ep-complete.rule"
+		},
+		{
+			"file" : "/Users/vivianhuang/desktop/terrier/release/googletest_ep-prefix/src/googletest_ep-stamp/googletest_ep-install.rule"
+		},
+		{
+			"file" : "/Users/vivianhuang/desktop/terrier/release/googletest_ep-prefix/src/googletest_ep-stamp/googletest_ep-mkdir.rule"
+		},
+		{
+			"file" : "/Users/vivianhuang/desktop/terrier/release/googletest_ep-prefix/src/googletest_ep-stamp/googletest_ep-download.rule"
+		},
+		{
+			"file" : "/Users/vivianhuang/desktop/terrier/release/googletest_ep-prefix/src/googletest_ep-stamp/googletest_ep-update.rule"
+		},
+		{
+			"file" : "/Users/vivianhuang/desktop/terrier/release/googletest_ep-prefix/src/googletest_ep-stamp/googletest_ep-patch.rule"
+		},
+		{
+			"file" : "/Users/vivianhuang/desktop/terrier/release/googletest_ep-prefix/src/googletest_ep-stamp/googletest_ep-configure.rule"
+		},
+		{
+			"file" : "/Users/vivianhuang/desktop/terrier/release/googletest_ep-prefix/src/googletest_ep-stamp/googletest_ep-build.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"googletest_ep"
+		],
+		"name" : "googletest_ep"
+	}
+}

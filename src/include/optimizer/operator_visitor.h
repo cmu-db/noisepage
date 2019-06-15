@@ -13,6 +13,12 @@ class OperatorVisitor {
   virtual ~OperatorVisitor() = default;
 
   /**
+   * Visit a LeafOperator operator
+   * @param leaf operator
+   */
+  virtual void Visit(const LeafOperator *leaf) {}
+
+  /**
    * Visit a TableFreeScan operator
    * @param table_free_scan operator
    */

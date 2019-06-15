@@ -1,0 +1,13 @@
+[ 88%] Built target benchmark
+[100%] Built target benchmark_main
+Install the project...
+-- Install configuration: "Release"
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/gbenchmark_ep/src/gbenchmark_ep-install/lib/libbenchmark.a
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/gbenchmark_ep/src/gbenchmark_ep-install/lib/libbenchmark_main.a
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/gbenchmark_ep/src/gbenchmark_ep-install/include/benchmark
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/gbenchmark_ep/src/gbenchmark_ep-install/include/benchmark/benchmark.h
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/gbenchmark_ep/src/gbenchmark_ep-install/lib/cmake/benchmark/benchmarkConfig.cmake
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/gbenchmark_ep/src/gbenchmark_ep-install/lib/cmake/benchmark/benchmarkConfigVersion.cmake
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/gbenchmark_ep/src/gbenchmark_ep-install/lib/pkgconfig/benchmark.pc
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/gbenchmark_ep/src/gbenchmark_ep-install/lib/cmake/benchmark/benchmarkTargets.cmake
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/gbenchmark_ep/src/gbenchmark_ep-install/lib/cmake/benchmark/benchmarkTargets-release.cmake

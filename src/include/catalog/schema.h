@@ -4,14 +4,20 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include "catalog/catalog_defs.h"
 #include "common/constants.h"
 #include "common/macros.h"
 #include "common/strong_typedef.h"
+#include "parser/expression/abstract_expression.h"
 #include "storage/storage_defs.h"
 #include "type/type_id.h"
 #include "type/type_util.h"
 
 namespace terrier::catalog {
+
+namespace postgres {
+  class Builder;
+}
 
 /**
  * Internal object for representing SQL table schema. Currently minimal until we add more features to the system.
@@ -32,16 +38,15 @@ class Schema {
      * @param name column name
      * @param type SQL type for this column
      * @param nullable true if the column is nullable, false otherwise
-     * @param oid internal unique identifier for this column
-     * @warning this will soon have an extra argument for default value as an AbstractExpression. Write against this API
-     * with caution
+     * @param default_value for the column
      */
-    Column(std::string name, const type::TypeId type, const bool nullable, const col_oid_t oid)
+    Column(std::string name, const type::TypeId type, const bool nullable,
+           const parser::AbstractExpression &default_value)
         : name_(std::move(name)),
           type_(type),
           attr_size_(type::TypeUtil::GetTypeSize(type_)),
           nullable_(nullable),
-          oid_(oid) {
+          oid_(INVALID_COLUMN_OID) {
       TERRIER_ASSERT(attr_size_ == 1 || attr_size_ == 2 || attr_size_ == 4 || attr_size_ == 8,
                      "This constructor is meant for non-VARLEN columns.");
       TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
@@ -53,16 +58,16 @@ class Schema {
      * @param type SQL type for this column
      * @param max_varlen_size the maximum length of the varlen entry
      * @param nullable true if the column is nullable, false otherwise
-     * @param oid internal unique identifier for this column
+     * @param default_value for the column
      */
     Column(std::string name, const type::TypeId type, const uint16_t max_varlen_size, const bool nullable,
-           const col_oid_t oid)
+           const parser::AbstractExpression &default_value)
         : name_(std::move(name)),
           type_(type),
           attr_size_(type::TypeUtil::GetTypeSize(type_)),
           max_varlen_size_(max_varlen_size),
           nullable_(nullable),
-          oid_(oid) {
+          oid_(INVALID_COLUMN_OID) {
       TERRIER_ASSERT(attr_size_ == VARLEN_COLUMN, "This constructor is meant for VARLEN columns.");
       TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
     }
@@ -138,6 +143,11 @@ class Schema {
     col_oid_t oid_;
     // TODO(Matt): default value would go here
     // Value default_;
+
+    void SetOid(col_oid_t oid) { oid_ = oid; }
+
+    friend class DatabaseCatalog;
+    friend class postgres::Builder;
   };
 
   /**
@@ -148,6 +158,12 @@ class Schema {
     TERRIER_ASSERT(!columns_.empty() && columns_.size() <= common::Constants::MAX_COL,
                    "Number of columns must be between 1 and MAX_COL.");
     for (uint32_t i = 0; i < columns_.size(); i++) {
+      // If not all columns assigned OIDs, then clear the map because this is
+      // a definition of a new/modified table not a catalog generated schema.
+      if (columns_[i].GetOid() == catalog::INVALID_COLUMN_OID) {
+        col_oid_to_offset.clear();
+        return;
+      }
       col_oid_to_offset[columns_[i].GetOid()] = i;
     }
   }
@@ -186,6 +202,8 @@ class Schema {
         return c;
       }
     }
+    // TODO(John): Should this be a TERRIER_ASSERT to have the same semantics
+    // as the other accessor methods above?
     throw std::out_of_range("Column name doesn't exist");
   }
   /**

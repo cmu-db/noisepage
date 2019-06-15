@@ -1,0 +1,43 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles/gbenchmark_ep"
+		},
+		{
+			"file" : "/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles/gbenchmark_ep.rule"
+		},
+		{
+			"file" : "/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles/gbenchmark_ep-complete.rule"
+		},
+		{
+			"file" : "/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/gbenchmark_ep-prefix/src/gbenchmark_ep-stamp/gbenchmark_ep-install.rule"
+		},
+		{
+			"file" : "/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/gbenchmark_ep-prefix/src/gbenchmark_ep-stamp/gbenchmark_ep-mkdir.rule"
+		},
+		{
+			"file" : "/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/gbenchmark_ep-prefix/src/gbenchmark_ep-stamp/gbenchmark_ep-download.rule"
+		},
+		{
+			"file" : "/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/gbenchmark_ep-prefix/src/gbenchmark_ep-stamp/gbenchmark_ep-update.rule"
+		},
+		{
+			"file" : "/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/gbenchmark_ep-prefix/src/gbenchmark_ep-stamp/gbenchmark_ep-patch.rule"
+		},
+		{
+			"file" : "/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/gbenchmark_ep-prefix/src/gbenchmark_ep-stamp/gbenchmark_ep-configure.rule"
+		},
+		{
+			"file" : "/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/gbenchmark_ep-prefix/src/gbenchmark_ep-stamp/gbenchmark_ep-build.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"gbenchmark_ep"
+		],
+		"name" : "gbenchmark_ep"
+	}
+}

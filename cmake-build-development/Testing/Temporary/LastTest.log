@@ -1,0 +1,1901 @@
+Start testing: Jun 13 17:41 EDT
+----------------------------------------------------------
+1/45 Testing: bitmap_test
+1/45 Test: bitmap_test
+Command: "/Users/vivianhuang/Desktop/terrier/build-support/run-test.sh" "/Users/vivianhuang/Desktop/terrier/cmake-build-development" "test" "/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug//bitmap_test"
+Directory: /Users/vivianhuang/Desktop/terrier/cmake-build-development/test/common
+"bitmap_test" start time: Jun 13 17:41 EDT
+Output:
+----------------------------------------------------------
+Running bitmap_test, redirecting output into /Users/vivianhuang/Desktop/terrier/cmake-build-development/build/test-logs/bitmap_test.txt (attempt 1/1)
+Running main() from gtest_main.cc
+[==========] Running 3 tests from 1 test case.
+[----------] Global test environment set-up.
+[----------] 3 tests from BitmapTests
+[ RUN      ] BitmapTests.ByteMultipleCorrectnessTest
+[       OK ] BitmapTests.ByteMultipleCorrectnessTest (2092 ms)
+[ RUN      ] BitmapTests.NonByteMultipleCorrectnessTest
+[       OK ] BitmapTests.NonByteMultipleCorrectnessTest (2261 ms)
+[ RUN      ] BitmapTests.WordUnalignedCorrectnessTest
+[       OK ] BitmapTests.WordUnalignedCorrectnessTest (2113 ms)
+[----------] 3 tests from BitmapTests (6467 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 1 test case ran. (6467 ms total)
+[  PASSED  ] 3 tests.
+~/Desktop/terrier/cmake-build-development/test/common
+<end of output>
+Test time =   6.65 sec
+----------------------------------------------------------
+Test Passed.
+"bitmap_test" end time: Jun 13 17:41 EDT
+"bitmap_test" time elapsed: 00:00:06
+----------------------------------------------------------
+
+2/45 Testing: concurrent_bitmap_test
+2/45 Test: concurrent_bitmap_test
+Command: "/Users/vivianhuang/Desktop/terrier/build-support/run-test.sh" "/Users/vivianhuang/Desktop/terrier/cmake-build-development" "test" "/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug//concurrent_bitmap_test"
+Directory: /Users/vivianhuang/Desktop/terrier/cmake-build-development/test/common
+"concurrent_bitmap_test" start time: Jun 13 17:41 EDT
+Output:
+----------------------------------------------------------
+Running concurrent_bitmap_test, redirecting output into /Users/vivianhuang/Desktop/terrier/cmake-build-development/build/test-logs/concurrent_bitmap_test.txt (attempt 1/1)
+Running main() from gtest_main.cc
+[==========] Running 5 tests from 1 test case.
+[----------] Global test environment set-up.
+[----------] 5 tests from ConcurrentBitmapTests
+[ RUN      ] ConcurrentBitmapTests.SimpleCorrectnessTest
+[       OK ] ConcurrentBitmapTests.SimpleCorrectnessTest (77 ms)
+[ RUN      ] ConcurrentBitmapTests.FirstUnsetPosTest
+[       OK ] ConcurrentBitmapTests.FirstUnsetPosTest (14 ms)
+[ RUN      ] ConcurrentBitmapTests.FirstUnsetPosSizeTest
+[       OK ] ConcurrentBitmapTests.FirstUnsetPosSizeTest (0 ms)
+[ RUN      ] ConcurrentBitmapTests.ConcurrentFirstUnsetPosTest
+[       OK ] ConcurrentBitmapTests.ConcurrentFirstUnsetPosTest (2514 ms)
+[ RUN      ] ConcurrentBitmapTests.ConcurrentCorrectnessTest
+[       OK ] ConcurrentBitmapTests.ConcurrentCorrectnessTest (1833 ms)
+[----------] 5 tests from ConcurrentBitmapTests (4438 ms total)
+
+[----------] Global test environment tear-down
+[==========] 5 tests from 1 test case ran. (4438 ms total)
+[  PASSED  ] 5 tests.
+~/Desktop/terrier/cmake-build-development/test/common
+<end of output>
+Test time =   4.58 sec
+----------------------------------------------------------
+Test Passed.
+"concurrent_bitmap_test" end time: Jun 13 17:41 EDT
+"concurrent_bitmap_test" time elapsed: 00:00:04
+----------------------------------------------------------
+
+3/45 Testing: hash_util_test
+3/45 Test: hash_util_test
+Command: "/Users/vivianhuang/Desktop/terrier/build-support/run-test.sh" "/Users/vivianhuang/Desktop/terrier/cmake-build-development" "test" "/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug//hash_util_test"
+Directory: /Users/vivianhuang/Desktop/terrier/cmake-build-development/test/common
+"hash_util_test" start time: Jun 13 17:41 EDT
+Output:
+----------------------------------------------------------
+Running hash_util_test, redirecting output into /Users/vivianhuang/Desktop/terrier/cmake-build-development/build/test-logs/hash_util_test.txt (attempt 1/1)
+Running main() from gtest_main.cc
+[==========] Running 6 tests from 1 test case.
+[----------] Global test environment set-up.
+[----------] 6 tests from HashUtilTests
+[ RUN      ] HashUtilTests.HashTest
+[       OK ] HashUtilTests.HashTest (0 ms)
+[ RUN      ] HashUtilTests.HashStringsTest
+[       OK ] HashUtilTests.HashStringsTest (0 ms)
+[ RUN      ] HashUtilTests.HashMixedTest
+[       OK ] HashUtilTests.HashMixedTest (0 ms)
+[ RUN      ] HashUtilTests.CombineHashesTest
+[       OK ] HashUtilTests.CombineHashesTest (1 ms)
+[ RUN      ] HashUtilTests.CombineHashInRangeTest
+[       OK ] HashUtilTests.CombineHashInRangeTest (0 ms)
+[ RUN      ] HashUtilTests.SumHashesTest
+[       OK ] HashUtilTests.SumHashesTest (0 ms)
+[----------] 6 tests from HashUtilTests (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 6 tests from 1 test case ran. (1 ms total)
+[  PASSED  ] 6 tests.
+~/Desktop/terrier/cmake-build-development/test/common
+<end of output>
+Test time =   0.13 sec
+----------------------------------------------------------
+Test Passed.
+"hash_util_test" end time: Jun 13 17:41 EDT
+"hash_util_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+4/45 Testing: managed_pointer_test
+4/45 Test: managed_pointer_test
+Command: "/Users/vivianhuang/Desktop/terrier/build-support/run-test.sh" "/Users/vivianhuang/Desktop/terrier/cmake-build-development" "test" "/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug//managed_pointer_test"
+Directory: /Users/vivianhuang/Desktop/terrier/cmake-build-development/test/common
+"managed_pointer_test" start time: Jun 13 17:41 EDT
+Output:
+----------------------------------------------------------
+Running managed_pointer_test, redirecting output into /Users/vivianhuang/Desktop/terrier/cmake-build-development/build/test-logs/managed_pointer_test.txt (attempt 1/1)
+Running main() from gtest_main.cc
+[==========] Running 3 tests from 1 test case.
+[----------] Global test environment set-up.
+[----------] 3 tests from ManagedPointerTests
+[ RUN      ] ManagedPointerTests.EqualityTest
+[       OK ] ManagedPointerTests.EqualityTest (0 ms)
+[ RUN      ] ManagedPointerTests.PointerAccessTest
+[       OK ] ManagedPointerTests.PointerAccessTest (0 ms)
+[ RUN      ] ManagedPointerTests.OutputHashTest
+[       OK ] ManagedPointerTests.OutputHashTest (0 ms)
+[----------] 3 tests from ManagedPointerTests (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 1 test case ran. (0 ms total)
+[  PASSED  ] 3 tests.
+~/Desktop/terrier/cmake-build-development/test/common
+<end of output>
+Test time =   0.13 sec
+----------------------------------------------------------
+Test Passed.
+"managed_pointer_test" end time: Jun 13 17:41 EDT
+"managed_pointer_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+5/45 Testing: object_pool_test
+5/45 Test: object_pool_test
+Command: "/Users/vivianhuang/Desktop/terrier/build-support/run-test.sh" "/Users/vivianhuang/Desktop/terrier/cmake-build-development" "test" "/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug//object_pool_test"
+Directory: /Users/vivianhuang/Desktop/terrier/cmake-build-development/test/common
+"object_pool_test" start time: Jun 13 17:41 EDT
+Output:
+----------------------------------------------------------
+Running object_pool_test, redirecting output into /Users/vivianhuang/Desktop/terrier/cmake-build-development/build/test-logs/object_pool_test.txt (attempt 1/1)
+Running main() from gtest_main.cc
+[==========] Running 3 tests from 1 test case.
+[----------] Global test environment set-up.
+[----------] 3 tests from ObjectPoolTests
+[ RUN      ] ObjectPoolTests.SimpleReuseTest
+[       OK ] ObjectPoolTests.SimpleReuseTest (0 ms)
+[ RUN      ] ObjectPoolTests.ResetLimitTest
+[       OK ] ObjectPoolTests.ResetLimitTest (1 ms)
+[ RUN      ] ObjectPoolTests.ConcurrentCorrectnessTest
+[       OK ] ObjectPoolTests.ConcurrentCorrectnessTest (292 ms)
+[----------] 3 tests from ObjectPoolTests (293 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 1 test case ran. (293 ms total)
+[  PASSED  ] 3 tests.
+~/Desktop/terrier/cmake-build-development/test/common
+<end of output>
+Test time =   0.43 sec
+----------------------------------------------------------
+Test Passed.
+"object_pool_test" end time: Jun 13 17:41 EDT
+"object_pool_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+6/45 Testing: performance_counter_test
+6/45 Test: performance_counter_test
+Command: "/Users/vivianhuang/Desktop/terrier/build-support/run-test.sh" "/Users/vivianhuang/Desktop/terrier/cmake-build-development" "test" "/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug//performance_counter_test"
+Directory: /Users/vivianhuang/Desktop/terrier/cmake-build-development/test/common
+"performance_counter_test" start time: Jun 13 17:41 EDT
+Output:
+----------------------------------------------------------
+Running performance_counter_test, redirecting output into /Users/vivianhuang/Desktop/terrier/cmake-build-development/build/test-logs/performance_counter_test.txt (attempt 1/1)
+Running main() from gtest_main.cc
+[==========] Running 2 tests from 1 test case.
+[----------] Global test environment set-up.
+[----------] 2 tests from PerformanceCounterTests
+[ RUN      ] PerformanceCounterTests.SimpleCorrectnessTest
+[       OK ] PerformanceCounterTests.SimpleCorrectnessTest (1072 ms)
+[ RUN      ] PerformanceCounterTests.SerializationTest
+[       OK ] PerformanceCounterTests.SerializationTest (322 ms)
+[----------] 2 tests from PerformanceCounterTests (1394 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test case ran. (1394 ms total)
+[  PASSED  ] 2 tests.
+~/Desktop/terrier/cmake-build-development/test/common
+<end of output>
+Test time =   1.52 sec
+----------------------------------------------------------
+Test Passed.
+"performance_counter_test" end time: Jun 13 17:41 EDT
+"performance_counter_test" time elapsed: 00:00:01
+----------------------------------------------------------
+
+7/45 Testing: stat_registry_test
+7/45 Test: stat_registry_test
+Command: "/Users/vivianhuang/Desktop/terrier/build-support/run-test.sh" "/Users/vivianhuang/Desktop/terrier/cmake-build-development" "test" "/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug//stat_registry_test"
+Directory: /Users/vivianhuang/Desktop/terrier/cmake-build-development/test/common
+"stat_registry_test" start time: Jun 13 17:41 EDT
+Output:
+----------------------------------------------------------
+Running stat_registry_test, redirecting output into /Users/vivianhuang/Desktop/terrier/cmake-build-development/build/test-logs/stat_registry_test.txt (attempt 1/1)
+Running main() from gtest_main.cc
+[==========] Running 5 tests from 1 test case.
+[----------] Global test environment set-up.
+[----------] 5 tests from StatRegistryTest
+[ RUN      ] StatRegistryTest.SimpleCorrectnessTest
+[       OK ] StatRegistryTest.SimpleCorrectnessTest (19 ms)
+[ RUN      ] StatRegistryTest.MultipleNameTest
+[       OK ] StatRegistryTest.MultipleNameTest (1 ms)
+[ RUN      ] StatRegistryTest.DumpTest
+[       OK ] StatRegistryTest.DumpTest (1 ms)
+[ RUN      ] StatRegistryTest.FreeTest
+[       OK ] StatRegistryTest.FreeTest (0 ms)
+[ RUN      ] StatRegistryTest.DataTableStatTest
+[       OK ] StatRegistryTest.DataTableStatTest (8 ms)
+[----------] 5 tests from StatRegistryTest (29 ms total)
+
+[----------] Global test environment tear-down
+[==========] 5 tests from 1 test case ran. (30 ms total)
+[  PASSED  ] 5 tests.
+~/Desktop/terrier/cmake-build-development/test/common
+<end of output>
+Test time =   0.20 sec
+----------------------------------------------------------
+Test Passed.
+"stat_registry_test" end time: Jun 13 17:41 EDT
+"stat_registry_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+8/45 Testing: worker_pool_test
+8/45 Test: worker_pool_test
+Command: "/Users/vivianhuang/Desktop/terrier/build-support/run-test.sh" "/Users/vivianhuang/Desktop/terrier/cmake-build-development" "test" "/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug//worker_pool_test"
+Directory: /Users/vivianhuang/Desktop/terrier/cmake-build-development/test/common
+"worker_pool_test" start time: Jun 13 17:41 EDT
+Output:
+----------------------------------------------------------
+Running worker_pool_test, redirecting output into /Users/vivianhuang/Desktop/terrier/cmake-build-development/build/test-logs/worker_pool_test.txt (attempt 1/1)
+Running main() from gtest_main.cc
+[==========] Running 2 tests from 1 test case.
+[----------] Global test environment set-up.
+[----------] 2 tests from WorkerPoolTests
+[ RUN      ] WorkerPoolTests.BasicTest
+[       OK ] WorkerPoolTests.BasicTest (14 ms)
+[ RUN      ] WorkerPoolTests.MoreTest
+[       OK ] WorkerPoolTests.MoreTest (2034 ms)
+[----------] 2 tests from WorkerPoolTests (2048 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test case ran. (2048 ms total)
+[  PASSED  ] 2 tests.
+~/Desktop/terrier/cmake-build-development/test/common
+<end of output>
+Test time =   2.21 sec
+----------------------------------------------------------
+Test Passed.
+"worker_pool_test" end time: Jun 13 17:41 EDT
+"worker_pool_test" time elapsed: 00:00:02
+----------------------------------------------------------
+
+9/45 Testing: network_test
+9/45 Test: network_test
+Command: "/Users/vivianhuang/Desktop/terrier/build-support/run-test.sh" "/Users/vivianhuang/Desktop/terrier/cmake-build-development" "test" "/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug//network_test"
+Directory: /Users/vivianhuang/Desktop/terrier/cmake-build-development/test/network
+"network_test" start time: Jun 13 17:41 EDT
+Output:
+----------------------------------------------------------
+Running network_test, redirecting output into /Users/vivianhuang/Desktop/terrier/cmake-build-development/build/test-logs/network_test.txt (attempt 1/1)
+Running main() from gtest_main.cc
+[==========] Running 5 tests from 1 test case.
+[----------] Global test environment set-up.
+[----------] 5 tests from NetworkTests
+[ RUN      ] NetworkTests.SimpleQueryTest
+
+[2019-06-13 17:41:59.196] [network_logger] [info] Listening on port 15721
+[2019-06-13 17:41:59.200] [network_logger] [trace] Dispatching connection to worker 0
+[2019-06-13 17:41:59.201] [network_logger] [trace] protocol version: 196608
+[2019-06-13 17:41:59.201] [network_logger] [trace] Option key user, value postgres
+[2019-06-13 17:41:59.201] [network_logger] [trace] Option key database, value postgres
+[2019-06-13 17:41:59.201] [network_logger] [trace] Option key application_name, value psql
+[2019-06-13 17:41:59.202] [network_logger] [trace] Empty Command
+[2019-06-13 17:41:59.203] [network_logger] [trace] Empty Command
+[2019-06-13 17:41:59.203] [network_logger] [trace] Empty Command
+[2019-06-13 17:41:59.203] [network_logger] [trace] Empty Command
+[2019-06-13 17:41:59.203] [network_logger] [trace] Empty Command
+[2019-06-13 17:41:59.203] [network_logger] [trace] Empty Command
+[2019-06-13 17:41:59.204] [network_logger] [trace] Attempt to close the connection 15
+[2019-06-13 17:41:59.204] [network_logger] [trace] Begin to stop server
+[2019-06-13 17:41:59.205] [network_logger] [info] Server Closed
+[       OK ] NetworkTests.SimpleQueryTest (16 ms)
+[ RUN      ] NetworkTests.BadQueryTest
+
+[2019-06-13 17:41:59.209] [network_logger] [info] Listening on port 15721
+[2019-06-13 17:41:59.209] [test_logger] [info] [BadQueryTest] Starting, expect errors to be logged
+[2019-06-13 17:41:59.209] [network_logger] [trace] Dispatching connection to worker 0
+[2019-06-13 17:41:59.210] [network_logger] [trace] protocol version: 196608
+[2019-06-13 17:41:59.210] [network_logger] [trace] Option key application_name, value psql
+[2019-06-13 17:41:59.210] [network_logger] [trace] Option key database, value postgres
+[2019-06-13 17:41:59.210] [network_logger] [trace] Option key user, value postgres
+[2019-06-13 17:41:59.210] [network_logger] [trace] Empty Command
+[2019-06-13 17:41:59.210] [network_logger] [error] Packet size 1601331562 > limit 2500000
+[2019-06-13 17:41:59.211] [network_logger] [error] Encountered exception Packet too large when parsing packet
+[2019-06-13 17:41:59.211] [network_logger] [trace] Attempt to close the connection 15
+[2019-06-13 17:41:59.211] [test_logger] [info] [BadQueryTest] Completed
+[2019-06-13 17:41:59.211] [network_logger] [trace] Begin to stop server
+[2019-06-13 17:41:59.212] [network_logger] [info] Server Closed
+[       OK ] NetworkTests.BadQueryTest (6 ms)
+[ RUN      ] NetworkTests.NoSSLTest
+
+[2019-06-13 17:41:59.214] [network_logger] [info] Listening on port 15721
+[2019-06-13 17:41:59.214] [network_logger] [trace] Dispatching connection to worker 0
+[2019-06-13 17:41:59.215] [network_logger] [trace] protocol version: 80877103
+[2019-06-13 17:41:59.215] [network_logger] [trace] protocol version: 196608
+[2019-06-13 17:41:59.215] [network_logger] [trace] Option key user, value postgres
+[2019-06-13 17:41:59.215] [network_logger] [trace] Option key database, value postgres
+[2019-06-13 17:41:59.215] [network_logger] [trace] Option key application_name, value psql
+[2019-06-13 17:41:59.216] [network_logger] [trace] Empty Command
+[2019-06-13 17:41:59.216] [network_logger] [trace] Empty Command
+[2019-06-13 17:41:59.216] [network_logger] [trace] Empty Command
+[2019-06-13 17:41:59.216] [network_logger] [trace] Empty Command
+[2019-06-13 17:41:59.216] [network_logger] [trace] Empty Command
+[2019-06-13 17:41:59.216] [network_logger] [trace] Attempt to close the connection 15
+[2019-06-13 17:41:59.216] [network_logger] [trace] Begin to stop server
+[2019-06-13 17:41:59.217] [network_logger] [info] Server Closed
+[       OK ] NetworkTests.NoSSLTest (5 ms)
+[ RUN      ] NetworkTests.PgNetworkCommandsTest
+
+[2019-06-13 17:41:59.219] [network_logger] [info] Listening on port 15721
+[2019-06-13 17:41:59.219] [network_logger] [trace] Dispatching connection to worker 0
+[2019-06-13 17:41:59.220] [network_logger] [trace] protocol version: 196608
+[2019-06-13 17:41:59.220] [network_logger] [trace] Option key application_name, value psql
+[2019-06-13 17:41:59.220] [network_logger] [trace] Option key database, value postgres
+[2019-06-13 17:41:59.220] [network_logger] [trace] Option key user, value postgres
+[2019-06-13 17:41:59.220] [network_logger] [trace] Empty Command
+[2019-06-13 17:41:59.220] [network_logger] [trace] Empty Command
+[2019-06-13 17:41:59.221] [network_logger] [trace] Empty Command
+[2019-06-13 17:41:59.221] [network_logger] [trace] Empty Command
+[2019-06-13 17:41:59.222] [network_logger] [trace] Empty Command
+[2019-06-13 17:41:59.222] [network_logger] [trace] Empty Command
+[2019-06-13 17:41:59.223] [network_logger] [trace] Begin to stop server
+[2019-06-13 17:41:59.224] [network_logger] [info] Server Closed
+[       OK ] NetworkTests.PgNetworkCommandsTest (8 ms)
+[ RUN      ] NetworkTests.LargePacketsTest
+
+[2019-06-13 17:41:59.226] [network_logger] [info] Listening on port 15721
+[2019-06-13 17:41:59.226] [network_logger] [trace] Dispatching connection to worker 0
+[2019-06-13 17:41:59.227] [network_logger] [trace] protocol version: 196608
+[2019-06-13 17:41:59.227] [network_logger] [trace] Option key user, value postgres
+[2019-06-13 17:41:59.227] [network_logger] [trace] Option key database, value postgres
+[2019-06-13 17:41:59.227] [network_logger] [trace] Option key application_name, value psql
+[2019-06-13 17:41:59.227] [network_logger] [trace] Empty Command
+[2019-06-13 17:41:59.234] [network_logger] [trace] Extended Buffer size required for packet of size 255555
+[2019-06-13 17:41:59.242] [network_logger] [trace] Empty Command
+[2019-06-13 17:41:59.247] [network_logger] [trace] Empty Command
+[2019-06-13 17:41:59.247] [network_logger] [trace] Attempt to close the connection 17
+[2019-06-13 17:41:59.247] [network_logger] [trace] Begin to stop server
+[2019-06-13 17:41:59.248] [network_logger] [info] Server Closed
+[       OK ] NetworkTests.LargePacketsTest (24 ms)
+[----------] 5 tests from NetworkTests (59 ms total)
+
+[----------] Global test environment tear-down
+[==========] 5 tests from 1 test case ran. (60 ms total)
+[  PASSED  ] 5 tests.
+~/Desktop/terrier/cmake-build-development/test/network
+<end of output>
+Test time =   0.21 sec
+----------------------------------------------------------
+Test Passed.
+"network_test" end time: Jun 13 17:41 EDT
+"network_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+10/45 Testing: expression_test
+10/45 Test: expression_test
+Command: "/Users/vivianhuang/Desktop/terrier/build-support/run-test.sh" "/Users/vivianhuang/Desktop/terrier/cmake-build-development" "test" "/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug//expression_test"
+Directory: /Users/vivianhuang/Desktop/terrier/cmake-build-development/test/parser
+"expression_test" start time: Jun 13 17:41 EDT
+Output:
+----------------------------------------------------------
+Running expression_test, redirecting output into /Users/vivianhuang/Desktop/terrier/cmake-build-development/build/test-logs/expression_test.txt (attempt 1/1)
+Running main() from gtest_main.cc
+[==========] Running 14 tests from 1 test case.
+[----------] Global test environment set-up.
+[----------] 14 tests from ExpressionTests
+[ RUN      ] ExpressionTests.BasicTest
+[       OK ] ExpressionTests.BasicTest (0 ms)
+[ RUN      ] ExpressionTests.ConjunctionTest
+[       OK ] ExpressionTests.ConjunctionTest (0 ms)
+[ RUN      ] ExpressionTests.AggregateExpressionJsonTest
+[       OK ] ExpressionTests.AggregateExpressionJsonTest (0 ms)
+[ RUN      ] ExpressionTests.CaseExpressionTest
+[       OK ] ExpressionTests.CaseExpressionTest (1 ms)
+[ RUN      ] ExpressionTests.FunctionExpressionJsonTest
+[       OK ] ExpressionTests.FunctionExpressionJsonTest (0 ms)
+[ RUN      ] ExpressionTests.ConstantValueExpressionJsonTest
+[       OK ] ExpressionTests.ConstantValueExpressionJsonTest (0 ms)
+[ RUN      ] ExpressionTests.OperatorExpressionJsonTest
+[       OK ] ExpressionTests.OperatorExpressionJsonTest (0 ms)
+[ RUN      ] ExpressionTests.TypeCastExpressionJsonTest
+[       OK ] ExpressionTests.TypeCastExpressionJsonTest (0 ms)
+[ RUN      ] ExpressionTests.ParameterValueExpressionJsonTest
+[       OK ] ExpressionTests.ParameterValueExpressionJsonTest (1 ms)
+[ RUN      ] ExpressionTests.TupleValueExpressionJsonTest
+[       OK ] ExpressionTests.TupleValueExpressionJsonTest (0 ms)
+[ RUN      ] ExpressionTests.ComparisonExpressionJsonTest
+[       OK ] ExpressionTests.ComparisonExpressionJsonTest (0 ms)
+[ RUN      ] ExpressionTests.ConjunctionExpressionJsonTest
+[       OK ] ExpressionTests.ConjunctionExpressionJsonTest (0 ms)
+[ RUN      ] ExpressionTests.SimpleSubqueryExpressionJsonTest
+[       OK ] ExpressionTests.SimpleSubqueryExpressionJsonTest (1 ms)
+[ RUN      ] ExpressionTests.ComplexSubqueryExpressionJsonTest
+[       OK ] ExpressionTests.ComplexSubqueryExpressionJsonTest (1 ms)
+[----------] 14 tests from ExpressionTests (4 ms total)
+
+[----------] Global test environment tear-down
+[==========] 14 tests from 1 test case ran. (4 ms total)
+[  PASSED  ] 14 tests.
+~/Desktop/terrier/cmake-build-development/test/parser
+<end of output>
+Test time =   0.16 sec
+----------------------------------------------------------
+Test Passed.
+"expression_test" end time: Jun 13 17:41 EDT
+"expression_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+11/45 Testing: parser_test
+11/45 Test: parser_test
+Command: "/Users/vivianhuang/Desktop/terrier/build-support/run-test.sh" "/Users/vivianhuang/Desktop/terrier/cmake-build-development" "test" "/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug//parser_test"
+Directory: /Users/vivianhuang/Desktop/terrier/cmake-build-development/test/parser
+"parser_test" start time: Jun 13 17:41 EDT
+Output:
+----------------------------------------------------------
+Running parser_test, redirecting output into /Users/vivianhuang/Desktop/terrier/cmake-build-development/build/test-logs/parser_test.txt (attempt 1/1)
+Running main() from gtest_main.cc
+[==========] Running 56 tests from 1 test case.
+[----------] Global test environment set-up.
+[----------] 56 tests from ParserTestBase
+[ RUN      ] ParserTestBase.AnalyzeTest
+[       OK ] ParserTestBase.AnalyzeTest (1 ms)
+[ RUN      ] ParserTestBase.CastTest
+[       OK ] ParserTestBase.CastTest (0 ms)
+[ RUN      ] ParserTestBase.CopyTest
+[       OK ] ParserTestBase.CopyTest (1 ms)
+[ RUN      ] ParserTestBase.CreateFunctionTest
+[       OK ] ParserTestBase.CreateFunctionTest (1 ms)
+[ RUN      ] ParserTestBase.CreateIndexTest
+[       OK ] ParserTestBase.CreateIndexTest (1 ms)
+[ RUN      ] ParserTestBase.CreateTableTest
+[2019-06-13 17:41:59.555] [parser_logger] [debug] StrToDataType: Unsupported datatype: baz
+[2019-06-13 17:41:59.556] [parser_logger] [debug] BuildParseTree: caught Parser /Users/vivianhuang/Desktop/terrier/src/include/parser/create_statement.h 137 Unsupported datatype
+[       OK ] ParserTestBase.CreateTableTest (2 ms)
+[ RUN      ] ParserTestBase.CreateViewTest
+[       OK ] ParserTestBase.CreateViewTest (0 ms)
+[ RUN      ] ParserTestBase.DropDBTest
+[       OK ] ParserTestBase.DropDBTest (1 ms)
+[ RUN      ] ParserTestBase.DropIndexTest
+[       OK ] ParserTestBase.DropIndexTest (0 ms)
+[ RUN      ] ParserTestBase.DropSchemaTest
+[       OK ] ParserTestBase.DropSchemaTest (0 ms)
+[ RUN      ] ParserTestBase.DropTableTest
+[       OK ] ParserTestBase.DropTableTest (0 ms)
+[ RUN      ] ParserTestBase.ExecuteTest
+[       OK ] ParserTestBase.ExecuteTest (1 ms)
+[ RUN      ] ParserTestBase.ExplainTest
+[       OK ] ParserTestBase.ExplainTest (0 ms)
+[ RUN      ] ParserTestBase.GarbageTest
+[2019-06-13 17:41:59.559] [parser_logger] [debug] BuildParseTree error: msg syntax error at or near "blarglesnarf", curpos 1
+[2019-06-13 17:41:59.560] [parser_logger] [debug] BuildParseTree: caught Parser /Users/vivianhuang/Desktop/terrier/src/parser/postgresparser.cpp 772 TargetTransform: root==null.
+[       OK ] ParserTestBase.GarbageTest (1 ms)
+[ RUN      ] ParserTestBase.InsertTest
+[       OK ] ParserTestBase.InsertTest (0 ms)
+[ RUN      ] ParserTestBase.PrepareTest
+[       OK ] ParserTestBase.PrepareTest (1 ms)
+[ RUN      ] ParserTestBase.SelectTest
+[       OK ] ParserTestBase.SelectTest (0 ms)
+[ RUN      ] ParserTestBase.SelectUnionTest
+[       OK ] ParserTestBase.SelectUnionTest (1 ms)
+[ RUN      ] ParserTestBase.SetTest
+[       OK ] ParserTestBase.SetTest (0 ms)
+[ RUN      ] ParserTestBase.SubqueryTest
+[       OK ] ParserTestBase.SubqueryTest (0 ms)
+[ RUN      ] ParserTestBase.TruncateTest
+[       OK ] ParserTestBase.TruncateTest (1 ms)
+[ RUN      ] ParserTestBase.UpdateTest
+[       OK ] ParserTestBase.UpdateTest (0 ms)
+[ RUN      ] ParserTestBase.OperatorTest
+[       OK ] ParserTestBase.OperatorTest (2 ms)
+[ RUN      ] ParserTestBase.CompareTest
+[       OK ] ParserTestBase.CompareTest (1 ms)
+[ RUN      ] ParserTestBase.OldBasicTest
+[       OK ] ParserTestBase.OldBasicTest (0 ms)
+[ RUN      ] ParserTestBase.OldAggTest
+[       OK ] ParserTestBase.OldAggTest (0 ms)
+[ RUN      ] ParserTestBase.OldGroupByTest
+[       OK ] ParserTestBase.OldGroupByTest (0 ms)
+[ RUN      ] ParserTestBase.OldOrderByTest
+[       OK ] ParserTestBase.OldOrderByTest (1 ms)
+[ RUN      ] ParserTestBase.OldConstTest
+[       OK ] ParserTestBase.OldConstTest (0 ms)
+[ RUN      ] ParserTestBase.OldJoinTest
+[2019-06-13 17:41:59.569] [parser_logger] [debug] "JoinTransform""root->quals" 0x0 unsupported
+[2019-06-13 17:41:59.569] [parser_logger] [debug] BuildParseTree: caught Parser /Users/vivianhuang/Desktop/terrier/src/parser/postgresparser.cpp 990 "JoinTransform":"root->quals" unsupported
+[       OK ] ParserTestBase.OldJoinTest (1 ms)
+[ RUN      ] ParserTestBase.OldNestedQueryTest
+[       OK ] ParserTestBase.OldNestedQueryTest (1 ms)
+[ RUN      ] ParserTestBase.OldMultiTableTest
+[       OK ] ParserTestBase.OldMultiTableTest (0 ms)
+[ RUN      ] ParserTestBase.OldColumnUpdateTest
+[       OK ] ParserTestBase.OldColumnUpdateTest (1 ms)
+[ RUN      ] ParserTestBase.OldExpressionUpdateTest
+[       OK ] ParserTestBase.OldExpressionUpdateTest (0 ms)
+[ RUN      ] ParserTestBase.OldStringUpdateTest
+[       OK ] ParserTestBase.OldStringUpdateTest (1 ms)
+[ RUN      ] ParserTestBase.OldDeleteTest
+[       OK ] ParserTestBase.OldDeleteTest (0 ms)
+[ RUN      ] ParserTestBase.OldDeleteTestWithPredicate
+[       OK ] ParserTestBase.OldDeleteTestWithPredicate (0 ms)
+[ RUN      ] ParserTestBase.OldInsertTest
+[       OK ] ParserTestBase.OldInsertTest (0 ms)
+[ RUN      ] ParserTestBase.OldCreateTest
+[       OK ] ParserTestBase.OldCreateTest (0 ms)
+[ RUN      ] ParserTestBase.OldTransactionTest
+[       OK ] ParserTestBase.OldTransactionTest (1 ms)
+[ RUN      ] ParserTestBase.OldCreateIndexTest
+[2019-06-13 17:41:59.574] [parser_logger] [debug] CreateIndexTransform: IndexType gin not supported
+[2019-06-13 17:41:59.574] [parser_logger] [debug] BuildParseTree: caught Not Implemented /Users/vivianhuang/Desktop/terrier/src/parser/postgresparser.cpp 1297 CreateIndexTransform error
+[       OK ] ParserTestBase.OldCreateIndexTest (0 ms)
+[ RUN      ] ParserTestBase.OldInsertIntoSelectTest
+[       OK ] ParserTestBase.OldInsertIntoSelectTest (1 ms)
+[ RUN      ] ParserTestBase.OldCreateDbTest
+[       OK ] ParserTestBase.OldCreateDbTest (0 ms)
+[ RUN      ] ParserTestBase.OldCreateSchemaTest
+[       OK ] ParserTestBase.OldCreateSchemaTest (1 ms)
+[ RUN      ] ParserTestBase.OldCreateViewTest
+[       OK ] ParserTestBase.OldCreateViewTest (0 ms)
+[ RUN      ] ParserTestBase.OldDistinctFromTest
+[       OK ] ParserTestBase.OldDistinctFromTest (0 ms)
+[ RUN      ] ParserTestBase.OldConstraintTest
+[       OK ] ParserTestBase.OldConstraintTest (1 ms)
+[ RUN      ] ParserTestBase.OldDataTypeTest
+[       OK ] ParserTestBase.OldDataTypeTest (0 ms)
+[ RUN      ] ParserTestBase.OldCreateTriggerTest
+[       OK ] ParserTestBase.OldCreateTriggerTest (1 ms)
+[ RUN      ] ParserTestBase.OldDropTriggerTest
+[       OK ] ParserTestBase.OldDropTriggerTest (0 ms)
+[ RUN      ] ParserTestBase.OldFuncCallTest
+[       OK ] ParserTestBase.OldFuncCallTest (0 ms)
+[ RUN      ] ParserTestBase.OldUDFFuncCallTest
+[       OK ] ParserTestBase.OldUDFFuncCallTest (1 ms)
+[ RUN      ] ParserTestBase.OldCaseTest
+[       OK ] ParserTestBase.OldCaseTest (0 ms)
+[ RUN      ] ParserTestBase.OldDateTypeTest
+[       OK ] ParserTestBase.OldDateTypeTest (1 ms)
+[ RUN      ] ParserTestBase.OldTypeCastTest
+[       OK ] ParserTestBase.OldTypeCastTest (0 ms)
+[ RUN      ] ParserTestBase.OldTypeCastInExpressionTest
+[       OK ] ParserTestBase.OldTypeCastInExpressionTest (1 ms)
+[----------] 56 tests from ParserTestBase (30 ms total)
+
+[----------] Global test environment tear-down
+[==========] 56 tests from 1 test case ran. (31 ms total)
+[  PASSED  ] 56 tests.
+~/Desktop/terrier/cmake-build-development/test/parser
+<end of output>
+Test time =   0.16 sec
+----------------------------------------------------------
+Test Passed.
+"parser_test" end time: Jun 13 17:41 EDT
+"parser_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+12/45 Testing: pg_parser_test
+12/45 Test: pg_parser_test
+Command: "/Users/vivianhuang/Desktop/terrier/build-support/run-test.sh" "/Users/vivianhuang/Desktop/terrier/cmake-build-development" "test" "/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug//pg_parser_test"
+Directory: /Users/vivianhuang/Desktop/terrier/cmake-build-development/test/parser
+"pg_parser_test" start time: Jun 13 17:41 EDT
+Output:
+----------------------------------------------------------
+Running pg_parser_test, redirecting output into /Users/vivianhuang/Desktop/terrier/cmake-build-development/build/test-logs/pg_parser_test.txt (attempt 1/1)
+Running main() from gtest_main.cc
+[==========] Running 2 tests from 1 test case.
+[----------] Global test environment set-up.
+[----------] 2 tests from PGParserTests
+[ RUN      ] PGParserTests.BasicTest
+[{"SelectStmt": {"targetList": [{"ResTarget": {"val": {"A_Const": {"val": {"Integer": {"ival": 1}}, "location": 7}}, "location": 7}}], "op": 0}}]
+[       OK ] PGParserTests.BasicTest (27 ms)
+[ RUN      ] PGParserTests.CreateFunctionTest
+[       OK ] PGParserTests.CreateFunctionTest (14 ms)
+[----------] 2 tests from PGParserTests (41 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test case ran. (41 ms total)
+[  PASSED  ] 2 tests.
+~/Desktop/terrier/cmake-build-development/test/parser
+<end of output>
+Test time =   0.23 sec
+----------------------------------------------------------
+Test Passed.
+"pg_parser_test" end time: Jun 13 17:41 EDT
+"pg_parser_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+13/45 Testing: bwtree_index_test
+13/45 Test: bwtree_index_test
+Command: "/Users/vivianhuang/Desktop/terrier/build-support/run-test.sh" "/Users/vivianhuang/Desktop/terrier/cmake-build-development" "test" "/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug//bwtree_index_test"
+Directory: /Users/vivianhuang/Desktop/terrier/cmake-build-development/test/storage
+"bwtree_index_test" start time: Jun 13 17:41 EDT
+Output:
+----------------------------------------------------------
+Running bwtree_index_test, redirecting output into /Users/vivianhuang/Desktop/terrier/cmake-build-development/build/test-logs/bwtree_index_test.txt (attempt 1/1)
+Running main() from gtest_main.cc
+[==========] Running 22 tests from 1 test case.
+[----------] Global test environment set-up.
+[----------] 22 tests from BwTreeIndexTests
+[ RUN      ] BwTreeIndexTests.UniqueInsert
+[       OK ] BwTreeIndexTests.UniqueInsert (9145 ms)
+[ RUN      ] BwTreeIndexTests.DefaultInsert
+[       OK ] BwTreeIndexTests.DefaultInsert (8141 ms)
+[ RUN      ] BwTreeIndexTests.ScanAscending
+[       OK ] BwTreeIndexTests.ScanAscending (13 ms)
+[ RUN      ] BwTreeIndexTests.ScanDescending
+[       OK ] BwTreeIndexTests.ScanDescending (14 ms)
+[ RUN      ] BwTreeIndexTests.ScanLimitAscending
+[       OK ] BwTreeIndexTests.ScanLimitAscending (12 ms)
+[ RUN      ] BwTreeIndexTests.ScanLimitDescending
+[       OK ] BwTreeIndexTests.ScanLimitDescending (15 ms)
+[ RUN      ] BwTreeIndexTests.UniqueKey1
+[       OK ] BwTreeIndexTests.UniqueKey1 (15 ms)
+[ RUN      ] BwTreeIndexTests.UniqueKey2
+[       OK ] BwTreeIndexTests.UniqueKey2 (16 ms)
+[ RUN      ] BwTreeIndexTests.UniqueKey3
+[       OK ] BwTreeIndexTests.UniqueKey3 (14 ms)
+[ RUN      ] BwTreeIndexTests.UniqueKey4
+[       OK ] BwTreeIndexTests.UniqueKey4 (12 ms)
+[ RUN      ] BwTreeIndexTests.CommitInsert1
+[       OK ] BwTreeIndexTests.CommitInsert1 (16 ms)
+[ RUN      ] BwTreeIndexTests.CommitInsert2
+[       OK ] BwTreeIndexTests.CommitInsert2 (26 ms)
+[ RUN      ] BwTreeIndexTests.AbortInsert1
+[       OK ] BwTreeIndexTests.AbortInsert1 (12 ms)
+[ RUN      ] BwTreeIndexTests.AbortInsert2
+[       OK ] BwTreeIndexTests.AbortInsert2 (13 ms)
+[ RUN      ] BwTreeIndexTests.CommitUpdate1
+[       OK ] BwTreeIndexTests.CommitUpdate1 (14 ms)
+[ RUN      ] BwTreeIndexTests.CommitUpdate2
+[       OK ] BwTreeIndexTests.CommitUpdate2 (14 ms)
+[ RUN      ] BwTreeIndexTests.AbortUpdate1
+[       OK ] BwTreeIndexTests.AbortUpdate1 (14 ms)
+[ RUN      ] BwTreeIndexTests.AbortUpdate2
+[       OK ] BwTreeIndexTests.AbortUpdate2 (12 ms)
+[ RUN      ] BwTreeIndexTests.CommitDelete1
+[       OK ] BwTreeIndexTests.CommitDelete1 (12 ms)
+[ RUN      ] BwTreeIndexTests.CommitDelete2
+[       OK ] BwTreeIndexTests.CommitDelete2 (13 ms)
+[ RUN      ] BwTreeIndexTests.AbortDelete1
+[       OK ] BwTreeIndexTests.AbortDelete1 (13 ms)
+[ RUN      ] BwTreeIndexTests.AbortDelete2
+[       OK ] BwTreeIndexTests.AbortDelete2 (11 ms)
+[----------] 22 tests from BwTreeIndexTests (17568 ms total)
+
+[----------] Global test environment tear-down
+[==========] 22 tests from 1 test case ran. (17568 ms total)
+[  PASSED  ] 22 tests.
+~/Desktop/terrier/cmake-build-development/test/storage
+<end of output>
+Test time =  17.79 sec
+----------------------------------------------------------
+Test Passed.
+"bwtree_index_test" end time: Jun 13 17:42 EDT
+"bwtree_index_test" time elapsed: 00:00:17
+----------------------------------------------------------
+
+14/45 Testing: bwtree_key_test
+14/45 Test: bwtree_key_test
+Command: "/Users/vivianhuang/Desktop/terrier/build-support/run-test.sh" "/Users/vivianhuang/Desktop/terrier/cmake-build-development" "test" "/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug//bwtree_key_test"
+Directory: /Users/vivianhuang/Desktop/terrier/cmake-build-development/test/storage
+"bwtree_key_test" start time: Jun 13 17:42 EDT
+Output:
+----------------------------------------------------------
+Running bwtree_key_test, redirecting output into /Users/vivianhuang/Desktop/terrier/cmake-build-development/build/test-logs/bwtree_key_test.txt (attempt 1/1)
+Running main() from gtest_main.cc
+[==========] Running 11 tests from 1 test case.
+[----------] Global test environment set-up.
+[----------] 11 tests from BwTreeKeyTests
+[ RUN      ] BwTreeKeyTests.IndexMetadataCompactIntsKeyTest
+[       OK ] BwTreeKeyTests.IndexMetadataCompactIntsKeyTest (1 ms)
+[ RUN      ] BwTreeKeyTests.IndexMetadataGenericKeyNoMustInlineVarlenTest
+[       OK ] BwTreeKeyTests.IndexMetadataGenericKeyNoMustInlineVarlenTest (0 ms)
+[ RUN      ] BwTreeKeyTests.IndexMetadataGenericKeyMustInlineVarlenTest
+[       OK ] BwTreeKeyTests.IndexMetadataGenericKeyMustInlineVarlenTest (1 ms)
+[ RUN      ] BwTreeKeyTests.RandomCompactIntsKeyTest
+[       OK ] BwTreeKeyTests.RandomCompactIntsKeyTest (569 ms)
+[ RUN      ] BwTreeKeyTests.CompactIntsKeyBasicTest
+[       OK ] BwTreeKeyTests.CompactIntsKeyBasicTest (4 ms)
+[ RUN      ] BwTreeKeyTests.CompactIntsKeyNumericComparisons
+[       OK ] BwTreeKeyTests.CompactIntsKeyNumericComparisons (0 ms)
+[ RUN      ] BwTreeKeyTests.GenericKeyNumericComparisons
+[       OK ] BwTreeKeyTests.GenericKeyNumericComparisons (2 ms)
+[ RUN      ] BwTreeKeyTests.GenericKeyInlineVarlenComparisons
+[       OK ] BwTreeKeyTests.GenericKeyInlineVarlenComparisons (0 ms)
+[ RUN      ] BwTreeKeyTests.GenericKeyNonInlineVarlenComparisons
+[       OK ] BwTreeKeyTests.GenericKeyNonInlineVarlenComparisons (1 ms)
+[ RUN      ] BwTreeKeyTests.CompactIntsBuilderTest
+[       OK ] BwTreeKeyTests.CompactIntsBuilderTest (159 ms)
+[ RUN      ] BwTreeKeyTests.GenericKeyBuilderTest
+[       OK ] BwTreeKeyTests.GenericKeyBuilderTest (162 ms)
+[----------] 11 tests from BwTreeKeyTests (899 ms total)
+
+[----------] Global test environment tear-down
+[==========] 11 tests from 1 test case ran. (900 ms total)
+[  PASSED  ] 11 tests.
+~/Desktop/terrier/cmake-build-development/test/storage
+<end of output>
+Test time =   1.09 sec
+----------------------------------------------------------
+Test Passed.
+"bwtree_key_test" end time: Jun 13 17:42 EDT
+"bwtree_key_test" time elapsed: 00:00:01
+----------------------------------------------------------
+
+15/45 Testing: bwtree_test
+15/45 Test: bwtree_test
+Command: "/Users/vivianhuang/Desktop/terrier/build-support/run-test.sh" "/Users/vivianhuang/Desktop/terrier/cmake-build-development" "test" "/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug//bwtree_test"
+Directory: /Users/vivianhuang/Desktop/terrier/cmake-build-development/test/storage
+"bwtree_test" start time: Jun 13 17:42 EDT
+Output:
+----------------------------------------------------------
+Running bwtree_test, redirecting output into /Users/vivianhuang/Desktop/terrier/cmake-build-development/build/test-logs/bwtree_test.txt (attempt 1/1)
+Running main() from gtest_main.cc
+[==========] Running 9 tests from 1 test case.
+[----------] Global test environment set-up.
+[----------] 9 tests from BwTreeTests
+[ RUN      ] BwTreeTests.ReproduceNewOrderMemoryLeak
+[       OK ] BwTreeTests.ReproduceNewOrderMemoryLeak (33544 ms)
+[ RUN      ] BwTreeTests.BloomFilter
+[       OK ] BwTreeTests.BloomFilter (1 ms)
+[ RUN      ] BwTreeTests.SortedSmallSet
+[       OK ] BwTreeTests.SortedSmallSet (1 ms)
+[ RUN      ] BwTreeTests.ForwardIterator
+[       OK ] BwTreeTests.ForwardIterator (5861 ms)
+[ RUN      ] BwTreeTests.ReverseIterator
+[       OK ] BwTreeTests.ReverseIterator (4444 ms)
+[ RUN      ] BwTreeTests.ConcurrentRandomInsert
+[       OK ] BwTreeTests.ConcurrentRandomInsert (59490 ms)
+[ RUN      ] BwTreeTests.ConcurrentMixed
+[       OK ] BwTreeTests.ConcurrentMixed (31859 ms)
+[ RUN      ] BwTreeTests.Interleaved
+[       OK ] BwTreeTests.Interleaved (86597 ms)
+[ RUN      ] BwTreeTests.EpochManager
+[       OK ] BwTreeTests.EpochManager (4728 ms)
+[----------] 9 tests from BwTreeTests (226534 ms total)
+
+[----------] Global test environment tear-down
+[==========] 9 tests from 1 test case ran. (226534 ms total)
+[  PASSED  ] 9 tests.
+~/Desktop/terrier/cmake-build-development/test/storage
+<end of output>
+Test time = 226.86 sec
+----------------------------------------------------------
+Test Passed.
+"bwtree_test" end time: Jun 13 17:46 EDT
+"bwtree_test" time elapsed: 00:03:46
+----------------------------------------------------------
+
+16/45 Testing: data_table_concurrent_test
+16/45 Test: data_table_concurrent_test
+Command: "/Users/vivianhuang/Desktop/terrier/build-support/run-test.sh" "/Users/vivianhuang/Desktop/terrier/cmake-build-development" "test" "/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug//data_table_concurrent_test"
+Directory: /Users/vivianhuang/Desktop/terrier/cmake-build-development/test/storage
+"data_table_concurrent_test" start time: Jun 13 17:46 EDT
+Output:
+----------------------------------------------------------
+Running data_table_concurrent_test, redirecting output into /Users/vivianhuang/Desktop/terrier/cmake-build-development/build/test-logs/data_table_concurrent_test.txt (attempt 1/1)
+Running main() from gtest_main.cc
+[==========] Running 2 tests from 1 test case.
+[----------] Global test environment set-up.
+[----------] 2 tests from DataTableConcurrentTests
+[ RUN      ] DataTableConcurrentTests.ConcurrentInsert
+[       OK ] DataTableConcurrentTests.ConcurrentInsert (9126 ms)
+[ RUN      ] DataTableConcurrentTests.ConcurrentUpdateOneWriterWins
+[       OK ] DataTableConcurrentTests.ConcurrentUpdateOneWriterWins (82 ms)
+[----------] 2 tests from DataTableConcurrentTests (9208 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test case ran. (9208 ms total)
+[  PASSED  ] 2 tests.
+~/Desktop/terrier/cmake-build-development/test/storage
+<end of output>
+Test time =   9.40 sec
+----------------------------------------------------------
+Test Passed.
+"data_table_concurrent_test" end time: Jun 13 17:46 EDT
+"data_table_concurrent_test" time elapsed: 00:00:09
+----------------------------------------------------------
+
+17/45 Testing: data_table_test
+17/45 Test: data_table_test
+Command: "/Users/vivianhuang/Desktop/terrier/build-support/run-test.sh" "/Users/vivianhuang/Desktop/terrier/cmake-build-development" "test" "/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug//data_table_test"
+Directory: /Users/vivianhuang/Desktop/terrier/cmake-build-development/test/storage
+"data_table_test" start time: Jun 13 17:46 EDT
+Output:
+----------------------------------------------------------
+Running data_table_test, redirecting output into /Users/vivianhuang/Desktop/terrier/cmake-build-development/build/test-logs/data_table_test.txt (attempt 1/1)
+Running main() from gtest_main.cc
+[==========] Running 5 tests from 1 test case.
+[----------] Global test environment set-up.
+[----------] 5 tests from DataTableTests
+[ RUN      ] DataTableTests.SimpleInsertSelect
+[       OK ] DataTableTests.SimpleInsertSelect (5579 ms)
+[ RUN      ] DataTableTests.SimpleSequentialScan
+[       OK ] DataTableTests.SimpleSequentialScan (6034 ms)
+[ RUN      ] DataTableTests.SimpleVersionChain
+[       OK ] DataTableTests.SimpleVersionChain (131 ms)
+[ RUN      ] DataTableTests.WriteWriteConflictUpdateFails
+[       OK ] DataTableTests.WriteWriteConflictUpdateFails (30 ms)
+[ RUN      ] DataTableTests.InsertNoWrap
+[       OK ] DataTableTests.InsertNoWrap (5767 ms)
+[----------] 5 tests from DataTableTests (17541 ms total)
+
+[----------] Global test environment tear-down
+[==========] 5 tests from 1 test case ran. (17541 ms total)
+[  PASSED  ] 5 tests.
+~/Desktop/terrier/cmake-build-development/test/storage
+<end of output>
+Test time =  17.78 sec
+----------------------------------------------------------
+Test Passed.
+"data_table_test" end time: Jun 13 17:46 EDT
+"data_table_test" time elapsed: 00:00:17
+----------------------------------------------------------
+
+18/45 Testing: delta_record_test
+18/45 Test: delta_record_test
+Command: "/Users/vivianhuang/Desktop/terrier/build-support/run-test.sh" "/Users/vivianhuang/Desktop/terrier/cmake-build-development" "test" "/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug//delta_record_test"
+Directory: /Users/vivianhuang/Desktop/terrier/cmake-build-development/test/storage
+"delta_record_test" start time: Jun 13 17:46 EDT
+Output:
+----------------------------------------------------------
+Running delta_record_test, redirecting output into /Users/vivianhuang/Desktop/terrier/cmake-build-development/build/test-logs/delta_record_test.txt (attempt 1/1)
+Running main() from gtest_main.cc
+[==========] Running 2 tests from 1 test case.
+[----------] Global test environment set-up.
+[----------] 2 tests from DeltaRecordTests
+[ RUN      ] DeltaRecordTests.UndoChainAccess
+[       OK ] DeltaRecordTests.UndoChainAccess (2156 ms)
+[ RUN      ] DeltaRecordTests.UndoGetProjectedRow
+[       OK ] DeltaRecordTests.UndoGetProjectedRow (860 ms)
+[----------] 2 tests from DeltaRecordTests (3016 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test case ran. (3016 ms total)
+[  PASSED  ] 2 tests.
+~/Desktop/terrier/cmake-build-development/test/storage
+<end of output>
+Test time =   3.19 sec
+----------------------------------------------------------
+Test Passed.
+"delta_record_test" end time: Jun 13 17:46 EDT
+"delta_record_test" time elapsed: 00:00:03
+----------------------------------------------------------
+
+19/45 Testing: garbage_collector_test
+19/45 Test: garbage_collector_test
+Command: "/Users/vivianhuang/Desktop/terrier/build-support/run-test.sh" "/Users/vivianhuang/Desktop/terrier/cmake-build-development" "test" "/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug//garbage_collector_test"
+Directory: /Users/vivianhuang/Desktop/terrier/cmake-build-development/test/storage
+"garbage_collector_test" start time: Jun 13 17:46 EDT
+Output:
+----------------------------------------------------------
+Running garbage_collector_test, redirecting output into /Users/vivianhuang/Desktop/terrier/cmake-build-development/build/test-logs/garbage_collector_test.txt (attempt 1/1)
+Running main() from gtest_main.cc
+[==========] Running 11 tests from 1 test case.
+[----------] Global test environment set-up.
+[----------] 11 tests from GarbageCollectorTests
+[ RUN      ] GarbageCollectorTests.SingleInsert
+[       OK ] GarbageCollectorTests.SingleInsert (45 ms)
+[ RUN      ] GarbageCollectorTests.ReadOnly
+[       OK ] GarbageCollectorTests.ReadOnly (19 ms)
+[ RUN      ] GarbageCollectorTests.CommitInsert1
+[       OK ] GarbageCollectorTests.CommitInsert1 (53 ms)
+[ RUN      ] GarbageCollectorTests.CommitInsert2
+[       OK ] GarbageCollectorTests.CommitInsert2 (53 ms)
+[ RUN      ] GarbageCollectorTests.AbortInsert1
+[       OK ] GarbageCollectorTests.AbortInsert1 (44 ms)
+[ RUN      ] GarbageCollectorTests.AbortInsert2
+[       OK ] GarbageCollectorTests.AbortInsert2 (42 ms)
+[ RUN      ] GarbageCollectorTests.CommitUpdate1
+[       OK ] GarbageCollectorTests.CommitUpdate1 (84 ms)
+[ RUN      ] GarbageCollectorTests.CommitUpdate2
+[       OK ] GarbageCollectorTests.CommitUpdate2 (100 ms)
+[ RUN      ] GarbageCollectorTests.AbortUpdate1
+[       OK ] GarbageCollectorTests.AbortUpdate1 (90 ms)
+[ RUN      ] GarbageCollectorTests.AbortUpdate2
+[       OK ] GarbageCollectorTests.AbortUpdate2 (91 ms)
+[ RUN      ] GarbageCollectorTests.InsertUpdate1
+[       OK ] GarbageCollectorTests.InsertUpdate1 (61 ms)
+[----------] 11 tests from GarbageCollectorTests (683 ms total)
+
+[----------] Global test environment tear-down
+[==========] 11 tests from 1 test case ran. (683 ms total)
+[  PASSED  ] 11 tests.
+~/Desktop/terrier/cmake-build-development/test/storage
+<end of output>
+Test time =   0.83 sec
+----------------------------------------------------------
+Test Passed.
+"garbage_collector_test" end time: Jun 13 17:46 EDT
+"garbage_collector_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+20/45 Testing: large_garbage_collector_test
+20/45 Test: large_garbage_collector_test
+Command: "/Users/vivianhuang/Desktop/terrier/build-support/run-test.sh" "/Users/vivianhuang/Desktop/terrier/cmake-build-development" "test" "/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug//large_garbage_collector_test"
+Directory: /Users/vivianhuang/Desktop/terrier/cmake-build-development/test/storage
+"large_garbage_collector_test" start time: Jun 13 17:46 EDT
+Output:
+----------------------------------------------------------
+Running large_garbage_collector_test, redirecting output into /Users/vivianhuang/Desktop/terrier/cmake-build-development/build/test-logs/large_garbage_collector_test.txt (attempt 1/1)
+Running main() from gtest_main.cc
+[==========] Running 8 tests from 1 test case.
+[----------] Global test environment set-up.
+[----------] 8 tests from LargeGCTests
+[ RUN      ] LargeGCTests.MixedReadWriteWithGC
+[       OK ] LargeGCTests.MixedReadWriteWithGC (23328 ms)
+[ RUN      ] LargeGCTests.MixedReadWriteHighThreadWithGC
+[       OK ] LargeGCTests.MixedReadWriteHighThreadWithGC (21108 ms)
+[ RUN      ] LargeGCTests.LowAbortHighThroughputWithGC
+[       OK ] LargeGCTests.LowAbortHighThroughputWithGC (21625 ms)
+[ RUN      ] LargeGCTests.LowAbortHighThroughputHighThreadWithGC
+[       OK ] LargeGCTests.LowAbortHighThroughputHighThreadWithGC (22744 ms)
+[ RUN      ] LargeGCTests.HighAbortRateWithGC
+[       OK ] LargeGCTests.HighAbortRateWithGC (8673 ms)
+[ RUN      ] LargeGCTests.HighAbortRateHighThreadWithGC
+[       OK ] LargeGCTests.HighAbortRateHighThreadWithGC (8206 ms)
+[ RUN      ] LargeGCTests.TPCCishWithGC
+[       OK ] LargeGCTests.TPCCishWithGC (22518 ms)
+[ RUN      ] LargeGCTests.TPCCishHighThreadWithGC
+[       OK ] LargeGCTests.TPCCishHighThreadWithGC (23788 ms)
+[----------] 8 tests from LargeGCTests (151991 ms total)
+
+[----------] Global test environment tear-down
+[==========] 8 tests from 1 test case ran. (151991 ms total)
+[  PASSED  ] 8 tests.
+~/Desktop/terrier/cmake-build-development/test/storage
+<end of output>
+Test time = 152.36 sec
+----------------------------------------------------------
+Test Passed.
+"large_garbage_collector_test" end time: Jun 13 17:49 EDT
+"large_garbage_collector_test" time elapsed: 00:02:32
+----------------------------------------------------------
+
+21/45 Testing: log_test
+21/45 Test: log_test
+Command: "/Users/vivianhuang/Desktop/terrier/build-support/run-test.sh" "/Users/vivianhuang/Desktop/terrier/cmake-build-development" "test" "/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug//log_test"
+Directory: /Users/vivianhuang/Desktop/terrier/cmake-build-development/test/storage
+"log_test" start time: Jun 13 17:49 EDT
+Output:
+----------------------------------------------------------
+Running log_test, redirecting output into /Users/vivianhuang/Desktop/terrier/cmake-build-development/build/test-logs/log_test.txt (attempt 1/1)
+Running main() from gtest_main.cc
+[==========] Running 2 tests from 1 test case.
+[----------] Global test environment set-up.
+[----------] 2 tests from WriteAheadLoggingTests
+[ RUN      ] WriteAheadLoggingTests.LargeLogTest
+[       OK ] WriteAheadLoggingTests.LargeLogTest (16 ms)
+[ RUN      ] WriteAheadLoggingTests.ReadOnlyTransactionsGenerateNoLogTest
+[       OK ] WriteAheadLoggingTests.ReadOnlyTransactionsGenerateNoLogTest (23 ms)
+[----------] 2 tests from WriteAheadLoggingTests (39 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test case ran. (39 ms total)
+[  PASSED  ] 2 tests.
+~/Desktop/terrier/cmake-build-development/test/storage
+<end of output>
+Test time =   0.33 sec
+----------------------------------------------------------
+Test Passed.
+"log_test" end time: Jun 13 17:49 EDT
+"log_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+22/45 Testing: projected_row_test
+22/45 Test: projected_row_test
+Command: "/Users/vivianhuang/Desktop/terrier/build-support/run-test.sh" "/Users/vivianhuang/Desktop/terrier/cmake-build-development" "test" "/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug//projected_row_test"
+Directory: /Users/vivianhuang/Desktop/terrier/cmake-build-development/test/storage
+"projected_row_test" start time: Jun 13 17:49 EDT
+Output:
+----------------------------------------------------------
+Running projected_row_test, redirecting output into /Users/vivianhuang/Desktop/terrier/cmake-build-development/build/test-logs/projected_row_test.txt (attempt 1/1)
+Running main() from gtest_main.cc
+[==========] Running 4 tests from 1 test case.
+[----------] Global test environment set-up.
+[----------] 4 tests from ProjectedRowTests
+[ RUN      ] ProjectedRowTests.Nulls
+[       OK ] ProjectedRowTests.Nulls (294 ms)
+[ RUN      ] ProjectedRowTests.CopyProjectedRowLayout
+[       OK ] ProjectedRowTests.CopyProjectedRowLayout (1695 ms)
+[ RUN      ] ProjectedRowTests.MemorySafety
+[       OK ] ProjectedRowTests.MemorySafety (1403 ms)
+[ RUN      ] ProjectedRowTests.Alignment
+[       OK ] ProjectedRowTests.Alignment (979 ms)
+[----------] 4 tests from ProjectedRowTests (4373 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 1 test case ran. (4373 ms total)
+[  PASSED  ] 4 tests.
+~/Desktop/terrier/cmake-build-development/test/storage
+<end of output>
+Test time =   4.58 sec
+----------------------------------------------------------
+Test Passed.
+"projected_row_test" end time: Jun 13 17:49 EDT
+"projected_row_test" time elapsed: 00:00:04
+----------------------------------------------------------
+
+23/45 Testing: storage_util_test
+23/45 Test: storage_util_test
+Command: "/Users/vivianhuang/Desktop/terrier/build-support/run-test.sh" "/Users/vivianhuang/Desktop/terrier/cmake-build-development" "test" "/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug//storage_util_test"
+Directory: /Users/vivianhuang/Desktop/terrier/cmake-build-development/test/storage
+"storage_util_test" start time: Jun 13 17:49 EDT
+Output:
+----------------------------------------------------------
+Running storage_util_test, redirecting output into /Users/vivianhuang/Desktop/terrier/cmake-build-development/build/test-logs/storage_util_test.txt (attempt 1/1)
+Running main() from gtest_main.cc
+[==========] Running 3 tests from 1 test case.
+[----------] Global test environment set-up.
+[----------] 3 tests from StorageUtilTests
+[ RUN      ] StorageUtilTests.CopyToProjectedRow
+[       OK ] StorageUtilTests.CopyToProjectedRow (2645 ms)
+[ RUN      ] StorageUtilTests.CopyToTupleSlot
+[       OK ] StorageUtilTests.CopyToTupleSlot (1443 ms)
+[ RUN      ] StorageUtilTests.ApplyDelta
+[       OK ] StorageUtilTests.ApplyDelta (4317 ms)
+[----------] 3 tests from StorageUtilTests (8405 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 1 test case ran. (8405 ms total)
+[  PASSED  ] 3 tests.
+~/Desktop/terrier/cmake-build-development/test/storage
+<end of output>
+Test time =   8.59 sec
+----------------------------------------------------------
+Test Passed.
+"storage_util_test" end time: Jun 13 17:49 EDT
+"storage_util_test" time elapsed: 00:00:08
+----------------------------------------------------------
+
+24/45 Testing: tuple_access_strategy_test
+24/45 Test: tuple_access_strategy_test
+Command: "/Users/vivianhuang/Desktop/terrier/build-support/run-test.sh" "/Users/vivianhuang/Desktop/terrier/cmake-build-development" "test" "/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug//tuple_access_strategy_test"
+Directory: /Users/vivianhuang/Desktop/terrier/cmake-build-development/test/storage
+"tuple_access_strategy_test" start time: Jun 13 17:49 EDT
+Output:
+----------------------------------------------------------
+Running tuple_access_strategy_test, redirecting output into /Users/vivianhuang/Desktop/terrier/cmake-build-development/build/test-logs/tuple_access_strategy_test.txt (attempt 1/1)
+Running main() from gtest_main.cc
+[==========] Running 6 tests from 1 test case.
+[----------] Global test environment set-up.
+[----------] 6 tests from TupleAccessStrategyTests
+[ RUN      ] TupleAccessStrategyTests.Nulls
+[       OK ] TupleAccessStrategyTests.Nulls (87 ms)
+[ RUN      ] TupleAccessStrategyTests.SimpleInsert
+[       OK ] TupleAccessStrategyTests.SimpleInsert (32104 ms)
+[ RUN      ] TupleAccessStrategyTests.MemorySafety
+[       OK ] TupleAccessStrategyTests.MemorySafety (1377 ms)
+[ RUN      ] TupleAccessStrategyTests.Alignment
+[       OK ] TupleAccessStrategyTests.Alignment (971 ms)
+[ RUN      ] TupleAccessStrategyTests.ConcurrentInsert
+[       OK ] TupleAccessStrategyTests.ConcurrentInsert (38042 ms)
+[ RUN      ] TupleAccessStrategyTests.ConcurrentInsertDelete
+[       OK ] TupleAccessStrategyTests.ConcurrentInsertDelete (27531 ms)
+[----------] 6 tests from TupleAccessStrategyTests (100113 ms total)
+
+[----------] Global test environment tear-down
+[==========] 6 tests from 1 test case ran. (100113 ms total)
+[  PASSED  ] 6 tests.
+~/Desktop/terrier/cmake-build-development/test/storage
+<end of output>
+Test time = 100.33 sec
+----------------------------------------------------------
+Test Passed.
+"tuple_access_strategy_test" end time: Jun 13 17:51 EDT
+"tuple_access_strategy_test" time elapsed: 00:01:40
+----------------------------------------------------------
+
+25/45 Testing: varlen_entry_test
+25/45 Test: varlen_entry_test
+Command: "/Users/vivianhuang/Desktop/terrier/build-support/run-test.sh" "/Users/vivianhuang/Desktop/terrier/cmake-build-development" "test" "/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug//varlen_entry_test"
+Directory: /Users/vivianhuang/Desktop/terrier/cmake-build-development/test/storage
+"varlen_entry_test" start time: Jun 13 17:51 EDT
+Output:
+----------------------------------------------------------
+Running varlen_entry_test, redirecting output into /Users/vivianhuang/Desktop/terrier/cmake-build-development/build/test-logs/varlen_entry_test.txt (attempt 1/1)
+Running main() from gtest_main.cc
+[==========] Running 2 tests from 1 test case.
+[----------] Global test environment set-up.
+[----------] 2 tests from VarlenEntryTests
+[ RUN      ] VarlenEntryTests.Basic
+[       OK ] VarlenEntryTests.Basic (0 ms)
+[ RUN      ] VarlenEntryTests.StringView
+[       OK ] VarlenEntryTests.StringView (0 ms)
+[----------] 2 tests from VarlenEntryTests (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test case ran. (0 ms total)
+[  PASSED  ] 2 tests.
+~/Desktop/terrier/cmake-build-development/test/storage
+<end of output>
+Test time =   0.42 sec
+----------------------------------------------------------
+Test Passed.
+"varlen_entry_test" end time: Jun 13 17:51 EDT
+"varlen_entry_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+26/45 Testing: deferred_actions_test
+26/45 Test: deferred_actions_test
+Command: "/Users/vivianhuang/Desktop/terrier/build-support/run-test.sh" "/Users/vivianhuang/Desktop/terrier/cmake-build-development" "test" "/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug//deferred_actions_test"
+Directory: /Users/vivianhuang/Desktop/terrier/cmake-build-development/test/transaction
+"deferred_actions_test" start time: Jun 13 17:51 EDT
+Output:
+----------------------------------------------------------
+Running deferred_actions_test, redirecting output into /Users/vivianhuang/Desktop/terrier/cmake-build-development/build/test-logs/deferred_actions_test.txt (attempt 1/1)
+Running main() from gtest_main.cc
+[==========] Running 7 tests from 1 test case.
+[----------] Global test environment set-up.
+[----------] 7 tests from DeferredActionsTest
+[ RUN      ] DeferredActionsTest.AbortAction
+[       OK ] DeferredActionsTest.AbortAction (9 ms)
+[ RUN      ] DeferredActionsTest.CommitAction
+[       OK ] DeferredActionsTest.CommitAction (7 ms)
+[ RUN      ] DeferredActionsTest.SimpleDefer
+[       OK ] DeferredActionsTest.SimpleDefer (0 ms)
+[ RUN      ] DeferredActionsTest.DelayedDefer
+[       OK ] DeferredActionsTest.DelayedDefer (1 ms)
+[ RUN      ] DeferredActionsTest.ChainedDefer
+[       OK ] DeferredActionsTest.ChainedDefer (1 ms)
+[ RUN      ] DeferredActionsTest.AbortBootstrapDefer
+[       OK ] DeferredActionsTest.AbortBootstrapDefer (6 ms)
+[ RUN      ] DeferredActionsTest.CommitBootstrapDefer
+[       OK ] DeferredActionsTest.CommitBootstrapDefer (3 ms)
+[----------] 7 tests from DeferredActionsTest (27 ms total)
+
+[----------] Global test environment tear-down
+[==========] 7 tests from 1 test case ran. (27 ms total)
+[  PASSED  ] 7 tests.
+~/Desktop/terrier/cmake-build-development/test/transaction
+<end of output>
+Test time =   0.21 sec
+----------------------------------------------------------
+Test Passed.
+"deferred_actions_test" end time: Jun 13 17:51 EDT
+"deferred_actions_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+27/45 Testing: large_transaction_test
+27/45 Test: large_transaction_test
+Command: "/Users/vivianhuang/Desktop/terrier/build-support/run-test.sh" "/Users/vivianhuang/Desktop/terrier/cmake-build-development" "test" "/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug//large_transaction_test"
+Directory: /Users/vivianhuang/Desktop/terrier/cmake-build-development/test/transaction
+"large_transaction_test" start time: Jun 13 17:51 EDT
+Output:
+----------------------------------------------------------
+Running large_transaction_test, redirecting output into /Users/vivianhuang/Desktop/terrier/cmake-build-development/build/test-logs/large_transaction_test.txt (attempt 1/1)
+Running main() from gtest_main.cc
+[==========] Running 8 tests from 1 test case.
+[----------] Global test environment set-up.
+[----------] 8 tests from LargeTransactionTests
+[ RUN      ] LargeTransactionTests.MixedReadWrite
+[       OK ] LargeTransactionTests.MixedReadWrite (22699 ms)
+[ RUN      ] LargeTransactionTests.MixedReadWriteHighThread
+[       OK ] LargeTransactionTests.MixedReadWriteHighThread (20102 ms)
+[ RUN      ] LargeTransactionTests.LowAbortHighThroughput
+[       OK ] LargeTransactionTests.LowAbortHighThroughput (20313 ms)
+[ RUN      ] LargeTransactionTests.LowAbortHighThroughputHighThread
+[       OK ] LargeTransactionTests.LowAbortHighThroughputHighThread (24030 ms)
+[ RUN      ] LargeTransactionTests.HighAbortRate
+[       OK ] LargeTransactionTests.HighAbortRate (7892 ms)
+[ RUN      ] LargeTransactionTests.HighAbortRateHighThread
+[       OK ] LargeTransactionTests.HighAbortRateHighThread (5400 ms)
+[ RUN      ] LargeTransactionTests.TPCCish
+[       OK ] LargeTransactionTests.TPCCish (20170 ms)
+[ RUN      ] LargeTransactionTests.TPCCishHighThread
+[       OK ] LargeTransactionTests.TPCCishHighThread (21407 ms)
+[----------] 8 tests from LargeTransactionTests (142014 ms total)
+
+[----------] Global test environment tear-down
+[==========] 8 tests from 1 test case ran. (142014 ms total)
+[  PASSED  ] 8 tests.
+~/Desktop/terrier/cmake-build-development/test/transaction
+<end of output>
+Test time = 142.36 sec
+----------------------------------------------------------
+Test Passed.
+"large_transaction_test" end time: Jun 13 17:53 EDT
+"large_transaction_test" time elapsed: 00:02:22
+----------------------------------------------------------
+
+28/45 Testing: mvcc_test
+28/45 Test: mvcc_test
+Command: "/Users/vivianhuang/Desktop/terrier/build-support/run-test.sh" "/Users/vivianhuang/Desktop/terrier/cmake-build-development" "test" "/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug//mvcc_test"
+Directory: /Users/vivianhuang/Desktop/terrier/cmake-build-development/test/transaction
+"mvcc_test" start time: Jun 13 17:53 EDT
+Output:
+----------------------------------------------------------
+Running mvcc_test, redirecting output into /Users/vivianhuang/Desktop/terrier/cmake-build-development/build/test-logs/mvcc_test.txt (attempt 1/1)
+Running main() from gtest_main.cc
+[==========] Running 19 tests from 1 test case.
+[----------] Global test environment set-up.
+[----------] 19 tests from MVCCTests
+[ RUN      ] MVCCTests.CommitInsert1
+[       OK ] MVCCTests.CommitInsert1 (50 ms)
+[ RUN      ] MVCCTests.CommitInsert2
+[       OK ] MVCCTests.CommitInsert2 (49 ms)
+[ RUN      ] MVCCTests.AbortInsert1
+[       OK ] MVCCTests.AbortInsert1 (41 ms)
+[ RUN      ] MVCCTests.AbortInsert2
+[       OK ] MVCCTests.AbortInsert2 (41 ms)
+[ RUN      ] MVCCTests.CommitUpdate1
+[       OK ] MVCCTests.CommitUpdate1 (75 ms)
+[ RUN      ] MVCCTests.CommitUpdate2
+[       OK ] MVCCTests.CommitUpdate2 (75 ms)
+[ RUN      ] MVCCTests.AbortUpdate1
+[       OK ] MVCCTests.AbortUpdate1 (76 ms)
+[ RUN      ] MVCCTests.AbortUpdate2
+[       OK ] MVCCTests.AbortUpdate2 (90 ms)
+[ RUN      ] MVCCTests.InsertUpdate1
+[       OK ] MVCCTests.InsertUpdate1 (65 ms)
+[ RUN      ] MVCCTests.CommitDelete1
+[       OK ] MVCCTests.CommitDelete1 (52 ms)
+[ RUN      ] MVCCTests.CommitDelete2
+[       OK ] MVCCTests.CommitDelete2 (50 ms)
+[ RUN      ] MVCCTests.AbortDelete1
+[       OK ] MVCCTests.AbortDelete1 (53 ms)
+[ RUN      ] MVCCTests.AbortDelete2
+[       OK ] MVCCTests.AbortDelete2 (56 ms)
+[ RUN      ] MVCCTests.CommitUpdateDelete1
+[       OK ] MVCCTests.CommitUpdateDelete1 (77 ms)
+[ RUN      ] MVCCTests.CommitUpdateDelete2
+[       OK ] MVCCTests.CommitUpdateDelete2 (77 ms)
+[ RUN      ] MVCCTests.AbortUpdateDelete1
+[       OK ] MVCCTests.AbortUpdateDelete1 (81 ms)
+[ RUN      ] MVCCTests.AbortUpdateDelete2
+[       OK ] MVCCTests.AbortUpdateDelete2 (81 ms)
+[ RUN      ] MVCCTests.SimpleDelete1
+[       OK ] MVCCTests.SimpleDelete1 (80 ms)
+[ RUN      ] MVCCTests.SimpleDelete2
+[       OK ] MVCCTests.SimpleDelete2 (86 ms)
+[----------] 19 tests from MVCCTests (1255 ms total)
+
+[----------] Global test environment tear-down
+[==========] 19 tests from 1 test case ran. (1255 ms total)
+[  PASSED  ] 19 tests.
+~/Desktop/terrier/cmake-build-development/test/transaction
+<end of output>
+Test time =   1.40 sec
+----------------------------------------------------------
+Test Passed.
+"mvcc_test" end time: Jun 13 17:53 EDT
+"mvcc_test" time elapsed: 00:00:01
+----------------------------------------------------------
+
+29/45 Testing: transient_value_test
+29/45 Test: transient_value_test
+Command: "/Users/vivianhuang/Desktop/terrier/build-support/run-test.sh" "/Users/vivianhuang/Desktop/terrier/cmake-build-development" "test" "/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug//transient_value_test"
+Directory: /Users/vivianhuang/Desktop/terrier/cmake-build-development/test/type
+"transient_value_test" start time: Jun 13 17:53 EDT
+Output:
+----------------------------------------------------------
+Running transient_value_test, redirecting output into /Users/vivianhuang/Desktop/terrier/cmake-build-development/build/test-logs/transient_value_test.txt (attempt 1/1)
+Running main() from gtest_main.cc
+[==========] Running 18 tests from 1 test case.
+[----------] Global test environment set-up.
+[----------] 18 tests from ValueTests
+[ RUN      ] ValueTests.BooleanTest
+[       OK ] ValueTests.BooleanTest (34 ms)
+[ RUN      ] ValueTests.TinyIntTest
+[       OK ] ValueTests.TinyIntTest (30 ms)
+[ RUN      ] ValueTests.SmallIntTest
+[       OK ] ValueTests.SmallIntTest (31 ms)
+[ RUN      ] ValueTests.IntegerTest
+[       OK ] ValueTests.IntegerTest (31 ms)
+[ RUN      ] ValueTests.BigIntTest
+[       OK ] ValueTests.BigIntTest (30 ms)
+[ RUN      ] ValueTests.DecimalTest
+[       OK ] ValueTests.DecimalTest (29 ms)
+[ RUN      ] ValueTests.TimestampTest
+[       OK ] ValueTests.TimestampTest (34 ms)
+[ RUN      ] ValueTests.DateTest
+[       OK ] ValueTests.DateTest (33 ms)
+[ RUN      ] ValueTests.VarCharTest
+[       OK ] ValueTests.VarCharTest (353 ms)
+[ RUN      ] ValueTests.BooleanJsonTest
+[       OK ] ValueTests.BooleanJsonTest (1 ms)
+[ RUN      ] ValueTests.TinyIntJsonTest
+[       OK ] ValueTests.TinyIntJsonTest (0 ms)
+[ RUN      ] ValueTests.SmallIntJsonTest
+[       OK ] ValueTests.SmallIntJsonTest (0 ms)
+[ RUN      ] ValueTests.IntegerJsonTest
+[       OK ] ValueTests.IntegerJsonTest (1 ms)
+[ RUN      ] ValueTests.BigIntJsonTest
+[       OK ] ValueTests.BigIntJsonTest (0 ms)
+[ RUN      ] ValueTests.DecimalJsonTest
+[       OK ] ValueTests.DecimalJsonTest (0 ms)
+[ RUN      ] ValueTests.TimestampJsonTest
+[       OK ] ValueTests.TimestampJsonTest (0 ms)
+[ RUN      ] ValueTests.DateJsonTest
+[       OK ] ValueTests.DateJsonTest (0 ms)
+[ RUN      ] ValueTests.VarCharJsonTest
+[       OK ] ValueTests.VarCharJsonTest (0 ms)
+[----------] 18 tests from ValueTests (610 ms total)
+
+[----------] Global test environment tear-down
+[==========] 18 tests from 1 test case ran. (610 ms total)
+[  PASSED  ] 18 tests.
+~/Desktop/terrier/cmake-build-development/test/type
+<end of output>
+Test time =   0.79 sec
+----------------------------------------------------------
+Test Passed.
+"transient_value_test" end time: Jun 13 17:53 EDT
+"transient_value_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+30/45 Testing: settings_test
+30/45 Test: settings_test
+Command: "/Users/vivianhuang/Desktop/terrier/build-support/run-test.sh" "/Users/vivianhuang/Desktop/terrier/cmake-build-development" "test" "/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug//settings_test"
+Directory: /Users/vivianhuang/Desktop/terrier/cmake-build-development/test/settings
+"settings_test" start time: Jun 13 17:53 EDT
+Output:
+----------------------------------------------------------
+Running settings_test, redirecting output into /Users/vivianhuang/Desktop/terrier/cmake-build-development/build/test-logs/settings_test.txt (attempt 1/1)
+Running main() from gtest_main.cc
+[==========] Running 3 tests from 1 test case.
+[----------] Global test environment set-up.
+[----------] 3 tests from SettingsTests
+[ RUN      ] SettingsTests.BasicTest
+
+[2019-06-13 17:53:28.335] [main_logger] [info] Initialization complete
+[2019-06-13 17:53:28.341] [main_logger] [info] Terrier has shut down.
+[       OK ] SettingsTests.BasicTest (30 ms)
+[ RUN      ] SettingsTests.CallbackTest
+
+[2019-06-13 17:53:28.352] [main_logger] [info] Initialization complete
+[2019-06-13 17:53:28.352] [main_logger] [info] Terrier has shut down.
+[       OK ] SettingsTests.CallbackTest (13 ms)
+[ RUN      ] SettingsTests.ConcurrentModifyTest
+
+[2019-06-13 17:53:28.365] [main_logger] [info] Initialization complete
+[2019-06-13 17:53:28.367] [main_logger] [info] Terrier has shut down.
+[       OK ] SettingsTests.ConcurrentModifyTest (12 ms)
+[----------] 3 tests from SettingsTests (55 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 1 test case ran. (55 ms total)
+[  PASSED  ] 3 tests.
+~/Desktop/terrier/cmake-build-development/test/settings
+<end of output>
+Test time =   0.24 sec
+----------------------------------------------------------
+Test Passed.
+"settings_test" end time: Jun 13 17:53 EDT
+"settings_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+31/45 Testing: plan_node_json_test
+31/45 Test: plan_node_json_test
+Command: "/Users/vivianhuang/Desktop/terrier/build-support/run-test.sh" "/Users/vivianhuang/Desktop/terrier/cmake-build-development" "test" "/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug//plan_node_json_test"
+Directory: /Users/vivianhuang/Desktop/terrier/cmake-build-development/test/planner
+"plan_node_json_test" start time: Jun 13 17:53 EDT
+Output:
+----------------------------------------------------------
+Running plan_node_json_test, redirecting output into /Users/vivianhuang/Desktop/terrier/cmake-build-development/build/test-logs/plan_node_json_test.txt (attempt 1/1)
+Running main() from gtest_main.cc
+[==========] Running 31 tests from 1 test case.
+[----------] Global test environment set-up.
+[----------] 31 tests from PlanNodeJsonTest
+[ RUN      ] PlanNodeJsonTest.OutputSchemaJsonTest
+[       OK ] PlanNodeJsonTest.OutputSchemaJsonTest (4 ms)
+[ RUN      ] PlanNodeJsonTest.AggregatePlanNodeJsonTest
+[       OK ] PlanNodeJsonTest.AggregatePlanNodeJsonTest (2 ms)
+[ RUN      ] PlanNodeJsonTest.AnalyzePlanNodeJsonTest
+[       OK ] PlanNodeJsonTest.AnalyzePlanNodeJsonTest (0 ms)
+[ RUN      ] PlanNodeJsonTest.CreateDatabasePlanNodeTest
+[       OK ] PlanNodeJsonTest.CreateDatabasePlanNodeTest (0 ms)
+[ RUN      ] PlanNodeJsonTest.CreateFunctionPlanNodeTest
+[       OK ] PlanNodeJsonTest.CreateFunctionPlanNodeTest (1 ms)
+[ RUN      ] PlanNodeJsonTest.CreateIndexPlanNodeTest
+[       OK ] PlanNodeJsonTest.CreateIndexPlanNodeTest (1 ms)
+[ RUN      ] PlanNodeJsonTest.CreateNamespacePlanNodeTest
+[       OK ] PlanNodeJsonTest.CreateNamespacePlanNodeTest (0 ms)
+[ RUN      ] PlanNodeJsonTest.CreateTablePlanNodeTest
+[       OK ] PlanNodeJsonTest.CreateTablePlanNodeTest (4 ms)
+[ RUN      ] PlanNodeJsonTest.CreateTriggerPlanNodeTest
+[       OK ] PlanNodeJsonTest.CreateTriggerPlanNodeTest (1 ms)
+[ RUN      ] PlanNodeJsonTest.CreateViewPlanNodeTest
+[       OK ] PlanNodeJsonTest.CreateViewPlanNodeTest (1 ms)
+[ RUN      ] PlanNodeJsonTest.CSVScanPlanNodeTest
+[       OK ] PlanNodeJsonTest.CSVScanPlanNodeTest (0 ms)
+[ RUN      ] PlanNodeJsonTest.DeletePlanNodeTest
+[       OK ] PlanNodeJsonTest.DeletePlanNodeTest (0 ms)
+[ RUN      ] PlanNodeJsonTest.DropDatabasePlanNodeTest
+[       OK ] PlanNodeJsonTest.DropDatabasePlanNodeTest (0 ms)
+[ RUN      ] PlanNodeJsonTest.DropIndexPlanNodeTest
+[       OK ] PlanNodeJsonTest.DropIndexPlanNodeTest (1 ms)
+[ RUN      ] PlanNodeJsonTest.DropNamespacePlanNodeTest
+[       OK ] PlanNodeJsonTest.DropNamespacePlanNodeTest (0 ms)
+[ RUN      ] PlanNodeJsonTest.DropTablePlanNodeTest
+[       OK ] PlanNodeJsonTest.DropTablePlanNodeTest (0 ms)
+[ RUN      ] PlanNodeJsonTest.DropTriggerPlanNodeTest
+[       OK ] PlanNodeJsonTest.DropTriggerPlanNodeTest (0 ms)
+[ RUN      ] PlanNodeJsonTest.DropViewPlanNodeTest
+[       OK ] PlanNodeJsonTest.DropViewPlanNodeTest (0 ms)
+[ RUN      ] PlanNodeJsonTest.ExportExternalFilePlanNodeJsonTest
+[       OK ] PlanNodeJsonTest.ExportExternalFilePlanNodeJsonTest (1 ms)
+[ RUN      ] PlanNodeJsonTest.HashJoinPlanNodeJoinTest
+[       OK ] PlanNodeJsonTest.HashJoinPlanNodeJoinTest (0 ms)
+[ RUN      ] PlanNodeJsonTest.HashPlanNodeJsonTest
+[       OK ] PlanNodeJsonTest.HashPlanNodeJsonTest (2 ms)
+[ RUN      ] PlanNodeJsonTest.IndexScanPlanNodeJsonTest
+[       OK ] PlanNodeJsonTest.IndexScanPlanNodeJsonTest (0 ms)
+[ RUN      ] PlanNodeJsonTest.InsertPlanNodeJsonTest
+[       OK ] PlanNodeJsonTest.InsertPlanNodeJsonTest (2 ms)
+[ RUN      ] PlanNodeJsonTest.LimitPlanNodeJsonTest
+[       OK ] PlanNodeJsonTest.LimitPlanNodeJsonTest (0 ms)
+[ RUN      ] PlanNodeJsonTest.NestedLoopJoinPlanNodeJoinTest
+[       OK ] PlanNodeJsonTest.NestedLoopJoinPlanNodeJoinTest (0 ms)
+[ RUN      ] PlanNodeJsonTest.OrderByPlanNodeJsonTest
+[       OK ] PlanNodeJsonTest.OrderByPlanNodeJsonTest (1 ms)
+[ RUN      ] PlanNodeJsonTest.ProjectionPlanNodeJsonTest
+[       OK ] PlanNodeJsonTest.ProjectionPlanNodeJsonTest (0 ms)
+[ RUN      ] PlanNodeJsonTest.ResultPlanNodeJsonTest
+[       OK ] PlanNodeJsonTest.ResultPlanNodeJsonTest (1 ms)
+[ RUN      ] PlanNodeJsonTest.SeqScanPlanNodeJsonTest
+[       OK ] PlanNodeJsonTest.SeqScanPlanNodeJsonTest (0 ms)
+[ RUN      ] PlanNodeJsonTest.SetOpPlanNodeJsonTest
+[       OK ] PlanNodeJsonTest.SetOpPlanNodeJsonTest (0 ms)
+[ RUN      ] PlanNodeJsonTest.UpdatePlanNodeJsonTest
+[       OK ] PlanNodeJsonTest.UpdatePlanNodeJsonTest (0 ms)
+[----------] 31 tests from PlanNodeJsonTest (23 ms total)
+
+[----------] Global test environment tear-down
+[==========] 31 tests from 1 test case ran. (23 ms total)
+[  PASSED  ] 31 tests.
+~/Desktop/terrier/cmake-build-development/test/planner
+<end of output>
+Test time =   0.20 sec
+----------------------------------------------------------
+Test Passed.
+"plan_node_json_test" end time: Jun 13 17:53 EDT
+"plan_node_json_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+32/45 Testing: plan_node_test
+32/45 Test: plan_node_test
+Command: "/Users/vivianhuang/Desktop/terrier/build-support/run-test.sh" "/Users/vivianhuang/Desktop/terrier/cmake-build-development" "test" "/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug//plan_node_test"
+Directory: /Users/vivianhuang/Desktop/terrier/cmake-build-development/test/planner
+"plan_node_test" start time: Jun 13 17:53 EDT
+Output:
+----------------------------------------------------------
+Running plan_node_test, redirecting output into /Users/vivianhuang/Desktop/terrier/cmake-build-development/build/test-logs/plan_node_test.txt (attempt 1/1)
+Running main() from gtest_main.cc
+[==========] Running 4 tests from 1 test case.
+[----------] Global test environment set-up.
+[----------] 4 tests from PlanNodeTest
+[ RUN      ] PlanNodeTest.CreateDatabasePlanTest
+[       OK ] PlanNodeTest.CreateDatabasePlanTest (29 ms)
+[ RUN      ] PlanNodeTest.DropDatabasePlanTest
+[       OK ] PlanNodeTest.DropDatabasePlanTest (7 ms)
+[ RUN      ] PlanNodeTest.DropDatabasePlanIfExistsTest
+[       OK ] PlanNodeTest.DropDatabasePlanIfExistsTest (0 ms)
+[ RUN      ] PlanNodeTest.HashJoinPlanTest
+[       OK ] PlanNodeTest.HashJoinPlanTest (2 ms)
+[----------] 4 tests from PlanNodeTest (39 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 1 test case ran. (39 ms total)
+[  PASSED  ] 4 tests.
+~/Desktop/terrier/cmake-build-development/test/planner
+<end of output>
+Test time =   0.24 sec
+----------------------------------------------------------
+Test Passed.
+"plan_node_test" end time: Jun 13 17:53 EDT
+"plan_node_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+33/45 Testing: logical_operator_test
+33/45 Test: logical_operator_test
+Command: "/Users/vivianhuang/Desktop/terrier/build-support/run-test.sh" "/Users/vivianhuang/Desktop/terrier/cmake-build-development" "test" "/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug//logical_operator_test"
+Directory: /Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer
+"logical_operator_test" start time: Jun 13 17:53 EDT
+Output:
+----------------------------------------------------------
+Running logical_operator_test, redirecting output into /Users/vivianhuang/Desktop/terrier/cmake-build-development/build/test-logs/logical_operator_test.txt (attempt 1/1)
+Running main() from gtest_main.cc
+[==========] Running 21 tests from 1 test case.
+[----------] Global test environment set-up.
+[----------] 21 tests from OperatorTests
+[ RUN      ] OperatorTests.LogicalInsertTest
+[       OK ] OperatorTests.LogicalInsertTest (7 ms)
+[ RUN      ] OperatorTests.LogicalInsertSelectTest
+[       OK ] OperatorTests.LogicalInsertSelectTest (1 ms)
+[ RUN      ] OperatorTests.LogicalDistinctTest
+[       OK ] OperatorTests.LogicalDistinctTest (0 ms)
+[ RUN      ] OperatorTests.LogicalLimitTest
+[       OK ] OperatorTests.LogicalLimitTest (0 ms)
+[ RUN      ] OperatorTests.LogicalDeleteTest
+[       OK ] OperatorTests.LogicalDeleteTest (0 ms)
+[ RUN      ] OperatorTests.LogicalUpdateTest
+[       OK ] OperatorTests.LogicalUpdateTest (1 ms)
+[ RUN      ] OperatorTests.LogicalExportExternalFileTest
+[       OK ] OperatorTests.LogicalExportExternalFileTest (0 ms)
+[ RUN      ] OperatorTests.LogicalGetTest
+[       OK ] OperatorTests.LogicalGetTest (0 ms)
+[ RUN      ] OperatorTests.LogicalExternalFileGetTest
+[       OK ] OperatorTests.LogicalExternalFileGetTest (1 ms)
+[ RUN      ] OperatorTests.LogicalQueryDerivedGetTest
+[       OK ] OperatorTests.LogicalQueryDerivedGetTest (0 ms)
+[ RUN      ] OperatorTests.LogicalFilterTest
+[       OK ] OperatorTests.LogicalFilterTest (0 ms)
+[ RUN      ] OperatorTests.LogicalProjectionTest
+[       OK ] OperatorTests.LogicalProjectionTest (0 ms)
+[ RUN      ] OperatorTests.LogicalDependentJoinTest
+[       OK ] OperatorTests.LogicalDependentJoinTest (1 ms)
+[ RUN      ] OperatorTests.LogicalMarkJoinTest
+[       OK ] OperatorTests.LogicalMarkJoinTest (0 ms)
+[ RUN      ] OperatorTests.LogicalSingleJoinTest
+[       OK ] OperatorTests.LogicalSingleJoinTest (1 ms)
+[ RUN      ] OperatorTests.LogicalInnerJoinTest
+[       OK ] OperatorTests.LogicalInnerJoinTest (0 ms)
+[ RUN      ] OperatorTests.LogicalLeftJoinTest
+[       OK ] OperatorTests.LogicalLeftJoinTest (0 ms)
+[ RUN      ] OperatorTests.LogicalRightJoinTest
+[       OK ] OperatorTests.LogicalRightJoinTest (0 ms)
+[ RUN      ] OperatorTests.LogicalOuterJoinTest
+[       OK ] OperatorTests.LogicalOuterJoinTest (0 ms)
+[ RUN      ] OperatorTests.LogicalSemiJoinTest
+[       OK ] OperatorTests.LogicalSemiJoinTest (0 ms)
+[ RUN      ] OperatorTests.LogicalAggregateAndGroupByTest
+[       OK ] OperatorTests.LogicalAggregateAndGroupByTest (1 ms)
+[----------] 21 tests from OperatorTests (13 ms total)
+
+[----------] Global test environment tear-down
+[==========] 21 tests from 1 test case ran. (13 ms total)
+[  PASSED  ] 21 tests.
+~/Desktop/terrier/cmake-build-development/test/optimizer
+<end of output>
+Test time =   0.16 sec
+----------------------------------------------------------
+Test Passed.
+"logical_operator_test" end time: Jun 13 17:53 EDT
+"logical_operator_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+34/45 Testing: operator_expression_test
+34/45 Test: operator_expression_test
+Command: "/Users/vivianhuang/Desktop/terrier/build-support/run-test.sh" "/Users/vivianhuang/Desktop/terrier/cmake-build-development" "test" "/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug//operator_expression_test"
+Directory: /Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer
+"operator_expression_test" start time: Jun 13 17:53 EDT
+Output:
+----------------------------------------------------------
+Running operator_expression_test, redirecting output into /Users/vivianhuang/Desktop/terrier/cmake-build-development/build/test-logs/operator_expression_test.txt (attempt 1/1)
+Running main() from gtest_main.cc
+[==========] Running 1 test from 1 test case.
+[----------] Global test environment set-up.
+[----------] 1 test from OperatorExpressionTests
+[ RUN      ] OperatorExpressionTests.BasicOperatorExpressionTest
+[       OK ] OperatorExpressionTests.BasicOperatorExpressionTest (0 ms)
+[----------] 1 test from OperatorExpressionTests (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test case ran. (2 ms total)
+[  PASSED  ] 1 test.
+~/Desktop/terrier/cmake-build-development/test/optimizer
+<end of output>
+Test time =   0.18 sec
+----------------------------------------------------------
+Test Passed.
+"operator_expression_test" end time: Jun 13 17:53 EDT
+"operator_expression_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+35/45 Testing: physical_operator_test
+35/45 Test: physical_operator_test
+Command: "/Users/vivianhuang/Desktop/terrier/build-support/run-test.sh" "/Users/vivianhuang/Desktop/terrier/cmake-build-development" "test" "/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug//physical_operator_test"
+Directory: /Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer
+"physical_operator_test" start time: Jun 13 17:53 EDT
+Output:
+----------------------------------------------------------
+Running physical_operator_test, redirecting output into /Users/vivianhuang/Desktop/terrier/cmake-build-development/build/test-logs/physical_operator_test.txt (attempt 1/1)
+Running main() from gtest_main.cc
+[==========] Running 24 tests from 1 test case.
+[----------] Global test environment set-up.
+[----------] 24 tests from OperatorTests
+[ RUN      ] OperatorTests.TableFreeScanTest
+[       OK ] OperatorTests.TableFreeScanTest (0 ms)
+[ RUN      ] OperatorTests.SeqScanTest
+[       OK ] OperatorTests.SeqScanTest (1 ms)
+[ RUN      ] OperatorTests.IndexScanTest
+[       OK ] OperatorTests.IndexScanTest (0 ms)
+[ RUN      ] OperatorTests.ExternalFileScanTest
+[       OK ] OperatorTests.ExternalFileScanTest (1 ms)
+[ RUN      ] OperatorTests.QueryDerivedScanTest
+[       OK ] OperatorTests.QueryDerivedScanTest (0 ms)
+[ RUN      ] OperatorTests.OrderByTest
+[       OK ] OperatorTests.OrderByTest (0 ms)
+[ RUN      ] OperatorTests.LimitTest
+[       OK ] OperatorTests.LimitTest (0 ms)
+[ RUN      ] OperatorTests.InnerNLJoinTest
+[       OK ] OperatorTests.InnerNLJoinTest (1 ms)
+[ RUN      ] OperatorTests.LeftNLJoinTest
+[       OK ] OperatorTests.LeftNLJoinTest (0 ms)
+[ RUN      ] OperatorTests.RightNLJoinTest
+[       OK ] OperatorTests.RightNLJoinTest (0 ms)
+[ RUN      ] OperatorTests.OuterNLJoin
+[       OK ] OperatorTests.OuterNLJoin (0 ms)
+[ RUN      ] OperatorTests.InnerHashJoinTest
+[       OK ] OperatorTests.InnerHashJoinTest (1 ms)
+[ RUN      ] OperatorTests.LeftHashJoinTest
+[       OK ] OperatorTests.LeftHashJoinTest (0 ms)
+[ RUN      ] OperatorTests.RightHashJoinTest
+[       OK ] OperatorTests.RightHashJoinTest (0 ms)
+[ RUN      ] OperatorTests.OuterHashJoinTest
+[       OK ] OperatorTests.OuterHashJoinTest (0 ms)
+[ RUN      ] OperatorTests.InsertTest
+[       OK ] OperatorTests.InsertTest (6 ms)
+[ RUN      ] OperatorTests.InsertSelectTest
+[       OK ] OperatorTests.InsertSelectTest (0 ms)
+[ RUN      ] OperatorTests.DeleteTest
+[       OK ] OperatorTests.DeleteTest (0 ms)
+[ RUN      ] OperatorTests.ExportExternalFileTest
+[       OK ] OperatorTests.ExportExternalFileTest (0 ms)
+[ RUN      ] OperatorTests.UpdateTest
+[       OK ] OperatorTests.UpdateTest (1 ms)
+[ RUN      ] OperatorTests.HashGroupByTest
+[       OK ] OperatorTests.HashGroupByTest (0 ms)
+[ RUN      ] OperatorTests.SortGroupByTest
+[       OK ] OperatorTests.SortGroupByTest (1 ms)
+[ RUN      ] OperatorTests.AggregateTest
+[       OK ] OperatorTests.AggregateTest (0 ms)
+[ RUN      ] OperatorTests.DistinctTest
+[       OK ] OperatorTests.DistinctTest (0 ms)
+[----------] 24 tests from OperatorTests (12 ms total)
+
+[----------] Global test environment tear-down
+[==========] 24 tests from 1 test case ran. (12 ms total)
+[  PASSED  ] 24 tests.
+~/Desktop/terrier/cmake-build-development/test/optimizer
+<end of output>
+Test time =   0.47 sec
+----------------------------------------------------------
+Test Passed.
+"physical_operator_test" end time: Jun 13 17:53 EDT
+"physical_operator_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+36/45 Testing: trivial_cost_model_test
+36/45 Test: trivial_cost_model_test
+Command: "/Users/vivianhuang/Desktop/terrier/build-support/run-test.sh" "/Users/vivianhuang/Desktop/terrier/cmake-build-development" "test" "/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug//trivial_cost_model_test"
+Directory: /Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer
+"trivial_cost_model_test" start time: Jun 13 17:53 EDT
+Output:
+----------------------------------------------------------
+Running trivial_cost_model_test, redirecting output into /Users/vivianhuang/Desktop/terrier/cmake-build-development/build/test-logs/trivial_cost_model_test.txt (attempt 1/1)
+Running main() from gtest_main.cc
+[==========] Running 21 tests from 1 test case.
+[----------] Global test environment set-up.
+[----------] 21 tests from TrivialCostModelTests
+[ RUN      ] TrivialCostModelTests.SeqScanTest
+[       OK ] TrivialCostModelTests.SeqScanTest (7 ms)
+[ RUN      ] TrivialCostModelTests.IndexScanTest
+[       OK ] TrivialCostModelTests.IndexScanTest (0 ms)
+[ RUN      ] TrivialCostModelTests.QueryDerivedScanTest
+[       OK ] TrivialCostModelTests.QueryDerivedScanTest (0 ms)
+[ RUN      ] TrivialCostModelTests.OrderByTest
+[       OK ] TrivialCostModelTests.OrderByTest (0 ms)
+[ RUN      ] TrivialCostModelTests.LimitTest
+[       OK ] TrivialCostModelTests.LimitTest (0 ms)
+[ RUN      ] TrivialCostModelTests.InnerNLJoinTest
+[       OK ] TrivialCostModelTests.InnerNLJoinTest (0 ms)
+[ RUN      ] TrivialCostModelTests.LeftNLJoinTest
+[       OK ] TrivialCostModelTests.LeftNLJoinTest (0 ms)
+[ RUN      ] TrivialCostModelTests.RightNLJoinTest
+[       OK ] TrivialCostModelTests.RightNLJoinTest (0 ms)
+[ RUN      ] TrivialCostModelTests.OuterNLJoinTest
+[       OK ] TrivialCostModelTests.OuterNLJoinTest (0 ms)
+[ RUN      ] TrivialCostModelTests.InnerHashJoinTest
+[       OK ] TrivialCostModelTests.InnerHashJoinTest (0 ms)
+[ RUN      ] TrivialCostModelTests.LeftHashJoinTest
+[       OK ] TrivialCostModelTests.LeftHashJoinTest (1 ms)
+[ RUN      ] TrivialCostModelTests.RightHashJoinTest
+[       OK ] TrivialCostModelTests.RightHashJoinTest (0 ms)
+[ RUN      ] TrivialCostModelTests.OuterHashJoinTest
+[       OK ] TrivialCostModelTests.OuterHashJoinTest (0 ms)
+[ RUN      ] TrivialCostModelTests.InsertTest
+[       OK ] TrivialCostModelTests.InsertTest (0 ms)
+[ RUN      ] TrivialCostModelTests.InsertSelectTest
+[       OK ] TrivialCostModelTests.InsertSelectTest (0 ms)
+[ RUN      ] TrivialCostModelTests.DeleteTest
+[       OK ] TrivialCostModelTests.DeleteTest (0 ms)
+[ RUN      ] TrivialCostModelTests.UpdateTest
+[       OK ] TrivialCostModelTests.UpdateTest (0 ms)
+[ RUN      ] TrivialCostModelTests.HashGroupByTest
+[       OK ] TrivialCostModelTests.HashGroupByTest (0 ms)
+[ RUN      ] TrivialCostModelTests.SortGroupByTest
+[       OK ] TrivialCostModelTests.SortGroupByTest (0 ms)
+[ RUN      ] TrivialCostModelTests.DistinctTest
+[       OK ] TrivialCostModelTests.DistinctTest (0 ms)
+[ RUN      ] TrivialCostModelTests.AggregateTest
+[       OK ] TrivialCostModelTests.AggregateTest (0 ms)
+[----------] 21 tests from TrivialCostModelTests (9 ms total)
+
+[----------] Global test environment tear-down
+[==========] 21 tests from 1 test case ran. (9 ms total)
+[  PASSED  ] 21 tests.
+~/Desktop/terrier/cmake-build-development/test/optimizer
+<end of output>
+Test time =   0.38 sec
+----------------------------------------------------------
+Test Passed.
+"trivial_cost_model_test" end time: Jun 13 17:53 EDT
+"trivial_cost_model_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+37/45 Testing: traffic_cop_test
+37/45 Test: traffic_cop_test
+Command: "/Users/vivianhuang/Desktop/terrier/build-support/run-test.sh" "/Users/vivianhuang/Desktop/terrier/cmake-build-development" "test" "/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug//traffic_cop_test"
+Directory: /Users/vivianhuang/Desktop/terrier/cmake-build-development/test/traffic_cop
+"traffic_cop_test" start time: Jun 13 17:53 EDT
+Output:
+----------------------------------------------------------
+Running traffic_cop_test, redirecting output into /Users/vivianhuang/Desktop/terrier/cmake-build-development/build/test-logs/traffic_cop_test.txt (attempt 1/1)
+Running main() from gtest_main.cc
+[==========] Running 4 tests from 1 test case.
+[----------] Global test environment set-up.
+[----------] 4 tests from TrafficCopTests
+[ RUN      ] TrafficCopTests.RoundTripTest
+
+[2019-06-13 17:53:30.704] [network_logger] [info] Listening on port 15721
+[2019-06-13 17:53:30.714] [test_logger] [debug] Server initialized
+[2019-06-13 17:53:30.717] [network_logger] [trace] Dispatching connection to worker 0
+[2019-06-13 17:53:30.740] [network_logger] [trace] protocol version: 196608
+[2019-06-13 17:53:30.761] [network_logger] [trace] Option key user, value postgres
+[2019-06-13 17:53:30.762] [network_logger] [trace] Option key database, value postgres
+[2019-06-13 17:53:30.762] [network_logger] [trace] Option key application_name, value psql
+[2019-06-13 17:53:30.762] [network_logger] [trace] Execute SimpleQuery: BEGIN
+[2019-06-13 17:53:30.763] [network_logger] [trace] Execute SimpleQuery: DROP TABLE IF EXISTS TableA
+[2019-06-13 17:53:30.763] [network_logger] [trace] Execute SimpleQuery: CREATE TABLE TableA (id INT PRIMARY KEY, data TEXT);
+[2019-06-13 17:53:30.765] [network_logger] [trace] Execute SimpleQuery: INSERT INTO TableA VALUES (1, 'abc');
+[2019-06-13 17:53:30.765] [network_logger] [trace] Execute SimpleQuery: SELECT * FROM TableA
+[2019-06-13 17:53:30.809] [test_logger] [info] 1	abc
+[2019-06-13 17:53:30.810] [network_logger] [trace] Execute SimpleQuery: COMMIT
+[2019-06-13 17:53:30.811] [network_logger] [trace] Terminated
+[2019-06-13 17:53:30.811] [network_logger] [trace] Attempt to close the connection 15
+[2019-06-13 17:53:30.811] [network_logger] [trace] Begin to stop server
+[2019-06-13 17:53:30.812] [network_logger] [info] Server Closed
+[2019-06-13 17:53:30.813] [test_logger] [debug] Terrier has shut down
+[       OK ] TrafficCopTests.RoundTripTest (160 ms)
+[ RUN      ] TrafficCopTests.ManualExtendedQueryTest
+
+[2019-06-13 17:53:30.839] [network_logger] [info] Listening on port 15721
+[2019-06-13 17:53:30.839] [test_logger] [debug] Server initialized
+[2019-06-13 17:53:30.840] [network_logger] [trace] Dispatching connection to worker 0
+[2019-06-13 17:53:30.841] [network_logger] [trace] protocol version: 196608
+[2019-06-13 17:53:30.841] [network_logger] [trace] Option key application_name, value psql
+[2019-06-13 17:53:30.841] [network_logger] [trace] Option key database, value postgres
+[2019-06-13 17:53:30.841] [network_logger] [trace] Option key user, value postgres
+[2019-06-13 17:53:30.841] [network_logger] [trace] Execute SimpleQuery: DROP TABLE IF EXISTS TableA
+[2019-06-13 17:53:30.843] [network_logger] [trace] Execute SimpleQuery: CREATE TABLE TableA (a_int INT PRIMARY KEY, a_dec DECIMAL, a_text TEXT, a_time TIMESTAMP);
+[2019-06-13 17:53:30.844] [network_logger] [trace] Execute SimpleQuery: INSERT INTO TableA VALUES(100, .14, 'nico', 114514)
+[2019-06-13 17:53:30.846] [network_logger] [trace] ParseCommand Statement Name: test_statement
+[2019-06-13 17:53:30.846] [network_logger] [trace] ParseCommand: SELECT * FROM TableA WHERE a_int = $1 AND a_dec = $2 AND a_text = $3 AND a_time = $4
+[2019-06-13 17:53:30.847] [network_logger] [trace] BindCommand, portal name = test_portal, stmt name = test_statement
+[2019-06-13 17:53:30.848] [network_logger] [trace] Describe query: type = S, name = test_statement
+[2019-06-13 17:53:30.848] [network_logger] [trace] Describe query: type = P, name = test_portal
+[2019-06-13 17:53:30.848] [network_logger] [trace] ExecuteCommand portal name = test_portal
+[2019-06-13 17:53:30.850] [network_logger] [trace] Sync query
+[2019-06-13 17:53:30.851] [network_logger] [trace] BindCommand, portal name = test_portal-2, stmt name = test_statement
+[2019-06-13 17:53:30.851] [network_logger] [trace] Describe query: type = P, name = test_portal-2
+[2019-06-13 17:53:30.851] [network_logger] [trace] ExecuteCommand portal name = test_portal-2
+[2019-06-13 17:53:30.851] [network_logger] [trace] Sync query
+[2019-06-13 17:53:30.852] [network_logger] [trace] BindCommand, portal name = test_portal-3, stmt name = test_statement
+[2019-06-13 17:53:30.852] [network_logger] [trace] Describe query: type = P, name = test_portal-3
+[2019-06-13 17:53:30.852] [network_logger] [trace] ExecuteCommand portal name = test_portal-3
+[2019-06-13 17:53:30.852] [network_logger] [trace] Sync query
+[2019-06-13 17:53:30.853] [network_logger] [trace] Begin to stop server
+[2019-06-13 17:53:30.854] [network_logger] [info] Server Closed
+[2019-06-13 17:53:30.854] [test_logger] [debug] Terrier has shut down
+[       OK ] TrafficCopTests.ManualExtendedQueryTest (41 ms)
+[ RUN      ] TrafficCopTests.ManualRoundTripTest
+
+[2019-06-13 17:53:30.866] [network_logger] [info] Listening on port 15721
+[2019-06-13 17:53:30.866] [test_logger] [debug] Server initialized
+[2019-06-13 17:53:30.867] [network_logger] [trace] Dispatching connection to worker 0
+[2019-06-13 17:53:30.868] [network_logger] [trace] protocol version: 196608
+[2019-06-13 17:53:30.868] [network_logger] [trace] Option key application_name, value psql
+[2019-06-13 17:53:30.868] [network_logger] [trace] Option key database, value postgres
+[2019-06-13 17:53:30.868] [network_logger] [trace] Option key user, value postgres
+[2019-06-13 17:53:30.868] [network_logger] [trace] Execute SimpleQuery: DROP TABLE IF EXISTS TableA
+[2019-06-13 17:53:30.869] [network_logger] [trace] Execute SimpleQuery: CREATE TABLE TableA (id INT PRIMARY KEY, data TEXT);
+[2019-06-13 17:53:30.871] [network_logger] [trace] Execute SimpleQuery: INSERT INTO TableA VALUES (1, 'abc');
+[2019-06-13 17:53:30.872] [network_logger] [trace] Execute SimpleQuery: SELECT * FROM TableA
+[2019-06-13 17:53:30.873] [network_logger] [trace] Begin to stop server
+[2019-06-13 17:53:30.874] [network_logger] [info] Server Closed
+[2019-06-13 17:53:30.874] [test_logger] [debug] Terrier has shut down
+[       OK ] TrafficCopTests.ManualRoundTripTest (20 ms)
+[ RUN      ] TrafficCopTests.ErrorHandlingTest
+
+[2019-06-13 17:53:30.882] [network_logger] [info] Listening on port 15721
+[2019-06-13 17:53:30.882] [test_logger] [debug] Server initialized
+[2019-06-13 17:53:30.882] [network_logger] [trace] Dispatching connection to worker 0
+[2019-06-13 17:53:30.883] [network_logger] [trace] protocol version: 196608
+[2019-06-13 17:53:30.883] [network_logger] [trace] Option key application_name, value psql
+[2019-06-13 17:53:30.883] [network_logger] [trace] Option key database, value postgres
+[2019-06-13 17:53:30.883] [network_logger] [trace] Option key user, value postgres
+[2019-06-13 17:53:30.883] [network_logger] [trace] Execute SimpleQuery: DROP TABLE IF EXISTS TableA
+[2019-06-13 17:53:30.885] [network_logger] [trace] Execute SimpleQuery: CREATE TABLE TableA (id INT PRIMARY KEY, data TEXT);
+[2019-06-13 17:53:30.886] [network_logger] [trace] Execute SimpleQuery: INSERT INTO TableA VALUES (1, 'abc');
+[2019-06-13 17:53:30.887] [network_logger] [trace] ParseCommand Statement Name: test_statement
+[2019-06-13 17:53:30.887] [network_logger] [trace] ParseCommand: SELECT * FROM TableA WHERE id = $1
+[2019-06-13 17:53:30.887] [network_logger] [trace] ParseCommand Statement Name: test_statement
+[2019-06-13 17:53:30.887] [network_logger] [trace] ParseCommand: SELECT * FROM TableA WHERE id = $1
+[2019-06-13 17:53:30.887] [network_logger] [error] There is already signed char statement with name test_statement
+[2019-06-13 17:53:30.888] [network_logger] [trace] BindCommand, portal name = test_portal, stmt name = FakeStatementName
+[2019-06-13 17:53:30.888] [network_logger] [error] Error: There is no statement with name FakeStatementName
+[2019-06-13 17:53:30.888] [network_logger] [trace] BindCommand, portal name = test_portal, stmt name = test_statement
+[2019-06-13 17:53:30.888] [network_logger] [error] Error: Numbers of parameters don'unsigned short match. 1 in statement, 5 in format code.
+[2019-06-13 17:53:30.888] [network_logger] [trace] BindCommand, portal name = test_portal, stmt name = test_statement
+[2019-06-13 17:53:30.888] [network_logger] [error] Error: Numbers of parameters don'unsigned short match. 1 in statement, 2 in bind command. This could be signed char result that the Parse command required type inference, which we don'unsigned short support yet.
+[2019-06-13 17:53:30.888] [network_logger] [trace] BindCommand, portal name = test_portal, stmt name = test_statement
+[2019-06-13 17:53:30.888] [network_logger] [trace] Describe query: type = S, name = FakeStatementName
+[2019-06-13 17:53:30.888] [network_logger] [error] There is no statement with name FakeStatementName
+[2019-06-13 17:53:30.889] [network_logger] [trace] Describe query: type = P, name = FakePortalName
+[2019-06-13 17:53:30.889] [network_logger] [error] There is no portal with name FakePortalName
+[2019-06-13 17:53:30.889] [network_logger] [trace] ExecuteCommand portal name = FakePortal
+[2019-06-13 17:53:30.889] [network_logger] [error] Error: Portal FakePortal does not exist.
+[2019-06-13 17:53:30.889] [network_logger] [trace] Describe query: type = ?, name = test_statement
+[2019-06-13 17:53:30.889] [network_logger] [error] Wrong type: ?, should be either 'S' or 'P'.
+[2019-06-13 17:53:30.890] [network_logger] [trace] Begin to stop server
+[2019-06-13 17:53:30.891] [network_logger] [info] Server Closed
+[2019-06-13 17:53:30.891] [test_logger] [debug] Terrier has shut down
+[       OK ] TrafficCopTests.ErrorHandlingTest (16 ms)
+[----------] 4 tests from TrafficCopTests (238 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 1 test case ran. (238 ms total)
+[  PASSED  ] 4 tests.
+
+  YOU HAVE 1 DISABLED TEST
+
+~/Desktop/terrier/cmake-build-development/test/traffic_cop
+<end of output>
+Test time =   0.89 sec
+----------------------------------------------------------
+Test Passed.
+"traffic_cop_test" end time: Jun 13 17:53 EDT
+"traffic_cop_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+38/45 Testing: tpcc_test
+38/45 Test: tpcc_test
+Command: "/Users/vivianhuang/Desktop/terrier/build-support/run-test.sh" "/Users/vivianhuang/Desktop/terrier/cmake-build-development" "test" "/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug//tpcc_test"
+Directory: /Users/vivianhuang/Desktop/terrier/cmake-build-development/test/integration
+"tpcc_test" start time: Jun 13 17:53 EDT
+Output:
+----------------------------------------------------------
+Running tpcc_test, redirecting output into /Users/vivianhuang/Desktop/terrier/cmake-build-development/build/test-logs/tpcc_test.txt (attempt 1/1)
+Running main() from gtest_main.cc
+[==========] Running 2 tests from 1 test case.
+[----------] Global test environment set-up.
+[----------] 2 tests from TPCCTests
+[ RUN      ] TPCCTests.WithoutLogging
+[       OK ] TPCCTests.WithoutLogging (172662 ms)
+[ RUN      ] TPCCTests.WithLogging
+[       OK ] TPCCTests.WithLogging (168176 ms)
+[----------] 2 tests from TPCCTests (340838 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test case ran. (340838 ms total)
+[  PASSED  ] 2 tests.
+~/Desktop/terrier/cmake-build-development/test/integration
+<end of output>
+Test time = 341.65 sec
+----------------------------------------------------------
+Test Passed.
+"tpcc_test" end time: Jun 13 17:59 EDT
+"tpcc_test" time elapsed: 00:05:41
+----------------------------------------------------------
+
+End testing: Jun 13 17:59 EDT
+
+unittest = 1049.32 sec*proc
+

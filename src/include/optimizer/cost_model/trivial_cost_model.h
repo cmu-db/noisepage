@@ -1,8 +1,9 @@
 #pragma once
 
-#include "parser/expression/tuple_value_expression.h"
 #include "optimizer/cost_model/abstract_cost_model.h"
+#include "optimizer/group_expression.h"
 #include "optimizer/physical_operators.h"
+#include "parser/expression/tuple_value_expression.h"
 #include "transaction/transaction_context.h"
 
 // This cost model is meant to just be a trivial cost model. The decisions it makes are as follows
@@ -18,14 +19,13 @@ class GroupExpression;
 
 class TrivialCostModel : public AbstractCostModel {
  public:
-  TrivialCostModel(){};
+  TrivialCostModel() = default;
 
-  template <class T>
-  double CalculateCost(GroupExpression *gexpr, OperatorNode<T> node, Memo *memo, transaction::TransactionContext *txn) {
+  double CalculateCost(GroupExpression *gexpr, Memo *memo, transaction::TransactionContext *txn) override {
     gexpr_ = gexpr;
     memo_ = memo;
     txn_ = txn;
-    Visit(node);
+    gexpr_->Op().Accept(this);
     return output_cost_;
   };
 

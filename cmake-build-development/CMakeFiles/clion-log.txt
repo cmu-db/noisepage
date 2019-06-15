@@ -1,0 +1,58 @@
+/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON -G "CodeBlocks - Unix Makefiles" /Users/vivianhuang/Desktop/terrier
+-- The CXX compiler identification is AppleClang 10.0.1.10010046
+-- Check for working CXX compiler: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++
+-- Check for working CXX compiler: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ -- works
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Terrier version: 0.1.0 (full: '0.1.0-prototype')
+clang-tidy found at /usr/local/opt/llvm@6/bin/clang-tidy
+clang-format found at /usr/local/opt/llvm@6/bin/clang-format
+-- GNU gold not found
+INFOCompiler command: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++
+INFOCompiler version: Apple LLVM version 10.0.1 (clang-1001.0.46.4)
+Target: x86_64-apple-darwin18.6.0
+Thread model: posix
+InstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin
+
+INFOCompiler id: AppleClang
+Selected compiler clang 4.1.0svn
+Configured for checkin warning level (set with cmake -DBUILD_WARNING_LEVEL={checkin,production,everything})
+Configured for DEBUG build (set with cmake -DCMAKE_BUILD_TYPE={release,debug,fastdebug,relwithdebinfo})
+-- Build Type: DEBUG
+-- GTEST_VERSION: 1.8.0
+-- GFLAGS_VERSION: 2.2.0
+-- GBENCHMARK_VERSION: 1.4.1
+-- Found pthread: /usr/lib/libpthread.dylib
+-- GTest include dir: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include
+-- GTest static library: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/lib/libgtest.a
+Added static library dependency gtest: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/lib/libgtest.a
+Added static library dependency gtest_main: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/lib/libgtest_main.a
+-- GFlags include dir: /Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/include
+-- GFlags static library: /Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/lib/libgflags.a
+Added static library dependency gflags: /Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/lib/libgflags.a
+-- GBenchmark include dir: /Users/vivianhuang/Desktop/terrier/cmake-build-development/gbenchmark_ep/src/gbenchmark_ep-install/include
+-- GBenchmark static library: /Users/vivianhuang/Desktop/terrier/cmake-build-development/gbenchmark_ep/src/gbenchmark_ep-install/lib/libbenchmark.a
+Added static library dependency benchmark: /Users/vivianhuang/Desktop/terrier/cmake-build-development/gbenchmark_ep/src/gbenchmark_ep-install/lib/libbenchmark.a
+-- Found JeMalloc: /usr/local/lib/libjemalloc.dylib  
+-- Found jemalloc (include: , library: /usr/local/lib/libjemalloc.dylib)
+-- Found libevent pthread (include: /usr/local/include, library: /usr/local/lib/libevent_pthreads.dylib)
+-- Found libevent (include: /usr/local/include, library: /usr/local/lib/libevent.dylib)
+-- Found TBB: /usr/local/include (found version "2019.0")  
+-- Found PQXX: /usr/local/lib/libpqxx.dylib
+-- Found LLVM 6.0.1
+-- Found SQLITE3: /usr/lib/libsqlite3.dylib  
+-- AddressSanitizer enabled.
+-- CMAKE_CXX_FLAGS:  -std=c++17 -fPIC -mcx16 -march=native  -Qunused-arguments -ggdb -O0 -fno-omit-frame-pointer -fno-optimize-sibling-calls  -Wall -Wno-c++98-compat -Wno-c++98-compat-pedantic -Werror -Wno-unknown-warning-option -fcolor-diagnostics  -fsanitize=address -DADDRESS_SANITIZER
+-- Found cpplint executable at /Users/vivianhuang/Desktop/terrier/build-support/cpplint.py
+-- The C compiler identification is AppleClang 10.0.1.10010046
+-- Check for working C compiler: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc
+-- Check for working C compiler: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -- works
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /Users/vivianhuang/Desktop/terrier/cmake-build-development

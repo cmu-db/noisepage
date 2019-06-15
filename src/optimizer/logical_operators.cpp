@@ -1,14 +1,34 @@
-#include "optimizer/logical_operators.h"
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
-#include "optimizer/operator_visitor.h"
+
 #include "parser/expression/abstract_expression.h"
+#include "optimizer/operator_visitor.h"
+#include "optimizer/logical_operators.h"
 
 namespace terrier::optimizer {
+
+Operator LeafOperator::make(GroupID group) {
+  auto *leaf = new LeafOperator;
+  leaf->origin_group_ = group;
+  return Operator(leaf);
+}
+
+common::hash_t LeafOperator::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(origin_group_));
+  return hash;
+}
+
+bool LeafOperator::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::LEAF) return false;
+  const LeafOperator &node = *dynamic_cast<const LeafOperator *>(&r);
+  return origin_group_ == node.origin_group_;
+}
+
 //===--------------------------------------------------------------------===//
 // Logical Get
 //===--------------------------------------------------------------------===//
@@ -53,7 +73,6 @@ bool LogicalGet::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // External file get
 //===--------------------------------------------------------------------===//
-
 Operator LogicalExternalFileGet::make(parser::ExternalFileFormat format, std::string file_name, char delimiter,
                                       char quote, char escape) {
   auto *get = new LogicalExternalFileGet();
@@ -691,6 +710,8 @@ void OperatorNode<T>::Accept(OperatorVisitor *v) const {
 
 //===--------------------------------------------------------------------===//
 template <>
+const char *OperatorNode<LeafOperator>::name_ = "LeafOperator";
+template <>
 const char *OperatorNode<LogicalGet>::name_ = "LogicalGet";
 template <>
 const char *OperatorNode<LogicalExternalFileGet>::name_ = "LogicalExternalFileGet";
@@ -734,6 +755,8 @@ template <>
 const char *OperatorNode<LogicalExportExternalFile>::name_ = "LogicalExportExternalFile";
 
 //===--------------------------------------------------------------------===//
+template <>
+OpType OperatorNode<LeafOperator>::type_ = OpType::LEAF;
 template <>
 OpType OperatorNode<LogicalGet>::type_ = OpType::LOGICALGET;
 template <>

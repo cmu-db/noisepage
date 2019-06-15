@@ -1,0 +1,67 @@
+[ 27%] Built target gmock
+[ 63%] Built target gmock_main
+[ 81%] Built target gtest
+[100%] Built target gtest_main
+Install the project...
+-- Install configuration: "DEBUG"
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/lib/libgmock.a
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/lib/libgmock_main.a
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gmock
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gmock/gmock-generated-actions.h.pump
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gmock/gmock-generated-function-mockers.h.pump
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gmock/gmock-matchers.h
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gmock/gmock-more-actions.h
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gmock/gmock-generated-matchers.h.pump
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gmock/gmock-generated-nice-strict.h.pump
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gmock/gmock-generated-actions.h
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gmock/gmock-generated-matchers.h
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gmock/gmock-generated-nice-strict.h
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gmock/internal
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gmock/internal/gmock-port.h
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gmock/internal/gmock-internal-utils.h
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gmock/internal/gmock-generated-internal-utils.h
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gmock/internal/gmock-generated-internal-utils.h.pump
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gmock/internal/custom
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gmock/internal/custom/gmock-generated-actions.h.pump
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gmock/internal/custom/gmock-port.h
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gmock/internal/custom/gmock-matchers.h
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gmock/internal/custom/gmock-generated-actions.h
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gmock/gmock-more-matchers.h
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gmock/gmock-generated-function-mockers.h
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gmock/gmock-cardinalities.h
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gmock/gmock-spec-builders.h
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gmock/gmock.h
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gmock/gmock-actions.h
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/lib/libgtest.a
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/lib/libgtest_main.a
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gtest
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gtest/gtest-death-test.h
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gtest/gtest-spi.h
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gtest/internal
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gtest/internal/gtest-linked_ptr.h
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gtest/internal/gtest-string.h
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gtest/internal/gtest-tuple.h.pump
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gtest/internal/gtest-death-test-internal.h
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gtest/internal/gtest-type-util.h.pump
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gtest/internal/gtest-port.h
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gtest/internal/gtest-port-arch.h
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gtest/internal/gtest-internal.h
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gtest/internal/gtest-param-util-generated.h
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gtest/internal/gtest-param-util.h
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gtest/internal/gtest-type-util.h
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gtest/internal/gtest-filepath.h
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gtest/internal/custom
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gtest/internal/custom/gtest-port.h
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gtest/internal/custom/gtest.h
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gtest/internal/custom/gtest-printers.h
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gtest/internal/gtest-tuple.h
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gtest/internal/gtest-param-util-generated.h.pump
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gtest/gtest-message.h
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gtest/gtest-param-test.h
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gtest/gtest-typed-test.h
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gtest/gtest_pred_impl.h
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gtest/gtest_prod.h
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gtest/gtest-param-test.h.pump
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gtest/gtest-test-part.h
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gtest/gtest.h
+-- Installing: /Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include/gtest/gtest-printers.h

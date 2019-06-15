@@ -1,0 +1,11 @@
+prefix=/Users/vivianhuang/Desktop/terrier/cmake-build-development/gbenchmark_ep/src/gbenchmark_ep-install
+exec_prefix=${prefix}
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: benchmark
+Description: Google microbenchmark framework
+Version: 0.0.0
+
+Libs: -L${libdir} -lbenchmark
+Cflags: -I${includedir}

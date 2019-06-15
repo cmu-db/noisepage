@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6"/>
+	<Project>
+		<Option title="gflags"/>
+		<Option makefile_is_custom="1"/>
+		<Option compiler="clang"/>
+		<Option virtualFolders="CMake Files\;CMake Files\cmake\;CMake Files\src\;"/>
+		<Build>
+			<Target title="all">
+				<Option working_dir="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 all"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="list_install_components">
+				<Option working_dir="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 list_install_components"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="rebuild_cache">
+				<Option working_dir="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 rebuild_cache"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="install/strip">
+				<Option working_dir="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 install/strip"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="install">
+				<Option working_dir="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 install"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="gflags_nothreads">
+				<Option working_dir="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 gflags_nothreads"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="edit_cache">
+				<Option working_dir="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 edit_cache"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="install/local">
+				<Option working_dir="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 install/local"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="gflags_nothreads_static">
+				<Option output="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/lib/libgflags_nothreads.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="clang"/>
+				<Compiler>
+					<Add option="-DGFLAGS_IS_A_DLL=0"/>
+					<Add option="-DNO_THREADS"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/include"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/src"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/include/gflags"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/10.0.1/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 gflags_nothreads_static"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="gflags_nothreads_static/fast">
+				<Option output="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/lib/libgflags_nothreads.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="clang"/>
+				<Compiler>
+					<Add option="-DGFLAGS_IS_A_DLL=0"/>
+					<Add option="-DNO_THREADS"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/include"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/src"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/include/gflags"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/10.0.1/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 gflags_nothreads_static/fast"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="gflags">
+				<Option working_dir="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 gflags"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="gflags_static">
+				<Option output="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/lib/libgflags.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="clang"/>
+				<Compiler>
+					<Add option="-DGFLAGS_IS_A_DLL=0"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/include"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/src"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/include/gflags"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/10.0.1/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 gflags_static"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="gflags_static/fast">
+				<Option output="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/lib/libgflags.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="clang"/>
+				<Compiler>
+					<Add option="-DGFLAGS_IS_A_DLL=0"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/include"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/src"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/include/gflags"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/10.0.1/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 gflags_static/fast"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+		</Build>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/include/gflags/config.h">
+			<Option target="gflags_nothreads_static"/>
+			<Option target="gflags_static"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/include/gflags/gflags.h">
+			<Option target="gflags_nothreads_static"/>
+			<Option target="gflags_static"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/include/gflags/gflags_completions.h">
+			<Option target="gflags_nothreads_static"/>
+			<Option target="gflags_static"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/include/gflags/gflags_declare.h">
+			<Option target="gflags_nothreads_static"/>
+			<Option target="gflags_static"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/include/gflags/gflags_gflags.h">
+			<Option target="gflags_nothreads_static"/>
+			<Option target="gflags_static"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/src/gflags.cc">
+			<Option target="gflags_nothreads_static"/>
+			<Option target="gflags_static"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/src/gflags_completions.cc">
+			<Option target="gflags_nothreads_static"/>
+			<Option target="gflags_static"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/src/gflags_reporting.cc">
+			<Option target="gflags_nothreads_static"/>
+			<Option target="gflags_static"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/src/mutex.h">
+			<Option target="gflags_nothreads_static"/>
+			<Option target="gflags_static"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/src/util.h">
+			<Option target="gflags_nothreads_static"/>
+			<Option target="gflags_static"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/cmake/config.cmake.in">
+			<Option virtualFolder="CMake Files\cmake\"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/cmake/package.pc.in">
+			<Option virtualFolder="CMake Files\cmake\"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/cmake/utils.cmake">
+			<Option virtualFolder="CMake Files\cmake\"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/cmake/version.cmake.in">
+			<Option virtualFolder="CMake Files\cmake\"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/src/config.h.in">
+			<Option virtualFolder="CMake Files\src\"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/src/gflags.h.in">
+			<Option virtualFolder="CMake Files\src\"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/src/gflags_completions.h.in">
+			<Option virtualFolder="CMake Files\src\"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/src/gflags_declare.h.in">
+			<Option virtualFolder="CMake Files\src\"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/src/gflags_ns.h.in">
+			<Option virtualFolder="CMake Files\src\"/>
+		</Unit>
+	</Project>
+</CodeBlocks_project_file>

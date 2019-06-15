@@ -1,5 +1,5 @@
-#include "optimizer/operator_node.h"
 #include <string>
+#include "optimizer/operator_node.h"
 
 namespace terrier::optimizer {
 
@@ -20,6 +20,7 @@ OpType Operator::GetType() const {
   if (IsDefined()) {
     return node_->GetType();
   }
+
   return OpType::UNDEFINED;
 }
 

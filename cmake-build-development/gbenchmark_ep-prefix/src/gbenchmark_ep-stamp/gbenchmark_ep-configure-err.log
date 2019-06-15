@@ -1,0 +1,17 @@
+-- git Version: v0.0.0-dirty
+-- Version: 0.0.0
+-- Performing Test HAVE_THREAD_SAFETY_ATTRIBUTES
+-- Performing Test HAVE_THREAD_SAFETY_ATTRIBUTES
+-- Performing Test HAVE_THREAD_SAFETY_ATTRIBUTES -- failed to compile
+-- Performing Test HAVE_STD_REGEX
+-- Performing Test HAVE_STD_REGEX
+-- Performing Test HAVE_STD_REGEX -- success
+-- Performing Test HAVE_GNU_POSIX_REGEX
+-- Performing Test HAVE_GNU_POSIX_REGEX
+-- Performing Test HAVE_GNU_POSIX_REGEX -- failed to compile
+-- Performing Test HAVE_POSIX_REGEX
+-- Performing Test HAVE_POSIX_REGEX
+-- Performing Test HAVE_POSIX_REGEX -- success
+-- Performing Test HAVE_STEADY_CLOCK
+-- Performing Test HAVE_STEADY_CLOCK
+-- Performing Test HAVE_STEADY_CLOCK -- success

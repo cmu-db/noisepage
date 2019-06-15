@@ -1,0 +1,12 @@
+Scanning dependencies of target gflags_nothreads_static
+[ 12%] Building CXX object CMakeFiles/gflags_nothreads_static.dir/src/gflags.cc.o
+[ 25%] Building CXX object CMakeFiles/gflags_nothreads_static.dir/src/gflags_reporting.cc.o
+[ 37%] Building CXX object CMakeFiles/gflags_nothreads_static.dir/src/gflags_completions.cc.o
+[ 50%] Linking CXX static library lib/libgflags_nothreads.a
+[ 50%] Built target gflags_nothreads_static
+Scanning dependencies of target gflags_static
+[ 62%] Building CXX object CMakeFiles/gflags_static.dir/src/gflags.cc.o
+[ 75%] Building CXX object CMakeFiles/gflags_static.dir/src/gflags_reporting.cc.o
+[ 87%] Building CXX object CMakeFiles/gflags_static.dir/src/gflags_completions.cc.o
+[100%] Linking CXX static library lib/libgflags.a
+[100%] Built target gflags_static

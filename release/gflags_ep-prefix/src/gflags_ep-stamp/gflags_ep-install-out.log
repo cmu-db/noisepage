@@ -1,0 +1,11 @@
+[ 50%] Built target gflags_nothreads_static
+[100%] Built target gflags_static
+Install the project...
+-- Install configuration: "RELEASE"
+-- Installing: /Users/vivianhuang/desktop/terrier/release/gflags_ep-prefix/src/gflags_ep/lib/cmake/gflags/gflags-config.cmake
+-- Installing: /Users/vivianhuang/desktop/terrier/release/gflags_ep-prefix/src/gflags_ep/lib/cmake/gflags/gflags-config-version.cmake
+-- Installing: /Users/vivianhuang/desktop/terrier/release/gflags_ep-prefix/src/gflags_ep/lib/cmake/gflags/gflags-targets.cmake
+-- Installing: /Users/vivianhuang/desktop/terrier/release/gflags_ep-prefix/src/gflags_ep/lib/cmake/gflags/gflags-targets-release.cmake
+-- Installing: /Users/vivianhuang/desktop/terrier/release/gflags_ep-prefix/src/gflags_ep/bin/gflags_completions.sh
+-- Installing: /Users/vivianhuang/desktop/terrier/release/gflags_ep-prefix/src/gflags_ep/lib/pkgconfig/gflags.pc
+-- Installing: /Users/vivianhuang/.cmake/packages/gflags/45f8fabbfef224110954973af52dfbc4

@@ -1,0 +1,14 @@
+Performing C++ SOURCE FILE Test HAVE_CXX_FLAG_WD654 failed with the following output:
+Change Dir: /Users/vivianhuang/desktop/terrier/release/gbenchmark_ep-prefix/src/gbenchmark_ep-build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/make cmTC_e4721/fast 
+/Applications/Xcode.app/Contents/Developer/usr/bin/make -f CMakeFiles/cmTC_e4721.dir/build.make CMakeFiles/cmTC_e4721.dir/build
+Building CXX object CMakeFiles/cmTC_e4721.dir/src.cxx.o
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++    -fPIC -std=c++17  -Qunused-arguments -O3 -DNDEBUG -O3 -DNDEBUG -fPIC -stdlib=libc++  -std=c++11  -Wall  -Wextra  -Wshadow  -pedantic  -pedantic-errors  -Wshorten-64-to-32  -Wfloat-equal  -fstrict-aliasing  -Wstrict-aliasing -DHAVE_CXX_FLAG_WD654  -wd654 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk   -wd654 -o CMakeFiles/cmTC_e4721.dir/src.cxx.o -c /Users/vivianhuang/desktop/terrier/release/gbenchmark_ep-prefix/src/gbenchmark_ep-build/CMakeFiles/CMakeTmp/src.cxx
+clang: error: unknown argument: '-wd654'
+clang: error: unknown argument: '-wd654'
+make[4]: *** [CMakeFiles/cmTC_e4721.dir/src.cxx.o] Error 1
+make[3]: *** [cmTC_e4721/fast] Error 2
+
+Source file was:
+int main() { return 0; }
