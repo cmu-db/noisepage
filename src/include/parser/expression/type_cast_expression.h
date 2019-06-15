@@ -35,6 +35,15 @@ class TypeCastExpression : public AbstractExpression {
   }
 
   /**
+   * Creates a copy of the current AbstractExpression with new children implanted.
+   * The children should not be owned by any other AbstractExpression.
+   * @param children New children to be owned by the copy
+   */
+  const AbstractExpression *CopyWithChildren(std::vector<const AbstractExpression *> children) const override {
+    return new TypeCastExpression(GetReturnValueType(), children);
+  }
+
+  /**
    * @return The type this node casts to
    */
   type::TypeId GetType() const { return type_; }

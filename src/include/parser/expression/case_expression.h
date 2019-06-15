@@ -149,6 +149,16 @@ class CaseExpression : public AbstractExpression {
   }
 
   /**
+   * Creates a copy of the current AbstractExpression with new children implanted.
+   * The children should not be owned by any other AbstractExpression.
+   * @param children New children to be owned by the copy
+   */
+  const AbstractExpression *CopyWithChildren(std::vector<const AbstractExpression *> children) const override {
+    TERRIER_ASSERT(children.empty(), "CaseExpression should have no children");
+    return Copy();
+  }
+
+  /**
    * @return the number of WhenClauses
    */
   size_t GetWhenClauseSize() const { return when_clauses_.size(); }

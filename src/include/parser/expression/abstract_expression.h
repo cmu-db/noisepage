@@ -91,6 +91,13 @@ class AbstractExpression {
   virtual const AbstractExpression *Copy() const = 0;
 
   /**
+   * Creates a copy of the current AbstractExpression with new children implanted.
+   * The children should not be owned by any other AbstractExpression.
+   * @param children New children to be owned by the copy
+   */
+  virtual const AbstractExpression *CopyWithChildren(std::vector<const AbstractExpression *> children) const = 0;
+
+  /**
    * @return type of this expression
    */
   ExpressionType GetExpressionType() const { return expression_type_; }

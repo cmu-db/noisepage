@@ -38,6 +38,15 @@ class ComparisonExpression : public AbstractExpression {
   }
 
   /**
+   * Creates a copy of the current AbstractExpression with new children implanted.
+   * The children should not be owned by any other AbstractExpression.
+   * @param children New children to be owned by the copy
+   */
+  const AbstractExpression *CopyWithChildren(std::vector<const AbstractExpression *> children) const override {
+    return new ComparisonExpression(GetExpressionType(), children);
+  }
+
+  /**
    * @return expression serialized to json
    */
   nlohmann::json ToJson() const override {

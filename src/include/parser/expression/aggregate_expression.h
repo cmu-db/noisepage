@@ -38,6 +38,15 @@ class AggregateExpression : public AbstractExpression {
     return new AggregateExpression(GetExpressionType(), children, distinct_);
   }
 
+  /**
+   * Creates a copy of the current AbstractExpression with new children implanted.
+   * The children should not be owned by any other AbstractExpression.
+   * @param children New children to be owned by the copy
+   */
+  const AbstractExpression *CopyWithChildren(std::vector<const AbstractExpression *> children) const override {
+    return new AggregateExpression(GetExpressionType(), children, distinct_);
+  }
+
   bool operator==(const AbstractExpression &rhs) const override {
     if (!AbstractExpression::operator==(rhs)) return false;
     auto const &other = dynamic_cast<const AggregateExpression &>(rhs);

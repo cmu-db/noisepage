@@ -44,6 +44,16 @@ class TupleValueExpression : public AbstractExpression {
 
   const AbstractExpression *Copy() const override { return new TupleValueExpression(col_name_, table_name_); }
 
+  /**
+   * Creates a copy of the current AbstractExpression with new children implanted.
+   * The children should not be owned by any other AbstractExpression.
+   * @param children New children to be owned by the copy
+   */
+  const AbstractExpression *CopyWithChildren(std::vector<const AbstractExpression *> children) const override {
+    TERRIER_ASSERT(children.empty(), "TupleValueExpression should have 0 children");
+    return new TupleValueExpression(col_name_, table_name_);
+  }
+
   bool operator==(const AbstractExpression &rhs) const override {
     if (!AbstractExpression::operator==(rhs)) return false;
     auto const &other = dynamic_cast<const TupleValueExpression &>(rhs);
