@@ -5,13 +5,13 @@
 #include "common/gate.h"
 #include "common/spin_latch.h"
 #include "common/strong_typedef.h"
+#include "di/di_help.h"
 #include "storage/data_table.h"
 #include "storage/record_buffer.h"
 #include "storage/undo_record.h"
 #include "storage/write_ahead_log/log_manager.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
-#include "di/di_help.h"
 
 namespace terrier::transaction {
 /**
@@ -29,10 +29,8 @@ class TransactionManager {
    * @param gc_enabled true if txns should be stored in a local queue to hand off to the GC, false otherwise
    * @param log_manager the log manager in the system, or LOGGING_DISABLED(nulllptr) if logging is turned off.
    */
-  BOOST_DI_INJECT(TransactionManager,
-                  storage::RecordBufferSegmentPool *buffer_pool,
-                  (named = GC_ENABLED) bool gc_enabled,
-                  storage::LogManager *log_manager)
+  BOOST_DI_INJECT(TransactionManager, storage::RecordBufferSegmentPool *buffer_pool,
+                  (named = GC_ENABLED) bool gc_enabled, storage::LogManager *log_manager)
       : buffer_pool_(buffer_pool), gc_enabled_(gc_enabled), log_manager_(log_manager) {}
 
   /**

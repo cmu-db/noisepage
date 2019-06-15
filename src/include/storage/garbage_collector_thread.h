@@ -3,6 +3,7 @@
 #include <chrono>  //NOLINT
 #include <thread>  //NOLINT
 #include "storage/garbage_collector.h"
+#include "di/di_help.h"
 
 namespace terrier::storage {
 
@@ -12,11 +13,14 @@ namespace terrier::storage {
  */
 class GarbageCollectorThread {
  public:
+  DECLARE_ANNOTATION(GC_PERIOD);
   /**
    * @param txn_manager pointer to the txn manager for the GC to communicate with
    * @param gc_period sleep time between GC invocations
    */
-  GarbageCollectorThread(transaction::TransactionManager *const txn_manager, const std::chrono::milliseconds gc_period)
+  BOOST_DI_INJECT(GarbageCollectorThread,
+                  transaction::TransactionManager *txn_manager,
+                  (named = GC_PERIOD) std::chrono::milliseconds gc_period)
       : gc_(txn_manager),
         run_gc_(true),
         gc_paused_(false),

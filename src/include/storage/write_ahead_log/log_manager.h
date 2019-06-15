@@ -11,6 +11,7 @@
 #include "common/managed_pointer.h"
 #include "common/spin_latch.h"
 #include "common/strong_typedef.h"
+#include "di/di_help.h"
 #include "settings/settings_manager.h"
 #include "storage/record_buffer.h"
 #include "storage/write_ahead_log/disk_log_consumer_task.h"
@@ -18,7 +19,6 @@
 #include "storage/write_ahead_log/log_record.h"
 #include "storage/write_ahead_log/log_serializer_task.h"
 #include "transaction/transaction_defs.h"
-#include "di/di_help.h"
 
 namespace terrier::storage {
 
@@ -55,13 +55,11 @@ class LogManager : public DedicatedThreadOwner {
    * @param buffer_pool the object pool to draw log buffers from. This must be the same pool transactions draw their
    *                    buffers from
    */
-  BOOST_DI_INJECT(LogManager,
-                  (named = LOG_FILE_PATH) std::string log_file_path,
+  BOOST_DI_INJECT(LogManager, (named = LOG_FILE_PATH) std::string log_file_path,
                   (named = NUM_BUFFERS) uint64_t num_buffers,
                   (named = SERIALIZATION_INTERVAL) std::chrono::milliseconds serialization_interval,
                   (named = PERSIST_INTERVAL) std::chrono::milliseconds persist_interval,
-                  (named = PERSIST_THRESHOLD) uint64_t persist_threshold,
-                  RecordBufferSegmentPool *buffer_pool)
+                  (named = PERSIST_THRESHOLD) uint64_t persist_threshold, RecordBufferSegmentPool *buffer_pool)
       : run_log_manager_(false),
         log_file_path_(std::move(log_file_path)),
         num_buffers_(num_buffers),

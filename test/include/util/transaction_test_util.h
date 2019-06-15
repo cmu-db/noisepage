@@ -22,6 +22,17 @@ using VersionedSnapshots = std::map<transaction::timestamp_t, TableSnapshot>;
 // {committed, aborted}
 using SimulationResult = std::pair<std::vector<RandomWorkloadTransaction *>, std::vector<RandomWorkloadTransaction *>>;
 
+struct LargeTransactionTestConfiguration {
+  std::vector<double> update_select_ratio_;
+  const uint32_t txn_length_;
+  const uint32_t initial_table_size_;
+  const uint16_t max_columns_;
+  bool varlen_allowed_;
+  // TODO(Tianyu): We should be able to eliminate these two flags. GC should be inferred by binding of the garbage
+  // collector in the injector, and bookkeeping is currently always turned on.
+  bool gc_on_;
+  bool bookkeeping_;
+};
 /**
  * A RandomWorkloadTransaction class provides a simple interface to simulate a transaction running in the system.
  *
@@ -265,7 +276,7 @@ class LargeTransactionTestObject {
   // keep the memory consumption of all this bookkeeping down. (Just like checkpoints)
   void CheckReadsCorrect(std::vector<RandomWorkloadTransaction *> *commits);
 
- private:
+// private:
   /**
    * Initializes a test object with the given configuration
    * @param max_columns the max number of columns in the generated test table
@@ -279,10 +290,11 @@ class LargeTransactionTestObject {
    * @param gc_on whether gc is enabled
    * @param bookkeeping whether correctness check is enabled
    */
-  LargeTransactionTestObject(uint16_t max_columns, uint32_t initial_table_size, uint32_t txn_length,
-                             std::vector<double> update_select_ratio, storage::BlockStore *block_store,
-                             storage::RecordBufferSegmentPool *buffer_pool, std::default_random_engine *generator,
-                             bool gc_on, bool bookkeeping, storage::LogManager *log_manager, bool varlen_allowed);
+  LargeTransactionTestObject(LargeTransactionTestConfiguration config,
+                             storage::BlockStore *block_store,
+                             storage::RecordBufferSegmentPool *buffer_pool,
+                             std::default_random_engine *generator,
+                             storage::LogManager *log_manager);
 
   void SimulateOneTransaction(RandomWorkloadTransaction *txn, uint32_t txn_id);
 

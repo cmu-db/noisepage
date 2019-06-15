@@ -1,8 +1,9 @@
 #pragma once
-#include "common/managed_pointer.h"
 #include "boost/di/di.h"
-#define DECLARE_ANNOTATION(name) static constexpr auto name = []{}
+#include "common/managed_pointer.h"
+#include "common/macros.h"
 
+#define DECLARE_ANNOTATION(name) static constexpr auto name = [] {}
 namespace terrier::di {
 // Effectively merges the boost::di namespace with terrier-specific helpers and wrappers
 using namespace boost::di;
@@ -33,7 +34,7 @@ class StrictBinding : public di::config {
  */
 class TerrierModule {
  public:
-  template<class TExpected, class TGiven>
+  template <class TExpected, class TGiven>
   class scope {
     /**
      * Custom wrapper that specifically allows implicit casting to terrier-approved types.
@@ -50,20 +51,20 @@ class TerrierModule {
        * @tparam I target managed pointer's underlying type
        * @return cast to managed pointer
        */
-      template <class I, __BOOST_DI_REQUIRES(di::aux::is_convertible<TExpected*, I*>::value) = 0>
-      inline operator common::ManagedPointer<I>() const noexcept { // NOLINT
+      template <class I, __BOOST_DI_REQUIRES(di::aux::is_convertible<TExpected *, I *>::value) = 0>
+      inline operator common::ManagedPointer<I>() const noexcept {  // NOLINT
         return common::ManagedPointer<I>(wrapped);
       }
 
       /**
        * @return cast to raw pointer
        */
-      inline operator TExpected*() const noexcept { return wrapped; }  // NOLINT
+      inline operator TExpected *() const noexcept { return wrapped; }  // NOLINT
 
       /**
        * @return cast to constant reference
        */
-      inline operator const TExpected&() const noexcept {  // NOLINT
+      inline operator const TExpected &() const noexcept {  // NOLINT
         return *wrapped;
       }
 
@@ -74,22 +75,21 @@ class TerrierModule {
    public:
     // TODO(Tianyu): Not sure about this. This is the referrable flag used for boost::di's singleton scope.
     template <class T_, class>
-    using is_referable = typename di::wrappers::shared<di::scopes::singleton, TExpected&>::template is_referable<T_>;
+    using is_referable = typename di::wrappers::shared<di::scopes::singleton, TExpected &>::template is_referable<T_>;
 
     /**
      * @tparam TProvider provider type
      * @return see boost::di doc
      */
-    template<class, class, class TProvider>
-    static custom_wrapper try_create(const TProvider&);
+    template <class, class, class TProvider>
+    static custom_wrapper try_create(const TProvider &);
 
     /**
      * @tparam TProvider provider type
      * @param provider provider
      * @return see boost::di doc
      */
-    /*<<create shared_ptr when in scope out of provider pointer>>*/
-    template<class, class, class TProvider>
+    template <class, class, class TProvider>
     custom_wrapper create(const TProvider &provider) {
       if (object_ == nullptr) object_ = std::unique_ptr<TGiven>(provider.get());
       return object_.get();
@@ -105,10 +105,62 @@ class TerrierModule {
 };
 
 /**
+ * Custom scope for boost::di that corresponds a module disabled in the terrier system. It will
+ * always inject nullptr for pointer dependencies
+ */
+class DisabledModule {
+ public:
+  template <class TExpected, class TGiven>
+  class scope {
+    /**
+     * Custom wrapper that specifically allows implicit casting to terrier-approved types.
+     * We allow ManagedPointers, raw pointers and constant references to modules
+     */
+    class custom_wrapper {
+     public:
+      /**
+       * @tparam I target managed pointer's underlying type
+       * @return cast to managed pointer
+       */
+      template <class I, __BOOST_DI_REQUIRES(di::aux::is_convertible<TExpected *, I *>::value) = 0>
+      inline operator common::ManagedPointer<I>() const noexcept {  // NOLINT
+        return common::ManagedPointer<I>(nullptr);
+      }
+
+      /**
+       * @return cast to raw pointer
+       */
+      inline operator TExpected *() const noexcept { return nullptr; }  // NOLINT
+    };
+
+   public:
+    // TODO(Tianyu): Not sure about this. This is the referrable flag used for boost::di's singleton scope.
+    template <class T_, class>
+    using is_referable = typename di::wrappers::shared<di::scopes::singleton, TExpected &>::template is_referable<T_>;
+
+    /**
+     * @tparam TProvider provider type
+     * @return see boost::di doc
+     */
+    template <class, class, class TProvider>
+    static custom_wrapper try_create(const TProvider &);
+
+    /**
+     * @tparam TProvider provider type
+     * @param provider provider
+     * @return see boost::di doc
+     */
+    template <class, class, class TProvider>
+    custom_wrapper create(const TProvider &provider) { return {}; }
+  };
+};
+
+/**
  * Use this as the scope object to use for TerrierModule.
  *
  * Pretty much always, you should use this as the default scope over boost:di provided ones.
  */
 static TerrierModule UNUSED_ATTRIBUTE terrier_module{};
+static DisabledModule UNUSED_ATTRIBUTE disabled_module{};
 
 }  // namespace terrier::di

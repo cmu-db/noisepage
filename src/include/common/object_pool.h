@@ -73,9 +73,7 @@ class ObjectPool {
    * @param size_limit the maximum number of objects the object pool controls
    * @param reuse_limit the maximum number of reusable objects
    */
-  BOOST_DI_INJECT(ObjectPool,
-                  (named = SIZE_LIMIT) uint64_t size_limit,
-                  (named = REUSE_LIMIT) uint64_t reuse_limit)
+  BOOST_DI_INJECT(ObjectPool, (named = SIZE_LIMIT) uint64_t size_limit, (named = REUSE_LIMIT) uint64_t reuse_limit)
       : size_limit_(size_limit), reuse_limit_(reuse_limit), current_size_(0) {}
 
   /**
