@@ -417,6 +417,7 @@ TEST(PlanNodeJsonTest, CreateTriggerPlanNodeTest) {
   EXPECT_EQ(PlanNodeType::CREATE_TRIGGER, deserialized_plan->GetPlanNodeType());
   auto create_trigger_plan = std::dynamic_pointer_cast<CreateTriggerPlanNode>(deserialized_plan);
   EXPECT_EQ(*plan_node, *create_trigger_plan);
+  EXPECT_EQ(plan_node->Hash(), create_trigger_plan->Hash());
 }
 
 // NOLINTNEXTLINE
@@ -440,14 +441,19 @@ TEST(PlanNodeJsonTest, CreateViewPlanNodeTest) {
   EXPECT_EQ(PlanNodeType::CREATE_VIEW, deserialized_plan->GetPlanNodeType());
   auto create_view_plan = std::dynamic_pointer_cast<CreateViewPlanNode>(deserialized_plan);
   EXPECT_EQ(*plan_node, *create_view_plan);
+  EXPECT_EQ(plan_node->Hash(), create_view_plan->Hash());
 }
 
 // NOLINTNEXTLINE
 TEST(PlanNodeJsonTest, CSVScanPlanNodeTest) {
   // Construct CSVScanPlanNode
   CSVScanPlanNode::Builder builder;
-  auto plan_node =
-      builder.SetFileName("/dev/null").SetDelimiter(',').SetQuote('\'').SetEscape('`').SetNullString("").Build();
+  auto plan_node = builder.SetFileName("/dev/null")
+                        .SetDelimiter(',')
+                        .SetQuote('\'')
+                        .SetEscape('`')
+                        .SetNullString("")
+                        .Build();
 
   // Serialize to Json
   auto json = plan_node->ToJson();
@@ -459,6 +465,7 @@ TEST(PlanNodeJsonTest, CSVScanPlanNodeTest) {
   EXPECT_EQ(PlanNodeType::CSVSCAN, deserialized_plan->GetPlanNodeType());
   auto csv_scan_plan = std::dynamic_pointer_cast<CSVScanPlanNode>(deserialized_plan);
   EXPECT_EQ(*plan_node, *csv_scan_plan);
+  EXPECT_EQ(plan_node->Hash(), csv_scan_plan->Hash());
 }
 
 // NOLINTNEXTLINE
@@ -481,6 +488,7 @@ TEST(PlanNodeJsonTest, DeletePlanNodeTest) {
   EXPECT_EQ(PlanNodeType::DELETE, deserialized_plan->GetPlanNodeType());
   auto delete_plan = std::dynamic_pointer_cast<DeletePlanNode>(deserialized_plan);
   EXPECT_EQ(*plan_node, *delete_plan);
+  EXPECT_EQ(plan_node->Hash(), delete_plan->Hash());
 }
 
 // NOLINTNEXTLINE
@@ -499,6 +507,18 @@ TEST(PlanNodeJsonTest, DropDatabasePlanNodeTest) {
   EXPECT_EQ(PlanNodeType::DROP_DATABASE, deserialized_plan->GetPlanNodeType());
   auto drop_database_plan = std::dynamic_pointer_cast<DropDatabasePlanNode>(deserialized_plan);
   EXPECT_EQ(*plan_node, *drop_database_plan);
+  EXPECT_EQ(plan_node->Hash(), drop_database_plan->Hash());
+
+  // Sanity check to make sure that it actually fails if the plan nodes are truly different
+  DropDatabasePlanNode::Builder builder2;
+  auto plan_node2 = builder2.SetDatabaseOid(catalog::db_oid_t(9999)).SetIfExist(true).Build();
+  auto json2 = plan_node2->ToJson();
+  auto deserialized_plan2 = DeserializePlanNode(json2);
+  auto drop_database_plan2 = std::dynamic_pointer_cast<DropDatabasePlanNode>(deserialized_plan2);
+  EXPECT_NE(*plan_node, *drop_database_plan2);
+  EXPECT_NE(*drop_database_plan, *drop_database_plan2);
+  EXPECT_NE(plan_node->Hash(), drop_database_plan2->Hash());
+
 }
 
 // NOLINTNEXTLINE
@@ -521,6 +541,7 @@ TEST(PlanNodeJsonTest, DropIndexPlanNodeTest) {
   EXPECT_EQ(PlanNodeType::DROP_INDEX, deserialized_plan->GetPlanNodeType());
   auto drop_index_plan = std::dynamic_pointer_cast<DropIndexPlanNode>(deserialized_plan);
   EXPECT_EQ(*plan_node, *drop_index_plan);
+  EXPECT_EQ(plan_node->Hash(), drop_index_plan->Hash());
 }
 
 // NOLINTNEXTLINE
@@ -542,6 +563,7 @@ TEST(PlanNodeJsonTest, DropNamespacePlanNodeTest) {
   EXPECT_EQ(PlanNodeType::DROP_NAMESPACE, deserialized_plan->GetPlanNodeType());
   auto drop_namespace_plan = std::dynamic_pointer_cast<DropNamespacePlanNode>(deserialized_plan);
   EXPECT_EQ(*plan_node, *drop_namespace_plan);
+  EXPECT_EQ(plan_node->Hash(), drop_namespace_plan->Hash());
 }
 
 // NOLINTNEXTLINE
@@ -564,6 +586,7 @@ TEST(PlanNodeJsonTest, DropTablePlanNodeTest) {
   EXPECT_EQ(PlanNodeType::DROP_TABLE, deserialized_plan->GetPlanNodeType());
   auto drop_table_plan = std::dynamic_pointer_cast<DropTablePlanNode>(deserialized_plan);
   EXPECT_EQ(*plan_node, *drop_table_plan);
+  EXPECT_EQ(plan_node->Hash(), drop_table_plan->Hash());
 }
 
 // NOLINTNEXTLINE

@@ -10,7 +10,7 @@ common::hash_t CreateDatabasePlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
 
   // Hash database_name
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(GetDatabaseName()));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_name_));
 
   return hash;
 }
@@ -21,7 +21,7 @@ bool CreateDatabasePlanNode::operator==(const AbstractPlanNode &rhs) const {
   auto &other = dynamic_cast<const CreateDatabasePlanNode &>(rhs);
 
   // Database name
-  if (GetDatabaseName() != other.GetDatabaseName()) return false;
+  if (database_name_ != other.database_name_) return false;
 
   return AbstractPlanNode::operator==(rhs);
 }

@@ -3,19 +3,17 @@
 #include <utility>
 
 namespace terrier::planner {
+
 common::hash_t DropDatabasePlanNode::Hash() const {
-  auto type = GetPlanNodeType();
-  common::hash_t hash = common::HashUtil::Hash(&type);
+  common::hash_t hash = AbstractPlanNode::Hash();
 
-  // Hash database oid
-  auto database_oid = GetDatabaseOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid));
+  // Database Oid
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
 
-  // Hash if_exists_
-  auto if_exist = IsIfExists();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&if_exist));
+  // If Exists
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(if_exists_));
 
-  return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
+  return hash;
 }
 
 bool DropDatabasePlanNode::operator==(const AbstractPlanNode &rhs) const {
@@ -24,10 +22,10 @@ bool DropDatabasePlanNode::operator==(const AbstractPlanNode &rhs) const {
   auto &other = dynamic_cast<const DropDatabasePlanNode &>(rhs);
 
   // Database OID
-  if (GetDatabaseOid() != other.GetDatabaseOid()) return false;
+  if (database_oid_ != other.database_oid_) return false;
 
   // If exists
-  if (IsIfExists() != other.IsIfExists()) return false;
+  if (if_exists_ != other.if_exists_) return false;
 
   return AbstractPlanNode::operator==(rhs);
 }

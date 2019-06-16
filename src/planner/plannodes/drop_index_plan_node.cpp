@@ -3,27 +3,23 @@
 #include <utility>
 
 namespace terrier::planner {
+
 common::hash_t DropIndexPlanNode::Hash() const {
-  auto type = GetPlanNodeType();
-  common::hash_t hash = common::HashUtil::Hash(&type);
+  common::hash_t hash = AbstractPlanNode::Hash();
 
   // Hash databse_oid
-  auto database_oid = GetDatabaseOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
 
   // Hash namespace oid
-  auto namespace_oid = GetNamespaceOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&namespace_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
 
   // Hash index_oid
-  auto index_oid = GetIndexOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&index_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(index_oid_));
 
   // Hash if_exists_
-  auto if_exist = IsIfExists();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&if_exist));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(if_exists_));
 
-  return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
+  return hash;
 }
 
 bool DropIndexPlanNode::operator==(const AbstractPlanNode &rhs) const {
