@@ -10,37 +10,36 @@ namespace terrier::planner {
 common::hash_t CreateTablePlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
 
-  // Hash database_oid
-  auto database_oid = GetDatabaseOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid));
+  // Database OID
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
 
-  // Hash namespace_oid
-  auto namespace_oid = GetNamespaceOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid));
+  // Namespace OI
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
 
-  // Hash table_name
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(GetTableName()));
+  // Table Name
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_name_));
 
   // TODO(Gus,Wen) Hash catalog::Schema
 
-  // Hash has primary_key
-  auto has_primary_key = HasPrimaryKey();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(has_primary_key));
+  // Primary Key Flag
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(has_primary_key_));
 
-  // Hash primary_key
-  hash = common::HashUtil::CombineHashes(hash, primary_key_.Hash());
+  // Primary Key Info
+  if (has_primary_key_) {
+    hash = common::HashUtil::CombineHashes(hash, primary_key_.Hash());
+  }
 
-  // Hash foreign_keys
+  // Foreign Keys
   for (const auto &foreign_key : foreign_keys_) {
     hash = common::HashUtil::CombineHashes(hash, foreign_key.Hash());
   }
 
-  // Hash con_uniques
+  // Unique Constraints
   for (const auto &con_unique : con_uniques_) {
     hash = common::HashUtil::CombineHashes(hash, con_unique.Hash());
   }
 
-  // Hash con_checks
+  // Check Constraints
   for (const auto &con_check : con_checks_) {
     hash = common::HashUtil::CombineHashes(hash, con_check.Hash());
   }
@@ -54,54 +53,30 @@ bool CreateTablePlanNode::operator==(const AbstractPlanNode &rhs) const {
   auto &other = dynamic_cast<const CreateTablePlanNode &>(rhs);
 
   // Database OID
-  if (GetDatabaseOid() != other.GetDatabaseOid()) return false;
+  if (database_oid_ != other.database_oid_) return false;
 
   // Namespace OID
-  if (GetNamespaceOid() != other.GetNamespaceOid()) return false;
+  if (namespace_oid_ != other.namespace_oid_) return false;
 
   // Table name
-  if (GetTableName() != other.GetTableName()) return false;
+  if (table_name_ != other.table_name_) return false;
 
   // TODO(Gus,Wen) Compare catalog::Schema
 
   // Has primary key
-  if (HasPrimaryKey() != other.HasPrimaryKey()) return false;
+  if (has_primary_key_ != other.has_primary_key_) return false;
 
   // Primary Key
-  if (HasPrimaryKey() && (GetPrimaryKey() != other.GetPrimaryKey())) return false;
+  if (has_primary_key_ && (primary_key_ != other.primary_key_)) return false;
 
   // Foreign key
-  const auto &foreign_keys_ = GetForeignKeys();
-  const auto &other_foreign_keys_ = other.GetForeignKeys();
-  if (foreign_keys_.size() != other_foreign_keys_.size()) return false;
-
-  for (size_t i = 0; i < foreign_keys_.size(); i++) {
-    if (foreign_keys_[i] != other_foreign_keys_[i]) {
-      return false;
-    }
-  }
+  if (foreign_keys_ != other.foreign_keys_) return false;
 
   // Unique constraints
-  const auto &con_uniques = GetUniqueConstraintss();
-  const auto &other_con_uniques = other.GetUniqueConstraintss();
-  if (con_uniques.size() != other_con_uniques.size()) return false;
-
-  for (size_t i = 0; i < con_uniques.size(); i++) {
-    if (con_uniques[i] != other_con_uniques[i]) {
-      return false;
-    }
-  }
+  if (con_uniques_ != other.con_uniques_) return false;
 
   // Check constraints
-  const auto &con_checks = GetCheckConstrinats();
-  const auto &other_con_check = other.GetCheckConstrinats();
-  if (con_checks.size() != other_con_check.size()) return false;
-
-  for (size_t i = 0; i < con_checks.size(); i++) {
-    if (con_checks[i] != other_con_check[i]) {
-      return false;
-    }
-  }
+  if (con_checks_ != other.con_checks_) return false;
 
   return AbstractPlanNode::operator==(rhs);
 }

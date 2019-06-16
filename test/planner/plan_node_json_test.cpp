@@ -152,6 +152,7 @@ TEST(PlanNodeJsonTest, AggregatePlanNodeJsonTest) {
   EXPECT_EQ(PlanNodeType::AGGREGATE, deserialized_plan->GetPlanNodeType());
   auto aggregate_plan = std::dynamic_pointer_cast<AggregatePlanNode>(deserialized_plan);
   EXPECT_EQ(*plan_node, *aggregate_plan);
+  EXPECT_EQ(plan_node->Hash(), aggregate_plan->Hash());
 }
 
 // NOLINTNEXTLINE
@@ -195,6 +196,7 @@ TEST(PlanNodeJsonTest, CreateDatabasePlanNodeTest) {
   EXPECT_EQ(PlanNodeType::CREATE_DATABASE, deserialized_plan->GetPlanNodeType());
   auto create_database_plan = std::dynamic_pointer_cast<CreateDatabasePlanNode>(deserialized_plan);
   EXPECT_EQ(*plan_node, *create_database_plan);
+  EXPECT_EQ(plan_node->Hash(), create_database_plan->Hash());
 }
 
 // NOLINTNEXTLINE
@@ -223,6 +225,7 @@ TEST(PlanNodeJsonTest, CreateFunctionPlanNodeTest) {
   EXPECT_EQ(PlanNodeType::CREATE_FUNC, deserialized_plan->GetPlanNodeType());
   auto create_func_plan = std::dynamic_pointer_cast<CreateFunctionPlanNode>(deserialized_plan);
   EXPECT_EQ(*plan_node, *create_func_plan);
+  EXPECT_EQ(plan_node->Hash(), create_func_plan->Hash());
 }
 
 // NOLINTNEXTLINE
@@ -248,6 +251,7 @@ TEST(PlanNodeJsonTest, CreateIndexPlanNodeTest) {
   EXPECT_EQ(PlanNodeType::CREATE_INDEX, deserialized_plan->GetPlanNodeType());
   auto create_index_plan = std::dynamic_pointer_cast<CreateIndexPlanNode>(deserialized_plan);
   EXPECT_EQ(*plan_node, *create_index_plan);
+  EXPECT_EQ(plan_node->Hash(), create_index_plan->Hash());
 }
 
 // NOLINTNEXTLINE
@@ -266,33 +270,39 @@ TEST(PlanNodeJsonTest, CreateNamespacePlanNodeTest) {
   EXPECT_EQ(PlanNodeType::CREATE_NAMESPACE, deserialized_plan->GetPlanNodeType());
   auto create_namespace_plan = std::dynamic_pointer_cast<CreateNamespacePlanNode>(deserialized_plan);
   EXPECT_EQ(*plan_node, *create_namespace_plan);
+  EXPECT_EQ(plan_node->Hash(), create_namespace_plan->Hash());
 }
 
 // NOLINTNEXTLINE
 TEST(PlanNodeJsonTest, CreateTablePlanNodeTest) {
+  // PRIMARY KEY
   auto get_pk_info = []() {
     PrimaryKeyInfo pk = {.primary_key_cols_ = {"a"}, .constraint_name_ = "pk_a"};
-
     return pk;
   };
 
+  // FOREIGN KEY
   auto get_fk_info = []() {
+    std::vector<ForeignKeyInfo> checks;
     ForeignKeyInfo fk = {.foreign_key_sources_ = {"b"},
                          .foreign_key_sinks_ = {"b"},
                          .sink_table_name_ = {"tbl2"},
                          .constraint_name_ = "fk_b",
                          .upd_action_ = parser::FKConstrActionType::CASCADE,
                          .del_action_ = parser::FKConstrActionType::CASCADE};
-
-    return fk;
+    checks.emplace_back(fk);
+    return checks;
   };
 
+  // UNIQUE CONSTRAINT
   auto get_unique_info = []() {
+    std::vector<UniqueInfo> checks;
     UniqueInfo uk = {.unique_cols_ = {"u_a", "u_b"}, .constraint_name_ = "uk_a_b"};
-
-    return uk;
+    checks.emplace_back(uk);
+    return checks;
   };
 
+  // CHECK CONSTRAINT
   auto get_check_info = []() {
     type::TransientValue val = type::TransientValueFactory::GetInteger(1);
     std::vector<CheckInfo> checks;
@@ -301,12 +311,12 @@ TEST(PlanNodeJsonTest, CreateTablePlanNodeTest) {
     return checks;
   };
 
+  // Columns
   auto get_schema = []() {
     std::vector<catalog::Schema::Column> columns = {
         catalog::Schema::Column("a", type::TypeId::INTEGER, false, catalog::col_oid_t(1)),
         catalog::Schema::Column("u_a", type::TypeId::DECIMAL, false, catalog::col_oid_t(2)),
         catalog::Schema::Column("u_b", type::TypeId::DATE, true, catalog::col_oid_t(3))};
-
     return std::make_shared<catalog::Schema>(columns);
   };
 
@@ -318,8 +328,8 @@ TEST(PlanNodeJsonTest, CreateTablePlanNodeTest) {
                           .SetTableSchema(get_schema())
                           .SetHasPrimaryKey(true)
                           .SetPrimaryKey(get_pk_info())
-                          .SetForeignKeys({get_fk_info()})
-                          .SetUniqueConstraints({get_unique_info()})
+                          .SetForeignKeys(get_fk_info())
+                          .SetUniqueConstraints(get_unique_info())
                           .SetCheckConstraints(get_check_info())
                           .Build();
 
@@ -329,11 +339,12 @@ TEST(PlanNodeJsonTest, CreateTablePlanNodeTest) {
                              .SetTableSchema(get_schema())
                              .SetHasPrimaryKey(false)
                              .SetPrimaryKey(get_pk_info())
-                             .SetForeignKeys({get_fk_info()})
-                             .SetUniqueConstraints({get_unique_info()})
+                             .SetForeignKeys(get_fk_info())
+                             .SetUniqueConstraints(get_unique_info())
                              .SetCheckConstraints(get_check_info())
                              .Build();
-  EXPECT_TRUE(*pk_plan_node != *no_pk_plan_node);
+  EXPECT_NE(*pk_plan_node, *no_pk_plan_node);
+  EXPECT_NE(pk_plan_node->Hash(), no_pk_plan_node->Hash());
 
   // Serialize to Json
   auto pk_json = pk_plan_node->ToJson();
@@ -352,9 +363,33 @@ TEST(PlanNodeJsonTest, CreateTablePlanNodeTest) {
 
   auto create_table_pk_plan = std::dynamic_pointer_cast<CreateTablePlanNode>(deserialized_pk_plan);
   auto create_table_no_pk_plan = std::dynamic_pointer_cast<CreateTablePlanNode>(deserialized_no_pk_plan);
-  EXPECT_TRUE(*create_table_pk_plan != *create_table_no_pk_plan);
+
+  EXPECT_NE(*create_table_pk_plan, *create_table_no_pk_plan);
+  EXPECT_NE(create_table_pk_plan->Hash(), create_table_no_pk_plan->Hash());
+
+  // PRIMARY KEY
   EXPECT_EQ(*pk_plan_node, *create_table_pk_plan);
+  EXPECT_EQ(pk_plan_node->Hash(), create_table_pk_plan->Hash());
+
+  // NO PRIMARY KEY
   EXPECT_EQ(*no_pk_plan_node, *create_table_no_pk_plan);
+  EXPECT_EQ(no_pk_plan_node->Hash(), create_table_no_pk_plan->Hash());
+
+  // Foreign Key Constraints
+  EXPECT_EQ(create_table_pk_plan->GetForeignKeys().size(), 1);
+  EXPECT_EQ(create_table_pk_plan->GetForeignKeys()[0], get_fk_info()[0]);
+  EXPECT_EQ(create_table_pk_plan->GetForeignKeys()[0].Hash(), get_fk_info()[0].Hash());
+
+  // Unique Constraints
+  EXPECT_EQ(create_table_pk_plan->GetUniqueConstraints().size(), 1);
+  EXPECT_EQ(create_table_pk_plan->GetUniqueConstraints()[0], get_unique_info()[0]);
+  EXPECT_EQ(create_table_pk_plan->GetUniqueConstraints()[0].Hash(), get_unique_info()[0].Hash());
+
+  // Check Constraints
+  EXPECT_EQ(create_table_pk_plan->GetCheckConstraints().size(), 1);
+  EXPECT_EQ(create_table_pk_plan->GetCheckConstraints()[0], get_check_info()[0]);
+  EXPECT_EQ(create_table_pk_plan->GetCheckConstraints()[0].Hash(), get_check_info()[0].Hash());
+
 }
 
 // NOLINTNEXTLINE
