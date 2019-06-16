@@ -20,8 +20,11 @@ bool HashPlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   const auto &other = static_cast<const HashPlanNode &>(rhs);
 
-  // Check keys
-  if (hash_keys_ != other.hash_keys_) return false;
+  // Hash keys
+  if (hash_keys_.size() != other.hash_keys_.size()) return false;
+  for (size_t i = 0; i < hash_keys_.size(); i++) {
+    if (*hash_keys_[i] != *other.hash_keys_[i]) return false;
+  }
 
   return AbstractPlanNode::operator==(rhs);
 }

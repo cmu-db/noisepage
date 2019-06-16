@@ -60,7 +60,7 @@ bool CreateIndexPlanNode::operator==(const AbstractPlanNode &rhs) const {
   if (key_attrs_ != other.key_attrs_) return false;
 
   // Unique index
-  if (unique_index_!= other.unique_index_) return false;
+  if (unique_index_ != other.unique_index_) return false;
 
   // Index name
   if (index_name_ != other.index_name_) return false;

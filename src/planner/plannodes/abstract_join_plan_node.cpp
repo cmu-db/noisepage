@@ -11,7 +11,8 @@ bool AbstractJoinPlanNode::operator==(const AbstractPlanNode &rhs) const {
   if (join_type_ != other.join_type_) return false;
 
   // Check predicate
-  if ((join_predicate_ == nullptr && other.join_predicate_ != nullptr) || (join_predicate_ != nullptr && other.join_predicate_ == nullptr)) {
+  if ((join_predicate_ == nullptr && other.join_predicate_ != nullptr) ||
+      (join_predicate_ != nullptr && other.join_predicate_ == nullptr)) {
     return false;
   }
   if (join_predicate_ != nullptr && *join_predicate_ != *other.join_predicate_) {

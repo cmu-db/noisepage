@@ -1,4 +1,5 @@
 #include "planner/plannodes/insert_plan_node.h"
+#include <map>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -23,15 +24,18 @@ common::hash_t InsertPlanNode::Hash() const {
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
 
   // Hash parameter_info
-  for (const auto pair : parameter_info_) {
+  // Important: The ordering of the keys matter when we want to compute the hash!
+  // HACK HACK HACK
+  std::map<uint32_t, catalog::col_oid_t> ordered(parameter_info_.begin(), parameter_info_.end());
+  for (const auto pair : ordered) {
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(pair.first));
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(pair.second));
   }
 
   // Values
-  for (uint32_t i = 0; i < GetBulkInsertCount(); i++) {
-    for (const auto &value : GetValues(i)) {
-      hash = common::HashUtil::CombineHashes(hash, value.Hash());
+  for (const auto &vals : values_) {
+    for (const auto &val : vals) {
+      hash = common::HashUtil::CombineHashes(hash, val.Hash());
     }
   }
 
@@ -53,10 +57,18 @@ bool InsertPlanNode::operator==(const AbstractPlanNode &rhs) const {
   if (table_oid_ != other.table_oid_) return false;
 
   // Values
-  if (values_ != other.values_) return false;
+  if (values_.size() != other.values_.size()) return false;
+  for (size_t i = 0; i < values_.size(); i++) {
+    if (values_[i] != other.values_[i]) return false;
+  }
 
   // Parameter info
-  if (parameter_info_ != other.parameter_info_) return false;
+  if (parameter_info_.size() != other.parameter_info_.size()) return false;
+  for (const auto this_pair : parameter_info_) {
+    auto other_pair = other.parameter_info_.find(this_pair.first);
+    if (other_pair == other.parameter_info_.end()) return false;
+    if (this_pair.second != other_pair->second) return false;
+  }
 
   return AbstractPlanNode::operator==(rhs);
 }

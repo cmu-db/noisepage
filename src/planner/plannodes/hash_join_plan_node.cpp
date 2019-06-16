@@ -24,7 +24,7 @@ common::hash_t HashJoinPlanNode::Hash() const {
 }
 
 bool HashJoinPlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (!AbstractJoinPlanNode::operator==(rhs)) return false;
+  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
 
   const auto &other = static_cast<const HashJoinPlanNode &>(rhs);
 
@@ -32,12 +32,18 @@ bool HashJoinPlanNode::operator==(const AbstractPlanNode &rhs) const {
   if (build_bloomfilter_ != other.build_bloomfilter_) return false;
 
   // Left hash keys
-  if (left_hash_keys_ != other.left_hash_keys_) return false;
+  if (left_hash_keys_.size() != other.left_hash_keys_.size()) return false;
+  for (size_t i = 0; i < left_hash_keys_.size(); i++) {
+    if (*left_hash_keys_[i] != *other.left_hash_keys_[i]) return false;
+  }
 
   // Right hash keys
-  if (right_hash_keys_ != other.right_hash_keys_) return false;
+  if (right_hash_keys_.size() != other.right_hash_keys_.size()) return false;
+  for (size_t i = 0; i < right_hash_keys_.size(); i++) {
+    if (*right_hash_keys_[i] != *other.right_hash_keys_[i]) return false;
+  }
 
-  return true;
+  return (AbstractPlanNode::operator==(rhs));
 }
 
 nlohmann::json HashJoinPlanNode::ToJson() const {

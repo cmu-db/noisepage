@@ -65,7 +65,7 @@ bool CreateFunctionPlanNode::operator==(const AbstractPlanNode &rhs) const {
   if (function_body_ != other.function_body_) return false;
 
   // Is replace
-  if (is_replace_ != other.is_replace_)return false;
+  if (is_replace_ != other.is_replace_) return false;
 
   // Function name
   if (function_name_ != other.function_name_) return false;
