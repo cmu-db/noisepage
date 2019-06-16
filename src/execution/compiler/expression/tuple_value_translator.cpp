@@ -5,18 +5,11 @@
 
 namespace tpl::compiler {
 TupleValueTranslator::TupleValueTranslator(const terrier::parser::AbstractExpression *expression,
-                                           CompilationContext *context)
-    : ExpressionTranslator(expression, context) {}
+                                           CodeGen * codegen)
+    : ExpressionTranslator(expression, codegen) {}
 
-ast::Expr *TupleValueTranslator::DeriveExpr(const terrier::parser::AbstractExpression *expression, RowBatch *row) {
-  auto tuple_val = GetExpressionAs<terrier::parser::TupleValueExpression>();
-  auto codegen = context_->GetCodeGen();
-  // Use the region allocator because the identifier will outlive this scope.
-  auto *col_name =
-      codegen->GetRegion()->AllocateArray<char>(tuple_val.GetColumnName().size() + 1);  // tuple_val.GetColumnName();
-  std::memcpy(col_name, tuple_val.GetColumnName().c_str(), tuple_val.GetColumnName().size() + 1);
-  auto col_ident =
-      (*codegen)->NewIdentifierExpr(DUMMY_POS, codegen->GetCodeContext()->GetAstContext()->GetIdentifier(col_name));
-  return (*codegen)->NewMemberExpr(DUMMY_POS, row->GetIdentifierExpr(), col_ident);
+ast::Expr *TupleValueTranslator::DeriveExpr(OperatorTranslator * translator) {
+  auto tuple_val = GetExpressionAs<terrier::parser::ExecTupleValueExpression>();
+  return translator->GetChildOutput(tuple_val->GetTupleIdx(), tuple_val->GetColIdx());
 }
 };  // namespace tpl::compiler

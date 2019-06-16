@@ -3,8 +3,8 @@
 #include <unordered_map>
 #include <utility>
 #include "execution/ast/ast.h"
-#include "execution/compiler/row_batch.h"
 #include "parser/expression/abstract_expression.h"
+#include "execution/compiler/operator/operator_translator.h"
 
 namespace tpl::compiler {
 
@@ -44,21 +44,22 @@ class ExpressionTranslator {
   /**
    * Constructor
    * @param expression expression to translate
-   * @param context compilation context to use.
+   * @param codegen code generator to use
    */
-  ExpressionTranslator(const terrier::parser::AbstractExpression *expression, CompilationContext *context)
-      : context_(context), expression_(*expression) {}
+  ExpressionTranslator(const terrier::parser::AbstractExpression *expression, CodeGen * codegen)
+      : codegen_(codegen), expression_(expression) {}
 
-  /// Destructor
+  /**
+   * Destructor
+   */
   virtual ~ExpressionTranslator() = default;
 
   /**
    * TODO(Amadou): Passing expression again here may be redundant? Check with Tanuj.
-   * @param expression expression to translate
-   * @param row row batch to use when translating
+   * @param op_state the operator state used to translate the expression
    * @return resulting TPL expression
    */
-  virtual ast::Expr *DeriveExpr(const terrier::parser::AbstractExpression *expression, RowBatch *row) = 0;
+  virtual ast::Expr *DeriveExpr(OperatorTranslator * translator) = 0;
 
   /**
    * Convert the generic expression to the given type.
@@ -66,15 +67,19 @@ class ExpressionTranslator {
    * @return the converted expression.
    */
   template <typename T>
-  const T &GetExpressionAs() const {
-    return static_cast<const T &>(expression_);
+  const T *GetExpressionAs() {
+    return reinterpret_cast<const T *>(expression_);
   }
 
  protected:
-  /// Compilation context
-  CompilationContext *context_;
+  /**
+   * Code Generator
+   */
+  CodeGen *codegen_;
 
- private:
-  const terrier::parser::AbstractExpression &expression_;
+  /**
+   * The expression to translate
+   */
+  const terrier::parser::AbstractExpression * expression_;
 };
 };  // namespace tpl::compiler

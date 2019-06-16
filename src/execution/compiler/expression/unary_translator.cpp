@@ -3,15 +3,14 @@
 
 namespace tpl::compiler {
 
-UnaryTranslator::UnaryTranslator(const terrier::parser::AbstractExpression *expression, CompilationContext *context)
-    : ExpressionTranslator(expression, context) {
-  context->Prepare(*expression->GetChild(0));
-}
+UnaryTranslator::UnaryTranslator(const terrier::parser::AbstractExpression *expression, CodeGen * codegen)
+    : ExpressionTranslator(expression, codegen)
+    , child_(TranslatorFactory::CreateExpressionTranslator(expression->GetChild(0).get(), codegen)){}
 
-ast::Expr *UnaryTranslator::DeriveExpr(const terrier::parser::AbstractExpression *expression, RowBatch *row) {
-  auto *left = row->DeriveValue(*expression->GetChild(0));
+ast::Expr *UnaryTranslator::DeriveExpr(OperatorTranslator * translator) {
+  auto *child_expr = child_->DeriveExpr(translator);
   parsing::Token::Type type;
-  switch (expression->GetExpressionType()) {
+  switch (expression_->GetExpressionType()) {
     case terrier::parser::ExpressionType::OPERATOR_UNARY_MINUS:
       type = parsing::Token::Type::MINUS;
       break;
@@ -21,6 +20,6 @@ ast::Expr *UnaryTranslator::DeriveExpr(const terrier::parser::AbstractExpression
     default:
       TPL_ASSERT(false, "Unsupported expression");
   }
-  return (*context_->GetCodeGen())->NewUnaryOpExpr(DUMMY_POS, type, left);
+  return codegen_->UnaryOp(type, child_expr);
 }
 }  // namespace tpl::compiler

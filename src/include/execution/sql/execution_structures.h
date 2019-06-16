@@ -68,10 +68,10 @@ class ExecutionStructures {
 
   /**
    * Used for testing only
-   * @param name name of test the final schema
-   * @return associated final schema
+   * @param name name of test the output schema
+   * @return associated output schema
    */
-  std::shared_ptr<exec::FinalSchema> GetFinalSchema(const std::string &name) { return test_plan_nodes_.at(name); }
+  std::shared_ptr<terrier::planner::OutputSchema> GetOutputSchema(const std::string &name) { return test_plan_nodes_.at(name); }
 
   /**
    * Return the test db and namespace oid.
@@ -91,7 +91,7 @@ class ExecutionStructures {
   std::unique_ptr<LogManager> log_manager_;
   std::unique_ptr<TransactionManager> txn_manager_;
   std::unique_ptr<Catalog> catalog_;
-  std::unordered_map<std::string, std::shared_ptr<exec::FinalSchema>> test_plan_nodes_;
+  std::unordered_map<std::string, std::shared_ptr<terrier::planner::OutputSchema>> test_plan_nodes_;
   std::unique_ptr<GarbageCollector> gc_;
   terrier::catalog::db_oid_t test_db_oid_ = terrier::catalog::DEFAULT_DATABASE_OID;
   terrier::catalog::namespace_oid_t test_ns_oid_;

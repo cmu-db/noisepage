@@ -1,21 +1,19 @@
 #include "execution/compiler/expression/arithmetic_translator.h"
 #include "execution/compiler/compilation_context.h"
+#include "execution/compiler/translator_factory.h"
 
 namespace tpl::compiler {
 
-ArithmeticTranslator::ArithmeticTranslator(const terrier::parser::AbstractExpression *expression,
-                                           CompilationContext *context)
-    : ExpressionTranslator(expression, context) {
-  context->Prepare(*expression->GetChild(0));
-  context->Prepare(*expression->GetChild(1));
-}
+ArithmeticTranslator::ArithmeticTranslator(const terrier::parser::AbstractExpression *expression, CodeGen * codegen)
+    : ExpressionTranslator(expression, codegen),
+      left_(TranslatorFactory::CreateExpressionTranslator(expression_->GetChild(0).get(), codegen_)),
+      right_(TranslatorFactory::CreateExpressionTranslator(expression_->GetChild().get(), codegen_)) {}
 
-ast::Expr *ArithmeticTranslator::DeriveExpr(const terrier::parser::AbstractExpression *expression, RowBatch *row) {
-  auto arith_expr = GetExpressionAs<terrier::parser::OperatorExpression>();
-  auto *left = row->DeriveValue(*expression->GetChild(0));
-  auto *right = row->DeriveValue(*expression->GetChild(1));
+ast::Expr *ArithmeticTranslator::DeriveExpr(OperatorTranslator * translator) {
+  auto *left_expr = left_->DeriveExpr(translator);
+  auto *right_expr = right_->DeriveExpr(translator));
   parsing::Token::Type type;
-  switch (expression->GetExpressionType()) {
+  switch (expression_->GetExpressionType()) {
     case terrier::parser::ExpressionType::OPERATOR_DIVIDE:
       type = parsing::Token::Type::SLASH;
       break;
@@ -35,6 +33,6 @@ ast::Expr *ArithmeticTranslator::DeriveExpr(const terrier::parser::AbstractExpre
       // TODO(tanujnay112): figure out concatenation operation from expressions?
       TPL_ASSERT(false, "Unsupported expression");
   }
-  return (*context_->GetCodeGen())->NewBinaryOpExpr(DUMMY_POS, type, left, right);
+  return codegen_->BinaryOp(type, left_expr, right_expr);
 }
 }  // namespace tpl::compiler

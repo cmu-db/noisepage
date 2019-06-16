@@ -11,10 +11,10 @@ class TupleValueTranslator : public ExpressionTranslator {
   /**
    * Constructor
    * @param expression expression to translate
-   * @param context compilation context to use
+   * @param codegen code generator to use
    */
-  TupleValueTranslator(const terrier::parser::AbstractExpression *expression, CompilationContext *context);
+  TupleValueTranslator(const terrier::parser::AbstractExpression *expression, CodeGen * codegen);
 
-  ast::Expr *DeriveExpr(const terrier::parser::AbstractExpression *expression, RowBatch *row) override;
+  ast::Expr *DeriveExpr(OperatorTranslator * translator) override;
 };
 }  // namespace tpl::compiler

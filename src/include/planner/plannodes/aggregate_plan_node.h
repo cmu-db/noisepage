@@ -19,7 +19,7 @@
 namespace terrier::planner {
 
 using AggregateTerm = std::shared_ptr<parser::AggregateExpression>;
-using GroupByTerm = std::shared_ptr<parser::TupleValueExpression>;
+using GroupByTerm = std::shared_ptr<parser::AbstractExpression>;
 
 /**
  * Plan node for aggregates

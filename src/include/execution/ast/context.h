@@ -6,6 +6,7 @@
 
 #include "execution/ast/builtins.h"
 #include "execution/ast/identifier.h"
+#include "execution/ast/type.h"
 #include "execution/util/region.h"
 #include "type/type_id.h"
 
@@ -69,6 +70,20 @@ class Context {
    * @return True if the function name is that of a builtin; false otherwise
    */
   bool IsBuiltinFunction(Identifier identifier, Builtin *builtin = nullptr) const;
+
+  /**
+   * Get the identifier of a builtin function
+   * @param builtin builtin to find
+   * @return the identifier of the builtin function
+   */
+  ast::Identifier GetBuiltinFunction(Builtin builtin);
+
+  /**
+   * Get the identifier of a builtin type
+   * @param builtin builtin to find
+   * @return the i
+   */
+  ast::Identifier GetBuiltinType(BuiltinType::Kind kind);
 
   // -------------------------------------------------------
   // Simple accessors

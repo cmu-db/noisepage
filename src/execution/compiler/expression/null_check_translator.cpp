@@ -3,20 +3,19 @@
 
 namespace tpl::compiler {
 NullCheckTranslator::NullCheckTranslator(const terrier::parser::AbstractExpression *expression,
-                                         CompilationContext *context)
-    : ExpressionTranslator(expression, context) {
-  context->Prepare(*expression->GetChild(0));
+                                         CodeGen * codegen)
+    : ExpressionTranslator(expression, codegen)
+    , child_{TranslatorFactory::CreateExpressionTranslator(expression->GetChild(0).get(), codegen)}{
 }
 
-ast::Expr *NullCheckTranslator::DeriveExpr(const terrier::parser::AbstractExpression *expression, RowBatch *row) {
-  auto type = expression->GetExpressionType();
-  auto codegen = context_->GetCodeGen();
-  auto child = row->DeriveValue(*expression->GetChild(0));
-  auto null_expr = (*codegen)->NewNilLiteral(DUMMY_POS);
+ast::Expr *NullCheckTranslator::DeriveExpr(OperatorTranslator * translator) {
+  auto type = expression_->GetExpressionType();
+  auto child_expr = child_->DeriveExpr(translator);
+  auto null_expr = codegen_->NilLiteral(DUMMY_POS);
   if (type == terrier::parser::ExpressionType::OPERATOR_IS_NULL) {
-    return (*codegen)->NewBinaryOpExpr(DUMMY_POS, parsing::Token::Type::EQUAL_EQUAL, null_expr, child);
+    return codegen_->BinaryOp(parsing::Token::Type::EQUAL_EQUAL, null_expr, child_expr);
   }
   TPL_ASSERT(type == terrier::parser::ExpressionType::OPERATOR_IS_NOT_NULL, "Unsupported expression");
-  return (*codegen)->NewBinaryOpExpr(DUMMY_POS, parsing::Token::Type::BANG_EQUAL, null_expr, child);
+  return codegen_->BinaryOp(parsing::Token::Type::BANG_EQUAL, null_expr, child_expr);
 }
 };  // namespace tpl::compiler

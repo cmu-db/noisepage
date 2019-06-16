@@ -244,88 +244,56 @@ void ExecutionStructures::InitTestTables(terrier::transaction::TransactionContex
 
 // TODO(Amadou): Generate TPCH tables and use them to get the right schema
 void ExecutionStructures::InitTPCHOutputSchemas(terrier::transaction::TransactionContext * txn) {
-  auto catalog_empty_table = catalog_->GetUserTable(txn, test_db_oid_, test_ns_oid_, "empty_table");
-  const terrier::catalog::Schema &schema_empty_table = catalog_empty_table->GetSqlTable()->GetSchema();
+  terrier::planner::OutputSchema::Column int_col{terrier::type::TypeId::INTEGER, true, nullptr};
   // Q6 (one Integer)
   {
-    std::vector<terrier::catalog::Schema::Column> output_cols{};
-    output_cols.emplace_back(schema_empty_table.GetColumns()[0]);
-    std::unordered_map<uint32_t, uint32_t> offsets{};
-    offsets[0] = 0;
-    auto final_schema = std::make_shared<exec::FinalSchema>(output_cols, offsets);
-    test_plan_nodes_["q6.tpl"] = final_schema;
+    std::vector<terrier::planner::OutputSchema::Column> cols{int_col};
+    auto schema = std::make_shared<terrier::planner::OutputSchema>(cols);
+    test_plan_nodes_["q6.tpl"] = schema;
   }
 
   // Q1 (ten Integers)
   {
-    std::vector<terrier::catalog::Schema::Column> output_cols{};
-    std::unordered_map<uint32_t, uint32_t> offsets{};
+    std::vector<terrier::catalog::Schema::Column> cols{};
     for (u32 i = 0; i < u32(10); i++) {
-      output_cols.emplace_back(schema_empty_table.GetColumns()[0]);
-      offsets[i] = i * sql::ValUtil::GetSqlSize(schema_empty_table.GetColumns()[0].GetType());
+      cols.emplace_back(int_col);
     }
-    auto final_schema = std::make_shared<exec::FinalSchema>(output_cols, offsets);
-    test_plan_nodes_["q1.tpl"] = final_schema;
+    auto schema = std::make_shared<terrier::planner::OutputSchema>(cols);
+    test_plan_nodes_["q1.tpl"] = schema;
   }
 
   // Q4 (two Integers)
   {
-    std::vector<terrier::catalog::Schema::Column> output_cols{};
-    std::unordered_map<uint32_t, uint32_t> offsets{};
+    std::vector<terrier::catalog::Schema::Column> cols{};
     for (u32 i = 0; i < u32(2); i++) {
-      output_cols.emplace_back(schema_empty_table.GetColumns()[0]);
-      offsets[i] = i * sql::ValUtil::GetSqlSize(schema_empty_table.GetColumns()[0].GetType());
+      cols.emplace_back(int_col);
     }
-    auto final_schema = std::make_shared<exec::FinalSchema>(output_cols, offsets);
-    test_plan_nodes_["q4.tpl"] = final_schema;
+    auto schema = std::make_shared<terrier::planner::OutputSchema>(cols);
+    test_plan_nodes_["q4.tpl"] = schema;
   }
 }
 
 void ExecutionStructures::InitTestSchemas(terrier::transaction::TransactionContext * txn) {
-  auto catalog_test_1 = catalog_->GetUserTable(txn, test_db_oid_, test_ns_oid_, "test_1");
-  const terrier::catalog::Schema &schema_test_1 = catalog_test_1->GetSqlTable()->GetSchema();
-  auto catalog_test_2 = catalog_->GetUserTable(txn, test_db_oid_, test_ns_oid_, "test_2");
-  const terrier::catalog::Schema &schema_test_2 = catalog_test_2->GetSqlTable()->GetSchema();
-  auto catalog_empty_table = catalog_->GetUserTable(txn, test_db_oid_, test_ns_oid_, "empty_table");
-  const terrier::catalog::Schema &schema_empty_table = catalog_empty_table->GetSqlTable()->GetSchema();
-
+  terrier::planner::OutputSchema::Column int_col{terrier::type::TypeId::INTEGER, true, nullptr};
   // Build output1.tpl's final schema (simple seq_scan)
   {
-    std::vector<terrier::catalog::Schema::Column> output_cols{};
-    output_cols.emplace_back(schema_test_1.GetColumns()[0]);
-    output_cols.emplace_back(schema_test_1.GetColumns()[1]);
-
-    std::unordered_map<uint32_t, uint32_t> offsets{};
-    offsets[0] = 0;
-    offsets[1] = sql::ValUtil::GetSqlSize(schema_test_1.GetColumns()[0].GetType());
-    auto final_schema = std::make_shared<exec::FinalSchema>(output_cols, offsets);
-    test_plan_nodes_["output1.tpl"] = final_schema;
+    std::vector<terrier::planner::OutputSchema::Column> cols{int_col, int_col};
+    auto schema = std::make_shared<terrier::planner::OutputSchema>(cols);
+    test_plan_nodes_["output1.tpl"] = schema;
   }
 
   // Build output2.tpl's final schema (simple nested loop join)
   {
-    std::vector<terrier::catalog::Schema::Column> output_cols{};
-    std::unordered_map<uint32_t, uint32_t> offsets{};
-    output_cols.emplace_back(schema_test_1.GetColumns()[0]);
-    output_cols.emplace_back(schema_test_1.GetColumns()[1]);
-    output_cols.emplace_back(schema_test_2.GetColumns()[0]);
-    output_cols.emplace_back(schema_test_2.GetColumns()[1]);
-    offsets[0] = 0;
-    offsets[1] = sql::ValUtil::GetSqlSize(schema_test_1.GetColumns()[0].GetType());
-    offsets[2] = offsets[1] + sql::ValUtil::GetSqlSize(schema_test_1.GetColumns()[1].GetType());
-    offsets[3] = offsets[2] + sql::ValUtil::GetSqlSize(schema_test_2.GetColumns()[0].GetType());
-    auto final_schema = std::make_shared<exec::FinalSchema>(output_cols, offsets);
-    test_plan_nodes_["output2.tpl"] = final_schema;
+    std::vector<terrier::planner::OutputSchema::Column> cols{int_col, int_col, int_col, int_col};
+    auto schema = std::make_shared<terrier::planner::OutputSchema>(cols);
+    test_plan_nodes_["output2.tpl"] = schema;
   }
 
   // Build insert.tpl's final schema (empty table)
   {
-    std::vector<terrier::catalog::Schema::Column> output_cols{};
-    output_cols.emplace_back(schema_empty_table.GetColumns()[0]);
-    std::unordered_map<uint32_t, uint32_t> offsets{};
-    offsets[0] = 0;
-    auto final_schema = std::make_shared<exec::FinalSchema>(output_cols, offsets);
-    test_plan_nodes_["insert.tpl"] = final_schema;
+    std::vector<terrier::planner::OutputSchema::Column> cols{int_col};
+    auto schema = std::make_shared<terrier::planner::OutputSchema>(cols);
+    test_plan_nodes_["insert.tpl"] = schema;
   }
 
   InitTPCHOutputSchemas(txn);

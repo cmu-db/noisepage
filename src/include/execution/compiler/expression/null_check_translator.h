@@ -11,10 +11,13 @@ class NullCheckTranslator : public ExpressionTranslator {
   /**
    * Constructor
    * @param expression expression to translate
-   * @param context compilation context to use
+   * @param codegen code generator to use
    */
-  NullCheckTranslator(const terrier::parser::AbstractExpression *expression, CompilationContext *context);
+  NullCheckTranslator(const terrier::parser::AbstractExpression *expression, CodeGen * codegen);
 
-  ast::Expr *DeriveExpr(const terrier::parser::AbstractExpression *expression, RowBatch *row) override;
+  ast::Expr *DeriveExpr(OperatorTranslator* translator) override;
+
+ private:
+  ExpressionTranslator * child_;
 };
 }  // namespace tpl::compiler

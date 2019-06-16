@@ -1,7 +1,7 @@
 #include "execution/compiler/consumer_context.h"
 
 #include "execution/compiler/compilation_context.h"
-#include "execution/compiler/execution_consumer.h"
+#include "execution/compiler/operator/output_translator.h"
 #include "execution/compiler/pipeline.h"
 
 namespace tpl::compiler {

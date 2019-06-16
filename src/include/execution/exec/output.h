@@ -8,50 +8,17 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
-#include "catalog/catalog_defs.h"
-#include "catalog/schema.h"
+#include "planner/plannodes/output_schema.h"
 #include "execution/sql/projected_columns_iterator.h"
 #include "execution/sql/value.h"
 #include "execution/util/chunked_vector.h"
 
 namespace tpl::exec {
-using terrier::catalog::Schema;
 
 // Assumes the user of the callback knows the output schema
 // So it can get read attributes itself.
 // Params: tuples, null_bitmap, num_tuples, ;
 using OutputCallback = std::function<void(byte *, u32, u32)>;
-
-/**
- * The final schema outputted to the upper layer
- * TODO(Amadou): This will probably have to OutputSchema instead of the catalog's schema
- * because returned columns may not be backed by a sql table.
- */
-class FinalSchema {
- public:
-  /**
-   * Constructor
-   * @param cols columns in the schema.
-   * @param offsets
-   */
-  FinalSchema(std::vector<Schema::Column> cols, std::unordered_map<u32, u32> offsets)
-      : cols_(std::move(cols)), offsets_(std::move(offsets)) {}
-
-  /**
-   * @return the list of columns
-   */
-  const std::vector<Schema::Column> &GetCols() const { return cols_; }
-
-  /**
-   * @param idx index of the column
-   * @return offset of the column within a tuple
-   */
-  u32 GetOffset(u32 idx) const { return offsets_.at(idx); }
-
- private:
-  const std::vector<Schema::Column> cols_;
-  const std::unordered_map<u32, u32> offsets_;
-};
 
 /**
  * A class that buffers the output and makes a callback for every batch.
@@ -120,7 +87,7 @@ class OutputPrinter {
    * Constructor
    * @param schema final schema to output
    */
-  explicit OutputPrinter(const FinalSchema &schema) : schema_(schema) {}
+  explicit OutputPrinter(const terrier::planner::OutputSchema * schema) : schema_(schema) {}
 
   /**
    * Callback that prints a batch of tuples to std out.
@@ -132,7 +99,7 @@ class OutputPrinter {
 
  private:
   uint32_t printed_ = 0;
-  const FinalSchema &schema_;
+  const terrier::planner::OutputSchema *schema_;
 };
 
 }  // namespace tpl::exec

@@ -11,10 +11,14 @@ class ConjunctionTranslator : public ExpressionTranslator {
   /**
    * Constructor
    * @param expression expression to translate
-   * @param context compilation context to use
+   * @param codegen code generator to use
    */
-  ConjunctionTranslator(const terrier::parser::AbstractExpression *expression, CompilationContext *context);
+  ConjunctionTranslator(const terrier::parser::AbstractExpression *expression, CodeGen * codegen);
 
-  ast::Expr *DeriveExpr(const terrier::parser::AbstractExpression *expression, RowBatch *row) override;
+  ast::Expr *DeriveExpr(OperatorTranslator * translator) override;
+
+ private:
+  ExpressionTranslator * left_;
+  ExpressionTranslator * right_;
 };
 }  // namespace tpl::compiler

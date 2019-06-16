@@ -11,10 +11,12 @@ class UnaryTranslator : public ExpressionTranslator {
   /**
    * Constructor
    * @param expression expression to translate
-   * @param context compilation context to use
+   * @param codegen code generator to use
    */
-  UnaryTranslator(const terrier::parser::AbstractExpression *expression, CompilationContext *context);
+  UnaryTranslator(const terrier::parser::AbstractExpression *expression, CodeGen * codegen);
 
-  ast::Expr *DeriveExpr(const terrier::parser::AbstractExpression *expression, RowBatch *row) override;
+  ast::Expr *DeriveExpr(OperatorTranslator * translator) override;
+ private:
+  ExpressionTranslator * child_;
 };
 }  // namespace tpl::compiler

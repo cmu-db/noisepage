@@ -1,20 +1,20 @@
 #include "execution/compiler/expression/comparison_translator.h"
 #include "execution/compiler/compilation_context.h"
+#include "execution/compiler/translator_factory.h"
 
 namespace tpl::compiler {
 
 ComparisonTranslator::ComparisonTranslator(const terrier::parser::AbstractExpression *expression,
-                                           CompilationContext *context)
-    : ExpressionTranslator(expression, context) {
-  context->Prepare(*expression->GetChild(0));
-  context->Prepare(*expression->GetChild(1));
-}
+                                           CodeGen * codegen)
+    : ExpressionTranslator(expression, codegen),
+      left_(TranslatorFactory::CreateExpressionTranslator(expression_->GetChild(0).get(), codegen_)),
+      right_(TranslatorFactory::CreateExpressionTranslator(expression_->GetChild(1).get(), codegen_)) {}
 
-ast::Expr *ComparisonTranslator::DeriveExpr(const terrier::parser::AbstractExpression *expression, RowBatch *row) {
-  auto *left = row->DeriveValue(*expression->GetChild(0));
-  auto *right = row->DeriveValue(*expression->GetChild(1));
+ast::Expr *ComparisonTranslator::DeriveExpr(OperatorTranslator* translator) {
+  auto *left_expr = left_->DeriveExpr(translator);
+  auto *right_expr = right_->DeriveExpr(translator);
   parsing::Token::Type type;
-  switch (expression->GetExpressionType()) {
+  switch (expression_->GetExpressionType()) {
     case terrier::parser::ExpressionType::COMPARE_EQUAL:
       type = parsing::Token::Type::EQUAL_EQUAL;
       break;
@@ -33,6 +33,6 @@ ast::Expr *ComparisonTranslator::DeriveExpr(const terrier::parser::AbstractExpre
     default:
       TPL_ASSERT(false, "Unsupported expression");
   }
-  return (*context_->GetCodeGen())->NewComparisonOpExpr(DUMMY_POS, type, left, right);
+  return codegen_->Compare(type, left_expr, right_expr);
 }
 }  // namespace tpl::compiler

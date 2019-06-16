@@ -80,9 +80,9 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   auto exec = sql::ExecutionStructures::Instance();
   auto *txn = exec->GetTxnManager()->BeginTransaction();
   std::cout << "Output Name: " << kOutputName.data() << std::endl;
-  auto final = exec->GetFinalSchema(kOutputName.data());
-  exec::OutputPrinter printer(*final);
-  auto exec_context = std::make_shared<exec::ExecutionContext>(txn, printer, final);
+  auto schema = exec->GetOutputSchema(kOutputName.data());
+  exec::OutputPrinter printer(schema.get());
+  auto exec_context = std::make_shared<exec::ExecutionContext>(txn, printer, schema.get());
 
   //
   // Parse

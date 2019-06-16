@@ -3,7 +3,7 @@
 #include "execution/ast/ast_dump.h"
 #include "execution/compiler/code_context.h"
 #include "execution/compiler/compiler_defs.h"
-#include "execution/compiler/execution_consumer.h"
+#include "execution/compiler/operator/output_translator.h"
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/pipeline.h"

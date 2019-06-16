@@ -227,6 +227,14 @@ bool Context::IsBuiltinFunction(Identifier identifier, Builtin *builtin) const {
   return false;
 }
 
+ast::Identifier Context::GetBuiltinFunction(Builtin builtin) {
+  return GetIdentifier(Builtins::GetFunctionName(builtin));
+}
+
+ast::Identifier Context::GetBuiltinType(BuiltinType::Kind kind) {
+  return GetIdentifier(impl()->builtin_types_list[kind]->tpl_name());
+}
+
 PointerType *Type::PointerTo() { return PointerType::Get(this); }
 
 // static

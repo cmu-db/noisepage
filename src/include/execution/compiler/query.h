@@ -2,10 +2,12 @@
 
 #include <string>
 
-#include "execution/compiler/code_context.h"
-#include "execution/compiler/query_state.h"
+#include "execution/sema/error_reporter.h"
 #include "execution/util/region.h"
 #include "execution/exec/execution_context.h"
+#include "execution/ast/ast.h"
+#include "execution/ast/context.h"
+#include "execution/ast/ast_node_factory.h"
 #include "catalog/catalog.h"
 
 namespace terrier::planner {
@@ -27,16 +29,17 @@ class Query {
    * Constructor
    * @param node plan node to execute
    */
-  explicit Query(const terrier::planner::AbstractPlanNode &node, exec::ExecutionContext * exec_ctx)
+  Query(const terrier::planner::AbstractPlanNode &node, exec::ExecutionContext * exec_ctx)
       : node_(node),
         region_("QueryRegion"),
-        code_ctx_(&region_),
-        query_state_(ast::Identifier(GetQueryStateName().c_str())),
-        compiled_fn_(nullptr),
-        exec_ctx_{exec_ctx},
-        final_schema_(std::vector<terrier::catalog::Schema::Column>{}, std::unordered_map<u32, u32>{}){}
+        error_reporter_(&region_),
+        ast_ctx_(&region_, &error_reporter_),
+        factory_(&region_),
+        exec_ctx_{exec_ctx} {}
 
-  /// Destructor
+  /**
+   * Destructor
+   */
   ~Query() = default;
 
   /**
@@ -45,83 +48,49 @@ class Query {
   const terrier::planner::AbstractPlanNode &GetPlan() { return node_; }
 
   /**
-   * @return the code context
-   */
-  CodeContext *GetCodeContext() { return &code_ctx_; }
-
-  /**
-   * @return the query state object
-   */
-  QueryState *GetQueryState() { return &query_state_; }
-
-  /**
    * @return the region used for allocation
    */
   util::Region *GetRegion() { return &region_; }
 
   /**
-   * @return name of the query state variable
+   * @return the ast context
    */
-  const std::string &GetQueryStateName() { return name_qs; }
+  ast::Context *GetAstContext() {return &ast_ctx_;}
 
   /**
-   * @return name of the query state struct
+   * @return the ast factory
    */
-  const std::string &GetQueryStateStructName() { return name_qs_struct; }
+  ast::AstNodeFactory * GetFactory() {return &factory_;}
 
   /**
-   * @return name of the init function
+   * @return the error reporter
    */
-  const std::string &GetQueryInitName() { return name_qinit; }
+  sema::ErrorReporter * GetReporter() {return &error_reporter_;}
 
   /**
-   * @return name of the produce function
+   * @return the execution context
    */
-  const std::string &GetQueryProduceName() { return name_qproduce; }
+  exec::ExecutionContext * GetExecCtx() {return exec_ctx_;}
 
   /**
-   * @return name of the teardown function
-   */
-  const std::string &GetQueryTeardownName() { return name_qteardown; }
-
-  /**
-   * Return the execution context
-   */
-  exec::ExecutionContext * GetExecutionContext() { return exec_ctx_; }
-
-  /**
-   * Return the final schema
-   */
-  exec::FinalSchema * GetFinalSchema() { return &final_schema_; }
-
-  /**
-   * TODO(Amadou): rename to SetCompiledFile?
    * Sets the final compiled file
-   * @param fn compiled file
+   * @param file the compiled file
    */
-  void SetCompiledFunction(ast::File *fn) { compiled_fn_ = fn; }
+  void SetCompiledFile(ast::File *file) { compiled_file_ = file; }
 
   /**
-   * TODO(Amadou): rename to GetCompiledFile?
    * @return the compiled file.
    */
-  ast::File *GetCompiledFunction() { return compiled_fn_; }
+  ast::File *GetCompiledFile() { return compiled_file_; }
 
  private:
-  // TODO(WAN): in principle we can NewIdentifier() all these but then reading the AST dump is a nightmare
-  std::string name_qs = "query_state";
-  std::string name_qinit = "query_init";
-  std::string name_qproduce = "query_produce";
-  std::string name_qteardown = "query_teardown";
-  std::string name_qs_struct = "query_state_struct";
-
   const terrier::planner::AbstractPlanNode &node_;
   util::Region region_;
-  CodeContext code_ctx_;
-  QueryState query_state_;
-  ast::File *compiled_fn_;
+  sema::ErrorReporter error_reporter_;
+  ast::Context ast_ctx_;
+  ast::AstNodeFactory factory_;
+  ast::File *compiled_file_{nullptr};
   exec::ExecutionContext * exec_ctx_;
-  exec::FinalSchema final_schema_;
 };
 
 }  // namespace tpl::compiler

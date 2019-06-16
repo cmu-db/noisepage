@@ -4,7 +4,7 @@
 #include "execution/compiler/operator/operator_translator.h"
 #include "parser/expression/abstract_expression.h"
 #include "planner/plannodes/abstract_plan_node.h"
-
+#include "execution/util/region.h"
 namespace tpl::compiler {
 
 class Pipeline;
@@ -15,13 +15,11 @@ class OperatorTranslator;
  */
 class TranslatorFactory {
  public:
-  /**
-   * Creates a plan node translator
-   * @param op plan node to translate
-   * @param pipeline current pipeline
-   * @return created translator
-   */
-  static OperatorTranslator *CreateTranslator(const terrier::planner::AbstractPlanNode &op, Pipeline *pipeline);
+  static OperatorTranslator *CreateRegularTranslator(const terrier::planner::AbstractPlanNode * op, CodeGen* codegen);
+  static OperatorTranslator *CreateBottomTranslator(const terrier::planner::AbstractPlanNode * op, CodeGen* codegen);
+  static OperatorTranslator *CreateTopTranslator(const terrier::planner::AbstractPlanNode * op, OperatorTranslator* bottom, CodeGen* codegen);
+  static OperatorTranslator *CreateLeftTranslator(const terrier::planner::AbstractPlanNode * op, CodeGen* codegen);
+  static OperatorTranslator *CreateRightTranslator(const terrier::planner::AbstractPlanNode * op, OperatorTranslator * left, CodeGen* codegen);
 
   /**
    * Creates an expression translator
@@ -29,8 +27,7 @@ class TranslatorFactory {
    * @param context compilation context
    * @return created translator
    */
-  static ExpressionTranslator *CreateTranslator(const terrier::parser::AbstractExpression &expression,
-                                                CompilationContext *context);
+  static ExpressionTranslator *CreateExpressionTranslator(const terrier::parser::AbstractExpression *expression, CodeGen* codegen);
 };
 
 }  // namespace tpl::compiler
