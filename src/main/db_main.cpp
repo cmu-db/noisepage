@@ -42,10 +42,13 @@ void DBMain::Init() {
       type::TransientValuePeeker::PeekInteger(param_map_.find(settings::Param::num_worker_threads)->second.value_), {});
   thread_pool_->Startup();
 
-  t_cop_ = new terrier::traffic_cop::TrafficCop;
-  command_factory_ = new terrier::network::CommandFactory;
-  connection_handle_factory_ = new terrier::network::ConnectionHandleFactory(t_cop_, command_factory_);
-  server_ = new terrier::network::TerrierServer(connection_handle_factory_);
+  t_cop_ = new terrier::trafficcop::TrafficCop;
+  command_factory_ = new terrier::network::PostgresCommandFactory;
+
+  connection_handle_factory_ = new terrier::network::ConnectionHandleFactory(common::ManagedPointer(t_cop_));
+  provider_ = new terrier::network::PostgresProtocolInterpreter::Provider(common::ManagedPointer(command_factory_));
+  server_ = new terrier::network::TerrierServer(common::ManagedPointer(provider_),
+                                                common::ManagedPointer(connection_handle_factory_));
 
   LOG_INFO("Initialization complete");
 
