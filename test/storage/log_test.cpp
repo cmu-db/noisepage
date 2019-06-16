@@ -70,8 +70,7 @@ class WriteAheadLoggingTests : public TerrierTest {
     }
 
     if (record_type == storage::LogRecordType::ABORT) {
-      auto txn_abort = in->ReadValue<transaction::timestamp_t>();
-      return storage::AbortRecord::Initialize(buf, txn_begin, txn_abort, nullptr);
+      return storage::AbortRecord::Initialize(buf, txn_begin);
     }
 
     // TODO(Tianyu): Without a lookup mechanism this oid is not exactly meaningful. Implement lookup when possible
@@ -328,7 +327,7 @@ TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
 
   // Commit first txn and abort the second
   txn_manager_.Commit(first_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-  auto abort_timestamp = txn_manager_.Abort(second_txn);
+  txn_manager_.Abort(second_txn);
   EXPECT_TRUE(second_txn->Aborted());
 
   // Shut down log manager
@@ -344,7 +343,6 @@ TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
       auto *abort_record = log_record->GetUnderlyingRecordBodyAs<storage::AbortRecord>();
       EXPECT_EQ(LogRecordType::ABORT, abort_record->RecordType());
       EXPECT_EQ(second_txn->StartTime(), log_record->TxnBegin());
-      EXPECT_EQ(abort_timestamp, abort_record->AbortTime());
     }
     delete[] reinterpret_cast<byte *>(log_record);
   }

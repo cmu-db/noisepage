@@ -156,7 +156,7 @@ void LogSerializerTask::SerializeRecord(const terrier::storage::LogRecord &recor
       break;
     }
     case LogRecordType::ABORT: {
-      WriteValue(record.GetUnderlyingRecordBodyAs<AbortRecord>()->AbortTime());
+      // AbortRecord does not hold any additional metadata
       break;
     }
   }
