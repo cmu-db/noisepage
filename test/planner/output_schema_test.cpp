@@ -114,6 +114,8 @@ TEST(OutputSchemaTests, DerivedColumnTest) {
   OutputSchema::DerivedColumn derived1(col1, OutputSchemaTests::BuildDummyPredicate());
 
   EXPECT_EQ(derived0, derived1);
+  EXPECT_EQ(derived0.GetColumn(), derived1.GetColumn());
+  EXPECT_EQ(*derived0.GetExpression(), *derived1.GetExpression());
   EXPECT_EQ(derived0.Hash(), derived1.Hash());
 }
 

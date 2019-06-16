@@ -70,18 +70,22 @@ class OutputSchema {
      * @return column name
      */
     const std::string &GetName() const { return name_; }
+
     /**
      * @return SQL type for this column
      */
     type::TypeId GetType() const { return type_; }
+
     /**
      * @return true if the column is nullable, false otherwise
      */
     bool GetNullable() const { return nullable_; }
+
     /**
      * @return internal unique identifier for this column
      */
     catalog::col_oid_t GetOid() const { return oid_; }
+
     /**
      * @return the hashed value for this column based on name and OID
      */
@@ -167,11 +171,21 @@ class OutputSchema {
     DerivedColumn() = default;
 
     /**
+     * @return the intermediate column definition
+     */
+    const Column &GetColumn() const { return column_; }
+
+    /**
+     * @return the expression used to derive the intermediate column
+     */
+    const std::shared_ptr<parser::AbstractExpression> &GetExpression() const { return expr_; }
+
+    /**
      * Hash the current DerivedColumn.
      */
     common::hash_t Hash() const {
-      common::hash_t hash = common::HashUtil::Hash(column_);
-      // hash = common::HashUtil::CombineHashes(hash, expr_->Hash());
+      common::hash_t hash = column_.Hash();
+      hash = common::HashUtil::CombineHashes(hash, expr_->Hash());
       return hash;
     }
 
@@ -181,14 +195,17 @@ class OutputSchema {
      * @return true if the two derived columns are the same
      */
     bool operator==(const DerivedColumn &rhs) const {
+      // Derived Column
       if (column_ != rhs.column_) return false;
 
+      // Expression
       if ((expr_ == nullptr && rhs.expr_ != nullptr) || (expr_ != nullptr && rhs.expr_ == nullptr)) {
         return false;
       }
       if (expr_ != nullptr && *expr_ != *rhs.expr_) {
         return false;
       }
+
       return true;
     }
 
@@ -212,6 +229,7 @@ class OutputSchema {
       }
     }
 
+   private:
     /**
      * Intermediate column
      */
