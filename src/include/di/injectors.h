@@ -11,9 +11,9 @@ namespace terrier::di {
  */
 // TODO(Tianyu): Should we provide default values for constants here?
 auto storage_injector = [] {
-  return di::make_injector<StrictBinding>(di::bind<storage::BlockStore>().in(di::terrier_module),
-                                          di::bind<storage::RecordBufferSegmentPool>().in(di::terrier_module),
-                                          di::bind<storage::LogManager>.in(di::terrier_module),
-                                          di::bind<transaction::TransactionManager>().in(di::terrier_module));
+  return di::make_injector<StrictBindingPolicy>(di::bind<storage::BlockStore>().in(di::terrier_shared_module),
+                                          di::bind<storage::RecordBufferSegmentPool>().in(di::terrier_shared_module),
+                                          di::bind<storage::LogManager>.in(di::terrier_shared_module),
+                                          di::bind<transaction::TransactionManager>().in(di::terrier_shared_module));
 };
 }  // namespace terrier::di

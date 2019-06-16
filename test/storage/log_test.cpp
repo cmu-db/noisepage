@@ -30,7 +30,7 @@ class WriteAheadLoggingTests : public TerrierTest {
   const uint64_t num_log_buffers_ = 100;
   const std::chrono::milliseconds log_serialization_interval_{10};
   const std::chrono::milliseconds log_persist_interval_{20};
-  const uint64_t log_persist_threshold_ = (1 << 20);  // 1MB
+  const uint64_t log_persist_threshold_ = (1u << 20);  // 1MB
 
   std::default_random_engine generator_;
   storage::RecordBufferSegmentPool pool_{2000, 100};
@@ -55,7 +55,7 @@ class WriteAheadLoggingTests : public TerrierTest {
     TerrierTest::TearDown();
   }
 
-  storage::LogRecord *ReadNextRecord(storage::BufferedLogReader *in, const storage::BlockLayout &block_layout) {
+  static storage::LogRecord *ReadNextRecord(storage::BufferedLogReader *in, const storage::BlockLayout &block_layout) {
     auto size = in->ReadValue<uint32_t>();
     byte *buf = common::AllocationUtil::AllocateAligned(size);
     auto record_type = in->ReadValue<storage::LogRecordType>();

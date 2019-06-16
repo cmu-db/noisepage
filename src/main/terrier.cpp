@@ -45,8 +45,8 @@ int main(int argc, char *argv[]) {
   auto injector = [] {
     // clang-format off
     return boost::di::make_injector(
-        terrier::di::bind<Bar>().in(terrier::di::terrier_module),
-        terrier::di::bind<std::default_random_engine>.in(terrier::di::terrier_module)
+        terrier::di::bind<Bar>().in(terrier::di::terrier_shared_module),
+        terrier::di::bind<std::default_random_engine>.in(terrier::di::terrier_shared_module)
     );
     // clang-format on
   };

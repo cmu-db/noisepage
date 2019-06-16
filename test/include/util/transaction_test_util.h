@@ -23,15 +23,15 @@ using VersionedSnapshots = std::map<transaction::timestamp_t, TableSnapshot>;
 using SimulationResult = std::pair<std::vector<RandomWorkloadTransaction *>, std::vector<RandomWorkloadTransaction *>>;
 
 struct LargeTransactionTestConfiguration {
+  const uint32_t num_iterations_;
+  const uint32_t num_txns_;
+  const uint32_t batch_size_;
+  const uint32_t num_concurrent_txns_;
   std::vector<double> update_select_ratio_;
   const uint32_t txn_length_;
   const uint32_t initial_table_size_;
   const uint16_t max_columns_;
   bool varlen_allowed_;
-  // TODO(Tianyu): We should be able to eliminate these two flags. GC should be inferred by binding of the garbage
-  // collector in the injector, and bookkeeping is currently always turned on.
-  bool gc_on_;
-  bool bookkeeping_;
 };
 /**
  * A RandomWorkloadTransaction class provides a simple interface to simulate a transaction running in the system.
@@ -101,7 +101,6 @@ class RandomWorkloadTransaction {
   transaction::timestamp_t start_time_, commit_time_;
   std::vector<TupleEntry> selects_;
   std::unordered_map<storage::TupleSlot, storage::ProjectedRow *> updates_;
-  byte *buffer_;
 };
 
 /**
@@ -113,132 +112,25 @@ class RandomWorkloadTransaction {
  */
 class LargeTransactionTestObject {
  public:
+
   /**
-   * Builder class for LargeTransactionTestObject
-   */
-  class Builder {
-   public:
-    /**
-     * @param max_columns the max number of columns in the generated test table
-     * @return self-reference for method chaining
-     */
-    Builder &SetMaxColumns(uint16_t max_columns) {
-      builder_max_columns_ = max_columns;
-      return *this;
-    }
-
-    /**
-     * @param initial_table_size number of tuples the table should have
-     * @return self-reference for method chaining
-     */
-    Builder &SetInitialTableSize(uint32_t initial_table_size) {
-      builder_initial_table_size_ = initial_table_size;
-      return *this;
-    }
-
-    /**
-     * @param txn_length length of every simulated transaction, in number of operations (select or update)
-     * @return self-reference for method chaining
-     */
-    Builder &SetTxnLength(uint32_t txn_length) {
-      builder_txn_length_ = txn_length;
-      return *this;
-    }
-
-    /**
-     * @param update_select_ratio the ratio of updates vs. select in the generated transaction
-     *                            (e.g. {0.3, 0.7} will be 30% updates and 70% reads)
-     * @return self-reference for method chaining
-     */
-    Builder &SetUpdateSelectRatio(std::vector<double> update_select_ratio) {
-      builder_update_select_ratio_ = std::move(update_select_ratio);
-      return *this;
-    }
-
-    /**
-     * @param block_store the block store to use for the underlying data table
-     * @return self-reference for method chaining
-     */
-    Builder &SetBlockStore(storage::BlockStore *block_store) {
-      builder_block_store_ = block_store;
-      return *this;
-    }
-
-    /**
-     * @param buffer_pool the buffer pool to use for simulated transactions
-     * @return self-reference for method chaining
-     */
-    Builder &SetBufferPool(storage::RecordBufferSegmentPool *buffer_pool) {
-      builder_buffer_pool_ = buffer_pool;
-      return *this;
-    }
-
-    /**
-     * @param generator the random generator to use for the test
-     * @return self-reference for method chaining
-     */
-    Builder &SetGenerator(std::default_random_engine *generator) {
-      builder_generator_ = generator;
-      return *this;
-    }
-
-    /**
-     * @param gc_on whether gc is enabled
-     * @return self-reference for method chaining
-     */
-    Builder &SetGcOn(bool gc_on) {
-      builder_gc_on_ = gc_on;
-      return *this;
-    }
-
-    /**
-     * @param bookkeeping whether correctness check is enabled
-     * @return self-reference for method chaining
-     */
-    Builder &SetBookkeeping(bool bookkeeping) {
-      builder_bookkeeping_ = bookkeeping;
-      return *this;
-    }
-
-    /**
-     * @param log_manager the log manager to use for this test object, or nullptr (LOGGING_DISABLED) if
-     *                    logging is not needed.
-     * @return self-reference for method chaining
-     */
-    Builder &SetLogManager(storage::LogManager *log_manager) {
-      builder_log_manager_ = log_manager;
-      return *this;
-    }
-
-    /**
-     * @param varlen_allowed if we allow varlen columns to show up in the block layout
-     * @return self-reference for method chaining
-     */
-    Builder &SetVarlenAllowed(bool varlen_allowed) {
-      varlen_allowed_ = varlen_allowed;
-      return *this;
-    }
-
-    /**
-     * @return the constructed LargeTransactionTestObject using the parameters provided
-     * (or default ones if not supplied).
-     */
-    LargeTransactionTestObject build();
-
-   private:
-    uint16_t builder_max_columns_ = 25;
-    uint32_t builder_initial_table_size_ = 25;
-    uint32_t builder_txn_length_ = 25;
-    std::vector<double> builder_update_select_ratio_;
-    storage::BlockStore *builder_block_store_ = nullptr;
-    storage::RecordBufferSegmentPool *builder_buffer_pool_ = nullptr;
-    std::default_random_engine *builder_generator_ = nullptr;
-    bool builder_gc_on_ = true;
-    bool builder_bookkeeping_ = true;
-    storage::LogManager *builder_log_manager_ = LOGGING_DISABLED;
-    bool varlen_allowed_ = false;
-  };
-
+ * Initializes a test object with the given configuration
+ * @param max_columns the max number of columns in the generated test table
+ * @param initial_table_size number of tuples the table should have
+ * @param txn_length length of every simulated transaction, in number of operations (select or update)
+ * @param update_select_ratio the ratio of updates vs. select in the generated transaction
+ *                             (e.g. {0.3, 0.7} will be 30% updates and 70% reads)
+ * @param block_store the block store to use for the underlying data table
+ * @param buffer_pool the buffer pool to use for simulated transactions
+ * @param generator the random generator to use for the test
+ * @param gc_on whether gc is enabled
+ * @param bookkeeping whether correctness check is enabled
+ */
+  LargeTransactionTestObject(LargeTransactionTestConfiguration config,
+                             storage::BlockStore *block_store,
+                             transaction::TransactionManager *txn_manager,
+                             std::default_random_engine *generator,
+                             storage::LogManager *log_manager);
   /**
    * Destructs a LargeTransactionTestObject
    */
@@ -247,7 +139,7 @@ class LargeTransactionTestObject {
   /**
    * @return the transaction manager used by this test
    */
-  transaction::TransactionManager *GetTxnManager() { return &txn_manager_; }
+  transaction::TransactionManager *GetTxnManager() { return txn_manager_; }
 
   /**
    * Simulate an oltp workload, running the specified number of total transactions while allowing the specified number
@@ -276,26 +168,6 @@ class LargeTransactionTestObject {
   // keep the memory consumption of all this bookkeeping down. (Just like checkpoints)
   void CheckReadsCorrect(std::vector<RandomWorkloadTransaction *> *commits);
 
-// private:
-  /**
-   * Initializes a test object with the given configuration
-   * @param max_columns the max number of columns in the generated test table
-   * @param initial_table_size number of tuples the table should have
-   * @param txn_length length of every simulated transaction, in number of operations (select or update)
-   * @param update_select_ratio the ratio of updates vs. select in the generated transaction
-   *                             (e.g. {0.3, 0.7} will be 30% updates and 70% reads)
-   * @param block_store the block store to use for the underlying data table
-   * @param buffer_pool the buffer pool to use for simulated transactions
-   * @param generator the random generator to use for the test
-   * @param gc_on whether gc is enabled
-   * @param bookkeeping whether correctness check is enabled
-   */
-  LargeTransactionTestObject(LargeTransactionTestConfiguration config,
-                             storage::BlockStore *block_store,
-                             storage::RecordBufferSegmentPool *buffer_pool,
-                             std::default_random_engine *generator,
-                             storage::LogManager *log_manager);
-
   void SimulateOneTransaction(RandomWorkloadTransaction *txn, uint32_t txn_id);
 
   template <class Random>
@@ -318,9 +190,9 @@ class LargeTransactionTestObject {
   std::default_random_engine *generator_;
   storage::BlockLayout layout_;
   storage::DataTable table_;
-  transaction::TransactionManager txn_manager_;
-  transaction::TransactionContext *initial_txn_;
-  bool gc_on_, wal_on_, bookkeeping_;
+  transaction::TransactionManager *txn_manager_;
+  transaction::TransactionContext *initial_txn_ = nullptr;
+  bool gc_on_, wal_on_;
 
   // tuple content is meaningless if bookkeeping is off.
   std::vector<TupleEntry> last_checked_version_;
