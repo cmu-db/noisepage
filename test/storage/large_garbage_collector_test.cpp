@@ -11,7 +11,7 @@ class LargeGCTests : public TerrierTest {
   static auto Injector(const LargeTransactionTestConfiguration &config) {
     return di::make_injector(
         di::storage_injector(),
-        di::bind<storage::LogManager>().in(di::disabled_module) [di::override],
+        di::bind<storage::LogManager>().in(di::disabled_module) [di::override],  // no need for logging in this test
         di::bind<LargeTransactionTestConfiguration>().to(config),
         di::bind<std::default_random_engine>().in(di::terrier_module),
         di::bind<uint64_t>().named(storage::BlockStore::SIZE_LIMIT).to(static_cast<uint64_t>(1000)),
@@ -46,8 +46,8 @@ TEST_F(LargeGCTests, MixedReadWriteWithGC) {
   };
 
   const uint32_t num_concurrent_txns = MultiThreadTestUtil::HardwareConcurrency();
+  auto injector = Injector(config);
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
-    auto injector = Injector(config);
     auto tested = injector.create<std::unique_ptr<LargeTransactionTestObject>>();
     auto gc_thread = injector.create<std::unique_ptr<storage::GarbageCollectorThread>>();
     for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
@@ -58,7 +58,6 @@ TEST_F(LargeGCTests, MixedReadWriteWithGC) {
       for (auto w : result.second) delete w;
       gc_thread->ResumeGC();
     }
-    printf("it\n");
   }
 }
 /*
