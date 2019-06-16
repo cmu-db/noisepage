@@ -609,6 +609,7 @@ TEST(PlanNodeJsonTest, DropTriggerPlanNodeTest) {
   EXPECT_EQ(PlanNodeType::DROP_TRIGGER, deserialized_plan->GetPlanNodeType());
   auto drop_trigger_plan = std::dynamic_pointer_cast<DropTriggerPlanNode>(deserialized_plan);
   EXPECT_EQ(*plan_node, *drop_trigger_plan);
+  EXPECT_EQ(plan_node->Hash(), drop_trigger_plan->Hash());
 }
 
 // NOLINTNEXTLINE
@@ -631,6 +632,7 @@ TEST(PlanNodeJsonTest, DropViewPlanNodeTest) {
   EXPECT_EQ(PlanNodeType::DROP_VIEW, deserialized_plan->GetPlanNodeType());
   auto drop_view_plan = std::dynamic_pointer_cast<DropViewPlanNode>(deserialized_plan);
   EXPECT_EQ(*plan_node, *drop_view_plan);
+  EXPECT_EQ(plan_node->Hash(), drop_view_plan->Hash());
 }
 
 // NOLINTNEXTLINE
@@ -654,6 +656,7 @@ TEST(PlanNodeJsonTest, ExportExternalFilePlanNodeJsonTest) {
   EXPECT_EQ(PlanNodeType::EXPORT_EXTERNAL_FILE, deserialized_plan->GetPlanNodeType());
   auto export_external_file_plan = std::dynamic_pointer_cast<ExportExternalFilePlanNode>(deserialized_plan);
   EXPECT_EQ(*plan_node, *export_external_file_plan);
+  EXPECT_EQ(plan_node->Hash(), export_external_file_plan->Hash());
 }
 
 // NOLINTNEXTLINE
@@ -678,6 +681,7 @@ TEST(PlanNodeJsonTest, HashJoinPlanNodeJoinTest) {
   EXPECT_EQ(PlanNodeType::HASHJOIN, deserialized_plan->GetPlanNodeType());
   auto hash_join_plan = std::dynamic_pointer_cast<HashJoinPlanNode>(deserialized_plan);
   EXPECT_EQ(*plan_node, *hash_join_plan);
+  EXPECT_EQ(plan_node->Hash(), hash_join_plan->Hash());
 }
 
 // NOLINTNEXTLINE
@@ -700,6 +704,7 @@ TEST(PlanNodeJsonTest, HashPlanNodeJsonTest) {
   EXPECT_EQ(PlanNodeType::HASH, deserialized_plan->GetPlanNodeType());
   auto hash_plan = std::dynamic_pointer_cast<HashPlanNode>(deserialized_plan);
   EXPECT_EQ(*plan_node, *hash_plan);
+  EXPECT_EQ(plan_node->Hash(), hash_plan->Hash());
 }
 
 // NOLINTNEXTLINE
@@ -725,6 +730,7 @@ TEST(PlanNodeJsonTest, IndexScanPlanNodeJsonTest) {
   EXPECT_EQ(PlanNodeType::INDEXSCAN, deserialized_plan->GetPlanNodeType());
   auto index_scan_plan = std::dynamic_pointer_cast<IndexScanPlanNode>(deserialized_plan);
   EXPECT_EQ(*plan_node, *index_scan_plan);
+  EXPECT_EQ(plan_node->Hash(), index_scan_plan->Hash());
 }
 
 // NOLINTNEXTLINE
@@ -759,14 +765,17 @@ TEST(PlanNodeJsonTest, InsertPlanNodeJsonTest) {
   EXPECT_EQ(PlanNodeType::INSERT, deserialized_plan->GetPlanNodeType());
   auto insert_plan = std::dynamic_pointer_cast<InsertPlanNode>(deserialized_plan);
   EXPECT_EQ(*plan_node, *insert_plan);
+  EXPECT_EQ(plan_node->Hash(), insert_plan->Hash());
 }
 
 // NOLINTNEXTLINE
 TEST(PlanNodeJsonTest, LimitPlanNodeJsonTest) {
   // Construct LimitPlanNode
   LimitPlanNode::Builder builder;
-  auto plan_node =
-      builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema()).SetLimit(10).SetOffset(10).Build();
+  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
+                       .SetLimit(10)
+                       .SetOffset(10)
+                       .Build();
 
   // Serialize to Json
   auto json = plan_node->ToJson();
@@ -778,6 +787,7 @@ TEST(PlanNodeJsonTest, LimitPlanNodeJsonTest) {
   EXPECT_EQ(PlanNodeType::LIMIT, deserialized_plan->GetPlanNodeType());
   auto limit_plan = std::dynamic_pointer_cast<LimitPlanNode>(deserialized_plan);
   EXPECT_EQ(*plan_node, *limit_plan);
+  EXPECT_EQ(plan_node->Hash(), limit_plan->Hash());
 }
 
 // NOLINTNEXTLINE
@@ -799,6 +809,7 @@ TEST(PlanNodeJsonTest, NestedLoopJoinPlanNodeJoinTest) {
   EXPECT_EQ(PlanNodeType::NESTLOOP, deserialized_plan->GetPlanNodeType());
   auto nested_loop_join_plan = std::dynamic_pointer_cast<NestedLoopJoinPlanNode>(deserialized_plan);
   EXPECT_EQ(*plan_node, *nested_loop_join_plan);
+  EXPECT_EQ(plan_node->Hash(), nested_loop_join_plan->Hash());
 }
 
 // NOLINTNEXTLINE
@@ -822,6 +833,7 @@ TEST(PlanNodeJsonTest, OrderByPlanNodeJsonTest) {
   EXPECT_EQ(PlanNodeType::ORDERBY, deserialized_plan->GetPlanNodeType());
   auto order_by_plan = std::dynamic_pointer_cast<OrderByPlanNode>(deserialized_plan);
   EXPECT_EQ(*plan_node, *order_by_plan);
+  EXPECT_EQ(plan_node->Hash(), order_by_plan->Hash());
 }
 
 // NOLINTNEXTLINE

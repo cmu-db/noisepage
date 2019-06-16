@@ -5,18 +5,41 @@
 namespace terrier::planner {
 
 common::hash_t ExportExternalFilePlanNode::Hash() const {
-  common::hash_t hash = std::hash<std::string>{}(file_name_);
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&delimiter_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&quote_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&escape_));
-  return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
+  common::hash_t hash = AbstractPlanNode::Hash();
+
+  // Filename
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(file_name_));
+
+  // Delimiter
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(delimiter_));
+
+  // Quote Char
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(quote_));
+
+  // Escape Char
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(escape_));
+
+  return hash;
 }
 
 bool ExportExternalFilePlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (rhs.GetPlanNodeType() != PlanNodeType::EXPORT_EXTERNAL_FILE) return false;
+  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
+
   const auto &other = static_cast<const ExportExternalFilePlanNode &>(rhs);
-  return (file_name_ == other.file_name_ && delimiter_ == other.delimiter_ && quote_ == other.quote_ &&
-          escape_ == other.escape_ && AbstractPlanNode::operator==(rhs));
+
+  // Filename
+  if (file_name_ != other.file_name_) return false;
+
+  // Delimiter
+  if (delimiter_ != other.delimiter_) return false;
+
+  // Quote Char
+  if (quote_ != other.quote_) return false;
+
+  // Escape Char
+  if (escape_ != other.escape_) return false;
+
+  return (AbstractPlanNode::operator==(rhs));
 }
 
 nlohmann::json ExportExternalFilePlanNode::ToJson() const {

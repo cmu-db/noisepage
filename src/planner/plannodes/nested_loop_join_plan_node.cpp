@@ -3,10 +3,22 @@
 
 namespace terrier::planner {
 
-common::hash_t NestedLoopJoinPlanNode::Hash() const { return AbstractJoinPlanNode::Hash(); }
+common::hash_t NestedLoopJoinPlanNode::Hash() const {
+  common::hash_t hash = AbstractJoinPlanNode::Hash();
+
+  // There is nothing else for us to do here!
+
+  return hash;
+}
 
 bool NestedLoopJoinPlanNode::operator==(const AbstractPlanNode &rhs) const {
-  return AbstractJoinPlanNode::operator==(rhs);
+  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
+
+  auto &other = dynamic_cast<const NestedLoopJoinPlanNode &>(rhs);
+
+  // There is nothing else for us to do here! Go home! You're drunk!
+
+  return AbstractJoinPlanNode::operator==(other);
 }
 
 nlohmann::json NestedLoopJoinPlanNode::ToJson() const { return AbstractJoinPlanNode::ToJson(); }

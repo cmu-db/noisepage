@@ -29,10 +29,10 @@ bool CreateViewPlanNode::operator==(const AbstractPlanNode &rhs) const {
   auto &other = dynamic_cast<const CreateViewPlanNode &>(rhs);
 
   // Database OID
-  if (GetDatabaseOid() != other.GetDatabaseOid()) return false;
+  if (database_oid_ != other.database_oid_) return false;
 
   // Namespace OID
-  if (GetNamespaceOid() != other.GetNamespaceOid()) return false;
+  if (namespace_oid_ != other.namespace_oid_) return false;
 
   // Hash view_name
   if (GetViewName() != other.GetViewName()) return false;

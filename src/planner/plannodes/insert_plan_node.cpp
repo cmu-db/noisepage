@@ -9,21 +9,18 @@
 #include "type/transient_value_factory.h"
 
 namespace terrier::planner {
+
 common::hash_t InsertPlanNode::Hash() const {
-  auto type = GetPlanNodeType();
-  common::hash_t hash = common::HashUtil::Hash(&type);
+  common::hash_t hash = AbstractPlanNode::Hash();
 
   // Hash database_oid
-  auto database_oid = GetDatabaseOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
 
   // Hash namespace oid
-  auto namespace_oid = GetNamespaceOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&namespace_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
 
   // Hash table_oid
-  auto table_oid = GetTableOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&table_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
 
   // Hash parameter_info
   for (const auto pair : parameter_info_) {
@@ -38,7 +35,7 @@ common::hash_t InsertPlanNode::Hash() const {
     }
   }
 
-  return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
+  return hash;
 }
 
 bool InsertPlanNode::operator==(const AbstractPlanNode &rhs) const {
@@ -47,24 +44,19 @@ bool InsertPlanNode::operator==(const AbstractPlanNode &rhs) const {
   auto &other = dynamic_cast<const InsertPlanNode &>(rhs);
 
   // Database OID
-  if (GetDatabaseOid() != other.GetDatabaseOid()) return false;
+  if (database_oid_ != other.database_oid_) return false;
 
   // Namespace OID
-  if (GetNamespaceOid() != other.GetNamespaceOid()) return false;
+  if (namespace_oid_ != other.namespace_oid_) return false;
 
   // Target table OID
-  if (GetTableOid() != other.GetTableOid()) return false;
-
-  // Bulk insert count
-  if (GetBulkInsertCount() != other.GetBulkInsertCount()) return false;
+  if (table_oid_ != other.table_oid_) return false;
 
   // Values
-  for (uint32_t i = 0; i < GetBulkInsertCount(); i++) {
-    if (GetValues(i) != other.GetValues(i)) return false;
-  }
+  if (values_ != other.values_) return false;
 
   // Parameter info
-  if (GetParameterInfo() != other.GetParameterInfo()) return false;
+  if (parameter_info_ != other.parameter_info_) return false;
 
   return AbstractPlanNode::operator==(rhs);
 }

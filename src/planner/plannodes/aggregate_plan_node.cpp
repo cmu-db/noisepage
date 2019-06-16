@@ -7,16 +7,18 @@ namespace terrier::planner {
 common::hash_t AggregatePlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
 
-  if (GetHavingClausePredicate() != nullptr) {
-    hash = common::HashUtil::CombineHashes(hash, GetHavingClausePredicate()->Hash());
+  // Having Clause Predicate
+  if (having_clause_predicate_ != nullptr) {
+    hash = common::HashUtil::CombineHashes(hash, having_clause_predicate_->Hash());
   }
 
+  // Aggregtation Terms
   for (auto &aggregate_term : aggregate_terms_) {
     hash = common::HashUtil::CombineHashes(hash, aggregate_term->Hash());
   }
 
-  auto agg_strategy = GetAggregateStrategyType();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&agg_strategy));
+  // Aggregate Strategy
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(aggregate_strategy_));
 
   return hash;
 }

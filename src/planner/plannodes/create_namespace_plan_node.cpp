@@ -25,7 +25,7 @@ bool CreateNamespacePlanNode::operator==(const AbstractPlanNode &rhs) const {
   auto &other = dynamic_cast<const CreateNamespacePlanNode &>(rhs);
 
   // Database OID
-  if (GetDatabaseOid() != other.GetDatabaseOid()) return false;
+  if (database_oid_ != other.database_oid_) return false;
 
   // Schema name
   if (GetNamespaceName() != other.GetNamespaceName()) return false;

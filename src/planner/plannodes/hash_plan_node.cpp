@@ -5,15 +5,14 @@
 namespace terrier::planner {
 
 common::hash_t HashPlanNode::Hash() const {
-  auto type = GetPlanNodeType();
-  common::hash_t hash = common::HashUtil::Hash(&type);
+  common::hash_t hash = AbstractPlanNode::Hash();
 
   // Hash keys
   for (const auto &key : hash_keys_) {
     hash = common::HashUtil::CombineHashes(hash, key->Hash());
   }
 
-  return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
+  return hash;
 }
 
 bool HashPlanNode::operator==(const AbstractPlanNode &rhs) const {
@@ -22,14 +21,7 @@ bool HashPlanNode::operator==(const AbstractPlanNode &rhs) const {
   const auto &other = static_cast<const HashPlanNode &>(rhs);
 
   // Check keys
-  auto left_keys = GetHashKeys();
-  auto right_keys = other.GetHashKeys();
-  if (left_keys.size() != right_keys.size()) return false;
-  for (size_t i = 0; i < left_keys.size(); i++) {
-    if ((left_keys[i] == nullptr && right_keys[i] != nullptr) || (left_keys[i] != nullptr && right_keys[i] == nullptr))
-      return false;
-    if (left_keys[i] != nullptr && *left_keys[i] != *right_keys[i]) return false;
-  }
+  if (hash_keys_ != other.hash_keys_) return false;
 
   return AbstractPlanNode::operator==(rhs);
 }

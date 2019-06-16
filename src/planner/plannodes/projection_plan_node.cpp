@@ -4,15 +4,22 @@
 namespace terrier::planner {
 
 common::hash_t ProjectionPlanNode::Hash() const {
-  auto type = GetPlanNodeType();
-  common::hash_t hash = common::HashUtil::Hash(&type);
+  common::hash_t hash = AbstractPlanNode::Hash();
 
-  // TODO(Gus,Wen): Hash output schema
+  // Nothing for us to do here!
 
-  return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
+  return hash;
 }
 
-bool ProjectionPlanNode::operator==(const AbstractPlanNode &rhs) const { return AbstractPlanNode::operator==(rhs); }
+bool ProjectionPlanNode::operator==(const AbstractPlanNode &rhs) const {
+  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
+
+  // Since this node type does not have any internal members of its own,
+  // there is nothing for us to do here!
+  // auto &other = static_cast<const ProjectionPlanNode &>(rhs);
+
+  return AbstractPlanNode::operator==(rhs);
+}
 
 nlohmann::json ProjectionPlanNode::ToJson() const {
   nlohmann::json j = AbstractPlanNode::ToJson();

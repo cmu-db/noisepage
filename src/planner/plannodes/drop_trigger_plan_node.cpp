@@ -4,16 +4,13 @@
 
 namespace terrier::planner {
 common::hash_t DropTriggerPlanNode::Hash() const {
-  auto type = GetPlanNodeType();
-  common::hash_t hash = common::HashUtil::Hash(&type);
+  common::hash_t hash = AbstractPlanNode::Hash();
 
   // Hash databse_oid
-  auto database_oid = GetDatabaseOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
 
   // Hash namespace oid
-  auto namespace_oid = GetNamespaceOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&namespace_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
 
   // Hash trigger_oid
   auto trigger_oid = GetTriggerOid();
@@ -23,7 +20,7 @@ common::hash_t DropTriggerPlanNode::Hash() const {
   auto if_exist = IsIfExists();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&if_exist));
 
-  return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
+  return hash;
 }
 
 bool DropTriggerPlanNode::operator==(const AbstractPlanNode &rhs) const {
@@ -32,10 +29,10 @@ bool DropTriggerPlanNode::operator==(const AbstractPlanNode &rhs) const {
   auto &other = dynamic_cast<const DropTriggerPlanNode &>(rhs);
 
   // Database OID
-  if (GetDatabaseOid() != other.GetDatabaseOid()) return false;
+  if (database_oid_ != other.database_oid_) return false;
 
   // Namespace OID
-  if (GetNamespaceOid() != other.GetNamespaceOid()) return false;
+  if (namespace_oid_ != other.namespace_oid_) return false;
 
   // Trigger OID
   if (GetTriggerOid() != other.GetTriggerOid()) return false;

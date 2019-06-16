@@ -28,10 +28,10 @@ bool DropIndexPlanNode::operator==(const AbstractPlanNode &rhs) const {
   auto &other = dynamic_cast<const DropIndexPlanNode &>(rhs);
 
   // Database OID
-  if (GetDatabaseOid() != other.GetDatabaseOid()) return false;
+  if (database_oid_ != other.database_oid_) return false;
 
   // Namespace OID
-  if (GetNamespaceOid() != other.GetNamespaceOid()) return false;
+  if (namespace_oid_ != other.namespace_oid_) return false;
 
   // Index OID
   if (GetIndexOid() != other.GetIndexOid()) return false;
