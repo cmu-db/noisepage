@@ -23,8 +23,18 @@ class ParameterValueExpression : public AbstractExpression {
    */
   ParameterValueExpression() = default;
 
-  std::shared_ptr<AbstractExpression> Copy() const override {
-    return std::make_shared<ParameterValueExpression>(*this);
+  ~ParameterValueExpression() override = default;
+
+  const AbstractExpression *Copy() const override { return new ParameterValueExpression(value_idx_); }
+
+  /**
+   * Creates a copy of the current AbstractExpression with new children implanted.
+   * The children should not be owned by any other AbstractExpression.
+   * @param children New children to be owned by the copy
+   */
+  const AbstractExpression *CopyWithChildren(std::vector<const AbstractExpression *> children) const override {
+    TERRIER_ASSERT(children.empty(), "ParameterValueExpression should have 0 children");
+    return Copy();
   }
 
   /**

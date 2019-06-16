@@ -11,13 +11,11 @@
 #include "parser/expression_defs.h"
 #include "planner/plannodes/abstract_plan_node.h"
 
-// TODO(Gus, Wen): Replace Perform Binding in AggregateTerm and AggregatePlanNode
+// TODO(Gus, Wen): Replace Perform Binding in parser::AggregateExpression* and AggregatePlanNode
 // TODO(Gus, Wen): Replace VisitParameters
 // TODO(Gus, Wen): figure out global aggregates
 
 namespace terrier::planner {
-
-using AggregateTerm = std::shared_ptr<parser::AggregateExpression>;
 
 /**
  * Plan node for aggregates
@@ -40,8 +38,8 @@ class AggregatePlanNode : public AbstractPlanNode {
      * @param term aggregate term to be added
      * @return builder object
      */
-    Builder &AddAggregateTerm(AggregateTerm term) {
-      aggregate_terms_.emplace_back(std::move(term));
+    Builder &AddAggregateTerm(parser::AggregateExpression *term) {
+      aggregate_terms_.emplace_back(term);
       return *this;
     }
 
@@ -49,8 +47,8 @@ class AggregatePlanNode : public AbstractPlanNode {
      * @param predicate having clause predicate to use for aggregate term
      * @return builder object
      */
-    Builder &SetHavingClausePredicate(std::shared_ptr<parser::AbstractExpression> predicate) {
-      having_clause_predicate_ = std::move(predicate);
+    Builder &SetHavingClausePredicate(const parser::AbstractExpression *predicate) {
+      having_clause_predicate_ = predicate;
       return *this;
     }
 
@@ -69,7 +67,7 @@ class AggregatePlanNode : public AbstractPlanNode {
      */
     std::shared_ptr<AggregatePlanNode> Build() {
       return std::shared_ptr<AggregatePlanNode>(
-          new AggregatePlanNode(std::move(children_), std::move(output_schema_), std::move(having_clause_predicate_),
+          new AggregatePlanNode(std::move(children_), std::move(output_schema_), having_clause_predicate_,
                                 std::move(aggregate_terms_), aggregate_strategy_));
     }
 
@@ -77,11 +75,11 @@ class AggregatePlanNode : public AbstractPlanNode {
     /**
      * Predicate for having clause if it exists
      */
-    std::shared_ptr<parser::AbstractExpression> having_clause_predicate_;
+    const parser::AbstractExpression *having_clause_predicate_;
     /**
      * List of aggregate terms for aggregation
      */
-    std::vector<AggregateTerm> aggregate_terms_;
+    std::vector<parser::AggregateExpression *> aggregate_terms_;
     /**
      * Strategy to use for aggregation
      */
@@ -98,10 +96,11 @@ class AggregatePlanNode : public AbstractPlanNode {
    */
   AggregatePlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
                     std::shared_ptr<OutputSchema> output_schema,
-                    std::shared_ptr<parser::AbstractExpression> having_clause_predicate,
-                    std::vector<AggregateTerm> aggregate_terms, AggregateStrategyType aggregate_strategy)
+                    const parser::AbstractExpression *having_clause_predicate,
+                    std::vector<parser::AggregateExpression *> aggregate_terms,
+                    AggregateStrategyType aggregate_strategy)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
-        having_clause_predicate_(std::move(having_clause_predicate)),
+        having_clause_predicate_(having_clause_predicate),
         aggregate_terms_(std::move(aggregate_terms)),
         aggregate_strategy_(aggregate_strategy) {}
 
@@ -110,6 +109,13 @@ class AggregatePlanNode : public AbstractPlanNode {
    * Default constructor used for deserialization
    */
   AggregatePlanNode() = default;
+
+  ~AggregatePlanNode() override {
+    for (auto *term : aggregate_terms_) {
+      delete term;
+    }
+    delete having_clause_predicate_;
+  }
 
   DISALLOW_COPY_AND_MOVE(AggregatePlanNode)
 
@@ -120,14 +126,14 @@ class AggregatePlanNode : public AbstractPlanNode {
   /**
    * @return pointer to predicate for having clause
    */
-  const std::shared_ptr<parser::AbstractExpression> &GetHavingClausePredicate() const {
-    return having_clause_predicate_;
+  common::ManagedPointer<const parser::AbstractExpression> GetHavingClausePredicate() const {
+    return common::ManagedPointer<const parser::AbstractExpression>(having_clause_predicate_);
   }
 
   /**
    * @return vector of aggregate terms
    */
-  const std::vector<AggregateTerm> &GetAggregateTerms() const { return aggregate_terms_; }
+  const std::vector<parser::AggregateExpression *> &GetAggregateTerms() const { return aggregate_terms_; }
 
   /**
    * @return aggregation strategy
@@ -150,8 +156,8 @@ class AggregatePlanNode : public AbstractPlanNode {
   void FromJson(const nlohmann::json &j) override;
 
  private:
-  std::shared_ptr<parser::AbstractExpression> having_clause_predicate_;
-  std::vector<AggregateTerm> aggregate_terms_;
+  const parser::AbstractExpression *having_clause_predicate_;
+  std::vector<parser::AggregateExpression *> aggregate_terms_;
   AggregateStrategyType aggregate_strategy_;
 };
 DEFINE_JSON_DECLARATIONS(AggregatePlanNode);

@@ -115,7 +115,7 @@ class ExpressionUtil {
       table_alias_set.insert(tv_expr->GetTableName());
     } else {
       for (size_t i = 0; i < expr->GetChildrenSize(); i++) {
-        GenerateTableAliasSet(expr->GetChild(i), table_alias_set);
+        GenerateTableAliasSet(expr->GetChild(i).get(), table_alias_set);
       }
     }
   }
@@ -153,18 +153,22 @@ class ExpressionUtil {
 
     std::vector<const AbstractExpression*> children;
     for (size_t i = 0; i < expr->GetChildrenSize(); i++) {
-      auto child_expr = expr->GetChild(i);
+      const AbstractExpression *child_expr = expr->GetChild(i).get();
 
       bool did_insert = false;
       for (size_t tuple_idx = 0; tuple_idx < child_expr_maps.size(); ++tuple_idx) {
         if (child_expr->GetExpressionType() != ExpressionType::VALUE_TUPLE &&
             child_expr_maps[tuple_idx].count(child_expr)) {
 
-          auto type = child_expr->GetReturnValueType();
-          auto value_idx = child_expr_maps[tuple_idx][child_expr];
+          // TODO(wz2): This should create a DerivedValueExpression iirc... (#404)
+          TERRIER_ASSERT(0, "Unimplemented functionality...please fix");
+
+          // auto type = child_expr->GetReturnValueType();
+          // auto value_idx = child_expr_maps[tuple_idx][child_expr];
 
           // Add to children directly because TupleValueExpression has no children
-          children.push_back(new TupleValueExpression(type, static_cast<int>(tuple_idx), value_idx));
+          // children.push_back(new TupleValueExpression(type, static_cast<int>(tuple_idx), value_idx));
+
           did_insert = true;
           break;
         }
@@ -263,7 +267,7 @@ class ExpressionUtil {
       tv_exprs.push_back(tv_expr);
     } else {
       for (size_t i = 0; i < children_size; i++) {
-        GetTupleAndAggregateExprs(aggr_exprs, tv_exprs, expr->GetChild(i));
+        GetTupleAndAggregateExprs(aggr_exprs, tv_exprs, expr->GetChild(i).get());
       }
     }
   }
@@ -279,7 +283,7 @@ class ExpressionUtil {
   static void GetTupleValueExprs(optimizer::ExprMap &expr_map, const AbstractExpression* expr) {
     size_t children_size = expr->GetChildrenSize();
     for (size_t i = 0; i < children_size; i++) {
-      GetTupleValueExprs(expr_map, expr->GetChild(i));
+      GetTupleValueExprs(expr_map, expr->GetChild(i).get());
     }
 
     // Here we need a deep copy to void double delete subtree
@@ -298,7 +302,7 @@ class ExpressionUtil {
   static void GetTupleValueExprs(optimizer::ExprSet &expr_set, const AbstractExpression* expr) {
     size_t children_size = expr->GetChildrenSize();
     for (size_t i = 0; i < children_size; i++) {
-      GetTupleValueExprs(expr_set, expr->GetChild(i));
+      GetTupleValueExprs(expr_set, expr->GetChild(i).get());
     }
 
     if (expr->GetExpressionType() == ExpressionType::VALUE_TUPLE) {
@@ -323,7 +327,7 @@ class ExpressionUtil {
 
     size_t children_size = expr->GetChildrenSize();
     for (size_t i = 0; i < children_size; i++) {
-      EvaluateExpression(expr_maps, expr->GetChild(i));
+      EvaluateExpression(expr_maps, expr->GetChild(i).get());
     }
 
     if (expr->GetExpressionType() == ExpressionType::VALUE_TUPLE) {
@@ -332,13 +336,16 @@ class ExpressionUtil {
       TERRIER_ASSERT(c_tup_expr, "expr should be TupleValueExpression");
 
       // SetValueIdx(), explicitly cast away const-ness
-      auto tup_expr = const_cast<TupleValueExpression*>(c_tup_expr);
+      // auto tup_expr = const_cast<TupleValueExpression*>(c_tup_expr);
 
       int tuple_idx = 0;
       for (auto &expr_map : expr_maps) {
         auto iter = expr_map.find(expr);
         if (iter != expr_map.end()) {
-          tup_expr->SetValueIdx(iter->second, tuple_idx);
+          // TODO(wz2): Probably need to create a DerivedValueExpression here
+          TERRIER_ASSERT(0, "Missing ValueIdx / DerivedValueExpression");
+
+          // tup_expr->SetValueIdx(iter->second, tuple_idx);
           break;
         }
         ++tuple_idx;
@@ -348,12 +355,15 @@ class ExpressionUtil {
       TERRIER_ASSERT(c_aggr_expr, "expr should be AggregateExpression");
 
       // SetValueIdx(), explicitly cast away const-ness
-      auto aggr_expr = const_cast<AggregateExpression*>(c_aggr_expr);
+      // auto aggr_expr = const_cast<AggregateExpression*>(c_aggr_expr);
 
       for (auto &expr_map : expr_maps) {
         auto iter = expr_map.find(expr);
         if (iter != expr_map.end()) {
-          aggr_expr->SetValueIdx(iter->second);
+          // TODO(wz2): Discuss this at optimizer meeting (06/18)
+          TERRIER_ASSERT(0, "Missing ValueIdx on AggregateExpression...");
+
+          // aggr_expr->SetValueIdx(iter->second);
         }
       }
     } else if (expr->GetExpressionType() == ExpressionType::FUNCTION) {
@@ -384,7 +394,7 @@ class ExpressionUtil {
       TERRIER_ASSERT(case_expr, "expr should be CaseExpression");
 
       for (size_t i = 0; i < case_expr->GetWhenClauseSize(); i++) {
-        EvaluateExpression(expr_maps, case_expr->GetWhenClauseCondition(i));
+        EvaluateExpression(expr_maps, case_expr->GetWhenClauseCondition(i).get());
       }
     }
   }

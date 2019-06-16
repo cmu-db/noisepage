@@ -24,9 +24,9 @@ class UpdateClause {
    * @param column column to be updated
    * @param value value to update to
    */
-  UpdateClause(std::string column, common::ManagedPointer<AbstractExpression> value)
-      : column_(std::move(column)), value_(value) {}
-  ~UpdateClause() = default;
+  UpdateClause(std::string column, const AbstractExpression *value) : column_(std::move(column)), value_(value) {}
+
+  ~UpdateClause() { delete value_; }
 
   /**
    * @return column to be updated
@@ -36,11 +36,13 @@ class UpdateClause {
   /**
    * @return value to update to
    */
-  common::ManagedPointer<AbstractExpression> GetUpdateValue() { return value_; }
+  common::ManagedPointer<const AbstractExpression> GetUpdateValue() {
+    return common::ManagedPointer<const AbstractExpression>(value_);
+  }
 
  private:
   const std::string column_;
-  const common::ManagedPointer<AbstractExpression> value_;
+  const AbstractExpression *value_;
 };
 
 /**
@@ -55,15 +57,12 @@ class UpdateStatement : public SQLStatement {
    * @param where update conditions
    */
   UpdateStatement(std::shared_ptr<TableRef> table, std::vector<std::shared_ptr<UpdateClause>> updates,
-                  std::shared_ptr<AbstractExpression> where)
-      : SQLStatement(StatementType::UPDATE),
-        table_(std::move(table)),
-        updates_(std::move(updates)),
-        where_(std::move(where)) {}
+                  const AbstractExpression *where)
+      : SQLStatement(StatementType::UPDATE), table_(std::move(table)), updates_(std::move(updates)), where_(where) {}
 
-  UpdateStatement() : SQLStatement(StatementType::UPDATE), table_(nullptr), where_(nullptr) {}
+  UpdateStatement() : SQLStatement(StatementType::UPDATE), table_(nullptr) {}
 
-  ~UpdateStatement() override = default;
+  ~UpdateStatement() override { delete where_; }
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
@@ -80,12 +79,14 @@ class UpdateStatement : public SQLStatement {
   /**
    * @return update condition
    */
-  std::shared_ptr<AbstractExpression> GetUpdateCondition() { return where_; }
+  common::ManagedPointer<const AbstractExpression> GetUpdateCondition() {
+    return common::ManagedPointer<const AbstractExpression>(where_);
+  }
 
  private:
   const std::shared_ptr<TableRef> table_;
   const std::vector<std::shared_ptr<UpdateClause>> updates_;
-  const std::shared_ptr<AbstractExpression> where_ = nullptr;
+  const AbstractExpression *where_ = nullptr;
 };
 
 }  // namespace parser

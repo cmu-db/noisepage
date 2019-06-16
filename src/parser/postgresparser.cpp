@@ -187,12 +187,12 @@ std::unique_ptr<SQLStatement> PostgresParser::NodeTransform(Node *node) {
   return result;
 }
 
-std::unique_ptr<AbstractExpression> PostgresParser::ExprTransform(Node *node) {
+const AbstractExpression *PostgresParser::ExprTransform(Node *node) {
   if (node == nullptr) {
     return nullptr;
   }
 
-  std::unique_ptr<AbstractExpression> expr = nullptr;
+  const AbstractExpression *expr = nullptr;
   switch (node->type) {
     case T_A_Const: {
       expr = ConstTransform(reinterpret_cast<A_Const *>(node));
@@ -398,7 +398,7 @@ ExpressionType PostgresParser::StringToExpressionType(const std::string &parser_
 }
 
 // Postgres.A_Expr -> terrier.AbstractExpression
-std::unique_ptr<AbstractExpression> PostgresParser::AExprTransform(A_Expr *root) {
+const AbstractExpression *PostgresParser::AExprTransform(A_Expr *root) {
   // TODO(WAN): the old system says, need a function to transform strings of ops to peloton exprtype
   // e.g. > to COMPARE_GREATERTHAN
   if (root == nullptr) {
@@ -406,7 +406,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::AExprTransform(A_Expr *root)
   }
 
   ExpressionType target_type;
-  std::vector<std::shared_ptr<AbstractExpression>> children;
+  std::vector<const AbstractExpression *> children;
 
   if (root->kind == AEXPR_DISTINCT) {
     target_type = ExpressionType::COMPARE_IS_DISTINCT_FROM;
@@ -433,7 +433,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::AExprTransform(A_Expr *root)
     case ExpressionType::OPERATOR_IS_NULL:
     case ExpressionType::OPERATOR_IS_NOT_NULL:
     case ExpressionType::OPERATOR_EXISTS: {
-      return std::make_unique<OperatorExpression>(target_type, type::TypeId::INVALID, std::move(children));
+      return new OperatorExpression(target_type, type::TypeId::INVALID, std::move(children));
     }
     case ExpressionType::OPERATOR_CAST: {
       return TypeCastTransform(reinterpret_cast<TypeCast *>(root));
@@ -448,35 +448,37 @@ std::unique_ptr<AbstractExpression> PostgresParser::AExprTransform(A_Expr *root)
     case ExpressionType::COMPARE_NOT_LIKE:
     case ExpressionType::COMPARE_IN:
     case ExpressionType::COMPARE_IS_DISTINCT_FROM: {
-      return std::make_unique<ComparisonExpression>(target_type, std::move(children));
+      return new ComparisonExpression(target_type, std::move(children));
     }
     default: {
       PARSER_LOG_DEBUG("AExprTransform: type {} unsupported", static_cast<int>(target_type));
+      for (auto *child : children) {
+        delete child;
+      }
       throw PARSER_EXCEPTION("AExprTransform: unsupported type");
     }
   }
 }
 
 // Postgres.BoolExpr -> terrier.ConjunctionExpression
-std::unique_ptr<AbstractExpression> PostgresParser::BoolExprTransform(BoolExpr *root) {
-  std::unique_ptr<AbstractExpression> result;
-  std::vector<std::shared_ptr<AbstractExpression>> children;
+const AbstractExpression *PostgresParser::BoolExprTransform(BoolExpr *root) {
+  const AbstractExpression *result;
+  std::vector<const AbstractExpression *> children;
   for (auto cell = root->args->head; cell != nullptr; cell = cell->next) {
     auto node = reinterpret_cast<Node *>(cell->data.ptr_value);
     children.emplace_back(ExprTransform(node));
   }
   switch (root->boolop) {
     case AND_EXPR: {
-      result = std::make_unique<ConjunctionExpression>(ExpressionType::CONJUNCTION_AND, std::move(children));
+      result = new ConjunctionExpression(ExpressionType::CONJUNCTION_AND, children);
       break;
     }
     case OR_EXPR: {
-      result = std::make_unique<ConjunctionExpression>(ExpressionType::CONJUNCTION_OR, std::move(children));
+      result = new ConjunctionExpression(ExpressionType::CONJUNCTION_OR, children);
       break;
     }
     case NOT_EXPR: {
-      result = std::make_unique<OperatorExpression>(ExpressionType::OPERATOR_NOT, type::TypeId::INVALID,
-                                                    std::move(children));
+      result = new OperatorExpression(ExpressionType::OPERATOR_NOT, type::TypeId::INVALID, children);
       break;
     }
     default: {
@@ -488,42 +490,41 @@ std::unique_ptr<AbstractExpression> PostgresParser::BoolExprTransform(BoolExpr *
   return result;
 }
 
-std::unique_ptr<AbstractExpression> PostgresParser::CaseExprTransform(CaseExpr *root) {
+const AbstractExpression *PostgresParser::CaseExprTransform(CaseExpr *root) {
   if (root == nullptr) {
     return nullptr;
   }
 
   auto arg_expr = ExprTransform(reinterpret_cast<Node *>(root->arg));
 
-  std::vector<CaseExpression::WhenClause> clauses;
+  std::vector<CaseExpression::WhenClause *> clauses;
   for (auto cell = root->args->head; cell != nullptr; cell = cell->next) {
     auto w = reinterpret_cast<CaseWhen *>(cell->data.ptr_value);
     auto when_expr = ExprTransform(reinterpret_cast<Node *>(w->expr));
     auto result_expr = ExprTransform(reinterpret_cast<Node *>(w->result));
 
     if (arg_expr == nullptr) {
-      auto when_clause = CaseExpression::WhenClause{std::move(when_expr), std::move(result_expr)};
-      clauses.emplace_back(when_clause);
+      clauses.push_back(new CaseExpression::WhenClause(when_expr, result_expr));
     } else {
-      std::vector<std::shared_ptr<AbstractExpression>> children;
+      std::vector<const AbstractExpression *> children;
       children.emplace_back(arg_expr->Copy());
-      children.emplace_back(std::move(when_expr));
-      auto cmp_expr = std::make_unique<ComparisonExpression>(ExpressionType::COMPARE_EQUAL, std::move(children));
-      auto when_clause = CaseExpression::WhenClause{std::move(cmp_expr), std::move(result_expr)};
-      clauses.emplace_back(when_clause);
+      children.emplace_back(when_expr);
+      auto *cmp_expr = new ComparisonExpression(ExpressionType::COMPARE_EQUAL, std::move(children));
+      clauses.push_back(new CaseExpression::WhenClause(cmp_expr, result_expr));
     }
   }
 
   auto default_expr = ExprTransform(reinterpret_cast<Node *>(root->defresult));
-  auto ret_val_type = clauses[0].then->GetReturnValueType();
+  auto ret_val_type = clauses[0]->then_->GetReturnValueType();
 
-  auto result = std::make_unique<CaseExpression>(ret_val_type, std::move(clauses), std::move(default_expr));
+  auto result = new CaseExpression(ret_val_type, std::move(clauses), default_expr);
+  delete arg_expr;
   return result;
 }
 
 // Postgres.ColumnRef -> terrier.TupleValueExpression | terrier.StarExpression
-std::unique_ptr<AbstractExpression> PostgresParser::ColumnRefTransform(ColumnRef *root) {
-  std::unique_ptr<AbstractExpression> result;
+const AbstractExpression *PostgresParser::ColumnRefTransform(ColumnRef *root) {
+  const AbstractExpression *result;
   List *fields = root->fields;
   auto node = reinterpret_cast<Node *>(fields->head->data.ptr_value);
   switch (node->type) {
@@ -531,17 +532,17 @@ std::unique_ptr<AbstractExpression> PostgresParser::ColumnRefTransform(ColumnRef
       // TODO(WAN): verify the old system is doing the right thing
       if (fields->length == 1) {
         auto col_name = reinterpret_cast<value *>(node)->val.str;
-        result = std::make_unique<TupleValueExpression>(col_name, "");
+        result = new TupleValueExpression(col_name, "");
       } else {
         auto next_node = reinterpret_cast<Node *>(fields->head->next->data.ptr_value);
         auto col_name = reinterpret_cast<value *>(next_node)->val.str;
         auto table_name = reinterpret_cast<value *>(node)->val.str;
-        result = std::make_unique<TupleValueExpression>(col_name, table_name);
+        result = new TupleValueExpression(col_name, table_name);
       }
       break;
     }
     case T_A_Star: {
-      result = std::make_unique<StarExpression>();
+      result = new StarExpression();
       break;
     }
     default: {
@@ -554,7 +555,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::ColumnRefTransform(ColumnRef
 }
 
 // Postgres.A_Const -> terrier.ConstantValueExpression
-std::unique_ptr<AbstractExpression> PostgresParser::ConstTransform(A_Const *root) {
+const AbstractExpression *PostgresParser::ConstTransform(A_Const *root) {
   if (root == nullptr) {
     return nullptr;
   }
@@ -562,15 +563,15 @@ std::unique_ptr<AbstractExpression> PostgresParser::ConstTransform(A_Const *root
 }
 
 // Postgres.FuncCall -> terrier.AbstractExpression
-std::unique_ptr<AbstractExpression> PostgresParser::FuncCallTransform(FuncCall *root) {
+const AbstractExpression *PostgresParser::FuncCallTransform(FuncCall *root) {
   // TODO(WAN): change case?
   std::string func_name = reinterpret_cast<value *>(root->funcname->head->data.ptr_value)->val.str;
 
-  std::unique_ptr<AbstractExpression> result;
+  const AbstractExpression *result;
   if (!IsAggregateFunction(func_name)) {
     // normal functions (built-in functions or UDFs)
     func_name = (reinterpret_cast<value *>(root->funcname->tail->data.ptr_value))->val.str;
-    std::vector<std::shared_ptr<AbstractExpression>> children;
+    std::vector<const AbstractExpression *> children;
 
     if (root->args != nullptr) {
       for (auto cell = root->args->head; cell != nullptr; cell = cell->next) {
@@ -578,20 +579,20 @@ std::unique_ptr<AbstractExpression> PostgresParser::FuncCallTransform(FuncCall *
         children.emplace_back(ExprTransform(expr_node));
       }
     }
-    result = std::make_unique<FunctionExpression>(func_name.c_str(), type::TypeId::INVALID, std::move(children));
+    result = new FunctionExpression(func_name, type::TypeId::INVALID, children);
   } else {
     // aggregate function
     auto agg_fun_type = StringToExpressionType("AGGREGATE_" + func_name);
-    std::vector<std::shared_ptr<AbstractExpression>> children;
+    std::vector<const AbstractExpression *> children;
     if (root->agg_star) {
-      auto child = std::make_unique<StarExpression>();
-      children.emplace_back(std::move(child));
-      result = std::make_unique<AggregateExpression>(agg_fun_type, std::move(children), root->agg_distinct);
+      auto child = new StarExpression();
+      children.emplace_back(child);
+      result = new AggregateExpression(agg_fun_type, std::move(children), root->agg_distinct);
     } else if (root->args->length < 2) {
       auto expr_node = reinterpret_cast<Node *>(root->args->head->data.ptr_value);
       auto child = ExprTransform(expr_node);
-      children.emplace_back(std::move(child));
-      result = std::make_unique<AggregateExpression>(agg_fun_type, std::move(children), root->agg_distinct);
+      children.emplace_back(child);
+      result = new AggregateExpression(agg_fun_type, std::move(children), root->agg_distinct);
     } else {
       PARSER_LOG_DEBUG("FuncCallTransform: Aggregation over multiple cols not supported");
       throw PARSER_EXCEPTION("FuncCallTransform: Aggregation over multiple cols not supported");
@@ -601,32 +602,32 @@ std::unique_ptr<AbstractExpression> PostgresParser::FuncCallTransform(FuncCall *
 }
 
 // Postgres.NullTest -> terrier.OperatorExpression
-std::unique_ptr<AbstractExpression> PostgresParser::NullTestTransform(NullTest *root) {
+const AbstractExpression *PostgresParser::NullTestTransform(NullTest *root) {
   if (root == nullptr) {
     return nullptr;
   }
 
-  std::vector<std::shared_ptr<AbstractExpression>> children;
+  std::vector<const AbstractExpression *> children;
 
   switch (root->arg->type) {
     case T_ColumnRef: {
       auto arg_expr = ColumnRefTransform(reinterpret_cast<ColumnRef *>(root->arg));
-      children.emplace_back(std::move(arg_expr));
+      children.emplace_back(arg_expr);
       break;
     }
     case T_A_Const: {
       auto arg_expr = ConstTransform(reinterpret_cast<A_Const *>(root->arg));
-      children.emplace_back(std::move(arg_expr));
+      children.emplace_back(arg_expr);
       break;
     }
     case T_A_Expr: {
       auto arg_expr = AExprTransform(reinterpret_cast<A_Expr *>(root->arg));
-      children.emplace_back(std::move(arg_expr));
+      children.emplace_back(arg_expr);
       break;
     }
     case T_ParamRef: {
       auto arg_expr = ParamRefTransform(reinterpret_cast<ParamRef *>(root->arg));
-      children.emplace_back(std::move(arg_expr));
+      children.emplace_back(arg_expr);
       break;
     }
     default: { PARSER_LOG_AND_THROW("NullTestTransform", "ArgExpr type", root->arg->type); }
@@ -635,44 +636,43 @@ std::unique_ptr<AbstractExpression> PostgresParser::NullTestTransform(NullTest *
   ExpressionType type =
       root->nulltesttype == IS_NULL ? ExpressionType::OPERATOR_IS_NULL : ExpressionType::OPERATOR_IS_NOT_NULL;
 
-  auto result = std::make_unique<OperatorExpression>(type, type::TypeId::BOOLEAN, std::move(children));
+  auto result = new OperatorExpression(type, type::TypeId::BOOLEAN, std::move(children));
   return result;
 }
 
 // Postgres.ParamRef -> terrier.ParameterValueExpression
-std::unique_ptr<AbstractExpression> PostgresParser::ParamRefTransform(ParamRef *root) {
-  auto result = std::make_unique<ParameterValueExpression>(root->number - 1);
+const AbstractExpression *PostgresParser::ParamRefTransform(ParamRef *root) {
+  auto result = new ParameterValueExpression(root->number - 1);
   return result;
 }
 
 // Postgres.SubLink -> terrier.
-std::unique_ptr<AbstractExpression> PostgresParser::SubqueryExprTransform(SubLink *node) {
+const AbstractExpression *PostgresParser::SubqueryExprTransform(SubLink *node) {
   if (node == nullptr) {
     return nullptr;
   }
 
   auto select_stmt = SelectTransform(reinterpret_cast<SelectStmt *>(node->subselect));
-  auto subquery_expr = std::make_unique<SubqueryExpression>(std::move(select_stmt));
-  std::vector<std::shared_ptr<AbstractExpression>> children;
+  auto subquery_expr = new SubqueryExpression(std::move(select_stmt));
+  std::vector<const AbstractExpression *> children;
 
-  std::unique_ptr<AbstractExpression> result;
+  const AbstractExpression *result;
 
   switch (node->subLinkType) {
     case ANY_SUBLINK: {
       auto col_expr = ExprTransform(node->testexpr);
-      children.emplace_back(std::move(col_expr));
-      children.emplace_back(std::move(subquery_expr));
-      result = std::make_unique<ComparisonExpression>(ExpressionType::COMPARE_IN, std::move(children));
+      children.emplace_back(col_expr);
+      children.emplace_back(subquery_expr);
+      result = new ComparisonExpression(ExpressionType::COMPARE_IN, std::move(children));
       break;
     }
     case EXISTS_SUBLINK: {
-      children.emplace_back(std::move(subquery_expr));
-      result = std::make_unique<OperatorExpression>(ExpressionType::OPERATOR_EXISTS, type::TypeId::BOOLEAN,
-                                                    std::move(children));
+      children.emplace_back(subquery_expr);
+      result = new OperatorExpression(ExpressionType::OPERATOR_EXISTS, type::TypeId::BOOLEAN, std::move(children));
       break;
     }
     case EXPR_SUBLINK: {
-      result = std::move(subquery_expr);
+      result = subquery_expr;
       break;
     }
     default: { PARSER_LOG_AND_THROW("SubqueryExprTransform", "Sublink type", node->subLinkType); }
@@ -682,41 +682,41 @@ std::unique_ptr<AbstractExpression> PostgresParser::SubqueryExprTransform(SubLin
 }
 
 // Postgres.TypeCast -> terrier.TypeCastExpression
-std::unique_ptr<AbstractExpression> PostgresParser::TypeCastTransform(TypeCast *root) {
+const AbstractExpression *PostgresParser::TypeCastTransform(TypeCast *root) {
   auto type_name = reinterpret_cast<value *>(root->typeName->names->tail->data.ptr_value)->val.str;
   auto type = ColumnDefinition::StrToValueType(type_name);
-  std::vector<std::shared_ptr<AbstractExpression>> children;
+  std::vector<const AbstractExpression *> children;
   children.emplace_back(ExprTransform(root->arg));
-  auto result = std::make_unique<TypeCastExpression>(type, std::move(children));
+  auto result = new TypeCastExpression(type, std::move(children));
   return result;
 }
 
 // Postgres.value -> terrier.ConstantValueExpression
-std::unique_ptr<AbstractExpression> PostgresParser::ValueTransform(value val) {
-  std::unique_ptr<AbstractExpression> result;
+const AbstractExpression *PostgresParser::ValueTransform(value val) {
+  const AbstractExpression *result;
   switch (val.type) {
     case T_Integer: {
       auto v = type::TransientValueFactory::GetInteger(val.val.ival);
-      result = std::make_unique<ConstantValueExpression>(v);
+      result = new ConstantValueExpression(v);
       break;
     }
 
     case T_String: {
       auto v = type::TransientValueFactory::GetVarChar(val.val.str);
-      result = std::make_unique<ConstantValueExpression>(v);
+      result = new ConstantValueExpression(v);
       break;
     }
 
     case T_Float: {
       auto v = type::TransientValueFactory::GetDecimal(std::stod(val.val.str));
-      result = std::make_unique<ConstantValueExpression>(v);
+      result = new ConstantValueExpression(v);
       break;
     }
 
     case T_Null: {
       auto v = type::TransientValueFactory::GetBoolean(false);
       v.SetNull(true);
-      result = std::make_unique<ConstantValueExpression>(v);
+      result = new ConstantValueExpression(v);
       break;
     }
 
@@ -730,8 +730,8 @@ std::unique_ptr<SelectStatement> PostgresParser::SelectTransform(SelectStmt *roo
 
   switch (root->op) {
     case SETOP_NONE: {
-      auto target = TargetTransform(root->targetList);
       auto from = FromTransform(root);
+      auto target = TargetTransform(root->targetList);
       auto select_distinct = root->distinctClause != nullptr;
       auto groupby = GroupByTransform(root->groupClause, root->havingClause);
       auto orderby = OrderByTransform(root->sortClause);
@@ -747,7 +747,7 @@ std::unique_ptr<SelectStatement> PostgresParser::SelectTransform(SelectStmt *roo
       }
       auto limit_desc = std::make_unique<LimitDescription>(limit, offset);
 
-      result = std::make_unique<SelectStatement>(std::move(target), select_distinct, std::move(from), std::move(where),
+      result = std::make_unique<SelectStatement>(std::move(target), select_distinct, std::move(from), where,
                                                  std::move(groupby), std::move(orderby), std::move(limit_desc));
       break;
     }
@@ -766,13 +766,13 @@ std::unique_ptr<SelectStatement> PostgresParser::SelectTransform(SelectStmt *roo
 }
 
 // Postgres.SelectStmt.whereClause -> terrier.SelectStatement.select_
-std::vector<std::shared_ptr<AbstractExpression>> PostgresParser::TargetTransform(List *root) {
+std::vector<const AbstractExpression *> PostgresParser::TargetTransform(List *root) {
   // Postgres parses 'SELECT;' to nullptr
   if (root == nullptr) {
     throw PARSER_EXCEPTION("TargetTransform: root==null.");
   }
 
-  std::vector<std::shared_ptr<AbstractExpression>> result;
+  std::vector<const AbstractExpression *> result;
   for (auto cell = root->head; cell != nullptr; cell = cell->next) {
     auto target = reinterpret_cast<ResTarget *>(cell->data.ptr_value);
     /*
@@ -849,19 +849,19 @@ std::unique_ptr<GroupByDescription> PostgresParser::GroupByTransform(List *group
     return nullptr;
   }
 
-  std::vector<std::shared_ptr<AbstractExpression>> columns;
+  std::vector<const AbstractExpression *> columns;
   for (auto cell = group->head; cell != nullptr; cell = cell->next) {
     auto temp = reinterpret_cast<Node *>(cell->data.ptr_value);
     columns.emplace_back(ExprTransform(temp));
   }
 
   // TODO(WAN): old system says, having clauses not implemented, depends on AExprTransform
-  std::unique_ptr<AbstractExpression> having = nullptr;
+  const AbstractExpression *having = nullptr;
   if (having_node != nullptr) {
     having = ExprTransform(having_node);
   }
 
-  auto result = std::make_unique<GroupByDescription>(std::move(columns), std::move(having));
+  auto result = std::make_unique<GroupByDescription>(std::move(columns), having);
   return result;
 }
 
@@ -872,7 +872,7 @@ std::unique_ptr<OrderByDescription> PostgresParser::OrderByTransform(List *order
   }
 
   std::vector<OrderType> types;
-  std::vector<std::shared_ptr<AbstractExpression>> exprs;
+  std::vector<const AbstractExpression *> exprs;
 
   for (auto cell = order->head; cell != nullptr; cell = cell->next) {
     auto temp = reinterpret_cast<Node *>(cell->data.ptr_value);
@@ -906,7 +906,7 @@ std::unique_ptr<OrderByDescription> PostgresParser::OrderByTransform(List *order
 }
 
 // Postgres.SelectStmt.whereClause -> terrier.AbstractExpression
-std::unique_ptr<AbstractExpression> PostgresParser::WhereTransform(Node *root) {
+const AbstractExpression *PostgresParser::WhereTransform(Node *root) {
   if (root == nullptr) {
     return nullptr;
   }
@@ -981,7 +981,7 @@ std::unique_ptr<JoinDefinition> PostgresParser::JoinTransform(JoinExpr *root) {
     default: { PARSER_LOG_AND_THROW("JoinTransform", "Right JoinArgType", root->rarg->type); }
   }
 
-  std::unique_ptr<AbstractExpression> condition;
+  const AbstractExpression *condition;
 
   // TODO(WAN): quick fix to prevent segfaulting on the following test case
   // SELECT * FROM tab0 AS cor0 CROSS JOIN tab0 AS cor1 WHERE NULL IS NOT NULL;
@@ -1002,7 +1002,7 @@ std::unique_ptr<JoinDefinition> PostgresParser::JoinTransform(JoinExpr *root) {
     default: { PARSER_LOG_AND_THROW("JoinTransform", "Join condition type", root->quals->type); }
   }
 
-  auto result = std::make_unique<JoinDefinition>(type, std::move(left), std::move(right), std::move(condition));
+  auto result = std::make_unique<JoinDefinition>(type, std::move(left), std::move(right), condition);
   return result;
 }
 
@@ -1264,13 +1264,13 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateIndexTransform(IndexStmt *ro
   auto unique = root->unique;
   auto index_name = root->idxname;
 
-  std::vector<IndexAttr> index_attrs;
+  std::vector<IndexAttr *> index_attrs;
   for (auto cell = root->indexParams->head; cell != nullptr; cell = cell->next) {
     auto *index_elem = reinterpret_cast<IndexElem *>(cell->data.ptr_value);
     if (index_elem->expr == nullptr) {
-      index_attrs.emplace_back(index_elem->name);
+      index_attrs.emplace_back(new IndexAttr(index_elem->name));
     } else {
-      index_attrs.emplace_back(ExprTransform(index_elem->expr));
+      index_attrs.emplace_back(new IndexAttr(ExprTransform(index_elem->expr)));
     }
   }
 
@@ -1294,11 +1294,13 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateIndexTransform(IndexStmt *ro
     index_type = IndexType::ART;
   } else {
     PARSER_LOG_DEBUG("CreateIndexTransform: IndexType {} not supported", access_method);
+    for (auto *attr : index_attrs) {
+      delete attr;
+    }
     throw NOT_IMPLEMENTED_EXCEPTION("CreateIndexTransform error");
   }
 
-  auto result =
-      std::make_unique<CreateStatement>(std::move(table_info), index_type, unique, index_name, std::move(index_attrs));
+  auto result = std::make_unique<CreateStatement>(std::move(table_info), index_type, unique, index_name, index_attrs);
   return result;
 }
 
@@ -1379,8 +1381,8 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateTriggerTransform(CreateTrigS
   trigger_type |= root->events;
 
   auto result = std::make_unique<CreateStatement>(std::move(table_info), trigger_name, std::move(trigger_funcnames),
-                                                  std::move(trigger_args), std::move(trigger_columns),
-                                                  std::move(trigger_when), trigger_type);
+                                                  std::move(trigger_args), std::move(trigger_columns), trigger_when,
+                                                  trigger_type);
   return result;
 }
 
@@ -1436,8 +1438,8 @@ PostgresParser::ColumnDefTransResult PostgresParser::ColumnDefTransform(ColumnDe
   bool is_primary = false;
   bool is_not_null = false;
   bool is_unique = false;
-  std::unique_ptr<AbstractExpression> default_expr;
-  std::unique_ptr<AbstractExpression> check_expr;
+  const AbstractExpression *default_expr = nullptr;
+  const AbstractExpression *check_expr = nullptr;
 
   if (root->constraints != nullptr) {
     for (auto cell = root->constraints->head; cell != nullptr; cell = cell->next) {
@@ -1494,8 +1496,8 @@ PostgresParser::ColumnDefTransResult PostgresParser::ColumnDefTransform(ColumnDe
   }
 
   auto name = root->colname;
-  auto result = std::make_unique<ColumnDefinition>(name, datatype, is_primary, is_not_null, is_unique,
-                                                   std::move(default_expr), std::move(check_expr), varlen);
+  auto result = std::make_unique<ColumnDefinition>(name, datatype, is_primary, is_not_null, is_unique, default_expr,
+                                                   check_expr, varlen);
 
   return {std::move(result), std::move(foreign_keys)};
 }
@@ -1569,11 +1571,11 @@ std::unique_ptr<ReturnType> PostgresParser::ReturnTypeTransform(TypeName *root) 
 }
 
 // Postgres.Node -> terrier.AbstractExpression
-std::unique_ptr<AbstractExpression> PostgresParser::WhenTransform(Node *root) {
+const AbstractExpression *PostgresParser::WhenTransform(Node *root) {
   if (root == nullptr) {
     return nullptr;
   }
-  std::unique_ptr<AbstractExpression> result;
+  const AbstractExpression *result;
   switch (root->type) {
     case T_A_Expr: {
       result = AExprTransform(reinterpret_cast<A_Expr *>(root));
@@ -1592,7 +1594,7 @@ std::unique_ptr<DeleteStatement> PostgresParser::DeleteTransform(DeleteStmt *roo
   std::unique_ptr<DeleteStatement> result;
   auto table = RangeVarTransform(root->relation);
   auto where = WhereTransform(root->whereClause);
-  result = std::make_unique<DeleteStatement>(std::move(table), std::move(where));
+  result = std::make_unique<DeleteStatement>(std::move(table), where);
   return result;
 }
 
@@ -1741,8 +1743,8 @@ std::unique_ptr<ExecuteStatement> PostgresParser::ExecuteTransform(ExecuteStmt *
   return result;
 }
 
-std::vector<std::shared_ptr<AbstractExpression>> PostgresParser::ParamListTransform(List *root) {
-  std::vector<std::shared_ptr<AbstractExpression>> result;
+std::vector<const AbstractExpression *> PostgresParser::ParamListTransform(List *root) {
+  std::vector<const AbstractExpression *> result;
 
   if (root == nullptr) {
     return result;
@@ -1805,8 +1807,8 @@ std::unique_ptr<InsertStatement> PostgresParser::InsertTransform(InsertStmt *roo
 }
 
 // Postgres.List -> column names
-std::unique_ptr<std::vector<std::string>> PostgresParser::ColumnNameTransform(List *root) {
-  auto result = std::make_unique<std::vector<std::string>>();
+std::vector<std::string> PostgresParser::ColumnNameTransform(List *root) {
+  auto result = std::vector<std::string>();
 
   if (root == nullptr) {
     return result;
@@ -1814,19 +1816,18 @@ std::unique_ptr<std::vector<std::string>> PostgresParser::ColumnNameTransform(Li
 
   for (auto cell = root->head; cell != nullptr; cell = cell->next) {
     auto target = reinterpret_cast<ResTarget *>(cell->data.ptr_value);
-    result->push_back(target->name);
+    result.emplace_back(target->name);
   }
 
   return result;
 }
 
 // Transforms value lists into terrier equivalent. Nested vectors, because an InsertStmt may insert multiple tuples.
-std::unique_ptr<std::vector<std::vector<std::shared_ptr<AbstractExpression>>>> PostgresParser::ValueListsTransform(
-    List *root) {
-  auto result = std::make_unique<std::vector<std::vector<std::shared_ptr<AbstractExpression>>>>();
+std::vector<std::vector<const AbstractExpression *>> PostgresParser::ValueListsTransform(List *root) {
+  auto result = std::vector<std::vector<const AbstractExpression *>>();
 
   for (auto value_list = root->head; value_list != nullptr; value_list = value_list->next) {
-    std::vector<std::shared_ptr<AbstractExpression>> cur_result;
+    std::vector<const AbstractExpression *> cur_result;
 
     auto target = reinterpret_cast<List *>(value_list->data.ptr_value);
     for (auto cell = target->head; cell != nullptr; cell = cell->next) {
@@ -1851,7 +1852,7 @@ std::unique_ptr<std::vector<std::vector<std::shared_ptr<AbstractExpression>>>> P
         default: { PARSER_LOG_AND_THROW("ValueListsTransform", "Value type", expr->type); }
       }
     }
-    result->emplace_back(std::move(cur_result));
+    result.emplace_back(std::move(cur_result));
   }
 
   return result;
@@ -1883,9 +1884,7 @@ std::vector<std::shared_ptr<parser::UpdateClause>> PostgresParser::UpdateTargetT
   for (auto cell = root->head; cell != nullptr; cell = cell->next) {
     auto target = reinterpret_cast<ResTarget *>(cell->data.ptr_value);
     auto column = target->name;
-    // TODO(LING): Wrapped managedPointer around, ExprTransform returns unique_ptr
-    //             Only doing this as we are not using smart ptr in UpdateClause
-    auto value = common::ManagedPointer<AbstractExpression>(ExprTransform(target->val).release());
+    auto value = ExprTransform(target->val);
     result.push_back(std::make_shared<UpdateClause>(column, value));
   }
   return result;
@@ -1896,7 +1895,7 @@ std::unique_ptr<PrepareStatement> PostgresParser::PrepareTransform(PrepareStmt *
   auto query = NodeTransform(root->query);
 
   // TODO(WAN): why isn't this populated?
-  std::vector<std::shared_ptr<ParameterValueExpression>> placeholders;
+  std::vector<const ParameterValueExpression *> placeholders;
 
   auto result = std::make_unique<PrepareStatement>(name, std::move(query), std::move(placeholders));
   return result;
@@ -1925,7 +1924,7 @@ std::unique_ptr<UpdateStatement> PostgresParser::UpdateTransform(UpdateStmt *upd
   auto clauses = UpdateTargetTransform(update_stmt->targetList);
   auto where = WhereTransform(update_stmt->whereClause);
 
-  result = std::make_unique<UpdateStatement>(std::move(table), std::move(clauses), std::move(where));
+  result = std::make_unique<UpdateStatement>(std::move(table), std::move(clauses), where);
   return result;
 }
 

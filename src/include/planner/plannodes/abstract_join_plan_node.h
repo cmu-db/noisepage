@@ -24,8 +24,8 @@ class AbstractJoinPlanNode : public AbstractPlanNode {
      * @param predicate join predicate
      * @return builder object
      */
-    ConcreteType &SetJoinPredicate(std::shared_ptr<parser::AbstractExpression> predicate) {
-      join_predicate_ = std::move(predicate);
+    ConcreteType &SetJoinPredicate(const parser::AbstractExpression *predicate) {
+      join_predicate_ = predicate;
       return *dynamic_cast<ConcreteType *>(this);
     }
 
@@ -46,7 +46,7 @@ class AbstractJoinPlanNode : public AbstractPlanNode {
     /**
      * Join predicate
      */
-    std::shared_ptr<parser::AbstractExpression> join_predicate_;
+    const parser::AbstractExpression *join_predicate_;
   };
 
   /**
@@ -58,16 +58,18 @@ class AbstractJoinPlanNode : public AbstractPlanNode {
    */
   AbstractJoinPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
                        std::shared_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
-                       std::shared_ptr<parser::AbstractExpression> predicate)
+                       const parser::AbstractExpression *predicate)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         join_type_(join_type),
-        join_predicate_(std::move(predicate)) {}
+        join_predicate_(predicate) {}
 
  public:
   /**
    * Default constructor used for deserialization
    */
   AbstractJoinPlanNode() = default;
+
+  ~AbstractJoinPlanNode() override { delete join_predicate_; }
 
   DISALLOW_COPY_AND_MOVE(AbstractJoinPlanNode)
 
@@ -92,11 +94,13 @@ class AbstractJoinPlanNode : public AbstractPlanNode {
   /**
    * @return pointer to predicate used for join
    */
-  const std::shared_ptr<parser::AbstractExpression> &GetJoinPredicate() const { return join_predicate_; }
+  common::ManagedPointer<const parser::AbstractExpression> GetJoinPredicate() const {
+    return common::ManagedPointer<const parser::AbstractExpression>(join_predicate_);
+  }
 
  private:
   LogicalJoinType join_type_;
-  std::shared_ptr<parser::AbstractExpression> join_predicate_;
+  const parser::AbstractExpression *join_predicate_;
 };
 
 }  // namespace terrier::planner

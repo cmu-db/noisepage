@@ -25,6 +25,8 @@ class ConstantValueExpression : public AbstractExpression {
    */
   ConstantValueExpression() = default;
 
+  ~ConstantValueExpression() override = default;
+
   common::hash_t Hash() const override {
     return common::HashUtil::CombineHashes(AbstractExpression::Hash(), value_.Hash());
   }
@@ -35,7 +37,17 @@ class ConstantValueExpression : public AbstractExpression {
     return value_ == const_expr.GetValue();
   }
 
-  std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<ConstantValueExpression>(*this); }
+  const AbstractExpression *Copy() const override { return new ConstantValueExpression(type::TransientValue(value_)); }
+
+  /**
+   * Creates a copy of the current AbstractExpression with new children implanted.
+   * The children should not be owned by any other AbstractExpression.
+   * @param children New children to be owned by the copy
+   */
+  const AbstractExpression *CopyWithChildren(std::vector<const AbstractExpression *> children) const override {
+    TERRIER_ASSERT(children.empty(), "COnstantValueExpression should have 0 children");
+    return Copy();
+  }
 
   /**
    * @return the constant value stored in this expression

@@ -27,6 +27,7 @@ class ExplainStatement : public SQLStatement {
   std::shared_ptr<SQLStatement> GetSQLStatement() { return real_sql_stmt_; }
 
  private:
+  // TODO(Gus): Get rid of shared pointer
   std::shared_ptr<SQLStatement> real_sql_stmt_;
 };
 

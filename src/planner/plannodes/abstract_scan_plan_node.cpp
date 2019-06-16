@@ -9,8 +9,8 @@ bool AbstractScanPlanNode::operator==(const AbstractPlanNode &rhs) const {
   // Check predicate
   auto &other = dynamic_cast<const AbstractScanPlanNode &>(rhs);
 
-  auto &pred = GetScanPredicate();
-  auto &other_pred = other.GetScanPredicate();
+  auto pred = GetScanPredicate();
+  auto other_pred = other.GetScanPredicate();
   if ((pred == nullptr && other_pred != nullptr) || (pred != nullptr && other_pred == nullptr)) {
     return false;
   }

@@ -20,8 +20,8 @@ class FunctionExpression : public AbstractExpression {
    * @param return_value_type function return value type
    * @param children children arguments for the function
    */
-  FunctionExpression(std::string &&func_name, const type::TypeId return_value_type,
-                     std::vector<std::shared_ptr<AbstractExpression>> &&children)
+  FunctionExpression(std::string func_name, const type::TypeId return_value_type,
+                     std::vector<const AbstractExpression *> children)
       : AbstractExpression(ExpressionType::FUNCTION, return_value_type, std::move(children)),
         func_name_(std::move(func_name)) {}
 
@@ -30,7 +30,24 @@ class FunctionExpression : public AbstractExpression {
    */
   FunctionExpression() = default;
 
-  std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<FunctionExpression>(*this); }
+  ~FunctionExpression() override = default;
+
+  const AbstractExpression *Copy() const override {
+    std::vector<const AbstractExpression *> children;
+    for (const auto *child : children_) {
+      children.emplace_back(child->Copy());
+    }
+    return new FunctionExpression(func_name_, GetReturnValueType(), children);
+  }
+
+  /**
+   * Creates a copy of the current AbstractExpression with new children implanted.
+   * The children should not be owned by any other AbstractExpression.
+   * @param children New children to be owned by the copy
+   */
+  const AbstractExpression *CopyWithChildren(std::vector<const AbstractExpression *> children) const override {
+    return new FunctionExpression(func_name_, GetReturnValueType(), children);
+  }
 
   bool operator==(const AbstractExpression &rhs) const override {
     if (!AbstractExpression::operator==(rhs)) return false;

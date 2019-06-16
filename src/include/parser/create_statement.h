@@ -84,18 +84,20 @@ struct ColumnDefinition {
    * @param varlen size of column if varlen
    */
   ColumnDefinition(std::string name, DataType type, bool is_primary, bool is_not_null, bool is_unique,
-                   std::shared_ptr<AbstractExpression> default_expr, std::shared_ptr<AbstractExpression> check_expr,
-                   size_t varlen)
+                   const AbstractExpression *default_expr, const AbstractExpression *check_expr, size_t varlen)
       : name_(std::move(name)),
         type_(type),
         is_primary_(is_primary),
         is_not_null_(is_not_null),
         is_unique_(is_unique),
-        default_expr_(std::move(default_expr)),
-        check_expr_(std::move(check_expr)),
+        default_expr_(default_expr),
+        check_expr_(check_expr),
         varlen_(varlen) {}
 
-  virtual ~ColumnDefinition() = default;
+  ~ColumnDefinition() {
+    delete default_expr_;
+    delete check_expr_;
+  }
 
   /**
    * @param str type string
@@ -257,12 +259,16 @@ struct ColumnDefinition {
   /**
    * @return default expression
    */
-  std::shared_ptr<AbstractExpression> GetDefaultExpression() { return default_expr_; }
+  common::ManagedPointer<const AbstractExpression> GetDefaultExpression() {
+    return common::ManagedPointer<const AbstractExpression>(default_expr_);
+  }
 
   /**
    * @return check expression
    */
-  std::shared_ptr<AbstractExpression> GetCheckExpression() { return check_expr_; }
+  common::ManagedPointer<const AbstractExpression> GetCheckExpression() {
+    return common::ManagedPointer<const AbstractExpression>(check_expr_);
+  }
 
   /**
    * @return varlen size
@@ -312,8 +318,8 @@ struct ColumnDefinition {
   bool is_primary_ = false;  // not const because of how the parser returns us columns and primary key info separately
   const bool is_not_null_ = false;
   const bool is_unique_ = false;
-  const std::shared_ptr<AbstractExpression> default_expr_ = nullptr;
-  const std::shared_ptr<AbstractExpression> check_expr_ = nullptr;
+  const AbstractExpression *default_expr_ = nullptr;
+  const AbstractExpression *check_expr_ = nullptr;
   const size_t varlen_ = 0;
 
   const std::vector<std::string> fk_sources_;
@@ -338,7 +344,9 @@ class IndexAttr {
   /**
    * Create an index attribute on an expression.
    */
-  explicit IndexAttr(std::shared_ptr<AbstractExpression> expr) : name_(""), expr_(std::move(expr)) {}
+  explicit IndexAttr(const AbstractExpression *expr) : name_(""), expr_(expr) {}
+
+  ~IndexAttr() { delete expr_; }
 
   /**
    * @return the name of the column that we're indexed on
@@ -351,14 +359,14 @@ class IndexAttr {
   /**
    * @return the expression that we're indexed on
    */
-  std::shared_ptr<AbstractExpression> GetExpression() const {
+  common::ManagedPointer<const AbstractExpression> GetExpression() const {
     TERRIER_ASSERT(expr_ != nullptr, "Names don't come with expressions.");
-    return expr_;
+    return common::ManagedPointer<const AbstractExpression>(expr_);
   }
 
  private:
-  const std::string name_;
-  const std::shared_ptr<AbstractExpression> expr_;
+  std::string name_;
+  const AbstractExpression *expr_;
 };
 
 /**
@@ -396,7 +404,7 @@ class CreateStatement : public TableRefStatement {
    * @param index_attrs index attributes
    */
   CreateStatement(std::shared_ptr<TableInfo> table_info, IndexType index_type, bool unique, std::string index_name,
-                  std::vector<IndexAttr> index_attrs)
+                  std::vector<IndexAttr *> index_attrs)
       : TableRefStatement(StatementType::CREATE, std::move(table_info)),
         create_type_(kIndex),
         index_type_(index_type),
@@ -426,7 +434,7 @@ class CreateStatement : public TableRefStatement {
    */
   CreateStatement(std::shared_ptr<TableInfo> table_info, std::string trigger_name,
                   std::vector<std::string> trigger_funcnames, std::vector<std::string> trigger_args,
-                  std::vector<std::string> trigger_columns, std::shared_ptr<AbstractExpression> trigger_when,
+                  std::vector<std::string> trigger_columns, const AbstractExpression *trigger_when,
                   int16_t trigger_type)
       : TableRefStatement(StatementType::CREATE, std::move(table_info)),
         create_type_(kTrigger),
@@ -434,7 +442,7 @@ class CreateStatement : public TableRefStatement {
         trigger_funcnames_(std::move(trigger_funcnames)),
         trigger_args_(std::move(trigger_args)),
         trigger_columns_(std::move(trigger_columns)),
-        trigger_when_(std::move(trigger_when)),
+        trigger_when_(trigger_when),
         trigger_type_(trigger_type) {}
 
   /**
@@ -448,7 +456,12 @@ class CreateStatement : public TableRefStatement {
         view_name_(std::move(view_name)),
         view_query_(std::move(view_query)) {}
 
-  ~CreateStatement() override = default;
+  ~CreateStatement() override {
+    delete trigger_when_;
+    for (auto *attr : index_attrs_) {
+      delete attr;
+    }
+  }
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
@@ -485,7 +498,7 @@ class CreateStatement : public TableRefStatement {
   /**
    * @return index attributes for [CREATE INDEX]
    */
-  std::vector<IndexAttr> GetIndexAttributes() { return index_attrs_; }
+  const std::vector<IndexAttr *> &GetIndexAttributes() const { return index_attrs_; }
 
   /**
    * @return true if "IF NOT EXISTS" for [CREATE SCHEMA], false otherwise
@@ -515,7 +528,9 @@ class CreateStatement : public TableRefStatement {
   /**
    * @return trigger when clause for [CREATE TRIGGER]
    */
-  std::shared_ptr<AbstractExpression> GetTriggerWhen() { return trigger_when_; }
+  common::ManagedPointer<const AbstractExpression> GetTriggerWhen() {
+    return common::ManagedPointer<const AbstractExpression>(trigger_when_);
+  }
 
   /**
    * @return trigger type, i.e. information about row, timing, events, access by pg_trigger
@@ -544,7 +559,7 @@ class CreateStatement : public TableRefStatement {
   const IndexType index_type_ = IndexType::INVALID;
   const bool unique_index_ = false;
   const std::string index_name_;
-  const std::vector<IndexAttr> index_attrs_;
+  const std::vector<IndexAttr *> index_attrs_;
 
   // CREATE SCHEMA
   const bool if_not_exists_ = false;
@@ -554,7 +569,7 @@ class CreateStatement : public TableRefStatement {
   const std::vector<std::string> trigger_funcnames_;
   const std::vector<std::string> trigger_args_;
   const std::vector<std::string> trigger_columns_;
-  const std::shared_ptr<AbstractExpression> trigger_when_;
+  const AbstractExpression *trigger_when_ = nullptr;
   const int16_t trigger_type_ = 0;
 
   // CREATE VIEW

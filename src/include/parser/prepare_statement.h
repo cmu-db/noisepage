@@ -30,7 +30,7 @@ class PrepareStatement : public SQLStatement {
    * @param placeholders - placeholder values? (explain)
    */
   PrepareStatement(std::string name, std::shared_ptr<SQLStatement> query,
-                   std::vector<std::shared_ptr<ParameterValueExpression>> placeholders)
+                   std::vector<const ParameterValueExpression *> placeholders)
       : SQLStatement(StatementType::PREPARE),
         name_(std::move(name)),
         query_(std::move(query)),
@@ -51,14 +51,22 @@ class PrepareStatement : public SQLStatement {
   std::shared_ptr<SQLStatement> GetQuery() { return query_; }
 
   /**
-   * @return placeholders
+   * @return number of placholders
    */
-  std::vector<std::shared_ptr<ParameterValueExpression>> GetPlaceholders() { return placeholders_; }
+  size_t GetPlacerholdersSize() const { return placeholders_.size(); }
+
+  /**
+   * @param idx index of placerholder
+   * @return placeholder
+   */
+  common::ManagedPointer<const ParameterValueExpression> GetPlaceholder(size_t idx) {
+    return common::ManagedPointer<const ParameterValueExpression>(placeholders_[idx]);
+  }
 
  private:
   const std::string name_;
   const std::shared_ptr<SQLStatement> query_;
-  const std::vector<std::shared_ptr<ParameterValueExpression>> placeholders_;
+  const std::vector<const ParameterValueExpression *> placeholders_;
 };
 
 }  // namespace parser
