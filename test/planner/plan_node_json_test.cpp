@@ -124,6 +124,7 @@ TEST(PlanNodeJsonTest, OutputSchemaJsonTest) {
   std::shared_ptr<OutputSchema> deserialized_output_schema = std::make_shared<OutputSchema>();
   deserialized_output_schema->FromJson(output_schema_json);
   EXPECT_EQ(*output_schema, *deserialized_output_schema);
+  EXPECT_EQ(output_schema->Hash(), deserialized_output_schema->Hash());
 }
 
 // NOLINTNEXTLINE

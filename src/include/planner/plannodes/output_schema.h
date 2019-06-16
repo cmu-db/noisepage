@@ -87,13 +87,31 @@ class OutputSchema {
      */
     common::hash_t Hash() const {
       common::hash_t hash = common::HashUtil::Hash(name_);
+      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(type_));
       hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(oid_));
+      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(nullable_));
       return hash;
     }
+
     /**
      * @return whether the two columns are equal
      */
-    bool operator==(const Column &rhs) const { return name_ == rhs.name_ && type_ == rhs.type_ && oid_ == rhs.oid_; }
+    bool operator==(const Column &rhs) const {
+      // Name
+      if (name_ != rhs.name_) return false;
+
+      // Type
+      if (type_ != rhs.type_) return false;
+
+      // Nullable
+      if (nullable_ != rhs.nullable_) return false;
+
+      // Oid
+      if (oid_ != rhs.oid_) return false;
+
+      return true;
+    }
+
     /**
      * Inequality check
      * @param rhs other
@@ -153,7 +171,7 @@ class OutputSchema {
      */
     common::hash_t Hash() const {
       common::hash_t hash = common::HashUtil::Hash(column_);
-      hash = common::HashUtil::CombineHashes(hash, expr_->Hash());
+      // hash = common::HashUtil::CombineHashes(hash, expr_->Hash());
       return hash;
     }
 
@@ -287,7 +305,16 @@ class OutputSchema {
    * @return true if the two OutputSchema are the same
    */
   bool operator==(const OutputSchema &rhs) const {
-    return (columns_ == rhs.columns_) && (targets_ == rhs.targets_) && (direct_map_list_ == rhs.direct_map_list_);
+    // Columns
+    if (columns_ != rhs.columns_) return false;
+
+    // Targets
+    if (targets_ != rhs.targets_) return false;
+
+    // Direct Map List
+    if (direct_map_list_ != rhs.direct_map_list_) return false;
+
+    return true;
   }
 
   /**
