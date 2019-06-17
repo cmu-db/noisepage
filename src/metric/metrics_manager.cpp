@@ -22,6 +22,9 @@ void MetricsManager::Aggregate() {
 }
 
 void MetricsManager::ResetMetric(const MetricsComponent component) const {
-  // TODO(Matt): this
+  for (const auto &metrics_store : stores_map_) {
+    const auto &metric = metrics_store.second->metrics_[static_cast<uint8_t>(component)];
+    metric->Swap();
+  }
 }
 }  // namespace terrier::metric

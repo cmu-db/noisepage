@@ -26,9 +26,6 @@ class MetricsManager {
    */
   void Aggregate();
 
-  /**
-   * @return the Collector for the calling thread
-   */
   common::ManagedPointer<MetricsStore> RegisterThread() {
     common::SpinLatch::ScopedSpinLatch guard(&write_latch_);
     const auto thread_id = std::this_thread::get_id();
@@ -38,20 +35,15 @@ class MetricsManager {
     return common::ManagedPointer(result.first->second);
   }
 
-  /**
-   * Remove thread from metrics map and deallocate its metrics store
-   */
   void UnregisterThread() {
     common::SpinLatch::ScopedSpinLatch guard(&write_latch_);
     const auto thread_id = std::this_thread::get_id();
     TERRIER_ASSERT(stores_map_.count(thread_id) == 1, "This thread was never registered.");
+    // TODO(Matt): defer an action for this because it's not safe to actually free this right now?
     stores_map_.erase(thread_id);
     TERRIER_ASSERT(stores_map_.count(thread_id) == 0, "Deletion from concurrent map failed.");
   }
 
-  /**
-   * @return aggregated metrics
-   */
   const std::array<std::unique_ptr<AbstractRawData>, num_components> &AggregatedMetrics() const {
     return aggregated_metrics_;
   }
@@ -60,18 +52,19 @@ class MetricsManager {
     common::SpinLatch::ScopedSpinLatch guard(&write_latch_);
     TERRIER_ASSERT(!(enabled_metrics_.test(static_cast<uint8_t>(component))), "Metric is already enabled.");
 
-    // TODO(Matt): reset metric in each thread
+    ResetMetric(component);
     enabled_metrics_.set(static_cast<uint8_t>(component), true);
   }
   void DisableMetric(const MetricsComponent component) {
     common::SpinLatch::ScopedSpinLatch guard(&write_latch_);
-    TERRIER_ASSERT((enabled_metrics_.test(static_cast<uint8_t>(component))), "Metric is already disabled.");
-    // TODO(Matt): clear your local aggregated metrics
+    TERRIER_ASSERT(enabled_metrics_.test(static_cast<uint8_t>(component)), "Metric is already disabled.");
+    aggregated_metrics_[static_cast<uint8_t>(component)].reset(nullptr);
     enabled_metrics_.set(static_cast<uint8_t>(component), false);
   }
 
  private:
   void ResetMetric(MetricsComponent component) const;
+
   common::SpinLatch write_latch_;
   std::unordered_map<std::thread::id, std::unique_ptr<MetricsStore>> stores_map_;
 
