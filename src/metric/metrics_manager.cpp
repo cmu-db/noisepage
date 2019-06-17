@@ -6,7 +6,7 @@
 namespace terrier::metric {
 
 void MetricsManager::Aggregate() {
-  common::SpinLatch::ScopedSpinLatch guard(&stores_latch_);
+  common::SpinLatch::ScopedSpinLatch guard(&write_latch_);
   for (const auto &metrics_store : stores_map_) {
     auto raw_data = metrics_store.second->GetDataToAggregate();
 

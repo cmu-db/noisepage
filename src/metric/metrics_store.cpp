@@ -18,6 +18,7 @@ std::array<std::unique_ptr<AbstractRawData>, num_components> MetricsStore::GetDa
     if (enabled_metrics_.test(component)) {
       result[component] = metrics_[component]->Swap();
     }
+    // TODO(Matt): else clean up disabled metrics with deferred action?
   }
 
   return result;

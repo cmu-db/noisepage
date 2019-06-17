@@ -30,7 +30,7 @@ class MetricsManager {
    * @return the Collector for the calling thread
    */
   common::ManagedPointer<MetricsStore> RegisterThread() {
-    common::SpinLatch::ScopedSpinLatch guard(&stores_latch_);
+    common::SpinLatch::ScopedSpinLatch guard(&write_latch_);
     const auto thread_id = std::this_thread::get_id();
     TERRIER_ASSERT(stores_map_.count(thread_id) == 0, "This thread was already registered.");
     auto result = stores_map_.emplace(thread_id, new MetricsStore(enabled_metrics_));
@@ -42,7 +42,7 @@ class MetricsManager {
    * Remove thread from metrics map and deallocate its metrics store
    */
   void UnregisterThread() {
-    common::SpinLatch::ScopedSpinLatch guard(&stores_latch_);
+    common::SpinLatch::ScopedSpinLatch guard(&write_latch_);
     const auto thread_id = std::this_thread::get_id();
     TERRIER_ASSERT(stores_map_.count(thread_id) == 1, "This thread was never registered.");
     stores_map_.erase(thread_id);
@@ -57,14 +57,14 @@ class MetricsManager {
   }
 
   void EnableMetric(const MetricsComponent component) {
-    common::SpinLatch::ScopedSpinLatch guard(&stores_latch_);
+    common::SpinLatch::ScopedSpinLatch guard(&write_latch_);
     TERRIER_ASSERT(!(enabled_metrics_.test(static_cast<uint8_t>(component))), "Metric is already enabled.");
 
     // TODO(Matt): reset metric in each thread
     enabled_metrics_.set(static_cast<uint8_t>(component), true);
   }
   void DisableMetric(const MetricsComponent component) {
-    common::SpinLatch::ScopedSpinLatch guard(&stores_latch_);
+    common::SpinLatch::ScopedSpinLatch guard(&write_latch_);
     TERRIER_ASSERT((enabled_metrics_.test(static_cast<uint8_t>(component))), "Metric is already disabled.");
     // TODO(Matt): clear your local aggregated metrics
     enabled_metrics_.set(static_cast<uint8_t>(component), false);
@@ -72,7 +72,7 @@ class MetricsManager {
 
  private:
   void ResetMetric(MetricsComponent component) const;
-  common::SpinLatch stores_latch_;
+  common::SpinLatch write_latch_;
   std::unordered_map<std::thread::id, std::unique_ptr<MetricsStore>> stores_map_;
 
   std::array<std::unique_ptr<AbstractRawData>, num_components> aggregated_metrics_;
