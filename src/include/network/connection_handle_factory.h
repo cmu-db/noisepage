@@ -1,11 +1,11 @@
 #pragma once
 
+#include <memory>
 #include <unordered_map>
-
 #include "common/dedicated_thread_registry.h"
-#include "network/command_factory.h"
 #include "network/connection_handle.h"
 #include "network/connection_handler_task.h"
+#include "network/postgres/postgres_command_factory.h"
 #include "traffic_cop/traffic_cop.h"
 
 namespace terrier::network {
@@ -27,11 +27,9 @@ class ConnectionHandleFactory {
  public:
   /**
    * Builds a new connection handle factory.
-   * @param t_cop The pointer to the traffic cop
-   * @param command_factory The pointer to the command factory
+   * @param tcop The pointer to the traffic cop
    */
-  ConnectionHandleFactory(TrafficCop *t_cop, CommandFactory *command_factory)
-      : traffic_cop_(t_cop), command_factory_(command_factory) {}
+  explicit ConnectionHandleFactory(common::ManagedPointer<trafficcop::TrafficCop> tcop) : traffic_cop_(tcop) {}
 
   /**
    * @brief Creates or re-purpose a NetworkIoWrapper object for new use.
@@ -39,11 +37,12 @@ class ConnectionHandleFactory {
    * converted.
    * @see NetworkIoWrapper for details
    * @param conn_fd Client connection fd
-   * @param protocol_type The protocol type for this connection handle
-   * @param task The connection handler task to assign to returned ConnectionHandle object
+   * @param interpreter The protocol interpreter to use for this connection handle
+   * @param handler The connection handler task to assign to returned ConnectionHandle object
    * @return A new ConnectionHandle object
    */
-  ConnectionHandle &NewConnectionHandle(int conn_fd, NetworkProtocolType protocol_type, ConnectionHandlerTask *task);
+  ConnectionHandle &NewConnectionHandle(int conn_fd, std::unique_ptr<ProtocolInterpreter> interpreter,
+                                        common::ManagedPointer<ConnectionHandlerTask> handler);
 
   /**
    * Teardown for connection handle factory to clean up anything in reusable_handles_
@@ -55,7 +54,6 @@ class ConnectionHandleFactory {
 
  private:
   std::unordered_map<int, ConnectionHandle> reusable_handles_;
-  TrafficCop *traffic_cop_;
-  CommandFactory *command_factory_;
+  common::ManagedPointer<trafficcop::TrafficCop> traffic_cop_;
 };
 }  // namespace terrier::network

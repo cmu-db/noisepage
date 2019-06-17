@@ -1,17 +1,19 @@
 #pragma once
 #include <utility>
 #include "common/macros.h"
+#include "common/managed_pointer.h"
 #include "network/connection_context.h"
 #include "network/network_defs.h"
 #include "network/network_types.h"
 #include "network/postgres/postgres_protocol_utils.h"
-
-#define DEFINE_COMMAND(name, flush)                                                                         \
-  class name : public PostgresNetworkCommand {                                                              \
-   public:                                                                                                  \
-    explicit name(PostgresInputPacket *in) : PostgresNetworkCommand(in, flush) {}                           \
-    Transition Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out, TrafficCop *t_cop, \
-                    ConnectionContext *connection, NetworkCallback callback) override;                      \
+#define DEFINE_COMMAND(name, flush)                                                                           \
+  class name : public PostgresNetworkCommand {                                                                \
+   public:                                                                                                    \
+    explicit name(PostgresInputPacket *in) : PostgresNetworkCommand(in, flush) {}                             \
+    Transition Exec(common::ManagedPointer<PostgresProtocolInterpreter> interpreter,                          \
+                    common::ManagedPointer<PostgresPacketWriter> out,                                         \
+                    common::ManagedPointer<trafficcop::TrafficCop> t_cop,                                     \
+                    common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) override; \
   }
 
 namespace terrier::network {
@@ -33,8 +35,10 @@ class PostgresNetworkCommand {
    * @param callback The callback function to trigger after
    * @return The next transition for the client's state machine
    */
-  virtual Transition Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out, TrafficCop *t_cop,
-                          ConnectionContext *connection, NetworkCallback callback) = 0;
+  virtual Transition Exec(common::ManagedPointer<PostgresProtocolInterpreter> interpreter,
+                          common::ManagedPointer<PostgresPacketWriter> out,
+                          common::ManagedPointer<trafficcop::TrafficCop> t_cop,
+                          common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) = 0;
 
   /**
    * @return Whether or not to flush the output network packets from this on completion
