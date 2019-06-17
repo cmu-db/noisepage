@@ -123,6 +123,8 @@ class TransactionManager {
   void LogCommit(TransactionContext *txn, timestamp_t commit_time, transaction::callback_fn callback,
                  void *callback_arg);
 
+  void LogAbort(TransactionContext *txn, timestamp_t abort_time);
+
   void Rollback(TransactionContext *txn, const storage::UndoRecord &record) const;
 
   void DeallocateColumnUpdateIfVarlen(TransactionContext *txn, storage::UndoRecord *undo,

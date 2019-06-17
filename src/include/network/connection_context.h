@@ -16,12 +16,12 @@ struct ConnectionContext {
   /**
    * The statements in this connection
    */
-  std::unordered_map<std::string, traffic_cop::Statement> statements;
+  std::unordered_map<std::string, trafficcop::Statement> statements;
 
   /**
    * The portals in this connection
    */
-  std::unordered_map<std::string, traffic_cop::Portal> portals;
+  std::unordered_map<std::string, trafficcop::Portal> portals;
 
   /**
    * Cleans up this ConnectionContext.

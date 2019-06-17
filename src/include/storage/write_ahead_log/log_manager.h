@@ -32,8 +32,12 @@ namespace terrier::storage {
  * soon as logs are received is to reduce the amount of time a transaction spends interacting with the log manager
  *      3. When a buffer of logs is handed over to a consumer, the consumer will wake up and process the logs. In the
  * case of the DiskLogConsumerTask, this means writing it to the log file.
- *      4. The LogFlusher task will periodically call ForceFlush() to persist the log file to disk using fsync. Once
- * this is done, the commit callback on any persisted logs will be called.
+ *      4. The DiskLogConsumer task will persist the log file when:
+ *          a) Someone calls ForceFlush on the LogManager, or
+ *          b) Periodically
+ *          c) A sufficient amount of data has been written since the last persist
+ *      5. When the persist is done, the `DiskLogConsumerTask` will call the commit callbacks for any CommitRecords that
+ * were just persisted.
  */
 class LogManager : public DedicatedThreadOwner {
  public:

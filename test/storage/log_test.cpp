@@ -6,6 +6,7 @@
 #include "settings/settings_manager.h"
 #include "storage/data_table.h"
 #include "storage/garbage_collector_thread.h"
+#include "storage/sql_table.h"
 #include "storage/write_ahead_log/log_manager.h"
 #include "transaction/transaction_manager.h"
 #include "type/transient_value_factory.h"
@@ -66,6 +67,10 @@ class WriteAheadLoggingTests : public TerrierTest {
       // is_read_only argument is set to false, because we do not write out a commit record for a transaction if it is
       // not read-only.
       return storage::CommitRecord::Initialize(buf, txn_begin, txn_commit, nullptr, nullptr, false, nullptr);
+    }
+
+    if (record_type == storage::LogRecordType::ABORT) {
+      return storage::AbortRecord::Initialize(buf, txn_begin);
     }
 
     // TODO(Tianyu): Without a lookup mechanism this oid is not exactly meaningful. Implement lookup when possible
@@ -141,6 +146,8 @@ class WriteAheadLoggingTests : public TerrierTest {
 
     return result;
   }
+
+  storage::RedoBuffer &GetRedoBuffer(transaction::TransactionContext *txn) { return txn->redo_buffer_; }
 };
 
 // This test uses the LargeTransactionTestObject to simulate some number of transactions with logging turned on, and
@@ -272,5 +279,137 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
   EXPECT_EQ(log_records_count, 0);
   for (auto *txn : result.first) delete txn;
   for (auto *txn : result.second) delete txn;
+}
+
+// This test simulates a transaction that has previously flushed its buffer, and then aborts. We then check that it
+// correctly flushed out an abort record
+// NOLINTNEXTLINE
+TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
+  log_manager_->Start();
+
+  // Create SQLTable
+  auto col = catalog::Schema::Column("attribute", type::TypeId::INTEGER, false, catalog::col_oid_t(0));
+  auto table_schema = catalog::Schema({col});
+  auto *sql_table = new storage::SqlTable(&block_store_, table_schema, CatalogTestUtil::test_table_oid);
+  auto tuple_initializer = sql_table->InitializerForProjectedRow({catalog::col_oid_t(0)}).first;
+
+  // Initialize first transaction, this txn will write a single tuple
+  transaction::TransactionManager txn_manager_{&pool_, true, log_manager_};
+  auto *first_txn = txn_manager_.BeginTransaction();
+  auto *insert_redo =
+      first_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer);
+  auto *insert_tuple = insert_redo->Delta();
+  *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 1;
+  auto first_tuple_slot = sql_table->Insert(first_txn, insert_redo);
+  EXPECT_TRUE(!first_txn->Aborted());
+
+  // Initialize the second txn, this one will write until it has flushed a buffer to the log manager
+  auto second_txn = txn_manager_.BeginTransaction();
+  int32_t insert_value = 2;
+  while (!GetRedoBuffer(second_txn).HasFlushed()) {
+    insert_redo =
+        second_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer);
+    insert_tuple = insert_redo->Delta();
+    *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = insert_value++;
+    sql_table->Insert(second_txn, insert_redo);
+  }
+  EXPECT_TRUE(GetRedoBuffer(second_txn).HasFlushed());
+  EXPECT_TRUE(!second_txn->Aborted());
+
+  // Now the second txn will try to update the tuple the first txn wrote, and thus will abort. We expect this txn to
+  // write an abort record
+  auto update_redo =
+      second_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer);
+  auto update_tuple = update_redo->Delta();
+  *reinterpret_cast<int32_t *>(update_tuple->AccessForceNotNull(0)) = 0;
+  update_redo->SetTupleSlot(first_tuple_slot);
+  EXPECT_FALSE(sql_table->Update(second_txn, update_redo));
+
+  // Commit first txn and abort the second
+  txn_manager_.Commit(first_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_.Abort(second_txn);
+  EXPECT_TRUE(second_txn->Aborted());
+
+  // Shut down log manager
+  log_manager_->PersistAndStop();
+
+  // Read records, look for the abort record
+  bool found_abort_record = false;
+  storage::BufferedLogReader in(LOG_FILE_NAME);
+  while (in.HasMore()) {
+    storage::LogRecord *log_record = ReadNextRecord(&in, sql_table->table_.layout);
+    if (log_record->RecordType() == LogRecordType::ABORT) {
+      found_abort_record = true;
+      auto *abort_record = log_record->GetUnderlyingRecordBodyAs<storage::AbortRecord>();
+      EXPECT_EQ(LogRecordType::ABORT, abort_record->RecordType());
+      EXPECT_EQ(second_txn->StartTime(), log_record->TxnBegin());
+    }
+    delete[] reinterpret_cast<byte *>(log_record);
+  }
+  EXPECT_TRUE(found_abort_record);
+
+  // Perform GC, will clean up transactions for us
+  gc_thread_ = new storage::GarbageCollectorThread(&txn_manager_, gc_period_);
+  delete gc_thread_;
+  delete second_txn;
+  delete sql_table;
+}
+
+// This test verifies that we don't write an abort record for an aborted transaction that never flushed its redo buffer
+// NOLINTNEXTLINE
+TEST_F(WriteAheadLoggingTests, NoAbortRecordTest) {
+  log_manager_->Start();
+
+  // Create SQLTable
+  auto col = catalog::Schema::Column("attribute", type::TypeId::INTEGER, false, catalog::col_oid_t(0));
+  auto table_schema = catalog::Schema({col});
+  auto *sql_table = new storage::SqlTable(&block_store_, table_schema, CatalogTestUtil::test_table_oid);
+  auto tuple_initializer = sql_table->InitializerForProjectedRow({catalog::col_oid_t(0)}).first;
+
+  // Initialize first transaction, this txn will write a single tuple
+  transaction::TransactionManager txn_manager_{&pool_, true, log_manager_};
+  auto *first_txn = txn_manager_.BeginTransaction();
+  auto *insert_redo =
+      first_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer);
+  auto *insert_tuple = insert_redo->Delta();
+  *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 1;
+  auto first_tuple_slot = sql_table->Insert(first_txn, insert_redo);
+  EXPECT_TRUE(!first_txn->Aborted());
+
+  // Initialize the second txn, this txn will try to update the tuple the first txn wrote, and thus will abort. We
+  // expect this txn to not write an abort record
+  auto second_txn = txn_manager_.BeginTransaction();
+  auto update_redo =
+      second_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer);
+  auto update_tuple = update_redo->Delta();
+  *reinterpret_cast<int32_t *>(update_tuple->AccessForceNotNull(0)) = 0;
+  update_redo->SetTupleSlot(first_tuple_slot);
+  EXPECT_FALSE(sql_table->Update(second_txn, update_redo));
+  EXPECT_FALSE(GetRedoBuffer(second_txn).HasFlushed());
+
+  // Commit first txn and abort the second
+  txn_manager_.Commit(first_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_.Abort(second_txn);
+  EXPECT_TRUE(second_txn->Aborted());
+
+  // Shut down log manager
+  log_manager_->PersistAndStop();
+
+  // Read records, make sure we don't see an abort record
+  bool found_abort_record = false;
+  storage::BufferedLogReader in(LOG_FILE_NAME);
+  while (in.HasMore()) {
+    storage::LogRecord *log_record = ReadNextRecord(&in, sql_table->table_.layout);
+    if (log_record->RecordType() == LogRecordType::ABORT) {
+      found_abort_record = true;
+    }
+    delete[] reinterpret_cast<byte *>(log_record);
+  }
+  EXPECT_FALSE(found_abort_record);
+
+  // Perform GC, will clean up transactions for us
+  gc_thread_ = new storage::GarbageCollectorThread(&txn_manager_, gc_period_);
+  delete gc_thread_;
+  delete sql_table;
 }
 }  // namespace terrier::storage

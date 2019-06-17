@@ -14,6 +14,7 @@ namespace terrier::storage {
 class GarbageCollector;
 class LogSerializerTask;
 class SqlTable;
+class WriteAheadLoggingTests;
 }  // namespace terrier::storage
 
 namespace terrier::transaction {
@@ -165,6 +166,7 @@ class TransactionContext {
   friend class TransactionManager;
   friend class storage::LogSerializerTask;
   friend class storage::SqlTable;
+  friend class storage::WriteAheadLoggingTests;  // Needs access to redo buffer
   const timestamp_t start_time_;
   std::atomic<timestamp_t> txn_id_;
   storage::UndoBuffer undo_buffer_;

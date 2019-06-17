@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "common/settings.h"
@@ -13,19 +14,20 @@
 #include "network/postgres/postgres_protocol_utils.h"
 #include "network/terrier_server.h"
 #include "traffic_cop/traffic_cop.h"
-#include "util/manual_packet_helpers.h"
+#include "util/manual_packet_util.h"
 #include "util/test_harness.h"
 
-namespace terrier::traffic_cop {
+namespace terrier::trafficcop {
 class TrafficCopTests : public TerrierTest {
  protected:
-  std::unique_ptr<network::TerrierServer> server;
-  uint16_t port = common::Settings::SERVER_PORT;
-  std::thread server_thread;
+  std::unique_ptr<network::TerrierServer> server_;
+  uint16_t port_ = common::Settings::SERVER_PORT;
+  std::thread server_thread_;
 
-  TrafficCop t_cop;
-  network::CommandFactory command_factory;
-  std::unique_ptr<network::ConnectionHandleFactory> handle_factory;
+  TrafficCop tcop_;
+  network::PostgresCommandFactory command_factory_;
+  network::PostgresProtocolInterpreter::Provider interpreter_provider_{common::ManagedPointer(&command_factory_)};
+  std::unique_ptr<network::ConnectionHandleFactory> handle_factory_;
 
   void StartServer() {
     network::network_logger->set_level(spdlog::level::trace);
@@ -33,22 +35,24 @@ class TrafficCopTests : public TerrierTest {
     spdlog::flush_every(std::chrono::seconds(1));
 
     try {
-      handle_factory = std::make_unique<network::ConnectionHandleFactory>(&t_cop, &command_factory);
-      server = std::make_unique<network::TerrierServer>(handle_factory.get());
-      server->SetPort(port);
-      server->SetupServer();
+      handle_factory_ = std::make_unique<network::ConnectionHandleFactory>(common::ManagedPointer(&tcop_));
+      server_ = std::make_unique<network::TerrierServer>(
+          common::ManagedPointer<network::ProtocolInterpreter::Provider>(&interpreter_provider_),
+          common::ManagedPointer(handle_factory_.get()));
+      server_->SetPort(port_);
+      server_->SetupServer();
     } catch (NetworkProcessException &exception) {
       TEST_LOG_ERROR("[LaunchServer] exception when launching server");
       throw;
     }
     TEST_LOG_DEBUG("Server initialized");
-    server_thread = std::thread([&]() { server->ServerLoop(); });
+    server_thread_ = std::thread([&]() { server_->ServerLoop(); });
   }
 
   void StopServer() {
-    server->Close();
-    server_thread.join();
-    handle_factory->TearDown();
+    server_->Close();
+    server_thread_.join();
+    handle_factory_->TearDown();
     TEST_LOG_DEBUG("Terrier has shut down");
   }
 
@@ -61,13 +65,89 @@ class TrafficCopTests : public TerrierTest {
     StopServer();
     TerrierTest::TearDown();
   }
+
+  // The port used to connect a Postgres backend. Useful for debugging.
+  const int POSTGRES_PORT = 5432;
+
+  /**
+   * Read packet from the server (without parsing) until receiving ReadyForQuery or the connection is closed.
+   * @param io_socket
+   * @param expected_msg_type
+   * @return true if reads the expected type message, false for closed.
+   */
+  bool ReadUntilMessageOrClose(const std::shared_ptr<network::NetworkIoWrapper> &io_socket,
+                               const network::NetworkMessageType &expected_msg_type) {
+    while (true) {
+      io_socket->GetReadBuffer()->Reset();
+      network::Transition trans = io_socket->FillReadBuffer();
+      if (trans == network::Transition::TERMINATE) return false;
+
+      while (io_socket->GetReadBuffer()->HasMore()) {
+        auto type = io_socket->GetReadBuffer()->ReadValue<network::NetworkMessageType>();
+        auto size = io_socket->GetReadBuffer()->ReadValue<int32_t>();
+        if (size >= 4) io_socket->GetReadBuffer()->Skip(static_cast<size_t>(size - 4));
+
+        if (type == expected_msg_type) return true;
+      }
+    }
+  }
+
+  /**
+   * A wrapper for ReadUntilMessageOrClose since most of the times people expect READY_FOR_QUERY.
+   * @param io_socket
+   * @return
+   */
+  bool ReadUntilReadyOrClose(const std::shared_ptr<network::NetworkIoWrapper> &io_socket) {
+    return ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::READY_FOR_QUERY);
+  }
+
+  std::shared_ptr<network::NetworkIoWrapper> StartConnection(uint16_t port) {
+    // Manually open a socket
+    int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
+
+    struct sockaddr_in serv_addr;
+    memset(&serv_addr, 0, sizeof(serv_addr));
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    serv_addr.sin_port = htons(port);
+
+    int64_t ret = connect(socket_fd, reinterpret_cast<sockaddr *>(&serv_addr), sizeof(serv_addr));
+    if (ret < 0) TEST_LOG_ERROR("Connection Error");
+
+    auto io_socket = std::make_shared<network::NetworkIoWrapper>(socket_fd);
+    network::PostgresPacketWriter writer(io_socket->GetWriteQueue());
+
+    std::unordered_map<std::string, std::string> params{
+        {"user", "postgres"}, {"database", "postgres"}, {"application_name", "psql"}};
+
+    writer.WriteStartupRequest(params);
+    io_socket->FlushAllWrites();
+
+    ReadUntilReadyOrClose(io_socket);
+    return io_socket;
+  }
+
+/*
+ * Read and write buffer size for the test
+ */
+#define TEST_BUF_SIZE 1000
+
+  void TerminateConnection(int socket_fd) {
+    char out_buffer[TEST_BUF_SIZE] = {};
+    // Build a correct query message, "SELECT A FROM B"
+    memset(out_buffer, 0, sizeof(out_buffer));
+    out_buffer[0] = 'X';
+    int len = sizeof(int32_t) + sizeof(char);
+    reinterpret_cast<int32_t *>(out_buffer + 1)[0] = htonl(len);
+    write(socket_fd, nullptr, len + 1);
+  }
 };
 
 // NOLINTNEXTLINE
 TEST_F(TrafficCopTests, RoundTripTest) {
   try {
     pqxx::connection connection(
-        fmt::format("host=127.0.0.1 port={0} user=postgres sslmode=disable application_name=psql", port));
+        fmt::format("host=127.0.0.1 port={0} user=postgres sslmode=disable application_name=psql", port_));
 
     pqxx::work txn1(connection);
     txn1.exec("DROP TABLE IF EXISTS TableA");
@@ -95,8 +175,8 @@ TEST_F(TrafficCopTests, RoundTripTest) {
 // NOLINTNEXTLINE
 TEST_F(TrafficCopTests, ManualExtendedQueryTest) {
   try {
-    auto io_socket = network::StartConnection(port);
-    network::PostgresPacketWriter writer(io_socket->out_);
+    auto io_socket = network::ManualPacketUtil::StartConnection(port_);
+    network::PostgresPacketWriter writer(io_socket->GetWriteQueue());
 
     writer.WriteSimpleQuery("DROP TABLE IF EXISTS TableA");
     io_socket->FlushAllWrites();
@@ -214,8 +294,8 @@ TEST_F(TrafficCopTests, ManualExtendedQueryTest) {
 // NOLINTNEXTLINE
 TEST_F(TrafficCopTests, ManualRoundTripTest) {
   try {
-    auto io_socket = network::StartConnection(port);
-    network::PostgresPacketWriter writer(io_socket->out_);
+    auto io_socket = StartConnection(port_);
+    network::PostgresPacketWriter writer(io_socket->GetWriteQueue());
 
     writer.WriteSimpleQuery("DROP TABLE IF EXISTS TableA");
     io_socket->FlushAllWrites();
@@ -238,8 +318,8 @@ TEST_F(TrafficCopTests, ManualRoundTripTest) {
 
 // NOLINTNEXTLINE
 TEST_F(TrafficCopTests, ErrorHandlingTest) {
-  auto io_socket = network::StartConnection(port);
-  network::PostgresPacketWriter writer(io_socket->out_);
+  auto io_socket = StartConnection(port_);
+  network::PostgresPacketWriter writer(io_socket->GetWriteQueue());
 
   writer.WriteSimpleQuery("DROP TABLE IF EXISTS TableA");
   io_socket->FlushAllWrites();
@@ -333,7 +413,7 @@ TEST_F(TrafficCopTests, ErrorHandlingTest) {
 TEST_F(TrafficCopTests, DISABLED_ExtendedQueryTest) {
   try {
     pqxx::connection connection(
-        fmt::format("host=127.0.0.1 port={0} user=postgres sslmode=disable application_name=psql", port));
+        fmt::format("host=127.0.0.1 port={0} user=postgres sslmode=disable application_name=psql", port_));
 
     pqxx::work txn(connection);
     pqxx::result res;
@@ -366,4 +446,4 @@ TEST_F(TrafficCopTests, DISABLED_ExtendedQueryTest) {
   }
 }
 
-}  // namespace terrier::traffic_cop
+}  // namespace terrier::trafficcop
