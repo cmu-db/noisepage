@@ -1,19 +1,5 @@
 #pragma once
 
-#include "parser/expression/abstract_expression.h"
-#include "parser/expression/comparison_expression.h"
-#include "parser/expression/aggregate_expression.h"
-#include "parser/expression/conjunction_expression.h"
-#include "parser/expression/function_expression.h"
-#include "parser/expression/operator_expression.h"
-#include "parser/expression/parameter_value_expression.h"
-#include "parser/expression/star_expression.h"
-#include "parser/expression/tuple_value_expression.h"
-#include "parser/expression/constant_value_expression.h"
-#include "parser/expression/case_expression.h"
-#include "parser/expression/subquery_expression.h"
-#include "parser/expression/type_cast_expression.h"
-
 namespace terrier {
 
 namespace parser {
@@ -37,6 +23,20 @@ class TableRef;
 class GroupByDescription;
 class OrderByDescription;
 class LimitDescription;
+
+class AggregateExpression;
+class CaseExpression;
+class ComparisonExpression;
+class ConjunctionExpression;
+class ConstantValueExpression;
+class DefaultValueExpression;
+class FunctionExpression;
+class OperatorExpression;
+class ParameterValueExpression;
+class StarExpression;
+class SubqueryExpression;
+class TupleValueExpression;
+class TypeCastExpression;
 }  // namespace parser
 
 /**
@@ -186,9 +186,12 @@ class SqlNodeVisitor {
    * Visitor pattern for ConstantValueExpression
    * @param expr to be visited
    */
-  virtual void Visit(parser::ConstantValueExpression *expr) {
-    expr->AcceptChildren(this);
-  }
+  virtual void Visit(parser::ConstantValueExpression *expr);
+  /**
+   * Visitor pattern for DefaultValueExpression
+   * @param expr to be visited
+   */
+  virtual void Visit(parser::DefaultValueExpression *expr);
 
   /**
    * Visitor pattern for FunctionExpression
@@ -202,11 +205,11 @@ class SqlNodeVisitor {
    */
   virtual void Visit(parser::OperatorExpression *expr);
 
-//  /**
-//   * Visitor pattern for ParameterValueExpression
-//   * @param expr to be visited
-//   */
-//  virtual void Visit(parser::ParameterValueExpression *expr);
+  /**
+   * Visitor pattern for ParameterValueExpression
+   * @param expr to be visited
+   */
+  virtual void Visit(parser::ParameterValueExpression *expr);
 
   /**
    * Visitor pattern for StarExpression
@@ -214,11 +217,11 @@ class SqlNodeVisitor {
    */
   virtual void Visit(parser::StarExpression *expr);
 
-//  /**
-//   * Visitor pattern for TypeCastExpression
-//   * @param expr to be visited
-//   */
-//  virtual void Visit(parser::TypeCastExpression *expr);
+  /**
+   * Visitor pattern for TypeCastExpression
+   * @param expr to be visited
+   */
+  virtual void Visit(parser::TypeCastExpression *expr);
 
   /**
    * Visitor pattern for TupleValueExpression

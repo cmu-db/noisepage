@@ -41,8 +41,6 @@ class CaseExpression : public AbstractExpression {
      */
     bool operator!=(const WhenClause &rhs) const { return !operator==(rhs); }
 
-    void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
-
     /**
      * Derived expressions should call this base method
      * @return expression serialized to json
@@ -138,6 +136,8 @@ class CaseExpression : public AbstractExpression {
    * @return default clause, if it exists
    */
   std::shared_ptr<AbstractExpression> GetDefaultClause() const { return default_expr_; }
+
+  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
   /**
    * @return expression serialized to json

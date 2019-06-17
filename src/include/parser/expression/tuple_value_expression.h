@@ -59,6 +59,8 @@ class TupleValueExpression : public AbstractExpression {
     return GetColumnName() == other.GetColumnName() && GetTableName() == other.GetTableName();
   }
 
+  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
+
   /**
    * @return expression serialized to json
    */

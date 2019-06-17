@@ -5,7 +5,6 @@
 #include <vector>
 
 #include "common/json.h"
-#include "common/sql_node_visitor.h"
 #include "parser/sql_statement.h"
 #include "parser/table_ref.h"
 
