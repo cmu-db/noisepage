@@ -16,15 +16,51 @@
 #ifndef COUNT_UTILITY_H_
 #define COUNT_UTILITY_H_
 
+#include <math.h>
 #include <stdint.h>
 
 namespace libcount {
 
 // Return the number of leading zero bits in the unsigned value.
-uint8_t CountLeadingZeroes(uint64_t value);
+static inline uint8_t CountLeadingZeroes(uint64_t x) {
+  uint64_t y = 0;
+  uint64_t n = 64;
+  y = x >> 32;
+  if (y != 0) {
+    n = n - 32;
+    x = y;
+  }
+  y = x >> 16;
+  if (y != 0) {
+    n = n - 16;
+    x = y;
+  }
+  y = x >> 8;
+  if (y != 0) {
+    n = n - 8;
+    x = y;
+  }
+  y = x >> 4;
+  if (y != 0) {
+    n = n - 4;
+    x = y;
+  }
+  y = x >> 2;
+  if (y != 0) {
+    n = n - 2;
+    x = y;
+  }
+  y = x >> 1;
+  if (y != 0) {
+    return static_cast<uint8_t>(n - 2);
+  }
+  return static_cast<uint8_t>(n - x);
+}
 
 // Equality test for doubles. Returns true if ((a - b) < epsilon).
-bool IsDoubleEqual(double a, double b, double epsilon);
+static inline bool IsDoubleEqual(double a, double b, double epsilon) {
+  return (fabs(a - b) < epsilon);
+}
 
 // If the destination pointer is valid, copy the source value to it.
 // Returns true if a value was copied. Returns false otherwise.

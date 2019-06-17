@@ -33,21 +33,6 @@ double LinearCounting(double register_count, double zeroed_registers) {
   return register_count * log(register_count / zeroed_registers);
 }
 
-// Helper to calculate the index into the table of registers from the hash
-inline int RegisterIndexOf(uint64_t hash, int precision) {
-  return static_cast<int>(hash >> (64 - precision));
-}
-
-// Helper to count the leading zeros (less the bits used for the reg. index)
-inline uint8_t ZeroCountOf(uint64_t hash, int precision) {
-  // Make a mask for isolating the leading bits used for the register index.
-  const uint64_t ONE = 1;
-  const uint64_t mask = ~(((ONE << precision) - ONE) << (64 - precision));
-
-  // Count zeroes, less the index bits we're masking off.
-  return static_cast<uint8_t >(CountLeadingZeroes(hash & mask) - static_cast<uint8_t>(precision));
-}
-
 }  // namespace
 
 namespace libcount {
@@ -64,7 +49,9 @@ HLL::HLL(int precision)
   // Allocate space for the registers. We can safely economize by using bytes
   // for the counters because we know the value can't ever exceed ~60.
   registers_ = new uint8_t[register_count_];
-  memset(registers_, 0, register_count_ * sizeof(registers_[0]));
+
+  // Reset the registers
+  Reset();
 }
 
 HLL::~HLL() { delete[] registers_; }
@@ -77,19 +64,14 @@ HLL* HLL::Create(int precision, int* error) {
   return new HLL(precision);
 }
 
-void HLL::Update(uint64_t hash) {
-  // Which register will potentially receive the zero count of this hash?
-  const int index = RegisterIndexOf(hash, precision_);
-  assert(index < register_count_);
-
-  // Count the zeroes for the hash, and add one, per the algorithm spec.
-  const uint8_t count = static_cast<uint8_t >(ZeroCountOf(hash, precision_) + 1);
-  assert(count <= 64);
-
-  // Update the appropriate register if the new count is greater than current.
-  if (count > registers_[index]) {
-    registers_[index] = count;
+void HLL::UpdateMany(const uint64_t *const hashes, int num_hashes) {
+  for (int i = 0; i < num_hashes; i++) {
+    Update(hashes[i]);
   }
+}
+
+void HLL::UpdateMany(const std::vector<uint64_t> &hashes) {
+  UpdateMany(hashes.data(), hashes.size());
 }
 
 int HLL::Merge(const HLL* other) {
@@ -180,6 +162,10 @@ int HLL::RegistersEqualToZero() const {
     }
   }
   return zeroed_registers;
+}
+
+void HLL::Reset() {
+  memset(registers_, 0, register_count_ * sizeof(registers_[0]));
 }
 
 }  // namespace libcount
