@@ -333,4 +333,36 @@ class CommitRecord {
   transaction::TransactionContext *txn_;
   bool is_read_only_;
 };
+
+/**
+ * Record body of an Abort. The header is stored in the LogRecord class that would presumably return this
+ * object. An AbortRecord is only generated if an aborted transaction previously handed off a log buffer to the
+ * log manager
+ */
+class AbortRecord {
+ public:
+  MEM_REINTERPRETATION_ONLY(AbortRecord)
+
+  /**
+   * @return type of record this type of body holds
+   */
+  static constexpr LogRecordType RecordType() { return LogRecordType::ABORT; }
+
+  /**
+   * @return Size of the entire record of this type, in bytes, in memory.
+   */
+  static uint32_t Size() { return static_cast<uint32_t>(sizeof(LogRecord) + sizeof(AbortRecord)); }
+
+  /**
+   * Initialize an entire LogRecord (header included) to have an underlying abort record, using the parameters
+   * supplied.
+   *
+   * @param head pointer location to initialize, this is also the returned address (reinterpreted)
+   * @param txn_begin begin timestamp of the transaction that generated this log record
+   * @return pointer to the initialized log record, always equal in value to the given head
+   */
+  static LogRecord *Initialize(byte *const head, const transaction::timestamp_t txn_begin) {
+    return LogRecord::InitializeHeader(head, LogRecordType::ABORT, Size(), txn_begin);
+  }
+};
 }  // namespace terrier::storage
