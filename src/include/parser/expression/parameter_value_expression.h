@@ -38,6 +38,8 @@ class ParameterValueExpression : public AbstractExpression {
     return GetValueIdx() == other.GetValueIdx();
   }
 
+  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
+
   /**
    * @return expression serialized to json
    */

@@ -18,6 +18,8 @@ class DefaultValueExpression : public AbstractExpression {
 
   std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<DefaultValueExpression>(*this); }
 
+  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
+
   /**
    * @return expression serialized to json
    */

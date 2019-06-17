@@ -42,6 +42,8 @@ class ConstantValueExpression : public AbstractExpression {
    */
   type::TransientValue GetValue() const { return value_; }
 
+  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
+
   /**
    * @return expression serialized to json
    * @note ToJson is a private member of TransientValue, ConstantValueExpression can access it because it

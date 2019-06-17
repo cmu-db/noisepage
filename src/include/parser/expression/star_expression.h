@@ -22,6 +22,8 @@ class StarExpression : public AbstractExpression {
     return std::make_shared<StarExpression>(*this);
   }
 
+  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
+
   /**
    * @return expression serialized to json
    */

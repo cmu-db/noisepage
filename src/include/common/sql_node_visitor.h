@@ -1,5 +1,19 @@
 #pragma once
 
+#include "parser/expression/abstract_expression.h"
+#include "parser/expression/comparison_expression.h"
+#include "parser/expression/aggregate_expression.h"
+#include "parser/expression/conjunction_expression.h"
+#include "parser/expression/function_expression.h"
+#include "parser/expression/operator_expression.h"
+#include "parser/expression/parameter_value_expression.h"
+#include "parser/expression/star_expression.h"
+#include "parser/expression/tuple_value_expression.h"
+#include "parser/expression/constant_value_expression.h"
+#include "parser/expression/case_expression.h"
+#include "parser/expression/subquery_expression.h"
+#include "parser/expression/type_cast_expression.h"
+
 namespace terrier {
 
 namespace parser {
@@ -143,6 +157,80 @@ class SqlNodeVisitor {
    * @param node node to be visited
    */
   virtual void Visit(parser::ExplainStatement *node) {}
+
+  /**
+   * Visitor pattern for AggregateExpression
+   * @param expr to be visited
+   */
+  virtual void Visit(parser::AggregateExpression *expr);
+
+  /**
+   * Visitor pattern for CaseExpression
+   * @param expr to be visited
+   */
+  virtual void Visit(parser::CaseExpression *expr);
+
+  /**
+   * Visitor pattern for ComparisonExpression
+   * @param expr to be visited
+   */
+  virtual void Visit(parser::ComparisonExpression *expr);
+
+  /**
+   * Visitor pattern for ConjunctionExpression
+   * @param expr to be visited
+   */
+  virtual void Visit(parser::ConjunctionExpression *expr);
+
+  /**
+   * Visitor pattern for ConstantValueExpression
+   * @param expr to be visited
+   */
+  virtual void Visit(parser::ConstantValueExpression *expr) {
+    expr->AcceptChildren(this);
+  }
+
+  /**
+   * Visitor pattern for FunctionExpression
+   * @param expr to be visited
+   */
+  virtual void Visit(parser::FunctionExpression *expr);
+
+  /**
+   * Visitor pattern for OperatorExpression
+   * @param expr to be visited
+   */
+  virtual void Visit(parser::OperatorExpression *expr);
+
+//  /**
+//   * Visitor pattern for ParameterValueExpression
+//   * @param expr to be visited
+//   */
+//  virtual void Visit(parser::ParameterValueExpression *expr);
+
+  /**
+   * Visitor pattern for StarExpression
+   * @param expr to be visited
+   */
+  virtual void Visit(parser::StarExpression *expr);
+
+//  /**
+//   * Visitor pattern for TypeCastExpression
+//   * @param expr to be visited
+//   */
+//  virtual void Visit(parser::TypeCastExpression *expr);
+
+  /**
+   * Visitor pattern for TupleValueExpression
+   * @param expr to be visited
+   */
+  virtual void Visit(parser::TupleValueExpression *expr);
+
+  /**
+   * Visitor pattern for SubqueryExpression
+   * @param expr to be visited
+   */
+  virtual void Visit(parser::SubqueryExpression *expr);
 };
 
 }  // namespace terrier

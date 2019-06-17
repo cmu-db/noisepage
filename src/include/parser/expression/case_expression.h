@@ -41,6 +41,8 @@ class CaseExpression : public AbstractExpression {
      */
     bool operator!=(const WhenClause &rhs) const { return !operator==(rhs); }
 
+    void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
+
     /**
      * Derived expressions should call this base method
      * @return expression serialized to json

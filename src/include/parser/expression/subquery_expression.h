@@ -37,6 +37,8 @@ class SubqueryExpression : public AbstractExpression {
    */
   std::shared_ptr<parser::SelectStatement> GetSubselect() { return subselect_; }
 
+  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
+
   /**
    * @return expression serialized to json
    */

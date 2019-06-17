@@ -43,6 +43,8 @@ class FunctionExpression : public AbstractExpression {
    */
   const std::string &GetFuncName() const { return func_name_; }
 
+  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
+
   /**
    * @return expression serialized to json
    */

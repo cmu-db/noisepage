@@ -37,6 +37,8 @@ class TypeCastExpression : public AbstractExpression {
     return GetType() == other.GetType();
   }
 
+  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
+
   /**
    * @return expression serialized to json
    */

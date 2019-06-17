@@ -4,7 +4,7 @@
 #include <memory>
 #include <utility>
 #include <vector>
-#include <common/sql_node_visitor.h>
+#include "common/sql_node_visitor.h"
 #include "common/hash_util.h"
 #include "common/json.h"
 #include "parser/expression_defs.h"

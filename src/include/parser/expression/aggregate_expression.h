@@ -41,6 +41,8 @@ class AggregateExpression : public AbstractExpression {
    */
   bool IsDistinct() const { return distinct_; }
 
+  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
+
   /**
    * @return expression serialized to json
    */
