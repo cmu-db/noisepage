@@ -70,8 +70,7 @@ class WriteAheadLoggingTests : public TerrierTest {
     }
 
     if (record_type == storage::LogRecordType::ABORT) {
-      auto txn_abort = in->ReadValue<transaction::timestamp_t>();
-      return storage::AbortRecord::Initialize(buf, txn_begin, txn_abort, nullptr);
+      return storage::AbortRecord::Initialize(buf, txn_begin);
     }
 
     // TODO(Tianyu): Without a lookup mechanism this oid is not exactly meaningful. Implement lookup when possible
@@ -317,8 +316,8 @@ TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
   EXPECT_TRUE(GetRedoBuffer(second_txn).HasFlushed());
   EXPECT_TRUE(!second_txn->Aborted());
 
-  // Now the second txn will update the tuple the first txn wrote, and will abort. We expect this txn to write an abort
-  // record
+  // Now the second txn will try to update the tuple the first txn wrote, and thus will abort. We expect this txn to
+  // write an abort record
   auto update_redo =
       second_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer);
   auto update_tuple = update_redo->Delta();
@@ -328,7 +327,7 @@ TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
 
   // Commit first txn and abort the second
   txn_manager_.Commit(first_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-  auto abort_timestamp = txn_manager_.Abort(second_txn);
+  txn_manager_.Abort(second_txn);
   EXPECT_TRUE(second_txn->Aborted());
 
   // Shut down log manager
@@ -344,7 +343,6 @@ TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
       auto *abort_record = log_record->GetUnderlyingRecordBodyAs<storage::AbortRecord>();
       EXPECT_EQ(LogRecordType::ABORT, abort_record->RecordType());
       EXPECT_EQ(second_txn->StartTime(), log_record->TxnBegin());
-      EXPECT_EQ(abort_timestamp, abort_record->AbortTime());
     }
     delete[] reinterpret_cast<byte *>(log_record);
   }
@@ -378,8 +376,8 @@ TEST_F(WriteAheadLoggingTests, NoAbortRecordTest) {
   auto first_tuple_slot = sql_table->Insert(first_txn, insert_redo);
   EXPECT_TRUE(!first_txn->Aborted());
 
-  // Initialize the second txn, this txn will update the tuple the first txn wrote, and will abort. We expect this txn
-  // to not write an abort record
+  // Initialize the second txn, this txn will try to update the tuple the first txn wrote, and thus will abort. We
+  // expect this txn to not write an abort record
   auto second_txn = txn_manager_.BeginTransaction();
   auto update_redo =
       second_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer);
@@ -397,7 +395,7 @@ TEST_F(WriteAheadLoggingTests, NoAbortRecordTest) {
   // Shut down log manager
   log_manager_->PersistAndStop();
 
-  // Read records, look for the abort record
+  // Read records, make sure we don't see an abort record
   bool found_abort_record = false;
   storage::BufferedLogReader in(LOG_FILE_NAME);
   while (in.HasMore()) {

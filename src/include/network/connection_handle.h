@@ -19,13 +19,14 @@
 #include <vector>
 
 #include "common/exception.h"
+#include "common/managed_pointer.h"
 #include "loggers/network_logger.h"
 
-#include "network/command_factory.h"
 #include "network/connection_context.h"
 #include "network/connection_handler_task.h"
 #include "network/network_io_wrapper.h"
 #include "network/network_types.h"
+#include "network/postgres/postgres_command_factory.h"
 #include "network/postgres/postgres_protocol_interpreter.h"
 #include "network/protocol_interpreter.h"
 
@@ -44,12 +45,16 @@ class ConnectionHandle {
    * Constructs a new ConnectionHandle
    * @param sock_fd Client's connection fd
    * @param handler The handler responsible for this handle
-   * @param t_cop The pointer to the traffic cop
-   * @param command_factory The command factory pointer
-   * @param protocol_type The network protocol type of this handler
+   * @param tcop The pointer to the traffic cop
+   * @param interpreter protocol interpreter to use for this connection handle
    */
-  ConnectionHandle(int sock_fd, ConnectionHandlerTask *handler, TrafficCop *t_cop, CommandFactory *command_factory,
-                   NetworkProtocolType protocol_type);
+  ConnectionHandle(int sock_fd, common::ManagedPointer<ConnectionHandlerTask> handler,
+                   common::ManagedPointer<trafficcop::TrafficCop> tcop,
+                   std::unique_ptr<ProtocolInterpreter> interpreter)
+      : io_wrapper_(std::make_unique<NetworkIoWrapper>(sock_fd)),
+        conn_handler_(handler),
+        traffic_cop_(tcop),
+        protocol_interpreter_(std::move(interpreter)) {}
 
   ~ConnectionHandle() { context_.Reset(); }
 
@@ -112,7 +117,8 @@ class ConnectionHandle {
    */
   Transition Process() {
     return protocol_interpreter_->Process(io_wrapper_->GetReadBuffer(), io_wrapper_->GetWriteQueue(), traffic_cop_,
-                                          &context_, [=] { event_active(workpool_event_, EV_WRITE, 0); });
+                                          common::ManagedPointer(&context_),
+                                          [=] { event_active(workpool_event_, EV_WRITE, 0); });
   }
 
   /**
@@ -214,17 +220,17 @@ class ConnectionHandle {
   friend class StateMachine;
   friend class ConnectionHandleFactory;
 
-  void BuildProtocolInterpreter(NetworkProtocolType protocol_type, CommandFactory *command_factory);
-
-  // A raw pointer is used here because references cannot be rebound.
-  ConnectionHandlerTask *conn_handler_;
   std::unique_ptr<NetworkIoWrapper> io_wrapper_;
-  // TODO(Tianyu): Probably use a factory for this
+  // A raw pointer is used here because references cannot be rebound.
+  common::ManagedPointer<ConnectionHandlerTask> conn_handler_;
+  common::ManagedPointer<trafficcop::TrafficCop> traffic_cop_;
   std::unique_ptr<ProtocolInterpreter> protocol_interpreter_;
+
   StateMachine state_machine_{};
   struct event *network_event_ = nullptr, *workpool_event_ = nullptr;
 
-  TrafficCop *traffic_cop_;
+  // TODO(Tianyu): Do we want to flatten this struct out into connection handle, or is this current separation
+  // sensible?
   ConnectionContext context_;
 };
 }  // namespace terrier::network

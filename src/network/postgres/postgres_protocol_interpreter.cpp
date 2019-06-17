@@ -12,7 +12,8 @@
 
 namespace terrier::network {
 Transition PostgresProtocolInterpreter::Process(std::shared_ptr<ReadBuffer> in, std::shared_ptr<WriteQueue> out,
-                                                TrafficCop *t_cop, ConnectionContext *context,
+                                                common::ManagedPointer<trafficcop::TrafficCop> t_cop,
+                                                common::ManagedPointer<ConnectionContext> context,
                                                 NetworkCallback callback) {
   try {
     if (!TryBuildPacket(in)) return Transition::NEED_READ_TIMEOUT;
@@ -29,7 +30,8 @@ Transition PostgresProtocolInterpreter::Process(std::shared_ptr<ReadBuffer> in, 
   std::shared_ptr<PostgresNetworkCommand> command = command_factory_->PostgresPacketToCommand(&curr_input_packet_);
   PostgresPacketWriter writer(out);
   if (command->FlushOnComplete()) out->ForceFlush();
-  Transition ret = command->Exec(this, &writer, t_cop, context, callback);
+  Transition ret = command->Exec(common::ManagedPointer(this), common::ManagedPointer(&writer), t_cop,
+                                 common::ManagedPointer(context), callback);
   curr_input_packet_.Clear();
   return ret;
 }

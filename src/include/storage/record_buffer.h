@@ -358,8 +358,10 @@ class RedoBuffer {
   bool HasFlushed() const { return has_flushed_; }
 
  private:
-  // Flag to denote if this RedoBuffer has flushed records to the log manager already. Used to determine if we should
-  // write an abort record
+  // Flag to denote if this RedoBuffer has flushed records to the log manager already.
+  // We use this to determine if we should write an abort record, since we only need to write an abort record if this
+  // buffer has previously flushed logs to the log manager. In the case of recovery, the abort record helps it discard
+  // changes from aborted txns
   bool has_flushed_;
   LogManager *const log_manager_;
   RecordBufferSegmentPool *const buffer_pool_;
