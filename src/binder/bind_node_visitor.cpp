@@ -1,23 +1,25 @@
 #include "binder/bind_node_visitor.h"
-#include "catalog/catalog.h"
-#include "expression/expression_util.h"
-#include "expression/star_expression.h"
+#include "common/exception.h"
+#include "catalog/catalog_accessor.h"
+#include "parser/expression/expression_util.h"
 #include "type/type_id.h"
+#include "parser/expression/star_expression.h"
+#include "parser/expression/aggregate_expression.h"
+#include "parser/expression/case_expression.h"
+#include "parser/expression/function_expression.h"
+#include "parser/expression/operator_expression.h"
+#include "parser/expression/star_expression.h"
+#include "parser/expression/subquery_expression.h"
+#include "parser/expression/tuple_value_expression.h"
 
-#include "expression/aggregate_expression.h"
-#include "expression/case_expression.h"
-#include "expression/function_expression.h"
-#include "expression/operator_expression.h"
-#include "expression/star_expression.h"
-#include "expression/subquery_expression.h"
-#include "expression/tuple_value_expression.h"
+namespace terrier::binder {
 
-namespace terrier {
-namespace binder {
-
-BindNodeVisitor::BindNodeVisitor(transaction::TransactionContext *txn, std::string default_database_name)
-    : txn_(txn), default_database_name_(default_database_name) {
-  catalog_accessor_ = catalog::Catalog::GetInstance();
+BindNodeVisitor::BindNodeVisitor(catalog::CatalogAccessor* catalog_accessor, transaction::TransactionContext *txn, std::string default_database_name)
+    : catalog_accessor_(catalog_accessor), txn_(txn), default_database_name_(default_database_name) {
+  // TODO:
+  //  traffic cop should generate the catalog accessor and hand to the binder
+  //  Since the catalog accessor has attribute txn and db id
+  //  probably we should only take in the catalog accessor as parameter only?
   context_ = nullptr;
 }
 
@@ -26,45 +28,66 @@ void BindNodeVisitor::BindNameToNode(parser::SQLStatement *tree) {
 }
 
 void BindNodeVisitor::Visit(parser::SelectStatement *node) {
+  // TODO: remove make shared ... Use raw pointers, as the context is not stored in the binder
+  //  Statement will not be modified
+  //  Expression will be modified but only alias and tupleValueExpression
+  //  We can make binder friend of abstract expression
   context_ = std::make_shared<BinderContext>(context_);
-  if (node->from_table != nullptr) {
-    node->from_table->Accept(this);
+
+  if (node->GetSelectTable() != nullptr) {
+    node->GetSelectTable()->Accept(this);
   }
-  if (node->where_clause != nullptr) {
-    node->where_clause->Accept(this);
+  if (node->GetSelectCondition() != nullptr) {
+    node->GetSelectCondition()->Accept(this);
     // Derive depth for all exprs in the where clause
     node->where_clause->DeriveDepth();
     node->where_clause->DeriveSubqueryFlag();
   }
-  if (node->order != nullptr) {
-    node->order->Accept(this);
+  if (node->GetSelectOrderBy() != nullptr) {
+    node->GetSelectOrderBy()->Accept(this);
   }
-  if (node->limit != nullptr) {
-    node->limit->Accept(this);
+  if (node->GetSelectLimit() != nullptr) {
+    node->GetSelectLimit()->Accept(this);
   }
-  if (node->group_by != nullptr) {
-    node->group_by->Accept(this);
+  if (node->GetSelectGroupBy() != nullptr) {
+    node->GetSelectGroupBy()->Accept(this);
   }
 
-  std::vector<std::unique_ptr<expression::AbstractExpression>> new_select_list;
-  for (auto &select_element : node->select_list) {
-    if (select_element->GetExpressionType() == ExpressionType::STAR) {
+  // TODO: unique_ptr? do we keep it?
+  std::vector<std::unique_ptr<parser::AbstractExpression>> new_select_list;
+  for (auto &select_element : node->GetSelectColumns()) {
+    if (select_element->GetExpressionType() == parser::ExpressionType::STAR) {
       context_->GenerateAllColumnExpressions(new_select_list);
       continue;
     }
 
     select_element->Accept(this);
+
+    // TODO: Is concept of depth completely discarded in terrier?
     // Derive depth for all exprs in the select clause
-    if (select_element->GetExpressionType() == ExpressionType::STAR) {
+    if (select_element->GetExpressionType() == parser::ExpressionType::STAR) {
       select_element->SetDepth(context_->GetDepth());
     } else {
       select_element->DeriveDepth();
     }
+    // TODO: what about has_subquery in abstract expression
     select_element->DeriveSubqueryFlag();
 
+    // TODO:
+    //  in peloton code, deduce expression type only happens in operator expression and aggregate expression
+    //  in operator expression, it returns boolean for logical operations, and highest type for arithmetic operation
+    //  in aggregate expression, it returns integer for count, the underlying type for min,max,sum, and decimal for ave
     // Traverse the expression to deduce expression value type and name
     select_element->DeduceExpressionType();
+
+    // TODO:
+    //  in peloton code, deduce expression name only happens in constant value expression and tuple value expression
+    //  in constant value expression, it returns the string repr for the constant if alias is not defined
+    //  ( still I have no idea where the alias is modified or written )
+    //  in tuple_value expression, it returns the col name if alias is not defined
+    //  ** In the new column value expression (split from tuple value expression) probably should be there **
     select_element->DeduceExpressionName();
+
     new_select_list.push_back(std::move(select_element));
   }
   node->select_list = std::move(new_select_list);
@@ -76,48 +99,52 @@ void BindNodeVisitor::Visit(parser::SelectStatement *node) {
 // Some sub query nodes inside SelectStatement
 void BindNodeVisitor::Visit(parser::JoinDefinition *node) {
   // The columns in join condition can only bind to the join tables
-  node->left->Accept(this);
-  node->right->Accept(this);
-  node->condition->Accept(this);
+  node->GetLeftTable()->Accept(this);
+  node->GetRightTable()->Accept(this);
+  node->GetJoinCondition()->Accept(this);
 }
 
 void BindNodeVisitor::Visit(parser::TableRef *node) {
-  if (node->select != nullptr) {
-    if (node->alias.empty()) {
-      throw Exception("Alias not found for query derived table");
+  // TODO: Select, list, join are exclusive?
+  if (node->GetSelect() != nullptr) {
+    if (node->GetAlias().empty()) {
+      throw BINDER_EXCEPTION("Alias not found for query derived table");
     }
 
     // Save the previous context
     auto pre_context = context_;
-    node->select->Accept(this);
+    node->GetSelect()->Accept(this);
     // Restore the previous level context
     context_ = pre_context;
     // Add the table to the current context at the end
-    context_->AddNestedTable(node->alias, node->select->select_list);
+    // TODO: there are shared_ptr in the selectStatement
+    context_->AddNestedTable(node->GetAlias(), node->GetSelect()->GetSelectColumns());
   }
     // Join
-  else if (node->join != nullptr) {
-    node->join->Accept(this);
+  else if (node->GetJoin() != nullptr) {
+    node->GetJoin()->Accept(this);
     // Multiple tables
-  } else if (!node->list.empty()) {
-    for (auto &table : node->list) table->Accept(this);
+  }
+
+  else if (!node->GetList().empty()) {
+    for (auto &table : node->GetList()) table->Accept(this);
   }
     // Single table
   else {
-    context_->AddRegularTable(node, default_database_name_, txn_);
+    context_->AddRegularTable(txn_, node, default_database_name_);
   }
 }
 
 void BindNodeVisitor::Visit(parser::GroupByDescription *node) {
-  for (auto &col : node->columns) {
+  for (auto &col : node->GetColumns()) {
     col->Accept(this);
   }
-  if (node->having != nullptr) {
-    node->having->Accept(this);
+  if (node->GetHaving() != nullptr) {
+    node->GetHaving()->Accept(this);
   }
 }
-void BindNodeVisitor::Visit(parser::OrderDescription *node) {
-  for (auto &expr : node->exprs) {
+void BindNodeVisitor::Visit(parser::OrderByDescription *node) {
+  for (auto &expr : node->GetOrderByExpressions()) {
     if (expr != nullptr) {
       expr->Accept(this);
     }
@@ -127,26 +154,28 @@ void BindNodeVisitor::Visit(parser::OrderDescription *node) {
 void BindNodeVisitor::Visit(parser::UpdateStatement *node) {
   context_ = std::make_shared<BinderContext>(nullptr);
 
-  node->table->Accept(this);
-  if (node->where != nullptr) node->where->Accept(this);
-  for (auto &update : node->updates) {
-    update->value->Accept(this);
+  node->GetUpdateTable()->Accept(this);
+  if (node->GetUpdateCondition() != nullptr) node->GetUpdateCondition()->Accept(this);
+  for (auto &update : node->GetUpdateClauses()) {
+    // TODO: we need Accept() method for updateClause?
+    update->GetUpdateValue()->Accept(this);
   }
 
-  // TODO: Update columns are not bound because they are char*
-  // not TupleValueExpression in update_statement.h
+  // TODO(peloton): Update columns are not bound because they are char*
+  //  not TupleValueExpression in update_statement.h
 
   context_ = nullptr;
 }
 
 void BindNodeVisitor::Visit(parser::DeleteStatement *node) {
   context_ = std::make_shared<BinderContext>(nullptr);
-  node->TryBindDatabaseName(default_database_name_);
-  context_->AddRegularTable(node->GetDatabaseName(), node->GetSchemaName(),
-                            node->GetTableName(), node->GetTableName(), txn_);
+  // no try bind anything
+  // node->TryBindDatabaseName(default_database_name_);
+  context_->AddRegularTable(txn_, node->GetDeletionTable()->GetDatabaseName(), node->GetDeletionTable()->GetSchemaName(),
+                            node->GetDeletionTable()->GetTableName(), node->GetDeletionTable()->GetTableName());
 
-  if (node->expr != nullptr) {
-    node->expr->Accept(this);
+  if (node->GetDeleteCondition() != nullptr) {
+    node->GetDeleteCondition()->Accept(this);
   }
 
   context_ = nullptr;
@@ -156,18 +185,21 @@ void BindNodeVisitor::Visit(parser::LimitDescription *) {}
 
 void BindNodeVisitor::Visit(parser::CopyStatement *node) {
   context_ = std::make_shared<BinderContext>(nullptr);
-  if (node->table != nullptr) {
-    node->table->Accept(this);
+  if (node->GetCopyTable() != nullptr) {
+    node->GetCopyTable()->Accept(this);
 
     // If the table is given, we're either writing or reading all columns
-    context_->GenerateAllColumnExpressions(node->select_list);
+    context_->GenerateAllColumnExpressions(node->GetSelectStatement()->GetSelectColumns());
   } else {
-    node->select_stmt->Accept(this);
+    node->GetSelectStatement()->Accept(this);
   }
 }
 
 void BindNodeVisitor::Visit(parser::CreateFunctionStatement *) {}
 void BindNodeVisitor::Visit(parser::CreateStatement *node) {
+  // TODO: try nothing.
+  //  Try  bind database name will set, for the table_ref of the node,
+  //  the db_name and schema_name to default if they are not there
   node->TryBindDatabaseName(default_database_name_);
 }
 void BindNodeVisitor::Visit(parser::InsertStatement *node) {
@@ -192,10 +224,11 @@ void BindNodeVisitor::Visit(parser::AnalyzeStatement *node) {
 
 // void BindNodeVisitor::Visit(const parser::ConstantValueExpression *) {}
 
-void BindNodeVisitor::Visit(expression::TupleValueExpression *expr) {
+void BindNodeVisitor::Visit(parser::TupleValueExpression *expr) {
+  // TODO: create/copy the tupleValueExpression
   if (!expr->GetIsBound()) {
     std::tuple<oid_t, oid_t, oid_t> col_pos_tuple;
-    std::shared_ptr<catalog::TableCatalogEntry> table_obj = nullptr;
+    std::shared_ptr<catalog::Schema> schema = nullptr;
     type::TypeId value_type;
     int depth = -1;
 
@@ -203,34 +236,29 @@ void BindNodeVisitor::Visit(expression::TupleValueExpression *expr) {
     std::string col_name = expr->GetColumnName();
 
     // Convert all the names to lower cases
-    std::transform(table_name.begin(), table_name.end(), table_name.begin(),
-                   ::tolower);
-    std::transform(col_name.begin(), col_name.end(), col_name.begin(),
-                   ::tolower);
+    std::transform(table_name.begin(), table_name.end(), table_name.begin(), ::tolower);
+    std::transform(col_name.begin(), col_name.end(), col_name.begin(), ::tolower);
 
-    // Table name not specified in the expression. Loop through all the table
-    // in the binder context.
+    // Table name not specified in the expression. Loop through all the table in the binder context.
     if (table_name.empty()) {
-      if (!BinderContext::GetColumnPosTuple(context_, col_name, col_pos_tuple,
-                                            table_name, value_type, depth)) {
-        throw Exception("Cannot find column " + col_name);
+      if (!BinderContext::GetColumnPosTuple(context_, col_name, col_pos_tuple, table_name, value_type, depth)) {
+        throw BINDER_EXCEPTION(("Cannot find column " + col_name).c_str());
       }
       expr->SetTableName(table_name);
     }
       // Table name is present
     else {
       // Regular table
-      if (BinderContext::GetRegularTableObj(context_, table_name, table_obj,
-                                            depth)) {
-        if (!BinderContext::GetColumnPosTuple(col_name, table_obj,
-                                              col_pos_tuple, value_type)) {
-          throw Exception("Cannot find column " + col_name);
+      // TODO: we have changed table_obj to schema
+      //  in this function, table name and schema are filled in
+      if (BinderContext::GetRegularTableObj(context_, table_name, schema, depth)) {
+        if (!BinderContext::GetColumnPosTuple(col_name, schema, col_pos_tuple, value_type)) {
+          throw BINDER_EXCEPTION(("Cannot find column " + col_name).c_str());
         }
       }
         // Nested table
-      else if (!BinderContext::CheckNestedTableColumn(
-          context_, table_name, col_name, value_type, depth))
-        throw Exception("Invalid table reference " + expr->GetTableName());
+      else if (!BinderContext::CheckNestedTableColumn(context_, table_name, col_name, value_type, depth))
+        throw BINDER_EXCEPTION(("Invalid table reference " + expr->GetTableName()).c_str());
     }
     PELOTON_ASSERT(!expr->GetIsBound());
     expr->SetDepth(depth);
@@ -240,33 +268,33 @@ void BindNodeVisitor::Visit(expression::TupleValueExpression *expr) {
   }
 }
 
-void BindNodeVisitor::Visit(expression::CaseExpression *expr) {
+void BindNodeVisitor::Visit(parser::CaseExpression *expr) {
   for (size_t i = 0; i < expr->GetWhenClauseSize(); ++i) {
     expr->GetWhenClauseCond(i)->Accept(this);
   }
 }
 
-void BindNodeVisitor::Visit(expression::SubqueryExpression *expr) {
+void BindNodeVisitor::Visit(parser::SubqueryExpression *expr) {
   expr->GetSubSelect()->Accept(this);
 }
 
-void BindNodeVisitor::Visit(expression::StarExpression *expr) {
+void BindNodeVisitor::Visit(parser::StarExpression *expr) {
   if (!BinderContext::HasTables(context_)) {
     throw BinderException("Invalid expression" + expr->GetInfo());
   }
 }
 
 // Deduce value type for these expressions
-void BindNodeVisitor::Visit(expression::OperatorExpression *expr) {
+void BindNodeVisitor::Visit(parser::OperatorExpression *expr) {
   SqlNodeVisitor::Visit(expr);
   expr->DeduceExpressionType();
 }
-void BindNodeVisitor::Visit(expression::AggregateExpression *expr) {
+void BindNodeVisitor::Visit(parser::AggregateExpression *expr) {
   SqlNodeVisitor::Visit(expr);
   expr->DeduceExpressionType();
 }
 
-void BindNodeVisitor::Visit(expression::FunctionExpression *expr) {
+void BindNodeVisitor::Visit(parser::FunctionExpression *expr) {
   // Visit the subtree first
   SqlNodeVisitor::Visit(expr);
 

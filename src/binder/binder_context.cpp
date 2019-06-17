@@ -1,110 +1,109 @@
 #pragma once
 
+#include <string>
 #include "binder/binder_context.h"
+#include "common/exception.h"
 
 #include "catalog/catalog_accessor.h"
+#include "catalog/catalog.h"
 #include "catalog/column_catalog.h"
 #include "catalog/database_catalog.h"
 #include "catalog/table_catalog.h"
-#include "expression/tuple_value_expression.h"
+#include "parser/expression/tuple_value_expression.h"
 #include "parser/table_ref.h"
 #include "storage/storage_manager.h"
 
-namespace terrier {
-namespace binder {
+namespace terrier::binder {
 
-void BinderContext::AddRegularTable(parser::TableRef *table_ref,
-                                    const std::string default_database_name,
-                                    transaction::TransactionContext *txn) {
+void BinderContext::AddRegularTable(transaction::TransactionContext *txn, parser::TableRef *table_ref, const std::string default_database_name) {
 
-  //auto table_alias = table_ref->GetAlias();
-  //if (table_alias.empty()) table_alias = table_ref->GetDatabaseName();
+  // TODO: pass the catalog accessor as a parameter, probably remove txn and db_name
+  //  as catalog accessor already have transaction and db_oid in the object
 
-  AddRegularTable(table_ref->GetDatabaseName(), table_ref->GetSchemaName(),
-                  table_ref->GetTableName(), table_ref->GetAlias(), txn);
+  // TODO: if we are going to substitute the schema_name with namespace_name and schema_id with namespace_id
+  //  then, what is the schema name in table_ref??? should it be namespace also?
+  AddRegularTable(txn, table_ref->GetDatabaseName(), table_ref->GetNam(),
+                  table_ref->GetTableName(), table_ref->GetAlias());
 }
 
-void BinderContext::AddRegularTable(const std::string db_name,
-                                    const std::string schema_name,
-                                    const std::string table_name,
-                                    const std::string table_alias,
-                                    transaction::TransactionContext *txn) {
-  auto 
+void BinderContext::AddRegularTable(transaction::TransactionContext *txn, const std::string db_name, const std::string namespace_name,
+                                    const std::string table_name, const std::string table_alias) {
 
-  auto table_object = catalog::Catalog::GetInstance()->GetTableCatalogEntry(txn,
-                                                                            db_name,
-                                                                            schema_name,
-                                                                            table_name);
+  // TODO: pass the catalog accessor as a parameter, probably remove txn and db_name
+  //  as catalog accessor already have transaction and db_oid in the object
 
-  if (regular_table_alias_map_.find(table_alias) !=
-      regular_table_alias_map_.end() ||
-      nested_table_alias_map_.find(table_alias) !=
-          nested_table_alias_map_.end()) {
-    throw Exception("Duplicate alias " + table_alias);
+  // TODO: If we pass in catalogAccessor in, then
+  auto ns_id = catalog_accessor.GetNamespaceOid(namespace_name);
+  auto table_id = catalog_accessor.GetTableOid(ns_id, table_name);
+
+  auto schema = catalog_accessor.GetSchema(table_id);
+
+  if (regular_table_alias_map_.find(table_alias) != regular_table_alias_map_.end() ||
+      nested_table_alias_map_.find(table_alias) != nested_table_alias_map_.end()) {
+    throw BINDER_EXCEPTION(("Duplicate alias " + table_alias).c_str());
   }
-  regular_table_alias_map_[table_alias] = table_object;
+  regular_table_alias_map_[table_alias] = schema;
 }
 
-void BinderContext::AddNestedTable(
-    const std::string table_alias,
-    std::vector<std::unique_ptr<expression::AbstractExpression>> &select_list) {
-  if (regular_table_alias_map_.find(table_alias) !=
-      regular_table_alias_map_.end() ||
-      nested_table_alias_map_.find(table_alias) !=
-          nested_table_alias_map_.end()) {
-    throw Exception("Duplicate alias " + table_alias);
+void BinderContext::AddNestedTable(const std::string table_alias, std::vector<std::unique_ptr<parser::AbstractExpression>> &select_list) {
+  if (regular_table_alias_map_.find(table_alias) != regular_table_alias_map_.end() ||
+      nested_table_alias_map_.find(table_alias) != nested_table_alias_map_.end()) {
+    throw BINDER_EXCEPTION(("Duplicate alias " + table_alias).c_str());
   }
 
   std::unordered_map<std::string, type::TypeId> column_alias_map;
   for (auto &expr : select_list) {
     std::string alias;
+    // TODO: we have no alias in abstract expression now; add back
+    //  need to understand lifecycle of alias of an expression: when is it modified?
     if (!expr->alias.empty()) {
       alias = expr->alias;
-    } else if (expr->GetExpressionType() == ExpressionType::VALUE_TUPLE) {
+    }
+    else if (expr->GetExpressionType() == parser::ExpressionType::VALUE_TUPLE) {
       auto tv_expr =
-          reinterpret_cast<expression::TupleValueExpression *>(expr.get());
+          reinterpret_cast<parser::TupleValueExpression *>(expr.get());
       alias = tv_expr->GetColumnName();
-    } else
-      continue;
+    }
+    else continue;
+
     std::transform(alias.begin(), alias.end(), alias.begin(), ::tolower);
-    column_alias_map[alias] = expr->GetValueType();
+    column_alias_map[alias] = expr->GetReturnValueType();
   }
   nested_table_alias_map_[table_alias] = column_alias_map;
 }
 
-bool BinderContext::GetColumnPosTuple(
-    const std::string &col_name,
-    std::shared_ptr<catalog::TableCatalogEntry> table_obj,
-    std::tuple<oid_t, oid_t, oid_t> &col_pos_tuple, type::TypeId &value_type) {
-  auto column_object = table_obj->GetColumnCatalogEntry(col_name);
-  if (column_object == nullptr) {
+bool BinderContext::GetColumnPosTuple(const std::string &col_name, std::shared_ptr<catalog::Schema> schema,
+    std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::col_oid_t> &col_pos_tuple, type::TypeId &value_type) {
+
+  catalog::Schema::Column column_object;
+  try{
+    column_object = schema->GetColumn(col_name);
+  } catch (const Exception &e) {
     return false;
   }
 
-  oid_t col_pos = column_object->GetColumnId();
-  col_pos_tuple = std::make_tuple(table_obj->GetDatabaseOid(),
-                                  table_obj->GetTableOid(), col_pos);
-  value_type = column_object->GetColumnType();
+  auto col_pos = column_object.GetOid();
+  col_pos_tuple = std::make_tuple(schema->GetDatabaseOid(), table_obj->GetTableOid(), col_pos);
+  value_type = column_object.GetType();
   return true;
 }
 
 bool BinderContext::GetColumnPosTuple(
     std::shared_ptr<BinderContext> current_context, const std::string &col_name,
-    std::tuple<oid_t, oid_t, oid_t> &col_pos_tuple, std::string &table_alias,
+    std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::col_oid_t> &col_pos_tuple, std::string &table_alias,
     type::TypeId &value_type, int &depth) {
   bool find_matched = false;
   while (current_context != nullptr) {
     // Check regular table
     for (auto entry : current_context->regular_table_alias_map_) {
-      bool get_matched =
-          GetColumnPosTuple(col_name, entry.second, col_pos_tuple, value_type);
+      bool get_matched = GetColumnPosTuple(col_name, entry.second, col_pos_tuple, value_type);
       if (get_matched) {
         if (!find_matched) {
           // First match
           find_matched = true;
           table_alias = entry.first;
         } else {
-          throw Exception("Ambiguous column name " + col_name);
+          throw BINDER_EXCEPTION(("Ambiguous column name " + col_name).c_str());
         }
       }
     }
@@ -118,7 +117,7 @@ bool BinderContext::GetColumnPosTuple(
           table_alias = entry.first;
           value_type = entry.second[col_name];
         } else {
-          throw Exception("Ambiguous column name " + col_name);
+          throw BINDER_EXCEPTION(("Ambiguous column name " + col_name).c_str());
         }
       }
     }
@@ -131,13 +130,13 @@ bool BinderContext::GetColumnPosTuple(
   return false;
 }
 
-bool BinderContext::GetRegularTableObj(
-    std::shared_ptr<BinderContext> current_context, std::string &alias,
-    std::shared_ptr<catalog::TableCatalogEntry> &table_obj, int &depth) {
+bool BinderContext::GetRegularTableObj(std::shared_ptr<BinderContext> current_context, std::string &alias,
+    std::shared_ptr<catalog::Schema> &schema, int &depth) {
   while (current_context != nullptr) {
     auto iter = current_context->regular_table_alias_map_.find(alias);
     if (iter != current_context->regular_table_alias_map_.end()) {
-      table_obj = iter->second;
+      schema = iter->second;
+      // TODO: again, is depth discarded
       depth = current_context->depth_;
       return true;
     }
@@ -154,7 +153,7 @@ bool BinderContext::CheckNestedTableColumn(
     if (iter != current_context->nested_table_alias_map_.end()) {
       auto col_iter = iter->second.find(col_name);
       if (col_iter == iter->second.end()) {
-        throw Exception("Cannot find column " + col_name);
+        throw BINDER_EXCEPTION(("Cannot find column " + col_name).c_str());
       }
       value_type = col_iter->second;
       depth = current_context->depth_;
@@ -165,19 +164,24 @@ bool BinderContext::CheckNestedTableColumn(
   return false;
 }
 
-void BinderContext::GenerateAllColumnExpressions(
-    std::vector<std::unique_ptr<expression::AbstractExpression>> &exprs) {
+void BinderContext::GenerateAllColumnExpressions(std::vector<std::unique_ptr<parser::AbstractExpression>> &exprs) {
   for (auto &entry : regular_table_alias_map_) {
-    auto &table_obj = entry.second;
-    auto col_cnt = table_obj->GetColumnCatalogEntries().size();
-    for (size_t i = 0; i < col_cnt; i++) {
-      auto col_obj = table_obj->GetColumnCatalogEntry(i);
-      auto tv_expr = new expression::TupleValueExpression(
-          std::string(col_obj->GetColumnName()), std::string(entry.first));
-      tv_expr->SetValueType(col_obj->GetColumnType());
-      tv_expr->DeduceExpressionName();
-      tv_expr->SetBoundOid(table_obj->GetDatabaseOid(),
-                           table_obj->GetTableOid(), col_obj->GetColumnId());
+    auto &schema = entry.second;
+    auto col_cnt = schema->GetColumns().size();
+    for (uint32_t i = 0; i < col_cnt; i++) {
+      auto col_obj = schema->GetColumn(i);
+      auto tv_expr = new parser::TupleValueExpression(col_obj.GetType(), std::string(col_obj.GetName()), std::string(entry.first));
+      // TODO:
+      //  anywhere with set on expression, since the expression is immutable, we will need to
+      //  either copy expression first, or having a suitable constructor in the expression to construct a fresh one
+      //  **Add Copy Constructor in expressions**
+      //tv_expr->SetValueType(col_obj->GetColumnType());
+
+      // TODO: we haven't figured out expression name
+      //tv_expr->DeduceExpressionName();
+
+      // TODO: there is no Bound... what was the bound in the first place?
+      //tv_expr->SetBoundOid(table_obj->GetDatabaseOid(), table_obj->GetTableOid(), col_obj->GetColumnId());
       exprs.emplace_back(tv_expr);
     }
   }
@@ -186,17 +190,15 @@ void BinderContext::GenerateAllColumnExpressions(
     auto &table_alias = entry.first;
     auto &cols = entry.second;
     for (auto &col_entry : cols) {
-      auto tv_expr = new expression::TupleValueExpression(
-          std::string(col_entry.first), std::string(table_alias));
-      tv_expr->SetValueType(col_entry.second);
-      tv_expr->DeduceExpressionName();
+      auto tv_expr = new parser::TupleValueExpression(col_entry.second, std::string(col_entry.first), std::string(table_alias));
+      //tv_expr->SetValueType(col_entry.second);
+      //tv_expr->DeduceExpressionName();
       // All derived columns do not have bound column id. We need to set them to
       // all zero to get rid of garbage value and make comparison work
-      tv_expr->SetBoundOid(0, 0, 0);
+      //tv_expr->SetBoundOid(0, 0, 0);
       exprs.emplace_back(tv_expr);
     }
   }
 }
 
-}  // namespace binder
-}  // namespace terrier
+}  // namespace terrier::binder
