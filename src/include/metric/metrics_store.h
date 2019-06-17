@@ -1,5 +1,6 @@
 #pragma once
 
+#include <bitset>
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -34,7 +35,11 @@ class MetricsStore {
    * @param txn context of the transaction beginning
    */
   void RecordTransactionBegin(const transaction::TransactionContext *txn) {
-    for (auto &metric : metric_dispatch_[MetricsEventType::TXN_BEGIN]) metric->OnTransactionBegin(txn);
+    for (uint8_t component = 0; component < num_components; component++) {
+      if (MetricSupportsEvent(MetricsEventType::TXN_BEGIN, static_cast<MetricsComponent>(component))) {
+        metrics_[component]->OnTransactionBegin(txn);
+      }
+    }
   }
 
   /**
@@ -43,7 +48,11 @@ class MetricsStore {
    * @param database_oid OID of the database where the txn happens.
    */
   void RecordTransactionCommit(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid) {
-    for (auto &metric : metric_dispatch_[MetricsEventType::TXN_COMMIT]) metric->OnTransactionCommit(txn, database_oid);
+    for (uint8_t component = 0; component < num_components; component++) {
+      if (MetricSupportsEvent(MetricsEventType::TXN_COMMIT, static_cast<MetricsComponent>(component))) {
+        metrics_[component]->OnTransactionCommit(txn, database_oid);
+      }
+    }
   }
 
   /**
@@ -52,7 +61,11 @@ class MetricsStore {
    * @param database_oid OID of the database where the txn happens.
    */
   void RecordTransactionAbort(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid) {
-    for (auto &metric : metric_dispatch_[MetricsEventType::TXN_ABORT]) metric->OnTransactionAbort(txn, database_oid);
+    for (uint8_t component = 0; component < num_components; component++) {
+      if (MetricSupportsEvent(MetricsEventType::TXN_ABORT, static_cast<MetricsComponent>(component))) {
+        metrics_[component]->OnTransactionAbort(txn, database_oid);
+      }
+    }
   }
 
   /**
@@ -64,8 +77,11 @@ class MetricsStore {
    */
   void RecordTupleRead(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid,
                        catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) {
-    for (auto &metric : metric_dispatch_[MetricsEventType::TUPLE_READ])
-      metric->OnTupleRead(txn, database_oid, namespace_oid, table_oid);
+    for (uint8_t component = 0; component < num_components; component++) {
+      if (MetricSupportsEvent(MetricsEventType::TUPLE_READ, static_cast<MetricsComponent>(component))) {
+        metrics_[component]->OnTupleRead(txn, database_oid, namespace_oid, table_oid);
+      }
+    }
   }
 
   /**
@@ -77,8 +93,11 @@ class MetricsStore {
    */
   void RecordTupleUpdate(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid,
                          catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) {
-    for (auto &metric : metric_dispatch_[MetricsEventType::TUPLE_UPDATE])
-      metric->OnTupleUpdate(txn, database_oid, namespace_oid, table_oid);
+    for (uint8_t component = 0; component < num_components; component++) {
+      if (MetricSupportsEvent(MetricsEventType::TUPLE_UPDATE, static_cast<MetricsComponent>(component))) {
+        metrics_[component]->OnTupleUpdate(txn, database_oid, namespace_oid, table_oid);
+      }
+    }
   }
 
   /**
@@ -90,8 +109,11 @@ class MetricsStore {
    */
   void RecordTupleInsert(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid,
                          catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) {
-    for (auto &metric : metric_dispatch_[MetricsEventType::TUPLE_INSERT])
-      metric->OnTupleInsert(txn, database_oid, namespace_oid, table_oid);
+    for (uint8_t component = 0; component < num_components; component++) {
+      if (MetricSupportsEvent(MetricsEventType::TUPLE_INSERT, static_cast<MetricsComponent>(component))) {
+        metrics_[component]->OnTupleInsert(txn, database_oid, namespace_oid, table_oid);
+      }
+    }
   }
 
   /**
@@ -103,8 +125,11 @@ class MetricsStore {
    */
   void RecordTupleDelete(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid,
                          catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) {
-    for (auto &metric : metric_dispatch_[MetricsEventType::TUPLE_DELETE])
-      metric->OnTupleDelete(txn, database_oid, namespace_oid, table_oid);
+    for (uint8_t component = 0; component < num_components; component++) {
+      if (MetricSupportsEvent(MetricsEventType::TUPLE_DELETE, static_cast<MetricsComponent>(component))) {
+        metrics_[component]->OnTupleDelete(txn, database_oid, namespace_oid, table_oid);
+      }
+    }
   }
 
  private:
@@ -113,7 +138,7 @@ class MetricsStore {
   /**
    * Constructor of collector
    */
-  MetricsStore();
+  explicit MetricsStore(const std::bitset<num_components> &enabled_metrics);
 
   /**
    * @return A vector of raw data, for each registered metric. Each piece of
@@ -124,27 +149,17 @@ class MetricsStore {
   std::vector<std::unique_ptr<AbstractRawData>> GetDataToAggregate();
 
   /**
-   * Registers a Metric so that its callbacks are invoked.
-   * Use this only in the constructor.
-   * @tparam metric type of Metric to register
-   * @param types A list of event types to receive updates about.
-   */
-  template <typename metric>
-  void RegisterMetric(const std::vector<MetricsEventType> &types) {
-    const auto &m = metrics_.emplace_back(new metric);
-    for (MetricsEventType type : types) metric_dispatch_[type].emplace_back(m);
-  }
-
-  /**
    * Vector of all registered metrics, this owns the metric objects and frees them at object destruction
    */
-  std::vector<std::unique_ptr<Metric>> metrics_;
+  std::array<std::unique_ptr<Metric>, num_components> metrics_;
+
+  const std::bitset<num_components> &enabled_metrics_;
 
   /**
    * Mapping from each type of event to a list of metrics registered to
    * receive updates from that type of event. This does NOT own the registered metrics
    */
-  std::unordered_map<MetricsEventType, std::vector<common::ManagedPointer<Metric>>> metric_dispatch_;
+  //  std::unordered_map<MetricsEventType, std::vector<common::ManagedPointer<Metric>>> metric_dispatch_;
 };
 
 }  // namespace terrier::metric

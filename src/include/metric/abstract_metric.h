@@ -117,6 +117,8 @@ class Metric {
    * @return a shared pointer to the old AbstractRawData
    */
   virtual std::unique_ptr<AbstractRawData> Swap() = 0;
+
+  virtual MetricsComponent GetMetricType() const = 0;
 };
 
 /**
@@ -192,7 +194,7 @@ class AbstractMetric : public Metric {
    * access the underlying raw data
    * @return a shared pointer to the old AbstractRawData
    */
-  std::unique_ptr<AbstractRawData> Swap() override {
+  std::unique_ptr<AbstractRawData> Swap() final {
     // After this point, the collector thread can not see old data on new
     // events, but will still be able to write to it, if they loaded the
     // pointer before this operation but haven't written to it yet.

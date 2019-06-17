@@ -89,7 +89,7 @@ class TransactionMetricRawData : public AbstractRawData {
   /**
    * @return the type of the metric this object is holding the data for
    */
-  MetricsScope GetMetricType() const override { return MetricsScope::TRANSACTION; }
+  MetricsComponent GetMetricType() const override { return MetricsComponent::TRANSACTION; }
 
   /**
    * @return the latency of the given transaction
@@ -229,5 +229,10 @@ class TransactionMetric : public AbstractMetric<TransactionMetricRawData> {
                      UNUSED_ATTRIBUTE catalog::table_oid_t table_oid) override {
     GetRawData()->IncrementTupleDelete(txn);
   }
+
+  /**
+   * @return the type of the metric this object is holding the data for
+   */
+  MetricsComponent GetMetricType() const final { return MetricsComponent::TRANSACTION; }
 };
 }  // namespace terrier::metric

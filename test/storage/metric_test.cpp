@@ -78,11 +78,12 @@ class MetricTests : public TerrierTest {
  */
 // NOLINTNEXTLINE
 TEST_F(MetricTests, TransactionMetricBasicTest) {
-  MetricsManager aggregator;
-
-  const auto metrics_store_ptr = aggregator.RegisterThread();
-
   for (uint8_t i = 0; i < num_iterations_; i++) {
+    MetricsManager aggregator;
+
+    const auto metrics_store_ptr = aggregator.RegisterThread();
+    aggregator.EnableMetric(MetricsComponent::TRANSACTION);
+
     std::unordered_map<uint8_t, transaction::timestamp_t> id_map;
     std::unordered_map<transaction::timestamp_t, int64_t> read_map;
     std::unordered_map<transaction::timestamp_t, int64_t> update_map;
@@ -90,6 +91,7 @@ TEST_F(MetricTests, TransactionMetricBasicTest) {
     std::unordered_map<transaction::timestamp_t, int64_t> delete_map;
     std::unordered_map<transaction::timestamp_t, int64_t> latency_min_map;
     std::unordered_map<transaction::timestamp_t, int64_t> latency_max_map;
+
     for (uint8_t j = 0; j < num_txns_; j++) {
       auto start_max = std::chrono::high_resolution_clock::now();
       auto *txn = txn_manager_->BeginTransaction();
@@ -140,7 +142,7 @@ TEST_F(MetricTests, TransactionMetricBasicTest) {
     EXPECT_FALSE(result.empty());
 
     for (const auto &raw_data : result) {
-      if (raw_data->GetMetricType() == MetricsScope::TRANSACTION) {
+      if (raw_data->GetMetricType() == MetricsComponent::TRANSACTION) {
         for (uint8_t j = 0; j < num_txns_; j++) {
           auto txn_id = id_map[j];
           auto read_cnt = dynamic_cast<TransactionMetricRawData *>(raw_data.get())->GetTupleRead(txn_id);
@@ -158,9 +160,9 @@ TEST_F(MetricTests, TransactionMetricBasicTest) {
         }
       }
     }
-  }
 
-  aggregator.UnregisterThread();
+    aggregator.UnregisterThread();
+  }
 }
 
 /**
@@ -168,11 +170,12 @@ TEST_F(MetricTests, TransactionMetricBasicTest) {
  */
 // NOLINTNEXTLINE
 TEST_F(MetricTests, TransactionMetricStorageTest) {
-  MetricsManager aggregator;
-
-  const auto metrics_store_ptr = aggregator.RegisterThread();
-
   for (uint8_t i = 0; i < num_iterations_; i++) {
+    MetricsManager aggregator;
+
+    const auto metrics_store_ptr = aggregator.RegisterThread();
+    aggregator.EnableMetric(MetricsComponent::TRANSACTION);
+
     std::unordered_map<uint8_t, transaction::timestamp_t> id_map;
     std::unordered_map<transaction::timestamp_t, int64_t> read_map;
     std::unordered_map<transaction::timestamp_t, int64_t> update_map;
@@ -226,9 +229,9 @@ TEST_F(MetricTests, TransactionMetricStorageTest) {
     }
 
     aggregator.Aggregate();
-  }
 
-  aggregator.UnregisterThread();
+    aggregator.UnregisterThread();
+  }
 }
 
 /**
@@ -244,6 +247,7 @@ TEST_F(MetricTests, MultiThreadTest) {
     common::ConcurrentMap<transaction::timestamp_t, int64_t> latency_max_map;
     common::ConcurrentMap<transaction::timestamp_t, int64_t> latency_min_map;
     MetricsManager aggregator;
+    aggregator.EnableMetric(MetricsComponent::TRANSACTION);
     auto num_read = static_cast<uint8_t>(std::uniform_int_distribution<uint8_t>(1, UINT8_MAX)(generator_));
     auto num_update = static_cast<uint8_t>(std::uniform_int_distribution<uint8_t>(1, UINT8_MAX)(generator_));
     auto num_insert = static_cast<uint8_t>(std::uniform_int_distribution<uint8_t>(1, UINT8_MAX)(generator_));
