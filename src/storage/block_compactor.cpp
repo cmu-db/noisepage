@@ -183,9 +183,7 @@ bool BlockCompactor::MoveTuple(CompactionGroup *cg, TupleSlot from, TupleSlot to
 
   // The delete can fail if a concurrent transaction is updating said tuple. We will have to abort if this is
   // the case.
-  bool ret = cg->table_->Delete(cg->txn_, from);
-  if (!ret) return false;
-  return true;
+  return cg->table_->Delete(cg->txn_, from);
 }
 
 bool BlockCompactor::CheckForVersionsAndGaps(const TupleAccessStrategy &accessor, RawBlock *block) {
