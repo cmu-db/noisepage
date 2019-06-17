@@ -30,8 +30,7 @@ namespace binder {
  */
 class BinderContext {
  public:
-  BinderContext(std::shared_ptr<BinderContext> upper_context = nullptr)
-      : upper_context_(upper_context) {
+  BinderContext(std::shared_ptr<BinderContext> upper_context = nullptr) : upper_context_(upper_context) {
     if (upper_context != nullptr) depth_ = upper_context->depth_ + 1;
   }
 
@@ -39,35 +38,25 @@ class BinderContext {
    * @brief Update the table alias map given a table reference (in the from
    * clause)
    */
-  void AddRegularTable(parser::TableRef *table_ref,
-                       const std::string default_database_name,
-                       transaction::TransactionContext *txn);
+  void AddRegularTable(transaction::TransactionContext *txn, parser::TableRef *table_ref, const std::string default_database_name);
 
   /**
    * @brief Update the table alias map given a table reference (in the from
    * clause)
    */
-  void AddRegularTable(const std::string db_name, const std::string schema_name,
-                       std::string table_name, const std::string table_alias,
-                       transaction::TransactionContext *txn);
+  void AddRegularTable(transaction::TransactionContext *txn, const std::string db_name, const std::string schema_name, std::string table_name, const std::string table_alias);
 
   /**
    * @brief Update the nested table alias map
    */
-  void AddNestedTable(
-      const std::string table_alias,
-      std::vector<std::unique_ptr<expression::AbstractExpression>>
-      &select_list);
+  void AddNestedTable(const std::string table_alias, std::vector<std::unique_ptr<parser::AbstractExpression>> &select_list);
 
   /**
    * @brief Check if the current context has any table
    */
   static bool HasTables(std::shared_ptr<BinderContext> current_context) {
     if (current_context == nullptr) return false;
-    if (!current_context->regular_table_alias_map_.empty() ||
-        !current_context->nested_table_alias_map_.empty())
-      return true;
-    return false;
+    return (!current_context->regular_table_alias_map_.empty() || !current_context->nested_table_alias_map_.empty());
   }
 
   /**
@@ -84,10 +73,8 @@ class BinderContext {
    * @return If the col_pos_tuple is retrieved successfully, return true,
    *  otherwise return false
    */
-  static bool GetColumnPosTuple(
-      const std::string &col_name,
-      std::shared_ptr<catalog::Schema> schema,
-      std::tuple<oid_t, oid_t, oid_t> &col_pos_tuple, type::TypeId &value_type);
+  static bool GetColumnPosTuple(const std::string &col_name, std::shared_ptr<catalog::Schema> schema,
+      std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::col_oid_t> &col_pos_tuple, type::TypeId &value_type);
 
   /**
    * @brief Construct the column position tuple given only the column name and
@@ -107,7 +94,7 @@ class BinderContext {
    */
   static bool GetColumnPosTuple(std::shared_ptr<BinderContext> current_context,
                                 const std::string &col_name,
-                                std::tuple<oid_t, oid_t, oid_t> &col_pos_tuple,
+                                std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::col_oid_t> &col_pos_tuple,
                                 std::string &table_alias,
                                 type::TypeId &value_type, int &depth);
 
@@ -140,7 +127,7 @@ class BinderContext {
   int inline GetDepth() { return depth_; }
 
   void GenerateAllColumnExpressions(
-      std::vector<std::unique_ptr<expression::AbstractExpression>> &exprs);
+      std::vector<std::unique_ptr<parser::AbstractExpression>> &exprs);
 
  private:
   /** @brief Map table alias to table obj */

@@ -9,6 +9,7 @@
 #include "catalog/database_catalog.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
+#include "catalog_accessor.h"
 
 namespace terrier::catalog {
 

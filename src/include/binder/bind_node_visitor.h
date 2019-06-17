@@ -3,14 +3,14 @@
 #include "binder/binder_context.h"
 #include "common/sql_node_visitor.h"
 #include "parser/statements.h"
-#include "common/internal_types.h"
+#include "catalog/catalog_defs.h"
 
 
 namespace terrier {
 
 namespace expression {
 class CaseExpression;
-class ConstantExpression;
+class ConstantValueExpression;
 class TupleValueExpression;
 class SubqueryExpression;
 class StarExpression;
@@ -33,7 +33,7 @@ namespace binder {
  */
 class BindNodeVisitor : public SqlNodeVisitor {
  public:
-  BindNodeVisitor(transaction::TransactionContext *txn, std::string default_database_name);
+  BindNodeVisitor(catalog::CatalogAccessor* catalog_accessor, transaction::TransactionContext *txn, std::string default_database_name);
 
   void BindNameToNode(parser::SQLStatement *tree);
   void Visit(parser::SelectStatement *) override;
@@ -42,7 +42,7 @@ class BindNodeVisitor : public SqlNodeVisitor {
   void Visit(parser::JoinDefinition *) override;
   void Visit(parser::TableRef *) override;
   void Visit(parser::GroupByDescription *) override;
-  void Visit(parser::OrderDescription *) override;
+  void Visit(parser::OrderByDescription *) override;
   void Visit(parser::LimitDescription *) override;
 
   void Visit(parser::CreateStatement *) override;
@@ -57,25 +57,26 @@ class BindNodeVisitor : public SqlNodeVisitor {
   void Visit(parser::CopyStatement *) override;
   void Visit(parser::AnalyzeStatement *) override;
 
-  void Visit(expression::CaseExpression *expr) override;
-  void Visit(expression::SubqueryExpression *expr) override;
+  void Visit(parser::CaseExpression *expr) override;
+  void Visit(parser::SubqueryExpression *expr) override;
 
-  // void Visit(const expression::ConstantValueExpression *expr) override;
-  void Visit(expression::TupleValueExpression *expr) override;
-  void Visit(expression::StarExpression *expr) override;
-  void Visit(expression::FunctionExpression *expr) override;
+  // void Visit(parser::ConstantValueExpression *expr) override;
+  void Visit(parser::TupleValueExpression *expr) override;
+  void Visit(parser::StarExpression *expr) override;
+  void Visit(parser::FunctionExpression *expr) override;
 
   // Deduce value type for these expressions
-  void Visit(expression::OperatorExpression *expr) override;
-  void Visit(expression::AggregateExpression *expr) override;
+  void Visit(parser::OperatorExpression *expr) override;
+  void Visit(parser::AggregateExpression *expr) override;
 
-  void SetTxn(concurrency::TransactionContext *txn) { this->txn_ = txn; }
+  // TODO: LING: this method was never used in the peloton code
+  void SetTxn(transaction::TransactionContext *txn) { this->txn_ = txn; }
 
  private:
   std::shared_ptr<BinderContext> context_;
-  concurrency::TransactionContext *txn_;
+  catalog::CatalogAccessor *catalog_accessor_;
+  transaction::TransactionContext *txn_;
   std::string default_database_name_;
-  CatalogAccessor::CatalogAccessor *catalog_accessor_;
 };
 
 }  // namespace binder
