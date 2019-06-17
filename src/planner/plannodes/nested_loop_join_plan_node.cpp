@@ -12,13 +12,8 @@ common::hash_t NestedLoopJoinPlanNode::Hash() const {
 }
 
 bool NestedLoopJoinPlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (!AbstractPlanNode::operator==(rhs)) return false;
-
-  auto &other = dynamic_cast<const NestedLoopJoinPlanNode &>(rhs);
-
   // There is nothing else for us to do here! Go home! You're drunk!
-
-  return AbstractJoinPlanNode::operator==(other);
+  return AbstractJoinPlanNode::operator==(rhs);
 }
 
 nlohmann::json NestedLoopJoinPlanNode::ToJson() const { return AbstractJoinPlanNode::ToJson(); }
