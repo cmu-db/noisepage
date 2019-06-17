@@ -1,5 +1,4 @@
 #include "execution/compiler/expression/arithmetic_translator.h"
-#include "execution/compiler/compilation_context.h"
 #include "execution/compiler/translator_factory.h"
 
 namespace tpl::compiler {
@@ -7,11 +6,11 @@ namespace tpl::compiler {
 ArithmeticTranslator::ArithmeticTranslator(const terrier::parser::AbstractExpression *expression, CodeGen * codegen)
     : ExpressionTranslator(expression, codegen),
       left_(TranslatorFactory::CreateExpressionTranslator(expression_->GetChild(0).get(), codegen_)),
-      right_(TranslatorFactory::CreateExpressionTranslator(expression_->GetChild().get(), codegen_)) {}
+      right_(TranslatorFactory::CreateExpressionTranslator(expression_->GetChild(1).get(), codegen_)) {}
 
 ast::Expr *ArithmeticTranslator::DeriveExpr(OperatorTranslator * translator) {
   auto *left_expr = left_->DeriveExpr(translator);
-  auto *right_expr = right_->DeriveExpr(translator));
+  auto *right_expr = right_->DeriveExpr(translator);
   parsing::Token::Type type;
   switch (expression_->GetExpressionType()) {
     case terrier::parser::ExpressionType::OPERATOR_DIVIDE:

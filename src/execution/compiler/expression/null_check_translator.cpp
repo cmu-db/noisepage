@@ -1,5 +1,6 @@
 #include "execution/compiler/expression/null_check_translator.h"
-#include "execution/compiler/compilation_context.h"
+#include "execution/compiler/translator_factory.h"
+
 
 namespace tpl::compiler {
 NullCheckTranslator::NullCheckTranslator(const terrier::parser::AbstractExpression *expression,
@@ -11,7 +12,7 @@ NullCheckTranslator::NullCheckTranslator(const terrier::parser::AbstractExpressi
 ast::Expr *NullCheckTranslator::DeriveExpr(OperatorTranslator * translator) {
   auto type = expression_->GetExpressionType();
   auto child_expr = child_->DeriveExpr(translator);
-  auto null_expr = codegen_->NilLiteral(DUMMY_POS);
+  auto null_expr = codegen_->NilLiteral();
   if (type == terrier::parser::ExpressionType::OPERATOR_IS_NULL) {
     return codegen_->BinaryOp(parsing::Token::Type::EQUAL_EQUAL, null_expr, child_expr);
   }

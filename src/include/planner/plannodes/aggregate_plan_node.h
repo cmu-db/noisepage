@@ -71,6 +71,7 @@ class AggregatePlanNode : public AbstractPlanNode {
      */
     Builder &AddGroupByTerm(GroupByTerm term) {
       group_by_terms_.emplace_back(term);
+      return *this;
     }
 
     /**

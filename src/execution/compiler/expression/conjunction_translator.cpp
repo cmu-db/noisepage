@@ -1,7 +1,6 @@
 #include "execution/compiler/expression/conjunction_translator.h"
 #include "execution/compiler/codegen.h"
-#include "execution/compiler/compilation_context.h"
-#include "execution/ast/ast.h"
+#include "execution/compiler/translator_factory.h"
 
 namespace tpl::compiler {
 

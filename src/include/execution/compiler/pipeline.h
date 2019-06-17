@@ -20,16 +20,13 @@ class Pipeline {
   explicit Pipeline(CodeGen * codegen) : codegen_(codegen) {}
 
   /**
-   * Parallism level to use
-   */
-  enum class Parallelism : uint32_t { Serial = 0, Flexible = 1, Parallel = 2 };
-
-  /**
    * Add an operator translator to the pipeline
    * @param translator translator to add
    * @param parallelism parallelism level
    */
-  void Add(OperatorTranslator *translator, Parallelism parallelism = Parallelism::Serial);
+  void Add(OperatorTranslator *translator) {
+    pipeline_.push_back(translator);
+  }
 
   /**
    * @return the pipelines' function id

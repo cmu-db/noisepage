@@ -254,7 +254,7 @@ void ExecutionStructures::InitTPCHOutputSchemas(terrier::transaction::Transactio
 
   // Q1 (ten Integers)
   {
-    std::vector<terrier::catalog::Schema::Column> cols{};
+    std::vector<terrier::planner::OutputSchema::Column> cols{};
     for (u32 i = 0; i < u32(10); i++) {
       cols.emplace_back(int_col);
     }
@@ -264,7 +264,7 @@ void ExecutionStructures::InitTPCHOutputSchemas(terrier::transaction::Transactio
 
   // Q4 (two Integers)
   {
-    std::vector<terrier::catalog::Schema::Column> cols{};
+    std::vector<terrier::planner::OutputSchema::Column> cols{};
     for (u32 i = 0; i < u32(2); i++) {
       cols.emplace_back(int_col);
     }

@@ -2,8 +2,6 @@
 
 #include <string>
 #include <utility>
-#include "execution/compiler/code_context.h"
-#include "execution/compiler/function_builder.h"
 #include "type/transient_value_peeker.h"
 
 namespace tpl::compiler {
@@ -48,6 +46,14 @@ util::RegionVector<ast::FieldDecl *> CodeGen::ExecParams() {
   return {{state_param, exec_ctx_param}, Region()};
 }
 
+ast::Stmt* CodeGen::ExecCall(ast::Identifier fn_name) {
+  ast::Expr* func = MakeExpr(fn_name);
+  ast::Expr* state_arg = PointerTo(state_var_);
+  ast::Expr* exec_ctx_arg = MakeExpr(exec_ctx_var_);
+  util::RegionVector<ast::Expr*> params{{state_arg, exec_ctx_arg}, Region()};
+  return MakeStmt(Factory()->NewCallExpr(func, std::move(params)));
+}
+
 ast::Expr* CodeGen::GetStateMemberPtr(ast::Identifier ident) {
   return PointerTo(MemberExpr(state_var_, ident));
 }
@@ -68,7 +74,7 @@ ast::Identifier CodeGen::NewIdentifier(const std::string &prefix) {
 ast::Expr* CodeGen::OneArgCall(ast::Builtin builtin, ast::Expr* arg) {
   ast::Expr * fun = BuiltinFunction(builtin);
   util::RegionVector<ast::Expr*> args{{arg}, Region()};
-  return Factory()->NewCallExpr(fun, std::move(args));
+  return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
 ast::Expr* CodeGen::OneArgCall(ast::Builtin builtin, ast::Identifier ident, bool take_ptr) {
@@ -85,7 +91,7 @@ ast::Expr* CodeGen::OneArgCall(ast::Builtin builtin, ast::Identifier ident, bool
 
 ast::Expr* CodeGen::OneArgStateCall(tpl::ast::Builtin builtin, tpl::ast::Identifier ident) {
   ast::Expr * arg = GetStateMemberPtr(ident);
-  OneArgCall(builtin, arg);
+  return OneArgCall(builtin, arg);
 }
 
 
@@ -93,7 +99,7 @@ ast::Expr* CodeGen::PtrCast(ast::Identifier base, ast::Expr* arg) {
   ast::Expr* fun = BuiltinFunction(ast::Builtin::PtrCast);
   ast::Expr* ptr = Factory()->NewUnaryOpExpr(DUMMY_POS, parsing::Token::Type::STAR, MakeExpr(base));
   util::RegionVector<ast::Expr*> cast_args{{ptr, arg}, Region()};
-  Factory()->NewCallExpr(fun, std::move(cast_args));
+  return Factory()->NewBuiltinCallExpr(fun, std::move(cast_args));
 }
 
 ast::Expr* CodeGen::OutputAlloc() {
@@ -115,7 +121,7 @@ ast::Expr* CodeGen::TableIterInit(ast::Identifier tvi, const std::string & table
   ast::Expr * exec_ctx_expr = MakeExpr(exec_ctx_var_);
 
   util::RegionVector<ast::Expr*> args{{tvi_ptr, table_name_expr, exec_ctx_expr}, Region()};
-  return Factory()->NewCallExpr(fun, std::move(args));
+  return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
 ast::Expr* CodeGen::TableIterAdvance(ast::Identifier tvi) {
@@ -161,12 +167,12 @@ ast::Expr* CodeGen::PCIGet(tpl::ast::Identifier pci, terrier::type::TypeId type,
   ast::Expr * pci_expr = MakeExpr(pci);
   ast::Expr * idx_expr = Factory()->NewIntLiteral(DUMMY_POS, idx);
   util::RegionVector<ast::Expr*> args{{pci_expr, idx_expr}, Region()};
-  return Factory()->NewCallExpr(fun, std::move(args));
+  return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
 ast::Expr* CodeGen::Hash(tpl::util::RegionVector<tpl::ast::Expr *> &&args) {
   ast::Expr * fun = BuiltinFunction(ast::Builtin::Hash);
-  return Factory()->NewCallExpr(fun, std::move(args));
+  return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
 ast::Expr* CodeGen::ExecCtxGetMem() {
@@ -180,6 +186,7 @@ ast::Expr* CodeGen::SizeOf(ast::Identifier type_name) {
 ast::Expr* CodeGen::InitCall(ast::Builtin builtin, tpl::ast::Identifier object, tpl::ast::Identifier struct_type) {
   // Init Function
   ast::Expr * fun = BuiltinFunction(builtin);
+  // The object to initialize
   ast::Expr* obj_ptr = GetStateMemberPtr(object);
   // Then get @execCtxGetMem(execCtx)
   ast::Expr* get_mem_call = ExecCtxGetMem();
@@ -187,7 +194,7 @@ ast::Expr* CodeGen::InitCall(ast::Builtin builtin, tpl::ast::Identifier object, 
   ast::Expr* sizeof_call = SizeOf(struct_type);
   // Finally make the init call
   util::RegionVector<ast::Expr*> args{{obj_ptr, get_mem_call, sizeof_call}, Region()};
-  return Factory()->NewCallExpr(fun, std::move(args));
+  return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
 ast::Expr* CodeGen::AggHashTableInit(ast::Identifier ht, ast::Identifier payload_struct) {
@@ -203,7 +210,16 @@ ast::Expr* CodeGen::AggHashTableLookup(ast::Identifier ht, ast::Identifier hash_
   ast::Expr* key_check_expr = MakeExpr(key_check);
   ast::Expr* agg_values_ptr = PointerTo(values);
   util::RegionVector<ast::Expr*> args{{agg_ht, hash_val_expr, key_check_expr, agg_values_ptr}, Region()};
-  return Factory()->NewCallExpr(fun, std::move(args));
+  return Factory()->NewBuiltinCallExpr(fun, std::move(args));
+}
+
+ast::Expr* CodeGen::AggHashTableInsert(ast::Identifier ht, ast::Identifier hash_val) {
+  // @aggHTInsert(&state.ht, hash_val)
+  ast::Expr * fun = BuiltinFunction(ast::Builtin::AggHashTableInsert);
+  ast::Expr* agg_ht = GetStateMemberPtr(ht);
+  ast::Expr* hash_val_expr = MakeExpr(hash_val);
+  util::RegionVector<ast::Expr*> args{{agg_ht, hash_val_expr}, Region()};
+  return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
 ast::Expr* CodeGen::AggHashTableFree(ast::Identifier ht) {
@@ -217,7 +233,7 @@ ast::Expr* CodeGen::AggHashTableIterInit(ast::Identifier iter, ast::Identifier h
   ast::Expr* iter_ptr = PointerTo(iter);
   ast::Expr* agg_ht = GetStateMemberPtr(ht);
   util::RegionVector<ast::Expr*> args{{iter_ptr, agg_ht}, Region()};
-  return Factory()->NewCallExpr(fun, std::move(args));
+  return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
 ast::Expr* CodeGen::AggHashTableIterHasNext(ast::Identifier iter) {
@@ -242,23 +258,19 @@ ast::Expr* CodeGen::AggHashTableIterClose(ast::Identifier iter) {
 
 ast::Expr* CodeGen::AggInit(ast::Expr* agg) {
   // @aggInit(agg)
-  ast::Expr * fun = BuiltinFunction(ast::Builtin::AggInit);
-  util::RegionVector<ast::Expr*> args{{agg}, Region()};
-  return Factory()->NewCallExpr(fun, std::move(args));
+  return OneArgCall(ast::Builtin::AggInit, agg);
 }
 
 ast::Expr* CodeGen::AggAdvance(ast::Expr* agg, ast::Expr* val) {
   // @aggAdvance(agg, val)
   ast::Expr * fun = BuiltinFunction(ast::Builtin::AggAdvance);
   util::RegionVector<ast::Expr*> args{{agg, val}, Region()};
-  return Factory()->NewCallExpr(fun, std::move(args));
+  return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
 ast::Expr* CodeGen::AggResult(ast::Expr* agg) {
   // @aggResult(agg)
-  ast::Expr * fun = BuiltinFunction(ast::Builtin::AggResult);
-  util::RegionVector<ast::Expr*> args{{agg}, Region()};
-  return Factory()->NewCallExpr(fun, std::move(args));
+  return OneArgCall(ast::Builtin::AggResult, agg);
 }
 
 ast::Expr* CodeGen::JoinHashTableInit(ast::Identifier ht, ast::Identifier build_struct) {
@@ -272,7 +284,7 @@ ast::Expr* CodeGen::JoinHashTableInsert(tpl::ast::Identifier ht, tpl::ast::Ident
   ast::Expr* join_ht = GetStateMemberPtr(ht);
   ast::Expr* hash_val_expr = MakeExpr(hash_val);
   util::RegionVector<ast::Expr*> args{{join_ht, hash_val_expr}, Region()};
-  return Factory()->NewCallExpr(fun, std::move(args));
+  return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
 ast::Expr* CodeGen::JoinHashTableIterInit(tpl::ast::Identifier iter,
@@ -284,28 +296,30 @@ ast::Expr* CodeGen::JoinHashTableIterInit(tpl::ast::Identifier iter,
   ast::Expr* join_ht = GetStateMemberPtr(ht);
   ast::Expr* hash_val_expr = MakeExpr(hash_val);
   util::RegionVector<ast::Expr*> args{{iter_ptr, join_ht, hash_val_expr}, Region()};
-  return Factory()->NewCallExpr(fun, std::move(args));
+  return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
 ast::Expr* CodeGen::JoinHashTableIterHasNext(tpl::ast::Identifier iter,
                                              tpl::ast::Identifier key_check,
                                              tpl::ast::Identifier probe_row,
                                              bool is_probe_ptr) {
+  // @joinHTIterHasNext(&iter, key_check, execCtx, &probe_row)
   ast::Expr * fun = BuiltinFunction(ast::Builtin::JoinHashTableIterHasNext);
   ast::Expr * iter_ptr = PointerTo(iter);
   ast::Expr * key_check_fn = MakeExpr(key_check);
+  ast::Expr * exec_ctx_arg = MakeExpr(exec_ctx_var_);
   ast::Expr* probe_row_ptr;
   if (is_probe_ptr) {
     probe_row_ptr = MakeExpr(probe_row);
   } else {
     probe_row_ptr = PointerTo(probe_row);
   }
-  util::RegionVector<ast::Expr*> args{{iter_ptr, key_check_fn, probe_row_ptr}, Region()};
-  return Factory()->NewCallExpr(fun, std::move(args));
+  util::RegionVector<ast::Expr*> args{{iter_ptr, key_check_fn, exec_ctx_arg, probe_row_ptr}, Region()};
+  return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
 ast::Expr* CodeGen::JoinHashTableIterGetRow(ast::Identifier iter) {
-  // @joinHTIterHasNext(&iter)
+  // @joinHTIterGetRow(&iter)
   return OneArgCall(ast::Builtin::JoinHashTableIterGetRow, iter, true);
 }
 
@@ -324,6 +338,65 @@ ast::Expr* CodeGen::JoinHashTableFree(tpl::ast::Identifier ht) {
   return OneArgStateCall(ast::Builtin::JoinHashTableFree, ht);
 }
 
+ast::Expr* CodeGen::SorterInit(tpl::ast::Identifier sorter,
+                               tpl::ast::Identifier comp_fn,
+                               tpl::ast::Identifier sorter_struct) {
+  // @sorterInit(&state.sorter, @execCtxGetMem(execCtx), sorterCompare, @sizeOf(SorterStruct))
+  // Init Function
+  ast::Expr * fun = BuiltinFunction(ast::Builtin::SorterInit);
+  // Get the sorter
+  ast::Expr* sorter_ptr = GetStateMemberPtr(sorter);
+  // Then get @execCtxGetMem(execCtx)
+  ast::Expr* get_mem_call = ExecCtxGetMem();
+  // The comparison function
+  ast::Expr* comp_fn_expr = MakeExpr(comp_fn);
+  // Then get @sizeof(sorter_truct)
+  ast::Expr* sizeof_call = SizeOf(sorter_struct);
+  // Finally make the init call
+  util::RegionVector<ast::Expr*> args{{sorter_ptr, get_mem_call, comp_fn_expr, sizeof_call}, Region()};
+  return Factory()->NewBuiltinCallExpr(fun, std::move(args));
+}
+
+ast::Expr* CodeGen::SorterInsert(tpl::ast::Identifier sorter) {
+  // @sorterInsert(&state.sorter)
+  return OneArgStateCall(ast::Builtin::SorterInsert, sorter);
+}
+
+ast::Expr* CodeGen::SorterSort(tpl::ast::Identifier sorter) {
+  // @sorterSort(&state.sorter)
+  return OneArgStateCall(ast::Builtin::SorterSort, sorter);
+}
+
+ast::Expr* CodeGen::SorterFree(tpl::ast::Identifier sorter) {
+  // @sorterFree(&state.sorter)
+  return OneArgStateCall(ast::Builtin::SorterFree, sorter);
+}
+
+
+ast::Expr* CodeGen::SorterIterInit(tpl::ast::Identifier iter, tpl::ast::Identifier sorter) {
+  // @sorterIterInit(&iter, &state.sorter)
+  ast::Expr * fun = BuiltinFunction(ast::Builtin::SorterIterInit);
+  ast::Expr* iter_ptr = PointerTo(iter);
+  ast::Expr* sorter_ptr = GetStateMemberPtr(sorter);
+  util::RegionVector<ast::Expr*> args{{iter_ptr, sorter_ptr}, Region()};
+  return Factory()->NewBuiltinCallExpr(fun, std::move(args));
+}
+
+ast::Expr* CodeGen::SorterIterHasNext(tpl::ast::Identifier iter) {
+  return OneArgCall(ast::Builtin::SorterIterHasNext, iter, true);
+}
+
+ast::Expr* CodeGen::SorterIterNext(tpl::ast::Identifier iter) {
+  return OneArgCall(ast::Builtin::SorterIterNext, iter, true);
+}
+
+ast::Expr* CodeGen::SorterIterGetRow(tpl::ast::Identifier iter) {
+  return OneArgCall(ast::Builtin::SorterIterGetRow, iter, true);
+}
+
+ast::Expr* CodeGen::SorterIterClose(tpl::ast::Identifier iter) {
+  return OneArgCall(ast::Builtin::SorterIterClose, iter, true);
+}
 
 ast::Expr *CodeGen::PeekValue(const terrier::type::TransientValue &transient_val) {
   switch (transient_val.Type()) {
@@ -452,7 +525,7 @@ ast::Expr* CodeGen::MemberExpr(ast::Identifier lhs, ast::Identifier rhs) {
 
 ast::Expr* CodeGen::IntToSql(i32 num) {
   ast::Expr* int_lit = IntLiteral(num);
-  OneArgCall(ast::Builtin::IntToSql, int_lit);
+  return OneArgCall(ast::Builtin::IntToSql, int_lit);
 }
 
 }  // namespace tpl::compiler

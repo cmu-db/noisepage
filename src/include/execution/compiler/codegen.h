@@ -10,9 +10,10 @@
 #include "execution/util/macros.h"
 #include "type/transient_value.h"
 #include "type/type_id.h"
-#include "execution/compiler/function_builder.h"
 #include "parser/expression_defs.h"
 #include "execution/compiler/query.h"
+#include "execution/compiler/compiler_defs.h"
+
 
 namespace tpl::compiler {
 
@@ -73,6 +74,15 @@ class CodeGen {
   }
 
   /**
+   * Creates the File node for the query
+   * @param top_level_decls the list of top level declarations
+   * @return the File node
+   */
+  ast::File* Compile(util::RegionVector<ast::Decl*> && top_level_decls) {
+    return Factory()->NewFile(DUMMY_POS, std::move(top_level_decls));
+  }
+
+  /**
    * @return the main function identifier
    */
   ast::Identifier GetMainFn() {
@@ -103,6 +113,12 @@ class CodeGen {
    * @return the list of parameters of functions call by main (setup, teardown, pipeline_i)
    */
   util::RegionVector<ast::FieldDecl*> ExecParams();
+
+  /**
+   * Calls one of functions called by main
+   * @return the fn_name(state, execCtx) call.
+   */
+  ast::Stmt* ExecCall(ast::Identifier fn_name);
 
   /**
    * Return a pointer to a state member
@@ -307,14 +323,6 @@ class CodeGen {
   ast::BlockStmt *EmptyBlock();
 
 
-  /**
-   * @param fn function to call
-   * @param args arguments
-   * @return a new call stmt
-   */
-  ast::Stmt *Call(ast::FunctionDecl *fn, util::RegionVector<ast::Expr *> &&args);
-
-
   /////////////////////////////////////////////////////////////////
   /// Builtin functions
   /////////////////////////////////////////////////////////////////
@@ -406,6 +414,11 @@ class CodeGen {
   ast::Expr *AggHashTableLookup(ast::Identifier ht, ast::Identifier hash_val, ast::Identifier key_check, ast::Identifier values);
 
   /**
+   * Call aggHTInsert(&state.ht, hash_val)
+   */
+  ast::Expr* AggHashTableInsert(ast::Identifier ht, ast::Identifier hash_val);
+
+  /**
    * Call aggHTFree(&state.ht)
    */
   ast::Expr *AggHashTableFree(ast::Identifier ht);
@@ -492,6 +505,52 @@ class CodeGen {
    * Call joinHTFree(&state.ht)
    */
   ast::Expr* JoinHashTableFree(ast::Identifier iter);
+
+  /**
+   * Call sorterInit(&state.sorter, execCtxGetMem(execCtx), comp_fn, sizeOf(sorter_struct))
+   */
+  ast::Expr* SorterInit(ast::Identifier sorter, ast::Identifier comp_fn, ast::Identifier sorter_struct);
+
+  /**
+   * Call sorterInsert(&state.sorter)
+   */
+  ast::Expr* SorterInsert(ast::Identifier sorter);
+
+  /**
+   * Call sorterSort(&state.sorter)
+   */
+  ast::Expr* SorterSort(ast::Identifier sorter);
+
+  /**
+   * Call sorterFree(&state.sorter)
+   */
+  ast::Expr* SorterFree(ast::Identifier sorter);
+
+
+  /**
+   * Call sorterIterInit(&iter, &state.sorter)
+   */
+  ast::Expr* SorterIterInit(ast::Identifier iter, ast::Identifier sorter);
+
+  /**
+   * Call sorterIterHasNext(&iter)
+   */
+  ast::Expr* SorterIterHasNext(ast::Identifier iter);
+
+  /**
+   * Call sorterIterNext(&iter)
+   */
+  ast::Expr* SorterIterNext(ast::Identifier iter);
+
+  /**
+   * Call sorterIterGet(&iter)
+   */
+  ast::Expr* SorterIterGetRow(ast::Identifier iter);
+
+  /**
+   * Call sorterIterClose(&iter)
+   */
+  ast::Expr* SorterIterClose(ast::Identifier iter);
  private:
   /**
    * Many functions take a pointer to an identifier as their argument.
@@ -512,7 +571,7 @@ class CodeGen {
 
 
   /**
-   * Sorter, JoinHT and AggHT are all initialized the same way.
+   * JoinHT and AggHT are initialized the same way.
    * The function dedups the code.
    */
   ast::Expr *InitCall(ast::Builtin builtin, ast::Identifier object, ast::Identifier struct_type);

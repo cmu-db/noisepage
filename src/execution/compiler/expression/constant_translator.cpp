@@ -1,7 +1,7 @@
 #include "execution/compiler/expression/constant_translator.h"
-#include "execution/compiler/compilation_context.h"
 #include "parser/expression/constant_value_expression.h"
 #include "type/transient_value_peeker.h"
+#include "execution/compiler/translator_factory.h"
 
 namespace tpl::compiler {
 ConstantTranslator::ConstantTranslator(const terrier::parser::AbstractExpression *expression,

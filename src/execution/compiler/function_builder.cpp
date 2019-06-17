@@ -3,7 +3,6 @@
 #include <utility>
 #include "execution/ast/ast.h"
 #include "execution/ast/ast_dump.h"
-#include "execution/compiler/code_context.h"
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/compiler_defs.h"
 
@@ -19,9 +18,9 @@ FunctionBuilder::FunctionBuilder(CodeGen *codegen, ast::Identifier fn_name,
       blocks_{fn_body_} {
 }
 
-void FunctionBuilder::StartForStmt(ast::Stmt *init, ast::Stmt *cond, ast::Stmt *next) {
+void FunctionBuilder::StartForStmt(ast::Stmt *init, ast::Expr *cond, ast::Stmt *next) {
   auto forblock = codegen_->EmptyBlock();
-  Append(codegen_->Factory()->NewForInStmt(DUMMY_POS, init, cond, next, forblock));
+  Append(codegen_->Factory()->NewForStmt(DUMMY_POS, init, cond, next, forblock));
   blocks_.emplace_back(forblock);
 }
 

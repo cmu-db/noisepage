@@ -1,7 +1,6 @@
 #pragma once
 
 #include "execution/compiler/expression/expression_translator.h"
-#include "execution/compiler/row_batch.h"
 #include "parser/expression/operator_expression.h"
 
 namespace tpl::compiler {

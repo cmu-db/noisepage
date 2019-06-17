@@ -26,9 +26,9 @@ void OutputPrinter::operator()(byte *tuples, u32 num_tuples, u32 tuple_size) {
   // Limit the number of tuples printed
   std::stringstream ss{};
   for (u32 row = 0; row < num_tuples; row++) {
+    uint32_t curr_offset = 0;
     for (u16 col = 0; col < schema_->GetColumns().size(); col++) {
       // TODO(Amadou): Figure out to print other types.
-      uint32_t curr_offset = 0;
       switch (schema_->GetColumns()[col].GetType()) {
         case TypeId::TINYINT:
         case TypeId::SMALLINT:
@@ -46,7 +46,7 @@ void OutputPrinter::operator()(byte *tuples, u32 num_tuples, u32 tuple_size) {
           if (val->is_null) {
             ss << "NULL";
           } else {
-            if (val->val != 0) {
+            if (val->val) {
               ss << "true";
             } else {
               ss << "false";

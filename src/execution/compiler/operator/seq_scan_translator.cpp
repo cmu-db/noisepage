@@ -1,13 +1,9 @@
 #include "execution/compiler/operator/seq_scan_translator.h"
 
 #include <utility>
-#include "execution/compiler/code_context.h"
 #include "execution/compiler/codegen.h"
-#include "execution/compiler/compilation_context.h"
-#include "execution/compiler/consumer_context.h"
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/pipeline.h"
-#include "execution/compiler/row_batch.h"
 #include "execution/ast/type.h"
 #include "execution/compiler/translator_factory.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
@@ -47,7 +43,7 @@ ast::Expr* SeqScanTranslator::GetChildOutput(uint32_t child_idx, uint32_t attr_i
 }
 
 void SeqScanTranslator::DeclareTVI(FunctionBuilder * builder) {
-  ast::Expr* iter_type = codegen_->TyBuiltin(ast::BuiltinType::TableVectorIterator);
+  ast::Expr* iter_type = codegen_->BuiltinType(ast::BuiltinType::Kind::TableVectorIterator);
   builder->Append(codegen_->DeclareVariable(tvi_, iter_type, nullptr));
 }
 
@@ -59,9 +55,8 @@ void SeqScanTranslator::GenTVILoop(FunctionBuilder *builder) {
   ast::Stmt *loop_init = codegen_->MakeStmt(init_call);
   // The advance call
   ast::Expr* advance_call = codegen_->TableIterAdvance(tvi_);
-  ast::Stmt* loop_cond = codegen_->MakeStmt(advance_call);
   // Make the for loop
-  builder->StartForStmt(loop_init, loop_cond, nullptr);
+  builder->StartForStmt(loop_init, advance_call, nullptr);
 }
 
 void SeqScanTranslator::GenPCILoop(FunctionBuilder *builder) {
@@ -72,12 +67,11 @@ void SeqScanTranslator::GenPCILoop(FunctionBuilder *builder) {
   // Generate for(; @pciHasNext(pci); @pciAdvance()) {...}
   // The @pciHasNext(pci) call
   ast::Expr* has_next_call = codegen_->PCIHasNext(pci_);
-  ast::Stmt* loop_cond = codegen_->MakeStmt(has_next_call);
   // The @pciAdvance(pci) call
   ast::Expr* advance_call = codegen_->PCIAdvance(pci_);
   ast::Stmt* loop_advance = codegen_->MakeStmt(advance_call);
   // Make the for loop.
-  builder->StartForStmt(nullptr, loop_cond, loop_advance);
+  builder->StartForStmt(nullptr, has_next_call, loop_advance);
 }
 
 

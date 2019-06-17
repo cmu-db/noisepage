@@ -1,6 +1,8 @@
 #include "execution/compiler/operator/hash_join_translator.h"
 #include "execution/compiler/translator_factory.h"
+#include "execution/compiler/function_builder.h"
 #include "planner/plannodes/hash_join_plan_node.h"
+
 
 namespace tpl::compiler {
 HashJoinLeftTranslator::HashJoinLeftTranslator(const terrier::planner::AbstractPlanNode *op,
@@ -26,7 +28,7 @@ void HashJoinLeftTranslator::Produce(FunctionBuilder *builder) {
 // Declare the hash table
 void HashJoinLeftTranslator::InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) {
   // join_hash_table : JoinHashTable
-  ast::Expr* ht_type = codegen_->BuiltinType(ast::BuiltinType::Kind::AggregationHashTable);
+  ast::Expr* ht_type = codegen_->BuiltinType(ast::BuiltinType::Kind::JoinHashTable);
   state_fields->emplace_back(codegen_->MakeField(join_ht_, ht_type));
 }
 
@@ -126,7 +128,6 @@ void HashJoinRightTranslator::Produce(FunctionBuilder *builder) {
   // First create the right hash_value
   GenHashValue(builder);
   // Materialize the probe tuple if necessary.
-  is_child_materializer_ = prev_translator_->IsMaterializer(&is_child_ptr_);
   if (!is_child_materializer_) {
     FillProbeRow(builder);
   }
@@ -154,8 +155,7 @@ ast::Expr* HashJoinRightTranslator::GetChildOutput(uint32_t child_idx, uint32_t 
     return left_->GetOutput(attr_idx);
   }
   // Other get the output from the probe row.
-  GetProbeValue(attr_idx);
-
+  return GetProbeValue(attr_idx);
 }
 
 ast::Expr* HashJoinRightTranslator::GetProbeValue(uint32_t idx) {
@@ -190,6 +190,7 @@ void HashJoinRightTranslator::InitializeHelperFunctions(util::RegionVector<ast::
 
   // Then make probe_row: *ProbeRow depending on whether the previous operator is a materializer.
   ast::FieldDecl * param2;
+  is_child_materializer_ = prev_translator_->IsMaterializer(&is_child_ptr_);
   if (is_child_materializer_) {
     // Use the previous tuple's name and type
     auto prev_tuple = prev_translator_->GetMaterializedTuple();
@@ -207,7 +208,9 @@ void HashJoinRightTranslator::InitializeHelperFunctions(util::RegionVector<ast::
 
   // Now create the function
   util::RegionVector<ast::FieldDecl *> params({param1, param2, param3}, codegen_->Region());
-  FunctionBuilder builder(codegen_, key_check_, std::move(params), codegen_->TyBool());
+  ast::Expr* ret_type = codegen_->BuiltinType(ast::BuiltinType::Kind::Bool);
+
+  FunctionBuilder builder(codegen_, key_check_, std::move(params), ret_type);
   // Fill up the function
   GenKeyCheck(&builder);
   // Add it to top level declarations
@@ -259,7 +262,7 @@ void HashJoinRightTranslator::FillProbeRow(FunctionBuilder * builder) {
 
 
 void HashJoinRightTranslator::DeclareIterator(FunctionBuilder * builder) {
-  ast::Expr* iter_type = codegen_->TyBuiltin(ast::BuiltinType::JoinHashTableIterator);
+  ast::Expr* iter_type = codegen_->BuiltinType(ast::BuiltinType::Kind::JoinHashTableIterator);
   builder->Append(codegen_->DeclareVariable(join_iter_, iter_type, nullptr));
 }
 
@@ -278,9 +281,8 @@ void HashJoinRightTranslator::GenProbeLoop(FunctionBuilder * builder) {
   } else {
     has_next_call = codegen_->JoinHashTableIterHasNext(join_iter_, key_check_, probe_row_, false);
   }
-  ast::Stmt* loop_cond = codegen_->MakeStmt(has_next_call);
   // Make the loop
-  builder->StartForStmt(loop_init, loop_cond, nullptr);
+  builder->StartForStmt(loop_init, has_next_call, nullptr);
 }
 
 // Call @joinHTIterCLose(&join_iter)

@@ -1,6 +1,5 @@
 #include "execution/compiler/translator_factory.h"
 
-#include "execution/compiler/compilation_context.h"
 #include "execution/compiler/expression/arithmetic_translator.h"
 #include "execution/compiler/expression/comparison_translator.h"
 #include "execution/compiler/expression/conjunction_translator.h"
@@ -12,6 +11,7 @@
 #include "execution/compiler/operator/seq_scan_translator.h"
 #include "execution/compiler/operator/aggregate_translator.h"
 #include "execution/compiler/operator/hash_join_translator.h"
+#include "execution/compiler/operator/sort_translator.h"
 #include "execution/compiler/pipeline.h"
 #include "execution/util/macros.h"
 
@@ -39,7 +39,7 @@ OperatorTranslator *TranslatorFactory::CreateBottomTranslator(const terrier::pla
     case terrier::planner::PlanNodeType::AGGREGATE:
       return new AggregateBottomTranslator(op, codegen);
     case terrier::planner::PlanNodeType::ORDERBY:
-      return nullptr;
+      return new SortBottomTranslator(op, codegen);
     default:
       UNREACHABLE("Not a pipeline boundary!");
   }
@@ -52,7 +52,7 @@ OperatorTranslator *TranslatorFactory::CreateTopTranslator(const terrier::planne
     case terrier::planner::PlanNodeType::AGGREGATE:
       return new AggregateTopTranslator(op, codegen, bottom);
     case terrier::planner::PlanNodeType::ORDERBY:
-      return nullptr;
+      return new SortTopTranslator(op, codegen, bottom);
     default:
       UNREACHABLE("Not a pipeline boundary!");
   }

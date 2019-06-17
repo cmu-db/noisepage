@@ -4,7 +4,6 @@
 #include <string>
 #include <utility>
 #include "execution/ast/context.h"
-#include "execution/compiler/code_context.h"
 #include "execution/compiler/function_builder.h"
 #include "execution/exec/output.h"
 #include "execution/compiler/operator/operator_translator.h"

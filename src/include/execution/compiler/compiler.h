@@ -3,7 +3,6 @@
 #include "execution/util/common.h"
 #include "execution/util/region.h"
 #include "execution/compiler/query.h"
-#include "execution/compiler/query_state.h"
 #include "parser/expression/abstract_expression.h"
 #include "planner/plannodes/abstract_plan_node.h"
 #include "execution/compiler/pipeline.h"
@@ -26,7 +25,9 @@ class Compiler {
    */
   explicit Compiler(Query *query);
 
-
+  /**
+   * Convert the plan to AST and type check it
+   */
   void Compile();
 
  private:

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "execution/compiler/operator/operator_translator.h"
+#include "planner/plannodes/aggregate_plan_node.h"
 
 namespace tpl::compiler {
 
@@ -23,7 +24,7 @@ class AggregateBottomTranslator : public OperatorTranslator {
   // Declare the hash table
   void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override;
 
-  // Declare payload and decls struct
+  // Declare payload and probe structs
   void InitializeStructs(util::RegionVector<ast::Decl *> *decls) override;
 
   // Create the key check function.

@@ -80,6 +80,7 @@ struct JoinRow4 {
   l_discount : Integer
 }
 
+
 // Row of supply table
 struct SupplyRow {
   s_suppkey: Integer
@@ -104,7 +105,7 @@ struct SorterRow {
   revenue : Integer
 }
 
-fun checkAggKeyFn(payload: *AggPayload, row: *JoinRow5) -> bool {
+fun checkAggKeyFn(payload: *AggPayload, row: *AggValues) -> bool {
   if (payload.n_name != row.n_name) {
     return false
   }
@@ -112,7 +113,7 @@ fun checkAggKeyFn(payload: *AggPayload, row: *JoinRow5) -> bool {
 }
 
 fun checkJoinKey1(execCtx: *ExecutionContext, probe: *NationRow, build: *RegionRow) -> bool {
-  if (probe.n_nationkey != build.r_nationkey) {
+  if (probe.n_regionkey != build.r_regionkey) {
     return false
   }
   return true
@@ -140,7 +141,7 @@ fun checkJoinKey4(execCtx: *ExecutionContext, probe: *LineitemRow, build: *JoinR
 }
 
 fun checkJoinKey5(execCtx: *ExecutionContext, probe: *SupplyRow, build: *JoinRow4) -> bool {
-  if (probe.n_nationkey != build.n_nationkey) {
+  if (probe.s_nationkey != build.n_nationkey) {
     return false
   }
   if (probe.s_suppkey != build.l_suppkey) {
@@ -150,7 +151,7 @@ fun checkJoinKey5(execCtx: *ExecutionContext, probe: *SupplyRow, build: *JoinRow
 }
 
 fun checkAggKey(payload: *AggPayload, values: *AggValues) -> bool {
-  if (payload.n_name != value.n_name) {
+  if (payload.n_name != values.n_name) {
     return false
   }
   return true
@@ -181,6 +182,16 @@ fun setUpState(execCtx: *ExecutionContext, state: *State) -> nil {
   // Initialize Sorter
   @sorterInit(&state.sorter, @execCtxGetMem(execCtx), sorterCompare, @sizeOf(SorterRow))
   state.count = 0
+}
+
+fun teardownState(execCtx: *ExecutionContext, state: *State) -> nil {
+  @joinHTFree(&state.join_table1)
+  @joinHTFree(&state.join_table2)
+  @joinHTFree(&state.join_table3)
+  @joinHTFree(&state.join_table4)
+  @joinHTFree(&state.join_table5)
+  @aggHTFree(&state.agg_table)
+  @sorterFree(&state.sorter)
 }
 
 // Scan Region table and build HT1
@@ -291,16 +302,16 @@ fun pipeline4(execCtx: *ExecutionContext, state: *State) -> nil {
       if (orders_row.o_orderdate < 400) {
 
         // Step 2: Probe HT3
-        var hash_val = @hash(orders_row.c_nationkey)
+        var hash_val = @hash(orders_row.o_custkey)
         var hti: JoinHashTableIterator
         for (@joinHTIterInit(&hti, &state.join_table3, hash_val); @joinHTIterHasNext(&hti, checkJoinKey3, execCtx, &orders_row);) {
           var join_row2 = @ptrCast(*JoinRow2, @joinHTIterGetRow(&hti))
 
           // Step 3: Insert into join table 4
-          var hash_val4 = @hash(join_row3.o_orderkey)
+          var hash_val4 = @hash(orders_row.o_orderkey)
           var build_row = @ptrCast(*JoinRow3, @joinHTInsert(&state.join_table4, hash_val))
-          build_row.n_nationkey = nation_row.n_nationkey
-          build_row.n_name = nation_row.n_name
+          build_row.n_nationkey = join_row2.n_nationkey
+          build_row.n_name = join_row2.n_name
           build_row.o_orderkey = orders_row.o_orderkey
         }
       }
@@ -354,7 +365,7 @@ fun pipeline6(execCtx: *ExecutionContext, state: *State) -> nil {
         var join_row3 = @ptrCast(*JoinRow3, @joinHTIterGetRow(&hti))
 
         // Step 3: Probe HT5
-        var hash_val2 = @hash(join_row4.l_suppkey)
+        var hash_val2 = @hash(lineitem_row.l_suppkey)
         var hti2: JoinHashTableIterator
         var join_row4 : JoinRow4 // Materialize the right pipeline
         join_row4.n_name = join_row3.n_name
@@ -380,8 +391,6 @@ fun pipeline6(execCtx: *ExecutionContext, state: *State) -> nil {
       }
     }
   }
-  // Step 5: Build Agg HT
-  @aggHTBuild(&state.agg_table)
   @tableIterClose(&tvi)
 }
 
@@ -402,7 +411,7 @@ fun pipeline6(execCtx: *ExecutionContext, state: *State) -> nil {
 }
 
 // Scan sorter, output
-fun pipeline6(execCtx: *ExecutionContext, state: *State) -> nil {
+fun pipeline7(execCtx: *ExecutionContext, state: *State) -> nil {
   var sort_iter: SorterIterator
   var out: *OutputStruct
   for (@sorterIterInit(&sort_iter, &state.sorter); @sorterIterHasNext(&sort_iter); @sorterIterNext(&sort_iter)) {

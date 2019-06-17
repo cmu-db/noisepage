@@ -43,9 +43,9 @@ class FunctionBuilder {
    * @param stmt stmt to append
    */
   void AppendAfter(ast::Stmt *stmt) {
-    auto iter = blocks_.back();
-    --iter;
-    iter->AppendStmt(stmt);
+    auto iter = blocks_.rbegin();
+    iter++;
+    (*iter)->AppendStmt(stmt);
   }
 
   /**
@@ -65,7 +65,7 @@ class FunctionBuilder {
    * @param cond
    * @param next
    */
-  void StartForStmt(ast::Stmt *init, ast::Stmt *cond, ast::Stmt *next);
+  void StartForStmt(ast::Stmt *init, ast::Expr *cond, ast::Stmt *next);
 
   /**
    * @return the code generator used

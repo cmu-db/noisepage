@@ -1,7 +1,7 @@
 #include "execution/compiler/expression/tuple_value_translator.h"
-#include "execution/compiler/code_context.h"
-#include "execution/compiler/compilation_context.h"
 #include "parser/expression/tuple_value_expression.h"
+#include "execution/compiler/translator_factory.h"
+
 
 namespace tpl::compiler {
 TupleValueTranslator::TupleValueTranslator(const terrier::parser::AbstractExpression *expression,
