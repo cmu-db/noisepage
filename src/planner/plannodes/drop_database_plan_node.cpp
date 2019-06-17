@@ -17,7 +17,7 @@ common::hash_t DropDatabasePlanNode::Hash() const {
 }
 
 bool DropDatabasePlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
+  if (!AbstractPlanNode::operator==(rhs)) return false;
 
   auto &other = dynamic_cast<const DropDatabasePlanNode &>(rhs);
 
@@ -27,7 +27,7 @@ bool DropDatabasePlanNode::operator==(const AbstractPlanNode &rhs) const {
   // If exists
   if (if_exists_ != other.if_exists_) return false;
 
-  return AbstractPlanNode::operator==(rhs);
+  return true;
 }
 
 nlohmann::json DropDatabasePlanNode::ToJson() const {

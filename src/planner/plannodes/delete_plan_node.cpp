@@ -25,7 +25,7 @@ common::hash_t DeletePlanNode::Hash() const {
 }
 
 bool DeletePlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
+  if (!AbstractPlanNode::operator==(rhs)) return false;
 
   auto &other = dynamic_cast<const DeletePlanNode &>(rhs);
 
@@ -41,7 +41,7 @@ bool DeletePlanNode::operator==(const AbstractPlanNode &rhs) const {
   // Delete condition
   if (*GetDeleteCondition() != *other.GetDeleteCondition()) return false;
 
-  return AbstractPlanNode::operator==(rhs);
+  return true;
 }
 
 nlohmann::json DeletePlanNode::ToJson() const {

@@ -44,7 +44,7 @@ common::hash_t CreateTriggerPlanNode::Hash() const {
 }
 
 bool CreateTriggerPlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
+  if (!AbstractPlanNode::operator==(rhs)) return false;
 
   auto &other = dynamic_cast<const CreateTriggerPlanNode &>(rhs);
 
@@ -104,7 +104,7 @@ bool CreateTriggerPlanNode::operator==(const AbstractPlanNode &rhs) const {
   // Hash trigger_type
   if (GetTriggerType() != other.GetTriggerType()) return false;
 
-  return AbstractPlanNode::operator==(rhs);
+  return true;
 }
 
 nlohmann::json CreateTriggerPlanNode::ToJson() const {

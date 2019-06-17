@@ -14,14 +14,14 @@ common::hash_t SetOpPlanNode::Hash() const {
 }
 
 bool SetOpPlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
+  if (!AbstractPlanNode::operator==(rhs)) return false;
 
   auto &other = dynamic_cast<const SetOpPlanNode &>(rhs);
 
   // Set op
   if (set_op_ != other.set_op_) return false;
 
-  return AbstractPlanNode::operator==(rhs);
+  return true;
 }
 
 nlohmann::json SetOpPlanNode::ToJson() const {

@@ -25,7 +25,7 @@ common::hash_t UpdatePlanNode::Hash() const {
 }
 
 bool UpdatePlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
+  if (!AbstractPlanNode::operator==(rhs)) return false;
 
   auto &other = static_cast<const UpdatePlanNode &>(rhs);
 
@@ -41,7 +41,7 @@ bool UpdatePlanNode::operator==(const AbstractPlanNode &rhs) const {
   // Update primary key
   if (update_primary_key_ != other.update_primary_key_) return false;
 
-  return AbstractPlanNode::operator==(rhs);
+  return true;
 }
 
 nlohmann::json UpdatePlanNode::ToJson() const {

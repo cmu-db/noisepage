@@ -24,7 +24,7 @@ common::hash_t DropTriggerPlanNode::Hash() const {
 }
 
 bool DropTriggerPlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
+  if (!AbstractPlanNode::operator==(rhs)) return false;
 
   auto &other = dynamic_cast<const DropTriggerPlanNode &>(rhs);
 
@@ -40,7 +40,7 @@ bool DropTriggerPlanNode::operator==(const AbstractPlanNode &rhs) const {
   // If exists
   if (IsIfExists() != other.IsIfExists()) return false;
 
-  return AbstractPlanNode::operator==(rhs);
+  return true;
 }
 
 nlohmann::json DropTriggerPlanNode::ToJson() const {

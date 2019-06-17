@@ -16,7 +16,7 @@ common::hash_t HashPlanNode::Hash() const {
 }
 
 bool HashPlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
+  if (!AbstractPlanNode::operator==(rhs)) return false;
 
   const auto &other = static_cast<const HashPlanNode &>(rhs);
 
@@ -26,7 +26,7 @@ bool HashPlanNode::operator==(const AbstractPlanNode &rhs) const {
     if (*hash_keys_[i] != *other.hash_keys_[i]) return false;
   }
 
-  return AbstractPlanNode::operator==(rhs);
+  return true;
 }
 
 nlohmann::json HashPlanNode::ToJson() const {

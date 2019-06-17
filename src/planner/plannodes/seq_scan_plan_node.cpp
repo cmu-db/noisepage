@@ -12,7 +12,7 @@ common::hash_t SeqScanPlanNode::Hash() const {
 }
 
 bool SeqScanPlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
+  if (!AbstractPlanNode::operator==(rhs)) return false;
 
   // Since this node type does not have any internal members of its own,
   // there is nothing for us to do here!

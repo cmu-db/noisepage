@@ -20,7 +20,7 @@ bool IndexScanPlanNode::operator==(const AbstractPlanNode &rhs) const {
   // Index Oid
   if (index_oid_ != other.index_oid_) return false;
 
-  return AbstractPlanNode::operator==(rhs);
+  return true;
 }
 
 nlohmann::json IndexScanPlanNode::ToJson() const {

@@ -24,27 +24,30 @@ common::hash_t AggregatePlanNode::Hash() const {
 }
 
 bool AggregatePlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
+  if (!AbstractPlanNode::operator==(rhs)) return false;
 
   auto &other = static_cast<const AggregatePlanNode &>(rhs);
 
-  auto &pred = GetHavingClausePredicate();
-  auto &other_pred = other.GetHavingClausePredicate();
-  if ((pred == nullptr && other_pred != nullptr) || (pred != nullptr && other_pred == nullptr)) return false;
-  if (pred != nullptr && *pred != *other_pred) return false;
+  // Having Clause Predicate
+  if ((having_clause_predicate_ == nullptr && other.having_clause_predicate_ != nullptr) ||
+      (having_clause_predicate_ != nullptr && other.having_clause_predicate_ == nullptr))
+    return false;
+  if (having_clause_predicate_ != nullptr && *having_clause_predicate_ != *having_clause_predicate_) return false;
 
+  // Aggregation Terms
   if (aggregate_terms_.size() != other.GetAggregateTerms().size()) return false;
   for (size_t i = 0; i < aggregate_terms_.size(); i++) {
     auto &left_term = aggregate_terms_[i];
-    auto &right_term = other.GetAggregateTerms()[i];
+    auto &right_term = other.aggregate_terms_[i];
     if ((left_term == nullptr && right_term != nullptr) || (left_term != nullptr && right_term == nullptr))
       return false;
     if (left_term != nullptr && *left_term != *right_term) return false;
   }
 
-  if (GetAggregateStrategyType() != other.GetAggregateStrategyType()) return false;
+  // Aggregate Strategy
+  if (aggregate_strategy_ != other.aggregate_strategy_) return false;
 
-  return (AbstractPlanNode::operator==(rhs));
+  return true;
 }
 
 nlohmann::json AggregatePlanNode::ToJson() const {

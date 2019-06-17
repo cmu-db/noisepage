@@ -30,8 +30,23 @@ bool CSVScanPlanNode::operator==(const AbstractPlanNode &rhs) const {
   if (!AbstractScanPlanNode::operator==(rhs)) return false;
 
   const auto &other = static_cast<const CSVScanPlanNode &>(rhs);
-  return file_name_ == other.file_name_ && delimiter_ == other.delimiter_ && quote_ == other.quote_ &&
-         escape_ == other.escape_ && null_string_ == other.null_string_;
+
+  // Filename
+  if (file_name_ != other.file_name_) return false;
+
+  // Delimiter
+  if (delimiter_ != other.delimiter_) return false;
+
+  // Quote Char
+  if (quote_ != other.quote_) return false;
+
+  // Escape Char
+  if (escape_ != other.escape_) return false;
+
+  // Null String
+  if (null_string_ != other.null_string_) return false;
+
+  return true;
 }
 
 nlohmann::json CSVScanPlanNode::ToJson() const {

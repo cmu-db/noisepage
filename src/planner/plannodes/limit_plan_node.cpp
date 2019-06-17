@@ -17,7 +17,7 @@ common::hash_t LimitPlanNode::Hash() const {
 }
 
 bool LimitPlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
+  if (!AbstractPlanNode::operator==(rhs)) return false;
 
   auto &other = static_cast<const LimitPlanNode &>(rhs);
 
@@ -27,7 +27,7 @@ bool LimitPlanNode::operator==(const AbstractPlanNode &rhs) const {
   // Offset
   if (offset_ != other.offset_) return false;
 
-  return AbstractPlanNode::operator==(rhs);
+  return true;
 }
 
 nlohmann::json LimitPlanNode::ToJson() const {

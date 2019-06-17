@@ -24,7 +24,7 @@ common::hash_t OrderByPlanNode::Hash() const {
 }
 
 bool OrderByPlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
+  if (!AbstractPlanNode::operator==(rhs)) return false;
 
   auto &other = static_cast<const OrderByPlanNode &>(rhs);
 
@@ -41,7 +41,7 @@ bool OrderByPlanNode::operator==(const AbstractPlanNode &rhs) const {
     if (offset_ != other.offset_) return false;
   }
 
-  return AbstractPlanNode::operator==(rhs);
+  return true;
 }
 
 nlohmann::json OrderByPlanNode::ToJson() const {

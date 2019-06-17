@@ -14,7 +14,7 @@ common::hash_t ResultPlanNode::Hash() const {
 }
 
 bool ResultPlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
+  if (!AbstractPlanNode::operator==(rhs)) return false;
 
   auto &other = dynamic_cast<const ResultPlanNode &>(rhs);
 
@@ -22,7 +22,7 @@ bool ResultPlanNode::operator==(const AbstractPlanNode &rhs) const {
   if ((expr_ != nullptr && other.expr_ == nullptr) || (expr_ == nullptr && other.expr_ != nullptr)) return false;
   if (expr_ != nullptr && *expr_ != *other.expr_) return false;
 
-  return AbstractPlanNode::operator==(rhs);
+  return true;
 }
 
 nlohmann::json ResultPlanNode::ToJson() const {

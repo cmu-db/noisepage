@@ -12,13 +12,13 @@ common::hash_t ProjectionPlanNode::Hash() const {
 }
 
 bool ProjectionPlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
+  if (!AbstractPlanNode::operator==(rhs)) return false;
 
   // Since this node type does not have any internal members of its own,
   // there is nothing for us to do here!
   // auto &other = static_cast<const ProjectionPlanNode &>(rhs);
 
-  return AbstractPlanNode::operator==(rhs);
+  return true;
 }
 
 nlohmann::json ProjectionPlanNode::ToJson() const {

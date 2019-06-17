@@ -42,7 +42,7 @@ common::hash_t CreateFunctionPlanNode::Hash() const {
 }
 
 bool CreateFunctionPlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
+  if (!AbstractPlanNode::operator==(rhs)) return false;
 
   auto &other = dynamic_cast<const CreateFunctionPlanNode &>(rhs);
 
@@ -76,7 +76,7 @@ bool CreateFunctionPlanNode::operator==(const AbstractPlanNode &rhs) const {
   // Param count
   if (param_count_ != other.param_count_) return false;
 
-  return AbstractPlanNode::operator==(rhs);
+  return true;
 }
 
 nlohmann::json CreateFunctionPlanNode::ToJson() const {

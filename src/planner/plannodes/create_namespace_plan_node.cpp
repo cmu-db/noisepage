@@ -20,7 +20,7 @@ common::hash_t CreateNamespacePlanNode::Hash() const {
 }
 
 bool CreateNamespacePlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
+  if (!AbstractPlanNode::operator==(rhs)) return false;
 
   auto &other = dynamic_cast<const CreateNamespacePlanNode &>(rhs);
 
@@ -30,7 +30,7 @@ bool CreateNamespacePlanNode::operator==(const AbstractPlanNode &rhs) const {
   // Schema name
   if (GetNamespaceName() != other.GetNamespaceName()) return false;
 
-  return AbstractPlanNode::operator==(rhs);
+  return true;
 }
 
 nlohmann::json CreateNamespacePlanNode::ToJson() const {

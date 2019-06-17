@@ -23,7 +23,7 @@ common::hash_t ExportExternalFilePlanNode::Hash() const {
 }
 
 bool ExportExternalFilePlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
+  if (!AbstractPlanNode::operator==(rhs)) return false;
 
   const auto &other = static_cast<const ExportExternalFilePlanNode &>(rhs);
 
@@ -39,7 +39,7 @@ bool ExportExternalFilePlanNode::operator==(const AbstractPlanNode &rhs) const {
   // Escape Char
   if (escape_ != other.escape_) return false;
 
-  return (AbstractPlanNode::operator==(rhs));
+  return true;
 }
 
 nlohmann::json ExportExternalFilePlanNode::ToJson() const {

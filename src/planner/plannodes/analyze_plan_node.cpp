@@ -26,7 +26,7 @@ common::hash_t AnalyzePlanNode::Hash() const {
 }
 
 bool AnalyzePlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
+  if (!AbstractPlanNode::operator==(rhs)) return false;
 
   auto &other = dynamic_cast<const AnalyzePlanNode &>(rhs);
 
@@ -42,7 +42,7 @@ bool AnalyzePlanNode::operator==(const AbstractPlanNode &rhs) const {
   // Column Oids
   if (column_oids_ != other.column_oids_) return false;
 
-  return AbstractPlanNode::operator==(rhs);
+  return true;
 }
 
 nlohmann::json AnalyzePlanNode::ToJson() const {

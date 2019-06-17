@@ -37,7 +37,7 @@ common::hash_t CreateIndexPlanNode::Hash() const {
 }
 
 bool CreateIndexPlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
+  if (!AbstractPlanNode::operator==(rhs)) return false;
 
   auto &other = dynamic_cast<const CreateIndexPlanNode &>(rhs);
 
@@ -65,7 +65,7 @@ bool CreateIndexPlanNode::operator==(const AbstractPlanNode &rhs) const {
   // Index name
   if (index_name_ != other.index_name_) return false;
 
-  return AbstractPlanNode::operator==(rhs);
+  return true;
 }
 
 nlohmann::json CreateIndexPlanNode::ToJson() const {

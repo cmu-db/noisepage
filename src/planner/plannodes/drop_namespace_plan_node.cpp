@@ -20,7 +20,7 @@ common::hash_t DropNamespacePlanNode::Hash() const {
 }
 
 bool DropNamespacePlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
+  if (!AbstractPlanNode::operator==(rhs)) return false;
 
   auto &other = dynamic_cast<const DropNamespacePlanNode &>(rhs);
 
@@ -33,7 +33,7 @@ bool DropNamespacePlanNode::operator==(const AbstractPlanNode &rhs) const {
   // If exists
   if (if_exists_ != other.if_exists_) return false;
 
-  return AbstractPlanNode::operator==(rhs);
+  return true;
 }
 
 nlohmann::json DropNamespacePlanNode::ToJson() const {

@@ -48,7 +48,7 @@ common::hash_t CreateTablePlanNode::Hash() const {
 }
 
 bool CreateTablePlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
+  if (!AbstractPlanNode::operator==(rhs)) return false;
 
   auto &other = dynamic_cast<const CreateTablePlanNode &>(rhs);
 
@@ -78,7 +78,7 @@ bool CreateTablePlanNode::operator==(const AbstractPlanNode &rhs) const {
   // Check constraints
   if (con_checks_ != other.con_checks_) return false;
 
-  return AbstractPlanNode::operator==(rhs);
+  return true;
 }
 
 nlohmann::json CreateTablePlanNode::ToJson() const {

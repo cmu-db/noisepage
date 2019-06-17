@@ -38,7 +38,8 @@ bool AbstractScanPlanNode::operator==(const AbstractPlanNode &rhs) const {
   if (namespace_oid_ != other.namespace_oid_) return false;
 
   // Predicate
-  if ((scan_predicate_ == nullptr && other.scan_predicate_ != nullptr) || (scan_predicate_ != nullptr && other.scan_predicate_ == nullptr)) {
+  if ((scan_predicate_ == nullptr && other.scan_predicate_ != nullptr) ||
+      (scan_predicate_ != nullptr && other.scan_predicate_ == nullptr)) {
     return false;
   }
   if (scan_predicate_ != nullptr && *scan_predicate_ != *other.scan_predicate_) {

@@ -24,7 +24,7 @@ common::hash_t CreateViewPlanNode::Hash() const {
 }
 
 bool CreateViewPlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
+  if (!AbstractPlanNode::operator==(rhs)) return false;
 
   auto &other = dynamic_cast<const CreateViewPlanNode &>(rhs);
 
@@ -39,7 +39,7 @@ bool CreateViewPlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   // TODO(Gus,Wen) missing == operator for select statement
 
-  return AbstractPlanNode::operator==(rhs);
+  return true;
 }
 
 nlohmann::json CreateViewPlanNode::ToJson() const {
