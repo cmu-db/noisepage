@@ -4,6 +4,7 @@
 #include <memory>
 #include <utility>
 #include <vector>
+#include <common/sql_node_visitor.h>
 #include "common/hash_util.h"
 #include "common/json.h"
 #include "parser/expression_defs.h"
@@ -15,6 +16,7 @@ namespace terrier::parser {
  * An abstract parser expression. Dumb and immutable.
  */
 class AbstractExpression {
+ //friend class BindNodeVisitor;
  protected:
   /**
    * Instantiates a new abstract expression. Because these are logical expressions, everything should be known
@@ -112,6 +114,43 @@ class AbstractExpression {
     return children_[index];
   }
 
+  const std::string &GetExpressionName() const { return expr_name_; }
+
+  /**
+   * @return alias of this abstract expression
+   */
+  const std::string &GetAlias() const { return alias_; }
+
+  /**
+   * Set the alias of the current expression
+   *
+   * @param alias The alias of this abstract expression
+   */
+  void SetAlias(std::string alias) { alias_ = alias; }
+
+  /**
+   * Deduce the expression type of the current expression.
+   */
+  virtual void DeduceExpressionType() {}
+
+  virtual void Accept(SqlNodeVisitor *) = 0;
+
+  virtual void AcceptChildren(SqlNodeVisitor *v) {
+    for (auto &child : children_) {
+      child->Accept(v);
+    }
+  }
+
+  /**
+   * @return The sub-query depth level
+   */
+  int GetDepth() const { return depth_; }
+
+  /**
+   * @return The sub-query flag that tells if the current expression contain a sub-query
+   */
+  bool HasSubquery() const { return has_subquery_; }
+
   /**
    * Derived expressions should call this base method
    * @return expression serialized to json
@@ -125,9 +164,84 @@ class AbstractExpression {
   virtual void FromJson(const nlohmann::json &j);
 
  private:
-  ExpressionType expression_type_;                             // type of current expression
-  type::TypeId return_value_type_;                             // type of return value
-  std::vector<std::shared_ptr<AbstractExpression>> children_;  // list of children
+
+  /**
+   * @brief Derive if there's sub-query in the current expression
+   *
+   * @return If there is sub-query, then return true, otherwise return false
+   */
+
+  virtual bool DeriveSubqueryFlag() {
+    if (expression_type_ == ExpressionType::ROW_SUBQUERY || expression_type_ == ExpressionType::SELECT_SUBQUERY) {
+      has_subquery_ = true;
+    } else {
+      for (auto &child : children_) {
+        if (child->DeriveSubqueryFlag()) {
+          has_subquery_ = true;
+          break;
+        }
+      }
+    }
+    return has_subquery_;
+  }
+
+  /**
+   * @brief Derive the sub-query depth level of the current expression
+   *
+   * @return the derived depth
+   */
+  virtual int DeriveDepth() {
+    if (depth_ < 0) {
+      for (auto &child : children_) {
+        auto child_depth = child->DeriveDepth();
+        if (child_depth >= 0 && (depth_ == -1 || child_depth < depth_))
+          depth_ = child_depth;
+      }
+    }
+    return depth_;
+  }
+
+  /**
+   * Walks the expression trees and generate the correct expression name
+   */
+  virtual void DeduceExpressionName();
+
+  /**
+   * Set the sub-query depth level of the current expression
+   *
+   * @param depth The depth to set
+   */
+  void SetDepth(int depth) { depth_ = depth; }
+
+  /**
+   * Type of the current expression
+   */
+  ExpressionType expression_type_;
+  /**
+   * Type of the return value
+   */
+  type::TypeId return_value_type_;
+  /**
+   * List fo children expressions
+   */
+  std::vector<std::shared_ptr<AbstractExpression>> children_;
+  /**
+   * The current sub-query depth level in the current expression, -1
+   *  stands for not derived
+   */
+  int depth_ = -1;
+  /**
+   * The flag indicating if there's sub-query in the current expression
+   */
+  bool has_subquery_ = false;
+  /**
+   * Name of the current expression
+   */
+  std::string expr_name_;
+  /**
+   * Alias of the current expression
+   */
+  std::string alias_;
 };
 
 DEFINE_JSON_DECLARATIONS(AbstractExpression);
