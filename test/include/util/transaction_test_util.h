@@ -22,7 +22,100 @@ using VersionedSnapshots = std::map<transaction::timestamp_t, TableSnapshot>;
 // {committed, aborted}
 using SimulationResult = std::pair<std::vector<RandomWorkloadTransaction *>, std::vector<RandomWorkloadTransaction *>>;
 
-struct LargeTransactionTestConfiguration {
+class LargeTransactionTestConfiguration {
+ public:
+  class Builder {
+   public:
+    Builder &SetNumIterations(uint32_t num_iterations) {
+      num_iterations_ = num_iterations;
+      return *this;
+    }
+
+    Builder &SetNumTxns(uint32_t num_txns) {
+      num_txns_ = num_txns;
+      return *this;
+    }
+
+    Builder &SetBatchSize(uint32_t batch_size) {
+      batch_size_ = batch_size;
+      return *this;
+    }
+
+    Builder &SetNumConcurrentTxns(uint32_t num_concurrent_txns) {
+      num_concurrent_txns_ = num_concurrent_txns;
+      return *this;
+    }
+
+    Builder &SetUpdateSelectRatio(std::vector<double> update_select_ratio) {
+      update_select_ratio_ = std::move(update_select_ratio);
+      return *this;
+    }
+
+    Builder &SetTxnLength(uint32_t txn_length) {
+      txn_length_ = txn_length;
+      return *this;
+    }
+
+    Builder &SetInitialTableSize(uint32_t initial_table_size) {
+      initial_table_size_ = initial_table_size;
+      return *this;
+    }
+
+    Builder &SetMaxColumns(uint16_t max_columns) {
+      max_columns_ = max_columns;
+      return *this;
+    }
+
+    Builder &SetVarlenAllowed(bool allowed) {
+      varlen_allowed_ = allowed;
+      return *this;
+    }
+
+    LargeTransactionTestConfiguration Build() {
+      return {num_iterations_, num_txns_,           batch_size_,  num_concurrent_txns_, std::move(update_select_ratio_),
+              txn_length_,     initial_table_size_, max_columns_, varlen_allowed_};
+    }
+
+   private:
+    uint32_t num_iterations_ = 0;
+    uint32_t num_txns_ = 0;
+    uint32_t batch_size_ = 0;
+    uint32_t num_concurrent_txns_ = 0;
+    std::vector<double> update_select_ratio_;
+    uint32_t txn_length_ = 0;
+    uint32_t initial_table_size_ = 0;
+    uint16_t max_columns_ = 0;
+    bool varlen_allowed_ = false;
+  };
+
+  const uint32_t NumIterations() const { return num_iterations_; }
+  const uint32_t NumTxns() const { return num_txns_; }
+  const uint32_t BatchSize() const { return batch_size_; }
+  const uint32_t NumConcurrentTxns() const { return num_concurrent_txns_; }
+  const std::vector<double> &UpdateSelectRatio() const { return update_select_ratio_; }
+  const uint32_t TxnLength() const { return txn_length_; }
+  const uint32_t InitialTableSize() const { return initial_table_size_; }
+  const uint16_t MaxColumns() const { return max_columns_; }
+  bool VarlenAllowed() const { return varlen_allowed_; }
+
+  static LargeTransactionTestConfiguration Empty() { return Builder().Build(); }
+
+ private:
+  LargeTransactionTestConfiguration(const uint32_t num_iterations, const uint32_t num_txns, const uint32_t batch_size,
+                                    const uint32_t num_concurrent_txns, std::vector<double> update_select_ratio,
+                                    const uint32_t txn_length, const uint32_t initial_table_size,
+                                    const uint16_t max_columns, bool varlen_allowed)
+      : num_iterations_(num_iterations),
+        num_txns_(num_txns),
+        batch_size_(batch_size),
+        num_concurrent_txns_(num_concurrent_txns),
+        update_select_ratio_(std::move(update_select_ratio)),
+        txn_length_(txn_length),
+        initial_table_size_(initial_table_size),
+        max_columns_(max_columns),
+        varlen_allowed_(varlen_allowed) {}
+
+ private:
   const uint32_t num_iterations_;
   const uint32_t num_txns_;
   const uint32_t batch_size_;
@@ -33,6 +126,7 @@ struct LargeTransactionTestConfiguration {
   const uint16_t max_columns_;
   bool varlen_allowed_;
 };
+
 /**
  * A RandomWorkloadTransaction class provides a simple interface to simulate a transaction running in the system.
  *
@@ -112,34 +206,26 @@ class RandomWorkloadTransaction {
  */
 class LargeTransactionTestObject {
  public:
-
   /**
- * Initializes a test object with the given configuration
- * @param max_columns the max number of columns in the generated test table
- * @param initial_table_size number of tuples the table should have
- * @param txn_length length of every simulated transaction, in number of operations (select or update)
- * @param update_select_ratio the ratio of updates vs. select in the generated transaction
- *                             (e.g. {0.3, 0.7} will be 30% updates and 70% reads)
- * @param block_store the block store to use for the underlying data table
- * @param buffer_pool the buffer pool to use for simulated transactions
- * @param generator the random generator to use for the test
- * @param gc_on whether gc is enabled
- * @param bookkeeping whether correctness check is enabled
- */
-  LargeTransactionTestObject(LargeTransactionTestConfiguration config,
-                             storage::BlockStore *block_store,
-                             transaction::TransactionManager *txn_manager,
-                             std::default_random_engine *generator,
+   * Initializes a test object with the given configuration
+   * @param max_columns the max number of columns in the generated test table
+   * @param initial_table_size number of tuples the table should have
+   * @param txn_length length of every simulated transaction, in number of operations (select or update)
+   * @param update_select_ratio the ratio of updates vs. select in the generated transaction
+   *                             (e.g. {0.3, 0.7} will be 30% updates and 70% reads)
+   * @param block_store the block store to use for the underlying data table
+   * @param buffer_pool the buffer pool to use for simulated transactions
+   * @param generator the random generator to use for the test
+   * @param gc_on whether gc is enabled
+   * @param bookkeeping whether correctness check is enabled
+   */
+  LargeTransactionTestObject(LargeTransactionTestConfiguration config, storage::BlockStore *block_store,
+                             transaction::TransactionManager *txn_manager, std::default_random_engine *generator,
                              storage::LogManager *log_manager);
   /**
    * Destructs a LargeTransactionTestObject
    */
   ~LargeTransactionTestObject();
-
-  /**
-   * @return the transaction manager used by this test
-   */
-  transaction::TransactionManager *GetTxnManager() { return txn_manager_; }
 
   /**
    * Simulate an oltp workload, running the specified number of total transactions while allowing the specified number

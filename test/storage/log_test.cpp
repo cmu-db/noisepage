@@ -1,5 +1,7 @@
 #include <unordered_map>
 #include <vector>
+#include "di/di_help.h"
+#include "di/injectors.h"
 #include "gtest/gtest.h"
 #include "main/db_main.h"
 #include "settings/settings_callbacks.h"
@@ -14,8 +16,6 @@
 #include "util/storage_test_util.h"
 #include "util/test_harness.h"
 #include "util/transaction_test_util.h"
-#include "di/di_help.h"
-#include "di/injectors.h"
 
 #define __SETTING_GFLAGS_DEFINE__      // NOLINT
 #include "settings/settings_common.h"  // NOLINT
@@ -162,15 +162,15 @@ class WriteAheadLoggingTests : public TerrierTest {
 // then reads the logged out content to make sure they are correct
 // NOLINTNEXTLINE
 TEST_F(WriteAheadLoggingTests, LargeLogTest) {
-  LargeTransactionTestConfiguration config = {
-      .num_txns_ = 100,
-      .num_concurrent_txns_ = 4,
-      .update_select_ratio_ = {0.5, 0.5},
-      .txn_length_ = 5,
-      .initial_table_size_ = 1000,
-      .max_columns_ = 5,
-      .varlen_allowed_ = true
-  };
+  auto config = LargeTransactionTestConfiguration::Builder()
+                    .SetNumTxns(100)
+                    .SetNumConcurrentTxns(4)
+                    .SetUpdateSelectRatio({0.5, 0.5})
+                    .SetTxnLength(5)
+                    .SetInitialTableSize(1000)
+                    .SetMaxColumns(5)
+                    .SetVarlenAllowed(true)
+                    .Build();
   auto injector = Injector(config);
   auto log_manager = injector.create<storage::LogManager *>();
   log_manager->Start();
@@ -240,21 +240,20 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
   for (auto *txn : result.second) delete txn;
 }
 
-
 // This test simulates a series of read-only transactions, and then reads the generated log file back in to ensure that
 // read-only transactions do not generate any log records, as they are not necessary for recovery.
 // NOLINTNEXTLINE
 TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
   // Each transaction is read-only (update-select ratio of 0-100). Also, no need for bookkeeping.
-  LargeTransactionTestConfiguration config = {
-      .num_txns_ = 100,
-      .num_concurrent_txns_ = 4,
-      .update_select_ratio_ = {0.0, 1.0},
-      .txn_length_ = 5,
-      .initial_table_size_ = 1000,
-      .max_columns_ = 5,
-      .varlen_allowed_ = true
-  };
+  auto config = LargeTransactionTestConfiguration::Builder()
+                    .SetNumTxns(100)
+                    .SetNumConcurrentTxns(4)
+                    .SetUpdateSelectRatio({0.0, 1.0})
+                    .SetTxnLength(5)
+                    .SetInitialTableSize(1000)
+                    .SetMaxColumns(5)
+                    .SetVarlenAllowed(true)
+                    .Build();
   auto injector = Injector(config);
   auto log_manager = injector.create<storage::LogManager *>();
   log_manager->Start();
@@ -294,16 +293,15 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
 // correctly flushed out an abort record
 // NOLINTNEXTLINE
 TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
-  auto injector = Injector({});  // config can be empty because we do not inject LargeTransactionTestObject here
+  auto injector = Injector(LargeTransactionTestConfiguration::Empty());  // config can be empty because we do not inject
+                                                                         // LargeTransactionTestObject here
   auto *log_manager = injector.create<storage::LogManager *>();
   log_manager->Start();
 
   // Create SQLTable
   auto col = catalog::Schema::Column("attribute", type::TypeId::INTEGER, false, catalog::col_oid_t(0));
   auto table_schema = catalog::Schema({col});
-  storage::SqlTable sql_table(injector.create<storage::BlockStore *>(),
-                              table_schema,
-                              CatalogTestUtil::test_table_oid);
+  storage::SqlTable sql_table(injector.create<storage::BlockStore *>(), table_schema, CatalogTestUtil::test_table_oid);
   auto tuple_initializer = sql_table.InitializerForProjectedRow({catalog::col_oid_t(0)}).first;
 
   auto *txn_manager = injector.create<transaction::TransactionManager *>();
@@ -370,16 +368,16 @@ TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
 // This test verifies that we don't write an abort record for an aborted transaction that never flushed its redo buffer
 // NOLINTNEXTLINE
 TEST_F(WriteAheadLoggingTests, NoAbortRecordTest) {
-  auto injector = Injector({});  // config can be empty because we do not inject LargeTransactionTestObject here
+  auto injector = Injector(LargeTransactionTestConfiguration::Empty());  // config can be empty because we do not inject
+                                                                         // LargeTransactionTestObject here
   auto *log_manager = injector.create<storage::LogManager *>();
   log_manager->Start();
 
   // Create SQLTable
   auto col = catalog::Schema::Column("attribute", type::TypeId::INTEGER, false, catalog::col_oid_t(0));
   auto table_schema = catalog::Schema({col});
-  storage::SqlTable sql_table(injector.create<storage::BlockStore *>(),
-                              table_schema,
-                              CatalogTestUtil::test_table_oid);  auto tuple_initializer = sql_table.InitializerForProjectedRow({catalog::col_oid_t(0)}).first;
+  storage::SqlTable sql_table(injector.create<storage::BlockStore *>(), table_schema, CatalogTestUtil::test_table_oid);
+  auto tuple_initializer = sql_table.InitializerForProjectedRow({catalog::col_oid_t(0)}).first;
 
   // Initialize first transaction, this txn will write a single tuple
   auto *txn_manager = injector.create<transaction::TransactionManager *>();

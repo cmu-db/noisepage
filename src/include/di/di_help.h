@@ -1,7 +1,7 @@
 #pragma once
 #include "boost/di/di.h"
-#include "common/managed_pointer.h"
 #include "common/macros.h"
+#include "common/managed_pointer.h"
 
 #define DECLARE_ANNOTATION(name) static constexpr auto name = [] {}
 namespace terrier::di {
@@ -19,8 +19,7 @@ struct named : di::policies::detail::type_op {
    * @tparam TArg
    */
   template <class TArg>
-  struct apply : di::aux::integral_constant<bool,
-                                   !di::aux::is_same<di::no_name, typename TArg::name>::value> {};
+  struct apply : di::aux::integral_constant<bool, !di::aux::is_same<di::no_name, typename TArg::name>::value> {};
 };
 
 /*
@@ -218,10 +217,11 @@ class DisabledModule {
      * @return see boost::di doc
      */
     template <class, class, class TProvider>
-    TerrierDisabledWrapper create(const TProvider &provider) { return {}; }
+    TerrierDisabledWrapper create(const TProvider &provider) {
+      return {};
+    }
   };
 };
-
 
 /**
  * Use this as the scope object to use for TerrierModule.

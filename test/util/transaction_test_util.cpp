@@ -21,7 +21,7 @@ RandomWorkloadTransaction::~RandomWorkloadTransaction() {
   for (auto &entry : selects_) delete[] reinterpret_cast<byte *>(entry.second);
 }
 
-template<class Random>
+template <class Random>
 void RandomWorkloadTransaction::RandomUpdate(Random *generator) {
   if (aborted_) return;
   storage::TupleSlot updated =
@@ -50,7 +50,7 @@ void RandomWorkloadTransaction::RandomUpdate(Random *generator) {
   aborted_ = !result;
 }
 
-template<class Random>
+template <class Random>
 void RandomWorkloadTransaction::RandomSelect(Random *generator) {
   if (aborted_) return;
   storage::TupleSlot selected =
@@ -78,17 +78,17 @@ LargeTransactionTestObject::LargeTransactionTestObject(LargeTransactionTestConfi
                                                        transaction::TransactionManager *txn_manager,
                                                        std::default_random_engine *generator,
                                                        storage::LogManager *log_manager)
-    : txn_length_(config.txn_length_),
-      update_select_ratio_(config.update_select_ratio_),
+    : txn_length_(config.TxnLength()),
+      update_select_ratio_(config.UpdateSelectRatio()),
       generator_(generator),
-      layout_(config.varlen_allowed_ ? StorageTestUtil::RandomLayoutWithVarlens(config.max_columns_, generator_)
-                                     : StorageTestUtil::RandomLayoutNoVarlen(config.max_columns_, generator_)),
+      layout_(config.VarlenAllowed() ? StorageTestUtil::RandomLayoutWithVarlens(config.MaxColumns(), generator_)
+                                     : StorageTestUtil::RandomLayoutNoVarlen(config.MaxColumns(), generator_)),
       table_(block_store, layout_, storage::layout_version_t(0)),
       txn_manager_(txn_manager),
       gc_on_(txn_manager->GCEnabled()),
       wal_on_(log_manager != LOGGING_DISABLED) {
   // Bootstrap the table to have the specified number of tuples
-  PopulateInitialTable(config.initial_table_size_, generator_);
+  PopulateInitialTable(config.InitialTableSize(), generator_);
 }
 
 LargeTransactionTestObject::~LargeTransactionTestObject() {
@@ -153,7 +153,7 @@ void LargeTransactionTestObject::SimulateOneTransaction(terrier::RandomWorkloadT
   txn->Finish();
 }
 
-template<class Random>
+template <class Random>
 void LargeTransactionTestObject::PopulateInitialTable(uint32_t num_tuples, Random *generator) {
   initial_txn_ = txn_manager_->BeginTransaction();
   byte *redo_buffer = nullptr;
@@ -228,6 +228,4 @@ void LargeTransactionTestObject::UpdateLastCheckedVersion(const TableSnapshot &s
     entry.second = snapshot.find(entry.first)->second;
   }
 }
-
-
 }  // namespace terrier
