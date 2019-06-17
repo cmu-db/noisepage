@@ -8,10 +8,6 @@
 namespace terrier::metric {
 
 MetricsStore::MetricsStore(const std::bitset<num_components> &enabled_metrics) : enabled_metrics_{enabled_metrics} {
-  //  RegisterMetric<TransactionMetric>({MetricsEventType::TXN_BEGIN, MetricsEventType::TXN_COMMIT,
-  //                                     MetricsEventType::TXN_ABORT, MetricsEventType::TUPLE_READ,
-  //                                     MetricsEventType::TUPLE_UPDATE, MetricsEventType::TUPLE_INSERT,
-  //                                     MetricsEventType::TUPLE_DELETE});
   metrics_[static_cast<uint8_t>(MetricsComponent::TRANSACTION)] = std::make_unique<TransactionMetric>();
 }
 

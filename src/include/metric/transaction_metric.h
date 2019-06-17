@@ -229,10 +229,5 @@ class TransactionMetric : public AbstractMetric<TransactionMetricRawData> {
                      UNUSED_ATTRIBUTE catalog::table_oid_t table_oid) override {
     GetRawData()->IncrementTupleDelete(txn);
   }
-
-  /**
-   * @return the type of the metric this object is holding the data for
-   */
-  MetricsComponent GetMetricType() const final { return MetricsComponent::TRANSACTION; }
 };
 }  // namespace terrier::metric

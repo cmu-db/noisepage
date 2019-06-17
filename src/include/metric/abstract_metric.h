@@ -117,8 +117,6 @@ class Metric {
    * @return a shared pointer to the old AbstractRawData
    */
   virtual std::unique_ptr<AbstractRawData> Swap() = 0;
-
-  virtual MetricsComponent GetMetricType() const = 0;
 };
 
 /**
