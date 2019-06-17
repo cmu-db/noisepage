@@ -10,7 +10,7 @@ namespace terrier::di {
  * such as object pool sizes. Unless those are supplied in the top level injector, the code will not compile.
  */
 // TODO(Tianyu): Should we provide default values for constants here?
-auto storage_injector = [] {
+auto storage_injector UNUSED_ATTRIBUTE = [] {
   return di::make_injector<StrictBindingPolicy>(di::bind<storage::BlockStore>().in(di::terrier_shared_module),
                                           di::bind<storage::RecordBufferSegmentPool>().in(di::terrier_shared_module),
                                           di::bind<storage::LogManager>.in(di::terrier_shared_module),

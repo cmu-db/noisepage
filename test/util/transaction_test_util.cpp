@@ -79,7 +79,7 @@ LargeTransactionTestObject::LargeTransactionTestObject(LargeTransactionTestConfi
                                                        std::default_random_engine *generator,
                                                        storage::LogManager *log_manager)
     : txn_length_(config.txn_length_),
-      update_select_ratio_(std::move(config.update_select_ratio_)),
+      update_select_ratio_(config.update_select_ratio_),
       generator_(generator),
       layout_(config.varlen_allowed_ ? StorageTestUtil::RandomLayoutWithVarlens(config.max_columns_, generator_)
                                      : StorageTestUtil::RandomLayoutNoVarlen(config.max_columns_, generator_)),
