@@ -23,7 +23,7 @@
 #include "traffic_cop/result_set.h"
 #include "type/type_id.h"
 
-namespace terrier::traffic_cop {
+namespace terrier::trafficcop {
 class TrafficCop;
 }
 
@@ -57,14 +57,7 @@ using ByteBuf = std::vector<uchar>;
 
 using NetworkCallback = std::function<void(void)>;
 
-using traffic_cop::TrafficCop;
-
-using SimpleQueryCallback = std::function<void(const traffic_cop::ResultSet &, network::PostgresPacketWriter *)>;
-
-enum class NetworkProtocolType {
-  POSTGRES_JDBC,
-  POSTGRES_PSQL,
-};
+using SimpleQueryCallback = std::function<void(const trafficcop::ResultSet &, network::PostgresPacketWriter *)>;
 
 //===--------------------------------------------------------------------===//
 // Network Message Types

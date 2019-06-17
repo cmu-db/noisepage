@@ -5,7 +5,7 @@
 #include <vector>
 #include "type/transient_value.h"
 
-namespace terrier::traffic_cop {
+namespace terrier::trafficcop {
 
 /**
  * A portal is a statement with bound parameters and is ready to execute.
@@ -23,4 +23,4 @@ struct Portal {
   std::shared_ptr<std::vector<type::TransientValue>> params;
 };
 
-}  // namespace terrier::traffic_cop
+}  // namespace terrier::trafficcop
