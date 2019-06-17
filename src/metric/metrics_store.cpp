@@ -11,12 +11,12 @@ MetricsStore::MetricsStore(const std::bitset<num_components> &enabled_metrics) :
   metrics_[static_cast<uint8_t>(MetricsComponent::TRANSACTION)] = std::make_unique<TransactionMetric>();
 }
 
-std::vector<std::unique_ptr<AbstractRawData>> MetricsStore::GetDataToAggregate() {
-  std::vector<std::unique_ptr<AbstractRawData>> result;
+std::array<std::unique_ptr<AbstractRawData>, num_components> MetricsStore::GetDataToAggregate() {
+  std::array<std::unique_ptr<AbstractRawData>, num_components> result;
 
   for (uint8_t component = 0; component < num_components; component++) {
     if (enabled_metrics_.test(component)) {
-      result.emplace_back(metrics_[component]->Swap());
+      result[component] = metrics_[component]->Swap();
     }
   }
 

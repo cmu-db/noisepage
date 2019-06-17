@@ -135,31 +135,13 @@ class MetricsStore {
  private:
   friend class MetricsManager;
 
-  /**
-   * Constructor of collector
-   */
   explicit MetricsStore(const std::bitset<num_components> &enabled_metrics);
 
-  /**
-   * @return A vector of raw data, for each registered metric. Each piece of
-   * data is guaranteed to be safe to read and remove, and the same type of
-   * metric is guaranteed to be in the same position in the returned vector
-   * for different instances of Collector.
-   */
-  std::vector<std::unique_ptr<AbstractRawData>> GetDataToAggregate();
+  std::array<std::unique_ptr<AbstractRawData>, num_components> GetDataToAggregate();
 
-  /**
-   * Vector of all registered metrics, this owns the metric objects and frees them at object destruction
-   */
   std::array<std::unique_ptr<Metric>, num_components> metrics_;
 
   const std::bitset<num_components> &enabled_metrics_;
-
-  /**
-   * Mapping from each type of event to a list of metrics registered to
-   * receive updates from that type of event. This does NOT own the registered metrics
-   */
-  //  std::unordered_map<MetricsEventType, std::vector<common::ManagedPointer<Metric>>> metric_dispatch_;
 };
 
 }  // namespace terrier::metric

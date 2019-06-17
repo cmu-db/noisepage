@@ -142,7 +142,7 @@ TEST_F(MetricTests, TransactionMetricBasicTest) {
     EXPECT_FALSE(result.empty());
 
     for (const auto &raw_data : result) {
-      if (raw_data->GetMetricType() == MetricsComponent::TRANSACTION) {
+      if (raw_data != nullptr && raw_data->GetMetricType() == MetricsComponent::TRANSACTION) {
         for (uint8_t j = 0; j < num_txns_; j++) {
           auto txn_id = id_map[j];
           auto read_cnt = dynamic_cast<TransactionMetricRawData *>(raw_data.get())->GetTupleRead(txn_id);

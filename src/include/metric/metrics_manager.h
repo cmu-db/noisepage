@@ -52,22 +52,30 @@ class MetricsManager {
   /**
    * @return aggregated metrics
    */
-  const std::vector<std::unique_ptr<AbstractRawData>> &AggregatedMetrics() const { return aggregated_metrics_; }
+  const std::array<std::unique_ptr<AbstractRawData>, num_components> &AggregatedMetrics() const {
+    return aggregated_metrics_;
+  }
 
   void EnableMetric(const MetricsComponent component) {
+    common::SpinLatch::ScopedSpinLatch guard(&stores_latch_);
     TERRIER_ASSERT(!(enabled_metrics_.test(static_cast<uint8_t>(component))), "Metric is already enabled.");
+
+    // TODO(Matt): reset metric in each thread
     enabled_metrics_.set(static_cast<uint8_t>(component), true);
   }
   void DisableMetric(const MetricsComponent component) {
+    common::SpinLatch::ScopedSpinLatch guard(&stores_latch_);
     TERRIER_ASSERT((enabled_metrics_.test(static_cast<uint8_t>(component))), "Metric is already disabled.");
+    // TODO(Matt): clear your local aggregated metrics
     enabled_metrics_.set(static_cast<uint8_t>(component), false);
   }
 
  private:
+  void ResetMetric(MetricsComponent component) const;
   common::SpinLatch stores_latch_;
   std::unordered_map<std::thread::id, std::unique_ptr<MetricsStore>> stores_map_;
 
-  std::vector<std::unique_ptr<AbstractRawData>> aggregated_metrics_;
+  std::array<std::unique_ptr<AbstractRawData>, num_components> aggregated_metrics_;
 
   std::bitset<num_components> enabled_metrics_ = 0x0;
 };

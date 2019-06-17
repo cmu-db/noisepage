@@ -7,15 +7,21 @@ namespace terrier::metric {
 
 void MetricsManager::Aggregate() {
   common::SpinLatch::ScopedSpinLatch guard(&stores_latch_);
-  for (const auto &iter : stores_map_) {
-    auto data_block = iter.second->GetDataToAggregate();
-    if (aggregated_metrics_.empty()) {
-      aggregated_metrics_ = std::move(data_block);
-    } else {
-      for (size_t i = 0; i < data_block.size(); i++) {
-        aggregated_metrics_[i]->Aggregate(data_block[i].get());
+  for (const auto &metrics_store : stores_map_) {
+    auto raw_data = metrics_store.second->GetDataToAggregate();
+
+    for (uint8_t component = 0; component < num_components; component++) {
+      if (enabled_metrics_.test(component)) {
+        if (aggregated_metrics_[component] == nullptr)
+          aggregated_metrics_[component] = std::move(raw_data[component]);
+        else
+          aggregated_metrics_[component]->Aggregate(raw_data[component].get());
       }
     }
   }
+}
+
+void MetricsManager::ResetMetric(const MetricsComponent component) const {
+  // TODO(Matt): this
 }
 }  // namespace terrier::metric

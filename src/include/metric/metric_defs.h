@@ -20,13 +20,13 @@ enum class MetricsEventType { TXN_BEGIN, TXN_COMMIT, TXN_ABORT, TUPLE_READ, TUPL
 constexpr uint8_t num_events = 7;
 
 constexpr std::array<std::bitset<num_components>, num_events> event_dispatches UNUSED_ATTRIBUTE = {
-    0x10,  // TXN_BEGIN:     TRANSACTION
-    0x10,  // TXN_COMMIT:    TRANSACTION
-    0x10,  // TXN_ABORT:     TRANSACTION
-    0x10,  // TUPLE_READ:    TRANSACTION
-    0x10,  // TUPLE_UPDATE:  TRANSACTION
-    0x10,  // TUPLE_INSERT:  TRANSACTION
-    0x10   // TUPLE_DELETE:  TRANSACTION
+    0x10,  // TXN_BEGIN:     010000:  TRANSACTION
+    0x10,  // TXN_COMMIT:    010000:  TRANSACTION
+    0x10,  // TXN_ABORT:     010000:  TRANSACTION
+    0x10,  // TUPLE_READ:    010000:  TRANSACTION
+    0x10,  // TUPLE_UPDATE:  010000:  TRANSACTION
+    0x10,  // TUPLE_INSERT:  010000:  TRANSACTION
+    0x10   // TUPLE_DELETE:  010000:  TRANSACTION
 };
 
 inline bool MetricSupportsEvent(const MetricsEventType event, const MetricsComponent component) {
