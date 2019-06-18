@@ -522,7 +522,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::CaseExprTransform(CaseExpr *
 }
 
 // Postgres.ColumnRef -> terrier.TupleValueExpression | terrier.StarExpression
-std::unique_ptr<AbstractExpression> PostgresParser::ColumnRefTransform(ColumnRef *root, char* alias) {
+std::unique_ptr<AbstractExpression> PostgresParser::ColumnRefTransform(ColumnRef *root, char *alias) {
   std::unique_ptr<AbstractExpression> result;
   List *fields = root->fields;
   auto node = reinterpret_cast<Node *>(fields->head->data.ptr_value);

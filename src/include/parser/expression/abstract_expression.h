@@ -16,7 +16,7 @@ namespace terrier::parser {
  * An abstract parser expression. Dumb and immutable.
  */
 class AbstractExpression {
- //friend class BindNodeVisitor;
+  // friend class BindNodeVisitor;
  protected:
   /**
    * Instantiates a new abstract expression. Because these are logical expressions, everything should be known
@@ -37,7 +37,10 @@ class AbstractExpression {
    */
   AbstractExpression(const ExpressionType expression_type, const type::TypeId return_value_type, std::string alias,
                      std::vector<std::shared_ptr<AbstractExpression>> &&children)
-      : expression_type_(expression_type), return_value_type_(return_value_type), alias_(std::move(alias)), children_(std::move(children)) {}
+      : expression_type_(expression_type),
+        return_value_type_(return_value_type),
+        alias_(std::move(alias)),
+        children_(std::move(children)) {}
 
   /**
    * Copy constructs an abstract expression.
@@ -124,7 +127,7 @@ class AbstractExpression {
     return children_[index];
   }
 
-  const std::string &GetExpressionName() const { return expr_name_; }
+  const std::string &GetExpressionName() const { return expression_name_; }
 
   /**
    * @return alias of this abstract expression
@@ -167,40 +170,18 @@ class AbstractExpression {
   virtual void FromJson(const nlohmann::json &j);
 
  private:
-
   /**
    * Derive if there's sub-query in the current expression
    * @return If there is sub-query, then return true, otherwise return false
    */
 
-  virtual bool DeriveSubqueryFlag() {
-    if (expression_type_ == ExpressionType::ROW_SUBQUERY || expression_type_ == ExpressionType::SELECT_SUBQUERY) {
-      has_subquery_ = true;
-    } else {
-      for (auto &child : children_) {
-        if (child->DeriveSubqueryFlag()) {
-          has_subquery_ = true;
-          break;
-        }
-      }
-    }
-    return has_subquery_;
-  }
+  virtual bool DeriveSubqueryFlag();
 
   /**
    * Derive the sub-query depth level of the current expression
    * @return the derived depth
    */
-  virtual int DeriveDepth() {
-    if (depth_ < 0) {
-      for (auto &child : children_) {
-        auto child_depth = child->DeriveDepth();
-        if (child_depth >= 0 && (depth_ == -1 || child_depth < depth_))
-          depth_ = child_depth;
-      }
-    }
-    return depth_;
-  }
+  virtual int DeriveDepth();
 
   /**
    * Walks the expression trees and generate the correct expression name
@@ -216,9 +197,9 @@ class AbstractExpression {
    */
   type::TypeId return_value_type_;
   /**
- * The current sub-query depth level in the current expression, -1
- *  stands for not derived
- */
+   * The current sub-query depth level in the current expression, -1
+   *  stands for not derived
+   */
   int depth_ = -1;
   /**
    * The flag indicating if there's sub-query in the current expression
@@ -227,7 +208,7 @@ class AbstractExpression {
   /**
    * Name of the current expression
    */
-  std::string expr_name_;
+  std::string expression_name_;
   /**
    * Alias of the current expression
    */

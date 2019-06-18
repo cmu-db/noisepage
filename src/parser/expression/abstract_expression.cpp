@@ -142,4 +142,56 @@ std::shared_ptr<AbstractExpression> DeserializeExpression(const nlohmann::json &
   return expr;
 }
 
+bool AbstractExpression::DeriveSubqueryFlag() {
+  if (expression_type_ == ExpressionType::ROW_SUBQUERY || expression_type_ == ExpressionType::SELECT_SUBQUERY) {
+    has_subquery_ = true;
+  } else {
+    for (auto &child : children_) {
+      if (child->DeriveSubqueryFlag()) {
+        has_subquery_ = true;
+        break;
+      }
+    }
+  }
+  return has_subquery_;
+}
+
+int AbstractExpression::DeriveDepth() {
+  if (depth_ < 0) {
+    for (auto &child : children_) {
+      auto child_depth = child->DeriveDepth();
+      if (child_depth >= 0 && (depth_ == -1 || child_depth < depth_)) depth_ = child_depth;
+    }
+  }
+  return depth_;
+}
+
+void AbstractExpression::DeduceExpressionName() {
+  // If alias exists, it will be used in TrafficCop
+  if (!alias_.empty()) return;
+
+  // Aggregate expression already has correct expr_name_
+  if (IsAggregateExpression(expression_type_)) return;
+
+  bool first = true;
+
+  if (expression_type_ == ExpressionType::FUNCTION) {
+    expression_name_ = ((FunctionExpression *)this)->GetFuncName() + "(";
+    for (auto child : children_) {
+      if (!first) expression_name_.append(",");
+      child->DeduceExpressionName();
+      expression_name_.append(child->expression_name_);
+      first = false;
+    }
+    expression_name_.append(")");
+  } else {
+    auto op_str = ExpressionTypeToString(expression_type_, true);
+    for (auto &child : children_) {
+      if (!first) expression_name_ += " ";
+      child->DeduceExpressionName();
+      expression_name_ += op_str + " " + child->expression_name_;
+      first = false;
+    }
+  }
+}
 }  // namespace terrier::parser
