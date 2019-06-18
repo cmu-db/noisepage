@@ -184,7 +184,7 @@ struct StorageTestUtil {
       auto *redo_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
       storage::ProjectedRow *redo = initializer.InitializeRow(redo_buffer);
       StorageTestUtil::PopulateRandomRow(redo, layout, null_ratio, generator);
-      result[slot] = StorageTestUtil::ProjectedRowDeepCopy(layout, *redo);
+      result[slot] = redo;
       // Copy without transactions to simulate a version-free block
       accessor.SetNotNull(slot, VERSION_POINTER_COLUMN_ID);
       for (uint16_t j = 0; j < redo->NumColumns(); j++)
@@ -229,6 +229,7 @@ struct StorageTestUtil {
         storage::StorageUtil::CopyAttrFromProjection(accessor, slot, *redo, j);
     }
     TERRIER_ASSERT(block->insert_head_ == layout.NumSlots(), "The block should be considered full at this point");
+    delete redo_buffer;
     return result;
   }
 
