@@ -138,6 +138,9 @@ TEST_F(BlockCompactorTest, CompactionTest) {
 
     gc.PerformGarbageCollection();
     gc.PerformGarbageCollection();  // Second call to deallocate.
+    // Deallocate all the leftover gathered varlens
+    for (storage::col_id_t col_id : layout.AllColumns())
+      if (layout.IsVarlen(col_id)) arrow_metadata.GetColumnInfo(layout, col_id).Deallocate();
     block_store_.Release(block);
   }
 }
@@ -232,8 +235,11 @@ TEST_F(BlockCompactorTest, GatherTest) {
 
     for (auto &entry : tuples) delete[] reinterpret_cast<byte *>(entry.second);  // reclaim memory used for bookkeeping
 
-    // Deallocation
     gc.PerformGarbageCollection();
+    gc.PerformGarbageCollection();  // Second call to deallocate.
+    // Deallocate all the leftover gathered varlens
+    for (storage::col_id_t col_id : layout.AllColumns())
+      if (layout.IsVarlen(col_id)) arrow_metadata.GetColumnInfo(layout, col_id).Deallocate();
     block_store_.Release(block);
   }
 }
@@ -344,8 +350,11 @@ TEST_F(BlockCompactorTest, DictionaryCompressionTest) {
 
     for (auto &entry : tuples) delete[] reinterpret_cast<byte *>(entry.second);  // reclaim memory used for bookkeeping
 
-    // Deallocation
     gc.PerformGarbageCollection();
+    gc.PerformGarbageCollection();  // Second call to deallocate.
+    // Deallocate all the leftover gathered varlens
+    for (storage::col_id_t col_id : layout.AllColumns())
+      if (layout.IsVarlen(col_id)) arrow_metadata.GetColumnInfo(layout, col_id).Deallocate();
     block_store_.Release(block);
   }
 }
