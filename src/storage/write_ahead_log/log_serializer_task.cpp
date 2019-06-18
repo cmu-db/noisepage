@@ -75,8 +75,7 @@ void LogSerializerTask::SerializeBuffer(IterableBufferSegment<LogRecord> *buffer
       // Not safe to mark read only transactions as the transactions are deallocated preemptively without waiting for
       // logging (there is nothing to log after all)
       if (!commit_record->IsReadOnly()) commit_record->Txn()->log_processed_ = true;
-    }
-    if (record.RecordType() == LogRecordType::ABORT) {
+    } else if (record.RecordType() == LogRecordType::ABORT) {
       // If an abort record shows up at all, the transaction cannot be read-only
       SerializeRecord(record);
       record.GetUnderlyingRecordBodyAs<AbortRecord>()->Txn()->log_processed_ = true;
