@@ -73,7 +73,7 @@ void RandomWorkloadTransaction::Finish() {
     commit_time_ = test_object_->txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
-LargeTransactionTestObject::LargeTransactionTestObject(LargeTransactionTestConfiguration config,
+LargeTransactionTestObject::LargeTransactionTestObject(const LargeTransactionTestConfiguration &config,
                                                        storage::BlockStore *block_store,
                                                        transaction::TransactionManager *txn_manager,
                                                        std::default_random_engine *generator,

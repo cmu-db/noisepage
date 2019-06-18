@@ -1,3 +1,4 @@
+#include <memory>
 #include <random>
 #include <vector>
 #include "di/di_help.h"
@@ -45,16 +46,16 @@ class LargeGCTests : public TerrierTest {
 // NOLINTNEXTLINE
 TEST_F(LargeGCTests, MixedReadWriteWithGC) {
   auto config = LargeTransactionTestConfiguration::Builder()
-      .SetNumIterations(10)
-      .SetNumTxns(1000)
-      .SetBatchSize(100)
-      .SetNumConcurrentTxns(MultiThreadTestUtil::HardwareConcurrency())
-      .SetUpdateSelectRatio({0.5, 0.5})
-      .SetTxnLength(10)
-      .SetInitialTableSize(1000)
-      .SetMaxColumns(20)
-      .SetVarlenAllowed(true)
-      .Build();
+                    .SetNumIterations(10)
+                    .SetNumTxns(1000)
+                    .SetBatchSize(100)
+                    .SetNumConcurrentTxns(MultiThreadTestUtil::HardwareConcurrency())
+                    .SetUpdateSelectRatio({0.5, 0.5})
+                    .SetTxnLength(10)
+                    .SetInitialTableSize(1000)
+                    .SetMaxColumns(20)
+                    .SetVarlenAllowed(true)
+                    .Build();
   RunTest(config);
 }
 
@@ -62,16 +63,16 @@ TEST_F(LargeGCTests, MixedReadWriteWithGC) {
 // NOLINTNEXTLINE
 TEST_F(LargeGCTests, MixedReadWriteHighThreadWithGC) {
   auto config = LargeTransactionTestConfiguration::Builder()
-      .SetNumIterations(10)
-      .SetNumTxns(1000)
-      .SetBatchSize(100)
-      .SetNumConcurrentTxns(2 * MultiThreadTestUtil::HardwareConcurrency())
-      .SetUpdateSelectRatio({0.5, 0.5})
-      .SetTxnLength(10)
-      .SetInitialTableSize(1000)
-      .SetMaxColumns(20)
-      .SetVarlenAllowed(true)
-      .Build();
+                    .SetNumIterations(10)
+                    .SetNumTxns(1000)
+                    .SetBatchSize(100)
+                    .SetNumConcurrentTxns(2 * MultiThreadTestUtil::HardwareConcurrency())
+                    .SetUpdateSelectRatio({0.5, 0.5})
+                    .SetTxnLength(10)
+                    .SetInitialTableSize(1000)
+                    .SetMaxColumns(20)
+                    .SetVarlenAllowed(true)
+                    .Build();
   RunTest(config);
 }
 
@@ -79,16 +80,16 @@ TEST_F(LargeGCTests, MixedReadWriteHighThreadWithGC) {
 // NOLINTNEXTLINE
 TEST_F(LargeGCTests, LowAbortHighThroughputWithGC) {
   auto config = LargeTransactionTestConfiguration::Builder()
-      .SetNumIterations(10)
-      .SetNumTxns(1000)
-      .SetBatchSize(100)
-      .SetNumConcurrentTxns(MultiThreadTestUtil::HardwareConcurrency())
-      .SetUpdateSelectRatio({0.5, 0.5})
-      .SetTxnLength(1)
-      .SetInitialTableSize(1000)
-      .SetMaxColumns(20)
-      .SetVarlenAllowed(true)
-      .Build();
+                    .SetNumIterations(10)
+                    .SetNumTxns(1000)
+                    .SetBatchSize(100)
+                    .SetNumConcurrentTxns(MultiThreadTestUtil::HardwareConcurrency())
+                    .SetUpdateSelectRatio({0.5, 0.5})
+                    .SetTxnLength(1)
+                    .SetInitialTableSize(1000)
+                    .SetMaxColumns(20)
+                    .SetVarlenAllowed(true)
+                    .Build();
   RunTest(config);
 }
 
@@ -96,16 +97,16 @@ TEST_F(LargeGCTests, LowAbortHighThroughputWithGC) {
 // NOLINTNEXTLINE
 TEST_F(LargeGCTests, LowAbortHighThroughputHighThreadWithGC) {
   auto config = LargeTransactionTestConfiguration::Builder()
-      .SetNumIterations(10)
-      .SetNumTxns(1000)
-      .SetBatchSize(100)
-      .SetNumConcurrentTxns(2 * MultiThreadTestUtil::HardwareConcurrency())
-      .SetUpdateSelectRatio({0.5, 0.5})
-      .SetTxnLength(1)
-      .SetInitialTableSize(1000)
-      .SetMaxColumns(20)
-      .SetVarlenAllowed(true)
-      .Build();
+                    .SetNumIterations(10)
+                    .SetNumTxns(1000)
+                    .SetBatchSize(100)
+                    .SetNumConcurrentTxns(2 * MultiThreadTestUtil::HardwareConcurrency())
+                    .SetUpdateSelectRatio({0.5, 0.5})
+                    .SetTxnLength(1)
+                    .SetInitialTableSize(1000)
+                    .SetMaxColumns(20)
+                    .SetVarlenAllowed(true)
+                    .Build();
   RunTest(config);
 }
 
@@ -114,16 +115,16 @@ TEST_F(LargeGCTests, LowAbortHighThroughputHighThreadWithGC) {
 // NOLINTNEXTLINE
 TEST_F(LargeGCTests, HighAbortRateWithGC) {
   auto config = LargeTransactionTestConfiguration::Builder()
-      .SetNumIterations(10)
-      .SetNumTxns(1000)
-      .SetBatchSize(100)
-      .SetNumConcurrentTxns(MultiThreadTestUtil::HardwareConcurrency())
-      .SetUpdateSelectRatio({0.8, 0.2})
-      .SetTxnLength(40)
-      .SetInitialTableSize(1000)
-      .SetMaxColumns(20)
-      .SetVarlenAllowed(true)
-      .Build();
+                    .SetNumIterations(10)
+                    .SetNumTxns(1000)
+                    .SetBatchSize(100)
+                    .SetNumConcurrentTxns(MultiThreadTestUtil::HardwareConcurrency())
+                    .SetUpdateSelectRatio({0.8, 0.2})
+                    .SetTxnLength(40)
+                    .SetInitialTableSize(1000)
+                    .SetMaxColumns(20)
+                    .SetVarlenAllowed(true)
+                    .Build();
   RunTest(config);
 }
 
@@ -131,16 +132,16 @@ TEST_F(LargeGCTests, HighAbortRateWithGC) {
 // NOLINTNEXTLINE
 TEST_F(LargeGCTests, HighAbortRateHighThreadWithGC) {
   auto config = LargeTransactionTestConfiguration::Builder()
-      .SetNumIterations(10)
-      .SetNumTxns(1000)
-      .SetBatchSize(100)
-      .SetNumConcurrentTxns(2 * MultiThreadTestUtil::HardwareConcurrency())
-      .SetUpdateSelectRatio({0.8, 0.2})
-      .SetTxnLength(40)
-      .SetInitialTableSize(1000)
-      .SetMaxColumns(20)
-      .SetVarlenAllowed(true)
-      .Build();
+                    .SetNumIterations(10)
+                    .SetNumTxns(1000)
+                    .SetBatchSize(100)
+                    .SetNumConcurrentTxns(2 * MultiThreadTestUtil::HardwareConcurrency())
+                    .SetUpdateSelectRatio({0.8, 0.2})
+                    .SetTxnLength(40)
+                    .SetInitialTableSize(1000)
+                    .SetMaxColumns(20)
+                    .SetVarlenAllowed(true)
+                    .Build();
   RunTest(config);
 }
 
@@ -148,16 +149,16 @@ TEST_F(LargeGCTests, HighAbortRateHighThreadWithGC) {
 // NOLINTNEXTLINE
 TEST_F(LargeGCTests, TPCCishWithGC) {
   auto config = LargeTransactionTestConfiguration::Builder()
-      .SetNumIterations(10)
-      .SetNumTxns(1000)
-      .SetBatchSize(100)
-      .SetNumConcurrentTxns(MultiThreadTestUtil::HardwareConcurrency())
-      .SetUpdateSelectRatio({0.4, 0.6})
-      .SetTxnLength(5)
-      .SetInitialTableSize(1000)
-      .SetMaxColumns(20)
-      .SetVarlenAllowed(true)
-      .Build();
+                    .SetNumIterations(10)
+                    .SetNumTxns(1000)
+                    .SetBatchSize(100)
+                    .SetNumConcurrentTxns(MultiThreadTestUtil::HardwareConcurrency())
+                    .SetUpdateSelectRatio({0.4, 0.6})
+                    .SetTxnLength(5)
+                    .SetInitialTableSize(1000)
+                    .SetMaxColumns(20)
+                    .SetVarlenAllowed(true)
+                    .Build();
   RunTest(config);
 }
 
@@ -165,16 +166,16 @@ TEST_F(LargeGCTests, TPCCishWithGC) {
 // NOLINTNEXTLINE
 TEST_F(LargeGCTests, TPCCishHighThreadWithGC) {
   auto config = LargeTransactionTestConfiguration::Builder()
-      .SetNumIterations(10)
-      .SetNumTxns(1000)
-      .SetBatchSize(100)
-      .SetNumConcurrentTxns(2 * MultiThreadTestUtil::HardwareConcurrency())
-      .SetUpdateSelectRatio({0.4, 0.6})
-      .SetTxnLength(5)
-      .SetInitialTableSize(1000)
-      .SetMaxColumns(20)
-      .SetVarlenAllowed(true)
-      .Build();
+                    .SetNumIterations(10)
+                    .SetNumTxns(1000)
+                    .SetBatchSize(100)
+                    .SetNumConcurrentTxns(2 * MultiThreadTestUtil::HardwareConcurrency())
+                    .SetUpdateSelectRatio({0.4, 0.6})
+                    .SetTxnLength(5)
+                    .SetInitialTableSize(1000)
+                    .SetMaxColumns(20)
+                    .SetVarlenAllowed(true)
+                    .Build();
   RunTest(config);
 }
 }  // namespace terrier

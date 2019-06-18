@@ -1,12 +1,13 @@
 #pragma once
+#include <memory>
+
 #include "boost/di/di.h"
 #include "common/macros.h"
 #include "common/managed_pointer.h"
-
 #define DECLARE_ANNOTATION(name) static constexpr auto name = [] {}
 namespace terrier::di {
 // Effectively merges the boost::di namespace with terrier-specific helpers and wrappers
-using namespace boost::di;
+using namespace boost::di;  // NOLINT
 
 /**
  * Test if a type is named
@@ -34,7 +35,7 @@ class StrictBindingPolicy : public di::config {
    * @return strict binding policy
    */
   static auto policies(...) noexcept {
-    using namespace di::policies;
+    using namespace di::policies;  // NOLINT
     return di::make_policies(constructible(is_bound<di::_>{}));
   }
 };
@@ -49,8 +50,8 @@ class TestBindingPolicy : public di::config {
    * @return strict binding policy
    */
   static auto policies(...) noexcept {
-    using namespace di::policies;
-    using namespace di::policies::operators;
+    using namespace di::policies;             // NOLINT
+    using namespace di::policies::operators;  // NOLINT
     // Unnamed unbound variables are most likely not
     return di::make_policies(constructible(is_bound<di::_>{} || !named<di::_>{}));
   }

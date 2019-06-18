@@ -1,3 +1,4 @@
+#include <memory>
 #include <vector>
 #include "di/di_help.h"
 #include "di/injectors.h"

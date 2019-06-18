@@ -1,3 +1,5 @@
+#include <memory>
+#include <string>
 #include <unordered_map>
 #include <vector>
 #include "di/di_help.h"
@@ -28,27 +30,26 @@ namespace terrier::storage {
 class WriteAheadLoggingTests : public TerrierTest {
  protected:
   auto Injector(const LargeTransactionTestConfiguration &config) {
-    // clang-format off
     return di::make_injector<di::TestBindingPolicy>(
-        di::storage_injector(),
-        di::bind<LargeTransactionTestConfiguration>().to(config),
+        di::storage_injector(), di::bind<LargeTransactionTestConfiguration>().to(config),
         di::bind<std::default_random_engine>().in(di::terrier_singleton),  // need to be universal across injectors
         di::bind<uint64_t>().named(storage::BlockStore::SIZE_LIMIT).to(static_cast<uint64_t>(1000)),
         di::bind<uint64_t>().named(storage::BlockStore::REUSE_LIMIT).to(static_cast<uint64_t>(1000)),
         di::bind<uint64_t>().named(storage::RecordBufferSegmentPool::SIZE_LIMIT).to(static_cast<uint64_t>(10000)),
         di::bind<uint64_t>().named(storage::RecordBufferSegmentPool::REUSE_LIMIT).to(static_cast<uint64_t>(10000)),
         di::bind<bool>().named(transaction::TransactionManager::GC_ENABLED).to(true),
-        di::bind<std::chrono::milliseconds>().named(storage::GarbageCollectorThread::GC_PERIOD)
+        di::bind<std::chrono::milliseconds>()
+            .named(storage::GarbageCollectorThread::GC_PERIOD)
             .to(std::chrono::milliseconds(10)),
         di::bind<std::string>().named(storage::LogManager::LOG_FILE_PATH).to(std::string(LOG_FILE_NAME)),
         di::bind<uint64_t>().named(storage::LogManager::NUM_BUFFERS).to(static_cast<uint64_t>(100)),
-        di::bind<std::chrono::milliseconds>().named(storage::LogManager::SERIALIZATION_INTERVAL)
+        di::bind<std::chrono::milliseconds>()
+            .named(storage::LogManager::SERIALIZATION_INTERVAL)
             .to(std::chrono::milliseconds(10)),
-        di::bind<std::chrono::milliseconds>().named(storage::LogManager::PERSIST_INTERVAL)
+        di::bind<std::chrono::milliseconds>()
+            .named(storage::LogManager::PERSIST_INTERVAL)
             .to(std::chrono::milliseconds(20)),
-        di::bind<uint64_t>().named(storage::LogManager::PERSIST_THRESHOLD).to(static_cast<uint64_t>((1u << 20u)))
-    );
-    // clang-format on
+        di::bind<uint64_t>().named(storage::LogManager::PERSIST_THRESHOLD).to(static_cast<uint64_t>((1u << 20u))));
   }
 
   void SetUp() override {
