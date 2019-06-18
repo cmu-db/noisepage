@@ -39,7 +39,7 @@ TransactionContext *TransactionManager::BeginTransaction() {
 
 void TransactionManager::LogCommit(TransactionContext *const txn, const timestamp_t commit_time,
                                    const callback_fn callback, void *const callback_arg) {
-  txn->TxnId().store(commit_time);
+  txn->finish_time_.store(commit_time);
   if (log_manager_ != LOGGING_DISABLED) {
     // At this point the commit has already happened for the rest of the system.
     // Here we will manually add a commit record and flush the buffer to ensure the logger
@@ -160,7 +160,7 @@ timestamp_t TransactionManager::Abort(TransactionContext *const txn) {
   // There is no need to flip these timestamps in a critical section, because readers can never see the aborted
   // version either way, unlike in the commit case, where unrepeatable reads may occur.
   for (auto &it : txn->undo_buffer_) it.Timestamp().store(abort_time);
-  txn->TxnId().store(abort_time);
+  txn->finish_time_.store(abort_time);
   txn->aborted_ = true;
 
   // The last update might not have been installed, and thus Rollback would miss it if it contains a
@@ -258,9 +258,9 @@ void TransactionManager::Rollback(TransactionContext *txn, const storage::UndoRe
   storage::UndoRecord *undo_record = table->AtomicallyReadVersionPtr(slot, accessor);
   // In a loop, we will need to undo all updates belonging to this transaction. Because we do not unlink undo records,
   // otherwise this ends up being a quadratic operation to rollback the first record not yet rolled back in the chain.
-  TERRIER_ASSERT(undo_record != nullptr && undo_record->Timestamp().load() == txn->txn_id_.load(),
+  TERRIER_ASSERT(undo_record != nullptr && undo_record->Timestamp().load() == txn->finish_time_.load(),
                  "Attempting to rollback on a TupleSlot where this txn does not hold the write lock!");
-  while (undo_record != nullptr && undo_record->Timestamp().load() == txn->txn_id_.load()) {
+  while (undo_record != nullptr && undo_record->Timestamp().load() == txn->finish_time_.load()) {
     switch (undo_record->Type()) {
       case storage::DeltaRecordType::UPDATE:
         // Re-apply the before image
