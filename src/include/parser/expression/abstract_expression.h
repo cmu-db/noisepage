@@ -28,6 +28,16 @@ class AbstractExpression {
   AbstractExpression(const ExpressionType expression_type, const type::TypeId return_value_type,
                      std::vector<std::shared_ptr<AbstractExpression>> &&children)
       : expression_type_(expression_type), return_value_type_(return_value_type), children_(std::move(children)) {}
+  /**
+   * Instantiates a new abstract expression with alias used for select statement column references.
+   * @param expression_type what type of expression we have
+   * @param return_value_type the type of the expression's value
+   * @param alias alias of the column (used in column value expression)
+   * @param children the list of children for this node
+   */
+  AbstractExpression(const ExpressionType expression_type, const type::TypeId return_value_type, std::string alias,
+                     std::vector<std::shared_ptr<AbstractExpression>> &&children)
+      : expression_type_(expression_type), return_value_type_(return_value_type), alias_(std::move(alias)), children_(std::move(children)) {}
 
   /**
    * Copy constructs an abstract expression.
@@ -122,13 +132,6 @@ class AbstractExpression {
   const std::string &GetAlias() const { return alias_; }
 
   /**
-   * Set the alias of the current expression
-   *
-   * @param alias The alias of this abstract expression
-   */
-  void SetAlias(std::string alias) { alias_ = alias; }
-
-  /**
    * Deduce the expression type of the current expression.
    */
   virtual void DeduceExpressionType() {}
@@ -166,8 +169,7 @@ class AbstractExpression {
  private:
 
   /**
-   * @brief Derive if there's sub-query in the current expression
-   *
+   * Derive if there's sub-query in the current expression
    * @return If there is sub-query, then return true, otherwise return false
    */
 
@@ -186,8 +188,7 @@ class AbstractExpression {
   }
 
   /**
-   * @brief Derive the sub-query depth level of the current expression
-   *
+   * Derive the sub-query depth level of the current expression
    * @return the derived depth
    */
   virtual int DeriveDepth() {
@@ -207,13 +208,6 @@ class AbstractExpression {
   virtual void DeduceExpressionName();
 
   /**
-   * Set the sub-query depth level of the current expression
-   *
-   * @param depth The depth to set
-   */
-  void SetDepth(int depth) { depth_ = depth; }
-
-  /**
    * Type of the current expression
    */
   ExpressionType expression_type_;
@@ -222,13 +216,9 @@ class AbstractExpression {
    */
   type::TypeId return_value_type_;
   /**
-   * List fo children expressions
-   */
-  std::vector<std::shared_ptr<AbstractExpression>> children_;
-  /**
-   * The current sub-query depth level in the current expression, -1
-   *  stands for not derived
-   */
+ * The current sub-query depth level in the current expression, -1
+ *  stands for not derived
+ */
   int depth_ = -1;
   /**
    * The flag indicating if there's sub-query in the current expression
@@ -242,6 +232,10 @@ class AbstractExpression {
    * Alias of the current expression
    */
   std::string alias_;
+  /**
+   * List fo children expressions
+   */
+  std::vector<std::shared_ptr<AbstractExpression>> children_;
 };
 
 DEFINE_JSON_DECLARATIONS(AbstractExpression);

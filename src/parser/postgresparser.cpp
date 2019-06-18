@@ -187,7 +187,7 @@ std::unique_ptr<SQLStatement> PostgresParser::NodeTransform(Node *node) {
   return result;
 }
 
-std::unique_ptr<AbstractExpression> PostgresParser::ExprTransform(Node *node) {
+std::unique_ptr<AbstractExpression> PostgresParser::ExprTransform(Node *node, char *alias) {
   if (node == nullptr) {
     return nullptr;
   }
@@ -211,7 +211,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::ExprTransform(Node *node) {
       break;
     }
     case T_ColumnRef: {
-      expr = ColumnRefTransform(reinterpret_cast<ColumnRef *>(node));
+      expr = ColumnRefTransform(reinterpret_cast<ColumnRef *>(node), alias);
       break;
     }
     case T_FuncCall: {
@@ -522,7 +522,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::CaseExprTransform(CaseExpr *
 }
 
 // Postgres.ColumnRef -> terrier.TupleValueExpression | terrier.StarExpression
-std::unique_ptr<AbstractExpression> PostgresParser::ColumnRefTransform(ColumnRef *root) {
+std::unique_ptr<AbstractExpression> PostgresParser::ColumnRefTransform(ColumnRef *root, char* alias) {
   std::unique_ptr<AbstractExpression> result;
   List *fields = root->fields;
   auto node = reinterpret_cast<Node *>(fields->head->data.ptr_value);
@@ -531,12 +531,12 @@ std::unique_ptr<AbstractExpression> PostgresParser::ColumnRefTransform(ColumnRef
       // TODO(WAN): verify the old system is doing the right thing
       if (fields->length == 1) {
         auto col_name = reinterpret_cast<value *>(node)->val.str;
-        result = std::make_unique<TupleValueExpression>(col_name, "");
+        result = std::make_unique<TupleValueExpression>("", col_name, alias);
       } else {
         auto next_node = reinterpret_cast<Node *>(fields->head->next->data.ptr_value);
         auto col_name = reinterpret_cast<value *>(next_node)->val.str;
         auto table_name = reinterpret_cast<value *>(node)->val.str;
-        result = std::make_unique<TupleValueExpression>(col_name, table_name);
+        result = std::make_unique<TupleValueExpression>(table_name, col_name, alias);
       }
       break;
     }
@@ -765,7 +765,7 @@ std::unique_ptr<SelectStatement> PostgresParser::SelectTransform(SelectStmt *roo
   return result;
 }
 
-// Postgres.SelectStmt.whereClause -> terrier.SelectStatement.select_
+// Postgres.SelectStmt.targetList -> terrier.SelectStatement.select_
 std::vector<std::shared_ptr<AbstractExpression>> PostgresParser::TargetTransform(List *root) {
   // Postgres parses 'SELECT;' to nullptr
   if (root == nullptr) {
@@ -775,13 +775,8 @@ std::vector<std::shared_ptr<AbstractExpression>> PostgresParser::TargetTransform
   std::vector<std::shared_ptr<AbstractExpression>> result;
   for (auto cell = root->head; cell != nullptr; cell = cell->next) {
     auto target = reinterpret_cast<ResTarget *>(cell->data.ptr_value);
-    /*
-      TODO(WAN): the heck was this doing here?
-      if (target->name != nullptr) {
-        expr->alias = target->name;
-      }
-    */
-    result.emplace_back(ExprTransform(target->val));
+    auto expr = ExprTransform(target->val, target->name);
+    result.emplace_back(expr);
   }
   return result;
 }

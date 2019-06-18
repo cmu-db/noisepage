@@ -20,19 +20,8 @@ class TupleValueExpression : public AbstractExpression {
    * @param col_name column name
    * @param table_name table name
    */
-  TupleValueExpression(std::string col_name, std::string table_name)
-      : AbstractExpression(ExpressionType::VALUE_TUPLE, type::TypeId::INVALID, {}),
-        col_name_(std::move(col_name)),
-        table_name_(std::move(table_name)) {}
-
-  // TODO: this function will be in column value/tuple expression in the future
-  /**
-   * @param return_value_type Type of value of the column
-   * @param col_name column name
-   * @param table_name table name
-   */
-  TupleValueExpression(type::TypeId return_value_type, std::string col_name, std::string table_name)
-      : AbstractExpression(ExpressionType::VALUE_TUPLE, return_value_type, {}),
+  TupleValueExpression(std::string table_name, std::string col_name, char *alias)
+      : AbstractExpression(ExpressionType::VALUE_TUPLE, type::TypeId::INVALID, std::string(alias), {}),
         col_name_(std::move(col_name)),
         table_name_(std::move(table_name)) {}
 

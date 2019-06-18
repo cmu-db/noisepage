@@ -88,13 +88,13 @@ class PostgresParser {
   static std::unique_ptr<parser::SQLStatement> NodeTransform(Node *node);
 
   // expressions
-  static std::unique_ptr<AbstractExpression> ExprTransform(Node *node);
+  static std::unique_ptr<AbstractExpression> ExprTransform(Node *node, char *alias = nullptr);
   static ExpressionType StringToExpressionType(const std::string &parser_str);
 
   static std::unique_ptr<AbstractExpression> AExprTransform(A_Expr *root);
   static std::unique_ptr<AbstractExpression> BoolExprTransform(BoolExpr *root);
   static std::unique_ptr<AbstractExpression> CaseExprTransform(CaseExpr *root);
-  static std::unique_ptr<AbstractExpression> ColumnRefTransform(ColumnRef *root);
+  static std::unique_ptr<AbstractExpression> ColumnRefTransform(ColumnRef *root, char *alias = nullptr);
   static std::unique_ptr<AbstractExpression> ConstTransform(A_Const *root);
   static std::unique_ptr<AbstractExpression> FuncCallTransform(FuncCall *root);
   static std::unique_ptr<AbstractExpression> NullTestTransform(NullTest *root);
