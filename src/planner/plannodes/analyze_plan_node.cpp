@@ -8,55 +8,41 @@
 namespace terrier::planner {
 
 common::hash_t AnalyzePlanNode::Hash() const {
-  auto type = GetPlanNodeType();
-  common::hash_t hash = common::HashUtil::Hash(&type);
+  common::hash_t hash = AbstractPlanNode::Hash();
 
   // Hash database_oid
-  auto database_oid = GetDatabaseOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
 
   // Hash namespace oid
-  auto namespace_oid = GetNamespaceOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&namespace_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
 
   // Hash table_oid
-  auto table_oid = GetTableOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&table_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
 
-  // Hash column_names
-  for (const auto column_oid : column_oids_) {
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&column_oid));
-  }
+  // Hash column_oids
+  hash = common::HashUtil::CombineHashInRange(hash, column_oids_.begin(), column_oids_.end());
 
-  return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
+  return hash;
 }
 
 bool AnalyzePlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
+  if (!AbstractPlanNode::operator==(rhs)) return false;
 
   auto &other = dynamic_cast<const AnalyzePlanNode &>(rhs);
 
   // Database OID
-  if (GetDatabaseOid() != other.GetDatabaseOid()) return false;
+  if (database_oid_ != other.database_oid_) return false;
 
   // Namespace OID
-  if (GetNamespaceOid() != other.GetNamespaceOid()) return false;
+  if (namespace_oid_ != other.namespace_oid_) return false;
 
   // Target table OID
-  if (GetTableOid() != other.GetTableOid()) return false;
+  if (table_oid_ != other.table_oid_) return false;
 
-  // Column names
-  const auto &column_oids = GetColumnOids();
-  const auto &other_column_oids = other.GetColumnOids();
-  if (column_oids.size() != other_column_oids.size()) return false;
+  // Column Oids
+  if (column_oids_ != other.column_oids_) return false;
 
-  for (size_t i = 0; i < column_oids.size(); i++) {
-    if (column_oids[i] != other_column_oids[i]) {
-      return false;
-    }
-  }
-
-  return AbstractPlanNode::operator==(rhs);
+  return true;
 }
 
 nlohmann::json AnalyzePlanNode::ToJson() const {
