@@ -33,6 +33,7 @@ class WriteAheadLoggingTests;
 class DBMain {
  public:
   /**
+   * The constructor of DBMain
    * This function boots the backend components.
    * It initializes the following components in the following order:
    *    Debug loggers
@@ -44,15 +45,9 @@ class DBMain {
    *    Settings manager
    *    Log manager
    *    Worker pool
-   */
-  DBMain();
-
-  /**
-   * The constructor of DBMain
    * @param param_map a map stores setting values
    */
-  explicit DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_map)
-      : param_map_(std::move(param_map)) {}
+  explicit DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_map);
 
   ~DBMain() {
     ForceShutdown();

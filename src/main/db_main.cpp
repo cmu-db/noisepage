@@ -9,7 +9,8 @@
 
 namespace terrier {
 
-DBMain::DBMain() {
+DBMain::DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_map)
+    : param_map_(std::move(param_map)) {
   LoggersUtil::Initialize(false);
 
   // initialize stat registry
