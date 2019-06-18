@@ -1,8 +1,8 @@
 #pragma once
 #include "di/di_help.h"
+#include "storage/garbage_collector.h"
 #include "storage/record_buffer.h"
 #include "storage/storage_defs.h"
-#include "storage/garbage_collector.h"
 #include "storage/write_ahead_log/log_manager.h"
 #include "transaction/transaction_manager.h"
 
