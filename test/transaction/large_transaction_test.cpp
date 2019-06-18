@@ -43,7 +43,7 @@ TEST_F(LargeTransactionTests, MixedReadWrite) {
                     .SetTxnLength(10)
                     .SetInitialTableSize(1000)
                     .SetMaxColumns(20)
-                    .SetVarlenAllowed(true)
+                    .SetVarlenAllowed(false)
                     .Build();
   RunTest(config);
 }
@@ -59,7 +59,7 @@ TEST_F(LargeTransactionTests, MixedReadWriteHighThread) {
                     .SetTxnLength(10)
                     .SetInitialTableSize(1000)
                     .SetMaxColumns(20)
-                    .SetVarlenAllowed(true)
+                    .SetVarlenAllowed(false)
                     .Build();
   RunTest(config);
 }
@@ -75,7 +75,7 @@ TEST_F(LargeTransactionTests, LowAbortHighThroughput) {
                     .SetTxnLength(1)
                     .SetInitialTableSize(1000)
                     .SetMaxColumns(20)
-                    .SetVarlenAllowed(true)
+                    .SetVarlenAllowed(false)
                     .Build();
   RunTest(config);
 }
@@ -91,7 +91,7 @@ TEST_F(LargeTransactionTests, LowAbortHighThroughputHighThread) {
                     .SetTxnLength(1)
                     .SetInitialTableSize(1000)
                     .SetMaxColumns(20)
-                    .SetVarlenAllowed(true)
+                    .SetVarlenAllowed(false)
                     .Build();
   RunTest(config);
 }
@@ -108,7 +108,7 @@ TEST_F(LargeTransactionTests, HighAbortRate) {
                     .SetTxnLength(40)
                     .SetInitialTableSize(1000)
                     .SetMaxColumns(20)
-                    .SetVarlenAllowed(true)
+                    .SetVarlenAllowed(false)
                     .Build();
   RunTest(config);
 }
@@ -124,7 +124,7 @@ TEST_F(LargeTransactionTests, HighAbortRateHighThread) {
                     .SetTxnLength(40)
                     .SetInitialTableSize(1000)
                     .SetMaxColumns(20)
-                    .SetVarlenAllowed(true)
+                    .SetVarlenAllowed(false)
                     .Build();
   RunTest(config);
 }
@@ -140,7 +140,7 @@ TEST_F(LargeTransactionTests, TPCCish) {
                     .SetTxnLength(5)
                     .SetInitialTableSize(1000)
                     .SetMaxColumns(20)
-                    .SetVarlenAllowed(true)
+                    .SetVarlenAllowed(false)
                     .Build();
   RunTest(config);
 }
@@ -156,7 +156,7 @@ TEST_F(LargeTransactionTests, TPCCishHighThread) {
                     .SetTxnLength(5)
                     .SetInitialTableSize(1000)
                     .SetMaxColumns(20)
-                    .SetVarlenAllowed(true)
+                    .SetVarlenAllowed(false)
                     .Build();
   RunTest(config);
 }
