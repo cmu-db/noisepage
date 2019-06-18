@@ -151,8 +151,14 @@ void LogSerializerTask::SerializeRecord(const terrier::storage::LogRecord &recor
       WriteValue(record_body->GetTupleSlot());
       break;
     }
-    case LogRecordType::COMMIT:
+    case LogRecordType::COMMIT: {
       WriteValue(record.GetUnderlyingRecordBodyAs<CommitRecord>()->CommitTime());
+      break;
+    }
+    case LogRecordType::ABORT: {
+      // AbortRecord does not hold any additional metadata
+      break;
+    }
   }
 }
 
