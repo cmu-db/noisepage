@@ -19,7 +19,7 @@ bool SetOpPlanNode::operator==(const AbstractPlanNode &rhs) const {
   auto &other = dynamic_cast<const SetOpPlanNode &>(rhs);
 
   // Set op
-  return (set_op_ != other.set_op_);
+  return (set_op_ == other.set_op_);
 }
 
 nlohmann::json SetOpPlanNode::ToJson() const {

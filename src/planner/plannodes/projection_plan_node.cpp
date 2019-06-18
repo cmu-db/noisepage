@@ -15,7 +15,7 @@ bool ProjectionPlanNode::operator==(const AbstractPlanNode &rhs) const {
   // Since this node type does not have any internal members of its own,
   // there is nothing for us to do here!
 
-  return (!AbstractPlanNode::operator==(rhs));
+  return (AbstractPlanNode::operator==(rhs));
 }
 
 nlohmann::json ProjectionPlanNode::ToJson() const {

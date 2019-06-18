@@ -45,7 +45,7 @@ bool AggregatePlanNode::operator==(const AbstractPlanNode &rhs) const {
   }
 
   // Aggregate Strategy
-  return (aggregate_strategy_ != other.aggregate_strategy_);
+  return (aggregate_strategy_ == other.aggregate_strategy_);
 }
 
 nlohmann::json AggregatePlanNode::ToJson() const {
