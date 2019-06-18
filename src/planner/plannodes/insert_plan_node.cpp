@@ -1,4 +1,5 @@
 #include "planner/plannodes/insert_plan_node.h"
+#include <map>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -9,64 +10,67 @@
 #include "type/transient_value_factory.h"
 
 namespace terrier::planner {
+
 common::hash_t InsertPlanNode::Hash() const {
-  auto type = GetPlanNodeType();
-  common::hash_t hash = common::HashUtil::Hash(&type);
+  common::hash_t hash = AbstractPlanNode::Hash();
 
   // Hash database_oid
-  auto database_oid = GetDatabaseOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
 
   // Hash namespace oid
-  auto namespace_oid = GetNamespaceOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&namespace_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
 
   // Hash table_oid
-  auto table_oid = GetTableOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&table_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
 
   // Hash parameter_info
-  for (const auto pair : parameter_info_) {
+  // Important: The ordering of the keys matter when we want to compute the hash!
+  // HACK HACK HACK
+  std::map<uint32_t, catalog::col_oid_t> ordered(parameter_info_.begin(), parameter_info_.end());
+  for (const auto pair : ordered) {
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(pair.first));
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(pair.second));
   }
 
   // Values
-  for (uint32_t i = 0; i < GetBulkInsertCount(); i++) {
-    for (const auto &value : GetValues(i)) {
-      hash = common::HashUtil::CombineHashes(hash, value.Hash());
+  for (const auto &vals : values_) {
+    for (const auto &val : vals) {
+      hash = common::HashUtil::CombineHashes(hash, val.Hash());
     }
   }
 
-  return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
+  return hash;
 }
 
 bool InsertPlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
+  if (!AbstractPlanNode::operator==(rhs)) return false;
 
   auto &other = dynamic_cast<const InsertPlanNode &>(rhs);
 
   // Database OID
-  if (GetDatabaseOid() != other.GetDatabaseOid()) return false;
+  if (database_oid_ != other.database_oid_) return false;
 
   // Namespace OID
-  if (GetNamespaceOid() != other.GetNamespaceOid()) return false;
+  if (namespace_oid_ != other.namespace_oid_) return false;
 
   // Target table OID
-  if (GetTableOid() != other.GetTableOid()) return false;
-
-  // Bulk insert count
-  if (GetBulkInsertCount() != other.GetBulkInsertCount()) return false;
+  if (table_oid_ != other.table_oid_) return false;
 
   // Values
-  for (uint32_t i = 0; i < GetBulkInsertCount(); i++) {
-    if (GetValues(i) != other.GetValues(i)) return false;
+  if (values_.size() != other.values_.size()) return false;
+  for (size_t i = 0; i < values_.size(); i++) {
+    if (values_[i] != other.values_[i]) return false;
   }
 
   // Parameter info
-  if (GetParameterInfo() != other.GetParameterInfo()) return false;
+  if (parameter_info_.size() != other.parameter_info_.size()) return false;
+  for (const auto this_pair : parameter_info_) {
+    auto other_pair = other.parameter_info_.find(this_pair.first);
+    if (other_pair == other.parameter_info_.end()) return false;
+    if (this_pair.second != other_pair->second) return false;
+  }
 
-  return AbstractPlanNode::operator==(rhs);
+  return true;
 }
 
 nlohmann::json InsertPlanNode::ToJson() const {

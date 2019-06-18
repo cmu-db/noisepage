@@ -201,7 +201,7 @@ enum class DeltaRecordType : uint8_t { UPDATE = 0, INSERT, DELETE };
 /**
  * Types of LogRecords
  */
-enum class LogRecordType : uint8_t { REDO = 1, DELETE, COMMIT };
+enum class LogRecordType : uint8_t { REDO = 1, DELETE, COMMIT, ABORT };
 
 /**
  * Callback function and arguments to be called when record is persisted
