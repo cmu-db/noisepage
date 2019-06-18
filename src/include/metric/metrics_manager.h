@@ -54,14 +54,15 @@ class MetricsManager {
   }
 
   void EnableMetric(const MetricsComponent component) {
-    common::SpinLatch::ScopedSpinLatch guard(
-        &write_latch_);  // overly conservative if this is only called from SettingsManager?
+    // overly conservative if this is only called from SettingsManager?
+    common::SpinLatch::ScopedSpinLatch guard(&write_latch_);
     TERRIER_ASSERT(!(enabled_metrics_.test(static_cast<uint8_t>(component))), "Metric is already enabled.");
 
     ResetMetric(component);
     enabled_metrics_.set(static_cast<uint8_t>(component), true);
   }
   void DisableMetric(const MetricsComponent component) {
+    // overly conservative if this is only called from SettingsManager?
     common::SpinLatch::ScopedSpinLatch guard(&write_latch_);
     TERRIER_ASSERT(enabled_metrics_.test(static_cast<uint8_t>(component)), "Metric is already disabled.");
     aggregated_metrics_[static_cast<uint8_t>(component)].reset(nullptr);
