@@ -3,7 +3,18 @@
 #include "storage/record_buffer.h"
 #include "storage/storage_defs.h"
 
-namespace terrier::di {
+namespace terrier {
+
+namespace storage {
+class LogManager;
+class GarbageCollector;
+}  // namespace storage
+
+namespace transaction {
+class TransactionManager;
+}  // namespace transaction
+
+namespace di {
 /**
  * When applied, returns an injector that contains object bindings with the correct scope for the storage
  * engine (storage, logging, GC, transactions). Note that this does not contain bindings for constants
@@ -15,6 +26,8 @@ auto storage_injector UNUSED_ATTRIBUTE = [] {
       di::bind<storage::BlockStore>().in(di::terrier_shared_module),
       di::bind<storage::RecordBufferSegmentPool>().in(di::terrier_shared_module),
       di::bind<storage::LogManager>.in(di::terrier_shared_module),
-      di::bind<transaction::TransactionManager>().in(di::terrier_shared_module));
+      di::bind<transaction::TransactionManager>().in(di::terrier_shared_module),
+      di::bind<storage::GarbageCollector>().in(di::terrier_shared_module));
 };
-}  // namespace terrier::di
+}  // namespace di
+}  // namespace terrier
