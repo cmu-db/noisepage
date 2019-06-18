@@ -3,9 +3,21 @@
 
 namespace terrier::planner {
 
-common::hash_t SeqScanPlanNode::Hash() const { return AbstractScanPlanNode::Hash(); }
+common::hash_t SeqScanPlanNode::Hash() const {
+  common::hash_t hash = AbstractScanPlanNode::Hash();
 
-bool SeqScanPlanNode::operator==(const AbstractPlanNode &rhs) const { return AbstractScanPlanNode::operator==(rhs); }
+  // Nothing for us to do here!
+
+  return hash;
+}
+
+bool SeqScanPlanNode::operator==(const AbstractPlanNode &rhs) const {
+  // Since this node type does not have any internal members of its own,
+  // there is nothing for us to do here!
+  // auto &other = static_cast<const SeqScanPlanNode &>(rhs);
+
+  return AbstractScanPlanNode::operator==(rhs);
+}
 
 nlohmann::json SeqScanPlanNode::ToJson() const {
   nlohmann::json j = AbstractScanPlanNode::ToJson();

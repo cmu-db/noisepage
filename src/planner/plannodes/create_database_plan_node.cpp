@@ -5,25 +5,23 @@
 #include <vector>
 
 namespace terrier::planner {
+
 common::hash_t CreateDatabasePlanNode::Hash() const {
-  auto type = GetPlanNodeType();
-  common::hash_t hash = common::HashUtil::Hash(&type);
+  common::hash_t hash = AbstractPlanNode::Hash();
 
   // Hash database_name
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(GetDatabaseName()));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_name_));
 
-  return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
+  return hash;
 }
 
 bool CreateDatabasePlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
+  if (!AbstractPlanNode::operator==(rhs)) return false;
 
   auto &other = dynamic_cast<const CreateDatabasePlanNode &>(rhs);
 
   // Database name
-  if (GetDatabaseName() != other.GetDatabaseName()) return false;
-
-  return AbstractPlanNode::operator==(rhs);
+  return (database_name_ == other.database_name_);
 }
 
 nlohmann::json CreateDatabasePlanNode::ToJson() const {
