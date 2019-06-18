@@ -22,55 +22,103 @@ using VersionedSnapshots = std::map<transaction::timestamp_t, TableSnapshot>;
 // {committed, aborted}
 using SimulationResult = std::pair<std::vector<RandomWorkloadTransaction *>, std::vector<RandomWorkloadTransaction *>>;
 
+/**
+ * Value object that holds various parameters to the random testing framework.
+ * Not every member is required for every test, and it is okay to leave some of them
+ * out when constructing if none is required.
+ */
 class LargeTransactionTestConfiguration {
  public:
+  /**
+   * Helper class to build a new test configuration
+   */
   class Builder {
    public:
+    /**
+     * @param num_iterations number of independent runs of the test to perform
+     * @return self-reference
+     */
     Builder &SetNumIterations(uint32_t num_iterations) {
       num_iterations_ = num_iterations;
       return *this;
     }
 
+    /**
+     * @param num_txns number of transaction to run in total
+     * @return self-reference
+     */
     Builder &SetNumTxns(uint32_t num_txns) {
       num_txns_ = num_txns;
       return *this;
     }
 
+    /**
+     * @param batch_size (GC tests only) The interval (num transactions) at which to perform a check
+     * @return self-reference
+     */
     Builder &SetBatchSize(uint32_t batch_size) {
       batch_size_ = batch_size;
       return *this;
     }
 
+    /**
+     * @param num_concurrent_txns number of concurrent workers to run transactions on
+     * @return self-reference
+     */
     Builder &SetNumConcurrentTxns(uint32_t num_concurrent_txns) {
       num_concurrent_txns_ = num_concurrent_txns;
       return *this;
     }
 
+    /**
+     * @param num_iterations the ratio of updates vs. select in the generated transaction
+     *                             (e.g. {0.3, 0.7} will be 30% updates and 70% reads)
+     * @return self-reference
+     */
     Builder &SetUpdateSelectRatio(std::vector<double> update_select_ratio) {
       update_select_ratio_ = std::move(update_select_ratio);
       return *this;
     }
 
+    /**
+     * @param txn_length length of every simulated transaction, in number of operations (select or update)
+     * @return self-reference
+     */
     Builder &SetTxnLength(uint32_t txn_length) {
       txn_length_ = txn_length;
       return *this;
     }
 
+    /**
+     * @param initial_table_size number of tuples the table should have
+     * @return self-reference
+     */
     Builder &SetInitialTableSize(uint32_t initial_table_size) {
       initial_table_size_ = initial_table_size;
       return *this;
     }
 
+    /**
+     * @param max_columns the max number of columns in the generated test table
+     * @return self-reference
+     */
     Builder &SetMaxColumns(uint16_t max_columns) {
       max_columns_ = max_columns;
       return *this;
     }
 
+    /**
+     * @param allowed whether varlen columns are allowed in the generated test table
+     * @return self-reference
+     */
     Builder &SetVarlenAllowed(bool allowed) {
       varlen_allowed_ = allowed;
       return *this;
     }
 
+    /**
+     * @return the constructed LargeTransactionTestConfiguration object
+     */
     LargeTransactionTestConfiguration Build() {
       return {num_iterations_, num_txns_,           batch_size_,  num_concurrent_txns_, std::move(update_select_ratio_),
               txn_length_,     initial_table_size_, max_columns_, varlen_allowed_};
@@ -208,18 +256,15 @@ class LargeTransactionTestObject {
  public:
   /**
    * Initializes a test object with the given configuration
-   * @param max_columns the max number of columns in the generated test table
-   * @param initial_table_size number of tuples the table should have
-   * @param txn_length length of every simulated transaction, in number of operations (select or update)
-   * @param update_select_ratio the ratio of updates vs. select in the generated transaction
-   *                             (e.g. {0.3, 0.7} will be 30% updates and 70% reads)
-   * @param block_store the block store to use for the underlying data table
-   * @param buffer_pool the buffer pool to use for simulated transactions
-   * @param generator the random generator to use for the test
-   * @param gc_on whether gc is enabled
-   * @param bookkeeping whether correctness check is enabled
+   * @param config test configuration object
+   * @param block_store block store to use
+   * @param txn_manager transaction manager to use
+   * @param generator source of randomness
+   * TODO(Tianyu): This is currently only used to see if the system enables logging. If we expose that information
+   *               in transaction manager, presumably we don't need to take in a log manager anymore
+   * @param log_manager log manager to use
    */
-  LargeTransactionTestObject(LargeTransactionTestConfiguration config, storage::BlockStore *block_store,
+  LargeTransactionTestObject(const LargeTransactionTestConfiguration &config, storage::BlockStore *block_store,
                              transaction::TransactionManager *txn_manager, std::default_random_engine *generator,
                              storage::LogManager *log_manager);
   /**
