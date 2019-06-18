@@ -41,62 +41,208 @@ class InputColumnDeriver : public OperatorVisitor {
                      std::vector<const parser::AbstractExpression*> required_cols,
                      Memo *memo);
 
+  /**
+   * Visit function to derive input/output columns for TableFreeScan
+   * @param op TableFreeScan operator to visit
+   */
   void Visit(const TableFreeScan *op) override;
+
+  /**
+   * Visit function to derive input/output columns for SeqScan
+   * @param op SeqScan operator to visit
+   */
   void Visit(const SeqScan *op) override;
+
+  /**
+   * Visit function to derive input/output columns for IndexScan
+   * @param op IndexScan operator to visit
+   */
   void Visit(const IndexScan *op) override;
+
+  /**
+   * Visit function to derive input/output columns for ExternalFileScan
+   * @param op ExternalFileScan operator to visit
+   */
   void Visit(const ExternalFileScan *op) override;
+
+  /**
+   * Visit function to derive input/output columns for QueryDerivedScan
+   * @param op QueryDerivedScan operator to visit
+   */
   void Visit(const QueryDerivedScan *op) override;
+
+  /**
+   * Visit function to derive input/output columns for OrderBy
+   * @param op OrderBy operator to visit
+   */
   void Visit(const OrderBy *op) override;
+
+  /**
+   * Visit function to derive input/output columns for Limit
+   * @param op Limit operator to visit
+   */
   void Visit(const Limit *op) override;
+
+  /**
+   * Visit function to derive input/output columns for InnerNLJoin
+   * @param op InnerNLJoin operator to visit
+   */
   void Visit(const InnerNLJoin *op) override;
+
+  /**
+   * Visit function to derive input/output columns for LeftNLJoin
+   * @param op LeftNLJoin operator to visit
+   */
   void Visit(const LeftNLJoin *op) override;
+
+  /**
+   * Visit function to derive input/output columns for RightNLJoin
+   * @param op RightNLJoin operator to visit
+   */
   void Visit(const RightNLJoin *op) override;
+
+  /**
+   * Visit function to derive input/output columns for OuterNLJoin
+   * @param op OuterNLJoin operator to visit
+   */
   void Visit(const OuterNLJoin *op) override;
+
+  /**
+   * Visit function to derive input/output columns for InnerHashJoin
+   * @param op InnerHashJoin operator to visit
+   */
   void Visit(const InnerHashJoin *op) override;
+
+  /**
+   * Visit function to derive input/output columns for LeftHashJoin
+   * @param op LeftHashJoin operator to visit
+   */
   void Visit(const LeftHashJoin *op) override;
+
+  /**
+   * Visit function to derive input/output columns for RightHashJoin
+   * @param op RightHashJoin operator to visit
+   */
   void Visit(const RightHashJoin *op) override;
+
+  /**
+   * Visit function to derive input/output columns for OuterHashJoin
+   * @param op OuterHashJoin operator to visit
+   */
   void Visit(const OuterHashJoin *op) override;
+
+  /**
+   * Visit function to derive input/output columns for TableFreeScan
+   * @param op TableFreeScan operator to visit
+   */
   void Visit(const Insert *op) override;
+
+  /**
+   * Visit function to derive input/output columns for InsertSelect
+   * @param op InsertSelectoperator to visit
+   */
   void Visit(const InsertSelect *op) override;
+
+  /**
+   * Visit function to derive input/output columns for Delete
+   * @param op Delete operator to visit
+   */
   void Visit(const Delete *op) override;
+
+  /**
+   * Visit function to derive input/output columns for Update
+   * @param op Update operator to visit
+   */
   void Visit(const Update *op) override;
+
+  /**
+   * Visit function to derive input/output columns for HashGroupBy
+   * @param op HashGroupBy operator to visit
+   */
   void Visit(const HashGroupBy *op) override;
+
+  /**
+   * Visit function to derive input/output columns for SortGroupBy
+   * @param op SortGroupBy operator to visit
+   */
   void Visit(const SortGroupBy *op) override;
+
+  /**
+   * Visit function to derive input/output columns for Distinct
+   * @param op Distinct operator to visit
+   */
   void Visit(const Distinct *op) override;
+
+  /**
+   * Visit function to derive input/output columns for Aggregate
+   * @param op Aggregate operator to visit
+   */
   void Visit(const Aggregate *op) override;
+
+  /**
+   * Visit function to derive input/output columns for ExportExternalFile
+   * @param op ExportExternalFile operator to visit
+   */
   void Visit(const ExportExternalFile *op) override;
 
  private:
   /**
-   * @brief Provide all tuple value expressions needed in the expression
-   */
+   * Helper to derive the output columns of a scan operator.
+   * A scan operator has no input columns, and the output columns are the set
+   * of all columns required (i.e required_cols_).
+  */
   void ScanHelper();
+
+  /**
+   * Derive all input and output columns for an Aggregate
+   * The output columns are all Tuple and Aggregation columns from required_cols_
+   * and any extra columns used by having expressions.
+   *
+   * The input column vector contains of a single vector consisting of all
+   * TupleValueExpressions needed by GroupBy and Having expressions and any
+   * TupleValueExpressions required by AggregateExpression from required_cols_.
+  */
   void AggregateHelper(const BaseOperatorNode *);
+
+  /**
+   * Derives the output and input columns for a Join.
+   *
+   * The output columns are all the TupleValueExpression and AggregateExpressions
+   * as located in required_cols_. The set of all input columns are built by consolidating
+   * all TupleValueExpression and AggregateExpression in all left_keys/right_keys/join_conds
+   * and any in required_cols_ are are split as input_cols = {build_cols, probe_cols}
+   * based on build-side table aliases and probe-side table aliases.
+   *
+   * NOTE:
+   * - This function assumes the build side is the Left Child
+   * - This function assumes the probe side is the Right Child
+   * TODO(wz2): Better abstraction/identification of build/probe rather than hard-coded
+  */
   void JoinHelper(const BaseOperatorNode *op);
 
   /**
-   * @brief Some operators, for example limit, directly pass down column
-   * property
-   */
+   * Passes down the list of required columns as input columns
+   * Sets output_input_cols_ = (required_cols, {required_cols_})
+  */
   void Passdown();
   GroupExpression *gexpr_;
   Memo *memo_;
 
   /**
-   * @brief The derived output columns and input columns, note that the current
-   *  operator may have more than one children
+   * The derived output columns and input columns, note that the current
+   * operator may have more than one children
    */
   std::pair<std::vector<const parser::AbstractExpression*>,
             std::vector<std::vector<const parser::AbstractExpression*>>>
       output_input_cols_;
 
   /**
-   * @brief The required columns
+   * The required columns
    */
   std::vector<const parser::AbstractExpression*> required_cols_;
 
   /**
-   * @brief The required physical property
+   * The required physical properties
    */
   PropertySet* properties_;
 };

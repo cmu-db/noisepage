@@ -9,23 +9,8 @@
 namespace terrier {
 namespace optimizer {
 
-/**
- * Trivial constructor
- */
 InputColumnDeriver::InputColumnDeriver() = default;
 
-/**
- * Derives the input and output columns for a physical operator
- * @param gexpr Group Expression to derive for
- * @param properties Relevant data properties
- * @param required_cols Vector of required output columns
- * @param memo Memo
- * @returns pair where first element is the output columns and the second
- *          element is a vector of inputs from each child.
- *
- * Pointers returned are not ManagedPointer. However, the returned pointers
- * should not be deleted or ever modified.
- */
 std::pair<std::vector<const parser::AbstractExpression*>,
           std::vector<std::vector<const parser::AbstractExpression*>>>
 InputColumnDeriver::DeriveInputColumns(GroupExpression *gexpr, PropertySet* properties,
@@ -39,35 +24,14 @@ InputColumnDeriver::DeriveInputColumns(GroupExpression *gexpr, PropertySet* prop
   return move(output_input_cols_);
 }
 
-/**
- * Derive input and output columns for TableFreeScan (none exist)
- */
 void InputColumnDeriver::Visit(const TableFreeScan *) {}
 
-/**
- * Derive input and output columns for SeqScan.
- * Invokes ScanHelper
- */
 void InputColumnDeriver::Visit(const SeqScan *) { ScanHelper(); }
 
-/**
- * Derive input and output columns for IndexScan.
- * Invokes ScanHelper
- */
 void InputColumnDeriver::Visit(const IndexScan *) { ScanHelper(); }
 
-/**
- * Derive input and output columns for ExternalFileScan.
- * Invokes ScanHelper
- */
 void InputColumnDeriver::Visit(const ExternalFileScan *) { ScanHelper(); }
 
-/**
- * Derive input and output columns for QueryDerivedScan.
- * QueryDerivedScan should only be a renaming layer which means the output columns
- * are all the TupleValueExpressions in required_cols_ and the input columns
- * are the columns specified in QueryDerivedScan->alias_to_expr_map.
- */
 void InputColumnDeriver::Visit(const QueryDerivedScan *op) {
   // QueryDerivedScan should only be a renaming layer
   ExprMap output_cols_map;
@@ -77,15 +41,14 @@ void InputColumnDeriver::Visit(const QueryDerivedScan *op) {
 
   auto output_cols = std::vector<const parser::AbstractExpression*>(output_cols_map.size());
   std::vector<const parser::AbstractExpression*> input_cols(output_cols.size());
+  auto alias_expr_map = op->GetAliasToExprMap();
   for (auto &entry : output_cols_map) {
     auto tv_expr = dynamic_cast<const parser::TupleValueExpression*>(entry.first);
     TERRIER_ASSERT(tv_expr, "GetTupleValueExprs should only find TupleValueExpressions");
     output_cols[entry.second] = tv_expr;
 
     // Get the actual expression
-    auto map = op->GetAliasToExprMap();
-    auto managed_col = map[tv_expr->GetColumnName()];
-    const parser::AbstractExpression *input_col = managed_col.operator->();
+    const parser::AbstractExpression *input_col = alias_expr_map[tv_expr->GetColumnName()].get();
 
     // QueryDerivedScan only modify the column name to be a tv_expr, does not change the mapping
     input_cols[entry.second] = input_col;
@@ -94,12 +57,6 @@ void InputColumnDeriver::Visit(const QueryDerivedScan *op) {
   output_input_cols_ = std::make_pair(output_cols, std::vector{input_cols});
 }
 
-/**
- * Derive input and output columns for Limit.
- * For the physical limit, the input and output columns are identical.
- * The columns include the sort columns, any TupleValueExpressions, and
- * any AggregateExpressions in required_cols_.
- */
 void InputColumnDeriver::Visit(const Limit *op) {
   // All aggregate expressions and TVEs in the required columns and internal 
   // sort columns are needed by the child node
@@ -125,12 +82,6 @@ void InputColumnDeriver::Visit(const Limit *op) {
   output_input_cols_ = std::make_pair(cols, std::vector{cols});
 }
 
-/**
- * Derives the input and output columns for OrderBy
- * The output columns and input[0] columns are identical.
- * The columns include all AggregateExpressions and TupleValueExpressions from
- * required_cols_ and the sort columns.
- */
 void InputColumnDeriver::Visit(const OrderBy *) {
   // we need to pass down both required columns and sort columns
   auto prop = properties_->GetPropertyOfType(PropertyType::SORT);
@@ -159,148 +110,75 @@ void InputColumnDeriver::Visit(const OrderBy *) {
   output_input_cols_ = std::make_pair(cols, std::vector{cols});
 }
 
-/**
- * Derives the input and output columns for HashGroupBy
- * Relies on AggregateHelper
- */
 void InputColumnDeriver::Visit(const HashGroupBy *op) {
   AggregateHelper(op);
 }
 
-/**
- * Derives the input and output columns for SortGroupBy
- * Relies on AggregateHelper
- */
 void InputColumnDeriver::Visit(const SortGroupBy *op) {
   AggregateHelper(op);
 }
 
-/**
- * Derives the input and output columns for Aggregate
- * Relies on AggregateHelper
- */
 void InputColumnDeriver::Visit(const Aggregate *op) {
   AggregateHelper(op);
 }
 
-/**
- * Derives the input and output columns for Distinct
- * Relies on Passdown()
- */
 void InputColumnDeriver::Visit(const Distinct *) {
   Passdown();
 }
 
-/**
- * Derives the input and output columns for InnerNLJoin
- * Relies on JoinHelper
- */
 void InputColumnDeriver::Visit(const InnerNLJoin *op) {
   JoinHelper(op);
 }
 
-/**
- * Derives the input and output columns for LeftNLJoin
- * Currently not supported.
- */
 void InputColumnDeriver::Visit(const LeftNLJoin *) {
   TERRIER_ASSERT(0, "LeftNLJoin not supported");
 }
 
-/**
- * Derives the input and output columns for RightNLJoin
- * Currently not supported.
- */
 void InputColumnDeriver::Visit(const RightNLJoin *) {
   TERRIER_ASSERT(0, "RightNLJoin not supported");
 }
 
-/**
- * Derives the input and output columns for OuterNLJoin
- * Currently not supported.
- */
 void InputColumnDeriver::Visit(const OuterNLJoin *) {
   TERRIER_ASSERT(0, "OuterNLJoin not supported");
 }
 
-/**
- * Derives the input and output columns for InnerHashJoin
- * Relies on JoinHelper
- */
 void InputColumnDeriver::Visit(const InnerHashJoin *op) {
   JoinHelper(op);
 }
 
-/**
- * Derives the input and output columns for LeftHashJoin
- * Currently not supported.
- */
 void InputColumnDeriver::Visit(const LeftHashJoin *) {
   TERRIER_ASSERT(0, "LeftHashJoin not supported");
 }
 
-/**
- * Derives the input and output columns for RightHashJoin
- * Currently not supported.
- */
 void InputColumnDeriver::Visit(const RightHashJoin *) {
   TERRIER_ASSERT(0, "RightHashJoin not supported");
 }
 
-/**
- * Derives the input and output columns for OuterHashJoin
- * Currently not supported.
- */
 void InputColumnDeriver::Visit(const OuterHashJoin *) {
   TERRIER_ASSERT(0, "OuterHashJoin not supported");
 }
 
-/**
- * Derives input and output columns for a Insert.
- *  Insert has no input columns and all output columns are the required_cols_
- */
 void InputColumnDeriver::Visit(const Insert *) {
   auto input = std::vector<std::vector<const parser::AbstractExpression*>>{};
   output_input_cols_ = std::make_pair(required_cols_, input);
 }
 
-/**
- * Derives input and output columns for InsertSelect.
- * Relies on Passdown()
- */
 void InputColumnDeriver::Visit(const InsertSelect *) {
   Passdown();
 }
 
-/**
- * Derives input and output columns for Delete.
- * Relies on Passdown()
- */
 void InputColumnDeriver::Visit(const Delete *) {
   Passdown();
 }
 
-/**
- * Derives input and output columns for Update.
- * Relies on Passdown()
- */
 void InputColumnDeriver::Visit(const Update *) {
   Passdown();
 }
 
-/**
- * Derives input and output columns for ExportExternalFile.
- * Relies on Passdown()
- */
 void InputColumnDeriver::Visit(const ExportExternalFile *) {
   Passdown();
 }
 
-/**
- * Helper to derive the output columns of a scan operator.
- * A scan operator has no input columns, and the output columns are the set
- * of all columns required (i.e required_cols_).
- */
 void InputColumnDeriver::ScanHelper() {
   // Derive all output columns from required_cols_.
   // Since Scan are "lowest" level, only care about TupleValueExpression in required_cols_
@@ -319,15 +197,6 @@ void InputColumnDeriver::ScanHelper() {
   output_input_cols_ = std::make_pair(output_cols, input);
 }
 
-/**
- * Derive all input and output columns for an Aggregate
- * The output columns are all Tuple and Aggregation columns from required_cols_
- * and any extra columns used by having expressions.
- *
- * The input column vector contains of a single vector consisting of all
- * TupleValueExpressions needed by GroupBy and Having expressions and any
- * TupleValueExpressions required by AggregateExpression from required_cols_.
- */
 void InputColumnDeriver::AggregateHelper(const BaseOperatorNode *op) {
   ExprSet input_cols_set;
   ExprMap output_cols_map;
@@ -347,7 +216,7 @@ void InputColumnDeriver::AggregateHelper(const BaseOperatorNode *op) {
         size_t child_size = aggr_expr->GetChildrenSize();
         for (size_t idx = 0; idx < child_size; ++idx) {
           // Add all TupleValueExpression used by the Aggregate to input columns
-          parser::ExpressionUtil::GetTupleValueExprs(input_cols_set, aggr_expr->GetChild(idx));
+          parser::ExpressionUtil::GetTupleValueExprs(input_cols_set, aggr_expr->GetChild(idx).get());
         }
       }
     }
@@ -357,7 +226,6 @@ void InputColumnDeriver::AggregateHelper(const BaseOperatorNode *op) {
       if (!output_cols_map.count(tv_expr)) {
         output_cols_map[tv_expr] = output_col_idx++;
       }
-      // input_cols_set.insert(tv_expr);
     }
   }
 
@@ -402,20 +270,6 @@ void InputColumnDeriver::AggregateHelper(const BaseOperatorNode *op) {
   output_input_cols_ = std::make_pair(output_cols, std::vector{input_cols});
 }
 
-/**
- * Derives the output and input columns for a Join.
- *
- * The output columns are all the TupleValueExpression and AggregateExpressions
- * as located in required_cols_. The set of all input columns are built by consolidating
- * all TupleValueExpression and AggregateExpression in all left_keys/right_keys/join_conds
- * and any in required_cols_ are are split as input_cols = {build_cols, probe_cols}
- * based on build-side table aliases and probe-side table aliases.
- *
- * NOTE:
- * - This function assumes the build side is the Left Child
- * - This function assumes the probe side is the Right Child
- * TODO(wz2): Better abstraction/identification of build/probe rather than hard-coded
- */
 void InputColumnDeriver::JoinHelper(const BaseOperatorNode *op) {
   std::vector<AnnotatedExpression> join_conds;
   std::vector<common::ManagedPointer<parser::AbstractExpression>> left_keys;
@@ -512,10 +366,6 @@ void InputColumnDeriver::JoinHelper(const BaseOperatorNode *op) {
   output_input_cols_ = std::make_pair(output_cols, std::vector{build_cols, probe_cols});
 }
 
-/**
- * Passes down the list of required columns as input columns
- * Sets output_input_cols_ = (required_cols, {required_cols_})
- */
 void InputColumnDeriver::Passdown() {
   output_input_cols_ = std::make_pair(required_cols_, std::vector{required_cols_});
 }
