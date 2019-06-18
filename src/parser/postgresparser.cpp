@@ -1846,7 +1846,7 @@ std::vector<std::vector<const AbstractExpression *>> PostgresParser::ValueListsT
           break;
         }
         case T_SetToDefault: {
-          cur_result.emplace_back(std::make_unique<DefaultValueExpression>());
+          cur_result.emplace_back(new DefaultValueExpression());
           break;
         }
         default: { PARSER_LOG_AND_THROW("ValueListsTransform", "Value type", expr->type); }

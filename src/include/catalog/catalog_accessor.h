@@ -5,9 +5,8 @@
 #include <vector>
 
 #include "catalog/catalog_defs.h"
-#include "catalog/default_value.h"
-#include "catalog/index_key_schema.h"
 #include "catalog/schema.h"
+#include "catalog/index_schema.h"
 #include "common/managed_pointer.h"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
@@ -259,13 +258,6 @@ class CatalogAccessor {
    * @return the pointer to the index
    */
   common::ManagedPointer<storage::index::Index *> GetIndex(index_oid_t index);
-
-  /**
-   * Gets the schema used to define the index
-   * @param index being queried
-   * @return the index schema
-   */
-  const IndexSchema &GetIndexSchema(index_oid_t index);
 
  private:
   Catalog *catalog_;

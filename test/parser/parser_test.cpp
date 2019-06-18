@@ -329,8 +329,8 @@ TEST_F(ParserTestBase, InsertTest) {
   stmts = pgparser.BuildParseTree("INSERT INTO foo (id,bar,entry) VALUES (DEFAULT, 2, 3);");
   insert_stmt = reinterpret_cast<InsertStatement *>(stmts.at(0).get());
   EXPECT_EQ(insert_stmt->GetInsertionTable()->GetTableName(), "foo");
-  EXPECT_EQ(insert_stmt->GetInsertColumns()->size(), 3);
-  EXPECT_EQ((*insert_stmt->GetValues())[0][0]->GetExpressionType(), ExpressionType::VALUE_DEFAULT);
+  EXPECT_EQ(insert_stmt->GetInsertColumns().size(), 3);
+  EXPECT_EQ(insert_stmt->GetValue(0, 0)->GetExpressionType(), ExpressionType::VALUE_DEFAULT);
 }
 
 // NOLINTNEXTLINE

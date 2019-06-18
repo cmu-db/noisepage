@@ -16,7 +16,12 @@ class DefaultValueExpression : public AbstractExpression {
    */
   DefaultValueExpression() : AbstractExpression(ExpressionType::VALUE_DEFAULT, type::TypeId::INVALID, {}) {}
 
-  std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<DefaultValueExpression>(*this); }
+  const AbstractExpression* Copy() const override { return new DefaultValueExpression(); }
+
+  const AbstractExpression* CopyWithChildren(std::vector<const AbstractExpression*> children) const override {
+    TERRIER_ASSERT(children.empty(), "DefaultValueExpression should have 0 children");
+    return Copy();
+  }
 
   /**
    * @return expression serialized to json
