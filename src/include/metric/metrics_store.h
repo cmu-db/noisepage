@@ -34,7 +34,7 @@ class MetricsStore {
    * Collector action on transaction begin
    * @param txn context of the transaction beginning
    */
-  void RecordTransactionBegin(const transaction::TransactionContext *txn) {
+  void RecordTransactionBegin(const transaction::TransactionContext &txn) {
     for (uint8_t component = 0; component < num_components; component++) {
       if (MetricSupportsEvent(MetricsEventType::TXN_BEGIN, static_cast<MetricsComponent>(component))) {
         metrics_[component]->OnTransactionBegin(txn);
@@ -47,7 +47,7 @@ class MetricsStore {
    * @param txn context of the transaction committing
    * @param database_oid OID of the database where the txn happens.
    */
-  void RecordTransactionCommit(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid) {
+  void RecordTransactionCommit(const transaction::TransactionContext &txn, catalog::db_oid_t database_oid) {
     for (uint8_t component = 0; component < num_components; component++) {
       if (MetricSupportsEvent(MetricsEventType::TXN_COMMIT, static_cast<MetricsComponent>(component))) {
         metrics_[component]->OnTransactionCommit(txn, database_oid);
@@ -60,7 +60,7 @@ class MetricsStore {
    * @param txn context of the transaction aborting
    * @param database_oid OID of the database where the txn happens.
    */
-  void RecordTransactionAbort(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid) {
+  void RecordTransactionAbort(const transaction::TransactionContext &txn, catalog::db_oid_t database_oid) {
     for (uint8_t component = 0; component < num_components; component++) {
       if (MetricSupportsEvent(MetricsEventType::TXN_ABORT, static_cast<MetricsComponent>(component))) {
         metrics_[component]->OnTransactionAbort(txn, database_oid);
@@ -75,7 +75,7 @@ class MetricsStore {
    * @param namespace_oid OID of the namespace that the tuple read happens
    * @param table_oid OID of the table that the tuple read happens
    */
-  void RecordTupleRead(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid,
+  void RecordTupleRead(const transaction::TransactionContext &txn, catalog::db_oid_t database_oid,
                        catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) {
     for (uint8_t component = 0; component < num_components; component++) {
       if (MetricSupportsEvent(MetricsEventType::TUPLE_READ, static_cast<MetricsComponent>(component))) {
@@ -91,7 +91,7 @@ class MetricsStore {
    * @param namespace_oid OID of the namespace that the tuple update happens
    * @param table_oid OID of the table that the tuple update happens
    */
-  void RecordTupleUpdate(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid,
+  void RecordTupleUpdate(const transaction::TransactionContext &txn, catalog::db_oid_t database_oid,
                          catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) {
     for (uint8_t component = 0; component < num_components; component++) {
       if (MetricSupportsEvent(MetricsEventType::TUPLE_UPDATE, static_cast<MetricsComponent>(component))) {
@@ -107,7 +107,7 @@ class MetricsStore {
    * @param namespace_oid OID of the namespace that the tuple insert happens
    * @param table_oid OID of the table that the tuple insert happens
    */
-  void RecordTupleInsert(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid,
+  void RecordTupleInsert(const transaction::TransactionContext &txn, catalog::db_oid_t database_oid,
                          catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) {
     for (uint8_t component = 0; component < num_components; component++) {
       if (MetricSupportsEvent(MetricsEventType::TUPLE_INSERT, static_cast<MetricsComponent>(component))) {
@@ -123,7 +123,7 @@ class MetricsStore {
    * @param namespace_oid OID of the namespace that the tuple delete happens
    * @param table_oid OID of the table that the tuple delete happens
    */
-  void RecordTupleDelete(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid,
+  void RecordTupleDelete(const transaction::TransactionContext &txn, catalog::db_oid_t database_oid,
                          catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) {
     for (uint8_t component = 0; component < num_components; component++) {
       if (MetricSupportsEvent(MetricsEventType::TUPLE_DELETE, static_cast<MetricsComponent>(component))) {

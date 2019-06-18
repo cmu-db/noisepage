@@ -44,19 +44,19 @@ class Metric {
   /**
    * @param txn context of the transaction beginning
    */
-  virtual void OnTransactionBegin(const transaction::TransactionContext *txn) {}
+  virtual void OnTransactionBegin(const transaction::TransactionContext &txn) {}
 
   /**
    * @param txn context of the transaction committing
    * @param database_oid OID of the database where the txn happens.
    */
-  virtual void OnTransactionCommit(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid) {}
+  virtual void OnTransactionCommit(const transaction::TransactionContext &txn, catalog::db_oid_t database_oid) {}
 
   /**
    * @param txn context of the transaction aborting
    * @param database_oid OID of the database where the txn happens.
    */
-  virtual void OnTransactionAbort(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid) {}
+  virtual void OnTransactionAbort(const transaction::TransactionContext &txn, catalog::db_oid_t database_oid) {}
 
   /**
    * @param txn context of the transaction performing read
@@ -64,7 +64,7 @@ class Metric {
    * @param namespace_oid OID of the namespace that the tuple read happens
    * @param table_oid OID of the table that the tuple read happens
    */
-  virtual void OnTupleRead(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid,
+  virtual void OnTupleRead(const transaction::TransactionContext &txn, catalog::db_oid_t database_oid,
                            catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) {}
 
   /**
@@ -73,7 +73,7 @@ class Metric {
    * @param namespace_oid OID of the namespace that the tuple update happens
    * @param table_oid OID of the table that the tuple update happens
    */
-  virtual void OnTupleUpdate(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid,
+  virtual void OnTupleUpdate(const transaction::TransactionContext &txn, catalog::db_oid_t database_oid,
                              catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) {}
 
   /**
@@ -82,7 +82,7 @@ class Metric {
    * @param namespace_oid OID of the namespace that the tuple insert happens
    * @param table_oid OID of the table that the tuple insert happens
    */
-  virtual void OnTupleInsert(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid,
+  virtual void OnTupleInsert(const transaction::TransactionContext &txn, catalog::db_oid_t database_oid,
                              catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) {}
 
   /**
@@ -91,7 +91,7 @@ class Metric {
    * @param namespace_oid OID of the namespace that the tuple delete happens
    * @param table_oid OID of the table that the tuple delete happens
    */
-  virtual void OnTupleDelete(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid,
+  virtual void OnTupleDelete(const transaction::TransactionContext &txn, catalog::db_oid_t database_oid,
                              catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) {}
 
   /**

@@ -35,11 +35,16 @@ class MetricsManager {
     return common::ManagedPointer(result.first->second);
   }
 
+  /**
+   * Should be called by the thread when it is guaranteed to no longer be collecting any more metrics, otherwise,
+   * segfault could happen when the unique_ptr releases the MetricsStore
+   */
   void UnregisterThread() {
+    // TODO(Matt): if we add the notion of thread_local ThreadContext, this should probably be called from that
+    // destructor when thread is guaranteed to be in teardown state
     common::SpinLatch::ScopedSpinLatch guard(&write_latch_);
     const auto thread_id = std::this_thread::get_id();
     TERRIER_ASSERT(stores_map_.count(thread_id) == 1, "This thread was never registered.");
-    // TODO(Matt): defer an action for this because it's not safe to actually free this right now?
     stores_map_.erase(thread_id);
     TERRIER_ASSERT(stores_map_.count(thread_id) == 0, "Deletion from concurrent map failed.");
   }
@@ -49,7 +54,8 @@ class MetricsManager {
   }
 
   void EnableMetric(const MetricsComponent component) {
-    common::SpinLatch::ScopedSpinLatch guard(&write_latch_);
+    common::SpinLatch::ScopedSpinLatch guard(
+        &write_latch_);  // overly conservative if this is only called from SettingsManager?
     TERRIER_ASSERT(!(enabled_metrics_.test(static_cast<uint8_t>(component))), "Metric is already enabled.");
 
     ResetMetric(component);
