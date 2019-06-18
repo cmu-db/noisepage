@@ -19,7 +19,7 @@ enum class MetricsEventType { TXN_BEGIN, TXN_COMMIT, TXN_ABORT, TUPLE_READ, TUPL
 
 constexpr uint8_t num_events = 7;
 
-constexpr std::array<std::bitset<num_components>, num_events> event_dispatches UNUSED_ATTRIBUTE = {
+static constexpr std::array<std::bitset<num_components>, num_events> event_dispatches = {
     0x10,  // TXN_BEGIN:     010000:  TRANSACTION
     0x10,  // TXN_COMMIT:    010000:  TRANSACTION
     0x10,  // TXN_ABORT:     010000:  TRANSACTION
