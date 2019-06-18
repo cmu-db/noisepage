@@ -78,9 +78,7 @@ class WriteAheadLoggingTests : public TerrierTest {
       return storage::CommitRecord::Initialize(buf, txn_begin, txn_commit, nullptr, nullptr, false, nullptr);
     }
 
-    if (record_type == storage::LogRecordType::ABORT) {
-      return storage::AbortRecord::Initialize(buf, txn_begin);
-    }
+    if (record_type == storage::LogRecordType::ABORT) return storage::AbortRecord::Initialize(buf, txn_begin, nullptr);
 
     // TODO(Tianyu): Without a lookup mechanism this oid is not exactly meaningful. Implement lookup when possible
     auto database_oid = in->ReadValue<catalog::db_oid_t>();

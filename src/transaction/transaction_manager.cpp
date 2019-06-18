@@ -118,7 +118,7 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
   return result;
 }
 
-void TransactionManager::LogAbort(TransactionContext *const txn, const timestamp_t abort_time) {
+void TransactionManager::LogAbort(TransactionContext *const txn) {
   if (log_manager_ != LOGGING_DISABLED) {
     // If we are logging the AbortRecord, then the transaction must have previously flushed records, so it must have
     // made updates
@@ -126,7 +126,7 @@ void TransactionManager::LogAbort(TransactionContext *const txn, const timestamp
     // Here we will manually add an abort record and flush the buffer to ensure the logger
     // sees this record.
     byte *const abort_record = txn->redo_buffer_.NewEntry(storage::AbortRecord::Size());
-    storage::AbortRecord::Initialize(abort_record, txn->StartTime());
+    storage::AbortRecord::Initialize(abort_record, txn->StartTime(), txn);
     // Signal to the log manager that we are ready to be logged out
   } else {
     // Otherwise, logging is disabled. We should pretend to have flushed the record so the rest of the system proceeds
@@ -170,7 +170,7 @@ timestamp_t TransactionManager::Abort(TransactionContext *const txn) {
   // We flush the buffer containing an AbortRecord only if this transaction has previously flushed a RedoBuffer. This
   // way the Recovery manager knows to rollback changes for the aborted transaction.
   if (txn->redo_buffer_.HasFlushed()) {
-    LogAbort(txn, abort_time);
+    LogAbort(txn);
   } else {
     // Discard the redo buffer that is not yet logged out
     txn->redo_buffer_.Finalize(false);
