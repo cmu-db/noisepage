@@ -126,7 +126,7 @@ void TransactionManager::LogAbort(TransactionContext *const txn, const timestamp
     // Here we will manually add an abort record and flush the buffer to ensure the logger
     // sees this record.
     byte *const abort_record = txn->redo_buffer_.NewEntry(storage::AbortRecord::Size());
-    storage::AbortRecord::Initialize(abort_record, txn->StartTime());
+    storage::AbortRecord::Initialize(abort_record, txn->StartTime(), txn);
     // Signal to the log manager that we are ready to be logged out
   } else {
     // Otherwise, logging is disabled. We should pretend to have flushed the record so the rest of the system proceeds
