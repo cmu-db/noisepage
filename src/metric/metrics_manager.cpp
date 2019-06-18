@@ -10,7 +10,7 @@ void MetricsManager::Aggregate() {
   for (const auto &metrics_store : stores_map_) {
     auto raw_data = metrics_store.second->GetDataToAggregate();
 
-    for (uint8_t component = 0; component < num_components; component++) {
+    for (uint8_t component = 0; component < NUM_COMPONENTS; component++) {
       if (enabled_metrics_.test(component)) {
         if (aggregated_metrics_[component] == nullptr)
           aggregated_metrics_[component] = std::move(raw_data[component]);

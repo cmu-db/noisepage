@@ -35,7 +35,7 @@ class MetricsStore {
    * @param txn context of the transaction beginning
    */
   void RecordTransactionBegin(const transaction::TransactionContext &txn) {
-    for (uint8_t component = 0; component < num_components; component++) {
+    for (uint8_t component = 0; component < NUM_COMPONENTS; component++) {
       if (MetricSupportsEvent(MetricsEventType::TXN_BEGIN, static_cast<MetricsComponent>(component))) {
         metrics_[component]->OnTransactionBegin(txn);
       }
@@ -48,7 +48,7 @@ class MetricsStore {
    * @param database_oid OID of the database where the txn happens.
    */
   void RecordTransactionCommit(const transaction::TransactionContext &txn, catalog::db_oid_t database_oid) {
-    for (uint8_t component = 0; component < num_components; component++) {
+    for (uint8_t component = 0; component < NUM_COMPONENTS; component++) {
       if (MetricSupportsEvent(MetricsEventType::TXN_COMMIT, static_cast<MetricsComponent>(component))) {
         metrics_[component]->OnTransactionCommit(txn, database_oid);
       }
@@ -61,7 +61,7 @@ class MetricsStore {
    * @param database_oid OID of the database where the txn happens.
    */
   void RecordTransactionAbort(const transaction::TransactionContext &txn, catalog::db_oid_t database_oid) {
-    for (uint8_t component = 0; component < num_components; component++) {
+    for (uint8_t component = 0; component < NUM_COMPONENTS; component++) {
       if (MetricSupportsEvent(MetricsEventType::TXN_ABORT, static_cast<MetricsComponent>(component))) {
         metrics_[component]->OnTransactionAbort(txn, database_oid);
       }
@@ -77,7 +77,7 @@ class MetricsStore {
    */
   void RecordTupleRead(const transaction::TransactionContext &txn, catalog::db_oid_t database_oid,
                        catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) {
-    for (uint8_t component = 0; component < num_components; component++) {
+    for (uint8_t component = 0; component < NUM_COMPONENTS; component++) {
       if (MetricSupportsEvent(MetricsEventType::TUPLE_READ, static_cast<MetricsComponent>(component))) {
         metrics_[component]->OnTupleRead(txn, database_oid, namespace_oid, table_oid);
       }
@@ -93,7 +93,7 @@ class MetricsStore {
    */
   void RecordTupleUpdate(const transaction::TransactionContext &txn, catalog::db_oid_t database_oid,
                          catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) {
-    for (uint8_t component = 0; component < num_components; component++) {
+    for (uint8_t component = 0; component < NUM_COMPONENTS; component++) {
       if (MetricSupportsEvent(MetricsEventType::TUPLE_UPDATE, static_cast<MetricsComponent>(component))) {
         metrics_[component]->OnTupleUpdate(txn, database_oid, namespace_oid, table_oid);
       }
@@ -109,7 +109,7 @@ class MetricsStore {
    */
   void RecordTupleInsert(const transaction::TransactionContext &txn, catalog::db_oid_t database_oid,
                          catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) {
-    for (uint8_t component = 0; component < num_components; component++) {
+    for (uint8_t component = 0; component < NUM_COMPONENTS; component++) {
       if (MetricSupportsEvent(MetricsEventType::TUPLE_INSERT, static_cast<MetricsComponent>(component))) {
         metrics_[component]->OnTupleInsert(txn, database_oid, namespace_oid, table_oid);
       }
@@ -125,7 +125,7 @@ class MetricsStore {
    */
   void RecordTupleDelete(const transaction::TransactionContext &txn, catalog::db_oid_t database_oid,
                          catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) {
-    for (uint8_t component = 0; component < num_components; component++) {
+    for (uint8_t component = 0; component < NUM_COMPONENTS; component++) {
       if (MetricSupportsEvent(MetricsEventType::TUPLE_DELETE, static_cast<MetricsComponent>(component))) {
         metrics_[component]->OnTupleDelete(txn, database_oid, namespace_oid, table_oid);
       }
@@ -135,13 +135,13 @@ class MetricsStore {
  private:
   friend class MetricsManager;
 
-  explicit MetricsStore(const std::bitset<num_components> &enabled_metrics);
+  explicit MetricsStore(const std::bitset<NUM_COMPONENTS> &enabled_metrics);
 
-  std::array<std::unique_ptr<AbstractRawData>, num_components> GetDataToAggregate();
+  std::array<std::unique_ptr<AbstractRawData>, NUM_COMPONENTS> GetDataToAggregate();
 
-  std::array<std::unique_ptr<Metric>, num_components> metrics_;
+  std::array<std::unique_ptr<Metric>, NUM_COMPONENTS> metrics_;
 
-  const std::bitset<num_components> &enabled_metrics_;
+  const std::bitset<NUM_COMPONENTS> &enabled_metrics_;
 };
 
 }  // namespace terrier::metric

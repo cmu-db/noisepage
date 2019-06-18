@@ -49,7 +49,7 @@ class MetricsManager {
     TERRIER_ASSERT(stores_map_.count(thread_id) == 0, "Deletion from concurrent map failed.");
   }
 
-  const std::array<std::unique_ptr<AbstractRawData>, num_components> &AggregatedMetrics() const {
+  const std::array<std::unique_ptr<AbstractRawData>, NUM_COMPONENTS> &AggregatedMetrics() const {
     return aggregated_metrics_;
   }
 
@@ -75,9 +75,9 @@ class MetricsManager {
   common::SpinLatch write_latch_;
   std::unordered_map<std::thread::id, std::unique_ptr<MetricsStore>> stores_map_;
 
-  std::array<std::unique_ptr<AbstractRawData>, num_components> aggregated_metrics_;
+  std::array<std::unique_ptr<AbstractRawData>, NUM_COMPONENTS> aggregated_metrics_;
 
-  std::bitset<num_components> enabled_metrics_ = 0x0;
+  std::bitset<NUM_COMPONENTS> enabled_metrics_ = 0x0;
 };
 
 }  // namespace terrier::metric

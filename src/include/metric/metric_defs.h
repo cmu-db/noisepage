@@ -10,16 +10,16 @@ namespace terrier::metric {
  */
 enum class MetricsComponent : uint8_t { TRANSACTION, LOGGING };
 
-constexpr uint8_t num_components = 2;
+constexpr uint8_t NUM_COMPONENTS = 2;
 
 /**
  * Triggering events for stats collection
  */
 enum class MetricsEventType { TXN_BEGIN, TXN_COMMIT, TXN_ABORT, TUPLE_READ, TUPLE_UPDATE, TUPLE_INSERT, TUPLE_DELETE };
 
-constexpr uint8_t num_events = 7;
+constexpr uint8_t NUM_EVENTS = 7;
 
-static constexpr std::array<std::bitset<num_components>, num_events> event_dispatches = {
+static constexpr std::array<std::bitset<NUM_COMPONENTS>, NUM_EVENTS> event_dispatches = {
     0x1,  // TXN_BEGIN:     TRANSACTION
     0x1,  // TXN_COMMIT:    TRANSACTION
     0x1,  // TXN_ABORT:     TRANSACTION

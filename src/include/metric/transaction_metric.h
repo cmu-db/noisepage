@@ -33,7 +33,7 @@ class TransactionMetricRawData : public AbstractRawData {
     auto end = std::chrono::high_resolution_clock::now();
     auto start = data_[txn.TxnId().load()].start_;
     data_[txn.TxnId().load()].latency_ =
-        static_cast<int64_t>(std::chrono::duration_cast<std::chrono::microseconds>(end - start).count());
+        static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(end - start).count());
   }
 
   /**
@@ -80,27 +80,27 @@ class TransactionMetricRawData : public AbstractRawData {
   /**
    * @return the latency of the given transaction
    */
-  int64_t GetLatency(transaction::timestamp_t txn_id) { return data_[txn_id].latency_; }
+  uint64_t GetLatency(transaction::timestamp_t txn_id) { return data_[txn_id].latency_; }
 
   /**
    * @return the tuples read of the given transaction
    */
-  int64_t GetTupleRead(transaction::timestamp_t txn_id) { return data_[txn_id].tuple_read_; }
+  uint64_t GetTupleRead(transaction::timestamp_t txn_id) { return data_[txn_id].tuple_read_; }
 
   /**
    * @return the tuples updated of the given transaction
    */
-  int64_t GetTupleUpdate(transaction::timestamp_t txn_id) { return data_[txn_id].tuple_update_; }
+  uint64_t GetTupleUpdate(transaction::timestamp_t txn_id) { return data_[txn_id].tuple_update_; }
 
   /**
    * @return the tuples inserted of the given transaction
    */
-  int64_t GetTupleInsert(transaction::timestamp_t txn_id) { return data_[txn_id].tuple_insert_; }
+  uint64_t GetTupleInsert(transaction::timestamp_t txn_id) { return data_[txn_id].tuple_insert_; }
 
   /**
    * @return the tuples deleted of the given transaction
    */
-  int64_t GetTupleDelete(transaction::timestamp_t txn_id) { return data_[txn_id].tuple_delete_; }
+  uint64_t GetTupleDelete(transaction::timestamp_t txn_id) { return data_[txn_id].tuple_delete_; }
 
  private:
   /**
@@ -114,23 +114,23 @@ class TransactionMetricRawData : public AbstractRawData {
     /**
      * Latency of the transaction
      */
-    int64_t latency_;
+    uint64_t latency_;
     /**
      * Number of tuples read by the transaction
      */
-    int64_t tuple_read_;
+    uint64_t tuple_read_;
     /**
      * Number of tuples inserted by the transaction
      */
-    int64_t tuple_insert_;
+    uint64_t tuple_insert_;
     /**
      * Number of tuples deleted by the transaction
      */
-    int64_t tuple_delete_;
+    uint64_t tuple_delete_;
     /**
      * Number of tuples updated by the transaction
      */
-    int64_t tuple_update_;
+    uint64_t tuple_update_;
   };
 
   /**

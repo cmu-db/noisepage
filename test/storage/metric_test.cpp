@@ -85,12 +85,12 @@ TEST_F(MetricTests, TransactionMetricBasicTest) {
     aggregator.EnableMetric(MetricsComponent::TRANSACTION);
 
     std::unordered_map<uint8_t, transaction::timestamp_t> id_map;
-    std::unordered_map<transaction::timestamp_t, int64_t> read_map;
-    std::unordered_map<transaction::timestamp_t, int64_t> update_map;
-    std::unordered_map<transaction::timestamp_t, int64_t> insert_map;
-    std::unordered_map<transaction::timestamp_t, int64_t> delete_map;
-    std::unordered_map<transaction::timestamp_t, int64_t> latency_min_map;
-    std::unordered_map<transaction::timestamp_t, int64_t> latency_max_map;
+    std::unordered_map<transaction::timestamp_t, uint64_t> read_map;
+    std::unordered_map<transaction::timestamp_t, uint64_t> update_map;
+    std::unordered_map<transaction::timestamp_t, uint64_t> insert_map;
+    std::unordered_map<transaction::timestamp_t, uint64_t> delete_map;
+    std::unordered_map<transaction::timestamp_t, uint64_t> latency_min_map;
+    std::unordered_map<transaction::timestamp_t, uint64_t> latency_max_map;
 
     for (uint8_t j = 0; j < num_txns_; j++) {
       auto start_max = std::chrono::high_resolution_clock::now();
@@ -177,12 +177,12 @@ TEST_F(MetricTests, TransactionMetricStorageTest) {
     aggregator.EnableMetric(MetricsComponent::TRANSACTION);
 
     std::unordered_map<uint8_t, transaction::timestamp_t> id_map;
-    std::unordered_map<transaction::timestamp_t, int64_t> read_map;
-    std::unordered_map<transaction::timestamp_t, int64_t> update_map;
-    std::unordered_map<transaction::timestamp_t, int64_t> insert_map;
-    std::unordered_map<transaction::timestamp_t, int64_t> delete_map;
-    std::unordered_map<transaction::timestamp_t, int64_t> latency_min_map;
-    std::unordered_map<transaction::timestamp_t, int64_t> latency_max_map;
+    std::unordered_map<transaction::timestamp_t, uint64_t> read_map;
+    std::unordered_map<transaction::timestamp_t, uint64_t> update_map;
+    std::unordered_map<transaction::timestamp_t, uint64_t> insert_map;
+    std::unordered_map<transaction::timestamp_t, uint64_t> delete_map;
+    std::unordered_map<transaction::timestamp_t, uint64_t> latency_min_map;
+    std::unordered_map<transaction::timestamp_t, uint64_t> latency_max_map;
     for (uint8_t j = 0; j < num_txns_; j++) {
       auto start_max = std::chrono::high_resolution_clock::now();
       auto *txn = txn_manager_->BeginTransaction();
@@ -244,8 +244,8 @@ TEST_F(MetricTests, MultiThreadTest) {
 
   for (uint8_t i = 0; i < num_iterations_; i++) {
     common::ConcurrentQueue<transaction::timestamp_t> txn_queue;
-    common::ConcurrentMap<transaction::timestamp_t, int64_t> latency_max_map;
-    common::ConcurrentMap<transaction::timestamp_t, int64_t> latency_min_map;
+    common::ConcurrentMap<transaction::timestamp_t, uint64_t> latency_max_map;
+    common::ConcurrentMap<transaction::timestamp_t, uint64_t> latency_min_map;
     MetricsManager aggregator;
     aggregator.EnableMetric(MetricsComponent::TRANSACTION);
     auto num_read = static_cast<uint8_t>(std::uniform_int_distribution<uint8_t>(1, UINT8_MAX)(generator_));

@@ -7,18 +7,17 @@
 
 namespace terrier::metric {
 
-MetricsStore::MetricsStore(const std::bitset<num_components> &enabled_metrics) : enabled_metrics_{enabled_metrics} {
+MetricsStore::MetricsStore(const std::bitset<NUM_COMPONENTS> &enabled_metrics) : enabled_metrics_{enabled_metrics} {
   metrics_[static_cast<uint8_t>(MetricsComponent::TRANSACTION)] = std::make_unique<TransactionMetric>();
 }
 
-std::array<std::unique_ptr<AbstractRawData>, num_components> MetricsStore::GetDataToAggregate() {
-  std::array<std::unique_ptr<AbstractRawData>, num_components> result;
+std::array<std::unique_ptr<AbstractRawData>, NUM_COMPONENTS> MetricsStore::GetDataToAggregate() {
+  std::array<std::unique_ptr<AbstractRawData>, NUM_COMPONENTS> result;
 
-  for (uint8_t component = 0; component < num_components; component++) {
+  for (uint8_t component = 0; component < NUM_COMPONENTS; component++) {
     if (enabled_metrics_.test(component)) {
       result[component] = metrics_[component]->Swap();
     }
-    // TODO(Matt): else clean up disabled metrics with deferred action?
   }
 
   return result;
