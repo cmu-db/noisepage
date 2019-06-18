@@ -325,7 +325,6 @@ void DataTable::NewBlock(RawBlock *expected_val) {
   data_table_counter_.IncrementNumNewBlock(1);
 }
 
-
 bool DataTable::HasConflict(const transaction::TransactionContext &txn, const TupleSlot slot) const {
   UndoRecord *const version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
   return HasConflict(txn, version_ptr);

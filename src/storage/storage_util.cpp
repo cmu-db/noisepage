@@ -164,5 +164,4 @@ void StorageUtil::DeallocateVarlens(RawBlock *block, const TupleAccessStrategy &
   }
 }
 
-
 }  // namespace terrier::storage
