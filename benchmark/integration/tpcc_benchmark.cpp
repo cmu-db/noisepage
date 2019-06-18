@@ -20,7 +20,7 @@
 
 namespace terrier::tpcc {
 
-#define LOG_FILE_NAME "./tpcc.log"
+#define LOG_FILE_NAME "/mnt/ramdisk/tpcc.log"
 
 /**
  * The behavior in these benchmarks mimics that of /test/integration/tpcc_test.cpp. If something changes here, it should
@@ -216,10 +216,10 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
 BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithoutLogging)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
-    ->MinTime(10);
+    ->MinTime(20);
 
 BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithLogging)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
-    ->MinTime(10);
+    ->MinTime(20);
 }  // namespace terrier::tpcc
