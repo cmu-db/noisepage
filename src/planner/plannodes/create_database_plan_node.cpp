@@ -21,9 +21,7 @@ bool CreateDatabasePlanNode::operator==(const AbstractPlanNode &rhs) const {
   auto &other = dynamic_cast<const CreateDatabasePlanNode &>(rhs);
 
   // Database name
-  if (database_name_ != other.database_name_) return false;
-
-  return true;
+  return (database_name_ != other.database_name_);
 }
 
 nlohmann::json CreateDatabasePlanNode::ToJson() const {

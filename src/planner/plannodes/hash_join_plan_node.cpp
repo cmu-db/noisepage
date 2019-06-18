@@ -24,7 +24,7 @@ common::hash_t HashJoinPlanNode::Hash() const {
 }
 
 bool HashJoinPlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (!AbstractPlanNode::operator==(rhs)) return false;
+  if (!AbstractJoinPlanNode::operator==(rhs)) return false;
 
   const auto &other = static_cast<const HashJoinPlanNode &>(rhs);
 

@@ -4,7 +4,7 @@
 namespace terrier::planner {
 
 common::hash_t SeqScanPlanNode::Hash() const {
-  common::hash_t hash = AbstractPlanNode::Hash();
+  common::hash_t hash = AbstractScanPlanNode::Hash();
 
   // Nothing for us to do here!
 
@@ -12,8 +12,6 @@ common::hash_t SeqScanPlanNode::Hash() const {
 }
 
 bool SeqScanPlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (!AbstractPlanNode::operator==(rhs)) return false;
-
   // Since this node type does not have any internal members of its own,
   // there is nothing for us to do here!
   // auto &other = static_cast<const SeqScanPlanNode &>(rhs);

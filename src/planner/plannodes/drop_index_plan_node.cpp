@@ -34,10 +34,10 @@ bool DropIndexPlanNode::operator==(const AbstractPlanNode &rhs) const {
   if (namespace_oid_ != other.namespace_oid_) return false;
 
   // Index OID
-  if (GetIndexOid() != other.GetIndexOid()) return false;
+  if (index_oid_ != other.index_oid_) return false;
 
   // If exists
-  if (IsIfExists() != other.IsIfExists()) return false;
+  if (if_exists_ != other.if_exists_) return false;
 
   return true;
 }
