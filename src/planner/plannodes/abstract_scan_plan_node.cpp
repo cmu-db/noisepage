@@ -3,50 +3,56 @@
 
 namespace terrier::planner {
 
-bool AbstractScanPlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (!AbstractPlanNode::operator==(rhs)) return false;
-
-  // Check predicate
-  auto &other = dynamic_cast<const AbstractScanPlanNode &>(rhs);
-
-  auto &pred = GetScanPredicate();
-  auto &other_pred = other.GetScanPredicate();
-  if ((pred == nullptr && other_pred != nullptr) || (pred != nullptr && other_pred == nullptr)) {
-    return false;
-  }
-  if (pred != nullptr && *pred != *other_pred) {
-    return false;
-  }
-
-  return IsForUpdate() == other.IsForUpdate() && IsParallel() == other.IsParallel() &&
-         GetDatabaseOid() == other.GetDatabaseOid() && GetNamespaceOid() == other.GetNamespaceOid();
-}
-
 common::hash_t AbstractScanPlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
 
-  // Hash predicate
-  if (GetScanPredicate() != nullptr) {
-    hash = common::HashUtil::CombineHashes(hash, GetScanPredicate()->Hash());
+  // Database oid
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
+
+  // Namespace oid
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+
+  // Predicate
+  if (scan_predicate_ != nullptr) {
+    hash = common::HashUtil::CombineHashes(hash, scan_predicate_->Hash());
   }
 
-  // Hash update flag
-  auto is_for_update = IsForUpdate();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&is_for_update));
+  // Is For Update Flag
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(is_for_update_));
 
-  // Hash parallel flag
-  auto is_parallel = IsParallel();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&is_parallel));
-
-  // Hash database oid
-  auto database_oid = GetDatabaseOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid));
-
-  // Hash namespace oid
-  auto namespace_oid = GetNamespaceOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&namespace_oid));
+  // Is Parallel Flag
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(is_parallel_));
 
   return hash;
+}
+
+bool AbstractScanPlanNode::operator==(const AbstractPlanNode &rhs) const {
+  if (!AbstractPlanNode::operator==(rhs)) return false;
+
+  auto &other = dynamic_cast<const AbstractScanPlanNode &>(rhs);
+
+  // Database Oid
+  if (database_oid_ != other.database_oid_) return false;
+
+  // Namespace Oid
+  if (namespace_oid_ != other.namespace_oid_) return false;
+
+  // Predicate
+  if ((scan_predicate_ == nullptr && other.scan_predicate_ != nullptr) ||
+      (scan_predicate_ != nullptr && other.scan_predicate_ == nullptr)) {
+    return false;
+  }
+  if (scan_predicate_ != nullptr && *scan_predicate_ != *other.scan_predicate_) {
+    return false;
+  }
+
+  // Is For Update Flag
+  if (is_for_update_ != other.is_for_update_) return false;
+
+  // Is Parallel Flag
+  if (is_parallel_ != other.is_parallel_) return false;
+
+  return true;
 }
 
 nlohmann::json AbstractScanPlanNode::ToJson() const {
