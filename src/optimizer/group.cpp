@@ -1,6 +1,5 @@
 #include "loggers/optimizer_logger.h"
 #include "optimizer/group.h"
-#include "util/string_util.h"
 
 namespace terrier {
 namespace optimizer {

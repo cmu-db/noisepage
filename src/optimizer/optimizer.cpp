@@ -45,7 +45,8 @@ planner::AbstractPlanNode* Optimizer::BuildPlanTree(
     OperatorExpression* op_tree,
     QueryInfo query_info,
     transaction::TransactionContext *txn,
-    settings::SettingsManager *settings) {
+    settings::SettingsManager *settings,
+    catalog::CatalogAccessor *accessor) {
 
   metadata_.txn = txn;
 
@@ -63,7 +64,7 @@ planner::AbstractPlanNode* Optimizer::BuildPlanTree(
   }
 
   try {
-    OptimizeLoop(root_id, query_info.physical_props, settings);
+    OptimizeLoop(root_id, query_info.physical_props, settings, accessor);
   } catch (OptimizerException &e) {
     OPTIMIZER_LOG_WARN("Optimize Loop ended prematurely: %s", e.what());
   }
@@ -73,7 +74,7 @@ planner::AbstractPlanNode* Optimizer::BuildPlanTree(
 
     // Reset memo after finishing the optimization
     Reset();
-    return std::move(best_plan);
+    return best_plan;
   } catch (Exception &e) {
     Reset();
     throw e;
@@ -141,23 +142,24 @@ planner::AbstractPlanNode* Optimizer::ChooseBestPlan(
 void Optimizer::OptimizeLoop(
     int root_group_id,
     PropertySet* required_props,
-    settings::SettingsManager *settings) {
+    settings::SettingsManager *settings,
+    catalog::CatalogAccessor *accessor) {
 
-  OptimizeContext* root_context = new OptimizeContext(&metadata_, required_props);
+  OptimizeContext* root_context = new OptimizeContext(&metadata_, required_props->Copy());
   auto task_stack = new OptimizerTaskStack();
   metadata_.SetTaskPool(task_stack);
   metadata_.track_list.push_back(root_context);
 
   // Perform rewrite first
-  task_stack->Push(new TopDownRewrite(root_group_id, root_context, RewriteRuleSetName::PREDICATE_PUSH_DOWN));
-  task_stack->Push(new BottomUpRewrite(root_group_id, root_context, RewriteRuleSetName::UNNEST_SUBQUERY, false));
+  task_stack->Push(new TopDownRewrite(root_group_id, root_context, RewriteRuleSetName::PREDICATE_PUSH_DOWN, accessor));
+  task_stack->Push(new BottomUpRewrite(root_group_id, root_context, RewriteRuleSetName::UNNEST_SUBQUERY, false, accessor));
   ExecuteTaskStack(task_stack, root_group_id, root_context, settings);
 
   // Perform optimization after the rewrite
-  task_stack->Push(new OptimizeGroup(metadata_.memo.GetGroupByID(root_group_id), root_context));
+  task_stack->Push(new OptimizeGroup(metadata_.memo.GetGroupByID(root_group_id), root_context, accessor));
 
   // Derive stats for the only one logical expression before optimizing
-  task_stack->Push(new DeriveStats(metadata_.memo.GetGroupByID(root_group_id)->GetLogicalExpression(), ExprSet{}, root_context));
+  task_stack->Push(new DeriveStats(metadata_.memo.GetGroupByID(root_group_id)->GetLogicalExpression(), ExprSet{}, root_context, accessor));
   ExecuteTaskStack(task_stack, root_group_id, root_context, settings);
 }
 

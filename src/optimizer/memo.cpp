@@ -1,4 +1,3 @@
-#include "util/string_util.h"
 #include "optimizer/group_expression.h"
 #include "optimizer/memo.h"
 #include "optimizer/logical_operators.h"

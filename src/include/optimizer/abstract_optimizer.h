@@ -17,6 +17,10 @@ namespace planner {
 class AbstractPlanNode;
 }
 
+namespace catalog {
+class CatalogAccessor;
+}
+
 namespace transaction {
 class TransactionContext;
 }
@@ -60,13 +64,15 @@ class AbstractOptimizer {
    * @param query_info Information about the query
    * @param txn TransactionContext
    * @param settings SettingsManager to read settings from
+   * @param accessor CatalogAccessor for catalog
    * @returns execution plan
    */
   virtual planner::AbstractPlanNode* BuildPlanTree(
       OperatorExpression* op_tree,
       QueryInfo query_info,
       transaction::TransactionContext *txn,
-      settings::SettingsManager *settings) = 0;
+      settings::SettingsManager *settings,
+      catalog::CatalogAccessor *accessor) = 0;
 
   /**
    * Reset the optimizer's internal state

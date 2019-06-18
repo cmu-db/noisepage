@@ -3,6 +3,7 @@
 #include "common/hash_util.h"
 #include "common/managed_pointer.h"
 #include "parser/expression/tuple_value_expression.h"
+#include "planner/plannodes/plan_node_defs.h"
 #include "optimizer/property.h"
 
 namespace terrier {
@@ -17,7 +18,7 @@ class PropertySort : public Property {
    * @param sort_ascending Whether each sort_column is ascending or descending
    */
   PropertySort(std::vector<common::ManagedPointer<parser::AbstractExpression>> sort_columns,
-               std::vector<bool> sort_ascending)
+               std::vector<planner::OrderByOrderingType> sort_ascending)
     : sort_columns_(std::move(sort_columns)),
       sort_ascending_(std::move(sort_ascending)) {}
 
@@ -56,7 +57,7 @@ class PropertySort : public Property {
    * @param idx Index of ascending flag to retrieve
    * @returns Whether sort column at index idx is sorted in ascending order
    */
-  inline bool GetSortAscending(int idx) const { return sort_ascending_[idx]; }
+  inline planner::OrderByOrderingType GetSortAscending(int idx) const { return sort_ascending_[idx]; }
 
   /**
    * Hashes this PropertySort
@@ -82,7 +83,7 @@ class PropertySort : public Property {
 
  private:
   std::vector<common::ManagedPointer<parser::AbstractExpression>> sort_columns_;
-  std::vector<bool> sort_ascending_;
+  std::vector<planner::OrderByOrderingType> sort_ascending_;
 };
 
 }  // namespace optimizer

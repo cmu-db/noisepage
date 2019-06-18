@@ -18,10 +18,6 @@
 
 namespace terrier {
 
-namespace catalog {
-class TableCatalogEntry;
-}  // namespace catalog
-
 namespace parser {
 class AbstractExpression;
 class UpdateClause;

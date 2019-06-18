@@ -14,6 +14,10 @@ namespace planner {
 class AbstractPlanNode;
 }  // namespace planner
 
+namespace catalog {
+class CatalogAccessor;
+}
+
 namespace optimizer {
 class OperatorExpression;
 }  // namespace optimizer
@@ -45,13 +49,15 @@ class Optimizer : public AbstractOptimizer {
    * @param query_info Information about the query
    * @param txn TransactionContext
    * @param settings SettingsManager to read settings from
+   * @param accessor CatalogAccessor for catalog
    * @returns execution plan
    */
   planner::AbstractPlanNode* BuildPlanTree(
       OperatorExpression* op_tree,
       QueryInfo query_info,
       transaction::TransactionContext *txn,
-      settings::SettingsManager *settings) override;
+      settings::SettingsManager *settings,
+      catalog::CatalogAccessor *accessor) override;
 
   /**
    * Invoke a single optimization pass through the entire query.
@@ -59,11 +65,13 @@ class Optimizer : public AbstractOptimizer {
    * @param root_group_id Group to begin optimization at
    * @param required_props Physical properties to enforce
    * @param settings SettingsManager to read settings from
+   * @param accessor CatalogAccessor for catalog access
    */
   void OptimizeLoop(
       int root_group_id,
       PropertySet* required_props,
-      settings::SettingsManager *settings);
+      settings::SettingsManager *settings,
+      catalog::CatalogAccessor *accessor);
 
   /**
    * Reset the optimizer state

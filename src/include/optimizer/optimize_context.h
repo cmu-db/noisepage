@@ -18,7 +18,7 @@ class OptimizeContext {
   /**
    * Constructor
    * @param metadata OptimizerMetadata containing optimization metadata
-   * @param required_prop Properties required to satisfy
+   * @param required_prop Properties required to satisfy. acquires ownership
    * @param cost_upper_bound Upper cost bound
    */
   OptimizeContext(OptimizerMetadata *metadata,
@@ -27,6 +27,10 @@ class OptimizeContext {
       : metadata(metadata),
         required_prop(required_prop),
         cost_upper_bound(cost_upper_bound) {}
+
+  ~OptimizeContext() {
+    delete required_prop;
+  }
 
   OptimizerMetadata *metadata;
   PropertySet* required_prop;
