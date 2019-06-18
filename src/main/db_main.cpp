@@ -9,7 +9,7 @@
 
 namespace terrier {
 
-void DBMain::Init() {
+DBMain::DBMain() {
   LoggersUtil::Initialize(false);
 
   // initialize stat registry
@@ -25,9 +25,8 @@ void DBMain::Init() {
   gc_thread_ = new storage::GarbageCollectorThread(txn_manager_,
                                                    std::chrono::milliseconds{type::TransientValuePeeker::PeekInteger(
                                                        param_map_.find(settings::Param::gc_interval)->second.value_)});
-  transaction::TransactionContext *txn = txn_manager_->BeginTransaction();
   settings_manager_ = new settings::SettingsManager(this);
-  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  metrics_manager_ = new metric::MetricsManager;
 
   // Create LogManager
   log_manager_ = new storage::LogManager(
@@ -42,17 +41,15 @@ void DBMain::Init() {
       type::TransientValuePeeker::PeekInteger(param_map_.find(settings::Param::num_worker_threads)->second.value_), {});
   thread_pool_->Startup();
 
-  t_cop_ = new terrier::trafficcop::TrafficCop;
-  command_factory_ = new terrier::network::PostgresCommandFactory;
+  t_cop_ = new trafficcop::TrafficCop;
+  command_factory_ = new network::PostgresCommandFactory;
 
-  connection_handle_factory_ = new terrier::network::ConnectionHandleFactory(common::ManagedPointer(t_cop_));
-  provider_ = new terrier::network::PostgresProtocolInterpreter::Provider(common::ManagedPointer(command_factory_));
-  server_ = new terrier::network::TerrierServer(common::ManagedPointer(provider_),
-                                                common::ManagedPointer(connection_handle_factory_));
+  connection_handle_factory_ = new network::ConnectionHandleFactory(common::ManagedPointer(t_cop_));
+  provider_ = new network::PostgresProtocolInterpreter::Provider(common::ManagedPointer(command_factory_));
+  server_ =
+      new network::TerrierServer(common::ManagedPointer(provider_), common::ManagedPointer(connection_handle_factory_));
 
   LOG_INFO("Initialization complete");
-
-  initialized = true;
 }
 
 void DBMain::Run() {
