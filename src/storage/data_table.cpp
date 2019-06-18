@@ -20,7 +20,7 @@ DataTable::DataTable(BlockStore *const store, const BlockLayout &layout, const l
 DataTable::~DataTable() {
   common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
   for (RawBlock *block : blocks_) {
-    DeallocateVarlensOnShutdown(block);
+    StorageUtil::DeallocateVarlens(block, accessor_);
     for (col_id_t i : accessor_.GetBlockLayout().Varlens())
       accessor_.GetArrowBlockMetadata(block).GetColumnInfo(accessor_.GetBlockLayout(), i).Deallocate();
     block_store_->Release(block);
@@ -325,18 +325,6 @@ void DataTable::NewBlock(RawBlock *expected_val) {
   data_table_counter_.IncrementNumNewBlock(1);
 }
 
-void DataTable::DeallocateVarlensOnShutdown(RawBlock *block) {
-  const BlockLayout &layout = accessor_.GetBlockLayout();
-  for (col_id_t col : layout.Varlens()) {
-    for (uint32_t offset = 0; offset < layout.NumSlots(); offset++) {
-      TupleSlot slot(block, offset);
-      if (!accessor_.Allocated(slot)) continue;
-      auto *entry = reinterpret_cast<VarlenEntry *>(accessor_.AccessWithNullCheck(slot, col));
-      // If entry is null here, the varlen entry is a null SQL value.
-      if (entry != nullptr && entry->NeedReclaim()) delete[] entry->Content();
-    }
-  }
-}
 
 bool DataTable::HasConflict(const transaction::TransactionContext &txn, const TupleSlot slot) const {
   UndoRecord *const version_ptr = AtomicallyReadVersionPtr(slot, accessor_);

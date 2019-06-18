@@ -137,5 +137,7 @@ class StorageUtil {
    * @return vector of column ids
    */
   static std::vector<storage::col_id_t> ProjectionListAllColumns(const storage::BlockLayout &layout);
+
+  static void DeallocateVarlens(RawBlock *block, const TupleAccessStrategy &accessor);
 };
 }  // namespace terrier::storage

@@ -138,9 +138,8 @@ TEST_F(BlockCompactorTest, CompactionTest) {
 
     gc.PerformGarbageCollection();
     gc.PerformGarbageCollection();  // Second call to deallocate.
-    // Deallocate all the leftover gathered varlens
-    for (storage::col_id_t col_id : layout.AllColumns())
-      if (layout.IsVarlen(col_id)) arrow_metadata.GetColumnInfo(layout, col_id).Deallocate();
+    // Deallocate all the leftover versions
+    storage::StorageUtil::DeallocateVarlens(block, accessor);
     block_store_.Release(block);
   }
 }
@@ -238,6 +237,7 @@ TEST_F(BlockCompactorTest, GatherTest) {
     gc.PerformGarbageCollection();
     gc.PerformGarbageCollection();  // Second call to deallocate.
     // Deallocate all the leftover gathered varlens
+    // No need to gather the ones still in the block because they are presumably all gathered
     for (storage::col_id_t col_id : layout.AllColumns())
       if (layout.IsVarlen(col_id)) arrow_metadata.GetColumnInfo(layout, col_id).Deallocate();
     block_store_.Release(block);
@@ -353,6 +353,7 @@ TEST_F(BlockCompactorTest, DictionaryCompressionTest) {
     gc.PerformGarbageCollection();
     gc.PerformGarbageCollection();  // Second call to deallocate.
     // Deallocate all the leftover gathered varlens
+    // No need to gather the ones still in the block because they are presumably all gathered
     for (storage::col_id_t col_id : layout.AllColumns())
       if (layout.IsVarlen(col_id)) arrow_metadata.GetColumnInfo(layout, col_id).Deallocate();
     block_store_.Release(block);
