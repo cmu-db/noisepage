@@ -13,6 +13,9 @@
 
 namespace terrier::storage {
 
+// Forward declaration
+class RecoveryManager;
+
 /**
  * A SqlTable is a thin layer above DataTable that replaces storage layer concepts like BlockLayout with SQL layer
  * concepts like Schema. The goal is to hide concepts like col_id_t and BlockLayout above the SqlTable level.
@@ -87,10 +90,10 @@ class SqlTable {
    */
   TupleSlot Insert(transaction::TransactionContext *const txn, RedoRecord *const redo) const {
     TERRIER_ASSERT(redo->GetTupleSlot() == TupleSlot(nullptr, 0), "TupleSlot was set in this RedoRecord.");
-    TERRIER_ASSERT(redo == reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
-                               ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
-                   "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
-                   "immediately before?");
+//    TERRIER_ASSERT(redo == reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
+//                               ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
+//                   "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
+//                   "immediately before?");
     const auto slot = table_.data_table->Insert(txn, *(redo->Delta()));
     redo->SetTupleSlot(slot);
     return slot;
@@ -192,6 +195,8 @@ class SqlTable {
  private:
   FRIEND_TEST(WriteAheadLoggingTests, AbortRecordTest);
   FRIEND_TEST(WriteAheadLoggingTests, NoAbortRecordTest);
+  FRIEND_TEST(RecoveryTests, SingleTransactionRecoveryTest);
+  friend class RecoveryManager;
   BlockStore *const block_store_;
   const catalog::table_oid_t oid_;
 

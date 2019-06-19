@@ -16,6 +16,7 @@
 #include "storage/storage_util.h"
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
+#include "storage/sql_table.h"
 #include "type/type_id.h"
 #include "util/multithread_test_util.h"
 #include "util/random_test_util.h"
@@ -296,6 +297,32 @@ struct StorageTestUtil {
       }
     }
     return os.str();
+  }
+  
+  // Returns a set of string representation of tuples for a given table with given block layout. Returns the first num_tuples number of tuples.
+  static std::unordered_set<std::string> PrintRows(uint32_t num_tuples, storage::SqlTable* table, const storage::BlockLayout &layout, transaction::TransactionManager *txn_manager) {
+
+    // Initialize projected columns
+    std::vector<storage::col_id_t> all_cols = StorageTestUtil::ProjectionListAllColumns(layout);
+    EXPECT_NE((!all_cols[all_cols.size() - 1]), -1);
+    storage::ProjectedColumnsInitializer initializer(layout, all_cols, num_tuples);
+    auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedColumnsSize());
+    storage::ProjectedColumns *columns = initializer.Initialize(buffer);
+
+    // Scan the table
+    auto *txn = txn_manager->BeginTransaction();
+    auto it = table->begin();
+    table->Scan(txn, &it, columns);
+    txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+    EXPECT_EQ(num_tuples, columns->NumTuples());
+
+    // Get string representation of all tuples scanned
+    std::unordered_set<std::string> result;
+    for (uint32_t i = 0; i < num_tuples; i++) {
+      result.emplace(PrintRow(columns->InterpretAsRow(i), layout));
+    }
+
+    return result;
   }
 
   // Write the given tuple (projected row) into a block using the given access strategy,

@@ -25,7 +25,7 @@ class TransactionManager {
    * buffers.
    * @param buffer_pool the buffer pool to use for transaction undo buffers
    * @param gc_enabled true if txns should be stored in a local queue to hand off to the GC, false otherwise
-   * @param log_manager the log manager in the system, or LOGGING_DISABLED(nulllptr) if logging is turned off.
+   * @param log_manager the log manager in the system, or LOGGING_DISABLED(nullptr) if logging is turned off.
    */
   TransactionManager(storage::RecordBufferSegmentPool *const buffer_pool, const bool gc_enabled,
                      storage::LogManager *log_manager)
@@ -36,6 +36,13 @@ class TransactionManager {
    * @return transaction context for the newly begun transaction
    */
   TransactionContext *BeginTransaction();
+
+  /**
+* Begins a transaction with a specific txn id
+ * @param timestamp begin timestamp for txn
+* @return transaction context for the newly begun transaction
+*/
+  TransactionContext *BeginTransaction(timestamp_t timestamp);
 
   /**
    * Commits a transaction, making all of its changes visible to others.
@@ -94,6 +101,7 @@ class TransactionManager {
   std::queue<std::pair<timestamp_t, Action>> DeferredActionsForGC();
 
  private:
+  friend class RecoveryManager;
   storage::RecordBufferSegmentPool *buffer_pool_;
   // TODO(Tianyu): Timestamp generation needs to be more efficient (batches)
   // TODO(Tianyu): We don't handle timestamp wrap-arounds. I doubt this would be an issue though.
