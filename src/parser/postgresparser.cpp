@@ -341,9 +341,6 @@ ExpressionType PostgresParser::StringToExpressionType(const std::string &parser_
   if (str == "AGGREGATE_COUNT") {
     return ExpressionType::AGGREGATE_COUNT;
   }
-  if (str == "AGGREGATE_COUNT_STAR") {
-    return ExpressionType::AGGREGATE_COUNT_STAR;
-  }
   if (str == "AGGREGATE_SUM") {
     return ExpressionType::AGGREGATE_SUM;
   }

@@ -133,7 +133,7 @@ TEST(PlanNodeJsonTest, AggregatePlanNodeJsonTest) {
 
   std::vector<std::shared_ptr<parser::AbstractExpression>> children;
   children.push_back(PlanNodeJsonTest::BuildDummyPredicate());
-  auto agg_term = std::make_shared<parser::AggregateExpression>(parser::ExpressionType::AGGREGATE_COUNT_STAR,
+  auto agg_term = std::make_shared<parser::AggregateExpression>(parser::ExpressionType::AGGREGATE_COUNT,
                                                                 std::move(children), false);
   AggregatePlanNode::Builder builder;
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())

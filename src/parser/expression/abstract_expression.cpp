@@ -51,7 +51,6 @@ std::shared_ptr<AbstractExpression> DeserializeExpression(const nlohmann::json &
   auto expression_type = j.at("expression_type").get<ExpressionType>();
   switch (expression_type) {
     case ExpressionType::AGGREGATE_COUNT:
-    case ExpressionType::AGGREGATE_COUNT_STAR:
     case ExpressionType::AGGREGATE_SUM:
     case ExpressionType::AGGREGATE_MIN:
     case ExpressionType::AGGREGATE_MAX:
