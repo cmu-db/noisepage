@@ -9,8 +9,8 @@
 #include <iterator>
 #include <map>
 #include <string>
-#include <vector>
 #include <tuple>
+#include <vector>
 
 #include "common/macros.h"
 #include "loggers/optimizer_logger.h"
@@ -27,24 +27,18 @@ namespace terrier::optimizer {
 template <typename PointType>
 class Histogram {
  public:
-
   /**
    * Constructor.
    * @param max_bins maximum number of bins in histogram.
    */
-  Histogram(const uint8_t max_bins)
-      : max_bins_{max_bins},
-        bins_{},
-        total_{0},
-        minimum_{DBL_MAX},
-        maximum_{DBL_MIN} {}
+  explicit Histogram(const uint8_t max_bins)
+      : max_bins_{max_bins}, bins_{}, total_{0}, minimum_{DBL_MAX}, maximum_{DBL_MIN} {}
 
   /**
-   *
+   * Internal representation of a point/count pair in the histogram.
    */
   class Bin {
    public:
-
     /**
      * Constructor
      * @param point the point that this bin represents
@@ -100,7 +94,6 @@ class Histogram {
     }
 
    private:
-
     /**
      * The value that this bin represents.
      * This is the 'p' variable in the JMLR10 algorithm.
@@ -112,7 +105,6 @@ class Histogram {
      * This is the 'm' variable in the JMLR10 algorithm.
      */
     double count_;
-
   };
 
   /**
@@ -123,7 +115,7 @@ class Histogram {
    * @param value the point to update
    */
   void Update(const PointType &value) {
-    double point = static_cast<double>(value);
+    auto point = static_cast<double>(value);
     Bin bin{point, 1};
     InsertBin(bin);
     if (bins_.size() > max_bins_) {
@@ -138,11 +130,12 @@ class Histogram {
    * @return the estimate of the # of points
    */
   double Sum(double point) {
-    if (bins_.size() == 0) return 0.0;
+    if (bins_.empty()) return 0.0;
 
     if (point >= bins_.back().GetPoint()) {
       return total_;
-    } else if (point < bins_.front().GetPoint()) {
+    }
+    if (point < bins_.front().GetPoint()) {
       return 0.0;
     }
 
@@ -179,7 +172,7 @@ class Histogram {
     TERRIER_ASSERT(max_bins_ > 0, "# of max bins is less than one");
 
     std::vector<double> res{};
-    if (bins_.size() <= 1 || total_ <= 0) return res;
+    if (bins_.empty() || total_ <= 0) return res;
 
     uint32_t i = 0;
     for (uint32_t j = 0; j < bins_.size() - 1; j++) {
@@ -195,8 +188,7 @@ class Histogram {
       double a = count_i1 - count_i;
       double b = 2.0 * count_i;
       double c = -2.0 * d;
-      double z =
-          a != 0 ? (-b + std::sqrt(b * b - 4.0 * a * c)) / (2.0 * a) : -c / b;
+      double z = a != 0 ? (-b + std::sqrt(b * b - 4.0 * a * c)) / (2.0 * a) : -c / b;
       double uj = point_i + (point_i1 - point_i) * z;
       res.push_back(uj);
     }
@@ -204,59 +196,66 @@ class Histogram {
   }
 
   /**
-   *
-   * @return
+   * @return the largest value that we have in this histogram
    */
   double GetMaxValue() const { return maximum_; }
 
   /**
-   *
-   * @return
+   * @return the smallest value that we have in this histogram
    */
   double GetMinValue() const { return minimum_; }
 
   /**
-   *
-   * @return
+   * @return the total number of unique values that are recorded in this histogram
    */
   double GetTotalValueCount() const { return std::floor(total_); }
 
   /**
-   *
-   * @return
+   * @return the maximum number of bins that this histogram supports
    */
   uint8_t GetMaxBinSize() const { return max_bins_; }
 
- private:
+  friend std::ostream &operator<<(std::ostream &os, const Histogram<PointType> &h) {
+    os << "Histogram: "
+       << "total=[" << h.total_ << "] "
+       << "num_bins=[" << h.bins_.size() << "]" << std::endl;
+    for (Bin b : h.bins_) {
+      os << "  " << b << std::endl;
+    }
+    return os;
+  }
 
+ private:
   /**
-   *
+   * The maximum number of bins that this histogram supports
    */
   const uint8_t max_bins_;
 
   /**
-   *
+   * Where we store the point+count values
    */
   std::vector<Bin> bins_;
 
   /**
-   *
+   * The total number of unique values that are recorded in this histogram
    */
   double total_;
 
   /**
-   *
+   * The smallest value that we have in this histogram
    */
   double minimum_;
 
   /**
-   *
+   * The largest value that we have in this histogram
    */
   double maximum_;
 
   /**
-   *
-   * @param bin
+   * Insert a new bin into our histogram. We use our own binary search
+   * on our bin vector to figure out where we want to insert this mofo.
+   * This also updates our min/max boundaries.
+   * @param bin the bin to insert into the histogram.
    */
   void InsertBin(const Bin &bin) {
     total_ += bin.GetCount();
@@ -269,15 +268,22 @@ class Histogram {
 
     int index = BinarySearch(bins_, 0, static_cast<int>(bins_.size()) - 1, bin);
 
+    // If we already have a bin with this value, then we will just update
+    // it's counter by the count of the bin that we want to insert.
+    // We do this so that we can merge bins together if necessary.
     if (index >= 0) {
       bins_[index].IncCount(bin.GetCount());
+
+      // Otherwise insert a new bin
     } else {
       index = std::abs(index) - 1;
       bins_.insert(bins_.begin() + index, bin);
     }
   }
 
-  /* Merge n + 1 number of bins to n bins based on update algorithm. */
+  /**
+   * Merge n + 1 number of bins to n bins based on update algorithm
+   */
   void MergeTwoBinsWithMinGap() {
     int min_gap_idx = -1;
     double min_gap = DBL_MAX;
@@ -288,7 +294,7 @@ class Histogram {
         min_gap_idx = i;
       }
     }
-    //		TERRIER_ASSERT(min_gap_idx >= 0 && min_gap_idx < bins_.size());
+    // TERRIER_ASSERT(min_gap_idx >= 0 && min_gap_idx < bins_.size());
     Bin &prev_bin = bins_[min_gap_idx];
     Bin &next_bin = bins_[min_gap_idx + 1];
     prev_bin.MergeWith(next_bin);
@@ -308,8 +314,7 @@ class Histogram {
    * @return found offset or -1 if not found
    */
   template <typename X>
-  int BinarySearch(const std::vector<X> &vec, int start, int end,
-                   const X &key) {
+  int BinarySearch(const std::vector<X> &vec, int start, int end, const X &key) {
     if (start > end) {
       return -(start + 1);
     }
@@ -318,42 +323,22 @@ class Histogram {
 
     if (vec[middle] == key) {
       return middle;
-    } else if (vec[middle] > key) {
+    }
+    if (vec[middle] > key) {
       return BinarySearch(vec, start, middle - 1, key);
     }
     return BinarySearch(vec, middle + 1, end, key);
   }
 
   /**
-   *
+   * Compute the interval between two bins
    * @param bins
    * @param i
    * @return
    */
-  std::tuple<double, double, double, double> GetInterval(
-      std::vector<Bin> bins, uint32_t i) {
+  std::tuple<double, double, double, double> GetInterval(std::vector<Bin> bins, uint32_t i) {
     TERRIER_ASSERT(i < bins.size() - 1, "Requested interval is greater than max # of bins");
     return std::make_tuple(bins[i].GetPoint(), bins[i + 1].GetPoint(), bins[i].GetCount(), bins[i + 1].GetCount());
-  }
-
-  friend std::ostream &operator<<(std::ostream &os, const Histogram<PointType> &h) {
-    os << "Histogram: "
-        << "total=[" << h.total_ << "] "
-        << "num_bins=[" << h.bins_.size() << "]"
-        << std::endl;
-    for (Bin b : h.bins_) {
-      os << "  " << b << std::endl;
-    }
-    return os;
-  }
-
-  void PrintUniform(const std::vector<double> &vec) {
-    std::string output{"{"};
-    for (uint8_t i = 0; i < vec.size(); i++) {
-      output += std::to_string(vec[i]);
-      output += (i == vec.size() - 1 ? "}" : ", ");
-    }
-    OPTIMIZER_LOG_INFO("%s", output.c_str());
   }
 
 };

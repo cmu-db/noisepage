@@ -1,5 +1,6 @@
 #include <random>
 #include <sstream>
+#include <vector>
 
 #include "gtest/gtest.h"
 #include "optimizer/statistics/histogram.h"
@@ -18,7 +19,7 @@ TEST_F(HistogramTests, UniformDistTest) {
   std::default_random_engine generator;
   std::uniform_int_distribution<int> distribution(1, 100);
   for (int i = 0; i < n; i++) {
-    int number = static_cast<int>(distribution(generator));
+    auto number = static_cast<int>(distribution(generator));
     h.Update(number);
   }
   std::vector<double> res = h.Uniform();
@@ -37,7 +38,7 @@ TEST_F(HistogramTests, GaussianDistTest) {
   std::mt19937 generator(rd());
   std::normal_distribution<> distribution(0, 10);
   for (int i = 0; i < n; i++) {
-    int number = static_cast<int>(distribution(generator));
+    auto number = static_cast<int>(distribution(generator));
     h.Update(number);
   }
   std::vector<double> res = h.Uniform();
@@ -57,7 +58,7 @@ TEST_F(HistogramTests, LeftSkewedDistTest) {
   std::mt19937 generator(rd());
   std::lognormal_distribution<> distribution(0, 1);
   for (int i = 0; i < n; i++) {
-    int number = static_cast<int>(distribution(generator));
+    auto number = static_cast<int>(distribution(generator));
     h.Update(number);
   }
   std::vector<double> res = h.Uniform();
@@ -73,7 +74,7 @@ TEST_F(HistogramTests, ExponentialDistTest) {
   std::mt19937 generator(rd());
   std::exponential_distribution<> distribution(lambda);
   for (int i = 0; i < n; i++) {
-    int number = static_cast<int>(distribution(generator));
+    auto number = static_cast<int>(distribution(generator));
     h.Update(number);
   }
   std::vector<double> res = h.Uniform();
@@ -85,20 +86,39 @@ TEST_F(HistogramTests, ExponentialDistTest) {
   EXPECT_GE(count, static_cast<int>(res.size()) * 0.5);
 }
 
-// Handle error cases correctly.
+// Make sure that the histogram works for different value types
 // NOLINTNEXTLINE
 TEST_F(HistogramTests, ValueTypeTest) {
-  Histogram<int> int_h{100};
+  uint8_t num_bins = 99;
+
+  Histogram<int> int_h{num_bins};
+  int_h.Update(777);
   int_h.Update(999);
+  EXPECT_EQ(int_h.GetMaxBinSize(), num_bins);
+  EXPECT_EQ(int_h.GetMinValue(), 777);
+  EXPECT_EQ(int_h.GetMaxValue(), 999);
+  EXPECT_EQ(int_h.GetTotalValueCount(), 2);
 
-  Histogram<uint16_t> smallint_h{100};
+  Histogram<uint16_t> smallint_h{num_bins};
+  smallint_h.Update(777);
   smallint_h.Update(999);
+  EXPECT_EQ(smallint_h.GetMinValue(), 777);
+  EXPECT_EQ(smallint_h.GetMaxValue(), 999);
+  EXPECT_EQ(smallint_h.GetTotalValueCount(), 2);
 
-  Histogram<float> float_h{100};
+  Histogram<float> float_h{num_bins};
+  float_h.Update(777.77f);
   float_h.Update(999.99f);
+  EXPECT_EQ(float_h.GetMinValue(), 777.77f);
+  EXPECT_EQ(float_h.GetMaxValue(), 999.99f);
+  EXPECT_EQ(float_h.GetTotalValueCount(), 2);
 
-  Histogram<double> double_h{100};
+  Histogram<double> double_h{num_bins};
+  double_h.Update(777.77);
   double_h.Update(999.99);
+  EXPECT_EQ(double_h.GetMinValue(), 777.77);
+  EXPECT_EQ(double_h.GetMaxValue(), 999.99);
+  EXPECT_EQ(double_h.GetTotalValueCount(), 2);
 }
 
 // NOLINTNEXTLINE
