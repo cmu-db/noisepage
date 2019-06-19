@@ -13,7 +13,7 @@
 #include "util/catalog_test_util.h"
 #include "util/storage_test_util.h"
 #include "util/test_harness.h"
-#include "util/transaction_test_util.h"
+#include "util/data_table_test_util.h"
 
 #define __SETTING_GFLAGS_DEFINE__      // NOLINT
 #include "settings/settings_common.h"  // NOLINT
@@ -148,13 +148,13 @@ class WriteAheadLoggingTests : public TerrierTest {
   storage::RedoBuffer &GetRedoBuffer(transaction::TransactionContext *txn) { return txn->redo_buffer_; }
 };
 
-// This test uses the LargeTransactionTestObject to simulate some number of transactions with logging turned on, and
+// This test uses the LargeDataTableTestObject to simulate some number of transactions with logging turned on, and
 // then reads the logged out content to make sure they are correct
 // NOLINTNEXTLINE
 TEST_F(WriteAheadLoggingTests, LargeLogTest) {
   // Each transaction does 5 operations. The update-select ratio of operations is 50%-50%.
   log_manager_->Start();
-  LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
+  LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
                                           .SetMaxColumns(5)
                                           .SetInitialTableSize(1)
                                           .SetTxnLength(5)
@@ -170,7 +170,7 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
   auto result = tested.SimulateOltp(100, 4);
   log_manager_->PersistAndStop();
 
-  std::unordered_map<transaction::timestamp_t, RandomWorkloadTransaction *> txns_map;
+  std::unordered_map<transaction::timestamp_t, RandomDataTableTransaction *> txns_map;
   for (auto *txn : result.first) txns_map[txn->BeginTimestamp()] = txn;
   // At this point all the log records should have been written out, we can start reading stuff back in.
   storage::BufferedLogReader in(LOG_FILE_NAME);
@@ -236,7 +236,7 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
 TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
   // Each transaction is read-only (update-select ratio of 0-100). Also, no need for bookkeeping.
   log_manager_->Start();
-  LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
+  LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
                                           .SetMaxColumns(5)
                                           .SetInitialTableSize(1)
                                           .SetTxnLength(5)

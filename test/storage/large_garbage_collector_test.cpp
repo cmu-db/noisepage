@@ -1,7 +1,7 @@
 #include <vector>
 #include "gtest/gtest.h"
 #include "storage/garbage_collector_thread.h"
-#include "util/transaction_test_util.h"
+#include "util/data_table_test_util.h"
 
 namespace terrier {
 class LargeGCTests : public TerrierTest {
@@ -28,7 +28,7 @@ TEST_F(LargeGCTests, MixedReadWriteWithGC) {
   const std::vector<double> update_select_ratio = {0.5, 0.5};
   const uint32_t num_concurrent_txns = MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
-    LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
+    LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
                                             .SetMaxColumns(max_columns)
                                             .SetInitialTableSize(initial_table_size)
                                             .SetTxnLength(txn_length)
@@ -59,7 +59,7 @@ TEST_F(LargeGCTests, MixedReadWriteHighThreadWithGC) {
   const std::vector<double> update_select_ratio = {0.5, 0.5};
   const uint32_t num_concurrent_txns = 2 * MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
-    LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
+    LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
                                             .SetMaxColumns(max_columns)
                                             .SetInitialTableSize(initial_table_size)
                                             .SetTxnLength(txn_length)
@@ -90,7 +90,7 @@ TEST_F(LargeGCTests, LowAbortHighThroughputWithGC) {
   const std::vector<double> update_select_ratio = {0.5, 0.5};
   const uint32_t num_concurrent_txns = MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
-    LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
+    LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
                                             .SetMaxColumns(max_columns)
                                             .SetInitialTableSize(initial_table_size)
                                             .SetTxnLength(txn_length)
@@ -121,7 +121,7 @@ TEST_F(LargeGCTests, LowAbortHighThroughputHighThreadWithGC) {
   const std::vector<double> update_select_ratio = {0.5, 0.5};
   const uint32_t num_concurrent_txns = 2 * MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
-    LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
+    LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
                                             .SetMaxColumns(max_columns)
                                             .SetInitialTableSize(initial_table_size)
                                             .SetTxnLength(txn_length)
@@ -153,7 +153,7 @@ TEST_F(LargeGCTests, HighAbortRateWithGC) {
   const std::vector<double> update_select_ratio = {0.8, 0.2};
   const uint32_t num_concurrent_txns = MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
-    LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
+    LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
                                             .SetMaxColumns(max_columns)
                                             .SetInitialTableSize(initial_table_size)
                                             .SetTxnLength(txn_length)
@@ -184,7 +184,7 @@ TEST_F(LargeGCTests, HighAbortRateHighThreadWithGC) {
   const std::vector<double> update_select_ratio = {0.8, 0.2};
   const uint32_t num_concurrent_txns = 2 * MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
-    LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
+    LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
                                             .SetMaxColumns(max_columns)
                                             .SetInitialTableSize(initial_table_size)
                                             .SetTxnLength(txn_length)
@@ -215,7 +215,7 @@ TEST_F(LargeGCTests, TPCCishWithGC) {
   const std::vector<double> update_select_ratio = {0.4, 0.6};
   const uint32_t num_concurrent_txns = MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
-    LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
+    LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
                                             .SetMaxColumns(max_columns)
                                             .SetInitialTableSize(initial_table_size)
                                             .SetTxnLength(txn_length)
@@ -246,7 +246,7 @@ TEST_F(LargeGCTests, TPCCishHighThreadWithGC) {
   const std::vector<double> update_select_ratio = {0.4, 0.6};
   const uint32_t num_concurrent_txns = 2 * MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
-    LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
+    LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
                                             .SetMaxColumns(max_columns)
                                             .SetInitialTableSize(initial_table_size)
                                             .SetTxnLength(txn_length)

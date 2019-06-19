@@ -1,4 +1,4 @@
-#include "util/transaction_test_util.h"
+#include "util/data_table_test_util.h"
 #include <algorithm>
 #include <cstring>
 #include <utility>
@@ -8,7 +8,7 @@
 #include "util/catalog_test_util.h"
 
 namespace terrier {
-RandomWorkloadTransaction::RandomWorkloadTransaction(LargeTransactionTestObject *test_object)
+RandomDataTableTransaction::RandomDataTableTransaction(LargeDataTableTestObject *test_object)
     : test_object_(test_object),
       txn_(test_object->txn_manager_.BeginTransaction()),
       aborted_(false),
@@ -18,7 +18,7 @@ RandomWorkloadTransaction::RandomWorkloadTransaction(LargeTransactionTestObject 
                   ? nullptr
                   : common::AllocationUtil::AllocateAligned(test_object->row_initializer_.ProjectedRowSize())) {}
 
-RandomWorkloadTransaction::~RandomWorkloadTransaction() {
+RandomDataTableTransaction::~RandomDataTableTransaction() {
   if (!test_object_->gc_on_) delete txn_;
   if (!test_object_->bookkeeping_) delete[] buffer_;
   for (auto &entry : updates_) delete[] reinterpret_cast<byte *>(entry.second);
@@ -26,7 +26,7 @@ RandomWorkloadTransaction::~RandomWorkloadTransaction() {
 }
 
 template <class Random>
-void RandomWorkloadTransaction::RandomUpdate(Random *generator) {
+void RandomDataTableTransaction::RandomUpdate(Random *generator) {
   if (aborted_) return;
   storage::TupleSlot updated =
       RandomTestUtil::UniformRandomElement(test_object_->last_checked_version_, generator)->first;
@@ -60,7 +60,7 @@ void RandomWorkloadTransaction::RandomUpdate(Random *generator) {
 }
 
 template <class Random>
-void RandomWorkloadTransaction::RandomSelect(Random *generator) {
+void RandomDataTableTransaction::RandomSelect(Random *generator) {
   if (aborted_) return;
   storage::TupleSlot selected =
       RandomTestUtil::UniformRandomElement(test_object_->last_checked_version_, generator)->first;
@@ -79,14 +79,14 @@ void RandomWorkloadTransaction::RandomSelect(Random *generator) {
   }
 }
 
-void RandomWorkloadTransaction::Finish() {
+void RandomDataTableTransaction::Finish() {
   if (aborted_)
     test_object_->txn_manager_.Abort(txn_);
   else
     commit_time_ = test_object_->txn_manager_.Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
-LargeTransactionTestObject::LargeTransactionTestObject(uint16_t max_columns, uint32_t initial_table_size,
+LargeDataTableTestObject::LargeDataTableTestObject(uint16_t max_columns, uint32_t initial_table_size,
                                                        uint32_t txn_length, std::vector<double> update_select_ratio,
                                                        storage::BlockStore *block_store,
                                                        storage::RecordBufferSegmentPool *buffer_pool,
@@ -107,7 +107,7 @@ LargeTransactionTestObject::LargeTransactionTestObject(uint16_t max_columns, uin
   PopulateInitialTable(initial_table_size, generator_);
 }
 
-LargeTransactionTestObject::~LargeTransactionTestObject() {
+LargeDataTableTestObject::~LargeDataTableTestObject() {
   if (!gc_on_) delete initial_txn_;
   if (bookkeeping_) {
     for (auto &tuple : last_checked_version_) delete[] reinterpret_cast<byte *>(tuple.second);
@@ -115,15 +115,15 @@ LargeTransactionTestObject::~LargeTransactionTestObject() {
 }
 
 // Caller is responsible for freeing the returned results if bookkeeping is on.
-SimulationResult LargeTransactionTestObject::SimulateOltp(uint32_t num_transactions, uint32_t num_concurrent_txns) {
-  std::vector<RandomWorkloadTransaction *> txns;
+SimulationResult LargeDataTableTestObject::SimulateOltp(uint32_t num_transactions, uint32_t num_concurrent_txns) {
+  std::vector<RandomDataTableTransaction *> txns;
   std::function<void(uint32_t)> workload;
   std::atomic<uint32_t> txns_run = 0;
   if (gc_on_ && !bookkeeping_) {
-    // Then there is no need to keep track of RandomWorkloadTransaction objects
+    // Then there is no need to keep track of RandomDataTableTransaction objects
     workload = [&](uint32_t) {
       for (uint32_t txn_id = txns_run++; txn_id < num_transactions; txn_id = txns_run++) {
-        RandomWorkloadTransaction txn(this);
+        RandomDataTableTransaction txn(this);
         SimulateOneTransaction(&txn, txn_id);
       }
     };
@@ -133,7 +133,7 @@ SimulationResult LargeTransactionTestObject::SimulateOltp(uint32_t num_transacti
     // test objects
     workload = [&](uint32_t) {
       for (uint32_t txn_id = txns_run++; txn_id < num_transactions; txn_id = txns_run++) {
-        txns[txn_id] = new RandomWorkloadTransaction(this);
+        txns[txn_id] = new RandomDataTableTransaction(this);
         SimulateOneTransaction(txns[txn_id], txn_id);
         //
         if (gc_on_ && !bookkeeping_) delete txns[txn_id];
@@ -145,22 +145,22 @@ SimulationResult LargeTransactionTestObject::SimulateOltp(uint32_t num_transacti
 
   if (!bookkeeping_) {
     // We only need to deallocate, and return, if gc is on, this loop is a no-op
-    for (RandomWorkloadTransaction *txn : txns) delete txn;
+    for (RandomDataTableTransaction *txn : txns) delete txn;
     // This result is meaningless if bookkeeping is not turned on.
     return {{}, {}};
   }
   // filter out aborted transactions
-  std::vector<RandomWorkloadTransaction *> committed, aborted;
-  for (RandomWorkloadTransaction *txn : txns) (txn->aborted_ ? aborted : committed).push_back(txn);
+  std::vector<RandomDataTableTransaction *> committed, aborted;
+  for (RandomDataTableTransaction *txn : txns) (txn->aborted_ ? aborted : committed).push_back(txn);
 
   // Sort according to commit timestamp (Although we probably already are? Never hurts to be sure)
-  std::sort(committed.begin(), committed.end(), [](RandomWorkloadTransaction *a, RandomWorkloadTransaction *b) {
+  std::sort(committed.begin(), committed.end(), [](RandomDataTableTransaction *a, RandomDataTableTransaction *b) {
     return transaction::TransactionUtil::NewerThan(b->commit_time_, a->commit_time_);
   });
   return {committed, aborted};
 }
 
-void LargeTransactionTestObject::CheckReadsCorrect(std::vector<RandomWorkloadTransaction *> *commits) {
+void LargeDataTableTestObject::CheckReadsCorrect(std::vector<RandomDataTableTransaction *> *commits) {
   TERRIER_ASSERT(bookkeeping_, "Cannot check for correctness with bookkeeping off");
   // If nothing commits, then all our reads are vacuously correct
   if (commits->empty()) return;
@@ -168,7 +168,7 @@ void LargeTransactionTestObject::CheckReadsCorrect(std::vector<RandomWorkloadTra
   // make sure table_version is updated
   transaction::timestamp_t latest_version = commits->at(commits->size() - 1)->commit_time_;
   // Only need to check that reads make sense?
-  for (RandomWorkloadTransaction *txn : *commits) CheckTransactionReadCorrect(txn, snapshots);
+  for (RandomDataTableTransaction *txn : *commits) CheckTransactionReadCorrect(txn, snapshots);
 
   // clean up memory, update the kept version to be the latest.
   for (auto &snapshot : snapshots) {
@@ -180,7 +180,7 @@ void LargeTransactionTestObject::CheckReadsCorrect(std::vector<RandomWorkloadTra
   }
 }
 
-void LargeTransactionTestObject::SimulateOneTransaction(terrier::RandomWorkloadTransaction *txn, uint32_t txn_id) {
+void LargeDataTableTestObject::SimulateOneTransaction(terrier::RandomDataTableTransaction *txn, uint32_t txn_id) {
   std::default_random_engine thread_generator(txn_id);
 
   auto update = [&] { txn->RandomUpdate(&thread_generator); };
@@ -191,7 +191,7 @@ void LargeTransactionTestObject::SimulateOneTransaction(terrier::RandomWorkloadT
 }
 
 template <class Random>
-void LargeTransactionTestObject::PopulateInitialTable(uint32_t num_tuples, Random *generator) {
+void LargeDataTableTestObject::PopulateInitialTable(uint32_t num_tuples, Random *generator) {
   initial_txn_ = txn_manager_.BeginTransaction();
   byte *redo_buffer = nullptr;
   if (!bookkeeping_) {
@@ -221,13 +221,13 @@ void LargeTransactionTestObject::PopulateInitialTable(uint32_t num_tuples, Rando
   if (!bookkeeping_) delete[] redo_buffer;
 }
 
-storage::ProjectedRow *LargeTransactionTestObject::CopyTuple(storage::ProjectedRow *other) {
+storage::ProjectedRow *LargeDataTableTestObject::CopyTuple(storage::ProjectedRow *other) {
   auto *copy = common::AllocationUtil::AllocateAligned(other->Size());
   std::memcpy(copy, other, other->Size());
   return reinterpret_cast<storage::ProjectedRow *>(copy);
 }
 
-void LargeTransactionTestObject::UpdateSnapshot(RandomWorkloadTransaction *txn, TableSnapshot *curr,
+void LargeDataTableTestObject::UpdateSnapshot(RandomDataTableTransaction *txn, TableSnapshot *curr,
                                                 const TableSnapshot &before) {
   for (auto &entry : before) curr->emplace(entry.first, CopyTuple(entry.second));
   for (auto &update : txn->updates_) {
@@ -237,15 +237,15 @@ void LargeTransactionTestObject::UpdateSnapshot(RandomWorkloadTransaction *txn, 
   }
 }
 
-VersionedSnapshots LargeTransactionTestObject::ReconstructVersionedTable(
-    std::vector<RandomWorkloadTransaction *> *txns) {
+VersionedSnapshots LargeDataTableTestObject::ReconstructVersionedTable(
+    std::vector<RandomDataTableTransaction *> *txns) {
   VersionedSnapshots result;
   // empty starting version
   TableSnapshot *prev = &(result.emplace(transaction::timestamp_t(0), TableSnapshot()).first->second);
   // populate with initial image of the table
   for (auto &entry : last_checked_version_) (*prev)[entry.first] = CopyTuple(entry.second);
 
-  for (RandomWorkloadTransaction *txn : *txns) {
+  for (RandomDataTableTransaction *txn : *txns) {
     auto ret = result.emplace(txn->commit_time_, TableSnapshot());
     UpdateSnapshot(txn, &(ret.first->second), *prev);
     prev = &(ret.first->second);
@@ -253,7 +253,7 @@ VersionedSnapshots LargeTransactionTestObject::ReconstructVersionedTable(
   return result;
 }
 
-void LargeTransactionTestObject::CheckTransactionReadCorrect(RandomWorkloadTransaction *txn,
+void LargeDataTableTestObject::CheckTransactionReadCorrect(RandomDataTableTransaction *txn,
                                                              const VersionedSnapshots &snapshots) {
   transaction::timestamp_t start_time = txn->start_time_;
   // this version is the most recent future update
@@ -269,14 +269,14 @@ void LargeTransactionTestObject::CheckTransactionReadCorrect(RandomWorkloadTrans
   }
 }
 
-void LargeTransactionTestObject::UpdateLastCheckedVersion(const TableSnapshot &snapshot) {
+void LargeDataTableTestObject::UpdateLastCheckedVersion(const TableSnapshot &snapshot) {
   for (auto &entry : last_checked_version_) {
     delete[] reinterpret_cast<byte *>(entry.second);
     entry.second = snapshot.find(entry.first)->second;
   }
 }
 
-LargeTransactionTestObject LargeTransactionTestObject::Builder::build() {
+LargeDataTableTestObject LargeDataTableTestObject::Builder::build() {
   return {builder_max_columns_, builder_initial_table_size_, builder_txn_length_, builder_update_select_ratio_,
           builder_block_store_, builder_buffer_pool_,        builder_generator_,  builder_gc_on_,
           builder_bookkeeping_, builder_log_manager_,        varlen_allowed_};
