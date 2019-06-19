@@ -340,7 +340,6 @@ class Histogram {
     TERRIER_ASSERT(i < bins.size() - 1, "Requested interval is greater than max # of bins");
     return std::make_tuple(bins[i].GetPoint(), bins[i + 1].GetPoint(), bins[i].GetCount(), bins[i + 1].GetCount());
   }
-
 };
 
 }  // namespace terrier::optimizer
