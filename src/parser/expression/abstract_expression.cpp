@@ -176,7 +176,7 @@ void AbstractExpression::DeduceExpressionName() {
   bool first = true;
 
   if (expression_type_ == ExpressionType::FUNCTION) {
-    expression_name_ = ((FunctionExpression *)this)->GetFuncName() + "(";
+    expression_name_ = reinterpret_cast<FunctionExpression *>(this)->GetFuncName() + "(";
     for (auto child : children_) {
       if (!first) expression_name_.append(",");
       child->DeduceExpressionName();

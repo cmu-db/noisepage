@@ -4,6 +4,7 @@
 #include <memory>
 #include <utility>
 #include <vector>
+#include <string>
 #include "common/hash_util.h"
 #include "common/json.h"
 #include "common/sql_node_visitor.h"
@@ -54,8 +55,8 @@ class AbstractExpression {
   AbstractExpression() = default;
 
   /**
- * Name of the current expression
- */
+   * Name of the current expression
+   */
   std::string expression_name_;
   /**
    * Alias of the current expression

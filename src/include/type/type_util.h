@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include "common/strong_typedef.h"
 #include "storage/block_layout.h"
 #include "type/type_id.h"

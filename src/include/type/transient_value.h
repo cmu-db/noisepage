@@ -171,9 +171,7 @@ class TransientValue {
   /**
    * @return string representation of the underlying type
    */
-  std::string ToString() const {
-    return TypeUtil::TypeIdToString(type_);
-  }
+  std::string ToString() const { return TypeUtil::TypeIdToString(type_); }
 
   /**
    * @return transient value serialized to json

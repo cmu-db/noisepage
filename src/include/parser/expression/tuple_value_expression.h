@@ -70,7 +70,6 @@ class TupleValueExpression : public AbstractExpression {
   }
 
  private:
-
   void DeduceExpressionName() override {
     if (!alias_.empty()) return;
     expression_name_ = col_name_;
