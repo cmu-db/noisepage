@@ -7,8 +7,8 @@
 
 #include "catalog/catalog_defs.h"
 #include "common/spin_latch.h"
-#include "metric/abstract_raw_data.h"
-#include "metric/metric_defs.h"
+#include "metrics/abstract_raw_data.h"
+#include "metrics/metric_defs.h"
 
 namespace terrier {
 
@@ -16,7 +16,7 @@ namespace transaction {
 class TransactionContext;
 }  // namespace transaction
 
-namespace metric {
+namespace metrics {
 /**
  * @brief Interface representing a metric.
  * A metric is defined to be some piece of logic that processes events generated
@@ -230,5 +230,5 @@ class AbstractMetric : public Metric {
    */
   common::SpinLatch latch_;
 };
-}  // namespace metric
+}  // namespace metrics
 }  // namespace terrier

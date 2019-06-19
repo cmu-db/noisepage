@@ -3,11 +3,15 @@
 #include <string>
 #include <thread>  //NOLINT
 #include <unordered_map>
+#include <utility>
 #include <vector>
 #include "common/container/concurrent_map.h"
-#include "metric/metrics_manager.h"
-#include "metric/metrics_store.h"
-#include "metric/transaction_metric.h"
+#include "main/db_main.h"
+#include "metrics/metrics_manager.h"
+#include "metrics/metrics_store.h"
+#include "metrics/transaction_metric.h"
+#include "settings/settings_callbacks.h"
+#include "settings/settings_manager.h"
 #include "storage/garbage_collector.h"
 #include "transaction/transaction_defs.h"
 #include "transaction/transaction_manager.h"
@@ -15,74 +19,54 @@
 #include "util/test_harness.h"
 #include "util/transaction_test_util.h"
 
-namespace terrier::metric {
+#define __SETTING_GFLAGS_DEFINE__      // NOLINT
+#include "settings/settings_common.h"  // NOLINT
+#include "settings/settings_defs.h"    // NOLINT
+#undef __SETTING_GFLAGS_DEFINE__       // NOLINT
+
+namespace terrier::metrics {
 
 /**
  * @brief Test the correctness of database metric
  */
-class MetricTests : public TerrierTest {
+class MetricsTests : public TerrierTest {
  public:
-  void GCThreadLoop() {
-    while (run_gc_) {
-      std::this_thread::sleep_for(gc_period_);
-      gc_->PerformGarbageCollection();
-    }
-  }
-
-  void StartGC(transaction::TransactionManager *const txn_manager) {
-    gc_ = new storage::GarbageCollector(txn_manager);
-    run_gc_ = true;
-    gc_thread_ = std::thread([this] { GCThreadLoop(); });
-  }
-
-  void EndGC() {
-    run_gc_ = false;
-    gc_thread_.join();
-    // Make sure all garbage is collected. This take 2 runs for unlink and deallocate
-    gc_->PerformGarbageCollection();
-    gc_->PerformGarbageCollection();
-    delete gc_;
-  }
+  DBMain *db_main_;
+  settings::SettingsManager *settings_manager_;
+  MetricsManager *metrics_manager_;
+  transaction::TransactionManager *txn_manager_;
 
   void SetUp() override {
-    TerrierTest::SetUp();
-    txn_manager_ = new transaction::TransactionManager(&buffer_pool_, true, LOGGING_DISABLED);
-    StartGC(txn_manager_);
-    txn_ = txn_manager_->BeginTransaction();
+    std::unordered_map<settings::Param, settings::ParamInfo> param_map;
+    terrier::settings::SettingsManager::ConstructParamMap(param_map);
+
+    db_main_ = new DBMain(std::move(param_map));
+    settings_manager_ = db_main_->settings_manager_;
+    metrics_manager_ = db_main_->metrics_manager_;
+    txn_manager_ = db_main_->txn_manager_;
   }
 
-  void TearDown() override {
-    txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
-    EndGC();
-    delete txn_manager_;
-    TerrierTest::TearDown();
-  }
+  void TearDown() override { delete db_main_; }
 
-  storage::RecordBufferSegmentPool buffer_pool_{100, 100};
-
-  transaction::TransactionContext *txn_ = nullptr;
-  transaction::TransactionManager *txn_manager_;
   std::default_random_engine generator_;
   const uint8_t num_iterations_ = 5;
   const uint8_t num_txns_ = 100;
-  const std::chrono::milliseconds aggr_period_{1000};
 
-  std::thread gc_thread_;
-  storage::GarbageCollector *gc_ = nullptr;
-  volatile bool run_gc_ = false;
-  const std::chrono::milliseconds gc_period_{10};
+  static void EmptySetterCallback(const std::shared_ptr<common::ActionContext> &action_context UNUSED_ATTRIBUTE) {}
 };
 
 /**
  * Basic test for testing transaction metric registration and stats collection, single thread
  */
 // NOLINTNEXTLINE
-TEST_F(MetricTests, TransactionMetricBasicTest) {
+TEST_F(MetricsTests, TransactionMetricBasicTest) {
   for (uint8_t i = 0; i < num_iterations_; i++) {
-    MetricsManager aggregator;
+    const settings::setter_callback_fn setter_callback = MetricsTests::EmptySetterCallback;
+    std::shared_ptr<common::ActionContext> action_context =
+        std::make_shared<common::ActionContext>(common::action_id_t(1));
+    settings_manager_->SetBool(settings::Param::metrics_transaction, true, action_context, setter_callback);
 
-    const auto metrics_store_ptr = aggregator.RegisterThread();
-    aggregator.EnableMetric(MetricsComponent::TRANSACTION);
+    const auto metrics_store_ptr = metrics_manager_->RegisterThread();
 
     std::unordered_map<uint8_t, transaction::timestamp_t> id_map;
     std::unordered_map<transaction::timestamp_t, uint64_t> read_map;
@@ -137,8 +121,8 @@ TEST_F(MetricTests, TransactionMetricBasicTest) {
       latency_max_map[txn_start] = latency;
     }
 
-    aggregator.Aggregate();
-    const auto &result = aggregator.AggregatedMetrics();
+    metrics_manager_->Aggregate();
+    const auto &result = metrics_manager_->AggregatedMetrics();
     EXPECT_FALSE(result.empty());
 
     for (const auto &raw_data : result) {
@@ -161,7 +145,9 @@ TEST_F(MetricTests, TransactionMetricBasicTest) {
       }
     }
 
-    aggregator.UnregisterThread();
+    action_context = std::make_shared<common::ActionContext>(common::action_id_t(1));
+    settings_manager_->SetBool(settings::Param::metrics_transaction, false, action_context, setter_callback);
+    metrics_manager_->UnregisterThread();
   }
 }
 
@@ -169,12 +155,13 @@ TEST_F(MetricTests, TransactionMetricBasicTest) {
  *  Testing transaction metric stats collection and persistence, single thread
  */
 // NOLINTNEXTLINE
-TEST_F(MetricTests, TransactionMetricStorageTest) {
+TEST_F(MetricsTests, TransactionMetricStorageTest) {
   for (uint8_t i = 0; i < num_iterations_; i++) {
-    MetricsManager aggregator;
-
-    const auto metrics_store_ptr = aggregator.RegisterThread();
-    aggregator.EnableMetric(MetricsComponent::TRANSACTION);
+    const settings::setter_callback_fn setter_callback = MetricsTests::EmptySetterCallback;
+    std::shared_ptr<common::ActionContext> action_context =
+        std::make_shared<common::ActionContext>(common::action_id_t(1));
+    settings_manager_->SetBool(settings::Param::metrics_transaction, true, action_context, setter_callback);
+    const auto metrics_store_ptr = metrics_manager_->RegisterThread();
 
     std::unordered_map<uint8_t, transaction::timestamp_t> id_map;
     std::unordered_map<transaction::timestamp_t, uint64_t> read_map;
@@ -228,9 +215,11 @@ TEST_F(MetricTests, TransactionMetricStorageTest) {
       latency_max_map[txn_start] = latency;
     }
 
-    aggregator.Aggregate();
+    metrics_manager_->Aggregate();
 
-    aggregator.UnregisterThread();
+    action_context = std::make_shared<common::ActionContext>(common::action_id_t(1));
+    settings_manager_->SetBool(settings::Param::metrics_transaction, false, action_context, setter_callback);
+    metrics_manager_->UnregisterThread();
   }
 }
 
@@ -238,7 +227,7 @@ TEST_F(MetricTests, TransactionMetricStorageTest) {
  *  Testing metric stats collection and persistence, multiple threads
  */
 // NOLINTNEXTLINE
-TEST_F(MetricTests, MultiThreadTest) {
+TEST_F(MetricsTests, MultiThreadTest) {
   const uint32_t num_threads = MultiThreadTestUtil::HardwareConcurrency();
   common::WorkerPool thread_pool(num_threads, {});
 
@@ -246,8 +235,12 @@ TEST_F(MetricTests, MultiThreadTest) {
     common::ConcurrentQueue<transaction::timestamp_t> txn_queue;
     common::ConcurrentMap<transaction::timestamp_t, uint64_t> latency_max_map;
     common::ConcurrentMap<transaction::timestamp_t, uint64_t> latency_min_map;
-    MetricsManager aggregator;
-    aggregator.EnableMetric(MetricsComponent::TRANSACTION);
+
+    const settings::setter_callback_fn setter_callback = MetricsTests::EmptySetterCallback;
+    std::shared_ptr<common::ActionContext> action_context =
+        std::make_shared<common::ActionContext>(common::action_id_t(1));
+    settings_manager_->SetBool(settings::Param::metrics_transaction, true, action_context, setter_callback);
+
     auto num_read = static_cast<uint8_t>(std::uniform_int_distribution<uint8_t>(1, UINT8_MAX)(generator_));
     auto num_update = static_cast<uint8_t>(std::uniform_int_distribution<uint8_t>(1, UINT8_MAX)(generator_));
     auto num_insert = static_cast<uint8_t>(std::uniform_int_distribution<uint8_t>(1, UINT8_MAX)(generator_));
@@ -256,10 +249,10 @@ TEST_F(MetricTests, MultiThreadTest) {
     auto workload = [&](uint32_t id) {
       // NOTICE: thread level collector must be alive while aggregating
       if (id == 0) {  // aggregator thread
-        std::this_thread::sleep_for(aggr_period_);
-        aggregator.Aggregate();
+        std::this_thread::sleep_for(std::chrono::seconds(2));
+        metrics_manager_->Aggregate();
       } else {  // normal thread
-        const auto metrics_store_ptr = aggregator.RegisterThread();
+        const auto metrics_store_ptr = metrics_manager_->RegisterThread();
         for (uint8_t j = 0; j < num_txns_; j++) {
           auto start_max = std::chrono::high_resolution_clock::now();
           auto *txn = txn_manager_->BeginTransaction();
@@ -294,9 +287,14 @@ TEST_F(MetricTests, MultiThreadTest) {
                                               .count());
           latency_max_map.Insert(txn_start, latency);
         }
+        std::this_thread::sleep_for(std::chrono::seconds(4));
+        metrics_manager_->UnregisterThread();
       }
     };
     MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
+
+    action_context = std::make_shared<common::ActionContext>(common::action_id_t(1));
+    settings_manager_->SetBool(settings::Param::metrics_transaction, false, action_context, setter_callback);
   }
 }
-}  // namespace terrier::metric
+}  // namespace terrier::metrics

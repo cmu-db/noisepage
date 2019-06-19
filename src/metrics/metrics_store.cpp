@@ -1,11 +1,11 @@
-#include "metric/metrics_store.h"
+#include "metrics/metrics_store.h"
 #include <bitset>
 #include <memory>
 #include <vector>
-#include "metric/metric_defs.h"
-#include "metric/transaction_metric.h"
+#include "metrics/metric_defs.h"
+#include "metrics/transaction_metric.h"
 
-namespace terrier::metric {
+namespace terrier::metrics {
 
 MetricsStore::MetricsStore(const std::bitset<NUM_COMPONENTS> &enabled_metrics) : enabled_metrics_{enabled_metrics} {
   metrics_[static_cast<uint8_t>(MetricsComponent::TRANSACTION)] = std::make_unique<TransactionMetric>();
@@ -22,4 +22,4 @@ std::array<std::unique_ptr<AbstractRawData>, NUM_COMPONENTS> MetricsStore::GetDa
 
   return result;
 }
-}  // namespace terrier::metric
+}  // namespace terrier::metrics

@@ -1,9 +1,9 @@
-#include "metric/metrics_manager.h"
+#include "metrics/metrics_manager.h"
 #include <memory>
 #include <utility>
 #include <vector>
 
-namespace terrier::metric {
+namespace terrier::metrics {
 
 void MetricsManager::Aggregate() {
   common::SpinLatch::ScopedSpinLatch guard(&write_latch_);
@@ -27,4 +27,4 @@ void MetricsManager::ResetMetric(const MetricsComponent component) const {
     metric->Swap();
   }
 }
-}  // namespace terrier::metric
+}  // namespace terrier::metrics

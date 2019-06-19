@@ -6,12 +6,12 @@
 #include <vector>
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
-#include "metric/abstract_metric.h"
-#include "metric/abstract_raw_data.h"
-#include "metric/metric_defs.h"
+#include "metrics/abstract_metric.h"
+#include "metrics/abstract_raw_data.h"
+#include "metrics/metric_defs.h"
 #include "transaction/transaction_manager.h"
 
-namespace terrier::metric {
+namespace terrier::metrics {
 
 class MetricsManager;
 
@@ -144,4 +144,4 @@ class MetricsStore {
   const std::bitset<NUM_COMPONENTS> &enabled_metrics_;
 };
 
-}  // namespace terrier::metric
+}  // namespace terrier::metrics

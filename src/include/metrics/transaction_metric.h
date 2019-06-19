@@ -7,10 +7,10 @@
 
 #include "catalog/catalog_defs.h"
 #include "common/scoped_timer.h"
-#include "metric/abstract_metric.h"
+#include "metrics/abstract_metric.h"
 #include "transaction/transaction_defs.h"
 
-namespace terrier::metric {
+namespace terrier::metrics {
 
 /**
  * Raw data object for holding stats collected at transaction level
@@ -19,7 +19,7 @@ class TransactionMetricRawData : public AbstractRawData {
  public:
   /**
    * Set start time of transaction
-   * @param txn transaction context of the relevant transaction
+   * @param txn_start start time (unique identifier) for txn
    */
   void SetTxnStart(const transaction::timestamp_t txn_start) {
     data_[txn_start].start_ = std::chrono::high_resolution_clock::now();
@@ -27,7 +27,7 @@ class TransactionMetricRawData : public AbstractRawData {
 
   /**
    * Calculate transaction latency
-   * @param txn transaction context of the relevant transaction
+   * @param txn_start start time (unique identifier) for txn
    */
   void CalculateTxnLatency(const transaction::timestamp_t txn_start) {
     auto end = std::chrono::high_resolution_clock::now();
@@ -38,25 +38,25 @@ class TransactionMetricRawData : public AbstractRawData {
 
   /**
    * Increment the number of tuples read by one
-   * @param txn transaction context of the relevant transaction
+   * @param txn_start start time (unique identifier) for txn
    */
   void IncrementTupleRead(const transaction::timestamp_t txn_start) { data_[txn_start].tuple_read_++; }
 
   /**
    * Increment the number of tuples updated by one
-   * @param txn transaction context of the relevant transaction
+   * @param txn_start start time (unique identifier) for txn
    */
   void IncrementTupleUpdate(const transaction::timestamp_t txn_start) { data_[txn_start].tuple_update_++; }
 
   /**
    * Increment the number of tuples inserted by one
-   * @param txn transaction context of the relevant transaction
+   * @param txn_start start time (unique identifier) for txn
    */
   void IncrementTupleInsert(const transaction::timestamp_t txn_start) { data_[txn_start].tuple_insert_++; }
 
   /**
    * Increment the number of tuples deleted by one
-   * @param txn transaction context of the relevant transaction
+   * @param txn_start start time (unique identifier) for txn
    */
   void IncrementTupleDelete(const transaction::timestamp_t txn_start) { data_[txn_start].tuple_delete_++; }
 
@@ -218,4 +218,4 @@ class TransactionMetric : public AbstractMetric<TransactionMetricRawData> {
     GetRawData()->IncrementTupleDelete(txn.StartTime());
   }
 };
-}  // namespace terrier::metric
+}  // namespace terrier::metrics

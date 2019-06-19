@@ -1,10 +1,10 @@
 #pragma once
 
 #include "common/macros.h"
-#include "metric/metric_defs.h"
+#include "metrics/metric_defs.h"
 #include "transaction/transaction_manager.h"
 
-namespace terrier::metric {
+namespace terrier::metrics {
 /**
  * @brief An always-consistent storage unit for intermediate stats results.
  *
@@ -34,4 +34,4 @@ class AbstractRawData {
    */
   virtual MetricsComponent GetMetricType() const = 0;
 };
-}  // namespace terrier::metric
+}  // namespace terrier::metrics

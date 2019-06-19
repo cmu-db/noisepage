@@ -107,3 +107,19 @@ SETTING_int(
     false,
     terrier::settings::Callbacks::NoOp
 )
+
+SETTING_bool(
+    metrics_transaction,
+    "Metrics collection for the Transaction component.",
+    false,
+    true,
+    terrier::settings::Callbacks::MetricsTransaction
+)
+
+SETTING_bool(
+    metrics_logging,
+    "Metrics collection for the Logging component.",
+    false,
+    true,
+    terrier::settings::Callbacks::MetricsLogging
+)

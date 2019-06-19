@@ -6,7 +6,7 @@
 #include "common/action_context.h"
 #include "common/stat_registry.h"
 #include "common/worker_pool.h"
-#include "metric/metrics_manager.h"
+#include "metrics/metrics_manager.h"
 #include "network/terrier_server.h"
 #include "settings/settings_manager.h"
 #include "settings/settings_param.h"
@@ -20,6 +20,10 @@ class SettingsManager;
 class SettingsTests;
 class Callbacks;
 }  // namespace settings
+
+namespace metrics {
+class MetricsTests;
+}
 
 namespace storage {
 class WriteAheadLoggingTests;
@@ -85,6 +89,7 @@ class DBMain {
   friend class settings::SettingsManager;
   friend class settings::SettingsTests;
   friend class settings::Callbacks;
+  friend class metrics::MetricsTests;
   std::shared_ptr<common::StatisticsRegistry> main_stat_reg_;
   std::unordered_map<settings::Param, settings::ParamInfo> param_map_;
   transaction::TransactionManager *txn_manager_;
@@ -98,7 +103,7 @@ class DBMain {
   network::PostgresCommandFactory *command_factory_;
   network::ConnectionHandleFactory *connection_handle_factory_;
   network::ProtocolInterpreter::Provider *provider_;
-  metric::MetricsManager *metrics_manager_;
+  metrics::MetricsManager *metrics_manager_;
 
   bool running = false;
 

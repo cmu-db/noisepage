@@ -6,10 +6,14 @@
 
 #include "common/managed_pointer.h"
 #include "common/spin_latch.h"
-#include "metric/abstract_raw_data.h"
-#include "metric/metrics_store.h"
+#include "metrics/abstract_raw_data.h"
+#include "metrics/metrics_store.h"
 
-namespace terrier::metric {
+namespace terrier::settings {
+class Callbacks;
+}
+
+namespace terrier::metrics {
 
 /**
  * Background thread that periodically collects data from thread level collectors
@@ -26,6 +30,9 @@ class MetricsManager {
    */
   void Aggregate();
 
+  /**
+   * @return pointer to this thread's MetricsStore object
+   */
   common::ManagedPointer<MetricsStore> RegisterThread() {
     common::SpinLatch::ScopedSpinLatch guard(&write_latch_);
     const auto thread_id = std::this_thread::get_id();
@@ -49,9 +56,23 @@ class MetricsManager {
     TERRIER_ASSERT(stores_map_.count(thread_id) == 0, "Deletion from concurrent map failed.");
   }
 
+  /**
+   * @return the MetricsManager's aggregated metrics. Currently used in tests
+   */
   const std::array<std::unique_ptr<AbstractRawData>, NUM_COMPONENTS> &AggregatedMetrics() const {
     return aggregated_metrics_;
   }
+
+  /**
+   * @param component to be tested
+   * @return true if metrics are enabled for this metric, false otherwise
+   */
+  bool ComponentEnabled(const MetricsComponent component) {
+    return enabled_metrics_.test(static_cast<uint8_t>(component));
+  }
+
+ private:
+  friend class settings::Callbacks;
 
   void EnableMetric(const MetricsComponent component) {
     // overly conservative if this is only called from SettingsManager?
@@ -69,7 +90,6 @@ class MetricsManager {
     enabled_metrics_.set(static_cast<uint8_t>(component), false);
   }
 
- private:
   void ResetMetric(MetricsComponent component) const;
 
   common::SpinLatch write_latch_;
@@ -80,4 +100,4 @@ class MetricsManager {
   std::bitset<NUM_COMPONENTS> enabled_metrics_ = 0x0;
 };
 
-}  // namespace terrier::metric
+}  // namespace terrier::metrics

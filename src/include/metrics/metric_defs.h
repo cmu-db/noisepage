@@ -3,7 +3,7 @@
 #include <array>
 #include <bitset>
 
-namespace terrier::metric {
+namespace terrier::metrics {
 
 /**
  * Metric types
@@ -33,4 +33,4 @@ inline bool MetricSupportsEvent(const MetricsEventType event, const MetricsCompo
   return event_dispatches[static_cast<uint8_t>(event)].test(static_cast<uint8_t>(component));
 }
 
-}  // namespace terrier::metric
+}  // namespace terrier::metrics

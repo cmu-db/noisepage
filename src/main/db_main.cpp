@@ -29,7 +29,7 @@ DBMain::DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_
                                                    std::chrono::milliseconds{type::TransientValuePeeker::PeekInteger(
                                                        param_map_.find(settings::Param::gc_interval)->second.value_)});
   settings_manager_ = new settings::SettingsManager(this);
-  metrics_manager_ = new metric::MetricsManager;
+  metrics_manager_ = new metrics::MetricsManager;
 
   // Create LogManager
   log_manager_ = new storage::LogManager(
