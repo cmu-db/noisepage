@@ -1,5 +1,6 @@
 #pragma once
 #include <unordered_set>
+#include <algorithm>
 #include "common/spin_latch.h"
 #include "common/strong_typedef.h"
 #include "transaction/transaction_defs.h"
@@ -43,12 +44,19 @@ class TimestampManager {
     TERRIER_ASSERT(ret == 1, "erased timestamp did not exist");
   }
 
+  timestamp_t OldestTransactionStartTime() const {
+    common::SpinLatch::ScopedSpinLatch guard(&curr_running_txns_latch_);
+    const auto &oldest_txn = std::min_element(curr_running_txns_.cbegin(), curr_running_txns_.cend());
+    const timestamp_t result = (oldest_txn != curr_running_txns_.end()) ? *oldest_txn : time_.load();
+    return result;
+  }
+
  private:
   // TODO(Tianyu): Timestamp generation needs to be more efficient (batches)
   // TODO(Tianyu): We don't handle timestamp wrap-arounds. I doubt this would be an issue any time soon.
   std::atomic<timestamp_t> time_{timestamp_t(0)};
   // TODO(Matt): consider a different data structure if this becomes a measured bottleneck
   std::unordered_set<timestamp_t> curr_running_txns_;
-  common::SpinLatch curr_running_txns_latch_;
+  mutable common::SpinLatch curr_running_txns_latch_;
 };
 }  // namespace terrier::transaction

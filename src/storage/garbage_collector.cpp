@@ -4,6 +4,7 @@
 #include "common/macros.h"
 #include "loggers/storage_logger.h"
 #include "storage/data_table.h"
+#include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
 #include "transaction/transaction_manager.h"
@@ -20,7 +21,7 @@ std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
   if (txns_unlinked > 0) {
     // Only update this field if we actually unlinked anything, otherwise we're being too conservative about when it's
     // safe to deallocate the transactions in our queue.
-    last_unlinked_ = txn_manager_->GetTimestamp();
+    last_unlinked_ = timestamp_manager_->CheckOutTimestamp();
   }
   STORAGE_LOG_TRACE("GarbageCollector::PerformGarbageCollection(): last_unlinked_: {}",
                     static_cast<uint64_t>(last_unlinked_));
@@ -29,7 +30,7 @@ std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
 }
 
 uint32_t GarbageCollector::ProcessDeallocateQueue() {
-  const transaction::timestamp_t oldest_txn = txn_manager_->OldestTransactionStartTime();
+  const transaction::timestamp_t oldest_txn = timestamp_manager_->OldestTransactionStartTime();
   uint32_t txns_processed = 0;
   transaction::TransactionContext *txn = nullptr;
 
@@ -56,7 +57,7 @@ uint32_t GarbageCollector::ProcessDeallocateQueue() {
 }
 
 uint32_t GarbageCollector::ProcessUnlinkQueue() {
-  const transaction::timestamp_t oldest_txn = txn_manager_->OldestTransactionStartTime();
+  const transaction::timestamp_t oldest_txn = timestamp_manager_->OldestTransactionStartTime();
   transaction::TransactionContext *txn = nullptr;
 
   // Get the completed transactions from the TransactionManager
@@ -113,18 +114,9 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
 }
 
 void GarbageCollector::ProcessDeferredActions() {
-  auto new_actions = txn_manager_->DeferredActionsForGC();
-  while (!new_actions.empty()) {
-    deferred_actions_.push(new_actions.front());
-    new_actions.pop();
-  }
-
-  const transaction::timestamp_t oldest_txn = txn_manager_->OldestTransactionStartTime();
-
-  // Execute as many deferred actions as we can at this time.
-  while ((!deferred_actions_.empty()) && deferred_actions_.front().first <= oldest_txn) {
-    deferred_actions_.front().second();
-    deferred_actions_.pop();
+  if (deferred_action_manager_ != DISABLED) {
+    // TODO(Tianyu): Eventually we will remove the GC and implement version chain pruning with deferred actions
+    deferred_action_manager_->Process();
   }
 }
 

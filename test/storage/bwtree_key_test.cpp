@@ -219,8 +219,11 @@ class BwTreeKeyTests : public TerrierTest {
     storage::SqlTable sql_table(&block_store, schema, catalog::table_oid_t(1));
     const auto &tuple_initializer = sql_table.InitializerForProjectedRow({catalog::col_oid_t(0)}).first;
 
-    transaction::TransactionManager txn_manager(&buffer_pool, true, LOGGING_DISABLED);
-    storage::GarbageCollector gc_manager(&txn_manager);
+    transaction::TimestampManager timestamp_manager;
+    transaction::DeferredActionManager deferred_action_manager(&timestamp_manager);
+    transaction::TransactionManager txn_manager(&timestamp_manager, &deferred_action_manager, &buffer_pool, true,
+                                                LOGGING_DISABLED);
+    storage::GarbageCollector gc_manager(&timestamp_manager, &deferred_action_manager, &txn_manager);
 
     auto *const txn = txn_manager.BeginTransaction();
 

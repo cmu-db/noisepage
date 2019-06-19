@@ -1,5 +1,4 @@
 #include "transaction/transaction_manager.h"
-#include <algorithm>
 #include <queue>
 #include <unordered_set>
 #include <utility>
@@ -76,6 +75,7 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
   const timestamp_t result = txn->undo_buffer_.Empty() ? ReadOnlyCommitCriticalSection(txn, callback, callback_arg)
                                                        : UpdatingCommitCriticalSection(txn, callback, callback_arg);
   while (!txn->commit_actions_.empty()) {
+    TERRIER_ASSERT(deferred_action_manager_ != DISABLED, "No deferred action manager exists to process actions");
     txn->commit_actions_.front()(deferred_action_manager_);
     txn->commit_actions_.pop_front();
   }
@@ -113,6 +113,7 @@ void TransactionManager::LogAbort(TransactionContext *const txn) {
 timestamp_t TransactionManager::Abort(TransactionContext *const txn) {
   // Immediately clear the abort actions stack
   while (!txn->abort_actions_.empty()) {
+    TERRIER_ASSERT(deferred_action_manager_ != DISABLED, "No deferred action manager exists to process actions");
     txn->abort_actions_.front()(deferred_action_manager_);
     txn->abort_actions_.pop_front();
   }
@@ -130,7 +131,7 @@ timestamp_t TransactionManager::Abort(TransactionContext *const txn) {
   // Now that the in-place versions have been restored, we neeed to check out an abort timestamp as well. This serves
   // to force the rest of the system to acknowledge the rollback, lest a reader suffers from an a-b-a problem in the
   // version record
-  const timestamp_t abort_time = timestamp_manager_->CurrentTime();
+  const timestamp_t abort_time = timestamp_manager_->CheckOutTimestamp();
   // There is no need to flip these timestamps in a critical section, because readers can never see the aborted
   // version either way, unlike in the commit case, where unrepeatable reads may occur.
   for (auto &it : txn->undo_buffer_) it.Timestamp().store(abort_time);

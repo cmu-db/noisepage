@@ -16,7 +16,7 @@ class FakeTransaction {
       : layout_(layout),
         table_(table),
         null_bias_(null_bias),
-        txn_(start_time, txn_id, buffer_pool, LOGGING_DISABLED, ACTION_FRAMEWORK_DISABLED) {}
+        txn_(start_time, txn_id, buffer_pool, LOGGING_DISABLED) {}
 
   ~FakeTransaction() {
     for (auto ptr : loose_pointers_) delete[] ptr;

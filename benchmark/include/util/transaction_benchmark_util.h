@@ -117,6 +117,11 @@ class LargeTransactionBenchmarkObject {
   ~LargeTransactionBenchmarkObject();
 
   /**
+   * @return the timestamp manager used by this test
+   */
+  transaction::TimestampManager *GetTimestampManager() { return &timestamp_manager_; }
+
+  /**
    * @return the transaction manager used by this test
    */
   transaction::TransactionManager *GetTxnManager() { return &txn_manager_; }
@@ -148,6 +153,7 @@ class LargeTransactionBenchmarkObject {
   std::default_random_engine *generator_;
   storage::BlockLayout layout_;
   storage::DataTable table_;
+  transaction::TimestampManager timestamp_manager_;
   transaction::TransactionManager txn_manager_;
   transaction::TransactionContext *initial_txn_;
   bool gc_on_;

@@ -33,16 +33,16 @@ class TransactionManager {
    * @param gc_enabled true if txns should be stored in a local queue to hand off to the GC, false otherwise
    * @param log_manager the log manager in the system, or LOGGING_DISABLED(nulllptr) if logging is turned off.
    */
-  BOOST_DI_INJECT(TransactionManager,
-                  TimestampManager *timestamp_manager,
-                  DeferredActionManager *deferred_action_manager,
-                  storage::RecordBufferSegmentPool *buffer_pool,
+  BOOST_DI_INJECT(TransactionManager, TimestampManager *timestamp_manager,
+                  DeferredActionManager *deferred_action_manager, storage::RecordBufferSegmentPool *buffer_pool,
                   (named = GC_ENABLED) bool gc_enabled, storage::LogManager *log_manager)
       : timestamp_manager_(timestamp_manager),
         deferred_action_manager_(deferred_action_manager),
         buffer_pool_(buffer_pool),
         gc_enabled_(gc_enabled),
-        log_manager_(log_manager) {}
+        log_manager_(log_manager) {
+    TERRIER_ASSERT(timestamp_manager_ != DISABLED, "transaction manager cannot function without a timestamp manager");
+  }
 
   /**
    * Begins a transaction.
@@ -67,14 +67,6 @@ class TransactionManager {
   timestamp_t Abort(TransactionContext *txn);
 
   /**
-   * Get the oldest transaction alive in the system at this time. Because of concurrent operations, it
-   * is not guaranteed that upon return the txn is still alive. However, it is guaranteed that the return
-   * timestamp is older than any transactions live.
-   * @return timestamp that is older than any transactions alive
-   */
-  timestamp_t OldestTransactionStartTime() const;
-
-  /**
    * @return true if gc_enabled and storing completed txns in local queue, false otherwise
    */
   bool GCEnabled() const { return gc_enabled_; }
@@ -84,7 +76,6 @@ class TransactionManager {
    * @return copy of the completed txns for the GC to process
    */
   TransactionQueue CompletedTransactionsForGC();
-
 
  private:
   TimestampManager *timestamp_manager_;
@@ -97,7 +88,6 @@ class TransactionManager {
   TransactionQueue completed_txns_;
   common::SpinLatch completed_txns_latch_;
   storage::LogManager *const log_manager_;
-
 
   timestamp_t ReadOnlyCommitCriticalSection(TransactionContext *txn, transaction::callback_fn callback,
                                             void *callback_arg);

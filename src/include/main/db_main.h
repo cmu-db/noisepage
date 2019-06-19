@@ -92,9 +92,11 @@ class DBMain {
   friend class settings::Callbacks;
   std::shared_ptr<common::StatisticsRegistry> main_stat_reg_;
   std::unordered_map<settings::Param, settings::ParamInfo> param_map_;
+  transaction::TimestampManager *timestamp_manager_;
   transaction::TransactionManager *txn_manager_;
   settings::SettingsManager *settings_manager_;
   storage::LogManager *log_manager_;
+  storage::GarbageCollector *garbage_collector_;
   storage::GarbageCollectorThread *gc_thread_;
   network::TerrierServer *server_;
   storage::RecordBufferSegmentPool *buffer_segment_pool_;

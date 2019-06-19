@@ -10,8 +10,9 @@ namespace terrier {
 
 class GarbageCollectorBenchmark : public benchmark::Fixture {
  public:
-  void StartGC(transaction::TransactionManager *const txn_manager) {
-    gc_ = new storage::GarbageCollector(txn_manager);
+  void StartGC(transaction::TimestampManager *const timestamp_manager,
+               transaction::TransactionManager *const txn_manager) {
+    gc_ = new storage::GarbageCollector(timestamp_manager, DISABLED, txn_manager);
     run_gc_ = true;
     gc_thread_ = std::thread([this] { GCThreadLoop(); });
   }
@@ -58,7 +59,7 @@ BENCHMARK_DEFINE_F(GarbageCollectorBenchmark, UnlinkTime)(benchmark::State &stat
     // generate our table and instantiate GC
     LargeTransactionBenchmarkObject tested({8, 8, 8}, initial_table_size, txn_length, update_select_ratio,
                                            &block_store_, &buffer_pool_, &generator_, true);
-    gc_ = new storage::GarbageCollector(tested.GetTxnManager());
+    gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager());
 
     // clean up insert txn
     gc_->PerformGarbageCollection();
@@ -97,7 +98,7 @@ BENCHMARK_DEFINE_F(GarbageCollectorBenchmark, ReclaimTime)(benchmark::State &sta
     // generate our table and instantiate GC
     LargeTransactionBenchmarkObject tested({8, 8, 8}, initial_table_size, txn_length, update_select_ratio,
                                            &block_store_, &buffer_pool_, &generator_, true);
-    gc_ = new storage::GarbageCollector(tested.GetTxnManager());
+    gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager());
 
     // clean up insert txn
     gc_->PerformGarbageCollection();
@@ -138,7 +139,7 @@ BENCHMARK_DEFINE_F(GarbageCollectorBenchmark, HighContention)(benchmark::State &
   for (auto _ : state) {
     LargeTransactionBenchmarkObject tested({8, 8, 8}, 100, txn_length, update_select_ratio, &block_store_,
                                            &buffer_pool_, &generator_, true);
-    StartGC(tested.GetTxnManager());
+    StartGC(tested.GetTimestampManager(), tested.GetTxnManager());
     uint64_t elapsed_ms;
     {
       common::ScopedTimer timer(&elapsed_ms);

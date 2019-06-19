@@ -43,7 +43,7 @@ class TPCCBenchmark : public benchmark::Fixture {
   const uint64_t num_log_buffers_ = 100;
   const std::chrono::milliseconds log_serialization_interval_{5};
   const std::chrono::milliseconds log_persist_interval_{10};
-  const uint64_t log_persist_threshold_ = (1 << 20);  // 1MB
+  const uint64_t log_persist_threshold_ = (1u << 20u);  // 1MB
 
   const bool only_count_new_order_ = false;  // TPC-C specification is to only measure throughput for New Order in final
                                              // result, but most academic papers use all txn types
@@ -54,6 +54,7 @@ class TPCCBenchmark : public benchmark::Fixture {
 
   common::WorkerPool thread_pool_{static_cast<uint32_t>(num_threads_), {}};
 
+  storage::GarbageCollector *gc_;
   storage::GarbageCollectorThread *gc_thread_ = nullptr;
   const std::chrono::milliseconds gc_period_{10};
 };
@@ -79,7 +80,10 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithoutLogging)(benchmark::State &
   for (auto _ : state) {
     unlink(LOG_FILE_NAME);
     // we need transactions, TPCC database, and GC
-    transaction::TransactionManager txn_manager(&buffer_pool_, true, log_manager_);
+    transaction::TimestampManager timestamp_manager;
+    transaction::DeferredActionManager deferred_action_manager(&timestamp_manager);
+    transaction::TransactionManager txn_manager(&timestamp_manager, &deferred_action_manager, &buffer_pool_, true,
+                                                log_manager_);
 
     // build the TPCC database
     auto *const tpcc_db = tpcc_builder.Build();
@@ -92,7 +96,9 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithoutLogging)(benchmark::State &
 
     // populate the tables and indexes
     Loader::PopulateDatabase(&txn_manager, &generator_, tpcc_db, workers);
-    gc_thread_ = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
+
+    gc_ = new storage::GarbageCollector(&timestamp_manager, &deferred_action_manager, &txn_manager);
+    gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
     Util::RegisterIndexesForGC(&(gc_thread_->GetGarbageCollector()), tpcc_db);
     std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
 
@@ -112,6 +118,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithoutLogging)(benchmark::State &
 
     // cleanup
     delete gc_thread_;
+    delete gc_;
     delete tpcc_db;
     unlink(LOG_FILE_NAME);
   }
@@ -156,7 +163,10 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
     log_manager_ = new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_,
                                            log_persist_interval_, log_persist_threshold_, &buffer_pool_);
     log_manager_->Start();
-    transaction::TransactionManager txn_manager(&buffer_pool_, true, log_manager_);
+    transaction::TimestampManager timestamp_manager;
+    transaction::DeferredActionManager deferred_action_manager(&timestamp_manager);
+    transaction::TransactionManager txn_manager(&timestamp_manager, &deferred_action_manager, &buffer_pool_, true,
+                                                log_manager_);
 
     // build the TPCC database
     auto *const tpcc_db = tpcc_builder.Build();
@@ -170,7 +180,8 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
     // populate the tables and indexes
     Loader::PopulateDatabase(&txn_manager, &generator_, tpcc_db, workers);
     log_manager_->ForceFlush();
-    gc_thread_ = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
+    gc_ = new storage::GarbageCollector(&timestamp_manager, &deferred_action_manager, &txn_manager);
+    gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
     Util::RegisterIndexesForGC(&(gc_thread_->GetGarbageCollector()), tpcc_db);
     std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
 
@@ -193,6 +204,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
     log_manager_->PersistAndStop();
     delete log_manager_;
     delete gc_thread_;
+    delete gc_;
     delete tpcc_db;
     unlink(LOG_FILE_NAME);
   }

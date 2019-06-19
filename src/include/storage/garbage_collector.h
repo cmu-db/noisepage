@@ -24,8 +24,15 @@ class GarbageCollector {
    * GC to invoke the TM's function for handing off the completed transactions queue.
    * @param txn_manager pointer to the TransactionManager
    */
-  explicit GarbageCollector(transaction::TransactionManager *txn_manager)
-      : txn_manager_(txn_manager), last_unlinked_{0} {
+  // TODO(Tianyu): Eventually the GC will be re-written to be purely on the deferred action manager. which will
+  //  eliminate this perceived redundancy of taking in a transaction manager.
+  GarbageCollector(transaction::TimestampManager *timestamp_manager,
+                   transaction::DeferredActionManager *deferred_action_manager,
+                   transaction::TransactionManager *txn_manager)
+      : timestamp_manager_(timestamp_manager),
+        deferred_action_manager_(deferred_action_manager),
+        txn_manager_(txn_manager),
+        last_unlinked_{0} {
     TERRIER_ASSERT(txn_manager_->GCEnabled(),
                    "The TransactionManager needs to be instantiated with gc_enabled true for GC to work!");
   }
@@ -79,6 +86,8 @@ class GarbageCollector {
 
   void ProcessIndexes();
 
+  transaction::TimestampManager *timestamp_manager_;
+  transaction::DeferredActionManager *deferred_action_manager_;
   transaction::TransactionManager *const txn_manager_;
   // timestamp of the last time GC unlinked anything. We need this to know when unlinked versions are safe to deallocate
   transaction::timestamp_t last_unlinked_;

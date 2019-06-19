@@ -26,6 +26,7 @@ namespace terrier::storage::index {
 class BwTreeIndexTests : public TerrierTest {
  private:
   const std::chrono::milliseconds gc_period_{10};
+  storage::GarbageCollector *gc_;
   storage::GarbageCollectorThread *gc_thread_;
 
   storage::BlockStore block_store_{1000, 1000};
@@ -45,7 +46,10 @@ class BwTreeIndexTests : public TerrierTest {
 
   // BwTreeIndex
   Index *default_index_, *unique_index_;
-  transaction::TransactionManager txn_manager_{&buffer_pool_, true, LOGGING_DISABLED};
+  transaction::TimestampManager timestamp_manager_;
+  transaction::DeferredActionManager deferred_action_mangaer_{&timestamp_manager_};
+  transaction::TransactionManager txn_manager_{&timestamp_manager_, &deferred_action_mangaer_, &buffer_pool_, true,
+                                               LOGGING_DISABLED};
 
   byte *key_buffer_1_, *key_buffer_2_;
 
@@ -54,7 +58,8 @@ class BwTreeIndexTests : public TerrierTest {
  protected:
   void SetUp() override {
     TerrierTest::SetUp();
-    gc_thread_ = new storage::GarbageCollectorThread(&txn_manager_, gc_period_);
+    gc_ = new storage::GarbageCollector(&timestamp_manager_, &deferred_action_mangaer_, &txn_manager_);
+    gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
 
     unique_index_ = (IndexBuilder()
                          .SetConstraintType(ConstraintType::UNIQUE)
@@ -80,6 +85,7 @@ class BwTreeIndexTests : public TerrierTest {
     gc_thread_->GetGarbageCollector().UnregisterIndexForGC(default_index_);
 
     delete gc_thread_;
+    delete gc_;
     delete sql_table_;
     delete default_index_;
     delete unique_index_;

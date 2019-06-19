@@ -23,7 +23,7 @@ class DeferredActionManager {
     uint32_t processed = 0;
     // Check out a timestamp from the transaction manager to determine the progress of
     // running transactions in the system.
-    timestamp_t oldest_txn = timestamp_manager_->CheckOutTimestamp();
+    timestamp_t oldest_txn = timestamp_manager_->OldestTransactionStartTime();
     processed += ClearBacklog(oldest_txn);
     processed += ProcessNewActions(oldest_txn);
     return processed;
@@ -40,7 +40,10 @@ class DeferredActionManager {
     uint32_t processed = 0;
     // Execute as many deferred actions as we can at this time from the backlog.
     // Stop traversing
-    while (!back_log_.empty() && back_log_.front().first <= oldest_txn) {
+    // TODO(Tianyu): This will not work if somehow the timestamps we compare against has sign bit flipped.
+    //  (for uncommiitted transactions, or on overflow)
+    // Although that should never happen, we need to be aware that this might be a problem in the future.
+    while (!back_log_.empty() && oldest_txn >= back_log_.front().first) {
       back_log_.front().second(oldest_txn);
       processed++;
       back_log_.pop();
@@ -59,7 +62,7 @@ class DeferredActionManager {
     }
 
     // Iterate through the new actions queue and execute as many as possible
-    while (!new_actions_local.empty() && new_actions_local.front().first <= oldest_txn) {
+    while (!new_actions_local.empty() && oldest_txn >= new_actions_local.front().first) {
       new_actions_local.front().second(oldest_txn);
       processed++;
       new_actions_local.pop();
