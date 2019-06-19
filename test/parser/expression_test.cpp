@@ -304,7 +304,7 @@ TEST(ExpressionTests, ParameterValueExpressionJsonTest) {
 TEST(ExpressionTests, TupleValueExpressionJsonTest) {
   // Create expression
   std::shared_ptr<TupleValueExpression> original_expr =
-      std::make_shared<TupleValueExpression>("column_name", "table_name");
+      std::make_shared<TupleValueExpression>("table_name", "column_name", "alias");
 
   // Serialize expression
   auto json = original_expr->ToJson();

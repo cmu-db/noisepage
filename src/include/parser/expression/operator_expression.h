@@ -4,8 +4,6 @@
 #include <utility>
 #include <vector>
 #include "parser/expression/abstract_expression.h"
-#include "parser/expression_defs.h"
-#include "type/transient_value.h"
 
 namespace terrier::parser {
 

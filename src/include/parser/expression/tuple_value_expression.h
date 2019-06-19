@@ -5,8 +5,6 @@
 #include <utility>
 #include <vector>
 #include "parser/expression/abstract_expression.h"
-#include "parser/expression_defs.h"
-#include "type/type_id.h"
 
 namespace terrier::parser {
 
@@ -19,9 +17,22 @@ class TupleValueExpression : public AbstractExpression {
   /**
    * @param col_name column name
    * @param table_name table name
+   * @param alias alias of the expression
    */
-  TupleValueExpression(std::string table_name, std::string col_name, char *alias)
-      : AbstractExpression(ExpressionType::VALUE_TUPLE, type::TypeId::INVALID, std::string(alias), {}),
+  TupleValueExpression(std::string table_name, std::string col_name, const char *alias)
+      : AbstractExpression(ExpressionType::VALUE_TUPLE, type::TypeId::INVALID, {}),
+        col_name_(std::move(col_name)),
+        table_name_(std::move(table_name)) {
+    if (alias)
+      alias_ = std::string(alias);
+  }
+
+  /**
+  * @param col_name column name
+  * @param table_name table name
+  */
+  TupleValueExpression(std::string table_name, std::string col_name)
+      : AbstractExpression(ExpressionType::VALUE_TUPLE, type::TypeId::INVALID, {}),
         col_name_(std::move(col_name)),
         table_name_(std::move(table_name)) {}
 

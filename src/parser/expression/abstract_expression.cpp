@@ -169,9 +169,6 @@ void AbstractExpression::DeduceExpressionName() {
   // If alias exists, it will be used in TrafficCop
   if (!alias_.empty()) return;
 
-  // Aggregate expression already has correct expr_name_
-  if (IsAggregateExpression(expression_type_)) return;
-
   bool first = true;
 
   if (expression_type_ == ExpressionType::FUNCTION) {

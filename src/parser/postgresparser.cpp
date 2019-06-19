@@ -772,8 +772,7 @@ std::vector<std::shared_ptr<AbstractExpression>> PostgresParser::TargetTransform
   std::vector<std::shared_ptr<AbstractExpression>> result;
   for (auto cell = root->head; cell != nullptr; cell = cell->next) {
     auto target = reinterpret_cast<ResTarget *>(cell->data.ptr_value);
-    auto expr = ExprTransform(target->val, target->name);
-    result.emplace_back(expr);
+    result.emplace_back(ExprTransform(target->val, target->name));
   }
   return result;
 }
