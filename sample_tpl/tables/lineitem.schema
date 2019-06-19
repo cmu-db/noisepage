@@ -1,0 +1,20 @@
+lineitem
+l_orderkey int 0
+l_partkey int 0
+l_suppkey int 0
+l_linenumber int 0
+l_quantity decimal 0
+l_extendedprice decimal 0
+l_discount decimal 0
+l_tax decimal 0
+l_returnflag bool 0
+l_linestatus bool 0
+l_shipdate date 0
+l_commitdate date 0
+l_receiptdate date 0
+l_shipinstruct varchar 0
+l_shipmode varchar 0
+l_comment varchar 0
+1
+lineitem_index 2
+0 3

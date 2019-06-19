@@ -88,7 +88,7 @@ void SortBottomTranslator::InitializeTeardown(tpl::util::RegionVector<tpl::ast::
   teardown_stmts->emplace_back(codegen_->MakeStmt(free_call));
 }
 
-ast::Expr* SortBottomTranslator::GetChildOutput(uint32_t child_idx, uint32_t attr_idx) {
+ast::Expr* SortBottomTranslator::GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) {
   // Pass through to child node
   if (current_row_ == CurrentRow::Child) {
     return prev_translator_->GetOutput(attr_idx);
@@ -142,6 +142,7 @@ void SortBottomTranslator::GenComparisons(tpl::compiler::FunctionBuilder *builde
     }
     attr_idx++;
   }
+  current_row_ = CurrentRow::Child;
   // return 0 at the end
   builder->Append(codegen_->ReturnStmt(codegen_->IntLiteral(0)));
 }
@@ -201,7 +202,7 @@ void SortTopTranslator::DeclareResult(tpl::compiler::FunctionBuilder *builder) {
   builder->Append(codegen_->DeclareVariable(bottom_->sorter_row_, nullptr, cast_call));
 }
 
-ast::Expr* SortTopTranslator::GetChildOutput(uint32_t child_idx, uint32_t attr_idx) {
+ast::Expr* SortTopTranslator::GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) {
   return bottom_->GetOutput(attr_idx);
 }
 

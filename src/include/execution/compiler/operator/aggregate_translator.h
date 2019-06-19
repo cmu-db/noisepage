@@ -39,7 +39,7 @@ class AggregateBottomTranslator : public OperatorTranslator {
   void Produce(FunctionBuilder * builder) override;
 
   // Pass through to the child
-  ast::Expr* GetChildOutput(uint32_t child_idx, uint32_t attr_idx) override;
+  ast::Expr* GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override;
 
   // Return the attribute at idx
   ast::Expr* GetOutput(uint32_t attr_idx) override;
@@ -180,7 +180,7 @@ class AggregateTopTranslator : public OperatorTranslator {
 
   // Let the bottom translator handle these call
   ast::Expr* GetOutput(uint32_t attr_idx) override;
-  ast::Expr* GetChildOutput(uint32_t child_idx, uint32_t attr_idx) override;
+  ast::Expr* GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override;
 
   // This is a materializer
   bool IsMaterializer(bool * is_ptr) override {
@@ -205,6 +205,10 @@ class AggregateTopTranslator : public OperatorTranslator {
 
   // Call @aggHTIterClose(agg_iter)
   void CloseIterator(FunctionBuilder * builder);
+
+  // Generate an if statement for the having clause
+  void GenHaving(FunctionBuilder * builder);
+
 
   // Used to access member of the resulting aggregate
   AggregateBottomTranslator * bottom_;

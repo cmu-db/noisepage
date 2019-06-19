@@ -467,19 +467,25 @@ void BytecodeGenerator::VisitBuiltinTableIterCall(ast::CallExpr *call, ast::Buil
 
   switch (builtin) {
     case ast::Builtin::TableIterInit: {
-      // The second argument is the table name as a literal string
-      TPL_ASSERT(call->arguments()[1]->IsStringLiteral(), "Table name must be a string literal");
-      ast::Identifier table_name = call->arguments()[1]->As<ast::LitExpr>()->raw_string_val();
+      // TODO(Amadou): Use catalog accessor once it's merged
       sql::ExecutionStructures *exec = sql::ExecutionStructures::Instance();
       auto test_db_ns = exec->GetTestDBAndNS();
-      auto catalog_table =
-          exec->GetCatalog()->GetUserTable(exec_ctx_->GetTxn(), test_db_ns.first, test_db_ns.second, table_name.data());
-      TPL_ASSERT(catalog_table != nullptr, "Table does not exist!");
+      // The second argument is the table as a literal string or as an oid integer literal
+      uint32_t table_oid;
+      if (call->arguments()[1]->IsStringLiteral()) {
+        ast::Identifier table_name = call->arguments()[1]->As<ast::LitExpr>()->raw_string_val();
+        auto catalog_table =
+            exec->GetCatalog()->GetUserTable(exec_ctx_->GetTxn(), test_db_ns.first, test_db_ns.second, table_name.data());
+        TPL_ASSERT(catalog_table != nullptr, "Table does not exist!");
+        table_oid = !catalog_table->Oid();
+      } else {
+        table_oid = static_cast<uint32_t>(call->arguments()[1]->As<ast::LitExpr>()->int32_val());
+      }
       // The third argument should be the execution context
       LocalVar exec_ctx = VisitExpressionForRValue(call->arguments()[2]);
       // Emit the initialization codes
       emitter()->EmitTableIterInit(Bytecode::TableVectorIteratorInit, iter, !test_db_ns.first, !test_db_ns.second,
-                                   !catalog_table->Oid(), exec_ctx);
+                                   table_oid, exec_ctx);
       emitter()->Emit(Bytecode::TableVectorIteratorPerformInit, iter);
       break;
     }
@@ -490,10 +496,10 @@ void BytecodeGenerator::VisitBuiltinTableIterCall(ast::CallExpr *call, ast::Buil
       break;
     }
     case ast::Builtin::TableIterGetPCI: {
-      ast::Type *vpi_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::ProjectedColumnsIterator);
-      LocalVar vpi = execution_result()->GetOrCreateDestination(vpi_type);
-      emitter()->Emit(Bytecode::TableVectorIteratorGetPCI, vpi, iter);
-      execution_result()->set_destination(vpi.ValueOf());
+      ast::Type *pci_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::ProjectedColumnsIterator);
+      LocalVar pci = execution_result()->GetOrCreateDestination(pci_type);
+      emitter()->Emit(Bytecode::TableVectorIteratorGetPCI, pci, iter);
+      execution_result()->set_destination(pci.ValueOf());
       break;
     }
     case ast::Builtin::TableIterClose: {
@@ -531,13 +537,13 @@ void BytecodeGenerator::VisitBuiltinPCICall(ast::CallExpr *call, ast::Builtin bu
   ast::Context *ctx = call->type()->context();
 
   // The first argument to all calls is a pointer to the TVI
-  LocalVar vpi = VisitExpressionForRValue(call->arguments()[0]);
+  LocalVar pci = VisitExpressionForRValue(call->arguments()[0]);
 
   switch (builtin) {
     case ast::Builtin::PCIIsFiltered: {
       LocalVar is_filtered =
           execution_result()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
-      emitter()->Emit(Bytecode::PCIIsFiltered, is_filtered, vpi);
+      emitter()->Emit(Bytecode::PCIIsFiltered, is_filtered, pci);
       execution_result()->set_destination(is_filtered.ValueOf());
       break;
     }
@@ -546,7 +552,7 @@ void BytecodeGenerator::VisitBuiltinPCICall(ast::CallExpr *call, ast::Builtin bu
       const Bytecode bytecode =
           builtin == ast::Builtin::PCIHasNext ? Bytecode::PCIHasNext : Bytecode::PCIHasNextFiltered;
       LocalVar cond = execution_result()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
-      emitter()->Emit(bytecode, cond, vpi);
+      emitter()->Emit(bytecode, cond, pci);
       execution_result()->set_destination(cond.ValueOf());
       break;
     }
@@ -554,48 +560,48 @@ void BytecodeGenerator::VisitBuiltinPCICall(ast::CallExpr *call, ast::Builtin bu
     case ast::Builtin::PCIAdvanceFiltered: {
       const Bytecode bytecode =
           builtin == ast::Builtin::PCIAdvance ? Bytecode::PCIAdvance : Bytecode::PCIAdvanceFiltered;
-      emitter()->Emit(bytecode, vpi);
+      emitter()->Emit(bytecode, pci);
       break;
     }
     case ast::Builtin::PCIMatch: {
       LocalVar match = VisitExpressionForRValue(call->arguments()[1]);
-      emitter()->Emit(Bytecode::PCIMatch, vpi, match);
+      emitter()->Emit(Bytecode::PCIMatch, pci, match);
       break;
     }
     case ast::Builtin::PCIReset:
     case ast::Builtin::PCIResetFiltered: {
       const Bytecode bytecode = builtin == ast::Builtin::PCIReset ? Bytecode::PCIReset : Bytecode::PCIResetFiltered;
-      emitter()->Emit(bytecode, vpi);
+      emitter()->Emit(bytecode, pci);
       break;
     }
     case ast::Builtin::PCIGetSmallInt: {
       LocalVar val = execution_result()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Integer));
       auto col_idx = call->arguments()[1]->As<ast::LitExpr>()->int32_val();
-      emitter()->EmitPCIGet(Bytecode::PCIGetSmallInt, val, vpi, col_idx);
+      emitter()->EmitPCIGet(Bytecode::PCIGetSmallInt, val, pci, col_idx);
       break;
     }
     case ast::Builtin::PCIGetInt: {
       LocalVar val = execution_result()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Integer));
       auto col_idx = call->arguments()[1]->As<ast::LitExpr>()->int32_val();
-      emitter()->EmitPCIGet(Bytecode::PCIGetInteger, val, vpi, col_idx);
+      emitter()->EmitPCIGet(Bytecode::PCIGetInteger, val, pci, col_idx);
       break;
     }
     case ast::Builtin::PCIGetBigInt: {
       LocalVar val = execution_result()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Integer));
       auto col_idx = call->arguments()[1]->As<ast::LitExpr>()->int32_val();
-      emitter()->EmitPCIGet(Bytecode::PCIGetBigInt, val, vpi, col_idx);
+      emitter()->EmitPCIGet(Bytecode::PCIGetBigInt, val, pci, col_idx);
       break;
     }
     case ast::Builtin::PCIGetReal: {
       LocalVar val = execution_result()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Real));
       auto col_idx = call->arguments()[1]->As<ast::LitExpr>()->int32_val();
-      emitter()->EmitPCIGet(Bytecode::PCIGetReal, val, vpi, col_idx);
+      emitter()->EmitPCIGet(Bytecode::PCIGetReal, val, pci, col_idx);
       break;
     }
     case ast::Builtin::PCIGetDouble: {
       LocalVar val = execution_result()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Real));
       auto col_idx = call->arguments()[1]->As<ast::LitExpr>()->int32_val();
-      emitter()->EmitPCIGet(Bytecode::PCIGetDouble, val, vpi, col_idx);
+      emitter()->EmitPCIGet(Bytecode::PCIGetDouble, val, pci, col_idx);
       break;
     }
     default: { UNREACHABLE("Impossible table iteration call"); }
@@ -664,8 +670,8 @@ void BytecodeGenerator::VisitBuiltinFilterManagerCall(ast::CallExpr *call, ast::
       break;
     }
     case ast::Builtin::FilterManagerRunFilters: {
-      LocalVar vpi = VisitExpressionForRValue(call->arguments()[1]);
-      emitter()->Emit(Bytecode::FilterManagerRunFilters, filter_manager, vpi);
+      LocalVar pci = VisitExpressionForRValue(call->arguments()[1]);
+      emitter()->Emit(Bytecode::FilterManagerRunFilters, filter_manager, pci);
       break;
     }
     case ast::Builtin::FilterManagerFree: {
@@ -1294,24 +1300,68 @@ void BytecodeGenerator::VisitBuiltinInsertCall(ast::CallExpr *call, ast::Builtin
 
 void BytecodeGenerator::VisitBuiltinIndexIteratorCall(ast::CallExpr *call, ast::Builtin builtin) {
   terrier::catalog::Catalog *catalog = sql::ExecutionStructures::Instance()->GetCatalog();
+  ast::Context *ctx = call->type()->context();
+  LocalVar iterator = VisitExpressionForRValue(call->arguments()[0]);
   switch (builtin) {
     case ast::Builtin::IndexIteratorInit: {
-      LocalVar iterator = VisitExpressionForRValue(call->arguments()[0]);
-      std::string index_name(call->arguments()[1]->As<ast::LitExpr>()->raw_string_val().data());
-      auto index_oid = catalog->GetCatalogIndexOid(index_name);
-      LocalVar exec_ctx = VisitExpressionForRValue(call->arguments()[2]);
-      emitter()->EmitIndexIteratorInit(Bytecode::IndexIteratorInit, iterator, !index_oid, exec_ctx);
+      // TODO(Amadou): Use catalog accessor once it's merged.
+      uint32_t index_oid;
+      uint32_t table_oid;
+      if (call->arguments()[1]->IsStringLiteral()) {
+        table_oid = 0; // The fake catalog does not need a table_oid
+        std::string index_name(call->arguments()[2]->As<ast::LitExpr>()->raw_string_val().data());
+        index_oid = !catalog->GetCatalogIndexOid(index_name);
+      } else {
+        table_oid = static_cast<u32>(call->arguments()[1]->As<ast::LitExpr>()->int32_val());
+        index_oid = static_cast<u32>(call->arguments()[2]->As<ast::LitExpr>()->int32_val());
+      }
+      LocalVar exec_ctx = VisitExpressionForRValue(call->arguments()[3]);
+      emitter()->EmitIndexIteratorInit(Bytecode::IndexIteratorInit, iterator, table_oid, index_oid, exec_ctx);
       break;
     }
     case ast::Builtin::IndexIteratorScanKey: {
-      LocalVar iterator = VisitExpressionForRValue(call->arguments()[0]);
       LocalVar key = VisitExpressionForRValue(call->arguments()[1]);
-      emitter()->EmitIndexIteratorScanKey(Bytecode::IndexIteratorScanKey, iterator, key);
+      emitter()->Emit(Bytecode::IndexIteratorScanKey, iterator, key);
+      break;
+    }
+    case ast::Builtin::IndexIteratorAdvance: {
+      LocalVar cond = execution_result()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
+      emitter()->Emit(Bytecode::IndexIteratorAdvance, cond, iterator);
+      execution_result()->set_destination(cond.ValueOf());
       break;
     }
     case ast::Builtin::IndexIteratorFree: {
-      LocalVar iterator = VisitExpressionForRValue(call->arguments()[0]);
-      emitter()->EmitIndexIteratorFree(Bytecode::IndexIteratorFree, iterator);
+      emitter()->Emit(Bytecode::IndexIteratorFree, iterator);
+      break;
+    }
+    case ast::Builtin::IndexIteratorGetSmallInt: {
+      LocalVar val = execution_result()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Integer));
+      auto col_idx = static_cast<uint32_t>(call->arguments()[1]->As<ast::LitExpr>()->int32_val());
+      emitter()->EmitIndexIteratorGet(Bytecode::IndexIteratorGetSmallInt, val, iterator, col_idx);
+      break;
+    }
+    case ast::Builtin::IndexIteratorGetInt: {
+      LocalVar val = execution_result()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Integer));
+      auto col_idx = static_cast<uint32_t>(call->arguments()[1]->As<ast::LitExpr>()->int32_val());
+      emitter()->EmitIndexIteratorGet(Bytecode::IndexIteratorGetInteger, val, iterator, col_idx);
+      break;
+    }
+    case ast::Builtin::IndexIteratorGetBigInt: {
+      LocalVar val = execution_result()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Integer));
+      auto col_idx = static_cast<uint32_t>(call->arguments()[1]->As<ast::LitExpr>()->int32_val());
+      emitter()->EmitIndexIteratorGet(Bytecode::IndexIteratorGetBigInt, val, iterator, col_idx);
+      break;
+    }
+    case ast::Builtin::IndexIteratorGetReal: {
+      LocalVar val = execution_result()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Real));
+      auto col_idx = static_cast<uint32_t>(call->arguments()[1]->As<ast::LitExpr>()->int32_val());
+      emitter()->EmitIndexIteratorGet(Bytecode::IndexIteratorGetReal, val, iterator, col_idx);
+      break;
+    }
+    case ast::Builtin::IndexIteratorGetDouble: {
+      LocalVar val = execution_result()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Real));
+      auto col_idx = static_cast<uint32_t>(call->arguments()[1]->As<ast::LitExpr>()->int32_val());
+      emitter()->EmitIndexIteratorGet(Bytecode::IndexIteratorGetDouble, val, iterator, col_idx);
       break;
     }
     default: { UNREACHABLE("Impossible bytecode"); }
@@ -1483,6 +1533,12 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       break;
     case ast::Builtin::IndexIteratorInit:
     case ast::Builtin::IndexIteratorScanKey:
+    case ast::Builtin::IndexIteratorAdvance:
+    case ast::Builtin::IndexIteratorGetSmallInt:
+    case ast::Builtin::IndexIteratorGetInt:
+    case ast::Builtin::IndexIteratorGetBigInt:
+    case ast::Builtin::IndexIteratorGetReal:
+    case ast::Builtin::IndexIteratorGetDouble:
     case ast::Builtin::IndexIteratorFree:
       VisitBuiltinIndexIteratorCall(call, builtin);
       break;

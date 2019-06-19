@@ -23,6 +23,7 @@ TableVectorIterator::TableVectorIterator(u32 db_oid, u32 ns_oid, u32 table_oid, 
 TableVectorIterator::~TableVectorIterator() { delete[] buffer_; }
 
 bool TableVectorIterator::Init() {
+  // TODO(Amadou): Use the catalog accessor once it's merged.
   // Find the table
   auto *exec = ExecutionStructures::Instance();
   catalog_table_ = exec->GetCatalog()->GetUserTable(txn_, db_oid_, ns_oid_, table_oid_);

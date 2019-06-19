@@ -277,19 +277,22 @@ namespace tpl::vm {
   /* Insert */                                                                                                        \
   F(Insert, OperandType::Local, OperandType::UImm4, OperandType::UImm4, OperandType::UImm4, OperandType::Local)       \
   /* Index Iterator */                                                                                                \
-  F(IndexIteratorInit, OperandType::Local, OperandType::UImm4, OperandType::Local)                                    \
+  F(IndexIteratorInit, OperandType::Local, OperandType::UImm4, OperandType::UImm4, OperandType::Local)                                    \
   F(IndexIteratorScanKey, OperandType::Local, OperandType::Local)                                                     \
   F(IndexIteratorFree, OperandType::Local)                                                                            \
-  F(IndexIteratorHasNext, OperandType::Local, OperandType::Local)                                                     \
-  F(IndexIteratorAdvance, OperandType::Local)                                                                         \
+  F(IndexIteratorAdvance, OperandType::Local, OperandType::Local)                                                                         \
   F(IndexIteratorGetSmallInt, OperandType::Local, OperandType::Local, OperandType::UImm4)                             \
   F(IndexIteratorGetInteger, OperandType::Local, OperandType::Local, OperandType::UImm4)                              \
   F(IndexIteratorGetBigInt, OperandType::Local, OperandType::Local, OperandType::UImm4)                               \
   F(IndexIteratorGetDecimal, OperandType::Local, OperandType::Local, OperandType::UImm4)                              \
+  F(IndexIteratorGetReal, OperandType::Local, OperandType::Local, OperandType::UImm4)                              \
+  F(IndexIteratorGetDouble, OperandType::Local, OperandType::Local, OperandType::UImm4)                              \
   F(IndexIteratorGetSmallIntNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                         \
   F(IndexIteratorGetIntegerNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                          \
   F(IndexIteratorGetBigIntNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                           \
-  F(IndexIteratorGetDecimalNull, OperandType::Local, OperandType::Local, OperandType::UImm4)
+  F(IndexIteratorGetDecimalNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                           \
+  F(IndexIteratorGetRealNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                           \
+  F(IndexIteratorGetDoubleNull, OperandType::Local, OperandType::Local, OperandType::UImm4)
 
 /**
  * The single enumeration of all possible bytecode instructions

@@ -213,10 +213,9 @@ void OpInsert(tpl::exec::ExecutionContext *exec_ctx, u32 db_oid, u32 ns_oid, u32
 // -------------------------------------------------------------------
 // Index Iterator
 // -------------------------------------------------------------------
-void OpIndexIteratorInit(tpl::sql::IndexIterator *iter, uint32_t index_oid, tpl::exec::ExecutionContext *exec_ctx) {
-  new (iter) tpl::sql::IndexIterator(index_oid, exec_ctx->GetTxn());
+void OpIndexIteratorInit(tpl::sql::IndexIterator *iter, uint32_t table_oid, uint32_t index_oid, tpl::exec::ExecutionContext *exec_ctx) {
+  new (iter) tpl::sql::IndexIterator(table_oid, index_oid, exec_ctx->GetTxn());
 }
-void OpIndexIteratorScanKey(tpl::sql::IndexIterator *iter, byte *key) { iter->ScanKey(key); }
 void OpIndexIteratorFree(tpl::sql::IndexIterator *iter) { iter->~IndexIterator(); }
 
 }  //

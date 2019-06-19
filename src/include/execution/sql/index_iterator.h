@@ -22,10 +22,11 @@ class IndexIterator {
  public:
   /**
    * Constructor
-   * @param index_oid oid of the index to over.
+   * @param table_oid oid of the table
+   * @param index_oid oid of the index to iterate over.
    * @param txn running transaction
    */
-  explicit IndexIterator(uint32_t index_oid, TransactionContext *txn = nullptr);
+  explicit IndexIterator(uint32_t table_oid, uint32_t index_oid, TransactionContext *txn = nullptr);
 
   /**
    * Frees allocated resources.
@@ -39,14 +40,9 @@ class IndexIterator {
   void ScanKey(byte *sql_key);
 
   /**
-   * Advances the iterator.
+   * Advances the iterator. Return true if successful
    */
-  void Advance();
-
-  /**
-   * @return true iff there are TupleSlots left
-   */
-  bool HasNext();
+  bool Advance();
 
   /**
    * Get a pointer to the value in the column at index @em col_idx

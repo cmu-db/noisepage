@@ -58,6 +58,7 @@
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "planner/plannodes/set_op_plan_node.h"
 #include "planner/plannodes/update_plan_node.h"
+#include "planner/plannodes/index_join_plan_node.h"
 #include "type/transient_value.h"
 #include "type/transient_value_factory.h"
 #include "type/type_id.h"
@@ -424,7 +425,6 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
   CompileAndRun(hash_join.get(), txn);
   txn_mgr->Commit(txn, nullptr, nullptr);
   // TODO(Amadou): Come up with a way to automatically check that the joined rows are the same.
-
 }
 */
 
@@ -499,6 +499,187 @@ TEST_F(CompilerTest, SimpleSortTest) {
 
   // TODO(Amadou): Add a way to automatically check that the output is order by the second column in asc order,
   // then by the first column in desc order.
+}
+*/
+
+/*
+// NOLINTNEXTLINE
+TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
+  // SELECT t1.col1, t2.col1, t2.col2, t1.col2 + t2.col2 FROM t1 INNER JOIN t2 ON t1.col1=t2.col1
+  // WHERE t1.col1 < 500
+  // Begin a transaction
+  auto exec = sql::ExecutionStructures::Instance();
+  auto txn_mgr = exec->GetTxnManager();
+  auto txn = txn_mgr->BeginTransaction();
+  // Get the right oids
+  // TODO: Join with test_2 after catalog is in
+  auto test_db_ns = exec->GetTestDBAndNS();
+  auto * catalog_table = exec->GetCatalog()->GetUserTable(txn, test_db_ns.first, test_db_ns.second, "test_1");
+
+  // Make the seq scan
+  std::shared_ptr<AbstractPlanNode> seq_scan1;
+  {
+    // col1 and col2
+    auto tve1 = BuildTVE(0, 0, terrier::type::TypeId::INTEGER);
+    auto tve2 = BuildTVE(0, 1, terrier::type::TypeId::INTEGER);
+    // predicate
+    auto constant_500 = BuildConstant(500);
+    auto predicate = BuildComparison(terrier::parser::ExpressionType::COMPARE_LESS_THAN, tve1, constant_500);
+    // Output Schema
+    OutputSchema::Column col1{terrier::type::TypeId::INTEGER, true, tve1};
+    OutputSchema::Column col2{terrier::type::TypeId::INTEGER, true, tve2};
+    std::vector<OutputSchema::Column> cols{col1, col2};
+    auto schema = std::make_shared<OutputSchema>(cols);
+    // Build
+    SeqScanPlanNode::Builder builder;
+    seq_scan1 =
+        builder.SetOutputSchema(schema)
+            .SetScanPredicate(predicate)
+            .SetIsParallelFlag(false)
+            .SetIsForUpdateFlag(false)
+            .SetDatabaseOid(test_db_ns.first)
+            .SetNamespaceOid(test_db_ns.second)
+            .SetTableOid(catalog_table->Oid())
+            .Build();
+  }
+  // Make the seq scan
+  // TODO: Use test_2 here
+  std::shared_ptr<AbstractPlanNode> seq_scan2;
+  {
+    // col1 and col2
+    auto tve1 = BuildTVE(0, 0, terrier::type::TypeId::INTEGER);
+    auto tve2 = BuildTVE(0, 1, terrier::type::TypeId::INTEGER);
+    // predicate
+    auto constant_500 = BuildConstant(500);
+    auto predicate = BuildComparison(terrier::parser::ExpressionType::COMPARE_LESS_THAN, tve1, constant_500);
+    // Output Schema
+    OutputSchema::Column col1{terrier::type::TypeId::INTEGER, true, tve1};
+    OutputSchema::Column col2{terrier::type::TypeId::INTEGER, true, tve2};
+    std::vector<OutputSchema::Column> cols{col1, col2};
+    auto schema = std::make_shared<OutputSchema>(cols);
+    // Build
+    SeqScanPlanNode::Builder builder;
+    seq_scan2 =
+        builder.SetOutputSchema(schema)
+            .SetScanPredicate(predicate)
+            .SetIsParallelFlag(false)
+            .SetIsForUpdateFlag(false)
+            .SetDatabaseOid(test_db_ns.first)
+            .SetNamespaceOid(test_db_ns.second)
+            .SetTableOid(catalog_table->Oid())
+            .Build();
+  }
+  // Make nested loop join
+  std::shared_ptr<AbstractPlanNode> nl_join;
+  {
+    // t1.col1, and t1.col2
+    auto tve1_1 = BuildTVE(0, 0, terrier::type::TypeId::INTEGER);
+    auto tve1_2 = BuildTVE(0, 1, terrier::type::TypeId::INTEGER);
+    // t2.col1, and t2.col2
+    auto tve2_1 = BuildTVE(1, 0, terrier::type::TypeId::INTEGER);
+    auto tve2_2 = BuildTVE(1, 1, terrier::type::TypeId::INTEGER);
+    // t1.col2 + t2.col2
+    auto sum = BuildOperator(ExpressionType::OPERATOR_PLUS, terrier::type::TypeId::INTEGER, tve1_2, tve2_2);
+    // Predicate
+    auto predicate = BuildComparison(ExpressionType::COMPARE_EQUAL, tve1_1, tve2_1);
+    // Output Schema
+    OutputSchema::Column col1{terrier::type::TypeId::INTEGER, true, tve1_1};
+    OutputSchema::Column col2{terrier::type::TypeId::INTEGER, true, tve2_1};
+    OutputSchema::Column col3{terrier::type::TypeId::INTEGER, true, tve2_2};
+    OutputSchema::Column col4{terrier::type::TypeId::INTEGER, true, sum};
+    std::vector<OutputSchema::Column> cols{col1, col2, col3, col4};
+    auto schema = std::make_shared<OutputSchema>(cols);
+    // Build
+    NestedLoopJoinPlanNode::Builder builder;
+    nl_join =
+        builder.AddChild(seq_scan1).AddChild(seq_scan2)
+            .SetOutputSchema(schema)
+            .SetJoinType(LogicalJoinType::INNER)
+            .SetJoinPredicate(predicate)
+            .Build();
+  }
+  // Compile and Run
+  CompileAndRun(nl_join.get(), txn);
+  txn_mgr->Commit(txn, nullptr, nullptr);
+  // TODO(Amadou): Come up with a way to automatically check that the joined rows are the same.
+}
+*/
+
+/*
+// NOLINTNEXTLINE
+TEST_F(CompilerTest, SimpleIndexNestedLoopJoin) {
+  // SELECT t1.col1, t2.col1, t2.col2, t1.col2 + t2.col2 FROM test_1 AS t1 INNER JOIN test_1 AS t2 ON t1.col1=t2.col1
+  // WHERE t1.col1 < 500
+  // Begin a transaction
+  auto exec = sql::ExecutionStructures::Instance();
+  auto txn_mgr = exec->GetTxnManager();
+  auto txn = txn_mgr->BeginTransaction();
+  // Get the right oids
+  auto test_db_ns = exec->GetTestDBAndNS();
+  auto * catalog_table = exec->GetCatalog()->GetUserTable(txn, test_db_ns.first, test_db_ns.second, "test_1");
+  terrier::catalog::index_oid_t index_oid = exec->GetCatalog()->GetCatalogIndexOid("index_1");
+
+  // Make the seq scan
+  std::shared_ptr<AbstractPlanNode> seq_scan1;
+  {
+    // col1 and col2
+    auto tve1 = BuildTVE(0, 0, terrier::type::TypeId::INTEGER);
+    auto tve2 = BuildTVE(0, 1, terrier::type::TypeId::INTEGER);
+    // predicate
+    auto constant_500 = BuildConstant(500);
+    auto predicate = BuildComparison(terrier::parser::ExpressionType::COMPARE_LESS_THAN, tve1, constant_500);
+    // Output Schema
+    OutputSchema::Column col1{terrier::type::TypeId::INTEGER, true, tve1};
+    OutputSchema::Column col2{terrier::type::TypeId::INTEGER, true, tve2};
+    std::vector<OutputSchema::Column> cols{col1, col2};
+    auto schema = std::make_shared<OutputSchema>(cols);
+    // Build
+    SeqScanPlanNode::Builder builder;
+    seq_scan1 =
+        builder.SetOutputSchema(schema)
+            .SetScanPredicate(predicate)
+            .SetIsParallelFlag(false)
+            .SetIsForUpdateFlag(false)
+            .SetDatabaseOid(test_db_ns.first)
+            .SetNamespaceOid(test_db_ns.second)
+            .SetTableOid(catalog_table->Oid())
+            .Build();
+  }
+  // Make index join
+  std::shared_ptr<AbstractPlanNode> index_join;
+  {
+    // t1.col1, and t1.col2
+    auto tve1_1 = BuildTVE(0, 0, terrier::type::TypeId::INTEGER);
+    auto tve1_2 = BuildTVE(0, 1, terrier::type::TypeId::INTEGER);
+    // t2.col1, and t2.col2
+    auto tve2_1 = BuildTVE(1, 0, terrier::type::TypeId::INTEGER);
+    auto tve2_2 = BuildTVE(1, 1, terrier::type::TypeId::INTEGER);
+    // t1.col2 + t2.col2
+    auto sum = BuildOperator(ExpressionType::OPERATOR_PLUS, terrier::type::TypeId::INTEGER, tve1_2, tve2_2);
+    // Predicate
+    auto predicate = BuildComparison(ExpressionType::COMPARE_EQUAL, tve1_1, tve2_1);
+    // Output Schema
+    OutputSchema::Column col1{terrier::type::TypeId::INTEGER, true, tve1_1};
+    OutputSchema::Column col2{terrier::type::TypeId::INTEGER, true, tve2_1};
+    OutputSchema::Column col3{terrier::type::TypeId::INTEGER, true, tve2_2};
+    OutputSchema::Column col4{terrier::type::TypeId::INTEGER, true, sum};
+    std::vector<OutputSchema::Column> cols{col1, col2, col3, col4};
+    auto schema = std::make_shared<OutputSchema>(cols);
+    // Build
+    IndexJoinPlanNode::Builder builder;
+    index_join =
+        builder.AddChild(seq_scan1)
+            .SetIndexOid(index_oid).SetTableOid(catalog_table->Oid())
+            .AddIndexColum(tve1_1)
+            .SetOutputSchema(schema)
+            .SetJoinType(LogicalJoinType::INNER)
+            .SetJoinPredicate(predicate)
+            .Build();
+  }
+  // Compile and Run
+  CompileAndRun(index_join.get(), txn);
+  txn_mgr->Commit(txn, nullptr, nullptr);
+  // TODO(Amadou): Come up with a way to automatically check that the joined rows are the same.
 }
 */
 }  // namespace terrier::planner

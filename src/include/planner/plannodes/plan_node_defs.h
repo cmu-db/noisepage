@@ -28,6 +28,7 @@ enum class PlanNodeType {
   // Join Nodes
   NESTLOOP,
   HASHJOIN,
+  INDEXNLJOIN,
 
   // Mutator Nodes
   UPDATE,

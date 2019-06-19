@@ -135,6 +135,12 @@ namespace tpl::ast {
   /* Index */                                                   \
   F(IndexIteratorInit, indexIteratorInit)                       \
   F(IndexIteratorScanKey, indexIteratorScanKey)                 \
+  F(IndexIteratorAdvance, indexIteratorAdvance)                 \
+  F(IndexIteratorGetSmallInt, indexIteratorGetSmallInt)                 \
+  F(IndexIteratorGetInt, indexIteratorGetInt)                 \
+  F(IndexIteratorGetBigInt, indexIteratorGetBigInt)                 \
+  F(IndexIteratorGetReal, indexIteratorGetReal)                 \
+  F(IndexIteratorGetDouble, indexIteratorGetDouble)                 \
   F(IndexIteratorFree, indexIteratorFree)                       \
                                                                 \
   /* Insert */                                                  \

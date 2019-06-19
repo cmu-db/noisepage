@@ -35,11 +35,10 @@ ast::Expr* SeqScanTranslator::GetOutput(uint32_t attr_idx) {
   return translator->DeriveExpr(this);
 }
 
-ast::Expr* SeqScanTranslator::GetChildOutput(uint32_t child_idx, uint32_t attr_idx) {
+ast::Expr* SeqScanTranslator::GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) {
   TERRIER_ASSERT(child_idx == 0, "SeqScan node only has one child");
-  // TODO(amadou): Once catalog accessor is in, use it to get the correct type!
   // Call @pciGetType(pci, index)
-  return codegen_->PCIGet(pci_, terrier::type::TypeId::INTEGER, attr_idx);
+  return codegen_->PCIGet(pci_, type, attr_idx);
 }
 
 void SeqScanTranslator::DeclareTVI(FunctionBuilder * builder) {
@@ -51,7 +50,8 @@ void SeqScanTranslator::DeclareTVI(FunctionBuilder * builder) {
 void SeqScanTranslator::GenTVILoop(FunctionBuilder *builder) {
   // The init call
   // TODO: Pass in oids instead of table names
-  ast::Expr* init_call = codegen_->TableIterInit(tvi_, "test_1");
+  auto seqscan_op = dynamic_cast<const terrier::planner::SeqScanPlanNode *>(op_);
+  ast::Expr* init_call = codegen_->TableIterInit(tvi_, !seqscan_op->GetTableOid());
   ast::Stmt *loop_init = codegen_->MakeStmt(init_call);
   // The advance call
   ast::Expr* advance_call = codegen_->TableIterAdvance(tvi_);

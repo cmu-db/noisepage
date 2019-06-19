@@ -108,7 +108,7 @@ ast::Expr* HashJoinLeftTranslator::GetOutput(uint32_t attr_idx) {
   return GetBuildValue(attr_idx);
 }
 
-ast::Expr* HashJoinLeftTranslator::GetChildOutput(uint32_t child_idx, uint32_t attr_idx) {
+ast::Expr* HashJoinLeftTranslator::GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) {
   return prev_translator_->GetOutput(attr_idx);
 }
 
@@ -148,7 +148,7 @@ ast::Expr* HashJoinRightTranslator::GetOutput(uint32_t attr_idx) {
   return translator->DeriveExpr(this);
 }
 
-ast::Expr* HashJoinRightTranslator::GetChildOutput(uint32_t child_idx, uint32_t attr_idx) {
+ast::Expr* HashJoinRightTranslator::GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) {
   TERRIER_ASSERT(child_idx <= 1, "A hash join can only have two children.");
   // For the left child, just get the output at the given index
   if (child_idx == 0) {

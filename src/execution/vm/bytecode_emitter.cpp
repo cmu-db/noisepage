@@ -314,8 +314,8 @@ void BytecodeEmitter::EmitInsert(Bytecode bytecode, LocalVar db_oid, LocalVar ns
   EmitAll(bytecode, db_oid, ns_oid, table_oid, values_ptr, exec_ctx);
 }
 
-void BytecodeEmitter::EmitIndexIteratorInit(Bytecode bytecode, LocalVar iter, uint32_t index_oid, LocalVar exec_ctx) {
-  EmitAll(bytecode, iter, index_oid, exec_ctx);
+void BytecodeEmitter::EmitIndexIteratorInit(Bytecode bytecode, LocalVar iter, uint32_t table_oid, uint32_t index_oid, LocalVar exec_ctx) {
+  EmitAll(bytecode, iter, table_oid, index_oid, exec_ctx);
 }
 
 void BytecodeEmitter::EmitIndexIteratorScanKey(Bytecode bytecode, LocalVar iter, LocalVar key) {

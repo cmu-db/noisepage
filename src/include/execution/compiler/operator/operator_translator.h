@@ -9,6 +9,9 @@ namespace tpl::compiler {
 
 /**
  * Generic Operator Translator
+ * TODO(Amadou): Only a few operations need all of these methods at once (sorting, aggregations, hash joins).
+ * Other operations need just a few of them. So we could add a default implementation.
+ * For now, I am leaving it like this so that the compiler will force me to think about all methods.
  */
 class OperatorTranslator {
  public:
@@ -78,7 +81,7 @@ class OperatorTranslator {
 
   virtual ast::Expr* GetOutput(uint32_t attr_idx) = 0;
 
-  virtual ast::Expr* GetChildOutput(uint32_t child_idx, uint32_t attr_idx) = 0;
+  virtual ast::Expr* GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) = 0;
 
   /**
    * Used by operators when they need to generate a struct containing a child's output.

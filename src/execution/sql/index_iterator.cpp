@@ -3,7 +3,8 @@
 
 namespace tpl::sql {
 
-IndexIterator::IndexIterator(uint32_t index_oid, TransactionContext *txn) : txn_(txn) {
+IndexIterator::IndexIterator(uint32_t table_oid, uint32_t index_oid, TransactionContext *txn) : txn_(txn) {
+  // TODO(Amadou): Use the catalog accessor once it's merged
   // Get index from the catalog
   auto *exec = ExecutionStructures::Instance();
   auto *catalog = exec->GetCatalog();
@@ -51,10 +52,10 @@ void IndexIterator::ScanKey(byte *sql_key) {
     sql_key += ValUtil::GetSqlSize(index_col.GetType());
     col_idx++;
   }
-  // Scan the table
-  curr_index_ = 0;
+  // Scan the index
   index_values_.clear();
   catalog_index_->GetIndex()->ScanKey(*txn_, *index_pr_, &index_values_);
+
   // FOR DEBUGGING ONLY: print to check if output is correct.
   /*if (!index_values_.empty()) std::cout << "Scan key rows:" << std::endl;
   for (const auto &slot : index_values_) {
@@ -73,12 +74,13 @@ void IndexIterator::ScanKey(byte *sql_key) {
   }*/
 }
 
-void IndexIterator::Advance() {
-  // Select the next tuple slot
-  catalog_table_->GetSqlTable()->Select(txn_, index_values_[curr_index_], row_pr_);
-  ++curr_index_;
+bool IndexIterator::Advance() {
+  if (curr_index_ < index_values_.size()) {
+    catalog_table_->GetSqlTable()->Select(txn_, index_values_[curr_index_], row_pr_);
+    ++curr_index_;
+    return true;
+  }
+  return false;
 }
-
-bool IndexIterator::HasNext() { return curr_index_ < index_values_.size(); }
 
 }  // namespace tpl::sql

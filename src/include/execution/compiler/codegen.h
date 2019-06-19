@@ -21,6 +21,10 @@ class FunctionBuilder;
 
 /**
  * Bundles convenience methods needed by other classes during code generation.
+ * Ideally no other class should directly use the AST node factory (except FunctionBuilder).
+ * If you realize that you are generating the same code over and over again, or creating complex logic,
+ * chances this class can help you simplify things. If not, add helper methods here to keep the translation code
+ * clean and debuggable.
  */
 class CodeGen {
  public:
@@ -325,14 +329,25 @@ class CodeGen {
 
   /////////////////////////////////////////////////////////////////
   /// Builtin functions
+  /// Implement one function for each builtin. It makes
+  /// the translators easier to write.
   /////////////////////////////////////////////////////////////////
 
   /**
+   * Note: This is a bit more convenient that the expression based implementation
    * @param base base type of the pointer
    * @param arg argument to cast
    * @return the builtin call ptrCast(*base, arg)
    */
   ast::Expr *PtrCast(ast::Identifier base, ast::Expr* arg);
+
+  /**
+   * @param base base type of the pointer
+   * @param arg argument to cast
+   * @return the builtin call ptrCase(*base, arg)
+   */
+  ast::Expr *PtrCast(ast::Expr* base, ast::Expr* arg);
+
 
   /**
    * Call outputAlloc(execCtx)
@@ -351,12 +366,11 @@ class CodeGen {
 
 
   /**
-   * TODO: Pass in OIDs instead of table names
    * @param tvi the iterator to initialize
-   * @param table_name name of the table
-   * @return the builtin call tableIterInit(&tvi, "table_name", execCtx)
+   * @param table_oid oid of the table
+   * @return the builtin call tableIterInit(&tvi, table_oid, execCtx)
    */
-  ast::Expr *TableIterInit(ast::Identifier tvi, const std::string& table_name);
+  ast::Expr *TableIterInit(ast::Identifier tvi, uint32_t table_oid);
 
   /**
    * Call tableIterAdvance(&tvi)
@@ -551,6 +565,32 @@ class CodeGen {
    * Call sorterIterClose(&iter)
    */
   ast::Expr* SorterIterClose(ast::Identifier iter);
+
+  /**
+   * Call indexIteratorInit(&iter, table_oid, index_oid, execCtx)
+   */
+  ast::Expr* IndexIteratorInit(ast::Identifier iter, uint32_t table_oid, uint32_t index_oid);
+
+  /**
+   * Call IndexIteratorScanKey(&iter, @ptrCast(*int8, &key))
+   */
+  ast::Expr* IndexIteratorScanKey(ast::Identifier iter, ast::Identifier key);
+
+  /**
+   * Call IndexIteratorAdvance(&iter)
+   */
+  ast::Expr* IndexIteratorAdvance(ast::Identifier iter);
+
+  /**
+   * Call IndexIteratorGetType(&iter, attr_idx)
+   */
+  ast::Expr* IndexIteratorGet(ast::Identifier iter, terrier::type::TypeId type, uint32_t attr_idx);
+
+  /**
+   * Call IndexIteratorFree(&iter)
+   */
+  ast::Expr* IndexIteratorFree(ast::Identifier iter);
+
  private:
   /**
    * Many functions take a pointer to an identifier as their argument.
@@ -558,15 +598,15 @@ class CodeGen {
    * @param builtin builtin function to call
    * @param ident argument to the function
    * @param take_ptr whether to take the pointer to the identifier (for example, pci calls will set this to false)
-   * @return
+   * @return  Calls the builtin function with the given identifier as its argument
    */
   ast::Expr* OneArgCall(ast::Builtin builtin, ast::Identifier ident, bool take_ptr = true);
 
   // Same as above, but the argument is part of the state object.
-  // This used by join build, sorter sort as well as all free methods.
+  // This used by join build & free, sorter sort & free, and aggregator free methods.
   ast::Expr* OneArgStateCall(ast::Builtin builtin, ast::Identifier ident);
 
-  // Same as above, but the argurment expression is directly passed in.
+  // Same as above, but the argument expression is directly passed in.
   ast::Expr* OneArgCall(ast::Builtin builtin, ast::Expr* arg);
 
 

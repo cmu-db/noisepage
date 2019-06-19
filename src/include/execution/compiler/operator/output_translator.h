@@ -41,12 +41,13 @@ class OutputTranslator : public OperatorTranslator {
   void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override {}
 
   // Should never called since this the last layer.
+  // TODO(Amadou): throw an exception?
   ast::Expr* GetOutput(uint32_t attr_idx) override {
     return nullptr;
   }
 
   // Should never be called for the same reasons.
-  ast::Expr* GetChildOutput(uint32_t child_idx, uint32_t attr_idx) override {
+  ast::Expr* GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override {
     return nullptr;
   }
 

@@ -1450,9 +1450,10 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
   // -------------------------------------------------------
   OP(IndexIteratorInit) : {
     auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
+    auto table_oid = READ_UIMM4();
     auto index_oid = READ_UIMM4();
     auto exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    OpIndexIteratorInit(iter, index_oid, exec_ctx);
+    OpIndexIteratorInit(iter, table_oid, index_oid, exec_ctx);
     DISPATCH_NEXT();
   }
 
@@ -1469,16 +1470,10 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
     DISPATCH_NEXT();
   }
 
-  OP(IndexIteratorHasNext) : {
+  OP(IndexIteratorAdvance) : {
     auto *has_more = frame->LocalAt<bool *>(READ_LOCAL_ID());
     auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
-    OpIndexIteratorHasNext(has_more, iter);
-    DISPATCH_NEXT();
-  }
-
-  OP(IndexIteratorAdvance) : {
-    auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
-    OpIndexIteratorAdvance(iter);
+    OpIndexIteratorAdvance(has_more, iter);
     DISPATCH_NEXT();
   }
 
@@ -1504,6 +1499,8 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
   GEN_INDEX_ITERATOR_ACCESS(SmallInt, sql::Integer)
   GEN_INDEX_ITERATOR_ACCESS(Integer, sql::Integer)
   GEN_INDEX_ITERATOR_ACCESS(BigInt, sql::Integer)
+  GEN_INDEX_ITERATOR_ACCESS(Real, sql::Real)
+  GEN_INDEX_ITERATOR_ACCESS(Double, sql::Real)
   GEN_INDEX_ITERATOR_ACCESS(Decimal, sql::Decimal)
 #undef GEN_INDEX_ITERATOR_ACCESS
 

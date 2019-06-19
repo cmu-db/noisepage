@@ -816,13 +816,12 @@ VM_OP_HOT void OpTan(tpl::sql::Real *result, tpl::sql::Real *input) { tpl::sql::
 // ---------------------------------------------------------------
 // Index Iterator
 // ---------------------------------------------------------------
-void OpIndexIteratorInit(tpl::sql::IndexIterator *iter, uint32_t index_oid, tpl::exec::ExecutionContext *exec_ctx);
-void OpIndexIteratorScanKey(tpl::sql::IndexIterator *iter, byte *key);
+void OpIndexIteratorInit(tpl::sql::IndexIterator *iter, uint32_t table_oid, uint32_t index_oid, tpl::exec::ExecutionContext *exec_ctx);
 void OpIndexIteratorFree(tpl::sql::IndexIterator *iter);
 
-VM_OP_HOT void OpIndexIteratorHasNext(bool *has_more, tpl::sql::IndexIterator *iter) { *has_more = iter->HasNext(); }
+VM_OP_HOT void OpIndexIteratorScanKey(tpl::sql::IndexIterator *iter, byte *key) { iter->ScanKey(key); }
 
-VM_OP_HOT void OpIndexIteratorAdvance(tpl::sql::IndexIterator *iter) { iter->Advance(); }
+VM_OP_HOT void OpIndexIteratorAdvance(bool *has_more, tpl::sql::IndexIterator *iter) { *has_more = iter->Advance(); }
 
 VM_OP_HOT void OpIndexIteratorGetSmallInt(tpl::sql::Integer *out, tpl::sql::IndexIterator *iter, u32 col_idx) {
   // Read
@@ -847,6 +846,26 @@ VM_OP_HOT void OpIndexIteratorGetInteger(tpl::sql::Integer *out, tpl::sql::Index
 VM_OP_HOT void OpIndexIteratorGetBigInt(tpl::sql::Integer *out, tpl::sql::IndexIterator *iter, u32 col_idx) {
   // Read
   auto *ptr = iter->Get<i64, false>(col_idx, nullptr);
+  TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
+
+  // Set
+  out->is_null = false;
+  out->val = *ptr;
+}
+
+VM_OP_HOT void OpIndexIteratorGetReal(tpl::sql::Real *out, tpl::sql::IndexIterator *iter, u32 col_idx) {
+  // Read
+  auto *ptr = iter->Get<f32, false>(col_idx, nullptr);
+  TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
+
+  // Set
+  out->is_null = false;
+  out->val = *ptr;
+}
+
+VM_OP_HOT void OpIndexIteratorGetDouble(tpl::sql::Real *out, tpl::sql::IndexIterator *iter, u32 col_idx) {
+  // Read
+  auto *ptr = iter->Get<f64, false>(col_idx, nullptr);
   TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
 
   // Set
@@ -887,6 +906,28 @@ VM_OP_HOT void OpIndexIteratorGetBigIntNull(tpl::sql::Integer *out, tpl::sql::In
   // Read
   bool null = false;
   auto *ptr = iter->Get<i64, true>(col_idx, &null);
+  // TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
+
+  // Set
+  out->is_null = null;
+  out->val = null ? 0 : *ptr;
+}
+
+VM_OP_HOT void OpIndexIteratorGetRealNull(tpl::sql::Real *out, tpl::sql::IndexIterator *iter, u32 col_idx) {
+  // Read
+  bool null = false;
+  auto *ptr = iter->Get<f32, true>(col_idx, &null);
+  // TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
+
+  // Set
+  out->is_null = null;
+  out->val = null ? 0 : *ptr;
+}
+
+VM_OP_HOT void OpIndexIteratorGetDoubleNull(tpl::sql::Real *out, tpl::sql::IndexIterator *iter, u32 col_idx) {
+  // Read
+  bool null = false;
+  auto *ptr = iter->Get<f64, true>(col_idx, &null);
   // TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
 
   // Set

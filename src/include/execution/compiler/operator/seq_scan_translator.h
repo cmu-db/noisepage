@@ -38,7 +38,7 @@ class SeqScanTranslator : public OperatorTranslator {
   ast::Expr* GetOutput(uint32_t attr_idx) override;
 
   // For a seq scan, this a pci call too
-  ast::Expr* GetChildOutput(uint32_t child_idx, uint32_t attr_idx) override;
+  ast::Expr* GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override;
 
   // This is a materializer
   bool IsMaterializer(bool * is_ptr) override {

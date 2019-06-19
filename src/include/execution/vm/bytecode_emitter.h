@@ -398,7 +398,7 @@ class BytecodeEmitter {
    * @param index_oid oid of the index to use
    * @param exec_ctx the execution context
    */
-  void EmitIndexIteratorInit(Bytecode bytecode, LocalVar iter, uint32_t index_oid, LocalVar exec_ctx);
+  void EmitIndexIteratorInit(Bytecode bytecode, LocalVar iter, uint32_t table_oid, uint32_t index_oid, LocalVar exec_ctx);
 
   /**
    * Emit code to scan a key

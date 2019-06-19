@@ -12,6 +12,8 @@
 #include "execution/compiler/operator/aggregate_translator.h"
 #include "execution/compiler/operator/hash_join_translator.h"
 #include "execution/compiler/operator/sort_translator.h"
+#include "execution/compiler/operator/nested_loop_translator.h"
+#include "execution/compiler/operator/index_join_translator.h"
 #include "execution/compiler/pipeline.h"
 #include "execution/util/macros.h"
 
@@ -27,6 +29,9 @@ OperatorTranslator *TranslatorFactory::CreateRegularTranslator(const terrier::pl
     }
     case terrier::planner::PlanNodeType::INSERT: {
       return nullptr;
+    }
+    case terrier::planner::PlanNodeType::INDEXNLJOIN: {
+      return new IndexJoinTranslator(op, codegen);
     }
     default:
       UNREACHABLE("Unsupported plan nodes");
@@ -65,7 +70,7 @@ OperatorTranslator *TranslatorFactory::CreateLeftTranslator(const terrier::plann
     case terrier::planner::PlanNodeType::HASHJOIN:
       return new HashJoinLeftTranslator(op, codegen);
     case terrier::planner::PlanNodeType::NESTLOOP:
-      return nullptr;
+      return new NestedLoopLeftTransaltor(op, codegen);
     default:
       UNREACHABLE("Not a pipeline boundary!");
   }
@@ -79,7 +84,7 @@ OperatorTranslator *TranslatorFactory::CreateRightTranslator(const terrier::plan
     case terrier::planner::PlanNodeType::HASHJOIN:
       return new HashJoinRightTranslator(op, codegen, left);
     case terrier::planner::PlanNodeType::NESTLOOP:
-      return nullptr;
+      return new NestedLoopRightTransaltor(op, codegen, left);
     default:
       UNREACHABLE("Not a pipeline boundary!");
   }

@@ -96,8 +96,13 @@ ast::Expr* CodeGen::OneArgStateCall(tpl::ast::Builtin builtin, tpl::ast::Identif
 
 
 ast::Expr* CodeGen::PtrCast(ast::Identifier base, ast::Expr* arg) {
+  return PtrCast(MakeExpr(base), arg);
+}
+
+
+ast::Expr* CodeGen::PtrCast(ast::Expr* base, ast::Expr* arg) {
   ast::Expr* fun = BuiltinFunction(ast::Builtin::PtrCast);
-  ast::Expr* ptr = Factory()->NewUnaryOpExpr(DUMMY_POS, parsing::Token::Type::STAR, MakeExpr(base));
+  ast::Expr* ptr = Factory()->NewUnaryOpExpr(DUMMY_POS, parsing::Token::Type::STAR, base);
   util::RegionVector<ast::Expr*> cast_args{{ptr, arg}, Region()};
   return Factory()->NewBuiltinCallExpr(fun, std::move(cast_args));
 }
@@ -114,13 +119,13 @@ ast::Expr* CodeGen::OutputFinalize() {
   return OneArgCall(ast::Builtin::OutputFinalize, exec_ctx_var_, false);
 }
 
-ast::Expr* CodeGen::TableIterInit(ast::Identifier tvi, const std::string & table_name) {
+ast::Expr* CodeGen::TableIterInit(ast::Identifier tvi, uint32_t table_oid) {
   ast::Expr * fun = BuiltinFunction(ast::Builtin::TableIterInit);
   ast::Expr * tvi_ptr = PointerTo(tvi);
-  ast::Expr * table_name_expr = Factory()->NewStringLiteral(DUMMY_POS, Context()->GetIdentifier(table_name));
+  ast::Expr * table_oid_expr = IntLiteral(static_cast<i32>(table_oid));
   ast::Expr * exec_ctx_expr = MakeExpr(exec_ctx_var_);
 
-  util::RegionVector<ast::Expr*> args{{tvi_ptr, table_name_expr, exec_ctx_expr}, Region()};
+  util::RegionVector<ast::Expr*> args{{tvi_ptr, table_oid_expr, exec_ctx_expr}, Region()};
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
@@ -147,6 +152,7 @@ ast::Expr* CodeGen::PCIAdvance(tpl::ast::Identifier pci) {
 }
 
 
+// TODO(Amadou): Depending on whether the column is nullable or not, generate @pciGetTypeNull
 ast::Expr* CodeGen::PCIGet(tpl::ast::Identifier pci, terrier::type::TypeId type, uint32_t idx) {
   ast::Builtin builtin;
   switch (type) {
@@ -383,19 +389,79 @@ ast::Expr* CodeGen::SorterIterInit(tpl::ast::Identifier iter, tpl::ast::Identifi
 }
 
 ast::Expr* CodeGen::SorterIterHasNext(tpl::ast::Identifier iter) {
+  // @sorterIterHasNext(&iter)
   return OneArgCall(ast::Builtin::SorterIterHasNext, iter, true);
 }
 
 ast::Expr* CodeGen::SorterIterNext(tpl::ast::Identifier iter) {
+  // @sorterIterNext(&iter)
   return OneArgCall(ast::Builtin::SorterIterNext, iter, true);
 }
 
 ast::Expr* CodeGen::SorterIterGetRow(tpl::ast::Identifier iter) {
+  // @sorterIterGetRow(&iter)
   return OneArgCall(ast::Builtin::SorterIterGetRow, iter, true);
 }
 
 ast::Expr* CodeGen::SorterIterClose(tpl::ast::Identifier iter) {
+  // @sorterIterClose(&iter)
   return OneArgCall(ast::Builtin::SorterIterClose, iter, true);
+}
+
+ast::Expr* CodeGen::IndexIteratorInit(tpl::ast::Identifier iter, uint32_t table_oid, uint32_t index_oid) {
+  // @indexIteratorInit(&iter, table_oid, index_oid, execCtx)
+  ast::Expr * fun = BuiltinFunction(ast::Builtin::IndexIteratorInit);
+  ast::Expr* iter_ptr = PointerTo(iter);
+  ast::Expr* table_oid_expr = IntLiteral(static_cast<i32>(table_oid));
+  ast::Expr* index_oid_expr = IntLiteral(static_cast<i32>(index_oid));
+  ast::Expr* exec_ctx_expr = MakeExpr(exec_ctx_var_);
+  util::RegionVector<ast::Expr*> args{{iter_ptr, table_oid_expr, index_oid_expr, exec_ctx_expr}, Region()};
+  return Factory()->NewBuiltinCallExpr(fun, std::move(args));
+}
+
+ast::Expr* CodeGen::IndexIteratorScanKey(tpl::ast::Identifier iter, tpl::ast::Identifier key) {
+  // @indexIteratorScanKey(&iter, @ptrCast(*int8, &key))
+  ast::Expr * fun = BuiltinFunction(ast::Builtin::IndexIteratorScanKey);
+  ast::Expr* iter_ptr = PointerTo(iter);
+  ast::Expr* cast_call = PtrCast(BuiltinType(ast::BuiltinType::Kind::Int8), PointerTo(key));
+  util::RegionVector<ast::Expr*> args{{iter_ptr, cast_call}, Region()};
+  return Factory()->NewBuiltinCallExpr(fun, std::move(args));
+}
+
+ast::Expr* CodeGen::IndexIteratorAdvance(tpl::ast::Identifier iter) {
+  // @indexIteratorHasNext(&iter)
+  return OneArgCall(ast::Builtin::IndexIteratorAdvance, iter, true);
+}
+
+
+ast::Expr* CodeGen::IndexIteratorFree(tpl::ast::Identifier iter) {
+  // @indexIteratorFree(&iter)
+  return OneArgCall(ast::Builtin::IndexIteratorFree, iter, true);
+}
+
+// TODO(Amadou): Generator GetNull calls if the columns is nullable
+ast::Expr* CodeGen::IndexIteratorGet(tpl::ast::Identifier iter, terrier::type::TypeId type, uint32_t attr_idx) {
+  // @indexIteratorHasGetType(&iter, attr_idx)
+  ast::Builtin builtin;
+  switch (type) {
+    case terrier::type::TypeId::INTEGER:
+      builtin = ast::Builtin::IndexIteratorGetInt;
+      break;
+    case terrier::type::TypeId::SMALLINT:
+      builtin = ast::Builtin::IndexIteratorGetSmallInt;
+      break;
+    case terrier::type::TypeId::BIGINT:
+      builtin = ast::Builtin::IndexIteratorGetBigInt;
+      break;
+    default:
+      // TODO: Support other types.
+      builtin = ast::Builtin::IndexIteratorGetInt;
+  }
+  ast::Expr * fun = BuiltinFunction(builtin);
+  ast::Expr * iter_ptr = PointerTo(iter);
+  ast::Expr * idx_expr = Factory()->NewIntLiteral(DUMMY_POS, attr_idx);
+  util::RegionVector<ast::Expr*> args{{iter_ptr, idx_expr}, Region()};
+  return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
 ast::Expr *CodeGen::PeekValue(const terrier::type::TransientValue &transient_val) {

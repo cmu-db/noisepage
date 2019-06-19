@@ -17,6 +17,8 @@ Compiler::Compiler(tpl::compiler::Query *query)
     auto *output_translator = new OutputTranslator(&codegen_);
     main_pipeline->Add(output_translator);
   }
+  // Finally add the main pipeline
+  pipelines_.push_back(main_pipeline);
   EXECUTION_LOG_INFO("Made {} pipelines", pipelines_.size());
 }
 
@@ -125,13 +127,13 @@ void Compiler::MakePipelines(const terrier::planner::AbstractPlanNode & op, Pipe
       OperatorTranslator *bottom_translator = TranslatorFactory::CreateBottomTranslator(&op, &codegen_);
       OperatorTranslator *top_translator = TranslatorFactory::CreateTopTranslator(&op, bottom_translator, &codegen_);
       curr_pipeline->Add(top_translator);
+      // Make the nest pipeline
       auto *next_pipeline = new Pipeline(&codegen_);
       MakePipelines(*op.GetChild(0), next_pipeline);
       next_pipeline->Add(bottom_translator);
-      pipelines_.push_back(curr_pipeline);
+      pipelines_.push_back(next_pipeline);
       return;
     }
-    case terrier::planner::PlanNodeType::NESTLOOP :
     case terrier::planner::PlanNodeType::HASHJOIN: {
       // Create left and right translators
       OperatorTranslator * left_translator = TranslatorFactory::CreateLeftTranslator(&op, &codegen_);
@@ -140,7 +142,20 @@ void Compiler::MakePipelines(const terrier::planner::AbstractPlanNode & op, Pipe
       auto *next_pipeline = new Pipeline(&codegen_);
       MakePipelines(*op.GetChild(0), next_pipeline);
       next_pipeline->Add(left_translator);
+      pipelines_.push_back(next_pipeline);
       // Continue right pipeline
+      MakePipelines(*op.GetChild(1), curr_pipeline);
+      curr_pipeline->Add(right_translator);
+      return;
+    }
+    case terrier::planner::PlanNodeType::NESTLOOP : {
+      // Create left and right translators
+      OperatorTranslator * left_translator = TranslatorFactory::CreateLeftTranslator(&op, &codegen_);
+      OperatorTranslator * right_translator = TranslatorFactory::CreateRightTranslator(&op, left_translator, &codegen_);
+      // Generate left pipeline
+      MakePipelines(*op.GetChild(0), curr_pipeline);
+      curr_pipeline->Add(left_translator);
+      // Append the pipeline
       MakePipelines(*op.GetChild(1), curr_pipeline);
       curr_pipeline->Add(right_translator);
       return;
@@ -149,7 +164,6 @@ void Compiler::MakePipelines(const terrier::planner::AbstractPlanNode & op, Pipe
       OperatorTranslator *translator = TranslatorFactory::CreateRegularTranslator(&op, &codegen_);
       if (op.GetChildrenSize() != 0) MakePipelines(*op.GetChild(0), curr_pipeline);
       curr_pipeline->Add(translator);
-      pipelines_.push_back(curr_pipeline);
       return;
     }
   }

@@ -31,7 +31,7 @@ class SortBottomTranslator : public OperatorTranslator {
   // Generate sorting code
   void Produce(FunctionBuilder * builder) override;
 
-  ast::Expr* GetChildOutput(uint32_t child_idx, uint32_t attr_idx) override;
+  ast::Expr* GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override;
 
   // Return the attribute at idx
   ast::Expr* GetOutput(uint32_t attr_idx) override;
@@ -118,7 +118,7 @@ class SortTopTranslator : public OperatorTranslator {
   // Generate iteration code
   void Produce(FunctionBuilder * builder) override;
 
-  ast::Expr* GetChildOutput(uint32_t child_idx, uint32_t attr_idx) override;
+  ast::Expr* GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override;
 
   // Return the output at the given index
   ast::Expr* GetOutput(uint32_t attr_idx) override;

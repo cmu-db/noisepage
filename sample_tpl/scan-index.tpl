@@ -8,7 +8,7 @@ struct output_struct {
 }
 
 // SELECT * FROM test_1 WHERE colA=500;
-fun main() -> int {
+fun main(execCtx: *ExecutionContext) -> int {
   // output variable
   var out : *output_struct
   // key for the index
@@ -16,17 +16,16 @@ fun main() -> int {
   key.col1 = @intToSql(500)
   // Index iterator
   var index : IndexIterator
-  @indexIteratorInit(&index, "index_1")
-  @indexIteratorScanKey(&index, @ptrCast(*int8, &key))
+  @indexIteratorInit(&index, "test_1", "index_1", execCtx)
   // Attribute to indicate which iterator to use
-  for (row in test_1@[index=index]) {
-    out = @ptrCast(*output_struct, @outputAlloc())
-    out.colA = row.colA
-    out.colB = row.colB
-    @outputAdvance()
+  for (@indexIteratorScanKey(&index, @ptrCast(*int8, &key)); @indexIteratorAdvance(&index);) {
+    out = @ptrCast(*output_struct, @outputAlloc(execCtx))
+    out.colA = @indexIteratorGetInt(&index, 0)
+    out.colB = @indexIteratorGetInt(&index, 1)
+    @outputAdvance(execCtx)
   }
   // Finalize output
   @indexIteratorFree(&index)
-  @outputFinalize()
+  @outputFinalize(execCtx)
   return 0
 }

@@ -10,6 +10,6 @@ TupleValueTranslator::TupleValueTranslator(const terrier::parser::AbstractExpres
 
 ast::Expr *TupleValueTranslator::DeriveExpr(OperatorTranslator * translator) {
   auto tuple_val = GetExpressionAs<terrier::parser::ExecTupleValueExpression>();
-  return translator->GetChildOutput(tuple_val->GetTupleIdx(), tuple_val->GetColIdx());
+  return translator->GetChildOutput(tuple_val->GetTupleIdx(), tuple_val->GetColIdx(), tuple_val->GetReturnValueType());
 }
 };  // namespace tpl::compiler

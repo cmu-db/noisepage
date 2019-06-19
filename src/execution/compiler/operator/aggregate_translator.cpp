@@ -90,7 +90,7 @@ ast::Expr* AggregateBottomTranslator::GetOutput(uint32_t attr_idx) {
 }
 
 
-ast::Expr* AggregateBottomTranslator::GetChildOutput(uint32_t child_idx, uint32_t attr_idx) {
+ast::Expr* AggregateBottomTranslator::GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) {
   return prev_translator_->GetOutput(attr_idx);
 }
 
@@ -301,10 +301,11 @@ void AggregateTopTranslator::Produce(FunctionBuilder * builder) {
   // Close the iterator after the loop ends.
   CloseIterator(builder);
   DeclareResult(builder);
+  GenHaving(builder);
 }
 
 
-ast::Expr* AggregateTopTranslator::GetChildOutput(uint32_t child_idx, uint32_t attr_idx) {
+ast::Expr* AggregateTopTranslator::GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) {
   return bottom_->GetOutput(attr_idx);
 }
 
@@ -355,5 +356,15 @@ void AggregateTopTranslator::CloseIterator(FunctionBuilder * builder) {
   builder->AppendAfter(codegen_->MakeStmt(close_call));
 }
 
+
+void AggregateTopTranslator::GenHaving(tpl::compiler::FunctionBuilder *builder) {
+  auto agg_op = dynamic_cast<const terrier::planner::AggregatePlanNode*>(op_);
+  if (agg_op->GetHavingClausePredicate() != nullptr) {
+      auto predicate = agg_op->GetHavingClausePredicate().get();
+      auto translator = TranslatorFactory::CreateExpressionTranslator(predicate, codegen_);
+      ast::Expr * cond = translator->DeriveExpr(this);
+      builder->StartIfStmt(cond);
+  }
+}
 }
 
