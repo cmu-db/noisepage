@@ -9,12 +9,15 @@
 #include "execution/sql/aggregation_hash_table.h"
 #include "execution/sql/aggregators.h"
 #include "execution/sql/filter_manager.h"
+#include "execution/sql/functions/arithmetic_functions.h"
+#include "execution/sql/functions/comparison_functions.h"
+#include "execution/sql/functions/is_null_predicate.h"
+#include "execution/sql/functions/string_functions.h"
 #include "execution/sql/index_iterator.h"
 #include "execution/sql/join_hash_table.h"
 #include "execution/sql/sorter.h"
 #include "execution/sql/table_vector_iterator.h"
 #include "execution/sql/thread_state_container.h"
-#include "execution/sql/value_functions.h"
 #include "execution/util/hash.h"
 #include "execution/util/macros.h"
 
@@ -365,23 +368,25 @@ void OpPCIFilterNotEqual(u32 *size, tpl::sql::ProjectedColumnsIterator *iter, u3
 // ---------------------------------------------------------
 
 VM_OP_HOT void OpHashInt(hash_t *hash_val, tpl::sql::Integer *input) {
-  *hash_val = tpl::util::Hasher::Hash(reinterpret_cast<u8 *>(&input->val), sizeof(input->val));
+  *hash_val = tpl::util::Hasher::Hash<tpl::util::HashMethod::Crc>(input->val);
   *hash_val = input->is_null ? 0 : *hash_val;
 }
 
 VM_OP_HOT void OpHashReal(hash_t *hash_val, tpl::sql::Real *input) {
-  *hash_val = tpl::util::Hasher::Hash(reinterpret_cast<u8 *>(&input->val), sizeof(input->val));
+  *hash_val = tpl::util::Hasher::Hash<tpl::util::HashMethod::Crc>(input->val);
   *hash_val = input->is_null ? 0 : *hash_val;
 }
 
-VM_OP_HOT void OpHashString(hash_t *hash_val, tpl::sql::VarBuffer *input) {
-  *hash_val = tpl::util::Hasher::Hash(input->str, input->len);
+VM_OP_HOT void OpHashString(hash_t *hash_val, tpl::sql::StringVal *input) {
+  *hash_val = tpl::util::Hasher::Hash<tpl::util::HashMethod::xxHash3>(
+      reinterpret_cast<const u8 *>(input->ptr), input->len);
   *hash_val = input->is_null ? 0 : *hash_val;
 }
 
 VM_OP_HOT void OpHashCombine(hash_t *hash_val, hash_t new_hash_val) {
   *hash_val = tpl::util::Hasher::CombineHashes(*hash_val, new_hash_val);
 }
+
 
 // ---------------------------------------------------------
 // Filter Manager
@@ -403,7 +408,9 @@ void OpFilterManagerFree(tpl::sql::FilterManager *filter_manager);
 // Scalar SQL comparisons
 // ---------------------------------------------------------
 
-VM_OP_HOT void OpForceBoolTruth(bool *result, tpl::sql::BoolVal *input) { *result = input->ForceTruth(); }
+VM_OP_HOT void OpForceBoolTruth(bool *result, tpl::sql::BoolVal *input) {
+  *result = input->ForceTruth();
+}
 
 VM_OP_HOT void OpInitBool(tpl::sql::BoolVal *result, bool input) {
   result->is_null = false;
@@ -420,69 +427,165 @@ VM_OP_HOT void OpInitReal(tpl::sql::Real *result, double input) {
   result->val = input;
 }
 
-VM_OP_HOT void OpGreaterThanInteger(tpl::sql::BoolVal *const result, const tpl::sql::Integer *const left,
-                                    const tpl::sql::Integer *const right) {
-  result->val = (left->val > right->val);
-  result->is_null = (left->is_null || right->is_null);
+#define GEN_SQL_COMPARISONS(TYPE)                                              \
+  VM_OP_HOT void OpGreaterThan##TYPE(tpl::sql::BoolVal *const result,          \
+                                     const tpl::sql::TYPE *const left,         \
+                                     const tpl::sql::TYPE *const right) {      \
+    tpl::sql::ComparisonFunctions::Gt##TYPE(result, *left, *right);            \
+  }                                                                            \
+  VM_OP_HOT void OpGreaterThanEqual##TYPE(tpl::sql::BoolVal *const result,     \
+                                          const tpl::sql::TYPE *const left,    \
+                                          const tpl::sql::TYPE *const right) { \
+    tpl::sql::ComparisonFunctions::Ge##TYPE(result, *left, *right);            \
+  }                                                                            \
+  VM_OP_HOT void OpEqual##TYPE(tpl::sql::BoolVal *const result,                \
+                               const tpl::sql::TYPE *const left,               \
+                               const tpl::sql::TYPE *const right) {            \
+    tpl::sql::ComparisonFunctions::Eq##TYPE(result, *left, *right);            \
+  }                                                                            \
+  VM_OP_HOT void OpLessThan##TYPE(tpl::sql::BoolVal *const result,             \
+                                  const tpl::sql::TYPE *const left,            \
+                                  const tpl::sql::TYPE *const right) {         \
+    tpl::sql::ComparisonFunctions::Lt##TYPE(result, *left, *right);            \
+  }                                                                            \
+  VM_OP_HOT void OpLessThanEqual##TYPE(tpl::sql::BoolVal *const result,        \
+                                       const tpl::sql::TYPE *const left,       \
+                                       const tpl::sql::TYPE *const right) {    \
+    tpl::sql::ComparisonFunctions::Le##TYPE(result, *left, *right);            \
+  }                                                                            \
+  VM_OP_HOT void OpNotEqual##TYPE(tpl::sql::BoolVal *const result,             \
+                                  const tpl::sql::TYPE *const left,            \
+                                  const tpl::sql::TYPE *const right) {         \
+    tpl::sql::ComparisonFunctions::Ne##TYPE(result, *left, *right);            \
+  }
+
+GEN_SQL_COMPARISONS(Integer)
+GEN_SQL_COMPARISONS(Real)
+
+#undef GEN_SQL_COMPARISONS
+
+// ---------------------------
+// SQL Strings
+// --------------------------
+
+VM_OP_HOT void OpGreaterThanString(tpl::sql::BoolVal *const result,
+                                   const tpl::sql::StringVal *const left,
+                                   const tpl::sql::StringVal *const right) {
+  tpl::sql::ComparisonFunctions::GtStringVal(result, *left, *right);
 }
 
-VM_OP_HOT void OpGreaterThanEqualInteger(tpl::sql::BoolVal *const result, tpl::sql::Integer *left,
-                                         tpl::sql::Integer *right) {
-  result->val = (left->val >= right->val);
-  result->is_null = (left->is_null || right->is_null);
+VM_OP_HOT void OpGreaterThanEqualString(
+    tpl::sql::BoolVal *const result, const tpl::sql::StringVal *const left,
+    const tpl::sql::StringVal *const right) {
+  tpl::sql::ComparisonFunctions::GeStringVal(result, *left, *right);
 }
 
-VM_OP_HOT void OpEqualInteger(tpl::sql::BoolVal *const result, const tpl::sql::Integer *const left,
-                              const tpl::sql::Integer *const right) {
-  result->val = (left->val == right->val);
-  result->is_null = (left->is_null || right->is_null);
+VM_OP_HOT void OpEqualString(tpl::sql::BoolVal *const result,
+                             const tpl::sql::StringVal *const left,
+                             const tpl::sql::StringVal *const right) {
+  tpl::sql::ComparisonFunctions::EqStringVal(result, *left, *right);
 }
 
-VM_OP_HOT void OpLessThanInteger(tpl::sql::BoolVal *const result, const tpl::sql::Integer *const left,
-                                 const tpl::sql::Integer *const right) {
-  result->val = (left->val < right->val);
-  result->is_null = (left->is_null || right->is_null);
+VM_OP_HOT void OpLessThanString(tpl::sql::BoolVal *const result,
+                                const tpl::sql::StringVal *const left,
+                                const tpl::sql::StringVal *const right) {
+  tpl::sql::ComparisonFunctions::LtStringVal(result, *left, *right);
 }
 
-VM_OP_HOT void OpLessThanEqualInteger(tpl::sql::BoolVal *const result, const tpl::sql::Integer *const left,
-                                      const tpl::sql::Integer *const right) {
-  result->val = (left->val <= right->val);
-  result->is_null = (left->is_null || right->is_null);
+VM_OP_HOT void OpLessThanEqualString(tpl::sql::BoolVal *const result,
+                                     const tpl::sql::StringVal *const left,
+                                     const tpl::sql::StringVal *const right) {
+  tpl::sql::ComparisonFunctions::LeStringVal(result, *left, *right);
 }
 
-VM_OP_HOT void OpNotEqualInteger(tpl::sql::BoolVal *const result, const tpl::sql::Integer *const left,
-                                 const tpl::sql::Integer *const right) {
-  result->val = (left->val != right->val);
-  result->is_null = (left->is_null || right->is_null);
+VM_OP_HOT void OpNotEqualString(tpl::sql::BoolVal *const result,
+                                const tpl::sql::StringVal *const left,
+                                const tpl::sql::StringVal *const right) {
+  tpl::sql::ComparisonFunctions::NeStringVal(result, *left, *right);
 }
 
-VM_OP_HOT void OpAddInteger(tpl::sql::Integer *const result, const tpl::sql::Integer *const left,
+
+// ----------------------------------
+// SQL arithmetic
+// ---------------------------------
+VM_OP_WARM void OpAbsInteger(tpl::sql::Integer *const result,
+                             const tpl::sql::Integer *const left) {
+  tpl::sql::ArithmeticFunctions::Abs(result, *left);
+}
+
+VM_OP_WARM void OpAbsReal(tpl::sql::Real *const result,
+                          const tpl::sql::Real *const left) {
+  tpl::sql::ArithmeticFunctions::Abs(result, *left);
+}
+
+VM_OP_HOT void OpAddInteger(tpl::sql::Integer *const result,
+                            const tpl::sql::Integer *const left,
                             const tpl::sql::Integer *const right) {
   UNUSED bool overflow;
-  *result = left->Add(*right, &overflow);
+  tpl::sql::ArithmeticFunctions::Add(result, *left, *right, &overflow);
 }
 
-VM_OP_HOT void OpSubInteger(tpl::sql::Integer *const result, const tpl::sql::Integer *const left,
+VM_OP_HOT void OpSubInteger(tpl::sql::Integer *const result,
+                            const tpl::sql::Integer *const left,
                             const tpl::sql::Integer *const right) {
   UNUSED bool overflow;
-  *result = left->Sub(*right, &overflow);
+  tpl::sql::ArithmeticFunctions::Sub(result, *left, *right, &overflow);
 }
 
-VM_OP_HOT void OpMulInteger(tpl::sql::Integer *const result, const tpl::sql::Integer *const left,
+VM_OP_HOT void OpMulInteger(tpl::sql::Integer *const result,
+                            const tpl::sql::Integer *const left,
                             const tpl::sql::Integer *const right) {
   UNUSED bool overflow;
-  *result = left->Multiply(*right, &overflow);
+  tpl::sql::ArithmeticFunctions::Mul(result, *left, *right, &overflow);
 }
 
-VM_OP_HOT void OpDivInteger(tpl::sql::Integer *const result, const tpl::sql::Integer *const left,
+VM_OP_HOT void OpDivInteger(tpl::sql::Integer *const result,
+                            const tpl::sql::Integer *const left,
                             const tpl::sql::Integer *const right) {
-  *result = left->Divide(*right);
+  UNUSED bool div_by_zero = false;
+  tpl::sql::ArithmeticFunctions::IntDiv(result, *left, *right, &div_by_zero);
 }
 
-VM_OP_HOT void OpRemInteger(tpl::sql::Integer *const result, const tpl::sql::Integer *const left,
+VM_OP_HOT void OpRemInteger(tpl::sql::Integer *const result,
+                            const tpl::sql::Integer *const left,
                             const tpl::sql::Integer *const right) {
-  *result = left->Modulo(*right);
+  UNUSED bool div_by_zero = false;
+  tpl::sql::ArithmeticFunctions::IntMod(result, *left, *right, &div_by_zero);
 }
+
+VM_OP_HOT void OpAddReal(tpl::sql::Real *const result,
+                         const tpl::sql::Real *const left,
+                         const tpl::sql::Real *const right) {
+  tpl::sql::ArithmeticFunctions::Add(result, *left, *right);
+}
+
+VM_OP_HOT void OpSubReal(tpl::sql::Real *const result,
+                         const tpl::sql::Real *const left,
+                         const tpl::sql::Real *const right) {
+  tpl::sql::ArithmeticFunctions::Sub(result, *left, *right);
+}
+
+VM_OP_HOT void OpMulReal(tpl::sql::Real *const result,
+                         const tpl::sql::Real *const left,
+                         const tpl::sql::Real *const right) {
+  tpl::sql::ArithmeticFunctions::Mul(result, *left, *right);
+}
+
+VM_OP_HOT void OpDivReal(tpl::sql::Real *const result,
+                         const tpl::sql::Real *const left,
+                         const tpl::sql::Real *const right) {
+  UNUSED bool div_by_zero = false;
+  tpl::sql::ArithmeticFunctions::Div(result, *left, *right, &div_by_zero);
+}
+
+VM_OP_HOT void OpRemReal(tpl::sql::Real *const result,
+                         const tpl::sql::Real *const left,
+                         const tpl::sql::Real *const right) {
+  UNUSED bool div_by_zero = false;
+  tpl::sql::ArithmeticFunctions::Mod(result, *left, *right, &div_by_zero);
+}
+
+
 
 // ---------------------------------------------------------
 // SQL Aggregations
@@ -566,7 +669,7 @@ VM_OP_HOT void OpAggregationOverflowPartitionIteratorGetRow(const byte **row,
 
 VM_OP_HOT void OpCountAggregateInit(tpl::sql::CountAggregate *agg) { new (agg) tpl::sql::CountAggregate(); }
 
-VM_OP_HOT void OpCountAggregateAdvance(tpl::sql::CountAggregate *agg, tpl::sql::Val *val) { agg->Advance(val); }
+VM_OP_HOT void OpCountAggregateAdvance(tpl::sql::CountAggregate *agg, tpl::sql::Val *val) { agg->Advance(*val); }
 
 VM_OP_HOT void OpCountAggregateMerge(tpl::sql::CountAggregate *agg_1, tpl::sql::CountAggregate *agg_2) {
   TPL_ASSERT(agg_2 != nullptr, "Null aggregate!");
@@ -585,22 +688,33 @@ VM_OP_HOT void OpCountAggregateFree(tpl::sql::CountAggregate *agg) { agg->~Count
 // COUNT(*)
 //
 
-VM_OP_HOT void OpCountStarAggregateInit(tpl::sql::CountStarAggregate *agg) { new (agg) tpl::sql::CountStarAggregate(); }
+VM_OP_HOT void OpCountStarAggregateInit(tpl::sql::CountStarAggregate *agg) {
+  new (agg) tpl::sql::CountStarAggregate();
+}
 
-VM_OP_HOT void OpCountStarAggregateAdvance(tpl::sql::CountStarAggregate *agg, tpl::sql::Val *val) { agg->Advance(val); }
+VM_OP_HOT void OpCountStarAggregateAdvance(tpl::sql::CountStarAggregate *agg,
+                                           const tpl::sql::Val *val) {
+  agg->Advance(*val);
+}
 
-VM_OP_HOT void OpCountStarAggregateMerge(tpl::sql::CountStarAggregate *agg_1, tpl::sql::CountStarAggregate *agg_2) {
-  TPL_ASSERT(agg_2 != nullptr, "Null aggregate!");
+VM_OP_HOT void OpCountStarAggregateMerge(
+    tpl::sql::CountStarAggregate *agg_1,
+    const tpl::sql::CountStarAggregate *agg_2) {
   agg_1->Merge(*agg_2);
 }
 
-VM_OP_HOT void OpCountStarAggregateReset(tpl::sql::CountStarAggregate *agg) { agg->Reset(); }
+VM_OP_HOT void OpCountStarAggregateReset(tpl::sql::CountStarAggregate *agg) {
+  agg->Reset();
+}
 
-VM_OP_HOT void OpCountStarAggregateGetResult(tpl::sql::Integer *result, tpl::sql::CountStarAggregate *agg) {
+VM_OP_HOT void OpCountStarAggregateGetResult(
+    tpl::sql::Integer *result, const tpl::sql::CountStarAggregate *agg) {
   *result = agg->GetCountResult();
 }
 
-VM_OP_HOT void OpCountStarAggregateFree(tpl::sql::CountStarAggregate *agg) { agg->~CountStarAggregate(); }
+VM_OP_HOT void OpCountStarAggregateFree(tpl::sql::CountStarAggregate *agg) {
+  agg->~CountStarAggregate();
+}
 
 //
 // SUM(int_type)
@@ -610,26 +724,29 @@ VM_OP_HOT void OpIntegerSumAggregateInit(tpl::sql::IntegerSumAggregate *agg) {
   new (agg) tpl::sql::IntegerSumAggregate();
 }
 
-VM_OP_HOT void OpIntegerSumAggregateAdvance(tpl::sql::IntegerSumAggregate *agg, tpl::sql::Integer *val) {
-  agg->Advance(val);
+VM_OP_HOT void OpIntegerSumAggregateAdvance(tpl::sql::IntegerSumAggregate *agg,
+                                            const tpl::sql::Integer *val) {
+  agg->Advance(*val);
 }
 
-VM_OP_HOT void OpIntegerSumAggregateAdvanceNullable(tpl::sql::IntegerSumAggregate *agg, tpl::sql::Integer *val) {
-  agg->AdvanceNullable(val);
-}
-
-VM_OP_HOT void OpIntegerSumAggregateMerge(tpl::sql::IntegerSumAggregate *agg_1, tpl::sql::IntegerSumAggregate *agg_2) {
-  TPL_ASSERT(agg_2 != nullptr, "Null aggregate!");
+VM_OP_HOT void OpIntegerSumAggregateMerge(
+    tpl::sql::IntegerSumAggregate *agg_1,
+    const tpl::sql::IntegerSumAggregate *agg_2) {
   agg_1->Merge(*agg_2);
 }
 
-VM_OP_HOT void OpIntegerSumAggregateReset(tpl::sql::IntegerSumAggregate *agg) { agg->Reset(); }
+VM_OP_HOT void OpIntegerSumAggregateReset(tpl::sql::IntegerSumAggregate *agg) {
+  agg->Reset();
+}
 
-VM_OP_HOT void OpIntegerSumAggregateGetResult(tpl::sql::Integer *result, tpl::sql::IntegerSumAggregate *agg) {
+VM_OP_HOT void OpIntegerSumAggregateGetResult(
+    tpl::sql::Integer *result, const tpl::sql::IntegerSumAggregate *agg) {
   *result = agg->GetResultSum();
 }
 
-VM_OP_HOT void OpIntegerSumAggregateFree(tpl::sql::IntegerSumAggregate *agg) { agg->~IntegerSumAggregate(); }
+VM_OP_HOT void OpIntegerSumAggregateFree(tpl::sql::IntegerSumAggregate *agg) {
+  agg->~IntegerSumAggregate();
+}
 
 //
 // MAX(int_type)
@@ -639,26 +756,29 @@ VM_OP_HOT void OpIntegerMaxAggregateInit(tpl::sql::IntegerMaxAggregate *agg) {
   new (agg) tpl::sql::IntegerMaxAggregate();
 }
 
-VM_OP_HOT void OpIntegerMaxAggregateAdvance(tpl::sql::IntegerMaxAggregate *agg, tpl::sql::Integer *val) {
-  agg->Advance(val);
+VM_OP_HOT void OpIntegerMaxAggregateAdvance(tpl::sql::IntegerMaxAggregate *agg,
+                                            const tpl::sql::Integer *val) {
+  agg->Advance(*val);
 }
 
-VM_OP_HOT void OpIntegerMaxAggregateAdvanceNullable(tpl::sql::IntegerMaxAggregate *agg, tpl::sql::Integer *val) {
-  agg->AdvanceNullable(val);
-}
-
-VM_OP_HOT void OpIntegerMaxAggregateMerge(tpl::sql::IntegerMaxAggregate *agg_1, tpl::sql::IntegerMaxAggregate *agg_2) {
-  TPL_ASSERT(agg_2 != nullptr, "Null aggregate!");
+VM_OP_HOT void OpIntegerMaxAggregateMerge(
+    tpl::sql::IntegerMaxAggregate *agg_1,
+    const tpl::sql::IntegerMaxAggregate *agg_2) {
   agg_1->Merge(*agg_2);
 }
 
-VM_OP_HOT void OpIntegerMaxAggregateReset(tpl::sql::IntegerMaxAggregate *agg) { agg->Reset(); }
+VM_OP_HOT void OpIntegerMaxAggregateReset(tpl::sql::IntegerMaxAggregate *agg) {
+  agg->Reset();
+}
 
-VM_OP_HOT void OpIntegerMaxAggregateGetResult(tpl::sql::Integer *result, tpl::sql::IntegerMaxAggregate *agg) {
+VM_OP_HOT void OpIntegerMaxAggregateGetResult(
+    tpl::sql::Integer *result, const tpl::sql::IntegerMaxAggregate *agg) {
   *result = agg->GetResultMax();
 }
 
-VM_OP_HOT void OpIntegerMaxAggregateFree(tpl::sql::IntegerMaxAggregate *agg) { agg->~IntegerMaxAggregate(); }
+VM_OP_HOT void OpIntegerMaxAggregateFree(tpl::sql::IntegerMaxAggregate *agg) {
+  agg->~IntegerMaxAggregate();
+}
 
 //
 // MIN(int_type)
@@ -668,56 +788,156 @@ VM_OP_HOT void OpIntegerMinAggregateInit(tpl::sql::IntegerMinAggregate *agg) {
   new (agg) tpl::sql::IntegerMinAggregate();
 }
 
-VM_OP_HOT void OpIntegerMinAggregateAdvance(tpl::sql::IntegerMinAggregate *agg, tpl::sql::Integer *val) {
-  agg->Advance(val);
+VM_OP_HOT void OpIntegerMinAggregateAdvance(tpl::sql::IntegerMinAggregate *agg,
+                                            const tpl::sql::Integer *val) {
+  agg->Advance(*val);
 }
 
-VM_OP_HOT void OpIntegerMinAggregateAdvanceNullable(tpl::sql::IntegerMinAggregate *agg, tpl::sql::Integer *val) {
-  agg->AdvanceNullable(val);
-}
-
-VM_OP_HOT void OpIntegerMinAggregateMerge(tpl::sql::IntegerMinAggregate *agg_1, tpl::sql::IntegerMinAggregate *agg_2) {
-  TPL_ASSERT(agg_2 != nullptr, "Null aggregate!");
+VM_OP_HOT void OpIntegerMinAggregateMerge(
+    tpl::sql::IntegerMinAggregate *agg_1,
+    const tpl::sql::IntegerMinAggregate *agg_2) {
   agg_1->Merge(*agg_2);
 }
 
-VM_OP_HOT void OpIntegerMinAggregateReset(tpl::sql::IntegerMinAggregate *agg) { agg->Reset(); }
+VM_OP_HOT void OpIntegerMinAggregateReset(tpl::sql::IntegerMinAggregate *agg) {
+  agg->Reset();
+}
 
-VM_OP_HOT void OpIntegerMinAggregateGetResult(tpl::sql::Integer *result, tpl::sql::IntegerMinAggregate *agg) {
+VM_OP_HOT void OpIntegerMinAggregateGetResult(
+    tpl::sql::Integer *result, const tpl::sql::IntegerMinAggregate *agg) {
   *result = agg->GetResultMin();
 }
 
-VM_OP_HOT void OpIntegerMinAggregateFree(tpl::sql::IntegerMinAggregate *agg) { agg->~IntegerMinAggregate(); }
+VM_OP_HOT void OpIntegerMinAggregateFree(tpl::sql::IntegerMinAggregate *agg) {
+  agg->~IntegerMinAggregate();
+}
 
 //
-// AVG(int_type)
+// SUM(real)
 //
 
-VM_OP_HOT void OpIntegerAvgAggregateInit(tpl::sql::IntegerAvgAggregate *agg) {
-  new (agg) tpl::sql::IntegerAvgAggregate();
+VM_OP_HOT void OpRealSumAggregateInit(tpl::sql::RealSumAggregate *agg) {
+  new (agg) tpl::sql::RealSumAggregate();
 }
 
-VM_OP_HOT void OpIntegerAvgAggregateAdvance(tpl::sql::IntegerAvgAggregate *agg, tpl::sql::Integer *val) {
-  agg->Advance(val);
+VM_OP_HOT void OpRealSumAggregateAdvance(tpl::sql::RealSumAggregate *agg,
+                                         const tpl::sql::Real *val) {
+  agg->Advance(*val);
 }
 
-VM_OP_HOT void OpIntegerAvgAggregateAdvanceNullable(tpl::sql::IntegerAvgAggregate *agg, tpl::sql::Integer *val) {
-  agg->AdvanceNullable(val);
-}
-
-VM_OP_HOT void OpIntegerAvgAggregateMerge(tpl::sql::IntegerAvgAggregate *agg_1, tpl::sql::IntegerAvgAggregate *agg_2) {
-  TPL_ASSERT(agg_2 != nullptr, "Null aggregate!");
+VM_OP_HOT void OpRealSumAggregateMerge(
+    tpl::sql::RealSumAggregate *agg_1,
+    const tpl::sql::RealSumAggregate *agg_2) {
   agg_1->Merge(*agg_2);
 }
 
-VM_OP_HOT void OpIntegerAvgAggregateReset(tpl::sql::IntegerAvgAggregate *agg) { agg->Reset(); }
+VM_OP_HOT void OpRealSumAggregateReset(tpl::sql::RealSumAggregate *agg) {
+  agg->Reset();
+}
 
-VM_OP_HOT void OpIntegerAvgAggregateGetResult(tpl::sql::Integer *result, tpl::sql::IntegerAvgAggregate *agg) {
+VM_OP_HOT void OpRealSumAggregateGetResult(
+    tpl::sql::Real *result, const tpl::sql::RealSumAggregate *agg) {
+  *result = agg->GetResultSum();
+}
+
+VM_OP_HOT void OpRealSumAggregateFree(tpl::sql::RealSumAggregate *agg) {
+  agg->~RealSumAggregate();
+}
+
+//
+// MAX(real_type)
+//
+
+VM_OP_HOT void OpRealMaxAggregateInit(tpl::sql::RealMaxAggregate *agg) {
+  new (agg) tpl::sql::RealMaxAggregate();
+}
+
+VM_OP_HOT void OpRealMaxAggregateAdvance(tpl::sql::RealMaxAggregate *agg,
+                                         const tpl::sql::Real *val) {
+  agg->Advance(*val);
+}
+
+VM_OP_HOT void OpRealMaxAggregateMerge(
+    tpl::sql::RealMaxAggregate *agg_1,
+    const tpl::sql::RealMaxAggregate *agg_2) {
+  agg_1->Merge(*agg_2);
+}
+
+VM_OP_HOT void OpRealMaxAggregateReset(tpl::sql::RealMaxAggregate *agg) {
+  agg->Reset();
+}
+
+VM_OP_HOT void OpRealMaxAggregateGetResult(
+    tpl::sql::Real *result, const tpl::sql::RealMaxAggregate *agg) {
+  *result = agg->GetResultMax();
+}
+
+VM_OP_HOT void OpRealMaxAggregateFree(tpl::sql::RealMaxAggregate *agg) {
+  agg->~RealMaxAggregate();
+}
+
+//
+// MIN(real_type)
+//
+
+VM_OP_HOT void OpRealMinAggregateInit(tpl::sql::RealMinAggregate *agg) {
+  new (agg) tpl::sql::RealMinAggregate();
+}
+
+VM_OP_HOT void OpRealMinAggregateAdvance(tpl::sql::RealMinAggregate *agg,
+                                         const tpl::sql::Real *val) {
+  agg->Advance(*val);
+}
+
+VM_OP_HOT void OpRealMinAggregateMerge(
+    tpl::sql::RealMinAggregate *agg_1,
+    const tpl::sql::RealMinAggregate *agg_2) {
+  agg_1->Merge(*agg_2);
+}
+
+VM_OP_HOT void OpRealMinAggregateReset(tpl::sql::RealMinAggregate *agg) {
+  agg->Reset();
+}
+
+VM_OP_HOT void OpRealMinAggregateGetResult(
+    tpl::sql::Real *result, const tpl::sql::RealMinAggregate *agg) {
+  *result = agg->GetResultMin();
+}
+
+VM_OP_HOT void OpRealMinAggregateFree(tpl::sql::RealMinAggregate *agg) {
+  agg->~RealMinAggregate();
+}
+
+//
+// AVG
+//
+
+VM_OP_HOT void OpAvgAggregateInit(tpl::sql::AvgAggregate *agg) {
+  new (agg) tpl::sql::AvgAggregate();
+}
+
+VM_OP_HOT void OpAvgAggregateAdvance(tpl::sql::AvgAggregate *agg,
+                                     const tpl::sql::Integer *val) {
+  agg->Advance(*val);
+}
+
+VM_OP_HOT void OpAvgAggregateMerge(tpl::sql::AvgAggregate *agg_1,
+                                   const tpl::sql::AvgAggregate *agg_2) {
+  agg_1->Merge(*agg_2);
+}
+
+VM_OP_HOT void OpAvgAggregateReset(tpl::sql::AvgAggregate *agg) {
+  agg->Reset();
+}
+
+VM_OP_HOT void OpAvgAggregateGetResult(tpl::sql::Real *result,
+                                       const tpl::sql::AvgAggregate *agg) {
   *result = agg->GetResultAvg();
 }
 
-VM_OP_HOT void OpIntegerAvgAggregateFree(tpl::sql::IntegerAvgAggregate *agg) { agg->~IntegerAvgAggregate(); }
-
+VM_OP_HOT void OpAvgAggregateFree(tpl::sql::AvgAggregate *agg) {
+  agg->~AvgAggregate();
+}
 // ---------------------------------------------------------
 // Hash Joins
 // ---------------------------------------------------------
@@ -795,24 +1015,247 @@ void OpSorterIteratorFree(tpl::sql::SorterIterator *iter);
 // Trig functions
 // ---------------------------------------------------------
 
-VM_OP_HOT void OpAcos(tpl::sql::Real *result, tpl::sql::Real *input) { tpl::sql::ACos::Execute<true>(input, result); }
-
-VM_OP_HOT void OpAsin(tpl::sql::Real *result, tpl::sql::Real *input) { tpl::sql::ASin::Execute<true>(input, result); }
-
-VM_OP_HOT void OpAtan(tpl::sql::Real *result, tpl::sql::Real *input) { tpl::sql::ATan::Execute<true>(input, result); }
-
-VM_OP_HOT void OpAtan2(tpl::sql::Real *result, tpl::sql::Real *arg_1, tpl::sql::Real *arg_2) {
-  tpl::sql::ATan2::Execute<true>(arg_1, arg_2, result);
+VM_OP_WARM void OpPi(tpl::sql::Real *result) {
+  tpl::sql::ArithmeticFunctions::Pi(result);
 }
 
-VM_OP_HOT void OpCos(tpl::sql::Real *result, tpl::sql::Real *input) { tpl::sql::Cos::Execute<true>(input, result); }
+VM_OP_WARM void OpE(tpl::sql::Real *result) {
+  tpl::sql::ArithmeticFunctions::E(result);
+}
 
-VM_OP_HOT void OpCot(tpl::sql::Real *result, tpl::sql::Real *input) { tpl::sql::Cot::Execute<true>(input, result); }
+VM_OP_WARM void OpAcos(tpl::sql::Real *result, const tpl::sql::Real *input) {
+  tpl::sql::ArithmeticFunctions::Acos(result, *input);
+}
 
-VM_OP_HOT void OpSin(tpl::sql::Real *result, tpl::sql::Real *input) { tpl::sql::Sin::Execute<true>(input, result); }
+VM_OP_WARM void OpAsin(tpl::sql::Real *result, const tpl::sql::Real *input) {
+  tpl::sql::ArithmeticFunctions::Asin(result, *input);
+}
 
-VM_OP_HOT void OpTan(tpl::sql::Real *result, tpl::sql::Real *input) { tpl::sql::Tan::Execute<true>(input, result); }
+VM_OP_WARM void OpAtan(tpl::sql::Real *result, const tpl::sql::Real *input) {
+  tpl::sql::ArithmeticFunctions::Atan(result, *input);
+}
 
+VM_OP_WARM void OpAtan2(tpl::sql::Real *result, const tpl::sql::Real *arg_1,
+                        const tpl::sql::Real *arg_2) {
+  tpl::sql::ArithmeticFunctions::Atan2(result, *arg_1, *arg_2);
+}
+
+VM_OP_WARM void OpCos(tpl::sql::Real *result, const tpl::sql::Real *input) {
+  tpl::sql::ArithmeticFunctions::Cos(result, *input);
+}
+
+VM_OP_WARM void OpCot(tpl::sql::Real *result, const tpl::sql::Real *input) {
+  tpl::sql::ArithmeticFunctions::Cot(result, *input);
+}
+
+VM_OP_WARM void OpSin(tpl::sql::Real *result, const tpl::sql::Real *input) {
+  tpl::sql::ArithmeticFunctions::Sin(result, *input);
+}
+
+VM_OP_WARM void OpTan(tpl::sql::Real *result, const tpl::sql::Real *input) {
+  tpl::sql::ArithmeticFunctions::Tan(result, *input);
+}
+
+VM_OP_WARM void OpCosh(tpl::sql::Real *result, const tpl::sql::Real *v) {
+  tpl::sql::ArithmeticFunctions::Cosh(result, *v);
+}
+
+VM_OP_WARM void OpTanh(tpl::sql::Real *result, const tpl::sql::Real *v) {
+  tpl::sql::ArithmeticFunctions::Tanh(result, *v);
+}
+
+VM_OP_WARM void OpSinh(tpl::sql::Real *result, const tpl::sql::Real *v) {
+  tpl::sql::ArithmeticFunctions::Sinh(result, *v);
+}
+
+VM_OP_WARM void OpSqrt(tpl::sql::Real *result, const tpl::sql::Real *v) {
+  tpl::sql::ArithmeticFunctions::Sqrt(result, *v);
+}
+
+VM_OP_WARM void OpCbrt(tpl::sql::Real *result, const tpl::sql::Real *v) {
+  tpl::sql::ArithmeticFunctions::Cbrt(result, *v);
+}
+
+VM_OP_WARM void OpExp(tpl::sql::Real *result, const tpl::sql::Real *v) {
+  tpl::sql::ArithmeticFunctions::Exp(result, *v);
+}
+
+VM_OP_WARM void OpCeil(tpl::sql::Real *result, const tpl::sql::Real *v) {
+  tpl::sql::ArithmeticFunctions::Ceil(result, *v);
+}
+
+VM_OP_WARM void OpFloor(tpl::sql::Real *result, const tpl::sql::Real *v) {
+  tpl::sql::ArithmeticFunctions::Floor(result, *v);
+}
+
+VM_OP_WARM void OpTruncate(tpl::sql::Real *result, const tpl::sql::Real *v) {
+  tpl::sql::ArithmeticFunctions::Truncate(result, *v);
+}
+
+VM_OP_WARM void OpLn(tpl::sql::Real *result, const tpl::sql::Real *v) {
+  tpl::sql::ArithmeticFunctions::Ln(result, *v);
+}
+
+VM_OP_WARM void OpLog2(tpl::sql::Real *result, const tpl::sql::Real *v) {
+  tpl::sql::ArithmeticFunctions::Log2(result, *v);
+}
+
+VM_OP_WARM void OpLog10(tpl::sql::Real *result, const tpl::sql::Real *v) {
+  tpl::sql::ArithmeticFunctions::Log10(result, *v);
+}
+
+VM_OP_WARM void OpSign(tpl::sql::Real *result, const tpl::sql::Real *v) {
+  tpl::sql::ArithmeticFunctions::Sign(result, *v);
+}
+
+VM_OP_WARM void OpRadians(tpl::sql::Real *result, const tpl::sql::Real *v) {
+  tpl::sql::ArithmeticFunctions::Radians(result, *v);
+}
+
+VM_OP_WARM void OpDegrees(tpl::sql::Real *result, const tpl::sql::Real *v) {
+  tpl::sql::ArithmeticFunctions::Degrees(result, *v);
+}
+
+VM_OP_WARM void OpRound(tpl::sql::Real *result, const tpl::sql::Real *v) {
+  tpl::sql::ArithmeticFunctions::Round(result, *v);
+}
+
+VM_OP_WARM void OpRoundUpTo(tpl::sql::Real *result, const tpl::sql::Real *v,
+                            const tpl::sql::Integer *scale) {
+  tpl::sql::ArithmeticFunctions::RoundUpTo(result, *v, *scale);
+}
+
+VM_OP_WARM void OpLog(tpl::sql::Real *result, const tpl::sql::Real *base,
+                      const tpl::sql::Real *val) {
+  tpl::sql::ArithmeticFunctions::Log(result, *base, *val);
+}
+
+VM_OP_WARM void OpPow(tpl::sql::Real *result, const tpl::sql::Real *base,
+                      const tpl::sql::Real *val) {
+  tpl::sql::ArithmeticFunctions::Pow(result, *base, *val);
+}
+
+// ---------------------------------------------------------
+// Null/Not Null predicates
+// ---------------------------------------------------------
+
+VM_OP_WARM void OpValIsNull(tpl::sql::BoolVal *result,
+                            const tpl::sql::Val *val) {
+  tpl::sql::IsNullPredicate::IsNull(result, *val);
+}
+
+VM_OP_WARM void OpValIsNotNull(tpl::sql::BoolVal *result,
+                               const tpl::sql::Val *val) {
+  tpl::sql::IsNullPredicate::IsNotNull(result, *val);
+}
+
+// ---------------------------------------------------------
+// String functions
+// ---------------------------------------------------------
+
+VM_OP_WARM void OpCharLength(tpl::exec::ExecutionContext *ctx,
+                             tpl::sql::Integer *result,
+                             const tpl::sql::StringVal *str) {
+  tpl::sql::StringFunctions::CharLength(ctx, result, *str);
+}
+
+VM_OP_WARM void OpLeft(tpl::exec::ExecutionContext *ctx,
+                       tpl::sql::StringVal *result,
+                       const tpl::sql::StringVal *str,
+                       const tpl::sql::Integer *n) {
+  tpl::sql::StringFunctions::Left(ctx, result, *str, *n);
+}
+
+VM_OP_WARM void OpLength(tpl::exec::ExecutionContext *ctx,
+                         tpl::sql::Integer *result,
+                         const tpl::sql::StringVal *str) {
+  tpl::sql::StringFunctions::Length(ctx, result, *str);
+}
+
+VM_OP_WARM void OpLower(tpl::exec::ExecutionContext *ctx,
+                        tpl::sql::StringVal *result,
+                        const tpl::sql::StringVal *str) {
+  tpl::sql::StringFunctions::Lower(ctx, result, *str);
+}
+
+VM_OP_WARM void OpLPad(tpl::exec::ExecutionContext *ctx,
+                       tpl::sql::StringVal *result,
+                       const tpl::sql::StringVal *str,
+                       const tpl::sql::Integer *len,
+                       const tpl::sql::StringVal *pad) {
+  tpl::sql::StringFunctions::Lpad(ctx, result, *str, *len, *pad);
+}
+
+VM_OP_WARM void OpLTrim(tpl::exec::ExecutionContext *ctx,
+                        tpl::sql::StringVal *result,
+                        const tpl::sql::StringVal *str,
+                        const tpl::sql::StringVal *chars) {
+  tpl::sql::StringFunctions::Ltrim(ctx, result, *str, *chars);
+}
+
+VM_OP_WARM void OpRepeat(tpl::exec::ExecutionContext *ctx,
+                         tpl::sql::StringVal *result,
+                         const tpl::sql::StringVal *str,
+                         const tpl::sql::Integer *n) {
+  tpl::sql::StringFunctions::Repeat(ctx, result, *str, *n);
+}
+
+VM_OP_WARM void OpReverse(tpl::exec::ExecutionContext *ctx,
+                          tpl::sql::StringVal *result,
+                          const tpl::sql::StringVal *str) {
+  tpl::sql::StringFunctions::Reverse(ctx, result, *str);
+}
+
+VM_OP_WARM void OpRight(tpl::exec::ExecutionContext *ctx,
+                        tpl::sql::StringVal *result,
+                        const tpl::sql::StringVal *str,
+                        const tpl::sql::Integer *n) {
+  tpl::sql::StringFunctions::Right(ctx, result, *str, *n);
+}
+
+VM_OP_WARM void OpRPad(tpl::exec::ExecutionContext *ctx,
+                       tpl::sql::StringVal *result,
+                       const tpl::sql::StringVal *str,
+                       const tpl::sql::Integer *n,
+                       const tpl::sql::StringVal *pad) {
+  tpl::sql::StringFunctions::Rpad(ctx, result, *str, *n, *pad);
+}
+
+VM_OP_WARM void OpRTrim(tpl::exec::ExecutionContext *ctx,
+                        tpl::sql::StringVal *result,
+                        const tpl::sql::StringVal *str,
+                        const tpl::sql::StringVal *chars) {
+  tpl::sql::StringFunctions::Rtrim(ctx, result, *str, *chars);
+}
+
+VM_OP_WARM void OpSplitPart(tpl::exec::ExecutionContext *ctx,
+                            tpl::sql::StringVal *result,
+                            const tpl::sql::StringVal *str,
+                            const tpl::sql::StringVal *delim,
+                            const tpl::sql::Integer *field) {
+  tpl::sql::StringFunctions::SplitPart(ctx, result, *str, *delim, *field);
+}
+
+VM_OP_WARM void OpSubstring(tpl::exec::ExecutionContext *ctx,
+                            tpl::sql::StringVal *result,
+                            const tpl::sql::StringVal *str,
+                            const tpl::sql::Integer *pos,
+                            const tpl::sql::Integer *len) {
+  tpl::sql::StringFunctions::Substring(ctx, result, *str, *pos, *len);
+}
+
+VM_OP_WARM void OpTrim(tpl::exec::ExecutionContext *ctx,
+                       tpl::sql::StringVal *result,
+                       const tpl::sql::StringVal *str,
+                       const tpl::sql::StringVal *chars) {
+  tpl::sql::StringFunctions::Trim(ctx, result, *str, *chars);
+}
+
+VM_OP_WARM void OpUpper(tpl::exec::ExecutionContext *ctx,
+                        tpl::sql::StringVal *result,
+                        const tpl::sql::StringVal *str) {
+  tpl::sql::StringFunctions::Upper(ctx, result, *str);
+}
 // ---------------------------------------------------------------
 // Index Iterator
 // ---------------------------------------------------------------

@@ -22,7 +22,7 @@ namespace {
  * Return the index of the maximum value. If multiple values are tied for the
  * maximum, then the index of a random value from that subset is returned.
  */
-u32 ChooseBestIndex(const std::vector<double> &values, std::mt19937 *generator) {
+u32 ChooseBestIndex(const std::vector<double> &values, std::mt19937 *const generator) {
   const double max_value = *std::max_element(values.begin(), values.end());
   std::vector<u32> best_indices{};
 
@@ -42,7 +42,7 @@ u32 ChooseBestIndex(const std::vector<double> &values, std::mt19937 *generator) 
 
 // With probability 1 - epsilon choose the action with the best value estimate.
 // Otherwise choose a random action.
-u32 EpsilonGreedyPolicy::NextAction(Agent *agent) {
+u32 EpsilonGreedyPolicy::NextAction(Agent *const agent) {
   const auto &value_estimates = agent->value_estimates();
   if (real_(generator_) < epsilon_) {
     return static_cast<u32>(generator_() % value_estimates.size());
@@ -57,7 +57,7 @@ u32 EpsilonGreedyPolicy::NextAction(Agent *agent) {
 //
 // where c is a hyperparamter.
 // If an action was never taken, it gets infinite preference.
-u32 UCBPolicy::NextAction(Agent *agent) {
+u32 UCBPolicy::NextAction(Agent *const agent) {
   const auto &value_estimates = agent->value_estimates();
   const auto &action_attempts = agent->action_attempts();
 
@@ -71,6 +71,17 @@ u32 UCBPolicy::NextAction(Agent *agent) {
   }
 
   return ChooseBestIndex(values, &generator_);
+}
+
+u32 AnnealingEpsilonGreedyPolicy::NextAction(Agent *const agent) {
+  // Compute a new, decayed epsilon
+  const auto &attempts = agent->action_attempts();
+  const auto t = 1 + std::accumulate(attempts.begin(), attempts.end(), 0u);
+  const auto new_epsilon = 1.0 / std::log(t + 0.0000001);
+  set_epsilon(new_epsilon);
+
+  // Invoke epsilon-greedy policy with updated epsilon
+  return EpsilonGreedyPolicy::NextAction(agent);
 }
 
 }  // namespace tpl::bandit

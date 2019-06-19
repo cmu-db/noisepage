@@ -1,14 +1,13 @@
 #pragma once
 
+#include "execution/exec/execution_context.h"
 #include "execution/util/common.h"
 #include "execution/util/macros.h"
 #include "execution/util/math_util.h"
+#include "execution/exec/execution_context.h"
 #include "type/type_id.h"
 
 namespace tpl::sql {
-
-#define AVG_PRECISION 3
-#define AVG_SCALE 6
 
 /**
  * A generic base catch-all SQL value
@@ -97,74 +96,6 @@ struct Integer : public Val {
     val.is_null = true;
     return val;
   }
-
-  /**
-   * Perform addition
-   * @param that value to add
-   * @param[out] overflow whether an overflow occur
-   * @return result of addition
-   */
-  Integer Add(const Integer &that, bool *overflow) const {
-    i64 result;
-    *overflow = __builtin_add_overflow(val, that.val, &result);
-    return Integer(is_null || that.is_null, result);
-  }
-
-  /**
-   * Perform subtraction
-   * @param that value to subtract
-   * @param[out] overflow whether an overflow occur
-   * @return result of subtraction
-   */
-  Integer Sub(const Integer &that, bool *overflow) const {
-    i64 result;
-    *overflow = __builtin_sub_overflow(val, that.val, &result);
-    return Integer(is_null || that.is_null, result);
-  }
-
-  /**
-   * Perform multiplication
-   * @param that value to multiply by
-   * @param[out] overflow whether an overflow occur
-   * @return result of multiplication
-   */
-  Integer Multiply(const Integer &that, bool *overflow) const {
-    i64 result;
-    *overflow = __builtin_mul_overflow(val, that.val, &result);
-    return Integer(is_null || that.is_null, result);
-  }
-
-  /**
-   * Perform division
-   * @param that value to divide by
-   * @return result of division
-   */
-  Integer Divide(const Integer &that) const {
-    Integer result(0);
-    if (that.val == 0) {
-      result.is_null = true;
-    } else {
-      result.val = (val / that.val);
-      result.is_null = false;
-    }
-    return result;
-  }
-
-  /**
-   * Perform modulo
-   * @param that value to mod by
-   * @return result of modulo
-   */
-  Integer Modulo(const Integer &that) const {
-    Integer result(0);
-    if (that.val == 0) {
-      result.is_null = true;
-    } else {
-      result.val = (val % that.val);
-      result.is_null = false;
-    }
-    return result;
-  }
 };
 
 /**
@@ -237,27 +168,84 @@ struct Decimal : public Val {
 /**
  * A SQL string
  */
-struct VarBuffer : public Val {
+struct StringVal : public Val {
   /**
-   * raw string
+   * Maximum string length
    */
-  u8 *str;
+  static constexpr std::size_t kMaxStingLen = 1 * GB;
+
   /**
-   * length of the string
+   * Raw string
+   */
+  char *ptr;
+
+  /**
+   * String length
    */
   u32 len;
 
   /**
-   * Constructor
-   * @param str raw string
-   * @param len length of the string
+   * Create a string value (i.e., a view) over the given potentially non-null
+   * terminated byte sequence.
+   * @param str The byte sequence.
+   * @param len The length of the sequence.
    */
-  VarBuffer(u8 *str, u32 len) noexcept : Val(str == nullptr), str(str), len(len) {}
+  StringVal(char *str, u32 len) noexcept
+      : Val(str == nullptr), ptr(str), len(len) {}
 
   /**
-   * @return a NULL varchar/string
+   * Create a string value (i.e., view) over the C-style null-terminated string.
+   * Note that no copy is made.
+   * @param str The C-string.
    */
-  static VarBuffer Null() { return VarBuffer(nullptr, 0); }
+  explicit StringVal(const char *str) noexcept
+      : StringVal(const_cast<char *>(str), u32(strlen(str))) {}
+
+  /**
+   * Create a new string using the given memory pool and length.
+   * @param memory The memory pool to allocate this string's contents from
+   * @param len The size of the string
+   */
+  StringVal(exec::ExecutionContext::StringAllocator *memory, std::size_t len)
+      : ptr(nullptr), len(u32(len)) {
+    if (TPL_UNLIKELY(len > kMaxStingLen)) {
+      len = 0;
+      is_null = true;
+    } else {
+      ptr = reinterpret_cast<char *>(memory->Allocate(len));
+    }
+  }
+
+  /**
+   * Compare if this (potentially nullable) string value is equivalent to
+   * another string value, taking NULLness into account.
+   * @param that The string value to compare with.
+   * @return True if equivalent; false otherwise.
+   */
+  bool operator==(const StringVal &that) const {
+    if (is_null != that.is_null) {
+      return false;
+    }
+    if (is_null) {
+      return true;
+    }
+    if (len != that.len) {
+      return false;
+    }
+    return ptr == that.ptr || memcmp(ptr, that.ptr, len) == 0;
+  }
+
+  /**
+   * Is this string not equivalent to another?
+   * @param that The string value to compare with.
+   * @return True if not equivalent; false otherwise.
+   */
+  bool operator!=(const StringVal &that) const { return !(*this == that); }
+
+  /**
+   * Create a NULL varchar/string
+   */
+  static StringVal Null() { return StringVal(static_cast<char *>(nullptr), 0); }
 };
 
 /**
@@ -334,7 +322,7 @@ struct ValUtil {
         return static_cast<u32>(util::MathUtil::AlignTo(sizeof(Decimal), 8));
       case terrier::type::TypeId::VARCHAR:
       case terrier::type::TypeId::VARBINARY:
-        return static_cast<u32>(util::MathUtil::AlignTo(sizeof(VarBuffer), 8));
+        return static_cast<u32>(util::MathUtil::AlignTo(sizeof(StringVal), 8));
       default:
         return 0;
     }

@@ -1,4 +1,5 @@
 #include "execution/exec/output.h"
+#include "execution/sql/value.h"
 
 namespace tpl::exec {
 using terrier::type::TypeId;

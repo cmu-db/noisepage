@@ -630,7 +630,7 @@ void BytecodeGenerator::VisitBuiltinHashCall(ast::CallExpr *call, UNUSED ast::Bu
         emitter()->Emit(Bytecode::HashReal, tmp, input);
         break;
       }
-      case ast::BuiltinType::VarBuffer: {
+      case ast::BuiltinType::StringVal: {
         emitter()->Emit(Bytecode::HashString, tmp, input);
         break;
       }
@@ -677,45 +677,23 @@ void BytecodeGenerator::VisitBuiltinFilterManagerCall(ast::CallExpr *call, ast::
 }
 
 void BytecodeGenerator::VisitBuiltinFilterCall(ast::CallExpr *call, ast::Builtin builtin) {
-  ast::Context *ctx = call->type()->context();
-  ast::Type *ret_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::Int32);
-
   LocalVar ret_val;
   if (execution_result() != nullptr) {
-    ret_val = execution_result()->GetOrCreateDestination(ret_type);
+    ret_val = execution_result()->GetOrCreateDestination(call->type());
     execution_result()->set_destination(ret_val.ValueOf());
   } else {
-    ret_val = current_function()->NewLocal(ret_type);
+    ret_val = current_function()->NewLocal(call->type());
   }
 
   // Collect the three call arguments
   // Projected Column Iterator
   LocalVar pci = VisitExpressionForRValue(call->arguments()[0]);
-  // Filter Value
+  // Column index
+  u32 col_idx = u32(call->arguments()[1]->As<ast::LitExpr>()->int32_val());
+  // Filter value
   i64 val = call->arguments()[2]->As<ast::LitExpr>()->int32_val();
-  // Table and column name.
-  std::string table_col(call->arguments()[1]->As<ast::LitExpr>()->raw_string_val().data());
-  size_t split_idx = table_col.find('.');
-  std::string table_name(table_col.substr(0, split_idx));
-  std::string col_name(table_col.substr(split_idx + 1));
 
-  // Get the index and type of the column.
-  auto *exec = sql::ExecutionStructures::Instance();
-  auto test_db_ns = exec->GetTestDBAndNS();
-  auto catalog_table =
-      exec->GetCatalog()->GetUserTable(exec_ctx_->GetTxn(), test_db_ns.first, test_db_ns.second, table_name);
-  auto col_type = terrier::type::TypeId::INVALID;
-  uint32_t col_idx = 0;
-  for (const auto &col : catalog_table->GetSqlTable()->GetSchema().GetColumns()) {
-    if (col.GetName() == col_name) {
-      col_type = col.GetType();
-      col_idx = catalog_table->ColNumToOffset(col_idx);
-      break;
-    }
-    col_idx++;
-  }
-
-  Bytecode bytecode = Bytecode::PCIFilterEqual;
+  Bytecode bytecode;
   switch (builtin) {
     case ast::Builtin::FilterEq: {
       bytecode = Bytecode::PCIFilterEqual;
@@ -743,8 +721,8 @@ void BytecodeGenerator::VisitBuiltinFilterCall(ast::CallExpr *call, ast::Builtin
     }
     default: { UNREACHABLE("Impossible bytecode"); }
   }
-
-  emitter()->EmitPCIVectorFilter(bytecode, ret_val, pci, col_idx, static_cast<i8>(col_type), val);
+  // TODO: PAss in a real column type
+  emitter()->EmitPCIVectorFilter(bytecode, ret_val, pci, col_idx, static_cast<i8>(0), val);
 }
 
 void BytecodeGenerator::VisitBuiltinAggHashTableCall(ast::CallExpr *call, ast::Builtin builtin) {
@@ -877,19 +855,16 @@ void BytecodeGenerator::VisitBuiltinAggPartIterCall(ast::CallExpr *call, ast::Bu
 
 namespace {
 
-#define AGG_CODES(F)                                                                                         \
-  F(CountAggregate, CountAggregateInit, CountAggregateAdvance, CountAggregateGetResult, CountAggregateMerge, \
-    CountAggregateReset)                                                                                     \
-  F(CountStarAggregate, CountStarAggregateInit, CountStarAggregateAdvance, CountStarAggregateGetResult,      \
-    CountStarAggregateMerge, CountStarAggregateReset)                                                        \
-  F(IntegerAvgAggregate, IntegerAvgAggregateInit, IntegerAvgAggregateAdvance, IntegerAvgAggregateGetResult,  \
-    IntegerAvgAggregateMerge, IntegerAvgAggregateReset)                                                      \
-  F(IntegerMaxAggregate, IntegerMaxAggregateInit, IntegerMaxAggregateAdvance, IntegerMaxAggregateGetResult,  \
-    IntegerMaxAggregateMerge, IntegerMaxAggregateReset)                                                      \
-  F(IntegerMinAggregate, IntegerMinAggregateInit, IntegerMinAggregateAdvance, IntegerMinAggregateGetResult,  \
-    IntegerMinAggregateMerge, IntegerMinAggregateReset)                                                      \
-  F(IntegerSumAggregate, IntegerSumAggregateInit, IntegerSumAggregateAdvance, IntegerSumAggregateGetResult,  \
-    IntegerSumAggregateMerge, IntegerSumAggregateReset)
+#define AGG_CODES(F) \
+  F(CountAggregate,      CountAggregateInit,      CountAggregateAdvance,      CountAggregateGetResult,      CountAggregateMerge,      CountAggregateReset)                \
+  F(CountStarAggregate,  CountStarAggregateInit,  CountStarAggregateAdvance,  CountStarAggregateGetResult,  CountStarAggregateMerge,  CountStarAggregateReset)            \
+  F(AvgAggregate,        AvgAggregateInit,        AvgAggregateAdvance,        AvgAggregateGetResult,        AvgAggregateMerge,        AvgAggregateReset)                  \
+  F(IntegerMaxAggregate, IntegerMaxAggregateInit, IntegerMaxAggregateAdvance, IntegerMaxAggregateGetResult, IntegerMaxAggregateMerge, IntegerMaxAggregateReset)           \
+  F(IntegerMinAggregate, IntegerMinAggregateInit, IntegerMinAggregateAdvance, IntegerMinAggregateGetResult, IntegerMinAggregateMerge, IntegerMinAggregateReset)           \
+  F(IntegerSumAggregate, IntegerSumAggregateInit, IntegerSumAggregateAdvance, IntegerSumAggregateGetResult, IntegerSumAggregateMerge, IntegerSumAggregateReset)           \
+  F(RealMaxAggregate,    RealMaxAggregateInit,    RealMaxAggregateAdvance,    RealMaxAggregateGetResult,    RealMaxAggregateMerge,    RealMaxAggregateReset)              \
+  F(RealMinAggregate,    RealMinAggregateInit,    RealMinAggregateAdvance,    RealMinAggregateGetResult,    RealMinAggregateMerge,    RealMinAggregateReset)              \
+  F(RealSumAggregate,    RealSumAggregateInit,    RealSumAggregateAdvance,    RealSumAggregateGetResult,    RealSumAggregateMerge,    RealSumAggregateReset)
 
 enum class AggOpKind : u8 { Init = 0, Advance = 1, GetResult = 2, Merge = 3, Reset = 4 };
 
@@ -1665,32 +1640,33 @@ void BytecodeGenerator::VisitPrimitiveArithmeticExpr(ast::BinaryOpExpr *node) {
 }
 
 void BytecodeGenerator::VisitSqlArithmeticExpr(ast::BinaryOpExpr *node) {
-  TPL_ASSERT(execution_result()->IsRValue(), "SQL comparison expressions must be R-Values!");
-
   LocalVar dest = execution_result()->GetOrCreateDestination(node->type());
   LocalVar left = VisitExpressionForLValue(node->left());
   LocalVar right = VisitExpressionForLValue(node->right());
 
+  const bool is_integer_math =
+      node->type()->IsSpecificBuiltin(ast::BuiltinType::Integer);
+
   Bytecode bytecode;
   switch (node->op()) {
     case parsing::Token::Type::PLUS: {
-      bytecode = Bytecode::AddInteger;
+      bytecode = (is_integer_math ? Bytecode::AddInteger : Bytecode::AddReal);
       break;
     }
     case parsing::Token::Type::MINUS: {
-      bytecode = Bytecode::SubInteger;
+      bytecode = (is_integer_math ? Bytecode::SubInteger : Bytecode::SubReal);
       break;
     }
     case parsing::Token::Type::STAR: {
-      bytecode = Bytecode::MulInteger;
+      bytecode = (is_integer_math ? Bytecode::MulInteger : Bytecode::MulReal);
       break;
     }
     case parsing::Token::Type::SLASH: {
-      bytecode = Bytecode::DivInteger;
+      bytecode = (is_integer_math ? Bytecode::DivInteger : Bytecode::DivReal);
       break;
     }
     case parsing::Token::Type::PERCENT: {
-      bytecode = Bytecode::RemInteger;
+      bytecode = (is_integer_math ? Bytecode::RemInteger : Bytecode::RemReal);
       break;
     }
     default: { UNREACHABLE("Impossible arithmetic SQL operation"); }
@@ -1727,36 +1703,48 @@ void BytecodeGenerator::VisitBinaryOpExpr(ast::BinaryOpExpr *node) {
 }
 
 void BytecodeGenerator::VisitSqlCompareOpExpr(ast::ComparisonOpExpr *compare) {
-  TPL_ASSERT(execution_result()->IsRValue(), "SQL comparison expressions must be R-Values!");
+  TPL_ASSERT(execution_result()->IsRValue(),
+             "SQL comparison expressions must be R-Values!");
 
   LocalVar dest = execution_result()->GetOrCreateDestination(compare->type());
   LocalVar left = VisitExpressionForLValue(compare->left());
   LocalVar right = VisitExpressionForLValue(compare->right());
 
+  TPL_ASSERT(compare->left()->type() == compare->right()->type(),
+             "Left and right input types to comparison are not equal");
+  const bool is_integer_comparison =
+      compare->left()->type()->IsSpecificBuiltin(ast::BuiltinType::Integer);
+
   Bytecode code;
   switch (compare->op()) {
     case parsing::Token::Type::GREATER: {
-      code = Bytecode::GreaterThanInteger;
+      code = (is_integer_comparison ? Bytecode::GreaterThanInteger
+                                    : Bytecode::GreaterThanReal);
       break;
     }
     case parsing::Token::Type::GREATER_EQUAL: {
-      code = Bytecode::GreaterThanEqualInteger;
+      code = (is_integer_comparison ? Bytecode::GreaterThanEqualInteger
+                                    : Bytecode::GreaterThanEqualReal);
       break;
     }
     case parsing::Token::Type::EQUAL_EQUAL: {
-      code = Bytecode::EqualInteger;
+      code = (is_integer_comparison ? Bytecode::EqualInteger
+                                    : Bytecode::EqualReal);
       break;
     }
     case parsing::Token::Type::LESS: {
-      code = Bytecode::LessThanInteger;
+      code = (is_integer_comparison ? Bytecode::LessThanInteger
+                                    : Bytecode::LessThanReal);
       break;
     }
     case parsing::Token::Type::LESS_EQUAL: {
-      code = Bytecode::LessThanEqualInteger;
+      code = (is_integer_comparison ? Bytecode::LessThanEqualInteger
+                                    : Bytecode::LessThanEqualReal);
       break;
     }
     case parsing::Token::Type::BANG_EQUAL: {
-      code = Bytecode::NotEqualInteger;
+      code = (is_integer_comparison ? Bytecode::NotEqualInteger
+                                    : Bytecode::NotEqualReal);
       break;
     }
     default: { UNREACHABLE("Impossible binary operation"); }

@@ -56,13 +56,6 @@ class Context {
   Type *LookupBuiltinType(Identifier identifier) const;
 
   /**
-   * Convert the SQL type into the equivalent TPL type
-   * @param sql_type SQL type to convert
-   * @return equivalent TPL type
-   */
-  Type *GetTplTypeFromSqlType(const terrier::type::TypeId &sql_type);
-
-  /**
    * Is the function with name identifier a builtin function?
    * @param identifier The name of the function to check
    * @param builtin If non-null, set to the appropriate builtin enumeration

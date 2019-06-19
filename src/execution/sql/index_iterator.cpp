@@ -1,5 +1,6 @@
 #include "execution/sql/index_iterator.h"
 #include "execution/sql/execution_structures.h"
+#include "execution/sql/value.h"
 
 namespace tpl::sql {
 

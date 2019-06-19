@@ -118,11 +118,6 @@ namespace tpl::ast {
   F(Tan, tan)                                                   \
                                                                 \
   /* Generic */                                                 \
-  F(Map, map)                                                   \
-  F(Fold, fold)                                                 \
-  F(Gather, gather)                                             \
-  F(Scatter, scatter)                                           \
-  F(Compress, compress)                                         \
   F(SizeOf, sizeOf)                                             \
   F(PtrCast, ptrCast)                                           \
                                                                 \

@@ -36,7 +36,11 @@ namespace sema {
   F(IncorrectCallArgType,                                                                                             \
     "function '%0' expects argument of type '%1' in position '%2', received "                                         \
     "type '%3'",                                                                                                      \
-    (ast::Identifier, ast::Type *, u32, ast::Type *))                                                                 \
+    (ast::Identifier, ast::Type *, u32, ast::Type *))                           \
+  F(IncorrectCallArgType2,                                                     \
+    "function '%0' expects '%1' argument in position '%2', received type "     \
+    "'%3'",                                                                    \
+    (ast::Identifier, const char *, u32, ast::Type *))                                                                 \
   F(NonBoolIfCondition, "non-bool used as if condition", ())                                                          \
   F(NonBoolForCondition, "non-bool used as for condition", ())                                                        \
   F(NonIntegerArrayLength, "non-integer literal used as array size", ())                                              \

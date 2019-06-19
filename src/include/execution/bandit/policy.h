@@ -17,7 +17,14 @@ class Policy {
   /**
    * An enumeration capturing different policies for choosing actions.
    */
-  enum class Kind : u8 { EpsilonGreedy, Greedy, Random, UCB, FixedAction };
+  enum Kind : u8 {
+    EpsilonGreedy = 0,
+    Greedy = 1,
+    Random = 2,
+    UCB = 3,
+    FixedAction = 4,
+    AnnealingEpsilonGreedy = 5,
+  };
 
   /**
    * Constructor
@@ -73,6 +80,9 @@ class EpsilonGreedyPolicy : public Policy {
       : Policy(kind), epsilon_(epsilon), real_(0, 1) {}
 
   u32 NextAction(Agent *agent) override;
+
+ protected:
+  void set_epsilon(const double epsilon) { epsilon_ = epsilon; }
 
  private:
   double epsilon_;
@@ -147,5 +157,21 @@ class FixedActionPolicy : public Policy {
  private:
   u32 action_;
 };
+
+/**
+ * An annealing epsilon greedy policy is one that decays the epsilon value over
+ * time. This obviates the need to tune the epsilon hyper-parameter.
+ */
+class AnnealingEpsilonGreedyPolicy : public EpsilonGreedyPolicy {
+ public:
+  /**
+   * Constructor
+   */
+  AnnealingEpsilonGreedyPolicy()
+      : EpsilonGreedyPolicy(Kind::AnnealingEpsilonGreedy) {}
+
+  u32 NextAction(Agent *agent) override;
+};
+
 
 }  // namespace tpl::bandit

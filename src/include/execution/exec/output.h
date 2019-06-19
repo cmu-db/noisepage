@@ -10,9 +10,7 @@
 #include <vector>
 #include "catalog/catalog_defs.h"
 #include "catalog/schema.h"
-#include "execution/sql/projected_columns_iterator.h"
-#include "execution/sql/value.h"
-#include "execution/util/chunked_vector.h"
+#include "execution/util/common.h"
 
 namespace tpl::exec {
 using terrier::catalog::Schema;

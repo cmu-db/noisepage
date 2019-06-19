@@ -140,6 +140,42 @@ class VectorUtil {
   GEN_FILTER(Le, std::less_equal)
   GEN_FILTER(Ne, std::not_equal_to)
 #undef GEN_FILTER
+
+  /**
+    * Given a vector of pointers, insert the indexes of all null elements into
+    * the selection vector @em out.
+    * @tparam T The type of the elements in the vector.
+    * @param in The input vector of pointers.
+    * @param in_count The number of elements in the input vector.
+    * @param out The output vector where results are stored.
+    * @param sel The selection vector storing indexes of elements to process.
+    * @return The number of null elements in the vector.
+    */
+  template <typename T>
+  static auto SelectNull(const T *RESTRICT in, const u32 in_count,
+                         u32 *RESTRICT out, u32 *RESTRICT sel)
+  -> std::enable_if_t<std::is_pointer_v<T>, u32> {
+    return FilterEq(reinterpret_cast<const intptr_t *>(in), in_count,
+                    intptr_t(0), out, sel);
+  }
+
+  /**
+   * Given a vector of pointers, insert the indexes of all non-null elements
+   * into the selection vector @em out.
+   * @tparam T The type of the elements in the vector.
+   * @param in The input vector of pointers.
+   * @param in_count The number of elements in the input vector.
+   * @param out The output vector where results are stored.
+   * @param sel The selection vector storing indexes of elements to process.
+   * @return The number of null elements in the vector.
+   */
+  template <typename T>
+  static auto SelectNotNull(const T *RESTRICT in, const u32 in_count,
+                            u32 *RESTRICT out, u32 *RESTRICT sel)
+  -> std::enable_if_t<std::is_pointer_v<T>, u32> {
+    return FilterNe(reinterpret_cast<const intptr_t *>(in), in_count,
+                    intptr_t(0), out, sel);
+  }
 };
 
 }  // namespace tpl::util
