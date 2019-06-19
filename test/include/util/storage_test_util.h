@@ -229,7 +229,7 @@ struct StorageTestUtil {
         storage::StorageUtil::CopyAttrFromProjection(accessor, slot, *redo, j);
     }
     TERRIER_ASSERT(block->insert_head_ == layout.NumSlots(), "The block should be considered full at this point");
-    delete redo_buffer;
+    delete[] redo_buffer;
     return result;
   }
 
