@@ -43,6 +43,43 @@ class TypeUtil {
         throw std::runtime_error("Unknown TypeId in terrier::type::TypeUtil::GetTypeSize().");
     }
   }
+
+  /**
+   * This function stringify the Types for getting expression name for the constant value expression
+   * @param type_id the type to get the string version of
+   * @return string representation of the type
+   * @throw Conversion_Exception if the type is unknown
+   */
+  static std::string TypeIdToString(type::TypeId type_id) {
+    switch (type_id) {
+      case type::TypeId::INVALID:
+        return "INVALID";
+      case type::TypeId::BOOLEAN:
+        return "BOOLEAN";
+      case type::TypeId::TINYINT:
+        return "TINYINT";
+      case type::TypeId::SMALLINT:
+        return "SMALLINT";
+      case type::TypeId::INTEGER:
+        return "INTEGER";
+      case type::TypeId::BIGINT:
+        return "BIGINT";
+      case type::TypeId::DECIMAL:
+        return "DECIMAL";
+      case type::TypeId::TIMESTAMP:
+        return "TIMESTAMP";
+      case type::TypeId::DATE:
+        return "DATE";
+      case type::TypeId::VARCHAR:
+        return "VARCHAR";
+      case type::TypeId::VARBINARY:
+        return "VARBINARY";
+      default: {
+        throw CONVERSION_EXCEPTION(
+            ("No string conversion for TypeId value " + std::to_string(static_cast<int>(type_id))).c_str());
+      }
+    }
+  }
 };
 
 }  // namespace terrier::type
