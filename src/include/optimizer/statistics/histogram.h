@@ -80,14 +80,40 @@ class Histogram {
       return count_;
     }
 
+    /**
+     * Less-than operator (based on point)
+     * @param bin the bin to compare against
+     * @return true if this bin is less than the given bin
+     */
     bool operator<(const Bin &bin) const { return point_ < bin.point_; }
 
+    /**
+     * Equals operator (based on point)
+     * @param bin the bin to compare against
+     * @return true if this bin is equal to the given bin
+     */
     bool operator==(const Bin &bin) const { return point_ == bin.point_; }
 
+    /**
+     * Greater-than operator (based on point)
+     * @param bin the bin to compare against
+     * @return true if this bin is greater than the given bin
+     */
     bool operator>(const Bin &bin) const { return point_ > bin.point_; }
 
+    /**
+     * Not equals operator (based on point)
+     * @param bin the bin to compare against
+     * @return true if this bin is not equal to the given bin
+     */
     bool operator!=(const Bin &bin) const { return point_ != bin.point_; }
 
+    /**
+     * Pretty Print!
+     * @param os
+     * @param b
+     * @return os
+     */
     friend std::ostream &operator<<(std::ostream &os, const Bin &b) {
       os << "Bin[" << b.point_ << "]: " << b.count_;
       return os;
@@ -215,6 +241,12 @@ class Histogram {
    */
   uint8_t GetMaxBinSize() const { return max_bins_; }
 
+  /**
+   * Pretty Print!
+   * @param os
+   * @param h
+   * @return os
+   */
   friend std::ostream &operator<<(std::ostream &os, const Histogram<PointType> &h) {
     os << "Histogram: "
        << "total=[" << h.total_ << "] "
