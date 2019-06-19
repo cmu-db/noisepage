@@ -30,7 +30,7 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, TPCCish)(benchmark::State &state) 
   // NOLINTNEXTLINE
   for (auto _ : state) {
     LargeDataTableBenchmarkObject tested(attr_sizes, initial_table_size, txn_length, insert_update_select_ratio,
-                                           &block_store_, &buffer_pool_, &generator_, true);
+                                         &block_store_, &buffer_pool_, &generator_, true);
     gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
     uint64_t elapsed_ms;
     {
@@ -55,7 +55,7 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, HighAbortRate)(benchmark::State &s
   for (auto _ : state) {
     // use a smaller table to make aborts more likely
     LargeDataTableBenchmarkObject tested(attr_sizes, 1000, txn_length, insert_update_select_ratio, &block_store_,
-                                           &buffer_pool_, &generator_, true);
+                                         &buffer_pool_, &generator_, true);
     gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
     uint64_t elapsed_ms;
     {
@@ -80,7 +80,7 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, SingleStatementInsert)(benchmark::
   for (auto _ : state) {
     // don't need any initial tuples
     LargeDataTableBenchmarkObject tested(attr_sizes, 0, txn_length, insert_update_select_ratio, &block_store_,
-                                           &buffer_pool_, &generator_, true);
+                                         &buffer_pool_, &generator_, true);
     gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
     uint64_t elapsed_ms;
     {
@@ -104,7 +104,7 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, SingleStatementUpdate)(benchmark::
   // NOLINTNEXTLINE
   for (auto _ : state) {
     LargeDataTableBenchmarkObject tested(attr_sizes, initial_table_size, txn_length, insert_update_select_ratio,
-                                           &block_store_, &buffer_pool_, &generator_, true);
+                                         &block_store_, &buffer_pool_, &generator_, true);
     gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
     uint64_t elapsed_ms;
     {
@@ -128,7 +128,7 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, SingleStatementSelect)(benchmark::
   // NOLINTNEXTLINE
   for (auto _ : state) {
     LargeDataTableBenchmarkObject tested(attr_sizes, initial_table_size, txn_length, insert_update_select_ratio,
-                                           &block_store_, &buffer_pool_, &generator_, true);
+                                         &block_store_, &buffer_pool_, &generator_, true);
     gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
     uint64_t elapsed_ms;
     {

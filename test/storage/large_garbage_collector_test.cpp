@@ -29,17 +29,17 @@ TEST_F(LargeGCTests, MixedReadWriteWithGC) {
   const uint32_t num_concurrent_txns = MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
-                                            .SetMaxColumns(max_columns)
-                                            .SetInitialTableSize(initial_table_size)
-                                            .SetTxnLength(txn_length)
-                                            .SetUpdateSelectRatio(update_select_ratio)
-                                            .SetBlockStore(&block_store_)
-                                            .SetBufferPool(&buffer_pool_)
-                                            .SetGenerator(&generator_)
-                                            .SetGcOn(true)
-                                            .SetBookkeeping(true)
-                                            .SetVarlenAllowed(true)
-                                            .build();
+                                          .SetMaxColumns(max_columns)
+                                          .SetInitialTableSize(initial_table_size)
+                                          .SetTxnLength(txn_length)
+                                          .SetUpdateSelectRatio(update_select_ratio)
+                                          .SetBlockStore(&block_store_)
+                                          .SetBufferPool(&buffer_pool_)
+                                          .SetGenerator(&generator_)
+                                          .SetGcOn(true)
+                                          .SetBookkeeping(true)
+                                          .SetVarlenAllowed(true)
+                                          .build();
     storage::GarbageCollectorThread gc_thread(tested.GetTxnManager(), gc_period);
     for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
       auto result = tested.SimulateOltp(batch_size, num_concurrent_txns);
@@ -60,17 +60,17 @@ TEST_F(LargeGCTests, MixedReadWriteHighThreadWithGC) {
   const uint32_t num_concurrent_txns = 2 * MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
-                                            .SetMaxColumns(max_columns)
-                                            .SetInitialTableSize(initial_table_size)
-                                            .SetTxnLength(txn_length)
-                                            .SetUpdateSelectRatio(update_select_ratio)
-                                            .SetBlockStore(&block_store_)
-                                            .SetBufferPool(&buffer_pool_)
-                                            .SetGenerator(&generator_)
-                                            .SetGcOn(true)
-                                            .SetBookkeeping(true)
-                                            .SetVarlenAllowed(true)
-                                            .build();
+                                          .SetMaxColumns(max_columns)
+                                          .SetInitialTableSize(initial_table_size)
+                                          .SetTxnLength(txn_length)
+                                          .SetUpdateSelectRatio(update_select_ratio)
+                                          .SetBlockStore(&block_store_)
+                                          .SetBufferPool(&buffer_pool_)
+                                          .SetGenerator(&generator_)
+                                          .SetGcOn(true)
+                                          .SetBookkeeping(true)
+                                          .SetVarlenAllowed(true)
+                                          .build();
     storage::GarbageCollectorThread gc_thread(tested.GetTxnManager(), gc_period);
     for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
       auto result = tested.SimulateOltp(batch_size, num_concurrent_txns);
@@ -91,17 +91,17 @@ TEST_F(LargeGCTests, LowAbortHighThroughputWithGC) {
   const uint32_t num_concurrent_txns = MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
-                                            .SetMaxColumns(max_columns)
-                                            .SetInitialTableSize(initial_table_size)
-                                            .SetTxnLength(txn_length)
-                                            .SetUpdateSelectRatio(update_select_ratio)
-                                            .SetBlockStore(&block_store_)
-                                            .SetBufferPool(&buffer_pool_)
-                                            .SetGenerator(&generator_)
-                                            .SetGcOn(true)
-                                            .SetBookkeeping(true)
-                                            .SetVarlenAllowed(true)
-                                            .build();
+                                          .SetMaxColumns(max_columns)
+                                          .SetInitialTableSize(initial_table_size)
+                                          .SetTxnLength(txn_length)
+                                          .SetUpdateSelectRatio(update_select_ratio)
+                                          .SetBlockStore(&block_store_)
+                                          .SetBufferPool(&buffer_pool_)
+                                          .SetGenerator(&generator_)
+                                          .SetGcOn(true)
+                                          .SetBookkeeping(true)
+                                          .SetVarlenAllowed(true)
+                                          .build();
     storage::GarbageCollectorThread gc_thread(tested.GetTxnManager(), gc_period);
     for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
       auto result = tested.SimulateOltp(batch_size, num_concurrent_txns);
@@ -122,17 +122,17 @@ TEST_F(LargeGCTests, LowAbortHighThroughputHighThreadWithGC) {
   const uint32_t num_concurrent_txns = 2 * MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
-                                            .SetMaxColumns(max_columns)
-                                            .SetInitialTableSize(initial_table_size)
-                                            .SetTxnLength(txn_length)
-                                            .SetUpdateSelectRatio(update_select_ratio)
-                                            .SetBlockStore(&block_store_)
-                                            .SetBufferPool(&buffer_pool_)
-                                            .SetGenerator(&generator_)
-                                            .SetGcOn(true)
-                                            .SetBookkeeping(true)
-                                            .SetVarlenAllowed(true)
-                                            .build();
+                                          .SetMaxColumns(max_columns)
+                                          .SetInitialTableSize(initial_table_size)
+                                          .SetTxnLength(txn_length)
+                                          .SetUpdateSelectRatio(update_select_ratio)
+                                          .SetBlockStore(&block_store_)
+                                          .SetBufferPool(&buffer_pool_)
+                                          .SetGenerator(&generator_)
+                                          .SetGcOn(true)
+                                          .SetBookkeeping(true)
+                                          .SetVarlenAllowed(true)
+                                          .build();
     storage::GarbageCollectorThread gc_thread(tested.GetTxnManager(), gc_period);
     for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
       auto result = tested.SimulateOltp(batch_size, num_concurrent_txns);
@@ -154,17 +154,17 @@ TEST_F(LargeGCTests, HighAbortRateWithGC) {
   const uint32_t num_concurrent_txns = MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
-                                            .SetMaxColumns(max_columns)
-                                            .SetInitialTableSize(initial_table_size)
-                                            .SetTxnLength(txn_length)
-                                            .SetUpdateSelectRatio(update_select_ratio)
-                                            .SetBlockStore(&block_store_)
-                                            .SetBufferPool(&buffer_pool_)
-                                            .SetGenerator(&generator_)
-                                            .SetGcOn(true)
-                                            .SetBookkeeping(true)
-                                            .SetVarlenAllowed(true)
-                                            .build();
+                                          .SetMaxColumns(max_columns)
+                                          .SetInitialTableSize(initial_table_size)
+                                          .SetTxnLength(txn_length)
+                                          .SetUpdateSelectRatio(update_select_ratio)
+                                          .SetBlockStore(&block_store_)
+                                          .SetBufferPool(&buffer_pool_)
+                                          .SetGenerator(&generator_)
+                                          .SetGcOn(true)
+                                          .SetBookkeeping(true)
+                                          .SetVarlenAllowed(true)
+                                          .build();
     storage::GarbageCollectorThread gc_thread(tested.GetTxnManager(), gc_period);
     for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
       auto result = tested.SimulateOltp(batch_size, num_concurrent_txns);
@@ -185,17 +185,17 @@ TEST_F(LargeGCTests, HighAbortRateHighThreadWithGC) {
   const uint32_t num_concurrent_txns = 2 * MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
-                                            .SetMaxColumns(max_columns)
-                                            .SetInitialTableSize(initial_table_size)
-                                            .SetTxnLength(txn_length)
-                                            .SetUpdateSelectRatio(update_select_ratio)
-                                            .SetBlockStore(&block_store_)
-                                            .SetBufferPool(&buffer_pool_)
-                                            .SetGenerator(&generator_)
-                                            .SetGcOn(true)
-                                            .SetBookkeeping(true)
-                                            .SetVarlenAllowed(true)
-                                            .build();
+                                          .SetMaxColumns(max_columns)
+                                          .SetInitialTableSize(initial_table_size)
+                                          .SetTxnLength(txn_length)
+                                          .SetUpdateSelectRatio(update_select_ratio)
+                                          .SetBlockStore(&block_store_)
+                                          .SetBufferPool(&buffer_pool_)
+                                          .SetGenerator(&generator_)
+                                          .SetGcOn(true)
+                                          .SetBookkeeping(true)
+                                          .SetVarlenAllowed(true)
+                                          .build();
     storage::GarbageCollectorThread gc_thread(tested.GetTxnManager(), gc_period);
     for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
       auto result = tested.SimulateOltp(batch_size, num_concurrent_txns);
@@ -216,17 +216,17 @@ TEST_F(LargeGCTests, TPCCishWithGC) {
   const uint32_t num_concurrent_txns = MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
-                                            .SetMaxColumns(max_columns)
-                                            .SetInitialTableSize(initial_table_size)
-                                            .SetTxnLength(txn_length)
-                                            .SetUpdateSelectRatio(update_select_ratio)
-                                            .SetBlockStore(&block_store_)
-                                            .SetBufferPool(&buffer_pool_)
-                                            .SetGenerator(&generator_)
-                                            .SetGcOn(true)
-                                            .SetBookkeeping(true)
-                                            .SetVarlenAllowed(true)
-                                            .build();
+                                          .SetMaxColumns(max_columns)
+                                          .SetInitialTableSize(initial_table_size)
+                                          .SetTxnLength(txn_length)
+                                          .SetUpdateSelectRatio(update_select_ratio)
+                                          .SetBlockStore(&block_store_)
+                                          .SetBufferPool(&buffer_pool_)
+                                          .SetGenerator(&generator_)
+                                          .SetGcOn(true)
+                                          .SetBookkeeping(true)
+                                          .SetVarlenAllowed(true)
+                                          .build();
     storage::GarbageCollectorThread gc_thread(tested.GetTxnManager(), gc_period);
     for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
       auto result = tested.SimulateOltp(batch_size, num_concurrent_txns);
@@ -247,17 +247,17 @@ TEST_F(LargeGCTests, TPCCishHighThreadWithGC) {
   const uint32_t num_concurrent_txns = 2 * MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
-                                            .SetMaxColumns(max_columns)
-                                            .SetInitialTableSize(initial_table_size)
-                                            .SetTxnLength(txn_length)
-                                            .SetUpdateSelectRatio(update_select_ratio)
-                                            .SetBlockStore(&block_store_)
-                                            .SetBufferPool(&buffer_pool_)
-                                            .SetGenerator(&generator_)
-                                            .SetGcOn(true)
-                                            .SetBookkeeping(true)
-                                            .SetVarlenAllowed(true)
-                                            .build();
+                                          .SetMaxColumns(max_columns)
+                                          .SetInitialTableSize(initial_table_size)
+                                          .SetTxnLength(txn_length)
+                                          .SetUpdateSelectRatio(update_select_ratio)
+                                          .SetBlockStore(&block_store_)
+                                          .SetBufferPool(&buffer_pool_)
+                                          .SetGenerator(&generator_)
+                                          .SetGcOn(true)
+                                          .SetBookkeeping(true)
+                                          .SetVarlenAllowed(true)
+                                          .build();
     storage::GarbageCollectorThread gc_thread(tested.GetTxnManager(), gc_period);
     for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
       auto result = tested.SimulateOltp(batch_size, num_concurrent_txns);

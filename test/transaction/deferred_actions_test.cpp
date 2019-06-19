@@ -6,8 +6,8 @@
 #include "transaction/transaction_defs.h"
 #include "transaction/transaction_manager.h"
 #include "util/catalog_test_util.h"
-#include "util/test_harness.h"
 #include "util/data_table_test_util.h"
+#include "util/test_harness.h"
 
 namespace terrier {
 

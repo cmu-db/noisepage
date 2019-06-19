@@ -2,8 +2,6 @@
 #include <vector>
 #include "gtest/gtest.h"
 #include "main/db_main.h"
-#include "settings/settings_callbacks.h"
-#include "settings/settings_manager.h"
 #include "storage/data_table.h"
 #include "storage/garbage_collector_thread.h"
 #include "storage/sql_table.h"
@@ -11,9 +9,10 @@
 #include "transaction/transaction_manager.h"
 #include "type/transient_value_factory.h"
 #include "util/catalog_test_util.h"
+#include "util/data_table_test_util.h"
+#include "util/sql_table_test_util.h"
 #include "util/storage_test_util.h"
 #include "util/test_harness.h"
-#include "util/data_table_test_util.h"
 
 #define __SETTING_GFLAGS_DEFINE__      // NOLINT
 #include "settings/settings_common.h"  // NOLINT
@@ -155,18 +154,18 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
   // Each transaction does 5 operations. The update-select ratio of operations is 50%-50%.
   log_manager_->Start();
   LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
-                                          .SetMaxColumns(5)
-                                          .SetInitialTableSize(1)
-                                          .SetTxnLength(5)
-                                          .SetUpdateSelectRatio({0.5, 0.5})
-                                          .SetBlockStore(&block_store_)
-                                          .SetBufferPool(&pool_)
-                                          .SetGenerator(&generator_)
-                                          .SetGcOn(true)
-                                          .SetVarlenAllowed(true)
-                                          .SetBookkeeping(true)
-                                          .SetLogManager(log_manager_)
-                                          .build();
+                                        .SetMaxColumns(5)
+                                        .SetInitialTableSize(1)
+                                        .SetTxnLength(5)
+                                        .SetUpdateSelectRatio({0.5, 0.5})
+                                        .SetBlockStore(&block_store_)
+                                        .SetBufferPool(&pool_)
+                                        .SetGenerator(&generator_)
+                                        .SetGcOn(true)
+                                        .SetVarlenAllowed(true)
+                                        .SetBookkeeping(true)
+                                        .SetLogManager(log_manager_)
+                                        .build();
   auto result = tested.SimulateOltp(100, 4);
   log_manager_->PersistAndStop();
 
@@ -237,17 +236,17 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
   // Each transaction is read-only (update-select ratio of 0-100). Also, no need for bookkeeping.
   log_manager_->Start();
   LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
-                                          .SetMaxColumns(5)
-                                          .SetInitialTableSize(1)
-                                          .SetTxnLength(5)
-                                          .SetUpdateSelectRatio({0.0, 1.0})
-                                          .SetBlockStore(&block_store_)
-                                          .SetBufferPool(&pool_)
-                                          .SetGenerator(&generator_)
-                                          .SetGcOn(true)
-                                          .SetBookkeeping(false)
-                                          .SetLogManager(log_manager_)
-                                          .build();
+                                        .SetMaxColumns(5)
+                                        .SetInitialTableSize(1)
+                                        .SetTxnLength(5)
+                                        .SetUpdateSelectRatio({0.0, 1.0})
+                                        .SetBlockStore(&block_store_)
+                                        .SetBufferPool(&pool_)
+                                        .SetGenerator(&generator_)
+                                        .SetGcOn(true)
+                                        .SetBookkeeping(false)
+                                        .SetLogManager(log_manager_)
+                                        .build();
 
   auto result = tested.SimulateOltp(1000, 4);
   log_manager_->PersistAndStop();
@@ -335,7 +334,7 @@ TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
   bool found_abort_record = false;
   storage::BufferedLogReader in(LOG_FILE_NAME);
   while (in.HasMore()) {
-    storage::LogRecord *log_record = ReadNextRecord(&in, sql_table->table_.layout);
+    storage::LogRecord *log_record = ReadNextRecord(&in, sql_table->Layout());
     if (log_record->RecordType() == LogRecordType::ABORT) {
       found_abort_record = true;
       auto *abort_record = log_record->GetUnderlyingRecordBodyAs<storage::AbortRecord>();
@@ -396,7 +395,7 @@ TEST_F(WriteAheadLoggingTests, NoAbortRecordTest) {
   bool found_abort_record = false;
   storage::BufferedLogReader in(LOG_FILE_NAME);
   while (in.HasMore()) {
-    storage::LogRecord *log_record = ReadNextRecord(&in, sql_table->table_.layout);
+    storage::LogRecord *log_record = ReadNextRecord(&in, sql_table->Layout());
     if (log_record->RecordType() == LogRecordType::ABORT) {
       found_abort_record = true;
     }

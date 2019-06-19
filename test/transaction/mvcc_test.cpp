@@ -7,9 +7,9 @@
 #include "storage/storage_util.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
+#include "util/data_table_test_util.h"
 #include "util/storage_test_util.h"
 #include "util/test_harness.h"
-#include "util/data_table_test_util.h"
 
 namespace terrier {
 // Not thread-safe

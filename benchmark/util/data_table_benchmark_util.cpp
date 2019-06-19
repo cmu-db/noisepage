@@ -66,12 +66,12 @@ void RandomDataTableTransaction::Finish() {
 }
 
 LargeDataTableBenchmarkObject::LargeDataTableBenchmarkObject(const std::vector<uint8_t> &attr_sizes,
-                                                                 uint32_t initial_table_size, uint32_t txn_length,
-                                                                 std::vector<double> operation_ratio,
-                                                                 storage::BlockStore *block_store,
-                                                                 storage::RecordBufferSegmentPool *buffer_pool,
-                                                                 std::default_random_engine *generator, bool gc_on,
-                                                                 storage::LogManager *log_manager)
+                                                             uint32_t initial_table_size, uint32_t txn_length,
+                                                             std::vector<double> operation_ratio,
+                                                             storage::BlockStore *block_store,
+                                                             storage::RecordBufferSegmentPool *buffer_pool,
+                                                             std::default_random_engine *generator, bool gc_on,
+                                                             storage::LogManager *log_manager)
     : txn_length_(txn_length),
       operation_ratio_(std::move(operation_ratio)),
       generator_(generator),

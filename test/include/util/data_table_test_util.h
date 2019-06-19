@@ -20,7 +20,8 @@ using TupleEntry = std::pair<storage::TupleSlot, storage::ProjectedRow *>;
 using TableSnapshot = std::unordered_map<storage::TupleSlot, storage::ProjectedRow *>;
 using VersionedSnapshots = std::map<transaction::timestamp_t, TableSnapshot>;
 // {committed, aborted}
-using SimulationResult = std::pair<std::vector<RandomDataTableTransaction *>, std::vector<RandomDataTableTransaction *>>;
+using SimulationResult =
+    std::pair<std::vector<RandomDataTableTransaction *>, std::vector<RandomDataTableTransaction *>>;
 
 /**
  * A RandomDataTableTransaction class provides a simple interface to simulate a transaction running in the system.
@@ -280,9 +281,9 @@ class LargeDataTableTestObject {
    * @param bookkeeping whether correctness check is enabled
    */
   LargeDataTableTestObject(uint16_t max_columns, uint32_t initial_table_size, uint32_t txn_length,
-                             std::vector<double> update_select_ratio, storage::BlockStore *block_store,
-                             storage::RecordBufferSegmentPool *buffer_pool, std::default_random_engine *generator,
-                             bool gc_on, bool bookkeeping, storage::LogManager *log_manager, bool varlen_allowed);
+                           std::vector<double> update_select_ratio, storage::BlockStore *block_store,
+                           storage::RecordBufferSegmentPool *buffer_pool, std::default_random_engine *generator,
+                           bool gc_on, bool bookkeeping, storage::LogManager *log_manager, bool varlen_allowed);
 
   void SimulateOneTransaction(RandomDataTableTransaction *txn, uint32_t txn_id);
 

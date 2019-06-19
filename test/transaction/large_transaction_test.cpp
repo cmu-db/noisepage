@@ -25,16 +25,16 @@ TEST_F(LargeTransactionTests, MixedReadWrite) {
   const uint32_t num_concurrent_txns = MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
-                                            .SetMaxColumns(max_columns)
-                                            .SetInitialTableSize(initial_table_size)
-                                            .SetTxnLength(txn_length)
-                                            .SetUpdateSelectRatio(update_select_ratio)
-                                            .SetBlockStore(&block_store_)
-                                            .SetBufferPool(&buffer_pool_)
-                                            .SetGenerator(&generator_)
-                                            .SetGcOn(false)
-                                            .SetBookkeeping(true)
-                                            .build();
+                                          .SetMaxColumns(max_columns)
+                                          .SetInitialTableSize(initial_table_size)
+                                          .SetTxnLength(txn_length)
+                                          .SetUpdateSelectRatio(update_select_ratio)
+                                          .SetBlockStore(&block_store_)
+                                          .SetBufferPool(&buffer_pool_)
+                                          .SetGenerator(&generator_)
+                                          .SetGcOn(false)
+                                          .SetBookkeeping(true)
+                                          .build();
     auto result = tested.SimulateOltp(num_txns, num_concurrent_txns);
     tested.CheckReadsCorrect(&result.first);
     for (auto w : result.first) delete w;
@@ -50,16 +50,16 @@ TEST_F(LargeTransactionTests, MixedReadWriteHighThread) {
   const uint32_t num_concurrent_txns = 2 * MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
-                                            .SetMaxColumns(max_columns)
-                                            .SetInitialTableSize(initial_table_size)
-                                            .SetTxnLength(txn_length)
-                                            .SetUpdateSelectRatio(update_select_ratio)
-                                            .SetBlockStore(&block_store_)
-                                            .SetBufferPool(&buffer_pool_)
-                                            .SetGenerator(&generator_)
-                                            .SetGcOn(false)
-                                            .SetBookkeeping(true)
-                                            .build();
+                                          .SetMaxColumns(max_columns)
+                                          .SetInitialTableSize(initial_table_size)
+                                          .SetTxnLength(txn_length)
+                                          .SetUpdateSelectRatio(update_select_ratio)
+                                          .SetBlockStore(&block_store_)
+                                          .SetBufferPool(&buffer_pool_)
+                                          .SetGenerator(&generator_)
+                                          .SetGcOn(false)
+                                          .SetBookkeeping(true)
+                                          .build();
     auto result = tested.SimulateOltp(num_txns, num_concurrent_txns);
     tested.CheckReadsCorrect(&result.first);
     for (auto w : result.first) delete w;
@@ -75,16 +75,16 @@ TEST_F(LargeTransactionTests, LowAbortHighThroughput) {
   const uint32_t num_concurrent_txns = MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
-                                            .SetMaxColumns(max_columns)
-                                            .SetInitialTableSize(initial_table_size)
-                                            .SetTxnLength(txn_length)
-                                            .SetUpdateSelectRatio(update_select_ratio)
-                                            .SetBlockStore(&block_store_)
-                                            .SetBufferPool(&buffer_pool_)
-                                            .SetGenerator(&generator_)
-                                            .SetGcOn(false)
-                                            .SetBookkeeping(true)
-                                            .build();
+                                          .SetMaxColumns(max_columns)
+                                          .SetInitialTableSize(initial_table_size)
+                                          .SetTxnLength(txn_length)
+                                          .SetUpdateSelectRatio(update_select_ratio)
+                                          .SetBlockStore(&block_store_)
+                                          .SetBufferPool(&buffer_pool_)
+                                          .SetGenerator(&generator_)
+                                          .SetGcOn(false)
+                                          .SetBookkeeping(true)
+                                          .build();
     auto result = tested.SimulateOltp(num_txns, num_concurrent_txns);
     tested.CheckReadsCorrect(&result.first);
     for (auto w : result.first) delete w;
@@ -100,16 +100,16 @@ TEST_F(LargeTransactionTests, LowAbortHighThroughputHighThread) {
   const uint32_t num_concurrent_txns = 2 * MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
-                                            .SetMaxColumns(max_columns)
-                                            .SetInitialTableSize(initial_table_size)
-                                            .SetTxnLength(txn_length)
-                                            .SetUpdateSelectRatio(update_select_ratio)
-                                            .SetBlockStore(&block_store_)
-                                            .SetBufferPool(&buffer_pool_)
-                                            .SetGenerator(&generator_)
-                                            .SetGcOn(false)
-                                            .SetBookkeeping(true)
-                                            .build();
+                                          .SetMaxColumns(max_columns)
+                                          .SetInitialTableSize(initial_table_size)
+                                          .SetTxnLength(txn_length)
+                                          .SetUpdateSelectRatio(update_select_ratio)
+                                          .SetBlockStore(&block_store_)
+                                          .SetBufferPool(&buffer_pool_)
+                                          .SetGenerator(&generator_)
+                                          .SetGcOn(false)
+                                          .SetBookkeeping(true)
+                                          .build();
     auto result = tested.SimulateOltp(num_txns, num_concurrent_txns);
     tested.CheckReadsCorrect(&result.first);
     for (auto w : result.first) delete w;
@@ -126,16 +126,16 @@ TEST_F(LargeTransactionTests, HighAbortRate) {
   const uint32_t num_concurrent_txns = MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
-                                            .SetMaxColumns(max_columns)
-                                            .SetInitialTableSize(initial_table_size)
-                                            .SetTxnLength(txn_length)
-                                            .SetUpdateSelectRatio(update_select_ratio)
-                                            .SetBlockStore(&block_store_)
-                                            .SetBufferPool(&buffer_pool_)
-                                            .SetGenerator(&generator_)
-                                            .SetGcOn(false)
-                                            .SetBookkeeping(true)
-                                            .build();
+                                          .SetMaxColumns(max_columns)
+                                          .SetInitialTableSize(initial_table_size)
+                                          .SetTxnLength(txn_length)
+                                          .SetUpdateSelectRatio(update_select_ratio)
+                                          .SetBlockStore(&block_store_)
+                                          .SetBufferPool(&buffer_pool_)
+                                          .SetGenerator(&generator_)
+                                          .SetGcOn(false)
+                                          .SetBookkeeping(true)
+                                          .build();
     auto result = tested.SimulateOltp(num_txns, num_concurrent_txns);
     tested.CheckReadsCorrect(&result.first);
     for (auto w : result.first) delete w;
@@ -151,16 +151,16 @@ TEST_F(LargeTransactionTests, HighAbortRateHighThread) {
   const uint32_t num_concurrent_txns = 2 * MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
-                                            .SetMaxColumns(max_columns)
-                                            .SetInitialTableSize(initial_table_size)
-                                            .SetTxnLength(txn_length)
-                                            .SetUpdateSelectRatio(update_select_ratio)
-                                            .SetBlockStore(&block_store_)
-                                            .SetBufferPool(&buffer_pool_)
-                                            .SetGenerator(&generator_)
-                                            .SetGcOn(false)
-                                            .SetBookkeeping(true)
-                                            .build();
+                                          .SetMaxColumns(max_columns)
+                                          .SetInitialTableSize(initial_table_size)
+                                          .SetTxnLength(txn_length)
+                                          .SetUpdateSelectRatio(update_select_ratio)
+                                          .SetBlockStore(&block_store_)
+                                          .SetBufferPool(&buffer_pool_)
+                                          .SetGenerator(&generator_)
+                                          .SetGcOn(false)
+                                          .SetBookkeeping(true)
+                                          .build();
     auto result = tested.SimulateOltp(num_txns, num_concurrent_txns);
     tested.CheckReadsCorrect(&result.first);
     for (auto w : result.first) delete w;
@@ -176,16 +176,16 @@ TEST_F(LargeTransactionTests, TPCCish) {
   const uint32_t num_concurrent_txns = MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
-                                            .SetMaxColumns(max_columns)
-                                            .SetInitialTableSize(initial_table_size)
-                                            .SetTxnLength(txn_length)
-                                            .SetUpdateSelectRatio(update_select_ratio)
-                                            .SetBlockStore(&block_store_)
-                                            .SetBufferPool(&buffer_pool_)
-                                            .SetGenerator(&generator_)
-                                            .SetGcOn(false)
-                                            .SetBookkeeping(true)
-                                            .build();
+                                          .SetMaxColumns(max_columns)
+                                          .SetInitialTableSize(initial_table_size)
+                                          .SetTxnLength(txn_length)
+                                          .SetUpdateSelectRatio(update_select_ratio)
+                                          .SetBlockStore(&block_store_)
+                                          .SetBufferPool(&buffer_pool_)
+                                          .SetGenerator(&generator_)
+                                          .SetGcOn(false)
+                                          .SetBookkeeping(true)
+                                          .build();
     auto result = tested.SimulateOltp(num_txns, num_concurrent_txns);
     tested.CheckReadsCorrect(&result.first);
     for (auto w : result.first) delete w;
@@ -201,16 +201,16 @@ TEST_F(LargeTransactionTests, TPCCishHighThread) {
   const uint32_t num_concurrent_txns = 2 * MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
-                                            .SetMaxColumns(max_columns)
-                                            .SetInitialTableSize(initial_table_size)
-                                            .SetTxnLength(txn_length)
-                                            .SetUpdateSelectRatio(update_select_ratio)
-                                            .SetBlockStore(&block_store_)
-                                            .SetBufferPool(&buffer_pool_)
-                                            .SetGenerator(&generator_)
-                                            .SetGcOn(false)
-                                            .SetBookkeeping(true)
-                                            .build();
+                                          .SetMaxColumns(max_columns)
+                                          .SetInitialTableSize(initial_table_size)
+                                          .SetTxnLength(txn_length)
+                                          .SetUpdateSelectRatio(update_select_ratio)
+                                          .SetBlockStore(&block_store_)
+                                          .SetBufferPool(&buffer_pool_)
+                                          .SetGenerator(&generator_)
+                                          .SetGcOn(false)
+                                          .SetBookkeeping(true)
+                                          .build();
     auto result = tested.SimulateOltp(num_txns, num_concurrent_txns);
     tested.CheckReadsCorrect(&result.first);
     for (auto w : result.first) delete w;
