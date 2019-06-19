@@ -88,6 +88,8 @@ class Sema : public ast::AstVisitor<Sema> {
 
   void ReportIncorrectCallArg(ast::CallExpr *call, u32 index, ast::Type *expected);
 
+  void ReportIncorrectCallArg(ast::CallExpr *call, u32 index, const char *expected);
+
   // Implicitly cast the input expression into the target type using the
   // provided cast kind, also setting the type of the casted expression result.
   ast::Expr *ImplCastExprToType(ast::Expr *expr, ast::Type *target_type, ast::CastKind cast_kind);
@@ -136,6 +138,7 @@ class Sema : public ast::AstVisitor<Sema> {
   void CheckBuiltinSorterIterCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinExecutionContextCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinThreadStateContainerCall(ast::CallExpr *call, ast::Builtin builtin);
+  void CheckMathTrigCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinSizeOfCall(ast::CallExpr *call);
   void CheckBuiltinPtrCastCall(ast::CallExpr *call);
   void CheckBuiltinTableIterCall(ast::CallExpr *call, ast::Builtin builtin);

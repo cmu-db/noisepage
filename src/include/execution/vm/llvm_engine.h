@@ -170,6 +170,13 @@ class LLVMEngine {
     void *GetFunctionPointer(const std::string &name) const;
 
     /**
+     * Return the size of the module's object code in-memory in bytes.
+     */
+    std::size_t GetModuleObjectCodeSizeInBytes() const {
+      return object_code_->getBufferSize();
+    }
+
+    /**
      * Load the given module @em module into memory. If this module has already
      * been loaded, it will not be reloaded.
      */

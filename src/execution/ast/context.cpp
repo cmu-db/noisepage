@@ -186,31 +186,6 @@ Identifier Context::GetIdentifier(llvm::StringRef str) {
   return Identifier(iter->getKeyData());
 }
 
-Type *Context::GetTplTypeFromSqlType(const terrier::type::TypeId &sql_type) {
-  switch (sql_type) {
-    case TypeId::BOOLEAN: {
-      return BuiltinType::Get(this, BuiltinType::Boolean);
-    }
-    case TypeId::TINYINT:
-    case TypeId::SMALLINT:
-    case TypeId::INTEGER:
-    case TypeId::BIGINT: {
-      return BuiltinType::Get(this, BuiltinType::Integer);
-    }
-    case TypeId::DECIMAL: {
-      return BuiltinType::Get(this, BuiltinType::Decimal);
-    }
-    case TypeId::VARCHAR:
-    case TypeId::VARBINARY: {
-      return BuiltinType::Get(this, BuiltinType::VarBuffer);
-    }
-    case TypeId::DATE: {
-      return BuiltinType::Get(this, BuiltinType::Date);
-    }
-    default: { throw std::runtime_error("No TPL type for sql type"); }
-  }
-}
-
 Type *Context::LookupBuiltinType(Identifier identifier) const {
   auto iter = impl()->builtin_types.find(identifier);
   return (iter == impl()->builtin_types.end() ? nullptr : iter->second);

@@ -12,6 +12,7 @@
 #include "execution/util/common.h"
 #include "execution/util/macros.h"
 #include "type/type_id.h"
+#include "execution/sql/value.h"
 
 namespace tpl::sql {
 ExecutionStructures::ExecutionStructures() {

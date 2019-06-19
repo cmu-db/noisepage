@@ -62,6 +62,20 @@ class BitUtil {
   ALWAYS_INLINE static void Set(u32 bits[], const u32 idx) { bits[idx / kBitWordSize] |= 1u << (idx % kBitWordSize); }
 
   /**
+   * Set the bit at index @em idx to the boolean indicated by @em val
+   * @param bits The bit vector
+   * @param idx The index of the bit to set or unset
+   * @param val The value to set the bit to
+   */
+  ALWAYS_INLINE static void SetTo(u32 bits[], const u32 idx, const bool val) {
+    if (val) {
+      Set(bits, idx);
+    } else {
+      Unset(bits, idx);
+    }
+  }
+
+  /**
    * Set the bit at index idx to 0 in the bit vector
    * @param bits bit vector to be modified
    * @param idx index of the bit to be set to 0
@@ -118,6 +132,14 @@ class BitVectorBase {
   void Set(u32 idx) {
     TPL_ASSERT(idx < impl()->num_bits(), "Index out of range");
     return BitUtil::Set(impl()->bits(), idx);
+  }
+
+  /**
+   * Set the bit at the given index to the given value
+   */
+  void SetTo(const u32 idx, const bool val) {
+    TPL_ASSERT(idx < impl()->num_bits(), "Index out of range");
+    return BitUtil::SetTo(impl()->bits(), idx, val);
   }
 
   /**

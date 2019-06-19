@@ -16,3 +16,6 @@ merge_example
 *~
 .*~
 .*.swp
+
+# Make an exception for the make file
+!Makefile

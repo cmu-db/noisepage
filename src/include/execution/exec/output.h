@@ -8,10 +8,10 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
+#include "catalog/catalog_defs.h"
+#include "catalog/schema.h"
+#include "execution/util/common.h"
 #include "planner/plannodes/output_schema.h"
-#include "execution/sql/projected_columns_iterator.h"
-#include "execution/sql/value.h"
-#include "execution/util/chunked_vector.h"
 
 namespace tpl::exec {
 
