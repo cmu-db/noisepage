@@ -21,18 +21,18 @@ class TransactionMetricRawData : public AbstractRawData {
    * Set start time of transaction
    * @param txn transaction context of the relevant transaction
    */
-  void SetTxnStart(const transaction::timestamp_t txn_id) {
-    data_[txn_id].start_ = std::chrono::high_resolution_clock::now();
+  void SetTxnStart(const transaction::timestamp_t txn_start) {
+    data_[txn_start].start_ = std::chrono::high_resolution_clock::now();
   }
 
   /**
    * Calculate transaction latency
    * @param txn transaction context of the relevant transaction
    */
-  void CalculateTxnLatency(const transaction::timestamp_t txn_id) {
+  void CalculateTxnLatency(const transaction::timestamp_t txn_start) {
     auto end = std::chrono::high_resolution_clock::now();
-    auto start = data_[txn_id].start_;
-    data_[txn_id].latency_ =
+    auto start = data_[txn_start].start_;
+    data_[txn_start].latency_ =
         static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(end - start).count());
   }
 
@@ -40,25 +40,25 @@ class TransactionMetricRawData : public AbstractRawData {
    * Increment the number of tuples read by one
    * @param txn transaction context of the relevant transaction
    */
-  void IncrementTupleRead(const transaction::timestamp_t txn_id) { data_[txn_id].tuple_read_++; }
+  void IncrementTupleRead(const transaction::timestamp_t txn_start) { data_[txn_start].tuple_read_++; }
 
   /**
    * Increment the number of tuples updated by one
    * @param txn transaction context of the relevant transaction
    */
-  void IncrementTupleUpdate(const transaction::timestamp_t txn_id) { data_[txn_id].tuple_update_++; }
+  void IncrementTupleUpdate(const transaction::timestamp_t txn_start) { data_[txn_start].tuple_update_++; }
 
   /**
    * Increment the number of tuples inserted by one
    * @param txn transaction context of the relevant transaction
    */
-  void IncrementTupleInsert(const transaction::timestamp_t txn_id) { data_[txn_id].tuple_insert_++; }
+  void IncrementTupleInsert(const transaction::timestamp_t txn_start) { data_[txn_start].tuple_insert_++; }
 
   /**
    * Increment the number of tuples deleted by one
    * @param txn transaction context of the relevant transaction
    */
-  void IncrementTupleDelete(const transaction::timestamp_t txn_id) { data_[txn_id].tuple_delete_++; }
+  void IncrementTupleDelete(const transaction::timestamp_t txn_start) { data_[txn_start].tuple_delete_++; }
 
   /**
    * Aggregate collected data from another raw data object into this raw data object
@@ -80,27 +80,27 @@ class TransactionMetricRawData : public AbstractRawData {
   /**
    * @return the latency of the given transaction
    */
-  uint64_t GetLatency(const transaction::timestamp_t txn_id) { return data_[txn_id].latency_; }
+  uint64_t GetLatency(const transaction::timestamp_t txn_start) { return data_[txn_start].latency_; }
 
   /**
    * @return the tuples read of the given transaction
    */
-  uint64_t GetTupleRead(const transaction::timestamp_t txn_id) { return data_[txn_id].tuple_read_; }
+  uint64_t GetTupleRead(const transaction::timestamp_t txn_start) { return data_[txn_start].tuple_read_; }
 
   /**
    * @return the tuples updated of the given transaction
    */
-  uint64_t GetTupleUpdate(const transaction::timestamp_t txn_id) { return data_[txn_id].tuple_update_; }
+  uint64_t GetTupleUpdate(const transaction::timestamp_t txn_start) { return data_[txn_start].tuple_update_; }
 
   /**
    * @return the tuples inserted of the given transaction
    */
-  uint64_t GetTupleInsert(const transaction::timestamp_t txn_id) { return data_[txn_id].tuple_insert_; }
+  uint64_t GetTupleInsert(const transaction::timestamp_t txn_start) { return data_[txn_start].tuple_insert_; }
 
   /**
    * @return the tuples deleted of the given transaction
    */
-  uint64_t GetTupleDelete(const transaction::timestamp_t txn_id) { return data_[txn_id].tuple_delete_; }
+  uint64_t GetTupleDelete(const transaction::timestamp_t txn_start) { return data_[txn_start].tuple_delete_; }
 
  private:
   /**
@@ -148,7 +148,7 @@ class TransactionMetric : public AbstractMetric<TransactionMetricRawData> {
    * @param txn transaction context of the beginning transaction
    */
   void OnTransactionBegin(const transaction::TransactionContext &txn) override {
-    GetRawData()->SetTxnStart(txn.TxnId().load());
+    GetRawData()->SetTxnStart(txn.StartTime());
   }
 
   /**
@@ -157,7 +157,7 @@ class TransactionMetric : public AbstractMetric<TransactionMetricRawData> {
    */
   void OnTransactionCommit(const transaction::TransactionContext &txn,
                            UNUSED_ATTRIBUTE catalog::db_oid_t database_oid) override {
-    GetRawData()->CalculateTxnLatency(txn.TxnId().load());
+    GetRawData()->CalculateTxnLatency(txn.StartTime());
   }
 
   /**
@@ -166,7 +166,7 @@ class TransactionMetric : public AbstractMetric<TransactionMetricRawData> {
    */
   void OnTransactionAbort(const transaction::TransactionContext &txn,
                           UNUSED_ATTRIBUTE catalog::db_oid_t database_oid) override {
-    GetRawData()->CalculateTxnLatency(txn.TxnId().load());
+    GetRawData()->CalculateTxnLatency(txn.StartTime());
   }
 
   /**
@@ -179,7 +179,7 @@ class TransactionMetric : public AbstractMetric<TransactionMetricRawData> {
   void OnTupleRead(const transaction::TransactionContext &txn, UNUSED_ATTRIBUTE catalog::db_oid_t database_oid,
                    UNUSED_ATTRIBUTE catalog::namespace_oid_t namespace_oid,
                    UNUSED_ATTRIBUTE catalog::table_oid_t table_oid) override {
-    GetRawData()->IncrementTupleRead(txn.TxnId().load());
+    GetRawData()->IncrementTupleRead(txn.StartTime());
   }
 
   /**
@@ -191,7 +191,7 @@ class TransactionMetric : public AbstractMetric<TransactionMetricRawData> {
   void OnTupleUpdate(const transaction::TransactionContext &txn, UNUSED_ATTRIBUTE catalog::db_oid_t database_oid,
                      UNUSED_ATTRIBUTE catalog::namespace_oid_t namespace_oid,
                      UNUSED_ATTRIBUTE catalog::table_oid_t table_oid) override {
-    GetRawData()->IncrementTupleUpdate(txn.TxnId().load());
+    GetRawData()->IncrementTupleUpdate(txn.StartTime());
   }
 
   /**
@@ -203,7 +203,7 @@ class TransactionMetric : public AbstractMetric<TransactionMetricRawData> {
   void OnTupleInsert(const transaction::TransactionContext &txn, UNUSED_ATTRIBUTE catalog::db_oid_t database_oid,
                      UNUSED_ATTRIBUTE catalog::namespace_oid_t namespace_oid,
                      UNUSED_ATTRIBUTE catalog::table_oid_t table_oid) override {
-    GetRawData()->IncrementTupleInsert(txn.TxnId().load());
+    GetRawData()->IncrementTupleInsert(txn.StartTime());
   }
 
   /**
@@ -215,7 +215,7 @@ class TransactionMetric : public AbstractMetric<TransactionMetricRawData> {
   void OnTupleDelete(const transaction::TransactionContext &txn, UNUSED_ATTRIBUTE catalog::db_oid_t database_oid,
                      UNUSED_ATTRIBUTE catalog::namespace_oid_t namespace_oid,
                      UNUSED_ATTRIBUTE catalog::table_oid_t table_oid) override {
-    GetRawData()->IncrementTupleDelete(txn.TxnId().load());
+    GetRawData()->IncrementTupleDelete(txn.StartTime());
   }
 };
 }  // namespace terrier::metric
