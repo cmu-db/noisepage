@@ -29,7 +29,8 @@ static constexpr std::array<std::bitset<NUM_COMPONENTS>, NUM_EVENTS> event_dispa
     0x1   // TUPLE_DELETE:  TRANSACTION
 };
 
-inline bool MetricSupportsEvent(const MetricsEventType event, const MetricsComponent component) {
+inline bool MetricSupportsEvent(const MetricsEventType event,  // NOLINT: correct use in modern C++
+                                const MetricsComponent component) {
   return event_dispatches[static_cast<uint8_t>(event)].test(static_cast<uint8_t>(component));
 }
 
