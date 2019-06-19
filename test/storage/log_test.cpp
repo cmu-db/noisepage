@@ -31,7 +31,7 @@ class WriteAheadLoggingTests : public TerrierTest {
   const uint64_t num_log_buffers_ = 100;
   const std::chrono::milliseconds log_serialization_interval_{10};
   const std::chrono::milliseconds log_persist_interval_{20};
-  const uint64_t log_persist_threshold_ = (1 << 20);  // 1MB
+  const uint64_t log_persist_threshold_ = (1u << 20);  // 1MB
 
   std::default_random_engine generator_;
   storage::RecordBufferSegmentPool pool_{2000, 100};
@@ -69,9 +69,7 @@ class WriteAheadLoggingTests : public TerrierTest {
       return storage::CommitRecord::Initialize(buf, txn_begin, txn_commit, nullptr, nullptr, false, nullptr);
     }
 
-    if (record_type == storage::LogRecordType::ABORT) {
-      return storage::AbortRecord::Initialize(buf, txn_begin);
-    }
+    if (record_type == storage::LogRecordType::ABORT) return storage::AbortRecord::Initialize(buf, txn_begin, nullptr);
 
     // TODO(Tianyu): Without a lookup mechanism this oid is not exactly meaningful. Implement lookup when possible
     auto database_oid = in->ReadValue<catalog::db_oid_t>();
@@ -351,7 +349,6 @@ TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
   // Perform GC, will clean up transactions for us
   gc_thread_ = new storage::GarbageCollectorThread(&txn_manager_, gc_period_);
   delete gc_thread_;
-  delete second_txn;
   delete sql_table;
 }
 
