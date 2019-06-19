@@ -39,6 +39,26 @@ class AggregateExpression : public AbstractExpression {
    */
   bool IsDistinct() const { return distinct_; }
 
+  void DeduceExpressionType() override {
+    switch (this->GetExpressionType()) {
+      case ExpressionType::AGGREGATE_COUNT:
+        return_value_type_ = type::TypeId::INTEGER;
+        break;
+        // return the type of the base
+      case ExpressionType::AGGREGATE_MAX:
+      case ExpressionType::AGGREGATE_MIN:
+      case ExpressionType::AGGREGATE_SUM:
+        TERRIER_ASSERT(this->GetChildrenSize()>= 1, "No column name given.");
+        return_value_type_ = this->GetChild(0)->GetReturnValueType();
+        break;
+      case ExpressionType::AGGREGATE_AVG:
+        return_value_type_ = type::TypeId::DECIMAL;
+        break;
+      default:
+        break;
+    }
+  }
+
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
   /**
