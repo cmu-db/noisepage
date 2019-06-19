@@ -4,6 +4,7 @@
 #include "execution/util/macros.h"
 #include "execution/util/math_util.h"
 #include "type/type_id.h"
+#include <sstream>
 
 namespace tpl::sql {
 
@@ -111,6 +112,18 @@ struct Integer : public Val {
   }
 
   /**
+   * Perform negation
+   * @param[out] overflow whether an overflow occur
+   * @return result of negation
+   */
+  Integer Neg(bool *overflow) const {
+    // TODO(Amadou): Should we use a builtin gcc function here?
+    return Integer(is_null, -val);
+  }
+
+
+
+  /**
    * Perform subtraction
    * @param that value to subtract
    * @param[out] overflow whether an overflow occur
@@ -189,6 +202,56 @@ struct Real : public Val {
   explicit Real(double val) noexcept : Val(false), val(val) {}
 
   /**
+   * Generic constructor
+   * @param null whether the value is NULL or not
+   * @param val the raw float value
+   */
+  explicit Integer(bool null, float val) noexcept : Val(null), val(val) {}
+
+  /**
+   * Generic constructor
+   * @param null whether the value is NULL or not
+   * @param val the raw double value
+   */
+  explicit Integer(bool null, double val) noexcept : Val(null), val(val) {}
+
+  /**
+   * Perform addition
+   * @param that right operand
+   * @return result of the operation
+   */
+  Real Add(const Real &that) {
+    return Real(is_null || that.is_null, val + that.val)
+  }
+
+  /**
+   * Perform addition
+   * @param that right operand
+   * @return result of the operation
+   */
+  Real Add(const Real &that) {
+    return Real(is_null || that.is_null, val + that.val)
+  }
+
+  /**
+   * Perform addition
+   * @param that right operand
+   * @return result of the operation
+   */
+  Real Add(const Real &that) {
+    return Real(is_null || that.is_null, val + that.val)
+  }
+
+  /**
+   * Perform addition
+   * @param that right operand
+   * @return result of the operation
+   */
+  Real Add(const Real &that) {
+    return Real(is_null || that.is_null, val + that.val)
+  }
+
+  /**
    * @return a NULL real value
    */
   static Real Null() {
@@ -260,20 +323,46 @@ struct VarBuffer : public Val {
   static VarBuffer Null() { return VarBuffer(nullptr, 0); }
 };
 
+
 /**
  * Date
  */
 struct Date : public Val {
   /**
-   * Date value
+   * Year month day struct (4 bytes)
    */
-  i32 date_val;
+  struct YMD {
+    YMD() = default;
+    /**
+     * Day value
+     */
+    i8 day;
+    /**
+     * Month value
+     */
+    i8 month;
+    /**
+     * Year value
+     */
+    i16 year;
+  };
+
+  /**
+   * Date value
+   * Can be represented by an int32 (for the storage layer), or by a year-month-day struct.
+   */
+  union {
+    YMD ymd;
+    i32 int_val;
+  };
 
   /**
    * Constructor
    * @param date date value
    */
-  explicit Date(i32 date) noexcept : Val(false), date_val(date) {}
+  explicit Date(i32 date) noexcept : Val(false), int_val{date} {}
+
+  Date(i16 year, i8 month, i8 day) noexcept : Val(false), ymd{year, month, day} {}
 
   /**
    * @return a NULL Date.
@@ -338,6 +427,23 @@ struct ValUtil {
       default:
         return 0;
     }
+  }
+
+  static std::string DateToString(const Date & date) {
+    std::stringstream ss;
+    ss << date.ymd.year << "-" << date.ymd.month << "-" << date.ymd.day;
+    return ss.str();
+  }
+
+  static Date StringToDate(const std::string_view & str) {
+    std::stringstream ss(str.data());
+    i16 year;
+    i8 month, day;
+    char tok;
+    ss >> year >> tok;
+    ss >> month >> tok;
+    ss >> day;
+    return Date(year, month, day);
   }
 };
 

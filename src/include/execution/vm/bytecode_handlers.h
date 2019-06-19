@@ -51,7 +51,7 @@ extern "C" {
   /* Primitive not-equal-to implementation */                                                              \
   VM_OP_HOT void OpNotEqual##_##type(bool *result, type lhs, type rhs) { *result = (lhs != rhs); }
 
-INT_TYPES(COMPARISONS);
+ALL_TYPES(COMPARISONS);
 
 #undef COMPARISONS
 
@@ -60,6 +60,15 @@ VM_OP_HOT void OpNot(bool *const result, const bool input) { *result = !input; }
 // ---------------------------------------------------------
 // Primitive arithmetic
 // ---------------------------------------------------------
+
+#define MODULAR(type, ...) \
+  /* Primitive modulo-remainder (no zero-check) */                                                            \
+  VM_OP_HOT void OpRem##_##type(type *result, type lhs, type rhs) {                                           \
+    TPL_ASSERT(rhs != 0, "Division-by-zero error!");                                                          \
+    *result = static_cast<type>(lhs % rhs);                                                                   \
+  }
+
+INT_TYPES(MODULAR)
 
 #define ARITHMETIC(type, ...)                                                                                 \
   /* Primitive addition */                                                                                    \
@@ -71,22 +80,17 @@ VM_OP_HOT void OpNot(bool *const result, const bool input) { *result = !input; }
   /* Primitive multiplication */                                                                              \
   VM_OP_HOT void OpMul##_##type(type *result, type lhs, type rhs) { *result = static_cast<type>(lhs * rhs); } \
                                                                                                               \
+  /* Primitive negation */                                                                                    \
+  VM_OP_HOT void OpNeg##_##type(type *result, type input) { *result = static_cast<type>(-input); } \
+  \
   /* Primitive division (no zero-check) */                                                                    \
   VM_OP_HOT void OpDiv##_##type(type *result, type lhs, type rhs) {                                           \
     TPL_ASSERT(rhs != 0, "Division-by-zero error!");                                                          \
     *result = static_cast<type>(lhs / rhs);                                                                   \
-  }                                                                                                           \
-                                                                                                              \
-  /* Primitive modulo-remainder (no zero-check) */                                                            \
-  VM_OP_HOT void OpRem##_##type(type *result, type lhs, type rhs) {                                           \
-    TPL_ASSERT(rhs != 0, "Division-by-zero error!");                                                          \
-    *result = static_cast<type>(lhs % rhs);                                                                   \
-  }                                                                                                           \
-                                                                                                              \
-  /* Primitive negation */                                                                                    \
-  VM_OP_HOT void OpNeg##_##type(type *result, type input) { *result = static_cast<type>(-input); }
+  }
 
-INT_TYPES(ARITHMETIC);
+ALL_TYPES(ARITHMETIC);
+
 
 #undef ARITHMETIC
 
@@ -462,6 +466,11 @@ VM_OP_HOT void OpAddInteger(tpl::sql::Integer *const result, const tpl::sql::Int
   *result = left->Add(*right, &overflow);
 }
 
+VM_OP_HOT void OpNegInteger(tpl::sql::Integer *const result, const tpl::sql::Integer *const operand) {
+  UNUSED bool overflow;
+  *result = operand->Neg(&overflow);
+}
+
 VM_OP_HOT void OpSubInteger(tpl::sql::Integer *const result, const tpl::sql::Integer *const left,
                             const tpl::sql::Integer *const right) {
   UNUSED bool overflow;
@@ -482,6 +491,29 @@ VM_OP_HOT void OpDivInteger(tpl::sql::Integer *const result, const tpl::sql::Int
 VM_OP_HOT void OpRemInteger(tpl::sql::Integer *const result, const tpl::sql::Integer *const left,
                             const tpl::sql::Integer *const right) {
   *result = left->Modulo(*right);
+}
+
+VM_OP_HOT void OpAddInteger(tpl::sql::Integer *const result, const tpl::sql::Integer *const left,
+                            const tpl::sql::Integer *const right) {
+  UNUSED bool overflow;
+  *result = left->Add(*right, &overflow);
+}
+
+VM_OP_HOT void OpNegInteger(tpl::sql::Integer *const result, const tpl::sql::Integer *const operand) {
+  UNUSED bool overflow;
+  *result = operand->Neg(&overflow);
+}
+
+VM_OP_HOT void OpSubInteger(tpl::sql::Integer *const result, const tpl::sql::Integer *const left,
+                            const tpl::sql::Integer *const right) {
+  UNUSED bool overflow;
+  *result = left->Sub(*right, &overflow);
+}
+
+VM_OP_HOT void OpMulInteger(tpl::sql::Integer *const result, const tpl::sql::Integer *const left,
+                            const tpl::sql::Integer *const right) {
+  UNUSED bool overflow;
+  *result = left->Multiply(*right, &overflow);
 }
 
 // ---------------------------------------------------------

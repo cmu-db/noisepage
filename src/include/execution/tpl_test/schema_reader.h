@@ -1,3 +1,4 @@
+#pragma once
 #include <iostream>
 #include <memory>
 #include <fstream>
@@ -14,6 +15,32 @@ using namespace terrier;
 using IndexTableMap = std::vector<uint16_t>;
 
 /**
+ * Stores info about an index
+ */
+struct IndexInfo {
+  /**
+   * Constructor
+   */
+  IndexInfo() = default;
+
+
+  /**
+   * Index Name
+   */
+  std::string index_name;
+  /**
+   * Index Schema
+   */
+  storage::index::IndexKeySchema schema;
+
+
+  /**
+   * Mapping from index column to table column
+   */
+  IndexTableMap index_map;
+};
+
+/**
  * Stores table information
  */
 struct TableInfo {
@@ -22,21 +49,23 @@ struct TableInfo {
    */
   TableInfo() = default;
 
+
+  /**
+   * Table Name
+   */
+  std::string table_name;
   /**
    * Table Schema
    */
   std::unique_ptr<terrier::catalog::Schema> schema;
 
   /**
-   * Index Schemas
+   * indexes
    */
-  std::vector<storage::index::IndexKeySchema> index_schemas;
-
-  /**
-   * Mapping from index column to table column for each index
-   */
-  std::vector<IndexTableMap> index_maps;
+  std::vector<std::unique_ptr<IndexInfo>> indexes;
 };
+
+
 
 /**
  * Reads .schema file
@@ -73,10 +102,9 @@ class SchemaReader {
     std::ifstream schema_file;
     schema_file.open(filename);
     // Read Table name and num_cols
-    std::string table_name;
     uint32_t num_cols;
-    schema_file >> table_name >> num_cols;
-    std::cout << "Reading table " << table_name << " with " << num_cols << " columns." << std::endl;
+    schema_file >> table_info->table_name >> num_cols;
+    std::cout << "Reading table " << table_info->table_name << " with " << num_cols << " columns." << std::endl;
     // Read columns & create table schema
     std::vector<terrier::catalog::Schema::Column> cols{ReadColumns(&schema_file, num_cols)};
     table_info->schema = std::make_unique<catalog::Schema>(cols);
@@ -90,26 +118,22 @@ class SchemaReader {
 
  private:
   void ReadIndexSchemas(std::ifstream * in, TableInfo * table_info, uint32_t num_indexes) {
-    std::string index_name;
     uint32_t num_index_cols;
     for (uint32_t i = 0; i < num_indexes; i++) {
-      terrier::storage::index::IndexKeySchema schema;
-      IndexTableMap index_map;
+      auto index_info = std::make_unique<IndexInfo>();
       // Read index name and num_index_cols
-      *in >> index_name >> num_index_cols;
+      *in >> index_info->index_name >> num_index_cols;
       // Read each index column
       uint16_t col_idx;
       for (uint32_t j = 0; j < num_index_cols; j++) {
         *in >> col_idx;
-        index_map.emplace_back(col_idx);
+        index_info->index_map.emplace_back(col_idx);
         terrier::catalog::indexkeycol_oid_t col_oid(catalog_->GetNextOid());
         const auto & table_column = table_info->schema->GetColumn(col_idx);
-        schema.emplace_back(col_oid, table_column.GetType(), table_column.GetNullable());
+        index_info->schema.emplace_back(col_oid, table_column.GetType(), table_column.GetNullable());
       }
-      // Update list of index
-      table_info->index_schemas.emplace_back(std::move(schema));
-      // Update index maps
-      table_info->index_maps.emplace_back(std::move(index_map));
+      // Update list of indexes
+      table_info->indexes.emplace_back(std::move(index_info));
     }
   }
 

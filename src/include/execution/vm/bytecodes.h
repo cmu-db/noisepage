@@ -21,7 +21,9 @@ namespace tpl::vm {
   F(op##_##u64, __VA_ARGS__)
 
 // Creates instances of a given opcode for all floating-point primitive types
-#define CREATE_FOR_FLOAT_TYPES(func, op) func(op, f32) func(op, f64)
+#define CREATE_FOR_FLOAT_TYPES(F, op, ...) \
+  F(op##_##f32, __VA_ARGS__) \
+  F(op##_##f64, __VA_ARGS__)
 
 // Creates instances of a given opcode for *ALL* primitive types
 #define CREATE_FOR_ALL_TYPES(F, op, ...)   \
@@ -37,22 +39,22 @@ namespace tpl::vm {
  */
 #define BYTECODE_LIST(F)                                                                                              \
   /* Primitive operations */                                                                                          \
-  CREATE_FOR_INT_TYPES(F, Add, OperandType::Local, OperandType::Local, OperandType::Local)                            \
-  CREATE_FOR_INT_TYPES(F, Sub, OperandType::Local, OperandType::Local, OperandType::Local)                            \
-  CREATE_FOR_INT_TYPES(F, Mul, OperandType::Local, OperandType::Local, OperandType::Local)                            \
-  CREATE_FOR_INT_TYPES(F, Div, OperandType::Local, OperandType::Local, OperandType::Local)                            \
+  CREATE_FOR_ALL_TYPES(F, Add, OperandType::Local, OperandType::Local, OperandType::Local)                            \
+  CREATE_FOR_ALL_TYPES(F, Neg, OperandType::Local, OperandType::Local)                                                \
+  CREATE_FOR_ALL_TYPES(F, Sub, OperandType::Local, OperandType::Local, OperandType::Local)                            \
+  CREATE_FOR_ALL_TYPES(F, Mul, OperandType::Local, OperandType::Local, OperandType::Local)                            \
+  CREATE_FOR_ALL_TYPES(F, Div, OperandType::Local, OperandType::Local, OperandType::Local)                            \
   CREATE_FOR_INT_TYPES(F, Rem, OperandType::Local, OperandType::Local, OperandType::Local)                            \
   CREATE_FOR_INT_TYPES(F, BitAnd, OperandType::Local, OperandType::Local, OperandType::Local)                         \
   CREATE_FOR_INT_TYPES(F, BitOr, OperandType::Local, OperandType::Local, OperandType::Local)                          \
   CREATE_FOR_INT_TYPES(F, BitXor, OperandType::Local, OperandType::Local, OperandType::Local)                         \
-  CREATE_FOR_INT_TYPES(F, Neg, OperandType::Local, OperandType::Local)                                                \
   CREATE_FOR_INT_TYPES(F, BitNeg, OperandType::Local, OperandType::Local)                                             \
-  CREATE_FOR_INT_TYPES(F, GreaterThan, OperandType::Local, OperandType::Local, OperandType::Local)                    \
-  CREATE_FOR_INT_TYPES(F, GreaterThanEqual, OperandType::Local, OperandType::Local, OperandType::Local)               \
-  CREATE_FOR_INT_TYPES(F, Equal, OperandType::Local, OperandType::Local, OperandType::Local)                          \
-  CREATE_FOR_INT_TYPES(F, LessThan, OperandType::Local, OperandType::Local, OperandType::Local)                       \
-  CREATE_FOR_INT_TYPES(F, LessThanEqual, OperandType::Local, OperandType::Local, OperandType::Local)                  \
-  CREATE_FOR_INT_TYPES(F, NotEqual, OperandType::Local, OperandType::Local, OperandType::Local)                       \
+  CREATE_FOR_ALL_TYPES(F, GreaterThan, OperandType::Local, OperandType::Local, OperandType::Local)                    \
+  CREATE_FOR_ALL_TYPES(F, GreaterThanEqual, OperandType::Local, OperandType::Local, OperandType::Local)               \
+  CREATE_FOR_ALL_TYPES(F, Equal, OperandType::Local, OperandType::Local, OperandType::Local)                          \
+  CREATE_FOR_ALL_TYPES(F, LessThan, OperandType::Local, OperandType::Local, OperandType::Local)                       \
+  CREATE_FOR_ALL_TYPES(F, LessThanEqual, OperandType::Local, OperandType::Local, OperandType::Local)                  \
+  CREATE_FOR_ALL_TYPES(F, NotEqual, OperandType::Local, OperandType::Local, OperandType::Local)                       \
   /* Boolean compliment */                                                                                            \
   F(Not, OperandType::Local, OperandType::Local)                                                                      \
                                                                                                                       \
@@ -156,11 +158,29 @@ namespace tpl::vm {
   F(GreaterThanEqualInteger, OperandType::Local, OperandType::Local, OperandType::Local)                              \
   F(EqualInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                         \
   F(NotEqualInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
+  F(LessThanReal, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
+  F(LessThanEqualReal, OperandType::Local, OperandType::Local, OperandType::Local)                                 \
+  F(GreaterThanReal, OperandType::Local, OperandType::Local, OperandType::Local)                                   \
+  F(GreaterThanEqualReal, OperandType::Local, OperandType::Local, OperandType::Local)                              \
+  F(EqualReal, OperandType::Local, OperandType::Local, OperandType::Local)                                         \
+  F(NotEqualReal, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
+  F(LessThanVarBuffer, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
+  F(LessThanEqualVarBuffer, OperandType::Local, OperandType::Local, OperandType::Local)                                 \
+  F(GreaterThanVarBuffer, OperandType::Local, OperandType::Local, OperandType::Local)                                   \
+  F(GreaterThanEqualVarBuffer, OperandType::Local, OperandType::Local, OperandType::Local)                              \
+  F(EqualVarBuffer, OperandType::Local, OperandType::Local, OperandType::Local)                                         \
+  F(NotEqualVarBuffer, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
   F(AddInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
+  F(NegInteger, OperandType::Local, OperandType::Local)                                           \
   F(SubInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
   F(MulInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
   F(DivInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
   F(RemInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
+  F(AddReal, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
+  F(NegReal, OperandType::Local, OperandType::Local)                                           \
+  F(SubReal, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
+  F(MulReal, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
+  F(NegReal, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
                                                                                                                       \
   /* Hashing */                                                                                                       \
   F(HashInt, OperandType::Local, OperandType::Local)                                                                  \

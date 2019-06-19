@@ -71,7 +71,7 @@ class FunctionExpression : public AbstractExpression {
   // Does it really make sense to store BuiltInFuncType AND name though?
   // Old code already had map name->func
   // std::shared_ptr<codegen::CodeContext> func_context_;
-  // function::BuiltInFuncType func_;
+  // afunction::BuiltInFuncType func_;
 
   // TODO(WAN): will user defined functions need special treatment?
   // If so, wouldn't it make more sense for them to have their own class?
