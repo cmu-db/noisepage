@@ -16,10 +16,10 @@
 #include "transaction/transaction_manager.h"
 #include "type/type_id.h"
 #include "type/type_util.h"
+#include "util/data_table_test_util.h"
 #include "util/random_test_util.h"
 #include "util/storage_test_util.h"
 #include "util/test_harness.h"
-#include "util/transaction_test_util.h"
 
 namespace terrier::storage::index {
 

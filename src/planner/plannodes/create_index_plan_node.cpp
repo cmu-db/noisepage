@@ -5,25 +5,21 @@
 #include <vector>
 
 namespace terrier::planner {
+
 common::hash_t CreateIndexPlanNode::Hash() const {
-  auto type = GetPlanNodeType();
-  common::hash_t hash = common::HashUtil::Hash(&type);
+  common::hash_t hash = AbstractPlanNode::Hash();
 
   // Hash database_oid
-  auto database_oid = GetDatabaseOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
 
   // Hash namespace oid
-  auto namespace_oid = GetNamespaceOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&namespace_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
 
   // Hash table_oid
-  auto table_oid = GetTableOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&table_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
 
   // Hash index_type
-  auto index_type = GetIndexType();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&index_type));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(index_type_));
 
   // Hash index_attrs
   hash = common::HashUtil::CombineHashInRange(hash, index_attrs_.begin(), index_attrs_.end());
@@ -32,61 +28,44 @@ common::hash_t CreateIndexPlanNode::Hash() const {
   hash = common::HashUtil::CombineHashInRange(hash, key_attrs_.begin(), key_attrs_.end());
 
   // Hash unique_index
-  auto unique_index = IsUniqueIndex();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&unique_index));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(unique_index_));
 
   // Hash index_name
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(GetIndexName()));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(index_name_));
 
-  return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
+  return hash;
 }
 
 bool CreateIndexPlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
+  if (!AbstractPlanNode::operator==(rhs)) return false;
 
   auto &other = dynamic_cast<const CreateIndexPlanNode &>(rhs);
 
   // Database OID
-  if (GetDatabaseOid() != other.GetDatabaseOid()) return false;
+  if (database_oid_ != other.database_oid_) return false;
 
   // Namespace OID
-  if (GetNamespaceOid() != other.GetNamespaceOid()) return false;
+  if (namespace_oid_ != other.namespace_oid_) return false;
 
   // Table OID
-  if (GetTableOid() != other.GetTableOid()) return false;
+  if (table_oid_ != other.table_oid_) return false;
 
   // Index type
-  if (GetIndexType() != other.GetIndexType()) return false;
+  if (index_type_ != other.index_type_) return false;
 
   // Index attrs
-  const auto &index_attrs = GetIndexAttributes();
-  const auto &other_index_attrs = other.GetIndexAttributes();
-  if (index_attrs.size() != other_index_attrs.size()) return false;
-
-  for (size_t i = 0; i < index_attrs.size(); i++) {
-    if (index_attrs[i] != other_index_attrs[i]) {
-      return false;
-    }
-  }
+  if (index_attrs_ != other.index_attrs_) return false;
 
   // Key attrs
-  const auto &key_attrs = GetKeyAttrs();
-  const auto &other_key_attrs = other.GetKeyAttrs();
-  if (key_attrs.size() != other_key_attrs.size()) return false;
-
-  for (size_t i = 0; i < key_attrs.size(); i++) {
-    if (key_attrs[i] != other_key_attrs[i]) {
-      return false;
-    }
-  }
+  if (key_attrs_ != other.key_attrs_) return false;
 
   // Unique index
-  if (IsUniqueIndex() != other.IsUniqueIndex()) return false;
+  if (unique_index_ != other.unique_index_) return false;
 
   // Index name
-  if (GetIndexName() != other.GetIndexName()) return false;
+  if (index_name_ != other.index_name_) return false;
 
-  return AbstractPlanNode::operator==(rhs);
+  return true;
 }
 
 nlohmann::json CreateIndexPlanNode::ToJson() const {

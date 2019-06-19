@@ -2,8 +2,6 @@
 #include <vector>
 #include "gtest/gtest.h"
 #include "main/db_main.h"
-#include "settings/settings_callbacks.h"
-#include "settings/settings_manager.h"
 #include "storage/data_table.h"
 #include "storage/garbage_collector_thread.h"
 #include "storage/sql_table.h"
@@ -11,9 +9,10 @@
 #include "transaction/transaction_manager.h"
 #include "type/transient_value_factory.h"
 #include "util/catalog_test_util.h"
+#include "util/data_table_test_util.h"
+#include "util/sql_table_test_util.h"
 #include "util/storage_test_util.h"
 #include "util/test_harness.h"
-#include "util/transaction_test_util.h"
 
 #define __SETTING_GFLAGS_DEFINE__      // NOLINT
 #include "settings/settings_common.h"  // NOLINT
@@ -31,7 +30,7 @@ class WriteAheadLoggingTests : public TerrierTest {
   const uint64_t num_log_buffers_ = 100;
   const std::chrono::milliseconds log_serialization_interval_{10};
   const std::chrono::milliseconds log_persist_interval_{20};
-  const uint64_t log_persist_threshold_ = (1 << 20);  // 1MB
+  const uint64_t log_persist_threshold_ = (1u << 20);  // 1MB
 
   std::default_random_engine generator_;
   storage::RecordBufferSegmentPool pool_{2000, 100};
@@ -69,9 +68,7 @@ class WriteAheadLoggingTests : public TerrierTest {
       return storage::CommitRecord::Initialize(buf, txn_begin, txn_commit, nullptr, nullptr, false, nullptr);
     }
 
-    if (record_type == storage::LogRecordType::ABORT) {
-      return storage::AbortRecord::Initialize(buf, txn_begin);
-    }
+    if (record_type == storage::LogRecordType::ABORT) return storage::AbortRecord::Initialize(buf, txn_begin, nullptr);
 
     // TODO(Tianyu): Without a lookup mechanism this oid is not exactly meaningful. Implement lookup when possible
     auto database_oid = in->ReadValue<catalog::db_oid_t>();
@@ -150,29 +147,29 @@ class WriteAheadLoggingTests : public TerrierTest {
   storage::RedoBuffer &GetRedoBuffer(transaction::TransactionContext *txn) { return txn->redo_buffer_; }
 };
 
-// This test uses the LargeTransactionTestObject to simulate some number of transactions with logging turned on, and
+// This test uses the LargeDataTableTestObject to simulate some number of transactions with logging turned on, and
 // then reads the logged out content to make sure they are correct
 // NOLINTNEXTLINE
 TEST_F(WriteAheadLoggingTests, LargeLogTest) {
   // Each transaction does 5 operations. The update-select ratio of operations is 50%-50%.
   log_manager_->Start();
-  LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
-                                          .SetMaxColumns(5)
-                                          .SetInitialTableSize(1)
-                                          .SetTxnLength(5)
-                                          .SetUpdateSelectRatio({0.5, 0.5})
-                                          .SetBlockStore(&block_store_)
-                                          .SetBufferPool(&pool_)
-                                          .SetGenerator(&generator_)
-                                          .SetGcOn(true)
-                                          .SetVarlenAllowed(true)
-                                          .SetBookkeeping(true)
-                                          .SetLogManager(log_manager_)
-                                          .build();
+  LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
+                                        .SetMaxColumns(5)
+                                        .SetInitialTableSize(1)
+                                        .SetTxnLength(5)
+                                        .SetUpdateSelectRatio({0.5, 0.5})
+                                        .SetBlockStore(&block_store_)
+                                        .SetBufferPool(&pool_)
+                                        .SetGenerator(&generator_)
+                                        .SetGcOn(true)
+                                        .SetVarlenAllowed(true)
+                                        .SetBookkeeping(true)
+                                        .SetLogManager(log_manager_)
+                                        .build();
   auto result = tested.SimulateOltp(100, 4);
   log_manager_->PersistAndStop();
 
-  std::unordered_map<transaction::timestamp_t, RandomWorkloadTransaction *> txns_map;
+  std::unordered_map<transaction::timestamp_t, RandomDataTableTransaction *> txns_map;
   for (auto *txn : result.first) txns_map[txn->BeginTimestamp()] = txn;
   // At this point all the log records should have been written out, we can start reading stuff back in.
   storage::BufferedLogReader in(LOG_FILE_NAME);
@@ -238,18 +235,18 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
 TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
   // Each transaction is read-only (update-select ratio of 0-100). Also, no need for bookkeeping.
   log_manager_->Start();
-  LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
-                                          .SetMaxColumns(5)
-                                          .SetInitialTableSize(1)
-                                          .SetTxnLength(5)
-                                          .SetUpdateSelectRatio({0.0, 1.0})
-                                          .SetBlockStore(&block_store_)
-                                          .SetBufferPool(&pool_)
-                                          .SetGenerator(&generator_)
-                                          .SetGcOn(true)
-                                          .SetBookkeeping(false)
-                                          .SetLogManager(log_manager_)
-                                          .build();
+  LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
+                                        .SetMaxColumns(5)
+                                        .SetInitialTableSize(1)
+                                        .SetTxnLength(5)
+                                        .SetUpdateSelectRatio({0.0, 1.0})
+                                        .SetBlockStore(&block_store_)
+                                        .SetBufferPool(&pool_)
+                                        .SetGenerator(&generator_)
+                                        .SetGcOn(true)
+                                        .SetBookkeeping(false)
+                                        .SetLogManager(log_manager_)
+                                        .build();
 
   auto result = tested.SimulateOltp(1000, 4);
   log_manager_->PersistAndStop();
@@ -337,7 +334,7 @@ TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
   bool found_abort_record = false;
   storage::BufferedLogReader in(LOG_FILE_NAME);
   while (in.HasMore()) {
-    storage::LogRecord *log_record = ReadNextRecord(&in, sql_table->table_.layout);
+    storage::LogRecord *log_record = ReadNextRecord(&in, sql_table->Layout());
     if (log_record->RecordType() == LogRecordType::ABORT) {
       found_abort_record = true;
       auto *abort_record = log_record->GetUnderlyingRecordBodyAs<storage::AbortRecord>();
@@ -351,7 +348,6 @@ TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
   // Perform GC, will clean up transactions for us
   gc_thread_ = new storage::GarbageCollectorThread(&txn_manager_, gc_period_);
   delete gc_thread_;
-  delete second_txn;
   delete sql_table;
 }
 
@@ -399,7 +395,7 @@ TEST_F(WriteAheadLoggingTests, NoAbortRecordTest) {
   bool found_abort_record = false;
   storage::BufferedLogReader in(LOG_FILE_NAME);
   while (in.HasMore()) {
-    storage::LogRecord *log_record = ReadNextRecord(&in, sql_table->table_.layout);
+    storage::LogRecord *log_record = ReadNextRecord(&in, sql_table->Layout());
     if (log_record->RecordType() == LogRecordType::ABORT) {
       found_abort_record = true;
     }

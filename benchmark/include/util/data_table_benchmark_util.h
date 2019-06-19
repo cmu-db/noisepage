@@ -16,24 +16,24 @@ struct TestCallbacks {
   static void EmptyCallback(void * /*unused*/) {}
 };
 
-class LargeTransactionBenchmarkObject;
-class RandomWorkloadTransaction;
+class LargeDataTableBenchmarkObject;
+class RandomDataTableTransaction;
 
 /**
- * A RandomWorkloadTransaction class provides a simple interface to simulate a transaction running in the system.
+ * A RandomDataTableTransaction class provides a simple interface to simulate a transaction running in the system.
  */
-class RandomWorkloadTransaction {
+class RandomDataTableTransaction {
  public:
   /**
-   * Initializes a new RandomWorkloadTransaction to work on the given test object
+   * Initializes a new RandomDataTableTransaction to work on the given test object
    * @param test_object the test object that runs this transaction
    */
-  explicit RandomWorkloadTransaction(LargeTransactionBenchmarkObject *test_object);
+  explicit RandomDataTableTransaction(LargeDataTableBenchmarkObject *test_object);
 
   /**
    * Destructs a random workload transaction
    */
-  ~RandomWorkloadTransaction();
+  ~RandomDataTableTransaction();
 
   /**
    * Randomly updates a tuple, using the given generator as source of randomness.
@@ -75,8 +75,8 @@ class RandomWorkloadTransaction {
   }
 
  private:
-  friend class LargeTransactionBenchmarkObject;
-  LargeTransactionBenchmarkObject *test_object_;
+  friend class LargeDataTableBenchmarkObject;
+  LargeDataTableBenchmarkObject *test_object_;
   transaction::TransactionContext *txn_;
   // extra bookkeeping for correctness checks
   bool aborted_;
@@ -90,7 +90,7 @@ class RandomWorkloadTransaction {
  *
  * So far we only do updates and selects, as inserts and deletes are not given much special meaning without the index.
  */
-class LargeTransactionBenchmarkObject {
+class LargeDataTableBenchmarkObject {
  public:
   /**
    * Initializes a test object with the given configuration
@@ -105,16 +105,16 @@ class LargeTransactionBenchmarkObject {
    * @param gc_on whether gc is enabled
    * @param log_manager pointer to the LogManager if enabled
    */
-  LargeTransactionBenchmarkObject(const std::vector<uint8_t> &attr_sizes, uint32_t initial_table_size,
-                                  uint32_t txn_length, std::vector<double> operation_ratio,
-                                  storage::BlockStore *block_store, storage::RecordBufferSegmentPool *buffer_pool,
-                                  std::default_random_engine *generator, bool gc_on,
-                                  storage::LogManager *log_manager = LOGGING_DISABLED);
+  LargeDataTableBenchmarkObject(const std::vector<uint8_t> &attr_sizes, uint32_t initial_table_size,
+                                uint32_t txn_length, std::vector<double> operation_ratio,
+                                storage::BlockStore *block_store, storage::RecordBufferSegmentPool *buffer_pool,
+                                std::default_random_engine *generator, bool gc_on,
+                                storage::LogManager *log_manager = LOGGING_DISABLED);
 
   /**
-   * Destructs a LargeTransactionBenchmarkObject
+   * Destructs a LargeDataTableBenchmarkObject
    */
-  ~LargeTransactionBenchmarkObject();
+  ~LargeDataTableBenchmarkObject();
 
   /**
    * @return the transaction manager used by this test
@@ -137,12 +137,12 @@ class LargeTransactionBenchmarkObject {
   const storage::BlockLayout &Layout() const { return layout_; }
 
  private:
-  void SimulateOneTransaction(RandomWorkloadTransaction *txn, uint32_t txn_id);
+  void SimulateOneTransaction(RandomDataTableTransaction *txn, uint32_t txn_id);
 
   template <class Random>
   void PopulateInitialTable(uint32_t num_tuples, Random *generator);
 
-  friend class RandomWorkloadTransaction;
+  friend class RandomDataTableTransaction;
   uint32_t txn_length_;
   std::vector<double> operation_ratio_;
   std::default_random_engine *generator_;

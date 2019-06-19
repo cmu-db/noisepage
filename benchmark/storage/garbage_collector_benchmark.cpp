@@ -4,7 +4,7 @@
 #include "benchmark/benchmark.h"
 #include "common/scoped_timer.h"
 #include "storage/garbage_collector.h"
-#include "util/transaction_benchmark_util.h"
+#include "util/data_table_benchmark_util.h"
 
 namespace terrier {
 
@@ -56,8 +56,8 @@ BENCHMARK_DEFINE_F(GarbageCollectorBenchmark, UnlinkTime)(benchmark::State &stat
   // NOLINTNEXTLINE
   for (auto _ : state) {
     // generate our table and instantiate GC
-    LargeTransactionBenchmarkObject tested({8, 8, 8}, initial_table_size, txn_length, update_select_ratio,
-                                           &block_store_, &buffer_pool_, &generator_, true);
+    LargeDataTableBenchmarkObject tested({8, 8, 8}, initial_table_size, txn_length, update_select_ratio, &block_store_,
+                                         &buffer_pool_, &generator_, true);
     gc_ = new storage::GarbageCollector(tested.GetTxnManager());
 
     // clean up insert txn
@@ -95,8 +95,8 @@ BENCHMARK_DEFINE_F(GarbageCollectorBenchmark, ReclaimTime)(benchmark::State &sta
   // NOLINTNEXTLINE
   for (auto _ : state) {
     // generate our table and instantiate GC
-    LargeTransactionBenchmarkObject tested({8, 8, 8}, initial_table_size, txn_length, update_select_ratio,
-                                           &block_store_, &buffer_pool_, &generator_, true);
+    LargeDataTableBenchmarkObject tested({8, 8, 8}, initial_table_size, txn_length, update_select_ratio, &block_store_,
+                                         &buffer_pool_, &generator_, true);
     gc_ = new storage::GarbageCollector(tested.GetTxnManager());
 
     // clean up insert txn
@@ -136,8 +136,8 @@ BENCHMARK_DEFINE_F(GarbageCollectorBenchmark, HighContention)(benchmark::State &
   uint64_t lag_count = 0;
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    LargeTransactionBenchmarkObject tested({8, 8, 8}, 100, txn_length, update_select_ratio, &block_store_,
-                                           &buffer_pool_, &generator_, true);
+    LargeDataTableBenchmarkObject tested({8, 8, 8}, 100, txn_length, update_select_ratio, &block_store_, &buffer_pool_,
+                                         &generator_, true);
     StartGC(tested.GetTxnManager());
     uint64_t elapsed_ms;
     {

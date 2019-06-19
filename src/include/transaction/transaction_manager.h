@@ -129,7 +129,7 @@ class TransactionManager {
   void LogCommit(TransactionContext *txn, timestamp_t commit_time, transaction::callback_fn callback,
                  void *callback_arg);
 
-  void LogAbort(TransactionContext *txn, timestamp_t abort_time);
+  void LogAbort(TransactionContext *txn);
 
   void Rollback(TransactionContext *txn, const storage::UndoRecord &record) const;
 

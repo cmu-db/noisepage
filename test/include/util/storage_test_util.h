@@ -82,6 +82,17 @@ struct StorageTestUtil {
     return RandomLayout(max_cols, generator, true);
   }
 
+  // Returns a random schema that is guaranteed to be valid.
+  template <typename Random>
+  static catalog::Schema RandomSchemaNoVarlen(const uint16_t max_cols, Random *const generator) {
+    return RandomSchema(max_cols, generator, false);
+  }
+
+  template <typename Random>
+  static catalog::Schema RandomSchemaWithVarlens(const uint16_t max_cols, Random *const generator) {
+    return RandomSchema(max_cols, generator, true);
+  }
+
   // Fill the given location with the specified amount of random bytes, using the
   // given generator as a source of randomness.
   template <typename Random>
@@ -456,6 +467,24 @@ struct StorageTestUtil {
     for (uint16_t i = NUM_RESERVED_COLUMNS; i < num_attrs; i++)
       attr_sizes[i] = *RandomTestUtil::UniformRandomElement(&possible_attr_sizes, generator);
     return storage::BlockLayout(attr_sizes);
+  }
+
+  template <typename Random>
+  static catalog::Schema RandomSchema(const uint16_t max_cols, Random *const generator, bool allow_varlen) {
+    const uint16_t num_attrs = std::uniform_int_distribution<uint16_t>(1, max_cols)(*generator);
+    std::vector<type::TypeId> possible_attr_types{type::TypeId::BOOLEAN, type::TypeId::SMALLINT, type::TypeId::INTEGER,
+                                                  type::TypeId::DECIMAL};
+    if (allow_varlen) possible_attr_types.push_back(type::TypeId::VARCHAR);
+
+    std::vector<catalog::Schema::Column> columns;
+
+    for (uint16_t i = 0; i < num_attrs; i++) {
+      columns.emplace_back("col" + std::to_string(i),
+                           *RandomTestUtil::UniformRandomElement(&possible_attr_types, generator), false,
+                           catalog::col_oid_t(i));
+    }
+
+    return catalog::Schema(columns);
   }
 };
 }  // namespace terrier

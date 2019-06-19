@@ -14,16 +14,17 @@
 
 namespace terrier {
 
-class LargeTransactionTestObject;
-class RandomWorkloadTransaction;
+class LargeDataTableTestObject;
+class RandomDataTableTransaction;
 using TupleEntry = std::pair<storage::TupleSlot, storage::ProjectedRow *>;
 using TableSnapshot = std::unordered_map<storage::TupleSlot, storage::ProjectedRow *>;
 using VersionedSnapshots = std::map<transaction::timestamp_t, TableSnapshot>;
 // {committed, aborted}
-using SimulationResult = std::pair<std::vector<RandomWorkloadTransaction *>, std::vector<RandomWorkloadTransaction *>>;
+using SimulationResult =
+    std::pair<std::vector<RandomDataTableTransaction *>, std::vector<RandomDataTableTransaction *>>;
 
 /**
- * A RandomWorkloadTransaction class provides a simple interface to simulate a transaction running in the system.
+ * A RandomDataTableTransaction class provides a simple interface to simulate a transaction running in the system.
  *
  * The transaction can be initialized to store enough information to allow for correctness checking, or take care
  * of transaction recycling when GC is not turned on. Disable correctness record-keeping for test cases where you
@@ -33,18 +34,18 @@ using SimulationResult = std::pair<std::vector<RandomWorkloadTransaction *>, std
 // those operations are not really different from updates except the execution layer will interpret tuples differently,
 // and GC needs to recycle slots. Maybe we can write those later, but I suspect the gain will be minimal compared to
 // the extra effort.
-class RandomWorkloadTransaction {
+class RandomDataTableTransaction {
  public:
   /**
-   * Initializes a new RandomWorkloadTransaction to work on the given test object
+   * Initializes a new RandomDataTableTransaction to work on the given test object
    * @param test_object the test object that runs this transaction
    */
-  explicit RandomWorkloadTransaction(LargeTransactionTestObject *test_object);
+  explicit RandomDataTableTransaction(LargeDataTableTestObject *test_object);
 
   /**
    * Destructs a random workload transaction
    */
-  ~RandomWorkloadTransaction();
+  ~RandomDataTableTransaction();
 
   /**
    * Randomly updates a tuple, using the given generator as source of randomness. Operation is logged if correctness
@@ -82,8 +83,8 @@ class RandomWorkloadTransaction {
   std::unordered_map<storage::TupleSlot, storage::ProjectedRow *> *Updates() { return &updates_; }
 
  private:
-  friend class LargeTransactionTestObject;
-  LargeTransactionTestObject *test_object_;
+  friend class LargeDataTableTestObject;
+  LargeDataTableTestObject *test_object_;
   transaction::TransactionContext *txn_;
   // extra bookkeeping for correctness checks
   bool aborted_;
@@ -100,10 +101,10 @@ class RandomWorkloadTransaction {
  *
  * So far we only do updates and selects, as inserts and deletes are not given much special meaning without the index.
  */
-class LargeTransactionTestObject {
+class LargeDataTableTestObject {
  public:
   /**
-   * Builder class for LargeTransactionTestObject
+   * Builder class for LargeDataTableTestObject
    */
   class Builder {
    public:
@@ -209,10 +210,10 @@ class LargeTransactionTestObject {
     }
 
     /**
-     * @return the constructed LargeTransactionTestObject using the parameters provided
+     * @return the constructed LargeDataTableTestObject using the parameters provided
      * (or default ones if not supplied).
      */
-    LargeTransactionTestObject build();
+    LargeDataTableTestObject build();
 
    private:
     uint16_t builder_max_columns_ = 25;
@@ -229,9 +230,9 @@ class LargeTransactionTestObject {
   };
 
   /**
-   * Destructs a LargeTransactionTestObject
+   * Destructs a LargeDataTableTestObject
    */
-  ~LargeTransactionTestObject();
+  ~LargeDataTableTestObject();
 
   /**
    * @return the transaction manager used by this test
@@ -261,9 +262,9 @@ class LargeTransactionTestObject {
    * @param commits list of commits to check.
    */
   // TODO(Tianyu): Interesting thought: If we let an external correctness checker share the list of
-  // RandomWorkloadTransaction objects, we can in theory check correctness as more operations are run, and
+  // RandomDataTableTransaction objects, we can in theory check correctness as more operations are run, and
   // keep the memory consumption of all this bookkeeping down. (Just like checkpoints)
-  void CheckReadsCorrect(std::vector<RandomWorkloadTransaction *> *commits);
+  void CheckReadsCorrect(std::vector<RandomDataTableTransaction *> *commits);
 
  private:
   /**
@@ -279,28 +280,28 @@ class LargeTransactionTestObject {
    * @param gc_on whether gc is enabled
    * @param bookkeeping whether correctness check is enabled
    */
-  LargeTransactionTestObject(uint16_t max_columns, uint32_t initial_table_size, uint32_t txn_length,
-                             std::vector<double> update_select_ratio, storage::BlockStore *block_store,
-                             storage::RecordBufferSegmentPool *buffer_pool, std::default_random_engine *generator,
-                             bool gc_on, bool bookkeeping, storage::LogManager *log_manager, bool varlen_allowed);
+  LargeDataTableTestObject(uint16_t max_columns, uint32_t initial_table_size, uint32_t txn_length,
+                           std::vector<double> update_select_ratio, storage::BlockStore *block_store,
+                           storage::RecordBufferSegmentPool *buffer_pool, std::default_random_engine *generator,
+                           bool gc_on, bool bookkeeping, storage::LogManager *log_manager, bool varlen_allowed);
 
-  void SimulateOneTransaction(RandomWorkloadTransaction *txn, uint32_t txn_id);
+  void SimulateOneTransaction(RandomDataTableTransaction *txn, uint32_t txn_id);
 
   template <class Random>
   void PopulateInitialTable(uint32_t num_tuples, Random *generator);
 
   storage::ProjectedRow *CopyTuple(storage::ProjectedRow *other);
 
-  void UpdateSnapshot(RandomWorkloadTransaction *txn, TableSnapshot *curr, const TableSnapshot &before);
+  void UpdateSnapshot(RandomDataTableTransaction *txn, TableSnapshot *curr, const TableSnapshot &before);
 
   // This returned value will contain memory that has to be freed manually
-  VersionedSnapshots ReconstructVersionedTable(std::vector<RandomWorkloadTransaction *> *txns);
+  VersionedSnapshots ReconstructVersionedTable(std::vector<RandomDataTableTransaction *> *txns);
 
-  void CheckTransactionReadCorrect(RandomWorkloadTransaction *txn, const VersionedSnapshots &snapshots);
+  void CheckTransactionReadCorrect(RandomDataTableTransaction *txn, const VersionedSnapshots &snapshots);
 
   void UpdateLastCheckedVersion(const TableSnapshot &snapshot);
 
-  friend class RandomWorkloadTransaction;
+  friend class RandomDataTableTransaction;
   uint32_t txn_length_;
   std::vector<double> update_select_ratio_;
   std::default_random_engine *generator_;

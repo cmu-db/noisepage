@@ -1,7 +1,7 @@
 #include <vector>
 #include "gtest/gtest.h"
 #include "storage/garbage_collector_thread.h"
-#include "util/transaction_test_util.h"
+#include "util/data_table_test_util.h"
 
 namespace terrier {
 class LargeGCTests : public TerrierTest {
@@ -28,18 +28,18 @@ TEST_F(LargeGCTests, MixedReadWriteWithGC) {
   const std::vector<double> update_select_ratio = {0.5, 0.5};
   const uint32_t num_concurrent_txns = MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
-    LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
-                                            .SetMaxColumns(max_columns)
-                                            .SetInitialTableSize(initial_table_size)
-                                            .SetTxnLength(txn_length)
-                                            .SetUpdateSelectRatio(update_select_ratio)
-                                            .SetBlockStore(&block_store_)
-                                            .SetBufferPool(&buffer_pool_)
-                                            .SetGenerator(&generator_)
-                                            .SetGcOn(true)
-                                            .SetBookkeeping(true)
-                                            .SetVarlenAllowed(true)
-                                            .build();
+    LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
+                                          .SetMaxColumns(max_columns)
+                                          .SetInitialTableSize(initial_table_size)
+                                          .SetTxnLength(txn_length)
+                                          .SetUpdateSelectRatio(update_select_ratio)
+                                          .SetBlockStore(&block_store_)
+                                          .SetBufferPool(&buffer_pool_)
+                                          .SetGenerator(&generator_)
+                                          .SetGcOn(true)
+                                          .SetBookkeeping(true)
+                                          .SetVarlenAllowed(true)
+                                          .build();
     storage::GarbageCollectorThread gc_thread(tested.GetTxnManager(), gc_period);
     for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
       auto result = tested.SimulateOltp(batch_size, num_concurrent_txns);
@@ -59,18 +59,18 @@ TEST_F(LargeGCTests, MixedReadWriteHighThreadWithGC) {
   const std::vector<double> update_select_ratio = {0.5, 0.5};
   const uint32_t num_concurrent_txns = 2 * MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
-    LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
-                                            .SetMaxColumns(max_columns)
-                                            .SetInitialTableSize(initial_table_size)
-                                            .SetTxnLength(txn_length)
-                                            .SetUpdateSelectRatio(update_select_ratio)
-                                            .SetBlockStore(&block_store_)
-                                            .SetBufferPool(&buffer_pool_)
-                                            .SetGenerator(&generator_)
-                                            .SetGcOn(true)
-                                            .SetBookkeeping(true)
-                                            .SetVarlenAllowed(true)
-                                            .build();
+    LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
+                                          .SetMaxColumns(max_columns)
+                                          .SetInitialTableSize(initial_table_size)
+                                          .SetTxnLength(txn_length)
+                                          .SetUpdateSelectRatio(update_select_ratio)
+                                          .SetBlockStore(&block_store_)
+                                          .SetBufferPool(&buffer_pool_)
+                                          .SetGenerator(&generator_)
+                                          .SetGcOn(true)
+                                          .SetBookkeeping(true)
+                                          .SetVarlenAllowed(true)
+                                          .build();
     storage::GarbageCollectorThread gc_thread(tested.GetTxnManager(), gc_period);
     for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
       auto result = tested.SimulateOltp(batch_size, num_concurrent_txns);
@@ -90,18 +90,18 @@ TEST_F(LargeGCTests, LowAbortHighThroughputWithGC) {
   const std::vector<double> update_select_ratio = {0.5, 0.5};
   const uint32_t num_concurrent_txns = MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
-    LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
-                                            .SetMaxColumns(max_columns)
-                                            .SetInitialTableSize(initial_table_size)
-                                            .SetTxnLength(txn_length)
-                                            .SetUpdateSelectRatio(update_select_ratio)
-                                            .SetBlockStore(&block_store_)
-                                            .SetBufferPool(&buffer_pool_)
-                                            .SetGenerator(&generator_)
-                                            .SetGcOn(true)
-                                            .SetBookkeeping(true)
-                                            .SetVarlenAllowed(true)
-                                            .build();
+    LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
+                                          .SetMaxColumns(max_columns)
+                                          .SetInitialTableSize(initial_table_size)
+                                          .SetTxnLength(txn_length)
+                                          .SetUpdateSelectRatio(update_select_ratio)
+                                          .SetBlockStore(&block_store_)
+                                          .SetBufferPool(&buffer_pool_)
+                                          .SetGenerator(&generator_)
+                                          .SetGcOn(true)
+                                          .SetBookkeeping(true)
+                                          .SetVarlenAllowed(true)
+                                          .build();
     storage::GarbageCollectorThread gc_thread(tested.GetTxnManager(), gc_period);
     for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
       auto result = tested.SimulateOltp(batch_size, num_concurrent_txns);
@@ -121,18 +121,18 @@ TEST_F(LargeGCTests, LowAbortHighThroughputHighThreadWithGC) {
   const std::vector<double> update_select_ratio = {0.5, 0.5};
   const uint32_t num_concurrent_txns = 2 * MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
-    LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
-                                            .SetMaxColumns(max_columns)
-                                            .SetInitialTableSize(initial_table_size)
-                                            .SetTxnLength(txn_length)
-                                            .SetUpdateSelectRatio(update_select_ratio)
-                                            .SetBlockStore(&block_store_)
-                                            .SetBufferPool(&buffer_pool_)
-                                            .SetGenerator(&generator_)
-                                            .SetGcOn(true)
-                                            .SetBookkeeping(true)
-                                            .SetVarlenAllowed(true)
-                                            .build();
+    LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
+                                          .SetMaxColumns(max_columns)
+                                          .SetInitialTableSize(initial_table_size)
+                                          .SetTxnLength(txn_length)
+                                          .SetUpdateSelectRatio(update_select_ratio)
+                                          .SetBlockStore(&block_store_)
+                                          .SetBufferPool(&buffer_pool_)
+                                          .SetGenerator(&generator_)
+                                          .SetGcOn(true)
+                                          .SetBookkeeping(true)
+                                          .SetVarlenAllowed(true)
+                                          .build();
     storage::GarbageCollectorThread gc_thread(tested.GetTxnManager(), gc_period);
     for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
       auto result = tested.SimulateOltp(batch_size, num_concurrent_txns);
@@ -153,18 +153,18 @@ TEST_F(LargeGCTests, HighAbortRateWithGC) {
   const std::vector<double> update_select_ratio = {0.8, 0.2};
   const uint32_t num_concurrent_txns = MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
-    LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
-                                            .SetMaxColumns(max_columns)
-                                            .SetInitialTableSize(initial_table_size)
-                                            .SetTxnLength(txn_length)
-                                            .SetUpdateSelectRatio(update_select_ratio)
-                                            .SetBlockStore(&block_store_)
-                                            .SetBufferPool(&buffer_pool_)
-                                            .SetGenerator(&generator_)
-                                            .SetGcOn(true)
-                                            .SetBookkeeping(true)
-                                            .SetVarlenAllowed(true)
-                                            .build();
+    LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
+                                          .SetMaxColumns(max_columns)
+                                          .SetInitialTableSize(initial_table_size)
+                                          .SetTxnLength(txn_length)
+                                          .SetUpdateSelectRatio(update_select_ratio)
+                                          .SetBlockStore(&block_store_)
+                                          .SetBufferPool(&buffer_pool_)
+                                          .SetGenerator(&generator_)
+                                          .SetGcOn(true)
+                                          .SetBookkeeping(true)
+                                          .SetVarlenAllowed(true)
+                                          .build();
     storage::GarbageCollectorThread gc_thread(tested.GetTxnManager(), gc_period);
     for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
       auto result = tested.SimulateOltp(batch_size, num_concurrent_txns);
@@ -184,18 +184,18 @@ TEST_F(LargeGCTests, HighAbortRateHighThreadWithGC) {
   const std::vector<double> update_select_ratio = {0.8, 0.2};
   const uint32_t num_concurrent_txns = 2 * MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
-    LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
-                                            .SetMaxColumns(max_columns)
-                                            .SetInitialTableSize(initial_table_size)
-                                            .SetTxnLength(txn_length)
-                                            .SetUpdateSelectRatio(update_select_ratio)
-                                            .SetBlockStore(&block_store_)
-                                            .SetBufferPool(&buffer_pool_)
-                                            .SetGenerator(&generator_)
-                                            .SetGcOn(true)
-                                            .SetBookkeeping(true)
-                                            .SetVarlenAllowed(true)
-                                            .build();
+    LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
+                                          .SetMaxColumns(max_columns)
+                                          .SetInitialTableSize(initial_table_size)
+                                          .SetTxnLength(txn_length)
+                                          .SetUpdateSelectRatio(update_select_ratio)
+                                          .SetBlockStore(&block_store_)
+                                          .SetBufferPool(&buffer_pool_)
+                                          .SetGenerator(&generator_)
+                                          .SetGcOn(true)
+                                          .SetBookkeeping(true)
+                                          .SetVarlenAllowed(true)
+                                          .build();
     storage::GarbageCollectorThread gc_thread(tested.GetTxnManager(), gc_period);
     for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
       auto result = tested.SimulateOltp(batch_size, num_concurrent_txns);
@@ -215,18 +215,18 @@ TEST_F(LargeGCTests, TPCCishWithGC) {
   const std::vector<double> update_select_ratio = {0.4, 0.6};
   const uint32_t num_concurrent_txns = MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
-    LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
-                                            .SetMaxColumns(max_columns)
-                                            .SetInitialTableSize(initial_table_size)
-                                            .SetTxnLength(txn_length)
-                                            .SetUpdateSelectRatio(update_select_ratio)
-                                            .SetBlockStore(&block_store_)
-                                            .SetBufferPool(&buffer_pool_)
-                                            .SetGenerator(&generator_)
-                                            .SetGcOn(true)
-                                            .SetBookkeeping(true)
-                                            .SetVarlenAllowed(true)
-                                            .build();
+    LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
+                                          .SetMaxColumns(max_columns)
+                                          .SetInitialTableSize(initial_table_size)
+                                          .SetTxnLength(txn_length)
+                                          .SetUpdateSelectRatio(update_select_ratio)
+                                          .SetBlockStore(&block_store_)
+                                          .SetBufferPool(&buffer_pool_)
+                                          .SetGenerator(&generator_)
+                                          .SetGcOn(true)
+                                          .SetBookkeeping(true)
+                                          .SetVarlenAllowed(true)
+                                          .build();
     storage::GarbageCollectorThread gc_thread(tested.GetTxnManager(), gc_period);
     for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
       auto result = tested.SimulateOltp(batch_size, num_concurrent_txns);
@@ -246,18 +246,18 @@ TEST_F(LargeGCTests, TPCCishHighThreadWithGC) {
   const std::vector<double> update_select_ratio = {0.4, 0.6};
   const uint32_t num_concurrent_txns = 2 * MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
-    LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
-                                            .SetMaxColumns(max_columns)
-                                            .SetInitialTableSize(initial_table_size)
-                                            .SetTxnLength(txn_length)
-                                            .SetUpdateSelectRatio(update_select_ratio)
-                                            .SetBlockStore(&block_store_)
-                                            .SetBufferPool(&buffer_pool_)
-                                            .SetGenerator(&generator_)
-                                            .SetGcOn(true)
-                                            .SetBookkeeping(true)
-                                            .SetVarlenAllowed(true)
-                                            .build();
+    LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
+                                          .SetMaxColumns(max_columns)
+                                          .SetInitialTableSize(initial_table_size)
+                                          .SetTxnLength(txn_length)
+                                          .SetUpdateSelectRatio(update_select_ratio)
+                                          .SetBlockStore(&block_store_)
+                                          .SetBufferPool(&buffer_pool_)
+                                          .SetGenerator(&generator_)
+                                          .SetGcOn(true)
+                                          .SetBookkeeping(true)
+                                          .SetVarlenAllowed(true)
+                                          .build();
     storage::GarbageCollectorThread gc_thread(tested.GetTxnManager(), gc_period);
     for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
       auto result = tested.SimulateOltp(batch_size, num_concurrent_txns);

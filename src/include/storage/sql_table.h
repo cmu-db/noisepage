@@ -11,10 +11,13 @@
 #include "storage/write_ahead_log/log_record.h"
 #include "transaction/transaction_context.h"
 
-namespace terrier::storage {
+namespace terrier {
+// Forward Declaration
+class LargeSqlTableTestObject;
+class RandomSqlTableTransaction;
+}  // namespace terrier
 
-// Forward declaration
-class RecoveryManager;
+namespace terrier::storage {
 
 /**
  * A SqlTable is a thin layer above DataTable that replaces storage layer concepts like BlockLayout with SQL layer
@@ -192,11 +195,12 @@ class SqlTable {
     return {initializer, projection_map};
   }
 
+  /**
+   * @return layout of the underlying data table
+   */
+  const storage::BlockLayout &Layout() const { return table_.layout; }
+
  private:
-  FRIEND_TEST(WriteAheadLoggingTests, AbortRecordTest);
-  FRIEND_TEST(WriteAheadLoggingTests, NoAbortRecordTest);
-  FRIEND_TEST(RecoveryTests, SingleTransactionRecoveryTest);
-  friend class RecoveryManager;
   BlockStore *const block_store_;
   const catalog::table_oid_t oid_;
 

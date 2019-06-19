@@ -1,6 +1,6 @@
 #include <vector>
 #include "gtest/gtest.h"
-#include "util/transaction_test_util.h"
+#include "util/data_table_test_util.h"
 
 namespace terrier {
 class LargeTransactionTests : public TerrierTest {
@@ -24,17 +24,17 @@ TEST_F(LargeTransactionTests, MixedReadWrite) {
   const std::vector<double> update_select_ratio = {0.5, 0.5};
   const uint32_t num_concurrent_txns = MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
-    LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
-                                            .SetMaxColumns(max_columns)
-                                            .SetInitialTableSize(initial_table_size)
-                                            .SetTxnLength(txn_length)
-                                            .SetUpdateSelectRatio(update_select_ratio)
-                                            .SetBlockStore(&block_store_)
-                                            .SetBufferPool(&buffer_pool_)
-                                            .SetGenerator(&generator_)
-                                            .SetGcOn(false)
-                                            .SetBookkeeping(true)
-                                            .build();
+    LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
+                                          .SetMaxColumns(max_columns)
+                                          .SetInitialTableSize(initial_table_size)
+                                          .SetTxnLength(txn_length)
+                                          .SetUpdateSelectRatio(update_select_ratio)
+                                          .SetBlockStore(&block_store_)
+                                          .SetBufferPool(&buffer_pool_)
+                                          .SetGenerator(&generator_)
+                                          .SetGcOn(false)
+                                          .SetBookkeeping(true)
+                                          .build();
     auto result = tested.SimulateOltp(num_txns, num_concurrent_txns);
     tested.CheckReadsCorrect(&result.first);
     for (auto w : result.first) delete w;
@@ -49,17 +49,17 @@ TEST_F(LargeTransactionTests, MixedReadWriteHighThread) {
   const std::vector<double> update_select_ratio = {0.5, 0.5};
   const uint32_t num_concurrent_txns = 2 * MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
-    LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
-                                            .SetMaxColumns(max_columns)
-                                            .SetInitialTableSize(initial_table_size)
-                                            .SetTxnLength(txn_length)
-                                            .SetUpdateSelectRatio(update_select_ratio)
-                                            .SetBlockStore(&block_store_)
-                                            .SetBufferPool(&buffer_pool_)
-                                            .SetGenerator(&generator_)
-                                            .SetGcOn(false)
-                                            .SetBookkeeping(true)
-                                            .build();
+    LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
+                                          .SetMaxColumns(max_columns)
+                                          .SetInitialTableSize(initial_table_size)
+                                          .SetTxnLength(txn_length)
+                                          .SetUpdateSelectRatio(update_select_ratio)
+                                          .SetBlockStore(&block_store_)
+                                          .SetBufferPool(&buffer_pool_)
+                                          .SetGenerator(&generator_)
+                                          .SetGcOn(false)
+                                          .SetBookkeeping(true)
+                                          .build();
     auto result = tested.SimulateOltp(num_txns, num_concurrent_txns);
     tested.CheckReadsCorrect(&result.first);
     for (auto w : result.first) delete w;
@@ -74,17 +74,17 @@ TEST_F(LargeTransactionTests, LowAbortHighThroughput) {
   const std::vector<double> update_select_ratio = {0.5, 0.5};
   const uint32_t num_concurrent_txns = MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
-    LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
-                                            .SetMaxColumns(max_columns)
-                                            .SetInitialTableSize(initial_table_size)
-                                            .SetTxnLength(txn_length)
-                                            .SetUpdateSelectRatio(update_select_ratio)
-                                            .SetBlockStore(&block_store_)
-                                            .SetBufferPool(&buffer_pool_)
-                                            .SetGenerator(&generator_)
-                                            .SetGcOn(false)
-                                            .SetBookkeeping(true)
-                                            .build();
+    LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
+                                          .SetMaxColumns(max_columns)
+                                          .SetInitialTableSize(initial_table_size)
+                                          .SetTxnLength(txn_length)
+                                          .SetUpdateSelectRatio(update_select_ratio)
+                                          .SetBlockStore(&block_store_)
+                                          .SetBufferPool(&buffer_pool_)
+                                          .SetGenerator(&generator_)
+                                          .SetGcOn(false)
+                                          .SetBookkeeping(true)
+                                          .build();
     auto result = tested.SimulateOltp(num_txns, num_concurrent_txns);
     tested.CheckReadsCorrect(&result.first);
     for (auto w : result.first) delete w;
@@ -99,17 +99,17 @@ TEST_F(LargeTransactionTests, LowAbortHighThroughputHighThread) {
   const std::vector<double> update_select_ratio = {0.5, 0.5};
   const uint32_t num_concurrent_txns = 2 * MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
-    LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
-                                            .SetMaxColumns(max_columns)
-                                            .SetInitialTableSize(initial_table_size)
-                                            .SetTxnLength(txn_length)
-                                            .SetUpdateSelectRatio(update_select_ratio)
-                                            .SetBlockStore(&block_store_)
-                                            .SetBufferPool(&buffer_pool_)
-                                            .SetGenerator(&generator_)
-                                            .SetGcOn(false)
-                                            .SetBookkeeping(true)
-                                            .build();
+    LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
+                                          .SetMaxColumns(max_columns)
+                                          .SetInitialTableSize(initial_table_size)
+                                          .SetTxnLength(txn_length)
+                                          .SetUpdateSelectRatio(update_select_ratio)
+                                          .SetBlockStore(&block_store_)
+                                          .SetBufferPool(&buffer_pool_)
+                                          .SetGenerator(&generator_)
+                                          .SetGcOn(false)
+                                          .SetBookkeeping(true)
+                                          .build();
     auto result = tested.SimulateOltp(num_txns, num_concurrent_txns);
     tested.CheckReadsCorrect(&result.first);
     for (auto w : result.first) delete w;
@@ -125,17 +125,17 @@ TEST_F(LargeTransactionTests, HighAbortRate) {
   const std::vector<double> update_select_ratio = {0.8, 0.2};
   const uint32_t num_concurrent_txns = MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
-    LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
-                                            .SetMaxColumns(max_columns)
-                                            .SetInitialTableSize(initial_table_size)
-                                            .SetTxnLength(txn_length)
-                                            .SetUpdateSelectRatio(update_select_ratio)
-                                            .SetBlockStore(&block_store_)
-                                            .SetBufferPool(&buffer_pool_)
-                                            .SetGenerator(&generator_)
-                                            .SetGcOn(false)
-                                            .SetBookkeeping(true)
-                                            .build();
+    LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
+                                          .SetMaxColumns(max_columns)
+                                          .SetInitialTableSize(initial_table_size)
+                                          .SetTxnLength(txn_length)
+                                          .SetUpdateSelectRatio(update_select_ratio)
+                                          .SetBlockStore(&block_store_)
+                                          .SetBufferPool(&buffer_pool_)
+                                          .SetGenerator(&generator_)
+                                          .SetGcOn(false)
+                                          .SetBookkeeping(true)
+                                          .build();
     auto result = tested.SimulateOltp(num_txns, num_concurrent_txns);
     tested.CheckReadsCorrect(&result.first);
     for (auto w : result.first) delete w;
@@ -150,17 +150,17 @@ TEST_F(LargeTransactionTests, HighAbortRateHighThread) {
   const std::vector<double> update_select_ratio = {0.8, 0.2};
   const uint32_t num_concurrent_txns = 2 * MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
-    LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
-                                            .SetMaxColumns(max_columns)
-                                            .SetInitialTableSize(initial_table_size)
-                                            .SetTxnLength(txn_length)
-                                            .SetUpdateSelectRatio(update_select_ratio)
-                                            .SetBlockStore(&block_store_)
-                                            .SetBufferPool(&buffer_pool_)
-                                            .SetGenerator(&generator_)
-                                            .SetGcOn(false)
-                                            .SetBookkeeping(true)
-                                            .build();
+    LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
+                                          .SetMaxColumns(max_columns)
+                                          .SetInitialTableSize(initial_table_size)
+                                          .SetTxnLength(txn_length)
+                                          .SetUpdateSelectRatio(update_select_ratio)
+                                          .SetBlockStore(&block_store_)
+                                          .SetBufferPool(&buffer_pool_)
+                                          .SetGenerator(&generator_)
+                                          .SetGcOn(false)
+                                          .SetBookkeeping(true)
+                                          .build();
     auto result = tested.SimulateOltp(num_txns, num_concurrent_txns);
     tested.CheckReadsCorrect(&result.first);
     for (auto w : result.first) delete w;
@@ -175,17 +175,17 @@ TEST_F(LargeTransactionTests, TPCCish) {
   const std::vector<double> update_select_ratio = {0.4, 0.6};
   const uint32_t num_concurrent_txns = MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
-    LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
-                                            .SetMaxColumns(max_columns)
-                                            .SetInitialTableSize(initial_table_size)
-                                            .SetTxnLength(txn_length)
-                                            .SetUpdateSelectRatio(update_select_ratio)
-                                            .SetBlockStore(&block_store_)
-                                            .SetBufferPool(&buffer_pool_)
-                                            .SetGenerator(&generator_)
-                                            .SetGcOn(false)
-                                            .SetBookkeeping(true)
-                                            .build();
+    LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
+                                          .SetMaxColumns(max_columns)
+                                          .SetInitialTableSize(initial_table_size)
+                                          .SetTxnLength(txn_length)
+                                          .SetUpdateSelectRatio(update_select_ratio)
+                                          .SetBlockStore(&block_store_)
+                                          .SetBufferPool(&buffer_pool_)
+                                          .SetGenerator(&generator_)
+                                          .SetGcOn(false)
+                                          .SetBookkeeping(true)
+                                          .build();
     auto result = tested.SimulateOltp(num_txns, num_concurrent_txns);
     tested.CheckReadsCorrect(&result.first);
     for (auto w : result.first) delete w;
@@ -200,17 +200,17 @@ TEST_F(LargeTransactionTests, TPCCishHighThread) {
   const std::vector<double> update_select_ratio = {0.4, 0.6};
   const uint32_t num_concurrent_txns = 2 * MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
-    LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
-                                            .SetMaxColumns(max_columns)
-                                            .SetInitialTableSize(initial_table_size)
-                                            .SetTxnLength(txn_length)
-                                            .SetUpdateSelectRatio(update_select_ratio)
-                                            .SetBlockStore(&block_store_)
-                                            .SetBufferPool(&buffer_pool_)
-                                            .SetGenerator(&generator_)
-                                            .SetGcOn(false)
-                                            .SetBookkeeping(true)
-                                            .build();
+    LargeDataTableTestObject tested = LargeDataTableTestObject::Builder()
+                                          .SetMaxColumns(max_columns)
+                                          .SetInitialTableSize(initial_table_size)
+                                          .SetTxnLength(txn_length)
+                                          .SetUpdateSelectRatio(update_select_ratio)
+                                          .SetBlockStore(&block_store_)
+                                          .SetBufferPool(&buffer_pool_)
+                                          .SetGenerator(&generator_)
+                                          .SetGcOn(false)
+                                          .SetBookkeeping(true)
+                                          .build();
     auto result = tested.SimulateOltp(num_txns, num_concurrent_txns);
     tested.CheckReadsCorrect(&result.first);
     for (auto w : result.first) delete w;
