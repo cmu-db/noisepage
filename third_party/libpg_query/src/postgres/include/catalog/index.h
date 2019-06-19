@@ -28,7 +28,7 @@ typedef void (*IndexBuildCallback) (Relation index,
 												bool tupleIsAlive,
 												void *state);
 
-/* Action code for index_set_state_flags */
+/* TransactionAction code for index_set_state_flags */
 typedef enum
 {
 	INDEX_CREATE_SET_READY,

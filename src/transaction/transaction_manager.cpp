@@ -6,34 +6,10 @@
 
 namespace terrier::transaction {
 TransactionContext *TransactionManager::BeginTransaction() {
+  timestamp_t start_time = timestamp_manager_->BeginTransaction();
+  auto *const result = new TransactionContext(start_time, start_time + INT64_MIN, buffer_pool_, log_manager_);
   // Ensure we do not return from this function if there are ongoing write commits
   common::Gate::ScopedExit gate(&txn_gate_);
-
-  timestamp_t start_time;
-  {
-    // There is a three-way race that needs to be prevented.  Specifically, we
-    // cannot allow both a transaction to commit and the GC to poll for the
-    // oldest running transaction in between this transaction acquiring its
-    // begin timestamp and getting inserted into the current running
-    // transactions list.  Using the current running transactions latch
-    // prevents the GC from polling and stops the race.  This allows us to
-    // replace acquiring a shared instance of the commit latch with a
-    // read-only spin-latch and move the allocation out of a critical section.
-    common::SpinLatch::ScopedSpinLatch running_guard(&curr_running_txns_latch_);
-    start_time = time_++;
-
-    // TODO(Tianyu):
-    // Maybe embed this into the data structure, or use an object pool?
-    // Doing this with std::map or other data structure is risky though, as they may not
-    // guarantee that the iterator or underlying pointer is stable across operations.
-    // (That is, they may change as concurrent inserts and deletes happen)
-    const auto ret UNUSED_ATTRIBUTE = curr_running_txns_.emplace(start_time);
-    TERRIER_ASSERT(ret.second, "commit start time should be globally unique");
-  }  // Release latch on current running transactions
-
-  // Do the allocation outside of any critical section
-  auto *const result = new TransactionContext(start_time, start_time + INT64_MIN, buffer_pool_, log_manager_, this);
-
   return result;
 }
 
@@ -61,7 +37,7 @@ void TransactionManager::LogCommit(TransactionContext *const txn, const timestam
 timestamp_t TransactionManager::ReadOnlyCommitCriticalSection(TransactionContext *const txn, const callback_fn callback,
                                                               void *const callback_arg) {
   // No records to update. No commit will ever depend on us. We can do all the work outside of the critical section
-  const timestamp_t commit_time = time_++;
+  const timestamp_t commit_time = timestamp_manager_->CheckOutTimestamp();
   // TODO(Tianyu): Notice here that for a read-only transaction, it is necessary to communicate the commit with the
   // LogManager, so speculative reads are handled properly,  but there is no need to actually write out the read-only
   // transaction's commit record to disk.
@@ -86,7 +62,7 @@ timestamp_t TransactionManager::UpdatingCommitCriticalSection(TransactionContext
   //  the correct version the second time, violating snapshot isolation.
   //  Make sure you solve this problem before you remove this gate for whatever reason.
   common::Gate::ScopedLock gate(&txn_gate_);
-  const timestamp_t commit_time = time_++;
+  const timestamp_t commit_time = timestamp_manager_->CheckOutTimestamp();
 
   LogCommit(txn, commit_time, callback, callback_arg);
   // flip all timestamps to be committed
@@ -100,21 +76,19 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
   const timestamp_t result = txn->undo_buffer_.Empty() ? ReadOnlyCommitCriticalSection(txn, callback, callback_arg)
                                                        : UpdatingCommitCriticalSection(txn, callback, callback_arg);
   while (!txn->commit_actions_.empty()) {
-    txn->commit_actions_.front()();
+    txn->commit_actions_.front()(deferred_action_manager_);
     txn->commit_actions_.pop_front();
   }
 
+  timestamp_manager_->RemoveTransaction(txn->StartTime());
   {
-    // In a critical section, remove this transaction from the table of running transactions
-    common::SpinLatch::ScopedSpinLatch guard(&curr_running_txns_latch_);
-    const timestamp_t start_time = txn->StartTime();
-    const size_t ret UNUSED_ATTRIBUTE = curr_running_txns_.erase(start_time);
-    TERRIER_ASSERT(ret == 1, "Committed transaction did not exist in global transactions table");
+    common::SpinLatch::ScopedSpinLatch guard(&completed_txns_latch_);
     // It is not necessary to have to GC process read-only transactions, but it's probably faster to call free off
     // the critical path there anyway
     // Also note here that GC will figure out what varlen entries to GC, as opposed to in the abort case.
     if (gc_enabled_) completed_txns_.push_front(txn);
   }
+
   return result;
 }
 
@@ -139,7 +113,7 @@ void TransactionManager::LogAbort(TransactionContext *const txn) {
 timestamp_t TransactionManager::Abort(TransactionContext *const txn) {
   // Immediately clear the abort actions stack
   while (!txn->abort_actions_.empty()) {
-    txn->abort_actions_.front()();
+    txn->abort_actions_.front()(deferred_action_manager_);
     txn->abort_actions_.pop_front();
   }
 
@@ -156,7 +130,7 @@ timestamp_t TransactionManager::Abort(TransactionContext *const txn) {
   // Now that the in-place versions have been restored, we neeed to check out an abort timestamp as well. This serves
   // to force the rest of the system to acknowledge the rollback, lest a reader suffers from an a-b-a problem in the
   // version record
-  const timestamp_t abort_time = time_++;
+  const timestamp_t abort_time = timestamp_manager_->CurrentTime();
   // There is no need to flip these timestamps in a critical section, because readers can never see the aborted
   // version either way, unlike in the commit case, where unrepeatable reads may occur.
   for (auto &it : txn->undo_buffer_) it.Timestamp().store(abort_time);
@@ -178,12 +152,12 @@ timestamp_t TransactionManager::Abort(TransactionContext *const txn) {
     txn->log_processed_ = true;
   }
 
+  timestamp_manager_->RemoveTransaction(txn->StartTime());
   {
-    // In a critical section, remove this transaction from the table of running transactions
-    common::SpinLatch::ScopedSpinLatch guard(&curr_running_txns_latch_);
-    const timestamp_t start_time = txn->StartTime();
-    const size_t ret UNUSED_ATTRIBUTE = curr_running_txns_.erase(start_time);
-    TERRIER_ASSERT(ret == 1, "Aborted transaction did not exist in global transactions table");
+    common::SpinLatch::ScopedSpinLatch guard(&completed_txns_latch_);
+    // It is not necessary to have to GC process read-only transactions, but it's probably faster to call free off
+    // the critical path there anyway
+    // Also note here that GC will figure out what varlen entries to GC, as opposed to in the abort case.
     if (gc_enabled_) completed_txns_.push_front(txn);
   }
   return abort_time;
@@ -223,27 +197,9 @@ void TransactionManager::GCLastUpdateOnAbort(TransactionContext *const txn) {
   }
 }
 
-timestamp_t TransactionManager::OldestTransactionStartTime() const {
-  common::SpinLatch::ScopedSpinLatch guard(&curr_running_txns_latch_);
-  const auto &oldest_txn = std::min_element(curr_running_txns_.cbegin(), curr_running_txns_.cend());
-  const timestamp_t result = (oldest_txn != curr_running_txns_.end()) ? *oldest_txn : time_.load();
-  return result;
-}
-
 TransactionQueue TransactionManager::CompletedTransactionsForGC() {
-  common::SpinLatch::ScopedSpinLatch guard(&curr_running_txns_latch_);
+  common::SpinLatch::ScopedSpinLatch guard(&completed_txns_latch_);
   return std::move(completed_txns_);
-}
-
-void TransactionManager::DeferAction(Action a) {
-  TERRIER_ASSERT(GCEnabled(), "Need GC enabled for deferred actions to be executed.");
-  common::SpinLatch::ScopedSpinLatch guard(&deferred_actions_latch_);
-  deferred_actions_.push({time_.load(), a});
-}
-
-std::queue<std::pair<timestamp_t, Action>> TransactionManager::DeferredActionsForGC() {
-  common::SpinLatch::ScopedSpinLatch guard(&deferred_actions_latch_);
-  return std::move(deferred_actions_);
 }
 
 void TransactionManager::Rollback(TransactionContext *txn, const storage::UndoRecord &record) const {
@@ -269,18 +225,15 @@ void TransactionManager::Rollback(TransactionContext *txn, const storage::UndoRe
           DeallocateColumnUpdateIfVarlen(txn, undo_record, i, accessor);
           storage::StorageUtil::CopyAttrFromProjection(accessor, slot, *(undo_record->Delta()), i);
         }
-        //      version_ptr->Type() = storage::DeltaRecordType::ABORTED_UPDATE;
         break;
       case storage::DeltaRecordType::INSERT:
         // Same as update, need to deallocate possible varlens.
         DeallocateInsertedTupleIfVarlen(txn, undo_record, accessor);
         accessor.SetNull(slot, VERSION_POINTER_COLUMN_ID);
         accessor.Deallocate(slot);
-        //      version_ptr->Type() = storage::DeltaRecordType::ABORTED_INSERT;
         break;
       case storage::DeltaRecordType::DELETE:
         accessor.SetNotNull(slot, VERSION_POINTER_COLUMN_ID);
-        //      version_ptr->Type() = storage::DeltaRecordType::ABORTED_DELETE;
         break;
       default:
         throw std::runtime_error("unexpected delta record type");

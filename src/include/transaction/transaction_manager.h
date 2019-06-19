@@ -9,6 +9,8 @@
 #include "storage/data_table.h"
 #include "storage/record_buffer.h"
 #include "storage/undo_record.h"
+#include "transaction/timestamp_manager.h"
+
 #include "storage/write_ahead_log/log_manager.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
@@ -25,13 +27,22 @@ class TransactionManager {
   /**
    * Initializes a new transaction manager. Transactions will use the given object pool as source of their undo
    * buffers.
+   * @param timestamp_manager timestamp manager that manages timestamps for transactions
+   * @param deferred_action_manager deferred action manager to use for transactions
    * @param buffer_pool the buffer pool to use for transaction undo buffers
    * @param gc_enabled true if txns should be stored in a local queue to hand off to the GC, false otherwise
    * @param log_manager the log manager in the system, or LOGGING_DISABLED(nulllptr) if logging is turned off.
    */
-  BOOST_DI_INJECT(TransactionManager, storage::RecordBufferSegmentPool *buffer_pool,
+  BOOST_DI_INJECT(TransactionManager,
+                  TimestampManager *timestamp_manager,
+                  DeferredActionManager *deferred_action_manager,
+                  storage::RecordBufferSegmentPool *buffer_pool,
                   (named = GC_ENABLED) bool gc_enabled, storage::LogManager *log_manager)
-      : buffer_pool_(buffer_pool), gc_enabled_(gc_enabled), log_manager_(log_manager) {}
+      : timestamp_manager_(timestamp_manager),
+        deferred_action_manager_(deferred_action_manager),
+        buffer_pool_(buffer_pool),
+        gc_enabled_(gc_enabled),
+        log_manager_(log_manager) {}
 
   /**
    * Begins a transaction.
@@ -64,11 +75,6 @@ class TransactionManager {
   timestamp_t OldestTransactionStartTime() const;
 
   /**
-   * @return unique timestamp based on current time, and advances one tick
-   */
-  timestamp_t GetTimestamp() { return time_++; }
-
-  /**
    * @return true if gc_enabled and storing completed txns in local queue, false otherwise
    */
   bool GCEnabled() const { return gc_enabled_; }
@@ -79,40 +85,19 @@ class TransactionManager {
    */
   TransactionQueue CompletedTransactionsForGC();
 
-  /**
-   * Adds the action to a buffered list of deferred actions.  This action will
-   * be triggered no sooner than when the epoch (timestamp of oldest running
-   * transaction) is more recent than the time this function was called.
-   * @param a functional implementation of the action that is deferred
-   */
-  void DeferAction(Action a);
-
-  /**
-   * Transfers the buffered list of deferred actions to the GC for eventual
-   * execution.
-   * @return the deferred actions as a sorted queue of pairs where the timestamp is
-   *         earliest epoch the associated action can safely fire
-   */
-  std::queue<std::pair<timestamp_t, Action>> DeferredActionsForGC();
 
  private:
+  TimestampManager *timestamp_manager_;
+  DeferredActionManager *deferred_action_manager_;
   storage::RecordBufferSegmentPool *buffer_pool_;
-  // TODO(Tianyu): Timestamp generation needs to be more efficient (batches)
-  // TODO(Tianyu): We don't handle timestamp wrap-arounds. I doubt this would be an issue though.
-  std::atomic<timestamp_t> time_{timestamp_t(0)};
 
   common::Gate txn_gate_;
 
-  // TODO(Matt): consider a different data structure if this becomes a measured bottleneck
-  std::unordered_set<timestamp_t> curr_running_txns_;
-  mutable common::SpinLatch curr_running_txns_latch_;
-
   bool gc_enabled_ = false;
   TransactionQueue completed_txns_;
+  common::SpinLatch completed_txns_latch_;
   storage::LogManager *const log_manager_;
 
-  std::queue<std::pair<timestamp_t, Action>> deferred_actions_;
-  mutable common::SpinLatch deferred_actions_latch_;
 
   timestamp_t ReadOnlyCommitCriticalSection(TransactionContext *txn, transaction::callback_fn callback,
                                             void *callback_arg);

@@ -152,3 +152,7 @@
 #endif
 
 #define FRIEND_TEST(test_case_name, test_name) friend class test_case_name##_##test_name##_Test
+
+// We use a dependency injection style where nullptr means the feature is disabled for many components
+// This macro exists purely to improve readability of code.
+#define DISABLED nullptr

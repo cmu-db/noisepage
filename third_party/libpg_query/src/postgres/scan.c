@@ -197,7 +197,7 @@ typedef void* yyscan_t;
 #define YY_START ((yyg->yy_start - 1) / 2)
 #define YYSTATE YY_START
 
-/* Action number for EOF rule of a given start state. */
+/* TransactionAction number for EOF rule of a given start state. */
 #define YY_STATE_EOF(state) (YY_END_OF_BUFFER + state + 1)
 
 /* Special action meaning "start processing a new file". */

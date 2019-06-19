@@ -19,6 +19,7 @@
 #include "transaction/transaction_defs.h"
 
 namespace terrier::storage {
+// TODO(Tianyu): Remove and replace with just the new DISABLED macro
 // Write Ahead Logging:
 #define LOGGING_DISABLED nullptr
 #define ACTION_FRAMEWORK_DISABLED nullptr

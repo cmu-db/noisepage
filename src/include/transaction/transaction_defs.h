@@ -9,6 +9,8 @@ namespace terrier::transaction {
 STRONG_TYPEDEF(timestamp_t, uint64_t);
 
 class TransactionContext;
+class DeferredActionManager;
+
 // Explicitly define the underlying structure of std::queue as std::list since we believe the default (std::deque) may
 // be too memory inefficient and we don't need the fast random access that it provides. It's also impossible to call
 // std::deque's shrink_to_fit() from the std::queue wrapper, while std::list should reduce its memory footprint
@@ -18,5 +20,7 @@ class TransactionContext;
 using TransactionQueue = std::forward_list<transaction::TransactionContext *>;
 using callback_fn = void (*)(void *);
 
-using Action = std::function<void()>;
+// TODO(Tianyu) write documentation
+using TransactionAction = std::function<void(DeferredActionManager *)>;
+using DeferredAction = std::function<void(timestamp_t)>;
 }  // namespace terrier::transaction
