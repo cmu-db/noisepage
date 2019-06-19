@@ -70,6 +70,12 @@ class TupleValueExpression : public AbstractExpression {
   }
 
  private:
+
+  void DeduceExpressionName() override {
+    if (!alias_.empty()) return;
+    expression_name_ = col_name_;
+  }
+
   std::string col_name_;
   std::string table_name_;
 };

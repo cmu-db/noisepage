@@ -37,9 +37,9 @@ class AbstractExpression {
    */
   AbstractExpression(const ExpressionType expression_type, const type::TypeId return_value_type, std::string alias,
                      std::vector<std::shared_ptr<AbstractExpression>> &&children)
-      : expression_type_(expression_type),
+      : alias_(std::move(alias)),
+        expression_type_(expression_type),
         return_value_type_(return_value_type),
-        alias_(std::move(alias)),
         children_(std::move(children)) {}
 
   /**
@@ -52,6 +52,15 @@ class AbstractExpression {
    * Default constructor used for json deserialization
    */
   AbstractExpression() = default;
+
+  /**
+ * Name of the current expression
+ */
+  std::string expression_name_;
+  /**
+   * Alias of the current expression
+   */
+  std::string alias_;
 
  public:
   virtual ~AbstractExpression() = default;
@@ -205,14 +214,7 @@ class AbstractExpression {
    * The flag indicating if there's sub-query in the current expression
    */
   bool has_subquery_ = false;
-  /**
-   * Name of the current expression
-   */
-  std::string expression_name_;
-  /**
-   * Alias of the current expression
-   */
-  std::string alias_;
+
   /**
    * List fo children expressions
    */
