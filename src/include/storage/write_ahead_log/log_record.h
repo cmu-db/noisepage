@@ -359,10 +359,23 @@ class AbortRecord {
    *
    * @param head pointer location to initialize, this is also the returned address (reinterpreted)
    * @param txn_begin begin timestamp of the transaction that generated this log record
+   * @param txn transaction that is aborted
    * @return pointer to the initialized log record, always equal in value to the given head
    */
-  static LogRecord *Initialize(byte *const head, const transaction::timestamp_t txn_begin) {
-    return LogRecord::InitializeHeader(head, LogRecordType::ABORT, Size(), txn_begin);
+  static LogRecord *Initialize(byte *const head, const transaction::timestamp_t txn_begin,
+                               transaction::TransactionContext *txn) {
+    auto *result = LogRecord::InitializeHeader(head, LogRecordType::ABORT, Size(), txn_begin);
+    auto *body = result->GetUnderlyingRecordBodyAs<AbortRecord>();
+    body->txn_ = txn;
+    return result;
   }
+
+  /**
+   * @return pointer to the aborting transaction.
+   */
+  transaction::TransactionContext *Txn() const { return txn_; }
+
+ private:
+  transaction::TransactionContext *txn_;
 };
 }  // namespace terrier::storage
