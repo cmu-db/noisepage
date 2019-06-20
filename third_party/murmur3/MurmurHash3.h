@@ -37,18 +37,28 @@ typedef unsigned __int64 uint64_t;
 
 //-----------------------------------------------------------------------------
 
-int32_t MurmurHash3_x64_128 ( const void * key, int len, uint32_t seed );
+int32_t MurmurHash3_x64_128 (const void * key, int len, uint32_t seed );
 
-inline int32_t MurmurHash3_x64_128 ( int64_t value, uint32_t seed) {
-    return MurmurHash3_x64_128( &value, 8, seed);
+inline int32_t MurmurHash3_x64_128(int32_t value, uint32_t seed) {
+  return MurmurHash3_x64_128(&value, 4, seed);
+}
+inline int32_t MurmurHash3_x64_128(int32_t value) {
+  return MurmurHash3_x64_128(&value, 4, 0);
 }
 
-inline int32_t MurmurHash3_x64_128 ( int64_t value) {
-    return MurmurHash3_x64_128(value, 0);
+inline int32_t MurmurHash3_x64_128(int64_t value, uint32_t seed) {
+    return MurmurHash3_x64_128(&value, 8, seed);
+}
+inline int32_t MurmurHash3_x64_128(int64_t value) {
+    return MurmurHash3_x64_128(&value, 8, 0);
 }
 
-inline int32_t MurmurHash3_x64_128 ( std::string &value, uint32_t seed) {
-  return MurmurHash3_x64_128( value.data(), static_cast<uint32_t >(value.size()), seed);
+inline int32_t MurmurHash3_x64_128(double value, uint32_t seed) {
+  return MurmurHash3_x64_128(&value, 8, seed);
+}
+
+inline int32_t MurmurHash3_x64_128(std::string &value, uint32_t seed) {
+  return MurmurHash3_x64_128(value.data(), static_cast<uint32_t >(value.size()), seed);
 }
 
 uint32_t MurmurHash3_x86_32(const void* key, uint32_t len, uint32_t seed);

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <murmur3/MurmurHash3.h>
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
@@ -8,7 +9,6 @@
 
 #include "common/macros.h"
 #include "loggers/optimizer_logger.h"
-#include "murmur3/MurmurHash3.h"
 
 namespace terrier::optimizer {
 
@@ -22,6 +22,10 @@ namespace terrier::optimizer {
 template <typename KeyType>
 class CountMinSketch {
  public:
+
+  /**
+   * This is how we will represent the internal table elements in this sketch.
+   */
   using SketchElemType = uint64_t;
 
   /**
