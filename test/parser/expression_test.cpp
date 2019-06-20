@@ -36,7 +36,9 @@ TEST(ExpressionTests, BasicTest) {
   auto expr_b_3 = new ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
 
   EXPECT_FALSE(*expr_b_1 == *expr_b_2);
+  EXPECT_NE(expr_b_1->Hash(), expr_b_2->Hash());
   EXPECT_TRUE(*expr_b_1 == *expr_b_3);
+  EXPECT_EQ(expr_b_1->Hash(), expr_b_3->Hash());
 
   // != is based on ==, so exercise it here, don't need to do with all types
   EXPECT_TRUE(*expr_b_1 != *expr_b_2);
@@ -51,7 +53,22 @@ TEST(ExpressionTests, BasicTest) {
   auto expr_ti_3 = new ConstantValueExpression(type::TransientValueFactory::GetTinyInt(127));
 
   EXPECT_TRUE(*expr_ti_1 == *expr_ti_2);
+  EXPECT_EQ(expr_ti_1->Hash(), expr_ti_2->Hash());
   EXPECT_FALSE(*expr_ti_1 == *expr_ti_3);
+  EXPECT_NE(expr_ti_1->Hash(), expr_ti_3->Hash());
+
+  EXPECT_EQ(expr_ti_1->GetExpressionType(), ExpressionType::VALUE_CONSTANT);
+  EXPECT_EQ(expr_ti_1->GetValue(), type::TransientValueFactory::GetTinyInt(1));
+  // There is no need to deduce the return_value_type of constant value expression
+  // and calling this function essentially does nothing
+  // Only test if we can call it without error.
+  expr_ti_1->DeduceReturnValueType();
+  EXPECT_EQ(expr_ti_1->GetReturnValueType(), type::TransientValueFactory::GetTinyInt(1).Type());
+  EXPECT_EQ(expr_ti_1->GetChildrenSize(), 0);
+  EXPECT_EQ(expr_ti_1->GetChildren(), std::vector<std::shared_ptr<AbstractExpression>>());
+  // Private members depth will be initialized as -1 and has_subquery as false.
+  EXPECT_EQ(expr_ti_1->GetDepth(), -1);
+  EXPECT_FALSE(expr_ti_1->HasSubquery());
 
   delete expr_ti_1;
   delete expr_ti_2;
@@ -63,7 +80,9 @@ TEST(ExpressionTests, BasicTest) {
   auto expr_si_3 = new ConstantValueExpression(type::TransientValueFactory::GetSmallInt(32767));
 
   EXPECT_TRUE(*expr_si_1 == *expr_si_2);
+  EXPECT_EQ(expr_si_1->Hash(), expr_si_2->Hash());
   EXPECT_FALSE(*expr_si_1 == *expr_si_3);
+  EXPECT_NE(expr_si_1->Hash(), expr_si_3->Hash());
 
   delete expr_si_1;
   delete expr_si_2;
@@ -75,7 +94,9 @@ TEST(ExpressionTests, BasicTest) {
   auto expr_i_3 = new ConstantValueExpression(type::TransientValueFactory::GetInteger(32768));
 
   EXPECT_TRUE(*expr_i_1 == *expr_i_2);
+  EXPECT_EQ(expr_i_1->Hash(), expr_i_2->Hash());
   EXPECT_FALSE(*expr_i_1 == *expr_i_3);
+  EXPECT_NE(expr_i_1->Hash(), expr_i_3->Hash());
 
   delete expr_i_1;
   delete expr_i_2;
@@ -87,7 +108,9 @@ TEST(ExpressionTests, BasicTest) {
   auto expr_bi_3 = new ConstantValueExpression(type::TransientValueFactory::GetBigInt(32768));
 
   EXPECT_TRUE(*expr_bi_1 == *expr_bi_2);
+  EXPECT_EQ(expr_bi_1->Hash(), expr_bi_2->Hash());
   EXPECT_FALSE(*expr_bi_1 == *expr_bi_3);
+  EXPECT_NE(expr_bi_1->Hash(), expr_bi_3->Hash());
 
   delete expr_bi_1;
   delete expr_bi_2;
@@ -99,7 +122,9 @@ TEST(ExpressionTests, BasicTest) {
   auto expr_d_3 = new ConstantValueExpression(type::TransientValueFactory::GetDecimal(32768));
 
   EXPECT_TRUE(*expr_d_1 == *expr_d_2);
+  EXPECT_EQ(expr_d_1->Hash(), expr_d_2->Hash());
   EXPECT_FALSE(*expr_d_1 == *expr_d_3);
+  EXPECT_NE(expr_d_1->Hash(), expr_d_3->Hash());
 
   delete expr_d_1;
   delete expr_d_2;
@@ -111,7 +136,9 @@ TEST(ExpressionTests, BasicTest) {
   auto expr_ts_3 = new ConstantValueExpression(type::TransientValueFactory::GetTimestamp(type::timestamp_t(32768)));
 
   EXPECT_TRUE(*expr_ts_1 == *expr_ts_2);
+  EXPECT_EQ(expr_ts_1->Hash(), expr_ts_2->Hash());
   EXPECT_FALSE(*expr_ts_1 == *expr_ts_3);
+  EXPECT_NE(expr_ts_1->Hash(), expr_ts_3->Hash());
 
   delete expr_ts_1;
   delete expr_ts_2;
@@ -123,10 +150,13 @@ TEST(ExpressionTests, BasicTest) {
   auto expr_date_3 = new ConstantValueExpression(type::TransientValueFactory::GetDate(type::date_t(32768)));
 
   EXPECT_TRUE(*expr_date_1 == *expr_date_2);
+  EXPECT_EQ(expr_date_1->Hash(), expr_date_2->Hash());
   EXPECT_FALSE(*expr_date_1 == *expr_date_3);
+  EXPECT_NE(expr_date_1->Hash(), expr_date_3->Hash());
 
   // check types are differentiated
   EXPECT_FALSE(*expr_b_1 == *expr_date_1);
+  EXPECT_NE(expr_b_1->Hash(), expr_date_1->Hash());
 
   delete expr_date_1;
   delete expr_date_2;
