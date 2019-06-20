@@ -1,11 +1,9 @@
 #pragma once
 
-#include <cassert>
-#include <cinttypes>
+#include <algorithm>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
-#include <iostream>
 #include <vector>
 
 #include "common/macros.h"
@@ -67,7 +65,6 @@ class CountMinSketch {
     uint64_t former_min = UINT64_MAX;
     for (int i = 0; i < depth_; i++) {
       former_min = std::min(table_[i][bins[i]], former_min);
-//      std::cout << "former_min=" << former_min << std::endl;
       table_[i][bins[i]] += count;
     }
     if (former_min == 0) {
@@ -145,7 +142,6 @@ class CountMinSketch {
   size_t GetTotalCount() const { return total_count_; }
 
  private:
-
   /**
    * Initialize the internal data table
    */
@@ -155,8 +151,7 @@ class CountMinSketch {
     TERRIER_ASSERT(depth_ > 0, "Invalid depth");
     TERRIER_ASSERT(width_ > 0, "Invalid width");
 
-    table_ = std::vector<std::vector<SketchElemType>>(
-        depth_, std::vector<SketchElemType>(width_));
+    table_ = std::vector<std::vector<SketchElemType>>(depth_, std::vector<SketchElemType>(width_));
   }
 
   /**
@@ -166,7 +161,7 @@ class CountMinSketch {
    * @return vector of hash bin offsets
    */
   std::vector<int> GetHashBins(KeyType key) {
-    std::vector<int> bins;
+    std::vector<int> bins(depth_);
     int32_t h1 = murmur3::MurmurHash3_x64_128(key, 0);
     int32_t h2 = murmur3::MurmurHash3_x64_128(key, h1);
     for (int i = 0; i < depth_; i++) {
@@ -174,7 +169,6 @@ class CountMinSketch {
     }
     return bins;
   }
-
 
   /**
    * The number of bucket levels in our sketch
@@ -211,7 +205,6 @@ class CountMinSketch {
    * The internal table where we store the approximate counts
    */
   std::vector<std::vector<SketchElemType>> table_;
-
 };
 
 }  // namespace terrier::optimizer

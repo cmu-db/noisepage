@@ -1,6 +1,8 @@
 #include <random>
-#include <unordered_set>
+#include <string>
 #include <unordered_map>
+#include <unordered_set>
+#include <vector>
 
 #include "gtest/gtest.h"
 #include "optimizer/statistics/count_min_sketch.h"
@@ -51,7 +53,6 @@ TEST_F(CountMinSketchTests, BasicStringTest) {
 // It's hard to test this for real because
 // NOLINTNEXTLINE
 TEST_F(CountMinSketchTests, ApproximateIntegerTest) {
-
   // Create two sketches
   // The first is 'weak' meaning that it has less storage space
   // and there for its approximations will be more inaccurate.
@@ -113,7 +114,6 @@ TEST_F(CountMinSketchTests, ApproximateIntegerTest) {
 // one should have the highest approximate count
 // NOLINTNEXTLINE
 TEST_F(CountMinSketchTests, HeavyHitterTest) {
-
   CountMinSketch<int> sketch(100, 200);
   EXPECT_EQ(sketch.GetApproximateSize(), 0);
 
@@ -149,7 +149,7 @@ TEST_F(CountMinSketchTests, HeavyHitterTest) {
     // count by increasingly larger deltas.
     // So the last number in 'heavy_nums' should have the largest
     // approximate count in the sketch
-    int delta = (i+1) * max;
+    int delta = (i + 1) * max;
     sketch.Add(heavy_num, delta);
     seen.insert(heavy_num);
     heavy_nums.push_back(heavy_num);
