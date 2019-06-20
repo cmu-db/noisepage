@@ -13,7 +13,7 @@ namespace terrier::storage {
  */
 class GarbageCollectorThread {
  public:
-  DECLARE_ANNOTATION(GC_PERIOD);
+  DECLARE_ANNOTATION(GC_PERIOD)
   /**
    * @param txn_manager pointer to the txn manager for the GC to communicate with
    * @param gc_period sleep time between GC invocations

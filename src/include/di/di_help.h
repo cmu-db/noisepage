@@ -4,7 +4,7 @@
 #include "boost/di/di.h"
 #include "common/macros.h"
 #include "common/managed_pointer.h"
-#define DECLARE_ANNOTATION(name) static constexpr auto name = [] {}
+#define DECLARE_ANNOTATION(name) static constexpr auto name = [] {};
 namespace terrier::di {
 // Effectively merges the boost::di namespace with terrier-specific helpers and wrappers
 using namespace boost::di;  // NOLINT
@@ -23,7 +23,7 @@ struct named : di::policies::detail::type_op {
   struct apply : di::aux::integral_constant<bool, !di::aux::is_same<di::no_name, typename TArg::name>::value> {};
 };
 
-/*
+/**
  * This policy ensures that no default values is used, and all parameters being injected are bound
  */
 // TODO(Tianyu): I believe this will just ensure there is at least a bind clause for anything injected.
@@ -40,7 +40,7 @@ class StrictBindingPolicy : public di::config {
   }
 };
 
-/*
+/**
  * This policy ensures that all named values is bound. It is okay if some values are default.
  */
 class TestBindingPolicy : public di::config {
@@ -105,10 +105,18 @@ class TerrierWrapper {
  */
 class TerrierSharedModule {
  public:
+  /**
+   * Implementation of the scope. see boost::di doc
+   * @tparam TExpected
+   * @tparam TGiven
+   */
   template <class TExpected, class TGiven>
   class scope {
    public:
     // TODO(Tianyu): Not sure about this. This is the referrable flag used for boost::di's singleton scope.
+    /**
+     * See boost::di doc
+     */
     template <class T_, class>
     using is_referable = typename di::wrappers::shared<di::scopes::singleton, TExpected &>::template is_referable<T_>;
 
@@ -148,10 +156,18 @@ class TerrierSharedModule {
  */
 class TerrierSingleton {
  public:
+  /**
+   * Implementation of the scope. see boost::di doc
+   * @tparam TExpected
+   * @tparam TGiven
+   */
   template <class TExpected, class TGiven>
   class scope {
    public:
     // TODO(Tianyu): Not sure about this. This is the referrable flag used for boost::di's singleton scope.
+    /**
+     * See boost::di doc
+     */
     template <class T_, class>
     using is_referable = typename di::wrappers::shared<di::scopes::singleton, TExpected &>::template is_referable<T_>;
 
@@ -175,8 +191,17 @@ class TerrierSingleton {
   };
 };
 
+/**
+ * Injects nullptr for any component requiring a T * for bound T's. This is useful to mark a component as disabled
+ * in the tests/
+ */
 class DisabledModule {
  public:
+  /**
+   * Implementation of the scope. see boost::di doc
+   * @tparam TExpected
+   * @tparam TGiven
+   */
   template <class TExpected, class TGiven>
   class scope {
     /**
@@ -202,6 +227,9 @@ class DisabledModule {
 
    public:
     // TODO(Tianyu): Not sure about this. This is the referrable flag used for boost::di's singleton scope.
+    /**
+     * See boost::di doc
+     */
     template <class T_, class>
     using is_referable = typename di::wrappers::shared<di::scopes::singleton, TExpected &>::template is_referable<T_>;
 
@@ -225,11 +253,17 @@ class DisabledModule {
 };
 
 /**
- * Use this as the scope object to use for TerrierModule.
- *
+ * Binds a type under the shared module scope.
  * Pretty much always, you should use this as the default scope over boost:di provided ones.
  */
 static TerrierSharedModule UNUSED_ATTRIBUTE terrier_shared_module{};
+/**
+ * Disabled scope that injects nullptr
+ */
 static DisabledModule UNUSED_ATTRIBUTE disabled{};
+/**
+ * Singleton that has lifetime of the entire app (static). This is useful for e.g. random number generator
+ * across tests
+ */
 static TerrierSingleton UNUSED_ATTRIBUTE terrier_singleton{};
 }  // namespace terrier::di

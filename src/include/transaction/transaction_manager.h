@@ -21,7 +21,7 @@ namespace terrier::transaction {
 class TransactionManager {
   // TODO(Tianyu): Implement the global transaction tables
  public:
-  DECLARE_ANNOTATION(GC_ENABLED);
+  DECLARE_ANNOTATION(GC_ENABLED)
   /**
    * Initializes a new transaction manager. Transactions will use the given object pool as source of their undo
    * buffers.
