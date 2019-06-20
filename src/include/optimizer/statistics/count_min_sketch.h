@@ -22,7 +22,6 @@ namespace terrier::optimizer {
 template <typename KeyType>
 class CountMinSketch {
  public:
-
   /**
    * This is how we will represent the internal table elements in this sketch.
    */
