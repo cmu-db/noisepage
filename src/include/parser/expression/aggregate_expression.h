@@ -39,20 +39,21 @@ class AggregateExpression : public AbstractExpression {
    */
   bool IsDistinct() const { return distinct_; }
 
-  void DeduceExpressionType() override {
+  void DeduceReturnValueType() override {
     switch (this->GetExpressionType()) {
       case ExpressionType::AGGREGATE_COUNT:
-        return_value_type_ = type::TypeId::INTEGER;
+        this->SetReturnValueType(type::TypeId::INTEGER);
         break;
         // return the type of the base
       case ExpressionType::AGGREGATE_MAX:
       case ExpressionType::AGGREGATE_MIN:
       case ExpressionType::AGGREGATE_SUM:
-        TERRIER_ASSERT(this->GetChildrenSize()>= 1, "No column name given.");
-        return_value_type_ = this->GetChild(0)->GetReturnValueType();
+        TERRIER_ASSERT(this->GetChildrenSize() >= 1, "No column name given.");
+        this->GetChild(0)->DeduceReturnValueType();
+        this->SetReturnValueType(this->GetChild(0)->GetReturnValueType());
         break;
       case ExpressionType::AGGREGATE_AVG:
-        return_value_type_ = type::TypeId::DECIMAL;
+        this->SetReturnValueType(type::TypeId::DECIMAL);
         break;
       default:
         break;

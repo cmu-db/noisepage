@@ -2,9 +2,9 @@
 
 #include <functional>
 #include <memory>
+#include <string>
 #include <utility>
 #include <vector>
-#include <string>
 #include "common/hash_util.h"
 #include "common/json.h"
 #include "common/sql_node_visitor.h"
@@ -17,7 +17,6 @@ namespace terrier::parser {
  * An abstract parser expression. Dumb and immutable.
  */
 class AbstractExpression {
-  // friend class BindNodeVisitor;
  protected:
   /**
    * Instantiates a new abstract expression. Because these are logical expressions, everything should be known
@@ -36,12 +35,11 @@ class AbstractExpression {
    * @param alias alias of the column (used in column value expression)
    * @param children the list of children for this node
    */
-  AbstractExpression(const ExpressionType expression_type, const type::TypeId return_value_type, std::string alias,
+  AbstractExpression(const ExpressionType expression_type, const type::TypeId return_value_type, const char *alias,
                      std::vector<std::shared_ptr<AbstractExpression>> &&children)
-      : alias_(std::move(alias)),
-        expression_type_(expression_type),
-        return_value_type_(return_value_type),
-        children_(std::move(children)) {}
+      : expression_type_(expression_type), return_value_type_(return_value_type), children_(std::move(children)) {
+    if (alias) alias_ = std::string(alias);
+  }
 
   /**
    * Copy constructs an abstract expression.
@@ -55,13 +53,14 @@ class AbstractExpression {
   AbstractExpression() = default;
 
   /**
-   * Name of the current expression
+   * @param expression_name Set the expression name of the current expression
    */
-  std::string expression_name_;
+  void SetExpressionName(std::string expression_name) { expression_name_ = std::move(expression_name); }
+
   /**
-   * Alias of the current expression
+   * @param return_value_type Set the return value type of the current expression
    */
-  std::string alias_;
+  void SetReturnValueType(type::TypeId return_value_type) { return_value_type_ = return_value_type; }
 
  public:
   virtual ~AbstractExpression() = default;
@@ -147,7 +146,7 @@ class AbstractExpression {
   /**
    * Deduce the expression type of the current expression.
    */
-  virtual void DeduceExpressionType() {}
+  virtual void DeduceReturnValueType() {}
 
   virtual void Accept(SqlNodeVisitor *) = 0;
 
@@ -202,10 +201,20 @@ class AbstractExpression {
    * Type of the current expression
    */
   ExpressionType expression_type_;
+
+  /**
+   * Name of the current expression
+   */
+  std::string expression_name_;
+  /**
+   * Alias of the current expression
+   */
+  std::string alias_;
   /**
    * Type of the return value
    */
   type::TypeId return_value_type_;
+
   /**
    * The current sub-query depth level in the current expression, -1
    *  stands for not derived

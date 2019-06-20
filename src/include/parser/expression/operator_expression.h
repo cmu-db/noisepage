@@ -27,7 +27,7 @@ class OperatorExpression : public AbstractExpression {
    */
   OperatorExpression() = default;
 
-  void DeduceExpressionType() override {
+  void DeduceReturnValueType() override {
     // if we are a decimal or int we should take the highest type id of both
     // children
     // This relies on a particular order in types.h
@@ -35,17 +35,16 @@ class OperatorExpression : public AbstractExpression {
         this->GetExpressionType() == ExpressionType::OPERATOR_IS_NULL ||
         this->GetExpressionType() == ExpressionType::OPERATOR_IS_NOT_NULL ||
         this->GetExpressionType() == ExpressionType::OPERATOR_EXISTS) {
-      return_value_type_ = type::TypeId::BOOLEAN;
+      this->SetReturnValueType(type::TypeId::BOOLEAN);
       return;
     }
     auto children = this->GetChildren();
-    auto max_type_child = std::max_element(children.begin(), children.end(),
-    [](auto t1, auto t2) {
+    auto max_type_child = std::max_element(children.begin(), children.end(), [](auto t1, auto t2) {
       return t1->GetReturnValueType() < t2->GetReturnValueType();
     });
     auto type = (*max_type_child)->GetReturnValueType();
     TERRIER_ASSERT(type <= type::TypeId::DECIMAL, "Invalid operand type type in Operator Expression.");
-    return_value_type_ = type;
+    this->SetReturnValueType(type);
   }
 
   std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<OperatorExpression>(*this); }

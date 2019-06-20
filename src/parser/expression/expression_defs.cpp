@@ -1,4 +1,5 @@
 #include "parser/expression_defs.h"
+#include <string>
 
 namespace terrier::parser {
 
@@ -101,19 +102,19 @@ std::string ExpressionTypeToString(ExpressionType type, bool short_str) {
       return "VALUE_SCALAR";
     }
     case ExpressionType::AGGREGATE_COUNT: {
-      return short_str ? "COUNT" :"AGGREGATE_COUNT";
+      return short_str ? "COUNT" : "AGGREGATE_COUNT";
     }
     case ExpressionType::AGGREGATE_SUM: {
-      return short_str ? "SUM" :"AGGREGATE_SUM";
+      return short_str ? "SUM" : "AGGREGATE_SUM";
     }
     case ExpressionType::AGGREGATE_MIN: {
-      return short_str ? "MIN" :"AGGREGATE_MIN";
+      return short_str ? "MIN" : "AGGREGATE_MIN";
     }
     case ExpressionType::AGGREGATE_MAX: {
-      return short_str ? "MAX" :"AGGREGATE_MAX";
+      return short_str ? "MAX" : "AGGREGATE_MAX";
     }
     case ExpressionType::AGGREGATE_AVG: {
-      return short_str ? "AVG" :"AGGREGATE_AVG";
+      return short_str ? "AVG" : "AGGREGATE_AVG";
     }
     case ExpressionType::FUNCTION: {
       return "FUNCTION";
@@ -155,7 +156,6 @@ std::string ExpressionTypeToString(ExpressionType type, bool short_str) {
   }
 }
 
-
 bool IsAggregateExpression(ExpressionType type) {
   switch (type) {
     case ExpressionType::AGGREGATE_COUNT:
@@ -168,7 +168,6 @@ bool IsAggregateExpression(ExpressionType type) {
       return false;
   }
 }
-
 
 bool IsOperatorExpression(ExpressionType type) {
   switch (type) {

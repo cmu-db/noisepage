@@ -20,17 +20,14 @@ class TupleValueExpression : public AbstractExpression {
    * @param alias alias of the expression
    */
   TupleValueExpression(std::string table_name, std::string col_name, const char *alias)
-      : AbstractExpression(ExpressionType::VALUE_TUPLE, type::TypeId::INVALID, {}),
+      : AbstractExpression(ExpressionType::VALUE_TUPLE, type::TypeId::INVALID, alias, {}),
         col_name_(std::move(col_name)),
-        table_name_(std::move(table_name)) {
-    if (alias)
-      alias_ = std::string(alias);
-  }
+        table_name_(std::move(table_name)) {}
 
   /**
-  * @param col_name column name
-  * @param table_name table name
-  */
+   * @param col_name column name
+   * @param table_name table name
+   */
   TupleValueExpression(std::string table_name, std::string col_name)
       : AbstractExpression(ExpressionType::VALUE_TUPLE, type::TypeId::INVALID, {}),
         col_name_(std::move(col_name)),
@@ -82,8 +79,8 @@ class TupleValueExpression : public AbstractExpression {
 
  private:
   void DeduceExpressionName() override {
-    if (!alias_.empty()) return;
-    expression_name_ = col_name_;
+    if (!this->GetAlias().empty()) return;
+    this->SetExpressionName(col_name_);
   }
 
   std::string col_name_;

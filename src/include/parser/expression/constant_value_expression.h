@@ -69,8 +69,8 @@ class ConstantValueExpression : public AbstractExpression {
 
  private:
   void DeduceExpressionName() override {
-    if (!alias_.empty()) return;
-    expression_name_ = value_.ToString();
+    if (!this->GetAlias().empty()) return;
+    this->SetExpressionName(value_.ToString());
   }
 
   type::TransientValue value_;
