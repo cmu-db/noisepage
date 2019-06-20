@@ -365,6 +365,12 @@ TEST(ExpressionTests, AggregateExpressionJsonTest) {
   auto json = original_expr->ToJson();
   EXPECT_FALSE(json.is_null());
 
+  const auto from_json_expr = new AggregateExpression();
+  from_json_expr->FromJson(json);
+  EXPECT_TRUE(*original_expr == *from_json_expr);
+
+  delete from_json_expr;
+
   // Deserialize expression
   auto deserialized_expression = DeserializeExpression(json);
   EXPECT_EQ(*original_expr, *deserialized_expression);
