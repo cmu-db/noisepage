@@ -24,6 +24,10 @@ namespace terrier::parser {
 nlohmann::json AbstractExpression::ToJson() const {
   nlohmann::json j;
   j["expression_type"] = expression_type_;
+  j["expression_name"] = expression_name_;
+  j["alias"] = alias_;
+  j["depth"] = depth_;
+  j["has_subquery"] = has_subquery_;
   j["return_value_type"] = return_value_type_;
   j["children"] = children_;
   return j;
@@ -35,7 +39,11 @@ nlohmann::json AbstractExpression::ToJson() const {
  */
 void AbstractExpression::FromJson(const nlohmann::json &j) {
   expression_type_ = j.at("expression_type").get<ExpressionType>();
+  expression_name_ = j.at("expression_name").get<std::string>();
+  alias_ = j.at("alias").get<std::string>();
   return_value_type_ = j.at("return_value_type").get<type::TypeId>();
+  depth_ = j.at("depth").get<int>();
+  has_subquery_ = j.at("has_subquery").get<bool>();
   children_ = {};
 
   // Deserialize children

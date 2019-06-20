@@ -73,7 +73,12 @@ class AbstractExpression {
     for (auto const &child : children_) {
       hash = common::HashUtil::CombineHashes(hash, child->Hash());
     }
-    hash = common::HashUtil::CombineHashes(hash, int(return_value_type_));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(return_value_type_));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(expression_name_));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(alias_));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(depth_));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(has_subquery_));
+
     return hash;
   }
 
@@ -83,7 +88,7 @@ class AbstractExpression {
    * @return true if the two expressions are logically equal
    */
   virtual bool operator==(const AbstractExpression &rhs) const {
-    if (expression_type_ != rhs.expression_type_ || children_.size() != rhs.children_.size()) {
+    if (expression_type_ != rhs.expression_type_ || children_.size() != rhs.children_.size() || alias_ != rhs.alias_ || depth_ != rhs.depth_ || has_subquery_ != rhs.has_subquery_ || return_value_type_ != rhs.return_value_type_ || expression_name_ != rhs.expression_name_) {
       return false;
     }
     for (size_t i = 0; i < children_.size(); i++) {
@@ -91,7 +96,7 @@ class AbstractExpression {
         return false;
       }
     }
-    return return_value_type_ == rhs.return_value_type_;
+    return true;
   }
 
   /**
