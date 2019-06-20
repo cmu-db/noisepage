@@ -170,6 +170,7 @@ TEST(ExpressionTests, ConjunctionTest) {
   std::vector<std::shared_ptr<AbstractExpression>> children1;
   children1.emplace_back(std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true)));
   children1.emplace_back(std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(false)));
+  auto children1cp = children1;
   auto c_expr_1 = new ConjunctionExpression(ExpressionType::CONJUNCTION_AND, std::move(children1));
 
   std::vector<std::shared_ptr<AbstractExpression>> children2;
@@ -182,12 +183,35 @@ TEST(ExpressionTests, ConjunctionTest) {
   children3.emplace_back(std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true)));
   auto c_expr_3 = new ConjunctionExpression(ExpressionType::CONJUNCTION_AND, std::move(children3));
 
+  std::vector<std::shared_ptr<AbstractExpression>> children4;
+  children3.emplace_back(std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true)));
+  children3.emplace_back(std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(false)));
+  auto c_expr_4 = new ConjunctionExpression(ExpressionType::CONJUNCTION_OR, std::move(children4));
+
   EXPECT_TRUE(*c_expr_1 == *c_expr_2);
   EXPECT_FALSE(*c_expr_1 == *c_expr_3);
+  EXPECT_FALSE(*c_expr_1 == *c_expr_4);
+
+  EXPECT_EQ(c_expr_1->Hash(), c_expr_2->Hash());
+  EXPECT_NE(c_expr_1->Hash(), c_expr_3->Hash());
+  EXPECT_NE(c_expr_1->Hash(), c_expr_4->Hash());
+
+  EXPECT_EQ(c_expr_1->GetExpressionType(), ExpressionType::CONJUNCTION_AND);
+  // There is no need to deduce the return_value_type of constant value expression
+  // and calling this function essentially does nothing
+  // Only test if we can call it without error.
+  c_expr_1->DeduceReturnValueType();
+  EXPECT_EQ(c_expr_1->GetReturnValueType(), type::TypeId::BOOLEAN);
+  EXPECT_EQ(c_expr_1->GetChildrenSize(), children1cp.size());
+  EXPECT_EQ(c_expr_1->GetChildren(), children1cp);
+  // Private members depth will be initialized as -1 and has_subquery as false.
+  EXPECT_EQ(c_expr_1->GetDepth(), -1);
+  EXPECT_FALSE(c_expr_1->HasSubquery());
 
   delete c_expr_1;
   delete c_expr_2;
   delete c_expr_3;
+  delete c_expr_4;
 }
 
 // NOLINTNEXTLINE
