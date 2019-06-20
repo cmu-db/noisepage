@@ -83,7 +83,7 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
       // This is a read-only transaction so this is safe to immediately delete
       delete txn;
       txns_processed++;
-    } else if (transaction::TransactionUtil::NewerThan(oldest_txn, txn->TxnId().load())) {
+    } else if (transaction::TransactionUtil::NewerThan(oldest_txn, txn->FinishTime())) {
       // Safe to garbage collect.
       for (auto &undo_record : txn->undo_buffer_) {
         // It is possible for the table field to be null, for aborted transaction's last conflicting record
