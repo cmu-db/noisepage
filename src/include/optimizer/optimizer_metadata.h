@@ -12,6 +12,10 @@ namespace transaction {
 class TransactionContext;
 }
 
+namespace catalog {
+class CatalogAccessor;
+}
+
 namespace optimizer {
 
 class OptimizerTaskPool;
@@ -59,6 +63,11 @@ class OptimizerMetadata {
    * Pool of Optimizer tasks to execute
    */
   OptimizerTaskPool *task_pool;
+
+  /**
+   * CatalogAccessor
+   */
+  catalog::CatalogAccessor *accessor;
 
   /**
    * TransactionContxt used for execution

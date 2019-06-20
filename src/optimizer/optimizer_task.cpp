@@ -50,12 +50,12 @@ void OptimizeGroup::execute() {
   // Push explore task first for logical expressions if the group has not been explored
   if (!group_->HasExplored()) {
     for (auto &logical_expr : group_->GetLogicalExpressions())
-      PushTask(new OptimizeExpression(logical_expr, context_, accessor_));
+      PushTask(new OptimizeExpression(logical_expr, context_));
   }
 
   // Push implement tasks to ensure that they are run first (for early pruning)
   for (auto &physical_expr : group_->GetPhysicalExpressions()) {
-    PushTask(new OptimizeInputs(physical_expr, context_, accessor_));
+    PushTask(new OptimizeInputs(physical_expr, context_));
   }
 
   // Since there is no cycle in the tree, it is safe to set the flag even before
@@ -79,14 +79,14 @@ void OptimizeExpression::execute() {
             static_cast<int>(group_expr_->Op().GetType()), valid_rules.size());
   // Apply rule
   for (auto &r : valid_rules) {
-    PushTask(new ApplyRule(group_expr_, r.rule, context_, accessor_));
+    PushTask(new ApplyRule(group_expr_, r.rule, context_));
     int child_group_idx = 0;
     for (auto &child_pattern : r.rule->GetMatchPattern()->Children()) {
       // Only need to explore non-leaf children before applying rule to the
       // current group this condition is important for early-pruning
       if (child_pattern->GetChildPatternsSize() > 0) {
         Group* group = GetMemo().GetGroupByID(group_expr_->GetChildGroupIDs()[child_group_idx]);
-        PushTask(new ExploreGroup(group, context_, accessor_));
+        PushTask(new ExploreGroup(group, context_));
       }
 
       child_group_idx++;
@@ -102,7 +102,7 @@ void ExploreGroup::execute() {
   OPTIMIZER_LOG_TRACE("ExploreGroup::execute() ");
 
   for (auto &logical_expr : group_->GetLogicalExpressions()) {
-    PushTask(new ExploreExpression(logical_expr, context_, accessor_));
+    PushTask(new ExploreExpression(logical_expr, context_));
   }
 
   // Since there is no cycle in the tree, it is safe to set the flag even before
@@ -123,14 +123,14 @@ void ExploreExpression::execute() {
 
   // Apply rule
   for (auto &r : valid_rules) {
-    PushTask(new ApplyRule(group_expr_, r.rule, context_, accessor_, true));
+    PushTask(new ApplyRule(group_expr_, r.rule, context_, true));
     int child_group_idx = 0;
     for (auto &child_pattern : r.rule->GetMatchPattern()->Children()) {
       // Only need to explore non-leaf children before applying rule to the
       // current group. this condition is important for early-pruning
       if (child_pattern->GetChildPatternsSize() > 0) {
         Group *group = GetMemo().GetGroupByID(group_expr_->GetChildGroupIDs()[child_group_idx]);
-        PushTask(new ExploreGroup(group, context_, accessor_));
+        PushTask(new ExploreGroup(group, context_));
       }
 
       child_group_idx++;
@@ -163,17 +163,17 @@ void ApplyRule::execute() {
         // A new group expression is generated
         if (new_gexpr->Op().IsLogical()) {
           // Derive stats for the *logical expression*
-          PushTask(new DeriveStats(new_gexpr, ExprSet{}, context_, accessor_));
+          PushTask(new DeriveStats(new_gexpr, ExprSet{}, context_));
           if (explore_only) {
             // Explore this logical expression
-            PushTask(new ExploreExpression(new_gexpr, context_, accessor_));
+            PushTask(new ExploreExpression(new_gexpr, context_));
           } else {
             // Optimize this logical expression
-            PushTask(new OptimizeExpression(new_gexpr, context_, accessor_));
+            PushTask(new OptimizeExpression(new_gexpr, context_));
           }
         } else {
           // Cost this physical expression and optimize its inputs
-          PushTask(new OptimizeInputs(new_gexpr, context_, accessor_));
+          PushTask(new OptimizeInputs(new_gexpr, context_));
         }
       }
 
@@ -260,7 +260,7 @@ void OptimizeInputs::execute() {
     // Derive output and input properties
     ChildPropertyDeriver prop_deriver;
     output_input_properties_ = prop_deriver.GetProperties(group_expr_, context_->required_prop,
-                                                          &context_->metadata->memo, accessor_);
+                                                          &context_->metadata->memo, context_->metadata->accessor);
     cur_child_idx_ = 0;
 
     // TODO: If later on we support properties that may not be enforced in some
@@ -298,7 +298,7 @@ void OptimizeInputs::execute() {
 
         auto cost_high = context_->cost_upper_bound - cur_total_cost_;
         auto ctx = new OptimizeContext(context_->metadata, i_prop, cost_high);
-        PushTask(new OptimizeGroup(child_group, ctx, accessor_));
+        PushTask(new OptimizeGroup(child_group, ctx));
         context_->metadata->track_list.push_back(ctx);
 
         // process other tasks and come back
@@ -428,7 +428,7 @@ void TopDownRewrite::execute() {
       if (!after.empty()) {
         auto &new_expr = after[0];
         context_->metadata->ReplaceRewritedExpression(new_expr, group_id_);
-        PushTask(new TopDownRewrite(group_id_, context_, rule_set_name_, accessor_));
+        PushTask(new TopDownRewrite(group_id_, context_, rule_set_name_));
 
         delete new_expr;
         return;
@@ -442,7 +442,7 @@ void TopDownRewrite::execute() {
   for (size_t child_group_idx = 0; child_group_idx < size; child_group_idx++) {
     // Need to rewrite all sub trees first
     GroupID id = cur_group_expr->GetChildGroupId(static_cast<int>(child_group_idx));
-    auto task = new TopDownRewrite(id, context_, rule_set_name_, accessor_);
+    auto task = new TopDownRewrite(id, context_, rule_set_name_);
     PushTask(task);
   }
 }
@@ -454,13 +454,13 @@ void BottomUpRewrite::execute() {
   auto cur_group_expr = cur_group->GetLogicalExpression();
 
   if (!has_optimized_child_) {
-    PushTask(new BottomUpRewrite(group_id_, context_, rule_set_name_, true, accessor_));
+    PushTask(new BottomUpRewrite(group_id_, context_, rule_set_name_, true));
     
     size_t size = cur_group_expr->GetChildrenGroupsSize();
     for (size_t child_group_idx = 0; child_group_idx < size; child_group_idx++) {
       // Need to rewrite all sub trees first
       GroupID id = cur_group_expr->GetChildGroupId(static_cast<int>(child_group_idx));
-      auto task = new BottomUpRewrite(id, context_, rule_set_name_, false, accessor_);
+      auto task = new BottomUpRewrite(id, context_, rule_set_name_, false);
       PushTask(task);
     }
     return;
@@ -491,7 +491,7 @@ void BottomUpRewrite::execute() {
       if (!after.empty()) {
         auto &new_expr = after[0];
         context_->metadata->ReplaceRewritedExpression(new_expr, group_id_);
-        PushTask(new BottomUpRewrite(group_id_, context_, rule_set_name_, false, accessor_));
+        PushTask(new BottomUpRewrite(group_id_, context_, rule_set_name_, false));
 
         delete new_expr;
         return;

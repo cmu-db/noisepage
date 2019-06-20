@@ -11,10 +11,6 @@ namespace parser {
 class AbstractExpression;
 }
 
-namespace catalog {
-class CatalogAccessor;
-}
-
 namespace optimizer {
 
 class OptimizeContext;
@@ -48,9 +44,8 @@ enum class OptimizerTaskType {
 class OptimizerTask {
  public:
   OptimizerTask(OptimizeContext* context,
-                OptimizerTaskType type,
-                catalog::CatalogAccessor *accessor)
-      : type_(type), context_(context), accessor_(accessor) {}
+                OptimizerTaskType type)
+      : type_(type), context_(context) {}
 
   /**
    * Construct valid rules with their promises for a group expression,
@@ -95,7 +90,6 @@ class OptimizerTask {
  protected:
   OptimizerTaskType type_;
   OptimizeContext* context_;
-  catalog::CatalogAccessor* accessor_;
 };
 
 /**
@@ -105,16 +99,13 @@ class OptimizerTask {
  */
 class OptimizeGroup : public OptimizerTask {
  public:
-  OptimizeGroup(Group *group, OptimizeContext* context,
-                catalog::CatalogAccessor *accessor)
-      : OptimizerTask(context, OptimizerTaskType::OPTIMIZE_GROUP, accessor),
-        group_(group),
-        accessor_(accessor) {}
+  OptimizeGroup(Group *group, OptimizeContext* context)
+      : OptimizerTask(context, OptimizerTaskType::OPTIMIZE_GROUP),
+        group_(group) {}
   void execute() override;
 
  private:
   Group *group_;
-  catalog::CatalogAccessor *accessor_;
 };
 
 /**
@@ -127,9 +118,8 @@ class OptimizeGroup : public OptimizerTask {
 class OptimizeExpression : public OptimizerTask {
  public:
   OptimizeExpression(GroupExpression *group_expr,
-                     OptimizeContext *context,
-                     catalog::CatalogAccessor *accessor)
-      : OptimizerTask(context, OptimizerTaskType::OPTIMIZE_EXPR, accessor),
+                     OptimizeContext *context)
+      : OptimizerTask(context, OptimizerTaskType::OPTIMIZE_EXPR),
         group_expr_(group_expr) {}
   void execute() override;
 
@@ -143,9 +133,8 @@ class OptimizeExpression : public OptimizerTask {
  */
 class ExploreGroup : public OptimizerTask {
  public:
-  ExploreGroup(Group *group, OptimizeContext* context,
-               catalog::CatalogAccessor* accessor)
-      : OptimizerTask(context, OptimizerTaskType::EXPLORE_GROUP, accessor),
+  ExploreGroup(Group *group, OptimizeContext* context)
+      : OptimizerTask(context, OptimizerTaskType::EXPLORE_GROUP),
         group_(group) {}
   void execute() override;
 
@@ -161,9 +150,8 @@ class ExploreGroup : public OptimizerTask {
 class ExploreExpression : public OptimizerTask {
  public:
   ExploreExpression(GroupExpression *group_expr,
-                    OptimizeContext* context,
-                    catalog::CatalogAccessor *accessor)
-      : OptimizerTask(context, OptimizerTaskType::EXPLORE_EXPR, accessor),
+                    OptimizeContext* context)
+      : OptimizerTask(context, OptimizerTaskType::EXPLORE_EXPR),
         group_expr_(group_expr) {}
   void execute() override;
 
@@ -181,9 +169,8 @@ class ApplyRule : public OptimizerTask {
  public:
   ApplyRule(GroupExpression *group_expr, Rule *rule,
             OptimizeContext* context,
-            catalog::CatalogAccessor* accessor,
             bool explore = false)
-      : OptimizerTask(context, OptimizerTaskType::APPLY_RULE, accessor),
+      : OptimizerTask(context, OptimizerTaskType::APPLY_RULE),
         group_expr_(group_expr),
         rule_(rule),
         explore_only(explore) {}
@@ -205,16 +192,14 @@ class ApplyRule : public OptimizerTask {
 class OptimizeInputs : public OptimizerTask {
  public:
   OptimizeInputs(GroupExpression *group_expr,
-                 OptimizeContext* context,
-                 catalog::CatalogAccessor *accessor)
-      : OptimizerTask(context, OptimizerTaskType::OPTIMIZE_INPUTS, accessor),
+                 OptimizeContext* context)
+      : OptimizerTask(context, OptimizerTaskType::OPTIMIZE_INPUTS),
         group_expr_(group_expr) {}
 
   explicit OptimizeInputs(OptimizeInputs *task)
-      : OptimizerTask(task->context_, OptimizerTaskType::OPTIMIZE_INPUTS, accessor_),
+      : OptimizerTask(task->context_, OptimizerTaskType::OPTIMIZE_INPUTS),
         output_input_properties_(std::move(task->output_input_properties_)),
         group_expr_(task->group_expr_),
-        accessor_(task->accessor_),
         cur_total_cost_(task->cur_total_cost_),
         cur_child_idx_(task->cur_child_idx_),
         cur_prop_pair_idx_(task->cur_prop_pair_idx_) {}
@@ -224,7 +209,6 @@ class OptimizeInputs : public OptimizerTask {
  private:
   std::vector<std::pair<PropertySet*, std::vector<PropertySet*>>> output_input_properties_;
   GroupExpression *group_expr_;
-  catalog::CatalogAccessor *accessor_;
   double cur_total_cost_;
   int cur_child_idx_ = -1;
   int prev_child_idx_ = -1;
@@ -240,14 +224,13 @@ class DeriveStats : public OptimizerTask {
  public:
   DeriveStats(GroupExpression *gexpr,
               ExprSet required_cols,
-              OptimizeContext* context,
-              catalog::CatalogAccessor* accessor)
-      : OptimizerTask(context, OptimizerTaskType::DERIVE_STATS, accessor),
+              OptimizeContext* context)
+      : OptimizerTask(context, OptimizerTaskType::DERIVE_STATS),
         gexpr_(gexpr),
         required_cols_(required_cols) {}
 
   explicit DeriveStats(DeriveStats *task)
-      : OptimizerTask(task->context_, OptimizerTaskType::DERIVE_STATS, accessor_),
+      : OptimizerTask(task->context_, OptimizerTaskType::DERIVE_STATS),
         gexpr_(task->gexpr_),
         required_cols_(task->required_cols_) {}
 
@@ -267,9 +250,8 @@ class DeriveStats : public OptimizerTask {
 class TopDownRewrite : public OptimizerTask {
  public:
   TopDownRewrite(GroupID group_id, OptimizeContext* context,
-                 RewriteRuleSetName rule_set_name,
-                 catalog::CatalogAccessor *accessor)
-      : OptimizerTask(context, OptimizerTaskType::TOP_DOWN_REWRITE, accessor),
+                 RewriteRuleSetName rule_set_name)
+      : OptimizerTask(context, OptimizerTaskType::TOP_DOWN_REWRITE),
         group_id_(group_id),
         rule_set_name_(rule_set_name) {}
   void execute() override;
@@ -287,9 +269,8 @@ class TopDownRewrite : public OptimizerTask {
 class BottomUpRewrite : public OptimizerTask {
  public:
   BottomUpRewrite(GroupID group_id, OptimizeContext* context,
-                  RewriteRuleSetName rule_set_name, bool has_optimized_child,
-                  catalog::CatalogAccessor *accessor)
-      : OptimizerTask(context, OptimizerTaskType::BOTTOM_UP_REWRITE, accessor),
+                  RewriteRuleSetName rule_set_name, bool has_optimized_child)
+      : OptimizerTask(context, OptimizerTaskType::BOTTOM_UP_REWRITE),
         group_id_(group_id),
         rule_set_name_(rule_set_name),
         has_optimized_child_(has_optimized_child) {}

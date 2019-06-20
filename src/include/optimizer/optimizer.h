@@ -28,8 +28,6 @@ class TransactionContext;
 
 namespace optimizer {
 
-enum CostModels {TRIVIAL};
-
 //===--------------------------------------------------------------------===//
 // Optimizer
 //===--------------------------------------------------------------------===//
@@ -41,7 +39,8 @@ class Optimizer : public AbstractOptimizer {
    * Constructor for Optimizer with a cost_model
    * @param cost_model Cost Model to use for the optimizer
    */
-  explicit Optimizer(CostModels cost_model = CostModels::TRIVIAL);
+  explicit Optimizer(AbstractCostModel *model)
+    : metadata_(model) {}
 
   /**
    * Build the plan tree for query execution
@@ -65,13 +64,11 @@ class Optimizer : public AbstractOptimizer {
    * @param root_group_id Group to begin optimization at
    * @param required_props Physical properties to enforce
    * @param settings SettingsManager to read settings from
-   * @param accessor CatalogAccessor for catalog access
    */
   void OptimizeLoop(
       int root_group_id,
       PropertySet* required_props,
-      settings::SettingsManager *settings,
-      catalog::CatalogAccessor *accessor);
+      settings::SettingsManager *settings);
 
   /**
    * Reset the optimizer state
