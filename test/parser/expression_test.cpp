@@ -189,7 +189,7 @@ TEST(ExpressionTests, ConstantValueExpressionJsonTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(ExpressionTests, ConjunctionTest) {
+TEST(ExpressionTests, ConjunctionExpressionTest) {
   std::vector<std::shared_ptr<AbstractExpression>> children1;
   children1.emplace_back(std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true)));
   children1.emplace_back(std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(false)));
@@ -463,6 +463,21 @@ TEST(ExpressionTests, CaseExpressionJsonTest) {
   EXPECT_EQ(case_expr->GetReturnValueType(), deserialized_case_expr->GetReturnValueType());
   EXPECT_TRUE(deserialized_case_expr->GetDefaultClause() != nullptr);
   EXPECT_EQ(const_expr->GetExpressionType(), deserialized_case_expr->GetDefaultClause()->GetExpressionType());
+}
+
+// NOLINTNEXTLINE
+TEST(ExpressionTests, FunctionExpressionTest) {
+  auto func_expr_1 = std::make_shared<FunctionExpression>("FullHouse", type::TypeId::VARCHAR, std::vector<std::shared_ptr<AbstractExpression>>());
+  auto func_expr_2 = std::make_shared<FunctionExpression>("FullHouse", type::TypeId::VARCHAR, std::vector<std::shared_ptr<AbstractExpression>>());
+  auto func_expr_3 = std::make_shared<FunctionExpression>("Flush", type::TypeId::VARCHAR, std::vector<std::shared_ptr<AbstractExpression>>());
+  auto func_expr_4 = std::make_shared<FunctionExpression>("FullHouse", type::TypeId::VARBINARY, std::vector<std::shared_ptr<AbstractExpression>>());
+
+  EXPECT_TRUE(*func_expr_1 == *func_expr_2);
+  EXPECT_FALSE(*func_expr_1 == *func_expr_3);
+  EXPECT_FALSE(*func_expr_1 == *func_expr_4);
+  EXPECT_EQ(func_expr_1->Hash(), func_expr_2->Hash());
+  EXPECT_NE(func_expr_1->Hash(), func_expr_3->Hash());
+  EXPECT_NE(func_expr_1->Hash(), func_expr_4->Hash());
 }
 
 // NOLINTNEXTLINE
