@@ -20,7 +20,18 @@ class DeferredActionManager;
 using TransactionQueue = std::forward_list<transaction::TransactionContext *>;
 using callback_fn = void (*)(void *);
 
-// TODO(Tianyu) write documentation
+/**
+ * A TransactionAction is applied when the transaction is either committed or aborted (as configured).
+ * It is given a handle to the DeferredActionManager in case it needs to register a deferred action.
+ */
 using TransactionAction = std::function<void(DeferredActionManager *)>;
+/**
+ * A DeferredAction is an action that can only be safely performed after all transactions that could
+ * have access to something has finished. (e.g. pruning of version chains)
+ *
+ * When applied, the start time of the oldest transaction alive in the system is supposed. The reason
+ * for this is that this value can be larger than the timestamp the action originally registered for,
+ * and in cases such as GC knowing the actual time enables optimizations.
+ */
 using DeferredAction = std::function<void(timestamp_t)>;
 }  // namespace terrier::transaction

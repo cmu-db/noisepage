@@ -6,10 +6,23 @@
 #include "transaction/transaction_defs.h"
 
 namespace terrier::transaction {
+/**
+ * The deferred action manager tracks deferred actions and provides a function to process them
+ */
 class DeferredActionManager {
  public:
+  /**
+   * Constructs a new DeferredActionManager
+   * @param timestamp_manager source of timestamps in the system
+   */
   explicit DeferredActionManager(TimestampManager *timestamp_manager) : timestamp_manager_(timestamp_manager) {}
 
+  /**
+   * Adds the action to a buffered list of deferred actions.  This action will
+   * be triggered no sooner than when the epoch (timestamp of oldest running
+   * transaction) is more recent than the time this function was called.
+   * @param a functional implementation of the action that is deferred
+   */
   timestamp_t RegisterDeferredAction(const DeferredAction &a) {
     timestamp_t result = timestamp_manager_->CurrentTime();
     {
@@ -19,6 +32,10 @@ class DeferredActionManager {
     return result;
   }
 
+  /**
+   * Clear the queue and apply as many actions as possible
+   * @return numbers of deferred actions processed
+   */
   uint32_t Process() {
     uint32_t processed = 0;
     // Check out a timestamp from the transaction manager to determine the progress of

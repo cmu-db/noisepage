@@ -6,8 +6,9 @@
 #include "transaction/transaction_defs.h"
 
 namespace terrier::transaction {
+class TransactionManager;
 /**
- * Generates timestamps!
+ * Generates timestamps, and keeps track of the lifetime of transactions (whether they have entered or left the system)
  */
 class TimestampManager {
  public:
@@ -16,8 +17,26 @@ class TimestampManager {
    */
   timestamp_t CheckOutTimestamp() { return time_++; }
 
+  /**
+   * @return current time without advancing the tick
+   */
   timestamp_t CurrentTime() const { return time_.load(); }
 
+  /**
+   * Get the oldest transaction alive (by start timestamp given out by this timestamp manager at this time)
+   * Because of concurrent operations, it is not guaranteed that upon return the txn is still alive. However,
+   * it is guaranteed that the return timestamp is older than any transactions live.
+   * @return timestamp that is older than any transactions alive
+   */
+  timestamp_t OldestTransactionStartTime() const {
+    common::SpinLatch::ScopedSpinLatch guard(&curr_running_txns_latch_);
+    const auto &oldest_txn = std::min_element(curr_running_txns_.cbegin(), curr_running_txns_.cend());
+    const timestamp_t result = (oldest_txn != curr_running_txns_.end()) ? *oldest_txn : time_.load();
+    return result;
+  }
+
+ private:
+  friend class TransactionManager;
   timestamp_t BeginTransaction() {
     timestamp_t start_time;
     {
@@ -44,14 +63,6 @@ class TimestampManager {
     TERRIER_ASSERT(ret == 1, "erased timestamp did not exist");
   }
 
-  timestamp_t OldestTransactionStartTime() const {
-    common::SpinLatch::ScopedSpinLatch guard(&curr_running_txns_latch_);
-    const auto &oldest_txn = std::min_element(curr_running_txns_.cbegin(), curr_running_txns_.cend());
-    const timestamp_t result = (oldest_txn != curr_running_txns_.end()) ? *oldest_txn : time_.load();
-    return result;
-  }
-
- private:
   // TODO(Tianyu): Timestamp generation needs to be more efficient (batches)
   // TODO(Tianyu): We don't handle timestamp wrap-arounds. I doubt this would be an issue any time soon.
   std::atomic<timestamp_t> time_{timestamp_t(0)};
