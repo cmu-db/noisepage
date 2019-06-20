@@ -238,6 +238,121 @@ TEST(ExpressionTests, ConjunctionTest) {
 }
 
 // NOLINTNEXTLINE
+TEST(ExpressionTests, ConjunctionExpressionJsonTest) {
+  // Create expression
+  std::vector<std::shared_ptr<AbstractExpression>> children1;
+  children1.emplace_back(std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true)));
+  children1.emplace_back(std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(false)));
+  auto c_expr_1 = new ConjunctionExpression(ExpressionType::CONJUNCTION_AND, std::move(children1));
+
+  // Serialize expression
+  auto json = c_expr_1->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  const auto from_json_expr = new ConjunctionExpression();
+  from_json_expr->FromJson(json);
+  EXPECT_TRUE(*c_expr_1 == *from_json_expr);
+
+  delete from_json_expr;
+
+  // Deserialize expression
+  auto deserialized_expression = DeserializeExpression(json);
+  EXPECT_EQ(*c_expr_1, *deserialized_expression);
+  auto *deserialized_c_expr_1 = static_cast<ConjunctionExpression *>(deserialized_expression.get());
+  EXPECT_EQ(c_expr_1->GetReturnValueType(), deserialized_c_expr_1->GetReturnValueType());
+
+  delete c_expr_1;
+}
+
+// NOLINTNEXTLINE
+TEST(ExpressionTests, AggregateExpressionTest) {
+  // Create expression 1
+  std::vector<std::shared_ptr<AbstractExpression>> children_1;
+  auto child_expr_1 = std::make_shared<StarExpression>();
+  children_1.push_back(std::move(child_expr_1));
+  auto childrent_1_cp = children_1;
+  auto agg_expr_1 = new AggregateExpression(ExpressionType::AGGREGATE_COUNT, std::move(children_1), true);
+
+  // Create expression 2
+  std::vector<std::shared_ptr<AbstractExpression>> children_2;
+  auto child_expr_2 = std::make_shared<StarExpression>();
+  children_2.push_back(std::move(child_expr_2));
+  auto agg_expr_2 = new AggregateExpression(ExpressionType::AGGREGATE_COUNT, std::move(children_2), true);
+
+  // Create expression 3, field distinct
+  std::vector<std::shared_ptr<AbstractExpression>> children_3;
+  auto child_expr_3 = std::make_shared<StarExpression>();
+  children_3.push_back(std::move(child_expr_3));
+  auto agg_expr_3 = new AggregateExpression(ExpressionType::AGGREGATE_COUNT, std::move(children_3), false);
+
+  // Expresion type comparison and children comparison are implemented in the base class abstract expression
+  //  testing them here once is enough
+
+  // Create expression 4, field childsize
+  std::vector<std::shared_ptr<AbstractExpression>> children_4;
+  auto child_expr_4 = std::make_shared<StarExpression>();
+  auto child_expr_4_2 = std::make_shared<StarExpression>();
+  children_4.push_back(std::move(child_expr_4));
+  children_4.push_back(std::move(child_expr_4_2));
+  auto agg_expr_4 = new AggregateExpression(ExpressionType::AGGREGATE_COUNT, std::move(children_4), true);
+
+  // Create expression 5, field child type
+  std::vector<std::shared_ptr<AbstractExpression>> children_5;
+  auto child_expr_5 = std::make_shared<ConstantValueExpression>();
+  children_5.push_back(std::move(child_expr_5));
+  auto agg_expr_5 = new AggregateExpression(ExpressionType::AGGREGATE_COUNT, std::move(children_5), true);
+
+  EXPECT_TRUE(*agg_expr_1 == *agg_expr_2);
+  EXPECT_FALSE(*agg_expr_1 == *agg_expr_3);
+  EXPECT_FALSE(*agg_expr_1 == *agg_expr_4);
+  EXPECT_FALSE(*agg_expr_1 == *agg_expr_5);
+
+  EXPECT_EQ(agg_expr_1->Hash(), agg_expr_2->Hash());
+  EXPECT_NE(agg_expr_1->Hash(), agg_expr_3->Hash());
+  EXPECT_NE(agg_expr_1->Hash(), agg_expr_4->Hash());
+  EXPECT_NE(agg_expr_1->Hash(), agg_expr_5->Hash());
+
+  EXPECT_EQ(agg_expr_1->GetExpressionType(), ExpressionType::AGGREGATE_COUNT);
+  // There is no need to deduce the return_value_type of constant value expression
+  // and calling this function essentially does nothing
+  // Only test if we can call it without error.
+  agg_expr_1->DeduceReturnValueType();
+  EXPECT_EQ(agg_expr_1->GetReturnValueType(), type::TypeId::INTEGER);
+  EXPECT_EQ(agg_expr_1->GetChildrenSize(), 1);
+  EXPECT_EQ(agg_expr_1->GetChildren(), childrent_1_cp);
+  EXPECT_TRUE(agg_expr_1->IsDistinct());
+  // Private members depth will be initialized as -1 and has_subquery as false.
+  EXPECT_EQ(agg_expr_1->GetDepth(), -1);
+  EXPECT_FALSE(agg_expr_1->HasSubquery());
+
+  // Testing DeduceReturnValueType functionality
+  auto children_6 = std::vector<std::shared_ptr<AbstractExpression>>{std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true))};
+  auto agg_expr_6 = new AggregateExpression(ExpressionType::AGGREGATE_MAX, std::move(children_6), true);
+  agg_expr_6->DeduceReturnValueType();
+
+  EXPECT_FALSE(*agg_expr_1 == *agg_expr_6);
+  EXPECT_NE(agg_expr_1->Hash(), agg_expr_6->Hash());
+  EXPECT_EQ(agg_expr_6->GetReturnValueType(), type::TransientValueFactory::GetBoolean(true).Type());
+
+  // Testing DeduceReturnValueType functionality
+  auto children_7 = std::vector<std::shared_ptr<AbstractExpression>>{std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true))};
+  auto agg_expr_7 = new AggregateExpression(ExpressionType::AGGREGATE_AVG, std::move(children_7), true);
+  agg_expr_7->DeduceReturnValueType();
+
+  EXPECT_FALSE(*agg_expr_1 == *agg_expr_7);
+  EXPECT_NE(agg_expr_1->Hash(), agg_expr_7->Hash());
+  EXPECT_EQ(agg_expr_7->GetReturnValueType(), type::TypeId::DECIMAL);
+
+  delete agg_expr_1;
+  delete agg_expr_2;
+  delete agg_expr_3;
+  delete agg_expr_4;
+  delete agg_expr_5;
+  delete agg_expr_6;
+  delete agg_expr_7;
+}
+
+// NOLINTNEXTLINE
 TEST(ExpressionTests, AggregateExpressionJsonTest) {
   // Create expression
   std::vector<std::shared_ptr<AbstractExpression>> children;
@@ -304,6 +419,7 @@ TEST(ExpressionTests, CaseExpressionTest) {
   EXPECT_EQ(case_expr->GetChildrenSize(), 0);
   EXPECT_EQ(case_expr->GetWhenClauseCondition(0), const_expr);
   EXPECT_EQ(case_expr->GetWhenClauseResult(0), const_expr);
+  EXPECT_EQ(case_expr->GetDefaultClause(), const_expr);
   // Private members depth will be initialized as -1 and has_subquery as false.
   EXPECT_EQ(case_expr->GetDepth(), -1);
   EXPECT_FALSE(case_expr->HasSubquery());
@@ -450,24 +566,6 @@ TEST(ExpressionTests, ComparisonExpressionJsonTest) {
   // Create expression
   std::shared_ptr<ComparisonExpression> original_expr =
       std::make_shared<ComparisonExpression>(ExpressionType::COMPARE_EQUAL, std::move(children));
-
-  // Serialize expression
-  auto json = original_expr->ToJson();
-  EXPECT_FALSE(json.is_null());
-
-  // Deserialize expression
-  auto deserialized_expression = DeserializeExpression(json);
-  EXPECT_EQ(*original_expr, *deserialized_expression);
-}
-
-// NOLINTNEXTLINE
-TEST(ExpressionTests, ConjunctionExpressionJsonTest) {
-  // Create expression
-  std::vector<std::shared_ptr<AbstractExpression>> children;
-  children.emplace_back(std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true)));
-  children.emplace_back(std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true)));
-  std::shared_ptr<ConjunctionExpression> original_expr =
-      std::make_shared<ConjunctionExpression>(ExpressionType::CONJUNCTION_AND, std::move(children));
 
   // Serialize expression
   auto json = original_expr->ToJson();
