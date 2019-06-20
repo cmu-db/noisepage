@@ -166,6 +166,29 @@ TEST(ExpressionTests, ConstantValueExpressionTest) {
 }
 
 // NOLINTNEXTLINE
+TEST(ExpressionTests, ConstantValueExpressionJsonTest) {
+  // Create expression
+  std::default_random_engine generator_;
+  auto value = type::TransientValueFactory::GetVarChar("ConstantValueExpressionJsonTest");
+  auto original_expr = std::make_shared<ConstantValueExpression>(value);
+
+  // Serialize expression
+  auto json = original_expr->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  const auto from_json_expr = new ConstantValueExpression();
+  from_json_expr->FromJson(json);
+  EXPECT_TRUE(*original_expr == *from_json_expr);
+
+  delete from_json_expr;
+
+  // Deserialize expression
+  auto deserialized_expression = DeserializeExpression(json);
+  EXPECT_EQ(*original_expr, *deserialized_expression);
+  EXPECT_EQ(static_cast<ConstantValueExpression *>(deserialized_expression.get())->GetValue(), value);
+}
+
+// NOLINTNEXTLINE
 TEST(ExpressionTests, ConjunctionTest) {
   std::vector<std::shared_ptr<AbstractExpression>> children1;
   children1.emplace_back(std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true)));
@@ -236,25 +259,13 @@ TEST(ExpressionTests, AggregateExpressionJsonTest) {
 
 // NOLINTNEXTLINE
 TEST(ExpressionTests, CaseExpressionTest) {
+
   // Create expression 1
   std::shared_ptr<StarExpression> const_expr = std::make_shared<StarExpression>();
   std::vector<CaseExpression::WhenClause> when_clauses;
   CaseExpression::WhenClause when{const_expr, const_expr};
   when_clauses.push_back(when);
-  std::shared_ptr<CaseExpression> case_expr =
-      std::make_shared<CaseExpression>(type::TypeId::BOOLEAN, std::move(when_clauses), const_expr);
-
-  // Serialize expression
-  auto json = case_expr->ToJson();
-  EXPECT_FALSE(json.is_null());
-
-  // Deserialize expression
-  auto deserialized_expression = DeserializeExpression(json);
-  EXPECT_EQ(*case_expr, *deserialized_expression);
-  auto *deserialized_case_expr = static_cast<CaseExpression *>(deserialized_expression.get());
-  EXPECT_EQ(case_expr->GetReturnValueType(), deserialized_case_expr->GetReturnValueType());
-  EXPECT_TRUE(deserialized_case_expr->GetDefaultClause() != nullptr);
-  EXPECT_EQ(const_expr->GetExpressionType(), deserialized_case_expr->GetDefaultClause()->GetExpressionType());
+  auto case_expr = new CaseExpression(type::TypeId::BOOLEAN, std::move(when_clauses), const_expr);
 
   // Create expression 2
   std::shared_ptr<StarExpression> const_expr_2 = std::make_shared<StarExpression>();
@@ -297,9 +308,39 @@ TEST(ExpressionTests, CaseExpressionTest) {
   EXPECT_EQ(case_expr->GetDepth(), -1);
   EXPECT_FALSE(case_expr->HasSubquery());
 
+  delete case_expr;
   delete case_expr_2;
   delete case_expr_3;
   delete case_expr_4;
+}
+
+// NOLINTNEXTLINE
+TEST(ExpressionTests, CaseExpressionJsonTest) {
+  // Create expression
+  std::shared_ptr<StarExpression> const_expr = std::make_shared<StarExpression>();
+  std::vector<CaseExpression::WhenClause> when_clauses;
+  CaseExpression::WhenClause when{const_expr, const_expr};
+  when_clauses.push_back(when);
+  std::shared_ptr<CaseExpression> case_expr =
+      std::make_shared<CaseExpression>(type::TypeId::BOOLEAN, std::move(when_clauses), const_expr);
+
+  // Serialize expression
+  auto json = case_expr->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  const auto from_json_expr = new CaseExpression();
+  from_json_expr->FromJson(json);
+  EXPECT_TRUE(*case_expr == *from_json_expr);
+
+  delete from_json_expr;
+
+  // Deserialize expression
+  auto deserialized_expression = DeserializeExpression(json);
+  EXPECT_EQ(*case_expr, *deserialized_expression);
+  auto *deserialized_case_expr = static_cast<CaseExpression *>(deserialized_expression.get());
+  EXPECT_EQ(case_expr->GetReturnValueType(), deserialized_case_expr->GetReturnValueType());
+  EXPECT_TRUE(deserialized_case_expr->GetDefaultClause() != nullptr);
+  EXPECT_EQ(const_expr->GetExpressionType(), deserialized_case_expr->GetDefaultClause()->GetExpressionType());
 }
 
 // NOLINTNEXTLINE
@@ -318,29 +359,6 @@ TEST(ExpressionTests, FunctionExpressionJsonTest) {
   EXPECT_EQ(*original_expr, *deserialized_expression);
   EXPECT_EQ(static_cast<FunctionExpression *>(deserialized_expression.get())->GetFuncName(), "Funhouse");
   EXPECT_EQ(static_cast<FunctionExpression *>(deserialized_expression.get())->GetReturnValueType(), fn_ret_type);
-}
-
-// NOLINTNEXTLINE
-TEST(ExpressionTests, ConstantValueExpressionJsonTest) {
-  // Create expression
-  std::default_random_engine generator_;
-  auto value = type::TransientValueFactory::GetVarChar("ConstantValueExpressionJsonTest");
-  auto original_expr = std::make_shared<ConstantValueExpression>(value);
-
-  // Serialize expression
-  auto json = original_expr->ToJson();
-  EXPECT_FALSE(json.is_null());
-
-  const auto from_json_expr = new ConstantValueExpression();
-  from_json_expr->FromJson(json);
-  EXPECT_TRUE(*original_expr == *from_json_expr);
-
-  delete from_json_expr;
-
-  // Deserialize expression
-  auto deserialized_expression = DeserializeExpression(json);
-  EXPECT_EQ(*original_expr, *deserialized_expression);
-  EXPECT_EQ(static_cast<ConstantValueExpression *>(deserialized_expression.get())->GetValue(), value);
 }
 
 // NOLINTNEXTLINE
