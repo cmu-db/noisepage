@@ -171,7 +171,6 @@ class Builder {
    */
   static IndexSchema GetConstraintForeignKeyIndexSchema();
 
- private:
   /**
    * Instantiate a new unique index with the given schema and oid
    * @param key_schema for the index

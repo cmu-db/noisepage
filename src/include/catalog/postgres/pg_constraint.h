@@ -9,13 +9,13 @@
 
 namespace terrier::catalog::postgres {
 
-#define CONSTRAINT_TABLE_OID table_oid_t(61);
-#define CONSTRAINT_OID_INDEX_OID index_oid_t(62);
-#define CONSTRAINT_NAME_INDEX_OID index_oid_t(63);
-#define CONSTRAINT_NAMESPACE_INDEX_OID index_oid_t(64);
-#define CONSTRAINT_TABLE_INDEX_OID index_oid_t(65);
-#define CONSTRAINT_INDEX_INDEX_OID index_oid_t(66);
-#define CONSTRAINT_FOREIGNTABLE_INDEX_OID index_oid_t(67);
+#define CONSTRAINT_TABLE_OID table_oid_t(61)
+#define CONSTRAINT_OID_INDEX_OID index_oid_t(62)
+#define CONSTRAINT_NAME_INDEX_OID index_oid_t(63)
+#define CONSTRAINT_NAMESPACE_INDEX_OID index_oid_t(64)
+#define CONSTRAINT_TABLE_INDEX_OID index_oid_t(65)
+#define CONSTRAINT_INDEX_INDEX_OID index_oid_t(66)
+#define CONSTRAINT_FOREIGNTABLE_INDEX_OID index_oid_t(67)
 
 /*
  * Column names of the form "CON[name]_COL_OID" are present in the PostgreSQL

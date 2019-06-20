@@ -9,10 +9,10 @@
 
 namespace terrier::catalog::postgres {
 
-#define CLASS_TABLE_OID table_oid_t(21);
-#define CLASS_OID_INDEX_OID index_oid_t(22);
-#define CLASS_NAME_INDEX_OID index_oid_t(23);
-#define CLASS_NAMESPACE_INDEX_OID index_oid_t(24);
+#define CLASS_TABLE_OID table_oid_t(21)
+#define CLASS_OID_INDEX_OID index_oid_t(22)
+#define CLASS_NAME_INDEX_OID index_oid_t(23)
+#define CLASS_NAMESPACE_INDEX_OID index_oid_t(24)
 
 /*
  * Column names of the form "REL[name]_COL_OID" are present in the PostgreSQL

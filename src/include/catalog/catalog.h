@@ -32,21 +32,21 @@ class Catalog {
    * @warning The catalog requires garbage collection and will leak catalog
    * tables if it is disabled.
    */
-  Catalog(transaction::TransactionContext *txn, storage::BlockStore block_store);
+  Catalog(storage::BlockStore *block_store);
 
   /**
-   * Handles destruction of the catalog by deferring an event using the event
+   * Handles destruction of the catalog's members by deferring an event using the event
    * framework that handles deallocating all of the objects handled or owned by
    * the catalog.
    * @warning The catalog assumes that any logically visible database objects
    * referenced by the catalog during destruction need to be deallocated by the
    * deferred action.  Therefore, there cannot be any live transactions when
    * the debootstrap event executes.
-   * @note The debootstrap function will begin and commit a read-only transaction
+   * @note This function will begin and commit a read-only transaction
    * through the transaction manager and therefore must be called before the
    * transaction manager is destructed.
    */
-  ~Catalog();
+  void TearDown(transaction::TransactionContext *txn);
 
   /**
    * Creates a new database instance.
@@ -66,6 +66,15 @@ class Catalog {
    * @return true if the deletion succeeds, false otherwise
    */
   bool DeleteDatabase(transaction::TransactionContext *txn, db_oid_t database);
+
+  /**
+   * Renames the given database.
+   * @param txn for the operation
+   * @param database OID to be renamed
+   * @param name which the database will now have
+   * @return true if the operation succeeds, false otherwise
+   */
+  bool RenameDatabase(transaction::TransactionContext *txn, db_oid_t database, const std::string &name);
 
   /**
    * Resolve a database name to its OID.
@@ -102,14 +111,30 @@ class Catalog {
   CatalogAccessor GetAccessor(transaction::TransactionContext *txn, database_oid_t database);
 
  private:
+  storage::BlockStore *catalog_block_store_;
+  std::atomic<db_oid_t> next_oid_
+
   storage::SqlTable *databases_;
   storage::index::Index *databases_name_index_;
   storage::index::Index *databases_oid_index_;
 
-  std::atomic<db_oid_t> next_oid_
+  /**
+   * Creates a new database entry.
+   * @param txn that creates the database
+   * @param db OID of the database
+   * @param name of the new database
+   * @param dbc database catalog object for the new database
+   * @return true if successful, otherwise false
+   */
+  bool CreateDatabaseEntry(transaction::TransactionContext *txn, db_oid_t db, const std::string &name, DatabaseCatalog *dbc);
 
-  transaction::Action debootstrap;
+  /**
+   * Deletes a database entry without scheduling the catalog object for destruction
+   * @param txn that delete the database
+   * @param db OID of the database
+   * @return pointer to the database object if successful, otherwise nullptr
+   */
+  DatabaseCatalog *DeleteDatabaseEntry(transaction::TransactionContext *txn, db_oid_t db);
 
-  storage::BlockStore catalog_block_store_;
 };
 } // namespace terrier::catalog

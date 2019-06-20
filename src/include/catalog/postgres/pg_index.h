@@ -8,9 +8,9 @@
 
 namespace terrier::catalog::postgres {
 
-#define INDEX_TABLE_OID table_oid_t(31);
-#define INDEX_OID_INDEX_OID index_oid_t(32);
-#define INDEX_TABLE_INDEX_OID index_oid_t(33);
+#define INDEX_TABLE_OID table_oid_t(31)
+#define INDEX_OID_INDEX_OID index_oid_t(32)
+#define INDEX_TABLE_INDEX_OID index_oid_t(33)
 
 /*
  * Column names of the form "IND[name]_COL_OID" are present in the PostgreSQL
