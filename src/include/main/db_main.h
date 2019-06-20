@@ -20,6 +20,10 @@ class SettingsTests;
 class Callbacks;
 }  // namespace settings
 
+namespace storage {
+class WriteAheadLoggingTests;
+}
+
 /**
  * The DBMain Class holds all the singleton pointers. It has the full knowledge
  * of the whole database systems and serves as a global context of the system.
@@ -44,10 +48,11 @@ class DBMain {
       delete txn_manager_;
       delete buffer_segment_pool_;
       delete thread_pool_;
-
+      delete log_manager_;
       delete connection_handle_factory_;
       delete server_;
       delete command_factory_;
+      delete provider_;
       delete t_cop_;
     }
   }
@@ -62,6 +67,7 @@ class DBMain {
    *    Garbage collector thread
    *    Catalog
    *    Settings manager
+   *    Log manager
    *    Worker pool
    */
   void Init();
@@ -88,13 +94,15 @@ class DBMain {
   std::unordered_map<settings::Param, settings::ParamInfo> param_map_;
   transaction::TransactionManager *txn_manager_;
   settings::SettingsManager *settings_manager_;
+  storage::LogManager *log_manager_;
   storage::GarbageCollectorThread *gc_thread_;
   network::TerrierServer *server_;
   storage::RecordBufferSegmentPool *buffer_segment_pool_;
   common::WorkerPool *thread_pool_;
-  terrier::traffic_cop::TrafficCop *t_cop_;
-  terrier::network::CommandFactory *command_factory_;
+  terrier::trafficcop::TrafficCop *t_cop_;
+  terrier::network::PostgresCommandFactory *command_factory_;
   terrier::network::ConnectionHandleFactory *connection_handle_factory_;
+  terrier::network::ProtocolInterpreter::Provider *provider_;
 
   bool running = false;
   bool initialized = false;

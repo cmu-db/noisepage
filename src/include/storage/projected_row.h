@@ -37,7 +37,7 @@ class PACKED ProjectedRow {
   MEM_REINTERPRETATION_ONLY(ProjectedRow)
 
   /**
-   * Populates the ProjectedRow's members based on an existing ProjectedRow. The new ProjectRow has the
+   * Populates the ProjectedRow's members based on an existing ProjectedRow. The new ProjectedRow has the
    * same layout as the given one.
    *
    * @param head pointer to the byte buffer to initialize as a ProjectedRow
@@ -133,6 +133,7 @@ class PACKED ProjectedRow {
 
  private:
   friend class ProjectedRowInitializer;
+  friend class LogSerializerTask;
   uint32_t size_;
   uint16_t num_cols_;
   byte varlen_contents_[0];

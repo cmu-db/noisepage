@@ -12,8 +12,9 @@
 
 namespace terrier::storage {
 class GarbageCollector;
-class LogManager;
+class LogSerializerTask;
 class SqlTable;
+class WriteAheadLoggingTests;
 }  // namespace terrier::storage
 
 namespace terrier::transaction {
@@ -25,23 +26,32 @@ class TransactionContext {
   /**
    * Constructs a new transaction context.
    *
+   * @warning In the src/ folder this should only be called in TransactionManager::BeginTransaction to adhere to MVCC
+   * semantics. Tests are allowed to deterministically construct them in ways that violate the current MVCC semantics.
    * @warning Beware that the buffer pool given must be the same one the log manager uses,
    * if logging is enabled.
-   * @param start the start timestamp of the transaction
-   * @param txn_id the id of the transaction, should be larger than all start time and commit time
+   * @param start the start timestamp of the transaction. Should be unique within the system.
+   * @param finish in HyPer parlance this is txn id. Should be larger than all start times and commit times in current
+   * MVCC semantics
    * @param buffer_pool the buffer pool to draw this transaction's undo buffer from
    * @param log_manager pointer to log manager in the system, or nullptr, if logging is disabled
    * @param transaction_manager pointer to transaction manager in the system (used for action framework)
    */
-  TransactionContext(const timestamp_t start, const timestamp_t txn_id,
+  TransactionContext(const timestamp_t start, const timestamp_t finish,
                      storage::RecordBufferSegmentPool *const buffer_pool, storage::LogManager *const log_manager,
                      TransactionManager *transaction_manager)
       : start_time_(start),
-        txn_id_(txn_id),
+        finish_time_(finish),
         undo_buffer_(buffer_pool),
         redo_buffer_(log_manager, buffer_pool),
         txn_mgr_(transaction_manager) {}
 
+  /**
+   * @warning In the src/ folder this should only be called by the Garbage Collector to adhere to MVCC semantics. Tests
+   * are allowed to deterministically delete them in ways that violate the current MVCC semantics, but you should really
+   * know what you're doing when you delete a TransactionContext since its UndoRecords may still be pointed to by a
+   * DataTable.
+   */
   ~TransactionContext() {
     for (const byte *ptr : loose_ptrs_) delete[] ptr;
   }
@@ -54,19 +64,18 @@ class TransactionContext {
   bool Aborted() const { return aborted_; }
 
   /**
-   * @return start time of this transaction
+   * @return start time of this transaction. Can be used as a unique identifier of this object in the current MVCC
+   * semantics because it is both constant and unique within the system
    */
   timestamp_t StartTime() const { return start_time_; }
 
   /**
-   * @return id of this transaction
+   * @return finish time of this transaction if it has been aborted or logged as a commit. Otherwise, current
+   * MVCC semantics define it as StartTime + INT64_MIN. TransactionContexts generated outside of the TransactionManager
+   * (i.e. in tests) may not reflect this. Should NOT be used as a unique identifier of this object because its value
+   * changes at txn completion in the current MVCC semantics.
    */
-  const std::atomic<timestamp_t> &TxnId() const { return txn_id_; }
-
-  /**
-   * @return id of this transaction
-   */
-  std::atomic<timestamp_t> &TxnId() { return txn_id_; }
+  timestamp_t FinishTime() const { return finish_time_.load(); }
 
   /**
    * Reserve space on this transaction's undo buffer for a record to log the update given
@@ -78,7 +87,7 @@ class TransactionContext {
   storage::UndoRecord *UndoRecordForUpdate(storage::DataTable *const table, const storage::TupleSlot slot,
                                            const storage::ProjectedRow &redo) {
     const uint32_t size = storage::UndoRecord::Size(redo);
-    return storage::UndoRecord::InitializeUpdate(undo_buffer_.NewEntry(size), txn_id_.load(), slot, table, redo);
+    return storage::UndoRecord::InitializeUpdate(undo_buffer_.NewEntry(size), finish_time_.load(), slot, table, redo);
   }
 
   /**
@@ -89,7 +98,7 @@ class TransactionContext {
    */
   storage::UndoRecord *UndoRecordForInsert(storage::DataTable *const table, const storage::TupleSlot slot) {
     byte *const result = undo_buffer_.NewEntry(sizeof(storage::UndoRecord));
-    return storage::UndoRecord::InitializeInsert(result, txn_id_.load(), slot, table);
+    return storage::UndoRecord::InitializeInsert(result, finish_time_.load(), slot, table);
   }
 
   /**
@@ -100,7 +109,7 @@ class TransactionContext {
    */
   storage::UndoRecord *UndoRecordForDelete(storage::DataTable *const table, const storage::TupleSlot slot) {
     byte *const result = undo_buffer_.NewEntry(sizeof(storage::UndoRecord));
-    return storage::UndoRecord::InitializeDelete(result, txn_id_.load(), slot, table);
+    return storage::UndoRecord::InitializeDelete(result, finish_time_.load(), slot, table);
   }
 
   /**
@@ -163,10 +172,11 @@ class TransactionContext {
  private:
   friend class storage::GarbageCollector;
   friend class TransactionManager;
-  friend class storage::LogManager;
+  friend class storage::LogSerializerTask;
   friend class storage::SqlTable;
+  friend class storage::WriteAheadLoggingTests;  // Needs access to redo buffer
   const timestamp_t start_time_;
-  std::atomic<timestamp_t> txn_id_;
+  std::atomic<timestamp_t> finish_time_;
   storage::UndoBuffer undo_buffer_;
   storage::RedoBuffer redo_buffer_;
   // TODO(Tianyu): Maybe not so much of a good idea to do this. Make explicit queue in GC?

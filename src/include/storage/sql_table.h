@@ -185,6 +185,8 @@ class SqlTable {
   }
 
  private:
+  FRIEND_TEST(WriteAheadLoggingTests, AbortRecordTest);
+  FRIEND_TEST(WriteAheadLoggingTests, NoAbortRecordTest);
   BlockStore *const block_store_;
 
   // Eventually we'll support adding more tables when schema changes. For now we'll always access the one DataTable.

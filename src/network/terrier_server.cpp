@@ -13,8 +13,9 @@
 
 namespace terrier::network {
 
-TerrierServer::TerrierServer(ConnectionHandleFactory *connection_handle_factory)
-    : connection_handle_factory_(connection_handle_factory) {
+TerrierServer::TerrierServer(common::ManagedPointer<ProtocolInterpreter::Provider> protocol_provider,
+                             common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory)
+    : connection_handle_factory_(connection_handle_factory), provider_(protocol_provider) {
   port_ = common::Settings::SERVER_PORT;
   max_connections_ = common::Settings::MAX_CONNECTIONS;
 
@@ -56,8 +57,8 @@ TerrierServer &TerrierServer::SetupServer() {
   bind(listen_fd_, reinterpret_cast<struct sockaddr *>(&sin), sizeof(sin));
   listen(listen_fd_, conn_backlog);
 
-  dispatcher_task_ =
-      std::make_shared<ConnectionDispatcherTask>(CONNECTION_THREAD_COUNT, listen_fd_, this, connection_handle_factory_);
+  dispatcher_task_ = std::make_shared<ConnectionDispatcherTask>(
+      CONNECTION_THREAD_COUNT, listen_fd_, this, common::ManagedPointer(provider_.get()), connection_handle_factory_);
 
   NETWORK_LOG_INFO("Listening on port {0}", port_);
   return *this;

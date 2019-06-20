@@ -1,4 +1,5 @@
 #include "main/db_main.h"
+#include <settings/settings_param.h>
 #include <memory>
 #include "loggers/loggers_util.h"
 #include "settings/settings_manager.h"
@@ -28,14 +29,26 @@ void DBMain::Init() {
   settings_manager_ = new settings::SettingsManager(this);
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
+  // Create LogManager
+  log_manager_ = new storage::LogManager(
+      settings_manager_->GetString(settings::Param::log_file_path),
+      settings_manager_->GetInt(settings::Param::num_log_manager_buffers),
+      std::chrono::milliseconds{settings_manager_->GetInt(settings::Param::log_serialization_interval)},
+      std::chrono::milliseconds{settings_manager_->GetInt(settings::Param::log_persist_interval)},
+      settings_manager_->GetInt(settings::Param::log_persist_threshold), buffer_segment_pool_);
+  log_manager_->Start();
+
   thread_pool_ = new common::WorkerPool(
       type::TransientValuePeeker::PeekInteger(param_map_.find(settings::Param::num_worker_threads)->second.value_), {});
   thread_pool_->Startup();
 
-  t_cop_ = new terrier::traffic_cop::TrafficCop;
-  command_factory_ = new terrier::network::CommandFactory;
-  connection_handle_factory_ = new terrier::network::ConnectionHandleFactory(t_cop_, command_factory_);
-  server_ = new terrier::network::TerrierServer(connection_handle_factory_);
+  t_cop_ = new terrier::trafficcop::TrafficCop;
+  command_factory_ = new terrier::network::PostgresCommandFactory;
+
+  connection_handle_factory_ = new terrier::network::ConnectionHandleFactory(common::ManagedPointer(t_cop_));
+  provider_ = new terrier::network::PostgresProtocolInterpreter::Provider(common::ManagedPointer(command_factory_));
+  server_ = new terrier::network::TerrierServer(common::ManagedPointer(provider_),
+                                                common::ManagedPointer(connection_handle_factory_));
 
   LOG_INFO("Initialization complete");
 
@@ -62,6 +75,7 @@ void DBMain::ForceShutdown() {
 void DBMain::CleanUp() {
   main_stat_reg_->Shutdown(false);
   LoggersUtil::ShutDown();
+  log_manager_->PersistAndStop();
   thread_pool_->Shutdown();
   LOG_INFO("Terrier has shut down.");
 }

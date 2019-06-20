@@ -3,9 +3,16 @@
 
 namespace terrier::planner {
 
-common::hash_t NestedLoopJoinPlanNode::Hash() const { return AbstractJoinPlanNode::Hash(); }
+common::hash_t NestedLoopJoinPlanNode::Hash() const {
+  common::hash_t hash = AbstractJoinPlanNode::Hash();
+
+  // There is nothing else for us to do here!
+
+  return hash;
+}
 
 bool NestedLoopJoinPlanNode::operator==(const AbstractPlanNode &rhs) const {
+  // There is nothing else for us to do here! Go home! You're drunk!
   return AbstractJoinPlanNode::operator==(rhs);
 }
 

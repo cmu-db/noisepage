@@ -37,8 +37,10 @@ class TerrierServer : public DedicatedThreadOwner {
    * Note that SettingsManager must already be initialized when this constructor
    * is called.
    */
-  explicit TerrierServer(ConnectionHandleFactory *connection_handle_factory);
-  virtual ~TerrierServer() = default;
+  explicit TerrierServer(common::ManagedPointer<ProtocolInterpreter::Provider> protocol_provider,
+                         common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory);
+
+  ~TerrierServer() override = default;
 
   /**
    * @brief Configure the server to spin up all its threads and start listening
@@ -94,9 +96,8 @@ class TerrierServer : public DedicatedThreadOwner {
   int listen_fd_ = -1;      // server socket fd that TerrierServer is listening on
   size_t max_connections_;  // maximum number of connections
 
-  ConnectionHandleFactory *connection_handle_factory_;
-
-  // For testing purposes
+  common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory_;
+  common::ManagedPointer<ProtocolInterpreter::Provider> provider_;
   std::shared_ptr<ConnectionDispatcherTask> dispatcher_task_;
 };
 }  // namespace terrier::network
