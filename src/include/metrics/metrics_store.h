@@ -25,7 +25,6 @@ class MetricsManager;
  */
 class MetricsStore {
  public:
-
   /**
    * Collector action on transaction begin
    * @param txn context of the transaction beginning
