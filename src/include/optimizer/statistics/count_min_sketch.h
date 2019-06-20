@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
+#include <iostream>
 #include <vector>
 
 #include "common/macros.h"
@@ -18,9 +19,9 @@ namespace terrier::optimizer {
  * Think of this like a Bloom filter but instead of determining whether
  * a key exists in a set or not, the CountMinSketch estimates
  * the count for the given key.
- * @tparam ValueType the data type of the entries we will store
+ * @tparam KeyType the data type of the entries we will store
  */
-template <typename ValueType>
+template <typename KeyType>
 class CountMinSketch {
  public:
   using SketchElemType = uint64_t;
@@ -29,56 +30,59 @@ class CountMinSketch {
    * Constructor with specific sketch size.
    * @param depth
    * @param width
-   * @param seed
    */
-  CountMinSketch(int depth, int width, unsigned int seed)
+  CountMinSketch(int depth, int width)
       : depth_{depth},
         width_{width},
-        eps_{exp(1) / width},
-        gamma_{exp(-depth)},
-        size_{0} {
-    InitTable(seed);
+        eps_{std::exp(1.0) / static_cast<double>(width)},
+        gamma_{std::exp(static_cast<double>(-depth))},
+        size_{0},
+        total_count_{0} {
+    InitTable();
   }
 
   /**
    * Constructor with specific error bound.
    * @param eps
    * @param gamma
-   * @param seed
    */
-  CountMinSketch(double eps, double gamma, unsigned int seed)
-      : depth_{(int)ceil(log(1 / gamma))},
-        width_{(int)ceil(exp(1) / eps)},
+  CountMinSketch(double eps, double gamma)
+      : depth_{static_cast<int>(ceil(log(1.0 / gamma)))},
+        width_{static_cast<int>(ceil(exp(1.0) / eps))},
         eps_{eps},
         gamma_{gamma},
-        size_{0} {
-    InitTable(seed);
+        size_{0},
+        total_count_{0} {
+    InitTable();
   }
 
   /**
-   *
-   * @param item
-   * @param count
+   * Increase the count for a key by a given amount.
+   * The key does not need to exist in the sketch first.
+   * @param key the key to increment the count for
+   * @param count how much to increment the key's count.
    */
-  void Add(ValueType item, unsigned int count) {
-    std::vector<int> bins = GetHashBins(item);
+  void Add(KeyType key, unsigned int count) {
+    std::vector<int> bins = GetHashBins(key);
     uint64_t former_min = UINT64_MAX;
     for (int i = 0; i < depth_; i++) {
       former_min = std::min(table_[i][bins[i]], former_min);
+//      std::cout << "former_min=" << former_min << std::endl;
       table_[i][bins[i]] += count;
     }
     if (former_min == 0) {
       ++size_;
     }
+    total_count_ += count;
   }
 
   /**
-   *
-   * @param item
-   * @param count
+   * Remove the count for a key by a given amount.
+   * @param key the key to decrement the count for
+   * @param count how much to decrement the key's count.
    */
-  void Remove(ValueType item, unsigned int count) {
-    std::vector<int> bins = GetHashBins(item);
+  void Remove(KeyType key, unsigned int count) {
+    std::vector<int> bins = GetHashBins(key);
     uint64_t former_min = UINT64_MAX, latter_min = UINT64_MAX;
     for (int i = 0; i < depth_; i++) {
       former_min = std::min(table_[i][bins[i]], former_min);
@@ -92,16 +96,17 @@ class CountMinSketch {
     if (former_min != 0 && latter_min == 0) {
       --size_;
     }
+    total_count_ -= count;
   }
 
   /**
-   *
-   * @param item
-   * @return
+   * Compute the approximate count for the given key.
+   * @param key the key to get the count for.
+   * @return the approximate count number for the key.
    */
-  uint64_t EstimateItemCount(ValueType item) {
+  uint64_t EstimateItemCount(KeyType key) {
     uint64_t count = UINT64_MAX;
-    std::vector<int> bins = GetHashBins(item);
+    std::vector<int> bins = GetHashBins(key);
     for (int i = 0; i < depth_; i++) {
       count = std::min(count, table_[i][bins[i]]);
     }
@@ -110,87 +115,79 @@ class CountMinSketch {
   }
 
   /**
-   *
-   * @return
+   * @return the number of bucket levels in this sketch
    */
   const int GetDepth() const { return depth_; }
 
   /**
-   *
-   * @return
+   * @return the number of 'slots' in each bucket level in this sketch.
    */
   const int GetWidth() const { return width_; }
 
   /**
-   *
-   * @return
+   * @return the error range of this sketch
    */
   const double GetErrorRange() const { return eps_; }
 
   /**
-   *
-   * @return
+   * @return the error probability of this sketch.
    */
   const double GetErrorProbability() const { return gamma_; }
 
   /**
-   * @return the number of unique values that this sketch has seen.
+   * @return the approximate number of unique keys that this sketch has seen.
    */
-  size_t GetSize() const { return size_; }
+  int GetApproximateSize() const { return size_; }
+
+  /**
+   * @return the total of the number counts this sketch has seen.
+   */
+  size_t GetTotalCount() const { return total_count_; }
 
  private:
 
   /**
-   * Initialize the internal data table and pre-populate the
-   * row hashes vector with random values.
-   * @param seed
+   * Initialize the internal data table
    */
-  void InitTable(unsigned int seed) {
+  void InitTable() {
     TERRIER_ASSERT((0.01 < eps_) && (eps_ < 1.0), "Invalid error range");
-    TERRIER_ASSERT((0 < gamma_) && (gamma_ < 1.0), "Invalid error probability");
+    TERRIER_ASSERT((0.0 < gamma_) && (gamma_ < 1.0), "Invalid error probability");
     TERRIER_ASSERT(depth_ > 0, "Invalid depth");
     TERRIER_ASSERT(width_ > 0, "Invalid width");
 
     table_ = std::vector<std::vector<SketchElemType>>(
         depth_, std::vector<SketchElemType>(width_));
-
-    std::minstd_rand0 generator(seed);
-    for (int i = 0; i < depth_; i++) {
-      row_hashes_.push_back(generator());
-    }
   }
 
   /**
-   *
-   * @param item
-   * @return
+   * For the given key, return a vector with the offsets where we should
+   * update this keys count information.
+   * @param key the target key
+   * @return vector of hash bin offsets
    */
-  std::vector<int> GetHashBins(ValueType item) {
+  std::vector<int> GetHashBins(KeyType key) {
     std::vector<int> bins;
-    int32_t h1 = murmur3::MurmurHash3_x64_128(item, 0);
-    int32_t h2 = murmur3::MurmurHash3_x64_128(item, h1);
-//    int32_t h1 = MurmurHash3_x64_128(item, strlen(item), 0);
-//    int32_t h2 = MurmurHash3_x64_128(item, strlen(item), h1);
-
+    int32_t h1 = murmur3::MurmurHash3_x64_128(key, 0);
+    int32_t h2 = murmur3::MurmurHash3_x64_128(key, h1);
     for (int i = 0; i < depth_; i++) {
-      bins.push_back(abs((h1 + i * h2) % width_));
+      bins.push_back(std::abs((h1 + i * h2) % width_));
     }
     return bins;
   }
 
 
   /**
-   *
+   * The number of bucket levels in our sketch
    */
   const int depth_;
 
   /**
-   *
+   * The number of 'slots' in each bucket level of the sketch.
    */
   const int width_;
 
   /**
-   * error range 0.01 < ep < 1
+   * Error Range (0.01 < eps < 1)
    */
   const double eps_;
 
@@ -200,19 +197,20 @@ class CountMinSketch {
   const double gamma_;
 
   /**
-   *
+   * The approximate number of keys in our sketch
    */
-  size_t size_;
+  int size_;
 
   /**
-   *
+   * Simple counter of the number of entries we have stored.
+   * This will always be accurate.
+   */
+  size_t total_count_;
+
+  /**
+   * The internal table where we store the approximate counts
    */
   std::vector<std::vector<SketchElemType>> table_;
-
-  /**
-   *
-   */
-  std::vector<SketchElemType> row_hashes_;
 
 };
 
