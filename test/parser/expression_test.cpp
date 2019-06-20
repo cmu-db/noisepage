@@ -236,7 +236,7 @@ TEST(ExpressionTests, AggregateExpressionJsonTest) {
 
 // NOLINTNEXTLINE
 TEST(ExpressionTests, CaseExpressionTest) {
-  // Create expression
+  // Create expression 1
   std::shared_ptr<StarExpression> const_expr = std::make_shared<StarExpression>();
   std::vector<CaseExpression::WhenClause> when_clauses;
   CaseExpression::WhenClause when{const_expr, const_expr};
@@ -255,6 +255,51 @@ TEST(ExpressionTests, CaseExpressionTest) {
   EXPECT_EQ(case_expr->GetReturnValueType(), deserialized_case_expr->GetReturnValueType());
   EXPECT_TRUE(deserialized_case_expr->GetDefaultClause() != nullptr);
   EXPECT_EQ(const_expr->GetExpressionType(), deserialized_case_expr->GetDefaultClause()->GetExpressionType());
+
+  // Create expression 2
+  std::shared_ptr<StarExpression> const_expr_2 = std::make_shared<StarExpression>();
+  std::vector<CaseExpression::WhenClause> when_clauses_2;
+  CaseExpression::WhenClause when_2{const_expr_2, const_expr_2};
+  when_clauses_2.push_back(when_2);
+  auto case_expr_2 = new CaseExpression(type::TypeId::BOOLEAN, std::move(when_clauses_2), const_expr_2);
+
+  // Create expression 3
+  std::shared_ptr<ConstantValueExpression> const_expr_3 = std::make_shared<ConstantValueExpression>();
+  std::vector<CaseExpression::WhenClause> when_clauses_3;
+  CaseExpression::WhenClause when_3{const_expr_3, const_expr_2};
+  when_clauses_3.push_back(when_3);
+  auto case_expr_3 = new CaseExpression(type::TypeId::BOOLEAN, std::move(when_clauses_3), const_expr_3);
+
+  // Create expression 4
+  std::shared_ptr<StarExpression> const_expr_4 = std::make_shared<StarExpression>();
+  std::vector<CaseExpression::WhenClause> when_clauses_4;
+  CaseExpression::WhenClause when_4{const_expr_4, const_expr_4};
+  when_clauses_4.push_back(when_4);
+  auto case_expr_4 = new CaseExpression(type::TypeId::INTEGER, std::move(when_clauses_4), const_expr_4);
+
+  EXPECT_TRUE(*case_expr == *case_expr_2);
+  EXPECT_FALSE(*case_expr == *case_expr_3);
+  EXPECT_FALSE(*case_expr == *case_expr_4);
+  EXPECT_EQ(case_expr->Hash(), case_expr_2->Hash());
+  EXPECT_NE(case_expr->Hash(), case_expr_3->Hash());
+  EXPECT_NE(case_expr->Hash(), case_expr_4->Hash());
+
+  EXPECT_EQ(case_expr->GetExpressionType(), ExpressionType::OPERATOR_CASE_EXPR);
+  // There is no need to deduce the return_value_type of constant value expression
+  // and calling this function essentially does nothing
+  // Only test if we can call it without error.
+  case_expr->DeduceReturnValueType();
+  EXPECT_EQ(case_expr->GetReturnValueType(), type::TypeId::BOOLEAN);
+  EXPECT_EQ(case_expr->GetChildrenSize(), 0);
+  EXPECT_EQ(case_expr->GetWhenClauseCondition(0), const_expr);
+  EXPECT_EQ(case_expr->GetWhenClauseResult(0), const_expr);
+  // Private members depth will be initialized as -1 and has_subquery as false.
+  EXPECT_EQ(case_expr->GetDepth(), -1);
+  EXPECT_FALSE(case_expr->HasSubquery());
+
+  delete case_expr_2;
+  delete case_expr_3;
+  delete case_expr_4;
 }
 
 // NOLINTNEXTLINE

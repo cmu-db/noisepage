@@ -73,6 +73,7 @@ class AbstractExpression {
     for (auto const &child : children_) {
       hash = common::HashUtil::CombineHashes(hash, child->Hash());
     }
+    hash = common::HashUtil::CombineHashes(hash, int(return_value_type_));
     return hash;
   }
 
@@ -90,7 +91,7 @@ class AbstractExpression {
         return false;
       }
     }
-    return true;
+    return return_value_type_ == rhs.return_value_type_;
   }
 
   /**
