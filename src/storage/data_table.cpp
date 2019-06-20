@@ -150,7 +150,7 @@ void DataTable::InsertInto(transaction::TransactionContext *txn, const Projected
   // At this point, sequential scan down the block can still see this, except it thinks it is logically deleted if we 0
   // the primary key column
   UndoRecord *undo = txn->UndoRecordForInsert(this, dest);
-  TERRIER_ASSERT(dest.GetBlock()->controller_.CurrentBlockState() == BlockState::HOT,
+  TERRIER_ASSERT(dest.GetBlock()->controller_.GetBlockState()->load() == BlockState::HOT,
                  "Should only be able to insert into hot blocks");
   AtomicallyWriteVersionPtr(dest, accessor_, undo);
   // Set the logically deleted bit to present as the undo record is ready

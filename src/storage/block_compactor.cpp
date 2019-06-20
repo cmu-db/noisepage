@@ -16,7 +16,7 @@ void BlockCompactor::ProcessCompactionQueue(transaction::TransactionManager *txn
   std::forward_list<RawBlock *> to_process = std::move(compaction_queue_);
   for (auto &block : to_process) {
     BlockAccessController &controller = block->controller_;
-    switch (controller.CurrentBlockState()) {
+    switch (controller.GetBlockState()->load()) {
       case BlockState::HOT: {
         // TODO(Tianyu): The policy about how to group blocks together into compaction group can be a lot
         // more sophisticated. Compacting more blocks together frees up more memory per compaction run,

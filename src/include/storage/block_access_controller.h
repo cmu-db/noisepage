@@ -67,7 +67,7 @@ class BlockAccessController {
       // Can only read in-place if a block is not being updated
       if (curr_state.first != BlockState::FROZEN) return false;
       // Increment reader count while holding the rest constant
-      if (UpdateAtomically(curr_state.first, curr_state.second + 1, curr_state)) return true;
+      if (UpdateAtomically(curr_state, {curr_state.first, curr_state.second + 1})) return true;
     }
   }
 
@@ -110,14 +110,13 @@ class BlockAccessController {
   /**
    * @return state of the current block
    */
-  BlockState CurrentBlockState() { return GetBlockState()->load(); }
+  std::atomic<BlockState> *GetBlockState() { return reinterpret_cast<std::atomic<BlockState> *>(bytes_); }
 
  private:
   friend class BlockCompactor;
   // we are breaking this down to two fields, (| BlockState (32-bits) | Reader Count (32-bits) |)
   // but may need to compare and swap on the two together sometimes
   byte bytes_[sizeof(uint64_t)];
-  std::atomic<BlockState> *GetBlockState() { return reinterpret_cast<std::atomic<BlockState> *>(bytes_); }
 
   std::atomic<uint32_t> *GetReaderCount() {
     return reinterpret_cast<std::atomic<uint32_t> *>(reinterpret_cast<uint32_t *>(bytes_) + 1);
@@ -125,14 +124,13 @@ class BlockAccessController {
 
   std::pair<BlockState, uint32_t> AtomicallyLoadMembers() {
     uint64_t curr_value = reinterpret_cast<std::atomic<uint64_t> *>(bytes_)->load();
-    // mask off respective bytes to turn the two into 32 bit values
-    return {static_cast<BlockState>(curr_value >> 32u), curr_value & UINT32_MAX};
+    return *reinterpret_cast<std::pair<BlockState, uint32_t> *>(&curr_value);
   }
 
-  bool UpdateAtomically(BlockState new_state, uint32_t reader_count, const std::pair<BlockState, uint32_t> &expected) {
-    uint64_t desired = (static_cast<uint64_t>(new_state) << 32u) + reader_count;
+  bool UpdateAtomically(const std::pair<BlockState, uint32_t> &expected, std::pair<BlockState, uint32_t> desired) {
+    uint64_t expected_bytes = *reinterpret_cast<const uint64_t *>(&expected);
     return reinterpret_cast<std::atomic<uint64_t> *>(bytes_)->compare_exchange_strong(
-        desired, *reinterpret_cast<const uint64_t *>(&expected));
+        expected_bytes, *reinterpret_cast<uint64_t *>(&desired));
   }
 };
 }  // namespace terrier::storage
