@@ -29,7 +29,7 @@
 namespace terrier::parser::expression {
 
 // NOLINTNEXTLINE
-TEST(ExpressionTests, BasicTest) {
+TEST(ExpressionTests, ConstantValueExpressionTest) {
   // constant Booleans
   auto expr_b_1 = new ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
   auto expr_b_2 = new ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
@@ -330,6 +330,12 @@ TEST(ExpressionTests, ConstantValueExpressionJsonTest) {
   // Serialize expression
   auto json = original_expr->ToJson();
   EXPECT_FALSE(json.is_null());
+
+  const auto from_json_expr = new ConstantValueExpression();
+  from_json_expr->FromJson(json);
+  EXPECT_TRUE(*original_expr == *from_json_expr);
+
+  delete from_json_expr;
 
   // Deserialize expression
   auto deserialized_expression = DeserializeExpression(json);
