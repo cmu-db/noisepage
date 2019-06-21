@@ -31,30 +31,15 @@ class MetricsManager {
   void Aggregate();
 
   /**
-   * @return pointer to this thread's MetricsStore object
+   * Called by the thread to get a MetricsStore object
    */
-  common::ManagedPointer<MetricsStore> RegisterThread() {
-    common::SpinLatch::ScopedSpinLatch guard(&write_latch_);
-    const auto thread_id = std::this_thread::get_id();
-    TERRIER_ASSERT(stores_map_.count(thread_id) == 0, "This thread was already registered.");
-    auto result = stores_map_.emplace(thread_id, new MetricsStore(enabled_metrics_));
-    TERRIER_ASSERT(result.second, "Insertion to concurrent map failed.");
-    return common::ManagedPointer(result.first->second);
-  }
+  void RegisterThread();
 
   /**
    * Should be called by the thread when it is guaranteed to no longer be collecting any more metrics, otherwise,
    * segfault could happen when the unique_ptr releases the MetricsStore
    */
-  void UnregisterThread() {
-    // TODO(Matt): if we add the notion of thread_local ThreadContext, this should probably be called from that
-    // destructor when thread is guaranteed to be in teardown state
-    common::SpinLatch::ScopedSpinLatch guard(&write_latch_);
-    const auto thread_id = std::this_thread::get_id();
-    TERRIER_ASSERT(stores_map_.count(thread_id) == 1, "This thread was never registered.");
-    stores_map_.erase(thread_id);
-    TERRIER_ASSERT(stores_map_.count(thread_id) == 0, "Deletion from concurrent map failed.");
-  }
+  void UnregisterThread();
 
   /**
    * @return the MetricsManager's aggregated metrics. Currently used in tests
@@ -70,6 +55,8 @@ class MetricsManager {
   bool ComponentEnabled(const MetricsComponent component) {
     return enabled_metrics_.test(static_cast<uint8_t>(component));
   }
+
+  static thread_local common::ManagedPointer<MetricsStore> metrics_store_;
 
  private:
   friend class settings::Callbacks;

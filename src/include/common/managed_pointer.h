@@ -25,13 +25,18 @@ class ManagedPointer {
    * Constructs a new ManagedPointer.
    * @param ptr the pointer value this ManagedPointer wraps
    */
-  explicit ManagedPointer(Underlying *ptr) : underlying_(ptr) {}
+  explicit ManagedPointer(Underlying *const ptr) : underlying_(ptr) {}
 
   /**
    * Constructs a new ManagedPointer.
    * @param smart_ptr the pointer value this ManagedPointer wraps
    */
   explicit ManagedPointer(const std::unique_ptr<Underlying> &smart_ptr) : underlying_(smart_ptr.get()) {}
+
+  /**
+   * @param null_ptr null pointer
+   */ // NOLINTNEXTLINE adding implicit makes nullptr assignment want to use implicit copy and move constructors
+  ManagedPointer(std::nullptr_t) noexcept : underlying_(nullptr) {}
 
   /**
    * @return the underlying pointer
@@ -52,6 +57,21 @@ class ManagedPointer {
    * @return True if it is not a nullptr, false otherwise
    */
   explicit operator bool() const { return underlying_; }
+
+  ManagedPointer &operator=(std::nullptr_t) {
+    underlying_ = nullptr;
+    return *this;
+  }
+
+  ManagedPointer &operator=(const std::unique_ptr<Underlying> &smart_ptr) {
+    underlying_ = smart_ptr.get();
+    return *this;
+  }
+
+  ManagedPointer &operator=(Underlying *const ptr) {
+    underlying_ = ptr;
+    return *this;
+  }
 
   /**
    * Equality operator

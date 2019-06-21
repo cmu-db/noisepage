@@ -66,7 +66,9 @@ TEST_F(MetricsTests, TransactionMetricBasicTest) {
         std::make_shared<common::ActionContext>(common::action_id_t(1));
     settings_manager_->SetBool(settings::Param::metrics_transaction, true, action_context, setter_callback);
 
-    const auto metrics_store_ptr = metrics_manager_->RegisterThread();
+    metrics_manager_->RegisterThread();
+    const auto &metrics_store_ptr = metrics_manager_->metrics_store_;
+    EXPECT_NE(metrics_store_ptr, nullptr);
 
     std::unordered_map<uint8_t, transaction::timestamp_t> id_map;
     std::unordered_map<transaction::timestamp_t, uint64_t> read_map;
@@ -161,7 +163,10 @@ TEST_F(MetricsTests, TransactionMetricStorageTest) {
     std::shared_ptr<common::ActionContext> action_context =
         std::make_shared<common::ActionContext>(common::action_id_t(1));
     settings_manager_->SetBool(settings::Param::metrics_transaction, true, action_context, setter_callback);
-    const auto metrics_store_ptr = metrics_manager_->RegisterThread();
+
+    metrics_manager_->RegisterThread();
+    const auto &metrics_store_ptr = metrics_manager_->metrics_store_;
+    EXPECT_NE(metrics_store_ptr, nullptr);
 
     std::unordered_map<uint8_t, transaction::timestamp_t> id_map;
     std::unordered_map<transaction::timestamp_t, uint64_t> read_map;
@@ -252,7 +257,9 @@ TEST_F(MetricsTests, MultiThreadTest) {
         std::this_thread::sleep_for(std::chrono::seconds(2));
         metrics_manager_->Aggregate();
       } else {  // normal thread
-        const auto metrics_store_ptr = metrics_manager_->RegisterThread();
+        metrics_manager_->RegisterThread();
+        const auto &metrics_store_ptr = metrics_manager_->metrics_store_;
+        EXPECT_NE(metrics_store_ptr, nullptr);
         for (uint8_t j = 0; j < num_txns_; j++) {
           auto start_max = std::chrono::high_resolution_clock::now();
           auto *txn = txn_manager_->BeginTransaction();
