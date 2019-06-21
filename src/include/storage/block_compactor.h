@@ -48,6 +48,8 @@ class BlockCompactor {
   };
 
  public:
+  FAKED_IN_TEST ~BlockCompactor() = default;
+
   /**
    * Processes the compaction queue and mark processed blocks as cold if successful. The compaction can fail due
    * to live versions or contention. There will be a brief window where user transactions writing to the block
@@ -61,7 +63,7 @@ class BlockCompactor {
    * Adds a block associated with a data table to the compaction to be processed in the future.
    * @param block the block that needs to be processed by the compactor
    */
-  void PutInQueue(RawBlock *block) { compaction_queue_.push_front(block); }
+  FAKED_IN_TEST void PutInQueue(RawBlock *block) { compaction_queue_.push_front(block); }
 
  private:
   bool EliminateGaps(CompactionGroup *cg);
