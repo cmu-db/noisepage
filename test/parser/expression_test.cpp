@@ -556,12 +556,14 @@ TEST(ExpressionTests, OperatorExpressionJsonTest) {
 
 // NOLINTNEXTLINE
 TEST(ExpressionTests, TypeCastExpressionJsonTest) {
+  // No generic TypeCastExpression test
   // Create expression
   std::vector<std::shared_ptr<AbstractExpression>> children;
   auto child_expr = std::make_shared<StarExpression>();
   children.push_back(std::move(child_expr));
   std::shared_ptr<TypeCastExpression> original_expr =
       std::make_shared<TypeCastExpression>(type::TypeId::SMALLINT, std::move(children));
+  EXPECT_EQ(original_expr->GetExpressionType(), ExpressionType::OPERATOR_CAST);
 
   // Serialize expression
   auto json = original_expr->ToJson();
@@ -570,7 +572,8 @@ TEST(ExpressionTests, TypeCastExpressionJsonTest) {
   // Deserialize expression
   auto deserialized_expression = DeserializeExpression(json);
   EXPECT_EQ(*original_expr, *deserialized_expression);
-  EXPECT_EQ(original_expr->GetType(), static_cast<TypeCastExpression *>(deserialized_expression.get())->GetType());
+  EXPECT_EQ(static_cast<TypeCastExpression *>(deserialized_expression.get())->GetExpressionType(), ExpressionType::OPERATOR_CAST);
+  EXPECT_EQ(original_expr->GetReturnValueType(), static_cast<TypeCastExpression *>(deserialized_expression.get())->GetReturnValueType());
 }
 
 // NOLINTNEXTLINE
