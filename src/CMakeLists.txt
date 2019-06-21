@@ -25,20 +25,6 @@ list(APPEND TERRIER_SRCS ${BWTREE_SOURCES})
 # json
 list(APPEND TERRIER_SRCS ${PROJECT_SOURCE_DIR}/third_party/nlohmann/json.hpp)
 
-# murmur3
-file(GLOB_RECURSE MURMUR3_SOURCES
-        ${PROJECT_SOURCE_DIR}/third_party/murmur3/*.cpp 
-        ${PROJECT_SOURCE_DIR}/third_party/murmur3/*.h 
-)
-list(APPEND TERRIER_SRCS ${MURMUR3_SOURCES})
-
-# madoka
-file(GLOB_RECURSE MADOKA_SOURCES
-        ${PROJECT_SOURCE_DIR}/third_party/madoka/*.cc
-        ${PROJECT_SOURCE_DIR}/third_party/madoka/*.h 
-)
-list(APPEND TERRIER_SRCS ${MADOKA_SOURCES})
-
 ###############################################
 # Terrier library
 ###############################################
@@ -50,7 +36,7 @@ ADD_TERRIER_LIB(terrier
     SHARED_PRIVATE_LINK_LIBS ${TERRIERSHARED_PRIVATE_LINK_LIBS}
     STATIC_LINK_LIBS ${TERRIER_STATIC_LINK_LIBS}
     STATIC_PRIVATE_LINK_LIBS ${TERRIER_STATIC_PRIVATE_LINK_LIBS}
-)
+    )
 
 ###############################################
 # Terrier executable
