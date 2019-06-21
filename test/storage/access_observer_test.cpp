@@ -7,6 +7,7 @@
 namespace terrier {
 class MockBlockCompactor : public storage::BlockCompactor {
  public:
+  // NOLINTNEXTLINE
   MOCK_METHOD1(PutInQueue, void(storage::RawBlock *));
 };
 
@@ -32,6 +33,7 @@ TEST(AccessObserverTest, EmptyBlocksNotObserved) {
   // Should not be called
 }
 
+// NOLINTNEXTLINE
 TEST(AccessObserverTest, FilledBlocksObserved) {
   // Obtain a fake block
   std::default_random_engine generator;
