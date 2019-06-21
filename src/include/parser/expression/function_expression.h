@@ -31,7 +31,7 @@ class FunctionExpression : public AbstractExpression {
   FunctionExpression() = default;
 
   std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<FunctionExpression>(*this); }
-  
+
   common::hash_t Hash() const override {
     common::hash_t hash = AbstractExpression::Hash();
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(func_name_));

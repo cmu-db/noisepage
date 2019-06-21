@@ -1,4 +1,5 @@
 #include <memory>
+#include <string>
 #include <vector>
 
 #include "parser/expression/abstract_expression.h"

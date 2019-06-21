@@ -326,7 +326,8 @@ TEST(ExpressionTests, AggregateExpressionTest) {
   EXPECT_FALSE(agg_expr_1->HasSubquery());
 
   // Testing DeduceReturnValueType functionality
-  auto children_6 = std::vector<std::shared_ptr<AbstractExpression>>{std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true))};
+  auto children_6 = std::vector<std::shared_ptr<AbstractExpression>>{
+      std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true))};
   auto agg_expr_6 = new AggregateExpression(ExpressionType::AGGREGATE_MAX, std::move(children_6), true);
   agg_expr_6->DeduceReturnValueType();
 
@@ -335,7 +336,8 @@ TEST(ExpressionTests, AggregateExpressionTest) {
   EXPECT_EQ(agg_expr_6->GetReturnValueType(), type::TransientValueFactory::GetBoolean(true).Type());
 
   // Testing DeduceReturnValueType functionality
-  auto children_7 = std::vector<std::shared_ptr<AbstractExpression>>{std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true))};
+  auto children_7 = std::vector<std::shared_ptr<AbstractExpression>>{
+      std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true))};
   auto agg_expr_7 = new AggregateExpression(ExpressionType::AGGREGATE_AVG, std::move(children_7), true);
   agg_expr_7->DeduceReturnValueType();
 
@@ -380,7 +382,6 @@ TEST(ExpressionTests, AggregateExpressionJsonTest) {
 
 // NOLINTNEXTLINE
 TEST(ExpressionTests, CaseExpressionTest) {
-
   // Create expression 1
   std::shared_ptr<StarExpression> const_expr = std::make_shared<StarExpression>();
   std::vector<CaseExpression::WhenClause> when_clauses;
@@ -467,10 +468,14 @@ TEST(ExpressionTests, CaseExpressionJsonTest) {
 
 // NOLINTNEXTLINE
 TEST(ExpressionTests, FunctionExpressionTest) {
-  auto func_expr_1 = std::make_shared<FunctionExpression>("FullHouse", type::TypeId::VARCHAR, std::vector<std::shared_ptr<AbstractExpression>>());
-  auto func_expr_2 = std::make_shared<FunctionExpression>("FullHouse", type::TypeId::VARCHAR, std::vector<std::shared_ptr<AbstractExpression>>());
-  auto func_expr_3 = std::make_shared<FunctionExpression>("Flush", type::TypeId::VARCHAR, std::vector<std::shared_ptr<AbstractExpression>>());
-  auto func_expr_4 = std::make_shared<FunctionExpression>("FullHouse", type::TypeId::VARBINARY, std::vector<std::shared_ptr<AbstractExpression>>());
+  auto func_expr_1 = std::make_shared<FunctionExpression>("FullHouse", type::TypeId::VARCHAR,
+                                                          std::vector<std::shared_ptr<AbstractExpression>>());
+  auto func_expr_2 = std::make_shared<FunctionExpression>("FullHouse", type::TypeId::VARCHAR,
+                                                          std::vector<std::shared_ptr<AbstractExpression>>());
+  auto func_expr_3 = std::make_shared<FunctionExpression>("Flush", type::TypeId::VARCHAR,
+                                                          std::vector<std::shared_ptr<AbstractExpression>>());
+  auto func_expr_4 = std::make_shared<FunctionExpression>("FullHouse", type::TypeId::VARBINARY,
+                                                          std::vector<std::shared_ptr<AbstractExpression>>());
 
   EXPECT_TRUE(*func_expr_1 == *func_expr_2);
   EXPECT_FALSE(*func_expr_1 == *func_expr_3);
@@ -504,7 +509,8 @@ TEST(ExpressionTests, OperatorExpressionTest) {
   // Following testcases will test only methods unique to the specific child class
 
   auto op_ret_type = type::TypeId::BOOLEAN;
-  auto op_expr_1 = new OperatorExpression(ExpressionType::OPERATOR_NOT, op_ret_type, std::vector<std::shared_ptr<AbstractExpression>>());
+  auto op_expr_1 = new OperatorExpression(ExpressionType::OPERATOR_NOT, op_ret_type,
+                                          std::vector<std::shared_ptr<AbstractExpression>>());
   op_expr_1->DeduceReturnValueType();
   EXPECT_TRUE(op_expr_1->GetReturnValueType() == type::TypeId::BOOLEAN);
 
@@ -518,10 +524,10 @@ TEST(ExpressionTests, OperatorExpressionTest) {
 
   auto child3 = std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetDate(type::date_t(1)));
   children_cp.push_back(child3);
-  auto op_expr_3 = new OperatorExpression(ExpressionType::OPERATOR_CONCAT, type::TypeId::INVALID, std::move(children_cp));
+  auto op_expr_3 =
+      new OperatorExpression(ExpressionType::OPERATOR_CONCAT, type::TypeId::INVALID, std::move(children_cp));
 
   EXPECT_DEATH(op_expr_3->DeduceReturnValueType(), "Invalid operand type type in Operator Expression.");
-
 
   delete op_expr_1;
   delete op_expr_2;
@@ -572,8 +578,10 @@ TEST(ExpressionTests, TypeCastExpressionJsonTest) {
   // Deserialize expression
   auto deserialized_expression = DeserializeExpression(json);
   EXPECT_EQ(*original_expr, *deserialized_expression);
-  EXPECT_EQ(static_cast<TypeCastExpression *>(deserialized_expression.get())->GetExpressionType(), ExpressionType::OPERATOR_CAST);
-  EXPECT_EQ(original_expr->GetReturnValueType(), static_cast<TypeCastExpression *>(deserialized_expression.get())->GetReturnValueType());
+  EXPECT_EQ(static_cast<TypeCastExpression *>(deserialized_expression.get())->GetExpressionType(),
+            ExpressionType::OPERATOR_CAST);
+  EXPECT_EQ(original_expr->GetReturnValueType(),
+            static_cast<TypeCastExpression *>(deserialized_expression.get())->GetReturnValueType());
 }
 
 // NOLINTNEXTLINE

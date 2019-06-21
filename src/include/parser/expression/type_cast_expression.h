@@ -10,7 +10,7 @@ namespace terrier::parser {
  * Represents a type cast expression.
  */
 class TypeCastExpression : public AbstractExpression {
-  // TODO: (Ling) Do we need a separate class for operator_cast? We can put it in operatorExpression
+  // TODO(Ling):  Do we need a separate class for operator_cast? We can put it in operatorExpression
  public:
   /**
    * Instantiates a new type cast expression.
@@ -26,7 +26,6 @@ class TypeCastExpression : public AbstractExpression {
   std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<TypeCastExpression>(*this); }
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
-
 };
 
 DEFINE_JSON_DECLARATIONS(TypeCastExpression);

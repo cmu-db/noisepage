@@ -88,7 +88,9 @@ class AbstractExpression {
    * @return true if the two expressions are logically equal
    */
   virtual bool operator==(const AbstractExpression &rhs) const {
-    if (expression_type_ != rhs.expression_type_ || children_.size() != rhs.children_.size() || alias_ != rhs.alias_ || depth_ != rhs.depth_ || has_subquery_ != rhs.has_subquery_ || return_value_type_ != rhs.return_value_type_ || expression_name_ != rhs.expression_name_) {
+    if (expression_type_ != rhs.expression_type_ || children_.size() != rhs.children_.size() || alias_ != rhs.alias_ ||
+        depth_ != rhs.depth_ || has_subquery_ != rhs.has_subquery_ || return_value_type_ != rhs.return_value_type_ ||
+        expression_name_ != rhs.expression_name_) {
       return false;
     }
     for (size_t i = 0; i < children_.size(); i++) {
