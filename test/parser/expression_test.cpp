@@ -585,6 +585,27 @@ TEST(ExpressionTests, TypeCastExpressionJsonTest) {
 }
 
 // NOLINTNEXTLINE
+TEST(ExpressionTests, ParameterValueExpressionTest) {
+  // Create expression
+  auto param_expr_1 = new ParameterValueExpression(42);
+  auto param_expr_2 = new ParameterValueExpression(42);
+  auto param_expr_3 = new ParameterValueExpression(0);
+
+  EXPECT_TRUE(*param_expr_1 == *param_expr_2);
+  EXPECT_FALSE(*param_expr_1 == *param_expr_3);
+  EXPECT_EQ(param_expr_1->Hash(), param_expr_2->Hash());
+  EXPECT_NE(param_expr_1->Hash(), param_expr_3->Hash());
+  EXPECT_EQ(param_expr_1->GetExpressionType(), ExpressionType::VALUE_PARAMETER);
+  EXPECT_EQ(param_expr_1->GetReturnValueType(), type::TypeId::INTEGER);
+  EXPECT_EQ(param_expr_1->GetChildrenSize(), 0);
+  EXPECT_EQ(param_expr_1->GetValueIdx(), 42);
+
+  delete param_expr_1;
+  delete param_expr_2;
+  delete param_expr_3;
+}
+
+// NOLINTNEXTLINE
 TEST(ExpressionTests, ParameterValueExpressionJsonTest) {
   // Create expression
   std::shared_ptr<ParameterValueExpression> original_expr =
