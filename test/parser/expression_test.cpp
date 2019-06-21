@@ -657,6 +657,7 @@ TEST(ExpressionTests, TupleValueExpressionTest) {
   delete tve5;
   delete tve6;
 }
+
 // NOLINTNEXTLINE
 TEST(ExpressionTests, TupleValueExpressionJsonTest) {
   // Create expression
@@ -693,6 +694,7 @@ TEST(ExpressionTests, TupleValueExpressionJsonTest) {
 
 // NOLINTNEXTLINE
 TEST(ExpressionTests, ComparisonExpressionJsonTest) {
+  // No Generic ComparisonExpression Test needed as it is simple.
   std::vector<std::shared_ptr<AbstractExpression>> children;
   children.emplace_back(std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetInteger(1)));
   children.emplace_back(std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetInteger(2)));
@@ -700,6 +702,8 @@ TEST(ExpressionTests, ComparisonExpressionJsonTest) {
   // Create expression
   std::shared_ptr<ComparisonExpression> original_expr =
       std::make_shared<ComparisonExpression>(ExpressionType::COMPARE_EQUAL, std::move(children));
+  EXPECT_EQ(original_expr->GetExpressionType(), ExpressionType::COMPARE_EQUAL);
+  EXPECT_EQ(original_expr->GetReturnValueType(), type::TypeId::BOOLEAN);
 
   // Serialize expression
   auto json = original_expr->ToJson();
