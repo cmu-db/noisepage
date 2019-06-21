@@ -1,5 +1,8 @@
-#include "optimizer/statistics/value_condition.h"
+#include <string>
+#include <utility>
+
 #include "catalog/catalog_defs.h"
+#include "optimizer/statistics/value_condition.h"
 #include "type/transient_value.h"
 #include "type/transient_value_factory.h"
 
@@ -39,4 +42,4 @@ TEST(ValueConditionTests, GetTypeTest) {
   EXPECT_EQ(expected_type, actual_type);
 }
 
-}
+}  // namespace terrier::optimizer
