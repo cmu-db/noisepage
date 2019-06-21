@@ -37,9 +37,9 @@ class TransactionContext {
    * @param log_manager pointer to log manager in the system, or nullptr, if logging is disabled
    * @param transaction_manager pointer to transaction manager in the system (used for action framework)
    */
-  TransactionContext(const timestamp_t start, const timestamp_t txn_id,
+  TransactionContext(const timestamp_t start, const timestamp_t finish,
                      storage::RecordBufferSegmentPool *const buffer_pool, storage::LogManager *const log_manager)
-      : start_time_(start), txn_id_(txn_id), undo_buffer_(buffer_pool), redo_buffer_(log_manager, buffer_pool) {}
+      : start_time_(start), finish_time_(finish), undo_buffer_(buffer_pool), redo_buffer_(log_manager, buffer_pool) {}
 
   /**
    * @warning In the src/ folder this should only be called by the Garbage Collector to adhere to MVCC semantics. Tests
