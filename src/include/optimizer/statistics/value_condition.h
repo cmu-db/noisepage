@@ -30,8 +30,8 @@ class ValueCondition {
    * @param value
    */
   ValueCondition(catalog::col_oid_t column_id, std::string column_name, parser::ExpressionType type,
-                 const type::TransientValue &value)
-      : column_id_{column_id}, column_name_{column_name}, type_{type}, value_{value} {}
+                 type::TransientValue &&value)
+      : column_id_{column_id}, column_name_{column_name}, type_{type}, value_{std::move(value)} {}
 
   /** Only with id. Default column_name to empty string.
    *
@@ -39,8 +39,8 @@ class ValueCondition {
    * @param type
    * @param value
    */
-  ValueCondition(catalog::col_oid_t column_id, parser::ExpressionType type, const type::TransientValue &value)
-      : ValueCondition(column_id, "", type, value) {}
+  ValueCondition(catalog::col_oid_t column_id, parser::ExpressionType type, type::TransientValue &&value)
+      : ValueCondition(column_id, "", type, std::move(value)) {}
 
   /**
    * Only with column name. Default column_id to be 0.
@@ -50,8 +50,8 @@ class ValueCondition {
    * @param TransientValue
    */
 
-  ValueCondition(std::string column_name, parser::ExpressionType type, const type::TransientValue &value)
-      : ValueCondition(0, column_name, type, value) {}
+  ValueCondition(std::string column_name, parser::ExpressionType type, type::TransientValue &&value)
+      : ValueCondition(catalog::col_oid_t(0), column_name, type, std::move(value)) {}
 };
 
 }  // namespace optimizer
