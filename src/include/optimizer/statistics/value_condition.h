@@ -1,5 +1,6 @@
 #pragma once
 
+#include <utility>
 #include <string>
 
 #include "catalog/catalog_defs.h"
@@ -31,7 +32,7 @@ class ValueCondition {
    */
   ValueCondition(catalog::col_oid_t column_id, std::string column_name, parser::ExpressionType type,
                  type::TransientValue &&value)
-      : column_id_{column_id}, column_name_{column_name}, type_{type}, value_{std::move(value)} {}
+      : column_id_{column_id}, column_name_{std::move(column_name)}, type_{type}, value_{std::move(value)} {}
 
   /** Only with id. Default column_name to empty string.
    *
@@ -51,8 +52,10 @@ class ValueCondition {
    */
 
   ValueCondition(std::string column_name, parser::ExpressionType type, type::TransientValue &&value)
-      : ValueCondition(catalog::col_oid_t(0), column_name, type, std::move(value)) {}
+      : ValueCondition(catalog::col_oid_t(0), std::move(column_name), type, std::move(value)) {}
 };
 
 }  // namespace optimizer
 }  // namespace terrier
+
+
