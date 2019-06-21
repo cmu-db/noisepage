@@ -276,6 +276,9 @@ void ExecutionStructures::InitTPCHOutputSchemas(terrier::transaction::Transactio
 
 void ExecutionStructures::InitTestSchemas(terrier::transaction::TransactionContext * txn) {
   terrier::planner::OutputSchema::Column int_col{terrier::type::TypeId::INTEGER, true, nullptr};
+  terrier::planner::OutputSchema::Column real_col{terrier::type::TypeId::DECIMAL, true, nullptr};
+  terrier::planner::OutputSchema::Column date_col{terrier::type::TypeId::DATE, true, nullptr};
+  terrier::planner::OutputSchema::Column string_col{terrier::type::TypeId::VARCHAR, true, nullptr};
   // Build output1.tpl's final schema (simple seq_scan)
   {
     std::vector<terrier::planner::OutputSchema::Column> cols{int_col, int_col};
@@ -295,6 +298,20 @@ void ExecutionStructures::InitTestSchemas(terrier::transaction::TransactionConte
     std::vector<terrier::planner::OutputSchema::Column> cols{int_col};
     auto schema = std::make_shared<terrier::planner::OutputSchema>(cols);
     test_plan_nodes_["insert.tpl"] = schema;
+  }
+
+  // types.tpl
+  {
+    std::vector<terrier::planner::OutputSchema::Column> cols{int_col, real_col, date_col, string_col};
+    auto schema = std::make_shared<terrier::planner::OutputSchema>(cols);
+    test_plan_nodes_["types.tpl"] = schema;
+  }
+
+  // date.tpl
+  {
+    std::vector<terrier::planner::OutputSchema::Column> cols{real_col, date_col};
+    auto schema = std::make_shared<terrier::planner::OutputSchema>(cols);
+    test_plan_nodes_["date.tpl"] = schema;
   }
 
   InitTPCHOutputSchemas(txn);

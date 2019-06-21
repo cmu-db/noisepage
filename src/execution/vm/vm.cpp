@@ -133,7 +133,7 @@ namespace {
 
 template <typename T>
 inline ALWAYS_INLINE T Read(const u8 **ip) {
-  static_assert(std::is_integral_v<T>,
+  static_assert(std::is_arithmetic_v<T>,
                 "Read() should only be used to read primitive integer types "
                 "directly from the bytecode instruction stream");
   auto ret = *reinterpret_cast<const T *>(*ip);
@@ -143,7 +143,7 @@ inline ALWAYS_INLINE T Read(const u8 **ip) {
 
 template <typename T>
 inline ALWAYS_INLINE T Peek(const u8 **ip) {
-  static_assert(std::is_integral_v<T>,
+  static_assert(std::is_arithmetic_v<T>,
                 "Peek() should only be used to read primitive integer types "
                 "directly from the bytecode instruction stream");
   return *reinterpret_cast<const T *>(*ip);
@@ -178,6 +178,8 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
 #define READ_IMM2() Read<i16>(&ip)
 #define READ_IMM4() Read<i32>(&ip)
 #define READ_IMM8() Read<i64>(&ip)
+#define READ_IMM4F() Read<f32>(&ip)
+#define READ_IMM8F() Read<f64>(&ip)
 #define READ_UIMM2() Read<u16>(&ip)
 #define READ_UIMM4() Read<u32>(&ip)
 #define READ_JMP_OFFSET() READ_IMM4()
@@ -395,6 +397,18 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
   GEN_ASSIGN(i64, 8);
 #undef GEN_ASSIGN
 
+  OP(AssignImm4F) : {
+    auto *dest = frame->LocalAt<f32 *>(READ_LOCAL_ID());
+    OpAssignImm4F(dest, READ_IMM4F());
+    DISPATCH_NEXT();
+  }
+
+  OP(AssignImm8F) : {
+    auto *dest = frame->LocalAt<f64 *>(READ_LOCAL_ID());
+    OpAssignImm8F(dest, READ_IMM8F());
+    DISPATCH_NEXT();
+  }
+
   OP(Lea) : {
     auto **dest = frame->LocalAt<byte **>(READ_LOCAL_ID());
     auto *src = frame->LocalAt<byte *>(READ_LOCAL_ID());
@@ -605,6 +619,8 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
   GEN_PCI_ACCESS(Real, sql::Real)
   GEN_PCI_ACCESS(Double, sql::Real)
   GEN_PCI_ACCESS(Decimal, sql::Decimal)
+  GEN_PCI_ACCESS(Date, sql::Date)
+  GEN_PCI_ACCESS(Varlen, sql::StringVal)
 #undef GEN_PCI_ACCESS
 
 #define GEN_PCI_FILTER(Op)                                                         \
@@ -729,6 +745,30 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
     auto *sql_real = frame->LocalAt<sql::Real *>(READ_LOCAL_ID());
     auto val = frame->LocalAt<double>(READ_LOCAL_ID());
     OpInitReal(sql_real, val);
+    DISPATCH_NEXT();
+  }
+
+  OP(InitDate) : {
+    auto *sql_date = frame->LocalAt<sql::Date *>(READ_LOCAL_ID());
+    auto year = frame->LocalAt<u16>(READ_LOCAL_ID());
+    auto month = frame->LocalAt<u8>(READ_LOCAL_ID());
+    auto day = frame->LocalAt<u8>(READ_LOCAL_ID());
+    OpInitDate(sql_date, year, month, day);
+    DISPATCH_NEXT();
+  }
+
+  OP(InitString) : {
+    auto *sql_string = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
+    auto length = static_cast<u64>(READ_IMM8());
+    auto data = static_cast<uintptr_t>(READ_IMM8());
+    OpInitString(sql_string, length, data);
+    DISPATCH_NEXT();
+  }
+
+  OP(InitVarlen) : {
+    auto *sql_string = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
+    auto data = frame->LocalAt<uintptr_t >(READ_LOCAL_ID());
+    OpInitVarlen(sql_string, data);
     DISPATCH_NEXT();
   }
 

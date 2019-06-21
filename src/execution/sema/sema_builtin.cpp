@@ -40,6 +40,29 @@ void Sema::CheckBuiltinMapCall(UNUSED ast::CallExpr *call) {}
 
 void Sema::CheckBuiltinSqlConversionCall(ast::CallExpr *call,
                                          ast::Builtin builtin) {
+  if (builtin == ast::Builtin::DateToSql) {
+    if (!CheckArgCountAtLeast(call, 3)) return;
+    auto u16_kind = ast::BuiltinType::Uint16;
+    auto u8_kind = ast::BuiltinType::Uint8;
+    // First argument (year) is a u16
+    if (!call->arguments()[0]->type()->IsIntegerType()) {
+      ReportIncorrectCallArg(call, 0, GetBuiltinType(u16_kind));
+      return;
+    }
+    // First argument (month) is a u8
+    if (!call->arguments()[1]->type()->IsIntegerType()) {
+      ReportIncorrectCallArg(call, 1, GetBuiltinType(u8_kind));
+      return;
+    }
+    // First argument (day) is a u8
+    if (!call->arguments()[2]->type()->IsIntegerType()) {
+      ReportIncorrectCallArg(call, 2, GetBuiltinType(u8_kind));
+      return;
+    }
+    // Return a date type
+    call->set_type(GetBuiltinType(ast::BuiltinType::Date));
+    return;
+  }
   if (!CheckArgCount(call, 1)) {
     return;
   }
@@ -79,6 +102,21 @@ void Sema::CheckBuiltinSqlConversionCall(ast::CallExpr *call,
         return;
       }
       call->set_type(GetBuiltinType(ast::BuiltinType::Bool));
+      break;
+    }
+    case ast::Builtin::StringToSql: {
+      if (!input_type->IsStringType()) {
+        ReportIncorrectCallArg(call, 0, ast::StringType::Get(context()));
+        return;
+      }
+      call->set_type(GetBuiltinType(ast::BuiltinType::StringVal));
+      break;
+    }
+    case ast::Builtin::VarlenToSql: {
+      if (!input_type->IsIntegerType()) {
+        ReportIncorrectCallArg(call, 0, GetBuiltinType(ast::BuiltinType::Uint64));
+      }
+      call->set_type(GetBuiltinType(ast::BuiltinType::StringVal));
       break;
     }
     default: { UNREACHABLE("Impossible SQL conversion call"); }
@@ -917,6 +955,14 @@ void Sema::CheckBuiltinPCICall(ast::CallExpr *call, ast::Builtin builtin) {
       call->set_type(GetBuiltinType(ast::BuiltinType::Real));
       break;
     }
+    case ast::Builtin::PCIGetDate: {
+      call->set_type(GetBuiltinType(ast::BuiltinType::Date));
+      break;
+    }
+    case ast::Builtin::PCIGetVarlen: {
+      call->set_type(GetBuiltinType(ast::BuiltinType::StringVal));
+      break;
+    }
     default: { UNREACHABLE("Impossible PCI call"); }
   }
 }
@@ -1478,6 +1524,9 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::BoolToSql:
     case ast::Builtin::IntToSql:
     case ast::Builtin::FloatToSql:
+    case ast::Builtin::StringToSql:
+    case ast::Builtin::VarlenToSql:
+    case ast::Builtin::DateToSql:
     case ast::Builtin::SqlToBool: {
       CheckBuiltinSqlConversionCall(call, builtin);
       break;
@@ -1525,7 +1574,9 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::PCIGetInt:
     case ast::Builtin::PCIGetBigInt:
     case ast::Builtin::PCIGetReal:
-    case ast::Builtin::PCIGetDouble: {
+    case ast::Builtin::PCIGetDouble:
+    case ast::Builtin::PCIGetDate:
+    case ast::Builtin::PCIGetVarlen: {
       CheckBuiltinPCICall(call, builtin);
       break;
     }

@@ -87,6 +87,20 @@ class BytecodeEmitter {
   void EmitAssignImm4(LocalVar dest, i32 val);
 
   /**
+   * Emit assignment code for 4 byte float values.
+   * @param dest destination variable
+   * @param val value to assign
+   */
+  void EmitAssignImm4F(LocalVar dest, f32 val);
+
+  /**
+   * Emit assignment code for 8 byte float values.
+   * @param dest destination variable
+   * @param val value to assign
+   */
+  void EmitAssignImm8F(LocalVar dest, f64 val);
+
+  /**
    * Emit assignment code for 8 byte values.
    * @param dest destination variable
    * @param val value to assign
@@ -439,7 +453,9 @@ class BytecodeEmitter {
   void EmitInsert(Bytecode bytecode, LocalVar db_oid, LocalVar ns_oid, LocalVar table_oid, LocalVar values_ptr,
                   LocalVar exec_ctx);
 
- private:
+  void EmitInitString(Bytecode bytecode, LocalVar out, u64 length, uintptr_t data);
+
+    private:
   // Copy a scalar immediate value into the bytecode stream
   /**
    * Copy a scalar immediate value into the bytecode stream
@@ -448,7 +464,7 @@ class BytecodeEmitter {
    * @return nothing
    */
   template <typename T>
-  auto EmitScalarValue(T val) -> std::enable_if_t<std::is_integral_v<T>> {
+  auto EmitScalarValue(T val) -> std::enable_if_t<std::is_arithmetic_v<T>> {
     bytecode_->insert(bytecode_->end(), sizeof(T), 0);
     *reinterpret_cast<T *>(&*(bytecode_->end() - sizeof(T))) = val;
   }
@@ -472,7 +488,7 @@ class BytecodeEmitter {
    * @return nothing
    */
   template <typename T>
-  auto EmitImpl(T val) -> std::enable_if_t<std::is_integral_v<T>> {
+  auto EmitImpl(T val) -> std::enable_if_t<std::is_arithmetic_v<T>> {
     EmitScalarValue(val);
   }
 

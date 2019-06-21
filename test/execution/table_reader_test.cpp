@@ -51,7 +51,7 @@ TEST_F(TableReaderTest, SimpleTableReaderTest) {
   // Get Catalog and txn manager
   reader::TableReader table_reader(catalog_, txn_, db_oid_, ns_oid_);
   uint32_t num_written = table_reader.ReadTable("../sample_tpl/tables/test_1.schema", "../sample_tpl/tables/test_1.data");
-  ASSERT_EQ(num_written, 5);
+  ASSERT_EQ(num_written, 6);
 
 }
 

@@ -66,6 +66,14 @@ class BytecodeIterator {
   i64 GetImmediateOperand(u32 operand_index) const;
 
   /**
+   * Read the operand at index @a operand_index for the current bytecode as a
+   * floating point immediate value
+   * @param operand_index The index of operand to read
+   * @return The immediate value, up-casted to a double
+   */
+  f64 GetFloatImmediateOperand(u32 operand_index) const;
+
+  /**
    * Read the operand at index @a operand_index for the current bytecode as an
    * unsigned immediate value
    * @param operand_index The index of the operand to read

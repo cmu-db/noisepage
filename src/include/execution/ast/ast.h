@@ -1346,14 +1346,14 @@ class LitExpr : public Expr {
    * @param pos source position
    * @param num integer value
    */
-  LitExpr(const SourcePosition &pos, i32 num) : Expr(Kind::LitExpr, pos), lit_kind_(LitKind::Int), int32_(num) {}
+  LitExpr(const SourcePosition &pos, i64 num) : Expr(Kind::LitExpr, pos), lit_kind_(LitKind::Int), int64_(num) {}
 
   /**
    * Float constructor
    * @param pos source position
    * @param num float value
    */
-  LitExpr(const SourcePosition &pos, f32 num) : Expr(Kind::LitExpr, pos), lit_kind_(LitKind::Float), float32_(num) {}
+  LitExpr(const SourcePosition &pos, f64 num) : Expr(Kind::LitExpr, pos), lit_kind_(LitKind::Float), float64_(num) {}
 
   /**
    * @return the literal kind
@@ -1405,17 +1405,17 @@ class LitExpr : public Expr {
   /**
    * @return the integer value
    */
-  i32 int32_val() const {
+  i64 int64_val() const {
     TPL_ASSERT(literal_kind() == LitKind::Int, "Getting integer value from a non-integer literal expression");
-    return int32_;
+    return int64_;
   }
 
   /**
    * @return the float value
    */
-  f32 float32_val() const {
+  f64 float64_val() const {
     TPL_ASSERT(literal_kind() == LitKind::Float, "Getting float value from a non-float literal expression");
-    return float32_;
+    return float64_;
   }
 
   /**
@@ -1434,8 +1434,9 @@ class LitExpr : public Expr {
   union {
     bool boolean_;
     Identifier str_;
-    i32 int32_;
-    f32 float32_;
+    byte* bytes_;
+    i64 int64_;
+    f64 float64_;
   };
 };
 

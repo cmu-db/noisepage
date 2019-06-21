@@ -54,7 +54,7 @@ extern "C" {
   /* Primitive not-equal-to implementation */                                                              \
   VM_OP_HOT void OpNotEqual##_##type(bool *result, type lhs, type rhs) { *result = (lhs != rhs); }
 
-ALL_TYPES(COMPARISONS);
+INT_TYPES(COMPARISONS);
 
 #undef COMPARISONS
 
@@ -92,7 +92,7 @@ INT_TYPES(MODULAR)
     *result = static_cast<type>(lhs / rhs);                                                                   \
   }
 
-ALL_TYPES(ARITHMETIC);
+INT_TYPES(ARITHMETIC);
 
 
 #undef ARITHMETIC
@@ -151,6 +151,10 @@ VM_OP_HOT void OpAssignImm2(i16 *dest, i16 src) { *dest = src; }
 VM_OP_HOT void OpAssignImm4(i32 *dest, i32 src) { *dest = src; }
 
 VM_OP_HOT void OpAssignImm8(i64 *dest, i64 src) { *dest = src; }
+
+VM_OP_HOT void OpAssignImm4F(f32 *dest, f32 src) { *dest = src; }
+
+VM_OP_HOT void OpAssignImm8F(f64 *dest, f64 src) { *dest = src; }
 
 VM_OP_HOT void OpLea(byte **dest, byte *base, u32 offset) { *dest = base + offset; }
 
@@ -295,6 +299,27 @@ VM_OP_HOT void OpPCIGetDecimal(tpl::sql::Decimal *out, UNUSED tpl::sql::Projecte
   out->val = 0;
 }
 
+VM_OP_HOT void OpPCIGetDate(tpl::sql::Date *out, tpl::sql::ProjectedColumnsIterator *iter, u32 col_idx) {
+  // Read
+  auto *ptr = iter->Get<i32, false>(col_idx, nullptr);
+  TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read date");
+
+  // Set
+  out->is_null = false;
+  out->int_val = *ptr;
+}
+
+VM_OP_HOT void OpPCIGetVarlen(tpl::sql::StringVal *out, tpl::sql::ProjectedColumnsIterator *iter, u32 col_idx) {
+  // Read
+  auto *varlen = iter->Get<terrier::storage::VarlenEntry, false>(col_idx, nullptr);
+  TPL_ASSERT(varlen != nullptr, "Null pointer when trying to read varlen");
+
+  // Set
+  out->is_null = false;
+  out->len = varlen->Size();
+  out->ptr = reinterpret_cast<char*>(const_cast<byte*>(varlen->Content()));
+}
+
 VM_OP_HOT void OpPCIGetSmallIntNull(tpl::sql::Integer *out, tpl::sql::ProjectedColumnsIterator *iter, u32 col_idx) {
   // Read
   bool null = false;
@@ -353,6 +378,29 @@ VM_OP_HOT void OpPCIGetDoubleNull(tpl::sql::Real *out, tpl::sql::ProjectedColumn
 VM_OP_HOT void OpPCIGetDecimalNull(tpl::sql::Decimal *out, tpl::sql::ProjectedColumnsIterator *iter, u32 col_idx) {
   out->val = 0;
   out->is_null = false;
+}
+
+VM_OP_HOT void OpPCIGetDateNull(tpl::sql::Date *out, tpl::sql::ProjectedColumnsIterator *iter, u32 col_idx) {
+  // Read
+  bool null = false;
+  auto *ptr = iter->Get<i32, true>(col_idx, &null);
+  TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read date");
+
+  // Set
+  out->is_null = null;
+  out->int_val = *ptr;
+}
+
+VM_OP_HOT void OpPCIGetVarlenNull(tpl::sql::StringVal *out, tpl::sql::ProjectedColumnsIterator *iter, u32 col_idx) {
+  // Read
+  bool null = false;
+  auto *varlen = iter->Get<terrier::storage::VarlenEntry, true>(col_idx, &null);
+  TPL_ASSERT(varlen != nullptr, "Null pointer when trying to read varlen");
+
+  // Set
+  out->is_null = null;
+  out->len = varlen->Size();
+  out->ptr = reinterpret_cast<char*>(const_cast<byte*>(varlen->Content()));
 }
 
 void OpPCIFilterEqual(u32 *size, tpl::sql::ProjectedColumnsIterator *iter, u32 col_id, i8 type, i64 val);
@@ -429,6 +477,26 @@ VM_OP_HOT void OpInitInteger(tpl::sql::Integer *result, i32 input) {
 VM_OP_HOT void OpInitReal(tpl::sql::Real *result, double input) {
   result->is_null = false;
   result->val = input;
+}
+
+VM_OP_HOT void OpInitDate(tpl::sql::Date *result, u16 year, u8 month, u8 day) {
+  result->is_null = false;
+  result->ymd.year = year;
+  result->ymd.month = month;
+  result->ymd.day = day;
+}
+
+VM_OP_HOT void OpInitString(tpl::sql::StringVal *result, u64 length, uintptr_t data) {
+  result->is_null = false;
+  result->len = u32(length);
+  result->ptr = reinterpret_cast<char*>(data);
+}
+
+VM_OP_HOT void OpInitVarlen(tpl::sql::StringVal *result, uintptr_t data) {
+  auto * varlen = reinterpret_cast<terrier::storage::VarlenEntry*>(data);
+  result->is_null = false;
+  result->len = varlen->Size();
+  result->ptr = reinterpret_cast<char*>(const_cast<byte*>(varlen->Content()));
 }
 
 #define GEN_SQL_COMPARISONS(TYPE)                                              \

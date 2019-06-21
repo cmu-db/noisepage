@@ -7,7 +7,7 @@ namespace tpl::vm {
 /**
  * This enumeration lists all possible sizes of operands to any bytecode
  */
-enum class OperandSize : u8 { None = 0, Byte = 1, Short = 2, Int = 4, Long = 8 };
+enum class OperandSize : u8 { None = 0, Byte = 1, Short = 2, Int = 4, Long = 8, Float = 4, Double = 8 };
 
 /**
  * This macro list provides information about all possible operand types to a
@@ -19,6 +19,8 @@ enum class OperandSize : u8 { None = 0, Byte = 1, Short = 2, Int = 4, Long = 8 }
   V(Imm2, true, OperandSize::Short)        \
   V(Imm4, true, OperandSize::Int)          \
   V(Imm8, true, OperandSize::Long)         \
+  V(Imm4F, true, OperandSize::Float)          \
+  V(Imm8F, true, OperandSize::Double)         \
   V(UImm2, false, OperandSize::Short)      \
   V(UImm4, false, OperandSize::Int)        \
   V(JumpOffset, true, OperandSize::Int)    \
@@ -47,6 +49,14 @@ class OperandTypes {
   static constexpr bool IsSignedImmediate(OperandType operand_type) {
     return operand_type == OperandType::Imm1 || operand_type == OperandType::Imm2 ||
            operand_type == OperandType::Imm4 || operand_type == OperandType::Imm8;
+  }
+
+  /**
+   * @param operand_type operand to check
+   * @return whether the operand is a float immediate type
+   */
+  static constexpr bool IsFloatImmediate(OperandType operand_type) {
+    return operand_type == OperandType::Imm4F || operand_type == OperandType::Imm8F;
   }
 
   /**

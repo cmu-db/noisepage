@@ -265,28 +265,28 @@ struct StringVal : public Val {
 
 
 /**
+   * Year month day struct (4 bytes)
+   */
+struct YMD {
+  YMD() = default;
+  /**
+   * Day value
+   */
+  u8 day;
+  /**
+   * Month value
+   */
+  u8 month;
+  /**
+   * Year value
+   */
+  u16 year;
+};
+
+/**
  * Date
  */
 struct Date : public Val {
-  /**
-   * Year month day struct (4 bytes)
-   */
-  struct YMD {
-    YMD() = default;
-    /**
-     * Day value
-     */
-    u8 day;
-    /**
-     * Month value
-     */
-    u8 month;
-    /**
-     * Year value
-     */
-    u16 year;
-  };
-
   /**
    * Date value
    * Can be represented by an int32 (for the storage layer), or by a year-month-day struct.
@@ -360,7 +360,8 @@ struct ValUtil {
       case terrier::type::TypeId::TIMESTAMP:
         return static_cast<u32>(util::MathUtil::AlignTo(sizeof(Date), 8));
       case terrier::type::TypeId::DECIMAL:
-        return static_cast<u32>(util::MathUtil::AlignTo(sizeof(Decimal), 8));
+        // TODO(Amadou): We only support reals for now. Switch to Decima once it's implemented
+        return static_cast<u32>(util::MathUtil::AlignTo(sizeof(Real), 8));
       case terrier::type::TypeId::VARCHAR:
       case terrier::type::TypeId::VARBINARY:
         return static_cast<u32>(util::MathUtil::AlignTo(sizeof(StringVal), 8));
@@ -371,7 +372,8 @@ struct ValUtil {
 
   static std::string DateToString(const Date & date) {
     std::stringstream ss;
-    ss << date.ymd.year << "-" << date.ymd.month << "-" << date.ymd.day;
+    // The plus sign is to let the string read the number itself, not the ascii character representation.
+    ss << date.ymd.year << "-" << +date.ymd.month << "-" << +date.ymd.day;
     return ss.str();
   }
 

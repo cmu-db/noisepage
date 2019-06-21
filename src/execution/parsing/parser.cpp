@@ -505,14 +505,14 @@ ast::Expr *Parser::ParseOperand() {
       Next();
       // Convert the number
       char *end = nullptr;
-      i32 num = static_cast<u32>(std::strtol(GetSymbol().data(), &end, 10));
+      i64 num = std::strtoll(GetSymbol().data(), &end, 10);
       return node_factory_->NewIntLiteral(scanner_->current_position(), num);
     }
     case Token::Type::FLOAT: {
       Next();
       // Convert the number
       char *end = nullptr;
-      f32 num = std::strtof(GetSymbol().data(), &end);
+      f64 num = std::strtod(GetSymbol().data(), &end);
       return node_factory_->NewFloatLiteral(scanner_->current_position(), num);
     }
     case Token::Type::STRING: {

@@ -39,22 +39,22 @@ namespace tpl::vm {
  */
 #define BYTECODE_LIST(F)                                                                                              \
   /* Primitive operations */                                                                                          \
-  CREATE_FOR_ALL_TYPES(F, Add, OperandType::Local, OperandType::Local, OperandType::Local)                            \
-  CREATE_FOR_ALL_TYPES(F, Neg, OperandType::Local, OperandType::Local)                                                \
-  CREATE_FOR_ALL_TYPES(F, Sub, OperandType::Local, OperandType::Local, OperandType::Local)                            \
-  CREATE_FOR_ALL_TYPES(F, Mul, OperandType::Local, OperandType::Local, OperandType::Local)                            \
-  CREATE_FOR_ALL_TYPES(F, Div, OperandType::Local, OperandType::Local, OperandType::Local)                            \
+  CREATE_FOR_INT_TYPES(F, Add, OperandType::Local, OperandType::Local, OperandType::Local)                            \
+  CREATE_FOR_INT_TYPES(F, Neg, OperandType::Local, OperandType::Local)                                                \
+  CREATE_FOR_INT_TYPES(F, Sub, OperandType::Local, OperandType::Local, OperandType::Local)                            \
+  CREATE_FOR_INT_TYPES(F, Mul, OperandType::Local, OperandType::Local, OperandType::Local)                            \
+  CREATE_FOR_INT_TYPES(F, Div, OperandType::Local, OperandType::Local, OperandType::Local)                            \
   CREATE_FOR_INT_TYPES(F, Rem, OperandType::Local, OperandType::Local, OperandType::Local)                            \
   CREATE_FOR_INT_TYPES(F, BitAnd, OperandType::Local, OperandType::Local, OperandType::Local)                         \
   CREATE_FOR_INT_TYPES(F, BitOr, OperandType::Local, OperandType::Local, OperandType::Local)                          \
   CREATE_FOR_INT_TYPES(F, BitXor, OperandType::Local, OperandType::Local, OperandType::Local)                         \
   CREATE_FOR_INT_TYPES(F, BitNeg, OperandType::Local, OperandType::Local)                                             \
-  CREATE_FOR_ALL_TYPES(F, GreaterThan, OperandType::Local, OperandType::Local, OperandType::Local)                    \
-  CREATE_FOR_ALL_TYPES(F, GreaterThanEqual, OperandType::Local, OperandType::Local, OperandType::Local)               \
-  CREATE_FOR_ALL_TYPES(F, Equal, OperandType::Local, OperandType::Local, OperandType::Local)                          \
-  CREATE_FOR_ALL_TYPES(F, LessThan, OperandType::Local, OperandType::Local, OperandType::Local)                       \
-  CREATE_FOR_ALL_TYPES(F, LessThanEqual, OperandType::Local, OperandType::Local, OperandType::Local)                  \
-  CREATE_FOR_ALL_TYPES(F, NotEqual, OperandType::Local, OperandType::Local, OperandType::Local)                       \
+  CREATE_FOR_INT_TYPES(F, GreaterThan, OperandType::Local, OperandType::Local, OperandType::Local)                    \
+  CREATE_FOR_INT_TYPES(F, GreaterThanEqual, OperandType::Local, OperandType::Local, OperandType::Local)               \
+  CREATE_FOR_INT_TYPES(F, Equal, OperandType::Local, OperandType::Local, OperandType::Local)                          \
+  CREATE_FOR_INT_TYPES(F, LessThan, OperandType::Local, OperandType::Local, OperandType::Local)                       \
+  CREATE_FOR_INT_TYPES(F, LessThanEqual, OperandType::Local, OperandType::Local, OperandType::Local)                  \
+  CREATE_FOR_INT_TYPES(F, NotEqual, OperandType::Local, OperandType::Local, OperandType::Local)                       \
   /* Boolean compliment */                                                                                            \
   F(Not, OperandType::Local, OperandType::Local)                                                                      \
                                                                                                                       \
@@ -79,6 +79,8 @@ namespace tpl::vm {
   F(AssignImm2, OperandType::Local, OperandType::Imm2)                                                                \
   F(AssignImm4, OperandType::Local, OperandType::Imm4)                                                                \
   F(AssignImm8, OperandType::Local, OperandType::Imm8)                                                                \
+  F(AssignImm4F, OperandType::Local, OperandType::Imm4F)                                                                \
+  F(AssignImm8F, OperandType::Local, OperandType::Imm8F)                                                                \
   F(Lea, OperandType::Local, OperandType::Local, OperandType::Imm4)                                                   \
   F(LeaScaled, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Imm4, OperandType::Imm4)      \
                                                                                                                       \
@@ -121,12 +123,16 @@ namespace tpl::vm {
   F(PCIGetReal, OperandType::Local, OperandType::Local, OperandType::UImm4)                                           \
   F(PCIGetDouble, OperandType::Local, OperandType::Local, OperandType::UImm4)                                         \
   F(PCIGetDecimal, OperandType::Local, OperandType::Local, OperandType::UImm4)                                        \
+  F(PCIGetDate, OperandType::Local, OperandType::Local, OperandType::UImm4)                                        \
+  F(PCIGetVarlen, OperandType::Local, OperandType::Local, OperandType::UImm4)                                        \
   F(PCIGetSmallIntNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                   \
   F(PCIGetIntegerNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                    \
   F(PCIGetBigIntNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                     \
   F(PCIGetRealNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                       \
   F(PCIGetDoubleNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                     \
   F(PCIGetDecimalNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                    \
+  F(PCIGetDateNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                    \
+  F(PCIGetVarlenNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                    \
   F(PCIFilterEqual, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Imm1, OperandType::Imm8) \
   F(PCIFilterGreaterThan, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Imm1,              \
     OperandType::Imm8)                                                                                                \
@@ -152,6 +158,9 @@ namespace tpl::vm {
   F(InitBool, OperandType::Local, OperandType::Local)                                                                 \
   F(InitInteger, OperandType::Local, OperandType::Local)                                                              \
   F(InitReal, OperandType::Local, OperandType::Local)                                                                 \
+  F(InitDate, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                                                                 \
+  F(InitString, OperandType::Local, OperandType::Imm8, OperandType::Imm8)                                                                 \
+  F(InitVarlen, OperandType::Local, OperandType::Local)                                                                 \
   F(LessThanInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
   F(LessThanEqualInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                 \
   F(GreaterThanInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                   \
@@ -178,7 +187,6 @@ namespace tpl::vm {
   F(ValIsNotNull, OperandType::Local, OperandType::Local)                                                              \
   /* SQL value binary operations */                                                                                    \
   F(AddInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
-  F(NegInteger, OperandType::Local, OperandType::Local)                                           \
   F(SubInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
   F(MulInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
   F(DivInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                           \

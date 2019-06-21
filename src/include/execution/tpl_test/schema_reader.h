@@ -73,7 +73,7 @@ struct TableInfo {
  * table_name num_cols
  * col_name1(string), type1(string), nullable1(0 or 1)
  * ...
- * col_nameN(string), typeN(string), nullableN(0 or 1)
+ * col_nameN(string), typeN(string), nullableN(0 or 1), varchar_size if type == varchar
  * num_indexes
  * index_name1 num_index_cols1
  * table_col_idx1 table_col_idxN
@@ -144,18 +144,26 @@ class SchemaReader {
     std::string col_name;
     std::string col_type_str;
     terrier::type::TypeId col_type;
+    uint32_t varchar_size{0};
     bool nullable;
     for (uint32_t i = 0; i < num_cols; i++) {
       *in >> col_name >> col_type_str >> nullable;
-      col_type = type_names_[col_type_str];
       catalog::col_oid_t col_oid{catalog_->GetNextOid()};
-      cols.emplace_back(col_name, col_type, nullable, col_oid);
+      col_type = type_names_[col_type_str];
+      if (col_type == type::TypeId::VARCHAR) {
+        *in >> varchar_size;
+        cols.emplace_back(col_name, col_type, varchar_size, nullable, col_oid);
+      } else {
+        cols.emplace_back(col_name, col_type, nullable, col_oid);
+      }
       std::cout << "Read column: ";
       std::cout << "col_name=" << col_name << ", ";
       std::cout << "col_type=" << col_type_str << ", ";
+      if (col_type == type::TypeId::VARCHAR) {
+        std::cout << "varchar_size=" << varchar_size << ", ";
+      }
       std::cout << "nullable=" << nullable << ", ";
       std::cout << "col_oid=" << !col_oid << std::endl;
-
     }
     return cols;
   }
@@ -167,7 +175,9 @@ class SchemaReader {
     type_names_["bigint"] = terrier::type::TypeId::BIGINT;
     type_names_["bool"] = terrier::type::TypeId::BOOLEAN;
     type_names_["int"] = terrier::type::TypeId::INTEGER;
+    type_names_["real"] = terrier::type::TypeId::DECIMAL;
     type_names_["decimal"] = terrier::type::TypeId::DECIMAL;
+    type_names_["varchar"] = terrier::type::TypeId::VARCHAR;
     type_names_["varlen"] = terrier::type::TypeId::VARCHAR;
     type_names_["date"] = terrier::type::TypeId::DATE;
   }

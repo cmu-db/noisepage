@@ -12,6 +12,9 @@ namespace tpl::ast {
   F(BoolToSql, boolToSql)                                       \
   F(FloatToSql, floatToSql)                                     \
   F(SqlToBool, sqlToBool)                                       \
+  F(StringToSql, stringToSql)                                       \
+  F(VarlenToSql, varlenToSql)                                       \
+  F(DateToSql, dateToSql)                                       \
                                                                 \
   /* Vectorized Filters */                                      \
   F(FilterEq, filterEq)                                         \
@@ -49,6 +52,8 @@ namespace tpl::ast {
   F(PCIGetBigInt, pciGetBigInt)                                 \
   F(PCIGetReal, pciGetReal)                                     \
   F(PCIGetDouble, pciGetDouble)                                 \
+  F(PCIGetDate, pciGetDate)                                     \
+  F(PCIGetVarlen, pciGetVarlen)                                     \
                                                                 \
   /* Hashing */                                                 \
   F(Hash, hash)                                                 \

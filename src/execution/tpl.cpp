@@ -26,6 +26,7 @@
 #include "execution/vm/llvm_engine.h"
 #include "execution/vm/module.h"
 #include "execution/vm/vm.h"
+#include "execution/tpl_test/table_reader.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/MemoryBuffer.h"
 
@@ -84,6 +85,10 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   exec::OutputPrinter printer(schema.get());
   auto exec_context = std::make_shared<exec::ExecutionContext>(txn, printer, schema.get());
 
+  // Read Table
+  reader::TableReader table_reader(exec->GetCatalog(), txn, exec->GetTestDBAndNS().first, exec->GetTestDBAndNS().second);
+  u32 num_written = table_reader.ReadTable("../sample_tpl/tables/types1.schema", "../sample_tpl/tables/types1.data");
+  std::cout << "Values written = " << num_written << std::endl;
   //
   // Parse
   //

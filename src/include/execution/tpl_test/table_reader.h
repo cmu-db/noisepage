@@ -136,8 +136,8 @@ class TableReader {
         break;
       }
       case type::TypeId::DECIMAL: {
-        auto val = field->get<float>();
-        std::memcpy(insert_offset, &val, sizeof(float));
+        auto val = field->get<f64>();
+        std::memcpy(insert_offset, &val, sizeof(f64));
         break;
       }
       case type::TypeId::DATE: {
@@ -147,16 +147,15 @@ class TableReader {
       }
       case type::TypeId::VARCHAR: {
         auto val = field->get<std::string_view>();
-        // Include null char
-        auto content_size = static_cast<uint32_t>(val.size() + 1);
+        auto content_size = static_cast<uint32_t>(val.size());
         if (content_size <= storage::VarlenEntry::InlineThreshold()) {
-          *reinterpret_cast<storage::VarlenEntry *>(col_offset) = storage::VarlenEntry::CreateInline(
+          *reinterpret_cast<storage::VarlenEntry *>(insert_offset) = storage::VarlenEntry::CreateInline(
               reinterpret_cast<const byte*>(val.data()), content_size);
         } else {
-          // TODO(Amadou): Use better allocator
+          // TODO(Amadou): Use execCtx allocator
           auto content = reinterpret_cast<byte *>(terrier::common::AllocationUtil::AllocateAligned(content_size));
           std::memcpy(content, val.data(), content_size);
-          *reinterpret_cast<storage::VarlenEntry *>(col_offset) = storage::VarlenEntry::Create(content, content_size, true);
+          *reinterpret_cast<storage::VarlenEntry *>(insert_offset) = storage::VarlenEntry::Create(content, content_size, true);
         }
         break;
       }

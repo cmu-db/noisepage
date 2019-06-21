@@ -241,19 +241,19 @@ class CodeGen {
   /**
    * Convert a raw in to a sql int
    */
-  ast::Expr* IntToSql(i32 num);
+  ast::Expr* IntToSql(i64 num);
 
   /**
    * Return the integer literal representing num
    */
-  ast::Expr* IntLiteral(i32 num) {
+  ast::Expr* IntLiteral(i64 num) {
     return Factory()->NewIntLiteral(DUMMY_POS, num);
   }
 
   /**
    * Return the float literal representing num
    */
-  ast::Expr* FloatLiteral(float_t num) {
+  ast::Expr* FloatLiteral(f64 num) {
     return Factory()->NewFloatLiteral(DUMMY_POS, num);
   }
 

@@ -129,11 +129,11 @@ Sema::CheckResult Sema::CheckComparisonOperands(parsing::Token::Type op, const S
     return {nullptr, left, right};
   }
 
-  // Check date and varbuffer
+  // Check date and string
   if (left->type()->IsSpecificBuiltin(ast::BuiltinType::Date) && right->type()->IsSpecificBuiltin(ast::BuiltinType::Date)) {
     return {ast::BuiltinType::Get(context(), ast::BuiltinType::Boolean), left, right};
   }
-  if (left->type()->IsSpecificBuiltin(ast::BuiltinType::VarBuffer) && right->type()->IsSpecificBuiltin(ast::BuiltinType::VarBuffer)) {
+  if (left->type()->IsSpecificBuiltin(ast::BuiltinType::StringVal) && right->type()->IsSpecificBuiltin(ast::BuiltinType::StringVal)) {
     return {ast::BuiltinType::Get(context(), ast::BuiltinType::Boolean), left, right};
   }
 

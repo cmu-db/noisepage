@@ -548,7 +548,7 @@ ast::Expr* CodeGen::AggregateType(terrier::parser::ExpressionType type) {
     case terrier::parser::ExpressionType::AGGREGATE_MIN:
       return BuiltinType(ast::BuiltinType::Kind::IntegerMinAggregate);
     case terrier::parser::ExpressionType::AGGREGATE_AVG:
-      return BuiltinType(ast::BuiltinType::Kind::IntegerAvgAggregate);
+      return BuiltinType(ast::BuiltinType::Kind::AvgAggregate);
     case terrier::parser::ExpressionType::AGGREGATE_MAX:
       return BuiltinType(ast::BuiltinType::Kind::IntegerMaxAggregate);
     case terrier::parser::ExpressionType::AGGREGATE_SUM:
@@ -589,7 +589,7 @@ ast::Expr* CodeGen::MemberExpr(ast::Identifier lhs, ast::Identifier rhs) {
   return Factory()->NewMemberExpr(DUMMY_POS, object, member);
 }
 
-ast::Expr* CodeGen::IntToSql(i32 num) {
+ast::Expr* CodeGen::IntToSql(i64 num) {
   ast::Expr* int_lit = IntLiteral(num);
   return OneArgCall(ast::Builtin::IntToSql, int_lit);
 }

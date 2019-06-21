@@ -238,13 +238,13 @@ void Sema::VisitLitExpr(ast::LitExpr *node) {
       break;
     }
     case ast::LitExpr::LitKind::Float: {
-      // Literal floats default to float32
-      node->set_type(ast::BuiltinType::Get(context(), ast::BuiltinType::Float32));
+      // Literal floats default to float64
+      node->set_type(ast::BuiltinType::Get(context(), ast::BuiltinType::Float64));
       break;
     }
     case ast::LitExpr::LitKind::Int: {
-      // Literal integers default to int32
-      node->set_type(ast::BuiltinType::Get(context(), ast::BuiltinType::Int32));
+      // Literal integers default to int64
+      node->set_type(ast::BuiltinType::Get(context(), ast::BuiltinType::Int64));
       break;
     }
     case ast::LitExpr::LitKind::String: {

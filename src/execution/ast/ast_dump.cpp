@@ -349,11 +349,11 @@ void AstDumperImpl::VisitLitExpr(LitExpr *node) {
       break;
     }
     case LitExpr::LitKind::Int: {
-      DumpPrimitive(node->int32_val());
+      DumpPrimitive(node->int64_val());
       break;
     }
     case LitExpr::LitKind::Float: {
-      DumpPrimitive(node->float32_val());
+      DumpPrimitive(node->float64_val());
       break;
     }
     case LitExpr::LitKind::String: {

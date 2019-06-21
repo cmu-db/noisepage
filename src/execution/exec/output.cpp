@@ -55,8 +55,35 @@ void OutputPrinter::operator()(byte *tuples, u32 num_tuples, u32 tuple_size) {
           }
           break;
         }
-        default:
+        case TypeId::DECIMAL: {
+          auto *val = reinterpret_cast<sql::Real *>(tuples + row * tuple_size + curr_offset);
+          if (val->is_null)
+            ss << "NULL";
+          else
+            ss << val->val;
           break;
+        }
+        case TypeId::DATE: {
+          auto *val = reinterpret_cast<sql::Date *>(tuples + row * tuple_size + curr_offset);
+          if (val->is_null) {
+            ss << "NULL";
+          } else {
+            ss << sql::ValUtil::DateToString(*val);
+          }
+          break;
+        }
+        case TypeId::VARCHAR: {
+          auto *val = reinterpret_cast<sql::StringVal *>(tuples + row * tuple_size + curr_offset);
+          if (val->is_null) {
+            ss << "NULL";
+          } else {
+            ss.write(val->ptr, val->len);
+            ss.put('\0');
+          }
+          break;
+        }
+        default:
+          UNREACHABLE("Cannot output unsupported type!!!");
       }
       curr_offset += sql::ValUtil::GetSqlSize(schema_->GetColumns()[col].GetType());
       if (col != schema_->GetColumns().size() - 1) ss << ", ";
