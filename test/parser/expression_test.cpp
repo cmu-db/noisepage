@@ -623,6 +623,41 @@ TEST(ExpressionTests, ParameterValueExpressionJsonTest) {
 }
 
 // NOLINTNEXTLINE
+TEST(ExpressionTests, TupleValueExpressionTest) {
+  auto tve1 = new TupleValueExpression("table_name", "column_name", "alias");
+  auto tve2 = new TupleValueExpression("table_name", "column_name", "alias");
+  auto tve3 = new TupleValueExpression("table_name2", "column_name", "alias");
+  auto tve4 = new TupleValueExpression("table_name", "column_name2", "alias");
+  auto tve5 = new TupleValueExpression("table_name", "column_name", "alias2");
+  auto tve6 = new TupleValueExpression("table_name", "column_name");
+
+  EXPECT_TRUE(*tve1 == *tve2);
+  EXPECT_FALSE(*tve1 == *tve3);
+  EXPECT_FALSE(*tve1 == *tve4);
+  EXPECT_FALSE(*tve1 == *tve5);
+  EXPECT_FALSE(*tve1 == *tve6);
+
+  EXPECT_EQ(tve1->Hash(), tve2->Hash());
+  EXPECT_NE(tve1->Hash(), tve3->Hash());
+  EXPECT_NE(tve1->Hash(), tve4->Hash());
+  EXPECT_NE(tve1->Hash(), tve5->Hash());
+  EXPECT_NE(tve1->Hash(), tve6->Hash());
+
+  EXPECT_EQ(tve1->GetExpressionType(), ExpressionType::VALUE_TUPLE);
+  EXPECT_EQ(tve1->GetReturnValueType(), type::TypeId::INVALID);
+  EXPECT_EQ(tve1->GetAlias(), "alias");
+  EXPECT_EQ(tve1->GetTableName(), "table_name");
+  EXPECT_EQ(tve1->GetColumnName(), "column_name");
+  EXPECT_EQ(tve6->GetAlias(), "");
+
+  delete tve1;
+  delete tve2;
+  delete tve3;
+  delete tve4;
+  delete tve5;
+  delete tve6;
+}
+// NOLINTNEXTLINE
 TEST(ExpressionTests, TupleValueExpressionJsonTest) {
   // Create expression
   std::shared_ptr<TupleValueExpression> original_expr =
@@ -638,6 +673,22 @@ TEST(ExpressionTests, TupleValueExpressionJsonTest) {
   auto *expr = static_cast<TupleValueExpression *>(deserialized_expression.get());
   EXPECT_EQ(original_expr->GetColumnName(), expr->GetColumnName());
   EXPECT_EQ(original_expr->GetTableName(), expr->GetTableName());
+  EXPECT_EQ(original_expr->GetAlias(), expr->GetAlias());
+
+  // Create expression
+  std::shared_ptr<TupleValueExpression> original_expr_2 =
+      std::make_shared<TupleValueExpression>("table_name", "column_name");
+
+  // Serialize expression
+  auto json_2 = original_expr_2->ToJson();
+  EXPECT_FALSE(json_2.is_null());
+
+  // Deserialize expression
+  auto deserialized_expression_2 = DeserializeExpression(json_2);
+  EXPECT_EQ(*original_expr_2, *deserialized_expression_2);
+  auto *expr_2 = static_cast<TupleValueExpression *>(deserialized_expression_2.get());
+  EXPECT_EQ(original_expr_2->GetColumnName(), expr_2->GetColumnName());
+  EXPECT_EQ(original_expr_2->GetTableName(), expr_2->GetTableName());
 }
 
 // NOLINTNEXTLINE

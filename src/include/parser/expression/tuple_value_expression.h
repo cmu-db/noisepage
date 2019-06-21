@@ -50,6 +50,13 @@ class TupleValueExpression : public AbstractExpression {
 
   std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<TupleValueExpression>(*this); }
 
+  common::hash_t Hash() const override {
+    common::hash_t hash = AbstractExpression::Hash();
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_name_));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(col_name_));
+    return hash;
+  }
+
   bool operator==(const AbstractExpression &rhs) const override {
     if (!AbstractExpression::operator==(rhs)) return false;
     auto const &other = dynamic_cast<const TupleValueExpression &>(rhs);
