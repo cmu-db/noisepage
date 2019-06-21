@@ -10,6 +10,7 @@ namespace terrier {
 #define REACHED(name) (name)
 
 // Tests that a single reader behaves as expected
+// NOLINTNEXTLINE
 TEST(BlockAccessControllerTest, SingleReader) {
   storage::BlockAccessController tested;
   tested.Initialize();
@@ -24,6 +25,7 @@ TEST(BlockAccessControllerTest, SingleReader) {
 }
 
 // Tests that a writer is able to preempt the compactor
+// NOLINTNEXTLINE
 TEST(BlockAccessControllerTest, WriterPreemption) {
   storage::BlockAccessController tested;
   tested.Initialize();
@@ -33,6 +35,7 @@ TEST(BlockAccessControllerTest, WriterPreemption) {
 }
 
 // Tests that the freezing flag blocks both readers and writers
+// NOLINTNEXTLINE
 TEST(BlockAccessControllerTest, FreezingBlocksBoth) {
   const uint32_t iteration = 100;
   for (uint32_t i = 0; i < iteration; i++) {
@@ -55,6 +58,7 @@ TEST(BlockAccessControllerTest, FreezingBlocksBoth) {
 }
 
 // Tests that writer blocks future readers but waits for reader exit
+// NOLINTNEXTLINE
 TEST(BlockAccessControllerTest, ReaderWriter) {
   const uint32_t iteration = 100;
   for (uint32_t i = 0; i < iteration; i++) {
@@ -83,6 +87,7 @@ TEST(BlockAccessControllerTest, ReaderWriter) {
 }
 
 // Tests that writer waits for all readers to exit
+// NOLINTNEXTLINE
 TEST(BlockAccessControllerTest, MultipleReaders) {
   const uint32_t iteration = 100;
   for (uint32_t i = 0; i < iteration; i++) {

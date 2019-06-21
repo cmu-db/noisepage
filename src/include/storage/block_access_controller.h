@@ -67,7 +67,7 @@ class BlockAccessController {
       // Can only read in-place if a block is not being updated
       if (curr_state.first != BlockState::FROZEN) return false;
       // Increment reader count while holding the rest constant
-      if (UpdateAtomically(curr_state, {curr_state.first, curr_state.second + 1})) return true;
+      if (UpdateAtomically(curr_state, {curr_state.first, curr_state.second + 1})) return true;  // NOLINT
     }
   }
 
