@@ -24,15 +24,19 @@ namespace terrier::optimizer {
 template <typename KeyType>
 class CountMinSketch {
  public:
-
   /**
    * Constructor with specific sketch size.
-   * @param depth
-   * @param width
+   * The larger the width then the more accurate the count estimates are,
+   * but this will make the sketch's memory size larger.
+   * @param width the number of 'slots' in each bucket level in this sketch.
    */
-  CountMinSketch(uint64_t width)
-      : total_count_{0} {
+  explicit CountMinSketch(uint64_t width) : total_count_{0} {
     TERRIER_ASSERT(width > 0, "Invalid width");
+
+    // The only thing that we need to set in madoka when we initialize the
+    // sketch is its the width. You can set the seed value but the documentation
+    // says that you don't really need to do that.
+    // https://www.s-yata.jp/madoka/doc/cpp-api.html
     sketch_.create(width);
   }
 
@@ -40,22 +44,23 @@ class CountMinSketch {
    * Increase the count for a key by a given amount.
    * The key does not need to exist in the sketch first.
    * @param key the key to increment the count for
-   * @param count how much to increment the key's count.
+   * @param delta how much to increment the key's count.
    */
-  void Add(const KeyType &key, unsigned int count) {
-    // OPTIMIZER_LOG_TRACE("Add(key={0}, size={1}, count={2})", key, sizeof(key), count);
-    sketch_.add(reinterpret_cast<const void *>(&key), sizeof(key), count);
-    total_count_ += count;
+  void Add(const KeyType &key, unsigned int delta) {
+    // WARNING: This doesn't work correctly if KeyType is std::string
+    sketch_.add(reinterpret_cast<const void *>(&key), sizeof(key), delta);
+    total_count_ += delta;
   }
 
   /**
    * Remove the count for a key by a given amount.
    * @param key the key to decrement the count for
-   * @param count how much to decrement the key's count.
+   * @param delta how much to decrement the key's count.
    */
-  void Remove(const KeyType &key, unsigned int count) {
-    sketch_.add(reinterpret_cast<const void *>(&key), sizeof(key), -count);
-    total_count_ -= count;
+  void Remove(const KeyType &key, unsigned int delta) {
+    // WARNING: This doesn't work correctly if KeyType is std::string
+    sketch_.add(reinterpret_cast<const void *>(&key), sizeof(key), -delta);
+    total_count_ -= delta;
   }
 
   /**
@@ -73,18 +78,16 @@ class CountMinSketch {
   const uint64_t GetWidth() const { return sketch_.width(); }
 
   /**
-   * Return the size of the sketch in bytes.
-   * @return
+   * @return the size of the sketch in bytes.
    */
   const size_t GetSize() const { return sketch_.table_size(); }
 
   /**
    * @return the total count of all keys in this sketch.
    */
-  size_t GetTotalCount() const { return total_count_; }
+  const size_t GetTotalCount() const { return total_count_; }
 
  private:
-
   /**
    * Simple counter of the number of entries we have stored.
    * This will always be accurate.
@@ -92,10 +95,9 @@ class CountMinSketch {
   size_t total_count_;
 
   /**
-   *
+   * The underlying sketch implementation
    */
   madoka::Sketch sketch_;
-
 };
 
 }  // namespace terrier::optimizer

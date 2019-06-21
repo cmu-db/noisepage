@@ -36,7 +36,7 @@ TEST_F(CountMinSketchTests, BasicIntegerTest) {
 // Basic testing with string datatype.
 // NOLINTNEXTLINE
 TEST_F(CountMinSketchTests, BasicStringTest) {
-  CountMinSketch<const char*> sketch(20);
+  CountMinSketch<const char *> sketch(20);
   EXPECT_EQ(sketch.GetWidth(), 20);
 
   sketch.Add("10", 10);
