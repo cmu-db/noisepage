@@ -1,7 +1,7 @@
 #pragma once
 
-#include <utility>
 #include <string>
+#include <utility>
 
 #include "catalog/catalog_defs.h"
 #include "loggers/optimizer_logger.h"
@@ -18,7 +18,6 @@ namespace optimizer {
 
 class ValueCondition {
  public:
-
   /**
    * Constructor
    * @param column_id
@@ -28,10 +27,7 @@ class ValueCondition {
    */
   ValueCondition(catalog::col_oid_t column_id, std::string column_name, parser::ExpressionType type,
                  type::TransientValue &&value)
-      : column_id_{column_id},
-        column_name_{std::move(column_name)},
-        type_{type},
-        value_{std::move(value)} {}
+      : column_id_{column_id}, column_name_{std::move(column_name)}, type_{type}, value_{std::move(value)} {}
 
   /** Only with id. Default column_name to empty string.
    *
@@ -72,7 +68,6 @@ class ValueCondition {
   const parser::ExpressionType &GetType() const { return type_; }
 
  private:
-
   /**
    *
    */
@@ -96,5 +91,3 @@ class ValueCondition {
 
 }  // namespace optimizer
 }  // namespace terrier
-
-
