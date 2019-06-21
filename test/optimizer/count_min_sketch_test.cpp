@@ -16,30 +16,28 @@ class CountMinSketchTests : public TerrierTest {};
 // Basic CM-Sketch testing with integer datatype.
 // NOLINTNEXTLINE
 TEST_F(CountMinSketchTests, BasicIntegerTest) {
-  CountMinSketch<int> sketch(10, 20);
-  EXPECT_EQ(sketch.GetDepth(), 10);
+  CountMinSketch<int> sketch(20);
   EXPECT_EQ(sketch.GetWidth(), 20);
-  EXPECT_EQ(sketch.GetApproximateSize(), 0);
 
   sketch.Add(1, 10);
   sketch.Add(2, 5);
   sketch.Add(3, 1);
-  sketch.Add(4, 1000000);
+  sketch.Add(4, 100000);
 
-  // This case count min sketch should give exact counting
+  // These smaller values should give exact counts
   EXPECT_EQ(sketch.EstimateItemCount(1), 10);
   EXPECT_EQ(sketch.EstimateItemCount(2), 5);
   EXPECT_EQ(sketch.EstimateItemCount(3), 1);
-  EXPECT_EQ(sketch.EstimateItemCount(4), 1000000);
+
+  // The last one can be larger but *not* smaller
+  EXPECT_GE(sketch.EstimateItemCount(4), 100000);
 }
 
 // Basic testing with string datatype.
 // NOLINTNEXTLINE
 TEST_F(CountMinSketchTests, BasicStringTest) {
-  CountMinSketch<std::string> sketch(10, 5);
-  EXPECT_EQ(sketch.GetDepth(), 10);
-  EXPECT_EQ(sketch.GetWidth(), 5);
-  EXPECT_EQ(sketch.GetApproximateSize(), 0);
+  CountMinSketch<const char*> sketch(20);
+  EXPECT_EQ(sketch.GetWidth(), 20);
 
   sketch.Add("10", 10);
   sketch.Add("5", 5);
@@ -47,6 +45,19 @@ TEST_F(CountMinSketchTests, BasicStringTest) {
   sketch.Add("Million", 1000000);
 
   EXPECT_EQ(sketch.EstimateItemCount("10"), 10);
+  EXPECT_EQ(sketch.EstimateItemCount("5"), 5);
+  EXPECT_EQ(sketch.EstimateItemCount("1"), 1);
+
+  // The last one can be larger but *not* smaller
+  EXPECT_GE(sketch.EstimateItemCount("Million"), 100000);
+
+  // Checking to see whether we get a false positive
+  // This is probably a bad idea but it might be okay for a small
+  // sketch like this.
+  //
+  // DEAR FUTURE TRAVELLER:
+  // If this test case is failing, then you can just remove it.
+  EXPECT_EQ(sketch.EstimateItemCount("WuTang"), 0);
 }
 
 // Basic test that checks that the approximation is reasonable
@@ -58,14 +69,12 @@ TEST_F(CountMinSketchTests, ApproximateIntegerTest) {
   // and there for its approximations will be more inaccurate.
   // The second sketch is 'strong' and should produce more accurate
   // approximations than the 'weak' one.
+  CountMinSketch<int> weak_sketch(10);
+  CountMinSketch<int> strong_sketch(1000);
 
-  double eps = 0.02;
-  double gamma = 0.02;
-  CountMinSketch<int> weak_sketch(eps, gamma);
-  CountMinSketch<int> strong_sketch(100, 200);
-
-  EXPECT_EQ(weak_sketch.GetApproximateSize(), 0);
-  EXPECT_EQ(strong_sketch.GetApproximateSize(), 0);
+  EXPECT_EQ(weak_sketch.GetTotalCount(), 0);
+  EXPECT_EQ(strong_sketch.GetTotalCount(), 0);
+  EXPECT_GT(strong_sketch.GetSize(), weak_sketch.GetSize());
 
   // Populate the sketch with a bunch of random values
   // We will keep track of their exact counts in
@@ -94,18 +103,15 @@ TEST_F(CountMinSketchTests, ApproximateIntegerTest) {
   EXPECT_EQ(weak_sketch.GetTotalCount(), n);
   EXPECT_EQ(strong_sketch.GetTotalCount(), n);
 
-  // The second sketch should have a higher approximate key count
-  // because it has wider + deeper bins.
-  EXPECT_LT(weak_sketch.GetApproximateSize(), strong_sketch.GetApproximateSize());
-
-  // And both of them should be less than actual size
-  EXPECT_LT(weak_sketch.GetApproximateSize(), seen.size());
-  EXPECT_LT(strong_sketch.GetApproximateSize(), seen.size());
-
-  // And there should be no false negatives
+  // The weak sketch should produce counts that are always greater
+  // because it has less storage space. That means all of the random
+  // numbers we insert into are going to get falsely incremented
   for (auto number : seen) {
-    EXPECT_GT(weak_sketch.EstimateItemCount(number), 0);
-    EXPECT_GT(strong_sketch.EstimateItemCount(number), 0);
+    auto weak_cnt = weak_sketch.EstimateItemCount(number);
+    auto strong_cnt = strong_sketch.EstimateItemCount(number);
+    // Kill ourselves after the first one goes bad so that we don't
+    // flood the terminal with garbage. Protect your neck!
+    ASSERT_GT(weak_cnt, strong_cnt) << "exact[" << number << "]=" << exact[number];
   }
 }
 
@@ -114,8 +120,7 @@ TEST_F(CountMinSketchTests, ApproximateIntegerTest) {
 // one should have the highest approximate count
 // NOLINTNEXTLINE
 TEST_F(CountMinSketchTests, HeavyHitterTest) {
-  CountMinSketch<int> sketch(100, 200);
-  EXPECT_EQ(sketch.GetApproximateSize(), 0);
+  CountMinSketch<int> sketch(500);
 
   // Populate the sketch with a bunch of random values
   // We will keep track of their exact counts in
@@ -149,7 +154,7 @@ TEST_F(CountMinSketchTests, HeavyHitterTest) {
     // count by increasingly larger deltas.
     // So the last number in 'heavy_nums' should have the largest
     // approximate count in the sketch
-    int delta = (i + 1) * max;
+    int delta = (i + 2) * max;
     sketch.Add(heavy_num, delta);
     seen.insert(heavy_num);
     heavy_nums.push_back(heavy_num);

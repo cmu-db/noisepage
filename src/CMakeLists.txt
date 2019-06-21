@@ -32,6 +32,13 @@ file(GLOB_RECURSE MURMUR3_SOURCES
 )
 list(APPEND TERRIER_SRCS ${MURMUR3_SOURCES})
 
+# madoka
+file(GLOB_RECURSE MADOKA_SOURCES
+        ${PROJECT_SOURCE_DIR}/third_party/madoka/*.cc
+        ${PROJECT_SOURCE_DIR}/third_party/madoka/*.h 
+)
+list(APPEND TERRIER_SRCS ${MADOKA_SOURCES})
+
 ###############################################
 # Terrier library
 ###############################################
