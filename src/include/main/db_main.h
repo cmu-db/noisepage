@@ -47,7 +47,7 @@ class DBMain {
       delete garbage_collector_;
       delete settings_manager_;
       delete txn_manager_;
-      delete timestamp_manager_
+      delete timestamp_manager_;
       delete buffer_segment_pool_;
       delete thread_pool_;
       delete log_manager_;
