@@ -28,8 +28,7 @@ TEST(AccessObserverTest, EmptyBlocksNotObserved) {
 
   // Test that empty blocks are never observed
   tested.ObserveWrite(fake_block);
-  for (uint32_t i = 0; i < COLD_DATA_EPOCH_THRESHOLD; i++)
-    tested.ObserveGCInvocation();
+  for (uint32_t i = 0; i < COLD_DATA_EPOCH_THRESHOLD; i++) tested.ObserveGCInvocation();
   // Should not be called
 }
 
@@ -51,12 +50,11 @@ TEST(AccessObserverTest, FilledBlocksObserved) {
   fake_block->insert_head_ = layout.NumSlots();
   // Now it should be called
   tested.ObserveWrite(fake_block);
-  for (uint32_t i = 0; i <= COLD_DATA_EPOCH_THRESHOLD; i++)
-    tested.ObserveGCInvocation();
+  for (uint32_t i = 0; i <= COLD_DATA_EPOCH_THRESHOLD; i++) tested.ObserveGCInvocation();
 }
 }  // namespace terrier
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
   // The following line must be executed to initialize Google Mock
   // (and Google Test) before running the tests.
   ::testing::InitGoogleMock(&argc, argv);
