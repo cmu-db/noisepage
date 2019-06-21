@@ -71,12 +71,6 @@ class ValueCondition {
    */
   const parser::ExpressionType &GetType() const { return type_; }
 
-  /**
-   *
-   * @return the value
-   */
-  const type::TransientValue &GetValue() const { return value_; }
-
  private:
 
   /**
