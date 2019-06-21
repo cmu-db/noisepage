@@ -29,3 +29,9 @@ GBENCHMARK_VERSION=1.4.1
 # branch: v1.x
 # commit hash: 8179b26388d118fa887030f2609560ec287531dd
 # commit hash date: 7 Aug 2018
+
+# madoka
+# url: https://github.com/s-yata/madoka.git
+# branch: master
+# commit hash: 66783ee5b84a432f934517ad65452d54b19230bb
+# commit hash date: 16 Nov 2018
