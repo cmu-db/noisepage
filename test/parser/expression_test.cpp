@@ -116,7 +116,7 @@ TEST(ExpressionTests, ConstantValueExpressionTest) {
   delete expr_bi_2;
   delete expr_bi_3;
 
-  // constant double/decimal
+  // constant double/decimalGetDecimal
   auto expr_d_1 = new ConstantValueExpression(type::TransientValueFactory::GetDecimal(1));
   auto expr_d_2 = new ConstantValueExpression(type::TransientValueFactory::GetDecimal(1));
   auto expr_d_3 = new ConstantValueExpression(type::TransientValueFactory::GetDecimal(32768));
@@ -496,6 +496,36 @@ TEST(ExpressionTests, FunctionExpressionJsonTest) {
   EXPECT_EQ(*original_expr, *deserialized_expression);
   EXPECT_EQ(static_cast<FunctionExpression *>(deserialized_expression.get())->GetFuncName(), "Funhouse");
   EXPECT_EQ(static_cast<FunctionExpression *>(deserialized_expression.get())->GetReturnValueType(), fn_ret_type);
+}
+
+// NOLINTNEXTLINE
+TEST(ExpressionTests, OperatorExpressionTest) {
+  // Most methods in the parent class (AbstractExpression Class) have already been tested
+  // Following testcases will test only methods unique to the specific child class
+
+  auto op_ret_type = type::TypeId::BOOLEAN;
+  auto op_expr_1 = new OperatorExpression(ExpressionType::OPERATOR_NOT, op_ret_type, std::vector<std::shared_ptr<AbstractExpression>>());
+  op_expr_1->DeduceReturnValueType();
+  EXPECT_TRUE(op_expr_1->GetReturnValueType() == type::TypeId::BOOLEAN);
+
+  auto child2 = std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetDecimal(1));
+  auto child1 = std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBigInt(32768));
+  auto children = std::vector<std::shared_ptr<AbstractExpression>>{child1, child2};
+  auto children_cp = children;
+  auto op_expr_2 = new OperatorExpression(ExpressionType::OPERATOR_PLUS, type::TypeId::INVALID, std::move(children));
+  op_expr_2->DeduceReturnValueType();
+  EXPECT_TRUE(op_expr_2->GetReturnValueType() == type::TransientValueFactory::GetDecimal(1).Type());
+
+  auto child3 = std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetDate(type::date_t(1)));
+  children_cp.push_back(child3);
+  auto op_expr_3 = new OperatorExpression(ExpressionType::OPERATOR_CONCAT, type::TypeId::INVALID, std::move(children_cp));
+
+  EXPECT_DEATH(op_expr_3->DeduceReturnValueType(), "Invalid operand type type in Operator Expression.");
+
+
+  delete op_expr_1;
+  delete op_expr_2;
+  delete op_expr_3;
 }
 
 // NOLINTNEXTLINE
