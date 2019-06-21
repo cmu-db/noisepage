@@ -25,7 +25,7 @@ TEST(ValueConditionTests, GetColumnNameTest) {
   type::TransientValue val = type::TransientValueFactory::GetInteger(1);
   ValueCondition v(catalog::col_oid_t(1), "", parser::ExpressionType::INVALID, std::move(val));
 
-  std::string expected_column_name = "";
+  std::string expected_column_name;
   std::string actual_column_name = v.GetColumnName();
 
   EXPECT_EQ(actual_column_name, expected_column_name);
