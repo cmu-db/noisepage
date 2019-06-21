@@ -40,7 +40,7 @@ class ValueCondition {
    * @param value
    */
   ValueCondition(catalog::col_oid_t column_id, parser::ExpressionType type, const type::TransientValue &value)
-      : ValueCondition(column_id_, "", type_, value_) {}
+      : ValueCondition(column_id, "", type, value) {}
 
   /**
    * Only with column name. Default column_id to be 0.
@@ -50,8 +50,8 @@ class ValueCondition {
    * @param TransientValue
    */
 
-  ValueCondition(std::string column_name, parser::ExpressionType type, const type::Value &TransientValue)
-      : ValueCondition(0, column_name_, type_, value_) {}
+  ValueCondition(std::string column_name, parser::ExpressionType type, const type::TransientValue &value)
+      : ValueCondition(0, column_name, type, value) {}
 };
 
 }  // namespace optimizer
