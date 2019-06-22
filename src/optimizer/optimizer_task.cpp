@@ -32,19 +32,19 @@ void OptimizerTask::ConstructValidRules(
   }
 }
 
-void OptimizerTask::PushTask(OptimizerTask *task) { context_->metadata->task_pool->Push(task); }
+void OptimizerTask::PushTask(OptimizerTask *task) { context_->GetMetadata()->PushTask(task); }
 
-Memo &OptimizerTask::GetMemo() const { return context_->metadata->memo; }
+Memo &OptimizerTask::GetMemo() const { return context_->GetMetadata()->GetMemo(); }
 
-RuleSet &OptimizerTask::GetRuleSet() const { return context_->metadata->rule_set; }
+RuleSet &OptimizerTask::GetRuleSet() const { return context_->GetMetadata()->GetRuleSet(); }
 
 //===--------------------------------------------------------------------===//
 // OptimizeGroup
 //===--------------------------------------------------------------------===//
 void OptimizeGroup::execute() {
   OPTIMIZER_LOG_TRACE("OptimizeGroup::Execute() group %d", group_->GetID());
-  if (group_->GetCostLB() > context_->cost_upper_bound ||  // Cost LB > Cost UB
-      group_->GetBestExpression(context_->required_prop) != nullptr)  // Has optimized given the context
+  if (group_->GetCostLB() > context_->GetCostUpperBound() ||  // Cost LB > Cost UB
+      group_->GetBestExpression(context_->GetRequiredProperties()) != nullptr)  // Has optimized given the context
     return;
 
   // Push explore task first for logical expressions if the group has not been explored
@@ -159,7 +159,7 @@ void ApplyRule::execute() {
     for (auto &new_expr : after) {
       GroupExpression* new_gexpr;
       GroupID g_id = group_expr_->GetGroupID();
-      if (context_->metadata->RecordTransformedExpression(new_expr, new_gexpr, g_id)) {
+      if (context_->GetMetadata()->RecordTransformedExpression(new_expr, new_gexpr, g_id)) {
         // A new group expression is generated
         if (new_gexpr->Op().IsLogical()) {
           // Derive stats for the *logical expression*
@@ -254,13 +254,15 @@ void OptimizeInputs::execute() {
     cur_total_cost_ = 0;
 
     // Pruning
-    if (cur_total_cost_ > context_->cost_upper_bound) 
+    if (cur_total_cost_ > context_->GetCostUpperBound()) 
       return;
 
     // Derive output and input properties
     ChildPropertyDeriver prop_deriver;
-    output_input_properties_ = prop_deriver.GetProperties(group_expr_, context_->required_prop,
-                                                          &context_->metadata->memo, context_->metadata->accessor);
+    output_input_properties_ = prop_deriver.GetProperties(group_expr_,
+                                                          context_->GetRequiredProperties(),
+                                                          &context_->GetMetadata()->GetMemo(),
+                                                          context_->GetMetadata()->GetCatalogAccessor());
     cur_child_idx_ = 0;
 
     // TODO: If later on we support properties that may not be enforced in some
@@ -277,29 +279,29 @@ void OptimizeInputs::execute() {
       // Compute the cost of the root operator
       // 1. Collect stats needed and cache them in the group
       // 2. Calculate cost based on children's stats
-      cur_total_cost_ += context_->metadata->cost_model->CalculateCost(
-          group_expr_, &context_->metadata->memo, context_->metadata->txn
+      cur_total_cost_ += context_->GetMetadata()->GetCostModel()->CalculateCost(
+          group_expr_, &context_->GetMetadata()->GetMemo(), context_->GetMetadata()->GetTxn()
       );
     }
 
     for (; cur_child_idx_ < (int)group_expr_->GetChildrenGroupsSize(); cur_child_idx_++) {
       auto &i_prop = input_props[cur_child_idx_];
-      auto child_group = context_->metadata->memo.GetGroupByID(group_expr_->GetChildGroupId(cur_child_idx_));
+      auto child_group = context_->GetMetadata()->GetMemo().GetGroupByID(group_expr_->GetChildGroupId(cur_child_idx_));
 
       // Check whether the child group is already optimized for the prop
       auto child_best_expr = child_group->GetBestExpression(i_prop);
       if (child_best_expr != nullptr) {  // Directly get back the best expr if the child group is optimized
         cur_total_cost_ += child_best_expr->GetCost(i_prop);
-        if (cur_total_cost_ > context_->cost_upper_bound) 
+        if (cur_total_cost_ > context_->GetCostUpperBound()) 
           break;
       } else if (prev_child_idx_ != cur_child_idx_) {  // We haven't optimized child group
         prev_child_idx_ = cur_child_idx_;
         PushTask(new OptimizeInputs(this));
 
-        auto cost_high = context_->cost_upper_bound - cur_total_cost_;
-        auto ctx = new OptimizeContext(context_->metadata, i_prop, cost_high);
+        auto cost_high = context_->GetCostUpperBound() - cur_total_cost_;
+        auto ctx = new OptimizeContext(context_->GetMetadata(), i_prop, cost_high);
         PushTask(new OptimizeGroup(child_group, ctx));
-        context_->metadata->track_list.push_back(ctx);
+        context_->GetMetadata()->AddOptimizeContext(ctx);
 
         // process other tasks and come back
         for (int del_idx = cur_prop_pair_idx_; del_idx < (int)output_input_properties_.size(); del_idx++) {
@@ -345,7 +347,7 @@ void OptimizeInputs::execute() {
       // sub-optimal plan. This is fine now because we only have one physical
       // property (sort). If more properties are added, we should add some heuristics
       // to derive the optimal enforce order or perform a cost-based full enumeration.
-      for (auto &prop : context_->required_prop->Properties()) {
+      for (auto &prop : context_->GetRequiredProperties()->Properties()) {
         if (!output_prop->HasProperty(*prop)) {
           auto enforced_expr = prop_enforcer.EnforceProperty(group_expr_, prop);
           // Cannot enforce the missing property
@@ -362,9 +364,10 @@ void OptimizeInputs::execute() {
           // Cost the enforced expression
           auto extended_prop_set = output_prop->Copy();
           extended_prop_set->AddProperty(prop->Copy());
-          cur_total_cost_ += context_->metadata->cost_model->CalculateCost(
-              memo_enforced_expr, &context_->metadata->memo,
-              context_->metadata->txn
+          cur_total_cost_ += context_->GetMetadata()->GetCostModel()->CalculateCost(
+              memo_enforced_expr,
+              &context_->GetMetadata()->GetMemo(),
+              context_->GetMetadata()->GetTxn()
           );
 
           // Update hash tables for group and group expression
@@ -374,14 +377,14 @@ void OptimizeInputs::execute() {
       }
 
       // Can meet the requirement
-      if (meet_requirement && cur_total_cost_ <= context_->cost_upper_bound) {
+      if (meet_requirement && cur_total_cost_ <= context_->GetCostUpperBound()) {
         // If the cost is smaller than the winner, update the context upper bound
-        context_->cost_upper_bound -= cur_total_cost_;
+        context_->SetCostUpperBound(context_->GetCostUpperBound() - cur_total_cost_);
         if (memo_enforced_expr != nullptr) {  // Enforcement takes place
-          cur_group->SetExpressionCost(memo_enforced_expr, cur_total_cost_, context_->required_prop->Copy());
-        } else if (output_prop->Properties().size() != context_->required_prop->Properties().size()) {
+          cur_group->SetExpressionCost(memo_enforced_expr, cur_total_cost_, context_->GetRequiredProperties()->Copy());
+        } else if (output_prop->Properties().size() != context_->GetRequiredProperties()->Properties().size()) {
           // The original output property is a super set of the requirement
-          cur_group->SetExpressionCost(group_expr_, cur_total_cost_, context_->required_prop->Copy());
+          cur_group->SetExpressionCost(group_expr_, cur_total_cost_, context_->GetRequiredProperties()->Copy());
         }
       }
     }
@@ -427,7 +430,7 @@ void TopDownRewrite::execute() {
 
       if (!after.empty()) {
         auto &new_expr = after[0];
-        context_->metadata->ReplaceRewritedExpression(new_expr, group_id_);
+        context_->GetMetadata()->ReplaceRewritedExpression(new_expr, group_id_);
         PushTask(new TopDownRewrite(group_id_, context_, rule_set_name_));
 
         delete new_expr;
@@ -490,7 +493,7 @@ void BottomUpRewrite::execute() {
 
       if (!after.empty()) {
         auto &new_expr = after[0];
-        context_->metadata->ReplaceRewritedExpression(new_expr, group_id_);
+        context_->GetMetadata()->ReplaceRewritedExpression(new_expr, group_id_);
         PushTask(new BottomUpRewrite(group_id_, context_, rule_set_name_, false));
 
         delete new_expr;

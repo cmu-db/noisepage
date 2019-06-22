@@ -24,17 +24,44 @@ class OptimizeContext {
   OptimizeContext(OptimizerMetadata *metadata,
                   PropertySet* required_prop,
                   double cost_upper_bound = std::numeric_limits<double>::max())
-      : metadata(metadata),
-        required_prop(required_prop),
-        cost_upper_bound(cost_upper_bound) {}
+      : metadata_(metadata),
+        required_prop_(required_prop),
+        cost_upper_bound_(cost_upper_bound) {}
 
+  /**
+   * Destructor
+   */
   ~OptimizeContext() {
-    delete required_prop;
+    delete required_prop_;
   }
 
-  OptimizerMetadata *metadata;
-  PropertySet* required_prop;
-  double cost_upper_bound;
+  /**
+   * @returns OptimizerMetadata
+   */
+  OptimizerMetadata *GetMetadata() const { return metadata_; }
+
+  /**
+   * @returns Properties to satisfy, owned by this OptimizeContext
+   */
+  PropertySet *GetRequiredProperties() const { return required_prop_; }
+
+  /**
+   * @returns Current context's upper bound cost
+   */
+  double GetCostUpperBound() const { return cost_upper_bound_; }
+
+  /**
+   * Sets the context's upper bound cost
+   * @param double cost New cost upper bound
+   */
+  void SetCostUpperBound(double cost) {
+    cost_upper_bound_ = cost;
+  }
+
+ private:
+  OptimizerMetadata *metadata_;
+  PropertySet* required_prop_;
+  double cost_upper_bound_;
 };
 
 }  // namespace optimizer

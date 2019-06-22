@@ -24,7 +24,7 @@ namespace optimizer {
 void Optimizer::Reset() {
   // cleanup any existing resources;
   metadata_.SetTaskPool(nullptr);
-  metadata_ = OptimizerMetadata(metadata_.cost_model);
+  metadata_ = OptimizerMetadata(metadata_.ReleaseCostModel());
 }
 
 planner::AbstractPlanNode* Optimizer::BuildPlanTree(
@@ -34,8 +34,8 @@ planner::AbstractPlanNode* Optimizer::BuildPlanTree(
     settings::SettingsManager *settings,
     catalog::CatalogAccessor *accessor) {
 
-  metadata_.txn = txn;
-  metadata_.accessor = accessor;
+  metadata_.SetTxn(txn);
+  metadata_.SetCatalogAccessor(accessor);
 
   // Generate initial operator tree from query tree
   GroupExpression *gexpr;
@@ -44,20 +44,23 @@ planner::AbstractPlanNode* Optimizer::BuildPlanTree(
 
   GroupID root_id = gexpr->GetGroupID();
 
+  // Physical properties
+  PropertySet *phys_properties = query_info.GetPhysicalProperties();
+
   // Give raw pointers to ChooseBestPlan
   std::vector<const parser::AbstractExpression*> output_exprs;
-  for (auto expr : query_info.output_exprs) {
+  for (auto expr : query_info.GetOutputExprs()) {
     output_exprs.push_back(expr.get());
   }
 
   try {
-    OptimizeLoop(root_id, query_info.physical_props, settings);
+    OptimizeLoop(root_id, phys_properties, settings);
   } catch (OptimizerException &e) {
     OPTIMIZER_LOG_WARN("Optimize Loop ended prematurely: %s", e.what());
   }
 
   try {
-    auto best_plan = ChooseBestPlan(root_id, query_info.physical_props, output_exprs);
+    auto best_plan = ChooseBestPlan(root_id, phys_properties, output_exprs);
 
     // Reset memo after finishing the optimization
     Reset();
@@ -73,7 +76,7 @@ planner::AbstractPlanNode* Optimizer::ChooseBestPlan(
     PropertySet* required_props,
     std::vector<const parser::AbstractExpression *> required_cols) {
 
-  Group *group = metadata_.memo.GetGroupByID(id);
+  Group *group = metadata_.GetMemo().GetGroupByID(id);
   auto gexpr = group->GetBestExpression(required_props);
 
   OPTIMIZER_LOG_TRACE("Choosing best plan for group %d with op %s",
@@ -89,7 +92,7 @@ planner::AbstractPlanNode* Optimizer::ChooseBestPlan(
   // Firstly derive input/output columns
   InputColumnDeriver deriver;
   auto output_input_cols_pair = deriver.DeriveInputColumns(
-    gexpr, required_props, required_cols, &metadata_.memo
+    gexpr, required_props, required_cols, &metadata_.GetMemo()
   );
 
   auto &output_cols = output_input_cols_pair.first;
@@ -134,7 +137,7 @@ void Optimizer::OptimizeLoop(
   OptimizeContext* root_context = new OptimizeContext(&metadata_, required_props->Copy());
   auto task_stack = new OptimizerTaskStack();
   metadata_.SetTaskPool(task_stack);
-  metadata_.track_list.push_back(root_context);
+  metadata_.AddOptimizeContext(root_context);
 
   // Perform rewrite first
   task_stack->Push(new TopDownRewrite(root_group_id, root_context, RewriteRuleSetName::PREDICATE_PUSH_DOWN));
@@ -142,10 +145,11 @@ void Optimizer::OptimizeLoop(
   ExecuteTaskStack(task_stack, root_group_id, root_context, settings);
 
   // Perform optimization after the rewrite
-  task_stack->Push(new OptimizeGroup(metadata_.memo.GetGroupByID(root_group_id), root_context));
+  Memo &memo = metadata_.GetMemo();
+  task_stack->Push(new OptimizeGroup(memo.GetGroupByID(root_group_id), root_context));
 
   // Derive stats for the only one logical expression before optimizing
-  task_stack->Push(new DeriveStats(metadata_.memo.GetGroupByID(root_group_id)->GetLogicalExpression(), ExprSet{}, root_context));
+  task_stack->Push(new DeriveStats(memo.GetGroupByID(root_group_id)->GetLogicalExpression(), ExprSet{}, root_context));
   ExecuteTaskStack(task_stack, root_group_id, root_context, settings);
 }
 
@@ -155,9 +159,9 @@ void Optimizer::ExecuteTaskStack(
     OptimizeContext* root_context,
     settings::SettingsManager *settings) {
 
-  auto root_group = metadata_.memo.GetGroupByID(root_group_id);
+  auto root_group = metadata_.GetMemo().GetGroupByID(root_group_id);
   const auto timeout_limit = static_cast<uint64_t>(settings->GetInt(settings::Param::task_execution_timeout));
-  const auto &required_props = root_context->required_prop;
+  const auto &required_props = root_context->GetRequiredProperties();
 
   uint64_t elapsed_time = 0;
 

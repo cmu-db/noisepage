@@ -37,15 +37,38 @@ struct QueryInfo {
   QueryInfo(parser::StatementType type,
             std::vector<common::ManagedPointer<parser::AbstractExpression>> &exprs,
             PropertySet* props)
-      : stmt_type(type), output_exprs(exprs), physical_props(std::move(props)) {}
+      : stmt_type_(type), output_exprs_(exprs), physical_props_(std::move(props)) {}
 
+  /**
+   * Destructor
+   */
   ~QueryInfo() {
-    delete physical_props;
+    delete physical_props_;
   }
 
-  parser::StatementType stmt_type;
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> output_exprs;
-  PropertySet* physical_props;
+  /**
+   * @returns StatementType
+   */
+  parser::StatementType GetStmtType() const { return stmt_type_; }
+
+  /**
+   * @returns Output expressions of the query
+   */
+  const std::vector<common::ManagedPointer<parser::AbstractExpression>> GetOutputExprs() const {
+    return output_exprs_;
+  }
+
+  /**
+   * @returns Physical properties of the output owned by QueryInfo
+   */
+  PropertySet* GetPhysicalProperties() const {
+    return physical_props_;
+  }
+
+private:
+  parser::StatementType stmt_type_;
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> output_exprs_;
+  PropertySet* physical_props_;
 };
 
 //===--------------------------------------------------------------------===//
