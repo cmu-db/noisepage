@@ -108,7 +108,7 @@ TEST_F(HyperLogLogTests, Dataset3Test) {
   int ratio = 1000;
   for (int i = 1; i <= threshold; i++) {
     auto v = std::to_string(i / ratio);
-    hll.Update(v);
+    hll.Update(v.data(), v.size());
   }
 
   auto actual = threshold / ratio;

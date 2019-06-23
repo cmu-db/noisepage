@@ -41,19 +41,24 @@ class HyperLogLog {
    * need to keep track that we saw it and not the number of times that we saw it.
    * @param key the key to apply to the HLL.
    */
-  void Update(const KeyType &key) { UpdateKey(reinterpret_cast<const void *>(&key), sizeof(key)); }
+  void Update(const KeyType &key) { Update(reinterpret_cast<const void *>(&key), sizeof(key)); }
 
   /**
-   * Specialized Update method for strings.
-   * @param str the key to apply to the HLL.
+   * Update the existence of the given key in the HLL. Note that we only
+   * need to keep track that we saw it and not the number of times that we saw it.
+   * @param key a pointer to the underlying storage of the key
+   * @param length the length of the key.
    */
-  void Update(const std::string &str) { UpdateKey(reinterpret_cast<const void *>(str.data()), sizeof(str.size())); }
-
-  /**
-   * Specialized Update method for const chars.
-   * @param str the key to apply to the HLL.
-   */
-  void Update(const char *str) { Update(std::basic_string_view(str)); }
+  void Update(const void *key, size_t length) {
+    // Throw the given key at murmur3 and get back a 128-bit hash.
+    // We then update the HLL using the first 64-bits of the hash.
+    // Andy tried using the second 64-bits and found that it produced
+    // slightly less accurate estimations. He did not perform
+    // a rigorous test of this though...
+    uint64_t hash[2];
+    murmur3::MurmurHash3_x64_128(key, static_cast<int>(length), 0, reinterpret_cast<void *>(&hash));
+    hll_->Update(hash[0]);
+  }
 
   /**
    * Compute the bias-corrected estimate using the HyperLogLog++ algorithm.
@@ -73,22 +78,6 @@ class HyperLogLog {
   }
 
  private:
-  /**
-   * The actual Update method.
-   * @param key a pointer to the underlying storage of the key
-   * @param length the length of the key.
-   */
-  void UpdateKey(const void *key, size_t length) {
-    // Throw the given key at murmur3 and get back a 128-bit hash.
-    // We then update the HLL using the first 64-bits of the hash.
-    // Andy tried using the second 64-bits and found that it produced
-    // slightly less accurate estimations. He did not perform
-    // a rigorous test of this though...
-    uint64_t hash[2];
-    murmur3::MurmurHash3_x64_128(key, static_cast<int>(length), 0, reinterpret_cast<void *>(&hash));
-    hll_->Update(hash[0]);
-  }
-
   /**
    * The provided precision of the HLL instance.
    */
