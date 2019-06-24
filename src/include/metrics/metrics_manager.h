@@ -6,6 +6,7 @@
 
 #include "common/managed_pointer.h"
 #include "common/spin_latch.h"
+#include "common/thread_context.h"
 #include "metrics/abstract_raw_data.h"
 #include "metrics/metrics_store.h"
 
@@ -55,8 +56,6 @@ class MetricsManager {
   bool ComponentEnabled(const MetricsComponent component) {
     return enabled_metrics_.test(static_cast<uint8_t>(component));
   }
-
-  static thread_local common::ManagedPointer<MetricsStore> metrics_store_;
 
  private:
   friend class settings::Callbacks;
