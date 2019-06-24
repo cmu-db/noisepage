@@ -37,7 +37,6 @@ class TopKElements {
   class ApproxTopEntry;
   template <class T, class Container, class Compare>
   class UpdatableQueue;
-  class TopKQueue;
 
   /**
    * An entry of the TopKQueue data structure
@@ -265,191 +264,14 @@ class TopKElements {
   };  // end of UpdatableQueue
 
   /**
-   * TopKQueue
-   * This wraps a customized priority queue
-   * for the top-k approximate entries
-   */
-  class TopKQueue {
-   public:
-
-    /**
-     * struct for comparison in the queue
-     * lowest count comes in the top (MinHeap)
-     */
-    struct compare {
-      bool operator()(const ApproxTopEntry& l, const ApproxTopEntry& r) {
-        return l.count_ > r.count_;
-      }
-    };
-
-    /**
-     * Constructor
-     * @param param_k
-     */
-    TopKQueue(int param_k)
-        : k{param_k},
-          size{0} {
-    }
-
-    /**
-     *
-     * @return
-     */
-    int GetK() { return this->k; }
-
-    /**
-     *
-     * @return
-     */
-    int GetSize() { return this->size; }
-
-    /**
-     *
-     */
-    void IncreaseSize() { size++; }
-
-    /**
-     *
-     */
-    void DecreaseSize() { size--; }
-
-    /**
-     * Check if the entry exists in the queue
-     * @param entry
-     * @return
-     */
-    bool Exists(ApproxTopEntry entry) { return queue.Exists(entry); }
-
-    /**
-     *
-     * @param entry
-     */
-    void Push(ApproxTopEntry entry) {
-      // here we suppose the Exists returns false
-      // if less than K-items, just insert, increase the size
-      if (size < k) {
-        queue.push(entry);
-        IncreaseSize();
-      }
-      // if we have more than K-items (including K),
-      // remove the item with the lowest frequency from our data structure
-      else {
-        // if and only if the lowest frequency is lower than the new one
-        if (queue.top().count_ < entry.count_) {
-          queue.pop();
-          queue.push(entry);
-        }
-      }
-    }
-
-    /**
-     * Update a designated entry
-     * @param entry
-     */
-    void Update(ApproxTopEntry entry) {
-      // remove the former one (with the same entry elem) and
-      // insert the new entry
-      // first remove the former entry
-      if (queue.remove(entry)) {
-        queue.push(entry);
-      }
-    }
-
-    /**
-     * Remove a designated entry
-     * @param entry
-     * @return
-     */
-    bool Remove(ApproxTopEntry entry) {
-      DecreaseSize();
-      return queue.remove(entry);
-    }
-
-    /**
-     * Pop the top element of the queue
-     * @return
-     */
-    ApproxTopEntry Pop() {
-      DecreaseSize();
-      ApproxTopEntry e = std::move(queue.top());
-      queue.pop();
-      return e;
-    }
-
-    /**
-     * Retrieve all the items in the queue, unordered
-     * @return
-     */
-    std::vector<ApproxTopEntry> RetrieveAll() const {
-      return queue.RetrieveAll();
-    }
-
-    /**
-     * Retrieve all the items in the queue, ordered, queue is maintained
-     * Min first (smallest count first)
-     * @return
-     */
-    std::vector<ApproxTopEntry> RetrieveAllOrdered() {
-      return queue.RetrieveAllOrdered();
-    }
-
-    /**
-     * Retrieve all elements, ordered
-     * Max first
-     * @return
-     */
-    std::vector<ApproxTopEntry> RetrieveAllOrderedMaxFirst() {
-      return queue.RetrieveAllOrderedMaxFirst();
-    }
-
-    /**
-     * Retrieve given number of elements, ordered
-     * Max first
-     * @param num
-     * @return
-     */
-    std::vector<ApproxTopEntry> RetrieveOrderedMaxFirst(int num) {
-      return queue.RetrieveOrderedMaxFirst(num);
-    }
-
-    /**
-     * Retrieve all elements, ordered
-     * Max first
-     * @return
-     */
-    std::vector<ValueFrequencyPair> GetAllOrderedMaxFirst() {
-      return queue.GetAllOrderedMaxFirst();
-    }
-
-    /**
-     * Retrieve given number of elements, ordered
-     * Max first
-     * @param num
-     * @return
-     */
-    std::vector<ValueFrequencyPair> GetOrderedMaxFirst(int num) {
-      return queue.GetOrderedMaxFirst(num);
-    }
-
-   private:
-    // the K as in "top K"
-    int k;
-    // the priority queue managing the top entries
-    UpdatableQueue<ApproxTopEntry, std::vector<ApproxTopEntry>, compare> queue;
-    // number of entries in the priority queue
-    int size;
-
-  };  // end of class TopKQueue
-
-  /**
    * TopKElements Constructor
    * @param k
    */
-  explicit TopKElements(int k) : tkq{k} {
-    cmsketch = new CountMinSketch<KeyType>(20);
+  explicit TopKElements(int k) : numk_{k}, size_{0} {
+    sketch_ = new CountMinSketch<KeyType>(20);
   }
 
-  ~TopKElements() { delete cmsketch; }
+  ~TopKElements() { delete sketch_; }
 
   /**
    * Add an item into this bookkeeping data structure as well as
@@ -459,11 +281,11 @@ class TopKElements {
    */
   void Add(KeyType item, int count) {
     // Increment the count for this item in the Count-Min sketch
-    cmsketch.Add(item, count);
+    sketch_->Add(item, count);
 
     // Estimate the frequency of this item using the sketch
     // Add it to the queue
-    ApproxTopEntry e(item, cmsketch.EstimateItemCount(item));
+    ApproxTopEntry e(item, sketch_->EstimateItemCount(item));
     AddFreqItem(e);
   }
 
@@ -473,38 +295,43 @@ class TopKElements {
    * @param count
    */
   void Remove(KeyType key, int count) {
-    cmsketch.Remove(key, count);
-    ApproxTopEntry e(key, cmsketch.EstimateItemCount(key));
+    sketch_->Remove(key, count);
+    ApproxTopEntry e(key, sketch_->EstimateItemCount(key));
     DecrFreqItem(e);
   }
 
-  uint64_t EstimateItemCount(const KeyType &key) {
-    return cmsketch->EstimateItemCount(key);
+  /**
+   *
+   * @param key
+   * @return
+   */
+  uint64_t EstimateItemCount(const KeyType &key) const {
+    return sketch_->EstimateItemCount(key);
   }
 
   /**
    * @return
    */
-  int GetK() { return tkq.k; }
+  int GetK() const { return numk_; }
 
   /**
    * @return
    */
-  int GetSize() { return tkq.size; }
+  int GetSize() const { return size_; }
 
   /**
    * Retrieve all the items in the queue, unordered
    * @return
    */
-  std::vector<ApproxTopEntry> RetrieveAll() { return tkq.RetrieveAll(); }
+  std::vector<ApproxTopEntry> RetrieveAll() const { return queue_.RetrieveAll(); }
 
   /**
    * Retrieve all the items in the queue, ordered, queue is maintained
    * small count to large count (min first)
    * @return
    */
-  std::vector<ApproxTopEntry> RetrieveAllOrdered() {
-    return tkq.RetrieveAllOrdered();
+  std::vector<ApproxTopEntry> RetrieveAllOrdered() const {
+    return queue_.RetrieveAllOrdered();
   }
 
   /**
@@ -512,8 +339,8 @@ class TopKElements {
    * large count to small count (max first)
    * @return
    */
-  std::vector<ApproxTopEntry> RetrieveAllOrderedMaxFirst() {
-    return tkq.RetrieveAllOrderedMaxFirst();
+  std::vector<ApproxTopEntry> RetrieveAllOrderedMaxFirst() const {
+    return queue_.RetrieveAllOrderedMaxFirst();
   }
 
   /**
@@ -522,9 +349,9 @@ class TopKElements {
    * @param num
    * @return
    */
-  std::vector<ApproxTopEntry> RetrieveOrderedMaxFirst(int num) {
-    if (num >= tkq.GetK()) return tkq.RetrieveAllOrderedMaxFirst();
-    return tkq.RetrieveOrderedMaxFirst(num);
+  std::vector<ApproxTopEntry> RetrieveOrderedMaxFirst(int num) const {
+    if (num >= numk_) return queue_.RetrieveAllOrderedMaxFirst();
+    return queue_.RetrieveOrderedMaxFirst(num);
   }
 
   /**
@@ -533,7 +360,7 @@ class TopKElements {
    * @return
    */
   std::vector<ValueFrequencyPair> GetAllOrderedMaxFirst() {
-    return tkq.GetAllOrderedMaxFirst();
+    return queue_.GetAllOrderedMaxFirst();
   }
 
   /**
@@ -543,8 +370,8 @@ class TopKElements {
    * @return
    */
   std::vector<ValueFrequencyPair> GetOrderedMaxFirst(int num) {
-    if (num >= tkq.GetK()) return tkq.GetAllOrderedMaxFirst();
-    return tkq.GetOrderedMaxFirst(num);
+    if (num >= numk_) return queue_.GetAllOrderedMaxFirst();
+    return queue_.GetOrderedMaxFirst(num);
   }
 
   /**
@@ -553,15 +380,23 @@ class TopKElements {
    * @param topk
    * @return
    */
-  friend std::ostream &operator<<(std::ostream &os, const TopKElements<KeyType> &topk) {
+  friend std::ostream &operator<<(std::ostream &os, const TopKElements<KeyType> &topK) {
+    std::vector<ApproxTopEntry> vec = topK.RetrieveOrderedMaxFirst(topK.GetK());
 
+    os << "Top-" << topK.GetK() << " [size=" << topK.GetSize() << "]";
+    int i = 0;
+    for (auto const& e : vec) {
+      os << std::endl << "  (" << i++ << ") " << e;
+    }
+
+    return os;
   }
 
   /*
    * Print the entire queue, unordered
    */
   void PrintTopKQueue() const {
-    std::vector<ApproxTopEntry> vec = tkq.RetrieveAll();
+    std::vector<ApproxTopEntry> vec = RetrieveAll();
     for (auto const& e : vec) {
       OPTIMIZER_LOG_INFO("\n [PrintTopKQueue Entries] %s", e.print().c_str());
     }
@@ -573,8 +408,8 @@ class TopKElements {
    * Queue is empty afterwards
    */
   void PrintTopKQueuePops() {
-    while (tkq.GetSize() != 0) {
-      OPTIMIZER_LOG_INFO("\n [PrintTopKQueuePops Entries] %s", tkq.Pop().print().c_str());
+    while (queue_.GetSize() != 0) {
+      OPTIMIZER_LOG_INFO("\n [PrintTopKQueuePops Entries] %s", queue_.Pop().print().c_str());
     }
   }
 
@@ -584,7 +419,7 @@ class TopKElements {
    * Queue is intact
    */
   void PrintTopKQueueOrdered() {
-    std::vector<ApproxTopEntry> vec = tkq.RetrieveAllOrdered();
+    std::vector<ApproxTopEntry> vec = RetrieveAllOrdered();
     for (auto const& e : vec) {
       OPTIMIZER_LOG_INFO("\n [Print k Entries] %s", e.print().c_str());
     }
@@ -595,64 +430,71 @@ class TopKElements {
    * Max count first
    * Queue is intact
    */
-  void PrintTopKQueueOrderedMaxFirst() {
-    std::vector<ApproxTopEntry> vec = tkq.RetrieveAllOrderedMaxFirst();
-    for (auto const& e : vec) {
-      OPTIMIZER_LOG_INFO("\n [Print k Entries MaxFirst] %s", e.print().c_str());
-    }
-  }
+//  void PrintTopKQueueOrderedMaxFirst() {
+//    std::vector<ApproxTopEntry> vec = RetrieveAllOrderedMaxFirst();
+//    for (auto const& e : vec) {
+//      OPTIMIZER_LOG_INFO("\n [Print k Entries MaxFirst] %s", e.print().c_str());
+//    }
+//  }
 
-  /*
-   * Print a given number of elements in the top k queue, ordered
-   * Max count first
-   * Queue is intact
-   * Retriving a vector of ValueFrequencyPair
-   */
-  void PrintTopKQueueOrderedMaxFirst(int num) {
-    std::vector<ApproxTopEntry> vec = tkq.RetrieveOrderedMaxFirst(num);
-    for (auto const& e : vec) {
-      OPTIMIZER_LOG_INFO("\n [Print top %d Entries MaxFirst] %s", num, e.print().c_str());
-    }
-  }
-
-  /*
-   * Print the entire queue, ordered
-   * Max count first
-   * Queue is intact
-   */
-  void PrintAllOrderedMaxFirst() {
-    std::vector<ValueFrequencyPair> vec = GetAllOrderedMaxFirst();
-    for (auto const& p : vec) {
-      OPTIMIZER_LOG_INFO("\n [Print k Values MaxFirst] %s, %f", p.first.GetInfo().c_str(),
-               p.second);
-    }
-  }
-
-  /*
-   * Print a given number of elements in the top k queue, ordered
-   * Max count first
-   * Queue is intact
-   * Retriving a vector of ValueFrequencyPair
-   */
-  void PrintOrderedMaxFirst(int num) {
-    std::vector<ValueFrequencyPair> vec = GetOrderedMaxFirst(num);
-    for (auto const& p : vec) {
-      OPTIMIZER_LOG_INFO("\n [Print %d Values MaxFirst] %s, %f", num,
-               p.first.GetInfo().c_str(), p.second);
-    }
-  }
+//  /*
+//   * Print the entire queue, ordered
+//   * Max count first
+//   * Queue is intact
+//   */
+//  void PrintAllOrderedMaxFirst() {
+//    std::vector<ValueFrequencyPair> vec = GetAllOrderedMaxFirst();
+//    for (auto const& p : vec) {
+//      OPTIMIZER_LOG_INFO("\n [Print k Values MaxFirst] %s, %f", p.first.GetInfo().c_str(),
+//               p.second);
+//    }
+//  }
+//
+//  /*
+//   * Print a given number of elements in the top k queue, ordered
+//   * Max count first
+//   * Queue is intact
+//   * Retriving a vector of ValueFrequencyPair
+//   */
+//  void PrintOrderedMaxFirst(int num) {
+//    std::vector<ValueFrequencyPair> vec = GetOrderedMaxFirst(num);
+//    for (auto const& p : vec) {
+//      OPTIMIZER_LOG_INFO("\n [Print %d Values MaxFirst] %s, %f", num,
+//               p.first.GetInfo().c_str(), p.second);
+//    }
+//  }
 
  private:
 
   /**
-   *
+   * struct for comparison in the queue
+   * lowest count comes in the top (MinHeap)
    */
-  TopKQueue tkq;
+  struct compare {
+    bool operator()(const ApproxTopEntry& l, const ApproxTopEntry& r) {
+      return l.count_ > r.count_;
+    }
+  };
 
   /**
    *
    */
-  CountMinSketch<KeyType> *cmsketch;
+  CountMinSketch<KeyType> *sketch_;
+
+  /**
+   * the K as in "top K"
+   */
+  int numk_;
+
+  /**
+   * the priority queue managing the top entries
+   */
+  UpdatableQueue<ApproxTopEntry, std::vector<ApproxTopEntry>, compare> queue_;
+
+  /**
+   * number of entries in the priority queue
+   */
+  int size_;
 
 
   /**
@@ -666,14 +508,13 @@ class TopKElements {
     // If freq_item was already in our data structure, just
     // update it instead.
 
-    if (!tkq.Exists(entry)) {
+    if (!queue_.Exists(entry)) {
       // not in the structure
       // insert it
-      tkq.Push(entry);
+      queue_.push(entry);
     } else {
-      // if in the structure
-      // update
-      tkq.Update(entry);
+      // if in the structure update
+      queue_.update(entry);
     }
   }
 
@@ -682,16 +523,16 @@ class TopKElements {
    * @param entry
    */
   void DecrFreqItem(ApproxTopEntry& entry) {
-    if (!tkq.Exists(entry)) {
+    if (!queue_.Exists(entry)) {
       // not in the structure
       // do nothing
     } else {
       // if in the structure
       // update
       if (entry.count_ == 0) {
-        tkq.Remove(entry);
+        queue_.Remove(entry);
       } else {
-        tkq.Update(entry);
+        queue_.update(entry);
       }
     }
   }
