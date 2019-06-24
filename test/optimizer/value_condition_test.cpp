@@ -1,6 +1,6 @@
+#include <memory>
 #include <string>
 #include <utility>
-#include <memory>
 
 #include "catalog/catalog_defs.h"
 #include "optimizer/statistics/value_condition.h"
