@@ -1,5 +1,6 @@
 #include <string>
 #include <utility>
+#include <memory>
 
 #include "catalog/catalog_defs.h"
 #include "optimizer/statistics/value_condition.h"
@@ -11,35 +12,33 @@
 namespace terrier::optimizer {
 // NOLINTNEXTLINE
 TEST(ValueConditionTests, GetColumnIDTest) {
-  type::TransientValue val = type::TransientValueFactory::GetInteger(1);
-  ValueCondition v(catalog::col_oid_t(1), "", parser::ExpressionType::INVALID, std::move(val));
+  auto val = std::make_shared<type::TransientValue>(type::TransientValueFactory::GetInteger(1));
+  ValueCondition v(catalog::col_oid_t(1), "", parser::ExpressionType::INVALID, val);
 
-  catalog::col_oid_t expected_column_id = catalog::col_oid_t(1);
-  catalog::col_oid_t actual_column_id = v.GetColumnID();
-
-  EXPECT_EQ(actual_column_id, expected_column_id);
+  EXPECT_EQ(catalog::col_oid_t(1), v.GetColumnID());
 }
 
 // NOLINTNEXTLINE
 TEST(ValueConditionTests, GetColumnNameTest) {
-  type::TransientValue val = type::TransientValueFactory::GetInteger(1);
-  ValueCondition v(catalog::col_oid_t(1), "", parser::ExpressionType::INVALID, std::move(val));
+  auto val = std::make_shared<type::TransientValue>(type::TransientValueFactory::GetInteger(1));
+  ValueCondition v(catalog::col_oid_t(1), "", parser::ExpressionType::INVALID, val);
 
-  std::string expected_column_name;
-  std::string actual_column_name = v.GetColumnName();
-
-  EXPECT_EQ(actual_column_name, expected_column_name);
+  EXPECT_EQ("", v.GetColumnName());
 }
 
 // NOLINTNEXTLINE
 TEST(ValueConditionTests, GetTypeTest) {
-  type::TransientValue val = type::TransientValueFactory::GetInteger(1);
-  ValueCondition v(catalog::col_oid_t(1), "", parser::ExpressionType::INVALID, std::move(val));
+  auto val = std::make_shared<type::TransientValue>(type::TransientValueFactory::GetInteger(1));
+  ValueCondition v(catalog::col_oid_t(1), "", parser::ExpressionType::INVALID, val);
 
-  parser::ExpressionType expected_type = parser::ExpressionType::INVALID;
-  parser::ExpressionType actual_type = v.GetType();
-
-  EXPECT_EQ(expected_type, actual_type);
+  EXPECT_EQ(parser::ExpressionType::INVALID, v.GetType());
 }
 
+// NOLINTNEXTLINE
+TEST(ValueConditionTests, GetPointerToValueTest) {
+  auto val = std::make_shared<type::TransientValue>(type::TransientValueFactory::GetInteger(1));
+  ValueCondition v(catalog::col_oid_t(1), "", parser::ExpressionType::INVALID, val);
+
+  EXPECT_EQ(*val, *v.GetPointerToValue());
+}
 }  // namespace terrier::optimizer
