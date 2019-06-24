@@ -33,7 +33,8 @@ class RecoveryManager {
   void Recover() { RecoverFromLogs(); }
 
  private:
-  FRIEND_TEST(RecoveryTests, SingleTableRecoveryTest);
+  FRIEND_TEST(RecoveryTests, SingleTableTest);
+  FRIEND_TEST(RecoveryTests, HighAbortRateTest);
   // Path to log file
   std::string log_file_path_;
 

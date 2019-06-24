@@ -53,7 +53,7 @@ class RecoveryTests : public TerrierTest {
 // the log, and verifies that this new table is the same as the original table
 // NOLINTNEXTLINE
 // TODO(Gus): Test delete
-TEST_F(RecoveryTests, SingleTableRecoveryTest) {
+TEST_F(RecoveryTests, SingleTableTest) {
   // Initialize table and run workload with logging enabled
   log_manager_->Start();
   LargeSqlTableTestObject tested = LargeSqlTableTestObject::Builder()
@@ -101,10 +101,53 @@ TEST_F(RecoveryTests, SingleTableRecoveryTest) {
                                                  recovery_manager_->tuple_slot_map_, &txn_manager_));
 }
 
-// This test checks that we recover correctly in a high abort rate workload. This is done by having a small initial
-// table size, and a large txn length. Further, we reduce the RedoBuffer size so that aborted txns will be more likely
-// to flush logs before aborting
+// This test checks that we recover correctly in a high abort rate workload. We achieve the high abort rate by having large transaction lengths (number of updates). Further, to ensure that more aborted transactions flush logs before aborting, we have transactions make large updates (by having high number columns). This will cause RedoBuffers to fill quickly.
+TEST_F(RecoveryTests, HighAbortRateTest) {
+  // Initialize table and run workload with logging enabled
+  log_manager_->Start();
+  LargeSqlTableTestObject tested = LargeSqlTableTestObject::Builder()
+      .SetNumDatabases(1)
+      .SetNumTables(1)
+      .SetMaxColumns(1000)
+      .SetInitialTableSize(1000)
+      .SetTxnLength(20)
+      .SetUpdateSelectRatio({0.7, 0.3})
+      .SetBlockStore(&block_store_)
+      .SetBufferPool(&pool_)
+      .SetGenerator(&generator_)
+      .SetGcOn(true)
+      .SetVarlenAllowed(false)
+      .SetLogManager(log_manager_)
+      .build();
 
-}  // namespace terrier::storage
+  EXPECT_EQ(1, tested.GetDatabases().size());
+  auto database_oid = tested.GetDatabases()[0];
+  EXPECT_EQ(1, tested.GetTablesForDatabase(database_oid).size());
+  auto table_oid = tested.GetTablesForDatabase(database_oid)[0];
+
+  // Run transactions
+  tested.SimulateOltp(100, 4);
+  log_manager_->PersistAndStop();
+
+  auto *original_sql_table = tested.GetTable(database_oid, table_oid);
+  auto *table_schema = tested.GetSchemaForTable(database_oid, table_oid);
+
+  // Create recovery table and dummy catalog
+  auto *recovered_sql_table = new storage::SqlTable(&block_store_, *table_schema, table_oid);
+  storage::RecoveryCatalog catalog;
+  catalog[database_oid][table_oid] = recovered_sql_table;
+
+  // Start a transaction manager with logging disabled, we don't want to log the log replaying
+  transaction::TransactionManager txn_manager_{&pool_, true, LOGGING_DISABLED};
+
+  // Instantiate recovery manager, and recover the tables.
+  recovery_manager_ = new RecoveryManager(LOG_FILE_NAME, &catalog, &txn_manager_);
+  recovery_manager_->Recover();
+
+  // Check we recovered all the original tuples
+  EXPECT_TRUE(StorageTestUtil::SqlTableEqualDeep(original_sql_table->Layout(), original_sql_table, recovered_sql_table,
+                                                 tested.GetTupleSlotsForTable(database_oid, table_oid),
+                                                 recovery_manager_->tuple_slot_map_, &txn_manager_));
+}
 
 }  // namespace terrier::storage
