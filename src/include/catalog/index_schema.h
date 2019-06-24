@@ -53,6 +53,12 @@ class IndexSchema {
     }
 
     /**
+     * Gets the expression
+     * TODO: Evaluate this with catalog merge
+     */
+    const parser::AbstractExpression *GetExpression() const;
+
+    /**
      * @return oid of this key column
      */
     indexkeycol_oid_t GetOid() const { return oid_; }

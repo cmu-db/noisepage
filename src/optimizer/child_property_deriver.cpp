@@ -2,6 +2,7 @@
 #include "catalog/catalog_accessor.h"
 #include "catalog/index_schema.h"
 #include "parser/expression_util.h"
+#include "optimizer/index_util.h"
 #include "optimizer/child_property_deriver.h"
 #include "optimizer/properties.h"
 #include "optimizer/group_expression.h"
@@ -38,57 +39,17 @@ void ChildPropertyDeriver::Visit(const IndexScan *op) {
   for (auto prop : requirements_->Properties()) {
     if (prop->Type() == PropertyType::SORT) {
       auto sort_prop = prop->As<PropertySort>();
-      auto sort_col_size = sort_prop->GetSortColumnSize();
-
-      // Check to see whether the sort columns can be satisfied with
-      // an index. In addition, we only consider ascending sort for now.
-      auto can_fulfill = true;
-      for (size_t idx = 0; idx < sort_col_size; ++idx) {
-        int i_idx = static_cast<int>(idx);
-
-        // TODO(boweic): Only consider ascending sort columns
-        bool isAsc = sort_prop->GetSortAscending(i_idx) == planner::OrderByOrderingType::ASC;
-        parser::ExpressionType type = sort_prop->GetSortColumn(i_idx)->GetExpressionType();
-        if (!isAsc || type != parser::ExpressionType::VALUE_TUPLE) {
-          can_fulfill = false;
-          break;
-        }
-      }
-
-      if (!can_fulfill) {
+      if (!IndexUtil::CheckSortProperty(sort_prop)) {
         continue;
       }
 
       // Iterate through all the table indexes and check whether any
       // of the indexes can be used to satisfy the sort property.
       for (auto &index : tbl_indexes) {
-        std::vector<catalog::indexkeycol_oid_t> key_oids;
-        const catalog::IndexSchema &index_schema = accessor_->GetIndexSchema(index);
-        for (auto &col : index_schema.GetColumns()) { key_oids.push_back(col.GetOid()); }
-
-        // If the sort column size is larger, then can't be fulfill by the index
-        if (sort_col_size > key_oids.size()) {
-          continue;
-        }
-
-        auto can_fulfill = true;
-        for (size_t idx = 0; idx < sort_col_size; ++idx) {
-          auto *expr = sort_prop->GetSortColumn(idx).get();
-          auto *tv_expr = dynamic_cast<parser::TupleValueExpression *>(expr);
-          TERRIER_ASSERT(tv_expr, "SortColumn should be TupleValueExpression");
-
-          // Comparison with underlying values directly
-          // TODO(wz2): Revisit this after John replies about indexkeycol_oid_t v col_oid_t
-          TERRIER_ASSERT(0, "Figure out how to properly compare columns...");
-          if ((!std::get<2>(tv_expr->GetBoundOid())) != (!key_oids[idx])) {
-            can_fulfill = false;
-            break;
-          }
-        }
-
-        if (can_fulfill) {
+        if (IndexUtil::SatisfiesSortWithIndex(sort_prop, tbl_id, index, accessor_)) {
           auto prop = requirements_->Copy();
           output_.push_back(std::make_pair(prop, std::vector<PropertySet*>{}));
+          break;
         }
       }
     }

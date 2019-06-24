@@ -82,7 +82,7 @@ class TupleValueExpression : public AbstractExpression {
 
   const std::tuple<catalog::db_oid_t,
                    catalog::table_oid_t,
-                   catalog::col_oid_t> &GetBoundOid();
+                   catalog::col_oid_t> &GetBoundOid() const;
 
  private:
   std::string col_name_;
