@@ -58,6 +58,18 @@ class TopKElements {
     }
 
     /**
+     *
+     * @return
+     */
+    KeyType GetKey() const { return key_; }
+
+    /**
+     *
+     * @return
+     */
+    int64_t GetCount() const { return count_; }
+
+    /**
      * Pretty Print!
      * @param os
      * @param ate
@@ -170,20 +182,28 @@ class TopKElements {
      * Max first.
      * @return
      */
-    std::vector<ApproxTopEntry> RetrieveAllOrderedMaxFirst() {
-      std::stack<ApproxTopEntry> stack;
-      std::vector<ApproxTopEntry> vec_ret;
-      while (!this->empty()) {
-        stack.push(this->top());
-        this->pop();
+    std::vector<ApproxTopEntry> RetrieveAllOrderedMaxFirst() const {
+      std::vector<ApproxTopEntry> vec;
+      const_iterator first = this->c.cbegin(), last = this->c.cend();
+      while (first != last) {
+        vec.push_back(*first);
+        ++first;
       }
+      return vec;
 
-      while (stack.size() != 0) {
-        this->push(stack.top());
-        vec_ret.push_back(stack.top());
-        stack.pop();
-      }
-      return vec_ret;
+//      std::stack<ApproxTopEntry> stack;
+//      std::vector<ApproxTopEntry> vec_ret;
+//      while (!this->empty()) {
+//        stack.push(this->top());
+//        this->pop();
+//      }
+//
+//      while (stack.size() != 0) {
+//        this->push(stack.top());
+//        vec_ret.push_back(stack.top());
+//        stack.pop();
+//      }
+//      return vec_ret;
     }
 
     /**
@@ -192,24 +212,35 @@ class TopKElements {
      * @param num
      * @return
      */
-    std::vector<ApproxTopEntry> RetrieveOrderedMaxFirst(int num) {
-      std::stack<ApproxTopEntry> stack;
-      std::vector<ApproxTopEntry> vec_ret;
+    std::vector<ApproxTopEntry> RetrieveOrderedMaxFirst(int num) const {
+      std::vector<ApproxTopEntry> vec;
+      const_iterator first = this->c.cbegin(), last = this->c.cend();
       int i = 0;
-      while (!this->empty()) {
-        stack.push(this->top());
-        this->pop();
+      while (first != last) {
+        vec.push_back(*first);
+        ++first;
+        if (i++ == num) break;
       }
+      return vec;
 
-      while (stack.size() != 0) {
-        this->push(stack.top());
-        if (i < num) {
-          ++i;
-          vec_ret.push_back(stack.top());
-        }
-        stack.pop();
-      }
-      return vec_ret;
+      // This shit is crazy!
+      // I have no idea why we are doing it like this!
+//      std::stack<ApproxTopEntry> stack;
+//      std::vector<ApproxTopEntry> vec_ret;
+//      int i = 0;
+//      while (!this->empty()) {
+//        stack.push(this->top());
+//        this->pop();
+//      }
+//
+//      while (stack.size() != 0) {
+//        this->push(stack.top());
+//        if (i < num) {
+//          ++i;
+//          vec_ret.push_back(stack.top());
+//        }
+//        stack.pop();
+//      }
     }
 
     /**
@@ -229,7 +260,7 @@ class TopKElements {
       while (stack.size() != 0) {
         ApproxTopEntry t = stack.top();
         this->push(t);
-        vec_ret.push_back(std::make_pair(t.key_, (double)t.count_));
+        vec_ret.push_back(std::make_pair(t.GetKey(), (double)t.GetCount()));
         stack.pop();
       }
       return vec_ret;
@@ -254,7 +285,7 @@ class TopKElements {
         this->push(t);
         if (i < num) {
           ++i;
-          vec_ret.push_back(std::make_pair(t.key_, (double)t.count_));
+          vec_ret.push_back(std::make_pair(t.GetKey(), (double)t.GetCount()));
         }
         stack.pop();
       }
@@ -268,7 +299,7 @@ class TopKElements {
    * @param k
    */
   explicit TopKElements(int k) : numk_{k}, size_{0} {
-    sketch_ = new CountMinSketch<KeyType>(20);
+    sketch_ = new CountMinSketch<KeyType>(100);
   }
 
   ~TopKElements() { delete sketch_; }
@@ -392,38 +423,38 @@ class TopKElements {
     return os;
   }
 
-  /*
-   * Print the entire queue, unordered
-   */
-  void PrintTopKQueue() const {
-    std::vector<ApproxTopEntry> vec = RetrieveAll();
-    for (auto const& e : vec) {
-      OPTIMIZER_LOG_INFO("\n [PrintTopKQueue Entries] %s", e.print().c_str());
-    }
-  }
-
-  /*
-   * Print the entire queue, ordered
-   * Min count first
-   * Queue is empty afterwards
-   */
-  void PrintTopKQueuePops() {
-    while (queue_.GetSize() != 0) {
-      OPTIMIZER_LOG_INFO("\n [PrintTopKQueuePops Entries] %s", queue_.Pop().print().c_str());
-    }
-  }
-
-  /*
-   * Print the entire queue, ordered
-   * Min count first
-   * Queue is intact
-   */
-  void PrintTopKQueueOrdered() {
-    std::vector<ApproxTopEntry> vec = RetrieveAllOrdered();
-    for (auto const& e : vec) {
-      OPTIMIZER_LOG_INFO("\n [Print k Entries] %s", e.print().c_str());
-    }
-  }
+//  /*
+//   * Print the entire queue, unordered
+//   */
+//  void PrintTopKQueue() const {
+//    std::vector<ApproxTopEntry> vec = RetrieveAll();
+//    for (auto const& e : vec) {
+//      OPTIMIZER_LOG_INFO("\n [PrintTopKQueue Entries] %s", e.print().c_str());
+//    }
+//  }
+//
+//  /*
+//   * Print the entire queue, ordered
+//   * Min count first
+//   * Queue is empty afterwards
+//   */
+//  void PrintTopKQueuePops() {
+//    while (queue_.GetSize() != 0) {
+//      OPTIMIZER_LOG_INFO("\n [PrintTopKQueuePops Entries] %s", queue_.Pop().print().c_str());
+//    }
+//  }
+//
+//  /*
+//   * Print the entire queue, ordered
+//   * Min count first
+//   * Queue is intact
+//   */
+//  void PrintTopKQueueOrdered() {
+//    std::vector<ApproxTopEntry> vec = RetrieveAllOrdered();
+//    for (auto const& e : vec) {
+//      OPTIMIZER_LOG_INFO("\n [Print k Entries] %s", e.print().c_str());
+//    }
+//  }
 
   /*
    * Print the entire queue, ordered
@@ -472,7 +503,7 @@ class TopKElements {
    */
   struct compare {
     bool operator()(const ApproxTopEntry& l, const ApproxTopEntry& r) {
-      return l.count_ > r.count_;
+      return l.GetCount() > r.GetCount();
     }
   };
 
@@ -498,6 +529,63 @@ class TopKElements {
 
 
   /**
+   * Push an entry onto the queue
+   * @param entry
+   */
+  void Push(ApproxTopEntry entry) {
+    // here we suppose the is_exist returns false
+    // if less than K-items, just insert, increase the size
+    if (size_ < numk_) {
+      queue_.push(entry);
+      size_++;
+    }
+      // if we have more than K-items (including K),
+      // remove the item with the lowest frequency from our data structure
+    else {
+      // if and only if the lowest frequency is lower than the new one
+      if (queue_.top().GetCount() < entry.GetCount()) {
+        queue_.pop();
+        queue_.push(entry);
+      }
+    }
+  }
+
+  /**
+   * Update a designated entry
+   * @param entry
+   */
+  void Update(ApproxTopEntry entry) {
+    // remove the former one (with the same entry elem) and insert the new
+    // entry
+    // first remove the former entry
+    if (queue_.Remove(entry)) {
+      queue_.push(entry);
+    }
+  }
+
+  /**
+   * Remove a designated entry
+   * @param entry
+   * @return
+   */
+  bool Remove(ApproxTopEntry entry) {
+    auto result = queue_.remove(entry);
+    if (result) size_--;
+    return result;
+  }
+
+  /*
+   * Pop the top element of the queue
+   */
+  ApproxTopEntry Pop() {
+    // This is oh-so *not* thread safe!
+    auto entry = std::move(queue_.top());
+    queue_.pop();
+    size_--;
+    return entry;
+  }
+
+  /**
    * Add the frequency (approx count) and item (Element) pair (ApproxTopEntry)
    * to the queue / update tkq structure
    * @param entry
@@ -511,10 +599,10 @@ class TopKElements {
     if (!queue_.Exists(entry)) {
       // not in the structure
       // insert it
-      queue_.push(entry);
+      Push(entry);
     } else {
       // if in the structure update
-      queue_.update(entry);
+      Update(entry);
     }
   }
 
@@ -529,7 +617,7 @@ class TopKElements {
     } else {
       // if in the structure
       // update
-      if (entry.count_ == 0) {
+      if (entry.GetCount() == 0) {
         queue_.Remove(entry);
       } else {
         queue_.update(entry);
