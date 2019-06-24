@@ -1,20 +1,16 @@
+#include <util/sql_table_test_util.h>
 #include <unordered_map>
 #include <vector>
 #include "gtest/gtest.h"
 #include "main/db_main.h"
-#include "settings/settings_callbacks.h"
-#include "settings/settings_manager.h"
-#include "storage/data_table.h"
 #include "storage/garbage_collector_thread.h"
 #include "storage/recovery/recovery_manager.h"
 #include "storage/sql_table.h"
 #include "storage/write_ahead_log/log_manager.h"
 #include "transaction/transaction_manager.h"
-#include "type/transient_value_factory.h"
 #include "util/catalog_test_util.h"
 #include "util/storage_test_util.h"
 #include "util/test_harness.h"
-#include "util/transaction_test_util.h"
 
 #define LOG_FILE_NAME "./test.log"
 
@@ -40,8 +36,8 @@ class RecoveryTests : public TerrierTest {
   void SetUp() override {
     // Unlink log file incase one exists from previous test iteration
     unlink(LOG_FILE_NAME);
-        log_manager_ = new LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_,
-        log_persist_interval_, log_persist_threshold_, &pool_);
+    log_manager_ = new LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
+                                  log_persist_threshold_, &pool_);
     TerrierTest::SetUp();
   }
 
@@ -53,43 +49,46 @@ class RecoveryTests : public TerrierTest {
   }
 };
 
-// This test inserts some tuples with a single transaction into a single table. It then recreates the test table from the log, and verifies that this new table is the same as
-// the original table
+// This test inserts some tuples with a single transaction into a single table. It then recreates the test table from
+// the log, and verifies that this new table is the same as the original table
 // NOLINTNEXTLINE
-TEST_F(RecoveryTests, SingleTransactionRecoveryTest) {
+// TODO(Gus): Test delete
+TEST_F(RecoveryTests, SingleTableRecoveryTest) {
+  // Initialize table and run workload with logging enabled
   log_manager_->Start();
+  LargeSqlTableTestObject tested = LargeSqlTableTestObject::Builder()
+                                       .SetNumDatabases(1)
+                                       .SetNumTables(1)
+                                       .SetMaxColumns(5)
+                                       .SetInitialTableSize(1000)
+                                       .SetTxnLength(5)
+                                       .SetUpdateSelectRatio({0.7, 0.3})
+                                       .SetBlockStore(&block_store_)
+                                       .SetBufferPool(&pool_)
+                                       .SetGenerator(&generator_)
+                                       .SetGcOn(true)
+                                       .SetVarlenAllowed(true)
+                                       .SetLogManager(log_manager_)
+                                       .build();
 
-  const int num_inserts = 10;
+  EXPECT_EQ(1, tested.GetDatabases().size());
+  auto database_oid = tested.GetDatabases()[0];
+  EXPECT_EQ(1, tested.GetTablesForDatabase(database_oid).size());
+  auto table_oid = tested.GetTablesForDatabase(database_oid)[0];
 
-  // Create original SQLTable
-  auto col = catalog::Schema::Column("attribute", type::TypeId::INTEGER, false, catalog::col_oid_t(0));
-  auto table_schema = catalog::Schema({col});
-  auto *original_sql_table = new storage::SqlTable(&block_store_, table_schema, CatalogTestUtil::test_table_oid);
-  auto tuple_initializer = original_sql_table->InitializerForProjectedRow({catalog::col_oid_t(0)}).first;
+  // Run transactions
+  tested.SimulateOltp(100, 4);
+  log_manager_->PersistAndStop();
 
-  // Insert tuples with a txn manager with logging enabled
-  {
-    transaction::TransactionManager txn_manager_{&pool_, true, log_manager_};
-    auto *txn = txn_manager_.BeginTransaction();
-    for (auto i = 0; i < num_inserts; i++) {
-      auto *insert_redo =
-          txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer);
-      auto *insert_tuple = insert_redo->Delta();
-      *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = i;
-      original_sql_table->Insert(txn, insert_redo);
-      EXPECT_TRUE(!txn->Aborted());
-    }
-    txn_manager_.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-    log_manager_->PersistAndStop();
-  }
+  auto *original_sql_table = tested.GetTable(database_oid, table_oid);
+  auto *table_schema = tested.GetSchemaForTable(database_oid, table_oid);
 
   // Create recovery table and dummy catalog
-  auto *recovered_sql_table = new storage::SqlTable(&block_store_, table_schema, CatalogTestUtil::test_table_oid);
-
+  auto *recovered_sql_table = new storage::SqlTable(&block_store_, *table_schema, table_oid);
   storage::RecoveryCatalog catalog;
-  catalog[CatalogTestUtil::test_db_oid][CatalogTestUtil::test_table_oid] = recovered_sql_table;
+  catalog[database_oid][table_oid] = recovered_sql_table;
 
-  // Restart the transaction manager with logging disabled
+  // Start a transaction manager with logging disabled, we don't want to log the log replaying
   transaction::TransactionManager txn_manager_{&pool_, true, LOGGING_DISABLED};
 
   // Instantiate recovery manager, and recover the tables.
@@ -97,13 +96,15 @@ TEST_F(RecoveryTests, SingleTransactionRecoveryTest) {
   recovery_manager_->Recover();
 
   // Check we recovered all the original tuples
-  auto original_tuples = StorageTestUtil::PrintRows(num_inserts, original_sql_table, original_sql_table->table_.layout, &txn_manager_);
-  auto recovered_tuples = StorageTestUtil::PrintRows(num_inserts, recovered_sql_table, recovered_sql_table->table_.layout, &txn_manager_);
-
-  EXPECT_EQ(num_inserts, original_tuples.size());
-  EXPECT_EQ(num_inserts, recovered_tuples.size());
-  EXPECT_EQ(original_tuples, recovered_tuples);
-
+  EXPECT_TRUE(StorageTestUtil::SqlTableEqualDeep(original_sql_table->Layout(), original_sql_table, recovered_sql_table,
+                                                 tested.GetTupleSlotsForTable(database_oid, table_oid),
+                                                 recovery_manager_->tuple_slot_map_, &txn_manager_));
 }
+
+// This test checks that we recover correctly in a high abort rate workload. This is done by having a small initial
+// table size, and a large txn length. Further, we reduce the RedoBuffer size so that aborted txns will be more likely
+// to flush logs before aborting
+
+}  // namespace terrier::storage
 
 }  // namespace terrier::storage

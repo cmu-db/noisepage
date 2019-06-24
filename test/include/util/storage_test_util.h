@@ -12,11 +12,11 @@
 #include "gtest/gtest.h"
 #include "storage/index/compact_ints_key.h"
 #include "storage/index/index_defs.h"
+#include "storage/sql_table.h"
 #include "storage/storage_defs.h"
 #include "storage/storage_util.h"
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
-#include "storage/sql_table.h"
 #include "type/type_id.h"
 #include "util/multithread_test_util.h"
 #include "util/random_test_util.h"
@@ -84,12 +84,12 @@ struct StorageTestUtil {
 
   // Returns a random schema that is guaranteed to be valid.
   template <typename Random>
-  static catalog::Schema RandomSchemaNoVarlen(const uint16_t max_cols, Random *const generator) {
+  static catalog::Schema *RandomSchemaNoVarlen(const uint16_t max_cols, Random *const generator) {
     return RandomSchema(max_cols, generator, false);
   }
 
   template <typename Random>
-  static catalog::Schema RandomSchemaWithVarlens(const uint16_t max_cols, Random *const generator) {
+  static catalog::Schema *RandomSchemaWithVarlens(const uint16_t max_cols, Random *const generator) {
     return RandomSchema(max_cols, generator, true);
   }
 
@@ -275,6 +275,37 @@ struct StorageTestUtil {
     return true;
   }
 
+  static bool SqlTableEqualDeep(const storage::BlockLayout &layout, const storage::SqlTable *table_one,
+                                const storage::SqlTable *table_two,
+                                const std::vector<storage::TupleSlot> &table_one_tuples,
+                                const std::unordered_map<storage::TupleSlot, storage::TupleSlot> &tuple_slot_map,
+                                transaction::TransactionManager *txn_manager) {
+    // TODO(Gus): Maybe change the txn timestamp, this is a hack
+    // Set timestamp to be max to ensure most up to date snapshot
+    auto *txn = txn_manager->BeginTransaction(transaction::timestamp_t(INT64_MAX));
+
+    auto initializer =
+        storage::ProjectedRowInitializer::Create(layout, StorageTestUtil::ProjectionListAllColumns(layout));
+    auto *buffer_one = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+    auto *buffer_two = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+    storage::ProjectedRow *row_one = initializer.InitializeRow(buffer_one);
+    storage::ProjectedRow *row_two = initializer.InitializeRow(buffer_two);
+
+    // Select each tuple for both tables and perform equality
+    bool result = true;
+    for (auto &tuple : table_one_tuples) {
+      table_one->Select(txn, tuple, row_one);
+      table_two->Select(txn, tuple_slot_map.at(tuple), row_two);
+      if (!ProjectionListEqualDeep(layout, row_one, row_two)) {
+        result = false;
+        break;
+      }
+    }
+
+    txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+    return result;
+  }
+
   template <class RowType>
   static std::string PrintRow(const RowType &row, const storage::BlockLayout &layout) {
     std::ostringstream os;
@@ -308,32 +339,6 @@ struct StorageTestUtil {
       }
     }
     return os.str();
-  }
-  
-  // Returns a set of string representation of tuples for a given table with given block layout. Returns the first num_tuples number of tuples.
-  static std::unordered_set<std::string> PrintRows(uint32_t num_tuples, storage::SqlTable* table, const storage::BlockLayout &layout, transaction::TransactionManager *txn_manager) {
-
-    // Initialize projected columns
-    std::vector<storage::col_id_t> all_cols = StorageTestUtil::ProjectionListAllColumns(layout);
-    EXPECT_NE((!all_cols[all_cols.size() - 1]), -1);
-    storage::ProjectedColumnsInitializer initializer(layout, all_cols, num_tuples);
-    auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedColumnsSize());
-    storage::ProjectedColumns *columns = initializer.Initialize(buffer);
-
-    // Scan the table
-    auto *txn = txn_manager->BeginTransaction();
-    auto it = table->begin();
-    table->Scan(txn, &it, columns);
-    txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-    EXPECT_EQ(num_tuples, columns->NumTuples());
-
-    // Get string representation of all tuples scanned
-    std::unordered_set<std::string> result;
-    for (uint32_t i = 0; i < num_tuples; i++) {
-      result.emplace(PrintRow(columns->InterpretAsRow(i), layout));
-    }
-
-    return result;
   }
 
   // Write the given tuple (projected row) into a block using the given access strategy,
@@ -470,7 +475,7 @@ struct StorageTestUtil {
   }
 
   template <typename Random>
-  static catalog::Schema RandomSchema(const uint16_t max_cols, Random *const generator, bool allow_varlen) {
+  static catalog::Schema *RandomSchema(const uint16_t max_cols, Random *const generator, bool allow_varlen) {
     const uint16_t num_attrs = std::uniform_int_distribution<uint16_t>(1, max_cols)(*generator);
     std::vector<type::TypeId> possible_attr_types{type::TypeId::BOOLEAN, type::TypeId::SMALLINT, type::TypeId::INTEGER,
                                                   type::TypeId::DECIMAL};
@@ -479,12 +484,15 @@ struct StorageTestUtil {
     std::vector<catalog::Schema::Column> columns;
 
     for (uint16_t i = 0; i < num_attrs; i++) {
-      columns.emplace_back("col" + std::to_string(i),
-                           *RandomTestUtil::UniformRandomElement(&possible_attr_types, generator), false,
-                           catalog::col_oid_t(i));
+      auto random_type = *RandomTestUtil::UniformRandomElement(&possible_attr_types, generator);
+      if (random_type == type::TypeId::VARCHAR) {
+        columns.emplace_back("col" + std::to_string(i), random_type, VARLEN_COLUMN, false, catalog::col_oid_t(i));
+      } else {
+        columns.emplace_back("col" + std::to_string(i), random_type, false, catalog::col_oid_t(i));
+      }
     }
 
-    return catalog::Schema(columns);
+    return new catalog::Schema(columns);
   }
 };
 }  // namespace terrier

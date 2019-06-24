@@ -66,6 +66,7 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
     // 2) We have written more data since the last persist than the threshold
     // 3) We are signaled to persist
     // 4) We are shutting down this task
+    // TODO(Gus): this might need to be !timeout
     if (timeout || current_data_written_ > persist_threshold_ || do_persist_ || !run_task_) {
       {
         std::unique_lock<std::mutex> lock(persist_lock_);

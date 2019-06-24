@@ -1,7 +1,8 @@
+#include <vector>
+
 #include "storage/recovery/recovery_manager.h"
 
 #include "storage/write_ahead_log/log_io.h"
-
 namespace terrier::storage {
 
 bool RecoveryManager::ReplayRecord(LogRecord *log_record) {
@@ -20,6 +21,7 @@ bool RecoveryManager::ReplayRecord(LogRecord *log_record) {
       TERRIER_ASSERT(txn_map_.find(log_record->TxnBegin()) != txn_map_.end(),
                      "Txn must already exist if CommitRecord is found");
       txn_manager_->Commit(txn_map_[log_record->TxnBegin()], transaction::TransactionUtil::EmptyCallback, nullptr);
+      txn_map_.erase(log_record->TxnBegin());
       break;
     }
 
@@ -34,6 +36,7 @@ bool RecoveryManager::ReplayRecord(LogRecord *log_record) {
       TERRIER_ASSERT(txn_map_.find(log_record->TxnBegin()) != txn_map_.end(),
                      "Txn must already exist if AbortRecord is found");
       txn_manager_->Abort(txn_map_[log_record->TxnBegin()]);
+      txn_map_.erase(log_record->TxnBegin());
       break;
     }
 
@@ -51,7 +54,10 @@ bool RecoveryManager::ReplayRecord(LogRecord *log_record) {
 
       // Delete, and return success or not
       auto *sql_table = catalog_->at(delete_record->GetDatabaseOid()).at(delete_record->GetTableOid());
-      return sql_table->Delete(txn, new_tuple_slot);
+      auto result = sql_table->Delete(txn, new_tuple_slot);
+      // If delete succeeded, we can delete the TupleSlot from the map
+      if (result) tuple_slot_map_.erase(delete_record->GetTupleSlot());
+      return result;
     }
 
     case (LogRecordType::REDO): {
@@ -69,6 +75,7 @@ bool RecoveryManager::ReplayRecord(LogRecord *log_record) {
 
       // Search the map for the tuple slot. If the tuple slot is not in the map, then we have not seen this tuple slot
       // before, so this record is an Insert. If we have seen it before, then the record is an Update
+      // TODO(Gus): Add asserts here for catalog
       auto *sql_table = catalog_->at(redo_record->GetDatabaseOid()).at(redo_record->GetTableOid());
       auto search = tuple_slot_map_.find(redo_record->GetTupleSlot());
       if (search == tuple_slot_map_.end()) {
@@ -126,7 +133,7 @@ LogRecord *RecoveryManager::ReadNextRecord(storage::BufferedLogReader *in) {
   }
 
   if (record_type == storage::LogRecordType::ABORT) {
-    return storage::AbortRecord::Initialize(buf, txn_begin);
+    return storage::AbortRecord::Initialize(buf, txn_begin, nullptr);
   }
 
   auto database_oid = in->ReadValue<catalog::db_oid_t>();
@@ -151,7 +158,10 @@ LogRecord *RecoveryManager::ReadNextRecord(storage::BufferedLogReader *in) {
 
   // Initialize the redo record. Fetch the block layout from the catalog
   // TODO(Gus): Change this line when catalog is brought in
-  auto block_layout = catalog_->at(database_oid).at(table_oid)->table_.layout;
+  TERRIER_ASSERT(catalog_->find(database_oid) != catalog_->end(), "Database must exist in catalog");
+  TERRIER_ASSERT(catalog_->at(database_oid).find(table_oid) != catalog_->at(database_oid).end(),
+                 "Table must exist in catalog");
+  auto block_layout = catalog_->at(database_oid).at(table_oid)->Layout();
   auto initializer = storage::ProjectedRowInitializer::Create(block_layout, col_ids);
   auto *result = storage::RedoRecord::Initialize(buf, txn_begin, database_oid, table_oid, initializer);
   auto *record_body = result->GetUnderlyingRecordBodyAs<RedoRecord>();

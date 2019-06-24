@@ -1,6 +1,6 @@
+#include "util/sql_table_test_util.h"
 #include <utility>
 #include <vector>
-#include "util/sql_table_test_util.h"
 #include "storage/sql_table.h"
 #include "util/catalog_test_util.h"
 
@@ -29,10 +29,9 @@ void RandomSqlTableTransaction::RandomUpdate(Random *generator) {
   // Generate random update
   std::vector<storage::col_id_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout, generator);
   storage::ProjectedRowInitializer initializer = storage::ProjectedRowInitializer::Create(layout, update_col_ids);
-  auto *const record = txn_->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, initializer);
+  auto *const record = txn_->StageWrite(database_oid, table_oid, initializer);
   record->SetTupleSlot(updated);
   StorageTestUtil::PopulateRandomRow(record->Delta(), layout, 0.0, generator);
-
   auto result = sql_table->Update(txn_, record);
   aborted_ = !result;
 }
@@ -50,9 +49,11 @@ void RandomSqlTableTransaction::RandomSelect(Random *generator) {
   auto initializer = storage::ProjectedRowInitializer::Create(
       sql_table->Layout(), StorageTestUtil::ProjectionListAllColumns(sql_table->Layout()));
 
+  // TODO(Gus): This is expensive, make more efficient
   auto buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
   storage::ProjectedRow *select = initializer.InitializeRow(buffer);
   sql_table->Select(txn_, selected, select);
+  delete[] buffer;
 }
 
 void RandomSqlTableTransaction::Finish() {
@@ -81,6 +82,11 @@ LargeSqlTableTestObject::LargeSqlTableTestObject(uint16_t num_databases, uint16_
 
 LargeSqlTableTestObject::~LargeSqlTableTestObject() {
   if (!gc_on_) delete initial_txn_;
+  for (auto db_pair : tables_) {
+    for (auto table_pair : db_pair.second) {
+      delete table_pair.second;
+    }
+  }
 }
 
 // Caller is responsible for freeing the returned results if bookkeeping is on.
@@ -114,9 +120,8 @@ uint64_t LargeSqlTableTestObject::SimulateOltp(uint32_t num_transactions, uint32
   // We only need to deallocate, and return, if gc is on, this loop is a no-op
   for (RandomSqlTableTransaction *txn : txns) {
     if (txn->aborted_) abort_count_++;
-    delete txn;
+    if (gc_on_) delete txn;
   }
-  // This result is meaningless if bookkeeping is not turned on.
   return abort_count_;
 }
 
@@ -136,19 +141,20 @@ void LargeSqlTableTestObject::PopulateInitialTables(uint16_t num_databases, uint
                                                     storage::BlockStore *block_store, Random *generator) {
   initial_txn_ = txn_manager_.BeginTransaction();
 
-  uint16_t initial_table_oid = 0;
+  uint16_t curr_table_oid = 0;
 
   for (uint16_t db_idx = 0; db_idx < num_databases; db_idx++) {
     auto database_oid = catalog::db_oid_t(db_idx);
     database_oids_.emplace_back(database_oid);
     for (uint16_t table_idx = 0; table_idx < num_tables; table_idx++) {
       // Create table
-      auto table_oid = catalog::table_oid_t(initial_table_oid + table_idx);
+      auto table_oid = catalog::table_oid_t(curr_table_oid);
       table_oids_[database_oid].emplace_back(table_oid);
-      auto schema = varlen_allowed ? StorageTestUtil::RandomSchemaWithVarlens(max_columns, generator)
-                                   : StorageTestUtil::RandomSchemaNoVarlen(max_columns, generator);
-      auto *sql_table = new storage::SqlTable(block_store, schema, table_oid);
+      auto *schema = varlen_allowed ? StorageTestUtil::RandomSchemaWithVarlens(max_columns, generator)
+                                    : StorageTestUtil::RandomSchemaNoVarlen(max_columns, generator);
+      auto *sql_table = new storage::SqlTable(block_store, *schema, table_oid);
       tables_[database_oid][table_oid] = sql_table;
+      schemas_[database_oid][table_oid] = schema;
 
       // Create row initializer
       auto &layout = sql_table->Layout();
@@ -157,15 +163,12 @@ void LargeSqlTableTestObject::PopulateInitialTables(uint16_t num_databases, uint
 
       // Populate table
       for (uint32_t i = 0; i < num_tuples; i++) {
-        auto *const redo =
-            initial_txn_->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, initializer);
+        auto *const redo = initial_txn_->StageWrite(database_oid, table_oid, initializer);
         StorageTestUtil::PopulateRandomRow(redo->Delta(), layout, 0.0, generator);
         const storage::TupleSlot inserted = sql_table->Insert(initial_txn_, redo);
-        redo->SetTupleSlot(inserted);
         inserted_tuples_[database_oid][table_oid].emplace_back(inserted);
       }
-
-      initial_table_oid++;
+      curr_table_oid++;
     }
   }
   txn_manager_.Commit(initial_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);

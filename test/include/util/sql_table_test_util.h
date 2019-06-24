@@ -19,7 +19,8 @@ using TableSnapshot = std::unordered_map<storage::TupleSlot, storage::ProjectedR
 using VersionedSnapshots = std::map<transaction::timestamp_t, TableSnapshot>;
 
 /**
- * A RandomSqlTableTransaction class provides a simple interface to simulate a transaction that interfaces with the SqlTable layer running in the system. Does not provide bookkeeping for correctness functionality.
+ * A RandomSqlTableTransaction class provides a simple interface to simulate a transaction that interfaces with the
+ * SqlTable layer running in the system. Does not provide bookkeeping for correctness functionality.
  */
 class RandomSqlTableTransaction {
  public:
@@ -230,11 +231,47 @@ class LargeSqlTableTestObject {
   uint64_t SimulateOltp(uint32_t num_transactions, uint32_t num_concurrent_txns);
 
   /**
-   * @return map of randomly generated tables
+   * @return database oids
    */
-  const std::unordered_map<catalog::db_oid_t, std::unordered_map<catalog::table_oid_t, storage::SqlTable *>> &Tables()
-      const {
-    return tables_;
+  const std::vector<catalog::db_oid_t> &GetDatabases() const { return database_oids_; }
+
+  /**
+   * @param oid database oid
+   * @return tables oids for a given database
+   */
+  const std::vector<catalog::table_oid_t> &GetTablesForDatabase(catalog::db_oid_t oid) {
+    TERRIER_ASSERT(table_oids_.find(oid) != table_oids_.end(), "Requested database was not created");
+    return table_oids_[oid];
+  }
+
+  /**
+   * @param db_oid database oid
+   * @param table_oid table oid
+   * @return SqlTable pointer for requested table
+   */
+  const storage::SqlTable *GetTable(catalog::db_oid_t db_oid, catalog::table_oid_t table_oid) {
+    TERRIER_ASSERT(tables_.find(db_oid) != tables_.end(), "Requested database was not created");
+    TERRIER_ASSERT(tables_[db_oid].find(table_oid) != tables_[db_oid].end(), "Requested table was not created");
+    return tables_[db_oid][table_oid];
+  }
+
+  /**
+   * @param db_oid database oid
+   * @param table_oid table oid
+   * @return schema requested table
+   */
+  const catalog::Schema *GetSchemaForTable(catalog::db_oid_t db_oid, catalog::table_oid_t table_oid) {
+    TERRIER_ASSERT(schemas_.find(db_oid) != schemas_.end(), "Requested database was not created");
+    TERRIER_ASSERT(schemas_[db_oid].find(table_oid) != schemas_[db_oid].end(), "Requested table was not created");
+    return schemas_[db_oid][table_oid];
+  }
+
+  const std::vector<storage::TupleSlot> &GetTupleSlotsForTable(catalog::db_oid_t db_oid,
+                                                               catalog::table_oid_t table_oid) {
+    TERRIER_ASSERT(inserted_tuples_.find(db_oid) != inserted_tuples_.end(), "Requested database was not created");
+    TERRIER_ASSERT(inserted_tuples_[db_oid].find(table_oid) != inserted_tuples_[db_oid].end(),
+                   "Requested table was not created");
+    return inserted_tuples_[db_oid][table_oid];
   }
 
  private:
@@ -268,14 +305,19 @@ class LargeSqlTableTestObject {
   uint32_t txn_length_;
   std::vector<double> update_select_ratio_;
   std::default_random_engine *generator_;
-  std::unordered_map<catalog::db_oid_t, std::unordered_map<catalog::table_oid_t, storage::SqlTable *>> tables_;
   transaction::TransactionManager txn_manager_;
   transaction::TransactionContext *initial_txn_;
   bool gc_on_;
-  uint64_t abort_count_;
+  uint64_t abort_count_ = 0;
   // So we can easily get a random database and table oid
   std::vector<catalog::db_oid_t> database_oids_;
   std::unordered_map<catalog::db_oid_t, std::vector<catalog::table_oid_t>> table_oids_;
+
+  // Map of OIDs to raw table pointers
+  std::unordered_map<catalog::db_oid_t, std::unordered_map<catalog::table_oid_t, storage::SqlTable *>> tables_;
+
+  // Map of OIDS to schemas
+  std::unordered_map<catalog::db_oid_t, std::unordered_map<catalog::table_oid_t, catalog::Schema *>> schemas_;
 
   // Keep track of which tuple slots we inserted so we can pick a random one for updates
   std::unordered_map<catalog::db_oid_t, std::unordered_map<catalog::table_oid_t, std::vector<storage::TupleSlot>>>

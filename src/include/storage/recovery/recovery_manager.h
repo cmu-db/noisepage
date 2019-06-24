@@ -1,8 +1,11 @@
 #pragma once
 
-#include <storage/sql_table.h>
+#include <string>
 #include <unordered_map>
+#include <vector>
+
 #include "catalog/catalog_defs.h"
+#include "storage/sql_table.h"
 #include "transaction/transaction_manager.h"
 
 namespace terrier::storage {
@@ -30,6 +33,7 @@ class RecoveryManager {
   void Recover() { RecoverFromLogs(); }
 
  private:
+  FRIEND_TEST(RecoveryTests, SingleTableRecoveryTest);
   // Path to log file
   std::string log_file_path_;
 
@@ -40,6 +44,8 @@ class RecoveryManager {
   transaction::TransactionManager *txn_manager_;
 
   // Used during recovery from log. Maps old tuple slot to new tuple slot
+  // TODO(Gus): This map may get huge, benchmark whether this becomes a problem and if we need a more sophisticated data
+  // structure
   std::unordered_map<TupleSlot, TupleSlot> tuple_slot_map_;
 
   // Used during recovery from log. Maps txn id to transaction object

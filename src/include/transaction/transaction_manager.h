@@ -37,11 +37,12 @@ class TransactionManager {
    */
   TransactionContext *BeginTransaction();
 
+  // TODO(Gus): Remove when timestamp manager is added
   /**
-* Begins a transaction with a specific txn id
- * @param timestamp begin timestamp for txn
-* @return transaction context for the newly begun transaction
-*/
+   * Begins a transaction with a specific txn id
+   * @param timestamp begin timestamp for txn
+   * @return transaction context for the newly begun transaction
+   */
   TransactionContext *BeginTransaction(timestamp_t timestamp);
 
   /**
