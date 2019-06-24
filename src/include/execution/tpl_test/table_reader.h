@@ -111,6 +111,7 @@ class TableReader {
   void WriteTableCol(storage::ProjectedRow * insert_pr, uint16_t col_offset, type::TypeId type, csv::CSVField * field) {
     if (*field == null_string) {
       insert_pr->SetNull(col_offset);
+      std::cout << "setting null" << std::endl;
       return;
     }
     byte * insert_offset = insert_pr->AccessForceNotNull(col_offset);
@@ -141,8 +142,8 @@ class TableReader {
         break;
       }
       case type::TypeId::DATE: {
-        auto val = sql::ValUtil::StringToDate(field->get<std::string_view>());
-        std::memcpy(insert_offset, &val.int_val, sizeof(i32));
+        auto val = sql::ValUtil::StringToDate(field->get<std::string>());
+        std::memcpy(insert_offset, &val.int_val, sizeof(u32));
         break;
       }
       case type::TypeId::VARCHAR: {

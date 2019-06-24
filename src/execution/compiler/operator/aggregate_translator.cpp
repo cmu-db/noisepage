@@ -132,7 +132,7 @@ void AggregateBottomTranslator::GenPayloadStruct(util::RegionVector<ast::Decl *>
   term_idx = 0;
   for (const auto & term: agg_op->GetAggregateTerms()) {
     ast::Identifier field_name = codegen_->Context()->GetIdentifier(agg_term_names + std::to_string(term_idx));
-    ast::Expr* type = codegen_->AggregateType(term->GetExpressionType());
+    ast::Expr* type = codegen_->AggregateType(term->GetExpressionType(), term->GetChild(0)->GetReturnValueType());
     fields.emplace_back(codegen_->MakeField(field_name, type));
     term_idx++;
   }

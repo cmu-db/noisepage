@@ -35,6 +35,7 @@ class OutputSchema {
    public:
     /**
      * Instantiates a Column object.
+     * TODO(Amadou): Given that the expressions already have a return type, passing in a type may be redundant.
      * @param type SQL type for this column
      * @param nullable is column nullable
      * @param expr the expression used to generate this column

@@ -173,12 +173,18 @@ namespace tpl::vm {
   F(GreaterThanEqualReal, OperandType::Local, OperandType::Local, OperandType::Local)                                  \
   F(EqualReal, OperandType::Local, OperandType::Local, OperandType::Local)                                             \
   F(NotEqualReal, OperandType::Local, OperandType::Local, OperandType::Local)                                          \
-  F(LessThanString, OperandType::Local, OperandType::Local, OperandType::Local)                                        \
-  F(LessThanEqualString, OperandType::Local, OperandType::Local, OperandType::Local)                                   \
-  F(GreaterThanString, OperandType::Local, OperandType::Local, OperandType::Local)                                     \
-  F(GreaterThanEqualString, OperandType::Local, OperandType::Local, OperandType::Local)                                \
-  F(EqualString, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
-  F(NotEqualString, OperandType::Local, OperandType::Local, OperandType::Local)                                        \
+  F(LessThanStringVal, OperandType::Local, OperandType::Local, OperandType::Local)                                        \
+  F(LessThanEqualStringVal, OperandType::Local, OperandType::Local, OperandType::Local)                                   \
+  F(GreaterThanStringVal, OperandType::Local, OperandType::Local, OperandType::Local)                                     \
+  F(GreaterThanEqualStringVal, OperandType::Local, OperandType::Local, OperandType::Local)                                \
+  F(EqualStringVal, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
+  F(NotEqualStringVal, OperandType::Local, OperandType::Local, OperandType::Local)                                          \
+  F(LessThanDate, OperandType::Local, OperandType::Local, OperandType::Local)                                        \
+  F(LessThanEqualDate, OperandType::Local, OperandType::Local, OperandType::Local)                                   \
+  F(GreaterThanDate, OperandType::Local, OperandType::Local, OperandType::Local)                                     \
+  F(GreaterThanEqualDate, OperandType::Local, OperandType::Local, OperandType::Local)                                \
+  F(EqualDate, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
+  F(NotEqualDate, OperandType::Local, OperandType::Local, OperandType::Local)                                        \
                                                                                                                        \
   /* SQL value unary operations */                                                                                     \
   F(AbsInteger, OperandType::Local, OperandType::Local)                                                                \
@@ -256,7 +262,8 @@ namespace tpl::vm {
   F(IntegerMinAggregateGetResult, OperandType::Local, OperandType::Local)                                             \
   F(IntegerMinAggregateFree, OperandType::Local)                                                                       \
   F(AvgAggregateInit, OperandType::Local)                                                                              \
-  F(AvgAggregateAdvance, OperandType::Local, OperandType::Local)                                                       \
+  F(IntegerAvgAggregateAdvance, OperandType::Local, OperandType::Local)                                                       \
+  F(RealAvgAggregateAdvance, OperandType::Local, OperandType::Local)                                                       \
   F(AvgAggregateMerge, OperandType::Local, OperandType::Local)                                                         \
   F(AvgAggregateReset, OperandType::Local)                                                                             \
   F(AvgAggregateGetResult, OperandType::Local, OperandType::Local)                                                     \

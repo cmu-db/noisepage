@@ -6,6 +6,7 @@
 #include "execution/util/math_util.h"
 #include "execution/exec/execution_context.h"
 #include "type/type_id.h"
+#include "date/date.h"
 #include <sstream>
 
 namespace tpl::sql {
@@ -264,24 +265,6 @@ struct StringVal : public Val {
 };
 
 
-/**
-   * Year month day struct (4 bytes)
-   */
-struct YMD {
-  YMD() = default;
-  /**
-   * Day value
-   */
-  u8 day;
-  /**
-   * Month value
-   */
-  u8 month;
-  /**
-   * Year value
-   */
-  u16 year;
-};
 
 /**
  * Date
@@ -292,17 +275,21 @@ struct Date : public Val {
    * Can be represented by an int32 (for the storage layer), or by a year-month-day struct.
    */
   union {
-    YMD ymd;
-    i32 int_val;
+    date::year_month_day ymd;
+    u32 int_val;
   };
 
   /**
    * Constructor
    * @param date date value
    */
-  explicit Date(i32 date) noexcept : Val(false), int_val{date} {}
+  explicit Date(u32 date) noexcept : Val(false), int_val{date} {}
 
-  Date(u16 year, u8 month, u8 day) noexcept : Val(false), ymd{day, month, year} {}
+  explicit Date(terrier::type::date_t date) noexcept : Val(false), int_val{!date} {}
+
+  Date(date::year year, date::month month, date::day day) noexcept : Val(false), ymd{year, month, day} {}
+
+  Date(i16 year, u8 month, u8 day) noexcept : Val(false), ymd{date::year(year) / date::month(month) / date::day(day)} {}
 
   /**
    * @return a NULL Date.
@@ -372,20 +359,32 @@ struct ValUtil {
 
   static std::string DateToString(const Date & date) {
     std::stringstream ss;
-    // The plus sign is to let the string read the number itself, not the ascii character representation.
-    ss << date.ymd.year << "-" << +date.ymd.month << "-" << +date.ymd.day;
+    ss << date.ymd;
     return ss.str();
   }
 
-  static Date StringToDate(const std::string_view & str) {
-    std::stringstream ss(str.data());
-    u16 year;
-    u8 month, day;
+  static i16 ExtractYear(const Date& date) {
+    return i16(int(date.ymd.year()));
+  }
+
+  static u8 ExtractMonth(const Date& date) {
+    return u8(unsigned(date.ymd.month()));
+  }
+
+  static u8 ExtractDay(const Date& date) {
+    return u8(unsigned(date.ymd.day()));
+  }
+
+  static Date StringToDate(const std::string & str) {
+    std::stringstream ss(str);
+    i16 year, month, day;
+    // Token to dismiss the '-' character
+    // Am using the i16 type to prevent the string stream from returning ascii codes.
     char tok;
     ss >> year >> tok;
     ss >> month >> tok;
     ss >> day;
-    return Date(year, month, day);
+    return Date(i16(year), u8(month), u8(day));
   }
 };
 

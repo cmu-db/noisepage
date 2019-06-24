@@ -34,8 +34,6 @@ namespace tpl::compiler {
     (type) <= terrier::parser::ExpressionType::OPERATOR_IS_NOT_NULL)
 // clang-format on
 
-class CompilationContext;
-
 /**
  * Expression Translator
  */

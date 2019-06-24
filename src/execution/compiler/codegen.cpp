@@ -152,22 +152,33 @@ ast::Expr* CodeGen::PCIAdvance(tpl::ast::Identifier pci) {
 }
 
 
-// TODO(Amadou): Depending on whether the column is nullable or not, generate @pciGetTypeNull
+// TODO(Amadou): Depending on whether the column is nullable or not, generate @pciGetTypeNull vs @pciGetType
+// Right now, I am always generating null because it's the safest option.
+// Once the catalog accessor is in, lookup the column type to decide what to call.
 ast::Expr* CodeGen::PCIGet(tpl::ast::Identifier pci, terrier::type::TypeId type, uint32_t idx) {
   ast::Builtin builtin;
   switch (type) {
     case terrier::type::TypeId::INTEGER:
-      builtin = ast::Builtin::PCIGetInt;
+      builtin = ast::Builtin::PCIGetIntNull;
       break;
     case terrier::type::TypeId::SMALLINT:
-      builtin = ast::Builtin::PCIGetSmallInt;
+      builtin = ast::Builtin::PCIGetSmallIntNull;
       break;
     case terrier::type::TypeId::BIGINT:
-      builtin = ast::Builtin::PCIGetBigInt;
+      builtin = ast::Builtin::PCIGetBigIntNull;
+      break;
+    case terrier::type::TypeId::DECIMAL:
+      builtin = ast::Builtin ::PCIGetDoubleNull;
+      break;
+    case terrier::type::TypeId::DATE:
+      builtin = ast::Builtin ::PCIGetDateNull;
+      break;
+    case terrier::type::TypeId::VARCHAR:
+      builtin = ast::Builtin ::PCIGetVarlenNull;
       break;
     default:
       // TODO: Support other types.
-      builtin = ast::Builtin::PCIGetInt;
+      UNREACHABLE("Cannot @pciGetType unsupported type");
   }
   ast::Expr * fun = BuiltinFunction(builtin);
   ast::Expr * pci_expr = MakeExpr(pci);
@@ -510,13 +521,15 @@ ast::Expr *CodeGen::TplType(terrier::type::TypeId type) {
       return BuiltinType(ast::BuiltinType::Kind::Boolean);
     }
     case terrier::type::TypeId::DATE:
-    case terrier::type::TypeId::TIMESTAMP:
+      return BuiltinType(ast::BuiltinType::Kind::Date);
     case terrier::type::TypeId::DECIMAL:
+      return BuiltinType(ast::BuiltinType::Kind::Real);
     case terrier::type::TypeId::VARCHAR:
+      return BuiltinType(ast::BuiltinType::Kind::StringVal);
     case terrier::type::TypeId::VARBINARY:
+    case terrier::type::TypeId::TIMESTAMP:
     default:
-      // TODO(WAN): error out
-      return nullptr;
+      UNREACHABLE("Cannot codegen unsupported type.");
   }
 }
 
@@ -539,20 +552,34 @@ ast::Expr* CodeGen::PointerType(tpl::ast::Identifier base_type) {
   return PointerTo(base_expr);
 }
 
-ast::Expr* CodeGen::AggregateType(terrier::parser::ExpressionType type) {
-  switch (type) {
+
+#define AGGTYPE(AggName, terrier_type) \
+ switch(terrier_type) { \
+  case terrier::type::TypeId::TINYINT: \
+  case terrier::type::TypeId::SMALLINT: \
+  case terrier::type::TypeId::INTEGER: \
+  case terrier::type::TypeId::BIGINT: \
+    return BuiltinType(ast::BuiltinType::Integer##AggName);\
+  case terrier::type::TypeId::DECIMAL: \
+    return BuiltinType(ast::BuiltinType::Real##AggName);\
+  default: \
+    UNREACHABLE("Unsupported aggregate type");\
+  }
+
+ast::Expr* CodeGen::AggregateType(terrier::parser::ExpressionType agg_type, terrier::type::TypeId ret_type) {
+  switch (agg_type) {
     case terrier::parser::ExpressionType::AGGREGATE_COUNT:
       return BuiltinType(ast::BuiltinType::Kind::CountAggregate);
     case terrier::parser::ExpressionType::AGGREGATE_COUNT_STAR:
       return BuiltinType(ast::BuiltinType::Kind::CountStarAggregate);
-    case terrier::parser::ExpressionType::AGGREGATE_MIN:
-      return BuiltinType(ast::BuiltinType::Kind::IntegerMinAggregate);
     case terrier::parser::ExpressionType::AGGREGATE_AVG:
-      return BuiltinType(ast::BuiltinType::Kind::AvgAggregate);
+      AGGTYPE(AvgAggregate, ret_type);
+    case terrier::parser::ExpressionType::AGGREGATE_MIN:
+      AGGTYPE(MinAggregate, ret_type);
     case terrier::parser::ExpressionType::AGGREGATE_MAX:
-      return BuiltinType(ast::BuiltinType::Kind::IntegerMaxAggregate);
+      AGGTYPE(MaxAggregate, ret_type);
     case terrier::parser::ExpressionType::AGGREGATE_SUM:
-      return BuiltinType(ast::BuiltinType::Kind::IntegerSumAggregate);
+      AGGTYPE(SumAggregate, ret_type);
     default:
       UNREACHABLE("AggregateType() should only be called with aggregates");
   }
@@ -592,6 +619,26 @@ ast::Expr* CodeGen::MemberExpr(ast::Identifier lhs, ast::Identifier rhs) {
 ast::Expr* CodeGen::IntToSql(i64 num) {
   ast::Expr* int_lit = IntLiteral(num);
   return OneArgCall(ast::Builtin::IntToSql, int_lit);
+}
+
+ast::Expr* CodeGen::FloatToSql(f64 num) {
+  ast::Expr* float_lit = FloatLiteral(num);
+  return OneArgCall(ast::Builtin::FloatToSql, float_lit);
+}
+
+ast::Expr* CodeGen::DateToSql(i16 year, u8 month, u8 day) {
+  ast::Expr* fun = BuiltinFunction(ast::Builtin::DateToSql);
+  ast::Expr* year_lit = IntLiteral(year);
+  ast::Expr* month_lit = IntLiteral(month);
+  ast::Expr* day_lit = IntLiteral(day);
+  util::RegionVector<ast::Expr*> args{{year_lit, month_lit, day_lit}, Region()};
+  return Factory()->NewBuiltinCallExpr(fun, std::move(args));
+}
+
+ast::Expr* CodeGen::StringToSql(std::string_view str) {
+  ast::Identifier str_ident = Context()->GetIdentifier(str.data());
+  ast::Expr* str_lit = Factory()->NewStringLiteral(DUMMY_POS, str_ident);
+  return OneArgCall(ast::Builtin::StringToSql, str_lit);
 }
 
 }  // namespace tpl::compiler

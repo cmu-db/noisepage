@@ -87,7 +87,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
 
   // Read Table
   reader::TableReader table_reader(exec->GetCatalog(), txn, exec->GetTestDBAndNS().first, exec->GetTestDBAndNS().second);
-  u32 num_written = table_reader.ReadTable("../sample_tpl/tables/types1.schema", "../sample_tpl/tables/types1.data");
+  u32 num_written = table_reader.ReadTable("../sample_tpl/tables/test_1.schema", "../sample_tpl/tables/test_1.csv");
   std::cout << "Values written = " << num_written << std::endl;
   //
   // Parse

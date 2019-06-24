@@ -605,10 +605,22 @@ void BytecodeGenerator::VisitBuiltinPCICall(ast::CallExpr *call, ast::Builtin bu
       emitter()->EmitPCIGet(Bytecode::PCIGetSmallInt, val, pci, col_idx);
       break;
     }
+    case ast::Builtin::PCIGetSmallIntNull: {
+      LocalVar val = execution_result()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Integer));
+      auto col_idx = uint32_t(call->arguments()[1]->As<ast::LitExpr>()->int64_val());
+      emitter()->EmitPCIGet(Bytecode::PCIGetSmallIntNull, val, pci, col_idx);
+      break;
+    }
     case ast::Builtin::PCIGetInt: {
       LocalVar val = execution_result()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Integer));
       auto col_idx = uint32_t(call->arguments()[1]->As<ast::LitExpr>()->int64_val());
       emitter()->EmitPCIGet(Bytecode::PCIGetInteger, val, pci, col_idx);
+      break;
+    }
+    case ast::Builtin::PCIGetIntNull: {
+      LocalVar val = execution_result()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Integer));
+      auto col_idx = uint32_t(call->arguments()[1]->As<ast::LitExpr>()->int64_val());
+      emitter()->EmitPCIGet(Bytecode::PCIGetIntegerNull, val, pci, col_idx);
       break;
     }
     case ast::Builtin::PCIGetBigInt: {
@@ -617,10 +629,22 @@ void BytecodeGenerator::VisitBuiltinPCICall(ast::CallExpr *call, ast::Builtin bu
       emitter()->EmitPCIGet(Bytecode::PCIGetBigInt, val, pci, col_idx);
       break;
     }
+    case ast::Builtin::PCIGetBigInt: {
+      LocalVar val = execution_result()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Integer));
+      auto col_idx = uint32_t(call->arguments()[1]->As<ast::LitExpr>()->int64_val());
+      emitter()->EmitPCIGet(Bytecode::PCIGetBigIntNull, val, pci, col_idx);
+      break;
+    }
     case ast::Builtin::PCIGetReal: {
       LocalVar val = execution_result()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Real));
       auto col_idx = uint32_t(call->arguments()[1]->As<ast::LitExpr>()->int64_val());
       emitter()->EmitPCIGet(Bytecode::PCIGetReal, val, pci, col_idx);
+      break;
+    }
+    case ast::Builtin::PCIGetRealNull: {
+      LocalVar val = execution_result()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Real));
+      auto col_idx = uint32_t(call->arguments()[1]->As<ast::LitExpr>()->int64_val());
+      emitter()->EmitPCIGet(Bytecode::PCIGetRealNull, val, pci, col_idx);
       break;
     }
     case ast::Builtin::PCIGetDouble: {
@@ -629,16 +653,34 @@ void BytecodeGenerator::VisitBuiltinPCICall(ast::CallExpr *call, ast::Builtin bu
       emitter()->EmitPCIGet(Bytecode::PCIGetDouble, val, pci, col_idx);
       break;
     }
+    case ast::Builtin::PCIGetDoubleNull: {
+      LocalVar val = execution_result()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Real));
+      auto col_idx = uint32_t(call->arguments()[1]->As<ast::LitExpr>()->int64_val());
+      emitter()->EmitPCIGet(Bytecode::PCIGetDoubleNull, val, pci, col_idx);
+      break;
+    }
     case ast::Builtin::PCIGetDate: {
       LocalVar val = execution_result()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Date));
       auto col_idx = uint32_t(call->arguments()[1]->As<ast::LitExpr>()->int64_val());
       emitter()->EmitPCIGet(Bytecode::PCIGetDate, val, pci, col_idx);
       break;
     }
+    case ast::Builtin::PCIGetDateNull: {
+      LocalVar val = execution_result()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Date));
+      auto col_idx = uint32_t(call->arguments()[1]->As<ast::LitExpr>()->int64_val());
+      emitter()->EmitPCIGet(Bytecode::PCIGetDateNull, val, pci, col_idx);
+      break;
+    }
     case ast::Builtin::PCIGetVarlen: {
       LocalVar val = execution_result()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::StringVal));
       auto col_idx = uint32_t(call->arguments()[1]->As<ast::LitExpr>()->int64_val());
       emitter()->EmitPCIGet(Bytecode::PCIGetVarlen, val, pci, col_idx);
+      break;
+    }
+    case ast::Builtin::PCIGetVarlenNull: {
+      LocalVar val = execution_result()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::StringVal));
+      auto col_idx = uint32_t(call->arguments()[1]->As<ast::LitExpr>()->int64_val());
+      emitter()->EmitPCIGet(Bytecode::PCIGetVarlenNull, val, pci, col_idx);
       break;
     }
     default: { UNREACHABLE("Impossible table iteration call"); }
@@ -901,7 +943,8 @@ namespace {
 #define AGG_CODES(F) \
   F(CountAggregate,      CountAggregateInit,      CountAggregateAdvance,      CountAggregateGetResult,      CountAggregateMerge,      CountAggregateReset)                \
   F(CountStarAggregate,  CountStarAggregateInit,  CountStarAggregateAdvance,  CountStarAggregateGetResult,  CountStarAggregateMerge,  CountStarAggregateReset)            \
-  F(AvgAggregate,        AvgAggregateInit,        AvgAggregateAdvance,        AvgAggregateGetResult,        AvgAggregateMerge,        AvgAggregateReset)                  \
+  F(IntegerAvgAggregate,        AvgAggregateInit,        IntegerAvgAggregateAdvance,        AvgAggregateGetResult,        AvgAggregateMerge,        AvgAggregateReset)                  \
+  F(RealAvgAggregate, AvgAggregateInit,        RealAvgAggregateAdvance,        AvgAggregateGetResult,        AvgAggregateMerge,        AvgAggregateReset)                  \
   F(IntegerMaxAggregate, IntegerMaxAggregateInit, IntegerMaxAggregateAdvance, IntegerMaxAggregateGetResult, IntegerMaxAggregateMerge, IntegerMaxAggregateReset)           \
   F(IntegerMinAggregate, IntegerMinAggregateInit, IntegerMinAggregateAdvance, IntegerMinAggregateGetResult, IntegerMinAggregateMerge, IntegerMinAggregateReset)           \
   F(IntegerSumAggregate, IntegerSumAggregateInit, IntegerSumAggregateAdvance, IntegerSumAggregateGetResult, IntegerSumAggregateMerge, IntegerSumAggregateReset)           \
@@ -1803,6 +1846,24 @@ void BytecodeGenerator::VisitBinaryOpExpr(ast::BinaryOpExpr *node) {
   }
 }
 
+#define COMPARISON_BYTECODE(code, comp_type, kind) \
+  switch (kind) {\
+  case ast::BuiltinType::Kind::Integer: \
+    code = Bytecode::comp_type##Integer;\
+    break;\
+  case ast::BuiltinType::Kind::Real: \
+    code = Bytecode::comp_type##Real;\
+    break;\
+  case ast::BuiltinType::Kind::Date: \
+    code = Bytecode::comp_type##Date;\
+    break;\
+  case ast::BuiltinType::Kind::StringVal: \
+    code = Bytecode::comp_type##StringVal;\
+    break;\
+  default:\
+    UNREACHABLE("Undefined sql comparison!");\
+  }\
+
 void BytecodeGenerator::VisitSqlCompareOpExpr(ast::ComparisonOpExpr *compare) {
   LocalVar dest = execution_result()->GetOrCreateDestination(compare->type());
   LocalVar left = VisitExpressionForLValue(compare->left());
@@ -1810,39 +1871,34 @@ void BytecodeGenerator::VisitSqlCompareOpExpr(ast::ComparisonOpExpr *compare) {
 
   TPL_ASSERT(compare->left()->type() == compare->right()->type(),
              "Left and right input types to comparison are not equal");
-  const bool is_integer_comparison =
-      compare->left()->type()->IsSpecificBuiltin(ast::BuiltinType::Integer);
+  TPL_ASSERT(compare->left()->type()->IsBuiltinType(), "Sql comparison must be done on sql types");
+
+  auto builtin_kind = compare->left()->type()->As<ast::BuiltinType>()->kind();
 
   Bytecode code;
   switch (compare->op()) {
     case parsing::Token::Type::GREATER: {
-      code = (is_integer_comparison ? Bytecode::GreaterThanInteger
-                                    : Bytecode::GreaterThanReal);
+      COMPARISON_BYTECODE(code, GreaterThan, builtin_kind);
       break;
     }
     case parsing::Token::Type::GREATER_EQUAL: {
-      code = (is_integer_comparison ? Bytecode::GreaterThanEqualInteger
-                                    : Bytecode::GreaterThanEqualReal);
+      COMPARISON_BYTECODE(code, GreaterThanEqual, builtin_kind);
       break;
     }
     case parsing::Token::Type::EQUAL_EQUAL: {
-      code = (is_integer_comparison ? Bytecode::EqualInteger
-                                    : Bytecode::EqualReal);
+      COMPARISON_BYTECODE(code, Equal, builtin_kind);
       break;
     }
     case parsing::Token::Type::LESS: {
-      code = (is_integer_comparison ? Bytecode::LessThanInteger
-                                    : Bytecode::LessThanReal);
+      COMPARISON_BYTECODE(code, LessThan, builtin_kind);
       break;
     }
     case parsing::Token::Type::LESS_EQUAL: {
-      code = (is_integer_comparison ? Bytecode::LessThanEqualInteger
-                                    : Bytecode::LessThanEqualReal);
+      COMPARISON_BYTECODE(code, LessThanEqual, builtin_kind);
       break;
     }
     case parsing::Token::Type::BANG_EQUAL: {
-      code = (is_integer_comparison ? Bytecode::NotEqualInteger
-                                    : Bytecode::NotEqualReal);
+      COMPARISON_BYTECODE(code, NotEqual, builtin_kind);
       break;
     }
     default: { UNREACHABLE("Impossible binary operation"); }

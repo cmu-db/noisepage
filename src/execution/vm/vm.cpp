@@ -787,11 +787,18 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
     Op##op##Real(result, left, right);                               \
     DISPATCH_NEXT();                                                 \
   }                                                                  \
-  OP(op##String) : {                                                 \
+  OP(op##StringVal) : {                                                 \
     auto *result = frame->LocalAt<sql::BoolVal *>(READ_LOCAL_ID());  \
     auto *left = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());  \
     auto *right = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID()); \
-    Op##op##String(result, left, right);                             \
+    Op##op##StringVal(result, left, right);                             \
+    DISPATCH_NEXT();                                                 \
+  }                                                                  \
+  OP(op##Date) : {                                                 \
+    auto *result = frame->LocalAt<sql::BoolVal *>(READ_LOCAL_ID());  \
+    auto *left = frame->LocalAt<sql::Date *>(READ_LOCAL_ID());  \
+    auto *right = frame->LocalAt<sql::Date *>(READ_LOCAL_ID()); \
+    Op##op##Date(result, left, right);                             \
     DISPATCH_NEXT();                                                 \
   }
 GEN_CMP(GreaterThan);
@@ -1127,12 +1134,20 @@ GEN_MATH_OPS(Rem)
     DISPATCH_NEXT();
   }
 
-  OP(AvgAggregateAdvance) : {
+  OP(IntegerAvgAggregateAdvance) : {
     auto *agg = frame->LocalAt<sql::AvgAggregate *>(READ_LOCAL_ID());
     auto *val = frame->LocalAt<sql::Integer *>(READ_LOCAL_ID());
-    OpAvgAggregateAdvance(agg, val);
+    OpIntegerAvgAggregateAdvance(agg, val);
     DISPATCH_NEXT();
   }
+
+  OP(RealAvgAggregateAdvance) : {
+    auto *agg = frame->LocalAt<sql::AvgAggregate *>(READ_LOCAL_ID());
+    auto *val = frame->LocalAt<sql::Real *>(READ_LOCAL_ID());
+    OpRealAvgAggregateAdvance(agg, val);
+    DISPATCH_NEXT();
+  }
+
 
   OP(AvgAggregateMerge) : {
     auto *agg_1 = frame->LocalAt<sql::AvgAggregate *>(READ_LOCAL_ID());

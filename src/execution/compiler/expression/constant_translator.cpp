@@ -2,6 +2,7 @@
 #include "parser/expression/constant_value_expression.h"
 #include "type/transient_value_peeker.h"
 #include "execution/compiler/translator_factory.h"
+#include "execution/sql/value.h"
 
 namespace tpl::compiler {
 ConstantTranslator::ConstantTranslator(const terrier::parser::AbstractExpression *expression,
@@ -20,19 +21,24 @@ ast::Expr *ConstantTranslator::DeriveExpr(OperatorTranslator * translator) {
     case terrier::type::TypeId::INTEGER:
       return codegen_->IntToSql(terrier::type::TransientValuePeeker::PeekInteger(trans_val));
     case terrier::type::TypeId::BIGINT:
-      // TODO(tanujnay112): add AST support for these
       return codegen_->IntToSql(static_cast<int32_t>(terrier::type::TransientValuePeeker::PeekBigInt(trans_val)));
     case terrier::type::TypeId::BOOLEAN:
-      // TODO(Amadou): Convert these to sql types if necessary
+      // TODO(Amadou): Convert this to sql types if necessary
       return codegen_->BoolLiteral(terrier::type::TransientValuePeeker::PeekBoolean(trans_val));
-    case terrier::type::TypeId::DATE:
+    case terrier::type::TypeId::DATE: {
+      sql::Date date(terrier::type::TransientValuePeeker::PeekDate(trans_val));
+      i16 year = sql::ValUtil::ExtractYear(date);
+      u8 month = sql::ValUtil::ExtractMonth(date);
+      u8 day = sql::ValUtil::ExtractDay(date);
+      return codegen_->DateToSql(year, month, day);
+    }
     case terrier::type::TypeId::TIMESTAMP:
       // TODO(tanujnay112): add AST support for these
       return nullptr;
     case terrier::type::TypeId::DECIMAL:
-      // TODO(tanujnay112): add AST support for these
-      return codegen_->FloatLiteral(static_cast<float_t>(terrier::type::TransientValuePeeker::PeekDecimal(trans_val)));
+      return codegen_->FloatToSql(terrier::type::TransientValuePeeker::PeekDecimal(trans_val));
     case terrier::type::TypeId::VARCHAR:
+      return codegen_->StringToSql(terrier::type::TransientValuePeeker::PeekVarChar(trans_val));
     case terrier::type::TypeId::VARBINARY:
       // TODO(Amadou): Add AST support for this
       return nullptr;

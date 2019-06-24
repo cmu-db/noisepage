@@ -181,7 +181,7 @@ class CodeGen {
   /**
    * Return the tpl type corresponding to an aggregate.
    */
-  ast::Expr* AggregateType(terrier::parser::ExpressionType type);
+  ast::Expr* AggregateType(terrier::parser::ExpressionType agg_type, terrier::type::TypeId ret_type);
 
 
   /**
@@ -239,9 +239,24 @@ class CodeGen {
 
 
   /**
-   * Convert a raw in to a sql int
+   * Convert a raw int to a sql int
    */
   ast::Expr* IntToSql(i64 num);
+
+  /**
+   * Convert a raw float to a sql float
+   */
+  ast::Expr* FloatToSql(f64 num);
+
+  /**
+   * Convert to sql date
+   */
+  ast::Expr* DateToSql(i16 year, u8 month, u8 day);
+
+  /**
+   * Convert to sql string
+   */
+  ast::Expr* StringToSql(std::string_view str);
 
   /**
    * Return the integer literal representing num

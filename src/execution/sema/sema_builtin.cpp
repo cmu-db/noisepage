@@ -945,21 +945,28 @@ void Sema::CheckBuiltinPCICall(ast::CallExpr *call, ast::Builtin builtin) {
       break;
     }
     case ast::Builtin::PCIGetSmallInt:
+    case ast::Builtin::PCIGetSmallIntNull:
     case ast::Builtin::PCIGetInt:
-    case ast::Builtin::PCIGetBigInt: {
+    case ast::Builtin::PCIGetIntNull:
+    case ast::Builtin::PCIGetBigInt:
+    case ast::Builtin::PCIGetBigIntNull: {
       call->set_type(GetBuiltinType(ast::BuiltinType::Integer));
       break;
     }
     case ast::Builtin::PCIGetReal:
-    case ast::Builtin::PCIGetDouble: {
+    case ast::Builtin::PCIGetRealNull:
+    case ast::Builtin::PCIGetDouble:
+    case ast::Builtin::PCIGetDoubleNull: {
       call->set_type(GetBuiltinType(ast::BuiltinType::Real));
       break;
     }
-    case ast::Builtin::PCIGetDate: {
+    case ast::Builtin::PCIGetDate:
+    case ast::Builtin::PCIGetDateNull: {
       call->set_type(GetBuiltinType(ast::BuiltinType::Date));
       break;
     }
-    case ast::Builtin::PCIGetVarlen: {
+    case ast::Builtin::PCIGetVarlen:
+    case ast::Builtin::PCIGetVarlenNull: {
       call->set_type(GetBuiltinType(ast::BuiltinType::StringVal));
       break;
     }

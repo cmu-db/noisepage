@@ -301,7 +301,7 @@ VM_OP_HOT void OpPCIGetDecimal(tpl::sql::Decimal *out, UNUSED tpl::sql::Projecte
 
 VM_OP_HOT void OpPCIGetDate(tpl::sql::Date *out, tpl::sql::ProjectedColumnsIterator *iter, u32 col_idx) {
   // Read
-  auto *ptr = iter->Get<i32, false>(col_idx, nullptr);
+  auto *ptr = iter->Get<u32, false>(col_idx, nullptr);
   TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read date");
 
   // Set
@@ -383,7 +383,7 @@ VM_OP_HOT void OpPCIGetDecimalNull(tpl::sql::Decimal *out, tpl::sql::ProjectedCo
 VM_OP_HOT void OpPCIGetDateNull(tpl::sql::Date *out, tpl::sql::ProjectedColumnsIterator *iter, u32 col_idx) {
   // Read
   bool null = false;
-  auto *ptr = iter->Get<i32, true>(col_idx, &null);
+  auto *ptr = iter->Get<u32, true>(col_idx, &null);
   TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read date");
 
   // Set
@@ -479,11 +479,9 @@ VM_OP_HOT void OpInitReal(tpl::sql::Real *result, double input) {
   result->val = input;
 }
 
-VM_OP_HOT void OpInitDate(tpl::sql::Date *result, u16 year, u8 month, u8 day) {
+VM_OP_HOT void OpInitDate(tpl::sql::Date *result, i16 year, u8 month, u8 day) {
   result->is_null = false;
-  result->ymd.year = year;
-  result->ymd.month = month;
-  result->ymd.day = day;
+  result->ymd = date::year(year) / month / day;
 }
 
 VM_OP_HOT void OpInitString(tpl::sql::StringVal *result, u64 length, uintptr_t data) {
@@ -533,48 +531,9 @@ VM_OP_HOT void OpInitVarlen(tpl::sql::StringVal *result, uintptr_t data) {
 
 GEN_SQL_COMPARISONS(Integer)
 GEN_SQL_COMPARISONS(Real)
-
+GEN_SQL_COMPARISONS(StringVal)
+GEN_SQL_COMPARISONS(Date)
 #undef GEN_SQL_COMPARISONS
-
-// ---------------------------
-// SQL Strings
-// --------------------------
-
-VM_OP_HOT void OpGreaterThanString(tpl::sql::BoolVal *const result,
-                                   const tpl::sql::StringVal *const left,
-                                   const tpl::sql::StringVal *const right) {
-  tpl::sql::ComparisonFunctions::GtStringVal(result, *left, *right);
-}
-
-VM_OP_HOT void OpGreaterThanEqualString(
-    tpl::sql::BoolVal *const result, const tpl::sql::StringVal *const left,
-    const tpl::sql::StringVal *const right) {
-  tpl::sql::ComparisonFunctions::GeStringVal(result, *left, *right);
-}
-
-VM_OP_HOT void OpEqualString(tpl::sql::BoolVal *const result,
-                             const tpl::sql::StringVal *const left,
-                             const tpl::sql::StringVal *const right) {
-  tpl::sql::ComparisonFunctions::EqStringVal(result, *left, *right);
-}
-
-VM_OP_HOT void OpLessThanString(tpl::sql::BoolVal *const result,
-                                const tpl::sql::StringVal *const left,
-                                const tpl::sql::StringVal *const right) {
-  tpl::sql::ComparisonFunctions::LtStringVal(result, *left, *right);
-}
-
-VM_OP_HOT void OpLessThanEqualString(tpl::sql::BoolVal *const result,
-                                     const tpl::sql::StringVal *const left,
-                                     const tpl::sql::StringVal *const right) {
-  tpl::sql::ComparisonFunctions::LeStringVal(result, *left, *right);
-}
-
-VM_OP_HOT void OpNotEqualString(tpl::sql::BoolVal *const result,
-                                const tpl::sql::StringVal *const left,
-                                const tpl::sql::StringVal *const right) {
-  tpl::sql::ComparisonFunctions::NeStringVal(result, *left, *right);
-}
 
 
 // ----------------------------------
@@ -988,10 +947,16 @@ VM_OP_HOT void OpAvgAggregateInit(tpl::sql::AvgAggregate *agg) {
   new (agg) tpl::sql::AvgAggregate();
 }
 
-VM_OP_HOT void OpAvgAggregateAdvance(tpl::sql::AvgAggregate *agg,
+VM_OP_HOT void OpIntegerAvgAggregateAdvance(tpl::sql::AvgAggregate *agg,
                                      const tpl::sql::Integer *val) {
   agg->Advance(*val);
 }
+
+VM_OP_HOT void OpRealAvgAggregateAdvance(tpl::sql::AvgAggregate *agg,
+                                     const tpl::sql::Real *val) {
+  agg->Advance(*val);
+}
+
 
 VM_OP_HOT void OpAvgAggregateMerge(tpl::sql::AvgAggregate *agg_1,
                                    const tpl::sql::AvgAggregate *agg_2) {

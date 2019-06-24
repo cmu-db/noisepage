@@ -53,7 +53,14 @@ namespace tpl::ast {
   F(PCIGetReal, pciGetReal)                                     \
   F(PCIGetDouble, pciGetDouble)                                 \
   F(PCIGetDate, pciGetDate)                                     \
-  F(PCIGetVarlen, pciGetVarlen)                                     \
+  F(PCIGetVarlen, pciGetVarlen)                         \
+  F(PCIGetSmallIntNull, pciGetSmallIntNull)                             \
+  F(PCIGetIntNull, pciGetIntNull)                                       \
+  F(PCIGetBigIntNull, pciGetBigIntNull)                                 \
+  F(PCIGetRealNull, pciGetRealNull)                                     \
+  F(PCIGetDoubleNull, pciGetDoubleNull)                                 \
+  F(PCIGetDateNull, pciGetDateNull)                                     \
+  F(PCIGetVarlenNull, pciGetVarlenNull)                                                                      \
                                                                 \
   /* Hashing */                                                 \
   F(Hash, hash)                                                 \
