@@ -13,7 +13,9 @@ namespace terrier::optimizer {
 /**
  * ValueCondition
  * This class stores the expression type and value used in the WHERE clause as well as the
- * column name/id it affects.
+ * column name/id it affects. The optimizer uses this information to retrieve the stats
+ * of the column, and compute the selectivity based on those stats, as well as the expression
+ * type and the value.
  *
  * SELECT * FROM table WHERE [id = 1] <- ValueCondition
  */
@@ -21,10 +23,10 @@ class ValueCondition {
  public:
   /**
    * Constructor
-   * @param column_id
-   * @param column_name
-   * @param type
-   * @param value
+   * @param column_id - the oid of the column used in the condition (e.g. col_oid_t(1))
+   * @param column_name - the name of the column used in the condition (e.g. "id")
+   * @param type - the type of the expression used in the condition (e.g. COMPARE_EQUAL ('=' operator))
+   * @param value - the value used in the condition (e.g. 1)
    */
   ValueCondition(catalog::col_oid_t column_id, std::string column_name, parser::ExpressionType type,
                  std::shared_ptr<type::TransientValue> value)
@@ -59,7 +61,7 @@ class ValueCondition {
   const std::string &GetColumnName() const { return column_name_; }
 
   /**
-   * @return the type
+   * @return the type of the expression
    */
   const parser::ExpressionType &GetType() const { return type_; }
 
@@ -80,12 +82,12 @@ class ValueCondition {
   std::string column_name_;
 
   /**
-   * Expression used in WHERE clause
+   * Expression used in the condition
    */
   parser::ExpressionType type_;
 
   /**
-   * Pointer to value
+   * Pointer to value stated in the condition
    */
   std::shared_ptr<type::TransientValue> value_;
 };
