@@ -29,3 +29,21 @@ GBENCHMARK_VERSION=1.4.1
 # branch: v1.x
 # commit hash: 8179b26388d118fa887030f2609560ec287531dd
 # commit hash date: 7 Aug 2018
+
+# madoka
+# url: https://github.com/s-yata/madoka.git
+# branch: master
+# commit hash: 66783ee5b84a432f934517ad65452d54b19230bb
+# commit hash date: 16 Nov 2018
+
+# libcount
+# url: https://github.com/dialtr/libcount.git
+# branch: master
+# commit hash: 476492b3763e850ad61e28e24d3448175348076d
+# commit hash date: 20 Mar 2018
+
+# murmur3
+# url: https://github.com/aappleby/smhasher.git
+# branch: master
+# commit hash: 61a0530f28277f2e850bfc39600ce61d02b518de
+# commit hash date: 9 Jan 2018
