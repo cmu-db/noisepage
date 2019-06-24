@@ -1,8 +1,8 @@
 #pragma once
 
+#include <memory>
 #include <string>
 #include <utility>
-#include <memory>
 
 #include "catalog/catalog_defs.h"
 #include "loggers/optimizer_logger.h"
