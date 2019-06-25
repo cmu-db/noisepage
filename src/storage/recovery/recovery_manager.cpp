@@ -5,6 +5,17 @@
 #include "storage/write_ahead_log/log_io.h"
 namespace terrier::storage {
 
+transaction::TransactionContext *RecoveryManager::GetTransaction(transaction::timestamp_t txn_id) {
+  // If we haven't seen this txn yet, then begin the transaction
+  if (txn_map_.find(txn_id) == txn_map_.end()) {
+    // TODO(Gus): Replace the following line when timestamp manager is brought in
+    auto txn = txn_manager_->BeginTransaction(txn_id);
+    TERRIER_ASSERT(txn->StartTime() == txn_id, "Txn timestamp should be the same as logged timestamp");
+    txn_map_[txn->StartTime()] = txn;
+  }
+  return txn_map_[txn_id];
+}
+
 bool RecoveryManager::ReplayRecord(LogRecord *log_record) {
   switch (log_record->RecordType()) {
     case (LogRecordType::COMMIT): {
@@ -43,17 +54,14 @@ bool RecoveryManager::ReplayRecord(LogRecord *log_record) {
     case (LogRecordType::DELETE): {
       auto *delete_record = log_record->GetUnderlyingRecordBodyAs<DeleteRecord>();
 
-      // Get Txn
-      TERRIER_ASSERT(txn_map_.find(log_record->TxnBegin()) != txn_map_.end(),
-                     "Txn must already exist if DeleteRecord is found");
-      auto txn = txn_map_[log_record->TxnBegin()];
+      auto txn = GetTransaction(log_record->TxnBegin());
       // Get tuple slot
       TERRIER_ASSERT(tuple_slot_map_.find(delete_record->GetTupleSlot()) != tuple_slot_map_.end(),
                      "Tuple slot must already be mapped if Delete record is found");
       auto new_tuple_slot = tuple_slot_map_[delete_record->GetTupleSlot()];
 
       // Delete, and return success or not
-      auto *sql_table = catalog_->at(delete_record->GetDatabaseOid()).at(delete_record->GetTableOid());
+      auto *sql_table = GetSqlTable(delete_record->GetDatabaseOid(), delete_record->GetTableOid());
       auto result = sql_table->Delete(txn, new_tuple_slot);
       // If delete succeeded, we can delete the TupleSlot from the map
       if (result) tuple_slot_map_.erase(delete_record->GetTupleSlot());
@@ -63,20 +71,11 @@ bool RecoveryManager::ReplayRecord(LogRecord *log_record) {
     case (LogRecordType::REDO): {
       auto *redo_record = log_record->GetUnderlyingRecordBodyAs<RedoRecord>();
 
-      // If we haven't seen this txn yet, then begin the transaction
-      // TODO(Gus): Replace the following line when timestamp manager is brought in
-      if (txn_map_.find(log_record->TxnBegin()) == txn_map_.end()) {
-        auto txn = txn_manager_->BeginTransaction(log_record->TxnBegin());
-        TERRIER_ASSERT(txn->StartTime() == log_record->TxnBegin(),
-                       "Txn timestamp should be the same as logged timestamp");
-        txn_map_[txn->StartTime()] = txn;
-      }
-      auto txn = txn_map_[log_record->TxnBegin()];
+      auto txn = GetTransaction(log_record->TxnBegin());
 
       // Search the map for the tuple slot. If the tuple slot is not in the map, then we have not seen this tuple slot
       // before, so this record is an Insert. If we have seen it before, then the record is an Update
-      // TODO(Gus): Add asserts here for catalog
-      auto *sql_table = catalog_->at(redo_record->GetDatabaseOid()).at(redo_record->GetTableOid());
+      auto *sql_table = GetSqlTable(redo_record->GetDatabaseOid(), redo_record->GetTableOid());
       auto search = tuple_slot_map_.find(redo_record->GetTupleSlot());
       if (search == tuple_slot_map_.end()) {
         // Save the old tuple slot, and reset the tuple slot in the record
@@ -158,10 +157,8 @@ LogRecord *RecoveryManager::ReadNextRecord(storage::BufferedLogReader *in) {
 
   // Initialize the redo record. Fetch the block layout from the catalog
   // TODO(Gus): Change this line when catalog is brought in
-  TERRIER_ASSERT(catalog_->find(database_oid) != catalog_->end(), "Database must exist in catalog");
-  TERRIER_ASSERT(catalog_->at(database_oid).find(table_oid) != catalog_->at(database_oid).end(),
-                 "Table must exist in catalog");
-  auto block_layout = catalog_->at(database_oid).at(table_oid)->Layout();
+  auto *sql_table = GetSqlTable(database_oid, table_oid);
+  auto &block_layout = sql_table->Layout();
   auto initializer = storage::ProjectedRowInitializer::Create(block_layout, col_ids);
   auto *result = storage::RedoRecord::Initialize(buf, txn_begin, database_oid, table_oid, initializer);
   auto *record_body = result->GetUnderlyingRecordBodyAs<RedoRecord>();

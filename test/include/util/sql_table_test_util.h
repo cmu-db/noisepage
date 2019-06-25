@@ -45,6 +45,15 @@ class RandomSqlTableTransaction {
   void RandomUpdate(Random *generator);
 
   /**
+   * Randomly deletes a tuple, using the given generator as source of randomness.
+   *
+   * @tparam Random the type of random generator to use
+   * @param generator the random generator to use
+   */
+  template <class Random>
+  void RandomDelete(Random *generator);
+
+  /**
    * Randomly selects a tuple, using the given generator as source of randomness.
    *
    * @tparam Random the type of random generator to use
@@ -125,12 +134,13 @@ class LargeSqlTableTestObject {
     }
 
     /**
-     * @param update_select_ratio the ratio of updates vs. select in the generated transaction
-     *                            (e.g. {0.3, 0.7} will be 30% updates and 70% reads)
+     * @param update_select_delete_ratio the ratio of updates vs. select vs. deletes in the generated transaction
+     *                            (e.g. {0.2, 0.7. 0.1} will be 20% updates, 70% reads, and 10% deletes)
+     * @warning the number of deletes should not exceed the number of tuples inserted
      * @return self-reference for method chaining
      */
-    Builder &SetUpdateSelectRatio(std::vector<double> update_select_ratio) {
-      builder_update_select_ratio_ = std::move(update_select_ratio);
+    Builder &SetUpdateSelectDeleteRatio(std::vector<double> update_select_delete_ratio) {
+      builder_update_select_delete_ratio_ = std::move(update_select_delete_ratio);
       return *this;
     }
 
@@ -201,7 +211,7 @@ class LargeSqlTableTestObject {
     uint16_t builder_max_columns_ = 25;
     uint32_t builder_initial_table_size_ = 25;
     uint32_t builder_txn_length_ = 25;
-    std::vector<double> builder_update_select_ratio_;
+    std::vector<double> builder_update_select_delete_ratio_;
     storage::BlockStore *builder_block_store_ = nullptr;
     storage::RecordBufferSegmentPool *builder_buffer_pool_ = nullptr;
     std::default_random_engine *builder_generator_ = nullptr;
@@ -282,18 +292,18 @@ class LargeSqlTableTestObject {
    * @param max_columns the max number of columns in each generated test table
    * @param initial_table_size number of tuples each table should have
    * @param txn_length length of every simulated transaction, in number of operations (select or update)
-   * @param update_select_ratio the ratio of updates vs. select in the generated transaction
-   *                             (e.g. {0.3, 0.7} will be 30% updates and 70% reads)
+   * @param update_select_delete_ratio the ratio of updates vs. select vs. deletes in the generated transaction (e.g.
+   * {0.2, 0.7. 0.1} will be 20% updates, 70% reads, and 10% deletes)
    * @param block_store the block store to use for the underlying data table
    * @param buffer_pool the buffer pool to use for simulated transactions
    * @param generator the random generator to use for the test
    * @param gc_on whether gc is enabled
    */
   LargeSqlTableTestObject(uint16_t num_databases, uint16_t num_tables, uint16_t max_columns,
-                          uint32_t initial_table_size, uint32_t txn_length, std::vector<double> update_select_ratio,
-                          storage::BlockStore *block_store, storage::RecordBufferSegmentPool *buffer_pool,
-                          std::default_random_engine *generator, bool gc_on, storage::LogManager *log_manager,
-                          bool varlen_allowed);
+                          uint32_t initial_table_size, uint32_t txn_length,
+                          std::vector<double> update_select_delete_ratio, storage::BlockStore *block_store,
+                          storage::RecordBufferSegmentPool *buffer_pool, std::default_random_engine *generator,
+                          bool gc_on, storage::LogManager *log_manager, bool varlen_allowed);
 
   void SimulateOneTransaction(RandomSqlTableTransaction *txn, uint32_t txn_id);
 
@@ -303,7 +313,7 @@ class LargeSqlTableTestObject {
 
   friend class RandomSqlTableTransaction;
   uint32_t txn_length_;
-  std::vector<double> update_select_ratio_;
+  std::vector<double> update_select_delete_ratio_;
   std::default_random_engine *generator_;
   transaction::TransactionManager txn_manager_;
   transaction::TransactionContext *initial_txn_;
@@ -322,5 +332,8 @@ class LargeSqlTableTestObject {
   // Keep track of which tuple slots we inserted so we can pick a random one for updates
   std::unordered_map<catalog::db_oid_t, std::unordered_map<catalog::table_oid_t, std::vector<storage::TupleSlot>>>
       inserted_tuples_;
+
+  // Latch to protect concurrent access and updates to inserted tuples map
+  common::SpinLatch inserted_tuples_latch_;
 };
 }  // namespace terrier

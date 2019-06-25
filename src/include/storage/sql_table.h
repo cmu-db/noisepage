@@ -76,10 +76,11 @@ class SqlTable {
    */
   bool Update(transaction::TransactionContext *const txn, RedoRecord *const redo) const {
     TERRIER_ASSERT(redo->GetTupleSlot() != TupleSlot(nullptr, 0), "TupleSlot was never set in this RedoRecord.");
-    TERRIER_ASSERT(redo == reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
-                               ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
-                   "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
-                   "immediately before?");
+    // TODO(Gus): resolve what to do with this TODO since it doesnt apply for recovery
+    //    TERRIER_ASSERT(redo == reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
+    //                               ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
+    //                   "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
+    //                   "immediately before?");
     return table_.data_table->Update(txn, redo->GetTupleSlot(), *(redo->Delta()));
   }
 
@@ -93,10 +94,11 @@ class SqlTable {
    */
   TupleSlot Insert(transaction::TransactionContext *const txn, RedoRecord *const redo) const {
     TERRIER_ASSERT(redo->GetTupleSlot() == TupleSlot(nullptr, 0), "TupleSlot was set in this RedoRecord.");
-//    TERRIER_ASSERT(redo == reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
-//                               ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
-//                   "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
-//                   "immediately before?");
+    // TODO(Gus): resolve what to do with this TODO since it doesnt apply for recovery
+    //    TERRIER_ASSERT(redo == reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
+    //                               ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
+    //                   "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
+    //                   "immediately before?");
     const auto slot = table_.data_table->Insert(txn, *(redo->Delta()));
     redo->SetTupleSlot(slot);
     return slot;
@@ -109,11 +111,13 @@ class SqlTable {
    * @return true if successful, false otherwise
    */
   bool Delete(transaction::TransactionContext *const txn, const TupleSlot slot) {
-    TERRIER_ASSERT(
-        reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
-                ->GetUnderlyingRecordBodyAs<DeleteRecord>()
-                ->GetTupleSlot() == slot,
-        "This Delete is not the most recent entry in the txn's RedoBuffer. Was StageDelete called immediately before?");
+    // TODO(Gus): resolve what to do with this TODO since it doesnt apply for recovery
+    //    TERRIER_ASSERT(
+    //        reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
+    //                ->GetUnderlyingRecordBodyAs<DeleteRecord>()
+    //                ->GetTupleSlot() == slot,
+    //        "This Delete is not the most recent entry in the txn's RedoBuffer. Was StageDelete called immediately
+    //        before?");
     return table_.data_table->Delete(txn, slot);
   }
 

@@ -23,9 +23,12 @@ void RandomSqlTableTransaction::RandomUpdate(Random *generator) {
   auto &layout = sql_table->Layout();
 
   // Get random tuple slot to update
-  const storage::TupleSlot updated =
-      *(RandomTestUtil::UniformRandomElement(test_object_->inserted_tuples_[database_oid][table_oid], generator));
-
+  storage::TupleSlot updated;
+  {
+    common::SpinLatch::ScopedSpinLatch guard(&test_object_->inserted_tuples_latch_);
+    updated =
+        *(RandomTestUtil::UniformRandomElement(test_object_->inserted_tuples_[database_oid][table_oid], generator));
+  }
   // Generate random update
   std::vector<storage::col_id_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout, generator);
   storage::ProjectedRowInitializer initializer = storage::ProjectedRowInitializer::Create(layout, update_col_ids);
@@ -37,6 +40,42 @@ void RandomSqlTableTransaction::RandomUpdate(Random *generator) {
 }
 
 template <class Random>
+void RandomSqlTableTransaction::RandomDelete(Random *generator) {
+  if (aborted_) return;
+  // Generate random database and table
+  const auto database_oid = *(RandomTestUtil::UniformRandomElement(test_object_->database_oids_, generator));
+  const auto table_oid = *(RandomTestUtil::UniformRandomElement(test_object_->table_oids_[database_oid], generator));
+  auto *sql_table = test_object_->tables_[database_oid][table_oid];
+
+  // Get random tuple slot to delete
+  storage::TupleSlot deleted;
+  {
+    common::SpinLatch::ScopedSpinLatch guard(&test_object_->inserted_tuples_latch_);
+    // If we run out of tuples to delete, just return
+    if (test_object_->inserted_tuples_[database_oid][table_oid].empty()) return;
+    deleted =
+        *(RandomTestUtil::UniformRandomElement(test_object_->inserted_tuples_[database_oid][table_oid], generator));
+  }
+
+  // Generate random delete
+  txn_->StageDelete(database_oid, table_oid, deleted);
+  auto result = sql_table->Delete(txn_, deleted);
+  aborted_ = !result;
+
+  // Delete tuple from list of inserted tuples if successful
+  if (result) {
+    common::SpinLatch::ScopedSpinLatch guard(&test_object_->inserted_tuples_latch_);
+    auto &tuples = test_object_->inserted_tuples_[database_oid][table_oid];
+    for (auto it = tuples.begin(); it != tuples.end(); it++) {
+      if (*it == deleted) {
+        tuples.erase(it);
+        break;
+      }
+    }
+  }
+}
+
+template <class Random>
 void RandomSqlTableTransaction::RandomSelect(Random *generator) {
   if (aborted_) return;
   // Generate random database and table
@@ -44,8 +83,13 @@ void RandomSqlTableTransaction::RandomSelect(Random *generator) {
   const auto table_oid = *(RandomTestUtil::UniformRandomElement(test_object_->table_oids_[database_oid], generator));
   auto *sql_table = test_object_->tables_[database_oid][table_oid];
 
-  const storage::TupleSlot selected =
-      *(RandomTestUtil::UniformRandomElement(test_object_->inserted_tuples_[database_oid][table_oid], generator));
+  storage::TupleSlot selected;
+  {
+    common::SpinLatch::ScopedSpinLatch guard(&test_object_->inserted_tuples_latch_);
+    selected =
+        *(RandomTestUtil::UniformRandomElement(test_object_->inserted_tuples_[database_oid][table_oid], generator));
+  }
+
   auto initializer = storage::ProjectedRowInitializer::Create(
       sql_table->Layout(), StorageTestUtil::ProjectionListAllColumns(sql_table->Layout()));
 
@@ -65,17 +109,18 @@ void RandomSqlTableTransaction::Finish() {
 
 LargeSqlTableTestObject::LargeSqlTableTestObject(uint16_t num_databases, uint16_t num_tables, uint16_t max_columns,
                                                  uint32_t initial_table_size, uint32_t txn_length,
-                                                 std::vector<double> update_select_ratio,
+                                                 std::vector<double> update_select_delete_ratio,
                                                  storage::BlockStore *block_store,
                                                  storage::RecordBufferSegmentPool *buffer_pool,
                                                  std::default_random_engine *generator, bool gc_on,
                                                  storage::LogManager *log_manager, bool varlen_allowed)
     : txn_length_(txn_length),
-      update_select_ratio_(std::move(update_select_ratio)),
+      update_select_delete_ratio_(std::move(update_select_delete_ratio)),
       generator_(generator),
       txn_manager_(buffer_pool, gc_on, log_manager),
       gc_on_(gc_on) {
   // Bootstrap the table to have the specified number of tuples
+  TERRIER_ASSERT(update_select_delete_ratio_.size() == 3, "Update/Select/Delete ratio should be three numbers");
   PopulateInitialTables(num_databases, num_tables, max_columns, initial_table_size, varlen_allowed, block_store,
                         generator_);
 }
@@ -130,8 +175,10 @@ void LargeSqlTableTestObject::SimulateOneTransaction(terrier::RandomSqlTableTran
 
   auto update = [&] { txn->RandomUpdate(&thread_generator); };
   auto select = [&] { txn->RandomSelect(&thread_generator); };
-  RandomTestUtil::InvokeWorkloadWithDistribution({update, select}, update_select_ratio_, &thread_generator,
-                                                 txn_length_);
+  auto remove = [&] { txn->RandomDelete(&thread_generator); };  // only called remove cause i can't call it delete lol
+
+  RandomTestUtil::InvokeWorkloadWithDistribution({update, select, remove}, update_select_delete_ratio_,
+                                                 &thread_generator, txn_length_);
   txn->Finish();
 }
 
@@ -177,7 +224,7 @@ void LargeSqlTableTestObject::PopulateInitialTables(uint16_t num_databases, uint
 LargeSqlTableTestObject LargeSqlTableTestObject::Builder::build() {
   return {builder_num_databases_, builder_num_tables_,
           builder_max_columns_,   builder_initial_table_size_,
-          builder_txn_length_,    builder_update_select_ratio_,
+          builder_txn_length_,    builder_update_select_delete_ratio_,
           builder_block_store_,   builder_buffer_pool_,
           builder_generator_,     builder_gc_on_,
           builder_log_manager_,   varlen_allowed_};

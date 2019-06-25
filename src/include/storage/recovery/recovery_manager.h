@@ -25,7 +25,7 @@ class RecoveryManager {
  public:
   explicit RecoveryManager(std::string log_file_path, RecoveryCatalog *catalog,
                            transaction::TransactionManager *txn_manager)
-      : log_file_path_(log_file_path), catalog_(catalog), txn_manager_(txn_manager) {}
+      : log_file_path_(std::move(log_file_path)), catalog_(catalog), txn_manager_(txn_manager) {}
 
   /**
    * Recovers the databases from the provided log file path.
@@ -81,5 +81,23 @@ class RecoveryManager {
    *
    */
   bool ReplayRecord(LogRecord *log_record);
+
+  /**
+   * Gets a transaction from the txn_map_. If the txn does not exist yet, it will create it.
+   * @param txn_id id for txn requested
+   * @return pointer to txn requested
+   */
+  transaction::TransactionContext *GetTransaction(transaction::timestamp_t txn_id);
+
+  /**
+   * @param db_oid database oid for requested table
+   * @param table_oid table oid for requested table
+   * @return pointer to requested Sql table
+   */
+  storage::SqlTable *GetSqlTable(catalog::db_oid_t db_oid, catalog::table_oid_t table_oid) {
+    TERRIER_ASSERT(catalog_->find(db_oid) != catalog_->end(), "Database must exist in catalog");
+    TERRIER_ASSERT(catalog_->at(db_oid).find(table_oid) != catalog_->at(db_oid).end(), "Table must exist in catalog");
+    return catalog_->at(db_oid).at(table_oid);
+  }
 };
 }  // namespace terrier::storage

@@ -17,6 +17,7 @@
 #include "storage/storage_util.h"
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
+#include "transaction/transaction_manager.h"
 #include "type/type_id.h"
 #include "util/multithread_test_util.h"
 #include "util/random_test_util.h"

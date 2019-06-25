@@ -1,4 +1,3 @@
-#include <util/sql_table_test_util.h>
 #include <unordered_map>
 #include <vector>
 #include "gtest/gtest.h"
@@ -9,6 +8,7 @@
 #include "storage/write_ahead_log/log_manager.h"
 #include "transaction/transaction_manager.h"
 #include "util/catalog_test_util.h"
+#include "util/sql_table_test_util.h"
 #include "util/storage_test_util.h"
 #include "util/test_harness.h"
 
@@ -51,8 +51,8 @@ class RecoveryTests : public TerrierTest {
 
 // This test inserts some tuples with a single transaction into a single table. It then recreates the test table from
 // the log, and verifies that this new table is the same as the original table
-// NOLINTNEXTLINE
 // TODO(Gus): Test delete
+// NOLINTNEXTLINE
 TEST_F(RecoveryTests, SingleTableTest) {
   // Initialize table and run workload with logging enabled
   log_manager_->Start();
@@ -62,7 +62,7 @@ TEST_F(RecoveryTests, SingleTableTest) {
                                        .SetMaxColumns(5)
                                        .SetInitialTableSize(1000)
                                        .SetTxnLength(5)
-                                       .SetUpdateSelectRatio({0.7, 0.3})
+                                       .SetUpdateSelectDeleteRatio({0.7, 0.2, 0.1})
                                        .SetBlockStore(&block_store_)
                                        .SetBufferPool(&pool_)
                                        .SetGenerator(&generator_)
@@ -101,24 +101,28 @@ TEST_F(RecoveryTests, SingleTableTest) {
                                                  recovery_manager_->tuple_slot_map_, &txn_manager_));
 }
 
-// This test checks that we recover correctly in a high abort rate workload. We achieve the high abort rate by having large transaction lengths (number of updates). Further, to ensure that more aborted transactions flush logs before aborting, we have transactions make large updates (by having high number columns). This will cause RedoBuffers to fill quickly.
+// This test checks that we recover correctly in a high abort rate workload. We achieve the high abort rate by having
+// large transaction lengths (number of updates). Further, to ensure that more aborted transactions flush logs before
+// aborting, we have transactions make large updates (by having high number columns). This will cause RedoBuffers to
+// fill quickly.
+// NOLINTNEXTLINE
 TEST_F(RecoveryTests, HighAbortRateTest) {
   // Initialize table and run workload with logging enabled
   log_manager_->Start();
   LargeSqlTableTestObject tested = LargeSqlTableTestObject::Builder()
-      .SetNumDatabases(1)
-      .SetNumTables(1)
-      .SetMaxColumns(1000)
-      .SetInitialTableSize(1000)
-      .SetTxnLength(20)
-      .SetUpdateSelectRatio({0.7, 0.3})
-      .SetBlockStore(&block_store_)
-      .SetBufferPool(&pool_)
-      .SetGenerator(&generator_)
-      .SetGcOn(true)
-      .SetVarlenAllowed(false)
-      .SetLogManager(log_manager_)
-      .build();
+                                       .SetNumDatabases(1)
+                                       .SetNumTables(1)
+                                       .SetMaxColumns(1000)
+                                       .SetInitialTableSize(1000)
+                                       .SetTxnLength(20)
+                                       .SetUpdateSelectDeleteRatio({0.7, 0.2, 0.0})
+                                       .SetBlockStore(&block_store_)
+                                       .SetBufferPool(&pool_)
+                                       .SetGenerator(&generator_)
+                                       .SetGcOn(true)
+                                       .SetVarlenAllowed(false)
+                                       .SetLogManager(log_manager_)
+                                       .build();
 
   EXPECT_EQ(1, tested.GetDatabases().size());
   auto database_oid = tested.GetDatabases()[0];
