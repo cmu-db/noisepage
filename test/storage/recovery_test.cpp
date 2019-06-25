@@ -44,6 +44,7 @@ class RecoveryTests : public TerrierTest {
   void TearDown() override {
     // Delete log file
     unlink(LOG_FILE_NAME);
+    delete log_manager_;
     DedicatedThreadRegistry::GetInstance().TearDown();
     TerrierTest::TearDown();
   }
@@ -89,16 +90,25 @@ TEST_F(RecoveryTests, SingleTableTest) {
   catalog[database_oid][table_oid] = recovered_sql_table;
 
   // Start a transaction manager with logging disabled, we don't want to log the log replaying
-  transaction::TransactionManager txn_manager_{&pool_, true, LOGGING_DISABLED};
+  transaction::TransactionManager recovery_txn_manager_{&pool_, true, LOGGING_DISABLED};
 
   // Instantiate recovery manager, and recover the tables.
-  recovery_manager_ = new RecoveryManager(LOG_FILE_NAME, &catalog, &txn_manager_);
+  recovery_manager_ = new RecoveryManager(LOG_FILE_NAME, &catalog, &recovery_txn_manager_);
   recovery_manager_->Recover();
 
   // Check we recovered all the original tuples
   EXPECT_TRUE(StorageTestUtil::SqlTableEqualDeep(original_sql_table->Layout(), original_sql_table, recovered_sql_table,
                                                  tested.GetTupleSlotsForTable(database_oid, table_oid),
-                                                 recovery_manager_->tuple_slot_map_, &txn_manager_));
+                                                 recovery_manager_->tuple_slot_map_, &recovery_txn_manager_));
+
+  // Delete test txns
+  gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
+  delete gc_thread_;
+
+  // Delete recovery txns
+  gc_thread_ = new storage::GarbageCollectorThread(&recovery_txn_manager_, gc_period_);
+  delete gc_thread_;
+  delete recovered_sql_table;
 }
 
 // This test checks that we recover correctly in a high abort rate workload. We achieve the high abort rate by having
@@ -142,16 +152,24 @@ TEST_F(RecoveryTests, HighAbortRateTest) {
   catalog[database_oid][table_oid] = recovered_sql_table;
 
   // Start a transaction manager with logging disabled, we don't want to log the log replaying
-  transaction::TransactionManager txn_manager_{&pool_, true, LOGGING_DISABLED};
+  transaction::TransactionManager recovery_txn_manager_{&pool_, true, LOGGING_DISABLED};
 
   // Instantiate recovery manager, and recover the tables.
-  recovery_manager_ = new RecoveryManager(LOG_FILE_NAME, &catalog, &txn_manager_);
+  recovery_manager_ = new RecoveryManager(LOG_FILE_NAME, &catalog, &recovery_txn_manager_);
   recovery_manager_->Recover();
 
   // Check we recovered all the original tuples
   EXPECT_TRUE(StorageTestUtil::SqlTableEqualDeep(original_sql_table->Layout(), original_sql_table, recovered_sql_table,
                                                  tested.GetTupleSlotsForTable(database_oid, table_oid),
-                                                 recovery_manager_->tuple_slot_map_, &txn_manager_));
+                                                 recovery_manager_->tuple_slot_map_, &recovery_txn_manager_));
+  // Delete test txns
+  gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
+  delete gc_thread_;
+
+  // Delete recovery txns
+  gc_thread_ = new storage::GarbageCollectorThread(&recovery_txn_manager_, gc_period_);
+  delete gc_thread_;
+  delete recovered_sql_table;
 }
 
 }  // namespace terrier::storage

@@ -9,9 +9,9 @@ transaction::TransactionContext *RecoveryManager::GetTransaction(transaction::ti
   // If we haven't seen this txn yet, then begin the transaction
   if (txn_map_.find(txn_id) == txn_map_.end()) {
     // TODO(Gus): Replace the following line when timestamp manager is brought in
-    auto txn = txn_manager_->BeginTransaction(txn_id);
+    auto *txn = txn_manager_->BeginTransaction(txn_id);
     TERRIER_ASSERT(txn->StartTime() == txn_id, "Txn timestamp should be the same as logged timestamp");
-    txn_map_[txn->StartTime()] = txn;
+    txn_map_.emplace(txn->StartTime(), txn);
   }
   return txn_map_[txn_id];
 }
@@ -114,6 +114,8 @@ void RecoveryManager::RecoverFromLogs() {
       delete[] reinterpret_cast<byte *>(log_record);
     }
   }
+  TERRIER_ASSERT(buffered_changes_map_.empty(), "All buffered changes should have been processed");
+  TERRIER_ASSERT(txn_map_.empty(), "All transactions should have been committed or aborted");
 }
 
 LogRecord *RecoveryManager::ReadNextRecord(storage::BufferedLogReader *in) {

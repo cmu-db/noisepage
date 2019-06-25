@@ -304,6 +304,8 @@ struct StorageTestUtil {
     }
 
     txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+    delete[] buffer_one;
+    delete[] buffer_two;
     return result;
   }
 

@@ -132,6 +132,11 @@ LargeSqlTableTestObject::~LargeSqlTableTestObject() {
       delete table_pair.second;
     }
   }
+  for (auto db_pair : schemas_) {
+    for (auto table_pair : db_pair.second) {
+      delete table_pair.second;
+    }
+  }
 }
 
 // Caller is responsible for freeing the returned results if bookkeeping is on.
@@ -157,6 +162,7 @@ uint64_t LargeSqlTableTestObject::SimulateOltp(uint32_t num_transactions, uint32
         txns[txn_id] = new RandomSqlTableTransaction(this);
         SimulateOneTransaction(txns[txn_id], txn_id);
       }
+      // TODO(Gus): Figure out what to do with txns here
     };
   }
 
