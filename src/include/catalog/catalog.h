@@ -20,6 +20,7 @@ namespace terrier::catalog {
 class DatabaseCatalogTable;
 class TablespaceCatalogTable;
 class SettingsCatalogTable;
+class CatalogAccessor;
 
 /**
  * Schema column for used/unused schema rows.
@@ -286,6 +287,12 @@ class Catalog {
    */
   index_oid_t GetCatalogIndexOid(const std::string &name);
 
+  /**
+   * Temporary place holder for the real accessor.
+   */
+  std::unique_ptr<CatalogAccessor> GetAccessor(transaction::TransactionContext * txn, db_oid_t db_oid, namespace_oid_t ns_oid);
+
+
  protected:
   /**
    * Get a pointer to a catalog storage table helper, by table type. For use ONLY on catalog tables (which are in
@@ -414,6 +421,7 @@ class Catalog {
    * @return type name used by the catalog in pg_type
    */
   std::string ValueTypeIdToSchemaType(type::TypeId type_id);
+
 
  private:
   transaction::TransactionManager *txn_manager_;

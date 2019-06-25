@@ -27,14 +27,15 @@ void OutputPrinter::operator()(byte *tuples, u32 num_tuples, u32 tuple_size) {
   // Limit the number of tuples printed
   std::stringstream ss{};
   for (u32 row = 0; row < num_tuples; row++) {
-    for (u16 col = 0; col < schema_.GetCols().size(); col++) {
+    uint32_t curr_offset = 0;
+    for (u16 col = 0; col < schema_->GetColumns().size(); col++) {
       // TODO(Amadou): Figure out to print other types.
-      switch (schema_.GetCols()[col].GetType()) {
+      switch (schema_->GetColumns()[col].GetType()) {
         case TypeId::TINYINT:
         case TypeId::SMALLINT:
         case TypeId::BIGINT:
         case TypeId::INTEGER: {
-          auto *val = reinterpret_cast<sql::Integer *>(tuples + row * tuple_size + schema_.GetOffset(col));
+          auto *val = reinterpret_cast<sql::Integer *>(tuples + row * tuple_size + curr_offset);
           if (val->is_null)
             ss << "NULL";
           else
@@ -42,11 +43,11 @@ void OutputPrinter::operator()(byte *tuples, u32 num_tuples, u32 tuple_size) {
           break;
         }
         case TypeId::BOOLEAN: {
-          auto *val = reinterpret_cast<sql::Integer *>(tuples + row * tuple_size + schema_.GetOffset(col));
+          auto *val = reinterpret_cast<sql::BoolVal *>(tuples + row * tuple_size + curr_offset);
           if (val->is_null) {
             ss << "NULL";
           } else {
-            if (val->val != 0) {
+            if (val->val) {
               ss << "true";
             } else {
               ss << "false";
@@ -54,10 +55,32 @@ void OutputPrinter::operator()(byte *tuples, u32 num_tuples, u32 tuple_size) {
           }
           break;
         }
-        default:
+        case TypeId::DECIMAL: {
+          auto *val = reinterpret_cast<sql::Real *>(tuples + row * tuple_size + curr_offset);
+          if (val->is_null)
+            ss << "NULL";
+          else
+            ss << val->val;
           break;
+        }
+        case TypeId::DATE: {
+          UNREACHABLE("Not implemented in this branch yet");
+        }
+        case TypeId::VARCHAR: {
+          auto *val = reinterpret_cast<sql::StringVal *>(tuples + row * tuple_size + curr_offset);
+          if (val->is_null) {
+            ss << "NULL";
+          } else {
+            ss.write(val->ptr, val->len);
+            ss.put('\0');
+          }
+          break;
+        }
+        default:
+          UNREACHABLE("Cannot output unsupported type!!!");
       }
-      if (col != schema_.GetCols().size() - 1) ss << ", ";
+      curr_offset += sql::ValUtil::GetSqlSize(schema_->GetColumns()[col].GetType());
+      if (col != schema_->GetColumns().size() - 1) ss << ", ";
     }
     ss << std::endl;
   }

@@ -1304,7 +1304,7 @@ void Sema::CheckBuiltinOutputFinalize(tpl::ast::CallExpr *call) {
 }
 
 void Sema::CheckBuiltinInsert(tpl::ast::CallExpr *call) {
-  if (!CheckArgCount(call, 5)) {
+  if (!CheckArgCount(call, 3)) {
     return;
   }
   // Return nothing

@@ -3,7 +3,6 @@
 
 #include "catalog/catalog_defs.h"
 #include "execution/exec/execution_context.h"
-#include "execution/sql/execution_structures.h"
 
 extern "C" {
 
@@ -24,10 +23,10 @@ void OpThreadStateContainerFree(tpl::sql::ThreadStateContainer *const thread_sta
 // Table Vector Iterator
 // ---------------------------------------------------------
 
-void OpTableVectorIteratorInit(tpl::sql::TableVectorIterator *iter, u32 db_oid, u32 ns_oid, u32 table_oid,
+void OpTableVectorIteratorInit(tpl::sql::TableVectorIterator *iter, u32 table_oid,
                                tpl::exec::ExecutionContext *exec_ctx) {
   TPL_ASSERT(iter != nullptr, "Null iterator to initialize");
-  new (iter) tpl::sql::TableVectorIterator(db_oid, ns_oid, table_oid, exec_ctx->GetTxn());
+  new (iter) tpl::sql::TableVectorIterator(table_oid, exec_ctx);
 }
 
 void OpTableVectorIteratorPerformInit(tpl::sql::TableVectorIterator *iter) { iter->Init(); }
@@ -179,12 +178,9 @@ void OpOutputFinalize(tpl::exec::ExecutionContext *exec_ctx) { exec_ctx->GetOutp
 // -------------------------------------------------------------
 // Insert
 // ------------------------------------------------------------
-void OpInsert(tpl::exec::ExecutionContext *exec_ctx, u32 db_oid, u32 ns_oid, u32 table_oid, byte *values_ptr) {
+void OpInsert(tpl::exec::ExecutionContext *exec_ctx, u32 table_oid, byte *values_ptr) {
   // find the table we want to insert to
-  auto catalog = tpl::sql::ExecutionStructures::Instance()->GetCatalog();
-  auto table = catalog->GetUserTable(exec_ctx->GetTxn(), static_cast<terrier::catalog::db_oid_t>(db_oid),
-                                     static_cast<terrier::catalog::namespace_oid_t>(ns_oid),
-                                     static_cast<terrier::catalog::table_oid_t>(table_oid));
+  auto table = exec_ctx->GetAccessor()->GetUserTable(static_cast<terrier::catalog::table_oid_t>(table_oid));
   auto sql_table = table->GetSqlTable();
   auto *const txn = exec_ctx->GetTxn();
 
@@ -214,7 +210,7 @@ void OpInsert(tpl::exec::ExecutionContext *exec_ctx, u32 db_oid, u32 ns_oid, u32
 // Index Iterator
 // -------------------------------------------------------------------
 void OpIndexIteratorInit(tpl::sql::IndexIterator *iter, uint32_t index_oid, tpl::exec::ExecutionContext *exec_ctx) {
-  new (iter) tpl::sql::IndexIterator(index_oid, exec_ctx->GetTxn());
+  new (iter) tpl::sql::IndexIterator(index_oid, exec_ctx);
 }
 void OpIndexIteratorScanKey(tpl::sql::IndexIterator *iter, byte *key) { iter->ScanKey(key); }
 void OpIndexIteratorFree(tpl::sql::IndexIterator *iter) { iter->~IndexIterator(); }

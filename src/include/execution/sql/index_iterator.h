@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <vector>
+#include "execution/exec/execution_context.h"
 #include "catalog/catalog_defs.h"
 #include "catalog/catalog_index.h"
 #include "catalog/catalog_sql_table.h"
@@ -25,7 +26,7 @@ class IndexIterator {
    * @param index_oid oid of the index to over.
    * @param txn running transaction
    */
-  explicit IndexIterator(uint32_t index_oid, TransactionContext *txn = nullptr);
+  explicit IndexIterator(uint32_t index_oid, exec::ExecutionContext * exec_ctx);
 
   /**
    * Frees allocated resources.
@@ -60,7 +61,7 @@ class IndexIterator {
   const T *Get(u32 col_idx, bool *null) const;
 
  private:
-  TransactionContext *txn_;
+  exec::ExecutionContext * exec_ctx_;
   std::vector<TupleSlot> index_values_;
   uint32_t curr_index_ = 0;
   byte *index_buffer_ = nullptr;

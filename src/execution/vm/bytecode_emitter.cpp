@@ -245,9 +245,9 @@ void BytecodeEmitter::EmitThreadStateContainerReset(LocalVar tls, LocalVar state
   EmitAll(Bytecode::ThreadStateContainerReset, tls, state_size, init_fn, destroy_fn, ctx);
 }
 
-void BytecodeEmitter::EmitTableIterInit(Bytecode bytecode, LocalVar iter, u32 db_oid, u32 ns_oid, u32 table_oid,
+void BytecodeEmitter::EmitTableIterInit(Bytecode bytecode, LocalVar iter, u32 table_oid,
                                         LocalVar exec_ctx) {
-  EmitAll(bytecode, iter, db_oid, ns_oid, table_oid, exec_ctx);
+  EmitAll(bytecode, iter, table_oid, exec_ctx);
 }
 
 void BytecodeEmitter::EmitParallelTableScan(u32 db_oid, u32 table_oid, LocalVar ctx, LocalVar thread_states,
@@ -307,11 +307,6 @@ void BytecodeEmitter::EmitOutputCall(Bytecode bytecode, LocalVar exec_ctx) { Emi
 
 void BytecodeEmitter::EmitOutputSetNull(Bytecode bytecode, LocalVar exec_ctx, LocalVar idx) {
   EmitAll(bytecode, exec_ctx, idx);
-}
-
-void BytecodeEmitter::EmitInsert(Bytecode bytecode, LocalVar db_oid, LocalVar ns_oid, LocalVar table_oid,
-                                 LocalVar values_ptr, LocalVar exec_ctx) {
-  EmitAll(bytecode, db_oid, ns_oid, table_oid, values_ptr, exec_ctx);
 }
 
 void BytecodeEmitter::EmitIndexIteratorInit(Bytecode bytecode, LocalVar iter, uint32_t index_oid, LocalVar exec_ctx) {

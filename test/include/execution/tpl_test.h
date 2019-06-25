@@ -13,6 +13,10 @@ class TplTest : public terrier::TerrierTest {
  public:
   TplTest() { CpuInfo::Instance(); }
 
+  void SetUp() override {
+    terrier::TerrierTest::SetUp();
+  }
+
   const char *GetTestName() const { return ::testing::UnitTest::GetInstance()->current_test_info()->name(); }
 };
 

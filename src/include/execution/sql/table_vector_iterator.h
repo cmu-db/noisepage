@@ -12,7 +12,6 @@ using terrier::catalog::db_oid_t;
 using terrier::catalog::namespace_oid_t;
 using terrier::catalog::table_oid_t;
 using terrier::storage::DataTable;
-using terrier::transaction::TransactionContext;
 
 class ThreadStateContainer;
 
@@ -28,12 +27,10 @@ class TableVectorIterator {
 
   /**
    * Create a new vectorized iterator over the given table
-   * @param db_oid database oid of the table
-   * @param ns_oid oid of the namespace
    * @param table_oid oid of the table
    * @param txn transaction to use when scanning the table
    */
-  explicit TableVectorIterator(u32 db_oid, u32 ns_oid, u32 table_oid, TransactionContext *txn);
+  explicit TableVectorIterator(u32 table_oid, exec::ExecutionContext *exec_ctx);
 
   /**
    * Destructor
@@ -90,8 +87,6 @@ class TableVectorIterator {
  private:
   // The PCI
   ProjectedColumnsIterator pci_;
-  const db_oid_t db_oid_;
-  const namespace_oid_t ns_oid_;
   const table_oid_t table_oid_;
   // SqlTable to iterate over
   terrier::catalog::SqlTableHelper *catalog_table_;
@@ -101,7 +96,7 @@ class TableVectorIterator {
 
   // Iterator of the slots in the PC
   std::unique_ptr<DataTable::SlotIterator> iter_ = nullptr;
-  TransactionContext *txn_;
+  exec::ExecutionContext  *exec_ctx_;
 
   bool initialized = false;
 };

@@ -2,7 +2,6 @@
 #include <vector>
 
 #include "execution/exec/execution_context.h"
-#include "execution/sql/execution_structures.h"
 #include "execution/sql/table_vector_iterator.h"
 #include "execution/util/timer.h"
 #include "tbb/blocked_range.h"
@@ -17,15 +16,15 @@ using terrier::common::AllocationUtil;
 using terrier::storage::DataTable;
 using terrier::transaction::TransactionContext;
 
-TableVectorIterator::TableVectorIterator(u32 db_oid, u32 ns_oid, u32 table_oid, TransactionContext *txn)
-    : db_oid_(db_oid), ns_oid_(ns_oid), table_oid_(table_oid), txn_(txn) {}
+TableVectorIterator::TableVectorIterator(u32 table_oid, exec::ExecutionContext * exec_ctx)
+    : table_oid_(table_oid), exec_ctx_(exec_ctx) {}
 
 TableVectorIterator::~TableVectorIterator() { delete[] buffer_; }
 
 bool TableVectorIterator::Init() {
   // Find the table
-  auto *exec = ExecutionStructures::Instance();
-  catalog_table_ = exec->GetCatalog()->GetUserTable(txn_, db_oid_, ns_oid_, table_oid_);
+  catalog_table_ = exec_ctx_->GetAccessor()->GetUserTable(table_oid_);
+  TPL_ASSERT(catalog_table_ != nullptr, "Table must exist!!");
   if (catalog_table_ == nullptr) return false;
 
   // Initialize the projected column
@@ -53,7 +52,7 @@ bool TableVectorIterator::Advance() {
     return false;
   }
   // Scan the table a set the projected column.
-  catalog_table_->GetSqlTable()->Scan(txn_, iter_.get(), projected_columns_);
+  catalog_table_->GetSqlTable()->Scan(exec_ctx_->GetTxn(), iter_.get(), projected_columns_);
   pci_.SetProjectedColumn(projected_columns_);
   return true;
 }

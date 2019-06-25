@@ -192,7 +192,7 @@ void OpThreadStateContainerFree(tpl::sql::ThreadStateContainer *thread_state_con
 // Table Vector Iterator
 // ---------------------------------------------------------
 
-void OpTableVectorIteratorInit(tpl::sql::TableVectorIterator *iter, u32 db_oid, u32 ns_oid, u32 table_oid,
+void OpTableVectorIteratorInit(tpl::sql::TableVectorIterator *iter, u32 table_oid,
                                tpl::exec::ExecutionContext *exec_ctx);
 
 void OpTableVectorIteratorPerformInit(tpl::sql::TableVectorIterator *iter);
@@ -1346,7 +1346,7 @@ VM_OP_HOT void OpIndexIteratorGetDecimalNull(tpl::sql::Decimal *out, tpl::sql::I
 // Insert Calls
 // ---------------------------------------------------------------
 
-void OpInsert(tpl::exec::ExecutionContext *exec_ctx, u32 db_oid, u32 ns_oid, u32 table_oid, byte *values_ptr);
+void OpInsert(tpl::exec::ExecutionContext *exec_ctx, u32 table_oid, byte *values_ptr);
 
 // ---------------------------------------------------------------
 // Output Calls

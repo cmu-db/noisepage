@@ -1,17 +1,14 @@
 #include "execution/sql/index_iterator.h"
-#include "execution/sql/execution_structures.h"
 #include "execution/sql/value.h"
 
 namespace tpl::sql {
 
-IndexIterator::IndexIterator(uint32_t index_oid, TransactionContext *txn) : txn_(txn) {
+IndexIterator::IndexIterator(uint32_t index_oid, exec::ExecutionContext * exec_ctx) : exec_ctx_(exec_ctx) {
   // Get index from the catalog
-  auto *exec = ExecutionStructures::Instance();
-  auto *catalog = exec->GetCatalog();
-  catalog_index_ = catalog->GetCatalogIndex(terrier::catalog::index_oid_t(index_oid));
+  catalog_index_ = exec_ctx_->GetAccessor()->GetCatalogIndex(terrier::catalog::index_oid_t(index_oid));
   // Get table from the catalog
-  auto db_table = catalog_index_->GetTable();
-  catalog_table_ = catalog->GetUserTable(txn, std::get<0>(db_table), std::get<1>(db_table), std::get<2>(db_table));
+  auto table_oid = catalog_index_->GetTable();
+  catalog_table_ = exec_ctx_->GetAccessor()->GetUserTable(table_oid);
   // Initialize projected rows for the index and the table
   auto &index_pri = catalog_index_->GetMetadata()->GetProjectedRowInitializer();
   auto &row_pri = *catalog_table_->GetPRI();
@@ -55,7 +52,7 @@ void IndexIterator::ScanKey(byte *sql_key) {
   // Scan the table
   curr_index_ = 0;
   index_values_.clear();
-  catalog_index_->GetIndex()->ScanKey(*txn_, *index_pr_, &index_values_);
+  catalog_index_->GetIndex()->ScanKey(*exec_ctx_->GetTxn(), *index_pr_, &index_values_);
   // FOR DEBUGGING ONLY: print to check if output is correct.
   /*if (!index_values_.empty()) std::cout << "Scan key rows:" << std::endl;
   for (const auto &slot : index_values_) {
@@ -76,7 +73,7 @@ void IndexIterator::ScanKey(byte *sql_key) {
 
 void IndexIterator::Advance() {
   // Select the next tuple slot
-  catalog_table_->GetSqlTable()->Select(txn_, index_values_[curr_index_], row_pr_);
+  catalog_table_->GetSqlTable()->Select(exec_ctx_->GetTxn(), index_values_[curr_index_], row_pr_);
   ++curr_index_;
 }
 

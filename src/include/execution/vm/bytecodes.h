@@ -95,7 +95,7 @@ namespace tpl::vm {
   F(ThreadStateContainerFree, OperandType::Local)                                                                     \
                                                                                                                       \
   /* Table Vector Iterator */                                                                                         \
-  F(TableVectorIteratorInit, OperandType::Local, OperandType::UImm4, OperandType::UImm4, OperandType::UImm4,          \
+  F(TableVectorIteratorInit, OperandType::Local, OperandType::UImm4,          \
     OperandType::Local)                                                                                               \
   F(TableVectorIteratorPerformInit, OperandType::Local)                                                               \
   F(TableVectorIteratorNext, OperandType::Local, OperandType::Local)                                                  \
@@ -303,7 +303,8 @@ namespace tpl::vm {
   F(OutputSetNull, OperandType::Local, OperandType::Local)                                                            \
                                                                                                                       \
   /* Insert */                                                                                                        \
-  F(Insert, OperandType::Local, OperandType::UImm4, OperandType::UImm4, OperandType::UImm4, OperandType::Local)       \
+  F(Insert, OperandType::Local, OperandType::Local, OperandType::Local)       \
+  \
   /* Index Iterator */                                                                                                \
   F(IndexIteratorInit, OperandType::Local, OperandType::UImm4, OperandType::Local)                                    \
   F(IndexIteratorScanKey, OperandType::Local, OperandType::Local)                                                     \

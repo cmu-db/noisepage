@@ -9,7 +9,6 @@
 #include "execution/ast/context.h"
 #include "execution/ast/type.h"
 #include "execution/exec/execution_context.h"
-#include "execution/sql/execution_structures.h"
 #include "execution/util/macros.h"
 #include "execution/vm/bytecode_label.h"
 #include "execution/vm/bytecode_module.h"
@@ -470,15 +469,12 @@ void BytecodeGenerator::VisitBuiltinTableIterCall(ast::CallExpr *call, ast::Buil
       // The second argument is the table name as a literal string
       TPL_ASSERT(call->arguments()[1]->IsStringLiteral(), "Table name must be a string literal");
       ast::Identifier table_name = call->arguments()[1]->As<ast::LitExpr>()->raw_string_val();
-      sql::ExecutionStructures *exec = sql::ExecutionStructures::Instance();
-      auto test_db_ns = exec->GetTestDBAndNS();
-      auto catalog_table =
-          exec->GetCatalog()->GetUserTable(exec_ctx_->GetTxn(), test_db_ns.first, test_db_ns.second, table_name.data());
+      auto catalog_table = exec_ctx_->GetAccessor()->GetUserTable(table_name.data());
       TPL_ASSERT(catalog_table != nullptr, "Table does not exist!");
       // The third argument should be the execution context
       LocalVar exec_ctx = VisitExpressionForRValue(call->arguments()[2]);
       // Emit the initialization codes
-      emitter()->EmitTableIterInit(Bytecode::TableVectorIteratorInit, iter, !test_db_ns.first, !test_db_ns.second,
+      emitter()->EmitTableIterInit(Bytecode::TableVectorIteratorInit, iter,
                                    !catalog_table->Oid(), exec_ctx);
       emitter()->Emit(Bytecode::TableVectorIteratorPerformInit, iter);
       break;
@@ -507,10 +503,8 @@ void BytecodeGenerator::VisitBuiltinTableIterCall(ast::CallExpr *call, ast::Buil
 void BytecodeGenerator::VisitBuiltinTableIterParallelCall(ast::CallExpr *call) {
   // First is the table name as a string literal
   const auto table_name = call->arguments()[0]->As<ast::LitExpr>()->raw_string_val();
-  sql::ExecutionStructures *exec = sql::ExecutionStructures::Instance();
-  auto db_ns = exec->GetTestDBAndNS();
   auto catalog_table =
-      exec->GetCatalog()->GetUserTable(exec_ctx_->GetTxn(), db_ns.first, db_ns.second, table_name.data());
+      exec_ctx_->GetAccessor()->GetUserTable(table_name.data());
   TPL_ASSERT(catalog_table != nullptr, "Table does not exist!");
 
   // Next is the execution context
@@ -1258,22 +1252,19 @@ void BytecodeGenerator::VisitBuiltinOutputCall(ast::CallExpr *call, ast::Builtin
 
 void BytecodeGenerator::VisitBuiltinInsertCall(ast::CallExpr *call, ast::Builtin builtin) {
   const auto &args = call->arguments();
-  LocalVar db_id = VisitExpressionForRValue(args[0]);
-  LocalVar table_id = VisitExpressionForRValue(args[1]);
-  LocalVar ns_id = VisitExpressionForLValue(args[2]);
-  LocalVar values = VisitExpressionForRValue(args[3]);
-  LocalVar exec_ctx = VisitExpressionForRValue(call->arguments()[4]);
+  LocalVar table_id = VisitExpressionForRValue(args[0]);
+  LocalVar values = VisitExpressionForRValue(args[1]);
+  LocalVar exec_ctx = VisitExpressionForRValue(call->arguments()[2]);
 
-  emitter()->EmitInsert(Bytecode::Insert, db_id, ns_id, table_id, values, exec_ctx);
+  emitter()->Emit(Bytecode::Insert, table_id, values, exec_ctx);
 }
 
 void BytecodeGenerator::VisitBuiltinIndexIteratorCall(ast::CallExpr *call, ast::Builtin builtin) {
-  terrier::catalog::Catalog *catalog = sql::ExecutionStructures::Instance()->GetCatalog();
   switch (builtin) {
     case ast::Builtin::IndexIteratorInit: {
       LocalVar iterator = VisitExpressionForRValue(call->arguments()[0]);
       std::string index_name(call->arguments()[1]->As<ast::LitExpr>()->raw_string_val().data());
-      auto index_oid = catalog->GetCatalogIndexOid(index_name);
+      auto index_oid = exec_ctx_->GetAccessor()->GetCatalogIndexOid(index_name);
       LocalVar exec_ctx = VisitExpressionForRValue(call->arguments()[2]);
       emitter()->EmitIndexIteratorInit(Bytecode::IndexIteratorInit, iterator, !index_oid, exec_ctx);
       break;

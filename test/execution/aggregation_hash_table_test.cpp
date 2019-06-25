@@ -5,7 +5,7 @@
 #include <utility>
 #include <vector>
 
-#include "execution/tpl_test.h"  // NOLINT
+#include "execution/sql_test.h"  // NOLINT
 
 #include <tbb/tbb.h>  // NOLINT
 
@@ -13,7 +13,6 @@
 #include "catalog/schema.h"
 #include "execution/exec/execution_context.h"
 #include "execution/sql/aggregation_hash_table.h"
-#include "execution/sql/execution_structures.h"
 #include "execution/sql/projected_columns_iterator.h"
 #include "execution/sql/thread_state_container.h"
 #include "execution/util/hash.h"
@@ -72,26 +71,27 @@ static inline bool AggAggKeyEq(const void *agg_tuple_1, const void *agg_tuple_2)
   return lhs->key == rhs->key;
 }
 
-class AggregationHashTableTest : public TplTest {
+class AggregationHashTableTest : public SqlBasedTest {
  public:
-  AggregationHashTableTest() : memory_(nullptr), agg_table_(&memory_, sizeof(AggTuple)) {}
+  AggregationHashTableTest() : SqlBasedTest(), memory_(nullptr), agg_table_(&memory_, sizeof(AggTuple)) {}
 
   MemoryPool *memory() { return &memory_; }
 
   AggregationHashTable *agg_table() { return &agg_table_; }
 
+  void SetUp() override {
+    SqlBasedTest::SetUp();
+    exec_ctx_ = MakeExecCtx();
+  }
+
   // Helper to make a PCI
   terrier::storage::ProjectedColumns *MakeProjectedColumns() {
-    auto *exec = sql::ExecutionStructures::Instance();
-    auto *catalog = exec->GetCatalog();
-    auto *txn_manager = exec->GetTxnManager();
-    txn_ = txn_manager->BeginTransaction();
     // TODO(Amadou): Come up with an easier way to create ProjectedColumns.
     // This should be done after the catalog PR is merged in.
 
     // Create column metadata for every column.
-    terrier::catalog::col_oid_t col_oid_key(catalog->GetNextOid());
-    terrier::catalog::col_oid_t col_oid_val(catalog->GetNextOid());
+    terrier::catalog::col_oid_t col_oid_key(exec_ctx_->GetAccessor()->GetNextOid());
+    terrier::catalog::col_oid_t col_oid_val(exec_ctx_->GetAccessor()->GetNextOid());
     terrier::catalog::Schema::Column key_col =
         terrier::catalog::Schema::Column("key", terrier::type::TypeId::INTEGER, false, col_oid_key);
     terrier::catalog::Schema::Column val_col =
@@ -99,11 +99,10 @@ class AggregationHashTableTest : public TplTest {
 
     // Create the table in the catalog.
     terrier::catalog::Schema schema({key_col, val_col});
-    auto test_db_ns = exec->GetTestDBAndNS();
-    auto table_oid = catalog->CreateUserTable(txn_, test_db_ns.first, test_db_ns.second, "agg_test_table", schema);
+    auto table_oid = exec_ctx_->GetAccessor()->CreateUserTable("agg_test_table", schema);
 
     // Get the table's information.
-    catalog_table_ = catalog->GetUserTable(txn_, test_db_ns.first, test_db_ns.second, table_oid);
+    catalog_table_ = exec_ctx_->GetAccessor()->GetUserTable(table_oid);
     auto sql_table = catalog_table_->GetSqlTable();
 
     // Create a ProjectedColumns
@@ -119,15 +118,15 @@ class AggregationHashTableTest : public TplTest {
   }
 
   void FreeProjectedColumns() {
-    auto *exec = sql::ExecutionStructures::Instance();
-    auto *catalog = exec->GetCatalog();
-    auto *txn_manager = exec->GetTxnManager();
-    auto test_db_ns = exec->GetTestDBAndNS();
-    catalog->DeleteUserTable(txn_, test_db_ns.first, test_db_ns.second, catalog_table_->Oid());
-    txn_manager->Commit(txn_, [](void *) { return; }, nullptr);
-    delete txn_;
+    exec_ctx_->GetAccessor()->DeleteUserTable(catalog_table_->Oid());
     delete[] buffer_;
   }
+
+ protected:
+  /**
+   * Execution ctx of this test
+   */
+  std::unique_ptr<exec::ExecutionContext> exec_ctx_;
 
  private:
   MemoryPool memory_;
@@ -138,7 +137,6 @@ class AggregationHashTableTest : public TplTest {
   terrier::storage::ProjectedColumns *projected_columns_{nullptr};
   byte *buffer_{nullptr};
   terrier::catalog::SqlTableHelper *catalog_table_{nullptr};
-  terrier::transaction::TransactionContext *txn_{nullptr};
 };
 
 // NOLINTNEXTLINE
@@ -455,12 +453,11 @@ TEST_F(AggregationHashTableTest, ParallelAggregationTest) {
   QS qstate{0};
   // Create container
   auto memory = std::make_unique<MemoryPool>(nullptr);
-  exec::ExecutionContext exec_ctx(nullptr, [](byte *, u32, u32) {}, nullptr);
-  exec_ctx.SetMemoryPool(std::move(memory));
-  ThreadStateContainer container(exec_ctx.GetMemoryPool());
+  exec_ctx_->SetMemoryPool(std::move(memory));
+  ThreadStateContainer container(exec_ctx_->GetMemoryPool());
 
   // Build thread-local tables
-  container.Reset(sizeof(AggregationHashTable), init_ht, destroy_ht, &exec_ctx);
+  container.Reset(sizeof(AggregationHashTable), init_ht, destroy_ht, exec_ctx_.get());
   auto aggs = {0, 1, 2, 3};
   tbb::task_scheduler_init sched;
   tbb::parallel_for_each(aggs.begin(), aggs.end(), [&](UNUSED auto x) {
@@ -468,7 +465,7 @@ TEST_F(AggregationHashTableTest, ParallelAggregationTest) {
     build_agg_table(aht);
   });
 
-  AggregationHashTable main_table(exec_ctx.GetMemoryPool(), sizeof(AggTuple));
+  AggregationHashTable main_table(exec_ctx_->GetMemoryPool(), sizeof(AggTuple));
 
   // Move memory
   main_table.TransferMemoryAndPartitions(&container, 0, merge);

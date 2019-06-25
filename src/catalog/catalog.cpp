@@ -14,6 +14,7 @@
 #include "storage/index/index.h"
 #include "storage/storage_defs.h"
 #include "transaction/transaction_manager.h"
+#include "catalog/accessor.h"
 
 namespace terrier::catalog {
 
@@ -573,5 +574,11 @@ index_oid_t Catalog::CreateIndex(transaction::TransactionContext *txn, storage::
 std::shared_ptr<CatalogIndex> Catalog::GetCatalogIndex(index_oid_t index_oid) { return index_map_.at(index_oid); }
 
 index_oid_t Catalog::GetCatalogIndexOid(const std::string &name) { return index_names_.at(name); }
+
+std::unique_ptr<CatalogAccessor> Catalog::GetAccessor(terrier::transaction::TransactionContext *txn,
+                                                      terrier::catalog::db_oid_t db_oid,
+                                                      terrier::catalog::namespace_oid_t ns_oid) {
+  return std::make_unique<CatalogAccessor>(txn, this, db_oid, ns_oid);
+}
 
 }  // namespace terrier::catalog

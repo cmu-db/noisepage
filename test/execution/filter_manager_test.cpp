@@ -45,11 +45,9 @@ TEST_F(FilterManagerTest, SimpleFilterManagerTest) {
   filter.InsertClauseFlavor(TaaT_Lt_500);
   filter.InsertClauseFlavor(Vectorized_Lt_500);
   filter.Finalize();
-  auto exec = ExecutionStructures::Instance();
-  auto txn = exec->GetTxnManager()->BeginTransaction();
-  auto test_db_ns = exec->GetTestDBAndNS();
-  auto catalog_table = exec->GetCatalog()->GetUserTable(txn, test_db_ns.first, test_db_ns.second, "test_1");
-  TableVectorIterator tvi(!test_db_ns.first, !test_db_ns.second, !catalog_table->Oid(), txn);
+  auto exec_ctx = MakeExecCtx();
+  auto catalog_table = exec_ctx->GetAccessor()->GetUserTable("test_1");
+  TableVectorIterator tvi(!catalog_table->Oid(), exec_ctx.get());
   for (tvi.Init(); tvi.Advance();) {
     auto *pci = tvi.projected_columns_iterator();
 
@@ -62,7 +60,6 @@ TEST_F(FilterManagerTest, SimpleFilterManagerTest) {
       EXPECT_LT(cola, 500);
     });
   }
-  exec->GetTxnManager()->Commit(txn, [](void *) {}, nullptr);
 }
 
 // NOLINTNEXTLINE
@@ -72,11 +69,9 @@ TEST_F(FilterManagerTest, AdaptiveFilterManagerTest) {
   filter.InsertClauseFlavor(Hobbled_TaaT_Lt_500);
   filter.InsertClauseFlavor(Vectorized_Lt_500);
   filter.Finalize();
-  auto exec = ExecutionStructures::Instance();
-  auto txn = exec->GetTxnManager()->BeginTransaction();
-  auto test_db_ns = exec->GetTestDBAndNS();
-  auto catalog_table = exec->GetCatalog()->GetUserTable(txn, test_db_ns.first, test_db_ns.second, "test_1");
-  TableVectorIterator tvi(!test_db_ns.first, !test_db_ns.second, !catalog_table->Oid(), txn);
+  auto exec_ctx = MakeExecCtx();
+  auto catalog_table = exec_ctx->GetAccessor()->GetUserTable("test_1");
+  TableVectorIterator tvi(!catalog_table->Oid(), exec_ctx.get());
   for (tvi.Init(); tvi.Advance();) {
     auto *pci = tvi.projected_columns_iterator();
 
@@ -92,7 +87,6 @@ TEST_F(FilterManagerTest, AdaptiveFilterManagerTest) {
 
   // The vectorized filter better be the optimal!
   EXPECT_EQ(1u, filter.GetOptimalFlavorForClause(0));
-  exec->GetTxnManager()->Commit(txn, [](void *) {}, nullptr);
 }
 
 }  // namespace tpl::sql::test

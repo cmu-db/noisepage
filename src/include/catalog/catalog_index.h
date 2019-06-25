@@ -39,19 +39,15 @@ class CatalogIndex {
   storage::index::IndexMetadata *GetMetadata() { return &metadata_; }
 
   /**
-   * @return corresponding db_oid, table_oid pair
+   * @return corresponding table_oid
    */
-  std::tuple<db_oid_t, namespace_oid_t, table_oid_t> GetTable() { return {db_oid_, ns_oid_, table_oid_}; }
+  table_oid_t GetTable() { return table_oid_; }
 
   /**
-   * Sets the index's corresponding db_oid and table_oid
-   * @param db_oid database oid
-   * @param ns_oid namespace oid
+   * Sets the index's corresponding table_oid
    * @param table_oid table oid
    */
-  void SetTable(db_oid_t db_oid, namespace_oid_t ns_oid, table_oid_t table_oid) {
-    db_oid_ = db_oid;
-    ns_oid_ = ns_oid;
+  void SetTable(table_oid_t table_oid) {
     table_oid_ = table_oid;
   }
 
@@ -60,10 +56,6 @@ class CatalogIndex {
   storage::index::IndexMetadata metadata_;
   // Underlying index
   std::shared_ptr<storage::index::Index> index_ = nullptr;
-  // Corresponding db_oid
-  db_oid_t db_oid_;
-  // Corresponding ns_oid
-  namespace_oid_t ns_oid_;
   // Corresponding table_oid
   table_oid_t table_oid_;
 };

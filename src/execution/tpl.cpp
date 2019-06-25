@@ -16,7 +16,8 @@
 #include "execution/parsing/scanner.h"
 #include "execution/sema/error_reporter.h"
 #include "execution/sema/sema.h"
-#include "execution/sql/execution_structures.h"
+#include "execution/sql/table_generator/table_generator.h"
+#include "execution/exec/sample_output.h"
 #include "execution/sql/memory_pool.h"
 #include "execution/tpl.h"  // NOLINT
 #include "execution/util/cpu_info.h"
@@ -26,6 +27,7 @@
 #include "execution/vm/llvm_engine.h"
 #include "execution/vm/module.h"
 #include "execution/vm/vm.h"
+#include "storage/garbage_collector.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/MemoryBuffer.h"
 
@@ -46,7 +48,7 @@ llvm::cl::OptionCategory kTplOptionsCategory("TPL Compiler Options", "Options fo
 llvm::cl::opt<std::string> kInputFile(llvm::cl::Positional, llvm::cl::desc("<input file>"), llvm::cl::init(""), llvm::cl::cat(kTplOptionsCategory));  // NOLINT
 llvm::cl::opt<bool> kPrintAst("print-ast", llvm::cl::desc("Print the programs AST"), llvm::cl::cat(kTplOptionsCategory));  // NOLINT
 llvm::cl::opt<bool> kPrintTbc("print-tbc", llvm::cl::desc("Print the generated TPL Bytecode"), llvm::cl::cat(kTplOptionsCategory));  // NOLINT
-llvm::cl::opt<std::string> kOutputName("output-name", llvm::cl::desc("Print the output name"), llvm::cl::init("output1.tpl"), llvm::cl::cat(kTplOptionsCategory));  // NOLINT
+llvm::cl::opt<std::string> kOutputName("output-name", llvm::cl::desc("Print the output name"), llvm::cl::init("schema1"), llvm::cl::cat(kTplOptionsCategory));  // NOLINT
 llvm::cl::opt<bool> kIsSQL("sql", llvm::cl::desc("Is the input a SQL query?"), llvm::cl::cat(kTplOptionsCategory));  // NOLINT
 // clang-format on
 
@@ -63,10 +65,37 @@ static constexpr const char *kExitKeyword = ".exit";
  * @param name The name of the module/program
  */
 static void CompileAndRun(const std::string &source, const std::string &name = "tmp-tpl") {
-  util::Region region("repl-ast");
-  util::Region error_region("repl-error");
+  // Initialize terrier objects
+  terrier::storage::BlockStore block_store(1000, 1000);
+  terrier::storage::RecordBufferSegmentPool buffer_pool(100000, 100000);
+  terrier::storage::LogManager log_manager("log_file.log", &buffer_pool);
+  terrier::transaction::TransactionManager txn_manager(&buffer_pool, true, &log_manager);
+  terrier::storage::GarbageCollector gc(&txn_manager);
+  auto *txn = txn_manager.BeginTransaction();
+
+  // Get the correct output format for this test
+  exec::SampleOutput sample_output;
+  sample_output.InitTestOutput();
+  auto output_schema = sample_output.GetSchema(kOutputName.data());
+
+  // Make the catalog accessor
+  terrier::catalog::Catalog catalog(&txn_manager, txn);
+  auto db_oid = terrier::catalog::DEFAULT_DATABASE_OID;
+  auto ns_oid = catalog.CreateNameSpace(txn, db_oid, "test_namespace");
+  auto accessor = catalog.GetAccessor(txn, db_oid, ns_oid);
+
+  // Make the execution context
+  exec::OutputPrinter printer(output_schema);
+  exec::ExecutionContext exec_ctx{txn, printer, output_schema, std::move(accessor)};
+
+  // Genereate test tables
+  sql::TableGenerator table_generator{&exec_ctx};
+  table_generator.GenerateTestTables();
+
 
   // Let's scan the source
+  util::Region region("repl-ast");
+  util::Region error_region("repl-error");
   sema::ErrorReporter error_reporter(&error_region);
   ast::Context context(&region, &error_reporter);
 
@@ -75,14 +104,6 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
 
   double parse_ms = 0.0, typecheck_ms = 0.0, codegen_ms = 0.0, interp_exec_ms = 0.0, adaptive_exec_ms = 0.0,
          jit_exec_ms = 0.0;
-
-  // Make Execution Context
-  auto exec = sql::ExecutionStructures::Instance();
-  auto *txn = exec->GetTxnManager()->BeginTransaction();
-  std::cout << "Output Name: " << kOutputName.data() << std::endl;
-  auto final = exec->GetFinalSchema(kOutputName.data());
-  exec::OutputPrinter printer(*final);
-  auto exec_context = std::make_shared<exec::ExecutionContext>(txn, printer, final);
 
   //
   // Parse
@@ -128,7 +149,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   std::unique_ptr<vm::BytecodeModule> bytecode_module;
   {
     util::ScopedTimer<std::milli> timer(&codegen_ms);
-    bytecode_module = vm::BytecodeGenerator::Compile(root, exec_context.get(), name);
+    bytecode_module = vm::BytecodeGenerator::Compile(root, &exec_ctx, name);
   }
 
   // Dump Bytecode
@@ -154,8 +175,8 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
         return;
       }
       auto memory = std::make_unique<sql::MemoryPool>(nullptr);
-      exec_context->SetMemoryPool(std::move(memory));
-      EXECUTION_LOG_INFO("VM main() returned: {}", main(exec_context.get()));
+      exec_ctx.SetMemoryPool(std::move(memory));
+      EXECUTION_LOG_INFO("VM main() returned: {}", main(&exec_ctx));
     } else {
       std::function<u32()> main;
       if (!module->GetFunction("main", vm::ExecutionMode::Interpret, &main)) {
@@ -182,8 +203,8 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
         return;
       }
       auto memory = std::make_unique<sql::MemoryPool>(nullptr);
-      exec_context->SetMemoryPool(std::move(memory));
-      EXECUTION_LOG_INFO("ADAPTIVE main() returned: {}", main(exec_context.get()));
+      exec_ctx.SetMemoryPool(std::move(memory));
+      EXECUTION_LOG_INFO("ADAPTIVE main() returned: {}", main(&exec_ctx));
     } else {
       std::function<u32()> main;
       if (!module->GetFunction("main", vm::ExecutionMode::Adaptive, &main)) {
@@ -209,8 +230,8 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
         return;
       }
       auto memory = std::make_unique<sql::MemoryPool>(nullptr);
-      exec_context->SetMemoryPool(std::move(memory));
-      EXECUTION_LOG_INFO("JIT main() returned: {}", main(exec_context.get()));
+      exec_ctx.SetMemoryPool(std::move(memory));
+      EXECUTION_LOG_INFO("JIT main() returned: {}", main(&exec_ctx));
     } else {
       std::function<u32()> main;
       if (!module->GetFunction("main", vm::ExecutionMode::Compiled, &main)) {
@@ -226,10 +247,10 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
       "Parse: {} ms, Type-check: {} ms, Code-gen: {} ms, Interp. Exec.: {} ms, "
       "Adaptive Exec.: {} ms, Jit+Exec.: {} ms",
       parse_ms, typecheck_ms, codegen_ms, interp_exec_ms, adaptive_exec_ms, jit_exec_ms);
-  exec->GetTxnManager()->Commit(txn, [](void *) {}, nullptr);
-  exec->GetLogManager()->Shutdown();
-  exec->GetGC()->PerformGarbageCollection();
-  exec->GetGC()->PerformGarbageCollection();
+  txn_manager.Commit(txn, [](void *) {}, nullptr);
+  log_manager.Shutdown();
+  gc.PerformGarbageCollection();
+  gc.PerformGarbageCollection();
 }
 
 /**
@@ -280,7 +301,6 @@ void InitTPL() {
 
   terrier::LoggersUtil::Initialize(false);
 
-  tpl::sql::ExecutionStructures::Instance();
   tpl::vm::LLVMEngine::Initialize();
 
   EXECUTION_LOG_INFO("TPL Bytecode Count: {}", tpl::vm::Bytecodes::NumBytecodes());

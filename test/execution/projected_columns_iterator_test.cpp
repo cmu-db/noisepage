@@ -5,10 +5,9 @@
 #include <utility>
 #include <vector>
 
-#include "execution/tpl_test.h"  // NOLINT
+#include "execution/sql_test.h"  // NOLINT
 
 #include "catalog/catalog.h"
-#include "execution/sql/execution_structures.h"
 #include "execution/sql/projected_columns_iterator.h"
 
 namespace tpl::sql::test {
@@ -66,7 +65,7 @@ std::pair<std::unique_ptr<u32[]>, u32> CreateRandomNullBitmap(u32 num_elems) {
 
 }  // namespace
 
-class ProjectedColumnsIteratorTest : public TplTest {
+class ProjectedColumnsIteratorTest : public SqlBasedTest {
  protected:
   enum ColId : u8 { col_a = 0, col_b = 1, col_c = 2, col_d = 3 };
 
@@ -89,7 +88,8 @@ class ProjectedColumnsIteratorTest : public TplTest {
   ProjectedColumnsIteratorTest() : num_tuples_(kDefaultVectorSize) {}
 
   void SetUp() override {
-    TplTest::SetUp();
+    SqlBasedTest::SetUp();
+    exec_ctx_ = MakeExecCtx();
 
     // NOTE: the storage layer reoder's columns by size. So let's filter them now.
     auto cola_data = CreateMonotonicallyIncreasing<i16>(num_tuples());
@@ -129,17 +129,13 @@ class ProjectedColumnsIteratorTest : public TplTest {
   }
 
   void InitializeColumns() {
-    auto *exec = sql::ExecutionStructures::Instance();
-    auto *catalog = exec->GetCatalog();
-    auto *txn_manager = exec->GetTxnManager();
-    txn_ = txn_manager->BeginTransaction();
     // TODO(Amadou): Come up with an easier way to create ProjectedColumns.
     // This should be done after the perso_catalog PR is merged in.
     // Create column metadata for every column.
-    terrier::catalog::col_oid_t col_oid_a(catalog->GetNextOid());
-    terrier::catalog::col_oid_t col_oid_b(catalog->GetNextOid());
-    terrier::catalog::col_oid_t col_oid_c(catalog->GetNextOid());
-    terrier::catalog::col_oid_t col_oid_d(catalog->GetNextOid());
+    terrier::catalog::col_oid_t col_oid_a(exec_ctx_->GetAccessor()->GetNextOid());
+    terrier::catalog::col_oid_t col_oid_b(exec_ctx_->GetAccessor()->GetNextOid());
+    terrier::catalog::col_oid_t col_oid_c(exec_ctx_->GetAccessor()->GetNextOid());
+    terrier::catalog::col_oid_t col_oid_d(exec_ctx_->GetAccessor()->GetNextOid());
     terrier::catalog::Schema::Column col_a =
         terrier::catalog::Schema::Column("col_a", terrier::type::TypeId::SMALLINT, false, col_oid_a);
     terrier::catalog::Schema::Column col_b =
@@ -151,11 +147,10 @@ class ProjectedColumnsIteratorTest : public TplTest {
 
     // Create the table in the catalog.
     terrier::catalog::Schema schema({col_a, col_b, col_c, col_d});
-    auto test_db_ns = exec->GetTestDBAndNS();
-    auto table_oid = catalog->CreateUserTable(txn_, test_db_ns.first, test_db_ns.second, "pci_test_table", schema);
+    auto table_oid = exec_ctx_->GetAccessor()->CreateUserTable("pci_test_table", schema);
 
     // Get the table's information.
-    catalog_table_ = catalog->GetUserTable(txn_, test_db_ns.first, test_db_ns.second, table_oid);
+    catalog_table_ = exec_ctx_->GetAccessor()->GetUserTable(table_oid);
     auto sql_table = catalog_table_->GetSqlTable();
 
     // Create a ProjectedColumns
@@ -172,13 +167,7 @@ class ProjectedColumnsIteratorTest : public TplTest {
 
   // Delete allocated objects and remove the created table.
   ~ProjectedColumnsIteratorTest() override {
-    auto *exec = sql::ExecutionStructures::Instance();
-    auto *catalog = exec->GetCatalog();
-    auto *txn_manager = exec->GetTxnManager();
-    auto test_db_ns = exec->GetTestDBAndNS();
-    catalog->DeleteUserTable(txn_, test_db_ns.first, test_db_ns.second, catalog_table_->Oid());
-    txn_manager->Commit(txn_, [](void *) { return; }, nullptr);
-    delete txn_;
+    exec_ctx_->GetAccessor()->DeleteUserTable(catalog_table_->Oid());
     delete[] buffer_;
   }
 
@@ -201,7 +190,7 @@ class ProjectedColumnsIteratorTest : public TplTest {
   byte *buffer_ = nullptr;
   terrier::storage::ProjectedColumns *projected_columns_ = nullptr;
   terrier::catalog::SqlTableHelper *catalog_table_ = nullptr;
-  terrier::transaction::TransactionContext *txn_ = nullptr;
+  std::unique_ptr<exec::ExecutionContext> exec_ctx_;
 };
 
 // NOLINTNEXTLINE

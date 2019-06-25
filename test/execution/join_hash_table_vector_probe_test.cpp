@@ -3,10 +3,9 @@
 #include <random>
 #include <vector>
 
-#include "execution/tpl_test.h"  // NOLINT
+#include "execution/sql_test.h"  // NOLINT
 
 #include "catalog/catalog.h"
-#include "execution/sql/execution_structures.h"
 #include "execution/sql/join_hash_table.h"
 #include "execution/sql/join_hash_table_vector_probe.h"
 #include "execution/sql/projected_columns_iterator.h"
@@ -24,25 +23,22 @@ struct Tuple {
   u32 aux[N];
 };
 
-class JoinHashTableVectorProbeTest : public TplTest {
+class JoinHashTableVectorProbeTest : public SqlBasedTest {
  public:
   JoinHashTableVectorProbeTest() : memory_(nullptr) {}
 
   void SetUp() override {
-    TplTest::SetUp();
+    SqlBasedTest::SetUp();
     InitializeColumns();
+    exec_ctx_ = MakeExecCtx();
   }
 
   void InitializeColumns() {
-    auto *exec = sql::ExecutionStructures::Instance();
-    auto *catalog = exec->GetCatalog();
-    auto *txn_manager = exec->GetTxnManager();
-    txn_ = txn_manager->BeginTransaction();
     // TODO(Amadou): Come up with an easier way to create ProjectedColumns.
     // This should be done after the catalog PR is merged in.
     // Create column metadata for every column.
-    terrier::catalog::col_oid_t col_oid_a(catalog->GetNextOid());
-    terrier::catalog::col_oid_t col_oid_b(catalog->GetNextOid());
+    terrier::catalog::col_oid_t col_oid_a(exec_ctx_->GetAccessor()->GetNextOid());
+    terrier::catalog::col_oid_t col_oid_b(exec_ctx_->GetAccessor()->GetNextOid());
     terrier::catalog::Schema::Column col_a =
         terrier::catalog::Schema::Column("col_a", terrier::type::TypeId::INTEGER, false, col_oid_a);
     terrier::catalog::Schema::Column col_b =
@@ -50,12 +46,11 @@ class JoinHashTableVectorProbeTest : public TplTest {
 
     // Create the table in the catalog.
     terrier::catalog::Schema schema({col_a, col_b});
-    auto test_db_ns = exec->GetTestDBAndNS();
     auto table_oid =
-        catalog->CreateUserTable(txn_, test_db_ns.first, test_db_ns.second, "hash_join_test_table", schema);
+        exec_ctx_->GetAccessor()->CreateUserTable("hash_join_test_table", schema);
 
     // Get the table's information.
-    catalog_table_ = catalog->GetUserTable(txn_, test_db_ns.first, test_db_ns.second, table_oid);
+    catalog_table_ = exec_ctx_->GetAccessor()->GetUserTable(table_oid);
     auto sql_table = catalog_table_->GetSqlTable();
 
     // Create a ProjectedColumns
@@ -72,13 +67,7 @@ class JoinHashTableVectorProbeTest : public TplTest {
 
   // Delete allocated objects and remove the created table.
   ~JoinHashTableVectorProbeTest() override {
-    auto *exec = sql::ExecutionStructures::Instance();
-    auto *catalog = exec->GetCatalog();
-    auto *txn_manager = exec->GetTxnManager();
-    auto test_db_ns = exec->GetTestDBAndNS();
-    catalog->DeleteUserTable(txn_, test_db_ns.first, test_db_ns.second, catalog_table_->Oid());
-    txn_manager->Commit(txn_, [](void *) { return; }, nullptr);
-    delete txn_;
+    exec_ctx_->GetAccessor()->DeleteUserTable(catalog_table_->Oid());
     delete[] buffer_;
   }
 
@@ -128,7 +117,7 @@ class JoinHashTableVectorProbeTest : public TplTest {
 
   byte *buffer_{nullptr};
   terrier::catalog::SqlTableHelper *catalog_table_{nullptr};
-  terrier::transaction::TransactionContext *txn_{nullptr};
+  std::unique_ptr<exec::ExecutionContext> exec_ctx_;
 };
 
 // Sequential number functor

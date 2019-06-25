@@ -1,11 +1,14 @@
 #pragma once
 #include <memory>
 #include <utility>
+#include <catalog/catalog.h>
 #include "execution/exec/output.h"
 #include "execution/sql/memory_pool.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
+#include "planner/plannodes/output_schema.h"
 #include "execution/util/region.h"
+#include "catalog/accessor.h"
 
 namespace tpl::exec {
 using terrier::transaction::TransactionContext;
@@ -60,13 +63,14 @@ class ExecutionContext {
    * Constructor
    * @param txn transaction used by this query
    * @param callback callback function for outputting
-   * @param final_schema the FinalSchema of the output
+   * @param schema the schema of the output
    */
-  ExecutionContext(TransactionContext *txn, OutputCallback callback, const std::shared_ptr<FinalSchema> &final_schema)
-      : txn_(txn),
-        buffer_(final_schema == nullptr ? nullptr
-                                        : std::make_unique<OutputBuffer>(final_schema->GetCols().size(),
-                                                                         ComputeTupleSize(final_schema), callback)) {}
+  ExecutionContext(TransactionContext *txn, const OutputCallback & callback, const terrier::planner::OutputSchema *schema,
+                  std::unique_ptr<terrier::catalog::CatalogAccessor> && accessor)
+  : txn_(txn),
+    buffer_(schema == nullptr ? nullptr : std::make_unique<OutputBuffer>(schema->GetColumns().size(),
+                                                                         ComputeTupleSize(schema), callback)),
+    accessor_(std::move(accessor)){}
 
   /**
    * @return the transaction used by this query
@@ -94,15 +98,22 @@ class ExecutionContext {
   }
 
   /**
-   * @param final_schema the FinalSchema of the output
+   * @param schema the schema of the output
    * @return the size of tuple with this final_schema
    */
-  static uint32_t ComputeTupleSize(const std::shared_ptr<FinalSchema> &final_schema);
+  static uint32_t ComputeTupleSize(const terrier::planner::OutputSchema *schema);
+
+  terrier::catalog::CatalogAccessor * GetAccessor() {
+    return accessor_.get();
+  }
 
  private:
   TransactionContext *txn_;
   std::unique_ptr<OutputBuffer> buffer_;
   std::unique_ptr<sql::MemoryPool> mem_pool_{nullptr};
   StringAllocator string_allocator_;
+
+  // TODO(Amadou): This should be replaced by the accessor once it's merged in
+  std::unique_ptr<terrier::catalog::CatalogAccessor> accessor_;
 };
 }  // namespace tpl::exec

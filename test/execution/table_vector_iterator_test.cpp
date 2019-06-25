@@ -1,29 +1,40 @@
 #include "execution/sql_test.h"  // NOLINT
 
 #include "catalog/catalog_defs.h"
-#include "execution/sql/execution_structures.h"
 #include "execution/sql/table_vector_iterator.h"
 #include "execution/util/timer.h"
 
 namespace tpl::sql::test {
 
-class TableVectorIteratorTest : public SqlBasedTest {};
+class TableVectorIteratorTest : public SqlBasedTest {
+
+ void SetUp() override {
+   // Create the test tables
+   SqlBasedTest::SetUp();
+
+   exec_ctx_ = MakeExecCtx();
+   sql::TableGenerator table_generator{exec_ctx_.get()};
+   table_generator.GenerateTestTables();
+ }
+
+ protected:
+  /**
+   * Execution context to use for the test
+   */
+  std::unique_ptr<exec::ExecutionContext> exec_ctx_;
+};
 
 // NOLINTNEXTLINE
 TEST_F(TableVectorIteratorTest, EmptyIteratorTest) {
   //
   // Check to see that iteration doesn't begin without an input block
   //
-  auto *exec = sql::ExecutionStructures::Instance();
-  auto test_db_ns = exec->GetTestDBAndNS();
-  auto txn = exec->GetTxnManager()->BeginTransaction();
-  auto catalog_table = exec->GetCatalog()->GetUserTable(txn, test_db_ns.first, test_db_ns.second, "empty_table");
-  TableVectorIterator iter(!test_db_ns.first, !test_db_ns.second, !catalog_table->Oid(), txn);
+  auto catalog_table = exec_ctx_->GetAccessor()->GetUserTable("empty_table");
+  TableVectorIterator iter(!catalog_table->Oid(), exec_ctx_.get());
   iter.Init();
   while (iter.Advance()) {
     FAIL() << "Empty table should have no tuples";
   }
-  exec->GetTxnManager()->Commit(txn, [](void *) {}, nullptr);
 }
 
 // NOLINTNEXTLINE
@@ -32,11 +43,8 @@ TEST_F(TableVectorIteratorTest, SimpleIteratorTest) {
   // Simple test to ensure we iterate over the whole table
   //
 
-  auto *exec = sql::ExecutionStructures::Instance();
-  auto test_db_ns = exec->GetTestDBAndNS();
-  auto txn = exec->GetTxnManager()->BeginTransaction();
-  auto catalog_table = exec->GetCatalog()->GetUserTable(txn, test_db_ns.first, test_db_ns.second, "test_1");
-  TableVectorIterator iter(!test_db_ns.first, !test_db_ns.second, !catalog_table->Oid(), txn);
+  auto catalog_table = exec_ctx_->GetAccessor()->GetUserTable("test_1");
+  TableVectorIterator iter(!catalog_table->Oid(), exec_ctx_.get());
   iter.Init();
   ProjectedColumnsIterator *pci = iter.projected_columns_iterator();
 
@@ -48,7 +56,6 @@ TEST_F(TableVectorIteratorTest, SimpleIteratorTest) {
     pci->Reset();
   }
   EXPECT_EQ(sql::test1_size, num_tuples);
-  exec->GetTxnManager()->Commit(txn, [](void *) {}, nullptr);
 }
 
 // NOLINTNEXTLINE
@@ -58,11 +65,8 @@ TEST_F(TableVectorIteratorTest, NullableTypesIteratorTest) {
   // different
   //
 
-  auto *exec = sql::ExecutionStructures::Instance();
-  auto test_db_ns = exec->GetTestDBAndNS();
-  auto txn = exec->GetTxnManager()->BeginTransaction();
-  auto catalog_table = exec->GetCatalog()->GetUserTable(txn, test_db_ns.first, test_db_ns.second, "test_2");
-  TableVectorIterator iter(!test_db_ns.first, !test_db_ns.second, !catalog_table->Oid(), txn);
+  auto catalog_table = exec_ctx_->GetAccessor()->GetUserTable("test_2");
+  TableVectorIterator iter(!catalog_table->Oid(), exec_ctx_.get());
   iter.Init();
   ProjectedColumnsIterator *pci = iter.projected_columns_iterator();
 
@@ -74,7 +78,6 @@ TEST_F(TableVectorIteratorTest, NullableTypesIteratorTest) {
     pci->Reset();
   }
   EXPECT_EQ(sql::test2_size, num_tuples);
-  exec->GetTxnManager()->Commit(txn, [](void *) {}, nullptr);
 }
 
 }  // namespace tpl::sql::test

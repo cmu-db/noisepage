@@ -15,12 +15,12 @@ void ExecutionContext::StringAllocator::Deallocate(UNUSED char *str) {
   // No-op. Bulk de-allocated upon destruction.
 }
 
-uint32_t ExecutionContext::ComputeTupleSize(const std::shared_ptr<tpl::exec::FinalSchema> &final_schema) {
-    uint32_t tuple_size = 0;
-    for (const auto &col : final_schema->GetCols()) {
-      tuple_size += sql::ValUtil::GetSqlSize(col.GetType());
-    }
-    return tuple_size;
+uint32_t ExecutionContext::ComputeTupleSize(const terrier::planner::OutputSchema *schema) {
+  uint32_t tuple_size = 0;
+  for (const auto &col : schema->GetColumns()) {
+    tuple_size += sql::ValUtil::GetSqlSize(col.GetType());
+  }
+  return tuple_size;
 }
 
 }  // namespace tpl::exec
