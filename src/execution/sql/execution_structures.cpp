@@ -246,6 +246,9 @@ void ExecutionStructures::InitTestTables(terrier::transaction::TransactionContex
 // TODO(Amadou): Generate TPCH tables and use them to get the right schema
 void ExecutionStructures::InitTPCHOutputSchemas(terrier::transaction::TransactionContext * txn) {
   terrier::planner::OutputSchema::Column int_col{terrier::type::TypeId::INTEGER, true, nullptr};
+  terrier::planner::OutputSchema::Column real_col{terrier::type::TypeId::DECIMAL, true, nullptr};
+  terrier::planner::OutputSchema::Column date_col{terrier::type::TypeId::DATE, true, nullptr};
+  terrier::planner::OutputSchema::Column string_col{terrier::type::TypeId::VARCHAR, true, nullptr};
   // Q6 (one Integer)
   {
     std::vector<terrier::planner::OutputSchema::Column> cols{int_col};
@@ -253,12 +256,16 @@ void ExecutionStructures::InitTPCHOutputSchemas(terrier::transaction::Transactio
     test_plan_nodes_["q6.tpl"] = schema;
   }
 
-  // Q1 (ten Integers)
+  // Q1 (two strings, 7 reals, 1 int)
   {
     std::vector<terrier::planner::OutputSchema::Column> cols{};
-    for (u32 i = 0; i < u32(10); i++) {
+    for (u32 i = 0; i < u32(2); i++) {
+      cols.emplace_back(string_col);
+    }
+    for (u32 i = 0; i < u32(7); i++) {
       cols.emplace_back(int_col);
     }
+    cols.emplace_back(string_col);
     auto schema = std::make_shared<terrier::planner::OutputSchema>(cols);
     test_plan_nodes_["q1.tpl"] = schema;
   }
@@ -271,6 +278,16 @@ void ExecutionStructures::InitTPCHOutputSchemas(terrier::transaction::Transactio
     }
     auto schema = std::make_shared<terrier::planner::OutputSchema>(cols);
     test_plan_nodes_["q4.tpl"] = schema;
+  }
+
+  // Q5 (two Integers)
+  {
+    std::vector<terrier::planner::OutputSchema::Column> cols{};
+    for (u32 i = 0; i < u32(2); i++) {
+      cols.emplace_back(int_col);
+    }
+    auto schema = std::make_shared<terrier::planner::OutputSchema>(cols);
+    test_plan_nodes_["q5.tpl"] = schema;
   }
 }
 

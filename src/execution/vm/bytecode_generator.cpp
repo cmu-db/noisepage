@@ -629,7 +629,7 @@ void BytecodeGenerator::VisitBuiltinPCICall(ast::CallExpr *call, ast::Builtin bu
       emitter()->EmitPCIGet(Bytecode::PCIGetBigInt, val, pci, col_idx);
       break;
     }
-    case ast::Builtin::PCIGetBigInt: {
+    case ast::Builtin::PCIGetBigIntNull: {
       LocalVar val = execution_result()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Integer));
       auto col_idx = uint32_t(call->arguments()[1]->As<ast::LitExpr>()->int64_val());
       emitter()->EmitPCIGet(Bytecode::PCIGetBigIntNull, val, pci, col_idx);
@@ -1480,12 +1480,19 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::PCIReset:
     case ast::Builtin::PCIResetFiltered:
     case ast::Builtin::PCIGetSmallInt:
+    case ast::Builtin::PCIGetSmallIntNull:
     case ast::Builtin::PCIGetInt:
+    case ast::Builtin::PCIGetIntNull:
     case ast::Builtin::PCIGetBigInt:
+    case ast::Builtin::PCIGetBigIntNull:
     case ast::Builtin::PCIGetReal:
+    case ast::Builtin::PCIGetRealNull:
     case ast::Builtin::PCIGetDouble:
+    case ast::Builtin::PCIGetDoubleNull:
     case ast::Builtin::PCIGetDate:
-    case ast::Builtin::PCIGetVarlen: {
+    case ast::Builtin::PCIGetDateNull:
+    case ast::Builtin::PCIGetVarlen:
+    case ast::Builtin::PCIGetVarlenNull: {
       VisitBuiltinPCICall(call, builtin);
       break;
     }

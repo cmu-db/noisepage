@@ -1578,12 +1578,19 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::PCIReset:
     case ast::Builtin::PCIResetFiltered:
     case ast::Builtin::PCIGetSmallInt:
+    case ast::Builtin::PCIGetSmallIntNull:
     case ast::Builtin::PCIGetInt:
+    case ast::Builtin::PCIGetIntNull:
     case ast::Builtin::PCIGetBigInt:
+    case ast::Builtin::PCIGetBigIntNull:
     case ast::Builtin::PCIGetReal:
+    case ast::Builtin::PCIGetRealNull:
     case ast::Builtin::PCIGetDouble:
+    case ast::Builtin::PCIGetDoubleNull:
     case ast::Builtin::PCIGetDate:
-    case ast::Builtin::PCIGetVarlen: {
+    case ast::Builtin::PCIGetDateNull:
+    case ast::Builtin::PCIGetVarlen:
+    case ast::Builtin::PCIGetVarlenNull: {
       CheckBuiltinPCICall(call, builtin);
       break;
     }

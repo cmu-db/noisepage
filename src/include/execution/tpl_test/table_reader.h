@@ -111,7 +111,6 @@ class TableReader {
   void WriteTableCol(storage::ProjectedRow * insert_pr, uint16_t col_offset, type::TypeId type, csv::CSVField * field) {
     if (*field == null_string) {
       insert_pr->SetNull(col_offset);
-      std::cout << "setting null" << std::endl;
       return;
     }
     byte * insert_offset = insert_pr->AccessForceNotNull(col_offset);

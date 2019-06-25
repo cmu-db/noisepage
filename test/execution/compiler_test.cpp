@@ -656,7 +656,7 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoin) {
 }
 
 
-/*
+
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, TPCHQ1Test) {
   // TODO: This should be in the benchmarks
@@ -777,8 +777,14 @@ TEST_F(CompilerTest, TPCHQ1Test) {
             .Build();
   }
   // Compile and Run
-  CompileAndRun(agg.get(), txn);
+  // TODO(How to auto check this test?)
+  CorrectnessFn correcteness_fn;
+  RowChecker row_checker;
+  GenericChecker checker(row_checker, correcteness_fn);
+  // Compile and Run
+  CompileAndRun(agg.get(), txn, &checker);
+  checker.CheckCorrectness();
   txn_mgr->Commit(txn, nullptr, nullptr);
 }
-*/
+
 }  // namespace terrier::planner

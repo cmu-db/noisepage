@@ -14,7 +14,7 @@ struct State {
   join_table5: JoinHashTable
   agg_table: AggregationHashTable
   sorter: Sorter
-  count: int32 // For debugging
+  count: int64 // For debugging
 }
 
 // Row from region table
@@ -140,11 +140,11 @@ fun checkJoinKey4(execCtx: *ExecutionContext, probe: *LineitemRow, build: *JoinR
   return true
 }
 
-fun checkJoinKey5(execCtx: *ExecutionContext, probe: *SupplyRow, build: *JoinRow4) -> bool {
-  if (probe.s_nationkey != build.n_nationkey) {
+fun checkJoinKey5(execCtx: *ExecutionContext, probe: *JoinRow4, build: *SupplyRow) -> bool {
+  if (probe.n_nationkey != build.s_nationkey) {
     return false
   }
-  if (probe.s_suppkey != build.l_suppkey) {
+  if (probe.l_suppkey != build.s_suppkey) {
     return false
   }
   return true
@@ -174,7 +174,7 @@ fun setUpState(execCtx: *ExecutionContext, state: *State) -> nil {
   @joinHTInit(&state.join_table2, @execCtxGetMem(execCtx), @sizeOf(JoinRow1))
   @joinHTInit(&state.join_table3, @execCtxGetMem(execCtx), @sizeOf(JoinRow2))
   @joinHTInit(&state.join_table4, @execCtxGetMem(execCtx), @sizeOf(JoinRow3))
-  @joinHTInit(&state.join_table5, @execCtxGetMem(execCtx), @sizeOf(JoinRow4))
+  @joinHTInit(&state.join_table5, @execCtxGetMem(execCtx), @sizeOf(SupplyRow))
 
   // Initialize aggregate
   @aggHTInit(&state.agg_table, @execCtxGetMem(execCtx), @sizeOf(AggPayload))
@@ -206,8 +206,7 @@ fun pipeline1(execCtx: *ExecutionContext, state: *State) -> nil {
       region_row.r_regionkey = @pciGetInt(vec, 1)
       region_row.r_name = @pciGetInt(vec, 0)
       // TODO: Replace check with varlen comparison to 'ASIA'
-      if (region_row.r_name < 500) {
-
+      if (region_row.r_name < 100) {
         // Step 2: Insert into HT1
         var hash_val = @hash(region_row.r_regionkey)
         var build_row = @ptrCast(*RegionRow, @joinHTInsert(&state.join_table1, hash_val))
@@ -232,20 +231,20 @@ fun pipeline2(execCtx: *ExecutionContext, state: *State) -> nil {
       nation_row.n_name = @pciGetInt(vec, 1)
       nation_row.n_nationkey = @pciGetInt(vec, 1)
       nation_row.n_regionkey = @pciGetInt(vec, 1)
+      if (@pciGetInt(vec, 0) < 10) {
+        // Step 2: Probe HT1
+        var hash_val = @hash(nation_row.n_regionkey)
+        var hti: JoinHashTableIterator
+        for (@joinHTIterInit(&hti, &state.join_table1, hash_val); @joinHTIterHasNext(&hti, checkJoinKey1, execCtx, &nation_row);) {
+          var region_row = @ptrCast(*RegionRow, @joinHTIterGetRow(&hti))
 
-      // Step 2: Probe HT1
-      var hash_val = @hash(nation_row.n_regionkey)
-      var hti: JoinHashTableIterator
-      for (@joinHTIterInit(&hti, &state.join_table1, hash_val); @joinHTIterHasNext(&hti, checkJoinKey1, execCtx, &nation_row);) {
-        var region_row = @ptrCast(*RegionRow, @joinHTIterGetRow(&hti))
-
-        // Step 3: Insert into join table 2
-        var hash_val2 = @hash(nation_row.n_nationkey)
-        var build_row = @ptrCast(*JoinRow1, @joinHTInsert(&state.join_table2, hash_val))
-        build_row.n_nationkey = nation_row.n_nationkey
-        build_row.n_name = nation_row.n_name
+          // Step 3: Insert into join table 2
+          var hash_val2 = @hash(nation_row.n_nationkey)
+          var build_row = @ptrCast(*JoinRow1, @joinHTInsert(&state.join_table2, hash_val))
+          build_row.n_nationkey = nation_row.n_nationkey
+          build_row.n_name = nation_row.n_name
+        }
       }
-
     }
   }
   // Step 4: Build HT2
@@ -264,21 +263,21 @@ fun pipeline3(execCtx: *ExecutionContext, state: *State) -> nil {
     for (; @pciHasNext(vec); @pciAdvance(vec)) {
       customer_row.c_custkey = @pciGetInt(vec, 1)
       customer_row.c_nationkey = @pciGetInt(vec, 1)
+      if (@pciGetInt(vec, 0) < 10) {
+        // Step 2: Probe HT2
+        var hash_val = @hash(customer_row.c_nationkey)
+        var hti: JoinHashTableIterator
+        for (@joinHTIterInit(&hti, &state.join_table2, hash_val); @joinHTIterHasNext(&hti, checkJoinKey2, execCtx, &customer_row);) {
+          var join_row1 = @ptrCast(*JoinRow1, @joinHTIterGetRow(&hti))
 
-      // Step 2: Probe HT2
-      var hash_val = @hash(customer_row.c_nationkey)
-      var hti: JoinHashTableIterator
-      for (@joinHTIterInit(&hti, &state.join_table2, hash_val); @joinHTIterHasNext(&hti, checkJoinKey2, execCtx, &customer_row);) {
-        var join_row1 = @ptrCast(*JoinRow1, @joinHTIterGetRow(&hti))
-
-        // Step 3: Insert into join table 3
-        var hash_val3 = @hash(customer_row.c_custkey)
-        var build_row = @ptrCast(*JoinRow2, @joinHTInsert(&state.join_table3, hash_val))
-        build_row.n_nationkey = join_row1.n_nationkey
-        build_row.n_name = join_row1.n_name
-        build_row.c_custkey = customer_row.c_custkey
+          // Step 3: Insert into join table 3
+          var hash_val3 = @hash(customer_row.c_custkey)
+          var build_row = @ptrCast(*JoinRow2, @joinHTInsert(&state.join_table3, hash_val))
+          build_row.n_nationkey = join_row1.n_nationkey
+          build_row.n_name = join_row1.n_name
+          build_row.c_custkey = customer_row.c_custkey
+        }
       }
-
     }
   }
   // Step 4: Build HT3
@@ -299,14 +298,13 @@ fun pipeline4(execCtx: *ExecutionContext, state: *State) -> nil {
       orders_row.o_orderkey = @pciGetInt(vec, 1)
       orders_row.o_orderdate = @pciGetInt(vec, 0)
       // TODO: Replace by a date check
-      if (orders_row.o_orderdate < 400) {
+      if (orders_row.o_orderdate < 10) {
 
         // Step 2: Probe HT3
         var hash_val = @hash(orders_row.o_custkey)
         var hti: JoinHashTableIterator
         for (@joinHTIterInit(&hti, &state.join_table3, hash_val); @joinHTIterHasNext(&hti, checkJoinKey3, execCtx, &orders_row);) {
           var join_row2 = @ptrCast(*JoinRow2, @joinHTIterGetRow(&hti))
-
           // Step 3: Insert into join table 4
           var hash_val4 = @hash(orders_row.o_orderkey)
           var build_row = @ptrCast(*JoinRow3, @joinHTInsert(&state.join_table4, hash_val))
@@ -333,14 +331,18 @@ fun pipeline5(execCtx: *ExecutionContext, state: *State) -> nil {
     for (; @pciHasNext(vec); @pciAdvance(vec)) {
       supply_row.s_suppkey = @pciGetInt(vec, 1)
       supply_row.s_nationkey = @pciGetInt(vec, 1)
-
-      // Step 2: Insert into HT5
-      var hash_val = @hash(supply_row.s_suppkey)
-      var build_row = @ptrCast(*SupplyRow, @joinHTInsert(&state.join_table5, hash_val))
-      build_row.s_suppkey = supply_row.s_suppkey
-      build_row.s_nationkey = supply_row.s_nationkey
+      if (@pciGetInt(vec, 0) < 10) {
+        // Step 2: Insert into HT5
+        var hash_val = @hash(supply_row.s_suppkey)
+        var build_row = @ptrCast(*SupplyRow, @joinHTInsert(&state.join_table5, hash_val))
+        build_row.s_suppkey = supply_row.s_suppkey
+        build_row.s_nationkey = supply_row.s_nationkey
+      }
     }
   }
+  // Build
+  @joinHTBuild(&state.join_table5)
+  @tableIterClose(&tvi)
 }
 
 
@@ -357,36 +359,41 @@ fun pipeline6(execCtx: *ExecutionContext, state: *State) -> nil {
       lineitem_row.l_suppkey = @pciGetInt(vec, 1)
       lineitem_row.l_extendedprice = @pciGetInt(vec, 1)
       lineitem_row.l_discount = @pciGetInt(vec, 1)
+      if (@pciGetInt(vec, 0) < 100) {
 
-      // Step 2: Probe HT4
-      var hash_val = @hash(lineitem_row.l_orderkey)
-      var hti: JoinHashTableIterator
-      for (@joinHTIterInit(&hti, &state.join_table4, hash_val); @joinHTIterHasNext(&hti, checkJoinKey4, execCtx, &lineitem_row);) {
-        var join_row3 = @ptrCast(*JoinRow3, @joinHTIterGetRow(&hti))
+        // Step 2: Probe HT4
+        var hash_val = @hash(lineitem_row.l_orderkey)
+        var hti: JoinHashTableIterator
+        for (@joinHTIterInit(&hti, &state.join_table4, hash_val); @joinHTIterHasNext(&hti, checkJoinKey4, execCtx, &lineitem_row);) {
+          var join_row3 = @ptrCast(*JoinRow3, @joinHTIterGetRow(&hti))
+          if (join_row3.n_nationkey < 100) {
+            // Step 3: Probe HT5
+            var hash_val2 = @hash(lineitem_row.l_suppkey)
+            var join_row4 : JoinRow4 // Materialize the right pipeline
+            join_row4.n_name = join_row3.n_name
+            join_row4.n_nationkey = join_row3.n_nationkey
+            join_row4.l_suppkey = lineitem_row.l_suppkey
+            join_row4.l_extendedprice = lineitem_row.l_extendedprice
+            join_row4.l_discount = lineitem_row.l_discount
+            var hti2: JoinHashTableIterator
+            @joinHTIterInit(&hti2, &state.join_table5, hash_val2)
+            for (@joinHTIterInit(&hti2, &state.join_table5, hash_val2); @joinHTIterHasNext(&hti2, checkJoinKey5, execCtx, &join_row4);) {
+              var supply_row = @ptrCast(*SupplyRow, @joinHTIterGetRow(&hti2))
 
-        // Step 3: Probe HT5
-        var hash_val2 = @hash(lineitem_row.l_suppkey)
-        var hti2: JoinHashTableIterator
-        var join_row4 : JoinRow4 // Materialize the right pipeline
-        join_row4.n_name = join_row3.n_name
-        join_row4.n_nationkey = join_row3.n_nationkey
-        join_row4.l_suppkey = lineitem_row.l_suppkey
-        join_row4.l_extendedprice = lineitem_row.l_extendedprice
-        join_row4.l_discount = lineitem_row.l_discount
-        for (@joinHTIterInit(&hti2, &state.join_table5, hash_val2); @joinHTIterHasNext(&hti2, checkJoinKey5, execCtx, &join_row4);) {
-          var supply_row = @ptrCast(*SupplyRow, @joinHTIterGetRow(&hti))
-
-          // Step 4: Build Agg HT
-          var agg_input : AggValues // Materialize
-          agg_input.n_name = join_row4.n_name
-          agg_input.revenue = @intToSql(0) // join_row4.l_extendedprice * (1 - join_row4.l_discount)
-          var agg_hash_val = @hash(join_row3.n_name)
-          var agg_payload = @ptrCast(*AggPayload, @aggHTLookup(&state.agg_table, agg_hash_val, checkAggKey, &agg_input))
-          if (agg_payload == nil) {
-            agg_payload.n_name = join_row3.n_name
-            @aggInit(&agg_payload.revenue)
+              // Step 4: Build Agg HT
+              var agg_input : AggValues // Materialize
+              agg_input.n_name = join_row4.n_name
+              agg_input.revenue = @intToSql(1) // join_row4.l_extendedprice * (1 - join_row4.l_discount)
+              var agg_hash_val = @hash(join_row3.n_name)
+              var agg_payload = @ptrCast(*AggPayload, @aggHTLookup(&state.agg_table, agg_hash_val, checkAggKey, &agg_input))
+              if (agg_payload == nil) {
+                agg_payload = @ptrCast(*AggPayload, @aggHTInsert(&state.agg_table, agg_hash_val))
+                agg_payload.n_name = agg_input.n_name
+                @aggInit(&agg_payload.revenue)
+              }
+              @aggAdvance(&agg_payload.revenue, &agg_input.revenue)
+            }
           }
-          @aggAdvance(&agg_payload.revenue, &agg_input.revenue)
         }
       }
     }
@@ -395,7 +402,7 @@ fun pipeline6(execCtx: *ExecutionContext, state: *State) -> nil {
 }
 
 // Scan Agg HT table, sort
-fun pipeline6(execCtx: *ExecutionContext, state: *State) -> nil {
+fun pipeline7(execCtx: *ExecutionContext, state: *State) -> nil {
   var agg_ht_iter: AggregationHashTableIterator
   var agg_iter = &agg_ht_iter
   // Step 1: Iterate through Agg Hash Table
@@ -411,7 +418,7 @@ fun pipeline6(execCtx: *ExecutionContext, state: *State) -> nil {
 }
 
 // Scan sorter, output
-fun pipeline7(execCtx: *ExecutionContext, state: *State) -> nil {
+fun pipeline8(execCtx: *ExecutionContext, state: *State) -> nil {
   var sort_iter: SorterIterator
   var out: *OutputStruct
   for (@sorterIterInit(&sort_iter, &state.sorter); @sorterIterHasNext(&sort_iter); @sorterIterNext(&sort_iter)) {
@@ -433,6 +440,7 @@ fun execQuery(execCtx: *ExecutionContext, state: *State) -> nil {
   pipeline5(execCtx, state)
   pipeline6(execCtx, state)
   pipeline7(execCtx, state)
+  pipeline8(execCtx, state)
 }
 
 
