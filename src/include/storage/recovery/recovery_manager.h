@@ -49,13 +49,7 @@ class RecoveryManager {
   // structure
   std::unordered_map<TupleSlot, TupleSlot> tuple_slot_map_;
 
-  // Used during recovery from log. Maps txn id to transaction object
-  std::unordered_map<transaction::timestamp_t, transaction::TransactionContext *> txn_map_;
-
-  // Used during recovery from log. Maps a txn id to its changes we have buffered. When a change fails due to a
-  // write-write conflict, we must buffer it's changes until the other txn that caused the conflict aborts, or we abort.
-  // Needing to buffer changes is rare because in the average case, an aborting txn will never flush its changes to the
-  // log
+  // Used during recovery from log. Maps a the txn id from the persisted txn to its changes we have buffered. We buffer changes until commit time. This ensures serializability, and allows us to skip changes from aborted txns.
   std::unordered_map<transaction::timestamp_t, std::vector<LogRecord *>> buffered_changes_map_;
 
   /**
@@ -77,17 +71,8 @@ class RecoveryManager {
    * record. If the replay fails, the the function will return false, and the caller should buffer the log record to
    * apply it later.
    * @param log_record record to replay
-   * @return true if record was succesfully replayed, otherwise false
-   *
    */
-  bool ReplayRecord(LogRecord *log_record);
-
-  /**
-   * Gets a transaction from the txn_map_. If the txn does not exist yet, it will create it.
-   * @param txn_id id for txn requested
-   * @return pointer to txn requested
-   */
-  transaction::TransactionContext *GetTransaction(transaction::timestamp_t txn_id);
+  void ReplayRecord(LogRecord *log_record);
 
   /**
    * @param db_oid database oid for requested table

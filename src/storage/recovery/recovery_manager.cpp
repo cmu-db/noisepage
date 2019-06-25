@@ -5,97 +5,69 @@
 #include "storage/write_ahead_log/log_io.h"
 namespace terrier::storage {
 
-transaction::TransactionContext *RecoveryManager::GetTransaction(transaction::timestamp_t txn_id) {
-  // If we haven't seen this txn yet, then begin the transaction
-  if (txn_map_.find(txn_id) == txn_map_.end()) {
-    // TODO(Gus): Replace the following line when timestamp manager is brought in
-    auto *txn = txn_manager_->BeginTransaction(txn_id);
-    TERRIER_ASSERT(txn->StartTime() == txn_id, "Txn timestamp should be the same as logged timestamp");
-    txn_map_.emplace(txn->StartTime(), txn);
-  }
-  return txn_map_[txn_id];
-}
+void RecoveryManager::ReplayRecord(LogRecord *log_record) {
+  TERRIER_ASSERT(log_record->RecordType() == LogRecordType::COMMIT || log_record->RecordType() == LogRecordType::ABORT,
+  "Records should only be replayed when a commit or abort record is seen");
 
-bool RecoveryManager::ReplayRecord(LogRecord *log_record) {
-  switch (log_record->RecordType()) {
-    case (LogRecordType::COMMIT): {
-      // If we have buffered changes, apply those changes. They should all succeed. After applying we can safely delete
-      // the record
-      for (auto *buffered_record : buffered_changes_map_[log_record->TxnBegin()]) {
-        bool result UNUSED_ATTRIBUTE = ReplayRecord(buffered_record);
-        TERRIER_ASSERT(result, "Buffered changes should succeed during commit");
-        delete[] reinterpret_cast<byte *>(buffered_record);
-      }
-      buffered_changes_map_.erase(log_record->TxnBegin());
-
-      // Commit the txn
-      TERRIER_ASSERT(txn_map_.find(log_record->TxnBegin()) != txn_map_.end(),
-                     "Txn must already exist if CommitRecord is found");
-      txn_manager_->Commit(txn_map_[log_record->TxnBegin()], transaction::TransactionUtil::EmptyCallback, nullptr);
-      txn_map_.erase(log_record->TxnBegin());
-      break;
+  // If we are aborting, we can free and discard all buffered changes. Nothing needs to be replayed
+  if (log_record->RecordType() == LogRecordType::ABORT) {
+    for (auto *buffered_record : buffered_changes_map_[log_record->TxnBegin()]) {
+      delete[] reinterpret_cast<byte *>(buffered_record);
     }
+    buffered_changes_map_.erase(log_record->TxnBegin());
+  } else {
+    TERRIER_ASSERT(log_record->RecordType() == LogRecordType::COMMIT, "Should only replay when we see a commit record");
+    // Begin a txn to replay changes with
+    auto *txn = txn_manager_->BeginTransaction();
 
-    case (LogRecordType::ABORT): {
-      // If we are aborting, we can discard all buffered changes
-      for (auto *buffered_record : buffered_changes_map_[log_record->TxnBegin()]) {
-        delete[] reinterpret_cast<byte *>(buffered_record);
-      }
-      buffered_changes_map_.erase(log_record->TxnBegin());
+    // Apply all buffered changes. They should all succeed. After applying we can safely delete the record
+    for (auto *buffered_record : buffered_changes_map_[log_record->TxnBegin()]) {
+      bool result UNUSED_ATTRIBUTE = true;
 
-      // Abort the txn
-      TERRIER_ASSERT(txn_map_.find(log_record->TxnBegin()) != txn_map_.end(),
-                     "Txn must already exist if AbortRecord is found");
-      txn_manager_->Abort(txn_map_[log_record->TxnBegin()]);
-      txn_map_.erase(log_record->TxnBegin());
-      break;
-    }
+      if (buffered_record->RecordType() == LogRecordType::DELETE) {
+        auto *delete_record = buffered_record->GetUnderlyingRecordBodyAs<DeleteRecord>();
 
-    case (LogRecordType::DELETE): {
-      auto *delete_record = log_record->GetUnderlyingRecordBodyAs<DeleteRecord>();
+        // Get tuple slot
+        TERRIER_ASSERT(tuple_slot_map_.find(delete_record->GetTupleSlot()) != tuple_slot_map_.end(),
+                       "Tuple slot must already be mapped if Delete record is found");
+        auto new_tuple_slot = tuple_slot_map_[delete_record->GetTupleSlot()];
 
-      auto txn = GetTransaction(log_record->TxnBegin());
-      // Get tuple slot
-      TERRIER_ASSERT(tuple_slot_map_.find(delete_record->GetTupleSlot()) != tuple_slot_map_.end(),
-                     "Tuple slot must already be mapped if Delete record is found");
-      auto new_tuple_slot = tuple_slot_map_[delete_record->GetTupleSlot()];
-
-      // Delete, and return success or not
-      auto *sql_table = GetSqlTable(delete_record->GetDatabaseOid(), delete_record->GetTableOid());
-      auto result = sql_table->Delete(txn, new_tuple_slot);
-      // If delete succeeded, we can delete the TupleSlot from the map
-      if (result) tuple_slot_map_.erase(delete_record->GetTupleSlot());
-      return result;
-    }
-
-    case (LogRecordType::REDO): {
-      auto *redo_record = log_record->GetUnderlyingRecordBodyAs<RedoRecord>();
-
-      auto txn = GetTransaction(log_record->TxnBegin());
-
-      // Search the map for the tuple slot. If the tuple slot is not in the map, then we have not seen this tuple slot
-      // before, so this record is an Insert. If we have seen it before, then the record is an Update
-      auto *sql_table = GetSqlTable(redo_record->GetDatabaseOid(), redo_record->GetTableOid());
-      auto search = tuple_slot_map_.find(redo_record->GetTupleSlot());
-      if (search == tuple_slot_map_.end()) {
-        // Save the old tuple slot, and reset the tuple slot in the record
-        auto old_tuple_slot = redo_record->GetTupleSlot();
-        redo_record->SetTupleSlot(TupleSlot(nullptr, 0));
-        // Insert will always succeed
-        auto new_tuple_slot = sql_table->Insert(txn, redo_record);
-        // Create a mapping of the old to new tuple. The new tuple slot should be used for updates and deletes.
-        tuple_slot_map_[old_tuple_slot] = new_tuple_slot;
+        // Delete the tuple
+        auto *sql_table = GetSqlTable(delete_record->GetDatabaseOid(), delete_record->GetTableOid());
+        result = sql_table->Delete(txn, new_tuple_slot);
+        // We can delete the TupleSlot from the map
+        tuple_slot_map_.erase(delete_record->GetTupleSlot());
       } else {
-        auto new_tuple_slot = search->second;
-        redo_record->SetTupleSlot(new_tuple_slot);
-        // We should return the output of update. An update can fail for a write write conflict, but this will be
-        // resolved when we see an abort record. The caller of this function will buffer the redo_record if it fails
-        return sql_table->Update(txn, redo_record);
+        TERRIER_ASSERT(buffered_record->RecordType() == LogRecordType::REDO, "Must be a redo record");
+        auto *redo_record = buffered_record->GetUnderlyingRecordBodyAs<RedoRecord>();
+
+        // Search the map for the tuple slot. If the tuple slot is not in the map, then we have not seen this tuple slot
+        // before, so this record is an Insert. If we have seen it before, then the record is an Update
+        auto *sql_table = GetSqlTable(redo_record->GetDatabaseOid(), redo_record->GetTableOid());
+        auto search = tuple_slot_map_.find(redo_record->GetTupleSlot());
+        if (search == tuple_slot_map_.end()) {
+          // Save the old tuple slot, and reset the tuple slot in the record
+          auto old_tuple_slot = redo_record->GetTupleSlot();
+          redo_record->SetTupleSlot(TupleSlot(nullptr, 0));
+          // Insert will always succeed
+          auto new_tuple_slot = sql_table->Insert(txn, redo_record);
+          // Create a mapping of the old to new tuple. The new tuple slot should be used for updates and deletes.
+          tuple_slot_map_[old_tuple_slot] = new_tuple_slot;
+        } else {
+          auto new_tuple_slot = search->second;
+          redo_record->SetTupleSlot(new_tuple_slot);
+          // We should return the output of update. An update can fail for a write write conflict, but this will be
+          // resolved when we see an abort record. The caller of this function will buffer the redo_record if it fails
+          result = sql_table->Update(txn, redo_record);
+        }
       }
-      break;
+      TERRIER_ASSERT(result, "Buffered changes should always succeed during commit");
+      delete[] reinterpret_cast<byte *>(buffered_record);
     }
+    buffered_changes_map_.erase(log_record->TxnBegin());
+    // Commit the txn
+    txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   }
-  return true;
 }
 
 void RecoveryManager::RecoverFromLogs() {
@@ -105,17 +77,15 @@ void RecoveryManager::RecoverFromLogs() {
   while (in.HasMore()) {
     auto *log_record = ReadNextRecord(&in);
 
-    // If replaying the record failed, then we need to buffer the record. Buffered records will be deleted when it's txn
-    // commits or aborts
-    if (!ReplayRecord(log_record)) {
-      buffered_changes_map_[log_record->TxnBegin()].push_back(log_record);
+    // If the record is a commit or abort, we replay it, which will replay all its buffered records. Otherwise, we buffer the record.
+    if (log_record->RecordType() == LogRecordType::COMMIT ||
+        log_record->RecordType() == LogRecordType::ABORT) {
+      ReplayRecord(log_record);
     } else {
-      // if the replaying succeeded, we can safely delete the record
-      delete[] reinterpret_cast<byte *>(log_record);
+      buffered_changes_map_[log_record->TxnBegin()].push_back(log_record);
     }
   }
   TERRIER_ASSERT(buffered_changes_map_.empty(), "All buffered changes should have been processed");
-  TERRIER_ASSERT(txn_map_.empty(), "All transactions should have been committed or aborted");
 }
 
 LogRecord *RecoveryManager::ReadNextRecord(storage::BufferedLogReader *in) {
