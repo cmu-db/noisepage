@@ -1,0 +1,2 @@
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ar qc ../relwithdebinfo/libbenchmark_util.a  CMakeFiles/benchmark_util.dir/util/benchmark_main.cpp.o CMakeFiles/benchmark_util.dir/util/transaction_benchmark_util.cpp.o
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ranlib ../relwithdebinfo/libbenchmark_util.a

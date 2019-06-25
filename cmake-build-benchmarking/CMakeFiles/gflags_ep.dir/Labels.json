@@ -1,0 +1,43 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles/gflags_ep"
+		},
+		{
+			"file" : "/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles/gflags_ep.rule"
+		},
+		{
+			"file" : "/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles/gflags_ep-complete.rule"
+		},
+		{
+			"file" : "/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/gflags_ep-prefix/src/gflags_ep-stamp/gflags_ep-install.rule"
+		},
+		{
+			"file" : "/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/gflags_ep-prefix/src/gflags_ep-stamp/gflags_ep-mkdir.rule"
+		},
+		{
+			"file" : "/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/gflags_ep-prefix/src/gflags_ep-stamp/gflags_ep-download.rule"
+		},
+		{
+			"file" : "/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/gflags_ep-prefix/src/gflags_ep-stamp/gflags_ep-update.rule"
+		},
+		{
+			"file" : "/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/gflags_ep-prefix/src/gflags_ep-stamp/gflags_ep-patch.rule"
+		},
+		{
+			"file" : "/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/gflags_ep-prefix/src/gflags_ep-stamp/gflags_ep-configure.rule"
+		},
+		{
+			"file" : "/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/gflags_ep-prefix/src/gflags_ep-stamp/gflags_ep-build.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"gflags_ep"
+		],
+		"name" : "gflags_ep"
+	}
+}
