@@ -38,6 +38,24 @@ class MetricsStore {
     }
   }
 
+  void RecordSerializerData(const uint64_t elapsed_ms, const uint64_t num_bytes, const uint64_t num_records) {
+    for (uint8_t component = 0; component < NUM_COMPONENTS; component++) {
+      if (enabled_metrics_[component] &&
+          MetricSupportsEvent(MetricsEventType::LOG_SERIALIZE, static_cast<MetricsComponent>(component))) {
+        metrics_[component]->OnLogSerialize(elapsed_ms, num_bytes, num_records);
+      }
+    }
+  }
+
+  void RecordConsumerData(const uint64_t elapsed_ms, const uint64_t num_bytes, const uint64_t num_records) {
+    for (uint8_t component = 0; component < NUM_COMPONENTS; component++) {
+      if (enabled_metrics_[component] &&
+          MetricSupportsEvent(MetricsEventType::LOG_CONSUME, static_cast<MetricsComponent>(component))) {
+        metrics_[component]->OnLogConsume(elapsed_ms, num_bytes, num_records);
+      }
+    }
+  }
+
   /**
    * Collector action on transaction commit
    * @param txn context of the transaction committing
