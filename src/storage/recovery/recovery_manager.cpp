@@ -68,6 +68,7 @@ void RecoveryManager::ReplayRecord(LogRecord *log_record) {
     // Commit the txn
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   }
+  delete[] reinterpret_cast<byte *>(log_record);
 }
 
 void RecoveryManager::RecoverFromLogs() {

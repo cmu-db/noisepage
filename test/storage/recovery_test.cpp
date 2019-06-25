@@ -108,6 +108,7 @@ TEST_F(RecoveryTests, SingleTableTest) {
   // Delete recovery txns
   gc_thread_ = new storage::GarbageCollectorThread(&recovery_txn_manager_, gc_period_);
   delete gc_thread_;
+  delete recovery_manager_;
   delete recovered_sql_table;
 }
 
@@ -169,6 +170,7 @@ TEST_F(RecoveryTests, HighAbortRateTest) {
   // Delete recovery txns
   gc_thread_ = new storage::GarbageCollectorThread(&recovery_txn_manager_, gc_period_);
   delete gc_thread_;
+  delete recovery_manager_;
   delete recovered_sql_table;
 }
 
