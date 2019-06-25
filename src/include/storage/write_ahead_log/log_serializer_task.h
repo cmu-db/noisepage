@@ -109,13 +109,13 @@ class LogSerializerTask : public DedicatedThreadTask {
    * Serialize out the task buffer to the current serialization buffer
    * @param buffer_to_serialize the iterator to the redo buffer to be serialized
    */
-  std::pair<uint32_t,uint32_t> SerializeBuffer(IterableBufferSegment<LogRecord> *buffer_to_serialize);
+  std::pair<uint64_t, uint64_t> SerializeBuffer(IterableBufferSegment<LogRecord> *buffer_to_serialize);
 
   /**
    * Serialize out the record to the log
    * @param record the redo record to serialise
    */
-  uint32_t SerializeRecord(const LogRecord &record);
+  uint64_t SerializeRecord(const LogRecord &record);
 
   /**
    * Serialize the data pointed to by val to current serialization buffer

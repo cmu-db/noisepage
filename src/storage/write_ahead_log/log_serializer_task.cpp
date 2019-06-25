@@ -3,7 +3,6 @@
 #include <utility>
 #include "common/scoped_timer.h"
 #include "common/thread_context.h"
-//#include "metrics/logging_metric.h"
 #include "metrics/metrics_store.h"
 #include "transaction/transaction_context.h"
 
@@ -20,8 +19,7 @@ void LogSerializerTask::LogSerializerTaskLoop() {
 }
 
 void LogSerializerTask::Process() {
-  uint32_t num_bytes = 0, num_records = 0;
-  uint64_t elapsed_ns = 0;
+  uint64_t elapsed_ns = 0, num_bytes = 0, num_records = 0;
   {
     common::ScopedTimer<std::chrono::nanoseconds> scoped_timer(&elapsed_ns);
     // In a short critical section, get all buffers to serialize. We move them to a temp queue to reduce contention
@@ -75,9 +73,9 @@ void LogSerializerTask::HandFilledBufferToWriter() {
   filled_buffer_ = nullptr;
 }
 
-std::pair<uint32_t, uint32_t> LogSerializerTask::SerializeBuffer(
+std::pair<uint64_t, uint64_t> LogSerializerTask::SerializeBuffer(
     IterableBufferSegment<LogRecord> *buffer_to_serialize) {
-  uint32_t num_bytes = 0, num_records = 0;
+  uint64_t num_bytes = 0, num_records = 0;
 
   // Iterate over all redo records in the redo buffer through the provided iterator
   for (LogRecord &record : *buffer_to_serialize) {
@@ -106,8 +104,8 @@ std::pair<uint32_t, uint32_t> LogSerializerTask::SerializeBuffer(
   return {num_bytes, num_records};
 }
 
-uint32_t LogSerializerTask::SerializeRecord(const terrier::storage::LogRecord &record) {
-  uint32_t num_bytes = 0;
+uint64_t LogSerializerTask::SerializeRecord(const terrier::storage::LogRecord &record) {
+  uint64_t num_bytes = 0;
   // First, serialize out fields common across all LogRecordType's.
 
   // Note: This is the in-memory size of the log record itself, i.e. inclusive of padding and not considering the size

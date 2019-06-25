@@ -29,26 +29,42 @@ class LoggingMetricRawData : public AbstractRawData {
     serializer_data_.emplace_front(elapsed_ns, num_bytes, num_records);
   }
 
-  void RecordConsumerData(const uint64_t elapsed_ns, const uint64_t num_bytes, const uint64_t num_records) {
-    consumer_data_.emplace_front(elapsed_ns, num_bytes, num_records);
+  void RecordConsumerData(const uint64_t write_ns, const uint64_t persist_ns, const uint64_t num_bytes,
+                          const uint64_t num_records) {
+    consumer_data_.emplace_front(write_ns, persist_ns, num_bytes, num_records);
   }
 
  private:
-  struct LoggingData {
-    LoggingData(const uint64_t elapsed_ns, const uint64_t num_bytes, const uint64_t num_records)
+  struct SerializerData {
+    SerializerData(const uint64_t elapsed_ns, const uint64_t num_bytes, const uint64_t num_records)
         : elapsed_ns_(elapsed_ns), num_bytes_(num_bytes), num_records_(num_records) {}
     const uint64_t elapsed_ns_;
     const uint64_t num_bytes_;
     const uint64_t num_records_;
   };
 
-  std::forward_list<LoggingData> serializer_data_;
-  std::forward_list<LoggingData> consumer_data_;
+  struct ConsumerData {
+    ConsumerData(const uint64_t write_ns, const uint64_t persist_ns, const uint64_t num_bytes,
+                 const uint64_t num_records)
+        : write_ns_(write_ns), persist_ns_(persist_ns), num_bytes_(num_bytes), num_records_(num_records) {}
+    const uint64_t write_ns_;
+    const uint64_t persist_ns_;
+    const uint64_t num_bytes_;
+    const uint64_t num_records_;
+  };
+
+  std::forward_list<SerializerData> serializer_data_;
+  std::forward_list<ConsumerData> consumer_data_;
 };
 
 class LoggingMetric : public AbstractMetric<LoggingMetricRawData> {
  public:
-  void OnLogSerialize(const uint64_t elapsed_ns, const uint64_t num_bytes, const uint64_t num_records) final {}
-  void OnLogConsume(const uint64_t elapsed_ns, const uint64_t num_bytes, const uint64_t num_records) final {}
+  void OnLogSerialize(const uint64_t elapsed_ns, const uint64_t num_bytes, const uint64_t num_records) final {
+    GetRawData()->RecordSerializerData(elapsed_ns, num_bytes, num_records);
+  }
+  void OnLogConsume(const uint64_t write_ns, const uint64_t persist_ns, const uint64_t num_bytes,
+                    const uint64_t num_records) final {
+    GetRawData()->RecordConsumerData(write_ns, persist_ns, num_bytes, num_records);
+  }
 };
 }  // namespace terrier::metrics

@@ -94,8 +94,9 @@ class Metric {
   virtual void OnTupleDelete(const transaction::TransactionContext &txn, catalog::db_oid_t database_oid,
                              catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) {}
 
-  virtual void OnLogSerialize(const uint64_t elapsed_ms, const uint64_t num_bytes, const uint64_t num_records) {}
-  virtual void OnLogConsume(const uint64_t elapsed_ms, const uint64_t num_bytes, const uint64_t num_records) {}
+  virtual void OnLogSerialize(const uint64_t elapsed_ns, const uint64_t num_bytes, const uint64_t num_records) {}
+  virtual void OnLogConsume(const uint64_t write_ns, const uint64_t persist_ns, const uint64_t num_bytes,
+                            const uint64_t num_records) {}
 
   /**
    * @brief Replace RawData with an empty one and return the old one.
