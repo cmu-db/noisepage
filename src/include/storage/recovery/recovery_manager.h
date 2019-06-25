@@ -35,6 +35,7 @@ class RecoveryManager {
  private:
   FRIEND_TEST(RecoveryTests, SingleTableTest);
   FRIEND_TEST(RecoveryTests, HighAbortRateTest);
+  FRIEND_TEST(RecoveryTests, MultiDatabaseTest);
   // Path to log file
   std::string log_file_path_;
 

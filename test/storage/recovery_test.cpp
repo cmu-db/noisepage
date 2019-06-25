@@ -36,26 +36,24 @@ class RecoveryTests : public TerrierTest {
   void SetUp() override {
     // Unlink log file incase one exists from previous test iteration
     unlink(LOG_FILE_NAME);
-    log_manager_ = new LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
-                                  log_persist_threshold_, &pool_);
     TerrierTest::SetUp();
   }
 
   void TearDown() override {
     // Delete log file
     unlink(LOG_FILE_NAME);
-    delete log_manager_;
     DedicatedThreadRegistry::GetInstance().TearDown();
     TerrierTest::TearDown();
   }
 };
 
-// This test inserts some tuples with a single transaction into a single table. It then recreates the test table from
+// This test inserts some tuples into a single table. It then recreates the test table from
 // the log, and verifies that this new table is the same as the original table
-// TODO(Gus): Test delete
 // NOLINTNEXTLINE
 TEST_F(RecoveryTests, SingleTableTest) {
   // Initialize table and run workload with logging enabled
+  log_manager_ = new LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
+                                log_persist_threshold_, &pool_);
   log_manager_->Start();
   LargeSqlTableTestObject tested = LargeSqlTableTestObject::Builder()
                                        .SetNumDatabases(1)
@@ -110,6 +108,7 @@ TEST_F(RecoveryTests, SingleTableTest) {
   delete gc_thread_;
   delete recovery_manager_;
   delete recovered_sql_table;
+  delete log_manager_;
 }
 
 // This test checks that we recover correctly in a high abort rate workload. We achieve the high abort rate by having
@@ -119,6 +118,8 @@ TEST_F(RecoveryTests, SingleTableTest) {
 // NOLINTNEXTLINE
 TEST_F(RecoveryTests, HighAbortRateTest) {
   // Initialize table and run workload with logging enabled
+  log_manager_ = new LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
+                                log_persist_threshold_, &pool_);
   log_manager_->Start();
   LargeSqlTableTestObject tested = LargeSqlTableTestObject::Builder()
                                        .SetNumDatabases(1)
@@ -172,6 +173,82 @@ TEST_F(RecoveryTests, HighAbortRateTest) {
   delete gc_thread_;
   delete recovery_manager_;
   delete recovered_sql_table;
+  delete log_manager_;
+}
+
+// This test inserts some tuples into multiple tables across multiple databases. It then recovers these tables, and verifies that the recovered tables are equal to the test tables.
+// NOLINTNEXTLINE
+TEST_F(RecoveryTests, MultiDatabaseTest) {
+  auto num_databases = 3;
+  auto num_tables = 5;
+  // Initialize table and run workload with logging enabled
+  log_manager_ = new LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
+                                log_persist_threshold_, &pool_);
+  log_manager_->Start();
+  LargeSqlTableTestObject tested = LargeSqlTableTestObject::Builder()
+      .SetNumDatabases(num_databases)
+      .SetNumTables(num_tables)
+      .SetMaxColumns(5)
+      .SetInitialTableSize(100)
+      .SetTxnLength(5)
+      .SetUpdateSelectDeleteRatio({0.9, 0.0, 0.1})
+      .SetBlockStore(&block_store_)
+      .SetBufferPool(&pool_)
+      .SetGenerator(&generator_)
+      .SetGcOn(true)
+      .SetVarlenAllowed(true)
+      .SetLogManager(log_manager_)
+      .build();
+
+  // Run transactions
+  tested.SimulateOltp(1000, 4);
+  log_manager_->PersistAndStop();
+
+  // Create dummy catalog containing all the tables
+  storage::RecoveryCatalog catalog;
+  for (auto &db_oid : tested.GetDatabases()) {
+    for (auto &table_oid : tested.GetTablesForDatabase(db_oid)) {
+      auto *table_schema = tested.GetSchemaForTable(db_oid, table_oid);
+      catalog[db_oid][table_oid] = new storage::SqlTable(&block_store_, *table_schema, table_oid);
+    }
+  }
+
+  // Start a transaction manager with logging disabled, we don't want to log the log replaying
+  transaction::TransactionManager recovery_txn_manager_{&pool_, true, LOGGING_DISABLED};
+
+  // Instantiate recovery manager, and recover the tables.
+  recovery_manager_ = new RecoveryManager(LOG_FILE_NAME, &catalog, &recovery_txn_manager_);
+  recovery_manager_->Recover();
+
+
+  // Check that recovered tables are equal to original tables
+  for (auto &db_oid : tested.GetDatabases()) {
+    for (auto &table_oid : tested.GetTablesForDatabase(db_oid)) {
+      auto *original_sql_table = tested.GetTable(db_oid, table_oid);
+      auto *recovered_sql_table = catalog[db_oid][table_oid];
+      EXPECT_TRUE(StorageTestUtil::SqlTableEqualDeep(original_sql_table->Layout(), original_sql_table, recovered_sql_table,
+                                                     tested.GetTupleSlotsForTable(db_oid, table_oid),
+                                                     recovery_manager_->tuple_slot_map_, &recovery_txn_manager_));
+    }
+  }
+
+  // Delete test txns
+  gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
+  delete gc_thread_;
+
+  // Delete recovery txns
+  gc_thread_ = new storage::GarbageCollectorThread(&recovery_txn_manager_, gc_period_);
+  delete gc_thread_;
+  delete recovery_manager_;
+
+  // Delete recovered tables
+  for (auto &db_oid : tested.GetDatabases()) {
+    for (auto &table_oid : tested.GetTablesForDatabase(db_oid)) {
+      delete catalog[db_oid][table_oid];
+    }
+  }
+
+  delete log_manager_;
 }
 
 }  // namespace terrier::storage
