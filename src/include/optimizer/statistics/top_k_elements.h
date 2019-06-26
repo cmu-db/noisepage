@@ -297,9 +297,10 @@ class TopKElements {
   /**
    * TopKElements Constructor
    * @param k
+   * @param width the size of the underlying sketch
    */
-  explicit TopKElements(int k) : numk_{k}, size_{0} {
-    sketch_ = new CountMinSketch<KeyType>(100);
+  explicit TopKElements(int k, uint64_t width) : numk_{k}, size_{0} {
+    sketch_ = new CountMinSketch<KeyType>(width);
   }
 
   ~TopKElements() { delete sketch_; }
@@ -574,7 +575,7 @@ class TopKElements {
     return result;
   }
 
-  /*
+  /**
    * Pop the top element of the queue
    */
   ApproxTopEntry Pop() {

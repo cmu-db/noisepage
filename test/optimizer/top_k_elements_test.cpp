@@ -15,7 +15,7 @@ class TopKElementsTests : public TerrierTest {};
 TEST_F(TopKElementsTests, SimpleArrivalOnlyTest) {
   // test TopKElements
   const int k = 5;
-  TopKElements<int> topK(k);
+  TopKElements<int> topK(k, 1000);
   EXPECT_EQ(topK.GetK(), k);
   EXPECT_EQ(topK.GetSize(), 0);
 
