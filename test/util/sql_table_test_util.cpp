@@ -19,15 +19,14 @@ void RandomSqlTableTransaction::RandomUpdate(Random *generator) {
   // Generate random database and table
   const auto database_oid = *(RandomTestUtil::UniformRandomElement(test_object_->database_oids_, generator));
   const auto table_oid = *(RandomTestUtil::UniformRandomElement(test_object_->table_oids_[database_oid], generator));
-  auto *sql_table = test_object_->tables_[database_oid][table_oid];
-  auto &layout = sql_table->Layout();
+  auto &sql_table_metadata = test_object_->tables_[database_oid][table_oid];
+  auto &layout = sql_table_metadata->table_->Layout();
 
   // Get random tuple slot to update
   storage::TupleSlot updated;
   {
-    common::SpinLatch::ScopedSpinLatch guard(&test_object_->inserted_tuples_latch_);
-    updated =
-        *(RandomTestUtil::UniformRandomElement(test_object_->inserted_tuples_[database_oid][table_oid], generator));
+    common::SpinLatch::ScopedSpinLatch guard(&sql_table_metadata->inserted_tuples_latch_);
+    updated = *(RandomTestUtil::UniformRandomElement(sql_table_metadata->inserted_tuples_, generator));
   }
   // Generate random update
   std::vector<storage::col_id_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout, generator);
@@ -35,7 +34,7 @@ void RandomSqlTableTransaction::RandomUpdate(Random *generator) {
   auto *const record = txn_->StageWrite(database_oid, table_oid, initializer);
   record->SetTupleSlot(updated);
   StorageTestUtil::PopulateRandomRow(record->Delta(), layout, 0.0, generator);
-  auto result = sql_table->Update(txn_, record);
+  auto result = sql_table_metadata->table_->Update(txn_, record);
   aborted_ = !result;
 }
 
@@ -45,27 +44,26 @@ void RandomSqlTableTransaction::RandomDelete(Random *generator) {
   // Generate random database and table
   const auto database_oid = *(RandomTestUtil::UniformRandomElement(test_object_->database_oids_, generator));
   const auto table_oid = *(RandomTestUtil::UniformRandomElement(test_object_->table_oids_[database_oid], generator));
-  auto *sql_table = test_object_->tables_[database_oid][table_oid];
+  auto &sql_table_metadata = test_object_->tables_[database_oid][table_oid];
 
   // Get random tuple slot to delete
   storage::TupleSlot deleted;
   {
-    common::SpinLatch::ScopedSpinLatch guard(&test_object_->inserted_tuples_latch_);
+    common::SpinLatch::ScopedSpinLatch guard(&sql_table_metadata->inserted_tuples_latch_);
     // If we run out of tuples to delete, just return
-    if (test_object_->inserted_tuples_[database_oid][table_oid].empty()) return;
-    deleted =
-        *(RandomTestUtil::UniformRandomElement(test_object_->inserted_tuples_[database_oid][table_oid], generator));
+    if (sql_table_metadata->inserted_tuples_.empty()) return;
+    deleted = *(RandomTestUtil::UniformRandomElement(sql_table_metadata->inserted_tuples_, generator));
   }
 
   // Generate random delete
   txn_->StageDelete(database_oid, table_oid, deleted);
-  auto result = sql_table->Delete(txn_, deleted);
+  auto result = sql_table_metadata->table_->Delete(txn_, deleted);
   aborted_ = !result;
 
   // Delete tuple from list of inserted tuples if successful
   if (result) {
-    common::SpinLatch::ScopedSpinLatch guard(&test_object_->inserted_tuples_latch_);
-    auto &tuples = test_object_->inserted_tuples_[database_oid][table_oid];
+    common::SpinLatch::ScopedSpinLatch guard(&sql_table_metadata->inserted_tuples_latch_);
+    auto &tuples = sql_table_metadata->inserted_tuples_;
     for (auto it = tuples.begin(); it != tuples.end(); it++) {
       if (*it == deleted) {
         tuples.erase(it);
@@ -81,23 +79,20 @@ void RandomSqlTableTransaction::RandomSelect(Random *generator) {
   // Generate random database and table
   const auto database_oid = *(RandomTestUtil::UniformRandomElement(test_object_->database_oids_, generator));
   const auto table_oid = *(RandomTestUtil::UniformRandomElement(test_object_->table_oids_[database_oid], generator));
-  auto *sql_table = test_object_->tables_[database_oid][table_oid];
+  auto &sql_table_metadata = test_object_->tables_[database_oid][table_oid];
 
   storage::TupleSlot selected;
   {
-    common::SpinLatch::ScopedSpinLatch guard(&test_object_->inserted_tuples_latch_);
-    selected =
-        *(RandomTestUtil::UniformRandomElement(test_object_->inserted_tuples_[database_oid][table_oid], generator));
+    common::SpinLatch::ScopedSpinLatch guard(&sql_table_metadata->inserted_tuples_latch_);
+    selected = *(RandomTestUtil::UniformRandomElement(sql_table_metadata->inserted_tuples_, generator));
   }
 
   auto initializer = storage::ProjectedRowInitializer::Create(
-      sql_table->Layout(), StorageTestUtil::ProjectionListAllColumns(sql_table->Layout()));
+      sql_table_metadata->table_->Layout(),
+      StorageTestUtil::ProjectionListAllColumns(sql_table_metadata->table_->Layout()));
 
-  // TODO(Gus): This is expensive, make more efficient
-  auto buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
-  storage::ProjectedRow *select = initializer.InitializeRow(buffer);
-  sql_table->Select(txn_, selected, select);
-  delete[] buffer;
+  storage::ProjectedRow *select = initializer.InitializeRow(sql_table_metadata->buffer_);
+  sql_table_metadata->table_->Select(txn_, selected, select);
 }
 
 void RandomSqlTableTransaction::Finish() {
@@ -127,14 +122,13 @@ LargeSqlTableTestObject::LargeSqlTableTestObject(uint16_t num_databases, uint16_
 
 LargeSqlTableTestObject::~LargeSqlTableTestObject() {
   if (!gc_on_) delete initial_txn_;
-  for (auto db_pair : tables_) {
-    for (auto table_pair : db_pair.second) {
-      delete table_pair.second;
-    }
-  }
-  for (auto db_pair : schemas_) {
-    for (auto table_pair : db_pair.second) {
-      delete table_pair.second;
+  for (auto &db_pair : tables_) {
+    for (auto &table_pair : db_pair.second) {
+      auto *metadata = table_pair.second;
+      delete metadata->buffer_;
+      delete metadata->schema_;
+      delete metadata->table_;
+      delete metadata;
     }
   }
 }
@@ -206,8 +200,6 @@ void LargeSqlTableTestObject::PopulateInitialTables(uint16_t num_databases, uint
       auto *schema = varlen_allowed ? StorageTestUtil::RandomSchemaWithVarlens(max_columns, generator)
                                     : StorageTestUtil::RandomSchemaNoVarlen(max_columns, generator);
       auto *sql_table = new storage::SqlTable(block_store, *schema, table_oid);
-      tables_[database_oid][table_oid] = sql_table;
-      schemas_[database_oid][table_oid] = schema;
 
       // Create row initializer
       auto &layout = sql_table->Layout();
@@ -215,12 +207,22 @@ void LargeSqlTableTestObject::PopulateInitialTables(uint16_t num_databases, uint
           storage::ProjectedRowInitializer::Create(layout, StorageTestUtil::ProjectionListAllColumns(layout));
 
       // Populate table
+      std::vector<storage::TupleSlot> inserted_tuples;
       for (uint32_t i = 0; i < num_tuples; i++) {
         auto *const redo = initial_txn_->StageWrite(database_oid, table_oid, initializer);
         StorageTestUtil::PopulateRandomRow(redo->Delta(), layout, 0.0, generator);
         const storage::TupleSlot inserted = sql_table->Insert(initial_txn_, redo);
-        inserted_tuples_[database_oid][table_oid].emplace_back(inserted);
+        inserted_tuples.emplace_back(inserted);
       }
+
+      // Create metadata object
+      auto *metadata = new SqlTableMetadata();
+      metadata->table_ = sql_table;
+      metadata->schema_ = schema;
+      metadata->inserted_tuples_ = std::move(inserted_tuples);
+      metadata->buffer_ = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+      tables_[database_oid][table_oid] = metadata;
+
       curr_table_oid++;
     }
   }

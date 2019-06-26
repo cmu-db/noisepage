@@ -176,8 +176,8 @@ TEST_F(RecoveryTests, HighAbortRateTest) {
   delete log_manager_;
 }
 
-// This test inserts some tuples into multiple tables across multiple databases. It then recovers these tables, and verifies that the recovered tables are equal to the test tables.
-// NOLINTNEXTLINE
+// This test inserts some tuples into multiple tables across multiple databases. It then recovers these tables, and
+// verifies that the recovered tables are equal to the test tables. NOLINTNEXTLINE
 TEST_F(RecoveryTests, MultiDatabaseTest) {
   auto num_databases = 3;
   auto num_tables = 5;
@@ -186,22 +186,22 @@ TEST_F(RecoveryTests, MultiDatabaseTest) {
                                 log_persist_threshold_, &pool_);
   log_manager_->Start();
   LargeSqlTableTestObject tested = LargeSqlTableTestObject::Builder()
-      .SetNumDatabases(num_databases)
-      .SetNumTables(num_tables)
-      .SetMaxColumns(5)
-      .SetInitialTableSize(100)
-      .SetTxnLength(5)
-      .SetUpdateSelectDeleteRatio({0.9, 0.0, 0.1})
-      .SetBlockStore(&block_store_)
-      .SetBufferPool(&pool_)
-      .SetGenerator(&generator_)
-      .SetGcOn(true)
-      .SetVarlenAllowed(true)
-      .SetLogManager(log_manager_)
-      .build();
+                                       .SetNumDatabases(num_databases)
+                                       .SetNumTables(num_tables)
+                                       .SetMaxColumns(5)
+                                       .SetInitialTableSize(100)
+                                       .SetTxnLength(5)
+                                       .SetUpdateSelectDeleteRatio({0.9, 0.0, 0.1})
+                                       .SetBlockStore(&block_store_)
+                                       .SetBufferPool(&pool_)
+                                       .SetGenerator(&generator_)
+                                       .SetGcOn(true)
+                                       .SetVarlenAllowed(true)
+                                       .SetLogManager(log_manager_)
+                                       .build();
 
   // Run transactions
-  tested.SimulateOltp(1000, 4);
+  tested.SimulateOltp(100, 4);
   log_manager_->PersistAndStop();
 
   // Create dummy catalog containing all the tables
@@ -220,15 +220,14 @@ TEST_F(RecoveryTests, MultiDatabaseTest) {
   recovery_manager_ = new RecoveryManager(LOG_FILE_NAME, &catalog, &recovery_txn_manager_);
   recovery_manager_->Recover();
 
-
   // Check that recovered tables are equal to original tables
   for (auto &db_oid : tested.GetDatabases()) {
     for (auto &table_oid : tested.GetTablesForDatabase(db_oid)) {
       auto *original_sql_table = tested.GetTable(db_oid, table_oid);
       auto *recovered_sql_table = catalog[db_oid][table_oid];
-      EXPECT_TRUE(StorageTestUtil::SqlTableEqualDeep(original_sql_table->Layout(), original_sql_table, recovered_sql_table,
-                                                     tested.GetTupleSlotsForTable(db_oid, table_oid),
-                                                     recovery_manager_->tuple_slot_map_, &recovery_txn_manager_));
+      EXPECT_TRUE(StorageTestUtil::SqlTableEqualDeep(
+          original_sql_table->Layout(), original_sql_table, recovered_sql_table,
+          tested.GetTupleSlotsForTable(db_oid, table_oid), recovery_manager_->tuple_slot_map_, &recovery_txn_manager_));
     }
   }
 

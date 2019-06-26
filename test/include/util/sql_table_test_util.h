@@ -82,6 +82,23 @@ class RandomSqlTableTransaction {
  * So far we only do updates and selects, as inserts and deletes are not given much special meaning without the index.
  */
 class LargeSqlTableTestObject {
+ private:
+  /*
+   * Holds meta data for tables created by test object
+   */
+  struct SqlTableMetadata {
+    // Pointer to sql table
+    storage::SqlTable *table_;
+    // Schema for sql table
+    catalog::Schema *schema_;
+    // Tuple slots inserted into this sql table
+    std::vector<storage::TupleSlot> inserted_tuples_;
+    // Latch to protect inserted tuples to allow for concurrent transactions
+    common::SpinLatch inserted_tuples_latch_;
+    // Buffer for select queries. Not thread safe, but since we aren't doing bookkeeping, it doesn't matter
+    byte *buffer_;
+  };
+
  public:
   /**
    * Builder class for LargeSqlTableTestObject
@@ -262,7 +279,7 @@ class LargeSqlTableTestObject {
   const storage::SqlTable *GetTable(catalog::db_oid_t db_oid, catalog::table_oid_t table_oid) {
     TERRIER_ASSERT(tables_.find(db_oid) != tables_.end(), "Requested database was not created");
     TERRIER_ASSERT(tables_[db_oid].find(table_oid) != tables_[db_oid].end(), "Requested table was not created");
-    return tables_[db_oid][table_oid];
+    return tables_[db_oid][table_oid]->table_;
   }
 
   /**
@@ -271,17 +288,16 @@ class LargeSqlTableTestObject {
    * @return schema requested table
    */
   const catalog::Schema *GetSchemaForTable(catalog::db_oid_t db_oid, catalog::table_oid_t table_oid) {
-    TERRIER_ASSERT(schemas_.find(db_oid) != schemas_.end(), "Requested database was not created");
-    TERRIER_ASSERT(schemas_[db_oid].find(table_oid) != schemas_[db_oid].end(), "Requested table was not created");
-    return schemas_[db_oid][table_oid];
+    TERRIER_ASSERT(tables_.find(db_oid) != tables_.end(), "Requested database was not created");
+    TERRIER_ASSERT(tables_[db_oid].find(table_oid) != tables_[db_oid].end(), "Requested table was not created");
+    return tables_[db_oid][table_oid]->schema_;
   }
 
   const std::vector<storage::TupleSlot> &GetTupleSlotsForTable(catalog::db_oid_t db_oid,
                                                                catalog::table_oid_t table_oid) {
-    TERRIER_ASSERT(inserted_tuples_.find(db_oid) != inserted_tuples_.end(), "Requested database was not created");
-    TERRIER_ASSERT(inserted_tuples_[db_oid].find(table_oid) != inserted_tuples_[db_oid].end(),
-                   "Requested table was not created");
-    return inserted_tuples_[db_oid][table_oid];
+    TERRIER_ASSERT(tables_.find(db_oid) != tables_.end(), "Requested database was not created");
+    TERRIER_ASSERT(tables_[db_oid].find(table_oid) != tables_[db_oid].end(), "Requested table was not created");
+    return tables_[db_oid][table_oid]->inserted_tuples_;
   }
 
  private:
@@ -323,17 +339,7 @@ class LargeSqlTableTestObject {
   std::vector<catalog::db_oid_t> database_oids_;
   std::unordered_map<catalog::db_oid_t, std::vector<catalog::table_oid_t>> table_oids_;
 
-  // Map of OIDs to raw table pointers
-  std::unordered_map<catalog::db_oid_t, std::unordered_map<catalog::table_oid_t, storage::SqlTable *>> tables_;
-
-  // Map of OIDS to schemas
-  std::unordered_map<catalog::db_oid_t, std::unordered_map<catalog::table_oid_t, catalog::Schema *>> schemas_;
-
-  // Keep track of which tuple slots we inserted so we can pick a random one for updates
-  std::unordered_map<catalog::db_oid_t, std::unordered_map<catalog::table_oid_t, std::vector<storage::TupleSlot>>>
-      inserted_tuples_;
-
-  // Latch to protect concurrent access and updates to inserted tuples map
-  common::SpinLatch inserted_tuples_latch_;
+  // Maps database and table oids to struct holding testing metadata for each table
+  std::unordered_map<catalog::db_oid_t, std::unordered_map<catalog::table_oid_t, SqlTableMetadata *>> tables_;
 };
 }  // namespace terrier
