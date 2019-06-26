@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>  //NOLINT
+#include <fstream>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -101,6 +102,8 @@ class TransactionMetricRawData : public AbstractRawData {
    * @return the tuples deleted of the given transaction
    */
   uint64_t GetTupleDelete(const transaction::timestamp_t txn_start) { return data_[txn_start].tuple_delete_; }
+
+  void ToCSV(std::ofstream outfile) const final { TERRIER_ASSERT(outfile.is_open(), "File not opened."); }
 
  private:
   /**

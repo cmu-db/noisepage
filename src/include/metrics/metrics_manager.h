@@ -57,6 +57,8 @@ class MetricsManager {
     return enabled_metrics_.test(static_cast<uint8_t>(component));
   }
 
+  void ToCSV() const;
+
  private:
   friend class settings::Callbacks;
 

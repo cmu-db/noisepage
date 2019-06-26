@@ -2,6 +2,7 @@
 
 #include <chrono>  //NOLINT
 #include <forward_list>
+#include <fstream>
 #include <utility>
 
 #include "catalog/catalog_defs.h"
@@ -16,8 +17,11 @@ namespace terrier::metrics {
 class LoggingMetricRawData : public AbstractRawData {
  public:
   void Aggregate(AbstractRawData *other) override {
-    //    auto other_db_metric = dynamic_cast<LoggingMetricRawData *>(other);
-    //    serializer_data_.splice_after()
+    auto other_db_metric = dynamic_cast<LoggingMetricRawData *>(other);
+    serializer_data_.splice_after(serializer_data_.cbefore_begin(), other_db_metric->serializer_data_,
+                                  other_db_metric->serializer_data_.cbefore_begin());
+    consumer_data_.splice_after(consumer_data_.cbefore_begin(), other_db_metric->consumer_data_,
+                                other_db_metric->consumer_data_.cbefore_begin());
   }
 
   /**
@@ -33,6 +37,8 @@ class LoggingMetricRawData : public AbstractRawData {
                           const uint64_t num_records) {
     consumer_data_.emplace_front(write_ns, persist_ns, num_bytes, num_records);
   }
+
+  void ToCSV(std::ofstream outfile) const final { TERRIER_ASSERT(outfile.is_open(), "File not opened."); }
 
  private:
   struct SerializerData {
