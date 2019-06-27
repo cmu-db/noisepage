@@ -17,7 +17,7 @@ class DiskLogProvider : public AbstractLogProvider {
    * @param catalog system catalog used for getting block layouts
    * @param log_file_path path to log file to read logs from
    */
-  explicit DiskLogProvider(RecoveryCatalog *catalog, std::string log_file_path)
+  explicit DiskLogProvider(RecoveryCatalog *catalog, const std::string &log_file_path)
       : AbstractLogProvider(catalog), in_(BufferedLogReader(log_file_path.c_str())) {}
 
  private:
