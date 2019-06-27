@@ -55,6 +55,9 @@ class WriteAheadLoggingTests : public TerrierTest {
     TerrierTest::TearDown();
   }
 
+  /**
+   * @warning If the serialization format of logs ever changes, this function will need to be updated.
+   */
   storage::LogRecord *ReadNextRecord(storage::BufferedLogReader *in, const storage::BlockLayout &block_layout) {
     auto size = in->ReadValue<uint32_t>();
     byte *buf = common::AllocationUtil::AllocateAligned(size);
@@ -70,7 +73,6 @@ class WriteAheadLoggingTests : public TerrierTest {
 
     if (record_type == storage::LogRecordType::ABORT) return storage::AbortRecord::Initialize(buf, txn_begin, nullptr);
 
-    // TODO(Tianyu): Without a lookup mechanism this oid is not exactly meaningful. Implement lookup when possible
     auto database_oid = in->ReadValue<catalog::db_oid_t>();
     auto table_oid = in->ReadValue<catalog::table_oid_t>();
     auto tuple_slot = in->ReadValue<storage::TupleSlot>();

@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "catalog/catalog_defs.h"
+#include "storage/recovery/abstract_log_provider.h"
 #include "storage/sql_table.h"
 #include "transaction/transaction_manager.h"
 
@@ -23,12 +24,17 @@ using RecoveryCatalog =
  */
 class RecoveryManager {
  public:
-  explicit RecoveryManager(std::string log_file_path, RecoveryCatalog *catalog,
+  /**
+   * @param log_provider arbitrary provider to receive logs from
+   * @param catalog system catalog to interface with sql tables
+   * @param txn_manager txn manager to use for re-executing recovered transactions
+   */
+  explicit RecoveryManager(AbstractLogProvider *log_provider, RecoveryCatalog *catalog,
                            transaction::TransactionManager *txn_manager)
-      : log_file_path_(std::move(log_file_path)), catalog_(catalog), txn_manager_(txn_manager) {}
+      : log_provider_(log_provider), catalog_(catalog), txn_manager_(txn_manager) {}
 
   /**
-   * Recovers the databases from the provided log file path.
+   * Recovers the databases using the provided log provider
    */
   void Recover() { RecoverFromLogs(); }
 
@@ -36,8 +42,9 @@ class RecoveryManager {
   FRIEND_TEST(RecoveryTests, SingleTableTest);
   FRIEND_TEST(RecoveryTests, HighAbortRateTest);
   FRIEND_TEST(RecoveryTests, MultiDatabaseTest);
-  // Path to log file
-  std::string log_file_path_;
+
+  // Log provider for reading in logs
+  AbstractLogProvider *log_provider_;
 
   // Catalog to fetch table pointers
   RecoveryCatalog *catalog_;
@@ -50,7 +57,8 @@ class RecoveryManager {
   // structure
   std::unordered_map<TupleSlot, TupleSlot> tuple_slot_map_;
 
-  // Used during recovery from log. Maps a the txn id from the persisted txn to its changes we have buffered. We buffer changes until commit time. This ensures serializability, and allows us to skip changes from aborted txns.
+  // Used during recovery from log. Maps a the txn id from the persisted txn to its changes we have buffered. We buffer
+  // changes until commit time. This ensures serializability, and allows us to skip changes from aborted txns.
   std::unordered_map<transaction::timestamp_t, std::vector<LogRecord *>> buffered_changes_map_;
 
   /**
@@ -60,20 +68,10 @@ class RecoveryManager {
   void RecoverFromLogs();
 
   /**
-   * Reads in the next log record from the buffered log reader
-   * @param in buffered reader for the log file
-   * @return next log record in the log file
+   * @brief Replays a transaction corresponding to the given log record log record.
+   * @param log_record abort or commit record for transaction to replay
    */
-  storage::LogRecord *ReadNextRecord(storage::BufferedLogReader *in);
-
-  /**
-   * @brief Replays a log record.
-   * If the replay suceeds, then the function will return true, and the caller is in charge of cleaning up the log
-   * record. If the replay fails, the the function will return false, and the caller should buffer the log record to
-   * apply it later.
-   * @param log_record record to replay
-   */
-  void ReplayRecord(LogRecord *log_record);
+  void ReplayTransaction(LogRecord *log_record);
 
   /**
    * @param db_oid database oid for requested table
