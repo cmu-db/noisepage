@@ -125,7 +125,7 @@ LargeSqlTableTestObject::~LargeSqlTableTestObject() {
   for (auto &db_pair : tables_) {
     for (auto &table_pair : db_pair.second) {
       auto *metadata = table_pair.second;
-      delete metadata->buffer_;
+      delete[] metadata->buffer_;
       delete metadata->schema_;
       delete metadata->table_;
       delete metadata;

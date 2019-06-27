@@ -134,7 +134,7 @@ TEST_F(RecoveryTests, HighAbortRateTest) {
                                        .SetBufferPool(&pool_)
                                        .SetGenerator(&generator_)
                                        .SetGcOn(true)
-                                       .SetVarlenAllowed(false)
+                                       .SetVarlenAllowed(true)
                                        .SetLogManager(log_manager_)
                                        .build();
 
@@ -180,7 +180,8 @@ TEST_F(RecoveryTests, HighAbortRateTest) {
 }
 
 // This test inserts some tuples into multiple tables across multiple databases. It then recovers these tables, and
-// verifies that the recovered tables are equal to the test tables. NOLINTNEXTLINE
+// verifies that the recovered tables are equal to the test tables.
+// NOLINTNEXTLINE
 TEST_F(RecoveryTests, MultiDatabaseTest) {
   auto num_databases = 3;
   auto num_tables = 5;
