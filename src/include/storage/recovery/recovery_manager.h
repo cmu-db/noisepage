@@ -2,6 +2,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "catalog/catalog_defs.h"
@@ -59,7 +60,8 @@ class RecoveryManager {
 
   // Used during recovery from log. Maps a the txn id from the persisted txn to its changes we have buffered. We buffer
   // changes until commit time. This ensures serializability, and allows us to skip changes from aborted txns.
-  std::unordered_map<transaction::timestamp_t, std::vector<LogRecord *>> buffered_changes_map_;
+  std::unordered_map<transaction::timestamp_t, std::vector<std::pair<LogRecord *, std::vector<byte *>>>>
+      buffered_changes_map_;
 
   /**
    * Recovers the databases from the logs.
@@ -70,8 +72,9 @@ class RecoveryManager {
   /**
    * @brief Replays a transaction corresponding to the given log record log record.
    * @param log_record abort or commit record for transaction to replay
+   * @param varlen_ptrs pointer to all varlen contents in this log r
    */
-  void ReplayTransaction(LogRecord *log_record);
+  void ReplayTransaction(LogRecord *log_record, std::vector<byte *> varlen_ptrs);
 
   /**
    * @param db_oid database oid for requested table

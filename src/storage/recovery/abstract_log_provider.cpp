@@ -1,8 +1,12 @@
 #include "storage/recovery/abstract_log_provider.h"
+#include <utility>
+#include <vector>
 
 namespace terrier::storage {
 
-LogRecord *AbstractLogProvider::ReadNextRecord() {
+std::pair<LogRecord *, std::vector<byte *>> AbstractLogProvider::ReadNextRecord() {
+  // Pointer to any non-aligned varlen entries so we can clean them up down the road
+  std::vector<byte *> loose_ptrs;
   // Read in LogRecord header data
   auto size = ReadValue<uint32_t>();
   byte *buf = common::AllocationUtil::AllocateAligned(size);
@@ -14,11 +18,12 @@ LogRecord *AbstractLogProvider::ReadNextRecord() {
     // Okay to fill in null since nobody will invoke the callback.
     // is_read_only argument is set to false, because we do not write out a commit record for a transaction if it is
     // not read-only.
-    return storage::CommitRecord::Initialize(buf, txn_begin, txn_commit, nullptr, nullptr, false, nullptr);
+    return {storage::CommitRecord::Initialize(buf, txn_begin, txn_commit, nullptr, nullptr, false, nullptr),
+            loose_ptrs};
   }
 
   if (record_type == storage::LogRecordType::ABORT) {
-    return storage::AbortRecord::Initialize(buf, txn_begin, nullptr);
+    return {storage::AbortRecord::Initialize(buf, txn_begin, nullptr), loose_ptrs};
   }
 
   auto database_oid = ReadValue<catalog::db_oid_t>();
@@ -26,7 +31,7 @@ LogRecord *AbstractLogProvider::ReadNextRecord() {
   auto tuple_slot = ReadValue<storage::TupleSlot>();
 
   if (record_type == storage::LogRecordType::DELETE) {
-    return storage::DeleteRecord::Initialize(buf, txn_begin, database_oid, table_oid, tuple_slot);
+    return {storage::DeleteRecord::Initialize(buf, txn_begin, database_oid, table_oid, tuple_slot), loose_ptrs};
   }
 
   // If code path reaches here, we have a REDO record.
@@ -88,6 +93,8 @@ LogRecord *AbstractLogProvider::ReadNextRecord() {
       auto *dest = reinterpret_cast<storage::VarlenEntry *>(column_value_address);
       // Set the value to be the address of the varlen_entry.
       *dest = varlen_entry;
+      // Store reference to varlen content to clean up incase of abort
+      loose_ptrs.push_back(varlen_attribute_content);
     } else {
       // For inlined attributes, just directly read into the ProjectedRow.
       Read(column_value_address, block_layout.AttrSize(col_ids[i]));
@@ -97,6 +104,6 @@ LogRecord *AbstractLogProvider::ReadNextRecord() {
   // Free the memory allocated for the bitmap.
   delete[] bitmap_buffer;
 
-  return result;
+  return {result, std::move(loose_ptrs)};
 }
 }  // namespace terrier::storage
