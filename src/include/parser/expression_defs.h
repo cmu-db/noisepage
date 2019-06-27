@@ -73,20 +73,13 @@ enum class ExpressionType : uint8_t {
   TABLE_REF
 };
 
-// When short_str is true, return a short version of ExpressionType string
-// For example, + instead of Operator_Plus. It's used to generate the
-// expression name
+/**
+ * When short_str is true, return a short version of ExpressionType string
+ * For example, + instead of Operator_Plus. It's used to generate the expression name
+ * @param type Expression Type
+ * @param short_str Flag if a short version of the Expression Type should be returned; default false
+ * @return String representation of the Expression Type
+ */
 std::string ExpressionTypeToString(ExpressionType type, bool short_str = false);
 
-/**
- * @param type the expression type to be examined
- * @return whether this expression type is one of the aggregate expression types
- */
-bool IsAggregateExpression(ExpressionType type);
-
-/**
- * @param type the expression type to be examined
- * @return whether this expression type is one of the operator expression types
- */
-bool IsOperatorExpression(ExpressionType type);
 }  // namespace terrier::parser

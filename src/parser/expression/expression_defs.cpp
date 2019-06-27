@@ -156,36 +156,4 @@ std::string ExpressionTypeToString(ExpressionType type, bool short_str) {
   }
 }
 
-bool IsAggregateExpression(ExpressionType type) {
-  switch (type) {
-    case ExpressionType::AGGREGATE_COUNT:
-    case ExpressionType::AGGREGATE_SUM:
-    case ExpressionType::AGGREGATE_MIN:
-    case ExpressionType::AGGREGATE_MAX:
-    case ExpressionType::AGGREGATE_AVG:
-      return true;
-    default:
-      return false;
-  }
-}
-
-bool IsOperatorExpression(ExpressionType type) {
-  switch (type) {
-    case ExpressionType::OPERATOR_PLUS:
-    case ExpressionType::OPERATOR_MINUS:
-    case ExpressionType::OPERATOR_MULTIPLY:
-    case ExpressionType::OPERATOR_DIVIDE:
-    case ExpressionType::OPERATOR_CONCAT:
-    case ExpressionType::OPERATOR_MOD:
-    case ExpressionType::OPERATOR_CAST:
-    case ExpressionType::OPERATOR_NOT:
-    case ExpressionType::OPERATOR_IS_NULL:
-    case ExpressionType::OPERATOR_IS_NOT_NULL:
-    case ExpressionType::OPERATOR_EXISTS:
-    case ExpressionType::OPERATOR_UNARY_MINUS:
-      return true;
-    default:
-      return false;
-  }
-}
 }  // namespace terrier::parser
