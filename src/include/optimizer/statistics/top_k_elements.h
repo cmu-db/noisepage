@@ -10,12 +10,12 @@
 #include <stack>
 #include <queue>
 #include <vector>
+#include <set>
 #include <utility>
 
 #include "common/macros.h"
 #include "loggers/optimizer_logger.h"
 #include "optimizer/statistics/count_min_sketch.h"
-
 
 namespace terrier::optimizer {
 
@@ -31,294 +31,78 @@ class TopKElements {
   using ValueFrequencyPair = std::pair<KeyType, double>;
 
  public:
-  /**
-   * Class Declarations
-   */
-  class ApproxTopEntry;
-  template <class T, class Container, class Compare>
-  class UpdatableQueue;
-
-  /**
-   * An entry of the TopKQueue data structure
-   * Working as a pair of element and count
-   */
-  class ApproxTopEntry {
-   public:
-    ApproxTopEntry(KeyType key, int64_t freq)
-        : key_{key}, count_{freq} {}
-
-    /**
-     * Overriding operator ==
-     * @param other
-     * @return
-     */
-    bool operator==(const ApproxTopEntry& other) const {
-      // just check the elem, not the count
-      return key_ == other.key_;
-    }
-
-    /**
-     *
-     * @return
-     */
-    KeyType GetKey() const { return key_; }
-
-    /**
-     *
-     * @return
-     */
-    int64_t GetCount() const { return count_; }
-
-    /**
-     * Pretty Print!
-     * @param os
-     * @param ate
-     * @return
-     */
-    friend std::ostream &operator<<(std::ostream &os, const ApproxTopEntry &ate) {
-      os << "{key=" << ate.key_ << ", count=" << ate.count_ << "}";
-      return os;
-    }
-
-   private:
-    KeyType key_;
-    int64_t count_;
-
-  };  // end of class ApproxTopEntry
-
-  /**
-   * Customized priority_queue.
-   * Containing functions with access to the underlying
-   * container (for e.g. vector).
-   * @tparam T
-   * @tparam Container
-   * @tparam Compare
-   */
-  template <class T, class Container = std::vector<T>,
-            class Compare = std::less<typename Container::value_type> >
-  class UpdatableQueue : public std::priority_queue<T, Container, Compare> {
-   public:
-    typedef typename std::priority_queue<
-        T, Container, Compare>::container_type::const_iterator const_iterator;
-
-    /**
-     * Check if a value exists in the queue
-     * @param val
-     * @return
-     */
-    bool Exists(const T& val) {
-      auto first = this->c.cbegin();
-      auto last = this->c.cend();
-      while (first != last) {
-        if (*first == val) {
-          return true;
-        }
-        ++first;
-      }
-      return false;
-    }
-
-    /**
-     * Remove a value from the queue
-     * @param val
-     * @return
-     */
-    bool Remove(const T& val) {
-      // find the former entry first
-      auto first = this->c.begin();
-      auto last = this->c.end();
-      auto idx_iter = last;
-
-      while (first != last) {
-        if (*first == val) {
-          idx_iter = first;
-        }
-        ++first;
-      }
-      // if existing, remove it
-      if (idx_iter != this->c.end()) {
-        this->c.erase(idx_iter);
-        std::make_heap(this->c.begin(), this->c.end(), this->comp);
-        return true;
-      } else {
-        return false;
-      }
-    }
-
-    /**
-     * Retrieve all the items in the queue, unordered
-     * @return
-     */
-    std::vector<ApproxTopEntry> RetrieveAll() const {
-      std::vector<ApproxTopEntry> vec;
-      const_iterator first = this->c.cbegin(), last = this->c.cend();
-      while (first != last) {
-        vec.push_back(*first);
-        ++first;
-      }
-      return vec;
-    }
-
-    /**
-     * Retrieve all the items in the queue, ordered, queue is maintained
-     * @return
-     */
-    std::vector<ApproxTopEntry> RetrieveAllOrdered() {
-      std::vector<ApproxTopEntry> vec;
-      while (!this->empty()) {
-        vec.push_back(this->top());
-        this->pop();
-      }
-      auto first = this->c.begin(), last = this->c.end();
-      while (first != last) {
-        this->push(*first);
-        ++first;
-      }
-      return vec;
-    }
-
-    /**
-     * Retrieve all elements, ordered.
-     * Max first.
-     * @return
-     */
-    std::vector<ApproxTopEntry> RetrieveAllOrderedMaxFirst() const {
-      std::vector<ApproxTopEntry> vec;
-      const_iterator first = this->c.cbegin(), last = this->c.cend();
-      while (first != last) {
-        vec.push_back(*first);
-        ++first;
-      }
-      return vec;
-
-//      std::stack<ApproxTopEntry> stack;
-//      std::vector<ApproxTopEntry> vec_ret;
-//      while (!this->empty()) {
-//        stack.push(this->top());
-//        this->pop();
-//      }
-//
-//      while (stack.size() != 0) {
-//        this->push(stack.top());
-//        vec_ret.push_back(stack.top());
-//        stack.pop();
-//      }
-//      return vec_ret;
-    }
-
-    /**
-     * Retrieve given number of elements, ordered
-     * Max first
-     * @param num
-     * @return
-     */
-    std::vector<ApproxTopEntry> RetrieveOrderedMaxFirst(int num) const {
-      std::vector<ApproxTopEntry> vec;
-      const_iterator first = this->c.cbegin(), last = this->c.cend();
-      int i = 0;
-      while (first != last) {
-        vec.push_back(*first);
-        ++first;
-        if (i++ == num) break;
-      }
-      return vec;
-
-      // This shit is crazy!
-      // I have no idea why we are doing it like this!
-//      std::stack<ApproxTopEntry> stack;
-//      std::vector<ApproxTopEntry> vec_ret;
-//      int i = 0;
-//      while (!this->empty()) {
-//        stack.push(this->top());
-//        this->pop();
-//      }
-//
-//      while (stack.size() != 0) {
-//        this->push(stack.top());
-//        if (i < num) {
-//          ++i;
-//          vec_ret.push_back(stack.top());
-//        }
-//        stack.pop();
-//      }
-    }
-
-    /**
-     * Retrieve all elements, ordered
-     * Max first
-     * Return a vector of ValueFrequencyPair
-     * @return
-     */
-    std::vector<ValueFrequencyPair> GetAllOrderedMaxFirst() {
-      std::stack<ApproxTopEntry> stack;
-      std::vector<ValueFrequencyPair> vec_ret;
-      while (!this->empty()) {
-        stack.push(this->top());
-        this->pop();
-      }
-
-      while (stack.size() != 0) {
-        ApproxTopEntry t = stack.top();
-        this->push(t);
-        vec_ret.push_back(std::make_pair(t.GetKey(), (double)t.GetCount()));
-        stack.pop();
-      }
-      return vec_ret;
-    }
-
-    /*
-     * Retrieve given number of elements, ordered
-     * Max first
-     * Return a vector of ValueFrequencyPair
-     */
-    std::vector<ValueFrequencyPair> GetOrderedMaxFirst(int num) {
-      std::stack<ApproxTopEntry> stack;
-      std::vector<ValueFrequencyPair> vec_ret;
-      int i = 0;
-      while (!this->empty()) {
-        stack.push(this->top());
-        this->pop();
-      }
-
-      while (stack.size() != 0) {
-        ApproxTopEntry t = stack.top();
-        this->push(t);
-        if (i < num) {
-          ++i;
-          vec_ret.push_back(std::make_pair(t.GetKey(), (double)t.GetCount()));
-        }
-        stack.pop();
-      }
-      return vec_ret;
-    }
-
-  };  // end of UpdatableQueue
 
   /**
    * TopKElements Constructor
    * @param k
    * @param width the size of the underlying sketch
    */
-  explicit TopKElements(int k, uint64_t width) : numk_{k}, size_{0} {
+  explicit TopKElements(size_t k, uint64_t width) : numk_{k} {
+    entries_.reserve(numk_);
     sketch_ = new CountMinSketch<KeyType>(width);
   }
 
   ~TopKElements() { delete sketch_; }
 
   /**
-   * Add an item into this bookkeeping data structure as well as
-   * the sketch
-   * @param item
+   *
+   * @param key
    * @param count
    */
-  void Add(KeyType item, int count) {
-    // Increment the count for this item in the Count-Min sketch
-    sketch_->Add(item, count);
+  void Add(KeyType key, uint32_t count) {
+    TERRIER_ASSERT(count >= 0, "Invalid count");
 
-    // Estimate the frequency of this item using the sketch
-    // Add it to the queue
-    ApproxTopEntry e(item, sketch_->EstimateItemCount(item));
-    AddFreqItem(e);
+    // Increment the count for this item in the sketch
+    // and then get the new total count
+    sketch_->Add(key, count);
+    auto total_cnt = sketch_->EstimateItemCount(key);
+
+    // If this key already exists in our top-k list, then
+    // we need to update its entry
+    auto entry = entries_.find(key);
+    if (entry != entries_.end()) {
+      OPTIMIZER_LOG_TRACE("Update Key[{0}] => {1} // [size={2}]", key, total_cnt, GetSize());
+      entries_[key] += count;
+
+      // If this key is the current min key, then we need
+      // to go through to see whether after this update it
+      // is still the min key. This is crappy, but if the
+      // # of elements that we need to keep track of is low,
+      // this shouldn;t be too bad.
+      if (key == min_key_) {
+        ComputeNewMinKey();
+      }
+    }
+    // If we have no elements, then throw the key in
+    else if (entries_.empty()) {
+      entries_[key] = count;
+      OPTIMIZER_LOG_TRACE("Insert Key[{0}] => {1} // [size={2}]", key, total_cnt, GetSize());
+
+      // And then it becomes our new min key
+      min_key_ = key;
+      min_count_ = total_cnt;
+    }
+    // This key does not exist yet in our top-k list, so we need
+    // to figure out whether to promote it as a new entry
+    // If the total estimated count for this key is
+    // greater than the current min or internal vector size is less than
+    // our 'k' limit, then add it to our vector.
+    else if (entries_.size() < numk_ || total_cnt > min_count_) {
+      if (entries_.size() == numk_) {
+        // Remove the current min key
+        entries_.erase(min_key_);
+        OPTIMIZER_LOG_TRACE("Remove Key[{0}] => {1} // [size={2}]", min_key_, min_count_, GetSize());
+      }
+
+      // Then add our new key
+      entries_[key] = total_cnt;
+      OPTIMIZER_LOG_TRACE("Insert Key[{0}] => {1} // [size={2}]", key, total_cnt, GetSize());
+
+      // But then we need to figure out what the new
+      // min key is in our current top-k list
+      // TODO: We don't always have to fire this off!
+      ComputeNewMinKey();
+    }
   }
 
   /**
@@ -326,10 +110,28 @@ class TopKElements {
    * @param item
    * @param count
    */
-  void Remove(KeyType key, int count) {
+  void Remove(KeyType key, uint32_t count) {
+    TERRIER_ASSERT(count >= 0, "Invalid count");
+
+    // Decrement the count for this item in the sketch
+    // and then get the new total count
     sketch_->Remove(key, count);
-    ApproxTopEntry e(key, sketch_->EstimateItemCount(key));
-    DecrFreqItem(e);
+    auto total_cnt = sketch_->EstimateItemCount(key);
+
+    // This is where things get dicey on us.
+    // So if this mofo key is in our top-k vector and its count is
+    // now less than the current min entry, then we need to make it
+    // the new min entry. But there may be another key that is
+    // actually greater than this entry, but we don't know what it
+    // is because we can't get that information from the sketch.
+    auto entry = entries_.find(key);
+    if (entry != entries_.end()) {
+      total_cnt = entries_[key] -= count;
+      if (total_cnt < min_count_) {
+        min_key_ = key;
+        min_count_ = total_cnt;
+      }
+    }
   }
 
   /**
@@ -344,67 +146,67 @@ class TopKElements {
   /**
    * @return
    */
-  int GetK() const { return numk_; }
+  size_t GetK() const { return numk_; }
 
   /**
    * @return
    */
-  int GetSize() const { return size_; }
+  size_t GetSize() const { return entries_.size(); }
 
-  /**
-   * Retrieve all the items in the queue, unordered
-   * @return
-   */
-  std::vector<ApproxTopEntry> RetrieveAll() const { return queue_.RetrieveAll(); }
-
-  /**
-   * Retrieve all the items in the queue, ordered, queue is maintained
-   * small count to large count (min first)
-   * @return
-   */
-  std::vector<ApproxTopEntry> RetrieveAllOrdered() const {
-    return queue_.RetrieveAllOrdered();
-  }
-
-  /**
-   * Retrieve all the items in the queue, ordered, queue is maintained
-   * large count to small count (max first)
-   * @return
-   */
-  std::vector<ApproxTopEntry> RetrieveAllOrderedMaxFirst() const {
-    return queue_.RetrieveAllOrderedMaxFirst();
-  }
-
-  /**
-   * Retrieve given number of elements, ordered
-   * Max first
-   * @param num
-   * @return
-   */
-  std::vector<ApproxTopEntry> RetrieveOrderedMaxFirst(int num) const {
-    if (num >= numk_) return queue_.RetrieveAllOrderedMaxFirst();
-    return queue_.RetrieveOrderedMaxFirst(num);
-  }
-
-  /**
-   * Retrieve all the items in the queue, ordered, queue is maintained
-   * large count to small count (max first)
-   * @return
-   */
-  std::vector<ValueFrequencyPair> GetAllOrderedMaxFirst() {
-    return queue_.GetAllOrderedMaxFirst();
-  }
-
-  /**
-   * Retrieve given number of elements, ordered
-   * Max first
-   * @param num
-   * @return
-   */
-  std::vector<ValueFrequencyPair> GetOrderedMaxFirst(int num) {
-    if (num >= numk_) return queue_.GetAllOrderedMaxFirst();
-    return queue_.GetOrderedMaxFirst(num);
-  }
+//  /**
+//   * Retrieve all the items in the queue, unordered
+//   * @return
+//   */
+//  std::vector<ApproxTopEntry> RetrieveAll() const { return queue_.RetrieveAll(); }
+//
+//  /**
+//   * Retrieve all the items in the queue, ordered, queue is maintained
+//   * small count to large count (min first)
+//   * @return
+//   */
+//  std::vector<ApproxTopEntry> RetrieveAllOrdered() const {
+//    return queue_.RetrieveAllOrdered();
+//  }
+//
+//  /**
+//   * Retrieve all the items in the queue, ordered, queue is maintained
+//   * large count to small count (max first)
+//   * @return
+//   */
+//  std::vector<ApproxTopEntry> RetrieveAllOrderedMaxFirst() const {
+//    return queue_.RetrieveAllOrderedMaxFirst();
+//  }
+//
+//  /**
+//   * Retrieve given number of elements, ordered
+//   * Max first
+//   * @param num
+//   * @return
+//   */
+//  std::vector<ApproxTopEntry> RetrieveOrderedMaxFirst(int num) const {
+//    if (num >= numk_) return queue_.RetrieveAllOrderedMaxFirst();
+//    return queue_.RetrieveOrderedMaxFirst(num);
+//  }
+//
+//  /**
+//   * Retrieve all the items in the queue, ordered, queue is maintained
+//   * large count to small count (max first)
+//   * @return
+//   */
+//  std::vector<ValueFrequencyPair> GetAllOrderedMaxFirst() {
+//    return queue_.GetAllOrderedMaxFirst();
+//  }
+//
+//  /**
+//   * Retrieve given number of elements, ordered
+//   * Max first
+//   * @param num
+//   * @return
+//   */
+//  std::vector<ValueFrequencyPair> GetOrderedMaxFirst(int num) {
+//    if (num >= numk_) return queue_.GetAllOrderedMaxFirst();
+//    return queue_.GetOrderedMaxFirst(num);
+//  }
 
   /**
    *
@@ -413,12 +215,22 @@ class TopKElements {
    * @return
    */
   friend std::ostream &operator<<(std::ostream &os, const TopKElements<KeyType> &topK) {
-    std::vector<ApproxTopEntry> vec = topK.RetrieveOrderedMaxFirst(topK.GetK());
+    typedef std::function<bool(std::pair<KeyType, uint64_t>, std::pair<KeyType, uint64_t>)> Comparator;
+
+    // Defining a lambda function to compare two pairs.
+    // It will compare two pairs using second field
+    Comparator compFunctor = [](std::pair<KeyType, uint64_t> elem1 ,std::pair<KeyType, uint64_t> elem2) {
+      return elem1.second > elem2.second;
+    };
+
+    // Declaring a set that will store the pairs using above comparision logic
+    std::set<std::pair<KeyType, uint64_t>, Comparator> sorted_keys(
+        topK.entries_.begin(), topK.entries_.end(), compFunctor);
 
     os << "Top-" << topK.GetK() << " [size=" << topK.GetSize() << "]";
     int i = 0;
-    for (auto const& e : vec) {
-      os << std::endl << "  (" << i++ << ") " << e;
+    for (const std::pair<KeyType, uint64_t> &element : sorted_keys) {
+      os << std::endl << "  (" << i++ << ") Key[" << element.first << "] => " << element.second;
     }
 
     return os;
@@ -499,14 +311,19 @@ class TopKElements {
  private:
 
   /**
-   * struct for comparison in the queue
-   * lowest count comes in the top (MinHeap)
+   *
    */
-  struct compare {
-    bool operator()(const ApproxTopEntry& l, const ApproxTopEntry& r) {
-      return l.GetCount() > r.GetCount();
-    }
-  };
+  std::unordered_map<KeyType, int64_t> entries_;
+
+  /**
+   *
+   */
+  KeyType min_key_;
+
+  /**
+   *
+   */
+  uint64_t min_count_;
 
   /**
    *
@@ -516,115 +333,25 @@ class TopKElements {
   /**
    * the K as in "top K"
    */
-  int numk_;
+  size_t numk_;
 
   /**
-   * the priority queue managing the top entries
+   *
    */
-  UpdatableQueue<ApproxTopEntry, std::vector<ApproxTopEntry>, compare> queue_;
-
-  /**
-   * number of entries in the priority queue
-   */
-  int size_;
-
-
-  /**
-   * Push an entry onto the queue
-   * @param entry
-   */
-  void Push(ApproxTopEntry entry) {
-    // here we suppose the is_exist returns false
-    // if less than K-items, just insert, increase the size
-    if (size_ < numk_) {
-      queue_.push(entry);
-      size_++;
-    }
-      // if we have more than K-items (including K),
-      // remove the item with the lowest frequency from our data structure
-    else {
-      // if and only if the lowest frequency is lower than the new one
-      if (queue_.top().GetCount() < entry.GetCount()) {
-        queue_.pop();
-        queue_.push(entry);
+  void ComputeNewMinKey() {
+    KeyType new_min_key;
+    auto new_min_count = INT64_MAX;
+    for (auto other : entries_) {
+      if (other.second < new_min_count) {
+        new_min_key = other.first;
+        new_min_count = other.second;
       }
     }
+    min_key_ = new_min_key;
+    min_count_ = new_min_count;
+    OPTIMIZER_LOG_TRACE("MinKey[{0}] => {1}", min_key_, min_count_);
   }
 
-  /**
-   * Update a designated entry
-   * @param entry
-   */
-  void Update(ApproxTopEntry entry) {
-    // remove the former one (with the same entry elem) and insert the new
-    // entry
-    // first remove the former entry
-    if (queue_.Remove(entry)) {
-      queue_.push(entry);
-    }
-  }
-
-  /**
-   * Remove a designated entry
-   * @param entry
-   * @return
-   */
-  bool Remove(ApproxTopEntry entry) {
-    auto result = queue_.remove(entry);
-    if (result) size_--;
-    return result;
-  }
-
-  /**
-   * Pop the top element of the queue
-   */
-  ApproxTopEntry Pop() {
-    // This is oh-so *not* thread safe!
-    auto entry = std::move(queue_.top());
-    queue_.pop();
-    size_--;
-    return entry;
-  }
-
-  /**
-   * Add the frequency (approx count) and item (Element) pair (ApproxTopEntry)
-   * to the queue / update tkq structure
-   * @param entry
-   */
-  void AddFreqItem(ApproxTopEntry& entry) {
-    // If we have more than K-items, remove the item with the
-    // lowest frequency from our data structure.
-    // If freq_item was already in our data structure, just
-    // update it instead.
-
-    if (!queue_.Exists(entry)) {
-      // not in the structure
-      // insert it
-      Push(entry);
-    } else {
-      // if in the structure update
-      Update(entry);
-    }
-  }
-
-  /**
-   * Decrease / Remove
-   * @param entry
-   */
-  void DecrFreqItem(ApproxTopEntry& entry) {
-    if (!queue_.Exists(entry)) {
-      // not in the structure
-      // do nothing
-    } else {
-      // if in the structure
-      // update
-      if (entry.GetCount() == 0) {
-        queue_.Remove(entry);
-      } else {
-        queue_.update(entry);
-      }
-    }
-  }
 
 };
 
