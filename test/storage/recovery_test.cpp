@@ -3,6 +3,7 @@
 #include "gtest/gtest.h"
 #include "main/db_main.h"
 #include "storage/garbage_collector_thread.h"
+#include "storage/recovery/disk_log_provider.h"
 #include "storage/recovery/recovery_manager.h"
 #include "storage/sql_table.h"
 #include "storage/write_ahead_log/log_manager.h"
@@ -91,7 +92,8 @@ TEST_F(RecoveryTests, SingleTableTest) {
   transaction::TransactionManager recovery_txn_manager_{&pool_, true, LOGGING_DISABLED};
 
   // Instantiate recovery manager, and recover the tables.
-  recovery_manager_ = new RecoveryManager(LOG_FILE_NAME, &catalog, &recovery_txn_manager_);
+  DiskLogProvider log_provider(&catalog, LOG_FILE_NAME);
+  recovery_manager_ = new RecoveryManager(&log_provider, &catalog, &recovery_txn_manager_);
   recovery_manager_->Recover();
 
   // Check we recovered all the original tuples
@@ -157,7 +159,8 @@ TEST_F(RecoveryTests, HighAbortRateTest) {
   transaction::TransactionManager recovery_txn_manager_{&pool_, true, LOGGING_DISABLED};
 
   // Instantiate recovery manager, and recover the tables.
-  recovery_manager_ = new RecoveryManager(LOG_FILE_NAME, &catalog, &recovery_txn_manager_);
+  DiskLogProvider log_provider(&catalog, LOG_FILE_NAME);
+  recovery_manager_ = new RecoveryManager(&log_provider, &catalog, &recovery_txn_manager_);
   recovery_manager_->Recover();
 
   // Check we recovered all the original tuples
@@ -217,7 +220,8 @@ TEST_F(RecoveryTests, MultiDatabaseTest) {
   transaction::TransactionManager recovery_txn_manager_{&pool_, true, LOGGING_DISABLED};
 
   // Instantiate recovery manager, and recover the tables.
-  recovery_manager_ = new RecoveryManager(LOG_FILE_NAME, &catalog, &recovery_txn_manager_);
+  DiskLogProvider log_provider(&catalog, LOG_FILE_NAME);
+  recovery_manager_ = new RecoveryManager(&log_provider, &catalog, &recovery_txn_manager_);
   recovery_manager_->Recover();
 
   // Check that recovered tables are equal to original tables
