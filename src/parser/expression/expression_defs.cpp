@@ -134,9 +134,6 @@ std::string ExpressionTypeToString(ExpressionType type, bool short_str) {
     case ExpressionType::ROW_SUBQUERY: {
       return "ROW_SUBQUERY";
     }
-    case ExpressionType::SELECT_SUBQUERY: {
-      return "SELECT_SUBQUERY";
-    }
     case ExpressionType::STAR: {
       return "STAR";
     }

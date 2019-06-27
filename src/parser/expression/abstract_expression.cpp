@@ -156,7 +156,7 @@ std::shared_ptr<AbstractExpression> DeserializeExpression(const nlohmann::json &
 }
 
 bool AbstractExpression::DeriveSubqueryFlag() {
-  if (expression_type_ == ExpressionType::ROW_SUBQUERY || expression_type_ == ExpressionType::SELECT_SUBQUERY) {
+  if (expression_type_ == ExpressionType::ROW_SUBQUERY) {
     has_subquery_ = true;
   } else {
     for (auto &child : children_) {

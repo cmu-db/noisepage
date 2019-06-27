@@ -64,7 +64,6 @@ enum class ExpressionType : uint8_t {
   OPERATOR_COALESCE,
 
   ROW_SUBQUERY,
-  SELECT_SUBQUERY,
 
   STAR,
   PLACEHOLDER,

@@ -371,9 +371,6 @@ ExpressionType PostgresParser::StringToExpressionType(const std::string &parser_
   if (str == "ROW_SUBQUERY") {
     return ExpressionType::ROW_SUBQUERY;
   }
-  if (str == "SELECT_SUBQUERY") {
-    return ExpressionType::SELECT_SUBQUERY;
-  }
   if (str == "STAR") {
     return ExpressionType::STAR;
   }
