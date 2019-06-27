@@ -50,15 +50,6 @@ class DedicatedThreadRegistry {
     thread_owners_table_.clear();
   }
 
-  // TODO(tianyu): Remove when we remove singletons
-  /**
-   * @return The singleton instance of the DedicatedThreadRegistry
-   */
-  static DedicatedThreadRegistry &GetInstance() {
-    static DedicatedThreadRegistry registry;
-    return registry;
-  }
-
   /**
    *
    * Register a task on a thread. The thread registry will initialize the task and run it on a dedicated thread. The

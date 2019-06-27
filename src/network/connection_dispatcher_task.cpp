@@ -1,9 +1,7 @@
 #include "network/connection_dispatcher_task.h"
-
-#include <common/dedicated_thread_registry.h>
-
 #include <csignal>
 #include <memory>
+#include "common/dedicated_thread_registry.h"
 
 #define MASTER_THREAD_ID (-1)
 
@@ -12,7 +10,8 @@ namespace terrier::network {
 ConnectionDispatcherTask::ConnectionDispatcherTask(
     int num_handlers, int listen_fd, DedicatedThreadOwner *dedicated_thread_owner,
     common::ManagedPointer<ProtocolInterpreter::Provider> interpreter_provider,
-    common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory)
+    common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory,
+    common::ManagedPointer<DedicatedThreadRegistry> thread_registry)
     : NotifiableTask(MASTER_THREAD_ID), interpreter_provider_(interpreter_provider), next_handler_(0) {
   RegisterEvent(listen_fd, EV_READ | EV_PERSIST,
                 METHOD_AS_CALLBACK(ConnectionDispatcherTask, DispatchPostgresConnection), this);
@@ -21,8 +20,8 @@ ConnectionDispatcherTask::ConnectionDispatcherTask(
   // create worker threads.
   for (int task_id = 0; task_id < num_handlers; task_id++) {
     // auto handler = new ConnectionHandlerTask(task_id, connection_handle_factory);
-    auto handler = DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread<ConnectionHandlerTask>(
-        dedicated_thread_owner, task_id, connection_handle_factory);
+    auto handler = thread_registry->RegisterDedicatedThread<ConnectionHandlerTask>(dedicated_thread_owner, task_id,
+                                                                                   connection_handle_factory);
     handlers_.push_back(handler);
   }
 }

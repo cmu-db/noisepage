@@ -1,13 +1,11 @@
 #pragma once
 
+#include <arpa/inet.h>
 #include <event2/buffer.h>
 #include <event2/bufferevent.h>
 #include <event2/event.h>
 #include <event2/listener.h>
-
-#include <arpa/inet.h>
 #include <netinet/tcp.h>
-
 #include <pthread.h>
 #include <sys/file.h>
 #include <csignal>
@@ -16,7 +14,6 @@
 #include <cstring>
 #include <memory>
 #include <vector>
-
 #include "common/dedicated_thread_owner.h"
 #include "common/exception.h"
 #include "common/notifiable_task.h"
@@ -38,7 +35,8 @@ class TerrierServer : public DedicatedThreadOwner {
    * is called.
    */
   explicit TerrierServer(common::ManagedPointer<ProtocolInterpreter::Provider> protocol_provider,
-                         common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory);
+                         common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory,
+                         common::ManagedPointer<DedicatedThreadRegistry> thread_registry);
 
   ~TerrierServer() override = default;
 

@@ -2,12 +2,10 @@
 
 #include <memory>
 #include <vector>
-
 #include "common/dedicated_thread_registry.h"
+#include "common/managed_pointer.h"
 #include "common/notifiable_task.h"
-
 #include "loggers/network_logger.h"
-
 #include "network/connection_handle_factory.h"
 #include "network/connection_handler_task.h"
 #include "network/network_types.h"
@@ -35,7 +33,8 @@ class ConnectionDispatcherTask : public common::NotifiableTask {
    */
   ConnectionDispatcherTask(int num_handlers, int listen_fd, DedicatedThreadOwner *dedicated_thread_owner,
                            common::ManagedPointer<ProtocolInterpreter::Provider> interpreter_provider,
-                           common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory);
+                           common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory,
+                           common::ManagedPointer<DedicatedThreadRegistry> thread_registry);
 
   /**
    * @brief Dispatches the client connection at fd to a handler.

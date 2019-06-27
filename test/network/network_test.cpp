@@ -35,6 +35,7 @@ class NetworkTests : public TerrierTest {
  protected:
   std::unique_ptr<TerrierServer> server_;
   std::unique_ptr<ConnectionHandleFactory> handle_factory_;
+  std::unique_ptr<DedicatedThreadRegistry> thread_registry_;
   uint16_t port_ = common::Settings::SERVER_PORT;
   std::thread server_thread_;
   trafficcop::TrafficCop tcop_;
@@ -51,11 +52,13 @@ class NetworkTests : public TerrierTest {
     network_logger->set_level(spdlog::level::trace);
     spdlog::flush_every(std::chrono::seconds(1));
 
+    thread_registry_ = std::make_unique<DedicatedThreadRegistry>();
+
     try {
       handle_factory_ = std::make_unique<ConnectionHandleFactory>(common::ManagedPointer(&tcop_));
-      server_ =
-          std::make_unique<TerrierServer>(common::ManagedPointer<ProtocolInterpreter::Provider>(&protocol_provider_),
-                                          common::ManagedPointer(handle_factory_.get()));
+      server_ = std::make_unique<TerrierServer>(
+          common::ManagedPointer<ProtocolInterpreter::Provider>(&protocol_provider_),
+          common::ManagedPointer(handle_factory_.get()), common::ManagedPointer(thread_registry_));
       server_->SetPort(port_);
       server_->SetupServer();
     } catch (NetworkProcessException &exception) {

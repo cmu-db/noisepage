@@ -47,10 +47,7 @@ class ConnectionHandleFactory {
   /**
    * Teardown for connection handle factory to clean up anything in reusable_handles_
    */
-  void TearDown() {
-    DedicatedThreadRegistry::GetInstance().TearDown();
-    reusable_handles_.clear();
-  }
+  void TearDown() { reusable_handles_.clear(); }
 
  private:
   std::unordered_map<int, ConnectionHandle> reusable_handles_;

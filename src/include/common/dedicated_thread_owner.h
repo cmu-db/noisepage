@@ -6,6 +6,9 @@
 #include "common/spin_latch.h"
 
 namespace terrier {
+
+class DedicatedThreadRegistry;
+
 /**
  * @brief DedicatedThreadOwner is the base class for all components that
  * needs to manage long running threads inside the system (e.g. GC, thread pool)
@@ -45,6 +48,11 @@ class DedicatedThreadOwner {
     common::SpinLatch::ScopedSpinLatch guard(&thread_count_latch_);
     return thread_count_;
   }
+
+ protected:
+  explicit DedicatedThreadOwner(common::ManagedPointer<DedicatedThreadRegistry> thread_registry)
+      : thread_registry_(thread_registry) {}
+  const common::ManagedPointer<DedicatedThreadRegistry> thread_registry_;
 
  private:
   /**
@@ -87,7 +95,6 @@ class DedicatedThreadOwner {
    */
   virtual bool OnThreadRemoval(common::ManagedPointer<DedicatedThreadTask> task) { return false; }
 
- private:
   // Latch to protect thread count
   common::SpinLatch thread_count_latch_;
   // Number of threads this owner has been granted

@@ -28,6 +28,7 @@ class TrafficCopTests : public TerrierTest {
   network::PostgresCommandFactory command_factory_;
   network::PostgresProtocolInterpreter::Provider interpreter_provider_{common::ManagedPointer(&command_factory_)};
   std::unique_ptr<network::ConnectionHandleFactory> handle_factory_;
+  DedicatedThreadRegistry thread_registry;
 
   void StartServer() {
     network::network_logger->set_level(spdlog::level::trace);
@@ -38,7 +39,8 @@ class TrafficCopTests : public TerrierTest {
       handle_factory_ = std::make_unique<network::ConnectionHandleFactory>(common::ManagedPointer(&tcop_));
       server_ = std::make_unique<network::TerrierServer>(
           common::ManagedPointer<network::ProtocolInterpreter::Provider>(&interpreter_provider_),
-          common::ManagedPointer(handle_factory_.get()));
+          common::ManagedPointer(handle_factory_.get()),
+          common::ManagedPointer<DedicatedThreadRegistry>(&thread_registry));
       server_->SetPort(port_);
       server_->SetupServer();
     } catch (NetworkProcessException &exception) {

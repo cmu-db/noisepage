@@ -29,6 +29,8 @@ namespace storage {
 class WriteAheadLoggingTests;
 }
 
+class DedicatedThreadRegistry;
+
 /**
  * The DBMain Class holds all the singleton pointers. It has the full knowledge
  * of the whole database systems and serves as a global context of the system.
@@ -69,6 +71,7 @@ class DBMain {
     delete command_factory_;
     delete provider_;
     delete t_cop_;
+    delete thread_registry_;
   }
 
   /**
@@ -104,6 +107,7 @@ class DBMain {
   network::ConnectionHandleFactory *connection_handle_factory_;
   network::ProtocolInterpreter::Provider *provider_;
   metrics::MetricsManager *metrics_manager_;
+  DedicatedThreadRegistry *thread_registry_;
 
   bool running = false;
 

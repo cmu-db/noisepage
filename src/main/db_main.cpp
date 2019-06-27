@@ -2,6 +2,7 @@
 #include <memory>
 #include <unordered_map>
 #include <utility>
+#include "common/managed_pointer.h"
 #include "loggers/loggers_util.h"
 #include "settings/settings_manager.h"
 #include "settings/settings_param.h"
@@ -30,6 +31,7 @@ DBMain::DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_
                                                        param_map_.find(settings::Param::gc_interval)->second.value_)});
   settings_manager_ = new settings::SettingsManager(this);
   metrics_manager_ = new metrics::MetricsManager;
+  thread_registry_ = new DedicatedThreadRegistry;
 
   // Create LogManager
   log_manager_ = new storage::LogManager(
@@ -37,7 +39,8 @@ DBMain::DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_
       settings_manager_->GetInt(settings::Param::num_log_manager_buffers),
       std::chrono::milliseconds{settings_manager_->GetInt(settings::Param::log_serialization_interval)},
       std::chrono::milliseconds{settings_manager_->GetInt(settings::Param::log_persist_interval)},
-      settings_manager_->GetInt(settings::Param::log_persist_threshold), buffer_segment_pool_);
+      settings_manager_->GetInt(settings::Param::log_persist_threshold), buffer_segment_pool_,
+      common::ManagedPointer(thread_registry_));
   log_manager_->Start();
 
   thread_pool_ = new common::WorkerPool(
@@ -50,7 +53,8 @@ DBMain::DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_
   connection_handle_factory_ = new network::ConnectionHandleFactory(common::ManagedPointer(t_cop_));
   provider_ = new network::PostgresProtocolInterpreter::Provider(common::ManagedPointer(command_factory_));
   server_ =
-      new network::TerrierServer(common::ManagedPointer(provider_), common::ManagedPointer(connection_handle_factory_));
+      new network::TerrierServer(common::ManagedPointer(provider_), common::ManagedPointer(connection_handle_factory_),
+                                 common::ManagedPointer(thread_registry_));
 
   LOG_INFO("Initialization complete");
 }
