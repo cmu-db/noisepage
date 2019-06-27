@@ -567,8 +567,7 @@ TEST(ExpressionTests, TypeCastExpressionJsonTest) {
   std::vector<std::shared_ptr<AbstractExpression>> children;
   auto child_expr = std::make_shared<StarExpression>();
   children.push_back(std::move(child_expr));
-  std::shared_ptr<TypeCastExpression> original_expr =
-      std::make_shared<TypeCastExpression>(type::TypeId::SMALLINT, std::move(children));
+  auto original_expr = new TypeCastExpression(type::TypeId::SMALLINT, std::move(children));
   EXPECT_EQ(original_expr->GetExpressionType(), ExpressionType::OPERATOR_CAST);
 
   // Serialize expression
@@ -582,6 +581,7 @@ TEST(ExpressionTests, TypeCastExpressionJsonTest) {
             ExpressionType::OPERATOR_CAST);
   EXPECT_EQ(original_expr->GetReturnValueType(),
             static_cast<TypeCastExpression *>(deserialized_expression.get())->GetReturnValueType());
+  delete original_expr;
 }
 
 // NOLINTNEXTLINE
@@ -700,8 +700,7 @@ TEST(ExpressionTests, ComparisonExpressionJsonTest) {
   children.emplace_back(std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetInteger(2)));
 
   // Create expression
-  std::shared_ptr<ComparisonExpression> original_expr =
-      std::make_shared<ComparisonExpression>(ExpressionType::COMPARE_EQUAL, std::move(children));
+  auto original_expr = new ComparisonExpression(ExpressionType::COMPARE_EQUAL, std::move(children));
   EXPECT_EQ(original_expr->GetExpressionType(), ExpressionType::COMPARE_EQUAL);
   EXPECT_EQ(original_expr->GetReturnValueType(), type::TypeId::BOOLEAN);
 
@@ -712,6 +711,8 @@ TEST(ExpressionTests, ComparisonExpressionJsonTest) {
   // Deserialize expression
   auto deserialized_expression = DeserializeExpression(json);
   EXPECT_EQ(*original_expr, *deserialized_expression);
+
+  delete original_expr;
 }
 
 // NOLINTNEXTLINE
