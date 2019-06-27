@@ -64,6 +64,15 @@ VM_OP_HOT void OpNot(bool *const result, const bool input) { *result = !input; }
 // Primitive arithmetic
 // ---------------------------------------------------------
 
+#define MODULAR(type, ...) \
+  /* Primitive modulo-remainder (no zero-check) */                                                            \
+  VM_OP_HOT void OpRem##_##type(type *result, type lhs, type rhs) {                                           \
+    TPL_ASSERT(rhs != 0, "Division-by-zero error!");                                                          \
+    *result = static_cast<type>(lhs % rhs);                                                                   \
+  }
+
+INT_TYPES(MODULAR)
+
 #define ARITHMETIC(type, ...)                                                                                 \
   /* Primitive addition */                                                                                    \
   VM_OP_HOT void OpAdd##_##type(type *result, type lhs, type rhs) { *result = static_cast<type>(lhs + rhs); } \
@@ -74,22 +83,17 @@ VM_OP_HOT void OpNot(bool *const result, const bool input) { *result = !input; }
   /* Primitive multiplication */                                                                              \
   VM_OP_HOT void OpMul##_##type(type *result, type lhs, type rhs) { *result = static_cast<type>(lhs * rhs); } \
                                                                                                               \
+  /* Primitive negation */                                                                                    \
+  VM_OP_HOT void OpNeg##_##type(type *result, type input) { *result = static_cast<type>(-input); } \
+  \
   /* Primitive division (no zero-check) */                                                                    \
   VM_OP_HOT void OpDiv##_##type(type *result, type lhs, type rhs) {                                           \
     TPL_ASSERT(rhs != 0, "Division-by-zero error!");                                                          \
     *result = static_cast<type>(lhs / rhs);                                                                   \
-  }                                                                                                           \
-                                                                                                              \
-  /* Primitive modulo-remainder (no zero-check) */                                                            \
-  VM_OP_HOT void OpRem##_##type(type *result, type lhs, type rhs) {                                           \
-    TPL_ASSERT(rhs != 0, "Division-by-zero error!");                                                          \
-    *result = static_cast<type>(lhs % rhs);                                                                   \
-  }                                                                                                           \
-                                                                                                              \
-  /* Primitive negation */                                                                                    \
-  VM_OP_HOT void OpNeg##_##type(type *result, type input) { *result = static_cast<type>(-input); }
+  }
 
 INT_TYPES(ARITHMETIC);
+
 
 #undef ARITHMETIC
 
@@ -147,6 +151,10 @@ VM_OP_HOT void OpAssignImm2(i16 *dest, i16 src) { *dest = src; }
 VM_OP_HOT void OpAssignImm4(i32 *dest, i32 src) { *dest = src; }
 
 VM_OP_HOT void OpAssignImm8(i64 *dest, i64 src) { *dest = src; }
+
+VM_OP_HOT void OpAssignImm4F(f32 *dest, f32 src) { *dest = src; }
+
+VM_OP_HOT void OpAssignImm8F(f64 *dest, f64 src) { *dest = src; }
 
 VM_OP_HOT void OpLea(byte **dest, byte *base, u32 offset) { *dest = base + offset; }
 
@@ -291,6 +299,27 @@ VM_OP_HOT void OpPCIGetDecimal(tpl::sql::Decimal *out, UNUSED tpl::sql::Projecte
   out->val = 0;
 }
 
+VM_OP_HOT void OpPCIGetDate(tpl::sql::Date *out, tpl::sql::ProjectedColumnsIterator *iter, u32 col_idx) {
+  // Read
+  auto *ptr = iter->Get<u32, false>(col_idx, nullptr);
+  TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read date");
+
+  // Set
+  out->is_null = false;
+  out->int_val = *ptr;
+}
+
+VM_OP_HOT void OpPCIGetVarlen(tpl::sql::StringVal *out, tpl::sql::ProjectedColumnsIterator *iter, u32 col_idx) {
+  // Read
+  auto *varlen = iter->Get<terrier::storage::VarlenEntry, false>(col_idx, nullptr);
+  TPL_ASSERT(varlen != nullptr, "Null pointer when trying to read varlen");
+
+  // Set
+  out->is_null = false;
+  out->len = varlen->Size();
+  out->ptr = reinterpret_cast<char*>(const_cast<byte*>(varlen->Content()));
+}
+
 VM_OP_HOT void OpPCIGetSmallIntNull(tpl::sql::Integer *out, tpl::sql::ProjectedColumnsIterator *iter, u32 col_idx) {
   // Read
   bool null = false;
@@ -349,6 +378,29 @@ VM_OP_HOT void OpPCIGetDoubleNull(tpl::sql::Real *out, tpl::sql::ProjectedColumn
 VM_OP_HOT void OpPCIGetDecimalNull(tpl::sql::Decimal *out, tpl::sql::ProjectedColumnsIterator *iter, u32 col_idx) {
   out->val = 0;
   out->is_null = false;
+}
+
+VM_OP_HOT void OpPCIGetDateNull(tpl::sql::Date *out, tpl::sql::ProjectedColumnsIterator *iter, u32 col_idx) {
+  // Read
+  bool null = false;
+  auto *ptr = iter->Get<u32, true>(col_idx, &null);
+  TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read date");
+
+  // Set
+  out->is_null = null;
+  out->int_val = *ptr;
+}
+
+VM_OP_HOT void OpPCIGetVarlenNull(tpl::sql::StringVal *out, tpl::sql::ProjectedColumnsIterator *iter, u32 col_idx) {
+  // Read
+  bool null = false;
+  auto *varlen = iter->Get<terrier::storage::VarlenEntry, true>(col_idx, &null);
+  TPL_ASSERT(varlen != nullptr, "Null pointer when trying to read varlen");
+
+  // Set
+  out->is_null = null;
+  out->len = varlen->Size();
+  out->ptr = reinterpret_cast<char*>(const_cast<byte*>(varlen->Content()));
 }
 
 void OpPCIFilterEqual(u32 *size, tpl::sql::ProjectedColumnsIterator *iter, u32 col_id, i8 type, i64 val);
@@ -427,6 +479,24 @@ VM_OP_HOT void OpInitReal(tpl::sql::Real *result, double input) {
   result->val = input;
 }
 
+VM_OP_HOT void OpInitDate(tpl::sql::Date *result, i16 year, u8 month, u8 day) {
+  result->is_null = false;
+  result->ymd = date::year(year) / month / day;
+}
+
+VM_OP_HOT void OpInitString(tpl::sql::StringVal *result, u64 length, uintptr_t data) {
+  result->is_null = false;
+  result->len = u32(length);
+  result->ptr = reinterpret_cast<char*>(data);
+}
+
+VM_OP_HOT void OpInitVarlen(tpl::sql::StringVal *result, uintptr_t data) {
+  auto * varlen = reinterpret_cast<terrier::storage::VarlenEntry*>(data);
+  result->is_null = false;
+  result->len = varlen->Size();
+  result->ptr = reinterpret_cast<char*>(const_cast<byte*>(varlen->Content()));
+}
+
 #define GEN_SQL_COMPARISONS(TYPE)                                              \
   VM_OP_HOT void OpGreaterThan##TYPE(tpl::sql::BoolVal *const result,          \
                                      const tpl::sql::TYPE *const left,         \
@@ -461,48 +531,9 @@ VM_OP_HOT void OpInitReal(tpl::sql::Real *result, double input) {
 
 GEN_SQL_COMPARISONS(Integer)
 GEN_SQL_COMPARISONS(Real)
-
+GEN_SQL_COMPARISONS(StringVal)
+GEN_SQL_COMPARISONS(Date)
 #undef GEN_SQL_COMPARISONS
-
-// ---------------------------
-// SQL Strings
-// --------------------------
-
-VM_OP_HOT void OpGreaterThanString(tpl::sql::BoolVal *const result,
-                                   const tpl::sql::StringVal *const left,
-                                   const tpl::sql::StringVal *const right) {
-  tpl::sql::ComparisonFunctions::GtStringVal(result, *left, *right);
-}
-
-VM_OP_HOT void OpGreaterThanEqualString(
-    tpl::sql::BoolVal *const result, const tpl::sql::StringVal *const left,
-    const tpl::sql::StringVal *const right) {
-  tpl::sql::ComparisonFunctions::GeStringVal(result, *left, *right);
-}
-
-VM_OP_HOT void OpEqualString(tpl::sql::BoolVal *const result,
-                             const tpl::sql::StringVal *const left,
-                             const tpl::sql::StringVal *const right) {
-  tpl::sql::ComparisonFunctions::EqStringVal(result, *left, *right);
-}
-
-VM_OP_HOT void OpLessThanString(tpl::sql::BoolVal *const result,
-                                const tpl::sql::StringVal *const left,
-                                const tpl::sql::StringVal *const right) {
-  tpl::sql::ComparisonFunctions::LtStringVal(result, *left, *right);
-}
-
-VM_OP_HOT void OpLessThanEqualString(tpl::sql::BoolVal *const result,
-                                     const tpl::sql::StringVal *const left,
-                                     const tpl::sql::StringVal *const right) {
-  tpl::sql::ComparisonFunctions::LeStringVal(result, *left, *right);
-}
-
-VM_OP_HOT void OpNotEqualString(tpl::sql::BoolVal *const result,
-                                const tpl::sql::StringVal *const left,
-                                const tpl::sql::StringVal *const right) {
-  tpl::sql::ComparisonFunctions::NeStringVal(result, *left, *right);
-}
 
 
 // ----------------------------------
@@ -916,10 +947,16 @@ VM_OP_HOT void OpAvgAggregateInit(tpl::sql::AvgAggregate *agg) {
   new (agg) tpl::sql::AvgAggregate();
 }
 
-VM_OP_HOT void OpAvgAggregateAdvance(tpl::sql::AvgAggregate *agg,
+VM_OP_HOT void OpIntegerAvgAggregateAdvance(tpl::sql::AvgAggregate *agg,
                                      const tpl::sql::Integer *val) {
   agg->Advance(*val);
 }
+
+VM_OP_HOT void OpRealAvgAggregateAdvance(tpl::sql::AvgAggregate *agg,
+                                     const tpl::sql::Real *val) {
+  agg->Advance(*val);
+}
+
 
 VM_OP_HOT void OpAvgAggregateMerge(tpl::sql::AvgAggregate *agg_1,
                                    const tpl::sql::AvgAggregate *agg_2) {
@@ -1259,13 +1296,12 @@ VM_OP_WARM void OpUpper(tpl::exec::ExecutionContext *ctx,
 // ---------------------------------------------------------------
 // Index Iterator
 // ---------------------------------------------------------------
-void OpIndexIteratorInit(tpl::sql::IndexIterator *iter, uint32_t index_oid, tpl::exec::ExecutionContext *exec_ctx);
-void OpIndexIteratorScanKey(tpl::sql::IndexIterator *iter, byte *key);
+void OpIndexIteratorInit(tpl::sql::IndexIterator *iter, uint32_t table_oid, uint32_t index_oid, tpl::exec::ExecutionContext *exec_ctx);
 void OpIndexIteratorFree(tpl::sql::IndexIterator *iter);
 
-VM_OP_HOT void OpIndexIteratorHasNext(bool *has_more, tpl::sql::IndexIterator *iter) { *has_more = iter->HasNext(); }
+VM_OP_HOT void OpIndexIteratorScanKey(tpl::sql::IndexIterator *iter, byte *key) { iter->ScanKey(key); }
 
-VM_OP_HOT void OpIndexIteratorAdvance(tpl::sql::IndexIterator *iter) { iter->Advance(); }
+VM_OP_HOT void OpIndexIteratorAdvance(bool *has_more, tpl::sql::IndexIterator *iter) { *has_more = iter->Advance(); }
 
 VM_OP_HOT void OpIndexIteratorGetSmallInt(tpl::sql::Integer *out, tpl::sql::IndexIterator *iter, u32 col_idx) {
   // Read
@@ -1290,6 +1326,26 @@ VM_OP_HOT void OpIndexIteratorGetInteger(tpl::sql::Integer *out, tpl::sql::Index
 VM_OP_HOT void OpIndexIteratorGetBigInt(tpl::sql::Integer *out, tpl::sql::IndexIterator *iter, u32 col_idx) {
   // Read
   auto *ptr = iter->Get<i64, false>(col_idx, nullptr);
+  TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
+
+  // Set
+  out->is_null = false;
+  out->val = *ptr;
+}
+
+VM_OP_HOT void OpIndexIteratorGetReal(tpl::sql::Real *out, tpl::sql::IndexIterator *iter, u32 col_idx) {
+  // Read
+  auto *ptr = iter->Get<f32, false>(col_idx, nullptr);
+  TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
+
+  // Set
+  out->is_null = false;
+  out->val = *ptr;
+}
+
+VM_OP_HOT void OpIndexIteratorGetDouble(tpl::sql::Real *out, tpl::sql::IndexIterator *iter, u32 col_idx) {
+  // Read
+  auto *ptr = iter->Get<f64, false>(col_idx, nullptr);
   TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
 
   // Set
@@ -1330,6 +1386,28 @@ VM_OP_HOT void OpIndexIteratorGetBigIntNull(tpl::sql::Integer *out, tpl::sql::In
   // Read
   bool null = false;
   auto *ptr = iter->Get<i64, true>(col_idx, &null);
+  // TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
+
+  // Set
+  out->is_null = null;
+  out->val = null ? 0 : *ptr;
+}
+
+VM_OP_HOT void OpIndexIteratorGetRealNull(tpl::sql::Real *out, tpl::sql::IndexIterator *iter, u32 col_idx) {
+  // Read
+  bool null = false;
+  auto *ptr = iter->Get<f32, true>(col_idx, &null);
+  // TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
+
+  // Set
+  out->is_null = null;
+  out->val = null ? 0 : *ptr;
+}
+
+VM_OP_HOT void OpIndexIteratorGetDoubleNull(tpl::sql::Real *out, tpl::sql::IndexIterator *iter, u32 col_idx) {
+  // Read
+  bool null = false;
+  auto *ptr = iter->Get<f64, true>(col_idx, &null);
   // TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
 
   // Set

@@ -12,6 +12,9 @@ namespace tpl::ast {
   F(BoolToSql, boolToSql)                                       \
   F(FloatToSql, floatToSql)                                     \
   F(SqlToBool, sqlToBool)                                       \
+  F(StringToSql, stringToSql)                                       \
+  F(VarlenToSql, varlenToSql)                                       \
+  F(DateToSql, dateToSql)                                       \
                                                                 \
   /* Vectorized Filters */                                      \
   F(FilterEq, filterEq)                                         \
@@ -49,6 +52,15 @@ namespace tpl::ast {
   F(PCIGetBigInt, pciGetBigInt)                                 \
   F(PCIGetReal, pciGetReal)                                     \
   F(PCIGetDouble, pciGetDouble)                                 \
+  F(PCIGetDate, pciGetDate)                                     \
+  F(PCIGetVarlen, pciGetVarlen)                         \
+  F(PCIGetSmallIntNull, pciGetSmallIntNull)                             \
+  F(PCIGetIntNull, pciGetIntNull)                                       \
+  F(PCIGetBigIntNull, pciGetBigIntNull)                                 \
+  F(PCIGetRealNull, pciGetRealNull)                                     \
+  F(PCIGetDoubleNull, pciGetDoubleNull)                                 \
+  F(PCIGetDateNull, pciGetDateNull)                                     \
+  F(PCIGetVarlenNull, pciGetVarlenNull)                                                                      \
                                                                 \
   /* Hashing */                                                 \
   F(Hash, hash)                                                 \
@@ -130,6 +142,12 @@ namespace tpl::ast {
   /* Index */                                                   \
   F(IndexIteratorInit, indexIteratorInit)                       \
   F(IndexIteratorScanKey, indexIteratorScanKey)                 \
+  F(IndexIteratorAdvance, indexIteratorAdvance)                 \
+  F(IndexIteratorGetSmallInt, indexIteratorGetSmallInt)                 \
+  F(IndexIteratorGetInt, indexIteratorGetInt)                 \
+  F(IndexIteratorGetBigInt, indexIteratorGetBigInt)                 \
+  F(IndexIteratorGetReal, indexIteratorGetReal)                 \
+  F(IndexIteratorGetDouble, indexIteratorGetDouble)                 \
   F(IndexIteratorFree, indexIteratorFree)                       \
                                                                 \
   /* Insert */                                                  \

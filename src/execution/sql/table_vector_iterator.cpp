@@ -22,6 +22,7 @@ TableVectorIterator::TableVectorIterator(u32 table_oid, exec::ExecutionContext *
 TableVectorIterator::~TableVectorIterator() { delete[] buffer_; }
 
 bool TableVectorIterator::Init() {
+  // TODO(Amadou): Use the catalog accessor once it's merged.
   // Find the table
   catalog_table_ = exec_ctx_->GetAccessor()->GetUserTable(table_oid_);
   TPL_ASSERT(catalog_table_ != nullptr, "Table must exist!!");

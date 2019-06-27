@@ -64,7 +64,13 @@ void OutputPrinter::operator()(byte *tuples, u32 num_tuples, u32 tuple_size) {
           break;
         }
         case TypeId::DATE: {
-          UNREACHABLE("Not implemented in this branch yet");
+          auto *val = reinterpret_cast<sql::Date *>(tuples + row * tuple_size + curr_offset);
+          if (val->is_null) {
+            ss << "NULL";
+          } else {
+            ss << sql::ValUtil::DateToString(*val);
+          }
+          break;
         }
         case TypeId::VARCHAR: {
           auto *val = reinterpret_cast<sql::StringVal *>(tuples + row * tuple_size + curr_offset);

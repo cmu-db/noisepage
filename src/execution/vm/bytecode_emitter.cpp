@@ -29,6 +29,10 @@ void BytecodeEmitter::EmitAssignImm2(LocalVar dest, i16 val) { EmitAll(Bytecode:
 
 void BytecodeEmitter::EmitAssignImm4(LocalVar dest, i32 val) { EmitAll(Bytecode::AssignImm4, dest, val); }
 
+void BytecodeEmitter::EmitAssignImm4F(LocalVar dest, f32 val) { EmitAll(Bytecode::AssignImm4F, dest, val); }
+
+void BytecodeEmitter::EmitAssignImm8F(LocalVar dest, f64 val) { EmitAll(Bytecode::AssignImm8F, dest, val); }
+
 void BytecodeEmitter::EmitAssignImm8(LocalVar dest, i64 val) { EmitAll(Bytecode::AssignImm8, dest, val); }
 
 void BytecodeEmitter::EmitUnaryOp(Bytecode bytecode, LocalVar dest, LocalVar input) { EmitAll(bytecode, dest, input); }
@@ -309,8 +313,8 @@ void BytecodeEmitter::EmitOutputSetNull(Bytecode bytecode, LocalVar exec_ctx, Lo
   EmitAll(bytecode, exec_ctx, idx);
 }
 
-void BytecodeEmitter::EmitIndexIteratorInit(Bytecode bytecode, LocalVar iter, uint32_t index_oid, LocalVar exec_ctx) {
-  EmitAll(bytecode, iter, index_oid, exec_ctx);
+void BytecodeEmitter::EmitIndexIteratorInit(Bytecode bytecode, LocalVar iter, uint32_t table_oid, uint32_t index_oid, LocalVar exec_ctx) {
+  EmitAll(bytecode, iter, table_oid, index_oid, exec_ctx);
 }
 
 void BytecodeEmitter::EmitIndexIteratorScanKey(Bytecode bytecode, LocalVar iter, LocalVar key) {
@@ -321,6 +325,10 @@ void BytecodeEmitter::EmitIndexIteratorFree(Bytecode bytecode, LocalVar iter) { 
 
 void BytecodeEmitter::EmitIndexIteratorGet(Bytecode bytecode, LocalVar out, LocalVar iter, u32 col_idx) {
   EmitAll(bytecode, out, iter, col_idx);
+}
+
+void BytecodeEmitter::EmitInitString(Bytecode bytecode, LocalVar out, u64 length, uintptr_t data) {
+  EmitAll(bytecode, out, length, data);
 }
 
 }  // namespace tpl::vm

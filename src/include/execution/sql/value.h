@@ -6,6 +6,8 @@
 #include "execution/util/math_util.h"
 #include "execution/exec/execution_context.h"
 #include "type/type_id.h"
+#include "date/date.h"
+#include <sstream>
 
 namespace tpl::sql {
 
@@ -118,6 +120,20 @@ struct Real : public Val {
    * @param val value of the double
    */
   explicit Real(double val) noexcept : Val(false), val(val) {}
+
+  /**
+   * Generic constructor
+   * @param null whether the value is NULL or not
+   * @param val the raw float value
+   */
+  explicit Real(bool null, float val) noexcept : Val(null), val(val) {}
+
+  /**
+   * Generic constructor
+   * @param null whether the value is NULL or not
+   * @param val the raw double value
+   */
+  explicit Real(bool null, double val) noexcept : Val(null), val(val) {}
 
   /**
    * @return a NULL real value
@@ -248,20 +264,32 @@ struct StringVal : public Val {
   static StringVal Null() { return StringVal(static_cast<char *>(nullptr), 0); }
 };
 
+
+
 /**
  * Date
  */
 struct Date : public Val {
   /**
    * Date value
+   * Can be represented by an int32 (for the storage layer), or by a year-month-day struct.
    */
-  i32 date_val;
+  union {
+    date::year_month_day ymd;
+    u32 int_val;
+  };
 
   /**
    * Constructor
    * @param date date value
    */
-  explicit Date(i32 date) noexcept : Val(false), date_val(date) {}
+  explicit Date(u32 date) noexcept : Val(false), int_val{date} {}
+
+  explicit Date(terrier::type::date_t date) noexcept : Val(false), int_val{!date} {}
+
+  Date(date::year year, date::month month, date::day day) noexcept : Val(false), ymd{year, month, day} {}
+
+  Date(i16 year, u8 month, u8 day) noexcept : Val(false), ymd{date::year(year) / date::month(month) / date::day(day)} {}
 
   /**
    * @return a NULL Date.
@@ -319,13 +347,44 @@ struct ValUtil {
       case terrier::type::TypeId::TIMESTAMP:
         return static_cast<u32>(util::MathUtil::AlignTo(sizeof(Date), 8));
       case terrier::type::TypeId::DECIMAL:
-        return static_cast<u32>(util::MathUtil::AlignTo(sizeof(Decimal), 8));
+        // TODO(Amadou): We only support reals for now. Switch to Decima once it's implemented
+        return static_cast<u32>(util::MathUtil::AlignTo(sizeof(Real), 8));
       case terrier::type::TypeId::VARCHAR:
       case terrier::type::TypeId::VARBINARY:
         return static_cast<u32>(util::MathUtil::AlignTo(sizeof(StringVal), 8));
       default:
         return 0;
     }
+  }
+
+  static std::string DateToString(const Date & date) {
+    std::stringstream ss;
+    ss << date.ymd;
+    return ss.str();
+  }
+
+  static i16 ExtractYear(const Date& date) {
+    return i16(int(date.ymd.year()));
+  }
+
+  static u8 ExtractMonth(const Date& date) {
+    return u8(unsigned(date.ymd.month()));
+  }
+
+  static u8 ExtractDay(const Date& date) {
+    return u8(unsigned(date.ymd.day()));
+  }
+
+  static Date StringToDate(const std::string & str) {
+    std::stringstream ss(str);
+    i16 year, month, day;
+    // Token to dismiss the '-' character
+    // Am using the i16 type to prevent the string stream from returning ascii codes.
+    char tok;
+    ss >> year >> tok;
+    ss >> month >> tok;
+    ss >> day;
+    return Date(i16(year), u8(month), u8(day));
   }
 };
 

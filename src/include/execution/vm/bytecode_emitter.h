@@ -87,6 +87,20 @@ class BytecodeEmitter {
   void EmitAssignImm4(LocalVar dest, i32 val);
 
   /**
+   * Emit assignment code for 4 byte float values.
+   * @param dest destination variable
+   * @param val value to assign
+   */
+  void EmitAssignImm4F(LocalVar dest, f32 val);
+
+  /**
+   * Emit assignment code for 8 byte float values.
+   * @param dest destination variable
+   * @param val value to assign
+   */
+  void EmitAssignImm8F(LocalVar dest, f64 val);
+
+  /**
    * Emit assignment code for 8 byte values.
    * @param dest destination variable
    * @param val value to assign
@@ -396,7 +410,7 @@ class BytecodeEmitter {
    * @param index_oid oid of the index to use
    * @param exec_ctx the execution context
    */
-  void EmitIndexIteratorInit(Bytecode bytecode, LocalVar iter, uint32_t index_oid, LocalVar exec_ctx);
+  void EmitIndexIteratorInit(Bytecode bytecode, LocalVar iter, uint32_t table_oid, uint32_t index_oid, LocalVar exec_ctx);
 
   /**
    * Emit code to scan a key
@@ -422,8 +436,15 @@ class BytecodeEmitter {
    */
   void EmitIndexIteratorGet(Bytecode bytecode, LocalVar out, LocalVar iter, u32 col_idx);
 
- private:
-  // Copy a scalar immediate value into the bytecode stream
+  /**
+   * Initialize a StringVal from a char array
+   * @param bytecode bytecode to emit
+   * @param out where to store the result
+   * @param length length of the string
+   * @param data pointer to the char array
+   */
+  void EmitInitString(Bytecode bytecode, LocalVar out, u64 length, uintptr_t data);
+
   /**
    * Copy a scalar immediate value into the bytecode stream
    * @tparam T type of the value
@@ -431,7 +452,7 @@ class BytecodeEmitter {
    * @return nothing
    */
   template <typename T>
-  auto EmitScalarValue(T val) -> std::enable_if_t<std::is_integral_v<T>> {
+  auto EmitScalarValue(T val) -> std::enable_if_t<std::is_arithmetic_v<T>> {
     bytecode_->insert(bytecode_->end(), sizeof(T), 0);
     *reinterpret_cast<T *>(&*(bytecode_->end() - sizeof(T))) = val;
   }
@@ -455,7 +476,7 @@ class BytecodeEmitter {
    * @return nothing
    */
   template <typename T>
-  auto EmitImpl(T val) -> std::enable_if_t<std::is_integral_v<T>> {
+  auto EmitImpl(T val) -> std::enable_if_t<std::is_arithmetic_v<T>> {
     EmitScalarValue(val);
   }
 

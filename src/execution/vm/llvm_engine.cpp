@@ -661,6 +661,14 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(const FunctionInfo &func_
           args.push_back(llvm::ConstantInt::get(type_map()->Int64Type(), iter.GetImmediateOperand(i), true));
           break;
         }
+        case OperandType::Imm4F: {
+          args.push_back(llvm::ConstantFP::get(type_map()->Float32Type(), iter.GetFloatImmediateOperand(i)));
+          break;
+        }
+        case OperandType::Imm8F: {
+          args.push_back(llvm::ConstantFP::get(type_map()->Float64Type(), iter.GetFloatImmediateOperand(i)));
+          break;
+        }
         case OperandType::UImm2: {
           args.push_back(llvm::ConstantInt::get(type_map()->UInt16Type(), iter.GetUnsignedImmediateOperand(i), false));
           break;

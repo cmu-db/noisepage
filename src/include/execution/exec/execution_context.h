@@ -72,6 +72,7 @@ class ExecutionContext {
                                                                          ComputeTupleSize(schema), callback)),
     accessor_(std::move(accessor)){}
 
+
   /**
    * @return the transaction used by this query
    */

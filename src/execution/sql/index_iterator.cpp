@@ -3,12 +3,12 @@
 
 namespace tpl::sql {
 
-IndexIterator::IndexIterator(uint32_t index_oid, exec::ExecutionContext * exec_ctx) : exec_ctx_(exec_ctx) {
+IndexIterator::IndexIterator(uint32_t table_oid, uint32_t index_oid, exec::ExecutionContext * exec_ctx) : exec_ctx_(exec_ctx) {
+  // TODO(Amadou): Use the catalog accessor once it's merged
   // Get index from the catalog
   catalog_index_ = exec_ctx_->GetAccessor()->GetCatalogIndex(terrier::catalog::index_oid_t(index_oid));
   // Get table from the catalog
-  auto table_oid = catalog_index_->GetTable();
-  catalog_table_ = exec_ctx_->GetAccessor()->GetUserTable(table_oid);
+  catalog_table_ = exec_ctx_->GetAccessor()->GetUserTable(terrier::catalog::table_oid_t(table_oid));
   // Initialize projected rows for the index and the table
   auto &index_pri = catalog_index_->GetMetadata()->GetProjectedRowInitializer();
   auto &row_pri = *catalog_table_->GetPRI();
@@ -49,8 +49,7 @@ void IndexIterator::ScanKey(byte *sql_key) {
     sql_key += ValUtil::GetSqlSize(index_col.GetType());
     col_idx++;
   }
-  // Scan the table
-  curr_index_ = 0;
+  // Scan the index
   index_values_.clear();
   catalog_index_->GetIndex()->ScanKey(*exec_ctx_->GetTxn(), *index_pr_, &index_values_);
   // FOR DEBUGGING ONLY: print to check if output is correct.
@@ -71,12 +70,13 @@ void IndexIterator::ScanKey(byte *sql_key) {
   }*/
 }
 
-void IndexIterator::Advance() {
-  // Select the next tuple slot
-  catalog_table_->GetSqlTable()->Select(exec_ctx_->GetTxn(), index_values_[curr_index_], row_pr_);
-  ++curr_index_;
+bool IndexIterator::Advance() {
+  if (curr_index_ < index_values_.size()) {
+    catalog_table_->GetSqlTable()->Select(exec_ctx_->GetTxn(), index_values_[curr_index_], row_pr_);
+    ++curr_index_;
+    return true;
+  }
+  return false;
 }
-
-bool IndexIterator::HasNext() { return curr_index_ < index_values_.size(); }
 
 }  // namespace tpl::sql

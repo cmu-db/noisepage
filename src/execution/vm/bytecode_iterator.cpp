@@ -43,6 +43,24 @@ i64 BytecodeIterator::GetImmediateOperand(u32 operand_index) const {
   }
 }
 
+f64 BytecodeIterator::GetFloatImmediateOperand(u32 operand_index) const {
+  OperandType operand_type = Bytecodes::GetNthOperandType(CurrentBytecode(), operand_index);
+  TPL_ASSERT(OperandTypes::IsFloatImmediate(operand_type), "Operand type is not a float immediate");
+
+  const u8 *operand_address =
+      bytecodes_.data() + curr_offset_ + Bytecodes::GetNthOperandOffset(CurrentBytecode(), operand_index);
+
+  switch (operand_type) {
+    case OperandType::Imm4F: {
+      return *reinterpret_cast<const f32 *>(operand_address);
+    }
+    case OperandType::Imm8F: {
+      return *reinterpret_cast<const f64 *>(operand_address);
+    }
+    default: { UNREACHABLE("Impossible!"); }
+  }
+}
+
 u64 BytecodeIterator::GetUnsignedImmediateOperand(u32 operand_index) const {
   OperandType operand_type = Bytecodes::GetNthOperandType(CurrentBytecode(), operand_index);
   TPL_ASSERT(OperandTypes::IsUnsignedImmediate(operand_type), "Operand type is not a signed immediate");

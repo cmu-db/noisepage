@@ -138,9 +138,8 @@ fun pipeline2(execCtx: *ExecutionContext, state: *State) -> nil {
           if (agg == nil) {
             agg = @ptrCast(*AggRow, @aggHTInsert(&state.agg_table, agg_hash_val))
             constructAgg(agg, orders_row)
-          } else {
-            updateAgg(agg, orders_row)
           }
+          updateAgg(agg, orders_row)
         }
         @joinHTIterClose(&hti)
       }

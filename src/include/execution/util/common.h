@@ -36,9 +36,17 @@ using hash_t = u64;
   F(u32, __VA_ARGS__)                      \
   F(u64, __VA_ARGS__)
 
+#define FOR_EACH_FLOAT_TYPE(F, ...) \
+  F(f32, __VA_ARGS__) \
+  F(f64, __VA_ARGS__)
+
 #define INT_TYPES(F, ...)                  \
   FOR_EACH_SIGNED_INT_TYPE(F, __VA_ARGS__) \
   FOR_EACH_UNSIGNED_INT_TYPE(F, __VA_ARGS__)
+
+#define ALL_TYPES(F, ...) \
+  INT_TYPES(F, __VA_ARGS__) \
+  FOR_EACH_FLOAT_TYPE(F, __VA_ARGS__)
 
 namespace tpl {
 

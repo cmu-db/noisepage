@@ -1,0 +1,8 @@
+types1 4
+int_col int 0
+real_col decimal 0
+date_col date 0
+varchar_col varchar 0 20
+1
+types1_index 1
+0

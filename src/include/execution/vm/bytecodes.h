@@ -21,7 +21,9 @@ namespace tpl::vm {
   F(op##_##u64, __VA_ARGS__)
 
 // Creates instances of a given opcode for all floating-point primitive types
-#define CREATE_FOR_FLOAT_TYPES(func, op) func(op, f32) func(op, f64)
+#define CREATE_FOR_FLOAT_TYPES(F, op, ...) \
+  F(op##_##f32, __VA_ARGS__) \
+  F(op##_##f64, __VA_ARGS__)
 
 // Creates instances of a given opcode for *ALL* primitive types
 #define CREATE_FOR_ALL_TYPES(F, op, ...)   \
@@ -38,6 +40,7 @@ namespace tpl::vm {
 #define BYTECODE_LIST(F)                                                                                              \
   /* Primitive operations */                                                                                          \
   CREATE_FOR_INT_TYPES(F, Add, OperandType::Local, OperandType::Local, OperandType::Local)                            \
+  CREATE_FOR_INT_TYPES(F, Neg, OperandType::Local, OperandType::Local)                                                \
   CREATE_FOR_INT_TYPES(F, Sub, OperandType::Local, OperandType::Local, OperandType::Local)                            \
   CREATE_FOR_INT_TYPES(F, Mul, OperandType::Local, OperandType::Local, OperandType::Local)                            \
   CREATE_FOR_INT_TYPES(F, Div, OperandType::Local, OperandType::Local, OperandType::Local)                            \
@@ -45,7 +48,6 @@ namespace tpl::vm {
   CREATE_FOR_INT_TYPES(F, BitAnd, OperandType::Local, OperandType::Local, OperandType::Local)                         \
   CREATE_FOR_INT_TYPES(F, BitOr, OperandType::Local, OperandType::Local, OperandType::Local)                          \
   CREATE_FOR_INT_TYPES(F, BitXor, OperandType::Local, OperandType::Local, OperandType::Local)                         \
-  CREATE_FOR_INT_TYPES(F, Neg, OperandType::Local, OperandType::Local)                                                \
   CREATE_FOR_INT_TYPES(F, BitNeg, OperandType::Local, OperandType::Local)                                             \
   CREATE_FOR_INT_TYPES(F, GreaterThan, OperandType::Local, OperandType::Local, OperandType::Local)                    \
   CREATE_FOR_INT_TYPES(F, GreaterThanEqual, OperandType::Local, OperandType::Local, OperandType::Local)               \
@@ -77,6 +79,8 @@ namespace tpl::vm {
   F(AssignImm2, OperandType::Local, OperandType::Imm2)                                                                \
   F(AssignImm4, OperandType::Local, OperandType::Imm4)                                                                \
   F(AssignImm8, OperandType::Local, OperandType::Imm8)                                                                \
+  F(AssignImm4F, OperandType::Local, OperandType::Imm4F)                                                                \
+  F(AssignImm8F, OperandType::Local, OperandType::Imm8F)                                                                \
   F(Lea, OperandType::Local, OperandType::Local, OperandType::Imm4)                                                   \
   F(LeaScaled, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Imm4, OperandType::Imm4)      \
                                                                                                                       \
@@ -119,12 +123,16 @@ namespace tpl::vm {
   F(PCIGetReal, OperandType::Local, OperandType::Local, OperandType::UImm4)                                           \
   F(PCIGetDouble, OperandType::Local, OperandType::Local, OperandType::UImm4)                                         \
   F(PCIGetDecimal, OperandType::Local, OperandType::Local, OperandType::UImm4)                                        \
+  F(PCIGetDate, OperandType::Local, OperandType::Local, OperandType::UImm4)                                        \
+  F(PCIGetVarlen, OperandType::Local, OperandType::Local, OperandType::UImm4)                                        \
   F(PCIGetSmallIntNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                   \
   F(PCIGetIntegerNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                    \
   F(PCIGetBigIntNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                     \
   F(PCIGetRealNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                       \
   F(PCIGetDoubleNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                     \
   F(PCIGetDecimalNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                    \
+  F(PCIGetDateNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                    \
+  F(PCIGetVarlenNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                    \
   F(PCIFilterEqual, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Imm1, OperandType::Imm8) \
   F(PCIFilterGreaterThan, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Imm1,              \
     OperandType::Imm8)                                                                                                \
@@ -150,6 +158,9 @@ namespace tpl::vm {
   F(InitBool, OperandType::Local, OperandType::Local)                                                                 \
   F(InitInteger, OperandType::Local, OperandType::Local)                                                              \
   F(InitReal, OperandType::Local, OperandType::Local)                                                                 \
+  F(InitDate, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                                                                 \
+  F(InitString, OperandType::Local, OperandType::Imm8, OperandType::Imm8)                                                                 \
+  F(InitVarlen, OperandType::Local, OperandType::Local)                                                                 \
   F(LessThanInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
   F(LessThanEqualInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                 \
   F(GreaterThanInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                   \
@@ -162,12 +173,18 @@ namespace tpl::vm {
   F(GreaterThanEqualReal, OperandType::Local, OperandType::Local, OperandType::Local)                                  \
   F(EqualReal, OperandType::Local, OperandType::Local, OperandType::Local)                                             \
   F(NotEqualReal, OperandType::Local, OperandType::Local, OperandType::Local)                                          \
-  F(LessThanString, OperandType::Local, OperandType::Local, OperandType::Local)                                        \
-  F(LessThanEqualString, OperandType::Local, OperandType::Local, OperandType::Local)                                   \
-  F(GreaterThanString, OperandType::Local, OperandType::Local, OperandType::Local)                                     \
-  F(GreaterThanEqualString, OperandType::Local, OperandType::Local, OperandType::Local)                                \
-  F(EqualString, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
-  F(NotEqualString, OperandType::Local, OperandType::Local, OperandType::Local)                                        \
+  F(LessThanStringVal, OperandType::Local, OperandType::Local, OperandType::Local)                                        \
+  F(LessThanEqualStringVal, OperandType::Local, OperandType::Local, OperandType::Local)                                   \
+  F(GreaterThanStringVal, OperandType::Local, OperandType::Local, OperandType::Local)                                     \
+  F(GreaterThanEqualStringVal, OperandType::Local, OperandType::Local, OperandType::Local)                                \
+  F(EqualStringVal, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
+  F(NotEqualStringVal, OperandType::Local, OperandType::Local, OperandType::Local)                                          \
+  F(LessThanDate, OperandType::Local, OperandType::Local, OperandType::Local)                                        \
+  F(LessThanEqualDate, OperandType::Local, OperandType::Local, OperandType::Local)                                   \
+  F(GreaterThanDate, OperandType::Local, OperandType::Local, OperandType::Local)                                     \
+  F(GreaterThanEqualDate, OperandType::Local, OperandType::Local, OperandType::Local)                                \
+  F(EqualDate, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
+  F(NotEqualDate, OperandType::Local, OperandType::Local, OperandType::Local)                                        \
                                                                                                                        \
   /* SQL value unary operations */                                                                                     \
   F(AbsInteger, OperandType::Local, OperandType::Local)                                                                \
@@ -245,7 +262,8 @@ namespace tpl::vm {
   F(IntegerMinAggregateGetResult, OperandType::Local, OperandType::Local)                                             \
   F(IntegerMinAggregateFree, OperandType::Local)                                                                       \
   F(AvgAggregateInit, OperandType::Local)                                                                              \
-  F(AvgAggregateAdvance, OperandType::Local, OperandType::Local)                                                       \
+  F(IntegerAvgAggregateAdvance, OperandType::Local, OperandType::Local)                                                       \
+  F(RealAvgAggregateAdvance, OperandType::Local, OperandType::Local)                                                       \
   F(AvgAggregateMerge, OperandType::Local, OperandType::Local)                                                         \
   F(AvgAggregateReset, OperandType::Local)                                                                             \
   F(AvgAggregateGetResult, OperandType::Local, OperandType::Local)                                                     \
@@ -306,19 +324,22 @@ namespace tpl::vm {
   F(Insert, OperandType::Local, OperandType::Local, OperandType::Local)       \
   \
   /* Index Iterator */                                                                                                \
-  F(IndexIteratorInit, OperandType::Local, OperandType::UImm4, OperandType::Local)                                    \
+  F(IndexIteratorInit, OperandType::Local, OperandType::UImm4, OperandType::UImm4, OperandType::Local)                                    \
   F(IndexIteratorScanKey, OperandType::Local, OperandType::Local)                                                     \
   F(IndexIteratorFree, OperandType::Local)                                                                            \
-  F(IndexIteratorHasNext, OperandType::Local, OperandType::Local)                                                     \
-  F(IndexIteratorAdvance, OperandType::Local)                                                                         \
+  F(IndexIteratorAdvance, OperandType::Local, OperandType::Local)                                                                         \
   F(IndexIteratorGetSmallInt, OperandType::Local, OperandType::Local, OperandType::UImm4)                             \
   F(IndexIteratorGetInteger, OperandType::Local, OperandType::Local, OperandType::UImm4)                              \
   F(IndexIteratorGetBigInt, OperandType::Local, OperandType::Local, OperandType::UImm4)                               \
   F(IndexIteratorGetDecimal, OperandType::Local, OperandType::Local, OperandType::UImm4)                              \
+  F(IndexIteratorGetReal, OperandType::Local, OperandType::Local, OperandType::UImm4)                              \
+  F(IndexIteratorGetDouble, OperandType::Local, OperandType::Local, OperandType::UImm4)                              \
   F(IndexIteratorGetSmallIntNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                         \
   F(IndexIteratorGetIntegerNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                          \
   F(IndexIteratorGetBigIntNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                           \
-  F(IndexIteratorGetDecimalNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                                                            \
+  F(IndexIteratorGetDecimalNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                           \
+  F(IndexIteratorGetRealNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                           \
+  F(IndexIteratorGetDoubleNull, OperandType::Local, OperandType::Local, OperandType::UImm4) \
                                                                                                                        \
   /* Trig functions */                                                                                                 \
   F(Pi, OperandType::Local)                                                                                            \

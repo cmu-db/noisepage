@@ -133,7 +133,7 @@ namespace {
 
 template <typename T>
 inline ALWAYS_INLINE T Read(const u8 **ip) {
-  static_assert(std::is_integral_v<T>,
+  static_assert(std::is_arithmetic_v<T>,
                 "Read() should only be used to read primitive integer types "
                 "directly from the bytecode instruction stream");
   auto ret = *reinterpret_cast<const T *>(*ip);
@@ -143,7 +143,7 @@ inline ALWAYS_INLINE T Read(const u8 **ip) {
 
 template <typename T>
 inline ALWAYS_INLINE T Peek(const u8 **ip) {
-  static_assert(std::is_integral_v<T>,
+  static_assert(std::is_arithmetic_v<T>,
                 "Peek() should only be used to read primitive integer types "
                 "directly from the bytecode instruction stream");
   return *reinterpret_cast<const T *>(*ip);
@@ -178,6 +178,8 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
 #define READ_IMM2() Read<i16>(&ip)
 #define READ_IMM4() Read<i32>(&ip)
 #define READ_IMM8() Read<i64>(&ip)
+#define READ_IMM4F() Read<f32>(&ip)
+#define READ_IMM8F() Read<f64>(&ip)
 #define READ_UIMM2() Read<u16>(&ip)
 #define READ_UIMM4() Read<u32>(&ip)
 #define READ_JMP_OFFSET() READ_IMM4()
@@ -395,6 +397,18 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
   GEN_ASSIGN(i64, 8);
 #undef GEN_ASSIGN
 
+  OP(AssignImm4F) : {
+    auto *dest = frame->LocalAt<f32 *>(READ_LOCAL_ID());
+    OpAssignImm4F(dest, READ_IMM4F());
+    DISPATCH_NEXT();
+  }
+
+  OP(AssignImm8F) : {
+    auto *dest = frame->LocalAt<f64 *>(READ_LOCAL_ID());
+    OpAssignImm8F(dest, READ_IMM8F());
+    DISPATCH_NEXT();
+  }
+
   OP(Lea) : {
     auto **dest = frame->LocalAt<byte **>(READ_LOCAL_ID());
     auto *src = frame->LocalAt<byte *>(READ_LOCAL_ID());
@@ -603,6 +617,8 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
   GEN_PCI_ACCESS(Real, sql::Real)
   GEN_PCI_ACCESS(Double, sql::Real)
   GEN_PCI_ACCESS(Decimal, sql::Decimal)
+  GEN_PCI_ACCESS(Date, sql::Date)
+  GEN_PCI_ACCESS(Varlen, sql::StringVal)
 #undef GEN_PCI_ACCESS
 
 #define GEN_PCI_FILTER(Op)                                                         \
@@ -730,6 +746,30 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
     DISPATCH_NEXT();
   }
 
+  OP(InitDate) : {
+    auto *sql_date = frame->LocalAt<sql::Date *>(READ_LOCAL_ID());
+    auto year = frame->LocalAt<u16>(READ_LOCAL_ID());
+    auto month = frame->LocalAt<u8>(READ_LOCAL_ID());
+    auto day = frame->LocalAt<u8>(READ_LOCAL_ID());
+    OpInitDate(sql_date, year, month, day);
+    DISPATCH_NEXT();
+  }
+
+  OP(InitString) : {
+    auto *sql_string = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
+    auto length = static_cast<u64>(READ_IMM8());
+    auto data = static_cast<uintptr_t>(READ_IMM8());
+    OpInitString(sql_string, length, data);
+    DISPATCH_NEXT();
+  }
+
+  OP(InitVarlen) : {
+    auto *sql_string = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
+    auto data = frame->LocalAt<uintptr_t >(READ_LOCAL_ID());
+    OpInitVarlen(sql_string, data);
+    DISPATCH_NEXT();
+  }
+
 #define GEN_CMP(op)                                                  \
   OP(op##Integer) : {                                                \
     auto *result = frame->LocalAt<sql::BoolVal *>(READ_LOCAL_ID());  \
@@ -745,11 +785,18 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
     Op##op##Real(result, left, right);                               \
     DISPATCH_NEXT();                                                 \
   }                                                                  \
-  OP(op##String) : {                                                 \
+  OP(op##StringVal) : {                                                 \
     auto *result = frame->LocalAt<sql::BoolVal *>(READ_LOCAL_ID());  \
     auto *left = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());  \
     auto *right = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID()); \
-    Op##op##String(result, left, right);                             \
+    Op##op##StringVal(result, left, right);                             \
+    DISPATCH_NEXT();                                                 \
+  }                                                                  \
+  OP(op##Date) : {                                                 \
+    auto *result = frame->LocalAt<sql::BoolVal *>(READ_LOCAL_ID());  \
+    auto *left = frame->LocalAt<sql::Date *>(READ_LOCAL_ID());  \
+    auto *right = frame->LocalAt<sql::Date *>(READ_LOCAL_ID()); \
+    Op##op##Date(result, left, right);                             \
     DISPATCH_NEXT();                                                 \
   }
 GEN_CMP(GreaterThan);
@@ -1085,12 +1132,20 @@ GEN_MATH_OPS(Rem)
     DISPATCH_NEXT();
   }
 
-  OP(AvgAggregateAdvance) : {
+  OP(IntegerAvgAggregateAdvance) : {
     auto *agg = frame->LocalAt<sql::AvgAggregate *>(READ_LOCAL_ID());
     auto *val = frame->LocalAt<sql::Integer *>(READ_LOCAL_ID());
-    OpAvgAggregateAdvance(agg, val);
+    OpIntegerAvgAggregateAdvance(agg, val);
     DISPATCH_NEXT();
   }
+
+  OP(RealAvgAggregateAdvance) : {
+    auto *agg = frame->LocalAt<sql::AvgAggregate *>(READ_LOCAL_ID());
+    auto *val = frame->LocalAt<sql::Real *>(READ_LOCAL_ID());
+    OpRealAvgAggregateAdvance(agg, val);
+    DISPATCH_NEXT();
+  }
+
 
   OP(AvgAggregateMerge) : {
     auto *agg_1 = frame->LocalAt<sql::AvgAggregate *>(READ_LOCAL_ID());
@@ -1335,9 +1390,10 @@ GEN_MATH_OPS(Rem)
   // -------------------------------------------------------
   OP(IndexIteratorInit) : {
     auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
+    auto table_oid = READ_UIMM4();
     auto index_oid = READ_UIMM4();
     auto exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    OpIndexIteratorInit(iter, index_oid, exec_ctx);
+    OpIndexIteratorInit(iter, table_oid, index_oid, exec_ctx);
     DISPATCH_NEXT();
   }
 
@@ -1354,16 +1410,10 @@ GEN_MATH_OPS(Rem)
     DISPATCH_NEXT();
   }
 
-  OP(IndexIteratorHasNext) : {
+  OP(IndexIteratorAdvance) : {
     auto *has_more = frame->LocalAt<bool *>(READ_LOCAL_ID());
     auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
-    OpIndexIteratorHasNext(has_more, iter);
-    DISPATCH_NEXT();
-  }
-
-  OP(IndexIteratorAdvance) : {
-    auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
-    OpIndexIteratorAdvance(iter);
+    OpIndexIteratorAdvance(has_more, iter);
     DISPATCH_NEXT();
   }
 
@@ -1389,6 +1439,8 @@ GEN_MATH_OPS(Rem)
   GEN_INDEX_ITERATOR_ACCESS(SmallInt, sql::Integer)
   GEN_INDEX_ITERATOR_ACCESS(Integer, sql::Integer)
   GEN_INDEX_ITERATOR_ACCESS(BigInt, sql::Integer)
+  GEN_INDEX_ITERATOR_ACCESS(Real, sql::Real)
+  GEN_INDEX_ITERATOR_ACCESS(Double, sql::Real)
   GEN_INDEX_ITERATOR_ACCESS(Decimal, sql::Decimal)
 #undef GEN_INDEX_ITERATOR_ACCESS
 

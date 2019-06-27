@@ -17,7 +17,7 @@
 #include "execution/sema/error_reporter.h"
 #include "execution/sema/sema.h"
 #include "execution/sql/table_generator/table_generator.h"
-#include "execution/exec/sample_output.h"
+#include "execution/sql/table_generator/sample_output.h"
 #include "execution/sql/memory_pool.h"
 #include "execution/tpl.h"  // NOLINT
 #include "execution/util/cpu_info.h"
