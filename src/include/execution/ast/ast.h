@@ -1215,6 +1215,9 @@ enum class CastKind : u8 {
 
   // A simple bit cast reinterpretation
   BitCast,
+
+  // 64 bit float To Sql Real
+  FloatToSqlReal
 };
 
 /**
