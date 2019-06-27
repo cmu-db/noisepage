@@ -1,6 +1,8 @@
 #pragma once
 
 #include <unordered_map>
+#include <utility>
+#include <vector>
 #include "catalog/catalog_defs.h"
 #include "storage/sql_table.h"
 #include "storage/write_ahead_log/log_record.h"
@@ -24,9 +26,12 @@ class AbstractLogProvider {
   /**
    * Provide next available log record
    * @warning Can be a blocking call if provider is waiting to receive more logs
-   * @return next log record. nullptr if no more logs will be provided.
+   * @return next log record along with vector of varlen entry pointers. nullptr log record if no more logs will be
+   * provided.
    */
-  LogRecord *GetNextRecord() { return HasMoreRecords() ? ReadNextRecord() : nullptr; }
+  std::pair<LogRecord *, std::vector<byte *>> GetNextRecord() {
+    return HasMoreRecords() ? ReadNextRecord() : std::make_pair(nullptr, std::vector<byte *>());
+  }
 
  protected:
   /**
@@ -74,8 +79,8 @@ class AbstractLogProvider {
   /**
    * Reads in the next log record from the log provider
    * @warning If the serialization format of logs ever changes, this function will need to be updated.
-   * @return next log record
+   * @return next log record, along with vector of varlen entry pointers
    */
-  LogRecord *ReadNextRecord();
+  std::pair<LogRecord *, std::vector<byte *>> ReadNextRecord();
 };
 }  // namespace terrier::storage
