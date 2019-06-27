@@ -12,6 +12,7 @@
 #include "parser/expression/aggregate_expression.h"
 #include "parser/expression/case_expression.h"
 #include "parser/expression/comparison_expression.h"
+#include "parser/expression/default_value_expression.h"
 #include "parser/expression/function_expression.h"
 #include "parser/expression/operator_expression.h"
 #include "parser/expression/parameter_value_expression.h"
@@ -703,6 +704,44 @@ TEST(ExpressionTests, ComparisonExpressionJsonTest) {
   auto original_expr = new ComparisonExpression(ExpressionType::COMPARE_EQUAL, std::move(children));
   EXPECT_EQ(original_expr->GetExpressionType(), ExpressionType::COMPARE_EQUAL);
   EXPECT_EQ(original_expr->GetReturnValueType(), type::TypeId::BOOLEAN);
+
+  // Serialize expression
+  auto json = original_expr->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize expression
+  auto deserialized_expression = DeserializeExpression(json);
+  EXPECT_EQ(*original_expr, *deserialized_expression);
+
+  delete original_expr;
+}
+
+// NOLINTNEXTLINE
+TEST(ExpressionTests, StarExpressionJsonTest) {
+  // No Generic StarExpression Test needed as it is simple.
+
+  auto original_expr = new StarExpression();
+  EXPECT_EQ(original_expr->GetExpressionType(), ExpressionType::STAR);
+  EXPECT_EQ(original_expr->GetReturnValueType(), type::TypeId::INVALID);
+
+  // Serialize expression
+  auto json = original_expr->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize expression
+  auto deserialized_expression = DeserializeExpression(json);
+  EXPECT_EQ(*original_expr, *deserialized_expression);
+
+  delete original_expr;
+}
+
+// NOLINTNEXTLINE
+TEST(ExpressionTests, DefaultValueExpressionJsonTest) {
+  // No Generic DefaultExpression Test needed as it is simple.
+
+  auto original_expr = new DefaultValueExpression();
+  EXPECT_EQ(original_expr->GetExpressionType(), ExpressionType::VALUE_DEFAULT);
+  EXPECT_EQ(original_expr->GetReturnValueType(), type::TypeId::INVALID);
 
   // Serialize expression
   auto json = original_expr->ToJson();

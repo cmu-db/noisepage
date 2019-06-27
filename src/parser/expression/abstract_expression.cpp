@@ -8,6 +8,7 @@
 #include "parser/expression/comparison_expression.h"
 #include "parser/expression/conjunction_expression.h"
 #include "parser/expression/constant_value_expression.h"
+#include "parser/expression/default_value_expression.h"
 #include "parser/expression/function_expression.h"
 #include "parser/expression/operator_expression.h"
 #include "parser/expression/parameter_value_expression.h"
@@ -98,6 +99,10 @@ std::shared_ptr<AbstractExpression> DeserializeExpression(const nlohmann::json &
       break;
     }
 
+    case ExpressionType ::VALUE_DEFAULT: {
+      expr = std::make_shared<DefaultValueExpression>();
+      break;
+    }
     case ExpressionType::FUNCTION: {
       expr = std::make_shared<FunctionExpression>();
       break;
