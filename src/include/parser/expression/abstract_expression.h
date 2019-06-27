@@ -62,6 +62,11 @@ class AbstractExpression {
    */
   void SetReturnValueType(type::TypeId return_value_type) { return_value_type_ = return_value_type; }
 
+  /**
+   * @param depth Set the depth of the current expression
+   */
+  void SetDepth(int depth) { depth_ = depth; }
+
  public:
   virtual ~AbstractExpression() = default;
 
@@ -94,7 +99,7 @@ class AbstractExpression {
       return false;
     }
     for (size_t i = 0; i < children_.size(); i++) {
-      if (*children_[i] != *rhs.children_[i]) {
+      if (*(children_[i]) != *(rhs.children_[i])) {
         return false;
       }
     }
@@ -170,6 +175,12 @@ class AbstractExpression {
   int GetDepth() const { return depth_; }
 
   /**
+   * Derive the sub-query depth level of the current expression
+   * @return the derived depth
+   */
+  virtual int DeriveDepth();
+
+  /**
    * @return The sub-query flag that tells if the current expression contain a sub-query
    */
   bool HasSubquery() const { return has_subquery_; }
@@ -193,12 +204,6 @@ class AbstractExpression {
    */
 
   virtual bool DeriveSubqueryFlag();
-
-  /**
-   * Derive the sub-query depth level of the current expression
-   * @return the derived depth
-   */
-  virtual int DeriveDepth();
 
   /**
    * Walks the expression trees and generate the correct expression name
