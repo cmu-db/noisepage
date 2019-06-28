@@ -127,6 +127,7 @@ class WriteAheadLoggingTests : public TerrierTest {
         storage::VarlenEntry varlen_entry;
         if (varlen_attribute_size <= storage::VarlenEntry::InlineThreshold()) {
           varlen_entry = storage::VarlenEntry::CreateInline(varlen_attribute_content, varlen_attribute_size);
+          delete[] varlen_attribute_content;
         } else {
           varlen_entry = storage::VarlenEntry::Create(varlen_attribute_content, varlen_attribute_size, true);
         }

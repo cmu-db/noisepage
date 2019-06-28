@@ -26,6 +26,7 @@ void RandomSqlTableTransaction::RandomUpdate(Random *generator) {
   storage::TupleSlot updated;
   {
     common::SpinLatch::ScopedSpinLatch guard(&sql_table_metadata->inserted_tuples_latch_);
+    if (sql_table_metadata->inserted_tuples_.empty()) return;
     updated = *(RandomTestUtil::UniformRandomElement(sql_table_metadata->inserted_tuples_, generator));
   }
   // Generate random update
@@ -84,6 +85,7 @@ void RandomSqlTableTransaction::RandomSelect(Random *generator) {
   storage::TupleSlot selected;
   {
     common::SpinLatch::ScopedSpinLatch guard(&sql_table_metadata->inserted_tuples_latch_);
+    if (sql_table_metadata->inserted_tuples_.empty()) return;
     selected = *(RandomTestUtil::UniformRandomElement(sql_table_metadata->inserted_tuples_, generator));
   }
 

@@ -86,6 +86,8 @@ std::pair<LogRecord *, std::vector<byte *>> AbstractLogProvider::ReadNextRecord(
       storage::VarlenEntry varlen_entry;
       if (varlen_attribute_size <= storage::VarlenEntry::InlineThreshold()) {
         varlen_entry = storage::VarlenEntry::CreateInline(varlen_attribute_content, varlen_attribute_size);
+        // Contents that are inlined get copied into the varlen entry directly, so we should delete the memory we allocated for the content
+        delete[] varlen_attribute_content;
       } else {
         varlen_entry = storage::VarlenEntry::Create(varlen_attribute_content, varlen_attribute_size, true);
       }
