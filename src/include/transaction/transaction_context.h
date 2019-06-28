@@ -15,6 +15,7 @@ class GarbageCollector;
 class LogSerializerTask;
 class SqlTable;
 class WriteAheadLoggingTests;
+class RecoveryManager;
 }  // namespace terrier::storage
 
 namespace terrier::transaction {
@@ -175,6 +176,7 @@ class TransactionContext {
   friend class storage::LogSerializerTask;
   friend class storage::SqlTable;
   friend class storage::WriteAheadLoggingTests;  // Needs access to redo buffer
+  friend class storage::RecoveryManager;         // Needs access to StageRecoveryUpdate
   const timestamp_t start_time_;
   std::atomic<timestamp_t> finish_time_;
   storage::UndoBuffer undo_buffer_;
@@ -197,5 +199,16 @@ class TransactionContext {
   // We need to know if the transaction is aborted. Even aborted transactions need an "abort" timestamp in order to
   // eliminate the a-b-a race described in DataTable::Select.
   bool aborted_ = false;
+
+  /**
+   * @warning This method is ONLY for recovery
+   * Copy the log record into the transaction's redo buffer. This method can be used for Redo and Delete records
+   * @param record log record to copy
+   * @warning If you call StageRecoveryUpdate, the operation WILL be logged to disk. If you StageRecoveryUpdate anything
+   * that you didn't succeed in writing into the table or decide you don't want to use, the transaction MUST abort.
+   */
+  void StageRecoveryWrite(const storage::LogRecord *record) {
+    memcpy(redo_buffer_.NewEntry(record->Size()), record, record->Size());
+  }
 };
 }  // namespace terrier::transaction

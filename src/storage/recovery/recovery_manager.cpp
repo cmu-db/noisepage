@@ -58,6 +58,8 @@ void RecoveryManager::ReplayTransaction(LogRecord *log_record, std::vector<byte 
 
         // Delete the tuple
         auto *sql_table = GetSqlTable(delete_record->GetDatabaseOid(), delete_record->GetTableOid());
+        // Stage the delete. This way the recovery operation is logged if logging is enabled
+        txn->StageDelete(delete_record->GetDatabaseOid(), delete_record->GetTableOid(), new_tuple_slot);
         result = sql_table->Delete(txn, new_tuple_slot);
         // We can delete the TupleSlot from the map
         tuple_slot_map_.erase(delete_record->GetTupleSlot());
@@ -75,13 +77,19 @@ void RecoveryManager::ReplayTransaction(LogRecord *log_record, std::vector<byte 
           redo_record->SetTupleSlot(TupleSlot(nullptr, 0));
           // Insert will always succeed
           auto new_tuple_slot = sql_table->Insert(txn, redo_record);
-          // Create a mapping of the old to new tuple. The new tuple slot should be used for updates and deletes.
+          // Stage the write. This way the recovery operation is logged if logging is enabled.
+          // We stage the write after the insert because Insert sets the tuple slot on the redo record, so we need that
+          // to happen before we copy the record into the txn redo buffer.
+          TERRIER_ASSERT(redo_record->GetTupleSlot() == new_tuple_slot,
+                         "Insert should update redo record with new tuple slot");
+          txn->StageRecoveryWrite(buffered_record);
+          // Create a mapping of the old to new tuple. The new tuple slot should be used for future updates and deletes.
           tuple_slot_map_[old_tuple_slot] = new_tuple_slot;
         } else {
           auto new_tuple_slot = search->second;
           redo_record->SetTupleSlot(new_tuple_slot);
-          // We should return the output of update. An update can fail for a write write conflict, but this will be
-          // resolved when we see an abort record. The caller of this function will buffer the redo_record if it fails
+          // Stage the write. This way the recovery operation is logged if logging is enabled
+          txn->StageRecoveryWrite(buffered_record);
           result = sql_table->Update(txn, redo_record);
         }
       }
