@@ -45,7 +45,11 @@ class LoggingMetricRawData : public AbstractRawData {
   void ToCSV(common::ManagedPointer<std::ofstream> outfile) const final {
     TERRIER_ASSERT(outfile->is_open(), "File not opened.");
     for (const auto &data : serializer_data_) {
-      (*outfile) << data.num_records_ << "," << data.num_bytes_ << "," << data.elapsed_ns_ << std::endl;
+      (*outfile) << data.elapsed_ns_ << "," << data.num_bytes_ << "," << data.num_records_ << std::endl;
+    }
+    for (const auto &data : consumer_data_) {
+      (*outfile) << data.write_ns_ << "," << data.persist_ns_ << "," << data.num_bytes_ << "," << data.num_records_
+                 << std::endl;
     }
   }
 
