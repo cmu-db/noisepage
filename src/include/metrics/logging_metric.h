@@ -42,7 +42,12 @@ class LoggingMetricRawData : public AbstractRawData {
     consumer_data_.emplace_front(write_ns, persist_ns, num_bytes, num_records);
   }
 
-  void ToCSV(std::ofstream outfile) const final { TERRIER_ASSERT(outfile.is_open(), "File not opened."); }
+  void ToCSV(common::ManagedPointer<std::ofstream> outfile) const final {
+    TERRIER_ASSERT(outfile->is_open(), "File not opened.");
+    for (const auto &data : serializer_data_) {
+      (*outfile) << data.num_records_ << "," << data.num_bytes_ << "," << data.elapsed_ns_ << std::endl;
+    }
+  }
 
  private:
   struct SerializerData {

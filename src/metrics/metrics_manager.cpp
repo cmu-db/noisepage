@@ -52,11 +52,14 @@ void MetricsManager::UnregisterThread() {
 }
 
 void MetricsManager::ToCSV() const {
+  common::SpinLatch::ScopedSpinLatch guard(&write_latch_);
   if (enabled_metrics_.test(static_cast<uint8_t>(MetricsComponent::LOGGING)) &&
       aggregated_metrics_[static_cast<uint8_t>(MetricsComponent::LOGGING)] != nullptr) {
     std::ofstream logging_outfile;
     logging_outfile.open("./logging.csv", std::ios_base::out | std::ios_base::app);
     logging_outfile << "hello world" << std::endl;
+    aggregated_metrics_[static_cast<uint8_t>(MetricsComponent::LOGGING)]->ToCSV(
+        common::ManagedPointer(&logging_outfile));
     logging_outfile.close();
   }
 }

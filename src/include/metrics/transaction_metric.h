@@ -104,7 +104,9 @@ class TransactionMetricRawData : public AbstractRawData {
    */
   uint64_t GetTupleDelete(const transaction::timestamp_t txn_start) { return data_[txn_start].tuple_delete_; }
 
-  void ToCSV(std::ofstream outfile) const final { TERRIER_ASSERT(outfile.is_open(), "File not opened."); }
+  void ToCSV(common::ManagedPointer<std::ofstream> outfile) const final {
+    TERRIER_ASSERT(outfile->is_open(), "File not opened.");
+  }
 
  private:
   /**

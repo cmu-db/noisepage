@@ -14,6 +14,7 @@
 #include "settings/settings_callbacks.h"
 #include "settings/settings_manager.h"
 #include "storage/garbage_collector.h"
+#include "storage/sql_table.h"
 #include "transaction/transaction_defs.h"
 #include "transaction/transaction_manager.h"
 #include "util/catalog_test_util.h"
@@ -47,11 +48,21 @@ class MetricsTests : public TerrierTest {
     txn_manager_ = db_main_->txn_manager_;
   }
 
-  void TearDown() override { delete db_main_; }
+  void TearDown() override {
+    delete db_main_;
+    delete sql_table_;
+  }
 
   std::default_random_engine generator_;
   const uint8_t num_iterations_ = 5;
   const uint8_t num_txns_ = 100;
+
+  storage::BlockStore block_store_{100, 100};
+  const catalog::Schema table_schema_{
+      catalog::Schema({{"attribute", type::TypeId::INTEGER, false, catalog::col_oid_t(0)}})};
+  storage::SqlTable *const sql_table_{new storage::SqlTable(&block_store_, table_schema_, catalog::table_oid_t(1))};
+  const storage::ProjectedRowInitializer tuple_initializer_{
+      sql_table_->InitializerForProjectedRow({catalog::col_oid_t(0)}).first};
 
   static void EmptySetterCallback(const std::shared_ptr<common::ActionContext> &action_context UNUSED_ATTRIBUTE) {}
 };
@@ -65,6 +76,17 @@ TEST_F(MetricsTests, LoggingCSVTest) {
   std::shared_ptr<common::ActionContext> action_context =
       std::make_shared<common::ActionContext>(common::action_id_t(1));
   settings_manager_->SetBool(settings::Param::metrics_logging, true, action_context, setter_callback);
+
+  auto *const insert_txn = txn_manager_->BeginTransaction();
+  auto *const insert_redo =
+      insert_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+  auto *const insert_tuple = insert_redo->Delta();
+  *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
+  sql_table_->Insert(insert_txn, insert_redo);
+
+  txn_manager_->Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
   metrics_manager_->Aggregate();
   metrics_manager_->ToCSV();

@@ -75,13 +75,13 @@ class MetricsManager {
     // overly conservative if this is only called from SettingsManager?
     common::SpinLatch::ScopedSpinLatch guard(&write_latch_);
     TERRIER_ASSERT(enabled_metrics_.test(static_cast<uint8_t>(component)), "Metric is already disabled.");
-    aggregated_metrics_[static_cast<uint8_t>(component)].reset(nullptr);
     enabled_metrics_.set(static_cast<uint8_t>(component), false);
+    aggregated_metrics_[static_cast<uint8_t>(component)].reset(nullptr);
   }
 
   void ResetMetric(MetricsComponent component) const;
 
-  common::SpinLatch write_latch_;
+  mutable common::SpinLatch write_latch_;
   std::unordered_map<std::thread::id, std::unique_ptr<MetricsStore>> stores_map_;
 
   std::array<std::unique_ptr<AbstractRawData>, NUM_COMPONENTS> aggregated_metrics_;
