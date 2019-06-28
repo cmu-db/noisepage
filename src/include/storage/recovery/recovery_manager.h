@@ -72,9 +72,8 @@ class RecoveryManager {
   /**
    * @brief Replays a transaction corresponding to the given log record log record.
    * @param log_record abort or commit record for transaction to replay
-   * @param varlen_ptrs pointer to all varlen contents in this log r
    */
-  void ReplayTransaction(LogRecord *log_record, std::vector<byte *> varlen_ptrs);
+  void ReplayTransaction(LogRecord *log_record);
 
   /**
    * @param db_oid database oid for requested table

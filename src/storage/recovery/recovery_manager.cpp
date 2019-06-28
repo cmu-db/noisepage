@@ -16,7 +16,8 @@ void RecoveryManager::RecoverFromLogs() {
     // If the record is a commit or abort, we replay it, which will replay all its buffered records. Otherwise, we
     // buffer the record.
     if (log_record->RecordType() == LogRecordType::COMMIT || log_record->RecordType() == LogRecordType::ABORT) {
-      ReplayTransaction(log_record, pair.second);
+      TERRIER_ASSERT(pair.second.empty(), "Commit or Abort records should not have any varlen pointers");
+      ReplayTransaction(log_record);
     } else {
       buffered_changes_map_[log_record->TxnBegin()].push_back(pair);
     }
@@ -24,7 +25,7 @@ void RecoveryManager::RecoverFromLogs() {
   TERRIER_ASSERT(buffered_changes_map_.empty(), "All buffered changes should have been processed");
 }
 
-void RecoveryManager::ReplayTransaction(LogRecord *log_record, std::vector<byte *> varlen_ptrs) {
+void RecoveryManager::ReplayTransaction(LogRecord *log_record) {
   TERRIER_ASSERT(log_record->RecordType() == LogRecordType::COMMIT || log_record->RecordType() == LogRecordType::ABORT,
                  "Records should only be replayed when a commit or abort record is seen");
 
@@ -32,12 +33,12 @@ void RecoveryManager::ReplayTransaction(LogRecord *log_record, std::vector<byte 
   if (log_record->RecordType() == LogRecordType::ABORT) {
     for (auto buffered_pair : buffered_changes_map_[log_record->TxnBegin()]) {
       delete[] reinterpret_cast<byte *>(buffered_pair.first);
+      printf("Empty: %d\n", buffered_pair.second.empty());
       for (auto *entry : buffered_pair.second) {
         delete[] entry;
       }
     }
     buffered_changes_map_.erase(log_record->TxnBegin());
-    TERRIER_ASSERT(varlen_ptrs.empty(), "Abort record should have no varlen entries to clean up");
   } else {
     TERRIER_ASSERT(log_record->RecordType() == LogRecordType::COMMIT, "Should only replay when we see a commit record");
     // Begin a txn to replay changes with
