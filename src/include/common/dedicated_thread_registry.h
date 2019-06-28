@@ -10,6 +10,8 @@
 #include "common/managed_pointer.h"
 #include "common/spin_latch.h"
 
+#include "metrics/metrics_manager.h"
+
 namespace terrier::common {
 
 /**
@@ -24,7 +26,8 @@ namespace terrier::common {
  */
 class DedicatedThreadRegistry {
  public:
-  DedicatedThreadRegistry() = default;
+  explicit DedicatedThreadRegistry(common::ManagedPointer<metrics::MetricsManager> metrics_manager)
+      : metrics_manager_(metrics_manager){};
 
   ~DedicatedThreadRegistry() {
     // Note that if registry is shutting down, it doesn't matter whether
@@ -70,7 +73,10 @@ class DedicatedThreadRegistry {
     common::SpinLatch::ScopedSpinLatch guard(&table_latch_);
     auto *task = new T(args...);  // Create task
     thread_owners_table_[requester].insert(task);
-    threads_table_.emplace(task, std::thread([=] { task->RunTask(); }));
+    threads_table_.emplace(task, std::thread([=] {
+                             metrics_manager_->RegisterThread();
+                             task->RunTask();
+                           }));
     requester->AddThread();
     return common::ManagedPointer(task);
   }
@@ -130,6 +136,7 @@ class DedicatedThreadRegistry {
   // Using raw pointer here is also fine since the owner's life cycle is
   // not controlled by the registry
   std::unordered_map<DedicatedThreadOwner *, std::unordered_set<DedicatedThreadTask *>> thread_owners_table_;
+  const common::ManagedPointer<metrics::MetricsManager> metrics_manager_;
 };
 
 }  // namespace terrier::common

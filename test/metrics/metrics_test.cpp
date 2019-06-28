@@ -57,6 +57,20 @@ class MetricsTests : public TerrierTest {
 };
 
 /**
+ *  Testing transaction metric stats collection and persistence, single thread
+ */
+// NOLINTNEXTLINE
+TEST_F(MetricsTests, LoggingCSVTest) {
+  const settings::setter_callback_fn setter_callback = MetricsTests::EmptySetterCallback;
+  std::shared_ptr<common::ActionContext> action_context =
+      std::make_shared<common::ActionContext>(common::action_id_t(1));
+  settings_manager_->SetBool(settings::Param::metrics_logging, true, action_context, setter_callback);
+
+  metrics_manager_->Aggregate();
+  metrics_manager_->ToCSV();
+}
+
+/**
  * Basic test for testing transaction metric registration and stats collection, single thread
  */
 // NOLINTNEXTLINE

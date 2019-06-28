@@ -18,10 +18,14 @@ class LoggingMetricRawData : public AbstractRawData {
  public:
   void Aggregate(AbstractRawData *other) override {
     auto other_db_metric = dynamic_cast<LoggingMetricRawData *>(other);
-    serializer_data_.splice_after(serializer_data_.cbefore_begin(), other_db_metric->serializer_data_,
-                                  other_db_metric->serializer_data_.cbefore_begin());
-    consumer_data_.splice_after(consumer_data_.cbefore_begin(), other_db_metric->consumer_data_,
-                                other_db_metric->consumer_data_.cbefore_begin());
+    if (!other_db_metric->serializer_data_.empty()) {
+      serializer_data_.splice_after(serializer_data_.cbefore_begin(), other_db_metric->serializer_data_,
+                                    other_db_metric->serializer_data_.cbefore_begin());
+    }
+    if (!other_db_metric->consumer_data_.empty()) {
+      consumer_data_.splice_after(consumer_data_.cbefore_begin(), other_db_metric->consumer_data_,
+                                  other_db_metric->consumer_data_.cbefore_begin());
+    }
   }
 
   /**
