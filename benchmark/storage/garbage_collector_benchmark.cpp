@@ -71,7 +71,7 @@ BENCHMARK_DEFINE_F(GarbageCollectorBenchmark, UnlinkTime)(benchmark::State &stat
     uint64_t elapsed_ms;
     std::pair<uint32_t, uint32_t> result;
     {
-      common::ScopedTimer timer(&elapsed_ms);
+      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       result = gc_->PerformGarbageCollection();
     }
     EXPECT_EQ(result.first, 0);
@@ -113,7 +113,7 @@ BENCHMARK_DEFINE_F(GarbageCollectorBenchmark, ReclaimTime)(benchmark::State &sta
     // time just the deallocation process, verify nothing unlinked
     uint64_t elapsed_ms;
     {
-      common::ScopedTimer timer(&elapsed_ms);
+      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       result = gc_->PerformGarbageCollection();
     }
     EXPECT_EQ(result.first, num_txns);
@@ -141,7 +141,7 @@ BENCHMARK_DEFINE_F(GarbageCollectorBenchmark, HighContention)(benchmark::State &
     StartGC(tested.GetTxnManager());
     uint64_t elapsed_ms;
     {
-      common::ScopedTimer timer(&elapsed_ms);
+      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       tested.SimulateOltp(num_txns, num_concurrent_txns);
     }
     lag_count += EndGC();
