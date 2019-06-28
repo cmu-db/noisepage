@@ -9,6 +9,7 @@
 #include "catalog/catalog_defs.h"
 #include "common/scoped_timer.h"
 #include "metrics/abstract_metric.h"
+#include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
 
 namespace terrier::metrics {

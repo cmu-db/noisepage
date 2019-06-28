@@ -26,7 +26,7 @@ namespace terrier::storage {
 class WriteAheadLoggingTests : public TerrierTest {
  protected:
   storage::LogManager *log_manager_;
-  terrier::DedicatedThreadRegistry *thread_registry_;
+  common::DedicatedThreadRegistry *thread_registry_;
 
   // Settings for log manager
   const uint64_t num_log_buffers_ = 100;
@@ -44,7 +44,7 @@ class WriteAheadLoggingTests : public TerrierTest {
   void SetUp() override {
     // Unlink log file incase one exists from previous test iteration
     unlink(LOG_FILE_NAME);
-    thread_registry_ = new DedicatedThreadRegistry;
+    thread_registry_ = new common::DedicatedThreadRegistry;
     log_manager_ = new LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
                                   log_persist_threshold_, &pool_, common::ManagedPointer(thread_registry_));
     TerrierTest::SetUp();

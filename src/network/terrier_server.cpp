@@ -13,7 +13,7 @@ namespace terrier::network {
 
 TerrierServer::TerrierServer(common::ManagedPointer<ProtocolInterpreter::Provider> protocol_provider,
                              common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory,
-                             common::ManagedPointer<DedicatedThreadRegistry> thread_registry)
+                             common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry)
     : DedicatedThreadOwner(thread_registry),
       connection_handle_factory_(connection_handle_factory),
       provider_(protocol_provider) {

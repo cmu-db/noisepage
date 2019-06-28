@@ -2,7 +2,6 @@
 
 #include "common/macros.h"
 #include "metrics/metric_defs.h"
-#include "transaction/transaction_manager.h"
 
 namespace terrier::metrics {
 /**

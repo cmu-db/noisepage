@@ -26,7 +26,7 @@ namespace terrier::network {
 /**
  * TerrierServer is the entry point of the network layer
  */
-class TerrierServer : public DedicatedThreadOwner {
+class TerrierServer : public common::DedicatedThreadOwner {
  public:
   /**
    * @brief Constructs a new TerrierServer instance.
@@ -36,7 +36,7 @@ class TerrierServer : public DedicatedThreadOwner {
    */
   explicit TerrierServer(common::ManagedPointer<ProtocolInterpreter::Provider> protocol_provider,
                          common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory,
-                         common::ManagedPointer<DedicatedThreadRegistry> thread_registry);
+                         common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry);
 
   ~TerrierServer() override = default;
 

@@ -38,7 +38,7 @@ namespace terrier::storage {
  *      5. When the persist is done, the `DiskLogConsumerTask` will call the commit callbacks for any CommitRecords that
  * were just persisted.
  */
-class LogManager : public DedicatedThreadOwner {
+class LogManager : public common::DedicatedThreadOwner {
  public:
   /**
    * Constructs a new LogManager, writing its logs out to the given file.
@@ -55,7 +55,7 @@ class LogManager : public DedicatedThreadOwner {
   LogManager(std::string log_file_path, uint64_t num_buffers, const std::chrono::milliseconds serialization_interval,
              const std::chrono::milliseconds persist_interval, uint64_t persist_threshold,
              RecordBufferSegmentPool *const buffer_pool,
-             common::ManagedPointer<terrier::DedicatedThreadRegistry> thread_registry)
+             common::ManagedPointer<terrier::common::DedicatedThreadRegistry> thread_registry)
       : DedicatedThreadOwner(thread_registry),
         run_log_manager_(false),
         log_file_path_(std::move(log_file_path)),
@@ -165,7 +165,7 @@ class LogManager : public DedicatedThreadOwner {
    * we are in shut down, else we need to keep the task, so we reject the removal
    * @return true if we allowed thread to be removed, else false
    */
-  bool OnThreadRemoval(common::ManagedPointer<DedicatedThreadTask> task) override {
+  bool OnThreadRemoval(common::ManagedPointer<common::DedicatedThreadTask> task) override {
     // We don't want to register a task if the log manager is shutting down though.
     return !run_log_manager_;
   }

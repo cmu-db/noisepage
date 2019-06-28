@@ -29,7 +29,9 @@ namespace storage {
 class WriteAheadLoggingTests;
 }
 
+namespace common {
 class DedicatedThreadRegistry;
+}
 
 /**
  * The DBMain Class holds all the singleton pointers. It has the full knowledge
@@ -107,7 +109,7 @@ class DBMain {
   network::ConnectionHandleFactory *connection_handle_factory_;
   network::ProtocolInterpreter::Provider *provider_;
   metrics::MetricsManager *metrics_manager_;
-  DedicatedThreadRegistry *thread_registry_;
+  common::DedicatedThreadRegistry *thread_registry_;
 
   bool running = false;
 

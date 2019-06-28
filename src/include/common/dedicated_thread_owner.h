@@ -5,7 +5,7 @@
 #include "common/managed_pointer.h"
 #include "common/spin_latch.h"
 
-namespace terrier {
+namespace terrier::common {
 
 class DedicatedThreadRegistry;
 
@@ -100,4 +100,4 @@ class DedicatedThreadOwner {
   // Number of threads this owner has been granted
   size_t thread_count_ = 0;
 };
-}  // namespace terrier
+}  // namespace terrier::common

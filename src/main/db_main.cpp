@@ -31,7 +31,7 @@ DBMain::DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_
                                                        param_map_.find(settings::Param::gc_interval)->second.value_)});
   settings_manager_ = new settings::SettingsManager(this);
   metrics_manager_ = new metrics::MetricsManager;
-  thread_registry_ = new DedicatedThreadRegistry;
+  thread_registry_ = new common::DedicatedThreadRegistry;
 
   // Create LogManager
   log_manager_ = new storage::LogManager(

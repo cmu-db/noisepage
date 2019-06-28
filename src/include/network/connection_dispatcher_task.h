@@ -31,10 +31,10 @@ class ConnectionDispatcherTask : public common::NotifiableTask {
    * @param interpreter_provider provider that constructs protocol interpreters
    * @param connection_handle_factory The connection handle factory pointer to pass down to the handlers
    */
-  ConnectionDispatcherTask(int num_handlers, int listen_fd, DedicatedThreadOwner *dedicated_thread_owner,
+  ConnectionDispatcherTask(int num_handlers, int listen_fd, common::DedicatedThreadOwner *dedicated_thread_owner,
                            common::ManagedPointer<ProtocolInterpreter::Provider> interpreter_provider,
                            common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory,
-                           common::ManagedPointer<DedicatedThreadRegistry> thread_registry);
+                           common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry);
 
   /**
    * @brief Dispatches the client connection at fd to a handler.

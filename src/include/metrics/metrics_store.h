@@ -9,7 +9,6 @@
 #include "metrics/abstract_metric.h"
 #include "metrics/abstract_raw_data.h"
 #include "metrics/metric_defs.h"
-#include "transaction/transaction_manager.h"
 
 namespace terrier::metrics {
 

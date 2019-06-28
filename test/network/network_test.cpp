@@ -35,7 +35,7 @@ class NetworkTests : public TerrierTest {
  protected:
   std::unique_ptr<TerrierServer> server_;
   std::unique_ptr<ConnectionHandleFactory> handle_factory_;
-  std::unique_ptr<DedicatedThreadRegistry> thread_registry_;
+  std::unique_ptr<common::DedicatedThreadRegistry> thread_registry_;
   uint16_t port_ = common::Settings::SERVER_PORT;
   std::thread server_thread_;
   trafficcop::TrafficCop tcop_;
@@ -52,7 +52,7 @@ class NetworkTests : public TerrierTest {
     network_logger->set_level(spdlog::level::trace);
     spdlog::flush_every(std::chrono::seconds(1));
 
-    thread_registry_ = std::make_unique<DedicatedThreadRegistry>();
+    thread_registry_ = std::make_unique<common::DedicatedThreadRegistry>();
 
     try {
       handle_factory_ = std::make_unique<ConnectionHandleFactory>(common::ManagedPointer(&tcop_));

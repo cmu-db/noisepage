@@ -8,10 +8,10 @@
 namespace terrier::network {
 
 ConnectionDispatcherTask::ConnectionDispatcherTask(
-    int num_handlers, int listen_fd, DedicatedThreadOwner *dedicated_thread_owner,
+    int num_handlers, int listen_fd, common::DedicatedThreadOwner *dedicated_thread_owner,
     common::ManagedPointer<ProtocolInterpreter::Provider> interpreter_provider,
     common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory,
-    common::ManagedPointer<DedicatedThreadRegistry> thread_registry)
+    common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry)
     : NotifiableTask(MASTER_THREAD_ID), interpreter_provider_(interpreter_provider), next_handler_(0) {
   RegisterEvent(listen_fd, EV_READ | EV_PERSIST,
                 METHOD_AS_CALLBACK(ConnectionDispatcherTask, DispatchPostgresConnection), this);

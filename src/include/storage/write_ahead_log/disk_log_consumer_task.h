@@ -13,7 +13,7 @@ namespace terrier::storage {
  * A DiskLogConsumerTask is responsible for writing serialized log records out to disk by processing buffers in the log
  * manager's filled buffer queue
  */
-class DiskLogConsumerTask : public DedicatedThreadTask {
+class DiskLogConsumerTask : public common::DedicatedThreadTask {
  public:
   /**
    * Constructs a new DiskLogConsumerTask

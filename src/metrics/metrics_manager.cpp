@@ -52,17 +52,16 @@ void MetricsManager::UnregisterThread() {
 }
 
 void MetricsManager::ToCSV() const {
-  std::ofstream txn_outfile;
-  std::ofstream logging_outfile;
-  txn_outfile.open("./txn.csv", std::ios_base::out | std::ios_base::app);
-  logging_outfile.open("./logging.csv", std::ios_base::out | std::ios_base::app);
-  for (uint8_t component = 0; component < NUM_COMPONENTS; component++) {
-    if (enabled_metrics_.test(component) && aggregated_metrics_[component] != nullptr) {
-
-    }
-  }
-  txn_outfile.close();
-  logging_outfile.close();
+//  std::ofstream txn_outfile;
+//  std::ofstream logging_outfile;
+//  txn_outfile.open("./txn.csv", std::ios_base::out | std::ios_base::app);
+//  logging_outfile.open("./logging.csv", std::ios_base::out | std::ios_base::app);
+//  for (uint8_t component = 0; component < NUM_COMPONENTS; component++) {
+//    if (enabled_metrics_.test(component) && aggregated_metrics_[component] != nullptr) {
+//    }
+//  }
+//  txn_outfile.close();
+//  logging_outfile.close();
 }
 
 }  // namespace terrier::metrics
