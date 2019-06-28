@@ -4,7 +4,18 @@
 #include "boost/di/di.h"
 #include "common/macros.h"
 #include "common/managed_pointer.h"
+// This is a simplifying macro for
+// https://boost-experimental.github.io/di/user_guide/index.html#BOOST_DI_INJECT_TRAITS
+//
+// To use this macro, declare in a class:
+// DECLARE_ANNOTATION(WIDTH)
+// DECLARE_ANNOTATION(HEIGHT)
+// Then, mark the constructor with macro:
+// BOOST_DI_INJECT(A, (named = WIDTH) int width, (named = HEIGHT) int height)
+//
+// Now the two values can be differentiated during binding with the .named() clause.
 #define DECLARE_ANNOTATION(name) static constexpr auto name = [] {};
+
 namespace terrier::di {
 // Effectively merges the boost::di namespace with terrier-specific helpers and wrappers
 using namespace boost::di;  // NOLINT
@@ -16,7 +27,7 @@ using namespace boost::di;  // NOLINT
 template <class T>
 struct named : di::policies::detail::type_op {
   /**
-   * see boost::di doc
+   * see boost::di doc https://boost-experimental.github.io/di/user_guide/index.html#policies
    * @tparam TArg
    */
   template <class TArg>
@@ -25,6 +36,7 @@ struct named : di::policies::detail::type_op {
 
 /**
  * This policy ensures that no default values is used, and all parameters being injected are bound
+ * see https://boost-experimental.github.io/di/user_guide/index.html#policies
  */
 // TODO(Tianyu): I believe this will just ensure there is at least a bind clause for anything injected.
 // Does't matter whether it's in() or to().
@@ -42,6 +54,7 @@ class StrictBindingPolicy : public di::config {
 
 /**
  * This policy ensures that all named values is bound. It is okay if some values are default.
+ * see https://boost-experimental.github.io/di/user_guide/index.html#policies
  */
 class TestBindingPolicy : public di::config {
  public:
@@ -102,6 +115,8 @@ class TerrierWrapper {
  * This module injects objects with lifetime the same as the injector. All injected object
  * share the same instance if injected from the same injector. Think of this as a singleton
  * that has the lifetime of the injector instead of the process.
+ *
+ * see https://boost-experimental.github.io/di/user_guide/index.html#scopes
  */
 class TerrierSharedModule {
  public:
@@ -153,6 +168,8 @@ class TerrierSharedModule {
  * This module injects objects with lifetime the same as the injector. All injected object
  * share the same instance if injected from the same injector. Think of this as a singleton
  * that has the lifetime of the injector instead of the process.
+ *
+ * see https://boost-experimental.github.io/di/user_guide/index.html#scopes
  */
 class TerrierSingleton {
  public:
@@ -193,7 +210,9 @@ class TerrierSingleton {
 
 /**
  * Injects nullptr for any component requiring a T * for bound T's. This is useful to mark a component as disabled
- * in the tests/
+ * in the tests
+ *
+ * see https://boost-experimental.github.io/di/user_guide/index.html#scopes
  */
 class DisabledModule {
  public:
