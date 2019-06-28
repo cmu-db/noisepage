@@ -91,13 +91,13 @@ std::pair<LogRecord *, std::vector<byte *>> AbstractLogProvider::ReadNextRecord(
         delete[] varlen_attribute_content;
       } else {
         varlen_entry = storage::VarlenEntry::Create(varlen_attribute_content, varlen_attribute_size, true);
+        loose_ptrs.push_back(varlen_attribute_content);
       }
       // The attribute value in the ProjectedRow will be a pointer to this varlen entry.
       auto *dest = reinterpret_cast<storage::VarlenEntry *>(column_value_address);
       // Set the value to be the address of the varlen_entry.
       *dest = varlen_entry;
       // Store reference to varlen content to clean up incase of abort
-      loose_ptrs.push_back(varlen_attribute_content);
     } else {
       // For inlined attributes, just directly read into the ProjectedRow.
       Read(column_value_address, block_layout.AttrSize(col_ids[i]));

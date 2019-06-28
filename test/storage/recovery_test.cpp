@@ -183,15 +183,13 @@ TEST_F(RecoveryTests, HighAbortRateTest) {
 // verifies that the recovered tables are equal to the test tables.
 // NOLINTNEXTLINE
 TEST_F(RecoveryTests, MultiDatabaseTest) {
-  auto num_databases = 3;
-  auto num_tables = 5;
   // Initialize table and run workload with logging enabled
   log_manager_ = new LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
                                 log_persist_threshold_, &pool_);
   log_manager_->Start();
   LargeSqlTableTestObject tested = LargeSqlTableTestObject::Builder()
-                                       .SetNumDatabases(num_databases)
-                                       .SetNumTables(num_tables)
+                                       .SetNumDatabases(3)
+                                       .SetNumTables(5)
                                        .SetMaxColumns(5)
                                        .SetInitialTableSize(100)
                                        .SetTxnLength(5)
