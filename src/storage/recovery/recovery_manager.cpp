@@ -33,7 +33,6 @@ void RecoveryManager::ReplayTransaction(LogRecord *log_record) {
   if (log_record->RecordType() == LogRecordType::ABORT) {
     for (auto buffered_pair : buffered_changes_map_[log_record->TxnBegin()]) {
       delete[] reinterpret_cast<byte *>(buffered_pair.first);
-      printf("Empty: %d\n", buffered_pair.second.empty());
       for (auto *entry : buffered_pair.second) {
         delete[] entry;
       }
