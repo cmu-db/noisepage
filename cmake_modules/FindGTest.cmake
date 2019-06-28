@@ -45,7 +45,7 @@ if ( _gtest_roots )
     find_path( GTEST_INCLUDE_DIR NAMES gtest/gtest.h
         PATHS ${_gtest_roots} NO_DEFAULT_PATH
         PATH_SUFFIXES "include" )
-    find_library( GTEST_LIBRARIES NAMES gtest gtest_main
+    find_library( GTEST_LIBRARIES NAMES gtest gmock_main
         PATHS ${_gtest_roots} NO_DEFAULT_PATH
         PATH_SUFFIXES "lib" )
 else ()
