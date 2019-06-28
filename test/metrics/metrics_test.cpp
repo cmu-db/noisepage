@@ -54,7 +54,7 @@ class MetricsTests : public TerrierTest {
   }
 
   std::default_random_engine generator_;
-  const uint8_t num_iterations_ = 5;
+  const uint8_t num_iterations_ = 1;
   const uint8_t num_txns_ = 100;
 
   storage::BlockStore block_store_{100, 100};

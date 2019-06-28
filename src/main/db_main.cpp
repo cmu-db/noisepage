@@ -25,10 +25,6 @@ DBMain::DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_
           param_map_.find(settings::Param::record_buffer_segment_size)->second.value_),
       type::TransientValuePeeker::PeekInteger(
           param_map_.find(settings::Param::record_buffer_segment_reuse)->second.value_));
-  txn_manager_ = new transaction::TransactionManager(buffer_segment_pool_, true, nullptr);
-  gc_thread_ = new storage::GarbageCollectorThread(txn_manager_,
-                                                   std::chrono::milliseconds{type::TransientValuePeeker::PeekInteger(
-                                                       param_map_.find(settings::Param::gc_interval)->second.value_)});
   settings_manager_ = new settings::SettingsManager(this);
   metrics_manager_ = new metrics::MetricsManager;
   thread_registry_ = new common::DedicatedThreadRegistry(common::ManagedPointer(metrics_manager_));
@@ -42,6 +38,11 @@ DBMain::DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_
       settings_manager_->GetInt(settings::Param::log_persist_threshold), buffer_segment_pool_,
       common::ManagedPointer(thread_registry_));
   log_manager_->Start();
+
+  txn_manager_ = new transaction::TransactionManager(buffer_segment_pool_, true, log_manager_);
+  gc_thread_ = new storage::GarbageCollectorThread(txn_manager_,
+                                                   std::chrono::milliseconds{type::TransientValuePeeker::PeekInteger(
+                                                       param_map_.find(settings::Param::gc_interval)->second.value_)});
 
   thread_pool_ = new common::WorkerPool(
       type::TransientValuePeeker::PeekInteger(param_map_.find(settings::Param::num_worker_threads)->second.value_), {});
