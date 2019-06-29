@@ -256,7 +256,7 @@ class TopKElements {
     // Defining a lambda function to compare two pairs.
     // It will compare two pairs using second field
     Comparator compFunctor = [](std::pair<KeyType, uint64_t> elem1 ,std::pair<KeyType, uint64_t> elem2) {
-      return elem1.second < elem2.second;
+      return elem1.second > elem2.second;
     };
 
     // Declaring a set that will store the pairs using above comparision logic
@@ -265,7 +265,7 @@ class TopKElements {
 
     // FIXME: Is there a way that we can just use the sorted_keys directly
     // without having to copy it into a vector first.
-    std::vector<KeyType> sorted_vec(sorted_keys.size());
+    std::vector<KeyType> sorted_vec;
     for (const std::pair<KeyType, uint64_t> &element : sorted_keys) {
       sorted_vec.push_back(element.first);
     }
@@ -284,8 +284,9 @@ class TopKElements {
 //    for (const std::pair<KeyType, uint64_t> &element : topK.GetSortedTopKeys()) {
 //      os << std::endl << "  (" << i++ << ") Key[" << element.first << "] => " << element.second;
 //    }
-    for (const KeyType &key : topK.GetSortedTopKeys()) {
-      os << std::endl << "  (" << i++ << ") Key[" << key << "] => " << topK.entries_[key];
+    for (KeyType key : topK.GetSortedTopKeys()) {
+      auto count = topK.EstimateItemCount(key);
+      os << std::endl << "  (" << i++ << ") Key[" << key << "] => " << count;
     }
 
     return os;
