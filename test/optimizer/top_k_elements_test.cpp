@@ -75,31 +75,16 @@ TEST_F(TopKElementsTests, PromotionTest) {
     topK.Increment(target_key, 1);
   }
   auto sorted_keys = topK.GetSortedTopKeys();
-  // FIXME
-  bool found = false;
-  for (auto key : sorted_keys) {
-    if (key == target_key) {
-      found = true;
-      break;
-    }
-  }
-  EXPECT_TRUE(found);
+  auto found = std::find(sorted_keys.begin(), sorted_keys.end(), target_key);
+  EXPECT_NE(found, sorted_keys.end());
 
   // Now do the same thing but instead of incrementally updating
   // the target key's count, just hit it once with a single update.
   target_key = num_keys - 1;
   topK.Increment(target_key, large_count * 15);
   sorted_keys = topK.GetSortedTopKeys();
-  // FIXME
-  found = false;
-  for (auto key : sorted_keys) {
-    if (key == target_key) {
-      found = true;
-      break;
-    }
-  }
-  EXPECT_TRUE(found);
-
+  found = std::find(sorted_keys.begin(), sorted_keys.end(), target_key);
+  EXPECT_NE(found, sorted_keys.end());
 }
 
 
