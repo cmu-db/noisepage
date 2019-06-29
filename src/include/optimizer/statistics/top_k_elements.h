@@ -130,7 +130,7 @@ class TopKElements {
       if (count < min_count_) {
         min_key_ = key;
         min_count_ = count;
-        OPTIMIZER_LOG_TRACE("MinKey[{0}] => {1}", min_key_, min_count_);
+        OPTIMIZER_LOG_TRACE("Direct MinKey[{0}] => {1}", min_key_, min_count_);
       }
     }
 
@@ -405,7 +405,7 @@ class TopKElements {
     }
     min_key_ = new_min_key;
     min_count_ = new_min_count;
-    OPTIMIZER_LOG_TRACE("MinKey[{0}] => {1}", min_key_, min_count_);
+    OPTIMIZER_LOG_TRACE("Compute MinKey[{0}] => {1}", min_key_, min_count_);
   }
 
 

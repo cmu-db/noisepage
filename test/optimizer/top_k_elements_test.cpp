@@ -41,54 +41,112 @@ TEST_F(TopKElementsTests, SimpleIncrementTest) {
   EXPECT_EQ(topK.GetSize(), 5);
 
   std::cout << topK;
-
-
 }
 
 // NOLINTNEXTLINE
-TEST_F(TopKElementsTests, SortedKeyTest) {
-  // test TopKElements
+TEST_F(TopKElementsTests, PromotionTest) {
+  // Check that if incrementally increase the count of a
+  // key that it will eventually get promoted to be in
+  // the top-k list
+
   const int k = 10;
-  TopKElements<const char*> topK(k, 1000);
-  std::stack<std::string> expected_keys;
+  TopKElements<int> topK(k, 1000);
 
-  int num_keys = 20;
-  for (int i = 1; i <= num_keys; i++) {
-    auto key = std::to_string(i);
-    topK.Increment(key.data(), key.size(), i * 100);
-
-    // If this key is within the last k entries that we are
-    // putting into the top-k tracker, then add it to our
-    // stack. This will the order of the keys that we
-    // expected to get back when we ask for them in sorted order.
-    if (i >= (num_keys-k)) expected_keys.push(key);
-
-
-    // If we have inserted less than k keys into the top-k
-    // tracker, then the number of keys added should be equal
-    // to the size of the top-k tracker.
-    if (i < k) {
-      EXPECT_EQ(topK.GetSize(), i);
-    } else {
-      EXPECT_EQ(topK.GetSize(), k);
+  int num_keys = k * 2;
+  int large_count = 1000;
+  for (int key = 1; key <= num_keys; key++) {
+    // If the key is below the half way point for
+    // the number of keys we're inserted, then make
+    // it's count super large
+    if (key <= k) {
+      topK.Increment(key, large_count);
+    }
+    // Otherwise just set it a small number
+    else {
+      topK.Increment(key, 99);
     }
   }
 
-  // The top-k elements should be the last k numbers
-  // that we added into the object
-  auto sorted_keys = topK.GetSortedTopKeys();
-  EXPECT_EQ(sorted_keys.size(), k);
-  int i = 0;
-  for (auto top_key : sorted_keys) {
-    // Pop off the keys from our expected stack each time.
-    // It should match the current key in our sorted key list
-    auto expected_key = expected_keys.top();
-    expected_keys.pop();
-
-    EXPECT_EQ(top_key, expected_key) << "Iteration #" << i;
-    i++;
+  // Now pick the largest key and keep incrementing
+  // it until it is larger than 5x the large_count
+  // At this point it should be in our top-k list
+  auto target_key = num_keys;
+  for (int i = 0; i < large_count*5; i++) {
+    topK.Increment(target_key, 1);
   }
+  auto sorted_keys = topK.GetSortedTopKeys();
+  // FIXME
+  bool found = false;
+  for (auto key : sorted_keys) {
+    if (key == target_key) {
+      found = true;
+      break;
+    }
+  }
+  EXPECT_TRUE(found);
+
+  // Now do the same thing but instead of incrementally updating
+  // the target key's count, just hit it once with a single update.
+  target_key = num_keys - 1;
+  topK.Increment(target_key, large_count * 15);
+  sorted_keys = topK.GetSortedTopKeys();
+  // FIXME
+  found = false;
+  for (auto key : sorted_keys) {
+    if (key == target_key) {
+      found = true;
+      break;
+    }
+  }
+  EXPECT_TRUE(found);
+
 }
+
+
+// NOLINTNEXTLINE
+//TEST_F(TopKElementsTests, SortedKeyTest) {
+//  // test TopKElements
+//  const int k = 10;
+//  TopKElements<std::string> topK(k, 1000);
+//  std::stack<std::string> expected_keys;
+//
+//  int num_keys = 500;
+//  for (int i = 1; i <= num_keys; i++) {
+//    auto key = std::to_string(i) + "!";
+//    topK.Increment(key.data(), key.size(), i * 1000);
+//
+//    // If this key is within the last k entries that we are
+//    // putting into the top-k tracker, then add it to our
+//    // stack. This will the order of the keys that we
+//    // expected to get back when we ask for them in sorted order.
+//    if (i >= (num_keys-k)) expected_keys.push(key);
+//
+//    // If we have inserted less than k keys into the top-k
+//    // tracker, then the number of keys added should be equal
+//    // to the size of the top-k tracker.
+//    if (i < k) {
+//      EXPECT_EQ(topK.GetSize(), i);
+//    } else {
+//      EXPECT_EQ(topK.GetSize(), k);
+//    }
+//  }
+//
+//  // The top-k elements should be the last k numbers
+//  // that we added into the object
+//  auto sorted_keys = topK.GetSortedTopKeys();
+//  EXPECT_EQ(sorted_keys.size(), k);
+//  int i = 0;
+//  for (auto key : sorted_keys) {
+//    // Pop off the keys from our expected stack each time.
+//    // It should match the current key in our sorted key list
+//    auto expected_key = expected_keys.top();
+//    expected_keys.pop();
+//
+//    OPTIMIZER_LOG_TRACE("Top-{0}: {1} <-> {2}", i, key, expected_key);
+//    EXPECT_EQ(key, expected_key) << "Iteration #" << i;
+//    i++;
+//  }
+//}
 
 //// NOLINTNEXTLINE
 //TEST_F(TopKElementsTests, SimpleArrivalAndDepartureTest) {
