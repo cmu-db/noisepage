@@ -12,33 +12,79 @@ namespace terrier::optimizer {
 class TopKElementsTests : public TerrierTest {};
 
 // NOLINTNEXTLINE
-TEST_F(TopKElementsTests, SimpleArrivalOnlyTest) {
+TEST_F(TopKElementsTests, SimpleIncrementTest) {
   // test TopKElements
   const int k = 5;
   TopKElements<int> topK(k, 1000);
   EXPECT_EQ(topK.GetK(), k);
   EXPECT_EQ(topK.GetSize(), 0);
 
-  topK.Add(1, 10);
-  topK.Add(2, 5);
-  topK.Add(3, 1);
-  topK.Add(4, 1000000);
+  topK.Increment(1, 10);
+  topK.Increment(2, 5);
+  topK.Increment(3, 1);
+  topK.Increment(4, 1000000);
 
-  // This case count min sketch should give exact counting
+  // Since we set the top-k to track 5 keys,
+  // all of these keys should return exact results
+  // because we only have four keys in there now.
   EXPECT_EQ(topK.EstimateItemCount(1), 10);
   EXPECT_EQ(topK.EstimateItemCount(2), 5);
   EXPECT_EQ(topK.EstimateItemCount(3), 1);
   EXPECT_EQ(topK.EstimateItemCount(4), 1000000);
 
-  // EXPECT_EQ(topK.cmsketch.size, 4);
+  // Make sure the size matches exactly the number
+  // of keys we have thrown at it.
   EXPECT_EQ(topK.GetSize(), 4);
 
-  topK.Add(5, 15);
-
+  // Add another value
+  topK.Increment(5, 15);
   EXPECT_EQ(topK.GetSize(), 5);
-
-  std::cout << topK;
 }
+
+// NOLINTNEXTLINE
+//TEST_F(TopKElementsTests, SortedKeyTest) {
+//  // test TopKElements
+//  const int k = 10;
+//  TopKElements<const char*> topK(k, 1000);
+//  std::stack<std::string> expected_keys;
+//
+//  int num_keys = 20;
+//  for (int i = 1; i <= num_keys; i++) {
+//    auto key = std::to_string(i);
+//    topK.Increment(key.data(), key.size(), i * 100);
+//
+//    // If this key is within the last k entries that we are
+//    // putting into the top-k tracker, then add it to our
+//    // stack. This will the order of the keys that we
+//    // expected to get back when we ask for them in sorted order.
+//    if (i >= (num_keys-k)) expected_keys.push(key);
+//
+//
+//    // If we have inserted less than k keys into the top-k
+//    // tracker, then the number of keys added should be equal
+//    // to the size of the top-k tracker.
+//    if (i < k) {
+//      EXPECT_EQ(topK.GetSize(), i);
+//    } else {
+//      EXPECT_EQ(topK.GetSize(), k);
+//    }
+//  }
+//
+//  // The top-k elements should be the last k numbers
+//  // that we added into the object
+//  auto sorted_keys = topK.GetSortedTopKeys();
+//  EXPECT_EQ(sorted_keys.size(), k);
+//  int i = 0;
+//  for (auto top_key : sorted_keys) {
+//    // Pop off the keys from our expected stack each time.
+//    // It should match the current key in our sorted key list
+//    auto expected_key = expected_keys.top();
+//    expected_keys.pop();
+//
+//    EXPECT_EQ(top_key, expected_key) << "Iteration #" << i;
+//    i++;
+//  }
+//}
 
 //// NOLINTNEXTLINE
 //TEST_F(TopKElementsTests, SimpleArrivalAndDepartureTest) {
@@ -46,24 +92,24 @@ TEST_F(TopKElementsTests, SimpleArrivalOnlyTest) {
 //  const int k = 5;
 //  TopKElements<int> topK(k);
 //
-//  topK.Add(10, 10);
-//  topK.Add(5, 5);
-//  topK.Add(1, 1);
-//  topK.Add(1000000, 1000000);
+//  topK.Increment(10, 10);
+//  topK.Increment(5, 5);
+//  topK.Increment(1, 1);
+//  topK.Increment(1000000, 1000000);
 //
 //  EXPECT_EQ(topK.EstimateItemCount(=10), 10);
 //
-//  topK.Add(5, 15);
-//  topK.Add(6, 1);
-//  topK.Add(7, 2);
-//  topK.Add(8, 1);
+//  topK.Increment(5, 15);
+//  topK.Increment(6, 1);
+//  topK.Increment(7, 2);
+//  topK.Increment(8, 1);
 //
 //  EXPECT_EQ(topK.GetSize(), k);
 //  topK.PrintTopKQueueOrderedMaxFirst(10);
 //
-//  topK.Remove(5, 14);
-//  topK.Remove(10, 20);
-//  topK.Remove(100, 10000);
+//  topK.Decrement(5, 14);
+//  topK.Decrement(10, 20);
+//  topK.Decrement(100, 10000);
 //  topK.PrintTopKQueueOrderedMaxFirst(10);
 //}
 //
@@ -73,16 +119,16 @@ TEST_F(TopKElementsTests, SimpleArrivalOnlyTest) {
 //  const int num0 = 10;
 //  TopKElements<int> topK(k);
 //
-//  topK.Add(10, 10);
-//  topK.Add(5, 5);
-//  topK.Add(1, 1);
-//  topK.Add(1000000, 1000000);
+//  topK.Increment(10, 10);
+//  topK.Increment(5, 5);
+//  topK.Increment(1, 1);
+//  topK.Increment(1000000, 1000000);
 //
-//  topK.Add(7777, 2333);
-//  topK.Add(8888, 2334);
-//  topK.Add(9999, 2335);
+//  topK.Increment(7777, 2333);
+//  topK.Increment(8888, 2334);
+//  topK.Increment(9999, 2335);
 //  for (int i = 0; i < 30; ++i) {
-//    topK.Add(i, i);
+//    topK.Increment(i, i);
 //  }
 //
 //  topK.PrintOrderedMaxFirst(num0);
@@ -91,7 +137,7 @@ TEST_F(TopKElementsTests, SimpleArrivalOnlyTest) {
 //  EXPECT_EQ(topK.GetAllOrderedMaxFirst().size(), k);
 //
 //  for (int i = 1000; i < 2000; ++i) {
-//    topK.Add(i, i);
+//    topK.Increment(i, i);
 //  }
 //  topK.PrintAllOrderedMaxFirst();
 //}
@@ -105,21 +151,21 @@ TEST_F(TopKElementsTests, SimpleArrivalOnlyTest) {
 ////
 ////  type::Value v1 = type::ValueFactory::GetDecimalValue(7.12);
 ////  type::Value v2 = type::ValueFactory::GetDecimalValue(10.25);
-////  topK.Add(v1);
-////  topK.Add(v2);
+////  topK.Increment(v1);
+////  topK.Increment(v2);
 ////  EXPECT_EQ(topK.GetAllOrderedMaxFirst().size(), 2);
 ////
 ////  for (int i = 0; i < 1000; i++) {
 ////    type::Value v = type::ValueFactory::GetDecimalValue(4.1525);
-////    topK.Add(v);
+////    topK.Increment(v);
 ////  }
 ////  EXPECT_EQ(topK.GetAllOrderedMaxFirst().size(), 3);
 ////
 ////  type::Value v3 = type::ValueFactory::GetVarcharValue("luffy");
 ////  type::Value v4 = type::ValueFactory::GetVarcharValue(std::string("monkey"));
 ////  for (int i = 0; i < 500; i++) {
-////    topK.Add(v3, 1);
-////    topK.Add(v4, 1);
+////    topK.Increment(v3, 1);
+////    topK.Increment(v4, 1);
 ////  }
 ////  topK.PrintAllOrderedMaxFirst();
 ////}
@@ -131,7 +177,7 @@ TEST_F(TopKElementsTests, SimpleArrivalOnlyTest) {
 //
 //  for (int i = 0; i < 1000; i++) {
 //    auto v = 7.12 + i;
-//    topK.Add(v, 1);
+//    topK.Increment(v, 1);
 //  }
 //  EXPECT_EQ(topK.GetAllOrderedMaxFirst().size(), 5);
 //

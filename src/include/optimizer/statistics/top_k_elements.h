@@ -44,65 +44,98 @@ class TopKElements {
 
   ~TopKElements() { delete sketch_; }
 
+
   /**
    *
    * @param key
    * @param count
    */
-  void Add(KeyType key, uint32_t count) {
+  void Increment(const KeyType &key, const uint32_t count) {
+    Increment(key, sizeof(key), count);
+  }
+
+  /**
+   *
+   * @param key
+   * @param key_size
+   * @param count
+   */
+  void Increment(const KeyType &key, const size_t key_size, const uint32_t count) {
     TERRIER_ASSERT(count >= 0, "Invalid count");
 
     // Increment the count for this item in the sketch
-    // and then get the new total count
+    // FIXME: Change the sketch API to use the key_size.
     sketch_->Add(key, count);
-    auto total_cnt = sketch_->EstimateItemCount(key);
 
     // If this key already exists in our top-k list, then
     // we need to update its entry
     auto entry = entries_.find(key);
     if (entry != entries_.end()) {
-      OPTIMIZER_LOG_TRACE("Update Key[{0}] => {1} // [size={2}]", key, total_cnt, GetSize());
       entries_[key] += count;
+      OPTIMIZER_LOG_TRACE("Update Key[{0}] => {1} // [size={2}]", key, entries_[key], GetSize());
 
       // If this key is the current min key, then we need
       // to go through to see whether after this update it
       // is still the min key. This is crappy, but if the
       // # of elements that we need to keep track of is low,
-      // this shouldn;t be too bad.
-      if (key == min_key_) {
-        ComputeNewMinKey();
-      }
-    }
-    // If we have no elements, then throw the key in
-    else if (entries_.empty()) {
-      entries_[key] = count;
-      OPTIMIZER_LOG_TRACE("Insert Key[{0}] => {1} // [size={2}]", key, total_cnt, GetSize());
+      // this shouldn't be too bad.
+      if (key == min_key_) ComputeNewMinKey();
 
-      // And then it becomes our new min key
-      min_key_ = key;
-      min_count_ = total_cnt;
+      // All done!
+      return;
     }
-    // This key does not exist yet in our top-k list, so we need
-    // to figure out whether to promote it as a new entry
-    // If the total estimated count for this key is
-    // greater than the current min or internal vector size is less than
-    // our 'k' limit, then add it to our vector.
-    else if (entries_.size() < numk_ || total_cnt > min_count_) {
-      if (entries_.size() == numk_) {
-        // Remove the current min key
-        entries_.erase(min_key_);
-        OPTIMIZER_LOG_TRACE("Remove Key[{0}] => {1} // [size={2}]", min_key_, min_count_, GetSize());
-      }
+
+    // The key is *not* in our top-k entries list.
+    // This means that we have to ask the sketch the current count
+    // for it to determine whether it should be promoted into our
+    // top-k list.
+    auto total_cnt = sketch_->EstimateItemCount(key);
+
+    // If the total estimated count for this key is greater than the
+    // current min and our top-k is at its max capacity, then we know
+    // that we need to take out the current min key and put in this key.
+    auto size = entries_.size();
+    if (size == numk_ && total_cnt > min_count_) {
+      // Remove the current min key
+      entries_.erase(min_key_);
+      OPTIMIZER_LOG_TRACE("Remove Key[{0}] => {1} // [size={2}]", min_key_, min_count_, GetSize());
 
       // Then add our new key
       entries_[key] = total_cnt;
       OPTIMIZER_LOG_TRACE("Insert Key[{0}] => {1} // [size={2}]", key, total_cnt, GetSize());
 
       // But then we need to figure out what the new
-      // min key is in our current top-k list
-      // TODO: We don't always have to fire this off!
+      // min key is in our current top-k list. We don't
+      // know whether our key is the new min key or whether
+      // it's another existing key in our top-k list
       ComputeNewMinKey();
+
+      // All done!
+      return;
     }
+
+    // If we have fewer keys in our top-k list than we are
+    // allowed to have, then we can always add this key.
+    if (size < numk_) {
+      // Important: Since the number keys right now is less than
+      // the max amount and because this key did not already exist
+      // in our top-k class (otherwise we would have saw it up above),
+      // we know that we can the exact count here and not the
+      // estimated count.
+      entries_[key] = count;
+      OPTIMIZER_LOG_TRACE("Insert Key[{0}] => {1} // [size={2}]", key, count, GetSize());
+
+      // We only need to do a direct comparison here to see
+      // whether our key is the new min key.
+      if (count < min_count_) {
+        min_key_ = key;
+        min_count_ = count;
+        OPTIMIZER_LOG_TRACE("MinKey[{0}] => {1}", min_key_, min_count_);
+      }
+    }
+
+    // All done!
+    return;
   }
 
   /**
@@ -110,7 +143,7 @@ class TopKElements {
    * @param item
    * @param count
    */
-  void Remove(KeyType key, uint32_t count) {
+  void Decrement(KeyType key, uint32_t count) {
     TERRIER_ASSERT(count >= 0, "Invalid count");
 
     // Decrement the count for this item in the sketch
@@ -130,6 +163,7 @@ class TopKElements {
       if (total_cnt < min_count_) {
         min_key_ = key;
         min_count_ = total_cnt;
+        OPTIMIZER_LOG_TRACE("MinKey[{0}] => {1}", min_key_, min_count_);
       }
     }
   }
@@ -140,6 +174,14 @@ class TopKElements {
    * @return
    */
   uint64_t EstimateItemCount(const KeyType &key) const {
+    // If the key is in our top-k entries list, then
+    // we'll give them that value.
+    auto entry = entries_.find(key);
+    if (entry != entries_.end()) {
+      return entry->second;
+    }
+    // Otherwise give them whatever the sketch thinks is the
+    // the count.
     return sketch_->EstimateItemCount(key);
   }
 
@@ -208,6 +250,28 @@ class TopKElements {
 //    return queue_.GetOrderedMaxFirst(num);
 //  }
 
+  const std::vector<KeyType> GetSortedTopKeys() const {
+    typedef std::function<bool(std::pair<KeyType, uint64_t>, std::pair<KeyType, uint64_t>)> Comparator;
+
+    // Defining a lambda function to compare two pairs.
+    // It will compare two pairs using second field
+    Comparator compFunctor = [](std::pair<KeyType, uint64_t> elem1 ,std::pair<KeyType, uint64_t> elem2) {
+      return elem1.second < elem2.second;
+    };
+
+    // Declaring a set that will store the pairs using above comparision logic
+    std::set<std::pair<KeyType, uint64_t>, Comparator> sorted_keys(
+        entries_.begin(), entries_.end(), compFunctor);
+
+    // FIXME: Is there a way that we can just use the sorted_keys directly
+    // without having to copy it into a vector first.
+    std::vector<KeyType> sorted_vec(sorted_keys.size());
+    for (const std::pair<KeyType, uint64_t> &element : sorted_keys) {
+      sorted_vec.push_back(element.first);
+    }
+    return sorted_vec;
+  }
+
   /**
    *
    * @param os
@@ -215,22 +279,13 @@ class TopKElements {
    * @return
    */
   friend std::ostream &operator<<(std::ostream &os, const TopKElements<KeyType> &topK) {
-    typedef std::function<bool(std::pair<KeyType, uint64_t>, std::pair<KeyType, uint64_t>)> Comparator;
-
-    // Defining a lambda function to compare two pairs.
-    // It will compare two pairs using second field
-    Comparator compFunctor = [](std::pair<KeyType, uint64_t> elem1 ,std::pair<KeyType, uint64_t> elem2) {
-      return elem1.second > elem2.second;
-    };
-
-    // Declaring a set that will store the pairs using above comparision logic
-    std::set<std::pair<KeyType, uint64_t>, Comparator> sorted_keys(
-        topK.entries_.begin(), topK.entries_.end(), compFunctor);
-
     os << "Top-" << topK.GetK() << " [size=" << topK.GetSize() << "]";
     int i = 0;
-    for (const std::pair<KeyType, uint64_t> &element : sorted_keys) {
-      os << std::endl << "  (" << i++ << ") Key[" << element.first << "] => " << element.second;
+//    for (const std::pair<KeyType, uint64_t> &element : topK.GetSortedTopKeys()) {
+//      os << std::endl << "  (" << i++ << ") Key[" << element.first << "] => " << element.second;
+//    }
+    for (const KeyType &key : topK.GetSortedTopKeys()) {
+      os << std::endl << "  (" << i++ << ") Key[" << key << "] => " << topK.entries_[key];
     }
 
     return os;
@@ -323,7 +378,7 @@ class TopKElements {
   /**
    *
    */
-  uint64_t min_count_;
+  uint64_t min_count_ = INT64_MAX;
 
   /**
    *
