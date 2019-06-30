@@ -290,8 +290,8 @@ class Catalog {
   /**
    * Temporary place holder for the real accessor.
    */
-  std::unique_ptr<CatalogAccessor> GetAccessor(transaction::TransactionContext * txn, db_oid_t db_oid, namespace_oid_t ns_oid);
-
+  std::unique_ptr<CatalogAccessor> GetAccessor(transaction::TransactionContext *txn, db_oid_t db_oid,
+                                               namespace_oid_t ns_oid);
 
  protected:
   /**
@@ -421,7 +421,6 @@ class Catalog {
    * @return type name used by the catalog in pg_type
    */
   std::string ValueTypeIdToSchemaType(type::TypeId type_id);
-
 
  private:
   transaction::TransactionManager *txn_manager_;

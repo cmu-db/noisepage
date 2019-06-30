@@ -18,12 +18,12 @@ TEST_F(IsNullPredicateTests, IsNull) {
     EXPECT_TRUE(result.val);                         \
   }
 
-CHECK_IS_NULL_FOR_TYPE(BoolVal);
-CHECK_IS_NULL_FOR_TYPE(Integer);
-CHECK_IS_NULL_FOR_TYPE(Real);
-CHECK_IS_NULL_FOR_TYPE(StringVal);
-CHECK_IS_NULL_FOR_TYPE(Date);
-CHECK_IS_NULL_FOR_TYPE(Timestamp);
+  CHECK_IS_NULL_FOR_TYPE(BoolVal);
+  CHECK_IS_NULL_FOR_TYPE(Integer);
+  CHECK_IS_NULL_FOR_TYPE(Real);
+  CHECK_IS_NULL_FOR_TYPE(StringVal);
+  CHECK_IS_NULL_FOR_TYPE(Date);
+  CHECK_IS_NULL_FOR_TYPE(Timestamp);
 
 #undef CHECK_IS_NULL_FOR_TYPE
 }
@@ -39,16 +39,16 @@ TEST_F(IsNullPredicateTests, IsNotNull) {
     EXPECT_FALSE(result.val);                        \
   }
 
-CHECK_IS_NOT_NULL_FOR_TYPE(BoolVal, false);
-CHECK_IS_NOT_NULL_FOR_TYPE(Integer, 44);
-CHECK_IS_NOT_NULL_FOR_TYPE(Real, 44.0);
-CHECK_IS_NOT_NULL_FOR_TYPE(StringVal, "44");
-CHECK_IS_NOT_NULL_FOR_TYPE(Date, 44);
-{
-struct timespec ts;
-timespec_get(&ts, TIME_UTC);
-CHECK_IS_NOT_NULL_FOR_TYPE(Timestamp, ts);
-}
+  CHECK_IS_NOT_NULL_FOR_TYPE(BoolVal, false);
+  CHECK_IS_NOT_NULL_FOR_TYPE(Integer, 44);
+  CHECK_IS_NOT_NULL_FOR_TYPE(Real, 44.0);
+  CHECK_IS_NOT_NULL_FOR_TYPE(StringVal, "44");
+  CHECK_IS_NOT_NULL_FOR_TYPE(Date, 44);
+  {
+    struct timespec ts;
+    timespec_get(&ts, TIME_UTC);
+    CHECK_IS_NOT_NULL_FOR_TYPE(Timestamp, ts);
+  }
 
 #undef CHECK_IS_NOT_NULL_FOR_TYPE
 }

@@ -5,19 +5,17 @@ namespace terrier::planner {
 bool AbstractJoinPlanNode::operator==(const AbstractPlanNode &rhs) const {
   if (!AbstractPlanNode::operator==(rhs)) return false;
 
-  // Check join type
   auto &other = dynamic_cast<const AbstractJoinPlanNode &>(rhs);
-  if (GetLogicalJoinType() != other.GetLogicalJoinType()) {
-    return false;
-  }
+
+  // Check join type
+  if (join_type_ != other.join_type_) return false;
 
   // Check predicate
-  auto &pred = GetJoinPredicate();
-  auto &other_pred = other.GetJoinPredicate();
-  if ((pred == nullptr && other_pred != nullptr) || (pred != nullptr && other_pred == nullptr)) {
+  if ((join_predicate_ == nullptr && other.join_predicate_ != nullptr) ||
+      (join_predicate_ != nullptr && other.join_predicate_ == nullptr)) {
     return false;
   }
-  if (pred != nullptr && *pred != *other_pred) {
+  if (join_predicate_ != nullptr && *join_predicate_ != *other.join_predicate_) {
     return false;
   }
 
@@ -27,11 +25,12 @@ bool AbstractJoinPlanNode::operator==(const AbstractPlanNode &rhs) const {
 common::hash_t AbstractJoinPlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
 
-  auto join_type = GetLogicalJoinType();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&join_type));
+  // Join Type
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(join_type_));
 
-  if (GetJoinPredicate() != nullptr) {
-    hash = common::HashUtil::CombineHashes(hash, GetJoinPredicate()->Hash());
+  // Predicate
+  if (join_predicate_ != nullptr) {
+    hash = common::HashUtil::CombineHashes(hash, join_predicate_->Hash());
   }
 
   return hash;

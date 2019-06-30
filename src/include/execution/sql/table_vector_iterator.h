@@ -28,7 +28,7 @@ class TableVectorIterator {
   /**
    * Create a new vectorized iterator over the given table
    * @param table_oid oid of the table
-   * @param txn transaction to use when scanning the table
+   * @param exec_ctx execution context of the query
    */
   explicit TableVectorIterator(u32 table_oid, exec::ExecutionContext *exec_ctx);
 
@@ -96,7 +96,7 @@ class TableVectorIterator {
 
   // Iterator of the slots in the PC
   std::unique_ptr<DataTable::SlotIterator> iter_ = nullptr;
-  exec::ExecutionContext  *exec_ctx_;
+  exec::ExecutionContext *exec_ctx_;
 
   bool initialized = false;
 };

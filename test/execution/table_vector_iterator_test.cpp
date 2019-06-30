@@ -1,3 +1,5 @@
+#include <memory>
+
 #include "execution/sql_test.h"  // NOLINT
 
 #include "catalog/catalog_defs.h"
@@ -7,15 +9,13 @@
 namespace tpl::sql::test {
 
 class TableVectorIteratorTest : public SqlBasedTest {
-
- void SetUp() override {
-   // Create the test tables
-   SqlBasedTest::SetUp();
-
-   exec_ctx_ = MakeExecCtx();
-   sql::TableGenerator table_generator{exec_ctx_.get()};
-   table_generator.GenerateTestTables();
- }
+  void SetUp() override {
+    // Create the test tables
+    SqlBasedTest::SetUp();
+    exec_ctx_ = MakeExecCtx();
+    sql::TableGenerator table_generator{exec_ctx_.get()};
+    table_generator.GenerateTestTables();
+  }
 
  protected:
   /**

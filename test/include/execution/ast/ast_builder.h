@@ -1,3 +1,4 @@
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
@@ -50,9 +51,7 @@ class TestAstBuilder {
   /**
    * Make an Identifier expression
    */
-  Expr *IdentExpr(Identifier ident) {
-    return node_factory()->NewIdentifierExpr(empty_, ident);
-  }
+  Expr *IdentExpr(Identifier ident) { return node_factory()->NewIdentifierExpr(empty_, ident); }
 
   /**
    * Make an Identifier expression
@@ -94,37 +93,27 @@ class TestAstBuilder {
   /**
    * Make a == check expression
    */
-  Expr *CmpEq(Expr *left, Expr *right) {
-    return Cmp<parsing::Token::Type::EQUAL_EQUAL>(left, right);
-  }
+  Expr *CmpEq(Expr *left, Expr *right) { return Cmp<parsing::Token::Type::EQUAL_EQUAL>(left, right); }
 
   /**
    * Make a !=  check expression
    */
-  Expr *CmpNe(Expr *left, Expr *right) {
-    return Cmp<parsing::Token::Type::BANG_EQUAL>(left, right);
-  }
+  Expr *CmpNe(Expr *left, Expr *right) { return Cmp<parsing::Token::Type::BANG_EQUAL>(left, right); }
 
   /**
    * Make a < check expression
    */
-  Expr *CmpLt(Expr *left, Expr *right) {
-    return Cmp<parsing::Token::Type::LESS>(left, right);
-  }
+  Expr *CmpLt(Expr *left, Expr *right) { return Cmp<parsing::Token::Type::LESS>(left, right); }
 
   /**
    * Make a member expression
    */
-  Expr *Field(Expr *obj, Expr *field) {
-    return node_factory()->NewMemberExpr(empty_, obj, field);
-  }
+  Expr *Field(Expr *obj, Expr *field) { return node_factory()->NewMemberExpr(empty_, obj, field); }
 
   /**
    * Make an variable declaration with inferred type
    */
-  VariableDecl *DeclVar(Identifier name, Expr *init) {
-    return DeclVar(name, nullptr, init);
-  }
+  VariableDecl *DeclVar(Identifier name, Expr *init) { return DeclVar(name, nullptr, init); }
 
   /**
    * Make an variable declaration with explicit type
@@ -147,10 +136,8 @@ class TestAstBuilder {
    * Construct a block statement
    */
   Stmt *Block(std::initializer_list<Stmt *> stmts) {
-    util::RegionVector<Stmt *> region_stmts(stmts.begin(), stmts.end(),
-                                            region());
-    return node_factory()->NewBlockStmt(empty_, empty_,
-                                        std::move(region_stmts));
+    util::RegionVector<Stmt *> region_stmts(stmts.begin(), stmts.end(), region());
+    return node_factory()->NewBlockStmt(empty_, empty_, std::move(region_stmts));
   }
 
   /**
@@ -161,9 +148,7 @@ class TestAstBuilder {
   /**
    * Get pointer to the base type
    */
-  Expr *PtrType(Expr *base) {
-    return node_factory()->NewPointerType(empty_, base);
-  }
+  Expr *PtrType(Expr *base) { return node_factory()->NewPointerType(empty_, base); }
 
   /**
    * Get builtin type expression
@@ -201,23 +186,17 @@ class TestAstBuilder {
   /**
    * Get a StringVal type
    */
-  Expr *StringSqlTypeRepr() {
-    return BuiltinTypeRepr<BuiltinType::StringVal>();
-  }
+  Expr *StringSqlTypeRepr() { return BuiltinTypeRepr<BuiltinType::StringVal>(); }
 
   /**
    * Get an array type
    */
-  Expr *ArrayTypeRepr(Expr *type) {
-    return node_factory()->NewArrayType(empty_, nullptr, type);
-  }
+  Expr *ArrayTypeRepr(Expr *type) { return node_factory()->NewArrayType(empty_, nullptr, type); }
 
   /**
    * Make an array indexing expression
    */
-  Expr *ArrayIndex(Expr *arr, Expr *idx) {
-    return node_factory()->NewIndexExpr(empty_, arr, idx);
-  }
+  Expr *ArrayIndex(Expr *arr, Expr *idx) { return node_factory()->NewIndexExpr(empty_, arr, idx); }
 
   /**
    * Call a builtin function with the given arguments
@@ -225,8 +204,7 @@ class TestAstBuilder {
   template <Builtin BUILTIN, typename... Args>
   CallExpr *Call(Args... args) {
     auto fn = IdentExpr(Builtins::GetFunctionName(BUILTIN));
-    auto call_args =
-        util::RegionVector<Expr *>({std::forward<Args>(args)...}, region());
+    auto call_args = util::RegionVector<Expr *>({std::forward<Args>(args)...}, region());
     return node_factory()->NewBuiltinCallExpr(fn, std::move(call_args));
   }
 

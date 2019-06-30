@@ -19,8 +19,8 @@ enum class OperandSize : u8 { None = 0, Byte = 1, Short = 2, Int = 4, Long = 8, 
   V(Imm2, true, OperandSize::Short)        \
   V(Imm4, true, OperandSize::Int)          \
   V(Imm8, true, OperandSize::Long)         \
-  V(Imm4F, true, OperandSize::Float)          \
-  V(Imm8F, true, OperandSize::Double)         \
+  V(Imm4F, true, OperandSize::Float)       \
+  V(Imm8F, true, OperandSize::Double)      \
   V(UImm2, false, OperandSize::Short)      \
   V(UImm4, false, OperandSize::Int)        \
   V(JumpOffset, true, OperandSize::Int)    \

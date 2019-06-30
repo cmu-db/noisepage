@@ -11,11 +11,9 @@ void Sema::ReportIncorrectCallArg(ast::CallExpr *call, u32 index, ast::Type *exp
                            call->arguments()[index]->type());
 }
 
-void Sema::ReportIncorrectCallArg(ast::CallExpr *call, u32 index,
-                                  const char *expected) {
-  error_reporter()->Report(
-      call->position(), ErrorMessages::kIncorrectCallArgType2,
-      call->GetFuncName(), expected, index, call->arguments()[index]->type());
+void Sema::ReportIncorrectCallArg(ast::CallExpr *call, u32 index, const char *expected) {
+  error_reporter()->Report(call->position(), ErrorMessages::kIncorrectCallArgType2, call->GetFuncName(), expected,
+                           index, call->arguments()[index]->type());
 }
 
 ast::Expr *Sema::ImplCastExprToType(ast::Expr *expr, ast::Type *target_type, ast::CastKind cast_kind) {
@@ -90,7 +88,6 @@ Sema::CheckResult Sema::CheckArithmeticOperands(parsing::Token::Type op, const S
     return {left->type(), left, right};
   }
 
-
   // TODO(pmenon): Fix me to support other arithmetic types
   // Primitive int <-> primitive int
   if (left->type()->IsIntegerType() && right->type()->IsIntegerType()) {
@@ -102,7 +99,6 @@ Sema::CheckResult Sema::CheckArithmeticOperands(parsing::Token::Type op, const S
       return {left->type(), left, new_right};
     }
   }
-
 
   // Primitive int -> Sql Integer
   if (left->type()->IsIntegerType() && right->type()->IsSpecificBuiltin(ast::BuiltinType::Integer)) {
@@ -157,19 +153,31 @@ Sema::CheckResult Sema::CheckComparisonOperands(parsing::Token::Type op, const S
   }
 
   // Check date and string
-  if (left->type()->IsSpecificBuiltin(ast::BuiltinType::Date) && right->type()->IsSpecificBuiltin(ast::BuiltinType::Date)) {
+  if (left->type()->IsSpecificBuiltin(ast::BuiltinType::Date) &&
+      right->type()->IsSpecificBuiltin(ast::BuiltinType::Date)) {
     return {ast::BuiltinType::Get(context(), ast::BuiltinType::Boolean), left, right};
   }
-  if (left->type()->IsSpecificBuiltin(ast::BuiltinType::StringVal) && right->type()->IsSpecificBuiltin(ast::BuiltinType::StringVal)) {
+  if (left->type()->IsSpecificBuiltin(ast::BuiltinType::StringVal) &&
+      right->type()->IsSpecificBuiltin(ast::BuiltinType::StringVal)) {
     return {ast::BuiltinType::Get(context(), ast::BuiltinType::Boolean), left, right};
   }
 
-    // If neither input expression is arithmetic, it's an ill-formed operation
+  // If neither input expression is arithmetic, it's an ill-formed operation
   if (!left->type()->IsArithmetic() || !right->type()->IsArithmetic()) {
     error_reporter()->Report(pos, ErrorMessages::kIllegalTypesForBinary, op, left->type(), right->type());
     return {nullptr, left, right};
   }
 
+  // Two Integers
+  if (left->type()->IsIntegerType() && right->type()->IsIntegerType()) {
+    if (left->type()->size() < right->type()->size()) {
+      auto new_left = ImplCastExprToType(left, right->type(), ast::CastKind::IntegralCast);
+      return {ast::BuiltinType::Get(context(), ast::BuiltinType::Bool), new_left, right};
+    } else {
+      auto new_right = ImplCastExprToType(right, left->type(), ast::CastKind::IntegralCast);
+      return {ast::BuiltinType::Get(context(), ast::BuiltinType::Bool), left, new_right};
+    }
+  }
 
   auto built_ret_type = [this](ast::Type *input_type) {
     if (input_type->IsSpecificBuiltin(ast::BuiltinType::Integer) ||

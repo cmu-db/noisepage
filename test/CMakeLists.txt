@@ -12,6 +12,7 @@ if (TERRIER_BUILD_TESTS)
     
     add_subdirectory(common)
     add_subdirectory(execution)
+
     add_subdirectory(network)
     add_subdirectory(parser)
     add_subdirectory(storage)

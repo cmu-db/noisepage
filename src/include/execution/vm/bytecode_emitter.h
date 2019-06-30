@@ -407,10 +407,12 @@ class BytecodeEmitter {
    * Emit code to initialize an index iterator
    * @param bytecode index initialization bytecode
    * @param iter iterator in initialize
+   * @param table_oid oid of the table owning the index
    * @param index_oid oid of the index to use
    * @param exec_ctx the execution context
    */
-  void EmitIndexIteratorInit(Bytecode bytecode, LocalVar iter, uint32_t table_oid, uint32_t index_oid, LocalVar exec_ctx);
+  void EmitIndexIteratorInit(Bytecode bytecode, LocalVar iter, uint32_t table_oid, uint32_t index_oid,
+                             LocalVar exec_ctx);
 
   /**
    * Emit code to scan a key

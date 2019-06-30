@@ -172,9 +172,7 @@ class LLVMEngine {
     /**
      * Return the size of the module's object code in-memory in bytes.
      */
-    std::size_t GetModuleObjectCodeSizeInBytes() const {
-      return object_code_->getBufferSize();
-    }
+    std::size_t GetModuleObjectCodeSizeInBytes() const { return object_code_->getBufferSize(); }
 
     /**
      * Load the given module @em module into memory. If this module has already

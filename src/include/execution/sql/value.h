@@ -1,13 +1,13 @@
 #pragma once
 
+#include <sstream>
+#include <string>
+#include "date/date.h"
 #include "execution/exec/execution_context.h"
 #include "execution/util/common.h"
 #include "execution/util/macros.h"
 #include "execution/util/math_util.h"
-#include "execution/exec/execution_context.h"
 #include "type/type_id.h"
-#include "date/date.h"
-#include <sstream>
 
 namespace tpl::sql {
 
@@ -206,27 +206,24 @@ struct StringVal : public Val {
    * @param str The byte sequence.
    * @param len The length of the sequence.
    */
-  StringVal(char *str, u32 len) noexcept
-      : Val(str == nullptr), ptr(str), len(len) {}
+  StringVal(char *str, u32 len) noexcept : Val(str == nullptr), ptr(str), len(len) {}
 
   /**
    * Create a string value (i.e., view) over the C-style null-terminated string.
    * Note that no copy is made.
    * @param str The C-string.
    */
-  explicit StringVal(const char *str) noexcept
-      : StringVal(const_cast<char *>(str), u32(strlen(str))) {}
+  explicit StringVal(const char *str) noexcept : StringVal(const_cast<char *>(str), u32(strlen(str))) {}
 
   /**
    * Create a new string using the given memory pool and length.
    * @param memory The memory pool to allocate this string's contents from
    * @param len The size of the string
    */
-  StringVal(exec::ExecutionContext::StringAllocator *memory, std::size_t len)
-      : ptr(nullptr), len(u32(len)) {
+  StringVal(exec::ExecutionContext::StringAllocator *memory, std::size_t len) : ptr(nullptr), len(u32(len)) {
     if (TPL_UNLIKELY(len > kMaxStingLen)) {
-      len = 0;
-      is_null = true;
+      this->len = 0;
+      this->is_null = true;
     } else {
       ptr = reinterpret_cast<char *>(memory->Allocate(len));
     }
@@ -264,8 +261,6 @@ struct StringVal : public Val {
   static StringVal Null() { return StringVal(static_cast<char *>(nullptr), 0); }
 };
 
-
-
 /**
  * Date
  */
@@ -285,10 +280,26 @@ struct Date : public Val {
    */
   explicit Date(u32 date) noexcept : Val(false), int_val{date} {}
 
+  /**
+   * Constructor
+   * @param date date value from a TransientValue
+   */
   explicit Date(terrier::type::date_t date) noexcept : Val(false), int_val{!date} {}
 
+  /**
+   * Constructor
+   * @param year year value
+   * @param month month value
+   * @param day day value
+   */
   Date(date::year year, date::month month, date::day day) noexcept : Val(false), ymd{year, month, day} {}
 
+  /**
+   * Constructor
+   * @param year year value
+   * @param month month value
+   * @param day day value
+   */
   Date(i16 year, u8 month, u8 day) noexcept : Val(false), ymd{date::year(year) / date::month(month) / date::day(day)} {}
 
   /**
@@ -357,25 +368,38 @@ struct ValUtil {
     }
   }
 
-  static std::string DateToString(const Date & date) {
+  /**
+   * Convert a date to a string
+   * @param date date to convert
+   * @return the date in the yyyy-mm-dd format
+   */
+  static std::string DateToString(const Date &date) {
     std::stringstream ss;
     ss << date.ymd;
     return ss.str();
   }
 
-  static i16 ExtractYear(const Date& date) {
-    return i16(int(date.ymd.year()));
-  }
+  /**
+   * Return the year part of the date
+   */
+  static i16 ExtractYear(const Date &date) { return i16(static_cast<int>(date.ymd.year())); }
 
-  static u8 ExtractMonth(const Date& date) {
-    return u8(unsigned(date.ymd.month()));
-  }
+  /**
+   * Return the month part of the date
+   */
+  static u8 ExtractMonth(const Date &date) { return u8(static_cast<unsigned>(date.ymd.month())); }
 
-  static u8 ExtractDay(const Date& date) {
-    return u8(unsigned(date.ymd.day()));
-  }
+  /**
+   * Return the day part of the date
+   */
+  static u8 ExtractDay(const Date &date) { return u8(static_cast<unsigned>(date.ymd.day())); }
 
-  static Date StringToDate(const std::string & str) {
+  /**
+   * Construct a date object from a string
+   * @param str string representation of the date
+   * @return the constructed date object
+   */
+  static Date StringToDate(const std::string &str) {
     std::stringstream ss(str);
     i16 year, month, day;
     // Token to dismiss the '-' character

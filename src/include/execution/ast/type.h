@@ -53,9 +53,9 @@ class Context;
   PRIM(Float64, f64, "float64")                                                  \
                                                                                  \
   /* Non-primitive builtins */                                                   \
-  NON_PRIM(AggregationHashTable, tpl::sql::AggregationHashTable)         \
+  NON_PRIM(AggregationHashTable, tpl::sql::AggregationHashTable)                 \
   NON_PRIM(AggregationHashTableIterator, tpl::sql::AggregationHashTableIterator) \
-  NON_PRIM(AggOverflowPartIter, tpl::sql::AggregationOverflowPartitionIterator) \
+  NON_PRIM(AggOverflowPartIter, tpl::sql::AggregationOverflowPartitionIterator)  \
   NON_PRIM(BloomFilter, tpl::sql::BloomFilter)                                   \
   NON_PRIM(ExecutionContext, tpl::exec::ExecutionContext)                        \
   NON_PRIM(FilterManager, tpl::sql::FilterManager)                               \
@@ -74,15 +74,15 @@ class Context;
   /* SQL Aggregate types (if you add, remember to update BuiltinType) */         \
   NON_PRIM(CountAggregate, tpl::sql::CountAggregate)                             \
   NON_PRIM(CountStarAggregate, tpl::sql::CountStarAggregate)                     \
-  NON_PRIM(IntegerAvgAggregate, tpl::sql::AvgAggregate)                   \
+  NON_PRIM(IntegerAvgAggregate, tpl::sql::AvgAggregate)                          \
   NON_PRIM(IntegerMaxAggregate, tpl::sql::IntegerMaxAggregate)                   \
   NON_PRIM(IntegerMinAggregate, tpl::sql::IntegerMinAggregate)                   \
-  NON_PRIM(IntegerSumAggregate, tpl::sql::IntegerSumAggregate)           \
-  NON_PRIM(RealAvgAggregate, tpl::sql::AvgAggregate)                   \
-  NON_PRIM(RealMaxAggregate, tpl::sql::RealMaxAggregate)                 \
-  NON_PRIM(RealMinAggregate, tpl::sql::RealMinAggregate)                 \
-  NON_PRIM(RealSumAggregate, tpl::sql::RealSumAggregate)                 \
-                                                                         \
+  NON_PRIM(IntegerSumAggregate, tpl::sql::IntegerSumAggregate)                   \
+  NON_PRIM(RealAvgAggregate, tpl::sql::AvgAggregate)                             \
+  NON_PRIM(RealMaxAggregate, tpl::sql::RealMaxAggregate)                         \
+  NON_PRIM(RealMinAggregate, tpl::sql::RealMinAggregate)                         \
+  NON_PRIM(RealSumAggregate, tpl::sql::RealSumAggregate)                         \
+                                                                                 \
   /* Non-primitive SQL Runtime Values */                                         \
   SQL(Boolean, tpl::sql::BoolVal)                                                \
   SQL(Integer, tpl::sql::Integer)                                                \

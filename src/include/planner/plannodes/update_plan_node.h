@@ -65,7 +65,7 @@ class UpdatePlanNode : public AbstractPlanNode {
     }
 
     /**
-     * Build the update plan node
+     * Build the delete plan node
      * @return plan node
      */
     std::shared_ptr<UpdatePlanNode> Build() {

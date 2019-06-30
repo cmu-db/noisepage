@@ -22,7 +22,7 @@ namespace tpl::vm {
 
 // Creates instances of a given opcode for all floating-point primitive types
 #define CREATE_FOR_FLOAT_TYPES(F, op, ...) \
-  F(op##_##f32, __VA_ARGS__) \
+  F(op##_##f32, __VA_ARGS__)               \
   F(op##_##f64, __VA_ARGS__)
 
 // Creates instances of a given opcode for *ALL* primitive types
@@ -79,8 +79,8 @@ namespace tpl::vm {
   F(AssignImm2, OperandType::Local, OperandType::Imm2)                                                                \
   F(AssignImm4, OperandType::Local, OperandType::Imm4)                                                                \
   F(AssignImm8, OperandType::Local, OperandType::Imm8)                                                                \
-  F(AssignImm4F, OperandType::Local, OperandType::Imm4F)                                                                \
-  F(AssignImm8F, OperandType::Local, OperandType::Imm8F)                                                                \
+  F(AssignImm4F, OperandType::Local, OperandType::Imm4F)                                                              \
+  F(AssignImm8F, OperandType::Local, OperandType::Imm8F)                                                              \
   F(Lea, OperandType::Local, OperandType::Local, OperandType::Imm4)                                                   \
   F(LeaScaled, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Imm4, OperandType::Imm4)      \
                                                                                                                       \
@@ -99,8 +99,7 @@ namespace tpl::vm {
   F(ThreadStateContainerFree, OperandType::Local)                                                                     \
                                                                                                                       \
   /* Table Vector Iterator */                                                                                         \
-  F(TableVectorIteratorInit, OperandType::Local, OperandType::UImm4,          \
-    OperandType::Local)                                                                                               \
+  F(TableVectorIteratorInit, OperandType::Local, OperandType::UImm4, OperandType::Local)                              \
   F(TableVectorIteratorPerformInit, OperandType::Local)                                                               \
   F(TableVectorIteratorNext, OperandType::Local, OperandType::Local)                                                  \
   F(TableVectorIteratorFree, OperandType::Local)                                                                      \
@@ -123,16 +122,16 @@ namespace tpl::vm {
   F(PCIGetReal, OperandType::Local, OperandType::Local, OperandType::UImm4)                                           \
   F(PCIGetDouble, OperandType::Local, OperandType::Local, OperandType::UImm4)                                         \
   F(PCIGetDecimal, OperandType::Local, OperandType::Local, OperandType::UImm4)                                        \
-  F(PCIGetDate, OperandType::Local, OperandType::Local, OperandType::UImm4)                                        \
-  F(PCIGetVarlen, OperandType::Local, OperandType::Local, OperandType::UImm4)                                        \
+  F(PCIGetDate, OperandType::Local, OperandType::Local, OperandType::UImm4)                                           \
+  F(PCIGetVarlen, OperandType::Local, OperandType::Local, OperandType::UImm4)                                         \
   F(PCIGetSmallIntNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                   \
   F(PCIGetIntegerNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                    \
   F(PCIGetBigIntNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                     \
   F(PCIGetRealNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                       \
   F(PCIGetDoubleNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                     \
   F(PCIGetDecimalNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                    \
-  F(PCIGetDateNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                    \
-  F(PCIGetVarlenNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                    \
+  F(PCIGetDateNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                       \
+  F(PCIGetVarlenNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                     \
   F(PCIFilterEqual, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Imm1, OperandType::Imm8) \
   F(PCIFilterGreaterThan, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Imm1,              \
     OperandType::Imm8)                                                                                                \
@@ -158,51 +157,51 @@ namespace tpl::vm {
   F(InitBool, OperandType::Local, OperandType::Local)                                                                 \
   F(InitInteger, OperandType::Local, OperandType::Local)                                                              \
   F(InitReal, OperandType::Local, OperandType::Local)                                                                 \
-  F(InitDate, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                                                                 \
-  F(InitString, OperandType::Local, OperandType::Imm8, OperandType::Imm8)                                                                 \
-  F(InitVarlen, OperandType::Local, OperandType::Local)                                                                 \
+  F(InitDate, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                         \
+  F(InitString, OperandType::Local, OperandType::Imm8, OperandType::Imm8)                                             \
+  F(InitVarlen, OperandType::Local, OperandType::Local)                                                               \
   F(LessThanInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
   F(LessThanEqualInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                 \
   F(GreaterThanInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                   \
   F(GreaterThanEqualInteger, OperandType::Local, OperandType::Local, OperandType::Local)                              \
   F(EqualInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                         \
   F(NotEqualInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
-  F(LessThanReal, OperandType::Local, OperandType::Local, OperandType::Local)                                          \
-  F(LessThanEqualReal, OperandType::Local, OperandType::Local, OperandType::Local)                                     \
-  F(GreaterThanReal, OperandType::Local, OperandType::Local, OperandType::Local)                                       \
-  F(GreaterThanEqualReal, OperandType::Local, OperandType::Local, OperandType::Local)                                  \
-  F(EqualReal, OperandType::Local, OperandType::Local, OperandType::Local)                                             \
-  F(NotEqualReal, OperandType::Local, OperandType::Local, OperandType::Local)                                          \
-  F(LessThanStringVal, OperandType::Local, OperandType::Local, OperandType::Local)                                        \
-  F(LessThanEqualStringVal, OperandType::Local, OperandType::Local, OperandType::Local)                                   \
-  F(GreaterThanStringVal, OperandType::Local, OperandType::Local, OperandType::Local)                                     \
-  F(GreaterThanEqualStringVal, OperandType::Local, OperandType::Local, OperandType::Local)                                \
-  F(EqualStringVal, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
-  F(NotEqualStringVal, OperandType::Local, OperandType::Local, OperandType::Local)                                          \
-  F(LessThanDate, OperandType::Local, OperandType::Local, OperandType::Local)                                        \
-  F(LessThanEqualDate, OperandType::Local, OperandType::Local, OperandType::Local)                                   \
-  F(GreaterThanDate, OperandType::Local, OperandType::Local, OperandType::Local)                                     \
-  F(GreaterThanEqualDate, OperandType::Local, OperandType::Local, OperandType::Local)                                \
-  F(EqualDate, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
-  F(NotEqualDate, OperandType::Local, OperandType::Local, OperandType::Local)                                        \
-                                                                                                                       \
-  /* SQL value unary operations */                                                                                     \
-  F(AbsInteger, OperandType::Local, OperandType::Local)                                                                \
-  F(AbsReal, OperandType::Local, OperandType::Local)                                                                   \
-  F(ValIsNull, OperandType::Local, OperandType::Local)                                                                 \
-  F(ValIsNotNull, OperandType::Local, OperandType::Local)                                                              \
-  /* SQL value binary operations */                                                                                    \
+  F(LessThanReal, OperandType::Local, OperandType::Local, OperandType::Local)                                         \
+  F(LessThanEqualReal, OperandType::Local, OperandType::Local, OperandType::Local)                                    \
+  F(GreaterThanReal, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
+  F(GreaterThanEqualReal, OperandType::Local, OperandType::Local, OperandType::Local)                                 \
+  F(EqualReal, OperandType::Local, OperandType::Local, OperandType::Local)                                            \
+  F(NotEqualReal, OperandType::Local, OperandType::Local, OperandType::Local)                                         \
+  F(LessThanStringVal, OperandType::Local, OperandType::Local, OperandType::Local)                                    \
+  F(LessThanEqualStringVal, OperandType::Local, OperandType::Local, OperandType::Local)                               \
+  F(GreaterThanStringVal, OperandType::Local, OperandType::Local, OperandType::Local)                                 \
+  F(GreaterThanEqualStringVal, OperandType::Local, OperandType::Local, OperandType::Local)                            \
+  F(EqualStringVal, OperandType::Local, OperandType::Local, OperandType::Local)                                       \
+  F(NotEqualStringVal, OperandType::Local, OperandType::Local, OperandType::Local)                                    \
+  F(LessThanDate, OperandType::Local, OperandType::Local, OperandType::Local)                                         \
+  F(LessThanEqualDate, OperandType::Local, OperandType::Local, OperandType::Local)                                    \
+  F(GreaterThanDate, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
+  F(GreaterThanEqualDate, OperandType::Local, OperandType::Local, OperandType::Local)                                 \
+  F(EqualDate, OperandType::Local, OperandType::Local, OperandType::Local)                                            \
+  F(NotEqualDate, OperandType::Local, OperandType::Local, OperandType::Local)                                         \
+                                                                                                                      \
+  /* SQL value unary operations */                                                                                    \
+  F(AbsInteger, OperandType::Local, OperandType::Local)                                                               \
+  F(AbsReal, OperandType::Local, OperandType::Local)                                                                  \
+  F(ValIsNull, OperandType::Local, OperandType::Local)                                                                \
+  F(ValIsNotNull, OperandType::Local, OperandType::Local)                                                             \
+  /* SQL value binary operations */                                                                                   \
   F(AddInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
   F(SubInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
   F(MulInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
   F(DivInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
-  F(RemInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                            \
-  F(AddReal, OperandType::Local, OperandType::Local, OperandType::Local)                                               \
-  F(SubReal, OperandType::Local, OperandType::Local, OperandType::Local)                                               \
-  F(MulReal, OperandType::Local, OperandType::Local, OperandType::Local)                                               \
-  F(DivReal, OperandType::Local, OperandType::Local, OperandType::Local)                                               \
-  F(RemReal, OperandType::Local, OperandType::Local, OperandType::Local)                                               \
-                                                                                                                       \
+  F(RemInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
+  F(AddReal, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
+  F(SubReal, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
+  F(MulReal, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
+  F(DivReal, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
+  F(RemReal, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
+                                                                                                                      \
   /* Hashing */                                                                                                       \
   F(HashInt, OperandType::Local, OperandType::Local)                                                                  \
   F(HashReal, OperandType::Local, OperandType::Local)                                                                 \
@@ -260,33 +259,33 @@ namespace tpl::vm {
   F(IntegerMinAggregateMerge, OperandType::Local, OperandType::Local)                                                 \
   F(IntegerMinAggregateReset, OperandType::Local)                                                                     \
   F(IntegerMinAggregateGetResult, OperandType::Local, OperandType::Local)                                             \
-  F(IntegerMinAggregateFree, OperandType::Local)                                                                       \
-  F(AvgAggregateInit, OperandType::Local)                                                                              \
-  F(IntegerAvgAggregateAdvance, OperandType::Local, OperandType::Local)                                                       \
-  F(RealAvgAggregateAdvance, OperandType::Local, OperandType::Local)                                                       \
-  F(AvgAggregateMerge, OperandType::Local, OperandType::Local)                                                         \
-  F(AvgAggregateReset, OperandType::Local)                                                                             \
-  F(AvgAggregateGetResult, OperandType::Local, OperandType::Local)                                                     \
-  F(AvgAggregateFree, OperandType::Local)                                                                              \
-  F(RealSumAggregateInit, OperandType::Local)                                                                          \
-  F(RealSumAggregateAdvance, OperandType::Local, OperandType::Local)                                                   \
-  F(RealSumAggregateMerge, OperandType::Local, OperandType::Local)                                                     \
-  F(RealSumAggregateReset, OperandType::Local)                                                                         \
-  F(RealSumAggregateGetResult, OperandType::Local, OperandType::Local)                                                 \
-  F(RealSumAggregateFree, OperandType::Local)                                                                          \
-  F(RealMaxAggregateInit, OperandType::Local)                                                                          \
-  F(RealMaxAggregateAdvance, OperandType::Local, OperandType::Local)                                                   \
-  F(RealMaxAggregateMerge, OperandType::Local, OperandType::Local)                                                     \
-  F(RealMaxAggregateReset, OperandType::Local)                                                                         \
-  F(RealMaxAggregateGetResult, OperandType::Local, OperandType::Local)                                                 \
-  F(RealMaxAggregateFree, OperandType::Local)                                                                          \
-  F(RealMinAggregateInit, OperandType::Local)                                                                          \
-  F(RealMinAggregateAdvance, OperandType::Local, OperandType::Local)                                                   \
-  F(RealMinAggregateMerge, OperandType::Local, OperandType::Local)                                                     \
-  F(RealMinAggregateReset, OperandType::Local)                                                                         \
-  F(RealMinAggregateGetResult, OperandType::Local, OperandType::Local)                                                 \
-  F(RealMinAggregateFree, OperandType::Local)                                                                          \
-                                                                                                                       \
+  F(IntegerMinAggregateFree, OperandType::Local)                                                                      \
+  F(AvgAggregateInit, OperandType::Local)                                                                             \
+  F(IntegerAvgAggregateAdvance, OperandType::Local, OperandType::Local)                                               \
+  F(RealAvgAggregateAdvance, OperandType::Local, OperandType::Local)                                                  \
+  F(AvgAggregateMerge, OperandType::Local, OperandType::Local)                                                        \
+  F(AvgAggregateReset, OperandType::Local)                                                                            \
+  F(AvgAggregateGetResult, OperandType::Local, OperandType::Local)                                                    \
+  F(AvgAggregateFree, OperandType::Local)                                                                             \
+  F(RealSumAggregateInit, OperandType::Local)                                                                         \
+  F(RealSumAggregateAdvance, OperandType::Local, OperandType::Local)                                                  \
+  F(RealSumAggregateMerge, OperandType::Local, OperandType::Local)                                                    \
+  F(RealSumAggregateReset, OperandType::Local)                                                                        \
+  F(RealSumAggregateGetResult, OperandType::Local, OperandType::Local)                                                \
+  F(RealSumAggregateFree, OperandType::Local)                                                                         \
+  F(RealMaxAggregateInit, OperandType::Local)                                                                         \
+  F(RealMaxAggregateAdvance, OperandType::Local, OperandType::Local)                                                  \
+  F(RealMaxAggregateMerge, OperandType::Local, OperandType::Local)                                                    \
+  F(RealMaxAggregateReset, OperandType::Local)                                                                        \
+  F(RealMaxAggregateGetResult, OperandType::Local, OperandType::Local)                                                \
+  F(RealMaxAggregateFree, OperandType::Local)                                                                         \
+  F(RealMinAggregateInit, OperandType::Local)                                                                         \
+  F(RealMinAggregateAdvance, OperandType::Local, OperandType::Local)                                                  \
+  F(RealMinAggregateMerge, OperandType::Local, OperandType::Local)                                                    \
+  F(RealMinAggregateReset, OperandType::Local)                                                                        \
+  F(RealMinAggregateGetResult, OperandType::Local, OperandType::Local)                                                \
+  F(RealMinAggregateFree, OperandType::Local)                                                                         \
+                                                                                                                      \
   /* Hash Joins */                                                                                                    \
   F(JoinHashTableInit, OperandType::Local, OperandType::Local, OperandType::Local)                                    \
   F(JoinHashTableAllocTuple, OperandType::Local, OperandType::Local, OperandType::Local)                              \
@@ -321,71 +320,71 @@ namespace tpl::vm {
   F(OutputSetNull, OperandType::Local, OperandType::Local)                                                            \
                                                                                                                       \
   /* Insert */                                                                                                        \
-  F(Insert, OperandType::Local, OperandType::Local, OperandType::Local)       \
-  \
+  F(Insert, OperandType::Local, OperandType::Local, OperandType::Local)                                               \
+                                                                                                                      \
   /* Index Iterator */                                                                                                \
-  F(IndexIteratorInit, OperandType::Local, OperandType::UImm4, OperandType::UImm4, OperandType::Local)                                    \
+  F(IndexIteratorInit, OperandType::Local, OperandType::UImm4, OperandType::UImm4, OperandType::Local)                \
   F(IndexIteratorScanKey, OperandType::Local, OperandType::Local)                                                     \
   F(IndexIteratorFree, OperandType::Local)                                                                            \
-  F(IndexIteratorAdvance, OperandType::Local, OperandType::Local)                                                                         \
+  F(IndexIteratorAdvance, OperandType::Local, OperandType::Local)                                                     \
   F(IndexIteratorGetSmallInt, OperandType::Local, OperandType::Local, OperandType::UImm4)                             \
   F(IndexIteratorGetInteger, OperandType::Local, OperandType::Local, OperandType::UImm4)                              \
   F(IndexIteratorGetBigInt, OperandType::Local, OperandType::Local, OperandType::UImm4)                               \
   F(IndexIteratorGetDecimal, OperandType::Local, OperandType::Local, OperandType::UImm4)                              \
-  F(IndexIteratorGetReal, OperandType::Local, OperandType::Local, OperandType::UImm4)                              \
-  F(IndexIteratorGetDouble, OperandType::Local, OperandType::Local, OperandType::UImm4)                              \
+  F(IndexIteratorGetReal, OperandType::Local, OperandType::Local, OperandType::UImm4)                                 \
+  F(IndexIteratorGetDouble, OperandType::Local, OperandType::Local, OperandType::UImm4)                               \
   F(IndexIteratorGetSmallIntNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                         \
   F(IndexIteratorGetIntegerNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                          \
   F(IndexIteratorGetBigIntNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                           \
-  F(IndexIteratorGetDecimalNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                           \
-  F(IndexIteratorGetRealNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                           \
-  F(IndexIteratorGetDoubleNull, OperandType::Local, OperandType::Local, OperandType::UImm4) \
-                                                                                                                       \
-  /* Trig functions */                                                                                                 \
-  F(Pi, OperandType::Local)                                                                                            \
-  F(E, OperandType::Local)                                                                                             \
-  F(Acos, OperandType::Local, OperandType::Local)                                                                      \
-  F(Asin, OperandType::Local, OperandType::Local)                                                                      \
-  F(Atan, OperandType::Local, OperandType::Local)                                                                      \
-  F(Atan2, OperandType::Local, OperandType::Local, OperandType::Local)                                                 \
-  F(Cos, OperandType::Local, OperandType::Local)                                                                       \
-  F(Cot, OperandType::Local, OperandType::Local)                                                                       \
-  F(Sin, OperandType::Local, OperandType::Local)                                                                       \
-  F(Tan, OperandType::Local, OperandType::Local)                                                                       \
-  F(Cosh, OperandType::Local, OperandType::Local)                                                                      \
-  F(Tanh, OperandType::Local, OperandType::Local)                                                                      \
-  F(Sinh, OperandType::Local, OperandType::Local)                                                                      \
-  F(Sqrt, OperandType::Local, OperandType::Local)                                                                      \
-  F(Cbrt, OperandType::Local, OperandType::Local)                                                                      \
-  F(Exp, OperandType::Local, OperandType::Local)                                                                       \
-  F(Ceil, OperandType::Local, OperandType::Local)                                                                      \
-  F(Floor, OperandType::Local, OperandType::Local)                                                                     \
-  F(Truncate, OperandType::Local, OperandType::Local)                                                                  \
-  F(Ln, OperandType::Local, OperandType::Local)                                                                        \
-  F(Log2, OperandType::Local, OperandType::Local)                                                                      \
-  F(Log10, OperandType::Local, OperandType::Local)                                                                     \
-  F(Sign, OperandType::Local, OperandType::Local)                                                                      \
-  F(Radians, OperandType::Local, OperandType::Local)                                                                   \
-  F(Degrees, OperandType::Local, OperandType::Local)                                                                   \
-  F(Round, OperandType::Local, OperandType::Local)                                                                     \
-  F(RoundUpTo, OperandType::Local, OperandType::Local, OperandType::Local)                                             \
-  F(Log, OperandType::Local, OperandType::Local, OperandType::Local)                                                   \
-  F(Pow, OperandType::Local, OperandType::Local, OperandType::Local)                                                   \
-                                                                                                                       \
-  /* String functions */                                                                                               \
-  F(Left, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                              \
-  F(Length, OperandType::Local, OperandType::Local, OperandType::Local)                                                \
-  F(Lower, OperandType::Local, OperandType::Local, OperandType::Local)                                                 \
-  F(LPad, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)          \
-  F(LTrim, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                             \
-  F(Repeat, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                            \
-  F(Reverse, OperandType::Local, OperandType::Local, OperandType::Local)                                               \
-  F(Right, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                             \
-  F(RPad, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)          \
-  F(RTrim, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                             \
-  F(SplitPart, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)     \
-  F(Substring, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)     \
-  F(Trim, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                              \
+  F(IndexIteratorGetDecimalNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                          \
+  F(IndexIteratorGetRealNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                             \
+  F(IndexIteratorGetDoubleNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                           \
+                                                                                                                      \
+  /* Trig functions */                                                                                                \
+  F(Pi, OperandType::Local)                                                                                           \
+  F(E, OperandType::Local)                                                                                            \
+  F(Acos, OperandType::Local, OperandType::Local)                                                                     \
+  F(Asin, OperandType::Local, OperandType::Local)                                                                     \
+  F(Atan, OperandType::Local, OperandType::Local)                                                                     \
+  F(Atan2, OperandType::Local, OperandType::Local, OperandType::Local)                                                \
+  F(Cos, OperandType::Local, OperandType::Local)                                                                      \
+  F(Cot, OperandType::Local, OperandType::Local)                                                                      \
+  F(Sin, OperandType::Local, OperandType::Local)                                                                      \
+  F(Tan, OperandType::Local, OperandType::Local)                                                                      \
+  F(Cosh, OperandType::Local, OperandType::Local)                                                                     \
+  F(Tanh, OperandType::Local, OperandType::Local)                                                                     \
+  F(Sinh, OperandType::Local, OperandType::Local)                                                                     \
+  F(Sqrt, OperandType::Local, OperandType::Local)                                                                     \
+  F(Cbrt, OperandType::Local, OperandType::Local)                                                                     \
+  F(Exp, OperandType::Local, OperandType::Local)                                                                      \
+  F(Ceil, OperandType::Local, OperandType::Local)                                                                     \
+  F(Floor, OperandType::Local, OperandType::Local)                                                                    \
+  F(Truncate, OperandType::Local, OperandType::Local)                                                                 \
+  F(Ln, OperandType::Local, OperandType::Local)                                                                       \
+  F(Log2, OperandType::Local, OperandType::Local)                                                                     \
+  F(Log10, OperandType::Local, OperandType::Local)                                                                    \
+  F(Sign, OperandType::Local, OperandType::Local)                                                                     \
+  F(Radians, OperandType::Local, OperandType::Local)                                                                  \
+  F(Degrees, OperandType::Local, OperandType::Local)                                                                  \
+  F(Round, OperandType::Local, OperandType::Local)                                                                    \
+  F(RoundUpTo, OperandType::Local, OperandType::Local, OperandType::Local)                                            \
+  F(Log, OperandType::Local, OperandType::Local, OperandType::Local)                                                  \
+  F(Pow, OperandType::Local, OperandType::Local, OperandType::Local)                                                  \
+                                                                                                                      \
+  /* String functions */                                                                                              \
+  F(Left, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                             \
+  F(Length, OperandType::Local, OperandType::Local, OperandType::Local)                                               \
+  F(Lower, OperandType::Local, OperandType::Local, OperandType::Local)                                                \
+  F(LPad, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)         \
+  F(LTrim, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                            \
+  F(Repeat, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                           \
+  F(Reverse, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
+  F(Right, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                            \
+  F(RPad, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)         \
+  F(RTrim, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                            \
+  F(SplitPart, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)    \
+  F(Substring, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)    \
+  F(Trim, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                             \
   F(Upper, OperandType::Local, OperandType::Local, OperandType::Local)
 
 /**

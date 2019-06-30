@@ -72,7 +72,7 @@ class EpsilonGreedyPolicy : public Policy {
   static constexpr const double kDefaultEpsilon = 0.1;
 
   /**
-   * Construct
+   * Constructor
    * @param epsilon epsilon value
    * @param kind kind of policy
    */
@@ -82,6 +82,10 @@ class EpsilonGreedyPolicy : public Policy {
   u32 NextAction(Agent *agent) override;
 
  protected:
+  /**
+   * Set the epsilon value
+   * @param epsilon new epsilon value
+   */
   void set_epsilon(const double epsilon) { epsilon_ = epsilon; }
 
  private:
@@ -167,11 +171,9 @@ class AnnealingEpsilonGreedyPolicy : public EpsilonGreedyPolicy {
   /**
    * Constructor
    */
-  AnnealingEpsilonGreedyPolicy()
-      : EpsilonGreedyPolicy(Kind::AnnealingEpsilonGreedy) {}
+  AnnealingEpsilonGreedyPolicy() : EpsilonGreedyPolicy(Kind::AnnealingEpsilonGreedy) {}
 
   u32 NextAction(Agent *agent) override;
 };
-
 
 }  // namespace tpl::bandit

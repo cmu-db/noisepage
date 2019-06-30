@@ -325,6 +325,10 @@ void AstDumperImpl::VisitImplicitCastExpr(ImplicitCastExpr *node) {
         DumpPrimitive("BitCast");
         break;
       }
+      case CastKind::FloatToSqlReal: {
+        DumpPrimitive("FloatToSqlReal");
+        break;
+      }
     }
   }
   DumpPrimitive(">");

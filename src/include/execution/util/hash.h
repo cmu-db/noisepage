@@ -33,8 +33,7 @@ class Hasher {
    * @return The compute hash.
    */
   template <HashMethod METHOD = HashMethod::Crc, typename T>
-  static auto Hash(const T val)
-  -> std::enable_if_t<std::is_arithmetic_v<T>, hash_t> {
+  static auto Hash(const T val) -> std::enable_if_t<std::is_arithmetic_v<T>, hash_t> {
     switch (METHOD) {
       case HashMethod::Fnv1:
         return HashFnv1(val);
@@ -85,8 +84,7 @@ class Hasher {
    * @param second_hash The second hash value
    * @return The mixed hash value
    */
-  static hash_t CombineHashes(const hash_t first_hash,
-                              const hash_t second_hash) {
+  static hash_t CombineHashes(const hash_t first_hash, const hash_t second_hash) {
     // Based on Hash128to64() from cityhash.
     static constexpr u64 kMul = u64(0x9ddfea08eb382d69);
     hash_t a = (first_hash ^ second_hash) * kMul;
@@ -103,16 +101,14 @@ class Hasher {
   // -------------------------------------------------------
 
   template <typename T>
-  static auto HashCrc(const T val, const hash_t seed)
-  -> std::enable_if_t<std::is_arithmetic_v<T>, hash_t> {
+  static auto HashCrc(const T val, const hash_t seed) -> std::enable_if_t<std::is_arithmetic_v<T>, hash_t> {
     u64 result1 = _mm_crc32_u64(seed, static_cast<u64>(val));
     u64 result2 = _mm_crc32_u64(0x04c11db7, static_cast<u64>(val));
     return ((result2 << 32u) | result1) * 0x2545F4914F6CDD1Dull;
   }
 
   template <typename T>
-  static auto HashCrc(const T val)
-  -> std::enable_if_t<std::is_arithmetic_v<T>, hash_t> {
+  static auto HashCrc(const T val) -> std::enable_if_t<std::is_arithmetic_v<T>, hash_t> {
     return HashCrc(val, hash_t{0});
   }
 
@@ -164,8 +160,7 @@ class Hasher {
   static constexpr i32 kMurmur2R = 47;
 
   template <typename T>
-  static auto HashMurmur2(const T val, hash_t seed)
-  -> std::enable_if_t<std::is_arithmetic_v<T>, hash_t> {
+  static auto HashMurmur2(const T val, hash_t seed) -> std::enable_if_t<std::is_arithmetic_v<T>, hash_t> {
     // MurmurHash64A
     u64 k = static_cast<u64>(val);
     hash_t h = seed ^ 0x8445d61a4e774912 ^ (8 * kMurmur2Prime);
@@ -236,17 +231,14 @@ class Hasher {
     return h;
   }
 
-  static hash_t HashMurmur2(const u8 *buf, u32 len) {
-    return HashMurmur2(buf, len, 0);
-  }
+  static hash_t HashMurmur2(const u8 *buf, u32 len) { return HashMurmur2(buf, len, 0); }
 
   // -------------------------------------------------------
   // xx3 Hashing
   // -------------------------------------------------------
 
   template <typename T>
-  static auto HashXX3(const T val)
-  -> std::enable_if_t<std::is_arithmetic_v<T>, hash_t> {
+  static auto HashXX3(const T val) -> std::enable_if_t<std::is_arithmetic_v<T>, hash_t> {
     return HashXX3(reinterpret_cast<const u8 *>(&val), sizeof(T));
   }
 
@@ -261,8 +253,7 @@ class Hasher {
   static constexpr u64 kFNV64Seed = 14695981039346656037UL;
 
   template <typename T>
-  static auto HashFnv1(const T val)
-  -> std::enable_if_t<std::is_arithmetic_v<T>, hash_t> {
+  static auto HashFnv1(const T val) -> std::enable_if_t<std::is_arithmetic_v<T>, hash_t> {
     return HashFnv1(reinterpret_cast<const u8 *>(&val), sizeof(T));
   }
 
@@ -274,9 +265,7 @@ class Hasher {
     return seed;
   }
 
-  static hash_t HashFnv1(const u8 *buf, u32 len) {
-    return HashFnv1(buf, len, kFNV64Seed);
-  }
+  static hash_t HashFnv1(const u8 *buf, u32 len) { return HashFnv1(buf, len, kFNV64Seed); }
 };
 
 }  // namespace tpl::util

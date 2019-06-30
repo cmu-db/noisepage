@@ -3,7 +3,8 @@
 
 namespace tpl::sql {
 
-IndexIterator::IndexIterator(uint32_t table_oid, uint32_t index_oid, exec::ExecutionContext * exec_ctx) : exec_ctx_(exec_ctx) {
+IndexIterator::IndexIterator(uint32_t table_oid, uint32_t index_oid, exec::ExecutionContext *exec_ctx)
+    : exec_ctx_(exec_ctx) {
   // TODO(Amadou): Use the catalog accessor once it's merged
   // Get index from the catalog
   catalog_index_ = exec_ctx_->GetAccessor()->GetCatalogIndex(terrier::catalog::index_oid_t(index_oid));

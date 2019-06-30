@@ -34,8 +34,6 @@ add_test(bytecodes_test "/home/amlatyr/Code/terrier/build-support/run-test.sh" "
 set_tests_properties(bytecodes_test PROPERTIES  LABELS "unittest")
 add_test(chunked_vector_test "/home/amlatyr/Code/terrier/build-support/run-test.sh" "/home/amlatyr/Code/terrier" "test" "/home/amlatyr/Code/terrier/build/debug//chunked_vector_test")
 set_tests_properties(chunked_vector_test PROPERTIES  LABELS "unittest")
-add_test(compiler_test "/home/amlatyr/Code/terrier/build-support/run-test.sh" "/home/amlatyr/Code/terrier" "test" "/home/amlatyr/Code/terrier/build/debug//compiler_test")
-set_tests_properties(compiler_test PROPERTIES  LABELS "unittest")
 add_test(concise_hash_table_test "/home/amlatyr/Code/terrier/build-support/run-test.sh" "/home/amlatyr/Code/terrier" "test" "/home/amlatyr/Code/terrier/build/debug//concise_hash_table_test")
 set_tests_properties(concise_hash_table_test PROPERTIES  LABELS "unittest")
 add_test(filter_manager_test "/home/amlatyr/Code/terrier/build-support/run-test.sh" "/home/amlatyr/Code/terrier" "test" "/home/amlatyr/Code/terrier/build/debug//filter_manager_test")

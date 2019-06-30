@@ -209,8 +209,9 @@ void OpInsert(tpl::exec::ExecutionContext *exec_ctx, u32 table_oid, byte *values
 // -------------------------------------------------------------------
 // Index Iterator
 // -------------------------------------------------------------------
-void OpIndexIteratorInit(tpl::sql::IndexIterator *iter, uint32_t table_oid, uint32_t index_oid, tpl::exec::ExecutionContext *exec_ctx) {
-  new (iter) tpl::sql::IndexIterator(table_oid, table_oid, index_oid, exec_ctx->GetTxn());
+void OpIndexIteratorInit(tpl::sql::IndexIterator *iter, uint32_t table_oid, uint32_t index_oid,
+                         tpl::exec::ExecutionContext *exec_ctx) {
+  new (iter) tpl::sql::IndexIterator(table_oid, index_oid, exec_ctx);
 }
 void OpIndexIteratorFree(tpl::sql::IndexIterator *iter) { iter->~IndexIterator(); }
 

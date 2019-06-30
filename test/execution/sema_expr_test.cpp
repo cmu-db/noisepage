@@ -3,15 +3,14 @@
 #include <utility>
 #include <vector>
 
-#include "execution/tpl_test.h"  // NOLINT
 #include "execution/ast/ast_builder.h"
+#include "execution/tpl_test.h"  // NOLINT
 
 #include "execution/ast/ast_node_factory.h"
 #include "execution/ast/context.h"
 #include "execution/ast/type.h"
 #include "execution/sema/sema.h"
 #include "execution/util/region_containers.h"
-
 
 namespace tpl::sema::test {
 
@@ -38,13 +37,11 @@ TEST_F(SemaExprTest, LogicalOperationTest) {
   TestCase tests[] = {
       // Test: 1 and 2
       // Expectation: Error
-      {true, "1 and 2 is not a valid logical operation",
-       BinOp<parsing::Token::Type::AND>(IntLit(1), IntLit(2))},
+      {true, "1 and 2 is not a valid logical operation", BinOp<parsing::Token::Type::AND>(IntLit(1), IntLit(2))},
 
       // Test: 1 and true
       // Expectation: Error
-      {true, "1 and true is not a valid logical operation",
-       BinOp<parsing::Token::Type::AND>(IntLit(1), BoolLit(true))},
+      {true, "1 and true is not a valid logical operation", BinOp<parsing::Token::Type::AND>(IntLit(1), BoolLit(true))},
 
       // Test: false and 2
       // Expectation: Error

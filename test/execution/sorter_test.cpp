@@ -257,7 +257,7 @@ void TestParallelSort(const std::vector<u32> &sorter_sizes) {
 
   // Create container
   auto memory = std::make_unique<MemoryPool>(nullptr);
-  exec::ExecutionContext exec_ctx(nullptr, [](byte *, u32, u32) {}, nullptr);
+  exec::ExecutionContext exec_ctx(nullptr, nullptr, nullptr, nullptr);
   exec_ctx.SetMemoryPool(std::move(memory));
   ThreadStateContainer container(exec_ctx.GetMemoryPool());
 

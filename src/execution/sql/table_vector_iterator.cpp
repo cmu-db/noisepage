@@ -16,7 +16,7 @@ using terrier::common::AllocationUtil;
 using terrier::storage::DataTable;
 using terrier::transaction::TransactionContext;
 
-TableVectorIterator::TableVectorIterator(u32 table_oid, exec::ExecutionContext * exec_ctx)
+TableVectorIterator::TableVectorIterator(u32 table_oid, exec::ExecutionContext *exec_ctx)
     : table_oid_(table_oid), exec_ctx_(exec_ctx) {}
 
 TableVectorIterator::~TableVectorIterator() { delete[] buffer_; }

@@ -2,10 +2,10 @@
 
 #include <memory>
 #include <vector>
-#include "execution/exec/execution_context.h"
 #include "catalog/catalog_defs.h"
 #include "catalog/catalog_index.h"
 #include "catalog/catalog_sql_table.h"
+#include "execution/exec/execution_context.h"
 #include "execution/sql/projected_columns_iterator.h"
 #include "storage/storage_defs.h"
 
@@ -25,9 +25,9 @@ class IndexIterator {
    * Constructor
    * @param table_oid oid of the table
    * @param index_oid oid of the index to iterate over.
-   * @param txn running transaction
+   * @param exec_ctx execution containing of this query
    */
-  explicit IndexIterator(uint32_t table_oid, uint32_t index_oid, exec::ExecutionContext * exec_ctx);
+  explicit IndexIterator(uint32_t table_oid, uint32_t index_oid, exec::ExecutionContext *exec_ctx);
 
   /**
    * Frees allocated resources.
@@ -42,6 +42,7 @@ class IndexIterator {
 
   /**
    * Advances the iterator. Return true if successful
+   * @return whether the iterator was advanced or not.
    */
   bool Advance();
 
@@ -57,7 +58,7 @@ class IndexIterator {
   const T *Get(u32 col_idx, bool *null) const;
 
  private:
-  exec::ExecutionContext * exec_ctx_;
+  exec::ExecutionContext *exec_ctx_;
   std::vector<TupleSlot> index_values_;
   uint32_t curr_index_ = 0;
   byte *index_buffer_ = nullptr;

@@ -64,7 +64,9 @@ class OutputSchema {
     common::hash_t Hash() const {
       common::hash_t hash = common::HashUtil::Hash(type_);
       hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(nullable_));
-      hash = common::HashUtil::CombineHashes(hash, expr_->Hash());
+      if (expr_ != nullptr) {
+        hash = common::HashUtil::CombineHashes(hash, expr_->Hash());
+      }
       return hash;
     }
 

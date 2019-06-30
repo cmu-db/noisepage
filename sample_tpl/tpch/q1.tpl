@@ -96,7 +96,7 @@ fun setUpState(execCtx: *ExecutionContext, state: *State) -> nil {
 fun pipeline1(execCtx: *ExecutionContext, state: *State) -> nil {
   // Pipeline 1 (Aggregating)
   var tvi: TableVectorIterator
-  for (@tableIterInit(&tvi, "test_1", execCtx); @tableIterAdvance(&tvi); ) {
+  for (@tableIterInit(&tvi, "lineitem", execCtx); @tableIterAdvance(&tvi); ) {
     var vec = @tableIterGetPCI(&tvi)
     for (; @pciHasNext(vec); @pciAdvance(vec)) {
       var agg_values : AggValues
@@ -105,13 +105,13 @@ fun pipeline1(execCtx: *ExecutionContext, state: *State) -> nil {
       agg_values.sum_qty = @pciGetDoubleNull(vec, 5)
       agg_values.sum_base_price = @pciGetDoubleNull(vec, 6)
       agg_values.sum_disc_price = @pciGetDoubleNull(vec, 6) * @pciGetDoubleNull(vec, 7)
-      agg_values.sum_charge = @pciGetDoubleNull(vec, 6) * @pciGetDoubleNull(vec, 7) * (1.0 - @pciGetDoubleNull(vec, 8))
+      agg_values.sum_charge = @pciGetDoubleNull(vec, 6) * @pciGetDoubleNull(vec, 7) * (@floatToSql(1.0) - @pciGetDoubleNull(vec, 8))
       agg_values.avg_qty = @pciGetDoubleNull(vec, 5)
       agg_values.avg_price = @pciGetDoubleNull(vec, 6)
       agg_values.avg_disc = @pciGetDoubleNull(vec, 7)
       agg_values.count_order = @intToSql(1)
       var agg_hash_val = @hash(agg_values.l_returnflag, agg_values.l_linestatus)
-      var agg_payload = @ptrCast(*AggPayload, @aggHTLookup(&state.agg_hash_table, agg_hash_val, aggKeyCheck, vec))
+      var agg_payload = @ptrCast(*AggPayload, @aggHTLookup(&state.agg_hash_table, agg_hash_val, aggKeyCheck, &agg_values))
       if (agg_payload == nil) {
         agg_payload = @ptrCast(*AggPayload, @aggHTInsert(&state.agg_hash_table, agg_hash_val))
         agg_payload.l_returnflag = agg_values.l_returnflag
@@ -142,7 +142,7 @@ fun pipeline1(execCtx: *ExecutionContext, state: *State) -> nil {
 fun pipeline2(execCtx: *ExecutionContext, state: *State) -> nil {
   // Pipeline 2 (Sorting)
   var agg_iter: AggregationHashTableIterator
-  for (@aggHTIterInit(&agg_iter, &state.table); @aggHTIterHasNext(&agg_iter); @aggHTIterNext(&agg_iter)) {
+  for (@aggHTIterInit(&agg_iter, &state.agg_hash_table); @aggHTIterHasNext(&agg_iter); @aggHTIterNext(&agg_iter)) {
     var agg_payload = @ptrCast(*AggPayload, @aggHTIterGetRow(&agg_iter))
     var sorter_row = @ptrCast(*SorterRow, @sorterInsert(&state.sorter))
     sorter_row.l_returnflag = agg_payload.l_returnflag
@@ -165,7 +165,7 @@ fun pipeline3(execCtx: *ExecutionContext, state: *State) -> nil {
     var out: *Output
     var sort_iter: SorterIterator
     for (@sorterIterInit(&sort_iter, &state.sorter); @sorterIterHasNext(&sort_iter); @sorterIterNext(&sort_iter)) {
-        out = @ptrCast(*outputStruct, @outputAlloc(execCtx))
+        out = @ptrCast(*Output, @outputAlloc(execCtx))
         var sorter_row = @ptrCast(*SorterRow, @sorterIterGetRow(&sort_iter))
         out.l_returnflag = sorter_row.l_returnflag
         out.l_linestatus = sorter_row.l_linestatus
@@ -184,7 +184,7 @@ fun pipeline3(execCtx: *ExecutionContext, state: *State) -> nil {
 }
 
 fun teardownState(execCtx: *ExecutionContext, state: *State) -> nil {
-    @aggHTFree(&state.table)
+    @aggHTFree(&state.agg_hash_table)
     @sorterFree(&state.sorter)
 }
 

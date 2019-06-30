@@ -16,9 +16,9 @@
 #include "execution/parsing/scanner.h"
 #include "execution/sema/error_reporter.h"
 #include "execution/sema/sema.h"
-#include "execution/sql/table_generator/table_generator.h"
-#include "execution/sql/table_generator/sample_output.h"
 #include "execution/sql/memory_pool.h"
+#include "execution/sql/table_generator/sample_output.h"
+#include "execution/sql/table_generator/table_generator.h"
 #include "execution/tpl.h"  // NOLINT
 #include "execution/util/cpu_info.h"
 #include "execution/util/timer.h"
@@ -27,9 +27,9 @@
 #include "execution/vm/llvm_engine.h"
 #include "execution/vm/module.h"
 #include "execution/vm/vm.h"
-#include "storage/garbage_collector.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/MemoryBuffer.h"
+#include "storage/garbage_collector.h"
 
 #include "loggers/loggers_util.h"
 #include "settings/settings_manager.h"
@@ -91,7 +91,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   // Genereate test tables
   sql::TableGenerator table_generator{&exec_ctx};
   table_generator.GenerateTestTables();
-
+  table_generator.GenerateTableFromFile("../sample_tpl/tables/lineitem.schema", "../sample_tpl/tables/lineitem.data");
 
   // Let's scan the source
   util::Region region("repl-ast");

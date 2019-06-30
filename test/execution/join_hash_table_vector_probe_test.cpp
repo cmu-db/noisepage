@@ -29,8 +29,8 @@ class JoinHashTableVectorProbeTest : public SqlBasedTest {
 
   void SetUp() override {
     SqlBasedTest::SetUp();
-    InitializeColumns();
     exec_ctx_ = MakeExecCtx();
+    InitializeColumns();
   }
 
   void InitializeColumns() {
@@ -46,8 +46,7 @@ class JoinHashTableVectorProbeTest : public SqlBasedTest {
 
     // Create the table in the catalog.
     terrier::catalog::Schema schema({col_a, col_b});
-    auto table_oid =
-        exec_ctx_->GetAccessor()->CreateUserTable("hash_join_test_table", schema);
+    auto table_oid = exec_ctx_->GetAccessor()->CreateUserTable("hash_join_test_table", schema);
 
     // Get the table's information.
     catalog_table_ = exec_ctx_->GetAccessor()->GetUserTable(table_oid);

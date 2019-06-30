@@ -1437,7 +1437,7 @@ class LitExpr : public Expr {
   union {
     bool boolean_;
     Identifier str_;
-    byte* bytes_;
+    byte *bytes_;
     i64 int64_;
     f64 float64_;
   };

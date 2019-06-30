@@ -5,28 +5,24 @@
 namespace terrier::planner {
 
 common::hash_t ResultPlanNode::Hash() const {
-  auto type = GetPlanNodeType();
-  common::hash_t hash = common::HashUtil::Hash(&type);
+  common::hash_t hash = AbstractPlanNode::Hash();
 
-  // Hash expr
+  // Expression
   hash = common::HashUtil::CombineHashes(hash, expr_->Hash());
 
-  return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
+  return hash;
 }
 
 bool ResultPlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
+  if (!AbstractPlanNode::operator==(rhs)) return false;
 
   auto &other = dynamic_cast<const ResultPlanNode &>(rhs);
 
-  // expr
-  auto expr = GetExpression();
-  auto other_expr = other.GetExpression();
-  if ((expr != nullptr && other_expr == nullptr) || (expr == nullptr && other_expr != nullptr)) return false;
+  // Expression
+  if ((expr_ != nullptr && other.expr_ == nullptr) || (expr_ == nullptr && other.expr_ != nullptr)) return false;
+  if (expr_ != nullptr && *expr_ != *other.expr_) return false;
 
-  if (expr != nullptr && *expr != *other_expr) return false;
-
-  return AbstractPlanNode::operator==(rhs);
+  return true;
 }
 
 nlohmann::json ResultPlanNode::ToJson() const {

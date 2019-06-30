@@ -16,7 +16,21 @@
 
 namespace tpl::sql::test {
 
-class FilterManagerTest : public SqlBasedTest {};
+class FilterManagerTest : public SqlBasedTest {
+  void SetUp() override {
+    // Create the test tables
+    SqlBasedTest::SetUp();
+    exec_ctx_ = MakeExecCtx();
+    sql::TableGenerator table_generator{exec_ctx_.get()};
+    table_generator.GenerateTestTables();
+  }
+
+ protected:
+  /**
+   * Execution context to use for the test
+   */
+  std::unique_ptr<exec::ExecutionContext> exec_ctx_;
+};
 
 enum Col : u8 { A = 0, B = 1, C = 2, D = 3 };
 
@@ -45,9 +59,8 @@ TEST_F(FilterManagerTest, SimpleFilterManagerTest) {
   filter.InsertClauseFlavor(TaaT_Lt_500);
   filter.InsertClauseFlavor(Vectorized_Lt_500);
   filter.Finalize();
-  auto exec_ctx = MakeExecCtx();
-  auto catalog_table = exec_ctx->GetAccessor()->GetUserTable("test_1");
-  TableVectorIterator tvi(!catalog_table->Oid(), exec_ctx.get());
+  auto catalog_table = exec_ctx_->GetAccessor()->GetUserTable("test_1");
+  TableVectorIterator tvi(!catalog_table->Oid(), exec_ctx_.get());
   for (tvi.Init(); tvi.Advance();) {
     auto *pci = tvi.projected_columns_iterator();
 
@@ -69,9 +82,8 @@ TEST_F(FilterManagerTest, AdaptiveFilterManagerTest) {
   filter.InsertClauseFlavor(Hobbled_TaaT_Lt_500);
   filter.InsertClauseFlavor(Vectorized_Lt_500);
   filter.Finalize();
-  auto exec_ctx = MakeExecCtx();
-  auto catalog_table = exec_ctx->GetAccessor()->GetUserTable("test_1");
-  TableVectorIterator tvi(!catalog_table->Oid(), exec_ctx.get());
+  auto catalog_table = exec_ctx_->GetAccessor()->GetUserTable("test_1");
+  TableVectorIterator tvi(!catalog_table->Oid(), exec_ctx_.get());
   for (tvi.Init(); tvi.Advance();) {
     auto *pci = tvi.projected_columns_iterator();
 

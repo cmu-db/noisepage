@@ -17,16 +17,12 @@ class IsNullPredicate {
   /**
    * Set result to true iff val is null
    */
-  static void IsNull(BoolVal *result, const Val &val) {
-    *result = BoolVal(val.is_null);
-  }
+  static void IsNull(BoolVal *result, const Val &val) { *result = BoolVal(val.is_null); }
 
   /**
    * Set result to true iff val is not null
    */
-  static void IsNotNull(BoolVal *result, const Val &val) {
-    *result = BoolVal(!val.is_null);
-  }
+  static void IsNotNull(BoolVal *result, const Val &val) { *result = BoolVal(!val.is_null); }
 };
 
 }  // namespace tpl::sql

@@ -13,6 +13,9 @@ namespace tpl::sql {
 // Count
 // ---------------------------------------------------------
 
+/**
+ * Counting aggregate
+ */
 class CountAggregate {
  public:
   /**
@@ -28,7 +31,7 @@ class CountAggregate {
   /**
    * Advance the count based on the NULL-ness of the input value.
    */
-  void Advance(const Val &val) { count_ += !val.is_null; }
+  void Advance(const Val &val) { count_ += static_cast<u64>(!val.is_null); }
 
   /**
    * Merge this count with the @em that count.
@@ -53,6 +56,9 @@ class CountAggregate {
 // Count Star
 // ---------------------------------------------------------
 
+/**
+ * COUNT(*) aggregate.
+ */
 class CountStarAggregate {
  public:
   /**
@@ -86,7 +92,7 @@ class CountStarAggregate {
   Integer GetCountResult() const { return Integer(count_); }
 
  private:
-  u64 count_ {0};
+  u64 count_{0};
 };
 
 // ---------------------------------------------------------
@@ -348,7 +354,7 @@ class IntegerMinAggregate {
   /**
    * Constructor.
    */
-  IntegerMinAggregate()  = default;
+  IntegerMinAggregate() = default;
 
   /**
    * This class cannot be copied or moved.
@@ -485,7 +491,7 @@ class AvgAggregate {
     if (val.is_null) {
       return;
     }
-    sum_ += double(val.val);
+    sum_ += static_cast<double>(val.val);
     count_++;
   }
 
@@ -512,7 +518,7 @@ class AvgAggregate {
     if (count_ == 0) {
       return Real::Null();
     }
-    return Real(sum_ / double(count_));
+    return Real(sum_ / static_cast<double>(count_));
   }
 
  private:

@@ -20,7 +20,10 @@ class TupleValueExpression : public AbstractExpression {
    * @param col_name column name
    * @param table_name table name
    */
-  TupleValueExpression(std::string col_name, std::string table_name) : col_name_(std::move(col_name)), table_name_(std::move(table_name)){}
+  TupleValueExpression(std::string col_name, std::string table_name)
+      : AbstractExpression(ExpressionType::VALUE_TUPLE, type::TypeId::INVALID, {}),
+        col_name_(std::move(col_name)),
+        table_name_(std::move(table_name)) {}
 
   /**
    * Default constructor for deserialization
@@ -77,12 +80,13 @@ DEFINE_JSON_DECLARATIONS(TupleValueExpression);
  */
 class ExecTupleValueExpression : public AbstractExpression {
  public:
-  // TODO(WAN): I feel like this should be renamed. Maybe parameters reordered too.
   /**
    * @param tuple_idx index of the tuple (needed by joins)
    * @param col_idx index of the column to access
+   * @param ret_type return type
    */
-  ExecTupleValueExpression(uint32_t tuple_idx, uint32_t col_idx, type::TypeId ret_type) : AbstractExpression(ExpressionType::VALUE_TUPLE, ret_type, {}), tuple_idx_(tuple_idx), col_idx_(col_idx) {}
+  ExecTupleValueExpression(uint32_t tuple_idx, uint32_t col_idx, type::TypeId ret_type)
+      : AbstractExpression(ExpressionType::VALUE_TUPLE, ret_type, {}), tuple_idx_(tuple_idx), col_idx_(col_idx) {}
 
   /**
    * Default constructor for deserialization
@@ -99,7 +103,9 @@ class ExecTupleValueExpression : public AbstractExpression {
    */
   uint32_t GetTupleIdx() const { return tuple_idx_; }
 
-  std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<ExecTupleValueExpression>(*this); }
+  std::shared_ptr<AbstractExpression> Copy() const override {
+    return std::make_shared<ExecTupleValueExpression>(*this);
+  }
 
   bool operator==(const AbstractExpression &rhs) const override {
     if (!AbstractExpression::operator==(rhs)) return false;
@@ -122,8 +128,8 @@ class ExecTupleValueExpression : public AbstractExpression {
    */
   void FromJson(const nlohmann::json &j) override {
     AbstractExpression::FromJson(j);
-    col_idx_ = j.at("col_idx").get<uint32_t >();
-    tuple_idx_ = j.at("tuple_idx").get<uint32_t >();
+    col_idx_ = j.at("col_idx").get<uint32_t>();
+    tuple_idx_ = j.at("tuple_idx").get<uint32_t>();
   }
 
  private:

@@ -5,11 +5,21 @@
 namespace terrier::planner {
 
 common::hash_t CSVScanPlanNode::Hash() const {
-  common::hash_t hash = AbstractScanPlanNode::Hash();
+  common::hash_t hash = AbstractPlanNode::Hash();
+
+  // Filename
   hash = common::HashUtil::CombineHashes(hash, std::hash<std::string>{}(file_name_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&delimiter_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&quote_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&escape_));
+
+  // Delimiter
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(delimiter_));
+
+  // Quote Char
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(quote_));
+
+  // Escape Char
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(escape_));
+
+  // Null String
   hash = common::HashUtil::CombineHashes(hash, std::hash<std::string>{}(null_string_));
 
   return hash;
@@ -20,8 +30,23 @@ bool CSVScanPlanNode::operator==(const AbstractPlanNode &rhs) const {
   if (!AbstractScanPlanNode::operator==(rhs)) return false;
 
   const auto &other = static_cast<const CSVScanPlanNode &>(rhs);
-  return file_name_ == other.file_name_ && delimiter_ == other.delimiter_ && quote_ == other.quote_ &&
-         escape_ == other.escape_ && null_string_ == other.null_string_;
+
+  // Filename
+  if (file_name_ != other.file_name_) return false;
+
+  // Delimiter
+  if (delimiter_ != other.delimiter_) return false;
+
+  // Quote Char
+  if (quote_ != other.quote_) return false;
+
+  // Escape Char
+  if (escape_ != other.escape_) return false;
+
+  // Null String
+  if (null_string_ != other.null_string_) return false;
+
+  return true;
 }
 
 nlohmann::json CSVScanPlanNode::ToJson() const {

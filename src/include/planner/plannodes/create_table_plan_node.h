@@ -155,10 +155,10 @@ struct ForeignKeyInfo {
     hash = common::HashUtil::CombineHashInRange(hash, foreign_key_sinks_.begin(), foreign_key_sinks_.end());
 
     // Hash upd_action
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&upd_action_));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(upd_action_));
 
     // Hash del_action
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&del_action_));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(del_action_));
     return hash;
   }
 
@@ -168,27 +168,24 @@ struct ForeignKeyInfo {
    * @return true if the two check info are logically equal
    */
   bool operator==(const ForeignKeyInfo &rhs) const {
+    // Constraint Name
     if (constraint_name_ != rhs.constraint_name_) return false;
 
+    // Sink Table Name
     if (sink_table_name_ != rhs.sink_table_name_) return false;
 
+    // Update Action
     if (upd_action_ != rhs.upd_action_) return false;
 
+    // Delete Action
     if (del_action_ != rhs.del_action_) return false;
 
-    if (foreign_key_sources_.size() != rhs.foreign_key_sources_.size()) return false;
-    for (size_t i = 0; i < foreign_key_sources_.size(); i++) {
-      if (foreign_key_sources_[i] != rhs.foreign_key_sources_[i]) {
-        return false;
-      }
-    }
+    // Foreign Key Sources
+    if (foreign_key_sources_ != rhs.foreign_key_sources_) return false;
 
-    if (foreign_key_sinks_.size() != rhs.foreign_key_sinks_.size()) return false;
-    for (size_t i = 0; i < foreign_key_sinks_.size(); i++) {
-      if (foreign_key_sinks_[i] != rhs.foreign_key_sinks_[i]) {
-        return false;
-      }
-    }
+    // Foreign Key Sinks
+    if (foreign_key_sinks_ != rhs.foreign_key_sinks_) return false;
+
     return true;
   }
 
@@ -236,11 +233,12 @@ struct UniqueInfo {
    * @return the hashed value of this unique info
    */
   common::hash_t Hash() const {
-    // Hash constraint_name
+    // Constraint Name
     common::hash_t hash = common::HashUtil::Hash(constraint_name_);
 
-    // Hash unique_cols
+    // Unique Columns
     hash = common::HashUtil::CombineHashInRange(hash, unique_cols_.begin(), unique_cols_.end());
+
     return hash;
   }
 
@@ -250,14 +248,12 @@ struct UniqueInfo {
    * @return true if the two unique info are logically equal
    */
   bool operator==(const UniqueInfo &rhs) const {
+    // Constraint Name
     if (constraint_name_ != rhs.constraint_name_) return false;
 
-    if (unique_cols_.size() != rhs.unique_cols_.size()) return false;
-    for (size_t i = 0; i < unique_cols_.size(); i++) {
-      if (unique_cols_[i] != rhs.unique_cols_[i]) {
-        return false;
-      }
-    }
+    // Unique Columns
+    if (unique_cols_ != rhs.unique_cols_) return false;
+
     return true;
   }
 
@@ -343,7 +339,7 @@ struct CheckInfo {
     hash = common::HashUtil::CombineHashInRange(hash, check_cols_.begin(), check_cols_.end());
 
     // Hash expr_type
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&expr_type_));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(expr_type_));
 
     // Hash expr_value
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(expr_value_.Hash()));
@@ -356,18 +352,18 @@ struct CheckInfo {
    * @return true if the two check info are logically equal
    */
   bool operator==(const CheckInfo &rhs) const {
+    // Constraint Name
     if (constraint_name_ != rhs.constraint_name_) return false;
 
+    // Expression Type
     if (expr_type_ != rhs.expr_type_) return false;
 
+    // Expression Value
     if (expr_value_ != rhs.expr_value_) return false;
 
-    if (check_cols_.size() != rhs.check_cols_.size()) return false;
-    for (size_t i = 0; i < check_cols_.size(); i++) {
-      if (check_cols_[i] != rhs.check_cols_[i]) {
-        return false;
-      }
-    }
+    // Check Columns
+    if (check_cols_ != rhs.check_cols_) return false;
+
     return true;
   }
 
@@ -759,12 +755,12 @@ class CreateTablePlanNode : public AbstractPlanNode {
   /**
    * @return unique constraints
    */
-  const std::vector<UniqueInfo> &GetUniqueConstraintss() const { return con_uniques_; }
+  const std::vector<UniqueInfo> &GetUniqueConstraints() const { return con_uniques_; }
 
   /**
    * @return check constraints
    */
-  const std::vector<CheckInfo> &GetCheckConstrinats() const { return con_checks_; }
+  const std::vector<CheckInfo> &GetCheckConstraints() const { return con_checks_; }
 
   /**
    * @return the hashed value of this plan node

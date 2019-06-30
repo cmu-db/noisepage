@@ -36,6 +36,11 @@ class AstTraversalVisitorTest : public TplTest {
     sema::Sema sema(&ctx);
     auto check = sema.Run(root);
 
+    if (error.HasErrors()) {
+      error.PrintErrors();
+      return nullptr;
+    }
+
     EXPECT_FALSE(check);
 
     return root;

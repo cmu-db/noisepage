@@ -170,7 +170,7 @@ class DeletePlanNode : public AbstractPlanNode {
   catalog::db_oid_t database_oid_;
 
   /**
-   * OID of namespace
+   * OID of the namespace
    */
   catalog::namespace_oid_t namespace_oid_;
 

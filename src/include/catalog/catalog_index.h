@@ -47,9 +47,7 @@ class CatalogIndex {
    * Sets the index's corresponding table_oid
    * @param table_oid table oid
    */
-  void SetTable(table_oid_t table_oid) {
-    table_oid_ = table_oid;
-  }
+  void SetTable(table_oid_t table_oid) { table_oid_ = table_oid; }
 
  private:
   // Metadata

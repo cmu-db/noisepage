@@ -32,9 +32,9 @@ class IndexJoinPlanNode : public AbstractJoinPlanNode {
      * @return plan node
      */
     std::shared_ptr<IndexJoinPlanNode> Build() {
-      return std::shared_ptr<IndexJoinPlanNode>(new IndexJoinPlanNode(
-          std::move(children_), std::move(output_schema_), join_type_, std::move(join_predicate_),
-          index_oid_, table_oid_, std::move(index_cols_)));
+      return std::shared_ptr<IndexJoinPlanNode>(new IndexJoinPlanNode(std::move(children_), std::move(output_schema_),
+                                                                      join_type_, std::move(join_predicate_),
+                                                                      index_oid_, table_oid_, std::move(index_cols_)));
     }
 
     /**
@@ -89,12 +89,13 @@ class IndexJoinPlanNode : public AbstractJoinPlanNode {
    * @param predicate join predicate
    */
   IndexJoinPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
-                         std::shared_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
-                         std::shared_ptr<parser::AbstractExpression> predicate,
-                         catalog::index_oid_t index_oid, catalog::table_oid_t table_oid,
-                         std::vector<IndexExpression> && index_cols)
+                    std::shared_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
+                    std::shared_ptr<parser::AbstractExpression> predicate, catalog::index_oid_t index_oid,
+                    catalog::table_oid_t table_oid, std::vector<IndexExpression> &&index_cols)
       : AbstractJoinPlanNode(std::move(children), std::move(output_schema), join_type, std::move(predicate)),
-        index_oid_(index_oid), table_oid_(table_oid), index_cols_(std::move(index_cols)){}
+        index_oid_(index_oid),
+        table_oid_(table_oid),
+        index_cols_(std::move(index_cols)) {}
 
  public:
   /**
@@ -132,7 +133,7 @@ class IndexJoinPlanNode : public AbstractJoinPlanNode {
   /**
    * @return the index columns
    */
-  const std::vector<IndexExpression> & GetIndexColumns() const { return index_cols_; }
+  const std::vector<IndexExpression> &GetIndexColumns() const { return index_cols_; }
 
  private:
   /**

@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "catalog/accessor.h"
 #include "catalog/attr_def_handle.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_index.h"
@@ -14,7 +15,6 @@
 #include "storage/index/index.h"
 #include "storage/storage_defs.h"
 #include "transaction/transaction_manager.h"
-#include "catalog/accessor.h"
 
 namespace terrier::catalog {
 

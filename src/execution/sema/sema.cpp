@@ -17,7 +17,6 @@ bool Sema::Run(ast::AstNode *root) {
   return error_reporter()->HasErrors();
 }
 
-
 ast::Type *Sema::GetBuiltinType(const u16 builtin_kind) {
   return ast::BuiltinType::Get(context(), static_cast<ast::BuiltinType::Kind>(builtin_kind));
 }

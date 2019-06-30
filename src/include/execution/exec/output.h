@@ -87,7 +87,7 @@ class OutputPrinter {
    * Constructor
    * @param schema final schema to output
    */
-  explicit OutputPrinter(const terrier::planner::OutputSchema * schema) : schema_(schema) {}
+  explicit OutputPrinter(const terrier::planner::OutputSchema *schema) : schema_(schema) {}
 
   /**
    * Callback that prints a batch of tuples to std out.

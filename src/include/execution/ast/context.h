@@ -73,8 +73,8 @@ class Context {
 
   /**
    * Get the identifier of a builtin type
-   * @param builtin builtin to find
-   * @return the i
+   * @param kind kind of the builtin to find
+   * @return the identifier of the builtin
    */
   ast::Identifier GetBuiltinType(BuiltinType::Kind kind);
 

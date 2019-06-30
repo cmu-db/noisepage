@@ -26,4 +26,3 @@ void IndexJoinPlanNode::FromJson(const nlohmann::json &j) {
 }
 
 }  // namespace terrier::planner
-

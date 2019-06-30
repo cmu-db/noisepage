@@ -5,22 +5,29 @@
 namespace terrier::planner {
 
 common::hash_t LimitPlanNode::Hash() const {
-  auto type = GetPlanNodeType();
-  common::hash_t hash = common::HashUtil::Hash(&type);
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&limit_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&offset_));
+  common::hash_t hash = AbstractPlanNode::Hash();
 
-  // TODO(Gus,Wen): Hash output schema
+  // Limit
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(limit_));
 
-  return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
+  // Offset
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(offset_));
+
+  return hash;
 }
 
 bool LimitPlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (GetPlanNodeType() != rhs.GetPlanNodeType()) {
-    return false;
-  }
+  if (!AbstractPlanNode::operator==(rhs)) return false;
+
   auto &other = static_cast<const LimitPlanNode &>(rhs);
-  return (limit_ == other.limit_ && offset_ == other.offset_ && AbstractPlanNode::operator==(rhs));
+
+  // Limit
+  if (limit_ != other.limit_) return false;
+
+  // Offset
+  if (offset_ != other.offset_) return false;
+
+  return true;
 }
 
 nlohmann::json LimitPlanNode::ToJson() const {

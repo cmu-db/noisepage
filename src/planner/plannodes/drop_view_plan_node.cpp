@@ -4,16 +4,13 @@
 
 namespace terrier::planner {
 common::hash_t DropViewPlanNode::Hash() const {
-  auto type = GetPlanNodeType();
-  common::hash_t hash = common::HashUtil::Hash(&type);
+  common::hash_t hash = AbstractPlanNode::Hash();
 
   // Hash databse_oid
-  auto database_oid = GetDatabaseOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
 
   // Hash namespace oid
-  auto namespace_oid = GetNamespaceOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&namespace_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
 
   // Hash view_oid
   auto view_oid = GetViewOid();
@@ -23,19 +20,19 @@ common::hash_t DropViewPlanNode::Hash() const {
   auto if_exist = IsIfExists();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&if_exist));
 
-  return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
+  return hash;
 }
 
 bool DropViewPlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
+  if (!AbstractPlanNode::operator==(rhs)) return false;
 
   auto &other = dynamic_cast<const DropViewPlanNode &>(rhs);
 
   // Database OID
-  if (GetDatabaseOid() != other.GetDatabaseOid()) return false;
+  if (database_oid_ != other.database_oid_) return false;
 
   // Namespace OID
-  if (GetNamespaceOid() != other.GetNamespaceOid()) return false;
+  if (namespace_oid_ != other.namespace_oid_) return false;
 
   // View OID
   if (GetViewOid() != other.GetViewOid()) return false;
@@ -43,7 +40,7 @@ bool DropViewPlanNode::operator==(const AbstractPlanNode &rhs) const {
   // If exists
   if (IsIfExists() != other.IsIfExists()) return false;
 
-  return AbstractPlanNode::operator==(rhs);
+  return true;
 }
 
 nlohmann::json DropViewPlanNode::ToJson() const {
