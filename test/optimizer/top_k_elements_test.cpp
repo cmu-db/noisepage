@@ -99,7 +99,7 @@ TEST_F(TopKElementsTests, SortedKeyTest) {
   int num_keys = 500;
   for (int i = 1; i <= num_keys; i++) {
     auto key = std::to_string(i) + "!";
-    topK.Increment(key.data(), key.size(), i * 1000);
+    topK.Increment(key, key.size(), i * 1000);
 
     // If this key is within the last k entries that we are
     // putting into the top-k tracker, then add it to our
@@ -122,7 +122,7 @@ TEST_F(TopKElementsTests, SortedKeyTest) {
   auto sorted_keys = topK.GetSortedTopKeys();
   EXPECT_EQ(sorted_keys.size(), k);
   int i = 0;
-  for (auto key : sorted_keys) {
+  for (const auto &key : sorted_keys) {
     // Pop off the keys from our expected stack each time.
     // It should match the current key in our sorted key list
     auto expected_key = expected_keys.top();
@@ -148,30 +148,30 @@ TEST_F(TopKElementsTests, SimpleIncrementDecrementTest) {
       // {10000, 1000000}
   };
 
-  for (auto entry : expected) {
+  for (const auto &entry : expected) {
     topK.Increment(entry.first, entry.second);
   }
-  for (auto entry : expected) {
+  for (const auto &entry : expected) {
     EXPECT_EQ(topK.EstimateItemCount(entry.first), entry.second);
   }
 
   // Add 5 to the existing keys
-  for (auto entry : expected) {
+  for (const auto &entry : expected) {
     topK.Increment(entry.first, 5);
     expected[entry.first] += 5;
   }
-  for (auto entry : expected) {
+  for (const auto &entry : expected) {
     EXPECT_EQ(topK.EstimateItemCount(entry.first), entry.second);
   }
   EXPECT_EQ(topK.GetSize(), k);
   // topK.PrintTopKQueueOrderedMaxFirst(10);
 
   // Subtract 5 from all of the keys
-  for (auto entry : expected) {
+  for (const auto &entry : expected) {
     topK.Decrement(entry.first, 5);
     expected[entry.first] -= 5;
   }
-  for (auto entry : expected) {
+  for (const auto &entry : expected) {
     EXPECT_EQ(topK.EstimateItemCount(entry.first), entry.second);
   }
   // topK.PrintTopKQueueOrderedMaxFirst(10);

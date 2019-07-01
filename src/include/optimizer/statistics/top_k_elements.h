@@ -132,8 +132,6 @@ class TopKElements {
       }
     }
 
-    // All done!
-    return;
   }
 
   /**
@@ -261,7 +259,7 @@ class TopKElements {
   //  }
 
   const std::vector<KeyType> GetSortedTopKeys() const {
-    typedef std::function<bool(std::pair<KeyType, uint64_t>, std::pair<KeyType, uint64_t>)> Comparator;
+    using Comparator = std::function<bool(std::pair<KeyType, uint64_t>, std::pair<KeyType, uint64_t>)>;
 
     // Defining a lambda function to compare two pairs.
     // It will compare two pairs using second field
@@ -271,6 +269,7 @@ class TopKElements {
 
     // Copy the pairs into a vector sorted on their value
     std::vector<std::pair<KeyType, uint64_t>> sorted_vec;
+    sorted_vec.reserve(entries_.size());
     std::copy(entries_.begin(), entries_.end(),
               std::back_inserter<std::vector<std::pair<KeyType, uint64_t>>>(sorted_vec));
     std::sort(sorted_vec.begin(), sorted_vec.end(), compFunctor);
@@ -278,6 +277,7 @@ class TopKElements {
     // FIXME: Is there a way that we can just use the sorted_keys directly
     // without having to copy it into a vector first.
     std::vector<KeyType> keys;
+    keys.reserve(sorted_vec.size());
     for (const std::pair<KeyType, uint64_t> &element : sorted_vec) {
       keys.push_back(element.first);
     }
