@@ -5,16 +5,17 @@
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/aggregate_expression.h"
 #include "parser/expression/case_expression.h"
+#include "parser/expression/column_value_expression.h"
 #include "parser/expression/comparison_expression.h"
 #include "parser/expression/conjunction_expression.h"
 #include "parser/expression/constant_value_expression.h"
 #include "parser/expression/default_value_expression.h"
+#include "parser/expression/derived_value_expression.h"
 #include "parser/expression/function_expression.h"
 #include "parser/expression/operator_expression.h"
 #include "parser/expression/parameter_value_expression.h"
 #include "parser/expression/star_expression.h"
 #include "parser/expression/subquery_expression.h"
-#include "parser/expression/column_value_expression.h"
 #include "parser/expression/type_cast_expression.h"
 
 namespace terrier::parser {
@@ -139,6 +140,11 @@ std::shared_ptr<AbstractExpression> DeserializeExpression(const nlohmann::json &
     }
 
     case ExpressionType::VALUE_TUPLE: {
+      expr = std::make_shared<DerivedValueExpression>();
+      break;
+    }
+
+    case ExpressionType::COLUMN_TUPLE: {
       expr = std::make_shared<ColumnValueExpression>();
       break;
     }
@@ -187,7 +193,7 @@ void AbstractExpression::DeduceExpressionName() {
 
   if (expression_type_ == ExpressionType::FUNCTION) {
     expression_name_ = reinterpret_cast<FunctionExpression *>(this)->GetFuncName() + "(";
-    for (auto child : children_) {
+    for (auto &child : children_) {
       if (!first) expression_name_.append(",");
       child->DeduceExpressionName();
       expression_name_.append(child->expression_name_);

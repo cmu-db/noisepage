@@ -11,14 +11,15 @@
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/aggregate_expression.h"
 #include "parser/expression/case_expression.h"
+#include "parser/expression/column_value_expression.h"
 #include "parser/expression/comparison_expression.h"
 #include "parser/expression/default_value_expression.h"
+#include "parser/expression/derived_value_expression.h"
 #include "parser/expression/function_expression.h"
 #include "parser/expression/operator_expression.h"
 #include "parser/expression/parameter_value_expression.h"
 #include "parser/expression/star_expression.h"
 #include "parser/expression/subquery_expression.h"
-#include "parser/expression/column_value_expression.h"
 #include "parser/expression/type_cast_expression.h"
 #include "parser/parameter.h"
 #include "parser/postgresparser.h"
@@ -171,7 +172,6 @@ TEST(ExpressionTests, ConstantValueExpressionTest) {
 // NOLINTNEXTLINE
 TEST(ExpressionTests, ConstantValueExpressionJsonTest) {
   // Create expression
-  std::default_random_engine generator_;
   auto value = type::TransientValueFactory::GetVarChar("ConstantValueExpressionJsonTest");
   auto original_expr = std::make_shared<ConstantValueExpression>(value);
 
@@ -210,8 +210,8 @@ TEST(ExpressionTests, ConjunctionExpressionTest) {
   auto c_expr_3 = new ConjunctionExpression(ExpressionType::CONJUNCTION_AND, std::move(children3));
 
   std::vector<std::shared_ptr<AbstractExpression>> children4;
-  children3.emplace_back(std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true)));
-  children3.emplace_back(std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(false)));
+  children4.emplace_back(std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true)));
+  children4.emplace_back(std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(false)));
   auto c_expr_4 = new ConjunctionExpression(ExpressionType::CONJUNCTION_OR, std::move(children4));
 
   EXPECT_TRUE(*c_expr_1 == *c_expr_2);
@@ -669,7 +669,7 @@ TEST(ExpressionTests, ColumnValueExpressionTest) {
   EXPECT_NE(tve11->Hash(), tve13->Hash());
   EXPECT_NE(tve11->Hash(), tve6->Hash());
 
-  EXPECT_EQ(tve1->GetExpressionType(), ExpressionType::VALUE_TUPLE);
+  EXPECT_EQ(tve1->GetExpressionType(), ExpressionType::COLUMN_TUPLE);
   EXPECT_EQ(tve1->GetReturnValueType(), type::TypeId::INVALID);
   EXPECT_EQ(tve1->GetAlias(), "alias");
   EXPECT_EQ(tve1->GetNamespaceName(), "");
@@ -678,7 +678,7 @@ TEST(ExpressionTests, ColumnValueExpressionTest) {
   EXPECT_EQ(tve6->GetAlias(), "");
   EXPECT_EQ(tve7->GetColumnOid(), catalog::col_oid_t(0));
   EXPECT_EQ(tve7->GetTableOid(), catalog::table_oid_t(0));
-//  EXPECT_EQ(tve1->GetColumnOid(), catalog::col_oid_t(0));
+  //  EXPECT_EQ(tve1->GetColumnOid(), catalog::col_oid_t(0));
   EXPECT_EQ(tve11->GetNamespaceName(), "namespace_name");
   EXPECT_EQ(tve11->GetAlias(), "");
   EXPECT_EQ(tve1->GetTableName(), "table_name");
@@ -753,6 +753,55 @@ TEST(ExpressionTests, ColumnValueExpressionJsonTest) {
   EXPECT_EQ(original_expr_3->GetTableName(), expr_3->GetTableName());
   EXPECT_EQ(original_expr_3->GetColumnOid(), expr_3->GetColumnOid());
   EXPECT_EQ(original_expr_3->GetTableOid(), expr_3->GetTableOid());
+}
+
+// NOLINTNEXTLINE
+TEST(ExpressionTests, DerivedValueExpressionTest) {
+  auto tve1 = new DerivedValueExpression(type::TypeId::BOOLEAN, 1, 3);
+  auto tve2 = new DerivedValueExpression(type::TypeId::BOOLEAN, 1, 3);
+  auto tve3 = new DerivedValueExpression(type::TypeId::SMALLINT, 1, 3);
+  auto tve4 = new DerivedValueExpression(type::TypeId::BOOLEAN, 2, 3);
+  auto tve5 = new DerivedValueExpression(type::TypeId::BOOLEAN, 1, 4);
+
+  EXPECT_TRUE(*tve1 == *tve2);
+  EXPECT_FALSE(*tve1 == *tve3);
+  EXPECT_FALSE(*tve1 == *tve4);
+  EXPECT_FALSE(*tve1 == *tve5);
+
+  EXPECT_EQ(tve1->Hash(), tve2->Hash());
+  EXPECT_NE(tve1->Hash(), tve3->Hash());
+  EXPECT_NE(tve1->Hash(), tve4->Hash());
+  EXPECT_NE(tve1->Hash(), tve5->Hash());
+
+  EXPECT_EQ(tve1->GetExpressionType(), ExpressionType::VALUE_TUPLE);
+  EXPECT_EQ(tve1->GetReturnValueType(), type::TypeId::BOOLEAN);
+  EXPECT_EQ(tve1->GetTupleIdx(), 1);
+  EXPECT_EQ(tve1->GetValueIdx(), 3);
+
+  delete tve1;
+  delete tve2;
+  delete tve3;
+  delete tve4;
+  delete tve5;
+}
+
+// NOLINTNEXTLINE
+TEST(ExpressionTests, DerivedValueExpressionJsonTest) {
+  // Create expression
+  std::shared_ptr<DerivedValueExpression> original_expr =
+      std::make_shared<DerivedValueExpression>(type::TypeId::BOOLEAN, 3, 3);
+
+  // Serialize expression
+  auto json = original_expr->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize expression
+  auto deserialized_expression = DeserializeExpression(json);
+  EXPECT_EQ(*original_expr, *deserialized_expression);
+  auto *expr = static_cast<DerivedValueExpression *>(deserialized_expression.get());
+  EXPECT_EQ(original_expr->GetTupleIdx(), expr->GetTupleIdx());
+  EXPECT_EQ(original_expr->GetValueIdx(), expr->GetValueIdx());
+  EXPECT_EQ(original_expr->GetReturnValueType(), expr->GetReturnValueType());
 }
 
 // NOLINTNEXTLINE

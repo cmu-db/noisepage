@@ -38,7 +38,7 @@ class AbstractExpression {
   AbstractExpression(const ExpressionType expression_type, const type::TypeId return_value_type, const char *alias,
                      std::vector<std::shared_ptr<AbstractExpression>> &&children)
       : expression_type_(expression_type), return_value_type_(return_value_type), children_(std::move(children)) {
-    if (alias) alias_ = std::string(alias);
+    if (alias != nullptr) alias_ = std::string(alias);
   }
 
   /**

@@ -15,6 +15,7 @@
 
 #include "parser/expression/aggregate_expression.h"
 #include "parser/expression/case_expression.h"
+#include "parser/expression/column_value_expression.h"
 #include "parser/expression/comparison_expression.h"
 #include "parser/expression/conjunction_expression.h"
 #include "parser/expression/constant_value_expression.h"
@@ -24,7 +25,6 @@
 #include "parser/expression/parameter_value_expression.h"
 #include "parser/expression/star_expression.h"
 #include "parser/expression/subquery_expression.h"
-#include "parser/expression/column_value_expression.h"
 #include "parser/expression/type_cast_expression.h"
 #include "parser/pg_trigger.h"
 #include "parser/postgresparser.h"
@@ -316,6 +316,9 @@ ExpressionType PostgresParser::StringToExpressionType(const std::string &parser_
   }
   if (str == "CONJUNCTION_OR") {
     return ExpressionType::CONJUNCTION_OR;
+  }
+  if (str == "COLUMN_TUPLE") {
+    return ExpressionType::COLUMN_TUPLE;
   }
   if (str == "VALUE_CONSTANT") {
     return ExpressionType::VALUE_CONSTANT;

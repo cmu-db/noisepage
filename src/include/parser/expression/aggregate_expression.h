@@ -30,7 +30,7 @@ class AggregateExpression : public AbstractExpression {
 
   common::hash_t Hash() const override {
     common::hash_t hash = AbstractExpression::Hash();
-    hash = common::HashUtil::CombineHashes(hash, distinct_);
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(distinct_));
     return hash;
   }
 

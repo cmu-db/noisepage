@@ -25,7 +25,7 @@ class ColumnValueExpression : public AbstractExpression {
    * @param alias alias of the expression
    */
   ColumnValueExpression(std::string namespace_name, std::string table_name, std::string col_name, const char *alias)
-      : AbstractExpression(ExpressionType::VALUE_TUPLE, type::TypeId::INVALID, alias, {}),
+      : AbstractExpression(ExpressionType::COLUMN_TUPLE, type::TypeId::INVALID, alias, {}),
         column_name_(std::move(col_name)),
         table_name_(std::move(table_name)),
         namespace_name_(std::move(namespace_name)) {}
@@ -35,7 +35,7 @@ class ColumnValueExpression : public AbstractExpression {
    * @param col_name column name
    */
   ColumnValueExpression(std::string table_name, std::string col_name)
-      : AbstractExpression(ExpressionType::VALUE_TUPLE, type::TypeId::INVALID, {}),
+      : AbstractExpression(ExpressionType::COLUMN_TUPLE, type::TypeId::INVALID, {}),
         column_name_(std::move(col_name)),
         table_name_(std::move(table_name)) {}
 
@@ -45,7 +45,7 @@ class ColumnValueExpression : public AbstractExpression {
    * @param col_name column name
    */
   ColumnValueExpression(std::string namespace_name, std::string table_name, std::string col_name)
-      : AbstractExpression(ExpressionType::VALUE_TUPLE, type::TypeId::INVALID, {}),
+      : AbstractExpression(ExpressionType::COLUMN_TUPLE, type::TypeId::INVALID, {}),
         column_name_(std::move(col_name)),
         table_name_(std::move(table_name)),
         namespace_name_(std::move(namespace_name)) {}
@@ -55,7 +55,7 @@ class ColumnValueExpression : public AbstractExpression {
    * @param column_oid column OID
    */
   ColumnValueExpression(catalog::table_oid_t table_oid, catalog::col_oid_t column_oid)
-      : AbstractExpression(ExpressionType::VALUE_TUPLE, type::TypeId::INVALID, {}),
+      : AbstractExpression(ExpressionType::COLUMN_TUPLE, type::TypeId::INVALID, {}),
         column_oid_(column_oid),
         table_oid_(table_oid) {}
   /**
@@ -87,7 +87,7 @@ class ColumnValueExpression : public AbstractExpression {
    * @return table oid
    */
   catalog::table_oid_t GetTableOid() const { return table_oid_; }
-  
+
   std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<ColumnValueExpression>(*this); }
 
   common::hash_t Hash() const override {
@@ -103,8 +103,10 @@ class ColumnValueExpression : public AbstractExpression {
   bool operator==(const AbstractExpression &rhs) const override {
     if (!AbstractExpression::operator==(rhs)) return false;
     auto const &other = dynamic_cast<const ColumnValueExpression &>(rhs);
-    if (GetColumnName() != other.GetColumnName() || GetTableName() != other.GetTableName() || GetNamespaceName() != other.GetNamespaceName()) return false;
-    return  GetColumnOid() == other.GetColumnOid() && GetTableOid() == other.GetTableOid();
+    if (GetColumnName() != other.GetColumnName() || GetTableName() != other.GetTableName() ||
+        GetNamespaceName() != other.GetNamespaceName())
+      return false;
+    return GetColumnOid() == other.GetColumnOid() && GetTableOid() == other.GetTableOid();
   }
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }

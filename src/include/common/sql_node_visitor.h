@@ -26,16 +26,17 @@ class LimitDescription;
 
 class AggregateExpression;
 class CaseExpression;
+class ColumnValueExpression;
 class ComparisonExpression;
 class ConjunctionExpression;
 class ConstantValueExpression;
 class DefaultValueExpression;
+class DerivedValueExpression;
 class FunctionExpression;
 class OperatorExpression;
 class ParameterValueExpression;
 class StarExpression;
 class SubqueryExpression;
-class ColumnValueExpression;
 class TypeCastExpression;
 }  // namespace parser
 
@@ -171,6 +172,12 @@ class SqlNodeVisitor {
   virtual void Visit(parser::CaseExpression *expr);
 
   /**
+   * Visitor pattern for ColumnValueExpression
+   * @param expr to be visited
+   */
+  virtual void Visit(parser::ColumnValueExpression *expr);
+
+  /**
    * Visitor pattern for ComparisonExpression
    * @param expr to be visited
    */
@@ -187,11 +194,18 @@ class SqlNodeVisitor {
    * @param expr to be visited
    */
   virtual void Visit(parser::ConstantValueExpression *expr);
+
   /**
    * Visitor pattern for DefaultValueExpression
    * @param expr to be visited
    */
   virtual void Visit(parser::DefaultValueExpression *expr);
+
+  /**
+   * Visitor pattern for DerivedValueExpression
+   * @param expr to be visited
+   */
+  virtual void Visit(parser::DerivedValueExpression *expr);
 
   /**
    * Visitor pattern for FunctionExpression
@@ -218,22 +232,16 @@ class SqlNodeVisitor {
   virtual void Visit(parser::StarExpression *expr);
 
   /**
-   * Visitor pattern for TypeCastExpression
-   * @param expr to be visited
-   */
-  virtual void Visit(parser::TypeCastExpression *expr);
-
-  /**
-   * Visitor pattern for ColumnValueExpression
-   * @param expr to be visited
-   */
-  virtual void Visit(parser::ColumnValueExpression *expr);
-
-  /**
    * Visitor pattern for SubqueryExpression
    * @param expr to be visited
    */
   virtual void Visit(parser::SubqueryExpression *expr);
+
+  /**
+   * Visitor pattern for TypeCastExpression
+   * @param expr to be visited
+   */
+  virtual void Visit(parser::TypeCastExpression *expr);
 };
 
 }  // namespace terrier
