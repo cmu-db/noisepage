@@ -407,7 +407,7 @@ class TopKElements {
    *
    */
   void ComputeNewMinKey() {
-    KeyType new_min_key;
+    KeyType new_min_key = min_key_;
     auto new_min_count = INT64_MAX;
     for (auto other : entries_) {
       if (other.second < new_min_count) {
