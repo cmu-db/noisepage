@@ -58,6 +58,8 @@ std::pair<LogRecord *, std::vector<byte *>> AbstractLogProvider::ReadNextRecord(
   auto *record_body = result->GetUnderlyingRecordBodyAs<RedoRecord>();
   record_body->SetTupleSlot(tuple_slot);
   auto *delta = record_body->Delta();
+  TERRIER_ASSERT(delta->NumColumns() == num_cols,
+                 "ProjectedRow must have same number of columns as what was serialized");
 
   // Get an in memory copy of the record's null bitmap. Note: this is used to guide how the rest of the log file is
   // read in. It doesn't populate the delta's bitmap yet. This will happen naturally as we proceed column-by-column.

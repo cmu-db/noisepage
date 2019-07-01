@@ -5,8 +5,9 @@
 #include "storage/write_ahead_log/log_io.h"
 namespace terrier::storage {
 
-void RecoveryManager::RecoverFromLogs() {
+uint32_t RecoveryManager::RecoverFromLogs() {
   // Replay logs until the log provider no longer gives us logs
+  uint32_t txns_replayed = 0;
   while (true) {
     auto pair = log_provider_->GetNextRecord();
     auto *log_record = pair.first;
@@ -17,12 +18,14 @@ void RecoveryManager::RecoverFromLogs() {
     // buffer the record.
     if (log_record->RecordType() == LogRecordType::COMMIT || log_record->RecordType() == LogRecordType::ABORT) {
       TERRIER_ASSERT(pair.second.empty(), "Commit or Abort records should not have any varlen pointers");
+      if (log_record->RecordType() == LogRecordType::COMMIT) txns_replayed++;
       ReplayTransaction(log_record);
     } else {
       buffered_changes_map_[log_record->TxnBegin()].push_back(pair);
     }
   }
   TERRIER_ASSERT(buffered_changes_map_.empty(), "All buffered changes should have been processed");
+  return txns_replayed;
 }
 
 void RecoveryManager::ReplayTransaction(LogRecord *log_record) {

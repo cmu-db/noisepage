@@ -36,8 +36,9 @@ class RecoveryManager {
 
   /**
    * Recovers the databases using the provided log provider
+   * @return number of committed transactions replayed
    */
-  void Recover() { RecoverFromLogs(); }
+  uint32_t Recover() { return RecoverFromLogs(); }
 
  private:
   FRIEND_TEST(RecoveryTests, SingleTableTest);
@@ -66,8 +67,9 @@ class RecoveryManager {
   /**
    * Recovers the databases from the logs.
    * @note this is a separate method so in the future, we can also have a RecoverFromCheckpoint method
+   * @return number of committed txns replayed
    */
-  void RecoverFromLogs();
+  uint32_t RecoverFromLogs();
 
   /**
    * @brief Replays a transaction corresponding to the given log record log record.
