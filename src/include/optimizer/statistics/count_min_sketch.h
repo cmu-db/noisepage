@@ -80,7 +80,10 @@ class CountMinSketch {
    */
   void Decrement(const KeyType &key, const size_t key_size, const uint32_t delta) {
     sketch_.add(reinterpret_cast<const void *>(&key), sizeof(key), -delta);
-    total_count_ = static_cast<size_t>(std::max(0u, static_cast<uint32_t>(total_count_) - delta));
+
+    // We have to check whether the delta is greater than the total count
+    // to avoid wrap around.
+    total_count_ = (delta <= total_count_ ? total_count_ - delta : 0ul);
   }
 
   /**
@@ -104,7 +107,9 @@ class CountMinSketch {
 
     // The total count is going to be incorrect now because we don't
     // know whether the the original delta is accurate or not.
-    total_count_ = static_cast<size_t>(std::max(0u, static_cast<uint32_t>(total_count_) - delta));
+    // We have to check whether the delta is greater than the total count
+    // to avoid wrap around.
+    total_count_ = (delta <= total_count_ ? total_count_ - delta : 0ul);
   }
 
   /**

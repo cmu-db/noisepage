@@ -307,4 +307,37 @@ TEST_F(TopKElementsTests, DoubleTest) {
   EXPECT_EQ(sorted_keys.size(), k);
 }
 
+// NOLINTNEXTLINE
+TEST_F(TopKElementsTests, RemoveTest) {
+  // Test that our remove method works correctly
+  const int k = 5;
+  const int max_count = 100;
+  TopKElements<int> topK(k, 1000);
+
+  // First add some keys with large counts
+  for (int key = 1; key <= k; key++) {
+    topK.Increment(key, max_count * key);
+  }
+  // Then add some smaller keys
+  for (int key = k; key <= k*2; key++) {
+    topK.Increment(key, 1);
+  }
+  // We should still only have 'k' keys tracked
+  EXPECT_EQ(topK.GetSize(), k);
+
+  // Now remove all of the large keys
+  for (int key = 1; key <= k; key++) {
+    topK.Remove(key);
+  }
+
+  // The size should now be zero
+  EXPECT_EQ(topK.GetSize(), 0);
+
+  // But if increment one of the smaller keys, then
+  // the size should now be one
+  topK.Increment(k+1, 1);
+  EXPECT_EQ(topK.GetSize(), 1);
+}
+
+
 }  // namespace terrier::optimizer

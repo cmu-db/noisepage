@@ -183,4 +183,30 @@ TEST_F(CountMinSketchTests, HeavyHitterTest) {
   }
 }
 
+// Check that the remove method works
+// NOLINTNEXTLINE
+TEST_F(CountMinSketchTests, RemoveTest) {
+  CountMinSketch<int> sketch(1000);
+  int num_keys = 1000;
+  int max_count = 100;
+
+  for (int key = 0; key < num_keys; key++) {
+    sketch.Increment(key, max_count);
+    ASSERT_GE(sketch.EstimateItemCount(key), max_count) << "Key[" << key << "]";
+  }
+
+  // Then remove the keys one-by-one
+  for (int key = 0; key < num_keys; key++) {
+    sketch.Remove(key);
+
+    // Since this an approximate data structure, we can't guarantee
+    // that the count for this particular key will be zero after
+    // we remove it.
+    // ASSERT_LE(sketch.EstimateItemCount(key), max_count) << "Key[" << key << "]";
+  }
+
+  // The total count should now be zero now
+  EXPECT_EQ(sketch.GetTotalCount(), 0);
+}
+
 }  // namespace terrier::optimizer
