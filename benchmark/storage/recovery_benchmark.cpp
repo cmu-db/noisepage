@@ -115,7 +115,8 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, OLTPWorkload)(benchmark::State &state) {
 }
 
 /**
- * Run transactions with a large number of updates to trigger high aborts. We use a large number of max columns to have large changes and increase the chances that txns will flush logs before aborted.
+ * Run transactions with a large number of updates to trigger high aborts. We use a large number of max columns to have
+ * large changes and increase the chances that txns will flush logs before aborted.
  */
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(RecoveryBenchmark, HighAbortRate)(benchmark::State &state) {
@@ -134,19 +135,19 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, HighAbortRate)(benchmark::State &state) {
                                            log_persist_interval_, log_persist_threshold_, &buffer_pool_);
     log_manager_->Start();
     LargeSqlTableTestObject tested = LargeSqlTableTestObject::Builder()
-        .SetNumDatabases(num_databases)
-        .SetNumTables(num_tables)
-        .SetMaxColumns(num_max_columns)
-        .SetInitialTableSize(initial_table_size)
-        .SetTxnLength(txn_length)
-        .SetUpdateSelectDeleteRatio(update_select_delete_ratio)
-        .SetBlockStore(&block_store_)
-        .SetBufferPool(&buffer_pool_)
-        .SetGenerator(&generator_)
-        .SetGcOn(true)
-        .SetVarlenAllowed(true)
-        .SetLogManager(log_manager_)
-        .build();
+                                         .SetNumDatabases(num_databases)
+                                         .SetNumTables(num_tables)
+                                         .SetMaxColumns(num_max_columns)
+                                         .SetInitialTableSize(initial_table_size)
+                                         .SetTxnLength(txn_length)
+                                         .SetUpdateSelectDeleteRatio(update_select_delete_ratio)
+                                         .SetBlockStore(&block_store_)
+                                         .SetBufferPool(&buffer_pool_)
+                                         .SetGenerator(&generator_)
+                                         .SetGcOn(true)
+                                         .SetVarlenAllowed(true)
+                                         .SetLogManager(log_manager_)
+                                         .build();
 
     // Run the test object and log all transactions
     tested.SimulateOltp(num_txns_, num_concurrent_txns_);
@@ -190,7 +191,6 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, HighAbortRate)(benchmark::State &state) {
   }
   state.SetItemsProcessed(recovered_txns);
 }
-
 
 BENCHMARK_REGISTER_F(RecoveryBenchmark, OLTPWorkload)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(3);
 
