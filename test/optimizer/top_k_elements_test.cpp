@@ -1,9 +1,11 @@
+#include <stack>
 #include <string>
+#include <unordered_map>
 
+#include "gtest/gtest.h"
+#include "loggers/optimizer_logger.h"
 #include "optimizer/statistics/count_min_sketch.h"
 #include "optimizer/statistics/top_k_elements.h"
-#include "loggers/optimizer_logger.h"
-#include "gtest/gtest.h"
 
 #include "util/test_harness.h"
 
@@ -60,9 +62,9 @@ TEST_F(TopKElementsTests, PromotionTest) {
     // it's count super large
     if (key <= k) {
       topK.Increment(key, large_count);
-    }
-    // Otherwise just set it a small number
-    else {
+
+      // Otherwise just set it a small number
+    } else {
       topK.Increment(key, 99);
     }
   }
@@ -71,7 +73,7 @@ TEST_F(TopKElementsTests, PromotionTest) {
   // it until it is larger than 5x the large_count
   // At this point it should be in our top-k list
   auto target_key = num_keys;
-  for (int i = 0; i < large_count*5; i++) {
+  for (int i = 0; i < large_count * 5; i++) {
     topK.Increment(target_key, 1);
   }
   auto sorted_keys = topK.GetSortedTopKeys();
@@ -87,81 +89,166 @@ TEST_F(TopKElementsTests, PromotionTest) {
   EXPECT_NE(found, sorted_keys.end());
 }
 
+// NOLINTNEXTLINE
+TEST_F(TopKElementsTests, SortedKeyTest) {
+  // test TopKElements
+  const int k = 10;
+  TopKElements<std::string> topK(k, 1000);
+  std::stack<std::string> expected_keys;
+
+  int num_keys = 500;
+  for (int i = 1; i <= num_keys; i++) {
+    auto key = std::to_string(i) + "!";
+    topK.Increment(key.data(), key.size(), i * 1000);
+
+    // If this key is within the last k entries that we are
+    // putting into the top-k tracker, then add it to our
+    // stack. This will the order of the keys that we
+    // expected to get back when we ask for them in sorted order.
+    if (i >= (num_keys - k)) expected_keys.push(key);
+
+    // If we have inserted less than k keys into the top-k
+    // tracker, then the number of keys added should be equal
+    // to the size of the top-k tracker.
+    if (i < k) {
+      EXPECT_EQ(topK.GetSize(), i);
+    } else {
+      EXPECT_EQ(topK.GetSize(), k);
+    }
+  }
+
+  // The top-k elements should be the last k numbers
+  // that we added into the object
+  auto sorted_keys = topK.GetSortedTopKeys();
+  EXPECT_EQ(sorted_keys.size(), k);
+  int i = 0;
+  for (auto key : sorted_keys) {
+    // Pop off the keys from our expected stack each time.
+    // It should match the current key in our sorted key list
+    auto expected_key = expected_keys.top();
+    expected_keys.pop();
+
+    // TODO(pavlo): This text case is in correct because we can't
+    // guarantee that the keys we shove in will have the exact amount
+    // that we originally set them to.
+    OPTIMIZER_LOG_TRACE("Top-{0}: {1} <-> {2}", i, key, expected_key);
+    // EXPECT_EQ(key, expected_key) << "Iteration #" << i;
+    i++;
+  }
+}
 
 // NOLINTNEXTLINE
-//TEST_F(TopKElementsTests, SortedKeyTest) {
-//  // test TopKElements
-//  const int k = 10;
-//  TopKElements<std::string> topK(k, 1000);
-//  std::stack<std::string> expected_keys;
-//
-//  int num_keys = 500;
-//  for (int i = 1; i <= num_keys; i++) {
-//    auto key = std::to_string(i) + "!";
-//    topK.Increment(key.data(), key.size(), i * 1000);
-//
-//    // If this key is within the last k entries that we are
-//    // putting into the top-k tracker, then add it to our
-//    // stack. This will the order of the keys that we
-//    // expected to get back when we ask for them in sorted order.
-//    if (i >= (num_keys-k)) expected_keys.push(key);
-//
-//    // If we have inserted less than k keys into the top-k
-//    // tracker, then the number of keys added should be equal
-//    // to the size of the top-k tracker.
-//    if (i < k) {
-//      EXPECT_EQ(topK.GetSize(), i);
-//    } else {
-//      EXPECT_EQ(topK.GetSize(), k);
-//    }
-//  }
-//
-//  // The top-k elements should be the last k numbers
-//  // that we added into the object
-//  auto sorted_keys = topK.GetSortedTopKeys();
-//  EXPECT_EQ(sorted_keys.size(), k);
-//  int i = 0;
-//  for (auto key : sorted_keys) {
-//    // Pop off the keys from our expected stack each time.
-//    // It should match the current key in our sorted key list
-//    auto expected_key = expected_keys.top();
-//    expected_keys.pop();
-//
-//    OPTIMIZER_LOG_TRACE("Top-{0}: {1} <-> {2}", i, key, expected_key);
-//    EXPECT_EQ(key, expected_key) << "Iteration #" << i;
-//    i++;
-//  }
-//}
+TEST_F(TopKElementsTests, SimpleIncrementDecrementTest) {
+  // test TopKElements
+  const int k = 5;
+  TopKElements<int> topK(k, 1000);
+
+  std::unordered_map<int, int> expected = {
+      {10, 10}, {5, 5}, {99, 99}, {999, 999}, {1, 1},
+      // {10000, 1000000}
+  };
+
+  for (auto entry : expected) {
+    topK.Increment(entry.first, entry.second);
+  }
+  for (auto entry : expected) {
+    EXPECT_EQ(topK.EstimateItemCount(entry.first), entry.second);
+  }
+
+  // Add 5 to the existing keys
+  for (auto entry : expected) {
+    topK.Increment(entry.first, 5);
+    expected[entry.first] += 5;
+  }
+  for (auto entry : expected) {
+    EXPECT_EQ(topK.EstimateItemCount(entry.first), entry.second);
+  }
+  EXPECT_EQ(topK.GetSize(), k);
+  // topK.PrintTopKQueueOrderedMaxFirst(10);
+
+  // Subtract 5 from all of the keys
+  for (auto entry : expected) {
+    topK.Decrement(entry.first, 5);
+    expected[entry.first] -= 5;
+  }
+  for (auto entry : expected) {
+    EXPECT_EQ(topK.EstimateItemCount(entry.first), entry.second);
+  }
+  // topK.PrintTopKQueueOrderedMaxFirst(10);
+}
+
+// NOLINTNEXTLINE
+TEST_F(TopKElementsTests, DecrementNonExistingKeyTest) {
+  // This checks that our top-k thingy does not mess up its
+  // internal data structures if we try to decrement keys
+  // that it has never seen before.
+
+  const int k = 5;
+  TopKElements<int> topK(k, 1000);
+
+  // Add some real keys
+  for (int key = 0; key < k; key++) {
+    topK.Increment(key, 1);
+  }
+  EXPECT_EQ(topK.GetSize(), k);
+  auto sorted_keys = topK.GetSortedTopKeys();
+  EXPECT_EQ(sorted_keys.size(), k);
+
+  // Decrement random keys that don't exist
+  for (int key = k + 1; key < 10; key++) {
+    topK.Decrement(key, 1);
+    topK.Decrement(key, 1);
+  }
+  EXPECT_EQ(topK.GetSize(), k);
+
+  // Make sure that we only have keys that we expect to have
+  sorted_keys = topK.GetSortedTopKeys();
+  EXPECT_EQ(sorted_keys.size(), k);
+  for (int key = 0; key < k; key++) {
+    auto found = std::find(sorted_keys.begin(), sorted_keys.end(), key);
+    EXPECT_NE(found, sorted_keys.end());
+  }
+}
+
+// NOLINTNEXTLINE
+TEST_F(TopKElementsTests, NegativeCountTest) {
+  // Check that if we decrement a key enough that it goes
+  // negative that it gets removed from our top-k entries
+  const int k = 5;
+  TopKElements<int> topK(k, 1000);
+  const int max_count = 222;
+
+  std::unordered_map<int, int> expected;
+  for (int i = 1; i <= k; i++) {
+    topK.Increment(i, max_count);
+    expected[i] = max_count;
+  }
+  EXPECT_EQ(topK.GetSize(), k);
+
+  // Throw in an extra key just to show that we aren't able
+  // to promote a key from the sketch if one key's count
+  // goes negative
+  topK.Increment(k + 1, 1);
+  EXPECT_EQ(topK.GetSize(), k);
+
+  // Now take the last key and decrement it until it goes negative
+  for (int i = max_count; i > 0; i--) {
+    topK.Decrement(k, 1);
+    expected[i] -= 1;
+  }
+  EXPECT_EQ(topK.GetSize(), k - 1);
+
+  // Make sure that the last key does not exist in our
+  // list of sorted keys. No other key should get promoted
+  // because the top-k class doesn't know about them.
+  auto sorted_keys = topK.GetSortedTopKeys();
+  EXPECT_EQ(sorted_keys.size(), k - 1);
+  auto found = std::find(sorted_keys.begin(), sorted_keys.end(), k - 1);
+  EXPECT_NE(found, sorted_keys.end());
+}
 
 //// NOLINTNEXTLINE
-//TEST_F(TopKElementsTests, SimpleArrivalAndDepartureTest) {
-//  // test TopKElements
-//  const int k = 5;
-//  TopKElements<int> topK(k);
-//
-//  topK.Increment(10, 10);
-//  topK.Increment(5, 5);
-//  topK.Increment(1, 1);
-//  topK.Increment(1000000, 1000000);
-//
-//  EXPECT_EQ(topK.EstimateItemCount(=10), 10);
-//
-//  topK.Increment(5, 15);
-//  topK.Increment(6, 1);
-//  topK.Increment(7, 2);
-//  topK.Increment(8, 1);
-//
-//  EXPECT_EQ(topK.GetSize(), k);
-//  topK.PrintTopKQueueOrderedMaxFirst(10);
-//
-//  topK.Decrement(5, 14);
-//  topK.Decrement(10, 20);
-//  topK.Decrement(100, 10000);
-//  topK.PrintTopKQueueOrderedMaxFirst(10);
-//}
-//
-//// NOLINTNEXTLINE
-//TEST_F(TopKElementsTests, LargeArrivalOnlyTest) {
+// TEST_F(TopKElementsTests, LargeArrivalOnlyTest) {
 //  const int k = 20;
 //  const int num0 = 10;
 //  TopKElements<int> topK(k);
@@ -218,7 +305,7 @@ TEST_F(TopKElementsTests, PromotionTest) {
 ////}
 //
 //// NOLINTNEXTLINE
-//TEST_F(TopKElementsTests, UniformTest) {
+// TEST_F(TopKElementsTests, UniformTest) {
 //  const int k = 5;
 //  TopKElements<double> topK(k);
 //
