@@ -11,7 +11,12 @@
 
 namespace terrier::optimizer {
 
-class TopKElementsTests : public TerrierTest {};
+class TopKElementsTests : public TerrierTest {
+  void SetUp() override {
+    TerrierTest::SetUp();
+    optimizer::optimizer_logger->set_level(spdlog::level::info);
+  }
+};
 
 // NOLINTNEXTLINE
 TEST_F(TopKElementsTests, SimpleIncrementTest) {
@@ -42,7 +47,7 @@ TEST_F(TopKElementsTests, SimpleIncrementTest) {
   topK.Increment(5, 15);
   EXPECT_EQ(topK.GetSize(), 5);
 
-  std::cout << topK;
+  OPTIMIZER_LOG_TRACE(topK);
 }
 
 // NOLINTNEXTLINE
@@ -247,75 +252,55 @@ TEST_F(TopKElementsTests, NegativeCountTest) {
   EXPECT_NE(found, sorted_keys.end());
 }
 
-//// NOLINTNEXTLINE
-// TEST_F(TopKElementsTests, LargeArrivalOnlyTest) {
-//  const int k = 20;
-//  const int num0 = 10;
-//  TopKElements<int> topK(k);
-//
-//  topK.Increment(10, 10);
-//  topK.Increment(5, 5);
-//  topK.Increment(1, 1);
-//  topK.Increment(1000000, 1000000);
-//
-//  topK.Increment(7777, 2333);
-//  topK.Increment(8888, 2334);
-//  topK.Increment(9999, 2335);
-//  for (int i = 0; i < 30; ++i) {
-//    topK.Increment(i, i);
-//  }
-//
-//  topK.PrintOrderedMaxFirst(num0);
-//  EXPECT_EQ(topK.GetSize(), k);
-//  EXPECT_EQ(topK.GetOrderedMaxFirst(num0).size(), num0);
-//  EXPECT_EQ(topK.GetAllOrderedMaxFirst().size(), k);
-//
-//  for (int i = 1000; i < 2000; ++i) {
-//    topK.Increment(i, i);
-//  }
-//  topK.PrintAllOrderedMaxFirst();
-//}
-//
-////// NOLINTNEXTLINE
-////TEST_F(TopKElementsTests, WrapperTest) {
-////  CountMinSketch sketch(0.01, 0.1, 0);
-////
-////  const int k = 5;
-////  TopKElements topK(sketch, k);
-////
-////  type::Value v1 = type::ValueFactory::GetDecimalValue(7.12);
-////  type::Value v2 = type::ValueFactory::GetDecimalValue(10.25);
-////  topK.Increment(v1);
-////  topK.Increment(v2);
-////  EXPECT_EQ(topK.GetAllOrderedMaxFirst().size(), 2);
-////
-////  for (int i = 0; i < 1000; i++) {
-////    type::Value v = type::ValueFactory::GetDecimalValue(4.1525);
-////    topK.Increment(v);
-////  }
-////  EXPECT_EQ(topK.GetAllOrderedMaxFirst().size(), 3);
-////
-////  type::Value v3 = type::ValueFactory::GetVarcharValue("luffy");
-////  type::Value v4 = type::ValueFactory::GetVarcharValue(std::string("monkey"));
-////  for (int i = 0; i < 500; i++) {
-////    topK.Increment(v3, 1);
-////    topK.Increment(v4, 1);
-////  }
-////  topK.PrintAllOrderedMaxFirst();
-////}
-//
-//// NOLINTNEXTLINE
-// TEST_F(TopKElementsTests, UniformTest) {
-//  const int k = 5;
-//  TopKElements<double> topK(k);
-//
-//  for (int i = 0; i < 1000; i++) {
-//    auto v = 7.12 + i;
-//    topK.Increment(v, 1);
-//  }
-//  EXPECT_EQ(topK.GetAllOrderedMaxFirst().size(), 5);
-//
-//  topK.PrintAllOrderedMaxFirst();
-//}
+// NOLINTNEXTLINE
+TEST_F(TopKElementsTests, IncrementOnlyTest) {
+  const int k = 20;
+  UNUSED_ATTRIBUTE const int num0 = 10;
+  TopKElements<int> topK(k, 1000);
+
+  topK.Increment(10, 10);
+  topK.Increment(5, 5);
+  topK.Increment(1, 1);
+  topK.Increment(1000000, 1000000);
+
+  topK.Increment(7777, 2333);
+  topK.Increment(8888, 2334);
+  topK.Increment(9999, 2335);
+  for (int i = 0; i < 30; ++i) {
+    topK.Increment(i, i);
+  }
+
+  auto sorted_keys = topK.GetSortedTopKeys();
+  EXPECT_EQ(topK.GetSize(), k);
+  EXPECT_EQ(sorted_keys.size(), k);
+
+  // I don't know what this test was really trying to do here...
+  // EXPECT_EQ(sorted_keys[0], num0);
+  // EXPECT_EQ(topK.GetOrderedMaxFirst(num0).size(), num0);
+  // EXPECT_EQ(topK.GetAllOrderedMaxFirst().size(), k);
+
+  for (int i = 1000; i < 2000; ++i) {
+    topK.Increment(i, i);
+  }
+  sorted_keys = topK.GetSortedTopKeys();
+  EXPECT_EQ(topK.GetSize(), k);
+  EXPECT_EQ(sorted_keys.size(), k);
+  // topK.PrintAllOrderedMaxFirst();
+}
+
+// NOLINTNEXTLINE
+TEST_F(TopKElementsTests, DoubleTest) {
+  // Test that we can put doubles in our top-k tracker
+  const int k = 5;
+  TopKElements<double> topK(k, 1000);
+
+  for (int i = 0; i < 1000; i++) {
+    auto v = 7.12 + i;
+    topK.Increment(v, 1);
+  }
+
+  auto sorted_keys = topK.GetSortedTopKeys();
+  EXPECT_EQ(sorted_keys.size(), k);
+}
 
 }  // namespace terrier::optimizer

@@ -22,20 +22,22 @@
 namespace terrier::optimizer {
 
 /**
- * Providing Top K Elements retrieval functions
- * and bookkeeping of Top K Elements
+ * This class keeps track of the top-k elements for a given value set.
+ * You have to tell the class how many elements (k) to keep track of
+ * as the heavyhitters. There is an underlying CountMinSketch that
+ * keeps track of the counts for all keys.
  */
 template <typename KeyType>
 class TopKElements {
   /**
-   *
+   * The internal type that we use to keep track of the counts for keys.
    */
-  using ValueFrequencyPair = std::pair<KeyType, double>;
+  using KeyCountPair = std::pair<KeyType, uint32_t>;
 
  public:
   /**
    * TopKElements Constructor
-   * @param k
+   * @param k the number of keys to keep track of in the top-k list
    * @param width the size of the underlying sketch
    */
   explicit TopKElements(size_t k, uint64_t width) : numk_{k} {
@@ -43,20 +45,25 @@ class TopKElements {
     sketch_ = new CountMinSketch<KeyType>(width);
   }
 
+  /**
+   * Deconstructor
+   */
   ~TopKElements() { delete sketch_; }
 
   /**
-   *
-   * @param key
-   * @param count
+   * Increase the count for the given key by the specified delta.
+   * This is a convenience method for those KeyTypes that have the
+   * correct size defined by the sizeof method
+   * @param key the key to target
+   * @param delta the amount to increase the key's count
    */
-  void Increment(const KeyType &key, const uint32_t count) { Increment(key, sizeof(key), count); }
+  void Increment(const KeyType &key, const uint32_t delta) { Increment(key, sizeof(key), delta); }
 
   /**
-   *
-   * @param key
-   * @param key_size
-   * @param count
+   * Increase the count for the given key by the specified delta.
+   * @param key the key to target
+   * @param key_size the length of the key's data
+   * @param delta the amount to increase the key's count
    */
   void Increment(const KeyType &key, const size_t key_size, const uint32_t delta) {
     TERRIER_ASSERT(delta >= 0, "Invalid delta");
@@ -131,15 +138,24 @@ class TopKElements {
         OPTIMIZER_LOG_TRACE("Direct MinKey[{0}] => {1}", min_key_, min_count_);
       }
     }
-
   }
 
   /**
-   * Remove an item from the TopKQueue (as well as the sketch)
-   * @param item
-   * @param delta
+   * Decrease the count for the given key by the specified delta.
+   * This is a convenience method for those KeyTypes that have the
+   * correct size defined by the sizeof method
+   * @param key the key to target
+   * @param delta the amount to increase the key's count
    */
-  void Decrement(KeyType key, uint32_t delta) {
+  void Decrement(const KeyType &key, const uint32_t delta) { Decrement(key, sizeof(key), delta); }
+
+  /**
+   * Decrease the count for the given key by the specified delta.
+   * @param key the key to target
+   * @param key_size the length of the key's data
+   * @param delta the amount to increase the key's count
+   */
+  void Decrement(const KeyType &key, const size_t key_size, uint32_t delta) {
     TERRIER_ASSERT(delta >= 0, "Invalid delta");
     OPTIMIZER_LOG_TRACE("Decrement(key={0}, delta={1}) // [size={2}]", key, delta, GetSize());
 
@@ -176,10 +192,20 @@ class TopKElements {
     }
   }
 
+  //  /**
+  //   * Remove an item from the TopKQueue (as well as the sketch)
+  //   * @param item
+  //   * @param delta
+  //   */
+
   /**
-   *
-   * @param key
-   * @return
+   * Compute the approximate count for the given key.
+   * If the key is in the top-k list, then you will get the amount
+   * from that list. Otherwise it will come from the underlying CountMinSketch.
+   * Note that just because the key is in the top-k list does <b>not</b>
+   * mean the count returned by this method will be 100% accurate.
+   * @param key key the key to get the count for.
+   * @return the approximate count number for the key.
    */
   uint64_t EstimateItemCount(const KeyType &key) const {
     // If the key is in our top-k entries list, then
@@ -194,91 +220,37 @@ class TopKElements {
   }
 
   /**
-   * @return
+   * @return the number of keys to keep track of in the top-k list
    */
   size_t GetK() const { return numk_; }
 
   /**
-   * @return
+   * @return the current size of the top-k list. This can be less than k.
    */
   size_t GetSize() const { return entries_.size(); }
 
-  //  /**
-  //   * Retrieve all the items in the queue, unordered
-  //   * @return
-  //   */
-  //  std::vector<ApproxTopEntry> RetrieveAll() const { return queue_.RetrieveAll(); }
-  //
-  //  /**
-  //   * Retrieve all the items in the queue, ordered, queue is maintained
-  //   * small count to large count (min first)
-  //   * @return
-  //   */
-  //  std::vector<ApproxTopEntry> RetrieveAllOrdered() const {
-  //    return queue_.RetrieveAllOrdered();
-  //  }
-  //
-  //  /**
-  //   * Retrieve all the items in the queue, ordered, queue is maintained
-  //   * large count to small count (max first)
-  //   * @return
-  //   */
-  //  std::vector<ApproxTopEntry> RetrieveAllOrderedMaxFirst() const {
-  //    return queue_.RetrieveAllOrderedMaxFirst();
-  //  }
-  //
-  //  /**
-  //   * Retrieve given number of elements, ordered
-  //   * Max first
-  //   * @param num
-  //   * @return
-  //   */
-  //  std::vector<ApproxTopEntry> RetrieveOrderedMaxFirst(int num) const {
-  //    if (num >= numk_) return queue_.RetrieveAllOrderedMaxFirst();
-  //    return queue_.RetrieveOrderedMaxFirst(num);
-  //  }
-  //
-  //  /**
-  //   * Retrieve all the items in the queue, ordered, queue is maintained
-  //   * large count to small count (max first)
-  //   * @return
-  //   */
-  //  std::vector<ValueFrequencyPair> GetAllOrderedMaxFirst() {
-  //    return queue_.GetAllOrderedMaxFirst();
-  //  }
-  //
-  //  /**
-  //   * Retrieve given number of elements, ordered
-  //   * Max first
-  //   * @param num
-  //   * @return
-  //   */
-  //  std::vector<ValueFrequencyPair> GetOrderedMaxFirst(int num) {
-  //    if (num >= numk_) return queue_.GetAllOrderedMaxFirst();
-  //    return queue_.GetOrderedMaxFirst(num);
-  //  }
-
+  /**
+   * Generate a vector of the top-k keys sorted by their current counts
+   * @return the vector of the top-k keys
+   */
   const std::vector<KeyType> GetSortedTopKeys() const {
-    using Comparator = std::function<bool(std::pair<KeyType, uint64_t>, std::pair<KeyType, uint64_t>)>;
+    using Comparator = std::function<bool(KeyCountPair, KeyCountPair)>;
 
     // Defining a lambda function to compare two pairs.
     // It will compare two pairs using second field
-    Comparator compFunctor = [](std::pair<KeyType, uint64_t> elem1, std::pair<KeyType, uint64_t> elem2) {
-      return elem1.second < elem2.second;
-    };
+    Comparator compFunctor = [](KeyCountPair elem1, KeyCountPair elem2) { return elem1.second < elem2.second; };
 
     // Copy the pairs into a vector sorted on their value
-    std::vector<std::pair<KeyType, uint64_t>> sorted_vec;
+    std::vector<KeyCountPair> sorted_vec;
     sorted_vec.reserve(entries_.size());
-    std::copy(entries_.begin(), entries_.end(),
-              std::back_inserter<std::vector<std::pair<KeyType, uint64_t>>>(sorted_vec));
+    std::copy(entries_.begin(), entries_.end(), std::back_inserter<std::vector<KeyCountPair>>(sorted_vec));
     std::sort(sorted_vec.begin(), sorted_vec.end(), compFunctor);
 
     // FIXME: Is there a way that we can just use the sorted_keys directly
     // without having to copy it into a vector first.
     std::vector<KeyType> keys;
     keys.reserve(sorted_vec.size());
-    for (const std::pair<KeyType, uint64_t> &element : sorted_vec) {
+    for (const KeyCountPair &element : sorted_vec) {
       keys.push_back(element.first);
     }
 
@@ -286,10 +258,10 @@ class TopKElements {
   }
 
   /**
-   *
+   * Pretty Print!
    * @param os
    * @param topk
-   * @return
+   * @return representation of sorted keys and their counts
    */
   friend std::ostream &operator<<(std::ostream &os, const TopKElements<KeyType> &topK) {
     os << "Top-" << topK.GetK() << " [size=" << topK.GetSize() << "]";
@@ -301,110 +273,42 @@ class TopKElements {
       auto count = topK.EstimateItemCount(key);
       os << std::endl << "  (" << i++ << ") Key[" << key << "] => " << count;
     }
-
     return os;
   }
 
-  //  /*
-  //   * Print the entire queue, unordered
-  //   */
-  //  void PrintTopKQueue() const {
-  //    std::vector<ApproxTopEntry> vec = RetrieveAll();
-  //    for (auto const& e : vec) {
-  //      OPTIMIZER_LOG_INFO("\n [PrintTopKQueue Entries] %s", e.print().c_str());
-  //    }
-  //  }
-  //
-  //  /*
-  //   * Print the entire queue, ordered
-  //   * Min count first
-  //   * Queue is empty afterwards
-  //   */
-  //  void PrintTopKQueuePops() {
-  //    while (queue_.GetSize() != 0) {
-  //      OPTIMIZER_LOG_INFO("\n [PrintTopKQueuePops Entries] %s", queue_.Pop().print().c_str());
-  //    }
-  //  }
-  //
-  //  /*
-  //   * Print the entire queue, ordered
-  //   * Min count first
-  //   * Queue is intact
-  //   */
-  //  void PrintTopKQueueOrdered() {
-  //    std::vector<ApproxTopEntry> vec = RetrieveAllOrdered();
-  //    for (auto const& e : vec) {
-  //      OPTIMIZER_LOG_INFO("\n [Print k Entries] %s", e.print().c_str());
-  //    }
-  //  }
-
-  /*
-   * Print the entire queue, ordered
-   * Max count first
-   * Queue is intact
-   */
-  //  void PrintTopKQueueOrderedMaxFirst() {
-  //    std::vector<ApproxTopEntry> vec = RetrieveAllOrderedMaxFirst();
-  //    for (auto const& e : vec) {
-  //      OPTIMIZER_LOG_INFO("\n [Print k Entries MaxFirst] %s", e.print().c_str());
-  //    }
-  //  }
-
-  //  /*
-  //   * Print the entire queue, ordered
-  //   * Max count first
-  //   * Queue is intact
-  //   */
-  //  void PrintAllOrderedMaxFirst() {
-  //    std::vector<ValueFrequencyPair> vec = GetAllOrderedMaxFirst();
-  //    for (auto const& p : vec) {
-  //      OPTIMIZER_LOG_INFO("\n [Print k Values MaxFirst] %s, %f", p.first.GetInfo().c_str(),
-  //               p.second);
-  //    }
-  //  }
-  //
-  //  /*
-  //   * Print a given number of elements in the top k queue, ordered
-  //   * Max count first
-  //   * Queue is intact
-  //   * Retriving a vector of ValueFrequencyPair
-  //   */
-  //  void PrintOrderedMaxFirst(int num) {
-  //    std::vector<ValueFrequencyPair> vec = GetOrderedMaxFirst(num);
-  //    for (auto const& p : vec) {
-  //      OPTIMIZER_LOG_INFO("\n [Print %d Values MaxFirst] %s, %f", num,
-  //               p.first.GetInfo().c_str(), p.second);
-  //    }
-  //  }
-
  private:
-  /**
-   *
-   */
-  std::unordered_map<KeyType, int64_t> entries_;
-
-  /**
-   *
-   */
-  KeyType min_key_;
-
-  /**
-   *
-   */
-  uint64_t min_count_ = INT64_MAX;
-
-  /**
-   *
-   */
-  CountMinSketch<KeyType> *sketch_;
-
   /**
    * the K as in "top K"
    */
   size_t numk_;
 
   /**
-   *
+   * The internal top-k key list. The size of this vector
+   * will not exceed k.
+   */
+  std::unordered_map<KeyType, int64_t> entries_;
+
+  /**
+   * The key with the smallest count that we've seen so far.
+   * This key must exist in the internal entries list.
+   */
+  KeyType min_key_;
+
+  /**
+   * The count of the smallest key that we've seen so far.
+   */
+  uint64_t min_count_ = INT64_MAX;
+
+  /**
+   * Internal sketch to keep track of all keys in the tracker.
+   */
+  CountMinSketch<KeyType> *sketch_;
+
+  /**
+   * Internal helper method that figures out what the smallest
+   * key that we currently have in our entries list. This method
+   * is not efficient because it just does a brute force search.
+   * But this is fine as long as 'k' us not large.
    */
   void ComputeNewMinKey() {
     KeyType new_min_key = min_key_;
