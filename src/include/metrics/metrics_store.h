@@ -36,113 +36,12 @@ class MetricsStore {
       logging_metric_->OnLogConsume(write_ns, persist_ns, num_bytes, num_records);
   }
 
-
-  //}
-  //
-  //  /**
-  //   * Collector action on transaction commit
-  //   * @param txn context of the transaction committing
-  //   * @param database_oid OID of the database where the txn happens.
-  //   */
-  //  void RecordTransactionCommit(const transaction::TransactionContext &txn, const catalog::db_oid_t database_oid) {
-  //    for (uint8_t component = 0; component < NUM_COMPONENTS; component++) {
-  //      if (enabled_metrics_[component] &&
-  //          MetricSupportsEvent(MetricsEventType::TXN_COMMIT, static_cast<MetricsComponent>(component))) {
-  //        metrics_[component]->OnTransactionCommit(txn, database_oid);
-  //      }
-  //    }
-  //  }
-  //
-  //  /**
-  //   * Collector action on transaction abort
-  //   * @param txn context of the transaction aborting
-  //   * @param database_oid OID of the database where the txn happens.
-  //   */
-  //  void RecordTransactionAbort(const transaction::TransactionContext &txn, const catalog::db_oid_t database_oid) {
-  //    for (uint8_t component = 0; component < NUM_COMPONENTS; component++) {
-  //      if (enabled_metrics_[component] &&
-  //          MetricSupportsEvent(MetricsEventType::TXN_ABORT, static_cast<MetricsComponent>(component))) {
-  //        metrics_[component]->OnTransactionAbort(txn, database_oid);
-  //      }
-  //    }
-  //  }
-  //
-  //  /**
-  //   * Collector action on tuple read
-  //   * @param txn context of the transaction performing read
-  //   * @param database_oid OID of the database that the tuple read happens
-  //   * @param namespace_oid OID of the namespace that the tuple read happens
-  //   * @param table_oid OID of the table that the tuple read happens
-  //   */
-  //  void RecordTupleRead(const transaction::TransactionContext &txn, const catalog::db_oid_t database_oid,
-  //                       const catalog::namespace_oid_t namespace_oid, const catalog::table_oid_t table_oid) {
-  //    for (uint8_t component = 0; component < NUM_COMPONENTS; component++) {
-  //      if (enabled_metrics_[component] &&
-  //          MetricSupportsEvent(MetricsEventType::TUPLE_READ, static_cast<MetricsComponent>(component))) {
-  //        metrics_[component]->OnTupleRead(txn, database_oid, namespace_oid, table_oid);
-  //      }
-  //    }
-  //  }
-  //
-  //  /**
-  //   * Collector action on tuple update
-  //   * @param txn context of the transaction performing update
-  //   * @param database_oid OID of the database that the tuple update happens
-  //   * @param namespace_oid OID of the namespace that the tuple update happens
-  //   * @param table_oid OID of the table that the tuple update happens
-  //   */
-  //  void RecordTupleUpdate(const transaction::TransactionContext &txn, const catalog::db_oid_t database_oid,
-  //                         const catalog::namespace_oid_t namespace_oid, const catalog::table_oid_t table_oid) {
-  //    for (uint8_t component = 0; component < NUM_COMPONENTS; component++) {
-  //      if (enabled_metrics_[component] &&
-  //          MetricSupportsEvent(MetricsEventType::TUPLE_UPDATE, static_cast<MetricsComponent>(component))) {
-  //        metrics_[component]->OnTupleUpdate(txn, database_oid, namespace_oid, table_oid);
-  //      }
-  //    }
-  //  }
-  //
-  //  /**
-  //   * Collector action on tuple insert
-  //   * @param txn context of the transaction performing insert
-  //   * @param database_oid OID of the database that the tuple insert happens
-  //   * @param namespace_oid OID of the namespace that the tuple insert happens
-  //   * @param table_oid OID of the table that the tuple insert happens
-  //   */
-  //  void RecordTupleInsert(const transaction::TransactionContext &txn, const catalog::db_oid_t database_oid,
-  //                         const catalog::namespace_oid_t namespace_oid, const catalog::table_oid_t table_oid) {
-  //    for (uint8_t component = 0; component < NUM_COMPONENTS; component++) {
-  //      if (enabled_metrics_[component] &&
-  //          MetricSupportsEvent(MetricsEventType::TUPLE_INSERT, static_cast<MetricsComponent>(component))) {
-  //        metrics_[component]->OnTupleInsert(txn, database_oid, namespace_oid, table_oid);
-  //      }
-  //    }
-  //  }
-  //
-  //  /**
-  //   * Collector action on tuple delete
-  //   * @param txn Context of the transaction performing delete
-  //   * @param database_oid OID of the database that the tuple delete happens
-  //   * @param namespace_oid OID of the namespace that the tuple delete happens
-  //   * @param table_oid OID of the table that the tuple delete happens
-  //   */
-  //  void RecordTupleDelete(const transaction::TransactionContext &txn, const catalog::db_oid_t database_oid,
-  //                         const catalog::namespace_oid_t namespace_oid, const catalog::table_oid_t table_oid) {
-  //    for (uint8_t component = 0; component < NUM_COMPONENTS; component++) {
-  //      if (enabled_metrics_[component] &&
-  //          MetricSupportsEvent(MetricsEventType::TUPLE_DELETE, static_cast<MetricsComponent>(component))) {
-  //        metrics_[component]->OnTupleDelete(txn, database_oid, namespace_oid, table_oid);
-  //      }
-  //    }
-  //  }
-
  private:
   friend class MetricsManager;
 
   explicit MetricsStore(const std::bitset<NUM_COMPONENTS> &enabled_metrics);
 
   std::array<std::unique_ptr<AbstractRawData>, NUM_COMPONENTS> GetDataToAggregate();
-
-  //  std::array<std::unique_ptr<Metric>, NUM_COMPONENTS> metrics_;
 
   std::unique_ptr<LoggingMetric> logging_metric_;
 
