@@ -19,10 +19,10 @@ TEST_F(CountMinSketchTests, BasicIntegerTest) {
   CountMinSketch<int> sketch(20);
   EXPECT_EQ(sketch.GetWidth(), 20);
 
-  sketch.Add(1, 10);
-  sketch.Add(2, 5);
-  sketch.Add(3, 1);
-  sketch.Add(4, 100000);
+  sketch.Increment(1, 10);
+  sketch.Increment(2, 5);
+  sketch.Increment(3, 1);
+  sketch.Increment(4, 100000);
 
   // These smaller values should give exact counts
   EXPECT_EQ(sketch.EstimateItemCount(1), 10);
@@ -39,10 +39,10 @@ TEST_F(CountMinSketchTests, BasicStringTest) {
   CountMinSketch<const char *> sketch(20);
   EXPECT_EQ(sketch.GetWidth(), 20);
 
-  sketch.Add("10", 10);
-  sketch.Add("5", 5);
-  sketch.Add("1", 1);
-  sketch.Add("Million", 1000000);
+  sketch.Increment("10", 10);
+  sketch.Increment("5", 5);
+  sketch.Increment("1", 1);
+  sketch.Increment("Million", 1000000);
 
   EXPECT_EQ(sketch.EstimateItemCount("10"), 10);
   EXPECT_EQ(sketch.EstimateItemCount("5"), 5);
@@ -93,8 +93,8 @@ TEST_F(CountMinSketchTests, ApproximateIntegerTest) {
   std::normal_distribution<> distribution(0, max);
   for (int i = 0; i < n; i++) {
     auto number = static_cast<int>(distribution(generator));
-    weak_sketch.Add(number, 1);
-    strong_sketch.Add(number, 1);
+    weak_sketch.Increment(number, 1);
+    strong_sketch.Increment(number, 1);
     exact[number]++;
     seen.insert(number);
   }
@@ -136,7 +136,7 @@ TEST_F(CountMinSketchTests, HeavyHitterTest) {
   std::normal_distribution<> distribution(0, max);
   for (int i = 0; i < n; i++) {
     auto number = static_cast<int>(distribution(generator));
-    sketch.Add(number, 1);
+    sketch.Increment(number, 1);
     seen.insert(number);
   }
 
@@ -155,7 +155,7 @@ TEST_F(CountMinSketchTests, HeavyHitterTest) {
     // So the last number in 'heavy_nums' should have the largest
     // approximate count in the sketch
     int delta = (i + 2) * max;
-    sketch.Add(heavy_num, delta);
+    sketch.Increment(heavy_num, delta);
     seen.insert(heavy_num);
     heavy_nums.push_back(heavy_num);
     heavy_nums_set.insert(heavy_num);

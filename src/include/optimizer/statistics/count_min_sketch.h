@@ -46,7 +46,7 @@ class CountMinSketch {
    * @param key the key to increment the count for
    * @param delta how much to increment the key's count.
    */
-  void Add(const KeyType &key, unsigned int delta) {
+  void Increment(const KeyType &key, unsigned int delta) {
     // WARNING: This doesn't work correctly if KeyType is std::string
     sketch_.add(reinterpret_cast<const void *>(&key), sizeof(key), delta);
     total_count_ += delta;
@@ -57,7 +57,7 @@ class CountMinSketch {
    * @param key the key to decrement the count for
    * @param delta how much to decrement the key's count.
    */
-  void Remove(const KeyType &key, unsigned int delta) {
+  void Decrement(const KeyType &key, unsigned int delta) {
     // WARNING: This doesn't work correctly if KeyType is std::string
     sketch_.add(reinterpret_cast<const void *>(&key), sizeof(key), -delta);
     total_count_ -= delta;

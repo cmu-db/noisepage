@@ -70,7 +70,7 @@ class TopKElements {
 
     // Increment the count for this item in the sketch
     // FIXME: Change the sketch API to use the key_size.
-    sketch_->Add(key, delta);
+    sketch_->Increment(key, delta);
 
     // If this key already exists in our top-k list, then
     // we need to update its entry
@@ -161,7 +161,7 @@ class TopKElements {
 
     // Decrement the count for this item in the sketch
     // and then get the new total count
-    sketch_->Remove(key, delta);
+    sketch_->Decrement(key, delta);
     auto total_cnt = sketch_->EstimateItemCount(key);
 
     // This is where things get dicey on us.
@@ -192,11 +192,27 @@ class TopKElements {
     }
   }
 
-  //  /**
-  //   * Remove an item from the TopKQueue (as well as the sketch)
-  //   * @param item
-  //   * @param delta
-  //   */
+  /**
+   * Remove a key from the top-k tracker as well as the sketch.
+   * This is a convenience method for those KeyTypes that have the
+   * correct size defined by the sizeof method
+   * @param key the key to target
+   */
+  void Remove(const KeyType &key) { Remove(key, sizeof(key)); }
+
+  /**
+   * Remove a key from the top-k tracker as well as the sketch.
+   * @param key
+   * @param key_size
+   */
+  void Remove(const KeyType &key, const size_t key_size) {
+    OPTIMIZER_LOG_TRACE("Remove(key={0}) // [size={2}]", key, GetSize());
+
+    // Always remove the key from the sketch
+
+
+  }
+
 
   /**
    * Compute the approximate count for the given key.
