@@ -138,7 +138,7 @@ class Histogram {
    * where S is the set represented by the histogram.
    * This operation does not change the number of bins.
    * This only supports numeric types that can be converted into a double
-   * @param value the point to update
+   * @param key the key to update
    */
   void Increment(const KeyType &key) {
     auto point = static_cast<double>(key);
@@ -152,7 +152,7 @@ class Histogram {
   /**
    * For the given key point (where p1 < b < pB), return an estimate
    * of the number of points in the interval [-Inf, b]
-   * @param key the value point to estimate
+   * @param point the value point to estimate
    * @return the estimate of the # of points
    */
   double EstimateItemCount(double point) {

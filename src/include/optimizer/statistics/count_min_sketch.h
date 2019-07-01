@@ -67,7 +67,6 @@ class CountMinSketch {
    * This is a convenience method for those KeyTypes that have the
    * correct size defined by the sizeof method.
    * @param key the key to decrement the count for
-   * @param key_size the length of the key's data.
    * @param delta how much to decrement the key's count.
    */
   void Decrement(const KeyType &key, const uint32_t delta) { Increment(key, sizeof(key), delta); }
