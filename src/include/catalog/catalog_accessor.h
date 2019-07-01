@@ -269,8 +269,9 @@ class CatalogAccessor {
 
  private:
   Catalog *catalog_;
+  DatabaseCatalog *dbc_;
   transaction::TransactionContext *txn_;
-  db_oid_t db_;
+  db_oid_t db_oid_;
   std::vector<namespace_oid_t> search_path_;
 
   /**

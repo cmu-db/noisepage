@@ -27,26 +27,26 @@ class Catalog {
    * and bootstraps the default database ("terrier").  This also constructs the
    * debootstrap logic (i.e. table deallocations) that gets deferred using the
    * action framework in the destructor.
-   * @param txn with which to initialize the tables (necessary for GC)
+   * @param txn_manager for spawning read-only transactions in destructors
    * @param block_store to use to back catalog tables
    * @warning The catalog requires garbage collection and will leak catalog
    * tables if it is disabled.
    */
-  Catalog(storage::BlockStore *block_store);
+  Catalog(transaction::TransactionManager *txn_manager, storage::BlockStore *block_store);
 
   /**
-   * Handles destruction of the catalog's members by deferring an event using the event
-   * framework that handles deallocating all of the objects handled or owned by
-   * the catalog.
+   * Handles destruction of the catalog's members by calling the destructor on
+   * all visible database catalog objects.
    * @warning The catalog assumes that any logically visible database objects
    * referenced by the catalog during destruction need to be deallocated by the
    * deferred action.  Therefore, there cannot be any live transactions when
    * the debootstrap event executes.
    * @note This function will begin and commit a read-only transaction
    * through the transaction manager and therefore must be called before the
-   * transaction manager is destructed.
+   * transaction manager is destructed.  It will also defer events that will
+   * begin and commit transactions.
    */
-  void TearDown(transaction::TransactionContext *txn);
+  void TearDown();
 
   /**
    * Creates a new database instance.
@@ -91,7 +91,7 @@ class Catalog {
    * @return DatabaseCatalog object which has catalog information for the
    *   specific database
    */
-  common::ManagedPointer<DatabaseCatalog *> GetDatabaseCatalog(transaction::TransactionContext *txn, db_oid_t database);
+  common::ManagedPointer<DatabaseCatalog> GetDatabaseCatalog(transaction::TransactionContext *txn, db_oid_t database);
 
   /**
    * Gets the database-specific catalog object.
@@ -100,7 +100,7 @@ class Catalog {
    * @return DatabaseCatalog object which has catalog information for the
    *   specific database
    */
-  common::ManagedPointer<DatabaseCatalog *> GetDatabaseCatalog(transaction::TransactionContext *txn, const std::string &name);
+  common::ManagedPointer<DatabaseCatalog> GetDatabaseCatalog(transaction::TransactionContext *txn, const std::string &name);
 
   /**
    * Creates a new accessor into the catalog which will handle transactionality and sequencing of catalog operations.
@@ -111,6 +111,7 @@ class Catalog {
   CatalogAccessor GetAccessor(transaction::TransactionContext *txn, database_oid_t database);
 
  private:
+  transaction::TransactionManager *txn_manager_;
   storage::BlockStore *catalog_block_store_;
   std::atomic<db_oid_t> next_oid_
 
@@ -136,5 +137,12 @@ class Catalog {
    */
   DatabaseCatalog *DeleteDatabaseEntry(transaction::TransactionContext *txn, db_oid_t db);
 
+  /**
+   * Creates a lambda that captures the necessary values by value and handles
+   * the call to teardown and deleting the master object.
+   * @param dbc pointing to the appropriate database catalog object
+   * @return the action which can be deferred to the appropriate moment.
+   */
+  transaction::Action DeallocateDatabaseCatalog(DatabaseCatalog *dbc);
 };
 } // namespace terrier::catalog

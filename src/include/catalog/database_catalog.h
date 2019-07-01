@@ -27,16 +27,6 @@ namespace terrier::catalog {
 class DatabaseCatalog {
  public:
   /**
-   * Physically deletes the tree of objects (SqlTables and Indexes) underneath
-   * this database.
-   *
-   * @warning This destructor should only be called when it can be guaranteed
-   * that there are no live transactions or physical actions on the underlying
-   * tables and indexes.
-   */
-  ~DatabaseCatalog();
-
-  /**
    * Creates a new namespace within the database
    * @param txn for the operation
    * @param name of the new namespace
@@ -221,6 +211,11 @@ class DatabaseCatalog {
 
   DatabaseCatalog();
 
+  TearDown(transaction::TransactionContext *txn);
+
+  ~DatabaseCatalog();
+
+  friend class Catalog;
   friend class postgres::Builder;
 };
 } // namespace terrier::catalog
