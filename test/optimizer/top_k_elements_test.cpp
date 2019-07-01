@@ -1,6 +1,7 @@
 #include <stack>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #include "gtest/gtest.h"
 #include "loggers/optimizer_logger.h"
