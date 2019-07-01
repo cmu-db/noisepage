@@ -25,8 +25,12 @@ void MetricsManager::Aggregate() {
 
 void MetricsManager::ResetMetric(const MetricsComponent component) const {
   for (const auto &metrics_store : stores_map_) {
-    const auto &metric = metrics_store.second->metrics_[static_cast<uint8_t>(component)];
-    metric->Swap();
+    switch (static_cast<MetricsComponent>(component)) {
+      case MetricsComponent::LOGGING:
+        const auto &metric = metrics_store.second->logging_metric_;
+        metric->Swap();
+        break;
+    }
   }
 }
 

@@ -38,15 +38,15 @@ uint64_t DiskLogConsumerTask::PersistLogFile() {
   // Force the buffers to be written to disk. Because all buffers log to the same file, it suffices to call persist on
   // any buffer.
   buffers_->front().Persist();
-  const uint32_t num_records = commit_callbacks_.size();
+  const uint32_t num_buffers = commit_callbacks_.size();
   // Execute the callbacks for the transactions that have been persisted
   for (auto &callback : commit_callbacks_) callback.first(callback.second);
   commit_callbacks_.clear();
-  return num_records;
+  return num_buffers;
 }
 
 void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
-  uint64_t write_ns = 0, persist_ns = 0, num_bytes = 0, num_records = 0;
+  uint64_t write_ns = 0, persist_ns = 0, num_bytes = 0, num_buffers = 0;
   // Keeps track of how much data we've written to the log file since the last persist
   current_data_written_ = 0;
   // Time since last log file persist
@@ -85,7 +85,7 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
       common::ScopedTimer<std::chrono::nanoseconds> scoped_timer(&elapsed_ns);
       {
         std::unique_lock<std::mutex> lock(persist_lock_);
-        num_records = PersistLogFile();
+        num_buffers = PersistLogFile();
         num_bytes = current_data_written_;
         // Reset meta data
         last_persist = std::chrono::high_resolution_clock::now();
@@ -97,8 +97,9 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
     }
     persist_ns = elapsed_ns;
 
-    if (num_records > 0 && common::thread_context.metrics_store_ != nullptr) {
-      common::thread_context.metrics_store_->RecordConsumerData(write_ns, persist_ns, num_bytes, num_records);
+    if (num_buffers > 0 && common::thread_context.metrics_store_ != nullptr) {
+      common::thread_context.metrics_store_->RecordConsumerData(write_ns, persist_ns, num_bytes, num_buffers);
+      write_ns = persist_ns = num_bytes = num_buffers = 0;
     }
   } while (run_task_);
   // Be extra sure we processed everything

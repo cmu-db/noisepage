@@ -1,8 +1,8 @@
 #pragma once
 
 #include <chrono>  //NOLINT
-#include <list>
 #include <fstream>
+#include <list>
 #include <utility>
 
 #include "catalog/catalog_defs.h"
@@ -36,8 +36,8 @@ class LoggingMetricRawData : public AbstractRawData {
   }
 
   void RecordConsumerData(const uint64_t write_ns, const uint64_t persist_ns, const uint64_t num_bytes,
-                          const uint64_t num_records) {
-    consumer_data_.emplace_front(write_ns, persist_ns, num_bytes, num_records);
+                          const uint64_t num_buffers) {
+    consumer_data_.emplace_front(write_ns, persist_ns, num_bytes, num_buffers);
   }
 
   void ToCSV(common::ManagedPointer<std::ofstream> outfile) final {
@@ -46,7 +46,7 @@ class LoggingMetricRawData : public AbstractRawData {
       (*outfile) << data.elapsed_ns_ << "," << data.num_bytes_ << "," << data.num_records_ << std::endl;
     }
     for (const auto &data : consumer_data_) {
-      (*outfile) << data.write_ns_ << "," << data.persist_ns_ << "," << data.num_bytes_ << "," << data.num_records_
+      (*outfile) << data.write_ns_ << "," << data.persist_ns_ << "," << data.num_bytes_ << "," << data.num_buffers_
                  << std::endl;
     }
     serializer_data_.clear();
@@ -64,12 +64,12 @@ class LoggingMetricRawData : public AbstractRawData {
 
   struct ConsumerData {
     ConsumerData(const uint64_t write_ns, const uint64_t persist_ns, const uint64_t num_bytes,
-                 const uint64_t num_records)
-        : write_ns_(write_ns), persist_ns_(persist_ns), num_bytes_(num_bytes), num_records_(num_records) {}
+                 const uint64_t num_buffers)
+        : write_ns_(write_ns), persist_ns_(persist_ns), num_bytes_(num_bytes), num_buffers_(num_buffers) {}
     const uint64_t write_ns_;
     const uint64_t persist_ns_;
     const uint64_t num_bytes_;
-    const uint64_t num_records_;
+    const uint64_t num_buffers_;
   };
 
   std::list<SerializerData> serializer_data_;
@@ -78,12 +78,12 @@ class LoggingMetricRawData : public AbstractRawData {
 
 class LoggingMetric : public AbstractMetric<LoggingMetricRawData> {
  public:
-  void OnLogSerialize(const uint64_t elapsed_ns, const uint64_t num_bytes, const uint64_t num_records) final {
+  void OnLogSerialize(const uint64_t elapsed_ns, const uint64_t num_bytes, const uint64_t num_records) {
     GetRawData()->RecordSerializerData(elapsed_ns, num_bytes, num_records);
   }
   void OnLogConsume(const uint64_t write_ns, const uint64_t persist_ns, const uint64_t num_bytes,
-                    const uint64_t num_records) final {
-    GetRawData()->RecordConsumerData(write_ns, persist_ns, num_bytes, num_records);
+                    const uint64_t num_buffers) {
+    GetRawData()->RecordConsumerData(write_ns, persist_ns, num_bytes, num_buffers);
   }
 };
 }  // namespace terrier::metrics

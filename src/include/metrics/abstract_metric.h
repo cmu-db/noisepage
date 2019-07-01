@@ -38,91 +38,91 @@ namespace metrics {
  * template argument. Then, override the event callbacks that you wish to know
  * about. @see AbstractMetric on how to deal with concurrency.
  */
-class Metric {
- public:
-  virtual ~Metric() = default;
-
-  /**
-   * @param txn context of the transaction beginning
-   */
-  virtual void OnTransactionBegin(const transaction::TransactionContext &txn) {}
-
-  /**
-   * @param txn context of the transaction committing
-   * @param database_oid OID of the database where the txn happens.
-   */
-  virtual void OnTransactionCommit(const transaction::TransactionContext &txn, catalog::db_oid_t database_oid) {}
-
-  /**
-   * @param txn context of the transaction aborting
-   * @param database_oid OID of the database where the txn happens.
-   */
-  virtual void OnTransactionAbort(const transaction::TransactionContext &txn, catalog::db_oid_t database_oid) {}
-
-  /**
-   * @param txn context of the transaction performing read
-   * @param database_oid OID of the database that the tuple read happens
-   * @param namespace_oid OID of the namespace that the tuple read happens
-   * @param table_oid OID of the table that the tuple read happens
-   */
-  virtual void OnTupleRead(const transaction::TransactionContext &txn, catalog::db_oid_t database_oid,
-                           catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) {}
-
-  /**
-   * @param txn context of the transaction performing update
-   * @param database_oid OID of the database that the tuple update happens
-   * @param namespace_oid OID of the namespace that the tuple update happens
-   * @param table_oid OID of the table that the tuple update happens
-   */
-  virtual void OnTupleUpdate(const transaction::TransactionContext &txn, catalog::db_oid_t database_oid,
-                             catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) {}
-
-  /**
-   * @param txn context of the transaction performing insert
-   * @param database_oid OID of the database that the tuple insert happens
-   * @param namespace_oid OID of the namespace that the tuple insert happens
-   * @param table_oid OID of the table that the tuple insert happens
-   */
-  virtual void OnTupleInsert(const transaction::TransactionContext &txn, catalog::db_oid_t database_oid,
-                             catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) {}
-
-  /**
-   * @param txn Context of the transaction performing delete
-   * @param database_oid OID of the database that the tuple delete happens
-   * @param namespace_oid OID of the namespace that the tuple delete happens
-   * @param table_oid OID of the table that the tuple delete happens
-   */
-  virtual void OnTupleDelete(const transaction::TransactionContext &txn, catalog::db_oid_t database_oid,
-                             catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) {}
-
-  virtual void OnLogSerialize(const uint64_t elapsed_ns, const uint64_t num_bytes, const uint64_t num_records) {}
-  virtual void OnLogConsume(const uint64_t write_ns, const uint64_t persist_ns, const uint64_t num_bytes,
-                            const uint64_t num_records) {}
-
-  /**
-   * @brief Replace RawData with an empty one and return the old one.
-   *
-   * Data from a metric is collected first into a thread-local storage to
-   * ensure efficiency and safety, and periodically aggregated by an aggregator
-   * thread into meaningful statistics. However, new statistics can still come
-   * in when we aggregate, resulting in race conditions. To avoid this, every
-   * time the aggregator wishes to aggregate data, the RawData object is
-   * extracted and a fresh one swapped in, so collection continues seamlessly
-   * while the aggregator is working.
-   *
-   * Unless you know what you are doing, you should probably just use the one
-   * implemented for you(@see AbstractMetric). Otherwise, it is guaranteed that
-   * this method is only called from the aggregator thread, so it is okay to
-   * block in this method. As soon as this method returns, the aggregator
-   * assumes that it is safe to start reading from the data and discards the
-   * data after it's done. Therefore, it is essential that any implementation
-   * ensures this method does not return if the collecting thread still can
-   * write to the old raw data.
-   *
-   * @return a shared pointer to the old AbstractRawData
-   */
-  virtual std::unique_ptr<AbstractRawData> Swap() = 0;
-};
+// class Metric {
+// public:
+//  virtual ~Metric() = default;
+//
+//  /**
+//   * @param txn context of the transaction beginning
+//   */
+//  virtual void OnTransactionBegin(const transaction::TransactionContext &txn) {}
+//
+//  /**
+//   * @param txn context of the transaction committing
+//   * @param database_oid OID of the database where the txn happens.
+//   */
+//  virtual void OnTransactionCommit(const transaction::TransactionContext &txn, catalog::db_oid_t database_oid) {}
+//
+//  /**
+//   * @param txn context of the transaction aborting
+//   * @param database_oid OID of the database where the txn happens.
+//   */
+//  virtual void OnTransactionAbort(const transaction::TransactionContext &txn, catalog::db_oid_t database_oid) {}
+//
+//  /**
+//   * @param txn context of the transaction performing read
+//   * @param database_oid OID of the database that the tuple read happens
+//   * @param namespace_oid OID of the namespace that the tuple read happens
+//   * @param table_oid OID of the table that the tuple read happens
+//   */
+//  virtual void OnTupleRead(const transaction::TransactionContext &txn, catalog::db_oid_t database_oid,
+//                           catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) {}
+//
+//  /**
+//   * @param txn context of the transaction performing update
+//   * @param database_oid OID of the database that the tuple update happens
+//   * @param namespace_oid OID of the namespace that the tuple update happens
+//   * @param table_oid OID of the table that the tuple update happens
+//   */
+//  virtual void OnTupleUpdate(const transaction::TransactionContext &txn, catalog::db_oid_t database_oid,
+//                             catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) {}
+//
+//  /**
+//   * @param txn context of the transaction performing insert
+//   * @param database_oid OID of the database that the tuple insert happens
+//   * @param namespace_oid OID of the namespace that the tuple insert happens
+//   * @param table_oid OID of the table that the tuple insert happens
+//   */
+//  virtual void OnTupleInsert(const transaction::TransactionContext &txn, catalog::db_oid_t database_oid,
+//                             catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) {}
+//
+//  /**
+//   * @param txn Context of the transaction performing delete
+//   * @param database_oid OID of the database that the tuple delete happens
+//   * @param namespace_oid OID of the namespace that the tuple delete happens
+//   * @param table_oid OID of the table that the tuple delete happens
+//   */
+//  virtual void OnTupleDelete(const transaction::TransactionContext &txn, catalog::db_oid_t database_oid,
+//                             catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid) {}
+//
+//  virtual void OnLogSerialize(const uint64_t elapsed_ns, const uint64_t num_bytes, const uint64_t num_records) {}
+//  virtual void OnLogConsume(const uint64_t write_ns, const uint64_t persist_ns, const uint64_t num_bytes,
+//                            const uint64_t num_records) {}
+//
+//  /**
+//   * @brief Replace RawData with an empty one and return the old one.
+//   *
+//   * Data from a metric is collected first into a thread-local storage to
+//   * ensure efficiency and safety, and periodically aggregated by an aggregator
+//   * thread into meaningful statistics. However, new statistics can still come
+//   * in when we aggregate, resulting in race conditions. To avoid this, every
+//   * time the aggregator wishes to aggregate data, the RawData object is
+//   * extracted and a fresh one swapped in, so collection continues seamlessly
+//   * while the aggregator is working.
+//   *
+//   * Unless you know what you are doing, you should probably just use the one
+//   * implemented for you(@see AbstractMetric). Otherwise, it is guaranteed that
+//   * this method is only called from the aggregator thread, so it is okay to
+//   * block in this method. As soon as this method returns, the aggregator
+//   * assumes that it is safe to start reading from the data and discards the
+//   * data after it's done. Therefore, it is essential that any implementation
+//   * ensures this method does not return if the collecting thread still can
+//   * write to the old raw data.
+//   *
+//   * @return a shared pointer to the old AbstractRawData
+//   */
+//  virtual std::unique_ptr<AbstractRawData> Swap() = 0;
+//};
 
 /**
  * Forward Declaration
@@ -180,7 +180,7 @@ class RawDataWrapper {
  * @tparam DataType the type of AbstractRawData this Metric holds
  */
 template <typename DataType>
-class AbstractMetric : public Metric {
+class AbstractMetric {
  public:
   /**
    * Instantiate an abstract metric object with the templated data type
@@ -189,7 +189,7 @@ class AbstractMetric : public Metric {
   /**
    * De-allocate pointer to raw data
    */
-  ~AbstractMetric() override { delete raw_data_.load(); }
+  ~AbstractMetric() { delete raw_data_.load(); }
   /**
    * @see Metric
    *
@@ -197,7 +197,7 @@ class AbstractMetric : public Metric {
    * access the underlying raw data
    * @return a shared pointer to the old AbstractRawData
    */
-  std::unique_ptr<AbstractRawData> Swap() final {
+  std::unique_ptr<AbstractRawData> Swap() {
     // After this point, the collector thread can not see old data on new
     // events, but will still be able to write to it, if they loaded the
     // pointer before this operation but haven't written to it yet.
