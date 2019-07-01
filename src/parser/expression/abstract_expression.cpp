@@ -14,7 +14,7 @@
 #include "parser/expression/parameter_value_expression.h"
 #include "parser/expression/star_expression.h"
 #include "parser/expression/subquery_expression.h"
-#include "parser/expression/tuple_value_expression.h"
+#include "parser/expression/column_value_expression.h"
 #include "parser/expression/type_cast_expression.h"
 
 namespace terrier::parser {
@@ -139,7 +139,7 @@ std::shared_ptr<AbstractExpression> DeserializeExpression(const nlohmann::json &
     }
 
     case ExpressionType::VALUE_TUPLE: {
-      expr = std::make_shared<TupleValueExpression>();
+      expr = std::make_shared<ColumnValueExpression>();
       break;
     }
 

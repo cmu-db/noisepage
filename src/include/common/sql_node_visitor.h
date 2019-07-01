@@ -35,7 +35,7 @@ class OperatorExpression;
 class ParameterValueExpression;
 class StarExpression;
 class SubqueryExpression;
-class TupleValueExpression;
+class ColumnValueExpression;
 class TypeCastExpression;
 }  // namespace parser
 
@@ -224,10 +224,10 @@ class SqlNodeVisitor {
   virtual void Visit(parser::TypeCastExpression *expr);
 
   /**
-   * Visitor pattern for TupleValueExpression
+   * Visitor pattern for ColumnValueExpression
    * @param expr to be visited
    */
-  virtual void Visit(parser::TupleValueExpression *expr);
+  virtual void Visit(parser::ColumnValueExpression *expr);
 
   /**
    * Visitor pattern for SubqueryExpression

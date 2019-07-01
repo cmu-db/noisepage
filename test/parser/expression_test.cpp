@@ -18,7 +18,7 @@
 #include "parser/expression/parameter_value_expression.h"
 #include "parser/expression/star_expression.h"
 #include "parser/expression/subquery_expression.h"
-#include "parser/expression/tuple_value_expression.h"
+#include "parser/expression/column_value_expression.h"
 #include "parser/expression/type_cast_expression.h"
 #include "parser/parameter.h"
 #include "parser/postgresparser.h"
@@ -628,25 +628,46 @@ TEST(ExpressionTests, ParameterValueExpressionJsonTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(ExpressionTests, TupleValueExpressionTest) {
-  auto tve1 = new TupleValueExpression("table_name", "column_name", "alias");
-  auto tve2 = new TupleValueExpression("table_name", "column_name", "alias");
-  auto tve3 = new TupleValueExpression("table_name2", "column_name", "alias");
-  auto tve4 = new TupleValueExpression("table_name", "column_name2", "alias");
-  auto tve5 = new TupleValueExpression("table_name", "column_name", "alias2");
-  auto tve6 = new TupleValueExpression("table_name", "column_name");
+TEST(ExpressionTests, ColumnValueExpressionTest) {
+  auto tve1 = new ColumnValueExpression("table_name", "column_name", "alias");
+  auto tve2 = new ColumnValueExpression("table_name", "column_name", "alias");
+  auto tve3 = new ColumnValueExpression("table_name2", "column_name", "alias");
+  auto tve4 = new ColumnValueExpression("table_name", "column_name2", "alias");
+  auto tve5 = new ColumnValueExpression("table_name", "column_name", "alias2");
+  auto tve6 = new ColumnValueExpression("table_name", "column_name");
+  auto tve7 = new ColumnValueExpression(catalog::table_oid_t(0), catalog::col_oid_t(0));
+  auto tve8 = new ColumnValueExpression(catalog::table_oid_t(0), catalog::col_oid_t(0));
+  auto tve9 = new ColumnValueExpression(catalog::table_oid_t(1), catalog::col_oid_t(0));
+  auto tve10 = new ColumnValueExpression(catalog::table_oid_t(0), catalog::col_oid_t(1));
+  auto tve11 = new ColumnValueExpression("namespace_name", "table_name", "column_name");
+  auto tve12 = new ColumnValueExpression("namespace_name", "table_name", "column_name");
+  auto tve13 = new ColumnValueExpression("namespace_name2", "table_name", "column_name");
 
   EXPECT_TRUE(*tve1 == *tve2);
   EXPECT_FALSE(*tve1 == *tve3);
   EXPECT_FALSE(*tve1 == *tve4);
   EXPECT_FALSE(*tve1 == *tve5);
   EXPECT_FALSE(*tve1 == *tve6);
+  EXPECT_TRUE(*tve7 == *tve8);
+  EXPECT_FALSE(*tve7 == *tve9);
+  EXPECT_FALSE(*tve7 == *tve10);
+  EXPECT_FALSE(*tve7 == *tve1);
+  EXPECT_TRUE(*tve11 == *tve12);
+  EXPECT_FALSE(*tve11 == *tve13);
+  EXPECT_FALSE(*tve11 == *tve6);
 
   EXPECT_EQ(tve1->Hash(), tve2->Hash());
   EXPECT_NE(tve1->Hash(), tve3->Hash());
   EXPECT_NE(tve1->Hash(), tve4->Hash());
   EXPECT_NE(tve1->Hash(), tve5->Hash());
   EXPECT_NE(tve1->Hash(), tve6->Hash());
+  EXPECT_EQ(tve7->Hash(), tve8->Hash());
+  EXPECT_NE(tve7->Hash(), tve9->Hash());
+  EXPECT_NE(tve7->Hash(), tve10->Hash());
+  EXPECT_NE(tve7->Hash(), tve1->Hash());
+  EXPECT_EQ(tve11->Hash(), tve12->Hash());
+  EXPECT_NE(tve11->Hash(), tve13->Hash());
+  EXPECT_NE(tve11->Hash(), tve6->Hash());
 
   EXPECT_EQ(tve1->GetExpressionType(), ExpressionType::VALUE_TUPLE);
   EXPECT_EQ(tve1->GetReturnValueType(), type::TypeId::INVALID);
@@ -654,6 +675,10 @@ TEST(ExpressionTests, TupleValueExpressionTest) {
   EXPECT_EQ(tve1->GetTableName(), "table_name");
   EXPECT_EQ(tve1->GetColumnName(), "column_name");
   EXPECT_EQ(tve6->GetAlias(), "");
+  EXPECT_EQ(tve7->GetColumnOid(), catalog::col_oid_t(0));
+  EXPECT_EQ(tve7->GetTableOid(), catalog::table_oid_t(0));
+//  EXPECT_EQ(tve1->GetColumnOid(), catalog::col_oid_t(0));
+  EXPECT_EQ(tve11->GetNamespaceName(), "namespace_name");
 
   delete tve1;
   delete tve2;
@@ -661,13 +686,20 @@ TEST(ExpressionTests, TupleValueExpressionTest) {
   delete tve4;
   delete tve5;
   delete tve6;
+  delete tve7;
+  delete tve8;
+  delete tve9;
+  delete tve10;
+  delete tve11;
+  delete tve12;
+  delete tve13;
 }
 
 // NOLINTNEXTLINE
-TEST(ExpressionTests, TupleValueExpressionJsonTest) {
+TEST(ExpressionTests, ColumnValueExpressionJsonTest) {
   // Create expression
-  std::shared_ptr<TupleValueExpression> original_expr =
-      std::make_shared<TupleValueExpression>("table_name", "column_name", "alias");
+  std::shared_ptr<ColumnValueExpression> original_expr =
+      std::make_shared<ColumnValueExpression>("table_name", "column_name", "alias");
 
   // Serialize expression
   auto json = original_expr->ToJson();
@@ -676,14 +708,14 @@ TEST(ExpressionTests, TupleValueExpressionJsonTest) {
   // Deserialize expression
   auto deserialized_expression = DeserializeExpression(json);
   EXPECT_EQ(*original_expr, *deserialized_expression);
-  auto *expr = static_cast<TupleValueExpression *>(deserialized_expression.get());
+  auto *expr = static_cast<ColumnValueExpression *>(deserialized_expression.get());
   EXPECT_EQ(original_expr->GetColumnName(), expr->GetColumnName());
   EXPECT_EQ(original_expr->GetTableName(), expr->GetTableName());
   EXPECT_EQ(original_expr->GetAlias(), expr->GetAlias());
 
   // Create expression
-  std::shared_ptr<TupleValueExpression> original_expr_2 =
-      std::make_shared<TupleValueExpression>("table_name", "column_name");
+  std::shared_ptr<ColumnValueExpression> original_expr_2 =
+      std::make_shared<ColumnValueExpression>("table_name", "column_name");
 
   // Serialize expression
   auto json_2 = original_expr_2->ToJson();
@@ -692,7 +724,7 @@ TEST(ExpressionTests, TupleValueExpressionJsonTest) {
   // Deserialize expression
   auto deserialized_expression_2 = DeserializeExpression(json_2);
   EXPECT_EQ(*original_expr_2, *deserialized_expression_2);
-  auto *expr_2 = static_cast<TupleValueExpression *>(deserialized_expression_2.get());
+  auto *expr_2 = static_cast<ColumnValueExpression *>(deserialized_expression_2.get());
   EXPECT_EQ(original_expr_2->GetColumnName(), expr_2->GetColumnName());
   EXPECT_EQ(original_expr_2->GetTableName(), expr_2->GetTableName());
 }

@@ -24,7 +24,7 @@
 #include "parser/expression/parameter_value_expression.h"
 #include "parser/expression/star_expression.h"
 #include "parser/expression/subquery_expression.h"
-#include "parser/expression/tuple_value_expression.h"
+#include "parser/expression/column_value_expression.h"
 #include "parser/expression/type_cast_expression.h"
 #include "parser/pg_trigger.h"
 #include "parser/postgresparser.h"
@@ -515,7 +515,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::CaseExprTransform(CaseExpr *
   return result;
 }
 
-// Postgres.ColumnRef -> terrier.TupleValueExpression | terrier.StarExpression
+// Postgres.ColumnRef -> terrier.ColumnValueExpression | terrier.StarExpression
 std::unique_ptr<AbstractExpression> PostgresParser::ColumnRefTransform(ColumnRef *root, char *alias) {
   std::unique_ptr<AbstractExpression> result;
   List *fields = root->fields;
@@ -525,12 +525,12 @@ std::unique_ptr<AbstractExpression> PostgresParser::ColumnRefTransform(ColumnRef
       // TODO(WAN): verify the old system is doing the right thing
       if (fields->length == 1) {
         auto col_name = reinterpret_cast<value *>(node)->val.str;
-        result = std::make_unique<TupleValueExpression>("", col_name, alias);
+        result = std::make_unique<ColumnValueExpression>("", col_name, alias);
       } else {
         auto next_node = reinterpret_cast<Node *>(fields->head->next->data.ptr_value);
         auto col_name = reinterpret_cast<value *>(next_node)->val.str;
         auto table_name = reinterpret_cast<value *>(node)->val.str;
-        result = std::make_unique<TupleValueExpression>(table_name, col_name, alias);
+        result = std::make_unique<ColumnValueExpression>(table_name, col_name, alias);
       }
       break;
     }
