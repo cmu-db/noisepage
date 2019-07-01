@@ -43,22 +43,42 @@ class CountMinSketch {
   /**
    * Increase the count for a key by a given amount.
    * The key does not need to exist in the sketch first.
-   * @param key the key to increment the count for
+   * This is a convenience method for those KeyTypes that have the
+   * correct size defined by the sizeof method.
+   * @param key the key to increment the count for.
    * @param delta how much to increment the key's count.
    */
-  void Increment(const KeyType &key, unsigned int delta) {
-    // WARNING: This doesn't work correctly if KeyType is std::string
-    sketch_.add(reinterpret_cast<const void *>(&key), sizeof(key), delta);
+  void Increment(const KeyType &key, const uint32_t delta) { Increment(key, sizeof(key), delta); }
+
+  /**
+   * Increase the count for a key by a given amount.
+   * The key does not need to exist in the sketch first.
+   * @param key the key to increment the count for.
+   * @param key_size the length of the key's data.
+   * @param delta how much to increment the key's count.
+   */
+  void Increment(const KeyType &key, const size_t key_size, const uint32_t delta) {
+    sketch_.add(reinterpret_cast<const void *>(&key), key_size, delta);
     total_count_ += delta;
   }
 
   /**
-   * Remove the count for a key by a given amount.
+   * Decrease the count for a key by a given amount.
+   * This is a convenience method for those KeyTypes that have the
+   * correct size defined by the sizeof method.
    * @param key the key to decrement the count for
+   * @param key_size the length of the key's data.
    * @param delta how much to decrement the key's count.
    */
-  void Decrement(const KeyType &key, unsigned int delta) {
-    // WARNING: This doesn't work correctly if KeyType is std::string
+  void Decrement(const KeyType &key, const uint32_t delta) { Increment(key, sizeof(key), delta); }
+
+  /**
+   * Decrease the count for a key by a given amount.
+   * @param key the key to decrement the count for
+   * @param key_size the length of the key's data.
+   * @param delta how much to decrement the key's count.
+   */
+  void Decrement(const KeyType &key, const size_t key_size, const uint32_t delta) {
     sketch_.add(reinterpret_cast<const void *>(&key), sizeof(key), -delta);
     total_count_ -= delta;
   }

@@ -20,7 +20,7 @@ TEST_F(HistogramTests, UniformDistTest) {
   std::uniform_int_distribution<int> distribution(1, 100);
   for (int i = 0; i < n; i++) {
     auto number = static_cast<int>(distribution(generator));
-    h.Update(number);
+    h.Increment(number);
   }
   std::vector<double> res = h.Uniform();
   for (int i = 1; i < 100; i++) {
@@ -39,7 +39,7 @@ TEST_F(HistogramTests, GaussianDistTest) {
   std::normal_distribution<> distribution(0, 10);
   for (int i = 0; i < n; i++) {
     auto number = static_cast<int>(distribution(generator));
-    h.Update(number);
+    h.Increment(number);
   }
   std::vector<double> res = h.Uniform();
   // This should have around 68% data in one stdev [-10, 10]
@@ -59,7 +59,7 @@ TEST_F(HistogramTests, LeftSkewedDistTest) {
   std::lognormal_distribution<> distribution(0, 1);
   for (int i = 0; i < n; i++) {
     auto number = static_cast<int>(distribution(generator));
-    h.Update(number);
+    h.Increment(number);
   }
   std::vector<double> res = h.Uniform();
 }
@@ -75,7 +75,7 @@ TEST_F(HistogramTests, ExponentialDistTest) {
   std::exponential_distribution<> distribution(lambda);
   for (int i = 0; i < n; i++) {
     auto number = static_cast<int>(distribution(generator));
-    h.Update(number);
+    h.Increment(number);
   }
   std::vector<double> res = h.Uniform();
   // ln 2 / lambda is the mean
@@ -92,30 +92,30 @@ TEST_F(HistogramTests, ValueTypeTest) {
   uint8_t num_bins = 99;
 
   Histogram<int> int_h{num_bins};
-  int_h.Update(777);
-  int_h.Update(999);
+  int_h.Increment(777);
+  int_h.Increment(999);
   EXPECT_EQ(int_h.GetMaxBinSize(), num_bins);
   EXPECT_EQ(int_h.GetMinValue(), 777);
   EXPECT_EQ(int_h.GetMaxValue(), 999);
   EXPECT_EQ(int_h.GetTotalValueCount(), 2);
 
   Histogram<uint16_t> smallint_h{num_bins};
-  smallint_h.Update(777);
-  smallint_h.Update(999);
+  smallint_h.Increment(777);
+  smallint_h.Increment(999);
   EXPECT_EQ(smallint_h.GetMinValue(), 777);
   EXPECT_EQ(smallint_h.GetMaxValue(), 999);
   EXPECT_EQ(smallint_h.GetTotalValueCount(), 2);
 
   Histogram<float> float_h{num_bins};
-  float_h.Update(777.77f);
-  float_h.Update(999.99f);
+  float_h.Increment(777.77f);
+  float_h.Increment(999.99f);
   EXPECT_EQ(float_h.GetMinValue(), 777.77f);
   EXPECT_EQ(float_h.GetMaxValue(), 999.99f);
   EXPECT_EQ(float_h.GetTotalValueCount(), 2);
 
   Histogram<double> double_h{num_bins};
-  double_h.Update(777.77);
-  double_h.Update(999.99);
+  double_h.Increment(777.77);
+  double_h.Increment(999.99);
   EXPECT_EQ(double_h.GetMinValue(), 777.77);
   EXPECT_EQ(double_h.GetMaxValue(), 999.99);
   EXPECT_EQ(double_h.GetTotalValueCount(), 2);
@@ -128,7 +128,7 @@ TEST_F(HistogramTests, SumTest) {
   EXPECT_EQ(boundaries.size(), 0);
 
   EXPECT_EQ(h.Sum(0), 0);
-  h.Update(5);
+  h.Increment(5);
   EXPECT_EQ(h.Sum(3), 0);
   EXPECT_EQ(h.Sum(4), 0);
   EXPECT_EQ(h.Sum(5), 1);
@@ -140,7 +140,7 @@ TEST_F(HistogramTests, SumTest) {
 TEST_F(HistogramTests, OutputTest) {
   Histogram<int> h{100};
   for (int i = 0; i < 1000; i++) {
-    h.Update(i);
+    h.Increment(i);
   }
   std::ostringstream os;
   os << h;

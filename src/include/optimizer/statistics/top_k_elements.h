@@ -143,7 +143,7 @@ class TopKElements {
   /**
    * Decrease the count for the given key by the specified delta.
    * This is a convenience method for those KeyTypes that have the
-   * correct size defined by the sizeof method
+   * correct size defined by the sizeof method.
    * @param key the key to target
    * @param delta the amount to increase the key's count
    */
@@ -209,10 +209,7 @@ class TopKElements {
     OPTIMIZER_LOG_TRACE("Remove(key={0}) // [size={2}]", key, GetSize());
 
     // Always remove the key from the sketch
-
-
   }
-
 
   /**
    * Compute the approximate count for the given key.

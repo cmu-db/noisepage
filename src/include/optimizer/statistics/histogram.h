@@ -24,7 +24,7 @@ namespace terrier::optimizer {
  *    http://www.jmlr.org/papers/volume11/ben-haim10a/ben-haim10a.pdf
  * Specifically Algorithm 1, 3, and 4.
  */
-template <typename PointType>
+template <typename KeyType>
 class Histogram {
  public:
   /**
@@ -75,7 +75,7 @@ class Histogram {
      * @param delta
      * @return
      */
-    double IncCount(double delta) {
+    double Increment(double delta) {
       count_ += delta;
       return count_;
     }
@@ -140,8 +140,8 @@ class Histogram {
    * This only supports numeric types that can be converted into a double
    * @param value the point to update
    */
-  void Update(const PointType &value) {
-    auto point = static_cast<double>(value);
+  void Increment(const KeyType &key) {
+    auto point = static_cast<double>(key);
     Bin bin{point, 1};
     InsertBin(bin);
     if (bins_.size() > max_bins_) {
@@ -150,12 +150,13 @@ class Histogram {
   }
 
   /**
-   * For the given value point (where p1 < b < pB), return an estimate
+   * For the given key point (where p1 < b < pB), return an estimate
    * of the number of points in the interval [-Inf, b]
-   * @param point the value point to estimate
+   * @param key the value point to estimate
    * @return the estimate of the # of points
    */
-  double Sum(double point) {
+  double Sum(const KeyType &key) {
+    auto point = static_cast<double>(key);
     if (bins_.empty()) return 0.0;
 
     if (point >= bins_.back().GetPoint()) {
@@ -247,7 +248,7 @@ class Histogram {
    * @param h
    * @return os
    */
-  friend std::ostream &operator<<(std::ostream &os, const Histogram<PointType> &h) {
+  friend std::ostream &operator<<(std::ostream &os, const Histogram<KeyType> &h) {
     os << "Histogram: "
        << "total=[" << h.total_ << "] "
        << "num_bins=[" << h.bins_.size() << "]" << std::endl;
@@ -304,7 +305,7 @@ class Histogram {
     // it's counter by the count of the bin that we want to insert.
     // We do this so that we can merge bins together if necessary.
     if (index >= 0) {
-      bins_[index].IncCount(bin.GetCount());
+      bins_[index].Increment(bin.GetCount());
 
       // Otherwise insert a new bin
     } else {
