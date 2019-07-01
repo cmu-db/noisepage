@@ -629,11 +629,11 @@ TEST(ExpressionTests, ParameterValueExpressionJsonTest) {
 
 // NOLINTNEXTLINE
 TEST(ExpressionTests, ColumnValueExpressionTest) {
-  auto tve1 = new ColumnValueExpression("table_name", "column_name", "alias");
-  auto tve2 = new ColumnValueExpression("table_name", "column_name", "alias");
-  auto tve3 = new ColumnValueExpression("table_name2", "column_name", "alias");
-  auto tve4 = new ColumnValueExpression("table_name", "column_name2", "alias");
-  auto tve5 = new ColumnValueExpression("table_name", "column_name", "alias2");
+  auto tve1 = new ColumnValueExpression("", "table_name", "column_name", "alias");
+  auto tve2 = new ColumnValueExpression("", "table_name", "column_name", "alias");
+  auto tve3 = new ColumnValueExpression("", "table_name2", "column_name", "alias");
+  auto tve4 = new ColumnValueExpression("", "table_name", "column_name2", "alias");
+  auto tve5 = new ColumnValueExpression("", "table_name", "column_name", "alias2");
   auto tve6 = new ColumnValueExpression("table_name", "column_name");
   auto tve7 = new ColumnValueExpression(catalog::table_oid_t(0), catalog::col_oid_t(0));
   auto tve8 = new ColumnValueExpression(catalog::table_oid_t(0), catalog::col_oid_t(0));
@@ -672,6 +672,7 @@ TEST(ExpressionTests, ColumnValueExpressionTest) {
   EXPECT_EQ(tve1->GetExpressionType(), ExpressionType::VALUE_TUPLE);
   EXPECT_EQ(tve1->GetReturnValueType(), type::TypeId::INVALID);
   EXPECT_EQ(tve1->GetAlias(), "alias");
+  EXPECT_EQ(tve1->GetNamespaceName(), "");
   EXPECT_EQ(tve1->GetTableName(), "table_name");
   EXPECT_EQ(tve1->GetColumnName(), "column_name");
   EXPECT_EQ(tve6->GetAlias(), "");
@@ -679,6 +680,9 @@ TEST(ExpressionTests, ColumnValueExpressionTest) {
   EXPECT_EQ(tve7->GetTableOid(), catalog::table_oid_t(0));
 //  EXPECT_EQ(tve1->GetColumnOid(), catalog::col_oid_t(0));
   EXPECT_EQ(tve11->GetNamespaceName(), "namespace_name");
+  EXPECT_EQ(tve11->GetAlias(), "");
+  EXPECT_EQ(tve1->GetTableName(), "table_name");
+  EXPECT_EQ(tve1->GetColumnName(), "column_name");
 
   delete tve1;
   delete tve2;
@@ -699,7 +703,7 @@ TEST(ExpressionTests, ColumnValueExpressionTest) {
 TEST(ExpressionTests, ColumnValueExpressionJsonTest) {
   // Create expression
   std::shared_ptr<ColumnValueExpression> original_expr =
-      std::make_shared<ColumnValueExpression>("table_name", "column_name", "alias");
+      std::make_shared<ColumnValueExpression>("", "table_name", "column_name", "alias");
 
   // Serialize expression
   auto json = original_expr->ToJson();
@@ -709,6 +713,7 @@ TEST(ExpressionTests, ColumnValueExpressionJsonTest) {
   auto deserialized_expression = DeserializeExpression(json);
   EXPECT_EQ(*original_expr, *deserialized_expression);
   auto *expr = static_cast<ColumnValueExpression *>(deserialized_expression.get());
+  EXPECT_EQ(original_expr->GetNamespaceName(), expr->GetNamespaceName());
   EXPECT_EQ(original_expr->GetColumnName(), expr->GetColumnName());
   EXPECT_EQ(original_expr->GetTableName(), expr->GetTableName());
   EXPECT_EQ(original_expr->GetAlias(), expr->GetAlias());
@@ -725,8 +730,29 @@ TEST(ExpressionTests, ColumnValueExpressionJsonTest) {
   auto deserialized_expression_2 = DeserializeExpression(json_2);
   EXPECT_EQ(*original_expr_2, *deserialized_expression_2);
   auto *expr_2 = static_cast<ColumnValueExpression *>(deserialized_expression_2.get());
+  EXPECT_EQ(original_expr_2->GetNamespaceName(), expr_2->GetNamespaceName());
+  EXPECT_EQ(original_expr_2->GetAlias(), expr_2->GetAlias());
   EXPECT_EQ(original_expr_2->GetColumnName(), expr_2->GetColumnName());
   EXPECT_EQ(original_expr_2->GetTableName(), expr_2->GetTableName());
+
+  // Create expression
+  std::shared_ptr<ColumnValueExpression> original_expr_3 =
+      std::make_shared<ColumnValueExpression>("namespace_name", "table_name", "column_name");
+
+  // Serialize expression
+  auto json_3 = original_expr_3->ToJson();
+  EXPECT_FALSE(json_3.is_null());
+
+  // Deserialize expression
+  auto deserialized_expression_3 = DeserializeExpression(json_3);
+  EXPECT_EQ(*original_expr_3, *deserialized_expression_3);
+  auto *expr_3 = static_cast<ColumnValueExpression *>(deserialized_expression_3.get());
+  EXPECT_EQ(original_expr_3->GetNamespaceName(), expr_3->GetNamespaceName());
+  EXPECT_EQ(original_expr_3->GetAlias(), expr_3->GetAlias());
+  EXPECT_EQ(original_expr_3->GetColumnName(), expr_3->GetColumnName());
+  EXPECT_EQ(original_expr_3->GetTableName(), expr_3->GetTableName());
+  EXPECT_EQ(original_expr_3->GetColumnOid(), expr_3->GetColumnOid());
+  EXPECT_EQ(original_expr_3->GetTableOid(), expr_3->GetTableOid());
 }
 
 // NOLINTNEXTLINE

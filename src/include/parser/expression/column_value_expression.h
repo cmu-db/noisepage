@@ -14,18 +14,25 @@ namespace terrier::parser {
 class ColumnValueExpression : public AbstractExpression {
  public:
   /**
-   * @param col_name column name
+   * This constructor is called only in postgresparser, setting the column name,
+   * and optionally setting the table name and alias.
+   * Namespace name is always set to empty string, as the postgresparser does not know the namespace name.
+   * Parameter namespace name is included so that the program can differentiate this constructor from
+   * another constructor that sets the namespace name, table name. and column name.
+   * @param namespace_name namespace name
    * @param table_name table name
+   * @param col_name column name
    * @param alias alias of the expression
    */
-  ColumnValueExpression(std::string table_name, std::string col_name, const char *alias)
+  ColumnValueExpression(std::string namespace_name, std::string table_name, std::string col_name, const char *alias)
       : AbstractExpression(ExpressionType::VALUE_TUPLE, type::TypeId::INVALID, alias, {}),
         column_name_(std::move(col_name)),
-        table_name_(std::move(table_name)) {}
+        table_name_(std::move(table_name)),
+        namespace_name_(std::move(namespace_name)) {}
 
   /**
-   * @param col_name column name
    * @param table_name table name
+   * @param col_name column name
    */
   ColumnValueExpression(std::string table_name, std::string col_name)
       : AbstractExpression(ExpressionType::VALUE_TUPLE, type::TypeId::INVALID, {}),
@@ -44,8 +51,8 @@ class ColumnValueExpression : public AbstractExpression {
         namespace_name_(std::move(namespace_name)) {}
 
   /**
-   * @param col_name column name
-   * @param table_name table name
+   * @param table_oid table OID
+   * @param column_oid column OID
    */
   ColumnValueExpression(catalog::table_oid_t table_oid, catalog::col_oid_t column_oid)
       : AbstractExpression(ExpressionType::VALUE_TUPLE, type::TypeId::INVALID, {}),
@@ -136,7 +143,7 @@ class ColumnValueExpression : public AbstractExpression {
   std::string column_name_;
   std::string table_name_;
   std::string namespace_name_;
-  catalog::col_oid_t column_oid_);
+  catalog::col_oid_t column_oid_;
   catalog::table_oid_t table_oid_;
 };
 

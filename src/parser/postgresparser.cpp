@@ -525,12 +525,12 @@ std::unique_ptr<AbstractExpression> PostgresParser::ColumnRefTransform(ColumnRef
       // TODO(WAN): verify the old system is doing the right thing
       if (fields->length == 1) {
         auto col_name = reinterpret_cast<value *>(node)->val.str;
-        result = std::make_unique<ColumnValueExpression>("", col_name, alias);
+        result = std::make_unique<ColumnValueExpression>("", "", col_name, alias);
       } else {
         auto next_node = reinterpret_cast<Node *>(fields->head->next->data.ptr_value);
         auto col_name = reinterpret_cast<value *>(next_node)->val.str;
         auto table_name = reinterpret_cast<value *>(node)->val.str;
-        result = std::make_unique<ColumnValueExpression>(table_name, col_name, alias);
+        result = std::make_unique<ColumnValueExpression>("", table_name, col_name, alias);
       }
       break;
     }
