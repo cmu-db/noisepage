@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vector>
 #include "common/macros.h"
 #include "metrics/metric_defs.h"
 

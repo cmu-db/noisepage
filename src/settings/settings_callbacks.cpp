@@ -47,7 +47,7 @@ void Callbacks::NumLogManagerBuffers(void *const old_value, void *const new_valu
     action_context->SetState(common::ActionState::FAILURE);
 }
 
-//void Callbacks::MetricsTransaction(void *const old_value, void *const new_value, DBMain *const db_main,
+// void Callbacks::MetricsTransaction(void *const old_value, void *const new_value, DBMain *const db_main,
 //                                   const std::shared_ptr<common::ActionContext> &action_context) {
 //  action_context->SetState(common::ActionState::IN_PROGRESS);
 //  bool new_status = *static_cast<bool *>(new_value);
