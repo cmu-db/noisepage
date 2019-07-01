@@ -37,7 +37,6 @@ TEST(TypeUtilTests, TypeIdToStringTest) {
   EXPECT_EQ(TypeUtil::TypeIdToString(TypeId::VARCHAR), "VARCHAR");
   EXPECT_EQ(TypeUtil::TypeIdToString(TypeId::VARBINARY), "VARBINARY");
   EXPECT_THROW(TypeUtil::TypeIdToString(TypeId(12)), ConversionException);
-
 }
 
 }  // namespace terrier::type
