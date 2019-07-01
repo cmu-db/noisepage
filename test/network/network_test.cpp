@@ -52,7 +52,7 @@ class NetworkTests : public TerrierTest {
     network_logger->set_level(spdlog::level::trace);
     spdlog::flush_every(std::chrono::seconds(1));
 
-    thread_registry_ = std::make_unique<common::DedicatedThreadRegistry>();
+    thread_registry_ = std::make_unique<common::DedicatedThreadRegistry>(nullptr);
 
     try {
       handle_factory_ = std::make_unique<ConnectionHandleFactory>(common::ManagedPointer(&tcop_));

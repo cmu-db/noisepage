@@ -24,7 +24,7 @@ class LoggingBenchmark : public benchmark::Fixture {
   storage::LogManager *log_manager_ = nullptr;
   storage::GarbageCollectorThread *gc_thread_ = nullptr;
   const std::chrono::milliseconds gc_period_{10};
-  common::DedicatedThreadRegistry thread_registry;
+  common::DedicatedThreadRegistry thread_registry = common::DedicatedThreadRegistry(nullptr);
 
   // Settings for log manager
   const uint64_t num_log_buffers_ = 100;

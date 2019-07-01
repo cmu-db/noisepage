@@ -27,7 +27,7 @@ namespace terrier::common {
 class DedicatedThreadRegistry {
  public:
   explicit DedicatedThreadRegistry(common::ManagedPointer<metrics::MetricsManager> metrics_manager)
-      : metrics_manager_(metrics_manager){};
+      : metrics_manager_(metrics_manager) {}
 
   ~DedicatedThreadRegistry() {
     // Note that if registry is shutting down, it doesn't matter whether
@@ -74,7 +74,7 @@ class DedicatedThreadRegistry {
     auto *task = new T(args...);  // Create task
     thread_owners_table_[requester].insert(task);
     threads_table_.emplace(task, std::thread([=] {
-                             metrics_manager_->RegisterThread();
+                             if (metrics_manager_ != nullptr) metrics_manager_->RegisterThread();
                              task->RunTask();
                            }));
     requester->AddThread();

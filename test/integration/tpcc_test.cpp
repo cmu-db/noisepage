@@ -49,7 +49,7 @@ class TPCCTests : public TerrierTest {
   TransactionWeights txn_weights;                           // default txn_weights. See definition for values
 
   common::WorkerPool thread_pool_{static_cast<uint32_t>(num_threads_), {}};
-  common::DedicatedThreadRegistry thread_registry;
+  common::DedicatedThreadRegistry thread_registry = common::DedicatedThreadRegistry(nullptr);
 
   // Settings for log manager
   const uint64_t num_log_buffers_ = 100;
