@@ -1,7 +1,7 @@
 #pragma once
 
 #include <chrono>  //NOLINT
-#include <forward_list>
+#include <list>
 #include <fstream>
 #include <utility>
 
@@ -19,12 +19,10 @@ class LoggingMetricRawData : public AbstractRawData {
   void Aggregate(AbstractRawData *other) override {
     auto other_db_metric = dynamic_cast<LoggingMetricRawData *>(other);
     if (!other_db_metric->serializer_data_.empty()) {
-      serializer_data_.splice_after(serializer_data_.cbefore_begin(), other_db_metric->serializer_data_,
-                                    other_db_metric->serializer_data_.cbefore_begin());
+      serializer_data_.splice(serializer_data_.cbegin(), other_db_metric->serializer_data_);
     }
     if (!other_db_metric->consumer_data_.empty()) {
-      consumer_data_.splice_after(consumer_data_.cbefore_begin(), other_db_metric->consumer_data_,
-                                  other_db_metric->consumer_data_.cbefore_begin());
+      consumer_data_.splice(consumer_data_.cbegin(), other_db_metric->consumer_data_);
     }
   }
 
@@ -42,7 +40,7 @@ class LoggingMetricRawData : public AbstractRawData {
     consumer_data_.emplace_front(write_ns, persist_ns, num_bytes, num_records);
   }
 
-  void ToCSV(common::ManagedPointer<std::ofstream> outfile) const final {
+  void ToCSV(common::ManagedPointer<std::ofstream> outfile) final {
     TERRIER_ASSERT(outfile->is_open(), "File not opened.");
     for (const auto &data : serializer_data_) {
       (*outfile) << data.elapsed_ns_ << "," << data.num_bytes_ << "," << data.num_records_ << std::endl;
@@ -51,6 +49,8 @@ class LoggingMetricRawData : public AbstractRawData {
       (*outfile) << data.write_ns_ << "," << data.persist_ns_ << "," << data.num_bytes_ << "," << data.num_records_
                  << std::endl;
     }
+    serializer_data_.clear();
+    consumer_data_.clear();
   }
 
  private:
@@ -72,8 +72,8 @@ class LoggingMetricRawData : public AbstractRawData {
     const uint64_t num_records_;
   };
 
-  std::forward_list<SerializerData> serializer_data_;
-  std::forward_list<ConsumerData> consumer_data_;
+  std::list<SerializerData> serializer_data_;
+  std::list<ConsumerData> consumer_data_;
 };
 
 class LoggingMetric : public AbstractMetric<LoggingMetricRawData> {

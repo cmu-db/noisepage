@@ -33,6 +33,6 @@ class AbstractRawData {
    */
   virtual MetricsComponent GetMetricType() const = 0;
 
-  virtual void ToCSV(common::ManagedPointer<std::ofstream> outfile) const = 0;
+  virtual void ToCSV(common::ManagedPointer<std::ofstream> outfile) = 0;
 };
 }  // namespace terrier::metrics

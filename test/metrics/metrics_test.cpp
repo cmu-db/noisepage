@@ -65,6 +65,16 @@ class MetricsTests : public TerrierTest {
       sql_table_->InitializerForProjectedRow({catalog::col_oid_t(0)}).first};
 
   static void EmptySetterCallback(const std::shared_ptr<common::ActionContext> &action_context UNUSED_ATTRIBUTE) {}
+
+  void Insert() {
+    auto *const insert_txn = txn_manager_->BeginTransaction();
+    auto *const insert_redo =
+        insert_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+    auto *const insert_tuple = insert_redo->Delta();
+    *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
+    sql_table_->Insert(insert_txn, insert_redo);
+    txn_manager_->Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  }
 };
 
 /**
@@ -77,14 +87,24 @@ TEST_F(MetricsTests, LoggingCSVTest) {
       std::make_shared<common::ActionContext>(common::action_id_t(1));
   settings_manager_->SetBool(settings::Param::metrics_logging, true, action_context, setter_callback);
 
-  auto *const insert_txn = txn_manager_->BeginTransaction();
-  auto *const insert_redo =
-      insert_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
-  auto *const insert_tuple = insert_redo->Delta();
-  *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
-  sql_table_->Insert(insert_txn, insert_redo);
+  Insert();
 
-  txn_manager_->Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+  metrics_manager_->Aggregate();
+  metrics_manager_->ToCSV();
+
+  Insert();
+  Insert();
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+  metrics_manager_->Aggregate();
+  metrics_manager_->ToCSV();
+
+  Insert();
+  Insert();
+  Insert();
 
   std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
