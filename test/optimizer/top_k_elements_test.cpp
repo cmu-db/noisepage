@@ -18,9 +18,10 @@ class TopKElementsTests : public TerrierTest {
   }
 };
 
+// Check that we can do simple increments to the top-k trackre
 // NOLINTNEXTLINE
 TEST_F(TopKElementsTests, SimpleIncrementTest) {
-  // test TopKElements
+
   const int k = 5;
   TopKElements<int> topK(k, 1000);
   EXPECT_EQ(topK.GetK(), k);
@@ -50,12 +51,10 @@ TEST_F(TopKElementsTests, SimpleIncrementTest) {
   OPTIMIZER_LOG_TRACE(topK);
 }
 
+// Check that if incrementally increase the count of a key that
+// it will eventually get promoted to be in the top-k list
 // NOLINTNEXTLINE
 TEST_F(TopKElementsTests, PromotionTest) {
-  // Check that if incrementally increase the count of a
-  // key that it will eventually get promoted to be in
-  // the top-k list
-
   const int k = 10;
   TopKElements<int> topK(k, 1000);
 
@@ -94,6 +93,8 @@ TEST_F(TopKElementsTests, PromotionTest) {
   EXPECT_NE(found, sorted_keys.end());
 }
 
+// Check that that we can get a proper list of sorted keys back
+// of the top-k elements.
 // NOLINTNEXTLINE
 TEST_F(TopKElementsTests, SortedKeyTest) {
   // test TopKElements
@@ -142,6 +143,7 @@ TEST_F(TopKElementsTests, SortedKeyTest) {
   }
 }
 
+// Check that we can increment and decrement correctly
 // NOLINTNEXTLINE
 TEST_F(TopKElementsTests, SimpleIncrementDecrementTest) {
   // test TopKElements
@@ -182,12 +184,11 @@ TEST_F(TopKElementsTests, SimpleIncrementDecrementTest) {
   // topK.PrintTopKQueueOrderedMaxFirst(10);
 }
 
+// This checks that our top-k thingy does not mess up its
+// internal data structures if we try to decrement keys
+// that it has never seen before.
 // NOLINTNEXTLINE
 TEST_F(TopKElementsTests, DecrementNonExistingKeyTest) {
-  // This checks that our top-k thingy does not mess up its
-  // internal data structures if we try to decrement keys
-  // that it has never seen before.
-
   const int k = 5;
   TopKElements<int> topK(k, 1000);
 
@@ -219,10 +220,10 @@ TEST_F(TopKElementsTests, DecrementNonExistingKeyTest) {
   }
 }
 
+// Check that if we decrement a key enough that it goes
+// negative that it gets removed from our top-k entries
 // NOLINTNEXTLINE
 TEST_F(TopKElementsTests, NegativeCountTest) {
-  // Check that if we decrement a key enough that it goes
-  // negative that it gets removed from our top-k entries
   const int k = 5;
   TopKElements<int> topK(k, 1000);
   const int max_count = 222;
@@ -256,6 +257,7 @@ TEST_F(TopKElementsTests, NegativeCountTest) {
   EXPECT_NE(found, sorted_keys.end());
 }
 
+// Another simple check for incrementing
 // NOLINTNEXTLINE
 TEST_F(TopKElementsTests, IncrementOnlyTest) {
   const int k = 20;
@@ -292,9 +294,9 @@ TEST_F(TopKElementsTests, IncrementOnlyTest) {
   // topK.PrintAllOrderedMaxFirst();
 }
 
+// Test that we can put doubles in our top-k tracker
 // NOLINTNEXTLINE
 TEST_F(TopKElementsTests, DoubleTest) {
-  // Test that we can put doubles in our top-k tracker
   const int k = 5;
   TopKElements<double> topK(k, 1000);
 
@@ -307,9 +309,9 @@ TEST_F(TopKElementsTests, DoubleTest) {
   EXPECT_EQ(sorted_keys.size(), k);
 }
 
+// Test that our remove method works correctly
 // NOLINTNEXTLINE
 TEST_F(TopKElementsTests, RemoveTest) {
-  // Test that our remove method works correctly
   const int k = 5;
   const int max_count = 100;
   TopKElements<int> topK(k, 1000);
@@ -338,6 +340,5 @@ TEST_F(TopKElementsTests, RemoveTest) {
   topK.Increment(k+1, 1);
   EXPECT_EQ(topK.GetSize(), 1);
 }
-
 
 }  // namespace terrier::optimizer
