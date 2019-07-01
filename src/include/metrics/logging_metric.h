@@ -1,9 +1,11 @@
 #pragma once
 
+#include <algorithm>
 #include <chrono>  //NOLINT
 #include <fstream>
 #include <list>
 #include <utility>
+#include <vector>
 
 #include "catalog/catalog_defs.h"
 #include "metrics/abstract_metric.h"
@@ -40,14 +42,18 @@ class LoggingMetricRawData : public AbstractRawData {
     consumer_data_.emplace_front(write_ns, persist_ns, num_bytes, num_buffers);
   }
 
-  void ToCSV(common::ManagedPointer<std::ofstream> outfile) final {
-    TERRIER_ASSERT(outfile->is_open(), "File not opened.");
+  void ToCSV(std::vector<std::ofstream> *const outfiles) final {
+    TERRIER_ASSERT(outfiles->size() == 2, "Number of files passed to metric is wrong.");
+    TERRIER_ASSERT(std::count_if(outfiles->cbegin(), outfiles->cend(),
+                                 [](const std::ofstream &outfile) { return !outfile.is_open(); }) == 0,
+                   "Not all files are open.");
+
     for (const auto &data : serializer_data_) {
-      (*outfile) << data.elapsed_ns_ << "," << data.num_bytes_ << "," << data.num_records_ << std::endl;
+      ((*outfiles)[0]) << data.elapsed_ns_ << "," << data.num_bytes_ << "," << data.num_records_ << std::endl;
     }
     for (const auto &data : consumer_data_) {
-      (*outfile) << data.write_ns_ << "," << data.persist_ns_ << "," << data.num_bytes_ << "," << data.num_buffers_
-                 << std::endl;
+      ((*outfiles)[1]) << data.write_ns_ << "," << data.persist_ns_ << "," << data.num_bytes_ << ","
+                       << data.num_buffers_ << std::endl;
     }
     serializer_data_.clear();
     consumer_data_.clear();
@@ -85,5 +91,9 @@ class LoggingMetric : public AbstractMetric<LoggingMetricRawData> {
                     const uint64_t num_buffers) {
     GetRawData()->RecordConsumerData(write_ns, persist_ns, num_bytes, num_buffers);
   }
+
+  static constexpr uint8_t num_files_ = 2;
+  static constexpr std::array<std::string_view, num_files_> files_ = {"./log_serializer_task.csv",
+                                                                      "./disk_log_consumer_task.csv"};
 };
 }  // namespace terrier::metrics

@@ -4,12 +4,10 @@
 #include <vector>
 #include "metrics/logging_metric.h"
 #include "metrics/metric_defs.h"
-#include "metrics/transaction_metric.h"
 
 namespace terrier::metrics {
 
 MetricsStore::MetricsStore(const std::bitset<NUM_COMPONENTS> &enabled_metrics) : enabled_metrics_{enabled_metrics} {
-  //  metrics_[static_cast<uint8_t>(MetricsComponent::TRANSACTION)] = std::make_unique<TransactionMetric>();
   logging_metric_ = std::make_unique<LoggingMetric>();
 }
 
