@@ -201,6 +201,10 @@ TEST_F(TopKElementsTests, DecrementNonExistingKeyTest) {
 
   // Decrement random keys that don't exist
   for (int key = k + 1; key < 10; key++) {
+    // It's count should be less than or equal to zero.
+    auto count = topK.EstimateItemCount(key);
+    EXPECT_LE(count, 0);
+
     topK.Decrement(key, 1);
     topK.Decrement(key, 1);
   }

@@ -69,8 +69,7 @@ class TopKElements {
     TERRIER_ASSERT(delta >= 0, "Invalid delta");
 
     // Increment the count for this item in the sketch
-    // FIXME: Change the sketch API to use the key_size.
-    sketch_->Increment(key, delta);
+    sketch_->Increment(key, key_size, delta);
 
     // If this key already exists in our top-k list, then
     // we need to update its entry
@@ -94,7 +93,7 @@ class TopKElements {
     // This means that we have to ask the sketch the current count
     // for it to determine whether it should be promoted into our
     // top-k list.
-    auto total_cnt = sketch_->EstimateItemCount(key);
+    auto total_cnt = sketch_->EstimateItemCount(key, key_size);
 
     // If the total estimated count for this key is greater than the
     // current min and our top-k is at its max capacity, then we know
@@ -160,9 +159,7 @@ class TopKElements {
     OPTIMIZER_LOG_TRACE("Decrement(key={0}, delta={1}) // [size={2}]", key, delta, GetSize());
 
     // Decrement the count for this item in the sketch
-    // and then get the new total count
-    sketch_->Decrement(key, delta);
-    auto total_cnt = sketch_->EstimateItemCount(key);
+    sketch_->Decrement(key, key_size, delta);
 
     // This is where things get dicey on us.
     // So if this mofo key is in our top-k vector and its count is
@@ -172,7 +169,7 @@ class TopKElements {
     // is because we can't get that information from the sketch.
     auto entry = entries_.find(key);
     if (entry != entries_.end()) {
-      total_cnt = entries_[key] -= delta;
+      uint64_t total_cnt = entries_[key] -= delta;
 
       // If our count is now negative, then we need to remove
       // this key completely. Otherwise this will cause problems
@@ -209,6 +206,17 @@ class TopKElements {
     OPTIMIZER_LOG_TRACE("Remove(key={0}) // [size={2}]", key, GetSize());
 
     // Always remove the key from the sketch
+    sketch_->Remove(key, key_size);
+
+    // Then check to see whether it exists in our top-k list
+    auto entry = entries_.find(key);
+    if (entry != entries_.end()) {
+      // Remove this key
+      entries_.erase(key);
+
+      // If this key was the min key, then we need to recompute
+      if (key == min_key_) ComputeNewMinKey();
+    }
   }
 
   /**

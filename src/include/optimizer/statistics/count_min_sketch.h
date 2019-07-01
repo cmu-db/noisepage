@@ -80,16 +80,50 @@ class CountMinSketch {
    */
   void Decrement(const KeyType &key, const size_t key_size, const uint32_t delta) {
     sketch_.add(reinterpret_cast<const void *>(&key), sizeof(key), -delta);
-    total_count_ -= delta;
+    total_count_ = static_cast<size_t>(std::max(0u, static_cast<uint32_t>(total_count_) - delta));
+  }
+
+  /**
+   * Remove the given key from the sketch. This attempts to set
+   * the value of the key in the sketch to zero.
+   * This is a convenience method for those KeyTypes that have the
+   * correct size defined by the sizeof method.
+   * @param key
+   */
+  void Remove(const KeyType &key) { Remove(key, sizeof(key)); }
+
+  /**
+   * Remove the given key from the sketch. This attempts to set
+   * the value of the key in the sketch to zero.
+   * @param key
+   * @param key_size
+   */
+  void Remove(const KeyType &key, const size_t key_size) {
+    auto delta = EstimateItemCount(key);
+    sketch_.set(reinterpret_cast<const void *>(&key), sizeof(key), 0);
+
+    // The total count is going to be incorrect now because we don't
+    // know whether the the original delta is accurate or not.
+    total_count_ = static_cast<size_t>(std::max(0u, static_cast<uint32_t>(total_count_) - delta));
   }
 
   /**
    * Compute the approximate count for the given key.
+   * This is a convenience method for those KeyTypes that have the
+   * correct size defined by the sizeof method.
    * @param key the key to get the count for.
    * @return the approximate count number for the key.
    */
-  uint64_t EstimateItemCount(const KeyType &key) {
-    return sketch_.get(reinterpret_cast<const void *>(&key), sizeof(key));
+  uint64_t EstimateItemCount(const KeyType &key) { return EstimateItemCount(key, sizeof(key)); }
+
+  /**
+   * Compute the approximate count for the given key.
+   * @param key the key to get the count for.
+   * @param key_size the length of the key's data.
+   * @return the approximate count number for the key.
+   */
+  uint64_t EstimateItemCount(const KeyType &key, const size_t key_size) {
+    return sketch_.get(reinterpret_cast<const void *>(&key), key_size);
   }
 
   /**
@@ -103,14 +137,13 @@ class CountMinSketch {
   const size_t GetSize() const { return sketch_.table_size(); }
 
   /**
-   * @return the total count of all keys in this sketch.
+   * @return the approximate total count of all keys in this sketch.
    */
   const size_t GetTotalCount() const { return total_count_; }
 
  private:
   /**
-   * Simple counter of the number of entries we have stored.
-   * This will always be accurate.
+   * Simple counter of the approximate number of entries we have stored.
    */
   size_t total_count_;
 

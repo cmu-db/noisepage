@@ -155,8 +155,7 @@ class Histogram {
    * @param key the value point to estimate
    * @return the estimate of the # of points
    */
-  double Sum(const KeyType &key) {
-    auto point = static_cast<double>(key);
+  double EstimateItemCount(double point) {
     if (bins_.empty()) return 0.0;
 
     if (point >= bins_.back().GetPoint()) {
@@ -204,14 +203,14 @@ class Histogram {
     uint32_t i = 0;
     for (uint32_t j = 0; j < bins_.size() - 1; j++) {
       double s = (j * 1.0 + 1.0) / max_bins_ * total_;
-      while (i < bins_.size() - 1 && Sum(bins_[i + 1].GetPoint()) < s) {
+      while (i < bins_.size() - 1 && EstimateItemCount(bins_[i + 1].GetPoint()) < s) {
         i += 1;
       }
       TERRIER_ASSERT(i < bins_.size() - 1, "Invalid bin offset");
       double point_i, point_i1, count_i, count_i1;
       std::tie(point_i, point_i1, count_i, count_i1) = GetInterval(bins_, i);
 
-      double d = s - Sum(bins_[i].GetPoint());
+      double d = s - EstimateItemCount(bins_[i].GetPoint());
       double a = count_i1 - count_i;
       double b = 2.0 * count_i;
       double c = -2.0 * d;

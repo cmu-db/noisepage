@@ -122,17 +122,17 @@ TEST_F(HistogramTests, ValueTypeTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(HistogramTests, SumTest) {
+TEST_F(HistogramTests, EstimateItemCountTest) {
   Histogram<int> h{100};
   auto boundaries = h.Uniform();
   EXPECT_EQ(boundaries.size(), 0);
 
-  EXPECT_EQ(h.Sum(0), 0);
+  EXPECT_EQ(h.EstimateItemCount(0), 0);
   h.Increment(5);
-  EXPECT_EQ(h.Sum(3), 0);
-  EXPECT_EQ(h.Sum(4), 0);
-  EXPECT_EQ(h.Sum(5), 1);
-  EXPECT_EQ(h.Sum(6), 1);
+  EXPECT_EQ(h.EstimateItemCount(3), 0);
+  EXPECT_EQ(h.EstimateItemCount(4), 0);
+  EXPECT_EQ(h.EstimateItemCount(5), 1);
+  EXPECT_EQ(h.EstimateItemCount(6), 1);
 }
 
 // Just check to make sure that the output string is valid
