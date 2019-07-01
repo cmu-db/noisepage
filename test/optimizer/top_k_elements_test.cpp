@@ -21,7 +21,6 @@ class TopKElementsTests : public TerrierTest {
 // Check that we can do simple increments to the top-k trackre
 // NOLINTNEXTLINE
 TEST_F(TopKElementsTests, SimpleIncrementTest) {
-
   const int k = 5;
   TopKElements<int> topK(k, 1000);
   EXPECT_EQ(topK.GetK(), k);
@@ -321,7 +320,7 @@ TEST_F(TopKElementsTests, RemoveTest) {
     topK.Increment(key, max_count * key);
   }
   // Then add some smaller keys
-  for (int key = k; key <= k*2; key++) {
+  for (int key = k; key <= k * 2; key++) {
     topK.Increment(key, 1);
   }
   // We should still only have 'k' keys tracked
@@ -337,8 +336,35 @@ TEST_F(TopKElementsTests, RemoveTest) {
 
   // But if increment one of the smaller keys, then
   // the size should now be one
-  topK.Increment(k+1, 1);
+  topK.Increment(k + 1, 1);
   EXPECT_EQ(topK.GetSize(), 1);
+}
+
+// Just check to make sure that the output string is valid
+// NOLINTNEXTLINE
+TEST_F(TopKElementsTests, OutputTest) {
+  const int k = 10;
+  TopKElements<std::string> topK(k, 1000);
+
+  std::set<std::string> keys = {
+      "RZA", "GZA", "ODB", "Ghostface Killa", "Method Man", "Inspectah Deck", "Raekwon", "UGod", "Masta Killa",
+  };
+  EXPECT_LT(keys.size(), k);
+
+  for (const auto &key : keys) {
+    topK.Increment(key, 1000);
+  }
+
+  std::ostringstream os;
+  os << topK;
+  std::string output = os.str();
+  EXPECT_FALSE(output.empty());
+
+  // Make sure that all of our expected keys are in there
+  for (const auto &key : keys) {
+    std::size_t found = output.find(key);
+    EXPECT_NE(found, std::string::npos);
+  }
 }
 
 }  // namespace terrier::optimizer
