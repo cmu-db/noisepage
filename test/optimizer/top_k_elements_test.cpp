@@ -346,7 +346,7 @@ TEST_F(TopKElementsTests, OutputTest) {
   const int k = 10;
   TopKElements<std::string> topK(k, 1000);
 
-  std::set<std::string> keys = {
+  std::vector<std::string> keys = {
       "RZA", "GZA", "ODB", "Ghostface Killa", "Method Man", "Inspectah Deck", "Raekwon", "UGod", "Masta Killa",
   };
   EXPECT_LT(keys.size(), k);
