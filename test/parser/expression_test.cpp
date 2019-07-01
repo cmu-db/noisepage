@@ -69,6 +69,8 @@ TEST(ExpressionTests, ConstantValueExpressionTest) {
   EXPECT_EQ(expr_ti_1->GetChildren(), std::vector<std::shared_ptr<AbstractExpression>>());
   // Private members depth will be initialized as -1 and has_subquery as false.
   EXPECT_EQ(expr_ti_1->GetDepth(), -1);
+  // depth is still -1 after deriveDepth, as the depth is set in binder
+  EXPECT_EQ(expr_ti_1->DeriveDepth(), -1);
   EXPECT_FALSE(expr_ti_1->HasSubquery());
 
   delete expr_ti_1;
@@ -230,6 +232,8 @@ TEST(ExpressionTests, ConjunctionExpressionTest) {
   EXPECT_EQ(c_expr_1->GetChildren(), children1cp);
   // Private members depth will be initialized as -1 and has_subquery as false.
   EXPECT_EQ(c_expr_1->GetDepth(), -1);
+  // depth is still -1 after deriveDepth, as the depth is set in binder
+  EXPECT_EQ(c_expr_1->DeriveDepth(), -1);
   EXPECT_FALSE(c_expr_1->HasSubquery());
 
   delete c_expr_1;
@@ -791,6 +795,8 @@ TEST(ExpressionTests, SubqueryExpressionTest) {
   auto select4 = std::shared_ptr<SelectStatement>(reinterpret_cast<SelectStatement *>(stmts4[0].release()));
   auto subselect_expr4 = new SubqueryExpression(select4);
 
+  // depth is still -1 after deriveDepth, as the depth is set in binder
+  EXPECT_EQ(subselect_expr0->DeriveDepth(), -1);
   EXPECT_TRUE(*subselect_expr0 == *subselect_expr1);
   EXPECT_FALSE(*subselect_expr0 == *subselect_expr2);
   EXPECT_FALSE(*subselect_expr2 == *subselect_expr3);

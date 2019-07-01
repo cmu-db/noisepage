@@ -12,7 +12,7 @@ TEST(ExpressionDefsTests, ExpressionTypeToStringTest) {
   EXPECT_EQ(ExpressionTypeToString(ExpressionType::INVALID, false), "INVALID");
   EXPECT_EQ(ExpressionTypeToString(ExpressionType::OPERATOR_PLUS), "OPERATOR_PLUS");
   EXPECT_EQ(ExpressionTypeToString(ExpressionType::OPERATOR_PLUS, true), "+");
-  EXPECT_EQ(ExpressionTypeToString(ExpressionType::OPERATOR_PLUS, true), "OPERATOR_PLUS");
+  EXPECT_EQ(ExpressionTypeToString(ExpressionType::OPERATOR_PLUS, false), "OPERATOR_PLUS");
   EXPECT_EQ(ExpressionTypeToString(ExpressionType::OPERATOR_MINUS), "OPERATOR_MINUS");
   EXPECT_EQ(ExpressionTypeToString(ExpressionType::OPERATOR_MINUS, true), "-");
   EXPECT_EQ(ExpressionTypeToString(ExpressionType::OPERATOR_MINUS, false), "OPERATOR_MINUS");
