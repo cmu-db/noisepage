@@ -287,10 +287,7 @@ class TopKElements {
   friend std::ostream &operator<<(std::ostream &os, const TopKElements<KeyType> &topK) {
     os << "Top-" << topK.GetK() << " [size=" << topK.GetSize() << "]";
     int i = 0;
-    //    for (const std::pair<KeyType, uint64_t> &element : topK.GetSortedTopKeys()) {
-    //      os << std::endl << "  (" << i++ << ") Key[" << element.first << "] => " << element.second;
-    //    }
-    for (KeyType key : topK.GetSortedTopKeys()) {
+    for (const KeyType &key : topK.GetSortedTopKeys()) {
       auto count = topK.EstimateItemCount(key);
       os << std::endl << "  (" << i++ << ") Key[" << key << "] => " << count;
     }
