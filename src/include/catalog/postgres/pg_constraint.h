@@ -42,5 +42,6 @@ enum class ConstraintType : char {
   UNIQUE = 'u',
   TRIGGER = 't',
   EXCLUSION = 'x',
-}
+};
+
 } // namespace terrier::catalog::postgres

@@ -36,5 +36,6 @@ enum class ClassKind : char {
   COMPOSITE_TYPE = 'c',
   TOAST_TABLE = 't',
   FOREIGN_TABLE = 'f',
-}
+};
+
 } // namespace terrier::catalog::postgres

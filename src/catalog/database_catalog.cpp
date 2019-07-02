@@ -64,6 +64,9 @@ void DatabaseCatalog::TearDown(transaction::TransactionContext *txn) {
   col_oids.emplace_back(RELKIND_COL_OID);
   col_oids.emplace_back(REL_SCHEMA_COL_OID);
   col_oids.emplace_back(REL_PTR_COL_OID);
+
+  storage::ProjectedColumnsInitializer pci;
+  storage::ProjectionMap pm;
   [pci, pm] = classes_->InitializerForProjectedColumns(col_oids, 100);
 
   byte *buffer = common::AllocationUtil::AllocateAligned(pci.ProjectedColumnsSize());
