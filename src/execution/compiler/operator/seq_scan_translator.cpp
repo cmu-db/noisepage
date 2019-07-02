@@ -82,15 +82,15 @@ void SeqScanTranslator::GenScanCondition(FunctionBuilder *builder) {
   auto & predicate = seqscan_op->GetScanPredicate();
   if (predicate == nullptr) return;
   has_predicate_ = true;
-  if (IsVectorizable(predicate.get())) {
+  //if (IsVectorizable(predicate.get())) {
     // Vectorized codegen
-    GenVectorizedPredicate(builder, predicate.get());
-  } else {
+    //GenVectorizedPredicate(builder, predicate.get());
+  //} else {
     // Regular codegen
     ExpressionTranslator * cond_translator = TranslatorFactory::CreateExpressionTranslator(predicate.get(), codegen_);
     ast::Expr* cond = cond_translator->DeriveExpr(this);
     builder->StartIfStmt(cond);
-  }
+  //}
 }
 
 

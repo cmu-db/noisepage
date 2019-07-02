@@ -31,37 +31,23 @@ void AggregateBottomTranslator::InitializeStructs(util::RegionVector<ast::Decl *
 // Create the key check function.
 void AggregateBottomTranslator::InitializeHelperFunctions(util::RegionVector<ast::Decl *> *decls) {
   // KeyCheck function
-  {
-    // Generate the function type (*AggPayload, *AggValues) -> bool
-    // First make agg_payload: *AggPayload
-    ast::Expr* payload_struct_ptr = codegen_->PointerType(payload_struct_);
-    ast::FieldDecl* param1 = codegen_->MakeField(agg_payload_, payload_struct_ptr);
+  // Generate the function type (*AggPayload, *AggValues) -> bool
+  // First make agg_payload: *AggPayload
+  ast::Expr* payload_struct_ptr = codegen_->PointerType(payload_struct_);
+  ast::FieldDecl* param1 = codegen_->MakeField(agg_payload_, payload_struct_ptr);
 
-    // Then make agg_values: *AggValues
-    ast::Expr * values_struct_ptr = codegen_->PointerType(values_struct_);
-    ast::FieldDecl* param2 = codegen_->MakeField(agg_values_, values_struct_ptr);
+  // Then make agg_values: *AggValues
+  ast::Expr * values_struct_ptr = codegen_->PointerType(values_struct_);
+  ast::FieldDecl* param2 = codegen_->MakeField(agg_values_, values_struct_ptr);
 
-    // Now create the function
-    util::RegionVector<ast::FieldDecl *> params({param1, param2}, codegen_->Region());
-    ast::Expr* ret_type = codegen_->BuiltinType(ast::BuiltinType::Kind::Bool);
-    FunctionBuilder builder(codegen_, key_check_, std::move(params), ret_type);
-    // Fill up the function
-    GenKeyCheck(&builder);
-    // Add it to top level declarations
-    decls->emplace_back(builder.Finish());
-  }
-
-  // Hash Function
-  {
-    // Generate the function type (*AggPayload, [*]*ProjectedColumnsIterator)
-    // First make agg_payload: *AggPayload
-    ast::Expr* payload_struct_ptr = codegen_->PointerType(payload_struct_);
-    ast::FieldDecl* param1 = codegen_->MakeField(agg_payload_, payload_struct_ptr);
-
-  }
-
-  // If vectorization is possible calls to hash, aggInit, aggConstruct are all functions
-
+  // Now create the function
+  util::RegionVector<ast::FieldDecl *> params({param1, param2}, codegen_->Region());
+  ast::Expr* ret_type = codegen_->BuiltinType(ast::BuiltinType::Kind::Bool);
+  FunctionBuilder builder(codegen_, key_check_, std::move(params), ret_type);
+  // Fill up the function
+  GenKeyCheck(&builder);
+  // Add it to top level declarations
+  decls->emplace_back(builder.Finish());
 }
 
 // Call @aggHTInit on the hash table
