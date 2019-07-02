@@ -4,6 +4,7 @@
 
 #include "catalog/catalog_defs.h"
 #include "catalog/index_schema.h"
+#include "catalog/postgres/pg_class.h"
 #include "catalog/postgres/pg_type.h"
 #include "catalog/schema.h"
 #include "storage/index/index.h"
@@ -96,6 +97,25 @@ class DatabaseCatalog {
   bool RenameTable(transaction::TransactionContext *txn, table_oid_t table, const std::string &name);
 
   /**
+   * Inform the catalog of where the underlying storage for a table is
+   * @param table OID in the catalog
+   * @param table_ptr to the memory where the storage is
+   * @return whether the operation was successful
+   * @warning The table pointer that is passed in must be on the heap as the
+   * catalog will take ownership of it and schedule its deletion with the GC
+   * at the appropriate time.
+   */
+  bool SetTablePointer(transaction::TransactionContext *txn, table_oid_t table, storage::SqlTable *table_ptr);
+
+  /**
+   * Obtain the storage pointer for a SQL table
+   * @param table to which we want the storage object
+   * @return the storage object corresponding to the passed OID
+   */
+  common::ManagedPointer<storage::SqlTable> GetTable(transaction::TransactionContext *txn, table_oid_t table);
+
+
+  /**
    * Apply a new schema to the given table.  The changes should modify the latest
    * schema as provided by the catalog.  There is no guarantee that the OIDs for
    * modified columns will be stable across a schema change.
@@ -182,6 +202,24 @@ class DatabaseCatalog {
    * @return true if creation is successful
    */
   bool CreateNamespace(transaction::TransactionContext *txn, const std::string &name, namespace_oid_t ns_oid);
+ /**
+  * Inform the catalog of where the underlying implementation of the index is
+ * @param index OID in the catalog
+ * @param index_ptr to the memory where the index is
+ * @return whether the operation was successful
+ * @warning The index pointer that is passed in must be on the heap as the
+ * catalog will take ownership of it and schedule its deletion with the GC
+ * at the appropriate time.
+ */
+  bool SetIndexPointer(transaction::TransactionContext *txn, index_oid_t index, storage::index::Index *index_ptr);
+
+
+  /**
+   * Obtain the pointer to the index
+   * @param index to which we want a pointer
+   * @return the pointer to the index
+   */
+  common::ManagedPointer<storage::index::Index> GetIndex(transaction::TransactionContext *txn, index_oid_t index);
 
   /**
    * Add entry to pg_attribute
@@ -238,7 +276,6 @@ class DatabaseCatalog {
   template <typename Column>
   void DeleteColumns(transaction::TransactionContext *txn, uint32_t class_oid);
 
- private:
   storage::SqlTable *namespaces_;
   storage::index::Index *namespaces_oid_index_;
   storage::index::Index *namespaces_name_index_;
@@ -272,13 +309,14 @@ class DatabaseCatalog {
 
   transaction::Action debootstrap;
   std::atomic<uint32_t> next_oid_;
-  const db_oid_t db_oid_;
 
   const db_oid_t db_oid_;
 
   DatabaseCatalog(db_oid_t oid) : db_oid_(oid) {}
 
   void TearDown(transaction::TransactionContext *txn);
+  bool CreateTableEntry(transaction::TransactionContext *txn, table_oid_t table_oid, namespace_oid_t ns,
+                        const std::string &name, const Schema &schema);
 
   friend class Catalog;
   friend class postgres::Builder;
@@ -321,5 +359,14 @@ class DatabaseCatalog {
    * @return oid for internal type
    */
   type_oid_t GetTypeOidForType(type::TypeId type);
+
+  /**
+   * Helper function to query the oid and kind from [pg_class](https://www.postgresql.org/docs/9.3/catalog-pg-class.html)
+   * @param txn transaction to query
+   * @param namespace_oid the namespace oid
+   * @param name name of the table, index, view, etc.
+   * @return a pair of oid and ClassKind
+   */
+  std::pair<uint32_t, postgres::ClassKind> getClassOidKind(transaction::TransactionContext *txn, namespace_oid_t ns_oid, const std::string &name);
 };
 }  // namespace terrier::catalog
