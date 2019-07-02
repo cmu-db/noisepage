@@ -62,8 +62,8 @@ static IndexSchema Builder::GetDatabaseNameIndexSchema() {
 }
 
 
-static DatabaseCatalog *Builder::CreateDatabaseCatalog(storage::BlockStore *block_store) {
-  auto dbc = new DatabaseCatalog();
+static DatabaseCatalog *Builder::CreateDatabaseCatalog(storage::BlockStore *block_store, db_oid_t oid) {
+  auto dbc = new DatabaseCatalog(oid);
 
   dbc.namespaces_ = new SqlTable(block_store, Builder::GetNamespaceTableSchema());
   dbc.classes_ = new SqlTable(block_store, Builder::GetClassTableSchema());

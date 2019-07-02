@@ -209,11 +209,11 @@ class DatabaseCatalog {
   transaction::Action debootstrap;
   std::atomic<uint32_t> next_oid_;
 
-  DatabaseCatalog();
+  const db_oid_t db_oid_;
 
-  TearDown(transaction::TransactionContext *txn);
+  DatabaseCatalog(db_oid_t oid) : db_oid_(oid) {}
 
-  ~DatabaseCatalog();
+  void TearDown(transaction::TransactionContext *txn);
 
   friend class Catalog;
   friend class postgres::Builder;
