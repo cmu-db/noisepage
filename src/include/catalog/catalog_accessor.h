@@ -5,8 +5,8 @@
 #include <vector>
 
 #include "catalog/catalog_defs.h"
-#include "catalog/default_value.h"
-#include "catalog/index_key_schema.h"
+#include "catalog/database_catalog.h"
+#include "catalog/index_schema.h"
 #include "catalog/schema.h"
 #include "common/managed_pointer.h"
 #include "storage/index/index.h"
@@ -35,7 +35,6 @@ class Catalog;
  */
 class CatalogAccessor {
  public:
-
   /**
    * Given a database name, resolve it to the corresponding OID
    * @param name of the database
@@ -185,14 +184,14 @@ class CatalogAccessor {
    * @param table being queried
    * @return vector of OIDs for all of the constraints that apply to this table
    */
-  std::vector<constraint_oid_t> GetConstraints(table_oid_t);
+  std::vector<constraint_oid_t> GetConstraints(table_oid_t table);
 
   /**
    * A list of all indexes on the given table
    * @param table being queried
    * @return vector of OIDs for all of the indexes on this table
    */
-  std::vector<index_oid_t> GetIndexes(table_oid_t);
+  std::vector<index_oid_t> GetIndexes(table_oid_t table);
 
   /**
    * Given an index name, resolve it to the corresponding OID
@@ -221,12 +220,10 @@ class CatalogAccessor {
    * @param ns is the namespace in which the index will exist
    * @param table on which this index exists
    * @param name of the index
-   * @param constraint type of the index
-   * @param keys is a vector of definitions for the individual keys of the index
+   * @param schema describing the new index
    * @return OID for the index, INVALID_INDEX_OID if the operation failed
    */
-  index_oid_t CreateIndex(namespace_oid_t ns, table_oid_t table, const std::string &name,
-                          storage::index::ConstraintType constraint, IndexSchema *IndexSchema);
+  index_oid_t CreateIndex(namespace_oid_t ns, table_oid_t table, const std::string &name, IndexSchema *schema);
 
   /**
    * Gets the schema that was used to define the index
@@ -260,16 +257,9 @@ class CatalogAccessor {
    */
   common::ManagedPointer<storage::index::Index> GetIndex(index_oid_t index);
 
-  /**
-   * Gets the schema used to define the index
-   * @param index being queried
-   * @return the index schema
-   */
-  const IndexSchema &GetIndexSchema(index_oid_t index);
-
  private:
   Catalog *catalog_;
-  DatabaseCatalog *dbc_;
+  common::ManagedPointer<DatabaseCatalog> dbc_;
   transaction::TransactionContext *txn_;
   db_oid_t db_oid_;
   std::vector<namespace_oid_t> search_path_;
@@ -280,7 +270,9 @@ class CatalogAccessor {
    * @param txn the transaction context for this accessor
    * @param database the OID of the database
    */
-  CatalogAccessor(Catalog *catalog, transaction::TransactionContext *txn, db_oid_t database);
+  CatalogAccessor(Catalog *catalog, common::ManagedPointer<DatabaseCatalog> dbc, transaction::TransactionContext *txn,
+                  db_oid_t database)
+      : catalog_(catalog), dbc_(dbc), txn_(txn), db_oid_(database) {}
   friend class Catalog;
 };
 
