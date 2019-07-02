@@ -70,9 +70,9 @@ void DatabaseCatalog::TearDown(transaction::TransactionContext *txn) {
   auto pc = pci.Initialize(buffer);
 
   // Fetch pointers to the start each in the projected columns
-  auto classes = reinterpret_cast<postgres::ClassKind *>pc->ColumnStart(pm[RELKIND_COL_OID]);
-  auto schemas = reinterpret_cast<void **>pc->ColumnStart(pm[REL_SCHEMA_COL_OID]);
-  auto objects = reinterpret_cast<void **>pc->ColumnStart(pm[REL_PTR_COL_OID]);
+  auto classes = reinterpret_cast<postgres::ClassKind *>(pc->ColumnStart(pm[RELKIND_COL_OID]));
+  auto schemas = reinterpret_cast<void **>(pc->ColumnStart(pm[REL_SCHEMA_COL_OID]));
+  auto objects = reinterpret_cast<void **>(pc->ColumnStart(pm[REL_PTR_COL_OID]));
 
   // Scan the table
   auto table_iter = classes_->begin();
@@ -81,12 +81,12 @@ void DatabaseCatalog::TearDown(transaction::TransactionContext *txn) {
     for (int i = 0; i < pc->NumTuples()) {
       switch(classes[i]) {
         case postgres::ClassKind::REGULAR_TABLE:
-          table_schemas.emplace_back(reinterpret_cast<Schema *>schemas[i]);
-          tables.emplace_back(reinterpret_cast<storage::SqlTable *>objects[i]);
+          table_schemas.emplace_back(reinterpret_cast<Schema *>(schemas[i]));
+          tables.emplace_back(reinterpret_cast<storage::SqlTable *>(objects[i]));
           break;
         case postgres::ClassKind::INDEX:
-          index_schemas.emplace_back(reinterpret_cast<IndexSchema *>schemas[i]);
-          indexes.emplace_back(reinterpret_cast<storage::index::Index *>objects[i]);
+          index_schemas.emplace_back(reinterpret_cast<IndexSchema *>(schemas[i]));
+          indexes.emplace_back(reinterpret_cast<storage::index::Index *>(objects[i]));
           break;
         default:
           throw std::runtime_error("Unimplemented destructor needed");
@@ -100,7 +100,7 @@ void DatabaseCatalog::TearDown(transaction::TransactionContext *txn) {
   [pci, pm] = columns_->InitializerForProjectedColumns(col_oids, 100);
   pc = pci.Initialize(buffer);
 
-  auto exprs = reinterpret_cast<parser::AbstractExpression **>pc->ColumnStart(0);
+  auto exprs = reinterpret_cast<parser::AbstractExpression **>(pc->ColumnStart(0));
 
   table_iter = columns_->begin();
   while (table_iter != columns_->end()) {
@@ -117,7 +117,7 @@ void DatabaseCatalog::TearDown(transaction::TransactionContext *txn) {
   [pci, pm] = constraints->InitializerForProjectedColumns(col_oids, 100);
   pc = pci.Initialize(buffer);
 
-  auto exprs = reinterpret_cast<parser::AbstractExpression **>pc->ColumnStart(0);
+  auto exprs = reinterpret_cast<parser::AbstractExpression **>(pc->ColumnStart(0));
 
   table_iter = constraints->begin();
   while (table_iter != constraints->end()) {
