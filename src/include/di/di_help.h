@@ -128,16 +128,17 @@ class TerrierSharedModule {
   template <class TExpected, class TGiven>
   class scope {
    public:
-    // TODO(Tianyu): Not sure about this. This is the referrable flag used for boost::di's singleton scope.
+    // TODO(Tianyu): Not sure if this is relevant as we prohibit injection of non-const references.
+    // This is the referrable flag used for boost::di's singleton scope.
     /**
-     * See boost::di doc
+     * See https://boost-experimental.github.io/di/user_guide/index.html#scopes
      */
     template <class T_, class>
     using is_referable = typename di::wrappers::shared<di::scopes::singleton, TExpected &>::template is_referable<T_>;
 
     /**
      * @tparam TProvider provider type
-     * @return see boost::di doc
+     * @return see https://boost-experimental.github.io/di/user_guide/index.html#scopes
      */
     template <class, class, class TProvider>
     static TerrierWrapper<TExpected, TGiven> try_create(const TProvider &);
@@ -145,7 +146,7 @@ class TerrierSharedModule {
     /**
      * @tparam TProvider provider type
      * @param provider provider
-     * @return see boost::di doc
+     * @return see https://boost-experimental.github.io/di/user_guide/index.html#scopes
      */
     template <class, class, class TProvider>
     TerrierWrapper<TExpected, TGiven> create(const TProvider &provider) {
@@ -181,16 +182,17 @@ class TerrierSingleton {
   template <class TExpected, class TGiven>
   class scope {
    public:
-    // TODO(Tianyu): Not sure about this. This is the referrable flag used for boost::di's singleton scope.
+    // TODO(Tianyu): Not sure if this is relevant as we prohibit injection of non-const references.
+    // This is the referrable flag used for boost::di's singleton scope.
     /**
-     * See boost::di doc
+     * See https://boost-experimental.github.io/di/user_guide/index.html#scopes
      */
     template <class T_, class>
     using is_referable = typename di::wrappers::shared<di::scopes::singleton, TExpected &>::template is_referable<T_>;
 
     /**
      * @tparam TProvider provider type
-     * @return see boost::di doc
+     * @return see https://boost-experimental.github.io/di/user_guide/index.html#scopes
      */
     template <class, class, class TProvider>
     static TerrierWrapper<TExpected, TGiven> try_create(const TProvider &);
@@ -198,7 +200,7 @@ class TerrierSingleton {
     /**
      * @tparam TProvider provider type
      * @param provider provider
-     * @return see boost::di doc
+     * @return see https://boost-experimental.github.io/di/user_guide/index.html#scopes
      */
     template <class, class, class TProvider>
     TerrierWrapper<TExpected, TGiven> create(const TProvider &provider) {
