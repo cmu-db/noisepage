@@ -18,19 +18,19 @@ namespace terrier::catalog::postgres {
  * catalog specification and columns of the form "TYP_[name]_COL_OID" are
  * terrier-specific addtions (generally pointers to internal objects).
  */
-#define TYPOID_COL_OID col_oid_t(1)       // INTEGER (pkey)
-#define TYPNAME_COL_OID col_oid_t(2)      // VARCHAR
-#define TYPNAMESPACE_COL_OID col_oid_t(3) // INTEGER (fkey: pg_namespace)
-#define TYPLEN_COL_OID col_oid_t(4)       // SMALLINT
-#define TYPBYVAL_COL_OID col_oid_t(5)     // BOOLEAN
-#define TYPTYPE_COL_OID col_oid_t(6)      // CHAR
+#define TYPOID_COL_OID col_oid_t(1)        // INTEGER (pkey)
+#define TYPNAME_COL_OID col_oid_t(2)       // VARCHAR
+#define TYPNAMESPACE_COL_OID col_oid_t(3)  // INTEGER (fkey: pg_namespace)
+#define TYPLEN_COL_OID col_oid_t(4)        // SMALLINT
+#define TYPBYVAL_COL_OID col_oid_t(5)      // BOOLEAN
+#define TYPTYPE_COL_OID col_oid_t(6)       // CHAR
 
 enum class Type : char {
   BASE = 'b',
   COMPOSITE = 'c',
-  DOMAIN = 'd',
+  PG_DOMAIN = 'd',
   ENUM = 'e',
   PSEUDO = 'p',
   RANGE = 'r',
-}
-} // namespace terrier::catalog::postgres
+};
+}  // namespace terrier::catalog::postgres

@@ -4,12 +4,12 @@
 
 #include "catalog/catalog_defs.h"
 #include "catalog/index_schema.h"
+#include "catalog/postgres/pg_type.h"
 #include "catalog/schema.h"
-#include "transaction/transaction_context.h"
-#include "transaction/transaction_defs.h"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
-
+#include "transaction/transaction_context.h"
+#include "transaction/transaction_defs.h"
 
 namespace terrier::catalog {
 
@@ -95,7 +95,6 @@ class DatabaseCatalog {
    */
   bool RenameTable(transaction::TransactionContext *txn, table_oid_t table, const std::string &name);
 
-
   /**
    * Apply a new schema to the given table.  The changes should modify the latest
    * schema as provided by the catalog.  There is no guarantee that the OIDs for
@@ -174,6 +173,33 @@ class DatabaseCatalog {
    */
   const IndexSchema &GetIndexSchema(transaction::TransactionContext *txn, index_oid_t index);
 
+  /**
+   * Creates a new namespace within the database
+   * @param txn for the operation
+   * @param name of the new namespace
+   * @return OID of the new namespace or INVALID_NAMESPACE_OID if the operation failed
+   */
+  namespace_oid_t CreateNamespace(transaction::TransactionContext *txn, const std::string &name);
+
+  /**
+   * Deletes the namespace and any objects assigned to the namespace.  The
+   * 'public' namespace cannot be deleted.  This operation will fail if any
+   * objects within the namespace cannot be deleted (i.e. write-write conflicts
+   * exist).
+   * @param txn for the operation
+   * @param ns OID to be deleted
+   * @param true if the deletion succeeded, otherwise false
+   */
+  bool DeleteNamespace(transaction::TransactionContext *txn, namespace_oid_t ns);
+
+  /**
+   * Resolve a namespace name to its OID.
+   * @param txn for the operation
+   * @param name of the namespace
+   * @return OID of the namespace or INVALID_NAMESPACE_OID if it does not exist
+   */
+  namespace_oid_t GetNamespaceOid(transaction::TransactionContext *txn, const std::string &name);
+
  private:
   storage::SqlTable *namespaces_;
   storage::index::Index *namespaces_oid_index_;
@@ -181,7 +207,7 @@ class DatabaseCatalog {
 
   storage::SqlTable *classes_;
   storage::index::Index *classes_oid_index_;
-  storage::index::Index *classes_name_index_; // indexed on namespace OID and name
+  storage::index::Index *classes_name_index_;  // indexed on namespace OID and name
   storage::index::Index *classes_namespace_index_;
 
   storage::SqlTable *indexes_;
@@ -189,18 +215,18 @@ class DatabaseCatalog {
   storage::index::Index *indexes_table_index_;
 
   storage::SqlTable *columns_;
-  storage::index::Index *columns_oid_index_; // indexed on class OID and column OID
-  storage::index::Index *columns_name_index_; // indexed on class OID and column name
+  storage::index::Index *columns_oid_index_;   // indexed on class OID and column OID
+  storage::index::Index *columns_name_index_;  // indexed on class OID and column name
   storage::index::Index *columns_class_index_;
 
   storage::SqlTable *types_;
   storage::index::Index *types_oid_index_;
-  storage::index::Index *types_name_index_; // indexed on namespace OID and name
+  storage::index::Index *types_name_index_;  // indexed on namespace OID and name
   storage::index::Index *types_namespace_index_;
 
   storage::SqlTable *constraints_;
   storage::index::Index *constraints_oid_index_;
-  storage::index::Index *constraints_name_index_; // indexed on namespace OID and name
+  storage::index::Index *constraints_name_index_;  // indexed on namespace OID and name
   storage::index::Index *constraints_namespace_index_;
   storage::index::Index *constraints_table_index_;
   storage::index::Index *constraints_index_index_;
@@ -217,5 +243,31 @@ class DatabaseCatalog {
 
   friend class Catalog;
   friend class postgres::Builder;
+
+  /**
+   * Bootstraps the built-in types found in type::Type
+   * @param txn transaction to insert into catalog with
+   */
+  void BootstrapTypes(transaction::TransactionContext *txn);
+
+  /**
+   * Helper function to insert a type into PG_Type and the type indexes
+   * @param txn transaction to insert with
+   * @param internal_type internal type to insert
+   * @param name type name
+   * @param namespace_oid namespace to insert type into
+   * @param len length of type in bytes. len should be -1 for varlen types
+   * @param by_val true if type should be passed by value. false if passed by reference
+   * @param type_category category of type
+   */
+  void InsertType(transaction::TransactionContext *txn, type::TypeId internal_type, const std::string &name,
+                  namespace_oid_t namespace_oid, int16_t len, bool by_val, postgres::Type type_category);
+
+  /**
+   * Returns oid for built in type. Currently, we simply use the underlying int for the enum as the oid
+   * @param type internal type
+   * @return oid for internal type
+   */
+  type_oid_t GetTypeOidForType(type::TypeId type);
 };
-} // namespace terrier::catalog
+}  // namespace terrier::catalog
