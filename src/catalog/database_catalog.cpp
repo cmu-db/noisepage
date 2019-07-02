@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "catalog/catalog_defs.h"
+#include "catalog/database_catalog.h"
 #include "catalog/index_schema.h"
 #include "catalog/schema.h"
 #include "transaction/transaction_context.h"
