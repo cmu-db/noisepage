@@ -71,6 +71,14 @@ class CatalogAccessor {
    */
   index_oid_t GetCatalogIndexOid(const std::string &name) { return catalog_->GetCatalogIndexOid(name); }
 
+  db_oid_t  GetDBOid() {
+    return db_oid_;
+  }
+
+  namespace_oid_t  GetNSOid() {
+    return ns_oid_;
+  }
+
  private:
   transaction::TransactionContext *txn_;
   Catalog *catalog_;

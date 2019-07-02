@@ -46,6 +46,10 @@ class SqlBasedTest : public TplTest {
     return std::make_unique<exec::ExecutionContext>(test_txn_, callback, schema, std::move(accessor));
   }
 
+  std::unique_ptr<terrier::catalog::CatalogAccessor> MakeAccessor() {
+    return catalog_->GetAccessor(test_txn_, test_db_oid_, test_ns_oid_);
+  }
+
  private:
   std::unique_ptr<terrier::storage::BlockStore> block_store_;
   std::unique_ptr<terrier::storage::RecordBufferSegmentPool> buffer_pool_;

@@ -113,6 +113,17 @@ class ExecutionContext {
    */
   terrier::catalog::CatalogAccessor *GetAccessor() { return accessor_.get(); }
 
+  /**
+   * Set the accessor
+   */
+  void SetAccessor(std::unique_ptr<terrier::catalog::CatalogAccessor> && accessor) {
+    accessor_ = std::move(accessor);
+  }
+
+  void SetOutputCallback() {
+
+  }
+
  private:
   TransactionContext *txn_;
   std::unique_ptr<OutputBuffer> buffer_;
