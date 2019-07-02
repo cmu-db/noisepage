@@ -14,7 +14,7 @@ Catalog::Catalog(transaction::TransactionManager *txn_manager, storage::BlockSto
   databases_name_index_ = BuildUniqueIndex(postgres::Builder::GetDatabaseNameIndexSchema(), DATABASE_NAME_INDEX_OID);
 }
 
-Catalog::TearDown() {
+void Catalog::TearDown() {
   auto txn = txn_manager_->BeginTransaction();
   // Get a projected column on DatabaseCatalog pointers for scanning the table
   std::vector<col_oid_t> cols;
