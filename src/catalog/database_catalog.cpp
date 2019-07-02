@@ -11,6 +11,7 @@
 #include "catalog/schema.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
+#include "transaction/transaction_manager.h"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
 #include "transaction/transaction_context.h"
@@ -114,14 +115,14 @@ void DatabaseCatalog::TearDown(transaction::TransactionContext *txn) {
   // pg_constraint (expressions)
   col_oids.clear();
   col_oids.emplace_back(CONBIN_COL_OID);
-  std::pie(pci, pm) = constraints->InitializerForProjectedColumns(col_oids, 100);
+  std::tie(pci, pm) = constraints_->InitializerForProjectedColumns(col_oids, 100);
   pc = pci.Initialize(buffer);
 
-  auto exprs = reinterpret_cast<parser::AbstractExpression **>(pc->ColumnStart(0));
+  exprs = reinterpret_cast<parser::AbstractExpression **>(pc->ColumnStart(0));
 
-  table_iter = constraints->begin();
-  while (table_iter != constraints->end()) {
-    constraints->Scan(txn, &table_iter, pc);
+  table_iter = constraints_->begin();
+  while (table_iter != constraints_->end()) {
+    constraints_->Scan(txn, &table_iter, pc);
 
     for (uint i = 0; i < pc->NumTuples(); i++) {
       expressions.emplace_back(exprs[i]);
