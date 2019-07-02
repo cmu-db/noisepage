@@ -69,6 +69,10 @@ class SqlBasedTest : public TplTest {
     return parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(0));
   }
 
+  std::unique_ptr<terrier::catalog::CatalogAccessor> MakeAccessor() {
+    return catalog_->GetAccessor(test_txn_, test_db_oid_, test_ns_oid_);
+  }
+
  private:
   std::unique_ptr<storage::BlockStore> block_store_;
   std::unique_ptr<storage::RecordBufferSegmentPool> buffer_pool_;
