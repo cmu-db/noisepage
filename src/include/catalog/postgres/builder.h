@@ -177,7 +177,7 @@ class Builder {
    * @param oid for the new index
    * @return pointer to the new index
    */
-  storage::index::Index *BuildUniqueIndex(const IndexSchema &key_schema, index_oid_t oid) {
+  static storage::index::Index *BuildUniqueIndex(const IndexSchema &key_schema, index_oid_t oid) {
     storage::index::IndexBuilder index_builder;
     index_builder.SetOid(oid)
         .SetKeySchema(key_schema)
