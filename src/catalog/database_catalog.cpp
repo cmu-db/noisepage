@@ -6,6 +6,7 @@
 #include "catalog/postgres/pg_attribute.h"
 #include "catalog/postgres/pg_class.h"
 #include "catalog/postgres/pg_constraint.h"
+#include "catalog/postgres/pg_index.h"
 #include "catalog/postgres/pg_namespace.h"
 #include "catalog/postgres/pg_type.h"
 #include "catalog/schema.h"
@@ -427,9 +428,11 @@ void DatabaseCatalog::DeleteColumns(transaction::TransactionContext *txn, uint32
 
 // std::vector<index_oid_t> DatabaseCatalog::GetIndexes(transaction::TransactionContext *txn, table_oid_t);
 
-// index_oid_t DatabaseCatalog::CreateIndex(transaction::TransactionContext *txn, namespace_oid_t ns, const std::string
-// &name,
-//                                          table_oid_t table, IndexSchema *schema);
+index_oid_t DatabaseCatalog::CreateIndex(transaction::TransactionContext *txn, namespace_oid_t ns, const std::string &name,
+                                        table_oid_t table, IndexSchema *schema) {
+  const index_oid_t index_oid = static_cast<index_oid_t>(next_oid_++);
+  return CreateIndexEntry(txn, ns, table, index_oid, name, schema) ? index_oid : INVALID_INDEX_OID;
+}
 
 // bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oid_t index);
 
@@ -536,6 +539,158 @@ void DatabaseCatalog::TearDown(transaction::TransactionContext *txn) {
   });
 }
 
+
+bool DatabaseCatalog::CreateIndexEntry(transaction::TransactionContext *const txn,
+                                       const namespace_oid_t ns_oid, const table_oid_t table_oid,
+                                       const index_oid_t index_oid, const std::string &name, const IndexSchema *schema) {
+
+  // First, insert into pg_class
+  auto [pr_init, pr_map] = classes_->InitializerForProjectedRow(PG_CLASS_ALL_COL_OIDS);
+
+  auto *const class_insert_redo = txn->StageWrite(db_oid_, table_oid, pr_init);
+  auto *const class_insert_pr = class_insert_redo->Delta();
+
+  // Write the index_oid into the PR
+  auto index_oid_offset = pr_map[RELOID_COL_OID];
+  auto *index_oid_ptr = class_insert_pr->AccessForceNotNull(index_oid_offset);
+  *(reinterpret_cast<uint32_t *>(index_oid_ptr)) = static_cast<uint32_t>(index_oid);
+
+  // Create the necessary varlen for storage operations
+  storage::VarlenEntry name_varlen;
+  if (name.size() > storage::VarlenEntry::InlineThreshold()) {
+    byte *contents = common::AllocationUtil::AllocateAligned(name.size());
+    std::memcpy(contents, name.data(), name.size());
+    name_varlen = storage::VarlenEntry::Create(contents, name.size(), true);
+  } else {
+    name_varlen = storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *const>(name.data()), name.size());
+  }
+
+  // Write the name into the PR
+  const auto name_offset = pr_map[RELNAME_COL_OID];
+  auto *const name_ptr = class_insert_pr->AccessForceNotNull(name_offset);
+  *(reinterpret_cast<storage::VarlenEntry *>(name_ptr)) = name_varlen;
+
+  // Write the ns_oid into the PR
+  const auto ns_offset = pr_map[RELNAMESPACE_COL_OID];
+  auto *const ns_ptr = class_insert_pr->AccessForceNotNull(ns_offset);
+  *(reinterpret_cast<uint32_t *>(ns_ptr)) = static_cast<uint32_t>(ns_oid);
+
+  // Write the kind into the PR
+  const auto kind_offset = pr_map[RELKIND_COL_OID];
+  auto *const kind_ptr = class_insert_pr->AccessForceNotNull(kind_offset);
+  *(reinterpret_cast<char *>(kind_ptr)) = static_cast<char>(postgres::ClassKind::INDEX);
+
+  // Write the index_schema_ptr into the PR
+  const auto index_schema_ptr_offset = pr_map[REL_SCHEMA_COL_OID];
+  auto *const index_schema_ptr_ptr = class_insert_pr->AccessForceNotNull(index_schema_ptr_offset);
+  *(reinterpret_cast<uintptr_t *>(index_schema_ptr_ptr)) = reinterpret_cast<uintptr_t>(schema);
+
+  // Set next_col_oid to NULL because indexes don't need col_oid
+  const auto next_col_oid_offset = pr_map[REL_NEXTCOLOID_COL_OID];
+  class_insert_pr->SetNull(next_col_oid_offset);
+
+  // Set index_ptr to NULL because it gets set by execution layer after instantiation
+  const auto index_ptr_offset = pr_map[REL_PTR_COL_OID];
+  class_insert_pr->SetNull(index_ptr_offset);
+
+  // Insert into pg_class table
+  const auto class_tuple_slot = classes_->Insert(txn, class_insert_redo);
+
+  // Now we insert into indexes on pg_class
+  // Get PR initializers allocate a buffer from the largest one
+  const auto class_oid_index_init = classes_oid_index_->GetProjectedRowInitializer();
+  const auto class_name_index_init = classes_name_index_->GetProjectedRowInitializer();
+  const auto class_ns_index_init = classes_namespace_index_->GetProjectedRowInitializer();
+  auto *index_buffer = common::AllocationUtil::AllocateAligned(class_name_index_init.ProjectedRowSize());
+
+  // Insert into oid_index
+  auto *index_pr = class_oid_index_init.InitializeRow(index_buffer);
+  *(reinterpret_cast<uint32_t *>(index_pr->AccessForceNotNull(0))) = static_cast<uint32_t>(index_oid);
+  if (!classes_oid_index_->InsertUnique(txn, *index_pr, class_tuple_slot)) {
+    // There was an oid conflict and we need to abort.  Free the buffer and
+    // return INVALID_TABLE_OID to indicate the database was not created.
+    delete[] index_buffer;
+    return false;
+  }
+
+  // Insert into name_index
+  index_pr = class_name_index_init.InitializeRow(index_buffer);
+  *(reinterpret_cast<storage::VarlenEntry *>(index_pr->AccessForceNotNull(0))) = name_varlen;
+  if (!classes_name_index_->InsertUnique(txn, *index_pr, class_tuple_slot)) {
+    // There was a name conflict and we need to abort.  Free the buffer and
+    // return INVALID_TABLE_OID to indicate the database was not created.
+    delete[] index_buffer;
+    return false;
+  }
+
+  // Insert into namespace_index
+  index_pr = class_ns_index_init.InitializeRow(index_buffer);
+  *(reinterpret_cast<uint32_t *>(index_pr->AccessForceNotNull(0))) = static_cast<uint32_t>(ns_oid);
+  const auto result UNUSED_ATTRIBUTE = classes_namespace_index_->Insert(txn, *index_pr, class_tuple_slot);
+  TERRIER_ASSERT(!result, "Insertion into non-unique namespace index failed.");
+
+  delete[] index_buffer;
+
+  // Next, insert index metadata into pg_index
+  [pr_init, pr_map] = indexes_->InitializerForProjectedRow(PG_INDEX_ALL_COL_OIDS);
+  auto *const indexes_insert_redo = txn->StageWrite(db_oid_, table_oid, pr_init);
+  auto *const indexes_insert_pr = indexes_insert_redo->Delta();
+
+  // Write the index_oid into the PR
+  index_oid_offset = pr_map[INDOID_COL_OID];
+  index_oid_ptr = indexes_insert_pr->AccessForceNotNull(index_oid_offset);
+  *(reinterpret_cast<uint32_t *>(index_oid_ptr)) = static_cast<uint32_t>(index_oid);
+
+  // Write the table_oid for the table the index is for into the PR
+  const auto rel_oid_offset = pr_map[INDRELID_COL_OID];
+  auto *const rel_oid_ptr = indexes_insert_pr->AccessForceNotNull(rel_oid_offset);
+  *(reinterpret_cast<uint32_t *>(rel_oid_ptr)) = static_cast<uint32_t>(table_oid);
+
+  // Write boolean values to PR
+  *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISUNIQUE_COL_OID]))) = schema->is_unique_;
+  *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISPRIMARY_COL_OID]))) = schema->is_primary_;
+  *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISEXCLUSION_COL_OID]))) = schema->is_exclusion_;
+  *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDIMMEDIATE_COL_OID]))) = schema->is_immediate_;
+  *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISVALID_COL_OID]))) = schema->is_valid_;
+  *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISREADY_COL_OID]))) = schema->is_ready_;
+  *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISLIVE_COL_OID]))) = schema->is_live_;
+
+  // Insert into pg_index table
+  const auto indexes_tuple_slot = indexes_->Insert(txn, indexes_insert_redo);
+
+  // Now insert into the indexes on pg_index
+  // Get PR initializers and allocate a buffer from the largest one
+  const auto indexes_oid_index_init = indexes_oid_index_->GetProjectedRowInitializer();
+  const auto indexes_table_index_init = indexes_table_index_->GetProjectedRowInitializer();
+  auto buffer_size = std::max(indexes_oid_index_init.ProjectedRowSize(), indexes_table_index_init.ProjectedRowSize());
+  index_buffer = common::AllocationUtil::AllocateAligned(buffer_size);
+
+  // Insert into indexes_oid_index
+  index_pr = indexes_oid_index_init.InitializeRow(index_buffer);
+  *(reinterpret_cast<uint32_t *>(index_pr->AccessForceNotNull(0))) = static_cast<uint32_t>(index_oid);
+  if (!indexes_oid_index_->InsertUnique(txn, *index_pr, indexes_tuple_slot)) {
+    // There was an oid conflict and we need to abort.  Free the buffer and
+    // return INVALID_TABLE_OID to indicate the database was not created.
+    delete[] index_buffer;
+    return false;
+  }
+
+  // Insert into (non-unique) indexes_table_index
+  index_pr = indexes_table_index_init.InitializeRow(index_buffer);
+  *(reinterpret_cast<uint32_t *>(index_pr->AccessForceNotNull(0))) = static_cast<uint32_t>(table_oid);
+  if (!indexes_table_index_->Insert(txn, *index_pr, indexes_tuple_slot)) {
+    // There was duplicate value. Free the buffer and
+    // return INVALID_TABLE_OID to indicate the database was not created.
+    delete[] index_buffer;
+    return false;
+  }
+
+  // Free the buffer, we are finally done
+  delete[] index_buffer;
+
+  return true;
+}
+
 type_oid_t DatabaseCatalog::GetTypeOidForType(type::TypeId type) { return type_oid_t(static_cast<uint8_t>(type)); }
 
 void DatabaseCatalog::InsertType(transaction::TransactionContext *txn, type::TypeId internal_type,
@@ -559,7 +714,7 @@ void DatabaseCatalog::InsertType(transaction::TransactionContext *txn, type::Typ
   // Populate oid
   auto offset = col_map[TYPOID_COL_OID];
   auto type_oid = GetTypeOidForType(internal_type);
-  memcpy(delta->AccessForceNotNull(offset), &type_oid, sizeof(type_oid_t));
+  *(reinterpret_cast<uint32_t *>(delta->AccessForceNotNull(offset))) = static_cast<uint32_t>(type_oid);
 
   // Populate type name
   offset = col_map[TYPNAME_COL_OID];
@@ -576,21 +731,20 @@ void DatabaseCatalog::InsertType(transaction::TransactionContext *txn, type::Typ
 
   // Populate namespace
   offset = col_map[TYPNAMESPACE_COL_OID];
-  memcpy(delta->AccessForceNotNull(offset), &namespace_oid, sizeof(namespace_oid_t));
+  *(reinterpret_cast<uint32_t *>(delta->AccessForceNotNull(offset))) = static_cast<uint32_t>(namespace_oid);
 
   // Populate len
   offset = col_map[TYPLEN_COL_OID];
-  memcpy(delta->AccessForceNotNull(offset), &len, sizeof(int16_t) /* SMALLINT */);
+  *(reinterpret_cast<int16_t *>(delta->AccessForceNotNull(offset))) = len;
 
   // Populate byval
   offset = col_map[TYPBYVAL_COL_OID];
-  memcpy(delta->AccessForceNotNull(offset), &by_val, sizeof(bool));
+  *(reinterpret_cast<bool *>(delta->AccessForceNotNull(offset))) = by_val;
 
   // Populate type
   offset = col_map[TYPTYPE_COL_OID];
-  // TODO(Gus): make sure this cast works
   auto type = static_cast<uint8_t>(type_category);
-  memcpy(delta->AccessForceNotNull(offset), &type, sizeof(uint8_t) /* TINYINT */);
+  *(reinterpret_cast<uint8_t *>(delta->AccessForceNotNull(offset))) = type;
 
   // Insert into table
   auto tuple_slot = types_->Insert(txn, redo_record);
@@ -605,7 +759,7 @@ void DatabaseCatalog::InsertType(transaction::TransactionContext *txn, type::Typ
   // Insert into oid index
   auto oid_index_delta = types_oid_index_->GetProjectedRowInitializer().InitializeRow(buffer);
   auto oid_index_offset = types_oid_index_->GetKeyOidToOffsetMap().at(catalog::indexkeycol_oid_t(1));
-  memcpy(oid_index_delta->AccessForceNotNull(oid_index_offset), &type_oid, sizeof(type_oid_t));
+  *(reinterpret_cast<uint32_t *>(oid_index_delta->AccessForceNotNull(oid_index_offset))) = static_cast<uint32_t>(type_oid);
   auto result UNUSED_ATTRIBUTE = types_oid_index_->InsertUnique(txn, *oid_index_delta, tuple_slot);
   TERRIER_ASSERT(result, "Insert into type oid index should always succeed");
 
@@ -614,7 +768,7 @@ void DatabaseCatalog::InsertType(transaction::TransactionContext *txn, type::Typ
   auto name_index_delta = types_name_index_->GetProjectedRowInitializer().InitializeRow(buffer);
   // Populate namespace
   auto name_index_offset = types_name_index_->GetKeyOidToOffsetMap().at(catalog::indexkeycol_oid_t(1));
-  memcpy(name_index_delta->AccessForceNotNull(name_index_offset), &namespace_oid, sizeof(namespace_oid_t));
+  *(reinterpret_cast<uint32_t *>(name_index_delta->AccessForceNotNull(name_index_offset))) = static_cast<uint32_t>(namespace_oid);
   // Populate type name
   name_index_offset = types_name_index_->GetKeyOidToOffsetMap().at(catalog::indexkeycol_oid_t(2));
   *(reinterpret_cast<storage::VarlenEntry *>(name_index_delta->AccessForceNotNull(name_index_offset))) = name_varlen;
@@ -626,7 +780,7 @@ void DatabaseCatalog::InsertType(transaction::TransactionContext *txn, type::Typ
       common::AllocationUtil::AllocateAligned(types_namespace_index_->GetProjectedRowInitializer().ProjectedRowSize());
   auto namespace_index_delta = types_namespace_index_->GetProjectedRowInitializer().InitializeRow(buffer);
   auto namespace_index_offset = types_namespace_index_->GetKeyOidToOffsetMap().at(catalog::indexkeycol_oid_t(1));
-  memcpy(namespace_index_delta->AccessForceNotNull(namespace_index_offset), &namespace_oid, sizeof(namespace_oid_t));
+  *(reinterpret_cast<uint32_t *>(namespace_index_delta->AccessForceNotNull(namespace_index_offset))) = static_cast<uint32_t>(namespace_oid);
   result = types_namespace_index_->Insert(txn, *name_index_delta, tuple_slot);
   TERRIER_ASSERT(result, "Insert into type namespace index should always succeed");
 

@@ -284,6 +284,19 @@ class DatabaseCatalog {
   friend class postgres::Builder;
 
   /**
+   * Helper method to create index entries into pg_class and pg_indexes.
+   * @param txn txn for the operation
+   * @param ns_oid  OID of the namespace under which the index will fall
+   * @param table_oid table OID on which the new index exists
+   * @param index_oid OID for the index to create
+   * @param name name of the new index
+   * @param schema describing the new index
+   * @return true if creation succeeded, false otherwise
+   */
+  bool CreateIndexEntry(transaction::TransactionContext *const txn,
+  const namespace_oid_t ns_oid, table_oid_t table_oid, const index_oid_t index_oid, const std::string &name, const IndexSchema *schema);
+
+  /**
    * Bootstraps the built-in types found in type::Type
    * @param txn transaction to insert into catalog with
    */
