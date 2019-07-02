@@ -336,10 +336,13 @@ DatabaseCatalog *Catalog::DeleteDatabaseEntry(transaction::TransactionContext *t
 
   pr = oid_pri.Initialize(buffer);
   auto *oid = reinterpret_cast<db_oid_t *>pr->AccessForceNotNull(0);
+  *oid = db;
   const bool UNUSED_ATTRIBUTE idx_res_1 = databases_oid_index_->Delete(txn, pr, index_results[0]);
   TERRIER_ASSERT(idx_res_1, "Failed to remove OID from index");
 
   pr = name_pri.Initialize(bufer);
+  auto *key = reinterpret_cast<VarlenEntry *>pr->AccessForceNotNull(0);
+  *key = name;
   // Need to set the varlen entry in the projected row to the varlen returned above
   const bool UNUSED_ATTRIBUTE idx_res_2 = databases_name_index_->Delete(txn, pr, index_results[0]);
   TERRIER_ASSERT(idx_res_2, "Failed to remove name from index");
