@@ -67,7 +67,7 @@ class CompilerTest : public SqlBasedTest {
     tpl::ast::AstDump::Dump(root);
 
     // Convert to bytecode
-    /*auto bytecode_module = vm::BytecodeGenerator::Compile(root, exec_ctx, "tmp-tpl");
+    auto bytecode_module = vm::BytecodeGenerator::Compile(root, exec_ctx, "tmp-tpl");
     auto module = std::make_unique<vm::Module>(std::move(bytecode_module));
 
     // Run the main function
@@ -80,10 +80,9 @@ class CompilerTest : public SqlBasedTest {
     }
     auto memory = std::make_unique<sql::MemoryPool>(nullptr);
     exec_ctx->SetMemoryPool(std::move(memory));
-    EXECUTION_LOG_INFO("VM main() returned: {}", main(exec_ctx));*/
+    EXECUTION_LOG_INFO("VM main() returned: {}", main(exec_ctx));
   }
 };
-
 
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleSeqScanTest) {
@@ -133,23 +132,17 @@ TEST_F(CompilerTest, SimpleSeqScanTest) {
   MultiOutputCallback callack{std::vector<exec::OutputCallback>{store, printer}};
   auto exec_ctx = MakeExecCtx(std::move(callack), seq_scan->GetOutputSchema().get());
 
-  // Create the query object, whose region must outlive all the processing.
+  // Run & Check
   CompileAndRun(seq_scan.get(), exec_ctx.get());
   multi_checker.CheckCorrectness();
 }
 
-/*
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleAggregateTest) {
   // SELECT col2, SUM(col1) FROM test_1 WHERE col1 < 1000 GROUP BY col2;
-  // Begin a transaction
-
-  auto exec = sql::ExecutionStructures::Instance();
-  auto txn_mgr = exec->GetTxnManager();
-  auto txn = txn_mgr->BeginTransaction();
-  // Get the right oids
-  auto test_db_ns = exec->GetTestDBAndNS();
-  auto * catalog_table = exec->GetCatalog()->GetUserTable(txn, test_db_ns.first, test_db_ns.second, "test_1");
+  // Get accessor
+  auto accessor = MakeAccessor();
+  auto * catalog_table = accessor->GetUserTable("test_1");
 
   std::shared_ptr<AbstractPlanNode> seq_scan;
   OutputSchemaHelper seq_scan_out{0};
@@ -169,8 +162,8 @@ TEST_F(CompilerTest, SimpleAggregateTest) {
             .SetScanPredicate(predicate)
             .SetIsParallelFlag(false)
             .SetIsForUpdateFlag(false)
-            .SetDatabaseOid(test_db_ns.first)
-            .SetNamespaceOid(test_db_ns.second)
+            .SetDatabaseOid(accessor->GetDBOid())
+            .SetNamespaceOid(accessor->GetNSOid())
             .SetTableOid(catalog_table->Oid())
             .Build();
   }
@@ -207,26 +200,25 @@ TEST_F(CompilerTest, SimpleAggregateTest) {
   MultiChecker multi_checker{std::vector<OutputChecker*>{&num_checker, &sum_checker}};
 
   // Compile and Run
-  CompileAndRun(agg.get(), txn, &multi_checker);
+  OutputStore store{&multi_checker, agg->GetOutputSchema().get()};
+  exec::OutputPrinter printer(agg->GetOutputSchema().get());
+  MultiOutputCallback callack{std::vector<exec::OutputCallback>{store, printer}};
+  auto exec_ctx = MakeExecCtx(std::move(callack), agg->GetOutputSchema().get());
+
+  // Run & Check
+  CompileAndRun(agg.get(), exec_ctx.get());
   multi_checker.CheckCorrectness();
-  txn_mgr->Commit(txn, nullptr, nullptr);
 }
-
-
 
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleHashJoinTest) {
   // SELECT t1.col1, t2.col1, t2.col2, t1.col1 + t2.col2 FROM t1 INNER JOIN t2 ON t1.col1=t2.col1
   // WHERE t1.col1 < 500 AND t2.col1 < 80
   // TODO(Amadou): Simple join tests are very similar. Some refactoring is possible.
-  // Begin a transaction
-  auto exec = sql::ExecutionStructures::Instance();
-  auto txn_mgr = exec->GetTxnManager();
-  auto txn = txn_mgr->BeginTransaction();
-  // Get the right oids
-  auto test_db_ns = exec->GetTestDBAndNS();
-  auto * catalog_table1 = exec->GetCatalog()->GetUserTable(txn, test_db_ns.first, test_db_ns.second, "test_1");
-  auto * catalog_table2 = exec->GetCatalog()->GetUserTable(txn, test_db_ns.first, test_db_ns.second, "test_2");
+  // Get accessors
+  auto accessor = MakeAccessor();
+  auto * catalog_table1 = accessor->GetUserTable("test_1");
+  auto * catalog_table2 = accessor->GetUserTable("test_2");
 
   std::shared_ptr<AbstractPlanNode> seq_scan1;
   OutputSchemaHelper seq_scan_out1{0};
@@ -246,8 +238,8 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
             .SetScanPredicate(predicate)
             .SetIsParallelFlag(false)
             .SetIsForUpdateFlag(false)
-            .SetDatabaseOid(test_db_ns.first)
-            .SetNamespaceOid(test_db_ns.second)
+            .SetDatabaseOid(accessor->GetDBOid())
+            .SetNamespaceOid(accessor->GetNSOid())
             .SetTableOid(catalog_table1->Oid())
             .Build();
   }
@@ -269,8 +261,8 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
             .SetScanPredicate(predicate)
             .SetIsParallelFlag(false)
             .SetIsForUpdateFlag(false)
-            .SetDatabaseOid(test_db_ns.first)
-            .SetNamespaceOid(test_db_ns.second)
+            .SetDatabaseOid(accessor->GetDBOid())
+            .SetNamespaceOid(accessor->GetNSOid())
             .SetTableOid(catalog_table2->Oid())
             .Build();
   }
@@ -328,24 +320,26 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
   CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows](){
     ASSERT_EQ(num_output_rows, num_expected_rows);
   };
+
+
   GenericChecker checker(row_checker, correcteness_fn);
-  CompileAndRun(hash_join.get(), txn, &checker);
+
+  OutputStore store{&checker, hash_join->GetOutputSchema().get()};
+  exec::OutputPrinter printer(hash_join->GetOutputSchema().get());
+  MultiOutputCallback callack{std::vector<exec::OutputCallback>{store, printer}};
+  auto exec_ctx = MakeExecCtx(std::move(callack), hash_join->GetOutputSchema().get());
+
+  // Run & Check
+  CompileAndRun(hash_join.get(), exec_ctx.get());
   checker.CheckCorrectness();
-  txn_mgr->Commit(txn, nullptr, nullptr);
 }
-
-
 
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleSortTest) {
   // SELECT col1, col2, col1 + col2 FROM test_1 WHERE col1 < 500 ORDER BY col2 ASC, col1 - col2 DESC
-  // Begin a transaction
-  auto exec = sql::ExecutionStructures::Instance();
-  auto txn_mgr = exec->GetTxnManager();
-  auto txn = txn_mgr->BeginTransaction();
-  // Get the right oids
-  auto test_db_ns = exec->GetTestDBAndNS();
-  auto * catalog_table = exec->GetCatalog()->GetUserTable(txn, test_db_ns.first, test_db_ns.second, "test_1");
+  // Get accessor
+  auto accessor = MakeAccessor();
+  auto * catalog_table = accessor->GetUserTable("test_1");
 
   // Make the seq scan
   std::shared_ptr<AbstractPlanNode> seq_scan;
@@ -366,8 +360,8 @@ TEST_F(CompilerTest, SimpleSortTest) {
             .SetScanPredicate(predicate)
             .SetIsParallelFlag(false)
             .SetIsForUpdateFlag(false)
-            .SetDatabaseOid(test_db_ns.first)
-            .SetNamespaceOid(test_db_ns.second)
+            .SetDatabaseOid(accessor->GetDBOid())
+            .SetNamespaceOid(accessor->GetNSOid())
             .SetTableOid(catalog_table->Oid())
             .Build();
   }
@@ -425,26 +419,26 @@ TEST_F(CompilerTest, SimpleSortTest) {
     ASSERT_EQ(num_output_rows, num_expected_rows);
   };
   GenericChecker checker(row_checker, correcteness_fn);
-  // Compile and Run
-  CompileAndRun(order_by.get(), txn, &checker);
-  checker.CheckCorrectness();
-  txn_mgr->Commit(txn, nullptr, nullptr);
-}
 
+  // Create exec ctx
+  OutputStore store{&checker, order_by->GetOutputSchema().get()};
+  exec::OutputPrinter printer(order_by->GetOutputSchema().get());
+  MultiOutputCallback callack{std::vector<exec::OutputCallback>{store, printer}};
+  auto exec_ctx = MakeExecCtx(std::move(callack), order_by->GetOutputSchema().get());
+
+  // Run & Check
+  CompileAndRun(order_by.get(), exec_ctx.get());
+  checker.CheckCorrectness();
+}
 
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
   // SELECT t1.col1, t2.col1, t2.col2, t1.col1 + t2.col2 FROM t1 INNER JOIN t2 ON t1.col1=t2.col1
   // WHERE t1.col1 < 500 AND t2.col1 < 80
   // TODO(Amadou): Refactor simple join tests because of their similarity.
-  // Begin a transaction
-  auto exec = sql::ExecutionStructures::Instance();
-  auto txn_mgr = exec->GetTxnManager();
-  auto txn = txn_mgr->BeginTransaction();
-  // Get the right oids
-  auto test_db_ns = exec->GetTestDBAndNS();
-  auto * catalog_table1 = exec->GetCatalog()->GetUserTable(txn, test_db_ns.first, test_db_ns.second, "test_1");
-  auto * catalog_table2 = exec->GetCatalog()->GetUserTable(txn, test_db_ns.first, test_db_ns.second, "test_2");
+  auto accessor = MakeAccessor();
+  auto * catalog_table1 = accessor->GetUserTable("test_1");
+  auto * catalog_table2 = accessor->GetUserTable("test_2");
 
   std::shared_ptr<AbstractPlanNode> seq_scan1;
   OutputSchemaHelper seq_scan_out1{0};
@@ -464,8 +458,8 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
             .SetScanPredicate(predicate)
             .SetIsParallelFlag(false)
             .SetIsForUpdateFlag(false)
-            .SetDatabaseOid(test_db_ns.first)
-            .SetNamespaceOid(test_db_ns.second)
+            .SetDatabaseOid(accessor->GetDBOid())
+            .SetNamespaceOid(accessor->GetNSOid())
             .SetTableOid(catalog_table1->Oid())
             .Build();
   }
@@ -487,8 +481,8 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
             .SetScanPredicate(predicate)
             .SetIsParallelFlag(false)
             .SetIsForUpdateFlag(false)
-            .SetDatabaseOid(test_db_ns.first)
-            .SetNamespaceOid(test_db_ns.second)
+            .SetDatabaseOid(accessor->GetDBOid())
+            .SetNamespaceOid(accessor->GetNSOid())
             .SetTableOid(catalog_table2->Oid())
             .Build();
   }
@@ -547,31 +541,31 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
     ASSERT_EQ(num_output_rows, num_expected_rows);
   };
   GenericChecker checker(row_checker, correcteness_fn);
-  // Compile and Run
-  CompileAndRun(nl_join.get(), txn, &checker);
+
+  // Make Exec Ctx
+  OutputStore store{&checker, nl_join->GetOutputSchema().get()};
+  exec::OutputPrinter printer(nl_join->GetOutputSchema().get());
+  MultiOutputCallback callack{std::vector<exec::OutputCallback>{store, printer}};
+  auto exec_ctx = MakeExecCtx(std::move(callack), nl_join->GetOutputSchema().get());
+
+  // Run & Check
+  CompileAndRun(nl_join.get(), exec_ctx.get());
   checker.CheckCorrectness();
-  txn_mgr->Commit(txn, nullptr, nullptr);
 }
-
-
 
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleIndexNestedLoopJoin) {
   // SELECT t1.col1, t2.col1, t2.col2, t1.col2 + t2.col2 FROM test_2 AS t2 INNER JOIN test_1 AS t1 ON t1.col1=t2.col1
   // WHERE t1.col1 < 500
   // TODO(Amadou): Refactor simple join tests because of their similarity.
-  // Begin a transaction
-  auto exec = sql::ExecutionStructures::Instance();
-  auto txn_mgr = exec->GetTxnManager();
-  auto txn = txn_mgr->BeginTransaction();
-  // Get the db and ns oid
-  auto test_db_ns = exec->GetTestDBAndNS();
+  // Get accessor
+  auto accessor = MakeAccessor();
 
   // Make the seq scan: Here test_2 is the outer table
   std::shared_ptr<AbstractPlanNode> seq_scan;
   OutputSchemaHelper seq_scan_out{0};
   {
-    auto * catalog_table2 = exec->GetCatalog()->GetUserTable(txn, test_db_ns.first, test_db_ns.second, "test_2");
+    auto * catalog_table2 = accessor->GetUserTable("test_2");
     // Get Table columns
     auto col1 = ExpressionUtil::TVE(0, catalog_table2->ColNumToOffset(0), terrier::type::TypeId::SMALLINT);
     auto col2 = ExpressionUtil::TVE(0, catalog_table2->ColNumToOffset(1), terrier::type::TypeId::INTEGER);
@@ -587,8 +581,8 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoin) {
             .SetScanPredicate(predicate)
             .SetIsParallelFlag(false)
             .SetIsForUpdateFlag(false)
-            .SetDatabaseOid(test_db_ns.first)
-            .SetNamespaceOid(test_db_ns.second)
+            .SetDatabaseOid(accessor->GetDBOid())
+            .SetNamespaceOid(accessor->GetNSOid())
             .SetTableOid(catalog_table2->Oid())
             .Build();
   }
@@ -597,8 +591,8 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoin) {
   OutputSchemaHelper index_join_out{0};
   {
     // Retrieve table and index
-    auto * catalog_table1 = exec->GetCatalog()->GetUserTable(txn, test_db_ns.first, test_db_ns.second, "test_1");
-    terrier::catalog::index_oid_t index_oid = exec->GetCatalog()->GetCatalogIndexOid("index_1");
+    auto * catalog_table1 = accessor->GetUserTable("test_1");
+    terrier::catalog::index_oid_t index_oid = accessor->GetCatalogIndexOid("index_1");
     // t1.col1, and t1.col2
     auto t1_col1 = ExpressionUtil::TVE(1, catalog_table1->ColNumToOffset(0), terrier::type::TypeId::INTEGER);
     auto t1_col2 = ExpressionUtil::TVE(1, catalog_table1->ColNumToOffset(1), terrier::type::TypeId::INTEGER);
@@ -651,28 +645,30 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoin) {
     ASSERT_EQ(num_output_rows, num_expected_rows);
   };
   GenericChecker checker(row_checker, correcteness_fn);
-  // Compile and Run
-  CompileAndRun(index_join.get(), txn, &checker);
+
+  // Make Exec Ctx
+  OutputStore store{&checker, index_join->GetOutputSchema().get()};
+  exec::OutputPrinter printer(index_join->GetOutputSchema().get());
+  MultiOutputCallback callack{std::vector<exec::OutputCallback>{store, printer}};
+  auto exec_ctx = MakeExecCtx(std::move(callack), index_join->GetOutputSchema().get());
+
+  // Run & Check
+  CompileAndRun(index_join.get(), exec_ctx.get());
   checker.CheckCorrectness();
-  txn_mgr->Commit(txn, nullptr, nullptr);
 }
 
 
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, TPCHQ1Test) {
   // TODO: This should be in the benchmarks
-  auto exec = sql::ExecutionStructures::Instance();
-  auto txn_mgr = exec->GetTxnManager();
-  auto catalog = exec->GetCatalog();
-  auto txn = txn_mgr->BeginTransaction();
-  // Create lineitem table
-  auto test_db_ns = exec->GetTestDBAndNS();
-  reader::TableReader table_reader(catalog, txn, test_db_ns.first, test_db_ns.second);
-  uint32_t num_written = table_reader.ReadTable("../sample_tpl/tables/lineitem.schema", "../sample_tpl/tables/lineitem.data");
-  std::cout << "Wrote " << num_written << " for lineitem table" << std::endl;
+  // Find a cleaner way to create these tables
+  auto exec_ctx = MakeExecCtx();
+  sql::TableGenerator generator(exec_ctx.get());
+  generator.GenerateTableFromFile("../sample_tpl/tables/lineitem.schema", "../sample_tpl/tables/lineitem.data");
 
   // Get the table from the catalog
-  auto * catalog_table = exec->GetCatalog()->GetUserTable(txn, test_db_ns.first, test_db_ns.second, "lineitem");
+  auto accessor = MakeAccessor();
+  auto * catalog_table = accessor->GetUserTable("lineitem");
   // Scan the table
   std::shared_ptr<AbstractPlanNode> seq_scan;
   OutputSchemaHelper seq_scan_out{0};
@@ -707,8 +703,8 @@ TEST_F(CompilerTest, TPCHQ1Test) {
             .SetScanPredicate(nullptr)
             .SetIsParallelFlag(false)
             .SetIsForUpdateFlag(false)
-            .SetDatabaseOid(test_db_ns.first)
-            .SetNamespaceOid(test_db_ns.second)
+            .SetDatabaseOid(accessor->GetDBOid())
+            .SetNamespaceOid(accessor->GetNSOid())
             .SetTableOid(catalog_table->Oid())
             .Build();
   }
@@ -782,11 +778,15 @@ TEST_F(CompilerTest, TPCHQ1Test) {
   CorrectnessFn correcteness_fn;
   RowChecker row_checker;
   GenericChecker checker(row_checker, correcteness_fn);
-  // Compile and Run
-  CompileAndRun(agg.get(), txn, &checker);
+  // Make Exec Ctx
+  OutputStore store{&checker, agg->GetOutputSchema().get()};
+  exec::OutputPrinter printer(agg->GetOutputSchema().get());
+  MultiOutputCallback callack{std::vector<exec::OutputCallback>{store, printer}};
+  exec_ctx = MakeExecCtx(std::move(callack), agg->GetOutputSchema().get());
+
+  // Run & Check
+  CompileAndRun(agg.get(), exec_ctx.get());
   checker.CheckCorrectness();
-  txn_mgr->Commit(txn, nullptr, nullptr);
 }
- */
 
 }  // namespace terrier::planner

@@ -198,6 +198,8 @@ void TableGenerator::GenerateTestTables() {
     }
     EXECUTION_LOG_INFO("Created Table {}", table_meta.name);
   }
+
+  InitTestIndexes();
 }
 
 void TableGenerator::FillIndex(const std::shared_ptr<terrier::catalog::CatalogIndex> &catalog_index,

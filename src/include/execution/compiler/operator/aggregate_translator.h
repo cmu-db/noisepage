@@ -114,10 +114,10 @@ class AggregateBottomTranslator : public OperatorTranslator {
   // Generate var agg_hash_val = @hash(groub_by_term1, group_by_term2, ...)
   void GenHashCall(FunctionBuilder * builder);
 
-  void GenVecHashFn(util::RegionVector<ast::Decl *> *decls);
-  void GenVecKeyCheckFn(util::RegionVector<ast::Decl *> *decls);
-  void GenVecInitFn(util::RegionVector<ast::Decl *> *decls);
-  void GenVecAdvanceFn(util::RegionVector<ast::Decl *> *decls);
+  //void GenVecHashFn(util::RegionVector<ast::Decl *> *decls);
+  //void GenVecKeyCheckFn(util::RegionVector<ast::Decl *> *decls);
+  //void GenVecInitFn(util::RegionVector<ast::Decl *> *decls);
+  //void GenVecAdvanceFn(util::RegionVector<ast::Decl *> *decls);
 
 
   // Make the top translator a friend class.
@@ -126,6 +126,7 @@ class AggregateBottomTranslator : public OperatorTranslator {
   uint32_t num_group_by_terms{0};
 
   // Structs, Functions, and local variables needed.
+  // TODO(Amadou): This list is blowing. Figure out a different to manage local variable names.
   static constexpr const char* hash_val_name = "agg_hash_val";
   static constexpr const char* agg_payload_name = "agg_payload";
   static constexpr const char* agg_values_name = "agg_values";
@@ -136,10 +137,10 @@ class AggregateBottomTranslator : public OperatorTranslator {
   static constexpr const char* group_by_term_names = "group_by_term";
   static constexpr const char* agg_term_names = "agg_term";
   // Functions used by the vectorized version
-  static constexpr const char* vec_hash_fn_name = "aggVecHashFn";
-  static constexpr const char* vec_key_check_fn_name = "aggVecHashFn";
-  static constexpr const char* vec_init_fn_name = "aggVecInitFn";
-  static constexpr const char* vec_advance_fn_name = "aggVecAdvanceFn";
+  //static constexpr const char* vec_hash_fn_name = "aggVecHashFn";
+  //static constexpr const char* vec_key_check_fn_name = "aggVecHashFn";
+  //static constexpr const char* vec_init_fn_name = "aggVecInitFn";
+  //static constexpr const char* vec_advance_fn_name = "aggVecAdvanceFn";
   ast::Identifier hash_val_;
   ast::Identifier agg_values_;
   ast::Identifier values_struct_;
