@@ -97,7 +97,7 @@ void DatabaseCatalog::TearDown(transaction::TransactionContext *txn) {
   // pg_attribute (expressions)
   col_oids.clear();
   col_oids.emplace_back(ADBIN_COL_OID);
-  auto [pci, pm] = columns_->InitializerForProjectedColumns(col_oids, 100);
+  std::tie(pci, pm) = columns_->InitializerForProjectedColumns(col_oids, 100);
   pc = pci.Initialize(buffer);
 
   auto exprs = reinterpret_cast<parser::AbstractExpression **>(pc->ColumnStart(0));
@@ -114,7 +114,7 @@ void DatabaseCatalog::TearDown(transaction::TransactionContext *txn) {
   // pg_constraint (expressions)
   col_oids.clear();
   col_oids.emplace_back(CONBIN_COL_OID);
-  [pci, pm] = constraints->InitializerForProjectedColumns(col_oids, 100);
+  std::pie(pci, pm) = constraints->InitializerForProjectedColumns(col_oids, 100);
   pc = pci.Initialize(buffer);
 
   auto exprs = reinterpret_cast<parser::AbstractExpression **>(pc->ColumnStart(0));
