@@ -16,7 +16,7 @@
 namespace terrier::catalog {
 
 namespace postgres {
-  class Builder;
+class Builder;
 }
 
 /**

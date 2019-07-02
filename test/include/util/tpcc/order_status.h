@@ -67,12 +67,12 @@ class OrderStatus {
 
  public:
   explicit OrderStatus(const Database *const db)
-      : c_id_key_pr_offset(static_cast<uint8_t>(
-            db->customer_primary_index_->GetKeyOidToOffsetMap().at(db->customer_primary_index_schema_.GetColumn(2).GetOid()))),
-        c_d_id_key_pr_offset(static_cast<uint8_t>(
-            db->customer_primary_index_->GetKeyOidToOffsetMap().at(db->customer_primary_index_schema_.GetColumn(1).GetOid()))),
-        c_w_id_key_pr_offset(static_cast<uint8_t>(
-            db->customer_primary_index_->GetKeyOidToOffsetMap().at(db->customer_primary_index_schema_.GetColumn(0).GetOid()))),
+      : c_id_key_pr_offset(static_cast<uint8_t>(db->customer_primary_index_->GetKeyOidToOffsetMap().at(
+            db->customer_primary_index_schema_.GetColumn(2).GetOid()))),
+        c_d_id_key_pr_offset(static_cast<uint8_t>(db->customer_primary_index_->GetKeyOidToOffsetMap().at(
+            db->customer_primary_index_schema_.GetColumn(1).GetOid()))),
+        c_w_id_key_pr_offset(static_cast<uint8_t>(db->customer_primary_index_->GetKeyOidToOffsetMap().at(
+            db->customer_primary_index_schema_.GetColumn(0).GetOid()))),
         c_last_name_key_pr_offset(static_cast<uint8_t>(db->customer_secondary_index_->GetKeyOidToOffsetMap().at(
             db->customer_secondary_index_schema_.GetColumn(2).GetOid()))),
         c_d_id_name_key_pr_offset(static_cast<uint8_t>(db->customer_secondary_index_->GetKeyOidToOffsetMap().at(
@@ -101,14 +101,14 @@ class OrderStatus {
         c_first_select_pr_offset(static_cast<uint8_t>(customer_select_pr_map.at(c_first_oid))),
         c_middle_select_pr_offset(static_cast<uint8_t>(customer_select_pr_map.at(c_middle_oid))),
         c_last_select_pr_offset(static_cast<uint8_t>(customer_select_pr_map.at(c_last_oid))),
-        o_id_secondary_key_pr_offset(static_cast<uint8_t>(
-            db->order_secondary_index_->GetKeyOidToOffsetMap().at(db->order_secondary_index_schema_.GetColumn(3).GetOid()))),
-        o_d_id_secondary_key_pr_offset(static_cast<uint8_t>(
-            db->order_secondary_index_->GetKeyOidToOffsetMap().at(db->order_secondary_index_schema_.GetColumn(1).GetOid()))),
-        o_w_id_secondary_key_pr_offset(static_cast<uint8_t>(
-            db->order_secondary_index_->GetKeyOidToOffsetMap().at(db->order_secondary_index_schema_.GetColumn(0).GetOid()))),
-        o_c_id_secondary_key_pr_offset(static_cast<uint8_t>(
-            db->order_secondary_index_->GetKeyOidToOffsetMap().at(db->order_secondary_index_schema_.GetColumn(2).GetOid()))),
+        o_id_secondary_key_pr_offset(static_cast<uint8_t>(db->order_secondary_index_->GetKeyOidToOffsetMap().at(
+            db->order_secondary_index_schema_.GetColumn(3).GetOid()))),
+        o_d_id_secondary_key_pr_offset(static_cast<uint8_t>(db->order_secondary_index_->GetKeyOidToOffsetMap().at(
+            db->order_secondary_index_schema_.GetColumn(1).GetOid()))),
+        o_w_id_secondary_key_pr_offset(static_cast<uint8_t>(db->order_secondary_index_->GetKeyOidToOffsetMap().at(
+            db->order_secondary_index_schema_.GetColumn(0).GetOid()))),
+        o_c_id_secondary_key_pr_offset(static_cast<uint8_t>(db->order_secondary_index_->GetKeyOidToOffsetMap().at(
+            db->order_secondary_index_schema_.GetColumn(2).GetOid()))),
         o_id_oid(db->order_schema_.GetColumn(0).GetOid()),
         o_entry_d_oid(db->order_schema_.GetColumn(4).GetOid()),
         o_carrier_id_oid(db->order_schema_.GetColumn(5).GetOid()),

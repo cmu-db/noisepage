@@ -17,7 +17,7 @@
 
 namespace terrier::storage::postgres {
 
-#define MAX_NAME_LENGTH 63 // This mimics PostgreSQL behavior
+#define MAX_NAME_LENGTH 63  // This mimics PostgreSQL behavior
 
 static Schema Builder::GetDatabaseTableSchema() {
   std::vector<Schema::Column> columns;
@@ -35,7 +35,7 @@ static IndexSchema Builder::GetDatabaseOidIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back(type::TypeId::Integer, false,
-    new parser::ColumnValueExpression(DATABASE_TABLE_OID, DATOID_COL_OID));
+                       new parser::ColumnValueExpression(DATABASE_TABLE_OID, DATOID_COL_OID));
   columns.back().SetOid(col_oid_t(1));
 
   // Primary
@@ -50,7 +50,7 @@ static IndexSchema Builder::GetDatabaseNameIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back(type::TypeId::VARCHAR, false,
-    new parser::ColumnValueExpression(DATABASE_TABLE_OID, DATNAME_COL_OID));
+                       new parser::ColumnValueExpression(DATABASE_TABLE_OID, DATNAME_COL_OID));
   columns.back().SetOid(col_oid_t(1));
 
   // Unique, not primary
@@ -60,7 +60,6 @@ static IndexSchema Builder::GetDatabaseNameIndexSchema() {
 
   return schema;
 }
-
 
 static DatabaseCatalog *Builder::CreateDatabaseCatalog(storage::BlockStore *block_store, db_oid_t oid) {
   auto dbc = new DatabaseCatalog(oid);
@@ -74,13 +73,14 @@ static DatabaseCatalog *Builder::CreateDatabaseCatalog(storage::BlockStore *bloc
 
   // Indexes on pg_namespace
   dbc.namespaces_oid_index_ = Builder::BuildUniqueIndex(Builder::GetNamespaceOidIndexSchema(), NAMESPACE_OID_INDEX_OID);
-  dbc.namespaces_name_index_ = Builder::BuildUniqueIndex(Builder::GetNamespaceNameIndexSchema(),
-    NAMESPACE_NAME_INDEX_OID);
+  dbc.namespaces_name_index_ =
+      Builder::BuildUniqueIndex(Builder::GetNamespaceNameIndexSchema(), NAMESPACE_NAME_INDEX_OID);
 
   // Indexes on pg_class
   dbc.classes_oid_index_ = Builder::BuildUniqueIndex(Builder::GetClassOidIndexSchema(), CLASS_OID_INDEX_OID);
   dbc.classes_name_index_ = Builder::BuildUniqueIndex(Builder::GetClassNameIndexSchema(), CLASS_NAME_INDEX_OID);
-  dbc.classes_namespace_index_ = Builder::BuildLookupIndex(Builder::GetClassNamespaceIndexSchema(), CLASS_NAMESPACE_INDEX_OID);
+  dbc.classes_namespace_index_ =
+      Builder::BuildLookupIndex(Builder::GetClassNamespaceIndexSchema(), CLASS_NAMESPACE_INDEX_OID);
 
   // Indexes on pg_index
   dbc.indexes_oid_index_ = Builder::BuildUniqueIndex(Builder::GetIndexOidIndexSchema(), INDEX_OID_INDEX_OID);
@@ -93,21 +93,22 @@ static DatabaseCatalog *Builder::CreateDatabaseCatalog(storage::BlockStore *bloc
   // Indexes on pg_type
   dbc.types_oid_index_ = Builder::BuildUniqueIndex(Builder::GetTypeOidIndexSchema(), TYPE_OID_INDEX_OID);
   dbc.types_name_index_ = Builder::BuildUniqueIndex(Builder::GetTypeNameIndexSchema(), TYPE_NAME_INDEX_OID);
-  dbc.types_namespace_index_ = Builder::BuildLookupIndex(Builder::GetTypeNamespaceIndexSchema(), TYPE_NAMESPACE_INDEX_OID);
+  dbc.types_namespace_index_ =
+      Builder::BuildLookupIndex(Builder::GetTypeNamespaceIndexSchema(), TYPE_NAMESPACE_INDEX_OID);
 
   // Indexes on pg_constraint
-  dbc.constraints_oid_index_ = Builder::BuildUniqueIndex(Builder::GetConstraintOidIndexSchema(),
-    CONSTRAINT_OID_INDEX_OID);
-  dbc.constraints_name_index_ = Builder::BuildUniqueIndex(Builder::GetConstraintNameIndexSchema(),
-    CONSTRAINT_NAME_INDEX_OID);
-  dbc.constraints_namespace_index_ = Builder::BuildLookupIndex(Builder::GetConstraintNamespaceIndexSchema(),
-    CONSTRAINT_NAMESPACE_INDEX_OID);
-  dbc.constraints_table_index_ = Builder::BuildLookupIndex(Builder::GetConstraintTableIndexSchema(),
-    CONSTRAINT_TABLE_INDEX_OID);
-  dbc.constraints_index_index_ = Builder::BuildLookupIndex(Builder::GetConstraintIndexIndexSchema(),
-    CONSTRAINT_INDEX_INDEX_OID);
-  dbc.constraints_foreignkey_index_ = Builder::BuildLookupIndex(Builder::GetConstraintForeignKeyIndexSchema(),
-    CONSTRAINT_FOREIGNKEY_INDEX_OID);
+  dbc.constraints_oid_index_ =
+      Builder::BuildUniqueIndex(Builder::GetConstraintOidIndexSchema(), CONSTRAINT_OID_INDEX_OID);
+  dbc.constraints_name_index_ =
+      Builder::BuildUniqueIndex(Builder::GetConstraintNameIndexSchema(), CONSTRAINT_NAME_INDEX_OID);
+  dbc.constraints_namespace_index_ =
+      Builder::BuildLookupIndex(Builder::GetConstraintNamespaceIndexSchema(), CONSTRAINT_NAMESPACE_INDEX_OID);
+  dbc.constraints_table_index_ =
+      Builder::BuildLookupIndex(Builder::GetConstraintTableIndexSchema(), CONSTRAINT_TABLE_INDEX_OID);
+  dbc.constraints_index_index_ =
+      Builder::BuildLookupIndex(Builder::GetConstraintIndexIndexSchema(), CONSTRAINT_INDEX_INDEX_OID);
+  dbc.constraints_foreignkey_index_ =
+      Builder::BuildLookupIndex(Builder::GetConstraintForeignKeyIndexSchema(), CONSTRAINT_FOREIGNKEY_INDEX_OID);
 
   return dbc;
 }
@@ -278,7 +279,7 @@ static Schema Builder::GetNamespaceTableSchema() {
   return Schema(columns);
 }
 
-static Schema Builder::GetTypeTableSchema()  {
+static Schema Builder::GetTypeTableSchema() {
   std::vector<Schema::Column> columns;
 
   columns.emplace_back("typoid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
@@ -306,7 +307,7 @@ static IndexSchema Builder::GetNamespaceOidIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back(type::TypeId::Integer, false,
-    new parser::ColumnValueExpression(NAMESPACE_TABLE_OID, NSPOID_COL_OID));
+                       new parser::ColumnValueExpression(NAMESPACE_TABLE_OID, NSPOID_COL_OID));
   columns.back().SetOid(col_oid_t(1));
 
   // Primary
@@ -321,7 +322,7 @@ static IndexSchema Builder::GetNamespaceNameIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back(type::TypeId::VARCHAR, false,
-    new parser::ColumnValueExpression(NAMESPACE_TABLE_OID, NSPNAME_COL_OID));
+                       new parser::ColumnValueExpression(NAMESPACE_TABLE_OID, NSPNAME_COL_OID));
   columns.back().SetOid(col_oid_t(1));
 
   // Unique, not primary
@@ -336,7 +337,7 @@ static IndexSchema Builder::GetClassOidIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back(type::TypeId::INTEGER, false,
-    new parser::ColumnValueExpression(CLASS_TABLE_OID, RELOID_COL_OID));
+                       new parser::ColumnValueExpression(CLASS_TABLE_OID, RELOID_COL_OID));
   columns.back().SetOid(col_oid_t(1));
 
   // Primary
@@ -351,11 +352,11 @@ static IndexSchema Builder::GetClassNameIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back(type::TypeId::Integer, false,
-    new parser::ColumnValueExpression(CLASS_TABLE_OID, RELNAMESPACE_COL_OID));
+                       new parser::ColumnValueExpression(CLASS_TABLE_OID, RELNAMESPACE_COL_OID));
   columns.back().SetOid(col_oid_t(1));
 
   columns.emplace_back(type::TypeId::VARCHAR, false,
-    new parser::ColumnValueExpression(CLASS_TABLE_OID, RELNAME_COL_OID));
+                       new parser::ColumnValueExpression(CLASS_TABLE_OID, RELNAME_COL_OID));
   columns.back().SetOid(col_oid_t(2));
 
   // Unique, not primary
@@ -370,7 +371,7 @@ static IndexSchema Builder::GetClassNamespaceIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back(type::TypeId::Integer, false,
-    new parser::ColumnValueExpression(CLASS_TABLE_OID, RELNAMESPACE_COL_OID));
+                       new parser::ColumnValueExpression(CLASS_TABLE_OID, RELNAMESPACE_COL_OID));
   columns.back().SetOid(col_oid_t(1));
 
   // Unique, not primary
@@ -385,7 +386,7 @@ static IndexSchema Builder::GetIndexOidIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back(type::TypeId::INTEGER, false,
-    new parser::ColumnValueExpression(INDEX_TABLE_OID, INDOID_COL_OID));
+                       new parser::ColumnValueExpression(INDEX_TABLE_OID, INDOID_COL_OID));
   columns.back().SetOid(col_oid_t(1));
 
   // Primary
@@ -400,7 +401,7 @@ static IndexSchema Builder::GetIndexTableIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back(type::TypeId::INTEGER, false,
-    new parser::ColumnValueExpression(INDEX_TABLE_OID, INDRELID_COL_OID));
+                       new parser::ColumnValueExpression(INDEX_TABLE_OID, INDRELID_COL_OID));
   columns.back().SetOid(col_oid_t(1));
 
   // Not unique
@@ -415,11 +416,11 @@ static IndexSchema Builder::GetColumnOidIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back(type::TypeId::INTEGER, false,
-    new parser::ColumnValueExpression(COLUMN_TABLE_OID, ATTRELID_COL_OID));
+                       new parser::ColumnValueExpression(COLUMN_TABLE_OID, ATTRELID_COL_OID));
   columns.back().SetOid(col_oid_t(1));
 
   columns.emplace_back(type::TypeId::INTEGER, false,
-    new parser::ColumnValueExpression(COLUMN_TABLE_OID, ATTNUM_COL_OID));
+                       new parser::ColumnValueExpression(COLUMN_TABLE_OID, ATTNUM_COL_OID));
   columns.back().SetOid(col_oid_t(2));
 
   // Primary
@@ -434,11 +435,11 @@ static IndexSchema Builder::GetColumnNameIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back(type::TypeId::INTEGER, false,
-    new parser::ColumnValueExpression(COLUMN_TABLE_OID, ATTRELID_COL_OID));
+                       new parser::ColumnValueExpression(COLUMN_TABLE_OID, ATTRELID_COL_OID));
   columns.back().SetOid(col_oid_t(1));
 
   columns.emplace_back(type::TypeId::VARCHAR, false,
-    new parser::ColumnValueExpression(COLUMN_TABLE_OID, ATTNAME_COL_OID));
+                       new parser::ColumnValueExpression(COLUMN_TABLE_OID, ATTNAME_COL_OID));
   columns.back().SetOid(col_oid_t(2));
 
   // Unique, not primary
@@ -453,7 +454,7 @@ static IndexSchema Builder::GetColumnClassIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back(type::TypeId::INTEGER, false,
-    new parser::ColumnValueExpression(COLUMN_TABLE_OID, ATTRELID_COL_OID));
+                       new parser::ColumnValueExpression(COLUMN_TABLE_OID, ATTRELID_COL_OID));
   columns.back().SetOid(col_oid_t(1));
 
   // Not unique
@@ -467,8 +468,7 @@ static IndexSchema Builder::GetColumnClassIndexSchema() {
 static IndexSchema Builder::GetTypeOidIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
-  columns.emplace_back(type::TypeId::INTEGER, false,
-    new parser::ColumnValueExpression(TYPE_TABLE_OID, TYPOID_COL_OID));
+  columns.emplace_back(type::TypeId::INTEGER, false, new parser::ColumnValueExpression(TYPE_TABLE_OID, TYPOID_COL_OID));
   columns.back().SetOid(col_oid_t(1));
 
   // Primary
@@ -483,11 +483,11 @@ static IndexSchema Builder::GetTypeNameIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back(type::TypeId::Integer, false,
-    new parser::ColumnValueExpression(TYPE_TABLE_OID, TYPNAMESPACE_COL_OID));
+                       new parser::ColumnValueExpression(TYPE_TABLE_OID, TYPNAMESPACE_COL_OID));
   columns.back().SetOid(col_oid_t(1));
 
   columns.emplace_back(type::TypeId::VARCHAR, false,
-    new parser::ColumnValueExpression(TYPE_TABLE_OID, TYPNAME_COL_OID));
+                       new parser::ColumnValueExpression(TYPE_TABLE_OID, TYPNAME_COL_OID));
   columns.back().SetOid(col_oid_t(2));
 
   // Unique, not primary
@@ -502,7 +502,7 @@ static IndexSchema Builder::GetTypeNamespaceIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back(type::TypeId::Integer, false,
-    new parser::ColumnValueExpression(TYPE_TABLE_OID, TYPNAMESPACE_COL_OID));
+                       new parser::ColumnValueExpression(TYPE_TABLE_OID, TYPNAMESPACE_COL_OID));
   columns.back().SetOid(col_oid_t(1));
 
   // Unique, not primary
@@ -517,7 +517,7 @@ static IndexSchema Builder::GetConstraintOidIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back(type::TypeId::INTEGER, false,
-    new parser::ColumnValueExpression(CONSTRAINT_TABLE_OID, CONOID_COL_OID));
+                       new parser::ColumnValueExpression(CONSTRAINT_TABLE_OID, CONOID_COL_OID));
   columns.back().SetOid(col_oid_t(1));
 
   // Primary
@@ -532,11 +532,11 @@ static IndexSchema Builder::GetConstraintNameIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back(type::TypeId::Integer, false,
-    new parser::ColumnValueExpression(CONSTRAINT_TABLE_OID, CONNAMESPACE_COL_OID));
+                       new parser::ColumnValueExpression(CONSTRAINT_TABLE_OID, CONNAMESPACE_COL_OID));
   columns.back().SetOid(col_oid_t(1));
 
   columns.emplace_back(type::TypeId::VARCHAR, false,
-    new parser::ColumnValueExpression(CONSTRAINT_TABLE_OID, CONNAME_COL_OID));
+                       new parser::ColumnValueExpression(CONSTRAINT_TABLE_OID, CONNAME_COL_OID));
   columns.back().SetOid(col_oid_t(2));
 
   // Unique, not primary
@@ -551,7 +551,7 @@ static IndexSchema Builder::GetConstraintNamespaceIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back(type::TypeId::Integer, false,
-    new parser::ColumnValueExpression(CONSTRAINT_TABLE_OID, CONNAMESPACE_COL_OID));
+                       new parser::ColumnValueExpression(CONSTRAINT_TABLE_OID, CONNAMESPACE_COL_OID));
   columns.back().SetOid(col_oid_t(1));
 
   // Unique, not primary
@@ -566,7 +566,7 @@ static IndexSchema Builder::GetConstraintTableIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back(type::TypeId::INTEGER, false,
-    new parser::ColumnValueExpression(CONSTRAINT_TABLE_OID, CONRELID_COL_OID));
+                       new parser::ColumnValueExpression(CONSTRAINT_TABLE_OID, CONRELID_COL_OID));
   columns.back().SetOid(col_oid_t(1));
 
   // Not unique
@@ -581,7 +581,7 @@ static IndexSchema Builder::GetConstraintIndexIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back(type::TypeId::INTEGER, false,
-    new parser::ColumnValueExpression(CONSTRAINT_TABLE_OID, CONINDID_COL_OID));
+                       new parser::ColumnValueExpression(CONSTRAINT_TABLE_OID, CONINDID_COL_OID));
   columns.back().SetOid(col_oid_t(1));
 
   // Not unique
@@ -596,7 +596,7 @@ static IndexSchema Builder::GetConstraintForeignTableIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back(type::TypeId::INTEGER, false,
-    new parser::ColumnValueExpression(CONSTRAINT_TABLE_OID, CONFRELID_COL_OID));
+                       new parser::ColumnValueExpression(CONSTRAINT_TABLE_OID, CONFRELID_COL_OID));
   columns.back().SetOid(col_oid_t(1));
 
   // Not unique
@@ -607,4 +607,4 @@ static IndexSchema Builder::GetConstraintForeignTableIndexSchema() {
   return schema;
 }
 
-} // namespace terrier::storage::postgres
+}  // namespace terrier::storage::postgres

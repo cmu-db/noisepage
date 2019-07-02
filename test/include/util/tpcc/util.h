@@ -6,8 +6,8 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include "catalog/schema.h"
 #include "catalog/index_schema.h"
+#include "catalog/schema.h"
 #include "storage/garbage_collector.h"
 #include "storage/projected_row.h"
 #include "util/catalog_test_util.h"

@@ -8,7 +8,7 @@
 namespace terrier::catalog {
 
 namespace postgres {
-  class Builder;
+class Builder;
 }
 
 /**
@@ -43,8 +43,7 @@ class IndexSchema {
      * @param type_id the varlen type of the column
      * @param max_varlen_size the maximum varlen size
      */
-    Column(type::TypeId type_id, bool nullable, const parser::AbstractExpression &expression,
-                   uint16_t max_varlen_size)
+    Column(type::TypeId type_id, bool nullable, const parser::AbstractExpression &expression, uint16_t max_varlen_size)
         : oid_(INVALID_INDEXKEYCOL_OID), packed_type_(0) {
       TERRIER_ASSERT(type_id == type::TypeId::VARCHAR || type_id == type::TypeId::VARBINARY, "Varlen constructor.");
       SetTypeId(type_id);
@@ -72,6 +71,13 @@ class IndexSchema {
      * @return true if this column is nullable
      */
     bool IsNullable() const { return static_cast<bool>(packed_type_ & MASK_NULLABLE); }
+
+    /**
+     * Note(Amadou): I added this to make sure this has the same name as Schema::Column
+     * This way we can make templatized classes can use both classes interchangeably.
+     * @return true if this column is nullable
+     */
+    bool GetNullable() const { return static_cast<bool>(packed_type_ & MASK_NULLABLE); }
 
    private:
     static constexpr uint32_t MASK_VARLEN = 0x00FFFF00;
@@ -137,6 +143,7 @@ class IndexSchema {
    * @return requested key column
    */
   const Column &GetColumn(int index) const { return columns_.at(index); }
+
  private:
   const std::vector<Column> columns_;
   bool is_unique_;

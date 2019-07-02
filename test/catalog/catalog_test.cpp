@@ -60,7 +60,7 @@ struct CatalogTests : public TerrierTest {
   }
 
   void VerifyTableAbsent(catalog::CatalogAccessor &accessor, catalog::namespace_oid_t ns_oid,
-                          const std::string &table_name) {
+                         const std::string &table_name) {
     auto table_oid = accessor.GetTableOid(ns_oid, table_name);
     EXPECT_EQ(table_oid, catalog::INVALID_TABLE_OID);
   }
@@ -81,12 +81,12 @@ struct CatalogTests : public TerrierTest {
 TEST_F(CatalogTests, DatabaseTest) {
   // Create a database and check that it's immediately visible
   auto txn = txn_manager_->BeginTransaction();
-  auto accessor = catalog_->GetAccessor(txn, "terrier"); // Catalog's default DB
+  auto accessor = catalog_->GetAccessor(txn, "terrier");  // Catalog's default DB
   auto db_oid = accessor.CreateDatabase("test_database");
   EXPECT_NE(db_oid, catalog::INVALID_DATABASE_OID);
-  VerifyCatalogTables(accessor); // Check visibility to me
+  VerifyCatalogTables(accessor);  // Check visibility to me
   db_oid = accessor.CreateDatabase("test_database");
-  EXPECT_EQ(db_oid, catalog::INVALID_DATABASE_OID); // Should cause a name conflict
+  EXPECT_EQ(db_oid, catalog::INVALID_DATABASE_OID);  // Should cause a name conflict
   txn_manager_->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
   gc_->PerformGarbageCollection();
   gc_->PerformGarbageCollection();
@@ -95,10 +95,10 @@ TEST_F(CatalogTests, DatabaseTest) {
   // then delete it and verify an invalid OID is now returned for the lookup
   txn = txn_manager_->BeginTransaction();
   accessor = catalog_->GetAccessor(txn, "test_database");
-  VerifyCatalogTables(accessor); // Check visibility to me
+  VerifyCatalogTables(accessor);  // Check visibility to me
   db_oid = accessor.GetDatabaseOid("test_database");
   EXPECT_TRUE(accessor.DropDatabase(db_oid));
-  EXPECT_FALSE(accessor.DropDatabase(db_oid)); // Cannot drop a database twice
+  EXPECT_FALSE(accessor.DropDatabase(db_oid));  // Cannot drop a database twice
   db_oid = accessor.GetDatabaseOid("test_database");
   EXPECT_EQ(db_oid, catalog::INVALID_DATABASE_OID);
   txn_manager_->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
@@ -113,12 +113,12 @@ TEST_F(CatalogTests, DatabaseTest) {
 TEST_F(CatalogTests, NamespaceTest) {
   // Create a database and check that it's immediately visible
   auto txn = txn_manager_->BeginTransaction();
-  auto accessor = catalog_->GetAccessor(txn, "terrier"); // Catalog's default DB
+  auto accessor = catalog_->GetAccessor(txn, "terrier");  // Catalog's default DB
   auto ns_oid = accessor.CreateNamespace("test_namespace");
   EXPECT_NE(ns_oid, catalog::INVALID_NAMESPACE_OID);
-  VerifyCatalogTables(accessor); // Check visibility to me
+  VerifyCatalogTables(accessor);  // Check visibility to me
   ns_oid = accessor.CreateNamespace("test_namespace");
-  EXPECT_EQ(ns_oid, catalog::INVALID_NAMESPACE_OID); // Should cause a name conflict
+  EXPECT_EQ(ns_oid, catalog::INVALID_NAMESPACE_OID);  // Should cause a name conflict
   txn_manager_->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
   gc_->PerformGarbageCollection();
   gc_->PerformGarbageCollection();
@@ -127,7 +127,7 @@ TEST_F(CatalogTests, NamespaceTest) {
   // then delete it and verify an invalid OID is now returned for the lookup
   txn = txn_manager_->BeginTransaction();
   accessor = catalog_->GetAccessor(txn, "terrier");
-  VerifyCatalogTables(accessor); // Check visibility to me
+  VerifyCatalogTables(accessor);  // Check visibility to me
   ns_oid = accessor.GetNamespaceOid("test_namespace");
   EXPECT_TRUE(accessor.DropNamespace(ns_oid));
   ns_oid = accessor.GetNamespaceOid("test_namespace");
@@ -155,7 +155,7 @@ TEST_F(CatalogTests, UserTableTest) {
   VerifyTablePresent(accessor, accessor.GetDefaultNamespace(), "test_table");
   // Check lookup via search path
   EXPECT_EQ(table_oid, accessor.GetTableOid("test_table"));
-  EXPECT_EQ(accessor.GetTable(table_oid), nullptr); // Check that allocation has not happened
+  EXPECT_EQ(accessor.GetTable(table_oid), nullptr);  // Check that allocation has not happened
   auto schema = accessor.GetSchema(table_oid);
 
   // Verify our columns exist

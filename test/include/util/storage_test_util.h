@@ -335,7 +335,7 @@ struct StorageTestUtil {
    */
   template <typename Random>
   static catalog::IndexSchema RandomGenericKeySchema(const uint32_t num_cols, const std::vector<type::TypeId> &types,
-                                                        Random *generator) {
+                                                     Random *generator) {
     uint32_t max_varlen_size = 20;
     TERRIER_ASSERT(num_cols > 0, "Must have at least one column in your key schema.");
 

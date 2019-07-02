@@ -174,6 +174,71 @@ class DatabaseCatalog {
   const IndexSchema &GetIndexSchema(transaction::TransactionContext *txn, index_oid_t index);
 
  private:
+  /**
+   * Create a namespace with a given ns oid
+   * @param txn transaction to use
+   * @param name name of the namespace
+   * @param ns_oid oid of the namespace
+   * @return true if creation is successful
+   */
+  bool CreateNamespace(transaction::TransactionContext *txn, const std::string &name, namespace_oid_t ns_oid);
+
+  /**
+   * Add entry to pg_attribute
+   * @tparam Column type of column (IndexSchema::Column or Schema::Column)
+   * @param txn txn to use
+   * @param class_oid oid of table or index
+   * @param col column to insert
+   * @param default_val default value
+   * @return whether insertion is successful
+   */
+  template <typename Column>
+  bool CreateAttribute(transaction::TransactionContext *txn, uint32_t class_oid, const Column &col,
+                            const parser::AbstractExpression *default_val);
+
+  /**
+   * Get entry from pg_attribute
+   * @tparam Column type of columns
+   * @param txn txn to use
+   * @param col_name name of the column
+   * @param class_oid oid of table or index
+   * @return the column from pg_attribute
+   */
+  template <typename Column>
+  std::unique_ptr<Column> GetAttribute(transaction::TransactionContext *txn, storage::VarlenEntry *col_name,
+                                            uint32_t class_oid);
+
+  /**
+   * Get entry from pg_attribute
+   * @tparam Column type of columns
+   * @param txn txn to use
+   * @param col_oid oid of the table or index column
+   * @param class_oid oid of table or index
+   * @return the column from pg_attribute
+   */
+  template <typename Column>
+  std::unique_ptr<Column> GetAttribute(transaction::TransactionContext *txn, uint32_t col_oid, uint32_t class_oid);
+
+  /**
+   * Get entries from pg_attribute
+   * @tparam Column type of columns
+   * @param txn txn to use
+   * @param class_oid oid of table or index
+   * @return the column from pg_attribute
+   */
+  template <typename Column>
+  std::vector<std::unique_ptr<Column>> GetAttributes(transaction::TransactionContext *txn, uint32_t class_oid);
+
+  /**
+   * Delete entries from pg_attribute
+   * @tparam Column type of columns
+   * @param txn txn to use
+   * @return the column from pg_attribute
+   */
+  template <typename Column>
+  void DeleteColumns(transaction::TransactionContext *txn, uint32_t class_oid);
+
+ private:
   storage::SqlTable *namespaces_;
   storage::index::Index *namespaces_oid_index_;
   storage::index::Index *namespaces_name_index_;
@@ -207,6 +272,7 @@ class DatabaseCatalog {
 
   transaction::Action debootstrap;
   std::atomic<uint32_t> next_oid_;
+  const db_oid_t db_oid_;
 
   const db_oid_t db_oid_;
 
