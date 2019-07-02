@@ -136,7 +136,7 @@ db_oid_t Catalog::GetDatabaseOid(transaction::TransactionContext *txn, const std
   return db_oid;
 }
 
-common::ManagedPointer<DatabaseCatalog *> Catalog::GetDatabaseCatalog(transaction::TransactionContext *txn,
+common::ManagedPointer<DatabaseCatalog> Catalog::GetDatabaseCatalog(transaction::TransactionContext *txn,
                                                                       db_oid_t database) {
   std::vector<storage::TupleSlot> index_results;
   auto oid_pri = databases_name_index_->GetProjectedRowInitializer();
@@ -171,7 +171,7 @@ common::ManagedPointer<DatabaseCatalog *> Catalog::GetDatabaseCatalog(transactio
   return common::ManagedPointer(dbc);
 }
 
-common::ManagedPointer<DatabaseCatalog *> Catalog::GetDatabaseCatalog(transaction::TransactionContext *txn,
+common::ManagedPointer<DatabaseCatalog> Catalog::GetDatabaseCatalog(transaction::TransactionContext *txn,
                                                                       const std::string &name) {
   std::vector<storage::TupleSlot> index_results;
   auto name_pri = databases_name_index_->GetProjectedRowInitializer();
@@ -288,12 +288,18 @@ bool Catalog::CreateDatabaseEntry(transaction::TransactionContext *txn, db_oid_t
 DatabaseCatalog *Catalog::DeleteDatabaseEntry(transaction::TransactionContext *txn, db_oid_t db) {
   std::vector<storage::TupleSlot> index_results;
 
+  std::vector<col_oid_t> table_oids;
+  table_oids.emplace_back(DATNAME_COL_OID);
+  table_oids.emplace_back(DAT_CATALOG_COL_OID);
+  auto pair = databases_->InitializerForProjectedRow(table_oids);
+  auto table_pri = pair.first;
+  auto table_pri_map = pair.second;
   auto name_pri = databases_name_index_->GetProjectedRowInitializer();
   auto oid_pri = databases_oid_index_->GetProjectedRowInitializer();
 
   // Name is a larger projected row (16-byte key vs 4-byte key), sow we can reuse
   // the buffer for both index operations if we allocate to the larger one.
-  byte *buffer = common::AllocationUtil::AllocateAligned(name_pri.ProjectedRowSize());
+  byte *buffer = common::AllocationUtil::AllocateAligned(table_pri.ProjectedRowSize());
   auto pr = oid_pri.Initialize(buffer);
   auto *oid = reinterpret_cast<db_oid_t *>pr->AccessForceNotNull(0);
   *oid = db;
@@ -308,9 +314,6 @@ DatabaseCatalog *Catalog::DeleteDatabaseEntry(transaction::TransactionContext *t
 
   // TODO (John):  This is wrong.  I need to fetch the pointer and varlen and
   // store both so that we can properly delete the varlen from the name index
-  std::vector<col_oid_t> table_oids;
-  table_oids.emplace_back(DAT_CATALOG_COL_OID);
-  auto table_pri = databases_->InitializerForProjectedRow(table_oids).first;
   pr = table_pri.Initialize(buffer);
   if (!databases_->Select(txn, index_results[0], pr)) {
     // Nothing visible
@@ -328,7 +331,8 @@ DatabaseCatalog *Catalog::DeleteDatabaseEntry(transaction::TransactionContext *t
   // It is safe to use AccessForceNotNull here because we have checked the
   // tuple's visibility and because the pointer cannot be null in a running
   // database
-  auto *dbc = reinterpret_cast<DatabaseCatalog **>pr->AccessForceNotNull(0);
+  auto *dbc = *reinterpret_cast<DatabaseCatalog **>pr->AccessForceNotNull(table_pri_map[DAT_CATALOG_COL_OID]);
+  auto name = *reinterpret_cast<VarlenEntry *>pr->AccessForceNotNull(table_pri_map[DATNAME_COL_OID]);
 
   pr = oid_pri.Initialize(buffer);
   auto *oid = reinterpret_cast<db_oid_t *>pr->AccessForceNotNull(0);
