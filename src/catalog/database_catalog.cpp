@@ -77,8 +77,8 @@ void DatabaseCatalog::TearDown(transaction::TransactionContext *txn) {
   // Scan the table
   auto table_iter = classes_->begin();
   while (table_iter != classes_->end()) {
-    classes_->Scan(txn, table_iter, pc);
-    for (int i = 0; i < pc->NumTuples()) {
+    classes_->Scan(txn, &table_iter, pc);
+    for (int i = 0; i < pc->NumTuples(); i++) {
       switch(classes[i]) {
         case postgres::ClassKind::REGULAR_TABLE:
           table_schemas.emplace_back(reinterpret_cast<Schema *>(schemas[i]));
@@ -104,9 +104,9 @@ void DatabaseCatalog::TearDown(transaction::TransactionContext *txn) {
 
   table_iter = columns_->begin();
   while (table_iter != columns_->end()) {
-    columns_->Scan(txn, table_iter, pc);
+    columns_->Scan(txn, &table_iter, pc);
 
-    for (int i = 0; i < pc->NumTuples()) {
+    for (int i = 0; i < pc->NumTuples(); i++) {
       expressions.emplace_back(exprs[i]);
     }
   }
@@ -121,9 +121,9 @@ void DatabaseCatalog::TearDown(transaction::TransactionContext *txn) {
 
   table_iter = constraints->begin();
   while (table_iter != constraints->end()) {
-    constraints->Scan(txn, table_iter, pc);
+    constraints->Scan(txn, &table_iter, pc);
 
-    for (int i = 0; i < pc->NumTuples()) {
+    for (int i = 0; i < pc->NumTuples(); i++) {
       expressions.emplace_back(exprs[i]);
     }
   }
