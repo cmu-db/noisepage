@@ -9,6 +9,8 @@
 
 namespace terrier::catalog {
 
+class CatalogAccessor;
+
 /**
  * The catalog stores all of the metadata about user tables and user defined
  * database objects so that other parts of the system (i.e. binder, optimizer,
@@ -108,12 +110,12 @@ class Catalog {
    * @param database in which this transaction is scoped
    * @return a CatalogAccessor object for use with this transaction
    */
-  CatalogAccessor GetAccessor(transaction::TransactionContext *txn, database_oid_t database);
+  CatalogAccessor *GetAccessor(transaction::TransactionContext *txn, db_oid_t database);
 
  private:
   transaction::TransactionManager *txn_manager_;
   storage::BlockStore *catalog_block_store_;
-  std::atomic<db_oid_t> next_oid_
+  std::atomic<db_oid_t> next_oid_;
 
   storage::SqlTable *databases_;
   storage::index::Index *databases_name_index_;

@@ -1,14 +1,16 @@
+#include "catalog/postgres/pg_database.h"
 #include "catalog/catalog.h"
 #include "catalog/postgres/builder.h"
 #include "storage/projected_columns.h"
 #include "storage/projected_row.h"
 #include "storage/sql_table.h"
 #include "storage/storage_defs.h"
+#include "catalog/catalog_accessor.h"
 
 namespace terrier::catalog {
 
 Catalog::Catalog(transaction::TransactionManager *txn_manager, storage::BlockStore *block_store)
-    : txn_manager_(txn_manager_), catalog_block_store_(block_store), next_oid_(1) {
+    : txn_manager_(txn_manager), catalog_block_store_(block_store), next_oid_(1) {
   databases_ = new storage::SqlTable(block_store, postgres::Builder::GetDatabaseTableSchema());
   databases_oid_index_ = BuildUniqueIndex(postgres::Builder::GetDatabaseOidIndexSchema(), DATABASE_OID_INDEX_OID);
   databases_name_index_ = BuildUniqueIndex(postgres::Builder::GetDatabaseNameIndexSchema(), DATABASE_NAME_INDEX_OID);
@@ -85,7 +87,7 @@ bool Catalog::DeleteDatabase(transaction::TransactionContext *txn, db_oid_t data
   });
 }
 
-bool Catalog::RenameDatabase(transaction::TransactionContext *txn, db_oid_t database, const std::string *name) {
+bool Catalog::RenameDatabase(transaction::TransactionContext *txn, db_oid_t database, const std::string &name) {
   // Name is indexed so this is a delete and insert at the physical level
   auto *dbc = DeleteDatabaseEntry(txn, database);
   if (dbc == nullptr) return false;
@@ -216,8 +218,11 @@ common::ManagedPointer<DatabaseCatalog> Catalog::GetDatabaseCatalog(transaction:
   return common::ManagedPointer(dbc);
 }
 
-CatalogAccessor Catalog::GetAccessor(transaction::TransactionContext *txn, database_oid_t database) {
-  return CatalogAccessor(&this, txn, database);
+CatalogAccessor *Catalog::GetAccessor(transaction::TransactionContext *txn,  db_oid_t database) {
+  auto dbc = this->GetDatabaseCatalog(txn, database);
+  if (dbc == nullptr)
+    return NULL;
+  return new CatalogAccessor(this, dbc, txn, database);
 }
 
 bool Catalog::CreateDatabaseEntry(transaction::TransactionContext *txn, db_oid_t db, const std::string &name, DatabaseCatalog *dbc) {
