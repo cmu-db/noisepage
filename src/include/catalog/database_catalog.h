@@ -173,33 +173,6 @@ class DatabaseCatalog {
    */
   const IndexSchema &GetIndexSchema(transaction::TransactionContext *txn, index_oid_t index);
 
-  /**
-   * Creates a new namespace within the database
-   * @param txn for the operation
-   * @param name of the new namespace
-   * @return OID of the new namespace or INVALID_NAMESPACE_OID if the operation failed
-   */
-  namespace_oid_t CreateNamespace(transaction::TransactionContext *txn, const std::string &name);
-
-  /**
-   * Deletes the namespace and any objects assigned to the namespace.  The
-   * 'public' namespace cannot be deleted.  This operation will fail if any
-   * objects within the namespace cannot be deleted (i.e. write-write conflicts
-   * exist).
-   * @param txn for the operation
-   * @param ns OID to be deleted
-   * @param true if the deletion succeeded, otherwise false
-   */
-  bool DeleteNamespace(transaction::TransactionContext *txn, namespace_oid_t ns);
-
-  /**
-   * Resolve a namespace name to its OID.
-   * @param txn for the operation
-   * @param name of the namespace
-   * @return OID of the namespace or INVALID_NAMESPACE_OID if it does not exist
-   */
-  namespace_oid_t GetNamespaceOid(transaction::TransactionContext *txn, const std::string &name);
-
  private:
   storage::SqlTable *namespaces_;
   storage::index::Index *namespaces_oid_index_;
