@@ -13,6 +13,9 @@ namespace tpl::compiler {
 
 SeqScanTranslator::SeqScanTranslator(const terrier::planner::AbstractPlanNode * op, CodeGen * codegen)
   : OperatorTranslator(op, codegen)
+  , seqscan_op_(static_cast<const terrier::planner::SeqScanPlanNode*>(op))
+  , has_predicate_(seqscan_op_->GetScanPredicate() != nullptr)
+  , is_vectorizable_{IsVectorizable(seqscan_op_->GetScanPredicate().get())}
   , tvi_(codegen->NewIdentifier(tvi_name_))
   , pci_(codegen->NewIdentifier(pci_name_))
   , row_(codegen->NewIdentifier(row_name_))
@@ -22,11 +25,34 @@ SeqScanTranslator::SeqScanTranslator(const terrier::planner::AbstractPlanNode * 
 }
 
 void SeqScanTranslator::Produce(FunctionBuilder * builder) {
+  TPL_ASSERT(is_vectorizable_ || (!vectorized_pipeline_), "Vectorized Produce called on non vectorizable seq_scan");
   DeclareTVI(builder);
   GenTVILoop(builder);
   GenTVIClose(builder); // close after the loop
-  GenPCILoop(builder);
-  GenScanCondition(builder);
+  DeclarePCI(builder);
+
+  /*
+   * There are three possible cases right now.
+   * 1. The whole pipeline is vectorized, so only apply the filters. The loop will be generated in functions like
+   * the aggregator's hash function. We just need to declare an array of iterators (see agg-vec.tpl).
+   * 2. The seq scan is vectorizable, but subsequent operations are not. In addition to the filters, we need to generate
+   * the loop ourselves.
+   * 3. The seq scan is not vectorizable. This time, first generate the loop, then make an if statement. This is the
+   * most general case.
+   */
+
+  if (vectorized_pipeline_) {
+    GenVectorizedPredicate(builder, seqscan_op_->GetScanPredicate().get());
+    DeclareIters(builder);
+  } else {
+    if (has_predicate_ && is_vectorizable_) {
+      GenVectorizedPredicate(builder, seqscan_op_->GetScanPredicate().get());
+      GenPCILoop(builder);
+    } else {
+      GenPCILoop(builder);
+      GenScanCondition(builder);
+    }
+  }
 }
 
 
@@ -60,16 +86,18 @@ void SeqScanTranslator::GenTVILoop(FunctionBuilder *builder) {
   builder->StartForStmt(loop_init, advance_call, nullptr);
 }
 
-void SeqScanTranslator::GenPCILoop(FunctionBuilder *builder) {
+void SeqScanTranslator::DeclarePCI(FunctionBuilder *builder) {
   // Assign var pci = @tableIterGetPCI(&tvi)
   ast::Expr* get_pci_call = codegen_->TableIterGetPCI(tvi_);
   builder->Append(codegen_->DeclareVariable(pci_, nullptr, get_pci_call));
+}
 
-  // Generate for(; @pciHasNext(pci); @pciAdvance()) {...}
+void SeqScanTranslator::GenPCILoop(FunctionBuilder *builder) {
+  // Generate for(; @pciHasNext(pci); @pciAdvance()) {...} or the Filtered version
   // The @pciHasNext(pci) call
-  ast::Expr* has_next_call = codegen_->PCIHasNext(pci_);
+  ast::Expr* has_next_call = codegen_->PCIHasNext(pci_, is_vectorizable_ && has_predicate_);
   // The @pciAdvance(pci) call
-  ast::Expr* advance_call = codegen_->PCIAdvance(pci_);
+  ast::Expr* advance_call = codegen_->PCIAdvance(pci_, is_vectorizable_ && has_predicate_);
   ast::Stmt* loop_advance = codegen_->MakeStmt(advance_call);
   // Make the for loop.
   builder->StartForStmt(nullptr, has_next_call, loop_advance);
@@ -77,20 +105,11 @@ void SeqScanTranslator::GenPCILoop(FunctionBuilder *builder) {
 
 
 void SeqScanTranslator::GenScanCondition(FunctionBuilder *builder) {
-  // Generate if (cond) {...}
-  auto seqscan_op = dynamic_cast<const terrier::planner::SeqScanPlanNode *>(op_);
-  auto & predicate = seqscan_op->GetScanPredicate();
-  if (predicate == nullptr) return;
-  has_predicate_ = true;
-  //if (IsVectorizable(predicate.get())) {
-    // Vectorized codegen
-    //GenVectorizedPredicate(builder, predicate.get());
-  //} else {
-    // Regular codegen
-    ExpressionTranslator * cond_translator = TranslatorFactory::CreateExpressionTranslator(predicate.get(), codegen_);
-    ast::Expr* cond = cond_translator->DeriveExpr(this);
-    builder->StartIfStmt(cond);
-  //}
+  auto predicate = seqscan_op_->GetScanPredicate();
+  // Regular codegen
+  ExpressionTranslator * cond_translator = TranslatorFactory::CreateExpressionTranslator(predicate.get(), codegen_);
+  ast::Expr* cond = cond_translator->DeriveExpr(this);
+  builder->StartIfStmt(cond);
 }
 
 
@@ -102,6 +121,8 @@ void SeqScanTranslator::GenTVIClose(tpl::compiler::FunctionBuilder *builder) {
 
 
 bool SeqScanTranslator::IsVectorizable(const terrier::parser::AbstractExpression * predicate) {
+  if (predicate == nullptr) return true;
+
   if (predicate->GetExpressionType() == terrier::parser::ExpressionType::CONJUNCTION_AND) {
     return IsVectorizable(predicate->GetChild(0).get()) && IsVectorizable(predicate->GetChild(1).get());
   }

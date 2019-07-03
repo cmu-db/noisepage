@@ -25,8 +25,11 @@ class Pipeline {
    * @param parallelism parallelism level
    */
   void Add(OperatorTranslator *translator) {
+    is_vectorizable_ = is_vectorizable_ && translator->IsVectorizable();
     pipeline_.push_back(translator);
   }
+
+
 
   /**
    * @return the pipelines' function id
@@ -45,7 +48,7 @@ class Pipeline {
   void Initialize(util::RegionVector<ast::Decl *> *decls, util::RegionVector<ast::FieldDecl *> *state_fields, util::RegionVector<ast::Stmt *> *setup_stmts, util::RegionVector<ast::Stmt *> *teardown_stmts) {
     OperatorTranslator * prev_translator = nullptr;
     for (const auto & translator: pipeline_) {
-      translator->SetPrevTranslator(prev_translator);
+      translator->Prepare(prev_translator, is_vectorizable_, false);
       translator->InitializeStateFields(state_fields);
       translator->InitializeStructs(decls);
       translator->InitializeHelperFunctions(decls);
@@ -83,6 +86,7 @@ class Pipeline {
   CodeGen * codegen_;
   std::vector<OperatorTranslator *> pipeline_{};
   uint32_t pipeline_idx_{0};
+  bool is_vectorizable_{true};
 };
 
 }  // namespace tpl::compiler
