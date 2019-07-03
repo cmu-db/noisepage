@@ -403,19 +403,24 @@ class CodeGen {
   ast::Expr *TableIterClose(ast::Identifier tvi);
 
   /**
-   * Call pciHasNext(pci)
+   * Call pciHasNext(pci) or pciHasNextFiltered(pci)
    */
-  ast::Expr *PCIHasNext(ast::Identifier pci);
+  ast::Expr *PCIHasNext(ast::Identifier pci, bool filtered);
 
   /**
-   * Call pciAdvance(pci)
+   * Call pciAdvance(pci) or pciAdvanceFiltered(pci)
    */
-  ast::Expr *PCIAdvance(ast::Identifier pci);
+  ast::Expr *PCIAdvance(ast::Identifier pci, bool filtered);
 
   /**
    * Call pciGetType(pci, idx)
    */
   ast::Expr *PCIGet(ast::Identifier pci, terrier::type::TypeId type, uint32_t idx);
+
+  /**
+   * Call pciSetPosition(pci, idx) or pciSetPositionFiltered(pci, idx)
+   */
+  ast::Expr *PCISetPosition(ast::Identifier pci, uint32_t idx, bool filtered);
 
   /**
    * Call filterCompType(pci, col_idx, col_type, filter_val)

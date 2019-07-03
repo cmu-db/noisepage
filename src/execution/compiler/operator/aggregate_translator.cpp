@@ -1,4 +1,5 @@
 #include "execution/compiler/operator/aggregate_translator.h"
+#include "execution/compiler/operator/seq_scan_translator.h"
 #include "execution/compiler/translator_factory.h"
 #include "execution/compiler/function_builder.h"
 
@@ -295,6 +296,133 @@ void AggregateBottomTranslator::GenHashCall(FunctionBuilder * builder) {
 }
 
 
+// Signature: fun hashFn(hashes: [*]uint64, iters: [*]*ProjectedColumnsIterator) -> nil
+void AggregateBottomTranslator::GenVecHashFn(tpl::util::RegionVector<tpl::ast::Decl *> *decls, SeqScanTranslator * seqscan) {
+  TPL_ASSERT(vectorized_pipeline_, "GenVecHashFn called in a non vectorizable pipeline");
+  // Generate the signature
+  // First hashes
+  ast::Identifier hashes = codegen_->Context()->GetIdentifier("hashes");
+  ast::Expr* hashes_type = codegen_->StarArray(codegen_->BuiltinType(ast::BuiltinType::Kind::Uint64));
+  ast::FieldDecl * param1 = codegen_->MakeField(hashes, hashes_type);
+  // Then iters
+  ast::Identifier iters = codegen_->Context()->GetIdentifier("iters");
+  ast::Expr* iters_type = codegen_->StarArray(codegen_->PointerType(codegen_->BuiltinType(ast::BuiltinType::Kind::ProjectedColumnsIterator)));
+  ast::FieldDecl * param2 = codegen_->MakeField(iters, iters_type);
+  // Now the full signature
+  util::RegionVector<ast::FieldDecl*> params{{param1, param2}, codegen_->Region()};
+  ast::Expr* ret_type = codegen_->BuiltinType(ast::BuiltinType::Kind::Nil);
+  FunctionBuilder builder(codegen_, vec_hash_fn_, std::move(params), ret_type);
+
+  // Declare a variable var curr_hash_idx = 0;
+  ast::Identifier idx_var = codegen_->Context()->GetIdentifier("curr_hash_idx");
+  builder.Append(codegen_->DeclareVariable(idx_var, nullptr, codegen_->IntLiteral(0)));
+
+  // Generatate the pci loop of the sequential scan.
+  seqscan->GenVectorizedLoop(&builder, &iters);
+
+  // Store hashes[idx] = @hash(group_by_term1, ...)
+  // Make the array indexing.
+  ast::Expr* lhs = codegen_->ArrayIndex(hashes, idx_var);
+  // Make the hash call
+  util::RegionVector<ast::Expr*> hash_args{codegen_->Region()};
+  auto agg_op = dynamic_cast<const terrier::planner::AggregatePlanNode*>(op_);
+  for (const auto & term : agg_op->GetGroupByTerms()) {
+    ExpressionTranslator * term_translator = TranslatorFactory::CreateExpressionTranslator(term.get(), codegen_);
+    hash_args.emplace_back(term_translator->DeriveExpr(this));
+  }
+  ast::Expr* hash_call = codegen_->Hash(std::move(hash_args));
+
+  // Assign
+  builder.Append(codegen_->Assign(lhs, hash_call));
+
+  // Add to top level functions
+  decls->emplace_back(builder.Finish());
+}
+
+// Signature:  fun vecKeyCheck(aggs: [*]*AggPayload, iters: [*]*ProjectedColumnsIterator, indexes: [*]uint32, matches: [*]bool, num_elems: uint32) -> nil
+void AggregateBottomTranslator::GenVecKeyCheckFn(tpl::util::RegionVector<tpl::ast::Decl *> *decls, SeqScanTranslator * seqscan) {
+  TPL_ASSERT(vectorized_pipeline_, "GenVecKeyCheckFn called in a non vectorizable pipeline");
+  // Generate the signature.
+  // First aggs
+  ast::Identifier aggs = codegen_->Context()->GetIdentifier("aggs");
+  ast::Expr* aggs_type = codegen_->StarArray(codegen_->PointerType(agg_payload_));
+  ast::FieldDecl * param1 = codegen_->MakeField(aggs, aggs_type);
+  // Then iters
+  ast::Identifier iters = codegen_->Context()->GetIdentifier("iters");
+  ast::Expr* iters_type = codegen_->StarArray(codegen_->PointerType(codegen_->BuiltinType(ast::BuiltinType::Kind::ProjectedColumnsIterator)));
+  ast::FieldDecl * param2 = codegen_->MakeField(iters, iters_type);
+  // Then indexes
+  ast::Identifier indexes = codegen_->Context()->GetIdentifier("indexes");
+  ast::Expr* indexes_type = codegen_->StarArray(codegen_->BuiltinType(ast::BuiltinType::Kind::Uint32));
+  ast::FieldDecl * param3 = codegen_->MakeField(indexes, indexes_type);
+  // Then matches
+  ast::Identifier matches = codegen_->Context()->GetIdentifier("matches");
+  ast::Expr* matches_type = codegen_->StarArray(codegen_->BuiltinType(ast::BuiltinType::Kind::Bool));
+  ast::FieldDecl * param4 = codegen_->MakeField(matches, matches_type);
+  // Finally num_elems
+  ast::Identifier num_elems = codegen_->Context()->GetIdentifier("num_elems");
+  ast::Expr* u32_type = codegen_->BuiltinType(ast::BuiltinType::Kind::Uint32);
+  ast::FieldDecl * param5 = codegen_->MakeField(num_elems, u32_type);
+
+  // Now the full signature
+  util::RegionVector<ast::FieldDecl*> params{{param1, param2, param3, param4, param5}, codegen_->Region()};
+  ast::Expr* ret_type = codegen_->BuiltinType(ast::BuiltinType::Kind::Nil);
+  FunctionBuilder builder(codegen_, vec_key_check_fn_, std::move(params), ret_type);
+
+  // Declare the pci
+  seqscan->DeclarePCIVec(iters);
+
+  // Loop: for (var i : uint32 = 0; i < num_elems; i = i + 1) {...}
+  ast::Identifier loop_var = codegen_->Context()->GetIdentifier("i");
+  ast::Stmt* loop_init = codegen_->DeclareVariable(loop_var, u32_type);
+  ast::Expr* loop_cond = codegen_->Compare(parsing::Token::Type::LESS, codegen_->MakeExpr(loop_var), codegen_->MakeExpr(num_elems));
+  ast::Expr* idx_increment = codegen_->BinaryOp(parsing::Token::Type::LESS,  codegen_->MakeExpr(loop_var), codegen_->IntLiteral(1));
+  ast::Stmt* loop_update = codegen_->Assign(codegen_->MakeExpr(loop_var), idx_increment);
+  builder.StartForStmt(loop_init, loop_cond, loop_update);
+
+  // Declare var agg_payload = aggs[i]
+  builder.Append(codegen_->DeclareVariable(agg_payload_, nullptr, codegen_->ArrayIndex(aggs, loop_var)));
+  // Declare var index = indexes[i]
+  ast::Identifier index_var = codegen_->Context()->GetIdentifier("index");
+  builder.Append(codegen_->DeclareVariable(index, nullptr, codegen_->ArrayIndex(indexes, index_var)));
+  // Set PCI Position
+  seqscan->SetPCIPosition(index_var);
+  // Create the aggregate key.
+  auto agg_op = dynamic_cast<const terrier::planner::AggregatePlanNode*>(op_);
+  uint32_t term_idx = 0;
+  for (const auto & term : agg_op->GetGroupByTerms()) {
+    ExpressionTranslator * term_translator = TranslatorFactory::CreateExpressionTranslator(term.get(), codegen_);
+    ast::Expr* lhs = GetGroupByTerm(agg_payload_, term_idx);
+    ast::Expr* rhs = term_translator->DeriveExpr(this);
+    ast::Expr* cond = codegen_->Compare(parsing::Token::Type::BANG_EQUAL, lhs, rhs);
+    builder.StartIfStmt(cond);
+    // Set matches[i] = false
+    ast::Expr* match_idx = codegen_->ArrayIndex(matches, index_var);
+    builder.Append(codegen_->Assign(match_idx, codegen_->BoolLiteral(false)));
+    builder.FinishBlockStmt();
+  }
+  // If all group by terms match set match_idx to truw
+  ast::Expr* match_idx = codegen_->ArrayIndex(matches, index_var);
+  builder.Append(codegen_->Assign(match_idx, codegen_->BoolLiteral(true)));
+
+  // Add to top-level declarations
+  decls->emplace_back(builder.Finish());
+}
+
+void AggregateBottomTranslator::GenVecAdvanceFn(tpl::util::RegionVector<tpl::ast::Decl *> *decls,
+                                                tpl::compiler::SeqScanTranslator *seqscan) {
+  
+}
+
+
+
+
+
+///////////////////////////////////////////////
+///// Top Translator
+///////////////////////////////////////////////
+
+
 void AggregateTopTranslator::Produce(FunctionBuilder * builder) {
   DeclareIterator(builder);
   GenHTLoop(builder);
@@ -366,5 +494,6 @@ void AggregateTopTranslator::GenHaving(tpl::compiler::FunctionBuilder *builder) 
       builder->StartIfStmt(cond);
   }
 }
+
 }
 

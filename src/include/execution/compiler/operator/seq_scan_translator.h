@@ -1,5 +1,6 @@
 #pragma once
 
+#include "planner/plannodes/seq_scan_plan_node.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "parser/expression/tuple_value_expression.h"
 
@@ -46,6 +47,11 @@ class SeqScanTranslator : public OperatorTranslator {
     return true;
   }
 
+  // This is vectorizable only if the scan is vectorizable
+  bool IsVectorizable() override {
+    return is_vectorizable_;
+  }
+
   // Return the pci and its type
   std::pair<ast::Identifier*, ast::Identifier*> GetMaterializedTuple() override {
     return {&pci_, &pci_type_};
@@ -70,13 +76,16 @@ class SeqScanTranslator : public OperatorTranslator {
   void GenTVIClose(FunctionBuilder * builder);
 
   // Whether the seq scan can be vectorized
-  bool IsVectorizable(const terrier::parser::AbstractExpression * predicate);
+  static bool IsVectorizable(const terrier::parser::AbstractExpression * predicate);
 
   // Generated vectorized filters
   void GenVectorizedPredicate(FunctionBuilder * builder, const terrier::parser::AbstractExpression * predicate);
 
   // Whether there is a scan predicate.
-  bool has_predicate_{false};
+  const terrier::planner::SeqScanPlanNode * seqscan_op_;
+  bool has_predicate_;
+  bool is_vectorizable_;
+  bool is_vectorized;
 
   // Structs, functions and locals
   static constexpr const char * tvi_name_ = "tvi";
