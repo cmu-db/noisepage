@@ -28,9 +28,9 @@
 namespace terrier::storage {
 class WriteAheadLoggingTests : public TerrierTest {
  protected:
-  auto Injector(const LargeTransactionTestConfiguration &config) {
+  auto Injector(const LargeDataTableTestConfiguration &config) {
     return di::make_injector<di::TestBindingPolicy>(
-        di::storage_injector(), di::bind<LargeTransactionTestConfiguration>().to(config),
+        di::storage_injector(), di::bind<LargeDataTableTestConfiguration>().to(config),
         di::bind<std::default_random_engine>().in(di::terrier_singleton),  // need to be universal across injectors
         di::bind<uint64_t>().named(storage::BlockStore::SIZE_LIMIT).to(static_cast<uint64_t>(1000)),
         di::bind<uint64_t>().named(storage::BlockStore::REUSE_LIMIT).to(static_cast<uint64_t>(1000)),
@@ -163,7 +163,7 @@ class WriteAheadLoggingTests : public TerrierTest {
 // then reads the logged out content to make sure they are correct
 // NOLINTNEXTLINE
 TEST_F(WriteAheadLoggingTests, LargeLogTest) {
-  auto config = LargeTransactionTestConfiguration::Builder()
+  auto config = LargeDataTableTestConfiguration::Builder()
                     .SetNumTxns(100)
                     .SetNumConcurrentTxns(4)
                     .SetUpdateSelectRatio({0.5, 0.5})
@@ -175,7 +175,7 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
   auto injector = Injector(config);
   auto log_manager = injector.create<storage::LogManager *>();
   log_manager->Start();
-  auto tested = injector.create<std::unique_ptr<LargeTransactionTestObject>>();
+  auto tested = injector.create<std::unique_ptr<LargeDataTableTestObject>>();
   // Each transaction does 5 operations. The update-select ratio of operations is 50%-50%.
   auto result = tested->SimulateOltp(100, 4);
   log_manager->PersistAndStop();
@@ -246,7 +246,7 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
 // NOLINTNEXTLINE
 TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
   // Each transaction is read-only (update-select ratio of 0-100). Also, no need for bookkeeping.
-  auto config = LargeTransactionTestConfiguration::Builder()
+  auto config = LargeDataTableTestConfiguration::Builder()
                     .SetNumTxns(100)
                     .SetNumConcurrentTxns(4)
                     .SetUpdateSelectRatio({0.0, 1.0})
@@ -258,7 +258,7 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
   auto injector = Injector(config);
   auto log_manager = injector.create<storage::LogManager *>();
   log_manager->Start();
-  auto tested = injector.create<std::unique_ptr<LargeTransactionTestObject>>();
+  auto tested = injector.create<std::unique_ptr<LargeDataTableTestObject>>();
   auto result = tested->SimulateOltp(1000, 4);
   log_manager->PersistAndStop();
 
@@ -294,8 +294,8 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
 // correctly flushed out an abort record
 // NOLINTNEXTLINE
 TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
-  auto injector = Injector(LargeTransactionTestConfiguration::Empty());  // config can be empty because we do not inject
-                                                                         // LargeTransactionTestObject here
+  auto injector = Injector(LargeDataTableTestConfiguration::Empty());  // config can be empty because we do not inject
+                                                                         // LargeDataTableTestObject here
   auto *log_manager = injector.create<storage::LogManager *>();
   log_manager->Start();
 
@@ -349,7 +349,7 @@ TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
   bool found_abort_record = false;
   storage::BufferedLogReader in(LOG_FILE_NAME);
   while (in.HasMore()) {
-    storage::LogRecord *log_record = ReadNextRecord(&in, sql_table.table_.layout);
+    storage::LogRecord *log_record = ReadNextRecord(&in, sql_table.Layout());
     if (log_record->RecordType() == LogRecordType::ABORT) {
       found_abort_record = true;
       auto *abort_record = log_record->GetUnderlyingRecordBodyAs<storage::AbortRecord>();
@@ -369,8 +369,8 @@ TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
 // This test verifies that we don't write an abort record for an aborted transaction that never flushed its redo buffer
 // NOLINTNEXTLINE
 TEST_F(WriteAheadLoggingTests, NoAbortRecordTest) {
-  auto injector = Injector(LargeTransactionTestConfiguration::Empty());  // config can be empty because we do not inject
-                                                                         // LargeTransactionTestObject here
+  auto injector = Injector(LargeDataTableTestConfiguration::Empty());  // config can be empty because we do not inject
+                                                                         // LargeDataTableTestObject here
   auto *log_manager = injector.create<storage::LogManager *>();
   log_manager->Start();
 
@@ -413,7 +413,7 @@ TEST_F(WriteAheadLoggingTests, NoAbortRecordTest) {
   bool found_abort_record = false;
   storage::BufferedLogReader in(LOG_FILE_NAME);
   while (in.HasMore()) {
-    storage::LogRecord *log_record = ReadNextRecord(&in, sql_table.table_.layout);
+    storage::LogRecord *log_record = ReadNextRecord(&in, sql_table.Layout());
     if (log_record->RecordType() == LogRecordType::ABORT) {
       found_abort_record = true;
     }
