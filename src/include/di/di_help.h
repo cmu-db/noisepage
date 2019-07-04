@@ -16,6 +16,33 @@
 // Now the two values can be differentiated during binding with the .named() clause.
 #define DECLARE_ANNOTATION(name) static constexpr auto name = [] {};
 
+// Force boost::di to treat ManagedPointer as a smart pointer
+namespace boost::di::aux {
+/**
+ * Remove ManagedPointer from given type
+ * @tparam T input type
+ */
+template <class T>
+struct remove_smart_ptr<terrier::common::ManagedPointer<T>> {
+  /**
+   * Re-constructed type
+   */
+  using type = T;
+};
+
+/**
+ * Construct underlying type from ManagedPointer
+ * @tparam T input type
+ */
+template <class T>
+struct deref_type<terrier::common::ManagedPointer<T>> {
+  /**
+   * Re-constructed type
+   */
+  using type = remove_qualifiers_t<typename deref_type<T>::type>;
+};
+}  // namespace boost::di::aux
+
 namespace terrier::di {
 // Effectively merges the boost::di namespace with terrier-specific helpers and wrappers
 using namespace boost::di;  // NOLINT
