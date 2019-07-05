@@ -29,7 +29,6 @@ class RecoveryManager : public DedicatedThreadOwner {
    */
   class RecoveryTask : public DedicatedThreadTask {
    public:
-
     /**
      * @param recovery_manager pointer to recovery manager who initialized task
      */
