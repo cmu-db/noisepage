@@ -17,12 +17,12 @@ class MetricsThread {
   /**
    * @param metrics_period sleep time between metrics invocations
    */
-  BOOST_DI_INJECT(MetricsThread, (named = METRICS_PERIOD) std::chrono::milliseconds metrics_period)
-      : run_metrics_(true),
-        /// @cond DOXYGEN_IGNORE // TODO(Matt): no idea why this is currently necessary. Doxygen thinks these are files
-        metrics_paused_(false),
-        metrics_period_(metrics_period),
-        metrics_thread_(std::thread([this] { MetricsThreadLoop(); })) {}
+  BOOST_DI_INJECT(MetricsThread, (named = METRICS_PERIOD) std::chrono::milliseconds metrics_period)  // NOLINT
+  : run_metrics_(true),
+    /// @cond DOXYGEN_IGNORE // TODO(Matt): no idea why this is currently necessary. Doxygen thinks these are files
+    metrics_paused_(false),
+    metrics_period_(metrics_period),
+    metrics_thread_(std::thread([this] { MetricsThreadLoop(); })) {}
   /// @endcond
 
   ~MetricsThread() {
