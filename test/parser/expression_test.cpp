@@ -635,10 +635,11 @@ TEST(ExpressionTests, ColumnValueExpressionTest) {
   auto tve4 = new ColumnValueExpression("", "table_name", "column_name2", "alias");
   auto tve5 = new ColumnValueExpression("", "table_name", "column_name", "alias2");
   auto tve6 = new ColumnValueExpression("table_name", "column_name");
-  auto tve7 = new ColumnValueExpression(catalog::table_oid_t(0), catalog::col_oid_t(0));
-  auto tve8 = new ColumnValueExpression(catalog::table_oid_t(0), catalog::col_oid_t(0));
-  auto tve9 = new ColumnValueExpression(catalog::table_oid_t(1), catalog::col_oid_t(0));
-  auto tve10 = new ColumnValueExpression(catalog::table_oid_t(0), catalog::col_oid_t(1));
+  auto tve7 = new ColumnValueExpression(catalog::db_oid_t(1), catalog::table_oid_t(2), catalog::col_oid_t(3));
+  auto tve8 = new ColumnValueExpression(catalog::db_oid_t(1), catalog::table_oid_t(2), catalog::col_oid_t(3));
+  auto tve9 = new ColumnValueExpression(catalog::db_oid_t(1), catalog::table_oid_t(4), catalog::col_oid_t(3));
+  auto tve10 = new ColumnValueExpression(catalog::db_oid_t(1), catalog::table_oid_t(2), catalog::col_oid_t(4));
+  auto tve14 = new ColumnValueExpression(catalog::db_oid_t(4), catalog::table_oid_t(2), catalog::col_oid_t(3));
   auto tve11 = new ColumnValueExpression("namespace_name", "table_name", "column_name");
   auto tve12 = new ColumnValueExpression("namespace_name", "table_name", "column_name");
   auto tve13 = new ColumnValueExpression("namespace_name2", "table_name", "column_name");
@@ -652,6 +653,7 @@ TEST(ExpressionTests, ColumnValueExpressionTest) {
   EXPECT_FALSE(*tve7 == *tve9);
   EXPECT_FALSE(*tve7 == *tve10);
   EXPECT_FALSE(*tve7 == *tve1);
+  EXPECT_FALSE(*tve7 == *tve14);
   EXPECT_TRUE(*tve11 == *tve12);
   EXPECT_FALSE(*tve11 == *tve13);
   EXPECT_FALSE(*tve11 == *tve6);
@@ -665,6 +667,7 @@ TEST(ExpressionTests, ColumnValueExpressionTest) {
   EXPECT_NE(tve7->Hash(), tve9->Hash());
   EXPECT_NE(tve7->Hash(), tve10->Hash());
   EXPECT_NE(tve7->Hash(), tve1->Hash());
+  EXPECT_NE(tve7->Hash(), tve14->Hash());
   EXPECT_EQ(tve11->Hash(), tve12->Hash());
   EXPECT_NE(tve11->Hash(), tve13->Hash());
   EXPECT_NE(tve11->Hash(), tve6->Hash());
@@ -675,14 +678,20 @@ TEST(ExpressionTests, ColumnValueExpressionTest) {
   EXPECT_EQ(tve1->GetNamespaceName(), "");
   EXPECT_EQ(tve1->GetTableName(), "table_name");
   EXPECT_EQ(tve1->GetColumnName(), "column_name");
-  EXPECT_EQ(tve6->GetAlias(), "");
-  EXPECT_EQ(tve7->GetColumnOid(), catalog::col_oid_t(0));
-  EXPECT_EQ(tve7->GetTableOid(), catalog::table_oid_t(0));
-  //  EXPECT_EQ(tve1->GetColumnOid(), catalog::col_oid_t(0));
+  // Uninitialized OIDs set to 0; TODO(Ling): change to INVALID_*_OID after catalog completion
+  EXPECT_EQ(tve1->GetTableOid(), catalog::table_oid_t(0));
+  EXPECT_EQ(tve1->GetDatabaseOid(), catalog::db_oid_t(0));
+  EXPECT_EQ(tve1->GetColumnOid(), catalog::col_oid_t(0));
+  EXPECT_EQ(tve1->GetNamespaceName(), "");
+
   EXPECT_EQ(tve11->GetNamespaceName(), "namespace_name");
+
   EXPECT_EQ(tve11->GetAlias(), "");
-  EXPECT_EQ(tve1->GetTableName(), "table_name");
-  EXPECT_EQ(tve1->GetColumnName(), "column_name");
+  EXPECT_EQ(tve7->GetTableName(), "");
+  EXPECT_EQ(tve7->GetColumnName(), "");
+  EXPECT_EQ(tve7->GetColumnOid(), catalog::col_oid_t(3));
+  EXPECT_EQ(tve7->GetTableOid(), catalog::table_oid_t(2));
+  EXPECT_EQ(tve7->GetDatabaseOid(), catalog::db_oid_t(1));
 
   delete tve1;
   delete tve2;
@@ -697,6 +706,7 @@ TEST(ExpressionTests, ColumnValueExpressionTest) {
   delete tve11;
   delete tve12;
   delete tve13;
+  delete tve14;
 }
 
 // NOLINTNEXTLINE

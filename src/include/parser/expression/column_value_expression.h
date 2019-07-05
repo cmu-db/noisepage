@@ -4,6 +4,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "catalog/catalog_defs.h"
 #include "parser/expression/abstract_expression.h"
 
 namespace terrier::parser {
@@ -26,9 +27,9 @@ class ColumnValueExpression : public AbstractExpression {
    */
   ColumnValueExpression(std::string namespace_name, std::string table_name, std::string col_name, const char *alias)
       : AbstractExpression(ExpressionType::COLUMN_TUPLE, type::TypeId::INVALID, alias, {}),
-        column_name_(std::move(col_name)),
+        namespace_name_(std::move(namespace_name)),
         table_name_(std::move(table_name)),
-        namespace_name_(std::move(namespace_name)) {}
+        column_name_(std::move(col_name)) {}
 
   /**
    * @param table_name table name
@@ -36,8 +37,8 @@ class ColumnValueExpression : public AbstractExpression {
    */
   ColumnValueExpression(std::string table_name, std::string col_name)
       : AbstractExpression(ExpressionType::COLUMN_TUPLE, type::TypeId::INVALID, {}),
-        column_name_(std::move(col_name)),
-        table_name_(std::move(table_name)) {}
+        table_name_(std::move(table_name)),
+        column_name_(std::move(col_name)) {}
 
   /**
    * @param namespace_name namespace name
@@ -46,32 +47,24 @@ class ColumnValueExpression : public AbstractExpression {
    */
   ColumnValueExpression(std::string namespace_name, std::string table_name, std::string col_name)
       : AbstractExpression(ExpressionType::COLUMN_TUPLE, type::TypeId::INVALID, {}),
-        column_name_(std::move(col_name)),
+        namespace_name_(std::move(namespace_name)),
         table_name_(std::move(table_name)),
-        namespace_name_(std::move(namespace_name)) {}
+        column_name_(std::move(col_name)) {}
 
   /**
+   * @param database_oid database OID
    * @param table_oid table OID
    * @param column_oid column OID
    */
-  ColumnValueExpression(catalog::table_oid_t table_oid, catalog::col_oid_t column_oid)
+  ColumnValueExpression(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid, catalog::col_oid_t column_oid)
       : AbstractExpression(ExpressionType::COLUMN_TUPLE, type::TypeId::INVALID, {}),
-        column_oid_(column_oid),
-        table_oid_(table_oid) {}
+        database_oid_(database_oid),
+        table_oid_(table_oid),
+        column_oid_(column_oid) {}
   /**
    * Default constructor for deserialization
    */
   ColumnValueExpression() = default;
-
-  /**
-   * @return column name
-   */
-  std::string GetColumnName() const { return column_name_; }
-
-  /**
-   * @return table name
-   */
-  std::string GetTableName() const { return table_name_; }
 
   /**
    * @return namespace name
@@ -79,14 +72,29 @@ class ColumnValueExpression : public AbstractExpression {
   std::string GetNamespaceName() const { return namespace_name_; }
 
   /**
-   * @return column oid
+   * @return table name
    */
-  catalog::col_oid_t GetColumnOid() const { return column_oid_; }
+  std::string GetTableName() const { return table_name_; }
+
+  /**
+   * @return column name
+   */
+  std::string GetColumnName() const { return column_name_; }
+
+  /**
+   * @return database oid
+   */
+  catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
 
   /**
    * @return table oid
    */
   catalog::table_oid_t GetTableOid() const { return table_oid_; }
+
+  /**
+   * @return column oid
+   */
+  catalog::col_oid_t GetColumnOid() const { return column_oid_; }
 
   std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<ColumnValueExpression>(*this); }
 
@@ -95,6 +103,7 @@ class ColumnValueExpression : public AbstractExpression {
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_name_));
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_name_));
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(column_name_));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(column_oid_));
     return hash;
@@ -106,7 +115,8 @@ class ColumnValueExpression : public AbstractExpression {
     if (GetColumnName() != other.GetColumnName() || GetTableName() != other.GetTableName() ||
         GetNamespaceName() != other.GetNamespaceName())
       return false;
-    return GetColumnOid() == other.GetColumnOid() && GetTableOid() == other.GetTableOid();
+    return GetColumnOid() == other.GetColumnOid() && GetTableOid() == other.GetTableOid() &&
+           GetDatabaseOid() == other.GetDatabaseOid();
   }
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
@@ -116,11 +126,12 @@ class ColumnValueExpression : public AbstractExpression {
    */
   nlohmann::json ToJson() const override {
     nlohmann::json j = AbstractExpression::ToJson();
-    j["column_name"] = column_name_;
-    j["table_name"] = table_name_;
     j["namespace_name"] = namespace_name_;
-    j["column_oid"] = column_oid_;
+    j["table_name"] = table_name_;
+    j["column_name"] = column_name_;
+    j["database_oid"] = database_oid_;
     j["table_oid"] = table_oid_;
+    j["column_oid"] = column_oid_;
     return j;
   }
 
@@ -129,11 +140,12 @@ class ColumnValueExpression : public AbstractExpression {
    */
   void FromJson(const nlohmann::json &j) override {
     AbstractExpression::FromJson(j);
-    column_name_ = j.at("column_name").get<std::string>();
-    table_name_ = j.at("table_name").get<std::string>();
     namespace_name_ = j.at("namespace_name").get<std::string>();
-    column_oid_ = j.at("column_oid").get<catalog::col_oid_t>();
+    table_name_ = j.at("table_name").get<std::string>();
+    column_name_ = j.at("column_name").get<std::string>();
+    database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
     table_oid_ = j.at("table_oid").get<catalog::table_oid_t>();
+    column_oid_ = j.at("column_oid").get<catalog::col_oid_t>();
   }
 
  private:
@@ -142,11 +154,28 @@ class ColumnValueExpression : public AbstractExpression {
     this->SetExpressionName(column_name_);
   }
 
-  std::string column_name_;
-  std::string table_name_;
+  /**
+   * @param database_oid Database OID to be assigned to this expression
+   */
+  void SetDatabaseOID(catalog::db_oid_t database_oid) { database_oid_ = database_oid; }
+
+  /**
+   * @param table_oid Table OID to be assigned to this expression
+   */
+  void SetTableOID(catalog::table_oid_t table_oid) { table_oid_ = table_oid; }
+
+  /**
+   * @param column_oid Column OID to be assigned to this expression
+   */
+  void SetColumnOID(catalog::col_oid_t column_oid) { column_oid_ = column_oid; }
+
   std::string namespace_name_;
-  catalog::col_oid_t column_oid_;
-  catalog::table_oid_t table_oid_;
+  std::string table_name_;
+  std::string column_name_;
+  // TODO(Ling): change to INVALID_*_OID after catalog completion
+  catalog::db_oid_t database_oid_ = catalog::db_oid_t(0);
+  catalog::table_oid_t table_oid_ = catalog::table_oid_t(0);
+  catalog::col_oid_t column_oid_ = catalog::col_oid_t(0);
 };
 
 DEFINE_JSON_DECLARATIONS(ColumnValueExpression);
