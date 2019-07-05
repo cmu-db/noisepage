@@ -16,6 +16,35 @@
 // Now the two values can be differentiated during binding with the .named() clause.
 #define DECLARE_ANNOTATION(name) static constexpr auto name = [] {};
 
+// Force boost::di to treat ManagedPointer as a smart pointer
+BOOST_DI_NAMESPACE_BEGIN
+namespace aux {
+/**
+ * Remove ManagedPointer from given type
+ * @tparam T input type
+ */
+template <class T>
+struct remove_smart_ptr<terrier::common::ManagedPointer<T>> {
+  /**
+   * Re-constructed type
+   */
+  using type = T;
+};
+
+/**
+ * Construct underlying type from ManagedPointer
+ * @tparam T input type
+ */
+template <class T>
+struct deref_type<terrier::common::ManagedPointer<T>> {
+  /**
+   * Re-constructed type
+   */
+  using type = remove_qualifiers_t<typename deref_type<T>::type>;
+};
+}  // namespace aux
+BOOST_DI_NAMESPACE_END
+
 namespace terrier::di {
 // Effectively merges the boost::di namespace with terrier-specific helpers and wrappers
 using namespace boost::di;  // NOLINT
@@ -25,13 +54,13 @@ using namespace boost::di;  // NOLINT
  * @tparam T the type to test
  */
 template <class T>
-struct named : di::policies::detail::type_op {
+struct named : policies::detail::type_op {
   /**
    * see boost::di doc https://boost-experimental.github.io/di/user_guide/index.html#policies
    * @tparam TArg
    */
   template <class TArg>
-  struct apply : di::aux::integral_constant<bool, !di::aux::is_same<di::no_name, typename TArg::name>::value> {};
+  struct apply : aux::integral_constant<bool, !aux::is_same<no_name, typename TArg::name>::value> {};
 };
 
 /**
@@ -47,8 +76,8 @@ class StrictBindingPolicy : public di::config {
    * @return strict binding policy
    */
   static auto policies(...) noexcept {
-    using namespace di::policies;  // NOLINT
-    return di::make_policies(constructible(is_bound<di::_>{}));
+    using namespace policies;  // NOLINT
+    return make_policies(constructible(is_bound<_>{}));
   }
 };
 
@@ -56,17 +85,17 @@ class StrictBindingPolicy : public di::config {
  * This policy ensures that all named values is bound. It is okay if some values are default.
  * see https://boost-experimental.github.io/di/user_guide/index.html#policies
  */
-class TestBindingPolicy : public di::config {
+class TestBindingPolicy : public config {
  public:
   /**
    * @param ... vararg input
    * @return strict binding policy
    */
   static auto policies(...) noexcept {
-    using namespace di::policies;             // NOLINT
-    using namespace di::policies::operators;  // NOLINT
+    using namespace policies;             // NOLINT
+    using namespace policies::operators;  // NOLINT
     // Unnamed unbound variables are most likely not
-    return di::make_policies(constructible(is_bound<di::_>{} || !named<di::_>{}));
+    return di::make_policies(constructible(is_bound<_>{} || !named<_>{}));
   }
 };
 
@@ -88,7 +117,7 @@ class TerrierWrapper {
    * @tparam I target managed pointer's underlying type
    * @return cast to managed pointer
    */
-  template <class I, __BOOST_DI_REQUIRES(di::aux::is_convertible<TExpected *, I *>::value) = 0>
+  template <class I, __BOOST_DI_REQUIRES(aux::is_convertible<TExpected *, I *>::value) = 0>
   inline operator common::ManagedPointer<I>() const noexcept {  // NOLINT
     return common::ManagedPointer<I>(wrapped);
   }
@@ -134,7 +163,7 @@ class TerrierSharedModule {
      * See https://boost-experimental.github.io/di/user_guide/index.html#scopes
      */
     template <class T_, class>
-    using is_referable = typename di::wrappers::shared<di::scopes::singleton, TExpected &>::template is_referable<T_>;
+    using is_referable = typename wrappers::shared<scopes::singleton, TExpected &>::template is_referable<T_>;
 
     /**
      * @tparam TProvider provider type
@@ -188,7 +217,7 @@ class TerrierSingleton {
      * See https://boost-experimental.github.io/di/user_guide/index.html#scopes
      */
     template <class T_, class>
-    using is_referable = typename di::wrappers::shared<di::scopes::singleton, TExpected &>::template is_referable<T_>;
+    using is_referable = typename wrappers::shared<scopes::singleton, TExpected &>::template is_referable<T_>;
 
     /**
      * @tparam TProvider provider type
@@ -204,7 +233,7 @@ class TerrierSingleton {
      */
     template <class, class, class TProvider>
     TerrierWrapper<TExpected, TGiven> create(const TProvider &provider) {
-      static auto object(provider.get(di::type_traits::stack{}));
+      static auto object(provider.get(type_traits::stack{}));
       return &object;
     }
   };
