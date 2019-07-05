@@ -33,17 +33,8 @@ class LoggingMetricRawData : public AbstractRawData {
    */
   MetricsComponent GetMetricType() const override { return MetricsComponent::LOGGING; }
 
-  void RecordSerializerData(const uint64_t elapsed_ns, const uint64_t num_bytes, const uint64_t num_records) {
-    serializer_data_.emplace_front(elapsed_ns, num_bytes, num_records);
-  }
-
-  void RecordConsumerData(const uint64_t write_ns, const uint64_t persist_ns, const uint64_t num_bytes,
-                          const uint64_t num_buffers) {
-    consumer_data_.emplace_front(write_ns, persist_ns, num_bytes, num_buffers);
-  }
-
   void ToCSV(std::vector<std::ofstream> *const outfiles) final {
-    TERRIER_ASSERT(outfiles->size() == 2, "Number of files passed to metric is wrong.");
+    TERRIER_ASSERT(outfiles->size() == num_csv_files_, "Number of files passed to metric is wrong.");
     TERRIER_ASSERT(std::count_if(outfiles->cbegin(), outfiles->cend(),
                                  [](const std::ofstream &outfile) { return !outfile.is_open(); }) == 0,
                    "Not all files are open.");
@@ -59,7 +50,22 @@ class LoggingMetricRawData : public AbstractRawData {
     consumer_data_.clear();
   }
 
+  static constexpr uint8_t num_csv_files_ = 2;
+  static constexpr std::array<std::string_view, num_csv_files_> files_ = {"./log_serializer_task.csv",
+                                                                          "./disk_log_consumer_task.csv"};
+
  private:
+  friend class LoggingMetric;
+
+  void RecordSerializerData(const uint64_t elapsed_ns, const uint64_t num_bytes, const uint64_t num_records) {
+    serializer_data_.emplace_front(elapsed_ns, num_bytes, num_records);
+  }
+
+  void RecordConsumerData(const uint64_t write_ns, const uint64_t persist_ns, const uint64_t num_bytes,
+                          const uint64_t num_buffers) {
+    consumer_data_.emplace_front(write_ns, persist_ns, num_bytes, num_buffers);
+  }
+
   struct SerializerData {
     SerializerData(const uint64_t elapsed_ns, const uint64_t num_bytes, const uint64_t num_records)
         : elapsed_ns_(elapsed_ns), num_bytes_(num_bytes), num_records_(num_records) {}
@@ -83,17 +89,15 @@ class LoggingMetricRawData : public AbstractRawData {
 };
 
 class LoggingMetric : public AbstractMetric<LoggingMetricRawData> {
- public:
-  void OnLogSerialize(const uint64_t elapsed_ns, const uint64_t num_bytes, const uint64_t num_records) {
+ private:
+  friend class MetricsStore;
+
+  void RecordSerializerData(const uint64_t elapsed_ns, const uint64_t num_bytes, const uint64_t num_records) {
     GetRawData()->RecordSerializerData(elapsed_ns, num_bytes, num_records);
   }
-  void OnLogConsume(const uint64_t write_ns, const uint64_t persist_ns, const uint64_t num_bytes,
-                    const uint64_t num_buffers) {
+  void RecordConsumerData(const uint64_t write_ns, const uint64_t persist_ns, const uint64_t num_bytes,
+                          const uint64_t num_buffers) {
     GetRawData()->RecordConsumerData(write_ns, persist_ns, num_bytes, num_buffers);
   }
-
-  static constexpr uint8_t num_files_ = 2;
-  static constexpr std::array<std::string_view, num_files_> files_ = {"./log_serializer_task.csv",
-                                                                      "./disk_log_consumer_task.csv"};
 };
 }  // namespace terrier::metrics

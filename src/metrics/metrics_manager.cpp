@@ -58,14 +58,22 @@ void MetricsManager::UnregisterThread() {
 
 void MetricsManager::ToCSV() const {
   common::SpinLatch::ScopedSpinLatch guard(&write_latch_);
-  if (enabled_metrics_.test(static_cast<uint8_t>(MetricsComponent::LOGGING)) &&
-      aggregated_metrics_[static_cast<uint8_t>(MetricsComponent::LOGGING)] != nullptr) {
-    std::vector<std::ofstream> outfiles;
-    outfiles.emplace_back(std::string(LoggingMetric::files_[0]), std::ios_base::out | std::ios_base::app);
-    outfiles.emplace_back(std::string(LoggingMetric::files_[1]), std::ios_base::out | std::ios_base::app);
-    aggregated_metrics_[static_cast<uint8_t>(MetricsComponent::LOGGING)]->ToCSV(&outfiles);
-    outfiles[0].close();
-    outfiles[1].close();
+  for (uint8_t component = 0; component < NUM_COMPONENTS; component++) {
+    if (enabled_metrics_.test(component) && aggregated_metrics_[component] != nullptr) {
+      std::vector<std::ofstream> outfiles;
+      switch (static_cast<MetricsComponent>(component)) {
+        case MetricsComponent::LOGGING:
+          outfiles.reserve(LoggingMetricRawData::num_csv_files_);
+          for (const auto &file : LoggingMetricRawData::files_) {
+            outfiles.emplace_back(std::string(file), std::ios_base::out | std::ios_base::app);
+          }
+          break;
+      }
+      aggregated_metrics_[component]->ToCSV(&outfiles);
+      for (auto &file : outfiles) {
+        file.close();
+      }
+    }
   }
 }
 

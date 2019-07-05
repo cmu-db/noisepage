@@ -27,13 +27,13 @@ class MetricsStore {
  public:
   void RecordSerializerData(const uint64_t elapsed_ns, const uint64_t num_bytes, const uint64_t num_records) {
     if (enabled_metrics_[static_cast<uint8_t>(MetricsComponent::LOGGING)])
-      logging_metric_->OnLogSerialize(elapsed_ns, num_bytes, num_records);
+      logging_metric_->RecordSerializerData(elapsed_ns, num_bytes, num_records);
   }
 
   void RecordConsumerData(const uint64_t write_ns, const uint64_t persist_ns, const uint64_t num_bytes,
                           const uint64_t num_records) {
     if (enabled_metrics_[static_cast<uint8_t>(MetricsComponent::LOGGING)])
-      logging_metric_->OnLogConsume(write_ns, persist_ns, num_bytes, num_records);
+      logging_metric_->RecordConsumerData(write_ns, persist_ns, num_bytes, num_records);
   }
 
  private:
@@ -46,6 +46,6 @@ class MetricsStore {
   std::unique_ptr<LoggingMetric> logging_metric_;
 
   const std::bitset<NUM_COMPONENTS> &enabled_metrics_;
-};  // namespace terrier::metrics
+};
 
 }  // namespace terrier::metrics
