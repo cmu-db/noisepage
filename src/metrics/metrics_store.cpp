@@ -18,6 +18,9 @@ std::array<std::unique_ptr<AbstractRawData>, NUM_COMPONENTS> MetricsStore::GetDa
     if (enabled_metrics_.test(component)) {
       switch (static_cast<MetricsComponent>(component)) {
         case MetricsComponent::LOGGING:
+          TERRIER_ASSERT(
+              logging_metric_ != nullptr,
+              "LoggingMetric cannot be a nullptr. Check the MetricsStore constructor that it was allocated.");
           result[component] = logging_metric_->Swap();
           break;
       }

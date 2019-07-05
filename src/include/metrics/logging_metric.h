@@ -18,7 +18,7 @@ namespace terrier::metrics {
  */
 class LoggingMetricRawData : public AbstractRawData {
  public:
-  void Aggregate(AbstractRawData *other) override {
+  void Aggregate(AbstractRawData *const other) override {
     auto other_db_metric = dynamic_cast<LoggingMetricRawData *>(other);
     if (!other_db_metric->serializer_data_.empty()) {
       serializer_data_.splice(serializer_data_.cbegin(), other_db_metric->serializer_data_);
