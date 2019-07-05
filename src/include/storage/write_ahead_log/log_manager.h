@@ -11,6 +11,7 @@
 #include "common/managed_pointer.h"
 #include "common/spin_latch.h"
 #include "common/strong_typedef.h"
+#include "di/di_help.h"
 #include "settings/settings_manager.h"
 #include "storage/record_buffer.h"
 #include "storage/write_ahead_log/disk_log_consumer_task.h"
@@ -40,6 +41,12 @@ namespace terrier::storage {
  */
 class LogManager : public DedicatedThreadOwner {
  public:
+  DECLARE_ANNOTATION(LOG_FILE_PATH)
+  DECLARE_ANNOTATION(NUM_BUFFERS)
+  DECLARE_ANNOTATION(SERIALIZATION_INTERVAL)
+  DECLARE_ANNOTATION(PERSIST_INTERVAL)
+  DECLARE_ANNOTATION(PERSIST_THRESHOLD)
+
   /**
    * Constructs a new LogManager, writing its logs out to the given file.
    *
@@ -52,9 +59,11 @@ class LogManager : public DedicatedThreadOwner {
    * @param buffer_pool the object pool to draw log buffers from. This must be the same pool transactions draw their
    *                    buffers from
    */
-  LogManager(std::string log_file_path, uint64_t num_buffers, const std::chrono::milliseconds serialization_interval,
-             const std::chrono::milliseconds persist_interval, uint64_t persist_threshold,
-             RecordBufferSegmentPool *const buffer_pool)
+  BOOST_DI_INJECT(LogManager, (named = LOG_FILE_PATH) std::string log_file_path,
+                  (named = NUM_BUFFERS) uint64_t num_buffers,
+                  (named = SERIALIZATION_INTERVAL) std::chrono::milliseconds serialization_interval,
+                  (named = PERSIST_INTERVAL) std::chrono::milliseconds persist_interval,
+                  (named = PERSIST_THRESHOLD) uint64_t persist_threshold, RecordBufferSegmentPool *buffer_pool)
       : run_log_manager_(false),
         log_file_path_(std::move(log_file_path)),
         num_buffers_(num_buffers),

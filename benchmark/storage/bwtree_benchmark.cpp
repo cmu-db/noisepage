@@ -54,7 +54,7 @@ BENCHMARK_DEFINE_F(BwTreeBenchmark, RandomInsert)(benchmark::State &state) {
     uint64_t elapsed_ms;
     tree->UpdateThreadLocal(num_threads_ + 1);
     {
-      common::ScopedTimer timer(&elapsed_ms);
+      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, workload);
     }
     tree->UpdateThreadLocal(1);
@@ -87,7 +87,7 @@ BENCHMARK_DEFINE_F(BwTreeBenchmark, SequentialInsert)(benchmark::State &state) {
     uint64_t elapsed_ms;
     tree->UpdateThreadLocal(num_threads_ + 1);
     {
-      common::ScopedTimer timer(&elapsed_ms);
+      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, workload);
     }
     tree->UpdateThreadLocal(1);
@@ -127,7 +127,7 @@ BENCHMARK_DEFINE_F(BwTreeBenchmark, RandomInsertRandomRead)(benchmark::State &st
     uint64_t elapsed_ms;
     tree->UpdateThreadLocal(num_threads_ + 1);
     {
-      common::ScopedTimer timer(&elapsed_ms);
+      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, workload);
     }
     tree->UpdateThreadLocal(1);
@@ -168,7 +168,7 @@ BENCHMARK_DEFINE_F(BwTreeBenchmark, RandomInsertSequentialRead)(benchmark::State
     uint64_t elapsed_ms;
     tree->UpdateThreadLocal(num_threads_ + 1);
     {
-      common::ScopedTimer timer(&elapsed_ms);
+      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, workload);
     }
     tree->UpdateThreadLocal(1);
@@ -209,7 +209,7 @@ BENCHMARK_DEFINE_F(BwTreeBenchmark, SequentialInsertRandomRead)(benchmark::State
     uint64_t elapsed_ms;
     tree->UpdateThreadLocal(num_threads_ + 1);
     {
-      common::ScopedTimer timer(&elapsed_ms);
+      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, workload);
     }
     tree->UpdateThreadLocal(1);
@@ -250,7 +250,7 @@ BENCHMARK_DEFINE_F(BwTreeBenchmark, SequentialInsertSequentialRead)(benchmark::S
     uint64_t elapsed_ms;
     tree->UpdateThreadLocal(num_threads_ + 1);
     {
-      common::ScopedTimer timer(&elapsed_ms);
+      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, workload);
     }
     tree->UpdateThreadLocal(1);

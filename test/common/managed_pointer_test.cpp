@@ -30,10 +30,38 @@ TEST(ManagedPointerTests, PointerAccessTest) {
   char *raw_ptr1 = val1.data();
 
   common::ManagedPointer<char *> ptr0(&raw_ptr0);
-  common::ManagedPointer<char *> ptr1(&raw_ptr1);
+  common::ManagedPointer<char *> ptr1;
+  ptr1 = (&raw_ptr1);
 
   EXPECT_EQ(*ptr0, raw_ptr0);
   EXPECT_NE(*ptr0, raw_ptr1);
+  EXPECT_EQ(*ptr1, raw_ptr1);
+}
+
+// NOLINTNEXTLINE
+TEST(ManagedPointerTests, UniquePtr) {
+  auto unq_ptr0 = std::make_unique<int>(15445);
+  auto unq_ptr1 = std::make_unique<int>(15721);
+
+  common::ManagedPointer<int> ptr0(unq_ptr0);
+  common::ManagedPointer<int> ptr1;
+  ptr1 = unq_ptr1;
+
+  EXPECT_EQ(*ptr0, *unq_ptr0);
+  EXPECT_EQ(*ptr1, *unq_ptr1);
+  EXPECT_NE(*ptr0, *unq_ptr1);
+  EXPECT_NE(*ptr1, *unq_ptr0);
+}
+
+// NOLINTNEXTLINE
+TEST(ManagedPointerTests, NullPtr) {
+  common::ManagedPointer<int> ptr0(nullptr);
+  common::ManagedPointer<int> ptr1;
+  ptr1 = nullptr;
+
+  EXPECT_EQ(ptr0, nullptr);
+  EXPECT_EQ(ptr1, nullptr);
+  EXPECT_EQ(ptr0, ptr1);
 }
 
 // NOLINTNEXTLINE
