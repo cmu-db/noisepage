@@ -23,7 +23,33 @@ using RecoveryCatalog =
  * Recovery Manager
  * TODO(Gus): Add more documentation when API is finalized
  */
-class RecoveryManager {
+class RecoveryManager : public DedicatedThreadOwner {
+  /**
+   * Task in charge of initializing recovery. This way recovery can be non-blocking in a background thread.
+   */
+  class RecoveryTask : public DedicatedThreadTask {
+   public:
+
+    /**
+     * @param recovery_manager pointer to recovery manager who initialized task
+     */
+    explicit RecoveryTask(RecoveryManager *recovery_manager) : recovery_manager_(recovery_manager) {}
+
+    /**
+     * Runs the recovery task. Our task only calls Recover on the log manager.
+     */
+    void RunTask() override { recovery_manager_->Recover(); }
+
+    /**
+     * Terminate does nothing, the task will terminate when RunTask() returns. In the future if we need to support
+     * interrupting recovery, this can be handled here.
+     */
+    void Terminate() override {}
+
+   private:
+    RecoveryManager *recovery_manager_;
+  };
+
  public:
   /**
    * @param log_provider arbitrary provider to receive logs from
@@ -32,13 +58,31 @@ class RecoveryManager {
    */
   explicit RecoveryManager(AbstractLogProvider *log_provider, RecoveryCatalog *catalog,
                            transaction::TransactionManager *txn_manager)
-      : log_provider_(log_provider), catalog_(catalog), txn_manager_(txn_manager) {}
+      : log_provider_(log_provider), catalog_(catalog), txn_manager_(txn_manager), recovered_txns_(0) {}
 
   /**
-   * Recovers the databases using the provided log provider
-   * @return number of committed transactions replayed
+   * Starts a background recovery task. Recovery will fully recover until the log provider stops providing logs.
    */
-  uint32_t Recover() { return RecoverFromLogs(); }
+  void StartRecovery() {
+    TERRIER_ASSERT(recovery_task_ == nullptr, "Recovery already started");
+    recovery_task_ = DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread<RecoveryTask>(
+        this /* dedicated thread owner */, this /* task arg */);
+  }
+
+  /**
+   * Stops the background recovery task. This will block until recovery finishes, if it has not already.
+   */
+  void FinishRecovery() {
+    TERRIER_ASSERT(recovery_task_ != nullptr, "Recovery must already have been started");
+    bool result UNUSED_ATTRIBUTE = DedicatedThreadRegistry::GetInstance().StopTask(
+        this, recovery_task_.CastManagedPointerTo<DedicatedThreadTask>());
+    TERRIER_ASSERT(result, "Task termination should always succeed");
+  }
+
+  /**
+   * @return number of committed txns recovered so far
+   */
+  uint32_t GetRecoveredTxnCount() const { return recovered_txns_; }
 
  private:
   FRIEND_TEST(RecoveryTests, SingleTableTest);
@@ -63,6 +107,18 @@ class RecoveryManager {
   // changes until commit time. This ensures serializability, and allows us to skip changes from aborted txns.
   std::unordered_map<transaction::timestamp_t, std::vector<std::pair<LogRecord *, std::vector<byte *>>>>
       buffered_changes_map_;
+
+  // Background recovery task
+  common::ManagedPointer<RecoveryTask> recovery_task_ = nullptr;
+
+  // Number of recovered txns. Used for benchmarking
+  uint32_t recovered_txns_;
+
+  /**
+   * Recovers the databases using the provided log provider
+   * @return number of committed transactions replayed
+   */
+  void Recover() { recovered_txns_ += RecoverFromLogs(); }
 
   /**
    * Recovers the databases from the logs.

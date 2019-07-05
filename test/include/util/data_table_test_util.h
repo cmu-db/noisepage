@@ -20,7 +20,8 @@ using TupleEntry = std::pair<storage::TupleSlot, storage::ProjectedRow *>;
 using TableSnapshot = std::unordered_map<storage::TupleSlot, storage::ProjectedRow *>;
 using VersionedSnapshots = std::map<transaction::timestamp_t, TableSnapshot>;
 // {committed, aborted}
-using SimulationResult = std::pair<std::vector<RandomDataTableTransaction *>, std::vector<RandomDataTableTransaction *>>;
+using SimulationResult =
+    std::pair<std::vector<RandomDataTableTransaction *>, std::vector<RandomDataTableTransaction *>>;
 
 /**
  * Value object that holds various parameters to the random testing framework.
@@ -150,9 +151,9 @@ class LargeDataTableTestConfiguration {
 
  private:
   LargeDataTableTestConfiguration(const uint32_t num_iterations, const uint32_t num_txns, const uint32_t batch_size,
-                                    const uint32_t num_concurrent_txns, std::vector<double> update_select_ratio,
-                                    const uint32_t txn_length, const uint32_t initial_table_size,
-                                    const uint16_t max_columns, bool varlen_allowed)
+                                  const uint32_t num_concurrent_txns, std::vector<double> update_select_ratio,
+                                  const uint32_t txn_length, const uint32_t initial_table_size,
+                                  const uint16_t max_columns, bool varlen_allowed)
       : num_iterations_(num_iterations),
         num_txns_(num_txns),
         batch_size_(batch_size),
@@ -265,8 +266,8 @@ class LargeDataTableTestObject {
    * @param log_manager log manager to use
    */
   LargeDataTableTestObject(const LargeDataTableTestConfiguration &config, storage::BlockStore *block_store,
-                             transaction::TransactionManager *txn_manager, std::default_random_engine *generator,
-                             storage::LogManager *log_manager);
+                           transaction::TransactionManager *txn_manager, std::default_random_engine *generator,
+                           storage::LogManager *log_manager);
   /**
    * Destructs a LargeDataTableTestObject
    */

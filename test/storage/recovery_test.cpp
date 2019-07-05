@@ -94,7 +94,8 @@ TEST_F(RecoveryTests, SingleTableTest) {
   // Instantiate recovery manager, and recover the tables.
   DiskLogProvider log_provider(&catalog, LOG_FILE_NAME);
   recovery_manager_ = new RecoveryManager(&log_provider, &catalog, &recovery_txn_manager_);
-  recovery_manager_->Recover();
+  recovery_manager_->StartRecovery();
+  recovery_manager_->FinishRecovery();
 
   // Check we recovered all the original tuples
   EXPECT_TRUE(StorageTestUtil::SqlTableEqualDeep(original_sql_table->Layout(), original_sql_table, recovered_sql_table,
@@ -161,7 +162,8 @@ TEST_F(RecoveryTests, HighAbortRateTest) {
   // Instantiate recovery manager, and recover the tables.
   DiskLogProvider log_provider(&catalog, LOG_FILE_NAME);
   recovery_manager_ = new RecoveryManager(&log_provider, &catalog, &recovery_txn_manager_);
-  recovery_manager_->Recover();
+  recovery_manager_->StartRecovery();
+  recovery_manager_->FinishRecovery();
 
   // Check we recovered all the original tuples
   EXPECT_TRUE(StorageTestUtil::SqlTableEqualDeep(original_sql_table->Layout(), original_sql_table, recovered_sql_table,
@@ -221,7 +223,8 @@ TEST_F(RecoveryTests, MultiDatabaseTest) {
   // Instantiate recovery manager, and recover the tables.
   DiskLogProvider log_provider(&catalog, LOG_FILE_NAME);
   recovery_manager_ = new RecoveryManager(&log_provider, &catalog, &recovery_txn_manager_);
-  recovery_manager_->Recover();
+  recovery_manager_->StartRecovery();
+  recovery_manager_->FinishRecovery();
 
   // Check that recovered tables are equal to original tables
   for (auto &db_oid : tested.GetDatabases()) {

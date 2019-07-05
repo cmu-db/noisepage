@@ -95,7 +95,9 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, OLTPWorkload)(benchmark::State &state) {
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      recovered_txns += recovery_manager_->Recover();
+      recovery_manager_->StartRecovery();
+      recovery_manager_->FinishRecovery();
+      recovered_txns += recovery_manager_->GetRecoveredTxnCount();
     }
 
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
@@ -173,7 +175,9 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, HighAbortRate)(benchmark::State &state) {
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      recovered_txns += recovery_manager_->Recover();
+      recovery_manager_->StartRecovery();
+      recovery_manager_->FinishRecovery();
+      recovered_txns += recovery_manager_->GetRecoveredTxnCount();
     }
 
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);

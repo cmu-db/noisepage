@@ -295,7 +295,7 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
 // NOLINTNEXTLINE
 TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
   auto injector = Injector(LargeDataTableTestConfiguration::Empty());  // config can be empty because we do not inject
-                                                                         // LargeDataTableTestObject here
+                                                                       // LargeDataTableTestObject here
   auto *log_manager = injector.create<storage::LogManager *>();
   log_manager->Start();
 
@@ -370,7 +370,7 @@ TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
 // NOLINTNEXTLINE
 TEST_F(WriteAheadLoggingTests, NoAbortRecordTest) {
   auto injector = Injector(LargeDataTableTestConfiguration::Empty());  // config can be empty because we do not inject
-                                                                         // LargeDataTableTestObject here
+                                                                       // LargeDataTableTestObject here
   auto *log_manager = injector.create<storage::LogManager *>();
   log_manager->Start();
 

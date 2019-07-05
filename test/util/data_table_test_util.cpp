@@ -74,10 +74,10 @@ void RandomDataTableTransaction::Finish() {
 }
 
 LargeDataTableTestObject::LargeDataTableTestObject(const LargeDataTableTestConfiguration &config,
-                                                       storage::BlockStore *block_store,
-                                                       transaction::TransactionManager *txn_manager,
-                                                       std::default_random_engine *generator,
-                                                       storage::LogManager *log_manager)
+                                                   storage::BlockStore *block_store,
+                                                   transaction::TransactionManager *txn_manager,
+                                                   std::default_random_engine *generator,
+                                                   storage::LogManager *log_manager)
     : txn_length_(config.TxnLength()),
       update_select_ratio_(config.UpdateSelectRatio()),
       generator_(generator),
@@ -181,7 +181,7 @@ storage::ProjectedRow *LargeDataTableTestObject::CopyTuple(storage::ProjectedRow
 }
 
 void LargeDataTableTestObject::UpdateSnapshot(RandomDataTableTransaction *txn, TableSnapshot *curr,
-                                                const TableSnapshot &before) {
+                                              const TableSnapshot &before) {
   for (auto &entry : before) curr->emplace(entry.first, CopyTuple(entry.second));
   for (auto &update : txn->updates_) {
     // TODO(Tianyu): Can be smarter about copies
@@ -207,7 +207,7 @@ VersionedSnapshots LargeDataTableTestObject::ReconstructVersionedTable(
 }
 
 void LargeDataTableTestObject::CheckTransactionReadCorrect(RandomDataTableTransaction *txn,
-                                                             const VersionedSnapshots &snapshots) {
+                                                           const VersionedSnapshots &snapshots) {
   transaction::timestamp_t start_time = txn->start_time_;
   // this version is the most recent future update
   auto ret = snapshots.upper_bound(start_time);
