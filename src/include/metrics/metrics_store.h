@@ -25,11 +25,24 @@ class MetricsManager;
  */
 class MetricsStore {
  public:
+  /**
+   * Record metrics from the LogSerializerTask
+   * @param elapsed_ns first entry of metrics datapoint
+   * @param num_bytes second entry of metrics datapoint
+   * @param num_records third entry of metrics datapoint
+   */
   void RecordSerializerData(const uint64_t elapsed_ns, const uint64_t num_bytes, const uint64_t num_records) {
     if (ComponentEnabled(MetricsComponent::LOGGING))
       logging_metric_->RecordSerializerData(elapsed_ns, num_bytes, num_records);
   }
 
+  /**
+   * Record metrics from the LogConsumerTask
+   * @param write_ns first entry of metrics datapoint
+   * @param persist_ns second entry of metrics datapoint
+   * @param num_bytes third entry of metrics datapoint
+   * @param num_records fourth entry of metrics datapoint
+   */
   void RecordConsumerData(const uint64_t write_ns, const uint64_t persist_ns, const uint64_t num_bytes,
                           const uint64_t num_records) {
     if (ComponentEnabled(MetricsComponent::LOGGING))

@@ -33,8 +33,12 @@ class LoggingMetricRawData : public AbstractRawData {
    */
   MetricsComponent GetMetricType() const override { return MetricsComponent::LOGGING; }
 
+  /**
+   * Writes the data out to ofstreams
+   * @param outfiles vector of ofstreams to write to that have been opened by the MetricsManager
+   */
   void ToCSV(std::vector<std::ofstream> *const outfiles) final {
-    TERRIER_ASSERT(outfiles->size() == num_csv_files_, "Number of files passed to metric is wrong.");
+    TERRIER_ASSERT(outfiles->size() == files_.size(), "Number of files passed to metric is wrong.");
     TERRIER_ASSERT(std::count_if(outfiles->cbegin(), outfiles->cend(),
                                  [](const std::ofstream &outfile) { return !outfile.is_open(); }) == 0,
                    "Not all files are open.");
@@ -50,9 +54,10 @@ class LoggingMetricRawData : public AbstractRawData {
     consumer_data_.clear();
   }
 
-  static constexpr uint8_t num_csv_files_ = 2;
-  static constexpr std::array<std::string_view, num_csv_files_> files_ = {"./log_serializer_task.csv",
-                                                                          "./disk_log_consumer_task.csv"};
+  /**
+   * Files to use for writing to CSV.
+   */
+  static constexpr std::array files_ = {"./log_serializer_task.csv", "./disk_log_consumer_task.csv"};
 
  private:
   friend class LoggingMetric;
@@ -88,6 +93,10 @@ class LoggingMetricRawData : public AbstractRawData {
   std::list<ConsumerData> consumer_data_;
 };
 
+/**
+ * Metrics for the logging components of the system: currently buffer consumer (writes to disk) and the record
+ * serializer
+ */
 class LoggingMetric : public AbstractMetric<LoggingMetricRawData> {
  private:
   friend class MetricsStore;

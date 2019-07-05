@@ -50,8 +50,16 @@ class DedicatedThreadOwner {
   }
 
  protected:
+  /**
+   * @param thread_registry dependency injection for owners to use thread registry, needed to get rid of singleton
+   * pattern that used to infest the DedicatedThreadRegistry
+   */
   explicit DedicatedThreadOwner(common::ManagedPointer<DedicatedThreadRegistry> thread_registry)
       : thread_registry_(thread_registry) {}
+
+  /**
+   * pointer to the ThreadRegistry which is probably owned by DBMain or an injector
+   */
   const common::ManagedPointer<DedicatedThreadRegistry> thread_registry_;
 
  private:

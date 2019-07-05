@@ -58,8 +58,14 @@ class MetricsManager {
     return enabled_metrics_.test(static_cast<uint8_t>(component));
   }
 
+  /**
+   * Dump aggregated metrics to CSV files.
+   */
   void ToCSV() const;
 
+  /**
+   * @param component to be enabled
+   */
   void EnableMetric(const MetricsComponent component) {
     common::SpinLatch::ScopedSpinLatch guard(&latch_);
     TERRIER_ASSERT(!ComponentEnabled(component), "Metric is already enabled.");
@@ -67,6 +73,10 @@ class MetricsManager {
     ResetMetric(component);
     enabled_metrics_.set(static_cast<uint8_t>(component), true);
   }
+
+  /**
+   * @param component to be disabled
+   */
   void DisableMetric(const MetricsComponent component) {
     common::SpinLatch::ScopedSpinLatch guard(&latch_);
     TERRIER_ASSERT(ComponentEnabled(component), "Metric is already disabled.");

@@ -58,6 +58,7 @@ class LogManager : public common::DedicatedThreadOwner {
    * @param persist_threshold data written threshold to trigger log file persist
    * @param buffer_pool the object pool to draw log buffers from. This must be the same pool transactions draw their
    *                    buffers from
+   * @param thread_registry DedicatedThreadRegistry dependency injection
    */
   BOOST_DI_INJECT(LogManager, (named = LOG_FILE_PATH) std::string log_file_path,
                   (named = NUM_BUFFERS) uint64_t num_buffers,

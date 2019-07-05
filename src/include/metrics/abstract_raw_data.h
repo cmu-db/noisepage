@@ -34,6 +34,10 @@ class AbstractRawData {
    */
   virtual MetricsComponent GetMetricType() const = 0;
 
+  /**
+   * Writes the data to files, and then clears the data
+   * @param outfile vector of ofstreams to write to that have been opened by the MetricsManager
+   */
   virtual void ToCSV(std::vector<std::ofstream> *outfile) = 0;
 };
 }  // namespace terrier::metrics

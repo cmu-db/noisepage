@@ -1,4 +1,5 @@
 #include <random>
+#include <string>
 #include <vector>
 #include "common/macros.h"
 #include "common/scoped_timer.h"

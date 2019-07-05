@@ -3,7 +3,7 @@
 #include <chrono>  //NOLINT
 #include <thread>  //NOLINT
 #include "di/di_help.h"
-#include "metrics_manager.h"
+#include "metrics/metrics_manager.h"
 
 namespace terrier::metrics {
 
@@ -19,9 +19,11 @@ class MetricsThread {
    */
   BOOST_DI_INJECT(MetricsThread, (named = METRICS_PERIOD) std::chrono::milliseconds metrics_period)
       : run_metrics_(true),
+        /// @cond DOXYGEN_IGNORE // TODO(Matt): no idea why this is currently necessary. Doxygen thinks these are files
         metrics_paused_(false),
         metrics_period_(metrics_period),
         metrics_thread_(std::thread([this] { MetricsThreadLoop(); })) {}
+  /// @endcond
 
   ~MetricsThread() {
     run_metrics_ = false;
