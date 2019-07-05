@@ -26,17 +26,21 @@ class MetricsManager;
 class MetricsStore {
  public:
   void RecordSerializerData(const uint64_t elapsed_ns, const uint64_t num_bytes, const uint64_t num_records) {
-    if (enabled_metrics_[static_cast<uint8_t>(MetricsComponent::LOGGING)])
+    if (ComponentEnabled(MetricsComponent::LOGGING))
       logging_metric_->RecordSerializerData(elapsed_ns, num_bytes, num_records);
   }
 
   void RecordConsumerData(const uint64_t write_ns, const uint64_t persist_ns, const uint64_t num_bytes,
                           const uint64_t num_records) {
-    if (enabled_metrics_[static_cast<uint8_t>(MetricsComponent::LOGGING)])
+    if (ComponentEnabled(MetricsComponent::LOGGING))
       logging_metric_->RecordConsumerData(write_ns, persist_ns, num_bytes, num_records);
   }
 
  private:
+  bool ComponentEnabled(const MetricsComponent component) {
+    return enabled_metrics_.test(static_cast<uint8_t>(component));
+  }
+
   friend class MetricsManager;
 
   explicit MetricsStore(const std::bitset<NUM_COMPONENTS> &enabled_metrics);

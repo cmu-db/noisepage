@@ -61,19 +61,20 @@ class MetricsManager {
   void ToCSV() const;
 
  private:
+  FRIEND_TEST(ValueTests, IntegerJsonTest);
   friend class settings::Callbacks;
 
   void EnableMetric(const MetricsComponent component) {
     // overly conservative if this is only called from SettingsManager?
     common::SpinLatch::ScopedSpinLatch guard(&latch_);
-    TERRIER_ASSERT(!(enabled_metrics_.test(static_cast<uint8_t>(component))), "Metric is already enabled.");
+    TERRIER_ASSERT(!ComponentEnabled(component), "Metric is already enabled.");
 
     ResetMetric(component);
     enabled_metrics_.set(static_cast<uint8_t>(component), true);
   }
   void DisableMetric(const MetricsComponent component) {
     common::SpinLatch::ScopedSpinLatch guard(&latch_);
-    TERRIER_ASSERT(enabled_metrics_.test(static_cast<uint8_t>(component)), "Metric is already disabled.");
+    TERRIER_ASSERT(ComponentEnabled(component), "Metric is already disabled.");
     enabled_metrics_.set(static_cast<uint8_t>(component), false);
     aggregated_metrics_[static_cast<uint8_t>(component)].reset(nullptr);
   }

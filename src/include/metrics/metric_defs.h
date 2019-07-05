@@ -4,6 +4,7 @@
 #include <bitset>
 
 namespace terrier::metrics {
+#define METRICS_DISABLED nullptr
 
 /**
  * Metric types

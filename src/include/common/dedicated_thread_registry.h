@@ -26,6 +26,10 @@ namespace terrier::common {
  */
 class DedicatedThreadRegistry {
  public:
+  /**
+   * @param metrics_manager pointer to the metrics manager if metrics are enabled. Necessary for worker threads to
+   * register themselves
+   */
   explicit DedicatedThreadRegistry(common::ManagedPointer<metrics::MetricsManager> metrics_manager)
       : metrics_manager_(metrics_manager) {}
 
@@ -74,9 +78,9 @@ class DedicatedThreadRegistry {
     auto *task = new T(args...);  // Create task
     thread_owners_table_[requester].insert(task);
     threads_table_.emplace(task, std::thread([=] {
-                             if (metrics_manager_ != nullptr) metrics_manager_->RegisterThread();
+                             if (metrics_manager_ != METRICS_DISABLED) metrics_manager_->RegisterThread();
                              task->RunTask();
-                             if (metrics_manager_ != nullptr) metrics_manager_->UnregisterThread();
+                             if (metrics_manager_ != METRICS_DISABLED) metrics_manager_->UnregisterThread();
                            }));
     requester->AddThread();
     return common::ManagedPointer(task);
