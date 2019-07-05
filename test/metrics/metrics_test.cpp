@@ -38,6 +38,7 @@ class MetricsTests : public TerrierTest {
   transaction::TransactionManager *txn_manager_;
 
   void SetUp() override {
+    for (const auto &file : metrics::LoggingMetricRawData::files_) unlink(std::string(file).c_str());
     std::unordered_map<settings::Param, settings::ParamInfo> param_map;
     terrier::settings::SettingsManager::ConstructParamMap(param_map);
 

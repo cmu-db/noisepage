@@ -3,6 +3,8 @@
 #include "common/macros.h"
 #include "common/scoped_timer.h"
 #include "common/worker_pool.h"
+#include "metrics/logging_metric.h"
+#include "metrics/metrics_thread.h"
 #include "storage/garbage_collector_thread.h"
 #include "storage/storage_defs.h"
 #include "transaction/transaction_manager.h"
@@ -25,6 +27,7 @@ class TPCCTests : public TerrierTest {
   void SetUp() final {
     TerrierTest::SetUp();
     unlink(LOG_FILE_NAME);
+    for (const auto &file : metrics::LoggingMetricRawData::files_) unlink(std::string(file).c_str());
   }
 
   void TearDown() final {
@@ -49,7 +52,7 @@ class TPCCTests : public TerrierTest {
   TransactionWeights txn_weights;                           // default txn_weights. See definition for values
 
   common::WorkerPool thread_pool_{static_cast<uint32_t>(num_threads_), {}};
-  common::DedicatedThreadRegistry thread_registry = common::DedicatedThreadRegistry(nullptr);
+  common::DedicatedThreadRegistry *thread_registry_ = nullptr;
 
   // Settings for log manager
   const uint64_t num_log_buffers_ = 100;
@@ -59,6 +62,7 @@ class TPCCTests : public TerrierTest {
 
   storage::GarbageCollectorThread *gc_thread_ = nullptr;
   const std::chrono::milliseconds gc_period_{10};
+  const std::chrono::milliseconds metrics_period_{100};
 };
 
 // NOLINTNEXTLINE
@@ -121,10 +125,11 @@ TEST_F(TPCCTests, WithLogging) {
   thread_pool_.SetNumWorkers(num_threads_);
   thread_pool_.Startup();
 
+  thread_registry_ = new common::DedicatedThreadRegistry(METRICS_DISABLED);
   // we need transactions, TPCC database, and GC
-  log_manager_ = new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_,
-                                         log_persist_interval_, log_persist_threshold_, &buffer_pool_,
-                                         common::ManagedPointer<common::DedicatedThreadRegistry>(&thread_registry));
+  log_manager_ =
+      new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
+                              log_persist_threshold_, &buffer_pool_, common::ManagedPointer(thread_registry_));
   log_manager_->Start();
   transaction::TransactionManager txn_manager(&buffer_pool_, true, log_manager_);
   auto tpcc_builder = Builder(&block_store_);
@@ -163,6 +168,71 @@ TEST_F(TPCCTests, WithLogging) {
   log_manager_->PersistAndStop();
   delete log_manager_;
   delete gc_thread_;
+  delete thread_registry_;
+  delete tpcc_db;
+
+  CleanUpVarlensInPrecomputedArgs(&precomputed_args);
+}
+
+// NOLINTNEXTLINE
+TEST_F(TPCCTests, WithLoggingAndMetrics) {
+  // one TPCC worker = one TPCC terminal = one thread
+  std::vector<Worker> workers;
+  workers.reserve(num_threads_);
+
+  // Reset the worker pool
+  thread_pool_.Shutdown();
+  thread_pool_.SetNumWorkers(num_threads_);
+  thread_pool_.Startup();
+
+  auto *const metrics_thread = new metrics::MetricsThread(metrics_period_);
+  metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::LOGGING);
+  thread_registry_ =
+      new common::DedicatedThreadRegistry(common::ManagedPointer(&(metrics_thread->GetMetricsManager())));
+  // we need transactions, TPCC database, and GC
+  log_manager_ =
+      new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
+                              log_persist_threshold_, &buffer_pool_, common::ManagedPointer(thread_registry_));
+  log_manager_->Start();
+  transaction::TransactionManager txn_manager(&buffer_pool_, true, log_manager_);
+  auto tpcc_builder = Builder(&block_store_);
+
+  // Precompute all of the input arguments for every txn to be run. We want to avoid the overhead at benchmark time
+  const auto precomputed_args =
+      PrecomputeArgs(&generator_, txn_weights, num_threads_, num_precomputed_txns_per_worker_);
+
+  // build the TPCC database
+  auto *const tpcc_db = tpcc_builder.Build();
+
+  // prepare the workers
+  workers.clear();
+  for (int8_t i = 0; i < num_threads_; i++) {
+    workers.emplace_back(tpcc_db);
+  }
+
+  // populate the tables and indexes, as well as force log manager to log all changes
+  Loader::PopulateDatabase(&txn_manager, &generator_, tpcc_db, workers);
+  log_manager_->ForceFlush();
+
+  // Let GC clean up
+  gc_thread_ = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
+  Util::RegisterIndexesForGC(&(gc_thread_->GetGarbageCollector()), tpcc_db);
+  std::this_thread::sleep_for(std::chrono::seconds(2));
+
+  // run the TPCC workload to completion
+  for (int8_t i = 0; i < num_threads_; i++) {
+    thread_pool_.SubmitTask([i, tpcc_db, &txn_manager, precomputed_args, &workers] {
+      Workload(i, tpcc_db, &txn_manager, precomputed_args, &workers);
+    });
+  }
+  thread_pool_.WaitUntilAllFinished();
+
+  // cleanup
+  log_manager_->PersistAndStop();
+  delete log_manager_;
+  delete gc_thread_;
+  delete thread_registry_;
+  delete metrics_thread;
   delete tpcc_db;
 
   CleanUpVarlensInPrecomputedArgs(&precomputed_args);

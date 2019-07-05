@@ -97,7 +97,7 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
     }
     persist_ns = elapsed_ns;
 
-    if (num_buffers > 0 && common::thread_context.metrics_store_ != nullptr) {
+    if (num_bytes > 0 && common::thread_context.metrics_store_ != nullptr) {
       common::thread_context.metrics_store_->RecordConsumerData(write_ns, persist_ns, num_bytes, num_buffers);
       write_ns = persist_ns = num_bytes = num_buffers = 0;
     }

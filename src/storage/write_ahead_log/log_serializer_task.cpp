@@ -44,7 +44,7 @@ void LogSerializerTask::Process() {
     // Mark the last buffer that was written to as full
     if (filled_buffer_ != nullptr) HandFilledBufferToWriter();
   }
-  if (num_records > 0 && common::thread_context.metrics_store_ != nullptr) {
+  if (num_bytes > 0 && common::thread_context.metrics_store_ != nullptr) {
     common::thread_context.metrics_store_->RecordSerializerData(elapsed_ns, num_bytes, num_records);
   }
 }

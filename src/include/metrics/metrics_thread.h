@@ -48,7 +48,7 @@ class MetricsThread {
   /**
    * @return the underlying metrics manager object.
    */
-  metrics::MetricsManager &GetGarbageCollector() { return metrics_manager_; }
+  metrics::MetricsManager &GetMetricsManager() { return metrics_manager_; }
 
  private:
   metrics::MetricsManager metrics_manager_;
@@ -60,7 +60,10 @@ class MetricsThread {
   void MetricsThreadLoop() {
     while (run_metrics_) {
       std::this_thread::sleep_for(metrics_period_);
-      if (!metrics_paused_) metrics_manager_.ToCSV();
+      if (!metrics_paused_) {
+        metrics_manager_.Aggregate();
+        metrics_manager_.ToCSV();
+      }
     }
   }
 };
