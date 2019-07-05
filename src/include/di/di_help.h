@@ -17,7 +17,8 @@
 #define DECLARE_ANNOTATION(name) static constexpr auto name = [] {};
 
 // Force boost::di to treat ManagedPointer as a smart pointer
-namespace boost::di::aux {
+BOOST_DI_NAMESPACE_BEGIN
+namespace aux {
 /**
  * Remove ManagedPointer from given type
  * @tparam T input type
@@ -41,7 +42,8 @@ struct deref_type<terrier::common::ManagedPointer<T>> {
    */
   using type = remove_qualifiers_t<typename deref_type<T>::type>;
 };
-}  // namespace boost::di::aux
+}  // namespace aux
+BOOST_DI_NAMESPACE_END
 
 namespace terrier::di {
 // Effectively merges the boost::di namespace with terrier-specific helpers and wrappers
