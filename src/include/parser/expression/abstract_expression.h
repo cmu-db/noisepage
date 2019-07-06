@@ -195,6 +195,12 @@ class AbstractExpression {
   bool HasSubquery() const { return has_subquery_; }
 
   /**
+   * Derive if there's sub-query in the current expression
+   * @return If there is sub-query, then return true, otherwise return false
+   */
+  virtual bool DeriveSubqueryFlag();
+
+  /**
    * Derived expressions should call this base method
    * @return expression serialized to json
    */
@@ -207,12 +213,6 @@ class AbstractExpression {
   virtual void FromJson(const nlohmann::json &j);
 
  private:
-  /**
-   * Derive if there's sub-query in the current expression
-   * @return If there is sub-query, then return true, otherwise return false
-   */
-
-  virtual bool DeriveSubqueryFlag();
 
   /**
    * Walks the expression trees and generate the correct expression name

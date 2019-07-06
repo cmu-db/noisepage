@@ -437,6 +437,8 @@ TEST(ExpressionTests, CaseExpressionTest) {
   // Private members depth will be initialized as -1 and has_subquery as false.
   EXPECT_EQ(case_expr->GetDepth(), -1);
   EXPECT_FALSE(case_expr->HasSubquery());
+  case_expr->DeriveSubqueryFlag();
+  EXPECT_FALSE(case_expr->HasSubquery());
 
   delete case_expr;
   delete case_expr_2;
