@@ -531,8 +531,11 @@ TEST(ExpressionTests, OperatorExpressionTest) {
   children_cp.push_back(child3);
   auto op_expr_3 =
       new OperatorExpression(ExpressionType::OPERATOR_CONCAT, type::TypeId::INVALID, std::move(children_cp));
-
-  EXPECT_DEATH(op_expr_3->DeduceReturnValueType(), "Invalid operand type type in Operator Expression.");
+  // Make sure that we catch when the deduced expression type suggests that invalid operand types
+  // NOTE: We only do this for debug builds
+#ifndef NDEBUG
+  EXPECT_DEATH(op_expr_3->DeduceReturnValueType(), "Invalid operand type in Operator Expression.");
+#endif
 
   delete op_expr_1;
   delete op_expr_2;
