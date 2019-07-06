@@ -70,6 +70,8 @@ TEST(ExpressionTests, ConstantValueExpressionTest) {
   EXPECT_EQ(expr_ti_1->GetChildren(), std::vector<std::shared_ptr<AbstractExpression>>());
   // Private members depth will be initialized as -1 and has_subquery as false.
   EXPECT_EQ(expr_ti_1->GetDepth(), -1);
+  // Private members expression name will be initialized as empty string
+  EXPECT_EQ(expr_ti_1->GetExpressionName(), "");
   // depth is still -1 after deriveDepth, as the depth is set in binder
   EXPECT_EQ(expr_ti_1->DeriveDepth(), -1);
   EXPECT_FALSE(expr_ti_1->HasSubquery());

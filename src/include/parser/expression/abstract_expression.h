@@ -149,6 +149,9 @@ class AbstractExpression {
     return children_[index];
   }
 
+  /**
+   * @return Name of the expression.
+   */
   const std::string &GetExpressionName() const { return expression_name_; }
 
   /**
@@ -161,8 +164,14 @@ class AbstractExpression {
    */
   virtual void DeduceReturnValueType() {}
 
-  virtual void Accept(SqlNodeVisitor *) = 0;
+  /**
+   * @param v Visitor pattern for the expression
+   */
+  virtual void Accept(SqlNodeVisitor *v) = 0;
 
+  /**
+   * @param v Visitor pattern for the expression
+   */
   virtual void AcceptChildren(SqlNodeVisitor *v) {
     for (auto &child : children_) {
       child->Accept(v);
