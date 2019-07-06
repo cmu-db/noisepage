@@ -105,6 +105,14 @@ class Catalog {
    */
   CatalogAccessor *GetAccessor(transaction::TransactionContext *txn, db_oid_t database);
 
+  /**
+   * Creates a new accessor into the catalog which will handle transactionality and sequencing of catalog operations.
+   * @param txn for all subsequent catalog queries
+   * @param database in which this transaction is scoped
+   * @return a CatalogAccessor object for use with this transaction
+   */
+  CatalogAccessor GetAccessor(transaction::TransactionContext *txn, database_oid_t database);
+
  private:
   transaction::TransactionManager *txn_manager_;
   storage::BlockStore *catalog_block_store_;
