@@ -213,7 +213,6 @@ class AbstractExpression {
   virtual void FromJson(const nlohmann::json &j);
 
  private:
-
   /**
    * Walks the expression trees and generate the correct expression name
    */
