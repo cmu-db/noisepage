@@ -48,7 +48,7 @@ class BlockCompactorBenchmark : public benchmark::Fixture {
       for (storage::RawBlock *block : blocks) compactor_.PutInQueue(block);
       uint64_t compaction_ms;
       {
-        common::ScopedTimer timer(&compaction_ms);
+        common::ScopedTimer<std::chrono::milliseconds> timer(&compaction_ms);
         compactor_.ProcessCompactionQueue(&txn_manager_);
       }
       gc_.PerformGarbageCollection();
@@ -56,7 +56,7 @@ class BlockCompactorBenchmark : public benchmark::Fixture {
       for (storage::RawBlock *block : blocks) compactor_.PutInQueue(block);
       uint64_t gather_ms;
       {
-        common::ScopedTimer timer(&gather_ms);
+        common::ScopedTimer<std::chrono::milliseconds> timer(&gather_ms);
         compactor_.ProcessCompactionQueue(&txn_manager_);
       }
       for (storage::RawBlock *block : blocks) block_store_.Release(block);
@@ -87,7 +87,7 @@ class BlockCompactorBenchmark : public benchmark::Fixture {
       for (storage::RawBlock *block : blocks) compactor_.PutInQueue(block);
       uint64_t elapsed_ms;
       {
-        common::ScopedTimer timer(&elapsed_ms);
+        common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
         compactor_.ProcessCompactionQueue(&txn_manager_);
       }
       gc_.PerformGarbageCollection();
@@ -123,7 +123,7 @@ class BlockCompactorBenchmark : public benchmark::Fixture {
       for (storage::RawBlock *block : blocks) compactor_.PutInQueue(block);
       uint64_t time;
       {
-        common::ScopedTimer timer(&time);
+        common::ScopedTimer<std::chrono::milliseconds> timer(&time);
         compactor_.ProcessCompactionQueue(&txn_manager_);
       }
       for (storage::RawBlock *block : blocks) block_store_.Release(block);
