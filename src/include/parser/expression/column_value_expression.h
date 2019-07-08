@@ -96,7 +96,7 @@ class ColumnValueExpression : public AbstractExpression {
    */
   catalog::col_oid_t GetColumnOid() const { return column_oid_; }
 
-  std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<ColumnValueExpression>(*this); }
+  AbstractExpression *Copy() const override { return new ColumnValueExpression(*this); }
 
   common::hash_t Hash() const override {
     common::hash_t hash = AbstractExpression::Hash();

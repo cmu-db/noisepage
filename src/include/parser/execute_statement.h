@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 
+#include "common/managed_pointer.h"
 #include "common/sql_node_visitor.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/sql_statement.h"
@@ -21,7 +22,7 @@ class ExecuteStatement : public SQLStatement {
    * @param name name of execute statement
    * @param parameters parameters for execute statement
    */
-  ExecuteStatement(std::string name, std::vector<std::shared_ptr<AbstractExpression>> parameters)
+  ExecuteStatement(std::string name, std::vector<common::ManagedPointer<AbstractExpression>> parameters)
       : SQLStatement(StatementType::EXECUTE), name_(std::move(name)), parameters_(std::move(parameters)) {}
 
   ~ExecuteStatement() override = default;
@@ -34,13 +35,22 @@ class ExecuteStatement : public SQLStatement {
   std::string GetName() { return name_; }
 
   /**
-   * @return execute statement parameters
+   * @return number of execute statement parameters
    */
-  std::vector<std::shared_ptr<AbstractExpression>> GetParameters() { return parameters_; }
+  size_t GetParametersSize() const { return parameters_.size(); }
+
+  /**
+   * @param idx index of parameter
+   * @return execute statement parameter
+   */
+  common::ManagedPointer<AbstractExpression> GetParameter(size_t idx) {
+    TERRIER_ASSERT(idx < GetParametersSize(), "Index must be less than number of parameters");
+    return parameters_[idx];
+  }
 
  private:
   const std::string name_;
-  const std::vector<std::shared_ptr<AbstractExpression>> parameters_;
+  const std::vector<common::ManagedPointer<AbstractExpression>> parameters_;
 };
 
 }  // namespace parser

@@ -15,7 +15,7 @@ class TypeCastExpression : public AbstractExpression {
   /**
    * Instantiates a new type cast expression.
    */
-  TypeCastExpression(type::TypeId type, std::vector<std::shared_ptr<AbstractExpression>> &&children)
+  TypeCastExpression(type::TypeId type, std::vector<common::ManagedPointer<AbstractExpression>> &&children)
       : AbstractExpression(ExpressionType::OPERATOR_CAST, type, std::move(children)) {}
 
   /**
@@ -23,7 +23,7 @@ class TypeCastExpression : public AbstractExpression {
    */
   TypeCastExpression() = default;
 
-  std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<TypeCastExpression>(*this); }
+  AbstractExpression *Copy() const override { return new TypeCastExpression(*this); }
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 };

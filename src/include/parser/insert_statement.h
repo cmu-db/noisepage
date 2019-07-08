@@ -4,6 +4,8 @@
 #include <string>
 #include <utility>
 #include <vector>
+
+#include "common/managed_pointer.h"
 #include "common/sql_node_visitor.h"
 #include "parser/parser_defs.h"
 #include "parser/select_statement.h"
@@ -23,13 +25,13 @@ class InsertStatement : public SQLStatement {
    * @param table_ref table
    * @param select select statement to insert from
    */
-  InsertStatement(std::shared_ptr<std::vector<std::string>> columns, std::shared_ptr<TableRef> table_ref,
-                  std::shared_ptr<SelectStatement> select)
+  InsertStatement(std::vector<std::string> columns, common::ManagedPointer<TableRef> table_ref,
+                  common::ManagedPointer<SelectStatement> select)
       : SQLStatement(StatementType::INSERT),
         type_(InsertType::SELECT),
         columns_(std::move(columns)),
-        table_ref_(std::move(table_ref)),
-        select_(std::move(select)) {}
+        table_ref_(table_ref),
+        select_(select) {}
 
   /**
    * Insert from VALUES
@@ -37,18 +39,23 @@ class InsertStatement : public SQLStatement {
    * @param table_ref table
    * @param insert_values values to be inserted
    */
-  InsertStatement(std::shared_ptr<std::vector<std::string>> columns, std::shared_ptr<TableRef> table_ref,
-                  std::shared_ptr<std::vector<std::vector<std::shared_ptr<AbstractExpression>>>> insert_values)
+  InsertStatement(std::vector<std::string> columns, common::ManagedPointer<TableRef> table_ref,
+                  std::vector<std::vector<common::ManagedPointer<AbstractExpression>>> insert_values)
       : SQLStatement(StatementType::INSERT),
         type_(InsertType::VALUES),
         columns_(std::move(columns)),
-        table_ref_(std::move(table_ref)),
+        table_ref_(table_ref),
+        select_(nullptr),
         insert_values_(std::move(insert_values)) {}
 
   /**
    * @param type insert type (SELECT or VALUES)
    */
-  explicit InsertStatement(InsertType type) : SQLStatement(StatementType::INSERT), type_(type) {}
+  explicit InsertStatement(InsertType type)
+      : SQLStatement(StatementType::INSERT),
+        type_(type),
+        table_ref_(nullptr),
+        select_(nullptr) {}
 
   ~InsertStatement() override = default;
 
@@ -62,30 +69,46 @@ class InsertStatement : public SQLStatement {
   /**
    * @return columns to insert into
    */
-  std::shared_ptr<std::vector<std::string>> GetInsertColumns() { return columns_; }
+  std::vector<std::string> GetInsertColumns() { return columns_; }
 
   /**
    * @return table to insert into
    */
-  std::shared_ptr<TableRef> GetInsertionTable() const { return table_ref_; }
+  common::ManagedPointer<TableRef> GetInsertionTable() const { return table_ref_; }
 
   /**
    * @return select statement we're inserting from
    */
-  std::shared_ptr<SelectStatement> GetSelect() const { return select_; }
+  common::ManagedPointer<SelectStatement> GetSelect() const { return select_; }
 
   /**
-   * @return values that we're inserting
+   * @return number of tuples being inserted
    */
-  std::shared_ptr<std::vector<std::vector<std::shared_ptr<AbstractExpression>>>> GetValues() { return insert_values_; }
+  size_t GetBulkInsertSize() const { return insert_values_.size(); }
+
+  /**
+   * @return number of attributes to insert on for each row
+   */
+  size_t GetAttributesSize() const { return GetBulkInsertSize() > 0 ? insert_values_[0].size() : 0; }
+
+  /**
+   * @param tuple_idx index of tuple containing value
+   * @param attr_idx index of attribute in the tuple
+   * @return value to insert
+   */
+  common::ManagedPointer<AbstractExpression> GetValue(size_t tuple_idx, size_t attr_idx) const {
+    TERRIER_ASSERT(tuple_idx < GetBulkInsertSize(), "Tuple index must be less than number of tuples");
+    TERRIER_ASSERT(attr_idx < GetAttributesSize(), "Attribute index must be less than number of attributes");
+    return insert_values_[tuple_idx][attr_idx];
+  }
 
  private:
   const InsertType type_;
-  const std::shared_ptr<std::vector<std::string>> columns_;
-  const std::shared_ptr<TableRef> table_ref_;
-  const std::shared_ptr<SelectStatement> select_;
+  const std::vector<std::string> columns_;
+  const common::ManagedPointer<TableRef> table_ref_;
+  const common::ManagedPointer<SelectStatement> select_;
   // TODO(WAN): unsure about this one.
-  const std::shared_ptr<std::vector<std::vector<std::shared_ptr<AbstractExpression>>>> insert_values_;
+  const std::vector<std::vector<common::ManagedPointer<AbstractExpression>>> insert_values_;
 };
 
 }  // namespace parser

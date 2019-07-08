@@ -16,7 +16,7 @@ class DefaultValueExpression : public AbstractExpression {
    */
   DefaultValueExpression() : AbstractExpression(ExpressionType::VALUE_DEFAULT, type::TypeId::INVALID, {}) {}
 
-  std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<DefaultValueExpression>(*this); }
+  AbstractExpression *Copy() const override { return new DefaultValueExpression(*this); }
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 };

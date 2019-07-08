@@ -21,7 +21,7 @@ class FunctionExpression : public AbstractExpression {
    * @param children children arguments for the function
    */
   FunctionExpression(std::string &&func_name, const type::TypeId return_value_type,
-                     std::vector<std::shared_ptr<AbstractExpression>> &&children)
+                     std::vector<common::ManagedPointer<AbstractExpression>> &&children)
       : AbstractExpression(ExpressionType::FUNCTION, return_value_type, std::move(children)),
         func_name_(std::move(func_name)) {}
 
@@ -30,7 +30,7 @@ class FunctionExpression : public AbstractExpression {
    */
   FunctionExpression() = default;
 
-  std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<FunctionExpression>(*this); }
+  AbstractExpression *Copy() const override { return new FunctionExpression(*this); }
 
   common::hash_t Hash() const override {
     common::hash_t hash = AbstractExpression::Hash();
@@ -94,7 +94,7 @@ class FunctionExpression : public AbstractExpression {
   // TODO(WAN): until codegen is in.
   // Does it really make sense to store BuiltInFuncType AND name though?
   // Old code already had map name->func
-  // std::shared_ptr<codegen::CodeContext> func_context_;
+  // common::ManagedPointer<codegen::CodeContext> func_context_;
   // function::BuiltInFuncType func_;
 
   // TODO(WAN): will user defined functions need special treatment?

@@ -19,7 +19,7 @@ class OperatorExpression : public AbstractExpression {
    * @param children vector containing arguments to the operator left to right
    */
   OperatorExpression(const ExpressionType expression_type, const type::TypeId return_value_type,
-                     std::vector<std::shared_ptr<AbstractExpression>> &&children)
+                     std::vector<common::ManagedPointer<AbstractExpression>> &&children)
       : AbstractExpression(expression_type, return_value_type, std::move(children)) {}
 
   /**
@@ -46,7 +46,7 @@ class OperatorExpression : public AbstractExpression {
     this->SetReturnValueType(type);
   }
 
-  std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<OperatorExpression>(*this); }
+  AbstractExpression *Copy() const override { return new OperatorExpression(*this); }
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 };

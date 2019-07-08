@@ -17,7 +17,7 @@ class ComparisonExpression : public AbstractExpression {
    * @param cmp_type type of comparison
    * @param children vector containing exactly two children, left then right
    */
-  ComparisonExpression(const ExpressionType cmp_type, std::vector<std::shared_ptr<AbstractExpression>> &&children)
+  ComparisonExpression(const ExpressionType cmp_type, std::vector<common::ManagedPointer<AbstractExpression>> &&children)
       : AbstractExpression(cmp_type, type::TypeId::BOOLEAN, std::move(children)) {}
 
   /**
@@ -25,7 +25,7 @@ class ComparisonExpression : public AbstractExpression {
    */
   ComparisonExpression() = default;
 
-  std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<ComparisonExpression>(*this); }
+  AbstractExpression *Copy() const override { return new ComparisonExpression(*this); }
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 };

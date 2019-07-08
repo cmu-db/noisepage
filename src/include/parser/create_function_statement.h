@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 
+#include "common/managed_pointer.h"
 #include "common/sql_node_visitor.h"
 #include "expression/abstract_expression.h"
 #include "parser/sql_statement.h"
@@ -100,12 +101,13 @@ class CreateFunctionStatement : public SQLStatement {
    * @param as_type executable or query string
    */
   CreateFunctionStatement(bool replace, std::string func_name, std::vector<std::string> func_body,
-                          std::shared_ptr<ReturnType> return_type,
-                          std::vector<std::shared_ptr<FuncParameter>> func_parameters, PLType pl_type, AsType as_type)
+                          common::ManagedPointer<ReturnType> return_type,
+                          std::vector<common::ManagedPointer<FuncParameter>> func_parameters, PLType pl_type,
+                          AsType as_type)
       : SQLStatement(StatementType::CREATE_FUNC),
         replace_(replace),
         func_name_(std::move(func_name)),
-        return_type_(std::move(return_type)),
+        return_type_(return_type),
         func_body_(std::move(func_body)),
         func_parameters_(std::move(func_parameters)),
         pl_type_(pl_type),
@@ -126,7 +128,7 @@ class CreateFunctionStatement : public SQLStatement {
   /**
    * @return return type
    */
-  std::shared_ptr<ReturnType> GetFuncReturnType() { return return_type_; }
+  common::ManagedPointer<ReturnType> GetFuncReturnType() { return return_type_; }
 
   /**
    * @return function body
@@ -136,7 +138,7 @@ class CreateFunctionStatement : public SQLStatement {
   /**
    * @return function parameters
    */
-  std::vector<std::shared_ptr<FuncParameter>> GetFuncParameters() { return func_parameters_; }
+  std::vector<common::ManagedPointer<FuncParameter>> GetFuncParameters() { return func_parameters_; }
 
   /**
    * @return programming language type
@@ -151,9 +153,9 @@ class CreateFunctionStatement : public SQLStatement {
  private:
   const bool replace_ = false;
   const std::string func_name_;
-  const std::shared_ptr<ReturnType> return_type_;
+  const common::ManagedPointer<ReturnType> return_type_;
   const std::vector<std::string> func_body_;
-  const std::vector<std::shared_ptr<FuncParameter>> func_parameters_;
+  const std::vector<common::ManagedPointer<FuncParameter>> func_parameters_;
   const PLType pl_type_;
   const AsType as_type_;
 };

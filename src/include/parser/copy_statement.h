@@ -4,6 +4,7 @@
 #include <string>
 #include <utility>
 
+#include "common/managed_pointer.h"
 #include "common/sql_node_visitor.h"
 #include "parser/select_statement.h"
 #include "parser/sql_statement.h"
@@ -27,11 +28,11 @@ class CopyStatement : public SQLStatement {
    * @param quote quote character
    * @param escape escape character
    */
-  CopyStatement(std::shared_ptr<TableRef> table, std::shared_ptr<SelectStatement> select_stmt, std::string file_path,
-                ExternalFileFormat format, bool is_from, char delimiter, char quote, char escape)
+  CopyStatement(common::ManagedPointer<TableRef> table, common::ManagedPointer<SelectStatement> select_stmt,
+                std::string file_path, ExternalFileFormat format, bool is_from, char delimiter, char quote, char escape)
       : SQLStatement(StatementType::COPY),
-        table_(std::move(table)),
-        select_stmt_(std::move(select_stmt)),
+        table_(table),
+        select_stmt_(select_stmt),
         file_path_(std::move(file_path)),
         format_(format),
         is_from_(is_from),
@@ -46,12 +47,12 @@ class CopyStatement : public SQLStatement {
   /**
    * @return copy table
    */
-  std::shared_ptr<TableRef> GetCopyTable() { return table_; }
+  common::ManagedPointer<TableRef> GetCopyTable() { return table_; }
 
   /**
    * @return select statement
    */
-  std::shared_ptr<SelectStatement> GetSelectStatement() { return select_stmt_; }
+  common::ManagedPointer<SelectStatement> GetSelectStatement() { return select_stmt_; }
 
   /**
    * @return file path
@@ -84,8 +85,8 @@ class CopyStatement : public SQLStatement {
   char GetEscapeChar() { return escape_; }
 
  private:
-  const std::shared_ptr<TableRef> table_;
-  const std::shared_ptr<SelectStatement> select_stmt_;
+  const common::ManagedPointer<TableRef> table_;
+  const common::ManagedPointer<SelectStatement> select_stmt_;
   const std::string file_path_;
   const ExternalFileFormat format_;
 

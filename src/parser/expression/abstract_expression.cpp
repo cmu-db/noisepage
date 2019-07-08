@@ -52,12 +52,14 @@ void AbstractExpression::FromJson(const nlohmann::json &j) {
   // Deserialize children
   auto children_json = j.at("children").get<std::vector<nlohmann::json>>();
   for (const auto &child_json : children_json) {
-    children_.push_back(DeserializeExpression(child_json));
+    // TODO(WAN): memory leak
+    children_.emplace_back(DeserializeExpression(child_json));
   }
 }
 
-std::shared_ptr<AbstractExpression> DeserializeExpression(const nlohmann::json &j) {
-  std::shared_ptr<AbstractExpression> expr;
+AbstractExpression *DeserializeExpression(const nlohmann::json &j) {
+  // TODO(WAN): this has to live somewhere
+  AbstractExpression *expr;
 
   auto expression_type = j.at("expression_type").get<ExpressionType>();
   switch (expression_type) {
@@ -66,12 +68,12 @@ std::shared_ptr<AbstractExpression> DeserializeExpression(const nlohmann::json &
     case ExpressionType::AGGREGATE_MIN:
     case ExpressionType::AGGREGATE_MAX:
     case ExpressionType::AGGREGATE_AVG: {
-      expr = std::make_shared<AggregateExpression>();
+      expr = new AggregateExpression();
       break;
     }
 
     case ExpressionType::OPERATOR_CASE_EXPR: {
-      expr = std::make_shared<CaseExpression>();
+      expr = new CaseExpression();
       break;
     }
 
@@ -85,27 +87,28 @@ std::shared_ptr<AbstractExpression> DeserializeExpression(const nlohmann::json &
     case ExpressionType::COMPARE_NOT_LIKE:
     case ExpressionType::COMPARE_IN:
     case ExpressionType::COMPARE_IS_DISTINCT_FROM: {
-      expr = std::make_shared<ComparisonExpression>();
+      expr = new ComparisonExpression();
       break;
     }
 
     case ExpressionType::CONJUNCTION_AND:
     case ExpressionType::CONJUNCTION_OR: {
-      expr = std::make_shared<ConjunctionExpression>();
+      expr = new ConjunctionExpression();
       break;
     }
 
     case ExpressionType::VALUE_CONSTANT: {
-      expr = std::make_shared<ConstantValueExpression>();
+      expr = new ConstantValueExpression();
       break;
     }
 
     case ExpressionType ::VALUE_DEFAULT: {
-      expr = std::make_shared<DefaultValueExpression>();
+      expr = new DefaultValueExpression();
       break;
     }
+
     case ExpressionType::FUNCTION: {
-      expr = std::make_shared<FunctionExpression>();
+      expr = new FunctionExpression();
       break;
     }
 
@@ -120,37 +123,37 @@ std::shared_ptr<AbstractExpression> DeserializeExpression(const nlohmann::json &
     case ExpressionType::OPERATOR_IS_NULL:
     case ExpressionType::OPERATOR_IS_NOT_NULL:
     case ExpressionType::OPERATOR_EXISTS: {
-      expr = std::make_shared<OperatorExpression>();
+      expr = new OperatorExpression();
       break;
     }
 
     case ExpressionType::VALUE_PARAMETER: {
-      expr = std::make_shared<ParameterValueExpression>();
+      expr = new ParameterValueExpression();
       break;
     }
 
     case ExpressionType::STAR: {
-      expr = std::make_shared<StarExpression>();
+      expr = new StarExpression();
       break;
     }
 
     case ExpressionType::ROW_SUBQUERY: {
-      expr = std::make_shared<SubqueryExpression>();
+      expr = new SubqueryExpression();
       break;
     }
 
     case ExpressionType::VALUE_TUPLE: {
-      expr = std::make_shared<DerivedValueExpression>();
+      expr = new DerivedValueExpression();
       break;
     }
 
     case ExpressionType::COLUMN_VALUE: {
-      expr = std::make_shared<ColumnValueExpression>();
+      expr = new ColumnValueExpression();
       break;
     }
 
     case ExpressionType::OPERATOR_CAST: {
-      expr = std::make_shared<TypeCastExpression>();
+      expr = new TypeCastExpression();
       break;
     }
 

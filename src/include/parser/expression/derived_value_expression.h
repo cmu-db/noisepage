@@ -27,7 +27,7 @@ class DerivedValueExpression : public AbstractExpression {
    */
   DerivedValueExpression() = default;
 
-  std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<DerivedValueExpression>(*this); }
+  AbstractExpression *Copy() const override { return new DerivedValueExpression(*this); }
 
   /**
    * @return index of the tuple

@@ -27,19 +27,22 @@ void JoinDefinition::FromJson(const nlohmann::json &j) {
 
   // Deserialize left
   if (!j.at("left").is_null()) {
-    left_ = std::make_shared<TableRef>();
+    // TODO(WAN): lifetime
+    left_ = common::ManagedPointer(new TableRef());
     left_->FromJson(j.at("left"));
   }
 
   // Deserialize right
   if (!j.at("right").is_null()) {
-    right_ = std::make_shared<TableRef>();
+    // TODO(WAN): lifetime
+    right_ = common::ManagedPointer(new TableRef());
     right_->FromJson(j.at("right"));
   }
 
   // Deserialize condition
   if (!j.at("condition").is_null()) {
-    condition_ = DeserializeExpression(j.at("condition"));
+    // TODO(WAN): lifetime
+    condition_ = common::ManagedPointer(DeserializeExpression(j.at("condition")));
   }
 }
 
@@ -63,27 +66,31 @@ void TableRef::FromJson(const nlohmann::json &j) {
 
   // Deserialize table info
   if (!j.at("table_info").is_null()) {
-    table_info_ = std::make_shared<TableInfo>();
+    // TODO(WAN): lifetime
+    table_info_ = common::ManagedPointer(new TableInfo());
     table_info_->FromJson(j.at("table_info"));
   }
 
   // Deserialize select
   if (!j.at("select").is_null()) {
-    select_ = std::make_shared<parser::SelectStatement>();
+    // TODO(WAN): lifetime
+    select_ = common::ManagedPointer(new SelectStatement());
     select_->FromJson(j.at("select"));
   }
 
   // Deserialize list
   auto list_jsons = j.at("list").get<std::vector<nlohmann::json>>();
   for (const auto &list_json : list_jsons) {
-    auto ref = std::make_shared<TableRef>();
+    // TODO(WAN): lifetime
+    auto ref = common::ManagedPointer(new TableRef());
     ref->FromJson(list_json);
-    list_.push_back(std::move(ref));
+    list_.push_back(ref);
   }
 
   // Deserialize join
   if (!j.at("join").is_null()) {
-    join_ = std::make_shared<JoinDefinition>();
+    // TODO(WAN): lifetime
+    join_ = common::ManagedPointer(new JoinDefinition());
     join_->FromJson(j.at("join"));
   }
 }

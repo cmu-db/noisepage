@@ -3,6 +3,8 @@
 #include <memory>
 #include <utility>
 #include <vector>
+
+#include "common/managed_pointer.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/select_statement.h"
 #include "type/type_id.h"
@@ -18,24 +20,26 @@ class SubqueryExpression : public AbstractExpression {
    * Instantiates a new SubqueryExpression with the given sub-select from the parser.
    * @param subselect the sub-select
    */
-  explicit SubqueryExpression(std::shared_ptr<parser::SelectStatement> subselect)
-      : AbstractExpression(ExpressionType::ROW_SUBQUERY, type::TypeId::INVALID, {}), subselect_(std::move(subselect)) {}
+  explicit SubqueryExpression(common::ManagedPointer<SelectStatement> subselect)
+      : AbstractExpression(ExpressionType::ROW_SUBQUERY, type::TypeId::INVALID, {}), subselect_(subselect) {}
 
   /**
    * Default constructor for deserialization
    */
   SubqueryExpression() = default;
 
-  std::shared_ptr<AbstractExpression> Copy() const override {
+  ~SubqueryExpression() override = default;
+
+  AbstractExpression *Copy() const override {
     // TODO(WAN): Previous codebase described as a hack, will we need a deep copy?
     // Tianyu: No need for deep copy if your objects are always immutable! (why even copy at all, but that's beyond me)
-    return std::make_shared<SubqueryExpression>(*this);
+    return new SubqueryExpression(subselect_);
   }
 
   /**
-   * @return shared pointer to stored sub-select
+   * @return managed pointer to stored sub-select
    */
-  std::shared_ptr<parser::SelectStatement> GetSubselect() { return subselect_; }
+  common::ManagedPointer<SelectStatement> GetSubselect() { return subselect_; }
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
@@ -90,15 +94,13 @@ class SubqueryExpression : public AbstractExpression {
    */
   void FromJson(const nlohmann::json &j) override {
     AbstractExpression::FromJson(j);
-    subselect_ = std::make_shared<parser::SelectStatement>();
+    // TODO(WAN): memory leak?
+    subselect_ = common::ManagedPointer(new SelectStatement());
     subselect_->FromJson(j.at("subselect"));
   }
 
  private:
-  /**
-   * Sub-Select statement
-   */
-  std::shared_ptr<parser::SelectStatement> subselect_;
+  common::ManagedPointer<SelectStatement> subselect_;
 };
 
 DEFINE_JSON_DECLARATIONS(SubqueryExpression);

@@ -20,7 +20,7 @@ class AggregateExpression : public AbstractExpression {
    * @param children children to be added
    * @param distinct whether to eliminate duplicate values in aggregate function calculations
    */
-  AggregateExpression(ExpressionType type, std::vector<std::shared_ptr<AbstractExpression>> &&children, bool distinct)
+  AggregateExpression(ExpressionType type, std::vector<common::ManagedPointer<AbstractExpression>> &&children, bool distinct)
       : AbstractExpression(type, type::TypeId::INVALID, std::move(children)), distinct_(distinct) {}
 
   /**
@@ -28,7 +28,7 @@ class AggregateExpression : public AbstractExpression {
    */
   AggregateExpression() = default;
 
-  std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<AggregateExpression>(*this); }
+  AbstractExpression *Copy() const override { return new AggregateExpression(*this); }
 
   common::hash_t Hash() const override {
     common::hash_t hash = AbstractExpression::Hash();

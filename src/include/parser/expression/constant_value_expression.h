@@ -43,7 +43,7 @@ class ConstantValueExpression : public AbstractExpression {
       this->SetExpressionName(value_.ToString());
   }
 
-  std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<ConstantValueExpression>(*this); }
+  AbstractExpression *Copy() const override { return new ConstantValueExpression(*this); }
 
   /**
    * @return the constant value stored in this expression

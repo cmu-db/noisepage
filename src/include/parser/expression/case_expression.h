@@ -20,11 +20,20 @@ class CaseExpression : public AbstractExpression {
     /**
      * The condition to be checked for this case expression.
      */
-    std::shared_ptr<AbstractExpression> condition;
+    common::ManagedPointer<AbstractExpression> condition;
     /**
      * The value that this expression should have if the corresponding condition is true.
      */
-    std::shared_ptr<AbstractExpression> then;
+    common::ManagedPointer<AbstractExpression> then;
+
+    /**
+     * When clause in a case expression.
+     * @param condition condition to be checked
+     * @param then if condition is true, the when clause evaluates to this
+     */
+    WhenClause(common::ManagedPointer<AbstractExpression> condition, common::ManagedPointer<AbstractExpression> then) : condition(condition), then(then) {}
+
+    explicit WhenClause() : condition(nullptr), then(nullptr) {}
 
     /**
      * Equality check
@@ -68,10 +77,10 @@ class CaseExpression : public AbstractExpression {
    * @param default_expr default expression for this case
    */
   CaseExpression(const type::TypeId return_value_type, std::vector<WhenClause> &&when_clauses,
-                 std::shared_ptr<AbstractExpression> default_expr)
+                 common::ManagedPointer<AbstractExpression> default_expr)
       : AbstractExpression(ExpressionType::OPERATOR_CASE_EXPR, return_value_type, {}),
         when_clauses_(std::move(when_clauses)),
-        default_expr_(std::move(default_expr)) {}
+        default_expr_(default_expr) {}
 
   /**
    * Default constructor for deserialization
@@ -106,7 +115,7 @@ class CaseExpression : public AbstractExpression {
     return *default_exp == *other_default_exp;
   }
 
-  std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<CaseExpression>(*this); }
+  AbstractExpression *Copy() const override { return new CaseExpression(*this); }
 
   /**
    * @return the number of when clauses
@@ -117,7 +126,7 @@ class CaseExpression : public AbstractExpression {
    * @param index index of when clause to get
    * @return condition at that index
    */
-  std::shared_ptr<AbstractExpression> GetWhenClauseCondition(size_t index) const {
+  common::ManagedPointer<AbstractExpression> GetWhenClauseCondition(size_t index) const {
     TERRIER_ASSERT(index < when_clauses_.size(), "Index must be in bounds.");
     return when_clauses_[index].condition;
   }
@@ -126,7 +135,7 @@ class CaseExpression : public AbstractExpression {
    * @param index index of when clause to get
    * @return result at that index
    */
-  std::shared_ptr<AbstractExpression> GetWhenClauseResult(size_t index) const {
+  common::ManagedPointer<AbstractExpression> GetWhenClauseResult(size_t index) const {
     TERRIER_ASSERT(index < when_clauses_.size(), "Index must be in bounds.");
     return when_clauses_[index].then;
   }
@@ -134,7 +143,7 @@ class CaseExpression : public AbstractExpression {
   /**
    * @return default clause, if it exists
    */
-  std::shared_ptr<AbstractExpression> GetDefaultClause() const { return default_expr_; }
+  common::ManagedPointer<AbstractExpression> GetDefaultClause() const { return default_expr_; }
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
@@ -167,9 +176,9 @@ class CaseExpression : public AbstractExpression {
    */
   std::vector<WhenClause> when_clauses_;
   /**
-   * default conditon and result case
+   * default condition and result case
    */
-  std::shared_ptr<AbstractExpression> default_expr_;
+  common::ManagedPointer<AbstractExpression> default_expr_;
 };
 
 DEFINE_JSON_DECLARATIONS(CaseExpression::WhenClause);
