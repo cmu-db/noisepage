@@ -79,10 +79,10 @@ void DBMain::ForceShutdown() {
 
 void DBMain::CleanUp() {
   main_stat_reg_->Shutdown(false);
-  LoggersUtil::ShutDown();
   log_manager_->PersistAndStop();
   thread_pool_->Shutdown();
   LOG_INFO("Terrier has shut down.");
+  LoggersUtil::ShutDown();
 }
 
 }  // namespace terrier
