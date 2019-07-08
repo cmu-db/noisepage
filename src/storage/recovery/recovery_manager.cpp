@@ -33,7 +33,8 @@ void RecoveryManager::ReplayTransaction(LogRecord *log_record) {
                  "Records should only be replayed when a commit or abort record is seen");
 
   // If we are aborting, we can free and discard all buffered changes. Nothing needs to be replayed
-  if (log_record->RecordType() == LogRecordType::ABORT) {
+  // We flag this as unlikely as its unlikely that abort records will be flushed to disk
+  if (unlikely_branch(log_record->RecordType() == LogRecordType::ABORT)) {
     for (auto buffered_pair : buffered_changes_map_[log_record->TxnBegin()]) {
       delete[] reinterpret_cast<byte *>(buffered_pair.first);
       for (auto *entry : buffered_pair.second) {
