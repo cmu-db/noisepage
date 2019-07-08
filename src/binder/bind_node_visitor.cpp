@@ -154,7 +154,10 @@ void BindNodeVisitor::Visit(parser::CopyStatement *node) {
     node->GetCopyTable()->Accept(this);
 
     // If the table is given, we're either writing or reading all columns
-    context_->GenerateAllColumnExpressions(node->GetSelectStatement()->GetSelectColumns());
+    std::vector<std::shared_ptr<parser::AbstractExpression>> new_select_list;
+    context_->GenerateAllColumnExpressions(new_select_list);
+    auto columns = node->GetSelectStatement()->GetSelectColumns();
+    columns.insert(std::end(columns), std::begin(new_select_list), std::end(new_select_list));
   } else {
     node->GetSelectStatement()->Accept(this);
   }
