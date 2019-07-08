@@ -19,11 +19,12 @@ void LogManager::Start() {
   // Register DiskLogConsumerTask
   disk_log_writer_task_ = DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread<DiskLogConsumerTask>(
       this /* requester */, persist_interval_, persist_threshold_, &buffers_, &empty_buffer_queue_,
-      &filled_buffer_queue_);
+      &disk_consumer_queue_);
 
   // Register LogSerializerTask
   log_serializer_task_ = DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread<LogSerializerTask>(
-      this /* requester */, serialization_interval_, buffer_pool_, &empty_buffer_queue_, &filled_buffer_queue_,
+      this /* requester */, serialization_interval_, buffer_pool_, &empty_buffer_queue_, &disk_consumer_queue_,
+      (network_consumer_task_ == REPLICATION_DISABLED) ? REPLICATION_DISABLED : &network_consumer_queue_,
       &disk_log_writer_task_->disk_log_writer_thread_cv_);
 }
 
@@ -51,7 +52,7 @@ void LogManager::PersistAndStop() {
   result = DedicatedThreadRegistry::GetInstance().StopTask(
       this, disk_log_writer_task_.CastManagedPointerTo<DedicatedThreadTask>());
   TERRIER_ASSERT(result, "DiskLogConsumerTask should have been stopped");
-  TERRIER_ASSERT(filled_buffer_queue_.Empty(), "disk log consumer task should have processed all filled buffers\n");
+  TERRIER_ASSERT(disk_consumer_queue_.Empty(), "disk log consumer task should have processed all filled buffers\n");
 
   // Close the buffers corresponding to the log file
   for (auto buf : buffers_) {
@@ -59,7 +60,8 @@ void LogManager::PersistAndStop() {
   }
   // Clear buffer queues
   empty_buffer_queue_.Clear();
-  filled_buffer_queue_.Clear();
+  disk_consumer_queue_.Clear();
+  network_consumer_queue_.Clear();
   buffers_.clear();
 }
 

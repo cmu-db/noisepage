@@ -21,6 +21,7 @@
 namespace terrier::storage {
 // Write Ahead Logging:
 #define LOGGING_DISABLED nullptr
+#define REPLICATION_DISABLED nullptr
 #define ACTION_FRAMEWORK_DISABLED nullptr
 
 // All tuples potentially visible to txns should have a non-null attribute of version vector.

@@ -25,14 +25,16 @@ class LogSerializerTask : public DedicatedThreadTask {
   explicit LogSerializerTask(const std::chrono::milliseconds serialization_interval,
                              RecordBufferSegmentPool *buffer_pool,
                              common::ConcurrentBlockingQueue<BufferedLogWriter *> *empty_buffer_queue,
-                             common::ConcurrentQueue<storage::SerializedLogs> *filled_buffer_queue,
+                             common::ConcurrentQueue<storage::SerializedLogs> *disk_consumer_queue,
+                             common::ConcurrentQueue<storage::SerializedLogs> *network_consumer_queue,
                              std::condition_variable *disk_log_writer_thread_cv)
       : run_task_(false),
         serialization_interval_(serialization_interval),
         buffer_pool_(buffer_pool),
         filled_buffer_(nullptr),
         empty_buffer_queue_(empty_buffer_queue),
-        filled_buffer_queue_(filled_buffer_queue),
+        disk_consumer_queue_(disk_consumer_queue),
+        network_consumer_queue_(network_consumer_queue),
         disk_log_writer_thread_cv_(disk_log_writer_thread_cv) {}
 
   /**
@@ -86,8 +88,10 @@ class LogSerializerTask : public DedicatedThreadTask {
 
   // The queue containing empty buffers. Task will dequeue a buffer from this queue when it needs a new buffer
   common::ConcurrentBlockingQueue<BufferedLogWriter *> *empty_buffer_queue_;
-  // The queue containing filled buffers. Task should push filled serialized buffers into this queue
-  common::ConcurrentQueue<SerializedLogs> *filled_buffer_queue_;
+  // The queues containing filled buffers for disk and network consumers. Task should push filled serialized buffers
+  // into these queues
+  common::ConcurrentQueue<SerializedLogs> *disk_consumer_queue_;
+  common::ConcurrentQueue<SerializedLogs> *network_consumer_queue_;
 
   // Condition variable to signal disk log consumer task thread that a new full buffer has been pushed to the queue
   std::condition_variable *disk_log_writer_thread_cv_;
@@ -141,8 +145,8 @@ class LogSerializerTask : public DedicatedThreadTask {
   BufferedLogWriter *GetCurrentWriteBuffer();
 
   /**
-   * Hand over the current buffer and commit callbacks for commit records in that buffer to the log consumer task
+   * Hand over the current buffer and commit callbacks for commit records in that buffer to the log consumer tasks
    */
-  void HandFilledBufferToWriter();
+  void HandFilledBufferToConsumers();
 };
 }  // namespace terrier::storage

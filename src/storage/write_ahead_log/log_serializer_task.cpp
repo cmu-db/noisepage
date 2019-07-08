@@ -34,7 +34,7 @@ void LogSerializerTask::Process() {
   }
 
   // Mark the last buffer that was written to as full
-  if (filled_buffer_ != nullptr) HandFilledBufferToWriter();
+  if (filled_buffer_ != nullptr) HandFilledBufferToConsumers();
 }
 
 /**
@@ -51,9 +51,12 @@ BufferedLogWriter *LogSerializerTask::GetCurrentWriteBuffer() {
 /**
  * Hand over the current buffer and commit callbacks for commit records in that buffer to the log consumer task
  */
-void LogSerializerTask::HandFilledBufferToWriter() {
+void LogSerializerTask::HandFilledBufferToConsumers() {
+  // TODO(Gus): Remove
+  (void)network_consumer_queue_;
+
   // Hand over the filled buffer
-  filled_buffer_queue_->Enqueue(std::make_pair(filled_buffer_, commits_in_buffer_));
+  disk_consumer_queue_->Enqueue(std::make_pair(filled_buffer_, commits_in_buffer_));
   // Signal disk log consumer task thread that a buffer has been handed over
   disk_log_writer_thread_cv_->notify_one();
   // Mark that the task doesn't have a buffer in its possession to which it can write to
@@ -176,7 +179,7 @@ void LogSerializerTask::WriteValue(const void *val, uint32_t size) {
     size_written += out->BufferWrite(val_byte, size - size_written);
     if (out->IsBufferFull()) {
       // Mark the buffer full for the disk log consumer task thread to flush it
-      HandFilledBufferToWriter();
+      HandFilledBufferToConsumers();
       // Get an empty buffer for writing this value
       out = GetCurrentWriteBuffer();
     }

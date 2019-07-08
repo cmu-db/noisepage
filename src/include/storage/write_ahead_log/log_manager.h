@@ -28,7 +28,7 @@ namespace terrier::storage {
  *      1. The LogManager receives buffers containing records from transactions via the AddBufferToFlushQueue, and
  * adds them to the serializer task's flush queue (flush_queue_)
  *      2. The LogSerializerTask will periodically process and serialize buffers in its flush queue
- * and hand them over to the consumer queue (filled_buffer_queue_). The reason this is done in the background and not as
+ * and hand them over to the consumer queue (disk_consumer_queue_). The reason this is done in the background and not as
  * soon as logs are received is to reduce the amount of time a transaction spends interacting with the log manager
  *      3. When a buffer of logs is handed over to a consumer, the consumer will wake up and process the logs. In the
  * case of the DiskLogConsumerTask, this means writing it to the log file.
@@ -70,7 +70,8 @@ class LogManager : public DedicatedThreadOwner {
         buffer_pool_(buffer_pool),
         serialization_interval_(serialization_interval),
         persist_interval_(persist_interval),
-        persist_threshold_(persist_threshold) {}
+        persist_threshold_(persist_threshold),
+        network_consumer_task_(nullptr) {}
 
   /**
    * Starts log manager. Does the following in order:
@@ -152,7 +153,9 @@ class LogManager : public DedicatedThreadOwner {
   // serializer thread should block when requesting a new buffer until it receives an empty buffer
   common::ConcurrentBlockingQueue<BufferedLogWriter *> empty_buffer_queue_;
   // The queue containing filled buffers pending flush to the disk
-  common::ConcurrentQueue<SerializedLogs> filled_buffer_queue_;
+  common::ConcurrentQueue<SerializedLogs> disk_consumer_queue_;
+  // The queue containing filled buffers pending to be sent over network
+  common::ConcurrentQueue<SerializedLogs> network_consumer_queue_;
 
   // Log serializer task that processes buffers handed over by transactions and serializes them into consumer buffers
   common::ManagedPointer<LogSerializerTask> log_serializer_task_ = common::ManagedPointer<LogSerializerTask>(nullptr);
@@ -166,6 +169,9 @@ class LogManager : public DedicatedThreadOwner {
   const std::chrono::milliseconds persist_interval_;
   // Threshold used by disk consumer task
   uint64_t persist_threshold_;
+
+  // TODO(Gus): Replace when networking is added
+  void *network_consumer_task_;
 
   /**
    * If the central registry wants to removes our thread used for the disk log consumer task, we only allow removal if
