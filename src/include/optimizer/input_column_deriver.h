@@ -3,19 +3,15 @@
 #include "common/managed_pointer.h"
 #include "optimizer/operator_visitor.h"
 
-namespace terrier {
+namespace terrier::optimizer {
 
-namespace optimizer {
 class PropertySet;
 class GroupExpression;
 class OperatorExpression;
 class Memo;
-}
-
-namespace optimizer {
 
 /**
- * @brief Generate input and output columns based on the required columns,
+ * InputColumnDeriver generate input and output columns based on the required columns,
  * required properties and the current group expression. We use the input/output
  * columns to eventually generate plans
  */
@@ -247,5 +243,4 @@ class InputColumnDeriver : public OperatorVisitor {
   PropertySet* properties_;
 };
 
-}  // namespace optimizer
-}  // namespace terrier
+} // namespace terrier::optimizer

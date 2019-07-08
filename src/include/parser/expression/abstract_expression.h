@@ -113,6 +113,11 @@ class AbstractExpression {
   size_t GetChildrenSize() const { return children_.size(); }
 
   /**
+   * Gets expression depth...etc
+   */
+  int GetDepth() const { return 0; }
+
+  /**
    * @param index index of child
    * @return child of abstract expression at that index
    */

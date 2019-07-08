@@ -5,9 +5,11 @@
 #include "optimizer/optimize_context.h"
 #include "optimizer/operator_expression.h"
 
-namespace terrier {
-namespace optimizer {
+namespace terrier::optimizer {
 
+/**
+ * Enum defining the types of rules
+ */
 enum class RuleType : uint32_t {
   // Transformation rules (logical -> logical)
   INNER_JOIN_COMMUTE = 0,
@@ -86,7 +88,7 @@ class Rule {
   /**
    * Returns whether this rule is a physical rule or not
    * by checking LogicalPhysicalDelimiter and RewriteDelimiter.
-   * @param whether the rule is a physical transformation
+   * @returns whether the rule is a physical transformation
    */
   bool IsPhysical() const {
     return type_ > RuleType::LogicalPhysicalDelimiter && type_ < RuleType::RewriteDelimiter;
@@ -106,23 +108,23 @@ class Rule {
 
   /**
    * Indicates whether the rule is a logical rule or not
-   * @param whether the rule is a logical rule
+   * @returns whether the rule is a logical rule
    */
   bool IsLogical() const { return type_ < RuleType::LogicalPhysicalDelimiter; }
 
   /**
    * Indicates whether the rule is a rewrite rule or not
-   * @param whether the rule is a rewrite rule
+   * @returns whether the rule is a rewrite rule
    */
   bool IsRewrite() const { return type_ > RuleType::RewriteDelimiter; }
 
   /**
-   *  Get the promise of the current rule for a expression in the current
-   *  context. Currently we only differentiate physical and logical rules.
-   *  Physical rules have higher promise, and will be applied before logical
-   *  rules. If the rule is not applicable because the pattern does not match,
-   *  the promise should be 0, which indicates that we should not apply this
-   *  rule
+   * Get the promise of the current rule for a expression in the current
+   * context. Currently we only differentiate physical and logical rules.
+   * Physical rules have higher promise, and will be applied before logical
+   * rules. If the rule is not applicable because the pattern does not match,
+   * the promise should be 0, which indicates that we should not apply this
+   * rule.
    *
    * @param group_expr The current group expression to apply the rule
    * @param context The current context for the optimization
@@ -132,15 +134,15 @@ class Rule {
   virtual int Promise(GroupExpression *group_expr, OptimizeContext *context) const;
 
   /**
-   *  Check if the rule is applicable for the operator expression. The
-   *  input operator expression should have the required "before" pattern, but
-   *  other conditions may prevent us from applying the rule. For example, if
-   *  the logical join does not specify a join key, we could not transform it
-   *  into a hash join because we need the join key to build the hash table
+   * Check if the rule is applicable for the operator expression. The
+   * input operator expression should have the required "before" pattern, but
+   * other conditions may prevent us from applying the rule. For example, if
+   * the logical join does not specify a join key, we could not transform it
+   * into a hash join because we need the join key to build the hash table
    *
-   *  @param expr The "before" operator expression
-   *  @param context The current context for the optimization
-   *  @return If the rule is applicable, return true, otherwise return false
+   * @param expr The "before" operator expression
+   * @param context The current context for the optimization
+   * @return If the rule is applicable, return true, otherwise return false
    */
   virtual bool Check(OperatorExpression *expr, OptimizeContext *context) const = 0;
 
@@ -157,7 +159,14 @@ class Rule {
       OptimizeContext *context) const = 0;
 
  protected:
+  /**
+   * Match pattern for the rule to be used
+   */
   Pattern *match_pattern;
+
+  /**
+   * Type of the rule
+   */
   RuleType type_;
 };
 
@@ -166,29 +175,50 @@ class Rule {
  * The struct does not own the rule.
  */
 struct RuleWithPromise {
+ public:
   /**
    * Constructor
    * @param rule Pointer to rule
    * @param promise Promise of the rule
    */
-  RuleWithPromise(Rule *rule, int promise) : rule(rule), promise(promise) {}
+  RuleWithPromise(Rule *rule, int promise) : rule_(rule), promise_(promise) {}
 
-  Rule *rule;
-  int promise;
+  /**
+   * Gets the rule
+   * @returns Rule
+   */
+  Rule *GetRule() { return rule_; }
+
+  /**
+   * Gets the promise
+   * @returns Promise
+   */
+  int GetPromise() { return promise_; }
 
   /**
    * Checks whether this is less than another RuleWithPromise by comparing promise.
    * @param r Other RuleWithPromise to compare against
    * @returns TRUE if this < r
    */
-  bool operator<(const RuleWithPromise &r) const { return promise < r.promise; }
+  bool operator<(const RuleWithPromise &r) const { return promise_ < r.promise_; }
 
   /**
    * Checks whether this is larger than another RuleWithPromise by comparing promise.
    * @param r Other RuleWithPromise to compare against
    * @returns TRUE if this > r
    */
-  bool operator>(const RuleWithPromise &r) const { return promise > r.promise; }
+  bool operator>(const RuleWithPromise &r) const { return promise_ > r.promise_; }
+
+ private:
+  /**
+   * Rule
+   */
+  Rule *rule_;
+
+  /**
+   * Promise
+   */
+  int promise_;
 };
 
 /**
@@ -254,7 +284,7 @@ class RuleSet {
 
   /**
    * Gets all stored rules in a given RuleSet
-   * @param Rewrite RuleSet to fetch
+   * @param set Rewrite RuleSet to fetch
    * @returns vector of rules in that rewrite ruleset group
    */
   std::vector<Rule*> &GetRewriteRulesByName(RewriteRuleSetName set) {
@@ -262,10 +292,20 @@ class RuleSet {
   }
 
  private:
+  /**
+   * Vector of logical transformation rules
+   */
   std::vector<Rule*> transformation_rules_;
+
+  /**
+   * Vector of physical implementation rules
+   */
   std::vector<Rule*> implementation_rules_;
+
+  /**
+   * Map from RewriteRuleSetName (uint32_t) -> vector of rules
+   */
   std::unordered_map<uint32_t, std::vector<Rule*>> rewrite_rules_map_;
 };
 
-}  // namespace optimizer
-}  // namespace terrier
+} // namespace terrier::optimizer

@@ -2,12 +2,8 @@
 #include "optimizer/memo.h"
 #include "optimizer/logical_operators.h"
 
-namespace terrier {
-namespace optimizer {
+namespace terrier::optimizer {
 
-//===--------------------------------------------------------------------===//
-// Memo
-//===--------------------------------------------------------------------===//
 GroupExpression *Memo::InsertExpression(GroupExpression* gexpr, GroupID target_group, bool enforced) {
   // If leaf, then just return
   if (gexpr->Op().GetType() == OpType::LEAF) {
@@ -72,5 +68,4 @@ GroupID Memo::AddNewGroup(GroupExpression* gexpr) {
   return new_group_id;
 }
 
-}  // namespace optimizer
-}  // namespace terrier
+} // namespace terrier::optimizer

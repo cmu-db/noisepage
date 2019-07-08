@@ -6,8 +6,7 @@
 #include "optimizer/properties.h"
 #include "storage/data_table.h"
 
-namespace terrier {
-namespace optimizer {
+namespace terrier::optimizer {
 
 InputColumnDeriver::InputColumnDeriver() = default;
 
@@ -370,5 +369,4 @@ void InputColumnDeriver::Passdown() {
   output_input_cols_ = std::make_pair(required_cols_, std::vector{required_cols_});
 }
 
-}  // namespace optimizer
-}  // namespace terrier
+} // namespace terrier::optimizer

@@ -8,22 +8,39 @@
 #include "optimizer/group.h"
 #include "optimizer/group_expression.h"
 
-namespace terrier {
-namespace optimizer {
+namespace terrier::optimizer {
 
+/**
+ * Struct implementing the Hash() function for a GroupExpression*
+ */
 struct GExprPtrHash {
+  /**
+   * Implements the hash() function for GroupExpression
+   * @param s GroupExpression to hash
+   * @returns hash code
+   */
   std::size_t operator()(GroupExpression* const& s) const { return s->Hash(); }
 };
 
+/**
+ * Struct implementing the == function for GroupExpression*
+ */
 struct GExprPtrEq {
+  /**
+   * Implements the == operator for GroupExpression
+   * @param t1 One of the inputs GroupExpression
+   * @param t2 GroupExpression to check equality with against t1
+   * @returns TRUE if equal
+   */
   bool operator()(GroupExpression* const& t1, GroupExpression* const& t2) const {
     return *t1 == *t2;
   }
 };
 
-//===--------------------------------------------------------------------===//
-// Memo
-//===--------------------------------------------------------------------===//
+/**
+ * Memo class provides for tracking Groups and GroupExpressions and provides the
+ * mechanisms by which we can do duplicate group detection.
+ */
 class Memo {
  public:
   /**
@@ -107,5 +124,4 @@ class Memo {
   std::vector<Group*> groups_;
 };
 
-}  // namespace optimizer
-}  // namespace terrier
+} // namespace terrier::optimizer

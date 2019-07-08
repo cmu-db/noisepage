@@ -10,15 +10,19 @@ class CatalogAccessor;
 };
 
 namespace optimizer {
+
 class GroupExpression;
 class Memo;
-}
-
-namespace optimizer {
 
 // TODO(boweic): Currently we only represent sort as property, later we may want
 // to add group, data compression and data distribution(if we go distributed) as
 // property
+
+/**
+ * ChildPropertyDeriver derives output and child input property requirements
+ * for a given GroupExpression considering the overall properties that need
+ * to be satisifed.
+ */
 class ChildPropertyDeriver : public OperatorVisitor {
  public:
   /**

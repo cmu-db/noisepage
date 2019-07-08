@@ -4,16 +4,14 @@
 #include "optimizer/operator_expression.h"
 #include "optimizer/property_visitor.h"
 
-namespace terrier {
-namespace optimizer {
+namespace terrier::optimizer {
 
 class PropertySet;
 
-//===--------------------------------------------------------------------===//
-// Property Visitor
-//===--------------------------------------------------------------------===//
-
-// Enforce missing physical properties to group expression
+/**
+ * PropertyEnforcer class is used for enforcing properties for
+ * a specified GroupExpression.
+ */
 class PropertyEnforcer : public PropertyVisitor {
  public:
   /**
@@ -34,5 +32,4 @@ class PropertyEnforcer : public PropertyVisitor {
   GroupExpression* output_gexpr_;
 };
 
-}  // namespace optimizer
-}  // namespace terrier
+} // terrier::optimizer

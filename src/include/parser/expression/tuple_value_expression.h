@@ -79,7 +79,10 @@ class TupleValueExpression : public AbstractExpression {
     table_name_ = j.at("table_name").get<std::string>();
   }
 
-
+  /**
+   * Bound OID....obviously this is just a stub
+   * @returns ...
+   */
   const std::tuple<catalog::db_oid_t,
                    catalog::table_oid_t,
                    catalog::col_oid_t> &GetBoundOid() const;

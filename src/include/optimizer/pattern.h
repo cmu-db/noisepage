@@ -5,9 +5,11 @@
 
 #include "optimizer/operator_node.h"
 
-namespace terrier {
-namespace optimizer {
+namespace terrier::optimizer {
 
+/**
+ * Class defining a Pattern used for binding
+ */
 class Pattern {
  public:
   /**
@@ -62,5 +64,4 @@ class Pattern {
   std::vector<Pattern*> children;
 };
 
-}  // namespace optimizer
-}  // namespace terrier
+} // namespace terrier::optimizer

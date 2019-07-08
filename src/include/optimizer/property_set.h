@@ -6,10 +6,11 @@
 #include "common/hash_util.h"
 #include "optimizer/property.h"
 
-namespace terrier {
-namespace optimizer {
+namespace terrier::optimizer {
 
-// A set of physical properties
+/**
+ * PropertySet represents a set of properties
+ */
 class PropertySet {
  public:
   /**
@@ -140,16 +141,31 @@ struct PropSetPtrEq {
   }
 };
 
-} // namespace optimizer 
-} // namespace terrier 
+} // namespace terrier::optimizer
 
 namespace std {
 
+/**
+ * Implementation of std::hash for PropertySet
+ */
 template <>
 struct hash<terrier::optimizer::PropertySet> {
+  /**
+   * Defines argument_type to be PropertySet
+   */
   using argument_type = terrier::optimizer::PropertySet;
+
+  /**
+   * Defines result_type to be size_t
+   */
   using result_type = std::size_t;
+
+  /**
+   * Implementation of hash() for PropertySet
+   * @param s PropertySet to hash
+   * @returns hash code
+   */
   result_type operator()(argument_type const &s) const { return s.Hash(); }
 };
 
-}  // namespace std
+} // namespace std

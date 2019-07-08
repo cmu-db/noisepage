@@ -18,26 +18,27 @@ namespace catalog {
 class CatalogAccessor;
 }
 
-namespace optimizer {
-class OperatorExpression;
-}  // namespace optimizer
-
 namespace transaction {
 class TransactionContext;
 }  // namespace transaction
 
 namespace optimizer {
 
-//===--------------------------------------------------------------------===//
-// Optimizer
-//===--------------------------------------------------------------------===//
+class OperatorExpression;
+
+/**
+ * Optimizer class that implements the AbstractOptimizer abstract class
+ */
 class Optimizer : public AbstractOptimizer {
  public:
+  /**
+   * Disallow copy and move
+   */
   DISALLOW_COPY_AND_MOVE(Optimizer);
 
   /**
    * Constructor for Optimizer with a cost_model
-   * @param cost_model Cost Model to use for the optimizer
+   * @param model Cost Model to use for the optimizer
    */
   explicit Optimizer(AbstractCostModel *model)
     : metadata_(model) {}

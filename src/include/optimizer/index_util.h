@@ -7,10 +7,79 @@
 #include "catalog/index_schema.h"
 #include "optimizer/properties.h"
 
-// Collection of helper functions related to Indexes...
-
 namespace terrier::optimizer {
 
+/**
+ * Struct defines information for IndexUtil functions that are
+ * concerned with handling index-predicates.
+ *
+ * TODO(wz2): Support complicated predicates on non-base indexes
+ * Support requires modifying PopulateMetadata/SatisfiesPredicateWithIndex.
+ * In addition, also need to modify IndexScan / IndexScanPlanNode.
+ * For now, based on Peloton, supports only (col comparator value)
+ * on base-column indexes.
+ */
+struct IndexUtilMetadata {
+ public:
+  friend class IndexUtil;
+
+  /**
+   * Returns the predicate col_oid_t vector
+   * @returns vector of predicates col_oid_t
+   */
+  std::vector<catalog::col_oid_t> &GetPredicateColumnIds() { return predicate_column_ids_; }
+
+  /**
+   * Returns the predicate ExpressionType vector
+   * @returns vector of predicates ExpressionType
+   */
+  std::vector<parser::ExpressionType> &GetPredicateExprTypes() { return predicate_expr_types_; }
+
+  /**
+   * Returns the predicate TransientValue vector
+   * @returns vector of predicates TransientValue
+   */
+  std::vector<type::TransientValue> &GetPredicateValues() { return predicate_values_; }
+
+ private:
+  /**
+   * Sets the predicate_column_ids_ vector
+   * @param col_ids Vector of catalog::col_oid_t for predicates
+   */
+  void SetPredicateColumnIds(std::vector<catalog::col_oid_t> &&col_ids) { predicate_column_ids_ = col_ids; }
+
+  /**
+   * Sets the predicate_expr_types_ vector
+   * @param expr_types Vector of parser::ExpressionType for predicates
+   */
+  void SetPredicateExprTypes(std::vector<parser::ExpressionType> &&expr_types) { predicate_expr_types_ = expr_types; }
+
+  /**
+   * Sets the predicate_values_ vector
+   * @param values Vector of type::TransientValue for predicates
+   */
+  void SetPredicateValues(std::vector<type::TransientValue> &&values) { predicate_values_ = std::move(values); }
+
+  /**
+   * Vector of predicate col_oid_t
+   */
+  std::vector<catalog::col_oid_t> predicate_column_ids_;
+
+  /**
+   * Vector of predicate ExpressionType
+   */
+  std::vector<parser::ExpressionType> predicate_expr_types_;
+
+  /**
+   * Vector of predicates values
+   */
+  std::vector<type::TransientValue> predicate_values_;
+};
+
+/**
+ * Collection of helper functions related to working with Indexes
+ * within the scope of the optimizer.
+ */
 class IndexUtil {
  public:
   /**
@@ -42,7 +111,7 @@ class IndexUtil {
    * For an index to fulfill the sort property, the columns sorted
    * on must be in the same order and in the same direction.
    *
-   * @requires CheckSortProperty(prop)
+   * Requires CheckSortProperty(prop)
    * @param prop PropertySort to satisfy
    * @param tbl_oid OID of the table that the index is built on
    * @param idx_oid OID of index to use to satisfy
@@ -84,6 +153,7 @@ class IndexUtil {
 
       // Sort(a,b,c) cannot be fulfilled by Index(a,c,b)
       auto col_match = std::get<2>(tv_expr->GetBoundOid()) == mapped_cols[idx];
+
       // TODO(wz2): need catalog flag for column sort direction
       // Sort(a ASC) cannot be fulfilled by Index(a DESC)
       auto dir_match = true;
@@ -93,6 +163,153 @@ class IndexUtil {
     }
 
     return true;
+  }
+
+  /**
+   * Populates metadata using information from predicates
+   * @param predicates Predicates to populate metadata with
+   * @param metadata IndexUtilMetadata
+   */
+  static void PopulateMetadata(const std::vector<AnnotatedExpression> &predicates,
+                               IndexUtilMetadata &metadata) {
+
+    // List of column OIDs that predicates are built against
+    std::vector<catalog::col_oid_t> key_column_id_list;
+
+    // List of expression comparison type (i.e =, >, ...)
+    std::vector<parser::ExpressionType> expr_type_list;
+
+    // List of values compared against
+    std::vector<type::TransientValue> value_list;
+
+    for (auto &pred : predicates) {
+      auto expr = pred.GetExpr();
+      if (expr->GetChildrenSize() != 2) {
+        continue;
+      }
+
+      // Fetch column reference and value
+      auto expr_type = expr->GetExpressionType();
+      const parser::AbstractExpression *tv_expr = nullptr;
+      const parser::AbstractExpression *value_expr = nullptr;
+      if (expr->GetChild(0)->GetExpressionType() == parser::ExpressionType::VALUE_TUPLE) {
+        auto r_type = expr->GetChild(1)->GetExpressionType();
+        if (r_type == parser::ExpressionType::VALUE_CONSTANT) {
+          // TODO(wz2): ParameterValue issue
+          // || r_type == parser::ExpressionType::VALUE_PARAMETER) {
+          tv_expr = expr->GetChild(0).get();
+          value_expr = expr->GetChild(1).get();
+        }
+      } else if (expr->GetChild(1)->GetExpressionType() == parser::ExpressionType::VALUE_TUPLE) {
+        auto l_type = expr->GetChild(0)->GetExpressionType();
+        if (l_type == parser::ExpressionType::VALUE_CONSTANT) {
+          // TODO(wz2): ParameterValue issue
+          // || l_type == parser::ExpressionType::VALUE_PARAMETER) {
+          tv_expr = expr->GetChild(1).get();
+          value_expr = expr->GetChild(0).get();
+
+          // Get the ExpressionType such that (tv_expr [expr_type] value_expr) is logically
+          // equivalent to original (value_expr [expr_type] tv_expr).
+          // i.e (x > 5) is same as (5 < x)
+          expr_type = parser::ExpressionUtil::ReverseComparisonExpressionType(expr_type);
+        }
+      }
+
+      // If found valid tv_expr and value_expr, update col_id_list, expr_type_list and val_list
+      if (tv_expr != nullptr) {
+        // Get the column's col_oid_t from catalog
+        auto col_expr = dynamic_cast<const parser::TupleValueExpression*>(tv_expr);
+        TERRIER_ASSERT(col_expr, "TupleValueExpression expected");
+
+        auto col_oid = std::get<2>(col_expr->GetBoundOid());
+        TERRIER_ASSERT(col_oid != catalog::col_oid_t(-1), "TupleValueExpression at scan should be bound");
+        key_column_id_list.push_back(col_oid);
+
+        // Update expr_type_list
+        expr_type_list.push_back(expr_type);
+
+        if (value_expr->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT) {
+          auto cve = dynamic_cast<const parser::ConstantValueExpression*>(value_expr);
+          TERRIER_ASSERT(cve, "ConstantValueExpression expected");
+
+          // Update value_list
+          type::TransientValue value = cve->GetValue();
+          value_list.emplace_back(std::move(value));
+        } else {
+          TERRIER_ASSERT(0, "Fix ParameterValue GitHub Issue");
+          // TODO(wz2): Pending ParameterValue issue
+          // value_list.push_back(
+          //    type::ValueFactory::GetParameterOffsetValue(
+          //        reinterpret_cast<expression::ParameterValueExpression *>(
+          //            value_expr)->GetValueIdx()).Copy());
+          // OPTIMIZER_LOG_TRACE("Parameter offset: %s",
+          //           (*value_list.rbegin()).GetInfo().c_str());
+        }
+      }
+    }
+
+    metadata.SetPredicateColumnIds(std::move(key_column_id_list));
+    metadata.SetPredicateExprTypes(std::move(expr_type_list));
+    metadata.SetPredicateValues(std::move(value_list));
+  }
+
+  /**
+   * Checks whether a set of predicates can be satisfied with an index
+   * @param tbl_oid OID of the table
+   * @param index_oid OID of an index to check
+   * @param preds_metadata IndexUtilMetadata from PopulateMetadata on predicates
+   * @param output_metadata Output IndexUtilMetadata for creating IndexScan
+   * @param accessor CatalogAccessor
+   * @returns Whether index can be used
+   */
+  static bool SatisfiesPredicateWithIndex(catalog::table_oid_t tbl_oid,
+                                          catalog::index_oid_t index_oid,
+                                          IndexUtilMetadata &preds_metadata,
+                                          IndexUtilMetadata &output_metadata,
+                                          catalog::CatalogAccessor *accessor) {
+    auto &index_schema = accessor->GetIndexSchema(index_oid);
+    if (!SatisfiesBaseColumnRequirement(index_schema)) {
+      return false;
+    }
+
+    std::vector<catalog::col_oid_t> mapped_cols;
+    if (!GetIndexColOid(tbl_oid, index_schema, accessor, mapped_cols)) {
+      // Unable to translate indexkeycol_oid_t -> col_oid_t
+      // Translation uses the IndexSchema::Column expression
+      return false;
+    }
+
+    std::unordered_set<catalog::col_oid_t> index_cols;
+    for (auto &id : mapped_cols) { index_cols.insert(id); }
+
+    std::vector<catalog::col_oid_t> output_col_list;
+    std::vector<parser::ExpressionType> output_expr_list;
+    std::vector<type::TransientValue> output_val_list;
+
+    // From predicate maetadata
+    auto &input_col_list = preds_metadata.GetPredicateColumnIds();
+    auto &input_expr_list = preds_metadata.GetPredicateExprTypes();
+    auto &input_val_list = preds_metadata.GetPredicateValues();
+    TERRIER_ASSERT(input_col_list.size() == input_expr_list.size() &&
+                   input_col_list.size() == input_val_list.size(),
+                   "Predicate metadata should all be equal length vectors");
+
+    for (size_t offset = 0; offset < input_col_list.size(); offset++) {
+      auto col_id = input_col_list[offset];
+      if (index_cols.find(col_id) != index_cols.end()) {
+        output_col_list.push_back(col_id);
+        output_expr_list.push_back(input_expr_list[offset]);
+
+        type::TransientValue val = input_val_list[offset];
+        output_val_list.emplace_back(std::move(val));
+      }
+    }
+
+    bool is_empty = output_col_list.empty();
+    output_metadata.SetPredicateColumnIds(std::move(output_col_list));
+    output_metadata.SetPredicateExprTypes(std::move(output_expr_list));
+    output_metadata.SetPredicateValues(std::move(input_val_list));
+    return !is_empty;
   }
 
  private:

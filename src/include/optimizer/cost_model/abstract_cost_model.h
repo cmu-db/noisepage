@@ -26,6 +26,10 @@ static constexpr double DEFAULT_INDEX_TUPLE_COST = 0.005;
 // query.
 static constexpr double DEFAULT_OPERATOR_COST = 0.0025;
 
+/**
+ * Interface defining a cost model.
+ * A cost model's primary entrypoint is CalculateCost()
+ */
 class AbstractCostModel : public OperatorVisitor {
  public:
   /**

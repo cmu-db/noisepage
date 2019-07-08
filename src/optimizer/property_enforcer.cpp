@@ -3,8 +3,7 @@
 #include "optimizer/property.h"
 #include "optimizer/properties.h"
 
-namespace terrier {
-namespace optimizer {
+namespace terrier::optimizer {
 
 GroupExpression* PropertyEnforcer::EnforceProperty(GroupExpression* gexpr, Property* property) {
   input_gexpr_ = gexpr;
@@ -12,13 +11,9 @@ GroupExpression* PropertyEnforcer::EnforceProperty(GroupExpression* gexpr, Prope
   return output_gexpr_;
 }
 
-/**
- * Implementation of the Visit function for PropertySort
- */
 void PropertyEnforcer::Visit(const PropertySort *) {
   std::vector<GroupID> child_groups(1, input_gexpr_->GetGroupID());
   output_gexpr_ = new GroupExpression(OrderBy::make(), child_groups);
 }
 
-}  // namespace optimizer
-}  // namespace terrier
+} // namespace terrier::optimizer

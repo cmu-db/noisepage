@@ -3,10 +3,7 @@
 #include "optimizer/property.h"
 #include "optimizer/property_visitor.h"
 
-namespace terrier {
-namespace optimizer {
-
-/*************** PropertySort *****************/
+namespace terrier::optimizer {
 
 /**
  * Checks whether this is greater than or equal to another property.
@@ -67,5 +64,4 @@ void PropertySort::Accept(PropertyVisitor *v) const {
   v->Visit((const PropertySort *)this);
 }
 
-}  // namespace optimizer
-}  // namespace terrier
+} // namespace terrier::optimizer

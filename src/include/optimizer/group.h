@@ -9,20 +9,21 @@
 #include "optimizer/property.h"
 #include "optimizer/property_set.h"
 
-namespace terrier {
-namespace optimizer {
+namespace terrier::optimizer {
 
 class GroupExpression;
 
-//===--------------------------------------------------------------------===//
-// Group
-//===--------------------------------------------------------------------===//
+/**
+ * Group collects together GroupExpressions that represent logically
+ * equivalent expression trees.  A Group tracks both logical and
+ * physical GroupExpressions.
+ */
 class Group {
  public:
   /**
    * Constructor for a group
    * @param id ID of the Group
-   * @param table_alias Set of table aliases used by the Group
+   * @param table_aliases Set of table aliases used by the Group
    */
   Group(GroupID id, std::unordered_set<std::string> table_aliases)
     : id_(id),
@@ -68,7 +69,7 @@ class Group {
    */
   GroupExpression *GetBestExpression(PropertySet* properties);
 
-  /*
+  /**
    * Determines whether or not a lowest cost expression exists
    * for this group that satisfies a certain PropertySet.
    *
@@ -167,5 +168,4 @@ class Group {
   double cost_lower_bound_ = -1;
 };
 
-}  // namespace optimizer
-}  // namespace terrier
+} // namespace terrier::optimizer

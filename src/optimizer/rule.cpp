@@ -1,8 +1,7 @@
 #include "optimizer/rule_impls.h"
 #include "optimizer/group_expression.h"
 
-namespace terrier {
-namespace optimizer {
+namespace terrier::optimizer {
 
 int Rule::Promise(GroupExpression *group_expr, OptimizeContext *context) const {
   (void)context;
@@ -45,5 +44,4 @@ RuleSet::RuleSet() {
   AddRewriteRule(RewriteRuleSetName::UNNEST_SUBQUERY, new PullFilterThroughAggregation());
 }
 
-}  // namespace optimizer
-}  // namespace terrier
+} // namespace terrier::optimizer

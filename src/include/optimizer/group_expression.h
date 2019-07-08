@@ -13,12 +13,13 @@
 #include "optimizer/property_set.h"
 #include "optimizer/rule.h"
 
-namespace terrier {
-namespace optimizer {
+namespace terrier::optimizer {
 
-//===--------------------------------------------------------------------===//
-// Group Expression
-//===--------------------------------------------------------------------===//
+/**
+ * GroupExpression used to represent a particular logical or physical
+ * operator expression within a group that abstracts away the specific
+ * OperatorExpression of a Group.
+ */
 class GroupExpression {
  public:
   /**
@@ -69,7 +70,7 @@ class GroupExpression {
 
   /**
    * Gets a specific child GroupID
-   * @param idx Index of the child
+   * @param child_idx Index of the child
    * @returns Child's GroupID
    */
   GroupID GetChildGroupId(int child_idx) const {
@@ -182,16 +183,31 @@ class GroupExpression {
                      PropSetPtrHash, PropSetPtrEq> lowest_cost_table_;
 };
 
-}  // namespace optimizer
-}  // namespace terrier
+} // namespace terrier::optimizer
 
 namespace std {
 
+/**
+ * Implementation of std::hash for GroupExpression
+ */
 template <>
 struct hash<terrier::optimizer::GroupExpression> {
+  /**
+   * Defines argument_type to be GroupExpression
+   */
   using argument_type = terrier::optimizer::GroupExpression;
+
+  /**
+   * Defines result_type to be size_t
+   */
   using result_type = std::size_t;
+
+  /**
+   * Implementation of the hash() for GroupExpression
+   * @param s GroupExpression to hash
+   * @returns hash code
+   */
   result_type operator()(argument_type const &s) const { return s.Hash(); }
 };
 
-}  // namespace std
+} // namespace std

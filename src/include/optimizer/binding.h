@@ -12,12 +12,12 @@
 #include "optimizer/operator_expression.h"
 #include "optimizer/memo.h"
 
-namespace terrier {
-namespace optimizer {
+namespace terrier::optimizer {
 
-//===--------------------------------------------------------------------===//
-// Binding Iterator
-//===--------------------------------------------------------------------===//
+/**
+ * Abstract interface for a BindingIterator defined similarly to
+ * a traditional iterator (HasNext(), Next()).
+ */
 class BindingIterator {
  public:
   /**
@@ -33,7 +33,7 @@ class BindingIterator {
 
   /**
    * Virtual function for whether a binding exists
-   * @param Whether or not a binding still exists
+   * @returns Whether or not a binding still exists
    */
   virtual bool HasNext() = 0;
 
@@ -44,9 +44,16 @@ class BindingIterator {
   virtual OperatorExpression* Next() = 0;
 
  protected:
+  /**
+   * Internal reference to Memo table
+   */
   const Memo &memo_;
 };
 
+/**
+ * GroupBindingIterator is an implementation of the BindingIterator abstract
+ * class that is specialized for trying to bind a group against a pattern.
+ */
 class GroupBindingIterator : public BindingIterator {
  public:
   /**
@@ -67,7 +74,7 @@ class GroupBindingIterator : public BindingIterator {
 
   /**
    * Virtual function for whether a binding exists
-   * @param Whether or not a binding still exists
+   * @returns Whether or not a binding still exists
    */
   bool HasNext() override;
 
@@ -78,15 +85,41 @@ class GroupBindingIterator : public BindingIterator {
   OperatorExpression* Next() override;
 
  private:
+  /**
+   * GroupID to try binding with
+   */
   GroupID group_id_;
+
+  /**
+   * Pattern to try binding to
+   */
   Pattern* pattern_;
+
+  /**
+   * Pointer to the group with GroupID group_id_
+   */
   Group *target_group_;
+
+  /**
+   * Number of items in the Group to try
+   */
   size_t num_group_items_;
 
+  /**
+   * Current GroupExpression being tried
+   */
   size_t current_item_index_;
+
+  /**
+   * Iterator used for binding against GroupExpression
+   */
   std::unique_ptr<BindingIterator> current_iterator_;
 };
 
+/**
+ * GroupExprBindingIterator is an implementation of the BindingIterator abstract
+ * class that is specialized for trying to bind a GroupExpression against a pattern.
+ */
 class GroupExprBindingIterator : public BindingIterator {
  public:
   /**
@@ -107,14 +140,12 @@ class GroupExprBindingIterator : public BindingIterator {
       }
     }
 
-    if (current_binding_) {
-      delete current_binding_;
-    }
+    delete current_binding_;
   }
 
   /**
    * Virtual function for whether a binding exists
-   * @param Whether or not a binding still exists
+   * @returns Whether or not a binding still exists
    */
   bool HasNext() override;
 
@@ -131,15 +162,40 @@ class GroupExprBindingIterator : public BindingIterator {
   }
 
  private:
+  /**
+   * GroupExpression to bind with
+   */
   GroupExpression* gexpr_;
+
+  /**
+   * Pattern to bind to
+   */
   Pattern* pattern_;
 
+  /**
+   * Flag indicating whether first binding or not
+   */
   bool first_;
+
+  /**
+   * Flag indicating whether there are anymore bindings
+   */
   bool has_next_;
+
+  /**
+   * Current binding
+   */
   OperatorExpression* current_binding_;
+
+  /**
+   * Stored bindings for children expressions
+   */
   std::vector<std::vector<OperatorExpression*>> children_bindings_;
+
+  /**
+   * Position indicators tracking progress within children_bindings_
+   */
   std::vector<size_t> children_bindings_pos_;
 };
 
-} // namespace optimizer
-} // namespace terrier
+} // namespace terrier::optimizer

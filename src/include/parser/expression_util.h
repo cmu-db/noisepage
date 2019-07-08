@@ -1,7 +1,5 @@
 #pragma once
 
-// Expression helpers for the optimizer
-
 #include <sstream>
 #include <string>
 #include <vector>
@@ -17,9 +15,11 @@
 #include "parser/expression/tuple_value_expression.h"
 #include "optimizer/optimizer_defs.h"
 
-namespace terrier {
-namespace parser {
+namespace terrier::parser {
 
+/**
+ * Collection of expression helpers for the optimizer
+ */
 class ExpressionUtil {
  public:
   /**
@@ -75,7 +75,10 @@ class ExpressionUtil {
   }
 
   /**
-   * For a given comparison operator, reverses the comparison
+   * For a given comparison operator, reverses the comparison.
+   * This function flips ExpressionType such that flipping the left and right
+   * child of the original expression would still be logically equivalent.
+   *
    * @param type ExpressionType (should be comparison type) to reverse
    * @returns the ExpressionType that is the logical reverse of the input
    */
@@ -89,17 +92,8 @@ class ExpressionUtil {
         return ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO;
       case ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO:
         return ExpressionType::COMPARE_GREATER_THAN;
-      case ExpressionType::COMPARE_EQUAL:
-        return ExpressionType::COMPARE_NOT_EQUAL;
-      case ExpressionType::COMPARE_LIKE:
-        return ExpressionType::COMPARE_NOT_LIKE;
-      case ExpressionType::COMPARE_NOT_EQUAL:
-        return ExpressionType::COMPARE_EQUAL;
-      case ExpressionType::COMPARE_NOT_LIKE:
-        return ExpressionType::COMPARE_LIKE;
-      default: {
-        TERRIER_ASSERT(0, "type passed in is not a comparison");
-      }
+      default:
+        return type;
     }
   }
 
@@ -399,13 +393,14 @@ class ExpressionUtil {
     }
   }
 
-  /*
+  /**
    * Check whether two vectors of expression equal to each other.
    *
    * @param l vector of one set of expressions
    * @param r vector of other set of expressions
    * @param ordered Whether comparison should consider the order
-   * */
+   * @returns Whether two vectors of expressions are equal or not
+   */
   static bool EqualExpressions(const std::vector<AbstractExpression*> &l,
                                const std::vector<AbstractExpression*> &r,
                                bool ordered = false) {
@@ -426,7 +421,7 @@ class ExpressionUtil {
     }
   }
 
-  /*
+  /**
    * Joins all AnnotatedExpression in vector by AND operators.
    * The input AnnotatedExpression are copied before being joined together.
    *
@@ -454,5 +449,5 @@ class ExpressionUtil {
     return children[0];
   }
 };
-}  // namespace parser
-}  // namespace terrier
+
+} // namespace terrier::parser

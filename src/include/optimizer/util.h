@@ -9,9 +9,7 @@
 #include "parser/expression/abstract_expression.h"
 #include "planner/plannodes/abstract_plan_node.h"
 
-namespace terrier {
-namespace optimizer {
-namespace util {
+namespace terrier::optimizer::util {
 
 /**
  * Convert upper case letters into lower case in a string
@@ -86,6 +84,4 @@ void ExtractEquiJoinKeys(
     const std::unordered_set<std::string> &left_alias,
     const std::unordered_set<std::string> &right_alias);
 
-}  // namespace util
-}  // namespace optimizer
-}  // namespace terrier
+} // namespace terrier::optimizer::util

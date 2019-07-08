@@ -21,6 +21,10 @@ namespace optimizer {
 class OptimizerTaskPool;
 class RuleSet;
 
+/**
+ * OptimizerMetadata is a class containing pointers to various objects
+ * that are required during the entire query optimization process.
+ */
 class OptimizerMetadata {
  public:
 
@@ -170,7 +174,7 @@ class OptimizerMetadata {
    * expr is not freed
    *
    * @param expr OperatorExpression to record
-   * @param gexpr[out] Places the newly created GroupExpression
+   * @param gexpr Places the newly created GroupExpression
    * @returns Whether the OperatorExpression already exists
    */
   bool RecordTransformedExpression(OperatorExpression* expr, GroupExpression* &gexpr) {
@@ -184,7 +188,7 @@ class OptimizerMetadata {
    * expr is not freed
    *
    * @param expr OperatorExpression to record into the group
-   * @param gexpr[out] Places the newly created GroupExpression
+   * @param gexpr Places the newly created GroupExpression
    * @param target_group ID of the Group that the OperatorExpression belongs to
    * @returns Whether the OperatorExpression already exists
    */

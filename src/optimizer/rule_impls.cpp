@@ -3,7 +3,9 @@
 #include "loggers/optimizer_logger.h"
 #include "type/transient_value_factory.h"
 #include "parser/expression_util.h"
+#include "catalog/catalog_accessor.h"
 #include "optimizer/optimizer_defs.h"
+#include "optimizer/index_util.h"
 #include "optimizer/group_expression.h"
 #include "optimizer/physical_operators.h"
 #include "optimizer/optimizer_metadata.h"
@@ -11,8 +13,7 @@
 #include "optimizer/rule_impls.h"
 #include "optimizer/util.h"
 
-namespace terrier {
-namespace optimizer {
+namespace terrier::optimizer {
 
 //===--------------------------------------------------------------------===//
 // Transformation rules
@@ -20,6 +21,7 @@ namespace optimizer {
 
 ///////////////////////////////////////////////////////////////////////////////
 /// InnerJoinCommutativity
+///////////////////////////////////////////////////////////////////////////////
 InnerJoinCommutativity::InnerJoinCommutativity() {
   type_ = RuleType::INNER_JOIN_COMMUTE;
 
@@ -56,6 +58,7 @@ void InnerJoinCommutativity::Transform(
 
 ///////////////////////////////////////////////////////////////////////////////
 /// InnerJoinAssociativity
+///////////////////////////////////////////////////////////////////////////////
 InnerJoinAssociativity::InnerJoinAssociativity() {
   type_ = RuleType::INNER_JOIN_ASSOCIATE;
 
@@ -100,7 +103,7 @@ void InnerJoinAssociativity::Transform(
                       right->GetOp().GetName().c_str());
 
   // Get Alias sets
-  auto &memo = context->metadata->memo;
+  auto &memo = context->GetMetadata()->GetMemo();
   auto middle_group_id = middle->GetOp().As<LeafOperator>()->GetOriginGroup();
   auto right_group_id = right->GetOp().As<LeafOperator>()->GetOriginGroup();
 
@@ -152,6 +155,7 @@ void InnerJoinAssociativity::Transform(
 
 ///////////////////////////////////////////////////////////////////////////////
 /// GetToTableFreeScan
+///////////////////////////////////////////////////////////////////////////////
 GetToTableFreeScan::GetToTableFreeScan() {
   type_ = RuleType::GET_TO_DUMMY_SCAN;
   match_pattern = new Pattern(OpType::LOGICALGET);
@@ -160,9 +164,7 @@ GetToTableFreeScan::GetToTableFreeScan() {
 bool GetToTableFreeScan::Check(OperatorExpression* plan, OptimizeContext *context) const {
   (void)context;
   const LogicalGet *get = plan->GetOp().As<LogicalGet>();
-
-  // TODO(wz2): Need catalog accessor
-  return get->table == nullptr;
+  return get->GetTableOID() == catalog::table_oid_t(NULL_OID);
 }
 
 void GetToTableFreeScan::Transform(
@@ -176,6 +178,7 @@ void GetToTableFreeScan::Transform(
 
 ///////////////////////////////////////////////////////////////////////////////
 /// GetToSeqScan
+///////////////////////////////////////////////////////////////////////////////
 GetToSeqScan::GetToSeqScan() {
   type_ = RuleType::GET_TO_SEQ_SCAN;
   match_pattern = new Pattern(OpType::LOGICALGET);
@@ -184,9 +187,7 @@ GetToSeqScan::GetToSeqScan() {
 bool GetToSeqScan::Check(OperatorExpression* plan, OptimizeContext *context) const {
   (void)context;
   const LogicalGet *get = plan->GetOp().As<LogicalGet>();
-
-  // TODO(wz2): Need catalog accessor
-  return get->table != nullptr;
+  return get->GetTableOID() != catalog:: INVALID_TABLE_OID;
 }
 
 void GetToSeqScan::Transform(
@@ -212,6 +213,7 @@ void GetToSeqScan::Transform(
 
 ///////////////////////////////////////////////////////////////////////////////
 /// GetToIndexScan
+///////////////////////////////////////////////////////////////////////////////
 GetToIndexScan::GetToIndexScan() {
   type_ = RuleType::GET_TO_INDEX_SCAN;
   match_pattern = new Pattern(OpType::LOGICALGET);
@@ -222,11 +224,16 @@ bool GetToIndexScan::Check(OperatorExpression* plan, OptimizeContext *context) c
   // else return false
   (void)context;
   const LogicalGet *get = plan->GetOp().As<LogicalGet>();
-  if (get != nullptr && get->table != nullptr && !get->table->GetIndexCatalogEntries().empty()) {
-    return true;
+  if (get == nullptr) {
+    return false;
   }
 
-  return false;
+  if (get->GetTableOID() == catalog:: INVALID_TABLE_OID) {
+    return false;
+  }
+
+  auto *accessor = context->GetMetadata()->GetCatalogAccessor();
+  return !accessor->GetIndexes(get->GetTableOID()).empty();
 }
 
 void GetToIndexScan::Transform(
@@ -240,53 +247,21 @@ void GetToIndexScan::Transform(
   auto db_oid = get->GetDatabaseOID();
   auto ns_oid = get->GetNamespaceOID();
   bool is_update = get->GetIsForUpdate();
+  auto *accessor = context->GetMetadata()->GetCatalogAccessor();
 
-  // Get sort columns if they are all base columns and all in asc order
-  auto sort = context->required_prop->GetPropertyOfType(PropertyType::SORT);
+  auto sort = context->GetRequiredProperties()->GetPropertyOfType(PropertyType::SORT);
   std::vector<catalog::col_oid_t> sort_col_ids;
   if (sort != nullptr) {
+    // Check if can satisfy sort property with an index
     auto sort_prop = sort->As<PropertySort>();
-    bool sort_by_asc_base_column = true;
-    for (size_t i = 0; i < sort_prop->GetSortColumnSize(); i++) {
-      auto expr = sort_prop->GetSortColumn(i);
-      bool is_asc = sort_prop->GetSortAscending(static_cast<int>(i));
-      bool is_tv = expr->GetExpressionType() != parser::ExpressionType::VALUE_TUPLE;
-      if (!is_asc || is_tv) {
-        sort_by_asc_base_column = false;
-        break;
-      }
-
-      auto bound_oids = reinterpret_cast<parser::TupleValueExpression *>(expr)->GetBoundOid();
-      sort_col_ids.push_back(std::get<2>(bound_oids));
-    }
-
-    // Check whether any index can fulfill sort property
-    if (sort_by_asc_base_column) {
-      for (auto &index_id_object_pair : get->table->GetIndexCatalogEntries()) {
-        auto &index_id = index_id_object_pair.first;
-        auto &index = index_id_object_pair.second;
-        auto &index_col_ids = index->GetKeyAttrs();
-        // We want to ensure that Sort(a, b, c, d, e) can fit Sort(a, b, c)
-        size_t l_num_sort_columns = index_col_ids.size();
-        size_t r_num_sort_columns = sort_col_ids.size();
-        if (l_num_sort_columns < r_num_sort_columns) {
-          continue;
-        }
-
-        bool index_matched = true;
-        for (size_t idx = 0; idx < r_num_sort_columns; ++idx) {
-          if (index_col_ids[idx] != sort_col_ids[idx]) {
-            index_matched = false;
-            break;
-          }
-        }
-
-        // Add transformed plan if found
-        if (index_matched) {
+    if (IndexUtil::CheckSortProperty(sort_prop)) {
+      auto indexes = accessor->GetIndexes(get->GetTableOID());
+      for (auto index : indexes) {
+        if (IndexUtil::SatisfiesSortWithIndex(sort_prop, get->GetTableOID(), index, accessor)) {
           std::vector<AnnotatedExpression> preds = get->GetPredicates();
           std::string tbl_alias = std::string(get->GetTableAlias());
           auto op = IndexScan::make(
-            db_oid, ns_oid, index_id,
+            db_oid, ns_oid, index,
             std::move(preds), tbl_alias,
             is_update, {}, {}, {}
           );
@@ -299,95 +274,25 @@ void GetToIndexScan::Transform(
 
   // Check whether any index can fulfill predicate predicate evaluation
   if (!get->GetPredicates().empty()) {
-    std::vector<catalog::col_oid_t> key_column_id_list;
-    std::vector<parser::ExpressionType> expr_type_list;
-    std::vector<type::TransientValue> value_list;
-    for (auto &pred : get->GetPredicates()) {
-      auto expr = pred.GetExpr().get();
-      if (expr->GetChildrenSize() != 2)
-        continue;
-
-      auto expr_type = expr->GetExpressionType();
-      const parser::AbstractExpression *tv_expr = nullptr;
-      const parser::AbstractExpression *value_expr = nullptr;
-
-      // Fetch column reference and value
-      if (expr->GetChild(0)->GetExpressionType() == parser::ExpressionType::VALUE_TUPLE) {
-        auto r_type = expr->GetChild(1)->GetExpressionType();
-        if (r_type == parser::ExpressionType::VALUE_CONSTANT ||
-            r_type == parser::ExpressionType::VALUE_PARAMETER) {
-          tv_expr = expr->GetChild(0);
-          value_expr = expr->GetChild(1);
-        }
-      } else if (expr->GetChild(1)->GetExpressionType() == parser::ExpressionType::VALUE_TUPLE) {
-        auto l_type = expr->GetChild(0)->GetExpressionType();
-        if (l_type == parser::ExpressionType::VALUE_CONSTANT ||
-            l_type == parser::ExpressionType::VALUE_PARAMETER) {
-          tv_expr = expr->GetChild(1);
-          value_expr = expr->GetChild(0);
-          expr_type = parser::ExpressionUtil::ReverseComparisonExpressionType(expr_type);
-        }
-      }
-
-      // If found valid tv_expr and value_expr, update col_id_list, expr_type_list and val_list
-      if (tv_expr != nullptr) {
-        auto col_expr = dynamic_cast<const parser::TupleValueExpression*>(tv_expr);
-        TERRIER_ASSERT(col_expr, "TupleValueExpression expected");
-
-        std::string col_name(col_expr->GetColumnName());
-        OPTIMIZER_LOG_TRACE("Column name: %s", col_name.c_str());
-
-        auto column_id = get->table->GetColumnCatalogEntry(col_name)->GetColumnId();
-        key_column_id_list.push_back(column_id);
-        expr_type_list.push_back(expr_type);
-
-        if (value_expr->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT) {
-          auto cve = dynamic_cast<const parser::ConstantValueExpression*>(value_expr);
-          TERRIER_ASSERT(cve, "ConstantValueExpression expected");
-          value_list.push_back(type::TransientValueFactory::GetCopy(cve->GetValue()));
-        } else {
-          value_list.push_back(
-              type::ValueFactory::GetParameterOffsetValue(
-                  reinterpret_cast<expression::ParameterValueExpression *>(
-                      value_expr)->GetValueIdx()).Copy());
-          OPTIMIZER_LOG_TRACE("Parameter offset: %s",
-                    (*value_list.rbegin()).GetInfo().c_str());
-        }
-      }
-    }  // Loop predicates end
+    IndexUtilMetadata metadata;
+    IndexUtil::PopulateMetadata(get->GetPredicates(), metadata);
 
     // Find match index for the predicates
-    auto index_objects = get->table->GetIndexCatalogEntries();
-    for (auto &index_id_object_pair : index_objects) {
-      auto &index_id = index_id_object_pair.first;
-      auto &index_object = index_id_object_pair.second;
-      std::vector<catalog::col_oid_t> index_key_column_id_list;
-      std::vector<parser::ExpressionType> index_expr_type_list;
-      std::vector<type::TransientValue> index_value_list;
-      std::unordered_set<catalog::col_oid_t> index_col_set(
-        index_object->GetKeyAttrs().begin(),
-        index_object->GetKeyAttrs().end()
-      );
-
-      for (size_t offset = 0; offset < key_column_id_list.size(); offset++) {
-        auto col_id = key_column_id_list[offset];
-        if (index_col_set.find(col_id) != index_col_set.end()) {
-          index_key_column_id_list.push_back(col_id);
-          index_expr_type_list.push_back(expr_type_list[offset]);
-          index_value_list.push_back(type::TransientValueFactory::GetCopy(value_list[offset]));
-        }
-      }
-
-      // Add transformed plan
-      if (!index_key_column_id_list.empty()) {
+    auto indexes = accessor->GetIndexes(get->GetTableOID());
+    for (auto &index : indexes) {
+      IndexUtilMetadata output;
+      if (IndexUtil::SatisfiesPredicateWithIndex(get->GetTableOID(), index, metadata, output, accessor)) {
         std::vector<AnnotatedExpression> preds = get->GetPredicates();
         std::string tbl_alias = std::string(get->GetTableAlias());
+
+        // Consider making IndexScan take in IndexUtilMetadata
+        // instead to wrap all these vectors?
         auto op = IndexScan::make(
-          db_oid, ns_oid, index_id,
-          std::move(preds), std::move(tbl_alias),
-          is_update, std::move(index_key_column_id_list),
-          std::move(index_expr_type_list),
-          std::move(index_value_list)
+          db_oid, ns_oid, index,
+          std::move(preds), std::move(tbl_alias), is_update,
+          std::move(output.GetPredicateColumnIds()),
+          std::move(output.GetPredicateExprTypes()),
+          std::move(output.GetPredicateValues())
         );
 
         transformed.push_back(new OperatorExpression(std::move(op), {}));
@@ -398,6 +303,7 @@ void GetToIndexScan::Transform(
 
 ///////////////////////////////////////////////////////////////////////////////
 /// LogicalQueryDerivedGetToPhysical
+///////////////////////////////////////////////////////////////////////////////
 LogicalQueryDerivedGetToPhysical::LogicalQueryDerivedGetToPhysical() {
   type_ = RuleType::QUERY_DERIVED_GET_TO_PHYSICAL;
   match_pattern = new Pattern(OpType::LOGICALQUERYDERIVEDGET);
@@ -429,6 +335,7 @@ void LogicalQueryDerivedGetToPhysical::Transform(
 
 ///////////////////////////////////////////////////////////////////////////////
 /// LogicalExternalFileGetToPhysical
+///////////////////////////////////////////////////////////////////////////////
 LogicalExternalFileGetToPhysical::LogicalExternalFileGetToPhysical() {
   type_ = RuleType::EXTERNAL_FILE_GET_TO_PHYSICAL;
   match_pattern = new Pattern(OpType::LOGICALEXTERNALFILEGET);
@@ -460,6 +367,7 @@ void LogicalExternalFileGetToPhysical::Transform(
 
 ///////////////////////////////////////////////////////////////////////////////
 /// LogicalDeleteToPhysical
+///////////////////////////////////////////////////////////////////////////////
 LogicalDeleteToPhysical::LogicalDeleteToPhysical() {
   type_ = RuleType::DELETE_TO_PHYSICAL;
   match_pattern = new Pattern(OpType::LOGICALDELETE);
@@ -493,6 +401,7 @@ void LogicalDeleteToPhysical::Transform(
 
 ///////////////////////////////////////////////////////////////////////////////
 /// LogicalUpdateToPhysical
+///////////////////////////////////////////////////////////////////////////////
 LogicalUpdateToPhysical::LogicalUpdateToPhysical() {
   type_ = RuleType::UPDATE_TO_PHYSICAL;
   match_pattern = new Pattern(OpType::LOGICALUPDATE);
@@ -528,6 +437,7 @@ void LogicalUpdateToPhysical::Transform(
 
 ///////////////////////////////////////////////////////////////////////////////
 /// LogicalInsertToPhysical
+///////////////////////////////////////////////////////////////////////////////
 LogicalInsertToPhysical::LogicalInsertToPhysical() {
   type_ = RuleType::INSERT_TO_PHYSICAL;
   match_pattern = new Pattern(OpType::LOGICALINSERT);
@@ -560,6 +470,7 @@ void LogicalInsertToPhysical::Transform(
 
 ///////////////////////////////////////////////////////////////////////////////
 /// LogicalInsertSelectToPhysical
+///////////////////////////////////////////////////////////////////////////////
 LogicalInsertSelectToPhysical::LogicalInsertSelectToPhysical() {
   type_ = RuleType::INSERT_SELECT_TO_PHYSICAL;
   match_pattern = new Pattern(OpType::LOGICALINSERTSELECT);
@@ -592,6 +503,7 @@ void LogicalInsertSelectToPhysical::Transform(
 
 ///////////////////////////////////////////////////////////////////////////////
 /// LogicalAggregateAndGroupByToHashGroupBy
+///////////////////////////////////////////////////////////////////////////////
 LogicalGroupByToHashGroupBy::LogicalGroupByToHashGroupBy() {
   type_ = RuleType::AGGREGATE_TO_HASH_AGGREGATE;
   match_pattern = new Pattern(OpType::LOGICALAGGREGATEANDGROUPBY);
@@ -625,6 +537,7 @@ void LogicalGroupByToHashGroupBy::Transform(
 
 ///////////////////////////////////////////////////////////////////////////////
 /// LogicalAggregateToPhysical
+///////////////////////////////////////////////////////////////////////////////
 LogicalAggregateToPhysical::LogicalAggregateToPhysical() {
   type_ = RuleType::AGGREGATE_TO_PLAIN_AGGREGATE;
   match_pattern = new Pattern(OpType::LOGICALAGGREGATEANDGROUPBY);
@@ -653,6 +566,7 @@ void LogicalAggregateToPhysical::Transform(
 
 ///////////////////////////////////////////////////////////////////////////////
 /// InnerJoinToInnerNLJoin
+///////////////////////////////////////////////////////////////////////////////
 InnerJoinToInnerNLJoin::InnerJoinToInnerNLJoin() {
   type_ = RuleType::INNER_JOIN_TO_NL_JOIN;
 
@@ -685,8 +599,8 @@ void InnerJoinToInnerNLJoin::Transform(
   TERRIER_ASSERT(children.size() == 2, "Inner Join should have two child");
   auto left_group_id = children[0]->GetOp().As<LeafOperator>()->GetOriginGroup();
   auto right_group_id = children[1]->GetOp().As<LeafOperator>()->GetOriginGroup();
-  auto &left_group_alias = context->metadata->memo.GetGroupByID(left_group_id)->GetTableAliases();
-  auto &right_group_alias = context->metadata->memo.GetGroupByID(right_group_id)->GetTableAliases();
+  auto &left_group_alias = context->GetMetadata()->GetMemo().GetGroupByID(left_group_id)->GetTableAliases();
+  auto &right_group_alias = context->GetMetadata()->GetMemo().GetGroupByID(right_group_id)->GetTableAliases();
   std::vector<common::ManagedPointer<parser::AbstractExpression>> left_keys;
   std::vector<common::ManagedPointer<parser::AbstractExpression>> right_keys;
 
@@ -703,6 +617,7 @@ void InnerJoinToInnerNLJoin::Transform(
 
 ///////////////////////////////////////////////////////////////////////////////
 /// InnerJoinToInnerHashJoin
+///////////////////////////////////////////////////////////////////////////////
 InnerJoinToInnerHashJoin::InnerJoinToInnerHashJoin() {
   type_ = RuleType::INNER_JOIN_TO_HASH_JOIN;
 
@@ -738,8 +653,8 @@ void InnerJoinToInnerHashJoin::Transform(
   TERRIER_ASSERT(children.size() == 2, "Inner Join should have two child");
   auto left_group_id = children[0]->GetOp().As<LeafOperator>()->GetOriginGroup();
   auto right_group_id = children[1]->GetOp().As<LeafOperator>()->GetOriginGroup();
-  auto &left_group_alias = context->metadata->memo.GetGroupByID(left_group_id)->GetTableAliases();
-  auto &right_group_alias = context->metadata->memo.GetGroupByID(right_group_id)->GetTableAliases();
+  auto &left_group_alias = context->GetMetadata()->GetMemo().GetGroupByID(left_group_id)->GetTableAliases();
+  auto &right_group_alias = context->GetMetadata()->GetMemo().GetGroupByID(right_group_id)->GetTableAliases();
   std::vector<common::ManagedPointer<parser::AbstractExpression>> left_keys;
   std::vector<common::ManagedPointer<parser::AbstractExpression>> right_keys;
 
@@ -759,6 +674,7 @@ void InnerJoinToInnerHashJoin::Transform(
 
 ///////////////////////////////////////////////////////////////////////////////
 /// ImplementDistinct
+///////////////////////////////////////////////////////////////////////////////
 ImplementDistinct::ImplementDistinct() {
   type_ = RuleType::IMPLEMENT_DISTINCT;
 
@@ -787,6 +703,7 @@ void ImplementDistinct::Transform(
 
 ///////////////////////////////////////////////////////////////////////////////
 /// ImplementLimit
+///////////////////////////////////////////////////////////////////////////////
 ImplementLimit::ImplementLimit() {
   type_ = RuleType::IMPLEMENT_LIMIT;
 
@@ -822,6 +739,7 @@ void ImplementLimit::Transform(
 
 ///////////////////////////////////////////////////////////////////////////////
 /// LogicalExport to Physical Export
+///////////////////////////////////////////////////////////////////////////////
 LogicalExportToPhysicalExport::LogicalExportToPhysicalExport() {
   type_ = RuleType::EXPORT_EXTERNAL_FILE_TO_PHYSICAL;
   match_pattern = new Pattern(OpType::LOGICALEXPORTEXTERNALFILE);
@@ -857,6 +775,7 @@ void LogicalExportToPhysicalExport::Transform(
 
 ///////////////////////////////////////////////////////////////////////////////
 /// PushFilterThroughJoin
+///////////////////////////////////////////////////////////////////////////////
 PushFilterThroughJoin::PushFilterThroughJoin() {
   type_ = RuleType::PUSH_FILTER_THROUGH_JOIN;
 
@@ -883,7 +802,7 @@ void PushFilterThroughJoin::Transform(
 
   OPTIMIZER_LOG_TRACE("PushFilterThroughJoin::Transform");
 
-  auto &memo = context->metadata->memo;
+  auto &memo = context->GetMetadata()->GetMemo();
   auto join_op_expr = input->GetChildren()[0];
   auto &join_children = join_op_expr->GetChildren();
   auto left_group_id = join_children[0]->GetOp().As<LeafOperator>()->GetOriginGroup();
@@ -943,6 +862,7 @@ void PushFilterThroughJoin::Transform(
 
 ///////////////////////////////////////////////////////////////////////////////
 /// PushFilterThroughAggregation
+///////////////////////////////////////////////////////////////////////////////
 PushFilterThroughAggregation::PushFilterThroughAggregation() {
   type_ = RuleType::PUSH_FILTER_THROUGH_JOIN;
 
@@ -1009,6 +929,7 @@ void PushFilterThroughAggregation::Transform(
 
 ///////////////////////////////////////////////////////////////////////////////
 /// CombineConsecutiveFilter
+///////////////////////////////////////////////////////////////////////////////
 CombineConsecutiveFilter::CombineConsecutiveFilter() {
   type_ = RuleType::COMBINE_CONSECUTIVE_FILTER;
 
@@ -1043,6 +964,7 @@ void CombineConsecutiveFilter::Transform(
 
 ///////////////////////////////////////////////////////////////////////////////
 /// EmbedFilterIntoGet
+///////////////////////////////////////////////////////////////////////////////
 EmbedFilterIntoGet::EmbedFilterIntoGet() {
   type_ = RuleType::EMBED_FILTER_INTO_GET;
 
@@ -1079,6 +1001,7 @@ void EmbedFilterIntoGet::Transform(
 
 ///////////////////////////////////////////////////////////////////////////////
 /// MarkJoinToInnerJoin
+///////////////////////////////////////////////////////////////////////////////
 MarkJoinToInnerJoin::MarkJoinToInnerJoin() {
   type_ = RuleType::MARK_JOIN_GET_TO_INNER_JOIN;
 
@@ -1118,6 +1041,7 @@ void MarkJoinToInnerJoin::Transform(
 
 ///////////////////////////////////////////////////////////////////////////////
 /// SingleJoinGetToInnerJoin
+///////////////////////////////////////////////////////////////////////////////
 SingleJoinToInnerJoin::SingleJoinToInnerJoin() {
   type_ = RuleType::MARK_JOIN_GET_TO_INNER_JOIN;
 
@@ -1157,6 +1081,7 @@ void SingleJoinToInnerJoin::Transform(
 
 ///////////////////////////////////////////////////////////////////////////////
 /// PullFilterThroughMarkJoin
+///////////////////////////////////////////////////////////////////////////////
 PullFilterThroughMarkJoin::PullFilterThroughMarkJoin() {
   type_ = RuleType::PULL_FILTER_THROUGH_MARK_JOIN;
 
@@ -1199,13 +1124,14 @@ void PullFilterThroughMarkJoin::Transform(
   auto &filter_children = join_children[1]->GetChildren();
 
   auto children = {join_children[0]->Copy(), filter_children[0]->Copy()};
-  auto join = new OperatorExpression(std::move(mark), {children});
+  auto join = new OperatorExpression(std::move(mark), std::move(children));
   auto output = new OperatorExpression(std::move(filter), {join});
   transformed.push_back(output);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 /// PullFilterThroughAggregation
+///////////////////////////////////////////////////////////////////////////////
 PullFilterThroughAggregation::PullFilterThroughAggregation() {
   type_ = RuleType::PULL_FILTER_THROUGH_AGGREGATION;
 
@@ -1238,7 +1164,7 @@ void PullFilterThroughAggregation::Transform(
     UNUSED_ATTRIBUTE OptimizeContext *context) const {
 
   OPTIMIZER_LOG_TRACE("PullFilterThroughAggregation::Transform");
-  auto &memo = context->metadata->memo;
+  auto &memo = context->GetMetadata()->GetMemo();
   auto &filter_expr = input->GetChildren()[0];
   auto child_group_id = filter_expr->GetChildren()[0]->GetOp().As<LeafOperator>()->GetOriginGroup();
   const auto &child_group_aliases_set = memo.GetGroupByID(child_group_id)->GetTableAliases();
@@ -1256,9 +1182,9 @@ void PullFilterThroughAggregation::Transform(
       correlated_predicates.emplace_back(predicate);
       auto root_expr = predicate.GetExpr();
       if (root_expr->GetChild(0)->GetDepth() < root_expr->GetDepth()) {
-        new_groupby_cols.emplace_back(const_cast<parser::AbstractExpression*>(root_expr->GetChild(1)));
+        new_groupby_cols.emplace_back(const_cast<parser::AbstractExpression*>(root_expr->GetChild(1).get()));
       } else {
-        new_groupby_cols.emplace_back(const_cast<parser::AbstractExpression*>(root_expr->GetChild(0)));
+        new_groupby_cols.emplace_back(const_cast<parser::AbstractExpression*>(root_expr->GetChild(0).get()));
       }
     }
   }
@@ -1288,5 +1214,5 @@ void PullFilterThroughAggregation::Transform(
   auto output = new OperatorExpression(LogicalFilter::make(std::move(correlated_predicates)), {new_aggr});
   transformed.push_back(output);
 }
-}  // namespace optimizer
-}  // namespace terrier
+
+} // namespace terrier::optimizer

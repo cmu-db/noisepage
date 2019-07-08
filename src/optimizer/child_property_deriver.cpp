@@ -9,8 +9,7 @@
 #include "optimizer/property_set.h"
 #include "optimizer/memo.h"
 
-namespace terrier {
-namespace optimizer {
+namespace terrier::optimizer {
 
 std::vector<std::pair<PropertySet*, std::vector<PropertySet*>>>
 ChildPropertyDeriver::GetProperties(GroupExpression *gexpr,
@@ -84,7 +83,7 @@ void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const HashGroupBy *op) {
 
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const SortGroupBy *op) {
   // Child must provide sort for Groupby columns
-  // TODO(wz2): Similar to boweic's todo above; is descending support?
+  // TODO(wz2): Descending support? Catalog flag?
   std::vector<planner::OrderByOrderingType> sort_ascending(op->GetColumns().size(), planner::OrderByOrderingType::ASC);
   std::vector<common::ManagedPointer<parser::AbstractExpression>> sort_cols;
   for (auto &col : op->GetColumns()) {
@@ -214,5 +213,4 @@ void ChildPropertyDeriver::DeriveForJoin() {
   }
 }
 
-}  // namespace optimizer
-}  // namespace terrier
+} // namespace terrier::optimizer

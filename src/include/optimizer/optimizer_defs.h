@@ -10,8 +10,24 @@
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression_defs.h"
 
-namespace terrier {
-namespace optimizer {
+namespace terrier::optimizer {
+
+/**
+ * typedef for GroupID
+ */
+using GroupID = int32_t;
+
+/**
+ * Definition for a UNDEFINED_GROUP
+ */
+const GroupID UNDEFINED_GROUP = -1;
+
+/**
+ * Enumeration defining external file formats
+ */
+enum class ExternalFileFormat {
+  CSV
+};
 
 /**
  * Operator type
@@ -139,13 +155,10 @@ class AnnotatedExpression {
   std::unordered_set<std::string> table_alias_set_;
 };
 
-using GroupID = int32_t;
-const GroupID UNDEFINED_GROUP = -1;
-
-enum class ExternalFileFormat {
-  CSV,
-};
-
+/**
+ * Struct implementing equality comparisons for both terrier::parser::AbstractExpression*
+ * and the const version const terrier::parser::AbstractExpression*
+ */
 struct ExprEqualCmp {
   /**
    * Checks two AbstractExpression for equality
@@ -176,6 +189,9 @@ struct ExprEqualCmp {
   }
 };
 
+/**
+ * Struct implementing Hash() for const terrier::parser::AbstractExpression*
+ */
 struct ExprHasher {
   /**
    * Hashes the given expression
@@ -190,13 +206,18 @@ struct ExprHasher {
   }
 };
 
-using MultiTablePredicates = std::vector<AnnotatedExpression>;
-
-// Mapping of Expression -> Column Offset created by operator
+/**
+ * Defines an ExprMap
+ * ExprMap is used exclusively in the optimizer to map from an AbstractExpression
+ * to a given column offset created by specific operators.
+ */
 using ExprMap = std::unordered_map<const parser::AbstractExpression*, unsigned, ExprHasher, ExprEqualCmp>;
 
-// Used in optimizer to speed up expression comparsion
+/**
+ * Defines an ExprSet.
+ * ExprSet is used in the optimizer to speed up AbstractExpression comparisons
+ * (checking whether an AbstractExpression already exists in a collection).
+ */
 using ExprSet = std::unordered_set<const parser::AbstractExpression*, ExprHasher, ExprEqualCmp>;
 
-}  // namespace optimizer
-}  // namespace terrier
+} // namespace terrier::optimizer

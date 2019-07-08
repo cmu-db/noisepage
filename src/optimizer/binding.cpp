@@ -4,12 +4,8 @@
 #include "optimizer/operator_visitor.h"
 #include "optimizer/optimizer.h"
 
-namespace terrier {
-namespace optimizer {
+namespace terrier::optimizer {
 
-//===--------------------------------------------------------------------===//
-// Group Binding Iterator
-//===--------------------------------------------------------------------===//
 bool GroupBindingIterator::HasNext() {
   OPTIMIZER_LOG_TRACE("HasNext");
   if (pattern_->Type() == OpType::LEAF) {
@@ -52,9 +48,6 @@ OperatorExpression* GroupBindingIterator::Next() {
   return current_iterator_->Next();
 }
 
-//===--------------------------------------------------------------------===//
-// Item Binding Iterator
-//===--------------------------------------------------------------------===//
 GroupExprBindingIterator::GroupExprBindingIterator(
     const Memo &memo, GroupExpression *gexpr, Pattern* pattern)
     : BindingIterator(memo),
@@ -103,7 +96,7 @@ GroupExprBindingIterator::GroupExprBindingIterator(
       return;
     }
 
-    // PUsh a copy
+    // Push a copy
     children.push_back(child_bindings[0]->Copy());
   }
 
@@ -151,5 +144,4 @@ bool GroupExprBindingIterator::HasNext() {
   return has_next_;
 }
 
-}  // namespace optimizer
-}  // namespace terrier
+} // namespace terrier::optimizer

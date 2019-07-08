@@ -1,8 +1,7 @@
 #include "loggers/optimizer_logger.h"
 #include "optimizer/group.h"
 
-namespace terrier {
-namespace optimizer {
+namespace terrier::optimizer {
 
 Group::~Group() {
   for (auto expr : logical_expressions_) { delete expr; }
@@ -63,5 +62,4 @@ bool Group::HasExpressions(PropertySet* properties) const {
   return (it != lowest_cost_expressions_.end());
 }
 
-}  // namespace optimizer
-}  // namespace terrier
+} // namespace terrier::optimizer

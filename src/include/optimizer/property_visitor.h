@@ -1,22 +1,25 @@
 #pragma once
 
-namespace terrier {
-namespace optimizer {
+namespace terrier::optimizer {
 
 // Forward Declaration
 class PropertySort;
 
-//===--------------------------------------------------------------------===//
-// Property Visitor
-//===--------------------------------------------------------------------===//
-
-// Visit physical properties
+/**
+ * Defines an abstract interface for visitng properties
+ */
 class PropertyVisitor {
  public:
-  virtual ~PropertyVisitor(){};
+  /**
+   * Trivial destructor
+   */
+  virtual ~PropertyVisitor() = default;
 
-  virtual void Visit(const PropertySort *) = 0;
+  /**
+   * Virtual function for visiting PropertySort
+   * @param prop PropertySort being visited
+   */
+  virtual void Visit(const PropertySort *prop) = 0;
 };
 
-} // namespace optimizer
-} // namespace terrier
+} // namespace terrier::optimizer

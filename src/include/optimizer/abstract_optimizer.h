@@ -12,21 +12,25 @@
 #include "optimizer/property_set.h"
 #include "optimizer/operator_expression.h"
 
-namespace terrier {
-namespace planner {
+namespace terrier::planner {
 class AbstractPlanNode;
 }
 
-namespace catalog {
+namespace terrier::catalog {
 class CatalogAccessor;
 }
 
-namespace transaction {
+namespace terrier::transaction {
 class TransactionContext;
 }
 
-namespace optimizer {
+namespace terrier::optimizer {
 
+/**
+ * Struct defining information about the query.
+ * Struct encapsulates information about the original statement's type,
+ * output expressions, and required properties.
+ */
 struct QueryInfo {
   /**
    * Constructor for QueryInfo
@@ -71,11 +75,16 @@ private:
   PropertySet* physical_props_;
 };
 
-//===--------------------------------------------------------------------===//
-// Abstract Optimizer
-//===--------------------------------------------------------------------===//
+/**
+ * Class definition for an optimizer.
+ * The abstract definition includes only the primary entrypoint
+ * `BuildPlanTree` for constructing the optimized plan tree.
+ */
 class AbstractOptimizer {
  public:
+  /**
+   * Disallow copy and move
+   */
   DISALLOW_COPY_AND_MOVE(AbstractOptimizer);
 
   AbstractOptimizer() = default;
@@ -103,5 +112,4 @@ class AbstractOptimizer {
   virtual void Reset(){};
 };
 
-}  // namespace optimizer
-}  // namespace terrier
+}  // namespace terrier::optimizer

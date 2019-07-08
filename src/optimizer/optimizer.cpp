@@ -15,12 +15,8 @@
 #include "optimizer/rule.h"
 #include "optimizer/rule_impls.h"
 
-namespace terrier {
-namespace optimizer {
+namespace terrier::optimizer {
 
-//===--------------------------------------------------------------------===//
-// Optimizer
-//===--------------------------------------------------------------------===//
 void Optimizer::Reset() {
   // cleanup any existing resources;
   metadata_.SetTaskPool(nullptr);
@@ -179,9 +175,9 @@ void Optimizer::ExecuteTaskStack(
       common::ScopedTimer timer(&task_runtime);
       task->execute();
     }
+    delete task;
     elapsed_time += task_runtime;
   }
 }
 
-}  // namespace optimizer
-}  // namespace terrier
+} // namespace terrier::optimizer

@@ -6,10 +6,11 @@
 #include "planner/plannodes/plan_node_defs.h"
 #include "optimizer/property.h"
 
-namespace terrier {
-namespace optimizer {
+namespace terrier::optimizer {
 
-// Specifies the required sorting order of the query
+/**
+ * Implementation of the sort property
+ */
 class PropertySort : public Property {
  public:
   /**
@@ -86,5 +87,4 @@ class PropertySort : public Property {
   std::vector<planner::OrderByOrderingType> sort_ascending_;
 };
 
-}  // namespace optimizer
-}  // namespace terrier
+} // namespace terrier::optimizer

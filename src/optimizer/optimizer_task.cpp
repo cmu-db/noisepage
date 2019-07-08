@@ -5,8 +5,7 @@
 #include "optimizer/binding.h"
 #include "optimizer/child_property_deriver.h"
 
-namespace terrier {
-namespace optimizer {
+namespace terrier::optimizer {
 
 //===--------------------------------------------------------------------===//
 // Base class
@@ -79,9 +78,9 @@ void OptimizeExpression::execute() {
             static_cast<int>(group_expr_->Op().GetType()), valid_rules.size());
   // Apply rule
   for (auto &r : valid_rules) {
-    PushTask(new ApplyRule(group_expr_, r.rule, context_));
+    PushTask(new ApplyRule(group_expr_, r.GetRule(), context_));
     int child_group_idx = 0;
-    for (auto &child_pattern : r.rule->GetMatchPattern()->Children()) {
+    for (auto &child_pattern : r.GetRule()->GetMatchPattern()->Children()) {
       // Only need to explore non-leaf children before applying rule to the
       // current group this condition is important for early-pruning
       if (child_pattern->GetChildPatternsSize() > 0) {
@@ -123,9 +122,9 @@ void ExploreExpression::execute() {
 
   // Apply rule
   for (auto &r : valid_rules) {
-    PushTask(new ApplyRule(group_expr_, r.rule, context_, true));
+    PushTask(new ApplyRule(group_expr_, r.GetRule(), context_, true));
     int child_group_idx = 0;
-    for (auto &child_pattern : r.rule->GetMatchPattern()->Children()) {
+    for (auto &child_pattern : r.GetRule()->GetMatchPattern()->Children()) {
       // Only need to explore non-leaf children before applying rule to the
       // current group. this condition is important for early-pruning
       if (child_pattern->GetChildPatternsSize() > 0) {
@@ -299,24 +298,9 @@ void OptimizeInputs::execute() {
         PushTask(new OptimizeInputs(this));
 
         auto cost_high = context_->GetCostUpperBound() - cur_total_cost_;
-        auto ctx = new OptimizeContext(context_->GetMetadata(), i_prop, cost_high);
+        auto ctx = new OptimizeContext(context_->GetMetadata(), i_prop->Copy(), cost_high);
         PushTask(new OptimizeGroup(child_group, ctx));
         context_->GetMetadata()->AddOptimizeContext(ctx);
-
-        // process other tasks and come back
-        for (int del_idx = cur_prop_pair_idx_; del_idx < (int)output_input_properties_.size(); del_idx++) {
-          // cleanup unless defer
-          auto &output_prop = output_input_properties_[del_idx].first;
-          auto &input_props = output_input_properties_[del_idx].second;
-          delete output_prop;
-
-          for (int i_idx = 0; i_idx < static_cast<int>(input_props.size()); i_idx++) {
-            if (del_idx != cur_prop_pair_idx_ || i_idx != cur_child_idx_) {
-              delete input_props[i_idx];
-            }
-          }
-        }
-
         return;
       } else {  // If we return from OptimizeGroup, then there is no expr for the context
         break;
@@ -388,10 +372,6 @@ void OptimizeInputs::execute() {
         }
       }
     }
-    
-    // Delete output_props, input_props (above makes a copy)
-    delete output_prop;
-    for (auto i_prop : input_props) { delete i_prop; }
 
     // Reset child idx and total cost
     prev_child_idx_ = -1;
@@ -414,12 +394,13 @@ void TopDownRewrite::execute() {
   std::sort(valid_rules.begin(), valid_rules.end(), std::greater<RuleWithPromise>());
 
   for (auto &r : valid_rules) {
-    GroupExprBindingIterator iterator(GetMemo(), cur_group_expr, r.rule->GetMatchPattern());
+    Rule *rule = r.GetRule();
+    GroupExprBindingIterator iterator(GetMemo(), cur_group_expr, rule->GetMatchPattern());
     if (iterator.HasNext()) {
       auto before = iterator.Next();
       TERRIER_ASSERT(!iterator.HasNext(), "there should only be 1 binding");
       std::vector<OperatorExpression*> after;
-      r.rule->Transform(before, after, context_);
+      rule->Transform(before, after, context_);
 
       // Rewrite rule should provide at most 1 expression
       TERRIER_ASSERT(after.size() <= 1, "rule provided too many transformations");
@@ -438,7 +419,7 @@ void TopDownRewrite::execute() {
       }
     }
 
-    cur_group_expr->SetRuleExplored(r.rule);
+    cur_group_expr->SetRuleExplored(rule);
   }
 
   size_t size = cur_group_expr->GetChildrenGroupsSize();
@@ -477,12 +458,13 @@ void BottomUpRewrite::execute() {
   std::sort(valid_rules.begin(), valid_rules.end(), std::greater<RuleWithPromise>());
 
   for (auto &r : valid_rules) {
-    GroupExprBindingIterator iterator(GetMemo(), cur_group_expr, r.rule->GetMatchPattern());
+    Rule *rule = r.GetRule();
+    GroupExprBindingIterator iterator(GetMemo(), cur_group_expr, rule->GetMatchPattern());
     if (iterator.HasNext()) {
       auto before = iterator.Next();
       TERRIER_ASSERT(!iterator.HasNext(), "should only bind to 1");
       std::vector<OperatorExpression*> after;
-      r.rule->Transform(before, after, context_);
+      rule->Transform(before, after, context_);
 
       // Rewrite rule should provide at most 1 expression
       TERRIER_ASSERT(after.size() <= 1, "rule generated too many transformations");
@@ -501,8 +483,8 @@ void BottomUpRewrite::execute() {
       }
     }
 
-    cur_group_expr->SetRuleExplored(r.rule);
+    cur_group_expr->SetRuleExplored(rule);
   }
 }
-}  // namespace optimizer
-}  // namespace terrier
+
+} // namespace terrier::optimizer

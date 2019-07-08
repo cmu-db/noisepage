@@ -16,14 +16,12 @@
 #include "planner/plannodes/plan_node_defs.h"
 #include "type/transient_value.h"
 
-namespace terrier {
-
-namespace parser {
-class AbstractExpression;
+namespace terrier::parser {
+class AbstractExpressionn;
 class UpdateClause;
-}  // namespace parser
+} // namespace terrier::parser
 
-namespace optimizer {
+namespace terrier::optimizer {
 
 /**
  * Operator that represents another group
@@ -31,6 +29,7 @@ namespace optimizer {
 class LeafOperator : OperatorNode<LeafOperator> {
  public:
   /**
+   * Make a LeafOperator
    * @param group Group to wrap
    */
   static Operator make(GroupID group);
@@ -39,9 +38,16 @@ class LeafOperator : OperatorNode<LeafOperator> {
 
   common::hash_t Hash() const override;
 
+  /**
+   * Gets the original group (i.e group being wrapped)
+   * @returns GroupID of wrapped group
+   */
   GroupID GetOriginGroup() const { return origin_group_; }
 
  private:
+  /**
+   * Wrapped group's GroupID
+   */
   GroupID origin_group_;
 };
 
@@ -974,5 +980,4 @@ class LogicalExportExternalFile : public OperatorNode<LogicalExportExternalFile>
   char escape_;
 };
 
-}  // namespace optimizer
-}  // namespace terrier
+} // namespace terrier::optimizer

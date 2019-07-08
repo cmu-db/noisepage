@@ -4,8 +4,7 @@
 #include "optimizer/optimizer_task.h"
 #include "optimizer/optimizer_task_pool.h"
 
-namespace terrier {
-namespace optimizer {
+namespace terrier::optimizer {
 
 class OptimizerMetadata;
 
@@ -52,7 +51,7 @@ class OptimizeContext {
 
   /**
    * Sets the context's upper bound cost
-   * @param double cost New cost upper bound
+   * @param cost New cost upper bound
    */
   void SetCostUpperBound(double cost) {
     cost_upper_bound_ = cost;
@@ -64,5 +63,4 @@ class OptimizeContext {
   double cost_upper_bound_;
 };
 
-}  // namespace optimizer
-}  // namespace terrier
+} // namespace terrier::optimizer
