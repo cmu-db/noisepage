@@ -12,18 +12,16 @@ ConnectionDispatcherTask::ConnectionDispatcherTask(
     common::ManagedPointer<ProtocolInterpreter::Provider> interpreter_provider,
     common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory,
     common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry)
-    : NotifiableTask(MASTER_THREAD_ID), interpreter_provider_(interpreter_provider), next_handler_(0) {
+    : NotifiableTask(MASTER_THREAD_ID),
+      num_handlers_(num_handlers),
+      dedicated_thread_owner_(dedicated_thread_owner),
+      connection_handle_factory_(connection_handle_factory),
+      thread_registry_(thread_registry),
+      interpreter_provider_(interpreter_provider),
+      next_handler_(0) {
   RegisterEvent(listen_fd, EV_READ | EV_PERSIST,
                 METHOD_AS_CALLBACK(ConnectionDispatcherTask, DispatchPostgresConnection), this);
   RegisterSignalEvent(SIGHUP, METHOD_AS_CALLBACK(NotifiableTask, ExitLoop), this);
-
-  // create worker threads.
-  for (int task_id = 0; task_id < num_handlers; task_id++) {
-    // auto handler = new ConnectionHandlerTask(task_id, connection_handle_factory);
-    auto handler = thread_registry->RegisterDedicatedThread<ConnectionHandlerTask>(dedicated_thread_owner, task_id,
-                                                                                   connection_handle_factory);
-    handlers_.push_back(handler);
-  }
 }
 
 void ConnectionDispatcherTask::DispatchPostgresConnection(int fd, int16_t) {  // NOLINT
@@ -47,4 +45,25 @@ void ConnectionDispatcherTask::DispatchPostgresConnection(int fd, int16_t) {  //
 
   handler->Notify(new_conn_fd, interpreter_provider_->Get());
 }
+
+void ConnectionDispatcherTask::RunTask() {
+  // create worker threads.
+  for (int task_id = 0; task_id < num_handlers_; task_id++) {
+    // auto handler = new ConnectionHandlerTask(task_id, connection_handle_factory);
+    auto handler = thread_registry_->RegisterDedicatedThread<ConnectionHandlerTask>(dedicated_thread_owner_, task_id,
+                                                                                    connection_handle_factory_);
+    handlers_.push_back(handler);
+  }
+  EventLoop();
+}
+
+void ConnectionDispatcherTask::Terminate() {
+  ExitLoop();
+  for (const auto &handler_task : handlers_) {
+    const bool result UNUSED_ATTRIBUTE = thread_registry_->StopTask(
+        dedicated_thread_owner_, handler_task.CastManagedPointerTo<common::DedicatedThreadTask>());
+    TERRIER_ASSERT(result, "Failed to stop ConnectionHandlerTask.");
+  }
+}
+
 }  // namespace terrier::network

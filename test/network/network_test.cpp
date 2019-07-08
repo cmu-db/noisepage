@@ -37,7 +37,7 @@ class NetworkTests : public TerrierTest {
   std::unique_ptr<ConnectionHandleFactory> handle_factory_;
   std::unique_ptr<common::DedicatedThreadRegistry> thread_registry_;
   uint16_t port_ = common::Settings::SERVER_PORT;
-  std::thread server_thread_;
+  //  std::thread server_thread_;
   trafficcop::TrafficCop tcop_;
   FakeCommandFactory fake_command_factory_;
   PostgresProtocolInterpreter::Provider protocol_provider_{
@@ -67,13 +67,11 @@ class NetworkTests : public TerrierTest {
     }
 
     TEST_LOG_DEBUG("Server initialized");
-    server_thread_ = std::thread([&]() { server_->ServerLoop(); });
+    //    server_thread_ = std::thread([&]() { server_->ServerLoop(); });
   }
 
   void TearDown() override {
     server_->Close();
-    server_thread_.join();
-    handle_factory_->TearDown();
     TEST_LOG_DEBUG("Terrier has shut down");
     TerrierTest::TearDown();
   }

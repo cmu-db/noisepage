@@ -64,7 +64,7 @@ void DBMain::Run() {
   running = true;
   server_->SetPort(static_cast<int16_t>(
       type::TransientValuePeeker::PeekInteger(param_map_.find(settings::Param::port)->second.value_)));
-  server_->SetupServer().ServerLoop();
+  server_->SetupServer();
 
   // server loop exited, begin cleaning up
   CleanUp();

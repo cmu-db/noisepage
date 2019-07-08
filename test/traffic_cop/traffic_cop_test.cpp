@@ -48,13 +48,10 @@ class TrafficCopTests : public TerrierTest {
       throw;
     }
     TEST_LOG_DEBUG("Server initialized");
-    server_thread_ = std::thread([&]() { server_->ServerLoop(); });
   }
 
   void StopServer() {
     server_->Close();
-    server_thread_.join();
-    handle_factory_->TearDown();
     TEST_LOG_DEBUG("Terrier has shut down");
   }
 

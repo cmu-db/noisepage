@@ -48,9 +48,7 @@ class ConnectionHandleFactory {
    * Teardown for connection handle factory to clean up anything in reusable_handles_
    */
   void TearDown() {
-    for (const auto &handle : reusable_handles_) {
-      handle.second.conn_handler_->Terminate();
-    }
+    // TODO(Matt): this functions seems pointless if it's only called right before the object is destructed
     reusable_handles_.clear();
   }
 

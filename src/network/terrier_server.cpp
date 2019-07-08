@@ -58,28 +58,22 @@ TerrierServer &TerrierServer::SetupServer() {
   bind(listen_fd_, reinterpret_cast<struct sockaddr *>(&sin), sizeof(sin));
   listen(listen_fd_, conn_backlog);
 
-  dispatcher_task_ = std::make_shared<ConnectionDispatcherTask>(CONNECTION_THREAD_COUNT, listen_fd_, this,
-                                                                common::ManagedPointer(provider_.get()),
-                                                                connection_handle_factory_, thread_registry_);
+  dispatcher_task_ = thread_registry_->RegisterDedicatedThread<ConnectionDispatcherTask>(
+      this /* requester */, CONNECTION_THREAD_COUNT, listen_fd_, this, common::ManagedPointer(provider_.get()),
+      connection_handle_factory_, thread_registry_);
 
   NETWORK_LOG_INFO("Listening on port {0}", port_);
   return *this;
 }
 
-void TerrierServer::ServerLoop() {
-  dispatcher_task_->EventLoop();
-  ShutDown();
-}
-
-void TerrierServer::ShutDown() {
+void TerrierServer::Close() {
+  NETWORK_LOG_TRACE("Begin to stop server");
+  const bool result UNUSED_ATTRIBUTE =
+      thread_registry_->StopTask(this, dispatcher_task_.CastManagedPointerTo<common::DedicatedThreadTask>());
+  TERRIER_ASSERT(result, "Failed to stop ConnectionDispatcherTask.");
   terrier_close(listen_fd_);
   connection_handle_factory_->TearDown();
   NETWORK_LOG_INFO("Server Closed");
-}
-
-void TerrierServer::Close() {
-  NETWORK_LOG_TRACE("Begin to stop server");
-  dispatcher_task_->ExitLoop();
 }
 
 /**

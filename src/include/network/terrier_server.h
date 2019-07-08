@@ -61,21 +61,6 @@ class TerrierServer : public common::DedicatedThreadOwner {
   TerrierServer &SetupServer();
 
   /**
-   * @brief In a loop, handles incoming connection and block the current thread
-   * until closed.
-   *
-   * The loop will exit when either Close() is explicitly called or when there
-   * are no more events pending or
-   * active (we currently register all events to be persistent.)
-   */
-  void ServerLoop();
-
-  /**
-   * @brief Gracefully shuts down this server instance
-   */
-  void ShutDown();
-
-  /**
    * Break from the server loop and exit all network handling threads.
    */
   void Close();
@@ -87,6 +72,12 @@ class TerrierServer : public common::DedicatedThreadOwner {
   void SetPort(uint16_t new_port);
 
  private:
+  bool OnThreadRemoval(common::ManagedPointer<common::DedicatedThreadTask> task) override {
+    return true;
+  }  // TODO(Matt): somewhere there's probably a stronger assertion to be made about the state of the server and if
+     // threads can be safely taken away, but I don't understand the networking stuff well enough to say for sure what
+     // that assertion is
+
   // For logging purposes
   // static void LogCallback(int severity, const char *msg);
 
@@ -96,6 +87,6 @@ class TerrierServer : public common::DedicatedThreadOwner {
 
   common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory_;
   common::ManagedPointer<ProtocolInterpreter::Provider> provider_;
-  std::shared_ptr<ConnectionDispatcherTask> dispatcher_task_;
+  common::ManagedPointer<ConnectionDispatcherTask> dispatcher_task_;
 };
 }  // namespace terrier::network

@@ -51,8 +51,16 @@ class ConnectionDispatcherTask : public common::NotifiableTask {
    */
   void DispatchPostgresConnection(int fd, int16_t flags);
 
+  void RunTask() override;
+
+  void Terminate() override;
+
  private:
-  common::ManagedPointer<ProtocolInterpreter::Provider> interpreter_provider_;
+  const int num_handlers_;
+  common::DedicatedThreadOwner *const dedicated_thread_owner_;
+  const common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory_;
+  const common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry_;
+  const common::ManagedPointer<ProtocolInterpreter::Provider> interpreter_provider_;
   std::vector<common::ManagedPointer<ConnectionHandlerTask>> handlers_;
   // TODO(TianyuLi): have a smarter dispatch scheduler, we currently use round-robin
   std::atomic<uint64_t> next_handler_;
