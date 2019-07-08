@@ -47,7 +47,12 @@ class ConnectionHandleFactory {
   /**
    * Teardown for connection handle factory to clean up anything in reusable_handles_
    */
-  void TearDown() { reusable_handles_.clear(); }
+  void TearDown() {
+    for (const auto &handle : reusable_handles_) {
+      handle.second.conn_handler_->Terminate();
+    }
+    reusable_handles_.clear();
+  }
 
  private:
   std::unordered_map<int, ConnectionHandle> reusable_handles_;
