@@ -1,5 +1,3 @@
-#pragma once
-
 #include <string>
 #include "binder/binder_context.h"
 #include "common/exception.h"
