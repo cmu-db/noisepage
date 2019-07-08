@@ -1,13 +1,11 @@
 #include <memory>
-
+#include "transaction/transaction_manager.h"
+#include "util/test_harness.h"
 #include "binder/bind_node_visitor.h"
 #include "catalog/catalog.h"
-#include "common/harness.h"
-#include "common/statement.h"
-#include "concurrency/transaction_manager_factory.h"
-#include "expression/function_expression.h"
+#include "traffic_cop/statement.h"
 #include "expression/subquery_expression.h"
-#include "expression/tuple_value_expression.h"
+#include "parser/expression/column_value_expression.h"
 #include "optimizer/optimizer.h"
 #include "parser/postgresparser.h"
 #include "traffic_cop/traffic_cop.h"
@@ -22,12 +20,12 @@ using std::string;
 using std::unique_ptr;
 using std::vector;
 
-namespace peloton {
-namespace test {
+namespace terrier {
 
-class BinderCorrectnessTest : public PelotonTest {
+// TODO (Ling): write meaningful setup
+class BinderCorrectnessTest : public TerrierTest {
   virtual void SetUp() override {
-    PelotonTest::SetUp();
+    TerrierTest::SetUp();
     catalog::Catalog::GetInstance();
     // NOTE: Catalog::GetInstance()->Bootstrap(), you can only call it once!
     TestingExecutorUtil::InitializeDatabase(DEFAULT_DB_NAME);
@@ -43,7 +41,7 @@ void SetupTables(std::string database_name) {
   LOG_INFO("Creating database %s", database_name.c_str());
 
   // create a transaction
-  auto &txn_manager = concurrency::TransactionManagerFactory::GetInstance();
+  auto &txn_manager = transaction::TransactionManagerFactory::GetInstance();
   // begin transaction
   auto txn = txn_manager.BeginTransaction();
   // GetInstance will get a global catalog
@@ -51,7 +49,7 @@ void SetupTables(std::string database_name) {
   // correspond to CatalogAccessor.createDatabase(database_name), as the accessor has the transactio as an attribute
   catalog::Catalog::GetInstance()->CreateDatabase(txn, database_name);
   // commit the transactions
-  txn_manager.CommitTransaction(txn);
+  txn_manager.Commit(txn);
   LOG_INFO("database %s created!", database_name.c_str());
 
   // get a parser instance
@@ -121,151 +119,180 @@ void SetupTables(std::string database_name) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(BinderCorrectnessTest, SelectStatementTest) {
-std::string default_database_name = "test_db";
-SetupTables(default_database_name);
-auto &parser = parser::PostgresParser::GetInstance();
-catalog::Catalog *catalog_ptr = catalog::Catalog::GetInstance();
-catalog_ptr->Bootstrap();
+  std::string default_database_name = "test_db";
+  SetupTables(default_database_name);
+  parser::PostgresParser parser;
 
-// Test regular table name
-LOG_INFO("Parsing sql query");
+//  catalog::Catalog *catalog_ptr = catalog::Catalog::GetInstance();
+//  catalog_ptr->Bootstrap();
 
-auto &txn_manager = concurrency::TransactionManagerFactory::GetInstance();
-auto txn = txn_manager.BeginTransaction();
-unique_ptr<binder::BindNodeVisitor> binder(
-    new binder::BindNodeVisitor(txn, default_database_name));
-string selectSQL =
-    "SELECT A.a1, B.b2 FROM A INNER JOIN b ON a.a1 = b.b1 "
-    "WHERE a1 < 100 GROUP BY A.a1, B.b2 HAVING a1 > 50 "
-    "ORDER BY a1";
+  // Test regular table name
+  LOG_INFO("Parsing sql query");
 
-auto parse_tree = parser.BuildParseTree(selectSQL);
-auto selectStmt = dynamic_cast<parser::SelectStatement *>(
-    parse_tree->GetStatements().at(0).get());
-binder->BindNameToNode(selectStmt);
+//  auto &txn_manager = transaction::TransactionManagerFactory::GetInstance();
+  storage::RecordBufferSegmentPool buffer_pool = {100, 100};
+  auto txn_manager = new transaction::TransactionManager{&buffer_pool, true, LOGGING_DISABLED};
+  auto txn = txn_manager->BeginTransaction();
 
-oid_t db_oid =
-    catalog_ptr->GetDatabaseWithName(txn, default_database_name)->GetOid();
-oid_t tableA_oid = catalog_ptr
-    ->GetTableWithName(txn, default_database_name, DEFAULT_SCHEMA_NAME, "a")
-    ->GetOid();
-oid_t tableB_oid = catalog_ptr
-    ->GetTableWithName(txn, default_database_name, DEFAULT_SCHEMA_NAME, "b")
-    ->GetOid();
-txn_manager.CommitTransaction(txn);
+  // initialize a block store
+  auto *block_store = new storage::BlockStore(100, 100);
+  // new catalog requires txn_manage and block_store as parameters
+  auto catalog = new catalog::Catalog(txn_manager, block_store);
+  auto accessor = catalog->GetAccessor(txn, catalog->GetDatabaseOid(txn, default_database_name));
 
-// Check select_list
-LOG_INFO("Checking select list");
-auto tupleExpr = dynamic_cast<const expression::TupleValueExpression *>(
-    selectStmt->select_list[0].get());
-EXPECT_EQ(tupleExpr->GetBoundOid(),
-    make_tuple(db_oid, tableA_oid, 0));  // A.a1
-EXPECT_EQ(type::TypeId::INTEGER, tupleExpr->GetValueType());
-tupleExpr =
-(expression::TupleValueExpression *)selectStmt->select_list[1].get();
-EXPECT_EQ(tupleExpr->GetBoundOid(),
-    make_tuple(db_oid, tableB_oid, 1));  // B.b2
-EXPECT_EQ(type::TypeId::VARCHAR, tupleExpr->GetValueType());
+  unique_ptr<binder::BindNodeVisitor> binder(new binder::BindNodeVisitor(accessor, default_database_name));
+//  auto binder = new binder::BindNodeVisitor(accessor, default_database_name);
 
-// Check join condition
-LOG_INFO("Checking join condition");
-tupleExpr = (expression::TupleValueExpression *)
-    selectStmt->from_table->join->condition->GetChild(0);
-EXPECT_EQ(tupleExpr->GetBoundOid(),
-    make_tuple(db_oid, tableA_oid, 0));  // a.a1
-tupleExpr = (expression::TupleValueExpression *)
-    selectStmt->from_table->join->condition->GetChild(1);
-EXPECT_EQ(tupleExpr->GetBoundOid(),
-    make_tuple(db_oid, tableB_oid, 0));  // b.b1
+  string selectSQL = "SELECT A.a1, B.b2 FROM A INNER JOIN b ON a.a1 = b.b1 WHERE a1 < 100 "
+                     "GROUP BY A.a1, B.b2 HAVING a1 > 50 ORDER BY a1";
 
-// Check Where clause
-LOG_INFO("Checking where clause");
-tupleExpr =
-(expression::TupleValueExpression *)selectStmt->where_clause->GetChild(0);
-EXPECT_EQ(tupleExpr->GetBoundOid(), make_tuple(db_oid, tableA_oid, 0));  // a1
+  auto parse_tree = parser.BuildParseTree(selectSQL);
+  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree[0].get());
+  binder->BindNameToNode(selectStmt);
 
-// Check Group By and Having
-LOG_INFO("Checking group by");
-tupleExpr =
-(expression::TupleValueExpression *)selectStmt->group_by->columns.at(0)
-    .get();
-EXPECT_EQ(tupleExpr->GetBoundOid(),
-    make_tuple(db_oid, tableA_oid, 0));  // A.a1
-tupleExpr = dynamic_cast<const expression::TupleValueExpression *>(
-    selectStmt->group_by->columns.at(1).get());
-EXPECT_EQ(tupleExpr->GetBoundOid(),
-    make_tuple(db_oid, tableB_oid, 1));  // B.b2
-tupleExpr = (expression::TupleValueExpression *)
-    selectStmt->group_by->having->GetChild(0);
-EXPECT_EQ(tupleExpr->GetBoundOid(), make_tuple(db_oid, tableA_oid, 0));  // a1
+  auto db_oid = accessor->GetDatabaseOid(default_database_name);
+  auto tableA_oid = accessor->GetTableOid("a");
+  auto tableB_oid = accessor->GetTableOid("b");
+  txn_manager->Commit(txn);
 
-// Check Order By
-LOG_INFO("Checking order by");
-tupleExpr =
-(expression::TupleValueExpression *)selectStmt->order->exprs.at(0).get();
-EXPECT_EQ(tupleExpr->GetBoundOid(), make_tuple(db_oid, tableA_oid, 0));  // a1
+  // Check select_list
+  LOG_INFO("Checking select list");
+  auto col_expr = dynamic_cast<const parser::ColumnValueExpression *>(selectStmt->GetSelectColumns()[0].get());
+//  EXPECT_EQ(col_expr->GetBoundOid(), make_tuple(db_oid, tableA_oid, 0));  // A.a1
+  EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid); //A.a1
+  EXPECT_EQ(col_expr->GetTableOid(), tableA_oid); //A.a1
+  EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1)); // A.a1; columns are indexed from 1
 
-// Check alias ambiguous
-LOG_INFO("Checking duplicate alias and table name.");
+  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+  col_expr = (parser::ColumnValueExpression *)selectStmt->GetSelectColumns()[1].get();
+//  EXPECT_EQ(col_expr->GetBoundOid(), make_tuple(db_oid, tableB_oid, 1));  // B.b2
+  EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid); //B.b2
+  EXPECT_EQ(col_expr->GetTableOid(), tableB_oid); //B.b2
+  EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2)); // B.b2; columns are indexed from 1
 
-txn = txn_manager.BeginTransaction();
-binder.reset(new binder::BindNodeVisitor(txn, default_database_name));
-selectSQL = "SELECT * FROM A, B as A";
-parse_tree = parser.BuildParseTree(selectSQL);
-selectStmt = dynamic_cast<parser::SelectStatement *>(
-    parse_tree->GetStatements().at(0).get());
-try {
-binder->BindNameToNode(selectStmt);
-EXPECT_TRUE(false);
-} catch (Exception &e) {
-LOG_INFO("Correct! Exception(%s) catched", e.what());
-}
+  EXPECT_EQ(type::TypeId::VARCHAR, col_expr->GetReturnValueType());
 
-// Test select from different table instances from the same physical schema
-txn_manager.CommitTransaction(txn);
+  // Check join condition
+  LOG_INFO("Checking join condition");
+  col_expr = (parser::ColumnValueExpression *)selectStmt->GetSelectTable()->GetJoin()->GetJoinCondition()->GetChild(0).get();
+//  EXPECT_EQ(col_expr->GetBoundOid(), make_tuple(db_oid, tableA_oid, 0));  // a.a1
+  EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid); //A.a1
+  EXPECT_EQ(col_expr->GetTableOid(), tableA_oid); //A.a1
+  EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1)); // A.a1; columns are indexed from 1
 
-txn = txn_manager.BeginTransaction();
-binder.reset(new binder::BindNodeVisitor(txn, default_database_name));
-selectSQL = "SELECT * FROM A, A as AA where A.a1 = AA.a2";
-parse_tree = parser.BuildParseTree(selectSQL);
-selectStmt = dynamic_cast<parser::SelectStatement *>(
-    parse_tree->GetStatements().at(0).get());
-binder->BindNameToNode(selectStmt);
-LOG_INFO("Checking where clause");
-tupleExpr = dynamic_cast<const expression::TupleValueExpression *>(
-    selectStmt->where_clause->GetChild(0));
-EXPECT_EQ(tupleExpr->GetBoundOid(), make_tuple(db_oid, tableA_oid, 0));  // a1
-tupleExpr = dynamic_cast<const expression::TupleValueExpression *>(
-    selectStmt->where_clause->GetChild(1));
-EXPECT_EQ(tupleExpr->GetBoundOid(), make_tuple(db_oid, tableA_oid, 1));  // a1
+  col_expr = (parser::ColumnValueExpression *)selectStmt->GetSelectTable()->GetJoin()->GetJoinCondition()->GetChild(1).get();
 
-// Test alias and select_list
-LOG_INFO("Checking select_list and table alias binding");
-txn_manager.CommitTransaction(txn);
+//  EXPECT_EQ(col_expr->GetBoundOid(), make_tuple(db_oid, tableB_oid, 0));  // b.b1
+  EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid); //B.b1
+  EXPECT_EQ(col_expr->GetTableOid(), tableB_oid); //B.b1
+  EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1)); // B.b1; columns are indexed from 1
+  
+  // Check Where clause
+  LOG_INFO("Checking where clause");
+  col_expr = (parser::ColumnValueExpression *)selectStmt->GetSelectCondition()->GetChild(0).get();
+//  EXPECT_EQ(col_expr->GetBoundOid(), make_tuple(db_oid, tableA_oid, 0));  // a1
+  EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid); //A.a1
+  EXPECT_EQ(col_expr->GetTableOid(), tableA_oid); //A.a1
+  EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1)); // A.a1; columns are indexed from 1
+  
+  // Check Group By and Having
+  LOG_INFO("Checking group by");
+  col_expr = (parser::ColumnValueExpression *)selectStmt->GetSelectGroupBy()->GetColumns()[0].get();
+//  EXPECT_EQ(col_expr->GetBoundOid(), make_tuple(db_oid, tableA_oid, 0));  // A.a1
+  EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid); //A.a1
+  EXPECT_EQ(col_expr->GetTableOid(), tableA_oid); //A.a1
+  EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1)); // A.a1; columns are indexed from 1
+  
+  col_expr = dynamic_cast<const parser::ColumnValueExpression *>(selectStmt->GetSelectGroupBy()->GetColumns()[1].get());
+//  EXPECT_EQ(col_expr->GetBoundOid(), make_tuple(db_oid, tableB_oid, 1));  // B.b2
+  EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid); //B.b2
+  EXPECT_EQ(col_expr->GetTableOid(), tableB_oid); //B.b2
+  EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2)); // B.b2; columns are indexed from 1
+  
+  col_expr = (parser::ColumnValueExpression *)selectStmt->GetSelectGroupBy()->GetHaving()->GetChild(0).get();
+//  EXPECT_EQ(col_expr->GetBoundOid(), make_tuple(db_oid, tableA_oid, 0));  // a1
+  EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid); //A.a1
+  EXPECT_EQ(col_expr->GetTableOid(), tableA_oid); //A.a1
+  EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1)); // A.a1; columns are indexed from 1
+  
+  // Check Order By
+  LOG_INFO("Checking order by");
+  col_expr = (parser::ColumnValueExpression *)selectStmt->GetSelectOrderBy()->GetOrderByExpressions()[0].get();
+//  EXPECT_EQ(col_expr->GetBoundOid(), make_tuple(db_oid, tableA_oid, 0));  // a1
+  EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid); //A.a1
+  EXPECT_EQ(col_expr->GetTableOid(), tableA_oid); //A.a1
+  EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1)); // A.a1; columns are indexed from 1
+  
+  // Check alias ambiguous
+  LOG_INFO("Checking duplicate alias and table name.");
 
-txn = txn_manager.BeginTransaction();
-binder.reset(new binder::BindNodeVisitor(txn, default_database_name));
-selectSQL = "SELECT AA.a1, b2 FROM A as AA, B WHERE AA.a1 = B.b1";
-parse_tree = parser.BuildParseTree(selectSQL);
-selectStmt = dynamic_cast<parser::SelectStatement *>(
-    parse_tree->GetStatements().at(0).get());
-binder->BindNameToNode(selectStmt);
-tupleExpr = dynamic_cast<expression::TupleValueExpression *>(
-    selectStmt->select_list.at(0).get());
-EXPECT_EQ(tupleExpr->GetBoundOid(), make_tuple(db_oid, tableA_oid, 0));
-tupleExpr = dynamic_cast<expression::TupleValueExpression *>(
-    selectStmt->select_list.at(1).get());
-EXPECT_EQ(tupleExpr->GetBoundOid(), make_tuple(db_oid, tableB_oid, 1));
-txn_manager.CommitTransaction(txn);
-// Delete the test database
-txn = txn_manager.BeginTransaction();
-catalog_ptr->DropDatabaseWithName(txn, default_database_name);
-txn_manager.CommitTransaction(txn);
+  txn = txn_manager.BeginTransaction();
+  binder.reset(new binder::BindNodeVisitor(accessor, default_database_name));
+  selectSQL = "SELECT * FROM A, B as A";
+  parse_tree = parser.BuildParseTree(selectSQL);
+  selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree[0].get());
+  try {
+    binder->BindNameToNode(selectStmt);
+    EXPECT_TRUE(false);
+  } catch (Exception &e) {
+    LOG_INFO("Correct! Exception(%s) catched", e.what());
+  }
+
+  // Test select from different table instances from the same physical schema
+  txn_manager->Commit(txn);
+
+  txn = txn_manager->BeginTransaction();
+  binder.reset(new binder::BindNodeVisitor(accessor, default_database_name));
+  selectSQL = "SELECT * FROM A, A as AA where A.a1 = AA.a2";
+  parse_tree = parser.BuildParseTree(selectSQL);
+  selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree[0].get());
+  binder->BindNameToNode(selectStmt);
+  LOG_INFO("Checking where clause");
+  col_expr = dynamic_cast<const parser::ColumnValueExpression *>(selectStmt->GetSelectCondition()->GetChild(0).get());
+//  EXPECT_EQ(col_expr->GetBoundOid(), make_tuple(db_oid, tableA_oid, 0));  // a1
+  EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid); //A.a1
+  EXPECT_EQ(col_expr->GetTableOid(), tableA_oid); //A.a1
+  EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1)); // A.a1; columns are indexed from 1
+  
+  col_expr = dynamic_cast<const parser::ColumnValueExpression *>(selectStmt->GetSelectCondition()->GetChild(1).get());
+//  EXPECT_EQ(col_expr->GetBoundOid(), make_tuple(db_oid, tableA_oid, 1));  // a1
+  EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid); //A.a1
+  EXPECT_EQ(col_expr->GetTableOid(), tableA_oid); //A.a1
+  EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1)); // A.a1; columns are indexed from 1
+  
+  // Test alias and select_list
+  LOG_INFO("Checking select_list and table alias binding");
+  txn_manager->Commit(txn);
+
+  txn = txn_manager->BeginTransaction();
+  binder.reset(new binder::BindNodeVisitor(accessor, default_database_name));
+  selectSQL = "SELECT AA.a1, b2 FROM A as AA, B WHERE AA.a1 = B.b1";
+  parse_tree = parser.BuildParseTree(selectSQL);
+  selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree[0].get());
+  binder->BindNameToNode(selectStmt);
+  col_expr = dynamic_cast<parser::ColumnValueExpression *>(selectStmt->GetSelectColumns()[0].get());
+//  EXPECT_EQ(col_expr->GetBoundOid(), make_tuple(db_oid, tableA_oid, 0)); // A.a1
+  EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid); //A.a1
+  EXPECT_EQ(col_expr->GetTableOid(), tableA_oid); //A.a1
+  EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1)); // A.a1; columns are indexed from 1
+  
+  col_expr = dynamic_cast<parser::ColumnValueExpression *>(selectStmt->GetSelectColumns()[1].get());
+//  EXPECT_EQ(col_expr->GetBoundOid(), make_tuple(db_oid, tableB_oid, 1)); // B.b2
+  EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid); //B.b2
+  EXPECT_EQ(col_expr->GetTableOid(), tableB_oid); //B.b2
+  EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2)); // B.b2; columns are indexed from 1
+  
+  txn_manager->Commit(txn);
+  // Delete the test database
+  txn = txn_manager->BeginTransaction();
+  accessor->DropDatabase(db_oid);
+  txn_manager.Commit(txn);
 }
 
 // TODO: add test for Update Statement. Currently UpdateStatement uses char*
-// instead of TupleValueExpression to represent column. We can only add this
+// instead of ColumnValueExpression to represent column. We can only add this
 // test after UpdateStatement is changed
 
 TEST_F(BinderCorrectnessTest, DeleteStatementTest) {
@@ -291,22 +318,22 @@ auto deleteStmt = dynamic_cast<parser::DeleteStatement *>(
     parse_tree->GetStatements().at(0).get());
 binder->BindNameToNode(deleteStmt);
 
-txn_manager.CommitTransaction(txn);
+txn_manager.Commit(txn);
 
 LOG_INFO("Checking first condition in where clause");
-auto tupleExpr = dynamic_cast<const expression::TupleValueExpression *>(
+auto col_expr = dynamic_cast<const parser::ColumnValueExpression *>(
     deleteStmt->expr->GetChild(0)->GetChild(1));
-EXPECT_EQ(tupleExpr->GetBoundOid(), make_tuple(db_oid, tableB_oid, 0));
+EXPECT_EQ(col_expr->GetBoundOid(), make_tuple(db_oid, tableB_oid, 0));
 
 LOG_INFO("Checking second condition in where clause");
-tupleExpr = dynamic_cast<const expression::TupleValueExpression *>(
+col_expr = dynamic_cast<const parser::ColumnValueExpression *>(
     deleteStmt->expr->GetChild(1)->GetChild(0));
-EXPECT_EQ(tupleExpr->GetBoundOid(), make_tuple(db_oid, tableB_oid, 1));
+EXPECT_EQ(col_expr->GetBoundOid(), make_tuple(db_oid, tableB_oid, 1));
 
 // Delete the test database
 txn = txn_manager.BeginTransaction();
 catalog_ptr->DropDatabaseWithName(txn, default_database_name);
-txn_manager.CommitTransaction(txn);
+txn_manager.Commit(txn);
 }
 
 TEST_F(BinderCorrectnessTest, BindDepthTest) {
@@ -330,7 +357,7 @@ auto parse_tree = parser.BuildParseTree(selectSQL);
 auto selectStmt = dynamic_cast<parser::SelectStatement *>(
     parse_tree->GetStatements().at(0).get());
 binder->BindNameToNode(selectStmt);
-txn_manager.CommitTransaction(txn);
+txn_manager.Commit(txn);
 
 // Check select depth
 EXPECT_EQ(0, selectStmt->depth);
@@ -347,7 +374,7 @@ auto in_expr = selectStmt->where_clause->GetChild(0);
 auto exists_expr = selectStmt->where_clause->GetChild(1);
 auto exists_sub_expr = exists_expr->GetChild(0);
 auto exists_sub_expr_select =
-    dynamic_cast<const expression::SubqueryExpression *>(exists_sub_expr)
+    dynamic_cast<const parser::SubqueryExpression *>(exists_sub_expr)
         ->GetSubSelect();
 auto exists_sub_expr_select_where =
     exists_sub_expr_select->where_clause.get();
@@ -356,7 +383,7 @@ auto exists_sub_expr_select_ele =
 auto in_tv_expr = in_expr->GetChild(0);
 auto in_sub_expr = in_expr->GetChild(1);
 auto in_sub_expr_select =
-    dynamic_cast<const expression::SubqueryExpression *>(in_sub_expr)
+    dynamic_cast<const parser::SubqueryExpression *>(in_sub_expr)
         ->GetSubSelect();
 auto in_sub_expr_select_where = in_sub_expr_select->where_clause.get();
 auto in_sub_expr_select_ele = in_sub_expr_select->select_list[0].get();
@@ -367,7 +394,7 @@ auto in_sub_expr_select_where_right_tv =
 auto in_sub_expr_select_where_right_sub =
     in_sub_expr_select_where_right->GetChild(1);
 auto in_sub_expr_select_where_right_sub_select =
-    dynamic_cast<const expression::SubqueryExpression *>(
+    dynamic_cast<const parser::SubqueryExpression *>(
         in_sub_expr_select_where_right_sub)
         ->GetSubSelect();
 auto in_sub_expr_select_where_right_sub_select_where =
@@ -396,7 +423,7 @@ EXPECT_EQ(2, in_sub_expr_select_where_right_sub_select_ele->GetDepth());
 catalog::Catalog *catalog_ptr = catalog::Catalog::GetInstance();
 txn = txn_manager.BeginTransaction();
 catalog_ptr->DropDatabaseWithName(txn, default_database_name);
-txn_manager.CommitTransaction(txn);
+txn_manager.Commit(txn);
 }
 
 TEST_F(BinderCorrectnessTest, FunctionExpressionTest) {
@@ -415,14 +442,13 @@ function_sql = "SELECT substr('test123', 2, 3)";
 auto parse_tree2 = parser.BuildParseTree(function_sql);
 stmt = parse_tree2->GetStatement(0);
 binder->BindNameToNode(stmt);
-auto funct_expr = dynamic_cast<expression::FunctionExpression *>(
+auto funct_expr = dynamic_cast<parser::FunctionExpression *>(
     dynamic_cast<parser::SelectStatement *>(stmt)->select_list[0].get());
 EXPECT_TRUE(funct_expr->Evaluate(nullptr, nullptr, nullptr)
 .CompareEquals(type::ValueFactory::GetVarcharValue("est")) ==
 CmpBool::CmpTrue);
 
-txn_manager.CommitTransaction(txn);
+txn_manager.Commit(txn);
 }
 
-}  // namespace test
 }  // namespace peloton
