@@ -38,7 +38,7 @@ uint64_t DiskLogConsumerTask::PersistLogFile() {
   // Force the buffers to be written to disk. Because all buffers log to the same file, it suffices to call persist on
   // any buffer.
   buffers_->front().Persist();
-  const uint32_t num_buffers = commit_callbacks_.size();
+  const auto num_buffers = commit_callbacks_.size();
   // Execute the callbacks for the transactions that have been persisted
   for (auto &callback : commit_callbacks_) callback.first(callback.second);
   commit_callbacks_.clear();
