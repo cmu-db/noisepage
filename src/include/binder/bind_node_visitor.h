@@ -63,7 +63,7 @@ class BindNodeVisitor : public SqlNodeVisitor {
   void Visit(parser::ConstantValueExpression *expr) override;
   void Visit(parser::ColumnValueExpression *expr) override;
   void Visit(parser::StarExpression *expr) override;
-  void Visit(parser::FunctionExpression *expr) override;
+//  void Visit(parser::FunctionExpression *expr) override;
 
   // Deduce value type for these expressions
   void Visit(parser::OperatorExpression *expr) override;
