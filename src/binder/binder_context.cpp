@@ -5,14 +5,8 @@
 #include "common/exception.h"
 
 #include "catalog/catalog_accessor.h"
-//#include "catalog/catalog.h"
-//#include "catalog/column_catalog.h"
-//#include "catalog/database_catalog.h"
-//#include "catalog/table_catalog.h"
 #include "parser/expression/column_value_expression.h"
-#include "parser/expression/derived_value_expression.h"
 #include "parser/table_ref.h"
-//#include "storage/storage_manager.h"
 
 namespace terrier::binder {
 
@@ -190,12 +184,10 @@ void BinderContext::GenerateAllColumnExpressions(std::vector<std::shared_ptr<par
     auto &table_alias = entry.first;
     auto &cols = entry.second;
     for (auto &col_entry : cols) {
-      // TODO (Ling): see how the nested map was constructed to find out where do the indices come from
-      auto tv_expr = std::make_shared<parser::DerivedValueExpression>(col_entry.second, std::string(col_entry.first), std::string(table_alias));
+      auto tv_expr = std::make_shared<parser::ColumnValueExpression>(std::string(table_alias), std::string(col_entry.first));
+      tv_expr->SetReturnValueType(col_entry.second);
       tv_expr->DeduceExpressionName();
-      // All derived columns do not have bound column id. We need to set them to
-      // all zero to get rid of garbage value and make comparison work
-      //tv_expr->SetBoundOid(0, 0, 0);
+      // All derived columns do not have bound oids, thus keep them as INVALID_OIDs
       exprs.emplace_back(tv_expr);
     }
   }
