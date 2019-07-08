@@ -12,7 +12,6 @@ if (TERRIER_BUILD_TESTS)
 
     add_subdirectory(common)
     add_subdirectory(network)
-    add_subdirectory(metrics)
     add_subdirectory(parser)
     add_subdirectory(storage)
     add_subdirectory(transaction)

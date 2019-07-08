@@ -91,6 +91,6 @@ class DiskLogConsumerTask : public common::DedicatedThreadTask {
    * Persists the log file on disk by calling fsync, as well as calling callbacks for all committed transactions that
    * were persisted
    */
-  uint64_t PersistLogFile();
+  void PersistLogFile();
 };
 }  // namespace terrier::storage

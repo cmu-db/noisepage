@@ -1,8 +1,4 @@
 #include "storage/write_ahead_log/disk_log_consumer_task.h"
-#include "common/scoped_timer.h"
-#include "common/thread_context.h"
-#include "metrics/logging_metric.h"
-#include "metrics/metrics_store.h"
 
 namespace terrier::storage {
 
@@ -33,20 +29,17 @@ void DiskLogConsumerTask::WriteBuffersToLogFile() {
   }
 }
 
-uint64_t DiskLogConsumerTask::PersistLogFile() {
+void DiskLogConsumerTask::PersistLogFile() {
   TERRIER_ASSERT(!buffers_->empty(), "Buffers vector should not be empty until Shutdown");
   // Force the buffers to be written to disk. Because all buffers log to the same file, it suffices to call persist on
   // any buffer.
   buffers_->front().Persist();
-  const auto num_buffers = commit_callbacks_.size();
   // Execute the callbacks for the transactions that have been persisted
   for (auto &callback : commit_callbacks_) callback.first(callback.second);
   commit_callbacks_.clear();
-  return num_buffers;
 }
 
 void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
-  uint64_t write_ns = 0, persist_ns = 0, num_bytes = 0, num_buffers = 0;
   // Keeps track of how much data we've written to the log file since the last persist
   current_data_written_ = 0;
   // Time since last log file persist
@@ -66,13 +59,8 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
                                           [&] { return do_persist_ || !filled_buffer_queue_->Empty() || !run_task_; });
     }
 
-    uint64_t elapsed_ns = 0;
-    {
-      common::ScopedTimer<std::chrono::nanoseconds> scoped_timer(&elapsed_ns);
-      // Flush all the buffers to the log file
-      WriteBuffersToLogFile();
-    }
-    write_ns += elapsed_ns;
+    // Flush all the buffers to the log file
+    WriteBuffersToLogFile();
 
     // We persist the log file if the following conditions are met
     // 1) The persist interval amount of time has passed since the last persist
@@ -82,11 +70,9 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
     bool timeout = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() -
                                                                          last_persist) > persist_interval_;
     if (timeout || current_data_written_ > persist_threshold_ || do_persist_ || !run_task_) {
-      common::ScopedTimer<std::chrono::nanoseconds> scoped_timer(&elapsed_ns);
       {
         std::unique_lock<std::mutex> lock(persist_lock_);
-        num_buffers = PersistLogFile();
-        num_bytes = current_data_written_;
+        PersistLogFile();
         // Reset meta data
         last_persist = std::chrono::high_resolution_clock::now();
         current_data_written_ = 0;
@@ -94,12 +80,6 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
       }
       // Signal anyone who forced a persist that the persist has finished
       persist_cv_.notify_all();
-    }
-    persist_ns = elapsed_ns;
-
-    if (num_bytes > 0 && common::thread_context.metrics_store_ != nullptr) {
-      common::thread_context.metrics_store_->RecordConsumerData(write_ns, persist_ns, num_bytes, num_buffers);
-      write_ns = persist_ns = num_bytes = num_buffers = 0;
     }
   } while (run_task_);
   // Be extra sure we processed everything

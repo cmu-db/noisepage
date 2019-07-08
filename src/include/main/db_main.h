@@ -6,7 +6,6 @@
 #include "common/action_context.h"
 #include "common/stat_registry.h"
 #include "common/worker_pool.h"
-#include "metrics/metrics_manager.h"
 #include "network/terrier_server.h"
 #include "settings/settings_manager.h"
 #include "settings/settings_param.h"
@@ -20,10 +19,6 @@ class SettingsManager;
 class SettingsTests;
 class Callbacks;
 }  // namespace settings
-
-namespace metrics {
-class MetricsTests;
-}
 
 namespace storage {
 class WriteAheadLoggingTests;
@@ -62,7 +57,6 @@ class DBMain {
     // TODO(Matt): might as well make these std::unique_ptr, but then will need to refactor other classes to take
     // ManagedPointers unless we want a bunch of .get()s, which sounds like a future PR
     delete gc_thread_;
-    delete metrics_manager_;
     delete settings_manager_;
     delete txn_manager_;
     delete buffer_segment_pool_;
@@ -94,7 +88,6 @@ class DBMain {
   friend class settings::SettingsManager;
   friend class settings::SettingsTests;
   friend class settings::Callbacks;
-  friend class metrics::MetricsTests;
   std::shared_ptr<common::StatisticsRegistry> main_stat_reg_;
   std::unordered_map<settings::Param, settings::ParamInfo> param_map_;
   transaction::TransactionManager *txn_manager_;
@@ -108,7 +101,6 @@ class DBMain {
   network::PostgresCommandFactory *command_factory_;
   network::ConnectionHandleFactory *connection_handle_factory_;
   network::ProtocolInterpreter::Provider *provider_;
-  metrics::MetricsManager *metrics_manager_;
   common::DedicatedThreadRegistry *thread_registry_;
 
   bool running = false;

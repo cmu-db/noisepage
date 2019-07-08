@@ -26,8 +26,7 @@ DBMain::DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_
       type::TransientValuePeeker::PeekInteger(
           param_map_.find(settings::Param::record_buffer_segment_reuse)->second.value_));
   settings_manager_ = new settings::SettingsManager(this);
-  metrics_manager_ = new metrics::MetricsManager;
-  thread_registry_ = new common::DedicatedThreadRegistry(common::ManagedPointer(metrics_manager_));
+  thread_registry_ = new common::DedicatedThreadRegistry;
 
   // Create LogManager
   log_manager_ = new storage::LogManager(
