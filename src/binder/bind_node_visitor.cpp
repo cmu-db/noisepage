@@ -250,47 +250,46 @@ void BindNodeVisitor::Visit(parser::AggregateExpression *expr) {
   expr->DeduceReturnValueType();
 }
 
-void BindNodeVisitor::Visit(parser::FunctionExpression *expr) {
-  // Visit the subtree first
-  SqlNodeVisitor::Visit(expr);
+//void BindNodeVisitor::Visit(parser::FunctionExpression *expr) {
+//  // Visit the subtree first
+//  SqlNodeVisitor::Visit(expr);
+//
+//  // Check catalog and bind function
+//  std::vector<type::TypeId> argtypes;
+//  for (size_t i = 0; i < expr->GetChildrenSize(); i++)
+//    argtypes.push_back(expr->GetChild(i)->GetReturnValueType());
+//  // Check and set the function ptr
+//  // TODO(boweic): Visit the catalog using the interface that is protected by
+//  // transaction
+//  // TODO (Ling): Do we need GetFunction in catalog?
+//  const catalog::FunctionData &func_data =
+//      catalog_accessor_->GetFunction(expr->GetFuncName(), argtypes);
+//  LOG_DEBUG("Function %s found in the catalog", func_data.func_name_.c_str());
+//  LOG_DEBUG("Argument num: %ld", func_data.argument_types_.size());
+//  LOG_DEBUG("Is UDF %d", func_data.is_udf_);
+//
+//  if (!func_data.is_udf_) {
+//    expr->SetBuiltinFunctionExpressionParameters(
+//        func_data.func_, func_data.return_type_, func_data.argument_types_);
+//
+//    // Look into the OperatorId for built-in functions to check the first
+//    // argument for timestamp functions.
+//    // TODO(LM): The OperatorId might need to be changed to global ID after we
+//    // rewrite the function identification logic.
+//    auto func_operator_id = func_data.func_.op_id;
+//    if (func_operator_id == OperatorId::DateTrunc ||
+//        func_operator_id == OperatorId::DatePart) {
+//      auto date_part = expr->GetChild(0);
+//
+//      // Test whether the first argument is a correct DatePartType
+//      StringToDatePartType(
+//          date_part->Evaluate(nullptr, nullptr, nullptr).ToString());
+//    }
+//  } else {
+//    expr->SetUDFFunctionExpressionParameters(func_data.func_context_,
+//                                             func_data.return_type_,
+//                                             func_data.argument_types_);
+//  }
+//}
 
-  // Check catalog and bind function
-  std::vector<type::TypeId> argtypes;
-  for (size_t i = 0; i < expr->GetChildrenSize(); i++)
-    argtypes.push_back(expr->GetChild(i)->GetReturnValueType());
-  // Check and set the function ptr
-  // TODO(boweic): Visit the catalog using the interface that is protected by
-  // transaction
-  // TODO (Ling): Do we need GetFunction in catalog?
-  const catalog::FunctionData &func_data =
-      catalog_accessor_->GetFunction(expr->GetFuncName(), argtypes);
-  LOG_DEBUG("Function %s found in the catalog", func_data.func_name_.c_str());
-  LOG_DEBUG("Argument num: %ld", func_data.argument_types_.size());
-  LOG_DEBUG("Is UDF %d", func_data.is_udf_);
-
-  if (!func_data.is_udf_) {
-    expr->SetBuiltinFunctionExpressionParameters(
-        func_data.func_, func_data.return_type_, func_data.argument_types_);
-
-    // Look into the OperatorId for built-in functions to check the first
-    // argument for timestamp functions.
-    // TODO(LM): The OperatorId might need to be changed to global ID after we
-    // rewrite the function identification logic.
-    auto func_operator_id = func_data.func_.op_id;
-    if (func_operator_id == OperatorId::DateTrunc ||
-        func_operator_id == OperatorId::DatePart) {
-      auto date_part = expr->GetChild(0);
-
-      // Test whether the first argument is a correct DatePartType
-      StringToDatePartType(
-          date_part->Evaluate(nullptr, nullptr, nullptr).ToString());
-    }
-  } else {
-    expr->SetUDFFunctionExpressionParameters(func_data.func_context_,
-                                             func_data.return_type_,
-                                             func_data.argument_types_);
-  }
-}
-
-}  // namespace binder
-}  // namespace terrier
+}  // namespace terrier::binder
