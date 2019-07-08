@@ -33,7 +33,7 @@ namespace binder {
  */
 class BindNodeVisitor : public SqlNodeVisitor {
  public:
-  BindNodeVisitor(catalog::CatalogAccessor* catalog_accessor, transaction::TransactionContext *txn, std::string default_database_name);
+  BindNodeVisitor(catalog::CatalogAccessor* catalog_accessor, std::string default_database_name);
 
   void BindNameToNode(parser::SQLStatement *tree);
   void Visit(parser::SelectStatement *) override;
