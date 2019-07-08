@@ -19,7 +19,9 @@ class LogSerializerTask : public DedicatedThreadTask {
    * @param serialization_interval Interval time for when to trigger serialization
    * @param buffer_pool buffer pool to use to release serialized buffers
    * @param empty_buffer_queue pointer to queue to pop empty buffers from
-   * @param filled_buffer_queue pointer to queue to push filled buffers to
+   * @param disk_consumer_queue pointer to queue to push filled buffers to disk consumer
+   * @param network_consumer_queue pointer to queue to push filled buffers to network consumer. nullptr if replication
+   * is not enabled
    * @param disk_log_writer_thread_cv pointer to condition variable to notify consumer when a new buffer has handed over
    */
   explicit LogSerializerTask(const std::chrono::milliseconds serialization_interval,

@@ -52,8 +52,14 @@ BufferedLogWriter *LogSerializerTask::GetCurrentWriteBuffer() {
  * Hand over the current buffer and commit callbacks for commit records in that buffer to the log consumer task
  */
 void LogSerializerTask::HandFilledBufferToConsumers() {
-  // TODO(Gus): Remove
-  (void)network_consumer_queue_;
+  // If we have replication enabled, we should make a copy of the filled buffer to hand off to the network consumer
+  if (network_consumer_queue_ != REPLICATION_DISABLED) {
+    BufferedLogWriter *network_buffer;
+    empty_buffer_queue_->Dequeue(&network_buffer);
+    network_buffer->CopyFromBuffer(filled_buffer_);
+    // For now we pass in an empty commit callback vector
+    network_consumer_queue_->Enqueue(std::make_pair(network_buffer, std::vector<CommitCallback>()));
+  }
 
   // Hand over the filled buffer
   disk_consumer_queue_->Enqueue(std::make_pair(filled_buffer_, commits_in_buffer_));

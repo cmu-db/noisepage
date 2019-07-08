@@ -80,17 +80,16 @@ struct PosixIoWrappers {
 // own wrapper around lower level I/O functions. I could be wrong, and in that case we should
 // revert to using STL.
 /**
- * Handles buffered writes to the write ahead log, and provides control over flushing.
+ *  A BufferedLogWriter is a light wrapper over a char buffer that handles buffering multiple writes into the same
+ * buffer. The contents can be written to a destination through the FlushBuffer method.
  */
 class BufferedLogWriter {
   // TODO(Tianyu): Checksum
  public:
   /**
-   * Instantiates a new BufferedLogWriter. A BufferedLogWriter is a light wrapper over a char buffer that handles
-   * buffering multiple writes into the same buffer. The contents can be written to a destination through the
-   * FlushBuffer method.
+   * Instantiates a new BufferedLogWriter.
    */
-  explicit BufferedLogWriter() {}
+  BufferedLogWriter() = default;
 
   /**
    * Write to the log file the given amount of bytes from the given location in memory, but buffer the write so the
@@ -129,6 +128,15 @@ class BufferedLogWriter {
    * @return if the buffer is full
    */
   bool IsBufferFull() { return buffer_size_ == common::Constants::LOG_BUFFER_SIZE; }
+
+  /**
+   * Copies the contents of another buffer into this buffer
+   * @param other buffer to copy from
+   */
+  void CopyFromBuffer(BufferedLogWriter *other) {
+    TERRIER_ASSERT(CanBuffer(other->buffer_size_), "Not enough space to copy into");
+    BufferWrite(other->buffer_, other->buffer_size_);
+  }
 
  private:
   char buffer_[common::Constants::LOG_BUFFER_SIZE];

@@ -17,9 +17,9 @@ class DiskLogConsumerTask : public DedicatedThreadTask {
  public:
   /**
    * Constructs a new DiskLogConsumerTask
+   * @param log_file_path path to file to write logs to
    * @param persist_interval Interval time for when to persist log file
    * @param persist_threshold threshold of data written since the last persist to trigger another persist
-   * @param buffers pointer to list of all buffers used by log manager, used to persist log file
    * @param empty_buffer_queue pointer to queue to push empty buffers to
    * @param filled_buffer_queue pointer to queue to pop filled buffers from
    */
