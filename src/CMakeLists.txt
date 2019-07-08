@@ -4,6 +4,13 @@
 
 file(GLOB_RECURSE TERRIER_SRCS ${PROJECT_SOURCE_DIR}/src/*.cpp ${PROJECT_SOURCE_DIR}/src/include/*.h)
 list(REMOVE_ITEM TERRIER_SRCS ${PROJECT_SOURCE_DIR}/src/main/terrier.cpp)
+set (EXCLUDE_DIR "/planner/")
+foreach (TMP_PATH ${TERRIER_SRCS})
+    string (FIND ${TMP_PATH} ${EXCLUDE_DIR} EXCLUDE_DIR_FOUND)
+    if (NOT ${EXCLUDE_DIR_FOUND} EQUAL -1)
+        list (REMOVE_ITEM TERRIER_SRCS ${TMP_PATH})
+    endif ()
+endforeach(TMP_PATH)
 
 ###############################################
 # Third party sources

@@ -6,6 +6,7 @@
 #include <utility>
 #include <vector>
 
+#include "common/managed_pointer.h"
 #include "common/sql_node_visitor.h"
 #include "parser/expression/parameter_value_expression.h"
 #include "parser/select_statement.h"
@@ -29,11 +30,11 @@ class PrepareStatement : public SQLStatement {
    * @param query - the parsed form of statement
    * @param placeholders - placeholder values? (explain)
    */
-  PrepareStatement(std::string name, std::shared_ptr<SQLStatement> query,
-                   std::vector<const ParameterValueExpression *> placeholders)
+  PrepareStatement(std::string name, common::ManagedPointer<SQLStatement> query,
+                   std::vector<common::ManagedPointer<ParameterValueExpression>> placeholders)
       : SQLStatement(StatementType::PREPARE),
         name_(std::move(name)),
-        query_(std::move(query)),
+        query_(query),
         placeholders_(std::move(placeholders)) {}
 
   ~PrepareStatement() override = default;
@@ -48,25 +49,23 @@ class PrepareStatement : public SQLStatement {
   /**
    * @return query
    */
-  std::shared_ptr<SQLStatement> GetQuery() { return query_; }
+  common::ManagedPointer<SQLStatement> GetQuery() { return query_; }
 
   /**
-   * @return number of placholders
+   * @return number of placeholders
    */
-  size_t GetPlacerholdersSize() const { return placeholders_.size(); }
+  size_t GetPlaceholdersSize() const { return placeholders_.size(); }
 
   /**
-   * @param idx index of placerholder
+   * @param idx index of placeholder
    * @return placeholder
    */
-  common::ManagedPointer<const ParameterValueExpression> GetPlaceholder(size_t idx) {
-    return common::ManagedPointer<const ParameterValueExpression>(placeholders_[idx]);
-  }
+  common::ManagedPointer<ParameterValueExpression> GetPlaceholder(size_t idx) { return placeholders_[idx]; }
 
  private:
-  const std::string name_;
-  const std::shared_ptr<SQLStatement> query_;
-  const std::vector<const ParameterValueExpression *> placeholders_;
+  std::string name_;
+  common::ManagedPointer<SQLStatement> query_;
+  std::vector<common::ManagedPointer<ParameterValueExpression>> placeholders_;
 };
 
 }  // namespace parser

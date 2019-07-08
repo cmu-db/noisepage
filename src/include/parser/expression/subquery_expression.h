@@ -3,6 +3,8 @@
 #include <memory>
 #include <utility>
 #include <vector>
+
+#include "common/managed_pointer.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/select_statement.h"
 #include "type/type_id.h"
@@ -18,8 +20,8 @@ class SubqueryExpression : public AbstractExpression {
    * Instantiates a new SubqueryExpression with the given sub-select from the parser.
    * @param subselect the sub-select
    */
-  explicit SubqueryExpression(std::shared_ptr<parser::SelectStatement> subselect)
-      : AbstractExpression(ExpressionType::ROW_SUBQUERY, type::TypeId::INVALID, {}), subselect_(std::move(subselect)) {}
+  explicit SubqueryExpression(common::ManagedPointer<SelectStatement> subselect)
+      : AbstractExpression(ExpressionType::ROW_SUBQUERY, type::TypeId::INVALID, {}), subselect_(subselect) {}
 
   /**
    * Default constructor for deserialization
@@ -37,7 +39,7 @@ class SubqueryExpression : public AbstractExpression {
   /**
    * @return shared pointer to stored sub-select
    */
-  std::shared_ptr<parser::SelectStatement> GetSubselect() { return subselect_; }
+  common::ManagedPointer<SelectStatement> GetSubselect() { return subselect_; }
 
   /**
    * @return expression serialized to json
@@ -53,13 +55,12 @@ class SubqueryExpression : public AbstractExpression {
    */
   void FromJson(const nlohmann::json &j) override {
     AbstractExpression::FromJson(j);
-    subselect_ = std::make_shared<parser::SelectStatement>();
+    subselect_ = common::ManagedPointer(new SelectStatement());
     subselect_->FromJson(j.at("subselect"));
   }
 
  private:
-  // TODO(Gus): Remove shared pointer
-  std::shared_ptr<parser::SelectStatement> subselect_;
+  common::ManagedPointer<SelectStatement> subselect_;
 };
 
 DEFINE_JSON_DECLARATIONS(SubqueryExpression);

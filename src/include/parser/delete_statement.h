@@ -4,6 +4,7 @@
 #include <string>
 #include <utility>
 
+#include "common/managed_pointer.h"
 #include "common/sql_node_visitor.h"
 #include "expression/abstract_expression.h"
 #include "parser/sql_statement.h"
@@ -28,35 +29,33 @@ class DeleteStatement : public SQLStatement {
    * @param table deletion target
    * @param expr condition for deletion
    */
-  DeleteStatement(std::shared_ptr<TableRef> table, const AbstractExpression *expr)
-      : SQLStatement(StatementType::DELETE), table_ref_(std::move(table)), expr_(expr) {}
+  DeleteStatement(common::ManagedPointer<TableRef> table, common::ManagedPointer<AbstractExpression> expr)
+      : SQLStatement(StatementType::DELETE), table_ref_(table), expr_(expr) {}
 
   /**
    * Delete all rows (truncate).
    * @param table deletion target
    */
-  explicit DeleteStatement(std::shared_ptr<TableRef> table)
-      : SQLStatement(StatementType::DELETE), table_ref_(std::move(table)), expr_(nullptr) {}
-
-  ~DeleteStatement() override { delete expr_; }
+  explicit DeleteStatement(common::ManagedPointer<TableRef> table)
+      : SQLStatement(StatementType::DELETE),
+        table_ref_(table),
+        expr_(common::ManagedPointer<AbstractExpression>(nullptr)) {}
 
   /**
    * @return deletion target table
    */
-  std::shared_ptr<TableRef> GetDeletionTable() const { return table_ref_; }
+  common::ManagedPointer<TableRef> GetDeletionTable() const { return table_ref_; }
 
   /**
    * @return expression that represents deletion condition
    */
-  common::ManagedPointer<const AbstractExpression> GetDeleteCondition() {
-    return common::ManagedPointer<const AbstractExpression>(expr_);
-  }
+  common::ManagedPointer<AbstractExpression> GetDeleteCondition() { return expr_; }
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
  private:
-  std::shared_ptr<TableRef> table_ref_;
-  const AbstractExpression *expr_;
+  const common::ManagedPointer<TableRef> table_ref_;
+  const common::ManagedPointer<AbstractExpression> expr_;
 };
 
 }  // namespace terrier::parser

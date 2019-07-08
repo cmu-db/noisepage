@@ -30,36 +30,41 @@ void SelectStatement::FromJson(const nlohmann::json &j) {
 
   // Deserialize from
   if (!j.at("from").is_null()) {
-    from_ = std::make_shared<TableRef>();
+    from_ = common::ManagedPointer<TableRef>();
     from_->FromJson(j.at("from"));
   }
 
   // Deserialize where
   if (!j.at("where").is_null()) {
-    where_ = DeserializeExpression(j.at("where"));
+    // TODO(WAN): lifetime
+    where_ = common::ManagedPointer(DeserializeExpression(j.at("where")));
   }
 
   // Deserialize group by
   if (!j.at("group_by").is_null()) {
-    group_by_ = std::make_shared<GroupByDescription>();
+    // TODO(WAN): lifetime
+    group_by_ = common::ManagedPointer(new GroupByDescription());
     group_by_->FromJson(j.at("group_by"));
   }
 
   // Deserialize order by
   if (!j.at("order_by").is_null()) {
-    order_by_ = std::make_shared<OrderByDescription>();
+    // TODO(WAN): lifetime
+    order_by_ = common::ManagedPointer(new OrderByDescription());
     order_by_->FromJson(j.at("order_by"));
   }
 
   // Deserialize limit
   if (!j.at("limit").is_null()) {
-    limit_ = std::make_shared<LimitDescription>();
+    // TODO(WAN): lifetime
+    limit_ = common::ManagedPointer(new LimitDescription());
     limit_->FromJson(j.at("limit"));
   }
 
   // Deserialize select
   if (!j.at("union_select").is_null()) {
-    union_select_ = std::make_shared<parser::SelectStatement>();
+    // TODO(WAN): lifetime
+    union_select_ = common::ManagedPointer(new SelectStatement());
     union_select_->FromJson(j.at("union_select"));
   }
 }

@@ -4,7 +4,9 @@
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "common/json.h"
+#include "common/managed_pointer.h"
 #include "common/sql_node_visitor.h"
 #include "expression/abstract_expression.h"
 #include "parser/parser_defs.h"
@@ -26,16 +28,14 @@ class JoinDefinition {
    * @param right right table
    * @param condition join condition
    */
-  JoinDefinition(JoinType type, std::shared_ptr<TableRef> left, std::shared_ptr<TableRef> right,
-                 const AbstractExpression *condition)
-      : type_(type), left_(std::move(left)), right_(std::move(right)), condition_(condition) {}
+  JoinDefinition(JoinType type, common::ManagedPointer<TableRef> left, common::ManagedPointer<TableRef> right,
+                 common::ManagedPointer<AbstractExpression> condition)
+      : type_(type), left_(left), right_(right), condition_(condition) {}
 
   /**
    * Default constructor used for deserialization
    */
   JoinDefinition() = default;
-
-  ~JoinDefinition() { delete condition_; }
 
   // TODO(WAN): not a SQLStatement?
   /**
@@ -51,19 +51,17 @@ class JoinDefinition {
   /**
    * @return left table
    */
-  std::shared_ptr<TableRef> GetLeftTable() { return left_; }
+  common::ManagedPointer<TableRef> GetLeftTable() { return left_; }
 
   /**
    * @return right table
    */
-  std::shared_ptr<TableRef> GetRightTable() { return right_; }
+  common::ManagedPointer<TableRef> GetRightTable() { return right_; }
 
   /**
    * @return join condition
    */
-  common::ManagedPointer<const AbstractExpression> GetJoinCondition() {
-    return common::ManagedPointer<const AbstractExpression>(condition_);
-  }
+  common::ManagedPointer<AbstractExpression> GetJoinCondition() { return condition_; }
 
   /**
    * @return JoinDefinition serialized to json
@@ -77,9 +75,9 @@ class JoinDefinition {
 
  private:
   JoinType type_;
-  std::shared_ptr<TableRef> left_;
-  std::shared_ptr<TableRef> right_;
-  const AbstractExpression *condition_;
+  common::ManagedPointer<TableRef> left_;
+  common::ManagedPointer<TableRef> right_;
+  common::ManagedPointer<AbstractExpression> condition_;
 };
 
 DEFINE_JSON_DECLARATIONS(JoinDefinition);
@@ -100,35 +98,35 @@ class TableRef {
    * @param alias alias for table ref
    * @param table_info table information to use in creation
    */
-  TableRef(std::string alias, std::shared_ptr<TableInfo> table_info)
+  TableRef(std::string alias, common::ManagedPointer<TableInfo> table_info)
       : type_(TableReferenceType::NAME), alias_(std::move(alias)), table_info_(std::move(table_info)) {}
 
   /**
    * @param alias alias for table ref
    * @param select select statement to use in creation
    */
-  TableRef(std::string alias, std::shared_ptr<SelectStatement> select)
-      : type_(TableReferenceType::SELECT), alias_(std::move(alias)), select_(std::move(select)) {}
+  TableRef(std::string alias, common::ManagedPointer<SelectStatement> select)
+      : type_(TableReferenceType::SELECT), alias_(std::move(alias)), select_(select) {}
 
   /**
    * @param list table refs to use in creation
    */
-  explicit TableRef(std::vector<std::shared_ptr<TableRef>> list)
+  explicit TableRef(std::vector<common::ManagedPointer<TableRef>> list)
       : type_(TableReferenceType::CROSS_PRODUCT), alias_(""), list_(std::move(list)) {}
 
   /**
    * @param join join definition to use in creation
    */
-  explicit TableRef(std::shared_ptr<JoinDefinition> join)
-      : type_(TableReferenceType::JOIN), alias_(""), join_(std::move(join)) {}
+  explicit TableRef(common::ManagedPointer<JoinDefinition> join)
+      : type_(TableReferenceType::JOIN), alias_(""), join_(join) {}
 
   /**
    * @param alias alias for table ref
    * @param table_info table info to use in creation
    * @return unique pointer to the created table ref
    */
-  static std::unique_ptr<TableRef> CreateTableRefByName(std::string alias, std::shared_ptr<TableInfo> table_info) {
-    return std::make_unique<TableRef>(alias, std::move(table_info));
+  static TableRef *CreateTableRefByName(std::string alias, common::ManagedPointer<TableInfo> table_info) {
+    return new TableRef(alias, table_info);
   }
 
   /**
@@ -136,25 +134,23 @@ class TableRef {
    * @param select select statement to use in creation
    * @return unique pointer to the created table ref
    */
-  static std::unique_ptr<TableRef> CreateTableRefBySelect(std::string alias, std::shared_ptr<SelectStatement> select) {
-    return std::make_unique<TableRef>(alias, std::move(select));
+  static TableRef *CreateTableRefBySelect(std::string alias, common::ManagedPointer<SelectStatement> select) {
+    return new TableRef(alias, select);
   }
 
   /**
    * @param list table refs to use in creation
    * @return unique pointer to the created table ref
    */
-  static std::unique_ptr<TableRef> CreateTableRefByList(std::vector<std::shared_ptr<TableRef>> list) {
-    return std::make_unique<TableRef>(std::move(list));
+  static TableRef *CreateTableRefByList(std::vector<common::ManagedPointer<TableRef>> list) {
+    return new TableRef(std::move(list));
   }
 
   /**
    * @param join join definition to use in creation
    * @return unique pointer to the created table ref
    */
-  static std::unique_ptr<TableRef> CreateTableRefByJoin(std::shared_ptr<JoinDefinition> join) {
-    return std::make_unique<TableRef>(std::move(join));
-  }
+  static TableRef *CreateTableRefByJoin(common::ManagedPointer<JoinDefinition> join) { return new TableRef(join); }
 
   /**
    * @param v visitor
@@ -189,17 +185,17 @@ class TableRef {
   /**
    * @return select statement
    */
-  std::shared_ptr<SelectStatement> GetSelect() { return select_; }
+  common::ManagedPointer<SelectStatement> GetSelect() { return select_; }
 
   /**
    * @return list of table references
    */
-  std::vector<std::shared_ptr<TableRef>> GetList() { return list_; }
+  std::vector<common::ManagedPointer<TableRef>> GetList() { return list_; }
 
   /**
    * @return join
    */
-  std::shared_ptr<JoinDefinition> GetJoin() { return join_; }
+  common::ManagedPointer<JoinDefinition> GetJoin() { return join_; }
 
   /**
    * @return TableRef serialized to json
@@ -213,13 +209,13 @@ class TableRef {
  private:
   TableReferenceType type_;
   std::string alias_;
-  std::shared_ptr<TableInfo> table_info_;
+  common::ManagedPointer<TableInfo> table_info_;
 
-  std::shared_ptr<SelectStatement> select_;
+  common::ManagedPointer<SelectStatement> select_;
 
-  std::vector<std::shared_ptr<TableRef>> list_;
+  std::vector<common::ManagedPointer<TableRef>> list_;
 
-  std::shared_ptr<JoinDefinition> join_;
+  common::ManagedPointer<JoinDefinition> join_;
 };
 
 DEFINE_JSON_DECLARATIONS(TableRef);

@@ -45,6 +45,7 @@ void AbstractExpression::FromJson(const nlohmann::json &j) {
 }
 
 AbstractExpression *DeserializeExpression(const nlohmann::json &j) {
+  // TODO(WAN): this has to live somewhere
   AbstractExpression *expr;
 
   auto expression_type = j.at("expression_type").get<ExpressionType>();

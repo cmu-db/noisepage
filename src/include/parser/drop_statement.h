@@ -25,16 +25,16 @@ class DropStatement : public TableRefStatement {
    * @param type kDatabase or kTable
    * @param if_exists true if "IF EXISTS" was used
    */
-  DropStatement(std::unique_ptr<TableInfo> table_info, DropType type, bool if_exists)
-      : TableRefStatement(StatementType::DROP, std::move(table_info)), type_(type), if_exists_(if_exists) {}
+  DropStatement(common::ManagedPointer<TableInfo> table_info, DropType type, bool if_exists)
+      : TableRefStatement(StatementType::DROP, table_info), type_(type), if_exists_(if_exists) {}
 
   /**
    * DROP INDEX
    * @param table_info table information
    * @param index_name index name
    */
-  DropStatement(std::unique_ptr<TableInfo> table_info, std::string index_name)
-      : TableRefStatement(StatementType::DROP, std::move(table_info)),
+  DropStatement(common::ManagedPointer<TableInfo> table_info, std::string index_name)
+      : TableRefStatement(StatementType::DROP, table_info),
         type_(DropType::kIndex),
         index_name_(std::move(index_name)) {}
 
@@ -44,8 +44,8 @@ class DropStatement : public TableRefStatement {
    * @param if_exists true if "IF EXISTS" was used
    * @param cascade true if "CASCADE" was used
    */
-  DropStatement(std::unique_ptr<TableInfo> table_info, bool if_exists, bool cascade)
-      : TableRefStatement(StatementType::DROP, std::move(table_info)),
+  DropStatement(common::ManagedPointer<TableInfo> table_info, bool if_exists, bool cascade)
+      : TableRefStatement(StatementType::DROP, table_info),
         type_(DropType::kSchema),
         if_exists_(if_exists),
         cascade_(cascade) {}
@@ -57,8 +57,8 @@ class DropStatement : public TableRefStatement {
    * @param type kTrigger
    * @param trigger_name trigger name
    */
-  DropStatement(std::unique_ptr<TableInfo> table_info, DropType type, std::string trigger_name)
-      : TableRefStatement(StatementType::DROP, std::move(table_info)),
+  DropStatement(common::ManagedPointer<TableInfo> table_info, DropType type, std::string trigger_name)
+      : TableRefStatement(StatementType::DROP, table_info),
         type_(DropType::kTrigger),
         trigger_name_(std::move(trigger_name)) {}
 
