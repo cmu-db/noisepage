@@ -13,8 +13,8 @@
 
 namespace terrier::binder {
 
-BindNodeVisitor::BindNodeVisitor(catalog::CatalogAccessor* catalog_accessor, transaction::TransactionContext *txn, std::string default_database_name)
-    : catalog_accessor_(catalog_accessor), txn_(txn), default_database_name_(default_database_name) {
+BindNodeVisitor::BindNodeVisitor(catalog::CatalogAccessor* catalog_accessor, std::string default_database_name)
+    : catalog_accessor_(catalog_accessor), default_database_name_(default_database_name) {
   // TODO:
   //  traffic cop should generate the catalog accessor and hand to the binder
   //  Since the catalog accessor has attribute txn and db id
