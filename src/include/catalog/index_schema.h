@@ -168,7 +168,7 @@ class IndexSchema {
 
  private:
   friend class DatabaseCatalog;
-  const std::vector<Column> columns_;
+  std::vector<Column> columns_;
   bool is_unique_;
   bool is_primary_;
   bool is_exclusion_;
