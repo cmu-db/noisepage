@@ -1,9 +1,11 @@
 #include <memory>
+#include "util/transaction_benchmark_util.h"
 #include "transaction/transaction_manager.h"
 #include "util/test_harness.h"
 #include "binder/bind_node_visitor.h"
 #include "catalog/catalog.h"
 #include "traffic_cop/statement.h"
+#include "storage/garbage_collector.h"
 #include "expression/subquery_expression.h"
 #include "parser/expression/column_value_expression.h"
 #include "optimizer/optimizer.h"
@@ -16,7 +18,7 @@
 
 using std::make_shared;
 using std::make_tuple;
-using std::string;
+
 using std::unique_ptr;
 using std::vector;
 
@@ -24,138 +26,122 @@ namespace terrier {
 
 // TODO (Ling): write meaningful setup
 class BinderCorrectnessTest : public TerrierTest {
+ private:
+  storage::RecordBufferSegmentPool buffer_pool_{1000000, 1000000};
+  storage::BlockStore block_store_{1000, 1000};
+  catalog::Catalog *catalog_;
+  catalog::db_oid_t db_oid_;
+  std::string default_ns_name_ = "test_ns";
+  catalog::namespace_oid_t ns_oid_;
+  storage::GarbageCollector *gc_;
+ protected:
+  std::string default_database_name_ = "test_db";
+  catalog::table_oid_t table_a_oid_;
+  catalog::table_oid_t table_b_oid_;
+  parser::PostgresParser parser_;
+  transaction::TransactionManager txn_manager_{&buffer_pool_, true, LOGGING_DISABLED};
+  transaction::TransactionContext* txn_;
+  catalog::CatalogAccessor *accessor_;
+  unique_ptr<binder::BindNodeVisitor> binder_;
+
+  void flush() {
+    // Run the GC to flush it down to a clean system
+    gc_->PerformGarbageCollection();
+    gc_->PerformGarbageCollection();
+  }
   virtual void SetUp() override {
     TerrierTest::SetUp();
-    catalog::Catalog::GetInstance();
-    // NOTE: Catalog::GetInstance()->Bootstrap(), you can only call it once!
-    TestingExecutorUtil::InitializeDatabase(DEFAULT_DB_NAME);
+
+    gc_ = new storage::GarbageCollector(&txn_manager_);
+    txn_ = txn_manager_.BeginTransaction();
+    // new catalog requires txn_manage and block_store as parameters
+    catalog_ = new catalog::Catalog(&txn_manager_, &block_store_);
+    txn_manager_.Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
+    flush();
+
+    // create database
+    txn_ = txn_manager_.BeginTransaction();
+    LOG_INFO("Creating database %s", default_database_name_.c_str());
+    db_oid_ = catalog_->CreateDatabase(txn_, default_database_name_);
+    // commit the transactions
+    txn_manager_.Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
+    LOG_INFO("database %s created!", default_database_name_.c_str());
+    flush();
+
+    // Create namespace
+    txn_ = txn_manager_.BeginTransaction();
+    // get the catalog accessor
+    accessor_ = catalog_->GetAccessor(txn_, db_oid_);
+    // create a namespace
+    ns_oid_ = accessor_->CreateNamespace(default_ns_name_);
+    accessor_->SetSearchPath(std::vector<catalog::namespace_oid_t>{ns_oid_});
+    txn_manager_.Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
+    flush();
+
+    // create table A
+    txn_ = txn_manager_.BeginTransaction();
+    accessor_ = catalog_->GetAccessor(txn_, db_oid_);
+    // Create the column definition (no OIDs) for CREATE TABLE A(A1 int, a2 varchar)
+    std::vector<catalog::Schema::Column> cols_a;
+    cols_a.emplace_back("A1", type::TypeId::INTEGER, true);
+    cols_a.emplace_back("a2", type::TypeId::VARCHAR, true);
+    auto schema_a = new catalog::Schema(cols_a);
+
+    table_a_oid_ = accessor_->CreateTable(ns_oid_, "A", schema_a);
+    txn_manager_.Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
+    flush();
+
+    // create Table B
+    txn_ = txn_manager_.BeginTransaction();
+    accessor_ = catalog_->GetAccessor(txn_, db_oid_);
+    // Create the column definition (no OIDs) for CREATE TABLE b(b1 int, B2 varchar)
+    std::vector<catalog::Schema::Column> cols_b;
+    cols_b.emplace_back("b1", type::TypeId::INTEGER, true);
+    cols_b.emplace_back("B2", type::TypeId::VARCHAR, true);
+    auto schema_b = new catalog::Schema(cols_b);
+    table_b_oid_ = accessor_->CreateTable(ns_oid_, "b", schema_b);
+    txn_manager_.Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
+    flush();
+
+    delete schema_a;
+    delete schema_b;
+
+    // prepare for testing
+    txn_ = txn_manager_.BeginTransaction();
+    accessor_ = catalog_->GetAccessor(txn_, db_oid_);
+    binder_ = std::make_unique<binder::BindNodeVisitor>(new binder::BindNodeVisitor(accessor_, default_database_name_));
   }
 
   virtual void TearDown() override {
-    TestingExecutorUtil::DeleteDatabase(DEFAULT_DB_NAME);
-    PelotonTest::TearDown();
+    TerrierTest::TearDown();
+
+    txn_manager_.Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
+    // Delete the test database
+    txn_ = txn_manager_.BeginTransaction();
+    accessor_->DropDatabase(db_oid_);
+    txn_manager_.Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
+    flush();
+    delete gc_;
+    delete catalog_;
   }
 };
 
-void SetupTables(std::string database_name) {
-  LOG_INFO("Creating database %s", database_name.c_str());
-
-  // create a transaction
-  auto &txn_manager = transaction::TransactionManagerFactory::GetInstance();
-  // begin transaction
-  auto txn = txn_manager.BeginTransaction();
-  // GetInstance will get a global catalog
-  // then a database is created with the transaction as context and the database name
-  // correspond to CatalogAccessor.createDatabase(database_name), as the accessor has the transactio as an attribute
-  catalog::Catalog::GetInstance()->CreateDatabase(txn, database_name);
-  // commit the transactions
-  txn_manager.Commit(txn);
-  LOG_INFO("database %s created!", database_name.c_str());
-
-  // get a parser instance
-  auto &parser = parser::PostgresParser::GetInstance();
-  // get a traffic cop instance
-  auto &traffic_cop = tcop::TrafficCop::GetInstance();
-  // set the default database name to the name of the database we just created
-  traffic_cop.SetDefaultDatabaseName(database_name);
-  // set the task call back of the traffic cop
-  // counter
-  traffic_cop.SetTaskCallback(TestingSQLUtil::UtilTestTaskCallback,
-                              &TestingSQLUtil::counter_);
-
-  // get an optimizer instance
-  optimizer::Optimizer optimizer;
-
-  // sql statements for creating test tables
-  vector<string> createTableSQLs{"CREATE TABLE A(A1 int, a2 varchar)",
-                                 "CREATE TABLE b(B1 int, b2 varchar)"};
-  // for each statement
-  for (auto &sql : createTableSQLs) {
-    LOG_INFO("%s", sql.c_str());
-    // begin transaction
-    txn = txn_manager.BeginTransaction();
-    // set transaction state to success?
-    traffic_cop.SetTcopTxnState(txn);
-
-    vector<type::Value> params;
-    vector<ResultValue> result;
-    vector<int> result_format;
-    // create a CREATE statement instance
-    unique_ptr<Statement> statement(new Statement("CREATE", sql));
-
-    // build the parse tree for the sql statement
-    // return std::unique_ptr<parser::SQLStatementList>
-    auto parse_tree_list = parser.BuildParseTree(sql);
-    // get the first statement
-    auto parse_tree = parse_tree_list->GetStatement(0);
-    // get a instance of bindNodeBVisitor by specifying the transaction and the database name
-    // also the bindNodeVisitor fills its catalog attribute with the global catalog
-    // and the binder_context with nullptr
-    auto bind_node_visitor = binder::BindNodeVisitor(txn, database_name);
-    // the bindNodeVisitor travers the parse tree and bind the name to node
-    // essentially it is using the Accept() method of the statement object
-    // which calls visit on the sqlNodeVisitor
-    // which recursively visit the children
-    bind_node_visitor.BindNameToNode(parse_tree);
-
-    // use the parse tree and transaction to build the plan tree
-    statement->SetPlanTree(
-        optimizer.BuildPelotonPlanTree(parse_tree_list, txn));
-    TestingSQLUtil::counter_.store(1);
-    // execute the statement with plan
-    auto status = traffic_cop.ExecuteHelper(statement->GetPlanTree(), params, result, result_format);
-
-    if (traffic_cop.GetQueuing()) {
-      TestingSQLUtil::ContinueAfterComplete();
-      traffic_cop.ExecuteStatementPlanGetResult();
-      status = traffic_cop.p_status_;
-      traffic_cop.SetQueuing(false);
-    }
-    LOG_INFO("Table create result: %s",
-             ResultTypeToString(status.m_result).c_str());
-
-    // commit
-    traffic_cop.CommitQueryHelper();
-  }
-}
-
 // NOLINTNEXTLINE
 TEST_F(BinderCorrectnessTest, SelectStatementTest) {
-  std::string default_database_name = "test_db";
-  SetupTables(default_database_name);
-  parser::PostgresParser parser;
-
-//  catalog::Catalog *catalog_ptr = catalog::Catalog::GetInstance();
-//  catalog_ptr->Bootstrap();
-
   // Test regular table name
   LOG_INFO("Parsing sql query");
 
-//  auto &txn_manager = transaction::TransactionManagerFactory::GetInstance();
-  storage::RecordBufferSegmentPool buffer_pool = {100, 100};
-  auto txn_manager = new transaction::TransactionManager{&buffer_pool, true, LOGGING_DISABLED};
-  auto txn = txn_manager->BeginTransaction();
-
-  // initialize a block store
-  auto *block_store = new storage::BlockStore(100, 100);
-  // new catalog requires txn_manage and block_store as parameters
-  auto catalog = new catalog::Catalog(txn_manager, block_store);
-  auto accessor = catalog->GetAccessor(txn, catalog->GetDatabaseOid(txn, default_database_name));
-
-  unique_ptr<binder::BindNodeVisitor> binder(new binder::BindNodeVisitor(accessor, default_database_name));
-//  auto binder = new binder::BindNodeVisitor(accessor, default_database_name);
-
-  string selectSQL = "SELECT A.a1, B.b2 FROM A INNER JOIN b ON a.a1 = b.b1 WHERE a1 < 100 "
+  std::string selectSQL = "SELECT A.a1, B.b2 FROM A INNER JOIN b ON a.a1 = b.b1 WHERE a1 < 100 "
                      "GROUP BY A.a1, B.b2 HAVING a1 > 50 ORDER BY a1";
 
-  auto parse_tree = parser.BuildParseTree(selectSQL);
+  auto parse_tree = parser_.BuildParseTree(selectSQL);
   auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree[0].get());
-  binder->BindNameToNode(selectStmt);
+  binder_->BindNameToNode(selectStmt);
 
-  auto db_oid = accessor->GetDatabaseOid(default_database_name);
-  auto tableA_oid = accessor->GetTableOid("a");
-  auto tableB_oid = accessor->GetTableOid("b");
-  txn_manager->Commit(txn);
+  auto db_oid = accessor_->GetDatabaseOid(default_database_name_);
+  auto tableA_oid = accessor_->GetTableOid("a");
+  auto tableB_oid = accessor_->GetTableOid("b");
+  txn_manager_.Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
 
   // Check select_list
   LOG_INFO("Checking select list");
@@ -228,27 +214,27 @@ TEST_F(BinderCorrectnessTest, SelectStatementTest) {
   // Check alias ambiguous
   LOG_INFO("Checking duplicate alias and table name.");
 
-  txn = txn_manager.BeginTransaction();
-  binder.reset(new binder::BindNodeVisitor(accessor, default_database_name));
+  txn_ = txn_manager_.BeginTransaction();
+  binder_.reset(new binder::BindNodeVisitor(accessor_, default_database_name_));
   selectSQL = "SELECT * FROM A, B as A";
-  parse_tree = parser.BuildParseTree(selectSQL);
+  parse_tree = parser_.BuildParseTree(selectSQL);
   selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree[0].get());
   try {
-    binder->BindNameToNode(selectStmt);
+    binder_->BindNameToNode(selectStmt);
     EXPECT_TRUE(false);
   } catch (Exception &e) {
     LOG_INFO("Correct! Exception(%s) catched", e.what());
   }
 
   // Test select from different table instances from the same physical schema
-  txn_manager->Commit(txn);
+  txn_manager_.Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
 
-  txn = txn_manager->BeginTransaction();
-  binder.reset(new binder::BindNodeVisitor(accessor, default_database_name));
+  txn_ = txn_manager_.BeginTransaction();
+  binder_.reset(new binder::BindNodeVisitor(accessor_, default_database_name_));
   selectSQL = "SELECT * FROM A, A as AA where A.a1 = AA.a2";
-  parse_tree = parser.BuildParseTree(selectSQL);
+  parse_tree = parser_.BuildParseTree(selectSQL);
   selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree[0].get());
-  binder->BindNameToNode(selectStmt);
+  binder_->BindNameToNode(selectStmt);
   LOG_INFO("Checking where clause");
   col_expr = dynamic_cast<const parser::ColumnValueExpression *>(selectStmt->GetSelectCondition()->GetChild(0).get());
 //  EXPECT_EQ(col_expr->GetBoundOid(), make_tuple(db_oid, tableA_oid, 0));  // a1
@@ -264,14 +250,14 @@ TEST_F(BinderCorrectnessTest, SelectStatementTest) {
   
   // Test alias and select_list
   LOG_INFO("Checking select_list and table alias binding");
-  txn_manager->Commit(txn);
+  txn_manager_.Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
 
-  txn = txn_manager->BeginTransaction();
-  binder.reset(new binder::BindNodeVisitor(accessor, default_database_name));
+  txn_ = txn_manager_.BeginTransaction();
+  binder_.reset(new binder::BindNodeVisitor(accessor_, default_database_name_));
   selectSQL = "SELECT AA.a1, b2 FROM A as AA, B WHERE AA.a1 = B.b1";
-  parse_tree = parser.BuildParseTree(selectSQL);
+  parse_tree = parser_.BuildParseTree(selectSQL);
   selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree[0].get());
-  binder->BindNameToNode(selectStmt);
+  binder_->BindNameToNode(selectStmt);
   col_expr = dynamic_cast<parser::ColumnValueExpression *>(selectStmt->GetSelectColumns()[0].get());
 //  EXPECT_EQ(col_expr->GetBoundOid(), make_tuple(db_oid, tableA_oid, 0)); // A.a1
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid); //A.a1
@@ -283,12 +269,6 @@ TEST_F(BinderCorrectnessTest, SelectStatementTest) {
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid); //B.b2
   EXPECT_EQ(col_expr->GetTableOid(), tableB_oid); //B.b2
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2)); // B.b2; columns are indexed from 1
-  
-  txn_manager->Commit(txn);
-  // Delete the test database
-  txn = txn_manager->BeginTransaction();
-  accessor->DropDatabase(db_oid);
-  txn_manager.Commit(txn);
 }
 
 // TODO: add test for Update Statement. Currently UpdateStatement uses char*
@@ -296,68 +276,68 @@ TEST_F(BinderCorrectnessTest, SelectStatementTest) {
 // test after UpdateStatement is changed
 
 TEST_F(BinderCorrectnessTest, DeleteStatementTest) {
-std::string default_database_name = "test_db";
-SetupTables(default_database_name);
-auto &parser = parser::PostgresParser::GetInstance();
-catalog::Catalog *catalog_ptr = catalog::Catalog::GetInstance();
+  std::string default_database_name_ = "test_db";
+  SetupTables(default_database_name_);
+  auto &parser = parser::PostgresParser::GetInstance();
+  catalog::Catalog *catalog_ptr = catalog::Catalog::GetInstance();
 
-auto &txn_manager = concurrency::TransactionManagerFactory::GetInstance();
-auto txn = txn_manager.BeginTransaction();
-oid_t db_oid =
-    catalog_ptr->GetDatabaseWithName(txn, default_database_name)->GetOid();
-oid_t tableB_oid = catalog_ptr
-    ->GetTableWithName(txn, default_database_name, DEFAULT_SCHEMA_NAME, "b")
-    ->GetOid();
+  auto &txn_manager = concurrency::TransactionManagerFactory::GetInstance();
+  auto txn_ = txn_manager.BeginTransaction();
+  oid_t db_oid =
+      catalog_ptr->GetDatabaseWithName(txn_, default_database_name_)->GetOid();
+  oid_t tableB_oid = catalog_ptr
+      ->GetTableWithName(txn_, default_database_name_, DEFAULT_SCHEMA_NAME, "b")
+      ->GetOid();
 
-string deleteSQL = "DELETE FROM b WHERE 1 = b1 AND b2 = 'str'";
-unique_ptr<binder::BindNodeVisitor> binder(
-    new binder::BindNodeVisitor(txn, default_database_name));
+  std::string deleteSQL = "DELETE FROM b WHERE 1 = b1 AND b2 = 'str'";
+  unique_ptr<binder::BindNodeVisitor> binder(
+      new binder::BindNodeVisitor(txn_, default_database_name_));
 
-auto parse_tree = parser.BuildParseTree(deleteSQL);
-auto deleteStmt = dynamic_cast<parser::DeleteStatement *>(
-    parse_tree->GetStatements().at(0).get());
-binder->BindNameToNode(deleteStmt);
+  auto parse_tree = parser_.BuildParseTree(deleteSQL);
+  auto deleteStmt = dynamic_cast<parser::DeleteStatement *>(
+      parse_tree->GetStatements().at(0).get());
+  binder_->BindNameToNode(deleteStmt);
 
-txn_manager.Commit(txn);
+  txn_manager.Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
 
-LOG_INFO("Checking first condition in where clause");
-auto col_expr = dynamic_cast<const parser::ColumnValueExpression *>(
-    deleteStmt->expr->GetChild(0)->GetChild(1));
-EXPECT_EQ(col_expr->GetBoundOid(), make_tuple(db_oid, tableB_oid, 0));
+  LOG_INFO("Checking first condition in where clause");
+  auto col_expr = dynamic_cast<const parser::ColumnValueExpression *>(
+      deleteStmt->expr->GetChild(0)->GetChild(1));
+  EXPECT_EQ(col_expr->GetBoundOid(), make_tuple(db_oid, tableB_oid, 0));
 
-LOG_INFO("Checking second condition in where clause");
-col_expr = dynamic_cast<const parser::ColumnValueExpression *>(
-    deleteStmt->expr->GetChild(1)->GetChild(0));
-EXPECT_EQ(col_expr->GetBoundOid(), make_tuple(db_oid, tableB_oid, 1));
+  LOG_INFO("Checking second condition in where clause");
+  col_expr = dynamic_cast<const parser::ColumnValueExpression *>(
+      deleteStmt->expr->GetChild(1)->GetChild(0));
+  EXPECT_EQ(col_expr->GetBoundOid(), make_tuple(db_oid, tableB_oid, 1));
 
-// Delete the test database
-txn = txn_manager.BeginTransaction();
-catalog_ptr->DropDatabaseWithName(txn, default_database_name);
-txn_manager.Commit(txn);
+  // Delete the test database
+  txn_ = txn_manager.BeginTransaction();
+  catalog_ptr->DropDatabaseWithName(txn_, default_database_name_);
+  txn_manager.Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
 }
 
 TEST_F(BinderCorrectnessTest, BindDepthTest) {
-std::string default_database_name = "test_db";
-SetupTables(default_database_name);
+std::string default_database_name_ = "test_db";
+SetupTables(default_database_name_);
 auto &parser = parser::PostgresParser::GetInstance();
 
 // Test regular table name
 LOG_INFO("Parsing sql query");
 
 auto &txn_manager = concurrency::TransactionManagerFactory::GetInstance();
-auto txn = txn_manager.BeginTransaction();
+auto txn_ = txn_manager.BeginTransaction();
 unique_ptr<binder::BindNodeVisitor> binder(
-    new binder::BindNodeVisitor(txn, default_database_name));
-string selectSQL =
+    new binder::BindNodeVisitor(txn_, default_database_name_));
+std::string selectSQL =
     "SELECT A.a1 FROM A WHERE A.a1 IN (SELECT b1 FROM B WHERE b1 = 2 AND b2 "
     "> (SELECT a1 FROM A WHERE a2 > 0)) "
     "AND EXISTS (SELECT b1 FROM B WHERE B.b1 = A.a1)";
 
-auto parse_tree = parser.BuildParseTree(selectSQL);
+auto parse_tree = parser_.BuildParseTree(selectSQL);
 auto selectStmt = dynamic_cast<parser::SelectStatement *>(
     parse_tree->GetStatements().at(0).get());
-binder->BindNameToNode(selectStmt);
-txn_manager.Commit(txn);
+binder_->BindNameToNode(selectStmt);
+txn_manager.Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
 
 // Check select depth
 EXPECT_EQ(0, selectStmt->depth);
@@ -421,34 +401,34 @@ EXPECT_EQ(2, in_sub_expr_select_where_right_sub_select_where->GetDepth());
 EXPECT_EQ(2, in_sub_expr_select_where_right_sub_select_ele->GetDepth());
 // Delete the test database
 catalog::Catalog *catalog_ptr = catalog::Catalog::GetInstance();
-txn = txn_manager.BeginTransaction();
-catalog_ptr->DropDatabaseWithName(txn, default_database_name);
-txn_manager.Commit(txn);
+txn_ = txn_manager.BeginTransaction();
+catalog_ptr->DropDatabaseWithName(txn_, default_database_name_);
+txn_manager.Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
 }
 
 TEST_F(BinderCorrectnessTest, FunctionExpressionTest) {
 auto &txn_manager = concurrency::TransactionManagerFactory::GetInstance();
-auto txn = txn_manager.BeginTransaction();
+auto txn_ = txn_manager.BeginTransaction();
 
-string function_sql = "SELECT substr('test123', a, 3)";
+std::string function_sql = "SELECT substr('test123', a, 3)";
 auto &parser = parser::PostgresParser::GetInstance();
-auto parse_tree = parser.BuildParseTree(function_sql);
+auto parse_tree = parser_.BuildParseTree(function_sql);
 auto stmt = parse_tree->GetStatement(0);
 unique_ptr<binder::BindNodeVisitor> binder(
-    new binder::BindNodeVisitor(txn, DEFAULT_DB_NAME));
-EXPECT_THROW(binder->BindNameToNode(stmt), peloton::Exception);
+    new binder::BindNodeVisitor(txn_, DEFAULT_DB_NAME));
+EXPECT_THROW(binder_->BindNameToNode(stmt), peloton::Exception);
 
 function_sql = "SELECT substr('test123', 2, 3)";
-auto parse_tree2 = parser.BuildParseTree(function_sql);
+auto parse_tree2 = parser_.BuildParseTree(function_sql);
 stmt = parse_tree2->GetStatement(0);
-binder->BindNameToNode(stmt);
+binder_->BindNameToNode(stmt);
 auto funct_expr = dynamic_cast<parser::FunctionExpression *>(
     dynamic_cast<parser::SelectStatement *>(stmt)->select_list[0].get());
 EXPECT_TRUE(funct_expr->Evaluate(nullptr, nullptr, nullptr)
 .CompareEquals(type::ValueFactory::GetVarcharValue("est")) ==
 CmpBool::CmpTrue);
 
-txn_manager.Commit(txn);
+txn_manager.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
 }
 
 }  // namespace peloton
