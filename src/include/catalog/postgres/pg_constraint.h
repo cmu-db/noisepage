@@ -28,7 +28,7 @@ namespace terrier::catalog::postgres {
 #define CONTYPE_COL_OID col_oid_t(4)        // CHAR
 #define CONDEFERRABLE_COL_OID col_oid_t(5)  // BOOLEAN
 #define CONDEFERRED_COL_OID col_oid_t(6)    // BOOLEAN
-#define CONVALIDATED_COL_OID col_oit_t(7)   // BOOLEAN
+#define CONVALIDATED_COL_OID col_oid_t(7)   // BOOLEAN
 #define CONRELID_COL_OID col_oid_t(8)       // INTEGER (fkey: pg_class)
 #define CONINDID_COL_OID col_oid_t(9)       // INTEGER (fkey: pg_class)
 #define CONFRELID_COL_OID col_oid_t(10)     // INTEGER (fkey: pg_class)
