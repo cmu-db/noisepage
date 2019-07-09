@@ -1,5 +1,8 @@
 #pragma once
 
+#include <utility>
+#include <vector>
+
 #include "common/managed_pointer.h"
 #include "optimizer/operator_visitor.h"
 
@@ -243,4 +246,4 @@ class InputColumnDeriver : public OperatorVisitor {
   PropertySet* properties_;
 };
 
-} // namespace terrier::optimizer
+}  // namespace terrier::optimizer

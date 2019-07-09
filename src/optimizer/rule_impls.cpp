@@ -1,4 +1,9 @@
 #include <memory>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
+#include <string>
+#include <vector>
 
 #include "loggers/optimizer_logger.h"
 #include "type/transient_value_factory.h"
@@ -136,15 +141,13 @@ void InnerJoinAssociativity::Transform(
   std::vector<OperatorExpression*> child_children{middle->Copy(), right->Copy()};
   auto new_child_join = new OperatorExpression(
     LogicalInnerJoin::make(std::move(new_child_join_predicates)),
-    std::move(child_children)
-  );
+    std::move(child_children));
 
   // Construct new parent join operator
   std::vector<OperatorExpression*> parent_children{left->Copy(), new_child_join};
   auto new_parent_join = new OperatorExpression(
     LogicalInnerJoin::make(std::move(new_parent_join_predicates)),
-    std::move(parent_children)
-  );
+    std::move(parent_children));
 
   transformed.push_back(new_parent_join);
 }
@@ -263,8 +266,7 @@ void GetToIndexScan::Transform(
           auto op = IndexScan::make(
             db_oid, ns_oid, index,
             std::move(preds), tbl_alias,
-            is_update, {}, {}, {}
-          );
+            is_update, {}, {}, {});
 
           transformed.push_back(new OperatorExpression(std::move(op), {}));
         }
@@ -292,8 +294,7 @@ void GetToIndexScan::Transform(
           std::move(preds), std::move(tbl_alias), is_update,
           std::move(output.GetPredicateColumnIds()),
           std::move(output.GetPredicateExprTypes()),
-          std::move(output.GetPredicateValues())
-        );
+          std::move(output.GetPredicateValues()));
 
         transformed.push_back(new OperatorExpression(std::move(op), {}));
       }
@@ -326,7 +327,8 @@ void LogicalQueryDerivedGetToPhysical::Transform(
   const LogicalQueryDerivedGet *get = input->GetOp().As<LogicalQueryDerivedGet>();
 
   auto tbl_alias = std::string(get->GetTableAlias());
-  auto expr_map = std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>>(get->GetAliasToExprMap());
+  std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> expr_map;
+  expr_map = get->GetAliasToExprMap();
 
   auto input_child = input->GetChildren()[0];
   auto result_plan = new OperatorExpression(QueryDerivedScan::make(tbl_alias, std::move(expr_map)), {input_child});
@@ -474,7 +476,7 @@ void LogicalInsertToPhysical::Transform(
 LogicalInsertSelectToPhysical::LogicalInsertSelectToPhysical() {
   type_ = RuleType::INSERT_SELECT_TO_PHYSICAL;
   match_pattern = new Pattern(OpType::LOGICALINSERTSELECT);
-  
+
   Pattern* child = new Pattern(OpType::LEAF);
   match_pattern->AddChild(child);
 }
@@ -648,7 +650,7 @@ void InnerJoinToInnerHashJoin::Transform(
 
   // first build an expression representing hash join
   const LogicalInnerJoin *inner_join = input->GetOp().As<LogicalInnerJoin>();
-  
+
   auto children = input->GetChildren();
   TERRIER_ASSERT(children.size() == 2, "Inner Join should have two child");
   auto left_group_id = children[0]->GetOp().As<LeafOperator>()->GetOriginGroup();
@@ -733,7 +735,7 @@ void ImplementLimit::Transform(
                         limit_op->GetLimit(),
                         std::move(sorts),
                         std::move(types));
-  auto result_plan = new OperatorExpression(std::move(op), {child}); 
+  auto result_plan = new OperatorExpression(std::move(op), {child});
   transformed.push_back(result_plan);
 }
 
@@ -842,7 +844,7 @@ void PushFilterThroughJoin::Transform(
   } else {
     left_branch = join_op_expr->GetChildren()[0]->Copy();
   }
-  
+
   // Construct right filter if any
   if (!right_predicates.empty()) {
     auto right_child = join_op_expr->GetChildren()[1]->Copy();
@@ -1208,11 +1210,10 @@ void PullFilterThroughAggregation::Transform(
   std::vector<AnnotatedExpression> new_having = aggregation->GetHaving();
   auto new_aggr = new OperatorExpression(
     LogicalAggregateAndGroupBy::make(std::move(new_groupby_cols), std::move(new_having)),
-    {aggr_child}
-  );
+    {aggr_child});
 
   auto output = new OperatorExpression(LogicalFilter::make(std::move(correlated_predicates)), {new_aggr});
   transformed.push_back(output);
 }
 
-} // namespace terrier::optimizer
+}  // namespace terrier::optimizer

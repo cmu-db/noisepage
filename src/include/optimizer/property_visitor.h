@@ -22,4 +22,4 @@ class PropertyVisitor {
   virtual void Visit(const PropertySort *prop) = 0;
 };
 
-} // namespace terrier::optimizer
+}  // namespace terrier::optimizer

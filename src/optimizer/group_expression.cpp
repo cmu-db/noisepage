@@ -1,3 +1,6 @@
+#include <utility>
+#include <vector>
+
 #include "common/hash_util.h"
 #include "optimizer/group_expression.h"
 #include "optimizer/group.h"
@@ -39,4 +42,4 @@ common::hash_t GroupExpression::Hash() const {
   return hash;
 }
 
-} // namespace terrier::optimizer
+}  // namespace terrier::optimizer

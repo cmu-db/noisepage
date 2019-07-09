@@ -44,4 +44,4 @@ RuleSet::RuleSet() {
   AddRewriteRule(RewriteRuleSetName::UNNEST_SUBQUERY, new PullFilterThroughAggregation());
 }
 
-} // namespace terrier::optimizer
+}  // namespace terrier::optimizer

@@ -80,4 +80,4 @@ class OptimizerTaskStack : public OptimizerTaskPool {
   std::stack<OptimizerTask*> task_stack_;
 };
 
-} // namespace terrier::optimizer
+}  // namespace terrier::optimizer

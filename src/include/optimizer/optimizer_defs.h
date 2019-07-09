@@ -4,6 +4,8 @@
 #include <string>
 #include <unordered_set>
 #include <utility>
+#include <unordered_map>
+
 #include "catalog/catalog_defs.h"
 #include "common/macros.h"
 #include "common/managed_pointer.h"
@@ -220,4 +222,4 @@ using ExprMap = std::unordered_map<const parser::AbstractExpression*, unsigned, 
  */
 using ExprSet = std::unordered_set<const parser::AbstractExpression*, ExprHasher, ExprEqualCmp>;
 
-} // namespace terrier::optimizer
+}  // namespace terrier::optimizer

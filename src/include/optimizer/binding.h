@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <vector>
 #include <tuple>
 #include <memory>
 
@@ -198,4 +199,4 @@ class GroupExprBindingIterator : public BindingIterator {
   std::vector<size_t> children_bindings_pos_;
 };
 
-} // namespace terrier::optimizer
+}  // namespace terrier::optimizer

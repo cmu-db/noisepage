@@ -64,4 +64,4 @@ class Pattern {
   std::vector<Pattern*> children;
 };
 
-} // namespace terrier::optimizer
+}  // namespace terrier::optimizer

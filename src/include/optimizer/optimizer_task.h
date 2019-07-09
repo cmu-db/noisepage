@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <vector>
+#include <utility>
 
 #include "parser/expression/abstract_expression.h"
 #include "optimizer/optimizer_defs.h"

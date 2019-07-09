@@ -1,4 +1,5 @@
 #include <memory>
+#include <vector>
 
 #include "common/scoped_timer.h"
 #include "common/exception.h"
@@ -87,9 +88,7 @@ planner::AbstractPlanNode* Optimizer::ChooseBestPlan(
 
   // Firstly derive input/output columns
   InputColumnDeriver deriver;
-  auto output_input_cols_pair = deriver.DeriveInputColumns(
-    gexpr, required_props, required_cols, &metadata_.GetMemo()
-  );
+  auto output_input_cols_pair = deriver.DeriveInputColumns(gexpr, required_props, required_cols, &metadata_.GetMemo());
 
   auto &output_cols = output_input_cols_pair.first;
   auto &input_cols = output_input_cols_pair.second;
@@ -180,4 +179,4 @@ void Optimizer::ExecuteTaskStack(
   }
 }
 
-} // namespace terrier::optimizer
+}  // namespace terrier::optimizer

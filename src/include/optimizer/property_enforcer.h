@@ -25,11 +25,11 @@ class PropertyEnforcer : public PropertyVisitor {
   /**
    * Implementation of the Visit function for PropertySort
    */
-  virtual void Visit(const PropertySort *) override;
+  void Visit(const PropertySort *) override;
 
  private:
   GroupExpression* input_gexpr_;
   GroupExpression* output_gexpr_;
 };
 
-} // terrier::optimizer
+}  // namespace terrier::optimizer

@@ -1,7 +1,11 @@
 #pragma once
 
 #include <unordered_map>
+#include <unordered_set>
+#include <tuple>
+#include <string>
 #include <vector>
+#include <utility>
 
 #include "optimizer/optimizer_defs.h"
 #include "optimizer/group_expression.h"
@@ -168,4 +172,4 @@ class Group {
   double cost_lower_bound_ = -1;
 };
 
-} // namespace terrier::optimizer
+}  // namespace terrier::optimizer

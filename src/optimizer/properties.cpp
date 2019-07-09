@@ -51,7 +51,9 @@ common::hash_t PropertySort::Hash() const {
   size_t num_sort_columns = sort_columns_.size();
   for (size_t i = 0; i < num_sort_columns; ++i) {
     hash = common::HashUtil::CombineHashes(hash, sort_columns_[i]->Hash());
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash<planner::OrderByOrderingType>(sort_ascending_[i]));
+
+    auto asc_hash = common::HashUtil::Hash<planner::OrderByOrderingType>(sort_ascending_[i]);
+    hash = common::HashUtil::CombineHashes(hash, asc_hash);
   }
   return hash;
 }
@@ -64,4 +66,4 @@ void PropertySort::Accept(PropertyVisitor *v) const {
   v->Visit((const PropertySort *)this);
 }
 
-} // namespace terrier::optimizer
+}  // namespace terrier::optimizer

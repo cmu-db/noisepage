@@ -1,3 +1,7 @@
+#include <utility>
+#include <string>
+#include <vector>
+
 #include "parser/expression_util.h"
 #include "optimizer/input_column_deriver.h"
 #include "optimizer/memo.h"
@@ -57,7 +61,7 @@ void InputColumnDeriver::Visit(const QueryDerivedScan *op) {
 }
 
 void InputColumnDeriver::Visit(const Limit *op) {
-  // All aggregate expressions and TVEs in the required columns and internal 
+  // All aggregate expressions and TVEs in the required columns and internal
   // sort columns are needed by the child node
   ExprSet input_cols_set;
   for (auto expr : required_cols_) {
@@ -369,4 +373,4 @@ void InputColumnDeriver::Passdown() {
   output_input_cols_ = std::make_pair(required_cols_, std::vector{required_cols_});
 }
 
-} // namespace terrier::optimizer
+}  // namespace terrier::optimizer

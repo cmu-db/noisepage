@@ -1,9 +1,12 @@
 #pragma once
 
 #include <algorithm>
+#include <memory>
+#include <vector>
 #include <cstdlib>
 #include <string>
 #include <unordered_set>
+#include <unordered_map>
 
 #include "common/managed_pointer.h"
 #include "parser/expression/abstract_expression.h"
@@ -84,4 +87,4 @@ void ExtractEquiJoinKeys(
     const std::unordered_set<std::string> &left_alias,
     const std::unordered_set<std::string> &right_alias);
 
-} // namespace terrier::optimizer::util
+}  // namespace terrier::optimizer::util

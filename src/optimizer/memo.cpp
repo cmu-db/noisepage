@@ -1,3 +1,7 @@
+#include <utility>
+#include <unordered_set>
+#include <string>
+
 #include "optimizer/group_expression.h"
 #include "optimizer/memo.h"
 #include "optimizer/logical_operators.h"
@@ -68,4 +72,4 @@ GroupID Memo::AddNewGroup(GroupExpression* gexpr) {
   return new_group_id;
 }
 
-} // namespace terrier::optimizer
+}  // namespace terrier::optimizer

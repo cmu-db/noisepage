@@ -62,4 +62,4 @@ bool Group::HasExpressions(PropertySet* properties) const {
   return (it != lowest_cost_expressions_.end());
 }
 
-} // namespace terrier::optimizer
+}  // namespace terrier::optimizer

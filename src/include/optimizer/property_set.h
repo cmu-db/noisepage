@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <vector>
+#include <utility>
 
 #include "common/hash_util.h"
 #include "optimizer/property.h"
@@ -141,7 +142,7 @@ struct PropSetPtrEq {
   }
 };
 
-} // namespace terrier::optimizer
+}  // namespace terrier::optimizer
 
 namespace std {
 
@@ -168,4 +169,4 @@ struct hash<terrier::optimizer::PropertySet> {
   result_type operator()(argument_type const &s) const { return s.Hash(); }
 };
 
-} // namespace std
+}  // namespace std

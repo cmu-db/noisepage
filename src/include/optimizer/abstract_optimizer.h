@@ -1,6 +1,8 @@
 #pragma once
 
 #include <memory>
+#include <vector>
+#include <utility>
 
 #include "common/managed_pointer.h"
 
@@ -39,7 +41,7 @@ struct QueryInfo {
    * @param props Physical properties of the output (QueryInfo will own)
    */
   QueryInfo(parser::StatementType type,
-            std::vector<common::ManagedPointer<parser::AbstractExpression>> &exprs,
+            std::vector<common::ManagedPointer<parser::AbstractExpression>> &&exprs,
             PropertySet* props)
       : stmt_type_(type), output_exprs_(exprs), physical_props_(std::move(props)) {}
 
@@ -69,7 +71,7 @@ struct QueryInfo {
     return physical_props_;
   }
 
-private:
+ private:
   parser::StatementType stmt_type_;
   std::vector<common::ManagedPointer<parser::AbstractExpression>> output_exprs_;
   PropertySet* physical_props_;
@@ -109,7 +111,7 @@ class AbstractOptimizer {
   /**
    * Reset the optimizer's internal state
    */
-  virtual void Reset(){};
+  virtual void Reset(){}
 };
 
 }  // namespace terrier::optimizer

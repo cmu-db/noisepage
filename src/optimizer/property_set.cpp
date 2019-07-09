@@ -24,7 +24,7 @@ const Property* PropertySet::GetPropertyOfType(PropertyType type) const {
     }
   }
 
-  OPTIMIZER_LOG_TRACE("Didn't find property with type %d", static_cast<int>(type)); 
+  OPTIMIZER_LOG_TRACE("Didn't find property with type %d", static_cast<int>(type));
   return nullptr;
 }
 
@@ -58,4 +58,4 @@ common::hash_t PropertySet::Hash() const {
   return hash;
 }
 
-} // namespace terrier::optimizer
+}  // namespace terrier::optimizer

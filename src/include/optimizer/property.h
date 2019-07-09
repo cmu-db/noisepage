@@ -3,7 +3,7 @@
 #include <typeinfo>
 
 #include "common/hash_util.h"
-#include "optimizer_defs.h"
+#include "optimizer/optimizer_defs.h"
 
 namespace terrier::optimizer {
 
@@ -79,7 +79,6 @@ class Property {
     }
     return nullptr;
   }
-
 };
 
-} // namespace terrier::optimizer
+}  // namespace terrier::optimizer

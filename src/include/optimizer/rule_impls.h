@@ -3,6 +3,7 @@
 #include "optimizer/rule.h"
 
 #include <memory>
+#include <vector>
 
 namespace terrier::optimizer {
 
@@ -689,7 +690,7 @@ class MarkJoinToInnerJoin : public Rule {
    * @param context OptimizeContext currently executing under
    * @returns The promise value of applying the rule for ordering
    */
-  int Promise(GroupExpression *group_expr,OptimizeContext *context) const override;
+  int Promise(GroupExpression *group_expr, OptimizeContext *context) const override;
 
   /**
    * Checks whether the given rule can be applied
@@ -816,4 +817,4 @@ class PullFilterThroughAggregation : public Rule {
                  std::vector<OperatorExpression*> &transformed,
                  OptimizeContext *context) const override;
 };
-} // namespace terrier::optimizer
+}  // namespace terrier::optimizer

@@ -1,3 +1,5 @@
+#include <vector>
+
 #include "optimizer/property_enforcer.h"
 #include "optimizer/physical_operators.h"
 #include "optimizer/property.h"
@@ -16,4 +18,4 @@ void PropertyEnforcer::Visit(const PropertySort *) {
   output_gexpr_ = new GroupExpression(OrderBy::make(), child_groups);
 }
 
-} // namespace terrier::optimizer
+}  // namespace terrier::optimizer

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <unordered_map>
 #include <map>
 #include <tuple>
 #include <vector>
@@ -183,7 +184,7 @@ class GroupExpression {
                      PropSetPtrHash, PropSetPtrEq> lowest_cost_table_;
 };
 
-} // namespace terrier::optimizer
+}  // namespace terrier::optimizer
 
 namespace std {
 
@@ -210,4 +211,4 @@ struct hash<terrier::optimizer::GroupExpression> {
   result_type operator()(argument_type const &s) const { return s.Hash(); }
 };
 
-} // namespace std
+}  // namespace std

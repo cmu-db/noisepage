@@ -1,5 +1,9 @@
 #pragma once
+
 #include <memory>
+#include <utility>
+#include <vector>
+
 #include "optimizer/operator_visitor.h"
 #include "optimizer/property_set.h"
 

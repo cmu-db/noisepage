@@ -1,5 +1,8 @@
 #pragma once
 
+#include <utility>
+#include <vector>
+
 #include "common/hash_util.h"
 #include "common/managed_pointer.h"
 #include "parser/expression/tuple_value_expression.h"
@@ -87,4 +90,4 @@ class PropertySort : public Property {
   std::vector<planner::OrderByOrderingType> sort_ascending_;
 };
 
-} // namespace terrier::optimizer
+}  // namespace terrier::optimizer

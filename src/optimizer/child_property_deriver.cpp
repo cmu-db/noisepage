@@ -1,3 +1,6 @@
+#include <vector>
+#include <utility>
+
 #include "common/managed_pointer.h"
 #include "catalog/catalog_accessor.h"
 #include "catalog/index_schema.h"
@@ -28,7 +31,7 @@ ChildPropertyDeriver::GetProperties(GroupExpression *gexpr,
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const SeqScan *op) {
   // Seq Scan does not provide any property
   output_.push_back(std::make_pair(new PropertySet(), std::vector<PropertySet*>{}));
-};
+}
 
 void ChildPropertyDeriver::Visit(const IndexScan *op) {
   // Use GetIndexes() to get all indexes on table_alias
@@ -154,7 +157,7 @@ void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const Delete *op) {
   // Let child fulfil all the required properties
   std::vector<PropertySet*> child_input_properties{requirements_->Copy()};
   output_.push_back(std::make_pair(requirements_->Copy(), std::move(child_input_properties)));
-};
+}
 
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const TableFreeScan *op) {
   // Provide nothing
@@ -168,10 +171,7 @@ void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const ExportExternalFile *op) 
 }
 
 void ChildPropertyDeriver::DeriveForJoin() {
-  output_.push_back(std::make_pair(
-    new PropertySet(),
-    std::vector<PropertySet*>{new PropertySet(), new PropertySet()}
-  ));
+  output_.push_back(std::make_pair(new PropertySet(), std::vector<PropertySet*>{new PropertySet(), new PropertySet()}));
 
   // If there is sort property and all the sort columns are from the probe
   // table (currently right table), we can push down the sort property
@@ -204,13 +204,11 @@ void ChildPropertyDeriver::DeriveForJoin() {
       }
 
       if (can_pass_down) {
-        output_.push_back(std::make_pair(
-          requirements_->Copy(),
-          std::vector<PropertySet*>{new PropertySet(), requirements_->Copy()}
-        ));
+        std::vector<PropertySet*> children{new PropertySet(), requirements_->Copy()};
+        output_.push_back(std::make_pair(requirements_->Copy(), std::move(children)));
       }
     }
   }
 }
 
-} // namespace terrier::optimizer
+}  // namespace terrier::optimizer

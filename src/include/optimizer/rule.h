@@ -1,6 +1,9 @@
 #pragma once
 
 #include <memory>
+#include <vector>
+#include <unordered_map>
+
 #include "optimizer/pattern.h"
 #include "optimizer/optimize_context.h"
 #include "optimizer/operator_expression.h"
@@ -308,4 +311,4 @@ class RuleSet {
   std::unordered_map<uint32_t, std::vector<Rule*>> rewrite_rules_map_;
 };
 
-} // namespace terrier::optimizer
+}  // namespace terrier::optimizer

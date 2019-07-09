@@ -1,5 +1,8 @@
 #pragma once
 
+#include <utility>
+#include <vector>
+
 #include "common/settings.h"
 #include "optimizer/cost_model/abstract_cost_model.h"
 #include "optimizer/memo.h"
@@ -27,7 +30,6 @@ class RuleSet;
  */
 class OptimizerMetadata {
  public:
-
   /**
    * Constructor for OptimizerMetadata
    * @param cost_model Cost Model to be stored by OptimizerMetadata
@@ -197,7 +199,7 @@ class OptimizerMetadata {
     auto ptr = memo_.InsertExpression(new_gexpr, target_group, false);
     TERRIER_ASSERT(ptr, "Root of expr should not fail insertion");
 
-    gexpr = ptr; // ptr is actually usable
+    gexpr = ptr;  // ptr is actually usable
     return (ptr == new_gexpr);
   }
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <limits>
+
 #include "optimizer/property_set.h"
 #include "optimizer/optimizer_task.h"
 #include "optimizer/optimizer_task_pool.h"
@@ -63,4 +65,4 @@ class OptimizeContext {
   double cost_upper_bound_;
 };
 
-} // namespace terrier::optimizer
+}  // namespace terrier::optimizer

@@ -1,3 +1,7 @@
+#include <functional>
+#include <algorithm>
+#include <vector>
+
 #include "loggers/optimizer_logger.h"
 #include "optimizer/optimizer_task.h"
 #include "optimizer/property_enforcer.h"
@@ -253,7 +257,7 @@ void OptimizeInputs::execute() {
     cur_total_cost_ = 0;
 
     // Pruning
-    if (cur_total_cost_ > context_->GetCostUpperBound()) 
+    if (cur_total_cost_ > context_->GetCostUpperBound())
       return;
 
     // Derive output and input properties
@@ -264,12 +268,12 @@ void OptimizeInputs::execute() {
                                                           context_->GetMetadata()->GetCatalogAccessor());
     cur_child_idx_ = 0;
 
-    // TODO: If later on we support properties that may not be enforced in some
+    // TODO(patrick/boweic): If later on we support properties that may not be enforced in some
     // cases, we can check whether it is the case here to do the pruning
   }
 
   // Loop over (output prop, input props) pair
-  for (; cur_prop_pair_idx_ < (int)output_input_properties_.size(); cur_prop_pair_idx_++) {
+  for (; cur_prop_pair_idx_ < static_cast<int>(output_input_properties_.size()); cur_prop_pair_idx_++) {
     auto &output_prop = output_input_properties_[cur_prop_pair_idx_].first;
     auto &input_props = output_input_properties_[cur_prop_pair_idx_].second;
 
@@ -279,11 +283,10 @@ void OptimizeInputs::execute() {
       // 1. Collect stats needed and cache them in the group
       // 2. Calculate cost based on children's stats
       cur_total_cost_ += context_->GetMetadata()->GetCostModel()->CalculateCost(
-          group_expr_, &context_->GetMetadata()->GetMemo(), context_->GetMetadata()->GetTxn()
-      );
+          group_expr_, &context_->GetMetadata()->GetMemo(), context_->GetMetadata()->GetTxn());
     }
 
-    for (; cur_child_idx_ < (int)group_expr_->GetChildrenGroupsSize(); cur_child_idx_++) {
+    for (; cur_child_idx_ < static_cast<int>(group_expr_->GetChildrenGroupsSize()); cur_child_idx_++) {
       auto &i_prop = input_props[cur_child_idx_];
       auto child_group = context_->GetMetadata()->GetMemo().GetGroupByID(group_expr_->GetChildGroupId(cur_child_idx_));
 
@@ -291,7 +294,7 @@ void OptimizeInputs::execute() {
       auto child_best_expr = child_group->GetBestExpression(i_prop);
       if (child_best_expr != nullptr) {  // Directly get back the best expr if the child group is optimized
         cur_total_cost_ += child_best_expr->GetCost(i_prop);
-        if (cur_total_cost_ > context_->GetCostUpperBound()) 
+        if (cur_total_cost_ > context_->GetCostUpperBound())
           break;
       } else if (prev_child_idx_ != cur_child_idx_) {  // We haven't optimized child group
         prev_child_idx_ = cur_child_idx_;
@@ -309,7 +312,7 @@ void OptimizeInputs::execute() {
 
     // TODO(wz2): Can we reduce the amount of copying
     // Check whether we successfully optimize all child group
-    if (cur_child_idx_ == (int)group_expr_->GetChildrenGroupsSize()) {
+    if (cur_child_idx_ == static_cast<int>(group_expr_->GetChildrenGroupsSize())) {
       // Not need to do pruning here because it has been done when we get the
       // best expr from the child group
 
@@ -326,8 +329,8 @@ void OptimizeInputs::execute() {
       GroupExpression *memo_enforced_expr = nullptr;
       bool meet_requirement = true;
 
-      // TODO: For now, we enforce the missing properties in the order of how we
-      // find them. This may miss the opportunity to enforce them or may lead to 
+      // TODO(patrick/boweic): For now, we enforce the missing properties in the order of how we
+      // find them. This may miss the opportunity to enforce them or may lead to
       // sub-optimal plan. This is fine now because we only have one physical
       // property (sort). If more properties are added, we should add some heuristics
       // to derive the optimal enforce order or perform a cost-based full enumeration.
@@ -351,8 +354,7 @@ void OptimizeInputs::execute() {
           cur_total_cost_ += context_->GetMetadata()->GetCostModel()->CalculateCost(
               memo_enforced_expr,
               &context_->GetMetadata()->GetMemo(),
-              context_->GetMetadata()->GetTxn()
-          );
+              context_->GetMetadata()->GetTxn());
 
           // Update hash tables for group and group expression
           memo_enforced_expr->SetLocalHashTable(extended_prop_set, {pre_output_prop_set}, cur_total_cost_);
@@ -439,7 +441,7 @@ void BottomUpRewrite::execute() {
 
   if (!has_optimized_child_) {
     PushTask(new BottomUpRewrite(group_id_, context_, rule_set_name_, true));
-    
+
     size_t size = cur_group_expr->GetChildrenGroupsSize();
     for (size_t child_group_idx = 0; child_group_idx < size; child_group_idx++) {
       // Need to rewrite all sub trees first
@@ -487,4 +489,4 @@ void BottomUpRewrite::execute() {
   }
 }
 
-} // namespace terrier::optimizer
+}  // namespace terrier::optimizer

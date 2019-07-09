@@ -124,4 +124,4 @@ class Memo {
   std::vector<Group*> groups_;
 };
 
-} // namespace terrier::optimizer
+}  // namespace terrier::optimizer

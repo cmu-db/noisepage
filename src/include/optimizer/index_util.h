@@ -1,7 +1,10 @@
 #pragma once
 
 #include <vector>
+#include <utility>
+#include <string>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "catalog/catalog_accessor.h"
 #include "catalog/index_schema.h"
@@ -172,7 +175,6 @@ class IndexUtil {
    */
   static void PopulateMetadata(const std::vector<AnnotatedExpression> &predicates,
                                IndexUtilMetadata &metadata) {
-
     // List of column OIDs that predicates are built against
     std::vector<catalog::col_oid_t> key_column_id_list;
 
@@ -313,7 +315,6 @@ class IndexUtil {
   }
 
  private:
-
   /**
    * Checks whether a Index satisfies the "base column" requirement.
    * The base column requirement (as defined from Peloton) is where
@@ -362,12 +363,12 @@ class IndexUtil {
         TERRIER_ASSERT(tv_expr, "TupleValueExpression expected");
 
         if (accessor->GetTableOid(tv_expr->GetTableName()) != tbl_oid) {
-          return false; // table not match???
+          return false;  // table not match???
         }
 
         auto it = schema_col.find(tv_expr->GetColumnName());
         if (it == schema_col.end()) {
-          return false; // column not found???
+          return false;  // column not found???
         }
 
         col_oids.push_back(it->second);
@@ -386,7 +387,6 @@ class IndexUtil {
   static bool IsBaseColumn(const parser::AbstractExpression *expr) {
     return (expr->GetExpressionType() == parser::ExpressionType::VALUE_TUPLE);
   }
-
 };
 
-}
+}  // namespace terrier::optimizer

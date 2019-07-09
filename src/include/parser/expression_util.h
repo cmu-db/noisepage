@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+#include <unordered_set>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -140,7 +142,6 @@ class ExpressionUtil {
   static const AbstractExpression* ConvertExprTVNodes(
       const AbstractExpression* expr,
       std::vector<optimizer::ExprMap> child_expr_maps) {
-
     if (expr == nullptr) {
       return nullptr;
     }
@@ -153,7 +154,6 @@ class ExpressionUtil {
       for (size_t tuple_idx = 0; tuple_idx < child_expr_maps.size(); ++tuple_idx) {
         if (child_expr->GetExpressionType() != ExpressionType::VALUE_TUPLE &&
             child_expr_maps[tuple_idx].count(child_expr)) {
-
           // TODO(wz2): This should create a DerivedValueExpression iirc... (#404)
           TERRIER_ASSERT(0, "Unimplemented functionality...please fix");
 
@@ -450,4 +450,4 @@ class ExpressionUtil {
   }
 };
 
-} // namespace terrier::parser
+}  // namespace terrier::parser

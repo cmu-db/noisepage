@@ -19,7 +19,7 @@
 namespace terrier::parser {
 class AbstractExpressionn;
 class UpdateClause;
-} // namespace terrier::parser
+}  // namespace terrier::parser
 
 namespace terrier::optimizer {
 
@@ -980,4 +980,4 @@ class LogicalExportExternalFile : public OperatorNode<LogicalExportExternalFile>
   char escape_;
 };
 
-} // namespace terrier::optimizer
+}  // namespace terrier::optimizer

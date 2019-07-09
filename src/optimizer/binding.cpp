@@ -1,3 +1,6 @@
+#include <utility>
+#include <vector>
+
 #include "optimizer/binding.h"
 
 #include "loggers/optimizer_logger.h"
@@ -144,4 +147,4 @@ bool GroupExprBindingIterator::HasNext() {
   return has_next_;
 }
 
-} // namespace terrier::optimizer
+}  // namespace terrier::optimizer
