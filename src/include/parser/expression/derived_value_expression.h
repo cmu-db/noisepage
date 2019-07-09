@@ -13,7 +13,6 @@ namespace terrier::parser {
  */
 class DerivedValueExpression : public AbstractExpression {
  public:
-
   /**
    * This constructor is called by the optimizer
    * @param type type of the return value of the expression
