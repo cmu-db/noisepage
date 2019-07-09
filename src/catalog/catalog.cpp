@@ -21,7 +21,9 @@ void Catalog::TearDown() {
   // Get a projected column on DatabaseCatalog pointers for scanning the table
   std::vector<col_oid_t> cols;
   cols.emplace_back(DAT_CATALOG_COL_OID);
-  auto [pci, pm] = databases_->InitializerForProjectedColumns(cols, 100);
+
+  // Only one column, so we only need the initializer and not the ProjectionMap
+  auto pci = databases_->InitializerForProjectedColumns(cols, 100).first;
 
   // This could potentially be optimized by calculating this size and hard-coding a byte array on the stack
   byte *buffer = common::AllocationUtil::AllocateAligned(pci.ProjectedColumnsSize());
@@ -39,7 +41,7 @@ void Catalog::TearDown() {
   while (table_iter != databases_->end()) {
     databases_->Scan(txn, &table_iter, pc);
 
-    for (int i = 0; i < pc->NumTuples())
+    for (uint i = 0; i < pc->NumTuples(); i++)
       db_cats.emplace_back(db_ptrs[i]);
   }
 
@@ -285,7 +287,7 @@ bool Catalog::CreateDatabaseEntry(transaction::TransactionContext *txn, db_oid_t
   oid = reinterpret_cast<db_oid_t *>(pr->AccessForceNotNull(0));
   *oid = db;
 
-  const bool UNUSED_ATTRIBUTE result = databases_oid_index_->InsertUnique(txn, pr, tupleslot);
+  const bool UNUSED_ATTRIBUTE result = databases_oid_index_->InsertUnique(txn, *pr, tupleslot);
   TERRIER_ASSERT(result, "Assigned database OID failed to be unique");
 
   delete[] buffer;
@@ -338,31 +340,31 @@ DatabaseCatalog *Catalog::DeleteDatabaseEntry(transaction::TransactionContext *t
   // It is safe to use AccessForceNotNull here because we have checked the
   // tuple's visibility and because the pointer cannot be null in a running
   // database
-  auto *dbc = *reinterpret_cast<DatabaseCatalog **>pr->AccessForceNotNull(table_pri_map[DAT_CATALOG_COL_OID]);
-  auto name = *reinterpret_cast<storage::VarlenEntry *>pr->AccessForceNotNull(table_pri_map[DATNAME_COL_OID]);
+  auto *dbc = *reinterpret_cast<DatabaseCatalog **>(pr->AccessForceNotNull(table_pri_map[DAT_CATALOG_COL_OID]));
+  auto name = *reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(table_pri_map[DATNAME_COL_OID]));
 
   pr = oid_pri.InitializeRow(buffer);
   auto *oid_v = reinterpret_cast<db_oid_t *>(pr->AccessForceNotNull(0));
   *oid_v = db;
   // TODO (Ling): Delete function in index.h returns void, probably because the actual deletion will be deferred.
-  const bool UNUSED_ATTRIBUTE idx_res_1 = databases_oid_index_->Delete(txn, *pr, index_results[0]);
-  TERRIER_ASSERT(idx_res_1, "Failed to remove OID from index");
+  databases_oid_index_->Delete(txn, *pr, index_results[0]);
 
   pr = name_pri.InitializeRow(buffer);
   auto *key = reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(0));
   *key = name;
   // Need to set the varlen entry in the projected row to the varlen returned above
-  const bool UNUSED_ATTRIBUTE idx_res_2 = databases_name_index_->Delete(txn, *pr, index_results[0]);
-  TERRIER_ASSERT(idx_res_2, "Failed to remove name from index");
+  databases_name_index_->Delete(txn, *pr, index_results[0]);
 
   delete[] buffer;
   return dbc;
 }
 
 transaction::Action Catalog::DeallocateDatabaseCatalog(DatabaseCatalog *dbc) {
-  auto txn = txn_manager_->BeginTransaction();
-  dbc->TearDown(txn);
-  txn_manager_->Commit(txn, [](void *) {}, nullptr);
-  delete dbc;
+  return [=]() {
+    auto txn = txn_manager_->BeginTransaction();
+    dbc->TearDown(txn);
+    txn_manager_->Commit(txn, [](void *) {}, nullptr);
+    delete dbc;
+  };
 }
 } // namespace terrier::catalog

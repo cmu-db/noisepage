@@ -188,7 +188,7 @@ void DatabaseCatalog::InsertType(transaction::TransactionContext *txn, type::Typ
     std::memcpy(contents, name.data(), name.size());
     name_varlen = storage::VarlenEntry::Create(contents, static_cast<uint32_t>(name.size()), true);
   } else {
-    name_varlen = storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(name.data()), name.size());
+    name_varlen = storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(name.data()), static_cast<uint32_t>(name.size()));
   }
   *(reinterpret_cast<storage::VarlenEntry *>(delta->AccessForceNotNull(offset))) = name_varlen;
 

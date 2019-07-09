@@ -60,7 +60,7 @@ class IndexSchema {
         : oid_(original.oid_),
           packed_type_(original.packed_type_),
           serialized_expression_(original.serialized_expression_),
-          expression(nullptr) {}
+          expression_(nullptr) {}
 
 
     /**
@@ -92,7 +92,7 @@ class IndexSchema {
 
     indexkeycol_oid_t oid_;
     uint32_t packed_type_;
-    parser::AbstractExpression *expresion;
+    parser::AbstractExpression *expression_;
     std::string serialized_expression_;
 
     // TODO(John): Should these "OIDS" be implicitly set by the index in the columns?
