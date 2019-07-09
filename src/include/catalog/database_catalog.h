@@ -153,7 +153,7 @@ class DatabaseCatalog {
    * @param table being queried
    * @return vector of OIDs for all of the indexes on this table
    */
-  std::vector<index_oid_t> GetIndexes(transaction::TransactionContext *txn, table_oid_t);
+  std::vector<index_oid_t> GetIndexes(transaction::TransactionContext *txn, table_oid_t oid);
 
   /**
    * Create the catalog entries for a new index.
@@ -164,6 +164,7 @@ class DatabaseCatalog {
    * @param schema describing the new index
    * @return OID of the new index or INVALID_INDEX_OID if creation failed
    */
+  // TODO(Gus, john): We should really be passing in a ref to a schema, and creating a pointer to a copy of it. Currently we just store the pointer given inside the catalog, but the can run the risk of the caller already deleting the index schema
   index_oid_t CreateIndex(transaction::TransactionContext *txn, namespace_oid_t ns, const std::string &name,
                           table_oid_t table, IndexSchema *schema);
 
@@ -368,5 +369,14 @@ class DatabaseCatalog {
    * @return a pair of oid and ClassKind
    */
   std::pair<uint32_t, postgres::ClassKind> getClassOidKind(transaction::TransactionContext *txn, namespace_oid_t ns_oid, const std::string &name);
+
+  /**
+   * Helper function to query an object pointer form pg_class
+   * @param txn transaction to query
+   * @param oid oid to object
+   * @return pair of ptr to and ClassKind of object requested. ptr will be nullptr if no entry was found for the given oid
+   */
+  std::pair<void*, postgres::ClassKind> GetClassPtrKind(transaction::TransactionContext *txn, uint32_t oid);
+
 };
 }  // namespace terrier::catalog
