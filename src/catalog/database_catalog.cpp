@@ -286,5 +286,3 @@ void DatabaseCatalog::BootstrapTypes(transaction::TransactionContext *txn) {
 }
 
 }  // namespace terrier::catalog
-
-} // namespace terrier::catalog

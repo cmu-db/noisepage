@@ -59,8 +59,8 @@ class IndexSchema {
     Column(const Column &original)
         : oid_(original.oid_),
           packed_type_(original.packed_type_),
-          serialized_expression_(original.serialized_expression_),
-          expression_(nullptr) {}
+          expression_(nullptr),
+          serialized_expression_(original.serialized_expression_) {}
 
 
     /**
