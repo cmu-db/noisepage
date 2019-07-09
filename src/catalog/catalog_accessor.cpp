@@ -25,7 +25,7 @@ table_oid_t CatalogAccessor::GetTableOid(const std::string &name) {
 }
 
 table_oid_t CatalogAccessor::GetTableOid(namespace_oid_t ns,
-                                         const std::string &name){return dbc_->GetTableOid(txn_, ns, name)}
+                                         const std::string &name) { return dbc_->GetTableOid(txn_, ns, name); }
 
 table_oid_t CatalogAccessor::CreateTable(namespace_oid_t ns, const std::string &name, Schema *schema) {
   return dbc_->CreateTable(txn_, ns, name, *schema);
@@ -38,11 +38,11 @@ bool CatalogAccessor::RenameTable(table_oid_t table, const std::string &new_tabl
 bool CatalogAccessor::DropTable(table_oid_t table) { return dbc_->DeleteTable(txn_, table); }
 
 bool CatalogAccessor::SetTablePointer(table_oid_t table, storage::SqlTable *table_ptr) {
-  return dbc_->SetTablePointer(txn_, db_oid_, table, table_ptr);
+  return dbc_->SetTablePointer(txn_, table, table_ptr);
 }
 
 common::ManagedPointer<storage::SqlTable> CatalogAccessor::GetTable(table_oid_t table) {
-  return dbc_->GetTablePointer(txn_, db_oid_, table);
+  return dbc_->GetTable(txn_, table);
 }
 
 bool CatalogAccessor::UpdateSchema(table_oid_t table, Schema *new_schema) {
@@ -81,11 +81,11 @@ const IndexSchema &CatalogAccessor::GetIndexSchema(index_oid_t index) { return d
 bool CatalogAccessor::DropIndex(index_oid_t index) { return dbc_->DeleteIndex(txn_, index); }
 
 bool CatalogAccessor::SetIndexPointer(index_oid_t index, storage::index::Index *index_ptr) {
-  return dbc_->SetIndexPointer(txn_, db_oid_, index, index_ptr);
+  return dbc_->SetIndexPointer(txn_, index, index_ptr);
 }
 
 common::ManagedPointer<storage::index::Index> CatalogAccessor::GetIndex(index_oid_t index) {
-  return dbc_->GetIndex(txn_, db_oid_, index);
+  return dbc_->GetIndex(txn_, index);
 }
 
 }  // namespace terrier::catalog
