@@ -19,6 +19,7 @@
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
 #include "type/type_id.h"
+#include "type/transient_value_factory.h"
 #include "util/multithread_test_util.h"
 #include "util/random_test_util.h"
 
@@ -369,7 +370,7 @@ struct StorageTestUtil {
       }
     }
 
-    return IndexSchema(key_cols, false, false, false, true);
+    return catalog::IndexSchema(key_cols, false, false, false, true);
   }
 
   /**
@@ -411,7 +412,7 @@ struct StorageTestUtil {
       bytes_used = static_cast<uint16_t>(bytes_used + type::TypeUtil::GetTypeSize(type));
     }
 
-    return key_schema;
+    return catalog::IndexSchema(key_cols, false, false, false, true);
   }
 
  private:
