@@ -16,11 +16,10 @@ TerrierServer::TerrierServer(common::ManagedPointer<ProtocolInterpreter::Provide
                              common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry)
     : DedicatedThreadOwner(thread_registry),
       running_(false),
+      port_(common::Settings::SERVER_PORT),
+      max_connections_(CONNECTION_THREAD_COUNT),
       connection_handle_factory_(connection_handle_factory),
       provider_(protocol_provider) {
-  port_ = common::Settings::SERVER_PORT;
-  max_connections_ = common::Settings::MAX_CONNECTIONS;
-
   // For logging purposes
   //  event_enable_debug_mode();
 
@@ -60,13 +59,14 @@ void TerrierServer::RunServer() {
   listen(listen_fd_, conn_backlog);
 
   dispatcher_task_ = thread_registry_->RegisterDedicatedThread<ConnectionDispatcherTask>(
-      this /* requester */, CONNECTION_THREAD_COUNT, listen_fd_, this, common::ManagedPointer(provider_.get()),
+      this /* requester */, max_connections_, listen_fd_, this, common::ManagedPointer(provider_.get()),
       connection_handle_factory_, thread_registry_);
 
   NETWORK_LOG_INFO("Listening on port {0}", port_);
 
+  // Set the running_ flag for any waiting threads
   {
-    std::lock_guard<std::mutex> lk(cv_m);
+    std::lock_guard<std::mutex> lock(running_mutex_);
     running_ = true;
   }
 }
@@ -77,14 +77,14 @@ void TerrierServer::StopServer() {
       thread_registry_->StopTask(this, dispatcher_task_.CastManagedPointerTo<common::DedicatedThreadTask>());
   TERRIER_ASSERT(result, "Failed to stop ConnectionDispatcherTask.");
   terrier_close(listen_fd_);
-  connection_handle_factory_->TearDown();
   NETWORK_LOG_INFO("Server Closed");
 
+  // Clear the running_ flag for any waiting threads and wake up them up with the condition variable
   {
-    std::lock_guard<std::mutex> lk(cv_m);
+    std::lock_guard<std::mutex> lock(running_mutex_);
     running_ = false;
   }
-  cv.notify_all();
+  running_cv_.notify_all();
 }
 
 /**

@@ -16,21 +16,26 @@ namespace terrier::network {
  * @brief A ConnectionDispatcherTask on the main server thread and dispatches
  * incoming connections to handler threads.
  *
- * On construction, the dispatcher registers a number of handlers with the dedicated thread registry. The registered
- * handlers will shut down during the teardown of the thread registry TODO(Matt): no longer true
+ * On RunTask(), the dispatcher registers a number of handlers with the dedicated thread registry. The registered
+ * handlers will shut down during Terminate() of this task. ConnectionDispatcherTask is almost a pseudo-owner of the
+ * ConnectionHandlerTask objects, but since we can't be both a DedicatedThreadTask/NotifiableTask and
+ * DedicatedThreadOwner, we pass the original DedicatedThreadOwner (TerrierServer) value through to the
+ * ConnectionHandlerTasks. TerrierServer ends up the DedicatedThreadOwner of both ConnectionDispatcherTask and
+ * ConnectionHandlerTasks for its instance.
+ *
  */
 class ConnectionDispatcherTask : public common::NotifiableTask {
  public:
   /**
-   * Creates a new ConnectionDispatcherTask, spawning the specified number of
-   * handlers, each running on their own threads.
+   * Creates a new ConnectionDispatcherTask
    *
    * @param num_handlers The number of handler tasks to spawn.
    * @param listen_fd The server socket fd to listen on.
    * @param dedicated_thread_owner The DedicatedThreadOwner associated with this task
    * @param interpreter_provider provider that constructs protocol interpreters
    * @param connection_handle_factory The connection handle factory pointer to pass down to the handlers
-   * @param thread_registry DedicatedThreadRegistry dependency
+   * @param thread_registry DedicatedThreadRegistry dependency needed because it eventually spawns more threads in
+   * RunTask
    */
   ConnectionDispatcherTask(int num_handlers, int listen_fd, common::DedicatedThreadOwner *dedicated_thread_owner,
                            common::ManagedPointer<ProtocolInterpreter::Provider> interpreter_provider,
@@ -51,8 +56,14 @@ class ConnectionDispatcherTask : public common::NotifiableTask {
    */
   void DispatchPostgresConnection(int fd, int16_t flags);
 
+  /**
+   * Creates all of the ConnectionHandlerTasks (num_handlers of them) and then sits in its event loop until stopped.
+   */
   void RunTask() override;
 
+  /**
+   * Exits its event loop and then cleans up all of the ConnectionHandlerTasks before returning.
+   */
   void Terminate() override;
 
  private:

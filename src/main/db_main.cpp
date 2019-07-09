@@ -66,8 +66,8 @@ void DBMain::Run() {
   server_->RunServer();
 
   {
-    std::unique_lock<std::mutex> lk(server_->cv_m);
-    server_->cv.wait(lk, [=] { return !(server_->running_); });
+    std::unique_lock<std::mutex> lock(server_->RunningMutex());
+    server_->RunningCV().wait(lock, [=] { return !(server_->Running()); });
   }
 
   // server loop exited, begin cleaning up
