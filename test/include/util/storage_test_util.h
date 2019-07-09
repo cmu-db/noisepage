@@ -12,6 +12,7 @@
 #include "common/strong_typedef.h"
 #include "gtest/gtest.h"
 #include "parser/expression/abstract_expression.h"
+#include "parser/expression/constant_value_expression.h"
 #include "storage/index/compact_ints_key.h"
 #include "storage/index/index_defs.h"
 #include "storage/storage_defs.h"

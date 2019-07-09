@@ -145,6 +145,16 @@ class IndexSchema {
 
   IndexSchema() = default;
 
+  IndexSchema(const IndexSchema &original)
+      : columns_(original.columns_),
+        is_unique_(original.is_unique_),
+        is_primary_(original.is_primary_),
+        is_exclusion_(original.is_exclusion_),
+        is_immediate_(original.is_immediate_),
+        is_valid_(original.is_valid_),
+        is_ready_(original.is_ready_),
+        is_live_(original.is_live_) {}
+
   /**
    * @return the columns which define the index's schema
    */
