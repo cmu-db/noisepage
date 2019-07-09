@@ -6,8 +6,8 @@
 #include "catalog/index_schema.h"
 #include "catalog/schema.h"
 #include "storage/index/index_builder.h"
-#include "storage/storage_defs.h"
 #include "storage/sql_table.h"
+#include "storage/storage_defs.h"
 #include "transaction/transaction_context.h"
 
 namespace terrier::catalog::postgres {
@@ -100,7 +100,6 @@ class Builder {
    */
   static IndexSchema GetClassNamespaceIndexSchema();
 
-
   /**
    * @return schema object for the oid index on pg_index
    */
@@ -179,9 +178,7 @@ class Builder {
    */
   static storage::index::Index *BuildUniqueIndex(const IndexSchema &key_schema, index_oid_t oid) {
     storage::index::IndexBuilder index_builder;
-    index_builder.SetOid(oid)
-        .SetKeySchema(key_schema)
-        .SetConstraintType(storage::index::ConstraintType::UNIQUE);
+    index_builder.SetOid(oid).SetKeySchema(key_schema).SetConstraintType(storage::index::ConstraintType::UNIQUE);
     return index_builder.Build();
   }
 
@@ -193,11 +190,8 @@ class Builder {
    */
   storage::index::Index *BuildLookupIndex(const IndexSchema &key_schema, index_oid_t oid) {
     storage::index::IndexBuilder index_builder;
-    index_builder.SetOid(oid)
-        .SetKeySchema(key_schema)
-        .SetConstraintType(storage::index::ConstraintType::DEFAULT);
+    index_builder.SetOid(oid).SetKeySchema(key_schema).SetConstraintType(storage::index::ConstraintType::DEFAULT);
     return index_builder.Build();
   }
-
 };
-}
+}  // namespace terrier::catalog::postgres

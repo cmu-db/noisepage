@@ -22,18 +22,18 @@ namespace terrier::catalog::postgres {
  * catalog specification and columns of the form "CON_[name]_COL_OID" are
  * terrier-specific addtions (generally pointers to internal objects).
  */
-#define CONOID_COL_OID col_oid_t(1)        // INTEGER (pkey)
-#define CONNAME_COL_OID col_oid_t(2)       // VARCHAR
-#define CONNAMESPACE_COL_OID col_oid_t(3)  // INTEGER (fkey: pg_namespace)
-#define CONTYPE_COL_OID col_oid_t(4)       // CHAR
-#define CONDEFERRABLE_COL_OID col_oid_t(5) // BOOLEAN
-#define CONDEFERRED_COL_OID col_oid_t(6)   // BOOLEAN
-#define CONVALIDATED_COL_OID col_oit_t(7)  // BOOLEAN
-#define CONRELID_COL_OID col_oid_t(8)      // INTEGER (fkey: pg_class)
-#define CONINDID_COL_OID col_oid_t(9)      // INTEGER (fkey: pg_class)
-#define CONFRELID_COL_OID col_oid_t(10)    // INTEGER (fkey: pg_class)
-#define CONBIN_COL_OID col_oid_t(11)       // BIGINT (assumes 64-bit pointers)
-#define CONSRC_COL_OID col_oid_t(12)       // VARCHAR
+#define CONOID_COL_OID col_oid_t(1)         // INTEGER (pkey)
+#define CONNAME_COL_OID col_oid_t(2)        // VARCHAR
+#define CONNAMESPACE_COL_OID col_oid_t(3)   // INTEGER (fkey: pg_namespace)
+#define CONTYPE_COL_OID col_oid_t(4)        // CHAR
+#define CONDEFERRABLE_COL_OID col_oid_t(5)  // BOOLEAN
+#define CONDEFERRED_COL_OID col_oid_t(6)    // BOOLEAN
+#define CONVALIDATED_COL_OID col_oit_t(7)   // BOOLEAN
+#define CONRELID_COL_OID col_oid_t(8)       // INTEGER (fkey: pg_class)
+#define CONINDID_COL_OID col_oid_t(9)       // INTEGER (fkey: pg_class)
+#define CONFRELID_COL_OID col_oid_t(10)     // INTEGER (fkey: pg_class)
+#define CONBIN_COL_OID col_oid_t(11)        // BIGINT (assumes 64-bit pointers)
+#define CONSRC_COL_OID col_oid_t(12)        // VARCHAR
 
 enum class ConstraintType : char {
   CHECK = 'c',
@@ -44,4 +44,4 @@ enum class ConstraintType : char {
   EXCLUSION = 'x',
 };
 
-} // namespace terrier::catalog::postgres
+}  // namespace terrier::catalog::postgres

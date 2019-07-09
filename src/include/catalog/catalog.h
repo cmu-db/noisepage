@@ -102,7 +102,8 @@ class Catalog {
    * @return DatabaseCatalog object which has catalog information for the
    *   specific database
    */
-  common::ManagedPointer<DatabaseCatalog> GetDatabaseCatalog(transaction::TransactionContext *txn, const std::string &name);
+  common::ManagedPointer<DatabaseCatalog> GetDatabaseCatalog(transaction::TransactionContext *txn,
+                                                             const std::string &name);
 
   /**
    * Creates a new accessor into the catalog which will handle transactionality and sequencing of catalog operations.
@@ -129,7 +130,8 @@ class Catalog {
    * @param dbc database catalog object for the new database
    * @return true if successful, otherwise false
    */
-  bool CreateDatabaseEntry(transaction::TransactionContext *txn, db_oid_t db, const std::string &name, DatabaseCatalog *dbc);
+  bool CreateDatabaseEntry(transaction::TransactionContext *txn, db_oid_t db, const std::string &name,
+                           DatabaseCatalog *dbc);
 
   /**
    * Deletes a database entry without scheduling the catalog object for destruction
@@ -147,4 +149,4 @@ class Catalog {
    */
   transaction::Action DeallocateDatabaseCatalog(DatabaseCatalog *dbc);
 };
-} // namespace terrier::catalog
+}  // namespace terrier::catalog

@@ -16,7 +16,7 @@
 namespace terrier::catalog {
 
 namespace postgres {
-  class Builder;
+class Builder;
 }
 
 /**
@@ -141,8 +141,8 @@ class Schema {
     uint16_t max_varlen_size_;
     bool nullable_;
     col_oid_t oid_;
-    // TODO(Matt): default value would go here
-    // Value default_;
+    // TODO(Matt): default value would go here. requires pg_attribute to be implemented?
+    // common::ManagedPointer<parser::AbstractExpression> default_value_;
 
     void SetOid(col_oid_t oid) { oid_ = oid; }
 
@@ -239,7 +239,8 @@ class Schema {
   }
 
  private:
-  const std::vector<Column> columns_;
+  friend class DatabaseCatalog;
+  std::vector<Column> columns_;
   std::unordered_map<col_oid_t, uint32_t> col_oid_to_offset;
 };
 

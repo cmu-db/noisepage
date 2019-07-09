@@ -40,10 +40,10 @@ class StockLevel {
   explicit StockLevel(const Database *const db)
       : district_select_pr_initializer(
             db->district_table_->InitializerForProjectedRow({db->district_schema_.GetColumn(10).GetOid()}).first),
-        d_id_key_pr_offset(static_cast<uint8_t>(
-            db->district_primary_index_->GetKeyOidToOffsetMap().at(db->district_primary_index_schema_.GetColumn(1).GetOid()))),
-        d_w_id_key_pr_offset(static_cast<uint8_t>(
-            db->district_primary_index_->GetKeyOidToOffsetMap().at(db->district_primary_index_schema_.GetColumn(0).GetOid()))),
+        d_id_key_pr_offset(static_cast<uint8_t>(db->district_primary_index_->GetKeyOidToOffsetMap().at(
+            db->district_primary_index_schema_.GetColumn(1).GetOid()))),
+        d_w_id_key_pr_offset(static_cast<uint8_t>(db->district_primary_index_->GetKeyOidToOffsetMap().at(
+            db->district_primary_index_schema_.GetColumn(0).GetOid()))),
         order_line_select_pr_initializer(
             db->order_line_table_->InitializerForProjectedRow({db->order_line_schema_.GetColumn(4).GetOid()}).first),
         ol_o_id_key_pr_offset(static_cast<uint8_t>(db->order_line_primary_index_->GetKeyOidToOffsetMap().at(
@@ -56,10 +56,10 @@ class StockLevel {
             db->order_line_primary_index_schema_.GetColumn(3).GetOid()))),
         stock_select_pr_initializer(
             db->stock_table_->InitializerForProjectedRow({db->stock_schema_.GetColumn(2).GetOid()}).first),
-        s_w_id_key_pr_offset(static_cast<uint8_t>(
-            db->stock_primary_index_->GetKeyOidToOffsetMap().at(db->stock_primary_index_schema_.GetColumn(0).GetOid()))),
-        s_i_id_key_pr_offset(static_cast<uint8_t>(
-            db->stock_primary_index_->GetKeyOidToOffsetMap().at(db->stock_primary_index_schema_.GetColumn(1).GetOid()))) {}
+        s_w_id_key_pr_offset(static_cast<uint8_t>(db->stock_primary_index_->GetKeyOidToOffsetMap().at(
+            db->stock_primary_index_schema_.GetColumn(0).GetOid()))),
+        s_i_id_key_pr_offset(static_cast<uint8_t>(db->stock_primary_index_->GetKeyOidToOffsetMap().at(
+            db->stock_primary_index_schema_.GetColumn(1).GetOid()))) {}
 
   bool Execute(transaction::TransactionManager *txn_manager, Database *db, Worker *worker,
                const TransactionArgs &args) const;

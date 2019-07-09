@@ -17,8 +17,8 @@ namespace terrier::catalog::postgres {
  * catalog specification and columns of the form "DAT_[name]_COL_OID" are
  * terrier-specific addtions (generally pointers to internal objects).
  */
-#define DATOID_COL_OID col_oid_t(1)      // INTEGER (pkey)
-#define DATNAME_COL_OID col_oid_t(2)     // VARCHAR
-#define DAT_CATALOG_COL_OID col_oid_t(3) // BIGINT (assumes 64-bit pointers)
+#define DATOID_COL_OID col_oid_t(1)       // INTEGER (pkey)
+#define DATNAME_COL_OID col_oid_t(2)      // VARCHAR
+#define DAT_CATALOG_COL_OID col_oid_t(3)  // BIGINT (assumes 64-bit pointers)
 
-} // namespace terrier::catalog::postgres
+}  // namespace terrier::catalog::postgres

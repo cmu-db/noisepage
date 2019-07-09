@@ -26,4 +26,9 @@ namespace terrier::catalog::postgres {
 #define INDISVALID_COL_OID col_oid_t(7)     // BOOLEAN
 #define INDISREADY_COL_OID col_oid_t(8)     // BOOLEAN
 #define INDISLIVE_COL_OID col_oid_t(9)      // BOOLEAN
+#define PG_INDEX_ALL_COL_OIDS                                                                                    \
+  {                                                                                                              \
+    INDOID_COL_OID, INDRELID_COL_OID, INDISUNIQUE_COL_OID, INDISPRIMARY_COL_OID, INDISEXCLUSION_COL_OID,         \
+    INDIMMEDIATE_COL_OID, INDISVALID_COL_OID, INDISREADY_COL_OID, INDISLIVE_COL_OID                              \
+  }
 } // namespace terrier::catalog::postgres
