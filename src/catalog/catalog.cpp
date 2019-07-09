@@ -72,7 +72,7 @@ void Catalog::TearDown() {
 
 db_oid_t Catalog::CreateDatabase(transaction::TransactionContext *txn, const std::string &name) {
   // Instantiate the DatabaseCatalog
-  auto *dbc = postgres::Builder::CreateDatabaseCatalog(catalog_block_store_);
+  DatabaseCatalog *dbc = postgres::Builder::CreateDatabaseCatalog(catalog_block_store_);
   db_oid_t db_oid = next_oid_++;
   return (Catalog::CreateDatabaseEntry(txn, db_oid, name, dbc)) ? db_oid : INVALID_DATABASE_OID;
 }
