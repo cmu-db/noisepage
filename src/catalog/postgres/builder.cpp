@@ -24,11 +24,11 @@ namespace terrier::catalog::postgres {
  * @param type of the value which is NULL
  * @return NULL expression with the correct type
  */
-parser::AbstractExpression *MakeNull(type::TypeId col_type) {
+static parser::AbstractExpression *MakeNull(type::TypeId col_type) {
   return new parser::ConstantValueExpression(std::move(type::TransientValueFactory::GetNull(col_type)));
 }
 
-Schema Builder::GetDatabaseTableSchema() {
+static Schema Builder::GetDatabaseTableSchema() {
   std::vector<Schema::Column> columns;
 
   columns.emplace_back("datoid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
@@ -40,7 +40,7 @@ Schema Builder::GetDatabaseTableSchema() {
   return Schema(columns);
 }
 
-IndexSchema Builder::GetDatabaseOidIndexSchema() {
+static IndexSchema Builder::GetDatabaseOidIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back(type::TypeId::INTEGER, false,
@@ -55,7 +55,7 @@ IndexSchema Builder::GetDatabaseOidIndexSchema() {
   return schema;
 }
 
-IndexSchema Builder::GetDatabaseNameIndexSchema() {
+static IndexSchema Builder::GetDatabaseNameIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back(type::TypeId::VARCHAR, false,
@@ -135,7 +135,7 @@ void BootstrapDatabaseCatalog(transaction::TransactionContext *txn, DatabaseCata
   //   Update pg_class to include pointers (necessary to trigger special-cased logic during recovery/replication)
 }
 
-Schema Builder::GetAttributeTableSchema() {
+static Schema Builder::GetAttributeTableSchema() {
   std::vector<Schema::Column> columns;
 
   columns.emplace_back("attnum", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
@@ -145,7 +145,7 @@ Schema Builder::GetAttributeTableSchema() {
   columns.back().SetOid(ATTRELID_COL_OID);
 
   columns.emplace_back("attname", type::TypeId::VARCHAR, false, MakeNull(type::TypeId::VARCHAR));
-  columns.back().SetOid(ATTAME_COL_OID);
+  columns.back().SetOid(ATTNAME_COL_OID);
 
   columns.emplace_back("atttypid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
   columns.back().SetOid(ATTTYPID_COL_OID);
@@ -165,7 +165,7 @@ Schema Builder::GetAttributeTableSchema() {
   return Schema(columns);
 }
 
-Schema Builder::GetClassTableSchema() {
+static Schema Builder::GetClassTableSchema() {
   std::vector<Schema::Column> columns;
 
   columns.emplace_back("reloid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
@@ -192,7 +192,7 @@ Schema Builder::GetClassTableSchema() {
   return Schema(columns);
 }
 
-Schema Builder::GetConstraintTableSchema() {
+static Schema Builder::GetConstraintTableSchema() {
   std::vector<Schema::Column> columns;
 
   columns.emplace_back("conoid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
@@ -234,7 +234,7 @@ Schema Builder::GetConstraintTableSchema() {
   return Schema(columns);
 }
 
-Schema Builder::GetIndexTableSchema() {
+static Schema Builder::GetIndexTableSchema() {
   std::vector<Schema::Column> columns;
 
   columns.emplace_back("indoid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
@@ -253,7 +253,7 @@ Schema Builder::GetIndexTableSchema() {
   columns.back().SetOid(INDISEXCLUSION_COL_OID);
 
   columns.emplace_back("indimmediate", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
-  columns.back().SetOid(INDISIMMEDIATE_COL_OID);
+  columns.back().SetOid(INDIMMEDIATE_COL_OID);
 
   columns.emplace_back("indisvalid", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
   columns.back().SetOid(INDISVALID_COL_OID);
@@ -267,7 +267,7 @@ Schema Builder::GetIndexTableSchema() {
   return Schema(columns);
 }
 
-Schema Builder::GetNamespaceTableSchema() {
+static Schema Builder::GetNamespaceTableSchema() {
   std::vector<Schema::Column> columns;
 
   columns.emplace_back("nspoid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
@@ -279,7 +279,7 @@ Schema Builder::GetNamespaceTableSchema() {
   return Schema(columns);
 }
 
-Schema Builder::GetTypeTableSchema() {
+static Schema Builder::GetTypeTableSchema() {
   std::vector<Schema::Column> columns;
 
   columns.emplace_back("typoid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
@@ -303,7 +303,7 @@ Schema Builder::GetTypeTableSchema() {
   return Schema(columns);
 }
 
-IndexSchema Builder::GetNamespaceOidIndexSchema() {
+static IndexSchema Builder::GetNamespaceOidIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back(type::TypeId::Integer, false,
@@ -318,7 +318,7 @@ IndexSchema Builder::GetNamespaceOidIndexSchema() {
   return schema;
 }
 
-IndexSchema Builder::GetNamespaceNameIndexSchema() {
+static IndexSchema Builder::GetNamespaceNameIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back(type::TypeId::VARCHAR, false,
@@ -333,7 +333,7 @@ IndexSchema Builder::GetNamespaceNameIndexSchema() {
   return schema;
 }
 
-IndexSchema Builder::GetClassOidIndexSchema() {
+static IndexSchema Builder::GetClassOidIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back(type::TypeId::INTEGER, false,
@@ -348,7 +348,7 @@ IndexSchema Builder::GetClassOidIndexSchema() {
   return schema;
 }
 
-IndexSchema Builder::GetClassNameIndexSchema() {
+static IndexSchema Builder::GetClassNameIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back(type::TypeId::Integer, false,
@@ -367,7 +367,7 @@ IndexSchema Builder::GetClassNameIndexSchema() {
   return schema;
 }
 
-IndexSchema Builder::GetClassNamespaceIndexSchema() {
+static IndexSchema Builder::GetClassNamespaceIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back(type::TypeId::Integer, false,
@@ -382,7 +382,7 @@ IndexSchema Builder::GetClassNamespaceIndexSchema() {
   return schema;
 }
 
-IndexSchema Builder::GetIndexOidIndexSchema() {
+static IndexSchema Builder::GetIndexOidIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back(type::TypeId::INTEGER, false,
@@ -397,7 +397,7 @@ IndexSchema Builder::GetIndexOidIndexSchema() {
   return schema;
 }
 
-IndexSchema Builder::GetIndexTableIndexSchema() {
+static IndexSchema Builder::GetIndexTableIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back(type::TypeId::INTEGER, false,
@@ -412,7 +412,7 @@ IndexSchema Builder::GetIndexTableIndexSchema() {
   return schema;
 }
 
-IndexSchema Builder::GetColumnOidIndexSchema() {
+static IndexSchema Builder::GetColumnOidIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back(type::TypeId::INTEGER, false,
@@ -431,7 +431,7 @@ IndexSchema Builder::GetColumnOidIndexSchema() {
   return schema;
 }
 
-IndexSchema Builder::GetColumnNameIndexSchema() {
+static IndexSchema Builder::GetColumnNameIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back(type::TypeId::INTEGER, false,
@@ -450,7 +450,7 @@ IndexSchema Builder::GetColumnNameIndexSchema() {
   return schema;
 }
 
-IndexSchema Builder::GetColumnClassIndexSchema() {
+static IndexSchema Builder::GetColumnClassIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back(type::TypeId::INTEGER, false,
@@ -465,7 +465,7 @@ IndexSchema Builder::GetColumnClassIndexSchema() {
   return schema;
 }
 
-IndexSchema Builder::GetTypeOidIndexSchema() {
+static IndexSchema Builder::GetTypeOidIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back(type::TypeId::INTEGER, false, new parser::ColumnValueExpression(TYPE_TABLE_OID, TYPOID_COL_OID));
@@ -479,7 +479,7 @@ IndexSchema Builder::GetTypeOidIndexSchema() {
   return schema;
 }
 
-IndexSchema Builder::GetTypeNameIndexSchema() {
+static IndexSchema Builder::GetTypeNameIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back(type::TypeId::Integer, false,
@@ -498,7 +498,7 @@ IndexSchema Builder::GetTypeNameIndexSchema() {
   return schema;
 }
 
-IndexSchema Builder::GetTypeNamespaceIndexSchema() {
+static IndexSchema Builder::GetTypeNamespaceIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back(type::TypeId::Integer, false,
@@ -513,7 +513,7 @@ IndexSchema Builder::GetTypeNamespaceIndexSchema() {
   return schema;
 }
 
-IndexSchema Builder::GetConstraintOidIndexSchema() {
+static IndexSchema Builder::GetConstraintOidIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back(type::TypeId::INTEGER, false,
@@ -528,7 +528,7 @@ IndexSchema Builder::GetConstraintOidIndexSchema() {
   return schema;
 }
 
-IndexSchema Builder::GetConstraintNameIndexSchema() {
+static IndexSchema Builder::GetConstraintNameIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back(type::TypeId::Integer, false,
@@ -547,7 +547,7 @@ IndexSchema Builder::GetConstraintNameIndexSchema() {
   return schema;
 }
 
-IndexSchema Builder::GetConstraintNamespaceIndexSchema() {
+static IndexSchema Builder::GetConstraintNamespaceIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back(type::TypeId::Integer, false,
@@ -562,7 +562,7 @@ IndexSchema Builder::GetConstraintNamespaceIndexSchema() {
   return schema;
 }
 
-IndexSchema Builder::GetConstraintTableIndexSchema() {
+static IndexSchema Builder::GetConstraintTableIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back(type::TypeId::INTEGER, false,
@@ -577,7 +577,7 @@ IndexSchema Builder::GetConstraintTableIndexSchema() {
   return schema;
 }
 
-IndexSchema Builder::GetConstraintIndexIndexSchema() {
+static IndexSchema Builder::GetConstraintIndexIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back(type::TypeId::INTEGER, false,
@@ -592,7 +592,7 @@ IndexSchema Builder::GetConstraintIndexIndexSchema() {
   return schema;
 }
 
-IndexSchema Builder::GetConstraintForeignTableIndexSchema() {
+static IndexSchema Builder::GetConstraintForeignTableIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back(type::TypeId::INTEGER, false,

@@ -358,7 +358,7 @@ struct Schemas {
     TERRIER_ASSERT(new_order_key_schema.size() == num_new_order_primary_index_cols_,
                    "Wrong number of columns for New Order primary index schema.");
 
-    return IndexSchema(new_order_key_schema, true, true, false, true);
+    return catalog::IndexSchema(new_order_key_schema, true, true, false, true);
   }
 
   /**
@@ -445,7 +445,7 @@ struct Schemas {
     TERRIER_ASSERT(order_secondary_key_schema.size() == num_order_secondary_index_cols_,
                    "Wrong number of columns for Order secondary index schema.");
 
-    return IndexSchema(order_secondary_key_schema, true, true, false, true);
+    return catalog::IndexSchema(order_secondary_key_schema, true, true, false, true);
   }
 
   /**

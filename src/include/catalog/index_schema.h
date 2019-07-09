@@ -172,6 +172,7 @@ class IndexSchema {
   void SetLive(bool is_live) { is_live_ = is_live; }
 
   friend class Catalog;
+  friend class postgres::Builder;
 };
 
 }  // namespace terrier::catalog

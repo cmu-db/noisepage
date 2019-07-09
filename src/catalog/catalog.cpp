@@ -107,9 +107,9 @@ db_oid_t Catalog::GetDatabaseOid(transaction::TransactionContext *txn, const std
   if (name.size() > storage::VarlenEntry::InlineThreshold()) {
     varlen_contents = common::AllocationUtil::AllocateAligned(name.size());
     std::memcpy(varlen_contents, name.data(), name.size());
-    name_varlen = storage::VarlenEntry::Create(varlen_contents, name.size(), true);
+    name_varlen = storage::VarlenEntry::Create(varlen_contents, static_cast<uint>(name.size()), true);
   } else {
-    name_varlen = storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *const>(name.data()), name.size());
+    name_varlen = storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *const>(name.data()), static_cast<uint>(name.size()));
   }
 
   // Name is a larger projected row (16-byte key vs 4-byte key), sow we can reuse
@@ -183,9 +183,9 @@ common::ManagedPointer<DatabaseCatalog> Catalog::GetDatabaseCatalog(transaction:
   if (name.size() > storage::VarlenEntry::InlineThreshold()) {
     byte *contents = common::AllocationUtil::AllocateAligned(name.size());
     std::memcpy(contents, name.data(), name.size());
-    name_varlen = storage::VarlenEntry::Create(contents, uint32_t(name.size()), true);
+    name_varlen = storage::VarlenEntry::Create(contents, static_cast<uint>(name.size()), true);
   } else {
-    name_varlen = storage::VarlenEntry::CreateInline((byte *)(name.data()), uint32_t(name.size()));
+    name_varlen = storage::VarlenEntry::CreateInline((byte *)(name.data()), static_cast<uint>(name.size()));
   }
 
   // Name is a larger projected row (16-byte key vs 4-byte key), sow we can reuse
@@ -230,9 +230,9 @@ bool Catalog::CreateDatabaseEntry(transaction::TransactionContext *txn, db_oid_t
   if (name.size() > storage::VarlenEntry::InlineThreshold()) {
     byte *contents = common::AllocationUtil::AllocateAligned(name.size());
     std::memcpy(contents, name.data(), name.size());
-    name_varlen = storage::VarlenEntry::Create(contents, uint32_t(name.size()), true);
+    name_varlen = storage::VarlenEntry::Create(contents, static_cast<uint>(name.size()), true);
   } else {
-    name_varlen = storage::VarlenEntry::CreateInline((byte *)(name.data()), uint32_t(name.size()));
+    name_varlen = storage::VarlenEntry::CreateInline((byte *)(name.data()), static_cast<uint>(name.size()));
   }
   // Ensure we delete the database if the transaction aborts
   txn->RegisterAbortAction([=]() { delete dbc; });
