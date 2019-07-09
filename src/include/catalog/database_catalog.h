@@ -194,15 +194,6 @@ class DatabaseCatalog {
    */
   const IndexSchema &GetIndexSchema(transaction::TransactionContext *txn, index_oid_t index);
 
- private:
-  /**
-   * Create a namespace with a given ns oid
-   * @param txn transaction to use
-   * @param name name of the namespace
-   * @param ns_oid oid of the namespace
-   * @return true if creation is successful
-   */
-  bool CreateNamespace(transaction::TransactionContext *txn, const std::string &name, namespace_oid_t ns_oid);
  /**
   * Inform the catalog of where the underlying implementation of the index is
  * @param index OID in the catalog
@@ -221,6 +212,16 @@ class DatabaseCatalog {
    * @return the pointer to the index
    */
   common::ManagedPointer<storage::index::Index> GetIndex(transaction::TransactionContext *txn, index_oid_t index);
+
+ private:
+  /**
+   * Create a namespace with a given ns oid
+   * @param txn transaction to use
+   * @param name name of the namespace
+   * @param ns_oid oid of the namespace
+   * @return true if creation is successful
+   */
+  bool CreateNamespace(transaction::TransactionContext *txn, const std::string &name, namespace_oid_t ns_oid);
 
   /**
    * Add entry to pg_attribute
