@@ -699,7 +699,7 @@ bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oi
   }
 
   // Get the attributes we need for pg_class indexes
-  const table_oid_t table_oid =
+  table_oid_t table_oid =
       *(reinterpret_cast<const table_oid_t *const>(table_pr->AccessForceNotNull(class_pr_map[RELOID_COL_OID])));
   TERRIER_ASSERT(CLASS_TABLE_OID == table_oid,
                  "table oid from pg_classes did not match what was found by the index scan from the argument.");
