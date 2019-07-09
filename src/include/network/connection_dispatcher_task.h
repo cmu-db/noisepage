@@ -17,7 +17,7 @@ namespace terrier::network {
  * incoming connections to handler threads.
  *
  * On construction, the dispatcher registers a number of handlers with the dedicated thread registry. The registered
- * handlers will shut down during the teardown of the thread registry
+ * handlers will shut down during the teardown of the thread registry TODO(Matt): no longer true
  */
 class ConnectionDispatcherTask : public common::NotifiableTask {
  public:

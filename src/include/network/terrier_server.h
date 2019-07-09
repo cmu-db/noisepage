@@ -58,7 +58,7 @@ class TerrierServer : public common::DedicatedThreadOwner {
    *
    * @return self-reference for chaining
    */
-  TerrierServer &SetupServer();
+  void SetupServer();
 
   /**
    * Break from the server loop and exit all network handling threads.
@@ -70,6 +70,19 @@ class TerrierServer : public common::DedicatedThreadOwner {
    * @param new_port
    */
   void SetPort(uint16_t new_port);
+
+  /**
+   * Guard for the following two members
+   */
+  std::mutex cv_m;
+  /**
+   * Used for the predicate for any threads waiting on the condition variable
+   */
+  bool running_;
+  /**
+   * Any threads that need to wait on the server running can watch this variable. Probably just DBMain.
+   */
+  std::condition_variable cv;
 
  private:
   bool OnThreadRemoval(common::ManagedPointer<common::DedicatedThreadTask> task) override {

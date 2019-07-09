@@ -15,6 +15,7 @@ TerrierServer::TerrierServer(common::ManagedPointer<ProtocolInterpreter::Provide
                              common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory,
                              common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry)
     : DedicatedThreadOwner(thread_registry),
+      running_(false),
       connection_handle_factory_(connection_handle_factory),
       provider_(protocol_provider) {
   port_ = common::Settings::SERVER_PORT;
@@ -34,7 +35,7 @@ TerrierServer::TerrierServer(common::ManagedPointer<ProtocolInterpreter::Provide
   signal(SIGPIPE, SIG_IGN);
 }
 
-TerrierServer &TerrierServer::SetupServer() {
+void TerrierServer::SetupServer() {
   // This line is critical to performance for some reason
   evthread_use_pthreads();
 
@@ -63,7 +64,11 @@ TerrierServer &TerrierServer::SetupServer() {
       connection_handle_factory_, thread_registry_);
 
   NETWORK_LOG_INFO("Listening on port {0}", port_);
-  return *this;
+
+  {
+    std::lock_guard<std::mutex> lk(cv_m);
+    running_ = true;
+  }
 }
 
 void TerrierServer::Close() {
@@ -74,6 +79,12 @@ void TerrierServer::Close() {
   terrier_close(listen_fd_);
   connection_handle_factory_->TearDown();
   NETWORK_LOG_INFO("Server Closed");
+
+  {
+    std::lock_guard<std::mutex> lk(cv_m);
+    running_ = false;
+  }
+  cv.notify_all();
 }
 
 /**

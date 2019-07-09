@@ -65,6 +65,11 @@ void DBMain::Run() {
       type::TransientValuePeeker::PeekInteger(param_map_.find(settings::Param::port)->second.value_)));
   server_->SetupServer();
 
+  {
+    std::unique_lock<std::mutex> lk(server_->cv_m);
+    server_->cv.wait(lk, [=] { return !(server_->running_); });
+  }
+
   // server loop exited, begin cleaning up
   CleanUp();
 }
