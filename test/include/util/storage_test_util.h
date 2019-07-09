@@ -11,6 +11,7 @@
 #include "catalog/schema.h"
 #include "common/strong_typedef.h"
 #include "gtest/gtest.h"
+#include "parser/expression/abstract_expression.h"
 #include "storage/index/compact_ints_key.h"
 #include "storage/index/index_defs.h"
 #include "storage/storage_defs.h"
@@ -375,7 +376,7 @@ struct StorageTestUtil {
    * Generates a random CompactIntsKey-compatible schema.
    */
   template <typename Random>
-  static catalog::IndexKeySchema RandomCompactIntsKeySchema(Random *generator) {
+  static catalog::IndexSchema RandomCompactIntsKeySchema(Random *generator) {
     const uint16_t max_bytes = sizeof(uint64_t) * INTSKEY_MAX_SLOTS;
     const auto key_size = std::uniform_int_distribution(static_cast<uint16_t>(1), max_bytes)(*generator);
 
@@ -392,7 +393,7 @@ struct StorageTestUtil {
 
     std::shuffle(key_oids.begin(), key_oids.end(), *generator);
 
-    catalog::IndexKeySchema key_schema;
+    std::vector<catalog::IndexSchema::Column> key_cols;
 
     uint8_t col = 0;
 
@@ -406,7 +407,7 @@ struct StorageTestUtil {
       const uint8_t type_offset = std::uniform_int_distribution(static_cast<uint8_t>(0), max_offset)(*generator);
       const auto type = types[type_offset];
 
-      key_schema.emplace_back(key_oids[col++], type, false);
+      key_cols.emplace_back(key_oids[col++], type, false, new parser::ConstantValueExpression(std::move(type::TransientValueFactory::GetNull(type))));
       bytes_used = static_cast<uint16_t>(bytes_used + type::TypeUtil::GetTypeSize(type));
     }
 

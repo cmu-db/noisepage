@@ -130,8 +130,8 @@ static void BootstrapDatabaseCatalog(transaction::TransactionContext *txn, Datab
  * @param type of the value which is NULL
  * @return NULL expression with the correct type
  */
-static parser::AbstractExpression *MakeNull(type::TypeId type) {
-  return new parser::ConstantValueExpression(std::move(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+static parser::AbstractExpression *MakeNull(type::TypeId col_type) {
+  return new parser::ConstantValueExpression(std::move(type::TransientValueFactory::GetNull(col_type)));
 }
 
 static Schema Builder::GetAttributeTableSchema() {

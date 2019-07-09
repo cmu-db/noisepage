@@ -132,7 +132,7 @@ void DatabaseCatalog::TearDown(transaction::TransactionContext *txn) {
   // No new transactions can see these object but there may be deferred index
   // and other operation.  Therefore, we need to defer the deallocation on delete
   txn->RegisterCommitAction([=, tables{std::move(tables)}, indexes{std::move(indexes)},
-                                table_schemas{std::move(table_schemas)}, index_schemas{std::move(index_schema)},
+                                table_schemas{std::move(table_schemas)}, index_schemas{std::move(index_schemas)},
                                 expressions{std::move(expressions)}] {
     txn->GetTransactionManager()->DeferAction([=, tables{std::move(tables)}, indexes{std::move(indexes)},
                                                   table_schemas{std::move(table_schemas)}, index_schemas{std::move(index_schema)},
