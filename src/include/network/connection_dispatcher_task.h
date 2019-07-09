@@ -37,7 +37,7 @@ class ConnectionDispatcherTask : public common::NotifiableTask {
    * @param thread_registry DedicatedThreadRegistry dependency needed because it eventually spawns more threads in
    * RunTask
    */
-  ConnectionDispatcherTask(int num_handlers, int listen_fd, common::DedicatedThreadOwner *dedicated_thread_owner,
+  ConnectionDispatcherTask(uint32_t num_handlers, int listen_fd, common::DedicatedThreadOwner *dedicated_thread_owner,
                            common::ManagedPointer<ProtocolInterpreter::Provider> interpreter_provider,
                            common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory,
                            common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry);
@@ -67,7 +67,7 @@ class ConnectionDispatcherTask : public common::NotifiableTask {
   void Terminate() override;
 
  private:
-  const int num_handlers_;
+  const uint32_t num_handlers_;
   common::DedicatedThreadOwner *const dedicated_thread_owner_;
   const common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory_;
   const common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry_;

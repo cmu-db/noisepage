@@ -83,9 +83,9 @@ class TerrierServer : public common::DedicatedThreadOwner {
   // For logging purposes
   // static void LogCallback(int severity, const char *msg);
 
-  uint16_t port_;                 // port number
-  int listen_fd_ = -1;            // server socket fd that TerrierServer is listening on
-  const size_t max_connections_;  // maximum number of connections
+  uint16_t port_;                   // port number
+  int listen_fd_ = -1;              // server socket fd that TerrierServer is listening on
+  const uint32_t max_connections_;  // maximum number of connections
 
   common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory_;
   common::ManagedPointer<ProtocolInterpreter::Provider> provider_;

@@ -8,7 +8,7 @@
 namespace terrier::network {
 
 ConnectionDispatcherTask::ConnectionDispatcherTask(
-    int num_handlers, int listen_fd, common::DedicatedThreadOwner *dedicated_thread_owner,
+    uint32_t num_handlers, int listen_fd, common::DedicatedThreadOwner *dedicated_thread_owner,
     common::ManagedPointer<ProtocolInterpreter::Provider> interpreter_provider,
     common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory,
     common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry)
