@@ -33,9 +33,10 @@ class Builder {
   /**
    * Allocates a new database catalog that roughly conforms to PostgreSQL's catalog layout
    * @param block_store for backing the new catalog tables
+   * @param oid of the database which is used for populating the field in redo records
    * @return an initialized DatabaseCatalog
    */
-  static DatabaseCatalog *CreateDatabaseCatalog(storage::BlockStore *block_store);
+  static DatabaseCatalog *CreateDatabaseCatalog(storage::BlockStore *block_store, db_oid_t oid);
 
   /**
    * Bootstraps the catalog's own metadata into itself
@@ -78,7 +79,7 @@ class Builder {
   /**
    * @return schema object for the oid index on pg_namespace
    */
-  static IndexSchema GetNamepaceOidIndexSchema();
+  static IndexSchema GetNamespaceOidIndexSchema();
 
   /**
    * @return schema object for the name index on pg_namespace
