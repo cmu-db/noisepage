@@ -58,12 +58,12 @@ class TerrierServer : public common::DedicatedThreadOwner {
    *
    * @return self-reference for chaining
    */
-  void SetupServer();
+  void RunServer();
 
   /**
    * Break from the server loop and exit all network handling threads.
    */
-  void Close();
+  void StopServer();
 
   /**
    * Set listen port to a new port

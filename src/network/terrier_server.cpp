@@ -35,7 +35,7 @@ TerrierServer::TerrierServer(common::ManagedPointer<ProtocolInterpreter::Provide
   signal(SIGPIPE, SIG_IGN);
 }
 
-void TerrierServer::SetupServer() {
+void TerrierServer::RunServer() {
   // This line is critical to performance for some reason
   evthread_use_pthreads();
 
@@ -71,7 +71,7 @@ void TerrierServer::SetupServer() {
   }
 }
 
-void TerrierServer::Close() {
+void TerrierServer::StopServer() {
   NETWORK_LOG_TRACE("Begin to stop server");
   const bool result UNUSED_ATTRIBUTE =
       thread_registry_->StopTask(this, dispatcher_task_.CastManagedPointerTo<common::DedicatedThreadTask>());

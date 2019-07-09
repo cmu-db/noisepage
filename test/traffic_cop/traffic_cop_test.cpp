@@ -30,7 +30,9 @@ class TrafficCopTests : public TerrierTest {
   std::unique_ptr<network::ConnectionHandleFactory> handle_factory_;
   common::DedicatedThreadRegistry thread_registry;
 
-  void StartServer() {
+  void SetUp() override {
+    TerrierTest::SetUp();
+
     network::network_logger->set_level(spdlog::level::trace);
     test_logger->set_level(spdlog::level::debug);
     spdlog::flush_every(std::chrono::seconds(1));
@@ -42,7 +44,7 @@ class TrafficCopTests : public TerrierTest {
           common::ManagedPointer(handle_factory_.get()),
           common::ManagedPointer<common::DedicatedThreadRegistry>(&thread_registry));
       server_->SetPort(port_);
-      server_->SetupServer();
+      server_->RunServer();
     } catch (NetworkProcessException &exception) {
       TEST_LOG_ERROR("[LaunchServer] exception when launching server");
       throw;
@@ -50,18 +52,9 @@ class TrafficCopTests : public TerrierTest {
     TEST_LOG_DEBUG("Server initialized");
   }
 
-  void StopServer() {
-    server_->Close();
-    TEST_LOG_DEBUG("Terrier has shut down");
-  }
-
-  void SetUp() override {
-    TerrierTest::SetUp();
-    StartServer();
-  }
-
   void TearDown() override {
-    StopServer();
+    server_->StopServer();
+    TEST_LOG_DEBUG("Terrier has shut down");
     TerrierTest::TearDown();
   }
 
