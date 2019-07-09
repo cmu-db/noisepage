@@ -77,7 +77,7 @@ class AttributeHelper {
       varlen = storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(str.data()),
                                                   static_cast<uint32_t>(str.size()));
     }
-    return varlen
+    return varlen;
   }
 
   template <typename Column>

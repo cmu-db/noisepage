@@ -508,9 +508,9 @@ std::pair<uint32_t, postgres::ClassKind> DatabaseCatalog::getClassOidKind(transa
   if (name.size() > storage::VarlenEntry::InlineThreshold()) {
     varlen_contents = common::AllocationUtil::AllocateAligned(name.size());
     std::memcpy(varlen_contents, name.data(), name.size());
-    name_varlen = storage::VarlenEntry::Create(varlen_contents, name.size(), true);
+    name_varlen = storage::VarlenEntry::Create(varlen_contents, static_cast<uint>(name.size()), true);
   } else {
-    name_varlen = storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *const>(name.data()), name.size());
+    name_varlen = storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *const>(name.data()), static_cast<uint>(name.size()));
   }
 
   // Name is a larger projected row (16-byte key vs 4-byte key), sow we can reuse
@@ -572,7 +572,8 @@ bool DatabaseCatalog::SetTablePointer(transaction::TransactionContext *txn, tabl
   std::vector<storage::TupleSlot> index_results;
   auto oid_pri = classes_oid_index_->GetProjectedRowInitializer();
 
-  auto [pr_init, pr_map] = classes_->InitializerForProjectedRow({REL_PTR_COL_OID});
+  // Do not need to store the projection map because it is only a single column
+  auto pr_init = classes_->InitializerForProjectedRow({REL_PTR_COL_OID}).first;
   TERRIER_ASSERT(pr_init.ProjectedRowSize() >= oid_pri.ProjectedRowSize(), "Buffer must allocated to fit largest PR");
   auto *const buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
   auto *key_pr = oid_pri.InitializeRow(buffer);
@@ -609,7 +610,7 @@ common::ManagedPointer<storage::SqlTable> DatabaseCatalog::GetTable(transaction:
   auto ptr_pair = GetClassPtrKind(txn, static_cast<uint32_t>(table));
   if (ptr_pair.second != postgres::ClassKind::REGULAR_TABLE) {
     // User called GetTable with an OID for an object that doesn't have type REGULAR_TABLE
-    return common::ManagedPointer(nullptr);
+    return common::ManagedPointer<storage::SqlTable>(nullptr);
   }
   return common::ManagedPointer(reinterpret_cast<storage::SqlTable *>(ptr_pair.first));
 }
@@ -628,7 +629,9 @@ std::vector<index_oid_t> DatabaseCatalog::GetIndexes(transaction::TransactionCon
 
   // Initialize PR for index scan
   auto oid_pri = indexes_table_index_->GetProjectedRowInitializer();
-  auto [pr_init, pr_map] = indexes_->InitializerForProjectedRow({INDOID_COL_OID});
+
+  // Do not need projection map when there is only one column
+  auto pr_init = indexes_->InitializerForProjectedRow({INDOID_COL_OID}).first;
   TERRIER_ASSERT(pr_init.ProjectedRowSize() >= oid_pri.ProjectedRowSize(), "Buffer must be allocated to fit largest PR");
   auto *const buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
 
