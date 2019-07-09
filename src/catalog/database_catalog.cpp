@@ -701,7 +701,7 @@ bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oi
   // Get the attributes we need for pg_class indexes
   const table_oid_t table_oid =
       *(reinterpret_cast<const table_oid_t *const>(table_pr->AccessForceNotNull(class_pr_map[RELOID_COL_OID])));
-  TERRIER_ASSERT(index_results[0] == table_oid,
+  TERRIER_ASSERT(CLASS_TABLE_OID == table_oid,
                  "table oid from pg_classes did not match what was found by the index scan from the argument.");
   const namespace_oid_t ns_oid =
       *(reinterpret_cast<const namespace_oid_t *const>(table_pr->AccessForceNotNull(class_pr_map[RELNAMESPACE_COL_OID])));
@@ -774,7 +774,7 @@ bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oi
   TERRIER_ASSERT(result, "Delete from pg_index should always succeed as write-write conflicts are detected during delete from pg_class");
 
   // Get the table oid
-  const table_oid_t table_oid =
+  table_oid =
       *(reinterpret_cast<const table_oid_t *const>(table_pr->AccessForceNotNull(index_pr_map[INDRELID_COL_OID])));
 
   // Delete from indexes_oid_index
@@ -1310,7 +1310,9 @@ std::pair<void *, postgres::ClassKind> DatabaseCatalog::GetClassPtrKind(transact
 
   // Initialize both PR initializers, allocate buffer using size of largest one so we can reuse buffer
   auto oid_pri = classes_oid_index_->GetProjectedRowInitializer();
-  auto [pr_init, pr_map] = classes_->InitializerForProjectedRow({REL_PTR_COL_OID, RELKIND_COL_OID});
+
+  // Since these two attributes are fixed size and one is larger than the other we know PTR will be 0 and KIND will be 1
+  auto pr_init = classes_->InitializerForProjectedRow({REL_PTR_COL_OID, RELKIND_COL_OID}).first;
  TERRIER_ASSERT(pr_init.ProjectedRowSize() >= oid_pri.ProjectedRowSize(), "Buffer must be allocated to fit largest PR");
   auto *const buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
 
