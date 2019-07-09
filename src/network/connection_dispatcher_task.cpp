@@ -48,7 +48,7 @@ void ConnectionDispatcherTask::DispatchPostgresConnection(int fd, int16_t) {  //
 
 void ConnectionDispatcherTask::RunTask() {
   // create all of the ConnectionHandlerTasks, using the same DedicatedThreadOwner as this task's
-  for (int task_id = 0; task_id < num_handlers_; task_id++) {
+  for (int task_id = 0; static_cast<uint32_t>(task_id) < num_handlers_; task_id++) {
     auto handler = thread_registry_->RegisterDedicatedThread<ConnectionHandlerTask>(dedicated_thread_owner_, task_id,
                                                                                     connection_handle_factory_);
     handlers_.push_back(handler);
