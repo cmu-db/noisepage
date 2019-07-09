@@ -1,5 +1,6 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_accessor.h"
+#include "catalog/database_catalog.h"
 #include "catalog/postgres/builder.h"
 #include "catalog/postgres/pg_database.h"
 #include "storage/projected_columns.h"
