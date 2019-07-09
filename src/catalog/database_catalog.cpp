@@ -701,7 +701,7 @@ bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oi
   // Get the attributes we need for pg_class indexes
   const table_oid_t table_oid =
       *(reinterpret_cast<const table_oid_t *const>(table_pr->AccessForceNotNull(class_pr_map[RELOID_COL_OID])));
-  TERRIER_ASSERT(table == table_oid,
+  TERRIER_ASSERT(index_results[0] == table_oid,
                  "table oid from pg_classes did not match what was found by the index scan from the argument.");
   const namespace_oid_t ns_oid =
       *(reinterpret_cast<const namespace_oid_t *const>(table_pr->AccessForceNotNull(class_pr_map[RELNAMESPACE_COL_OID])));
@@ -758,7 +758,7 @@ bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oi
   TERRIER_ASSERT(index_results.size() == 1, "You got more than one result from a unique index. How did you do that?");
 
   // Select the tuple out of pg_index before deletion. We need the attributes to do index deletions later
-  *table_pr = index_pr_init.InitializeRow(buffer);
+  table_pr = index_pr_init.InitializeRow(buffer);
   result = indexes_->Select(txn, index_results[0], table_pr);
   TERRIER_ASSERT(result, "Select must succeed if the index scan gave a visible result.");
 
@@ -811,7 +811,7 @@ common::ManagedPointer<storage::index::Index> DatabaseCatalog::GetIndex(transact
   auto ptr_pair = GetClassPtrKind(txn, static_cast<uint32_t>(index));
   if (ptr_pair.second != postgres::ClassKind::INDEX) {
     // User called GetTable with an OID for an object that doesn't have type REGULAR_TABLE
-    return common::ManagedPointer(nullptr);
+    return common::ManagedPointer<storage::index::Index>(nullptr);
   }
   return common::ManagedPointer(reinterpret_cast<storage::index::Index *>(ptr_pair.first));
 }
@@ -946,9 +946,9 @@ bool DatabaseCatalog::CreateIndexEntry(transaction::TransactionContext *const tx
   if (name.size() > storage::VarlenEntry::InlineThreshold()) {
     byte *contents = common::AllocationUtil::AllocateAligned(name.size());
     std::memcpy(contents, name.data(), name.size());
-    name_varlen = storage::VarlenEntry::Create(contents, name.size(), true);
+    name_varlen = storage::VarlenEntry::Create(contents, static_cast<uint>(name.size()), true);
   } else {
-    name_varlen = storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *const>(name.data()), name.size());
+    name_varlen = storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *const>(name.data()), static_cast<uint>(name.size()));
   }
 
   // Write the name into the PR
@@ -1019,7 +1019,7 @@ bool DatabaseCatalog::CreateIndexEntry(transaction::TransactionContext *const tx
   TERRIER_ASSERT(!result, "Insertion into non-unique namespace index failed.");
 
   // Next, insert index metadata into pg_index
-  [pr_init, pr_map] = indexes_->InitializerForProjectedRow(PG_INDEX_ALL_COL_OIDS);
+  std::tie(pr_init, pr_map) = indexes_->InitializerForProjectedRow(PG_INDEX_ALL_COL_OIDS);
   auto *const indexes_insert_redo = txn->StageWrite(db_oid_, INDEX_TABLE_OID, pr_init);
   auto *const indexes_insert_pr = indexes_insert_redo->Delta();
 
@@ -1253,9 +1253,9 @@ bool DatabaseCatalog::CreateTableEntry(transaction::TransactionContext *const tx
   if (name.size() > storage::VarlenEntry::InlineThreshold()) {
     byte *contents = common::AllocationUtil::AllocateAligned(name.size());
     std::memcpy(contents, name.data(), name.size());
-    name_varlen = storage::VarlenEntry::Create(contents, name.size(), true);
+    name_varlen = storage::VarlenEntry::Create(contents, static_cast<uint>(name.size()), true);
   } else {
-    name_varlen = storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *const>(name.data()), name.size());
+    name_varlen = storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *const>(name.data()), static_cast<uint>(name.size()));
   }
 
   // Write the name into the PR
