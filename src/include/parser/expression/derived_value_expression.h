@@ -13,6 +13,13 @@ namespace terrier::parser {
  */
 class DerivedValueExpression : public AbstractExpression {
  public:
+
+  /**
+   * This constructor is called by the optimizer
+   * @param type type of the return value of the expression
+   * @param tuple_idx index of the tuple
+   * @param value_idx index of the value
+   */
   DerivedValueExpression(type::TypeId type, int tuple_idx, int value_idx)
       : AbstractExpression(ExpressionType::VALUE_TUPLE, type, {}), tuple_idx_(tuple_idx), value_idx_(value_idx) {}
 
