@@ -15,7 +15,7 @@
 #include "parser/expression/constant_value_expression.h"
 #include "type/transient_value_factory.h"
 
-namespace terrier::storage::postgres {
+namespace terrier::catalog::postgres {
 
 #define MAX_NAME_LENGTH 63 // This mimics PostgreSQL behavior
 
@@ -607,4 +607,4 @@ static IndexSchema Builder::GetConstraintForeignTableIndexSchema() {
   return schema;
 }
 
-} // namespace terrier::storage::postgres
+} // namespace terrier::catalog::postgres

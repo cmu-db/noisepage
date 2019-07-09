@@ -53,6 +53,17 @@ class IndexSchema {
     }
 
     /**
+     * Copy constructor that handles deep copying of expressions by reserializing the expression
+     * @param original column to be copied
+     */
+    Column(const Column &original)
+        : oid_(original.oid_),
+          packed_type_(original.packed_type_),
+          serialized_expression_(original.serialized_expression_),
+          expression(nullptr) {}
+
+
+    /**
      * @return oid of this key column
      */
     indexkeycol_oid_t GetOid() const { return oid_; }

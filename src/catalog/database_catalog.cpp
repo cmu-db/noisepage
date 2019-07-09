@@ -135,7 +135,7 @@ void DatabaseCatalog::TearDown(transaction::TransactionContext *txn) {
                                 table_schemas{std::move(table_schemas)}, index_schemas{std::move(index_schemas)},
                                 expressions{std::move(expressions)}] {
     txn->GetTransactionManager()->DeferAction([=, tables{std::move(tables)}, indexes{std::move(indexes)},
-                                                  table_schemas{std::move(table_schemas)}, index_schemas{std::move(index_schema)},
+                                                  table_schemas{std::move(table_schemas)}, index_schemas{std::move(index_schemas)},
                                                   expressions{std::move(expressions)}] {
       for (auto table : tables)
         delete table;
@@ -186,9 +186,9 @@ void DatabaseCatalog::InsertType(transaction::TransactionContext *txn, type::Typ
   if (name.size() > storage::VarlenEntry::InlineThreshold()) {
     byte *contents = common::AllocationUtil::AllocateAligned(name.size());
     std::memcpy(contents, name.data(), name.size());
-    name_varlen = storage::VarlenEntry::Create(contents, name.size(), true);
+    name_varlen = storage::VarlenEntry::Create(contents, static_cast<uint32_t>(name.size()), true);
   } else {
-    name_varlen = storage::VarlenEntry::CreateInline(reinterpret_cast<byte *>(name.data()), name.size());
+    name_varlen = storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(name.data()), name.size());
   }
   *(reinterpret_cast<storage::VarlenEntry *>(delta->AccessForceNotNull(offset))) = name_varlen;
 
@@ -207,7 +207,7 @@ void DatabaseCatalog::InsertType(transaction::TransactionContext *txn, type::Typ
   // Populate type
   offset = col_map[TYPTYPE_COL_OID];
   // TODO(Gus): make sure this cast works
-  uint8_t type = reinterpret_cast<uint8_t>(type_category);
+  uint8_t type = static_cast<uint8_t>(type_category);
   memcpy(delta->AccessForceNotNull(offset), &type, sizeof(uint8_t) /* TINYINT */);
 
   // Insert into table
