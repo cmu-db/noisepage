@@ -75,8 +75,8 @@ class IndexBuilder {
    * @param key_schema the index key schema
    * @return the builder object
    */
-  IndexBuilder &SetKeySchema(const catalog::IndexSchema &key_schema) {
-    key_schema_ = key_schema;
+  IndexBuilder &SetKeySchema(catalog::IndexSchema key_schema) {
+    key_schema_ = std::move(key_schema);
     return *this;
   }
 
