@@ -352,6 +352,14 @@ TEST(ExpressionTests, AggregateExpressionTest) {
   EXPECT_NE(agg_expr_1->Hash(), agg_expr_7->Hash());
   EXPECT_EQ(agg_expr_7->GetReturnValueType(), type::TypeId::DECIMAL);
 
+  // Testing DeriveReturnValueType functionality
+  auto children_8 = std::vector<std::shared_ptr<AbstractExpression>>{
+      std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true))};
+  auto agg_expr_8 = new AggregateExpression(ExpressionType(100), std::move(children_8), true);
+#ifndef NDEBUG
+  EXPECT_THROW(agg_expr_8->DeriveReturnValueType(), ParserException);
+#endif
+
   delete agg_expr_1;
   delete agg_expr_2;
   delete agg_expr_3;
@@ -359,6 +367,7 @@ TEST(ExpressionTests, AggregateExpressionTest) {
   delete agg_expr_5;
   delete agg_expr_6;
   delete agg_expr_7;
+  delete agg_expr_8;
 }
 
 // NOLINTNEXTLINE

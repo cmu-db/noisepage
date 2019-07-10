@@ -3,7 +3,9 @@
 #include <memory>
 #include <utility>
 #include <vector>
+#include "common/exception.h"
 #include "parser/expression/abstract_expression.h"
+#include "parser/expression_defs.h"
 
 namespace terrier::parser {
 
@@ -46,7 +48,8 @@ class AggregateExpression : public AbstractExpression {
   bool IsDistinct() const { return distinct_; }
 
   void DeriveReturnValueType() override {
-    switch (this->GetExpressionType()) {
+    auto expr_type = this->GetExpressionType();
+    switch (expr_type) {
       case ExpressionType::AGGREGATE_COUNT:
         this->SetReturnValueType(type::TypeId::INTEGER);
         break;
@@ -62,7 +65,8 @@ class AggregateExpression : public AbstractExpression {
         this->SetReturnValueType(type::TypeId::DECIMAL);
         break;
       default:
-        break;
+        throw PARSER_EXCEPTION(
+            ("Not a valid aggregation expression type: " + std::to_string(static_cast<int>(expr_type))).c_str());
     }
   }
 
