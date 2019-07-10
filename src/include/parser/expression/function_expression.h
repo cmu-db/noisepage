@@ -49,6 +49,19 @@ class FunctionExpression : public AbstractExpression {
    */
   const std::string &GetFuncName() const { return func_name_; }
 
+  void DeriveExpressionName() override {
+    bool first = true;
+    std::string name = reinterpret_cast<FunctionExpression *>(this)->GetFuncName() + "(";
+    for (auto &child : this->GetChildren()) {
+      if (!first) name.append(",");
+      child->DeriveExpressionName();
+      name.append(child->GetExpressionName());
+      first = false;
+    }
+    name.append(")");
+    this->SetExpressionName(name);
+  }
+
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
   /**

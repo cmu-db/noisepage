@@ -190,24 +190,14 @@ void AbstractExpression::DeriveExpressionName() {
   if (!alias_.empty()) return;
 
   bool first = true;
-
-  if (expression_type_ == ExpressionType::FUNCTION) {
-    expression_name_ = reinterpret_cast<FunctionExpression *>(this)->GetFuncName() + "(";
-    for (auto &child : children_) {
-      if (!first) expression_name_.append(",");
-      child->DeriveExpressionName();
-      expression_name_.append(child->expression_name_);
-      first = false;
-    }
-    expression_name_.append(")");
-  } else {
-    auto op_str = ExpressionTypeToString(expression_type_, true);
-    for (auto &child : children_) {
-      if (!first) expression_name_ += " ";
-      child->DeriveExpressionName();
-      expression_name_ += op_str + " " + child->expression_name_;
-      first = false;
-    }
+  auto op_str = ExpressionTypeToString(expression_type_, true);
+  expression_name_ += op_str;
+  for (auto &child : children_) {
+    if (!first) expression_name_ += " ";
+    child->DeriveExpressionName();
+    if (first) expression_name_ += " " + child->expression_name_;
+    else expression_name_ += " " + op_str + " " + child->expression_name_;
+    first = false;
   }
 }
 }  // namespace terrier::parser

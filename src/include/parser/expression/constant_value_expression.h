@@ -35,6 +35,11 @@ class ConstantValueExpression : public AbstractExpression {
     return value_ == const_expr.GetValue();
   }
 
+  void DeriveExpressionName() override {
+    if (!this->GetAlias().empty()) return;
+    this->SetExpressionName(value_.ToString());
+  }
+
   std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<ConstantValueExpression>(*this); }
 
   /**
@@ -68,11 +73,6 @@ class ConstantValueExpression : public AbstractExpression {
   }
 
  private:
-  void DeriveExpressionName() override {
-    if (!this->GetAlias().empty()) return;
-    this->SetExpressionName(value_.ToString());
-  }
-
   type::TransientValue value_;
 };
 

@@ -120,6 +120,11 @@ class ColumnValueExpression : public AbstractExpression {
     return GetDatabaseOid() == other.GetDatabaseOid();
   }
 
+  void DeriveExpressionName() override {
+    if (!this->GetAlias().empty()) return;
+    this->SetExpressionName(column_name_);
+  }
+
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
   /**
@@ -150,11 +155,6 @@ class ColumnValueExpression : public AbstractExpression {
   }
 
  private:
-  void DeriveExpressionName() override {
-    if (!this->GetAlias().empty()) return;
-    this->SetExpressionName(column_name_);
-  }
-
   /**
    * @param database_oid Database OID to be assigned to this expression
    */

@@ -154,6 +154,11 @@ class AbstractExpression {
   const std::string &GetExpressionName() const { return expression_name_; }
 
   /**
+   * Walks the expression trees and generate the correct expression name
+   */
+  virtual void DeriveExpressionName();
+
+  /**
    * @return alias of this abstract expression
    */
   const std::string &GetAlias() const { return alias_; }
@@ -171,11 +176,7 @@ class AbstractExpression {
   /**
    * @param v Visitor pattern for the expression
    */
-  virtual void AcceptChildren(SqlNodeVisitor *v) {
-    for (auto &child : children_) {
-      child->Accept(v);
-    }
-  }
+  virtual void AcceptChildren(SqlNodeVisitor *v) { for (auto &child : children_) child->Accept(v); }
 
   /**
    * @return The sub-query depth level
@@ -212,11 +213,6 @@ class AbstractExpression {
   virtual void FromJson(const nlohmann::json &j);
 
  private:
-  /**
-   * Walks the expression trees and generate the correct expression name
-   */
-  virtual void DeriveExpressionName();
-
   /**
    * Type of the current expression
    */
