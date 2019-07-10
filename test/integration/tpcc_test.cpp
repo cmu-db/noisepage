@@ -1,4 +1,5 @@
 #include <random>
+#include <string>
 #include <vector>
 #include "common/macros.h"
 #include "common/scoped_timer.h"
@@ -49,6 +50,7 @@ class TPCCTests : public TerrierTest {
   TransactionWeights txn_weights;                           // default txn_weights. See definition for values
 
   common::WorkerPool thread_pool_{static_cast<uint32_t>(num_threads_), {}};
+  common::DedicatedThreadRegistry *thread_registry_ = nullptr;
 
   // Settings for log manager
   const uint64_t num_log_buffers_ = 100;
@@ -120,9 +122,11 @@ TEST_F(TPCCTests, WithLogging) {
   thread_pool_.SetNumWorkers(num_threads_);
   thread_pool_.Startup();
 
+  thread_registry_ = new common::DedicatedThreadRegistry;
   // we need transactions, TPCC database, and GC
-  log_manager_ = new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_,
-                                         log_persist_interval_, log_persist_threshold_, &buffer_pool_);
+  log_manager_ =
+      new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
+                              log_persist_threshold_, &buffer_pool_, common::ManagedPointer(thread_registry_));
   log_manager_->Start();
   transaction::TransactionManager txn_manager(&buffer_pool_, true, log_manager_);
   auto tpcc_builder = Builder(&block_store_);
@@ -161,6 +165,7 @@ TEST_F(TPCCTests, WithLogging) {
   log_manager_->PersistAndStop();
   delete log_manager_;
   delete gc_thread_;
+  delete thread_registry_;
   delete tpcc_db;
 
   CleanUpVarlensInPrecomputedArgs(&precomputed_args);
