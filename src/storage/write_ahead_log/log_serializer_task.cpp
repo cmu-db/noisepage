@@ -111,12 +111,15 @@ void LogSerializerTask::SerializeRecord(const terrier::storage::LogRecord &recor
       // ProjectedRowInitializer from these ids and their corresponding block layout.
       WriteValue(delta->NumColumns());
       WriteValue(delta->ColumnIds(), static_cast<uint32_t>(sizeof(col_id_t)) * delta->NumColumns());
-
+      // Write out the attr sizes. We write these out so we don't need the block layout during deserialization
+      const auto &block_layout = record_body->GetTupleSlot().GetBlock()->data_table_->GetBlockLayout();
+      for (uint16_t i = 0; i < delta->NumColumns(); i++) {
+        WriteValue(block_layout.AttrSize(delta->ColumnIds()[i]));
+      }
       // Write out the null bitmap.
       WriteValue(&(delta->Bitmap()), common::RawBitmap::SizeInBytes(delta->NumColumns()));
 
-      // We need the block layout to determine the size of each attribute.
-      const auto &block_layout = record_body->GetTupleSlot().GetBlock()->data_table_->GetBlockLayout();
+      // Write out attribute values
       for (uint16_t i = 0; i < delta->NumColumns(); i++) {
         const auto *column_value_address = delta->AccessWithNullCheck(i);
         if (column_value_address == nullptr) {
