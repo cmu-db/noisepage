@@ -8,7 +8,7 @@
 namespace terrier::network {
 
 ConnectionDispatcherTask::ConnectionDispatcherTask(
-    int num_handlers, int listen_fd, common::DedicatedThreadOwner *dedicated_thread_owner,
+    uint32_t num_handlers, int listen_fd, common::DedicatedThreadOwner *dedicated_thread_owner,
     common::ManagedPointer<ProtocolInterpreter::Provider> interpreter_provider,
     common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory,
     common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry)
@@ -47,9 +47,8 @@ void ConnectionDispatcherTask::DispatchPostgresConnection(int fd, int16_t) {  //
 }
 
 void ConnectionDispatcherTask::RunTask() {
-  // create worker threads.
-  for (int task_id = 0; task_id < num_handlers_; task_id++) {
-    // auto handler = new ConnectionHandlerTask(task_id, connection_handle_factory);
+  // create all of the ConnectionHandlerTasks, using the same DedicatedThreadOwner as this task's
+  for (int task_id = 0; static_cast<uint32_t>(task_id) < num_handlers_; task_id++) {
     auto handler = thread_registry_->RegisterDedicatedThread<ConnectionHandlerTask>(dedicated_thread_owner_, task_id,
                                                                                     connection_handle_factory_);
     handlers_.push_back(handler);
@@ -59,6 +58,7 @@ void ConnectionDispatcherTask::RunTask() {
 
 void ConnectionDispatcherTask::Terminate() {
   ExitLoop();
+  // clean up the ConnectionHandlerTasks
   for (const auto &handler_task : handlers_) {
     const bool result UNUSED_ATTRIBUTE = thread_registry_->StopTask(
         dedicated_thread_owner_, handler_task.CastManagedPointerTo<common::DedicatedThreadTask>());

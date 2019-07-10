@@ -64,7 +64,12 @@ void DBMain::Run() {
   running = true;
   server_->SetPort(static_cast<int16_t>(
       type::TransientValuePeeker::PeekInteger(param_map_.find(settings::Param::port)->second.value_)));
-  server_->SetupServer();
+  server_->RunServer();
+
+  {
+    std::unique_lock<std::mutex> lock(server_->RunningMutex());
+    server_->RunningCV().wait(lock, [=] { return !(server_->Running()); });
+  }
 
   // server loop exited, begin cleaning up
   CleanUp();
@@ -72,7 +77,7 @@ void DBMain::Run() {
 
 void DBMain::ForceShutdown() {
   if (running) {
-    server_->Close();
+    server_->StopServer();
   }
   CleanUp();
 }

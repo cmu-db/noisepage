@@ -15,11 +15,11 @@ TerrierServer::TerrierServer(common::ManagedPointer<ProtocolInterpreter::Provide
                              common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory,
                              common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry)
     : DedicatedThreadOwner(thread_registry),
+      running_(false),
+      port_(common::Settings::SERVER_PORT),
+      max_connections_(CONNECTION_THREAD_COUNT),
       connection_handle_factory_(connection_handle_factory),
       provider_(protocol_provider) {
-  port_ = common::Settings::SERVER_PORT;
-  max_connections_ = common::Settings::MAX_CONNECTIONS;
-
   // For logging purposes
   //  event_enable_debug_mode();
 
@@ -34,7 +34,7 @@ TerrierServer::TerrierServer(common::ManagedPointer<ProtocolInterpreter::Provide
   signal(SIGPIPE, SIG_IGN);
 }
 
-TerrierServer &TerrierServer::SetupServer() {
+void TerrierServer::RunServer() {
   // This line is critical to performance for some reason
   evthread_use_pthreads();
 
@@ -59,21 +59,32 @@ TerrierServer &TerrierServer::SetupServer() {
   listen(listen_fd_, conn_backlog);
 
   dispatcher_task_ = thread_registry_->RegisterDedicatedThread<ConnectionDispatcherTask>(
-      this /* requester */, CONNECTION_THREAD_COUNT, listen_fd_, this, common::ManagedPointer(provider_.get()),
+      this /* requester */, max_connections_, listen_fd_, this, common::ManagedPointer(provider_.get()),
       connection_handle_factory_, thread_registry_);
 
   NETWORK_LOG_INFO("Listening on port {0}", port_);
-  return *this;
+
+  // Set the running_ flag for any waiting threads
+  {
+    std::lock_guard<std::mutex> lock(running_mutex_);
+    running_ = true;
+  }
 }
 
-void TerrierServer::Close() {
+void TerrierServer::StopServer() {
   NETWORK_LOG_TRACE("Begin to stop server");
   const bool result UNUSED_ATTRIBUTE =
       thread_registry_->StopTask(this, dispatcher_task_.CastManagedPointerTo<common::DedicatedThreadTask>());
   TERRIER_ASSERT(result, "Failed to stop ConnectionDispatcherTask.");
   terrier_close(listen_fd_);
-  connection_handle_factory_->TearDown();
   NETWORK_LOG_INFO("Server Closed");
+
+  // Clear the running_ flag for any waiting threads and wake up them up with the condition variable
+  {
+    std::lock_guard<std::mutex> lock(running_mutex_);
+    running_ = false;
+  }
+  running_cv_.notify_all();
 }
 
 /**
