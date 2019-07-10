@@ -35,7 +35,7 @@ class NetworkTests : public TerrierTest {
  protected:
   std::unique_ptr<TerrierServer> server_;
   std::unique_ptr<ConnectionHandleFactory> handle_factory_;
-  common::DedicatedThreadRegistry thread_registry(nullptr);
+  common::DedicatedThreadRegistry thread_registry = common::DedicatedThreadRegistry(METRICS_DISABLED);
   uint16_t port_ = common::Settings::SERVER_PORT;
   trafficcop::TrafficCop tcop_;
   FakeCommandFactory fake_command_factory_;
