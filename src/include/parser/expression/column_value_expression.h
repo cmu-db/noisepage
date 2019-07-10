@@ -121,8 +121,10 @@ class ColumnValueExpression : public AbstractExpression {
   }
 
   void DeriveExpressionName() override {
-    if (!this->GetAlias().empty()) return;
-    this->SetExpressionName(column_name_);
+    if (!(this->GetAlias().empty()))
+      this->SetExpressionName(this->GetAlias());
+    else
+      this->SetExpressionName(column_name_);
   }
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }

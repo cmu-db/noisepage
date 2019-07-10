@@ -83,6 +83,9 @@ std::string ExpressionTypeToString(ExpressionType type, bool short_str) {
     case ExpressionType::VALUE_CONSTANT: {
       return "VALUE_CONSTANT";
     }
+    case ExpressionType::VALUE_DEFAULT: {
+      return "VALUE_DEFAULT";
+    }
     case ExpressionType::VALUE_PARAMETER: {
       return "VALUE_PARAMETER";
     }

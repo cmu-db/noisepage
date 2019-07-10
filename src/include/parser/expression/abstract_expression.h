@@ -176,7 +176,9 @@ class AbstractExpression {
   /**
    * @param v Visitor pattern for the expression
    */
-  virtual void AcceptChildren(SqlNodeVisitor *v) { for (auto &child : children_) child->Accept(v); }
+  virtual void AcceptChildren(SqlNodeVisitor *v) {
+    for (auto &child : children_) child->Accept(v);
+  }
 
   /**
    * @return The sub-query depth level

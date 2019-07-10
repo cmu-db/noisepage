@@ -187,17 +187,19 @@ int AbstractExpression::DeriveDepth() {
 
 void AbstractExpression::DeriveExpressionName() {
   // If alias exists, it will be used in TrafficCop
-  if (!alias_.empty()) return;
+  if (!alias_.empty()) {
+    expression_name_ = alias_;
+    return;
+  }
 
   bool first = true;
   auto op_str = ExpressionTypeToString(expression_type_, true);
-  expression_name_ += op_str;
   for (auto &child : children_) {
     if (!first) expression_name_ += " ";
     child->DeriveExpressionName();
-    if (first) expression_name_ += " " + child->expression_name_;
-    else expression_name_ += " " + op_str + " " + child->expression_name_;
+    expression_name_ += op_str + " " + child->expression_name_;
     first = false;
   }
+  if (first) expression_name_ = op_str;
 }
 }  // namespace terrier::parser
