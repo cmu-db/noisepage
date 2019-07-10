@@ -185,7 +185,7 @@ int AbstractExpression::DeriveDepth() {
   return depth_;
 }
 
-void AbstractExpression::DeduceExpressionName() {
+void AbstractExpression::DeriveExpressionName() {
   // If alias exists, it will be used in TrafficCop
   if (!alias_.empty()) return;
 
@@ -195,7 +195,7 @@ void AbstractExpression::DeduceExpressionName() {
     expression_name_ = reinterpret_cast<FunctionExpression *>(this)->GetFuncName() + "(";
     for (auto &child : children_) {
       if (!first) expression_name_.append(",");
-      child->DeduceExpressionName();
+      child->DeriveExpressionName();
       expression_name_.append(child->expression_name_);
       first = false;
     }
@@ -204,7 +204,7 @@ void AbstractExpression::DeduceExpressionName() {
     auto op_str = ExpressionTypeToString(expression_type_, true);
     for (auto &child : children_) {
       if (!first) expression_name_ += " ";
-      child->DeduceExpressionName();
+      child->DeriveExpressionName();
       expression_name_ += op_str + " " + child->expression_name_;
       first = false;
     }

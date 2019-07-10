@@ -68,7 +68,7 @@ class ConstantValueExpression : public AbstractExpression {
   }
 
  private:
-  void DeduceExpressionName() override {
+  void DeriveExpressionName() override {
     if (!this->GetAlias().empty()) return;
     this->SetExpressionName(value_.ToString());
   }

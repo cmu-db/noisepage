@@ -27,7 +27,7 @@ class OperatorExpression : public AbstractExpression {
    */
   OperatorExpression() = default;
 
-  void DeduceReturnValueType() override {
+  void DeriveReturnValueType() override {
     // if we are a decimal or int we should take the highest type id of both children
     // This relies on a particular order in types.h
     if (this->GetExpressionType() == ExpressionType::OPERATOR_NOT ||

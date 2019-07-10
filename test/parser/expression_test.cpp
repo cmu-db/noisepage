@@ -64,7 +64,7 @@ TEST(ExpressionTests, ConstantValueExpressionTest) {
   // There is no need to deduce the return_value_type of constant value expression
   // and calling this function essentially does nothing
   // Only test if we can call it without error.
-  expr_ti_1->DeduceReturnValueType();
+  expr_ti_1->DeriveReturnValueType();
   EXPECT_EQ(expr_ti_1->GetReturnValueType(), type::TransientValueFactory::GetTinyInt(1).Type());
   EXPECT_EQ(expr_ti_1->GetChildrenSize(), 0);
   EXPECT_EQ(expr_ti_1->GetChildren(), std::vector<std::shared_ptr<AbstractExpression>>());
@@ -228,7 +228,7 @@ TEST(ExpressionTests, ConjunctionExpressionTest) {
   // There is no need to deduce the return_value_type of constant value expression
   // and calling this function essentially does nothing
   // Only test if we can call it without error.
-  c_expr_1->DeduceReturnValueType();
+  c_expr_1->DeriveReturnValueType();
   EXPECT_EQ(c_expr_1->GetReturnValueType(), type::TypeId::BOOLEAN);
   EXPECT_EQ(c_expr_1->GetChildrenSize(), children1cp.size());
   EXPECT_EQ(c_expr_1->GetChildren(), children1cp);
@@ -323,7 +323,7 @@ TEST(ExpressionTests, AggregateExpressionTest) {
   // There is no need to deduce the return_value_type of constant value expression
   // and calling this function essentially does nothing
   // Only test if we can call it without error.
-  agg_expr_1->DeduceReturnValueType();
+  agg_expr_1->DeriveReturnValueType();
   EXPECT_EQ(agg_expr_1->GetReturnValueType(), type::TypeId::INTEGER);
   EXPECT_EQ(agg_expr_1->GetChildrenSize(), 1);
   EXPECT_EQ(agg_expr_1->GetChildren(), childrent_1_cp);
@@ -332,21 +332,21 @@ TEST(ExpressionTests, AggregateExpressionTest) {
   EXPECT_EQ(agg_expr_1->GetDepth(), -1);
   EXPECT_FALSE(agg_expr_1->HasSubquery());
 
-  // Testing DeduceReturnValueType functionality
+  // Testing DeriveReturnValueType functionality
   auto children_6 = std::vector<std::shared_ptr<AbstractExpression>>{
       std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true))};
   auto agg_expr_6 = new AggregateExpression(ExpressionType::AGGREGATE_MAX, std::move(children_6), true);
-  agg_expr_6->DeduceReturnValueType();
+  agg_expr_6->DeriveReturnValueType();
 
   EXPECT_FALSE(*agg_expr_1 == *agg_expr_6);
   EXPECT_NE(agg_expr_1->Hash(), agg_expr_6->Hash());
   EXPECT_EQ(agg_expr_6->GetReturnValueType(), type::TransientValueFactory::GetBoolean(true).Type());
 
-  // Testing DeduceReturnValueType functionality
+  // Testing DeriveReturnValueType functionality
   auto children_7 = std::vector<std::shared_ptr<AbstractExpression>>{
       std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true))};
   auto agg_expr_7 = new AggregateExpression(ExpressionType::AGGREGATE_AVG, std::move(children_7), true);
-  agg_expr_7->DeduceReturnValueType();
+  agg_expr_7->DeriveReturnValueType();
 
   EXPECT_FALSE(*agg_expr_1 == *agg_expr_7);
   EXPECT_NE(agg_expr_1->Hash(), agg_expr_7->Hash());
@@ -428,7 +428,7 @@ TEST(ExpressionTests, CaseExpressionTest) {
   // There is no need to deduce the return_value_type of constant value expression
   // and calling this function essentially does nothing
   // Only test if we can call it without error.
-  case_expr->DeduceReturnValueType();
+  case_expr->DeriveReturnValueType();
   EXPECT_EQ(case_expr->GetReturnValueType(), type::TypeId::BOOLEAN);
   EXPECT_EQ(case_expr->GetChildrenSize(), 0);
   EXPECT_EQ(case_expr->GetWhenClauseCondition(0), const_expr);
@@ -520,7 +520,7 @@ TEST(ExpressionTests, OperatorExpressionTest) {
   auto op_ret_type = type::TypeId::BOOLEAN;
   auto op_expr_1 = new OperatorExpression(ExpressionType::OPERATOR_NOT, op_ret_type,
                                           std::vector<std::shared_ptr<AbstractExpression>>());
-  op_expr_1->DeduceReturnValueType();
+  op_expr_1->DeriveReturnValueType();
   EXPECT_TRUE(op_expr_1->GetReturnValueType() == type::TypeId::BOOLEAN);
 
   auto child2 = std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetDecimal(1));
@@ -528,7 +528,7 @@ TEST(ExpressionTests, OperatorExpressionTest) {
   auto children = std::vector<std::shared_ptr<AbstractExpression>>{child1, child2};
   auto children_cp = children;
   auto op_expr_2 = new OperatorExpression(ExpressionType::OPERATOR_PLUS, type::TypeId::INVALID, std::move(children));
-  op_expr_2->DeduceReturnValueType();
+  op_expr_2->DeriveReturnValueType();
   EXPECT_TRUE(op_expr_2->GetReturnValueType() == type::TransientValueFactory::GetDecimal(1).Type());
 
   auto child3 = std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetDate(type::date_t(1)));
@@ -538,7 +538,7 @@ TEST(ExpressionTests, OperatorExpressionTest) {
   // Make sure that we catch when the deduced expression type suggests that invalid operand types
   // NOTE: We only do this for debug builds
 #ifndef NDEBUG
-  EXPECT_DEATH(op_expr_3->DeduceReturnValueType(), "Invalid operand type in Operator Expression.");
+  EXPECT_DEATH(op_expr_3->DeriveReturnValueType(), "Invalid operand type in Operator Expression.");
 #endif
 
   delete op_expr_1;

@@ -161,9 +161,9 @@ class AbstractExpression {
   const std::string &GetAlias() const { return alias_; }
 
   /**
-   * Deduce the expression type of the current expression.
+   * Derive the expression type of the current expression.
    */
-  virtual void DeduceReturnValueType() {}
+  virtual void DeriveReturnValueType() {}
 
   /**
    * @param v Visitor pattern for the expression
@@ -217,7 +217,7 @@ class AbstractExpression {
   /**
    * Walks the expression trees and generate the correct expression name
    */
-  virtual void DeduceExpressionName();
+  virtual void DeriveExpressionName();
 
   /**
    * Type of the current expression

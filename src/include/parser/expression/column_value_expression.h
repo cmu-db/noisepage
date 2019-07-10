@@ -149,7 +149,7 @@ class ColumnValueExpression : public AbstractExpression {
   }
 
  private:
-  void DeduceExpressionName() override {
+  void DeriveExpressionName() override {
     if (!this->GetAlias().empty()) return;
     this->SetExpressionName(column_name_);
   }
