@@ -211,6 +211,8 @@ class ProjectedRowInitializer {
   static ProjectedRowInitializer Create(std::vector<AttrType> real_attr_sizes, const std::vector<uint16_t> &pr_offsets);
 
  private:
+  friend class WriteAheadLoggingTests;
+  friend class AbstractLogProvider;
   /**
    * Constructs a ProjectedRowInitializer. Calculates the size of this ProjectedRow, including all members, values,
    * bitmap, and potential padding, and the offsets to jump to for each value. This information is cached for repeated

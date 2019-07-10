@@ -65,6 +65,7 @@ void RecoveryManager::ReplayTransaction(LogRecord *log_record) {
         // Stage the delete. This way the recovery operation is logged if logging is enabled
         txn->StageDelete(delete_record->GetDatabaseOid(), delete_record->GetTableOid(), new_tuple_slot);
         result = sql_table->Delete(txn, new_tuple_slot);
+        // TODO(Gus): delete from indexes as well
         // We can delete the TupleSlot from the map
         tuple_slot_map_.erase(delete_record->GetTupleSlot());
       } else {
@@ -81,6 +82,7 @@ void RecoveryManager::ReplayTransaction(LogRecord *log_record) {
           redo_record->SetTupleSlot(TupleSlot(nullptr, 0));
           // Insert will always succeed
           auto new_tuple_slot = sql_table->Insert(txn, redo_record);
+          // TODO(Gus): Insert into indexes as well
           // Stage the write. This way the recovery operation is logged if logging is enabled.
           // We stage the write after the insert because Insert sets the tuple slot on the redo record, so we need that
           // to happen before we copy the record into the txn redo buffer.

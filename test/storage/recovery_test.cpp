@@ -92,7 +92,7 @@ TEST_F(RecoveryTests, SingleTableTest) {
   transaction::TransactionManager recovery_txn_manager_{&pool_, true, LOGGING_DISABLED};
 
   // Instantiate recovery manager, and recover the tables.
-  DiskLogProvider log_provider(&catalog, LOG_FILE_NAME);
+  DiskLogProvider log_provider(LOG_FILE_NAME);
   recovery_manager_ = new RecoveryManager(&log_provider, &catalog, &recovery_txn_manager_);
   recovery_manager_->StartRecovery();
   recovery_manager_->FinishRecovery();
@@ -160,7 +160,7 @@ TEST_F(RecoveryTests, HighAbortRateTest) {
   transaction::TransactionManager recovery_txn_manager_{&pool_, true, LOGGING_DISABLED};
 
   // Instantiate recovery manager, and recover the tables.
-  DiskLogProvider log_provider(&catalog, LOG_FILE_NAME);
+  DiskLogProvider log_provider(LOG_FILE_NAME);
   recovery_manager_ = new RecoveryManager(&log_provider, &catalog, &recovery_txn_manager_);
   recovery_manager_->StartRecovery();
   recovery_manager_->FinishRecovery();
@@ -221,7 +221,7 @@ TEST_F(RecoveryTests, MultiDatabaseTest) {
   transaction::TransactionManager recovery_txn_manager_{&pool_, true, LOGGING_DISABLED};
 
   // Instantiate recovery manager, and recover the tables.
-  DiskLogProvider log_provider(&catalog, LOG_FILE_NAME);
+  DiskLogProvider log_provider(LOG_FILE_NAME);
   recovery_manager_ = new RecoveryManager(&log_provider, &catalog, &recovery_txn_manager_);
   recovery_manager_->StartRecovery();
   recovery_manager_->FinishRecovery();

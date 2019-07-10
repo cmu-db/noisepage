@@ -14,11 +14,9 @@ namespace terrier::storage {
 class DiskLogProvider : public AbstractLogProvider {
  public:
   /**
-   * @param catalog system catalog used for getting block layouts
    * @param log_file_path path to log file to read logs from
    */
-  explicit DiskLogProvider(RecoveryCatalog *catalog, const std::string &log_file_path)
-      : AbstractLogProvider(catalog), in_(BufferedLogReader(log_file_path.c_str())) {}
+  explicit DiskLogProvider(const std::string &log_file_path) : in_(BufferedLogReader(log_file_path.c_str())) {}
 
  private:
   // Buffered log file reader

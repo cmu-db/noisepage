@@ -102,8 +102,14 @@ class WriteAheadLoggingTests : public TerrierTest {
       col_ids[i] = col_id;
     }
 
+    // Read in attribute sizes
+    std::vector<uint8_t> attr_sizes(num_cols);
+    for (uint16_t i = 0; i < num_cols; i++) {
+      attr_sizes[i] = in->ReadValue<uint8_t>();
+    }
+
     // Initialize the redo record.
-    auto initializer = storage::ProjectedRowInitializer::Create(block_layout, col_ids);
+    auto initializer = storage::ProjectedRowInitializer(attr_sizes, col_ids);
     auto *result = storage::RedoRecord::Initialize(buf, txn_begin, database_oid, table_oid, initializer);
     auto *record_body = result->GetUnderlyingRecordBodyAs<RedoRecord>();
     record_body->SetTupleSlot(tuple_slot);
@@ -125,7 +131,7 @@ class WriteAheadLoggingTests : public TerrierTest {
 
       // The column is not null, so set the bitmap accordingly and get access to the column value.
       auto *column_value_address = delta->AccessForceNotNull(i);
-      if (block_layout.IsVarlen(col_ids[i])) {
+      if (attr_sizes[i] == (VARLEN_COLUMN & INT8_MAX)) {
         // Read how many bytes this varlen actually is.
         const auto varlen_attribute_size = in->ReadValue<uint32_t>();
         // Allocate a varlen buffer of this many bytes.
@@ -146,7 +152,7 @@ class WriteAheadLoggingTests : public TerrierTest {
         *dest = varlen_entry;
       } else {
         // For inlined attributes, just directly read into the ProjectedRow.
-        in->Read(column_value_address, block_layout.AttrSize(col_ids[i]));
+        in->Read(column_value_address, attr_sizes[i]);
       }
     }
 

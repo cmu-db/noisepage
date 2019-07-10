@@ -35,11 +35,6 @@ class AbstractLogProvider {
 
  protected:
   /**
-   * @param catalog system catalog to use to get block layouts
-   */
-  explicit AbstractLogProvider(RecoveryCatalog *catalog) : catalog_(catalog) {}
-
-  /**
    * @return true if provider has more records to provide. false otherwise
    */
   virtual bool HasMoreRecords() = 0;
@@ -58,10 +53,6 @@ class AbstractLogProvider {
   virtual bool Read(void *dest, uint32_t size) = 0;
 
  private:
-  // TODO(Gus): Replace when catalog is brought in
-  // System catalog. Used to get block layouts for deserialization
-  RecoveryCatalog *catalog_;
-
   // TODO(Gus): Support a more fail-safe way than just throwing an exception
   /**
    * Read a value of the specified type from log provider. An exception is thrown if the reading failed

@@ -46,14 +46,14 @@ std::pair<LogRecord *, std::vector<byte *>> AbstractLogProvider::ReadNextRecord(
     col_ids[i] = col_id;
   }
 
-  // Initialize the redo record. Fetch the block layout from the catalog
-  // TODO(Gus): Change this line when catalog is brought in
-  TERRIER_ASSERT(catalog_->find(database_oid) != catalog_->end(), "Database must exist in catalog");
-  TERRIER_ASSERT(catalog_->at(database_oid).find(table_oid) != catalog_->at(database_oid).end(),
-                 "Table must exist in catalog");
-  auto *sql_table = catalog_->at(database_oid)[table_oid];
-  auto &block_layout = sql_table->Layout();
-  auto initializer = storage::ProjectedRowInitializer::Create(block_layout, col_ids);
+  // Read in attribute sizes
+  std::vector<uint8_t> attr_sizes(num_cols);
+  for (uint16_t i = 0; i < num_cols; i++) {
+    attr_sizes[i] = ReadValue<uint8_t>();
+  }
+
+  // Initialize the redo record.
+  auto initializer = storage::ProjectedRowInitializer(attr_sizes, col_ids);
   auto *result = storage::RedoRecord::Initialize(buf, txn_begin, database_oid, table_oid, initializer);
   auto *record_body = result->GetUnderlyingRecordBodyAs<RedoRecord>();
   record_body->SetTupleSlot(tuple_slot);
@@ -77,7 +77,8 @@ std::pair<LogRecord *, std::vector<byte *>> AbstractLogProvider::ReadNextRecord(
 
     // The column is not null, so set the bitmap accordingly and get access to the column value.
     auto *column_value_address = delta->AccessForceNotNull(i);
-    if (block_layout.IsVarlen(col_ids[i])) {
+    // Need to mask off sign bit from VARLEN_COLUMN to get the varlen size
+    if (attr_sizes[i] == (VARLEN_COLUMN & INT8_MAX)) {
       // Read how many bytes this varlen actually is.
       const auto varlen_attribute_size = ReadValue<uint32_t>();
       // Allocate a varlen buffer of this many bytes.
@@ -102,7 +103,7 @@ std::pair<LogRecord *, std::vector<byte *>> AbstractLogProvider::ReadNextRecord(
       // Store reference to varlen content to clean up incase of abort
     } else {
       // For inlined attributes, just directly read into the ProjectedRow.
-      Read(column_value_address, block_layout.AttrSize(col_ids[i]));
+      Read(column_value_address, attr_sizes[i]);
     }
   }
 
