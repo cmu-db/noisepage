@@ -103,7 +103,7 @@ class CaseExpression : public AbstractExpression {
     auto other_default_exp = other.GetDefaultClause();
     if (default_exp == nullptr && other_default_exp == nullptr) return true;
     if (default_exp == nullptr || other_default_exp == nullptr) return false;
-    return (*default_exp == *other_default_exp);
+    return *default_exp == *other_default_exp;
   }
 
   std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<CaseExpression>(*this); }

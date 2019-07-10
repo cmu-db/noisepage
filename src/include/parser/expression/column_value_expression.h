@@ -112,11 +112,12 @@ class ColumnValueExpression : public AbstractExpression {
   bool operator==(const AbstractExpression &rhs) const override {
     if (!AbstractExpression::operator==(rhs)) return false;
     auto const &other = dynamic_cast<const ColumnValueExpression &>(rhs);
-    if (GetColumnName() != other.GetColumnName() || GetTableName() != other.GetTableName() ||
-        GetNamespaceName() != other.GetNamespaceName())
-      return false;
-    return GetColumnOid() == other.GetColumnOid() && GetTableOid() == other.GetTableOid() &&
-           GetDatabaseOid() == other.GetDatabaseOid();
+    if (GetColumnName() != other.GetColumnName()) return false;
+    if (GetTableName() != other.GetTableName()) return false;
+    if (GetNamespaceName() != other.GetNamespaceName()) return false;
+    if (GetColumnOid() != other.GetColumnOid()) return false;
+    if (GetTableOid() != other.GetTableOid()) return false;
+    return GetDatabaseOid() == other.GetDatabaseOid();
   }
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }

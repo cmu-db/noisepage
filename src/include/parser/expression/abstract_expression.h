@@ -94,17 +94,15 @@ class AbstractExpression {
    * @return true if the two expressions are logically equal
    */
   virtual bool operator==(const AbstractExpression &rhs) const {
-    if (expression_type_ != rhs.expression_type_ || children_.size() != rhs.children_.size() || alias_ != rhs.alias_ ||
-        depth_ != rhs.depth_ || has_subquery_ != rhs.has_subquery_ || return_value_type_ != rhs.return_value_type_ ||
-        expression_name_ != rhs.expression_name_) {
-      return false;
-    }
-    for (size_t i = 0; i < children_.size(); i++) {
-      if (*(children_[i]) != *(rhs.children_[i])) {
-        return false;
-      }
-    }
-    return true;
+    if (expression_type_ != rhs.expression_type_) return false;
+    if (alias_ != rhs.alias_) return false;
+    if (expression_name_ != rhs.expression_name_) return false;
+    if (depth_ != rhs.depth_) return false;
+    if (has_subquery_ != rhs.has_subquery_) return false;
+    if (children_.size() != rhs.children_.size()) return false;
+    for (size_t i = 0; i < children_.size(); i++)
+      if (*(children_[i]) != *(rhs.children_[i])) return false;
+    return return_value_type_ == rhs.return_value_type_;
   }
 
   /**

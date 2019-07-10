@@ -49,7 +49,8 @@ class DerivedValueExpression : public AbstractExpression {
   bool operator==(const AbstractExpression &rhs) const override {
     if (!AbstractExpression::operator==(rhs)) return false;
     auto const &other = dynamic_cast<const DerivedValueExpression &>(rhs);
-    return GetTupleIdx() == other.GetTupleIdx() && GetValueIdx() == other.GetValueIdx();
+    if (GetTupleIdx() != other.GetTupleIdx()) return false;
+    return GetValueIdx() == other.GetValueIdx();
   }
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
