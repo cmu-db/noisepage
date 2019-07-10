@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "catalog/catalog_defs.h"
+#include "common/dedicated_thread_owner.h"
 #include "storage/recovery/abstract_log_provider.h"
 #include "storage/sql_table.h"
 #include "transaction/transaction_manager.h"
@@ -23,11 +24,11 @@ using RecoveryCatalog =
  * Recovery Manager
  * TODO(Gus): Add more documentation when API is finalized
  */
-class RecoveryManager : public DedicatedThreadOwner {
+class RecoveryManager : public common::DedicatedThreadOwner {
   /**
    * Task in charge of initializing recovery. This way recovery can be non-blocking in a background thread.
    */
-  class RecoveryTask : public DedicatedThreadTask {
+  class RecoveryTask : public common::DedicatedThreadTask {
    public:
     /**
      * @param recovery_manager pointer to recovery manager who initialized task
@@ -54,18 +55,24 @@ class RecoveryManager : public DedicatedThreadOwner {
    * @param log_provider arbitrary provider to receive logs from
    * @param catalog system catalog to interface with sql tables
    * @param txn_manager txn manager to use for re-executing recovered transactions
+   * @param thread_registry thread registry to register tasks
    */
   explicit RecoveryManager(AbstractLogProvider *log_provider, RecoveryCatalog *catalog,
-                           transaction::TransactionManager *txn_manager)
-      : log_provider_(log_provider), catalog_(catalog), txn_manager_(txn_manager), recovered_txns_(0) {}
+                           transaction::TransactionManager *txn_manager,
+                           common::ManagedPointer<terrier::common::DedicatedThreadRegistry> thread_registry)
+      : DedicatedThreadOwner(thread_registry),
+        log_provider_(log_provider),
+        catalog_(catalog),
+        txn_manager_(txn_manager),
+        recovered_txns_(0) {}
 
   /**
    * Starts a background recovery task. Recovery will fully recover until the log provider stops providing logs.
    */
   void StartRecovery() {
     TERRIER_ASSERT(recovery_task_ == nullptr, "Recovery already started");
-    recovery_task_ = DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread<RecoveryTask>(
-        this /* dedicated thread owner */, this /* task arg */);
+    recovery_task_ =
+        thread_registry_->RegisterDedicatedThread<RecoveryTask>(this /* dedicated thread owner */, this /* task arg */);
   }
 
   /**
@@ -73,8 +80,8 @@ class RecoveryManager : public DedicatedThreadOwner {
    */
   void FinishRecovery() {
     TERRIER_ASSERT(recovery_task_ != nullptr, "Recovery must already have been started");
-    bool result UNUSED_ATTRIBUTE = DedicatedThreadRegistry::GetInstance().StopTask(
-        this, recovery_task_.CastManagedPointerTo<DedicatedThreadTask>());
+    bool result UNUSED_ATTRIBUTE =
+        thread_registry_->StopTask(this, recovery_task_.CastManagedPointerTo<common::DedicatedThreadTask>());
     TERRIER_ASSERT(result, "Task termination should always succeed");
   }
 

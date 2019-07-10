@@ -27,6 +27,7 @@ class RecoveryBenchmark : public benchmark::Fixture {
   storage::RecoveryManager *recovery_manager_ = nullptr;
   storage::GarbageCollectorThread *gc_thread_ = nullptr;
   const std::chrono::milliseconds gc_period_{10};
+  common::DedicatedThreadRegistry thread_registry_;
 
   // Settings for log manager
   const uint64_t num_log_buffers_ = 100;
@@ -53,8 +54,9 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, OLTPWorkload)(benchmark::State &state) {
     // Blow away log file after every benchmark iteration
     unlink(LOG_FILE_NAME);
     // Initialize table and run workload with logging enabled
-    log_manager_ = new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_,
-                                           log_persist_interval_, log_persist_threshold_, &buffer_pool_);
+    log_manager_ =
+        new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
+                                log_persist_threshold_, &buffer_pool_, common::ManagedPointer(&thread_registry_));
     log_manager_->Start();
     LargeSqlTableTestObject tested = LargeSqlTableTestObject::Builder()
                                          .SetNumDatabases(num_databases)
@@ -89,8 +91,9 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, OLTPWorkload)(benchmark::State &state) {
     transaction::TransactionManager recovery_txn_manager_{&buffer_pool_, true, LOGGING_DISABLED};
 
     // Instantiate recovery manager, and recover the tables.
-    storage::DiskLogProvider log_provider(&catalog, LOG_FILE_NAME);
-    recovery_manager_ = new storage::RecoveryManager(&log_provider, &catalog, &recovery_txn_manager_);
+    storage::DiskLogProvider log_provider(LOG_FILE_NAME);
+    recovery_manager_ = new storage::RecoveryManager(&log_provider, &catalog, &recovery_txn_manager_,
+                                                     common::ManagedPointer(&thread_registry_));
 
     uint64_t elapsed_ms;
     {
@@ -133,8 +136,9 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, HighAbortRate)(benchmark::State &state) {
     // Blow away log file after every benchmark iteration
     unlink(LOG_FILE_NAME);
     // Initialize table and run workload with logging enabled
-    log_manager_ = new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_,
-                                           log_persist_interval_, log_persist_threshold_, &buffer_pool_);
+    log_manager_ =
+        new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
+                                log_persist_threshold_, &buffer_pool_, common::ManagedPointer(&thread_registry_));
     log_manager_->Start();
     LargeSqlTableTestObject tested = LargeSqlTableTestObject::Builder()
                                          .SetNumDatabases(num_databases)
@@ -169,8 +173,9 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, HighAbortRate)(benchmark::State &state) {
     transaction::TransactionManager recovery_txn_manager_{&buffer_pool_, true, LOGGING_DISABLED};
 
     // Instantiate recovery manager, and recover the tables.
-    storage::DiskLogProvider log_provider(&catalog, LOG_FILE_NAME);
-    recovery_manager_ = new storage::RecoveryManager(&log_provider, &catalog, &recovery_txn_manager_);
+    storage::DiskLogProvider log_provider(LOG_FILE_NAME);
+    recovery_manager_ = new storage::RecoveryManager(&log_provider, &catalog, &recovery_txn_manager_,
+                                                     common::ManagedPointer(&thread_registry_));
 
     uint64_t elapsed_ms;
     {

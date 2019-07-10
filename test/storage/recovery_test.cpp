@@ -33,6 +33,7 @@ class RecoveryTests : public TerrierTest {
 
   const std::chrono::milliseconds gc_period_{10};
   storage::GarbageCollectorThread *gc_thread_;
+  common::DedicatedThreadRegistry thread_registry_;
 
   void SetUp() override {
     // Unlink log file incase one exists from previous test iteration
@@ -43,7 +44,6 @@ class RecoveryTests : public TerrierTest {
   void TearDown() override {
     // Delete log file
     unlink(LOG_FILE_NAME);
-    DedicatedThreadRegistry::GetInstance().TearDown();
     TerrierTest::TearDown();
   }
 };
@@ -54,7 +54,7 @@ class RecoveryTests : public TerrierTest {
 TEST_F(RecoveryTests, SingleTableTest) {
   // Initialize table and run workload with logging enabled
   log_manager_ = new LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
-                                log_persist_threshold_, &pool_);
+                                log_persist_threshold_, &pool_, common::ManagedPointer(&thread_registry_));
   log_manager_->Start();
   LargeSqlTableTestObject tested = LargeSqlTableTestObject::Builder()
                                        .SetNumDatabases(1)
@@ -93,7 +93,8 @@ TEST_F(RecoveryTests, SingleTableTest) {
 
   // Instantiate recovery manager, and recover the tables.
   DiskLogProvider log_provider(LOG_FILE_NAME);
-  recovery_manager_ = new RecoveryManager(&log_provider, &catalog, &recovery_txn_manager_);
+  recovery_manager_ =
+      new RecoveryManager(&log_provider, &catalog, &recovery_txn_manager_, common::ManagedPointer(&thread_registry_));
   recovery_manager_->StartRecovery();
   recovery_manager_->FinishRecovery();
 
@@ -122,7 +123,7 @@ TEST_F(RecoveryTests, SingleTableTest) {
 TEST_F(RecoveryTests, HighAbortRateTest) {
   // Initialize table and run workload with logging enabled
   log_manager_ = new LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
-                                log_persist_threshold_, &pool_);
+                                log_persist_threshold_, &pool_, common::ManagedPointer(&thread_registry_));
   log_manager_->Start();
   LargeSqlTableTestObject tested = LargeSqlTableTestObject::Builder()
                                        .SetNumDatabases(1)
@@ -161,7 +162,8 @@ TEST_F(RecoveryTests, HighAbortRateTest) {
 
   // Instantiate recovery manager, and recover the tables.
   DiskLogProvider log_provider(LOG_FILE_NAME);
-  recovery_manager_ = new RecoveryManager(&log_provider, &catalog, &recovery_txn_manager_);
+  recovery_manager_ =
+      new RecoveryManager(&log_provider, &catalog, &recovery_txn_manager_, common::ManagedPointer(&thread_registry_));
   recovery_manager_->StartRecovery();
   recovery_manager_->FinishRecovery();
 
@@ -187,7 +189,7 @@ TEST_F(RecoveryTests, HighAbortRateTest) {
 TEST_F(RecoveryTests, MultiDatabaseTest) {
   // Initialize table and run workload with logging enabled
   log_manager_ = new LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
-                                log_persist_threshold_, &pool_);
+                                log_persist_threshold_, &pool_, common::ManagedPointer(&thread_registry_));
   log_manager_->Start();
   LargeSqlTableTestObject tested = LargeSqlTableTestObject::Builder()
                                        .SetNumDatabases(3)
@@ -222,7 +224,8 @@ TEST_F(RecoveryTests, MultiDatabaseTest) {
 
   // Instantiate recovery manager, and recover the tables.
   DiskLogProvider log_provider(LOG_FILE_NAME);
-  recovery_manager_ = new RecoveryManager(&log_provider, &catalog, &recovery_txn_manager_);
+  recovery_manager_ =
+      new RecoveryManager(&log_provider, &catalog, &recovery_txn_manager_, common::ManagedPointer(&thread_registry_));
   recovery_manager_->StartRecovery();
   recovery_manager_->FinishRecovery();
 
