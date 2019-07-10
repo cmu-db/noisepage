@@ -66,5 +66,4 @@ class Callbacks {
   static void NumLogManagerBuffers(void *old_value, void *new_value, DBMain *db_main,
                                    const std::shared_ptr<common::ActionContext> &action_context);
 };
-
 }  // namespace terrier::settings

@@ -39,7 +39,7 @@ namespace terrier::storage {
  *      5. When the persist is done, the `DiskLogConsumerTask` will call the commit callbacks for any CommitRecords that
  * were just persisted.
  */
-class LogManager : public DedicatedThreadOwner {
+class LogManager : public common::DedicatedThreadOwner {
  public:
   DECLARE_ANNOTATION(LOG_FILE_PATH)
   DECLARE_ANNOTATION(NUM_BUFFERS)
@@ -58,13 +58,16 @@ class LogManager : public DedicatedThreadOwner {
    * @param persist_threshold data written threshold to trigger log file persist
    * @param buffer_pool the object pool to draw log buffers from. This must be the same pool transactions draw their
    *                    buffers from
+   * @param thread_registry DedicatedThreadRegistry dependency injection
    */
   BOOST_DI_INJECT(LogManager, (named = LOG_FILE_PATH) std::string log_file_path,
                   (named = NUM_BUFFERS) uint64_t num_buffers,
                   (named = SERIALIZATION_INTERVAL) std::chrono::milliseconds serialization_interval,
                   (named = PERSIST_INTERVAL) std::chrono::milliseconds persist_interval,
-                  (named = PERSIST_THRESHOLD) uint64_t persist_threshold, RecordBufferSegmentPool *buffer_pool)
-      : run_log_manager_(false),
+                  (named = PERSIST_THRESHOLD) uint64_t persist_threshold, RecordBufferSegmentPool *buffer_pool,
+                  common::ManagedPointer<terrier::common::DedicatedThreadRegistry> thread_registry)
+      : DedicatedThreadOwner(thread_registry),
+        run_log_manager_(false),
         log_file_path_(std::move(log_file_path)),
         num_buffers_(num_buffers),
         buffer_pool_(buffer_pool),
@@ -172,7 +175,7 @@ class LogManager : public DedicatedThreadOwner {
    * we are in shut down, else we need to keep the task, so we reject the removal
    * @return true if we allowed thread to be removed, else false
    */
-  bool OnThreadRemoval(common::ManagedPointer<DedicatedThreadTask> task) override {
+  bool OnThreadRemoval(common::ManagedPointer<common::DedicatedThreadTask> task) override {
     // We don't want to register a task if the log manager is shutting down though.
     return !run_log_manager_;
   }

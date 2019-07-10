@@ -170,7 +170,7 @@ class NotifiableTask : public DedicatedThreadTask {
   /**
    * Exits the event loop
    */
-  virtual void ExitLoop() { event_active(terminate_, 0, 0); }
+  void ExitLoop() { event_active(terminate_, 0, 0); }
 
   /**
    * Wrapper around ExitLoop() to conform to libevent callback signature
