@@ -526,15 +526,21 @@ std::unique_ptr<AbstractExpression> PostgresParser::ColumnRefTransform(ColumnRef
   switch (node->type) {
     case T_String: {
       // TODO(WAN): verify the old system is doing the right thing
+      std::string col_name;
+      std::string table_name;
       if (fields->length == 1) {
-        auto col_name = reinterpret_cast<value *>(node)->val.str;
-        result = std::make_unique<ColumnValueExpression>("", "", col_name, alias);
+        col_name = reinterpret_cast<value *>(node)->val.str;
+        table_name = "";
       } else {
         auto next_node = reinterpret_cast<Node *>(fields->head->next->data.ptr_value);
-        auto col_name = reinterpret_cast<value *>(next_node)->val.str;
-        auto table_name = reinterpret_cast<value *>(node)->val.str;
-        result = std::make_unique<ColumnValueExpression>("", table_name, col_name, alias);
+        col_name = reinterpret_cast<value *>(next_node)->val.str;
+        table_name = reinterpret_cast<value *>(node)->val.str;
       }
+
+      if (alias != nullptr)
+        result = std::make_unique<ColumnValueExpression>("", table_name, col_name, alias);
+      else
+        result = std::make_unique<ColumnValueExpression>("", table_name, col_name);
       break;
     }
     case T_A_Star: {

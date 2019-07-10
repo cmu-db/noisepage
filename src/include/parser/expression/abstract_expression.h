@@ -37,9 +37,10 @@ class AbstractExpression {
    */
   AbstractExpression(const ExpressionType expression_type, const type::TypeId return_value_type, const char *alias,
                      std::vector<std::shared_ptr<AbstractExpression>> &&children)
-      : expression_type_(expression_type), return_value_type_(return_value_type), children_(std::move(children)) {
-    if (alias != nullptr) alias_ = std::string(alias);
-  }
+      : expression_type_(expression_type),
+        alias_(std::string(alias)),
+        return_value_type_(return_value_type),
+        children_(std::move(children)) {}
 
   /**
    * Copy constructs an abstract expression.
