@@ -1,4 +1,5 @@
 #pragma once
+
 #include <memory>
 #include <thread>  // NOLINT
 #include <unordered_map>
@@ -9,7 +10,7 @@
 #include "common/managed_pointer.h"
 #include "common/spin_latch.h"
 
-namespace terrier {
+namespace terrier::common {
 
 /**
  * @brief Singleton class responsible for maintaining and dispensing long running
@@ -48,15 +49,6 @@ class DedicatedThreadRegistry {
     }
     threads_table_.clear();
     thread_owners_table_.clear();
-  }
-
-  // TODO(tianyu): Remove when we remove singletons
-  /**
-   * @return The singleton instance of the DedicatedThreadRegistry
-   */
-  static DedicatedThreadRegistry &GetInstance() {
-    static DedicatedThreadRegistry registry;
-    return registry;
   }
 
   /**
@@ -140,4 +132,4 @@ class DedicatedThreadRegistry {
   std::unordered_map<DedicatedThreadOwner *, std::unordered_set<DedicatedThreadTask *>> thread_owners_table_;
 };
 
-}  // namespace terrier
+}  // namespace terrier::common
