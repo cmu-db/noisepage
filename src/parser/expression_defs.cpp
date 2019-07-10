@@ -69,16 +69,16 @@ std::string ExpressionTypeToString(ExpressionType type, bool short_str) {
       return short_str ? "!~~" : "COMPARE_NOT_LIKE";
     }
     case ExpressionType::COMPARE_IN: {
-      return "COMPARE_IN";
+      return short_str ? "IN" : "COMPARE_IN";
     }
     case ExpressionType::COMPARE_IS_DISTINCT_FROM: {
-      return "COMPARE_IS_DISTINCT_FROM";
+      return short_str ? "IS_DISTINCT_FROM" : "COMPARE_IS_DISTINCT_FROM";
     }
     case ExpressionType::CONJUNCTION_AND: {
-      return "CONJUNCTION_AND";
+      return short_str ? "AND" : "CONJUNCTION_AND";
     }
     case ExpressionType::CONJUNCTION_OR: {
-      return "CONJUNCTION_OR";
+      return short_str ? "OR" : "CONJUNCTION_OR";
     }
     case ExpressionType::VALUE_CONSTANT: {
       return "VALUE_CONSTANT";
@@ -88,6 +88,9 @@ std::string ExpressionTypeToString(ExpressionType type, bool short_str) {
     }
     case ExpressionType::VALUE_TUPLE: {
       return "VALUE_TUPLE";
+    }
+    case ExpressionType::COLUMN_TUPLE: {
+      return "COLUMN_TUPLE";
     }
     case ExpressionType::VALUE_TUPLE_ADDRESS: {
       return "VALUE_TUPLE_ADDRESS";
