@@ -46,8 +46,10 @@ class SubqueryExpression : public AbstractExpression {
     int current_depth = this->GetDepth();
     for (auto &select_elem : subselect_->GetSelectColumns()) {
       int select_depth = select_elem->DeriveDepth();
-      if (select_depth >= 0 && (current_depth == -1 || select_depth < current_depth)) this->SetDepth(select_depth);
-      current_depth = this->GetDepth();
+      if (select_depth >= 0 && (current_depth == -1 || select_depth < current_depth)) {
+        this->SetDepth(select_depth);
+        current_depth = select_depth;
+      }
     }
     auto where = subselect_->GetSelectCondition();
     if (where != nullptr) {
