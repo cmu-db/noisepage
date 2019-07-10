@@ -70,17 +70,7 @@ class SubqueryExpression : public AbstractExpression {
   bool operator==(const AbstractExpression &rhs) const override {
     if (!AbstractExpression::operator==(rhs)) return false;
     auto const &other = dynamic_cast<const SubqueryExpression &>(rhs);
-    auto const select_columns = subselect_->GetSelectColumns();
-    auto const other_select_columns = other.subselect_->GetSelectColumns();
-    if (select_columns.size() != other_select_columns.size()) return false;
-
-    for (size_t i = 0; i < select_columns.size(); i++)
-      if (*(select_columns[i]) != *(other_select_columns[i])) return false;
-    if (subselect_->IsSelectDistinct() != other.subselect_->IsSelectDistinct()) return false;
-
-    if (subselect_->GetSelectCondition() != nullptr)
-      return subselect_->GetSelectCondition() == other.subselect_->GetSelectCondition();
-    return other.subselect_->GetSelectCondition() == nullptr;
+    return *subselect_ == *(other.subselect_);
   }
 
   /**

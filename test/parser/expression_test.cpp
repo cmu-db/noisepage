@@ -889,7 +889,7 @@ TEST(ExpressionTests, SubqueryExpressionTest) {
   // subselect's select columns, where condition, and distinct flag
   PostgresParser pgparser;
   auto stmts0 = pgparser.BuildParseTree(
-      "SELECT * FROM foo INNER JOIN bar ON foo.a = bar.a GROUP BY foo.b ORDER BY bar.b ASC LIMIT 5;");
+      "SELECT * FROM foo INNER JOIN bar ON foo.a = bar.a WHERE foo.a > 0 GROUP BY foo.b ORDER BY bar.b ASC LIMIT 5;");
   EXPECT_EQ(stmts0.size(), 1);
   EXPECT_EQ(stmts0[0]->GetType(), StatementType::SELECT);
 
@@ -897,27 +897,34 @@ TEST(ExpressionTests, SubqueryExpressionTest) {
   auto subselect_expr0 = new SubqueryExpression(select0);
 
   auto stmts1 = pgparser.BuildParseTree(
-      "SELECT * FROM foo INNER JOIN bar ON foo.a = bar.a GROUP BY foo.b ORDER BY bar.b ASC LIMIT 5;");
+      "SELECT * FROM foo INNER JOIN bar ON foo.a = bar.a WHERE foo.a > 0 GROUP BY foo.b ORDER BY bar.b ASC LIMIT 5;");
   auto select1 = std::shared_ptr<SelectStatement>(reinterpret_cast<SelectStatement *>(stmts1[0].release()));
   auto subselect_expr1 = new SubqueryExpression(select1);
 
   // different in select columns
   auto stmts2 = pgparser.BuildParseTree(
-      "SELECT a, b FROM foo INNER JOIN bar ON foo.a = bar.a GROUP BY foo.b ORDER BY bar.b ASC LIMIT 5;");
+      "SELECT a, b FROM foo INNER JOIN bar ON foo.a = bar.a WHERE foo.a > 0 GROUP BY foo.b ORDER BY bar.b ASC LIMIT "
+      "5;");
   auto select2 = std::shared_ptr<SelectStatement>(reinterpret_cast<SelectStatement *>(stmts2[0].release()));
   auto subselect_expr2 = new SubqueryExpression(select2);
 
   // different in distinct flag
   auto stmts3 = pgparser.BuildParseTree(
-      "SELECT DISTINCT a, b FROM foo INNER JOIN bar ON foo.a = bar.a GROUP BY foo.b ORDER BY bar.b ASC LIMIT 5;");
+      "SELECT DISTINCT a, b FROM foo INNER JOIN bar ON foo.a = bar.a WHERE foo.a > 0 GROUP BY foo.b ORDER BY bar.b ASC "
+      "LIMIT 5;");
   auto select3 = std::shared_ptr<SelectStatement>(reinterpret_cast<SelectStatement *>(stmts3[0].release()));
   auto subselect_expr3 = new SubqueryExpression(select3);
 
-  // different in the
+  // different in where
   auto stmts4 = pgparser.BuildParseTree(
-      "SELECT * FROM foo INNER JOIN bar ON foo.b= bar.a  WHERE c > 0 GROUP BY foo.b ORDER BY bar.b ASC LIMIT 5;");
+      "SELECT * FROM foo INNER JOIN bar ON foo.b = bar.a WHERE foo.b > 0 GROUP BY foo.b ORDER BY bar.b ASC LIMIT 5;");
   auto select4 = std::shared_ptr<SelectStatement>(reinterpret_cast<SelectStatement *>(stmts4[0].release()));
   auto subselect_expr4 = new SubqueryExpression(select4);
+
+  // different in where
+  auto stmts5 = pgparser.BuildParseTree("SELECT * FROM foo INNER JOIN bar ON foo.b = bar.a;");
+  auto select5 = std::shared_ptr<SelectStatement>(reinterpret_cast<SelectStatement *>(stmts5[0].release()));
+  auto subselect_expr5 = new SubqueryExpression(select5);
 
   // depth is still -1 after deriveDepth, as the depth is set in binder
   EXPECT_EQ(subselect_expr0->DeriveDepth(), -1);
@@ -925,16 +932,19 @@ TEST(ExpressionTests, SubqueryExpressionTest) {
   EXPECT_FALSE(*subselect_expr0 == *subselect_expr2);
   EXPECT_FALSE(*subselect_expr2 == *subselect_expr3);
   EXPECT_FALSE(*subselect_expr0 == *subselect_expr4);
+  EXPECT_FALSE(*subselect_expr0 == *subselect_expr5);
   EXPECT_EQ(subselect_expr0->Hash(), subselect_expr1->Hash());
   EXPECT_NE(subselect_expr0->Hash(), subselect_expr2->Hash());
   EXPECT_NE(subselect_expr2->Hash(), subselect_expr3->Hash());
   EXPECT_NE(subselect_expr0->Hash(), subselect_expr4->Hash());
+  EXPECT_NE(subselect_expr0->Hash(), subselect_expr5->Hash());
 
   delete subselect_expr0;
   delete subselect_expr1;
   delete subselect_expr2;
   delete subselect_expr3;
   delete subselect_expr4;
+  delete subselect_expr5;
 }
 
 // NOLINTNEXTLINE
