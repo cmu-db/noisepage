@@ -10,6 +10,7 @@ if (TERRIER_BUILD_BENCHMARKS)
     target_link_libraries(benchmark_util benchmark pthread)
     add_dependencies(benchmark_util gtest)
 
+    add_subdirectory(metrics)
     add_subdirectory(storage)
     add_subdirectory(integration)
     add_subdirectory(transaction)
