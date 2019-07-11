@@ -133,7 +133,7 @@ class IndexSchema {
     friend class postgres::Builder;
 
     friend class tpcc::Schemas;
-    friend class StorageTestUtil;
+    friend class terrier::StorageTestUtil;
   };
 
   /**
