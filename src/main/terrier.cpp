@@ -28,6 +28,5 @@ int main(int argc, char *argv[]) {
 
   terrier::settings::SettingsManager::ConstructParamMap(param_map);
   terrier::DBMain db(std::move(param_map));
-  db.Init();
   db.Run();
 }

@@ -44,14 +44,6 @@ class ConnectionHandleFactory {
   ConnectionHandle &NewConnectionHandle(int conn_fd, std::unique_ptr<ProtocolInterpreter> interpreter,
                                         common::ManagedPointer<ConnectionHandlerTask> handler);
 
-  /**
-   * Teardown for connection handle factory to clean up anything in reusable_handles_
-   */
-  void TearDown() {
-    DedicatedThreadRegistry::GetInstance().TearDown();
-    reusable_handles_.clear();
-  }
-
  private:
   std::unordered_map<int, ConnectionHandle> reusable_handles_;
   common::ManagedPointer<trafficcop::TrafficCop> traffic_cop_;
