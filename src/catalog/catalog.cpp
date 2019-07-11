@@ -44,8 +44,7 @@ void Catalog::TearDown() {
   while (table_iter != databases_->end()) {
     databases_->Scan(txn, &table_iter, pc);
 
-    for (uint i = 0; i < pc->NumTuples(); i++)
-      db_cats.emplace_back(db_ptrs[i]);
+    for (uint i = 0; i < pc->NumTuples(); i++) db_cats.emplace_back(db_ptrs[i]);
   }
 
   // Pass vars by value except for db_cats which we move
@@ -112,7 +111,8 @@ db_oid_t Catalog::GetDatabaseOid(transaction::TransactionContext *txn, const std
     std::memcpy(varlen_contents, name.data(), name.size());
     name_varlen = storage::VarlenEntry::Create(varlen_contents, static_cast<uint>(name.size()), true);
   } else {
-    name_varlen = storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *const>(name.data()), static_cast<uint>(name.size()));
+    name_varlen = storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *const>(name.data()),
+                                                     static_cast<uint>(name.size()));
   }
 
   // Name is a larger projected row (16-byte key vs 4-byte key), sow we can reuse
@@ -126,8 +126,7 @@ db_oid_t Catalog::GetDatabaseOid(transaction::TransactionContext *txn, const std
     delete[] varlen_contents;
   }
 
-  if (index_results.empty())
-  {
+  if (index_results.empty()) {
     delete[] buffer;
     return INVALID_DATABASE_OID;
   }

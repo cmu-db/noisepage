@@ -24,8 +24,9 @@ table_oid_t CatalogAccessor::GetTableOid(const std::string &name) {
   return INVALID_TABLE_OID;
 }
 
-table_oid_t CatalogAccessor::GetTableOid(namespace_oid_t ns,
-                                         const std::string &name) { return dbc_->GetTableOid(txn_, ns, name); }
+table_oid_t CatalogAccessor::GetTableOid(namespace_oid_t ns, const std::string &name) {
+  return dbc_->GetTableOid(txn_, ns, name);
+}
 
 table_oid_t CatalogAccessor::CreateTable(namespace_oid_t ns, const std::string &name, Schema *schema) {
   return dbc_->CreateTable(txn_, ns, name, *schema);

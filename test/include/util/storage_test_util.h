@@ -19,8 +19,8 @@
 #include "storage/storage_util.h"
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
-#include "type/type_id.h"
 #include "type/transient_value_factory.h"
+#include "type/type_id.h"
 #include "util/multithread_test_util.h"
 #include "util/random_test_util.h"
 
@@ -415,7 +415,8 @@ struct StorageTestUtil {
       const uint8_t type_offset = std::uniform_int_distribution(static_cast<uint8_t>(0), max_offset)(*generator);
       const auto type = types[type_offset];
 
-      key_cols.emplace_back(key_oids[col++], type, false, new parser::ConstantValueExpression(std::move(type::TransientValueFactory::GetNull(type))));
+      key_cols.emplace_back(key_oids[col++], type, false,
+                            new parser::ConstantValueExpression(std::move(type::TransientValueFactory::GetNull(type))));
       bytes_used = static_cast<uint16_t>(bytes_used + type::TypeUtil::GetTypeSize(type));
     }
 

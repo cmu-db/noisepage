@@ -6,18 +6,18 @@
 #include "type/type_id.h"
 
 namespace terrier {
-  class StorageTestUtil;
+class StorageTestUtil;
 }
 
 namespace terrier::tpcc {
-  class Schemas;
+class Schemas;
 }
 
 namespace terrier::catalog {
 class DatabaseCatalog;
 
 namespace postgres {
-  class Builder;
+class Builder;
 }
 
 /**
@@ -69,7 +69,6 @@ class IndexSchema {
           packed_type_(original.packed_type_),
           expression_(nullptr),
           serialized_expression_(original.serialized_expression_) {}
-
 
     /**
      * @return oid of this key column

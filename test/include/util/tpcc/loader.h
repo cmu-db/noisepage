@@ -469,8 +469,7 @@ struct Loader {
 
   static storage::ProjectedRow *BuildWarehouseKey(
       const int8_t w_id, byte *const buffer, const storage::ProjectedRowInitializer &pr_initializer,
-      const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &pr_map,
-      const catalog::IndexSchema &schema) {
+      const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &pr_map, const catalog::IndexSchema &schema) {
     TERRIER_ASSERT(w_id >= 1, "Invalid w_id.");
     TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
 
@@ -847,8 +846,7 @@ struct Loader {
   static storage::ProjectedRow *BuildCustomerNameKey(
       const storage::VarlenEntry &c_last, const int8_t d_id, const int8_t w_id, byte *const buffer,
       const storage::ProjectedRowInitializer &pr_initializer,
-      const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &pr_map,
-      const catalog::IndexSchema &schema) {
+      const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &pr_map, const catalog::IndexSchema &schema) {
     TERRIER_ASSERT(d_id >= 1 && d_id <= 10, "Invalid d_id.");
     TERRIER_ASSERT(w_id >= 1, "Invalid w_id.");
     TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
@@ -1054,8 +1052,7 @@ struct Loader {
   static storage::ProjectedRow *BuildOrderSecondaryKey(
       const int32_t o_id, const int32_t c_id, const int8_t d_id, const int8_t w_id, byte *const buffer,
       const storage::ProjectedRowInitializer &pr_initializer,
-      const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &pr_map,
-      const catalog::IndexSchema &schema) {
+      const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &pr_map, const catalog::IndexSchema &schema) {
     TERRIER_ASSERT(o_id >= 1 && o_id <= 3000, "Invalid o_id.");
     TERRIER_ASSERT(c_id >= 1 && c_id <= 3000, "Invalid c_id.");
     TERRIER_ASSERT(d_id >= 1 && d_id <= 10, "Invalid d_id.");
@@ -1149,8 +1146,7 @@ struct Loader {
   static storage::ProjectedRow *BuildOrderLineKey(
       const int32_t o_id, const int8_t d_id, const int8_t w_id, const int8_t ol_number, byte *const buffer,
       const storage::ProjectedRowInitializer &pr_initializer,
-      const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &pr_map,
-      const catalog::IndexSchema &schema) {
+      const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &pr_map, const catalog::IndexSchema &schema) {
     TERRIER_ASSERT(o_id >= 1 && o_id <= 3000, "Invalid o_id.");
     TERRIER_ASSERT(d_id >= 1 && d_id <= 10, "Invalid d_id.");
     TERRIER_ASSERT(w_id >= 1, "Invalid w_id.");

@@ -14,11 +14,11 @@
 #include "type/type_util.h"
 
 namespace terrier {
-  class StorageTestUtil;
+class StorageTestUtil;
 }
 
 namespace terrier::tpcc {
-  class Schemas;
+class Schemas;
 }
 
 namespace terrier::catalog {
