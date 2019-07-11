@@ -89,37 +89,37 @@ struct Schemas {
 
     // 20 unique IDs
     district_columns.emplace_back("D_ID", type::TypeId::TINYINT, false, parser::ConstantValueExpression(std::move(type::TransientValueFactory::GetNull(type::TypeId::TINYINT))));
-    district_columns.back().SetOid()(static_cast<catalog::col_oid_t>(++(*oid_counter)));
+    district_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // 2*W unique IDs
     district_columns.emplace_back("D_W_ID", type::TypeId::TINYINT, false, parser::ConstantValueExpression(std::move(type::TransientValueFactory::GetNull(type::TypeId::TINYINT))));
-    district_columns.back().SetOid()(static_cast<catalog::col_oid_t>(++(*oid_counter)));
+    district_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // variable text, size 10
     district_columns.emplace_back("D_NAME", type::TypeId::VARCHAR, 10, false, parser::ConstantValueExpression(std::move(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR))));
-    district_columns.back().SetOid()(static_cast<catalog::col_oid_t>(++(*oid_counter)));
+    district_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // variable text, size 20
     district_columns.emplace_back("D_STREET_1", type::TypeId::VARCHAR, 20, false, parser::ConstantValueExpression(std::move(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR))));
-    district_columns.back().SetOid()(static_cast<catalog::col_oid_t>(++(*oid_counter)));
+    district_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // variable text, size 20
     district_columns.emplace_back("D_STREET_2", type::TypeId::VARCHAR, 20, false, parser::ConstantValueExpression(std::move(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR))));
-    district_columns.back().SetOid()(static_cast<catalog::col_oid_t>(++(*oid_counter)));
+    district_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // variable text, size 20
     district_columns.emplace_back("D_CITY", type::TypeId::VARCHAR, 20, false, parser::ConstantValueExpression(std::move(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR))));
-    district_columns.back().SetOid()(static_cast<catalog::col_oid_t>(++(*oid_counter)));
+    district_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // fixed text, size 2
     district_columns.emplace_back("D_STATE", type::TypeId::VARCHAR, 2, false, parser::ConstantValueExpression(std::move(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR))));
-    district_columns.back().SetOid()(static_cast<catalog::col_oid_t>(++(*oid_counter)));
+    district_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // fixed text, size 9
     district_columns.emplace_back("D_ZIP", type::TypeId::VARCHAR, 9, false, parser::ConstantValueExpression(std::move(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR))));
-    district_columns.back().SetOid()(static_cast<catalog::col_oid_t>(++(*oid_counter)));
+    district_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // signed numeric(4,4)
     district_columns.emplace_back("D_TAX", type::TypeId::DECIMAL, false, parser::ConstantValueExpression(std::move(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL))));
-    district_columns.back().SetOid()(static_cast<catalog::col_oid_t>(++(*oid_counter)));
+    district_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // signed numeric(12,2)
     district_columns.emplace_back("D_YTD", type::TypeId::DECIMAL, false, parser::ConstantValueExpression(std::move(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL))));
-    district_columns.back().SetOid()(static_cast<catalog::col_oid_t>(++(*oid_counter)));
+    district_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // 10,000,000 unique IDs
     district_columns.emplace_back("D_NEXT_O_ID", type::TypeId::INTEGER, false, parser::ConstantValueExpression(std::move(type::TransientValueFactory::GetNull(type::TypeId::INTEGER))));
-    district_columns.back().SetOid()(static_cast<catalog::col_oid_t>(++(*oid_counter)));
+    district_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
 
     TERRIER_ASSERT(district_columns.size() == num_district_table_cols_,
                    "Wrong number of columns for District table schema.");
@@ -139,9 +139,9 @@ struct Schemas {
 
     // Primary Key: (D_W_ID, D_ID)
     district_key_schema.emplace_back(schema.GetColumn(1).GetType(), schema.GetColumn(1).GetNullable());
-    district_key_sechema.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
+    district_key_schema.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     district_key_schema.emplace_back(schema.GetColumn(0).GetType(), schema.GetColumn(0).GetNullable());
-    district_key_sechema.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
+    district_key_schema.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
 
     TERRIER_ASSERT(district_key_schema.size() == num_district_primary_index_cols_,
                    "Wrong number of columns for District primary index schema.");
