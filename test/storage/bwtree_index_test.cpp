@@ -31,7 +31,7 @@ class BwTreeIndexTests : public TerrierTest {
   storage::BlockStore block_store_{1000, 1000};
   storage::RecordBufferSegmentPool buffer_pool_{1000000, 1000000};
   catalog::Schema table_schema_;
-  catalog::IndexKeySchema key_schema_;
+  catalog::IndexSchema key_schema_;
 
  public:
   BwTreeIndexTests() {
