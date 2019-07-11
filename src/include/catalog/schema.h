@@ -13,7 +13,7 @@
 #include "type/type_id.h"
 #include "type/type_util.h"
 
-namespace terrrier {
+namespace terrier {
   class StorageTestUtil;
 }
 

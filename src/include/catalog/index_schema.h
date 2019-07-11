@@ -5,7 +5,7 @@
 #include "parser/expression/abstract_expression.h"
 #include "type/type_id.h"
 
-namespace terrrier {
+namespace terrier {
   class StorageTestUtil;
 }
 
