@@ -491,8 +491,15 @@ class CreateTablePlanNode : public AbstractPlanNode {
           // varchars.
           auto column = catalog::Schema::Column(std::string(col->GetColumnName()), val, false, col->GetDefaultExpression());
 
-
-          columns.emplace_back(column);
+          if (col->GetVarlenSize() != 0) {
+            TERRIER_ASSERT(val == type::TypeId::VARCHAR || val == type::TypeId::VARBINARY,
+                           "Variable length types should have a non-zero max varlen size")
+            columns.emplace_back(std::string(col->GetColumnName()), val, false, col->GetDefaultExpression(), col->GetVarlenSize());
+          } else {
+            TERRIER_ASSERT(val != type::TypeId::VARCHAR && val != type::TypeId::VARBINARY,
+                           "Fixed length types should have max varlen of size 0")
+            columns.emplace_back(std::string(col->GetColumnName()), val, false, col->GetDefaultExpression());
+          }
 
           // Collect Multi-column constraints information
 
