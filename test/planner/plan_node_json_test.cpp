@@ -44,6 +44,7 @@
 #include "type/transient_value_factory.h"
 #include "type/type_id.h"
 
+#include "util/storage_test_util.h"
 #include "util/test_harness.h"
 
 namespace terrier::planner {
@@ -317,9 +318,9 @@ TEST(PlanNodeJsonTest, CreateTablePlanNodeTest) {
         catalog::Schema::Column("a", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER))),
         catalog::Schema::Column("u_a", type::TypeId::DECIMAL, false, parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL))),
         catalog::Schema::Column("u_b", type::TypeId::DATE, true, parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DATE)))};
-    StorageTestUtil::ForceOid(columns[0], col_oid_t(1));
-    StorageTestUtil::ForceOid(columns[1], col_oid_t(2));
-    StorageTestUtil::ForceOid(columns[2], col_oid_t(3));
+    StorageTestUtil::ForceOid(columns[0], catalog::col_oid_t(1));
+    StorageTestUtil::ForceOid(columns[1], catalog::col_oid_t(2));
+    StorageTestUtil::ForceOid(columns[2], catalog::col_oid_t(3));
     return std::make_shared<catalog::Schema>(columns);
   };
 
