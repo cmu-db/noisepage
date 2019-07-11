@@ -152,6 +152,8 @@ class Schema {
 
     friend class DatabaseCatalog;
     friend class postgres::Builder;
+
+    friend class tpcc::Schemas;
   };
 
   /**
@@ -246,8 +248,6 @@ class Schema {
   friend class DatabaseCatalog;
   std::vector<Column> columns_;
   std::unordered_map<col_oid_t, uint32_t> col_oid_to_offset;
-
-  friend class tpcc::Schemas;
 };
 
 DEFINE_JSON_DECLARATIONS(Schema::Column);

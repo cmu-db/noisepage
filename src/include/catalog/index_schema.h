@@ -127,6 +127,8 @@ class IndexSchema {
 
     friend class DatabaseCatalog;
     friend class postgres::Builder;
+
+    friend class tpcc::Schemas;
   };
 
   /**
@@ -177,7 +179,6 @@ class IndexSchema {
 
   friend class Catalog;
   friend class postgres::Builder;
-  friend class tpcc::Schemas;
 };
 
 }  // namespace terrier::catalog
