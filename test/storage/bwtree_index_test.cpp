@@ -41,7 +41,7 @@ class BwTreeIndexTests : public TerrierTest {
 
     auto keycol = catalog::IndexSchema::Column(type::TypeId::INTEGER, false, parser::ColumnValueExpression(catalog::table_oid_t(0), catalog::col_oid_t(1)));
     StorageTestUtil::ForceOid(keycol, catalog::indexkeycol_oid_t(1));
-    key_schema_ = catalog::IndexSchema({keycol}, true, true, false, true);
+    key_schema_ = catalog::IndexSchema(std::vector<catalog::IndexSchema::Column>({keycol}), true, true, false, true);
   }
 
   std::default_random_engine generator_;
