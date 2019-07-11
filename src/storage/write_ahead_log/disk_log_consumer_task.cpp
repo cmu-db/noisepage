@@ -46,7 +46,7 @@ uint64_t DiskLogConsumerTask::PersistLogFile() {
 }
 
 void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
-  uint64_t write_ns = 0, persist_ns = 0, num_bytes = 0, num_buffers = 0;
+  uint64_t write_us = 0, persist_us = 0, num_bytes = 0, num_buffers = 0;
   // Keeps track of how much data we've written to the log file since the last persist
   current_data_written_ = 0;
   // Time since last log file persist
@@ -66,13 +66,13 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
                                           [&] { return do_persist_ || !filled_buffer_queue_->Empty() || !run_task_; });
     }
 
-    uint64_t elapsed_ns = 0;
+    uint64_t elapsed_us = 0;
     {
-      common::ScopedTimer<std::chrono::nanoseconds> scoped_timer(&elapsed_ns);
+      common::ScopedTimer<std::chrono::microseconds> scoped_timer(&elapsed_us);
       // Flush all the buffers to the log file
       WriteBuffersToLogFile();
     }
-    write_ns += elapsed_ns;
+    write_us += elapsed_us;
 
     // We persist the log file if the following conditions are met
     // 1) The persist interval amount of time has passed since the last persist
@@ -82,7 +82,7 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
     bool timeout = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() -
                                                                          last_persist) > persist_interval_;
     if (timeout || current_data_written_ > persist_threshold_ || do_persist_ || !run_task_) {
-      common::ScopedTimer<std::chrono::nanoseconds> scoped_timer(&elapsed_ns);
+      common::ScopedTimer<std::chrono::microseconds> scoped_timer(&elapsed_us);
       {
         std::unique_lock<std::mutex> lock(persist_lock_);
         num_buffers = PersistLogFile();
@@ -95,11 +95,11 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
       // Signal anyone who forced a persist that the persist has finished
       persist_cv_.notify_all();
     }
-    persist_ns = elapsed_ns;
+    persist_us = elapsed_us;
 
     if (num_bytes > 0 && common::thread_context.metrics_store_ != nullptr) {
-      common::thread_context.metrics_store_->RecordConsumerData(write_ns, persist_ns, num_bytes, num_buffers);
-      write_ns = persist_ns = num_bytes = num_buffers = 0;
+      common::thread_context.metrics_store_->RecordConsumerData(write_us, persist_us, num_bytes, num_buffers);
+      write_us = persist_us = num_bytes = num_buffers = 0;
     }
   } while (run_task_);
   // Be extra sure we processed everything

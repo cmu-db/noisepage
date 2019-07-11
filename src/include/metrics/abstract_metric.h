@@ -9,7 +9,7 @@
 #include "catalog/catalog_defs.h"
 #include "common/spin_latch.h"
 #include "metrics/abstract_raw_data.h"
-#include "metrics/metric_defs.h"
+#include "metrics/metrics_defs.h"
 
 namespace terrier::metrics {
 /**

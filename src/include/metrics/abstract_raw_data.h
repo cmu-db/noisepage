@@ -2,7 +2,7 @@
 
 #include <vector>
 #include "common/macros.h"
-#include "metrics/metric_defs.h"
+#include "metrics/metrics_defs.h"
 
 namespace terrier::metrics {
 /**

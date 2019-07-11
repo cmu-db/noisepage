@@ -9,7 +9,7 @@
 #include "metrics/abstract_metric.h"
 #include "metrics/abstract_raw_data.h"
 #include "metrics/logging_metric.h"
-#include "metrics/metric_defs.h"
+#include "metrics/metrics_defs.h"
 
 namespace terrier::metrics {
 
@@ -27,26 +27,26 @@ class MetricsStore {
  public:
   /**
    * Record metrics from the LogSerializerTask
-   * @param elapsed_ns first entry of metrics datapoint
+   * @param elapsed_us first entry of metrics datapoint
    * @param num_bytes second entry of metrics datapoint
    * @param num_records third entry of metrics datapoint
    */
-  void RecordSerializerData(const uint64_t elapsed_ns, const uint64_t num_bytes, const uint64_t num_records) {
+  void RecordSerializerData(const uint64_t elapsed_us, const uint64_t num_bytes, const uint64_t num_records) {
     if (ComponentEnabled(MetricsComponent::LOGGING))
-      logging_metric_->RecordSerializerData(elapsed_ns, num_bytes, num_records);
+      logging_metric_->RecordSerializerData(elapsed_us, num_bytes, num_records);
   }
 
   /**
    * Record metrics from the LogConsumerTask
-   * @param write_ns first entry of metrics datapoint
-   * @param persist_ns second entry of metrics datapoint
+   * @param write_us first entry of metrics datapoint
+   * @param persist_us second entry of metrics datapoint
    * @param num_bytes third entry of metrics datapoint
    * @param num_records fourth entry of metrics datapoint
    */
-  void RecordConsumerData(const uint64_t write_ns, const uint64_t persist_ns, const uint64_t num_bytes,
+  void RecordConsumerData(const uint64_t write_us, const uint64_t persist_us, const uint64_t num_bytes,
                           const uint64_t num_records) {
     if (ComponentEnabled(MetricsComponent::LOGGING))
-      logging_metric_->RecordConsumerData(write_ns, persist_ns, num_bytes, num_records);
+      logging_metric_->RecordConsumerData(write_us, persist_us, num_bytes, num_records);
   }
 
  private:

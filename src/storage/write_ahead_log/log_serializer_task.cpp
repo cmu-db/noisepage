@@ -19,9 +19,9 @@ void LogSerializerTask::LogSerializerTaskLoop() {
 }
 
 void LogSerializerTask::Process() {
-  uint64_t elapsed_ns = 0, num_bytes = 0, num_records = 0;
+  uint64_t elapsed_us = 0, num_bytes = 0, num_records = 0;
   {
-    common::ScopedTimer<std::chrono::nanoseconds> scoped_timer(&elapsed_ns);
+    common::ScopedTimer<std::chrono::microseconds> scoped_timer(&elapsed_us);
     // In a short critical section, get all buffers to serialize. We move them to a temp queue to reduce contention
     // on the queue transactions interact with
     std::queue<RecordBufferSegment *> temp_flush_queue;
@@ -45,7 +45,7 @@ void LogSerializerTask::Process() {
     if (filled_buffer_ != nullptr) HandFilledBufferToWriter();
   }
   if (num_bytes > 0 && common::thread_context.metrics_store_ != nullptr) {
-    common::thread_context.metrics_store_->RecordSerializerData(elapsed_ns, num_bytes, num_records);
+    common::thread_context.metrics_store_->RecordSerializerData(elapsed_us, num_bytes, num_records);
   }
 }
 

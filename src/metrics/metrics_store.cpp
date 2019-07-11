@@ -3,7 +3,7 @@
 #include <memory>
 #include <vector>
 #include "metrics/logging_metric.h"
-#include "metrics/metric_defs.h"
+#include "metrics/metrics_defs.h"
 
 namespace terrier::metrics {
 
