@@ -538,7 +538,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::ColumnRefTransform(ColumnRef
       }
 
       if (alias != nullptr)
-        result = std::make_unique<ColumnValueExpression>("", table_name, col_name, alias);
+        result = std::make_unique<ColumnValueExpression>("", table_name, col_name, std::string(alias));
       else
         result = std::make_unique<ColumnValueExpression>("", table_name, col_name);
       break;
