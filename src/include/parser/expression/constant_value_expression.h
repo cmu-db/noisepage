@@ -17,7 +17,7 @@ class ConstantValueExpression : public AbstractExpression {
    * Instantiate a new constant value expression.
    * @param value value to be held
    */
-  explicit ConstantValueExpression(type::TransientValue value)
+  explicit ConstantValueExpression(const type::TransientValue &value)
       : AbstractExpression(ExpressionType::VALUE_CONSTANT, value.Type(), {}), value_(std::move(value)) {}
 
   /**
