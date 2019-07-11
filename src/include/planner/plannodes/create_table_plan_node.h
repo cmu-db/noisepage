@@ -487,14 +487,10 @@ class CreateTablePlanNode : public AbstractPlanNode {
           type::TypeId val = col->GetValueType();
 
           // Create column
-          // TODO(John) Updated to reflect the new constructor, but this logic doesn't look right since it cannot handle
-          // varchars.
-          auto column = catalog::Schema::Column(std::string(col->GetColumnName()), val, false, col->GetDefaultExpression());
-
           if (col->GetVarlenSize() != 0) {
             TERRIER_ASSERT(val == type::TypeId::VARCHAR || val == type::TypeId::VARBINARY,
                            "Variable length types should have a non-zero max varlen size")
-            columns.emplace_back(std::string(col->GetColumnName()), val, false, col->GetDefaultExpression(), col->GetVarlenSize());
+            columns.emplace_back(std::string(col->GetColumnName()), val, false, col->GetVarlenSize(), col->GetDefaultExpression());
           } else {
             TERRIER_ASSERT(val != type::TypeId::VARCHAR && val != type::TypeId::VARBINARY,
                            "Fixed length types should have max varlen of size 0")
