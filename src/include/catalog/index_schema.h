@@ -5,6 +5,10 @@
 #include "parser/expression/abstract_expression.h"
 #include "type/type_id.h"
 
+namespace terrrier {
+  class StorageTestUtil;
+}
+
 namespace terrier::tpcc {
   class Schemas;
 }
@@ -129,6 +133,7 @@ class IndexSchema {
     friend class postgres::Builder;
 
     friend class tpcc::Schemas;
+    friend class StorageTestUtil;
   };
 
   /**

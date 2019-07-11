@@ -375,6 +375,12 @@ struct StorageTestUtil {
   }
 
   /**
+   * Provides function for tests at large to force column OIDs so that they can function without a catalog.
+   */
+  void ForceOid(catalog::Schema::Column col, catalog::col_oid_t oid) { col.SetOid(oid); }
+  void ForceOid(catalog::IndexSchema::Column col, catalog::indexkeycol_oid_t oid) { col.SetOid(oid); }
+
+  /**
    * Generates a random CompactIntsKey-compatible schema.
    */
   template <typename Random>

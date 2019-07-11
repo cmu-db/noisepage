@@ -13,6 +13,10 @@
 #include "type/type_id.h"
 #include "type/type_util.h"
 
+namespace terrrier {
+  class StorageTestUtil;
+}
+
 namespace terrier::tpcc {
   class Schemas;
 }
@@ -154,6 +158,7 @@ class Schema {
     friend class postgres::Builder;
 
     friend class tpcc::Schemas;
+    friend class StorageTestUtil;
   };
 
   /**

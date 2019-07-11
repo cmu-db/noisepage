@@ -30,11 +30,20 @@ class BwTreeIndexTests : public TerrierTest {
 
   storage::BlockStore block_store_{1000, 1000};
   storage::RecordBufferSegmentPool buffer_pool_{1000000, 1000000};
-  const catalog::Schema table_schema_{
-      catalog::Schema({{"attribute", type::TypeId::INTEGER, false, catalog::col_oid_t(0)}})};
-  const catalog::IndexKeySchema key_schema_{{catalog::indexkeycol_oid_t(1), type::TypeId::INTEGER, false}};
+  catalog::Schema table_schema_;
+  catalog::IndexKeySchema key_schema_;
 
  public:
+  BwTreeIndexTests() {
+    auto col = catalog::Schema::Column("attribute", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+    StorageTestUtil::ForceOid(col, catalog::col_oid_t(1));
+    table_schema_ = catalog::Schema({col});
+
+    auto keycol = catalog::IndexSchema::Column(type::TypeId::INTEGER, false, parser::ColumnValueExpression(catalog::table_oid_t(0), catalog::col_oid_t(1)));
+    StorageTestUtil::ForceOid(keycol, catalog::indexkeycol_oid_t(1));
+    key_schema_ = catalog::IndexSchema({keycol}, true, true, false, true);
+  }
+
   std::default_random_engine generator_;
   const uint32_t num_threads_ = 4;
 

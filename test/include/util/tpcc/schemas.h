@@ -139,9 +139,9 @@ struct Schemas {
 
     // Primary Key: (D_W_ID, D_ID)
     district_key_schema.emplace_back(schema.GetColumn(1).GetType(), schema.GetColumn(1).GetNullable(), parser::ColumnValueExpression(catalog::table_oid_t(0), schema.GetColumn(1).GetOid()));
-    district_key_schema.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
+    district_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
     district_key_schema.emplace_back(schema.GetColumn(0).GetType(), schema.GetColumn(0).GetNullable(), parser::ColumnValueExpression(catalog::table_oid_t(0), schema.GetColumn(0).GetOid()));
-    district_key_schema.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
+    district_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
 
     TERRIER_ASSERT(district_key_schema.size() == num_district_primary_index_cols_,
                    "Wrong number of columns for District primary index schema.");
