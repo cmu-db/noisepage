@@ -1,4 +1,5 @@
 #include <random>
+#include <string>
 #include <vector>
 #include "benchmark/benchmark.h"
 #include "common/macros.h"
