@@ -162,7 +162,13 @@ class CaseExpression : public AbstractExpression {
   }
 
  private:
+  /**
+   * List of condition and result cases: WHEN ... THEN ...
+   */
   std::vector<WhenClause> when_clauses_;
+  /**
+   * default conditon and result case
+   */
   std::shared_ptr<AbstractExpression> default_expr_;
 };
 

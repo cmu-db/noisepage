@@ -51,7 +51,7 @@ class FunctionExpression : public AbstractExpression {
 
   void DeriveExpressionName() override {
     bool first = true;
-    std::string name = reinterpret_cast<FunctionExpression *>(this)->GetFuncName() + "(";
+    std::string name = this->GetFuncName() + "(";
     for (auto &child : this->GetChildren()) {
       if (!first) name.append(",");
       child->DeriveExpressionName();
@@ -82,6 +82,9 @@ class FunctionExpression : public AbstractExpression {
   }
 
  private:
+  /**
+   * Name of the function
+   */
   std::string func_name_;
 
   // TODO(Tianyu): Why the hell are these things in the parser nodes anyway? Parsers are dumb. They don't know shit.

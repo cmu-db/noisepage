@@ -172,12 +172,35 @@ class ColumnValueExpression : public AbstractExpression {
    */
   void SetColumnOID(catalog::col_oid_t column_oid) { column_oid_ = column_oid; }
 
+  /**
+   * Name of the namespace
+   */
   std::string namespace_name_;
+
+  /**
+   * Name of the table
+   */
   std::string table_name_;
+
+  /**
+   * Name of the column
+   */
   std::string column_name_;
+
   // TODO(Ling): change to INVALID_*_OID after catalog completion
+  /**
+   * OID of the database
+   */
   catalog::db_oid_t database_oid_ = catalog::db_oid_t(0);
+
+  /**
+   * OID of the table
+   */
   catalog::table_oid_t table_oid_ = catalog::table_oid_t(0);
+
+  /**
+   * OID of the column
+   */
   catalog::col_oid_t column_oid_ = catalog::col_oid_t(0);
 };
 

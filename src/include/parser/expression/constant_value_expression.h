@@ -73,6 +73,9 @@ class ConstantValueExpression : public AbstractExpression {
   }
 
  private:
+  /**
+   * Value of the constant value expression
+   */
   type::TransientValue value_;
 };
 

@@ -9,7 +9,7 @@
 namespace terrier::parser {
 
 /**
- * Represents a logical tuple value.
+ * Represents a column index tuple value.
  */
 class DerivedValueExpression : public AbstractExpression {
  public:

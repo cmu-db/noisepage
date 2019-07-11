@@ -65,6 +65,9 @@ class ParameterValueExpression : public AbstractExpression {
 
  private:
   // TODO(Tianyu): Can we get a better name for this?
+  /**
+   * Offset of the parameter
+   */
   uint32_t value_idx_;
 };
 

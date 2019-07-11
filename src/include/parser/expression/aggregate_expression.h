@@ -90,6 +90,9 @@ class AggregateExpression : public AbstractExpression {
   }
 
  private:
+  /**
+   * If duplicate rows will be removed
+   */
   bool distinct_;
 };
 
