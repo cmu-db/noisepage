@@ -722,7 +722,7 @@ TEST(ExpressionTests, ColumnValueExpressionTest) {
   EXPECT_NE(tve11->Hash(), tve13->Hash());
   EXPECT_NE(tve11->Hash(), tve6->Hash());
 
-  EXPECT_EQ(tve1->GetExpressionType(), ExpressionType::COLUMN_TUPLE);
+  EXPECT_EQ(tve1->GetExpressionType(), ExpressionType::COLUMN_VALUE);
   EXPECT_EQ(tve1->GetReturnValueType(), type::TypeId::INVALID);
   EXPECT_EQ(tve1->GetAlias(), "alias");
   EXPECT_EQ(tve1->GetNamespaceName(), "");

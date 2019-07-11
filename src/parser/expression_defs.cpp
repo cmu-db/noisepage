@@ -92,8 +92,8 @@ std::string ExpressionTypeToString(ExpressionType type, bool short_str) {
     case ExpressionType::VALUE_TUPLE: {
       return "VALUE_TUPLE";
     }
-    case ExpressionType::COLUMN_TUPLE: {
-      return "COLUMN_TUPLE";
+    case ExpressionType::COLUMN_VALUE: {
+      return "COLUMN_VALUE";
     }
     case ExpressionType::VALUE_TUPLE_ADDRESS: {
       return "VALUE_TUPLE_ADDRESS";

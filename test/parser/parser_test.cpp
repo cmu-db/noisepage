@@ -244,7 +244,7 @@ TEST_F(ParserTestBase, CreateViewTest) {
   EXPECT_EQ(view_query->GetSelectCondition()->GetExpressionType(), ExpressionType::COMPARE_EQUAL);
   EXPECT_EQ(view_query->GetSelectCondition()->GetChildrenSize(), 2);
   auto left_child = view_query->GetSelectCondition()->GetChild(0);
-  EXPECT_EQ(left_child->GetExpressionType(), ExpressionType::COLUMN_TUPLE);
+  EXPECT_EQ(left_child->GetExpressionType(), ExpressionType::COLUMN_VALUE);
   EXPECT_EQ(reinterpret_cast<ColumnValueExpression *>(left_child.get())->GetColumnName(), "baz");
   auto right_child = view_query->GetSelectCondition()->GetChild(1);
   EXPECT_EQ(right_child->GetExpressionType(), ExpressionType::VALUE_CONSTANT);
@@ -751,7 +751,7 @@ TEST_F(ParserTestBase, OldOrderByTest) {
     EXPECT_EQ(order_by->GetOrderByExpressions().size(), 1);
     EXPECT_EQ(order_by->GetOrderByTypes().at(0), OrderType::kOrderAsc);
     auto expr = order_by->GetOrderByExpressions().at(0).get();
-    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::COLUMN_TUPLE);
+    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::COLUMN_VALUE);
     EXPECT_EQ((reinterpret_cast<ColumnValueExpression *>(expr))->GetColumnName(), "id");
   }
 
@@ -768,7 +768,7 @@ TEST_F(ParserTestBase, OldOrderByTest) {
     EXPECT_EQ(order_by->GetOrderByExpressions().size(), 1);
     EXPECT_EQ(order_by->GetOrderByTypes().at(0), OrderType::kOrderAsc);
     auto expr = order_by->GetOrderByExpressions().at(0).get();
-    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::COLUMN_TUPLE);
+    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::COLUMN_VALUE);
     EXPECT_EQ((reinterpret_cast<ColumnValueExpression *>(expr))->GetColumnName(), "id");
   }
 
@@ -785,7 +785,7 @@ TEST_F(ParserTestBase, OldOrderByTest) {
     EXPECT_EQ(order_by->GetOrderByExpressions().size(), 1);
     EXPECT_EQ(order_by->GetOrderByTypes().at(0), OrderType::kOrderDesc);
     auto expr = order_by->GetOrderByExpressions().at(0).get();
-    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::COLUMN_TUPLE);
+    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::COLUMN_VALUE);
     EXPECT_EQ((reinterpret_cast<ColumnValueExpression *>(expr))->GetColumnName(), "id");
   }
 
@@ -803,10 +803,10 @@ TEST_F(ParserTestBase, OldOrderByTest) {
     EXPECT_EQ(order_by->GetOrderByTypes().at(0), OrderType::kOrderAsc);
     EXPECT_EQ(order_by->GetOrderByTypes().at(1), OrderType::kOrderAsc);
     auto expr = order_by->GetOrderByExpressions().at(0).get();
-    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::COLUMN_TUPLE);
+    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::COLUMN_VALUE);
     EXPECT_EQ((reinterpret_cast<ColumnValueExpression *>(expr))->GetColumnName(), "id");
     expr = order_by->GetOrderByExpressions().at(1).get();
-    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::COLUMN_TUPLE);
+    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::COLUMN_VALUE);
     EXPECT_EQ((reinterpret_cast<ColumnValueExpression *>(expr))->GetColumnName(), "name");
   }
 
@@ -824,10 +824,10 @@ TEST_F(ParserTestBase, OldOrderByTest) {
     EXPECT_EQ(order_by->GetOrderByTypes().at(0), OrderType::kOrderAsc);
     EXPECT_EQ(order_by->GetOrderByTypes().at(1), OrderType::kOrderDesc);
     auto expr = order_by->GetOrderByExpressions().at(0).get();
-    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::COLUMN_TUPLE);
+    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::COLUMN_VALUE);
     EXPECT_EQ((reinterpret_cast<ColumnValueExpression *>(expr))->GetColumnName(), "id");
     expr = order_by->GetOrderByExpressions().at(1).get();
-    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::COLUMN_TUPLE);
+    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::COLUMN_VALUE);
     EXPECT_EQ((reinterpret_cast<ColumnValueExpression *>(expr))->GetColumnName(), "name");
   }
 }
@@ -868,7 +868,7 @@ TEST_F(ParserTestBase, OldJoinTest) {
 
     auto join_cond = join_table->GetJoin()->GetJoinCondition().get();
     EXPECT_EQ(join_cond->GetExpressionType(), ExpressionType::COMPARE_EQUAL);
-    EXPECT_EQ(join_cond->GetChild(0)->GetExpressionType(), ExpressionType::COLUMN_TUPLE);
+    EXPECT_EQ(join_cond->GetChild(0)->GetExpressionType(), ExpressionType::COLUMN_VALUE);
     auto jcl = reinterpret_cast<ColumnValueExpression *>(join_cond->GetChild(0).get());
     EXPECT_EQ(jcl->GetTableName(), "foo");
     EXPECT_EQ(jcl->GetColumnName(), "id2");
@@ -1005,12 +1005,12 @@ TEST_F(ParserTestBase, OldColumnUpdateTest) {
 
     EXPECT_EQ(updates.size(), 2);
     EXPECT_EQ(updates[0]->GetColumnName(), "c_balance");
-    EXPECT_EQ(updates[0]->GetUpdateValue()->GetExpressionType(), ExpressionType::COLUMN_TUPLE);
+    EXPECT_EQ(updates[0]->GetUpdateValue()->GetExpressionType(), ExpressionType::COLUMN_VALUE);
     auto column_value_0 = reinterpret_cast<ColumnValueExpression *>(updates[0]->GetUpdateValue().get());
     EXPECT_EQ(column_value_0->GetColumnName(), "c_balance");
 
     EXPECT_EQ(updates[1]->GetColumnName(), "c_delivery_cnt");
-    EXPECT_EQ(updates[1]->GetUpdateValue()->GetExpressionType(), ExpressionType::COLUMN_TUPLE);
+    EXPECT_EQ(updates[1]->GetUpdateValue()->GetExpressionType(), ExpressionType::COLUMN_VALUE);
     auto column_value_1 = reinterpret_cast<ColumnValueExpression *>(updates[1]->GetUpdateValue().get());
     EXPECT_EQ(column_value_1->GetColumnName(), "c_delivery_cnt");
 
@@ -1018,7 +1018,7 @@ TEST_F(ParserTestBase, OldColumnUpdateTest) {
     EXPECT_EQ(where_clause->GetExpressionType(), ExpressionType::COMPARE_EQUAL);
     auto left_child = where_clause->GetChild(0);
     auto right_child = where_clause->GetChild(1);
-    EXPECT_EQ(left_child->GetExpressionType(), ExpressionType::COLUMN_TUPLE);
+    EXPECT_EQ(left_child->GetExpressionType(), ExpressionType::COLUMN_VALUE);
     auto left_tuple = reinterpret_cast<ColumnValueExpression *>(left_child.get());
     EXPECT_EQ(left_tuple->GetColumnName(), "c_w_id");
 
@@ -1110,8 +1110,8 @@ TEST_F(ParserTestBase, OldStringUpdateTest) {
 
   auto child00 = child0->GetChild(0);
   auto child10 = child1->GetChild(0);
-  EXPECT_EQ(child00->GetExpressionType(), ExpressionType::COLUMN_TUPLE);
-  EXPECT_EQ(child10->GetExpressionType(), ExpressionType::COLUMN_TUPLE);
+  EXPECT_EQ(child00->GetExpressionType(), ExpressionType::COLUMN_VALUE);
+  EXPECT_EQ(child10->GetExpressionType(), ExpressionType::COLUMN_VALUE);
   EXPECT_EQ(reinterpret_cast<ColumnValueExpression *>(child00.get())->GetColumnName(), "ol_o_id");
   EXPECT_EQ(reinterpret_cast<ColumnValueExpression *>(child10.get())->GetColumnName(), "ol_d_id");
 
@@ -1348,7 +1348,7 @@ TEST_F(ParserTestBase, OldCreateViewTest) {
   EXPECT_EQ(view_query->GetSelectCondition()->GetChildrenSize(), 2);
 
   auto left_child = view_query->GetSelectCondition()->GetChild(0);
-  EXPECT_EQ(left_child->GetExpressionType(), ExpressionType::COLUMN_TUPLE);
+  EXPECT_EQ(left_child->GetExpressionType(), ExpressionType::COLUMN_VALUE);
   EXPECT_EQ(reinterpret_cast<ColumnValueExpression *>(left_child.get())->GetColumnName(), "kind");
 
   auto right_child = view_query->GetSelectCondition()->GetChild(1);
@@ -1546,10 +1546,10 @@ TEST_F(ParserTestBase, OldCreateTriggerTest) {
 
   auto left = when->GetChild(0).get();
   auto right = when->GetChild(1).get();
-  EXPECT_EQ(left->GetExpressionType(), ExpressionType::COLUMN_TUPLE);
+  EXPECT_EQ(left->GetExpressionType(), ExpressionType::COLUMN_VALUE);
   EXPECT_EQ(reinterpret_cast<ColumnValueExpression *>(left)->GetTableName(), "old");
   EXPECT_EQ(reinterpret_cast<ColumnValueExpression *>(left)->GetColumnName(), "balance");
-  EXPECT_EQ(right->GetExpressionType(), ExpressionType::COLUMN_TUPLE);
+  EXPECT_EQ(right->GetExpressionType(), ExpressionType::COLUMN_VALUE);
   EXPECT_EQ(reinterpret_cast<ColumnValueExpression *>(right)->GetTableName(), "new");
   EXPECT_EQ(reinterpret_cast<ColumnValueExpression *>(right)->GetColumnName(), "balance");
 
@@ -1650,14 +1650,14 @@ TEST_F(ParserTestBase, OldCaseTest) {
   auto stmt_list = pgparser.BuildParseTree(query);
   auto select_stmt = reinterpret_cast<SelectStatement *>(stmt_list[0].get());
   auto select_args = select_stmt->GetSelectColumns();
-  EXPECT_EQ(select_args.at(0)->GetExpressionType(), ExpressionType::COLUMN_TUPLE);
+  EXPECT_EQ(select_args.at(0)->GetExpressionType(), ExpressionType::COLUMN_VALUE);
   EXPECT_EQ(select_args.at(1)->GetExpressionType(), ExpressionType::OPERATOR_CASE_EXPR);
 
   query = "SELECT id, case id when 100 then 1 when 200 then 2 end from tbl;";
   stmt_list = pgparser.BuildParseTree(query);
   select_stmt = reinterpret_cast<SelectStatement *>(stmt_list[0].get());
   select_args = select_stmt->GetSelectColumns();
-  EXPECT_EQ(select_args.at(0)->GetExpressionType(), ExpressionType::COLUMN_TUPLE);
+  EXPECT_EQ(select_args.at(0)->GetExpressionType(), ExpressionType::COLUMN_VALUE);
   EXPECT_EQ(select_args.at(1)->GetExpressionType(), ExpressionType::OPERATOR_CASE_EXPR);
 }
 

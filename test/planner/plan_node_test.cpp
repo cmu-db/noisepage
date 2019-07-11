@@ -200,7 +200,7 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
   EXPECT_EQ(PlanNodeType::HASH, hash_plan->GetPlanNodeType());
   EXPECT_EQ(1, hash_plan->GetChildrenSize());
   EXPECT_EQ(1, hash_plan->GetHashKeys().size());
-  EXPECT_EQ(parser::ExpressionType::COLUMN_TUPLE, hash_plan->GetHashKeys()[0]->GetExpressionType());
+  EXPECT_EQ(parser::ExpressionType::COLUMN_VALUE, hash_plan->GetHashKeys()[0]->GetExpressionType());
 
   std::vector<std::shared_ptr<parser::AbstractExpression>> expr_children;
   expr_children.push_back(std::make_shared<parser::ColumnValueExpression>("table1", "col1"));

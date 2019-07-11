@@ -26,7 +26,7 @@ class ColumnValueExpression : public AbstractExpression {
    * @param alias alias of the expression
    */
   ColumnValueExpression(std::string namespace_name, std::string table_name, std::string col_name, const char *alias)
-      : AbstractExpression(ExpressionType::COLUMN_TUPLE, type::TypeId::INVALID, alias, {}),
+      : AbstractExpression(ExpressionType::COLUMN_VALUE, type::TypeId::INVALID, alias, {}),
         namespace_name_(std::move(namespace_name)),
         table_name_(std::move(table_name)),
         column_name_(std::move(col_name)) {}
@@ -36,7 +36,7 @@ class ColumnValueExpression : public AbstractExpression {
    * @param col_name column name
    */
   ColumnValueExpression(std::string table_name, std::string col_name)
-      : AbstractExpression(ExpressionType::COLUMN_TUPLE, type::TypeId::INVALID, {}),
+      : AbstractExpression(ExpressionType::COLUMN_VALUE, type::TypeId::INVALID, {}),
         table_name_(std::move(table_name)),
         column_name_(std::move(col_name)) {}
 
@@ -46,7 +46,7 @@ class ColumnValueExpression : public AbstractExpression {
    * @param col_name column name
    */
   ColumnValueExpression(std::string namespace_name, std::string table_name, std::string col_name)
-      : AbstractExpression(ExpressionType::COLUMN_TUPLE, type::TypeId::INVALID, {}),
+      : AbstractExpression(ExpressionType::COLUMN_VALUE, type::TypeId::INVALID, {}),
         namespace_name_(std::move(namespace_name)),
         table_name_(std::move(table_name)),
         column_name_(std::move(col_name)) {}
@@ -57,7 +57,7 @@ class ColumnValueExpression : public AbstractExpression {
    * @param column_oid column OID
    */
   ColumnValueExpression(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid, catalog::col_oid_t column_oid)
-      : AbstractExpression(ExpressionType::COLUMN_TUPLE, type::TypeId::INVALID, {}),
+      : AbstractExpression(ExpressionType::COLUMN_VALUE, type::TypeId::INVALID, {}),
         database_oid_(database_oid),
         table_oid_(table_oid),
         column_oid_(column_oid) {}

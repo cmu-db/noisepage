@@ -40,7 +40,7 @@ enum class ExpressionType : uint8_t {
   CONJUNCTION_AND,
   CONJUNCTION_OR,
 
-  COLUMN_TUPLE,
+  COLUMN_VALUE,
 
   VALUE_CONSTANT,
   VALUE_PARAMETER,

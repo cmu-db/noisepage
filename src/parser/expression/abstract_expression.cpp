@@ -144,7 +144,7 @@ std::shared_ptr<AbstractExpression> DeserializeExpression(const nlohmann::json &
       break;
     }
 
-    case ExpressionType::COLUMN_TUPLE: {
+    case ExpressionType::COLUMN_VALUE: {
       expr = std::make_shared<ColumnValueExpression>();
       break;
     }

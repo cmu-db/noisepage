@@ -94,9 +94,9 @@ TEST(ExpressionDefsTests, ExpressionTypeToStringTest) {
   EXPECT_EQ(ExpressionTypeToString(ExpressionType::VALUE_TUPLE), "VALUE_TUPLE");
   EXPECT_EQ(ExpressionTypeToString(ExpressionType::VALUE_TUPLE, true), "VALUE_TUPLE");
   EXPECT_EQ(ExpressionTypeToString(ExpressionType::VALUE_TUPLE, false), "VALUE_TUPLE");
-  EXPECT_EQ(ExpressionTypeToString(ExpressionType::COLUMN_TUPLE), "COLUMN_TUPLE");
-  EXPECT_EQ(ExpressionTypeToString(ExpressionType::COLUMN_TUPLE, true), "COLUMN_TUPLE");
-  EXPECT_EQ(ExpressionTypeToString(ExpressionType::COLUMN_TUPLE, false), "COLUMN_TUPLE");
+  EXPECT_EQ(ExpressionTypeToString(ExpressionType::COLUMN_VALUE), "COLUMN_VALUE");
+  EXPECT_EQ(ExpressionTypeToString(ExpressionType::COLUMN_VALUE, true), "COLUMN_VALUE");
+  EXPECT_EQ(ExpressionTypeToString(ExpressionType::COLUMN_VALUE, false), "COLUMN_VALUE");
   EXPECT_EQ(ExpressionTypeToString(ExpressionType::VALUE_TUPLE_ADDRESS), "VALUE_TUPLE_ADDRESS");
   EXPECT_EQ(ExpressionTypeToString(ExpressionType::VALUE_TUPLE_ADDRESS, true), "VALUE_TUPLE_ADDRESS");
   EXPECT_EQ(ExpressionTypeToString(ExpressionType::VALUE_TUPLE_ADDRESS, false), "VALUE_TUPLE_ADDRESS");

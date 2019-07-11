@@ -317,8 +317,8 @@ ExpressionType PostgresParser::StringToExpressionType(const std::string &parser_
   if (str == "CONJUNCTION_OR") {
     return ExpressionType::CONJUNCTION_OR;
   }
-  if (str == "COLUMN_TUPLE") {
-    return ExpressionType::COLUMN_TUPLE;
+  if (str == "COLUMN_VALUE") {
+    return ExpressionType::COLUMN_VALUE;
   }
   if (str == "VALUE_CONSTANT") {
     return ExpressionType::VALUE_CONSTANT;
