@@ -186,7 +186,7 @@ std::unique_ptr<SQLStatement> PostgresParser::NodeTransform(Node *node) {
   }
   return result;
 }
-
+std::unique_ptr<AbstractExpression> PostgresParser::ExprTransform(Node *node) { return ExprTransform(node, nullptr); }
 std::unique_ptr<AbstractExpression> PostgresParser::ExprTransform(Node *node, char *alias) {
   if (node == nullptr) {
     return nullptr;
@@ -613,7 +613,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::NullTestTransform(NullTest *
 
   switch (root->arg->type) {
     case T_ColumnRef: {
-      auto arg_expr = ColumnRefTransform(reinterpret_cast<ColumnRef *>(root->arg));
+      auto arg_expr = ColumnRefTransform(reinterpret_cast<ColumnRef *>(root->arg), nullptr);
       children.emplace_back(std::move(arg_expr));
       break;
     }

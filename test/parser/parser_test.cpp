@@ -949,7 +949,7 @@ TEST_F(ParserTestBase, OldNestedQueryTest) {
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, OldMultiTableTest) {
   // Select from multiple tables
-  std::string query = "SELECT foo.name FROM (SELECT * FROM bar) as b, foo, bar WHERE foo.id = b.id;";
+  std::string query = "SELECT foo.name as name_new FROM (SELECT * FROM bar) as b, foo, bar WHERE foo.id = b.id;";
   auto stmt_list = pgparser.BuildParseTree(query);
   EXPECT_EQ(1, stmt_list.size());
   auto statement = reinterpret_cast<SelectStatement *>(stmt_list[0].get());
@@ -957,6 +957,7 @@ TEST_F(ParserTestBase, OldMultiTableTest) {
   auto select_expression = reinterpret_cast<ColumnValueExpression *>(statement->GetSelectColumns()[0].get());
   EXPECT_EQ("foo", select_expression->GetTableName());
   EXPECT_EQ("name", select_expression->GetColumnName());
+  EXPECT_EQ("name_new", select_expression->GetAlias());
 
   auto from = statement->GetSelectTable();
   EXPECT_EQ(TableReferenceType::CROSS_PRODUCT, from->GetTableReferenceType());
