@@ -489,11 +489,11 @@ class CreateTablePlanNode : public AbstractPlanNode {
           // Create column
           if (col->GetVarlenSize() != 0) {
             TERRIER_ASSERT(val == type::TypeId::VARCHAR || val == type::TypeId::VARBINARY,
-                           "Variable length types should have a non-zero max varlen size")
+                           "Variable length types should have a non-zero max varlen size");
             columns.emplace_back(std::string(col->GetColumnName()), val, false, col->GetVarlenSize(), col->GetDefaultExpression());
           } else {
             TERRIER_ASSERT(val != type::TypeId::VARCHAR && val != type::TypeId::VARBINARY,
-                           "Fixed length types should have max varlen of size 0")
+                           "Fixed length types should have max varlen of size 0");
             columns.emplace_back(std::string(col->GetColumnName()), val, false, col->GetDefaultExpression());
           }
 
