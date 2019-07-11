@@ -49,7 +49,7 @@ class Builder {
   /**
    * @return schema object for pg_attribute table
    */
-  static Schema GetAttributeTableSchema();
+  static Schema GetColumnTableSchema();
 
   /**
    * @return schema object for pg_class table

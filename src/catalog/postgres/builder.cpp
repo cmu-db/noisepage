@@ -136,7 +136,7 @@ void BootstrapDatabaseCatalog(transaction::TransactionContext *txn, DatabaseCata
   //   Update pg_class to include pointers (necessary to trigger special-cased logic during recovery/replication)
 }
 
-Schema Builder::GetAttributeTableSchema() {
+Schema Builder::GetColumnTableSchema() {
   std::vector<Schema::Column> columns;
 
   columns.emplace_back("attnum", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));

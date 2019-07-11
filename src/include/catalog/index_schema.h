@@ -5,11 +5,15 @@
 #include "parser/expression/abstract_expression.h"
 #include "type/type_id.h"
 
+namespace terrier::tpcc {
+  class Schemas;
+}
+
 namespace terrier::catalog {
+class DatabaseCatalog;
 
 namespace postgres {
   class Builder;
-  class DatabaseCatalog;
 }
 
 /**
@@ -173,6 +177,7 @@ class IndexSchema {
 
   friend class Catalog;
   friend class postgres::Builder;
+  friend class tpcc::Schemas;
 };
 
 }  // namespace terrier::catalog
