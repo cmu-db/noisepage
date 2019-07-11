@@ -72,8 +72,9 @@ void Catalog::TearDown() {
 
 db_oid_t Catalog::CreateDatabase(transaction::TransactionContext *txn, const std::string &name) {
   // Instantiate the DatabaseCatalog
-  DatabaseCatalog *dbc = postgres::Builder::CreateDatabaseCatalog(catalog_block_store_);
   db_oid_t db_oid = next_oid_++;
+  DatabaseCatalog *dbc = postgres::Builder::CreateDatabaseCatalog(catalog_block_store_, db_oid);
+  txn->RegisterAbortAction([=]() { delete dbc; });
   return (Catalog::CreateDatabaseEntry(txn, db_oid, name, dbc)) ? db_oid : INVALID_DATABASE_OID;
 }
 
@@ -214,7 +215,7 @@ common::ManagedPointer<DatabaseCatalog> Catalog::GetDatabaseCatalog(transaction:
     return common::ManagedPointer<DatabaseCatalog>(nullptr);
   }
 
-  auto dbc = *reinterpret_cast<DatabaseCatalog **> pr->AccessForceNotNull(0);
+  auto dbc = *reinterpret_cast<DatabaseCatalog **>(pr->AccessForceNotNull(0));
   delete[] buffer;
   return common::ManagedPointer(dbc);
 }

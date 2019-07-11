@@ -74,50 +74,50 @@ IndexSchema Builder::GetDatabaseNameIndexSchema() {
 DatabaseCatalog *Builder::CreateDatabaseCatalog(storage::BlockStore *block_store, db_oid_t oid) {
   auto dbc = new DatabaseCatalog(oid);
 
-  dbc.namespaces_ = new storage::SqlTable(block_store, Builder::GetNamespaceTableSchema());
-  dbc.classes_ = new storage::SqlTable(block_store, Builder::GetClassTableSchema());
-  dbc.indexes_ = new storage::SqlTable(block_store, Builder::GetIndexTableSchema());
-  dbc.columns_ = new storage::SqlTable(block_store, Builder::GetColumnTableSchema());
-  dbc.types_ = new storage::SqlTable(block_store, Builder::GetTypeTableSchema());
-  dbc.constraints_ = new storage::SqlTable(block_store, Builder::GetConstraintTableSchema());
+  dbc->namespaces_ = new storage::SqlTable(block_store, Builder::GetNamespaceTableSchema());
+  dbc->classes_ = new storage::SqlTable(block_store, Builder::GetClassTableSchema());
+  dbc->indexes_ = new storage::SqlTable(block_store, Builder::GetIndexTableSchema());
+  dbc->columns_ = new storage::SqlTable(block_store, Builder::GetColumnTableSchema());
+  dbc->types_ = new storage::SqlTable(block_store, Builder::GetTypeTableSchema());
+  dbc->constraints_ = new storage::SqlTable(block_store, Builder::GetConstraintTableSchema());
 
   // Indexes on pg_namespace
-  dbc.namespaces_oid_index_ = Builder::BuildUniqueIndex(Builder::GetNamespaceOidIndexSchema(), NAMESPACE_OID_INDEX_OID);
-  dbc.namespaces_name_index_ =
+  dbc->namespaces_oid_index_ = Builder::BuildUniqueIndex(Builder::GetNamespaceOidIndexSchema(), NAMESPACE_OID_INDEX_OID);
+  dbc->namespaces_name_index_ =
       Builder::BuildUniqueIndex(Builder::GetNamespaceNameIndexSchema(), NAMESPACE_NAME_INDEX_OID);
 
   // Indexes on pg_class
-  dbc.classes_oid_index_ = Builder::BuildUniqueIndex(Builder::GetClassOidIndexSchema(), CLASS_OID_INDEX_OID);
-  dbc.classes_name_index_ = Builder::BuildUniqueIndex(Builder::GetClassNameIndexSchema(), CLASS_NAME_INDEX_OID);
-  dbc.classes_namespace_index_ =
+  dbc->classes_oid_index_ = Builder::BuildUniqueIndex(Builder::GetClassOidIndexSchema(), CLASS_OID_INDEX_OID);
+  dbc->classes_name_index_ = Builder::BuildUniqueIndex(Builder::GetClassNameIndexSchema(), CLASS_NAME_INDEX_OID);
+  dbc->classes_namespace_index_ =
       Builder::BuildLookupIndex(Builder::GetClassNamespaceIndexSchema(), CLASS_NAMESPACE_INDEX_OID);
 
   // Indexes on pg_index
-  dbc.indexes_oid_index_ = Builder::BuildUniqueIndex(Builder::GetIndexOidIndexSchema(), INDEX_OID_INDEX_OID);
-  dbc.indexes_table_index_ = Builder::BuildLookupIndex(Builder::GetIndexTableIndexSchema(), INDEX_TABLE_INDEX_OID);
+  dbc->indexes_oid_index_ = Builder::BuildUniqueIndex(Builder::GetIndexOidIndexSchema(), INDEX_OID_INDEX_OID);
+  dbc->indexes_table_index_ = Builder::BuildLookupIndex(Builder::GetIndexTableIndexSchema(), INDEX_TABLE_INDEX_OID);
 
   // Indexes on pg_attribute
-  dbc.columns_oid_index_ = Builder::BuildUniqueIndex(Builder::GetColumnOidIndexSchema(), COLUMN_OID_INDEX_OID);
-  dbc.columns_name_index_ = Builder::BuildUniqueIndex(Builder::GetColumnNameIndexSchema(), COLUMN_NAME_INDEX_OID);
+  dbc->columns_oid_index_ = Builder::BuildUniqueIndex(Builder::GetColumnOidIndexSchema(), COLUMN_OID_INDEX_OID);
+  dbc->columns_name_index_ = Builder::BuildUniqueIndex(Builder::GetColumnNameIndexSchema(), COLUMN_NAME_INDEX_OID);
 
   // Indexes on pg_type
-  dbc.types_oid_index_ = Builder::BuildUniqueIndex(Builder::GetTypeOidIndexSchema(), TYPE_OID_INDEX_OID);
-  dbc.types_name_index_ = Builder::BuildUniqueIndex(Builder::GetTypeNameIndexSchema(), TYPE_NAME_INDEX_OID);
-  dbc.types_namespace_index_ =
+  dbc->types_oid_index_ = Builder::BuildUniqueIndex(Builder::GetTypeOidIndexSchema(), TYPE_OID_INDEX_OID);
+  dbc->types_name_index_ = Builder::BuildUniqueIndex(Builder::GetTypeNameIndexSchema(), TYPE_NAME_INDEX_OID);
+  dbc->types_namespace_index_ =
       Builder::BuildLookupIndex(Builder::GetTypeNamespaceIndexSchema(), TYPE_NAMESPACE_INDEX_OID);
 
   // Indexes on pg_constraint
-  dbc.constraints_oid_index_ =
+  dbc->constraints_oid_index_ =
       Builder::BuildUniqueIndex(Builder::GetConstraintOidIndexSchema(), CONSTRAINT_OID_INDEX_OID);
-  dbc.constraints_name_index_ =
+  dbc->constraints_name_index_ =
       Builder::BuildUniqueIndex(Builder::GetConstraintNameIndexSchema(), CONSTRAINT_NAME_INDEX_OID);
-  dbc.constraints_namespace_index_ =
+  dbc->constraints_namespace_index_ =
       Builder::BuildLookupIndex(Builder::GetConstraintNamespaceIndexSchema(), CONSTRAINT_NAMESPACE_INDEX_OID);
-  dbc.constraints_table_index_ =
+  dbc->constraints_table_index_ =
       Builder::BuildLookupIndex(Builder::GetConstraintTableIndexSchema(), CONSTRAINT_TABLE_INDEX_OID);
-  dbc.constraints_index_index_ =
+  dbc->constraints_index_index_ =
       Builder::BuildLookupIndex(Builder::GetConstraintIndexIndexSchema(), CONSTRAINT_INDEX_INDEX_OID);
-  dbc.constraints_foreigntable_index_ =
+  dbc->constraints_foreigntable_index_ =
       Builder::BuildLookupIndex(Builder::GetConstraintForeignTableIndexSchema(), CONSTRAINT_FOREIGNTABLE_INDEX_OID);
 
   return dbc;
