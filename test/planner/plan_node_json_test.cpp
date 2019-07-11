@@ -314,9 +314,12 @@ TEST(PlanNodeJsonTest, CreateTablePlanNodeTest) {
   // Columns
   auto get_schema = []() {
     std::vector<catalog::Schema::Column> columns = {
-        catalog::Schema::Column("a", type::TypeId::INTEGER, false, catalog::col_oid_t(1), parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER))),
-        catalog::Schema::Column("u_a", type::TypeId::DECIMAL, false, catalog::col_oid_t(2), parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL))),
-        catalog::Schema::Column("u_b", type::TypeId::DATE, true, catalog::col_oid_t(3), parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DATE)))};
+        catalog::Schema::Column("a", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER))),
+        catalog::Schema::Column("u_a", type::TypeId::DECIMAL, false, parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL))),
+        catalog::Schema::Column("u_b", type::TypeId::DATE, true, parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DATE)))};
+    StorageTestUtil::ForceOid(columns[0], col_oid_t(1));
+    StorageTestUtil::ForceOid(columns[1], col_oid_t(2));
+    StorageTestUtil::ForceOid(columns[2], col_oid_t(3));
     return std::make_shared<catalog::Schema>(columns);
   };
 
