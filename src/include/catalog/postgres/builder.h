@@ -169,7 +169,7 @@ class Builder {
   /**
    * @return schema object for the foreign key index on pg_constraint
    */
-  static IndexSchema GetConstraintForeignKeyIndexSchema();
+  static IndexSchema GetConstraintForeignTableIndexSchema();
 
   /**
    * Instantiate a new unique index with the given schema and oid
@@ -189,7 +189,7 @@ class Builder {
    * @param oid for the new index
    * @return pointer to the new index
    */
-  storage::index::Index *BuildLookupIndex(const IndexSchema &key_schema, index_oid_t oid) {
+  static storage::index::Index *BuildLookupIndex(const IndexSchema &key_schema, index_oid_t oid) {
     storage::index::IndexBuilder index_builder;
     index_builder.SetOid(oid).SetKeySchema(key_schema).SetConstraintType(storage::index::ConstraintType::DEFAULT);
     return index_builder.Build();

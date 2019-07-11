@@ -307,7 +307,7 @@ class DatabaseCatalog {
   storage::index::Index *constraints_namespace_index_;
   storage::index::Index *constraints_table_index_;
   storage::index::Index *constraints_index_index_;
-  storage::index::Index *constraints_foreignkey_index_;
+  storage::index::Index *constraints_foreigntable_index_;
 
   transaction::Action debootstrap;
   std::atomic<uint32_t> next_oid_;
