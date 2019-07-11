@@ -89,6 +89,7 @@ bool Catalog::DeleteDatabase(transaction::TransactionContext *txn, db_oid_t data
   // live references at deletion that need to be deleted.
   txn->RegisterCommitAction(
       [=, del_action{std::move(del_action)}]() { txn_manager_->DeferAction(std::move(del_action)); });
+  return true;
 }
 
 bool Catalog::RenameDatabase(transaction::TransactionContext *txn, db_oid_t database, const std::string &name) {
