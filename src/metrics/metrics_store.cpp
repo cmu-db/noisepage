@@ -9,6 +9,7 @@ namespace terrier::metrics {
 
 MetricsStore::MetricsStore(const std::bitset<NUM_COMPONENTS> &enabled_metrics) : enabled_metrics_{enabled_metrics} {
   logging_metric_ = std::make_unique<LoggingMetric>();
+  txn_metric_ = std::make_unique<TransactionMetric>();
 }
 
 std::array<std::unique_ptr<AbstractRawData>, NUM_COMPONENTS> MetricsStore::GetDataToAggregate() {
@@ -17,12 +18,20 @@ std::array<std::unique_ptr<AbstractRawData>, NUM_COMPONENTS> MetricsStore::GetDa
   for (uint8_t component = 0; component < NUM_COMPONENTS; component++) {
     if (enabled_metrics_.test(component)) {
       switch (static_cast<MetricsComponent>(component)) {
-        case MetricsComponent::LOGGING:
+        case MetricsComponent::LOGGING: {
           TERRIER_ASSERT(
               logging_metric_ != nullptr,
               "LoggingMetric cannot be a nullptr. Check the MetricsStore constructor that it was allocated.");
           result[component] = logging_metric_->Swap();
           break;
+        }
+        case MetricsComponent::TRANSACTION: {
+          TERRIER_ASSERT(
+              txn_metric_ != nullptr,
+              "TransactionMetric cannot be a nullptr. Check the MetricsStore constructor that it was allocated.");
+          result[component] = txn_metric_->Swap();
+          break;
+        }
       }
     }
   }

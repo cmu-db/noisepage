@@ -3,12 +3,12 @@
 #include <queue>
 #include <unordered_set>
 #include <utility>
+#include "common/scoped_timer.h"
+#include "common/thread_context.h"
+#include "metrics/metrics_store.h"
 
 namespace terrier::transaction {
 TransactionContext *TransactionManager::BeginTransaction() {
-  // Ensure we do not return from this function if there are ongoing write commits
-  common::Gate::ScopedExit gate(&txn_gate_);
-
   timestamp_t start_time;
   {
     // There is a three-way race that needs to be prevented.  Specifically, we
@@ -34,6 +34,15 @@ TransactionContext *TransactionManager::BeginTransaction() {
   // Do the allocation outside of any critical section
   auto *const result = new TransactionContext(start_time, start_time + INT64_MIN, buffer_pool_, log_manager_, this);
 
+  uint64_t elapsed_us;
+  {
+    common::ScopedTimer<std::chrono::microseconds> timer(&elapsed_us);
+    // Ensure we do not return from this function if there are ongoing write commits
+    txn_gate_.Traverse();
+  }
+  if (common::thread_context.metrics_store_ != nullptr) {
+    common::thread_context.metrics_store_->RecordBeginData(elapsed_us, start_time);
+  }
   return result;
 }
 
@@ -85,13 +94,14 @@ timestamp_t TransactionManager::UpdatingCommitCriticalSection(TransactionContext
   //  time because transaction 1 hasn't made its writes visible and then reads
   //  the correct version the second time, violating snapshot isolation.
   //  Make sure you solve this problem before you remove this gate for whatever reason.
-  common::Gate::ScopedLock gate(&txn_gate_);
+  txn_gate_.Lock();
   const timestamp_t commit_time = time_++;
 
   LogCommit(txn, commit_time, callback, callback_arg);
   // flip all timestamps to be committed
   for (auto &it : txn->undo_buffer_) it.Timestamp().store(commit_time);
 
+  txn_gate_.Unlock();
   return commit_time;
 }
 
@@ -104,16 +114,23 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
     txn->commit_actions_.pop_front();
   }
 
+  uint64_t elapsed_us;
   {
+    common::ScopedTimer<std::chrono::microseconds> timer(&elapsed_us);
     // In a critical section, remove this transaction from the table of running transactions
-    common::SpinLatch::ScopedSpinLatch guard(&curr_running_txns_latch_);
-    const timestamp_t start_time = txn->StartTime();
-    const size_t ret UNUSED_ATTRIBUTE = curr_running_txns_.erase(start_time);
-    TERRIER_ASSERT(ret == 1, "Committed transaction did not exist in global transactions table");
-    // It is not necessary to have to GC process read-only transactions, but it's probably faster to call free off
-    // the critical path there anyway
-    // Also note here that GC will figure out what varlen entries to GC, as opposed to in the abort case.
-    if (gc_enabled_) completed_txns_.push_front(txn);
+    curr_running_txns_latch_.Lock();
+  }
+  const timestamp_t start_time = txn->StartTime();
+  const size_t ret UNUSED_ATTRIBUTE = curr_running_txns_.erase(start_time);
+  TERRIER_ASSERT(ret == 1, "Committed transaction did not exist in global transactions table");
+  // It is not necessary to have to GC process read-only transactions, but it's probably faster to call free off
+  // the critical path there anyway
+  // Also note here that GC will figure out what varlen entries to GC, as opposed to in the abort case.
+  if (gc_enabled_) completed_txns_.push_front(txn);
+
+  curr_running_txns_latch_.Unlock();
+  if (common::thread_context.metrics_store_ != nullptr) {
+    common::thread_context.metrics_store_->RecordCommitData(elapsed_us, txn->StartTime());
   }
   return result;
 }

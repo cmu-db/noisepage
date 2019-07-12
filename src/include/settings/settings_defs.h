@@ -115,3 +115,11 @@ SETTING_bool(
     true,
     terrier::settings::Callbacks::MetricsLogging
 )
+
+SETTING_bool(
+    metrics_transaction,
+    "Metrics collection for the TransactionManager component.",
+    false,
+    true,
+    terrier::settings::Callbacks::MetricsTransaction
+)

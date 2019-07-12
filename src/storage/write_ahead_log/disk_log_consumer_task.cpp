@@ -1,7 +1,6 @@
 #include "storage/write_ahead_log/disk_log_consumer_task.h"
 #include "common/scoped_timer.h"
 #include "common/thread_context.h"
-#include "metrics/logging_metric.h"
 #include "metrics/metrics_store.h"
 
 namespace terrier::storage {

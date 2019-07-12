@@ -10,6 +10,7 @@
 #include "metrics/abstract_raw_data.h"
 #include "metrics/logging_metric.h"
 #include "metrics/metrics_defs.h"
+#include "metrics/transaction_metric.h"
 
 namespace terrier::metrics {
 
@@ -32,8 +33,10 @@ class MetricsStore {
    * @param num_records third entry of metrics datapoint
    */
   void RecordSerializerData(const uint64_t elapsed_us, const uint64_t num_bytes, const uint64_t num_records) {
-    if (ComponentEnabled(MetricsComponent::LOGGING))
+    if (ComponentEnabled(MetricsComponent::LOGGING)) {
+      TERRIER_ASSERT(logging_metric_ != nullptr, "LoggingMetric not allocated. Check MetricsStore constructor.");
       logging_metric_->RecordSerializerData(elapsed_us, num_bytes, num_records);
+    }
   }
 
   /**
@@ -45,8 +48,24 @@ class MetricsStore {
    */
   void RecordConsumerData(const uint64_t write_us, const uint64_t persist_us, const uint64_t num_bytes,
                           const uint64_t num_records) {
-    if (ComponentEnabled(MetricsComponent::LOGGING))
+    if (ComponentEnabled(MetricsComponent::LOGGING)) {
+      TERRIER_ASSERT(logging_metric_ != nullptr, "LoggingMetric not allocated. Check MetricsStore constructor.");
       logging_metric_->RecordConsumerData(write_us, persist_us, num_bytes, num_records);
+    }
+  }
+
+  void RecordBeginData(const uint64_t elapsed_us, const transaction::timestamp_t txn_start) {
+    if (ComponentEnabled(MetricsComponent::TRANSACTION)) {
+      TERRIER_ASSERT(txn_metric_ != nullptr, "TransactionMetric not allocated. Check MetricsStore constructor.");
+      txn_metric_->RecordBeginData(elapsed_us, txn_start);
+    }
+  }
+
+  void RecordCommitData(const uint64_t elapsed_us, const transaction::timestamp_t txn_start) {
+    if (ComponentEnabled(MetricsComponent::TRANSACTION)) {
+      TERRIER_ASSERT(txn_metric_ != nullptr, "TransactionMetric not allocated. Check MetricsStore constructor.");
+      txn_metric_->RecordCommitData(elapsed_us, txn_start);
+    }
   }
 
  private:
@@ -61,6 +80,7 @@ class MetricsStore {
   std::array<std::unique_ptr<AbstractRawData>, NUM_COMPONENTS> GetDataToAggregate();
 
   std::unique_ptr<LoggingMetric> logging_metric_;
+  std::unique_ptr<TransactionMetric> txn_metric_;
 
   const std::bitset<NUM_COMPONENTS> &enabled_metrics_;
 };

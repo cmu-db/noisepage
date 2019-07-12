@@ -27,10 +27,16 @@ void MetricsManager::Aggregate() {
 void MetricsManager::ResetMetric(const MetricsComponent component) const {
   for (const auto &metrics_store : stores_map_) {
     switch (static_cast<MetricsComponent>(component)) {
-      case MetricsComponent::LOGGING:
+      case MetricsComponent::LOGGING: {
         const auto &metric = metrics_store.second->logging_metric_;
         metric->Swap();
         break;
+      }
+      case MetricsComponent::TRANSACTION: {
+        const auto &metric = metrics_store.second->txn_metric_;
+        metric->Swap();
+        break;
+      }
     }
   }
 }
@@ -62,12 +68,20 @@ void MetricsManager::ToCSV() const {
     if (enabled_metrics_.test(component) && aggregated_metrics_[component] != nullptr) {
       std::vector<std::ofstream> outfiles;
       switch (static_cast<MetricsComponent>(component)) {
-        case MetricsComponent::LOGGING:
+        case MetricsComponent::LOGGING: {
           outfiles.reserve(LoggingMetricRawData::files_.size());
           for (const auto &file : LoggingMetricRawData::files_) {
             outfiles.emplace_back(std::string(file), std::ios_base::out | std::ios_base::app);
           }
           break;
+        }
+        case MetricsComponent::TRANSACTION: {
+          outfiles.reserve(TransactionMetricRawData::files_.size());
+          for (const auto &file : TransactionMetricRawData::files_) {
+            outfiles.emplace_back(std::string(file), std::ios_base::out | std::ios_base::app);
+          }
+          break;
+        }
       }
       aggregated_metrics_[component]->ToCSV(&outfiles);
       for (auto &file : outfiles) {

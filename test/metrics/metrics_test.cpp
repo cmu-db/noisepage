@@ -38,7 +38,6 @@ class MetricsTests : public TerrierTest {
   transaction::TransactionManager *txn_manager_;
 
   void SetUp() override {
-    for (const auto &file : metrics::LoggingMetricRawData::files_) unlink(std::string(file).c_str());
     std::unordered_map<settings::Param, settings::ParamInfo> param_map;
     terrier::settings::SettingsManager::ConstructParamMap(param_map);
 
@@ -111,5 +110,45 @@ TEST_F(MetricsTests, LoggingCSVTest) {
 
   metrics_manager_->Aggregate();
   metrics_manager_->ToCSV();
+}
+
+/**
+ *  Testing transaction metric stats collection and persistence, single thread
+ */
+// NOLINTNEXTLINE
+TEST_F(MetricsTests, TransactionCSVTest) {
+  for (const auto &file : metrics::TransactionMetricRawData::files_) unlink(std::string(file).c_str());
+  const settings::setter_callback_fn setter_callback = MetricsTests::EmptySetterCallback;
+  std::shared_ptr<common::ActionContext> action_context =
+      std::make_shared<common::ActionContext>(common::action_id_t(1));
+  settings_manager_->SetBool(settings::Param::metrics_transaction, true, action_context, setter_callback);
+
+  metrics_manager_->RegisterThread();
+
+  Insert();
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+  metrics_manager_->Aggregate();
+  metrics_manager_->ToCSV();
+
+  Insert();
+  Insert();
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+  metrics_manager_->Aggregate();
+  metrics_manager_->ToCSV();
+
+  Insert();
+  Insert();
+  Insert();
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+  metrics_manager_->Aggregate();
+  metrics_manager_->ToCSV();
+
+  metrics_manager_->UnregisterThread();
 }
 }  // namespace terrier::metrics
