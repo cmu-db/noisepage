@@ -1,5 +1,6 @@
 #pragma once
 
+#include <catalog/catalog.h>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -12,13 +13,6 @@
 #include "transaction/transaction_manager.h"
 
 namespace terrier::storage {
-
-/**
- * TODO(Gus): Replace when catalog is brought in
- * Temporary "catalog" to use for recovery. Maps a database oid to a map that maps table oids to SQL table pointers
- */
-using RecoveryCatalog =
-    std::unordered_map<catalog::db_oid_t, std::unordered_map<catalog::table_oid_t, storage::SqlTable *>>;
 
 /**
  * Recovery Manager
@@ -57,7 +51,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    * @param txn_manager txn manager to use for re-executing recovered transactions
    * @param thread_registry thread registry to register tasks
    */
-  explicit RecoveryManager(AbstractLogProvider *log_provider, RecoveryCatalog *catalog,
+  explicit RecoveryManager(AbstractLogProvider *log_provider, common::ManagedPointer<catalog::Catalog> *catalog,
                            transaction::TransactionManager *txn_manager,
                            common::ManagedPointer<terrier::common::DedicatedThreadRegistry> thread_registry)
       : DedicatedThreadOwner(thread_registry),
@@ -99,7 +93,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
   AbstractLogProvider *log_provider_;
 
   // Catalog to fetch table pointers
-  RecoveryCatalog *catalog_;
+  common::ManagedPointer<catalog::Catalog> *catalog_;
 
   // Transaction manager to create transactions for recovery
   transaction::TransactionManager *txn_manager_;
@@ -140,17 +134,43 @@ class RecoveryManager : public common::DedicatedThreadOwner {
   void ReplayTransaction(LogRecord *log_record);
 
   /**
+   * Wrapper over GetDatabaseCatalog method that asserts the database exists
+   * @param txn txn for catalog lookup
+   * @param database oid for database we want
+   * @return pointer to database catalog
+   */
+  common::ManagedPointer<catalog::DatabaseCatalog> GetDatabaseCatalog(transaction::TransactionContext *txn,
+                                                                      catalog::db_oid_t db_oid) {
+    auto db_catalog_ptr = catalog_->GetDatabaseCatalog(txn, db_oid);
+    TERRIER_ASSERT(db_catalog_ptr != nullptr, "No catalog for given database oid");
+    return db_catalog_ptr;
+  }
+
+  /**
+   * @param txn transaction to use for catalog lookup
    * @param db_oid database oid for requested table
    * @param table_oid table oid for requested table
    * @return pointer to requested Sql table
    */
-  storage::SqlTable *GetSqlTable(catalog::db_oid_t db_oid, catalog::table_oid_t table_oid) {
-    TERRIER_ASSERT(catalog_->find(db_oid) != catalog_->end(), "Database must exist in catalog");
-    TERRIER_ASSERT(catalog_->at(db_oid).find(table_oid) != catalog_->at(db_oid).end(), "Table must exist in catalog");
-    return catalog_->at(db_oid).at(table_oid);
+  common::ManagedPointer<storage::SqlTable> GetSqlTable(transaction::TransactionContext *txn, catalog::db_oid_t db_oid,
+                                                         catalog::table_oid_t table_oid) {
+    auto db_catalog_ptr = GetDatabaseCatalog(txn, db_oid);
+    auto table_ptr = db_catalog_ptr->GetTable(txn, table_oid);
+    TERRIER_ASSERT(table_ptr != nullptr, "Table in the catalog for the given oid");
+    return table_ptr;
   }
 
-  void DeleteFromIndexes(catalog::db_oid_t db_oid, catalog::table_oid_t table_oid, TupleSlot &tuple);
-
+  /**
+   * Inserts or deletes a tuple slot from all indexes on a table.
+   * @warning For an insert, must be called after the tuple slot is inserted into the table, for a delete, it must be
+   * called before it is deleted from the table
+   * @param txn transaction to delete with
+   * @param db_oid database oid for table
+   * @param table_oid indexed table
+   * @param tuple tuple slot to delete
+   * @param insert true if we should insert into the index, false if we should delete
+   */
+  void UpdateIndexesOnTable(transaction::TransactionContext *txn, const catalog::db_oid_t db_oid,
+                            const catalog::table_oid_t table_oid, const TupleSlot &tuple, bool insert);
 };
 }  // namespace terrier::storage
