@@ -139,6 +139,12 @@ class Operator {
   explicit Operator(BaseOperatorNode *node);
 
   /**
+   * Copy constructor for Operator
+   * Should only be invoked by OperatorExpression
+   */
+  Operator(const Operator &op) = default;
+
+  /**
    * Calls corresponding visitor to this operator node
    */
   void Accept(OperatorVisitor *v) const;
@@ -212,7 +218,7 @@ class Operator {
   /**
    * Pointer to the base operator
    */
-  BaseOperatorNode* node_;
+  BaseOperatorNode* node_ = nullptr;
 };
 }  // namespace terrier::optimizer
 

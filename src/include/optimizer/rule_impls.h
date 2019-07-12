@@ -36,7 +36,7 @@ class InnerJoinCommutativity : public Rule {
    * @param context Current OptimizeContext executing under
    */
   void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+                 std::vector<OperatorExpression*> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -66,7 +66,7 @@ class InnerJoinAssociativity : public Rule {
    * @param context Current OptimizeContext executing under
    */
   void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+                 std::vector<OperatorExpression*> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -99,7 +99,7 @@ class GetToSeqScan : public Rule {
    * @param context Current OptimizeContext executing under
    */
   void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+                 std::vector<OperatorExpression*> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -128,7 +128,7 @@ class LogicalExternalFileGetToPhysical : public Rule {
    * @param context Current OptimizeContext executing under
    */
   void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+                 std::vector<OperatorExpression*> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -158,7 +158,7 @@ class GetToTableFreeScan : public Rule {
    * @param context Current OptimizeContext executing under
    */
   void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+                 std::vector<OperatorExpression*> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -187,7 +187,7 @@ class GetToIndexScan : public Rule {
    * @param context Current OptimizeContext executing under
    */
   void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+                 std::vector<OperatorExpression*> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -216,7 +216,7 @@ class LogicalQueryDerivedGetToPhysical : public Rule {
    * @param context Current OptimizeContext executing under
    */
   void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+                 std::vector<OperatorExpression*> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -245,7 +245,7 @@ class LogicalDeleteToPhysical : public Rule {
    * @param context Current OptimizeContext executing under
    */
   void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+                 std::vector<OperatorExpression*> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -274,7 +274,7 @@ class LogicalUpdateToPhysical : public Rule {
    * @param context Current OptimizeContext executing under
    */
   void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+                 std::vector<OperatorExpression*> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -303,7 +303,7 @@ class LogicalInsertToPhysical : public Rule {
    * @param context Current OptimizeContext executing under
    */
   void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+                 std::vector<OperatorExpression*> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -332,7 +332,7 @@ class LogicalInsertSelectToPhysical : public Rule {
    * @param context Current OptimizeContext executing under
    */
   void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+                 std::vector<OperatorExpression*> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -361,7 +361,7 @@ class LogicalGroupByToHashGroupBy : public Rule {
    * @param context Current OptimizeContext executing under
    */
   void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+                 std::vector<OperatorExpression*> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -390,7 +390,7 @@ class LogicalAggregateToPhysical : public Rule {
    * @param context Current OptimizeContext executing under
    */
   void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+                 std::vector<OperatorExpression*> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -419,7 +419,7 @@ class InnerJoinToInnerNLJoin : public Rule {
    * @param context Current OptimizeContext executing under
    */
   void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+                 std::vector<OperatorExpression*> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -448,7 +448,7 @@ class InnerJoinToInnerHashJoin : public Rule {
    * @param context Current OptimizeContext executing under
    */
   void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+                 std::vector<OperatorExpression*> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -477,7 +477,7 @@ class ImplementDistinct : public Rule {
    * @param context Current OptimizeContext executing under
    */
   void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+                 std::vector<OperatorExpression*> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -506,7 +506,7 @@ class ImplementLimit : public Rule {
    * @param context Current OptimizeContext executing under
    */
   void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+                 std::vector<OperatorExpression*> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -535,7 +535,7 @@ class LogicalExportToPhysicalExport : public Rule {
    * @param context Current OptimizeContext executing under
    */
   void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+                 std::vector<OperatorExpression*> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -571,7 +571,7 @@ class PushFilterThroughJoin : public Rule {
    * @param context Current OptimizeContext executing under
    */
   void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+                 std::vector<OperatorExpression*> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -600,7 +600,7 @@ class CombineConsecutiveFilter : public Rule {
    * @param context Current OptimizeContext executing under
    */
   void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+                 std::vector<OperatorExpression*> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -630,7 +630,7 @@ class PushFilterThroughAggregation : public Rule {
    * @param context Current OptimizeContext executing under
    */
   void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+                 std::vector<OperatorExpression*> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -661,7 +661,7 @@ class EmbedFilterIntoGet : public Rule {
    * @param context Current OptimizeContext executing under
    */
   void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+                 std::vector<OperatorExpression*> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -707,7 +707,7 @@ class MarkJoinToInnerJoin : public Rule {
    * @param context Current OptimizeContext executing under
    */
   void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+                 std::vector<OperatorExpression*> *transformed,
                  OptimizeContext *context) const override;
 };
 ///////////////////////////////////////////////////////////////////////////////
@@ -742,7 +742,7 @@ class SingleJoinToInnerJoin : public Rule {
    * @param context Current OptimizeContext executing under
    */
   void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+                 std::vector<OperatorExpression*> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -778,7 +778,7 @@ class PullFilterThroughMarkJoin : public Rule {
    * @param context Current OptimizeContext executing under
    */
   void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+                 std::vector<OperatorExpression*> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -814,7 +814,7 @@ class PullFilterThroughAggregation : public Rule {
    * @param context Current OptimizeContext executing under
    */
   void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+                 std::vector<OperatorExpression*> *transformed,
                  OptimizeContext *context) const override;
 };
 }  // namespace terrier::optimizer

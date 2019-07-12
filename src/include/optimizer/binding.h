@@ -169,11 +169,6 @@ class GroupExprBindingIterator : public BindingIterator {
   GroupExpression* gexpr_;
 
   /**
-   * Pattern to bind to
-   */
-  Pattern* pattern_;
-
-  /**
    * Flag indicating whether first binding or not
    */
   bool first_;

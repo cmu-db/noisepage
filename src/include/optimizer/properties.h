@@ -37,7 +37,7 @@ class PropertySort : public Property {
   /**
    * Copy
    */
-  PropertySort* Copy() {
+  PropertySort* Copy() override {
     return new PropertySort(sort_columns_, sort_ascending_);
   }
 

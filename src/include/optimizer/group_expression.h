@@ -10,7 +10,6 @@
 #include "optimizer/optimizer_defs.h"
 #include "optimizer/group.h"
 #include "optimizer/operator_node.h"
-#include "optimizer/util.h"
 #include "optimizer/property_set.h"
 #include "optimizer/rule.h"
 
@@ -28,7 +27,7 @@ class GroupExpression {
    * @param op Operator
    * @param child_groups Vector of children groups
    */
-  GroupExpression(Operator op, std::vector<GroupID> child_groups)
+  GroupExpression(const Operator &op, std::vector<GroupID> &&child_groups)
     : group_id(UNDEFINED_GROUP),
       op(op),
       child_groups(child_groups),

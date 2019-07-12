@@ -16,8 +16,8 @@ namespace terrier::optimizer {
 //===--------------------------------------------------------------------===//
 void OptimizerTask::ConstructValidRules(
     GroupExpression *group_expr, OptimizeContext *context,
-    std::vector<Rule*> &rules,
-    std::vector<RuleWithPromise> &valid_rules) {
+    const std::vector<Rule*> &rules,
+    std::vector<RuleWithPromise> *valid_rules) {
   for (auto &rule : rules) {
     // Check if we can apply the rule
     bool root_pattern_mismatch = group_expr->Op().GetType() != rule->GetMatchPattern()->Type();
@@ -31,7 +31,7 @@ void OptimizerTask::ConstructValidRules(
     }
 
     auto promise = rule->Promise(group_expr, context);
-    if (promise > 0) valid_rules.emplace_back(rule, promise);
+    if (promise > 0) valid_rules->emplace_back(rule, promise);
   }
 }
 
@@ -74,8 +74,8 @@ void OptimizeExpression::execute() {
 
   // Construct valid transformation rules from rule set
   // Construct valid implementation rules from rule set
-  ConstructValidRules(group_expr_, context_, GetRuleSet().GetTransformationRules(), valid_rules);
-  ConstructValidRules(group_expr_, context_, GetRuleSet().GetImplementationRules(), valid_rules);
+  ConstructValidRules(group_expr_, context_, GetRuleSet().GetTransformationRules(), &valid_rules);
+  ConstructValidRules(group_expr_, context_, GetRuleSet().GetImplementationRules(), &valid_rules);
 
   std::sort(valid_rules.begin(), valid_rules.end());
   OPTIMIZER_LOG_DEBUG("OptimizeExpression::execute() op %d, valid rules : %lu",
@@ -121,7 +121,7 @@ void ExploreExpression::execute() {
   std::vector<RuleWithPromise> valid_rules;
 
   // Construct valid transformation rules from rule set
-  ConstructValidRules(group_expr_, context_, GetRuleSet().GetTransformationRules(), valid_rules);
+  ConstructValidRules(group_expr_, context_, GetRuleSet().GetTransformationRules(), &valid_rules);
   std::sort(valid_rules.begin(), valid_rules.end());
 
   // Apply rule
@@ -158,11 +158,11 @@ void ApplyRule::execute() {
 
     // Caller frees after
     std::vector<OperatorExpression*> after;
-    rule_->Transform(before, after, context_);
+    rule_->Transform(before, &after, context_);
     for (auto &new_expr : after) {
-      GroupExpression* new_gexpr;
+      GroupExpression* new_gexpr = nullptr;
       GroupID g_id = group_expr_->GetGroupID();
-      if (context_->GetMetadata()->RecordTransformedExpression(new_expr, new_gexpr, g_id)) {
+      if (context_->GetMetadata()->RecordTransformedExpression(new_expr, &new_gexpr, g_id)) {
         // A new group expression is generated
         if (new_gexpr->Op().IsLogical()) {
           // Derive stats for the *logical expression*
@@ -317,7 +317,7 @@ void OptimizeInputs::execute() {
       // best expr from the child group
 
       // Add this group expression to group expression hash table
-      std::vector<PropertySet*> input_props_copy;
+      std::vector<PropertySet*> input_props_copy{input_props.size()};
       for (auto i_prop : input_props) { input_props_copy.push_back(i_prop->Copy()); }
 
       group_expr_->SetLocalHashTable(output_prop->Copy(), input_props_copy, cur_total_cost_);
@@ -390,10 +390,10 @@ void TopDownRewrite::execute() {
 
   // Construct valid transformation rules from rule set
   std::vector<Rule*> set = GetRuleSet().GetRewriteRulesByName(rule_set_name_);
-  ConstructValidRules(cur_group_expr, context_, set, valid_rules);
+  ConstructValidRules(cur_group_expr, context_, set, &valid_rules);
 
   // Sort so that we apply rewrite rules with higher promise first
-  std::sort(valid_rules.begin(), valid_rules.end(), std::greater<RuleWithPromise>());
+  std::sort(valid_rules.begin(), valid_rules.end(), std::greater<>());
 
   for (auto &r : valid_rules) {
     Rule *rule = r.GetRule();
@@ -402,7 +402,7 @@ void TopDownRewrite::execute() {
       auto before = iterator.Next();
       TERRIER_ASSERT(!iterator.HasNext(), "there should only be 1 binding");
       std::vector<OperatorExpression*> after;
-      rule->Transform(before, after, context_);
+      rule->Transform(before, &after, context_);
 
       // Rewrite rule should provide at most 1 expression
       TERRIER_ASSERT(after.size() <= 1, "rule provided too many transformations");
@@ -454,10 +454,10 @@ void BottomUpRewrite::execute() {
 
   // Construct valid transformation rules from rule set
   std::vector<Rule*> set = GetRuleSet().GetRewriteRulesByName(rule_set_name_);
-  ConstructValidRules(cur_group_expr, context_, set, valid_rules);
+  ConstructValidRules(cur_group_expr, context_, set, &valid_rules);
 
   // Sort so that we apply rewrite rules with higher promise first
-  std::sort(valid_rules.begin(), valid_rules.end(), std::greater<RuleWithPromise>());
+  std::sort(valid_rules.begin(), valid_rules.end(), std::greater<>());
 
   for (auto &r : valid_rules) {
     Rule *rule = r.GetRule();
@@ -466,7 +466,7 @@ void BottomUpRewrite::execute() {
       auto before = iterator.Next();
       TERRIER_ASSERT(!iterator.HasNext(), "should only bind to 1");
       std::vector<OperatorExpression*> after;
-      rule->Transform(before, after, context_);
+      rule->Transform(before, &after, context_);
 
       // Rewrite rule should provide at most 1 expression
       TERRIER_ASSERT(after.size() <= 1, "rule generated too many transformations");

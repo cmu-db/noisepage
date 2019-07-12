@@ -30,7 +30,7 @@ ChildPropertyDeriver::GetProperties(GroupExpression *gexpr,
 
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const SeqScan *op) {
   // Seq Scan does not provide any property
-  output_.push_back(std::make_pair(new PropertySet(), std::vector<PropertySet*>{}));
+  output_.emplace_back(new PropertySet(), std::vector<PropertySet*>{});
 }
 
 void ChildPropertyDeriver::Visit(const IndexScan *op) {
@@ -50,7 +50,7 @@ void ChildPropertyDeriver::Visit(const IndexScan *op) {
       for (auto &index : tbl_indexes) {
         if (IndexUtil::SatisfiesSortWithIndex(sort_prop, tbl_id, index, accessor_)) {
           auto prop = requirements_->Copy();
-          output_.push_back(std::make_pair(prop, std::vector<PropertySet*>{}));
+          output_.emplace_back(prop, std::vector<PropertySet*>{});
           break;
         }
       }
@@ -59,19 +59,19 @@ void ChildPropertyDeriver::Visit(const IndexScan *op) {
 
   if (output_.empty()) {
     // No index can be used, so output provides no properties
-    output_.push_back(std::make_pair(new PropertySet(), std::vector<PropertySet*>{}));
+    output_.emplace_back(new PropertySet(), std::vector<PropertySet*>{});
   }
 }
 
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const ExternalFileScan *op) {
   // External file scans (like sequential scans) do not provide properties
-  output_.push_back(std::make_pair(new PropertySet(), std::vector<PropertySet*>{}));
+  output_.emplace_back(new PropertySet(), std::vector<PropertySet*>{});
 }
 
 void ChildPropertyDeriver::Visit(const QueryDerivedScan *op) {
   auto output = requirements_->Copy();
   auto input = requirements_->Copy();
-  output_.push_back(std::make_pair(output, std::vector<PropertySet*>{input}));
+  output_.emplace_back(output, std::vector<PropertySet*>{input});
 }
 
 /**
@@ -81,7 +81,7 @@ void ChildPropertyDeriver::Visit(const QueryDerivedScan *op) {
  * projection.
  */
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const HashGroupBy *op) {
-  output_.push_back(std::make_pair(new PropertySet(), std::vector<PropertySet*>{new PropertySet()}));
+  output_.emplace_back(new PropertySet(), std::vector<PropertySet*>{new PropertySet()});
 }
 
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const SortGroupBy *op) {
@@ -95,11 +95,11 @@ void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const SortGroupBy *op) {
 
   auto sort_prop = new PropertySort(sort_cols, std::move(sort_ascending));
   auto prop_set = new PropertySet(std::vector<Property*>{sort_prop});
-  output_.push_back(std::make_pair(prop_set, std::vector<PropertySet*>{prop_set->Copy()}));
+  output_.emplace_back(prop_set, std::vector<PropertySet*>{prop_set->Copy()});
 }
 
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const Aggregate *op) {
-  output_.push_back(std::make_pair(new PropertySet(), std::vector<PropertySet*>{new PropertySet()}));
+  output_.emplace_back(new PropertySet(), std::vector<PropertySet*>{new PropertySet()});
 }
 
 void ChildPropertyDeriver::Visit(const Limit *op) {
@@ -107,18 +107,18 @@ void ChildPropertyDeriver::Visit(const Limit *op) {
   std::vector<PropertySet*> child_input_properties{new PropertySet()};
   auto provided_prop = new PropertySet();
   if (!op->GetSortExpressions().empty()) {
-    std::vector<common::ManagedPointer<parser::AbstractExpression>> exprs = op->GetSortExpressions();
-    std::vector<planner::OrderByOrderingType> sorts = op->GetSortAscending();
+    const std::vector<common::ManagedPointer<parser::AbstractExpression>> &exprs = op->GetSortExpressions();
+    const std::vector<planner::OrderByOrderingType> &sorts{op->GetSortAscending()};
     provided_prop->AddProperty(new PropertySort(exprs, sorts));
   }
 
-  output_.push_back(std::make_pair(provided_prop, std::move(child_input_properties)));
+  output_.emplace_back(provided_prop, std::move(child_input_properties));
 }
 
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const Distinct *op) {
   // Let child fulfil all the required properties
   std::vector<PropertySet*> child_input_properties{requirements_->Copy()};
-  output_.push_back(std::make_pair(requirements_->Copy(), std::move(child_input_properties)));
+  output_.emplace_back(requirements_->Copy(), std::move(child_input_properties));
 }
 
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const OrderBy *op) {}
@@ -138,40 +138,40 @@ void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const OuterHashJoin *op) {}
 
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const Insert *op) {
   std::vector<PropertySet*> child_input_properties{requirements_->Copy()};
-  output_.push_back(std::make_pair(requirements_->Copy(), std::move(child_input_properties)));
+  output_.emplace_back(requirements_->Copy(), std::move(child_input_properties));
 }
 
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const InsertSelect *op) {
   // Let child fulfil all the required properties
   std::vector<PropertySet*> child_input_properties{requirements_->Copy()};
-  output_.push_back(std::make_pair(requirements_->Copy(), std::move(child_input_properties)));
+  output_.emplace_back(requirements_->Copy(), std::move(child_input_properties));
 }
 
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const Update *op) {
   // Let child fulfil all the required properties
   std::vector<PropertySet*> child_input_properties{requirements_->Copy()};
-  output_.push_back(std::make_pair(requirements_->Copy(), std::move(child_input_properties)));
+  output_.emplace_back(requirements_->Copy(), std::move(child_input_properties));
 }
 
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const Delete *op) {
   // Let child fulfil all the required properties
   std::vector<PropertySet*> child_input_properties{requirements_->Copy()};
-  output_.push_back(std::make_pair(requirements_->Copy(), std::move(child_input_properties)));
+  output_.emplace_back(requirements_->Copy(), std::move(child_input_properties));
 }
 
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const TableFreeScan *op) {
   // Provide nothing
-  output_.push_back(std::make_pair(new PropertySet(), std::vector<PropertySet*>{}));
+  output_.emplace_back(new PropertySet(), std::vector<PropertySet*>{});
 }
 
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const ExportExternalFile *op) {
   // Let child fulfil all the required properties
   std::vector<PropertySet*> child_input_properties{requirements_->Copy()};
-  output_.push_back(std::make_pair(requirements_->Copy(), std::move(child_input_properties)));
+  output_.emplace_back(requirements_->Copy(), std::move(child_input_properties));
 }
 
 void ChildPropertyDeriver::DeriveForJoin() {
-  output_.push_back(std::make_pair(new PropertySet(), std::vector<PropertySet*>{new PropertySet(), new PropertySet()}));
+  output_.emplace_back(new PropertySet(), std::vector<PropertySet*>{new PropertySet(), new PropertySet()});
 
   // If there is sort property and all the sort columns are from the probe
   // table (currently right table), we can push down the sort property
@@ -185,14 +185,14 @@ void ChildPropertyDeriver::DeriveForJoin() {
       Group *probe_group = memo_->GetGroupByID(gexpr_->GetChildGroupId(1));
       for (size_t idx = 0; idx < sort_col_size; ++idx) {
         ExprSet tuples;
-        parser::ExpressionUtil::GetTupleValueExprs(tuples, sort_prop->GetSortColumn(idx).get());
+        parser::ExpressionUtil::GetTupleValueExprs(&tuples, sort_prop->GetSortColumn(idx).get());
         for (auto &expr : tuples) {
           auto tv_expr = dynamic_cast<const parser::TupleValueExpression *>(expr);
           TERRIER_ASSERT(tv_expr, "Expected TupleValueExpression");
 
           // If a column is not in the prob table, we cannot fulfill the sort
           // property in the requirement
-          if (!probe_group->GetTableAliases().count(tv_expr->GetTableName())) {
+          if (probe_group->GetTableAliases().count(tv_expr->GetTableName()) == 0u) {
             can_pass_down = false;
             break;
           }
@@ -205,7 +205,7 @@ void ChildPropertyDeriver::DeriveForJoin() {
 
       if (can_pass_down) {
         std::vector<PropertySet*> children{new PropertySet(), requirements_->Copy()};
-        output_.push_back(std::make_pair(requirements_->Copy(), std::move(children)));
+        output_.emplace_back(requirements_->Copy(), std::move(children));
       }
     }
   }

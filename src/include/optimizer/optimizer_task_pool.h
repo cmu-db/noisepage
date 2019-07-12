@@ -55,7 +55,7 @@ class OptimizerTaskStack : public OptimizerTaskPool {
   /**
    * Destructor for OptimizerTaskStack
    */
-  virtual ~OptimizerTaskStack() {
+  ~OptimizerTaskStack() override {
     while (!task_stack_.empty()) {
       delete Pop();
     }

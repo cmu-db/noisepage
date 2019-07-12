@@ -70,8 +70,8 @@ class OptimizerTask {
    */
   static void ConstructValidRules(GroupExpression *group_expr,
                                   OptimizeContext *context,
-                                  std::vector<Rule*> &rules,
-                                  std::vector<RuleWithPromise> &valid_rules);
+                                  const std::vector<Rule*> &rules,
+                                  std::vector<RuleWithPromise> *valid_rules);
 
   /**
    * Function to execute the task
@@ -309,7 +309,7 @@ class OptimizeInputs : public OptimizerTask {
   /**
    * Destructor
    */
-  ~OptimizeInputs() {
+  ~OptimizeInputs() override {
     for (auto &pair : output_input_properties_) {
       delete pair.first;
       for (auto &prop : pair.second) {
@@ -367,7 +367,7 @@ class DeriveStats : public OptimizerTask {
               OptimizeContext* context)
       : OptimizerTask(context, OptimizerTaskType::DERIVE_STATS),
         gexpr_(gexpr),
-        required_cols_(required_cols) {}
+        required_cols_(std::move(required_cols)) {}
 
   /**
    * Constructor for DeriveStats

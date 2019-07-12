@@ -93,7 +93,7 @@ class Optimizer : public AbstractOptimizer {
    */
   planner::AbstractPlanNode* ChooseBestPlan(
       GroupID id, PropertySet* required_props,
-      std::vector<const parser::AbstractExpression *> required_cols);
+      const std::vector<const parser::AbstractExpression *> &required_cols);
 
   /**
    * Execute elements of given optimization task stack and ensure that we

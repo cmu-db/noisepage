@@ -104,11 +104,11 @@ class ExpressionUtil {
    * Generate a set of table alias included in an expression
    */
   static void GenerateTableAliasSet(const AbstractExpression* expr,
-                                    std::unordered_set<std::string> &table_alias_set) {
+                                    std::unordered_set<std::string> *table_alias_set) {
     if (expr->GetExpressionType() == ExpressionType::VALUE_TUPLE) {
       auto tv_expr = dynamic_cast<const TupleValueExpression*>(expr);
       TERRIER_ASSERT(tv_expr, "tv_expr should be TupleValueExpression");
-      table_alias_set.insert(tv_expr->GetTableName());
+      table_alias_set->insert(tv_expr->GetTableName());
     } else {
       for (size_t i = 0; i < expr->GetChildrenSize(); i++) {
         GenerateTableAliasSet(expr->GetChild(i).get(), table_alias_set);
@@ -141,7 +141,7 @@ class ExpressionUtil {
    */
   static const AbstractExpression* ConvertExprTVNodes(
       const AbstractExpression* expr,
-      std::vector<optimizer::ExprMap> child_expr_maps) {
+      const std::vector<optimizer::ExprMap> &child_expr_maps) {
     if (expr == nullptr) {
       return nullptr;
     }
@@ -151,9 +151,9 @@ class ExpressionUtil {
       const AbstractExpression *child_expr = expr->GetChild(i).get();
 
       bool did_insert = false;
-      for (size_t tuple_idx = 0; tuple_idx < child_expr_maps.size(); ++tuple_idx) {
+      for (auto &child_expr_map : child_expr_maps) {
         if (child_expr->GetExpressionType() != ExpressionType::VALUE_TUPLE &&
-            child_expr_maps[tuple_idx].count(child_expr)) {
+            child_expr_map.count(child_expr) != 0u) {
           // TODO(wz2): This should create a DerivedValueExpression iirc... (#404)
           TERRIER_ASSERT(0, "Unimplemented functionality...please fix");
 
@@ -183,16 +183,16 @@ class ExpressionUtil {
    * @param expr_set optimizer::ExprSet to store found expressions in
    * @param expr AbstractExpression to walk
    */
-  static void GetTupleAndAggregateExprs(optimizer::ExprSet &expr_set,
+  static void GetTupleAndAggregateExprs(optimizer::ExprSet *expr_set,
                                         const AbstractExpression* expr) {
     std::vector<const TupleValueExpression*> tv_exprs;
     std::vector<const AggregateExpression*> aggr_exprs;
-    GetTupleAndAggregateExprs(aggr_exprs, tv_exprs, expr);
+    GetTupleAndAggregateExprs(&aggr_exprs, &tv_exprs, expr);
     for (auto &tv_expr : tv_exprs) {
-      expr_set.insert(tv_expr);
+      expr_set->insert(tv_expr);
     }
     for (auto &aggr_expr : aggr_exprs) {
-      expr_set.insert(aggr_expr);
+      expr_set->insert(aggr_expr);
     }
   }
 
@@ -204,19 +204,19 @@ class ExpressionUtil {
    * @param expr_map optimizer::ExprMap to store found expressions and order they were added
    * @param expr AbstractExpression to walk
    */
-  static void GetTupleAndAggregateExprs(optimizer::ExprMap &expr_map,
+  static void GetTupleAndAggregateExprs(optimizer::ExprMap *expr_map,
                                         const AbstractExpression* expr) {
     std::vector<const TupleValueExpression*> tv_exprs;
     std::vector<const AggregateExpression*> aggr_exprs;
-    GetTupleAndAggregateExprs(aggr_exprs, tv_exprs, expr);
+    GetTupleAndAggregateExprs(&aggr_exprs, &tv_exprs, expr);
     for (auto &tv_expr : tv_exprs) {
-      if (!expr_map.count(tv_expr)) {
-        expr_map.emplace(tv_expr, expr_map.size());
+      if (expr_map->count(tv_expr) == 0u) {
+        expr_map->emplace(tv_expr, expr_map->size());
       }
     }
     for (auto &aggr_expr : aggr_exprs) {
-      if (!expr_map.count(aggr_expr)) {
-        expr_map.emplace(aggr_expr, expr_map.size());
+      if (expr_map->count(aggr_expr) == 0u) {
+        expr_map->emplace(aggr_expr, expr_map->size());
       }
     }
   }
@@ -229,10 +229,10 @@ class ExpressionUtil {
    * @param aggr_exprs vector to store found AggregateExpressions
    * @param expr Expression to walk
    */
-  static void GetAggregateExprs(std::vector<const AggregateExpression*> &aggr_exprs,
+  static void GetAggregateExprs(std::vector<const AggregateExpression*> *aggr_exprs,
                                 const AbstractExpression* expr) {
     std::vector<const TupleValueExpression*> dummy_tv_exprs;
-    GetTupleAndAggregateExprs(aggr_exprs, dummy_tv_exprs, expr);
+    GetTupleAndAggregateExprs(aggr_exprs, &dummy_tv_exprs, expr);
   }
 
   /**
@@ -244,21 +244,21 @@ class ExpressionUtil {
    * @param tv_exprs vector of TupleValueExpressions in expression
    * @param expr Expression to walk
    */
-  static void GetTupleAndAggregateExprs(std::vector<const AggregateExpression*> &aggr_exprs,
-                                        std::vector<const TupleValueExpression*> &tv_exprs,
+  static void GetTupleAndAggregateExprs(std::vector<const AggregateExpression*> *aggr_exprs,
+                                        std::vector<const TupleValueExpression*> *tv_exprs,
                                         const AbstractExpression* expr) {
     size_t children_size = expr->GetChildrenSize();
     if (IsAggregateExpression(expr->GetExpressionType())) {
       auto aggr_expr = dynamic_cast<const AggregateExpression*>(expr);
       TERRIER_ASSERT(aggr_expr, "expr should be AggregateExpresision");
 
-      aggr_exprs.push_back(aggr_expr);
+      aggr_exprs->push_back(aggr_expr);
     } else if (expr->GetExpressionType() == ExpressionType::VALUE_TUPLE) {
       auto tv_expr = dynamic_cast<const TupleValueExpression*>(expr);
       TERRIER_ASSERT(tv_expr->GetChildrenSize() == 0, "TupleValueExpression should have no children");
       TERRIER_ASSERT(tv_expr, "expr should be TupleValueExpression");
 
-      tv_exprs.push_back(tv_expr);
+      tv_exprs->push_back(tv_expr);
     } else {
       for (size_t i = 0; i < children_size; i++) {
         GetTupleAndAggregateExprs(aggr_exprs, tv_exprs, expr->GetChild(i).get());
@@ -274,7 +274,7 @@ class ExpressionUtil {
    * @param expr_map map to place found TupleValueExpressions for order-preserving
    * @param expr Expression to walk
    */
-  static void GetTupleValueExprs(optimizer::ExprMap &expr_map, const AbstractExpression* expr) {
+  static void GetTupleValueExprs(optimizer::ExprMap *expr_map, const AbstractExpression* expr) {
     size_t children_size = expr->GetChildrenSize();
     for (size_t i = 0; i < children_size; i++) {
       GetTupleValueExprs(expr_map, expr->GetChild(i).get());
@@ -282,7 +282,7 @@ class ExpressionUtil {
 
     // Here we need a deep copy to void double delete subtree
     if (expr->GetExpressionType() == ExpressionType::VALUE_TUPLE) {
-      expr_map.emplace(expr, expr_map.size());
+      expr_map->emplace(expr, expr_map->size());
     }
   }
 
@@ -293,14 +293,14 @@ class ExpressionUtil {
    * @param expr_set set to place found TupleValueExpressions
    * @param expr Expression to walk
    */
-  static void GetTupleValueExprs(optimizer::ExprSet &expr_set, const AbstractExpression* expr) {
+  static void GetTupleValueExprs(optimizer::ExprSet *expr_set, const AbstractExpression* expr) {
     size_t children_size = expr->GetChildrenSize();
     for (size_t i = 0; i < children_size; i++) {
       GetTupleValueExprs(expr_set, expr->GetChild(i).get());
     }
 
     if (expr->GetExpressionType() == ExpressionType::VALUE_TUPLE) {
-      expr_set.insert(expr);
+      expr_set->insert(expr);
     }
   }
 
@@ -413,12 +413,12 @@ class ExpressionUtil {
       }
 
       return true;
-    } else {
-      optimizer::ExprSet l_set, r_set;
-      for (auto expr : l) l_set.insert(expr);
-      for (auto expr : r) r_set.insert(expr);
-      return l_set == r_set;
     }
+
+    optimizer::ExprSet l_set, r_set;
+    for (auto expr : l) l_set.insert(expr);
+    for (auto expr : r) r_set.insert(expr);
+    return l_set == r_set;
   }
 
   /**
@@ -441,8 +441,7 @@ class ExpressionUtil {
       children.push_back(exprs[i].GetExpr()->Copy());
 
       auto shared = new ConjunctionExpression(ExpressionType::CONJUNCTION_AND, std::move(children));
-      TERRIER_ASSERT(children.empty(), "ConjunctionExpression constructor should have std::move()");
-      children.push_back(shared);
+      children = {shared};
     }
 
     TERRIER_ASSERT(children.size() == 1, "children should have exactly 1 AbstractExpression");

@@ -43,7 +43,7 @@ struct QueryInfo {
   QueryInfo(parser::StatementType type,
             std::vector<common::ManagedPointer<parser::AbstractExpression>> &&exprs,
             PropertySet* props)
-      : stmt_type_(type), output_exprs_(exprs), physical_props_(std::move(props)) {}
+      : stmt_type_(type), output_exprs_(exprs), physical_props_(props) {}
 
   /**
    * Destructor

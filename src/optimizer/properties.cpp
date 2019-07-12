@@ -63,7 +63,7 @@ common::hash_t PropertySort::Hash() const {
  * @param v Visitor
  */
 void PropertySort::Accept(PropertyVisitor *v) const {
-  v->Visit((const PropertySort *)this);
+  v->Visit(this);
 }
 
 }  // namespace terrier::optimizer

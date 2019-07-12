@@ -132,7 +132,7 @@ class OptimizerMetadata {
    * @param task_pool Pointer to OptimizerTaskPool
    */
   void SetTaskPool(OptimizerTaskPool *task_pool) {
-    if (this->task_pool_) delete this->task_pool_;
+    delete this->task_pool_;
     this->task_pool_ = task_pool;
   }
 
@@ -179,7 +179,7 @@ class OptimizerMetadata {
    * @param gexpr Places the newly created GroupExpression
    * @returns Whether the OperatorExpression already exists
    */
-  bool RecordTransformedExpression(OperatorExpression* expr, GroupExpression* &gexpr) {
+  bool RecordTransformedExpression(OperatorExpression* expr, GroupExpression** gexpr) {
     return RecordTransformedExpression(expr, gexpr, UNDEFINED_GROUP);
   }
 
@@ -194,12 +194,12 @@ class OptimizerMetadata {
    * @param target_group ID of the Group that the OperatorExpression belongs to
    * @returns Whether the OperatorExpression already exists
    */
-  bool RecordTransformedExpression(OperatorExpression* expr, GroupExpression* &gexpr, GroupID target_group) {
+  bool RecordTransformedExpression(OperatorExpression* expr, GroupExpression** gexpr, GroupID target_group) {
     auto new_gexpr = MakeGroupExpression(expr);
     auto ptr = memo_.InsertExpression(new_gexpr, target_group, false);
     TERRIER_ASSERT(ptr, "Root of expr should not fail insertion");
 
-    gexpr = ptr;  // ptr is actually usable
+    (*gexpr) = ptr;
     return (ptr == new_gexpr);
   }
 

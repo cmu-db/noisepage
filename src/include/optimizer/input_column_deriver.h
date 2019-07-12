@@ -200,8 +200,10 @@ class InputColumnDeriver : public OperatorVisitor {
    * The input column vector contains of a single vector consisting of all
    * TupleValueExpressions needed by GroupBy and Having expressions and any
    * TupleValueExpressions required by AggregateExpression from required_cols_.
+   *
+   * @param op Visiting BaseOperatorNode
   */
-  void AggregateHelper(const BaseOperatorNode *);
+  void AggregateHelper(const BaseOperatorNode *op);
 
   /**
    * Derives the output and input columns for a Join.
@@ -216,6 +218,8 @@ class InputColumnDeriver : public OperatorVisitor {
    * - This function assumes the build side is the Left Child
    * - This function assumes the probe side is the Right Child
    * TODO(wz2): Better abstraction/identification of build/probe rather than hard-coded
+   *
+   * @param op Visiting BaseOperatorNode
   */
   void JoinHelper(const BaseOperatorNode *op);
 
@@ -224,7 +228,15 @@ class InputColumnDeriver : public OperatorVisitor {
    * Sets output_input_cols_ = (required_cols, {required_cols_})
   */
   void Passdown();
+
+  /**
+   * GroupExpression analyzing
+   */
   GroupExpression *gexpr_;
+
+  /**
+   * Memo
+   */
   Memo *memo_;
 
   /**

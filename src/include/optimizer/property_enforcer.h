@@ -24,8 +24,9 @@ class PropertyEnforcer : public PropertyVisitor {
 
   /**
    * Implementation of the Visit function for PropertySort
+   * @param prop PropertySort being visited
    */
-  void Visit(const PropertySort *) override;
+  void Visit(const PropertySort *prop) override;
 
  private:
   GroupExpression* input_gexpr_;

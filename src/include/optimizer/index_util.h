@@ -136,7 +136,7 @@ class IndexUtil {
     }
 
     std::vector<catalog::col_oid_t> mapped_cols;
-    if (!GetIndexColOid(tbl_oid, index_schema, accessor, mapped_cols)) {
+    if (!GetIndexColOid(tbl_oid, index_schema, accessor, &mapped_cols)) {
       // Unable to translate indexkeycol_oid_t -> col_oid_t
       // Translation uses the IndexSchema::Column expression
       return false;
@@ -174,7 +174,7 @@ class IndexUtil {
    * @param metadata IndexUtilMetadata
    */
   static void PopulateMetadata(const std::vector<AnnotatedExpression> &predicates,
-                               IndexUtilMetadata &metadata) {
+                               IndexUtilMetadata *metadata) {
     // List of column OIDs that predicates are built against
     std::vector<catalog::col_oid_t> key_column_id_list;
 
@@ -250,9 +250,9 @@ class IndexUtil {
       }
     }
 
-    metadata.SetPredicateColumnIds(std::move(key_column_id_list));
-    metadata.SetPredicateExprTypes(std::move(expr_type_list));
-    metadata.SetPredicateValues(std::move(value_list));
+    metadata->SetPredicateColumnIds(std::move(key_column_id_list));
+    metadata->SetPredicateExprTypes(std::move(expr_type_list));
+    metadata->SetPredicateValues(std::move(value_list));
   }
 
   /**
@@ -266,8 +266,8 @@ class IndexUtil {
    */
   static bool SatisfiesPredicateWithIndex(catalog::table_oid_t tbl_oid,
                                           catalog::index_oid_t index_oid,
-                                          IndexUtilMetadata &preds_metadata,
-                                          IndexUtilMetadata &output_metadata,
+                                          IndexUtilMetadata *preds_metadata,
+                                          IndexUtilMetadata *output_metadata,
                                           catalog::CatalogAccessor *accessor) {
     auto &index_schema = accessor->GetIndexSchema(index_oid);
     if (!SatisfiesBaseColumnRequirement(index_schema)) {
@@ -275,7 +275,7 @@ class IndexUtil {
     }
 
     std::vector<catalog::col_oid_t> mapped_cols;
-    if (!GetIndexColOid(tbl_oid, index_schema, accessor, mapped_cols)) {
+    if (!GetIndexColOid(tbl_oid, index_schema, accessor, &mapped_cols)) {
       // Unable to translate indexkeycol_oid_t -> col_oid_t
       // Translation uses the IndexSchema::Column expression
       return false;
@@ -289,9 +289,9 @@ class IndexUtil {
     std::vector<type::TransientValue> output_val_list;
 
     // From predicate maetadata
-    auto &input_col_list = preds_metadata.GetPredicateColumnIds();
-    auto &input_expr_list = preds_metadata.GetPredicateExprTypes();
-    auto &input_val_list = preds_metadata.GetPredicateValues();
+    auto &input_col_list = preds_metadata->GetPredicateColumnIds();
+    auto &input_expr_list = preds_metadata->GetPredicateExprTypes();
+    auto &input_val_list = preds_metadata->GetPredicateValues();
     TERRIER_ASSERT(input_col_list.size() == input_expr_list.size() &&
                    input_col_list.size() == input_val_list.size(),
                    "Predicate metadata should all be equal length vectors");
@@ -308,9 +308,9 @@ class IndexUtil {
     }
 
     bool is_empty = output_col_list.empty();
-    output_metadata.SetPredicateColumnIds(std::move(output_col_list));
-    output_metadata.SetPredicateExprTypes(std::move(output_expr_list));
-    output_metadata.SetPredicateValues(std::move(input_val_list));
+    output_metadata->SetPredicateColumnIds(std::move(output_col_list));
+    output_metadata->SetPredicateExprTypes(std::move(output_expr_list));
+    output_metadata->SetPredicateValues(std::move(input_val_list));
     return !is_empty;
   }
 
@@ -323,7 +323,7 @@ class IndexUtil {
    * @returns TRUE if the "base column" requirement is met
    */
   static bool SatisfiesBaseColumnRequirement(const catalog::IndexSchema &schema) {
-    for (auto column : schema.GetColumns()) {
+    for (auto &column : schema.GetColumns()) {
       if (!IsBaseColumn(column.GetExpression())) {
         return false;
       }
@@ -344,7 +344,7 @@ class IndexUtil {
   static bool GetIndexColOid(catalog::table_oid_t tbl_oid,
                              const catalog::IndexSchema &schema,
                              catalog::CatalogAccessor *accessor,
-                             std::vector<catalog::col_oid_t> &col_oids) {
+                             std::vector<catalog::col_oid_t> *col_oids) {
     TERRIER_ASSERT(SatisfiesBaseColumnRequirement(schema),  "GetIndexColOid() pre-cond not satisfied");
     catalog::Schema tbl_schema = accessor->GetSchema(tbl_oid);
     if (tbl_schema.GetColumns().size() < schema.GetColumns().size()) {
@@ -371,7 +371,7 @@ class IndexUtil {
           return false;  // column not found???
         }
 
-        col_oids.push_back(it->second);
+        col_oids->push_back(it->second);
       }
     }
 

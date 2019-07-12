@@ -37,7 +37,9 @@ bool Group::SetExpressionCost(GroupExpression *expr, double cost, PropertySet* p
     // not exist so insert
     lowest_cost_expressions_[properties] = std::make_tuple(cost, expr);
     return true;
-  } else if (std::get<0>(it->second) > cost) {
+  }
+
+  if (std::get<0>(it->second) > cost) {
     // this is lower cost
     lowest_cost_expressions_[properties] = std::make_tuple(cost, expr);
     delete properties;

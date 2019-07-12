@@ -35,8 +35,8 @@ planner::AbstractPlanNode* Optimizer::BuildPlanTree(
   metadata_.SetCatalogAccessor(accessor);
 
   // Generate initial operator tree from query tree
-  GroupExpression *gexpr;
-  bool insert = metadata_.RecordTransformedExpression(op_tree, gexpr);
+  GroupExpression *gexpr = nullptr;
+  bool insert = metadata_.RecordTransformedExpression(op_tree, &gexpr);
   TERRIER_ASSERT(insert && gexpr, "Logical expression tree should insert");
 
   GroupID root_id = gexpr->GetGroupID();
@@ -71,7 +71,7 @@ planner::AbstractPlanNode* Optimizer::BuildPlanTree(
 planner::AbstractPlanNode* Optimizer::ChooseBestPlan(
     GroupID id,
     PropertySet* required_props,
-    std::vector<const parser::AbstractExpression *> required_cols) {
+    const std::vector<const parser::AbstractExpression *> &required_cols) {
 
   Group *group = metadata_.GetMemo().GetGroupByID(id);
   auto gexpr = group->GetBestExpression(required_props);
@@ -129,7 +129,7 @@ void Optimizer::OptimizeLoop(
     PropertySet* required_props,
     settings::SettingsManager *settings) {
 
-  OptimizeContext* root_context = new OptimizeContext(&metadata_, required_props->Copy());
+  auto root_context = new OptimizeContext(&metadata_, required_props->Copy());
   auto task_stack = new OptimizerTaskStack();
   metadata_.SetTaskPool(task_stack);
   metadata_.AddOptimizeContext(root_context);

@@ -55,7 +55,6 @@ GroupExprBindingIterator::GroupExprBindingIterator(
     const Memo &memo, GroupExpression *gexpr, Pattern* pattern)
     : BindingIterator(memo),
       gexpr_(gexpr),
-      pattern_(pattern),
       first_(true),
       has_next_(false),
       current_binding_(nullptr) {
@@ -94,7 +93,7 @@ GroupExprBindingIterator::GroupExprBindingIterator(
       child_bindings.push_back(iterator.Next());
     }
 
-    if (child_bindings.size() == 0) {
+    if (child_bindings.empty()) {
       // Child binding failed
       return;
     }

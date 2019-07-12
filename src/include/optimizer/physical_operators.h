@@ -837,12 +837,10 @@ class Delete : public OperatorNode<Delete> {
    * @param database_oid OID of the database
    * @param namespace_oid OID of the namespace
    * @param table_oid OID of the table
-   * @param delete_condition expression of delete condition
    * @return an InsertSelect operator
    */
   static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::table_oid_t table_oid,
-                       common::ManagedPointer<parser::AbstractExpression> delete_condition);
+                       catalog::table_oid_t table_oid);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
@@ -862,11 +860,6 @@ class Delete : public OperatorNode<Delete> {
    */
   const catalog::table_oid_t &GetTableOid() const { return table_oid_; }
 
-  /**
-   * @return Expression of delete condition
-   */
-  const common::ManagedPointer<parser::AbstractExpression> &GetDeleteCondition() const { return delete_condition_; }
-
  private:
   /**
    * OID of the database
@@ -882,11 +875,6 @@ class Delete : public OperatorNode<Delete> {
    * OID of the table
    */
   catalog::table_oid_t table_oid_;
-
-  /**
-   * Expression of delete condition
-   */
-  common::ManagedPointer<parser::AbstractExpression> delete_condition_;
 };
 
 /**

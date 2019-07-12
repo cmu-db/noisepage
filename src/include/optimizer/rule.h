@@ -158,7 +158,7 @@ class Rule {
    */
   virtual void Transform(
       OperatorExpression *input,
-      std::vector<OperatorExpression*> &transformed,
+      std::vector<OperatorExpression*> *transformed,
       OptimizeContext *context) const = 0;
 
  protected:
