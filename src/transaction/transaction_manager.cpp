@@ -36,7 +36,7 @@ TransactionContext *TransactionManager::BeginTransaction() {
 
   uint64_t elapsed_us;
   {
-    common::ScopedTimer<std::chrono::microseconds> timer(&elapsed_us);
+    common::ScopedTimer<std::chrono::nanoseconds> timer(&elapsed_us);
     // Ensure we do not return from this function if there are ongoing write commits
     txn_gate_.Traverse();
   }
@@ -116,7 +116,7 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
 
   uint64_t elapsed_us;
   {
-    common::ScopedTimer<std::chrono::microseconds> timer(&elapsed_us);
+    common::ScopedTimer<std::chrono::nanoseconds> timer(&elapsed_us);
     // In a critical section, remove this transaction from the table of running transactions
     curr_running_txns_latch_.Lock();
   }

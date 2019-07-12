@@ -19,7 +19,7 @@ class MetricsThread {
    */
   BOOST_DI_INJECT(MetricsThread, (named = METRICS_PERIOD) std::chrono::milliseconds metrics_period)  // NOLINT
   : run_metrics_(true),
-    /// @cond DOXYGEN_IGNORE // TODO(Matt): no idea why this is currently necessary. Doxygen thinks these are files
+    /// @cond DOXYGEN_IGNORE // TODO(Matt): no idea why this is currently necessary. Doxygen thinks these are functions
     metrics_paused_(false),
     metrics_period_(metrics_period),
     metrics_thread_(std::thread([this] { MetricsThreadLoop(); })) {}
