@@ -235,7 +235,7 @@ bool DataTable::SelectIntoBuffer(transaction::TransactionContext *const txn, con
 
   // Nullptr in version chain means no other versions visible to any transaction alive at this point.
   // Alternatively, if the current transaction holds the write lock, it should be able to read its own updates.
-  if (version_ptr == nullptr || version_ptr->Timestamp().load() == txn->TxnId().load()) {
+  if (version_ptr == nullptr || version_ptr->Timestamp().load() == txn->FinishTime()) {
     return visible;
   }
 
@@ -290,7 +290,7 @@ bool DataTable::Visible(const TupleSlot slot, const TupleAccessStrategy &accesso
 bool DataTable::HasConflict(const transaction::TransactionContext &txn, UndoRecord *const version_ptr) const {
   if (version_ptr == nullptr) return false;  // Nobody owns this tuple's write lock, no older version visible
   const transaction::timestamp_t version_timestamp = version_ptr->Timestamp().load();
-  const transaction::timestamp_t txn_id = txn.TxnId().load();
+  const transaction::timestamp_t txn_id = txn.FinishTime();
   const transaction::timestamp_t start_time = txn.StartTime();
   const bool owned_by_other_txn =
       (!transaction::TransactionUtil::Committed(version_timestamp) && version_timestamp != txn_id);
@@ -347,7 +347,7 @@ bool DataTable::IsVisible(const transaction::TransactionContext &txn, const Tupl
 
   // Nullptr in version chain means no other versions visible to any transaction alive at this point.
   // Alternatively, if the current transaction holds the write lock, it should be able to read its own updates.
-  if (version_ptr == nullptr || version_ptr->Timestamp().load() == txn.TxnId().load()) {
+  if (version_ptr == nullptr || version_ptr->Timestamp().load() == txn.FinishTime()) {
     return visible;
   }
 

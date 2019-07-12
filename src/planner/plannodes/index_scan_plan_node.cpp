@@ -6,9 +6,8 @@ namespace terrier::planner {
 common::hash_t IndexScanPlanNode::Hash() const {
   common::hash_t hash = AbstractScanPlanNode::Hash();
 
-  // Hash index oid
-  auto index_oid = GetIndexOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&index_oid));
+  // Index Oid
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(index_oid_));
 
   return hash;
 }
@@ -16,9 +15,10 @@ common::hash_t IndexScanPlanNode::Hash() const {
 bool IndexScanPlanNode::operator==(const AbstractPlanNode &rhs) const {
   if (!AbstractScanPlanNode::operator==(rhs)) return false;
 
-  auto &rhs_plan_node = static_cast<const IndexScanPlanNode &>(rhs);
+  auto &other = static_cast<const IndexScanPlanNode &>(rhs);
 
-  return GetIndexOid() == rhs_plan_node.GetIndexOid();
+  // Index Oid
+  return (index_oid_ == other.index_oid_);
 }
 
 nlohmann::json IndexScanPlanNode::ToJson() const {

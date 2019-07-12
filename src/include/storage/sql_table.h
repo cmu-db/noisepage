@@ -190,6 +190,8 @@ class SqlTable {
   }
 
  private:
+  FRIEND_TEST(WriteAheadLoggingTests, AbortRecordTest);
+  FRIEND_TEST(WriteAheadLoggingTests, NoAbortRecordTest);
   BlockStore *const block_store_;
   const catalog::table_oid_t oid_;
 
