@@ -20,7 +20,7 @@ class BwTreeIndex final : public Index {
 
  private:
   BwTreeIndex(const catalog::index_oid_t oid, const ConstraintType constraint_type, IndexMetadata metadata)
-      : Index(oid, constraint_type, std::move(metadata)),
+      : Index(constraint_type, std::move(metadata)),
         bwtree_{new third_party::bwtree::BwTree<KeyType, TupleSlot>{false}} {}
 
   third_party::bwtree::BwTree<KeyType, TupleSlot> *const bwtree_;

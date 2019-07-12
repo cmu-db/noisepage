@@ -30,16 +30,26 @@ class BwTreeIndexTests : public TerrierTest {
 
   storage::BlockStore block_store_{1000, 1000};
   storage::RecordBufferSegmentPool buffer_pool_{1000000, 1000000};
-  const catalog::Schema table_schema_{
-      catalog::Schema({{"attribute", type::TypeId::INTEGER, false, catalog::col_oid_t(0)}})};
-  const IndexKeySchema key_schema_{{catalog::indexkeycol_oid_t(1), type::TypeId::INTEGER, false}};
+  catalog::Schema table_schema_;
+  catalog::IndexSchema key_schema_;
 
  public:
+  BwTreeIndexTests() {
+    auto col = catalog::Schema::Column("attribute", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+    StorageTestUtil::ForceOid(col, catalog::col_oid_t(1));
+    table_schema_ = catalog::Schema({col});
+
+    std::vector<catalog::IndexSchema::Column> keycols;
+    keycols.emplace_back(type::TypeId::INTEGER, false, parser::ColumnValueExpression(catalog::table_oid_t(0), catalog::col_oid_t(1)));
+    StorageTestUtil::ForceOid(keycols[0], catalog::indexkeycol_oid_t(1));
+    key_schema_ = catalog::IndexSchema(keycols, true, true, false, true);
+  }
+
   std::default_random_engine generator_;
   const uint32_t num_threads_ = 4;
 
   // SqlTable
-  storage::SqlTable *const sql_table_{new storage::SqlTable(&block_store_, table_schema_, catalog::table_oid_t(1))};
+  storage::SqlTable *const sql_table_{new storage::SqlTable(&block_store_, table_schema_)};
   const storage::ProjectedRowInitializer tuple_initializer_{
       sql_table_->InitializerForProjectedRow({catalog::col_oid_t(0)}).first};
 

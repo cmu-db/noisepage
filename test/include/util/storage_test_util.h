@@ -7,9 +7,12 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include "catalog/index_schema.h"
 #include "catalog/schema.h"
 #include "common/strong_typedef.h"
 #include "gtest/gtest.h"
+#include "parser/expression/abstract_expression.h"
+#include "parser/expression/constant_value_expression.h"
 #include "storage/index/compact_ints_key.h"
 #include "storage/index/index_defs.h"
 #include "storage/sql_table.h"
@@ -19,6 +22,7 @@
 #include "storage/undo_record.h"
 #include "transaction/transaction_manager.h"
 #include "type/type_id.h"
+#include "type/transient_value_factory.h"
 #include "util/multithread_test_util.h"
 #include "util/random_test_util.h"
 
@@ -379,9 +383,8 @@ struct StorageTestUtil {
    * Generates a random GenericKey-compatible schema with the given number of columns using the given types.
    */
   template <typename Random>
-  static storage::index::IndexKeySchema RandomGenericKeySchema(const uint32_t num_cols,
-                                                               const std::vector<type::TypeId> &types,
-                                                               Random *generator) {
+  static catalog::IndexSchema RandomGenericKeySchema(const uint32_t num_cols, const std::vector<type::TypeId> &types,
+                                                     Random *generator) {
     uint32_t max_varlen_size = 20;
     TERRIER_ASSERT(num_cols > 0, "Must have at least one column in your key schema.");
 
@@ -394,7 +397,7 @@ struct StorageTestUtil {
 
     std::shuffle(key_oids.begin(), key_oids.end(), *generator);
 
-    storage::index::IndexKeySchema key_schema;
+    std::vector<catalog::IndexSchema::Column> key_cols;
 
     for (uint32_t i = 0; i < num_cols; i++) {
       auto key_oid = key_oids[i];
@@ -405,23 +408,29 @@ struct StorageTestUtil {
         case type::TypeId::VARBINARY:
         case type::TypeId::VARCHAR: {
           auto varlen_size = std::uniform_int_distribution(0u, max_varlen_size)(*generator);
-          key_schema.emplace_back(key_oid, type, is_nullable, varlen_size);
+          key_cols.emplace_back(key_oid, type, is_nullable, varlen_size);
           break;
         }
         default:
-          key_schema.emplace_back(key_oid, type, is_nullable);
+          key_cols.emplace_back(key_oid, type, is_nullable);
           break;
       }
     }
 
-    return key_schema;
+    return catalog::IndexSchema(key_cols, false, false, false, true);
   }
+
+  /**
+   * Provides function for tests at large to force column OIDs so that they can function without a catalog.
+   */
+  static void ForceOid(catalog::Schema::Column col, catalog::col_oid_t oid) { col.SetOid(oid); }
+  static void ForceOid(catalog::IndexSchema::Column col, catalog::indexkeycol_oid_t oid) { col.SetOid(oid); }
 
   /**
    * Generates a random CompactIntsKey-compatible schema.
    */
   template <typename Random>
-  static storage::index::IndexKeySchema RandomCompactIntsKeySchema(Random *generator) {
+  static catalog::IndexSchema RandomCompactIntsKeySchema(Random *generator) {
     const uint16_t max_bytes = sizeof(uint64_t) * INTSKEY_MAX_SLOTS;
     const auto key_size = std::uniform_int_distribution(static_cast<uint16_t>(1), max_bytes)(*generator);
 
@@ -438,7 +447,7 @@ struct StorageTestUtil {
 
     std::shuffle(key_oids.begin(), key_oids.end(), *generator);
 
-    storage::index::IndexKeySchema key_schema;
+    std::vector<catalog::IndexSchema::Column> key_cols;
 
     uint8_t col = 0;
 
@@ -452,11 +461,11 @@ struct StorageTestUtil {
       const uint8_t type_offset = std::uniform_int_distribution(static_cast<uint8_t>(0), max_offset)(*generator);
       const auto type = types[type_offset];
 
-      key_schema.emplace_back(key_oids[col++], type, false);
+      key_cols.emplace_back(key_oids[col++], type, false, new parser::ConstantValueExpression(std::move(type::TransientValueFactory::GetNull(type))));
       bytes_used = static_cast<uint16_t>(bytes_used + type::TypeUtil::GetTypeSize(type));
     }
 
-    return key_schema;
+    return catalog::IndexSchema(key_cols, false, false, false, true);
   }
 
  private:
