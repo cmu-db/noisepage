@@ -44,13 +44,13 @@ void RecoveryManager::ReplayTransaction(LogRecord *log_record) {
     buffered_changes_map_.erase(log_record->TxnBegin());
   } else {
     TERRIER_ASSERT(log_record->RecordType() == LogRecordType::COMMIT, "Should only replay when we see a commit record");
-    // Begin a txn to replay changes with
+    // Begin a txn to replay changes with.
     auto *txn = txn_manager_->BeginTransaction();
 
     // Apply all buffered changes. They should all succeed. After applying we can safely delete the record
-    for (auto buffered_pair : buffered_changes_map_[log_record->TxnBegin()]) {
+    for (uint32_t i = 0; i < buffered_changes_map_[log_record->TxnBegin()].size(); i++)  {
       bool result UNUSED_ATTRIBUTE = true;
-      auto *buffered_record = buffered_pair.first;
+      auto *buffered_record = buffered_changes_map_[log_record->TxnBegin()][i].first;
 
       if (buffered_record->RecordType() == LogRecordType::DELETE) {
         auto *delete_record = buffered_record->GetUnderlyingRecordBodyAs<DeleteRecord>();
@@ -82,7 +82,7 @@ void RecoveryManager::ReplayTransaction(LogRecord *log_record) {
           redo_record->SetTupleSlot(TupleSlot(nullptr, 0));
           // Insert will always succeed
           auto new_tuple_slot = sql_table->Insert(txn, redo_record);
-          // TODO(Gus): Insert into indexes as well
+          // TODO(Gus): Insert into  6indexes as well
           // Stage the write. This way the recovery operation is logged if logging is enabled.
           // We stage the write after the insert because Insert sets the tuple slot on the redo record, so we need that
           // to happen before we copy the record into the txn redo buffer.
@@ -108,4 +108,7 @@ void RecoveryManager::ReplayTransaction(LogRecord *log_record) {
   }
   delete[] reinterpret_cast<byte *>(log_record);
 }
+
+void RecoveryManager::DeleteFromIndexes(catalog::db_oid_t db_oid, catalog::table_oid_t table_oid, TupleSlot &tuple) {}
+
 }  // namespace terrier::storage

@@ -149,5 +149,8 @@ class RecoveryManager : public common::DedicatedThreadOwner {
     TERRIER_ASSERT(catalog_->at(db_oid).find(table_oid) != catalog_->at(db_oid).end(), "Table must exist in catalog");
     return catalog_->at(db_oid).at(table_oid);
   }
+
+  void DeleteFromIndexes(catalog::db_oid_t db_oid, catalog::table_oid_t table_oid, TupleSlot &tuple);
+
 };
 }  // namespace terrier::storage
