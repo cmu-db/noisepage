@@ -17,7 +17,7 @@ class DerivedValueExpression : public AbstractExpression {
    * This constructor is called by the optimizer
    * @param type type of the return value of the expression
    * @param tuple_idx index of the tuple
-   * @param value_idx index of the value
+   * @param value_idx offset of the value in the tuple
    */
   DerivedValueExpression(type::TypeId type, int tuple_idx, int value_idx)
       : AbstractExpression(ExpressionType::VALUE_TUPLE, type, {}), tuple_idx_(tuple_idx), value_idx_(value_idx) {}
@@ -30,12 +30,12 @@ class DerivedValueExpression : public AbstractExpression {
   std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<DerivedValueExpression>(*this); }
 
   /**
-   * @return tuple index
+   * @return index of the tuple
    */
   int GetTupleIdx() const { return tuple_idx_; }
 
   /**
-   * @return value index
+   * @return offset of the value in the tuple
    */
   int GetValueIdx() const { return value_idx_; }
 
