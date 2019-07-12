@@ -34,13 +34,15 @@ TransactionContext *TransactionManager::BeginTransaction() {
   // Do the allocation outside of any critical section
   auto *const result = new TransactionContext(start_time, start_time + INT64_MIN, buffer_pool_, log_manager_, this);
 
-  uint64_t elapsed_us;
+  uint64_t elapsed_us = 0;
   {
-    common::ScopedTimer<std::chrono::nanoseconds> timer(&elapsed_us);
+    if (common::thread_context.metrics_store_ != nullptr &&
+        common::thread_context.metrics_store_->ComponentEnabled(metrics::MetricsComponent::TRANSACTION))
+      common::ScopedTimer<std::chrono::nanoseconds> timer(&elapsed_us);
     // Ensure we do not return from this function if there are ongoing write commits
     txn_gate_.Traverse();
   }
-  if (common::thread_context.metrics_store_ != nullptr) {
+  if (elapsed_us > 0) {
     common::thread_context.metrics_store_->RecordBeginData(elapsed_us, start_time);
   }
   return result;
@@ -114,9 +116,11 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
     txn->commit_actions_.pop_front();
   }
 
-  uint64_t elapsed_us;
+  uint64_t elapsed_us = 0;
   {
-    common::ScopedTimer<std::chrono::nanoseconds> timer(&elapsed_us);
+    if (common::thread_context.metrics_store_ != nullptr &&
+        common::thread_context.metrics_store_->ComponentEnabled(metrics::MetricsComponent::TRANSACTION))
+      common::ScopedTimer<std::chrono::nanoseconds> timer(&elapsed_us);
     // In a critical section, remove this transaction from the table of running transactions
     curr_running_txns_latch_.Lock();
   }
@@ -129,7 +133,7 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
   if (gc_enabled_) completed_txns_.push_front(txn);
 
   curr_running_txns_latch_.Unlock();
-  if (common::thread_context.metrics_store_ != nullptr) {
+  if (elapsed_us > 0) {
     common::thread_context.metrics_store_->RecordCommitData(elapsed_us, txn->StartTime());
   }
   return result;

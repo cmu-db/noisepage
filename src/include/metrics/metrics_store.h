@@ -68,11 +68,11 @@ class MetricsStore {
     }
   }
 
- private:
   bool ComponentEnabled(const MetricsComponent component) {
     return enabled_metrics_.test(static_cast<uint8_t>(component));
   }
 
+ private:
   friend class MetricsManager;
 
   explicit MetricsStore(const std::bitset<NUM_COMPONENTS> &enabled_metrics);
