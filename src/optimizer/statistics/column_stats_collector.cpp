@@ -18,7 +18,7 @@ ColumnStatsCollector::ColumnStatsCollector(catalog::db_oid_t database_id, catalo
       hll_{GetHllPrecision()},
       hist_{GetMaxBins()},
       sketch_{GetSketchWidth()},
-      //topk_{sketch_, GetTopK()} {}
+      topk_{sketch_, GetTopK()} {}
 
 ColumnStatsCollector::~ColumnStatsCollector() {}
 
@@ -33,8 +33,8 @@ void ColumnStatsCollector::AddValue(const type::TransientValue &value) {
   } else {
     // Update all stats
     hll_.Update(value);
-    hist_.Update(value);
-    //topk_.Add(value);
+    hist_.Increment(value);
+    topk_.Increment(value, 1);
   }
 }
 

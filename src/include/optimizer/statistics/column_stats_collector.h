@@ -5,14 +5,13 @@
 #include <libcount/hll.h>
 
 #include "optimizer/statistics/count_min_sketch.h"
-//#include "optimizer/statistics/top_k_elements.h"
+#include "optimizer/statistics/top_k_elements.h"
 #include "optimizer/statistics/histogram.h"
 #include "optimizer/statistics/hyperloglog.h"
 
 #include "type/transient_value.h"
 
-namespace terrier {
-namespace optimizer {
+namespace terrier::optimizer {
 
 /**
  *
@@ -38,7 +37,6 @@ class ColumnStatsCollector {
   ~ColumnStatsCollector();
 
   /**
-   *
    * @param value
    */
   void AddValue(const type::TransientValue& value);
@@ -46,7 +44,7 @@ class ColumnStatsCollector {
   double GetFracNull();
 
   inline std::vector<ValueFrequencyPair> GetCommonValueAndFrequency() {
-    //return topk_.GetAllOrderedMaxFirst();
+    return std::pair(topk_.GetSortedTopKeys(), topk_.GetSize());
   }
 
   inline uint64_t GetCardinality() { return hll_.EstimateCardinality(); }
@@ -67,7 +65,7 @@ class ColumnStatsCollector {
 
   inline uint8_t GetMaxBins() { return max_bins_; }
 
-  inline uint8_t GetTopK() { return top_k_; }
+  inline uint8_t xGetTopK() { return top_k_; }
 
  private:
   const catalog::db_oid_t database_id_;
@@ -78,7 +76,7 @@ class ColumnStatsCollector {
   HyperLogLog<type::TransientValue> hll_;
   Histogram<type::TransientValue> hist_;
   CountMinSketch<type::TransientValue> sketch_;
-  //TopKElements topk_;
+  TopKElements<type::TransientValue> topk_;
 
   bool has_index_ = false;
 
@@ -95,5 +93,5 @@ class ColumnStatsCollector {
   void operator=(const ColumnStatsCollector&);
 };
 
-}  // namespace optimizer
-}  // namespace terrier
+}
+
