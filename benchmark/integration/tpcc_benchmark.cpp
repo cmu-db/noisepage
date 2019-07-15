@@ -330,8 +330,6 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithMetrics)(benchmark::State &sta
     for (const auto &file : metrics::TransactionMetricRawData::files_) unlink(std::string(file).c_str());
     auto *const metrics_thread = new metrics::MetricsThread(metrics_period_);
     metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::TRANSACTION);
-    thread_registry_ =
-        new common::DedicatedThreadRegistry(common::ManagedPointer(&(metrics_thread->GetMetricsManager())));
     // we need transactions, TPCC database, and GC
     transaction::TransactionManager txn_manager(&buffer_pool_, true, log_manager_);
 
@@ -368,7 +366,6 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithMetrics)(benchmark::State &sta
 
     // cleanup
     delete gc_thread_;
-    delete thread_registry_;
     delete metrics_thread;
     delete tpcc_db;
   }
@@ -389,7 +386,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithMetrics)(benchmark::State &sta
   }
 }
 
- BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithoutLogging)
+BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithoutLogging)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
     ->MinTime(20);

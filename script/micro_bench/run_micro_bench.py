@@ -34,6 +34,8 @@ class TestConfig(object):
                                "garbage_collector_benchmark",
                                "large_transaction_benchmark",
                                "logging_benchmark",
+                               "large_transaction_metrics_benchmark",
+                               "logging_metrics_benchmark",
                                "tuple_access_strategy_benchmark",
                                "tpcc_benchmark"]
 
@@ -715,6 +717,8 @@ class RunMicroBenchmarks(object):
                                "garbage_collector_benchmark",
                                "large_transaction_benchmark",
                                "logging_benchmark",
+                               "large_transaction_metrics_benchmark",
+                               "logging_metrics_benchmark",
                                "tuple_access_strategy_benchmark",
                                "tpcc_benchmark"]
 

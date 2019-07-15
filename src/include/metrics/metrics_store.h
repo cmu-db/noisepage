@@ -54,6 +54,11 @@ class MetricsStore {
     }
   }
 
+  /**
+   * Record metrics for transaction manager when beginning transaction
+   * @param elapsed_us first entry of txn datapoint
+   * @param txn_start second entry of txn datapoint
+   */
   void RecordBeginData(const uint64_t elapsed_us, const transaction::timestamp_t txn_start) {
     if (ComponentEnabled(MetricsComponent::TRANSACTION)) {
       TERRIER_ASSERT(txn_metric_ != nullptr, "TransactionMetric not allocated. Check MetricsStore constructor.");
@@ -61,6 +66,11 @@ class MetricsStore {
     }
   }
 
+  /**
+   * Record metrics for transaction manager when ending transaction
+   * @param elapsed_us first entry of txn datapoint
+   * @param txn_start second entry of txn datapoint
+   */
   void RecordCommitData(const uint64_t elapsed_us, const transaction::timestamp_t txn_start) {
     if (ComponentEnabled(MetricsComponent::TRANSACTION)) {
       TERRIER_ASSERT(txn_metric_ != nullptr, "TransactionMetric not allocated. Check MetricsStore constructor.");
@@ -68,6 +78,10 @@ class MetricsStore {
     }
   }
 
+  /**
+   * @param component metrics component to test
+   * @return true if metrics enabled for this component, false otherwise
+   */
   bool ComponentEnabled(const MetricsComponent component) {
     return enabled_metrics_.test(static_cast<uint8_t>(component));
   }

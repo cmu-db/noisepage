@@ -4,6 +4,7 @@
 #include <utility>
 #include <vector>
 #include "common/allocator.h"
+#include "metrics/metrics_thread.h"
 #include "transaction/transaction_util.h"
 #include "util/catalog_test_util.h"
 
@@ -89,7 +90,8 @@ LargeTransactionBenchmarkObject::~LargeTransactionBenchmarkObject() {
 }
 
 // Caller is responsible for freeing the returned results if bookkeeping is on.
-uint64_t LargeTransactionBenchmarkObject::SimulateOltp(uint32_t num_transactions, uint32_t num_concurrent_txns) {
+uint64_t LargeTransactionBenchmarkObject::SimulateOltp(uint32_t num_transactions, uint32_t num_concurrent_txns,
+                                                       metrics::MetricsThread *const metrics_thread) {
   common::WorkerPool thread_pool(num_concurrent_txns, {});
   std::vector<RandomWorkloadTransaction *> txns;
   std::function<void(uint32_t)> workload;
@@ -97,20 +99,24 @@ uint64_t LargeTransactionBenchmarkObject::SimulateOltp(uint32_t num_transactions
   if (gc_on_) {
     // Then there is no need to keep track of RandomWorkloadTransaction objects
     workload = [&](uint32_t) {
+      if (metrics_thread != METRICS_DISABLED) metrics_thread->GetMetricsManager().RegisterThread();
       for (uint32_t txn_id = txns_run++; txn_id < num_transactions; txn_id = txns_run++) {
         RandomWorkloadTransaction txn(this);
         SimulateOneTransaction(&txn, txn_id);
       }
+      if (metrics_thread != METRICS_DISABLED) metrics_thread->GetMetricsManager().UnregisterThread();
     };
   } else {
     txns.resize(num_transactions);
     // Either for correctness checking, or to cleanup memory afterwards, we need to retain these
     // test objects
     workload = [&](uint32_t) {
+      if (metrics_thread != METRICS_DISABLED) metrics_thread->GetMetricsManager().RegisterThread();
       for (uint32_t txn_id = txns_run++; txn_id < num_transactions; txn_id = txns_run++) {
         txns[txn_id] = new RandomWorkloadTransaction(this);
         SimulateOneTransaction(txns[txn_id], txn_id);
       }
+      if (metrics_thread != METRICS_DISABLED) metrics_thread->GetMetricsManager().UnregisterThread();
     };
   }
 
