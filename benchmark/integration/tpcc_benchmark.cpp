@@ -23,7 +23,7 @@
 
 namespace terrier::tpcc {
 
-#define LOG_FILE_NAME "/mnt/ramdisk/tpcc.log"
+#define LOG_FILE_NAME "./tpcc.log"
 
 /**
  * The behavior in these benchmarks mimics that of /test/integration/tpcc_test.cpp. If something changes here, it should
@@ -69,11 +69,6 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithoutLogging)(benchmark::State &
   std::vector<Worker> workers;
   workers.reserve(num_threads_);
 
-  // Reset the worker pool
-  thread_pool_.Shutdown();
-  thread_pool_.SetNumWorkers(num_threads_);
-  thread_pool_.Startup();
-
   auto tpcc_builder = Builder(&block_store_);
 
   // Precompute all of the input arguments for every txn to be run. We want to avoid the overhead at benchmark time
@@ -82,6 +77,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithoutLogging)(benchmark::State &
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
+    thread_pool_.Startup();
     unlink(LOG_FILE_NAME);
     // we need transactions, TPCC database, and GC
     transaction::TransactionManager txn_manager(&buffer_pool_, true, log_manager_);
@@ -116,6 +112,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithoutLogging)(benchmark::State &
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
 
     // cleanup
+    thread_pool_.Shutdown();
     delete gc_thread_;
     delete tpcc_db;
   }
@@ -142,11 +139,6 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
   std::vector<Worker> workers;
   workers.reserve(num_threads_);
 
-  // Reset the worker pool
-  thread_pool_.Shutdown();
-  thread_pool_.SetNumWorkers(num_threads_);
-  thread_pool_.Startup();
-
   auto tpcc_builder = Builder(&block_store_);
 
   // Precompute all of the input arguments for every txn to be run. We want to avoid the overhead at benchmark time
@@ -155,6 +147,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
+    thread_pool_.Startup();
     unlink(LOG_FILE_NAME);
     thread_registry_ = new common::DedicatedThreadRegistry(METRICS_DISABLED);
     // we need transactions, TPCC database, and GC
@@ -196,6 +189,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
 
     // cleanup
+    thread_pool_.Shutdown();
     log_manager_->PersistAndStop();
     delete log_manager_;
     delete gc_thread_;
@@ -225,11 +219,6 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndMetrics)(benchmark::
   std::vector<Worker> workers;
   workers.reserve(num_threads_);
 
-  // Reset the worker pool
-  thread_pool_.Shutdown();
-  thread_pool_.SetNumWorkers(num_threads_);
-  thread_pool_.Startup();
-
   auto tpcc_builder = Builder(&block_store_);
 
   // Precompute all of the input arguments for every txn to be run. We want to avoid the overhead at benchmark time
@@ -238,6 +227,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndMetrics)(benchmark::
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
+    thread_pool_.Startup();
     unlink(LOG_FILE_NAME);
     for (const auto &file : metrics::LoggingMetricRawData::files_) unlink(std::string(file).c_str());
     auto *const metrics_thread = new metrics::MetricsThread(metrics_period_);
@@ -283,6 +273,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndMetrics)(benchmark::
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
 
     // cleanup
+    thread_pool_.Shutdown();
     log_manager_->PersistAndStop();
     delete log_manager_;
     delete gc_thread_;
@@ -313,11 +304,6 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithMetrics)(benchmark::State &sta
   std::vector<Worker> workers;
   workers.reserve(num_threads_);
 
-  // Reset the worker pool
-  thread_pool_.Shutdown();
-  thread_pool_.SetNumWorkers(num_threads_);
-  thread_pool_.Startup();
-
   auto tpcc_builder = Builder(&block_store_);
 
   // Precompute all of the input arguments for every txn to be run. We want to avoid the overhead at benchmark time
@@ -326,6 +312,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithMetrics)(benchmark::State &sta
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
+    thread_pool_.Startup();
     unlink(LOG_FILE_NAME);
     for (const auto &file : metrics::TransactionMetricRawData::files_) unlink(std::string(file).c_str());
     auto *const metrics_thread = new metrics::MetricsThread(metrics_period_);
@@ -364,6 +351,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithMetrics)(benchmark::State &sta
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
 
     // cleanup
+    thread_pool_.Shutdown();
     delete gc_thread_;
     delete metrics_thread;
     delete tpcc_db;

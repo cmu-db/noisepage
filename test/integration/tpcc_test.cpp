@@ -72,11 +72,6 @@ TEST_F(TPCCTests, WithoutLogging) {
   std::vector<Worker> workers;
   workers.reserve(num_threads_);
 
-  // Reset the worker pool
-  thread_pool_.Shutdown();
-  thread_pool_.SetNumWorkers(num_threads_);
-  thread_pool_.Startup();
-
   // we need transactions, TPCC database, and GC
   transaction::TransactionManager txn_manager(&buffer_pool_, true, log_manager_);
   auto tpcc_builder = Builder(&block_store_);
@@ -109,6 +104,7 @@ TEST_F(TPCCTests, WithoutLogging) {
   thread_pool_.WaitUntilAllFinished();
 
   // cleanup
+  thread_pool_.Shutdown();
   delete gc_thread_;
   delete tpcc_db;
 
@@ -120,11 +116,6 @@ TEST_F(TPCCTests, WithLogging) {
   // one TPCC worker = one TPCC terminal = one thread
   std::vector<Worker> workers;
   workers.reserve(num_threads_);
-
-  // Reset the worker pool
-  thread_pool_.Shutdown();
-  thread_pool_.SetNumWorkers(num_threads_);
-  thread_pool_.Startup();
 
   thread_registry_ = new common::DedicatedThreadRegistry(METRICS_DISABLED);
   // we need transactions, TPCC database, and GC
@@ -166,6 +157,7 @@ TEST_F(TPCCTests, WithLogging) {
   thread_pool_.WaitUntilAllFinished();
 
   // cleanup
+  thread_pool_.Shutdown();
   log_manager_->PersistAndStop();
   delete log_manager_;
   delete gc_thread_;
@@ -180,11 +172,6 @@ TEST_F(TPCCTests, WithLoggingAndMetrics) {
   // one TPCC worker = one TPCC terminal = one thread
   std::vector<Worker> workers;
   workers.reserve(num_threads_);
-
-  // Reset the worker pool
-  thread_pool_.Shutdown();
-  thread_pool_.SetNumWorkers(num_threads_);
-  thread_pool_.Startup();
 
   auto *const metrics_thread = new metrics::MetricsThread(metrics_period_);
   metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::LOGGING);
@@ -229,6 +216,7 @@ TEST_F(TPCCTests, WithLoggingAndMetrics) {
   thread_pool_.WaitUntilAllFinished();
 
   // cleanup
+  thread_pool_.Shutdown();
   log_manager_->PersistAndStop();
   delete log_manager_;
   delete gc_thread_;
