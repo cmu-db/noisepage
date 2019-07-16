@@ -28,6 +28,12 @@ namespace terrier::catalog {
 class DatabaseCatalog {
  public:
   /**
+   * Adds the default/mandatory entries into the catalog that describe itself
+   * @param txn for the operation
+   */
+  void Bootstrap(transaction::TransactionContext *txn);
+
+  /**
    * Creates a new namespace within the database
    * @param txn for the operation
    * @param name of the new namespace

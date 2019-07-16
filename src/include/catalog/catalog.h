@@ -54,10 +54,11 @@ class Catalog {
    * Creates a new database instance.
    * @param txn that creates the database
    * @param name of the new database
+   * @param bootstrap indicates whether or not to perform bootstrap routine
    * @return OID of the database or INVALID_DATABASE_OID if the operation failed
    *   (which should only occur if there is already a database with that name)
    */
-  db_oid_t CreateDatabase(transaction::TransactionContext *txn, const std::string &name);
+  db_oid_t CreateDatabase(transaction::TransactionContext *txn, const std::string &name, bool bootstrap);
 
   /**
    * Deletes the given database.  This operation will fail if there is any DDL

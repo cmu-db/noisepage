@@ -69,12 +69,17 @@ void Catalog::TearDown() {
   txn_manager_->Commit(txn, [](void *) {}, nullptr);
 }
 
-db_oid_t Catalog::CreateDatabase(transaction::TransactionContext *txn, const std::string &name) {
+db_oid_t Catalog::CreateDatabase(transaction::TransactionContext *txn, const std::string &name, bool bootstrap) {
   // Instantiate the DatabaseCatalog
   db_oid_t db_oid = next_oid_++;
   DatabaseCatalog *dbc = postgres::Builder::CreateDatabaseCatalog(catalog_block_store_, db_oid);
   txn->RegisterAbortAction([=]() { delete dbc; });
-  return (Catalog::CreateDatabaseEntry(txn, db_oid, name, dbc)) ? db_oid : INVALID_DATABASE_OID;
+  success = Catalog::CreateDatabaseEntry(txn, db_oid, name, dbc);
+  if (!success) return INVALID_DATABASE_OID;
+
+  if (bootstrap) dbc->Bootstrap(txn);
+
+  return db_oid;
 }
 
 bool Catalog::DeleteDatabase(transaction::TransactionContext *txn, db_oid_t database) {

@@ -4,7 +4,7 @@
 namespace terrier::catalog {
 db_oid_t CatalogAccessor::GetDatabaseOid(const std::string &name) { return catalog_->GetDatabaseOid(txn_, name); }
 
-db_oid_t CatalogAccessor::CreateDatabase(const std::string &name) { return catalog_->CreateDatabase(txn_, name); }
+db_oid_t CatalogAccessor::CreateDatabase(const std::string &name) { return catalog_->CreateDatabase(txn_, name, true); }
 
 bool CatalogAccessor::DropDatabase(db_oid_t db) { return catalog_->DeleteDatabase(txn_, db); }
 

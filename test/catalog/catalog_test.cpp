@@ -9,7 +9,7 @@
 #include "storage/storage_defs.h"
 #include "transaction/transaction_manager.h"
 #include "util/test_harness.h"
-#include "util/transaction_test_util.h"
+#include "transaction/transaction_util.h"
 namespace terrier {
 
 struct CatalogTests : public TerrierTest {
@@ -23,7 +23,7 @@ struct CatalogTests : public TerrierTest {
     // Build out the catalog and commit so that it is visible to other transactions
     auto txn = txn_manager_->BeginTransaction();
     catalog_ = new catalog::Catalog(txn_manager_, txn);
-    txn_manager_->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+    txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     // Run the GC to flush it down to a clean system
     gc_->PerformGarbageCollection();
@@ -81,13 +81,13 @@ struct CatalogTests : public TerrierTest {
 TEST_F(CatalogTests, DatabaseTest) {
   // Create a database and check that it's immediately visible
   auto txn = txn_manager_->BeginTransaction();
-  auto accessor = catalog_->GetAccessor(txn, "terrier");  // Catalog's default DB
-  auto db_oid = accessor.CreateDatabase("test_database");
+  auto db_oid = catalog_->CreateDatabase(txn, "test_database", true);
   EXPECT_NE(db_oid, catalog::INVALID_DATABASE_OID);
+  auto accessor = catalog_->GetAccessor(txn, "test_database");
   VerifyCatalogTables(accessor);  // Check visibility to me
-  db_oid = accessor.CreateDatabase("test_database");
+  db_oid = accessor.CreateDatabase("test_database", true);
   EXPECT_EQ(db_oid, catalog::INVALID_DATABASE_OID);  // Should cause a name conflict
-  txn_manager_->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   gc_->PerformGarbageCollection();
   gc_->PerformGarbageCollection();
 
@@ -101,7 +101,7 @@ TEST_F(CatalogTests, DatabaseTest) {
   EXPECT_FALSE(accessor.DropDatabase(db_oid));  // Cannot drop a database twice
   db_oid = accessor.GetDatabaseOid("test_database");
   EXPECT_EQ(db_oid, catalog::INVALID_DATABASE_OID);
-  txn_manager_->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   gc_->PerformGarbageCollection();
   gc_->PerformGarbageCollection();
 }
@@ -113,13 +113,15 @@ TEST_F(CatalogTests, DatabaseTest) {
 TEST_F(CatalogTests, NamespaceTest) {
   // Create a database and check that it's immediately visible
   auto txn = txn_manager_->BeginTransaction();
-  auto accessor = catalog_->GetAccessor(txn, "terrier");  // Catalog's default DB
+  auto db_oid = catalog_->CreateDatabase(txn, "test_database", true);
+  EXPECT_NE(db_oid, catalog::INVALID_DATABASE_OID);
+  auto accessor = catalog_->GetAccessor(txn, "test_database");
   auto ns_oid = accessor.CreateNamespace("test_namespace");
   EXPECT_NE(ns_oid, catalog::INVALID_NAMESPACE_OID);
   VerifyCatalogTables(accessor);  // Check visibility to me
   ns_oid = accessor.CreateNamespace("test_namespace");
   EXPECT_EQ(ns_oid, catalog::INVALID_NAMESPACE_OID);  // Should cause a name conflict
-  txn_manager_->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   gc_->PerformGarbageCollection();
   gc_->PerformGarbageCollection();
 
@@ -132,7 +134,8 @@ TEST_F(CatalogTests, NamespaceTest) {
   EXPECT_TRUE(accessor.DropNamespace(ns_oid));
   ns_oid = accessor.GetNamespaceOid("test_namespace");
   EXPECT_EQ(ns_oid, catalog::INVALID_NAMESPACE_OID);
-  txn_manager_->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+  EXPECT_FALSE(accessor.DropNamespace(ns_oid));
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   gc_->PerformGarbageCollection();
   gc_->PerformGarbageCollection();
 }
@@ -143,14 +146,17 @@ TEST_F(CatalogTests, NamespaceTest) {
 // NOLINTNEXTLINE
 TEST_F(CatalogTests, UserTableTest) {
   auto txn = txn_manager_->BeginTransaction();
-  auto accessor = catalog_->GetAccessor(txn, "terrier");
+  auto db_oid = catalog_->CreateDatabase(txn, "test_database", true);
+  EXPECT_NE(db_oid, catalog::INVALID_DATABASE_OID);
+  auto accessor = catalog_->GetAccessor(txn, "test_database");
 
   // Create the column definition (no OIDs)
-  std::vector<catalog::CatalogAccessor::ColumnDefinition> cols;
-  cols.emplace_back("id", type::TypeId::INTEGER, false);
-  cols.emplace_back("user_col_1", type::TypeId::INTEGER, false);
+  std::vector<catalog::Schema::Column> cols;
+  cols.emplace_back("id", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+  cols.emplace_back("user_col_1", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+  auto tmp_schema = catalog::Schema(cols);
 
-  auto table_oid = accessor.CreateTable(accessor.GetDefaultNamespace(), "test_table", cols);
+  auto table_oid = accessor.CreateTable(accessor.GetDefaultNamespace(), "test_table", tmp_schema);
   EXPECT_NE(table_oid, catalog::INVALID_TABLE_OID);
   VerifyTablePresent(accessor, accessor.GetDefaultNamespace(), "test_table");
   // Check lookup via search path
@@ -170,7 +176,7 @@ TEST_F(CatalogTests, UserTableTest) {
   // once this is corrected unless the delete call at the end is uncommented.
   accessor.SetTablePointer(table_oid, table);
   EXPECT_EQ(table, accessor.GetTable(table_oid));
-  txn_manager_->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   gc_->PerformGarbageCollection();
   gc_->PerformGarbageCollection();
 
@@ -184,14 +190,9 @@ TEST_F(CatalogTests, UserTableTest) {
   EXPECT_FALSE(accessor.DropTable(table_oid));
   table_oid = accessor.GetTableOid("test_table");
   EXPECT_EQ(table_oid, catalog::INVALID_TABLE_OID);
-  txn_manager_->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   gc_->PerformGarbageCollection();
   gc_->PerformGarbageCollection();
-
-  // TODO(John): Uncomment the next line once the catalog's API is fixed so that
-  // it does not take ownership of storage objects.
-  delete table;
-  // get the namespace oid
 }
 
 }  // namespace terrier

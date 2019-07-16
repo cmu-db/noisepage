@@ -19,6 +19,89 @@
 
 namespace terrier::catalog {
 
+void DatabaseCatalog::Bootstrap(transaction::TransactionContext *txn) {
+  // Declare variable for return values (UNUSED when compiled for release)
+  bool UNUSED retval;
+
+  retval = CreateNamespace(txn, "pg_catalog", NAMESPACE_CATALOG_NAMESPACE_OID);
+  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+
+  retval = CreateNamespace(txn, "public", NAMESPACE_DEFAULT_NAMESPACE_OID);
+  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+
+  BootstrapTypes(txn);
+
+  // pg_namespace and associated indexes
+  retval = CreateTableEntry(txn, NAMESPACE_TABLE_OID, NAMESPACE_CATALOG_NAMESPACE_OID, "pg_namespace", postgres::Builder::GetNamespaceTableSchema());
+  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  retval = SetTablePointer(txn, NAMESPACE_TABLE_OID, namespaces_);
+  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+
+  retval = CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, NAMESPACE_OID_INDEX_OID, "pg_namespace_oid_index", postgres::Builder::GetNamespaceOidIndexSchema());
+  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  retval = SetIndexPointer(txn, NAMESPACE_OID_INDEX_OID, namespaces_oid_index_);
+  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+
+  retval = CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, NAMESAPCE_NAME_INDEX_OID, "pg_namespace_name_index", postgres::Builder::GetNamespaceOidIndexSchema());
+  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  retval = SetIndexPointer(txn, NAMESAPCE_NAME_INDEX_OID, namespaces_name_index_);
+  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  // NSP_NAME
+
+  // pg_class and associated indexes
+  retval = CreateTableEntry(txn, CLASS_TABLE_OID, NAMESPACE_CATALOG_NAMESPACE_OID, "pg_class", postgres::Builder::GetClassTableSchema());
+  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  retval = SetTablePointer(txn, CLASS_TABLE_OID, classes_);
+  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  // CLASS_OID
+  // CLASS_NAME
+  // CLASS_NSP
+
+  // pg_index and associated indexes
+  retval = CreateTableEntry(txn, INDEX_TABLE_OID, NAMESPACE_CATALOG_NAMESPACE_OID, "pg_index", postgres::Builder::GetIndexTableSchema());
+  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  retval = SetTablePointer(txn, INDEX_TABLE_OID, indexes_);
+  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  // INDEX_OID
+  // INDEX_TABLE
+
+  // pg_attribute and associated indexes
+  retval = CreateTableEntry(txn, COLUMN_TABLE_OID, NAMESPACE_CATALOG_NAMESPACE_OID, "pg_attribute", postgres::Builder::GetColumnTableSchema());
+  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  retval = SetTablePointer(txn, COLUMN_TABLE_OID, columns_);
+  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  // COLUMN_OID
+  // COLUMN_NAME
+  // COLUMN_CLASS
+
+  // pg_type and associated indexes
+  retval = CreateTableEntry(txn, TYPE_TABLE_OID, NAMESPACE_CATALOG_NAMESPACE_OID, "pg_type", postgres::Builder::GetTypeTableSchema());
+  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  retval = SetTablePointer(txn, TYPE_TABLE_OID, types_);
+  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  // TYPE_OID
+  // TYPE_NAME
+  // TYPE_NSP
+
+  // pg_constraint and associated indexes
+  retval = CreateTableEntry(txn, CONSTRAINT_TABLE_OID, NAMESPACE_CATALOG_NAMESPACE_OID, "pg_constraint", postgres::Builder::GetConstraintTableSchema());
+  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  retval = SetTablePointer(txn, CONSTRAINT_TABLE_OID, constraints_);
+  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  // CON_OID
+  // CON_NAME
+  // CON_NSP
+  // CON_TABLE
+  // CON_INDEX
+  // CON_FOREIGN
+
+  // TODO (John):  Complete full bootstrapping
+  // General flow:
+  //   Add tables and indexes to pg_class
+  //   Add index metadata to pg_index
+  //   Update pg_class to include pointers (necessary to trigger special-cased logic during recovery/replication)
+}
+
 namespace_oid_t DatabaseCatalog::CreateNamespace(transaction::TransactionContext *txn, const std::string &name) {
   namespace_oid_t ns_oid{next_oid_++};
   if (CreateNamespace(txn, name, ns_oid)) {
@@ -407,6 +490,17 @@ void DatabaseCatalog::DeleteColumns(transaction::TransactionContext *txn, uint32
 table_oid_t DatabaseCatalog::CreateTable(transaction::TransactionContext *txn, namespace_oid_t ns,
                                          const std::string &name, const Schema &schema) {
   const table_oid_t table_oid = static_cast<table_oid_t>(next_oid_++);
+
+  // Write the col oids into a new Schema object
+  col_oid_t next_col_oid(1);
+  auto *const schema_ptr = new Schema(schema);
+  // TODO(Matt): when AbstractExpressions are added to Schema::Column as a field for default
+  // value, we need to make sure Column gets a properly written copy constructor to deep
+  // copy those to guarantee that this copy mechanism still works
+  for (auto &column : schema_ptr->columns_) {
+    column.oid_ = next_col_oid++;
+  }
+
   return CreateTableEntry(txn, table_oid, ns, name, schema) ? table_oid : INVALID_TABLE_OID;
 }
 
@@ -1243,15 +1337,7 @@ bool DatabaseCatalog::CreateTableEntry(transaction::TransactionContext *const tx
   auto *const table_oid_ptr = insert_pr->AccessForceNotNull(table_oid_offset);
   *(reinterpret_cast<uint32_t *>(table_oid_ptr)) = static_cast<uint32_t>(table_oid);
 
-  // Write the col oids into a new Schema object
-  col_oid_t next_col_oid(1);
-  auto *const schema_ptr = new Schema(schema);
-  // TODO(Matt): when AbstractExpressions are added to Schema::Column as a field for default
-  // value, we need to make sure Column gets a properly written copy constructor to deep
-  // copy those to guarantee that this copy mechanism still works
-  for (auto &column : schema_ptr->columns_) {
-    column.oid_ = next_col_oid++;
-  }
+  auto next_col_oid = schema.GetColumns()[-1].GetOid();
 
   // Write the next_col_oid into the PR
   const auto next_col_oid_offset = pr_map[REL_NEXTCOLOID_COL_OID];
