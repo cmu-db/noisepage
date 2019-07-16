@@ -63,13 +63,14 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, TPCCish)(benchmark::State &state) {
     log_manager_->ForceFlush();
 
     gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
+    const auto result = tested.SimulateOltp(num_txns, num_concurrent_txns_);
+    abort_count += result.first;
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      abort_count += tested.SimulateOltp(num_txns, num_concurrent_txns_);
       log_manager_->ForceFlush();
     }
-    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+    state.SetIterationTime(static_cast<double>(elapsed_ms + result.second) / 1000.0);
     log_manager_->PersistAndStop();
     delete log_manager_;
     delete gc_thread_;
@@ -108,13 +109,14 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, HighAbortRate)(benchmark::State &sta
     log_manager_->ForceFlush();
 
     gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
+    const auto result = tested.SimulateOltp(num_txns, num_concurrent_txns_);
+    abort_count += result.first;
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      abort_count += tested.SimulateOltp(num_txns, num_concurrent_txns_);
       log_manager_->ForceFlush();
     }
-    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+    state.SetIterationTime(static_cast<double>(elapsed_ms + result.second) / 1000.0);
     log_manager_->PersistAndStop();
     delete log_manager_;
     delete gc_thread_;
@@ -152,13 +154,14 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, SingleStatementInsert)(benchmark::St
     log_manager_->ForceFlush();
 
     gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
+    const auto result = tested.SimulateOltp(num_txns, num_concurrent_txns_);
+    abort_count += result.first;
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      abort_count += tested.SimulateOltp(num_txns, num_concurrent_txns_);
       log_manager_->ForceFlush();
     }
-    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+    state.SetIterationTime(static_cast<double>(elapsed_ms + result.second) / 1000.0);
     log_manager_->PersistAndStop();
     delete log_manager_;
     delete gc_thread_;
@@ -196,13 +199,14 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, SingleStatementUpdate)(benchmark::St
     log_manager_->ForceFlush();
 
     gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
+    const auto result = tested.SimulateOltp(num_txns, num_concurrent_txns_);
+    abort_count += result.first;
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      abort_count += tested.SimulateOltp(num_txns, num_concurrent_txns_);
       log_manager_->ForceFlush();
     }
-    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+    state.SetIterationTime(static_cast<double>(elapsed_ms + result.second) / 1000.0);
     log_manager_->PersistAndStop();
     delete log_manager_;
     delete gc_thread_;
@@ -240,13 +244,14 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, SingleStatementSelect)(benchmark::St
     log_manager_->ForceFlush();
 
     gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
+    const auto result = tested.SimulateOltp(num_txns, num_concurrent_txns_);
+    abort_count += result.first;
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      abort_count += tested.SimulateOltp(num_txns, num_concurrent_txns_);
       log_manager_->ForceFlush();
     }
-    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+    state.SetIterationTime(static_cast<double>(elapsed_ms + result.second) / 1000.0);
     log_manager_->PersistAndStop();
     delete log_manager_;
     delete gc_thread_;
