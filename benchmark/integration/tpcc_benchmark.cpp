@@ -356,7 +356,6 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithMetrics)(benchmark::State &sta
         thread_pool_.SubmitTask([i, tpcc_db, &txn_manager, precomputed_args, &workers, metrics_thread] {
           metrics_thread->GetMetricsManager().RegisterThread();
           Workload(i, tpcc_db, &txn_manager, precomputed_args, &workers);
-          metrics_thread->GetMetricsManager().UnregisterThread();
         });
       }
       thread_pool_.WaitUntilAllFinished();

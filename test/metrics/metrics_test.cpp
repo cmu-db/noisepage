@@ -148,7 +148,5 @@ TEST_F(MetricsTests, TransactionCSVTest) {
 
   metrics_manager_->Aggregate();
   metrics_manager_->ToCSV();
-
-  metrics_manager_->UnregisterThread();
 }
 }  // namespace terrier::metrics

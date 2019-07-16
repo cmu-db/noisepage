@@ -80,7 +80,6 @@ class DedicatedThreadRegistry {
     threads_table_.emplace(task, std::thread([=] {
                              if (metrics_manager_ != METRICS_DISABLED) metrics_manager_->RegisterThread();
                              task->RunTask();
-                             if (metrics_manager_ != METRICS_DISABLED) metrics_manager_->UnregisterThread();
                            }));
     requester->AddThread();
     return common::ManagedPointer(task);

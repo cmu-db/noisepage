@@ -104,7 +104,6 @@ uint64_t LargeTransactionBenchmarkObject::SimulateOltp(uint32_t num_transactions
         RandomWorkloadTransaction txn(this);
         SimulateOneTransaction(&txn, txn_id);
       }
-      if (metrics_thread != METRICS_DISABLED) metrics_thread->GetMetricsManager().UnregisterThread();
     };
   } else {
     txns.resize(num_transactions);
@@ -116,7 +115,6 @@ uint64_t LargeTransactionBenchmarkObject::SimulateOltp(uint32_t num_transactions
         txns[txn_id] = new RandomWorkloadTransaction(this);
         SimulateOneTransaction(txns[txn_id], txn_id);
       }
-      if (metrics_thread != METRICS_DISABLED) metrics_thread->GetMetricsManager().UnregisterThread();
     };
   }
 
