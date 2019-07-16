@@ -4,7 +4,6 @@
 #include <utility>
 #include <vector>
 #include "common/allocator.h"
-#include "common/scoped_timer.h"
 #include "metrics/metrics_thread.h"
 #include "transaction/transaction_util.h"
 #include "util/catalog_test_util.h"
@@ -91,23 +90,19 @@ LargeTransactionBenchmarkObject::~LargeTransactionBenchmarkObject() {
 }
 
 // Caller is responsible for freeing the returned results if bookkeeping is on.
-std::pair<uint64_t, uint64_t> LargeTransactionBenchmarkObject::SimulateOltp(
-    uint32_t num_transactions, uint32_t num_concurrent_txns, metrics::MetricsThread *const metrics_thread) {
+uint64_t LargeTransactionBenchmarkObject::SimulateOltp(uint32_t num_transactions, uint32_t num_concurrent_txns,
+                                                       metrics::MetricsThread *const metrics_thread) {
   common::WorkerPool thread_pool(num_concurrent_txns, {});
   std::vector<RandomWorkloadTransaction *> txns;
   std::function<void(uint32_t)> workload;
   std::atomic<uint32_t> txns_run = 0;
-  uint64_t elapsed_ms;
   if (gc_on_) {
     // Then there is no need to keep track of RandomWorkloadTransaction objects
     workload = [&](uint32_t) {
       if (metrics_thread != METRICS_DISABLED) metrics_thread->GetMetricsManager().RegisterThread();
-      {
-        common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-        for (uint32_t txn_id = txns_run++; txn_id < num_transactions; txn_id = txns_run++) {
-          RandomWorkloadTransaction txn(this);
-          SimulateOneTransaction(&txn, txn_id);
-        }
+      for (uint32_t txn_id = txns_run++; txn_id < num_transactions; txn_id = txns_run++) {
+        RandomWorkloadTransaction txn(this);
+        SimulateOneTransaction(&txn, txn_id);
       }
       if (metrics_thread != METRICS_DISABLED) metrics_thread->GetMetricsManager().UnregisterThread();
     };
@@ -117,12 +112,9 @@ std::pair<uint64_t, uint64_t> LargeTransactionBenchmarkObject::SimulateOltp(
     // test objects
     workload = [&](uint32_t) {
       if (metrics_thread != METRICS_DISABLED) metrics_thread->GetMetricsManager().RegisterThread();
-      {
-        common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-        for (uint32_t txn_id = txns_run++; txn_id < num_transactions; txn_id = txns_run++) {
-          txns[txn_id] = new RandomWorkloadTransaction(this);
-          SimulateOneTransaction(txns[txn_id], txn_id);
-        }
+      for (uint32_t txn_id = txns_run++; txn_id < num_transactions; txn_id = txns_run++) {
+        txns[txn_id] = new RandomWorkloadTransaction(this);
+        SimulateOneTransaction(txns[txn_id], txn_id);
       }
       if (metrics_thread != METRICS_DISABLED) metrics_thread->GetMetricsManager().UnregisterThread();
     };
@@ -136,8 +128,8 @@ std::pair<uint64_t, uint64_t> LargeTransactionBenchmarkObject::SimulateOltp(
     delete txn;
   }
   // This result is meaningless if bookkeeping is not turned on.
-  return {abort_count_, elapsed_ms};
-}  // namespace terrier
+  return abort_count_;
+}
 
 void LargeTransactionBenchmarkObject::SimulateOneTransaction(terrier::RandomWorkloadTransaction *txn, uint32_t txn_id) {
   std::default_random_engine thread_generator(txn_id);

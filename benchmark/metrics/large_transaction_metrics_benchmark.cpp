@@ -39,9 +39,12 @@ BENCHMARK_DEFINE_F(LargeTransactionMetricsBenchmark, TPCCish)(benchmark::State &
     LargeTransactionBenchmarkObject tested(attr_sizes, initial_table_size, txn_length, insert_update_select_ratio,
                                            &block_store_, &buffer_pool_, &generator_, true);
     gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
-    const auto result = tested.SimulateOltp(num_txns, num_concurrent_txns_, metrics_thread);
-    abort_count += result.first;
-    state.SetIterationTime(static_cast<double>(result.second) / 1000.0);
+    uint64_t elapsed_ms;
+    {
+      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
+      abort_count += tested.SimulateOltp(num_txns, num_concurrent_txns_, metrics_thread);
+    }
+    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
     delete gc_thread_;
     delete metrics_thread;
   }
@@ -66,9 +69,12 @@ BENCHMARK_DEFINE_F(LargeTransactionMetricsBenchmark, HighAbortRate)(benchmark::S
     LargeTransactionBenchmarkObject tested(attr_sizes, 1000, txn_length, insert_update_select_ratio, &block_store_,
                                            &buffer_pool_, &generator_, true);
     gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
-    const auto result = tested.SimulateOltp(num_txns, num_concurrent_txns_, metrics_thread);
-    abort_count += result.first;
-    state.SetIterationTime(static_cast<double>(result.second) / 1000.0);
+    uint64_t elapsed_ms;
+    {
+      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
+      abort_count += tested.SimulateOltp(num_txns, num_concurrent_txns_, metrics_thread);
+    }
+    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
     delete gc_thread_;
     delete metrics_thread;
   }
@@ -93,9 +99,12 @@ BENCHMARK_DEFINE_F(LargeTransactionMetricsBenchmark, SingleStatementInsert)(benc
     LargeTransactionBenchmarkObject tested(attr_sizes, 0, txn_length, insert_update_select_ratio, &block_store_,
                                            &buffer_pool_, &generator_, true);
     gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
-    const auto result = tested.SimulateOltp(num_txns, num_concurrent_txns_, metrics_thread);
-    abort_count += result.first;
-    state.SetIterationTime(static_cast<double>(result.second) / 1000.0);
+    uint64_t elapsed_ms;
+    {
+      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
+      abort_count += tested.SimulateOltp(num_txns, num_concurrent_txns_, metrics_thread);
+    }
+    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
     delete gc_thread_;
     delete metrics_thread;
   }
@@ -119,9 +128,12 @@ BENCHMARK_DEFINE_F(LargeTransactionMetricsBenchmark, SingleStatementUpdate)(benc
     LargeTransactionBenchmarkObject tested(attr_sizes, initial_table_size, txn_length, insert_update_select_ratio,
                                            &block_store_, &buffer_pool_, &generator_, true);
     gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
-    const auto result = tested.SimulateOltp(num_txns, num_concurrent_txns_, metrics_thread);
-    abort_count += result.first;
-    state.SetIterationTime(static_cast<double>(result.second) / 1000.0);
+    uint64_t elapsed_ms;
+    {
+      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
+      abort_count += tested.SimulateOltp(num_txns, num_concurrent_txns_, metrics_thread);
+    }
+    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
     delete gc_thread_;
     delete metrics_thread;
   }
@@ -145,9 +157,12 @@ BENCHMARK_DEFINE_F(LargeTransactionMetricsBenchmark, SingleStatementSelect)(benc
     LargeTransactionBenchmarkObject tested(attr_sizes, initial_table_size, txn_length, insert_update_select_ratio,
                                            &block_store_, &buffer_pool_, &generator_, true);
     gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
-    const auto result = tested.SimulateOltp(num_txns, num_concurrent_txns_, metrics_thread);
-    abort_count += result.first;
-    state.SetIterationTime(static_cast<double>(result.second) / 1000.0);
+    uint64_t elapsed_ms;
+    {
+      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
+      abort_count += tested.SimulateOltp(num_txns, num_concurrent_txns_, metrics_thread);
+    }
+    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
     delete gc_thread_;
     delete metrics_thread;
   }
