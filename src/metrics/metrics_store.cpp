@@ -7,7 +7,9 @@
 
 namespace terrier::metrics {
 
-MetricsStore::MetricsStore(const std::bitset<NUM_COMPONENTS> &enabled_metrics) : enabled_metrics_{enabled_metrics} {
+MetricsStore::MetricsStore(const common::ManagedPointer<metrics::MetricsManager> metrics_manager,
+                           const std::bitset<NUM_COMPONENTS> &enabled_metrics)
+    : metrics_manager_(metrics_manager), enabled_metrics_{enabled_metrics} {
   logging_metric_ = std::make_unique<LoggingMetric>();
   txn_metric_ = std::make_unique<TransactionMetric>();
 }

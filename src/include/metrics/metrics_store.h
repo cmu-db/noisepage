@@ -86,10 +86,15 @@ class MetricsStore {
     return enabled_metrics_.test(static_cast<uint8_t>(component));
   }
 
+  const common::ManagedPointer<metrics::MetricsManager> MetricsManager() const { return metrics_manager_; }
+
  private:
   friend class MetricsManager;
 
-  explicit MetricsStore(const std::bitset<NUM_COMPONENTS> &enabled_metrics);
+  const common::ManagedPointer<metrics::MetricsManager> metrics_manager_;
+
+  explicit MetricsStore(common::ManagedPointer<metrics::MetricsManager> metrics_manager,
+                        const std::bitset<NUM_COMPONENTS> &enabled_metrics);
 
   std::array<std::unique_ptr<AbstractRawData>, NUM_COMPONENTS> GetDataToAggregate();
 
