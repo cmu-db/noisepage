@@ -86,6 +86,9 @@ class MetricsStore {
     return enabled_metrics_.test(static_cast<uint8_t>(component));
   }
 
+  /**
+   * MetricsManager pointer that created this MetricsStore
+   */
   const common::ManagedPointer<metrics::MetricsManager> MetricsManager() const { return metrics_manager_; }
 
  private:
