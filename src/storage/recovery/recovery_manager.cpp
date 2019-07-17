@@ -162,7 +162,6 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
   }
 }
 
-// TODO(Gus): We need to update the internal OID counter in the catalog
 uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
     transaction::TransactionContext *txn, std::vector<std::pair<LogRecord *, std::vector<byte *>>> *buffered_changes,
     uint32_t start_idx) {
