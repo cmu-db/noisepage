@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include "catalog/catalog.h"
 #include "gtest/gtest.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
@@ -87,10 +88,6 @@ class LargeSqlTableTestObject {
    * Holds meta data for tables created by test object
    */
   struct SqlTableMetadata {
-    // Pointer to sql table
-    storage::SqlTable *table_;
-    // Schema for sql table
-    catalog::Schema *schema_;
     // Tuple slots inserted into this sql table
     std::vector<storage::TupleSlot> inserted_tuples_;
     // Latch to protect inserted tuples to allow for concurrent transactions
@@ -189,15 +186,6 @@ class LargeSqlTableTestObject {
     }
 
     /**
-     * @param gc_on whether gc is enabled
-     * @return self-reference for method chaining
-     */
-    Builder &SetGcOn(bool gc_on) {
-      builder_gc_on_ = gc_on;
-      return *this;
-    }
-
-    /**
      * @param log_manager the log manager to use for this test object, or nullptr (LOGGING_DISABLED) if
      *                    logging is not needed.
      * @return self-reference for method chaining
@@ -232,7 +220,6 @@ class LargeSqlTableTestObject {
     storage::BlockStore *builder_block_store_ = nullptr;
     storage::RecordBufferSegmentPool *builder_buffer_pool_ = nullptr;
     std::default_random_engine *builder_generator_ = nullptr;
-    bool builder_gc_on_ = true;
     storage::LogManager *builder_log_manager_ = LOGGING_DISABLED;
     bool varlen_allowed_ = false;
   };
@@ -279,7 +266,9 @@ class LargeSqlTableTestObject {
   const storage::SqlTable *GetTable(catalog::db_oid_t db_oid, catalog::table_oid_t table_oid) {
     TERRIER_ASSERT(tables_.find(db_oid) != tables_.end(), "Requested database was not created");
     TERRIER_ASSERT(tables_[db_oid].find(table_oid) != tables_[db_oid].end(), "Requested table was not created");
-    return tables_[db_oid][table_oid]->table_;
+    return auto sql_table_ptr =
+               test_object_->catalog_.GetDatabaseCatalog(txn_, database_oid)->GetTable(txn_, table_oid);
+    ;
   }
 
   /**
@@ -319,7 +308,7 @@ class LargeSqlTableTestObject {
                           uint32_t initial_table_size, uint32_t txn_length,
                           std::vector<double> update_select_delete_ratio, storage::BlockStore *block_store,
                           storage::RecordBufferSegmentPool *buffer_pool, std::default_random_engine *generator,
-                          bool gc_on, storage::LogManager *log_manager, bool varlen_allowed);
+                          storage::LogManager *log_manager, bool varlen_allowed);
 
   void SimulateOneTransaction(RandomSqlTableTransaction *txn, uint32_t txn_id);
 
@@ -332,8 +321,8 @@ class LargeSqlTableTestObject {
   std::vector<double> update_select_delete_ratio_;
   std::default_random_engine *generator_;
   transaction::TransactionManager txn_manager_;
+  catalog::Catalog catalog_;
   transaction::TransactionContext *initial_txn_;
-  bool gc_on_;
   uint64_t abort_count_ = 0;
   // So we can easily get a random database and table oid
   std::vector<catalog::db_oid_t> database_oids_;

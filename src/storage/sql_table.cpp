@@ -74,14 +74,18 @@ ProjectionMap SqlTable::ProjectionMapForInitializer(const ProjectionInitializerT
     // extract the underlying col_id it refers to
     const col_id_t col_id_at_offset = initializer.ColId(i);
     // find the key (col_oid) in the table's map corresponding to the value (col_id)
-    const auto oid_to_id =
-        std::find_if(table_.column_map.cbegin(), table_.column_map.cend(),
-                     [&](const auto &oid_to_id) -> bool { return oid_to_id.second == col_id_at_offset; });
+    const catalog::col_oid_t oid = OidForColId(col_id_at_offset);
     // insert the mapping from col_oid to projection offset
-    projection_map[oid_to_id->first] = i;
+    projection_map[oid] = i;
   }
 
   return projection_map;
+}
+
+catalog::col_oid_t SqlTable::OidForColId(const col_id_t col_id) const {
+  const auto oid_to_id = std::find_if(table_.column_map.cbegin(), table_.column_map.cend(),
+                                      [&](const auto &oid_to_id) -> bool { return oid_to_id.second == col_id; });
+  return oid_to_id->first;
 }
 
 template ProjectionMap SqlTable::ProjectionMapForInitializer<ProjectedColumnsInitializer>(

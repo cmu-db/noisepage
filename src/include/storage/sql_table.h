@@ -200,6 +200,7 @@ class SqlTable {
   const storage::BlockLayout &Layout() const { return table_.layout; }
 
  private:
+  friend class RecoveryManager;  // Needs access to OID and ID mappings
   BlockStore *const block_store_;
 
   // Eventually we'll support adding more tables when schema changes. For now we'll always access the one DataTable.
@@ -221,5 +222,12 @@ class SqlTable {
    */
   template <class ProjectionInitializerType>
   ProjectionMap ProjectionMapForInitializer(const ProjectionInitializerType &initializer) const;
+
+  /**
+   * Returns the col oid for the given col id
+   * @param col_id given col id
+   * @return col oid for the provided col id
+   */
+  catalog::col_oid_t OidForColId(const col_id_t col_id) const;
 };
 }  // namespace terrier::storage

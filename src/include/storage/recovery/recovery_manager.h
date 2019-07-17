@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "catalog/catalog_defs.h"
+#include "catalog/postgres/pg_database.h"
 #include "common/dedicated_thread_owner.h"
 #include "storage/recovery/abstract_log_provider.h"
 #include "storage/sql_table.h"
@@ -53,11 +54,13 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    */
   explicit RecoveryManager(AbstractLogProvider *log_provider, common::ManagedPointer<catalog::Catalog> *catalog,
                            transaction::TransactionManager *txn_manager,
-                           common::ManagedPointer<terrier::common::DedicatedThreadRegistry> thread_registry)
+                           common::ManagedPointer<terrier::common::DedicatedThreadRegistry> thread_registry,
+                           BlockStore *store)
       : DedicatedThreadOwner(thread_registry),
         log_provider_(log_provider),
         catalog_(catalog),
         txn_manager_(txn_manager),
+        block_store_(store),
         recovered_txns_(0) {}
 
   /**
@@ -98,6 +101,9 @@ class RecoveryManager : public common::DedicatedThreadOwner {
   // Transaction manager to create transactions for recovery
   transaction::TransactionManager *txn_manager_;
 
+  // Block store, used to create tables during recovery
+  BlockStore *block_store_;
+
   // Used during recovery from log. Maps old tuple slot to new tuple slot
   // TODO(Gus): This map may get huge, benchmark whether this becomes a problem and if we need a more sophisticated data
   // structure
@@ -134,6 +140,16 @@ class RecoveryManager : public common::DedicatedThreadOwner {
   void ReplayTransaction(LogRecord *log_record);
 
   /**
+   * Handles mapping of old tuple slot (before recovery) to new tuple slot (after recovery)
+   * @param slot old tuple slot
+   * @return new tuple slot
+   */
+  TupleSlot GetTupleSlotMapping(TupleSlot slot) {
+    TERRIER_ASSERT(tuple_slot_map_.find(slot) != tuple_slot_map_.end(), "No tuple slot mapping exists");
+    return tuple_slot_map_[slot];
+  }
+
+  /**
    * Wrapper over GetDatabaseCatalog method that asserts the database exists
    * @param txn txn for catalog lookup
    * @param database oid for database we want
@@ -153,7 +169,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    * @return pointer to requested Sql table
    */
   common::ManagedPointer<storage::SqlTable> GetSqlTable(transaction::TransactionContext *txn, catalog::db_oid_t db_oid,
-                                                         catalog::table_oid_t table_oid) {
+                                                        catalog::table_oid_t table_oid) {
     auto db_catalog_ptr = GetDatabaseCatalog(txn, db_oid);
     auto table_ptr = db_catalog_ptr->GetTable(txn, table_oid);
     TERRIER_ASSERT(table_ptr != nullptr, "Table in the catalog for the given oid");
@@ -172,5 +188,79 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    */
   void UpdateIndexesOnTable(transaction::TransactionContext *txn, const catalog::db_oid_t db_oid,
                             const catalog::table_oid_t table_oid, const TupleSlot &tuple, bool insert);
+
+  /**
+   * Returns whether a delete or redo record is a special case catalog record. The special cases we consider are:
+   *   1. Updates into pg_class (updating a pointer, updating a schema, update to next col_oid)
+   *   2. Delete into pg_class (renaming a table/index, drop a table/index)
+   *   3. Insert into pg_database (creating a database)
+   *   4. Delete into pg_database (renaming a database, drop a database)
+   * @warning Relies on the assumption that catalog tables have a hardcoded OID that is the same for all databases
+   * @param record log record we want to determine if its a special case
+   * @return true if log record is a special case catalog record, false otherwise
+   */
+  bool IsSpecialCaseCatalogRecord(const LogRecord *record) {
+    TERRIER_ASSERT(record->RecordType() == LogRecordType::REDO || record->RecordType() == LogRecordType::DELETE,
+                   "Special case catalog records must only be delete or redo records");
+    if (record->RecordType() == LogRecordType::REDO) {
+      auto *redo_record = record->GetUnderlyingRecordBodyAs<RedoRecord>();
+      if (IsInsertRecord(redo_record)) {
+        // Case 3
+        return redo_record->GetTableOid() == catalog::DATABASE_TABLE_OID;
+      } else {
+        // Case 1
+        return redo_record->GetTableOid() == catalog::CLASS_TABLE_OID;
+      }
+    } else {
+      // Case 2 and 4
+      auto *delete_record = record->GetUnderlyingRecordBodyAs<DeleteRecord>();
+      return delete_record->GetTableOid() == catalog::DATABASE_TABLE_OID ||
+             delete_record->GetTableOid() == catalog::CLASS_TABLE_OID;
+    }
+  }
+
+  /**
+   * Returns whether a given record is an insert into a table. We know it is an insert record if the tuple slot it
+   * contains is previously unseen. An update will contain a tuple slot that has been previously inserted.
+   * @param record record we want to determine redo type of
+   * @return true if record is an insert redo, false if it is an update redo
+   */
+  bool IsInsertRecord(const RedoRecord *record) const {
+    return tuple_slot_map_.find(record->GetTupleSlot()) == tuple_slot_map_.end();
+  }
+
+  /**
+   * Processes records that modify the catalog tables. Because catalog modifications usually result in multiple log
+   * records that result in custom handling logic, this function can process more than one log record.
+   * @param txn transaction to use to replay the catalog changes
+   * @param buffered_changes list of buffered log records
+   * @param start_idx index of current log record in the list
+   * @return number of EXTRA log records processed
+   */
+  uint32_t ProcessSpecialCaseCatalogRecord(transaction::TransactionContext *txn,
+                                           std::vector<std::pair<LogRecord *, std::vector<byte *>>> *buffered_changes,
+                                           uint32_t start_idx);
+
+  /**
+   * Replays a redo record. Updates necessary metadata maps
+   * @param txn txn to use for replay
+   * @param record record to replay
+   */
+  void ReplayRedoRecord(transaction::TransactionContext *txn, RedoRecord *record);
+
+  /**
+   * Replays a delete record. Updates necessary metadata
+   * @param txn txn to use for delete
+   * @param record record to replay
+   */
+  void ReplayDeleteRecord(transaction::TransactionContext *txn, DeleteRecord *record);
+
+  /**
+   * Returns the list of col oids this redo record modified
+   * @param sql_table sql table that redo record modifies
+   * @param record record we want oids for
+   * @return list of oids
+   */
+  std::vector<catalog::col_oid_t> GetOidsForRedoRecord(storage::SqlTable *sql_table, RedoRecord *record);
 };
 }  // namespace terrier::storage

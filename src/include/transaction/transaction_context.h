@@ -203,11 +203,13 @@ class TransactionContext {
   /**
    * @warning This method is ONLY for recovery
    * Copy the log record into the transaction's redo buffer. This method can be used for Redo and Delete records
+   * @tparam T record type
    * @param record log record to copy
    * @warning If you call StageRecoveryUpdate, the operation WILL be logged to disk. If you StageRecoveryUpdate anything
    * that you didn't succeed in writing into the table or decide you don't want to use, the transaction MUST abort.
    */
-  void StageRecoveryWrite(const storage::LogRecord *record) {
+  template <class T>
+  void StageRecoveryWrite(const T *record) {
     memcpy(redo_buffer_.NewEntry(record->Size()), record, record->Size());
   }
 };

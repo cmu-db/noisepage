@@ -9,10 +9,6 @@ namespace terrier {
 RandomSqlTableTransaction::RandomSqlTableTransaction(LargeSqlTableTestObject *test_object)
     : test_object_(test_object), txn_(test_object->txn_manager_.BeginTransaction()), aborted_(false) {}
 
-RandomSqlTableTransaction::~RandomSqlTableTransaction() {
-  if (!test_object_->gc_on_) delete txn_;
-}
-
 template <class Random>
 void RandomSqlTableTransaction::RandomUpdate(Random *generator) {
   if (aborted_) return;
@@ -20,7 +16,8 @@ void RandomSqlTableTransaction::RandomUpdate(Random *generator) {
   const auto database_oid = *(RandomTestUtil::UniformRandomElement(test_object_->database_oids_, generator));
   const auto table_oid = *(RandomTestUtil::UniformRandomElement(test_object_->table_oids_[database_oid], generator));
   auto &sql_table_metadata = test_object_->tables_[database_oid][table_oid];
-  auto &layout = sql_table_metadata->table_->Layout();
+  auto sql_table_ptr = test_object_->catalog_.GetDatabaseCatalog(txn_, database_oid)->GetTable(txn_, table_oid);
+  auto &layout = sql_table_ptr->Layout();
 
   // Get random tuple slot to update
   storage::TupleSlot updated;
@@ -35,7 +32,7 @@ void RandomSqlTableTransaction::RandomUpdate(Random *generator) {
   auto *const record = txn_->StageWrite(database_oid, table_oid, initializer);
   record->SetTupleSlot(updated);
   StorageTestUtil::PopulateRandomRow(record->Delta(), layout, 0.0, generator);
-  auto result = sql_table_metadata->table_->Update(txn_, record);
+  auto result = sql_table_ptr->Update(txn_, record);
   aborted_ = !result;
 }
 
@@ -57,8 +54,9 @@ void RandomSqlTableTransaction::RandomDelete(Random *generator) {
   }
 
   // Generate random delete
+  auto sql_table_ptr = test_object_->catalog_.GetDatabaseCatalog(txn_, database_oid)->GetTable(txn_, table_oid);
   txn_->StageDelete(database_oid, table_oid, deleted);
-  auto result = sql_table_metadata->table_->Delete(txn_, deleted);
+  auto result = sql_table_ptr->Delete(txn_, deleted);
   aborted_ = !result;
 
   // Delete tuple from list of inserted tuples if successful
@@ -89,12 +87,12 @@ void RandomSqlTableTransaction::RandomSelect(Random *generator) {
     selected = *(RandomTestUtil::UniformRandomElement(sql_table_metadata->inserted_tuples_, generator));
   }
 
+  auto sql_table_ptr = test_object_->catalog_.GetDatabaseCatalog(txn_, database_oid)->GetTable(txn_, table_oid);
   auto initializer = storage::ProjectedRowInitializer::Create(
-      sql_table_metadata->table_->Layout(),
-      StorageTestUtil::ProjectionListAllColumns(sql_table_metadata->table_->Layout()));
+      sql_table_ptr->Layout(), StorageTestUtil::ProjectionListAllColumns(sql_table_ptr->Layout()));
 
   storage::ProjectedRow *select = initializer.InitializeRow(sql_table_metadata->buffer_);
-  sql_table_metadata->table_->Select(txn_, selected, select);
+  sql_table_ptr->Select(txn_, selected, select);
 }
 
 void RandomSqlTableTransaction::Finish() {
@@ -109,13 +107,13 @@ LargeSqlTableTestObject::LargeSqlTableTestObject(uint16_t num_databases, uint16_
                                                  std::vector<double> update_select_delete_ratio,
                                                  storage::BlockStore *block_store,
                                                  storage::RecordBufferSegmentPool *buffer_pool,
-                                                 std::default_random_engine *generator, bool gc_on,
+                                                 std::default_random_engine *generator,
                                                  storage::LogManager *log_manager, bool varlen_allowed)
     : txn_length_(txn_length),
       update_select_delete_ratio_(std::move(update_select_delete_ratio)),
       generator_(generator),
-      txn_manager_(buffer_pool, gc_on, log_manager),
-      gc_on_(gc_on) {
+      txn_manager_(buffer_pool, true /* gc on */, log_manager),
+      catalog_(catalog::Catalog(&txn_manager_, block_store)) {
   // Bootstrap the table to have the specified number of tuples
   TERRIER_ASSERT(update_select_delete_ratio_.size() == 3, "Update/Select/Delete ratio should be three numbers");
   PopulateInitialTables(num_databases, num_tables, max_columns, initial_table_size, varlen_allowed, block_store,
@@ -123,7 +121,6 @@ LargeSqlTableTestObject::LargeSqlTableTestObject(uint16_t num_databases, uint16_
 }
 
 LargeSqlTableTestObject::~LargeSqlTableTestObject() {
-  if (!gc_on_) delete initial_txn_;
   for (auto &db_pair : tables_) {
     for (auto &table_pair : db_pair.second) {
       auto *metadata = table_pair.second;
@@ -138,36 +135,23 @@ LargeSqlTableTestObject::~LargeSqlTableTestObject() {
 // Caller is responsible for freeing the returned results if bookkeeping is on.
 uint64_t LargeSqlTableTestObject::SimulateOltp(uint32_t num_transactions, uint32_t num_concurrent_txns) {
   common::WorkerPool thread_pool(num_concurrent_txns, {});
-  std::vector<RandomSqlTableTransaction *> txns;
+  std::vector<RandomSqlTableTransaction *> txns(num_transactions);
   std::function<void(uint32_t)> workload;
   std::atomic<uint32_t> txns_run = 0;
-  if (gc_on_) {
-    // Then there is no need to keep track of RandomDataTableTransaction objects
-    workload = [&](uint32_t) {
-      for (uint32_t txn_id = txns_run++; txn_id < num_transactions; txn_id = txns_run++) {
-        RandomSqlTableTransaction txn(this);
-        SimulateOneTransaction(&txn, txn_id);
-      }
-    };
-  } else {
-    txns.resize(num_transactions);
-    // Either for correctness checking, or to cleanup memory afterwards, we need to retain these
-    // test objects
-    workload = [&](uint32_t) {
-      for (uint32_t txn_id = txns_run++; txn_id < num_transactions; txn_id = txns_run++) {
-        txns[txn_id] = new RandomSqlTableTransaction(this);
-        SimulateOneTransaction(txns[txn_id], txn_id);
-      }
-      // TODO(Gus): Figure out what to do with txns here
-    };
-  }
+  // Either for correctness checking, or to cleanup memory afterwards, we need to retain these
+  // test objects
+  workload = [&](uint32_t) {
+    for (uint32_t txn_id = txns_run++; txn_id < num_transactions; txn_id = txns_run++) {
+      txns[txn_id] = new RandomSqlTableTransaction(this);
+      SimulateOneTransaction(txns[txn_id], txn_id);
+    }
+  };
 
   MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_concurrent_txns, workload);
 
   // We only need to deallocate, and return, if gc is on, this loop is a no-op
   for (RandomSqlTableTransaction *txn : txns) {
     if (txn->aborted_) abort_count_++;
-    if (gc_on_) delete txn;
   }
   return abort_count_;
 }
@@ -177,7 +161,7 @@ void LargeSqlTableTestObject::SimulateOneTransaction(terrier::RandomSqlTableTran
 
   auto update = [&] { txn->RandomUpdate(&thread_generator); };
   auto select = [&] { txn->RandomSelect(&thread_generator); };
-  auto remove = [&] { txn->RandomDelete(&thread_generator); };  // only called remove cause i can't call it delete lol
+  auto remove = [&] { txn->RandomDelete(&thread_generator); };
 
   RandomTestUtil::InvokeWorkloadWithDistribution({update, select, remove}, update_select_delete_ratio_,
                                                  &thread_generator, txn_length_);
@@ -190,18 +174,23 @@ void LargeSqlTableTestObject::PopulateInitialTables(uint16_t num_databases, uint
                                                     storage::BlockStore *block_store, Random *generator) {
   initial_txn_ = txn_manager_.BeginTransaction();
 
-  uint16_t curr_table_oid = 0;
-
   for (uint16_t db_idx = 0; db_idx < num_databases; db_idx++) {
-    auto database_oid = catalog::db_oid_t(db_idx);
+    // Create database in catalog
+    auto database_oid = catalog_.CreateDatabase(initial_txn_, "database" + std::to_string(db_idx));
+    TERRIER_ASSERT(db_oid != INVALID_DATABASE_OID, "Database creation should always succeed");
     database_oids_.emplace_back(database_oid);
+
     for (uint16_t table_idx = 0; table_idx < num_tables; table_idx++) {
-      // Create table
-      auto table_oid = catalog::table_oid_t(curr_table_oid);
-      table_oids_[database_oid].emplace_back(table_oid);
+      // Create Database in catalog
       auto *schema = varlen_allowed ? StorageTestUtil::RandomSchemaWithVarlens(max_columns, generator)
                                     : StorageTestUtil::RandomSchemaNoVarlen(max_columns, generator);
-      auto *sql_table = new storage::SqlTable(block_store, *schema, table_oid);
+      auto db_catalog_ptr = catalog_.GetDatabaseCatalog(initial_txn_, database_oid);
+      auto table_oid = db_catalog_ptr->CreateTable(initial_txn_, CatalogTestUtil::test_namespace_oid,
+                                                   "table" + std::to_string(table_idx), *schema);
+      TERRIER_ASSERT(table_oid != INVALID_TABLE_OID, "Table creation should always succeed");
+      table_oids_[database_oid].emplace_back(table_oid);
+      auto *sql_table = new storage::SqlTable(block_store, *schema);
+      auto result UNUSED_ATTRIBUTE = db_catalog_ptr->SetTablePointer(initial_txn_, table_oid, sql_table);
 
       // Create row initializer
       auto &layout = sql_table->Layout();
@@ -219,25 +208,19 @@ void LargeSqlTableTestObject::PopulateInitialTables(uint16_t num_databases, uint
 
       // Create metadata object
       auto *metadata = new SqlTableMetadata();
-      metadata->table_ = sql_table;
-      metadata->schema_ = schema;
       metadata->inserted_tuples_ = std::move(inserted_tuples);
       metadata->buffer_ = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
       tables_[database_oid][table_oid] = metadata;
-
-      curr_table_oid++;
     }
   }
   txn_manager_.Commit(initial_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 LargeSqlTableTestObject LargeSqlTableTestObject::Builder::build() {
-  return {builder_num_databases_, builder_num_tables_,
-          builder_max_columns_,   builder_initial_table_size_,
-          builder_txn_length_,    builder_update_select_delete_ratio_,
-          builder_block_store_,   builder_buffer_pool_,
-          builder_generator_,     builder_gc_on_,
-          builder_log_manager_,   varlen_allowed_};
+  return {builder_num_databases_,      builder_num_tables_,  builder_max_columns_,
+          builder_initial_table_size_, builder_txn_length_,  builder_update_select_delete_ratio_,
+          builder_block_store_,        builder_buffer_pool_, builder_generator_,
+          builder_log_manager_,        varlen_allowed_};
 }
 
 }  // namespace terrier

@@ -60,6 +60,15 @@ class Catalog {
   db_oid_t CreateDatabase(transaction::TransactionContext *txn, const std::string &name);
 
   /**
+   * Creates a new database instance with a given OID. Can be used by recovery manager during recovery
+   * @param txn that creates the database
+   * @param name of the new database
+   * @param oid of the new database to create
+   * @return true of operation suceeded, false otherwise
+   */
+  bool CreateDatabase(transaction::TransactionContext *txn, const std::string &name, db_oid_t database);
+
+  /**
    * Deletes the given database.  This operation will fail if there is any DDL
    * operation currently in-flight because it will cause a write-write conflict.
    * It could also fail if the OID does not correspond to an existing database.
@@ -114,6 +123,7 @@ class Catalog {
   CatalogAccessor *GetAccessor(transaction::TransactionContext *txn, db_oid_t database);
 
  private:
+  friend class storage::RecoveryManager;
   transaction::TransactionManager *txn_manager_;
   storage::BlockStore *catalog_block_store_;
   std::atomic<db_oid_t> next_oid_;

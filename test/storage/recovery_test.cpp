@@ -66,7 +66,6 @@ TEST_F(RecoveryTests, SingleTableTest) {
                                        .SetBlockStore(&block_store_)
                                        .SetBufferPool(&pool_)
                                        .SetGenerator(&generator_)
-                                       .SetGcOn(true)
                                        .SetVarlenAllowed(true)
                                        .SetLogManager(log_manager_)
                                        .build();
@@ -135,7 +134,6 @@ TEST_F(RecoveryTests, HighAbortRateTest) {
                                        .SetBlockStore(&block_store_)
                                        .SetBufferPool(&pool_)
                                        .SetGenerator(&generator_)
-                                       .SetGcOn(true)
                                        .SetVarlenAllowed(true)
                                        .SetLogManager(log_manager_)
                                        .build();
@@ -201,7 +199,6 @@ TEST_F(RecoveryTests, MultiDatabaseTest) {
                                        .SetBlockStore(&block_store_)
                                        .SetBufferPool(&pool_)
                                        .SetGenerator(&generator_)
-                                       .SetGcOn(true)
                                        .SetVarlenAllowed(true)
                                        .SetLogManager(log_manager_)
                                        .build();
