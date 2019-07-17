@@ -582,6 +582,7 @@ TEST(ExpressionTests, OperatorExpressionTest) {
   children_cp.push_back(child3);
   auto op_expr_3 =
       new OperatorExpression(ExpressionType::OPERATOR_CONCAT, type::TypeId::INVALID, std::move(children_cp));
+
   op_expr_3->DeriveExpressionName();
   EXPECT_EQ(op_expr_3->GetExpressionName(), "OPERATOR_CONCAT DECIMAL OPERATOR_CONCAT BIGINT OPERATOR_CONCAT DATE");
   // Make sure that we catch when the deduced expression type suggests that invalid operand types
