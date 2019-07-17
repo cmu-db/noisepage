@@ -182,6 +182,8 @@ TEST(ExpressionTests, ConstantValueExpressionJsonTest) {
   auto value = type::TransientValueFactory::GetVarChar("ConstantValueExpressionJsonTest");
   auto original_expr = std::make_shared<ConstantValueExpression>(value);
 
+  EXPECT_EQ(*original_expr, *(original_expr->Copy()));
+
   // Serialize expression
   auto json = original_expr->ToJson();
   EXPECT_FALSE(json.is_null());
@@ -258,6 +260,8 @@ TEST(ExpressionTests, ConjunctionExpressionJsonTest) {
   children1.emplace_back(std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true)));
   children1.emplace_back(std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(false)));
   auto c_expr_1 = new ConjunctionExpression(ExpressionType::CONJUNCTION_AND, std::move(children1));
+
+  EXPECT_EQ(*c_expr_1, *(c_expr_1->Copy()));
 
   // Serialize expression
   auto json = c_expr_1->ToJson();
@@ -388,6 +392,8 @@ TEST(ExpressionTests, AggregateExpressionJsonTest) {
   std::shared_ptr<AggregateExpression> original_expr =
       std::make_shared<AggregateExpression>(ExpressionType::AGGREGATE_COUNT, std::move(children), true /* distinct */);
 
+  EXPECT_EQ(*original_expr, *(original_expr->Copy()));
+
   // Serialize expression
   auto json = original_expr->ToJson();
   EXPECT_FALSE(json.is_null());
@@ -476,6 +482,8 @@ TEST(ExpressionTests, CaseExpressionJsonTest) {
   std::shared_ptr<CaseExpression> case_expr =
       std::make_shared<CaseExpression>(type::TypeId::BOOLEAN, std::move(when_clauses), const_expr);
 
+  EXPECT_EQ(*case_expr, *(case_expr->Copy()));
+
   // Serialize expression
   auto json = case_expr->ToJson();
   EXPECT_FALSE(json.is_null());
@@ -533,6 +541,8 @@ TEST(ExpressionTests, FunctionExpressionJsonTest) {
   std::vector<std::shared_ptr<AbstractExpression>> children;
   auto fn_ret_type = type::TypeId::VARCHAR;
   auto original_expr = std::make_shared<FunctionExpression>("Funhouse", fn_ret_type, std::move(children));
+
+  EXPECT_EQ(*original_expr, *(original_expr->Copy()));
 
   // Serialize expression
   auto json = original_expr->ToJson();
@@ -599,6 +609,8 @@ TEST(ExpressionTests, OperatorExpressionJsonTest) {
     auto op_ret_type = type::TypeId::BOOLEAN;
     auto original_expr = std::make_shared<OperatorExpression>(op, op_ret_type, std::move(children));
 
+    EXPECT_EQ(*original_expr, *(original_expr->Copy()));
+
     // Serialize expression
     auto json = original_expr->ToJson();
     EXPECT_FALSE(json.is_null());
@@ -622,6 +634,7 @@ TEST(ExpressionTests, TypeCastExpressionJsonTest) {
   EXPECT_EQ(original_expr->GetExpressionType(), ExpressionType::OPERATOR_CAST);
   original_expr->DeriveExpressionName();
   EXPECT_EQ(original_expr->GetExpressionName(), "OPERATOR_CAST STAR");
+  EXPECT_EQ(*original_expr, *(original_expr->Copy()));
 
   // Serialize expression
   auto json = original_expr->ToJson();
@@ -665,6 +678,8 @@ TEST(ExpressionTests, ParameterValueExpressionJsonTest) {
   // Create expression
   std::shared_ptr<ParameterValueExpression> original_expr =
       std::make_shared<ParameterValueExpression>(42 /* value_idx */);
+
+  EXPECT_EQ(*original_expr, *(original_expr->Copy()));
 
   // Serialize expression
   auto json = original_expr->ToJson();
@@ -772,6 +787,8 @@ TEST(ExpressionTests, ColumnValueExpressionJsonTest) {
   std::shared_ptr<ColumnValueExpression> original_expr =
       std::make_shared<ColumnValueExpression>("", "table_name", "column_name", "alias");
 
+  EXPECT_EQ(*original_expr, *(original_expr->Copy()));
+
   // Serialize expression
   auto json = original_expr->ToJson();
   EXPECT_FALSE(json.is_null());
@@ -861,6 +878,8 @@ TEST(ExpressionTests, DerivedValueExpressionJsonTest) {
   std::shared_ptr<DerivedValueExpression> original_expr =
       std::make_shared<DerivedValueExpression>(type::TypeId::BOOLEAN, 3, 3);
 
+  EXPECT_EQ(*original_expr, *(original_expr->Copy()));
+
   // Serialize expression
   auto json = original_expr->ToJson();
   EXPECT_FALSE(json.is_null());
@@ -887,6 +906,7 @@ TEST(ExpressionTests, ComparisonExpressionJsonTest) {
   EXPECT_EQ(original_expr->GetReturnValueType(), type::TypeId::BOOLEAN);
   original_expr->DeriveExpressionName();
   EXPECT_EQ(original_expr->GetExpressionName(), "= INTEGER = INTEGER");
+  EXPECT_EQ(*original_expr, *(original_expr->Copy()));
 
   // Serialize expression
   auto json = original_expr->ToJson();
@@ -908,6 +928,7 @@ TEST(ExpressionTests, StarExpressionJsonTest) {
   EXPECT_EQ(original_expr->GetReturnValueType(), type::TypeId::INVALID);
   original_expr->DeriveExpressionName();
   EXPECT_EQ(original_expr->GetExpressionName(), "STAR");
+  EXPECT_EQ(*original_expr, *(original_expr->Copy()));
 
   // Serialize expression
   auto json = original_expr->ToJson();
@@ -929,6 +950,7 @@ TEST(ExpressionTests, DefaultValueExpressionJsonTest) {
   EXPECT_EQ(original_expr->GetReturnValueType(), type::TypeId::INVALID);
   original_expr->DeriveExpressionName();
   EXPECT_EQ(original_expr->GetExpressionName(), "VALUE_DEFAULT");
+  EXPECT_EQ(*original_expr, *(original_expr->Copy()));
 
   // Serialize expression
   auto json = original_expr->ToJson();
@@ -1018,6 +1040,7 @@ TEST(ExpressionTests, SimpleSubqueryExpressionJsonTest) {
 
   auto select = std::shared_ptr<SelectStatement>(reinterpret_cast<SelectStatement *>(stmts[0].release()));
   auto original_expr = std::make_shared<SubqueryExpression>(select);
+  EXPECT_EQ(*original_expr, *(original_expr->Copy()));
 
   // Serialize expression
   auto json = original_expr->ToJson();
