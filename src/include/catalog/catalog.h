@@ -133,6 +133,18 @@ class Catalog {
   storage::index::Index *databases_oid_index_;
 
   /**
+   * Atomically updates the next oid counter to the max of the current count and the provided next oid
+   * @param oid next oid to move oid counter to
+   */
+  void UpdateNextOid(db_oid_t oid) {
+    db_oid_t expected, desired;
+    do {
+      expected = next_oid_.load();
+      desired = std::max(expected, oid);
+    } while (!next_oid_.compare_exchange_strong(expected, desired));
+  }
+
+  /**
    * Creates a new database entry.
    * @param txn that creates the database
    * @param db OID of the database

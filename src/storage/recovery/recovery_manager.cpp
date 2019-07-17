@@ -243,6 +243,7 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
           // Step 4: Set pointers in catalog
           db_catalog->SetTablePointer(txn, catalog::table_oid_t(class_oid), new_sql_table);
           db_catalog->UpdateSchema(txn, catalog::table_oid_t(class_oid), schema);
+          db_catalog->UpdateNextOid(class_oid);
 
           delete[] buffer;
           return 0;  // No additional records processed
@@ -291,6 +292,7 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
           db_catalog->SetIndexPointer(txn, catalog::index_oid_t(class_oid), index);
           // TODO(Gus): Update the index schema
           // db_catalog->UpdateSchema(txn, catalog::index_oid_t(class_oid), index_schema);
+          db_catalog->UpdateNextOid(class_oid);
 
           delete[] buffer;
           return 0;
@@ -327,7 +329,7 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
       // Step 2: Recreate the database
       auto result UNUSED_ATTRIBUTE = catalog_->CreateDatabase(txn, name_string, db_oid);
       TERRIER_ASSERT(result, "Database recreation should succeed");
-      // TODO(Gus): Update db_oid counter in catalog
+      catalog_->UpdateNextOid(db_oid);
 
       return 0;  // No additional records processed
     }

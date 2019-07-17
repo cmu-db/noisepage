@@ -325,6 +325,18 @@ class DatabaseCatalog {
   friend class storage::RecoveryManager;
 
   /**
+   * Atomically updates the next oid counter to the max of the current count and the provided next oid
+   * @param oid next oid to move oid counter to
+   */
+  void UpdateNextOid(uint32_t oid) {
+    uint32_t expected, desired;
+    do {
+      expected = next_oid_.load();
+      desired = std::max(expected, oid);
+    } while (!next_oid_.compare_exchange_strong(expected, desired));
+  }
+
+  /**
    * Helper method to create index entries into pg_class and pg_indexes.
    * @param txn txn for the operation
    * @param ns_oid  OID of the namespace under which the index will fall
