@@ -322,6 +322,7 @@ class DatabaseCatalog {
 
   friend class Catalog;
   friend class postgres::Builder;
+  friend class storage::RecoveryManager;
 
   /**
    * Helper method to create index entries into pg_class and pg_indexes.
