@@ -5,7 +5,6 @@
 #include <vector>
 #include "common/macros.h"
 #include "parser/expression/abstract_expression.h"
-#include "parser/expression_defs.h"
 
 namespace terrier::parser {
 
@@ -104,7 +103,7 @@ class CaseExpression : public AbstractExpression {
     auto other_default_exp = other.GetDefaultClause();
     if (default_exp == nullptr && other_default_exp == nullptr) return true;
     if (default_exp == nullptr || other_default_exp == nullptr) return false;
-    return (*default_exp == *other_default_exp);
+    return *default_exp == *other_default_exp;
   }
 
   std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<CaseExpression>(*this); }
@@ -137,6 +136,8 @@ class CaseExpression : public AbstractExpression {
    */
   std::shared_ptr<AbstractExpression> GetDefaultClause() const { return default_expr_; }
 
+  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
+
   /**
    * @return expression serialized to json
    */
@@ -161,7 +162,13 @@ class CaseExpression : public AbstractExpression {
   }
 
  private:
+  /**
+   * List of condition and result cases: WHEN ... THEN ...
+   */
   std::vector<WhenClause> when_clauses_;
+  /**
+   * default conditon and result case
+   */
   std::shared_ptr<AbstractExpression> default_expr_;
 };
 
