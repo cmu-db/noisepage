@@ -304,7 +304,7 @@ namespace_oid_t DatabaseCatalog::GetNamespaceOid(transaction::TransactionContext
   auto [table_pri, table_pm] = namespaces_->InitializerForProjectedRow(table_oids);
   auto name_pri = namespaces_name_index_->GetProjectedRowInitializer();
   // Buffer is large enough to hold all prs
-  byte *buffer = common::AllocationUtil::AllocateAligned(table_pri.ProjectedRowSize());
+  byte *buffer = common::AllocationUtil::AllocateAligned(name_pri.ProjectedRowSize());
   auto pr = name_pri.InitializeRow(buffer);
   // Scan the name index
   auto *name_entry = reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(0));
