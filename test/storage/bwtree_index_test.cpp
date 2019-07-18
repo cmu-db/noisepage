@@ -55,7 +55,7 @@ class BwTreeIndexTests : public TerrierTest {
   const uint32_t num_threads_ = 4;
 
   // SqlTable
-  storage::SqlTable * sql_table_;
+  storage::SqlTable *sql_table_;
   storage::ProjectedRowInitializer tuple_initializer_;
 
   // BwTreeIndex
