@@ -340,7 +340,7 @@ class DatabaseCatalog {
    * @return true if creation succeeded, false otherwise
    */
   bool CreateIndexEntry(transaction::TransactionContext *const txn, const namespace_oid_t ns_oid, table_oid_t table_oid,
-                        const index_oid_t index_oid, const std::string &name, const IndexSchema *schema);
+                        const index_oid_t index_oid, const std::string &name, const IndexSchema &schema);
 
   /**
    * Bootstraps the built-in types found in type::Type
