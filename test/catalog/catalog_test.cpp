@@ -89,7 +89,7 @@ TEST_F(CatalogTests, DatabaseTest) {
   EXPECT_NE(db_oid, catalog::INVALID_DATABASE_OID);
   auto accessor = catalog_->GetAccessor(txn, db_oid);
   VerifyCatalogTables(accessor);  // Check visibility to me
-  auto tmp_oid = accessor->CreateDatabase("test_database", true);
+  auto tmp_oid = accessor->CreateDatabase("test_database");
   EXPECT_EQ(tmp_oid, catalog::INVALID_DATABASE_OID);  // Should cause a name conflict
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   gc_->PerformGarbageCollection();

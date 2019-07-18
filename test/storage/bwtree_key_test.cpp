@@ -33,7 +33,7 @@ class BwTreeKeyTests : public TerrierTest {
    * Generates random data for the given type and writes it to both attr and reference.
    */
   template <typename Random>
-  void WriteRandomAttribute(const catalog::IndexKeyColumn &col, void *attr, void *reference, Random *generator) {
+  void WriteRandomAttribute(const catalog::IndexSchema::Column &col, void *attr, void *reference, Random *generator) {
     std::uniform_int_distribution<int64_t> rng(std::numeric_limits<int64_t>::min(),
                                                std::numeric_limits<int64_t>::max());
     const auto type = col.GetType();
@@ -142,13 +142,13 @@ class BwTreeKeyTests : public TerrierTest {
    */
   template <typename Random>
   byte *FillProjectedRow(const IndexMetadata &metadata, storage::ProjectedRow *pr, Random *generator) {
-    const auto &key_schema = metadata.GetKeySchema();
+    const auto &key_schema = metadata.GetSchema();
     const auto &oid_offset_map = metadata.GetKeyOidToOffsetMap();
     const auto key_size = std::accumulate(metadata.GetAttributeSizes().begin(), metadata.GetAttributeSizes().end(), 0);
 
     auto *reference = new byte[key_size];
     uint32_t offset = 0;
-    for (const auto &key : key_schema) {
+    for (const auto &key : key_schema.GetColumns()) {
       auto key_oid = key.GetOid();
       auto key_type = key.GetType();
       auto pr_offset = static_cast<uint16_t>(oid_offset_map.at(key_oid));
@@ -168,12 +168,12 @@ class BwTreeKeyTests : public TerrierTest {
                                                              Random *generator) {
     std::uniform_int_distribution<int64_t> rng(std::numeric_limits<int64_t>::min(),
                                                std::numeric_limits<int64_t>::max());
-    const auto &key_schema = metadata.GetKeySchema();
+    const auto &key_schema = metadata.GetSchema();
     const auto &oid_offset_map = metadata.GetKeyOidToOffsetMap();
 
     std::vector<int64_t> data;
     data.reserve(key_schema.size());
-    for (const auto &key : key_schema) {
+    for (const auto &key : key_schema.GetColumns()) {
       auto key_type = key.GetType();
       const auto type_size = type::TypeUtil::GetTypeSize(key_type);
       int64_t rand_int;
@@ -280,7 +280,7 @@ class BwTreeKeyTests : public TerrierTest {
 
     if (coin(*generator)) {
       const auto &oid_offset_map = metadata.GetKeyOidToOffsetMap();
-      const auto &key_schema = metadata.GetKeySchema();
+      const auto &key_schema = metadata.GetSchema();
       std::uniform_int_distribution<uint16_t> rng(0, static_cast<uint16_t>(key_schema.size() - 1));
       const auto column = rng(*generator);
 
@@ -421,20 +421,25 @@ TEST_F(BwTreeKeyTests, IndexMetadataCompactIntsKeyTest) {
   //    pr_offsets            { 1,  2,  0,  4,  3}
 
   catalog::indexkeycol_oid_t oid(20);
-  catalog::IndexKeySchema key_schema;
+  std::vector<catalog::IndexSchema::Column> key_cols;
 
   // key_schema            {INTEGER, INTEGER, BIGINT, TINYINT, SMALLINT}
   // oids                  {20, 21, 22, 23, 24}
-  key_schema.emplace_back(oid++, type::TypeId::INTEGER, false);
-  key_schema.emplace_back(oid++, type::TypeId::INTEGER, false);
-  key_schema.emplace_back(oid++, type::TypeId::BIGINT, false);
-  key_schema.emplace_back(oid++, type::TypeId::TINYINT, false);
-  key_schema.emplace_back(oid++, type::TypeId::SMALLINT, false);
+  key_cols.emplace_back(type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+  StorageTestUtil::ForceOid(key_cols.back(), oid++);
+  key_cols.emplace_back(type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+  StorageTestUtil::ForceOid(key_cols.back(), oid++);
+  key_cols.emplace_back(type::TypeId::BIGINT, false, parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::BIGINT)));
+  StorageTestUtil::ForceOid(key_cols.back(), oid++);
+  key_cols.emplace_back(type::TypeId::TINYINT, false, parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
+  StorageTestUtil::ForceOid(key_cols.back(), oid++);
+  key_cols.emplace_back(type::TypeId::SMALLINT, false, parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::SMALLINT)));
+  StorageTestUtil::ForceOid(key_cols.back(), oid++);
 
-  IndexMetadata metadata(key_schema);
+  IndexMetadata metadata(catalog::IndexSchema(key_cols, true, true, false, true));
 
   // identical key schema
-  const auto &metadata_key_schema = metadata.GetKeySchema();
+  const auto &metadata_key_schema = metadata.GetSchema().GetColumns();
   EXPECT_EQ(metadata_key_schema.size(), 5);
   EXPECT_EQ(metadata_key_schema[0].GetType(), type::TypeId::INTEGER);
   EXPECT_EQ(metadata_key_schema[1].GetType(), type::TypeId::INTEGER);
@@ -511,20 +516,25 @@ TEST_F(BwTreeKeyTests, IndexMetadataGenericKeyNoMustInlineVarlenTest) {
   //    pr_offsets            { 3,  0,  1,  4,  2}
 
   catalog::indexkeycol_oid_t oid(20);
-  catalog::IndexKeySchema key_schema;
+  std::vector<catalog::IndexSchema::Column> key_cols;
 
   // key_schema            {INTEGER, VARCHAR(8), VARCHAR(0), TINYINT, VARCHAR(12)}
   // oids                  {20, 21, 22, 23, 24}
-  key_schema.emplace_back(oid++, type::TypeId::INTEGER, false);
-  key_schema.emplace_back(oid++, type::TypeId::VARCHAR, false, 8);
-  key_schema.emplace_back(oid++, type::TypeId::VARCHAR, false, 0);
-  key_schema.emplace_back(oid++, type::TypeId::TINYINT, false);
-  key_schema.emplace_back(oid++, type::TypeId::VARCHAR, false, 12);
+  key_cols.emplace_back(type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+  StorageTestUtil::ForceOid(key_cols.back(), oid++);
+  key_cols.emplace_back(type::TypeId::VARCHAR, false, 8, parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
+  StorageTestUtil::ForceOid(key_cols.back(), oid++);
+  key_cols.emplace_back(type::TypeId::VARCHAR, false, 0, parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
+  StorageTestUtil::ForceOid(key_cols.back(), oid++);
+  key_cols.emplace_back(type::TypeId::TINYINT, false, parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
+  StorageTestUtil::ForceOid(key_cols.back(), oid++);
+  key_cols.emplace_back(type::TypeId::VARCHAR, false, 12, parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
+  StorageTestUtil::ForceOid(key_cols.back(), oid++);
 
-  IndexMetadata metadata(key_schema);
+  IndexMetadata metadata(catalog::IndexSchema(key_cols, true, true, false, true));
 
   // identical key schema
-  const auto &metadata_key_schema = metadata.GetKeySchema();
+  const auto &metadata_key_schema = metadata.GetSchema().GetColumns();
   EXPECT_EQ(metadata_key_schema.size(), 5);
   EXPECT_EQ(metadata_key_schema[0].GetType(), type::TypeId::INTEGER);
   EXPECT_EQ(metadata_key_schema[1].GetType(), type::TypeId::VARCHAR);
@@ -596,20 +606,25 @@ TEST_F(BwTreeKeyTests, IndexMetadataGenericKeyMustInlineVarlenTest) {
   //    pr_offsets            { 3,  1,  2,  4,  0}
 
   catalog::indexkeycol_oid_t oid(20);
-  catalog::IndexKeySchema key_schema;
+  std::vector<catalog::IndexSchema::Column> key_cols;
 
   // key_schema            {INTEGER, VARCHAR(50), VARCHAR(8), TINYINT, VARCHAR(90)}
   // oids                  {20, 21, 22, 23, 24}
-  key_schema.emplace_back(oid++, type::TypeId::INTEGER, false);
-  key_schema.emplace_back(oid++, type::TypeId::VARCHAR, false, 50);
-  key_schema.emplace_back(oid++, type::TypeId::VARCHAR, false, 8);
-  key_schema.emplace_back(oid++, type::TypeId::TINYINT, false);
-  key_schema.emplace_back(oid++, type::TypeId::VARCHAR, false, 90);
+  key_cols.emplace_back(type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+  StorageTestUtil::ForceOid(key_cols.back(), oid++);
+  key_cols.emplace_back(type::TypeId::VARCHAR, false, 50, parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
+  StorageTestUtil::ForceOid(key_cols.back(), oid++);
+  key_cols.emplace_back(type::TypeId::VARCHAR, false, 8, parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
+  StorageTestUtil::ForceOid(key_cols.back(), oid++);
+  key_cols.emplace_back(type::TypeId::TINYINT, false, parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
+  StorageTestUtil::ForceOid(key_cols.back(), oid++);
+  key_cols.emplace_back(type::TypeId::VARCHAR, false, 90, parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
+  StorageTestUtil::ForceOid(key_cols.back(), oid++);
 
-  IndexMetadata metadata(key_schema);
+  IndexMetadata metadata(catalog::IndexSchema(key_cols, true, true, false, true));
 
   // identical key schema
-  const auto &metadata_key_schema = metadata.GetKeySchema();
+  const auto &metadata_key_schema = metadata.GetSchema().GetColumns();
   EXPECT_EQ(metadata_key_schema.size(), 5);
   EXPECT_EQ(metadata_key_schema[0].GetType(), type::TypeId::INTEGER);
   EXPECT_EQ(metadata_key_schema[1].GetType(), type::TypeId::VARCHAR);
@@ -686,7 +701,7 @@ TEST_F(BwTreeKeyTests, RandomCompactIntsKeyTest) {
     // figure out which CompactIntsKey template was instantiated
     // this is unpleasant, but seems to be the cleanest way
     uint16_t key_size = 0;
-    for (const auto key : key_schema) {
+    for (const auto key : key_schema.GetColumns()) {
       key_size = static_cast<uint16_t>(key_size + type::TypeUtil::GetTypeSize(key.GetType()));
     }
     uint8_t key_type = 0;
@@ -788,12 +803,16 @@ TEST_F(BwTreeKeyTests, RandomCompactIntsKeyTest) {
 
 template <uint8_t KeySize, typename CType, typename Random>
 void CompactIntsKeyBasicTest(type::TypeId type_id, Random *const generator) {
-  catalog::IndexKeySchema key_schema;
+  catalog::IndexSchema key_schema;
+
+  std::vector<catalog::IndexSchema::Column> key_cols
   const uint8_t num_cols = (sizeof(uint64_t) * KeySize) / sizeof(CType);
 
   for (uint8_t i = 0; i < num_cols; i++) {
-    key_schema.emplace_back(catalog::indexkeycol_oid_t(i), type_id, false);
+    key_cols.emplace_back(type_id, false, parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type_id)));
+    StorageTestUtil::ForceOid(key_cols.back(), catalog::indexkeycol_oid_t(i));
   }
+  key_schema = catalog::IndexSchema(key_cols, false, false, false, true);
 
   const IndexMetadata metadata(key_schema);
   const auto &initializer = metadata.GetProjectedRowInitializer();
@@ -850,10 +869,11 @@ TEST_F(BwTreeKeyTests, CompactIntsKeyBasicTest) {
 
 template <typename KeyType, typename CType>
 void NumericComparisons(const type::TypeId type_id, const bool nullable) {
-  catalog::IndexKeySchema key_schema;
-  key_schema.emplace_back(catalog::indexkeycol_oid_t(0), type_id, true);
+  std::vector<catalog::IndexSchema::Column> key_cols;
+  key_cols.emplace_back(type_id, true);
+  StorageTestUtil::ForceOid(key_cols.back(), catalog::indexkeycol_oid_t(0));
 
-  const IndexMetadata metadata(key_schema);
+  const IndexMetadata metadata(catalog::IndexSchema(key_cols, false, false, false, true));
   const auto &initializer = metadata.GetProjectedRowInitializer();
 
   auto *const pr_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
@@ -939,10 +959,11 @@ TEST_F(BwTreeKeyTests, GenericKeyNumericComparisons) {
 
 // NOLINTNEXTLINE
 TEST_F(BwTreeKeyTests, GenericKeyInlineVarlenComparisons) {
-  catalog::IndexKeySchema key_schema;
-  key_schema.emplace_back(catalog::indexkeycol_oid_t(0), type::TypeId::VARCHAR, true, 12);
+  std::vector<catalog::IndexSchema::Column> key_cols;
+  key_cols.emplace_back(type::TypeId::VARCHAR, true, 12);
+  StorageTestUtil::ForceOid(key_cols.back(), catalog::indexkeycol_oid_t(0));
 
-  const IndexMetadata metadata(key_schema);
+  const IndexMetadata metadata(catalog::IndexSchema(key_cols, false, false, false, true));
   const auto &initializer = metadata.GetProjectedRowInitializer();
 
   auto *const pr_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
@@ -1045,10 +1066,11 @@ TEST_F(BwTreeKeyTests, GenericKeyInlineVarlenComparisons) {
 
 // NOLINTNEXTLINE
 TEST_F(BwTreeKeyTests, GenericKeyNonInlineVarlenComparisons) {
-  catalog::IndexKeySchema key_schema;
-  key_schema.emplace_back(catalog::indexkeycol_oid_t(0), type::TypeId::VARCHAR, true, 20);
+  std::vector<catalog::IndexSchema::Column> key_cols;
+  key_cols.emplace_back(type_id, true, 20);
+  StorageTestUtil::ForceOid(key_cols.back(), catalog::indexkeycol_oid_t(0));
 
-  const IndexMetadata metadata(key_schema);
+  const IndexMetadata metadata(catalog::IndexSchema(key_cols, false, false, false, true));
   const auto &initializer = metadata.GetProjectedRowInitializer();
 
   auto *const pr_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());

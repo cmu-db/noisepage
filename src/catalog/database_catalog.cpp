@@ -33,7 +33,7 @@ void DatabaseCatalog::Bootstrap(transaction::TransactionContext *txn) {
   BootstrapTypes(txn);
 
   // pg_namespace and associated indexes
-  retval = CreateTableEntry(txn, NAMESPACE_TABLE_OID, NAMESPACE_CATALOG_NAMESPACE_OID, "pg_namespace", postgres::Builder::GetNamespaceTableSchema());
+  retval = CreateTableEntry(txn, NAMESPACE_TABLE_OID, NAMESPACE_CATALOG_NAMESPACE_OID, "pg_namespace", &postgres::Builder::GetNamespaceTableSchema());
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetTablePointer(txn, NAMESPACE_TABLE_OID, namespaces_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
@@ -556,6 +556,7 @@ table_oid_t DatabaseCatalog::CreateTable(transaction::TransactionContext *txn, n
   // Write the col oids into a new Schema object
   col_oid_t next_col_oid(1);
   auto *const schema_ptr = new Schema(schema);
+  txn->RegisterAbortAction([=]() { delete schema_ptr; });
   // TODO(Matt): when AbstractExpressions are added to Schema::Column as a field for default
   // value, we need to make sure Column gets a properly written copy constructor to deep
   // copy those to guarantee that this copy mechanism still works
@@ -563,7 +564,7 @@ table_oid_t DatabaseCatalog::CreateTable(transaction::TransactionContext *txn, n
     column.oid_ = next_col_oid++;
   }
 
-  return CreateTableEntry(txn, table_oid, ns, name, schema) ? table_oid : INVALID_TABLE_OID;
+  return CreateTableEntry(txn, table_oid, ns, name, schema_ptr) ? table_oid : INVALID_TABLE_OID;
 }
 
 bool DatabaseCatalog::DeleteTable(transaction::TransactionContext *const txn, const table_oid_t table) {
@@ -1384,7 +1385,7 @@ void DatabaseCatalog::BootstrapTypes(transaction::TransactionContext *txn) {
 }
 
 bool DatabaseCatalog::CreateTableEntry(transaction::TransactionContext *const txn, const table_oid_t table_oid,
-                                       const namespace_oid_t ns_oid, const std::string &name, const Schema &schema) {
+                                       const namespace_oid_t ns_oid, const std::string &name, const Schema *schema) {
   auto [pr_init, pr_map] = classes_->InitializerForProjectedRow(PG_CLASS_ALL_COL_OIDS);
 
   auto *const insert_redo = txn->StageWrite(db_oid_, CLASS_TABLE_OID, pr_init);
@@ -1400,7 +1401,7 @@ bool DatabaseCatalog::CreateTableEntry(transaction::TransactionContext *const tx
   auto *const table_oid_ptr = insert_pr->AccessForceNotNull(table_oid_offset);
   *(reinterpret_cast<uint32_t *>(table_oid_ptr)) = static_cast<uint32_t>(table_oid);
 
-  auto next_col_oid = schema.GetColumns()[-1].GetOid();
+  auto next_col_oid = schema->GetColumns()[-1].GetOid();
 
   // Write the next_col_oid into the PR
   const auto next_col_oid_offset = pr_map[REL_NEXTCOLOID_COL_OID];
@@ -1410,7 +1411,7 @@ bool DatabaseCatalog::CreateTableEntry(transaction::TransactionContext *const tx
   // Write the schema_ptr into the PR
   const auto schema_ptr_offset = pr_map[REL_SCHEMA_COL_OID];
   auto *const schema_ptr_ptr = insert_pr->AccessForceNotNull(schema_ptr_offset);
-  *(reinterpret_cast<uintptr_t *>(schema_ptr_ptr)) = reinterpret_cast<uintptr_t>(schema_ptr);
+  *(reinterpret_cast<uintptr_t *>(schema_ptr_ptr)) = reinterpret_cast<uintptr_t>(schema);
 
   // Set table_ptr to NULL because it gets set by execution layer after instantiation
   const auto table_ptr_offset = pr_map[REL_PTR_COL_OID];

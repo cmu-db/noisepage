@@ -28,8 +28,8 @@ table_oid_t CatalogAccessor::GetTableOid(namespace_oid_t ns, const std::string &
   return dbc_->GetTableOid(txn_, ns, name);
 }
 
-table_oid_t CatalogAccessor::CreateTable(namespace_oid_t ns, const std::string &name, Schema *schema) {
-  return dbc_->CreateTable(txn_, ns, name, *schema);
+table_oid_t CatalogAccessor::CreateTable(namespace_oid_t ns, const std::string &name, const Schema &schema) {
+  return dbc_->CreateTable(txn_, ns, name, schema);
 }
 
 bool CatalogAccessor::RenameTable(table_oid_t table, const std::string &new_table_name) {
