@@ -2,6 +2,7 @@
 #include "common/exception.h"
 #include "catalog/catalog_accessor.h"
 #include "type/type_id.h"
+#include "parser/sql_statement.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/star_expression.h"
 #include "parser/expression/aggregate_expression.h"
@@ -14,13 +15,7 @@
 namespace terrier::binder {
 
 BindNodeVisitor::BindNodeVisitor(catalog::CatalogAccessor* catalog_accessor, std::string default_database_name)
-    : catalog_accessor_(catalog_accessor), default_database_name_(default_database_name) {
-  // TODO:
-  //  traffic cop should generate the catalog accessor and hand to the binder
-  //  Since the catalog accessor has attribute txn and db id
-  //  probably we should only take in the catalog accessor as parameter only?
-  context_ = nullptr;
-}
+    : catalog_accessor_(catalog_accessor), default_database_name_(std::move(default_database_name)) {}
 
 void BindNodeVisitor::BindNameToNode(parser::SQLStatement *tree) {
   tree->Accept(this);
@@ -63,8 +58,8 @@ void BindNodeVisitor::Visit(parser::SelectStatement *node) {
     select_element->DeriveSubqueryFlag();
 
     // Traverse the expression to deduce expression value type and name
-    select_element->DeduceReturnValueType();
-    select_element->DeduceExpressionName();
+    select_element->DeriveReturnValueType();
+    select_element->DeriveExpressionName();
 
     new_select_list.push_back(std::move(select_element));
   }
@@ -134,7 +129,7 @@ void BindNodeVisitor::Visit(parser::UpdateStatement *node) {
 void BindNodeVisitor::Visit(parser::DeleteStatement *node) {
   context_ = std::make_shared<BinderContext>(nullptr);
   // no try bind anything
-  // node->TryBindDatabaseName(default_database_name_);
+  node->TryBindDatabaseName(default_database_name_);
   auto table = node->GetDeletionTable();
   context_->AddRegularTable(catalog_accessor_, table->GetDatabaseName(), table->GetTableName(), table->GetTableName());
 
@@ -169,6 +164,12 @@ void BindNodeVisitor::Visit(parser::CreateStatement *node) {
   // TODO: try nothing.
   //  Try  bind database name will set, for the table_ref of the node,
   //  the db_name and schema_name to default if they are not there
+  // TODO: new: go to the node and see if it has db name; rename the function to fit its purpose
+  //  if node->db_name is empty:
+  //    set it to defualt
+  //  else if node->db_name != defualt db_name:
+  //    throw exception
+  //  return;
   node->TryBindDatabaseName(default_database_name_);
 }
 
@@ -239,18 +240,18 @@ void BindNodeVisitor::Visit(parser::SubqueryExpression *expr) {
 
 void BindNodeVisitor::Visit(parser::StarExpression *expr) {
   if (!BinderContext::HasTables(context_)) {
-    throw BinderException("Invalid expression" + expr->GetInfo());
+    throw BINDER_EXCEPTION("Invalid [Expression :: STAR].");
   }
 }
 
-// Deduce value type for these expressions
+// Derive value type for these expressions
 void BindNodeVisitor::Visit(parser::OperatorExpression *expr) {
   SqlNodeVisitor::Visit(expr);
-  expr->DeduceReturnValueType();
+  expr->DeriveReturnValueType();
 }
 void BindNodeVisitor::Visit(parser::AggregateExpression *expr) {
   SqlNodeVisitor::Visit(expr);
-  expr->DeduceReturnValueType();
+  expr->DeriveReturnValueType();
 }
 
 //void BindNodeVisitor::Visit(parser::FunctionExpression *expr) {
