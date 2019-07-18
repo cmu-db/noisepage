@@ -115,7 +115,7 @@ void DatabaseCatalog::Bootstrap(transaction::TransactionContext *txn) {
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
 
   retval = CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, COLUMN_TABLE_OID, COLUMN_CLASS_INDEX_OID,
-                            "pg_attribute_name_index", postgres::Builder::GetColumnClassIndexSchema(db_oid_));
+                            "pg_attribute_class_index", postgres::Builder::GetColumnClassIndexSchema(db_oid_));
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, COLUMN_CLASS_INDEX_OID, columns_class_index_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
