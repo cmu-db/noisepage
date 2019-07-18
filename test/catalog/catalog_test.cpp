@@ -61,8 +61,7 @@ struct CatalogTests : public TerrierTest {
 
   void VerifyTablePresent(catalog::CatalogAccessor *accessor, catalog::namespace_oid_t ns_oid,
                           const std::string &table_name) {
-    auto table_oid = accessor->GetTableOid(ns_oid, table_name);
-    EXPECT_NE(table_oid, catalog::INVALID_TABLE_OID);
+    EXPECT_NE(accessor->GetTableOid(ns_oid, table_name);, catalog::INVALID_TABLE_OID);
   }
 
   void VerifyTableAbsent(catalog::CatalogAccessor *accessor, catalog::namespace_oid_t ns_oid,
