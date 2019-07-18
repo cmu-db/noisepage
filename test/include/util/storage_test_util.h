@@ -334,6 +334,12 @@ struct StorageTestUtil {
   }
 
   /**
+   * Provides function for tests at large to force column OIDs so that they can function without a catalog.
+   */
+  static void ForceOid(catalog::Schema::Column &col, catalog::col_oid_t oid) { col.SetOid(oid); }
+  static void ForceOid(catalog::IndexSchema::Column &col, catalog::indexkeycol_oid_t oid) { col.SetOid(oid); }
+
+  /**
    * Generates a random GenericKey-compatible schema with the given number of columns using the given types.
    */
   template <typename Random>
@@ -369,16 +375,11 @@ struct StorageTestUtil {
           key_cols.emplace_back(type, is_nullable, parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type)));
           break;
       }
+      ForceOid(key_cols.back(), key_oid);
     }
 
     return catalog::IndexSchema(key_cols, false, false, false, true);
   }
-
-  /**
-   * Provides function for tests at large to force column OIDs so that they can function without a catalog.
-   */
-  static void ForceOid(catalog::Schema::Column &col, catalog::col_oid_t oid) { col.SetOid(oid); }
-  static void ForceOid(catalog::IndexSchema::Column &col, catalog::indexkeycol_oid_t oid) { col.SetOid(oid); }
 
   /**
    * Generates a random CompactIntsKey-compatible schema.
