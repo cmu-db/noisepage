@@ -42,6 +42,7 @@ class BwTreeIndexTests : public TerrierTest {
     StorageTestUtil::ForceOid(col, catalog::col_oid_t(1));
     table_schema_ = catalog::Schema({col});
     sql_table_ = new storage::SqlTable(&block_store_, table_schema_);
+    tuple_initializer_ = sql_table_->InitializerForProjectedRow({catalog::col_oid_t(1)}).first;
 
     std::vector<catalog::IndexSchema::Column> keycols;
     keycols.emplace_back(type::TypeId::INTEGER, false,
@@ -55,8 +56,7 @@ class BwTreeIndexTests : public TerrierTest {
 
   // SqlTable
   storage::SqlTable * sql_table_;
-  const storage::ProjectedRowInitializer tuple_initializer_{
-      sql_table_->InitializerForProjectedRow({catalog::col_oid_t(0)}).first};
+  storage::ProjectedRowInitializer tuple_initializer_;
 
   // BwTreeIndex
   Index *default_index_, *unique_index_;
