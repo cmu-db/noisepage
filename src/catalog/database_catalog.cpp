@@ -781,6 +781,7 @@ bool DatabaseCatalog::SetTablePointer(transaction::TransactionContext *txn, tabl
   delete[] buffer;
 
   auto *update_redo = txn->StageWrite(db_oid_, CLASS_TABLE_OID, pr_init);
+  update_redo->SetTupleSlot(index_results[0]);
   auto *update_pr = update_redo->Delta();
   auto *const table_ptr_ptr = update_pr->AccessForceNotNull(0);
   *(reinterpret_cast<uintptr_t *>(table_ptr_ptr)) = reinterpret_cast<uintptr_t>(table_ptr);
@@ -1046,6 +1047,7 @@ bool DatabaseCatalog::SetIndexPointer(transaction::TransactionContext *txn, inde
   delete[] buffer;
 
   auto *update_redo = txn->StageWrite(db_oid_, CLASS_TABLE_OID, pr_init);
+  update_redo->SetTupleSlot(index_results[0]);
   auto *update_pr = update_redo->Delta();
   auto *const table_ptr_ptr = update_pr->AccessForceNotNull(0);
   *(reinterpret_cast<uintptr_t *>(table_ptr_ptr)) = reinterpret_cast<uintptr_t>(index_ptr);
