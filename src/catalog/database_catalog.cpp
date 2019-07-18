@@ -655,7 +655,7 @@ bool DatabaseCatalog::DeleteTable(transaction::TransactionContext *const txn, co
   return true;
 }
 
-std::pair<uint32_t, postgres::ClassKind> DatabaseCatalog::getClassOidKind(transaction::TransactionContext *const txn,
+std::pair<uint32_t, postgres::ClassKind> DatabaseCatalog::GetClassOidKind(transaction::TransactionContext *const txn,
                                                                           const namespace_oid_t ns_oid,
                                                                           const std::string &name) {
   std::vector<storage::TupleSlot> index_results;
@@ -988,7 +988,7 @@ bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oi
   return true;
 }
 
-bool DatabaseCatalog::SetTablePointer(transaction::TransactionContext *txn, index_oid_t index,
+bool DatabaseCatalog::SetIndexPointer(transaction::TransactionContext *txn, index_oid_t index,
                                       storage::index::Index *index_ptr) {
   TERRIER_ASSERT(index_ptr != nullptr, "Why are you inserting nullptr here? That seems wrong.");
   std::vector<storage::TupleSlot> index_results;
