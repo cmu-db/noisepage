@@ -33,132 +33,159 @@ void DatabaseCatalog::Bootstrap(transaction::TransactionContext *txn) {
   BootstrapTypes(txn);
 
   // pg_namespace and associated indexes
-  retval = CreateTableEntry(txn, NAMESPACE_TABLE_OID, NAMESPACE_CATALOG_NAMESPACE_OID, "pg_namespace",new Schema(postgres::Builder::GetNamespaceTableSchema()));
+  retval = CreateTableEntry(txn, NAMESPACE_TABLE_OID, NAMESPACE_CATALOG_NAMESPACE_OID, "pg_namespace",
+                            new Schema(postgres::Builder::GetNamespaceTableSchema()));
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetTablePointer(txn, NAMESPACE_TABLE_OID, namespaces_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
 
-  retval = CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, NAMESPACE_TABLE_OID, NAMESPACE_OID_INDEX_OID, "pg_namespace_oid_index", postgres::Builder::GetNamespaceOidIndexSchema(db_oid_));
+  retval = CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, NAMESPACE_TABLE_OID, NAMESPACE_OID_INDEX_OID,
+                            "pg_namespace_oid_index", postgres::Builder::GetNamespaceOidIndexSchema(db_oid_));
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, NAMESPACE_OID_INDEX_OID, namespaces_oid_index_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
 
-  retval = CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, NAMESPACE_TABLE_OID, NAMESPACE_NAME_INDEX_OID, "pg_namespace_name_index", postgres::Builder::GetNamespaceOidIndexSchema(db_oid_));
+  retval = CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, NAMESPACE_TABLE_OID, NAMESPACE_NAME_INDEX_OID,
+                            "pg_namespace_name_index", postgres::Builder::GetNamespaceOidIndexSchema(db_oid_));
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, NAMESPACE_NAME_INDEX_OID, namespaces_name_index_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
 
   // pg_class and associated indexes
-  retval = CreateTableEntry(txn, CLASS_TABLE_OID, NAMESPACE_CATALOG_NAMESPACE_OID, "pg_class", new Schema(postgres::Builder::GetClassTableSchema()));
+  retval = CreateTableEntry(txn, CLASS_TABLE_OID, NAMESPACE_CATALOG_NAMESPACE_OID, "pg_class",
+                            new Schema(postgres::Builder::GetClassTableSchema()));
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetTablePointer(txn, CLASS_TABLE_OID, classes_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
 
-  retval = CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, CLASS_TABLE_OID, CLASS_OID_INDEX_OID, "pg_class_oid_index", postgres::Builder::GetClassOidIndexSchema(db_oid_));
+  retval = CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, CLASS_TABLE_OID, CLASS_OID_INDEX_OID,
+                            "pg_class_oid_index", postgres::Builder::GetClassOidIndexSchema(db_oid_));
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, CLASS_OID_INDEX_OID, classes_oid_index_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
 
-  retval = CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, CLASS_TABLE_OID, CLASS_NAME_INDEX_OID, "pg_class_name_index", postgres::Builder::GetClassNameIndexSchema(db_oid_));
+  retval = CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, CLASS_TABLE_OID, CLASS_NAME_INDEX_OID,
+                            "pg_class_name_index", postgres::Builder::GetClassNameIndexSchema(db_oid_));
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, CLASS_NAME_INDEX_OID, classes_name_index_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
 
-  retval = CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, CLASS_TABLE_OID, CLASS_NAMESPACE_INDEX_OID, "pg_class_namespace_index", postgres::Builder::GetClassNamespaceIndexSchema(db_oid_));
+  retval = CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, CLASS_TABLE_OID, CLASS_NAMESPACE_INDEX_OID,
+                            "pg_class_namespace_index", postgres::Builder::GetClassNamespaceIndexSchema(db_oid_));
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, CLASS_NAMESPACE_INDEX_OID, classes_namespace_index_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
 
   // pg_index and associated indexes
-  retval = CreateTableEntry(txn, INDEX_TABLE_OID, NAMESPACE_CATALOG_NAMESPACE_OID, "pg_index", new Schema(postgres::Builder::GetIndexTableSchema()));
+  retval = CreateTableEntry(txn, INDEX_TABLE_OID, NAMESPACE_CATALOG_NAMESPACE_OID, "pg_index",
+                            new Schema(postgres::Builder::GetIndexTableSchema()));
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetTablePointer(txn, INDEX_TABLE_OID, indexes_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
 
-  retval = CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, INDEX_TABLE_OID, INDEX_OID_INDEX_OID, "pg_index_oid_index", postgres::Builder::GetIndexOidIndexSchema(db_oid_));
+  retval = CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, INDEX_TABLE_OID, INDEX_OID_INDEX_OID,
+                            "pg_index_oid_index", postgres::Builder::GetIndexOidIndexSchema(db_oid_));
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, INDEX_OID_INDEX_OID, indexes_oid_index_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
 
-  retval = CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, INDEX_TABLE_OID, INDEX_TABLE_INDEX_OID, "pg_index_table_index", postgres::Builder::GetIndexTableIndexSchema(db_oid_));
+  retval = CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, INDEX_TABLE_OID, INDEX_TABLE_INDEX_OID,
+                            "pg_index_table_index", postgres::Builder::GetIndexTableIndexSchema(db_oid_));
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, INDEX_TABLE_INDEX_OID, indexes_table_index_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
 
   // pg_attribute and associated indexes
-  retval = CreateTableEntry(txn, COLUMN_TABLE_OID, NAMESPACE_CATALOG_NAMESPACE_OID, "pg_attribute", new Schema(postgres::Builder::GetColumnTableSchema()));
+  retval = CreateTableEntry(txn, COLUMN_TABLE_OID, NAMESPACE_CATALOG_NAMESPACE_OID, "pg_attribute",
+                            new Schema(postgres::Builder::GetColumnTableSchema()));
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetTablePointer(txn, COLUMN_TABLE_OID, columns_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
 
-  retval = CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, COLUMN_TABLE_OID, COLUMN_OID_INDEX_OID, "pg_attribute_oid_index", postgres::Builder::GetColumnOidIndexSchema(db_oid_));
+  retval = CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, COLUMN_TABLE_OID, COLUMN_OID_INDEX_OID,
+                            "pg_attribute_oid_index", postgres::Builder::GetColumnOidIndexSchema(db_oid_));
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, COLUMN_OID_INDEX_OID, columns_oid_index_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
 
-  retval = CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, COLUMN_TABLE_OID, COLUMN_NAME_INDEX_OID, "pg_attribute_name_index", postgres::Builder::GetColumnNameIndexSchema(db_oid_));
+  retval = CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, COLUMN_TABLE_OID, COLUMN_NAME_INDEX_OID,
+                            "pg_attribute_name_index", postgres::Builder::GetColumnNameIndexSchema(db_oid_));
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, COLUMN_NAME_INDEX_OID, columns_name_index_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
 
-  retval = CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, COLUMN_TABLE_OID, COLUMN_CLASS_INDEX_OID, "pg_attribute_name_index", postgres::Builder::GetColumnClassIndexSchema(db_oid_));
+  retval = CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, COLUMN_TABLE_OID, COLUMN_CLASS_INDEX_OID,
+                            "pg_attribute_name_index", postgres::Builder::GetColumnClassIndexSchema(db_oid_));
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, COLUMN_CLASS_INDEX_OID, columns_class_index_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
 
   // pg_type and associated indexes
-  retval = CreateTableEntry(txn, TYPE_TABLE_OID, NAMESPACE_CATALOG_NAMESPACE_OID, "pg_type", new Schema(postgres::Builder::GetTypeTableSchema()));
+  retval = CreateTableEntry(txn, TYPE_TABLE_OID, NAMESPACE_CATALOG_NAMESPACE_OID, "pg_type",
+                            new Schema(postgres::Builder::GetTypeTableSchema()));
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetTablePointer(txn, TYPE_TABLE_OID, types_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
 
-  retval = CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, TYPE_TABLE_OID, TYPE_OID_INDEX_OID, "pg_type_oid_index", postgres::Builder::GetTypeOidIndexSchema(db_oid_));
+  retval = CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, TYPE_TABLE_OID, TYPE_OID_INDEX_OID,
+                            "pg_type_oid_index", postgres::Builder::GetTypeOidIndexSchema(db_oid_));
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, TYPE_OID_INDEX_OID, types_oid_index_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
 
-  retval = CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, TYPE_TABLE_OID, TYPE_NAME_INDEX_OID, "pg_type_name_index", postgres::Builder::GetTypeNameIndexSchema(db_oid_));
+  retval = CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, TYPE_TABLE_OID, TYPE_NAME_INDEX_OID,
+                            "pg_type_name_index", postgres::Builder::GetTypeNameIndexSchema(db_oid_));
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, TYPE_NAME_INDEX_OID, types_name_index_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
 
-  retval = CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, TYPE_TABLE_OID, TYPE_NAMESPACE_INDEX_OID, "pg_type_namespace_index", postgres::Builder::GetTypeNamespaceIndexSchema(db_oid_));
+  retval = CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, TYPE_TABLE_OID, TYPE_NAMESPACE_INDEX_OID,
+                            "pg_type_namespace_index", postgres::Builder::GetTypeNamespaceIndexSchema(db_oid_));
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, TYPE_NAMESPACE_INDEX_OID, types_namespace_index_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
 
   // pg_constraint and associated indexes
-  retval = CreateTableEntry(txn, CONSTRAINT_TABLE_OID, NAMESPACE_CATALOG_NAMESPACE_OID, "pg_constraint", new Schema(postgres::Builder::GetConstraintTableSchema()));
+  retval = CreateTableEntry(txn, CONSTRAINT_TABLE_OID, NAMESPACE_CATALOG_NAMESPACE_OID, "pg_constraint",
+                            new Schema(postgres::Builder::GetConstraintTableSchema()));
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetTablePointer(txn, CONSTRAINT_TABLE_OID, constraints_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
 
-  retval = CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, CONSTRAINT_TABLE_OID, CONSTRAINT_OID_INDEX_OID, "pg_constraint_oid_index", postgres::Builder::GetConstraintOidIndexSchema(db_oid_));
+  retval = CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, CONSTRAINT_TABLE_OID, CONSTRAINT_OID_INDEX_OID,
+                            "pg_constraint_oid_index", postgres::Builder::GetConstraintOidIndexSchema(db_oid_));
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, CONSTRAINT_OID_INDEX_OID, constraints_oid_index_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
 
-  retval = CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, CONSTRAINT_TABLE_OID, CONSTRAINT_NAME_INDEX_OID, "pg_constraint_name_index", postgres::Builder::GetConstraintNameIndexSchema(db_oid_));
+  retval = CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, CONSTRAINT_TABLE_OID, CONSTRAINT_NAME_INDEX_OID,
+                            "pg_constraint_name_index", postgres::Builder::GetConstraintNameIndexSchema(db_oid_));
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, CONSTRAINT_NAME_INDEX_OID, constraints_name_index_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
 
-  retval = CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, CONSTRAINT_TABLE_OID, CONSTRAINT_NAMESPACE_INDEX_OID, "pg_constraint_namespace_index", postgres::Builder::GetConstraintNamespaceIndexSchema(db_oid_));
+  retval =
+      CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, CONSTRAINT_TABLE_OID, CONSTRAINT_NAMESPACE_INDEX_OID,
+                       "pg_constraint_namespace_index", postgres::Builder::GetConstraintNamespaceIndexSchema(db_oid_));
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, CONSTRAINT_NAMESPACE_INDEX_OID, constraints_namespace_index_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
 
-  retval = CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, CONSTRAINT_TABLE_OID, CONSTRAINT_TABLE_INDEX_OID, "pg_constraint_table_index", postgres::Builder::GetConstraintTableIndexSchema(db_oid_));
+  retval = CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, CONSTRAINT_TABLE_OID, CONSTRAINT_TABLE_INDEX_OID,
+                            "pg_constraint_table_index", postgres::Builder::GetConstraintTableIndexSchema(db_oid_));
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, CONSTRAINT_TABLE_INDEX_OID, constraints_table_index_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
 
-  retval = CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, CONSTRAINT_TABLE_OID, CONSTRAINT_INDEX_INDEX_OID, "pg_constraint_index_index", postgres::Builder::GetConstraintIndexIndexSchema(db_oid_));
+  retval = CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, CONSTRAINT_TABLE_OID, CONSTRAINT_INDEX_INDEX_OID,
+                            "pg_constraint_index_index", postgres::Builder::GetConstraintIndexIndexSchema(db_oid_));
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, CONSTRAINT_INDEX_INDEX_OID, constraints_index_index_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
 
-  retval = CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, CONSTRAINT_TABLE_OID, CONSTRAINT_FOREIGNTABLE_INDEX_OID, "pg_constraint_foreigntable_index", postgres::Builder::GetConstraintForeignTableIndexSchema(db_oid_));
+  retval = CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, CONSTRAINT_TABLE_OID,
+                            CONSTRAINT_FOREIGNTABLE_INDEX_OID, "pg_constraint_foreigntable_index",
+                            postgres::Builder::GetConstraintForeignTableIndexSchema(db_oid_));
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, CONSTRAINT_FOREIGNTABLE_INDEX_OID, constraints_foreigntable_index_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
@@ -1259,15 +1286,18 @@ bool DatabaseCatalog::CreateIndexEntry(transaction::TransactionContext *const tx
   *(reinterpret_cast<uint32_t *>(rel_oid_ptr)) = static_cast<uint32_t>(table_oid);
 
   // Write boolean values to PR
-  *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISUNIQUE_COL_OID]))) = idx_schema->is_unique_;
+  *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISUNIQUE_COL_OID]))) =
+      idx_schema->is_unique_;
   *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISPRIMARY_COL_OID]))) =
       idx_schema->is_primary_;
   *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISEXCLUSION_COL_OID]))) =
       idx_schema->is_exclusion_;
   *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDIMMEDIATE_COL_OID]))) =
       idx_schema->is_immediate_;
-  *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISVALID_COL_OID]))) = idx_schema->is_valid_;
-  *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISREADY_COL_OID]))) = idx_schema->is_ready_;
+  *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISVALID_COL_OID]))) =
+      idx_schema->is_valid_;
+  *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISREADY_COL_OID]))) =
+      idx_schema->is_ready_;
   *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISLIVE_COL_OID]))) = idx_schema->is_live_;
 
   // Insert into pg_index table

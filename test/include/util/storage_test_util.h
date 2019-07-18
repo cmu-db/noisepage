@@ -369,11 +369,14 @@ class StorageTestUtil {
         case type::TypeId::VARBINARY:
         case type::TypeId::VARCHAR: {
           auto varlen_size = std::uniform_int_distribution(0u, max_varlen_size)(*generator);
-          key_cols.emplace_back(type, is_nullable, parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type)), varlen_size);
+          key_cols.emplace_back(type, is_nullable,
+                                parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type)),
+                                varlen_size);
           break;
         }
         default:
-          key_cols.emplace_back(type, is_nullable, parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type)));
+          key_cols.emplace_back(type, is_nullable,
+                                parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type)));
           break;
       }
       ForceOid(key_cols.back(), key_oid);

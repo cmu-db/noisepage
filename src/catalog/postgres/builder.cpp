@@ -48,7 +48,8 @@ Schema Builder::GetDatabaseTableSchema() {
 IndexSchema Builder::GetDatabaseOidIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
-  columns.emplace_back(type::TypeId::INTEGER, false, parser::ColumnValueExpression(INVALID_DATABASE_OID, DATABASE_TABLE_OID, DATOID_COL_OID));
+  columns.emplace_back(type::TypeId::INTEGER, false,
+                       parser::ColumnValueExpression(INVALID_DATABASE_OID, DATABASE_TABLE_OID, DATOID_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Primary
@@ -63,7 +64,8 @@ IndexSchema Builder::GetDatabaseNameIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back(type::TypeId::VARCHAR, false,
-                       parser::ColumnValueExpression(INVALID_DATABASE_OID, DATABASE_TABLE_OID, DATNAME_COL_OID), MAX_NAME_LENGTH);
+                       parser::ColumnValueExpression(INVALID_DATABASE_OID, DATABASE_TABLE_OID, DATNAME_COL_OID),
+                       MAX_NAME_LENGTH);
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Unique, not primary
@@ -330,7 +332,8 @@ IndexSchema Builder::GetNamespaceNameIndexSchema(db_oid_t db) {
 IndexSchema Builder::GetClassOidIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
-  columns.emplace_back(type::TypeId::INTEGER, false, parser::ColumnValueExpression(db, CLASS_TABLE_OID, RELOID_COL_OID));
+  columns.emplace_back(type::TypeId::INTEGER, false,
+                       parser::ColumnValueExpression(db, CLASS_TABLE_OID, RELOID_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Primary
@@ -348,7 +351,8 @@ IndexSchema Builder::GetClassNameIndexSchema(db_oid_t db) {
                        parser::ColumnValueExpression(db, CLASS_TABLE_OID, RELNAMESPACE_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
-  columns.emplace_back(type::TypeId::VARCHAR, false, parser::ColumnValueExpression(db, CLASS_TABLE_OID, RELNAME_COL_OID), MAX_NAME_LENGTH);
+  columns.emplace_back(type::TypeId::VARCHAR, false,
+                       parser::ColumnValueExpression(db, CLASS_TABLE_OID, RELNAME_COL_OID), MAX_NAME_LENGTH);
   columns.back().SetOid(indexkeycol_oid_t(2));
 
   // Unique, not primary
@@ -377,7 +381,8 @@ IndexSchema Builder::GetClassNamespaceIndexSchema(db_oid_t db) {
 IndexSchema Builder::GetIndexOidIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
-  columns.emplace_back(type::TypeId::INTEGER, false, parser::ColumnValueExpression(db, INDEX_TABLE_OID, INDOID_COL_OID));
+  columns.emplace_back(type::TypeId::INTEGER, false,
+                       parser::ColumnValueExpression(db, INDEX_TABLE_OID, INDOID_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Primary
@@ -391,7 +396,8 @@ IndexSchema Builder::GetIndexOidIndexSchema(db_oid_t db) {
 IndexSchema Builder::GetIndexTableIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
-  columns.emplace_back(type::TypeId::INTEGER, false, parser::ColumnValueExpression(db, INDEX_TABLE_OID, INDRELID_COL_OID));
+  columns.emplace_back(type::TypeId::INTEGER, false,
+                       parser::ColumnValueExpression(db, INDEX_TABLE_OID, INDRELID_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Not unique
@@ -405,10 +411,12 @@ IndexSchema Builder::GetIndexTableIndexSchema(db_oid_t db) {
 IndexSchema Builder::GetColumnOidIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
-  columns.emplace_back(type::TypeId::INTEGER, false, parser::ColumnValueExpression(db, COLUMN_TABLE_OID, ATTRELID_COL_OID));
+  columns.emplace_back(type::TypeId::INTEGER, false,
+                       parser::ColumnValueExpression(db, COLUMN_TABLE_OID, ATTRELID_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
-  columns.emplace_back(type::TypeId::INTEGER, false, parser::ColumnValueExpression(db, COLUMN_TABLE_OID, ATTNUM_COL_OID));
+  columns.emplace_back(type::TypeId::INTEGER, false,
+                       parser::ColumnValueExpression(db, COLUMN_TABLE_OID, ATTNUM_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(2));
 
   // Primary
@@ -422,10 +430,12 @@ IndexSchema Builder::GetColumnOidIndexSchema(db_oid_t db) {
 IndexSchema Builder::GetColumnNameIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
-  columns.emplace_back(type::TypeId::INTEGER, false, parser::ColumnValueExpression(db, COLUMN_TABLE_OID, ATTRELID_COL_OID));
+  columns.emplace_back(type::TypeId::INTEGER, false,
+                       parser::ColumnValueExpression(db, COLUMN_TABLE_OID, ATTRELID_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
-  columns.emplace_back(type::TypeId::VARCHAR, false, parser::ColumnValueExpression(db, COLUMN_TABLE_OID, ATTNAME_COL_OID), MAX_NAME_LENGTH);
+  columns.emplace_back(type::TypeId::VARCHAR, false,
+                       parser::ColumnValueExpression(db, COLUMN_TABLE_OID, ATTNAME_COL_OID), MAX_NAME_LENGTH);
   columns.back().SetOid(indexkeycol_oid_t(2));
 
   // Unique, not primary
@@ -439,7 +449,8 @@ IndexSchema Builder::GetColumnNameIndexSchema(db_oid_t db) {
 IndexSchema Builder::GetColumnClassIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
-  columns.emplace_back(type::TypeId::INTEGER, false, parser::ColumnValueExpression(db, COLUMN_TABLE_OID, ATTRELID_COL_OID));
+  columns.emplace_back(type::TypeId::INTEGER, false,
+                       parser::ColumnValueExpression(db, COLUMN_TABLE_OID, ATTRELID_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Not unique
@@ -471,7 +482,8 @@ IndexSchema Builder::GetTypeNameIndexSchema(db_oid_t db) {
                        parser::ColumnValueExpression(db, TYPE_TABLE_OID, TYPNAMESPACE_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
-  columns.emplace_back(type::TypeId::VARCHAR, false, parser::ColumnValueExpression(db, TYPE_TABLE_OID, TYPNAME_COL_OID), MAX_NAME_LENGTH);
+  columns.emplace_back(type::TypeId::VARCHAR, false, parser::ColumnValueExpression(db, TYPE_TABLE_OID, TYPNAME_COL_OID),
+                       MAX_NAME_LENGTH);
   columns.back().SetOid(indexkeycol_oid_t(2));
 
   // Unique, not primary
