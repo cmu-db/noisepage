@@ -710,7 +710,7 @@ std::pair<uint32_t, postgres::ClassKind> DatabaseCatalog::getClassOidKind(transa
 
 table_oid_t DatabaseCatalog::GetTableOid(transaction::TransactionContext *const txn, const namespace_oid_t ns,
                                          const std::string &name) {
-  auto oid_pair = getClassOidKind(txn, ns, name);
+  auto oid_pair = GetClassOidKind(txn, ns, name);
   if (oid_pair.second != postgres::ClassKind::REGULAR_TABLE) {
     // User called GetTableOid on an object that doesn't have type REGULAR_TABLE
     return INVALID_TABLE_OID;
@@ -776,13 +776,25 @@ common::ManagedPointer<storage::SqlTable> DatabaseCatalog::GetTable(transaction:
   return common::ManagedPointer(reinterpret_cast<storage::SqlTable *>(ptr_pair.first));
 }
 
-// bool DatabaseCatalog::RenameTable(transaction::TransactionContext *txn, table_oid_t table, const std::string &name);
+bool DatabaseCatalog::RenameTable(transaction::TransactionContext *txn, table_oid_t table, const std::string &name) {
+  // TODO(John): Implement
+  TERRIER_ASSERT(false, "Not implemented");
+  return false;
+}
 
-// bool DatabaseCatalog::UpdateSchema(transaction::TransactionContext *txn, table_oid_t table, Schema *new_schema);
+bool DatabaseCatalog::UpdateSchema(transaction::TransactionContext *txn, table_oid_t table, Schema *new_schema) {
+  // TODO(John): Implement
+  TERRIER_ASSERT(false, "Not implemented");
+  return false;
+}
 
-// const Schema &DatabaseCatalog::GetSchema(transaction::TransactionContext *txn, table_oid_t table);
+const Schema &DatabaseCatalog::GetSchema(transaction::TransactionContext *txn, table_oid_t table) {
+  auto ptr_pair = GetClassSchemaPtrKind(txn, static_cast<uint32_t>(table));
+  TERRIER_ASSERT(ptr_pair.second == postgres::ClassKind::REGULAR_TABLE, "Requested a table schema for a non-table");
+  return *reinterpret_cast<Schema *>(ptr_pair.first);
+}
 
-// std::vector<constraint_oid_t> DatabaseCatalog::GetConstraints(transaction::TransactionContext *txn, table_oid_t);
+std::vector<constraint_oid_t> DatabaseCatalog::GetConstraints(transaction::TransactionContext *txn, table_oid_t);
 
 std::vector<index_oid_t> DatabaseCatalog::GetIndexes(transaction::TransactionContext *txn, table_oid_t oid) {
   std::vector<index_oid_t> index_oids;
@@ -976,6 +988,40 @@ bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oi
   return true;
 }
 
+bool DatabaseCatalog::SetTablePointer(transaction::TransactionContext *txn, index_oid_t index,
+                                      storage::index::Index *index_ptr) {
+  TERRIER_ASSERT(index_ptr != nullptr, "Why are you inserting nullptr here? That seems wrong.");
+  std::vector<storage::TupleSlot> index_results;
+  auto oid_pri = classes_oid_index_->GetProjectedRowInitializer();
+
+  // Do not need to store the projection map because it is only a single column
+  auto pr_init = classes_->InitializerForProjectedRow({REL_PTR_COL_OID}).first;
+  TERRIER_ASSERT(pr_init.ProjectedRowSize() >= oid_pri.ProjectedRowSize(), "Buffer must allocated to fit largest PR");
+  auto *const buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
+  auto *key_pr = oid_pri.InitializeRow(buffer);
+
+  // Find the entry using the index
+  *(reinterpret_cast<uint32_t *>(key_pr->AccessForceNotNull(0))) = static_cast<uint32_t>(index);
+  classes_oid_index_->ScanKey(*txn, *key_pr, &index_results);
+  if (index_results.empty()) {
+    // TODO(Matt): we should verify what postgres does in this case
+    // Index scan didn't find anything. This seems weird since we were able to enter this function with an index_oid.
+    // That implies that it was visible to us. Maybe the index was dropped or renamed twice by the same txn?
+    delete[] buffer;
+    return false;
+  }
+  TERRIER_ASSERT(index_results.size() == 1, "You got more than one result from a unique index. How did you do that?");
+
+  delete[] buffer;
+
+  auto *update_redo = txn->StageWrite(db_oid_, CLASS_TABLE_OID, pr_init);
+  auto *update_pr = update_redo->Delta();
+  auto *const table_ptr_ptr = update_pr->AccessForceNotNull(0);
+  *(reinterpret_cast<uintptr_t *>(table_ptr_ptr)) = reinterpret_cast<uintptr_t>(index_ptr);
+
+  return classes_->Update(txn, update_redo);
+}
+
 common::ManagedPointer<storage::index::Index> DatabaseCatalog::GetIndex(transaction::TransactionContext *txn,
                                                                         index_oid_t index) {
   auto ptr_pair = GetClassPtrKind(txn, static_cast<uint32_t>(index));
@@ -988,7 +1034,7 @@ common::ManagedPointer<storage::index::Index> DatabaseCatalog::GetIndex(transact
 
 index_oid_t DatabaseCatalog::GetIndexOid(transaction::TransactionContext *txn, namespace_oid_t ns,
                                          const std::string &name) {
-  auto oid_pair = getClassOidKind(txn, ns, name);
+  auto oid_pair = GetClassOidKind(txn, ns, name);
   if (oid_pair.second != postgres::ClassKind::INDEX) {
     // User called GetIndexOid on an object that doesn't have type INDEX
     return INVALID_INDEX_OID;
@@ -996,7 +1042,11 @@ index_oid_t DatabaseCatalog::GetIndexOid(transaction::TransactionContext *txn, n
   return index_oid_t(oid_pair.first);
 }
 
-// const IndexSchema &DatabaseCatalog::GetIndexSchema(transaction::TransactionContext *txn, index_oid_t index);
+const IndexSchema &DatabaseCatalog::GetIndexSchema(transaction::TransactionContext *txn, index_oid_t index) {
+  auto ptr_pair = GetClassSchemaPtrKind(txn, static_cast<uint32_t>(index));
+  TERRIER_ASSERT(ptr_pair.second == postgres::ClassKind::INDEX, "Requested an index schema for a non-index");
+  return *reinterpret_cast<IndexSchema *>(ptr_pair.first);
+}
 
 void DatabaseCatalog::TearDown(transaction::TransactionContext *txn) {
   std::vector<parser::AbstractExpression *> expressions;
@@ -1488,6 +1538,43 @@ std::pair<void *, postgres::ClassKind> DatabaseCatalog::GetClassPtrKind(transact
 
   // Since these two attributes are fixed size and one is larger than the other we know PTR will be 0 and KIND will be 1
   auto pr_init = classes_->InitializerForProjectedRow({REL_PTR_COL_OID, RELKIND_COL_OID}).first;
+  TERRIER_ASSERT(pr_init.ProjectedRowSize() >= oid_pri.ProjectedRowSize(),
+                 "Buffer must be allocated to fit largest PR");
+  auto *const buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
+
+  // Find the entry using the index
+  auto *key_pr = oid_pri.InitializeRow(buffer);
+  *(reinterpret_cast<uint32_t *>(key_pr->AccessForceNotNull(0))) = oid;
+  classes_oid_index_->ScanKey(*txn, *key_pr, &index_results);
+  if (index_results.empty()) {
+    // TODO(Matt): we should verify what postgres does in this case
+    // Index scan didn't find anything. This seems weird since we were able to enter this function with an oid.
+    // That implies that it was visible to us. Maybe the object was dropped or renamed twice by the same txn?
+    delete[] buffer;
+    return {nullptr, postgres::ClassKind::REGULAR_TABLE};
+  }
+  TERRIER_ASSERT(index_results.size() == 1, "You got more than one result from a unique index. How did you do that?");
+
+  auto *select_pr = pr_init.InitializeRow(buffer);
+  const auto result UNUSED_ATTRIBUTE = classes_->Select(txn, index_results[0], select_pr);
+  TERRIER_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
+
+  auto *const ptr = *(reinterpret_cast<void *const *const>(select_pr->AccessForceNotNull(0)));
+  auto kind = *(reinterpret_cast<const postgres::ClassKind *const>(select_pr->AccessForceNotNull(1)));
+
+  delete[] buffer;
+  return {ptr, kind};
+}
+
+std::pair<void *, postgres::ClassKind> DatabaseCatalog::GetClassSchemaPtrKind(transaction::TransactionContext *txn,
+                                                                              uint32_t oid) {
+  std::vector<storage::TupleSlot> index_results;
+
+  // Initialize both PR initializers, allocate buffer using size of largest one so we can reuse buffer
+  auto oid_pri = classes_oid_index_->GetProjectedRowInitializer();
+
+  // Since these two attributes are fixed size and one is larger than the other we know PTR will be 0 and KIND will be 1
+  auto pr_init = classes_->InitializerForProjectedRow({REL_SCHEMA_COL_OID, RELKIND_COL_OID}).first;
   TERRIER_ASSERT(pr_init.ProjectedRowSize() >= oid_pri.ProjectedRowSize(),
                  "Buffer must be allocated to fit largest PR");
   auto *const buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
