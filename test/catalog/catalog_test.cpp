@@ -5,12 +5,15 @@
 #include <vector>
 #include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
+#include "parser/expression/constant_value_expression.h"
 #include "storage/garbage_collector.h"
 #include "storage/sql_table.h"
 #include "storage/storage_defs.h"
 #include "transaction/transaction_manager.h"
-#include "util/test_harness.h"
 #include "transaction/transaction_util.h"
+#include "type/transient_value_factory.h"
+#include "util/test_harness.h"
+
 namespace terrier {
 
 struct CatalogTests : public TerrierTest {
@@ -43,8 +46,8 @@ struct CatalogTests : public TerrierTest {
     TerrierTest::TearDown();
   }
 
-  void VerifyCatalogTables(catalog::CatalogAccessor &accessor) {
-    auto ns_oid = accessor.GetNamespaceOid("pg_catalog");
+  void VerifyCatalogTables(catalog::CatalogAccessor->accessor) {
+    auto ns_oid = accessor->GetNamespaceOid("pg_catalog");
     EXPECT_NE(ns_oid, catalog::INVALID_NAMESPACE_OID);
 
     VerifyTablePresent(accessor, ns_oid, "pg_attribute");
@@ -54,15 +57,15 @@ struct CatalogTests : public TerrierTest {
     VerifyTablePresent(accessor, ns_oid, "pg_type");
   }
 
-  void VerifyTablePresent(catalog::CatalogAccessor &accessor, catalog::namespace_oid_t ns_oid,
+  void VerifyTablePresent(catalog::CatalogAccessor->accessor, catalog::namespace_oid_t ns_oid,
                           const std::string &table_name) {
-    auto table_oid = accessor.GetTableOid(ns_oid, table_name);
+    auto table_oid = accessor->GetTableOid(ns_oid, table_name);
     EXPECT_NE(table_oid, catalog::INVALID_TABLE_OID);
   }
 
-  void VerifyTableAbsent(catalog::CatalogAccessor &accessor, catalog::namespace_oid_t ns_oid,
+  void VerifyTableAbsent(catalog::CatalogAccessor->accessor, catalog::namespace_oid_t ns_oid,
                          const std::string &table_name) {
-    auto table_oid = accessor.GetTableOid(ns_oid, table_name);
+    auto table_oid = accessor->GetTableOid(ns_oid, table_name);
     EXPECT_EQ(table_oid, catalog::INVALID_TABLE_OID);
   }
 
@@ -86,7 +89,7 @@ TEST_F(CatalogTests, DatabaseTest) {
   EXPECT_NE(db_oid, catalog::INVALID_DATABASE_OID);
   auto accessor = catalog_->GetAccessor(txn, db_oid);
   VerifyCatalogTables(accessor);  // Check visibility to me
-  auto tmp_oid = accessor.CreateDatabase("test_database", true);
+  auto tmp_oid = accessor->CreateDatabase("test_database", true);
   EXPECT_EQ(tmp_oid, catalog::INVALID_DATABASE_OID);  // Should cause a name conflict
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   gc_->PerformGarbageCollection();
@@ -97,10 +100,10 @@ TEST_F(CatalogTests, DatabaseTest) {
   txn = txn_manager_->BeginTransaction();
   accessor = catalog_->GetAccessor(txn, db_oid);
   VerifyCatalogTables(accessor);  // Check visibility to me
-  tmp_oid = accessor.GetDatabaseOid("test_database");
-  EXPECT_TRUE(accessor.DropDatabase(tmp_oid));
-  EXPECT_FALSE(accessor.DropDatabase(tmp_oid));  // Cannot drop a database twice
-  tmp_oid = accessor.GetDatabaseOid("test_database");
+  tmp_oid = accessor->GetDatabaseOid("test_database");
+  EXPECT_TRUE(accessor->DropDatabase(tmp_oid));
+  EXPECT_FALSE(accessor->DropDatabase(tmp_oid));  // Cannot drop a database twice
+  tmp_oid = accessor->GetDatabaseOid("test_database");
   EXPECT_EQ(tmp_oid, catalog::INVALID_DATABASE_OID);
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   gc_->PerformGarbageCollection();
@@ -117,10 +120,10 @@ TEST_F(CatalogTests, NamespaceTest) {
   auto db_oid = catalog_->CreateDatabase(txn, "test_database", true);
   EXPECT_NE(db_oid, catalog::INVALID_DATABASE_OID);
   auto accessor = catalog_->GetAccessor(txn, db_oid);
-  auto ns_oid = accessor.CreateNamespace("test_namespace");
+  auto ns_oid = accessor->CreateNamespace("test_namespace");
   EXPECT_NE(ns_oid, catalog::INVALID_NAMESPACE_OID);
   VerifyCatalogTables(accessor);  // Check visibility to me
-  ns_oid = accessor.CreateNamespace("test_namespace");
+  ns_oid = accessor->CreateNamespace("test_namespace");
   EXPECT_EQ(ns_oid, catalog::INVALID_NAMESPACE_OID);  // Should cause a name conflict
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   gc_->PerformGarbageCollection();
@@ -131,11 +134,11 @@ TEST_F(CatalogTests, NamespaceTest) {
   txn = txn_manager_->BeginTransaction();
   accessor = catalog_->GetAccessor(txn, db_oid);
   VerifyCatalogTables(accessor);  // Check visibility to me
-  ns_oid = accessor.GetNamespaceOid("test_namespace");
-  EXPECT_TRUE(accessor.DropNamespace(ns_oid));
-  ns_oid = accessor.GetNamespaceOid("test_namespace");
+  ns_oid = accessor->GetNamespaceOid("test_namespace");
+  EXPECT_TRUE(accessor->DropNamespace(ns_oid));
+  ns_oid = accessor->GetNamespaceOid("test_namespace");
   EXPECT_EQ(ns_oid, catalog::INVALID_NAMESPACE_OID);
-  EXPECT_FALSE(accessor.DropNamespace(ns_oid));
+  EXPECT_FALSE(accessor->DropNamespace(ns_oid));
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   gc_->PerformGarbageCollection();
   gc_->PerformGarbageCollection();
@@ -157,13 +160,13 @@ TEST_F(CatalogTests, UserTableTest) {
   cols.emplace_back("user_col_1", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
   auto tmp_schema = catalog::Schema(cols);
 
-  auto table_oid = accessor.CreateTable(accessor.GetDefaultNamespace(), "test_table", tmp_schema);
+  auto table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "test_table", tmp_schema);
   EXPECT_NE(table_oid, catalog::INVALID_TABLE_OID);
-  VerifyTablePresent(accessor, accessor.GetDefaultNamespace(), "test_table");
+  VerifyTablePresent(accessor, accessor->GetDefaultNamespace(), "test_table");
   // Check lookup via search path
-  EXPECT_EQ(table_oid, accessor.GetTableOid("test_table"));
-  EXPECT_EQ(accessor.GetTable(table_oid), nullptr);  // Check that allocation has not happened
-  auto schema = accessor.GetSchema(table_oid);
+  EXPECT_EQ(table_oid, accessor->GetTableOid("test_table"));
+  EXPECT_EQ(accessor->GetTable(table_oid), nullptr);  // Check that allocation has not happened
+  auto schema = accessor->GetSchema(table_oid);
 
   // Verify our columns exist
   EXPECT_NE(schema->GetColumn("id").GetOid(), catalog::INVALID_COLUMN_OID);
@@ -175,8 +178,8 @@ TEST_F(CatalogTests, UserTableTest) {
   // TODO(John): The next call should not transfer ownership of the SqlTable to
   // the catalog.  However, the current backend does this.  This test will leak
   // once this is corrected unless the delete call at the end is uncommented.
-  accessor.SetTablePointer(table_oid, table);
-  EXPECT_EQ(table, accessor.GetTable(table_oid));
+  accessor->SetTablePointer(table_oid, table);
+  EXPECT_EQ(table, accessor->GetTable(table_oid));
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   gc_->PerformGarbageCollection();
   gc_->PerformGarbageCollection();
@@ -185,11 +188,11 @@ TEST_F(CatalogTests, UserTableTest) {
   // then delete it and verify an invalid OID is now returned for the lookup
   txn = txn_manager_->BeginTransaction();
   accessor = catalog_->GetAccessor(txn, db_oid);
-  table_oid = accessor.GetTableOid("test_table");
+  table_oid = accessor->GetTableOid("test_table");
   EXPECT_NE(table_oid, catalog::INVALID_TABLE_OID);
-  EXPECT_TRUE(accessor.DropTable(table_oid));
-  EXPECT_FALSE(accessor.DropTable(table_oid));
-  table_oid = accessor.GetTableOid("test_table");
+  EXPECT_TRUE(accessor->DropTable(table_oid));
+  EXPECT_FALSE(accessor->DropTable(table_oid));
+  table_oid = accessor->GetTableOid("test_table");
   EXPECT_EQ(table_oid, catalog::INVALID_TABLE_OID);
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   gc_->PerformGarbageCollection();

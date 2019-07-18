@@ -173,7 +173,7 @@ class DatabaseCatalog {
   // Currently we just store the pointer given inside the catalog, but the can run the risk of the caller already
   // deleting the index schema
   index_oid_t CreateIndex(transaction::TransactionContext *txn, namespace_oid_t ns, const std::string &name,
-                          table_oid_t table, IndexSchema *schema);
+                          table_oid_t table, const IndexSchema &schema);
 
   /**
    * Delete an index.  Any constraints that utilize this index must be deleted
