@@ -299,7 +299,7 @@ bool DatabaseCatalog::DeleteNamespace(transaction::TransactionContext *txn, name
 
 namespace_oid_t DatabaseCatalog::GetNamespaceOid(transaction::TransactionContext *txn, const std::string &name) {
   // Step 1: Read the name index
-  std::vector<col_oid_t> table_oids{NSPNAME_COL_OID};
+  std::vector<col_oid_t> table_oids{NSPOID_COL_OID};
   // NOLINTNEXTLINE
   auto [table_pri, table_pm] = namespaces_->InitializerForProjectedRow(table_oids);
   auto name_pri = namespaces_name_index_->GetProjectedRowInitializer();

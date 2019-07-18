@@ -126,7 +126,7 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(storage::BlockStore *block_store
   dbc->constraints_foreigntable_index_ =
       Builder::BuildLookupIndex(Builder::GetConstraintForeignTableIndexSchema(oid), CONSTRAINT_FOREIGNTABLE_INDEX_OID);
 
-  dbc->next_oid_.store(1000);
+  dbc->next_oid_.store(START_OID);
 
   return dbc;
 }

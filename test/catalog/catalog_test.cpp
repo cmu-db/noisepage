@@ -90,6 +90,7 @@ TEST_F(CatalogTests, DatabaseTest) {
   auto db_oid = catalog_->CreateDatabase(txn, "test_database", true);
   EXPECT_NE(db_oid, catalog::INVALID_DATABASE_OID);
   auto accessor = catalog_->GetAccessor(txn, db_oid);
+  EXPECT_NE(accessor, nullptr);
   VerifyCatalogTables(accessor);  // Check visibility to me
   auto tmp_oid = accessor->CreateDatabase("test_database");
   EXPECT_EQ(tmp_oid, catalog::INVALID_DATABASE_OID);  // Should cause a name conflict
@@ -101,6 +102,7 @@ TEST_F(CatalogTests, DatabaseTest) {
   // then delete it and verify an invalid OID is now returned for the lookup
   txn = txn_manager_->BeginTransaction();
   accessor = catalog_->GetAccessor(txn, db_oid);
+  EXPECT_NE(accessor, nullptr);
   VerifyCatalogTables(accessor);  // Check visibility to me
   tmp_oid = accessor->GetDatabaseOid("test_database");
   EXPECT_TRUE(accessor->DropDatabase(tmp_oid));
@@ -122,6 +124,7 @@ TEST_F(CatalogTests, NamespaceTest) {
   auto db_oid = catalog_->CreateDatabase(txn, "test_database", true);
   EXPECT_NE(db_oid, catalog::INVALID_DATABASE_OID);
   auto accessor = catalog_->GetAccessor(txn, db_oid);
+  EXPECT_NE(accessor, nullptr);
   auto ns_oid = accessor->CreateNamespace("test_namespace");
   EXPECT_NE(ns_oid, catalog::INVALID_NAMESPACE_OID);
   VerifyCatalogTables(accessor);  // Check visibility to me
@@ -135,6 +138,7 @@ TEST_F(CatalogTests, NamespaceTest) {
   // then delete it and verify an invalid OID is now returned for the lookup
   txn = txn_manager_->BeginTransaction();
   accessor = catalog_->GetAccessor(txn, db_oid);
+  EXPECT_NE(accessor, nullptr);
   VerifyCatalogTables(accessor);  // Check visibility to me
   ns_oid = accessor->GetNamespaceOid("test_namespace");
   EXPECT_TRUE(accessor->DropNamespace(ns_oid));
@@ -192,6 +196,7 @@ TEST_F(CatalogTests, UserTableTest) {
   // then delete it and verify an invalid OID is now returned for the lookup
   txn = txn_manager_->BeginTransaction();
   accessor = catalog_->GetAccessor(txn, db_oid);
+  EXPECT_NE(accessor, nullptr);
   table_oid = accessor->GetTableOid("test_table");
   EXPECT_NE(table_oid, catalog::INVALID_TABLE_OID);
   EXPECT_TRUE(accessor->DropTable(table_oid));
