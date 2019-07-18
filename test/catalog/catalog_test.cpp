@@ -53,15 +53,17 @@ struct CatalogTests : public TerrierTest {
     EXPECT_EQ(ns_oid, catalog::NAMESPACE_CATALOG_NAMESPACE_OID);
 
     VerifyTablePresent(accessor, ns_oid, "pg_attribute");
-    VerifyTablePresent(accessor, ns_oid, "pg_attrdef");
     VerifyTablePresent(accessor, ns_oid, "pg_class");
+    VerifyTablePresent(accessor, ns_oid, "pg_constraint");
+    VerifyTablePresent(accessor, ns_oid, "pg_index");
     VerifyTablePresent(accessor, ns_oid, "pg_namespace");
     VerifyTablePresent(accessor, ns_oid, "pg_type");
   }
 
   void VerifyTablePresent(catalog::CatalogAccessor *accessor, catalog::namespace_oid_t ns_oid,
                           const std::string &table_name) {
-    EXPECT_NE(accessor->GetTableOid(ns_oid, table_name), catalog::INVALID_TABLE_OID);
+    auto table_oid = accessor->GetTableOid(ns_oid, table_name);
+    EXPECT_NE(table_oid, catalog::INVALID_TABLE_OID);
   }
 
   void VerifyTableAbsent(catalog::CatalogAccessor *accessor, catalog::namespace_oid_t ns_oid,
