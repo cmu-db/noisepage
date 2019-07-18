@@ -223,7 +223,7 @@ class CatalogAccessor {
    * @param schema describing the new index
    * @return OID for the index, INVALID_INDEX_OID if the operation failed
    */
-  index_oid_t CreateIndex(namespace_oid_t ns, table_oid_t table, const std::string &name, IndexSchema *schema);
+  index_oid_t CreateIndex(namespace_oid_t ns, table_oid_t table, const std::string &name, const IndexSchema &schema);
 
   /**
    * Gets the schema that was used to define the index

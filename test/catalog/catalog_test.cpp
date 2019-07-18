@@ -3,6 +3,7 @@
 #include <random>
 #include <string>
 #include <vector>
+#include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
 #include "storage/garbage_collector.h"
 #include "storage/sql_table.h"
@@ -22,7 +23,7 @@ struct CatalogTests : public TerrierTest {
 
     // Build out the catalog and commit so that it is visible to other transactions
     auto txn = txn_manager_->BeginTransaction();
-    catalog_ = new catalog::Catalog(txn_manager_, txn);
+    catalog_ = new catalog::Catalog(txn_manager_, &block_store_);
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     // Run the GC to flush it down to a clean system
@@ -83,10 +84,10 @@ TEST_F(CatalogTests, DatabaseTest) {
   auto txn = txn_manager_->BeginTransaction();
   auto db_oid = catalog_->CreateDatabase(txn, "test_database", true);
   EXPECT_NE(db_oid, catalog::INVALID_DATABASE_OID);
-  auto accessor = catalog_->GetAccessor(txn, "test_database");
+  auto accessor = catalog_->GetAccessor(txn, db_oid);
   VerifyCatalogTables(accessor);  // Check visibility to me
-  db_oid = accessor.CreateDatabase("test_database", true);
-  EXPECT_EQ(db_oid, catalog::INVALID_DATABASE_OID);  // Should cause a name conflict
+  auto tmp_oid = accessor.CreateDatabase("test_database", true);
+  EXPECT_EQ(tmp_oid, catalog::INVALID_DATABASE_OID);  // Should cause a name conflict
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   gc_->PerformGarbageCollection();
   gc_->PerformGarbageCollection();
@@ -94,13 +95,13 @@ TEST_F(CatalogTests, DatabaseTest) {
   // Get an accessor into the database and validate the catalog tables exist
   // then delete it and verify an invalid OID is now returned for the lookup
   txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(txn, "test_database");
+  accessor = catalog_->GetAccessor(txn, db_oid);
   VerifyCatalogTables(accessor);  // Check visibility to me
-  db_oid = accessor.GetDatabaseOid("test_database");
-  EXPECT_TRUE(accessor.DropDatabase(db_oid));
-  EXPECT_FALSE(accessor.DropDatabase(db_oid));  // Cannot drop a database twice
-  db_oid = accessor.GetDatabaseOid("test_database");
-  EXPECT_EQ(db_oid, catalog::INVALID_DATABASE_OID);
+  tmp_oid = accessor.GetDatabaseOid("test_database");
+  EXPECT_TRUE(accessor.DropDatabase(tmp_oid));
+  EXPECT_FALSE(accessor.DropDatabase(tmp_oid));  // Cannot drop a database twice
+  tmp_oid = accessor.GetDatabaseOid("test_database");
+  EXPECT_EQ(tmp_oid, catalog::INVALID_DATABASE_OID);
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   gc_->PerformGarbageCollection();
   gc_->PerformGarbageCollection();
@@ -115,7 +116,7 @@ TEST_F(CatalogTests, NamespaceTest) {
   auto txn = txn_manager_->BeginTransaction();
   auto db_oid = catalog_->CreateDatabase(txn, "test_database", true);
   EXPECT_NE(db_oid, catalog::INVALID_DATABASE_OID);
-  auto accessor = catalog_->GetAccessor(txn, "test_database");
+  auto accessor = catalog_->GetAccessor(txn, db_oid);
   auto ns_oid = accessor.CreateNamespace("test_namespace");
   EXPECT_NE(ns_oid, catalog::INVALID_NAMESPACE_OID);
   VerifyCatalogTables(accessor);  // Check visibility to me
@@ -128,7 +129,7 @@ TEST_F(CatalogTests, NamespaceTest) {
   // Get an accessor into the database and validate the catalog tables exist
   // then delete it and verify an invalid OID is now returned for the lookup
   txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(txn, "terrier");
+  accessor = catalog_->GetAccessor(txn, db_oid);
   VerifyCatalogTables(accessor);  // Check visibility to me
   ns_oid = accessor.GetNamespaceOid("test_namespace");
   EXPECT_TRUE(accessor.DropNamespace(ns_oid));
@@ -148,7 +149,7 @@ TEST_F(CatalogTests, UserTableTest) {
   auto txn = txn_manager_->BeginTransaction();
   auto db_oid = catalog_->CreateDatabase(txn, "test_database", true);
   EXPECT_NE(db_oid, catalog::INVALID_DATABASE_OID);
-  auto accessor = catalog_->GetAccessor(txn, "test_database");
+  auto accessor = catalog_->GetAccessor(txn, db_oid);
 
   // Create the column definition (no OIDs)
   std::vector<catalog::Schema::Column> cols;
@@ -183,7 +184,7 @@ TEST_F(CatalogTests, UserTableTest) {
   // Get an accessor into the database and validate the catalog tables exist
   // then delete it and verify an invalid OID is now returned for the lookup
   txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(txn, "terrier");
+  accessor = catalog_->GetAccessor(txn, db_oid);
   table_oid = accessor.GetTableOid("test_table");
   EXPECT_NE(table_oid, catalog::INVALID_TABLE_OID);
   EXPECT_TRUE(accessor.DropTable(table_oid));
