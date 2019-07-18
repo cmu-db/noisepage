@@ -7,7 +7,7 @@
 #include <utility>
 
 #include "catalog/catalog_defs.h"
-#include "common/spin_latch.h"
+#include "common/gate.h"
 #include "metrics/abstract_raw_data.h"
 #include "metrics/metrics_defs.h"
 
@@ -45,7 +45,7 @@ class RawDataWrapper {
   /**
    * Unblock aggregator
    */
-  ~RawDataWrapper() { latch_->Unlock(); }
+  ~RawDataWrapper() { gate_->Unlock(); }
 
   /**
    * Don't allow RawDataWrapper to be copied, only allow change of ownership (move)
@@ -63,9 +63,9 @@ class RawDataWrapper {
    * @param ptr the pointer it wraps around
    * @param safe the boolean variable it uses to signal its lifetime
    */
-  RawDataWrapper(DataType *ptr, common::SpinLatch *latch) : ptr_(ptr), latch_(latch) {}
+  RawDataWrapper(DataType *ptr, common::Gate *gate) : ptr_(ptr), gate_(gate) {}
   DataType *ptr_;
-  common::SpinLatch *latch_;
+  common::Gate *gate_;
 };
 
 /**
@@ -120,7 +120,7 @@ class AbstractMetric {
     // We will need to wait for last writer to finish before it's safe
     // to start reading the content. It is okay to block since this
     // method should only be called from the aggregator thread.
-    common::SpinLatch::ScopedSpinLatch guard(&latch_);
+    gate_.Traverse();
     return std::unique_ptr<AbstractRawData>(old_data);
   }
 
@@ -136,8 +136,8 @@ class AbstractMetric {
     // that the aggregator would always be blocked when it tries to swap out if
     // there is a reader. At most one instance of this should be live at any
     // given time.
-    latch_.Lock();
-    return {raw_data_.load(), &latch_};
+    gate_.Lock();
+    return {raw_data_.load(), &gate_};
   }
 
  private:
@@ -148,6 +148,6 @@ class AbstractMetric {
   /**
    * Indicate whether it is safe to read the raw data, similar to a latch
    */
-  common::SpinLatch latch_;
+  common::Gate gate_;
 };
 }  // namespace terrier::metrics
