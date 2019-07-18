@@ -45,7 +45,7 @@ void LogSerializerTask::Process() {
     if (filled_buffer_ != nullptr) HandFilledBufferToWriter();
   }
   if (num_bytes > 0 && common::thread_context.metrics_store_ != nullptr &&
-      common::thread_context.metrics_store_->ComponentEnabled(metrics::MetricsComponent::TRANSACTION))
+      common::thread_context.metrics_store_->ComponentEnabled(metrics::MetricsComponent::LOGGING))
     common::thread_context.metrics_store_->RecordSerializerData(elapsed_us, num_bytes, num_records);
 }
 
