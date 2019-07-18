@@ -1268,7 +1268,7 @@ bool DatabaseCatalog::CreateIndexEntry(transaction::TransactionContext *const tx
   index_pr = class_ns_index_init.InitializeRow(index_buffer);
   *(reinterpret_cast<uint32_t *>(index_pr->AccessForceNotNull(0))) = static_cast<uint32_t>(ns_oid);
   const auto result UNUSED_ATTRIBUTE = classes_namespace_index_->Insert(txn, *index_pr, class_tuple_slot);
-  TERRIER_ASSERT(!result, "Insertion into non-unique namespace index failed.");
+  TERRIER_ASSERT(result, "Insertion into non-unique namespace index failed.");
 
   // Next, insert index metadata into pg_index
   std::tie(pr_init, pr_map) = indexes_->InitializerForProjectedRow(PG_INDEX_ALL_COL_OIDS);
@@ -1556,7 +1556,7 @@ bool DatabaseCatalog::CreateTableEntry(transaction::TransactionContext *const tx
   index_pr = ns_index_init.InitializeRow(index_buffer);
   *(reinterpret_cast<uint32_t *>(index_pr->AccessForceNotNull(0))) = static_cast<uint32_t>(ns_oid);
   const auto result UNUSED_ATTRIBUTE = classes_namespace_index_->Insert(txn, *index_pr, tuple_slot);
-  TERRIER_ASSERT(!result, "Insertion into non-unique namespace index failed.");
+  TERRIER_ASSERT(result, "Insertion into non-unique namespace index failed.");
 
   delete[] index_buffer;
 
