@@ -150,7 +150,7 @@ class DatabaseCatalog {
    * @param table being queried
    * @return vector of OIDs for all of the constraints that apply to this table
    */
-  std::vector<constraint_oid_t> GetConstraints(transaction::TransactionContext *txn, table_oid_t);
+  std::vector<constraint_oid_t> GetConstraints(transaction::TransactionContext *txn, table_oid_t table);
 
   /**
    * A list of all indexes on the given table
