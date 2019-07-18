@@ -416,7 +416,7 @@ struct StorageTestUtil {
       const auto type = types[type_offset];
 
       key_cols.emplace_back(type, false,
-                            new parser::ConstantValueExpression(std::move(type::TransientValueFactory::GetNull(type))));
+                            parser::ConstantValueExpression(std::move(type::TransientValueFactory::GetNull(type))));
       ForceOid(key_cols.back(), key_oids[col++]);
       bytes_used = static_cast<uint16_t>(bytes_used + type::TypeUtil::GetTypeSize(type));
     }
