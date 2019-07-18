@@ -73,7 +73,7 @@ class BindNodeVisitor : public SqlNodeVisitor {
   void SetTxn(transaction::TransactionContext *txn) { this->txn_ = txn; }
 
  private:
-  std::shared_ptr<BinderContext> context_;
+  std::shared_ptr<BinderContext> context_ = nullptr;
   catalog::CatalogAccessor *catalog_accessor_;
   transaction::TransactionContext *txn_;
   std::string default_database_name_;

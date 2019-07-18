@@ -53,8 +53,14 @@ class DeleteStatement : public SQLStatement {
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
  private:
+  friend class binder::BindNodeVisitor;
   std::shared_ptr<TableRef> table_ref_;
   std::shared_ptr<AbstractExpression> expr_;
+
+  void TryBindDatabaseName(const std::string &default_database_name) {
+    // TODO (ling): can table ref be null
+    table_ref_->TryBindDatabaseName(default_database_name);
+  }
 };
 
 }  // namespace terrier::parser

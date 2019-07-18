@@ -8,9 +8,15 @@
 #include "common/json.h"
 #include "common/macros.h"
 #include "common/sql_node_visitor.h"
+#include "common/exception.h"
 #include "parser/parser_defs.h"
 
 namespace terrier {
+
+//namespace binder {
+//class BindNodeVisitor;
+//}  // namespace binder
+
 namespace parser {
 
 /**
@@ -44,6 +50,19 @@ struct TableInfo {
    */
   std::string GetDatabaseName() { return database_name_; }
 
+  void TryBindDatabaseName(const std::string &default_database_name) {
+    if (database_name_.empty())
+      database_name_ = std::string(default_database_name);
+    else if (database_name_ != default_database_name) {
+      // TODO (ling): Binder Exception or Parser Exception?
+      //    This Exception throw in the binding stage
+      throw BINDER_EXCEPTION(("Database " + database_name_ + " in the statement is not the current database.").c_str());
+    }
+//    // if schema name is not specified, then it's default value is "public"
+//    if (table_info_->schema_name.empty())
+//      table_info_->schema_name = DEFAULT_SCHEMA_NAME;
+  }
+
   /**
    * @return TableInfo serialized to json
    */
@@ -65,6 +84,7 @@ struct TableInfo {
   }
 
  private:
+  friend class TableRefStatement;
   std::string table_name_;
   std::string schema_name_;
   std::string database_name_;
@@ -155,8 +175,15 @@ class TableRefStatement : public SQLStatement {
    */
   virtual std::string GetDatabaseName() const { return table_info_->GetDatabaseName(); }
 
+ protected:
+  void TryBindDatabaseName(const std::string &default_database_name) {
+    if (!table_info_) table_info_.reset(new parser::TableInfo());
+    table_info_->TryBindDatabaseName(default_database_name);
+  }
+
  private:
-  const std::shared_ptr<TableInfo> table_info_ = nullptr;
+  friend class binder::BindNodeVisitor;
+  std::shared_ptr<TableInfo> table_info_ = nullptr;
 };
 
 }  // namespace parser

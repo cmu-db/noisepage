@@ -15,6 +15,11 @@ namespace parser {
 
 class SelectStatement;
 
+// for binding database name
+class InsertStatement;
+class AnalyzeStatement;
+class DeleteStatement;
+
 /**
  * Represents a join table.
  */
@@ -207,6 +212,10 @@ class TableRef {
   void FromJson(const nlohmann::json &j);
 
  private:
+  friend class InsertStatement;
+  friend class AnalyzeStatement;
+  friend class DeleteStatement;
+
   TableReferenceType type_;
   std::string alias_;
   std::shared_ptr<TableInfo> table_info_;
@@ -216,6 +225,12 @@ class TableRef {
   std::vector<std::shared_ptr<TableRef>> list_;
 
   std::shared_ptr<JoinDefinition> join_;
+
+
+  void TryBindDatabaseName(const std::string &default_database_name) {
+    if (!table_info_) table_info_.reset(new parser::TableInfo());
+    table_info_->TryBindDatabaseName(default_database_name);
+  }
 };
 
 DEFINE_JSON_DECLARATIONS(TableRef);
