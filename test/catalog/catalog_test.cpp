@@ -46,7 +46,7 @@ struct CatalogTests : public TerrierTest {
     TerrierTest::TearDown();
   }
 
-  void VerifyCatalogTables(catalog::CatalogAccessor->accessor) {
+  void VerifyCatalogTables(catalog::CatalogAccessor *accessor) {
     auto ns_oid = accessor->GetNamespaceOid("pg_catalog");
     EXPECT_NE(ns_oid, catalog::INVALID_NAMESPACE_OID);
 
@@ -57,13 +57,13 @@ struct CatalogTests : public TerrierTest {
     VerifyTablePresent(accessor, ns_oid, "pg_type");
   }
 
-  void VerifyTablePresent(catalog::CatalogAccessor->accessor, catalog::namespace_oid_t ns_oid,
+  void VerifyTablePresent(catalog::CatalogAccessor *accessor, catalog::namespace_oid_t ns_oid,
                           const std::string &table_name) {
     auto table_oid = accessor->GetTableOid(ns_oid, table_name);
     EXPECT_NE(table_oid, catalog::INVALID_TABLE_OID);
   }
 
-  void VerifyTableAbsent(catalog::CatalogAccessor->accessor, catalog::namespace_oid_t ns_oid,
+  void VerifyTableAbsent(catalog::CatalogAccessor *accessor, catalog::namespace_oid_t ns_oid,
                          const std::string &table_name) {
     auto table_oid = accessor->GetTableOid(ns_oid, table_name);
     EXPECT_EQ(table_oid, catalog::INVALID_TABLE_OID);
