@@ -5,6 +5,7 @@
 #include <vector>
 #include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
+#include "catalog/postgres/pg_namespace.h"
 #include "parser/expression/constant_value_expression.h"
 #include "storage/garbage_collector.h"
 #include "storage/sql_table.h"
@@ -49,6 +50,7 @@ struct CatalogTests : public TerrierTest {
   void VerifyCatalogTables(catalog::CatalogAccessor *accessor) {
     auto ns_oid = accessor->GetNamespaceOid("pg_catalog");
     EXPECT_NE(ns_oid, catalog::INVALID_NAMESPACE_OID);
+    EXPECT_EQ(ns_oid, catalog::NAMESPACE_CATALOG_NAMESPACE_OID);
 
     VerifyTablePresent(accessor, ns_oid, "pg_attribute");
     VerifyTablePresent(accessor, ns_oid, "pg_attrdef");
