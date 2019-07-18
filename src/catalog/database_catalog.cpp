@@ -33,7 +33,7 @@ void DatabaseCatalog::Bootstrap(transaction::TransactionContext *txn) {
   BootstrapTypes(txn);
 
   // pg_namespace and associated indexes
-  retval = CreateTableEntry(txn, NAMESPACE_TABLE_OID, NAMESPACE_CATALOG_NAMESPACE_OID, "pg_namespace", &postgres::Builder::GetNamespaceTableSchema());
+  retval = CreateTableEntry(txn, NAMESPACE_TABLE_OID, NAMESPACE_CATALOG_NAMESPACE_OID, "pg_namespace",new Schema(postgres::Builder::GetNamespaceTableSchema()));
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetTablePointer(txn, NAMESPACE_TABLE_OID, namespaces_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");

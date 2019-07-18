@@ -117,7 +117,7 @@ class CatalogAccessor {
    * schema object after this call, they should use the GetSchema function to
    * obtain the authoritative schema for this table.
    */
-  table_oid_t CreateTable(namespace_oid_t ns, const std::string &name, Schema *schema);
+  table_oid_t CreateTable(namespace_oid_t ns, const std::string &name, const Schema &schema);
 
   /**
    * Rename the table from its current string to the new one.  The renaming could fail
