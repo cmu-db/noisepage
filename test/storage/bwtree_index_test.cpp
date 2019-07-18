@@ -6,6 +6,7 @@
 #include <map>
 #include <random>
 #include <vector>
+#include "parser/expression/column_value_expression.h"
 #include "portable_endian/portable_endian.h"
 #include "storage/garbage_collector_thread.h"
 #include "storage/index/compact_ints_key.h"

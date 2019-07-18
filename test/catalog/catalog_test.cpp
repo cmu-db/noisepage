@@ -169,11 +169,11 @@ TEST_F(CatalogTests, UserTableTest) {
   auto schema = accessor->GetSchema(table_oid);
 
   // Verify our columns exist
-  EXPECT_NE(schema->GetColumn("id").GetOid(), catalog::INVALID_COLUMN_OID);
-  EXPECT_NE(schema->GetColumn("user_col_1").GetOid(), catalog::INVALID_COLUMN_OID);
+  EXPECT_NE(schema.GetColumn("id").GetOid(), catalog::INVALID_COLUMN_OID);
+  EXPECT_NE(schema.GetColumn("user_col_1").GetOid(), catalog::INVALID_COLUMN_OID);
 
   // Verify we can instantiate a storage object with the generated schema
-  auto table = new storage::SqlTable(&block_store_, *schema);
+  auto table = new storage::SqlTable(&block_store_, schema);
 
   // TODO(John): The next call should not transfer ownership of the SqlTable to
   // the catalog.  However, the current backend does this.  This test will leak

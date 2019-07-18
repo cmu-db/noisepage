@@ -324,7 +324,7 @@ class DatabaseCatalog {
 
   void TearDown(transaction::TransactionContext *txn);
   bool CreateTableEntry(transaction::TransactionContext *txn, table_oid_t table_oid, namespace_oid_t ns,
-                        const std::string &name, const Schema &schema);
+                        const std::string &name, Schema *schema);
 
   friend class Catalog;
   friend class postgres::Builder;

@@ -1385,7 +1385,7 @@ void DatabaseCatalog::BootstrapTypes(transaction::TransactionContext *txn) {
 }
 
 bool DatabaseCatalog::CreateTableEntry(transaction::TransactionContext *const txn, const table_oid_t table_oid,
-                                       const namespace_oid_t ns_oid, const std::string &name, const Schema *schema) {
+                                       const namespace_oid_t ns_oid, const std::string &name, Schema *schema) {
   auto [pr_init, pr_map] = classes_->InitializerForProjectedRow(PG_CLASS_ALL_COL_OIDS);
 
   auto *const insert_redo = txn->StageWrite(db_oid_, CLASS_TABLE_OID, pr_init);

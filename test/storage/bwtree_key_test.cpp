@@ -172,7 +172,7 @@ class BwTreeKeyTests : public TerrierTest {
     const auto &oid_offset_map = metadata.GetKeyOidToOffsetMap();
 
     std::vector<int64_t> data;
-    data.reserve(key_schema.size());
+    data.reserve(key_schema.GetColumns().size());
     for (const auto &key : key_schema.GetColumns()) {
       auto key_type = key.GetType();
       const auto type_size = type::TypeUtil::GetTypeSize(key_type);
@@ -281,24 +281,24 @@ class BwTreeKeyTests : public TerrierTest {
     if (coin(*generator)) {
       const auto &oid_offset_map = metadata.GetKeyOidToOffsetMap();
       const auto &key_schema = metadata.GetSchema();
-      std::uniform_int_distribution<uint16_t> rng(0, static_cast<uint16_t>(key_schema.size() - 1));
+      std::uniform_int_distribution<uint16_t> rng(0, static_cast<uint16_t>(key_schema.GetColumns().size() - 1));
       const auto column = rng(*generator);
 
       uint16_t offset = 0;
       for (uint32_t i = 0; i < column; i++) {
-        offset = static_cast<uint16_t>(offset + type::TypeUtil::GetTypeSize(key_schema[i].GetType()));
+        offset = static_cast<uint16_t>(offset + type::TypeUtil::GetTypeSize(key_schema.GetColumns()[i].GetType()));
       }
 
-      const auto type = key_schema[column].GetType();
+      const auto type = key_schema.GetColumns()[column].GetType();
       const auto type_size = type::TypeUtil::GetTypeSize(type);
 
-      auto pr_offset = static_cast<uint16_t>(oid_offset_map.at(key_schema[column].GetOid()));
+      auto pr_offset = static_cast<uint16_t>(oid_offset_map.at(key_schema.GetColumns()[column].GetOid()));
       auto attr = pr->AccessForceNotNull(pr_offset);
       auto *old_value = new byte[type_size];
       std::memcpy(old_value, attr, type_size);
       // force the value to change
       while (std::memcmp(old_value, attr, type_size) == 0) {
-        WriteRandomAttribute(key_schema[column], attr, reference + offset, generator);
+        WriteRandomAttribute(key_schema.GetColumns()[column], attr, reference + offset, generator);
       }
       delete[] old_value;
       return true;
@@ -805,7 +805,7 @@ template <uint8_t KeySize, typename CType, typename Random>
 void CompactIntsKeyBasicTest(type::TypeId type_id, Random *const generator) {
   catalog::IndexSchema key_schema;
 
-  std::vector<catalog::IndexSchema::Column> key_cols
+  std::vector<catalog::IndexSchema::Column> key_cols;
   const uint8_t num_cols = (sizeof(uint64_t) * KeySize) / sizeof(CType);
 
   for (uint8_t i = 0; i < num_cols; i++) {
