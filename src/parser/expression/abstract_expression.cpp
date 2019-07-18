@@ -1,18 +1,21 @@
 #include <memory>
+#include <string>
 #include <vector>
 
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/aggregate_expression.h"
 #include "parser/expression/case_expression.h"
+#include "parser/expression/column_value_expression.h"
 #include "parser/expression/comparison_expression.h"
 #include "parser/expression/conjunction_expression.h"
 #include "parser/expression/constant_value_expression.h"
+#include "parser/expression/default_value_expression.h"
+#include "parser/expression/derived_value_expression.h"
 #include "parser/expression/function_expression.h"
 #include "parser/expression/operator_expression.h"
 #include "parser/expression/parameter_value_expression.h"
 #include "parser/expression/star_expression.h"
 #include "parser/expression/subquery_expression.h"
-#include "parser/expression/tuple_value_expression.h"
 #include "parser/expression/type_cast_expression.h"
 
 namespace terrier::parser {
@@ -24,6 +27,10 @@ namespace terrier::parser {
 nlohmann::json AbstractExpression::ToJson() const {
   nlohmann::json j;
   j["expression_type"] = expression_type_;
+  j["expression_name"] = expression_name_;
+  j["alias"] = alias_;
+  j["depth"] = depth_;
+  j["has_subquery"] = has_subquery_;
   j["return_value_type"] = return_value_type_;
   j["children"] = children_;
   return j;
@@ -35,7 +42,11 @@ nlohmann::json AbstractExpression::ToJson() const {
  */
 void AbstractExpression::FromJson(const nlohmann::json &j) {
   expression_type_ = j.at("expression_type").get<ExpressionType>();
+  expression_name_ = j.at("expression_name").get<std::string>();
+  alias_ = j.at("alias").get<std::string>();
   return_value_type_ = j.at("return_value_type").get<type::TypeId>();
+  depth_ = j.at("depth").get<int>();
+  has_subquery_ = j.at("has_subquery").get<bool>();
   children_ = {};
 
   // Deserialize children
@@ -51,7 +62,6 @@ std::shared_ptr<AbstractExpression> DeserializeExpression(const nlohmann::json &
   auto expression_type = j.at("expression_type").get<ExpressionType>();
   switch (expression_type) {
     case ExpressionType::AGGREGATE_COUNT:
-    case ExpressionType::AGGREGATE_COUNT_STAR:
     case ExpressionType::AGGREGATE_SUM:
     case ExpressionType::AGGREGATE_MIN:
     case ExpressionType::AGGREGATE_MAX:
@@ -90,6 +100,10 @@ std::shared_ptr<AbstractExpression> DeserializeExpression(const nlohmann::json &
       break;
     }
 
+    case ExpressionType ::VALUE_DEFAULT: {
+      expr = std::make_shared<DefaultValueExpression>();
+      break;
+    }
     case ExpressionType::FUNCTION: {
       expr = std::make_shared<FunctionExpression>();
       break;
@@ -126,7 +140,12 @@ std::shared_ptr<AbstractExpression> DeserializeExpression(const nlohmann::json &
     }
 
     case ExpressionType::VALUE_TUPLE: {
-      expr = std::make_shared<TupleValueExpression>();
+      expr = std::make_shared<DerivedValueExpression>();
+      break;
+    }
+
+    case ExpressionType::COLUMN_VALUE: {
+      expr = std::make_shared<ColumnValueExpression>();
       break;
     }
 
@@ -142,4 +161,45 @@ std::shared_ptr<AbstractExpression> DeserializeExpression(const nlohmann::json &
   return expr;
 }
 
+bool AbstractExpression::DeriveSubqueryFlag() {
+  if (expression_type_ == ExpressionType::ROW_SUBQUERY) {
+    has_subquery_ = true;
+  } else {
+    for (auto &child : children_) {
+      if (child->DeriveSubqueryFlag()) {
+        has_subquery_ = true;
+        break;
+      }
+    }
+  }
+  return has_subquery_;
+}
+
+int AbstractExpression::DeriveDepth() {
+  if (depth_ < 0) {
+    for (auto &child : children_) {
+      auto child_depth = child->DeriveDepth();
+      if (child_depth >= 0 && (depth_ == -1 || child_depth < depth_)) depth_ = child_depth;
+    }
+  }
+  return depth_;
+}
+
+void AbstractExpression::DeriveExpressionName() {
+  // If alias exists, it will be used in TrafficCop
+  if (!alias_.empty()) {
+    expression_name_ = alias_;
+    return;
+  }
+
+  bool first = true;
+  auto op_str = ExpressionTypeToString(expression_type_, true);
+  for (auto &child : children_) {
+    if (!first) expression_name_ += " ";
+    child->DeriveExpressionName();
+    expression_name_ += op_str + " " + child->expression_name_;
+    first = false;
+  }
+  if (first) expression_name_ = op_str;
+}
 }  // namespace terrier::parser

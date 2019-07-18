@@ -8,7 +8,6 @@
 #include <vector>
 #include "common/hash_util.h"
 #include "parser/expression/abstract_expression.h"
-#include "parser/expression_defs.h"
 #include "planner/plannodes/abstract_plan_node.h"
 
 // TODO(Gus, Wen): Replace Perform Binding in AggregateTerm and AggregatePlanNode

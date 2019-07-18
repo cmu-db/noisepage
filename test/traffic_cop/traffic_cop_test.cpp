@@ -28,8 +28,11 @@ class TrafficCopTests : public TerrierTest {
   network::PostgresCommandFactory command_factory_;
   network::PostgresProtocolInterpreter::Provider interpreter_provider_{common::ManagedPointer(&command_factory_)};
   std::unique_ptr<network::ConnectionHandleFactory> handle_factory_;
+  common::DedicatedThreadRegistry thread_registry;
 
-  void StartServer() {
+  void SetUp() override {
+    TerrierTest::SetUp();
+
     network::network_logger->set_level(spdlog::level::trace);
     test_logger->set_level(spdlog::level::debug);
     spdlog::flush_every(std::chrono::seconds(1));
@@ -38,31 +41,20 @@ class TrafficCopTests : public TerrierTest {
       handle_factory_ = std::make_unique<network::ConnectionHandleFactory>(common::ManagedPointer(&tcop_));
       server_ = std::make_unique<network::TerrierServer>(
           common::ManagedPointer<network::ProtocolInterpreter::Provider>(&interpreter_provider_),
-          common::ManagedPointer(handle_factory_.get()));
+          common::ManagedPointer(handle_factory_.get()),
+          common::ManagedPointer<common::DedicatedThreadRegistry>(&thread_registry));
       server_->SetPort(port_);
-      server_->SetupServer();
+      server_->RunServer();
     } catch (NetworkProcessException &exception) {
       TEST_LOG_ERROR("[LaunchServer] exception when launching server");
       throw;
     }
     TEST_LOG_DEBUG("Server initialized");
-    server_thread_ = std::thread([&]() { server_->ServerLoop(); });
-  }
-
-  void StopServer() {
-    server_->Close();
-    server_thread_.join();
-    handle_factory_->TearDown();
-    TEST_LOG_DEBUG("Terrier has shut down");
-  }
-
-  void SetUp() override {
-    TerrierTest::SetUp();
-    StartServer();
   }
 
   void TearDown() override {
-    StopServer();
+    server_->StopServer();
+    TEST_LOG_DEBUG("Terrier has shut down");
     TerrierTest::TearDown();
   }
 

@@ -35,12 +35,21 @@ class ConstantValueExpression : public AbstractExpression {
     return value_ == const_expr.GetValue();
   }
 
+  void DeriveExpressionName() override {
+    if (!this->GetAlias().empty())
+      this->SetExpressionName(this->GetAlias());
+    else
+      this->SetExpressionName(value_.ToString());
+  }
+
   std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<ConstantValueExpression>(*this); }
 
   /**
    * @return the constant value stored in this expression
    */
   type::TransientValue GetValue() const { return value_; }
+
+  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
   /**
    * @return expression serialized to json
@@ -66,6 +75,9 @@ class ConstantValueExpression : public AbstractExpression {
   }
 
  private:
+  /**
+   * Value of the constant value expression
+   */
   type::TransientValue value_;
 };
 

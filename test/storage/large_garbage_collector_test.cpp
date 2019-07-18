@@ -14,6 +14,8 @@ class LargeGCTests : public TerrierTest {
     for (uint32_t iteration = 0; iteration < config.NumIterations(); iteration++) {
       auto injector = di::make_injector<di::TestBindingPolicy>(
           di::storage_injector(),
+          di::bind<common::DedicatedThreadRegistry>().in(
+              di::disabled)[di::override],                                 // no need for thread registry in this test
           di::bind<storage::LogManager>().in(di::disabled)[di::override],  // no need for logging in this test
           di::bind<LargeTransactionTestConfiguration>().to(config),
           di::bind<std::default_random_engine>().in(di::terrier_singleton),  // need to be universal across injectors
