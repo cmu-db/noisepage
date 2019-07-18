@@ -817,7 +817,7 @@ std::vector<index_oid_t> DatabaseCatalog::GetIndexes(transaction::TransactionCon
 }
 
 index_oid_t DatabaseCatalog::CreateIndex(transaction::TransactionContext *txn, namespace_oid_t ns,
-                                         const std::string &name, table_oid_t table, IndexSchema *schema) {
+                                         const std::string &name, table_oid_t table, const IndexSchema &schema) {
   const index_oid_t index_oid = static_cast<index_oid_t>(next_oid_++);
   return CreateIndexEntry(txn, ns, table, index_oid, name, schema) ? index_oid : INVALID_INDEX_OID;
 }
