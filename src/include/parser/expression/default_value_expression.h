@@ -18,18 +18,7 @@ class DefaultValueExpression : public AbstractExpression {
 
   std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<DefaultValueExpression>(*this); }
 
-  /**
-   * @return expression serialized to json
-   */
-  nlohmann::json ToJson() const override {
-    nlohmann::json j = AbstractExpression::ToJson();
-    return j;
-  }
-
-  /**
-   * @param j json to deserialize
-   */
-  void FromJson(const nlohmann::json &j) override { AbstractExpression::FromJson(j); }
+  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 };
 
 DEFINE_JSON_DECLARATIONS(DefaultValueExpression);

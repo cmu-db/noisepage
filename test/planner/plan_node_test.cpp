@@ -3,9 +3,9 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "parser/expression/column_value_expression.h"
 #include "parser/expression/comparison_expression.h"
 #include "parser/expression/star_expression.h"
-#include "parser/expression/tuple_value_expression.h"
 #include "parser/postgresparser.h"
 #include "planner/plannodes/analyze_plan_node.h"
 #include "planner/plannodes/create_database_plan_node.h"
@@ -193,18 +193,18 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
   auto hash_plan = hash_builder
                        .SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col2", type::TypeId::INTEGER, false,
                                                                            catalog::col_oid_t(2)))
-                       .AddHashKey(std::make_shared<parser::TupleValueExpression>("col2", "table2"))
+                       .AddHashKey(std::make_shared<parser::ColumnValueExpression>("table2", "col2"))
                        .AddChild(std::move(seq_scan_2))
                        .Build();
 
   EXPECT_EQ(PlanNodeType::HASH, hash_plan->GetPlanNodeType());
   EXPECT_EQ(1, hash_plan->GetChildrenSize());
   EXPECT_EQ(1, hash_plan->GetHashKeys().size());
-  EXPECT_EQ(parser::ExpressionType::VALUE_TUPLE, hash_plan->GetHashKeys()[0]->GetExpressionType());
+  EXPECT_EQ(parser::ExpressionType::COLUMN_VALUE, hash_plan->GetHashKeys()[0]->GetExpressionType());
 
   std::vector<std::shared_ptr<parser::AbstractExpression>> expr_children;
-  expr_children.push_back(std::make_shared<parser::TupleValueExpression>("col1", "table1"));
-  expr_children.push_back(std::make_shared<parser::TupleValueExpression>("col2", "table2"));
+  expr_children.push_back(std::make_shared<parser::ColumnValueExpression>("table1", "col1"));
+  expr_children.push_back(std::make_shared<parser::ColumnValueExpression>("table2", "col2"));
   auto cmp_expression =
       std::make_shared<parser::ComparisonExpression>(parser::ExpressionType::COMPARE_EQUAL, std::move(expr_children));
 

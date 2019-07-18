@@ -4,8 +4,6 @@
 #include <utility>
 #include <vector>
 #include "parser/expression/abstract_expression.h"
-#include "parser/expression_defs.h"
-#include "type/transient_value.h"
 
 namespace terrier::parser {
 
@@ -29,20 +27,28 @@ class OperatorExpression : public AbstractExpression {
    */
   OperatorExpression() = default;
 
-  std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<OperatorExpression>(*this); }
-
-  /**
-   * @return expression serialized to json
-   */
-  nlohmann::json ToJson() const override {
-    nlohmann::json j = AbstractExpression::ToJson();
-    return j;
+  void DeriveReturnValueType() override {
+    // if we are a decimal or int we should take the highest type id of both children
+    // This relies on a particular order in types.h
+    if (this->GetExpressionType() == ExpressionType::OPERATOR_NOT ||
+        this->GetExpressionType() == ExpressionType::OPERATOR_IS_NULL ||
+        this->GetExpressionType() == ExpressionType::OPERATOR_IS_NOT_NULL ||
+        this->GetExpressionType() == ExpressionType::OPERATOR_EXISTS) {
+      this->SetReturnValueType(type::TypeId::BOOLEAN);
+      return;
+    }
+    auto children = this->GetChildren();
+    auto max_type_child = std::max_element(children.begin(), children.end(), [](auto t1, auto t2) {
+      return t1->GetReturnValueType() < t2->GetReturnValueType();
+    });
+    auto type = (*max_type_child)->GetReturnValueType();
+    TERRIER_ASSERT(type <= type::TypeId::DECIMAL, "Invalid operand type in Operator Expression.");
+    this->SetReturnValueType(type);
   }
 
-  /**
-   * @param j json to deserialize
-   */
-  void FromJson(const nlohmann::json &j) override { AbstractExpression::FromJson(j); }
+  std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<OperatorExpression>(*this); }
+
+  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 };
 
 DEFINE_JSON_DECLARATIONS(OperatorExpression);

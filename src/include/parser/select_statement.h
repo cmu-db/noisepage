@@ -5,7 +5,6 @@
 #include <vector>
 
 #include "common/json.h"
-#include "common/sql_node_visitor.h"
 #include "parser/sql_statement.h"
 #include "parser/table_ref.h"
 
@@ -51,6 +50,28 @@ class OrderByDescription {
    * @return order by expressions
    */
   std::vector<std::shared_ptr<AbstractExpression>> GetOrderByExpressions() { return exprs_; }
+
+  /**
+   * Logical equality check.
+   * @param rhs other
+   * @return true if the two OrderByDescriptions are logically equal
+   */
+  bool operator==(const OrderByDescription &rhs) const {
+    if (types_.size() != rhs.types_.size()) return false;
+    for (size_t i = 0; i < types_.size(); i++)
+      if (types_[i] != rhs.types_[i]) return false;
+    if (exprs_.size() != rhs.exprs_.size()) return false;
+    for (size_t i = 0; i < exprs_.size(); i++)
+      if (*(exprs_[i]) != *(rhs.exprs_[i])) return false;
+    return true;
+  }
+
+  /**
+   * Logical inequality check.
+   * @param rhs other
+   * @return true if the two OrderByDescriptions are logically unequal
+   */
+  bool operator!=(const OrderByDescription &rhs) const { return !(operator==(rhs)); }
 
   /**
    * @return OrderByDescription serialized to json
@@ -127,6 +148,23 @@ class LimitDescription {
   int64_t GetOffset() { return offset_; }
 
   /**
+   * Logical equality check.
+   * @param rhs other
+   * @return true if the two GroupByDescriptions are logically equal
+   */
+  bool operator==(const LimitDescription &rhs) const {
+    if (limit_ != rhs.limit_) return false;
+    return offset_ == rhs.offset_;
+  }
+
+  /**
+   * Logical inequality check.
+   * @param rhs other
+   * @return true if the two LimitDescription are logically unequal
+   */
+  bool operator!=(const LimitDescription &rhs) const { return !(operator==(rhs)); }
+
+  /**
    * @return LimitDescription serialized to json
    */
   nlohmann::json ToJson() const {
@@ -185,6 +223,29 @@ class GroupByDescription {
    * @return having clause
    */
   std::shared_ptr<AbstractExpression> GetHaving() { return having_; }
+
+  /**
+   * Logical equality check.
+   * @param rhs other
+   * @return true if the two GroupByDescriptions are logically equal
+   */
+  bool operator==(const GroupByDescription &rhs) const {
+    if (columns_.size() != rhs.columns_.size()) return false;
+    for (size_t i = 0; i < columns_.size(); i++)
+      if (*(columns_[i]) != *(rhs.columns_[i])) return false;
+
+    if (having_ != nullptr && rhs.having_ == nullptr) return false;
+    if (having_ == nullptr && rhs.having_ != nullptr) return false;
+    if (having_ == nullptr && rhs.having_ == nullptr) return true;
+    return *(having_) == *(rhs.having_);
+  }
+
+  /**
+   * Logical inequality check.
+   * @param rhs other
+   * @return true if the two GroupByDescription are logically unequal
+   */
+  bool operator!=(const GroupByDescription &rhs) const { return !(operator==(rhs)); }
 
   /**
    * @return GroupDescription serialized to json
@@ -299,6 +360,47 @@ class SelectStatement : public SQLStatement {
    * @param select_stmt select statement to union with
    */
   void SetUnionSelect(std::shared_ptr<SelectStatement> select_stmt) { union_select_ = std::move(select_stmt); }
+
+  /**
+   * Logical inequality check.
+   * @param rhs other
+   * @return true if the two SelectStatement are logically equal
+   */
+  bool operator==(const SelectStatement &rhs) const {
+    if (this->GetType() != rhs.GetType()) return false;
+    if (select_.size() != rhs.select_.size()) return false;
+    for (size_t i = 0; i < select_.size(); i++)
+      if (*(select_[i]) != *(rhs.select_[i])) return false;
+    if (select_distinct_ != rhs.select_distinct_) return false;
+
+    if (where_ != nullptr && rhs.where_ == nullptr) return false;
+    if (where_ == nullptr && rhs.where_ != nullptr) return false;
+    if (where_ != nullptr && rhs.where_ != nullptr && *(where_) != *(rhs.where_)) return false;
+
+    if (group_by_ != nullptr && rhs.group_by_ == nullptr) return false;
+    if (group_by_ == nullptr && rhs.group_by_ != nullptr) return false;
+    if (group_by_ != nullptr && rhs.group_by_ != nullptr && *(group_by_) != *(rhs.group_by_)) return false;
+
+    if (order_by_ != nullptr && rhs.order_by_ == nullptr) return false;
+    if (order_by_ == nullptr && rhs.order_by_ != nullptr) return false;
+    if (order_by_ != nullptr && rhs.order_by_ != nullptr && *(order_by_) != *(rhs.order_by_)) return false;
+
+    if (limit_ != nullptr && rhs.limit_ == nullptr) return false;
+    if (limit_ == nullptr && rhs.limit_ != nullptr) return false;
+    if (limit_ != nullptr && rhs.limit_ != nullptr && *(limit_) != *(rhs.limit_)) return false;
+
+    if (union_select_ != nullptr && rhs.union_select_ == nullptr) return false;
+    if (union_select_ == nullptr && rhs.union_select_ != nullptr) return false;
+    if (union_select_ == nullptr && rhs.union_select_ == nullptr) return true;
+    return *(union_select_) == *(rhs.union_select_);
+  }
+
+  /**
+   * Logical inequality check.
+   * @param rhs other
+   * @return true if the two SelectStatement are logically unequal
+   */
+  bool operator!=(const SelectStatement &rhs) const { return !(operator==(rhs)); }
 
   /**
    * @return statement serialized to json
