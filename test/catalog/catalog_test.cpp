@@ -179,7 +179,7 @@ TEST_F(CatalogTests, UserTableTest) {
   // the catalog.  However, the current backend does this.  This test will leak
   // once this is corrected unless the delete call at the end is uncommented.
   accessor->SetTablePointer(table_oid, table);
-  EXPECT_EQ(table, accessor->GetTable(table_oid));
+  EXPECT_EQ(common::ManagedPointer(table), accessor->GetTable(table_oid));
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   gc_->PerformGarbageCollection();
   gc_->PerformGarbageCollection();

@@ -870,7 +870,7 @@ TEST_F(BwTreeKeyTests, CompactIntsKeyBasicTest) {
 template <typename KeyType, typename CType>
 void NumericComparisons(const type::TypeId type_id, const bool nullable) {
   std::vector<catalog::IndexSchema::Column> key_cols;
-  key_cols.emplace_back(type_id, true);
+  key_cols.emplace_back(type_id, true, parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type_id)));
   StorageTestUtil::ForceOid(key_cols.back(), catalog::indexkeycol_oid_t(0));
 
   const IndexMetadata metadata(catalog::IndexSchema(key_cols, false, false, false, true));
@@ -960,7 +960,7 @@ TEST_F(BwTreeKeyTests, GenericKeyNumericComparisons) {
 // NOLINTNEXTLINE
 TEST_F(BwTreeKeyTests, GenericKeyInlineVarlenComparisons) {
   std::vector<catalog::IndexSchema::Column> key_cols;
-  key_cols.emplace_back(type::TypeId::VARCHAR, true, 12);
+  key_cols.emplace_back(type::TypeId::VARCHAR, true, 12, parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
   StorageTestUtil::ForceOid(key_cols.back(), catalog::indexkeycol_oid_t(0));
 
   const IndexMetadata metadata(catalog::IndexSchema(key_cols, false, false, false, true));
@@ -1067,7 +1067,7 @@ TEST_F(BwTreeKeyTests, GenericKeyInlineVarlenComparisons) {
 // NOLINTNEXTLINE
 TEST_F(BwTreeKeyTests, GenericKeyNonInlineVarlenComparisons) {
   std::vector<catalog::IndexSchema::Column> key_cols;
-  key_cols.emplace_back(type_id, true, 20);
+  key_cols.emplace_back(type::TypeId::VARCHAR, true, 20, parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
   StorageTestUtil::ForceOid(key_cols.back(), catalog::indexkeycol_oid_t(0));
 
   const IndexMetadata metadata(catalog::IndexSchema(key_cols, false, false, false, true));
