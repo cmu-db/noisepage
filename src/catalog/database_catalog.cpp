@@ -1485,7 +1485,7 @@ bool DatabaseCatalog::CreateTableEntry(transaction::TransactionContext *const tx
   auto *const table_oid_ptr = insert_pr->AccessForceNotNull(table_oid_offset);
   *(reinterpret_cast<uint32_t *>(table_oid_ptr)) = static_cast<uint32_t>(table_oid);
 
-  auto next_col_oid = schema->GetColumns()[-1].GetOid();
+  auto next_col_oid = schema->GetColumns().back().GetOid();
 
   // Write the next_col_oid into the PR
   const auto next_col_oid_offset = pr_map[REL_NEXTCOLOID_COL_OID];
