@@ -215,7 +215,7 @@ class BwTreeKeyTests : public TerrierTest {
     storage::BlockStore block_store{100, 100};
     storage::RecordBufferSegmentPool buffer_pool{10000, 10000};
     std::vector<catalog::Schema::Column> columns;
-    columns.emplace_back("attribute", type::TypeId ::INTEGER, false, catalog::col_oid_t(0));
+    columns.emplace_back("attribute", type::TypeId ::INTEGER, false, , parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     catalog::Schema schema{columns};
     storage::SqlTable sql_table(&block_store, schema);
     const auto &tuple_initializer = sql_table.InitializerForProjectedRow({catalog::col_oid_t(0)}).first;
