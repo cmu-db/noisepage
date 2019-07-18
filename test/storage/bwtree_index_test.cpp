@@ -41,6 +41,7 @@ class BwTreeIndexTests : public TerrierTest {
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     StorageTestUtil::ForceOid(col, catalog::col_oid_t(1));
     table_schema_ = catalog::Schema({col});
+    sql_table_ = new storage::SqlTable(&block_store_, table_schema_);
 
     std::vector<catalog::IndexSchema::Column> keycols;
     keycols.emplace_back(type::TypeId::INTEGER, false,
@@ -53,7 +54,7 @@ class BwTreeIndexTests : public TerrierTest {
   const uint32_t num_threads_ = 4;
 
   // SqlTable
-  storage::SqlTable *const sql_table_{new storage::SqlTable(&block_store_, table_schema_)};
+  storage::SqlTable * sql_table_;
   const storage::ProjectedRowInitializer tuple_initializer_{
       sql_table_->InitializerForProjectedRow({catalog::col_oid_t(0)}).first};
 
