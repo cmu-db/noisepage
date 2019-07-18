@@ -74,7 +74,7 @@ db_oid_t Catalog::CreateDatabase(transaction::TransactionContext *txn, const std
   db_oid_t db_oid = next_oid_++;
   DatabaseCatalog *dbc = postgres::Builder::CreateDatabaseCatalog(catalog_block_store_, db_oid);
   txn->RegisterAbortAction([=]() { delete dbc; });
-  success = Catalog::CreateDatabaseEntry(txn, db_oid, name, dbc);
+  auto success = Catalog::CreateDatabaseEntry(txn, db_oid, name, dbc);
   if (!success) return INVALID_DATABASE_OID;
 
   if (bootstrap) dbc->Bootstrap(txn);

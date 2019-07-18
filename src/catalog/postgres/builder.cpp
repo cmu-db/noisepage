@@ -45,7 +45,7 @@ Schema Builder::GetDatabaseTableSchema() {
 IndexSchema Builder::GetDatabaseOidIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
-  columns.emplace_back(type::TypeId::INTEGER, false, parser::ColumnValueExpression(INVALID_DATABSE_OID, DATABASE_TABLE_OID, DATOID_COL_OID));
+  columns.emplace_back(type::TypeId::INTEGER, false, parser::ColumnValueExpression(INVALID_DATABASE_OID, DATABASE_TABLE_OID, DATOID_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Primary
@@ -60,7 +60,7 @@ IndexSchema Builder::GetDatabaseNameIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back(type::TypeId::VARCHAR, false,
-                       parser::ColumnValueExpression(INVALID_DATABSE_OID, DATABASE_TABLE_OID, DATNAME_COL_OID));
+                       parser::ColumnValueExpression(INVALID_DATABASE_OID, DATABASE_TABLE_OID, DATNAME_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Unique, not primary
