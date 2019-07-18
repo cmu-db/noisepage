@@ -1180,4 +1180,28 @@ TEST_F(BwTreeKeyTests, GenericKeyBuilderTest) {
   }
 }
 
+/**
+ * This test exercises an edge case detected while incorporating the catalog that had a VARCHAR(63) attribute. The
+ * IndexBuilder was looking at the user-facing PR size rather than the inlined PR size, so the computation of the key
+ * size to use was wrong, but really only manifested for VARLEN attributes that are close to the key size limit. The fix
+ * was to add a stronger assert in GenericKey's SetFromProjectedRow for bounds-checking, and adjust the computation in
+ * IndexBuilder.
+ */
+// NOLINTNEXTLINE
+TEST_F(BwTreeKeyTests, GenericKeyBuilderVarlenSizeEdgeCaseTest) {
+  std::vector<catalog::IndexSchema::Column> key_cols;
+  key_cols.emplace_back(type::TypeId::VARCHAR, false,
+                        parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)),
+                        64);
+  StorageTestUtil::ForceOid(key_cols.back(), catalog::indexkeycol_oid_t(15445));
+  const auto key_schema = catalog::IndexSchema(key_cols, false, false, false, true);
+
+  IndexBuilder builder;
+  builder.SetConstraintType(ConstraintType::DEFAULT).SetKeySchema(key_schema).SetOid(catalog::index_oid_t(15721));
+  auto *index = builder.Build();
+  BasicOps(index);
+
+  delete index;
+}
+
 }  // namespace terrier::storage::index

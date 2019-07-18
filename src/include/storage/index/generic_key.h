@@ -65,12 +65,19 @@ class GenericKey {
             // Convert the VarlenEntry to be inlined
             const auto varlen = *reinterpret_cast<const VarlenEntry *const>(from_attr);
             byte *const to_attr = pr->AccessForceNotNull(offset);
-            *reinterpret_cast<uint32_t *const>(to_attr) = varlen.Size();
-            std::memcpy(to_attr + sizeof(uint32_t), varlen.Content(), varlen.Size());
+            const auto varlen_size = varlen.Size();
+            *reinterpret_cast<uint32_t *const>(to_attr) = varlen_size;
+            TERRIER_ASSERT(reinterpret_cast<uintptr_t>(to_attr) + sizeof(uint32_t) + varlen_size <=
+                               reinterpret_cast<uintptr_t>(this) + key_size_byte,
+                           "ProjectedRow will access out of bounds.");
+            std::memcpy(to_attr + sizeof(uint32_t), varlen.Content(), varlen_size);
           }
         }
       }
     } else {
+      TERRIER_ASSERT(reinterpret_cast<uintptr_t>(GetProjectedRow()) + from.Size() <=
+                         reinterpret_cast<uintptr_t>(this) + key_size_byte,
+                     "ProjectedRow will access out of bounds.");
       std::memcpy(GetProjectedRow(), &from, from.Size());
     }
   }
@@ -82,7 +89,7 @@ class GenericKey {
     const auto *pr = reinterpret_cast<const ProjectedRow *>(StorageUtil::AlignedPtr(sizeof(uint64_t), key_data_));
     TERRIER_ASSERT(reinterpret_cast<uintptr_t>(pr) % sizeof(uint64_t) == 0,
                    "ProjectedRow must be aligned to 8 bytes for atomicity guarantees.");
-    TERRIER_ASSERT(reinterpret_cast<uintptr_t>(pr) + pr->Size() < reinterpret_cast<uintptr_t>(this) + key_size_byte,
+    TERRIER_ASSERT(reinterpret_cast<uintptr_t>(pr) + pr->Size() <= reinterpret_cast<uintptr_t>(this) + key_size_byte,
                    "ProjectedRow will access out of bounds.");
     return pr;
   }
