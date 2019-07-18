@@ -39,6 +39,9 @@ Schema Builder::GetDatabaseTableSchema() {
   columns.emplace_back("datname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false, MakeNull(type::TypeId::VARCHAR));
   columns.back().SetOid(DATNAME_COL_OID);
 
+  columns.emplace_back("pointer", type::TypeId::BIGINT, false, MakeNull(type::TypeId::BIGINT));
+  columns.back().SetOid(DAT_CATALOG_COL_OID);
+
   return Schema(columns);
 }
 
