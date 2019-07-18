@@ -25,7 +25,8 @@
 #include "util/random_test_util.h"
 
 namespace terrier {
-struct StorageTestUtil {
+class StorageTestUtil {
+ public:
   StorageTestUtil() = delete;
 
 #define TO_INT(p) reinterpret_cast<uintptr_t>(p)
