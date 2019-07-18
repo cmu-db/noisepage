@@ -794,7 +794,11 @@ const Schema &DatabaseCatalog::GetSchema(transaction::TransactionContext *txn, t
   return *reinterpret_cast<Schema *>(ptr_pair.first);
 }
 
-std::vector<constraint_oid_t> DatabaseCatalog::GetConstraints(transaction::TransactionContext *txn, table_oid_t);
+std::vector<constraint_oid_t> DatabaseCatalog::GetConstraints(transaction::TransactionContext *txn, table_oid_t table) {
+  // TODO(John): Implement
+  TERRIER_ASSERT(false, "Not implemented");
+  return {};
+}
 
 std::vector<index_oid_t> DatabaseCatalog::GetIndexes(transaction::TransactionContext *txn, table_oid_t oid) {
   std::vector<index_oid_t> index_oids;
