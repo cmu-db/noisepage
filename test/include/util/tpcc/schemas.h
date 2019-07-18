@@ -16,7 +16,8 @@ namespace terrier::tpcc {
  * Schemas is a utility class that defines all 9 table schemas and 8 index schemas according to section 1.3 of the TPC-C
  * specification. It also defines 2 secondary indexes that improve query performance.
  */
-struct Schemas {
+class Schemas {
+ public:
   Schemas() = delete;
 
   /**
