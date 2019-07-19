@@ -331,6 +331,7 @@ DatabaseCatalog *Catalog::DeleteDatabaseEntry(transaction::TransactionContext *t
     return nullptr;
   }
 
+  txn->StageDelete(INVALID_DATABASE_OID, DATABASE_TABLE_OID, index_results[0]);
   if (!databases_->Delete(txn, index_results[0])) {
     // Someone else has a write-lock
     delete[] buffer;
