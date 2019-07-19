@@ -94,14 +94,14 @@ TEST_F(CatalogTests, DatabaseTest) {
   auto txn = txn_manager_->BeginTransaction();
   auto db_oid = catalog_->CreateDatabase(txn, "test_database", true);
   EXPECT_NE(db_oid, catalog::INVALID_DATABASE_OID);
-  auto accessor = catalog_->GetAccessor(txn, db_oid);
+  auto accessor = std::unique_ptr(catalog_->GetAccessor(txn, db_oid));
   EXPECT_NE(accessor, nullptr);
   VerifyCatalogTables(accessor);  // Check visibility to me
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // Cannot add a database twice
   txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(txn, db_oid);
+  accessor = std::unique_ptr(catalog_->GetAccessor(txn, db_oid));
   auto tmp_oid = accessor->CreateDatabase("test_database");
   EXPECT_EQ(tmp_oid, catalog::INVALID_DATABASE_OID);  // Should cause a name conflict
   txn_manager_->Abort(txn);
@@ -109,7 +109,7 @@ TEST_F(CatalogTests, DatabaseTest) {
   // Get an accessor into the database and validate the catalog tables exist
   // then delete it and verify an invalid OID is now returned for the lookup
   txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(txn, db_oid);
+  accessor = std::unique_ptr(catalog_->GetAccessor(txn, db_oid));
   EXPECT_NE(accessor, nullptr);
   VerifyCatalogTables(accessor);  // Check visibility to me
   tmp_oid = accessor->GetDatabaseOid("test_database");
@@ -120,7 +120,7 @@ TEST_F(CatalogTests, DatabaseTest) {
 
   // Cannot get an accessor to a non-existent database
   txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(txn, db_oid);
+  accessor = std::unique_ptr(catalog_->GetAccessor(txn, db_oid));
   EXPECT_EQ(accessor, nullptr);
   txn_manager_->Abort(txn);
 }
@@ -134,7 +134,7 @@ TEST_F(CatalogTests, NamespaceTest) {
   auto txn = txn_manager_->BeginTransaction();
   auto db_oid = catalog_->CreateDatabase(txn, "test_database", true);
   EXPECT_NE(db_oid, catalog::INVALID_DATABASE_OID);
-  auto accessor = catalog_->GetAccessor(txn, db_oid);
+  auto accessor = std::unique_ptr(catalog_->GetAccessor(txn, db_oid));
   EXPECT_NE(accessor, nullptr);
   auto ns_oid = accessor->CreateNamespace("test_namespace");
   EXPECT_NE(ns_oid, catalog::INVALID_NAMESPACE_OID);
