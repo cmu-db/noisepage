@@ -327,7 +327,7 @@ TEST_F(CatalogTests, SearchPathTest) {
   EXPECT_EQ(accessor->GetTableOid("test_table"), test_table_oid);
 
   accessor->SetSearchPath({public_ns_oid, test_ns_oid});
-  EXPECT_EQ(accessor->GetTableOid("test_table"), public_ns_oid);
+  EXPECT_EQ(accessor->GetTableOid("test_table"), public_table_oid);
 
   auto table_oid = accessor->CreateTable(test_ns_oid, "test_table", tmp_schema);
   EXPECT_EQ(table_oid, catalog::INVALID_TABLE_OID);
@@ -342,7 +342,7 @@ TEST_F(CatalogTests, SearchPathTest) {
   accessor->DropTable(test_table_oid);
 
   accessor->SetSearchPath({test_ns_oid, public_ns_oid});
-  EXPECT_EQ(accessor->GetTableOid("test_table") == public_ns_oid);
+  EXPECT_EQ(accessor->GetTableOid("test_table"), public_ns_oid);
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   delete accessor;
 }
