@@ -641,6 +641,12 @@ bool DatabaseCatalog::DeleteTable(transaction::TransactionContext *const txn, co
   const storage::VarlenEntry name_varlen =
       *(reinterpret_cast<const storage::VarlenEntry *const>(table_pr->AccessForceNotNull(pr_map[RELNAME_COL_OID])));
 
+  // Get the attributes we need for delete
+  auto *const schema_ptr =
+      *(reinterpret_cast<const Schema *const *const>(table_pr->AccessForceNotNull(pr_map[REL_SCHEMA_COL_OID])));
+  auto *const table_ptr =
+      *(reinterpret_cast<storage::SqlTable *const *const>(table_pr->AccessForceNotNull(pr_map[REL_PTR_COL_OID])));
+
   const auto oid_index_init = classes_oid_index_->GetProjectedRowInitializer();
   const auto name_index_init = classes_name_index_->GetProjectedRowInitializer();
   const auto ns_index_init = classes_namespace_index_->GetProjectedRowInitializer();
@@ -660,12 +666,6 @@ bool DatabaseCatalog::DeleteTable(transaction::TransactionContext *const txn, co
   index_pr = ns_index_init.InitializeRow(buffer);
   *(reinterpret_cast<uint32_t *const>(index_pr->AccessForceNotNull(0))) = static_cast<uint32_t>(ns_oid);
   classes_namespace_index_->Delete(txn, *index_pr, index_results[0]);
-
-  // Get the attributes we need for delete
-  auto *const schema_ptr =
-      *(reinterpret_cast<const Schema *const *const>(table_pr->AccessForceNotNull(pr_map[REL_SCHEMA_COL_OID])));
-  auto *const table_ptr =
-      *(reinterpret_cast<storage::SqlTable *const *const>(table_pr->AccessForceNotNull(pr_map[REL_PTR_COL_OID])));
 
   // Everything succeeded from an MVCC standpoint, register deferred
   // Register a deferred action for the GC with txn manager. See base function comment.
@@ -915,6 +915,14 @@ bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oi
   const storage::VarlenEntry name_varlen = *(
       reinterpret_cast<const storage::VarlenEntry *const>(table_pr->AccessForceNotNull(class_pr_map[RELNAME_COL_OID])));
 
+  // Get the attributes we need for the deferred delete
+  // TODO(Gus, John): See TODO in deferred actions lambda below
+  //  auto *const schema_ptr =
+  //      *(reinterpret_cast<const index::IndexSchema *const
+  //      *const>(table_pr->AccessForceNotNull(pr_map[REL_SCHEMA_COL_OID])));
+  auto *const index_ptr =
+      *(reinterpret_cast<storage::SqlTable *const *const>(table_pr->AccessForceNotNull(class_pr_map[REL_PTR_COL_OID])));
+
   const auto class_oid_index_init = classes_oid_index_->GetProjectedRowInitializer();
   const auto class_name_index_init = classes_name_index_->GetProjectedRowInitializer();
   const auto class_ns_index_init = classes_namespace_index_->GetProjectedRowInitializer();
@@ -934,14 +942,6 @@ bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oi
   index_pr = class_ns_index_init.InitializeRow(buffer);
   *(reinterpret_cast<uint32_t *const>(index_pr->AccessForceNotNull(0))) = static_cast<uint32_t>(ns_oid);
   classes_namespace_index_->Delete(txn, *index_pr, index_results[0]);
-
-  // Get the attributes we need for the deferred delete
-  // TODO(Gus, John): See TODO in deferred actions lambda below
-  //  auto *const schema_ptr =
-  //      *(reinterpret_cast<const index::IndexSchema *const
-  //      *const>(table_pr->AccessForceNotNull(pr_map[REL_SCHEMA_COL_OID])));
-  auto *const index_ptr =
-      *(reinterpret_cast<storage::SqlTable *const *const>(table_pr->AccessForceNotNull(class_pr_map[REL_PTR_COL_OID])));
 
   // Now we need to delete from pg_index and its indexes
   // Initialize PRs for pg_index
