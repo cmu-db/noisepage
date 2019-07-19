@@ -288,8 +288,10 @@ TEST_F(CatalogTests, SearchPathTest) {
   auto txn = txn_manager_->BeginTransaction();
   auto accessor = catalog_->GetAccessor(txn, db_);
   auto public_ns_oid = accessor->GetNamespaceOid("public");
+  EXPECT_NE(public_ns_oid, catalog::INVALID_NAMESPACE_OID);
+  EXPECT_EQ(public_ns_oid, catalog::NAMESPACE_DEFAULT_NAMESPACE_OID);
   auto test_ns_oid = accessor->CreateNamespace("test");
-  EXPECT_NE(ns_oid, catalog::INVALID_NAMESPACE_OID);
+  EXPECT_NE(test_ns_oid, catalog::INVALID_NAMESPACE_OID);
   VerifyCatalogTables(accessor);  // Check visibility to me
 
   // Create the column definition (no OIDs)
@@ -310,8 +312,8 @@ TEST_F(CatalogTests, SearchPathTest) {
   // Insert a table into "test"
   auto test_table_oid = accessor->CreateTable(test_ns_oid, "test_table", tmp_schema);
   EXPECT_NE(test_table_oid, catalog::INVALID_TABLE_OID);
-  auto schema = accessor->GetSchema(test_table_oid);
-  auto table = new storage::SqlTable(&block_store_, schema);
+  schema = accessor->GetSchema(test_table_oid);
+  table = new storage::SqlTable(&block_store_, schema);
   EXPECT_TRUE(accessor->SetTablePointer(test_table_oid, table));
 
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -322,14 +324,14 @@ TEST_F(CatalogTests, SearchPathTest) {
   accessor = catalog_->GetAccessor(txn, db_);
 
   accessor->SetSearchPath({test_ns_oid, public_ns_oid});
-  EXPECT_EQ(accessor->GetTableOid("test_table") == test_table_oid);
+  EXPECT_EQ(accessor->GetTableOid("test_table"), test_table_oid);
 
   accessor->SetSearchPath({public_ns_oid, test_ns_oid});
-  EXPECT_EQ(accessor->GetTableOid("test_table") == public_ns_oid);
+  EXPECT_EQ(accessor->GetTableOid("test_table"), public_ns_oid);
 
   auto table_oid = accessor->CreateTable(test_ns_oid, "test_table", tmp_schema);
   EXPECT_EQ(table_oid, catalog::INVALID_TABLE_OID);
-  auto table_oid = accessor->CreateTable(test_ns_oid, "test_table", tmp_schema);
+  table_oid = accessor->CreateTable(test_ns_oid, "test_table", tmp_schema);
   EXPECT_EQ(table_oid, catalog::INVALID_TABLE_OID);
   txn_manager_->Abort(txn);
   delete accessor;
@@ -341,7 +343,7 @@ TEST_F(CatalogTests, SearchPathTest) {
 
   accessor->SetSearchPath({test_ns_oid, public_ns_oid});
   EXPECT_EQ(accessor->GetTableOid("test_table") == public_ns_oid);
-  txn_manager_->Commit(txn);
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   delete accessor;
 }
 
