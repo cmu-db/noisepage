@@ -923,10 +923,10 @@ bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oi
   const storage::VarlenEntry name_varlen = *(
       reinterpret_cast<const storage::VarlenEntry *const>(table_pr->AccessForceNotNull(class_pr_map[RELNAME_COL_OID])));
 
-  auto *const schema_ptr =
-       *(reinterpret_cast<const IndexSchema *const *const>(table_pr->AccessForceNotNull(class_pr_map[REL_SCHEMA_COL_OID])));
-  auto *const index_ptr =
-      *(reinterpret_cast<storage::index::Index *const *const>(table_pr->AccessForceNotNull(class_pr_map[REL_PTR_COL_OID])));
+  auto *const schema_ptr = *(reinterpret_cast<const IndexSchema *const *const>(
+      table_pr->AccessForceNotNull(class_pr_map[REL_SCHEMA_COL_OID])));
+  auto *const index_ptr = *(reinterpret_cast<storage::index::Index *const *const>(
+      table_pr->AccessForceNotNull(class_pr_map[REL_PTR_COL_OID])));
 
   const auto class_oid_index_init = classes_oid_index_->GetProjectedRowInitializer();
   const auto class_name_index_init = classes_name_index_->GetProjectedRowInitializer();
