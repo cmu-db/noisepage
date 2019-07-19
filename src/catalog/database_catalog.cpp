@@ -1,3 +1,6 @@
+#include <memory>
+#include <string>
+#include <utility>
 #include <vector>
 
 #include "catalog/catalog_defs.h"
@@ -205,7 +208,7 @@ bool DatabaseCatalog::CreateNamespace(transaction::TransactionContext *txn, cons
   storage::VarlenEntry name_varlen = postgres::AttributeHelper::CreateVarlen(name);
   // Get & Fill Redo Record
   std::vector<col_oid_t> table_oids{NSPNAME_COL_OID, NSPOID_COL_OID};
-  // NOLINTNEXTLINE (C++17 only)
+  // NOLINTNEXTLINE Matt: this is C++17 which lint hates
   auto [pri, pm] = namespaces_->InitializerForProjectedRow(table_oids);
   auto *redo = txn->StageWrite(db_oid_, NAMESPACE_TABLE_OID, pri);
   auto *oid_entry = reinterpret_cast<namespace_oid_t *>(redo->Delta()->AccessForceNotNull(pm[NSPOID_COL_OID]));
@@ -245,7 +248,7 @@ bool DatabaseCatalog::CreateNamespace(transaction::TransactionContext *txn, cons
 bool DatabaseCatalog::DeleteNamespace(transaction::TransactionContext *txn, namespace_oid_t ns) {
   // Step 1: Read the oid index
   std::vector<col_oid_t> table_oids{NSPNAME_COL_OID};
-  // NOLINTNEXTLINE (C++17 only)
+  // NOLINTNEXTLINE Matt: this is C++17 which lint hates
   auto [table_pri, table_pm] = namespaces_->InitializerForProjectedRow(table_oids);
   auto name_pri = namespaces_name_index_->GetProjectedRowInitializer();
   auto oid_pri = namespaces_oid_index_->GetProjectedRowInitializer();
@@ -604,6 +607,7 @@ bool DatabaseCatalog::DeleteTable(transaction::TransactionContext *const txn, co
   std::vector<storage::TupleSlot> index_results;
   auto oid_pri = classes_oid_index_->GetProjectedRowInitializer();
 
+  // NOLINTNEXTLINE Matt: this is C++17 which lint hates
   auto [pr_init, pr_map] = classes_->InitializerForProjectedRow(PG_CLASS_ALL_COL_OIDS);
 
   TERRIER_ASSERT(pr_init.ProjectedRowSize() >= oid_pri.ProjectedRowSize(),
@@ -877,6 +881,7 @@ bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oi
   std::vector<storage::TupleSlot> index_results;
   // Initialize PRs for pg_class
   auto class_oid_pri = classes_oid_index_->GetProjectedRowInitializer();
+  // NOLINTNEXTLINE Matt: this is C++17 which lint hates
   auto [class_pr_init, class_pr_map] = classes_->InitializerForProjectedRow(PG_CLASS_ALL_COL_OIDS);
 
   // Allocate buffer for largest PR
@@ -953,6 +958,7 @@ bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oi
   // Initialize PRs for pg_index
   auto index_oid_pr = indexes_oid_index_->GetProjectedRowInitializer();
   auto index_table_pr = indexes_table_index_->GetProjectedRowInitializer();
+  // NOLINTNEXTLINE Matt: this is C++17 which lint hates
   auto [index_pr_init, index_pr_map] = indexes_->InitializerForProjectedRow({INDOID_COL_OID, INDRELID_COL_OID});
   TERRIER_ASSERT((class_pr_init.ProjectedRowSize() >= index_pr_init.ProjectedRowSize()) &&
                      (class_pr_init.ProjectedRowSize() >= index_oid_pr.ProjectedRowSize()) &&
@@ -1100,6 +1106,7 @@ void DatabaseCatalog::TearDown(transaction::TransactionContext *txn) {
   col_oids.emplace_back(RELKIND_COL_OID);
   col_oids.emplace_back(REL_SCHEMA_COL_OID);
   col_oids.emplace_back(REL_PTR_COL_OID);
+  // NOLINTNEXTLINE Matt: this is C++17 which lint hates
   auto [pci, pm] = classes_->InitializerForProjectedColumns(col_oids, 100);
 
   byte *buffer = common::AllocationUtil::AllocateAligned(pci.ProjectedColumnsSize());
@@ -1194,6 +1201,7 @@ bool DatabaseCatalog::CreateIndexEntry(transaction::TransactionContext *const tx
                                        const std::string &name, const IndexSchema &schema) {
   auto idx_schema = new IndexSchema(schema);
   // First, insert into pg_class
+  // NOLINTNEXTLINE Matt: this is C++17 which lint hates
   auto [pr_init, pr_map] = classes_->InitializerForProjectedRow(PG_CLASS_ALL_COL_OIDS);
 
   auto *const class_insert_redo = txn->StageWrite(db_oid_, CLASS_TABLE_OID, pr_init);
@@ -1482,6 +1490,7 @@ void DatabaseCatalog::BootstrapTypes(transaction::TransactionContext *txn) {
 
 bool DatabaseCatalog::CreateTableEntry(transaction::TransactionContext *const txn, const table_oid_t table_oid,
                                        const namespace_oid_t ns_oid, const std::string &name, Schema *schema) {
+  // NOLINTNEXTLINE Matt: this is C++17 which lint hates
   auto [pr_init, pr_map] = classes_->InitializerForProjectedRow(PG_CLASS_ALL_COL_OIDS);
 
   auto *const insert_redo = txn->StageWrite(db_oid_, CLASS_TABLE_OID, pr_init);

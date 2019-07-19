@@ -1,5 +1,6 @@
 #pragma once
 
+#include <utility>
 #include <vector>
 #include "catalog/catalog_defs.h"
 #include "catalog/index_schema.h"

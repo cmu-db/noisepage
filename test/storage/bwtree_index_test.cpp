@@ -39,7 +39,7 @@ class BwTreeIndexTests : public TerrierTest {
     auto col = catalog::Schema::Column(
         "attribute", type::TypeId::INTEGER, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
-    StorageTestUtil::ForceOid(col, catalog::col_oid_t(1));
+    StorageTestUtil::ForceOid(&(col), catalog::col_oid_t(1));
     table_schema_ = catalog::Schema({col});
     sql_table_ = new storage::SqlTable(&block_store_, table_schema_);
     tuple_initializer_ = sql_table_->InitializerForProjectedRow({catalog::col_oid_t(1)}).first;
@@ -48,7 +48,7 @@ class BwTreeIndexTests : public TerrierTest {
     keycols.emplace_back(
         type::TypeId::INTEGER, false,
         parser::ColumnValueExpression(catalog::db_oid_t(0), catalog::table_oid_t(0), catalog::col_oid_t(1)));
-    StorageTestUtil::ForceOid(keycols[0], catalog::indexkeycol_oid_t(1));
+    StorageTestUtil::ForceOid(&(keycols[0]), catalog::indexkeycol_oid_t(1));
     key_schema_ = catalog::IndexSchema(keycols, true, true, false, true);
   }
 

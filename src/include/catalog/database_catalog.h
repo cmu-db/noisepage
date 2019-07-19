@@ -1,5 +1,8 @@
 #pragma once
 
+#include <memory>
+#include <string>
+#include <utility>
 #include <vector>
 
 #include "catalog/catalog_defs.h"
@@ -320,7 +323,7 @@ class DatabaseCatalog {
 
   const db_oid_t db_oid_;
 
-  DatabaseCatalog(db_oid_t oid) : db_oid_(oid) {}
+  explicit DatabaseCatalog(db_oid_t oid) : db_oid_(oid) {}
 
   void TearDown(transaction::TransactionContext *txn);
   bool CreateTableEntry(transaction::TransactionContext *txn, table_oid_t table_oid, namespace_oid_t ns,

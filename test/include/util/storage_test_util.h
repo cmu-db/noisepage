@@ -337,8 +337,8 @@ class StorageTestUtil {
   /**
    * Provides function for tests at large to force column OIDs so that they can function without a catalog.
    */
-  static void ForceOid(catalog::Schema::Column &col, catalog::col_oid_t oid) { col.SetOid(oid); }
-  static void ForceOid(catalog::IndexSchema::Column &col, catalog::indexkeycol_oid_t oid) { col.SetOid(oid); }
+  static void ForceOid(catalog::Schema::Column *const col, catalog::col_oid_t oid) { col->SetOid(oid); }
+  static void ForceOid(catalog::IndexSchema::Column *const col, catalog::indexkeycol_oid_t oid) { col->SetOid(oid); }
 
   /**
    * Generates a random GenericKey-compatible schema with the given number of columns using the given types.
@@ -379,7 +379,7 @@ class StorageTestUtil {
                                 parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type)));
           break;
       }
-      ForceOid(key_cols.back(), key_oid);
+      ForceOid(&(key_cols.back()), key_oid);
     }
 
     return catalog::IndexSchema(key_cols, false, false, false, true);
@@ -422,7 +422,7 @@ class StorageTestUtil {
 
       key_cols.emplace_back(type, false,
                             parser::ConstantValueExpression(std::move(type::TransientValueFactory::GetNull(type))));
-      ForceOid(key_cols.back(), key_oids[col++]);
+      ForceOid(&(key_cols.back()), key_oids[col++]);
       bytes_used = static_cast<uint16_t>(bytes_used + type::TypeUtil::GetTypeSize(type));
     }
 

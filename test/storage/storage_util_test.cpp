@@ -187,14 +187,14 @@ TEST_F(StorageUtilTests, ForceOid) {
       type::TypeId::INTEGER, false,
       parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
   auto idx_col_oid = catalog::indexkeycol_oid_t(1);
-  StorageTestUtil::ForceOid(index_col, idx_col_oid);
+  StorageTestUtil::ForceOid(&(index_col), idx_col_oid);
   EXPECT_EQ(index_col.GetOid(), idx_col_oid);
 
   auto col = catalog::Schema::Column(
       "iHateStorage", type::TypeId::INTEGER, false,
       parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
   auto col_oid = catalog::col_oid_t(2);
-  StorageTestUtil::ForceOid(col, col_oid);
+  StorageTestUtil::ForceOid(&(col), col_oid);
   EXPECT_EQ(col.GetOid(), col_oid);
 }
 }  // namespace terrier
