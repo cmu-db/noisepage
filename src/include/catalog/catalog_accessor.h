@@ -272,7 +272,7 @@ class CatalogAccessor {
    */
   CatalogAccessor(Catalog *catalog, common::ManagedPointer<DatabaseCatalog> dbc, transaction::TransactionContext *txn,
                   db_oid_t database)
-      : catalog_(catalog), dbc_(dbc), txn_(txn), db_oid_(database) {}
+      : catalog_(catalog), dbc_(dbc), txn_(txn), db_oid_(database), search_path_({NAMESPACE_DEFAULT_NAMESPACE_OID}) {}
   friend class Catalog;
 };
 
