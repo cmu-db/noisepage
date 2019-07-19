@@ -51,7 +51,7 @@ class DatabaseCatalog {
    * exist).
    * @param txn for the operation
    * @param ns OID to be deleted
-   * @param true if the deletion succeeded, otherwise false
+   * @return true if the deletion succeeded, otherwise false
    */
   bool DeleteNamespace(transaction::TransactionContext *txn, namespace_oid_t ns);
 
@@ -68,7 +68,7 @@ class DatabaseCatalog {
    * @param txn for the operation
    * @param ns OID of the namespace the table belongs to
    * @param name of the new table
-   * @param columns that comprise the new table
+   * @param schema columns of the new table
    * @return OID of the new table or INVALID_TABLE_OID if the operation failed
    * @warning This function does not allocate the storage for the table.  The
    * transaction is responsible for setting the table pointer via a separate
@@ -107,6 +107,7 @@ class DatabaseCatalog {
 
   /**
    * Inform the catalog of where the underlying storage for a table is
+   * @param txn for the operation
    * @param table OID in the catalog
    * @param table_ptr to the memory where the storage is
    * @return whether the operation was successful
@@ -118,6 +119,7 @@ class DatabaseCatalog {
 
   /**
    * Obtain the storage pointer for a SQL table
+   * @param txn for the operation
    * @param table to which we want the storage object
    * @return the storage object corresponding to the passed OID
    */
@@ -161,7 +163,7 @@ class DatabaseCatalog {
    * @param table being queried
    * @return vector of OIDs for all of the indexes on this table
    */
-  std::vector<index_oid_t> GetIndexes(transaction::TransactionContext *txn, table_oid_t oid);
+  std::vector<index_oid_t> GetIndexes(transaction::TransactionContext *txn, table_oid_t table);
 
   /**
    * Create the catalog entries for a new index.
@@ -206,6 +208,7 @@ class DatabaseCatalog {
 
   /**
    * Inform the catalog of where the underlying implementation of the index is
+   * @param txn for the operation
    * @param index OID in the catalog
    * @param index_ptr to the memory where the index is
    * @return whether the operation was successful
@@ -217,6 +220,7 @@ class DatabaseCatalog {
 
   /**
    * Obtain the pointer to the index
+   * @param txn transaction to use
    * @param index to which we want a pointer
    * @return the pointer to the index
    */

@@ -40,6 +40,12 @@ namespace terrier::catalog::postgres {
  */
 class AttributeHelper {
  public:
+  /**
+   * @tparam Column column type (either index or table)
+   * @param pr ProjectedRow to populate
+   * @param table_pm ProjectionMap for the ProjectedRow
+   * @return heap-allocated column managed by unique_ptr
+   */
   template <typename Column>
   static std::unique_ptr<Column> MakeColumn(storage::ProjectedRow *pr, storage::ProjectionMap table_pm) {
     auto col_oid = *reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(table_pm[ATTNUM_COL_OID]));
@@ -70,6 +76,12 @@ class AttributeHelper {
   }
 
   // TODO(Matt): this doesn't live here. Also refactor more stuff to use it
+  /**
+   * Helper method to turn a string into a VarlenEntry
+   * @param str input to be turned into a VarlenEntry
+   * @return varlen entry representing string
+   * @warning checking IsInlined() to see if you need to possibly clean up a buffer
+   */
   static storage::VarlenEntry CreateVarlen(const std::string &str) {
     storage::VarlenEntry varlen;
     if (str.size() > storage::VarlenEntry::InlineThreshold()) {
@@ -84,6 +96,11 @@ class AttributeHelper {
   }
 
   // TODO(John): move to catalog_defs
+  /**
+   * @tparam Column either index schema column or table schema column
+   * @param col column to receive name
+   * @return varlen entry from provided column
+   */
   template <typename Column>
   static storage::VarlenEntry MakeNameVarlen(const Column &col) {
     if constexpr (std::is_class_v<Column, IndexSchema::Column>) {

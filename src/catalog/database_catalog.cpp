@@ -837,7 +837,7 @@ std::vector<constraint_oid_t> DatabaseCatalog::GetConstraints(transaction::Trans
   return {};
 }
 
-std::vector<index_oid_t> DatabaseCatalog::GetIndexes(transaction::TransactionContext *txn, table_oid_t oid) {
+std::vector<index_oid_t> DatabaseCatalog::GetIndexes(transaction::TransactionContext *txn, table_oid_t table) {
   std::vector<index_oid_t> index_oids;
   std::vector<storage::TupleSlot> index_scan_results;
 
@@ -852,7 +852,7 @@ std::vector<index_oid_t> DatabaseCatalog::GetIndexes(transaction::TransactionCon
 
   // Find all entries for the given table using the index
   auto *key_pr = oid_pri.InitializeRow(buffer);
-  *(reinterpret_cast<uint32_t *>(key_pr->AccessForceNotNull(0))) = static_cast<uint32_t>(oid);
+  *(reinterpret_cast<uint32_t *>(key_pr->AccessForceNotNull(0))) = static_cast<uint32_t>(table);
   indexes_table_index_->ScanKey(*txn, *key_pr, &index_scan_results);
 
   // If we found no indexes, return an empty list

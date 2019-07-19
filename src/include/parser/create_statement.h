@@ -175,7 +175,6 @@ struct ColumnDefinition {
   }
 
   /**
-   * @param type data type
    * @return type ID
    */
   type::TypeId GetValueType() {
