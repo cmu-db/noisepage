@@ -263,7 +263,7 @@ TEST_F(CatalogTests, UserIndexTest) {
   auto index = index_builder.Build();
 
   accessor->SetIndexPointer(idx_oid, index);
-  EXPECT_EQ(index, accessor->GetIndex(idx_oid));
+  EXPECT_EQ(common::ManagedPointer(index), accessor->GetIndex(idx_oid));
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   delete accessor;
 
