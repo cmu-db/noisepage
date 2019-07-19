@@ -11,6 +11,9 @@
 #include "transaction/transaction_context.h"
 
 namespace terrier::catalog::postgres {
+/**
+ * Helper class for building tables and indexes for postgres catalog.
+ */
 class Builder {
  public:
   Builder() = delete;

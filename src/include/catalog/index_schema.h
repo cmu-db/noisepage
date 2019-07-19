@@ -35,9 +35,9 @@ class IndexSchema {
    public:
     /**
      * Non-varlen constructor for index key columns.
-     * @param oid key column oid
-     * @param nullable whether the column is nullable
      * @param type_id the non-varlen type of the column
+     * @param nullable whether the column is nullable
+     * @param expression definition of this attribute
      */
     Column(type::TypeId type_id, bool nullable, const parser::AbstractExpression &expression)
         : oid_(INVALID_INDEXKEYCOL_OID), packed_type_(0) {
@@ -49,9 +49,9 @@ class IndexSchema {
 
     /**
      * Varlen constructor for index key columns.
-     * @param oid key column oid
-     * @param nullable whether the column is nullable
      * @param type_id the varlen type of the column
+     * @param nullable whether the column is nullable
+     * @param expression definition of this attribute
      * @param max_varlen_size the maximum varlen size
      */
     Column(type::TypeId type_id, bool nullable, const parser::AbstractExpression &expression, uint16_t max_varlen_size)

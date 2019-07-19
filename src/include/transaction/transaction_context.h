@@ -169,6 +169,10 @@ class TransactionContext {
    */
   TransactionManager *GetTransactionManager() { return txn_mgr_; }
 
+  /**
+   * Flips the TransactionContext's internal flag that it cannot commit to true. This is checked by the
+   * TransactionManager.
+   */
   void MustAbort() { must_abort_ = true; }
 
  private:

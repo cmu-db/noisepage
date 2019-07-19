@@ -57,7 +57,6 @@ class Index {
 
   /**
    * Creates a new index wrapper.
-   * @param oid identifier for the index
    * @param constraint_type type of index
    * @param metadata index description
    */
