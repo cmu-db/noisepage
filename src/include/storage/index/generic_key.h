@@ -50,7 +50,7 @@ class GenericKey {
       auto *const pr = GetProjectedRow();
       generic_key_initializer.InitializeRow(pr);
 
-      auto key_cols = key_schema.GetColumns();
+      const auto &key_cols = key_schema.GetColumns();
       for (uint16_t i = 0; i < key_cols.size(); i++) {
         const auto offset = static_cast<uint16_t>(from.ColumnIds()[i]);
         TERRIER_ASSERT(offset == static_cast<uint16_t>(pr->ColumnIds()[i]), "PRs must have the same comparison order!");
@@ -235,7 +235,7 @@ struct hash<terrier::storage::index::GenericKey<KeySize>> {
     running_hash =
         terrier::common::HashUtil::CombineHashes(running_hash, terrier::common::HashUtil::Hash(pr->NumColumns()));
 
-    auto key_cols = key_schema.GetColumns();
+    const auto &key_cols = key_schema.GetColumns();
     for (uint16_t i = 0; i < key_cols.size(); i++) {
       const auto offset = static_cast<uint16_t>(pr->ColumnIds()[i]);
       const byte *const attr = pr->AccessWithNullCheck(offset);
@@ -269,7 +269,7 @@ struct equal_to<terrier::storage::index::GenericKey<KeySize>> {
                   const terrier::storage::index::GenericKey<KeySize> &rhs) const {
     const auto &key_schema = lhs.GetIndexMetadata().GetSchema();
 
-    auto key_cols = key_schema.GetColumns();
+    const auto &key_cols = key_schema.GetColumns();
     for (uint16_t i = 0; i < key_cols.size(); i++) {
       const auto *const lhs_pr = lhs.GetProjectedRow();
       const auto *const rhs_pr = rhs.GetProjectedRow();
@@ -324,7 +324,7 @@ struct less<terrier::storage::index::GenericKey<KeySize>> {
                   const terrier::storage::index::GenericKey<KeySize> &rhs) const {
     const auto &key_schema = lhs.GetIndexMetadata().GetSchema();
 
-    auto key_cols = key_schema.GetColumns();
+    const auto &key_cols = key_schema.GetColumns();
     for (uint16_t i = 0; i < key_cols.size(); i++) {
       const auto *const lhs_pr = lhs.GetProjectedRow();
       const auto *const rhs_pr = rhs.GetProjectedRow();

@@ -27,7 +27,7 @@ namespace terrier::catalog::postgres {
  * @return NULL expression with the correct type
  */
 static parser::ConstantValueExpression MakeNull(type::TypeId col_type) {
-  return parser::ConstantValueExpression(std::move(type::TransientValueFactory::GetNull(col_type)));
+  return parser::ConstantValueExpression(type::TransientValueFactory::GetNull(col_type));
 }
 
 Schema Builder::GetDatabaseTableSchema() {
