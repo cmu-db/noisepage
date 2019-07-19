@@ -1177,6 +1177,8 @@ void DatabaseCatalog::TearDown(transaction::TransactionContext *txn) {
           for (auto expr : expressions) delete expr;
         });
   });
+
+  delete[] buffer;
 }
 
 bool DatabaseCatalog::CreateIndexEntry(transaction::TransactionContext *const txn, const namespace_oid_t ns_oid,
