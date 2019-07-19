@@ -11,6 +11,7 @@
 #include "storage/garbage_collector.h"
 #include "storage/sql_table.h"
 #include "storage/storage_defs.h"
+#include "storage/index/index_builder.h"
 #include "transaction/transaction_manager.h"
 #include "transaction/transaction_util.h"
 #include "type/transient_value_factory.h"
