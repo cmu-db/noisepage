@@ -26,5 +26,13 @@ struct Constants {
    * The size of the buffers the log manager uses to buffer serialized logs and "group commit" them when writing to disk
    */
   static const uint32_t LOG_BUFFER_SIZE = (1 << 12);
+  /**
+   * The size of the checksum for the log buffer
+   */
+  static const uint32_t LOG_BUFFER_SUM_SIZE = (1 << 6);
+  /**
+   * The size of the payload in the log buffer
+   */
+  static const uint32_t LOG_BUFFER_PAYLOAD_SIZE = LOG_BUFFER_SIZE - LOG_BUFFER_SUM_SIZE;
 };
 }  // namespace terrier::common
