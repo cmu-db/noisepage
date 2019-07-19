@@ -1158,12 +1158,7 @@ void DatabaseCatalog::TearDown(transaction::TransactionContext *txn) {
     }
   }
 
-  // No new transactions can see these object but there may be deferred index
-  // and other operation.  Therefore, we need to defer the deallocation on delete
-  txn->RegisterCommitAction([=, tables{std::move(tables)}, indexes{std::move(indexes)},
-                             table_schemas{std::move(table_schemas)}, index_schemas{std::move(index_schemas)},
-                             expressions{std::move(expressions)}] {
-    txn->GetTransactionManager()->DeferAction(
+  auto dbc_nuke =
         [=, tables{std::move(tables)}, indexes{std::move(indexes)}, table_schemas{std::move(table_schemas)},
          index_schemas{std::move(index_schemas)}, expressions{std::move(expressions)}] {
           for (auto table : tables) delete table;
@@ -1175,8 +1170,16 @@ void DatabaseCatalog::TearDown(transaction::TransactionContext *txn) {
           for (auto schema : index_schemas) delete schema;
 
           for (auto expr : expressions) delete expr;
-        });
-  });
+        };
+
+  // No new transactions can see these object but there may be deferred index
+  // and other operation.  Therefore, we need to defer the deallocation on delete
+  txn->RegisterCommitAction([=] { txn->GetTransactionManager()->DeferAction(dbc_nuke); });
+
+  // If we are in an abort scenario, then creation failed and we need to teardown.
+  // Since the aborting transaction is the only one that can see the changes, we
+  // need to scan in that actions context, but are safe to immediately deallocate.
+  txn->RegisterAbortAction([=] { txn->GetTransactionManager()->DeferAction(dbc_nuke); });
 
   delete[] buffer;
 }

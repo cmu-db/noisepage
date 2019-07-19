@@ -142,8 +142,9 @@ void TransactionManager::LogAbort(TransactionContext *const txn) {
 timestamp_t TransactionManager::Abort(TransactionContext *const txn) {
   // Immediately clear the abort actions stack
   while (!txn->abort_actions_.empty()) {
-    txn->abort_actions_.front()();
+    auto action = txn->abort_actions_.front();
     txn->abort_actions_.pop_front();
+    action();
   }
 
   // We need to beware not to rollback a version chain multiple times, as that is just wasted computation

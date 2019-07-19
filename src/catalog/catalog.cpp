@@ -73,11 +73,13 @@ db_oid_t Catalog::CreateDatabase(transaction::TransactionContext *txn, const std
   // Instantiate the DatabaseCatalog
   db_oid_t db_oid = next_oid_++;
   DatabaseCatalog *dbc = postgres::Builder::CreateDatabaseCatalog(catalog_block_store_, db_oid);
-  txn->RegisterAbortAction([=]() { delete dbc; });
+  if (bootstrap) dbc->Bootstrap(txn);
+  txn->RegisterAbortAction([=]() {
+    dbc->TearDown(txn);
+    delete dbc;
+  });
   auto success = Catalog::CreateDatabaseEntry(txn, db_oid, name, dbc);
   if (!success) return INVALID_DATABASE_OID;
-
-  if (bootstrap) dbc->Bootstrap(txn);
 
   return db_oid;
 }
@@ -241,8 +243,6 @@ bool Catalog::CreateDatabaseEntry(transaction::TransactionContext *txn, db_oid_t
   } else {
     name_varlen = storage::VarlenEntry::CreateInline((byte *)(name.data()), static_cast<uint>(name.size()));
   }
-  // Ensure we delete the database if the transaction aborts
-  txn->RegisterAbortAction([=]() { delete dbc; });
 
   // Create the redo record for inserting into the table
   std::vector<col_oid_t> table_oids;
