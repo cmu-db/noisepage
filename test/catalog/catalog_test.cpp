@@ -342,7 +342,7 @@ TEST_F(CatalogTests, SearchPathTest) {
   accessor->DropTable(test_table_oid);
 
   accessor->SetSearchPath({test_ns_oid, public_ns_oid});
-  EXPECT_EQ(accessor->GetTableOid("test_table"), public_ns_oid);
+  EXPECT_EQ(accessor->GetTableOid("test_table"), public_table_oid);
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   delete accessor;
 }
