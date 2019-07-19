@@ -40,6 +40,7 @@ struct CatalogTests : public TerrierTest {
     // Run the GC to clean up transactions
     gc_->PerformGarbageCollection();
     gc_->PerformGarbageCollection();
+    gc_->PerformGarbageCollection();
 
     delete catalog_;  // need to delete catalog_first
     delete gc_;
