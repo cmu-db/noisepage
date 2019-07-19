@@ -924,7 +924,7 @@ bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oi
       reinterpret_cast<const storage::VarlenEntry *const>(table_pr->AccessForceNotNull(class_pr_map[RELNAME_COL_OID])));
 
   auto *const schema_ptr =
-       *(reinterpret_cast<const IndexSchema *const *const>(table_pr->AccessForceNotNull(pr_map[REL_SCHEMA_COL_OID])));
+       *(reinterpret_cast<const IndexSchema *const *const>(table_pr->AccessForceNotNull(class_pr_map[REL_SCHEMA_COL_OID])));
   auto *const index_ptr =
       *(reinterpret_cast<storage::index::Index *const *const>(table_pr->AccessForceNotNull(class_pr_map[REL_PTR_COL_OID])));
 
