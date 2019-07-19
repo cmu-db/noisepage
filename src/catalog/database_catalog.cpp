@@ -978,10 +978,8 @@ bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oi
   result = indexes_->Select(txn, index_results[0], table_pr);
   TERRIER_ASSERT(result, "Select must succeed if the index scan gave a visible result.");
 
-  // Confirm we got the right entry in pg_index
-  const index_oid_t index_oid =
-      *(reinterpret_cast<const index_oid_t *const>(table_pr->AccessForceNotNull(index_pr_map[INDOID_COL_OID])));
-  TERRIER_ASSERT(index == index_oid,
+  TERRIER_ASSERT(index == *(reinterpret_cast<const index_oid_t *const>(
+                              table_pr->AccessForceNotNull(index_pr_map[INDOID_COL_OID]))),
                  "index oid from pg_index did not match what was found by the index scan from the argument.");
 
   // Delete from pg_index table
