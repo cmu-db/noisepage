@@ -929,7 +929,7 @@ bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oi
   //      *(reinterpret_cast<const index::IndexSchema *const
   //      *const>(table_pr->AccessForceNotNull(pr_map[REL_SCHEMA_COL_OID])));
   auto *const index_ptr =
-      *(reinterpret_cast<storage::SqlTable *const *const>(table_pr->AccessForceNotNull(class_pr_map[REL_PTR_COL_OID])));
+      *(reinterpret_cast<storage::index::Index *const *const>(table_pr->AccessForceNotNull(class_pr_map[REL_PTR_COL_OID])));
 
   const auto class_oid_index_init = classes_oid_index_->GetProjectedRowInitializer();
   const auto class_name_index_init = classes_name_index_->GetProjectedRowInitializer();
