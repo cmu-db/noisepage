@@ -67,6 +67,7 @@ class AttributeHelper {
     return col;
   }
 
+  // TODO(Matt): this doesn't live here. Also refactor more stuff to use it
   static storage::VarlenEntry CreateVarlen(const std::string &str) {
     storage::VarlenEntry varlen;
     if (str.size() > storage::VarlenEntry::InlineThreshold()) {
@@ -80,6 +81,7 @@ class AttributeHelper {
     return varlen;
   }
 
+  // TODO(John): move to catalog_defs
   template <typename Column>
   static storage::VarlenEntry MakeNameVarlen(const Column &col) {
     if constexpr (std::is_class_v<Column, IndexSchema::Column>) {
