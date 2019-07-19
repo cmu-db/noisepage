@@ -206,7 +206,7 @@ TEST_F(CatalogTests, UserTableTest) {
   // Verify we can instantiate a storage object with the generated schema
   auto table = new storage::SqlTable(&block_store_, schema);
 
-  accessor->SetTablePointer(table_oid, table);
+  EXPECT_TRUE(accessor->SetTablePointer(table_oid, table));
   EXPECT_EQ(common::ManagedPointer(table), accessor->GetTable(table_oid));
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   delete accessor;
@@ -245,7 +245,7 @@ TEST_F(CatalogTests, UserIndexTest) {
   auto schema = accessor->GetSchema(table_oid);
   auto table = new storage::SqlTable(&block_store_, schema);
 
-  accessor->SetTablePointer(table_oid, table);
+  EXPECT_TRUE(accessor->SetTablePointer(table_oid, table));
 
 
   // Create the index
@@ -262,7 +262,7 @@ TEST_F(CatalogTests, UserIndexTest) {
   index_builder.SetOid(idx_oid).SetKeySchema(true_schema).SetConstraintType(storage::index::ConstraintType::UNIQUE);
   auto index = index_builder.Build();
 
-  accessor->SetIndexPointer(idx_oid, index);
+  EXPECT_TRUE(accessor->SetIndexPointer(idx_oid, index));
   EXPECT_EQ(common::ManagedPointer(index), accessor->GetIndex(idx_oid));
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   delete accessor;
