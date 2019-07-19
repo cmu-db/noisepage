@@ -94,22 +94,24 @@ TEST_F(CatalogTests, DatabaseTest) {
   auto txn = txn_manager_->BeginTransaction();
   auto db_oid = catalog_->CreateDatabase(txn, "test_database", true);
   EXPECT_NE(db_oid, catalog::INVALID_DATABASE_OID);
-  auto accessor = std::unique_ptr(catalog_->GetAccessor(txn, db_oid));
+  auto accessor = catalog_->GetAccessor(txn, db_oid);
   EXPECT_NE(accessor, nullptr);
   VerifyCatalogTables(accessor);  // Check visibility to me
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  delete accessor;
 
   // Cannot add a database twice
   txn = txn_manager_->BeginTransaction();
-  accessor = std::unique_ptr(catalog_->GetAccessor(txn, db_oid));
+  accessor = catalog_->GetAccessor(txn, db_oid);
   auto tmp_oid = accessor->CreateDatabase("test_database");
   EXPECT_EQ(tmp_oid, catalog::INVALID_DATABASE_OID);  // Should cause a name conflict
   txn_manager_->Abort(txn);
+  delete accessor;
 
   // Get an accessor into the database and validate the catalog tables exist
   // then delete it and verify an invalid OID is now returned for the lookup
   txn = txn_manager_->BeginTransaction();
-  accessor = std::unique_ptr(catalog_->GetAccessor(txn, db_oid));
+  accessor = catalog_->GetAccessor(txn, db_oid);
   EXPECT_NE(accessor, nullptr);
   VerifyCatalogTables(accessor);  // Check visibility to me
   tmp_oid = accessor->GetDatabaseOid("test_database");
@@ -117,12 +119,14 @@ TEST_F(CatalogTests, DatabaseTest) {
   tmp_oid = accessor->GetDatabaseOid("test_database");
   EXPECT_EQ(tmp_oid, catalog::INVALID_DATABASE_OID);
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  delete accessor;
 
   // Cannot get an accessor to a non-existent database
   txn = txn_manager_->BeginTransaction();
-  accessor = std::unique_ptr(catalog_->GetAccessor(txn, db_oid));
+  accessor = catalog_->GetAccessor(txn, db_oid);
   EXPECT_EQ(accessor, nullptr);
   txn_manager_->Abort(txn);
+  delete accessor;
 }
 
 /*
@@ -134,18 +138,20 @@ TEST_F(CatalogTests, NamespaceTest) {
   auto txn = txn_manager_->BeginTransaction();
   auto db_oid = catalog_->CreateDatabase(txn, "test_database", true);
   EXPECT_NE(db_oid, catalog::INVALID_DATABASE_OID);
-  auto accessor = std::unique_ptr(catalog_->GetAccessor(txn, db_oid));
+  auto accessor = catalog_->GetAccessor(txn, db_oid);
   EXPECT_NE(accessor, nullptr);
   auto ns_oid = accessor->CreateNamespace("test_namespace");
   EXPECT_NE(ns_oid, catalog::INVALID_NAMESPACE_OID);
   VerifyCatalogTables(accessor);  // Check visibility to me
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  delete accessor;
 
   txn = txn_manager_->BeginTransaction();
   accessor = catalog_->GetAccessor(txn, db_oid);
   ns_oid = accessor->CreateNamespace("test_namespace");
   EXPECT_EQ(ns_oid, catalog::INVALID_NAMESPACE_OID);  // Should cause a name conflict
   txn_manager_->Abort(txn);
+  delete accessor;
 
   // Get an accessor into the database and validate the catalog tables exist
   // then delete it and verify an invalid OID is now returned for the lookup
@@ -158,11 +164,13 @@ TEST_F(CatalogTests, NamespaceTest) {
   ns_oid = accessor->GetNamespaceOid("test_namespace");
   EXPECT_EQ(ns_oid, catalog::INVALID_NAMESPACE_OID);
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  delete accessor;
 
   txn = txn_manager_->BeginTransaction();
   accessor = catalog_->GetAccessor(txn, db_oid);
   EXPECT_FALSE(accessor->DropNamespace(ns_oid));
   txn_manager_->Abort(txn);
+  delete accessor;
 }
 
 /*
@@ -204,6 +212,7 @@ TEST_F(CatalogTests, UserTableTest) {
   accessor->SetTablePointer(table_oid, table);
   EXPECT_EQ(common::ManagedPointer(table), accessor->GetTable(table_oid));
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  delete accessor;
 
   // Get an accessor into the database and validate the catalog tables exist
   // then delete it and verify an invalid OID is now returned for the lookup
@@ -216,6 +225,7 @@ TEST_F(CatalogTests, UserTableTest) {
   table_oid = accessor->GetTableOid("test_table");
   EXPECT_EQ(table_oid, catalog::INVALID_TABLE_OID);
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  delete accessor;
 }
 
 }  // namespace terrier
