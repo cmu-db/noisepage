@@ -1,3 +1,7 @@
+#include <string>
+#include <utility>
+#include <vector>
+
 #include "catalog/catalog.h"
 #include "catalog/catalog_accessor.h"
 #include "catalog/database_catalog.h"
@@ -197,7 +201,8 @@ bool Catalog::CreateDatabaseEntry(transaction::TransactionContext *txn, db_oid_t
     std::memcpy(contents, name.data(), name.size());
     name_varlen = storage::VarlenEntry::Create(contents, static_cast<uint>(name.size()), true);
   } else {
-    name_varlen = storage::VarlenEntry::CreateInline((byte *)(name.data()), static_cast<uint>(name.size()));
+    name_varlen = storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *const>(name.data()),
+                                                     static_cast<uint>(name.size()));
   }
 
   // Create the redo record for inserting into the table
@@ -205,6 +210,7 @@ bool Catalog::CreateDatabaseEntry(transaction::TransactionContext *txn, db_oid_t
   table_oids.emplace_back(DATOID_COL_OID);
   table_oids.emplace_back(DATNAME_COL_OID);
   table_oids.emplace_back(DAT_CATALOG_COL_OID);
+  // NOLINTNEXTLINE Matt: this is C++17 which lint hates
   auto [pri, pm] = databases_->InitializerForProjectedRow(table_oids);
   auto *redo = txn->StageWrite(INVALID_DATABASE_OID, DATABASE_TABLE_OID, pri);
 
@@ -278,8 +284,6 @@ DatabaseCatalog *Catalog::DeleteDatabaseEntry(transaction::TransactionContext *t
   }
   TERRIER_ASSERT(index_results.size() == 1, "Database OID not unique in index");
 
-  // TODO (John):  This is wrong.  I need to fetch the pointer and varlen and
-  // store both so that we can properly delete the varlen from the name index
   pr = table_pri.InitializeRow(buffer);
   if (!databases_->Select(txn, index_results[0], pr)) {
     // Nothing visible
@@ -303,7 +307,6 @@ DatabaseCatalog *Catalog::DeleteDatabaseEntry(transaction::TransactionContext *t
   pr = oid_pri.InitializeRow(buffer);
   auto *oid_v = reinterpret_cast<db_oid_t *>(pr->AccessForceNotNull(0));
   *oid_v = db;
-  // TODO (Ling): Delete function in index.h returns void, probably because the actual deletion will be deferred.
   databases_oid_index_->Delete(txn, *pr, index_results[0]);
 
   pr = name_pri.InitializeRow(buffer);

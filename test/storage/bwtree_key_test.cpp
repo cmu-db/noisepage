@@ -428,19 +428,19 @@ TEST_F(BwTreeKeyTests, IndexMetadataCompactIntsKeyTest) {
   // oids                  {20, 21, 22, 23, 24}
   key_cols.emplace_back(type::TypeId::INTEGER, false,
                         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
-  StorageTestUtil::ForceOid(key_cols.back(), oid++);
+  StorageTestUtil::ForceOid(&(key_cols.back()), oid++);
   key_cols.emplace_back(type::TypeId::INTEGER, false,
                         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
-  StorageTestUtil::ForceOid(key_cols.back(), oid++);
+  StorageTestUtil::ForceOid(&(key_cols.back()), oid++);
   key_cols.emplace_back(type::TypeId::BIGINT, false,
                         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::BIGINT)));
-  StorageTestUtil::ForceOid(key_cols.back(), oid++);
+  StorageTestUtil::ForceOid(&(key_cols.back()), oid++);
   key_cols.emplace_back(type::TypeId::TINYINT, false,
                         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
-  StorageTestUtil::ForceOid(key_cols.back(), oid++);
+  StorageTestUtil::ForceOid(&(key_cols.back()), oid++);
   key_cols.emplace_back(type::TypeId::SMALLINT, false,
                         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::SMALLINT)));
-  StorageTestUtil::ForceOid(key_cols.back(), oid++);
+  StorageTestUtil::ForceOid(&(key_cols.back()), oid++);
 
   IndexMetadata metadata(catalog::IndexSchema(key_cols, true, true, false, true));
 
@@ -528,22 +528,22 @@ TEST_F(BwTreeKeyTests, IndexMetadataGenericKeyNoMustInlineVarlenTest) {
   // oids                  {20, 21, 22, 23, 24}
   key_cols.emplace_back(type::TypeId::INTEGER, false,
                         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
-  StorageTestUtil::ForceOid(key_cols.back(), oid++);
+  StorageTestUtil::ForceOid(&(key_cols.back()), oid++);
   key_cols.emplace_back(type::TypeId::VARCHAR, false,
                         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)),
                         8);
-  StorageTestUtil::ForceOid(key_cols.back(), oid++);
+  StorageTestUtil::ForceOid(&(key_cols.back()), oid++);
   key_cols.emplace_back(type::TypeId::VARCHAR, false,
                         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)),
                         0);
-  StorageTestUtil::ForceOid(key_cols.back(), oid++);
+  StorageTestUtil::ForceOid(&(key_cols.back()), oid++);
   key_cols.emplace_back(type::TypeId::TINYINT, false,
                         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
-  StorageTestUtil::ForceOid(key_cols.back(), oid++);
+  StorageTestUtil::ForceOid(&(key_cols.back()), oid++);
   key_cols.emplace_back(type::TypeId::VARCHAR, false,
                         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)),
                         12);
-  StorageTestUtil::ForceOid(key_cols.back(), oid++);
+  StorageTestUtil::ForceOid(&(key_cols.back()), oid++);
 
   IndexMetadata metadata(catalog::IndexSchema(key_cols, true, true, false, true));
 
@@ -626,22 +626,22 @@ TEST_F(BwTreeKeyTests, IndexMetadataGenericKeyMustInlineVarlenTest) {
   // oids                  {20, 21, 22, 23, 24}
   key_cols.emplace_back(type::TypeId::INTEGER, false,
                         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
-  StorageTestUtil::ForceOid(key_cols.back(), oid++);
+  StorageTestUtil::ForceOid(&(key_cols.back()), oid++);
   key_cols.emplace_back(type::TypeId::VARCHAR, false,
                         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)),
                         50);
-  StorageTestUtil::ForceOid(key_cols.back(), oid++);
+  StorageTestUtil::ForceOid(&(key_cols.back()), oid++);
   key_cols.emplace_back(type::TypeId::VARCHAR, false,
                         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)),
                         8);
-  StorageTestUtil::ForceOid(key_cols.back(), oid++);
+  StorageTestUtil::ForceOid(&(key_cols.back()), oid++);
   key_cols.emplace_back(type::TypeId::TINYINT, false,
                         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
-  StorageTestUtil::ForceOid(key_cols.back(), oid++);
+  StorageTestUtil::ForceOid(&(key_cols.back()), oid++);
   key_cols.emplace_back(type::TypeId::VARCHAR, false,
                         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)),
                         90);
-  StorageTestUtil::ForceOid(key_cols.back(), oid++);
+  StorageTestUtil::ForceOid(&(key_cols.back()), oid++);
 
   IndexMetadata metadata(catalog::IndexSchema(key_cols, true, true, false, true));
 
@@ -833,7 +833,7 @@ void CompactIntsKeyBasicTest(type::TypeId type_id, Random *const generator) {
   for (uint8_t i = 0; i < num_cols; i++) {
     key_cols.emplace_back(type_id, false,
                           parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type_id)));
-    StorageTestUtil::ForceOid(key_cols.back(), catalog::indexkeycol_oid_t(i));
+    StorageTestUtil::ForceOid(&(key_cols.back()), catalog::indexkeycol_oid_t(i));
   }
   key_schema = catalog::IndexSchema(key_cols, false, false, false, true);
 
@@ -894,7 +894,7 @@ template <typename KeyType, typename CType>
 void NumericComparisons(const type::TypeId type_id, const bool nullable) {
   std::vector<catalog::IndexSchema::Column> key_cols;
   key_cols.emplace_back(type_id, true, parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type_id)));
-  StorageTestUtil::ForceOid(key_cols.back(), catalog::indexkeycol_oid_t(0));
+  StorageTestUtil::ForceOid(&(key_cols.back()), catalog::indexkeycol_oid_t(0));
 
   const IndexMetadata metadata(catalog::IndexSchema(key_cols, false, false, false, true));
   const auto &initializer = metadata.GetProjectedRowInitializer();
@@ -986,7 +986,7 @@ TEST_F(BwTreeKeyTests, GenericKeyInlineVarlenComparisons) {
   key_cols.emplace_back(type::TypeId::VARCHAR, true,
                         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)),
                         12);
-  StorageTestUtil::ForceOid(key_cols.back(), catalog::indexkeycol_oid_t(0));
+  StorageTestUtil::ForceOid(&(key_cols.back()), catalog::indexkeycol_oid_t(0));
 
   const IndexMetadata metadata(catalog::IndexSchema(key_cols, false, false, false, true));
   const auto &initializer = metadata.GetProjectedRowInitializer();
@@ -1095,7 +1095,7 @@ TEST_F(BwTreeKeyTests, GenericKeyNonInlineVarlenComparisons) {
   key_cols.emplace_back(type::TypeId::VARCHAR, true,
                         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)),
                         20);
-  StorageTestUtil::ForceOid(key_cols.back(), catalog::indexkeycol_oid_t(0));
+  StorageTestUtil::ForceOid(&(key_cols.back()), catalog::indexkeycol_oid_t(0));
 
   const IndexMetadata metadata(catalog::IndexSchema(key_cols, false, false, false, true));
   const auto &initializer = metadata.GetProjectedRowInitializer();
@@ -1193,7 +1193,7 @@ TEST_F(BwTreeKeyTests, GenericKeyBuilderVarlenSizeEdgeCaseTest) {
   key_cols.emplace_back(type::TypeId::VARCHAR, false,
                         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)),
                         64);
-  StorageTestUtil::ForceOid(key_cols.back(), catalog::indexkeycol_oid_t(15445));
+  StorageTestUtil::ForceOid(&(key_cols.back()), catalog::indexkeycol_oid_t(15445));
   const auto key_schema = catalog::IndexSchema(key_cols, false, false, false, true);
 
   IndexBuilder builder;

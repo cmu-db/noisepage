@@ -1,4 +1,7 @@
 #include "catalog/catalog_accessor.h"
+#include <string>
+#include <utility>
+#include <vector>
 #include "catalog/catalog.h"
 
 namespace terrier::catalog {

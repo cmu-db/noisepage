@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <utility>
 #include <vector>
 #include "common/hash_util.h"
 #include "parser/expression/abstract_expression.h"
