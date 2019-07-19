@@ -311,6 +311,12 @@ namespace_oid_t DatabaseCatalog::GetNamespaceOid(transaction::TransactionContext
   *name_entry = postgres::AttributeHelper::CreateVarlen(name);
   std::vector<storage::TupleSlot> index_results;
   namespaces_name_index_->ScanKey(*txn, *pr, &index_results);
+
+  // Clean up the varlen's buffer in the case it wasn't inlined.
+  if (!name_entry->IsInlined()) {
+    delete[] name_entry->Content();
+  }
+
   if (index_results.empty()) {
     delete[] buffer;
     return INVALID_NAMESPACE_OID;
@@ -1158,19 +1164,18 @@ void DatabaseCatalog::TearDown(transaction::TransactionContext *txn) {
     }
   }
 
-  auto dbc_nuke =
-        [=, tables{std::move(tables)}, indexes{std::move(indexes)}, table_schemas{std::move(table_schemas)},
-         index_schemas{std::move(index_schemas)}, expressions{std::move(expressions)}] {
-          for (auto table : tables) delete table;
+  auto dbc_nuke = [=, tables{std::move(tables)}, indexes{std::move(indexes)}, table_schemas{std::move(table_schemas)},
+                   index_schemas{std::move(index_schemas)}, expressions{std::move(expressions)}] {
+    for (auto table : tables) delete table;
 
-          for (auto index : indexes) delete index;
+    for (auto index : indexes) delete index;
 
-          for (auto schema : table_schemas) delete schema;
+    for (auto schema : table_schemas) delete schema;
 
-          for (auto schema : index_schemas) delete schema;
+    for (auto schema : index_schemas) delete schema;
 
-          for (auto expr : expressions) delete expr;
-        };
+    for (auto expr : expressions) delete expr;
+  };
 
   // No new transactions can see these object but there may be deferred index
   // and other operation.  Therefore, we need to defer the deallocation on delete
