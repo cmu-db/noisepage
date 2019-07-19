@@ -36,6 +36,7 @@ struct CatalogTests : public TerrierTest {
   }
 
   void TearDown() override {
+    catalog_->TearDown();
     // Run the GC to clean up transactions
     gc_->PerformGarbageCollection();
     gc_->PerformGarbageCollection();
