@@ -193,7 +193,7 @@ void DatabaseCatalog::Bootstrap(transaction::TransactionContext *txn) {
 
 namespace_oid_t DatabaseCatalog::CreateNamespace(transaction::TransactionContext *txn, const std::string &name) {
   namespace_oid_t ns_oid{next_oid_++};
-  if (CreateNamespace(txn, name, ns_oid)) {
+  if (!CreateNamespace(txn, name, ns_oid)) {
     return INVALID_NAMESPACE_OID;
   }
   return ns_oid;
