@@ -407,6 +407,11 @@ class SelectStatement : public SQLStatement {
   common::ManagedPointer<LimitDescription> GetSelectLimit() { return common::ManagedPointer(limit_); }
 
   /**
+   * @return depth of the select statement
+   */
+  int GetDepth() { return depth_; }
+
+  /**
    * Adds a select statement child as a union target.
    * @param select_stmt select statement to union with
    */
