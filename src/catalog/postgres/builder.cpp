@@ -105,7 +105,8 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(storage::BlockStore *block_store
   // Indexes on pg_attribute
   dbc->columns_oid_index_ = Builder::BuildUniqueIndex(Builder::GetColumnOidIndexSchema(oid), COLUMN_OID_INDEX_OID);
   dbc->columns_name_index_ = Builder::BuildUniqueIndex(Builder::GetColumnNameIndexSchema(oid), COLUMN_NAME_INDEX_OID);
-  dbc->columns_class_index_ = Builder::BuildLookupIndex(Builder::GetColumnClassIndexSchema(oid), COLUMN_CLASS_INDEX_OID);
+  dbc->columns_class_index_ =
+      Builder::BuildLookupIndex(Builder::GetColumnClassIndexSchema(oid), COLUMN_CLASS_INDEX_OID);
 
   // Indexes on pg_type
   dbc->types_oid_index_ = Builder::BuildUniqueIndex(Builder::GetTypeOidIndexSchema(oid), TYPE_OID_INDEX_OID);
