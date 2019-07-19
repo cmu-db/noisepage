@@ -718,9 +718,7 @@ std::pair<uint32_t, postgres::ClassKind> DatabaseCatalog::GetClassOidKind(transa
   *(reinterpret_cast<namespace_oid_t *>(pr->AccessForceNotNull(1))) = ns_oid;
 
   classes_name_index_->ScanKey(*txn, *pr, &index_results);
-  if (varlen_contents != nullptr) {
-    delete[] varlen_contents;
-  }
+  delete[] varlen_contents;
 
   if (index_results.empty()) {
     delete[] buffer;
@@ -828,6 +826,7 @@ bool DatabaseCatalog::UpdateSchema(transaction::TransactionContext *txn, table_o
 
 const Schema &DatabaseCatalog::GetSchema(transaction::TransactionContext *txn, table_oid_t table) {
   auto ptr_pair = GetClassSchemaPtrKind(txn, static_cast<uint32_t>(table));
+  TERRIER_ASSERT(ptr_pair.first != nullptr, "Schema pointer shouldn't ever be NULL under current catalog semantics.");
   TERRIER_ASSERT(ptr_pair.second == postgres::ClassKind::REGULAR_TABLE, "Requested a table schema for a non-table");
   return *reinterpret_cast<Schema *>(ptr_pair.first);
 }
@@ -1089,6 +1088,7 @@ index_oid_t DatabaseCatalog::GetIndexOid(transaction::TransactionContext *txn, n
 
 const IndexSchema &DatabaseCatalog::GetIndexSchema(transaction::TransactionContext *txn, index_oid_t index) {
   auto ptr_pair = GetClassSchemaPtrKind(txn, static_cast<uint32_t>(index));
+  TERRIER_ASSERT(ptr_pair.first != nullptr, "Schema pointer shouldn't ever be NULL under current catalog semantics.");
   TERRIER_ASSERT(ptr_pair.second == postgres::ClassKind::INDEX, "Requested an index schema for a non-index");
   return *reinterpret_cast<IndexSchema *>(ptr_pair.first);
 }
@@ -1658,15 +1658,11 @@ std::pair<void *, postgres::ClassKind> DatabaseCatalog::GetClassSchemaPtrKind(tr
   const auto result UNUSED_ATTRIBUTE = classes_->Select(txn, index_results[0], select_pr);
   TERRIER_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
 
-  auto *const ptr_ptr = (reinterpret_cast<void *const *const>(select_pr->AccessWithNullCheck(0)));
+  auto *const ptr_ptr = (reinterpret_cast<void *const *const>(select_pr->AccessForceNotNull(0)));
   auto kind = *(reinterpret_cast<const postgres::ClassKind *const>(select_pr->AccessForceNotNull(1)));
 
-  void *ptr;
-  if (ptr_ptr == nullptr) {
-    ptr = nullptr;
-  } else {
-    ptr = *ptr_ptr;
-  }
+  TERRIER_ASSERT(ptr_ptr != nullptr, "Schema pointer shouldn't ever be NULL under current catalog semantics.");
+  void *ptr = *ptr_ptr;
 
   delete[] buffer;
   return {ptr, kind};

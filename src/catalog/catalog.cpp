@@ -98,8 +98,7 @@ bool Catalog::DeleteDatabase(transaction::TransactionContext *txn, db_oid_t data
 
   // Defer the de-allocation on commit because we need to scan the tables to find
   // live references at deletion that need to be deleted.
-  txn->RegisterCommitAction(
-      [=, del_action{std::move(del_action)}]() { txn_manager_->DeferAction(std::move(del_action)); });
+  txn->RegisterCommitAction([=, del_action{std::move(del_action)}]() { txn_manager_->DeferAction(del_action); });
   return true;
 }
 
@@ -133,9 +132,7 @@ db_oid_t Catalog::GetDatabaseOid(transaction::TransactionContext *txn, const std
   *(reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(0))) = name_varlen;
 
   databases_name_index_->ScanKey(*txn, *pr, &index_results);
-  if (varlen_contents != nullptr) {
-    delete[] varlen_contents;
-  }
+  delete[] varlen_contents;
 
   if (index_results.empty()) {
     delete[] buffer;

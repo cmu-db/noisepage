@@ -326,7 +326,7 @@ class DatabaseCatalog {
   explicit DatabaseCatalog(db_oid_t oid) : db_oid_(oid) {}
 
   void TearDown(transaction::TransactionContext *txn);
-  bool CreateTableEntry(transaction::TransactionContext *txn, table_oid_t table_oid, namespace_oid_t ns,
+  bool CreateTableEntry(transaction::TransactionContext *txn, table_oid_t table_oid, namespace_oid_t ns_oid,
                         const std::string &name, Schema *schema);
 
   friend class Catalog;
@@ -342,8 +342,8 @@ class DatabaseCatalog {
    * @param schema describing the new index
    * @return true if creation succeeded, false otherwise
    */
-  bool CreateIndexEntry(transaction::TransactionContext *const txn, const namespace_oid_t ns_oid, table_oid_t table_oid,
-                        const index_oid_t index_oid, const std::string &name, const IndexSchema &schema);
+  bool CreateIndexEntry(transaction::TransactionContext *txn, namespace_oid_t ns_oid, table_oid_t table_oid,
+                        index_oid_t index_oid, const std::string &name, const IndexSchema &schema);
 
   /**
    * Bootstraps the built-in types found in type::Type
