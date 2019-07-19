@@ -29,7 +29,7 @@ struct CatalogTests : public TerrierTest {
     catalog_ = new catalog::Catalog(txn_manager_, &block_store_);
 
     auto txn = txn_manager_->BeginTransaction();
-    auto db_oid = catalog_->CreateDatabase(txn, "terrier", true);
+    catalog_->CreateDatabase(txn, "terrier", true);
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     // Run the GC to flush it down to a clean system
