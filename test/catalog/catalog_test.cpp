@@ -254,7 +254,7 @@ TEST_F(CatalogTests, UserIndexTest) {
                                                                                     schema.GetColumn("id").GetOid())}};
   auto index_schema = catalog::IndexSchema(key_cols, true, true, false, true);
   auto idx_oid = accessor->CreateIndex(accessor->GetDefaultNamespace(), table_oid,
-                                       "test_table_indexmabobberwithareallylongnamethatstillneedsmore", index_schema);
+                                       "test_table_index_mabobberwithareallylongnamethatstillneedsmore", index_schema);
   EXPECT_NE(idx_oid, catalog::INVALID_INDEX_OID);
   auto true_schema = accessor->GetIndexSchema(idx_oid);
 
