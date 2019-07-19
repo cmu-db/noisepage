@@ -876,7 +876,7 @@ index_oid_t DatabaseCatalog::CreateIndex(transaction::TransactionContext *txn, n
   return CreateIndexEntry(txn, ns, table, index_oid, name, schema) ? index_oid : INVALID_INDEX_OID;
 }
 
-bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oid_t index) {
+bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oid_t idx) {
   std::vector<storage::TupleSlot> index_results;
   // Initialize PRs for pg_class
   auto class_oid_pri = classes_oid_index_->GetProjectedRowInitializer();
@@ -890,7 +890,7 @@ bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oi
   auto *key_pr = class_oid_pri.InitializeRow(buffer);
 
   // Find the entry using the index
-  *(reinterpret_cast<uint32_t *>(key_pr->AccessForceNotNull(0))) = static_cast<uint32_t>(index);
+  *(reinterpret_cast<uint32_t *>(key_pr->AccessForceNotNull(0))) = static_cast<uint32_t>(idx);
   classes_oid_index_->ScanKey(*txn, *key_pr, &index_results);
   if (index_results.empty()) {
     // TODO(Matt): we should verify what postgres does in this case
@@ -962,7 +962,7 @@ bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oi
   // Find the entry in pg_index using the oid index
   index_results.clear();
   key_pr = index_oid_pr.InitializeRow(buffer);
-  *(reinterpret_cast<uint32_t *>(key_pr->AccessForceNotNull(0))) = static_cast<uint32_t>(index);
+  *(reinterpret_cast<uint32_t *>(key_pr->AccessForceNotNull(0))) = static_cast<uint32_t>(idx);
   indexes_oid_index_->ScanKey(*txn, *key_pr, &index_results);
   if (index_results.empty()) {
     // TODO(Matt): we should verify what postgres does in this case
@@ -981,7 +981,7 @@ bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oi
   // Confirm we got the right entry in pg_index
   const index_oid_t index_oid =
       *(reinterpret_cast<const index_oid_t *const>(table_pr->AccessForceNotNull(index_pr_map[INDOID_COL_OID])));
-  TERRIER_ASSERT(index == index_oid,
+  TERRIER_ASSERT(idx == index_oid,
                  "index oid from pg_index did not match what was found by the index scan from the argument.");
 
   // Delete from pg_index table
@@ -997,7 +997,7 @@ bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oi
 
   // Delete from indexes_oid_index
   index_pr = index_oid_pr.InitializeRow(buffer);
-  *(reinterpret_cast<uint32_t *const>(index_pr->AccessForceNotNull(0))) = static_cast<uint32_t>(index);
+  *(reinterpret_cast<uint32_t *const>(index_pr->AccessForceNotNull(0))) = static_cast<uint32_t>(idx);
   indexes_oid_index_->Delete(txn, *index_pr, index_results[0]);
 
   // Delete from indexes_table_index
