@@ -74,7 +74,13 @@ class SqlTable {
                                ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
                    "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
                    "immediately before?");
-    return table_.data_table->Update(txn, redo->GetTupleSlot(), *(redo->Delta()));
+    const auto result = table_.data_table->Update(txn, redo->GetTupleSlot(), *(redo->Delta()));
+    if (!result) {
+      // For MVCC correctness, this txn must now abort for the GC to clean up the version chain in the DataTable
+      // correctly.
+      txn->MustAbort();
+    }
+    return result;
   }
 
   /**
@@ -110,7 +116,14 @@ class SqlTable {
                 ->GetUnderlyingRecordBodyAs<DeleteRecord>()
                 ->GetTupleSlot() == slot,
         "This Delete is not the most recent entry in the txn's RedoBuffer. Was StageDelete called immediately before?");
-    return table_.data_table->Delete(txn, slot);
+
+    const auto result = table_.data_table->Delete(txn, slot);
+    if (!result) {
+      // For MVCC correctness, this txn must now abort for the GC to clean up the version chain in the DataTable
+      // correctly.
+      txn->MustAbort();
+    }
+    return result;
   }
 
   /**
