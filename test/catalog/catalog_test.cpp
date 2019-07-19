@@ -29,7 +29,8 @@ struct CatalogTests : public TerrierTest {
     catalog_ = new catalog::Catalog(txn_manager_, &block_store_);
 
     auto txn = txn_manager_->BeginTransaction();
-    catalog_->CreateDatabase(txn, "terrier", true);
+    db_ = catalog_->CreateDatabase(txn, "terrier", true);
+    EXPECT_NE(db_, catalog::INVALID_DATABASE_OID);
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     // Run the GC to flush it down to a clean system
@@ -83,6 +84,7 @@ struct CatalogTests : public TerrierTest {
   transaction::TransactionManager *txn_manager_;
 
   storage::GarbageCollector *gc_;
+  catalog::db_oid_t db_;
 };
 
 /*
@@ -136,9 +138,7 @@ TEST_F(CatalogTests, DatabaseTest) {
 TEST_F(CatalogTests, NamespaceTest) {
   // Create a database and check that it's immediately visible
   auto txn = txn_manager_->BeginTransaction();
-  auto db_oid = catalog_->CreateDatabase(txn, "test_database", true);
-  EXPECT_NE(db_oid, catalog::INVALID_DATABASE_OID);
-  auto accessor = catalog_->GetAccessor(txn, db_oid);
+  auto accessor = catalog_->GetAccessor(txn, db_);
   EXPECT_NE(accessor, nullptr);
   auto ns_oid = accessor->CreateNamespace("test_namespace");
   EXPECT_NE(ns_oid, catalog::INVALID_NAMESPACE_OID);
@@ -147,7 +147,7 @@ TEST_F(CatalogTests, NamespaceTest) {
   delete accessor;
 
   txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(txn, db_oid);
+  accessor = catalog_->GetAccessor(txn, db_);
   ns_oid = accessor->CreateNamespace("test_namespace");
   EXPECT_EQ(ns_oid, catalog::INVALID_NAMESPACE_OID);  // Should cause a name conflict
   txn_manager_->Abort(txn);
@@ -156,7 +156,7 @@ TEST_F(CatalogTests, NamespaceTest) {
   // Get an accessor into the database and validate the catalog tables exist
   // then delete it and verify an invalid OID is now returned for the lookup
   txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(txn, db_oid);
+  accessor = catalog_->GetAccessor(txn, db_);
   EXPECT_NE(accessor, nullptr);
   VerifyCatalogTables(accessor);  // Check visibility to me
   ns_oid = accessor->GetNamespaceOid("test_namespace");
@@ -167,7 +167,7 @@ TEST_F(CatalogTests, NamespaceTest) {
   delete accessor;
 
   txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(txn, db_oid);
+  accessor = catalog_->GetAccessor(txn, db_);
   EXPECT_FALSE(accessor->DropNamespace(ns_oid));
   txn_manager_->Abort(txn);
   delete accessor;
@@ -179,9 +179,7 @@ TEST_F(CatalogTests, NamespaceTest) {
 // NOLINTNEXTLINE
 TEST_F(CatalogTests, UserTableTest) {
   auto txn = txn_manager_->BeginTransaction();
-  auto db_oid = catalog_->CreateDatabase(txn, "test_database", true);
-  EXPECT_NE(db_oid, catalog::INVALID_DATABASE_OID);
-  auto accessor = catalog_->GetAccessor(txn, db_oid);
+  auto accessor = catalog_->GetAccessor(txn, db_);
 
   // Create the column definition (no OIDs)
   std::vector<catalog::Schema::Column> cols;
@@ -206,9 +204,6 @@ TEST_F(CatalogTests, UserTableTest) {
   // Verify we can instantiate a storage object with the generated schema
   auto table = new storage::SqlTable(&block_store_, schema);
 
-  // TODO(John): The next call should not transfer ownership of the SqlTable to
-  // the catalog.  However, the current backend does this.  This test will leak
-  // once this is corrected unless the delete call at the end is uncommented.
   accessor->SetTablePointer(table_oid, table);
   EXPECT_EQ(common::ManagedPointer(table), accessor->GetTable(table_oid));
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -217,7 +212,7 @@ TEST_F(CatalogTests, UserTableTest) {
   // Get an accessor into the database and validate the catalog tables exist
   // then delete it and verify an invalid OID is now returned for the lookup
   txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(txn, db_oid);
+  accessor = catalog_->GetAccessor(txn, db_);
   EXPECT_NE(accessor, nullptr);
   table_oid = accessor->GetTableOid("test_table");
   EXPECT_NE(table_oid, catalog::INVALID_TABLE_OID);
@@ -228,4 +223,47 @@ TEST_F(CatalogTests, UserTableTest) {
   delete accessor;
 }
 
+/*
+ *
+ */
+// NOLINTNEXTLINE
+TEST_F(CatalogTests, UserIndexTest) {
+  auto txn = txn_manager_->BeginTransaction();
+  auto accessor = catalog_->GetAccessor(txn, db_);
+
+  // Create the column definition (no OIDs)
+  std::vector<catalog::Schema::Column> cols;
+  cols.emplace_back("id", type::TypeId::INTEGER, false,
+                    parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+  cols.emplace_back("user_col_1", type::TypeId::INTEGER, false,
+                    parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+  auto tmp_schema = catalog::Schema(cols);
+
+  auto table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "test_table", tmp_schema);
+  auto schema = accessor->GetSchema(table_oid);
+  auto table = new storage::SqlTable(&block_store_, schema);
+
+  accessor->SetTablePointer(table_oid, table);
+
+
+  // Create the index
+  std::vector<catalog::IndexSchema::Column> key_cols{{type::TypeId::INTEGER, false,
+                                                      parser::ColumnValueExpression(db_, table_oid,
+                                                                                    schema.GetColumn("id").GetOid())}};
+  auto index_schema = catalog::IndexSchema(key_cols, true, true, false, true);
+  auto idx_oid = accessor->CreateIndex(accessor->GetDefaultNamespace(), table_oid,
+                                       "test_table_indexmabobberwithareallylongnamethatstillneedsmore", index_schema);
+  EXPECT_NE(idx_oid, catalog::INVALID_INDEX_OID);
+  auto true_schema = accessor->GetIndexSchema(idx_oid);
+
+  storage::index::IndexBuilder index_builder;
+  index_builder.SetOid(idx_oid).SetKeySchema(true_schema).SetConstraintType(storage::index::ConstraintType::UNIQUE);
+  auto index = index_builder.Build();
+
+  accessor->SetIndexPointer(idx_oid, index);
+  EXPECT_EQ(index, accessor->GetIndex(idx_oid));
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  delete accessor;
+
+}
 }  // namespace terrier

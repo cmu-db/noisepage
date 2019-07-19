@@ -97,16 +97,6 @@ class Catalog {
   common::ManagedPointer<DatabaseCatalog> GetDatabaseCatalog(transaction::TransactionContext *txn, db_oid_t database);
 
   /**
-   * Gets the database-specific catalog object.
-   * @param txn for the catalog query
-   * @param name of the database whose catalog will be returned
-   * @return DatabaseCatalog object which has catalog information for the
-   *   specific database
-   */
-  common::ManagedPointer<DatabaseCatalog> GetDatabaseCatalog(transaction::TransactionContext *txn,
-                                                             const std::string &name);
-
-  /**
    * Creates a new accessor into the catalog which will handle transactionality and sequencing of catalog operations.
    * @param txn for all subsequent catalog queries
    * @param database in which this transaction is scoped

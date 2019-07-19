@@ -182,50 +182,6 @@ common::ManagedPointer<DatabaseCatalog> Catalog::GetDatabaseCatalog(transaction:
   return common::ManagedPointer(dbc);
 }
 
-common::ManagedPointer<DatabaseCatalog> Catalog::GetDatabaseCatalog(transaction::TransactionContext *txn,
-                                                                    const std::string &name) {
-  std::vector<storage::TupleSlot> index_results;
-  auto name_pri = databases_name_index_->GetProjectedRowInitializer();
-
-  // Create the necessary varlen for storage operations
-  storage::VarlenEntry name_varlen;
-  if (name.size() > storage::VarlenEntry::InlineThreshold()) {
-    byte *contents = common::AllocationUtil::AllocateAligned(name.size());
-    std::memcpy(contents, name.data(), name.size());
-    name_varlen = storage::VarlenEntry::Create(contents, static_cast<uint>(name.size()), true);
-  } else {
-    name_varlen = storage::VarlenEntry::CreateInline((byte *)(name.data()), static_cast<uint>(name.size()));
-  }
-
-  // Name is a larger projected row (16-byte key vs 4-byte key), sow we can reuse
-  // the buffer for both index operations if we allocate to the larger one.
-  byte *buffer = common::AllocationUtil::AllocateAligned(name_pri.ProjectedRowSize());
-  auto pr = name_pri.InitializeRow(buffer);
-  auto *varlen = reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(0));
-  *varlen = name_varlen;
-
-  databases_oid_index_->ScanKey(*txn, *pr, &index_results);
-  if (index_results.empty()) {
-    delete[] buffer;
-    return common::ManagedPointer<DatabaseCatalog>(nullptr);
-  }
-  TERRIER_ASSERT(index_results.size() == 1, "Database name not unique in index");
-
-  std::vector<col_oid_t> table_oids;
-  table_oids.emplace_back(DAT_CATALOG_COL_OID);
-  auto table_pri = databases_->InitializerForProjectedRow(table_oids).first;
-  pr = table_pri.InitializeRow(buffer);
-  if (!databases_->Select(txn, index_results[0], pr)) {
-    // Nothing visible
-    delete[] buffer;
-    return common::ManagedPointer<DatabaseCatalog>(nullptr);
-  }
-
-  auto dbc = *reinterpret_cast<DatabaseCatalog **>(pr->AccessForceNotNull(0));
-  delete[] buffer;
-  return common::ManagedPointer(dbc);
-}
-
 CatalogAccessor *Catalog::GetAccessor(transaction::TransactionContext *txn, db_oid_t database) {
   auto dbc = this->GetDatabaseCatalog(txn, database);
   if (dbc == nullptr) return nullptr;
