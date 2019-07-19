@@ -267,5 +267,17 @@ TEST_F(CatalogTests, UserIndexTest) {
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   delete accessor;
 
+  // Get an accessor into the database and validate the catalog tables exist
+  // then delete it and verify an invalid OID is now returned for the lookup
+  txn = txn_manager_->BeginTransaction();
+  accessor = catalog_->GetAccessor(txn, db_);
+  EXPECT_NE(accessor, nullptr);
+  idx_oid = accessor->GetIndexOid("test_table_index_mabobberwithareallylongnamethatstillneedsmore");
+  EXPECT_NE(idx_oid, catalog::INVALID_INDEX_OID);
+  EXPECT_TRUE(accessor->DropIndex(idx_oid));
+  idx_oid = accessor->GetIndexOid("test_table_index_mabobberwithareallylongnamethatstillneedsmore");
+  EXPECT_EQ(idx_oid, catalog::INVALID_INDEX_OID);
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  delete accessor;
 }
 }  // namespace terrier
