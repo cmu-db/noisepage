@@ -723,7 +723,7 @@ TEST_F(BwTreeKeyTests, RandomCompactIntsKeyTest) {
     // figure out which CompactIntsKey template was instantiated
     // this is unpleasant, but seems to be the cleanest way
     uint16_t key_size = 0;
-    for (const auto key : key_schema.GetColumns()) {
+    for (const auto &key : key_schema.GetColumns()) {
       key_size = static_cast<uint16_t>(key_size + type::TypeUtil::GetTypeSize(key.GetType()));
     }
     uint8_t key_type = 0;
