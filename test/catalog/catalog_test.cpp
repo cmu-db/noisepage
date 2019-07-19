@@ -278,4 +278,71 @@ TEST_F(CatalogTests, UserIndexTest) {
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   delete accessor;
 }
+
+/*
+ * Check behavior of search path
+ */
+// NOLINTNEXTLINE
+TEST_F(CatalogTests, SearchPathTest) {
+  // Create a database and check that it's immediately visible
+  auto txn = txn_manager_->BeginTransaction();
+  auto accessor = catalog_->GetAccessor(txn, db_);
+  auto public_ns_oid = accessor->GetNamespaceOid("public");
+  auto test_ns_oid = accessor->CreateNamespace("test");
+  EXPECT_NE(ns_oid, catalog::INVALID_NAMESPACE_OID);
+  VerifyCatalogTables(accessor);  // Check visibility to me
+
+  // Create the column definition (no OIDs)
+  std::vector<catalog::Schema::Column> cols;
+  cols.emplace_back("id", type::TypeId::INTEGER, false,
+                    parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+  cols.emplace_back("user_col_1", type::TypeId::INTEGER, false,
+                    parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+  auto tmp_schema = catalog::Schema(cols);
+
+  // Insert a table into "public"
+  auto public_table_oid = accessor->CreateTable(public_ns_oid, "test_table", tmp_schema);
+  EXPECT_NE(public_table_oid, catalog::INVALID_TABLE_OID);
+  auto schema = accessor->GetSchema(public_table_oid);
+  auto table = new storage::SqlTable(&block_store_, schema);
+  EXPECT_TRUE(accessor->SetTablePointer(public_table_oid, table));
+
+  // Insert a table into "test"
+  auto test_table_oid = accessor->CreateTable(test_ns_oid, "test_table", tmp_schema);
+  EXPECT_NE(test_table_oid, catalog::INVALID_TABLE_OID);
+  auto schema = accessor->GetSchema(test_table_oid);
+  auto table = new storage::SqlTable(&block_store_, schema);
+  EXPECT_TRUE(accessor->SetTablePointer(test_table_oid, table));
+
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  delete accessor;
+
+  // Check that it matches the table in the first namespace in path
+  txn = txn_manager_->BeginTransaction();
+  accessor = catalog_->GetAccessor(txn, db_);
+
+  accessor->SetSearchPath({test_ns_oid, public_ns_oid});
+  EXPECT_EQ(accessor->GetTableOid("test_table") == test_table_oid);
+
+  accessor->SetSearchPath({public_ns_oid, test_ns_oid});
+  EXPECT_EQ(accessor->GetTableOid("test_table") == public_ns_oid);
+
+  auto table_oid = accessor->CreateTable(test_ns_oid, "test_table", tmp_schema);
+  EXPECT_EQ(table_oid, catalog::INVALID_TABLE_OID);
+  auto table_oid = accessor->CreateTable(test_ns_oid, "test_table", tmp_schema);
+  EXPECT_EQ(table_oid, catalog::INVALID_TABLE_OID);
+  txn_manager_->Abort(txn);
+  delete accessor;
+
+  txn = txn_manager_->BeginTransaction();
+  accessor = catalog_->GetAccessor(txn, db_);
+
+  accessor->DropTable(test_table_oid);
+
+  accessor->SetSearchPath({test_ns_oid, public_ns_oid});
+  EXPECT_EQ(accessor->GetTableOid("test_table") == public_ns_oid);
+  txn_manager_->Commit(txn);
+  delete accessor;
+}
+
 }  // namespace terrier
