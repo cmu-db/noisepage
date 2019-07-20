@@ -53,7 +53,7 @@ IndexSchema Builder::GetDatabaseOidIndexSchema() {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Primary
-  IndexSchema schema(columns, true, true, false, true);
+  IndexSchema schema(columns, true, true, false, true, false);
   schema.SetValid(true);
   schema.SetReady(true);
 
@@ -69,7 +69,7 @@ IndexSchema Builder::GetDatabaseNameIndexSchema() {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Unique, not primary
-  IndexSchema schema(columns, true, false, false, true);
+  IndexSchema schema(columns, true, false, false, true, false);
   schema.SetValid(true);
   schema.SetReady(true);
 
@@ -309,7 +309,7 @@ IndexSchema Builder::GetNamespaceOidIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Primary
-  IndexSchema schema(columns, true, true, false, true);
+  IndexSchema schema(columns, true, true, false, true, false);
   schema.SetValid(true);
   schema.SetReady(true);
 
@@ -324,7 +324,7 @@ IndexSchema Builder::GetNamespaceNameIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Unique, not primary
-  IndexSchema schema(columns, true, false, false, true);
+  IndexSchema schema(columns, true, false, false, true, false);
   schema.SetValid(true);
   schema.SetReady(true);
 
@@ -339,7 +339,7 @@ IndexSchema Builder::GetClassOidIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Primary
-  IndexSchema schema(columns, true, true, false, true);
+  IndexSchema schema(columns, true, true, false, true, false);
   schema.SetValid(true);
   schema.SetReady(true);
 
@@ -358,7 +358,7 @@ IndexSchema Builder::GetClassNameIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(2));
 
   // Unique, not primary
-  IndexSchema schema(columns, true, false, false, true);
+  IndexSchema schema(columns, true, false, false, true, false);
   schema.SetValid(true);
   schema.SetReady(true);
 
@@ -373,7 +373,7 @@ IndexSchema Builder::GetClassNamespaceIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Unique, not primary
-  IndexSchema schema(columns, false, false, false, true);
+  IndexSchema schema(columns, false, false, false, true, false);
   schema.SetValid(true);
   schema.SetReady(true);
 
@@ -388,7 +388,7 @@ IndexSchema Builder::GetIndexOidIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Primary
-  IndexSchema schema(columns, true, true, false, true);
+  IndexSchema schema(columns, true, true, false, true, false);
   schema.SetValid(true);
   schema.SetReady(true);
 
@@ -403,7 +403,7 @@ IndexSchema Builder::GetIndexTableIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Not unique
-  IndexSchema schema(columns, false, false, false, true);
+  IndexSchema schema(columns, false, false, false, true, false);
   schema.SetValid(true);
   schema.SetReady(true);
 
@@ -422,7 +422,7 @@ IndexSchema Builder::GetColumnOidIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(2));
 
   // Primary
-  IndexSchema schema(columns, true, true, false, true);
+  IndexSchema schema(columns, true, true, false, true, false);
   schema.SetValid(true);
   schema.SetReady(true);
 
@@ -441,7 +441,7 @@ IndexSchema Builder::GetColumnNameIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(2));
 
   // Unique, not primary
-  IndexSchema schema(columns, true, false, false, true);
+  IndexSchema schema(columns, true, false, false, true, false);
   schema.SetValid(true);
   schema.SetReady(true);
 
@@ -456,7 +456,7 @@ IndexSchema Builder::GetColumnClassIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Not unique
-  IndexSchema schema(columns, false, false, false, true);
+  IndexSchema schema(columns, false, false, false, true, false);
   schema.SetValid(true);
   schema.SetReady(true);
 
@@ -470,7 +470,7 @@ IndexSchema Builder::GetTypeOidIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Primary
-  IndexSchema schema(columns, true, true, false, true);
+  IndexSchema schema(columns, true, true, false, true, false);
   schema.SetValid(true);
   schema.SetReady(true);
 
@@ -489,7 +489,7 @@ IndexSchema Builder::GetTypeNameIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(2));
 
   // Unique, not primary
-  IndexSchema schema(columns, true, false, false, true);
+  IndexSchema schema(columns, true, false, false, true, false);
   schema.SetValid(true);
   schema.SetReady(true);
 
@@ -504,7 +504,7 @@ IndexSchema Builder::GetTypeNamespaceIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Unique, not primary
-  IndexSchema schema(columns, false, false, false, true);
+  IndexSchema schema(columns, false, false, false, true, false);
   schema.SetValid(true);
   schema.SetReady(true);
 
@@ -519,7 +519,7 @@ IndexSchema Builder::GetConstraintOidIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Primary
-  IndexSchema schema(columns, true, true, false, true);
+  IndexSchema schema(columns, true, true, false, true, false);
   schema.SetValid(true);
   schema.SetReady(true);
 
@@ -538,7 +538,7 @@ IndexSchema Builder::GetConstraintNameIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(2));
 
   // Unique, not primary
-  IndexSchema schema(columns, true, false, false, true);
+  IndexSchema schema(columns, true, false, false, true, false);
   schema.SetValid(true);
   schema.SetReady(true);
 
@@ -553,7 +553,7 @@ IndexSchema Builder::GetConstraintNamespaceIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Unique, not primary
-  IndexSchema schema(columns, false, false, false, true);
+  IndexSchema schema(columns, false, false, false, true, false);
   schema.SetValid(true);
   schema.SetReady(true);
 
@@ -568,7 +568,7 @@ IndexSchema Builder::GetConstraintTableIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Not unique
-  IndexSchema schema(columns, false, false, false, true);
+  IndexSchema schema(columns, false, false, false, true, false);
   schema.SetValid(true);
   schema.SetReady(true);
 
@@ -583,7 +583,7 @@ IndexSchema Builder::GetConstraintIndexIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Not unique
-  IndexSchema schema(columns, false, false, false, true);
+  IndexSchema schema(columns, false, false, false, true, false);
   schema.SetValid(true);
   schema.SetReady(true);
 
@@ -598,7 +598,7 @@ IndexSchema Builder::GetConstraintForeignTableIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Not unique
-  IndexSchema schema(columns, false, false, false, true);
+  IndexSchema schema(columns, false, false, false, true, false);
   schema.SetValid(true);
   schema.SetReady(true);
 

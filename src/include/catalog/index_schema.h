@@ -145,7 +145,8 @@ class IndexSchema {
    * @param is_exclusion indicating whether this index is for exclusion constraints
    * @param is_immediate indicating that the uniqueness check fails at insertion time
    */
-  IndexSchema(std::vector<Column> columns, bool is_unique, bool is_primary, bool is_exclusion, bool is_immediate)
+  IndexSchema(std::vector<Column> columns, bool is_unique, bool is_primary, bool is_exclusion, bool is_immediate,
+              bool is_ordered)
       : columns_(std::move(columns)),
         is_unique_(is_unique),
         is_primary_(is_primary),
@@ -153,7 +154,8 @@ class IndexSchema {
         is_immediate_(is_immediate),
         is_valid_(false),
         is_ready_(false),
-        is_live_(true) {}
+        is_live_(true),
+        is_ordered_(is_ordered) {}
 
   IndexSchema() = default;
 
@@ -168,6 +170,8 @@ class IndexSchema {
    */
   const Column &GetColumn(int index) const { return columns_.at(index); }
 
+  bool IsOrdered() const { return is_ordered_; }
+
  private:
   friend class DatabaseCatalog;
   std::vector<Column> columns_;
@@ -178,6 +182,7 @@ class IndexSchema {
   bool is_valid_;
   bool is_ready_;
   bool is_live_;
+  bool is_ordered_;
 
   void SetValid(bool is_valid) { is_valid_ = is_valid; }
   void SetReady(bool is_ready) { is_ready_ = is_ready; }

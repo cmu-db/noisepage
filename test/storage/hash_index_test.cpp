@@ -24,7 +24,7 @@
 
 namespace terrier::storage::index {
 
-class BwTreeIndexTests : public TerrierTest {
+class HashIndexTests : public TerrierTest {
  private:
   const std::chrono::milliseconds gc_period_{10};
   storage::GarbageCollectorThread *gc_thread_;
@@ -35,7 +35,7 @@ class BwTreeIndexTests : public TerrierTest {
   catalog::IndexSchema key_schema_;
 
  public:
-  BwTreeIndexTests() {
+  HashIndexTests() {
     auto col = catalog::Schema::Column(
         "attribute", type::TypeId::INTEGER, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
@@ -49,7 +49,7 @@ class BwTreeIndexTests : public TerrierTest {
         type::TypeId::INTEGER, false,
         parser::ColumnValueExpression(catalog::db_oid_t(0), catalog::table_oid_t(0), catalog::col_oid_t(1)));
     StorageTestUtil::ForceOid(&(keycols[0]), catalog::indexkeycol_oid_t(1));
-    key_schema_ = catalog::IndexSchema(keycols, true, true, false, true, true);
+    key_schema_ = catalog::IndexSchema(keycols, true, true, false, true, false);
   }
 
   std::default_random_engine generator_;
@@ -84,18 +84,12 @@ class BwTreeIndexTests : public TerrierTest {
                           .SetOid(catalog::index_oid_t(2)))
                          .Build();
 
-    gc_thread_->GetGarbageCollector().RegisterIndexForGC(unique_index_);
-    gc_thread_->GetGarbageCollector().RegisterIndexForGC(default_index_);
-
     key_buffer_1_ =
         common::AllocationUtil::AllocateAligned(default_index_->GetProjectedRowInitializer().ProjectedRowSize());
     key_buffer_2_ =
         common::AllocationUtil::AllocateAligned(default_index_->GetProjectedRowInitializer().ProjectedRowSize());
   }
   void TearDown() override {
-    gc_thread_->GetGarbageCollector().UnregisterIndexForGC(unique_index_);
-    gc_thread_->GetGarbageCollector().UnregisterIndexForGC(default_index_);
-
     delete gc_thread_;
     delete sql_table_;
     delete default_index_;
@@ -112,7 +106,7 @@ class BwTreeIndexTests : public TerrierTest {
  * in the index and table.
  */
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, UniqueInsert) {
+TEST_F(HashIndexTests, DISABLED_UniqueInsert) {
   const uint32_t num_inserts_ = 100000;  // number of tuples/primary keys for each worker to attempt to insert
   auto workload = [&](uint32_t worker_id) {
     //    auto *const insert_buffer =
@@ -172,14 +166,15 @@ TEST_F(BwTreeIndexTests, UniqueInsert) {
 
   std::vector<storage::TupleSlot> results;
 
-  auto *const low_key_pr = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
-  auto *const high_key_pr = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_2_);
+  auto *const key_pr = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
 
   // scan[0,num_inserts_) should hit num_inserts_ keys (no duplicates)
-  *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = 0;
-  *reinterpret_cast<int32_t *>(high_key_pr->AccessForceNotNull(0)) = num_inserts_ - 1;
-  unique_index_->ScanAscending(*scan_txn, *low_key_pr, *high_key_pr, &results);
-  EXPECT_EQ(results.size(), num_inserts_);
+  for (uint32_t i = 0; i < num_inserts_; i++) {
+    *reinterpret_cast<int32_t *>(key_pr->AccessForceNotNull(0)) = i;
+    unique_index_->ScanKey(*scan_txn, *key_pr, &results);
+    EXPECT_EQ(results.size(), 1);
+    results.clear();
+  }
 
   txn_manager_.Commit(scan_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
@@ -190,7 +185,7 @@ TEST_F(BwTreeIndexTests, UniqueInsert) {
  * visible versions in the index and table.
  */
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, DefaultInsert) {
+TEST_F(HashIndexTests, DISABLED_DefaultInsert) {
   const uint32_t num_inserts_ = 100000;  // number of tuples/primary keys for each worker to attempt to insert
   auto workload = [&](uint32_t worker_id) {
     auto *const key_buffer =
@@ -240,306 +235,22 @@ TEST_F(BwTreeIndexTests, DefaultInsert) {
 
   std::vector<storage::TupleSlot> results;
 
-  auto *const low_key_pr = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
-  auto *const high_key_pr = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_2_);
+  auto *const key_pr = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
 
-  // scan[0,num_inserts_) should hit num_inserts_ * num_threads_ keys
-  *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = 0;
-  *reinterpret_cast<int32_t *>(high_key_pr->AccessForceNotNull(0)) = num_inserts_ - 1;
-  default_index_->ScanAscending(*scan_txn, *low_key_pr, *high_key_pr, &results);
-  EXPECT_EQ(results.size(), num_inserts_ * num_threads_);
-
-  txn_manager_.Commit(scan_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-}
-
-/**
- * Tests basic scan behavior using various windows to scan over (some out of of bounds of keyspace, some matching
- * exactly, etc.)
- */
-// NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, ScanAscending) {
-  // populate index with [0..20] even keys
-  std::map<int32_t, storage::TupleSlot> reference;
-  auto *const insert_txn = txn_manager_.BeginTransaction();
-  for (int32_t i = 0; i <= 20; i += 2) {
-    auto *const insert_redo =
-        insert_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
-    auto *const insert_tuple = insert_redo->Delta();
-    *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = i;
-    const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
-
-    auto *const insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
-    *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = i;
-
-    EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
-    reference[i] = tuple_slot;
+  // scan[0,num_inserts_) should hit num_inserts_ keys (no duplicates)
+  for (uint32_t i = 0; i < num_inserts_; i++) {
+    *reinterpret_cast<int32_t *>(key_pr->AccessForceNotNull(0)) = i;
+    unique_index_->ScanKey(*scan_txn, *key_pr, &results);
+    EXPECT_EQ(results.size(), 1);
+    results.clear();
   }
-  txn_manager_.Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
-  auto *const scan_txn = txn_manager_.BeginTransaction();
-
-  std::vector<storage::TupleSlot> results;
-
-  auto *const low_key_pr = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
-  auto *const high_key_pr = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_2_);
-
-  // scan[8,12] should hit keys 8, 10, 12
-  *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = 8;
-  *reinterpret_cast<int32_t *>(high_key_pr->AccessForceNotNull(0)) = 12;
-  default_index_->ScanAscending(*scan_txn, *low_key_pr, *high_key_pr, &results);
-  EXPECT_EQ(results.size(), 3);
-  EXPECT_EQ(reference.at(8), results[0]);
-  EXPECT_EQ(reference.at(10), results[1]);
-  EXPECT_EQ(reference.at(12), results[2]);
-  results.clear();
-
-  // scan[7,13] should hit keys 8, 10, 12
-  *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = 7;
-  *reinterpret_cast<int32_t *>(high_key_pr->AccessForceNotNull(0)) = 13;
-  default_index_->ScanAscending(*scan_txn, *low_key_pr, *high_key_pr, &results);
-  EXPECT_EQ(results.size(), 3);
-  EXPECT_EQ(reference.at(8), results[0]);
-  EXPECT_EQ(reference.at(10), results[1]);
-  EXPECT_EQ(reference.at(12), results[2]);
-  results.clear();
-
-  // scan[-1,5] should hit keys 0, 2, 4
-  *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = -1;
-  *reinterpret_cast<int32_t *>(high_key_pr->AccessForceNotNull(0)) = 5;
-  default_index_->ScanAscending(*scan_txn, *low_key_pr, *high_key_pr, &results);
-  EXPECT_EQ(results.size(), 3);
-  EXPECT_EQ(reference.at(0), results[0]);
-  EXPECT_EQ(reference.at(2), results[1]);
-  EXPECT_EQ(reference.at(4), results[2]);
-  results.clear();
-
-  // scan[15,21] should hit keys 16, 18, 20
-  *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = 15;
-  *reinterpret_cast<int32_t *>(high_key_pr->AccessForceNotNull(0)) = 21;
-  default_index_->ScanAscending(*scan_txn, *low_key_pr, *high_key_pr, &results);
-  EXPECT_EQ(results.size(), 3);
-  EXPECT_EQ(reference.at(16), results[0]);
-  EXPECT_EQ(reference.at(18), results[1]);
-  EXPECT_EQ(reference.at(20), results[2]);
-  results.clear();
-
-  txn_manager_.Commit(scan_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-}
-
-/**
- * Tests basic scan behavior using various windows to scan over (some out of of bounds of keyspace, some matching
- * exactly, etc.)
- */
-// NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, ScanDescending) {
-  // populate index with [0..20] even keys
-  std::map<int32_t, storage::TupleSlot> reference;
-  auto *const insert_txn = txn_manager_.BeginTransaction();
-  for (int32_t i = 0; i <= 20; i += 2) {
-    auto *const insert_redo =
-        insert_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
-    auto *const insert_tuple = insert_redo->Delta();
-    *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = i;
-    const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
-
-    auto *const insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
-    *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = i;
-    EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
-    reference[i] = tuple_slot;
-  }
-  txn_manager_.Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
-  auto *const scan_txn = txn_manager_.BeginTransaction();
-
-  std::vector<storage::TupleSlot> results;
-
-  auto *const low_key_pr = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
-  auto *const high_key_pr = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_2_);
-
-  // scan[8,12] should hit keys 12, 10, 8
-  *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = 8;
-  *reinterpret_cast<int32_t *>(high_key_pr->AccessForceNotNull(0)) = 12;
-  default_index_->ScanDescending(*scan_txn, *low_key_pr, *high_key_pr, &results);
-  EXPECT_EQ(results.size(), 3);
-  EXPECT_EQ(reference.at(12), results[0]);
-  EXPECT_EQ(reference.at(10), results[1]);
-  EXPECT_EQ(reference.at(8), results[2]);
-  results.clear();
-
-  // scan[7,13] should hit keys 12, 10, 8
-  *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = 7;
-  *reinterpret_cast<int32_t *>(high_key_pr->AccessForceNotNull(0)) = 13;
-  default_index_->ScanDescending(*scan_txn, *low_key_pr, *high_key_pr, &results);
-  EXPECT_EQ(results.size(), 3);
-  EXPECT_EQ(reference.at(12), results[0]);
-  EXPECT_EQ(reference.at(10), results[1]);
-  EXPECT_EQ(reference.at(8), results[2]);
-  results.clear();
-
-  // scan[-1,5] should hit keys 4, 2, 0
-  *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = -1;
-  *reinterpret_cast<int32_t *>(high_key_pr->AccessForceNotNull(0)) = 5;
-  default_index_->ScanDescending(*scan_txn, *low_key_pr, *high_key_pr, &results);
-  EXPECT_EQ(results.size(), 3);
-  EXPECT_EQ(reference.at(4), results[0]);
-  EXPECT_EQ(reference.at(2), results[1]);
-  EXPECT_EQ(reference.at(0), results[2]);
-  results.clear();
-
-  // scan[15,21] should hit keys 20, 18, 16
-  *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = 15;
-  *reinterpret_cast<int32_t *>(high_key_pr->AccessForceNotNull(0)) = 21;
-  default_index_->ScanDescending(*scan_txn, *low_key_pr, *high_key_pr, &results);
-  EXPECT_EQ(results.size(), 3);
-  EXPECT_EQ(reference.at(20), results[0]);
-  EXPECT_EQ(reference.at(18), results[1]);
-  EXPECT_EQ(reference.at(16), results[2]);
-  results.clear();
-
-  txn_manager_.Commit(scan_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-}
-
-/**
- * Tests basic scan behavior using various windows to scan over (some out of of bounds of keyspace, some matching
- * exactly, etc.)
- */
-// NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, ScanLimitAscending) {
-  // populate index with [0..20] even keys
-  std::map<int32_t, storage::TupleSlot> reference;
-  auto *const insert_txn = txn_manager_.BeginTransaction();
-  for (int32_t i = 0; i <= 20; i += 2) {
-    auto *const insert_redo =
-        insert_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
-    auto *const insert_tuple = insert_redo->Delta();
-    *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = i;
-    const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
-
-    auto *const insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
-    *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = i;
-    EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
-    reference[i] = tuple_slot;
-  }
-  txn_manager_.Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
-  auto *const scan_txn = txn_manager_.BeginTransaction();
-
-  std::vector<storage::TupleSlot> results;
-
-  auto *const low_key_pr = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
-  auto *const high_key_pr = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_2_);
-
-  // scan_limit[8,12] should hit keys 8, 10
-  *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = 8;
-  *reinterpret_cast<int32_t *>(high_key_pr->AccessForceNotNull(0)) = 12;
-  default_index_->ScanLimitAscending(*scan_txn, *low_key_pr, *high_key_pr, &results, 2);
-  EXPECT_EQ(results.size(), 2);
-  EXPECT_EQ(reference.at(8), results[0]);
-  EXPECT_EQ(reference.at(10), results[1]);
-  results.clear();
-
-  // scan_limit[7,13] should hit keys 8, 10
-  *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = 7;
-  *reinterpret_cast<int32_t *>(high_key_pr->AccessForceNotNull(0)) = 13;
-  default_index_->ScanLimitAscending(*scan_txn, *low_key_pr, *high_key_pr, &results, 2);
-  EXPECT_EQ(results.size(), 2);
-  EXPECT_EQ(reference.at(8), results[0]);
-  EXPECT_EQ(reference.at(10), results[1]);
-  results.clear();
-
-  // scan_limit[-1,5] should hit keys 0, 2
-  *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = -1;
-  *reinterpret_cast<int32_t *>(high_key_pr->AccessForceNotNull(0)) = 5;
-  default_index_->ScanLimitAscending(*scan_txn, *low_key_pr, *high_key_pr, &results, 2);
-  EXPECT_EQ(results.size(), 2);
-  EXPECT_EQ(reference.at(0), results[0]);
-  EXPECT_EQ(reference.at(2), results[1]);
-  results.clear();
-
-  // scan_limit[15,21] should hit keys 16, 18
-  *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = 15;
-  *reinterpret_cast<int32_t *>(high_key_pr->AccessForceNotNull(0)) = 21;
-  default_index_->ScanLimitAscending(*scan_txn, *low_key_pr, *high_key_pr, &results, 2);
-  EXPECT_EQ(results.size(), 2);
-  EXPECT_EQ(reference.at(16), results[0]);
-  EXPECT_EQ(reference.at(18), results[1]);
-  results.clear();
-
-  txn_manager_.Commit(scan_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-}
-
-/**
- * Tests basic scan behavior using various windows to scan over (some out of of bounds of keyspace, some matching
- * exactly, etc.)
- */
-// NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, ScanLimitDescending) {
-  // populate index with [0..20] even keys
-  std::map<int32_t, storage::TupleSlot> reference;
-  auto *const insert_txn = txn_manager_.BeginTransaction();
-  for (int32_t i = 0; i <= 20; i += 2) {
-    auto *const insert_redo =
-        insert_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
-    auto *const insert_tuple = insert_redo->Delta();
-    *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = i;
-    const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
-
-    auto *const insert_key = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
-    *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = i;
-    EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
-    reference[i] = tuple_slot;
-  }
-  txn_manager_.Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
-  auto *const scan_txn = txn_manager_.BeginTransaction();
-
-  std::vector<storage::TupleSlot> results;
-
-  auto *const low_key_pr = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
-  auto *const high_key_pr = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_2_);
-
-  // scan_limit[8,12] should hit keys 12, 10
-  *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = 8;
-  *reinterpret_cast<int32_t *>(high_key_pr->AccessForceNotNull(0)) = 12;
-  default_index_->ScanLimitDescending(*scan_txn, *low_key_pr, *high_key_pr, &results, 2);
-  EXPECT_EQ(results.size(), 2);
-  EXPECT_EQ(reference.at(12), results[0]);
-  EXPECT_EQ(reference.at(10), results[1]);
-  results.clear();
-
-  // scan_limit[7,13] should hit keys 12, 10
-  *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = 7;
-  *reinterpret_cast<int32_t *>(high_key_pr->AccessForceNotNull(0)) = 13;
-  default_index_->ScanLimitDescending(*scan_txn, *low_key_pr, *high_key_pr, &results, 2);
-  EXPECT_EQ(results.size(), 2);
-  EXPECT_EQ(reference.at(12), results[0]);
-  EXPECT_EQ(reference.at(10), results[1]);
-  results.clear();
-
-  // scan_limit[-1,5] should hit keys 4, 2
-  *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = -1;
-  *reinterpret_cast<int32_t *>(high_key_pr->AccessForceNotNull(0)) = 5;
-  default_index_->ScanLimitDescending(*scan_txn, *low_key_pr, *high_key_pr, &results, 2);
-  EXPECT_EQ(results.size(), 2);
-  EXPECT_EQ(reference.at(4), results[0]);
-  EXPECT_EQ(reference.at(2), results[1]);
-  results.clear();
-
-  // scan_limit[15,21] should hit keys 20, 18
-  *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = 15;
-  *reinterpret_cast<int32_t *>(high_key_pr->AccessForceNotNull(0)) = 21;
-  default_index_->ScanLimitDescending(*scan_txn, *low_key_pr, *high_key_pr, &results, 2);
-  EXPECT_EQ(results.size(), 2);
-  EXPECT_EQ(reference.at(20), results[0]);
-  EXPECT_EQ(reference.at(18), results[1]);
-  results.clear();
 
   txn_manager_.Commit(scan_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 // Verifies that primary key insert fails on write-write conflict
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, UniqueKey1) {
+TEST_F(HashIndexTests, UniqueKey1) {
   auto *txn0 = txn_manager_.BeginTransaction();
 
   // txn 0 inserts into table
@@ -600,7 +311,7 @@ TEST_F(BwTreeIndexTests, UniqueKey1) {
 
 // Verifies that primary key insert fails on visible key conflict
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, UniqueKey2) {
+TEST_F(HashIndexTests, UniqueKey2) {
   auto *txn0 = txn_manager_.BeginTransaction();
 
   // txn 0 inserts into table
@@ -656,7 +367,7 @@ TEST_F(BwTreeIndexTests, UniqueKey2) {
 
 // Verifies that primary key insert fails on same txn trying to insert key twice
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, UniqueKey3) {
+TEST_F(HashIndexTests, UniqueKey3) {
   auto *txn0 = txn_manager_.BeginTransaction();
 
   // txn 0 inserts into table
@@ -707,7 +418,7 @@ TEST_F(BwTreeIndexTests, UniqueKey3) {
 
 // Verifies that primary key insert fails even if conflicting transaction is an uncommitted delete
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, UniqueKey4) {
+TEST_F(HashIndexTests, UniqueKey4) {
   auto *txn0 = txn_manager_.BeginTransaction();
 
   // txn 0 inserts into table
@@ -789,7 +500,7 @@ TEST_F(BwTreeIndexTests, UniqueKey4) {
 //
 // This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, CommitInsert1) {
+TEST_F(HashIndexTests, CommitInsert1) {
   auto *txn0 = txn_manager_.BeginTransaction();
 
   // txn 0 inserts into table
@@ -862,7 +573,7 @@ TEST_F(BwTreeIndexTests, CommitInsert1) {
 //
 // This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, CommitInsert2) {
+TEST_F(HashIndexTests, CommitInsert2) {
   auto *txn0 = txn_manager_.BeginTransaction();
   auto *txn1 = txn_manager_.BeginTransaction();
 
@@ -934,7 +645,7 @@ TEST_F(BwTreeIndexTests, CommitInsert2) {
 //
 // This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, AbortInsert1) {
+TEST_F(HashIndexTests, AbortInsert1) {
   auto *txn0 = txn_manager_.BeginTransaction();
 
   // txn 0 inserts into table
@@ -1006,7 +717,7 @@ TEST_F(BwTreeIndexTests, AbortInsert1) {
 //
 // This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, AbortInsert2) {
+TEST_F(HashIndexTests, AbortInsert2) {
   auto *txn0 = txn_manager_.BeginTransaction();
   auto *txn1 = txn_manager_.BeginTransaction();
 
@@ -1077,7 +788,7 @@ TEST_F(BwTreeIndexTests, AbortInsert2) {
 //
 // This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, CommitUpdate1) {
+TEST_F(HashIndexTests, CommitUpdate1) {
   auto *insert_txn = txn_manager_.BeginTransaction();
 
   // insert_txn inserts into table
@@ -1204,7 +915,7 @@ TEST_F(BwTreeIndexTests, CommitUpdate1) {
 //
 // This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, CommitUpdate2) {
+TEST_F(HashIndexTests, CommitUpdate2) {
   auto *insert_txn = txn_manager_.BeginTransaction();
 
   // insert_txn inserts into table
@@ -1331,7 +1042,7 @@ TEST_F(BwTreeIndexTests, CommitUpdate2) {
 //
 // This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, AbortUpdate1) {
+TEST_F(HashIndexTests, AbortUpdate1) {
   auto *insert_txn = txn_manager_.BeginTransaction();
 
   // insert_txn inserts into table
@@ -1458,7 +1169,7 @@ TEST_F(BwTreeIndexTests, AbortUpdate1) {
 //
 // This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, AbortUpdate2) {
+TEST_F(HashIndexTests, AbortUpdate2) {
   auto *insert_txn = txn_manager_.BeginTransaction();
 
   // insert_txn inserts into table
@@ -1585,7 +1296,7 @@ TEST_F(BwTreeIndexTests, AbortUpdate2) {
 //
 // This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, CommitDelete1) {
+TEST_F(HashIndexTests, CommitDelete1) {
   auto *insert_txn = txn_manager_.BeginTransaction();
 
   // insert_txn inserts into table
@@ -1677,7 +1388,7 @@ TEST_F(BwTreeIndexTests, CommitDelete1) {
 //
 // This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, CommitDelete2) {
+TEST_F(HashIndexTests, CommitDelete2) {
   auto *insert_txn = txn_manager_.BeginTransaction();
 
   // insert_txn inserts into table
@@ -1769,7 +1480,7 @@ TEST_F(BwTreeIndexTests, CommitDelete2) {
 //
 // This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, AbortDelete1) {
+TEST_F(HashIndexTests, AbortDelete1) {
   auto *insert_txn = txn_manager_.BeginTransaction();
 
   // insert_txn inserts into table
@@ -1862,7 +1573,7 @@ TEST_F(BwTreeIndexTests, AbortDelete1) {
 //
 // This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, AbortDelete2) {
+TEST_F(HashIndexTests, AbortDelete2) {
   auto *insert_txn = txn_manager_.BeginTransaction();
 
   // insert_txn inserts into table

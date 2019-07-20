@@ -19,6 +19,8 @@ namespace index {
 class Index;
 template <typename KeyType>
 class BwTreeIndex;
+template <typename KeyType>
+class HashIndex;
 }  // namespace index
 
 // clang-format off
@@ -220,6 +222,8 @@ class DataTable {
   friend class index::Index;
   template <typename KeyType>
   friend class index::BwTreeIndex;
+  template <typename KeyType>
+  friend class index::HashIndex;
 
   BlockStore *const block_store_;
   const layout_version_t layout_version_;

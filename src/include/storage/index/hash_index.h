@@ -1,0 +1,168 @@
+#pragma once
+
+#include <functional>
+#include <utility>
+#include <vector>
+#include "libcuckoo/cuckoohash_map.hh"
+#include "storage/index/index.h"
+#include "transaction/transaction_context.h"
+#include "transaction/transaction_manager.h"
+
+namespace terrier::storage::index {
+
+/**
+ * Wrapper around libcuckoo's hash map.
+ * @tparam KeyType the type of keys stored in the map
+ */
+template <typename KeyType>
+class HashIndex final : public Index {
+  friend class IndexBuilder;
+
+ private:
+  HashIndex(const catalog::index_oid_t oid, const ConstraintType constraint_type, IndexMetadata metadata)
+      : Index(constraint_type, std::move(metadata)), hash_map_{new cuckoohash_map<KeyType, TupleSlot>} {}
+
+  cuckoohash_map<KeyType, TupleSlot> *const hash_map_;
+
+ public:
+  ~HashIndex() final { delete hash_map_; }
+
+  void PerformGarbageCollection() final{};
+
+  bool Insert(transaction::TransactionContext *const txn, const ProjectedRow &tuple, const TupleSlot location) final {
+    TERRIER_ASSERT(GetConstraintType() == ConstraintType::DEFAULT,
+                   "This Insert is designed for secondary indexes with no uniqueness constraints.");
+    KeyType index_key;
+    index_key.SetFromProjectedRow(tuple, metadata_);
+    const bool result = hash_map_->insert(index_key, location);
+
+    TERRIER_ASSERT(
+        result,
+        "non-unique index shouldn't fail to insert. If it did, something went wrong deep inside the hash map itself.");
+
+    // Register an abort action with the txn context in case of rollback
+    txn->RegisterAbortAction([=]() {
+      const bool UNUSED_ATTRIBUTE result =
+          hash_map_->erase_fn(index_key, [location](const TupleSlot &slot) -> bool { return location == slot; });
+      TERRIER_ASSERT(result, "Delete on the index failed.");
+    });
+
+    return result;
+  }
+
+  bool InsertUnique(transaction::TransactionContext *const txn, const ProjectedRow &tuple,
+                    const TupleSlot location) final {
+    TERRIER_ASSERT(GetConstraintType() == ConstraintType::UNIQUE,
+                   "This Insert is designed for indexes with uniqueness constraints.");
+    KeyType index_key;
+    index_key.SetFromProjectedRow(tuple, metadata_);
+    bool predicate_satisfied = false;
+
+    // The predicate checks if any matching keys have write-write conflicts or are still visible to the calling txn.
+    auto predicate = [&](const TupleSlot slot) -> bool {
+      const auto *const data_table = slot.GetBlock()->data_table_;
+      return data_table->HasConflict(*txn, slot) || data_table->IsVisible(*txn, slot);
+    };
+
+    auto locked_hash_map = hash_map_->lock_table();
+
+    const auto search_results = locked_hash_map.equal_range(index_key);
+    for (auto i = search_results.first; i != search_results.second; i++) {
+      predicate_satisfied = predicate_satisfied || predicate(i->second);
+    }
+
+    bool result = false;
+    if (!predicate_satisfied) {
+      result = locked_hash_map.insert(index_key, location).second;
+      TERRIER_ASSERT(result,
+                     " index shouldn't fail to insert after predicate check. If it did, something went wrong deep "
+                     "inside the hash map itself.");
+    }
+
+    locked_hash_map.unlock();
+
+    if (result) {
+      // Register an abort action with the txn context in case of rollback
+      txn->RegisterAbortAction([=]() {
+        const bool UNUSED_ATTRIBUTE result =
+            hash_map_->erase_fn(index_key, [location](const TupleSlot &slot) -> bool { return location == slot; });
+        TERRIER_ASSERT(result, "Delete on the index failed.");
+      });
+    } else {
+      // Presumably you've already made modifications to a DataTable (the source of the TupleSlot argument to this
+      // function) however, the index found a constraint violation and cannot allow that operation to succeed. For MVCC
+      // correctness, this txn must now abort for the GC to clean up the version chain in the DataTable correctly.
+      txn->MustAbort();
+    }
+
+    return result;
+  }
+
+  void Delete(transaction::TransactionContext *const txn, const ProjectedRow &tuple, const TupleSlot location) final {
+    KeyType index_key;
+    index_key.SetFromProjectedRow(tuple, metadata_);
+
+    TERRIER_ASSERT(!(location.GetBlock()->data_table_->HasConflict(*txn, location)) &&
+                       !(location.GetBlock()->data_table_->IsVisible(*txn, location)),
+                   "Called index delete on a TupleSlot that has a conflict with this txn or is still visible.");
+
+    // Register a deferred action for the GC with txn manager. See base function comment.
+    auto *const txn_manager = txn->GetTransactionManager();
+    txn->RegisterCommitAction([=]() {
+      txn_manager->DeferAction([=]() {
+        const bool UNUSED_ATTRIBUTE result =
+            hash_map_->erase_fn(index_key, [location](const TupleSlot &slot) -> bool { return location == slot; });
+        TERRIER_ASSERT(result, "Delete on the index failed.");
+      });
+    });
+  }
+
+  void ScanKey(const transaction::TransactionContext &txn, const ProjectedRow &key,
+               std::vector<TupleSlot> *value_list) final {
+    TERRIER_ASSERT(value_list->empty(), "Result set should begin empty.");
+
+    std::vector<TupleSlot> results;
+
+    // Build search key
+    KeyType index_key;
+    index_key.SetFromProjectedRow(key, metadata_);
+
+    auto locked_hash_map = hash_map_->lock_table();
+
+    const auto search_results = locked_hash_map.equal_range(index_key);
+    // Perform visibility check on result
+    for (auto i = search_results.first; i != search_results.second; i++) {
+      if (IsVisible(txn, i->second)) value_list->emplace_back(i->second);
+    }
+
+    locked_hash_map.unlock();
+
+    TERRIER_ASSERT(GetConstraintType() == ConstraintType::DEFAULT ||
+                       (GetConstraintType() == ConstraintType::UNIQUE && value_list->size() <= 1),
+                   "Invalid number of results for unique index.");
+  }
+
+  void ScanAscending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
+                     const ProjectedRow &high_key, std::vector<TupleSlot> *value_list) final {
+    TERRIER_ASSERT(false, "Range scans not supported on HashIndex.");
+  }
+
+  void ScanDescending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
+                      const ProjectedRow &high_key, std::vector<TupleSlot> *value_list) final {
+    TERRIER_ASSERT(false, "Range scans not supported on HashIndex.");
+  }
+
+  void ScanLimitAscending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
+                          const ProjectedRow &high_key, std::vector<TupleSlot> *value_list,
+                          const uint32_t limit) final {
+    TERRIER_ASSERT(false, "Range scans not supported on HashIndex.");
+  }
+
+  void ScanLimitDescending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
+                           const ProjectedRow &high_key, std::vector<TupleSlot> *value_list,
+                           const uint32_t limit) final {
+    TERRIER_ASSERT(false, "Range scans not supported on HashIndex.");
+  }
+};
+
+}  // namespace terrier::storage::index
