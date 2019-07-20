@@ -1,3 +1,5 @@
+#if 0
+
 #include "optimizer/plan_generator.h"
 
 #include "catalog/column_catalog.h"
@@ -629,3 +631,5 @@ void PlanGenerator::GenerateProjectionForJoin(
 }
 }  // namespace optimizer
 }  // namespace terrier
+
+#endif

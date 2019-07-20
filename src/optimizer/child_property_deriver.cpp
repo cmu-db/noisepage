@@ -187,8 +187,8 @@ void ChildPropertyDeriver::DeriveForJoin() {
         ExprSet tuples;
         parser::ExpressionUtil::GetTupleValueExprs(&tuples, sort_prop->GetSortColumn(idx).get());
         for (auto &expr : tuples) {
-          auto tv_expr = dynamic_cast<const parser::TupleValueExpression *>(expr);
-          TERRIER_ASSERT(tv_expr, "Expected TupleValueExpression");
+          auto tv_expr = dynamic_cast<const parser::ColumnValueExpression *>(expr);
+          TERRIER_ASSERT(tv_expr, "Expected ColumnValueExpression");
 
           // If a column is not in the prob table, we cannot fulfill the sort
           // property in the requirement

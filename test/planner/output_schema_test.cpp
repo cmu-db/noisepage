@@ -22,8 +22,8 @@ class OutputSchemaTests : public TerrierTest {
    * Constructs a dummy AbstractExpression predicate
    * @return dummy predicate
    */
-  static std::shared_ptr<parser::AbstractExpression> BuildDummyPredicate() {
-    return std::make_shared<parser::ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true));
+  static const parser::AbstractExpression *BuildDummyPredicate() {
+    return new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
   }
 };
 

@@ -5,7 +5,6 @@
 #include <vector>
 #include "common/macros.h"
 #include "parser/expression/abstract_expression.h"
-#include "parser/expression_defs.h"
 
 namespace terrier::parser {
 
@@ -68,6 +67,7 @@ class CaseExpression : public AbstractExpression {
      */
     common::hash_t Hash() const {
       common::hash_t hash = condition_->Hash();
+      hash = common::HashUtil::CombineHashes(hash, condition_->Hash());
       hash = common::HashUtil::CombineHashes(hash, then_->Hash());
       return hash;
     }
@@ -144,16 +144,22 @@ class CaseExpression : public AbstractExpression {
     return (*default_exp == *other_default_exp);
   }
 
+  /**
+   * Copies this CaseExpression
+   * @returns copy of this
+   */
   const AbstractExpression *Copy() const override {
-    return new CaseExpression(GetReturnValueType(), when_clauses_, default_expr_->Copy());
+    return new CaseExpression(*this);
   }
 
   /**
    * Creates a copy of the current AbstractExpression with new children implanted.
    * The children should not be owned by any other AbstractExpression.
    * @param children New children to be owned by the copy
+   * @returns copy of this
    */
-  const AbstractExpression *CopyWithChildren(std::vector<const AbstractExpression *> children) const override {
+  const AbstractExpression *CopyWithChildren(
+    UNUSED_ATTRIBUTE std::vector<const AbstractExpression *> children) const override {
     TERRIER_ASSERT(children.empty(), "CaseExpression should have no children");
     return Copy();
   }
@@ -188,6 +194,8 @@ class CaseExpression : public AbstractExpression {
     return common::ManagedPointer<const AbstractExpression>(default_expr_);
   }
 
+  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
+
   /**
    * @return expression serialized to json
    */
@@ -214,8 +222,25 @@ class CaseExpression : public AbstractExpression {
   }
 
  private:
+  /**
+   * Copy constructor for CaseExpression
+   * Relies on AbstractExpression copy constructor for base members.
+   * @param other CaseExpression to copy from
+   */
+  CaseExpression(const CaseExpression &other)
+    : AbstractExpression(other),
+      when_clauses_(other.when_clauses_),
+      default_expr_(other.default_expr_ != nullptr ? other.default_expr_->Copy() : nullptr) {}
+
+  /**
+   * List of condition and result cases: WHEN ... THEN ...
+   */
   std::vector<WhenClause *> when_clauses_;
-  const AbstractExpression *default_expr_;
+
+  /**
+   * default conditon and result case
+   */
+  const AbstractExpression* default_expr_;
 };
 
 DEFINE_JSON_DECLARATIONS(CaseExpression::WhenClause);

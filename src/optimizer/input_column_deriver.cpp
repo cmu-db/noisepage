@@ -56,8 +56,8 @@ void InputColumnDeriver::Visit(const QueryDerivedScan *op) {
   std::vector<const parser::AbstractExpression*> input_cols(output_cols.size());
   auto alias_expr_map = op->GetAliasToExprMap();
   for (auto &entry : output_cols_map) {
-    auto tv_expr = dynamic_cast<const parser::TupleValueExpression*>(entry.first);
-    TERRIER_ASSERT(tv_expr, "GetTupleValueExprs should only find TupleValueExpressions");
+    auto tv_expr = dynamic_cast<const parser::ColumnValueExpression*>(entry.first);
+    TERRIER_ASSERT(tv_expr, "GetTupleValueExprs should only find ColumnValueExpressions");
     output_cols[entry.second] = tv_expr;
 
     // Get the actual expression
@@ -197,7 +197,7 @@ void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const ExportExternalFile *op) {
 
 void InputColumnDeriver::ScanHelper() {
   // Derive all output columns from required_cols_.
-  // Since Scan are "lowest" level, only care about TupleValueExpression in required_cols_
+  // Since Scan are "lowest" level, only care about ColumnValueExpression in required_cols_
   ExprMap output_cols_map;
   for (auto expr : required_cols_) {
     parser::ExpressionUtil::GetTupleValueExprs(&output_cols_map, expr);
@@ -218,9 +218,9 @@ void InputColumnDeriver::AggregateHelper(const BaseOperatorNode *op) {
   ExprMap output_cols_map;
   unsigned int output_col_idx = 0;
   for (auto &expr : required_cols_) {
-    // Get all AggregateExpressions and TupleValueExpressions in expr
+    // Get all AggregateExpressions and ColumnValueExpressions in expr
     std::vector<const parser::AggregateExpression*> aggr_exprs;
-    std::vector<const parser::TupleValueExpression*> tv_exprs;
+    std::vector<const parser::ColumnValueExpression*> tv_exprs;
     parser::ExpressionUtil::GetTupleAndAggregateExprs(&aggr_exprs, &tv_exprs, expr);
 
     for (auto &aggr_expr : aggr_exprs) {
@@ -229,7 +229,7 @@ void InputColumnDeriver::AggregateHelper(const BaseOperatorNode *op) {
         output_cols_map[aggr_expr] = output_col_idx++;
         size_t child_size = aggr_expr->GetChildrenSize();
         for (size_t idx = 0; idx < child_size; ++idx) {
-          // Add all TupleValueExpression used by the Aggregate to input columns
+          // Add all ColumnValueExpression used by the Aggregate to input columns
           parser::ExpressionUtil::GetTupleValueExprs(&input_cols_set, aggr_expr->GetChild(idx).get());
         }
       }
@@ -329,29 +329,30 @@ void InputColumnDeriver::JoinHelper(const BaseOperatorNode *op) {
   auto &build_table_aliases = memo_->GetGroupByID(gexpr_->GetChildGroupId(0))->GetTableAliases();
   auto &probe_table_aliases = memo_->GetGroupByID(gexpr_->GetChildGroupId(1))->GetTableAliases();
   for (auto &col : input_cols_set) {
-    const parser::TupleValueExpression* tv_expr;
+    const parser::ColumnValueExpression* tv_expr;
     if (col->GetExpressionType() == parser::ExpressionType::VALUE_TUPLE) {
-      tv_expr = dynamic_cast<const parser::TupleValueExpression *>(col);
-      TERRIER_ASSERT(tv_expr, "col should be a TupleValueExpression");
+      tv_expr = dynamic_cast<const parser::ColumnValueExpression *>(col);
+      TERRIER_ASSERT(tv_expr, "col should be a ColumnValueExpression");
     } else {
       TERRIER_ASSERT(parser::ExpressionUtil::IsAggregateExpression(col), "col should be AggregateExpression");
 
       ExprSet tv_exprs;
-      // Get the TupleValueExpression used in the AggregateExpression
+      // Get the ColumnValueExpression used in the AggregateExpression
       parser::ExpressionUtil::GetTupleValueExprs(&tv_exprs, col);
       if (tv_exprs.empty()) {
         // Do not need input columns like COUNT(1)
         continue;
       }
 
-      // We get only the first TupleValueExpression (should probably assert check this)
-      tv_expr = dynamic_cast<const parser::TupleValueExpression*>(*(tv_exprs.begin()));
-      TERRIER_ASSERT(tv_expr, "GetTupleValueExprs should only return TupleValueExpression");
+      // We get only the first ColumnValueExpression (should probably assert check this)
+      tv_expr = dynamic_cast<const parser::ColumnValueExpression*>(*(tv_exprs.begin()));
+      TERRIER_ASSERT(tv_expr, "GetTupleValueExprs should only return ColumnValueExpression");
       TERRIER_ASSERT(tv_exprs.size() == 1, "Uh oh, multiple TVEs in AggregateExpression found");
     }
 
     // Pick the build or probe side depending on the table
     std::string tv_table_name = tv_expr->GetTableName();
+    TERRIER_ASSERT(!tv_table_name.empty(), "Table Name should not be empty");
     if (build_table_aliases.count(tv_table_name) != 0u) {
       build_table_cols_set.insert(col);
     } else {

@@ -5,7 +5,6 @@
 
 #include "common/hash_util.h"
 #include "common/managed_pointer.h"
-#include "parser/expression/tuple_value_expression.h"
 #include "planner/plannodes/plan_node_defs.h"
 #include "optimizer/property.h"
 

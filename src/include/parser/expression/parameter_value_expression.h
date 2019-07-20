@@ -25,12 +25,17 @@ class ParameterValueExpression : public AbstractExpression {
 
   ~ParameterValueExpression() override = default;
 
-  const AbstractExpression *Copy() const override { return new ParameterValueExpression(value_idx_); }
+  /**
+   * Copies this ParameterValueExpression
+   * @returns copy of this
+   */
+  const AbstractExpression *Copy() const override { return new ParameterValueExpression(*this); }
 
   /**
    * Creates a copy of the current AbstractExpression with new children implanted.
    * The children should not be owned by any other AbstractExpression.
    * @param children New children to be owned by the copy
+   * @returns copy of this with new children
    */
   const AbstractExpression *CopyWithChildren(std::vector<const AbstractExpression *> children) const override {
     TERRIER_ASSERT(children.empty(), "ParameterValueExpression should have 0 children");
@@ -42,11 +47,19 @@ class ParameterValueExpression : public AbstractExpression {
    */
   uint32_t GetValueIdx() const { return value_idx_; }
 
+  common::hash_t Hash() const override {
+    common::hash_t hash = AbstractExpression::Hash();
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(value_idx_));
+    return hash;
+  }
+
   bool operator==(const AbstractExpression &rhs) const override {
     if (!AbstractExpression::operator==(rhs)) return false;
     auto const &other = dynamic_cast<const ParameterValueExpression &>(rhs);
     return GetValueIdx() == other.GetValueIdx();
   }
+
+  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
   /**
    * @return expression serialized to json
@@ -66,7 +79,16 @@ class ParameterValueExpression : public AbstractExpression {
   }
 
  private:
+  /**
+   * Copy constructor for ParameterValueExpression
+   * @param other Other ParameterValueExpression to copy from
+   */
+  ParameterValueExpression(const ParameterValueExpression &other) = default;
+
   // TODO(Tianyu): Can we get a better name for this?
+  /**
+   * Offset of the value that this expression points to in the query's parameter list
+   */
   uint32_t value_idx_;
 };
 

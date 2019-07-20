@@ -179,7 +179,7 @@ class OutputSchema {
     /**
      * @return the expression used to derive the intermediate column
      */
-    const std::shared_ptr<parser::AbstractExpression> &GetExpression() const { return expr_; }
+    const parser::AbstractExpression *GetExpression() const { return expr_; }
 
     /**
      * Hash the current DerivedColumn.

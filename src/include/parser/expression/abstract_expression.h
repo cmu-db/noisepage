@@ -2,11 +2,13 @@
 
 #include <functional>
 #include <memory>
+#include <string>
 #include <utility>
 #include <vector>
 #include "common/hash_util.h"
 #include "common/json.h"
 #include "common/managed_pointer.h"
+#include "common/sql_node_visitor.h"
 #include "parser/expression_defs.h"
 #include "type/transient_value.h"
 #include "type/type_id.h"
@@ -27,6 +29,19 @@ class AbstractExpression {
   AbstractExpression(const ExpressionType expression_type, const type::TypeId return_value_type,
                      std::vector<const AbstractExpression *> children)
       : expression_type_(expression_type), return_value_type_(return_value_type), children_(std::move(children)) {}
+  /**
+   * Instantiates a new abstract expression with alias used for select statement column references.
+   * @param expression_type what type of expression we have
+   * @param return_value_type the type of the expression's value
+   * @param alias alias of the column (used in column value expression)
+   * @param children the list of children for this node
+   */
+  AbstractExpression(const ExpressionType expression_type, const type::TypeId return_value_type, std::string alias,
+                     std::vector<const AbstractExpression *> children)
+      : expression_type_(expression_type),
+        alias_(std::move(alias)),
+        return_value_type_(return_value_type),
+        children_(std::move(children)) {}
 
   /**
    * Copy constructs an abstract expression.
@@ -38,6 +53,21 @@ class AbstractExpression {
    * Default constructor used for json deserialization
    */
   AbstractExpression() = default;
+
+  /**
+   * @param expression_name Set the expression name of the current expression
+   */
+  void SetExpressionName(std::string expression_name) { expression_name_ = std::move(expression_name); }
+
+  /**
+   * @param return_value_type Set the return value type of the current expression
+   */
+  void SetReturnValueType(type::TypeId return_value_type) { return_value_type_ = return_value_type; }
+
+  /**
+   * @param depth Set the depth of the current expression
+   */
+  void SetDepth(int depth) { depth_ = depth; }
 
  public:
   virtual ~AbstractExpression() {
@@ -54,6 +84,12 @@ class AbstractExpression {
     for (const auto *child : children_) {
       hash = common::HashUtil::CombineHashes(hash, child->Hash());
     }
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(return_value_type_));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(expression_name_));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(alias_));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(depth_));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(has_subquery_));
+
     return hash;
   }
 
@@ -63,15 +99,15 @@ class AbstractExpression {
    * @return true if the two expressions are logically equal
    */
   virtual bool operator==(const AbstractExpression &rhs) const {
-    if (expression_type_ != rhs.expression_type_ || children_.size() != rhs.children_.size()) {
-      return false;
-    }
-    for (size_t i = 0; i < children_.size(); i++) {
-      if (*children_[i] != *rhs.children_[i]) {
-        return false;
-      }
-    }
-    return true;
+    if (expression_type_ != rhs.expression_type_) return false;
+    if (alias_ != rhs.alias_) return false;
+    if (expression_name_ != rhs.expression_name_) return false;
+    if (depth_ != rhs.depth_) return false;
+    if (has_subquery_ != rhs.has_subquery_) return false;
+    if (children_.size() != rhs.children_.size()) return false;
+    for (size_t i = 0; i < children_.size(); i++)
+      if (*(children_[i]) != *(rhs.children_[i])) return false;
+    return return_value_type_ == rhs.return_value_type_;
   }
 
   /**
@@ -113,11 +149,6 @@ class AbstractExpression {
   size_t GetChildrenSize() const { return children_.size(); }
 
   /**
-   * Gets expression depth...etc
-   */
-  int GetDepth() const { return 0; }
-
-  /**
    * @param index index of child
    * @return child of abstract expression at that index
    */
@@ -125,6 +156,62 @@ class AbstractExpression {
     TERRIER_ASSERT(index < children_.size(), "Index must be in bounds.");
     return common::ManagedPointer<const AbstractExpression>(children_[index]);
   }
+
+  /**
+   * @return Name of the expression.
+   */
+  const std::string &GetExpressionName() const { return expression_name_; }
+
+  /**
+   * Walks the expression trees and generate the correct expression name
+   */
+  virtual void DeriveExpressionName();
+
+  /**
+   * @return alias of this abstract expression
+   */
+  const std::string &GetAlias() const { return alias_; }
+
+  /**
+   * Derive the expression type of the current expression.
+   */
+  virtual void DeriveReturnValueType() {}
+
+  /**
+   * @param v Visitor pattern for the expression
+   */
+  virtual void Accept(SqlNodeVisitor *v) = 0;
+
+  /**
+   * @param v Visitor pattern for the expression
+   */
+  virtual void AcceptChildren(SqlNodeVisitor *v) {
+    for (auto &child : children_) {
+      const_cast<parser::AbstractExpression*>(child)->Accept(v);
+    }
+  }
+
+  /**
+   * @return The sub-query depth level
+   */
+  int GetDepth() const { return depth_; }
+
+  /**
+   * Derive the sub-query depth level of the current expression
+   * @return the derived depth
+   */
+  virtual int DeriveDepth();
+
+  /**
+   * @return The sub-query flag that tells if the current expression contain a sub-query
+   */
+  bool HasSubquery() const { return has_subquery_; }
+
+  /**
+   * Derive if there's sub-query in the current expression
+   * @return If there is sub-query, then return true, otherwise return false
+   */
+  virtual bool DeriveSubqueryFlag();
 
   /**
    * Derived expressions should call this base method
@@ -145,12 +232,33 @@ class AbstractExpression {
   ExpressionType expression_type_;
 
   /**
-   * type of return value
+   * Name of the current expression
+   */
+  std::string expression_name_;
+
+  /**
+   * Alias of the current expression
+   */
+  std::string alias_;
+
+  /**
+   * Type of the return value
    */
   type::TypeId return_value_type_;
 
   /**
-   * list of children
+   * The current sub-query depth level in the current expression, -1
+   *  stands for not derived
+   */
+  int depth_ = -1;
+
+  /**
+   * The flag indicating if there's sub-query in the current expression
+   */
+  bool has_subquery_ = false;
+
+  /**
+   * List of children expressions
    */
   std::vector<const AbstractExpression *> children_;
 };

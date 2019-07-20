@@ -174,6 +174,11 @@ class TransientValue {
   }
 
   /**
+   * @return string representation of the underlying type
+   */
+  std::string ToString() const { return TypeUtil::TypeIdToString(type_); }
+
+  /**
    * @return transient value serialized to json
    * @warning this method is ONLY used for serialization and deserialization. It should NOT be used to peek at the
    * values

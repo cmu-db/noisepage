@@ -151,11 +151,11 @@ class IndexUtil {
     for (size_t idx = 0; idx < sort_col_size; idx++) {
       // Compare col_oid_t directly due to "Base Column" requirement
       auto *expr = prop->GetSortColumn(idx).get();
-      auto *tv_expr = dynamic_cast<const parser::TupleValueExpression *>(expr);
-      TERRIER_ASSERT(tv_expr, "TupleValueExpression expected");
+      auto *tv_expr = dynamic_cast<const parser::ColumnValueExpression *>(expr);
+      TERRIER_ASSERT(tv_expr, "ColumnValueExpression expected");
 
       // Sort(a,b,c) cannot be fulfilled by Index(a,c,b)
-      auto col_match = std::get<2>(tv_expr->GetBoundOid()) == mapped_cols[idx];
+      auto col_match = tv_expr->GetColumnOid() == mapped_cols[idx];
 
       // TODO(wz2): need catalog flag for column sort direction
       // Sort(a ASC) cannot be fulfilled by Index(a DESC)
@@ -220,11 +220,11 @@ class IndexUtil {
       // If found valid tv_expr and value_expr, update col_id_list, expr_type_list and val_list
       if (tv_expr != nullptr) {
         // Get the column's col_oid_t from catalog
-        auto col_expr = dynamic_cast<const parser::TupleValueExpression*>(tv_expr);
-        TERRIER_ASSERT(col_expr, "TupleValueExpression expected");
+        auto col_expr = dynamic_cast<const parser::ColumnValueExpression*>(tv_expr);
+        TERRIER_ASSERT(col_expr, "ColumnValueExpression expected");
 
-        auto col_oid = std::get<2>(col_expr->GetBoundOid());
-        TERRIER_ASSERT(col_oid != catalog::col_oid_t(-1), "TupleValueExpression at scan should be bound");
+        auto col_oid = col_expr->GetColumnOid();
+        TERRIER_ASSERT(col_oid != catalog::col_oid_t(-1), "ColumnValueExpression at scan should be bound");
         key_column_id_list.push_back(col_oid);
 
         // Update expr_type_list
@@ -359,8 +359,8 @@ class IndexUtil {
     for (auto &column : schema.GetColumns()) {
       auto *expr = column.GetExpression();
       if (expr->GetExpressionType() == parser::ExpressionType::VALUE_TUPLE) {
-        auto *tv_expr = dynamic_cast<const parser::TupleValueExpression*>(expr);
-        TERRIER_ASSERT(tv_expr, "TupleValueExpression expected");
+        auto *tv_expr = dynamic_cast<const parser::ColumnValueExpression*>(expr);
+        TERRIER_ASSERT(tv_expr, "ColumnValueExpression expected");
 
         if (accessor->GetTableOid(tv_expr->GetTableName()) != tbl_oid) {
           return false;  // table not match???
@@ -380,7 +380,7 @@ class IndexUtil {
 
   /**
    * Checks whether a given expression is a "base column".
-   * A base column, as used and defined by Peloton, is where expr is a TupleValueExpression
+   * A base column, as used and defined by Peloton, is where expr is a ColumnValueExpression
    * @param expr AbstractExpression to evaluate
    * @returns TRUE if base column, false otherwise
    */

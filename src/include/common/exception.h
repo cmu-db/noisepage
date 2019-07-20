@@ -14,6 +14,7 @@ namespace terrier {
 
 #define NOT_IMPLEMENTED_EXCEPTION(msg) NotImplementedException(msg, __FILE__, __LINE__)
 #define CATALOG_EXCEPTION(msg) CatalogException(msg, __FILE__, __LINE__)
+#define CONVERSION_EXCEPTION(msg) ConversionException(msg, __FILE__, __LINE__)
 #define PARSER_EXCEPTION(msg) ParserException(msg, __FILE__, __LINE__)
 #define NETWORK_PROCESS_EXCEPTION(msg) NetworkProcessException(msg, __FILE__, __LINE__)
 #define SETTINGS_EXCEPTION(msg) SettingsException(msg, __FILE__, __LINE__)
@@ -22,7 +23,16 @@ namespace terrier {
 /**
  * Exception types
  */
-enum class ExceptionType : uint8_t { RESERVED, NOT_IMPLEMENTED, CATALOG, NETWORK, PARSER, SETTINGS, OPTIMIZER };
+enum class ExceptionType : uint8_t {
+  RESERVED,
+  NOT_IMPLEMENTED,
+  CATALOG,
+  CONVERSION,
+  NETWORK,
+  PARSER,
+  SETTINGS,
+  OPTIMIZER
+};
 
 /**
  * Exception base class.
@@ -113,5 +123,6 @@ DEFINE_EXCEPTION(ParserException, ExceptionType::PARSER);
 DEFINE_EXCEPTION(NetworkProcessException, ExceptionType::NETWORK);
 DEFINE_EXCEPTION(SettingsException, ExceptionType::SETTINGS);
 DEFINE_EXCEPTION(OptimizerException, ExceptionType::OPTIMIZER);
+DEFINE_EXCEPTION(ConversionException, ExceptionType::CONVERSION);
 
 }  // namespace terrier

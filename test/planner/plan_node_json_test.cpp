@@ -5,10 +5,10 @@
 #include <utility>
 #include <vector>
 
+#include "parser/expression/column_value_expression.h"
 #include "parser/expression/comparison_expression.h"
 #include "parser/expression/conjunction_expression.h"
 #include "parser/expression/constant_value_expression.h"
-#include "parser/expression/tuple_value_expression.h"
 #include "planner/plannodes/aggregate_plan_node.h"
 #include "planner/plannodes/analyze_plan_node.h"
 #include "planner/plannodes/create_database_plan_node.h"
@@ -99,7 +99,7 @@ TEST(PlanNodeJsonTest, OutputSchemaJsonTest) {
 
   // Test DerivedColumn serialization
   std::vector<const parser::AbstractExpression *> children;
-  children.emplace_back(new parser::TupleValueExpression("table1", "col1"));
+  children.emplace_back(new parser::ColumnValueExpression("table1", "col1"));
   children.emplace_back(PlanNodeJsonTest::BuildDummyPredicate());
   auto *expr = new parser::ComparisonExpression(parser::ExpressionType::CONJUNCTION_OR, std::move(children));
 
@@ -135,7 +135,8 @@ TEST(PlanNodeJsonTest, AggregatePlanNodeJsonTest) {
   std::vector<const parser::AbstractExpression *> children;
   children.push_back(PlanNodeJsonTest::BuildDummyPredicate());
   auto *agg_term =
-      new parser::AggregateExpression(parser::ExpressionType::AGGREGATE_COUNT_STAR, std::move(children), false);
+      new parser::AggregateExpression(parser::ExpressionType::AGGREGATE_COUNT, std::move(children), false);
+
   AggregatePlanNode::Builder builder;
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
                        .SetAggregateStrategyType(AggregateStrategyType::HASH)
@@ -661,8 +662,8 @@ TEST(PlanNodeJsonTest, HashJoinPlanNodeJoinTest) {
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
                        .SetJoinType(LogicalJoinType::INNER)
                        .SetJoinPredicate(PlanNodeJsonTest::BuildDummyPredicate())
-                       .AddLeftHashKey(new parser::TupleValueExpression("col1", "table1"))
-                       .AddRightHashKey(new parser::TupleValueExpression("col2", "table2"))
+                       .AddLeftHashKey(new parser::ColumnValueExpression("col1", "table1"))
+                       .AddRightHashKey(new parser::ColumnValueExpression("col2", "table2"))
                        .SetBuildBloomFilterFlag(false)
                        .Build();
 
@@ -684,8 +685,8 @@ TEST(PlanNodeJsonTest, HashPlanNodeJsonTest) {
   // Construct HashPlanNode
   HashPlanNode::Builder builder;
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
-                       .AddHashKey(new parser::TupleValueExpression("col1", "table1"))
-                       .AddHashKey(new parser::TupleValueExpression("col2", "table1"))
+                       .AddHashKey(new parser::ColumnValueExpression("col1", "table1"))
+                       .AddHashKey(new parser::ColumnValueExpression("col2", "table1"))
                        .AddChild(PlanNodeJsonTest::BuildDummySeqScanPlan())
                        .Build();
 

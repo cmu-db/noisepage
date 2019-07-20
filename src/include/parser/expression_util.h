@@ -14,7 +14,8 @@
 #include "parser/expression/function_expression.h"
 #include "parser/expression/operator_expression.h"
 #include "parser/expression/parameter_value_expression.h"
-#include "parser/expression/tuple_value_expression.h"
+#include "parser/expression/column_value_expression.h"
+#include "parser/expression/derived_value_expression.h"
 #include "optimizer/optimizer_defs.h"
 
 namespace terrier::parser {
@@ -41,7 +42,6 @@ class ExpressionUtil {
   inline static bool IsAggregateExpression(ExpressionType type) {
     switch (type) {
       case ExpressionType::AGGREGATE_COUNT:
-      case ExpressionType::AGGREGATE_COUNT_STAR:
       case ExpressionType::AGGREGATE_SUM:
       case ExpressionType::AGGREGATE_MIN:
       case ExpressionType::AGGREGATE_MAX:
@@ -105,11 +105,17 @@ class ExpressionUtil {
    */
   static void GenerateTableAliasSet(const AbstractExpression* expr,
                                     std::unordered_set<std::string> *table_alias_set) {
-    if (expr->GetExpressionType() == ExpressionType::VALUE_TUPLE) {
-      auto tv_expr = dynamic_cast<const TupleValueExpression*>(expr);
-      TERRIER_ASSERT(tv_expr, "tv_expr should be TupleValueExpression");
-      table_alias_set->insert(tv_expr->GetTableName());
+    if (expr->GetExpressionType() == ExpressionType::COLUMN_VALUE) {
+      auto tv_expr = dynamic_cast<const ColumnValueExpression*>(expr);
+      TERRIER_ASSERT(tv_expr, "tv_expr should be ColumnValueExpression");
+
+      std::string tbl = tv_expr->GetTableName();
+      TERRIER_ASSERT(!tbl.empty(), "Table alias should not be empty");
+      table_alias_set->insert(tbl);
     } else {
+      TERRIER_ASSERT(expr->GetExpressionType() != ExpressionType::VALUE_TUPLE,
+                     "DerivedValueExpression should not exist.");
+
       for (size_t i = 0; i < expr->GetChildrenSize(); i++) {
         GenerateTableAliasSet(expr->GetChild(i).get(), table_alias_set);
       }
@@ -179,13 +185,13 @@ class ExpressionUtil {
   }
 
   /**
-   * Walks an expression tree and finds all AggregateExpression and TupleValueExpressions
+   * Walks an expression tree and finds all AggregateExpression and ColumnValueExpressions
    * @param expr_set optimizer::ExprSet to store found expressions in
    * @param expr AbstractExpression to walk
    */
   static void GetTupleAndAggregateExprs(optimizer::ExprSet *expr_set,
                                         const AbstractExpression* expr) {
-    std::vector<const TupleValueExpression*> tv_exprs;
+    std::vector<const ColumnValueExpression*> tv_exprs;
     std::vector<const AggregateExpression*> aggr_exprs;
     GetTupleAndAggregateExprs(&aggr_exprs, &tv_exprs, expr);
     for (auto &tv_expr : tv_exprs) {
@@ -197,8 +203,8 @@ class ExpressionUtil {
   }
 
   /**
-   * Walks an expression tree and finds all AggregateExpression and TupleValueExpressions.
-   * expr_map keeps track of the order they were inserted in. TupleValueExpressions are
+   * Walks an expression tree and finds all AggregateExpression and ColumnValueExpressions.
+   * expr_map keeps track of the order they were inserted in. ColumnValueExpressions are
    * added before AggregateExpressions to expr_map.
    *
    * @param expr_map optimizer::ExprMap to store found expressions and order they were added
@@ -206,7 +212,7 @@ class ExpressionUtil {
    */
   static void GetTupleAndAggregateExprs(optimizer::ExprMap *expr_map,
                                         const AbstractExpression* expr) {
-    std::vector<const TupleValueExpression*> tv_exprs;
+    std::vector<const ColumnValueExpression*> tv_exprs;
     std::vector<const AggregateExpression*> aggr_exprs;
     GetTupleAndAggregateExprs(&aggr_exprs, &tv_exprs, expr);
     for (auto &tv_expr : tv_exprs) {
@@ -231,21 +237,21 @@ class ExpressionUtil {
    */
   static void GetAggregateExprs(std::vector<const AggregateExpression*> *aggr_exprs,
                                 const AbstractExpression* expr) {
-    std::vector<const TupleValueExpression*> dummy_tv_exprs;
+    std::vector<const ColumnValueExpression*> dummy_tv_exprs;
     GetTupleAndAggregateExprs(aggr_exprs, &dummy_tv_exprs, expr);
   }
 
   /**
-   * Walks an expression trees and find all AggregateExpression and TupleValueExpressions.
-   * AggregateExpression and TupleValueExpression are appended to the respective vectors in
+   * Walks an expression trees and find all AggregateExpression and ColumnValueExpressions.
+   * AggregateExpression and ColumnValueExpression are appended to the respective vectors in
    * the order that each are found in.
    *
    * @param aggr_exprs vector of AggregateExpressions in expression
-   * @param tv_exprs vector of TupleValueExpressions in expression
+   * @param tv_exprs vector of ColumnValueExpressions in expression
    * @param expr Expression to walk
    */
   static void GetTupleAndAggregateExprs(std::vector<const AggregateExpression*> *aggr_exprs,
-                                        std::vector<const TupleValueExpression*> *tv_exprs,
+                                        std::vector<const ColumnValueExpression*> *tv_exprs,
                                         const AbstractExpression* expr) {
     size_t children_size = expr->GetChildrenSize();
     if (IsAggregateExpression(expr->GetExpressionType())) {
@@ -253,13 +259,15 @@ class ExpressionUtil {
       TERRIER_ASSERT(aggr_expr, "expr should be AggregateExpresision");
 
       aggr_exprs->push_back(aggr_expr);
-    } else if (expr->GetExpressionType() == ExpressionType::VALUE_TUPLE) {
-      auto tv_expr = dynamic_cast<const TupleValueExpression*>(expr);
-      TERRIER_ASSERT(tv_expr->GetChildrenSize() == 0, "TupleValueExpression should have no children");
-      TERRIER_ASSERT(tv_expr, "expr should be TupleValueExpression");
+    } else if (expr->GetExpressionType() == ExpressionType::COLUMN_VALUE) {
+      auto tv_expr = dynamic_cast<const ColumnValueExpression*>(expr);
+      TERRIER_ASSERT(tv_expr->GetChildrenSize() == 0, "ColumnValueExpression should have no children");
+      TERRIER_ASSERT(tv_expr, "expr should be ColumnValueExpression");
 
       tv_exprs->push_back(tv_expr);
     } else {
+      TERRIER_ASSERT(expr->GetExpressionType() != ExpressionType::VALUE_TUPLE,
+                     "DerivedValueExpression should not exist here.");
       for (size_t i = 0; i < children_size; i++) {
         GetTupleAndAggregateExprs(aggr_exprs, tv_exprs, expr->GetChild(i).get());
       }
@@ -267,11 +275,11 @@ class ExpressionUtil {
   }
 
   /**
-   * Walks an expression trees and find all TupleValueExpressions in the tree.
-   * TupleValueExpressions are added to a expr_map to preserve order they are found in.
+   * Walks an expression trees and find all ColumnValueExpressions in the tree.
+   * ColumnValueExpressions are added to a expr_map to preserve order they are found in.
    * The expr_map is updated in post-order traversal order.
    *
-   * @param expr_map map to place found TupleValueExpressions for order-preserving
+   * @param expr_map map to place found ColumnValueExpressions for order-preserving
    * @param expr Expression to walk
    */
   static void GetTupleValueExprs(optimizer::ExprMap *expr_map, const AbstractExpression* expr) {
@@ -287,10 +295,10 @@ class ExpressionUtil {
   }
 
   /**
-   * Walks an expression trees and find all TupleValueExpressions in the tree
-   * TupleValueExpressions are added to the expr_set in post-order traversal.
+   * Walks an expression trees and find all ColumnValueExpressions in the tree
+   * ColumnValueExpressions are added to the expr_set in post-order traversal.
    *
-   * @param expr_set set to place found TupleValueExpressions
+   * @param expr_set set to place found ColumnValueExpressions
    * @param expr Expression to walk
    */
   static void GetTupleValueExprs(optimizer::ExprSet *expr_set, const AbstractExpression* expr) {
@@ -324,10 +332,10 @@ class ExpressionUtil {
       EvaluateExpression(expr_maps, expr->GetChild(i).get());
     }
 
-    if (expr->GetExpressionType() == ExpressionType::VALUE_TUPLE) {
+    if (expr->GetExpressionType() == ExpressionType::COLUMN_VALUE) {
       // Point to the correct column returned in the logical tuple underneath
-      auto c_tup_expr = dynamic_cast<const TupleValueExpression*>(expr);
-      TERRIER_ASSERT(c_tup_expr, "expr should be TupleValueExpression");
+      auto c_tup_expr = dynamic_cast<const ColumnValueExpression*>(expr);
+      TERRIER_ASSERT(c_tup_expr, "expr should be ColumnValueExpression");
 
       // SetValueIdx(), explicitly cast away const-ness
       // auto tup_expr = const_cast<TupleValueExpression*>(c_tup_expr);
@@ -390,6 +398,9 @@ class ExpressionUtil {
       for (size_t i = 0; i < case_expr->GetWhenClauseSize(); i++) {
         EvaluateExpression(expr_maps, case_expr->GetWhenClauseCondition(i).get());
       }
+    } else {
+      TERRIER_ASSERT(expr->GetExpressionType() != ExpressionType::VALUE_TUPLE,
+                     "DerivedValueExpression should not be present");
     }
   }
 

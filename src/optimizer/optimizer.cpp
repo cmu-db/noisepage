@@ -171,7 +171,7 @@ void Optimizer::ExecuteTaskStack(
     uint64_t task_runtime = 0;
     auto task = task_stack->Pop();
     {
-      common::ScopedTimer timer(&task_runtime);
+      common::ScopedTimer<std::chrono::milliseconds> timer(&task_runtime);
       task->execute();
     }
     delete task;

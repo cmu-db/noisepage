@@ -3,8 +3,6 @@
 #include <memory>
 #include <vector>
 #include "parser/expression/abstract_expression.h"
-#include "parser/expression_defs.h"
-#include "type/type_id.h"
 
 namespace terrier::parser {
 /**
@@ -19,6 +17,10 @@ class StarExpression : public AbstractExpression {
 
   ~StarExpression() override = default;
 
+  /**
+   * Copies this StarExpression
+   * @returns this
+   */
   const AbstractExpression *Copy() const override {
     // TODO(Tianyu): This really should be a singleton object
     return new StarExpression();
@@ -28,24 +30,14 @@ class StarExpression : public AbstractExpression {
    * Creates a copy of the current AbstractExpression with new children implanted.
    * The children should not be owned by any other AbstractExpression.
    * @param children New children to be owned by the copy
+   * @returns copy of this
    */
   const AbstractExpression *CopyWithChildren(std::vector<const AbstractExpression *> children) const override {
     TERRIER_ASSERT(children.empty(), "StarExpression should have 0 children");
     return Copy();
   }
 
-  /**
-   * @return expression serialized to json
-   */
-  nlohmann::json ToJson() const override {
-    nlohmann::json j = AbstractExpression::ToJson();
-    return j;
-  }
-
-  /**
-   * @param j json to deserialize
-   */
-  void FromJson(const nlohmann::json &j) override { AbstractExpression::FromJson(j); }
+  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 };
 
 DEFINE_JSON_DECLARATIONS(StarExpression);

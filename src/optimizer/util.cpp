@@ -19,14 +19,17 @@ void ExtractEquiJoinKeys(
     if (expr->GetExpressionType() == parser::ExpressionType::COMPARE_EQUAL) {
       auto l_expr = expr->GetChild(0);
       auto r_expr = expr->GetChild(1);
+      TERRIER_ASSERT(l_expr->GetExpressionType() != parser::ExpressionType::VALUE_TUPLE &&
+                     r_expr->GetExpressionType() != parser::ExpressionType::VALUE_TUPLE,
+                     "DerivedValue should not exist here");
 
-      // equi-join between two TupleValueExpressions
-      if (l_expr->GetExpressionType() == parser::ExpressionType::VALUE_TUPLE &&
-          r_expr->GetExpressionType() == parser::ExpressionType::VALUE_TUPLE) {
-        auto l_tv_expr = l_expr.CastManagedPointerTo<const parser::TupleValueExpression>();
-        auto r_tv_expr = r_expr.CastManagedPointerTo<const parser::TupleValueExpression>();
-        auto l_expr = const_cast<parser::TupleValueExpression*>(l_tv_expr.get());
-        auto r_expr = const_cast<parser::TupleValueExpression*>(r_tv_expr.get());
+      // equi-join between two ColumnValueExpressions
+      if (l_expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE &&
+          r_expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
+        auto l_tv_expr = l_expr.CastManagedPointerTo<const parser::ColumnValueExpression>();
+        auto r_tv_expr = r_expr.CastManagedPointerTo<const parser::ColumnValueExpression>();
+        auto l_expr = const_cast<parser::ColumnValueExpression*>(l_tv_expr.get());
+        auto r_expr = const_cast<parser::ColumnValueExpression*>(r_tv_expr.get());
 
         // Assign keys based on left and right join tables
         // l_tv_expr/r_tv_expr should not be modified later...

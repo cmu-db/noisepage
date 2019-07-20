@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <vector>
 #include "parser/expression/abstract_expression.h"
 
 namespace terrier::parser {
@@ -16,25 +17,31 @@ class DefaultValueExpression : public AbstractExpression {
    */
   DefaultValueExpression() : AbstractExpression(ExpressionType::VALUE_DEFAULT, type::TypeId::INVALID, {}) {}
 
-  const AbstractExpression* Copy() const override { return new DefaultValueExpression(); }
+  /**
+   * Copies this DefaultValueExpression
+   * @returns copy of this
+   */
+  const AbstractExpression* Copy() const override { return new DefaultValueExpression(*this); }
 
+  /**
+   * Copies this DefaultValueExpression with new children
+   * @param children Children of new DefaultValueExpression
+   * @returns copy of this with new children
+   */
   const AbstractExpression* CopyWithChildren(std::vector<const AbstractExpression*> children) const override {
     TERRIER_ASSERT(children.empty(), "DefaultValueExpression should have 0 children");
     return Copy();
   }
 
-  /**
-   * @return expression serialized to json
-   */
-  nlohmann::json ToJson() const override {
-    nlohmann::json j = AbstractExpression::ToJson();
-    return j;
-  }
+  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
+ private:
   /**
-   * @param j json to deserialize
+   * Copy constructor for DefaultValueExpression
+   * Relies on AbstractExpression copy constructor for base members
+   * @param other Other DefaultValueExpression to copy
    */
-  void FromJson(const nlohmann::json &j) override { AbstractExpression::FromJson(j); }
+  DefaultValueExpression(const DefaultValueExpression &other) = default;
 };
 
 DEFINE_JSON_DECLARATIONS(DefaultValueExpression);
