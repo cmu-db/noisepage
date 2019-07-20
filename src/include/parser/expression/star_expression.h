@@ -23,7 +23,7 @@ class StarExpression : public AbstractExpression {
    */
   const AbstractExpression *Copy() const override {
     // TODO(Tianyu): This really should be a singleton object
-    return new StarExpression();
+    return new StarExpression(*this);
   }
 
   /**
@@ -38,6 +38,14 @@ class StarExpression : public AbstractExpression {
   }
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
+
+ private:
+  /**
+   * Copy constructor for StarExpression
+   * Relies on AbstractExpression copy constructor for base members
+   * @param other Other AbstractExpression to copy
+   */
+  StarExpression(const StarExpression &other) = default;
 };
 
 DEFINE_JSON_DECLARATIONS(StarExpression);

@@ -276,12 +276,6 @@ class OutputSchema {
   }
 
   /**
-   * Copy constructs an OutputSchema.
-   * @param other the OutputSchema to be copied
-   */
-  OutputSchema(const OutputSchema &other) = default;
-
-  /**
    * Default constructor for deserialization
    */
   OutputSchema() = default;
@@ -304,12 +298,6 @@ class OutputSchema {
    * @return the vector of columns that are part of this schema
    */
   const std::vector<Column> &GetColumns() const { return columns_; }
-
-  /**
-   * Make a copy of this OutputSchema
-   * @return shared pointer to the copy
-   */
-  std::shared_ptr<OutputSchema> Copy() const { return std::make_shared<OutputSchema>(*this); }
 
   /**
    * Hash the current OutputSchema.
@@ -341,7 +329,14 @@ class OutputSchema {
     if (columns_ != rhs.columns_) return false;
 
     // Targets
-    if (targets_ != rhs.targets_) return false;
+    std::function<bool (const DerivedTarget&, const DerivedTarget&)> cmp = [](
+      const DerivedTarget &left, const DerivedTarget &right) {
+      if (left.first != right.first) return false;
+      if (left.second == nullptr && right.second == nullptr) return true;
+      if (left.second == nullptr || right.second == nullptr) return false;
+      return (*left.second == *right.second);
+    };
+    if (!std::equal(targets_.begin(), targets_.end(), rhs.targets_.begin(), cmp)) return false;
 
     // Direct Map List
     if (direct_map_list_ != rhs.direct_map_list_) return false;

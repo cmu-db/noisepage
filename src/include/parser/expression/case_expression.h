@@ -33,6 +33,14 @@ class CaseExpression : public AbstractExpression {
      */
     WhenClause() = default;
 
+    /**
+     * Copies this WhenClause
+     * @returns copy of this
+     */
+    WhenClause *Copy() const {
+      return new WhenClause(condition_->Copy(), then_->Copy());
+    }
+
     ~WhenClause() {
       delete condition_;
       delete then_;
@@ -228,9 +236,15 @@ class CaseExpression : public AbstractExpression {
    * @param other CaseExpression to copy from
    */
   CaseExpression(const CaseExpression &other)
-    : AbstractExpression(other),
-      when_clauses_(other.when_clauses_),
-      default_expr_(other.default_expr_ != nullptr ? other.default_expr_->Copy() : nullptr) {}
+    : AbstractExpression(other) {
+    for (auto clause : other.when_clauses_) {
+      when_clauses_.push_back(clause->Copy());
+    }
+
+    if (other.default_expr_ != nullptr) {
+      default_expr_ = other.default_expr_->Copy();
+    }
+  }
 
   /**
    * List of condition and result cases: WHEN ... THEN ...

@@ -110,6 +110,7 @@ class SubqueryExpression : public AbstractExpression {
    */
   void FromJson(const nlohmann::json &j) override {
     AbstractExpression::FromJson(j);
+    subselect_ = std::make_shared<parser::SelectStatement>();
     subselect_->FromJson(j.at("subselect"));
   }
 

@@ -71,14 +71,18 @@ TEST(OperatorTests, LogicalInsertTest) {
       new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(3))};
   std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> bad_values = {
       std::vector<common::ManagedPointer<parser::AbstractExpression>>(bad_raw_values, std::end(bad_raw_values))};
+
   EXPECT_DEATH(LogicalInsert::make(
-                   database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
-                   std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(bad_values)),
-               "Mismatched");
+               database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
+               std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(bad_values)), "Mismatched");
   for (auto entry : bad_raw_values) delete entry;
 #endif
 
   for (auto entry : raw_values) delete entry;
+
+  delete op1.As<LogicalInsert>();
+  delete op2.As<LogicalInsert>();
+  delete op3.As<LogicalInsert>();
 }
 
 // NOLINTNEXTLINE
@@ -106,6 +110,10 @@ TEST(OperatorTests, LogicalInsertSelectTest) {
   Operator op3 = LogicalInsertSelect::make(other_database_oid, namespace_oid, table_oid);
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
+
+  delete op1.As<LogicalInsertSelect>();
+  delete op2.As<LogicalInsertSelect>();
+  delete op3.As<LogicalInsertSelect>();
 }
 
 // NOLINTNEXTLINE
@@ -119,6 +127,9 @@ TEST(OperatorTests, LogicalDistinctTest) {
   Operator op2 = LogicalDistinct::make();
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
+
+  delete op1.As<LogicalDistinct>();
+  delete op2.As<LogicalDistinct>();
 }
 
 // NOLINTNEXTLINE
@@ -153,6 +164,10 @@ TEST(OperatorTests, LogicalLimitTest) {
   EXPECT_NE(op1.Hash(), op3.Hash());
 
   delete sort_expr_ori;
+
+  delete op1.As<LogicalLimit>();
+  delete op2.As<LogicalLimit>();
+  delete op3.As<LogicalLimit>();
 }
 
 // NOLINTNEXTLINE
@@ -180,6 +195,10 @@ TEST(OperatorTests, LogicalDeleteTest) {
   Operator op3 = LogicalDelete::make(other_database_oid, namespace_oid, table_oid);
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
+
+  delete op1.As<LogicalDelete>();
+  delete op2.As<LogicalDelete>();
+  delete op3.As<LogicalDelete>();
 }
 
 // NOLINTNEXTLINE
@@ -214,6 +233,10 @@ TEST(OperatorTests, LogicalUpdateTest) {
   EXPECT_NE(op1.Hash(), op3.Hash());
 
   delete raw_update_clause;
+
+  delete op1.As<LogicalUpdate>();
+  delete op2.As<LogicalUpdate>();
+  delete op3.As<LogicalUpdate>();
 }
 
 // NOLINTNEXTLINE
@@ -246,6 +269,10 @@ TEST(OperatorTests, LogicalExportExternalFileTest) {
   Operator op3 = LogicalExportExternalFile::make(parser::ExternalFileFormat::CSV, file_name, delimiter, quote, escape);
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
+
+  delete op1.As<LogicalExportExternalFile>();
+  delete op2.As<LogicalExportExternalFile>();
+  delete op3.As<LogicalExportExternalFile>();
 }
 
 // NOLINTNEXTLINE
@@ -323,6 +350,18 @@ TEST(OperatorTests, LogicalGetTest) {
   delete expr_b_1;
   delete expr_b_2;
   delete expr_b_3;
+
+  delete logical_get_01.As<LogicalGet>();
+  delete logical_get_02.As<LogicalGet>();
+  delete logical_get_03.As<LogicalGet>();
+  delete logical_get_04.As<LogicalGet>();
+  delete logical_get_05.As<LogicalGet>();
+  delete logical_get_1.As<LogicalGet>();
+  delete logical_get_2.As<LogicalGet>();
+  delete logical_get_3.As<LogicalGet>();
+  delete logical_get_4.As<LogicalGet>();
+  delete logical_get_5.As<LogicalGet>();
+  delete logical_get_6.As<LogicalGet>();
 }
 
 // NOLINTNEXTLINE
@@ -364,6 +403,14 @@ TEST(OperatorTests, LogicalExternalFileGetTest) {
   EXPECT_NE(logical_ext_file_get_1.Hash(), logical_ext_file_get_5.Hash());
   EXPECT_NE(logical_ext_file_get_1.Hash(), logical_ext_file_get_6.Hash());
   EXPECT_NE(logical_ext_file_get_1.Hash(), logical_ext_file_get_7.Hash());
+
+  delete logical_ext_file_get_1.As<LogicalExternalFileGet>();
+  delete logical_ext_file_get_2.As<LogicalExternalFileGet>();
+  delete logical_ext_file_get_3.As<LogicalExternalFileGet>();
+  delete logical_ext_file_get_4.As<LogicalExternalFileGet>();
+  delete logical_ext_file_get_5.As<LogicalExternalFileGet>();
+  delete logical_ext_file_get_6.As<LogicalExternalFileGet>();
+  delete logical_ext_file_get_7.As<LogicalExternalFileGet>();
 }
 
 // NOLINTNEXTLINE
@@ -418,6 +465,13 @@ TEST(OperatorTests, LogicalQueryDerivedGetTest) {
 
   delete expr_b_1;
   delete expr_b_2;
+
+  delete logical_query_derived_get_1.As<LogicalQueryDerivedGet>();
+  delete logical_query_derived_get_2.As<LogicalQueryDerivedGet>();
+  delete logical_query_derived_get_3.As<LogicalQueryDerivedGet>();
+  delete logical_query_derived_get_4.As<LogicalQueryDerivedGet>();
+  delete logical_query_derived_get_5.As<LogicalQueryDerivedGet>();
+  delete logical_query_derived_get_6.As<LogicalQueryDerivedGet>();
 }
 
 // NOLINTNEXTLINE
@@ -464,6 +518,13 @@ TEST(OperatorTests, LogicalFilterTest) {
   delete expr_b_1;
   delete expr_b_2;
   delete expr_b_3;
+
+  delete logical_filter_1.As<LogicalFilter>();
+  delete logical_filter_2.As<LogicalFilter>();
+  delete logical_filter_3.As<LogicalFilter>();
+  delete logical_filter_4.As<LogicalFilter>();
+  delete logical_filter_5.As<LogicalFilter>();
+  delete logical_filter_6.As<LogicalFilter>();
 }
 
 // NOLINTNEXTLINE
@@ -501,6 +562,10 @@ TEST(OperatorTests, LogicalProjectionTest) {
   delete expr_b_1;
   delete expr_b_2;
   delete expr_b_3;
+
+  delete logical_projection_1.As<LogicalProjection>();
+  delete logical_projection_2.As<LogicalProjection>();
+  delete logical_projection_3.As<LogicalProjection>();
 }
 
 // NOLINTNEXTLINE
@@ -552,6 +617,14 @@ TEST(OperatorTests, LogicalDependentJoinTest) {
   delete expr_b_1;
   delete expr_b_2;
   delete expr_b_3;
+
+  delete logical_dep_join_0.As<LogicalDependentJoin>();
+  delete logical_dep_join_1.As<LogicalDependentJoin>();
+  delete logical_dep_join_2.As<LogicalDependentJoin>();
+  delete logical_dep_join_3.As<LogicalDependentJoin>();
+  delete logical_dep_join_4.As<LogicalDependentJoin>();
+  delete logical_dep_join_5.As<LogicalDependentJoin>();
+  delete logical_dep_join_6.As<LogicalDependentJoin>();
 }
 
 // NOLINTNEXTLINE
@@ -603,6 +676,14 @@ TEST(OperatorTests, LogicalMarkJoinTest) {
   delete expr_b_1;
   delete expr_b_2;
   delete expr_b_3;
+
+  delete logical_mark_join_0.As<LogicalMarkJoin>();
+  delete logical_mark_join_1.As<LogicalMarkJoin>();
+  delete logical_mark_join_2.As<LogicalMarkJoin>();
+  delete logical_mark_join_3.As<LogicalMarkJoin>();
+  delete logical_mark_join_4.As<LogicalMarkJoin>();
+  delete logical_mark_join_5.As<LogicalMarkJoin>();
+  delete logical_mark_join_6.As<LogicalMarkJoin>();
 }
 
 // NOLINTNEXTLINE
@@ -654,6 +735,14 @@ TEST(OperatorTests, LogicalSingleJoinTest) {
   delete expr_b_1;
   delete expr_b_2;
   delete expr_b_3;
+
+  delete logical_single_join_0.As<LogicalSingleJoin>();
+  delete logical_single_join_1.As<LogicalSingleJoin>();
+  delete logical_single_join_2.As<LogicalSingleJoin>();
+  delete logical_single_join_3.As<LogicalSingleJoin>();
+  delete logical_single_join_4.As<LogicalSingleJoin>();
+  delete logical_single_join_5.As<LogicalSingleJoin>();
+  delete logical_single_join_6.As<LogicalSingleJoin>();
 }
 
 // NOLINTNEXTLINE
@@ -705,6 +794,14 @@ TEST(OperatorTests, LogicalInnerJoinTest) {
   delete expr_b_1;
   delete expr_b_2;
   delete expr_b_3;
+
+  delete logical_inner_join_0.As<LogicalInnerJoin>();
+  delete logical_inner_join_1.As<LogicalInnerJoin>();
+  delete logical_inner_join_2.As<LogicalInnerJoin>();
+  delete logical_inner_join_3.As<LogicalInnerJoin>();
+  delete logical_inner_join_4.As<LogicalInnerJoin>();
+  delete logical_inner_join_5.As<LogicalInnerJoin>();
+  delete logical_inner_join_6.As<LogicalInnerJoin>();
 }
 
 // NOLINTNEXTLINE
@@ -738,6 +835,10 @@ TEST(OperatorTests, LogicalLeftJoinTest) {
   delete expr_b_1;
   delete expr_b_2;
   delete expr_b_3;
+
+  delete logical_left_join_1.As<LogicalLeftJoin>();
+  delete logical_left_join_2.As<LogicalLeftJoin>();
+  delete logical_left_join_3.As<LogicalLeftJoin>();
 }
 
 // NOLINTNEXTLINE
@@ -771,6 +872,10 @@ TEST(OperatorTests, LogicalRightJoinTest) {
   delete expr_b_1;
   delete expr_b_2;
   delete expr_b_3;
+
+  delete logical_right_join_1.As<LogicalRightJoin>();
+  delete logical_right_join_2.As<LogicalRightJoin>();
+  delete logical_right_join_3.As<LogicalRightJoin>();
 }
 
 // NOLINTNEXTLINE
@@ -804,6 +909,10 @@ TEST(OperatorTests, LogicalOuterJoinTest) {
   delete expr_b_1;
   delete expr_b_2;
   delete expr_b_3;
+
+  delete logical_outer_join_1.As<LogicalOuterJoin>();
+  delete logical_outer_join_2.As<LogicalOuterJoin>();
+  delete logical_outer_join_3.As<LogicalOuterJoin>();
 }
 
 // NOLINTNEXTLINE
@@ -837,6 +946,10 @@ TEST(OperatorTests, LogicalSemiJoinTest) {
   delete expr_b_1;
   delete expr_b_2;
   delete expr_b_3;
+
+  delete logical_semi_join_1.As<LogicalSemiJoin>();
+  delete logical_semi_join_2.As<LogicalSemiJoin>();
+  delete logical_semi_join_3.As<LogicalSemiJoin>();
 }
 
 // NOLINTNEXTLINE
@@ -918,6 +1031,12 @@ TEST(OperatorTests, LogicalAggregateAndGroupByTest) {
   delete expr_b_6;
   delete expr_b_7;
   delete expr_b_8;
+
+  delete logical_group_1_1.As<LogicalAggregateAndGroupBy>();
+  delete logical_group_3.As<LogicalAggregateAndGroupBy>();
+  delete logical_group_7_4.As<LogicalAggregateAndGroupBy>();
+  delete logical_group_1_0.As<LogicalAggregateAndGroupBy>();
+  delete logical_group_2_2.As<LogicalAggregateAndGroupBy>();
 }
 
 }  // namespace terrier::optimizer
