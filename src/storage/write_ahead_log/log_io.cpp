@@ -1,5 +1,7 @@
 #include "storage/write_ahead_log/log_io.h"
 #include <algorithm>
+#include <common/hash_util.h>
+
 namespace terrier::storage {
 void PosixIoWrappers::Close(int fd) {
   while (true) {
@@ -65,6 +67,15 @@ void BufferedLogReader::RefillBuffer() {
     // TODO(Tianyu): Is it better to make this an explicit close?
     PosixIoWrappers::Close(in_);
     in_ = -1;
+  }
+  // checksum
+  else {
+    filled_size_ -= common::Constants::LOG_BUFFER_SUM_SIZE;
+    uint64_t le_sum;
+    std::memcpy(&le_sum, buffer_ + filled_size_, common::Constants::LOG_BUFFER_SUM_SIZE);
+    auto checksum = le64toh(le_sum);
+    TERRIER_ASSERT(checksum == common::HashUtil::HashBytes(reinterpret_cast<const terrier::byte *>(&(buffer_[0])),
+          common::Constants::LOG_BUFFER_PAYLOAD_SIZE), "Checksum does not match, data corrupted");
   }
 }
 
