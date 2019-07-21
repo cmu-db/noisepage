@@ -15,6 +15,8 @@ void AccessObserver::ObserveGCInvocation() {
 }
 
 void AccessObserver::ObserveWrite(RawBlock *block) {
+  // The compactor is only concerned with blocks that are alredy full. We assume that partially empty blocks are
+  // always hot.
   if (block->insert_head_ == block->data_table_->GetBlockLayout().NumSlots()) last_touched_[block] = gc_epoch_;
 }
 

@@ -138,6 +138,11 @@ class StorageUtil {
    */
   static std::vector<storage::col_id_t> ProjectionListAllColumns(const storage::BlockLayout &layout);
 
+  /**
+   * Deallocates the value buffers along varlen columns within a block
+   * @param block the block to clean up
+   * @param accessor accessor used to interact with the block
+   */
   static void DeallocateVarlens(RawBlock *block, const TupleAccessStrategy &accessor);
 };
 }  // namespace terrier::storage

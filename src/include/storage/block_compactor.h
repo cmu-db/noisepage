@@ -1,4 +1,5 @@
 #pragma once
+#include <queue>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -24,7 +25,7 @@ using VarlenEntryMap = std::unordered_map<VarlenEntry, T, VarlenContentHasher, V
 class BlockCompactor {
  private:
   // A Compaction group is a series of blocks all belonging to the same data table. We compact them together
-  // so slots can be freed up. If we only eliminate gaps, deleted slots will never be reclaimed.
+  // so slots can be freed up. If we only compact single block at a time, deleted slots will never be reclaimed.
   struct CompactionGroup {
     CompactionGroup(transaction::TransactionContext *txn, DataTable *table)
         : txn_(txn),
@@ -58,12 +59,11 @@ class BlockCompactor {
    */
   void ProcessCompactionQueue(transaction::TransactionManager *txn_manager);
 
-  // TODO(Tianyu): Should a block know about its own data table? We seem to need this back pointer awfully often.
   /**
    * Adds a block associated with a data table to the compaction to be processed in the future.
    * @param block the block that needs to be processed by the compactor
    */
-  FAKED_IN_TEST void PutInQueue(RawBlock *block) { compaction_queue_.push_front(block); }
+  FAKED_IN_TEST void PutInQueue(RawBlock *block) { compaction_queue_.push(block); }
 
  private:
   bool EliminateGaps(CompactionGroup *cg);
@@ -94,6 +94,6 @@ class BlockCompactor {
     }
   }
 
-  std::forward_list<RawBlock *> compaction_queue_;
+  std::queue<RawBlock *> compaction_queue_;
 };
 }  // namespace terrier::storage

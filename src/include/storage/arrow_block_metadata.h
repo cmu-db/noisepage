@@ -19,6 +19,7 @@ enum class ArrowColumnType : uint8_t { FIXED_LENGTH = 0, GATHERED_VARLEN, DICTIO
  * Stores information about an Arrow varlen column. This class implements an Arrow list, with
  * a byte array of values and an array of offsets into the value array. The null bitmap is stored
  * in the block (the same as the null bitmap of actual column)
+ * See https://arrow.apache.org/docs/format/Layout.html#list-type
  */
 class ArrowVarlenColumn {
  public:

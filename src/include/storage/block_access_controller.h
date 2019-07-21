@@ -1,4 +1,5 @@
 #pragma once
+#include <emmintrin.h>
 #include <atomic>
 #include <utility>
 #include "common/macros.h"
@@ -98,7 +99,7 @@ class BlockAccessController {
           // intentional fall through
         case BlockState::HOT:
           // Although the block is already hot, we may need to wait for any straggling readers to finish
-          while (GetReaderCount()->load() != 0) __asm__ __volatile__("pause;");
+          while (GetReaderCount()->load() != 0) _mm_pause();
           break;
         default:
           throw std::runtime_error("unexpected control flow");

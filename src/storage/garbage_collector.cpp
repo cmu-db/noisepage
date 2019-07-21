@@ -81,8 +81,6 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
     txns_to_unlink_.pop_front();
 
     if (txn->IsReadOnly()) {
-      // TODO(Tianyu): Deal with this edge case
-      //      if (txn->compacted_ != nullptr && observer_ != nullptr) observer_->ObserveWrite(txn->compacted_);
       // This is a read-only transaction so this is safe to immediately delete
       delete txn;
       txns_processed++;
