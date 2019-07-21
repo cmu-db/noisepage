@@ -34,6 +34,12 @@ class LeafOperator : OperatorNode<LeafOperator> {
    */
   static Operator make(GroupID group);
 
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
+
   bool operator==(const BaseOperatorNode &r) override;
 
   common::hash_t Hash() const override;
@@ -68,6 +74,12 @@ class LogicalGet : public OperatorNode<LogicalGet> {
   static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t table_oid, std::vector<AnnotatedExpression> predicates,
                        std::string table_alias, bool is_for_update);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
 
   bool operator==(const BaseOperatorNode &r) override;
 
@@ -151,6 +163,12 @@ class LogicalExternalFileGet : public OperatorNode<LogicalExternalFileGet> {
   static Operator make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote,
                        char escape);
 
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
+
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
 
@@ -220,6 +238,12 @@ class LogicalQueryDerivedGet : public OperatorNode<LogicalQueryDerivedGet> {
       std::string table_alias,
       std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> &&alias_to_expr_map);
 
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
+
   bool operator==(const BaseOperatorNode &r) override;
 
   common::hash_t Hash() const override;
@@ -259,6 +283,12 @@ class LogicalFilter : public OperatorNode<LogicalFilter> {
    */
   static Operator make(std::vector<AnnotatedExpression> &&predicates);
 
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
+
   bool operator==(const BaseOperatorNode &r) override;
 
   common::hash_t Hash() const override;
@@ -287,6 +317,12 @@ class LogicalProjection : public OperatorNode<LogicalProjection> {
    * @return a LogicalProjection operator
    */
   static Operator make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&expressions);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
 
   bool operator==(const BaseOperatorNode &r) override;
 
@@ -320,6 +356,12 @@ class LogicalDependentJoin : public OperatorNode<LogicalDependentJoin> {
    */
   static Operator make(std::vector<AnnotatedExpression> &&conditions);
 
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
+
   bool operator==(const BaseOperatorNode &r) override;
 
   common::hash_t Hash() const override;
@@ -351,6 +393,12 @@ class LogicalMarkJoin : public OperatorNode<LogicalMarkJoin> {
    * @return a MarkJoin operator
    */
   static Operator make(std::vector<AnnotatedExpression> &&conditions);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
 
   bool operator==(const BaseOperatorNode &r) override;
 
@@ -384,6 +432,12 @@ class LogicalSingleJoin : public OperatorNode<LogicalSingleJoin> {
    */
   static Operator make(std::vector<AnnotatedExpression> &&conditions);
 
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
+
   bool operator==(const BaseOperatorNode &r) override;
 
   common::hash_t Hash() const override;
@@ -416,6 +470,12 @@ class LogicalInnerJoin : public OperatorNode<LogicalInnerJoin> {
    */
   static Operator make(std::vector<AnnotatedExpression> &&conditions);
 
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
+
   bool operator==(const BaseOperatorNode &r) override;
 
   common::hash_t Hash() const override;
@@ -442,6 +502,12 @@ class LogicalLeftJoin : public OperatorNode<LogicalLeftJoin> {
    * @return a LeftJoin operator
    */
   static Operator make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
 
   bool operator==(const BaseOperatorNode &r) override;
 
@@ -470,6 +536,12 @@ class LogicalRightJoin : public OperatorNode<LogicalRightJoin> {
    */
   static Operator make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
 
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
+
   bool operator==(const BaseOperatorNode &r) override;
 
   common::hash_t Hash() const override;
@@ -497,6 +569,12 @@ class LogicalOuterJoin : public OperatorNode<LogicalOuterJoin> {
    */
   static Operator make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
 
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
+
   bool operator==(const BaseOperatorNode &r) override;
 
   common::hash_t Hash() const override;
@@ -523,6 +601,12 @@ class LogicalSemiJoin : public OperatorNode<LogicalSemiJoin> {
    * @return a SemiJoin operator
    */
   static Operator make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
 
   bool operator==(const BaseOperatorNode &r) override;
 
@@ -563,6 +647,12 @@ class LogicalAggregateAndGroupBy : public OperatorNode<LogicalAggregateAndGroupB
    */
   static Operator make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns,
                        std::vector<AnnotatedExpression> &&having);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
 
   bool operator==(const BaseOperatorNode &r) override;
 
@@ -606,6 +696,12 @@ class LogicalInsert : public OperatorNode<LogicalInsert> {
   static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&columns,
                        std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &&values);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
@@ -679,6 +775,12 @@ class LogicalInsertSelect : public OperatorNode<LogicalInsertSelect> {
   static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t table_oid);
 
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
+
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
 
@@ -726,6 +828,12 @@ class LogicalDistinct : public OperatorNode<LogicalDistinct> {
    */
   static Operator make();
 
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
+
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
 };
@@ -746,6 +854,12 @@ class LogicalLimit : public OperatorNode<LogicalLimit> {
   static Operator make(size_t offset, size_t limit,
                        std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_exprs,
                        std::vector<planner::OrderByOrderingType> &&sort_directions);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
@@ -811,6 +925,12 @@ class LogicalDelete : public OperatorNode<LogicalDelete> {
   static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t table_oid);
 
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
+
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
 
@@ -861,6 +981,12 @@ class LogicalUpdate : public OperatorNode<LogicalUpdate> {
   static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t table_oid,
                        std::vector<common::ManagedPointer<parser::UpdateClause>> &&updates);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
@@ -922,6 +1048,12 @@ class LogicalExportExternalFile : public OperatorNode<LogicalExportExternalFile>
    */
   static Operator make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote,
                        char escape);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;

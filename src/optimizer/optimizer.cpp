@@ -114,7 +114,7 @@ planner::AbstractPlanNode* Optimizer::ChooseBestPlan(
   }
 
   // Derive root plan
-  OperatorExpression *op = new OperatorExpression(gexpr->Op(), {});
+  OperatorExpression *op = new OperatorExpression(Operator(gexpr->Op()), {});
 
   PlanGenerator generator;
   auto plan = generator.ConvertOpExpression(op, required_props, required_cols,

@@ -112,6 +112,7 @@ TEST(PlanNodeJsonTest, OutputSchemaJsonTest) {
   EXPECT_TRUE(deserialized_derived_col != nullptr);
   deserialized_derived_col->FromJson(derived_col_json);
   EXPECT_EQ(*derived_col, *deserialized_derived_col);
+  delete deserialized_derived_col;
 
   // Test OutputSchema Serialization
   std::vector<OutputSchema::Column> cols;

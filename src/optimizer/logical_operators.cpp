@@ -11,6 +11,10 @@
 
 namespace terrier::optimizer {
 
+BaseOperatorNode *LeafOperator::Copy() const {
+  return new LeafOperator(*this);
+}
+
 Operator LeafOperator::make(GroupID group) {
   auto *leaf = new LeafOperator;
   leaf->origin_group_ = group;
@@ -32,6 +36,10 @@ bool LeafOperator::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // Logical Get
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *LogicalGet::Copy() const {
+  return new LogicalGet(*this);
+}
+
 Operator LogicalGet::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                           catalog::table_oid_t table_oid, std::vector<AnnotatedExpression> predicates,
                           std::string table_alias, bool is_for_update) {
@@ -73,6 +81,10 @@ bool LogicalGet::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // External file get
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *LogicalExternalFileGet::Copy() const {
+  return new LogicalExternalFileGet(*this);
+}
+
 Operator LogicalExternalFileGet::make(parser::ExternalFileFormat format, std::string file_name, char delimiter,
                                       char quote, char escape) {
   auto *get = new LogicalExternalFileGet();
@@ -104,6 +116,10 @@ common::hash_t LogicalExternalFileGet::Hash() const {
 //===--------------------------------------------------------------------===//
 // Query derived get
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *LogicalQueryDerivedGet::Copy() const {
+  return new LogicalQueryDerivedGet(*this);
+}
+
 Operator LogicalQueryDerivedGet::make(
     std::string table_alias,
     std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> &&alias_to_expr_map) {
@@ -133,6 +149,9 @@ common::hash_t LogicalQueryDerivedGet::Hash() const {
 //===--------------------------------------------------------------------===//
 // LogicalFilter
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *LogicalFilter::Copy() const {
+  return new LogicalFilter(*this);
+}
 
 Operator LogicalFilter::make(std::vector<AnnotatedExpression> &&predicates) {
   auto *op = new LogicalFilter;
@@ -167,6 +186,9 @@ common::hash_t LogicalFilter::Hash() const {
 //===--------------------------------------------------------------------===//
 // LogicalProjection
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *LogicalProjection::Copy() const {
+  return new LogicalProjection(*this);
+}
 
 Operator LogicalProjection::make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&expressions) {
   auto *op = new LogicalProjection;
@@ -192,6 +214,9 @@ common::hash_t LogicalProjection::Hash() const {
 //===--------------------------------------------------------------------===//
 // LogicalInsert
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *LogicalInsert::Copy() const {
+  return new LogicalInsert(*this);
+}
 
 Operator LogicalInsert::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                              catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&columns,
@@ -242,6 +267,9 @@ bool LogicalInsert::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // LogicalInsertSelect
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *LogicalInsertSelect::Copy() const {
+  return new LogicalInsertSelect(*this);
+}
 
 Operator LogicalInsertSelect::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                                    catalog::table_oid_t table_oid) {
@@ -272,6 +300,9 @@ bool LogicalInsertSelect::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // LogicalDistinct
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *LogicalDistinct::Copy() const {
+  return new LogicalDistinct(*this);
+}
 
 Operator LogicalDistinct::make() {
   auto *op = new LogicalDistinct;
@@ -294,6 +325,9 @@ common::hash_t LogicalDistinct::Hash() const {
 //===--------------------------------------------------------------------===//
 // LogicalLimit
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *LogicalLimit::Copy() const {
+  return new LogicalLimit(*this);
+}
 
 Operator LogicalLimit::make(size_t offset, size_t limit,
                             std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_exprs,
@@ -329,6 +363,9 @@ common::hash_t LogicalLimit::Hash() const {
 //===--------------------------------------------------------------------===//
 // LogicalDelete
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *LogicalDelete::Copy() const {
+  return new LogicalDelete(*this);
+}
 
 Operator LogicalDelete::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                              catalog::table_oid_t table_oid) {
@@ -359,6 +396,9 @@ bool LogicalDelete::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // LogicalUpdate
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *LogicalUpdate::Copy() const {
+  return new LogicalUpdate(*this);
+}
 
 Operator LogicalUpdate::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                              catalog::table_oid_t table_oid,
@@ -393,6 +433,9 @@ bool LogicalUpdate::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // LogicalExportExternalFile
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *LogicalExportExternalFile::Copy() const {
+  return new LogicalExportExternalFile(*this);
+}
 
 Operator LogicalExportExternalFile::make(parser::ExternalFileFormat format, std::string file_name, char delimiter,
                                          char quote, char escape) {
@@ -429,6 +472,10 @@ bool LogicalExportExternalFile::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // Logical Dependent Join
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *LogicalDependentJoin::Copy() const {
+  return new LogicalDependentJoin(*this);
+}
+
 Operator LogicalDependentJoin::make() {
   auto *join = new LogicalDependentJoin;
   join->join_predicates_ = {};
@@ -462,6 +509,10 @@ common::hash_t LogicalDependentJoin::Hash() const {
 //===--------------------------------------------------------------------===//
 // MarkJoin
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *LogicalMarkJoin::Copy() const {
+  return new LogicalMarkJoin(*this);
+}
+
 Operator LogicalMarkJoin::make() {
   auto *join = new LogicalMarkJoin;
   join->join_predicates_ = {};
@@ -495,6 +546,10 @@ bool LogicalMarkJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // SingleJoin
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *LogicalSingleJoin::Copy() const {
+  return new LogicalSingleJoin(*this);
+}
+
 Operator LogicalSingleJoin::make() {
   auto *join = new LogicalSingleJoin;
   join->join_predicates_ = {};
@@ -528,6 +583,10 @@ bool LogicalSingleJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // InnerJoin
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *LogicalInnerJoin::Copy() const {
+  return new LogicalInnerJoin(*this);
+}
+
 Operator LogicalInnerJoin::make() {
   auto *join = new LogicalInnerJoin;
   join->join_predicates_ = {};
@@ -561,6 +620,10 @@ bool LogicalInnerJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // LeftJoin
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *LogicalLeftJoin::Copy() const {
+  return new LogicalLeftJoin(*this);
+}
+
 Operator LogicalLeftJoin::make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
   auto *join = new LogicalLeftJoin();
   join->join_predicate_ = join_predicate;
@@ -582,6 +645,10 @@ bool LogicalLeftJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // RightJoin
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *LogicalRightJoin::Copy() const {
+  return new LogicalRightJoin(*this);
+}
+
 Operator LogicalRightJoin::make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
   auto *join = new LogicalRightJoin();
   join->join_predicate_ = join_predicate;
@@ -603,6 +670,10 @@ bool LogicalRightJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // OuterJoin
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *LogicalOuterJoin::Copy() const {
+  return new LogicalOuterJoin(*this);
+}
+
 Operator LogicalOuterJoin::make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
   auto *join = new LogicalOuterJoin;
   join->join_predicate_ = join_predicate;
@@ -624,6 +695,10 @@ bool LogicalOuterJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // SemiJoin
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *LogicalSemiJoin::Copy() const {
+  return new LogicalSemiJoin(*this);
+}
+
 Operator LogicalSemiJoin::make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
   auto *join = new LogicalSemiJoin;
   join->join_predicate_ = join_predicate;
@@ -645,6 +720,10 @@ bool LogicalSemiJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // Aggregate
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *LogicalAggregateAndGroupBy::Copy() const {
+  return new LogicalAggregateAndGroupBy(*this);
+}
+
 Operator LogicalAggregateAndGroupBy::make() {
   auto *group_by = new LogicalAggregateAndGroupBy;
   group_by->columns_ = {};

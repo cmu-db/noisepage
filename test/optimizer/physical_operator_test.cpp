@@ -32,9 +32,6 @@ TEST(OperatorTests, TableFreeScanTest) {
   Operator op2 = TableFreeScan::make();
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
-
-  delete op1.As<TableFreeScan>();
-  delete op2.As<TableFreeScan>();
 }
 
 // NOLINTNEXTLINE
@@ -112,18 +109,6 @@ TEST(OperatorTests, SeqScanTest) {
   delete expr_b_1;
   delete expr_b_2;
   delete expr_b_3;
-
-  delete seq_scan_01.As<SeqScan>();
-  delete seq_scan_02.As<SeqScan>();
-  delete seq_scan_03.As<SeqScan>();
-  delete seq_scan_04.As<SeqScan>();
-  delete seq_scan_05.As<SeqScan>();
-  delete seq_scan_1.As<SeqScan>();
-  delete seq_scan_2.As<SeqScan>();
-  delete seq_scan_3.As<SeqScan>();
-  delete seq_scan_4.As<SeqScan>();
-  delete seq_scan_5.As<SeqScan>();
-  delete seq_scan_6.As<SeqScan>();
 }
 
 // NOLINTNEXTLINE
@@ -260,21 +245,6 @@ TEST(OperatorTests, IndexScanTest) {
   delete expr_b_1;
   delete expr_b_2;
   delete expr_b_3;
-
-  delete index_scan_01.As<IndexScan>();
-  delete index_scan_02.As<IndexScan>();
-  delete index_scan_03.As<IndexScan>();
-  delete index_scan_04.As<IndexScan>();
-  delete index_scan_05.As<IndexScan>();
-  delete index_scan_06.As<IndexScan>();
-  delete index_scan_07.As<IndexScan>();
-  delete index_scan_08.As<IndexScan>();
-  delete index_scan_1.As<IndexScan>();
-  delete index_scan_2.As<IndexScan>();
-  delete index_scan_3.As<IndexScan>();
-  delete index_scan_4.As<IndexScan>();
-  delete index_scan_5.As<IndexScan>();
-  delete index_scan_6.As<IndexScan>();
 }
 
 // NOLINTNEXTLINE
@@ -309,14 +279,6 @@ TEST(OperatorTests, ExternalFileScanTest) {
   EXPECT_NE(ext_file_scan_1.Hash(), ext_file_scan_5.Hash());
   EXPECT_NE(ext_file_scan_1.Hash(), ext_file_scan_6.Hash());
   EXPECT_NE(ext_file_scan_1.Hash(), ext_file_scan_7.Hash());
-
-  delete ext_file_scan_1.As<ExternalFileScan>();
-  delete ext_file_scan_2.As<ExternalFileScan>();
-  delete ext_file_scan_3.As<ExternalFileScan>();
-  delete ext_file_scan_4.As<ExternalFileScan>();
-  delete ext_file_scan_5.As<ExternalFileScan>();
-  delete ext_file_scan_6.As<ExternalFileScan>();
-  delete ext_file_scan_7.As<ExternalFileScan>();
 }
 
 // NOLINTNEXTLINE
@@ -371,13 +333,6 @@ TEST(OperatorTests, QueryDerivedScanTest) {
 
   delete expr_b_1;
   delete expr_b_2;
-
-  delete query_derived_scan_1.As<QueryDerivedScan>();
-  delete query_derived_scan_2.As<QueryDerivedScan>();
-  delete query_derived_scan_3.As<QueryDerivedScan>();
-  delete query_derived_scan_4.As<QueryDerivedScan>();
-  delete query_derived_scan_5.As<QueryDerivedScan>();
-  delete query_derived_scan_6.As<QueryDerivedScan>();
 }
 
 // NOLINTNEXTLINE
@@ -391,9 +346,6 @@ TEST(OperatorTests, OrderByTest) {
   Operator op2 = OrderBy::make();
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
-
-  delete op1.As<OrderBy>();
-  delete op2.As<OrderBy>();
 }
 
 // NOLINTNEXTLINE
@@ -431,10 +383,6 @@ TEST(OperatorTests, LimitTest) {
   EXPECT_NE(op1.Hash(), op3.Hash());
 
   delete sort_expr_ori;
-
-  delete op1.As<Limit>();
-  delete op2.As<Limit>();
-  delete op3.As<Limit>();
 }
 
 // NOLINTNEXTLINE
@@ -496,16 +444,6 @@ TEST(OperatorTests, InnerNLJoinTest) {
   delete expr_b_1;
   delete expr_b_2;
   delete expr_b_3;
-
-  delete inner_nl_join_1.As<InnerNLJoin>();
-  delete inner_nl_join_2.As<InnerNLJoin>();
-  delete inner_nl_join_3.As<InnerNLJoin>();
-  delete inner_nl_join_4.As<InnerNLJoin>();
-  delete inner_nl_join_5.As<InnerNLJoin>();
-  delete inner_nl_join_6.As<InnerNLJoin>();
-  delete inner_nl_join_7.As<InnerNLJoin>();
-  delete inner_nl_join_8.As<InnerNLJoin>();
-  delete inner_nl_join_9.As<InnerNLJoin>();
 }
 
 // NOLINTNEXTLINE
@@ -539,10 +477,6 @@ TEST(OperatorTests, LeftNLJoinTest) {
   delete expr_b_1;
   delete expr_b_2;
   delete expr_b_3;
-
-  delete left_nl_join_1.As<LeftNLJoin>();
-  delete left_nl_join_2.As<LeftNLJoin>();
-  delete left_nl_join_3.As<LeftNLJoin>();
 }
 
 // NOLINTNEXTLINE
@@ -576,10 +510,6 @@ TEST(OperatorTests, RightNLJoinTest) {
   delete expr_b_1;
   delete expr_b_2;
   delete expr_b_3;
-
-  delete right_nl_join_1.As<RightNLJoin>();
-  delete right_nl_join_2.As<RightNLJoin>();
-  delete right_nl_join_3.As<RightNLJoin>();
 }
 
 // NOLINTNEXTLINE
@@ -613,10 +543,6 @@ TEST(OperatorTests, OuterNLJoin) {
   delete expr_b_1;
   delete expr_b_2;
   delete expr_b_3;
-
-  delete outer_nl_join_1.As<OuterNLJoin>();
-  delete outer_nl_join_2.As<OuterNLJoin>();
-  delete outer_nl_join_3.As<OuterNLJoin>();
 }
 
 // NOLINTNEXTLINE
@@ -680,16 +606,6 @@ TEST(OperatorTests, InnerHashJoinTest) {
   delete expr_b_1;
   delete expr_b_2;
   delete expr_b_3;
-
-  delete inner_hash_join_1.As<InnerHashJoin>();
-  delete inner_hash_join_2.As<InnerHashJoin>();
-  delete inner_hash_join_3.As<InnerHashJoin>();
-  delete inner_hash_join_4.As<InnerHashJoin>();
-  delete inner_hash_join_5.As<InnerHashJoin>();
-  delete inner_hash_join_6.As<InnerHashJoin>();
-  delete inner_hash_join_7.As<InnerHashJoin>();
-  delete inner_hash_join_8.As<InnerHashJoin>();
-  delete inner_hash_join_9.As<InnerHashJoin>();
 }
 
 // NOLINTNEXTLINE
@@ -723,10 +639,6 @@ TEST(OperatorTests, LeftHashJoinTest) {
   delete expr_b_1;
   delete expr_b_2;
   delete expr_b_3;
-
-  delete left_hash_join_1.As<LeftHashJoin>();
-  delete left_hash_join_2.As<LeftHashJoin>();
-  delete left_hash_join_3.As<LeftHashJoin>();
 }
 
 // NOLINTNEXTLINE
@@ -760,10 +672,6 @@ TEST(OperatorTests, RightHashJoinTest) {
   delete expr_b_1;
   delete expr_b_2;
   delete expr_b_3;
-
-  delete right_hash_join_1.As<RightHashJoin>();
-  delete right_hash_join_2.As<RightHashJoin>();
-  delete right_hash_join_3.As<RightHashJoin>();
 }
 
 // NOLINTNEXTLINE
@@ -797,10 +705,6 @@ TEST(OperatorTests, OuterHashJoinTest) {
   delete expr_b_1;
   delete expr_b_2;
   delete expr_b_3;
-
-  delete outer_hash_join_1.As<OuterHashJoin>();
-  delete outer_hash_join_2.As<OuterHashJoin>();
-  delete outer_hash_join_3.As<OuterHashJoin>();
 }
 
 // NOLINTNEXTLINE
@@ -866,10 +770,6 @@ TEST(OperatorTests, InsertTest) {
 #endif
 
   for (auto entry : raw_values) delete entry;
-
-  delete op1.As<Insert>();
-  delete op2.As<Insert>();
-  delete op3.As<Insert>();
 }
 
 // NOLINTNEXTLINE
@@ -900,10 +800,6 @@ TEST(OperatorTests, InsertSelectTest) {
   Operator op3 = InsertSelect::make(other_database_oid, namespace_oid, table_oid);
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
-
-  delete op1.As<InsertSelect>();
-  delete op2.As<InsertSelect>();
-  delete op3.As<InsertSelect>();
 }
 
 // NOLINTNEXTLINE
@@ -934,10 +830,6 @@ TEST(OperatorTests, DeleteTest) {
   Operator op3 = Delete::make(other_database_oid, namespace_oid, table_oid);
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
-
-  delete op1.As<Delete>();
-  delete op2.As<Delete>();
-  delete op3.As<Delete>();
 }
 
 // NOLINTNEXTLINE
@@ -971,10 +863,6 @@ TEST(OperatorTests, ExportExternalFileTest) {
   Operator op3 = ExportExternalFile::make(parser::ExternalFileFormat::CSV, file_name, delimiter, quote, escape);
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
-
-  delete op1.As<ExportExternalFile>();
-  delete op2.As<ExportExternalFile>();
-  delete op3.As<ExportExternalFile>();
 }
 
 // NOLINTNEXTLINE
@@ -1012,10 +900,6 @@ TEST(OperatorTests, UpdateTest) {
   EXPECT_NE(op1.Hash(), op3.Hash());
 
   delete raw_update_clause;
-
-  delete op1.As<Update>();
-  delete op2.As<Update>();
-  delete op3.As<Update>();
 }
 
 // NOLINTNEXTLINE
@@ -1095,13 +979,6 @@ TEST(OperatorTests, HashGroupByTest) {
   delete expr_b_6;
   delete expr_b_7;
   delete expr_b_8;
-
-  delete group_by_1_0.As<HashGroupBy>();
-  delete group_by_1_1.As<HashGroupBy>();
-  delete group_by_2_2.As<HashGroupBy>();
-  delete group_by_3.As<HashGroupBy>();
-  delete group_by_7_4.As<HashGroupBy>();
-  delete group_by_4.As<HashGroupBy>();
 }
 
 // NOLINTNEXTLINE
@@ -1181,13 +1058,6 @@ TEST(OperatorTests, SortGroupByTest) {
   delete expr_b_6;
   delete expr_b_7;
   delete expr_b_8;
-
-  delete group_by_1_0.As<SortGroupBy>();
-  delete group_by_1_1.As<SortGroupBy>();
-  delete group_by_2_2.As<SortGroupBy>();
-  delete group_by_3.As<SortGroupBy>();
-  delete group_by_7_4.As<SortGroupBy>();
-  delete group_by_4.As<SortGroupBy>();
 }
 
 // NOLINTNEXTLINE
@@ -1204,9 +1074,6 @@ TEST(OperatorTests, AggregateTest) {
   Operator op2 = Aggregate::make();
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
-
-  delete op1.As<Aggregate>();
-  delete op2.As<Aggregate>();
 }
 
 // NOLINTNEXTLINE
@@ -1223,9 +1090,6 @@ TEST(OperatorTests, DistinctTest) {
   Operator op2 = Distinct::make();
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
-
-  delete op1.As<Distinct>();
-  delete op2.As<Distinct>();
 }
 
 }  // namespace terrier::optimizer

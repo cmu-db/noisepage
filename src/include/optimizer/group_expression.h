@@ -27,9 +27,9 @@ class GroupExpression {
    * @param op Operator
    * @param child_groups Vector of children groups
    */
-  GroupExpression(const Operator &op, std::vector<GroupID> &&child_groups)
+  GroupExpression(Operator op, std::vector<GroupID> &&child_groups)
     : group_id(UNDEFINED_GROUP),
-      op(op),
+      op(std::move(op)),
       child_groups(child_groups),
       stats_derived_(false) {}
 
@@ -83,7 +83,7 @@ class GroupExpression {
    * Gets the operator wrapped by this GroupExpression
    * @returns Operator
    */
-  Operator Op() const {
+  const Operator &Op() const {
     return op;
   }
 

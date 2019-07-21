@@ -103,7 +103,7 @@ GroupExprBindingIterator::GroupExprBindingIterator(
   }
 
   has_next_ = true;
-  current_binding_ = new OperatorExpression(gexpr->Op(), std::move(children));
+  current_binding_ = new OperatorExpression(Operator(gexpr->Op()), std::move(children));
 }
 
 bool GroupExprBindingIterator::HasNext() {
@@ -139,7 +139,7 @@ bool GroupExprBindingIterator::HasNext() {
       }
 
       TERRIER_ASSERT(!current_binding_, "Next() should have been called");
-      current_binding_ = new OperatorExpression(gexpr_->Op(), std::move(children));
+      current_binding_ = new OperatorExpression(Operator(gexpr_->Op()), std::move(children));
     }
   }
 
