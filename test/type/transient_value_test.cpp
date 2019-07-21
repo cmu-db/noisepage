@@ -36,6 +36,7 @@ TEST_F(ValueTests, BooleanTest) {
     auto value = type::TransientValueFactory::GetBoolean(data);
     EXPECT_FALSE(value.Null());
     EXPECT_EQ(data, type::TransientValuePeeker::PeekBoolean(value));
+    EXPECT_EQ(value.ToString(), "BOOLEAN");
 
     auto null = static_cast<bool>(std::uniform_int_distribution<uint8_t>(0, 1)(generator_));
     value.SetNull(null);
@@ -75,6 +76,7 @@ TEST_F(ValueTests, TinyIntTest) {
     auto value = type::TransientValueFactory::GetTinyInt(data);
     EXPECT_FALSE(value.Null());
     EXPECT_EQ(data, type::TransientValuePeeker::PeekTinyInt(value));
+    EXPECT_EQ(value.ToString(), "TINYINT");
 
     auto null = static_cast<bool>(std::uniform_int_distribution<uint8_t>(0, 1)(generator_));
     value.SetNull(null);
@@ -114,6 +116,7 @@ TEST_F(ValueTests, SmallIntTest) {
     auto value = type::TransientValueFactory::GetSmallInt(data);
     EXPECT_FALSE(value.Null());
     EXPECT_EQ(data, type::TransientValuePeeker::PeekSmallInt(value));
+    EXPECT_EQ(value.ToString(), "SMALLINT");
 
     auto null = static_cast<bool>(std::uniform_int_distribution<uint8_t>(0, 1)(generator_));
     value.SetNull(null);
@@ -153,6 +156,7 @@ TEST_F(ValueTests, IntegerTest) {
     auto value = type::TransientValueFactory::GetInteger(data);
     EXPECT_FALSE(value.Null());
     EXPECT_EQ(data, type::TransientValuePeeker::PeekInteger(value));
+    EXPECT_EQ(value.ToString(), "INTEGER");
 
     auto null = static_cast<bool>(std::uniform_int_distribution<uint8_t>(0, 1)(generator_));
     value.SetNull(null);
@@ -192,6 +196,7 @@ TEST_F(ValueTests, BigIntTest) {
     auto value = type::TransientValueFactory::GetBigInt(data);
     EXPECT_FALSE(value.Null());
     EXPECT_EQ(data, type::TransientValuePeeker::PeekBigInt(value));
+    EXPECT_EQ(value.ToString(), "BIGINT");
 
     auto null = static_cast<bool>(std::uniform_int_distribution<uint8_t>(0, 1)(generator_));
     value.SetNull(null);
@@ -231,6 +236,7 @@ TEST_F(ValueTests, DecimalTest) {
     auto value = type::TransientValueFactory::GetDecimal(data);
     EXPECT_FALSE(value.Null());
     EXPECT_EQ(data, type::TransientValuePeeker::PeekDecimal(value));
+    EXPECT_EQ(value.ToString(), "DECIMAL");
 
     auto null = static_cast<bool>(std::uniform_int_distribution<uint8_t>(0, 1)(generator_));
     value.SetNull(null);
@@ -270,6 +276,7 @@ TEST_F(ValueTests, TimestampTest) {
     auto value = type::TransientValueFactory::GetTimestamp(data);
     EXPECT_FALSE(value.Null());
     EXPECT_EQ(data, type::TransientValuePeeker::PeekTimestamp(value));
+    EXPECT_EQ(value.ToString(), "TIMESTAMP");
 
     auto null = static_cast<bool>(std::uniform_int_distribution<uint8_t>(0, 1)(generator_));
     value.SetNull(null);
@@ -309,6 +316,7 @@ TEST_F(ValueTests, DateTest) {
     auto value = type::TransientValueFactory::GetDate(data);
     EXPECT_FALSE(value.Null());
     EXPECT_EQ(data, type::TransientValuePeeker::PeekDate(value));
+    EXPECT_EQ(value.ToString(), "DATE");
 
     auto null = static_cast<bool>(std::uniform_int_distribution<uint8_t>(0, 1)(generator_));
     value.SetNull(null);
@@ -354,6 +362,7 @@ TEST_F(ValueTests, VarCharTest) {
     EXPECT_FALSE(value.Null());
     std::string_view string_view = type::TransientValuePeeker::PeekVarChar(value);
     EXPECT_EQ(data, string_view);
+    EXPECT_EQ(value.ToString(), "VARCHAR");
 
     auto null = static_cast<bool>(std::uniform_int_distribution<uint8_t>(0, 1)(generator_));
     value.SetNull(null);

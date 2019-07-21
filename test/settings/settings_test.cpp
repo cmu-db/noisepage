@@ -31,7 +31,6 @@ class SettingsTests : public TerrierTest {
     terrier::settings::SettingsManager::ConstructParamMap(param_map);
 
     db_main_ = new DBMain(std::move(param_map));
-    db_main_->Init();
     settings_manager_ = db_main_->settings_manager_;
     log_manager_ = db_main_->log_manager_;
     txn_manager_ = db_main_->txn_manager_;

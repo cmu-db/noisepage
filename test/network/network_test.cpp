@@ -35,16 +35,13 @@ class NetworkTests : public TerrierTest {
  protected:
   std::unique_ptr<TerrierServer> server_;
   std::unique_ptr<ConnectionHandleFactory> handle_factory_;
+  common::DedicatedThreadRegistry thread_registry;
   uint16_t port_ = common::Settings::SERVER_PORT;
-  std::thread server_thread_;
   trafficcop::TrafficCop tcop_;
   FakeCommandFactory fake_command_factory_;
   PostgresProtocolInterpreter::Provider protocol_provider_{
       common::ManagedPointer<PostgresCommandFactory>(&fake_command_factory_)};
 
-  /**
-   * Initialization
-   */
   void SetUp() override {
     TerrierTest::SetUp();
 
@@ -53,24 +50,21 @@ class NetworkTests : public TerrierTest {
 
     try {
       handle_factory_ = std::make_unique<ConnectionHandleFactory>(common::ManagedPointer(&tcop_));
-      server_ =
-          std::make_unique<TerrierServer>(common::ManagedPointer<ProtocolInterpreter::Provider>(&protocol_provider_),
-                                          common::ManagedPointer(handle_factory_.get()));
+      server_ = std::make_unique<TerrierServer>(
+          common::ManagedPointer<ProtocolInterpreter::Provider>(&protocol_provider_),
+          common::ManagedPointer(handle_factory_.get()), common::ManagedPointer(&thread_registry));
       server_->SetPort(port_);
-      server_->SetupServer();
+      server_->RunServer();
     } catch (NetworkProcessException &exception) {
       TEST_LOG_ERROR("[LaunchServer] exception when launching server");
       throw;
     }
 
     TEST_LOG_DEBUG("Server initialized");
-    server_thread_ = std::thread([&]() { server_->ServerLoop(); });
   }
 
   void TearDown() override {
-    server_->Close();
-    server_thread_.join();
-    handle_factory_->TearDown();
+    server_->StopServer();
     TEST_LOG_DEBUG("Terrier has shut down");
     TerrierTest::TearDown();
   }

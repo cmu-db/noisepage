@@ -493,8 +493,11 @@ class CreateTablePlanNode : public AbstractPlanNode {
           // Add DEFAULT constraints to the column
           if (col->GetDefaultExpression() != nullptr) {
             // Referenced from insert_plan.cpp
+            // TODO(Ling): We should set an implicit default value NULL for columns without default constraint
             if (col->GetDefaultExpression()->GetExpressionType() != parser::ExpressionType::VALUE_PARAMETER) {
               // TODO(Gus,Wen) set default value
+              // TODO(Ling): How do we handle CREATE TABLE Orders(ID int NOT NULL,created_at TIMESTAMPTZ DEFAULT Now());
+              //  which might not be constant value expression?
               // parser::ConstantValueExpression *const_expr_elem =
               //    dynamic_cast<parser::ConstantValueExpression *>(col->GetDefaultExpression().get());
               // column.SetDefaultValue(const_expr_elem->GetValue());
