@@ -5,28 +5,28 @@ namespace terrier::planner {
 
 common::hash_t SeqScanPlanNode::Hash() const {
   common::hash_t hash = AbstractScanPlanNode::Hash();
-
-  // Nothing for us to do here!
-
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(column_ids_));
   return hash;
 }
 
 bool SeqScanPlanNode::operator==(const AbstractPlanNode &rhs) const {
-  // Since this node type does not have any internal members of its own,
-  // there is nothing for us to do here!
-  // auto &other = static_cast<const SeqScanPlanNode &>(rhs);
-
-  return AbstractScanPlanNode::operator==(rhs);
+  auto &other = static_cast<const SeqScanPlanNode &>(rhs);
+  if (!AbstractScanPlanNode::operator==(rhs)) return false;
+  if (table_oid_ != other.table_oid_) return false;
+  return column_ids_ == other.column_ids_;
 }
 
 nlohmann::json SeqScanPlanNode::ToJson() const {
   nlohmann::json j = AbstractScanPlanNode::ToJson();
+  j["column_ids"] = column_ids_;
   j["table_oid"] = table_oid_;
   return j;
 }
 
 void SeqScanPlanNode::FromJson(const nlohmann::json &j) {
   AbstractScanPlanNode::FromJson(j);
+  column_ids_ = j.at("column_ids").get<std::vector<catalog::col_oid_t>>();
   table_oid_ = j.at("table_oid").get<catalog::table_oid_t>();
 }
 

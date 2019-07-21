@@ -7,12 +7,20 @@
 #include "catalog/catalog_defs.h"
 #include "parser/expression/abstract_expression.h"
 
+namespace terrier::optimizer {
+class PlanGenerator;
+}  // namespace terrier::optimizer
+
 namespace terrier::parser {
 
 /**
  * Represents a column tuple value.
  */
 class ColumnValueExpression : public AbstractExpression {
+  // PlanGenerator creates ColumnValueexpressions and will
+  // need to set the bound oids
+  friend class terrier::optimizer::PlanGenerator;
+
  public:
   /**
    * This constructor is called only in postgresparser, setting the column name,

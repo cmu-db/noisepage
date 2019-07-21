@@ -89,11 +89,17 @@ class Optimizer : public AbstractOptimizer {
    * @param id ID of the group to produce the best physical operator
    * @param requirements Set of properties produced operator tree must satisfy
    * @param required_cols AbstractExpression tree output columns group must generate
+   * @param settings SettingsManager
+   * @param accessor CatalogAccessor
+   * @param txn TransactionContext
    * @returns Lowest cost plan
    */
   planner::AbstractPlanNode* ChooseBestPlan(
       GroupID id, PropertySet* required_props,
-      const std::vector<const parser::AbstractExpression *> &required_cols);
+      const std::vector<const parser::AbstractExpression *> &required_cols,
+      settings::SettingsManager *settings,
+      catalog::CatalogAccessor *accessor,
+      transaction::TransactionContext *txn);
 
   /**
    * Execute elements of given optimization task stack and ensure that we

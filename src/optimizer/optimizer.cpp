@@ -57,7 +57,7 @@ planner::AbstractPlanNode* Optimizer::BuildPlanTree(
   }
 
   try {
-    auto best_plan = ChooseBestPlan(root_id, phys_properties, output_exprs);
+    auto best_plan = ChooseBestPlan(root_id, phys_properties, output_exprs, settings, accessor, txn);
 
     // Reset memo after finishing the optimization
     Reset();
@@ -71,7 +71,10 @@ planner::AbstractPlanNode* Optimizer::BuildPlanTree(
 planner::AbstractPlanNode* Optimizer::ChooseBestPlan(
     GroupID id,
     PropertySet* required_props,
-    const std::vector<const parser::AbstractExpression *> &required_cols) {
+    const std::vector<const parser::AbstractExpression *> &required_cols,
+    settings::SettingsManager *settings,
+    catalog::CatalogAccessor *accessor,
+    transaction::TransactionContext *txn) {
 
   Group *group = metadata_.GetMemo().GetGroupByID(id);
   auto gexpr = group->GetBestExpression(required_props);
@@ -106,7 +109,7 @@ planner::AbstractPlanNode* Optimizer::ChooseBestPlan(
       child_expr_map[input_cols[i][offset]] = offset;
     }
 
-    auto child_plan = ChooseBestPlan(child_groups[i], required_input_props[i], input_cols[i]);
+    auto child_plan = ChooseBestPlan(child_groups[i], required_input_props[i], input_cols[i], settings, accessor, txn);
     TERRIER_ASSERT(child_plan != nullptr, "child should have derived a non-null plan...");
 
     children_plans.push_back(child_plan);
@@ -118,8 +121,9 @@ planner::AbstractPlanNode* Optimizer::ChooseBestPlan(
 
   PlanGenerator generator;
   auto plan = generator.ConvertOpExpression(op, required_props, required_cols,
-                                            output_cols, children_plans,
-                                            children_expr_map, group->GetNumRows());
+                                            output_cols, std::move(children_plans),
+                                            std::move(children_expr_map), group->GetNumRows(),
+                                            settings, accessor, txn);
   OPTIMIZER_LOG_TRACE("Finish Choosing best plan for group %d", id);
   return plan;
 }

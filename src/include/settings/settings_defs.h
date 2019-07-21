@@ -103,6 +103,15 @@ SETTING_int(task_execution_timeout,
             "assuming one plan has been found (default 5000)",
             5000, 1000, 60000, false, terrier::settings::Callbacks::NoOp)
 
+// Parallel Execution
+SETTING_bool(
+    parallel_execution,
+    "Whether parallel execution for scans is enabled",
+    true,
+    true,
+    terrier::settings::Callbacks::NoOp
+)
+
 // Log file persisting threshold
 SETTING_int(
     log_persist_threshold,

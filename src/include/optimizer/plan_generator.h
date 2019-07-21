@@ -12,9 +12,7 @@ class NestedLoopJoinPlanNode;
 class ProjectionPlanNode;
 class SeqScanPlanNode;
 class AggregatePlanNode;
-
-// TODO(wz2): Do we port this?
-class ProjectInfo;
+class OutputSchema;
 }
 
 namespace transaction {
@@ -24,11 +22,6 @@ class TransactionContext;
 namespace optimizer {
 class PropertySet;
 class OperatorExpression;
-}
-
-// TODO(wz2): Revisit this when there is a catalog
-namespace catalog {
-class TableCatalogEntry;
 }
 
 namespace optimizer {
@@ -57,6 +50,9 @@ class PlanGenerator : public OperatorVisitor {
    * @param children_plans Children plan nodes
    * @param children_expr_map Vector of children expression -> col offset mapping
    * @param estimated_cardinality Estimated cardinality
+   * @param settings SettingsManager
+   * @param accessor CatalogAccessor
+   * @param txn TransactionContext
    * @returns Output plan node
    */
   planner::AbstractPlanNode* ConvertOpExpression(
@@ -64,9 +60,12 @@ class PlanGenerator : public OperatorVisitor {
       PropertySet* required_props,
       const std::vector<const parser::AbstractExpression *> &required_cols,
       const std::vector<const parser::AbstractExpression *> &output_cols,
-      std::vector<planner::AbstractPlanNode*> &children_plans,
-      std::vector<ExprMap> children_expr_map,
-      int estimated_cardinality);
+      std::vector<planner::AbstractPlanNode*> &&children_plans,
+      std::vector<ExprMap> &&children_expr_map,
+      int estimated_cardinality,
+      settings::SettingsManager *settings,
+      catalog::CatalogAccessor *accessor,
+      transaction::TransactionContext *txn);
 
   /**
    * Visitor function for a TableFreeScan operator
@@ -214,16 +213,28 @@ class PlanGenerator : public OperatorVisitor {
 
  private:
   /**
+   * Register a pointer to be deleted on transaction commit/abort
+   * @param ptr Pointer to delete
+   * @param onCommit Whether to delete on transaction commit
+   * @param onAbort Whether to delete on transaction abort
+   */
+  void RegisterPointerCleanup(void *ptr, bool onCommit, bool onAbort);
+
+  /**
    * Generate all tuple value expressions of a base table
    *
-   * @param alias Table alias, we used it to construct the tuple value expression
-   * @param table The table object
+   * @param alias Table alias used in constructing ColumnValue
+   * @param db_oid Database OID
+   * @param tbl_oid Table OID for catalog lookup
    *
    * @return a vector of tuple value expression representing column name to
    * table column id mapping
    */
   std::vector<const parser::AbstractExpression*>
-  GenerateTableTVExprs(const std::string &alias, catalog::TableCatalogEntry *table);
+  GenerateTableColumnValueExprs(
+    const std::string &alias,
+    catalog::database_oid_t db_oid,
+    catalog::table_oid_t tbl_oid);
 
   /**
    * Generate the column oids vector for a scan plan
@@ -237,7 +248,8 @@ class PlanGenerator : public OperatorVisitor {
    *
    * @param predicate_expr the original expression
    * @param alias the table alias
-   * @param table the table object
+   * @param db_oid Database OID
+   * @param tbl_oid Table OID for catalog lookup
    *
    * @return a predicate that is already evaluated, which could be used to
    * generate a scan plan i.e. all tuple idx are set
@@ -245,16 +257,17 @@ class PlanGenerator : public OperatorVisitor {
   const parser::AbstractExpression* GeneratePredicateForScan(
       const parser::AbstractExpression* predicate_expr,
       const std::string &alias,
-      catalog::TableCatalogEntry* table);
+      catalog::database_oid_t, db_oid,
+      catalog::table_oid_t tbl_oid);
 
   /**
    * Generate projection info and projection schema for join
    *
-   * @param proj_info The projection info object
+   * @param proj_info Projection OutputSchema
    * @param proj_schema The projection schema object
    */
   void GenerateProjectionForJoin(
-      std::unique_ptr<const planner::ProjectInfo> &proj_info,
+      planner::OutputSchema *proj_info,
       const catalog::Schema &proj_schema);
 
   /**
@@ -263,6 +276,13 @@ class PlanGenerator : public OperatorVisitor {
    * the output plan produciing output columns is generated
    */
   void BuildProjectionPlan();
+
+  /**
+   * Constructs an Aggregate Plan
+   * @param aggr_type AggregateType
+   * @param groupby_cols Vector of GroupBy expressions
+   * @param having Having clause expression
+   */
   void BuildAggregatePlan(
       AggregateType aggr_type,
       const std::vector<const parser::AbstractExpression> *groupby_cols,
@@ -279,12 +299,12 @@ class PlanGenerator : public OperatorVisitor {
    * can always generate a projection if the output column does not fulfill the
    * requirement
    */
-  std::vector<const parser::AbstractExpression *> required_cols_;
+  const std::vector<const parser::AbstractExpression *> required_cols_;
 
   /**
    * The output columns, which can be fulfilled by the current operator.
    */
-  std::vector<const parser::AbstractExpression *> output_cols_;
+  const std::vector<const parser::AbstractExpression *> output_cols_;
 
   /**
    * Vector of child plans
@@ -300,6 +320,16 @@ class PlanGenerator : public OperatorVisitor {
    * Final output plan
    */
   planner::AbstractPlanNode* output_plan_;
+
+  /**
+   * Settings Manager
+   */
+  settings::SettingsManager* settings_;
+
+  /**
+   * CatalogAccessor
+   */
+  catalog::CatalogAccessor* accessor_;
 
   /**
    * Transaction Context executing under

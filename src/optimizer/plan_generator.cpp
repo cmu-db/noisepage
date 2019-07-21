@@ -1,108 +1,148 @@
-#if 0
-
-#include "optimizer/plan_generator.h"
-
-#include "catalog/column_catalog.h"
-#include "catalog/index_catalog.h"
-#include "catalog/table_catalog.h"
-#include "codegen/type/type.h"
-#include "concurrency/transaction_context.h"
 #include "expression/expression_util.h"
+#include "settings/settings_manager.h"
+#include "transaction/transaction_context.h"
 #include "optimizer/operator_expression.h"
 #include "optimizer/properties.h"
-#include "planner/aggregate_plan.h"
-#include "planner/csv_scan_plan.h"
-#include "planner/delete_plan.h"
-#include "planner/export_external_file_plan.h"
-#include "planner/hash_join_plan.h"
-#include "planner/hash_plan.h"
-#include "planner/index_scan_plan.h"
-#include "planner/insert_plan.h"
-#include "planner/limit_plan.h"
-#include "planner/nested_loop_join_plan.h"
-#include "planner/order_by_plan.h"
-#include "planner/projection_plan.h"
-#include "planner/seq_scan_plan.h"
-#include "planner/update_plan.h"
-#include "settings/settings_manager.h"
-#include "storage/data_table.h"
-#include "storage/storage_manager.h"
+#include "optimizer/plan_generator.h"
 
-using std::vector;
-using std::make_pair;
-using std::string;
-using std::to_string;
-using std::unique_ptr;
-using std::shared_ptr;
-using std::move;
-using std::make_tuple;
-using std::make_pair;
-using std::pair;
-
-namespace terrier {
-namespace optimizer {
+namespace terrier::optimizer {
 
 PlanGenerator::PlanGenerator() {}
 
-unique_ptr<planner::AbstractPlan> PlanGenerator::ConvertOpExpression(
-    shared_ptr<OperatorExpression> op, shared_ptr<PropertySet> required_props,
-    vector<expression::AbstractExpression *> required_cols,
-    vector<expression::AbstractExpression *> output_cols,
-    vector<unique_ptr<planner::AbstractPlan>> &children_plans,
-    vector<ExprMap> children_expr_map,
-    int estimated_cardinality) {
-  required_props_ = move(required_props);
-  required_cols_ = move(required_cols);
-  output_cols_ = move(output_cols);
-  children_plans_ = move(children_plans);
-  children_expr_map_ = move(children_expr_map);
+planner::AbstractPlanNode* PlanGenerator::ConvertOpExpression(
+  OperatorExpression* op,
+  PropertySet* required_props,
+  const std::vector<const parser::AbstractExpression *> &required_cols,
+  const std::vector<const parser::AbstractExpression *> &output_cols,
+  std::vector<planner::AbstractPlanNode*> &&children_plans,
+  const std::vector<ExprMap> &&children_expr_map,
+  int estimated_cardinality,
+  settings::SettingsManager *settings,
+  catalog::CatalogAccessor *accessor,
+  transaction::TransactionContext *txn) {
+
+  required_props_ = required_props;
+  requird_cols_ = required_cols;
+  output_cols_ = output_cols;
+  children_plans_ = children_plans;
+  children_expr_map_ = children_expr_map;
+  settings_ = settings;
+  accessor_ = accessor;
+  txn_ = txn;
+
   op->Op().Accept(this);
+
+  // TODO(wz2): Conditionally BuildProjectionPlan()
   BuildProjectionPlan();
   output_plan_->SetCardinality(estimated_cardinality);
-  return move(output_plan_);
+  return output_plan_;
 }
 
-void PlanGenerator::Visit(const DummyScan *) {
+void PlanGenerator::RegisterPointerCleanup(void *ptr, bool onCommit, bool onAbort) {
+  if (onCommit) {
+    txn_->RegisterCommitAction([&]() => { delete ptr; });
+  }
+
+  if (onAbort) {
+    txn_->RegisterAbortAction([&]() => { delete ptr; });
+  }
+}
+
+std::vector<const parser::AbstractExpression*>
+PlanGenerator::GenerateTableColumnValueExprs(
+  const std::string &alias,
+  catalog::database_oid_t db_oid,
+  catalog::table_oid_t tbl_oid) {
+  // TODO(boweic): we seems to provide all columns here, in case where there are
+  // a lot of attributes and we're only visiting a few this is not efficient
+  auto &schema = accessor_->GetSchema(tbl_oid);
+  auto &columns = schema.GetColumns();
+  std::vector<const parser::AbstractExpression*> exprs(columns.size());
+  for (auto &column : columns) {
+    auto col_oid = column.GetOid();
+    auto *col_expr = new parser::ColumnValueExpression(alias, column.GetName());
+    col_expr->SetReturnValueType(column.GetType());
+    col_expr->SetDatabaseOID(db_oid);
+    col_expr->SetTableOID(tbl_oid);
+  }
+
+  return exprs;
+}
+
+// Generate columns for scan plan
+std::vector<catalog::col_oid_t> PlanGenerator::GenerateColumnsForScan() {
+  std::vector<catalog::col_oid_t> column_ids;
+  for (auto &output_expr : output_cols_) {
+    TERRIER_ASSERT(output_expr->GetExpressionType() == ExpressionType::COLUMN_VALUE,
+                   "Scan columns should all be base table columns");
+
+    auto tve = dynamic_cast<parser::ColumnValueExpression *>(output_expr);
+    auto col_id = tve->GetColumnOid();
+
+    TERRIER_ASSERT(col_id != catalog::INVALID_COLUMN_OID, "TVE should be base");
+    column_ids.push_back(col_id);
+  }
+
+  return column_ids;
+}
+
+parser::AbstractExpression* PlanGenerator::GeneratePredicateForScan(
+  const parser::AbstractExpression* predicate_expr,
+  const std::string &alias,
+  catalog::database_oid_t db_oid,
+  catalog::table_oid_t tbl_oid) {
+  if (predicate_expr == nullptr) {
+    return nullptr;
+  }
+
+  auto exprs = GenerateTableColumnValueExprs(alias, db_oid, tbl_oid);
+  ExprMap table_expr_map;
+  for (oid_t idx = 0; idx < exprs.size(); ++idx) {
+    table_expr_map[exprs[idx].get()] = idx;
+  }
+
+  // Makes a copy
+  auto *pred = parser::ExpressionUtil::EvaluateExpression({table_expr_map}, predicate_expr);
+  for (auto *expr : exprs) { delete expr; }
+  return pred;
+}
+
+void PlanGenerator::Visit(UNUSED_ATTRIBUTE const TableFreeScan *op) {
   // DummyScan is used in case of SELECT without FROM so that enforcer
   // can enforce a PhysicalProjection on top of DummyScan to generate correct
   // result. But here, no need to translate DummyScan to any physical plan.
   output_plan_ = nullptr;
+
+  //TODO(wz2): BuildProjection....
 }
 
-void PlanGenerator::Visit(const PhysicalSeqScan *op) {
+void PlanGenerator::Visit(const SeqScan *op) {
   // Generate output column IDs for plan
-  vector<oid_t> column_ids = GenerateColumnsForScan();
+  vector<catalog::col_oid_t> column_ids = GenerateColumnsForScan();
 
   // Generate the predicate in the scan
-  auto predicate = GeneratePredicateForScan(
-      expression::ExpressionUtil::JoinAnnotatedExprs(op->predicates),
-      op->table_alias, op->table_);
-
-  // Pull out the raw table from storage
-  auto *data_table = storage::StorageManager::GetInstance()->GetTableWithOid(
-      op->table_->GetDatabaseOid(), op->table_->GetTableOid());
+  auto conj_expr = parser::ExpressionUtil::JoinAnnotatedExprs(op->GetPredicates());
+  auto predicate = GeneratePredicateForScan(conj_expr, op->GetTableAlias(), op->GetDatabaseOID(), op->GetTableOID());
+  RegisterPointerCleanup(predicate, true, true);
+  delete conj_expr;
 
   // Check if we should do a parallel scan
-  bool parallel_exec_enabled = settings::SettingsManager::GetBool(
-      settings::SettingId::parallel_execution);
+  bool parallel = settings->GetBool(settings::Param::parallel_execution);
 
-  bool parallel_scan = parallel_exec_enabled;
-  if (parallel_exec_enabled) {
-    // Parallel scans are enabled. Check if the table meets the minimum number
-    // of tuples to support parallel execution.
-    auto num_tilegroups = data_table->GetTileGroupCount();
-    auto num_tuples = data_table->GetTupleCount();
-    auto min_parallel_table_scan_size =
-        static_cast<uint32_t>(settings::SettingsManager::GetInt(
-            settings::SettingId::min_parallel_table_scan_size));
-    parallel_scan =
-        (num_tilegroups > 1 && num_tuples > min_parallel_table_scan_size);
-  }
-
-  output_plan_.reset(new planner::SeqScanPlan(data_table, predicate.release(),
-                                              column_ids, op->is_for_update,
-                                              parallel_scan));
+  // Build
+  // TODO(wz2): Add OutputSchema through BulidProjection...?
+  output_plan_ = planner::SeqScanPlanNode::Builder().SetOutputSchema()
+                                                    .SetDatabaseOid(op->GetDatabaseOID())
+                                                    .SetNamespaceOid(op->GetNamespaceOID())
+                                                    .SetTableOid(op->GetTableOID())
+                                                    .SetScanPredicate(predicate)
+                                                    .SetColumnIds(std::move(column_ids)
+                                                    .SetIsForUpdateFlag(op->GetIsForUpdate())
+                                                    .SetIsParallelFlag(parallel_scan)
+                                                    .Build();
 }
+
+#if 0
 
 void PlanGenerator::Visit(const PhysicalIndexScan *op) {
   vector<oid_t> column_ids = GenerateColumnsForScan();
@@ -413,67 +453,6 @@ void PlanGenerator::Visit(const PhysicalExportExternalFile *op) {
 }
 
 /************************* Private Functions *******************************/
-vector<unique_ptr<expression::AbstractExpression>>
-PlanGenerator::GenerateTableTVExprs(
-    const std::string &alias, shared_ptr<catalog::TableCatalogEntry> table) {
-  // TODO(boweic): we seems to provide all columns here, in case where there are
-  // a lot of attributes and we're only visiting a few this is not efficient
-  oid_t db_id = table->GetDatabaseOid();
-  oid_t table_id = table->GetTableOid();
-  auto column_objects = table->GetColumnCatalogEntries();
-  vector<unique_ptr<expression::AbstractExpression>> exprs(
-      column_objects.size());
-  for (auto &column_id_object_pair : column_objects) {
-    auto &col_id = column_id_object_pair.first;
-    auto &column_object = column_id_object_pair.second;
-    expression::TupleValueExpression *col_expr =
-        new expression::TupleValueExpression(
-            column_object->GetColumnName().c_str(), alias.c_str());
-    col_expr->SetValueType(column_object->GetColumnType());
-    col_expr->SetBoundOid(db_id, table_id, col_id);
-    exprs[col_id].reset(col_expr);
-  }
-  return exprs;
-}
-
-// Generate columns for scan plan
-vector<oid_t> PlanGenerator::GenerateColumnsForScan() {
-  vector<oid_t> column_ids;
-  for (oid_t idx = 0; idx < output_cols_.size(); ++idx) {
-    auto &output_expr = output_cols_[idx];
-    PELOTON_ASSERT(output_expr->GetExpressionType() ==
-                   ExpressionType::VALUE_TUPLE);
-    auto output_tvexpr =
-        reinterpret_cast<expression::TupleValueExpression *>(output_expr);
-
-    // Set column offset
-    PELOTON_ASSERT(output_tvexpr->GetIsBound() == true);
-    auto col_id = std::get<2>(output_tvexpr->GetBoundOid());
-    column_ids.push_back(col_id);
-  }
-
-  return column_ids;
-}
-
-std::unique_ptr<expression::AbstractExpression>
-PlanGenerator::GeneratePredicateForScan(
-    const std::shared_ptr<expression::AbstractExpression> predicate_expr,
-    const std::string &alias, shared_ptr<catalog::TableCatalogEntry> table) {
-  if (predicate_expr == nullptr) {
-    return nullptr;
-  }
-  auto exprs = GenerateTableTVExprs(alias, table);
-  ExprMap table_expr_map;
-  for (oid_t idx = 0; idx < exprs.size(); ++idx) {
-    table_expr_map[exprs[idx].get()] = idx;
-  }
-  unique_ptr<expression::AbstractExpression> predicate =
-      std::unique_ptr<expression::AbstractExpression>(predicate_expr->Copy());
-  expression::ExpressionUtil::EvaluateExpression({table_expr_map},
-                                                 predicate.get());
-  return predicate;
-}
-
 void PlanGenerator::BuildProjectionPlan() {
   if (output_cols_ == required_cols_) {
     return;
@@ -629,6 +608,7 @@ void PlanGenerator::GenerateProjectionForJoin(
       new planner::ProjectInfo(move(tl), move(dml)));
   proj_schema = std::make_shared<const catalog::Schema>(columns);
 }
+<<<<<<< Updated upstream
 }  // namespace optimizer
 }  // namespace terrier
 

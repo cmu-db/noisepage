@@ -39,16 +39,31 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
     }
 
     /**
+     * @param column_Ids OIDs of columns to scan
+     * @return builder object
+     */
+    Builder &SetColumnIds(std::vector<catalog::col_oid_t> &&column_ids) {
+      column_ids_ = std::move(column_ids);
+      return *this;
+    }
+
+    /**
      * Build the sequential scan plan node
      * @return plan node
      */
     std::shared_ptr<SeqScanPlanNode> Build() {
       return std::shared_ptr<SeqScanPlanNode>(new SeqScanPlanNode(std::move(children_), std::move(output_schema_),
+                                                                  std::move(column_ids_),
                                                                   scan_predicate_, is_for_update_, is_parallel_,
                                                                   database_oid_, namespace_oid_, table_oid_));
     }
 
    protected:
+    /**
+     * OIDs of columns to scan
+     */
+    std::vector<catalog::col_oid_t> column_ids_;
+
     /**
      * OID for table being scanned
      */
@@ -60,6 +75,7 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
    * @param predicate scan predicate
+   * @param column_ids OIDs of columns to scan
    * @param is_for_update flag for if scan is for an update
    * @param is_parallel flag for parallel scan
    * @param database_oid database oid for scan
@@ -67,11 +83,12 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
    */
   SeqScanPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
                   std::shared_ptr<OutputSchema> output_schema, const parser::AbstractExpression *predicate,
+                  std::vector<catalog::col_oid_t> &&column_ids,
                   bool is_for_update, bool is_parallel, catalog::db_oid_t database_oid,
                   catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid)
       : AbstractScanPlanNode(std::move(children), std::move(output_schema), predicate, is_for_update, is_parallel,
                              database_oid, namespace_oid),
-        table_oid_(table_oid) {}
+        column_ids_(std::move(column_ids), table_oid_(table_oid) {}
 
  public:
   /**
@@ -85,6 +102,11 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
    * @return the type of this plan node
    */
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::SEQSCAN; }
+
+  /**
+   * @return OIDs of columns to scan
+   */
+  const std::vector<catalog::col_oid_t> &GetColumnIds() const { return column_ids_; }
 
   /**
    * @return the OID for the table being scanned
@@ -102,6 +124,11 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
   void FromJson(const nlohmann::json &j) override;
 
  private:
+  /**
+   * OIDs of columns to scan
+   */
+  std::vector<catalog::col_oid_t> column_ids_;
+
   /**
    * OID for table being scanned
    */

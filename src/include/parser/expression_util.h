@@ -322,6 +322,7 @@ class ExpressionUtil {
    * @param expr_maps expr_maps containing relevant mappings to set value_idx
    * @param expr Expression to walk
    */
+  // TODO(wz2): EvaluateExpression needs to make copy since can't just replace 1 child.
   static void EvaluateExpression(const std::vector<optimizer::ExprMap> &expr_maps,
                                  const AbstractExpression* expr) {
     // To evaluate the return type, we need a bottom up approach.
