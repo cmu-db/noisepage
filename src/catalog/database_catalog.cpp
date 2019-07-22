@@ -237,7 +237,7 @@ bool DatabaseCatalog::CreateNamespace(transaction::TransactionContext *const txn
   // Write the attributes in the ProjectedRow
   *(reinterpret_cast<namespace_oid_t *>(index_pr->AccessForceNotNull(0))) = ns_oid;
   const bool UNUSED_ATTRIBUTE result = namespaces_oid_index_->InsertUnique(txn, *index_pr, tuple_slot);
-  TERRIER_ASSERT(result, "Assigned namespace OID failed to be unique. That shouldn't be possible at this point.");
+  TERRIER_ASSERT(result, "Assigned namespace OID failed to be unique.");
 
   // Finish
   delete[] buffer;
@@ -300,22 +300,22 @@ bool DatabaseCatalog::DeleteNamespace(transaction::TransactionContext *const txn
 
 namespace_oid_t DatabaseCatalog::GetNamespaceOid(transaction::TransactionContext *txn, const std::string &name) {
   // Step 1: Read the name index
-  std::vector<col_oid_t> table_oids{NSPOID_COL_OID};
-  // NOLINTNEXTLINE
+  const std::vector<col_oid_t> table_oids{NSPOID_COL_OID};
+  // NOLINTNEXTLINE Matt: this is C++17 which lint hates
   auto [table_pri, table_pm] = namespaces_->InitializerForProjectedRow(table_oids);
-  auto name_pri = namespaces_name_index_->GetProjectedRowInitializer();
-  // Buffer is large enough to hold all prs
-  byte *buffer = common::AllocationUtil::AllocateAligned(name_pri.ProjectedRowSize());
-  auto pr = name_pri.InitializeRow(buffer);
+  const auto name_pri = namespaces_name_index_->GetProjectedRowInitializer();
+  // Buffer is large enough for all prs because it's meant to hold 1 VarlenEntry
+  byte *const buffer = common::AllocationUtil::AllocateAligned(name_pri.ProjectedRowSize());
+  auto *pr = name_pri.InitializeRow(buffer);
   // Scan the name index
-  auto *name_entry = reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(0));
-  *name_entry = postgres::AttributeHelper::CreateVarlen(name);
+  const auto name_varlen = postgres::AttributeHelper::CreateVarlen(name);
+  *(reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(0))) = name_varlen;
   std::vector<storage::TupleSlot> index_results;
   namespaces_name_index_->ScanKey(*txn, *pr, &index_results);
 
   // Clean up the varlen's buffer in the case it wasn't inlined.
-  if (!name_entry->IsInlined()) {
-    delete[] name_entry->Content();
+  if (!name_varlen.IsInlined()) {
+    delete[] name_varlen.Content();
   }
 
   if (index_results.empty()) {
@@ -323,15 +323,16 @@ namespace_oid_t DatabaseCatalog::GetNamespaceOid(transaction::TransactionContext
     return INVALID_NAMESPACE_OID;
   }
   TERRIER_ASSERT(index_results.size() == 1, "Namespace name not unique in index");
+  const auto tuple_slot = index_results[0];
 
   // Step 2: Scan the table to get the oid
   pr = table_pri.InitializeRow(buffer);
-  if (!namespaces_->Select(txn, index_results[0], pr)) {
-    // Nothing visible
-    delete[] buffer;
-    return INVALID_NAMESPACE_OID;
-  }
-  auto ns_oid = *reinterpret_cast<namespace_oid_t *>(pr->AccessForceNotNull(table_pm[NSPOID_COL_OID]));
+
+  const auto UNUSED_ATTRIBUTE result = namespaces_->Select(txn, tuple_slot, pr);
+  TERRIER_ASSERT(result, "Index scan did a visibility check, so Select shouldn't fail at this point.");
+  const auto ns_oid = *reinterpret_cast<namespace_oid_t *>(pr->AccessForceNotNull(table_pm[NSPOID_COL_OID]));
+
+  // Finish
   delete[] buffer;
   return ns_oid;
 }
