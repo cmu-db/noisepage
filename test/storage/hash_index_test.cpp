@@ -106,12 +106,9 @@ class HashIndexTests : public TerrierTest {
  * in the index and table.
  */
 // NOLINTNEXTLINE
-TEST_F(HashIndexTests, DISABLED_UniqueInsert) {
-  const uint32_t num_inserts_ = 100000;  // number of tuples/primary keys for each worker to attempt to insert
+TEST_F(HashIndexTests, UniqueInsert) {
+  const uint32_t num_inserts_ = 1000;  // number of tuples/primary keys for each worker to attempt to insert
   auto workload = [&](uint32_t worker_id) {
-    //    auto *const insert_buffer =
-    //        common::AllocationUtil::AllocateAligned(unique_index_->GetProjectedRowInitializer().ProjectedRowSize());
-    //    auto *const insert_tuple = tuple_initializer_.InitializeRow(insert_buffer);
     auto *const key_buffer =
         common::AllocationUtil::AllocateAligned(unique_index_->GetProjectedRowInitializer().ProjectedRowSize());
     auto *const insert_key = unique_index_->GetProjectedRowInitializer().InitializeRow(key_buffer);
@@ -185,8 +182,8 @@ TEST_F(HashIndexTests, DISABLED_UniqueInsert) {
  * visible versions in the index and table.
  */
 // NOLINTNEXTLINE
-TEST_F(HashIndexTests, DISABLED_DefaultInsert) {
-  const uint32_t num_inserts_ = 100000;  // number of tuples/primary keys for each worker to attempt to insert
+TEST_F(HashIndexTests, DefaultInsert) {
+  const uint32_t num_inserts_ = 1000;  // number of tuples/primary keys for each worker to attempt to insert
   auto workload = [&](uint32_t worker_id) {
     auto *const key_buffer =
         common::AllocationUtil::AllocateAligned(default_index_->GetProjectedRowInitializer().ProjectedRowSize());
@@ -237,11 +234,11 @@ TEST_F(HashIndexTests, DISABLED_DefaultInsert) {
 
   auto *const key_pr = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
 
-  // scan[0,num_inserts_) should hit num_inserts_ keys (no duplicates)
+  // scan[0,num_inserts_) should hit num_inserts_ * num_threads_ keys
   for (uint32_t i = 0; i < num_inserts_; i++) {
     *reinterpret_cast<int32_t *>(key_pr->AccessForceNotNull(0)) = i;
-    unique_index_->ScanKey(*scan_txn, *key_pr, &results);
-    EXPECT_EQ(results.size(), 1);
+    default_index_->ScanKey(*scan_txn, *key_pr, &results);
+    EXPECT_EQ(results.size(), num_threads_);
     results.clear();
   }
 

@@ -26,6 +26,6 @@ constexpr size_t LIBCUCKOO_NO_MAXIMUM_HASHPOWER =
     std::numeric_limits<size_t>::max();
 
 //! set LIBCUCKOO_DEBUG to 1 to enable debug output
-#define LIBCUCKOO_DEBUG 1
+#define LIBCUCKOO_DEBUG 0
 
 #endif // _CUCKOOHASH_CONFIG_HH

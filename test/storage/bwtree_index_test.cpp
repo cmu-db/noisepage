@@ -113,11 +113,8 @@ class BwTreeIndexTests : public TerrierTest {
  */
 // NOLINTNEXTLINE
 TEST_F(BwTreeIndexTests, UniqueInsert) {
-  const uint32_t num_inserts_ = 100000;  // number of tuples/primary keys for each worker to attempt to insert
+  const uint32_t num_inserts_ = 10000;  // number of tuples/primary keys for each worker to attempt to insert
   auto workload = [&](uint32_t worker_id) {
-    //    auto *const insert_buffer =
-    //        common::AllocationUtil::AllocateAligned(unique_index_->GetProjectedRowInitializer().ProjectedRowSize());
-    //    auto *const insert_tuple = tuple_initializer_.InitializeRow(insert_buffer);
     auto *const key_buffer =
         common::AllocationUtil::AllocateAligned(unique_index_->GetProjectedRowInitializer().ProjectedRowSize());
     auto *const insert_key = unique_index_->GetProjectedRowInitializer().InitializeRow(key_buffer);
@@ -191,7 +188,7 @@ TEST_F(BwTreeIndexTests, UniqueInsert) {
  */
 // NOLINTNEXTLINE
 TEST_F(BwTreeIndexTests, DefaultInsert) {
-  const uint32_t num_inserts_ = 100000;  // number of tuples/primary keys for each worker to attempt to insert
+  const uint32_t num_inserts_ = 10000;  // number of tuples/primary keys for each worker to attempt to insert
   auto workload = [&](uint32_t worker_id) {
     auto *const key_buffer =
         common::AllocationUtil::AllocateAligned(default_index_->GetProjectedRowInitializer().ProjectedRowSize());

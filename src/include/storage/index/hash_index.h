@@ -20,9 +20,10 @@ class HashIndex final : public Index {
 
  private:
   HashIndex(const catalog::index_oid_t oid, const ConstraintType constraint_type, IndexMetadata metadata)
-      : Index(constraint_type, std::move(metadata)), hash_map_{new cuckoohash_map<KeyType, TupleSlot>} {}
+      : Index(constraint_type, std::move(metadata)),
+        hash_map_{new cuckoohash_map<KeyType, cuckoohash_map<TupleSlot, TupleSlot>>(256)} {}
 
-  cuckoohash_map<KeyType, TupleSlot> *const hash_map_;
+  cuckoohash_map<KeyType, cuckoohash_map<TupleSlot, TupleSlot>> *const hash_map_;
 
  public:
   ~HashIndex() final { delete hash_map_; }
@@ -34,20 +35,32 @@ class HashIndex final : public Index {
                    "This Insert is designed for secondary indexes with no uniqueness constraints.");
     KeyType index_key;
     index_key.SetFromProjectedRow(tuple, metadata_);
-    const bool result = hash_map_->insert(index_key, location);
 
-    TERRIER_ASSERT(
-        result,
-        "non-unique index shouldn't fail to insert. If it did, something went wrong deep inside the hash map itself.");
+    bool UNUSED_ATTRIBUTE upsert_result = false;
+    bool UNUSED_ATTRIBUTE uprase_result = false;
+
+    auto upsert_fn = [location, &upsert_result](cuckoohash_map<TupleSlot, TupleSlot> &value_map) -> bool {
+      upsert_result = value_map.upsert(location, [](const TupleSlot &) -> void { return; }, location);
+      return false;
+    };
+    uprase_result =
+        hash_map_->uprase_fn(index_key, upsert_fn, cuckoohash_map<TupleSlot, TupleSlot>({{location, location}}, 1));
+
+    TERRIER_ASSERT(upsert_result != uprase_result,
+                   "Either a new key was inserted (uprase), or the value_map already existed and a new value was "
+                   "inserted (upsert).");
 
     // Register an abort action with the txn context in case of rollback
     txn->RegisterAbortAction([=]() {
-      const bool UNUSED_ATTRIBUTE result =
-          hash_map_->erase_fn(index_key, [location](const TupleSlot &slot) -> bool { return location == slot; });
-      TERRIER_ASSERT(result, "Delete on the index failed.");
+      const bool UNUSED_ATTRIBUTE update_result =
+          hash_map_->update_fn(index_key, [location](cuckoohash_map<TupleSlot, TupleSlot> &value_map) {
+            const bool UNUSED_ATTRIBUTE erase_result = value_map.erase(location);
+            TERRIER_ASSERT(erase_result, "Erase on the index failed.");
+          });
+      TERRIER_ASSERT(update_result, "Update on the index failed.");
     });
 
-    return result;
+    return true;
   }
 
   bool InsertUnique(transaction::TransactionContext *const txn, const ProjectedRow &tuple,
@@ -57,36 +70,48 @@ class HashIndex final : public Index {
     KeyType index_key;
     index_key.SetFromProjectedRow(tuple, metadata_);
     bool predicate_satisfied = false;
+    bool result = false;
 
     // The predicate checks if any matching keys have write-write conflicts or are still visible to the calling txn.
     auto predicate = [&](const TupleSlot slot) -> bool {
       const auto *const data_table = slot.GetBlock()->data_table_;
-      return data_table->HasConflict(*txn, slot) || data_table->IsVisible(*txn, slot);
+      const auto has_conflict = data_table->HasConflict(*txn, slot);
+      const auto is_visible = data_table->IsVisible(*txn, slot);
+      return has_conflict || is_visible;
     };
 
-    auto locked_hash_map = hash_map_->lock_table();
+    auto insert_fn = [location, &predicate_satisfied, &result,
+                      predicate](cuckoohash_map<TupleSlot, TupleSlot> &value_map) -> bool {
+      auto locked_value_map = value_map.lock_table();
 
-    const auto search_results = locked_hash_map.equal_range(index_key);
-    for (auto i = search_results.first; i != search_results.second; i++) {
-      predicate_satisfied = predicate_satisfied || predicate(i->second);
-    }
+      for (auto i = locked_value_map.cbegin(); i != locked_value_map.cend(); i++) {
+        predicate_satisfied = predicate_satisfied || predicate(i->first);
+      }
 
-    bool result = false;
-    if (!predicate_satisfied) {
-      result = locked_hash_map.insert(index_key, location).second;
-      TERRIER_ASSERT(result,
-                     " index shouldn't fail to insert after predicate check. If it did, something went wrong deep "
-                     "inside the hash map itself.");
-    }
+      if (!predicate_satisfied) {
+        result = locked_value_map.insert(location, location).second;
+        TERRIER_ASSERT(result,
+                       " index shouldn't fail to insert after predicate check. If it did, something went wrong deep "
+                       "inside the hash map itself.");
+      }
 
-    locked_hash_map.unlock();
+      locked_value_map.unlock();
+      return false;
+    };
+    result = result || hash_map_->uprase_fn(index_key, insert_fn,
+                                            cuckoohash_map<TupleSlot, TupleSlot>({{location, location}}, 1));
+
+    TERRIER_ASSERT(result != predicate_satisfied, "Predicate satisfied is equivalent to insertion failing.");
 
     if (result) {
       // Register an abort action with the txn context in case of rollback
       txn->RegisterAbortAction([=]() {
-        const bool UNUSED_ATTRIBUTE result =
-            hash_map_->erase_fn(index_key, [location](const TupleSlot &slot) -> bool { return location == slot; });
-        TERRIER_ASSERT(result, "Delete on the index failed.");
+        const bool UNUSED_ATTRIBUTE update_result =
+            hash_map_->update_fn(index_key, [location](cuckoohash_map<TupleSlot, TupleSlot> &value_map) {
+              const bool UNUSED_ATTRIBUTE erase_result = value_map.erase(location);
+              TERRIER_ASSERT(erase_result, "Erase on the index failed.");
+            });
+        TERRIER_ASSERT(update_result, "Update on the index failed.");
       });
     } else {
       // Presumably you've already made modifications to a DataTable (the source of the TupleSlot argument to this
@@ -110,9 +135,12 @@ class HashIndex final : public Index {
     auto *const txn_manager = txn->GetTransactionManager();
     txn->RegisterCommitAction([=]() {
       txn_manager->DeferAction([=]() {
-        const bool UNUSED_ATTRIBUTE result =
-            hash_map_->erase_fn(index_key, [location](const TupleSlot &slot) -> bool { return location == slot; });
-        TERRIER_ASSERT(result, "Delete on the index failed.");
+        const bool UNUSED_ATTRIBUTE update_result =
+            hash_map_->update_fn(index_key, [location](cuckoohash_map<TupleSlot, TupleSlot> &value_map) {
+              const bool UNUSED_ATTRIBUTE erase_result = value_map.erase(location);
+              TERRIER_ASSERT(erase_result, "Erase on the index failed.");
+            });
+        TERRIER_ASSERT(update_result, "Update on the index failed.");
       });
     });
   }
@@ -121,21 +149,19 @@ class HashIndex final : public Index {
                std::vector<TupleSlot> *value_list) final {
     TERRIER_ASSERT(value_list->empty(), "Result set should begin empty.");
 
-    std::vector<TupleSlot> results;
-
     // Build search key
     KeyType index_key;
     index_key.SetFromProjectedRow(key, metadata_);
 
-    auto locked_hash_map = hash_map_->lock_table();
-
-    const auto search_results = locked_hash_map.equal_range(index_key);
-    // Perform visibility check on result
-    for (auto i = search_results.first; i != search_results.second; i++) {
-      if (IsVisible(txn, i->second)) value_list->emplace_back(i->second);
-    }
-
-    locked_hash_map.unlock();
+    const bool UNUSED_ATTRIBUTE find_result =
+        hash_map_->update_fn(index_key, [value_list, &txn](cuckoohash_map<TupleSlot, TupleSlot> &value_map) -> void {
+          auto locked_value_map = value_map.lock_table();
+          for (auto i = locked_value_map.cbegin(); i != locked_value_map.cend(); i++) {
+            // Perform visibility check on result
+            if (IsVisible(txn, i->first)) value_list->emplace_back(i->first);
+          }
+          locked_value_map.unlock();
+        });
 
     TERRIER_ASSERT(GetConstraintType() == ConstraintType::DEFAULT ||
                        (GetConstraintType() == ConstraintType::UNIQUE && value_list->size() <= 1),
