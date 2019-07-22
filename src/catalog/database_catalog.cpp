@@ -215,7 +215,7 @@ bool DatabaseCatalog::CreateNamespace(transaction::TransactionContext *const txn
   *(reinterpret_cast<namespace_oid_t *>(redo->Delta()->AccessForceNotNull(pm[NSPOID_COL_OID]))) = ns_oid;
   *(reinterpret_cast<storage::VarlenEntry *>(redo->Delta()->AccessForceNotNull(pm[NSPNAME_COL_OID]))) = name_varlen;
   // Finally, insert into the table to get the tuple slot
-  const auto tupleslot = namespaces_->Insert(txn, redo);
+  const auto tuple_slot = namespaces_->Insert(txn, redo);
 
   // Step 2: Insert into name index
   auto name_pri = namespaces_name_index_->GetProjectedRowInitializer();
@@ -224,9 +224,8 @@ bool DatabaseCatalog::CreateNamespace(transaction::TransactionContext *const txn
   // Write the attributes in the ProjectedRow
   *(reinterpret_cast<storage::VarlenEntry *>(index_pr->AccessForceNotNull(0))) = name_varlen;
 
-  if (!namespaces_name_index_->InsertUnique(txn, *index_pr, tupleslot)) {
-    // There was a name conflict and we need to abort.  Free the buffer and
-    // return false to indicate failure
+  if (!namespaces_name_index_->InsertUnique(txn, *index_pr, tuple_slot)) {
+    // There was a name conflict and we need to abort.  Free the buffer and return false to indicate failure
     delete[] buffer;
     return false;
   }
@@ -237,62 +236,62 @@ bool DatabaseCatalog::CreateNamespace(transaction::TransactionContext *const txn
   index_pr = oid_pri.InitializeRow(buffer);
   // Write the attributes in the ProjectedRow
   *(reinterpret_cast<namespace_oid_t *>(index_pr->AccessForceNotNull(0))) = ns_oid;
-  const bool UNUSED_ATTRIBUTE result = namespaces_oid_index_->InsertUnique(txn, *index_pr, tupleslot);
+  const bool UNUSED_ATTRIBUTE result = namespaces_oid_index_->InsertUnique(txn, *index_pr, tuple_slot);
   TERRIER_ASSERT(result, "Assigned namespace OID failed to be unique. That shouldn't be possible at this point.");
 
+  // Finish
   delete[] buffer;
   return true;
 }
 
-bool DatabaseCatalog::DeleteNamespace(transaction::TransactionContext *txn, namespace_oid_t ns) {
+bool DatabaseCatalog::DeleteNamespace(transaction::TransactionContext *const txn, const namespace_oid_t ns_oid) {
   // Step 1: Read the oid index
-  std::vector<col_oid_t> table_oids{NSPNAME_COL_OID};
+  const std::vector<col_oid_t> table_oids{NSPNAME_COL_OID};
   // NOLINTNEXTLINE Matt: this is C++17 which lint hates
   auto [table_pri, table_pm] = namespaces_->InitializerForProjectedRow(table_oids);
-  auto name_pri = namespaces_name_index_->GetProjectedRowInitializer();
-  auto oid_pri = namespaces_oid_index_->GetProjectedRowInitializer();
-  // Buffer is large enough for all prs.
-  byte *buffer = common::AllocationUtil::AllocateAligned(table_pri.ProjectedRowSize());
-  auto pr = oid_pri.InitializeRow(buffer);
+  // Buffer is large enough for all prs because it's meant to hold 1 VarlenEntry
+  byte *const buffer = common::AllocationUtil::AllocateAligned(table_pri.ProjectedRowSize());
+  const auto oid_pri = namespaces_oid_index_->GetProjectedRowInitializer();
+  auto *pr = oid_pri.InitializeRow(buffer);
+  // Write the attributes in the ProjectedRow
+  *(reinterpret_cast<namespace_oid_t *>(pr->AccessForceNotNull(0))) = ns_oid;
   // Scan index
-  auto *oid_entry = reinterpret_cast<namespace_oid_t *>(pr->AccessForceNotNull(0));
-  *oid_entry = ns;
   std::vector<storage::TupleSlot> index_results;
   namespaces_oid_index_->ScanKey(*txn, *pr, &index_results);
   if (index_results.empty()) {
+    // oid not found in the index, so namespace doesn't exist. Free the buffer and return false to indicate failure
     delete[] buffer;
     return false;
   }
   TERRIER_ASSERT(index_results.size() == 1, "Namespace OID not unique in index");
+  const auto tuple_slot = index_results[0];
 
   // Step 2: Select from the table to get the name
   pr = table_pri.InitializeRow(buffer);
-  if (!namespaces_->Select(txn, index_results[0], pr)) {
-    // Nothing visible
-    delete[] buffer;
-    return false;
-  }
-  auto name_varlen = *reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(table_pm[NSPNAME_COL_OID]));
+  auto UNUSED_ATTRIBUTE result = namespaces_->Select(txn, tuple_slot, pr);
+  TERRIER_ASSERT(result, "Index scan did a visibility check, so Select shouldn't fail at this point.");
+  const auto name_varlen = *reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(table_pm[NSPNAME_COL_OID]));
 
   // Step 3: Delete from table
-  txn->StageDelete(db_oid_, NAMESPACE_TABLE_OID, index_results[0]);
-  if (!namespaces_->Delete(txn, index_results[0])) {
-    // Someone else has a write-lock
+  txn->StageDelete(db_oid_, NAMESPACE_TABLE_OID, tuple_slot);
+  if (!namespaces_->Delete(txn, tuple_slot)) {
+    // Someone else has a write-lock. Free the buffer and return false to indicate failure
     delete[] buffer;
     return false;
   }
 
   // Step 4: Delete from oid index
   pr = oid_pri.InitializeRow(buffer);
-  oid_entry = reinterpret_cast<namespace_oid_t *>(pr->AccessForceNotNull(table_pm[NSPOID_COL_OID]));
-  *oid_entry = ns;
-  namespaces_oid_index_->Delete(txn, *pr, index_results[0]);
+  // Write the attributes in the ProjectedRow
+  *(reinterpret_cast<namespace_oid_t *>(pr->AccessForceNotNull(table_pm[NSPOID_COL_OID]))) = ns_oid;
+  namespaces_oid_index_->Delete(txn, *pr, tuple_slot);
 
   // Step 5: Delete from name index
+  const auto name_pri = namespaces_name_index_->GetProjectedRowInitializer();
   pr = name_pri.InitializeRow(buffer);
-  auto name_entry = reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(table_pm[NSPNAME_COL_OID]));
-  *name_entry = name_varlen;
-  namespaces_name_index_->Delete(txn, *pr, index_results[0]);
+  // Write the attributes in the ProjectedRow
+  *(reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(table_pm[NSPNAME_COL_OID]))) = name_varlen;
+  namespaces_name_index_->Delete(txn, *pr, tuple_slot);
 
   // Finish
   delete[] buffer;

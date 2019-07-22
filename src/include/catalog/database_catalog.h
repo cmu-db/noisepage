@@ -53,7 +53,7 @@ class DatabaseCatalog {
    * @param ns OID to be deleted
    * @return true if the deletion succeeded, otherwise false
    */
-  bool DeleteNamespace(transaction::TransactionContext *txn, namespace_oid_t ns);
+  bool DeleteNamespace(transaction::TransactionContext *txn, namespace_oid_t ns_oid);
 
   /**
    * Resolve a namespace name to its OID.
