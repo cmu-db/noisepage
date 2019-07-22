@@ -625,7 +625,7 @@ void DatabaseCatalog::DeleteColumns(transaction::TransactionContext *const txn, 
   delete[] buffer;
 }
 
-table_oid_t DatabaseCatalog::CreateTable(transaction::TransactionContext *txn, namespace_oid_t ns,
+table_oid_t DatabaseCatalog::CreateTable(transaction::TransactionContext *const txn, const namespace_oid_t ns,
                                          const std::string &name, const Schema &schema) {
   const table_oid_t table_oid = static_cast<table_oid_t>(next_oid_++);
 
@@ -717,12 +717,13 @@ bool DatabaseCatalog::DeleteTable(transaction::TransactionContext *const txn, co
   *(reinterpret_cast<uint32_t *const>(index_pr->AccessForceNotNull(0))) = static_cast<uint32_t>(ns_oid);
   classes_namespace_index_->Delete(txn, *index_pr, index_results[0]);
 
-  // Everything succeeded from an MVCC standpoint, register deferred
-  // Register a deferred action for the GC with txn manager. See base function comment.
+  // Everything succeeded from an MVCC standpoint, register deferred action for the GC with txn manager. See base
+  // function comment.
   auto *const txn_manager = txn->GetTransactionManager();
   txn->RegisterCommitAction([=]() {
     txn_manager->DeferAction([=]() {
-      // Defer an action upon commit to delete the table. Delete index will need a double deferral.
+      // Defer an action upon commit to delete the table. Delete index will need a double deferral because there could
+      // be pending deferred actions on an index
       delete schema_ptr;
       delete table_ptr;
     });
@@ -735,27 +736,19 @@ bool DatabaseCatalog::DeleteTable(transaction::TransactionContext *const txn, co
 std::pair<uint32_t, postgres::ClassKind> DatabaseCatalog::GetClassOidKind(transaction::TransactionContext *const txn,
                                                                           const namespace_oid_t ns_oid,
                                                                           const std::string &name) {
-  std::vector<storage::TupleSlot> index_results;
-  auto name_pri = classes_name_index_->GetProjectedRowInitializer();
+  const auto name_pri = classes_name_index_->GetProjectedRowInitializer();
 
-  // Create the necessary varlen for storage operations
-  storage::VarlenEntry name_varlen;
-  if (name.size() > storage::VarlenEntry::InlineThreshold()) {
-    byte *const varlen_contents = common::AllocationUtil::AllocateAligned(name.size());
-    std::memcpy(varlen_contents, name.data(), name.size());
-    name_varlen = storage::VarlenEntry::Create(varlen_contents, static_cast<uint>(name.size()), true);
-  } else {
-    name_varlen = storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *const>(name.data()),
-                                                     static_cast<uint>(name.size()));
-  }
+  const auto name_varlen = postgres::AttributeHelper::CreateVarlen(name);
 
-  // Name is a larger projected row (16-byte key vs 4-byte key), sow we can reuse
-  // the buffer for both index operations if we allocate to the larger one.
+  // Buffer is large enough to hold all prs
   auto *const buffer = common::AllocationUtil::AllocateAligned(name_pri.ProjectedRowSize());
   auto pr = name_pri.InitializeRow(buffer);
+  // Write the attributes in the ProjectedRow. We know the offsets without the map because of the ordering of attribute
+  // sizes
   *(reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(0))) = name_varlen;
   *(reinterpret_cast<namespace_oid_t *>(pr->AccessForceNotNull(1))) = ns_oid;
 
+  std::vector<storage::TupleSlot> index_results;
   classes_name_index_->ScanKey(*txn, *pr, &index_results);
   // Clean up the varlen's buffer in the case it wasn't inlined.
   if (!name_varlen.IsInlined()) {
@@ -776,9 +769,10 @@ std::pair<uint32_t, postgres::ClassKind> DatabaseCatalog::GetClassOidKind(transa
   const auto result UNUSED_ATTRIBUTE = classes_->Select(txn, index_results[0], pr);
   TERRIER_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
 
-  // This code assumes ordering of attribute by size in the ProjectedRow (size of kind is smaller than size of oid)
-  auto oid = *(reinterpret_cast<const uint32_t *const>(pr->AccessForceNotNull(0)));
-  auto kind = *(reinterpret_cast<const postgres::ClassKind *const>(pr->AccessForceNotNull(1)));
+  // Write the attributes in the ProjectedRow. We know the offsets without the map because of the ordering of attribute
+  // sizes
+  const auto oid = *(reinterpret_cast<const uint32_t *const>(pr->AccessForceNotNull(0)));
+  const auto kind = *(reinterpret_cast<const postgres::ClassKind *const>(pr->AccessForceNotNull(1)));
 
   delete[] buffer;
 
