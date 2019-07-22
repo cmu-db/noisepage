@@ -774,14 +774,14 @@ std::pair<uint32_t, postgres::ClassKind> DatabaseCatalog::GetClassOidKind(transa
   const auto oid = *(reinterpret_cast<const uint32_t *const>(pr->AccessForceNotNull(0)));
   const auto kind = *(reinterpret_cast<const postgres::ClassKind *const>(pr->AccessForceNotNull(1)));
 
+  // Finish
   delete[] buffer;
-
   return std::make_pair(oid, kind);
 }
 
 table_oid_t DatabaseCatalog::GetTableOid(transaction::TransactionContext *const txn, const namespace_oid_t ns,
                                          const std::string &name) {
-  auto oid_pair = GetClassOidKind(txn, ns, name);
+  const auto oid_pair = GetClassOidKind(txn, ns, name);
   if (oid_pair.second != postgres::ClassKind::REGULAR_TABLE) {
     // User called GetTableOid on an object that doesn't have type REGULAR_TABLE
     return INVALID_TABLE_OID;
@@ -789,17 +789,8 @@ table_oid_t DatabaseCatalog::GetTableOid(transaction::TransactionContext *const 
   return table_oid_t(oid_pair.first);
 }
 
-/**
- * Inform the catalog of where the underlying storage for a table is
- * @param table OID in the catalog
- * @param table_ptr to the memory where the storage is
- * @return whether the operation was successful
- * @warning The table pointer that is passed in must be on the heap as the
- * catalog will take ownership of it and schedule its deletion with the GC
- * at the appropriate time.
- */
-bool DatabaseCatalog::SetTablePointer(transaction::TransactionContext *txn, table_oid_t table,
-                                      storage::SqlTable *table_ptr) {
+bool DatabaseCatalog::SetTablePointer(transaction::TransactionContext *const txn, const table_oid_t table,
+                                      const storage::SqlTable *const table_ptr) {
   TERRIER_ASSERT(table_ptr != nullptr, "Why are you inserting nullptr here? That seems wrong.");
   std::vector<storage::TupleSlot> index_results;
   auto oid_pri = classes_oid_index_->GetProjectedRowInitializer();
@@ -822,14 +813,14 @@ bool DatabaseCatalog::SetTablePointer(transaction::TransactionContext *txn, tabl
   }
   TERRIER_ASSERT(index_results.size() == 1, "You got more than one result from a unique index. How did you do that?");
 
-  delete[] buffer;
-
   auto *update_redo = txn->StageWrite(db_oid_, CLASS_TABLE_OID, pr_init);
   update_redo->SetTupleSlot(index_results[0]);
   auto *update_pr = update_redo->Delta();
   auto *const table_ptr_ptr = update_pr->AccessForceNotNull(0);
   *(reinterpret_cast<uintptr_t *>(table_ptr_ptr)) = reinterpret_cast<uintptr_t>(table_ptr);
 
+  // Finish
+  delete[] buffer;
   return classes_->Update(txn, update_redo);
 }
 
@@ -838,9 +829,9 @@ bool DatabaseCatalog::SetTablePointer(transaction::TransactionContext *txn, tabl
  * @param table to which we want the storage object
  * @return the storage object corresponding to the passed OID
  */
-common::ManagedPointer<storage::SqlTable> DatabaseCatalog::GetTable(transaction::TransactionContext *txn,
-                                                                    table_oid_t table) {
-  auto ptr_pair = GetClassPtrKind(txn, static_cast<uint32_t>(table));
+common::ManagedPointer<storage::SqlTable> DatabaseCatalog::GetTable(transaction::TransactionContext *const txn,
+                                                                    const table_oid_t table) {
+  const auto ptr_pair = GetClassPtrKind(txn, static_cast<uint32_t>(table));
   if (ptr_pair.second != postgres::ClassKind::REGULAR_TABLE) {
     // User called GetTable with an OID for an object that doesn't have type REGULAR_TABLE
     return common::ManagedPointer<storage::SqlTable>(nullptr);
@@ -848,20 +839,22 @@ common::ManagedPointer<storage::SqlTable> DatabaseCatalog::GetTable(transaction:
   return common::ManagedPointer(reinterpret_cast<storage::SqlTable *>(ptr_pair.first));
 }
 
-bool DatabaseCatalog::RenameTable(transaction::TransactionContext *txn, table_oid_t table, const std::string &name) {
+bool DatabaseCatalog::RenameTable(transaction::TransactionContext *const txn, const table_oid_t table,
+                                  const std::string &name) {
   // TODO(John): Implement
   TERRIER_ASSERT(false, "Not implemented");
   return false;
 }
 
-bool DatabaseCatalog::UpdateSchema(transaction::TransactionContext *txn, table_oid_t table, Schema *new_schema) {
+bool DatabaseCatalog::UpdateSchema(transaction::TransactionContext *const txn, const table_oid_t table,
+                                   Schema *const new_schema) {
   // TODO(John): Implement
   TERRIER_ASSERT(false, "Not implemented");
   return false;
 }
 
-const Schema &DatabaseCatalog::GetSchema(transaction::TransactionContext *txn, table_oid_t table) {
-  auto ptr_pair = GetClassSchemaPtrKind(txn, static_cast<uint32_t>(table));
+const Schema &DatabaseCatalog::GetSchema(transaction::TransactionContext *const txn, const table_oid_t table) {
+  const auto ptr_pair = GetClassSchemaPtrKind(txn, static_cast<uint32_t>(table));
   TERRIER_ASSERT(ptr_pair.first != nullptr, "Schema pointer shouldn't ever be NULL under current catalog semantics.");
   TERRIER_ASSERT(ptr_pair.second == postgres::ClassKind::REGULAR_TABLE, "Requested a table schema for a non-table");
   return *reinterpret_cast<Schema *>(ptr_pair.first);
@@ -873,10 +866,8 @@ std::vector<constraint_oid_t> DatabaseCatalog::GetConstraints(transaction::Trans
   return {};
 }
 
-std::vector<index_oid_t> DatabaseCatalog::GetIndexes(transaction::TransactionContext *txn, table_oid_t table) {
-  std::vector<index_oid_t> index_oids;
-  std::vector<storage::TupleSlot> index_scan_results;
-
+std::vector<index_oid_t> DatabaseCatalog::GetIndexes(transaction::TransactionContext *const txn,
+                                                     const table_oid_t table) {
   // Initialize PR for index scan
   auto oid_pri = indexes_table_index_->GetProjectedRowInitializer();
 
@@ -889,19 +880,24 @@ std::vector<index_oid_t> DatabaseCatalog::GetIndexes(transaction::TransactionCon
   // Find all entries for the given table using the index
   auto *key_pr = oid_pri.InitializeRow(buffer);
   *(reinterpret_cast<uint32_t *>(key_pr->AccessForceNotNull(0))) = static_cast<uint32_t>(table);
+  std::vector<storage::TupleSlot> index_scan_results;
   indexes_table_index_->ScanKey(*txn, *key_pr, &index_scan_results);
 
   // If we found no indexes, return an empty list
   if (index_scan_results.empty()) {
-    return index_oids;
+    delete[] buffer;
+    return {};
   }
 
+  std::vector<index_oid_t> index_oids;
   auto *select_pr = pr_init.InitializeRow(buffer);
   for (auto &slot : index_scan_results) {
     const auto result UNUSED_ATTRIBUTE = classes_->Select(txn, slot, select_pr);
     TERRIER_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
     index_oids.emplace_back(*(reinterpret_cast<index_oid_t *>(select_pr->AccessForceNotNull(0))));
   }
+
+  // Finish
   delete[] buffer;
   return index_oids;
 }

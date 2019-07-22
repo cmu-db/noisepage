@@ -115,7 +115,7 @@ class DatabaseCatalog {
    * catalog will take ownership of it and schedule its deletion with the GC
    * at the appropriate time.
    */
-  bool SetTablePointer(transaction::TransactionContext *txn, table_oid_t table, storage::SqlTable *table_ptr);
+  bool SetTablePointer(transaction::TransactionContext *txn, table_oid_t table, const storage::SqlTable *table_ptr);
 
   /**
    * Obtain the storage pointer for a SQL table
