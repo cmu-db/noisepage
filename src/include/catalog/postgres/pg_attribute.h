@@ -80,26 +80,6 @@ class AttributeHelper {
     return col;
   }
 
-  // TODO(Matt): this doesn't live here. Also refactor more stuff to use it
-  /**
-   * Helper method to turn a string into a VarlenEntry
-   * @param str input to be turned into a VarlenEntry
-   * @return varlen entry representing string
-   * @warning checking IsInlined() to see if you need to possibly clean up a buffer
-   */
-  static storage::VarlenEntry CreateVarlen(const std::string &str) {
-    storage::VarlenEntry varlen;
-    if (str.size() > storage::VarlenEntry::InlineThreshold()) {
-      byte *contents = common::AllocationUtil::AllocateAligned(str.size());
-      std::memcpy(contents, str.data(), str.size());
-      varlen = storage::VarlenEntry::Create(contents, static_cast<uint32_t>(str.size()), true);
-    } else {
-      varlen = storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(str.data()),
-                                                  static_cast<uint32_t>(str.size()));
-    }
-    return varlen;
-  }
-
   // TODO(John): move to catalog_defs
   /**
    * @tparam Column either index schema column or table schema column
@@ -109,9 +89,9 @@ class AttributeHelper {
   template <typename Column>
   static storage::VarlenEntry MakeNameVarlen(const Column &col) {
     if constexpr (std::is_class_v<Column, IndexSchema::Column>) {
-      return CreateVarlen(std::to_string(col.GetOid()));
+      return storage::StorageUtil::CreateVarlen(std::to_string(col.GetOid()));
     } else {  // NOLINT
-      return CreateVarlen(col.GetName());
+      return storage::StorageUtil::CreateVarlen(col.GetName());
     }
   }
 };

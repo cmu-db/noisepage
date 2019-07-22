@@ -50,7 +50,7 @@ class DatabaseCatalog {
    * objects within the namespace cannot be deleted (i.e. write-write conflicts
    * exist).
    * @param txn for the operation
-   * @param ns OID to be deleted
+   * @param ns_oid OID to be deleted
    * @return true if the deletion succeeded, otherwise false
    */
   bool DeleteNamespace(transaction::TransactionContext *txn, namespace_oid_t ns_oid);
