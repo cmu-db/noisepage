@@ -216,7 +216,7 @@ class DatabaseCatalog {
    * catalog will take ownership of it and schedule its deletion with the GC
    * at the appropriate time.
    */
-  bool SetIndexPointer(transaction::TransactionContext *txn, index_oid_t index, storage::index::Index *index_ptr);
+  bool SetIndexPointer(transaction::TransactionContext *txn, index_oid_t index, const storage::index::Index *index_ptr);
 
   /**
    * Obtain the pointer to the index
@@ -403,5 +403,17 @@ class DatabaseCatalog {
    * given oid
    */
   std::pair<void *, postgres::ClassKind> GetClassSchemaPtrKind(transaction::TransactionContext *txn, uint32_t oid);
+
+  /**
+   * Helper method since SetIndexPointer and SetTablePointer are basically indentical outside of input types
+   * @tparam ClassOid either index_oid_t or table_oid_t
+   * @tparam Class either Index or SqlTable
+   * @param txn transaction to query
+   * @param oid oid to object
+   * @param pointer pointer to set
+   * @return true if successful
+   */
+  template <typename ClassOid, typename Class>
+  bool SetClassPointer(transaction::TransactionContext *txn, ClassOid oid, const Class *pointer);
 };
 }  // namespace terrier::catalog

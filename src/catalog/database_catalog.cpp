@@ -644,8 +644,7 @@ table_oid_t DatabaseCatalog::CreateTable(transaction::TransactionContext *const 
 }
 
 bool DatabaseCatalog::DeleteTable(transaction::TransactionContext *const txn, const table_oid_t table) {
-  std::vector<storage::TupleSlot> index_results;
-  auto oid_pri = classes_oid_index_->GetProjectedRowInitializer();
+  const auto oid_pri = classes_oid_index_->GetProjectedRowInitializer();
 
   // NOLINTNEXTLINE
   auto [pr_init, pr_map] = classes_->InitializerForProjectedRow(PG_CLASS_ALL_COL_OIDS);
@@ -653,10 +652,11 @@ bool DatabaseCatalog::DeleteTable(transaction::TransactionContext *const txn, co
   TERRIER_ASSERT(pr_init.ProjectedRowSize() >= oid_pri.ProjectedRowSize(),
                  "Buffer must be allocated for largest ProjectedRow size");
   auto *const buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
-  auto *key_pr = oid_pri.InitializeRow(buffer);
+  auto *const key_pr = oid_pri.InitializeRow(buffer);
 
   // Find the entry using the index
   *(reinterpret_cast<uint32_t *>(key_pr->AccessForceNotNull(0))) = static_cast<uint32_t>(table);
+  std::vector<storage::TupleSlot> index_results;
   classes_oid_index_->ScanKey(*txn, *key_pr, &index_results);
   if (index_results.empty()) {
     // TODO(Matt): we should verify what postgres does in this case
@@ -668,7 +668,7 @@ bool DatabaseCatalog::DeleteTable(transaction::TransactionContext *const txn, co
   TERRIER_ASSERT(index_results.size() == 1, "You got more than one result from a unique index. How did you do that?");
 
   // Select the tuple out of the table before deletion. We need the attributes to do index deletions later
-  auto *table_pr = pr_init.InitializeRow(buffer);
+  auto *const table_pr = pr_init.InitializeRow(buffer);
   auto result = classes_->Select(txn, index_results[0], table_pr);
   TERRIER_ASSERT(result, "Select must succeed if the index scan gave a visible result.");
 
@@ -791,37 +791,7 @@ table_oid_t DatabaseCatalog::GetTableOid(transaction::TransactionContext *const 
 
 bool DatabaseCatalog::SetTablePointer(transaction::TransactionContext *const txn, const table_oid_t table,
                                       const storage::SqlTable *const table_ptr) {
-  TERRIER_ASSERT(table_ptr != nullptr, "Why are you inserting nullptr here? That seems wrong.");
-  std::vector<storage::TupleSlot> index_results;
-  auto oid_pri = classes_oid_index_->GetProjectedRowInitializer();
-
-  // Do not need to store the projection map because it is only a single column
-  auto pr_init = classes_->InitializerForProjectedRow({REL_PTR_COL_OID}).first;
-  TERRIER_ASSERT(pr_init.ProjectedRowSize() >= oid_pri.ProjectedRowSize(), "Buffer must allocated to fit largest PR");
-  auto *const buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
-  auto *key_pr = oid_pri.InitializeRow(buffer);
-
-  // Find the entry using the index
-  *(reinterpret_cast<uint32_t *>(key_pr->AccessForceNotNull(0))) = static_cast<uint32_t>(table);
-  classes_oid_index_->ScanKey(*txn, *key_pr, &index_results);
-  if (index_results.empty()) {
-    // TODO(Matt): we should verify what postgres does in this case
-    // Index scan didn't find anything. This seems weird since we were able to enter this function with a table_oid.
-    // That implies that it was visible to us. Maybe the table was dropped or renamed twice by the same txn?
-    delete[] buffer;
-    return false;
-  }
-  TERRIER_ASSERT(index_results.size() == 1, "You got more than one result from a unique index. How did you do that?");
-
-  auto *update_redo = txn->StageWrite(db_oid_, CLASS_TABLE_OID, pr_init);
-  update_redo->SetTupleSlot(index_results[0]);
-  auto *update_pr = update_redo->Delta();
-  auto *const table_ptr_ptr = update_pr->AccessForceNotNull(0);
-  *(reinterpret_cast<uintptr_t *>(table_ptr_ptr)) = reinterpret_cast<uintptr_t>(table_ptr);
-
-  // Finish
-  delete[] buffer;
-  return classes_->Update(txn, update_redo);
+  return SetClassPointer(txn, table, table_ptr);
 }
 
 /**
@@ -909,9 +879,8 @@ index_oid_t DatabaseCatalog::CreateIndex(transaction::TransactionContext *txn, n
 }
 
 bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oid_t index) {
-  std::vector<storage::TupleSlot> index_results;
   // Initialize PRs for pg_class
-  auto class_oid_pri = classes_oid_index_->GetProjectedRowInitializer();
+  const auto class_oid_pri = classes_oid_index_->GetProjectedRowInitializer();
   // NOLINTNEXTLINE
   auto [class_pr_init, class_pr_map] = classes_->InitializerForProjectedRow(PG_CLASS_ALL_COL_OIDS);
 
@@ -923,6 +892,7 @@ bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oi
 
   // Find the entry using the index
   *(reinterpret_cast<uint32_t *>(key_pr->AccessForceNotNull(0))) = static_cast<uint32_t>(index);
+  std::vector<storage::TupleSlot> index_results;
   classes_oid_index_->ScanKey(*txn, *key_pr, &index_results);
   if (index_results.empty()) {
     // TODO(Matt): we should verify what postgres does in this case
@@ -982,8 +952,8 @@ bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oi
 
   // Now we need to delete from pg_index and its indexes
   // Initialize PRs for pg_index
-  auto index_oid_pr = indexes_oid_index_->GetProjectedRowInitializer();
-  auto index_table_pr = indexes_table_index_->GetProjectedRowInitializer();
+  const auto index_oid_pr = indexes_oid_index_->GetProjectedRowInitializer();
+  const auto index_table_pr = indexes_table_index_->GetProjectedRowInitializer();
   // NOLINTNEXTLINE
   auto [index_pr_init, index_pr_map] = indexes_->InitializerForProjectedRow({INDOID_COL_OID, INDRELID_COL_OID});
   TERRIER_ASSERT((class_pr_init.ProjectedRowSize() >= index_pr_init.ProjectedRowSize()) &&
@@ -1051,44 +1021,50 @@ bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oi
   return true;
 }
 
-bool DatabaseCatalog::SetIndexPointer(transaction::TransactionContext *txn, index_oid_t index,
-                                      storage::index::Index *index_ptr) {
-  TERRIER_ASSERT(index_ptr != nullptr, "Why are you inserting nullptr here? That seems wrong.");
-  std::vector<storage::TupleSlot> index_results;
-  auto oid_pri = classes_oid_index_->GetProjectedRowInitializer();
+template <typename ClassOid, typename Class>
+bool DatabaseCatalog::SetClassPointer(transaction::TransactionContext *const txn, const ClassOid oid,
+                                      const Class *const pointer) {
+  TERRIER_ASSERT(pointer != nullptr, "Why are you inserting nullptr here? That seems wrong.");
+  const auto oid_pri = classes_oid_index_->GetProjectedRowInitializer();
 
   // Do not need to store the projection map because it is only a single column
   auto pr_init = classes_->InitializerForProjectedRow({REL_PTR_COL_OID}).first;
   TERRIER_ASSERT(pr_init.ProjectedRowSize() >= oid_pri.ProjectedRowSize(), "Buffer must allocated to fit largest PR");
   auto *const buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
-  auto *key_pr = oid_pri.InitializeRow(buffer);
+  auto *const key_pr = oid_pri.InitializeRow(buffer);
 
   // Find the entry using the index
-  *(reinterpret_cast<uint32_t *>(key_pr->AccessForceNotNull(0))) = static_cast<uint32_t>(index);
+  *(reinterpret_cast<uint32_t *>(key_pr->AccessForceNotNull(0))) = static_cast<uint32_t>(oid);
+  std::vector<storage::TupleSlot> index_results;
   classes_oid_index_->ScanKey(*txn, *key_pr, &index_results);
   if (index_results.empty()) {
     // TODO(Matt): we should verify what postgres does in this case
-    // Index scan didn't find anything. This seems weird since we were able to enter this function with an index_oid.
-    // That implies that it was visible to us. Maybe the index was dropped or renamed twice by the same txn?
+    // Index scan didn't find anything. This seems weird since we were able to enter this function with an oid.
+    // That implies that it was visible to us. Maybe the object was dropped or renamed twice by the same txn?
     delete[] buffer;
     return false;
   }
   TERRIER_ASSERT(index_results.size() == 1, "You got more than one result from a unique index. How did you do that?");
 
-  delete[] buffer;
-
   auto *update_redo = txn->StageWrite(db_oid_, CLASS_TABLE_OID, pr_init);
   update_redo->SetTupleSlot(index_results[0]);
   auto *update_pr = update_redo->Delta();
   auto *const table_ptr_ptr = update_pr->AccessForceNotNull(0);
-  *(reinterpret_cast<uintptr_t *>(table_ptr_ptr)) = reinterpret_cast<uintptr_t>(index_ptr);
+  *(reinterpret_cast<uintptr_t *>(table_ptr_ptr)) = reinterpret_cast<uintptr_t>(pointer);
 
+  // Finish
+  delete[] buffer;
   return classes_->Update(txn, update_redo);
+}
+
+bool DatabaseCatalog::SetIndexPointer(transaction::TransactionContext *const txn, const index_oid_t index,
+                                      const storage::index::Index *const index_ptr) {
+  return SetClassPointer(txn, index, index_ptr);
 }
 
 common::ManagedPointer<storage::index::Index> DatabaseCatalog::GetIndex(transaction::TransactionContext *txn,
                                                                         index_oid_t index) {
-  auto ptr_pair = GetClassPtrKind(txn, static_cast<uint32_t>(index));
+  const auto ptr_pair = GetClassPtrKind(txn, static_cast<uint32_t>(index));
   if (ptr_pair.second != postgres::ClassKind::INDEX) {
     // User called GetTable with an OID for an object that doesn't have type REGULAR_TABLE
     return common::ManagedPointer<storage::index::Index>(nullptr);
@@ -1098,7 +1074,7 @@ common::ManagedPointer<storage::index::Index> DatabaseCatalog::GetIndex(transact
 
 index_oid_t DatabaseCatalog::GetIndexOid(transaction::TransactionContext *txn, namespace_oid_t ns,
                                          const std::string &name) {
-  auto oid_pair = GetClassOidKind(txn, ns, name);
+  const auto oid_pair = GetClassOidKind(txn, ns, name);
   if (oid_pair.second != postgres::ClassKind::INDEX) {
     // User called GetIndexOid on an object that doesn't have type INDEX
     return INVALID_INDEX_OID;
