@@ -34,6 +34,11 @@ namespace terrier::catalog::postgres {
 // locking during DDL operations which is not an issue in this system
 #define ADBIN_COL_OID col_oid_t(7)  // BIGINT (assumes 64-bit pointers)
 #define ADSRC_COL_OID col_oid_t(8)  // VARCHAR
+#define PG_ATTRIBUTE_ALL_COL_OIDS                                                                            \
+  {                                                                                                          \
+    ATTNUM_COL_OID, ATTRELID_COL_OID, ATTNAME_COL_OID, ATTTYPID_COL_OID, ATTLEN_COL_OID, ATTNOTNULL_COL_OID, \
+        ADBIN_COL_OID, ADSRC_COL_OID                                                                         \
+  }
 
 /**
  * Helper classes

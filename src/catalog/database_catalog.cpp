@@ -319,6 +319,8 @@ namespace_oid_t DatabaseCatalog::GetNamespaceOid(transaction::TransactionContext
   }
 
   if (index_results.empty()) {
+    // namespace not found in the index, so namespace doesn't exist. Free the buffer and return false to indicate
+    // failure
     delete[] buffer;
     return INVALID_NAMESPACE_OID;
   }
@@ -341,11 +343,11 @@ template <typename Column>
 bool DatabaseCatalog::CreateAttribute(transaction::TransactionContext *txn, uint32_t class_oid, const Column &col,
                                       const parser::AbstractExpression *default_val) {
   // Step 1: Insert into the table
-  std::vector<col_oid_t> table_oids{ATTNUM_COL_OID, ATTRELID_COL_OID,   ATTNAME_COL_OID, ATTTYPID_COL_OID,
-                                    ATTLEN_COL_OID, ATTNOTNULL_COL_OID, ADBIN_COL_OID,   ADSRC_COL_OID};
+  const std::vector<col_oid_t> table_oids{PG_ATTRIBUTE_ALL_COL_OIDS};
   // NOLINTNEXTLINE
   auto [table_pri, table_pm] = columns_->InitializerForProjectedRow(table_oids);
-  auto *redo = txn->StageWrite(db_oid_, COLUMN_TABLE_OID, table_pri);
+  auto *const redo = txn->StageWrite(db_oid_, COLUMN_TABLE_OID, table_pri);
+  // Write the attributes in the Redo Record
   auto oid_entry = reinterpret_cast<uint32_t *>(redo->Delta()->AccessForceNotNull(table_pm[ATTNUM_COL_OID]));
   auto relid_entry = reinterpret_cast<uint32_t *>(redo->Delta()->AccessForceNotNull(table_pm[ATTRELID_COL_OID]));
   auto name_entry =
@@ -361,7 +363,7 @@ bool DatabaseCatalog::CreateAttribute(transaction::TransactionContext *txn, uint
   storage::VarlenEntry name_varlen = postgres::AttributeHelper::MakeNameVarlen<Column>(col);
   *name_entry = name_varlen;
   *type_entry = col.GetType();
-  // TODO(Amadou): Figure out what really goes here for varlen
+  // TODO(Amadou): Figure out what really goes here for varlen. Unclear if it's attribute size (16) or varlen length
   *len_entry = (col.GetType() == type::TypeId::VARCHAR || col.GetType() == type::TypeId::VARBINARY)
                    ? col.GetMaxVarlenSize()
                    : col.GetAttrSize();
@@ -369,49 +371,56 @@ bool DatabaseCatalog::CreateAttribute(transaction::TransactionContext *txn, uint
   *dbin_entry = reinterpret_cast<intptr_t>(default_val);
   storage::VarlenEntry dsrc_varlen = postgres::AttributeHelper::CreateVarlen(default_val->ToJson().dump());
   *dsrc_entry = dsrc_varlen;
-  // Finally insert
-  auto tupleslot = columns_->Insert(txn, redo);
+  // Finally, insert into the table to get the tuple slot
+  const auto tupleslot = columns_->Insert(txn, redo);
 
   // Step 2: Insert into name index
-  auto name_pri = columns_name_index_->GetProjectedRowInitializer();
+  const auto name_pri = columns_name_index_->GetProjectedRowInitializer();
   // Create a buffer large enough for all columns
-  auto buffer = common::AllocationUtil::AllocateAligned(name_pri.ProjectedRowSize());
-  auto pr = name_pri.InitializeRow(buffer);
-  name_entry = reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(0));
-  *name_entry = name_varlen;
-  relid_entry = reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(1));
-  *relid_entry = class_oid;
+  auto *const buffer = common::AllocationUtil::AllocateAligned(name_pri.ProjectedRowSize());
+  auto *pr = name_pri.InitializeRow(buffer);
+  // Write the attributes in the ProjectedRow. We know the offsets without the map because of the ordering of attribute
+  // sizes
+  *(reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(0))) = name_varlen;
+  *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(1))) = class_oid;
 
   if (!columns_name_index_->InsertUnique(txn, *pr, tupleslot)) {
+    // There was a name conflict and we need to abort.  Free the buffer and return false to indicate failure
     delete[] buffer;
     return false;
   }
 
   // Step 3: Insert into oid index
-  auto oid_pri = columns_oid_index_->GetProjectedRowInitializer();
+  const auto oid_pri = columns_oid_index_->GetProjectedRowInitializer();
   pr = oid_pri.InitializeRow(buffer);
-  oid_entry = reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(0));
-  *oid_entry = col.GetOid();
-  relid_entry = reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(1));
-  *relid_entry = class_oid;
+  // Write the attributes in the ProjectedRow. We know the offsets without the map because of the ordering of attribute
+  // sizes
+  *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(0))) = col.GetOid();
+  *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(1))) = class_oid;
 
   if (!columns_oid_index_->InsertUnique(txn, *pr, tupleslot)) {
+    // There was an oid conflict and we need to abort.  Free the buffer and return false to indicate failure
+    // TODO(Matt): Is this is possible at this point, or should we be asserting the insert result like the oid index on
+    // CreateNamespace?
     delete[] buffer;
     return false;
   }
 
   // Step 4: Insert into class index
-  auto class_pri = columns_class_index_->GetProjectedRowInitializer();
+  const auto class_pri = columns_class_index_->GetProjectedRowInitializer();
   pr = class_pri.InitializeRow(buffer);
-  relid_entry = reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(0));
-  *relid_entry = class_oid;
+  // Write the attributes in the ProjectedRow
+  *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(0))) = class_oid;
 
   if (!columns_class_index_->Insert(txn, *pr, tupleslot)) {
-    // Should probably not happen.
+    // There was an oid conflict and we need to abort.  Free the buffer and return false to indicate failure
+    // TODO(Matt): Is this is possible at this point, or should we be asserting the insert result like the oid index on
+    // CreateNamespace?
     delete[] buffer;
     return false;
   }
 
+  // Finish
   delete[] buffer;
   return true;
 }
