@@ -508,23 +508,24 @@ std::unique_ptr<Column> DatabaseCatalog::GetAttribute(transaction::TransactionCo
 }
 
 template <typename Column>
-std::vector<std::unique_ptr<Column>> DatabaseCatalog::GetAttributes(transaction::TransactionContext *txn,
-                                                                    uint32_t class_oid) {
+std::vector<std::unique_ptr<Column>> DatabaseCatalog::GetAttributes(transaction::TransactionContext *const txn,
+                                                                    const uint32_t class_oid) {
   // Step 1: Read Index
-  std::vector<col_oid_t> table_oids{ATTNUM_COL_OID, ATTNAME_COL_OID,    ATTTYPID_COL_OID,
-                                    ATTLEN_COL_OID, ATTNOTNULL_COL_OID, ADBIN_COL_OID};
+  const std::vector<col_oid_t> table_oids{ATTNUM_COL_OID, ATTNAME_COL_OID,    ATTTYPID_COL_OID,
+                                          ATTLEN_COL_OID, ATTNOTNULL_COL_OID, ADBIN_COL_OID};
   // NOLINTNEXTLINE
   auto [table_pri, table_pm] = columns_->InitializerForProjectedRow(table_oids);
-  auto class_pri = columns_class_index_->GetProjectedRowInitializer();
+  const auto class_pri = columns_class_index_->GetProjectedRowInitializer();
   // Buffer is large enough to hold all prs
-  byte *buffer = common::AllocationUtil::AllocateAligned(table_pri.ProjectedRowSize());
+  byte *const buffer = common::AllocationUtil::AllocateAligned(table_pri.ProjectedRowSize());
   // Scan the class index
-  auto pr = class_pri.InitializeRow(buffer);
-  auto *relid_entry = reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(1));
-  *relid_entry = class_oid;
+  auto *pr = class_pri.InitializeRow(buffer);
+  // Write the attributes in the ProjectedRow
+  *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(0))) = class_oid;
   std::vector<storage::TupleSlot> index_results;
   columns_class_index_->ScanKey(*txn, *pr, &index_results);
   if (index_results.empty()) {
+    // class not found in the index, so class doesn't exist. Free the buffer and return nullptr to indicate failure
     delete[] buffer;
     return nullptr;
   }
@@ -533,13 +534,15 @@ std::vector<std::unique_ptr<Column>> DatabaseCatalog::GetAttributes(transaction:
   std::vector<std::unique_ptr<Column>> cols;
   pr = table_pri.InitializeRow(buffer);
   for (const auto &slot : index_results) {
-    if (!columns_->Select(txn, slot, pr)) {
-      // Nothing visible
-      delete[] buffer;
-      return nullptr;
-    }
+    const auto UNUSED_ATTRIBUTE result = columns_->Select(txn, slot, pr);
+    TERRIER_ASSERT(result, "Index scan did a visibility check, so Select shouldn't fail at this point.");
     cols.emplace_back(postgres::AttributeHelper::MakeColumn<Column>(pr, table_pm));
   }
+
+  // TODO(Matt): do we have any way to assert that we got the number of attributes we expect? From another attribute in
+  // another catalog table maybe?
+
+  // Finish
   delete[] buffer;
   return cols;
 }
