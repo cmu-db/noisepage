@@ -23,7 +23,7 @@
 
 namespace terrier::catalog {
 
-void DatabaseCatalog::Bootstrap(transaction::TransactionContext *txn) {
+void DatabaseCatalog::Bootstrap(transaction::TransactionContext *const txn) {
   // Declare variable for return values (UNUSED when compiled for release)
   bool UNUSED_ATTRIBUTE retval;
 
@@ -194,40 +194,39 @@ void DatabaseCatalog::Bootstrap(transaction::TransactionContext *txn) {
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
 }
 
-namespace_oid_t DatabaseCatalog::CreateNamespace(transaction::TransactionContext *txn, const std::string &name) {
-  namespace_oid_t ns_oid{next_oid_++};
+namespace_oid_t DatabaseCatalog::CreateNamespace(transaction::TransactionContext *const txn, const std::string &name) {
+  const namespace_oid_t ns_oid{next_oid_++};
   if (!CreateNamespace(txn, name, ns_oid)) {
     return INVALID_NAMESPACE_OID;
   }
   return ns_oid;
 }
 
-bool DatabaseCatalog::CreateNamespace(transaction::TransactionContext *txn, const std::string &name,
-                                      namespace_oid_t ns_oid) {
+bool DatabaseCatalog::CreateNamespace(transaction::TransactionContext *const txn, const std::string &name,
+                                      const namespace_oid_t ns_oid) {
   // Step 1: Insert into table
-  storage::VarlenEntry name_varlen = postgres::AttributeHelper::CreateVarlen(name);
+  const auto name_varlen = postgres::AttributeHelper::CreateVarlen(name);
   // Get & Fill Redo Record
-  std::vector<col_oid_t> table_oids{NSPNAME_COL_OID, NSPOID_COL_OID};
+  const std::vector<col_oid_t> table_oids{NSPNAME_COL_OID, NSPOID_COL_OID};
   // NOLINTNEXTLINE Matt: this is C++17 which lint hates
   auto [pri, pm] = namespaces_->InitializerForProjectedRow(table_oids);
-  auto *redo = txn->StageWrite(db_oid_, NAMESPACE_TABLE_OID, pri);
-  auto *oid_entry = reinterpret_cast<namespace_oid_t *>(redo->Delta()->AccessForceNotNull(pm[NSPOID_COL_OID]));
-  auto *name_entry = reinterpret_cast<storage::VarlenEntry *>(redo->Delta()->AccessForceNotNull(pm[NSPNAME_COL_OID]));
-  *oid_entry = ns_oid;
-  *name_entry = name_varlen;
+  auto *const redo = txn->StageWrite(db_oid_, NAMESPACE_TABLE_OID, pri);
+  // Write the attributes in the Redo Record
+  *(reinterpret_cast<namespace_oid_t *>(redo->Delta()->AccessForceNotNull(pm[NSPOID_COL_OID]))) = ns_oid;
+  *(reinterpret_cast<storage::VarlenEntry *>(redo->Delta()->AccessForceNotNull(pm[NSPNAME_COL_OID]))) = name_varlen;
   // Finally, insert into the table to get the tuple slot
-  auto tupleslot = namespaces_->Insert(txn, redo);
+  const auto tupleslot = namespaces_->Insert(txn, redo);
 
   // Step 2: Insert into name index
   auto name_pri = namespaces_name_index_->GetProjectedRowInitializer();
-  byte *buffer = common::AllocationUtil::AllocateAligned(name_pri.ProjectedRowSize());
-  auto *pr = name_pri.InitializeRow(buffer);
-  name_entry = reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(0));
-  *name_entry = name_varlen;
+  byte *const buffer = common::AllocationUtil::AllocateAligned(name_pri.ProjectedRowSize());
+  auto *index_pr = name_pri.InitializeRow(buffer);
+  // Write the attributes in the ProjectedRow
+  *(reinterpret_cast<storage::VarlenEntry *>(index_pr->AccessForceNotNull(0))) = name_varlen;
 
-  if (!namespaces_name_index_->InsertUnique(txn, *pr, tupleslot)) {
+  if (!namespaces_name_index_->InsertUnique(txn, *index_pr, tupleslot)) {
     // There was a name conflict and we need to abort.  Free the buffer and
-    // return INVALID_DATABASE_OID to indicate the database was not created.
+    // return false to indicate failure
     delete[] buffer;
     return false;
   }
@@ -235,11 +234,11 @@ bool DatabaseCatalog::CreateNamespace(transaction::TransactionContext *txn, cons
   // Step 3: Insert into oid index
   auto oid_pri = namespaces_oid_index_->GetProjectedRowInitializer();
   // Reuse buffer since an u32 column is smaller than a varlen column
-  pr = oid_pri.InitializeRow(buffer);
-  oid_entry = reinterpret_cast<namespace_oid_t *>(pr->AccessForceNotNull(0));
-  *oid_entry = ns_oid;
-  const bool UNUSED_ATTRIBUTE result = namespaces_oid_index_->InsertUnique(txn, *pr, tupleslot);
-  TERRIER_ASSERT(result, "Assigned namespace OID failed to be unique");
+  index_pr = oid_pri.InitializeRow(buffer);
+  // Write the attributes in the ProjectedRow
+  *(reinterpret_cast<namespace_oid_t *>(index_pr->AccessForceNotNull(0))) = ns_oid;
+  const bool UNUSED_ATTRIBUTE result = namespaces_oid_index_->InsertUnique(txn, *index_pr, tupleslot);
+  TERRIER_ASSERT(result, "Assigned namespace OID failed to be unique. That shouldn't be possible at this point.");
 
   delete[] buffer;
   return true;
