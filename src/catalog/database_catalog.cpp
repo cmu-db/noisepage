@@ -360,7 +360,7 @@ bool DatabaseCatalog::CreateAttribute(transaction::TransactionContext *txn, uint
       reinterpret_cast<storage::VarlenEntry *>(redo->Delta()->AccessForceNotNull(table_pm[ADSRC_COL_OID]));
   *oid_entry = !col.GetOid();
   *relid_entry = class_oid;
-  storage::VarlenEntry name_varlen = postgres::AttributeHelper::MakeNameVarlen<Column>(col);
+  const storage::VarlenEntry name_varlen = postgres::AttributeHelper::MakeNameVarlen<Column>(col);
   *name_entry = name_varlen;
   *type_entry = col.GetType();
   // TODO(Amadou): Figure out what really goes here for varlen. Unclear if it's attribute size (16) or varlen length
@@ -387,7 +387,18 @@ bool DatabaseCatalog::CreateAttribute(transaction::TransactionContext *txn, uint
   if (!columns_name_index_->InsertUnique(txn, *pr, tupleslot)) {
     // There was a name conflict and we need to abort.  Free the buffer and return false to indicate failure
     delete[] buffer;
+
+    // Clean up the varlen's buffer in the case it wasn't inlined.
+    if (!name_varlen.IsInlined()) {
+      delete[] name_varlen.Content();
+    }
+
     return false;
+  }
+
+  // Clean up the varlen's buffer in the case it wasn't inlined.
+  if (!name_varlen.IsInlined()) {
+    delete[] name_varlen.Content();
   }
 
   // Step 3: Insert into oid index
@@ -547,59 +558,69 @@ std::vector<std::unique_ptr<Column>> DatabaseCatalog::GetAttributes(transaction:
   return cols;
 }
 
+// TODO(Matt): do we need a DeleteAttribute()?
+
 template <typename Column>
-void DatabaseCatalog::DeleteColumns(transaction::TransactionContext *txn, uint32_t class_oid) {
+void DatabaseCatalog::DeleteColumns(transaction::TransactionContext *const txn, const uint32_t class_oid) {
   // Step 1: Read Index
-  std::vector<col_oid_t> table_oids{ATTNUM_COL_OID, ATTNAME_COL_OID,    ATTTYPID_COL_OID,
-                                    ATTLEN_COL_OID, ATTNOTNULL_COL_OID, ADBIN_COL_OID};
+  const std::vector<col_oid_t> table_oids{ATTNUM_COL_OID, ATTNAME_COL_OID,    ATTTYPID_COL_OID,
+                                          ATTLEN_COL_OID, ATTNOTNULL_COL_OID, ADBIN_COL_OID};
   // NOLINTNEXTLINE
   auto [table_pri, table_pm] = columns_->InitializerForProjectedRow(table_oids);
-  auto class_pri = columns_class_index_->GetProjectedRowInitializer();
+  const auto class_pri = columns_class_index_->GetProjectedRowInitializer();
   // Buffer is large enough to hold all prs
-  byte *buffer = common::AllocationUtil::AllocateAligned(table_pri.ProjectedRowSize());
+  byte *const buffer = common::AllocationUtil::AllocateAligned(table_pri.ProjectedRowSize());
   // Scan the class index
-  auto pr = class_pri.InitializeRow(buffer);
-  auto *relid_entry = reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(1));
-  *relid_entry = class_oid;
+  auto *pr = class_pri.InitializeRow(buffer);
+  *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(0))) = class_oid;
   std::vector<storage::TupleSlot> index_results;
   columns_class_index_->ScanKey(*txn, *pr, &index_results);
   if (index_results.empty()) {
+    // TODO(Matt): do we need to indicate failure by returning false?
     delete[] buffer;
+    return;
   }
+
+  // TODO(Matt): do we have any way to assert that we got the number of attributes we expect? From another attribute in
+  // another catalog table maybe?
 
   // Step 2: Scan the table to get the columns
   pr = table_pri.InitializeRow(buffer);
   for (const auto &slot : index_results) {
-    if (!columns_->Select(txn, slot, pr)) {
-      // Nothing visible
-      delete[] buffer;
-      return;
-    }
+    // TODO(Matt): this doesn't delete from any tables, just indexes
+    const auto UNUSED_ATTRIBUTE result = columns_->Select(txn, slot, pr);
+    TERRIER_ASSERT(result, "Index scan did a visibility check, so Select shouldn't fail at this point.");
+
     auto col = postgres::AttributeHelper::MakeColumn<Column>(pr, table_pm);
     // 1. Delete from class index
-    class_pri = columns_class_index_->GetProjectedRowInitializer();
     pr = class_pri.InitializeRow(buffer);
-    relid_entry = reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(0));
-    *relid_entry = class_oid;
+    *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(0))) = class_oid;
     columns_class_index_->Delete(txn, *pr, slot);
 
     // 2. Delete from oid index
     auto oid_pri = columns_oid_index_->GetProjectedRowInitializer();
+    const auto oid_pm = columns_oid_index_->GetKeyOidToOffsetMap();
     pr = oid_pri.InitializeRow(buffer);
-    auto oid_entry = reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(0));
-    *oid_entry = !col->GetOid();
-    relid_entry = reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(1));
-    *relid_entry = class_oid;
+    // Write the attributes in the ProjectedRow. These hardcoded indexkeycol_oids come from
+    // Builder::GetColumnOidIndexSchema()
+    *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(oid_pm.at(indexkeycol_oid_t(2))))) = col->GetOid();
+    *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(oid_pm.at(indexkeycol_oid_t(1))))) = class_oid;
     columns_oid_index_->Delete(txn, *pr, slot);
 
     // 3. Delete from name index
     auto name_pri = columns_name_index_->GetProjectedRowInitializer();
     pr = name_pri.InitializeRow(buffer);
-    auto name_entry = reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(0));
-    *name_entry = postgres::AttributeHelper::MakeNameVarlen(*col);
-    relid_entry = reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(1));
-    *relid_entry = class_oid;
+    const storage::VarlenEntry name_varlen = postgres::AttributeHelper::MakeNameVarlen<Column>(*col);
+    // Write the attributes in the ProjectedRow. We know the offsets without the map because of the ordering of
+    // attribute sizes
+    *(reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(0))) = name_varlen;
+    *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(1))) = class_oid;
     columns_name_index_->Delete(txn, *pr, slot);
+
+    // Clean up the varlen's buffer in the case it wasn't inlined.
+    if (!name_varlen.IsInlined()) {
+      delete[] name_varlen.Content();
+    }
   }
   delete[] buffer;
 }
@@ -719,9 +740,8 @@ std::pair<uint32_t, postgres::ClassKind> DatabaseCatalog::GetClassOidKind(transa
 
   // Create the necessary varlen for storage operations
   storage::VarlenEntry name_varlen;
-  byte *varlen_contents = nullptr;
   if (name.size() > storage::VarlenEntry::InlineThreshold()) {
-    varlen_contents = common::AllocationUtil::AllocateAligned(name.size());
+    byte *const varlen_contents = common::AllocationUtil::AllocateAligned(name.size());
     std::memcpy(varlen_contents, name.data(), name.size());
     name_varlen = storage::VarlenEntry::Create(varlen_contents, static_cast<uint>(name.size()), true);
   } else {
@@ -737,7 +757,10 @@ std::pair<uint32_t, postgres::ClassKind> DatabaseCatalog::GetClassOidKind(transa
   *(reinterpret_cast<namespace_oid_t *>(pr->AccessForceNotNull(1))) = ns_oid;
 
   classes_name_index_->ScanKey(*txn, *pr, &index_results);
-  delete[] varlen_contents;
+  // Clean up the varlen's buffer in the case it wasn't inlined.
+  if (!name_varlen.IsInlined()) {
+    delete[] name_varlen.Content();
+  }
 
   if (index_results.empty()) {
     delete[] buffer;
