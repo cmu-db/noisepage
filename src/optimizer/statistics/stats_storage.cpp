@@ -1,55 +1,94 @@
 #include "loggers/optimizer_logger.h"
 
-#include "optimizer/statistics/column_stats.h"
 #include "optimizer/statistics/stats_storage.h"
-#include "optimizer/statistics/table_stats.h"
 
 namespace terrier::optimizer {
 
 /**
- * GetColumnStatsByID - Using given database, table, and column ids,
- * select a ColumnStats object in the stats storage map
+ * GetColumnStats - Using given namespace, database, table, and column ids,
+ * select a ColumnStats object in the column stats storage map
  */
-ColumnStats GetColumnStatsByID(catalog::db_oid_t database_id,
-    catalog::table_oid_t table_id,
-    catalog::col_oid_t column_id) {
-  auto tables_it = stats_storage.find(database_id);
 
-  if (tables_it != stats_storage.end()) {
-    auto columns_it = *tables_it.find(table_id);
-    if (columns_it != tables_it.end()) {
-      auto col_it = *columns_it.find(column_id);
-      if (col_it != columns_it.end()) {
-        return *col_it;
-      } else {
-        OPTIMIZER_LOG_TRACE("column_id not a key in the columns map.")
-      }
-    } else {
-      OPTIMIZER_LOG_TRACE("table_id not a key in the tables map.")
-    }
+ColumnStats StatsStorage::GetColumnStats(catalog::namespace_oid_t namespace_id,
+                           catalog::db_oid_t database_id,
+                           catalog::table_oid_t table_id,
+                           catalog::col_oid_t column_id) {
+  auto column_it = (*StatsStorage::GetPtrToColumnStatsStorage()).find(std::make_tuple(namespace_id, database_id,
+                                                                                      table_id, column_id));
+
+  if (column_it != (*StatsStorage::GetPtrToColumnStatsStorage()).end()) {
+    return column_it->second;
   } else {
-    OPTIMIZER_LOG_TRACE("database_id not a key in the stats storage map.")
+    OPTIMIZER_LOG_TRACE("One or more ids given don't exist in column stats storage map.")
   }
 }
 
 /**
- * GetTableStats - Using given database and table ids,
- * select a map of column_stat ids to ColumnStats objects in the
- * stats storage map
+ * GetTableStats - Using given namespace, database, and table ids,
+ * select a TableStats objects in the table stats storage map
  */
-std::unordered_map<catalog::col_oid_t, ColumnStats> GetTableStats(catalog::db_oid_t database_id,
-    catalog::table_oid_t table_id) {
-  auto tables_it = stats_storage.find(database_id);
+TableStats StatsStorage::GetTableStats(catalog::namespace_oid_t namespace_id,
+                         catalog::db_oid_t database_id,
+                         catalog::table_oid_t table_id) {
+  auto table_it = (*StatsStorage::GetPtrToTableStatsStorage()).find(std::make_tuple(namespace_id, database_id,
+                                                                                    table_id));
 
-  if (tables_it != stats_storage.end()) {
-    auto columns_it = *tables_it.find(table_id);
-    if (columns_it != tables_it.end()) {
-      return *columns_it;
-    } else {
-      OPTIMIZER_LOG_TRACE("table_id not a key in the tables map.")
-    }
+  if (table_it != (*StatsStorage::GetPtrToTableStatsStorage()).end()) {
+    return table_it->second;
   } else {
-    OPTIMIZER_LOG_TRACE("database_id not a key in the stats storage map.")
+    OPTIMIZER_LOG_TRACE("One or more ids given don't exist in table stats storage map.")
+  }
+}
+
+void StatsStorage::InsertOrUpdateColumnStats(catalog::namespace_oid_t namespace_id,
+                               catalog::db_oid_t database_id,
+                               catalog::table_oid_t table_id,
+                               catalog::col_oid_t column_id,
+                               const ColumnStats &column_stats) {
+  auto column_it = (*StatsStorage::GetPtrToColumnStatsStorage()).find(std::make_tuple(namespace_id, database_id,
+                                                                                      table_id, column_id));
+
+  if (column_it != (*StatsStorage::GetPtrToColumnStatsStorage()).end()) {
+    (*StatsStorage::GetPtrToColumnStatsStorage()).erase(column_it);
+  }
+  (*StatsStorage::GetPtrToColumnStatsStorage()).insert({ std::make_tuple(namespace_id, database_id, table_id,
+                                                                         column_id), column_stats });
+}
+
+void StatsStorage::DeleteColumnStats(catalog::namespace_oid_t namespace_id,
+                       catalog::db_oid_t database_id,
+                       catalog::table_oid_t table_id,
+                       catalog::col_oid_t column_id) {
+  auto column_it = (*StatsStorage::GetPtrToColumnStatsStorage()).find(std::make_tuple(namespace_id, database_id,
+                                                                                      table_id, column_id));
+
+  if (column_it != (*StatsStorage::GetPtrToColumnStatsStorage()).end()) {
+    (*StatsStorage::GetPtrToColumnStatsStorage()).erase(column_it);
+  }
+}
+
+void StatsStorage::InsertOrUpdateTableStats(catalog::namespace_oid_t namespace_id,
+                              catalog::db_oid_t database_id,
+                              catalog::table_oid_t table_id,
+                              const TableStats &table_stats) {
+  auto table_it = (*StatsStorage::GetPtrToTableStatsStorage()).find(std::make_tuple(namespace_id, database_id,
+                                                                                    table_id));
+
+  if (table_it != (*StatsStorage::GetPtrToTableStatsStorage()).end()) {
+    (*StatsStorage::GetPtrToTableStatsStorage()).erase(table_it);
+  }
+  (*StatsStorage::GetPtrToTableStatsStorage()).insert({ std::make_tuple(namespace_id, database_id, table_id),
+                                                          table_stats });
+}
+
+void StatsStorage::DeleteTableStats(catalog::namespace_oid_t namespace_id,
+                      catalog::db_oid_t database_id,
+                      catalog::table_oid_t table_id) {
+  auto table_it = (*StatsStorage::GetPtrToTableStatsStorage()).find(std::make_tuple(namespace_id, database_id,
+                                                                                    table_id));
+
+  if (table_it != (*StatsStorage::GetPtrToTableStatsStorage()).end()) {
+    (*StatsStorage::GetPtrToTableStatsStorage()).erase(table_it);
   }
 }
 

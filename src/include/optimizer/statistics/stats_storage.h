@@ -1,32 +1,67 @@
 #pragma once
 
 #include "catalog/catalog_defs.h"
+#include "common/macros.h"
 
 #include "optimizer/statistics/table_stats.h"
 #include "optimizer/statistics/column_stats.h"
 
 #include <sstream>
 
-#include "common/macros.h"
-#include "type/transient_value_factory.h"
-
 namespace terrier::optimizer {
-
-class ColumnStats;
-class TableStats;
 
 class StatsStorage {
  public:
 
-  std::unordered_map<catalog::db_oid_t, std::unordered_map<catalog::table_oid_t,
-  std::unordered_map<catalog::col_oid_t, ColumnStats>>> stats_storage;
+  ColumnStats GetColumnStats(catalog::namespace_oid_t namespace_id,
+                             catalog::db_oid_t database_id,
+                             catalog::table_oid_t table_id,
+                             catalog::col_oid_t column_id);
 
-  ColumnStats GetColumnStatsByID(catalog::db_oid_t database_id,
+  TableStats GetTableStats(catalog::namespace_oid_t namespace_id,
+                           catalog::db_oid_t database_id,
+                           catalog::table_oid_t table_id);
+
+  std::unordered_map<std::tuple<catalog::namespace_oid_t,
+                                catalog::db_oid_t,
+                                catalog::table_oid_t,
+                                catalog::col_oid_t>, ColumnStats> *GetPtrToColumnStatsStorage()
+                                { return &column_stats_storage; }
+
+  std::unordered_map<std::tuple<catalog::namespace_oid_t,
+                                catalog::db_oid_t,
+                                catalog::table_oid_t>, TableStats> *GetPtrToTableStatsStorage()
+                                { return &table_stats_storage; }
+
+ protected:
+  void InsertOrUpdateColumnStats(catalog::namespace_oid_t namespace_id,
+                                 catalog::db_oid_t database_id,
                                  catalog::table_oid_t table_id,
-                                 catalog::col_oid_t column_id);
+                                 catalog::col_oid_t column_id,
+                                 const ColumnStats &column_stats);
 
-  std::unordered_map<catalog::col_oid_t, ColumnStats> GetTableStats(catalog::db_oid_t database_id,
-                                                                    catalog::table_oid_t table_id);
+  void DeleteColumnStats(catalog::namespace_oid_t namespace_id,
+                         catalog::db_oid_t database_id,
+                         catalog::table_oid_t table_id,
+                         catalog::col_oid_t column_id);
 
+  void InsertOrUpdateTableStats(catalog::namespace_oid_t namespace_id,
+                                catalog::db_oid_t database_id,
+                                catalog::table_oid_t table_id,
+                                const TableStats &table_stats);
+
+  void DeleteTableStats(catalog::namespace_oid_t namespace_id,
+                        catalog::db_oid_t database_id,
+                        catalog::table_oid_t table_id);
+
+ private:
+  std::unordered_map<std::tuple<catalog::namespace_oid_t,
+                                catalog::db_oid_t,
+                                catalog::table_oid_t,
+                                catalog::col_oid_t>, ColumnStats> column_stats_storage;
+
+  std::unordered_map<std::tuple<catalog::namespace_oid_t,
+                                catalog::db_oid_t,
+                                catalog::table_oid_t>, TableStats> table_stats_storage;
 };
 }

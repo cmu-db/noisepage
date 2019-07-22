@@ -4,36 +4,22 @@
 
 #include "catalog/catalog_defs.h"
 #include "common/macros.h"
+#include "optimizer/statistics/column_stats.h"
+#include "storage/index/index_builder.h"
 
 namespace terrier::optimizer {
 
-#define DEFAULT_CARDINALITY 1
-#define DEFAULT_HAS_INDEX false
-
-class ColumnStats;
-
 class TableStats {
  public:
-  TableStats() : TableStats((size_t)0) {}
-
-  TableStats(size_t num_rows, bool is_base_table = true)
-      : Stats(nullptr),
-        num_rows(num_rows),
-        col_stats_list_{},
-        col_name_to_stats_map_{},
+  TableStats(catalog::namespace_oid_t namespace_id, catalog::db_oid_t database_id, catalog::table_oid_t table_id,
+      size_t num_rows, bool is_base_table = true, std::vector<ColumnStats> col_stats_list)
+      : namespace_id_(namespace_id),
+        database_id_(database_id),
+        table_id_(table_id),
+        num_rows_(num_rows),
         is_base_table_(is_base_table),
-
-  TableStats(size_t num_rows,
-             std::vector<std::shared_ptr<ColumnStats>> col_stats_ptrs,
-             bool is_base_table = true);
-
-  TableStats(std::vector<std::shared_ptr<ColumnStats>> col_stats_ptrs,
-             bool is_base_table = true);
-
-  /*
-   * Right now table_stats need to support both column id and column name
-   * lookup to support both base and intermediate table with alias.
-   */
+        col_stats_list_(std::move(col_stats_list)),
+        col_name_to_stats_map_{} {}
 
   void UpdateNumRows(size_t new_num_rows);
 
@@ -55,35 +41,47 @@ class TableStats {
 
   bool HasColumnStats(const catalog::col_oid_t column_id);
 
-  std::shared_ptr<ColumnStats> GetColumnStats(const std::string col_name);
+  std::vector<ColumnStats> GetColumnStats(const std::string col_name);
 
-  std::shared_ptr<ColumnStats> GetColumnStats(const catalog::col_oid_t column_id);
+  std::vector<ColumnStats> GetColumnStats(const catalog::col_oid_t column_id);
 
-  bool AddColumnStats(std::shared_ptr<ColumnStats> col_stats);
+  bool AddColumnStats(ColumnStats col_stats);
 
   bool RemoveColumnStats(const std::string col_name);
 
   bool RemoveColumnStats(const catalog::col_oid_t column_id);
 
-  bool AddIndex(std::string key, const std::shared_ptr<index::Index> index);
+  bool AddIndex(std::string key, const std::shared_ptr<storage::index::Index> index);
 
-  std::shared_ptr<index::Index> GetIndex(const std::string col_name);
+  std::shared_ptr<storage::index::Index> GetIndex(const std::string col_name);
 
   inline bool IsBaseTable() { return is_base_table_; }
 
-  void UpdateJoinColumnStats(std::vector<catalog::col_oid_t> &column_ids);
+  inline size_t *GetPtrToNumRows() { return &num_rows_; }
 
   size_t GetColumnCount();
 
-  size_t num_rows;
+  TableStats() = default;
+
+  virtual ~ColumnStats() = default;
+
+  nlohmann::json ToJson() const {
+    nlohmann::json j;
+  }
+
+  void FromJson(const nlohmann::json &j) {
+
+  }
 
  private:
-  // TODO: only keep one ptr of ColumnStats
-  std::vector<std::shared_ptr<ColumnStats>> col_stats_list_;
-  std::unordered_map<std::string, std::shared_ptr<ColumnStats>>
-      col_name_to_stats_map_;
-  std::unordered_map<std::string, std::shared_ptr<index::Index>> index_map_;
+  catalog::namespace_oid_t namespace_id_;
+  catalog::db_oid_t database_id_;
+  catalog::table_oid_t table_id_;
+  size_t num_rows_;
   bool is_base_table_;
+  std::vector<ColumnStats> col_stats_list_;
+  std::unordered_map<std::string, ColumnStats> col_name_to_stats_map_;
+  std::unordered_map<std::string, std::shared_ptr<storage::index::Index>> index_map_;
 
 };
 
