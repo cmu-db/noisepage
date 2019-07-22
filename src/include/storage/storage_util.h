@@ -150,10 +150,9 @@ class StorageUtil {
       byte *contents = common::AllocationUtil::AllocateAligned(str.size());
       std::memcpy(contents, str.data(), str.size());
       return storage::VarlenEntry::Create(contents, static_cast<uint32_t>(str.size()), true);
-    } else {
-      return storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(str.data()),
-                                                static_cast<uint32_t>(str.size()));
     }
+    return storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(str.data()),
+                                              static_cast<uint32_t>(str.size()));
   }
 };
 }  // namespace terrier::storage
