@@ -57,6 +57,21 @@ class SeqScanTranslator : public OperatorTranslator {
     return {&pci_, &pci_type_};
   }
 
+  /**
+   * Used by vectorized operators to declare a pci
+   * @param builder function builder to use
+   * @param iters an array of pci
+   */
+  void DeclarePCIVec(FunctionBuilder * builder, ast::Identifier iters);
+
+  /**
+   * Used by vectorized operators to set the pci's position
+   * @param builder function builder to use
+   * @param index position to set
+   */
+  void SetPCIPosition(FunctionBuilder * builder, ast::Identifier index);
+
+  void GenVectorizedLoop(FunctionBuilder * builder, );
 
  private:
   // var tvi : TableVectorIterator
@@ -64,6 +79,9 @@ class SeqScanTranslator : public OperatorTranslator {
 
   // for (@tableIterInit(&tvi, ...); @tableIterAdvance(&tvi);) {...}
   void GenTVILoop(FunctionBuilder * builder);
+
+  void DeclarePCI(FunctionBuilder * builder);
+
 
   // var pci = @tableIterGetPCI(&tvi)
   // for (; @pciHasNext(pci); @pciAdvance(pci)) {...}
@@ -80,6 +98,9 @@ class SeqScanTranslator : public OperatorTranslator {
 
   // Generated vectorized filters
   void GenVectorizedPredicate(FunctionBuilder * builder, const terrier::parser::AbstractExpression * predicate);
+
+  // Declare the iters variable for vectorized execution
+  void DeclareIters(FunctionBuilder * builder);
 
   // Whether there is a scan predicate.
   const terrier::planner::SeqScanPlanNode * seqscan_op_;

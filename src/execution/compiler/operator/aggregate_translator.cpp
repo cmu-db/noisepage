@@ -335,6 +335,13 @@ void AggregateBottomTranslator::GenVecHashFn(tpl::util::RegionVector<tpl::ast::D
   // Assign
   builder.Append(codegen_->Assign(lhs, hash_call));
 
+  // Increment curr_hash_idx = curr_hash_idx + 1
+  {
+    ast::Expr* lhs = codegen_->MakeExpr(idx_var);
+    ast::Expr* rhs = codegen_->BinaryOp(parsing::Token::Type::PLUS, codegen_->MakeExpr(idx_var), codegen_->IntLiteral(1));
+    builder.Append(codegen_->Assign(lhs, rhs));
+  }
+
   // Add to top level functions
   decls->emplace_back(builder.Finish());
 }
@@ -400,8 +407,9 @@ void AggregateBottomTranslator::GenVecKeyCheckFn(tpl::util::RegionVector<tpl::as
     ast::Expr* match_idx = codegen_->ArrayIndex(matches, index_var);
     builder.Append(codegen_->Assign(match_idx, codegen_->BoolLiteral(false)));
     builder.FinishBlockStmt();
+    term_idx++;
   }
-  // If all group by terms match set match_idx to truw
+  // If all group by terms match set match_idx to true
   ast::Expr* match_idx = codegen_->ArrayIndex(matches, index_var);
   builder.Append(codegen_->Assign(match_idx, codegen_->BoolLiteral(true)));
 
@@ -409,11 +417,70 @@ void AggregateBottomTranslator::GenVecKeyCheckFn(tpl::util::RegionVector<tpl::as
   decls->emplace_back(builder.Finish());
 }
 
+// fun vecUpdateAgg(aggs: [*]*Agg, iters: [*]*VectorProjectionIterator, indexes: [*]uint32, num_elems: uint32) -> nil
 void AggregateBottomTranslator::GenVecAdvanceFn(tpl::util::RegionVector<tpl::ast::Decl *> *decls,
                                                 tpl::compiler::SeqScanTranslator *seqscan) {
-  
-}
+  TPL_ASSERT(vectorized_pipeline_, "GenVecKeyCheckFn called in a non vectorizable pipeline");
+  // Generate the signature.
+  // First aggs
+  ast::Identifier aggs = codegen_->Context()->GetIdentifier("aggs");
+  ast::Expr* aggs_type = codegen_->StarArray(codegen_->PointerType(agg_payload_));
+  ast::FieldDecl * param1 = codegen_->MakeField(aggs, aggs_type);
+  // Then iters
+  ast::Identifier iters = codegen_->Context()->GetIdentifier("iters");
+  ast::Expr* iters_type = codegen_->StarArray(codegen_->PointerType(codegen_->BuiltinType(ast::BuiltinType::Kind::ProjectedColumnsIterator)));
+  ast::FieldDecl * param2 = codegen_->MakeField(iters, iters_type);
+  // Then indexes
+  ast::Identifier indexes = codegen_->Context()->GetIdentifier("indexes");
+  ast::Expr* indexes_type = codegen_->StarArray(codegen_->BuiltinType(ast::BuiltinType::Kind::Uint32));
+  ast::FieldDecl * param3 = codegen_->MakeField(indexes, indexes_type);
+  // Finally num_elems
+  ast::Identifier num_elems = codegen_->Context()->GetIdentifier("num_elems");
+  ast::Expr* u32_type = codegen_->BuiltinType(ast::BuiltinType::Kind::Uint32);
+  ast::FieldDecl * param4 = codegen_->MakeField(num_elems, u32_type);
 
+  // Now the full signature
+  util::RegionVector<ast::FieldDecl*> params{{param1, param2, param3, param4}, codegen_->Region()};
+  ast::Expr* ret_type = codegen_->BuiltinType(ast::BuiltinType::Kind::Nil);
+  FunctionBuilder builder(codegen_, vec_key_check_fn_, std::move(params), ret_type);
+
+  // Declare the pci
+  seqscan->DeclarePCIVec(iters);
+
+  // Loop: for (var i : uint32 = 0; i < num_elems; i = i + 1) {...}
+  ast::Identifier loop_var = codegen_->Context()->GetIdentifier("i");
+  ast::Stmt* loop_init = codegen_->DeclareVariable(loop_var, u32_type);
+  ast::Expr* loop_cond = codegen_->Compare(parsing::Token::Type::LESS, codegen_->MakeExpr(loop_var), codegen_->MakeExpr(num_elems));
+  ast::Expr* idx_increment = codegen_->BinaryOp(parsing::Token::Type::LESS,  codegen_->MakeExpr(loop_var), codegen_->IntLiteral(1));
+  ast::Stmt* loop_update = codegen_->Assign(codegen_->MakeExpr(loop_var), idx_increment);
+  builder.StartForStmt(loop_init, loop_cond, loop_update);
+
+  // Declare var agg_payload = aggs[i]
+  builder.Append(codegen_->DeclareVariable(agg_payload_, nullptr, codegen_->ArrayIndex(aggs, loop_var)));
+  // Declare var index = indexes[i]
+  ast::Identifier index_var = codegen_->Context()->GetIdentifier("index");
+  builder.Append(codegen_->DeclareVariable(index, nullptr, codegen_->ArrayIndex(indexes, index_var)));
+  // Set PCI Position
+  seqscan->SetPCIPosition(index_var);
+
+  // Call @aggAdvance for each expression.
+  auto agg_op = dynamic_cast<const terrier::planner::AggregatePlanNode*>(op_);
+  uint32_t term_idx = 0;
+  for (const auto & term : agg_op->GetAggregateTerms()) {
+    ExpressionTranslator * term_translator = TranslatorFactory::CreateExpressionTranslator(term.get(), codegen_);
+    // Declare var input = term
+    ast::Identifier input = codegen_->Context()->GetIdentifier("input" + std::to_string(term_idx));
+    builder.Append(codegen_->DeclareVariable(input, nullptr, term_translator->DeriveExpr(this)));
+
+    // Call aggAdvance(&agg_i, &input)
+    ast::Expr* agg = GetAggTerm(agg_payload_, term_idx, true);
+    ast::Expr* input_ptr = codegen_->PointerTo(input);
+    ast::Expr* advance_call = codegen_->AggAdvance(agg, input_ptr);
+    builder.Append(codegen_->MakeStmt(advance_call));
+    term_idx++;
+  }
+
+}
 
 
 

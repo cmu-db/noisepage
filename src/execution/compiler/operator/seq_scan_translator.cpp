@@ -171,5 +171,24 @@ void SeqScanTranslator::GenVectorizedPredicate(FunctionBuilder * builder, const 
   }
 }
 
+void SeqScanTranslator::DeclarePCIVec(FunctionBuilder * builder, ast::Identifier iters) {
+  // Generate var pci = iters[0]
+  ast::Expr * rhs = codegen_->ArrayIndex(iters, 0);
+  builder->Append(codegen_->DeclareVariable(pci_, nullptr, rhs));
+}
+
+void SeqScanTranslator::GenVectorizedLoop(tpl::compiler::FunctionBuilder *builder) {
+
+}
+
+void SeqScanTranslator::DeclarePCIVec(tpl::compiler::FunctionBuilder *builder, tpl::ast::Identifier iters) {
+
+}
+
+void SeqScanTranslator::DeclareIters(tpl::compiler::FunctionBuilder *builder) {
+
+}
+
+
 
 }  // namespace tpl::compiler

@@ -28,14 +28,40 @@ class OperatorTranslator {
    */
   virtual ~OperatorTranslator() = default;
 
-
+  /**
+   * Add top-level struct declarations
+   * @param decls list of top-level declarations
+   */
   virtual void InitializeStructs(util::RegionVector<ast::Decl *> *decls) = 0;
+
+  /**
+   * Add top-level helper function
+   * @param decls list of top-level declarations
+   */
   virtual void InitializeHelperFunctions(util::RegionVector<ast::Decl *> *decls) = 0;
+
+  /**
+   * Add statements to the setup function
+   * @param setup_stmts list of statements in the setup function
+   */
   virtual void InitializeSetup(util::RegionVector<ast::Stmt *> *setup_stmts) = 0;
+
+  /**
+   * Add statements to the teardown function
+   * @param teardown_stmts list of statements in the teardown function
+   */
   virtual void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) = 0;
+
+  /**
+   * Add fields to the state struct
+   * @param state_fields list of fields of the state struct
+   */
   virtual void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) = 0;
 
-
+  /**
+   * Produce code for the operator
+   * @param builder builder of the pipeline function
+   */
   virtual void Produce(FunctionBuilder * builder) = 0;
 
   /**
