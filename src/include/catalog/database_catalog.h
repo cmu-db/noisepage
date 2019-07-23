@@ -174,9 +174,6 @@ class DatabaseCatalog {
    * @param schema describing the new index
    * @return OID of the new index or INVALID_INDEX_OID if creation failed
    */
-  // TODO(Gus, john): We should really be passing in a ref to a schema, and creating a pointer to a copy of it.
-  // Currently we just store the pointer given inside the catalog, but the can run the risk of the caller already
-  // deleting the index schema
   index_oid_t CreateIndex(transaction::TransactionContext *txn, namespace_oid_t ns, const std::string &name,
                           table_oid_t table, const IndexSchema &schema);
 
