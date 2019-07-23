@@ -36,7 +36,7 @@ class BwTreeKeyTests : public TerrierTest {
   void WriteRandomAttribute(const catalog::IndexSchema::Column &col, void *attr, void *reference, Random *generator) {
     std::uniform_int_distribution<int64_t> rng(std::numeric_limits<int64_t>::min(),
                                                std::numeric_limits<int64_t>::max());
-    const auto type = col.GetType();
+    const auto type = col.Type();
     const auto type_size = type::TypeUtil::GetTypeSize(type);
 
     // note that for memcmp to work, signed integers must have their sign flipped and converted to big endian
@@ -104,7 +104,7 @@ class BwTreeKeyTests : public TerrierTest {
       case type::TypeId::VARCHAR:
       case type::TypeId::VARBINARY: {
         // pick a random varlen size, meant to hit the {inline (prefix), inline (prefix+content), content} cases
-        auto varlen_size = col.GetMaxVarlenSize();
+        auto varlen_size = col.MaxVarlenSize();
 
         // generate random varlen content
         auto *varlen_content = new byte[varlen_size];
@@ -149,8 +149,8 @@ class BwTreeKeyTests : public TerrierTest {
     auto *reference = new byte[key_size];
     uint32_t offset = 0;
     for (const auto &key : key_schema.GetColumns()) {
-      auto key_oid = key.GetOid();
-      auto key_type = key.GetType();
+      auto key_oid = key.Oid();
+      auto key_type = key.Type();
       auto pr_offset = static_cast<uint16_t>(oid_offset_map.at(key_oid));
       auto attr = pr->AccessForceNotNull(pr_offset);
       WriteRandomAttribute(key, attr, reference + offset, generator);
@@ -174,7 +174,7 @@ class BwTreeKeyTests : public TerrierTest {
     std::vector<int64_t> data;
     data.reserve(key_schema.GetColumns().size());
     for (const auto &key : key_schema.GetColumns()) {
-      auto key_type = key.GetType();
+      auto key_type = key.Type();
       const auto type_size = type::TypeUtil::GetTypeSize(key_type);
       int64_t rand_int;
 
@@ -195,7 +195,7 @@ class BwTreeKeyTests : public TerrierTest {
           throw std::runtime_error("Invalid compact ints key schema.");
       }
 
-      auto pr_offset = static_cast<uint16_t>(oid_offset_map.at(key.GetOid()));
+      auto pr_offset = static_cast<uint16_t>(oid_offset_map.at(key.Oid()));
       auto attr = pr->AccessForceNotNull(pr_offset);
       std::memcpy(attr, &rand_int, type_size);
       data.emplace_back(rand_int);
@@ -287,13 +287,13 @@ class BwTreeKeyTests : public TerrierTest {
 
       uint16_t offset = 0;
       for (uint32_t i = 0; i < column; i++) {
-        offset = static_cast<uint16_t>(offset + type::TypeUtil::GetTypeSize(key_schema.GetColumns()[i].GetType()));
+        offset = static_cast<uint16_t>(offset + type::TypeUtil::GetTypeSize(key_schema.GetColumns()[i].Type()));
       }
 
-      const auto type = key_schema.GetColumns()[column].GetType();
+      const auto type = key_schema.GetColumns()[column].Type();
       const auto type_size = type::TypeUtil::GetTypeSize(type);
 
-      auto pr_offset = static_cast<uint16_t>(oid_offset_map.at(key_schema.GetColumns()[column].GetOid()));
+      auto pr_offset = static_cast<uint16_t>(oid_offset_map.at(key_schema.GetColumns()[column].Oid()));
       auto attr = pr->AccessForceNotNull(pr_offset);
       auto *old_value = new byte[type_size];
       std::memcpy(old_value, attr, type_size);
@@ -447,21 +447,21 @@ TEST_F(BwTreeKeyTests, IndexMetadataCompactIntsKeyTest) {
   // identical key schema
   const auto &metadata_key_schema = metadata.GetSchema().GetColumns();
   EXPECT_EQ(metadata_key_schema.size(), 5);
-  EXPECT_EQ(metadata_key_schema[0].GetType(), type::TypeId::INTEGER);
-  EXPECT_EQ(metadata_key_schema[1].GetType(), type::TypeId::INTEGER);
-  EXPECT_EQ(metadata_key_schema[2].GetType(), type::TypeId::BIGINT);
-  EXPECT_EQ(metadata_key_schema[3].GetType(), type::TypeId::TINYINT);
-  EXPECT_EQ(metadata_key_schema[4].GetType(), type::TypeId::SMALLINT);
-  EXPECT_EQ(!metadata_key_schema[0].GetOid(), 20);
-  EXPECT_EQ(!metadata_key_schema[1].GetOid(), 21);
-  EXPECT_EQ(!metadata_key_schema[2].GetOid(), 22);
-  EXPECT_EQ(!metadata_key_schema[3].GetOid(), 23);
-  EXPECT_EQ(!metadata_key_schema[4].GetOid(), 24);
-  EXPECT_FALSE(metadata_key_schema[0].IsNullable());
-  EXPECT_FALSE(metadata_key_schema[1].IsNullable());
-  EXPECT_FALSE(metadata_key_schema[2].IsNullable());
-  EXPECT_FALSE(metadata_key_schema[3].IsNullable());
-  EXPECT_FALSE(metadata_key_schema[4].IsNullable());
+  EXPECT_EQ(metadata_key_schema[0].Type(), type::TypeId::INTEGER);
+  EXPECT_EQ(metadata_key_schema[1].Type(), type::TypeId::INTEGER);
+  EXPECT_EQ(metadata_key_schema[2].Type(), type::TypeId::BIGINT);
+  EXPECT_EQ(metadata_key_schema[3].Type(), type::TypeId::TINYINT);
+  EXPECT_EQ(metadata_key_schema[4].Type(), type::TypeId::SMALLINT);
+  EXPECT_EQ(!metadata_key_schema[0].Oid(), 20);
+  EXPECT_EQ(!metadata_key_schema[1].Oid(), 21);
+  EXPECT_EQ(!metadata_key_schema[2].Oid(), 22);
+  EXPECT_EQ(!metadata_key_schema[3].Oid(), 23);
+  EXPECT_EQ(!metadata_key_schema[4].Oid(), 24);
+  EXPECT_FALSE(metadata_key_schema[0].Nullable());
+  EXPECT_FALSE(metadata_key_schema[1].Nullable());
+  EXPECT_FALSE(metadata_key_schema[2].Nullable());
+  EXPECT_FALSE(metadata_key_schema[3].Nullable());
+  EXPECT_FALSE(metadata_key_schema[4].Nullable());
 
   // attr_sizes            { 4,  4,  8,  1,  2}
   const auto &attr_sizes = metadata.GetAttributeSizes();
@@ -547,24 +547,24 @@ TEST_F(BwTreeKeyTests, IndexMetadataGenericKeyNoMustInlineVarlenTest) {
   // identical key schema
   const auto &metadata_key_schema = metadata.GetSchema().GetColumns();
   EXPECT_EQ(metadata_key_schema.size(), 5);
-  EXPECT_EQ(metadata_key_schema[0].GetType(), type::TypeId::INTEGER);
-  EXPECT_EQ(metadata_key_schema[1].GetType(), type::TypeId::VARCHAR);
-  EXPECT_EQ(metadata_key_schema[2].GetType(), type::TypeId::VARCHAR);
-  EXPECT_EQ(metadata_key_schema[3].GetType(), type::TypeId::TINYINT);
-  EXPECT_EQ(metadata_key_schema[4].GetType(), type::TypeId::VARCHAR);
-  EXPECT_EQ(!metadata_key_schema[0].GetOid(), 20);
-  EXPECT_EQ(!metadata_key_schema[1].GetOid(), 21);
-  EXPECT_EQ(!metadata_key_schema[2].GetOid(), 22);
-  EXPECT_EQ(!metadata_key_schema[3].GetOid(), 23);
-  EXPECT_EQ(!metadata_key_schema[4].GetOid(), 24);
-  EXPECT_FALSE(metadata_key_schema[0].IsNullable());
-  EXPECT_FALSE(metadata_key_schema[1].IsNullable());
-  EXPECT_FALSE(metadata_key_schema[2].IsNullable());
-  EXPECT_FALSE(metadata_key_schema[3].IsNullable());
-  EXPECT_FALSE(metadata_key_schema[4].IsNullable());
-  EXPECT_EQ(metadata_key_schema[1].GetMaxVarlenSize(), 8);
-  EXPECT_EQ(metadata_key_schema[2].GetMaxVarlenSize(), 0);
-  EXPECT_EQ(metadata_key_schema[4].GetMaxVarlenSize(), 12);
+  EXPECT_EQ(metadata_key_schema[0].Type(), type::TypeId::INTEGER);
+  EXPECT_EQ(metadata_key_schema[1].Type(), type::TypeId::VARCHAR);
+  EXPECT_EQ(metadata_key_schema[2].Type(), type::TypeId::VARCHAR);
+  EXPECT_EQ(metadata_key_schema[3].Type(), type::TypeId::TINYINT);
+  EXPECT_EQ(metadata_key_schema[4].Type(), type::TypeId::VARCHAR);
+  EXPECT_EQ(!metadata_key_schema[0].Oid(), 20);
+  EXPECT_EQ(!metadata_key_schema[1].Oid(), 21);
+  EXPECT_EQ(!metadata_key_schema[2].Oid(), 22);
+  EXPECT_EQ(!metadata_key_schema[3].Oid(), 23);
+  EXPECT_EQ(!metadata_key_schema[4].Oid(), 24);
+  EXPECT_FALSE(metadata_key_schema[0].Nullable());
+  EXPECT_FALSE(metadata_key_schema[1].Nullable());
+  EXPECT_FALSE(metadata_key_schema[2].Nullable());
+  EXPECT_FALSE(metadata_key_schema[3].Nullable());
+  EXPECT_FALSE(metadata_key_schema[4].Nullable());
+  EXPECT_EQ(metadata_key_schema[1].MaxVarlenSize(), 8);
+  EXPECT_EQ(metadata_key_schema[2].MaxVarlenSize(), 0);
+  EXPECT_EQ(metadata_key_schema[4].MaxVarlenSize(), 12);
 
   // attr_sizes            {4, VARLEN_COLUMN, VARLEN_COLUMN, 1, VARLEN_COLUMN}
   const auto &attr_sizes = metadata.GetAttributeSizes();
@@ -642,24 +642,24 @@ TEST_F(BwTreeKeyTests, IndexMetadataGenericKeyMustInlineVarlenTest) {
   // identical key schema
   const auto &metadata_key_schema = metadata.GetSchema().GetColumns();
   EXPECT_EQ(metadata_key_schema.size(), 5);
-  EXPECT_EQ(metadata_key_schema[0].GetType(), type::TypeId::INTEGER);
-  EXPECT_EQ(metadata_key_schema[1].GetType(), type::TypeId::VARCHAR);
-  EXPECT_EQ(metadata_key_schema[2].GetType(), type::TypeId::VARCHAR);
-  EXPECT_EQ(metadata_key_schema[3].GetType(), type::TypeId::TINYINT);
-  EXPECT_EQ(metadata_key_schema[4].GetType(), type::TypeId::VARCHAR);
-  EXPECT_EQ(!metadata_key_schema[0].GetOid(), 20);
-  EXPECT_EQ(!metadata_key_schema[1].GetOid(), 21);
-  EXPECT_EQ(!metadata_key_schema[2].GetOid(), 22);
-  EXPECT_EQ(!metadata_key_schema[3].GetOid(), 23);
-  EXPECT_EQ(!metadata_key_schema[4].GetOid(), 24);
-  EXPECT_FALSE(metadata_key_schema[0].IsNullable());
-  EXPECT_FALSE(metadata_key_schema[1].IsNullable());
-  EXPECT_FALSE(metadata_key_schema[2].IsNullable());
-  EXPECT_FALSE(metadata_key_schema[3].IsNullable());
-  EXPECT_FALSE(metadata_key_schema[4].IsNullable());
-  EXPECT_EQ(metadata_key_schema[1].GetMaxVarlenSize(), 50);
-  EXPECT_EQ(metadata_key_schema[2].GetMaxVarlenSize(), 8);
-  EXPECT_EQ(metadata_key_schema[4].GetMaxVarlenSize(), 90);
+  EXPECT_EQ(metadata_key_schema[0].Type(), type::TypeId::INTEGER);
+  EXPECT_EQ(metadata_key_schema[1].Type(), type::TypeId::VARCHAR);
+  EXPECT_EQ(metadata_key_schema[2].Type(), type::TypeId::VARCHAR);
+  EXPECT_EQ(metadata_key_schema[3].Type(), type::TypeId::TINYINT);
+  EXPECT_EQ(metadata_key_schema[4].Type(), type::TypeId::VARCHAR);
+  EXPECT_EQ(!metadata_key_schema[0].Oid(), 20);
+  EXPECT_EQ(!metadata_key_schema[1].Oid(), 21);
+  EXPECT_EQ(!metadata_key_schema[2].Oid(), 22);
+  EXPECT_EQ(!metadata_key_schema[3].Oid(), 23);
+  EXPECT_EQ(!metadata_key_schema[4].Oid(), 24);
+  EXPECT_FALSE(metadata_key_schema[0].Nullable());
+  EXPECT_FALSE(metadata_key_schema[1].Nullable());
+  EXPECT_FALSE(metadata_key_schema[2].Nullable());
+  EXPECT_FALSE(metadata_key_schema[3].Nullable());
+  EXPECT_FALSE(metadata_key_schema[4].Nullable());
+  EXPECT_EQ(metadata_key_schema[1].MaxVarlenSize(), 50);
+  EXPECT_EQ(metadata_key_schema[2].MaxVarlenSize(), 8);
+  EXPECT_EQ(metadata_key_schema[4].MaxVarlenSize(), 90);
 
   // attr_sizes            {4, VARLEN_COLUMN, VARLEN_COLUMN, 1, VARLEN_COLUMN}
   const auto &attr_sizes = metadata.GetAttributeSizes();
@@ -718,7 +718,7 @@ TEST_F(BwTreeKeyTests, RandomCompactIntsKeyTest) {
     // this is unpleasant, but seems to be the cleanest way
     uint16_t key_size = 0;
     for (const auto &key : key_schema.GetColumns()) {
-      key_size = static_cast<uint16_t>(key_size + type::TypeUtil::GetTypeSize(key.GetType()));
+      key_size = static_cast<uint16_t>(key_size + type::TypeUtil::GetTypeSize(key.Type()));
     }
     uint8_t key_type = 0;
     for (uint8_t j = 1; j <= 4; j++) {
@@ -887,7 +887,8 @@ TEST_F(BwTreeKeyTests, CompactIntsKeyBasicTest) {
 template <typename KeyType, typename CType>
 void NumericComparisons(const type::TypeId type_id, const bool nullable) {
   std::vector<catalog::IndexSchema::Column> key_cols;
-  key_cols.emplace_back("", type_id, true, parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type_id)));
+  key_cols.emplace_back("", type_id, true,
+                        parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type_id)));
   StorageTestUtil::ForceOid(&(key_cols.back()), catalog::indexkeycol_oid_t(0));
 
   const IndexMetadata metadata(catalog::IndexSchema(key_cols, false, false, false, true));

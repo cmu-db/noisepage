@@ -200,8 +200,8 @@ TEST_F(CatalogTests, UserTableTest) {
   auto schema = accessor->GetSchema(table_oid);
 
   // Verify our columns exist
-  EXPECT_NE(schema.GetColumn("id").GetOid(), catalog::INVALID_COLUMN_OID);
-  EXPECT_NE(schema.GetColumn("user_col_1").GetOid(), catalog::INVALID_COLUMN_OID);
+  EXPECT_NE(schema.GetColumn("id").Oid(), catalog::INVALID_COLUMN_OID);
+  EXPECT_NE(schema.GetColumn("user_col_1").Oid(), catalog::INVALID_COLUMN_OID);
 
   // Verify we can instantiate a storage object with the generated schema
   auto table = new storage::SqlTable(&block_store_, schema);
@@ -248,8 +248,8 @@ TEST_F(CatalogTests, UserIndexTest) {
   EXPECT_TRUE(accessor->SetTablePointer(table_oid, table));
 
   // Create the index
-  std::vector<catalog::IndexSchema::Column> key_cols{catalog::IndexSchema::Column
-      {"id", type::TypeId::INTEGER, false, parser::ColumnValueExpression(db_, table_oid, schema.GetColumn("id").GetOid())}};
+  std::vector<catalog::IndexSchema::Column> key_cols{catalog::IndexSchema::Column{
+      "id", type::TypeId::INTEGER, false, parser::ColumnValueExpression(db_, table_oid, schema.GetColumn("id").Oid())}};
   auto index_schema = catalog::IndexSchema(key_cols, true, true, false, true);
   auto idx_oid = accessor->CreateIndex(accessor->GetDefaultNamespace(), table_oid,
                                        "test_table_index_mabobberwithareallylongnamethatstillneedsmore", index_schema);

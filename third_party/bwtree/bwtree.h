@@ -936,7 +936,7 @@ class BwTree : public BwTreeBase {
         : metadata{p_low_key_p, p_high_key_p, p_type, p_depth, p_item_count} {}
 
     /*
-     * GetType() - Return the type of node
+     * Type() - Return the type of node
      *
      * This method does not allow overridding
      */

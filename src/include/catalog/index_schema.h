@@ -35,6 +35,7 @@ class IndexSchema {
    public:
     /**
      * Non-varlen constructor for index key columns.
+     * @param name column name (column name or "expr")
      * @param type_id the non-varlen type of the column
      * @param nullable whether the column is nullable
      * @param expression definition of this attribute
@@ -49,10 +50,11 @@ class IndexSchema {
 
     /**
      * Varlen constructor for index key columns.
+     * @param name column name (column name or "expr")
      * @param type_id the varlen type of the column
+     * @param max_varlen_size the maximum varlen size
      * @param nullable whether the column is nullable
      * @param expression definition of this attribute
-     * @param max_varlen_size the maximum varlen size
      */
     Column(std::string name, type::TypeId type_id, uint16_t max_varlen_size, bool nullable,
            const parser::AbstractExpression &expression)
@@ -76,30 +78,23 @@ class IndexSchema {
     /**
      * @return oid of this key column
      */
-    indexkeycol_oid_t GetOid() const { return oid_; }
+    indexkeycol_oid_t Oid() const { return oid_; }
 
     /**
      * @warning only defined for varlen types
      * @return maximum varlen size of this varlen column
      */
-    uint16_t GetMaxVarlenSize() const { return static_cast<uint16_t>((packed_type_ & MASK_VARLEN) >> OFFSET_VARLEN); }
+    uint16_t MaxVarlenSize() const { return static_cast<uint16_t>((packed_type_ & MASK_VARLEN) >> OFFSET_VARLEN); }
 
     /**
      * @return type of this key column
      */
-    type::TypeId GetType() const { return static_cast<type::TypeId>(packed_type_ & MASK_TYPE); }
+    type::TypeId Type() const { return static_cast<type::TypeId>(packed_type_ & MASK_TYPE); }
 
     /**
      * @return true if this column is nullable
      */
-    bool IsNullable() const { return static_cast<bool>(packed_type_ & MASK_NULLABLE); }
-
-    /**
-     * Note(Amadou): I added this to make sure this has the same name as Schema::Column
-     * This way we can make templatized classes can use both classes interchangeably.
-     * @return true if this column is nullable
-     */
-    bool GetNullable() const { return static_cast<bool>(packed_type_ & MASK_NULLABLE); }
+    bool Nullable() const { return static_cast<bool>(packed_type_ & MASK_NULLABLE); }
 
    private:
     static constexpr uint32_t MASK_VARLEN = 0x00FFFF00;

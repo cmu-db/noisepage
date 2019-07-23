@@ -294,7 +294,7 @@ struct equal_to<terrier::storage::index::GenericKey<KeySize>> {
         return false;
       }
 
-      const terrier::type::TypeId type_id = key_schema.GetColumns()[i].GetType();
+      const terrier::type::TypeId type_id = key_schema.GetColumns()[i].Type();
 
       if (!terrier::storage::index::GenericKey<KeySize>::TypeComparators::CompareEquals(type_id, lhs_attr, rhs_attr)) {
         // one of the attrs didn't match, return non-equal
@@ -349,7 +349,7 @@ struct less<terrier::storage::index::GenericKey<KeySize>> {
         return false;
       }
 
-      const terrier::type::TypeId type_id = key_schema.GetColumns()[i].GetType();
+      const terrier::type::TypeId type_id = key_schema.GetColumns()[i].Type();
 
       if (terrier::storage::index::GenericKey<KeySize>::TypeComparators::CompareLessThan(type_id, lhs_attr, rhs_attr))
         return true;

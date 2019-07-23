@@ -365,7 +365,7 @@ bool DatabaseCatalog::CreateColumn(transaction::TransactionContext *const txn, c
   *type_entry = col.GetType();
   // TODO(Amadou): Figure out what really goes here for varlen. Unclear if it's attribute size (16) or varlen length
   *len_entry = (col.GetType() == type::TypeId::VARCHAR || col.GetType() == type::TypeId::VARBINARY)
-                   ? col.GetMaxVarlenSize()
+                   ? col.MaxVarlenSize()
                    : col.GetAttrSize();
   *notnull_entry = !col.GetNullable();
   *dbin_entry = reinterpret_cast<intptr_t>(default_val);
@@ -1476,7 +1476,7 @@ bool DatabaseCatalog::CreateTableEntry(transaction::TransactionContext *const tx
   auto *const table_oid_ptr = insert_pr->AccessForceNotNull(table_oid_offset);
   *(reinterpret_cast<uint32_t *>(table_oid_ptr)) = static_cast<uint32_t>(table_oid);
 
-  auto next_col_oid = schema->GetColumns().back().GetOid();
+  auto next_col_oid = schema->GetColumns().back().Oid();
 
   // Write the next_col_oid into the PR
   const auto next_col_oid_offset = pr_map[REL_NEXTCOLOID_COL_OID];

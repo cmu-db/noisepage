@@ -29,19 +29,19 @@ SqlTable::SqlTable(BlockStore *const store, const catalog::Schema &schema) : blo
   for (const auto &column : schema.GetColumns()) {
     switch (column.GetAttrSize()) {
       case VARLEN_COLUMN:
-        col_oid_to_id[column.GetOid()] = col_id_t(offsets[0]++);
+        col_oid_to_id[column.Oid()] = col_id_t(offsets[0]++);
         break;
       case 8:
-        col_oid_to_id[column.GetOid()] = col_id_t(offsets[1]++);
+        col_oid_to_id[column.Oid()] = col_id_t(offsets[1]++);
         break;
       case 4:
-        col_oid_to_id[column.GetOid()] = col_id_t(offsets[2]++);
+        col_oid_to_id[column.Oid()] = col_id_t(offsets[2]++);
         break;
       case 2:
-        col_oid_to_id[column.GetOid()] = col_id_t(offsets[3]++);
+        col_oid_to_id[column.Oid()] = col_id_t(offsets[3]++);
         break;
       case 1:
-        col_oid_to_id[column.GetOid()] = col_id_t(offsets[4]++);
+        col_oid_to_id[column.Oid()] = col_id_t(offsets[4]++);
         break;
       default:
         throw std::runtime_error("unexpected switch case value");

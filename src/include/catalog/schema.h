@@ -79,11 +79,11 @@ class Schema {
     /**
      * @return column name
      */
-    const std::string &GetName() const { return name_; }
+    const std::string &Name() const { return name_; }
     /**
      * @return true if the column is nullable, false otherwise
      */
-    bool GetNullable() const { return nullable_; }
+    bool Nullable() const { return nullable_; }
     /**
      * @return size of the attribute in bytes. Varlen attributes have the sign bit set.
      */
@@ -92,7 +92,7 @@ class Schema {
     /**
      * @return The maximum length of this column (only valid if it's VARLEN)
      */
-    uint16_t GetMaxVarlenSize() const {
+    uint16_t MaxVarlenSize() const {
       TERRIER_ASSERT(attr_size_ == VARLEN_COLUMN, "This attribute has no meaning for non-VARLEN columns.");
       return max_varlen_size_;
     }
@@ -100,11 +100,11 @@ class Schema {
     /**
      * @return SQL type for this column
      */
-    type::TypeId GetType() const { return type_; }
+    type::TypeId Type() const { return type_; }
     /**
      * @return internal unique identifier for this column
      */
-    col_oid_t GetOid() const { return oid_; }
+    col_oid_t Oid() const { return oid_; }
 
     /**
      * Default constructor for deserialization
@@ -167,11 +167,11 @@ class Schema {
     for (uint32_t i = 0; i < columns_.size(); i++) {
       // If not all columns assigned OIDs, then clear the map because this is
       // a definition of a new/modified table not a catalog generated schema.
-      if (columns_[i].GetOid() == catalog::INVALID_COLUMN_OID) {
+      if (columns_[i].Oid() == catalog::INVALID_COLUMN_OID) {
         col_oid_to_offset.clear();
         return;
       }
-      col_oid_to_offset[columns_[i].GetOid()] = i;
+      col_oid_to_offset[columns_[i].Oid()] = i;
     }
   }
 
@@ -205,7 +205,7 @@ class Schema {
    */
   Column GetColumn(const std::string &name) const {
     for (auto &c : columns_) {
-      if (c.GetName() == name) {
+      if (c.Name() == name) {
         return c;
       }
     }
