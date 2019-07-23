@@ -10,7 +10,6 @@
 #include "common/constants.h"
 #include "common/macros.h"
 #include "loggers/storage_logger.h"
-#include "common/hash_util.h"
 
 namespace terrier::storage {
 
@@ -96,8 +95,7 @@ class BufferedLogWriter {
   /**
    * Write to the log file the given amount of bytes from the given location in memory, but buffer the write so the
    * update is only written out when the BufferedLogWriter is persisted. Note that this function writes to the buffer
-   * only until it is full. If buffer gets full, the checksum of the buffer is appended,
-   * then call FlushBuffer() and call BufferWrite(..) again with the correct
+   * only until it is full. If buffer gets full, then call FlushBuffer() and call BufferWrite(..) again with the correct
    * offset of the data, depending on the number of bytes that were already written.
    * @param data memory location of the bytes to write
    * @param size number of bytes to write
@@ -108,19 +106,10 @@ class BufferedLogWriter {
     // If we still do not have buffer space after flush, the write is too large to be buffered. We partially write the
     // buffer and return the number of bytes written
     if (!CanBuffer(size)) {
-      size = common::Constants::LOG_BUFFER_PAYLOAD_SIZE - buffer_size_;
+      size = common::Constants::LOG_BUFFER_SIZE - buffer_size_;
     }
     std::memcpy(buffer_ + buffer_size_, data, size);
     buffer_size_ += size;
-    // add checksum when the buffer is filled.
-    // the sum is stored in little endian.
-    if (buffer_size_ == common::Constants::LOG_BUFFER_PAYLOAD_SIZE) {
-      auto checksum = common::HashUtil::HashBytes(reinterpret_cast<terrier::byte *>(buffer_),
-          common::Constants::LOG_BUFFER_PAYLOAD_SIZE);
-      auto le_sum = htole64(checksum);
-      std::memcpy(buffer_ + buffer_size_, &le_sum, common::Constants::LOG_BUFFER_SUM_SIZE);
-      buffer_size_ += common::Constants::LOG_BUFFER_SUM_SIZE;
-    }
     return size;
   }
 
@@ -153,7 +142,7 @@ class BufferedLogWriter {
 
   uint32_t buffer_size_ = 0;
 
-  bool CanBuffer(uint32_t size) { return common::Constants::LOG_BUFFER_PAYLOAD_SIZE - buffer_size_ >= size; }
+  bool CanBuffer(uint32_t size) { return common::Constants::LOG_BUFFER_SIZE - buffer_size_ >= size; }
 
   void WriteUnsynced(const void *data, uint32_t size) { PosixIoWrappers::WriteFully(out_, data, size); }
 };
