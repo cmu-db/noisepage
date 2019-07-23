@@ -39,8 +39,8 @@ class IndexSchema {
      * @param nullable whether the column is nullable
      * @param expression definition of this attribute
      */
-    Column(type::TypeId type_id, bool nullable, const parser::AbstractExpression &expression)
-        : oid_(INVALID_INDEXKEYCOL_OID), packed_type_(0) {
+    Column(std::string name, type::TypeId type_id, bool nullable, const parser::AbstractExpression &expression)
+        : name_(std::move(name)), oid_(INVALID_INDEXKEYCOL_OID), packed_type_(0) {
       TERRIER_ASSERT(!(type_id == type::TypeId::VARCHAR || type_id == type::TypeId::VARBINARY),
                      "Non-varlen constructor.");
       SetTypeId(type_id);
@@ -54,8 +54,9 @@ class IndexSchema {
      * @param expression definition of this attribute
      * @param max_varlen_size the maximum varlen size
      */
-    Column(type::TypeId type_id, bool nullable, const parser::AbstractExpression &expression, uint16_t max_varlen_size)
-        : oid_(INVALID_INDEXKEYCOL_OID), packed_type_(0) {
+    Column(std::string name, type::TypeId type_id, uint16_t max_varlen_size, bool nullable,
+           const parser::AbstractExpression &expression)
+        : name_(std::move(name)), oid_(INVALID_INDEXKEYCOL_OID), packed_type_(0) {
       TERRIER_ASSERT(type_id == type::TypeId::VARCHAR || type_id == type::TypeId::VARBINARY, "Varlen constructor.");
       SetTypeId(type_id);
       SetNullable(nullable);
@@ -106,6 +107,7 @@ class IndexSchema {
     static constexpr uint32_t MASK_TYPE = 0x0000007F;
     static constexpr uint32_t OFFSET_VARLEN = 8;
 
+    std::string name_;
     indexkeycol_oid_t oid_;
     uint32_t packed_type_;
     parser::AbstractExpression *expression_;
