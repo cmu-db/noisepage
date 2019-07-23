@@ -6,10 +6,10 @@ namespace terrier::optimizer {
 
 /**
  * GetColumnStats - Using given namespace, database, table, and column ids,
- * select a ColumnStats object in the column stats storage map
+ * select a pointer to the ColumnStats object in the column stats storage map
  */
 
-ColumnStats StatsStorage::GetColumnStats(catalog::namespace_oid_t namespace_id,
+ColumnStats *StatsStorage::GetPtrToColumnStats(catalog::namespace_oid_t namespace_id,
                            catalog::db_oid_t database_id,
                            catalog::table_oid_t table_id,
                            catalog::col_oid_t column_id) {
@@ -25,9 +25,9 @@ ColumnStats StatsStorage::GetColumnStats(catalog::namespace_oid_t namespace_id,
 
 /**
  * GetTableStats - Using given namespace, database, and table ids,
- * select a TableStats objects in the table stats storage map
+ * select a pointer to the TableStats objects in the table stats storage map
  */
-TableStats StatsStorage::GetTableStats(catalog::namespace_oid_t namespace_id,
+TableStats *StatsStorage::GetPtrToTableStats(catalog::namespace_oid_t namespace_id,
                          catalog::db_oid_t database_id,
                          catalog::table_oid_t table_id) {
   auto table_it = (*StatsStorage::GetPtrToTableStatsStorage()).find(std::make_tuple(namespace_id, database_id,
@@ -44,7 +44,7 @@ void StatsStorage::InsertOrUpdateColumnStats(catalog::namespace_oid_t namespace_
                                catalog::db_oid_t database_id,
                                catalog::table_oid_t table_id,
                                catalog::col_oid_t column_id,
-                               const ColumnStats &column_stats) {
+                               ColumnStats *column_stats) {
   auto column_it = (*StatsStorage::GetPtrToColumnStatsStorage()).find(std::make_tuple(namespace_id, database_id,
                                                                                       table_id, column_id));
 
@@ -70,7 +70,7 @@ void StatsStorage::DeleteColumnStats(catalog::namespace_oid_t namespace_id,
 void StatsStorage::InsertOrUpdateTableStats(catalog::namespace_oid_t namespace_id,
                               catalog::db_oid_t database_id,
                               catalog::table_oid_t table_id,
-                              const TableStats &table_stats) {
+                              TableStats *table_stats) {
   auto table_it = (*StatsStorage::GetPtrToTableStatsStorage()).find(std::make_tuple(namespace_id, database_id,
                                                                                     table_id));
 
@@ -78,7 +78,7 @@ void StatsStorage::InsertOrUpdateTableStats(catalog::namespace_oid_t namespace_i
     (*StatsStorage::GetPtrToTableStatsStorage()).erase(table_it);
   }
   (*StatsStorage::GetPtrToTableStatsStorage()).insert({ std::make_tuple(namespace_id, database_id, table_id),
-                                                          table_stats });
+                                                                        table_stats });
 }
 
 void StatsStorage::DeleteTableStats(catalog::namespace_oid_t namespace_id,
