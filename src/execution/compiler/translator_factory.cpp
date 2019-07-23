@@ -19,107 +19,100 @@
 
 namespace tpl::compiler {
 
-OperatorTranslator *TranslatorFactory::CreateRegularTranslator(const terrier::planner::AbstractPlanNode * op,
+std::unique_ptr<OperatorTranslator> TranslatorFactory::CreateRegularTranslator(const terrier::planner::AbstractPlanNode * op,
                                                         CodeGen * codegen) {
   // TODO(Amadou): Region allocation is causing issues here (memory content changes).
   // We are temporarily using the std allocation to avoid them.
   switch (op->GetPlanNodeType()) {
     case terrier::planner::PlanNodeType::SEQSCAN: {
-      return new SeqScanTranslator(op, codegen);
+      return std::make_unique<SeqScanTranslator>(op, codegen);
     }
     case terrier::planner::PlanNodeType::INSERT: {
       return nullptr;
     }
     case terrier::planner::PlanNodeType::INDEXNLJOIN: {
-      return new IndexJoinTranslator(op, codegen);
+      return std::make_unique<IndexJoinTranslator>(op, codegen);
     }
     default:
       UNREACHABLE("Unsupported plan nodes");
   }
 }
 
-OperatorTranslator *TranslatorFactory::CreateBottomTranslator(const terrier::planner::AbstractPlanNode *op,
+std::unique_ptr<OperatorTranslator> TranslatorFactory::CreateBottomTranslator(const terrier::planner::AbstractPlanNode *op,
                                                                CodeGen * codegen) {
   switch (op->GetPlanNodeType()) {
     case terrier::planner::PlanNodeType::AGGREGATE:
-      return new AggregateBottomTranslator(op, codegen);
+      return std::make_unique<AggregateBottomTranslator>(op, codegen);
     case terrier::planner::PlanNodeType::ORDERBY:
-      return new SortBottomTranslator(op, codegen);
+      return std::make_unique<SortBottomTranslator>(op, codegen);
     default:
       UNREACHABLE("Not a pipeline boundary!");
   }
 }
 
-OperatorTranslator *TranslatorFactory::CreateTopTranslator(const terrier::planner::AbstractPlanNode *op,
+std::unique_ptr<OperatorTranslator> TranslatorFactory::CreateTopTranslator(const terrier::planner::AbstractPlanNode *op,
                                                                OperatorTranslator * bottom,
                                                                CodeGen * codegen) {
   switch (op->GetPlanNodeType()) {
     case terrier::planner::PlanNodeType::AGGREGATE:
-      return new AggregateTopTranslator(op, codegen, bottom);
+      return std::make_unique<AggregateTopTranslator>(op, codegen, bottom);
     case terrier::planner::PlanNodeType::ORDERBY:
-      return new SortTopTranslator(op, codegen, bottom);
+      return std::make_unique<SortTopTranslator>(op, codegen, bottom);
     default:
       UNREACHABLE("Not a pipeline boundary!");
   }
 }
 
 
-OperatorTranslator *TranslatorFactory::CreateLeftTranslator(const terrier::planner::AbstractPlanNode *op,
+std::unique_ptr<OperatorTranslator> TranslatorFactory::CreateLeftTranslator(const terrier::planner::AbstractPlanNode *op,
                                                             CodeGen * codegen) {
   switch (op->GetPlanNodeType()) {
     case terrier::planner::PlanNodeType::HASHJOIN:
-      return new HashJoinLeftTranslator(op, codegen);
+      return std::make_unique<HashJoinLeftTranslator>(op, codegen);
     case terrier::planner::PlanNodeType::NESTLOOP:
-      return new NestedLoopLeftTransaltor(op, codegen);
+      return std::make_unique<NestedLoopLeftTransaltor>(op, codegen);
     default:
       UNREACHABLE("Not a pipeline boundary!");
   }
 }
 
 
-OperatorTranslator *TranslatorFactory::CreateRightTranslator(const terrier::planner::AbstractPlanNode *op,
+std::unique_ptr<OperatorTranslator> TranslatorFactory::CreateRightTranslator(const terrier::planner::AbstractPlanNode *op,
                                                              OperatorTranslator * left,
                                                              CodeGen * codegen) {
   switch (op->GetPlanNodeType()) {
     case terrier::planner::PlanNodeType::HASHJOIN:
-      return new HashJoinRightTranslator(op, codegen, left);
+      return std::make_unique<HashJoinRightTranslator>(op, codegen, left);
     case terrier::planner::PlanNodeType::NESTLOOP:
-      return new NestedLoopRightTransaltor(op, codegen, left);
+      return std::make_unique<NestedLoopRightTransaltor>(op, codegen, left);
     default:
       UNREACHABLE("Not a pipeline boundary!");
   }
 }
 
-ExpressionTranslator *TranslatorFactory::CreateExpressionTranslator(const terrier::parser::AbstractExpression * expression,
+std::unique_ptr<ExpressionTranslator> TranslatorFactory::CreateExpressionTranslator(const terrier::parser::AbstractExpression * expression,
                                                                     CodeGen * codegen) {
   auto type = expression->GetExpressionType();
   if (COMPARISON_OP(type)) {
-    auto ret = new ComparisonTranslator(expression, codegen);
-    return reinterpret_cast<ExpressionTranslator *>(ret);
+    return std::make_unique<ComparisonTranslator>(expression, codegen);
   }
   if (ARITHMETIC_OP(type)) {
-    auto ret = new ArithmeticTranslator(expression, codegen);
-    return reinterpret_cast<ExpressionTranslator *>(ret);
+    return std::make_unique<ArithmeticTranslator>(expression, codegen);
   }
   if (UNARY_OP(type)) {
-    auto ret = new UnaryTranslator(expression, codegen);
-    return reinterpret_cast<ExpressionTranslator *>(ret);
+    return std::make_unique<UnaryTranslator>(expression, codegen);
   }
   if (CONJUNCTION_OP(type)) {
-    auto ret = new ConjunctionTranslator(expression, codegen);
-    return reinterpret_cast<ExpressionTranslator *>(ret);
+    return std::make_unique<ConjunctionTranslator>(expression, codegen);
   }
   if (CONSTANT_VAL(type)) {
-    auto ret = new ConstantTranslator(expression, codegen);
-    return reinterpret_cast<ExpressionTranslator *>(ret);
+    return std::make_unique<ConstantTranslator>(expression, codegen);
   }
   if (TUPLE_VAL(type)) {
-    auto ret = new TupleValueTranslator(expression, codegen);
-    return reinterpret_cast<ExpressionTranslator *>(ret);
+    return std::make_unique<TupleValueTranslator>(expression, codegen);
   }
   if (NULL_OP(type)) {
-    auto ret = new NullCheckTranslator(expression, codegen);
-    return reinterpret_cast<ExpressionTranslator *>(ret);
+    return std::make_unique<NullCheckTranslator>(expression, codegen);
   }
   TPL_ASSERT(false, "Unsupported expression");
   return nullptr;

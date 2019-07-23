@@ -25,33 +25,18 @@ SeqScanTranslator::SeqScanTranslator(const terrier::planner::AbstractPlanNode * 
 }
 
 void SeqScanTranslator::Produce(FunctionBuilder * builder) {
-  TPL_ASSERT(is_vectorizable_ || (!vectorized_pipeline_), "Vectorized Produce called on non vectorizable seq_scan");
   DeclareTVI(builder);
   GenTVILoop(builder);
   GenTVIClose(builder); // close after the loop
   DeclarePCI(builder);
 
-  /*
-   * There are three possible cases right now.
-   * 1. The whole pipeline is vectorized, so only apply the filters. The loop will be generated in functions like
-   * the aggregator's hash function. We just need to declare an array of iterators (see agg-vec.tpl).
-   * 2. The seq scan is vectorizable, but subsequent operations are not. In addition to the filters, we need to generate
-   * the loop ourselves.
-   * 3. The seq scan is not vectorizable. This time, first generate the loop, then make an if statement. This is the
-   * most general case.
-   */
-
-  if (vectorized_pipeline_) {
+  // Generate predicate and loop depending on whether we can vectorize or not
+  if (has_predicate_ && is_vectorizable_) {
     GenVectorizedPredicate(builder, seqscan_op_->GetScanPredicate().get());
-    DeclareIters(builder);
-  } else {
-    if (has_predicate_ && is_vectorizable_) {
-      GenVectorizedPredicate(builder, seqscan_op_->GetScanPredicate().get());
-      GenPCILoop(builder);
-    } else {
-      GenPCILoop(builder);
-      GenScanCondition(builder);
-    }
+    GenPCILoop(builder);
+  } else if (has_predicate_) {
+    GenPCILoop(builder);
+    GenScanCondition(builder);
   }
 }
 
@@ -170,25 +155,4 @@ void SeqScanTranslator::GenVectorizedPredicate(FunctionBuilder * builder, const 
     builder->Append(codegen_->MakeStmt(filter_call));
   }
 }
-
-void SeqScanTranslator::DeclarePCIVec(FunctionBuilder * builder, ast::Identifier iters) {
-  // Generate var pci = iters[0]
-  ast::Expr * rhs = codegen_->ArrayIndex(iters, 0);
-  builder->Append(codegen_->DeclareVariable(pci_, nullptr, rhs));
-}
-
-void SeqScanTranslator::GenVectorizedLoop(tpl::compiler::FunctionBuilder *builder) {
-
-}
-
-void SeqScanTranslator::DeclarePCIVec(tpl::compiler::FunctionBuilder *builder, tpl::ast::Identifier iters) {
-
-}
-
-void SeqScanTranslator::DeclareIters(tpl::compiler::FunctionBuilder *builder) {
-
-}
-
-
-
 }  // namespace tpl::compiler
