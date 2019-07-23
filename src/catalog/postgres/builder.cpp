@@ -465,7 +465,8 @@ IndexSchema Builder::GetColumnClassIndexSchema(db_oid_t db) {
 IndexSchema Builder::GetTypeOidIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
-  columns.emplace_back("typoid", type::TypeId::INTEGER, false, parser::ColumnValueExpression(db, TYPE_TABLE_OID, TYPOID_COL_OID));
+  columns.emplace_back("typoid", type::TypeId::INTEGER, false,
+                       parser::ColumnValueExpression(db, TYPE_TABLE_OID, TYPOID_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Primary
@@ -483,7 +484,8 @@ IndexSchema Builder::GetTypeNameIndexSchema(db_oid_t db) {
                        parser::ColumnValueExpression(db, TYPE_TABLE_OID, TYPNAMESPACE_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
-  columns.emplace_back("typname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false, parser::ColumnValueExpression(db, TYPE_TABLE_OID, TYPNAME_COL_OID));
+  columns.emplace_back("typname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false,
+                       parser::ColumnValueExpression(db, TYPE_TABLE_OID, TYPNAME_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(2));
 
   // Unique, not primary
