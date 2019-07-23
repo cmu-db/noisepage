@@ -7,7 +7,6 @@ namespace tpl::compiler {
 
 // Forward declare
 class AggregateTopTranslator;
-class SeqScanTranslator;
 
 /**
  * Aggregate Bottom Translator
@@ -115,20 +114,13 @@ class AggregateBottomTranslator : public OperatorTranslator {
   // Generate var agg_hash_val = @hash(groub_by_term1, group_by_term2, ...)
   void GenHashCall(FunctionBuilder * builder);
 
-  void GenVecHashFn(util::RegionVector<ast::Decl *> *decls, SeqScanTranslator * seqscan);
-  void GenVecKeyCheckFn(util::RegionVector<ast::Decl *> *decls, SeqScanTranslator * seqscan);
-  void GenVecInitFn(util::RegionVector<ast::Decl *> *decls, SeqScanTranslator * seqscan);
-  void GenVecAdvanceFn(util::RegionVector<ast::Decl *> *decls, SeqScanTranslator * seqscan);
-
-
   // Make the top translator a friend class.
   friend class AggregateTopTranslator;
   // The number of group by terms.
   uint32_t num_group_by_terms{0};
 
   // Structs, Functions, and local variables needed.
-  // TODO(Amadou): This list is blowing. Figure out a different to manage local variable names.
-  // TODO(Amadou): Split AggValues into two structs: AggKey and AggValues.
+  // TODO(Amadou): This list is blowing up. Figure out a different to manage local variable names.
   static constexpr const char* hash_val_name = "agg_hash_val";
   static constexpr const char* agg_payload_name = "agg_payload";
   static constexpr const char* agg_values_name = "agg_values";
@@ -138,10 +130,6 @@ class AggregateBottomTranslator : public OperatorTranslator {
   static constexpr const char* agg_ht_name = "agg_hash_table";
   static constexpr const char* group_by_term_names = "group_by_term";
   static constexpr const char* agg_term_names = "agg_term";
-  // Functions used by the vectorized version
-  static constexpr const char* vec_hash_fn_name = "aggVecHashFn";
-  static constexpr const char* vec_key_check_fn_name = "aggVecHashFn";
-  static constexpr const char* vec_advance_fn_name = "aggVecAdvanceFn";
   ast::Identifier hash_val_;
   ast::Identifier agg_values_;
   ast::Identifier values_struct_;
@@ -149,11 +137,6 @@ class AggregateBottomTranslator : public OperatorTranslator {
   ast::Identifier agg_payload_;
   ast::Identifier key_check_;
   ast::Identifier agg_ht_;
-  ast::Identifier vec_hash_fn_;
-  ast::Identifier vec_key_check_fn_;
-  ast::Identifier vec_advance_fn_;
-
-
 };
 
 /**

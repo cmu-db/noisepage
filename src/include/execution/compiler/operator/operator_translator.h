@@ -75,13 +75,6 @@ class OperatorTranslator {
   }
 
   /**
-   * @param prev_translator the previous translator
-   */
-  void SetPrevTranslator(OperatorTranslator * prev_translator) {
-    prev_translator_ = prev_translator;
-  }
-
-  /**
    * Setup state needed before generating code
    * @param prev_translator the previous translator
    * @param vectorize whether the pipeline is vectorized
@@ -108,7 +101,17 @@ class OperatorTranslator {
     return false;
   }
 
+  /**
+   * @return Whether this operator is vectorizable
+   */
   virtual bool IsVectorizable() {
+    return false;
+  }
+
+  /**
+   * @return Whether this operator is parallelizable
+   */
+  virtual bool IsParallelizable() {
     return false;
   }
 
@@ -122,8 +125,18 @@ class OperatorTranslator {
     return {nullptr, nullptr};
   }
 
+  /**
+   * @param attr_idx index into the output schema
+   * @return the output at the given index
+   */
   virtual ast::Expr* GetOutput(uint32_t attr_idx) = 0;
 
+  /**
+   * @param child_idx index of the child (0 or 1)
+   * @param attr_idx index of the child's output
+   * @param type type of the attribute
+   * @return the child's output at the given index
+   */
   virtual ast::Expr* GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) = 0;
 
   /**

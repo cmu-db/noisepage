@@ -10,12 +10,12 @@ Compiler::Compiler(tpl::compiler::Query *query)
 : query_(query)
 , codegen_(query) {
   // Make the pipelines
-  auto * main_pipeline = new Pipeline(&codegen_);
+  auto  main_pipeline = new Pipeline(&codegen_);
   MakePipelines(query_->GetPlan(), main_pipeline);
   // The query has an ouput
   if (query->GetPlan().GetOutputSchema() != nullptr) {
-    auto *output_translator = new OutputTranslator(&codegen_);
-    main_pipeline->Add(output_translator);
+    auto output_translator = std::make_unique<OutputTranslator>(&codegen_);
+    main_pipeline->Add(std::move(output_translator));
   }
   // Finally add the main pipeline
   pipelines_.push_back(main_pipeline);
@@ -124,46 +124,46 @@ void Compiler::MakePipelines(const terrier::planner::AbstractPlanNode & op, Pipe
   switch (op.GetPlanNodeType()) {
     case terrier::planner::PlanNodeType::AGGREGATE:
     case terrier::planner::PlanNodeType::ORDERBY: {
-      OperatorTranslator *bottom_translator = TranslatorFactory::CreateBottomTranslator(&op, &codegen_);
-      OperatorTranslator *top_translator = TranslatorFactory::CreateTopTranslator(&op, bottom_translator, &codegen_);
-      curr_pipeline->Add(top_translator);
-      // Make the nest pipeline
-      auto *next_pipeline = new Pipeline(&codegen_);
-      MakePipelines(*op.GetChild(0), next_pipeline);
-      next_pipeline->Add(bottom_translator);
-      pipelines_.push_back(next_pipeline);
+      auto bottom_translator = TranslatorFactory::CreateBottomTranslator(&op, &codegen_);
+      auto top_translator = TranslatorFactory::CreateTopTranslator(&op, bottom_translator.get(), &codegen_);
+      curr_pipeline->Add(std::move(top_translator));
+      // Make the next pipeline
+      auto next_pipeline = std::make_unique<Pipeline>(&codegen_);
+      MakePipelines(*op.GetChild(0), next_pipeline.get());
+      next_pipeline->Add(std::move(bottom_translator));
+      pipelines_.emplace_back(std::move(next_pipeline));
       return;
     }
     case terrier::planner::PlanNodeType::HASHJOIN: {
       // Create left and right translators
-      OperatorTranslator * left_translator = TranslatorFactory::CreateLeftTranslator(&op, &codegen_);
-      OperatorTranslator * right_translator = TranslatorFactory::CreateRightTranslator(&op, left_translator, &codegen_);
+      auto left_translator = TranslatorFactory::CreateLeftTranslator(&op, &codegen_);
+      auto right_translator = TranslatorFactory::CreateRightTranslator(&op, left_translator.get(), &codegen_);
       // Generate left pipeline
-      auto *next_pipeline = new Pipeline(&codegen_);
-      MakePipelines(*op.GetChild(0), next_pipeline);
-      next_pipeline->Add(left_translator);
-      pipelines_.push_back(next_pipeline);
+      auto next_pipeline = std::make_unique<Pipeline>(&codegen_);
+      MakePipelines(*op.GetChild(0), next_pipeline.get());
+      next_pipeline->Add(std::move(left_translator));
+      pipelines_.emplace_back(std::move(next_pipeline));
       // Continue right pipeline
       MakePipelines(*op.GetChild(1), curr_pipeline);
-      curr_pipeline->Add(right_translator);
+      curr_pipeline->Add(std::move(right_translator));
       return;
     }
     case terrier::planner::PlanNodeType::NESTLOOP : {
       // Create left and right translators
-      OperatorTranslator * left_translator = TranslatorFactory::CreateLeftTranslator(&op, &codegen_);
-      OperatorTranslator * right_translator = TranslatorFactory::CreateRightTranslator(&op, left_translator, &codegen_);
+      auto left_translator = TranslatorFactory::CreateLeftTranslator(&op, &codegen_);
+      auto right_translator = TranslatorFactory::CreateRightTranslator(&op, left_translator.get(), &codegen_);
       // Generate left pipeline
       MakePipelines(*op.GetChild(0), curr_pipeline);
-      curr_pipeline->Add(left_translator);
+      curr_pipeline->Add(std::move(left_translator));
       // Append the pipeline
       MakePipelines(*op.GetChild(1), curr_pipeline);
-      curr_pipeline->Add(right_translator);
+      curr_pipeline->Add(std::move(right_translator));
       return;
     }
     default: {
-      OperatorTranslator *translator = TranslatorFactory::CreateRegularTranslator(&op, &codegen_);
+      auto translator = TranslatorFactory::CreateRegularTranslator(&op, &codegen_);
       if (op.GetChildrenSize() != 0) MakePipelines(*op.GetChild(0), curr_pipeline);
-      curr_pipeline->Add(translator);
+      curr_pipeline->Add(std::move(translator));
       return;
     }
   }
