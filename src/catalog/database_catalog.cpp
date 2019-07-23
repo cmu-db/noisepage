@@ -340,8 +340,8 @@ namespace_oid_t DatabaseCatalog::GetNamespaceOid(transaction::TransactionContext
 }
 
 template <typename Column>
-bool DatabaseCatalog::CreateAttribute(transaction::TransactionContext *txn, uint32_t class_oid, const Column &col,
-                                      const parser::AbstractExpression *default_val) {
+bool DatabaseCatalog::CreateColumn(transaction::TransactionContext *const txn, const uint32_t class_oid,
+                                   const Column &col, const parser::AbstractExpression *default_val) {
   // Step 1: Insert into the table
   const std::vector<col_oid_t> table_oids{PG_ATTRIBUTE_ALL_COL_OIDS};
   // NOLINTNEXTLINE
@@ -410,13 +410,8 @@ bool DatabaseCatalog::CreateAttribute(transaction::TransactionContext *txn, uint
   *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(oid_pm.at(indexkeycol_oid_t(2))))) = col.GetOid();
   *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(oid_pm.at(indexkeycol_oid_t(1))))) = class_oid;
 
-  if (!columns_oid_index_->InsertUnique(txn, *pr, tupleslot)) {
-    // There was an oid conflict and we need to abort.  Free the buffer and return false to indicate failure
-    // TODO(Matt): Is this is possible at this point, or should we be asserting the insert result like the oid index on
-    // CreateNamespace?
-    delete[] buffer;
-    return false;
-  }
+  bool UNUSED_ATTRIBUTE result = columns_oid_index_->InsertUnique(txn, *pr, tupleslot);
+  TERRIER_ASSERT(result, "Assigned OIDs failed to be unique.");
 
   // Step 4: Insert into class index
   const auto class_pri = columns_class_index_->GetProjectedRowInitializer();
@@ -424,13 +419,8 @@ bool DatabaseCatalog::CreateAttribute(transaction::TransactionContext *txn, uint
   // Write the attributes in the ProjectedRow
   *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(0))) = class_oid;
 
-  if (!columns_class_index_->Insert(txn, *pr, tupleslot)) {
-    // There was an oid conflict and we need to abort.  Free the buffer and return false to indicate failure
-    // TODO(Matt): Is this is possible at this point, or should we be asserting the insert result like the oid index on
-    // CreateNamespace?
-    delete[] buffer;
-    return false;
-  }
+  result = columns_class_index_->InsertUnique(txn, *pr, tupleslot);
+  TERRIER_ASSERT(result, "Assigned OIDs failed to be unique.");
 
   // Finish
   delete[] buffer;
@@ -438,8 +428,8 @@ bool DatabaseCatalog::CreateAttribute(transaction::TransactionContext *txn, uint
 }
 
 template <typename Column>
-std::unique_ptr<Column> DatabaseCatalog::GetAttribute(transaction::TransactionContext *const txn,
-                                                      storage::VarlenEntry *const col_name, const uint32_t class_oid) {
+std::unique_ptr<Column> DatabaseCatalog::GetColumn(transaction::TransactionContext *const txn,
+                                                   storage::VarlenEntry *const col_name, const uint32_t class_oid) {
   // Step 1: Read Index
   const std::vector<col_oid_t> table_oids{ATTNUM_COL_OID, ATTNAME_COL_OID,    ATTTYPID_COL_OID,
                                           ATTLEN_COL_OID, ATTNOTNULL_COL_OID, ADBIN_COL_OID};
@@ -478,8 +468,8 @@ std::unique_ptr<Column> DatabaseCatalog::GetAttribute(transaction::TransactionCo
 }
 
 template <typename Column>
-std::unique_ptr<Column> DatabaseCatalog::GetAttribute(transaction::TransactionContext *const txn,
-                                                      const uint32_t col_oid, const uint32_t class_oid) {
+std::unique_ptr<Column> DatabaseCatalog::GetColumn(transaction::TransactionContext *const txn, const uint32_t col_oid,
+                                                   const uint32_t class_oid) {
   // Step 1: Read Index
   const std::vector<col_oid_t> table_oids{ATTNUM_COL_OID, ATTNAME_COL_OID,    ATTTYPID_COL_OID,
                                           ATTLEN_COL_OID, ATTNOTNULL_COL_OID, ADBIN_COL_OID};
@@ -519,8 +509,8 @@ std::unique_ptr<Column> DatabaseCatalog::GetAttribute(transaction::TransactionCo
 }
 
 template <typename Column>
-std::vector<std::unique_ptr<Column>> DatabaseCatalog::GetAttributes(transaction::TransactionContext *const txn,
-                                                                    const uint32_t class_oid) {
+std::vector<std::unique_ptr<Column>> DatabaseCatalog::GetColumns(transaction::TransactionContext *const txn,
+                                                                 const uint32_t class_oid) {
   // Step 1: Read Index
   const std::vector<col_oid_t> table_oids{ATTNUM_COL_OID, ATTNAME_COL_OID,    ATTTYPID_COL_OID,
                                           ATTLEN_COL_OID, ATTNOTNULL_COL_OID, ADBIN_COL_OID};
@@ -558,10 +548,10 @@ std::vector<std::unique_ptr<Column>> DatabaseCatalog::GetAttributes(transaction:
   return cols;
 }
 
-// TODO(Matt): do we need a DeleteAttribute()?
+// TODO(Matt): we need a DeleteColumn()
 
 template <typename Column>
-void DatabaseCatalog::DeleteColumns(transaction::TransactionContext *const txn, const uint32_t class_oid) {
+bool DatabaseCatalog::DeleteColumns(transaction::TransactionContext *const txn, const uint32_t class_oid) {
   // Step 1: Read Index
   const std::vector<col_oid_t> table_oids{ATTNUM_COL_OID, ATTNAME_COL_OID,    ATTTYPID_COL_OID,
                                           ATTLEN_COL_OID, ATTNOTNULL_COL_OID, ADBIN_COL_OID};
@@ -576,9 +566,8 @@ void DatabaseCatalog::DeleteColumns(transaction::TransactionContext *const txn, 
   std::vector<storage::TupleSlot> index_results;
   columns_class_index_->ScanKey(*txn, *pr, &index_results);
   if (index_results.empty()) {
-    // TODO(Matt): do we need to indicate failure by returning false?
     delete[] buffer;
-    return;
+    return false;
   }
 
   // TODO(Matt): do we have any way to assert that we got the number of attributes we expect? From another attribute in
@@ -623,6 +612,7 @@ void DatabaseCatalog::DeleteColumns(transaction::TransactionContext *const txn, 
     }
   }
   delete[] buffer;
+  return true;
 }
 
 table_oid_t DatabaseCatalog::CreateTable(transaction::TransactionContext *const txn, const namespace_oid_t ns,

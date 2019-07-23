@@ -246,8 +246,8 @@ class DatabaseCatalog {
    * @return whether insertion is successful
    */
   template <typename Column>
-  bool CreateAttribute(transaction::TransactionContext *txn, uint32_t class_oid, const Column &col,
-                       const parser::AbstractExpression *default_val);
+  bool CreateColumn(transaction::TransactionContext *txn, uint32_t class_oid, const Column &col,
+                    const parser::AbstractExpression *default_val);
 
   /**
    * Get entry from pg_attribute
@@ -258,8 +258,8 @@ class DatabaseCatalog {
    * @return the column from pg_attribute
    */
   template <typename Column>
-  std::unique_ptr<Column> GetAttribute(transaction::TransactionContext *txn, storage::VarlenEntry *col_name,
-                                       uint32_t class_oid);
+  std::unique_ptr<Column> GetColumn(transaction::TransactionContext *consttxn, storage::VarlenEntry *constcol_name,
+                                    const uint32_t class_oid);
 
   /**
    * Get entry from pg_attribute
@@ -270,7 +270,8 @@ class DatabaseCatalog {
    * @return the column from pg_attribute
    */
   template <typename Column>
-  std::unique_ptr<Column> GetAttribute(transaction::TransactionContext *txn, uint32_t col_oid, uint32_t class_oid);
+  std::unique_ptr<Column> GetColumn(transaction::TransactionContext *consttxn, const uint32_t col_oid,
+                                    const uint32_t class_oid);
 
   /**
    * Get entries from pg_attribute
@@ -280,7 +281,7 @@ class DatabaseCatalog {
    * @return the column from pg_attribute
    */
   template <typename Column>
-  std::vector<std::unique_ptr<Column>> GetAttributes(transaction::TransactionContext *txn, uint32_t class_oid);
+  std::vector<std::unique_ptr<Column>> GetColumns(transaction::TransactionContext *consttxn, const uint32_t class_oid);
 
   /**
    * Delete entries from pg_attribute
@@ -289,7 +290,7 @@ class DatabaseCatalog {
    * @return the column from pg_attribute
    */
   template <typename Column>
-  void DeleteColumns(transaction::TransactionContext *txn, uint32_t class_oid);
+  bool DeleteColumns(transaction::TransactionContext *txn, uint32_t class_oid);
 
   storage::SqlTable *namespaces_;
   storage::index::Index *namespaces_oid_index_;

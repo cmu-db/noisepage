@@ -28,16 +28,12 @@ class Builder;
 }
 
 /**
- * Internal object for representing SQL table schema. Currently minimal until we add more features to the system.
- * TODO(Matt): we should make sure to revisit the fields and their uses as we bring in a catalog to replace some of the
- * reliance on these classes
+ * Internal object for representing SQL table schema
  */
 class Schema {
  public:
   /**
-   * Internal object for representing SQL table column. Currently minimal until we add more features to the system.
-   * TODO(Matt): we should make sure to revisit the fields and their uses as we bring in a catalog to replace some of
-   * the reliance on these classes
+   * Internal object for representing SQL table column
    */
   class Column {
    public:
