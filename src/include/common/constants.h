@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include "hash_util.h"
 
 namespace terrier::common {
 /**
@@ -29,7 +30,7 @@ struct Constants {
   /**
    * The size of the checksum for the log buffer
    */
-  static const uint32_t LOG_BUFFER_SUM_SIZE = (1 << 6);
+  static const uint32_t LOG_BUFFER_SUM_SIZE = sizeof(common::hash_t);
   /**
    * The size of the payload in the log buffer
    */

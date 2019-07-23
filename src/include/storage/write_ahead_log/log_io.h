@@ -115,7 +115,7 @@ class BufferedLogWriter {
     // add checksum when the buffer is filled.
     // the sum is stored in little endian.
     if (buffer_size_ == common::Constants::LOG_BUFFER_PAYLOAD_SIZE) {
-      auto checksum = common::HashUtil::HashBytes(reinterpret_cast<const terrier::byte *>(buffer_),
+      auto checksum = common::HashUtil::HashBytes(reinterpret_cast<terrier::byte *>(buffer_),
           common::Constants::LOG_BUFFER_PAYLOAD_SIZE);
       auto le_sum = htole64(checksum);
       std::memcpy(buffer_ + buffer_size_, &le_sum, common::Constants::LOG_BUFFER_SUM_SIZE);

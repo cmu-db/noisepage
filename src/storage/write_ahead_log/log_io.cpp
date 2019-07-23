@@ -74,7 +74,7 @@ void BufferedLogReader::RefillBuffer() {
     uint64_t le_sum;
     std::memcpy(&le_sum, buffer_ + filled_size_, common::Constants::LOG_BUFFER_SUM_SIZE);
     auto checksum = le64toh(le_sum);
-    TERRIER_ASSERT(checksum == common::HashUtil::HashBytes(reinterpret_cast<const terrier::byte *>(&(buffer_[0])),
+    TERRIER_ASSERT(checksum == common::HashUtil::HashBytes(reinterpret_cast<terrier::byte *>(buffer_),
           common::Constants::LOG_BUFFER_PAYLOAD_SIZE), "Checksum does not match, data corrupted");
   }
 }
