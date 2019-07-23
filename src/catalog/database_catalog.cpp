@@ -469,7 +469,7 @@ std::unique_ptr<Column> DatabaseCatalog::GetColumn(transaction::TransactionConte
   return col;
 }
 
-template <typename Column, typename ClassOid>
+template <typename Column, typename ClassOid, typename ColOid>
 std::vector<std::unique_ptr<Column>> DatabaseCatalog::GetColumns(transaction::TransactionContext *const txn,
                                                                  const ClassOid class_oid) {
   // Step 1: Read Index
@@ -483,13 +483,13 @@ std::vector<std::unique_ptr<Column>> DatabaseCatalog::GetColumns(transaction::Tr
   // Scan the class index
   auto *pr = class_pri.InitializeRow(buffer);
   // Write the attributes in the ProjectedRow
-  *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(0))) = class_oid;
+  *(reinterpret_cast<ClassOid *>(pr->AccessForceNotNull(0))) = class_oid;
   std::vector<storage::TupleSlot> index_results;
   columns_class_index_->ScanKey(*txn, *pr, &index_results);
   if (index_results.empty()) {
     // class not found in the index, so class doesn't exist. Free the buffer and return nullptr to indicate failure
     delete[] buffer;
-    return nullptr;
+    return {};
   }
 
   // Step 2: Scan the table to get the columns
@@ -498,7 +498,7 @@ std::vector<std::unique_ptr<Column>> DatabaseCatalog::GetColumns(transaction::Tr
   for (const auto &slot : index_results) {
     const auto UNUSED_ATTRIBUTE result = columns_->Select(txn, slot, pr);
     TERRIER_ASSERT(result, "Index scan did a visibility check, so Select shouldn't fail at this point.");
-    cols.emplace_back(MakeColumn<Column>(pr, table_pm));
+    cols.emplace_back(MakeColumn<Column, ColOid>(pr, table_pm));
   }
 
   // TODO(Matt): do we have any way to assert that we got the number of attributes we expect? From another attribute in
@@ -523,7 +523,7 @@ bool DatabaseCatalog::DeleteColumns(transaction::TransactionContext *const txn, 
   byte *const buffer = common::AllocationUtil::AllocateAligned(table_pri.ProjectedRowSize());
   // Scan the class index
   auto *pr = class_pri.InitializeRow(buffer);
-  *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(0))) = class_oid;
+  *(reinterpret_cast<ClassOid *>(pr->AccessForceNotNull(0))) = class_oid;
   std::vector<storage::TupleSlot> index_results;
   columns_class_index_->ScanKey(*txn, *pr, &index_results);
   if (index_results.empty()) {
@@ -536,43 +536,59 @@ bool DatabaseCatalog::DeleteColumns(transaction::TransactionContext *const txn, 
 
   // Step 2: Scan the table to get the columns
   pr = table_pri.InitializeRow(buffer);
+  byte *const key_buffer = common::AllocationUtil::AllocateAligned(
+      columns_name_index_->GetProjectedRowInitializer().ProjectedRowSize());  // should be biggest index key PR
   for (const auto &slot : index_results) {
-    // TODO(Matt): this doesn't delete from any tables, just indexes
-    const auto UNUSED_ATTRIBUTE result = columns_->Select(txn, slot, pr);
+    // 1. Extract attributes from the tuple for the index deletions
+    auto UNUSED_ATTRIBUTE result = columns_->Select(txn, slot, pr);
     TERRIER_ASSERT(result, "Index scan did a visibility check, so Select shouldn't fail at this point.");
+    const auto *const col_name =
+        reinterpret_cast<const storage::VarlenEntry *const>(pr->AccessWithNullCheck(table_pm[ATTNAME_COL_OID]));
+    TERRIER_ASSERT(col_name != nullptr, "Name shouldn't be NULL.");
+    const auto *const col_oid =
+        reinterpret_cast<const uint32_t *const>(pr->AccessWithNullCheck(table_pm[ATTNUM_COL_OID]));
+    TERRIER_ASSERT(col_name != nullptr, "OID shouldn't be NULL.");
 
-    auto col = MakeColumn<Column>(pr, table_pm);  // TODO(Matt): dont need to instantiate in order to get the name
-    // 1. Delete from class index
-    pr = class_pri.InitializeRow(buffer);
-    *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(0))) = class_oid;
-    columns_class_index_->Delete(txn, *pr, slot);
+    // 2. Delete from the table
+    txn->StageDelete(db_oid_, COLUMN_TABLE_OID, slot);
+    result = columns_->Delete(txn, slot);
+    if (!result) {
+      // Failed to delete one of the columns, clean up and return false to indicate failure
+      delete[] buffer;
+      delete[] key_buffer;
+      return false;
+      // TODO(Matt): what happens if you only manage to partially delete the columns? does abort alone suffice? I think
+      // we've covered due to MVCC semantics
+    }
 
-    // 2. Delete from oid index
+    // TODO(Matt): defer the delete for the pointer stored in ADBIN after #386 is in
+
+    // 3. Delete from class index
+    auto *key_pr = class_pri.InitializeRow(key_buffer);
+    *(reinterpret_cast<ClassOid *>(key_pr->AccessForceNotNull(0))) = class_oid;
+    columns_class_index_->Delete(txn, *key_pr, slot);
+
+    // 4. Delete from oid index
     auto oid_pri = columns_oid_index_->GetProjectedRowInitializer();
     const auto oid_pm = columns_oid_index_->GetKeyOidToOffsetMap();
-    pr = oid_pri.InitializeRow(buffer);
+    key_pr = oid_pri.InitializeRow(key_buffer);
     // Write the attributes in the ProjectedRow. These hardcoded indexkeycol_oids come from
     // Builder::GetColumnOidIndexSchema()
-    *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(oid_pm.at(indexkeycol_oid_t(2))))) = col->GetOid();
-    *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(oid_pm.at(indexkeycol_oid_t(1))))) = class_oid;
-    columns_oid_index_->Delete(txn, *pr, slot);
+    *(reinterpret_cast<uint32_t *>(key_pr->AccessForceNotNull(oid_pm.at(indexkeycol_oid_t(2))))) = *col_oid;
+    *(reinterpret_cast<ClassOid *>(key_pr->AccessForceNotNull(oid_pm.at(indexkeycol_oid_t(1))))) = class_oid;
+    columns_oid_index_->Delete(txn, *key_pr, slot);
 
-    // 3. Delete from name index
+    // 5. Delete from name index
     auto name_pri = columns_name_index_->GetProjectedRowInitializer();
-    pr = name_pri.InitializeRow(buffer);
-    const storage::VarlenEntry name_varlen = storage::StorageUtil::CreateVarlen(col.Name());
+    key_pr = name_pri.InitializeRow(key_buffer);
     // Write the attributes in the ProjectedRow. We know the offsets without the map because of the ordering of
     // attribute sizes
-    *(reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(0))) = name_varlen;
-    *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(1))) = class_oid;
-    columns_name_index_->Delete(txn, *pr, slot);
-
-    // Clean up the varlen's buffer in the case it wasn't inlined.
-    if (!name_varlen.IsInlined()) {
-      delete[] name_varlen.Content();
-    }
+    *(reinterpret_cast<storage::VarlenEntry *>(key_pr->AccessForceNotNull(0))) = *col_name;
+    *(reinterpret_cast<ClassOid *>(key_pr->AccessForceNotNull(1))) = class_oid;
+    columns_name_index_->Delete(txn, *key_pr, slot);
   }
   delete[] buffer;
+  delete[] key_buffer;
   return true;
 }
 
@@ -1591,15 +1607,15 @@ std::pair<void *, postgres::ClassKind> DatabaseCatalog::GetClassSchemaPtrKind(tr
   return {ptr, kind};
 }
 template <typename Column, typename ColOid>
-static std::unique_ptr<Column> MakeColumn(storage::ProjectedRow *const pr, const storage::ProjectionMap &table_pm) {
-  // TODO(Matt): make this return stack object
-  auto col_oid = *reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(table_pm[ATTNUM_COL_OID]));
-  auto col_name = reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(table_pm[ATTNAME_COL_OID]));
-  auto col_type = *reinterpret_cast<type::TypeId *>(pr->AccessForceNotNull(table_pm[ATTTYPID_COL_OID]));
-  auto col_len = *reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(table_pm[ATTLEN_COL_OID]));
-  auto col_null = !(*reinterpret_cast<bool *>(pr->AccessForceNotNull(table_pm[ATTNOTNULL_COL_OID])));
+std::unique_ptr<Column> DatabaseCatalog::MakeColumn(storage::ProjectedRow *const pr,
+                                                    const storage::ProjectionMap &pr_map) {
+  auto col_oid = *reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(pr_map.at(ATTNUM_COL_OID)));
+  auto col_name = reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(pr_map.at(ATTNAME_COL_OID)));
+  auto col_type = *reinterpret_cast<type::TypeId *>(pr->AccessForceNotNull(pr_map.at(ATTTYPID_COL_OID)));
+  auto col_len = *reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(pr_map.at(ATTLEN_COL_OID)));
+  auto col_null = !(*reinterpret_cast<bool *>(pr->AccessForceNotNull(pr_map.at(ATTNOTNULL_COL_OID))));
   auto *col_expr =
-      reinterpret_cast<const parser::AbstractExpression *>(pr->AccessForceNotNull(table_pm[ADBIN_COL_OID]));
+      reinterpret_cast<const parser::AbstractExpression *>(pr->AccessForceNotNull(pr_map.at(ADBIN_COL_OID)));
 
   std::unique_ptr<Column> col;
   std::string name(reinterpret_cast<const char *>(col_name->Content()), col_name->Size());
@@ -1624,5 +1640,25 @@ template std::unique_ptr<Schema::Column> DatabaseCatalog::GetColumn<Schema::Colu
 template std::unique_ptr<IndexSchema::Column>
 DatabaseCatalog::GetColumn<IndexSchema::Column, index_oid_t, indexkeycol_oid_t>(
     transaction::TransactionContext *const txn, const index_oid_t class_oid, const indexkeycol_oid_t col_oid);
+
+template std::vector<std::unique_ptr<Schema::Column>>
+DatabaseCatalog::GetColumns<Schema::Column, table_oid_t, col_oid_t>(transaction::TransactionContext *const txn,
+                                                                    const table_oid_t class_oid);
+
+template std::vector<std::unique_ptr<IndexSchema::Column>>
+DatabaseCatalog::GetColumns<IndexSchema::Column, index_oid_t, indexkeycol_oid_t>(
+    transaction::TransactionContext *const txn, const index_oid_t class_oid);
+
+template bool DatabaseCatalog::DeleteColumns<Schema::Column, table_oid_t>(transaction::TransactionContext *const txn,
+                                                                          const table_oid_t class_oid);
+
+template bool DatabaseCatalog::DeleteColumns<IndexSchema::Column, index_oid_t>(
+    transaction::TransactionContext *const txn, const index_oid_t class_oid);
+
+template std::unique_ptr<Schema::Column> DatabaseCatalog::MakeColumn<Schema::Column, col_oid_t>(
+    storage::ProjectedRow *const pr, const storage::ProjectionMap &pr_map);
+
+template std::unique_ptr<IndexSchema::Column> DatabaseCatalog::MakeColumn<IndexSchema::Column, indexkeycol_oid_t>(
+    storage::ProjectedRow *const pr, const storage::ProjectionMap &pr_map);
 
 }  // namespace terrier::catalog

@@ -254,8 +254,7 @@ class DatabaseCatalog {
    * @return the column from pg_attribute
    */
   template <typename Column, typename ClassOid, typename ColOid>
-  std::unique_ptr<Column> GetColumn(transaction::TransactionContext *const txn, const ClassOid class_oid,
-                                    const ColOid col_oid);
+  std::unique_ptr<Column> GetColumn(transaction::TransactionContext *txn, ClassOid class_oid, ColOid col_oid);
   // TODO(Matt): make this return stack object
 
   /**
@@ -265,8 +264,8 @@ class DatabaseCatalog {
    * @param class_oid oid of table or index
    * @return the column from pg_attribute
    */
-  template <typename Column, typename ClassOid>
-  std::vector<std::unique_ptr<Column>> GetColumns(transaction::TransactionContext *consttxn, const ClassOid class_oid);
+  template <typename Column, typename ClassOid, typename ColOid>
+  std::vector<std::unique_ptr<Column>> GetColumns(transaction::TransactionContext *txn, ClassOid class_oid);
   // TODO(Matt): make this return stack object
 
   /**
@@ -410,6 +409,6 @@ class DatabaseCatalog {
    * @return heap-allocated column managed by unique_ptr
    */
   template <typename Column, typename ColOid>
-  static std::unique_ptr<Column> MakeColumn(storage::ProjectedRow *pr, const storage::ProjectionMap &table_pm);
+  static std::unique_ptr<Column> MakeColumn(storage::ProjectedRow *pr, const storage::ProjectionMap &pr_map);
 };
 }  // namespace terrier::catalog
