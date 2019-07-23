@@ -48,7 +48,7 @@ Schema Builder::GetDatabaseTableSchema() {
 IndexSchema Builder::GetDatabaseOidIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
-  columns.emplace_back(type::TypeId::INTEGER, false,
+  columns.emplace_back("datoid", type::TypeId::INTEGER, false,
                        parser::ColumnValueExpression(INVALID_DATABASE_OID, DATABASE_TABLE_OID, DATOID_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
@@ -63,9 +63,8 @@ IndexSchema Builder::GetDatabaseOidIndexSchema() {
 IndexSchema Builder::GetDatabaseNameIndexSchema() {
   std::vector<IndexSchema::Column> columns;
 
-  columns.emplace_back(type::TypeId::VARCHAR, false,
-                       parser::ColumnValueExpression(INVALID_DATABASE_OID, DATABASE_TABLE_OID, DATNAME_COL_OID),
-                       MAX_NAME_LENGTH);
+  columns.emplace_back("datname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false,
+                       parser::ColumnValueExpression(INVALID_DATABASE_OID, DATABASE_TABLE_OID, DATNAME_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Unique, not primary
@@ -304,7 +303,7 @@ Schema Builder::GetTypeTableSchema() {
 IndexSchema Builder::GetNamespaceOidIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
-  columns.emplace_back(type::TypeId::INTEGER, false,
+  columns.emplace_back("nspoid", type::TypeId::INTEGER, false,
                        parser::ColumnValueExpression(db, NAMESPACE_TABLE_OID, NSPOID_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
@@ -319,8 +318,8 @@ IndexSchema Builder::GetNamespaceOidIndexSchema(db_oid_t db) {
 IndexSchema Builder::GetNamespaceNameIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
-  columns.emplace_back(type::TypeId::VARCHAR, false,
-                       parser::ColumnValueExpression(db, NAMESPACE_TABLE_OID, NSPNAME_COL_OID), MAX_NAME_LENGTH);
+  columns.emplace_back("nspname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false,
+                       parser::ColumnValueExpression(db, NAMESPACE_TABLE_OID, NSPNAME_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Unique, not primary
@@ -334,7 +333,7 @@ IndexSchema Builder::GetNamespaceNameIndexSchema(db_oid_t db) {
 IndexSchema Builder::GetClassOidIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
-  columns.emplace_back(type::TypeId::INTEGER, false,
+  columns.emplace_back("reloid", type::TypeId::INTEGER, false,
                        parser::ColumnValueExpression(db, CLASS_TABLE_OID, RELOID_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
@@ -349,12 +348,12 @@ IndexSchema Builder::GetClassOidIndexSchema(db_oid_t db) {
 IndexSchema Builder::GetClassNameIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
-  columns.emplace_back(type::TypeId::INTEGER, false,
+  columns.emplace_back("relnamespace", type::TypeId::INTEGER, false,
                        parser::ColumnValueExpression(db, CLASS_TABLE_OID, RELNAMESPACE_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
-  columns.emplace_back(type::TypeId::VARCHAR, false,
-                       parser::ColumnValueExpression(db, CLASS_TABLE_OID, RELNAME_COL_OID), MAX_NAME_LENGTH);
+  columns.emplace_back("relname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false,
+                       parser::ColumnValueExpression(db, CLASS_TABLE_OID, RELNAME_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(2));
 
   // Unique, not primary
@@ -368,7 +367,7 @@ IndexSchema Builder::GetClassNameIndexSchema(db_oid_t db) {
 IndexSchema Builder::GetClassNamespaceIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
-  columns.emplace_back(type::TypeId::INTEGER, false,
+  columns.emplace_back("relnamespace", type::TypeId::INTEGER, false,
                        parser::ColumnValueExpression(db, CLASS_TABLE_OID, RELNAMESPACE_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
@@ -383,7 +382,7 @@ IndexSchema Builder::GetClassNamespaceIndexSchema(db_oid_t db) {
 IndexSchema Builder::GetIndexOidIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
-  columns.emplace_back(type::TypeId::INTEGER, false,
+  columns.emplace_back("indoid", type::TypeId::INTEGER, false,
                        parser::ColumnValueExpression(db, INDEX_TABLE_OID, INDOID_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
@@ -398,7 +397,7 @@ IndexSchema Builder::GetIndexOidIndexSchema(db_oid_t db) {
 IndexSchema Builder::GetIndexTableIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
-  columns.emplace_back(type::TypeId::INTEGER, false,
+  columns.emplace_back("indrelid", type::TypeId::INTEGER, false,
                        parser::ColumnValueExpression(db, INDEX_TABLE_OID, INDRELID_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
@@ -413,11 +412,11 @@ IndexSchema Builder::GetIndexTableIndexSchema(db_oid_t db) {
 IndexSchema Builder::GetColumnOidIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
-  columns.emplace_back(type::TypeId::INTEGER, false,
+  columns.emplace_back("attrelid", type::TypeId::INTEGER, false,
                        parser::ColumnValueExpression(db, COLUMN_TABLE_OID, ATTRELID_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
-  columns.emplace_back(type::TypeId::INTEGER, false,
+  columns.emplace_back("attnum", type::TypeId::INTEGER, false,
                        parser::ColumnValueExpression(db, COLUMN_TABLE_OID, ATTNUM_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(2));
 
@@ -432,12 +431,12 @@ IndexSchema Builder::GetColumnOidIndexSchema(db_oid_t db) {
 IndexSchema Builder::GetColumnNameIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
-  columns.emplace_back(type::TypeId::INTEGER, false,
+  columns.emplace_back("attrelid", type::TypeId::INTEGER, false,
                        parser::ColumnValueExpression(db, COLUMN_TABLE_OID, ATTRELID_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
-  columns.emplace_back(type::TypeId::VARCHAR, false,
-                       parser::ColumnValueExpression(db, COLUMN_TABLE_OID, ATTNAME_COL_OID), MAX_NAME_LENGTH);
+  columns.emplace_back("attname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false,
+                       parser::ColumnValueExpression(db, COLUMN_TABLE_OID, ATTNAME_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(2));
 
   // Unique, not primary
@@ -451,7 +450,7 @@ IndexSchema Builder::GetColumnNameIndexSchema(db_oid_t db) {
 IndexSchema Builder::GetColumnClassIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
-  columns.emplace_back(type::TypeId::INTEGER, false,
+  columns.emplace_back("attrelid", type::TypeId::INTEGER, false,
                        parser::ColumnValueExpression(db, COLUMN_TABLE_OID, ATTRELID_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
@@ -466,7 +465,7 @@ IndexSchema Builder::GetColumnClassIndexSchema(db_oid_t db) {
 IndexSchema Builder::GetTypeOidIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
-  columns.emplace_back(type::TypeId::INTEGER, false, parser::ColumnValueExpression(db, TYPE_TABLE_OID, TYPOID_COL_OID));
+  columns.emplace_back("typoid", type::TypeId::INTEGER, false, parser::ColumnValueExpression(db, TYPE_TABLE_OID, TYPOID_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Primary
@@ -480,12 +479,11 @@ IndexSchema Builder::GetTypeOidIndexSchema(db_oid_t db) {
 IndexSchema Builder::GetTypeNameIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
-  columns.emplace_back(type::TypeId::INTEGER, false,
+  columns.emplace_back("typnamespace", type::TypeId::INTEGER, false,
                        parser::ColumnValueExpression(db, TYPE_TABLE_OID, TYPNAMESPACE_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
-  columns.emplace_back(type::TypeId::VARCHAR, false, parser::ColumnValueExpression(db, TYPE_TABLE_OID, TYPNAME_COL_OID),
-                       MAX_NAME_LENGTH);
+  columns.emplace_back("typname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false, parser::ColumnValueExpression(db, TYPE_TABLE_OID, TYPNAME_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(2));
 
   // Unique, not primary
@@ -499,7 +497,7 @@ IndexSchema Builder::GetTypeNameIndexSchema(db_oid_t db) {
 IndexSchema Builder::GetTypeNamespaceIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
-  columns.emplace_back(type::TypeId::INTEGER, false,
+  columns.emplace_back("typnamespace", type::TypeId::INTEGER, false,
                        parser::ColumnValueExpression(db, TYPE_TABLE_OID, TYPNAMESPACE_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
@@ -514,7 +512,7 @@ IndexSchema Builder::GetTypeNamespaceIndexSchema(db_oid_t db) {
 IndexSchema Builder::GetConstraintOidIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
-  columns.emplace_back(type::TypeId::INTEGER, false,
+  columns.emplace_back("conoid", type::TypeId::INTEGER, false,
                        parser::ColumnValueExpression(db, CONSTRAINT_TABLE_OID, CONOID_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
@@ -529,12 +527,12 @@ IndexSchema Builder::GetConstraintOidIndexSchema(db_oid_t db) {
 IndexSchema Builder::GetConstraintNameIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
-  columns.emplace_back(type::TypeId::INTEGER, false,
+  columns.emplace_back("connamespace", type::TypeId::INTEGER, false,
                        parser::ColumnValueExpression(db, CONSTRAINT_TABLE_OID, CONNAMESPACE_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
-  columns.emplace_back(type::TypeId::VARCHAR, false,
-                       parser::ColumnValueExpression(db, CONSTRAINT_TABLE_OID, CONNAME_COL_OID), MAX_NAME_LENGTH);
+  columns.emplace_back("conname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false,
+                       parser::ColumnValueExpression(db, CONSTRAINT_TABLE_OID, CONNAME_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(2));
 
   // Unique, not primary
@@ -548,7 +546,7 @@ IndexSchema Builder::GetConstraintNameIndexSchema(db_oid_t db) {
 IndexSchema Builder::GetConstraintNamespaceIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
-  columns.emplace_back(type::TypeId::INTEGER, false,
+  columns.emplace_back("connamespace", type::TypeId::INTEGER, false,
                        parser::ColumnValueExpression(db, CONSTRAINT_TABLE_OID, CONNAMESPACE_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
@@ -563,7 +561,7 @@ IndexSchema Builder::GetConstraintNamespaceIndexSchema(db_oid_t db) {
 IndexSchema Builder::GetConstraintTableIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
-  columns.emplace_back(type::TypeId::INTEGER, false,
+  columns.emplace_back("conrelid", type::TypeId::INTEGER, false,
                        parser::ColumnValueExpression(db, CONSTRAINT_TABLE_OID, CONRELID_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
@@ -578,7 +576,7 @@ IndexSchema Builder::GetConstraintTableIndexSchema(db_oid_t db) {
 IndexSchema Builder::GetConstraintIndexIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
-  columns.emplace_back(type::TypeId::INTEGER, false,
+  columns.emplace_back("conindid", type::TypeId::INTEGER, false,
                        parser::ColumnValueExpression(db, CONSTRAINT_TABLE_OID, CONINDID_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
@@ -593,7 +591,7 @@ IndexSchema Builder::GetConstraintIndexIndexSchema(db_oid_t db) {
 IndexSchema Builder::GetConstraintForeignTableIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
-  columns.emplace_back(type::TypeId::INTEGER, false,
+  columns.emplace_back("confrelid", type::TypeId::INTEGER, false,
                        parser::ColumnValueExpression(db, CONSTRAINT_TABLE_OID, CONFRELID_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
