@@ -621,19 +621,19 @@ TEST_F(BwTreeKeyTests, IndexMetadataGenericKeyMustInlineVarlenTest) {
 
   // key_schema            {INTEGER, VARCHAR(50), VARCHAR(8), TINYINT, VARCHAR(90)}
   // oids                  {20, 21, 22, 23, 24}
-  key_cols.emplace_back(type::TypeId::INTEGER, false,
+  key_cols.emplace_back("", type::TypeId::INTEGER, false,
                         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
   StorageTestUtil::ForceOid(&(key_cols.back()), oid++);
-  key_cols.emplace_back(type::TypeId::VARCHAR, 50, false,
+  key_cols.emplace_back("", type::TypeId::VARCHAR, 50, false,
                         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
   StorageTestUtil::ForceOid(&(key_cols.back()), oid++);
-  key_cols.emplace_back(type::TypeId::VARCHAR, 8, false,
+  key_cols.emplace_back("", type::TypeId::VARCHAR, 8, false,
                         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
   StorageTestUtil::ForceOid(&(key_cols.back()), oid++);
-  key_cols.emplace_back(type::TypeId::TINYINT, false,
+  key_cols.emplace_back("", type::TypeId::TINYINT, false,
                         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
   StorageTestUtil::ForceOid(&(key_cols.back()), oid++);
-  key_cols.emplace_back(type::TypeId::VARCHAR, 90, false,
+  key_cols.emplace_back("", type::TypeId::VARCHAR, 90, false,
                         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
   StorageTestUtil::ForceOid(&(key_cols.back()), oid++);
 
@@ -825,7 +825,7 @@ void CompactIntsKeyBasicTest(type::TypeId type_id, Random *const generator) {
   const uint8_t num_cols = (sizeof(uint64_t) * KeySize) / sizeof(CType);
 
   for (uint8_t i = 0; i < num_cols; i++) {
-    key_cols.emplace_back(type_id, false,
+    key_cols.emplace_back("", type_id, false,
                           parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type_id)));
     StorageTestUtil::ForceOid(&(key_cols.back()), catalog::indexkeycol_oid_t(i));
   }
@@ -887,7 +887,7 @@ TEST_F(BwTreeKeyTests, CompactIntsKeyBasicTest) {
 template <typename KeyType, typename CType>
 void NumericComparisons(const type::TypeId type_id, const bool nullable) {
   std::vector<catalog::IndexSchema::Column> key_cols;
-  key_cols.emplace_back(type_id, true, parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type_id)));
+  key_cols.emplace_back("", type_id, true, parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type_id)));
   StorageTestUtil::ForceOid(&(key_cols.back()), catalog::indexkeycol_oid_t(0));
 
   const IndexMetadata metadata(catalog::IndexSchema(key_cols, false, false, false, true));

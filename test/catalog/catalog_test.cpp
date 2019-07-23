@@ -248,7 +248,7 @@ TEST_F(CatalogTests, UserIndexTest) {
   EXPECT_TRUE(accessor->SetTablePointer(table_oid, table));
 
   // Create the index
-  std::vector<catalog::IndexSchema::Column> key_cols{
+  std::vector<catalog::IndexSchema::Column> key_cols{catalog::IndexSchema::Column
       {"id", type::TypeId::INTEGER, false, parser::ColumnValueExpression(db_, table_oid, schema.GetColumn("id").GetOid())}};
   auto index_schema = catalog::IndexSchema(key_cols, true, true, false, true);
   auto idx_oid = accessor->CreateIndex(accessor->GetDefaultNamespace(), table_oid,
