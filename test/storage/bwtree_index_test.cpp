@@ -45,7 +45,7 @@ class BwTreeIndexTests : public TerrierTest {
     tuple_initializer_ = sql_table_->InitializerForProjectedRow({catalog::col_oid_t(1)}).first;
 
     std::vector<catalog::IndexSchema::Column> keycols;
-    keycols.emplace_back(
+    keycols.emplace_back("",
         type::TypeId::INTEGER, false,
         parser::ColumnValueExpression(catalog::db_oid_t(0), catalog::table_oid_t(0), catalog::col_oid_t(1)));
     StorageTestUtil::ForceOid(&(keycols[0]), catalog::indexkeycol_oid_t(1));

@@ -249,7 +249,7 @@ TEST_F(CatalogTests, UserIndexTest) {
 
   // Create the index
   std::vector<catalog::IndexSchema::Column> key_cols{
-      {type::TypeId::INTEGER, false, parser::ColumnValueExpression(db_, table_oid, schema.GetColumn("id").GetOid())}};
+      {"id", type::TypeId::INTEGER, false, parser::ColumnValueExpression(db_, table_oid, schema.GetColumn("id").GetOid())}};
   auto index_schema = catalog::IndexSchema(key_cols, true, true, false, true);
   auto idx_oid = accessor->CreateIndex(accessor->GetDefaultNamespace(), table_oid,
                                        "test_table_index_mabobberwithareallylongnamethatstillneedsmore", index_schema);
