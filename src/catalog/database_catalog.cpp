@@ -339,9 +339,9 @@ namespace_oid_t DatabaseCatalog::GetNamespaceOid(transaction::TransactionContext
   return ns_oid;
 }
 
-template <typename Column>
-bool DatabaseCatalog::CreateColumn(transaction::TransactionContext *const txn, const uint32_t class_oid,
-                                   const Column &col, const parser::AbstractExpression *default_val) {
+template <typename Column, typename ClassOid>
+bool DatabaseCatalog::CreateColumn(transaction::TransactionContext *const txn, const ClassOid class_oid,
+                                   const Column &col) {
   // Step 1: Insert into the table
   const std::vector<col_oid_t> table_oids{PG_ATTRIBUTE_ALL_COL_OIDS};
   // NOLINTNEXTLINE
@@ -349,7 +349,7 @@ bool DatabaseCatalog::CreateColumn(transaction::TransactionContext *const txn, c
   auto *const redo = txn->StageWrite(db_oid_, COLUMN_TABLE_OID, table_pri);
   // Write the attributes in the Redo Record
   auto oid_entry = reinterpret_cast<uint32_t *>(redo->Delta()->AccessForceNotNull(table_pm[ATTNUM_COL_OID]));
-  auto relid_entry = reinterpret_cast<uint32_t *>(redo->Delta()->AccessForceNotNull(table_pm[ATTRELID_COL_OID]));
+  auto relid_entry = reinterpret_cast<ClassOid *>(redo->Delta()->AccessForceNotNull(table_pm[ATTRELID_COL_OID]));
   auto name_entry =
       reinterpret_cast<storage::VarlenEntry *>(redo->Delta()->AccessForceNotNull(table_pm[ATTNAME_COL_OID]));
   auto type_entry = reinterpret_cast<type::TypeId *>(redo->Delta()->AccessForceNotNull(table_pm[ATTTYPID_COL_OID]));
@@ -358,18 +358,18 @@ bool DatabaseCatalog::CreateColumn(transaction::TransactionContext *const txn, c
   auto dbin_entry = reinterpret_cast<intptr_t *>(redo->Delta()->AccessForceNotNull(table_pm[ADBIN_COL_OID]));
   auto dsrc_entry =
       reinterpret_cast<storage::VarlenEntry *>(redo->Delta()->AccessForceNotNull(table_pm[ADSRC_COL_OID]));
-  *oid_entry = !col.GetOid();
+  *oid_entry = static_cast<uint32_t>(col.Oid());
   *relid_entry = class_oid;
-  const storage::VarlenEntry name_varlen = postgres::AttributeHelper::MakeNameVarlen<Column>(col);
+  const storage::VarlenEntry name_varlen = storage::StorageUtil::CreateVarlen(col.Name());
   *name_entry = name_varlen;
-  *type_entry = col.GetType();
+  *type_entry = col.Type();
   // TODO(Amadou): Figure out what really goes here for varlen. Unclear if it's attribute size (16) or varlen length
-  *len_entry = (col.GetType() == type::TypeId::VARCHAR || col.GetType() == type::TypeId::VARBINARY)
-                   ? col.MaxVarlenSize()
-                   : col.GetAttrSize();
-  *notnull_entry = !col.GetNullable();
-  *dbin_entry = reinterpret_cast<intptr_t>(default_val);
-  storage::VarlenEntry dsrc_varlen = storage::StorageUtil::CreateVarlen(default_val->ToJson().dump());
+  *len_entry = (col.Type() == type::TypeId::VARCHAR || col.Type() == type::TypeId::VARBINARY) ? col.MaxVarlenSize()
+                                                                                              : col.AttrSize();
+  *notnull_entry = !col.Nullable();
+  *dbin_entry = reinterpret_cast<uintptr_t>(
+      nullptr);  // TODO(Matt) implement deep copy of the abstract expression once #386 is in
+  storage::VarlenEntry dsrc_varlen = storage::StorageUtil::CreateVarlen(col.StoredExpression()->ToJson().dump());
   *dsrc_entry = dsrc_varlen;
   // Finally, insert into the table to get the tuple slot
   const auto tupleslot = columns_->Insert(txn, redo);
@@ -382,7 +382,7 @@ bool DatabaseCatalog::CreateColumn(transaction::TransactionContext *const txn, c
   // Write the attributes in the ProjectedRow. We know the offsets without the map because of the ordering of attribute
   // sizes
   *(reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(0))) = name_varlen;
-  *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(1))) = class_oid;
+  *(reinterpret_cast<ClassOid *>(pr->AccessForceNotNull(1))) = class_oid;
 
   if (!columns_name_index_->InsertUnique(txn, *pr, tupleslot)) {
     // There was a name conflict and we need to abort.  Free the buffer and return false to indicate failure
@@ -407,8 +407,9 @@ bool DatabaseCatalog::CreateColumn(transaction::TransactionContext *const txn, c
   pr = oid_pri.InitializeRow(buffer);
   // Write the attributes in the ProjectedRow. These hardcoded indexkeycol_oids come from
   // Builder::GetColumnOidIndexSchema()
-  *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(oid_pm.at(indexkeycol_oid_t(2))))) = col.GetOid();
-  *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(oid_pm.at(indexkeycol_oid_t(1))))) = class_oid;
+  *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(oid_pm.at(indexkeycol_oid_t(2))))) =
+      static_cast<uint32_t>(col.Oid());
+  *(reinterpret_cast<ClassOid *>(pr->AccessForceNotNull(oid_pm.at(indexkeycol_oid_t(1))))) = class_oid;
 
   bool UNUSED_ATTRIBUTE result = columns_oid_index_->InsertUnique(txn, *pr, tupleslot);
   TERRIER_ASSERT(result, "Assigned OIDs failed to be unique.");
@@ -417,7 +418,7 @@ bool DatabaseCatalog::CreateColumn(transaction::TransactionContext *const txn, c
   const auto class_pri = columns_class_index_->GetProjectedRowInitializer();
   pr = class_pri.InitializeRow(buffer);
   // Write the attributes in the ProjectedRow
-  *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(0))) = class_oid;
+  *(reinterpret_cast<ClassOid *>(pr->AccessForceNotNull(0))) = class_oid;
 
   result = columns_class_index_->InsertUnique(txn, *pr, tupleslot);
   TERRIER_ASSERT(result, "Assigned OIDs failed to be unique.");
@@ -427,49 +428,9 @@ bool DatabaseCatalog::CreateColumn(transaction::TransactionContext *const txn, c
   return true;
 }
 
-template <typename Column>
-std::unique_ptr<Column> DatabaseCatalog::GetColumn(transaction::TransactionContext *const txn,
-                                                   storage::VarlenEntry *const col_name, const uint32_t class_oid) {
-  // Step 1: Read Index
-  const std::vector<col_oid_t> table_oids{ATTNUM_COL_OID, ATTNAME_COL_OID,    ATTTYPID_COL_OID,
-                                          ATTLEN_COL_OID, ATTNOTNULL_COL_OID, ADBIN_COL_OID};
-  // NOLINTNEXTLINE
-  auto [table_pri, table_pm] = columns_->InitializerForProjectedRow(table_oids);
-  // Buffer is large enough to hold all prs
-  byte *const buffer = common::AllocationUtil::AllocateAligned(table_pri.ProjectedRowSize());
-  // Scan the name index
-  const auto name_pri = columns_name_index_->GetProjectedRowInitializer();
-  auto *pr = name_pri.InitializeRow(buffer);
-  // Write the attributes in the ProjectedRow. We know the offsets without the map because of the ordering of attribute
-  // sizes
-  *(reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(0))) = *col_name;
-  *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(1))) = class_oid;
-  std::vector<storage::TupleSlot> index_results;
-  columns_name_index_->ScanKey(*txn, *pr, &index_results);
-  if (index_results.empty()) {
-    // attribute not found in the index, so attribute doesn't exist. Free the buffer and return nullptr to indicate
-    // failure
-    delete[] buffer;
-    return nullptr;
-  }
-  TERRIER_ASSERT(index_results.size() == 1, "Column name not unique in index");
-  const auto tuple_slot = index_results[0];
-
-  // Step 2: Scan the table to get the column
-  pr = table_pri.InitializeRow(buffer);
-  const auto UNUSED_ATTRIBUTE result = columns_->Select(txn, tuple_slot, pr);
-  TERRIER_ASSERT(result, "Index scan did a visibility check, so Select shouldn't fail at this point.");
-
-  const auto col = postgres::AttributeHelper::MakeColumn<Column>(pr, table_pm);
-
-  // Finish
-  delete[] buffer;
-  return col;
-}
-
-template <typename Column>
-std::unique_ptr<Column> DatabaseCatalog::GetColumn(transaction::TransactionContext *const txn, const uint32_t col_oid,
-                                                   const uint32_t class_oid) {
+template <typename Column, typename ClassOid, typename ColOid>
+std::unique_ptr<Column> DatabaseCatalog::GetColumn(transaction::TransactionContext *const txn, const ClassOid class_oid,
+                                                   const ColOid col_oid) {
   // Step 1: Read Index
   const std::vector<col_oid_t> table_oids{ATTNUM_COL_OID, ATTNAME_COL_OID,    ATTTYPID_COL_OID,
                                           ATTLEN_COL_OID, ATTNOTNULL_COL_OID, ADBIN_COL_OID};
@@ -483,8 +444,8 @@ std::unique_ptr<Column> DatabaseCatalog::GetColumn(transaction::TransactionConte
   auto pr = oid_pri.InitializeRow(buffer);
   // Write the attributes in the ProjectedRow. These hardcoded indexkeycol_oids come from
   // Builder::GetColumnOidIndexSchema()
-  *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(oid_pm.at(indexkeycol_oid_t(2))))) = col_oid;
-  *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(oid_pm.at(indexkeycol_oid_t(1))))) = class_oid;
+  *(reinterpret_cast<ColOid *>(pr->AccessForceNotNull(oid_pm.at(indexkeycol_oid_t(2))))) = col_oid;
+  *(reinterpret_cast<ClassOid *>(pr->AccessForceNotNull(oid_pm.at(indexkeycol_oid_t(1))))) = class_oid;
   std::vector<storage::TupleSlot> index_results;
   columns_oid_index_->ScanKey(*txn, *pr, &index_results);
   if (index_results.empty()) {
@@ -501,16 +462,16 @@ std::unique_ptr<Column> DatabaseCatalog::GetColumn(transaction::TransactionConte
   const auto UNUSED_ATTRIBUTE result = columns_->Select(txn, tuple_slot, pr);
   TERRIER_ASSERT(result, "Index scan did a visibility check, so Select shouldn't fail at this point.");
 
-  const auto col = postgres::AttributeHelper::MakeColumn<Column>(pr, table_pm);
+  auto col = MakeColumn<Column, ColOid>(pr, table_pm);
 
   // Finish
   delete[] buffer;
   return col;
 }
 
-template <typename Column>
+template <typename Column, typename ClassOid>
 std::vector<std::unique_ptr<Column>> DatabaseCatalog::GetColumns(transaction::TransactionContext *const txn,
-                                                                 const uint32_t class_oid) {
+                                                                 const ClassOid class_oid) {
   // Step 1: Read Index
   const std::vector<col_oid_t> table_oids{ATTNUM_COL_OID, ATTNAME_COL_OID,    ATTTYPID_COL_OID,
                                           ATTLEN_COL_OID, ATTNOTNULL_COL_OID, ADBIN_COL_OID};
@@ -537,7 +498,7 @@ std::vector<std::unique_ptr<Column>> DatabaseCatalog::GetColumns(transaction::Tr
   for (const auto &slot : index_results) {
     const auto UNUSED_ATTRIBUTE result = columns_->Select(txn, slot, pr);
     TERRIER_ASSERT(result, "Index scan did a visibility check, so Select shouldn't fail at this point.");
-    cols.emplace_back(postgres::AttributeHelper::MakeColumn<Column>(pr, table_pm));
+    cols.emplace_back(MakeColumn<Column>(pr, table_pm));
   }
 
   // TODO(Matt): do we have any way to assert that we got the number of attributes we expect? From another attribute in
@@ -550,8 +511,8 @@ std::vector<std::unique_ptr<Column>> DatabaseCatalog::GetColumns(transaction::Tr
 
 // TODO(Matt): we need a DeleteColumn()
 
-template <typename Column>
-bool DatabaseCatalog::DeleteColumns(transaction::TransactionContext *const txn, const uint32_t class_oid) {
+template <typename Column, typename ClassOid>
+bool DatabaseCatalog::DeleteColumns(transaction::TransactionContext *const txn, const ClassOid class_oid) {
   // Step 1: Read Index
   const std::vector<col_oid_t> table_oids{ATTNUM_COL_OID, ATTNAME_COL_OID,    ATTTYPID_COL_OID,
                                           ATTLEN_COL_OID, ATTNOTNULL_COL_OID, ADBIN_COL_OID};
@@ -580,7 +541,7 @@ bool DatabaseCatalog::DeleteColumns(transaction::TransactionContext *const txn, 
     const auto UNUSED_ATTRIBUTE result = columns_->Select(txn, slot, pr);
     TERRIER_ASSERT(result, "Index scan did a visibility check, so Select shouldn't fail at this point.");
 
-    auto col = postgres::AttributeHelper::MakeColumn<Column>(pr, table_pm);
+    auto col = MakeColumn<Column>(pr, table_pm);  // TODO(Matt): dont need to instantiate in order to get the name
     // 1. Delete from class index
     pr = class_pri.InitializeRow(buffer);
     *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(0))) = class_oid;
@@ -599,7 +560,7 @@ bool DatabaseCatalog::DeleteColumns(transaction::TransactionContext *const txn, 
     // 3. Delete from name index
     auto name_pri = columns_name_index_->GetProjectedRowInitializer();
     pr = name_pri.InitializeRow(buffer);
-    const storage::VarlenEntry name_varlen = postgres::AttributeHelper::MakeNameVarlen<Column>(*col);
+    const storage::VarlenEntry name_varlen = storage::StorageUtil::CreateVarlen(col.Name());
     // Write the attributes in the ProjectedRow. We know the offsets without the map because of the ordering of
     // attribute sizes
     *(reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(0))) = name_varlen;
@@ -1629,5 +1590,39 @@ std::pair<void *, postgres::ClassKind> DatabaseCatalog::GetClassSchemaPtrKind(tr
   delete[] buffer;
   return {ptr, kind};
 }
+template <typename Column, typename ColOid>
+static std::unique_ptr<Column> MakeColumn(storage::ProjectedRow *const pr, const storage::ProjectionMap &table_pm) {
+  // TODO(Matt): make this return stack object
+  auto col_oid = *reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(table_pm[ATTNUM_COL_OID]));
+  auto col_name = reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(table_pm[ATTNAME_COL_OID]));
+  auto col_type = *reinterpret_cast<type::TypeId *>(pr->AccessForceNotNull(table_pm[ATTTYPID_COL_OID]));
+  auto col_len = *reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(table_pm[ATTLEN_COL_OID]));
+  auto col_null = !(*reinterpret_cast<bool *>(pr->AccessForceNotNull(table_pm[ATTNOTNULL_COL_OID])));
+  auto *col_expr =
+      reinterpret_cast<const parser::AbstractExpression *>(pr->AccessForceNotNull(table_pm[ADBIN_COL_OID]));
+
+  std::unique_ptr<Column> col;
+  std::string name(reinterpret_cast<const char *>(col_name->Content()), col_name->Size());
+  if (col_type == type::TypeId::VARCHAR || col_type == type::TypeId::VARBINARY) {
+    col = std::make_unique<Column>(name, col_type, col_len, col_null, *col_expr);
+  } else {
+    col = std::make_unique<Column>(name, col_type, col_null, *col_expr);
+  }
+  col->SetOid(ColOid(col_oid));
+  return col;
+}
+
+template bool DatabaseCatalog::CreateColumn<Schema::Column, table_oid_t>(transaction::TransactionContext *const txn,
+                                                                         const table_oid_t class_oid,
+                                                                         const Schema::Column &col);
+template bool DatabaseCatalog::CreateColumn<IndexSchema::Column, index_oid_t>(
+    transaction::TransactionContext *const txn, const index_oid_t class_oid, const IndexSchema::Column &col);
+
+template std::unique_ptr<Schema::Column> DatabaseCatalog::GetColumn<Schema::Column, table_oid_t, col_oid_t>(
+    transaction::TransactionContext *const txn, const table_oid_t class_oid, const col_oid_t col_oid);
+
+template std::unique_ptr<IndexSchema::Column>
+DatabaseCatalog::GetColumn<IndexSchema::Column, index_oid_t, indexkeycol_oid_t>(
+    transaction::TransactionContext *const txn, const index_oid_t class_oid, const indexkeycol_oid_t col_oid);
 
 }  // namespace terrier::catalog

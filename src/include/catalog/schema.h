@@ -86,10 +86,11 @@ class Schema {
      * @return true if the column is nullable, false otherwise
      */
     bool Nullable() const { return nullable_; }
+
     /**
      * @return size of the attribute in bytes. Varlen attributes have the sign bit set.
      */
-    uint8_t GetAttrSize() const { return attr_size_; }
+    uint8_t AttrSize() const { return attr_size_; }
 
     /**
      * @return The maximum length of this column (only valid if it's VARLEN)

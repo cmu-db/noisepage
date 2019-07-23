@@ -242,21 +242,8 @@ class DatabaseCatalog {
    * @param default_val default value
    * @return whether insertion is successful
    */
-  template <typename Column>
-  bool CreateColumn(transaction::TransactionContext *txn, uint32_t class_oid, const Column &col,
-                    const parser::AbstractExpression *default_val);
-
-  /**
-   * Get entry from pg_attribute
-   * @tparam Column type of columns
-   * @param txn txn to use
-   * @param col_name name of the column
-   * @param class_oid oid of table or index
-   * @return the column from pg_attribute
-   */
-  template <typename Column>
-  std::unique_ptr<Column> GetColumn(transaction::TransactionContext *consttxn, storage::VarlenEntry *constcol_name,
-                                    const uint32_t class_oid);
+  template <typename Column, typename ClassOid>
+  bool CreateColumn(transaction::TransactionContext *txn, ClassOid class_oid, const Column &col);
 
   /**
    * Get entry from pg_attribute
@@ -266,9 +253,10 @@ class DatabaseCatalog {
    * @param class_oid oid of table or index
    * @return the column from pg_attribute
    */
-  template <typename Column>
-  std::unique_ptr<Column> GetColumn(transaction::TransactionContext *consttxn, const uint32_t col_oid,
-                                    const uint32_t class_oid);
+  template <typename Column, typename ClassOid, typename ColOid>
+  std::unique_ptr<Column> GetColumn(transaction::TransactionContext *const txn, const ClassOid class_oid,
+                                    const ColOid col_oid);
+  // TODO(Matt): make this return stack object
 
   /**
    * Get entries from pg_attribute
@@ -277,8 +265,9 @@ class DatabaseCatalog {
    * @param class_oid oid of table or index
    * @return the column from pg_attribute
    */
-  template <typename Column>
-  std::vector<std::unique_ptr<Column>> GetColumns(transaction::TransactionContext *consttxn, const uint32_t class_oid);
+  template <typename Column, typename ClassOid>
+  std::vector<std::unique_ptr<Column>> GetColumns(transaction::TransactionContext *consttxn, const ClassOid class_oid);
+  // TODO(Matt): make this return stack object
 
   /**
    * Delete entries from pg_attribute
@@ -286,8 +275,8 @@ class DatabaseCatalog {
    * @param txn txn to use
    * @return the column from pg_attribute
    */
-  template <typename Column>
-  bool DeleteColumns(transaction::TransactionContext *txn, uint32_t class_oid);
+  template <typename Column, typename ClassOid>
+  bool DeleteColumns(transaction::TransactionContext *txn, ClassOid class_oid);
 
   storage::SqlTable *namespaces_;
   storage::index::Index *namespaces_oid_index_;
@@ -413,5 +402,14 @@ class DatabaseCatalog {
    */
   template <typename ClassOid, typename Class>
   bool SetClassPointer(transaction::TransactionContext *txn, ClassOid oid, const Class *pointer);
+
+  /**
+   * @tparam Column column type (either index or table)
+   * @param pr ProjectedRow to populate
+   * @param table_pm ProjectionMap for the ProjectedRow
+   * @return heap-allocated column managed by unique_ptr
+   */
+  template <typename Column, typename ColOid>
+  static std::unique_ptr<Column> MakeColumn(storage::ProjectedRow *pr, const storage::ProjectionMap &table_pm);
 };
 }  // namespace terrier::catalog

@@ -72,6 +72,11 @@ class IndexSchema {
     }
 
     /**
+     * @return column name
+     */
+    const std::string &Name() const { return name_; }
+
+    /**
      * @return oid of this key column
      */
     indexkeycol_oid_t Oid() const { return oid_; }
@@ -86,6 +91,11 @@ class IndexSchema {
      * @return maximum varlen size of this varlen column
      */
     uint16_t MaxVarlenSize() const { return static_cast<uint16_t>((packed_type_ & MASK_VARLEN) >> OFFSET_VARLEN); }
+
+    /**
+     * @return size of the attribute in bytes. Varlen attributes have the sign bit set.
+     */
+    uint8_t AttrSize() const { return type::TypeUtil::GetTypeSize(Type()); }
 
     /**
      * @return type of this key column
