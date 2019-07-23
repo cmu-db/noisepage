@@ -50,7 +50,8 @@ class Schema {
           type_(type),
           attr_size_(type::TypeUtil::GetTypeSize(type_)),
           nullable_(nullable),
-          oid_(INVALID_COLUMN_OID) {
+          oid_(INVALID_COLUMN_OID),
+          default_value_(common::ManagedPointer<const parser::AbstractExpression>(&default_value)) {
       TERRIER_ASSERT(attr_size_ == 1 || attr_size_ == 2 || attr_size_ == 4 || attr_size_ == 8,
                      "This constructor is meant for non-VARLEN columns.");
       TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
@@ -71,7 +72,8 @@ class Schema {
           attr_size_(type::TypeUtil::GetTypeSize(type_)),
           max_varlen_size_(max_varlen_size),
           nullable_(nullable),
-          oid_(INVALID_COLUMN_OID) {
+          oid_(INVALID_COLUMN_OID),
+          default_value_(common::ManagedPointer<const parser::AbstractExpression>(&default_value)) {
       TERRIER_ASSERT(attr_size_ == VARLEN_COLUMN, "This constructor is meant for VARLEN columns.");
       TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
     }
@@ -101,10 +103,16 @@ class Schema {
      * @return SQL type for this column
      */
     type::TypeId Type() const { return type_; }
+
     /**
      * @return internal unique identifier for this column
      */
     col_oid_t Oid() const { return oid_; }
+
+    /**
+     * @return default value expression
+     */
+    common::ManagedPointer<const parser::AbstractExpression> StoredExpression() const { return default_value_; }
 
     /**
      * Default constructor for deserialization
@@ -145,8 +153,7 @@ class Schema {
     uint16_t max_varlen_size_;
     bool nullable_;
     col_oid_t oid_;
-    // TODO(Matt): default value would go here. requires pg_attribute to be implemented?
-    // common::ManagedPointer<parser::AbstractExpression> default_value_;
+    common::ManagedPointer<const parser::AbstractExpression> default_value_;
 
     void SetOid(col_oid_t oid) { oid_ = oid; }
 

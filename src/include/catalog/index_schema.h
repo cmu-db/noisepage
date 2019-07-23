@@ -38,10 +38,13 @@ class IndexSchema {
      * @param name column name (column name or "expr")
      * @param type_id the non-varlen type of the column
      * @param nullable whether the column is nullable
-     * @param expression definition of this attribute
+     * @param definition definition of this attribute
      */
-    Column(std::string name, type::TypeId type_id, bool nullable, const parser::AbstractExpression &expression)
-        : name_(std::move(name)), oid_(INVALID_INDEXKEYCOL_OID), packed_type_(0) {
+    Column(std::string name, type::TypeId type_id, bool nullable, const parser::AbstractExpression &definition)
+        : name_(std::move(name)),
+          oid_(INVALID_INDEXKEYCOL_OID),
+          packed_type_(0),
+          definition_(common::ManagedPointer<const parser::AbstractExpression>(&definition)) {
       TERRIER_ASSERT(!(type_id == type::TypeId::VARCHAR || type_id == type::TypeId::VARBINARY),
                      "Non-varlen constructor.");
       SetTypeId(type_id);
@@ -54,11 +57,14 @@ class IndexSchema {
      * @param type_id the varlen type of the column
      * @param max_varlen_size the maximum varlen size
      * @param nullable whether the column is nullable
-     * @param expression definition of this attribute
+     * @param definition definition of this attribute
      */
     Column(std::string name, type::TypeId type_id, uint16_t max_varlen_size, bool nullable,
-           const parser::AbstractExpression &expression)
-        : name_(std::move(name)), oid_(INVALID_INDEXKEYCOL_OID), packed_type_(0) {
+           const parser::AbstractExpression &definition)
+        : name_(std::move(name)),
+          oid_(INVALID_INDEXKEYCOL_OID),
+          packed_type_(0),
+          definition_(common::ManagedPointer<const parser::AbstractExpression>(&definition)) {
       TERRIER_ASSERT(type_id == type::TypeId::VARCHAR || type_id == type::TypeId::VARBINARY, "Varlen constructor.");
       SetTypeId(type_id);
       SetNullable(nullable);
@@ -66,19 +72,14 @@ class IndexSchema {
     }
 
     /**
-     * Copy constructor that handles deep copying of expressions by reserializing the expression
-     * @param original column to be copied
-     */
-    Column(const Column &original)
-        : oid_(original.oid_),
-          packed_type_(original.packed_type_),
-          expression_(nullptr),
-          serialized_expression_(original.serialized_expression_) {}
-
-    /**
      * @return oid of this key column
      */
     indexkeycol_oid_t Oid() const { return oid_; }
+
+    /**
+     * @return definition expression
+     */
+    common::ManagedPointer<const parser::AbstractExpression> StoredExpression() const { return definition_; }
 
     /**
      * @warning only defined for varlen types
@@ -105,7 +106,7 @@ class IndexSchema {
     std::string name_;
     indexkeycol_oid_t oid_;
     uint32_t packed_type_;
-    parser::AbstractExpression *expression_;
+    common::ManagedPointer<const parser::AbstractExpression> definition_;
     std::string serialized_expression_;
 
     // TODO(John): Should these "OIDS" be implicitly set by the index in the columns?

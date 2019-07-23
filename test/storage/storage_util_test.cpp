@@ -184,7 +184,7 @@ TEST_F(StorageUtilTests, ApplyDelta) {
 // NOLINTNEXTLINE
 TEST_F(StorageUtilTests, ForceOid) {
   auto index_col = catalog::IndexSchema::Column(
-      std::string(), type::TypeId::INTEGER, false,
+      "", type::TypeId::INTEGER, false,
       parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
   auto idx_col_oid = catalog::indexkeycol_oid_t(1);
   StorageTestUtil::ForceOid(&(index_col), idx_col_oid);
