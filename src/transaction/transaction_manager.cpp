@@ -109,6 +109,9 @@ timestamp_t TransactionManager::UpdatingCommitCriticalSection(TransactionContext
 
 timestamp_t TransactionManager::Commit(TransactionContext *const txn, transaction::callback_fn callback,
                                        void *callback_arg) {
+  TERRIER_ASSERT(!txn->must_abort_,
+                 "This txn was marked that it must abort. Set a breakpoint at TransactionContext::MustAbort() to see a "
+                 "stack trace for when this flag is getting tripped.");
   const timestamp_t result = txn->undo_buffer_.Empty() ? ReadOnlyCommitCriticalSection(txn, callback, callback_arg)
                                                        : UpdatingCommitCriticalSection(txn, callback, callback_arg);
   while (!txn->commit_actions_.empty()) {
@@ -160,8 +163,9 @@ void TransactionManager::LogAbort(TransactionContext *const txn) {
 timestamp_t TransactionManager::Abort(TransactionContext *const txn) {
   // Immediately clear the abort actions stack
   while (!txn->abort_actions_.empty()) {
-    txn->abort_actions_.front()();
+    auto action = txn->abort_actions_.front();
     txn->abort_actions_.pop_front();
+    action();
   }
 
   // We need to beware not to rollback a version chain multiple times, as that is just wasted computation

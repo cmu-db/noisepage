@@ -6,6 +6,7 @@
 #include <map>
 #include <random>
 #include <vector>
+#include "parser/expression/column_value_expression.h"
 #include "portable_endian/portable_endian.h"
 #include "storage/garbage_collector_thread.h"
 #include "storage/index/compact_ints_key.h"
@@ -30,18 +31,36 @@ class BwTreeIndexTests : public TerrierTest {
 
   storage::BlockStore block_store_{1000, 1000};
   storage::RecordBufferSegmentPool buffer_pool_{1000000, 1000000};
-  const catalog::Schema table_schema_{
-      catalog::Schema({{"attribute", type::TypeId::INTEGER, false, catalog::col_oid_t(0)}})};
-  const IndexKeySchema key_schema_{{catalog::indexkeycol_oid_t(1), type::TypeId::INTEGER, false}};
+  catalog::Schema table_schema_;
+  catalog::IndexSchema unique_schema_;
+  catalog::IndexSchema default_schema_;
 
  public:
+  BwTreeIndexTests() {
+    auto col = catalog::Schema::Column(
+        "attribute", type::TypeId::INTEGER, false,
+        parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+    StorageTestUtil::ForceOid(&(col), catalog::col_oid_t(1));
+    table_schema_ = catalog::Schema({col});
+    sql_table_ = new storage::SqlTable(&block_store_, table_schema_);
+    tuple_initializer_ = sql_table_->InitializerForProjectedRow({catalog::col_oid_t(1)}).first;
+
+    std::vector<catalog::IndexSchema::Column> keycols;
+    keycols.emplace_back(
+        "", type::TypeId::INTEGER, false,
+        parser::ColumnValueExpression(catalog::db_oid_t(0), catalog::table_oid_t(0), catalog::col_oid_t(1)));
+    StorageTestUtil::ForceOid(&(keycols[0]), catalog::indexkeycol_oid_t(1));
+    unique_schema_ = catalog::IndexSchema(keycols, true, true, false, true);
+    default_schema_ = catalog::IndexSchema(keycols, false, false, false, true);
+  }
+
   std::default_random_engine generator_;
   const uint32_t num_threads_ = 4;
 
   // SqlTable
-  storage::SqlTable *const sql_table_{new storage::SqlTable(&block_store_, table_schema_, catalog::table_oid_t(1))};
-  const storage::ProjectedRowInitializer tuple_initializer_{
-      sql_table_->InitializerForProjectedRow({catalog::col_oid_t(0)}).first};
+  storage::SqlTable *sql_table_;
+  storage::ProjectedRowInitializer tuple_initializer_ =
+      storage::ProjectedRowInitializer::Create(std::vector<uint8_t>{1}, {1});
 
   // BwTreeIndex
   Index *default_index_, *unique_index_;
@@ -58,12 +77,12 @@ class BwTreeIndexTests : public TerrierTest {
 
     unique_index_ = (IndexBuilder()
                          .SetConstraintType(ConstraintType::UNIQUE)
-                         .SetKeySchema(key_schema_)
+                         .SetKeySchema(unique_schema_)
                          .SetOid(catalog::index_oid_t(2)))
                         .Build();
     default_index_ = (IndexBuilder()
                           .SetConstraintType(ConstraintType::DEFAULT)
-                          .SetKeySchema(key_schema_)
+                          .SetKeySchema(default_schema_)
                           .SetOid(catalog::index_oid_t(2)))
                          .Build();
 
