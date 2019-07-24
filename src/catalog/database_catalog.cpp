@@ -205,7 +205,8 @@ namespace_oid_t DatabaseCatalog::CreateNamespace(transaction::TransactionContext
 bool DatabaseCatalog::CreateNamespace(transaction::TransactionContext *const txn, const std::string &name,
                                       const namespace_oid_t ns_oid) {
   // Step 1: Insert into table
-  const auto name_varlen = storage::StorageUtil::CreateVarlen(name);
+  auto name_varlen = storage::StorageUtil::CreateVarlen(name);
+  name_varlen.ToLower();
   // Get & Fill Redo Record
   const std::vector<col_oid_t> table_oids{NSPNAME_COL_OID, NSPOID_COL_OID};
   // NOLINTNEXTLINE
@@ -308,7 +309,8 @@ namespace_oid_t DatabaseCatalog::GetNamespaceOid(transaction::TransactionContext
   byte *const buffer = common::AllocationUtil::AllocateAligned(name_pri.ProjectedRowSize());
   auto *pr = name_pri.InitializeRow(buffer);
   // Scan the name index
-  const auto name_varlen = storage::StorageUtil::CreateVarlen(name);
+  auto name_varlen = storage::StorageUtil::CreateVarlen(name);
+  name_varlen.ToLower();
   *(reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(0))) = name_varlen;
   std::vector<storage::TupleSlot> index_results;
   namespaces_name_index_->ScanKey(*txn, *pr, &index_results);
@@ -360,7 +362,9 @@ bool DatabaseCatalog::CreateColumn(transaction::TransactionContext *const txn, c
       reinterpret_cast<storage::VarlenEntry *>(redo->Delta()->AccessForceNotNull(table_pm[ADSRC_COL_OID]));
   *oid_entry = static_cast<uint32_t>(col.Oid());
   *relid_entry = class_oid;
-  const storage::VarlenEntry name_varlen = storage::StorageUtil::CreateVarlen(col.Name());
+  storage::VarlenEntry name_varlen = storage::StorageUtil::CreateVarlen(col.Name());
+  name_varlen.ToLower();
+
   *name_entry = name_varlen;
   *type_entry = col.Type();
   // TODO(Amadou): Figure out what really goes here for varlen. Unclear if it's attribute size (16) or varlen length
@@ -705,7 +709,8 @@ std::pair<uint32_t, postgres::ClassKind> DatabaseCatalog::GetClassOidKind(transa
                                                                           const std::string &name) {
   const auto name_pri = classes_name_index_->GetProjectedRowInitializer();
 
-  const auto name_varlen = storage::StorageUtil::CreateVarlen(name);
+  auto name_varlen = storage::StorageUtil::CreateVarlen(name);
+  name_varlen.ToLower();
 
   // Buffer is large enough to hold all prs
   auto *const buffer = common::AllocationUtil::AllocateAligned(name_pri.ProjectedRowSize());
@@ -1175,7 +1180,8 @@ bool DatabaseCatalog::CreateIndexEntry(transaction::TransactionContext *const tx
   auto *index_oid_ptr = class_insert_pr->AccessForceNotNull(index_oid_offset);
   *(reinterpret_cast<uint32_t *>(index_oid_ptr)) = static_cast<uint32_t>(index_oid);
 
-  const auto name_varlen = storage::StorageUtil::CreateVarlen(name);
+  auto name_varlen = storage::StorageUtil::CreateVarlen(name);
+  name_varlen.ToLower();
 
   // Write the name into the PR
   const auto name_offset = pr_map[RELNAME_COL_OID];
@@ -1339,7 +1345,9 @@ void DatabaseCatalog::InsertType(transaction::TransactionContext *txn, type::Typ
 
   // Populate type name
   offset = col_map[TYPNAME_COL_OID];
-  const auto name_varlen = storage::StorageUtil::CreateVarlen(name);
+  auto name_varlen = storage::StorageUtil::CreateVarlen(name);
+  name_varlen.ToLower();
+
   *(reinterpret_cast<storage::VarlenEntry *>(delta->AccessForceNotNull(offset))) = name_varlen;
 
   // Populate namespace
@@ -1403,35 +1411,35 @@ void DatabaseCatalog::InsertType(transaction::TransactionContext *txn, type::Typ
 }
 
 void DatabaseCatalog::BootstrapTypes(transaction::TransactionContext *txn) {
-  InsertType(txn, type::TypeId::INVALID, "INVALID", NAMESPACE_CATALOG_NAMESPACE_OID, 1, true, postgres::Type::BASE);
+  InsertType(txn, type::TypeId::INVALID, "invalid", NAMESPACE_CATALOG_NAMESPACE_OID, 1, true, postgres::Type::BASE);
 
-  InsertType(txn, type::TypeId::BOOLEAN, "BOOLEAN", NAMESPACE_CATALOG_NAMESPACE_OID, sizeof(bool), true,
+  InsertType(txn, type::TypeId::BOOLEAN, "boolean", NAMESPACE_CATALOG_NAMESPACE_OID, sizeof(bool), true,
              postgres::Type::BASE);
 
-  InsertType(txn, type::TypeId::TINYINT, "TINYINT", NAMESPACE_CATALOG_NAMESPACE_OID, sizeof(int8_t), true,
+  InsertType(txn, type::TypeId::TINYINT, "tinyint", NAMESPACE_CATALOG_NAMESPACE_OID, sizeof(int8_t), true,
              postgres::Type::BASE);
 
-  InsertType(txn, type::TypeId::SMALLINT, "SMALLINT", NAMESPACE_CATALOG_NAMESPACE_OID, sizeof(int16_t), true,
+  InsertType(txn, type::TypeId::SMALLINT, "smallint", NAMESPACE_CATALOG_NAMESPACE_OID, sizeof(int16_t), true,
              postgres::Type::BASE);
 
-  InsertType(txn, type::TypeId::INTEGER, "INTEGER", NAMESPACE_CATALOG_NAMESPACE_OID, sizeof(int32_t), true,
+  InsertType(txn, type::TypeId::INTEGER, "integer", NAMESPACE_CATALOG_NAMESPACE_OID, sizeof(int32_t), true,
              postgres::Type::BASE);
 
-  InsertType(txn, type::TypeId::BIGINT, "BIGINT", NAMESPACE_CATALOG_NAMESPACE_OID, sizeof(int64_t), true,
+  InsertType(txn, type::TypeId::BIGINT, "bigint", NAMESPACE_CATALOG_NAMESPACE_OID, sizeof(int64_t), true,
              postgres::Type::BASE);
 
-  InsertType(txn, type::TypeId::DECIMAL, "DECIMAL", NAMESPACE_CATALOG_NAMESPACE_OID, sizeof(double), true,
+  InsertType(txn, type::TypeId::DECIMAL, "decimal", NAMESPACE_CATALOG_NAMESPACE_OID, sizeof(double), true,
              postgres::Type::BASE);
 
-  InsertType(txn, type::TypeId::TIMESTAMP, "TIMESTAMP", NAMESPACE_CATALOG_NAMESPACE_OID, sizeof(type::timestamp_t),
+  InsertType(txn, type::TypeId::TIMESTAMP, "timestamp", NAMESPACE_CATALOG_NAMESPACE_OID, sizeof(type::timestamp_t),
              true, postgres::Type::BASE);
 
-  InsertType(txn, type::TypeId::DATE, "DATE", NAMESPACE_CATALOG_NAMESPACE_OID, sizeof(type::date_t), true,
+  InsertType(txn, type::TypeId::DATE, "date", NAMESPACE_CATALOG_NAMESPACE_OID, sizeof(type::date_t), true,
              postgres::Type::BASE);
 
-  InsertType(txn, type::TypeId::VARCHAR, "VARCHAR", NAMESPACE_CATALOG_NAMESPACE_OID, -1, false, postgres::Type::BASE);
+  InsertType(txn, type::TypeId::VARCHAR, "varchar", NAMESPACE_CATALOG_NAMESPACE_OID, -1, false, postgres::Type::BASE);
 
-  InsertType(txn, type::TypeId::VARBINARY, "VARBINARY", NAMESPACE_CATALOG_NAMESPACE_OID, -1, false,
+  InsertType(txn, type::TypeId::VARBINARY, "varbinary", NAMESPACE_CATALOG_NAMESPACE_OID, -1, false,
              postgres::Type::BASE);
 }
 
@@ -1475,7 +1483,8 @@ bool DatabaseCatalog::CreateTableEntry(transaction::TransactionContext *const tx
   *(reinterpret_cast<char *>(kind_ptr)) = static_cast<char>(postgres::ClassKind::REGULAR_TABLE);
 
   // Create the necessary varlen for storage operations
-  const auto name_varlen = storage::StorageUtil::CreateVarlen(name);
+  auto name_varlen = storage::StorageUtil::CreateVarlen(name);
+  name_varlen.ToLower();
 
   // Write the name into the PR
   const auto name_offset = pr_map[RELNAME_COL_OID];

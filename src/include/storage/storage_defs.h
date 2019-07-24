@@ -306,10 +306,27 @@ class VarlenEntry {
     return std::string_view(reinterpret_cast<const char *const>(Content()), Size());
   }
 
+  /**
+   * Helper function to normalize a varlen to lowercase in place
+   */
+  void ToLower() {
+    // If we're not inlined, then we need to fix the prefix array in addition to the actual string
+    byte *content = prefix_;
+    if (!IsInlined()) {
+      content = content_;
+      for (auto i = 0u; i < sizeof(uint32_t); i++)
+        prefix_[i] = static_cast<byte>(std::tolower(static_cast<unsigned char>(prefix_[i])));
+    }
+
+    // Process the full content (doubles as the prefix for inlined strings)
+    for (auto i = 0; i < (size_ & (INT32_MAX - 1)); i++)
+      content[i] = static_cast<byte>(std::tolower(static_cast<unsigned char>(content[i])));
+  }
+
  private:
   int32_t size_;                   // buffer reclaimable => sign bit is 0 or size <= InlineThreshold
   byte prefix_[sizeof(uint32_t)];  // Explicit padding so that we can use these bits for inlined values or prefix
-  const byte *content_;            // pointer to content of the varlen entry if not inlined
+  byte *content_;                  // pointer to content of the varlen entry if not inlined
 };
 // To make sure our explicit padding is not screwing up the layout
 static_assert(sizeof(VarlenEntry) == 16, "size of the class should be 16 bytes");
