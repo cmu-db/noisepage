@@ -297,9 +297,12 @@ TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
   log_manager->Start();
 
   // Create SQLTable
-  auto col = catalog::Schema::Column("attribute", type::TypeId::INTEGER, false, catalog::col_oid_t(0));
-  auto table_schema = catalog::Schema({col});
-  storage::SqlTable sql_table(injector.create<storage::BlockStore *>(), table_schema, CatalogTestUtil::test_table_oid);
+  auto col = catalog::Schema::Column(
+      "attribute", type::TypeId::INTEGER, false,
+      parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+  StorageTestUtil::ForceOid(&(col), catalog::col_oid_t(0));
+  auto table_schema = catalog::Schema(std::vector<catalog::Schema::Column>({col}));
+  storage::SqlTable sql_table(injector.create<storage::BlockStore *>(), table_schema);
   auto tuple_initializer = sql_table.InitializerForProjectedRow({catalog::col_oid_t(0)}).first;
 
   auto *txn_manager = injector.create<transaction::TransactionManager *>();
@@ -372,9 +375,12 @@ TEST_F(WriteAheadLoggingTests, NoAbortRecordTest) {
   log_manager->Start();
 
   // Create SQLTable
-  auto col = catalog::Schema::Column("attribute", type::TypeId::INTEGER, false, catalog::col_oid_t(0));
-  auto table_schema = catalog::Schema({col});
-  storage::SqlTable sql_table(injector.create<storage::BlockStore *>(), table_schema, CatalogTestUtil::test_table_oid);
+  auto col = catalog::Schema::Column(
+      "attribute", type::TypeId::INTEGER, false,
+      parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+  StorageTestUtil::ForceOid(&(col), catalog::col_oid_t(0));
+  auto table_schema = catalog::Schema(std::vector<catalog::Schema::Column>({col}));
+  storage::SqlTable sql_table(injector.create<storage::BlockStore *>(), table_schema);
   auto tuple_initializer = sql_table.InitializerForProjectedRow({catalog::col_oid_t(0)}).first;
 
   // Initialize first transaction, this txn will write a single tuple

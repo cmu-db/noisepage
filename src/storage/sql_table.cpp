@@ -6,8 +6,7 @@
 
 namespace terrier::storage {
 
-SqlTable::SqlTable(BlockStore *const store, const catalog::Schema &schema, const catalog::table_oid_t oid)
-    : block_store_(store), oid_(oid) {
+SqlTable::SqlTable(BlockStore *const store, const catalog::Schema &schema) : block_store_(store) {
   // Begin with the NUM_RESERVED_COLUMNS in the attr_sizes
   std::vector<uint8_t> attr_sizes;
   attr_sizes.reserve(NUM_RESERVED_COLUMNS + schema.GetColumns().size());
@@ -20,7 +19,7 @@ SqlTable::SqlTable(BlockStore *const store, const catalog::Schema &schema, const
                  "attr_sizes should be initialized with NUM_RESERVED_COLUMNS elements.");
 
   for (const auto &column : schema.GetColumns()) {
-    attr_sizes.push_back(column.GetAttrSize());
+    attr_sizes.push_back(column.AttrSize());
   }
 
   auto offsets = storage::StorageUtil::ComputeBaseAttributeOffsets(attr_sizes, NUM_RESERVED_COLUMNS);
@@ -28,21 +27,21 @@ SqlTable::SqlTable(BlockStore *const store, const catalog::Schema &schema, const
   ColumnMap col_oid_to_id;
   // Build the map from Schema columns to underlying columns
   for (const auto &column : schema.GetColumns()) {
-    switch (column.GetAttrSize()) {
+    switch (column.AttrSize()) {
       case VARLEN_COLUMN:
-        col_oid_to_id[column.GetOid()] = col_id_t(offsets[0]++);
+        col_oid_to_id[column.Oid()] = col_id_t(offsets[0]++);
         break;
       case 8:
-        col_oid_to_id[column.GetOid()] = col_id_t(offsets[1]++);
+        col_oid_to_id[column.Oid()] = col_id_t(offsets[1]++);
         break;
       case 4:
-        col_oid_to_id[column.GetOid()] = col_id_t(offsets[2]++);
+        col_oid_to_id[column.Oid()] = col_id_t(offsets[2]++);
         break;
       case 2:
-        col_oid_to_id[column.GetOid()] = col_id_t(offsets[3]++);
+        col_oid_to_id[column.Oid()] = col_id_t(offsets[3]++);
         break;
       case 1:
-        col_oid_to_id[column.GetOid()] = col_id_t(offsets[4]++);
+        col_oid_to_id[column.Oid()] = col_id_t(offsets[4]++);
         break;
       default:
         throw std::runtime_error("unexpected switch case value");

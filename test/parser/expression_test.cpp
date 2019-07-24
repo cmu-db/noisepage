@@ -179,8 +179,8 @@ TEST(ExpressionTests, ConstantValueExpressionTest) {
 // NOLINTNEXTLINE
 TEST(ExpressionTests, ConstantValueExpressionJsonTest) {
   // Create expression
-  auto value = type::TransientValueFactory::GetVarChar("ConstantValueExpressionJsonTest");
-  auto original_expr = std::make_shared<ConstantValueExpression>(value);
+  auto original_expr = std::make_shared<ConstantValueExpression>(
+      type::TransientValueFactory::GetVarChar("ConstantValueExpressionJsonTest"));
 
   EXPECT_EQ(*original_expr, *(original_expr->Copy()));
 
@@ -197,7 +197,8 @@ TEST(ExpressionTests, ConstantValueExpressionJsonTest) {
   // Deserialize expression
   auto deserialized_expression = DeserializeExpression(json);
   EXPECT_EQ(*original_expr, *deserialized_expression);
-  EXPECT_EQ(static_cast<ConstantValueExpression *>(deserialized_expression.get())->GetValue(), value);
+  EXPECT_EQ(static_cast<ConstantValueExpression *>(deserialized_expression.get())->GetValue(),
+            type::TransientValueFactory::GetVarChar("ConstantValueExpressionJsonTest"));
 }
 
 // NOLINTNEXTLINE
