@@ -34,7 +34,7 @@ class BinderCorrectnessTest : public TerrierTest {
   catalog::table_oid_t table_a_oid_;
   catalog::table_oid_t table_b_oid_;
   parser::PostgresParser parser_;
-  transaction::TransactionManager txn_manager_{&buffer_pool_, true, LOGGING_DISABLED};
+  transaction::TransactionManager *txn_manager_;
   transaction::TransactionContext *txn_;
   catalog::CatalogAccessor *accessor_;
   binder::BindNodeVisitor *binder_;
@@ -43,43 +43,48 @@ class BinderCorrectnessTest : public TerrierTest {
     // Run the GC to flush it down to a clean system
     gc_->PerformGarbageCollection();
     gc_->PerformGarbageCollection();
+    gc_->PerformGarbageCollection();
   }
 
   void SetUpTables() {
     // This function should be run before the starting of first testcase
 
-    gc_ = new storage::GarbageCollector(&txn_manager_);
-    txn_ = txn_manager_.BeginTransaction();
+    txn_manager_ = new transaction::TransactionManager(&buffer_pool_, true, LOGGING_DISABLED);
+    gc_ = new storage::GarbageCollector(txn_manager_);
+    txn_ = txn_manager_->BeginTransaction();
     // new catalog requires txn_manage and block_store as parameters
-    catalog_ = new catalog::Catalog(&txn_manager_, &block_store_);
-    txn_manager_.Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
-    flush();
+    catalog_ = new catalog::Catalog(txn_manager_, &block_store_);
+//    txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
+//    flush();
 
     // create database
-    txn_ = txn_manager_.BeginTransaction();
+    txn_ = txn_manager_->BeginTransaction();
     LOG_INFO("Creating database %s", default_database_name_.c_str());
     db_oid_ = catalog_->CreateDatabase(txn_, default_database_name_, true);
     // commit the transactions
-    txn_manager_.Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
+    txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
     LOG_INFO("database %s created!", default_database_name_.c_str());
     flush();
 
-    // Create namespace
-    txn_ = txn_manager_.BeginTransaction();
-    // get the catalog accessor
-    accessor_ = catalog_->GetAccessor(txn_, db_oid_);
-    // create a namespace
-    ns_oid_ = accessor_->CreateNamespace(default_ns_name_);
-    accessor_->SetSearchPath(std::vector<catalog::namespace_oid_t>{ns_oid_});
-    txn_manager_.Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
-    flush();
+//    // Create namespace
+//    txn_ = txn_manager_->BeginTransaction();
+//    // get the catalog accessor
+//    accessor_ = catalog_->GetAccessor(txn_, db_oid_);
+//    // create a namespace
+//    ns_oid_ = accessor_->CreateNamespace(default_ns_name_);
+//    accessor_->SetSearchPath({ns_oid_});
+//    EXPECT_EQ(accessor_->GetDefaultNamespace(), ns_oid_);
+//
+//    txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
+//    delete accessor_;
+////    flush();
 
     // get default values of the columns
     auto int_default = parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
     auto varchar_default = parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR));
 
     // create table A
-    txn_ = txn_manager_.BeginTransaction();
+    txn_ = txn_manager_->BeginTransaction();
     accessor_ = catalog_->GetAccessor(txn_, db_oid_);
     // Create the column definition (no OIDs) for CREATE TABLE A(A1 int, a2 varchar)
     std::vector<catalog::Schema::Column> cols_a;
@@ -87,51 +92,59 @@ class BinderCorrectnessTest : public TerrierTest {
     cols_a.emplace_back("a2", type::TypeId::VARCHAR, 20, true, varchar_default);
     auto schema_a = catalog::Schema(cols_a);
 
-    table_a_oid_ = accessor_->CreateTable(ns_oid_, "A", schema_a);
-    txn_manager_.Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
-    flush();
+    table_a_oid_ = accessor_->CreateTable(accessor_->GetDefaultNamespace(), "a", schema_a);
+    EXPECT_EQ(accessor_->GetTableOid("a"), table_a_oid_);
+
+    txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
+    delete accessor_;
+//    flush();
 
     // create Table B
-    txn_ = txn_manager_.BeginTransaction();
+    txn_ = txn_manager_->BeginTransaction();
     accessor_ = catalog_->GetAccessor(txn_, db_oid_);
+    EXPECT_EQ(accessor_->GetTableOid("a"), table_a_oid_);
+
     // Create the column definition (no OIDs) for CREATE TABLE b(b1 int, B2 varchar)
     std::vector<catalog::Schema::Column> cols_b;
     cols_b.emplace_back("b1", type::TypeId::INTEGER, true, int_default);
     cols_b.emplace_back("B2", type::TypeId::VARCHAR, 20, true, varchar_default);
 
     auto schema_b = catalog::Schema(cols_b);
-    table_b_oid_ = accessor_->CreateTable(ns_oid_, "b", schema_b);
-    txn_manager_.Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
-    flush();
+    table_b_oid_ = accessor_->CreateTable(accessor_->GetDefaultNamespace(), "b", schema_b);
+    txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
+    delete accessor_;
+//    flush();
   }
 
   void TearDownTables() {
     // This function should be run after the end of last testcase
 
     // Delete the test database
-    txn_ = txn_manager_.BeginTransaction();
-    accessor_->DropDatabase(db_oid_);
-    txn_manager_.Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
-    flush();
-    delete gc_;
+//    txn_ = txn_manager_->BeginTransaction();
+//    accessor_->DropDatabase(db_oid_);
+//    txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
+//    flush();
+    catalog_->TearDown();
     delete catalog_;
+    delete gc_;
+    delete txn_manager_;
   }
 
   virtual void SetUp() override {
     TerrierTest::SetUp();
     SetUpTables();
     // prepare for testing
-    txn_ = txn_manager_.BeginTransaction();
+    txn_ = txn_manager_->BeginTransaction();
     accessor_ = catalog_->GetAccessor(txn_, db_oid_);
     binder_ = new binder::BindNodeVisitor(accessor_, default_database_name_);
   }
 
   virtual void TearDown() override {
-    TerrierTest::TearDown();
-    txn_manager_.Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
+    txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
     delete binder_;
     binder_ = nullptr;
     TearDownTables();
+    TerrierTest::TearDown();
   }
 };
 
@@ -139,7 +152,6 @@ class BinderCorrectnessTest : public TerrierTest {
 TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
   // Test regular table name
   LOG_INFO("Parsing sql query");
-
   std::string selectSQL = "SELECT A.a1, B.b2 FROM A INNER JOIN b ON a.a1 = b.b1 WHERE a1 < 100 "
                           "GROUP BY A.a1, B.b2 HAVING a1 > 50 ORDER BY a1";
 
@@ -219,7 +231,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementDupAliasTest) {
   auto parse_tree = parser_.BuildParseTree(selectSQL);
   auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree[0].get());
 #ifndef NDEBUG
-  EXPECT_DEATH(binder_->BindNameToNode(selectStmt), "Duplicate alias a");
+  EXPECT_DEATH(binder_->BindNameToNode(selectStmt), "Duplicate alias ");
 #endif
 //  try {
 //    binder_->BindNameToNode(selectStmt);
