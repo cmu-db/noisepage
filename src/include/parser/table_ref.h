@@ -11,14 +11,17 @@
 #include "parser/select_statement.h"
 
 namespace terrier {
+namespace binder {
+class BindNodeVisitor;
+}
 namespace parser {
 
-class SelectStatement;
-
-// for binding database name
-class InsertStatement;
-class AnalyzeStatement;
-class DeleteStatement;
+//class SelectStatement;
+//
+//// for binding database name
+//class InsertStatement;
+//class AnalyzeStatement;
+//class DeleteStatement;
 
 /**
  * Represents a join table.
@@ -214,9 +217,10 @@ class TableRef {
   std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j);
 
  private:
-  friend class InsertStatement;
-  friend class AnalyzeStatement;
-  friend class DeleteStatement;
+//  friend class InsertStatement;
+//  friend class AnalyzeStatement;
+//  friend class DeleteStatement;
+  friend class binder::BindNodeVisitor;
 
   TableReferenceType type_;
   std::string alias_;
