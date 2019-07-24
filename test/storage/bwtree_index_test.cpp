@@ -32,7 +32,8 @@ class BwTreeIndexTests : public TerrierTest {
   storage::BlockStore block_store_{1000, 1000};
   storage::RecordBufferSegmentPool buffer_pool_{1000000, 1000000};
   catalog::Schema table_schema_;
-  catalog::IndexSchema key_schema_;
+  catalog::IndexSchema unique_schema_;
+  catalog::IndexSchema default_schema_;
 
  public:
   BwTreeIndexTests() {
@@ -49,7 +50,8 @@ class BwTreeIndexTests : public TerrierTest {
         "", type::TypeId::INTEGER, false,
         parser::ColumnValueExpression(catalog::db_oid_t(0), catalog::table_oid_t(0), catalog::col_oid_t(1)));
     StorageTestUtil::ForceOid(&(keycols[0]), catalog::indexkeycol_oid_t(1));
-    key_schema_ = catalog::IndexSchema(keycols, true, true, false, true);
+    unique_schema_ = catalog::IndexSchema(keycols, true, true, false, true);
+    default_schema_ = catalog::IndexSchema(keycols, false, false, false, true);
   }
 
   std::default_random_engine generator_;
@@ -75,12 +77,12 @@ class BwTreeIndexTests : public TerrierTest {
 
     unique_index_ = (IndexBuilder()
                          .SetConstraintType(ConstraintType::UNIQUE)
-                         .SetKeySchema(key_schema_)
+                         .SetKeySchema(unique_schema_)
                          .SetOid(catalog::index_oid_t(2)))
                         .Build();
     default_index_ = (IndexBuilder()
                           .SetConstraintType(ConstraintType::DEFAULT)
-                          .SetKeySchema(key_schema_)
+                          .SetKeySchema(default_schema_)
                           .SetOid(catalog::index_oid_t(2)))
                          .Build();
 

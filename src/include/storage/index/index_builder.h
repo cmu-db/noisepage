@@ -33,6 +33,9 @@ class IndexBuilder {
   Index *Build() const {
     TERRIER_ASSERT(!key_schema_.GetColumns().empty(), "Cannot build an index without a KeySchema.");
     TERRIER_ASSERT(constraint_type_ != ConstraintType::INVALID, "Cannot build an index without a ConstraintType.");
+    TERRIER_ASSERT((constraint_type_ == ConstraintType::DEFAULT && !key_schema_.Unique()) ||
+                       (constraint_type_ == ConstraintType::UNIQUE && key_schema_.Unique()),
+                   "ContraintType should match the IndexSchema's is_unique flag.");
 
     IndexMetadata metadata(key_schema_);
 

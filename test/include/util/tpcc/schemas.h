@@ -380,7 +380,7 @@ class Schemas {
     TERRIER_ASSERT(customer_secondary_key_schema.size() == num_customer_secondary_index_cols_,
                    "Wrong number of columns for Customer secondary index schema.");
 
-    return catalog::IndexSchema(customer_secondary_key_schema, false, true, false, true);
+    return catalog::IndexSchema(customer_secondary_key_schema, false, false, false, true);
   }
 
   /**
@@ -619,7 +619,7 @@ class Schemas {
     TERRIER_ASSERT(order_secondary_key_schema.size() == num_order_secondary_index_cols_,
                    "Wrong number of columns for Order secondary index schema.");
 
-    return catalog::IndexSchema(order_secondary_key_schema, true, true, false, true);
+    return catalog::IndexSchema(order_secondary_key_schema, true, false, false, true);
   }
 
   /**

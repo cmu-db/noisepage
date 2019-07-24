@@ -302,7 +302,7 @@ struct Loader {
               o_id + 1, o_c_ids[c_id], static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1),
               worker->order_secondary_key_buffer, order_secondary_key_pr_initializer, order_secondary_key_pr_map,
               db->order_secondary_index_schema_);
-          index_insert_result = db->order_secondary_index_->Insert(txn, *order_secondary_key, order_slot);
+          index_insert_result = db->order_secondary_index_->InsertUnique(txn, *order_secondary_key, order_slot);
           TERRIER_ASSERT(index_insert_result, "Order secondary index insertion failed.");
 
           // For each row in the ORDER table:

@@ -94,7 +94,7 @@ Database *Builder::Build() {
   auto *const customer_secondary_index = BuildSecondaryIndex(customer_secondary_index_schema);
   auto *const new_order_index = BuildPrimaryIndex(new_order_primary_index_schema);
   auto *const order_index = BuildPrimaryIndex(order_primary_index_schema);
-  auto *const order_secondary_index = BuildSecondaryIndex(order_secondary_index_schema);
+  auto *const order_secondary_index = BuildPrimaryIndex(order_secondary_index_schema);
   auto *const order_line_index = BuildPrimaryIndex(order_line_primary_index_schema);
   auto *const item_index = BuildPrimaryIndex(item_primary_index_schema);
   auto *const stock_index = BuildPrimaryIndex(stock_primary_index_schema);

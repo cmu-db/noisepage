@@ -153,7 +153,8 @@ class IndexSchema {
    * @param is_exclusion indicating whether this index is for exclusion constraints
    * @param is_immediate indicating that the uniqueness check fails at insertion time
    */
-  IndexSchema(std::vector<Column> columns, bool is_unique, bool is_primary, bool is_exclusion, bool is_immediate)
+  IndexSchema(std::vector<Column> columns, const bool is_unique, const bool is_primary, const bool is_exclusion,
+              const bool is_immediate)
       : columns_(std::move(columns)),
         is_unique_(is_unique),
         is_primary_(is_primary),
@@ -161,7 +162,9 @@ class IndexSchema {
         is_immediate_(is_immediate),
         is_valid_(false),
         is_ready_(false),
-        is_live_(true) {}
+        is_live_(true) {
+    TERRIER_ASSERT((is_primary && is_unique) || (!is_primary), "is_primary requires is_unique to be true as well.");
+  }
 
   IndexSchema() = default;
 
@@ -176,6 +179,11 @@ class IndexSchema {
    */
   const Column &GetColumn(int index) const { return columns_.at(index); }
 
+  /**
+   * @return true if this schema is for a unique index
+   */
+  bool Unique() const { return is_unique_; }
+
  private:
   friend class DatabaseCatalog;
   std::vector<Column> columns_;
@@ -187,9 +195,9 @@ class IndexSchema {
   bool is_ready_;
   bool is_live_;
 
-  void SetValid(bool is_valid) { is_valid_ = is_valid; }
-  void SetReady(bool is_ready) { is_ready_ = is_ready; }
-  void SetLive(bool is_live) { is_live_ = is_live; }
+  void SetValid(const bool is_valid) { is_valid_ = is_valid; }
+  void SetReady(const bool is_ready) { is_ready_ = is_ready; }
+  void SetLive(const bool is_live) { is_live_ = is_live; }
 
   friend class Catalog;
   friend class postgres::Builder;
