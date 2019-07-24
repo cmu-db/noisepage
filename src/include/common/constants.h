@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include "hash_util.h"
 
 namespace terrier::common {
 /**
@@ -26,5 +27,22 @@ struct Constants {
    * The size of the buffers the log manager uses to buffer serialized logs and "group commit" them when writing to disk
    */
   static const uint32_t LOG_BUFFER_SIZE = (1 << 12);
+  /**
+   * The width of the buffer checksum
+   */
+  static const uint32_t LOG_BUFFER_SUM_WIDTH = sizeof(common::hash_t);
+  /**
+   * The width of the size of the payload that checksum covers
+   */
+  static const uint32_t LOG_BUFFER_PAYLOAD_SIZE_WIDTH = sizeof(uint16_t);
+  /**
+   * The width of the buffer information
+   */
+  static const uint32_t LOG_BUFFER_INFO_WIDTH = sizeof(uint32_t);
+  /**
+   * The size of the buffer payload
+   */
+  static const uint32_t LOG_BUFFER_PAYLOAD_SIZE = LOG_BUFFER_SIZE
+      - LOG_BUFFER_SUM_WIDTH - LOG_BUFFER_PAYLOAD_SIZE_WIDTH - LOG_BUFFER_INFO_WIDTH;
 };
 }  // namespace terrier::common
