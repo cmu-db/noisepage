@@ -1,6 +1,7 @@
 #include "binder/bind_node_visitor.h"
 #include "common/exception.h"
 #include "catalog/catalog_accessor.h"
+#include "catalog/catalog_defs.h"
 #include "type/type_id.h"
 #include "parser/sql_statement.h"
 #include "parser/expression/abstract_expression.h"
@@ -26,7 +27,7 @@ void BindNodeVisitor::Visit(parser::SelectStatement *node) {
   //  Statement will not be modified
   //  Expression will be modified but only alias and tupleValueExpression
   //  We can make binder friend of abstract expression
-//  context_ = std::make_shared<BinderContext>(context_);
+  context_ = std::make_shared<BinderContext>(context_);
 
   if (node->GetSelectTable() != nullptr) node->GetSelectTable()->Accept(this);
 
@@ -77,7 +78,7 @@ void BindNodeVisitor::Visit(parser::JoinDefinition *node) {
 }
 
 void BindNodeVisitor::Visit(parser::TableRef *node) {
-  // TODO: Select, list, join are exclusive?
+  node->TryBindDatabaseName(default_database_name_);
   if (node->GetSelect() != nullptr) {
     if (node->GetAlias().empty()) throw BINDER_EXCEPTION("Alias not found for query derived table");
 
@@ -129,7 +130,7 @@ void BindNodeVisitor::Visit(parser::UpdateStatement *node) {
 void BindNodeVisitor::Visit(parser::DeleteStatement *node) {
   context_ = std::make_shared<BinderContext>(nullptr);
   // no try bind anything
-  node->TryBindDatabaseName(default_database_name_);
+  node->GetDeletionTable()->TryBindDatabaseName(default_database_name_);
   auto table = node->GetDeletionTable();
   context_->AddRegularTable(catalog_accessor_, table->GetDatabaseName(), table->GetTableName(), table->GetTableName());
 
@@ -174,7 +175,7 @@ void BindNodeVisitor::Visit(parser::CreateStatement *node) {
 }
 
 void BindNodeVisitor::Visit(parser::InsertStatement *node) {
-  node->TryBindDatabaseName(default_database_name_);
+  node->GetInsertionTable()->TryBindDatabaseName(default_database_name_);
   context_ = std::make_shared<BinderContext>(nullptr);
 
   auto table = node->GetInsertionTable();
@@ -187,7 +188,7 @@ void BindNodeVisitor::Visit(parser::DropStatement *node) { node->TryBindDatabase
 void BindNodeVisitor::Visit(parser::PrepareStatement *) {}
 void BindNodeVisitor::Visit(parser::ExecuteStatement *) {}
 void BindNodeVisitor::Visit(parser::TransactionStatement *) {}
-void BindNodeVisitor::Visit(parser::AnalyzeStatement *node) { node->TryBindDatabaseName(default_database_name_); }
+void BindNodeVisitor::Visit(parser::AnalyzeStatement *node) { node->GetAnalyzeTable()->TryBindDatabaseName(default_database_name_); }
 
 void BindNodeVisitor::Visit(parser::ConstantValueExpression *) {}
 
@@ -196,7 +197,7 @@ void BindNodeVisitor::Visit(parser::ColumnValueExpression *expr) {
   // TODO (Ling): consider remove precondition check if the *_oid_ will never be initialized till binder
   //   That is, the object would not be initialized using ColumnValueeExpression(database_oid, table_oid, column_oid)
   //   at this point
-  if (!expr->GetTableOid()) {
+  if (expr->GetTableOid() == catalog::INVALID_TABLE_OID) {
 
     std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema> tuple;
     std::string table_name = expr->GetTableName();

@@ -80,7 +80,7 @@ class InsertStatement : public SQLStatement {
   std::shared_ptr<std::vector<std::vector<std::shared_ptr<AbstractExpression>>>> GetValues() { return insert_values_; }
 
  private:
-  friend class binder::BindNodeVisitor;
+//  friend class binder::BindNodeVisitor;
   const InsertType type_;
   const std::shared_ptr<std::vector<std::string>> columns_;
   const std::shared_ptr<TableRef> table_ref_;
@@ -88,10 +88,10 @@ class InsertStatement : public SQLStatement {
   // TODO(WAN): unsure about this one.
   const std::shared_ptr<std::vector<std::vector<std::shared_ptr<AbstractExpression>>>> insert_values_;
 
-  void TryBindDatabaseName(const std::string &default_database_name) {
-    // TODO (ling): can table ref be null
-    table_ref_->TryBindDatabaseName(default_database_name);
-  }
+//  void TryBindDatabaseName(const std::string &default_database_name) {
+//    // TODO (ling): can table ref be null
+//    table_ref_->TryBindDatabaseName(default_database_name);
+//  }
 };
 
 }  // namespace parser
