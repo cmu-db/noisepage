@@ -64,7 +64,7 @@ void BinderContext::AddNestedTable(const std::string &table_alias, const std::ve
 bool BinderContext::ColumnInSchema(catalog::Schema &schema, std::string &col_name) {
   try{
     auto column_object = schema.GetColumn(col_name);
-  } catch (const Exception &e) {
+  } catch (const std::out_of_range& oor) {
     return false;
   }
   return true;
