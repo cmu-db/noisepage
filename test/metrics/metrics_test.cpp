@@ -57,9 +57,11 @@ class MetricsTests : public TerrierTest {
   const uint8_t num_txns_ = 100;
 
   storage::BlockStore block_store_{100, 100};
+
   const catalog::Schema table_schema_{
-      catalog::Schema({{"attribute", type::TypeId::INTEGER, false, catalog::col_oid_t(0)}})};
-  storage::SqlTable *const sql_table_{new storage::SqlTable(&block_store_, table_schema_, catalog::table_oid_t(1))};
+      {{"attribute", type::TypeId::INTEGER, false,
+        parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER))}}};
+  storage::SqlTable *const sql_table_{new storage::SqlTable(&block_store_, table_schema_)};
   const storage::ProjectedRowInitializer tuple_initializer_{
       sql_table_->InitializerForProjectedRow({catalog::col_oid_t(0)}).first};
 
