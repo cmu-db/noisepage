@@ -314,8 +314,8 @@ class VarlenEntry {
     byte *content = prefix_;
     if (!IsInlined()) {
       content = content_;
-      for (auto & i : prefix_)
-        prefix_[i] = static_cast<byte>(std::tolower(static_cast<unsigned char>(prefix_[i])));
+      for (auto &c : prefix_)
+        c = static_cast<byte>(std::tolower(static_cast<unsigned char>(c)));
     }
 
     // Process the full content (doubles as the prefix for inlined strings)
