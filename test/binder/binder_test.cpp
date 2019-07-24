@@ -51,11 +51,8 @@ class BinderCorrectnessTest : public TerrierTest {
 
     txn_manager_ = new transaction::TransactionManager(&buffer_pool_, true, LOGGING_DISABLED);
     gc_ = new storage::GarbageCollector(txn_manager_);
-    txn_ = txn_manager_->BeginTransaction();
     // new catalog requires txn_manage and block_store as parameters
     catalog_ = new catalog::Catalog(txn_manager_, &block_store_);
-//    txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
-//    flush();
 
     // create database
     txn_ = txn_manager_->BeginTransaction();
