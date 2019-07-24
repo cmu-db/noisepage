@@ -75,9 +75,9 @@ void BinderContext::GetColumnPosTuple(const std::string &col_name, std::tuple<ca
   auto column_object = std::get<2>(tuple).GetColumn(col_name);
   expr->SetDatabaseOID(std::get<0>(tuple));
   expr->SetTableOID(std::get<1>(tuple));
-  expr->SetColumnOID(column_object.GetOid());
+  expr->SetColumnOID(column_object.Oid());
   expr->SetColumnName(col_name);
-  expr->SetReturnValueType(column_object.GetType());
+  expr->SetReturnValueType(column_object.Type());
 }
 
 bool BinderContext::GetColumnPosTuple(std::shared_ptr<BinderContext> current_context, parser::ColumnValueExpression *expr) {
@@ -167,12 +167,12 @@ void BinderContext::GenerateAllColumnExpressions(std::vector<std::shared_ptr<par
     for (uint32_t i = 0; i < col_cnt; i++) {
       auto col_obj = schema.GetColumn(i);
       // TODO (Ling): change use of shared_ptr
-      auto tv_expr = std::make_shared<parser::ColumnValueExpression>(std::string(entry.first), std::string(col_obj.GetName()));
-      tv_expr->SetReturnValueType(col_obj.GetType());
+      auto tv_expr = std::make_shared<parser::ColumnValueExpression>(std::string(entry.first), std::string(col_obj.Name()));
+      tv_expr->SetReturnValueType(col_obj.Type());
       tv_expr->DeriveExpressionName();
       tv_expr->SetDatabaseOID(std::get<0>(entry.second));
       tv_expr->SetTableOID(std::get<1>(entry.second));
-      tv_expr->SetColumnOID(col_obj.GetOid());
+      tv_expr->SetColumnOID(col_obj.Oid());
 
       exprs.emplace_back(tv_expr);
     }
