@@ -230,15 +230,14 @@ TEST_F(BinderCorrectnessTest, SelectStatementDupAliasTest) {
   std::string selectSQL = "SELECT * FROM A, B as A";
   auto parse_tree = parser_.BuildParseTree(selectSQL);
   auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree[0].get());
-#ifndef NDEBUG
-  EXPECT_DEATH(binder_->BindNameToNode(selectStmt), "Duplicate alias ");
-#endif
-//  try {
-//    binder_->BindNameToNode(selectStmt);
-//    EXPECT_TRUE(false);
-//  } catch (Exception &e) {
-//    LOG_INFO("Correct! Exception(%s) catched", e.what());
-//  }
+  // gtest does not allow us to use death test on multi-threaded context
+
+  try {
+    binder_->BindNameToNode(selectStmt);
+    EXPECT_TRUE(false);
+  } catch (BinderException &e) {
+    LOG_INFO("Correct! Exception(%s) catched", e.what());
+  }
 }
 
 // NOLINTNEXTLINE
