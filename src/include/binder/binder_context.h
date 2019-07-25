@@ -1,7 +1,10 @@
 #pragma once
 
+#include <memory>
 #include <string>
+#include <tuple>
 #include <unordered_map>
+#include <vector>
 
 #include "catalog/catalog.h"
 #include "catalog/catalog_defs.h"

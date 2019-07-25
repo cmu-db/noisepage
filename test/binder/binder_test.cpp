@@ -1,4 +1,6 @@
 #include <memory>
+#include <string>
+#include <vector>
 #include "binder/bind_node_visitor.h"
 #include "catalog/catalog.h"
 #include "parser/expression/column_value_expression.h"
@@ -19,7 +21,7 @@ using std::vector;
 
 namespace terrier {
 
-// TODO (Ling): write meaningful setup
+// TODO(Ling): write meaningful setup
 class BinderCorrectnessTest : public TerrierTest {
  private:
   storage::RecordBufferSegmentPool buffer_pool_{1000000, 1000000};
@@ -56,7 +58,7 @@ class BinderCorrectnessTest : public TerrierTest {
     auto int_default = parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
     auto varchar_default = parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR));
 
-    // TODO (Ling): use mixed case in table name and schema name
+    // TODO(Ling): use mixed case in table name and schema name
     //  for testcases to see if the binder does not differentiate between upper and lower cases
     // create table A
     txn_ = txn_manager_->BeginTransaction();
@@ -105,7 +107,7 @@ class BinderCorrectnessTest : public TerrierTest {
     delete txn_manager_;
   }
 
-  virtual void SetUp() override {
+  void SetUp() override {
     TerrierTest::SetUp();
     SetUpTables();
     // prepare for testing
@@ -114,7 +116,7 @@ class BinderCorrectnessTest : public TerrierTest {
     binder_ = new binder::BindNodeVisitor(accessor_, default_database_name_);
   }
 
-  virtual void TearDown() override {
+  void TearDown() override {
     txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
     delete accessor_;
     delete binder_;
@@ -251,7 +253,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementSelectListAliasTest) {
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2));  // b2; columns are indexed from 1
 }
 
-// TODO: add test for Update Statement. Currently UpdateStatement uses char*
+// TODO(peloton): add test for Update Statement. Currently UpdateStatement uses char*
 // instead of ColumnValueExpression to represent column. We can only add this
 // test after UpdateStatement is changed
 
@@ -281,7 +283,7 @@ TEST_F(BinderCorrectnessTest, DeleteStatementWhereTest) {
 TEST_F(BinderCorrectnessTest, BindDepthTest) {
   // Test regular table name
   LOG_INFO("Parsing sql query");
-  // TODO (ling): select a, (sub select sth)
+  // TODO(ling): select a, (sub select sth)
   //  select a, b from A, (subselect sth)
   std::string selectSQL =
       "SELECT A.a1 FROM A WHERE A.a1 IN (SELECT b1 FROM B WHERE b1 = 2 AND "
@@ -362,7 +364,7 @@ TEST_F(BinderCorrectnessTest, BindDepthTest) {
 //  std::string function_sql = "SELECT substr('test123', a, 3)";
 //  auto parse_tree = parser_.BuildParseTree(function_sql);
 //  auto stmt = parse_tree[0].get();
-//  // TODO (ling): figure out specific exception that would be thrown
+//  // TODO(ling): figure out specific exception that would be thrown
 //  EXPECT_THROW(binder_->BindNameToNode(stmt), terrier::Exception);
 //
 //  function_sql = "SELECT substr('test123', 2, 3)";
