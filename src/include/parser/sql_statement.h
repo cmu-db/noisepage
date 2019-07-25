@@ -13,9 +13,9 @@
 
 namespace terrier {
 
-//namespace binder {
-//class BindNodeVisitor;
-//}  // namespace binder
+namespace binder {
+class BindNodeVisitor;
+}  // namespace binder
 
 namespace parser {
 

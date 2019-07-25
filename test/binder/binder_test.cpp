@@ -8,13 +8,8 @@
 #include "storage/garbage_collector.h"
 #include "parser/expression/subquery_expression.h"
 #include "parser/expression/column_value_expression.h"
-#include "optimizer/optimizer.h"
 #include "parser/postgresparser.h"
 #include "traffic_cop/traffic_cop.h"
-
-#include "executor/testing_executor_util.h"
-#include "sql/testing_sql_util.h"
-#include "type/value_factory.h"
 
 using std::make_shared;
 using std::make_tuple;
@@ -40,9 +35,9 @@ class BinderCorrectnessTest : public TerrierTest {
   catalog::table_oid_t table_b_oid_;
   parser::PostgresParser parser_;
   transaction::TransactionManager txn_manager_{&buffer_pool_, true, LOGGING_DISABLED};
-  transaction::TransactionContext* txn_;
+  transaction::TransactionContext *txn_;
   catalog::CatalogAccessor *accessor_;
-  unique_ptr<binder::BindNodeVisitor> binder_;
+  binder::BindNodeVisitor *binder_;
 
   void flush() {
     // Run the GC to flush it down to a clean system
@@ -63,7 +58,7 @@ class BinderCorrectnessTest : public TerrierTest {
     // create database
     txn_ = txn_manager_.BeginTransaction();
     LOG_INFO("Creating database %s", default_database_name_.c_str());
-    db_oid_ = catalog_->CreateDatabase(txn_, default_database_name_);
+    db_oid_ = catalog_->CreateDatabase(txn_, default_database_name_, true);
     // commit the transactions
     txn_manager_.Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
     LOG_INFO("database %s created!", default_database_name_.c_str());
@@ -79,14 +74,18 @@ class BinderCorrectnessTest : public TerrierTest {
     txn_manager_.Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
     flush();
 
+    // get default values of the columns
+    auto int_default = parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
+    auto varchar_default = parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR));
+
     // create table A
     txn_ = txn_manager_.BeginTransaction();
     accessor_ = catalog_->GetAccessor(txn_, db_oid_);
     // Create the column definition (no OIDs) for CREATE TABLE A(A1 int, a2 varchar)
     std::vector<catalog::Schema::Column> cols_a;
-    cols_a.emplace_back("A1", type::TypeId::INTEGER, true);
-    cols_a.emplace_back("a2", type::TypeId::VARCHAR, true);
-    auto schema_a = new catalog::Schema(cols_a);
+    cols_a.emplace_back("A1", type::TypeId::INTEGER, true, int_default);
+    cols_a.emplace_back("a2", type::TypeId::VARCHAR, 20, true, varchar_default);
+    auto schema_a = catalog::Schema(cols_a);
 
     table_a_oid_ = accessor_->CreateTable(ns_oid_, "A", schema_a);
     txn_manager_.Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
@@ -97,15 +96,13 @@ class BinderCorrectnessTest : public TerrierTest {
     accessor_ = catalog_->GetAccessor(txn_, db_oid_);
     // Create the column definition (no OIDs) for CREATE TABLE b(b1 int, B2 varchar)
     std::vector<catalog::Schema::Column> cols_b;
-    cols_b.emplace_back("b1", type::TypeId::INTEGER, true);
-    cols_b.emplace_back("B2", type::TypeId::VARCHAR, true);
-    auto schema_b = new catalog::Schema(cols_b);
+    cols_b.emplace_back("b1", type::TypeId::INTEGER, true, int_default);
+    cols_b.emplace_back("B2", type::TypeId::VARCHAR, 20, true, varchar_default);
+
+    auto schema_b = catalog::Schema(cols_b);
     table_b_oid_ = accessor_->CreateTable(ns_oid_, "b", schema_b);
     txn_manager_.Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
     flush();
-
-    delete schema_a;
-    delete schema_b;
   }
 
   void TearDownTables() {
@@ -122,20 +119,21 @@ class BinderCorrectnessTest : public TerrierTest {
 
   virtual void SetUp() override {
     TerrierTest::SetUp();
+    SetUpTables();
     // prepare for testing
     txn_ = txn_manager_.BeginTransaction();
     accessor_ = catalog_->GetAccessor(txn_, db_oid_);
-    binder_ = std::make_unique<binder::BindNodeVisitor>(new binder::BindNodeVisitor(accessor_, default_database_name_));
+    binder_ = new binder::BindNodeVisitor(accessor_, default_database_name_);
   }
 
   virtual void TearDown() override {
     TerrierTest::TearDown();
     txn_manager_.Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
+    delete binder_;
+    binder_ = nullptr;
+    TearDownTables();
   }
 };
-
-// NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, DummySetUp) { SetUpTables(); }
 
 // NOLINTNEXTLINE
 TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
@@ -264,7 +262,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementSelectListAliasTest) {
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_); //AA.a1
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_); //AA.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1)); // AA.a1; columns are indexed from 1
-  
+
   col_expr = dynamic_cast<parser::ColumnValueExpression *>(selectStmt->GetSelectColumns()[1].get());
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_); //b2
   EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_); //b2
@@ -283,13 +281,15 @@ TEST_F(BinderCorrectnessTest, DeleteStatementWhereTest) {
   binder_->BindNameToNode(deleteStmt);
 
   LOG_INFO("Checking first condition in where clause");
-  auto col_expr = dynamic_cast<const parser::ColumnValueExpression *>(deleteStmt->GetDeleteCondition()->GetChild(0)->GetChild(1).get());
+  auto col_expr =
+      dynamic_cast<const parser::ColumnValueExpression *>(deleteStmt->GetDeleteCondition()->GetChild(0)->GetChild(1).get());
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_); //b1
   EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_); //b1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1)); // b1; columns are indexed from 1
 
   LOG_INFO("Checking second condition in where clause");
-  col_expr = dynamic_cast<const parser::ColumnValueExpression *>(deleteStmt->GetDeleteCondition()->GetChild(1)->GetChild(0).get());
+  col_expr =
+      dynamic_cast<const parser::ColumnValueExpression *>(deleteStmt->GetDeleteCondition()->GetChild(1)->GetChild(0).get());
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_); //b2
   EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_); //b2
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2)); // b2; columns are indexed from 1
@@ -300,8 +300,8 @@ TEST_F(BinderCorrectnessTest, BindDepthTest) {
   // Test regular table name
   LOG_INFO("Parsing sql query");
 
-  std::string selectSQL ="SELECT A.a1 FROM A WHERE A.a1 IN (SELECT b1 FROM B WHERE b1 = 2 AND "
-                         "b2 > (SELECT a1 FROM A WHERE a2 > 0)) AND EXISTS (SELECT b1 FROM B WHERE B.b1 = A.a1)";
+  std::string selectSQL = "SELECT A.a1 FROM A WHERE A.a1 IN (SELECT b1 FROM B WHERE b1 = 2 AND "
+                          "b2 > (SELECT a1 FROM A WHERE a2 > 0)) AND EXISTS (SELECT b1 FROM B WHERE B.b1 = A.a1)";
 
   auto parse_tree = parser_.BuildParseTree(selectSQL);
   auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree[0].get());
@@ -335,11 +335,14 @@ TEST_F(BinderCorrectnessTest, BindDepthTest) {
   auto in_sub_expr_select_where_right_tv = in_sub_expr_select_where_right->GetChild(0); // b2
   // SELECT a1 FROM A WHERE a2 > 0
   auto in_sub_expr_select_where_right_sub = in_sub_expr_select_where_right->GetChild(1);
-  auto in_sub_expr_select_where_right_sub_select = dynamic_cast<parser::SubqueryExpression *>(in_sub_expr_select_where_right_sub.get())->GetSubselect();
+  auto in_sub_expr_select_where_right_sub_select =
+      dynamic_cast<parser::SubqueryExpression *>(in_sub_expr_select_where_right_sub.get())->GetSubselect();
   // WHERE a2 > 0
-  auto in_sub_expr_select_where_right_sub_select_where = in_sub_expr_select_where_right_sub_select->GetSelectCondition().get();
+  auto in_sub_expr_select_where_right_sub_select_where =
+      in_sub_expr_select_where_right_sub_select->GetSelectCondition().get();
   // a1
-  auto in_sub_expr_select_where_right_sub_select_ele = in_sub_expr_select_where_right_sub_select->GetSelectColumns()[0].get();
+  auto in_sub_expr_select_where_right_sub_select_ele =
+      in_sub_expr_select_where_right_sub_select->GetSelectColumns()[0].get();
 
   // EXISTS (SELECT b1 FROM B WHERE B.b1 = A.a1)
   auto exists_expr = selectStmt->GetSelectCondition()->GetChild(1); // An operator_exists expression
@@ -371,7 +374,7 @@ TEST_F(BinderCorrectnessTest, BindDepthTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, FunctionExpressionTest) {
+//TEST_F(BinderCorrectnessTest, FunctionExpressionTest) {
 //  std::string function_sql = "SELECT substr('test123', a, 3)";
 //  auto parse_tree = parser_.BuildParseTree(function_sql);
 //  auto stmt = parse_tree[0].get();
@@ -384,8 +387,5 @@ TEST_F(BinderCorrectnessTest, FunctionExpressionTest) {
 //  binder_->BindNameToNode(stmt);
 //  auto funct_expr = dynamic_cast<parser::FunctionExpression *>(dynamic_cast<parser::SelectStatement *>(stmt)->select_list[0].get());
 //  EXPECT_TRUE(funct_expr->Evaluate(nullptr, nullptr, nullptr).CompareEquals(type::ValueFactory::GetVarcharValue("est")) == CmpBool::CmpTrue);
+//}
 }
-
-// NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, DummyCleanUp) { TearDownTables(); }
-}  // namespace terrier

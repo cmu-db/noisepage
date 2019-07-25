@@ -48,7 +48,7 @@ void BinderContext::AddNestedTable(const std::string &table_alias, const std::ve
     if (!expr->GetAlias().empty()) {
       alias = expr->GetAlias();
     }
-    else if (expr->GetExpressionType() == parser::ExpressionType::COLUMN_TUPLE) {
+    else if (expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
       auto tv_expr = reinterpret_cast<parser::ColumnValueExpression *>(expr.get());
       alias = tv_expr->GetColumnName();
     }
@@ -169,7 +169,7 @@ void BinderContext::GenerateAllColumnExpressions(std::vector<std::shared_ptr<par
       // TODO (Ling): change use of shared_ptr
       auto tv_expr = std::make_shared<parser::ColumnValueExpression>(std::string(entry.first), std::string(col_obj.GetName()));
       tv_expr->SetReturnValueType(col_obj.GetType());
-      tv_expr->DeduceExpressionName();
+      tv_expr->DeriveExpressionName();
       tv_expr->SetDatabaseOID(std::get<0>(entry.second));
       tv_expr->SetTableOID(std::get<1>(entry.second));
       tv_expr->SetColumnOID(col_obj.GetOid());
@@ -184,7 +184,7 @@ void BinderContext::GenerateAllColumnExpressions(std::vector<std::shared_ptr<par
     for (auto &col_entry : cols) {
       auto tv_expr = std::make_shared<parser::ColumnValueExpression>(std::string(table_alias), std::string(col_entry.first));
       tv_expr->SetReturnValueType(col_entry.second);
-      tv_expr->DeduceExpressionName();
+      tv_expr->DeriveExpressionName();
       // All derived columns do not have bound oids, thus keep them as INVALID_OIDs
       exprs.emplace_back(tv_expr);
     }
