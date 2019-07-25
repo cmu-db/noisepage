@@ -75,17 +75,9 @@ class AbstractExpression {
   void SetDepth(int depth) { depth_ = depth; }
 
   /**
-   * Copies the mutable state of copy_expr. This should only be used for copying where we don't need to
-   * re-derive the expression.
-   * @param copy_expr the expression whose mutable state should be copied
+   * @param alias Alias of the expression
    */
-  void SetMutableStateForCopy(const AbstractExpression &copy_expr) {
-    SetExpressionName(copy_expr.GetExpressionName());
-    SetReturnValueType(copy_expr.GetReturnValueType());
-    SetDepth(copy_expr.GetDepth());
-    has_subquery_ = copy_expr.HasSubquery();
-    alias_ = copy_expr.alias_;
-  }
+  void SetAlias(const std::string &alias) { alias_ = alias; }
 
  public:
   virtual ~AbstractExpression() = default;
