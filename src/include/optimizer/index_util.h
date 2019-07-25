@@ -135,6 +135,11 @@ class IndexUtil {
       return false;
     }
 
+    // Index is not queryable
+    if (!index_schema.Valid()) {
+      return false;
+    }
+
     std::vector<catalog::col_oid_t> mapped_cols;
     if (!GetIndexColOid(tbl_oid, index_schema, accessor, &mapped_cols)) {
       // Unable to translate indexkeycol_oid_t -> col_oid_t
@@ -274,6 +279,10 @@ class IndexUtil {
       return false;
     }
 
+    if (!index_schema.Valid()) {
+      return false;
+    }
+
     std::vector<catalog::col_oid_t> mapped_cols;
     if (!GetIndexColOid(tbl_oid, index_schema, accessor, &mapped_cols)) {
       // Unable to translate indexkeycol_oid_t -> col_oid_t
@@ -324,7 +333,7 @@ class IndexUtil {
    */
   static bool SatisfiesBaseColumnRequirement(const catalog::IndexSchema &schema) {
     for (auto &column : schema.GetColumns()) {
-      if (!IsBaseColumn(column.GetExpression())) {
+      if (!IsBaseColumn(column.StoredExpression().get())) {
         return false;
       }
     }
@@ -353,11 +362,11 @@ class IndexUtil {
 
     std::unordered_map<std::string, catalog::col_oid_t> schema_col;
     for (auto &column : tbl_schema.GetColumns()) {
-      schema_col[column.GetName()] = column.GetOid();
+      schema_col[column.Name()] = column.Oid();
     }
 
     for (auto &column : schema.GetColumns()) {
-      auto *expr = column.GetExpression();
+      auto *expr = column.StoredExpression().get();
       if (expr->GetExpressionType() == parser::ExpressionType::VALUE_TUPLE) {
         auto *tv_expr = dynamic_cast<const parser::ColumnValueExpression*>(expr);
         TERRIER_ASSERT(tv_expr, "ColumnValueExpression expected");

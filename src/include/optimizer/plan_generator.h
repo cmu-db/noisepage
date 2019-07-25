@@ -233,7 +233,7 @@ class PlanGenerator : public OperatorVisitor {
   std::vector<const parser::AbstractExpression*>
   GenerateTableColumnValueExprs(
     const std::string &alias,
-    catalog::database_oid_t db_oid,
+    catalog::db_oid_t db_oid,
     catalog::table_oid_t tbl_oid);
 
   /**
@@ -257,7 +257,7 @@ class PlanGenerator : public OperatorVisitor {
   const parser::AbstractExpression* GeneratePredicateForScan(
       const parser::AbstractExpression* predicate_expr,
       const std::string &alias,
-      catalog::database_oid_t, db_oid,
+      catalog::db_oid_t db_oid,
       catalog::table_oid_t tbl_oid);
 
   /**

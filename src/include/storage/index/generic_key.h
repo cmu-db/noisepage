@@ -36,13 +36,13 @@ class GenericKey {
    * @param metadata index information, key_schema used to interpret PR data correctly
    */
   void SetFromProjectedRow(const storage::ProjectedRow &from, const IndexMetadata &metadata) {
-    TERRIER_ASSERT(from.NumColumns() == metadata.GetKeySchema().size(),
+    TERRIER_ASSERT(from.NumColumns() == metadata.GetSchema().GetColumns().size(),
                    "ProjectedRow should have the same number of columns at the original key schema.");
     metadata_ = &metadata;
     std::memset(key_data_, 0, key_size_byte);
 
     if (metadata.MustInlineVarlen()) {
-      const auto &key_schema = metadata.GetKeySchema();
+      const auto &key_schema = metadata.GetSchema();
       const auto &inlined_attr_sizes = metadata.GetInlinedAttributeSizes();
 
       const ProjectedRowInitializer &generic_key_initializer = metadata.GetInlinedPRInitializer();
@@ -50,7 +50,8 @@ class GenericKey {
       auto *const pr = GetProjectedRow();
       generic_key_initializer.InitializeRow(pr);
 
-      for (uint16_t i = 0; i < key_schema.size(); i++) {
+      const auto &key_cols = key_schema.GetColumns();
+      for (uint16_t i = 0; i < key_cols.size(); i++) {
         const auto offset = static_cast<uint16_t>(from.ColumnIds()[i]);
         TERRIER_ASSERT(offset == static_cast<uint16_t>(pr->ColumnIds()[i]), "PRs must have the same comparison order!");
         const byte *const from_attr = from.AccessWithNullCheck(offset);
@@ -64,12 +65,19 @@ class GenericKey {
             // Convert the VarlenEntry to be inlined
             const auto varlen = *reinterpret_cast<const VarlenEntry *const>(from_attr);
             byte *const to_attr = pr->AccessForceNotNull(offset);
-            *reinterpret_cast<uint32_t *const>(to_attr) = varlen.Size();
-            std::memcpy(to_attr + sizeof(uint32_t), varlen.Content(), varlen.Size());
+            const auto varlen_size = varlen.Size();
+            *reinterpret_cast<uint32_t *const>(to_attr) = varlen_size;
+            TERRIER_ASSERT(reinterpret_cast<uintptr_t>(to_attr) + sizeof(uint32_t) + varlen_size <=
+                               reinterpret_cast<uintptr_t>(this) + key_size_byte,
+                           "ProjectedRow will access out of bounds.");
+            std::memcpy(to_attr + sizeof(uint32_t), varlen.Content(), varlen_size);
           }
         }
       }
     } else {
+      TERRIER_ASSERT(reinterpret_cast<uintptr_t>(GetProjectedRow()) + from.Size() <=
+                         reinterpret_cast<uintptr_t>(this) + key_size_byte,
+                     "ProjectedRow will access out of bounds.");
       std::memcpy(GetProjectedRow(), &from, from.Size());
     }
   }
@@ -81,7 +89,7 @@ class GenericKey {
     const auto *pr = reinterpret_cast<const ProjectedRow *>(StorageUtil::AlignedPtr(sizeof(uint64_t), key_data_));
     TERRIER_ASSERT(reinterpret_cast<uintptr_t>(pr) % sizeof(uint64_t) == 0,
                    "ProjectedRow must be aligned to 8 bytes for atomicity guarantees.");
-    TERRIER_ASSERT(reinterpret_cast<uintptr_t>(pr) + pr->Size() < reinterpret_cast<uintptr_t>(this) + key_size_byte,
+    TERRIER_ASSERT(reinterpret_cast<uintptr_t>(pr) + pr->Size() <= reinterpret_cast<uintptr_t>(this) + key_size_byte,
                    "ProjectedRow will access out of bounds.");
     return pr;
   }
@@ -216,7 +224,7 @@ struct hash<terrier::storage::index::GenericKey<KeySize>> {
   size_t operator()(terrier::storage::index::GenericKey<KeySize> const &key) const {
     const auto &metadata = key.GetIndexMetadata();
 
-    const auto &key_schema = metadata.GetKeySchema();
+    const auto &key_schema = metadata.GetSchema();
     const auto &inlined_attr_sizes = metadata.GetInlinedAttributeSizes();
 
     uint64_t running_hash = terrier::common::HashUtil::Hash(metadata);
@@ -227,7 +235,8 @@ struct hash<terrier::storage::index::GenericKey<KeySize>> {
     running_hash =
         terrier::common::HashUtil::CombineHashes(running_hash, terrier::common::HashUtil::Hash(pr->NumColumns()));
 
-    for (uint16_t i = 0; i < key_schema.size(); i++) {
+    const auto &key_cols = key_schema.GetColumns();
+    for (uint16_t i = 0; i < key_cols.size(); i++) {
       const auto offset = static_cast<uint16_t>(pr->ColumnIds()[i]);
       const byte *const attr = pr->AccessWithNullCheck(offset);
       if (attr == nullptr) {
@@ -258,9 +267,10 @@ struct equal_to<terrier::storage::index::GenericKey<KeySize>> {
    */
   bool operator()(const terrier::storage::index::GenericKey<KeySize> &lhs,
                   const terrier::storage::index::GenericKey<KeySize> &rhs) const {
-    const auto &key_schema = lhs.GetIndexMetadata().GetKeySchema();
+    const auto &key_schema = lhs.GetIndexMetadata().GetSchema();
 
-    for (uint16_t i = 0; i < key_schema.size(); i++) {
+    const auto &key_cols = key_schema.GetColumns();
+    for (uint16_t i = 0; i < key_cols.size(); i++) {
       const auto *const lhs_pr = lhs.GetProjectedRow();
       const auto *const rhs_pr = rhs.GetProjectedRow();
 
@@ -284,7 +294,7 @@ struct equal_to<terrier::storage::index::GenericKey<KeySize>> {
         return false;
       }
 
-      const terrier::type::TypeId type_id = key_schema[i].GetType();
+      const terrier::type::TypeId type_id = key_schema.GetColumns()[i].Type();
 
       if (!terrier::storage::index::GenericKey<KeySize>::TypeComparators::CompareEquals(type_id, lhs_attr, rhs_attr)) {
         // one of the attrs didn't match, return non-equal
@@ -312,9 +322,10 @@ struct less<terrier::storage::index::GenericKey<KeySize>> {
    */
   bool operator()(const terrier::storage::index::GenericKey<KeySize> &lhs,
                   const terrier::storage::index::GenericKey<KeySize> &rhs) const {
-    const auto &key_schema = lhs.GetIndexMetadata().GetKeySchema();
+    const auto &key_schema = lhs.GetIndexMetadata().GetSchema();
 
-    for (uint16_t i = 0; i < key_schema.size(); i++) {
+    const auto &key_cols = key_schema.GetColumns();
+    for (uint16_t i = 0; i < key_cols.size(); i++) {
       const auto *const lhs_pr = lhs.GetProjectedRow();
       const auto *const rhs_pr = rhs.GetProjectedRow();
 
@@ -338,7 +349,7 @@ struct less<terrier::storage::index::GenericKey<KeySize>> {
         return false;
       }
 
-      const terrier::type::TypeId type_id = key_schema[i].GetType();
+      const terrier::type::TypeId type_id = key_schema.GetColumns()[i].Type();
 
       if (terrier::storage::index::GenericKey<KeySize>::TypeComparators::CompareLessThan(type_id, lhs_attr, rhs_attr))
         return true;

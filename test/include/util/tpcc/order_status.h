@@ -67,24 +67,24 @@ class OrderStatus {
 
  public:
   explicit OrderStatus(const Database *const db)
-      : c_id_key_pr_offset(static_cast<uint8_t>(
-            db->customer_primary_index_->GetKeyOidToOffsetMap().at(db->customer_primary_index_schema_.at(2).GetOid()))),
-        c_d_id_key_pr_offset(static_cast<uint8_t>(
-            db->customer_primary_index_->GetKeyOidToOffsetMap().at(db->customer_primary_index_schema_.at(1).GetOid()))),
-        c_w_id_key_pr_offset(static_cast<uint8_t>(
-            db->customer_primary_index_->GetKeyOidToOffsetMap().at(db->customer_primary_index_schema_.at(0).GetOid()))),
+      : c_id_key_pr_offset(static_cast<uint8_t>(db->customer_primary_index_->GetKeyOidToOffsetMap().at(
+            db->customer_primary_index_schema_.GetColumn(2).Oid()))),
+        c_d_id_key_pr_offset(static_cast<uint8_t>(db->customer_primary_index_->GetKeyOidToOffsetMap().at(
+            db->customer_primary_index_schema_.GetColumn(1).Oid()))),
+        c_w_id_key_pr_offset(static_cast<uint8_t>(db->customer_primary_index_->GetKeyOidToOffsetMap().at(
+            db->customer_primary_index_schema_.GetColumn(0).Oid()))),
         c_last_name_key_pr_offset(static_cast<uint8_t>(db->customer_secondary_index_->GetKeyOidToOffsetMap().at(
-            db->customer_secondary_index_schema_.at(2).GetOid()))),
+            db->customer_secondary_index_schema_.GetColumn(2).Oid()))),
         c_d_id_name_key_pr_offset(static_cast<uint8_t>(db->customer_secondary_index_->GetKeyOidToOffsetMap().at(
-            db->customer_secondary_index_schema_.at(1).GetOid()))),
+            db->customer_secondary_index_schema_.GetColumn(1).Oid()))),
         c_w_id_name_key_pr_offset(static_cast<uint8_t>(db->customer_secondary_index_->GetKeyOidToOffsetMap().at(
-            db->customer_secondary_index_schema_.at(0).GetOid()))),
+            db->customer_secondary_index_schema_.GetColumn(0).Oid()))),
 
-        c_id_oid(db->customer_schema_.GetColumn(0).GetOid()),
-        c_balance_oid(db->customer_schema_.GetColumn(16).GetOid()),
-        c_first_oid(db->customer_schema_.GetColumn(3).GetOid()),
-        c_middle_oid(db->customer_schema_.GetColumn(4).GetOid()),
-        c_last_oid(db->customer_schema_.GetColumn(5).GetOid()),
+        c_id_oid(db->customer_schema_.GetColumn(0).Oid()),
+        c_balance_oid(db->customer_schema_.GetColumn(16).Oid()),
+        c_first_oid(db->customer_schema_.GetColumn(3).Oid()),
+        c_middle_oid(db->customer_schema_.GetColumn(4).Oid()),
+        c_last_oid(db->customer_schema_.GetColumn(5).Oid()),
 
         c_first_pr_initializer(db->customer_table_->InitializerForProjectedRow({c_first_oid}).first),
         customer_select_pr_initializer(
@@ -101,36 +101,36 @@ class OrderStatus {
         c_first_select_pr_offset(static_cast<uint8_t>(customer_select_pr_map.at(c_first_oid))),
         c_middle_select_pr_offset(static_cast<uint8_t>(customer_select_pr_map.at(c_middle_oid))),
         c_last_select_pr_offset(static_cast<uint8_t>(customer_select_pr_map.at(c_last_oid))),
-        o_id_secondary_key_pr_offset(static_cast<uint8_t>(
-            db->order_secondary_index_->GetKeyOidToOffsetMap().at(db->order_secondary_index_schema_.at(3).GetOid()))),
-        o_d_id_secondary_key_pr_offset(static_cast<uint8_t>(
-            db->order_secondary_index_->GetKeyOidToOffsetMap().at(db->order_secondary_index_schema_.at(1).GetOid()))),
-        o_w_id_secondary_key_pr_offset(static_cast<uint8_t>(
-            db->order_secondary_index_->GetKeyOidToOffsetMap().at(db->order_secondary_index_schema_.at(0).GetOid()))),
-        o_c_id_secondary_key_pr_offset(static_cast<uint8_t>(
-            db->order_secondary_index_->GetKeyOidToOffsetMap().at(db->order_secondary_index_schema_.at(2).GetOid()))),
-        o_id_oid(db->order_schema_.GetColumn(0).GetOid()),
-        o_entry_d_oid(db->order_schema_.GetColumn(4).GetOid()),
-        o_carrier_id_oid(db->order_schema_.GetColumn(5).GetOid()),
+        o_id_secondary_key_pr_offset(static_cast<uint8_t>(db->order_secondary_index_->GetKeyOidToOffsetMap().at(
+            db->order_secondary_index_schema_.GetColumn(3).Oid()))),
+        o_d_id_secondary_key_pr_offset(static_cast<uint8_t>(db->order_secondary_index_->GetKeyOidToOffsetMap().at(
+            db->order_secondary_index_schema_.GetColumn(1).Oid()))),
+        o_w_id_secondary_key_pr_offset(static_cast<uint8_t>(db->order_secondary_index_->GetKeyOidToOffsetMap().at(
+            db->order_secondary_index_schema_.GetColumn(0).Oid()))),
+        o_c_id_secondary_key_pr_offset(static_cast<uint8_t>(db->order_secondary_index_->GetKeyOidToOffsetMap().at(
+            db->order_secondary_index_schema_.GetColumn(2).Oid()))),
+        o_id_oid(db->order_schema_.GetColumn(0).Oid()),
+        o_entry_d_oid(db->order_schema_.GetColumn(4).Oid()),
+        o_carrier_id_oid(db->order_schema_.GetColumn(5).Oid()),
         order_select_pr_initializer(
             db->order_table_->InitializerForProjectedRow({o_id_oid, o_entry_d_oid, o_carrier_id_oid}).first),
         order_select_pr_map(
             db->order_table_->InitializerForProjectedRow({o_id_oid, o_entry_d_oid, o_carrier_id_oid}).second),
         o_id_select_pr_offset(static_cast<uint8_t>(order_select_pr_map.at(o_id_oid))),
         ol_o_id_key_pr_offset(static_cast<uint8_t>(db->order_line_primary_index_->GetKeyOidToOffsetMap().at(
-            db->order_line_primary_index_schema_.at(2).GetOid()))),
+            db->order_line_primary_index_schema_.GetColumn(2).Oid()))),
         ol_d_id_key_pr_offset(static_cast<uint8_t>(db->order_line_primary_index_->GetKeyOidToOffsetMap().at(
-            db->order_line_primary_index_schema_.at(1).GetOid()))),
+            db->order_line_primary_index_schema_.GetColumn(1).Oid()))),
         ol_w_id_key_pr_offset(static_cast<uint8_t>(db->order_line_primary_index_->GetKeyOidToOffsetMap().at(
-            db->order_line_primary_index_schema_.at(0).GetOid()))),
+            db->order_line_primary_index_schema_.GetColumn(0).Oid()))),
         ol_number_key_pr_offset(static_cast<uint8_t>(db->order_line_primary_index_->GetKeyOidToOffsetMap().at(
-            db->order_line_primary_index_schema_.at(3).GetOid()))),
+            db->order_line_primary_index_schema_.GetColumn(3).Oid()))),
 
-        ol_i_id_oid(db->order_line_schema_.GetColumn(4).GetOid()),
-        ol_supply_w_id_oid(db->order_line_schema_.GetColumn(5).GetOid()),
-        ol_quantity_oid(db->order_line_schema_.GetColumn(7).GetOid()),
-        ol_amount_oid(db->order_line_schema_.GetColumn(8).GetOid()),
-        ol_delivery_d_oid(db->order_line_schema_.GetColumn(6).GetOid()),
+        ol_i_id_oid(db->order_line_schema_.GetColumn(4).Oid()),
+        ol_supply_w_id_oid(db->order_line_schema_.GetColumn(5).Oid()),
+        ol_quantity_oid(db->order_line_schema_.GetColumn(7).Oid()),
+        ol_amount_oid(db->order_line_schema_.GetColumn(8).Oid()),
+        ol_delivery_d_oid(db->order_line_schema_.GetColumn(6).Oid()),
         order_line_select_pr_initializer(
             db->order_line_table_
                 ->InitializerForProjectedRow(

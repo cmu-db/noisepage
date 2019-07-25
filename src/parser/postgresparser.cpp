@@ -704,26 +704,25 @@ const AbstractExpression *PostgresParser::ValueTransform(value val) {
   switch (val.type) {
     case T_Integer: {
       auto v = type::TransientValueFactory::GetInteger(val.val.ival);
-      result = new ConstantValueExpression(v);
+      result = new ConstantValueExpression(std::move(v));
       break;
     }
 
     case T_String: {
       auto v = type::TransientValueFactory::GetVarChar(val.val.str);
-      result = new ConstantValueExpression(v);
+      result = new ConstantValueExpression(std::move(v));
       break;
     }
 
     case T_Float: {
       auto v = type::TransientValueFactory::GetDecimal(std::stod(val.val.str));
-      result = new ConstantValueExpression(v);
+      result = new ConstantValueExpression(std::move(v));
       break;
     }
 
     case T_Null: {
-      auto v = type::TransientValueFactory::GetBoolean(false);
-      v.SetNull(true);
-      result = new ConstantValueExpression(v);
+      auto v = type::TransientValueFactory::GetNull(type::TypeId::INVALID);
+      result = new ConstantValueExpression(std::move(v));
       break;
     }
 

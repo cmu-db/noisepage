@@ -53,8 +53,8 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
      */
     std::shared_ptr<SeqScanPlanNode> Build() {
       return std::shared_ptr<SeqScanPlanNode>(new SeqScanPlanNode(std::move(children_), std::move(output_schema_),
-                                                                  std::move(column_ids_),
-                                                                  scan_predicate_, is_for_update_, is_parallel_,
+                                                                  scan_predicate_, std::move(column_ids_),
+                                                                  is_for_update_, is_parallel_,
                                                                   database_oid_, namespace_oid_, table_oid_));
     }
 
@@ -88,7 +88,7 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
                   catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid)
       : AbstractScanPlanNode(std::move(children), std::move(output_schema), predicate, is_for_update, is_parallel,
                              database_oid, namespace_oid),
-        column_ids_(std::move(column_ids), table_oid_(table_oid) {}
+        column_ids_(std::move(column_ids)), table_oid_(table_oid) {}
 
  public:
   /**

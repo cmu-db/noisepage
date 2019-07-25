@@ -1,3 +1,5 @@
+#if 0
+
 #include "expression/expression_util.h"
 #include "settings/settings_manager.h"
 #include "transaction/transaction_context.h"
@@ -141,8 +143,6 @@ void PlanGenerator::Visit(const SeqScan *op) {
                                                     .SetIsParallelFlag(parallel_scan)
                                                     .Build();
 }
-
-#if 0
 
 void PlanGenerator::Visit(const PhysicalIndexScan *op) {
   vector<oid_t> column_ids = GenerateColumnsForScan();

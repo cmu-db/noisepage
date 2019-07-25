@@ -179,7 +179,7 @@ TEST(ExpressionTests, ConstantValueExpressionTest) {
 TEST(ExpressionTests, ConstantValueExpressionJsonTest) {
   // Create expression
   auto value = type::TransientValueFactory::GetVarChar("ConstantValueExpressionJsonTest");
-  auto original_expr = new ConstantValueExpression(value);
+  auto original_expr = new ConstantValueExpression(std::move(value));
 
   auto copy = original_expr->Copy();
   EXPECT_EQ(*original_expr, *copy);
@@ -198,6 +198,8 @@ TEST(ExpressionTests, ConstantValueExpressionJsonTest) {
   // Deserialize expression
   auto deserialized_expression = DeserializeExpression(json);
   EXPECT_EQ(*original_expr, *deserialized_expression);
+
+  value = type::TransientValueFactory::GetVarChar("ConstantValueExpressionJsonTest");
   EXPECT_EQ(static_cast<ConstantValueExpression *>(deserialized_expression)->GetValue(), value);
 
   delete original_expr;

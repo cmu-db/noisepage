@@ -1485,20 +1485,20 @@ TEST_F(ParserTestBase, OldDataTypeTest) {
   // Check First column
   auto column = create_stmt->GetColumns()[0].get();
   EXPECT_EQ(column->GetColumnName(), "a");
-  EXPECT_EQ(column->GetValueType(column->GetColumnType()), type::TypeId::VARCHAR);
+  EXPECT_EQ(column->GetValueType(), type::TypeId::VARCHAR);
   // TODO(WAN): we got an equivalent of this?
   // EXPECT_EQ(peloton::type::PELOTON_TEXT_MAX_LEN, column->varlen);
 
   // Check Second column
   column = create_stmt->GetColumns()[1].get();
   EXPECT_EQ(column->GetColumnName(), "b");
-  EXPECT_EQ(column->GetValueType(column->GetColumnType()), type::TypeId::VARCHAR);
+  EXPECT_EQ(column->GetValueType(), type::TypeId::VARCHAR);
   EXPECT_EQ(column->GetVarlenSize(), 1024);
 
   // Check Third column
   column = create_stmt->GetColumns()[2].get();
   EXPECT_EQ(column->GetColumnName(), "c");
-  EXPECT_EQ(column->GetValueType(column->GetColumnType()), type::TypeId::VARBINARY);
+  EXPECT_EQ(column->GetValueType(), type::TypeId::VARBINARY);
   EXPECT_EQ(column->GetVarlenSize(), 32);
 }
 

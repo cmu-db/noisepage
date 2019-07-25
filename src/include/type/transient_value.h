@@ -274,7 +274,7 @@ class TransientValue {
     // clear internal buffer
     data_ = 0;
     type_ = other.type_;
-    if (Type() != TypeId::VARCHAR) {
+    if (Type() != TypeId::VARCHAR || other.data_ == 0) {
       data_ = other.data_;
     } else {
       CopyVarChar(reinterpret_cast<const char *const>(other.data_));
@@ -293,14 +293,14 @@ class TransientValue {
    */
   TransientValue &operator=(const TransientValue &other) {
     if (this != &other) {  // self-assignment check expected
-      if (Type() == TypeId::VARCHAR) {
+      if (Type() == TypeId::VARCHAR && data_ != 0) {
         // free VARCHAR buffer
         delete[] reinterpret_cast<char *const>(data_);
       }
       // clear internal buffer
       data_ = 0;
       type_ = other.type_;
-      if (Type() != TypeId::VARCHAR) {
+      if (Type() != TypeId::VARCHAR || other.data_ == 0) {
         data_ = other.data_;
       } else {
         CopyVarChar(reinterpret_cast<const char *const>(other.data_));

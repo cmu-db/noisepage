@@ -67,12 +67,12 @@ class Delivery {
 
  public:
   explicit Delivery(const Database *const db)
-      : no_o_id_key_oid(db->new_order_primary_index_schema_.at(2).GetOid()),
-        no_d_id_key_oid(db->new_order_primary_index_schema_.at(1).GetOid()),
-        no_w_id_key_oid(db->new_order_primary_index_schema_.at(0).GetOid()),
+      : no_o_id_key_oid(db->new_order_primary_index_schema_.GetColumn(2).Oid()),
+        no_d_id_key_oid(db->new_order_primary_index_schema_.GetColumn(1).Oid()),
+        no_w_id_key_oid(db->new_order_primary_index_schema_.GetColumn(0).Oid()),
 
         new_order_pr_initializer(
-            db->new_order_table_->InitializerForProjectedRow({db->new_order_schema_.GetColumn(0).GetOid()}).first),
+            db->new_order_table_->InitializerForProjectedRow({db->new_order_schema_.GetColumn(0).Oid()}).first),
         no_o_id_key_pr_offset(
             static_cast<uint8_t>(db->new_order_primary_index_->GetKeyOidToOffsetMap().at(no_o_id_key_oid))),
         no_d_id_key_pr_offset(
@@ -80,29 +80,29 @@ class Delivery {
         no_w_id_key_pr_offset(
             static_cast<uint8_t>(db->new_order_primary_index_->GetKeyOidToOffsetMap().at(no_w_id_key_oid))),
 
-        o_id_key_oid(db->order_primary_index_schema_.at(2).GetOid()),
-        o_d_id_key_oid(db->order_primary_index_schema_.at(1).GetOid()),
-        o_w_id_key_oid(db->order_primary_index_schema_.at(0).GetOid()),
+        o_id_key_oid(db->order_primary_index_schema_.GetColumn(2).Oid()),
+        o_d_id_key_oid(db->order_primary_index_schema_.GetColumn(1).Oid()),
+        o_w_id_key_oid(db->order_primary_index_schema_.GetColumn(0).Oid()),
 
         order_select_pr_initializer(
-            db->order_table_->InitializerForProjectedRow({db->order_schema_.GetColumn(3).GetOid()}).first),
+            db->order_table_->InitializerForProjectedRow({db->order_schema_.GetColumn(3).Oid()}).first),
         order_update_pr_initializer(
-            db->order_table_->InitializerForProjectedRow({db->order_schema_.GetColumn(5).GetOid()}).first),
+            db->order_table_->InitializerForProjectedRow({db->order_schema_.GetColumn(5).Oid()}).first),
         o_id_key_pr_offset(static_cast<uint8_t>(db->order_primary_index_->GetKeyOidToOffsetMap().at(o_id_key_oid))),
         o_d_id_key_pr_offset(static_cast<uint8_t>(db->order_primary_index_->GetKeyOidToOffsetMap().at(o_d_id_key_oid))),
         o_w_id_key_pr_offset(static_cast<uint8_t>(db->order_primary_index_->GetKeyOidToOffsetMap().at(o_w_id_key_oid))),
 
-        ol_amount_oid(db->order_line_schema_.GetColumn(8).GetOid()),
-        ol_delivery_d_oid(db->order_line_schema_.GetColumn(6).GetOid()),
-        ol_o_id_key_oid(db->order_line_primary_index_schema_.at(2).GetOid()),
-        ol_d_id_key_oid(db->order_line_primary_index_schema_.at(1).GetOid()),
-        ol_w_id_key_oid(db->order_line_primary_index_schema_.at(0).GetOid()),
-        ol_number_key_oid(db->order_line_primary_index_schema_.at(3).GetOid()),
+        ol_amount_oid(db->order_line_schema_.GetColumn(8).Oid()),
+        ol_delivery_d_oid(db->order_line_schema_.GetColumn(6).Oid()),
+        ol_o_id_key_oid(db->order_line_primary_index_schema_.GetColumn(2).Oid()),
+        ol_d_id_key_oid(db->order_line_primary_index_schema_.GetColumn(1).Oid()),
+        ol_w_id_key_oid(db->order_line_primary_index_schema_.GetColumn(0).Oid()),
+        ol_number_key_oid(db->order_line_primary_index_schema_.GetColumn(3).Oid()),
 
         order_line_select_pr_initializer(
-            db->order_line_table_->InitializerForProjectedRow({db->order_line_schema_.GetColumn(8).GetOid()}).first),
+            db->order_line_table_->InitializerForProjectedRow({db->order_line_schema_.GetColumn(8).Oid()}).first),
         order_line_update_pr_initializer(
-            db->order_line_table_->InitializerForProjectedRow({db->order_line_schema_.GetColumn(6).GetOid()}).first),
+            db->order_line_table_->InitializerForProjectedRow({db->order_line_schema_.GetColumn(6).Oid()}).first),
         ol_o_id_key_pr_offset(
             static_cast<uint8_t>(db->order_line_primary_index_->GetKeyOidToOffsetMap().at(ol_o_id_key_oid))),
         ol_d_id_key_pr_offset(
@@ -112,11 +112,11 @@ class Delivery {
         ol_number_key_pr_offset(
             static_cast<uint8_t>(db->order_line_primary_index_->GetKeyOidToOffsetMap().at(ol_number_key_oid))),
 
-        c_balance_oid(db->customer_schema_.GetColumn(16).GetOid()),
-        c_delivery_cnt_oid(db->customer_schema_.GetColumn(19).GetOid()),
-        c_id_key_oid(db->customer_primary_index_schema_.at(2).GetOid()),
-        c_d_id_key_oid(db->customer_primary_index_schema_.at(1).GetOid()),
-        c_w_id_key_oid(db->customer_primary_index_schema_.at(0).GetOid()),
+        c_balance_oid(db->customer_schema_.GetColumn(16).Oid()),
+        c_delivery_cnt_oid(db->customer_schema_.GetColumn(19).Oid()),
+        c_id_key_oid(db->customer_primary_index_schema_.GetColumn(2).Oid()),
+        c_d_id_key_oid(db->customer_primary_index_schema_.GetColumn(1).Oid()),
+        c_w_id_key_oid(db->customer_primary_index_schema_.GetColumn(0).Oid()),
 
         customer_pr_initializer(
             db->customer_table_->InitializerForProjectedRow({c_balance_oid, c_delivery_cnt_oid}).first),
