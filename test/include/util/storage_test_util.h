@@ -369,20 +369,19 @@ class StorageTestUtil {
         case type::TypeId::VARBINARY:
         case type::TypeId::VARCHAR: {
           auto varlen_size = std::uniform_int_distribution(0u, max_varlen_size)(*generator);
-          key_cols.emplace_back(type, is_nullable,
-                                parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type)),
-                                varlen_size);
+          key_cols.emplace_back("", type, varlen_size, is_nullable,
+                                parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type)));
           break;
         }
         default:
-          key_cols.emplace_back(type, is_nullable,
+          key_cols.emplace_back("", type, is_nullable,
                                 parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type)));
           break;
       }
       ForceOid(&(key_cols.back()), key_oid);
     }
 
-    return catalog::IndexSchema(key_cols, false, false, false, true, true);
+    return catalog::IndexSchema(key_cols, false, false, false, true);
   }
 
   /**
@@ -420,13 +419,13 @@ class StorageTestUtil {
       const uint8_t type_offset = std::uniform_int_distribution(static_cast<uint8_t>(0), max_offset)(*generator);
       const auto type = types[type_offset];
 
-      key_cols.emplace_back(type, false,
+      key_cols.emplace_back("", type, false,
                             parser::ConstantValueExpression(std::move(type::TransientValueFactory::GetNull(type))));
       ForceOid(&(key_cols.back()), key_oids[col++]);
       bytes_used = static_cast<uint16_t>(bytes_used + type::TypeUtil::GetTypeSize(type));
     }
 
-    return catalog::IndexSchema(key_cols, false, false, false, true, true);
+    return catalog::IndexSchema(key_cols, false, false, false, true);
   }
 
  private:
