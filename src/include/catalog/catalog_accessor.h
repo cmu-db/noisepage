@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <string>
 #include <utility>
 #include <vector>
@@ -265,6 +266,10 @@ class CatalogAccessor {
   db_oid_t db_oid_;
   std::vector<namespace_oid_t> search_path_;
 
+  /**
+   * A helper function to ensure that user-defined object names are standardized prior to doing catalog operations
+   * @param name of object that should be sanitized/normalized
+   */
   static void NormalizeObjectName(std::string *name) {
     std::transform(name->begin(), name->end(), name->begin(), [](auto &&c) { return std::tolower(c); });
   }
