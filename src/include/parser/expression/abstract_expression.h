@@ -139,6 +139,11 @@ class AbstractExpression {
   type::TypeId GetReturnValueType() const { return return_value_type_; }
 
   /**
+   * Deduce the expression type of the current expression.
+   */
+  virtual void DeduceReturnValueType() {}
+
+  /**
    * @return number of children in this abstract expression
    */
   size_t GetChildrenSize() const { return children_.size(); }
@@ -156,6 +161,11 @@ class AbstractExpression {
     TERRIER_ASSERT(index < children_.size(), "Index must be in bounds.");
     return children_[index];
   }
+
+  /**
+   * Walks the expression trees and generate the correct expression name
+   */
+  virtual void DeduceExpressionName();
 
   /**
    * @return Name of the expression.
