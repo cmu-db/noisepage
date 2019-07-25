@@ -200,6 +200,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
 }
 
+#ifndef NDEBUG
 // NOLINTNEXTLINE
 TEST_F(BinderCorrectnessTest, SelectStatementDupAliasTest) {
   // Check alias ambiguous
@@ -208,10 +209,9 @@ TEST_F(BinderCorrectnessTest, SelectStatementDupAliasTest) {
   std::string selectSQL = "SELECT * FROM A, B as A";
   auto parse_tree = parser_.BuildParseTree(selectSQL);
   auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree[0].get());
-#ifndef NDEBUG
   EXPECT_THROW(binder_->BindNameToNode(selectStmt), BinderException);
-#endif
 }
+#endif
 
 // NOLINTNEXTLINE
 TEST_F(BinderCorrectnessTest, SelectStatementDiffTableSameSchemaTest) {
