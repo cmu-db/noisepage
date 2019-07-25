@@ -12,7 +12,7 @@ namespace terrier {
 
 namespace binder {
 class BindNodeVisitor;
-} // namespace binder
+}  // namespace binder
 
 namespace parser {
 
@@ -463,7 +463,6 @@ class SelectStatement : public SQLStatement {
 
   /** @param j json to deserialize */
   std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) override;
-
 
  private:
   friend class binder::BindNodeVisitor;

@@ -14,7 +14,7 @@
 
 namespace terrier::binder {
 class BindNodeVisitor;
-} // namespace terrier::binder
+}  // namespace terrier::binder
 
 namespace terrier::parser {
 /**
@@ -173,11 +173,6 @@ class AbstractExpression {
     TERRIER_ASSERT(index < children_.size(), "Index must be in bounds.");
     return common::ManagedPointer(children_[index]);
   }
-
-  /**
-   * Walks the expression trees and generate the correct expression name
-   */
-  virtual void DeduceExpressionName();
 
   /**
    * @return Name of the expression.

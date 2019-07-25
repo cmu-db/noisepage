@@ -7,9 +7,9 @@
 
 #include "catalog/catalog_defs.h"
 #include "catalog/database_catalog.h"
+#include "catalog_accessor.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
-#include "catalog_accessor.h"
 
 namespace terrier::catalog {
 
@@ -107,14 +107,6 @@ class Catalog {
    * @return a CatalogAccessor object for use with this transaction
    */
   std::unique_ptr<CatalogAccessor> GetAccessor(transaction::TransactionContext *txn, db_oid_t database);
-
-  /**
-   * Creates a new accessor into the catalog which will handle transactionality and sequencing of catalog operations.
-   * @param txn for all subsequent catalog queries
-   * @param database in which this transaction is scoped
-   * @return a CatalogAccessor object for use with this transaction
-   */
-  CatalogAccessor GetAccessor(transaction::TransactionContext *txn, database_oid_t database);
 
  private:
   friend class storage::RecoveryManager;

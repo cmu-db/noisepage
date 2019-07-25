@@ -1,10 +1,11 @@
 #pragma once
 
+#include <memory>
+#include <string>
 #include "binder/binder_context.h"
+#include "catalog/catalog_defs.h"
 #include "common/sql_node_visitor.h"
 #include "parser/statements.h"
-#include "catalog/catalog_defs.h"
-
 
 namespace terrier {
 
@@ -33,7 +34,7 @@ namespace binder {
  */
 class BindNodeVisitor : public SqlNodeVisitor {
  public:
-  BindNodeVisitor(catalog::CatalogAccessor* catalog_accessor, std::string default_database_name);
+  BindNodeVisitor(catalog::CatalogAccessor *catalog_accessor, std::string default_database_name);
 
   void BindNameToNode(parser::SQLStatement *tree);
   void Visit(parser::SelectStatement *) override;

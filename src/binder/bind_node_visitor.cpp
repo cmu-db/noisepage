@@ -1,26 +1,24 @@
 #include "binder/bind_node_visitor.h"
-#include "common/exception.h"
 #include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
-#include "type/type_id.h"
-#include "parser/sql_statement.h"
+#include "common/exception.h"
 #include "parser/expression/abstract_expression.h"
-#include "parser/expression/star_expression.h"
 #include "parser/expression/aggregate_expression.h"
 #include "parser/expression/case_expression.h"
+#include "parser/expression/column_value_expression.h"
 #include "parser/expression/function_expression.h"
 #include "parser/expression/operator_expression.h"
+#include "parser/expression/star_expression.h"
 #include "parser/expression/subquery_expression.h"
-#include "parser/expression/column_value_expression.h"
+#include "parser/sql_statement.h"
+#include "type/type_id.h"
 
 namespace terrier::binder {
 
-BindNodeVisitor::BindNodeVisitor(catalog::CatalogAccessor* catalog_accessor, std::string default_database_name)
+BindNodeVisitor::BindNodeVisitor(catalog::CatalogAccessor *catalog_accessor, std::string default_database_name)
     : catalog_accessor_(catalog_accessor), default_database_name_(std::move(default_database_name)) {}
 
-void BindNodeVisitor::BindNameToNode(parser::SQLStatement *tree) {
-  tree->Accept(this);
-}
+void BindNodeVisitor::BindNameToNode(parser::SQLStatement *tree) { tree->Accept(this); }
 
 void BindNodeVisitor::Visit(parser::SelectStatement *node) {
   // TODO: remove make shared ... Use raw pointers, as the context is not stored in the binder
@@ -53,8 +51,10 @@ void BindNodeVisitor::Visit(parser::SelectStatement *node) {
     select_element->Accept(this);
 
     // Derive depth for all exprs in the select clause
-    if (select_element->GetExpressionType() == parser::ExpressionType::STAR) select_element->SetDepth(context_->GetDepth());
-    else select_element->DeriveDepth();
+    if (select_element->GetExpressionType() == parser::ExpressionType::STAR)
+      select_element->SetDepth(context_->GetDepth());
+    else
+      select_element->DeriveDepth();
 
     select_element->DeriveSubqueryFlag();
 
@@ -92,13 +92,16 @@ void BindNodeVisitor::Visit(parser::TableRef *node) {
   }
 
   // Join
-  else if (node->GetJoin() != nullptr) node->GetJoin()->Accept(this);
+  else if (node->GetJoin() != nullptr)
+    node->GetJoin()->Accept(this);
 
   // Multiple table
-  else if (!node->GetList().empty()) for (auto &table : node->GetList()) table->Accept(this);
+  else if (!node->GetList().empty())
+    for (auto &table : node->GetList()) table->Accept(this);
 
   // Single table
-  else context_->AddRegularTable(catalog_accessor_, node);
+  else
+    context_->AddRegularTable(catalog_accessor_, node);
 }
 
 void BindNodeVisitor::Visit(parser::GroupByDescription *node) {
@@ -177,17 +180,17 @@ void BindNodeVisitor::Visit(parser::DropStatement *node) { node->TryBindDatabase
 void BindNodeVisitor::Visit(parser::PrepareStatement *) {}
 void BindNodeVisitor::Visit(parser::ExecuteStatement *) {}
 void BindNodeVisitor::Visit(parser::TransactionStatement *) {}
-void BindNodeVisitor::Visit(parser::AnalyzeStatement *node) { node->GetAnalyzeTable()->TryBindDatabaseName(default_database_name_); }
+void BindNodeVisitor::Visit(parser::AnalyzeStatement *node) {
+  node->GetAnalyzeTable()->TryBindDatabaseName(default_database_name_);
+}
 
 void BindNodeVisitor::Visit(parser::ConstantValueExpression *) {}
 
 void BindNodeVisitor::Visit(parser::ColumnValueExpression *expr) {
-
   // TODO (Ling): consider remove precondition check if the *_oid_ will never be initialized till binder
   //   That is, the object would not be initialized using ColumnValueeExpression(database_oid, table_oid, column_oid)
   //   at this point
   if (expr->GetTableOid() == catalog::INVALID_TABLE_OID) {
-
     std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema> tuple;
     std::string table_name = expr->GetTableName();
     std::string col_name = expr->GetColumnName();
@@ -202,7 +205,7 @@ void BindNodeVisitor::Visit(parser::ColumnValueExpression *expr) {
         throw BINDER_EXCEPTION(("Cannot find column " + col_name).c_str());
       }
     }
-      // Table name is present
+    // Table name is present
     else {
       // Regular table
       if (BinderContext::GetRegularTableObj(context_, table_name, expr, tuple)) {
@@ -211,7 +214,7 @@ void BindNodeVisitor::Visit(parser::ColumnValueExpression *expr) {
         }
         BinderContext::GetColumnPosTuple(col_name, tuple, expr);
       }
-        // Nested table
+      // Nested table
       else if (!BinderContext::CheckNestedTableColumn(context_, table_name, col_name, expr))
         throw BINDER_EXCEPTION(("Invalid table reference " + expr->GetTableName()).c_str());
     }
@@ -224,9 +227,7 @@ void BindNodeVisitor::Visit(parser::CaseExpression *expr) {
   }
 }
 
-void BindNodeVisitor::Visit(parser::SubqueryExpression *expr) {
-  expr->GetSubselect()->Accept(this);
-}
+void BindNodeVisitor::Visit(parser::SubqueryExpression *expr) { expr->GetSubselect()->Accept(this); }
 
 void BindNodeVisitor::Visit(parser::StarExpression *expr) {
   if (!BinderContext::HasTables(context_)) {
@@ -244,7 +245,7 @@ void BindNodeVisitor::Visit(parser::AggregateExpression *expr) {
   expr->DeriveReturnValueType();
 }
 
-//void BindNodeVisitor::Visit(parser::FunctionExpression *expr) {
+// void BindNodeVisitor::Visit(parser::FunctionExpression *expr) {
 //  // Visit the subtree first
 //  SqlNodeVisitor::Visit(expr);
 //
