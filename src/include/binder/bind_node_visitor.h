@@ -63,19 +63,15 @@ class BindNodeVisitor : public SqlNodeVisitor {
   void Visit(parser::ConstantValueExpression *expr) override;
   void Visit(parser::ColumnValueExpression *expr) override;
   void Visit(parser::StarExpression *expr) override;
-//  void Visit(parser::FunctionExpression *expr) override;
+  //  void Visit(parser::FunctionExpression *expr) override;
 
   // Deduce value type for these expressions
   void Visit(parser::OperatorExpression *expr) override;
   void Visit(parser::AggregateExpression *expr) override;
 
-  // TODO: LING: this method was never used in the peloton code
-  void SetTxn(transaction::TransactionContext *txn) { this->txn_ = txn; }
-
  private:
   std::shared_ptr<BinderContext> context_ = nullptr;
   catalog::CatalogAccessor *catalog_accessor_;
-  transaction::TransactionContext *txn_;
   std::string default_database_name_;
 };
 
