@@ -135,9 +135,9 @@ class BinderContext {
   //  we don't have function calling this two functions in peloton even
   void SetUpperContext(BinderContext *upper_context) { upper_context_ = upper_context; }
 
-  void inline SetDepth(int depth) { depth_ = depth; }
+  void SetDepth(int depth) { depth_ = depth; }
 
-  int inline GetDepth() { return depth_; }
+  int GetDepth() { return depth_; }
 
   void GenerateAllColumnExpressions(std::vector<std::shared_ptr<parser::AbstractExpression>> *exprs);
 

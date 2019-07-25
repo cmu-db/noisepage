@@ -79,8 +79,7 @@ void BinderContext::GetColumnPosTuple(const std::string &col_name,
   expr->SetReturnValueType(column_object.Type());
 }
 
-bool BinderContext::GetColumnPosTuple(BinderContext *current_context,
-                                      parser::ColumnValueExpression *expr) {
+bool BinderContext::GetColumnPosTuple(BinderContext *current_context, parser::ColumnValueExpression *expr) {
   auto col_name = expr->GetColumnName();
   std::transform(col_name.begin(), col_name.end(), col_name.begin(), ::tolower);
 
