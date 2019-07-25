@@ -4,6 +4,7 @@
 #include <string>
 #include <tuple>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "catalog/catalog.h"
@@ -123,20 +124,22 @@ class BinderContext {
    */
   static bool GetRegularTableObj(std::shared_ptr<BinderContext> current_context, const std::string &alias,
                                  parser::ColumnValueExpression *expr,
-                                 std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema> &tuple);
+                                 std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema> *tuple);
 
   static bool CheckNestedTableColumn(std::shared_ptr<BinderContext> current_context, const std::string &alias,
-                                     std::string &col_name, parser::ColumnValueExpression *expr);
+                                     const std::string &col_name, parser::ColumnValueExpression *expr);
 
   std::shared_ptr<BinderContext> GetUpperContext() { return upper_context_; }
 
-  void SetUpperContext(std::shared_ptr<BinderContext> upper_context) { upper_context_ = upper_context; }
+  // TODO(Ling): not sure if we should do assign or move... will the calling method still need it?
+  //  we don't have function calling this two functions in peloton even
+  void SetUpperContext(std::shared_ptr<BinderContext> upper_context) { upper_context_ = std::move(upper_context); }
 
   void inline SetDepth(int depth) { depth_ = depth; }
 
   int inline GetDepth() { return depth_; }
 
-  void GenerateAllColumnExpressions(std::vector<std::shared_ptr<parser::AbstractExpression>> &exprs);
+  void GenerateAllColumnExpressions(std::vector<std::shared_ptr<parser::AbstractExpression>> *exprs);
 
  private:
   /** @brief Map table alias to table obj */

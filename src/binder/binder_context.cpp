@@ -126,11 +126,11 @@ bool BinderContext::GetColumnPosTuple(std::shared_ptr<BinderContext> current_con
 
 bool BinderContext::GetRegularTableObj(std::shared_ptr<BinderContext> current_context, const std::string &alias,
                                        parser::ColumnValueExpression *expr,
-                                       std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema> &tuple) {
+                                       std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema> *tuple) {
   while (current_context != nullptr) {
     auto iter = current_context->regular_table_alias_map_.find(alias);
     if (iter != current_context->regular_table_alias_map_.end()) {
-      tuple = iter->second;
+      *tuple = iter->second;
       expr->SetDepth(current_context->depth_);
       return true;
     }
@@ -140,7 +140,7 @@ bool BinderContext::GetRegularTableObj(std::shared_ptr<BinderContext> current_co
 }
 
 bool BinderContext::CheckNestedTableColumn(std::shared_ptr<BinderContext> current_context, const std::string &alias,
-                                           std::string &col_name, parser::ColumnValueExpression *expr) {
+                                           const std::string &col_name, parser::ColumnValueExpression *expr) {
   while (current_context != nullptr) {
     auto iter = current_context->nested_table_alias_map_.find(alias);
     if (iter != current_context->nested_table_alias_map_.end()) {
@@ -159,7 +159,7 @@ bool BinderContext::CheckNestedTableColumn(std::shared_ptr<BinderContext> curren
   return false;
 }
 
-void BinderContext::GenerateAllColumnExpressions(std::vector<std::shared_ptr<parser::AbstractExpression>> &exprs) {
+void BinderContext::GenerateAllColumnExpressions(std::vector<std::shared_ptr<parser::AbstractExpression>> *exprs) {
   for (auto &entry : regular_table_alias_map_) {
     auto &schema = std::get<2>(entry.second);
     auto col_cnt = schema.GetColumns().size();
@@ -174,7 +174,7 @@ void BinderContext::GenerateAllColumnExpressions(std::vector<std::shared_ptr<par
       tv_expr->SetTableOID(std::get<1>(entry.second));
       tv_expr->SetColumnOID(col_obj.Oid());
 
-      exprs.emplace_back(tv_expr);
+      exprs->emplace_back(tv_expr);
     }
   }
 
@@ -187,7 +187,7 @@ void BinderContext::GenerateAllColumnExpressions(std::vector<std::shared_ptr<par
       tv_expr->SetReturnValueType(col_entry.second);
       tv_expr->DeriveExpressionName();
       // All derived columns do not have bound oids, thus keep them as INVALID_OIDs
-      exprs.emplace_back(tv_expr);
+      exprs->emplace_back(tv_expr);
     }
   }
 }
