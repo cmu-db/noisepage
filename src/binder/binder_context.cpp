@@ -1,5 +1,10 @@
 #include "binder/binder_context.h"
+#include <algorithm>
+#include <memory>
 #include <string>
+#include <tuple>
+#include <unordered_map>
+#include <vector>
 #include "common/exception.h"
 
 #include "catalog/catalog_accessor.h"
@@ -44,8 +49,9 @@ void BinderContext::AddNestedTable(const std::string &table_alias,
     } else if (expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
       auto tv_expr = reinterpret_cast<parser::ColumnValueExpression *>(expr.get());
       alias = tv_expr->GetColumnName();
-    } else
+    } else {
       continue;
+    }
 
     std::transform(alias.begin(), alias.end(), alias.begin(), ::tolower);
     column_alias_map[alias] = expr->GetReturnValueType();
@@ -159,7 +165,7 @@ void BinderContext::GenerateAllColumnExpressions(std::vector<std::shared_ptr<par
     auto col_cnt = schema.GetColumns().size();
     for (uint32_t i = 0; i < col_cnt; i++) {
       auto col_obj = schema.GetColumn(i);
-      // TODO (Ling): change use of shared_ptr
+      // TODO(Ling): change use of shared_ptr
       auto tv_expr =
           std::make_shared<parser::ColumnValueExpression>(std::string(entry.first), std::string(col_obj.Name()));
       tv_expr->SetReturnValueType(col_obj.Type());

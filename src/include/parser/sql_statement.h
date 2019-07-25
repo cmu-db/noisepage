@@ -89,14 +89,14 @@ struct TableInfo {
   std::string database_name_;
 
   void TryBindDatabaseName(const std::string &default_database_name) {
-    if (database_name_.empty())
+    if (database_name_.empty()) {
       database_name_ = std::string(default_database_name);
-    else if (database_name_ != default_database_name) {
-      // TODO (ling): Binder Exception or Parser Exception?
+    } else if (database_name_ != default_database_name) {
+      // TODO(ling): Binder Exception or Parser Exception?
       //    This Exception throw in the binding stage
       throw BINDER_EXCEPTION(("Database " + database_name_ + " in the statement is not the current database.").c_str());
     }
-    // TODO (Ling): see if we actual need to set the schema name to any default values
+    // TODO(Ling): see if we actual need to set the schema name to any default values
     //  This piece of code comes from pelotn
     //    // if schema name is not specified, then it's default value is "public"
     //    if (table_info_->schema_name.empty())
