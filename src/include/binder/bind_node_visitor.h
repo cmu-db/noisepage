@@ -37,26 +37,26 @@ class BindNodeVisitor : public SqlNodeVisitor {
   BindNodeVisitor(catalog::CatalogAccessor *catalog_accessor, std::string default_database_name);
 
   void BindNameToNode(parser::SQLStatement *tree);
-  void Visit(parser::SelectStatement *) override;
+  void Visit(parser::SelectStatement *node) override;
 
   // Some sub query nodes inside SelectStatement
-  void Visit(parser::JoinDefinition *) override;
-  void Visit(parser::TableRef *) override;
-  void Visit(parser::GroupByDescription *) override;
-  void Visit(parser::OrderByDescription *) override;
-  void Visit(parser::LimitDescription *) override;
+  void Visit(parser::JoinDefinition *node) override;
+  void Visit(parser::TableRef *node) override;
+  void Visit(parser::GroupByDescription *node) override;
+  void Visit(parser::OrderByDescription *node) override;
+  void Visit(parser::LimitDescription *node) override;
 
-  void Visit(parser::CreateStatement *) override;
-  void Visit(parser::CreateFunctionStatement *) override;
-  void Visit(parser::InsertStatement *) override;
-  void Visit(parser::DeleteStatement *) override;
-  void Visit(parser::DropStatement *) override;
-  void Visit(parser::PrepareStatement *) override;
-  void Visit(parser::ExecuteStatement *) override;
-  void Visit(parser::TransactionStatement *) override;
-  void Visit(parser::UpdateStatement *) override;
-  void Visit(parser::CopyStatement *) override;
-  void Visit(parser::AnalyzeStatement *) override;
+  void Visit(parser::CreateStatement *node) override;
+  void Visit(parser::CreateFunctionStatement *node) override;
+  void Visit(parser::InsertStatement *node) override;
+  void Visit(parser::DeleteStatement *node) override;
+  void Visit(parser::DropStatement *node) override;
+  void Visit(parser::PrepareStatement *node) override;
+  void Visit(parser::ExecuteStatement *node) override;
+  void Visit(parser::TransactionStatement *node) override;
+  void Visit(parser::UpdateStatement *node) override;
+  void Visit(parser::CopyStatement *node) override;
+  void Visit(parser::AnalyzeStatement *node) override;
 
   void Visit(parser::CaseExpression *expr) override;
   void Visit(parser::SubqueryExpression *expr) override;
