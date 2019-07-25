@@ -163,6 +163,7 @@ class ColumnValueExpression : public AbstractExpression {
   }
 
  private:
+  friend class binder::BinderContext;
   /**
    * @param database_oid Database OID to be assigned to this expression
    */
@@ -177,6 +178,21 @@ class ColumnValueExpression : public AbstractExpression {
    * @param column_oid Column OID to be assigned to this expression
    */
   void SetColumnOID(catalog::col_oid_t column_oid) { column_oid_ = column_oid; }
+//
+//  /**
+//   * @param database_oid Database OID to be assigned to this expression
+//   */
+//  void SetDatabaseOID(catalog::db_oid_t database_oid) { database_oid_ = database_oid; }
+
+  /**
+   * @param table_oid Table OID to be assigned to this expression
+   */
+  void SetTableName(const std::string &table_name) { table_name_ = std::string(table_name); }
+
+  /**
+   * @param column_oid Column OID to be assigned to this expression
+   */
+  void SetColumnName(const std::string &col_name) { column_name_ = std::string(col_name); }
 
   /**
    * Name of the namespace
