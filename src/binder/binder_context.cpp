@@ -79,7 +79,7 @@ void BinderContext::GetColumnPosTuple(const std::string &col_name,
   expr->SetReturnValueType(column_object.Type());
 }
 
-bool BinderContext::GetColumnPosTuple(std::shared_ptr<BinderContext> current_context,
+bool BinderContext::GetColumnPosTuple(BinderContext *current_context,
                                       parser::ColumnValueExpression *expr) {
   auto col_name = expr->GetColumnName();
   std::transform(col_name.begin(), col_name.end(), col_name.begin(), ::tolower);
@@ -124,7 +124,7 @@ bool BinderContext::GetColumnPosTuple(std::shared_ptr<BinderContext> current_con
   return false;
 }
 
-bool BinderContext::GetRegularTableObj(std::shared_ptr<BinderContext> current_context, const std::string &alias,
+bool BinderContext::GetRegularTableObj(BinderContext *current_context, const std::string &alias,
                                        parser::ColumnValueExpression *expr,
                                        std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema> *tuple) {
   while (current_context != nullptr) {
@@ -139,7 +139,7 @@ bool BinderContext::GetRegularTableObj(std::shared_ptr<BinderContext> current_co
   return false;
 }
 
-bool BinderContext::CheckNestedTableColumn(std::shared_ptr<BinderContext> current_context, const std::string &alias,
+bool BinderContext::CheckNestedTableColumn(BinderContext *current_context, const std::string &alias,
                                            const std::string &col_name, parser::ColumnValueExpression *expr) {
   while (current_context != nullptr) {
     auto iter = current_context->nested_table_alias_map_.find(alias);

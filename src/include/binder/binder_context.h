@@ -34,7 +34,7 @@ namespace binder {
  */
 class BinderContext {
  public:
-  explicit BinderContext(std::shared_ptr<BinderContext> upper_context = nullptr) : upper_context_(upper_context) {
+  explicit BinderContext(BinderContext *upper_context = nullptr) : upper_context_(upper_context) {
     if (upper_context != nullptr) depth_ = upper_context->depth_ + 1;
   }
 
@@ -60,7 +60,7 @@ class BinderContext {
   /**
    * @brief Check if the current context has any table
    */
-  static bool HasTables(const std::shared_ptr<BinderContext> &current_context) {
+  static bool HasTables(const BinderContext *current_context) {
     if (current_context == nullptr) return false;
     return (!current_context->regular_table_alias_map_.empty() || !current_context->nested_table_alias_map_.empty());
   }
@@ -71,7 +71,7 @@ class BinderContext {
                                 std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema> tuple,
                                 parser::ColumnValueExpression *expr);
 
-  static bool GetColumnPosTuple(std::shared_ptr<BinderContext> current_context, parser::ColumnValueExpression *expr);
+  static bool GetColumnPosTuple(BinderContext *current_context, parser::ColumnValueExpression *expr);
 
   /**
    * @brief Construct the column position tuple given column name and the
@@ -122,18 +122,18 @@ class BinderContext {
    *
    * @return Return true on success, false otherwise
    */
-  static bool GetRegularTableObj(std::shared_ptr<BinderContext> current_context, const std::string &alias,
+  static bool GetRegularTableObj(BinderContext *current_context, const std::string &alias,
                                  parser::ColumnValueExpression *expr,
                                  std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema> *tuple);
 
-  static bool CheckNestedTableColumn(std::shared_ptr<BinderContext> current_context, const std::string &alias,
+  static bool CheckNestedTableColumn(BinderContext *current_context, const std::string &alias,
                                      const std::string &col_name, parser::ColumnValueExpression *expr);
 
-  std::shared_ptr<BinderContext> GetUpperContext() { return upper_context_; }
+  BinderContext *GetUpperContext() { return upper_context_; }
 
   // TODO(Ling): not sure if we should do assign or move... will the calling method still need it?
   //  we don't have function calling this two functions in peloton even
-  void SetUpperContext(std::shared_ptr<BinderContext> upper_context) { upper_context_ = std::move(upper_context); }
+  void SetUpperContext(BinderContext *upper_context) { upper_context_ = upper_context; }
 
   void inline SetDepth(int depth) { depth_ = depth; }
 
@@ -147,7 +147,7 @@ class BinderContext {
   std::unordered_map<std::string, std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema>>
       regular_table_alias_map_;
   std::unordered_map<std::string, std::unordered_map<std::string, type::TypeId>> nested_table_alias_map_;
-  std::shared_ptr<BinderContext> upper_context_;
+  BinderContext *upper_context_;
   int depth_ = 0;
 };
 

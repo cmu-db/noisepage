@@ -28,7 +28,8 @@ void BindNodeVisitor::BindNameToNode(parser::SQLStatement *tree) { tree->Accept(
 
 void BindNodeVisitor::Visit(parser::SelectStatement *node) {
   // TODO(Ling): remove make shared ... Use raw pointers
-  context_ = std::make_shared<BinderContext>(context_);
+  context_ = new BinderContext(context_);
+//  context_ = std::make_shared<BinderContext>(context_);
 
   if (node->GetSelectTable() != nullptr) node->GetSelectTable()->Accept(this);
 
@@ -43,7 +44,6 @@ void BindNodeVisitor::Visit(parser::SelectStatement *node) {
 
   if (node->GetSelectGroupBy() != nullptr) node->GetSelectGroupBy()->Accept(this);
 
-  // TODO(Ling): change the it to managed_ptr
   std::vector<std::shared_ptr<parser::AbstractExpression>> new_select_list;
   for (auto &select_element : node->GetSelectColumns()) {
     if (select_element->GetExpressionType() == parser::ExpressionType::STAR) {
@@ -69,7 +69,10 @@ void BindNodeVisitor::Visit(parser::SelectStatement *node) {
   }
   node->SetSelectColumns(new_select_list);
   node->SetDepth(context_->GetDepth());
+
+  auto curr_context_ = context_;
   context_ = context_->GetUpperContext();
+  delete curr_context_;
 }
 
 // Some sub query nodes inside SelectStatement
@@ -115,7 +118,8 @@ void BindNodeVisitor::Visit(parser::OrderByDescription *node) {
 }
 
 void BindNodeVisitor::Visit(parser::UpdateStatement *node) {
-  context_ = std::make_shared<BinderContext>(nullptr);
+  context_ = new BinderContext();
+//  context_ = std::make_shared<BinderContext>(nullptr);
 
   node->GetUpdateTable()->Accept(this);
   if (node->GetUpdateCondition() != nullptr) node->GetUpdateCondition()->Accept(this);
@@ -126,12 +130,13 @@ void BindNodeVisitor::Visit(parser::UpdateStatement *node) {
 
   // TODO(peloton): Update columns are not bound because they are char*
   //  not TupleValueExpression in update_statement.h
-
+  delete context_;
   context_ = nullptr;
 }
 
 void BindNodeVisitor::Visit(parser::DeleteStatement *node) {
-  context_ = std::make_shared<BinderContext>(nullptr);
+  context_ = new BinderContext();
+//  context_ = std::make_shared<BinderContext>(nullptr);
   node->GetDeletionTable()->TryBindDatabaseName(default_database_name_);
   auto table = node->GetDeletionTable();
   context_->AddRegularTable(catalog_accessor_, table->GetDatabaseName(), table->GetTableName(), table->GetTableName());
@@ -140,13 +145,15 @@ void BindNodeVisitor::Visit(parser::DeleteStatement *node) {
     node->GetDeleteCondition()->Accept(this);
   }
 
+  delete context_;
   context_ = nullptr;
 }
 
 void BindNodeVisitor::Visit(parser::LimitDescription *) {}
 
 void BindNodeVisitor::Visit(parser::CopyStatement *node) {
-  context_ = std::make_shared<BinderContext>(nullptr);
+  context_ = new BinderContext();
+//  context_ = std::make_shared<BinderContext>(nullptr);
   if (node->GetCopyTable() != nullptr) {
     node->GetCopyTable()->Accept(this);
 
@@ -165,13 +172,15 @@ void BindNodeVisitor::Visit(parser::CreateFunctionStatement *) {}
 void BindNodeVisitor::Visit(parser::CreateStatement *node) { node->TryBindDatabaseName(default_database_name_); }
 
 void BindNodeVisitor::Visit(parser::InsertStatement *node) {
+  context_ = new BinderContext();
   node->GetInsertionTable()->TryBindDatabaseName(default_database_name_);
-  context_ = std::make_shared<BinderContext>(nullptr);
+//  context_ = std::make_shared<BinderContext>(nullptr);
 
   auto table = node->GetInsertionTable();
   context_->AddRegularTable(catalog_accessor_, table->GetDatabaseName(), table->GetTableName(), table->GetTableName());
   if (node->GetSelect() != nullptr) node->GetSelect()->Accept(this);
 
+  delete context_;
   context_ = nullptr;
 }
 void BindNodeVisitor::Visit(parser::DropStatement *node) { node->TryBindDatabaseName(default_database_name_); }
