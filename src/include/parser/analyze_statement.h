@@ -40,13 +40,8 @@ class AnalyzeStatement : public SQLStatement {
   }
 
  private:
-//  friend class binder::BindNodeVisitor;
   const std::shared_ptr<TableRef> analyze_table_;
   const std::shared_ptr<std::vector<std::string>> analyze_columns_;
-//  void TryBindDatabaseName(const std::string &default_database_name) {
-//    // TODO (ling): can table ref be null
-//    analyze_table_->TryBindDatabaseName(default_database_name);
-//  }
 };
 
 }  // namespace parser

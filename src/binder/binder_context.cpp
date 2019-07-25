@@ -9,28 +9,22 @@
 namespace terrier::binder {
 
 void BinderContext::AddRegularTable(catalog::CatalogAccessor *accessor, parser::TableRef *table_ref) {
-
-  // TODO: pass the catalog accessor as a parameter, probably remove txn and db_name
-  //  as catalog accessor already have transaction and db_oid in the object
-
-  // TODO: if we are going to substitute the schema_name with namespace_name and schema_id with namespace_id
-  //  then, what is the schema name in table_ref??? should it be namespace also?
   AddRegularTable(accessor, table_ref->GetDatabaseName(), table_ref->GetTableName(), table_ref->GetAlias());
 }
 
 void BinderContext::AddRegularTable(catalog::CatalogAccessor *accessor, const std::string &db_name,
                                     const std::string &table_name, const std::string &table_alias) {
-
-  // TODO: pass the catalog accessor as a parameter, probably remove txn and db_name
-  //  as catalog accessor already have transaction and db_oid in the object
-  //  But does the db_oid in the accessor same as that stored in Statements?
   auto db_id = accessor->GetDatabaseOid(db_name);
   auto table_id = accessor->GetTableOid(table_name);
 
   auto schema = accessor->GetSchema(table_id);
 
-  if (regular_table_alias_map_.find(table_alias) != regular_table_alias_map_.end() ||
-      nested_table_alias_map_.find(table_alias) != nested_table_alias_map_.end()) {
+
+  if (nested_table_alias_map_.find(table_alias) != nested_table_alias_map_.end()) {
+    throw BINDER_EXCEPTION(("Duplicate alias " + table_alias).c_str());
+  }
+
+  if (regular_table_alias_map_.find(table_alias) != regular_table_alias_map_.end()) {
     throw BINDER_EXCEPTION(("Duplicate alias " + table_alias).c_str());
   }
   regular_table_alias_map_[table_alias] = std::make_tuple(db_id, table_id, schema);

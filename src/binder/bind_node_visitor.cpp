@@ -161,18 +161,7 @@ void BindNodeVisitor::Visit(parser::CopyStatement *node) {
 
 void BindNodeVisitor::Visit(parser::CreateFunctionStatement *) {}
 
-void BindNodeVisitor::Visit(parser::CreateStatement *node) {
-  // TODO: try nothing.
-  //  Try  bind database name will set, for the table_ref of the node,
-  //  the db_name and schema_name to default if they are not there
-  // TODO: new: go to the node and see if it has db name; rename the function to fit its purpose
-  //  if node->db_name is empty:
-  //    set it to defualt
-  //  else if node->db_name != defualt db_name:
-  //    throw exception
-  //  return;
-  node->TryBindDatabaseName(default_database_name_);
-}
+void BindNodeVisitor::Visit(parser::CreateStatement *node) { node->TryBindDatabaseName(default_database_name_); }
 
 void BindNodeVisitor::Visit(parser::InsertStatement *node) {
   node->GetInsertionTable()->TryBindDatabaseName(default_database_name_);
