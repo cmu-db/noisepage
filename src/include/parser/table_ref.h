@@ -16,13 +16,6 @@ class BindNodeVisitor;
 }
 namespace parser {
 
-//class SelectStatement;
-//
-//// for binding database name
-//class InsertStatement;
-//class AnalyzeStatement;
-//class DeleteStatement;
-
 /**
  * Represents a join table.
  */
