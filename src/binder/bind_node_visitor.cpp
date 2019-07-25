@@ -47,7 +47,7 @@ void BindNodeVisitor::Visit(parser::SelectStatement *node) {
   std::vector<std::shared_ptr<parser::AbstractExpression>> new_select_list;
   for (auto &select_element : node->GetSelectColumns()) {
     if (select_element->GetExpressionType() == parser::ExpressionType::STAR) {
-      context_->GenerateAllColumnExpressions(new_select_list);
+      context_->GenerateAllColumnExpressions(&new_select_list);
       continue;
     }
 
@@ -152,7 +152,7 @@ void BindNodeVisitor::Visit(parser::CopyStatement *node) {
 
     // If the table is given, we're either writing or reading all columns
     std::vector<std::shared_ptr<parser::AbstractExpression>> new_select_list;
-    context_->GenerateAllColumnExpressions(new_select_list);
+    context_->GenerateAllColumnExpressions(&new_select_list);
     auto columns = node->GetSelectStatement()->GetSelectColumns();
     columns.insert(std::end(columns), std::begin(new_select_list), std::end(new_select_list));
   } else {
@@ -204,7 +204,7 @@ void BindNodeVisitor::Visit(parser::ColumnValueExpression *expr) {
       }
     } else {
       // Table name is present
-      if (BinderContext::GetRegularTableObj(context_, table_name, expr, tuple)) {
+      if (BinderContext::GetRegularTableObj(context_, table_name, expr, &tuple)) {
         if (!BinderContext::ColumnInSchema(std::get<2>(tuple), col_name)) {
           throw BINDER_EXCEPTION(("Cannot find column " + col_name).c_str());
         }
