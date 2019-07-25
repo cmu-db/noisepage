@@ -4,7 +4,7 @@
 #include <functional>
 #include <vector>
 
-#include "common/hash_util.h"
+#include "farmhash/farmhash.h"
 #include "portable_endian/portable_endian.h"
 #include "storage/index/index_metadata.h"
 #include "storage/projected_row.h"
@@ -271,6 +271,12 @@ class CompactIntsKey {
     return static_cast<IntType>(host_endian);
   }
 };
+
+static_assert(sizeof(CompactIntsKey<1>) == 8, "size of the class should be 8 bytes");
+static_assert(sizeof(CompactIntsKey<2>) == 16, "size of the class should be 16 bytes");
+static_assert(sizeof(CompactIntsKey<3>) == 24, "size of the class should be 24 bytes");
+static_assert(sizeof(CompactIntsKey<4>) == 32, "size of the class should be 32 bytes");
+
 }  // namespace terrier::storage::index
 
 namespace std {
@@ -286,8 +292,8 @@ struct hash<terrier::storage::index::CompactIntsKey<KeySize>> {
    * @return hash of the key's underlying data
    */
   size_t operator()(const terrier::storage::index::CompactIntsKey<KeySize> &key) const {
-    const auto *const ptr = key.KeyData();
-    return terrier::common::HashUtil::HashBytes(ptr, terrier::storage::index::CompactIntsKey<KeySize>::key_size_byte);
+    const auto *const data = reinterpret_cast<const char *const>(key.KeyData());
+    return static_cast<size_t>(util::Hash64(data, terrier::storage::index::CompactIntsKey<KeySize>::key_size_byte));
   }
 };
 

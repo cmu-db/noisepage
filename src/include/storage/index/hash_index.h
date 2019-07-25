@@ -37,13 +37,13 @@ class HashIndex final : public Index {
     index_key.SetFromProjectedRow(tuple, metadata_);
 
     bool UNUSED_ATTRIBUTE upsert_result = false;
-    bool UNUSED_ATTRIBUTE uprase_result = false;
 
     auto upsert_fn = [location, &upsert_result](cuckoohash_map<TupleSlot, TupleSlot> &value_map) -> bool {
-      upsert_result = value_map.upsert(location, [](const TupleSlot &) -> void { return; }, location);
+      upsert_result = value_map.upsert(
+          location, [](const TupleSlot &) -> void {}, location);
       return false;
     };
-    uprase_result =
+    bool UNUSED_ATTRIBUTE uprase_result =
         hash_map_->uprase_fn(index_key, upsert_fn, cuckoohash_map<TupleSlot, TupleSlot>({{location, location}}, 1));
 
     TERRIER_ASSERT(upsert_result != uprase_result,
@@ -84,8 +84,8 @@ class HashIndex final : public Index {
                       predicate](cuckoohash_map<TupleSlot, TupleSlot> &value_map) -> bool {
       auto locked_value_map = value_map.lock_table();
 
-      for (auto i = locked_value_map.cbegin(); i != locked_value_map.cend(); i++) {
-        predicate_satisfied = predicate_satisfied || predicate(i->first);
+      for (const auto i : locked_value_map) {
+        predicate_satisfied = predicate_satisfied || predicate(i.first);
       }
 
       if (!predicate_satisfied) {

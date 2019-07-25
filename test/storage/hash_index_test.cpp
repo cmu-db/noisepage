@@ -1,9 +1,6 @@
-#include <util/catalog_test_util.h>
-#include <algorithm>
 #include <cstring>
 #include <functional>
 #include <limits>
-#include <map>
 #include <random>
 #include <vector>
 #include "parser/expression/column_value_expression.h"
@@ -16,11 +13,9 @@
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
 #include "type/type_id.h"
-#include "type/type_util.h"
-#include "util/random_test_util.h"
+#include "util/catalog_test_util.h"
 #include "util/storage_test_util.h"
 #include "util/test_harness.h"
-#include "util/transaction_test_util.h"
 
 namespace terrier::storage::index {
 
@@ -110,7 +105,7 @@ class HashIndexTests : public TerrierTest {
  * in the index and table.
  */
 // NOLINTNEXTLINE
-TEST_F(HashIndexTests, DISABLED_UniqueInsert) {
+TEST_F(HashIndexTests, UniqueInsert) {
   const uint32_t num_inserts_ = 100000;  // number of tuples/primary keys for each worker to attempt to insert
   auto workload = [&](uint32_t worker_id) {
     auto *const key_buffer =
@@ -186,7 +181,7 @@ TEST_F(HashIndexTests, DISABLED_UniqueInsert) {
  * visible versions in the index and table.
  */
 // NOLINTNEXTLINE
-TEST_F(HashIndexTests, DISABLED_DefaultInsert) {
+TEST_F(HashIndexTests, DefaultInsert) {
   const uint32_t num_inserts_ = 100000;  // number of tuples/primary keys for each worker to attempt to insert
   auto workload = [&](uint32_t worker_id) {
     auto *const key_buffer =
