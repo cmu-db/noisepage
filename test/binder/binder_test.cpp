@@ -25,8 +25,6 @@ class BinderCorrectnessTest : public TerrierTest {
   storage::RecordBufferSegmentPool buffer_pool_{1000000, 1000000};
   storage::BlockStore block_store_{1000, 1000};
   catalog::Catalog *catalog_;
-  std::string default_ns_name_ = "test_ns";
-  catalog::namespace_oid_t ns_oid_;
   storage::GarbageCollector *gc_;
  protected:
   std::string default_database_name_ = "test_db";
@@ -39,16 +37,7 @@ class BinderCorrectnessTest : public TerrierTest {
   catalog::CatalogAccessor *accessor_;
   binder::BindNodeVisitor *binder_;
 
-  void flush() {
-    // Run the GC to flush it down to a clean system
-    gc_->PerformGarbageCollection();
-    gc_->PerformGarbageCollection();
-    gc_->PerformGarbageCollection();
-  }
-
   void SetUpTables() {
-    // This function should be run before the starting of first testcase
-
     txn_manager_ = new transaction::TransactionManager(&buffer_pool_, true, LOGGING_DISABLED);
     gc_ = new storage::GarbageCollector(txn_manager_);
     // new catalog requires txn_manage and block_store as parameters
@@ -61,40 +50,30 @@ class BinderCorrectnessTest : public TerrierTest {
     // commit the transactions
     txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
     LOG_INFO("database %s created!", default_database_name_.c_str());
-    flush();
-
-//    // Create namespace
-//    txn_ = txn_manager_->BeginTransaction();
-//    // get the catalog accessor
-//    accessor_ = catalog_->GetAccessor(txn_, db_oid_);
-//    // create a namespace
-//    ns_oid_ = accessor_->CreateNamespace(default_ns_name_);
-//    accessor_->SetSearchPath({ns_oid_});
-//    EXPECT_EQ(accessor_->GetDefaultNamespace(), ns_oid_);
-//
-//    txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
-//    delete accessor_;
-////    flush();
 
     // get default values of the columns
     auto int_default = parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
     auto varchar_default = parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR));
 
+    // TODO (Ling): use mixed case in table name and schema name
+    //  for testcases to see if the binder does not differentiate between upper and lower cases
     // create table A
     txn_ = txn_manager_->BeginTransaction();
     accessor_ = catalog_->GetAccessor(txn_, db_oid_);
     // Create the column definition (no OIDs) for CREATE TABLE A(A1 int, a2 varchar)
     std::vector<catalog::Schema::Column> cols_a;
-    cols_a.emplace_back("A1", type::TypeId::INTEGER, true, int_default);
+    cols_a.emplace_back("a1", type::TypeId::INTEGER, true, int_default);
     cols_a.emplace_back("a2", type::TypeId::VARCHAR, 20, true, varchar_default);
     auto schema_a = catalog::Schema(cols_a);
 
     table_a_oid_ = accessor_->CreateTable(accessor_->GetDefaultNamespace(), "a", schema_a);
+    auto table_a = new storage::SqlTable(&block_store_, schema_a);
+    EXPECT_TRUE(accessor_->SetTablePointer(table_a_oid_, table_a));
+
     EXPECT_EQ(accessor_->GetTableOid("a"), table_a_oid_);
 
     txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
     delete accessor_;
-//    flush();
 
     // create Table B
     txn_ = txn_manager_->BeginTransaction();
@@ -104,24 +83,22 @@ class BinderCorrectnessTest : public TerrierTest {
     // Create the column definition (no OIDs) for CREATE TABLE b(b1 int, B2 varchar)
     std::vector<catalog::Schema::Column> cols_b;
     cols_b.emplace_back("b1", type::TypeId::INTEGER, true, int_default);
-    cols_b.emplace_back("B2", type::TypeId::VARCHAR, 20, true, varchar_default);
+    cols_b.emplace_back("b2", type::TypeId::VARCHAR, 20, true, varchar_default);
 
     auto schema_b = catalog::Schema(cols_b);
     table_b_oid_ = accessor_->CreateTable(accessor_->GetDefaultNamespace(), "b", schema_b);
+    auto table_b = new storage::SqlTable(&block_store_, schema_b);
+    EXPECT_TRUE(accessor_->SetTablePointer(table_b_oid_, table_b));
     txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
     delete accessor_;
-//    flush();
   }
 
   void TearDownTables() {
-    // This function should be run after the end of last testcase
-
-    // Delete the test database
-//    txn_ = txn_manager_->BeginTransaction();
-//    accessor_->DropDatabase(db_oid_);
-//    txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
-//    flush();
     catalog_->TearDown();
+    // Run the GC to flush it down to a clean system
+    gc_->PerformGarbageCollection();
+    gc_->PerformGarbageCollection();
+    gc_->PerformGarbageCollection();
     delete catalog_;
     delete gc_;
     delete txn_manager_;
@@ -138,8 +115,8 @@ class BinderCorrectnessTest : public TerrierTest {
 
   virtual void TearDown() override {
     txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
+    delete accessor_;
     delete binder_;
-    binder_ = nullptr;
     TearDownTables();
     TerrierTest::TearDown();
   }
@@ -227,14 +204,9 @@ TEST_F(BinderCorrectnessTest, SelectStatementDupAliasTest) {
   std::string selectSQL = "SELECT * FROM A, B as A";
   auto parse_tree = parser_.BuildParseTree(selectSQL);
   auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree[0].get());
-  // gtest does not allow us to use death test on multi-threaded context
-
-  try {
-    binder_->BindNameToNode(selectStmt);
-    EXPECT_TRUE(false);
-  } catch (BinderException &e) {
-    LOG_INFO("Correct! Exception(%s) catched", e.what());
-  }
+#ifndef NDEBUG
+  EXPECT_THROW(binder_->BindNameToNode(selectStmt), BinderException);
+#endif
 }
 
 // NOLINTNEXTLINE
