@@ -2,12 +2,12 @@
 
 #include <utility>
 #include <vector>
-#include "bwtree/bwtree.h"
 #include "catalog/catalog_defs.h"
 #include "catalog/index_schema.h"
 #include "storage/index/bwtree_index.h"
 #include "storage/index/compact_ints_key.h"
 #include "storage/index/generic_key.h"
+#include "storage/index/hash_index.h"
 #include "storage/index/index.h"
 #include "storage/index/index_defs.h"
 #include "storage/index/index_metadata.h"
@@ -23,6 +23,7 @@ class IndexBuilder {
   catalog::index_oid_t index_oid_{0};
   ConstraintType constraint_type_ = ConstraintType::INVALID;
   catalog::IndexSchema key_schema_;
+  bool ordered_ = true;
 
  public:
   IndexBuilder() = default;
@@ -52,8 +53,13 @@ class IndexBuilder {
       use_compact_ints = use_compact_ints && key_size <= sizeof(uint64_t) * INTSKEY_MAX_SLOTS;  // key size fits?
     }
 
-    if (use_compact_ints) return BuildBwTreeIntsKey(index_oid_, constraint_type_, key_size, std::move(metadata));
-    return BuildBwTreeGenericKey(index_oid_, constraint_type_, std::move(metadata));
+    if (ordered_) {
+      if (use_compact_ints) return BuildBwTreeIntsKey(index_oid_, constraint_type_, key_size, std::move(metadata));
+      return BuildBwTreeGenericKey(index_oid_, constraint_type_, std::move(metadata));
+    } else {
+      if (use_compact_ints) return BuildHashIntsKey(index_oid_, constraint_type_, key_size, std::move(metadata));
+      return BuildHashGenericKey(index_oid_, constraint_type_, std::move(metadata));
+    }
   }
 
   /**
@@ -80,6 +86,11 @@ class IndexBuilder {
    */
   IndexBuilder &SetKeySchema(const catalog::IndexSchema &key_schema) {
     key_schema_ = key_schema;
+    return *this;
+  }
+
+  IndexBuilder &SetOrdered(const bool ordered) {
+    ordered_ = ordered;
     return *this;
   }
 
@@ -132,6 +143,43 @@ class IndexBuilder {
       index = new BwTreeIndex<GenericKey<128>>(index_oid, constraint_type, std::move(metadata));
     } else if (key_size <= 256) {
       index = new BwTreeIndex<GenericKey<256>>(index_oid, constraint_type, std::move(metadata));
+    }
+    TERRIER_ASSERT(index != nullptr, "Failed to create an IntsKey index.");
+    return index;
+  }
+
+  Index *BuildHashIntsKey(catalog::index_oid_t index_oid, ConstraintType constraint_type, uint32_t key_size,
+                          IndexMetadata metadata) const {
+    TERRIER_ASSERT(key_size <= sizeof(uint64_t) * INTSKEY_MAX_SLOTS, "Not enough slots for given key size.");
+    Index *index = nullptr;
+    if (key_size <= sizeof(uint64_t)) {
+      index = new HashIndex<CompactIntsKey<1>>(index_oid, constraint_type, std::move(metadata));
+    } else if (key_size <= sizeof(uint64_t) * 2) {
+      index = new HashIndex<CompactIntsKey<2>>(index_oid, constraint_type, std::move(metadata));
+    } else if (key_size <= sizeof(uint64_t) * 3) {
+      index = new HashIndex<CompactIntsKey<3>>(index_oid, constraint_type, std::move(metadata));
+    } else if (key_size <= sizeof(uint64_t) * 4) {
+      index = new HashIndex<CompactIntsKey<4>>(index_oid, constraint_type, std::move(metadata));
+    }
+    TERRIER_ASSERT(index != nullptr, "Failed to create an IntsKey index.");
+    return index;
+  }
+
+  Index *BuildHashGenericKey(catalog::index_oid_t index_oid, ConstraintType constraint_type,
+                             IndexMetadata metadata) const {
+    const auto pr_size = metadata.GetInlinedPRInitializer().ProjectedRowSize();
+    Index *index = nullptr;
+
+    const auto key_size =
+        (pr_size + 8) +
+        sizeof(uintptr_t);  // account for potential padding of the PR and the size of the pointer for metadata
+
+    if (key_size <= 64) {
+      index = new HashIndex<GenericKey<64>>(index_oid, constraint_type, std::move(metadata));
+    } else if (key_size <= 128) {
+      index = new HashIndex<GenericKey<128>>(index_oid, constraint_type, std::move(metadata));
+    } else if (key_size <= 256) {
+      index = new HashIndex<GenericKey<256>>(index_oid, constraint_type, std::move(metadata));
     }
     TERRIER_ASSERT(index != nullptr, "Failed to create an IntsKey index.");
     return index;
