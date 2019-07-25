@@ -71,7 +71,7 @@ class BindNodeVisitor : public SqlNodeVisitor {
   void Visit(parser::AggregateExpression *expr) override;
 
  private:
-  std::shared_ptr<BinderContext> context_ = nullptr;
+  BinderContext *context_ = nullptr;
   catalog::CatalogAccessor *catalog_accessor_;
   std::string default_database_name_;
 };
