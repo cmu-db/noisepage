@@ -70,7 +70,7 @@ class HashIndex final : public Index {
     KeyType index_key;
     index_key.SetFromProjectedRow(tuple, metadata_);
     bool predicate_satisfied = false;
-    bool result = false;
+    bool insert_result = false;
 
     // The predicate checks if any matching keys have write-write conflicts or are still visible to the calling txn.
     auto predicate = [&](const TupleSlot slot) -> bool {
@@ -80,7 +80,7 @@ class HashIndex final : public Index {
       return has_conflict || is_visible;
     };
 
-    auto insert_fn = [location, &predicate_satisfied, &result,
+    auto insert_fn = [location, &predicate_satisfied, &insert_result,
                       predicate](cuckoohash_map<TupleSlot, TupleSlot> &value_map) -> bool {
       auto locked_value_map = value_map.lock_table();
 
@@ -89,8 +89,8 @@ class HashIndex final : public Index {
       }
 
       if (!predicate_satisfied) {
-        result = locked_value_map.insert(location, location).second;
-        TERRIER_ASSERT(result,
+        insert_result = locked_value_map.insert(location, location).second;
+        TERRIER_ASSERT(insert_result,
                        " index shouldn't fail to insert after predicate check. If it did, something went wrong deep "
                        "inside the hash map itself.");
       }
@@ -98,12 +98,13 @@ class HashIndex final : public Index {
       locked_value_map.unlock();
       return false;
     };
-    result = result || hash_map_->uprase_fn(index_key, insert_fn,
-                                            cuckoohash_map<TupleSlot, TupleSlot>({{location, location}}, 1));
 
-    TERRIER_ASSERT(result != predicate_satisfied, "Predicate satisfied is equivalent to insertion failing.");
+    const bool UNUSED_ATTRIBUTE uprase_result =
+        hash_map_->uprase_fn(index_key, insert_fn, cuckoohash_map<TupleSlot, TupleSlot>({{location, location}}, 1));
 
-    if (result) {
+    const bool UNUSED_ATTRIBUTE overall_result = insert_result || uprase_result;
+
+    if (overall_result) {
       // Register an abort action with the txn context in case of rollback
       txn->RegisterAbortAction([=]() {
         const bool UNUSED_ATTRIBUTE update_result =
@@ -120,7 +121,7 @@ class HashIndex final : public Index {
       txn->MustAbort();
     }
 
-    return result;
+    return overall_result;
   }
 
   void Delete(transaction::TransactionContext *const txn, const ProjectedRow &tuple, const TupleSlot location) final {

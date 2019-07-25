@@ -23,18 +23,13 @@ class Builder {
   Database *Build();
 
  private:
-  storage::index::Index *BuildPrimaryIndex(const catalog::IndexSchema &key_schema) {
+  storage::index::Index *BuildIndex(const catalog::IndexSchema &key_schema,
+                                    const storage::index::ConstraintType contraint_type, const bool ordered) {
     storage::index::IndexBuilder index_builder;
     index_builder.SetOid(static_cast<catalog::index_oid_t>(static_cast<uint32_t>(++oid_counter_)))
         .SetKeySchema(key_schema)
-        .SetConstraintType(storage::index::ConstraintType::UNIQUE);
-    return index_builder.Build();
-  }
-  storage::index::Index *BuildSecondaryIndex(const catalog::IndexSchema &key_schema) {
-    storage::index::IndexBuilder index_builder;
-    index_builder.SetOid(static_cast<catalog::index_oid_t>(static_cast<uint32_t>(++oid_counter_)))
-        .SetKeySchema(key_schema)
-        .SetConstraintType(storage::index::ConstraintType::DEFAULT);
+        .SetConstraintType(contraint_type)
+        .SetOrdered(ordered);
     return index_builder.Build();
   }
 
