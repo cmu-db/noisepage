@@ -31,6 +31,7 @@ TEST(AccessObserverTest, EmptyBlocksNotObserved) {
   tested.ObserveWrite(fake_block);
   for (uint32_t i = 0; i < COLD_DATA_EPOCH_THRESHOLD; i++) tested.ObserveGCInvocation();
   // Should not be called
+  delete fake_block;
 }
 
 // NOLINTNEXTLINE
@@ -54,6 +55,7 @@ TEST(AccessObserverTest, FilledBlocksObserved) {
   // Now it should be called
   tested.ObserveWrite(fake_block);
   for (uint32_t i = 0; i <= COLD_DATA_EPOCH_THRESHOLD; i++) tested.ObserveGCInvocation();
+  delete fake_block;
 }
 }  // namespace terrier
 
