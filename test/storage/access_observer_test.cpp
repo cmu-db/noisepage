@@ -45,6 +45,7 @@ TEST(AccessObserverTest, FilledBlocksObserved) {
   accessor.InitializeRawBlock(&table, fake_block, storage::layout_version_t(0));
 
   MockBlockCompactor mock_compactor;
+  // NOLINTNEXTLINE
   EXPECT_CALL(mock_compactor, PutInQueue(::testing::_)).Times(1);
   storage::AccessObserver tested(&mock_compactor);
 

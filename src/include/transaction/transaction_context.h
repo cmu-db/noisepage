@@ -177,6 +177,12 @@ class TransactionContext {
    */
   TransactionManager *GetTransactionManager() { return txn_mgr_; }
 
+  /**
+   * Flips the TransactionContext's internal flag that it cannot commit to true. This is checked by the
+   * TransactionManager.
+   */
+  void MustAbort() { must_abort_ = true; }
+
  private:
   friend class storage::GarbageCollector;
   friend class TransactionManager;
@@ -206,5 +212,10 @@ class TransactionContext {
   // We need to know if the transaction is aborted. Even aborted transactions need an "abort" timestamp in order to
   // eliminate the a-b-a race described in DataTable::Select.
   bool aborted_ = false;
+
+  // This flag is used to denote that a physical change to the storage layer (tables or indexes) has occurred that
+  // cannot be allowed to commit. Currently, it is flipped by indexes (on unique-key conflicts) or SqlTable (write-write
+  // conflicts) and checked in Commit().
+  bool must_abort_ = false;
 };
 }  // namespace terrier::transaction

@@ -38,9 +38,8 @@ class SqlTable {
    *
    * @param store the Block store to use.
    * @param schema the initial Schema of this SqlTable
-   * @param oid unique identifier for this SqlTable
    */
-  SqlTable(BlockStore *store, const catalog::Schema &schema, catalog::table_oid_t oid);
+  SqlTable(BlockStore *store, const catalog::Schema &schema);
 
   /**
    * Destructs a SqlTable, frees all its members.
@@ -74,7 +73,13 @@ class SqlTable {
                                ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
                    "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
                    "immediately before?");
-    return table_.data_table->Update(txn, redo->GetTupleSlot(), *(redo->Delta()));
+    const auto result = table_.data_table->Update(txn, redo->GetTupleSlot(), *(redo->Delta()));
+    if (!result) {
+      // For MVCC correctness, this txn must now abort for the GC to clean up the version chain in the DataTable
+      // correctly.
+      txn->MustAbort();
+    }
+    return result;
   }
 
   /**
@@ -103,12 +108,21 @@ class SqlTable {
    * @return true if successful, false otherwise
    */
   bool Delete(transaction::TransactionContext *const txn, const TupleSlot slot) {
+    TERRIER_ASSERT(txn->redo_buffer_.LastRecord() != nullptr,
+                   "The RedoBuffer is empty even though StageDelete should have been called.");
     TERRIER_ASSERT(
         reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
                 ->GetUnderlyingRecordBodyAs<DeleteRecord>()
                 ->GetTupleSlot() == slot,
         "This Delete is not the most recent entry in the txn's RedoBuffer. Was StageDelete called immediately before?");
-    return table_.data_table->Delete(txn, slot);
+
+    const auto result = table_.data_table->Delete(txn, slot);
+    if (!result) {
+      // For MVCC correctness, this txn must now abort for the GC to clean up the version chain in the DataTable
+      // correctly.
+      txn->MustAbort();
+    }
+    return result;
   }
 
   /**
@@ -127,11 +141,6 @@ class SqlTable {
             ProjectedColumns *const out_buffer) const {
     return table_.data_table->Scan(txn, start_pos, out_buffer);
   }
-
-  /**
-   * @return table's unique identifier
-   */
-  catalog::table_oid_t Oid() const { return oid_; }
 
   /**
    * @return the first tuple slot contained in the underlying DataTable
@@ -193,7 +202,6 @@ class SqlTable {
   FRIEND_TEST(WriteAheadLoggingTests, AbortRecordTest);
   FRIEND_TEST(WriteAheadLoggingTests, NoAbortRecordTest);
   BlockStore *const block_store_;
-  const catalog::table_oid_t oid_;
 
   // Eventually we'll support adding more tables when schema changes. For now we'll always access the one DataTable.
   DataTableVersion table_;

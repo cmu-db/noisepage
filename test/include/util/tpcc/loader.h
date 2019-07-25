@@ -2,6 +2,7 @@
 
 #include <unordered_map>
 #include <vector>
+#include "catalog/index_schema.h"
 #include "catalog/schema.h"
 #include "common/macros.h"
 #include "storage/index/index.h"
@@ -249,7 +250,7 @@ struct Loader {
           // insert in customer name index
           const auto c_last_tuple =
               *reinterpret_cast<const storage::VarlenEntry *const>(customer_redo->Delta()->AccessWithNullCheck(
-                  customer_tuple_pr_map.at(db->customer_schema_.GetColumn(5).GetOid())));
+                  customer_tuple_pr_map.at(db->customer_schema_.GetColumn(5).Oid())));
 
           storage::ProjectedRow *customer_name_key = nullptr;
           if (c_last_tuple.Size() <= storage::VarlenEntry::InlineThreshold()) {
@@ -301,7 +302,7 @@ struct Loader {
               o_id + 1, o_c_ids[c_id], static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1),
               worker->order_secondary_key_buffer, order_secondary_key_pr_initializer, order_secondary_key_pr_map,
               db->order_secondary_index_schema_);
-          index_insert_result = db->order_secondary_index_->Insert(txn, *order_secondary_key, order_slot);
+          index_insert_result = db->order_secondary_index_->InsertUnique(txn, *order_secondary_key, order_slot);
           TERRIER_ASSERT(index_insert_result, "Order secondary index insertion failed.");
 
           // For each row in the ORDER table:
@@ -360,27 +361,27 @@ struct Loader {
     uint32_t col_offset = 0;
 
     // I_ID unique within [100,000]
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "I_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "I_ID", "Wrong attribute.");
     Util::Util::SetTupleAttribute<int32_t>(schema, col_offset++, projection_map, pr, i_id);
 
     // I_IM_ID random within [1 .. 10,000]
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "I_IM_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "I_IM_ID", "Wrong attribute.");
     Util::SetTupleAttribute<int32_t>(schema, col_offset++, projection_map, pr,
                                      Util::RandomWithin<int32_t>(1, 10000, 0, generator));
 
     // I_NAME random a-string [14 .. 24]
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "I_NAME", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "I_NAME", "Wrong attribute.");
     Util::SetTupleAttribute<storage::VarlenEntry>(schema, col_offset++, projection_map, pr,
                                                   Util::AlphaNumericVarlenEntry(14, 24, false, generator));
 
     // I_PRICE random within [1.00 .. 100.00]
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "I_PRICE", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "I_PRICE", "Wrong attribute.");
     Util::SetTupleAttribute<double>(schema, col_offset++, projection_map, pr,
                                     Util::RandomWithin<double>(100, 10000, 2, generator));
 
     // I_DATA random a-string [26 .. 50]. For 10% of the rows, selected at random, the string "ORIGINAL" must be held by
     // 8 consecutive characters starting at a random position within I_DATA
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "I_DATA", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "I_DATA", "Wrong attribute.");
     if (original) {
       Util::SetTupleAttribute<storage::VarlenEntry>(schema, col_offset++, projection_map, pr,
                                                     Util::OriginalVarlenEntry(26, 50, generator));
@@ -395,7 +396,7 @@ struct Loader {
   static storage::ProjectedRow *BuildItemKey(const int32_t i_id, byte *const buffer,
                                              const storage::ProjectedRowInitializer &pr_initializer,
                                              const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &pr_map,
-                                             const storage::index::IndexKeySchema &schema) {
+                                             const catalog::IndexSchema &schema) {
     TERRIER_ASSERT(i_id >= 1 && i_id <= 100000, "Invalid i_id.");
     TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
 
@@ -406,7 +407,7 @@ struct Loader {
     // Primary Key: I_ID
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, i_id);
 
-    TERRIER_ASSERT(col_offset == schema.size(), "Didn't get every attribute for Item key.");
+    TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for Item key.");
 
     return pr;
   }
@@ -421,46 +422,46 @@ struct Loader {
     uint32_t col_offset = 0;
 
     // W_ID unique within [number_of_configured_warehouses]
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "W_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "W_ID", "Wrong attribute.");
     Util::SetTupleAttribute(schema, col_offset++, projection_map, pr, w_id);
 
     // W_NAME random a-string [6 .. 10]
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "W_NAME", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "W_NAME", "Wrong attribute.");
     Util::SetTupleAttribute<storage::VarlenEntry>(schema, col_offset++, projection_map, pr,
                                                   Util::AlphaNumericVarlenEntry(6, 10, false, generator));
 
     // W_STREET_1 random a-string [10 .. 20]
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "W_STREET_1", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "W_STREET_1", "Wrong attribute.");
     Util::SetTupleAttribute<storage::VarlenEntry>(schema, col_offset++, projection_map, pr,
                                                   Util::AlphaNumericVarlenEntry(10, 20, false, generator));
 
     // W_STREET_2 random a-string [10 .. 20]
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "W_STREET_2", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "W_STREET_2", "Wrong attribute.");
     Util::SetTupleAttribute<storage::VarlenEntry>(schema, col_offset++, projection_map, pr,
                                                   Util::AlphaNumericVarlenEntry(10, 20, false, generator));
 
     // W_CITY random a-string [10 .. 20]
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "W_CITY", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "W_CITY", "Wrong attribute.");
     Util::SetTupleAttribute<storage::VarlenEntry>(schema, col_offset++, projection_map, pr,
                                                   Util::AlphaNumericVarlenEntry(10, 20, false, generator));
 
     // W_STATE random a-string of 2 letters
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "W_STATE", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "W_STATE", "Wrong attribute.");
     Util::SetTupleAttribute<storage::VarlenEntry>(schema, col_offset++, projection_map, pr,
                                                   Util::AlphaNumericVarlenEntry(2, 2, false, generator));
 
     // W_ZIP generated according to Clause 4.3.2.7
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "W_ZIP", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "W_ZIP", "Wrong attribute.");
     Util::SetTupleAttribute<storage::VarlenEntry>(schema, col_offset++, projection_map, pr,
                                                   Util::ZipVarlenEntry(generator));
 
     // W_TAX random within [0.0000 .. 0.2000]
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "W_TAX", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "W_TAX", "Wrong attribute.");
     Util::SetTupleAttribute<double>(schema, col_offset++, projection_map, pr,
                                     Util::RandomWithin<double>(0, 2000, 4, generator));
 
     // W_YTD = 300,000.00
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "W_YTD", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "W_YTD", "Wrong attribute.");
     Util::SetTupleAttribute<double>(schema, col_offset++, projection_map, pr, 300000.0);
 
     TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for Warehouse tuple.");
@@ -468,8 +469,7 @@ struct Loader {
 
   static storage::ProjectedRow *BuildWarehouseKey(
       const int8_t w_id, byte *const buffer, const storage::ProjectedRowInitializer &pr_initializer,
-      const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &pr_map,
-      const storage::index::IndexKeySchema &schema) {
+      const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &pr_map, const catalog::IndexSchema &schema) {
     TERRIER_ASSERT(w_id >= 1, "Invalid w_id.");
     TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
 
@@ -480,7 +480,7 @@ struct Loader {
     // Primary Key: W_ID
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, w_id);
 
-    TERRIER_ASSERT(col_offset == schema.size(), "Didn't get every attribute for Warehouse key.");
+    TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for Warehouse key.");
 
     return pr;
   }
@@ -497,83 +497,83 @@ struct Loader {
     uint32_t col_offset = 0;
 
     // S_I_ID unique within [100,000]
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "S_I_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "S_I_ID", "Wrong attribute.");
     Util::SetTupleAttribute<int32_t>(schema, col_offset++, projection_map, pr, s_i_id);
 
     // S_W_ID = W_ID
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "S_W_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "S_W_ID", "Wrong attribute.");
     Util::SetTupleAttribute<int8_t>(schema, col_offset++, projection_map, pr, w_id);
 
     // S_QUANTITY random within [10 .. 100]
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "S_QUANTITY", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "S_QUANTITY", "Wrong attribute.");
     Util::SetTupleAttribute<int16_t>(schema, col_offset++, projection_map, pr,
                                      Util::RandomWithin<int16_t>(10, 100, 0, generator));
 
     // S_DIST_01 random a-string of 24 letters
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "S_DIST_01", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "S_DIST_01", "Wrong attribute.");
     Util::SetTupleAttribute<storage::VarlenEntry>(schema, col_offset++, projection_map, pr,
                                                   Util::AlphaNumericVarlenEntry(24, 24, false, generator));
 
     // S_DIST_02 random a-string of 24 letters
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "S_DIST_02", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "S_DIST_02", "Wrong attribute.");
     Util::SetTupleAttribute<storage::VarlenEntry>(schema, col_offset++, projection_map, pr,
                                                   Util::AlphaNumericVarlenEntry(24, 24, false, generator));
 
     // S_DIST_03 random a-string of 24 letters
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "S_DIST_03", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "S_DIST_03", "Wrong attribute.");
     Util::SetTupleAttribute<storage::VarlenEntry>(schema, col_offset++, projection_map, pr,
                                                   Util::AlphaNumericVarlenEntry(24, 24, false, generator));
 
     // S_DIST_04 random a-string of 24 letters
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "S_DIST_04", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "S_DIST_04", "Wrong attribute.");
     Util::SetTupleAttribute<storage::VarlenEntry>(schema, col_offset++, projection_map, pr,
                                                   Util::AlphaNumericVarlenEntry(24, 24, false, generator));
 
     // S_DIST_05 random a-string of 24 letters
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "S_DIST_05", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "S_DIST_05", "Wrong attribute.");
     Util::SetTupleAttribute<storage::VarlenEntry>(schema, col_offset++, projection_map, pr,
                                                   Util::AlphaNumericVarlenEntry(24, 24, false, generator));
 
     // S_DIST_06 random a-string of 24 letters
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "S_DIST_06", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "S_DIST_06", "Wrong attribute.");
     Util::SetTupleAttribute<storage::VarlenEntry>(schema, col_offset++, projection_map, pr,
                                                   Util::AlphaNumericVarlenEntry(24, 24, false, generator));
 
     // S_DIST_07 random a-string of 24 letters
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "S_DIST_07", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "S_DIST_07", "Wrong attribute.");
     Util::SetTupleAttribute<storage::VarlenEntry>(schema, col_offset++, projection_map, pr,
                                                   Util::AlphaNumericVarlenEntry(24, 24, false, generator));
 
     // S_DIST_08 random a-string of 24 letters
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "S_DIST_08", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "S_DIST_08", "Wrong attribute.");
     Util::SetTupleAttribute<storage::VarlenEntry>(schema, col_offset++, projection_map, pr,
                                                   Util::AlphaNumericVarlenEntry(24, 24, false, generator));
 
     // S_DIST_09 random a-string of 24 letters
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "S_DIST_09", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "S_DIST_09", "Wrong attribute.");
     Util::SetTupleAttribute<storage::VarlenEntry>(schema, col_offset++, projection_map, pr,
                                                   Util::AlphaNumericVarlenEntry(24, 24, false, generator));
 
     // S_DIST_10 random a-string of 24 letters
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "S_DIST_10", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "S_DIST_10", "Wrong attribute.");
     Util::SetTupleAttribute<storage::VarlenEntry>(schema, col_offset++, projection_map, pr,
                                                   Util::AlphaNumericVarlenEntry(24, 24, false, generator));
 
     // S_YTD = 0
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "S_YTD", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "S_YTD", "Wrong attribute.");
     Util::SetTupleAttribute<int32_t>(schema, col_offset++, projection_map, pr, 0);
 
     // S_ORDER_CNT = 0
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "S_ORDER_CNT", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "S_ORDER_CNT", "Wrong attribute.");
     Util::SetTupleAttribute<int16_t>(schema, col_offset++, projection_map, pr, 0);
 
     // S_REMOTE_CNT = 0
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "S_REMOTE_CNT", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "S_REMOTE_CNT", "Wrong attribute.");
     Util::SetTupleAttribute<int16_t>(schema, col_offset++, projection_map, pr, 0);
 
     // S_DATA random a-string [26 .. 50]. For 10% of the rows, selected at random, the string "ORIGINAL" must be held by
     // 8 consecutive characters starting at a random position within S_DATA
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "S_DATA", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "S_DATA", "Wrong attribute.");
     if (original) {
       Util::SetTupleAttribute<storage::VarlenEntry>(schema, col_offset++, projection_map, pr,
                                                     Util::OriginalVarlenEntry(26, 50, generator));
@@ -588,7 +588,7 @@ struct Loader {
   static storage::ProjectedRow *BuildStockKey(const int32_t s_i_id, const int8_t w_id, byte *const buffer,
                                               const storage::ProjectedRowInitializer &pr_initializer,
                                               const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &pr_map,
-                                              const storage::index::IndexKeySchema &schema) {
+                                              const catalog::IndexSchema &schema) {
     TERRIER_ASSERT(s_i_id >= 1 && s_i_id <= 100000, "Invalid s_i_id.");
     TERRIER_ASSERT(w_id >= 1, "Invalid w_id.");
     TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
@@ -601,7 +601,7 @@ struct Loader {
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, w_id);
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, s_i_id);
 
-    TERRIER_ASSERT(col_offset == schema.size(), "Didn't get every attribute for Stock key.");
+    TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for Stock key.");
 
     return pr;
   }
@@ -617,54 +617,54 @@ struct Loader {
     uint32_t col_offset = 0;
 
     // D_ID unique within [10]
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "D_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "D_ID", "Wrong attribute.");
     Util::SetTupleAttribute<int8_t>(schema, col_offset++, projection_map, pr, d_id);
 
     // D_W_ID = W_ID
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "D_W_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "D_W_ID", "Wrong attribute.");
     Util::SetTupleAttribute<int8_t>(schema, col_offset++, projection_map, pr, w_id);
 
     // D_NAME random a-string [6 .. 10]
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "D_NAME", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "D_NAME", "Wrong attribute.");
     Util::SetTupleAttribute<storage::VarlenEntry>(schema, col_offset++, projection_map, pr,
                                                   Util::AlphaNumericVarlenEntry(6, 10, false, generator));
 
     // D_STREET_1 random a-string [10 .. 20]
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "D_STREET_1", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "D_STREET_1", "Wrong attribute.");
     Util::SetTupleAttribute<storage::VarlenEntry>(schema, col_offset++, projection_map, pr,
                                                   Util::AlphaNumericVarlenEntry(10, 20, false, generator));
 
     // D_STREET_2 random a-string [10 .. 20]
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "D_STREET_2", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "D_STREET_2", "Wrong attribute.");
     Util::SetTupleAttribute<storage::VarlenEntry>(schema, col_offset++, projection_map, pr,
                                                   Util::AlphaNumericVarlenEntry(10, 20, false, generator));
 
     // D_CITY random a-string [10 .. 20]
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "D_CITY", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "D_CITY", "Wrong attribute.");
     Util::SetTupleAttribute<storage::VarlenEntry>(schema, col_offset++, projection_map, pr,
                                                   Util::AlphaNumericVarlenEntry(10, 20, false, generator));
 
     // D_STATE random a-string of 2 letters
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "D_STATE", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "D_STATE", "Wrong attribute.");
     Util::SetTupleAttribute<storage::VarlenEntry>(schema, col_offset++, projection_map, pr,
                                                   Util::AlphaNumericVarlenEntry(2, 2, false, generator));
 
     // D_ZIP generated according to Clause 4.3.2.7
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "D_ZIP", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "D_ZIP", "Wrong attribute.");
     Util::SetTupleAttribute<storage::VarlenEntry>(schema, col_offset++, projection_map, pr,
                                                   Util::ZipVarlenEntry(generator));
 
     // D_TAX random within [0.0000 .. 0.2000]
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "D_TAX", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "D_TAX", "Wrong attribute.");
     Util::SetTupleAttribute<double>(schema, col_offset++, projection_map, pr,
                                     Util::RandomWithin<double>(0, 2000, 4, generator));
 
     // D_YTD = 30,000.00
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "D_YTD", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "D_YTD", "Wrong attribute.");
     Util::SetTupleAttribute<double>(schema, col_offset++, projection_map, pr, 30000.0);
 
     // D_NEXT_O_ID = 3,001
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "D_NEXT_O_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "D_NEXT_O_ID", "Wrong attribute.");
     Util::SetTupleAttribute<int32_t>(schema, col_offset++, projection_map, pr, 3001);
 
     TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for District tuple.");
@@ -673,7 +673,7 @@ struct Loader {
   static storage::ProjectedRow *BuildDistrictKey(const int8_t d_id, const int8_t w_id, byte *const buffer,
                                                  const storage::ProjectedRowInitializer &pr_initializer,
                                                  const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &pr_map,
-                                                 const storage::index::IndexKeySchema &schema) {
+                                                 const catalog::IndexSchema &schema) {
     TERRIER_ASSERT(d_id >= 1 && d_id <= 10, "Invalid d_id.");
     TERRIER_ASSERT(w_id >= 1, "Invalid w_id.");
     TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
@@ -686,7 +686,7 @@ struct Loader {
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, w_id);
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, d_id);
 
-    TERRIER_ASSERT(col_offset == schema.size(), "Didn't get every attribute for District key.");
+    TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for District key.");
 
     return pr;
   }
@@ -703,24 +703,24 @@ struct Loader {
     uint32_t col_offset = 0;
 
     // C_ID unique within [3,000]
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "C_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "C_ID", "Wrong attribute.");
     Util::SetTupleAttribute<int32_t>(schema, col_offset++, projection_map, pr, c_id);
 
     // C_D_ID = D_ID
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "C_D_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "C_D_ID", "Wrong attribute.");
     Util::SetTupleAttribute<int8_t>(schema, col_offset++, projection_map, pr, d_id);
 
     // C_W_ID = D_W_ID
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "C_W_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "C_W_ID", "Wrong attribute.");
     Util::SetTupleAttribute<int8_t>(schema, col_offset++, projection_map, pr, w_id);
 
     // C_FIRST random a-string [8 .. 16]
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "C_FIRST", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "C_FIRST", "Wrong attribute.");
     Util::SetTupleAttribute<storage::VarlenEntry>(schema, col_offset++, projection_map, pr,
                                                   Util::AlphaNumericVarlenEntry(8, 16, false, generator));
 
     // C_MIDDLE = "OE"
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "C_MIDDLE", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "C_MIDDLE", "Wrong attribute.");
     Util::SetTupleAttribute<storage::VarlenEntry>(
         schema, col_offset++, projection_map, pr,
         storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *const>("OE"), 2));
@@ -729,7 +729,7 @@ struct Loader {
     // customers, and generating a non-uniform random number using the function NURand(255,0,999) for each of the
     // remaining 2,000 customers. The run-time constant C (see Clause 2.1.6) used for the database population must be
     // randomly chosen independently from the test run(s).
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "C_LAST", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "C_LAST", "Wrong attribute.");
     if (c_id <= 1000) {
       const auto rand_num = static_cast<const uint16_t>(c_id - 1);
       Util::SetTupleAttribute<storage::VarlenEntry>(schema, col_offset++, projection_map, pr,
@@ -741,41 +741,41 @@ struct Loader {
     }
 
     // C_STREET_1 random a-string [10 .. 20]
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "C_STREET_1", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "C_STREET_1", "Wrong attribute.");
     Util::SetTupleAttribute<storage::VarlenEntry>(schema, col_offset++, projection_map, pr,
                                                   Util::AlphaNumericVarlenEntry(10, 20, false, generator));
 
     // C_STREET_2 random a-string [10 .. 20]
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "C_STREET_2", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "C_STREET_2", "Wrong attribute.");
     Util::SetTupleAttribute<storage::VarlenEntry>(schema, col_offset++, projection_map, pr,
                                                   Util::AlphaNumericVarlenEntry(10, 20, false, generator));
 
     // C_CITY random a-string [10 .. 20]
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "C_CITY", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "C_CITY", "Wrong attribute.");
     Util::SetTupleAttribute<storage::VarlenEntry>(schema, col_offset++, projection_map, pr,
                                                   Util::AlphaNumericVarlenEntry(10, 20, false, generator));
 
     // C_STATE random a-string of 2 letters
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "C_STATE", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "C_STATE", "Wrong attribute.");
     Util::SetTupleAttribute<storage::VarlenEntry>(schema, col_offset++, projection_map, pr,
                                                   Util::AlphaNumericVarlenEntry(2, 2, false, generator));
 
     // C_ZIP generated according to Clause 4.3.2.7
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "C_ZIP", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "C_ZIP", "Wrong attribute.");
     Util::SetTupleAttribute<storage::VarlenEntry>(schema, col_offset++, projection_map, pr,
                                                   Util::ZipVarlenEntry(generator));
 
     // C_PHONE random n-string of 16 numbers
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "C_PHONE", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "C_PHONE", "Wrong attribute.");
     Util::SetTupleAttribute<storage::VarlenEntry>(schema, col_offset++, projection_map, pr,
                                                   Util::AlphaNumericVarlenEntry(16, 16, true, generator));
 
     // C_SINCE date/ time given by the operating system when the CUSTOMER table was populated.
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "C_SINCE", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "C_SINCE", "Wrong attribute.");
     Util::SetTupleAttribute<uint64_t>(schema, col_offset++, projection_map, pr, Util::Timestamp());
 
     // C_CREDIT = "GC". For 10% of the rows, selected at random , C_CREDIT = "BC"
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "C_CREDIT", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "C_CREDIT", "Wrong attribute.");
     if (good_credit) {
       Util::SetTupleAttribute<storage::VarlenEntry>(
           schema, col_offset++, projection_map, pr,
@@ -787,32 +787,32 @@ struct Loader {
     }
 
     // C_CREDIT_LIM = 50,000.00
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "C_CREDIT_LIM", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "C_CREDIT_LIM", "Wrong attribute.");
     Util::SetTupleAttribute<double>(schema, col_offset++, projection_map, pr, 50000.0);
 
     // C_DISCOUNT random within [0.0000 .. 0.5000]
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "C_DISCOUNT", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "C_DISCOUNT", "Wrong attribute.");
     Util::SetTupleAttribute<double>(schema, col_offset++, projection_map, pr,
                                     Util::RandomWithin<double>(0, 5000, 4, generator));
 
     // C_BALANCE = -10.00
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "C_BALANCE", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "C_BALANCE", "Wrong attribute.");
     Util::SetTupleAttribute<double>(schema, col_offset++, projection_map, pr, -10.0);
 
     // C_YTD_PAYMENT = 10.00
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "C_YTD_PAYMENT", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "C_YTD_PAYMENT", "Wrong attribute.");
     Util::SetTupleAttribute<double>(schema, col_offset++, projection_map, pr, 10.0);
 
     // C_PAYMENT_CNT = 1
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "C_PAYMENT_CNT", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "C_PAYMENT_CNT", "Wrong attribute.");
     Util::SetTupleAttribute<int16_t>(schema, col_offset++, projection_map, pr, 1);
 
     // C_DELIVERY_CNT = 0
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "C_DELIVERY_CNT", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "C_DELIVERY_CNT", "Wrong attribute.");
     Util::SetTupleAttribute<int16_t>(schema, col_offset++, projection_map, pr, 0);
 
     // C_DATA random a-string [300 .. 500]
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "C_DATA", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "C_DATA", "Wrong attribute.");
     Util::SetTupleAttribute<storage::VarlenEntry>(schema, col_offset++, projection_map, pr,
                                                   Util::AlphaNumericVarlenEntry(300, 500, false, generator));
 
@@ -823,7 +823,7 @@ struct Loader {
                                                  byte *const buffer,
                                                  const storage::ProjectedRowInitializer &pr_initializer,
                                                  const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &pr_map,
-                                                 const storage::index::IndexKeySchema &schema) {
+                                                 const catalog::IndexSchema &schema) {
     TERRIER_ASSERT(c_id >= 1 && c_id <= 3000, "Invalid c_id.");
     TERRIER_ASSERT(d_id >= 1 && d_id <= 10, "Invalid d_id.");
     TERRIER_ASSERT(w_id >= 1, "Invalid w_id.");
@@ -838,7 +838,7 @@ struct Loader {
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, d_id);
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, c_id);
 
-    TERRIER_ASSERT(col_offset == schema.size(), "Didn't get every attribute for Customer key.");
+    TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for Customer key.");
 
     return pr;
   }
@@ -846,8 +846,7 @@ struct Loader {
   static storage::ProjectedRow *BuildCustomerNameKey(
       const storage::VarlenEntry &c_last, const int8_t d_id, const int8_t w_id, byte *const buffer,
       const storage::ProjectedRowInitializer &pr_initializer,
-      const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &pr_map,
-      const storage::index::IndexKeySchema &schema) {
+      const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &pr_map, const catalog::IndexSchema &schema) {
     TERRIER_ASSERT(d_id >= 1 && d_id <= 10, "Invalid d_id.");
     TERRIER_ASSERT(w_id >= 1, "Invalid w_id.");
     TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
@@ -861,7 +860,7 @@ struct Loader {
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, d_id);
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, c_last);
 
-    TERRIER_ASSERT(col_offset == schema.size(), "Didn't get every attribute for Customer key.");
+    TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for Customer key.");
 
     return pr;
   }
@@ -878,35 +877,35 @@ struct Loader {
     uint32_t col_offset = 0;
 
     // H_C_ID = C_ID
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "H_C_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "H_C_ID", "Wrong attribute.");
     Util::SetTupleAttribute<int32_t>(schema, col_offset++, projection_map, pr, c_id);
 
     // H_C_D_ID = D_ID
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "H_C_D_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "H_C_D_ID", "Wrong attribute.");
     Util::SetTupleAttribute<int8_t>(schema, col_offset++, projection_map, pr, d_id);
 
     // H_C_W_ID = W_ID
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "H_C_W_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "H_C_W_ID", "Wrong attribute.");
     Util::SetTupleAttribute<int8_t>(schema, col_offset++, projection_map, pr, w_id);
 
     // H_D_ID = D_ID
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "H_D_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "H_D_ID", "Wrong attribute.");
     Util::SetTupleAttribute<int8_t>(schema, col_offset++, projection_map, pr, d_id);
 
     // H_W_ID = W_ID
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "H_W_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "H_W_ID", "Wrong attribute.");
     Util::SetTupleAttribute<int8_t>(schema, col_offset++, projection_map, pr, w_id);
 
     // H_DATE current date and time
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "H_DATE", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "H_DATE", "Wrong attribute.");
     Util::SetTupleAttribute<uint64_t>(schema, col_offset++, projection_map, pr, Util::Timestamp());
 
     // H_AMOUNT = 10.00
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "H_AMOUNT", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "H_AMOUNT", "Wrong attribute.");
     Util::SetTupleAttribute<double>(schema, col_offset++, projection_map, pr, 10.0);
 
     // H_DATA random a-string [12 .. 24]
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "H_DATA", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "H_DATA", "Wrong attribute.");
     Util::SetTupleAttribute<storage::VarlenEntry>(schema, col_offset++, projection_map, pr,
                                                   Util::AlphaNumericVarlenEntry(12, 24, false, generator));
 
@@ -924,15 +923,15 @@ struct Loader {
     uint32_t col_offset = 0;
 
     // NO_O_ID = O_ID
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "NO_O_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "NO_O_ID", "Wrong attribute.");
     Util::SetTupleAttribute<int32_t>(schema, col_offset++, projection_map, pr, o_id);
 
     // NO_D_ID = D_ID
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "NO_D_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "NO_D_ID", "Wrong attribute.");
     Util::SetTupleAttribute<int8_t>(schema, col_offset++, projection_map, pr, d_id);
 
     // NO_W_ID = W_ID
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "NO_W_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "NO_W_ID", "Wrong attribute.");
     Util::SetTupleAttribute<int8_t>(schema, col_offset++, projection_map, pr, w_id);
 
     TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for New Order tuple.");
@@ -942,7 +941,7 @@ struct Loader {
                                                  byte *const buffer,
                                                  const storage::ProjectedRowInitializer &pr_initializer,
                                                  const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &pr_map,
-                                                 const storage::index::IndexKeySchema &schema) {
+                                                 const catalog::IndexSchema &schema) {
     TERRIER_ASSERT(o_id >= 2101 && o_id <= 3000, "Invalid o_id.");
     TERRIER_ASSERT(d_id >= 1 && d_id <= 10, "Invalid d_id.");
     TERRIER_ASSERT(w_id >= 1, "Invalid w_id.");
@@ -957,7 +956,7 @@ struct Loader {
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, d_id);
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, o_id);
 
-    TERRIER_ASSERT(col_offset == schema.size(), "Didn't get every attribute for New Order key.");
+    TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for New Order key.");
 
     return pr;
   }
@@ -981,29 +980,29 @@ struct Loader {
     uint32_t col_offset = 0;
 
     // O_ID unique within [3,000]
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "O_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "O_ID", "Wrong attribute.");
     Util::SetTupleAttribute<int32_t>(schema, col_offset++, projection_map, pr, o_id);
 
     // O_D_ID = D_ID
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "O_D_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "O_D_ID", "Wrong attribute.");
     Util::SetTupleAttribute<int8_t>(schema, col_offset++, projection_map, pr, d_id);
 
     // O_W_ID = W_ID
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "O_W_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "O_W_ID", "Wrong attribute.");
     Util::SetTupleAttribute<int8_t>(schema, col_offset++, projection_map, pr, w_id);
 
     // O_C_ID selected sequentially from a random permutation of [1 .. 3,000]
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "O_C_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "O_C_ID", "Wrong attribute.");
     Util::SetTupleAttribute<int32_t>(schema, col_offset++, projection_map, pr, c_id);
 
     // O_ENTRY_D current date/ time given by the operating system
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "O_ENTRY_D", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "O_ENTRY_D", "Wrong attribute.");
     const uint64_t entry_d = Util::Timestamp();
     Util::SetTupleAttribute<uint64_t>(schema, col_offset++, projection_map, pr, entry_d);
 
     // O_CARRIER_ID random within [1 .. 10] if O_ID < 2,101, null otherwise
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "O_CARRIER_ID", "Wrong attribute.");
-    const auto col_oid = schema.GetColumn(col_offset++).GetOid();
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "O_CARRIER_ID", "Wrong attribute.");
+    const auto col_oid = schema.GetColumn(col_offset++).Oid();
     const auto attr_offset = projection_map.at(col_oid);
     if (o_id < 2101) {
       auto *const attr = pr->AccessForceNotNull(attr_offset);
@@ -1013,12 +1012,12 @@ struct Loader {
     }
 
     // O_OL_CNT random within [5 .. 15]
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "O_OL_CNT", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "O_OL_CNT", "Wrong attribute.");
     const auto ol_cnt = Util::RandomWithin<int8_t>(5, 15, 0, generator);
     Util::SetTupleAttribute<int8_t>(schema, col_offset++, projection_map, pr, ol_cnt);
 
     // O_ALL_LOCAL = 1
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "O_ALL_LOCAL", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "O_ALL_LOCAL", "Wrong attribute.");
     Util::SetTupleAttribute<int8_t>(schema, col_offset++, projection_map, pr, 1);
 
     TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for Order tuple.");
@@ -1030,7 +1029,7 @@ struct Loader {
                                               byte *const buffer,
                                               const storage::ProjectedRowInitializer &pr_initializer,
                                               const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &pr_map,
-                                              const storage::index::IndexKeySchema &schema) {
+                                              const catalog::IndexSchema &schema) {
     TERRIER_ASSERT(o_id >= 1 && o_id <= 3000, "Invalid o_id.");
     TERRIER_ASSERT(d_id >= 1 && d_id <= 10, "Invalid d_id.");
     TERRIER_ASSERT(w_id >= 1, "Invalid w_id.");
@@ -1045,7 +1044,7 @@ struct Loader {
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, d_id);
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, o_id);
 
-    TERRIER_ASSERT(col_offset == schema.size(), "Didn't get every attribute for Order key.");
+    TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for Order key.");
 
     return pr;
   }
@@ -1053,8 +1052,7 @@ struct Loader {
   static storage::ProjectedRow *BuildOrderSecondaryKey(
       const int32_t o_id, const int32_t c_id, const int8_t d_id, const int8_t w_id, byte *const buffer,
       const storage::ProjectedRowInitializer &pr_initializer,
-      const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &pr_map,
-      const storage::index::IndexKeySchema &schema) {
+      const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &pr_map, const catalog::IndexSchema &schema) {
     TERRIER_ASSERT(o_id >= 1 && o_id <= 3000, "Invalid o_id.");
     TERRIER_ASSERT(c_id >= 1 && c_id <= 3000, "Invalid c_id.");
     TERRIER_ASSERT(d_id >= 1 && d_id <= 10, "Invalid d_id.");
@@ -1071,7 +1069,7 @@ struct Loader {
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, c_id);
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, o_id);
 
-    TERRIER_ASSERT(col_offset == schema.size(), "Didn't get every attribute for Order secondary key.");
+    TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for Order secondary key.");
 
     return pr;
   }
@@ -1089,33 +1087,33 @@ struct Loader {
     uint32_t col_offset = 0;
 
     // OL_O_ID = O_ID
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "OL_O_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "OL_O_ID", "Wrong attribute.");
     Util::SetTupleAttribute<int32_t>(schema, col_offset++, projection_map, pr, o_id);
 
     // OL_D_ID = D_ID
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "OL_D_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "OL_D_ID", "Wrong attribute.");
     Util::SetTupleAttribute<int8_t>(schema, col_offset++, projection_map, pr, d_id);
 
     // OL_W_ID = W_ID
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "OL_W_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "OL_W_ID", "Wrong attribute.");
     Util::SetTupleAttribute<int8_t>(schema, col_offset++, projection_map, pr, w_id);
 
     // OL_NUMBER unique within [O_OL_CNT]
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "OL_NUMBER", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "OL_NUMBER", "Wrong attribute.");
     Util::SetTupleAttribute<int8_t>(schema, col_offset++, projection_map, pr, ol_number);
 
     // OL_I_ID random within [1 .. 100,000]
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "OL_I_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "OL_I_ID", "Wrong attribute.");
     Util::SetTupleAttribute<int32_t>(schema, col_offset++, projection_map, pr,
                                      Util::RandomWithin<int32_t>(1, 100000, 0, generator));
 
     // OL_SUPPLY_W_ID = W_ID
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "OL_SUPPLY_W_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "OL_SUPPLY_W_ID", "Wrong attribute.");
     Util::SetTupleAttribute<int8_t>(schema, col_offset++, projection_map, pr, w_id);
 
     // OL_DELIVERY_D = O_ENTRY_D if OL_O_ID < 2,101, null otherwise
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "OL_DELIVERY_D", "Wrong attribute.");
-    const auto col_oid = schema.GetColumn(col_offset++).GetOid();
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "OL_DELIVERY_D", "Wrong attribute.");
+    const auto col_oid = schema.GetColumn(col_offset++).Oid();
     const auto attr_offset = projection_map.at(col_oid);
     if (o_id < 2101) {
       auto *const attr = pr->AccessForceNotNull(attr_offset);
@@ -1125,11 +1123,11 @@ struct Loader {
     }
 
     // OL_QUANTITY = 5
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "OL_QUANTITY", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "OL_QUANTITY", "Wrong attribute.");
     Util::SetTupleAttribute<int8_t>(schema, col_offset++, projection_map, pr, 5);
 
     // OL_AMOUNT = 0.00 if OL_O_ID < 2,101, random within [0.01 .. 9,999.99] otherwise
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "OL_AMOUNT", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "OL_AMOUNT", "Wrong attribute.");
     if (o_id < 2101) {
       Util::SetTupleAttribute<double>(schema, col_offset++, projection_map, pr, 0.0);
     } else {
@@ -1138,7 +1136,7 @@ struct Loader {
     }
 
     // OL_DIST_INFO random a-string of 24 letters
-    TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "OL_DIST_INFO", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "OL_DIST_INFO", "Wrong attribute.");
     Util::SetTupleAttribute<storage::VarlenEntry>(schema, col_offset++, projection_map, pr,
                                                   Util::AlphaNumericVarlenEntry(24, 24, false, generator));
 
@@ -1148,8 +1146,7 @@ struct Loader {
   static storage::ProjectedRow *BuildOrderLineKey(
       const int32_t o_id, const int8_t d_id, const int8_t w_id, const int8_t ol_number, byte *const buffer,
       const storage::ProjectedRowInitializer &pr_initializer,
-      const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &pr_map,
-      const storage::index::IndexKeySchema &schema) {
+      const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &pr_map, const catalog::IndexSchema &schema) {
     TERRIER_ASSERT(o_id >= 1 && o_id <= 3000, "Invalid o_id.");
     TERRIER_ASSERT(d_id >= 1 && d_id <= 10, "Invalid d_id.");
     TERRIER_ASSERT(w_id >= 1, "Invalid w_id.");
@@ -1165,7 +1162,7 @@ struct Loader {
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, o_id);
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, ol_number);
 
-    TERRIER_ASSERT(col_offset == schema.size(), "Didn't get every attribute for Order Line key.");
+    TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for Order Line key.");
 
     return pr;
   }

@@ -1,4 +1,5 @@
 #pragma once
+#include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -144,5 +145,21 @@ class StorageUtil {
    * @param accessor accessor used to interact with the block
    */
   static void DeallocateVarlens(RawBlock *block, const TupleAccessStrategy &accessor);
+
+  /**
+   * Helper method to turn a string into a VarlenEntry
+   * @param str input to be turned into a VarlenEntry
+   * @return varlen entry representing string
+   * @warning checking IsInlined() to see if you need to possibly clean up a buffer
+   */
+  static storage::VarlenEntry CreateVarlen(const std::string &str) {
+    if (str.size() > storage::VarlenEntry::InlineThreshold()) {
+      byte *contents = common::AllocationUtil::AllocateAligned(str.size());
+      std::memcpy(contents, str.data(), str.size());
+      return storage::VarlenEntry::Create(contents, static_cast<uint32_t>(str.size()), true);
+    }
+    return storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(str.data()),
+                                              static_cast<uint32_t>(str.size()));
+  }
 };
 }  // namespace terrier::storage
