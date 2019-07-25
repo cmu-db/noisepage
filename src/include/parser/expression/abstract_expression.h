@@ -12,6 +12,10 @@
 #include "type/transient_value.h"
 #include "type/type_id.h"
 
+namespace terrier::binder {
+class BindNodeVisitor;
+} // namespace terrier::binder
+
 namespace terrier::parser {
 /**
  * An abstract parser expression. Dumb and immutable.
@@ -215,6 +219,8 @@ class AbstractExpression {
   virtual void FromJson(const nlohmann::json &j);
 
  private:
+  friend class binder::BindNodeVisitor;
+
   /**
    * Type of the current expression
    */

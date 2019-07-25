@@ -9,6 +9,11 @@
 #include "parser/table_ref.h"
 
 namespace terrier {
+
+namespace binder {
+class BindNodeVisitor;
+} // namespace binder
+
 namespace parser {
 
 enum OrderType { kOrderAsc, kOrderDesc };
@@ -412,7 +417,9 @@ class SelectStatement : public SQLStatement {
    */
   void FromJson(const nlohmann::json &j) override;
 
+
  private:
+  friend class binder::BindNodeVisitor;
   std::vector<std::shared_ptr<AbstractExpression>> select_;
   bool select_distinct_;
   std::shared_ptr<TableRef> from_;
@@ -421,6 +428,17 @@ class SelectStatement : public SQLStatement {
   std::shared_ptr<OrderByDescription> order_by_;
   std::shared_ptr<LimitDescription> limit_;
   std::shared_ptr<SelectStatement> union_select_;
+  int depth_ = -1;
+
+  /**
+   * @param select List of select columns
+   */
+  void SetSelectColumns(std::vector<std::shared_ptr<AbstractExpression>> select) { select_ = std::move(select); }
+
+  /**
+   * @param depth Depth of the select statement
+   */
+  void SetDepth(int depth) { depth_ = depth; }
 };
 
 DEFINE_JSON_DECLARATIONS(SelectStatement);

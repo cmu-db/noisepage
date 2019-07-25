@@ -7,11 +7,17 @@
 #include "catalog/catalog_defs.h"
 #include "parser/expression/abstract_expression.h"
 
-namespace terrier::parser {
+namespace terrier {
+
+namespace binder {
+class BinderContext;
+}
+
+namespace parser {
 
 /**
- * Represents a column tuple value.
- */
+* Represents a column tuple value.
+*/
 class ColumnValueExpression : public AbstractExpression {
  public:
   /**
@@ -202,8 +208,11 @@ class ColumnValueExpression : public AbstractExpression {
    * OID of the column
    */
   catalog::col_oid_t column_oid_ = catalog::col_oid_t(0);
+
+  friend class binder::BinderContext;
 };
 
 DEFINE_JSON_DECLARATIONS(ColumnValueExpression);
 
+}
 }  // namespace terrier::parser
