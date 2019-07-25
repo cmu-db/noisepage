@@ -266,7 +266,7 @@ class CatalogAccessor {
   std::vector<namespace_oid_t> search_path_;
 
   static void NormalizeObjectName(std::string *name) {
-    std::transform(name->begin(), name->end(), name->begin(), std::tolower);
+    std::transform(name->begin(), name->end(), name->begin(), [](auto &&c) { return std::tolower(c); });
   }
 
   /**
