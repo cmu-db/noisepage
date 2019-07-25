@@ -279,7 +279,8 @@ TEST_F(BinderCorrectnessTest, DeleteStatementWhereTest) {
 TEST_F(BinderCorrectnessTest, BindDepthTest) {
   // Test regular table name
   LOG_INFO("Parsing sql query");
-
+  // TODO (ling): select a, (sub select sth)
+  //  select a, b from A, (subselect sth)
   std::string selectSQL = "SELECT A.a1 FROM A WHERE A.a1 IN (SELECT b1 FROM B WHERE b1 = 2 AND "
                           "b2 > (SELECT a1 FROM A WHERE a2 > 0)) AND EXISTS (SELECT b1 FROM B WHERE B.b1 = A.a1)";
 
