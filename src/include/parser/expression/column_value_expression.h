@@ -196,14 +196,20 @@ class ColumnValueExpression : public AbstractExpression {
   std::string column_name_;
 
   // TODO(Ling): change to INVALID_*_OID after catalog completion
-  /** Database OID. */
-  catalog::db_oid_t database_oid_ = catalog::db_oid_t(0);
-  /** Table OID. */
-  catalog::table_oid_t table_oid_ = catalog::table_oid_t(0);
-  /** Column OID. */
-  catalog::col_oid_t column_oid_ = catalog::col_oid_t(0);
+  /**
+   * OID of the database
+   */
+  catalog::db_oid_t database_oid_ = catalog::INVALID_DATABASE_OID;
 
-  friend class binder::BinderContext;
+  /**
+   * OID of the table
+   */
+  catalog::table_oid_t table_oid_ = catalog::INVALID_TABLE_OID;
+
+  /**
+   * OID of the column
+   */
+  catalog::col_oid_t column_oid_ = catalog::INVALID_COLUMN_OID;
 };
 
 DEFINE_JSON_DECLARATIONS(ColumnValueExpression);
