@@ -205,8 +205,7 @@ namespace_oid_t DatabaseCatalog::CreateNamespace(transaction::TransactionContext
 bool DatabaseCatalog::CreateNamespace(transaction::TransactionContext *const txn, const std::string &name,
                                       const namespace_oid_t ns_oid) {
   // Step 1: Insert into table
-  auto name_varlen = storage::StorageUtil::CreateVarlen(name);
-  name_varlen.ToLower();
+  const auto name_varlen = storage::StorageUtil::CreateVarlen(name);
   // Get & Fill Redo Record
   const std::vector<col_oid_t> table_oids{NSPNAME_COL_OID, NSPOID_COL_OID};
   // NOLINTNEXTLINE
@@ -309,8 +308,7 @@ namespace_oid_t DatabaseCatalog::GetNamespaceOid(transaction::TransactionContext
   byte *const buffer = common::AllocationUtil::AllocateAligned(name_pri.ProjectedRowSize());
   auto *pr = name_pri.InitializeRow(buffer);
   // Scan the name index
-  auto name_varlen = storage::StorageUtil::CreateVarlen(name);
-  name_varlen.ToLower();
+  const auto name_varlen = storage::StorageUtil::CreateVarlen(name);
   *(reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(0))) = name_varlen;
   std::vector<storage::TupleSlot> index_results;
   namespaces_name_index_->ScanKey(*txn, *pr, &index_results);
@@ -362,8 +360,7 @@ bool DatabaseCatalog::CreateColumn(transaction::TransactionContext *const txn, c
       reinterpret_cast<storage::VarlenEntry *>(redo->Delta()->AccessForceNotNull(table_pm[ADSRC_COL_OID]));
   *oid_entry = static_cast<uint32_t>(col.Oid());
   *relid_entry = class_oid;
-  storage::VarlenEntry name_varlen = storage::StorageUtil::CreateVarlen(col.Name());
-  name_varlen.ToLower();
+  const auto name_varlen = storage::StorageUtil::CreateVarlen(col.Name());
 
   *name_entry = name_varlen;
   *type_entry = col.Type();
@@ -709,8 +706,7 @@ std::pair<uint32_t, postgres::ClassKind> DatabaseCatalog::GetClassOidKind(transa
                                                                           const std::string &name) {
   const auto name_pri = classes_name_index_->GetProjectedRowInitializer();
 
-  auto name_varlen = storage::StorageUtil::CreateVarlen(name);
-  name_varlen.ToLower();
+  const auto name_varlen = storage::StorageUtil::CreateVarlen(name);
 
   // Buffer is large enough to hold all prs
   auto *const buffer = common::AllocationUtil::AllocateAligned(name_pri.ProjectedRowSize());
@@ -1180,8 +1176,7 @@ bool DatabaseCatalog::CreateIndexEntry(transaction::TransactionContext *const tx
   auto *index_oid_ptr = class_insert_pr->AccessForceNotNull(index_oid_offset);
   *(reinterpret_cast<uint32_t *>(index_oid_ptr)) = static_cast<uint32_t>(index_oid);
 
-  auto name_varlen = storage::StorageUtil::CreateVarlen(name);
-  name_varlen.ToLower();
+  const auto name_varlen = storage::StorageUtil::CreateVarlen(name);
 
   // Write the name into the PR
   const auto name_offset = pr_map[RELNAME_COL_OID];
@@ -1345,8 +1340,7 @@ void DatabaseCatalog::InsertType(transaction::TransactionContext *txn, type::Typ
 
   // Populate type name
   offset = col_map[TYPNAME_COL_OID];
-  auto name_varlen = storage::StorageUtil::CreateVarlen(name);
-  name_varlen.ToLower();
+  const auto name_varlen = storage::StorageUtil::CreateVarlen(name);
 
   *(reinterpret_cast<storage::VarlenEntry *>(delta->AccessForceNotNull(offset))) = name_varlen;
 
@@ -1483,8 +1477,7 @@ bool DatabaseCatalog::CreateTableEntry(transaction::TransactionContext *const tx
   *(reinterpret_cast<char *>(kind_ptr)) = static_cast<char>(postgres::ClassKind::REGULAR_TABLE);
 
   // Create the necessary varlen for storage operations
-  auto name_varlen = storage::StorageUtil::CreateVarlen(name);
-  name_varlen.ToLower();
+  const auto name_varlen = storage::StorageUtil::CreateVarlen(name);
 
   // Write the name into the PR
   const auto name_offset = pr_map[RELNAME_COL_OID];
