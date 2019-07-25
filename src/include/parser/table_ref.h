@@ -223,7 +223,7 @@ class TableRef {
   std::shared_ptr<JoinDefinition> join_;
 
   void TryBindDatabaseName(const std::string &default_database_name) {
-    if (!table_info_) table_info_.reset(new parser::TableInfo());
+    if (!table_info_) table_info_= std::make_shared<TableInfo>();
     table_info_->TryBindDatabaseName(default_database_name);
   }
 };
