@@ -59,7 +59,7 @@ void BinderContext::AddNestedTable(const std::string &table_alias,
   nested_table_alias_map_[table_alias] = column_alias_map;
 }
 
-bool BinderContext::ColumnInSchema(catalog::Schema &schema, std::string &col_name) {
+bool BinderContext::ColumnInSchema(const catalog::Schema &schema, const std::string &col_name) {
   try {
     auto column_object = schema.GetColumn(col_name);
   } catch (const std::out_of_range &oor) {
@@ -124,7 +124,7 @@ bool BinderContext::GetColumnPosTuple(std::shared_ptr<BinderContext> current_con
   return false;
 }
 
-bool BinderContext::GetRegularTableObj(std::shared_ptr<BinderContext> current_context, std::string &alias,
+bool BinderContext::GetRegularTableObj(std::shared_ptr<BinderContext> current_context, const std::string &alias,
                                        parser::ColumnValueExpression *expr,
                                        std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema> &tuple) {
   while (current_context != nullptr) {
@@ -139,7 +139,7 @@ bool BinderContext::GetRegularTableObj(std::shared_ptr<BinderContext> current_co
   return false;
 }
 
-bool BinderContext::CheckNestedTableColumn(std::shared_ptr<BinderContext> current_context, std::string &alias,
+bool BinderContext::CheckNestedTableColumn(std::shared_ptr<BinderContext> current_context, const std::string &alias,
                                            std::string &col_name, parser::ColumnValueExpression *expr) {
   while (current_context != nullptr) {
     auto iter = current_context->nested_table_alias_map_.find(alias);

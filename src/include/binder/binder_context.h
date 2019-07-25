@@ -64,7 +64,7 @@ class BinderContext {
     return (!current_context->regular_table_alias_map_.empty() || !current_context->nested_table_alias_map_.empty());
   }
 
-  static bool ColumnInSchema(catalog::Schema &schema, std::string &col_name);
+  static bool ColumnInSchema(const catalog::Schema &schema, const std::string &col_name);
 
   static void GetColumnPosTuple(const std::string &col_name,
                                 std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema> tuple,
@@ -121,11 +121,11 @@ class BinderContext {
    *
    * @return Return true on success, false otherwise
    */
-  static bool GetRegularTableObj(std::shared_ptr<BinderContext> current_context, std::string &alias,
+  static bool GetRegularTableObj(std::shared_ptr<BinderContext> current_context, const std::string &alias,
                                  parser::ColumnValueExpression *expr,
                                  std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema> &tuple);
 
-  static bool CheckNestedTableColumn(std::shared_ptr<BinderContext> current_context, std::string &alias,
+  static bool CheckNestedTableColumn(std::shared_ptr<BinderContext> current_context, const std::string &alias,
                                      std::string &col_name, parser::ColumnValueExpression *expr);
 
   std::shared_ptr<BinderContext> GetUpperContext() { return upper_context_; }
