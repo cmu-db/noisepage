@@ -102,7 +102,7 @@ void BindNodeVisitor::Visit(parser::TableRef *node) {
   else if (!node->GetList().empty()) for (auto &table : node->GetList()) table->Accept(this);
 
   // Single table
-  else context_->AddRegularTable(txn_, node, default_database_name_);
+  else context_->AddRegularTable(catalog_accessor_, node);
 }
 
 void BindNodeVisitor::Visit(parser::GroupByDescription *node) {
@@ -135,8 +135,8 @@ void BindNodeVisitor::Visit(parser::DeleteStatement *node) {
   context_ = std::make_shared<BinderContext>(nullptr);
   // no try bind anything
   // node->TryBindDatabaseName(default_database_name_);
-  context_->AddRegularTable(txn_, node->GetDeletionTable()->GetDatabaseName(), node->GetDeletionTable()->GetSchemaName(),
-                            node->GetDeletionTable()->GetTableName(), node->GetDeletionTable()->GetTableName());
+  auto table = node->GetDeletionTable();
+  context_->AddRegularTable(catalog_accessor_, table->GetDatabaseName(), table->GetTableName(), table->GetTableName());
 
   if (node->GetDeleteCondition() != nullptr) {
     node->GetDeleteCondition()->Accept(this);
@@ -173,7 +173,8 @@ void BindNodeVisitor::Visit(parser::InsertStatement *node) {
   node->TryBindDatabaseName(default_database_name_);
   context_ = std::make_shared<BinderContext>(nullptr);
 
-  context_->AddRegularTable(txn_, node->GetInsertionTable(), default_database_name_);
+  auto table = node->GetInsertionTable();
+  context_->AddRegularTable(catalog_accessor_, table->GetDatabaseName(), table->GetTableName(), table->GetTableName());
   if (node->GetSelect() != nullptr) node->GetSelect()->Accept(this);
 
   context_ = nullptr;
@@ -184,7 +185,7 @@ void BindNodeVisitor::Visit(parser::ExecuteStatement *) {}
 void BindNodeVisitor::Visit(parser::TransactionStatement *) {}
 void BindNodeVisitor::Visit(parser::AnalyzeStatement *node) { node->TryBindDatabaseName(default_database_name_); }
 
-// void BindNodeVisitor::Visit(const parser::ConstantValueExpression *) {}
+void BindNodeVisitor::Visit(parser::ConstantValueExpression *) {}
 
 void BindNodeVisitor::Visit(parser::ColumnValueExpression *expr) {
 
@@ -192,10 +193,8 @@ void BindNodeVisitor::Visit(parser::ColumnValueExpression *expr) {
   //   That is, the object would not be initialized using ColumnValueeExpression(database_oid, table_oid, column_oid)
   //   at this point
   if (!expr->GetTableOid()) {
-    std::shared_ptr<catalog::Schema> schema = nullptr;
-    type::TypeId value_type;
-    int depth = -1;
 
+    std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema> tuple;
     std::string table_name = expr->GetTableName();
     std::string col_name = expr->GetColumnName();
 
@@ -205,41 +204,34 @@ void BindNodeVisitor::Visit(parser::ColumnValueExpression *expr) {
 
     // Table name not specified in the expression. Loop through all the table in the binder context.
     if (table_name.empty()) {
-      if (!BinderContext::GetColumnPosTuple(context_, col_name, col_pos_tuple, table_name, value_type, depth)) {
+      if (!BinderContext::GetColumnPosTuple(context_, expr)) {
         throw BINDER_EXCEPTION(("Cannot find column " + col_name).c_str());
       }
-      expr->SetTableName(table_name);
     }
       // Table name is present
     else {
       // Regular table
-      // TODO: we have changed table_obj to schema
-      //  in this function, table name and schema are filled in
-      if (BinderContext::GetRegularTableObj(context_, table_name, schema, depth)) {
-        if (!BinderContext::GetColumnPosTuple(col_name, schema, col_pos_tuple, value_type)) {
+      if (BinderContext::GetRegularTableObj(context_, table_name, expr, tuple)) {
+        if (!BinderContext::ColumnInSchema(std::get<2>(tuple), col_name)) {
           throw BINDER_EXCEPTION(("Cannot find column " + col_name).c_str());
         }
+        BinderContext::GetColumnPosTuple(col_name, tuple, expr);
       }
         // Nested table
-      else if (!BinderContext::CheckNestedTableColumn(context_, table_name, col_name, value_type, depth))
+      else if (!BinderContext::CheckNestedTableColumn(context_, table_name, col_name, expr))
         throw BINDER_EXCEPTION(("Invalid table reference " + expr->GetTableName()).c_str());
     }
-    PELOTON_ASSERT(!expr->GetIsBound());
-    expr->SetDepth(depth);
-    expr->SetColName(col_name);
-    expr->SetValueType(value_type);
-    expr->SetBoundOid(col_pos_tuple);
   }
 }
 
 void BindNodeVisitor::Visit(parser::CaseExpression *expr) {
   for (size_t i = 0; i < expr->GetWhenClauseSize(); ++i) {
-    expr->GetWhenClauseCond(i)->Accept(this);
+    expr->GetWhenClauseCondition(i)->Accept(this);
   }
 }
 
 void BindNodeVisitor::Visit(parser::SubqueryExpression *expr) {
-  expr->GetSubSelect()->Accept(this);
+  expr->GetSubselect()->Accept(this);
 }
 
 void BindNodeVisitor::Visit(parser::StarExpression *expr) {
@@ -251,11 +243,11 @@ void BindNodeVisitor::Visit(parser::StarExpression *expr) {
 // Deduce value type for these expressions
 void BindNodeVisitor::Visit(parser::OperatorExpression *expr) {
   SqlNodeVisitor::Visit(expr);
-  expr->DeduceExpressionType();
+  expr->DeduceReturnValueType();
 }
 void BindNodeVisitor::Visit(parser::AggregateExpression *expr) {
   SqlNodeVisitor::Visit(expr);
-  expr->DeduceExpressionType();
+  expr->DeduceReturnValueType();
 }
 
 void BindNodeVisitor::Visit(parser::FunctionExpression *expr) {
@@ -265,10 +257,11 @@ void BindNodeVisitor::Visit(parser::FunctionExpression *expr) {
   // Check catalog and bind function
   std::vector<type::TypeId> argtypes;
   for (size_t i = 0; i < expr->GetChildrenSize(); i++)
-    argtypes.push_back(expr->GetChild(i)->GetValueType());
+    argtypes.push_back(expr->GetChild(i)->GetReturnValueType());
   // Check and set the function ptr
   // TODO(boweic): Visit the catalog using the interface that is protected by
   // transaction
+  // TODO (Ling): Do we need GetFunction in catalog?
   const catalog::FunctionData &func_data =
       catalog_accessor_->GetFunction(expr->GetFuncName(), argtypes);
   LOG_DEBUG("Function %s found in the catalog", func_data.func_name_.c_str());

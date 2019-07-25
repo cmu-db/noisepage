@@ -72,6 +72,11 @@ class AbstractExpression {
    */
   void SetDepth(int depth) { depth_ = depth; }
 
+  /**
+   * @param alias Alias of the expression
+   */
+  void SetAlias(const std::string &alias) { alias_ = alias; }
+
  public:
   virtual ~AbstractExpression() = default;
 

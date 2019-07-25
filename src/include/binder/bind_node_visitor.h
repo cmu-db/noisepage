@@ -60,7 +60,7 @@ class BindNodeVisitor : public SqlNodeVisitor {
   void Visit(parser::CaseExpression *expr) override;
   void Visit(parser::SubqueryExpression *expr) override;
 
-  // void Visit(parser::ConstantValueExpression *expr) override;
+  void Visit(parser::ConstantValueExpression *expr) override;
   void Visit(parser::ColumnValueExpression *expr) override;
   void Visit(parser::StarExpression *expr) override;
   void Visit(parser::FunctionExpression *expr) override;
