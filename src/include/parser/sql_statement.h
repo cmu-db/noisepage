@@ -5,10 +5,10 @@
 #include <utility>
 #include <vector>
 #include "catalog/catalog_defs.h"
+#include "common/exception.h"
 #include "common/json.h"
 #include "common/macros.h"
 #include "common/sql_node_visitor.h"
-#include "common/exception.h"
 #include "parser/parser_defs.h"
 
 namespace terrier {
@@ -87,9 +87,9 @@ struct TableInfo {
     }
     // TODO (Ling): see if we actual need to set the schema name to any default values
     //  This piece of code comes from pelotn
-//    // if schema name is not specified, then it's default value is "public"
-//    if (table_info_->schema_name.empty())
-//      table_info_->schema_name = DEFAULT_SCHEMA_NAME;
+    //    // if schema name is not specified, then it's default value is "public"
+    //    if (table_info_->schema_name.empty())
+    //      table_info_->schema_name = DEFAULT_SCHEMA_NAME;
   }
 };
 

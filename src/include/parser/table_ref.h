@@ -167,8 +167,7 @@ class TableRef {
    * @return alias
    */
   std::string GetAlias() {
-    if (alias_.empty())
-      alias_ = table_info_->GetTableName();
+    if (alias_.empty()) alias_ = table_info_->GetTableName();
     return alias_;
   }
 
@@ -212,9 +211,9 @@ class TableRef {
   void FromJson(const nlohmann::json &j);
 
  private:
-//  friend class InsertStatement;
-//  friend class AnalyzeStatement;
-//  friend class DeleteStatement;
+  //  friend class InsertStatement;
+  //  friend class AnalyzeStatement;
+  //  friend class DeleteStatement;
   friend class binder::BindNodeVisitor;
 
   TableReferenceType type_;
@@ -226,7 +225,6 @@ class TableRef {
   std::vector<std::shared_ptr<TableRef>> list_;
 
   std::shared_ptr<JoinDefinition> join_;
-
 
   void TryBindDatabaseName(const std::string &default_database_name) {
     if (!table_info_) table_info_.reset(new parser::TableInfo());

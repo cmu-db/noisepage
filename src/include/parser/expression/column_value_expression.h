@@ -16,8 +16,8 @@ class BinderContext;
 namespace parser {
 
 /**
-* Represents a column tuple value.
-*/
+ * Represents a column tuple value.
+ */
 class ColumnValueExpression : public AbstractExpression {
  public:
   /**
@@ -178,11 +178,11 @@ class ColumnValueExpression : public AbstractExpression {
    * @param column_oid Column OID to be assigned to this expression
    */
   void SetColumnOID(catalog::col_oid_t column_oid) { column_oid_ = column_oid; }
-//
-//  /**
-//   * @param database_oid Database OID to be assigned to this expression
-//   */
-//  void SetDatabaseOID(catalog::db_oid_t database_oid) { database_oid_ = database_oid; }
+  //
+  //  /**
+  //   * @param database_oid Database OID to be assigned to this expression
+  //   */
+  //  void SetDatabaseOID(catalog::db_oid_t database_oid) { database_oid_ = database_oid; }
 
   /**
    * @param table_oid Table OID to be assigned to this expression
@@ -228,5 +228,5 @@ class ColumnValueExpression : public AbstractExpression {
 
 DEFINE_JSON_DECLARATIONS(ColumnValueExpression);
 
-}
-}  // namespace terrier::parser
+}  // namespace parser
+}  // namespace terrier

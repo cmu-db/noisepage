@@ -12,7 +12,7 @@ namespace terrier {
 
 namespace binder {
 class BindNodeVisitor;
-} // namespace binder
+}  // namespace binder
 
 namespace parser {
 
@@ -421,7 +421,6 @@ class SelectStatement : public SQLStatement {
    * @param j json to deserialize
    */
   void FromJson(const nlohmann::json &j) override;
-
 
  private:
   friend class binder::BindNodeVisitor;
