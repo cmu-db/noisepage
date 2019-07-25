@@ -9,6 +9,11 @@
 #include "parser/table_ref.h"
 
 namespace terrier {
+
+namespace binder {
+class BindNodeVisitor;
+} // namespace binder
+
 namespace parser {
 
 enum OrderType { kOrderAsc, kOrderDesc };
@@ -454,15 +459,28 @@ class SelectStatement : public SQLStatement {
   /** @param j json to deserialize */
   std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
+
  private:
-  std::vector<common::ManagedPointer<AbstractExpression>> select_;
+  friend class binder::BindNodeVisitor;
+  std::vector<std::shared_ptr<AbstractExpression>> select_;
   bool select_distinct_;
-  std::unique_ptr<TableRef> from_;
-  common::ManagedPointer<AbstractExpression> where_;
-  std::unique_ptr<GroupByDescription> group_by_;
-  std::unique_ptr<OrderByDescription> order_by_;
-  std::unique_ptr<LimitDescription> limit_;
-  std::unique_ptr<SelectStatement> union_select_;
+  std::shared_ptr<TableRef> from_;
+  std::shared_ptr<AbstractExpression> where_;
+  std::shared_ptr<GroupByDescription> group_by_;
+  std::shared_ptr<OrderByDescription> order_by_;
+  std::shared_ptr<LimitDescription> limit_;
+  std::shared_ptr<SelectStatement> union_select_;
+  int depth_ = -1;
+
+  /**
+   * @param select List of select columns
+   */
+  void SetSelectColumns(std::vector<std::shared_ptr<AbstractExpression>> select) { select_ = std::move(select); }
+
+  /**
+   * @param depth Depth of the select statement
+   */
+  void SetDepth(int depth) { depth_ = depth; }
 };
 
 DEFINE_JSON_DECLARATIONS(SelectStatement);

@@ -9,7 +9,7 @@
 namespace terrier {
 
 namespace parser {
-struct TableRef;
+class TableRef;
 }
 
 namespace transaction {
@@ -38,7 +38,7 @@ class BinderContext {
    * @brief Update the table alias map given a table reference (in the from
    * clause)
    */
-  void AddRegularTable(transaction::TransactionContext *txn, parser::TableRef *table_ref, const std::string default_database_name);
+  void AddRegularTable(transaction::TransactionContext *txn, std::shared_ptr<parser::TableRef> table_ref, const std::string default_database_name);
 
   /**
    * @brief Update the table alias map given a table reference (in the from
@@ -49,7 +49,7 @@ class BinderContext {
   /**
    * @brief Update the nested table alias map
    */
-  void AddNestedTable(const std::string table_alias, std::vector<std::unique_ptr<parser::AbstractExpression>> &select_list);
+  void AddNestedTable(const std::string &table_alias, const std::vector<std::shared_ptr<parser::AbstractExpression>> &select_list);
 
   /**
    * @brief Check if the current context has any table
@@ -126,8 +126,7 @@ class BinderContext {
 
   int inline GetDepth() { return depth_; }
 
-  void GenerateAllColumnExpressions(
-      std::vector<std::unique_ptr<parser::AbstractExpression>> &exprs);
+  void GenerateAllColumnExpressions(const std::vector<std::shared_ptr<parser::AbstractExpression>> &exprs);
 
  private:
   /** @brief Map table alias to table obj */

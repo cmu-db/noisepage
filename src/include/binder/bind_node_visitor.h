@@ -8,15 +8,15 @@
 
 namespace terrier {
 
-namespace expression {
+namespace parser {
 class CaseExpression;
 class ConstantValueExpression;
-class TupleValueExpression;
+class ColumnValueExpression;
 class SubqueryExpression;
 class StarExpression;
 class OperatorExpression;
 class AggregateExpression;
-}  // namespace expression
+}  // namespace parser
 
 namespace parser {
 class SQLStatement;
@@ -61,7 +61,7 @@ class BindNodeVisitor : public SqlNodeVisitor {
   void Visit(parser::SubqueryExpression *expr) override;
 
   // void Visit(parser::ConstantValueExpression *expr) override;
-  void Visit(parser::TupleValueExpression *expr) override;
+  void Visit(parser::ColumnValueExpression *expr) override;
   void Visit(parser::StarExpression *expr) override;
   void Visit(parser::FunctionExpression *expr) override;
 

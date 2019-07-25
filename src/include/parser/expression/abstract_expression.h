@@ -12,6 +12,10 @@
 #include "type/transient_value.h"
 #include "type/type_id.h"
 
+namespace terrier::binder {
+class BindNodeVisitor;
+} // namespace terrier::binder
+
 namespace terrier::parser {
 /**
  * AbstractExpression is the base class of any expression which is output from the parser.
@@ -233,7 +237,11 @@ class AbstractExpression {
   virtual std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j);
 
  private:
-  /** Type of the current expression */
+  friend class binder::BindNodeVisitor;
+
+  /**
+   * Type of the current expression
+   */
   ExpressionType expression_type_;
   /** MUTABLE Name of the current expression */
   std::string expression_name_;
