@@ -51,7 +51,7 @@ table_oid_t CatalogAccessor::CreateTable(namespace_oid_t ns, std::string name, c
 }
 
 bool CatalogAccessor::RenameTable(table_oid_t table, std::string new_table_name) {
-  NormalizeObjectName(new_table_name);
+  NormalizeObjectName(&new_table_name);
   return dbc_->RenameTable(txn_, table, new_table_name);
 }
 
