@@ -213,19 +213,17 @@ class ColumnValueExpression : public AbstractExpression {
   /**
    * OID of the database
    */
-  catalog::db_oid_t database_oid_ = catalog::db_oid_t(0);
+  catalog::db_oid_t database_oid_ = catalog::INVALID_DATABASE_OID;
 
   /**
    * OID of the table
    */
-  catalog::table_oid_t table_oid_ = catalog::table_oid_t(0);
+  catalog::table_oid_t table_oid_ = catalog::INVALID_TABLE_OID;
 
   /**
    * OID of the column
    */
-  catalog::col_oid_t column_oid_ = catalog::col_oid_t(0);
-
-  friend class binder::BinderContext;
+  catalog::col_oid_t column_oid_ = catalog::INVALID_COLUMN_OID;
 };
 
 DEFINE_JSON_DECLARATIONS(ColumnValueExpression);
