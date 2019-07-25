@@ -365,7 +365,7 @@ TEST_F(CatalogTests, NameNormalizationTest) {
   EXPECT_EQ(ns_oid, accessor->GetNamespaceOid("TEST_NAMESPACE"));  // Should succeed
   auto dbc = catalog_->GetDatabaseCatalog(txn, db_);
   EXPECT_EQ(ns_oid, dbc->GetNamespaceOid(txn, "test_namespace")); // Should match (normalized form)
-  EXPECT_NE(catalog::INVALID_NAMESPACE_OID, dbc->GetNamespaceOid(txn, "TeSt_NaMeSpAcE")); // Not normalized
+  EXPECT_EQ(catalog::INVALID_NAMESPACE_OID, dbc->GetNamespaceOid(txn, "TeSt_NaMeSpAcE")); // Not normalized
   txn_manager_->Abort(txn);
   delete accessor;
 }
