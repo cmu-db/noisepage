@@ -44,7 +44,7 @@ class HashIndex final : public Index {
 
     auto key_found_fn = [location, &insert_result](ValueType &value) -> bool {
       if (std::holds_alternative<TupleSlot>(value)) {
-        // replace it with a cuckoohash_map
+        // replace it with a ValueMap
         const auto existing_location = std::get<TupleSlot>(value);
         value = ValueMap({{location}, {existing_location}}, 2);
         insert_result = true;
@@ -56,7 +56,7 @@ class HashIndex final : public Index {
       return false;
     };
 
-    const bool UNUSED_ATTRIBUTE uprase_result = hash_map_->uprase_fn(index_key, key_found_fn, ValueType(location));
+    const bool UNUSED_ATTRIBUTE uprase_result = hash_map_->uprase_fn(index_key, key_found_fn, location);
 
     TERRIER_ASSERT(insert_result != uprase_result,
                    "Either a new key was inserted (uprase_result), or the value already existed and a new value was "
@@ -135,7 +135,7 @@ class HashIndex final : public Index {
       return false;
     };
 
-    const bool UNUSED_ATTRIBUTE uprase_result = hash_map_->uprase_fn(index_key, key_found_fn, ValueType(location));
+    const bool UNUSED_ATTRIBUTE uprase_result = hash_map_->uprase_fn(index_key, key_found_fn, location);
 
     TERRIER_ASSERT(predicate_satisfied || (insert_result != uprase_result),
                    "Either a new key was inserted (uprase_result), or the value already existed and a new value was "
@@ -224,11 +224,10 @@ class HashIndex final : public Index {
 
     auto key_found_fn = [value_list, &txn](const ValueType &value) -> void {
       if (std::holds_alternative<TupleSlot>(value)) {
-        // replace it with a cuckoohash_map
         const auto existing_location = std::get<TupleSlot>(value);
         if (IsVisible(txn, existing_location)) value_list->emplace_back(existing_location);
       } else {
-        auto &value_map = std::get<ValueMap>(value);
+        const auto &value_map = std::get<ValueMap>(value);
 
         for (const auto i : value_map) {
           if (IsVisible(txn, i)) value_list->emplace_back(i);
