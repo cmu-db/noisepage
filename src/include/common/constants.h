@@ -34,7 +34,7 @@ struct Constants {
   /**
    * The width of the size of the payload that checksum covers
    */
-  static const uint32_t LOG_BUFFER_PAYLOAD_SIZE_WIDTH = sizeof(uint16_t);
+  static const uint32_t LOG_BUFFER_PAYLOAD_SIZE_WIDTH = sizeof(uint32_t);
   /**
    * The width of the buffer information
    */
@@ -44,5 +44,9 @@ struct Constants {
    */
   static const uint32_t LOG_BUFFER_PAYLOAD_SIZE = LOG_BUFFER_SIZE
       - LOG_BUFFER_SUM_WIDTH - LOG_BUFFER_PAYLOAD_SIZE_WIDTH - LOG_BUFFER_INFO_WIDTH;
+  /**
+   * The size of header - everythine except the payload
+   */
+  static const uint32_t LOG_BUFFER_HEADER_SIZE = LOG_BUFFER_SIZE - LOG_BUFFER_PAYLOAD_SIZE;
 };
 }  // namespace terrier::common

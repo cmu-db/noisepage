@@ -106,10 +106,10 @@ class BufferedLogWriter {
     // If we still do not have buffer space after flush, the write is too large to be buffered. We partially write the
     // buffer and return the number of bytes written
     if (!CanBuffer(size)) {
-      size = common::Constants::LOG_BUFFER_SIZE - buffer_size_;
+      size = common::Constants::LOG_BUFFER_PAYLOAD_SIZE - payload_size_;
     }
-    std::memcpy(buffer_ + buffer_size_, data, size);
-    buffer_size_ += size;
+    std::memcpy(buffer_.payload_ + payload_size_, data, size);
+    payload_size_ += size;
     return size;
   }
 
@@ -125,24 +125,39 @@ class BufferedLogWriter {
    * @return amount of data flushed
    */
   uint64_t FlushBuffer() {
-    auto size = buffer_size_;
-    WriteUnsynced(buffer_, buffer_size_);
-    buffer_size_ = 0;
+    auto size = payload_size_;
+    auto sum = common::HashUtil::HashBytes(buffer_.payload_, size);
+
+    // integers are stored little-endian on disk
+    auto le_size = htole32(size);
+    auto le_sum = htole64(sum);
+
+    std::memcpy(buffer_.size_, &le_size, common::Constants::LOG_BUFFER_PAYLOAD_SIZE_WIDTH);
+    std::memcpy(buffer_.sum_, &le_sum, common::Constants::LOG_BUFFER_SUM_WIDTH);
+    std::memset(buffer_.info_, 0, common::Constants::LOG_BUFFER_INFO_WIDTH);
+
+    WriteUnsynced(&buffer_, payload_size_ + common::Constants::LOG_BUFFER_HEADER_SIZE);
+    payload_size_ = 0;
     return size;
   }
 
   /**
    * @return if the buffer is full
    */
-  bool IsBufferFull() { return buffer_size_ == common::Constants::LOG_BUFFER_SIZE; }
+  bool IsBufferFull() { return payload_size_ == common::Constants::LOG_BUFFER_PAYLOAD_SIZE; }
 
  private:
   int out_;  // fd of the output files
-  char buffer_[common::Constants::LOG_BUFFER_SIZE];
+  struct {
+    byte sum_[common::Constants::LOG_BUFFER_SUM_WIDTH];
+    byte size_[common::Constants::LOG_BUFFER_PAYLOAD_SIZE_WIDTH];
+    byte info_[common::Constants::LOG_BUFFER_INFO_WIDTH];
+    byte payload_[common::Constants::LOG_BUFFER_PAYLOAD_SIZE];
+  } buffer_;
 
-  uint32_t buffer_size_ = 0;
+  uint32_t payload_size_ = 0;
 
-  bool CanBuffer(uint32_t size) { return common::Constants::LOG_BUFFER_SIZE - buffer_size_ >= size; }
+  bool CanBuffer(uint32_t size) { return common::Constants::LOG_BUFFER_PAYLOAD_SIZE - payload_size_ >= size; }
 
   void WriteUnsynced(const void *data, uint32_t size) { PosixIoWrappers::WriteFully(out_, data, size); }
 };
