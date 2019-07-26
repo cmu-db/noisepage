@@ -59,7 +59,7 @@ class BwTreeIndex final : public Index {
     bool predicate_satisfied = false;
 
     // The predicate checks if any matching keys have write-write conflicts or are still visible to the calling txn.
-    auto predicate = [&](const TupleSlot slot) -> bool {
+    auto predicate = [txn](const TupleSlot slot) -> bool {
       const auto *const data_table = slot.GetBlock()->data_table_;
       return data_table->HasConflict(*txn, slot) || data_table->IsVisible(*txn, slot);
     };

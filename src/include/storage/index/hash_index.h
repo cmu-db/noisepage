@@ -2,6 +2,7 @@
 
 #include <functional>
 #include <utility>
+#include <variant>
 #include <vector>
 #include "libcuckoo/cuckoohash_map.hh"
 #include "storage/index/index.h"
@@ -19,11 +20,13 @@ class HashIndex final : public Index {
   friend class IndexBuilder;
 
  private:
-  HashIndex(const catalog::index_oid_t oid, const ConstraintType constraint_type, IndexMetadata metadata)
-      : Index(constraint_type, std::move(metadata)),
-        hash_map_{new cuckoohash_map<KeyType, cuckoohash_map<TupleSlot, TupleSlot>>(256)} {}
+  using ValueMap = cuckoohash_map<TupleSlot, TupleSlot>;
+  using ValueType = std::variant<TupleSlot, ValueMap>;
 
-  cuckoohash_map<KeyType, cuckoohash_map<TupleSlot, TupleSlot>> *const hash_map_;
+  HashIndex(const catalog::index_oid_t oid, const ConstraintType constraint_type, IndexMetadata metadata)
+      : Index(constraint_type, std::move(metadata)), hash_map_{new cuckoohash_map<KeyType, ValueType>(256)} {}
+
+  cuckoohash_map<KeyType, ValueType> *const hash_map_;
 
  public:
   ~HashIndex() final { delete hash_map_; }
@@ -36,28 +39,51 @@ class HashIndex final : public Index {
     KeyType index_key;
     index_key.SetFromProjectedRow(tuple, metadata_);
 
-    bool UNUSED_ATTRIBUTE upsert_result = false;
+    bool UNUSED_ATTRIBUTE insert_result = false;
 
-    auto upsert_fn = [location, &upsert_result](cuckoohash_map<TupleSlot, TupleSlot> &value_map) -> bool {
-      upsert_result = value_map.upsert(
-          location, [](const TupleSlot &) -> void {}, location);
+    auto key_found_fn = [location, &insert_result](ValueType &value) -> bool {
+      if (std::holds_alternative<TupleSlot>(value)) {
+        // replace it with a cuckoohash_map
+        const auto existing_location = std::get<TupleSlot>(value);
+        value = ValueMap({{location, location}, {existing_location, existing_location}}, 2);
+        insert_result = true;
+      } else {
+        // insert the location to the cuckoohash_map
+        auto &value_map = std::get<ValueMap>(value);
+        insert_result = value_map.insert(location, location);
+      }
       return false;
     };
-    bool UNUSED_ATTRIBUTE uprase_result =
-        hash_map_->uprase_fn(index_key, upsert_fn, cuckoohash_map<TupleSlot, TupleSlot>({{location, location}}, 1));
 
-    TERRIER_ASSERT(upsert_result != uprase_result,
-                   "Either a new key was inserted (uprase), or the value_map already existed and a new value was "
-                   "inserted (upsert).");
+    const bool UNUSED_ATTRIBUTE uprase_result = hash_map_->uprase_fn(index_key, key_found_fn, ValueType(location));
+
+    TERRIER_ASSERT(insert_result != uprase_result,
+                   "Either a new key was inserted (uprase_result), or the value already existed and a new value was "
+                   "inserted (insert_result).");
 
     // Register an abort action with the txn context in case of rollback
     txn->RegisterAbortAction([=]() {
-      const bool UNUSED_ATTRIBUTE update_result =
-          hash_map_->update_fn(index_key, [location](cuckoohash_map<TupleSlot, TupleSlot> &value_map) {
+      auto abort_key_found_fn = [location](ValueType &value) -> bool {
+        if (std::holds_alternative<TupleSlot>(value)) {
+          // It's just a TupleSlot, functor should return true for uprase to erase it
+          return true;
+        } else {
+          auto &value_map = std::get<ValueMap>(value);
+          if (value_map.size() == 1) {
+            // ValueMap only has 1 element, functor should return true for uprase to erase it
+            TERRIER_ASSERT(value_map.contains(location), "location must be the only value in the ValueMap.");
+            return true;
+          } else {
+            // ValueMap contains multiple elements, erase the element for location
             const bool UNUSED_ATTRIBUTE erase_result = value_map.erase(location);
-            TERRIER_ASSERT(erase_result, "Erase on the index failed.");
-          });
-      TERRIER_ASSERT(update_result, "Update on the index failed.");
+            TERRIER_ASSERT(erase_result, "Erasing from the ValueMap should not fail.");
+            return false;
+          }
+        }
+      };
+
+      const bool UNUSED_ATTRIBUTE uprase_result = hash_map_->uprase_fn(index_key, abort_key_found_fn);
+      TERRIER_ASSERT(!uprase_result, "This operation should NOT insert a new key into the cuckoohash_map.");
     });
 
     return true;
@@ -70,49 +96,78 @@ class HashIndex final : public Index {
     KeyType index_key;
     index_key.SetFromProjectedRow(tuple, metadata_);
     bool predicate_satisfied = false;
-    bool insert_result = false;
 
     // The predicate checks if any matching keys have write-write conflicts or are still visible to the calling txn.
-    auto predicate = [&](const TupleSlot slot) -> bool {
+    auto predicate = [txn](const TupleSlot slot) -> bool {
       const auto *const data_table = slot.GetBlock()->data_table_;
       const auto has_conflict = data_table->HasConflict(*txn, slot);
       const auto is_visible = data_table->IsVisible(*txn, slot);
       return has_conflict || is_visible;
     };
 
-    auto insert_fn = [location, &predicate_satisfied, &insert_result,
-                      predicate](cuckoohash_map<TupleSlot, TupleSlot> &value_map) -> bool {
-      auto locked_value_map = value_map.lock_table();
+    bool UNUSED_ATTRIBUTE insert_result = false;
 
-      for (const auto i : locked_value_map) {
-        predicate_satisfied = predicate_satisfied || predicate(i.first);
+    auto key_found_fn = [location, &insert_result, &predicate_satisfied, predicate](ValueType &value) -> bool {
+      if (std::holds_alternative<TupleSlot>(value)) {
+        const auto existing_location = std::get<TupleSlot>(value);
+        predicate_satisfied = predicate(existing_location);
+        if (!predicate_satisfied) {
+          // existing location is not visible, replace with a ValueMap
+          value = ValueMap({{location, location}, {existing_location, existing_location}}, 2);
+          insert_result = true;
+        }
+      } else {
+        auto &value_map = std::get<ValueMap>(value);
+        auto locked_value_map = value_map.lock_table();
+
+        for (const auto i : locked_value_map) {
+          predicate_satisfied = predicate_satisfied || predicate(i.first);
+        }
+
+        if (!predicate_satisfied) {
+          // insert the location to the cuckoohash_map
+          insert_result = locked_value_map.insert(location, location).second;
+          TERRIER_ASSERT(insert_result,
+                         " index shouldn't fail to insert after predicate check. If it did, something went wrong deep "
+                         "inside the hash map itself.");
+        }
+
+        locked_value_map.unlock();
       }
-
-      if (!predicate_satisfied) {
-        insert_result = locked_value_map.insert(location, location).second;
-        TERRIER_ASSERT(insert_result,
-                       " index shouldn't fail to insert after predicate check. If it did, something went wrong deep "
-                       "inside the hash map itself.");
-      }
-
-      locked_value_map.unlock();
       return false;
     };
 
-    const bool UNUSED_ATTRIBUTE uprase_result =
-        hash_map_->uprase_fn(index_key, insert_fn, cuckoohash_map<TupleSlot, TupleSlot>({{location, location}}, 1));
+    const bool UNUSED_ATTRIBUTE uprase_result = hash_map_->uprase_fn(index_key, key_found_fn, ValueType(location));
+
+    TERRIER_ASSERT(predicate_satisfied || (insert_result != uprase_result),
+                   "Either a new key was inserted (uprase_result), or the value already existed and a new value was "
+                   "inserted (insert_result).");
 
     const bool UNUSED_ATTRIBUTE overall_result = insert_result || uprase_result;
 
     if (overall_result) {
-      // Register an abort action with the txn context in case of rollback
       txn->RegisterAbortAction([=]() {
-        const bool UNUSED_ATTRIBUTE update_result =
-            hash_map_->update_fn(index_key, [location](cuckoohash_map<TupleSlot, TupleSlot> &value_map) {
+        auto abort_key_found_fn = [location](ValueType &value) -> bool {
+          if (std::holds_alternative<TupleSlot>(value)) {
+            // It's just a TupleSlot, functor should return true for uprase to erase it
+            return true;
+          } else {
+            auto &value_map = std::get<ValueMap>(value);
+            if (value_map.size() == 1) {
+              // ValueMap only has 1 element, functor should return true for uprase to erase it
+              TERRIER_ASSERT(value_map.contains(location), "location must be the only value in the ValueMap.");
+              return true;
+            } else {
+              // ValueMap contains multiple elements, erase the element for location
               const bool UNUSED_ATTRIBUTE erase_result = value_map.erase(location);
-              TERRIER_ASSERT(erase_result, "Erase on the index failed.");
-            });
-        TERRIER_ASSERT(update_result, "Update on the index failed.");
+              TERRIER_ASSERT(erase_result, "Erasing from the ValueMap should not fail.");
+              return false;
+            }
+          }
+        };
+
+        const bool UNUSED_ATTRIBUTE uprase_result = hash_map_->uprase_fn(index_key, abort_key_found_fn);
+        TERRIER_ASSERT(!uprase_result, "This operation should NOT insert a new key into the cuckoohash_map.");
       });
     } else {
       // Presumably you've already made modifications to a DataTable (the source of the TupleSlot argument to this
@@ -136,12 +191,27 @@ class HashIndex final : public Index {
     auto *const txn_manager = txn->GetTransactionManager();
     txn->RegisterCommitAction([=]() {
       txn_manager->DeferAction([=]() {
-        const bool UNUSED_ATTRIBUTE update_result =
-            hash_map_->update_fn(index_key, [location](cuckoohash_map<TupleSlot, TupleSlot> &value_map) {
+        auto abort_key_found_fn = [location](ValueType &value) -> bool {
+          if (std::holds_alternative<TupleSlot>(value)) {
+            // It's just a TupleSlot, functor should return true for uprase to erase it
+            return true;
+          } else {
+            auto &value_map = std::get<ValueMap>(value);
+            if (value_map.size() == 1) {
+              // ValueMap only has 1 element, functor should return true for uprase to erase it
+              TERRIER_ASSERT(value_map.contains(location), "location must be the only value in the ValueMap.");
+              return true;
+            } else {
+              // ValueMap contains multiple elements, erase the element for location
               const bool UNUSED_ATTRIBUTE erase_result = value_map.erase(location);
-              TERRIER_ASSERT(erase_result, "Erase on the index failed.");
-            });
-        TERRIER_ASSERT(update_result, "Update on the index failed.");
+              TERRIER_ASSERT(erase_result, "Erasing from the ValueMap should not fail.");
+              return false;
+            }
+          }
+        };
+
+        const bool UNUSED_ATTRIBUTE uprase_result = hash_map_->uprase_fn(index_key, abort_key_found_fn);
+        TERRIER_ASSERT(!uprase_result, "This operation should NOT insert a new key into the cuckoohash_map.");
       });
     });
   }
@@ -154,15 +224,24 @@ class HashIndex final : public Index {
     KeyType index_key;
     index_key.SetFromProjectedRow(key, metadata_);
 
-    const bool UNUSED_ATTRIBUTE find_result =
-        hash_map_->update_fn(index_key, [value_list, &txn](cuckoohash_map<TupleSlot, TupleSlot> &value_map) -> void {
-          auto locked_value_map = value_map.lock_table();
-          for (auto i = locked_value_map.cbegin(); i != locked_value_map.cend(); i++) {
-            // Perform visibility check on result
-            if (IsVisible(txn, i->first)) value_list->emplace_back(i->first);
-          }
-          locked_value_map.unlock();
-        });
+    auto key_found_fn = [value_list, &txn](ValueType &value) -> void {
+      if (std::holds_alternative<TupleSlot>(value)) {
+        // replace it with a cuckoohash_map
+        const auto existing_location = std::get<TupleSlot>(value);
+        if (IsVisible(txn, existing_location)) value_list->emplace_back(existing_location);
+      } else {
+        auto &value_map = std::get<ValueMap>(value);
+        auto locked_value_map = value_map.lock_table();
+
+        for (const auto i : locked_value_map) {
+          if (IsVisible(txn, i.first)) value_list->emplace_back(i.first);
+        }
+
+        locked_value_map.unlock();
+      }
+    };
+
+    const bool UNUSED_ATTRIBUTE find_result = hash_map_->update_fn(index_key, key_found_fn);
 
     TERRIER_ASSERT(GetConstraintType() == ConstraintType::DEFAULT ||
                        (GetConstraintType() == ConstraintType::UNIQUE && value_list->size() <= 1),
