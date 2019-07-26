@@ -164,7 +164,6 @@ void BinderContext::GenerateAllColumnExpressions(std::vector<std::shared_ptr<par
     auto col_cnt = schema.GetColumns().size();
     for (uint32_t i = 0; i < col_cnt; i++) {
       auto col_obj = schema.GetColumn(i);
-      // TODO(Ling): change use of shared_ptr
       auto tv_expr =
           std::make_shared<parser::ColumnValueExpression>(std::string(entry.first), std::string(col_obj.Name()));
       tv_expr->SetReturnValueType(col_obj.Type());
