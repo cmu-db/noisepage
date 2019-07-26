@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <unordered_set>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -20,7 +21,7 @@ class HashIndex final : public Index {
   friend class IndexBuilder;
 
  private:
-  using ValueMap = cuckoohash_map<TupleSlot, TupleSlot>;
+  using ValueMap = std::unordered_set<TupleSlot>;
   using ValueType = std::variant<TupleSlot, ValueMap>;
 
   HashIndex(const catalog::index_oid_t oid, const ConstraintType constraint_type, IndexMetadata metadata)
@@ -45,12 +46,12 @@ class HashIndex final : public Index {
       if (std::holds_alternative<TupleSlot>(value)) {
         // replace it with a cuckoohash_map
         const auto existing_location = std::get<TupleSlot>(value);
-        value = ValueMap({{location, location}, {existing_location, existing_location}}, 2);
+        value = ValueMap({{location}, {existing_location}}, 2);
         insert_result = true;
       } else {
         // insert the location to the cuckoohash_map
         auto &value_map = std::get<ValueMap>(value);
-        insert_result = value_map.insert(location, location);
+        insert_result = value_map.emplace(location).second;
       }
       return false;
     };
@@ -71,7 +72,7 @@ class HashIndex final : public Index {
           auto &value_map = std::get<ValueMap>(value);
           if (value_map.size() == 1) {
             // ValueMap only has 1 element, functor should return true for uprase to erase it
-            TERRIER_ASSERT(value_map.contains(location), "location must be the only value in the ValueMap.");
+            TERRIER_ASSERT(value_map.count(location) == 1, "location must be the only value in the ValueMap.");
             return true;
           } else {
             // ValueMap contains multiple elements, erase the element for location
@@ -113,26 +114,23 @@ class HashIndex final : public Index {
         predicate_satisfied = predicate(existing_location);
         if (!predicate_satisfied) {
           // existing location is not visible, replace with a ValueMap
-          value = ValueMap({{location, location}, {existing_location, existing_location}}, 2);
+          value = ValueMap({{location}, {existing_location}}, 2);
           insert_result = true;
         }
       } else {
         auto &value_map = std::get<ValueMap>(value);
-        auto locked_value_map = value_map.lock_table();
 
-        for (const auto i : locked_value_map) {
-          predicate_satisfied = predicate_satisfied || predicate(i.first);
+        for (const auto i : value_map) {
+          predicate_satisfied = predicate_satisfied || predicate(i);
         }
 
         if (!predicate_satisfied) {
           // insert the location to the cuckoohash_map
-          insert_result = locked_value_map.insert(location, location).second;
+          insert_result = value_map.emplace(location).second;
           TERRIER_ASSERT(insert_result,
                          " index shouldn't fail to insert after predicate check. If it did, something went wrong deep "
                          "inside the hash map itself.");
         }
-
-        locked_value_map.unlock();
       }
       return false;
     };
@@ -155,7 +153,7 @@ class HashIndex final : public Index {
             auto &value_map = std::get<ValueMap>(value);
             if (value_map.size() == 1) {
               // ValueMap only has 1 element, functor should return true for uprase to erase it
-              TERRIER_ASSERT(value_map.contains(location), "location must be the only value in the ValueMap.");
+              TERRIER_ASSERT(value_map.count(location) == 1, "location must be the only value in the ValueMap.");
               return true;
             } else {
               // ValueMap contains multiple elements, erase the element for location
@@ -199,7 +197,7 @@ class HashIndex final : public Index {
             auto &value_map = std::get<ValueMap>(value);
             if (value_map.size() == 1) {
               // ValueMap only has 1 element, functor should return true for uprase to erase it
-              TERRIER_ASSERT(value_map.contains(location), "location must be the only value in the ValueMap.");
+              TERRIER_ASSERT(value_map.count(location) == 1, "location must be the only value in the ValueMap.");
               return true;
             } else {
               // ValueMap contains multiple elements, erase the element for location
@@ -224,24 +222,21 @@ class HashIndex final : public Index {
     KeyType index_key;
     index_key.SetFromProjectedRow(key, metadata_);
 
-    auto key_found_fn = [value_list, &txn](ValueType &value) -> void {
+    auto key_found_fn = [value_list, &txn](const ValueType &value) -> void {
       if (std::holds_alternative<TupleSlot>(value)) {
         // replace it with a cuckoohash_map
         const auto existing_location = std::get<TupleSlot>(value);
         if (IsVisible(txn, existing_location)) value_list->emplace_back(existing_location);
       } else {
         auto &value_map = std::get<ValueMap>(value);
-        auto locked_value_map = value_map.lock_table();
 
-        for (const auto i : locked_value_map) {
-          if (IsVisible(txn, i.first)) value_list->emplace_back(i.first);
+        for (const auto i : value_map) {
+          if (IsVisible(txn, i)) value_list->emplace_back(i);
         }
-
-        locked_value_map.unlock();
       }
     };
 
-    const bool UNUSED_ATTRIBUTE find_result = hash_map_->update_fn(index_key, key_found_fn);
+    const bool UNUSED_ATTRIBUTE find_result = hash_map_->find_fn(index_key, key_found_fn);
 
     TERRIER_ASSERT(GetConstraintType() == ConstraintType::DEFAULT ||
                        (GetConstraintType() == ConstraintType::UNIQUE && value_list->size() <= 1),
