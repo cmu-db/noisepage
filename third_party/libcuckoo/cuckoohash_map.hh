@@ -27,6 +27,8 @@
 #include "cuckoohash_util.hh"
 #include "libcuckoo_bucket_container.hh"
 
+#include <tbb/spin_mutex.h>
+
 /**
  * A concurrent hash table
  *
@@ -823,12 +825,12 @@ private:
   LIBCUCKOO_SQUELCH_PADDING_WARNING
   class LIBCUCKOO_ALIGNAS(64) spinlock {
   public:
-    spinlock() : elem_counter_(0), is_migrated_(true) { lock_.clear(); }
+    spinlock() : elem_counter_(0), is_migrated_(true) { lock_.unlock(); }
 
     spinlock(const spinlock &other)
         : elem_counter_(other.elem_counter()),
           is_migrated_(other.is_migrated()) {
-      lock_.clear();
+      lock_.unlock();
     }
 
     spinlock &operator=(const spinlock &other) {
@@ -838,14 +840,13 @@ private:
     }
 
     void lock() noexcept {
-      while (lock_.test_and_set(std::memory_order_acq_rel))
-        ;
+      lock_.lock();
     }
 
-    void unlock() noexcept { lock_.clear(std::memory_order_release); }
+    void unlock() noexcept { lock_.unlock(); }
 
     bool try_lock() noexcept {
-      return !lock_.test_and_set(std::memory_order_acq_rel);
+      return lock_.try_lock();
     }
 
     counter_type &elem_counter() noexcept { return elem_counter_; }
@@ -855,7 +856,7 @@ private:
     bool is_migrated() const noexcept { return is_migrated_; }
 
   private:
-    std::atomic_flag lock_;
+    tbb::spin_mutex lock_;
     counter_type elem_counter_;
     bool is_migrated_;
   };
@@ -1906,7 +1907,7 @@ private:
     // array. Then the old buckets will be deleted when new_map is deleted.
     maybe_resize_locks(new_map.bucket_count());
     buckets_.swap(new_map.buckets_);
-    
+
     return ok;
   }
 
