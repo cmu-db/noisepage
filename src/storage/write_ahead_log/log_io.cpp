@@ -1,5 +1,7 @@
 #include "storage/write_ahead_log/log_io.h"
 #include <algorithm>
+#include <storage/write_ahead_log/log_io.h>
+
 namespace terrier::storage {
 void PosixIoWrappers::Close(int fd) {
   while (true) {
@@ -60,11 +62,21 @@ void BufferedLogReader::RefillBuffer() {
   TERRIER_ASSERT(read_head_ == filled_size_, "Refilling a buffer that is not fully read results in loss of data");
   if (in_ == -1) throw std::runtime_error("No more bytes left in the log file");
   read_head_ = 0;
-  filled_size_ = PosixIoWrappers::ReadFully(in_, buffer_, common::Constants::LOG_BUFFER_SIZE);
-  if (filled_size_ < common::Constants::LOG_BUFFER_SIZE) {
+  PosixIoWrappers::ReadFully(in_, &buffer_, common::Constants::LOG_BUFFER_HEADER_SIZE);
+  uint32_t payload_size;
+  std::memcpy(&payload_size, buffer_.size_, common::Constants::LOG_BUFFER_PAYLOAD_SIZE_WIDTH);
+  payload_size = le32toh(payload_size);
+  filled_size_ = PosixIoWrappers::ReadFully(in_, buffer_.payload_, filled_size_);
+  if (filled_size_ < payload_size) {
     // TODO(Tianyu): Is it better to make this an explicit close?
     PosixIoWrappers::Close(in_);
     in_ = -1;
+  }
+  common::hash_t sum;
+  std::memcpy(&sum, buffer_.sum_, common::Constants::LOG_BUFFER_SUM_WIDTH);
+  sum = le64toh(sum);
+  if (sum != common::HashUtil::HashBytes(buffer_.payload_, payload_size)) {
+    throw std::runtime_error("Checksum failed");
   }
 }
 

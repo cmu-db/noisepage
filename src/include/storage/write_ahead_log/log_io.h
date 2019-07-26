@@ -148,14 +148,13 @@ class BufferedLogWriter {
 
  private:
   int out_;  // fd of the output files
+  uint32_t payload_size_ = 0;
   struct {
     byte sum_[common::Constants::LOG_BUFFER_SUM_WIDTH];
     byte size_[common::Constants::LOG_BUFFER_PAYLOAD_SIZE_WIDTH];
     byte info_[common::Constants::LOG_BUFFER_INFO_WIDTH];
     byte payload_[common::Constants::LOG_BUFFER_PAYLOAD_SIZE];
   } buffer_;
-
-  uint32_t payload_size_ = 0;
 
   bool CanBuffer(uint32_t size) { return common::Constants::LOG_BUFFER_PAYLOAD_SIZE - payload_size_ >= size; }
 
@@ -207,11 +206,16 @@ class BufferedLogReader {
  private:
   int in_;  // or -1 if closed
   uint32_t read_head_ = 0, filled_size_ = 0;
-  char buffer_[common::Constants::LOG_BUFFER_SIZE];
+  struct {
+    byte sum_[common::Constants::LOG_BUFFER_SUM_WIDTH];
+    byte size_[common::Constants::LOG_BUFFER_PAYLOAD_SIZE_WIDTH];
+    byte info_[common::Constants::LOG_BUFFER_INFO_WIDTH];
+    byte payload_[common::Constants::LOG_BUFFER_PAYLOAD_SIZE];
+  } buffer_;
 
   void ReadFromBuffer(void *dest, uint32_t size) {
     TERRIER_ASSERT(read_head_ + size <= filled_size_, "Not enough bytes in buffer for the read");
-    std::memcpy(dest, buffer_ + read_head_, size);
+    std::memcpy(dest, buffer_.payload_ + read_head_, size);
     read_head_ += size;
   }
 
