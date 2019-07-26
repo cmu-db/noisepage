@@ -3,6 +3,7 @@
 #include "catalog/catalog_defs.h"
 #include "common/hash_util.h"
 #include "common/macros.h"
+#include "common/managed_pointer.h"
 
 #include "optimizer/statistics/column_stats.h"
 #include "optimizer/statistics/table_stats.h"
@@ -18,8 +19,7 @@ namespace terrier::optimizer {
 class StatsStorageKey {
  public:
   StatsStorageKey(catalog::db_oid_t database_id, catalog::table_oid_t table_id)
-      : database_id_(database_id),
-        table_id_(table_id) {}
+      : database_id_(database_id), table_id_(table_id) {}
 
   /**
    * Defined hash function for StatsStorageKey object.
@@ -54,7 +54,7 @@ class StatsStorageKey {
    */
   catalog::table_oid_t table_id_;
 };
-}
+}  // namespace terrier::optimizer
 
 namespace std {
 /**
@@ -67,8 +67,9 @@ struct hash<terrier::optimizer::StatsStorageKey> {
    * @param stats_storage_key - StatsStorageKey object
    * @return the hash for the StatsStorageKey
    */
-  size_t operator()(const terrier::optimizer::StatsStorageKey &stats_storage_key) const
-  { return stats_storage_key.Hash(); }
+  size_t operator()(const terrier::optimizer::StatsStorageKey &stats_storage_key) const {
+    return stats_storage_key.Hash();
+  }
 };
 
 /**
@@ -81,7 +82,7 @@ struct equal_to<terrier::optimizer::StatsStorageKey> {
     return lhs.GetDatabaseID() == rhs.GetDatabaseID() && lhs.GetTableID() == rhs.GetTableID();
   }
 };
-}
+}  // namespace std
 
 namespace terrier::optimizer {
 
@@ -94,45 +95,41 @@ class StatsStorage {
    * @param table_id - oid of table
    * @return pointer to a TableStats object
    */
-  TableStats *GetPtrToTableStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id);
+  common::ManagedPointer<TableStats> GetPtrToTableStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id);
 
   /**
    * GetPtrToTableStatsStorage - gets the pointer to the unordered map storing
    * all the table stats objects.
    * @return a pointer to the table stats storage map
    */
-  std::unordered_map<StatsStorageKey, TableStats *> *GetPtrToTableStatsStorage() {
-    return &table_stats_storage;
+  common::ManagedPointer<std::unordered_map<StatsStorageKey, std::unique_ptr<TableStats>>> GetPtrToTableStatsStorage() {
+    return common::ManagedPointer(&table_stats_storage);
   }
 
  protected:
   /**
-   * InsertOrUpdateTableStats - if there is no corresponding pointer to a TableStats object
+   * InsertTableStats - if there is no corresponding pointer to a TableStats object
    * for the given database and table ids in the stats storage map, then this function inserts
-   * a TableStats pointer in the table stats storage map. Else, it removes the TableStats pointer
-   * currently stored and inserts the TableStats pointer given in its place.
+   * a TableStats pointer in the table stats storage map and returns true. Else, it returns false.
    * @param database_id
    * @param table_id
    * @param table_stats
    */
-  void InsertOrUpdateTableStats(catalog::db_oid_t database_id,
-                                catalog::table_oid_t table_id, TableStats *table_stats);
+  bool InsertTableStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id, std::unique_ptr<TableStats>);
 
   /**
-   * DeleteTableStats - if there is a corresponding pointer to a TableStats object
+   * DeleteTableStats - if there is a corresponding pointer to a TableStats object, then remove
+   * it and return true. Else, return false.
    * @param database_id
    * @param table_id
    */
-  void DeleteTableStats(catalog::db_oid_t database_id,
-                        catalog::table_oid_t table_id);
+  bool DeleteTableStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id);
 
  private:
   /**
    * An unordered map mapping StatsStorageKey objects (database_id and table_id) to
    * TableStats pointers. This represents the storage for TableStats objects.
    */
-  std::unordered_map<StatsStorageKey, TableStats *> table_stats_storage;
+  std::unordered_map<StatsStorageKey, std::unique_ptr<TableStats>> table_stats_storage;
 };
 }  // namespace terrier::optimizer
-
-

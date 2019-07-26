@@ -9,10 +9,9 @@ namespace terrier::optimizer {
 
 class ColumnStats {
  public:
-  ColumnStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id,
-              catalog::col_oid_t column_id, size_t num_rows, double cardinality, double frac_null,
-              std::vector<double> most_common_vals, std::vector<double> most_common_freqs,
-              std::vector<double> histogram_bounds, bool is_base_table)
+  ColumnStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id, catalog::col_oid_t column_id,
+              size_t num_rows, double cardinality, double frac_null, std::vector<double> most_common_vals,
+              std::vector<double> most_common_freqs, std::vector<double> histogram_bounds, bool is_base_table)
       : database_id_(database_id),
         table_id_(table_id),
         column_id_(column_id),
@@ -24,15 +23,13 @@ class ColumnStats {
         histogram_bounds_(std::move(histogram_bounds)),
         is_base_table_{is_base_table} {}
 
-  inline catalog::col_oid_t GetColumnID() { return column_id_; }
+  inline catalog::col_oid_t GetColumnID() const { return column_id_; }
 
   inline size_t &GetNumRows() { return this->num_rows_; }
 
   inline double &GetCardinality() { return this->cardinality_; }
 
   ColumnStats() = default;
-
-  virtual ~ColumnStats() = default;
 
   nlohmann::json ToJson() const {
     nlohmann::json j;

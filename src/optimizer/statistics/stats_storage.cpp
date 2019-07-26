@@ -4,37 +4,39 @@
 
 namespace terrier::optimizer {
 
-TableStats *StatsStorage::GetPtrToTableStats(catalog::db_oid_t database_id,
-                                             catalog::table_oid_t table_id) {
+common::ManagedPointer<TableStats> StatsStorage::GetPtrToTableStats(catalog::db_oid_t database_id,
+                                                                    catalog::table_oid_t table_id) {
   auto stats_storage_key = StatsStorageKey(database_id, table_id);
-  auto table_it = (*StatsStorage::GetPtrToTableStatsStorage()).find(stats_storage_key);
+  auto table_it = StatsStorage::GetPtrToTableStatsStorage()->find(stats_storage_key);
 
-  if (table_it != (*StatsStorage::GetPtrToTableStatsStorage()).end()) {
-    return table_it->second;
+  if (table_it != StatsStorage::GetPtrToTableStatsStorage()->end()) {
+    return common::ManagedPointer<TableStats>(table_it->second);
   } else {
-    OPTIMIZER_LOG_TRACE("One or more ids given don't exist in table stats storage map.")
+    return common::ManagedPointer<TableStats>(nullptr);
   }
 }
 
-void StatsStorage::InsertOrUpdateTableStats(catalog::db_oid_t database_id,
-                                            catalog::table_oid_t table_id, TableStats *table_stats) {
+bool StatsStorage::InsertTableStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id,
+                                    std::unique_ptr<TableStats> table_stats) {
   auto stats_storage_key = StatsStorageKey(database_id, table_id);
-  auto table_it = (*StatsStorage::GetPtrToTableStatsStorage()).find(stats_storage_key);
+  auto table_it = StatsStorage::GetPtrToTableStatsStorage()->find(stats_storage_key);
 
-  if (table_it != (*StatsStorage::GetPtrToTableStatsStorage()).end()) {
-    (*StatsStorage::GetPtrToTableStatsStorage()).erase(table_it);
+  if (table_it != StatsStorage::GetPtrToTableStatsStorage()->end()) {
+    return false;
   }
-  (*StatsStorage::GetPtrToTableStatsStorage()).insert({stats_storage_key, table_stats});
+  StatsStorage::GetPtrToTableStatsStorage()->insert({stats_storage_key, std::move(table_stats)});
+  return true;
 }
 
-void StatsStorage::DeleteTableStats(catalog::db_oid_t database_id,
-                                    catalog::table_oid_t table_id) {
+bool StatsStorage::DeleteTableStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id) {
   auto stats_storage_key = StatsStorageKey(database_id, table_id);
-  auto table_it = (*StatsStorage::GetPtrToTableStatsStorage()).find(stats_storage_key);
+  auto table_it = StatsStorage::GetPtrToTableStatsStorage()->find(stats_storage_key);
 
-  if (table_it != (*StatsStorage::GetPtrToTableStatsStorage()).end()) {
-    (*StatsStorage::GetPtrToTableStatsStorage()).erase(table_it);
+  if (table_it != StatsStorage::GetPtrToTableStatsStorage()->end()) {
+    StatsStorage::GetPtrToTableStatsStorage()->erase(table_it);
+    return true;
   }
+  return false;
 }
 
 }  // namespace terrier::optimizer
