@@ -53,16 +53,12 @@ class CompactHashKey {
     const auto &attr_sizes = metadata.GetAttributeSizes();
 
     TERRIER_ASSERT(attr_sizes.size() == from.NumColumns(), "attr_sizes and ProjectedRow must be equal in size.");
-    TERRIER_ASSERT(attr_sizes.size() == compact_ints_offsets.size(),
-                   "attr_sizes and attr_offsets must be equal in size.");
     TERRIER_ASSERT(!attr_sizes.empty(), "attr_sizes has too few values.");
 
     std::memset(key_data_, 0, key_size_byte);
 
     uint8_t offset = 0;
     for (uint8_t i = 0; i < from.NumColumns(); i++) {
-      TERRIER_ASSERT(compact_ints_offsets[i] + attr_sizes[i] <= key_size_byte, "out of bounds");
-
       const byte *const stored_attr = from.AccessWithNullCheck(static_cast<uint16_t>(from.ColumnIds()[i]));
       TERRIER_ASSERT(stored_attr != nullptr, "Attribute cannot be NULL in CompactHashKey.");
       const uint8_t size = attr_sizes[i];
