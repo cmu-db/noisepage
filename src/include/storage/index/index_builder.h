@@ -5,6 +5,7 @@
 #include "catalog/catalog_defs.h"
 #include "catalog/index_schema.h"
 #include "storage/index/bwtree_index.h"
+#include "storage/index/compact_hash_key.h"
 #include "storage/index/compact_ints_key.h"
 #include "storage/index/generic_key.h"
 #include "storage/index/hash_index.h"
@@ -153,13 +154,13 @@ class IndexBuilder {
     TERRIER_ASSERT(key_size <= sizeof(uint64_t) * INTSKEY_MAX_SLOTS, "Not enough slots for given key size.");
     Index *index = nullptr;
     if (key_size <= sizeof(uint64_t)) {
-      index = new HashIndex<CompactIntsKey<1>>(index_oid, constraint_type, std::move(metadata));
+      index = new HashIndex<CompactHashKey<1>>(index_oid, constraint_type, std::move(metadata));
     } else if (key_size <= sizeof(uint64_t) * 2) {
-      index = new HashIndex<CompactIntsKey<2>>(index_oid, constraint_type, std::move(metadata));
+      index = new HashIndex<CompactHashKey<2>>(index_oid, constraint_type, std::move(metadata));
     } else if (key_size <= sizeof(uint64_t) * 3) {
-      index = new HashIndex<CompactIntsKey<3>>(index_oid, constraint_type, std::move(metadata));
+      index = new HashIndex<CompactHashKey<3>>(index_oid, constraint_type, std::move(metadata));
     } else if (key_size <= sizeof(uint64_t) * 4) {
-      index = new HashIndex<CompactIntsKey<4>>(index_oid, constraint_type, std::move(metadata));
+      index = new HashIndex<CompactHashKey<4>>(index_oid, constraint_type, std::move(metadata));
     }
     TERRIER_ASSERT(index != nullptr, "Failed to create an IntsKey index.");
     return index;
