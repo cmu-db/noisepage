@@ -5,8 +5,8 @@ namespace terrier::optimizer {
 
 void TableStats::UpdateNumRows(size_t new_num_rows) {
   GetNumRows() = new_num_rows;
-  for (auto& col_to_stats_pair : GetColToStatsPtrMap()) {
-    auto& col_stats_ptr = col_to_stats_pair.second;
+  for (auto &col_to_stats_pair : GetColToStatsPtrMap()) {
+    auto &col_stats_ptr = col_to_stats_pair.second;
     col_stats_ptr->GetNumRows() = new_num_rows;
   }
 }
@@ -59,4 +59,4 @@ bool TableStats::RemoveColumnStats(catalog::col_oid_t column_id) {
   }
 }
 
-}
+}  // namespace terrier::optimizer
