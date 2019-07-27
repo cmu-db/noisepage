@@ -34,7 +34,7 @@ namespace binder {
  */
 class BinderContext {
  public:
-  explicit BinderContext(BinderContext *upper_context = nullptr) : upper_context_(upper_context) {
+  explicit BinderContext(BinderContext *upper_context) : upper_context_(upper_context) {
     if (upper_context != nullptr) depth_ = upper_context->depth_ + 1;
   }
 
