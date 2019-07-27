@@ -77,6 +77,12 @@ struct TableInfo {
   std::string schema_name_;
   std::string database_name_;
 
+  /**
+   * Check if the current table info object has the correct database name.
+   * If the current table info does not have a database name, set the database name to the default database name
+   * If the current table info has a database name, this function verifies if it matches the defualt database name
+   * @param default_database_name Default database name
+   */
   void TryBindDatabaseName(const std::string &default_database_name) {
     if (database_name_.empty()) {
       database_name_ = std::string(default_database_name);
@@ -179,6 +185,12 @@ class TableRefStatement : public SQLStatement {
   virtual std::string GetDatabaseName() const { return table_info_->GetDatabaseName(); }
 
  protected:
+  /**
+   * Check if the current statement has the correct database name.
+   * If the current statement does not have a database name, set the database name to the default database name
+   * If the current statement has a database name, this function verifies if it matches the defualt database name
+   * @param default_database_name Default database name
+   */
   void TryBindDatabaseName(const std::string &default_database_name) {
     if (!table_info_) table_info_ = std::make_shared<TableInfo>();
     table_info_->TryBindDatabaseName(default_database_name);

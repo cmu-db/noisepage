@@ -211,9 +211,6 @@ class TableRef {
   void FromJson(const nlohmann::json &j);
 
  private:
-  //  friend class InsertStatement;
-  //  friend class AnalyzeStatement;
-  //  friend class DeleteStatement;
   friend class binder::BindNodeVisitor;
 
   TableReferenceType type_;
@@ -226,6 +223,12 @@ class TableRef {
 
   std::shared_ptr<JoinDefinition> join_;
 
+  /**
+   * Check if the current table ref has the correct database name.
+   * If the current table ref does not have a database name, set the database name to the default database name
+   * If the current table ref has a database name, this function verifies if it matches the defualt database name
+   * @param default_database_name Default database name
+   */
   void TryBindDatabaseName(const std::string &default_database_name) {
     if (!table_info_) table_info_ = std::make_shared<TableInfo>();
     table_info_->TryBindDatabaseName(default_database_name);

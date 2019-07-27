@@ -113,6 +113,7 @@ class BinderContext {
    * @param current_context Current binder context
    * @param alias Table alias
    * @param expr Column value expression
+   * @param tuple Tuple of database oid, table oid, and schema object
    * @return Return true if the alias is found, false otherwise
    */
   static bool GetRegularTableObj(BinderContext *current_context, const std::string &alias,
