@@ -145,7 +145,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
 
   EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
-  col_expr = (parser::ColumnValueExpression *)selectStmt->GetSelectColumns()[1].get();
+  col_expr = dynamic_cast<const parser::ColumnValueExpression *>(selectStmt->GetSelectColumns()[1].get());
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // B.b2
   EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // B.b2
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2));  // B.b2; columns are indexed from 1
@@ -155,13 +155,13 @@ TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
   // Check join condition
   LOG_INFO("Checking join condition");
   col_expr =
-      (parser::ColumnValueExpression *)selectStmt->GetSelectTable()->GetJoin()->GetJoinCondition()->GetChild(0).get();
+      dynamic_cast<const parser::ColumnValueExpression *>(selectStmt->GetSelectTable()->GetJoin()->GetJoinCondition()->GetChild(0).get());
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
 
   col_expr =
-      (parser::ColumnValueExpression *)selectStmt->GetSelectTable()->GetJoin()->GetJoinCondition()->GetChild(1).get();
+      dynamic_cast<const parser::ColumnValueExpression *>(selectStmt->GetSelectTable()->GetJoin()->GetJoinCondition()->GetChild(1).get());
 
   //  EXPECT_EQ(col_expr->GetBoundOid(), make_tuple(db_oid, table_b_oid_, 0));  // b.b1
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // B.b1
@@ -170,14 +170,14 @@ TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
 
   // Check Where clause
   LOG_INFO("Checking where clause");
-  col_expr = (parser::ColumnValueExpression *)selectStmt->GetSelectCondition()->GetChild(0).get();
+  col_expr = dynamic_cast<const parser::ColumnValueExpression *>(selectStmt->GetSelectCondition()->GetChild(0).get());
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
 
   // Check Group By and Having
   LOG_INFO("Checking group by");
-  col_expr = (parser::ColumnValueExpression *)selectStmt->GetSelectGroupBy()->GetColumns()[0].get();
+  col_expr = dynamic_cast<const parser::ColumnValueExpression *>(selectStmt->GetSelectGroupBy()->GetColumns()[0].get());
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
@@ -187,14 +187,14 @@ TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
   EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // B.b2
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2));  // B.b2; columns are indexed from 1
 
-  col_expr = (parser::ColumnValueExpression *)selectStmt->GetSelectGroupBy()->GetHaving()->GetChild(0).get();
+  col_expr = dynamic_cast<const parser::ColumnValueExpression *>(selectStmt->GetSelectGroupBy()->GetHaving()->GetChild(0).get());
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
 
   // Check Order By
   LOG_INFO("Checking order by");
-  col_expr = (parser::ColumnValueExpression *)selectStmt->GetSelectOrderBy()->GetOrderByExpressions()[0].get();
+  col_expr = dynamic_cast<const parser::ColumnValueExpression *>(selectStmt->GetSelectOrderBy()->GetOrderByExpressions()[0].get());
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
